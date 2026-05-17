@@ -152,9 +152,9 @@
     .notice.gold { background: rgba(200,151,63,0.08); border: 1px solid rgba(200,151,63,0.2); color: var(--gold-light); }
 
     /* TERMS */
-    .terms-check { display: flex; align-items: flex-start; gap: 0.75rem; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 1rem; margin-top: 0.75rem; cursor: pointer; }
-    .terms-check input[type="checkbox"] { width: 18px; height: 18px; flex-shrink: 0; margin-top: 1px; accent-color: var(--gold); cursor: pointer; }
-    .terms-check label { font-size: 0.84rem; color: var(--gray-light); line-height: 1.55; cursor: pointer; }
+    .terms-check { display: flex; align-items: flex-start; gap: 0.75rem; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 1.1rem; margin-top: 0.75rem; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+    .terms-check input[type="checkbox"] { width: 24px; height: 24px; min-width: 24px; flex-shrink: 0; margin-top: 1px; accent-color: var(--gold); cursor: pointer; border-radius: 4px; }
+    .terms-check label { font-size: 0.84rem; color: var(--gray-light); line-height: 1.55; cursor: pointer; flex: 1; }
     .terms-check label a { color: var(--gold); text-decoration: underline; }
     .terms-check.accepted { border-color: rgba(74,140,111,0.4); background: rgba(74,140,111,0.05); }
 
@@ -316,8 +316,8 @@
       <div class="notice warn">⚠️ <strong>Not legal advice.</strong> HomeOfferFlow is a form-completion tool only. You are responsible for verifying all information. Consider having a licensed agent or attorney review before submitting.</div>
       <div class="notice gold">📋 <strong>Current form:</strong> TREC One to Four Family Residential Contract (Resale) No. 20-18 — Mandatory as of January 3, 2025. All 2025 addenda updates included.</div>
       <div class="notice sage">🔒 Your information is used only to fill your TREC form and is not shared with third parties except to process payment.</div>
-      <div class="terms-check" id="termsCheckRow" onclick="toggleTerms()">
-        <input type="checkbox" id="termsAccepted"/>
+      <div class="terms-check" id="termsCheckRow">
+        <input type="checkbox" id="termsAccepted" onchange="handleTermsChange()"/>
         <label for="termsAccepted">I understand that HomeOfferFlow is not a law firm, does not provide legal advice, and is not acting as my real estate agent or attorney. I have read and agree to the <a href="#" onclick="openTermsModal(event)">Full Terms of Service & Disclaimer</a>. I am responsible for verifying all information in my offer is accurate and complete before submitting to any party.</label>
       </div>
     </div>
@@ -757,13 +757,13 @@
     nb.disabled = state.step === 0 && !state.termsOK;
   }
 
-  function toggleTerms() {
+  function handleTermsChange() {
     const cb = document.getElementById('termsAccepted');
-    cb.checked = !cb.checked;
     state.termsOK = cb.checked;
     document.getElementById('termsCheckRow').classList.toggle('accepted', cb.checked);
     updateProgress();
   }
+  function toggleTerms(e) { handleTermsChange(); }
 
   function openTermsModal(e) { e.preventDefault(); e.stopPropagation(); document.getElementById('termsModal').classList.add('open'); }
   function closeTerms() { document.getElementById('termsModal').classList.remove('open'); }
@@ -786,7 +786,6 @@
     updateProgress();
     document.querySelector('.wizard-body').scrollTop = 0;
     window.scrollTo(0, 0);
-    if (STEPS[state.step] === 'step2') setTimeout(tryInitAutocomplete, 200);
   }
 
   function collectData() {
@@ -996,15 +995,23 @@
     });
   }
 
-  // Intercept showStep to apply smart defaults at right moments
-  const _origShowStep = showStep;
-  function showStep(n) {
-    _origShowStep(n);
-    const sid = STEPS[n];
+  // Apply smart defaults and autocomplete at right step moments
+  // Hook into the existing showStep by extending it after definition
+  const _showStepOrig = showStep.bind({});
+  showStep = function(n) {
+    if (n < 0 || n >= STEPS.length) return;
+    document.getElementById(STEPS[state.step]).classList.remove('active');
+    state.step = n;
+    document.getElementById(STEPS[state.step]).classList.add('active');
+    updateProgress();
+    document.querySelector('.wizard-body').scrollTop = 0;
+    window.scrollTo(0, 0);
+    // Step-specific hooks
+    const sid = STEPS[state.step];
     if (sid === 'step3') { applySmartDefaults(); wireSmartCalculations(); }
     if (sid === 'step7') { applySmartDefaults(); }
     if (sid === 'step2') { setTimeout(initPlacesService, 150); }
-  }
+  };
 
   // ── GOOGLE PLACES — SERVICE API (works in hidden containers) ──
   let _autocompleteService = null;
@@ -1012,7 +1019,7 @@
   let _sessionToken        = null;
   let _dropdown            = null;
 
-  // Called by Google Maps callback
+  // Called by Google Maps callback when script loads
   function initAutocomplete() {
     if (!window.google || !window.google.maps) return;
     _autocompleteService = new google.maps.places.AutocompleteService();
@@ -1022,18 +1029,22 @@
     const map = new google.maps.Map(mapDiv, { center: { lat: 33.1, lng: -96.8 }, zoom: 10 });
     _placesService = new google.maps.places.PlacesService(map);
     _sessionToken  = new google.maps.places.AutocompleteSessionToken();
-    console.log('Places Service ready');
     // Suppress Google's native dropdown
     const s = document.createElement('style');
     s.textContent = '.pac-container { display: none !important; }';
     document.head.appendChild(s);
+    console.log('Places Service ready');
+    // If user is already on the property step, wire it up now
+    if (STEPS[state.step] === 'step2') initPlacesService();
   }
 
   function initPlacesService() {
-    if (!_autocompleteService) {
-      if (window.google && window.google.maps && window.google.maps.places) initAutocomplete();
-      else { console.warn('Google Maps not loaded yet'); return; }
+    if (!window.google || !window.google.maps || !window.google.maps.places) {
+      console.warn('Google Maps not ready — retrying in 500ms');
+      setTimeout(initPlacesService, 500);
+      return;
     }
+    if (!_autocompleteService) initAutocomplete();
     const input = document.getElementById('propAddress');
     if (!input || input._hofWired) return;
     input._hofWired = true;
