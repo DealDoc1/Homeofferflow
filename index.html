@@ -9,17 +9,15 @@
     window.gMapsError = function() {
       console.warn('Google Maps failed to load');
     };
-    // Pre-declare callback so it's available when Maps script loads
+    // Bootstrap loader - doesn't use eval
     window.initAutocomplete = function() {
-      if (!window.google || !window.google.maps) return;
       window._mapsReady = true;
-      console.log('Google Maps loaded via callback');
-      // Trigger Places setup if wizard already open on property step
+      console.log('Google Maps loaded');
       if (window._hofPlacesSetup) window._hofPlacesSetup();
     };
   </script>
   <script src="https://js.stripe.com/v3/"></script>
-  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCs554orYvNAmKnIehn7bwAvADCfx71_Oc&libraries=places&callback=initAutocomplete" async defer></script>
+  <script>(g=>{var h,a,k,p="The Google Maps JavaScript API",c="google",l="importLibrary",q="__ib__",m=document,b=window;b=b[c]||(b[c]={});var d=b.maps||(b.maps={}),r=new Set,e=new URLSearchParams,u=()=>h||(h=new Promise(async(f,n)=>{await (a=m.createElement("script"));e.set("libraries",[...r]+"");for(k in g)e.set(k.replace(/[A-Z]/g,t=>"_"+t[0].toLowerCase()),g[k]);e.set("language","en");a.src=`https://maps.${c}apis.com/maps/api/js?`+e;a.onerror=()=>n(Error(p+" could not load."));a.nonce=m.querySelector("script[nonce]")?.nonce||"";m.head.append(a);d[l]=f}));d[l]=(f,...n)=>r.add(f)&&u().then(()=>d[l](f,...n))})({key:"AIzaSyCs554orYvNAmKnIehn7bwAvADCfx71_Oc",v:"weekly",callback:"initAutocomplete"});</script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
@@ -1026,30 +1024,36 @@
   let _sessionToken        = null;
   let _dropdown            = null;
 
-  // Called when Google Maps script loads (via window.initAutocomplete set in head)
-  // We extend that here to also set up the Places services
+  // Called when Google Maps loads
   const _headCallback = window.initAutocomplete;
   window.initAutocomplete = function() {
     _headCallback && _headCallback();
     setupPlacesServices();
   };
 
-  function setupPlacesServices() {
-    if (!window.google || !window.google.maps || !window.google.maps.places) return;
-    if (_autocompleteService) return; // already done
-    _autocompleteService = new google.maps.places.AutocompleteService();
-    const mapDiv = document.createElement('div');
-    mapDiv.style.display = 'none';
-    document.body.appendChild(mapDiv);
-    const map = new google.maps.Map(mapDiv, { center: { lat: 33.1, lng: -96.8 }, zoom: 10 });
-    _placesService = new google.maps.places.PlacesService(map);
-    _sessionToken  = new google.maps.places.AutocompleteSessionToken();
-    const s = document.createElement('style');
-    s.textContent = '.pac-container { display: none !important; }';
-    document.head.appendChild(s);
-    console.log('Places Service ready');
-    // Wire input if user is already on property step
-    if (STEPS[state.step] === 'step2') wireAddressInput();
+  async function setupPlacesServices() {
+    try {
+      if (!window.google || !window.google.maps) return;
+      // Use importLibrary to avoid eval issues
+      const { AutocompleteService, PlacesService, AutocompleteSessionToken, PlacesServiceStatus } = 
+        await google.maps.importLibrary('places');
+      window._PlacesServiceStatus = PlacesServiceStatus;
+      _autocompleteService = new AutocompleteService();
+      const mapDiv = document.createElement('div');
+      mapDiv.style.display = 'none';
+      document.body.appendChild(mapDiv);
+      const { Map } = await google.maps.importLibrary('maps');
+      const map = new Map(mapDiv, { center: { lat: 33.1, lng: -96.8 }, zoom: 10 });
+      _placesService = new PlacesService(map);
+      _sessionToken = new AutocompleteSessionToken();
+      const s = document.createElement('style');
+      s.textContent = '.pac-container { display: none !important; }';
+      document.head.appendChild(s);
+      console.log('Places Service ready');
+      if (STEPS[state.step] === 'step2') wireAddressInput();
+    } catch(e) {
+      console.error('Places setup error:', e);
+    }
   }
 
   function initPlacesService() {
@@ -1081,7 +1085,8 @@
         types: ['address'],
         sessionToken: _sessionToken
       }, (preds, status) => {
-        if (status !== google.maps.places.PlacesServiceStatus.OK || !preds) { _hideDropdown(); return; }
+        const OK = window._PlacesServiceStatus?.OK || 'OK';
+        if (status !== OK || !preds) { _hideDropdown(); return; }
         _showDropdown(preds, input);
       });
     }, 280));
@@ -1129,9 +1134,8 @@
     _placesService.getDetails(
       { placeId, fields: ['address_components'], sessionToken: _sessionToken },
       (place, status) => {
-        if (status === google.maps.places.PlacesServiceStatus.OK && place) {
-          fillAddressFields(place.address_components);
-        }
+        const OK = window._PlacesServiceStatus?.OK || 'OK';
+        if (status === OK && place) fillAddressFields(place.address_components);
         _sessionToken = new google.maps.places.AutocompleteSessionToken();
       }
     );
