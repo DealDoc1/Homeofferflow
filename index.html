@@ -6,13 +6,20 @@
   <title>HomeOfferFlow — Write Your Offer in Minutes</title>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <script>
-    // Load Google Maps with error handling
     window.gMapsError = function() {
-      console.warn('Google Maps failed to load — autocomplete unavailable');
-    }
+      console.warn('Google Maps failed to load');
+    };
+    // Pre-declare callback so it's available when Maps script loads
+    window.initAutocomplete = function() {
+      if (!window.google || !window.google.maps) return;
+      window._mapsReady = true;
+      console.log('Google Maps loaded via callback');
+      // Trigger Places setup if wizard already open on property step
+      if (window._hofPlacesSetup) window._hofPlacesSetup();
+    };
   </script>
   <script src="https://js.stripe.com/v3/"></script>
-  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCs554orYvNAmKnIehn7bwAvADCfx71_Oc&libraries=places&callback=initAutocomplete&onerror=gMapsError" async defer></script>
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCs554orYvNAmKnIehn7bwAvADCfx71_Oc&libraries=places&callback=initAutocomplete" async defer></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
@@ -1019,9 +1026,17 @@
   let _sessionToken        = null;
   let _dropdown            = null;
 
-  // Called by Google Maps callback when script loads
-  function initAutocomplete() {
-    if (!window.google || !window.google.maps) return;
+  // Called when Google Maps script loads (via window.initAutocomplete set in head)
+  // We extend that here to also set up the Places services
+  const _headCallback = window.initAutocomplete;
+  window.initAutocomplete = function() {
+    _headCallback && _headCallback();
+    setupPlacesServices();
+  };
+
+  function setupPlacesServices() {
+    if (!window.google || !window.google.maps || !window.google.maps.places) return;
+    if (_autocompleteService) return; // already done
     _autocompleteService = new google.maps.places.AutocompleteService();
     const mapDiv = document.createElement('div');
     mapDiv.style.display = 'none';
@@ -1029,22 +1044,26 @@
     const map = new google.maps.Map(mapDiv, { center: { lat: 33.1, lng: -96.8 }, zoom: 10 });
     _placesService = new google.maps.places.PlacesService(map);
     _sessionToken  = new google.maps.places.AutocompleteSessionToken();
-    // Suppress Google's native dropdown
     const s = document.createElement('style');
     s.textContent = '.pac-container { display: none !important; }';
     document.head.appendChild(s);
     console.log('Places Service ready');
-    // If user is already on the property step, wire it up now
-    if (STEPS[state.step] === 'step2') initPlacesService();
+    // Wire input if user is already on property step
+    if (STEPS[state.step] === 'step2') wireAddressInput();
   }
 
   function initPlacesService() {
     if (!window.google || !window.google.maps || !window.google.maps.places) {
-      console.warn('Google Maps not ready — retrying in 500ms');
-      setTimeout(initPlacesService, 500);
+      // Maps not ready yet — set a flag so the callback wires it when ready
+      window._hofPlacesSetup = wireAddressInput;
+      console.log('Maps not ready yet — will wire when loaded');
       return;
     }
-    if (!_autocompleteService) initAutocomplete();
+    if (!_autocompleteService) setupPlacesServices();
+    wireAddressInput();
+  }
+  function wireAddressInput() {
+    if (!_autocompleteService) { console.warn('Services not ready'); return; }
     const input = document.getElementById('propAddress');
     if (!input || input._hofWired) return;
     input._hofWired = true;
@@ -1157,9 +1176,12 @@
     console.log(`✓ Address filled: ${street}, ${city}, ${state} ${zip}, ${county} County`);
   }
 
-  // Legacy — called by openWizard, now handled by showStep intercept
+  // Legacy fallback
   function tryInitAutocomplete() {
-    if (window.google && window.google.maps && window.google.maps.places) initPlacesService();
+    if (window.google && window.google.maps && window.google.maps.places) {
+      setupPlacesServices();
+      wireAddressInput();
+    }
   }
 </script>
 </body>
