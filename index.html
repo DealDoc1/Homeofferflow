@@ -1029,23 +1029,16 @@
 
   async function setupPlacesServices() {
     try {
-      if (!window.google || !window.google.maps) return;
-      // Use importLibrary to avoid eval issues
-      const { AutocompleteService, PlacesService, AutocompleteSessionToken, PlacesServiceStatus } = 
+      const { AutocompleteService, AutocompleteSessionToken, PlacesServiceStatus } =
         await google.maps.importLibrary('places');
       window._PlacesServiceStatus = PlacesServiceStatus;
       _autocompleteService = new AutocompleteService();
-      const mapDiv = document.createElement('div');
-      mapDiv.style.display = 'none';
-      document.body.appendChild(mapDiv);
-      const { Map } = await google.maps.importLibrary('maps');
-      const map = new Map(mapDiv, { center: { lat: 33.1, lng: -96.8 }, zoom: 10 });
-      _placesService = new PlacesService(map);
       _sessionToken = new AutocompleteSessionToken();
+      // Suppress Google's native dropdown
       const s = document.createElement('style');
       s.textContent = '.pac-container { display: none !important; }';
       document.head.appendChild(s);
-      console.log('Places Service ready');
+      console.log('Places Service ready (new API)');
       if (STEPS[state.step] === 'step2') wireAddressInput();
     } catch(e) {
       console.error('Places setup error:', e);
@@ -1123,18 +1116,25 @@
     document.body.appendChild(dd);
   }
 
-  function _selectPrediction(placeId, streetText, input) {
+  async function _selectPrediction(placeId, streetText, input) {
     _hideDropdown();
     input.value = streetText;
-    if (!_placesService) return;
-    _placesService.getDetails(
-      { placeId, fields: ['address_components'], sessionToken: _sessionToken },
-      (place, status) => {
-        const OK = window._PlacesServiceStatus?.OK || 'OK';
-        if (status === OK && place) fillAddressFields(place.address_components);
-        _sessionToken = new google.maps.places.AutocompleteSessionToken();
+    try {
+      const { Place } = await google.maps.importLibrary('places');
+      const place = new Place({ id: placeId });
+      await place.fetchFields({ fields: ['addressComponents'] });
+      if (place.addressComponents) {
+        const components = place.addressComponents.map(c => ({
+          long_name: c.longText,
+          short_name: c.shortText,
+          types: c.types
+        }));
+        fillAddressFields(components);
       }
-    );
+      _sessionToken = new google.maps.places.AutocompleteSessionToken();
+    } catch(e) {
+      console.error('Place details error:', e);
+    }
   }
 
   function _hideDropdown() {
