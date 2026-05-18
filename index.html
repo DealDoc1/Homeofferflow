@@ -1043,16 +1043,13 @@
 
   async function setupPlacesServices() {
     try {
-      const { AutocompleteService, AutocompleteSessionToken, PlacesServiceStatus } =
+      const { AutocompleteSuggestion, AutocompleteSessionToken } =
         await google.maps.importLibrary('places');
-      window._PlacesServiceStatus = PlacesServiceStatus;
-      _autocompleteService = new AutocompleteService();
+      window._AutocompleteSuggestion = AutocompleteSuggestion;
+      window._AutocompleteSessionToken = AutocompleteSessionToken;
       _sessionToken = new AutocompleteSessionToken();
-      // Suppress Google's native dropdown
-      const s = document.createElement('style');
-      s.textContent = '.pac-container { display: none !important; }';
-      document.head.appendChild(s);
-      console.log('Places Service ready (new API)');
+      _autocompleteService = true; // flag that setup is done
+      console.log('Places API (New) ready — AutocompleteSuggestion');
       if (STEPS[state.step] === 'step2') wireAddressInput();
     } catch(e) {
       console.error('Places setup error:', e);
@@ -1060,17 +1057,17 @@
   }
 
   function initPlacesService() {
-    if (!window.google || !window.google.maps || !window.google.maps.places) {
-      // Maps not ready yet — set a flag so the callback wires it when ready
+    if (!window.google || !window.google.maps) {
       window._hofPlacesSetup = wireAddressInput;
       console.log('Maps not ready yet — will wire when loaded');
       return;
     }
     if (!_autocompleteService) setupPlacesServices();
-    wireAddressInput();
+    else wireAddressInput();
   }
+
   function wireAddressInput() {
-    if (!_autocompleteService) { console.warn('Services not ready'); return; }
+    if (!window._AutocompleteSuggestion) { console.warn('AutocompleteSuggestion not ready'); return; }
     const input = document.getElementById('propAddress');
     if (!input || input._hofWired) return;
     input._hofWired = true;
@@ -1079,29 +1076,33 @@
     input.setAttribute('autocapitalize', 'off');
     input.setAttribute('spellcheck', 'false');
 
-    input.addEventListener('input', _debounce(e => {
+    input.addEventListener('input', _debounce(async e => {
       const q = e.target.value.trim();
       if (q.length < 3) { _hideDropdown(); return; }
-      _autocompleteService.getPlacePredictions({
-        input: q,
-        componentRestrictions: { country: 'us' },
-        types: ['address'],
-        sessionToken: _sessionToken
-      }, (preds, status) => {
-        const OK = window._PlacesServiceStatus?.OK || 'OK';
-        if (status !== OK || !preds) { _hideDropdown(); return; }
-        _showDropdown(preds, input);
-      });
+      try {
+        const request = {
+          input: q,
+          includedRegionCodes: ['us'],
+          includedPrimaryTypes: ['street_address', 'premise'],
+          sessionToken: _sessionToken
+        };
+        const { suggestions } = await window._AutocompleteSuggestion.fetchAutocompleteSuggestions(request);
+        if (!suggestions || suggestions.length === 0) { _hideDropdown(); return; }
+        _showDropdown(suggestions, input);
+      } catch(err) {
+        console.error('Autocomplete error:', err);
+        _hideDropdown();
+      }
     }, 280));
 
     document.addEventListener('click', e => {
       if (!e.target.closest('#propAddress') && !e.target.closest('#hof-ac-dd')) _hideDropdown();
     });
 
-    console.log('Address autocomplete wired');
+    console.log('Address autocomplete wired (new API)');
   }
 
-  function _showDropdown(preds, input) {
+  function _showDropdown(suggestions, input) {
     _hideDropdown();
     const rect = input.getBoundingClientRect();
     const dd = document.createElement('div');
@@ -1112,16 +1113,17 @@
       z-index:99999; overflow:hidden; box-shadow:0 8px 32px rgba(0,0,0,0.5);
       font-family:'DM Sans',sans-serif;
     `;
-    preds.slice(0, 5).forEach(pred => {
+    suggestions.slice(0, 5).forEach(suggestion => {
+      const pred = suggestion.placePrediction;
+      if (!pred) return;
       const item = document.createElement('div');
       item.style.cssText = 'padding:0.85rem 1rem; color:#a8bdd1; cursor:pointer; border-bottom:1px solid rgba(255,255,255,0.06); font-size:0.9rem; transition:background 0.15s;';
-      // Bold the matched part
-      const main = pred.structured_formatting?.main_text || pred.description.split(',')[0];
-      const secondary = pred.structured_formatting?.secondary_text || '';
+      const main = pred.mainText?.toString() || pred.text?.toString() || '';
+      const secondary = pred.secondaryText?.toString() || '';
       item.innerHTML = `<span style="color:#fff;font-weight:600;">${main}</span>${secondary ? `<span style="color:#7a8fa8;font-size:0.8rem;"> ${secondary}</span>` : ''}`;
       item.addEventListener('mouseover', () => item.style.background = 'rgba(200,151,63,0.1)');
       item.addEventListener('mouseout',  () => item.style.background = '');
-      const select = () => _selectPrediction(pred.place_id, main, input);
+      const select = () => _selectPrediction(pred, main, input);
       item.addEventListener('mousedown', e => { e.preventDefault(); select(); });
       item.addEventListener('touchend',  e => { e.preventDefault(); select(); });
       dd.appendChild(item);
@@ -1130,12 +1132,11 @@
     document.body.appendChild(dd);
   }
 
-  async function _selectPrediction(placeId, streetText, input) {
+  async function _selectPrediction(pred, streetText, input) {
     _hideDropdown();
     input.value = streetText;
     try {
-      const { Place } = await google.maps.importLibrary('places');
-      const place = new Place({ id: placeId });
+      const place = pred.toPlace();
       await place.fetchFields({ fields: ['addressComponents'] });
       if (place.addressComponents) {
         const components = place.addressComponents.map(c => ({
@@ -1145,9 +1146,9 @@
         }));
         fillAddressFields(components);
       }
-      _sessionToken = new google.maps.places.AutocompleteSessionToken();
+      _sessionToken = new window._AutocompleteSessionToken();
     } catch(e) {
-      console.error('Place details error:', e);
+      console.error('Place fetch error:', e);
     }
   }
 
