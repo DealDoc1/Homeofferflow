@@ -904,31 +904,30 @@
     btn.textContent = 'Processing...';
     btn.disabled = true;
 
-    // Stripe price IDs — replace with your actual Stripe price IDs
+    // Stripe price IDs — live mode
     const priceMap = {
-      'self':                 'price_REPLACE_SELF_SERVE',
-      'agent':                'price_REPLACE_AGENT_REVIEW',
-      'attorney':             'price_REPLACE_ATTORNEY_REVIEW',
-      'agent-transaction':    'price_REPLACE_AGENT_TRANSACTION',
-      'attorney-transaction': 'price_REPLACE_ATTORNEY_TRANSACTION',
+      'self':                 'price_1TYTYqAELe66ESXnhNQmydWn',
+      'agent':                'price_1TYTbiAELe66ESXnF6HNKELh',
+      'attorney':             'price_1TYTewAELe66ESXnE83aaaHa',
+      'agent-transaction':    'price_1TYTfSAELe66ESXnrp6Em3ps',
+      'attorney-transaction': 'price_1TYU0AAELe66ESXn3vY87JoT',
     };
 
     const priceId = priceMap[state.selectedPlan];
-    if (!priceId || priceId.includes('REPLACE')) {
-      // Stripe not yet wired — show success simulation for testing
-      alert(`✅ TEST MODE: Would charge $${state.selectedPrice} for ${state.selectedPlan} plan.\n\nNext step: Add your Stripe price IDs to go live.`);
+    if (!priceId) {
+      alert('Plan not found. Please select a plan and try again.');
       btn.textContent = `Pay $${state.selectedPrice.toLocaleString()} & Continue →`;
       btn.disabled = false;
       return;
     }
 
     try {
-      const stripe = Stripe('pk_live_REPLACE_WITH_YOUR_PUBLISHABLE_KEY');
+      const stripe = Stripe('pk_live_51T7fXrAELe66ESXnenZWvslrGUe4Iay4s2lDo78PytTZgNFniRkuN9rkwNv2XcU0acrN5CQileVasoF1XP8sWDDK00HIvIQ6AY');
       await stripe.redirectToCheckout({
         lineItems: [{ price: priceId, quantity: 1 }],
         mode: 'payment',
         customerEmail: email,
-        successUrl: `${window.location.origin}/success?plan=${state.selectedPlan}&session_id={CHECKOUT_SESSION_ID}`,
+        successUrl: `${window.location.origin}/?success=true&plan=${state.selectedPlan}`,
         cancelUrl: window.location.href,
       });
     } catch(e) {
@@ -944,6 +943,21 @@
   });
 
   document.getElementById('termsModal').addEventListener('click', function(e) { if(e.target===this) closeTerms(); });
+
+  // Handle successful payment return from Stripe
+  if (window.location.search.includes('success=true')) {
+    const plan = new URLSearchParams(window.location.search).get('plan');
+    const names = { 'self':'Self-Serve', 'agent':'Agent Review', 'attorney':'Attorney Review', 'agent-transaction':'Agent Transaction Support', 'attorney-transaction':'Attorney Transaction Support' };
+    setTimeout(() => {
+      const msg = document.createElement('div');
+      msg.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#4a8c6f;color:#fff;padding:1rem 2rem;border-radius:10px;font-family:DM Sans,sans-serif;font-weight:600;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,0.3);text-align:center;';
+      msg.innerHTML = `✅ Payment successful! Thank you for your ${names[plan]||'HomeOfferFlow'} purchase.<br><span style="font-weight:400;font-size:0.85rem;">Your receipt has been sent to your email.</span>`;
+      document.body.appendChild(msg);
+      setTimeout(() => msg.remove(), 6000);
+      // Clean URL
+      window.history.replaceState({}, '', '/');
+    }, 500);
+  }
 
   // ── SMART DEFAULTS ──
   function nextBusinessDay(date) {
