@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>HomeOfferFlow — PDF Field Mapper & Download Test</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #0d1f35; color: #fff; padding: 1.5rem; min-height: 100vh; }
+    h1 { font-size: 1.4rem; margin-bottom: 0.3rem; color: #e8b86d; }
+    p.sub { color: #7a8fa8; font-size: 0.85rem; margin-bottom: 1.5rem; }
+    .card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 1.25rem; margin-bottom: 1rem; }
+    .card h2 { font-size: 1rem; font-weight: 700; margin-bottom: 0.75rem; color: #c8973f; }
+    .btn { display: inline-block; padding: 0.75rem 1.5rem; border-radius: 8px; border: none; font-weight: 700; font-size: 0.95rem; cursor: pointer; transition: all 0.2s; margin: 0.25rem; }
+    .btn-gold { background: #c8973f; color: #0d1f35; }
+    .btn-gold:hover { background: #e8b86d; }
+    .btn-sage { background: #4a8c6f; color: #fff; }
+    .btn-sage:hover { background: #6db38f; }
+    .btn-outline { background: transparent; border: 1px solid rgba(255,255,255,0.2); color: #a8bdd1; }
+    .btn-outline:hover { border-color: #c8973f; color: #e8b86d; }
+    .status { margin-top: 1rem; padding: 0.85rem 1rem; border-radius: 8px; font-size: 0.85rem; line-height: 1.6; }
+    .status.ok { background: rgba(74,140,111,0.15); border: 1px solid rgba(74,140,111,0.3); color: #6db38f; }
+    .status.err { background: rgba(192,57,43,0.12); border: 1px solid rgba(192,57,43,0.3); color: #e06c5a; }
+    .status.info { background: rgba(200,151,63,0.1); border: 1px solid rgba(200,151,63,0.25); color: #e8b86d; }
+    .field-list { max-height: 300px; overflow-y: auto; margin-top: 0.75rem; font-size: 0.78rem; font-family: monospace; background: rgba(0,0,0,0.3); border-radius: 8px; padding: 0.75rem; }
+    .field-item { padding: 0.2rem 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+    .field-item .ftype { color: #6db38f; margin-right: 0.5rem; }
+    .field-item .fname { color: #e8b86d; }
+    .section-header { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #4a8c6f; margin: 0.75rem 0 0.35rem; padding-bottom: 0.25rem; border-bottom: 1px solid rgba(74,140,111,0.2); }
+    input[type="file"] { display: none; }
+    .upload-label { display: inline-block; padding: 0.75rem 1.5rem; border-radius: 8px; border: 2px dashed rgba(200,151,63,0.4); color: #c8973f; cursor: pointer; font-size: 0.9rem; transition: all 0.2s; }
+    .upload-label:hover { border-color: #c8973f; background: rgba(200,151,63,0.05); }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    @media (max-width: 600px) { .grid2 { grid-template-columns: 1fr; } }
+    .test-field { display: flex; flex-direction: column; gap: 0.3rem; }
+    .test-field label { font-size: 0.72rem; color: #7a8fa8; text-transform: uppercase; letter-spacing: 0.05em; }
+    .test-field input { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: #fff; font-size: 0.9rem; padding: 0.6rem 0.75rem; font-family: system-ui; }
+    .test-field input:focus { outline: none; border-color: #c8973f; }
+    pre { font-size: 0.75rem; white-space: pre-wrap; word-break: break-all; }
+  </style>
+</head>
+<body>
+
+<h1>🗂 HomeOfferFlow — PDF Field Mapper & Download Tester</h1>
+<p class="sub">Internal dev tool. Upload the TREC 20-18 PDF, inspect fields, test filling, and verify the download works.</p>
+
+<!-- STEP 1: LOAD PDF -->
+<div class="card">
+  <h2>Step 1 — Load the TREC PDF</h2>
+  <p style="font-size:0.85rem; color:#7a8fa8; margin-bottom:1rem;">Upload your local copy of the TREC 20-18 PDF to test field mapping and download.</p>
+  <label class="upload-label" for="pdfUpload">📄 Click to upload trec_20-18.pdf</label>
+  <input type="file" id="pdfUpload" accept=".pdf" onchange="loadPDF(this)"/>
+  <div id="loadStatus"></div>
+</div>
+
+<!-- STEP 2: INSPECT FIELDS -->
+<div class="card">
+  <h2>Step 2 — Inspect All Fields</h2>
+  <button class="btn btn-outline" onclick="listFields()">List All Form Fields</button>
+  <button class="btn btn-sage" onclick="fillAllWithNames()">Fill Every Field With Its Own Name (Debug)</button>
+  <div id="fieldList"></div>
+</div>
+
+<!-- STEP 3: TEST FILL WITH REAL DATA -->
+<div class="card">
+  <h2>Step 3 — Fill With Real Test Data</h2>
+  <p style="font-size:0.85rem; color:#7a8fa8; margin-bottom:1rem;">Enter sample data and fill the PDF to verify the field mapping is correct.</p>
+  <div class="grid2">
+    <div class="test-field"><label>Buyer Name</label><input type="text" id="t_buyer" value="John Smith"/></div>
+    <div class="test-field"><label>Seller Name</label><input type="text" id="t_seller" value="Jane Doe"/></div>
+    <div class="test-field"><label>Lot</label><input type="text" id="t_lot" value="5"/></div>
+    <div class="test-field"><label>Block</label><input type="text" id="t_block" value="2"/></div>
+    <div class="test-field"><label>Subdivision</label><input type="text" id="t_subdiv" value="Ridgeview Addition"/></div>
+    <div class="test-field"><label>City</label><input type="text" id="t_city" value="Frisco"/></div>
+    <div class="test-field"><label>County</label><input type="text" id="t_county" value="Collin"/></div>
+    <div class="test-field"><label>Address / Zip</label><input type="text" id="t_address" value="1234 Elm Street, Frisco TX 75034"/></div>
+    <div class="test-field"><label>Cash Portion ($)</label><input type="text" id="t_cash" value="85,000"/></div>
+    <div class="test-field"><label>Sales Price ($)</label><input type="text" id="t_price" value="425,000"/></div>
+    <div class="test-field"><label>Earnest Money ($)</label><input type="text" id="t_earnest" value="5,000"/></div>
+    <div class="test-field"><label>Option Fee ($)</label><input type="text" id="t_optionfee" value="250"/></div>
+    <div class="test-field"><label>Option Period (days)</label><input type="text" id="t_optiondays" value="7"/></div>
+    <div class="test-field"><label>Closing Date</label><input type="text" id="t_closing" value="June 30, 2025"/></div>
+    <div class="test-field"><label>Title Company</label><input type="text" id="t_title" value="Alamo Title Company"/></div>
+    <div class="test-field"><label>Property Address (header)</label><input type="text" id="t_propheader" value="1234 Elm Street, Frisco TX 75034"/></div>
+  </div>
+  <div style="margin-top:1rem;">
+    <button class="btn btn-gold" onclick="fillWithTestData()">Fill PDF With Test Data & Download</button>
+  </div>
+  <div id="fillStatus"></div>
+</div>
+
+<!-- STEP 4: LOG -->
+<div class="card">
+  <h2>Step 4 — Console Log</h2>
+  <button class="btn btn-outline" onclick="clearLog()">Clear Log</button>
+  <div class="field-list" id="logArea" style="color:#a8bdd1; min-height:80px;"><span style="color:#4a5568;">Log output will appear here...</span></div>
+</div>
+
+<script>
+  const PDFLib = window['pdf-lib'] || window.PDFLib;
+  let pdfBytes = null;
+
+  function log(msg, type='info') {
+    const el = document.getElementById('logArea');
+    const color = type === 'err' ? '#e06c5a' : type === 'ok' ? '#6db38f' : '#a8bdd1';
+    el.innerHTML += `<div style="color:${color}; border-bottom:1px solid rgba(255,255,255,0.04); padding:0.15rem 0;">${new Date().toLocaleTimeString()} — ${msg}</div>`;
+    el.scrollTop = el.scrollHeight;
+  }
+
+  function clearLog() { document.getElementById('logArea').innerHTML = ''; }
+
+  function setStatus(elId, msg, type='info') {
+    document.getElementById(elId).innerHTML = `<div class="status ${type}">${msg}</div>`;
+  }
+
+  // LOAD PDF
+  async function loadPDF(input) {
+    const file = input.files[0];
+    if (!file) return;
+    log(`Loading PDF: ${file.name} (${(file.size/1024).toFixed(1)} KB)`);
+    try {
+      const buffer = await file.arrayBuffer();
+      pdfBytes = new Uint8Array(buffer);
+      log(`✓ PDF loaded successfully. Size: ${pdfBytes.length} bytes`, 'ok');
+      setStatus('loadStatus', `✓ Loaded: <strong>${file.name}</strong> — ${(file.size/1024).toFixed(1)} KB · Ready to inspect and fill.`, 'ok');
+    } catch(e) {
+      log(`✗ Error loading PDF: ${e.message}`, 'err');
+      setStatus('loadStatus', `✗ Error loading PDF: ${e.message}`, 'err');
+    }
+  }
+
+  // LIST FIELDS
+  async function listFields() {
+    if (!pdfBytes) { setStatus('fieldList', '⚠️ Please upload a PDF first.', 'err'); return; }
+    log('Listing all form fields...');
+    try {
+      const pdfDoc = await PDFLib.PDFDocument.load(pdfBytes, { ignoreEncryption: true });
+      const form = pdfDoc.getForm();
+      const fields = form.getFields();
+      log(`Found ${fields.length} fields`, 'ok');
+
+      let html = `<div style="margin-bottom:0.5rem; color:#6db38f; font-weight:700;">Found ${fields.length} fields:</div>`;
+      
+      const textFields = fields.filter(f => f.constructor.name === 'PDFTextField');
+      const checkFields = fields.filter(f => f.constructor.name === 'PDFCheckBox');
+      const sigFields = fields.filter(f => f.constructor.name === 'PDFSignatureField');
+      const otherFields = fields.filter(f => !['PDFTextField','PDFCheckBox','PDFSignatureField'].includes(f.constructor.name));
+
+      html += `<div class="section-header">Text Fields (${textFields.length})</div>`;
+      textFields.forEach((f,i) => {
+        html += `<div class="field-item"><span class="ftype">[Tx]</span><span class="fname">'${f.getName()}'</span></div>`;
+      });
+
+      html += `<div class="section-header">Checkboxes / Buttons (${checkFields.length})</div>`;
+      checkFields.forEach(f => {
+        html += `<div class="field-item"><span class="ftype">[Btn]</span><span class="fname">'${f.getName()}'</span></div>`;
+      });
+
+      if (sigFields.length) {
+        html += `<div class="section-header">Signature Fields (${sigFields.length})</div>`;
+        sigFields.forEach(f => {
+          html += `<div class="field-item"><span class="ftype">[Sig]</span><span class="fname">'${f.getName()}'</span></div>`;
+        });
+      }
+
+      if (otherFields.length) {
+        html += `<div class="section-header">Other (${otherFields.length})</div>`;
+        otherFields.forEach(f => {
+          html += `<div class="field-item"><span class="ftype">[?]</span><span class="fname">'${f.getName()}'</span></div>`;
+        });
+      }
+
+      document.getElementById('fieldList').innerHTML = `<div class="field-list">${html}</div>`;
+    } catch(e) {
+      log(`✗ Error reading fields: ${e.message}`, 'err');
+      document.getElementById('fieldList').innerHTML = `<div class="status err">✗ ${e.message}</div>`;
+    }
+  }
+
+  // FILL ALL FIELDS WITH THEIR OWN NAME (DEBUG)
+  async function fillAllWithNames() {
+    if (!pdfBytes) { alert('Please upload a PDF first.'); return; }
+    log('Filling all text fields with their own field name for visual mapping...');
+    try {
+      const pdfDoc = await PDFLib.PDFDocument.load(pdfBytes, { ignoreEncryption: true });
+      const form = pdfDoc.getForm();
+      const fields = form.getFields();
+      let filled = 0;
+      fields.forEach(field => {
+        try {
+          if (field.constructor.name === 'PDFTextField') {
+            field.setText(field.getName().substring(0, 40));
+            filled++;
+          }
+        } catch(e) { log(`Skip ${field.getName()}: ${e.message}`, 'err'); }
+      });
+      form.flatten();
+      const out = await pdfDoc.save();
+      download(out, 'TREC_20-18_DEBUG_FIELD_NAMES.pdf');
+      log(`✓ Debug PDF downloaded — ${filled} fields filled with their names`, 'ok');
+    } catch(e) {
+      log(`✗ Error: ${e.message}`, 'err');
+    }
+  }
+
+  // FILL WITH REAL TEST DATA
+  async function fillWithTestData() {
+    if (!pdfBytes) { setStatus('fillStatus', '⚠️ Please upload a PDF first.', 'err'); return; }
+    log('Filling PDF with test data...');
+
+    const g = id => document.getElementById(id).value;
+
+    // The complete field mapping based on extracted field names
+    const mapping = {
+      // Section 1 — Parties
+      '1 PARTIES The parties to this contract are': g('t_buyer'),
+      'Seller and': g('t_seller'),
+
+      // Section 2 — Property
+      'A LAND Lot': g('t_lot'),
+      'Block': g('t_block'),
+      'undefined': g('t_subdiv'),          // subdivision (field between Block and Addition City of)
+      'Addition City of': g('t_city'),
+      'County of': g('t_county'),
+      'Texas known as': g('t_address'),
+
+      // Section 3 — Sales Price
+      'undefined_3': g('t_cash'),          // Cash portion (3A)
+      'undefined_4': g('t_price'),         // Sales Price (3C)
+      'earnest money of': g('t_earnest'),  // Earnest money amount
+
+      // Section 5 — Earnest Money & Option
+      'as earnest money to': g('t_earnest'),
+      'acknowledged by Seller and Buyers agreement to pay Seller': g('t_optionfee'),
+      'acknowledged by Seller and Buyers agreement to pay Seller 1': g('t_optiondays'),
+
+      // Section 9 — Closing
+      'A The closing of the sale will be on or before': g('t_closing'),
+
+      // Title Company
+      'insurance Title Policy issued by': g('t_title'),
+
+      // Address headers (repeated on each page)
+      'Address of Property': g('t_propheader'),
+      'Address of Property_2': g('t_propheader'),
+      'Contract Concerning': g('t_propheader'),
+      'Contract Concerning_2': g('t_propheader'),
+      'Contract Concerning_3': g('t_propheader'),
+      'Contract Concerning_4': g('t_propheader'),
+      'Addr of Prop': g('t_propheader'),
+    };
+
+    try {
+      const pdfDoc = await PDFLib.PDFDocument.load(pdfBytes, { ignoreEncryption: true });
+      const form = pdfDoc.getForm();
+      let filled = 0;
+      let skipped = 0;
+      const errors = [];
+
+      for (const [fieldName, value] of Object.entries(mapping)) {
+        if (!value) continue;
+        try {
+          const field = form.getTextField(fieldName);
+          field.setText(value);
+          log(`✓ Filled: '${fieldName}' = '${value}'`, 'ok');
+          filled++;
+        } catch(e) {
+          log(`⚠ Skip '${fieldName}': ${e.message}`);
+          skipped++;
+          errors.push(fieldName);
+        }
+      }
+
+      // Check Third Party Financing Addendum checkbox
+      try {
+        const cb = form.getCheckBox('Third Party Financing Addendum');
+        cb.check();
+        log(`✓ Checked: Third Party Financing Addendum`, 'ok');
+      } catch(e) { log(`Skip checkbox: ${e.message}`); }
+
+      // Possession — upon closing
+      try {
+        const cb = form.getCheckBox('upon');
+        cb.check();
+        log(`✓ Checked: upon (closing/funding)`, 'ok');
+      } catch(e) { log(`Skip possession checkbox: ${e.message}`); }
+
+      const out = await pdfDoc.save();
+      download(out, 'TREC_20-18_TEST_FILLED.pdf');
+
+      const msg = `✓ PDF filled and downloaded! <br/><strong>${filled} fields filled</strong> · ${skipped} skipped · ${errors.length ? 'Fields that need remapping: ' + errors.slice(0,3).map(e=>`<code>${e}</code>`).join(', ') : 'No errors!'}`;
+      setStatus('fillStatus', msg, filled > 0 ? 'ok' : 'err');
+      log(`Done — ${filled} filled, ${skipped} skipped`, filled > 0 ? 'ok' : 'err');
+
+    } catch(e) {
+      log(`✗ Fatal error: ${e.message}`, 'err');
+      setStatus('fillStatus', `✗ Error filling PDF: ${e.message}`, 'err');
+    }
+  }
+
+  // DOWNLOAD HELPER
+  function download(bytes, filename) {
+    const blob = new Blob([bytes], { type: 'application/pdf' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+    log(`⬇ Download triggered: ${filename}`, 'ok');
+  }
+</script>
+</body>
+</html>
