@@ -13,6 +13,7 @@
     };
   </script>
   <script src="https://js.stripe.com/v3/"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
   <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCs554orYvNAmKnIehn7bwAvADCfx71_Oc&libraries=places&callback=initAutocomplete" async defer></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -895,6 +896,108 @@
     }
   }
 
+  // ── PDF GENERATION ──
+  async function generateOfferPDF() {
+    const PDFLib = window.PDFLib;
+    if (!PDFLib) throw new Error('pdf-lib not loaded');
+    const s = state.data;
+    const fmtM = v => v ? '$' + Number(v).toLocaleString() : '';
+
+    // Load main contract
+    const mainBytes = await fetch('/20-18_0.pdf').then(r => r.arrayBuffer());
+    const mainDoc = await PDFLib.PDFDocument.load(mainBytes, { ignoreEncryption: true });
+    const form = mainDoc.getForm();
+
+    // Field mapping — verified against TREC 20-18 field names
+    const fieldMap = {
+      '1 PARTIES The parties to this contract are': s.buyer2 ? `${s.buyer1} and ${s.buyer2}` : s.buyer1,
+      'Seller and': s.seller,
+      'A LAND Lot': s.lot?.replace(/lot\s*/i, '').trim() || '',
+      'Block': s.lot?.match(/block\s*(\S+)/i)?.[1] || '',
+      'undefined': s.subdiv || '',
+      'Addition City of': s.city || '',
+      'County of': s.county || '',
+      'Texas known as': `${s.address}, ${s.city}, TX ${s.zip}`,
+      'Address of Property': `${s.address}, ${s.city}, TX ${s.zip}`,
+      'Address of Property_2': `${s.address}, ${s.city}, TX ${s.zip}`,
+      'earnest money of': fmtM(s.earnest),
+      'Option Fee in the form of': fmtM(s.optionFee),
+      'A The closing of the sale will be on or before': s.closingDate || '',
+      'insurance Title Policy issued by': s.titleCompany || '',
+      'B Sum of all financing described in the attached': fmtM(s.loanAmount),
+    };
+
+    // Fill text fields
+    for (const [fieldName, value] of Object.entries(fieldMap)) {
+      if (!value) continue;
+      try {
+        const field = form.getTextField(fieldName);
+        field.setText(value);
+      } catch(e) { /* field may not exist or be different type */ }
+    }
+
+    // Check financing addendum checkbox
+    if (['conventional','fha','va','usda'].includes(s.financing)) {
+      try { form.getCheckBox('Third Party Financing Addendum').check(); } catch(e) {}
+    }
+
+    // Check possession
+    if (s.possession === 'funding') {
+      try { form.getCheckBox('upon').check(); } catch(e) {}
+    }
+
+    // Merge addenda
+    const addendaDocs = [];
+    if (['conventional','fha','va','usda'].includes(s.financing)) {
+      try {
+        const b = await fetch('/third_party_financing_addendum.pdf').then(r => r.arrayBuffer());
+        addendaDocs.push(await PDFLib.PDFDocument.load(b, { ignoreEncryption: true }));
+      } catch(e) { console.warn('Financing addendum not found'); }
+    }
+    if (s.hoa === 'yes' || s.hoa === 'unknown') {
+      try {
+        const b = await fetch('/hoa_addendum.pdf').then(r => r.arrayBuffer());
+        addendaDocs.push(await PDFLib.PDFDocument.load(b, { ignoreEncryption: true }));
+      } catch(e) { console.warn('HOA addendum not found'); }
+    }
+    if (s.saleContingency === 'yes') {
+      try {
+        const b = await fetch('/sale_of_other_property_addendum.pdf').then(r => r.arrayBuffer());
+        addendaDocs.push(await PDFLib.PDFDocument.load(b, { ignoreEncryption: true }));
+      } catch(e) { console.warn('Sale contingency addendum not found'); }
+    }
+    if (s.backupOffer === 'yes') {
+      try {
+        const b = await fetch('/back_up_contract_addendum.pdf').then(r => r.arrayBuffer());
+        addendaDocs.push(await PDFLib.PDFDocument.load(b, { ignoreEncryption: true }));
+      } catch(e) { console.warn('Backup addendum not found'); }
+    }
+
+    // Flatten main contract and merge addenda
+    try { form.flatten(); } catch(e) {}
+    const finalDoc = await PDFLib.PDFDocument.create();
+    const mainPages = await finalDoc.copyPages(mainDoc, mainDoc.getPageIndices());
+    mainPages.forEach(p => finalDoc.addPage(p));
+
+    for (const addDoc of addendaDocs) {
+      try {
+        const pages = await finalDoc.copyPages(addDoc, addDoc.getPageIndices());
+        pages.forEach(p => finalDoc.addPage(p));
+      } catch(e) {}
+    }
+
+    const pdfBytes = await finalDoc.save();
+    const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `HomeOfferFlow_Offer_${s.address?.replace(/\s+/g,'_') || 'Contract'}.pdf`;
+    a.click();
+    URL.revokeObjectURL(url);
+    console.log('✓ PDF generated and downloaded');
+    return true;
+  }
+
   async function handlePayment() {
     const email = document.getElementById('paymentEmail').value;
     if (!email) { alert('Please enter your email address.'); return; }
@@ -922,6 +1025,8 @@
     }
 
     try {
+      // Save offer data before leaving for Stripe
+      sessionStorage.setItem('hofOfferData', JSON.stringify(state.data));
       const stripe = Stripe('pk_live_51T7fXrAELe66ESXnenZWvslrGUe4Iay4s2lDo78PytTZgNFniRkuN9rkwNv2XcU0acrN5CQileVasoF1XP8sWDDK00HIvIQ6AY');
       await stripe.redirectToCheckout({
         lineItems: [{ price: priceId, quantity: 1 }],
@@ -948,13 +1053,28 @@
   if (window.location.search.includes('success=true')) {
     const plan = new URLSearchParams(window.location.search).get('plan');
     const names = { 'self':'Self-Serve', 'agent':'Agent Review', 'attorney':'Attorney Review', 'agent-transaction':'Agent Transaction Support', 'attorney-transaction':'Attorney Transaction Support' };
-    setTimeout(() => {
+    setTimeout(async () => {
+      // Show success message
       const msg = document.createElement('div');
-      msg.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#4a8c6f;color:#fff;padding:1rem 2rem;border-radius:10px;font-family:DM Sans,sans-serif;font-weight:600;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,0.3);text-align:center;';
-      msg.innerHTML = `✅ Payment successful! Thank you for your ${names[plan]||'HomeOfferFlow'} purchase.<br><span style="font-weight:400;font-size:0.85rem;">Your receipt has been sent to your email.</span>`;
+      msg.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#4a8c6f;color:#fff;padding:1rem 2rem;border-radius:10px;font-family:DM Sans,sans-serif;font-weight:600;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,0.3);text-align:center;min-width:300px;';
+      msg.innerHTML = `✅ Payment successful!<br><span style="font-weight:400;font-size:0.85rem;">Generating your offer PDF...</span>`;
       document.body.appendChild(msg);
-      setTimeout(() => msg.remove(), 6000);
-      // Clean URL
+
+      // Try to generate PDF from saved state
+      try {
+        const savedState = sessionStorage.getItem('hofOfferData');
+        if (savedState) {
+          state.data = JSON.parse(savedState);
+          await generateOfferPDF();
+          msg.innerHTML = `✅ Payment successful! Your offer PDF has been downloaded.<br><span style="font-weight:400;font-size:0.85rem;">Check your downloads folder. Receipt sent to your email.</span>`;
+        } else {
+          msg.innerHTML = `✅ Payment successful! Thank you for your ${names[plan]||'HomeOfferFlow'} purchase.<br><span style="font-weight:400;font-size:0.85rem;">Please re-open the wizard to download your offer.</span>`;
+        }
+      } catch(e) {
+        msg.innerHTML = `✅ Payment successful!<br><span style="font-weight:400;font-size:0.85rem;">Please re-open the wizard to download your offer.</span>`;
+      }
+
+      setTimeout(() => msg.remove(), 8000);
       window.history.replaceState({}, '', '/');
     }, 500);
   }
