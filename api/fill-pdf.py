@@ -13,13 +13,12 @@ STRIPE_WHSEC     = os.environ.get('STRIPE_WEBHOOK_SECRET', '')
 FROM_EMAIL       = 'offers@homeofferflow.com'
 SUPPORT_EMAIL    = 'support@homeofferflow.com'
 
-# PDF paths — Vercel serves static files from project root
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-MAIN_PDF         = os.path.join(BASE_DIR, '20-18_0.pdf')
-FINANCING_PDF    = os.path.join(BASE_DIR, 'third_party_financing_addendum.pdf')
-HOA_PDF          = os.path.join(BASE_DIR, 'hoa_addendum.pdf')
-SALE_CONT_PDF    = os.path.join(BASE_DIR, 'sale_of_other_property_addendum.pdf')
-BACKUP_PDF       = os.path.join(BASE_DIR, 'back_up_contract_addendum.pdf')
+MAIN_PDF      = os.path.join(BASE_DIR, '20-18_0.pdf')
+FINANCING_PDF = os.path.join(BASE_DIR, 'third_party_financing_addendum.pdf')
+HOA_PDF       = os.path.join(BASE_DIR, 'hoa_addendum.pdf')
+SALE_CONT_PDF = os.path.join(BASE_DIR, 'sale_of_other_property_addendum.pdf')
+BACKUP_PDF    = os.path.join(BASE_DIR, 'back_up_contract_addendum.pdf')
 
 
 def fmt_money(val):
@@ -47,7 +46,7 @@ def parse_lot_block(lot_str):
         return lot_num, block_num
     lot_m = re.search(r'lot\s*(\S+)', lot_str, re.I)
     blk_m = re.search(r'block\s*(\S+)', lot_str, re.I)
-    lot_num   = lot_m.group(1) if lot_m else lot_str.split()[0]
+    lot_num   = lot_m.group(1) if lot_m else ''
     block_num = blk_m.group(1) if blk_m else ''
     return lot_num, block_num
 
@@ -57,7 +56,7 @@ def fill_and_merge(offer):
 
     s = offer
     lot_num, block_num = parse_lot_block(s.get('lot', ''))
-    addr_full = f"{s.get('address','')} {s.get('city','')} TX {s.get('zip','')}"
+    addr_full = f"{s.get('address','')}, {s.get('city','')}, TX {s.get('zip','')}"
 
     try:
         price = float(s.get('price', 0))
@@ -70,35 +69,57 @@ def fill_and_merge(offer):
     if s.get('buyer2'):
         buyer_name += f" and {s['buyer2']}"
 
+    has_loan      = s.get('financing') in ['conventional', 'fha', 'va', 'usda']
+    has_hoa       = s.get('hoa') in ['yes', 'unknown']
+    has_sale_cont = s.get('saleContingency') == 'yes'
+    has_backup    = s.get('backupOffer') == 'yes'
+    has_mud       = s.get('mud') in ['yes', 'unknown']
+    survey        = s.get('survey', '')
+
+    # ── TEXT FIELDS ──
     field_values = {
+        # Section 1 — Parties
         '1 PARTIES The parties to this contract are': s.get('seller', ''),
         'Seller and':                                  buyer_name,
-        'A LAND Lot':                                  lot_num,
-        'Block':                                       block_num,
-        'undefined':                                   s.get('subdiv', ''),
-        'Addition City of':                            s.get('city', ''),
-        'County of':                                   s.get('county', ''),
-        'Texas known as':                              addr_full,
-        'as earnest money to':                         fmt_money(s.get('earnest')),
-        'as earnest money to 2':                       fmt_money(s.get('earnest')),
+
+        # Section 2 — Property
+        'A LAND Lot':       lot_num,
+        'Block':            block_num,
+        'undefined':        s.get('subdiv', ''),
+        'Addition City of': s.get('city', ''),
+        'County of':        s.get('county', ''),
+        'Texas known as':   addr_full,
+
+        # Section 3 — Sales Price
+        # undefined_2 = 3A Cash portion, undefined_4 = 3B Loan, undefined_5 = 3C Total
+        'undefined_2': fmt_money(cash) if has_loan else fmt_money(price),
+        'undefined_4': fmt_money(loan) if has_loan else '',
+        'undefined_5': fmt_money(price),
+
+        # Section 5 — Earnest Money & Option
+        'as earnest money to':   fmt_money(s.get('earnest')),
+        'as earnest money to 2': fmt_money(s.get('earnest')),
         'acknowledged by Seller and Buyers agreement to pay Seller':   fmt_money(s.get('optionFee')),
-        'acknowledged by Seller and Buyers agreement to pay Seller 1': s.get('optionDays', ''),
-        'Option Fee in the form of':                   fmt_money(s.get('optionFee')),
+        'acknowledged by Seller and Buyers agreement to pay Seller 1': str(s.get('optionDays', '')),
+        'acknowledged by Seller and Buyers agreement to pay Seller2':  fmt_money(s.get('optionFee')),
+        'Option Fee in the form of': fmt_money(s.get('optionFee')),
+
+        # Section 6 — Title
+        'insurance Title Policy issued by': s.get('titleCompany', ''),
+
+        # Section 9 — Closing
         'A The closing of the sale will be on or before': fmt_date(s.get('closingDate')),
-        'insurance Title Policy issued by':            s.get('titleCompany', ''),
-        'undefined_3':                                 fmt_money(cash),
-        'undefined_4':                                 fmt_money(loan),
-        'undefined_5':                                 fmt_money(price),
-        'Address of Property':                         addr_full,
-        'Address of Property_2':                       addr_full,
-        'Contract Concerning':                         addr_full,
-        'Contract Concerning_2':                       addr_full,
-        'Contract Concerning_3':                       addr_full,
-        'Contract Concerning_4':                       addr_full,
-        'Addr of Prop':                                addr_full,
+
+        # Address repeated throughout
+        'Contract Concerning':   addr_full,
+        'Contract Concerning_2': addr_full,
+        'Contract Concerning_3': addr_full,
+        'Contract Concerning_4': addr_full,
+        'Address of Property':   addr_full,
+        'Address of Property_2': addr_full,
+        'Addr of Prop':          addr_full,
     }
 
-    # Load and fill main contract
     reader = PdfReader(MAIN_PDF)
     writer = PdfWriter()
     writer.append(reader)
@@ -106,39 +127,51 @@ def fill_and_merge(offer):
     for page in writer.pages:
         writer.update_page_form_field_values(page, field_values)
 
-    # Checkboxes
+    # ── CHECKBOXES ──
     checkbox_map = {
-        'Third Party Financing Addendum': s.get('financing') in ['conventional','fha','va','usda'],
-        'Addendum for Property Subject to': s.get('hoa') in ['yes','unknown'],
-        'Addendum for Sale of Other Property by': s.get('saleContingency') == 'yes',
-        'Addendum for BackUp Contract': s.get('backupOffer') == 'yes',
-        'upon': s.get('possession') == 'funding',
-        '1 Buyer accepts the Property As Is': True,
-    }
-    for field_name, should_check in checkbox_map.items():
-        if should_check:
-            try:
-                writer.update_page_form_field_values(
-                    writer.pages[0], {field_name: True}
-                )
-            except:
-                pass
+        # Section 3B — financing addendum checkbox
+        'Third Party Financing Addendum': has_loan,
 
-    # Merge addenda
+        # Section 6C — Survey (pick one)
+        '1Within':   survey == 'sellerExisting',
+        '2 Within':  survey == 'buyerNew',
+        '3Within':   survey == 'noSurvey',
+
+        # Section 6E2 — HOA membership notice
+        'is':     has_hoa,
+        'is not': not has_hoa,
+
+        # Section 7D — Property condition (As Is)
+        'As Is': True,
+
+        # Section 10A — Possession
+        'upon': s.get('possession') == 'funding',
+
+        # Section 22 — Addenda checkboxes
+        'Addendum for Property Subject to':       has_hoa,
+        'Addendum for Sale of Other Property by': has_sale_cont,
+        'Addendum for BackUp Contract':           has_backup,
+        'PID':                                    has_mud,
+    }
+
+    for field_name, should_check in checkbox_map.items():
+        val = '/Yes' if should_check else '/Off'
+        try:
+            for page in writer.pages:
+                writer.update_page_form_field_values(page, {field_name: val})
+        except:
+            pass
+
+    # ── MERGE ADDENDA ──
     addenda_paths = []
-    if s.get('financing') in ['conventional','fha','va','usda']:
-        addenda_paths.append(FINANCING_PDF)
-    if s.get('hoa') in ['yes','unknown']:
-        addenda_paths.append(HOA_PDF)
-    if s.get('saleContingency') == 'yes':
-        addenda_paths.append(SALE_CONT_PDF)
-    if s.get('backupOffer') == 'yes':
-        addenda_paths.append(BACKUP_PDF)
+    if has_loan:       addenda_paths.append(FINANCING_PDF)
+    if has_hoa:        addenda_paths.append(HOA_PDF)
+    if has_sale_cont:  addenda_paths.append(SALE_CONT_PDF)
+    if has_backup:     addenda_paths.append(BACKUP_PDF)
 
     for path in addenda_paths:
         try:
-            add_reader = PdfReader(path)
-            writer.append(add_reader)
+            writer.append(PdfReader(path))
         except Exception as e:
             print(f'Warning: could not load addendum {path}: {e}')
 
@@ -148,14 +181,14 @@ def fill_and_merge(offer):
 
 
 def send_email(to_email, pdf_bytes, offer):
-    addr = offer.get('address', 'Property')
+    addr    = offer.get('address', 'Property')
     pdf_b64 = base64.b64encode(pdf_bytes).decode()
-    buyer = offer.get('buyer1', 'Buyer')
+    buyer   = offer.get('buyer1', 'Buyer')
 
     payload = {
         'from': FROM_EMAIL,
-        'to': [to_email],
-        'bcc': [SUPPORT_EMAIL],
+        'to':   [to_email],
+        'bcc':  [SUPPORT_EMAIL],
         'subject': f'Your HomeOfferFlow Offer — {addr}',
         'html': f'''
         <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">
@@ -179,15 +212,18 @@ def send_email(to_email, pdf_bytes, offer):
         </div>
         ''',
         'attachments': [{
-            'filename': f'HomeOfferFlow_Offer_{addr.replace(" ","_")}.pdf',
-            'content': pdf_b64,
+            'filename':     f'HomeOfferFlow_Offer_{addr.replace(" ","_")}.pdf',
+            'content':      pdf_b64,
             'content_type': 'application/pdf',
         }]
     }
 
     resp = httpx.post(
         'https://api.resend.com/emails',
-        headers={'Authorization': f'Bearer {RESEND_API_KEY}', 'Content-Type': 'application/json'},
+        headers={
+            'Authorization': f'Bearer {RESEND_API_KEY}',
+            'Content-Type':  'application/json'
+        },
         json=payload,
         timeout=30
     )
@@ -196,8 +232,8 @@ def send_email(to_email, pdf_bytes, offer):
 
 def verify_stripe_signature(body, sig_header, secret):
     try:
-        elements = dict(e.split('=', 1) for e in sig_header.split(','))
-        timestamp = elements.get('t', '')
+        elements   = dict(e.split('=', 1) for e in sig_header.split(','))
+        timestamp  = elements.get('t', '')
         signatures = [v for k, v in elements.items() if k == 'v1']
         signed_payload = f'{timestamp}.{body}'
         expected = hmac.new(
@@ -211,7 +247,7 @@ def verify_stripe_signature(body, sig_header, secret):
 class handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
-        """Debug endpoint — dumps all PDF field names so we can fix the mapping."""
+        """Debug — dump all PDF field names and types."""
         try:
             from pypdf import PdfReader
             reader = PdfReader(MAIN_PDF)
@@ -219,25 +255,24 @@ class handler(BaseHTTPRequestHandler):
             if fields:
                 field_info = {}
                 for name, field in fields.items():
-                    field_type = field.get('/FT', 'unknown')
-                    if hasattr(field_type, 'name'):
-                        field_type = field_type.name
+                    ft = field.get('/FT', 'unknown')
+                    if hasattr(ft, 'name'):
+                        ft = ft.name
                     field_info[name] = {
-                        'type': str(field_type),
+                        'type':  str(ft),
                         'value': str(field.get('/V', '')),
                     }
                 self._respond(200, {'total': len(field_info), 'fields': field_info})
             else:
-                self._respond(200, {'error': 'No fields found in PDF', 'path': MAIN_PDF})
+                self._respond(200, {'error': 'No fields found', 'path': MAIN_PDF})
         except Exception as e:
-            self._respond(500, {'error': str(e), 'path': MAIN_PDF})
+            self._respond(500, {'error': str(e)})
 
     def do_POST(self):
         content_length = int(self.headers.get('Content-Length', 0))
-        body = self.rfile.read(content_length)
+        body     = self.rfile.read(content_length)
         body_str = body.decode('utf-8')
 
-        # Verify Stripe signature
         sig_header = self.headers.get('stripe-signature', '')
         if STRIPE_WHSEC and not verify_stripe_signature(body_str, sig_header, STRIPE_WHSEC):
             self._respond(401, {'error': 'Invalid signature'})
@@ -253,9 +288,10 @@ class handler(BaseHTTPRequestHandler):
             self._respond(200, {'status': 'ignored'})
             return
 
-        session = event['data']['object']
-        customer_email = session.get('customer_email') or session.get('customer_details', {}).get('email', '')
-        metadata = session.get('metadata', {})
+        session        = event['data']['object']
+        customer_email = (session.get('customer_email') or
+                          session.get('customer_details', {}).get('email', ''))
+        metadata       = session.get('metadata', {})
         offer_data_str = metadata.get('offer_data', '')
 
         if not offer_data_str:
@@ -269,8 +305,8 @@ class handler(BaseHTTPRequestHandler):
             return
 
         try:
-            pdf_bytes = fill_and_merge(offer)
-            status, resp_text = send_email(customer_email, pdf_bytes, offer)
+            pdf_bytes        = fill_and_merge(offer)
+            status, resp_txt = send_email(customer_email, pdf_bytes, offer)
             self._respond(200, {'status': 'ok', 'email_status': status})
         except Exception as e:
             print(f'Error: {e}')
