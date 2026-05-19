@@ -120,6 +120,8 @@
       }
       .helper-wrap:hover .helper-box-hover { display: block; animation: fadeUp 0.15s ease both; }
       .helper-box { display: none !important; }
+      .helper-box.open { display: block !important; animation: fadeUp 0.15s ease both; }
+      .helper-box:not(.open) { display: none !important; }
     }
     @media (hover: none), (pointer: coarse) {
       .helper-box-hover { display: none !important; }
@@ -219,7 +221,7 @@
   <h1>Write a <em>real offer</em><br/>in under 10 minutes.</h1>
   <p class="hero-sub">HomeOfferFlow walks you through a Texas TREC contract step by step — in plain English. Answer simple questions. Download your offer. Done.</p>
   <div class="hero-actions">
-    <button class="btn-primary" onclick="openWizard()">Start Your Offer — $49</button>
+    <button class="btn-primary" onclick="openWizard()">Start Your Offer — $99</button>
     <button class="btn-secondary" onclick="document.getElementById('how').scrollIntoView()">See How It Works</button>
   </div>
   <div class="trust-bar">
@@ -247,7 +249,7 @@
   <div class="section-label">Who It's For</div>
   <h2>Built for every kind of Texas buyer.</h2>
   <div class="audience-grid">
-    <div class="audience-card"><div class="audience-icon">🏠</div><h3>Homebuyers</h3><p>Buying without an agent? We walk you through every field with built-in guidance so you write a professional offer with confidence.</p><span class="audience-price">$49 per offer</span></div>
+    <div class="audience-card"><div class="audience-icon">🏠</div><h3>Homebuyers</h3><p>Buying without an agent? We walk you through every field with built-in guidance so you write a professional offer with confidence.</p><span class="audience-price">$99 per offer</span></div>
     <div class="audience-card"><div class="audience-icon">🏢</div><h3>Real Estate Agents</h3><p>Write offers faster on the go. Mobile-first, no clunky software. Built for speed when you're with a client or between showings.</p><span class="audience-price">Monthly subscription — coming soon</span></div>
     <div class="audience-card"><div class="audience-icon">📈</div><h3>Investors</h3><p>Write multiple offers fast. Save defaults. Reuse templates. Built for volume without sacrificing compliance.</p><span class="audience-price">Monthly subscription — coming soon</span></div>
   </div>
@@ -257,7 +259,7 @@
   <div class="cta-box">
     <h2>Ready to write your offer?</h2>
     <p>Join buyers, agents, and investors across Texas using HomeOfferFlow to write professional TREC offers in minutes.</p>
-    <button class="btn-primary" onclick="openWizard()">Start Your Offer — $49</button>
+    <button class="btn-primary" onclick="openWizard()">Start Your Offer — $99</button>
   </div>
 </section>
 
@@ -748,6 +750,7 @@
     if (sid === 'step3') { applySmartDefaults(); wireSmartCalculations(); }
     if (sid === 'step7') { applySmartDefaults(); }
     if (sid === 'step2') { setTimeout(initPlacesService, 150); }
+    if (sid === 'step05') { setTimeout(initPlacesService, 150); }
   }
 
   function collectData() {
@@ -1086,7 +1089,12 @@
 
   function wireAddressInput() {
     if (!window._AutocompleteSuggestion) { return; }
-    const input = document.getElementById('propAddress');
+    _wireGoogleAutocomplete('propAddress', fillAddressFields);
+    _wireGoogleAutocomplete('showingAddress', null);
+  }
+
+  function _wireGoogleAutocomplete(inputId, onSelectCallback) {
+    const input = document.getElementById(inputId);
     if (!input || input._hofWired) return;
     input._hofWired = true;
     input.setAttribute('autocomplete', 'off');
@@ -1105,17 +1113,15 @@
         };
         const { suggestions } = await window._AutocompleteSuggestion.fetchAutocompleteSuggestions(request);
         if (!suggestions || suggestions.length === 0) { _hideDropdown(); return; }
-        _showDropdown(suggestions, input);
-      } catch(err) {
-        _hideDropdown();
-      }
+        _showDropdown(suggestions, input, onSelectCallback);
+      } catch(err) { _hideDropdown(); }
     }, 280));
     document.addEventListener('click', e => {
-      if (!e.target.closest('#propAddress') && !e.target.closest('#hof-ac-dd')) _hideDropdown();
+      if (!e.target.closest(`#${inputId}`) && !e.target.closest('#hof-ac-dd')) _hideDropdown();
     });
   }
 
-  function _showDropdown(suggestions, input) {
+  function _showDropdown(suggestions, input, onSelectCallback) {
     _hideDropdown();
     const rect = input.getBoundingClientRect();
     const dd = document.createElement('div');
@@ -1131,7 +1137,7 @@
       item.innerHTML = `<span style="color:#fff;font-weight:600;">${main}</span>${secondary ? `<span style="color:#7a8fa8;font-size:0.8rem;"> ${secondary}</span>` : ''}`;
       item.addEventListener('mouseover', () => item.style.background = 'rgba(200,151,63,0.1)');
       item.addEventListener('mouseout',  () => item.style.background = '');
-      const select = () => _selectPrediction(pred, main, input);
+      const select = () => _selectPrediction(pred, main, input, onSelectCallback);
       item.addEventListener('mousedown', e => { e.preventDefault(); select(); });
       item.addEventListener('touchend',  e => { e.preventDefault(); select(); });
       dd.appendChild(item);
@@ -1140,19 +1146,19 @@
     document.body.appendChild(dd);
   }
 
-  async function _selectPrediction(pred, streetText, input) {
+  async function _selectPrediction(pred, streetText, input, onSelectCallback) {
     _hideDropdown();
     input.value = streetText;
     try {
       const place = pred.toPlace();
       await place.fetchFields({ fields: ['addressComponents'] });
-      if (place.addressComponents) {
+      if (place.addressComponents && onSelectCallback) {
         const components = place.addressComponents.map(c => ({
           long_name: c.longText,
           short_name: c.shortText,
           types: c.types
         }));
-        fillAddressFields(components);
+        onSelectCallback(components);
       }
       _sessionToken = new window._AutocompleteSessionToken();
     } catch(e) {
