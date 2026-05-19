@@ -104,13 +104,11 @@
     .field select option { background: var(--navy-mid); }
     .field input::placeholder { color: rgba(255,255,255,0.2); }
 
-    /* HELPER — hover on desktop, tap on mobile */
     .helper-wrap { position: relative; display: inline-flex; align-items: center; }
     .helper-btn { width: 18px; height: 18px; border-radius: 50%; background: rgba(107,179,143,0.2); border: 1px solid rgba(107,179,143,0.4); color: var(--sage-light); font-size: 0.68rem; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s; user-select: none; -webkit-user-select: none; }
     .helper-btn:hover { background: rgba(107,179,143,0.35); }
     .helper-box { display: none; background: var(--helper-bg); border: 1px solid var(--helper-border); border-radius: 10px; padding: 0.9rem 1rem; margin-top: 0.5rem; font-size: 0.84rem; color: var(--gray-light); line-height: 1.6; position: relative; z-index: 10; }
     .helper-box strong { color: var(--sage-light); display: block; margin-bottom: 0.3rem; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.04em; }
-    /* Desktop: show on hover via parent .field-label-row:hover-group */
     @media (hover: hover) and (pointer: fine) {
       .helper-wrap { position: relative; }
       .helper-box-hover {
@@ -121,9 +119,8 @@
         box-shadow: 0 8px 24px rgba(0,0,0,0.5); pointer-events: none;
       }
       .helper-wrap:hover .helper-box-hover { display: block; animation: fadeUp 0.15s ease both; }
-      .helper-box { display: none !important; } /* hide tap version on desktop */
+      .helper-box { display: none !important; }
     }
-    /* Mobile: show on tap (toggle class) */
     @media (hover: none), (pointer: coarse) {
       .helper-box-hover { display: none !important; }
       .helper-box.open { display: block; animation: fadeUp 0.2s ease both; }
@@ -134,7 +131,6 @@
     .tip-tag { background: rgba(200,151,63,0.12); color: var(--gold-light); padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600; }
     .tip-tag.red { background: rgba(192,57,43,0.15); color: #e06c5a; }
 
-    /* RADIO */
     .radio-cards { display: flex; flex-direction: column; gap: 0.7rem; margin-bottom: 1.4rem; }
     .radio-group-label { font-size: 0.8rem; font-weight: 700; color: var(--gray-light); text-transform: uppercase; letter-spacing: 0.055em; margin-bottom: 0.6rem; display: flex; align-items: center; gap: 0.4rem; }
     .radio-card { display: flex; align-items: center; gap: 0.9rem; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 0.95rem 1.1rem; cursor: pointer; transition: all 0.2s; }
@@ -147,20 +143,17 @@
     .radio-card-text strong { display: block; font-size: 0.93rem; font-weight: 600; }
     .radio-card-text small { color: var(--gray); font-size: 0.8rem; }
 
-    /* NOTICES */
     .notice { padding: 0.9rem 1rem; border-radius: 10px; font-size: 0.83rem; line-height: 1.55; margin-bottom: 1.1rem; }
     .notice.warn { background: rgba(232,147,90,0.08); border: 1px solid rgba(232,147,90,0.25); color: var(--warn); }
     .notice.sage { background: rgba(74,140,111,0.08); border: 1px solid rgba(74,140,111,0.25); color: var(--sage-light); }
     .notice.gold { background: rgba(200,151,63,0.08); border: 1px solid rgba(200,151,63,0.2); color: var(--gold-light); }
 
-    /* TERMS */
     .terms-check { display: flex; align-items: flex-start; gap: 0.75rem; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 1.1rem; margin-top: 0.75rem; cursor: pointer; -webkit-tap-highlight-color: transparent; }
     .terms-check input[type="checkbox"] { width: 24px; height: 24px; min-width: 24px; flex-shrink: 0; margin-top: 1px; accent-color: var(--gold); cursor: pointer; border-radius: 4px; }
     .terms-check label { font-size: 0.84rem; color: var(--gray-light); line-height: 1.55; cursor: pointer; flex: 1; }
     .terms-check label a { color: var(--gold); text-decoration: underline; }
     .terms-check.accepted { border-color: rgba(74,140,111,0.4); background: rgba(74,140,111,0.05); }
 
-    /* REVIEW */
     .review-section { margin-bottom: 1rem; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 1rem; }
     .review-section-title { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--gold); margin-bottom: 0.6rem; padding-bottom: 0.4rem; border-bottom: 1px solid rgba(200,151,63,0.12); }
     .review-row { display: flex; justify-content: space-between; align-items: baseline; font-size: 0.87rem; padding: 0.2rem 0; gap: 1rem; }
@@ -169,7 +162,6 @@
     .addendum-tag { display: inline-block; background: rgba(74,140,111,0.12); color: var(--sage-light); padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600; margin: 0.1rem; }
     .addendum-tag.na { background: rgba(255,255,255,0.05); color: var(--gray); }
 
-    /* FOOTER */
     .wizard-footer { display: flex; gap: 0.85rem; padding: 1.25rem 1.5rem; border-top: 1px solid rgba(255,255,255,0.07); position: sticky; bottom: 0; background: rgba(5,14,26,0.98); backdrop-filter: blur(8px); }
     .btn-back { background: transparent; border: 1px solid rgba(255,255,255,0.13); color: var(--gray); padding: 0.85rem 1.25rem; border-radius: 8px; font-family: 'DM Sans', sans-serif; font-weight: 500; font-size: 0.93rem; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
     .btn-back:hover { color: var(--white); border-color: rgba(255,255,255,0.3); }
@@ -177,7 +169,6 @@
     .btn-next:hover { background: var(--gold-light); }
     .btn-next:disabled { background: rgba(200,151,63,0.25); color: rgba(0,0,0,0.35); cursor: not-allowed; }
 
-    /* PAYMENT */
     .price-display { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 1.75rem; text-align: center; margin-bottom: 1.5rem; }
     .price-amount { font-family: 'Playfair Display', serif; font-size: 2.8rem; font-weight: 900; color: var(--gold); }
     .price-desc { color: var(--gray); font-size: 0.87rem; margin-top: 0.25rem; }
@@ -185,7 +176,6 @@
     .upsell-card h4 { font-size: 0.92rem; font-weight: 600; margin-bottom: 0.3rem; }
     .upsell-card p { font-size: 0.8rem; color: var(--gray); margin-bottom: 0.9rem; line-height: 1.5; }
 
-    /* PRICING CARDS */
     .pricing-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 0.85rem 0.65rem; cursor: pointer; transition: all 0.2s; position: relative; text-align: center; }
     .pricing-card:hover { border-color: rgba(200,151,63,0.3); background: rgba(200,151,63,0.04); }
     .pricing-card.selected { border-color: var(--gold); background: rgba(200,151,63,0.08); }
@@ -201,7 +191,6 @@
     .upsell-mini:hover { border-color: rgba(200,151,63,0.3); background: rgba(200,151,63,0.06); }
     .upsell-mini.selected { border-color: var(--gold); background: rgba(200,151,63,0.1); }
 
-    /* TERMS MODAL */
     .terms-modal { display: none; position: fixed; inset: 0; z-index: 500; background: rgba(0,0,0,0.85); align-items: center; justify-content: center; padding: 1.5rem; }
     .terms-modal.open { display: flex; }
     .terms-modal-box { background: var(--navy-mid); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; max-width: 560px; width: 100%; max-height: 80vh; overflow-y: auto; padding: 2rem; }
@@ -328,7 +317,6 @@
     <div class="wizard-step" id="step05">
       <h2>Have you seen the property?</h2>
       <p class="step-desc">Before writing an offer, it's important you've had a chance to view the property in person.</p>
-
       <div class="radio-cards">
         <label class="radio-card" onclick="selectCard(this,'seenProperty','yes')">
           <input type="radio" name="seenProperty" value="yes"/>
@@ -346,8 +334,6 @@
           <div class="radio-card-text"><strong>No — I'll arrange it myself</strong><small>See guidance below</small></div>
         </label>
       </div>
-
-      <!-- BOOK SHOWING FORM -->
       <div id="showingForm" style="display:none; margin-top:0.5rem;">
         <div class="notice sage">🏠 A licensed OnDemand Realty agent will accompany you through the property as a neutral professional. You remain unrepresented with no commission obligation. $50 flat fee collected at booking.</div>
         <div class="field-group" style="margin-top:1rem;">
@@ -360,8 +346,6 @@
           <button class="btn-primary" style="width:100%; margin-top:0.5rem;" onclick="bookShowing()">Book Showing — $50 →</button>
         </div>
       </div>
-
-      <!-- ARRANGE MYSELF HELPER -->
       <div id="showingHelper" style="display:none; margin-top:0.5rem;">
         <div class="helper-box open">
           <strong>💡 How to Schedule a Showing as an Unrepresented Buyer</strong>
@@ -410,9 +394,7 @@
       <div class="trec-badge">✓ TREC 20-18 · Section 2 — Property</div>
       <h2>The property</h2>
       <p class="step-desc">Start typing the property address and select it from the list — we'll fill in city, county, and zip automatically.</p>
-
       <div class="field-group">
-        <!-- ADDRESS AUTOCOMPLETE -->
         <div class="field">
           <div class="field-label-row">
             <label>Property Address</label>
@@ -427,8 +409,6 @@
             <span style="background:rgba(74,140,111,0.15); border:1px solid rgba(74,140,111,0.3); color:var(--sage-light); padding:0.25rem 0.6rem; border-radius:6px; font-size:0.75rem; font-weight:600;">✓ Address auto-filled from Google</span>
           </div>
         </div>
-
-        <!-- AUTO-FILLED FIELDS -->
         <div class="field-row">
           <div class="field">
             <div class="field-label-row"><label>City</label></div>
@@ -439,7 +419,6 @@
             <input type="text" id="propZip" placeholder="Auto-filled" style="background:rgba(74,140,111,0.06);"/>
           </div>
         </div>
-
         <div class="field-row">
           <div class="field">
             <div class="field-label-row"><label>State</label></div>
@@ -454,8 +433,6 @@
             <input type="text" id="propCounty" placeholder="Auto-filled" style="background:rgba(74,140,111,0.06);"/>
           </div>
         </div>
-
-        <!-- MANUAL FIELDS -->
         <div class="field">
           <div class="field-label-row">
             <label>Lot / Block</label>
@@ -464,7 +441,6 @@
           <div class="helper-box" id="h-lot"><strong>💡 Legal Description</strong>Find on the MLS listing under "Legal Description" or on the county appraisal district website. Looks like: "Lot 5, Block 2." Your title company can locate this too — leave blank for now if unsure.</div>
           <input type="text" id="propLot" placeholder="e.g. Lot 5, Block 2"/>
         </div>
-
         <div class="field">
           <div class="field-label-row">
             <label>Subdivision / Addition Name</label>
@@ -474,7 +450,6 @@
           <input type="text" id="propSubdiv" placeholder="e.g. Ridgeview Addition"/>
         </div>
       </div>
-
       <div class="notice gold">📋 <strong>2025 Update (TREC 20-18 §4C):</strong> Natural resource leases now include geothermal energy by law. This is automatically noted in your contract.</div>
     </div>
 
@@ -549,7 +524,6 @@
       <div class="trec-badge">✓ TREC 20-18 · Addenda Selection</div>
       <h2>HOA & contingencies</h2>
       <p class="step-desc">Your answers determine which official addenda are included in your offer package.</p>
-
       <div class="radio-group-label">Is the property in an HOA? <button class="helper-btn" onclick="toggleHelper('h-hoa')">?</button></div>
       <div class="helper-box" id="h-hoa" style="margin-bottom:0.75rem;"><strong>💡 HOA Addendum</strong>The HOA Addendum gives you the right to review HOA documents (rules, financials, fees, restrictions) during your option period and terminate if you don't approve. Most Frisco, Allen, McKinney, and Plano subdivisions have HOAs. Check the MLS listing — it will say HOA: Yes or No near the top.</div>
       <div class="radio-cards" style="margin-bottom:1.5rem;">
@@ -557,14 +531,12 @@
         <label class="radio-card" onclick="selectCard(this,'hoa','no')"><input type="radio" name="hoa" value="no"/><div class="radio-dot"></div><div class="radio-card-text"><strong>No HOA</strong><small>No HOA Addendum needed</small></div></label>
         <label class="radio-card" onclick="selectCard(this,'hoa','unknown')"><input type="radio" name="hoa" value="unknown"/><div class="radio-dot"></div><div class="radio-card-text"><strong>I'm not sure</strong><small>We'll include it to protect you — easy to remove later</small></div></label>
       </div>
-
       <div class="radio-group-label">Sale of other property contingency? <button class="helper-btn" onclick="toggleHelper('h-sc')">?</button></div>
       <div class="helper-box" id="h-sc" style="margin-bottom:0.75rem;"><strong>💡 Sale Contingency</strong>Makes your purchase contingent on selling a property you currently own. Protects you from owning two homes at once, but significantly weakens your offer. Sellers in competitive markets often won't accept it. Only use if you absolutely cannot close without selling first.<div class="tip-row"><span class="tip-tag red">Weakens offer</span><span class="tip-tag">Use only if necessary</span></div></div>
       <div class="radio-cards" style="margin-bottom:1.5rem;">
         <label class="radio-card" onclick="selectCard(this,'saleContingency','yes')"><input type="radio" name="saleContingency" value="yes"/><div class="radio-dot"></div><div class="radio-card-text"><strong>Yes — I need to sell first</strong><small>Sale of Other Property Addendum included</small></div></label>
         <label class="radio-card" onclick="selectCard(this,'saleContingency','no')"><input type="radio" name="saleContingency" value="no"/><div class="radio-dot"></div><div class="radio-card-text"><strong>No contingency</strong><small>Stronger offer — no addendum needed</small></div></label>
       </div>
-
       <div class="radio-group-label">Is this a backup offer? <button class="helper-btn" onclick="toggleHelper('h-bak')">?</button></div>
       <div class="helper-box" id="h-bak" style="margin-bottom:0.75rem;"><strong>💡 Back-Up Contract Addendum (2025 Updated)</strong>The property already has an accepted offer but you're submitting as second in line. If the first contract falls through, yours automatically becomes primary. The 2025 update clarified earnest money and option fee timing when a backup contract becomes primary.</div>
       <div class="radio-cards">
@@ -578,7 +550,6 @@
       <div class="trec-badge">✓ TREC 20-18 · Section 6 — Property Condition & Disclosures</div>
       <h2>Survey & disclosures</h2>
       <p class="step-desc">Texas law requires certain disclosures. These questions ensure your contract is properly completed per 2025 TREC updates.</p>
-
       <div class="radio-group-label">Survey — who provides it? <button class="helper-btn" onclick="toggleHelper('h-survey')">?</button></div>
       <div class="helper-box" id="h-survey" style="margin-bottom:0.75rem;"><strong>💡 Survey Options (2025 Update §6C)</strong>The seller can provide an existing survey with either a T-47 Affidavit (notarized) or the new 2025 T-47.1 Declaration (does NOT require notarization — easier for sellers). Or the buyer can order a new survey. New surveys cost approximately $400–$600 and take 1–2 weeks.<div class="tip-row"><span class="tip-tag">Existing survey: seller pays</span><span class="tip-tag">New survey: ~$400–600</span></div></div>
       <div class="radio-cards" style="margin-bottom:1.5rem;">
@@ -586,9 +557,7 @@
         <label class="radio-card" onclick="selectCard(this,'survey','buyerNew')"><input type="radio" name="survey" value="buyerNew"/><div class="radio-dot"></div><div class="radio-card-text"><strong>Buyer orders new survey</strong><small>Buyer pays ~$400–600 from licensed surveyor</small></div></label>
         <label class="radio-card" onclick="selectCard(this,'survey','noSurvey')"><input type="radio" name="survey" value="noSurvey"/><div class="radio-dot"></div><div class="radio-card-text"><strong>No survey required</strong><small>Common for condos or when title insurance only is used</small></div></label>
       </div>
-
       <div class="notice gold">📋 <strong>2025 Mold Disclosure (§6E):</strong> Texas law now requires sellers to disclose any mold remediation certificates issued in the past 5 years. This requirement is automatically noted in your TREC 20-18 contract.</div>
-
       <div class="field" style="margin-top:1.25rem;">
         <div class="field-label-row"><label>MUD / PID Assessment District?</label><button class="helper-btn" onclick="toggleHelper('h-mud')">?</button></div>
         <div class="helper-box" id="h-mud"><strong>💡 MUD / PID Districts</strong>Many Collin and Denton County properties are in Municipal Utility Districts (MUD) or Public Improvement Districts (PID) — these add a special tax on top of regular property taxes. Very common in Frisco, Little Elm, Celina, and Prosper. The MLS listing will note if the property is in a MUD/PID. If so, a separate disclosure addendum is required.<div class="tip-row"><span class="tip-tag">Common in Frisco/Celina/Prosper</span><span class="tip-tag">Check MLS listing</span></div></div>
@@ -638,10 +607,7 @@
       <h2>Choose your plan</h2>
       <p class="step-desc">Your offer is ready. Select the level of support that's right for you.</p>
 
-      <!-- THREE COLUMN PRICING -->
       <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:0.6rem; margin-bottom:1.5rem;">
-
-        <!-- SELF SERVE -->
         <div class="pricing-card" id="plan-self" onclick="selectPlan('self', 99)">
           <div class="plan-name">Self-Serve</div>
           <div class="plan-price">$99</div>
@@ -652,8 +618,6 @@
             <div class="plan-feature">✓ Upload docs</div>
           </div>
         </div>
-
-        <!-- AGENT ASSISTED - MOST POPULAR -->
         <div class="pricing-card popular" id="plan-agent" onclick="selectPlan('agent', 298)">
           <div class="popular-badge">Most Popular</div>
           <div class="plan-name">Agent Review</div>
@@ -666,8 +630,6 @@
             <div class="plan-feature">✓ Within 2 hours</div>
           </div>
         </div>
-
-        <!-- ATTORNEY -->
         <div class="pricing-card" id="plan-attorney" onclick="selectPlan('attorney', 448)">
           <div class="plan-name">Attorney Review</div>
           <div class="plan-price">$448</div>
@@ -679,10 +641,8 @@
             <div class="plan-feature">✓ Full written analysis</div>
           </div>
         </div>
-
       </div>
 
-      <!-- TRANSACTION SUPPORT UPSELL -->
       <div style="background:rgba(200,151,63,0.06); border:1px solid rgba(200,151,63,0.2); border-radius:12px; padding:1rem; margin-bottom:1.25rem;">
         <p style="font-size:0.8rem; font-weight:700; color:var(--gold-light); margin-bottom:0.5rem; text-transform:uppercase; letter-spacing:0.05em;">Need full transaction support?</p>
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem;">
@@ -699,7 +659,6 @@
         </div>
       </div>
 
-      <!-- SELECTED PLAN DISPLAY -->
       <div id="selectedPlanDisplay" style="display:none; background:rgba(74,140,111,0.1); border:1px solid rgba(74,140,111,0.3); border-radius:10px; padding:1rem; margin-bottom:1.25rem; text-align:center;">
         <div style="font-size:0.8rem; color:var(--sage-light); font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Selected Plan</div>
         <div id="selectedPlanName" style="font-family:'Playfair Display',serif; font-size:1.3rem; font-weight:700; margin:0.25rem 0;"></div>
@@ -715,7 +674,6 @@
       </button>
       <p style="text-align:center; margin-top:0.85rem; font-size:0.78rem; color:var(--gray);">🔒 Secure payment via Stripe · All sales final</p>
 
-      <!-- UPGRADE LATER NOTE -->
       <div style="margin-top:1.25rem; padding:1rem; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.07); border-radius:10px;">
         <p style="font-size:0.82rem; color:var(--gray-light); line-height:1.6;">💡 <strong>Started with Self-Serve but the deal gets complicated?</strong> Log back into your account anytime to upgrade to agent or attorney support — even after your offer is submitted.</p>
       </div>
@@ -730,7 +688,6 @@
 </div><!-- /wizard-overlay -->
 
 <script>
-  // ── STEP DEFINITIONS ──
   const STEPS = ['step0','step05','step1','step2','step3','step4','step5','step6','step7','step8','step9'];
   const STEP_NAMES = ['Disclaimer','Have You Seen It?','Parties','Property','Price & Terms','Financing','HOA & Addenda','Disclosures','Closing','Review','Payment'];
   const state = { step: 0, data: {}, termsOK: false, selectedPlan: null, selectedPrice: 0 };
@@ -765,7 +722,6 @@
     document.getElementById('termsCheckRow').classList.toggle('accepted', cb.checked);
     updateProgress();
   }
-  function toggleTerms(e) { handleTermsChange(); }
 
   function openTermsModal(e) { e.preventDefault(); e.stopPropagation(); document.getElementById('termsModal').classList.add('open'); }
   function closeTerms() { document.getElementById('termsModal').classList.remove('open'); }
@@ -788,6 +744,10 @@
     updateProgress();
     document.querySelector('.wizard-body').scrollTop = 0;
     window.scrollTo(0, 0);
+    const sid = STEPS[state.step];
+    if (sid === 'step3') { applySmartDefaults(); wireSmartCalculations(); }
+    if (sid === 'step7') { applySmartDefaults(); }
+    if (sid === 'step2') { setTimeout(initPlacesService, 150); }
   }
 
   function collectData() {
@@ -808,7 +768,6 @@
     if (m[sid]) m[sid]();
   }
 
-  // ── PLAN SELECTION ──
   function selectPlan(plan, price) {
     state.selectedPlan = plan;
     state.selectedPrice = price;
@@ -832,7 +791,6 @@
     btn.disabled = false;
   }
 
-  // ── SHOWING BOOKING ──
   function bookShowing() {
     const addr = document.getElementById('showingAddress').value;
     const date = document.getElementById('showingDate').value;
@@ -902,13 +860,9 @@
     if (!PDFLib) throw new Error('pdf-lib not loaded');
     const s = state.data;
     const fmtM = v => v ? '$' + Number(v).toLocaleString() : '';
-
-    // Load main contract
     const mainBytes = await fetch('/20-18_0.pdf').then(r => r.arrayBuffer());
     const mainDoc = await PDFLib.PDFDocument.load(mainBytes, { ignoreEncryption: true });
     const form = mainDoc.getForm();
-
-    // Field mapping — verified against TREC 20-18 field names
     const fieldMap = {
       '1 PARTIES The parties to this contract are': s.buyer2 ? `${s.buyer1} and ${s.buyer2}` : s.buyer1,
       'Seller and': s.seller,
@@ -926,66 +880,36 @@
       'insurance Title Policy issued by': s.titleCompany || '',
       'B Sum of all financing described in the attached': fmtM(s.loanAmount),
     };
-
-    // Fill text fields
     for (const [fieldName, value] of Object.entries(fieldMap)) {
       if (!value) continue;
-      try {
-        const field = form.getTextField(fieldName);
-        field.setText(value);
-      } catch(e) { /* field may not exist or be different type */ }
+      try { const field = form.getTextField(fieldName); field.setText(value); } catch(e) {}
     }
-
-    // Check financing addendum checkbox
     if (['conventional','fha','va','usda'].includes(s.financing)) {
       try { form.getCheckBox('Third Party Financing Addendum').check(); } catch(e) {}
     }
-
-    // Check possession
     if (s.possession === 'funding') {
       try { form.getCheckBox('upon').check(); } catch(e) {}
     }
-
-    // Merge addenda
     const addendaDocs = [];
     if (['conventional','fha','va','usda'].includes(s.financing)) {
-      try {
-        const b = await fetch('/third_party_financing_addendum.pdf').then(r => r.arrayBuffer());
-        addendaDocs.push(await PDFLib.PDFDocument.load(b, { ignoreEncryption: true }));
-      } catch(e) { console.warn('Financing addendum not found'); }
+      try { const b = await fetch('/third_party_financing_addendum.pdf').then(r => r.arrayBuffer()); addendaDocs.push(await PDFLib.PDFDocument.load(b, { ignoreEncryption: true })); } catch(e) {}
     }
     if (s.hoa === 'yes' || s.hoa === 'unknown') {
-      try {
-        const b = await fetch('/hoa_addendum.pdf').then(r => r.arrayBuffer());
-        addendaDocs.push(await PDFLib.PDFDocument.load(b, { ignoreEncryption: true }));
-      } catch(e) { console.warn('HOA addendum not found'); }
+      try { const b = await fetch('/hoa_addendum.pdf').then(r => r.arrayBuffer()); addendaDocs.push(await PDFLib.PDFDocument.load(b, { ignoreEncryption: true })); } catch(e) {}
     }
     if (s.saleContingency === 'yes') {
-      try {
-        const b = await fetch('/sale_of_other_property_addendum.pdf').then(r => r.arrayBuffer());
-        addendaDocs.push(await PDFLib.PDFDocument.load(b, { ignoreEncryption: true }));
-      } catch(e) { console.warn('Sale contingency addendum not found'); }
+      try { const b = await fetch('/sale_of_other_property_addendum.pdf').then(r => r.arrayBuffer()); addendaDocs.push(await PDFLib.PDFDocument.load(b, { ignoreEncryption: true })); } catch(e) {}
     }
     if (s.backupOffer === 'yes') {
-      try {
-        const b = await fetch('/back_up_contract_addendum.pdf').then(r => r.arrayBuffer());
-        addendaDocs.push(await PDFLib.PDFDocument.load(b, { ignoreEncryption: true }));
-      } catch(e) { console.warn('Backup addendum not found'); }
+      try { const b = await fetch('/back_up_contract_addendum.pdf').then(r => r.arrayBuffer()); addendaDocs.push(await PDFLib.PDFDocument.load(b, { ignoreEncryption: true })); } catch(e) {}
     }
-
-    // Flatten main contract and merge addenda
     try { form.flatten(); } catch(e) {}
     const finalDoc = await PDFLib.PDFDocument.create();
     const mainPages = await finalDoc.copyPages(mainDoc, mainDoc.getPageIndices());
     mainPages.forEach(p => finalDoc.addPage(p));
-
     for (const addDoc of addendaDocs) {
-      try {
-        const pages = await finalDoc.copyPages(addDoc, addDoc.getPageIndices());
-        pages.forEach(p => finalDoc.addPage(p));
-      } catch(e) {}
+      try { const pages = await finalDoc.copyPages(addDoc, addDoc.getPageIndices()); pages.forEach(p => finalDoc.addPage(p)); } catch(e) {}
     }
-
     const pdfBytes = await finalDoc.save();
     const blob = new Blob([pdfBytes], { type: 'application/pdf' });
     const url = URL.createObjectURL(blob);
@@ -994,10 +918,10 @@
     a.download = `HomeOfferFlow_Offer_${s.address?.replace(/\s+/g,'_') || 'Contract'}.pdf`;
     a.click();
     URL.revokeObjectURL(url);
-    console.log('✓ PDF generated and downloaded');
     return true;
   }
 
+  // ── PAYMENT — SERVER-SIDE CHECKOUT ──
   async function handlePayment() {
     const email = document.getElementById('paymentEmail').value;
     if (!email) { alert('Please enter your email address.'); return; }
@@ -1007,7 +931,6 @@
     btn.textContent = 'Processing...';
     btn.disabled = true;
 
-    // Stripe price IDs — live mode
     const priceMap = {
       'self':                 'price_1TYTYqAELe66ESXnhNQmydWn',
       'agent':                'price_1TYTbiAELe66ESXnF6HNKELh',
@@ -1025,18 +948,28 @@
     }
 
     try {
-      // Save offer data before leaving for Stripe
       sessionStorage.setItem('hofOfferData', JSON.stringify(state.data));
-      const stripe = Stripe('pk_live_51T7fXrAELe66ESXnenZWvslrGUe4Iay4s2lDo78PytTZgNFniRkuN9rkwNv2XcU0acrN5CQileVasoF1XP8sWDDK00HIvIQ6AY');
-      await stripe.redirectToCheckout({
-        lineItems: [{ price: priceId, quantity: 1 }],
-        mode: 'payment',
-        customerEmail: email,
-        successUrl: `${window.location.origin}/?success=true&plan=${state.selectedPlan}`,
-        cancelUrl: window.location.href,
+
+      const response = await fetch('/api/create-checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          priceId: priceId,
+          email: email,
+          plan: state.selectedPlan
+        })
       });
+
+      const result = await response.json();
+
+      if (result.error) {
+        throw new Error(result.error);
+      }
+
+      window.location.href = result.url;
+
     } catch(e) {
-      console.error('Stripe error:', e);
+      console.error('Payment error:', e);
       alert('Payment error: ' + e.message);
       btn.textContent = `Pay $${state.selectedPrice.toLocaleString()} & Continue →`;
       btn.disabled = false;
@@ -1049,18 +982,15 @@
 
   document.getElementById('termsModal').addEventListener('click', function(e) { if(e.target===this) closeTerms(); });
 
-  // Handle successful payment return from Stripe
+  // Handle successful payment return
   if (window.location.search.includes('success=true')) {
     const plan = new URLSearchParams(window.location.search).get('plan');
     const names = { 'self':'Self-Serve', 'agent':'Agent Review', 'attorney':'Attorney Review', 'agent-transaction':'Agent Transaction Support', 'attorney-transaction':'Attorney Transaction Support' };
     setTimeout(async () => {
-      // Show success message
       const msg = document.createElement('div');
       msg.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#4a8c6f;color:#fff;padding:1rem 2rem;border-radius:10px;font-family:DM Sans,sans-serif;font-weight:600;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,0.3);text-align:center;min-width:300px;';
       msg.innerHTML = `✅ Payment successful!<br><span style="font-weight:400;font-size:0.85rem;">Generating your offer PDF...</span>`;
       document.body.appendChild(msg);
-
-      // Try to generate PDF from saved state
       try {
         const savedState = sessionStorage.getItem('hofOfferData');
         if (savedState) {
@@ -1073,7 +1003,6 @@
       } catch(e) {
         msg.innerHTML = `✅ Payment successful!<br><span style="font-weight:400;font-size:0.85rem;">Please re-open the wizard to download your offer.</span>`;
       }
-
       setTimeout(() => msg.remove(), 8000);
       window.history.replaceState({}, '', '/');
     }, 500);
@@ -1081,31 +1010,22 @@
 
   // ── SMART DEFAULTS ──
   function nextBusinessDay(date) {
-    // If closing date falls on Saturday (6) push to Monday, Sunday (0) push to Monday
     const d = new Date(date);
-    if (d.getDay() === 6) d.setDate(d.getDate() + 2); // Sat → Mon
-    if (d.getDay() === 0) d.setDate(d.getDate() + 1); // Sun → Mon
+    if (d.getDay() === 6) d.setDate(d.getDate() + 2);
+    if (d.getDay() === 0) d.setDate(d.getDate() + 1);
     return d;
   }
 
   function applySmartDefaults() {
     const g = id => document.getElementById(id);
-
-    // Closing date: 30 days out, bumped to next business day if on weekend
     if (g('closingDate') && !g('closingDate').value) {
       const target = new Date();
       target.setDate(target.getDate() + 30);
       const adjusted = nextBusinessDay(target);
       g('closingDate').value = adjusted.toISOString().split('T')[0];
     }
-
-    // Option period
     if (g('optionDays') && !g('optionDays').value) g('optionDays').value = '7';
-
-    // Option fee
     if (g('optionFee') && !g('optionFee').value) g('optionFee').value = '250';
-
-    // Possession
     if (g('possession') && !g('possession').value) g('possession').value = 'funding';
   }
 
@@ -1119,7 +1039,6 @@
       const earnest = document.getElementById('earnestMoney');
       const loan    = document.getElementById('loanAmount');
       const down    = document.getElementById('downPayment');
-      // Only auto-fill if user hasn't manually edited
       if (earnest && !earnest._userEdited) earnest.value = Math.round(price * 0.01);
       if (down    && !down._userEdited)    down.value    = Math.round(price * 0.10);
       if (loan    && !loan._userEdited)    loan.value    = Math.round(price * 0.90);
@@ -1130,31 +1049,12 @@
     });
   }
 
-  // Apply smart defaults and autocomplete at right step moments
-  // Hook into the existing showStep by extending it after definition
-  const _showStepOrig = showStep.bind({});
-  showStep = function(n) {
-    if (n < 0 || n >= STEPS.length) return;
-    document.getElementById(STEPS[state.step]).classList.remove('active');
-    state.step = n;
-    document.getElementById(STEPS[state.step]).classList.add('active');
-    updateProgress();
-    document.querySelector('.wizard-body').scrollTop = 0;
-    window.scrollTo(0, 0);
-    // Step-specific hooks
-    const sid = STEPS[state.step];
-    if (sid === 'step3') { applySmartDefaults(); wireSmartCalculations(); }
-    if (sid === 'step7') { applySmartDefaults(); }
-    if (sid === 'step2') { setTimeout(initPlacesService, 150); }
-  };
-
-  // ── GOOGLE PLACES — SERVICE API (works in hidden containers) ──
+  // ── GOOGLE PLACES ──
   let _autocompleteService = null;
   let _placesService       = null;
   let _sessionToken        = null;
   let _dropdown            = null;
 
-  // Called when Google Maps loads
   const _headCallback = window.initAutocomplete;
   window.initAutocomplete = function() {
     _headCallback && _headCallback();
@@ -1168,8 +1068,7 @@
       window._AutocompleteSuggestion = AutocompleteSuggestion;
       window._AutocompleteSessionToken = AutocompleteSessionToken;
       _sessionToken = new AutocompleteSessionToken();
-      _autocompleteService = true; // flag that setup is done
-      console.log('Places API (New) ready — AutocompleteSuggestion');
+      _autocompleteService = true;
       if (STEPS[state.step] === 'step2') wireAddressInput();
     } catch(e) {
       console.error('Places setup error:', e);
@@ -1179,7 +1078,6 @@
   function initPlacesService() {
     if (!window.google || !window.google.maps) {
       window._hofPlacesSetup = wireAddressInput;
-      console.log('Maps not ready yet — will wire when loaded');
       return;
     }
     if (!_autocompleteService) setupPlacesServices();
@@ -1187,7 +1085,7 @@
   }
 
   function wireAddressInput() {
-    if (!window._AutocompleteSuggestion) { console.warn('AutocompleteSuggestion not ready'); return; }
+    if (!window._AutocompleteSuggestion) { return; }
     const input = document.getElementById('propAddress');
     if (!input || input._hofWired) return;
     input._hofWired = true;
@@ -1195,7 +1093,6 @@
     input.setAttribute('autocorrect', 'off');
     input.setAttribute('autocapitalize', 'off');
     input.setAttribute('spellcheck', 'false');
-
     input.addEventListener('input', _debounce(async e => {
       const q = e.target.value.trim();
       if (q.length < 3) { _hideDropdown(); return; }
@@ -1210,16 +1107,12 @@
         if (!suggestions || suggestions.length === 0) { _hideDropdown(); return; }
         _showDropdown(suggestions, input);
       } catch(err) {
-        console.error('Autocomplete error:', err);
         _hideDropdown();
       }
     }, 280));
-
     document.addEventListener('click', e => {
       if (!e.target.closest('#propAddress') && !e.target.closest('#hof-ac-dd')) _hideDropdown();
     });
-
-    console.log('Address autocomplete wired (new API)');
   }
 
   function _showDropdown(suggestions, input) {
@@ -1227,12 +1120,7 @@
     const rect = input.getBoundingClientRect();
     const dd = document.createElement('div');
     dd.id = 'hof-ac-dd';
-    dd.style.cssText = `
-      position:fixed; left:${rect.left}px; top:${rect.bottom + 4}px; width:${rect.width}px;
-      background:#152840; border:1px solid rgba(200,151,63,0.35); border-radius:10px;
-      z-index:99999; overflow:hidden; box-shadow:0 8px 32px rgba(0,0,0,0.5);
-      font-family:'DM Sans',sans-serif;
-    `;
+    dd.style.cssText = `position:fixed; left:${rect.left}px; top:${rect.bottom + 4}px; width:${rect.width}px; background:#152840; border:1px solid rgba(200,151,63,0.35); border-radius:10px; z-index:99999; overflow:hidden; box-shadow:0 8px 32px rgba(0,0,0,0.5); font-family:'DM Sans',sans-serif;`;
     suggestions.slice(0, 5).forEach(suggestion => {
       const pred = suggestion.placePrediction;
       if (!pred) return;
@@ -1308,10 +1196,8 @@
     flash('propCounty', county);
     const badge = document.getElementById('addressAutofillBadge');
     if (badge) badge.style.display = 'block';
-    console.log(`✓ Address filled: ${street}, ${city}, ${state} ${zip}, ${county} County`);
   }
 
-  // Legacy fallback
   function tryInitAutocomplete() {
     if (window.google && window.google.maps && window.google.maps.places) {
       setupPlacesServices();
