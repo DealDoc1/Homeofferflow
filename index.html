@@ -363,9 +363,9 @@
 
     <!-- STEP 1: PARTIES -->
     <div class="wizard-step" id="step1">
-      <div class="trec-badge">✓ TREC 20-18 · Section 1 — Parties</div>
+      <div class="trec-badge">✓ TREC 20-18 · Section 1 — Parties & §21 Notices</div>
       <h2>Who's buying?</h2>
-      <p class="step-desc">Enter buyer and seller names exactly as they should appear on the contract — full legal names, no nicknames.</p>
+      <p class="step-desc">Enter full legal names exactly as they should appear on the contract. We'll also collect your contact info for the Notices section (§21).</p>
       <div class="field-group">
         <div class="field-row">
           <div class="field">
@@ -388,12 +388,32 @@
           <div class="helper-box" id="h-sel"><strong>💡 Where to Find the Seller's Name</strong>Check the MLS listing, county appraisal district (CAD) tax records, or ask the listing agent. Enter all owners exactly as listed — often "John Smith and Jane Smith" for married couples.<div class="tip-row"><span class="tip-tag">Collin CAD</span><span class="tip-tag">Denton CAD</span><span style="color:var(--gray);font-size:0.78rem"> — search by address for owner name</span></div></div>
           <input type="text" id="seller1" placeholder="As listed on tax records or MLS"/>
         </div>
+        <div style="margin-top:0.5rem; padding-top:0.75rem; border-top:1px solid rgba(255,255,255,0.07);">
+          <p style="font-size:0.8rem; font-weight:700; color:var(--gold-light); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.75rem;">§21 — Your Contact Info (Notices to Buyer)</p>
+          <div class="notice gold">💡 This information goes in Section 21 of the contract so the seller and their agent know where to send official notices. Use your current mailing address.</div>
+          <div class="field-group" style="margin-bottom:0; margin-top:0.75rem;">
+            <div class="field">
+              <div class="field-label-row"><label>Buyer Mailing Address</label></div>
+              <input type="text" id="buyerMailAddr" placeholder="123 Main St, City, TX 75001"/>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <div class="field-label-row"><label>Buyer Phone</label></div>
+                <input type="tel" id="buyerPhone" placeholder="(214) 555-0000"/>
+              </div>
+              <div class="field">
+                <div class="field-label-row"><label>Buyer Email</label></div>
+                <input type="email" id="buyerEmail" placeholder="you@email.com"/>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
     <!-- STEP 2: PROPERTY -->
     <div class="wizard-step" id="step2">
-      <div class="trec-badge">✓ TREC 20-18 · Section 2 — Property</div>
+      <div class="trec-badge">✓ TREC 20-18 · Section 2 — Property & §4 Leases</div>
       <h2>The property</h2>
       <p class="step-desc">Start typing the property address and select it from the list — we'll fill in city, county, and zip automatically.</p>
       <div class="field-group">
@@ -453,6 +473,19 @@
         </div>
       </div>
       <div class="notice gold">📋 <strong>2025 Update (TREC 20-18 §4C):</strong> Natural resource leases now include geothermal energy by law. This is automatically noted in your contract.</div>
+
+      <!-- SECTION 4 LEASES -->
+      <div style="margin-top:1rem; padding-top:0.75rem; border-top:1px solid rgba(255,255,255,0.07);">
+        <p style="font-size:0.8rem; font-weight:700; color:var(--gold-light); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.5rem;">§4 — Leases on the Property</p>
+        <div class="notice gold">💡 Most buyers won't know about existing leases up front — that's normal. If you're unsure, ask the listing agent before submitting. The listing agent may update this at execution. <strong>This is not legal advice.</strong></div>
+        <div class="radio-group-label" style="margin-top:0.75rem;">Are you aware of any leases on this property?</div>
+        <div class="radio-cards">
+          <label class="radio-card" onclick="selectCard(this,'leases','no')"><input type="radio" name="leases" value="no"/><div class="radio-dot"></div><div class="radio-card-text"><strong>No — not aware of any leases</strong><small>Most common for standard resale homes — leave blank</small></div></label>
+          <label class="radio-card" onclick="selectCard(this,'leases','residential')"><input type="radio" name="leases" value="residential"/><div class="radio-dot"></div><div class="radio-card-text"><strong>Yes — residential lease (tenant in place)</strong><small>Addendum for Residential Leases will be included</small></div></label>
+          <label class="radio-card" onclick="selectCard(this,'leases','fixture')"><input type="radio" name="leases" value="fixture"/><div class="radio-dot"></div><div class="radio-card-text"><strong>Yes — fixture lease (solar panels, propane, etc.)</strong><small>Addendum for Fixture Leases will be included</small></div></label>
+          <label class="radio-card" onclick="selectCard(this,'leases','unknown')"><input type="radio" name="leases" value="unknown"/><div class="radio-dot"></div><div class="radio-card-text"><strong>Not sure — I'll ask the listing agent</strong><small>Leave blank for now — listing agent may update at execution</small></div></label>
+        </div>
+      </div>
     </div>
 
     <!-- STEP 3: PRICE -->
@@ -547,51 +580,157 @@
       </div>
     </div>
 
-    <!-- STEP 6: DISCLOSURES -->
+    <!-- STEP 6: TITLE, SURVEY, DISCLOSURES, PROPERTY CONDITION -->
     <div class="wizard-step" id="step6">
-      <div class="trec-badge">✓ TREC 20-18 · Section 6 — Property Condition & Disclosures</div>
-      <h2>Survey & disclosures</h2>
-      <p class="step-desc">Texas law requires certain disclosures. These questions ensure your contract is properly completed per 2025 TREC updates.</p>
-      <div class="radio-group-label">Survey — who provides it? <button class="helper-btn" onclick="toggleHelper('h-survey')">?</button></div>
-      <div class="helper-box" id="h-survey" style="margin-bottom:0.75rem;"><strong>💡 Survey Options (2025 Update §6C)</strong>The seller can provide an existing survey with either a T-47 Affidavit (notarized) or the new 2025 T-47.1 Declaration (does NOT require notarization — easier for sellers). Or the buyer can order a new survey. New surveys cost approximately $400–$600 and take 1–2 weeks.<div class="tip-row"><span class="tip-tag">Existing survey: seller pays</span><span class="tip-tag">New survey: ~$400–600</span></div></div>
+      <div class="trec-badge">✓ TREC 20-18 · §6 Title & Survey · §7 Property Condition</div>
+      <h2>Title, survey & disclosures</h2>
+      <p class="step-desc">These questions complete required contract sections. We guide you on each one. <strong>This is not legal advice.</strong></p>
+
+      <!-- 6A Who pays title -->
+      <div class="radio-group-label">§6A — Who pays for Title Insurance? <button class="helper-btn" onclick="toggleHelper('h-titlepay')">?</button></div>
+      <div class="helper-box" id="h-titlepay" style="margin-bottom:0.75rem;"><strong>💡 Title Insurance Cost</strong>In Texas, the title insurance premium is state-regulated (not negotiable between companies). On a $400,000 purchase it's approximately $2,200–$2,400. <strong>Standard in Texas: Seller pays.</strong> Asking buyer to pay adds roughly $2,000–$2,500 out of pocket and may make your offer less competitive. <strong>This is not legal advice.</strong></div>
       <div class="radio-cards" style="margin-bottom:1.5rem;">
+        <label class="radio-card" onclick="selectCard(this,'titlePayer','seller')"><input type="radio" name="titlePayer" value="seller"/><div class="radio-dot"></div><div class="radio-card-text"><strong>Seller pays (recommended — Texas standard)</strong><small>Keeps your offer competitive, saves you ~$2,000–$2,500</small></div></label>
+        <label class="radio-card" onclick="selectCard(this,'titlePayer','buyer')"><input type="radio" name="titlePayer" value="buyer"/><div class="radio-dot"></div><div class="radio-card-text"><strong>Buyer pays</strong><small>Unusual — adds ~$2,000–$2,500 to your closing costs</small></div></label>
+      </div>
+
+      <!-- 6A(8) Title amendment -->
+      <div class="radio-group-label">§6A(8) — Title policy amendment for boundary shortages? <button class="helper-btn" onclick="toggleHelper('h-titleamend')">?</button></div>
+      <div class="helper-box" id="h-titleamend" style="margin-bottom:0.75rem;"><strong>💡 Title Amendment Options</strong><strong>(i) Will NOT be amended (standard):</strong> The standard boundary shortage exception stays in the policy. This is the default in most Texas transactions.<br/><br/><strong>(ii) Amended to read "shortages in area":</strong> Narrows the exception so the title company must cover boundary shortages. Slightly more buyer protection but may cost extra. <strong>This is not legal advice.</strong></div>
+      <div class="radio-cards" style="margin-bottom:1.5rem;">
+        <label class="radio-card" onclick="selectCard(this,'titleAmendment','i')"><input type="radio" name="titleAmendment" value="i"/><div class="radio-dot"></div><div class="radio-card-text"><strong>(i) Will NOT be amended — standard</strong><small>Most common in Texas transactions</small></div></label>
+        <label class="radio-card" onclick="selectCard(this,'titleAmendment','ii_buyer')"><input type="radio" name="titleAmendment" value="ii_buyer"/><div class="radio-dot"></div><div class="radio-card-text"><strong>(ii) Amended — Buyer pays cost</strong><small>Narrower exception, buyer covers any additional premium</small></div></label>
+        <label class="radio-card" onclick="selectCard(this,'titleAmendment','ii_seller')"><input type="radio" name="titleAmendment" value="ii_seller"/><div class="radio-dot"></div><div class="radio-card-text"><strong>(ii) Amended — Seller pays cost</strong><small>Narrower exception, seller covers any additional premium</small></div></label>
+      </div>
+
+      <!-- 6C Survey -->
+      <div class="radio-group-label">§6C — Survey — who provides it? <button class="helper-btn" onclick="toggleHelper('h-survey')">?</button></div>
+      <div class="helper-box" id="h-survey" style="margin-bottom:0.75rem;"><strong>💡 Survey Options (2025 Update §6C)</strong>Seller can provide existing survey with T-47.1 Declaration (no notarization required — 2025 update). Or buyer orders a new survey (~$400–600, 1–2 weeks).<div class="tip-row"><span class="tip-tag">Existing survey: seller provides</span><span class="tip-tag">New survey: ~$400–600</span></div></div>
+      <div class="radio-cards" style="margin-bottom:0.75rem;">
         <label class="radio-card" onclick="selectCard(this,'survey','sellerExisting')"><input type="radio" name="survey" value="sellerExisting"/><div class="radio-dot"></div><div class="radio-card-text"><strong>Seller provides existing survey</strong><small>With T-47.1 Declaration (2025) — no notarization required</small></div></label>
         <label class="radio-card" onclick="selectCard(this,'survey','buyerNew')"><input type="radio" name="survey" value="buyerNew"/><div class="radio-dot"></div><div class="radio-card-text"><strong>Buyer orders new survey</strong><small>Buyer pays ~$400–600 from licensed surveyor</small></div></label>
-        <label class="radio-card" onclick="selectCard(this,'survey','noSurvey')"><input type="radio" name="survey" value="noSurvey"/><div class="radio-dot"></div><div class="radio-card-text"><strong>No survey required</strong><small>Common for condos or when title insurance only is used</small></div></label>
+        <label class="radio-card" onclick="selectCard(this,'survey','noSurvey')"><input type="radio" name="survey" value="noSurvey"/><div class="radio-dot"></div><div class="radio-card-text"><strong>No survey required</strong><small>Common for condos or title insurance only</small></div></label>
       </div>
-      <div class="notice gold">📋 <strong>2025 Mold Disclosure (§6E):</strong> Texas law now requires sellers to disclose any mold remediation certificates issued in the past 5 years. This requirement is automatically noted in your TREC 20-18 contract.</div>
-      <div class="field" style="margin-top:1.25rem;">
+      <div class="field" style="margin-bottom:1.5rem;">
+        <div class="field-label-row"><label>Days to provide survey after Effective Date</label><button class="helper-btn" onclick="toggleHelper('h-surveydays')">?</button></div>
+        <div class="helper-box" id="h-surveydays"><strong>💡 Survey Days</strong>Standard is 7–10 days after Effective Date for seller-provided. For buyer-ordered, typically before end of option period.</div>
+        <input type="number" id="surveyDays" placeholder="7" style="max-width:120px;"/>
+      </div>
+
+      <!-- 6D Intended Use -->
+      <div class="field" style="margin-bottom:1.5rem;">
+        <div class="field-label-row"><label>§6D — Intended Use / Restriction (optional)</label><button class="helper-btn" onclick="toggleHelper('h-use')">?</button></div>
+        <div class="helper-box" id="h-use"><strong>💡 Restriction on Use</strong>If you intend to use the property beyond standard single-family residential, enter it here. This gives you a contract out if deed restrictions, HOA rules, or zoning prohibit your intended use. Leave blank if standard residential only.<br/><br/>Examples: "operation of a short-term rental", "keeping horses/livestock", "construction of a detached workshop", "parking RV/boat/trailer on the Property", "installation of a pool", "home business"</div>
+        <input type="text" id="intendedUse" placeholder="e.g. short-term rental, horses, RV parking — leave blank if standard residential"/>
+      </div>
+
+      <!-- MUD/PID -->
+      <div class="field" style="margin-bottom:1.5rem;">
         <div class="field-label-row"><label>MUD / PID Assessment District?</label><button class="helper-btn" onclick="toggleHelper('h-mud')">?</button></div>
-        <div class="helper-box" id="h-mud"><strong>💡 MUD / PID Districts</strong>Many Collin and Denton County properties are in Municipal Utility Districts (MUD) or Public Improvement Districts (PID) — these add a special tax on top of regular property taxes. Very common in Frisco, Little Elm, Celina, and Prosper. The MLS listing will note if the property is in a MUD/PID. If so, a separate disclosure addendum is required.<div class="tip-row"><span class="tip-tag">Common in Frisco/Celina/Prosper</span><span class="tip-tag">Check MLS listing</span></div></div>
+        <div class="helper-box" id="h-mud"><strong>💡 MUD / PID Districts</strong>Very common in Frisco, Little Elm, Celina, and Prosper — adds a special tax on top of regular property taxes. The MLS listing will note if the property is in a MUD/PID.<div class="tip-row"><span class="tip-tag">Common in Frisco/Celina/Prosper</span><span class="tip-tag">Check MLS listing</span></div></div>
         <select id="mudDistrict"><option value="">Select...</option><option value="yes">Yes — property is in a MUD or PID</option><option value="no">No special assessment district</option><option value="unknown">I'm not sure — include disclosure to be safe</option></select>
       </div>
+
+      <!-- 7B Seller Disclosure -->
+      <div style="padding-top:0.75rem; border-top:1px solid rgba(255,255,255,0.07); margin-bottom:1.25rem;">
+        <p style="font-size:0.8rem; font-weight:700; color:var(--gold-light); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.5rem;">§7B — Seller's Disclosure Notice</p>
+        <div class="notice gold">💡 Texas law (§5.008) requires sellers to provide a Seller's Disclosure Notice about the property's known condition. <strong>This is not legal advice.</strong></div>
+        <div class="radio-group-label" style="margin-top:0.75rem;">Have you received the Seller's Disclosure Notice?</div>
+        <div class="radio-cards" style="margin-bottom:0.75rem;">
+          <label class="radio-card" onclick="selectCard(this,'sellerDisclosure','received'); document.getElementById('discDaysField').style.display='none'"><input type="radio" name="sellerDisclosure" value="received"/><div class="radio-dot"></div><div class="radio-card-text"><strong>Yes — I have received it</strong><small>§7B(1) will be checked on the contract</small></div></label>
+          <label class="radio-card" onclick="selectCard(this,'sellerDisclosure','notReceived'); document.getElementById('discDaysField').style.display='block'"><input type="radio" name="sellerDisclosure" value="notReceived"/><div class="radio-dot"></div><div class="radio-card-text"><strong>No — I have not received it yet</strong><small>Seller must provide within the days you specify</small></div></label>
+          <label class="radio-card" onclick="selectCard(this,'sellerDisclosure','exempt'); document.getElementById('discDaysField').style.display='none'"><input type="radio" name="sellerDisclosure" value="exempt"/><div class="radio-dot"></div><div class="radio-card-text"><strong>Seller is exempt from providing it</strong><small>Estate sale, foreclosure, new construction, etc.</small></div></label>
+        </div>
+        <div id="discDaysField" style="display:none;">
+          <div class="field">
+            <div class="field-label-row"><label>Days for Seller to provide Disclosure after Effective Date</label><button class="helper-btn" onclick="toggleHelper('h-discdays')">?</button></div>
+            <div class="helper-box" id="h-discdays"><strong>💡 Standard: 3 Days</strong>The standard is 3 days after the Effective Date. If seller doesn't provide it in time, you may terminate and receive your earnest money back.</div>
+            <input type="number" id="disclosureDays" placeholder="3" value="3" style="max-width:120px;"/>
+          </div>
+        </div>
+      </div>
+
+      <!-- 7D Property Condition -->
+      <div style="padding-top:0.75rem; border-top:1px solid rgba(255,255,255,0.07);">
+        <p style="font-size:0.8rem; font-weight:700; color:var(--gold-light); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.5rem;">§7D — Property Condition (As Is)</p>
+        <div class="notice gold">💡 <strong>Tip:</strong> Most competitive offers check "As Is." This does NOT waive your inspection rights — you still inspect during the option period and can negotiate repairs or terminate for any reason. "As Is" just makes your offer more attractive to sellers. <strong>This is not legal advice.</strong></div>
+        <div class="radio-group-label" style="margin-top:0.75rem;">How do you accept the property?</div>
+        <div class="radio-cards">
+          <label class="radio-card" onclick="selectCard(this,'asIs','yes'); document.getElementById('repairsField').style.display='none'"><input type="radio" name="asIs" value="yes"/><div class="radio-dot"></div><div class="radio-card-text"><strong>As Is (recommended for competitive offers)</strong><small>You can still inspect and negotiate repairs during the option period</small></div></label>
+          <label class="radio-card" onclick="selectCard(this,'asIs','repairs'); document.getElementById('repairsField').style.display='block'"><input type="radio" name="asIs" value="repairs"/><div class="radio-dot"></div><div class="radio-card-text"><strong>As Is — with specific seller repairs required</strong><small>Seller must complete listed repairs before closing</small></div></label>
+        </div>
+        <div id="repairsField" style="display:none; margin-top:0.75rem;">
+          <div class="field">
+            <div class="field-label-row"><label>Specific Repairs Required</label><button class="helper-btn" onclick="toggleHelper('h-repairs')">?</button></div>
+            <div class="helper-box" id="h-repairs"><strong>💡 Be Specific — TREC Requirement</strong>TREC instructs you NOT to use general phrases like "subject to inspections." List only specific, identified repairs. Example: "Replace HVAC unit" or "Repair roof leak at master bedroom."</div>
+            <textarea id="repairsText" rows="3" placeholder="List specific repairs only — do not use general phrases like 'subject to inspection'" style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:8px; color:var(--white); font-family:'DM Sans',sans-serif; font-size:0.95rem; padding:0.82rem 0.95rem; width:100%;"></textarea>
+          </div>
+        </div>
+      </div>
+      <div class="notice gold" style="margin-top:1rem;">📋 <strong>2025 Mold Disclosure (§6E):</strong> Texas law now requires sellers to disclose mold remediation certificates issued in the past 5 years. This is automatically noted in your contract.</div>
     </div>
 
-    <!-- STEP 7: CLOSING -->
+    <!-- STEP 7: CLOSING + AGENTS + CONCESSIONS -->
     <div class="wizard-step" id="step7">
-      <div class="trec-badge">✓ TREC 20-18 · Section 9 — Closing & Possession</div>
+      <div class="trec-badge">✓ TREC 20-18 · §9 Closing · §8 Brokers · §12 Expenses</div>
       <h2>Closing details</h2>
-      <p class="step-desc">When do you want to close? These are all negotiable terms.</p>
+      <p class="step-desc">When do you want to close? We'll also ask about your buyer's agent and any seller concessions.</p>
       <div class="field-group">
         <div class="field">
           <div class="field-label-row"><label>Target Closing Date</label><button class="helper-btn" onclick="toggleHelper('h-closing')">?</button></div>
-          <div class="helper-box" id="h-closing"><strong>💡 How to Pick a Closing Date</strong>Closing takes 30–45 days for financed offers, 7–21 days for cash. Consider:<ul><li>Your lender's timeline — ask them before setting a date</li><li>The seller's preferred move-out date</li><li>Avoid closing on Fridays or before holidays if possible</li><li>Build in a few extra days as buffer</li></ul><div class="tip-row"><span class="tip-tag">Financed: 30–45 days</span><span class="tip-tag">Cash: 7–21 days</span></div></div>
+          <div class="helper-box" id="h-closing"><strong>💡 How to Pick a Closing Date</strong>Financed offers typically take 30–45 days. Cash offers can close in 7–21 days. Avoid Fridays and days before holidays. Build in buffer time.<div class="tip-row"><span class="tip-tag">Financed: 30–45 days</span><span class="tip-tag">Cash: 7–21 days</span></div></div>
           <input type="date" id="closingDate"/>
         </div>
         <div class="field">
           <div class="field-label-row"><label>Possession</label><button class="helper-btn" onclick="toggleHelper('h-poss')">?</button></div>
-          <div class="helper-box" id="h-poss"><strong>💡 Closing vs. Funding</strong>"At closing" means keys at document signing. "Upon funding" means keys when the lender sends money — usually same day, sometimes the next business day. Most buyers choose "upon funding" so the deal is fully complete before handing over keys.<div class="tip-row"><span class="tip-tag">Recommended: Upon Funding</span></div></div>
+          <div class="helper-box" id="h-poss"><strong>💡 Closing vs. Funding</strong>"Upon funding" means keys when the lender sends money — usually same day, sometimes next business day. Recommended so the deal is fully complete before keys are handed over.<div class="tip-row"><span class="tip-tag">Recommended: Upon Funding</span></div></div>
           <select id="possession"><option value="">Select...</option><option value="closing">At Closing</option><option value="funding">Upon Funding (recommended)</option><option value="leaseback">Seller Leaseback — negotiate terms separately</option></select>
         </div>
         <div class="field">
           <div class="field-label-row"><label>Title Company (optional)</label><button class="helper-btn" onclick="toggleHelper('h-title')">?</button></div>
-          <div class="helper-box" id="h-title"><strong>💡 Choosing a Title Company</strong>The buyer typically chooses the title company in Texas. Leave blank if undecided — your lender can recommend one. Popular Collin County options: Alamo Title, Republic Title, Chicago Title. Fees vary, so shop around.<div class="tip-row"><span class="tip-tag">Alamo Title</span><span class="tip-tag">Republic Title</span><span class="tip-tag">Chicago Title</span></div></div>
+          <div class="helper-box" id="h-title"><strong>💡 Choosing a Title Company</strong>The buyer typically chooses the title company in Texas. Leave blank if undecided — your lender can recommend one.<div class="tip-row"><span class="tip-tag">Alamo Title</span><span class="tip-tag">Republic Title</span><span class="tip-tag">Chicago Title</span></div></div>
           <input type="text" id="titleCompany" placeholder="e.g. Alamo Title Company (optional)"/>
         </div>
-        <div class="field">
-          <div class="field-label-row"><label>Buyer's Agent Compensation</label><button class="helper-btn" onclick="toggleHelper('h-comp')">?</button></div>
-          <div class="helper-box" id="h-comp"><strong>💡 2025 Broker Compensation Update (§12A)</strong>Per the 2025 TREC update following the NAR settlement, buyer broker compensation must now be clearly documented in the contract or your Buyer Representation Agreement. If you have a buyer's agent, this should already be agreed upon. If you're buying without an agent, enter "N/A."</div>
-          <input type="text" id="brokerComp" placeholder="Per buyer representation agreement, or N/A"/>
+      </div>
+
+      <!-- Section 8: Buyer's Agent -->
+      <div style="padding-top:0.75rem; border-top:1px solid rgba(255,255,255,0.07); margin-bottom:1.25rem;">
+        <p style="font-size:0.8rem; font-weight:700; color:var(--gold-light); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.5rem;">§8 — Buyer's Agent (Broker Information)</p>
+        <div class="radio-group-label">Do you have a buyer's agent?</div>
+        <div class="radio-cards" style="margin-bottom:0.75rem;">
+          <label class="radio-card" onclick="selectCard(this,'hasBuyerAgent','yes'); document.getElementById('agentFields').style.display='block'"><input type="radio" name="hasBuyerAgent" value="yes"/><div class="radio-dot"></div><div class="radio-card-text"><strong>Yes — I have a buyer's agent</strong><small>Enter their information for the Broker Information section</small></div></label>
+          <label class="radio-card" onclick="selectCard(this,'hasBuyerAgent','no'); document.getElementById('agentFields').style.display='none'"><input type="radio" name="hasBuyerAgent" value="no"/><div class="radio-dot"></div><div class="radio-card-text"><strong>No — I'm buying without an agent</strong><small>Broker Information section will be left blank</small></div></label>
+        </div>
+        <div id="agentFields" style="display:none;">
+          <div class="field-group" style="margin-bottom:0;">
+            <div class="field-row">
+              <div class="field"><div class="field-label-row"><label>Agent Name</label></div><input type="text" id="agentName" placeholder="Jane Doe"/></div>
+              <div class="field"><div class="field-label-row"><label>TX License No.</label></div><input type="text" id="agentLicense" placeholder="License #"/></div>
+            </div>
+            <div class="field-row">
+              <div class="field"><div class="field-label-row"><label>Agent Email</label></div><input type="email" id="agentEmail" placeholder="agent@brokerage.com"/></div>
+              <div class="field"><div class="field-label-row"><label>Agent Phone</label></div><input type="tel" id="agentPhone" placeholder="(214) 555-0000"/></div>
+            </div>
+            <div class="field"><div class="field-label-row"><label>Brokerage Name</label></div><input type="text" id="agentBrokerage" placeholder="Brokerage firm name"/></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 12A(1)(c) Seller Concessions -->
+      <div style="padding-top:0.75rem; border-top:1px solid rgba(255,255,255,0.07);">
+        <p style="font-size:0.8rem; font-weight:700; color:var(--gold-light); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.5rem;">§12A(1)(c) — Seller Concessions Toward Closing Costs</p>
+        <div class="notice gold">💡 <strong>What are seller concessions?</strong> An amount the seller contributes toward your closing costs (appraisal, loan fees, title fees, prepaid insurance/taxes, etc.). It does not come to you as cash — it reduces what you owe at closing. In Texas, 2–3% of purchase price is common. On a $400,000 purchase that's $8,000–$12,000. Requesting concessions can weaken your offer in a competitive market. <strong>This is not legal advice.</strong></div>
+        <div class="radio-group-label" style="margin-top:0.75rem;">Are you requesting seller concessions?</div>
+        <div class="radio-cards" style="margin-bottom:0.75rem;">
+          <label class="radio-card" onclick="selectCard(this,'wantsConcessions','no'); document.getElementById('concessionsField').style.display='none'"><input type="radio" name="wantsConcessions" value="no"/><div class="radio-dot"></div><div class="radio-card-text"><strong>No — not requesting concessions</strong><small>Stronger offer — seller keeps full proceeds</small></div></label>
+          <label class="radio-card" onclick="selectCard(this,'wantsConcessions','yes'); document.getElementById('concessionsField').style.display='block'"><input type="radio" name="wantsConcessions" value="yes"/><div class="radio-dot"></div><div class="radio-card-text"><strong>Yes — requesting seller concessions</strong><small>Enter dollar amount below</small></div></label>
+        </div>
+        <div id="concessionsField" style="display:none;">
+          <div class="field">
+            <div class="field-label-row"><label>Concession Amount ($)</label><button class="helper-btn" onclick="toggleHelper('h-conc')">?</button></div>
+            <div class="helper-box" id="h-conc"><strong>💡 Typical Concession Amounts</strong>Applied toward your Buyer's Expenses at closing — not cash to you.<div class="tip-row"><span class="tip-tag">Typical: 2–3% of purchase price</span></div></div>
+            <input type="number" id="concessionAmount" placeholder="8000"/>
+          </div>
         </div>
       </div>
     </div>
@@ -691,7 +830,7 @@
 
 <script>
   const STEPS = ['step0','step05','step1','step2','step3','step4','step5','step6','step7','step8','step9'];
-  const STEP_NAMES = ['Disclaimer','Have You Seen It?','Parties','Property','Price & Terms','Financing','HOA & Addenda','Disclosures','Closing','Review','Payment'];
+  const STEP_NAMES = ['Disclaimer','Have You Seen It?','Parties & Contact','Property & Leases','Price & Terms','Financing','HOA & Addenda','Title & Disclosures','Closing & Agents','Review','Payment'];
   const state = { step: 0, data: {}, termsOK: false, selectedPlan: null, selectedPrice: 0 };
 
   function openWizard() {
@@ -760,13 +899,40 @@
     const sid = STEPS[state.step];
     const m = {
       'step05': () => { s.seenProperty = r('seenProperty'); },
-      'step1':  () => { s.buyer1 = `${g('buyer1First')} ${g('buyer1Last')}`.trim(); s.buyer2 = g('buyer2'); s.seller = g('seller1'); },
-      'step2':  () => { s.address = g('propAddress'); s.city = g('propCity'); s.zip = g('propZip'); s.state = g('propState') || 'TX'; s.county = g('propCounty'); s.lot = g('propLot'); s.subdiv = g('propSubdiv'); },
+      'step1':  () => {
+        s.buyer1 = `${g('buyer1First')} ${g('buyer1Last')}`.trim();
+        s.buyer2 = g('buyer2'); s.seller = g('seller1');
+        s.buyerMailAddr = g('buyerMailAddr'); s.buyerPhone = g('buyerPhone'); s.buyerEmail = g('buyerEmail');
+      },
+      'step2':  () => {
+        s.address = g('propAddress'); s.city = g('propCity'); s.zip = g('propZip');
+        s.state = g('propState') || 'TX'; s.county = g('propCounty');
+        s.lot = g('propLot'); s.subdiv = g('propSubdiv'); s.leases = r('leases');
+      },
       'step3':  () => { s.price = g('offerPrice'); s.earnest = g('earnestMoney'); s.optionFee = g('optionFee'); s.optionDays = g('optionDays'); },
       'step4':  () => { s.financing = r('financing'); s.loanAmount = g('loanAmount'); s.downPayment = g('downPayment'); s.lender = g('lenderName'); },
       'step5':  () => { s.hoa = r('hoa'); s.saleContingency = r('saleContingency'); s.backupOffer = r('backupOffer'); },
-      'step6':  () => { s.survey = r('survey'); s.mud = g('mudDistrict'); },
-      'step7':  () => { s.closingDate = g('closingDate'); s.possession = g('possession'); s.titleCompany = g('titleCompany'); s.brokerComp = g('brokerComp'); }
+      'step6':  () => {
+        s.titlePayer = r('titlePayer') || 'seller';
+        s.titleAmendment = r('titleAmendment') || 'i';
+        s.survey = r('survey'); s.surveyDays = g('surveyDays') || '7';
+        s.intendedUse = g('intendedUse');
+        s.mud = g('mudDistrict');
+        s.sellerDisclosure = r('sellerDisclosure') || 'received';
+        s.disclosureDays = g('disclosureDays') || '3';
+        s.asIs = r('asIs') || 'yes';
+        s.repairsText = g('repairsText');
+      },
+      'step7':  () => {
+        s.closingDate = g('closingDate'); s.possession = g('possession');
+        s.titleCompany = g('titleCompany');
+        s.hasBuyerAgent = r('hasBuyerAgent');
+        s.agentName = g('agentName'); s.agentLicense = g('agentLicense');
+        s.agentEmail = g('agentEmail'); s.agentPhone = g('agentPhone');
+        s.agentBrokerage = g('agentBrokerage');
+        s.wantsConcessions = r('wantsConcessions');
+        s.concessionAmount = g('concessionAmount');
+      }
     };
     if (m[sid]) m[sid]();
   }
@@ -813,24 +979,38 @@
       <div class="review-section"><div class="review-section-title">Parties</div>
         <div class="review-row"><span class="rl">Buyer(s)</span><span class="rv">${fmt(s.buyer2?`${s.buyer1} & ${s.buyer2}`:s.buyer1)}</span></div>
         <div class="review-row"><span class="rl">Seller(s)</span><span class="rv">${fmt(s.seller)}</span></div>
+        <div class="review-row"><span class="rl">Buyer Phone</span><span class="rv">${s.buyerPhone||'—'}</span></div>
+        <div class="review-row"><span class="rl">Buyer Email</span><span class="rv">${s.buyerEmail||'—'}</span></div>
+        <div class="review-row"><span class="rl">Buyer Address</span><span class="rv">${s.buyerMailAddr||'—'}</span></div>
       </div>
       <div class="review-section"><div class="review-section-title">Property</div>
         <div class="review-row"><span class="rl">Address</span><span class="rv">${fmt(s.address?`${s.address}, ${s.city}, TX ${s.zip}`:'')}</span></div>
         <div class="review-row"><span class="rl">County</span><span class="rv">${fmt(s.county?s.county+' County':'')}</span></div>
-        <div class="review-row"><span class="rl">Legal Desc.</span><span class="rv">${fmt(s.lot?`${s.lot}, ${s.subdiv}`:'')}</span></div>
+        <div class="review-row"><span class="rl">Legal Desc.</span><span class="rv">${s.lot?`${s.lot}${s.subdiv?', '+s.subdiv:''}`:s.subdiv||'—'}</span></div>
+        <div class="review-row"><span class="rl">§4 Leases</span><span class="rv">${s.leases==='no'||!s.leases?'Not aware of any':s.leases}</span></div>
       </div>
       <div class="review-section"><div class="review-section-title">Price & Terms</div>
         <div class="review-row"><span class="rl">Offer Price</span><span class="rv">${fmt(fmtM(s.price))}</span></div>
         <div class="review-row"><span class="rl">Earnest Money</span><span class="rv">${fmt(fmtM(s.earnest))}</span></div>
         <div class="review-row"><span class="rl">Option Fee</span><span class="rv">${fmt(fmtM(s.optionFee))}</span></div>
-        <div class="review-row"><span class="rl">Option Period</span><span class="rv">${fmt(s.optionDays?s.optionDays+' days':'')}</span></div>
-        <div class="review-row"><span class="rl">Financing</span><span class="rv">${fmt(s.financing?s.financing.charAt(0).toUpperCase()+s.financing.slice(1):'')}</span></div>
+        <div class="review-row"><span class="rl">Option Period</span><span class="rv">${s.optionDays?s.optionDays+' days':'—'}</span></div>
+        <div class="review-row"><span class="rl">Financing</span><span class="rv">${s.financing?s.financing.charAt(0).toUpperCase()+s.financing.slice(1):'—'}</span></div>
         ${s.loanAmount?`<div class="review-row"><span class="rl">Loan Amount</span><span class="rv">${fmtM(s.loanAmount)}</span></div>`:''}
+      </div>
+      <div class="review-section"><div class="review-section-title">Title, Survey & Disclosures</div>
+        <div class="review-row"><span class="rl">Title Insurance Pays</span><span class="rv">${s.titlePayer==='seller'?'Seller (standard)':'Buyer'}</span></div>
+        <div class="review-row"><span class="rl">§6A(8) Amendment</span><span class="rv">${s.titleAmendment==='i'?'(i) Not amended — standard':s.titleAmendment==='ii_buyer'?'(ii) Amended — Buyer pays':'(ii) Amended — Seller pays'}</span></div>
+        <div class="review-row"><span class="rl">Survey</span><span class="rv">${s.survey==='sellerExisting'?'Seller provides existing':s.survey==='buyerNew'?'Buyer orders new':'No survey'}</span></div>
+        ${s.intendedUse?`<div class="review-row"><span class="rl">Intended Use</span><span class="rv">${s.intendedUse}</span></div>`:''}
+        <div class="review-row"><span class="rl">Seller Disclosure</span><span class="rv">${s.sellerDisclosure==='received'?'Received':s.sellerDisclosure==='notReceived'?`Not received — ${s.disclosureDays} days to provide`:'Seller exempt'}</span></div>
+        <div class="review-row"><span class="rl">Property Condition</span><span class="rv">${s.asIs==='yes'?'As Is':'As Is with specific repairs'}</span></div>
       </div>
       <div class="review-section"><div class="review-section-title">Closing</div>
         <div class="review-row"><span class="rl">Closing Date</span><span class="rv">${fmt(s.closingDate)}</span></div>
         <div class="review-row"><span class="rl">Possession</span><span class="rv">${fmt(s.possession)}</span></div>
         <div class="review-row"><span class="rl">Title Company</span><span class="rv">${s.titleCompany||'TBD'}</span></div>
+        <div class="review-row"><span class="rl">Buyer's Agent</span><span class="rv">${s.hasBuyerAgent==='yes'?(s.agentName||'Yes — name not entered'):'None — buying direct'}</span></div>
+        ${s.wantsConcessions==='yes'?`<div class="review-row"><span class="rl">Seller Concessions</span><span class="rv">${fmtM(s.concessionAmount)}</span></div>`:''}
       </div>
       <div class="review-section"><div class="review-section-title">Addenda Included (TREC 20-18)</div>
         <div style="margin-top:0.4rem; line-height:2.3;">
@@ -1030,6 +1210,8 @@
     if (g('optionDays') && !g('optionDays').value) g('optionDays').value = '7';
     if (g('optionFee') && !g('optionFee').value) g('optionFee').value = '250';
     if (g('possession') && !g('possession').value) g('possession').value = 'funding';
+    if (g('surveyDays') && !g('surveyDays').value) g('surveyDays').value = '7';
+    if (g('disclosureDays') && !g('disclosureDays').value) g('disclosureDays').value = '3';
   }
 
   function wireSmartCalculations() {
