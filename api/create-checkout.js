@@ -6,7 +6,7 @@ module.exports = async (req, res) => {
   }
 
   const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
-  const { priceId, email, plan } = req.body;
+  const { priceId, email, plan, offerData } = req.body;
 
   try {
    const session = await stripe.checkout.sessions.create({
