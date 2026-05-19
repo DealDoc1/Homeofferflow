@@ -127,7 +127,7 @@ def fill_and_merge(offer):
     # Merge addenda
     addenda_paths = []
     if s.get('financing') in ['conventional','fha','va','usda']:
-        addenda_paths.append('/var/task/third_party_financing_addendum.pdf')
+        addenda_paths.append(FINANCING_PDF)
     if s.get('hoa') in ['yes','unknown']:
         addenda_paths.append(HOA_PDF)
     if s.get('saleContingency') == 'yes':
@@ -209,6 +209,28 @@ def verify_stripe_signature(body, sig_header, secret):
 
 
 class handler(BaseHTTPRequestHandler):
+
+    def do_GET(self):
+        """Debug endpoint — dumps all PDF field names so we can fix the mapping."""
+        try:
+            from pypdf import PdfReader
+            reader = PdfReader(MAIN_PDF)
+            fields = reader.get_fields()
+            if fields:
+                field_info = {}
+                for name, field in fields.items():
+                    field_type = field.get('/FT', 'unknown')
+                    if hasattr(field_type, 'name'):
+                        field_type = field_type.name
+                    field_info[name] = {
+                        'type': str(field_type),
+                        'value': str(field.get('/V', '')),
+                    }
+                self._respond(200, {'total': len(field_info), 'fields': field_info})
+            else:
+                self._respond(200, {'error': 'No fields found in PDF', 'path': MAIN_PDF})
+        except Exception as e:
+            self._respond(500, {'error': str(e), 'path': MAIN_PDF})
 
     def do_POST(self):
         content_length = int(self.headers.get('Content-Length', 0))
