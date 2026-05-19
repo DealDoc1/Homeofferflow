@@ -14,6 +14,7 @@ module.exports = async (req, res) => {
       line_items: [{ price: priceId, quantity: 1 }],
       mode: 'payment',
       customer_email: email,
+     allow_promotion_codes: true,
       metadata: {
         offer_data: JSON.stringify(offerData || {}),
         plan: plan
