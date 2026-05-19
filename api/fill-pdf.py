@@ -71,8 +71,8 @@ def fill_and_merge(offer):
         buyer_name += f" and {s['buyer2']}"
 
     field_values = {
-        '1 PARTIES The parties to this contract are': buyer_name,
-        'Seller and':                                  s.get('seller', ''),
+        '1 PARTIES The parties to this contract are': s.get('seller', ''),
+        'Seller and':                                  buyer_name,
         'A LAND Lot':                                  lot_num,
         'Block':                                       block_num,
         'undefined':                                   s.get('subdiv', ''),
