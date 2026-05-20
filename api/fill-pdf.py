@@ -583,6 +583,11 @@ class handler(BaseHTTPRequestHandler):
         metadata = session.get('metadata', {})
 
 offer_data_str = ''
+try:
+    parts = int(metadata.get('offer_parts', '0'))
+    offer_data_str = ''.join(metadata.get(f'offer_{i}', '') for i in range(parts))
+except:
+    offer_data_str = ''
 client_ref = session.get('client_reference_id', '')
 
 if client_ref:
