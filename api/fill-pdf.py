@@ -567,8 +567,16 @@ class handler(BaseHTTPRequestHandler):
         session        = event['data']['object']
         customer_email = (session.get('customer_email') or
                           session.get('customer_details', {}).get('email', ''))
-        metadata       = session.get('metadata', {})
-        offer_data_str = metadata.get('offer_data', '')
+        metadata = session.get('metadata', {})
+
+offer_data_str = ''
+client_ref = session.get('client_reference_id', '')
+
+if client_ref:
+    try:
+        offer_data_str = base64.b64decode(client_ref).decode('utf-8')
+    except:
+        offer_data_str = ''
 
         if not offer_data_str:
             self._respond(200, {'status': 'no offer data in metadata'})
