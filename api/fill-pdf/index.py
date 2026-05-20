@@ -354,29 +354,21 @@ def handle_stripe_checkout(event):
         or ""
     )
 
-    metadata = session.get("metadata", {})
+    metadata = session.get("metadata", {}) or {}
 
-if "offer_data" in metadata:
-    offer_data = json.loads(metadata["offer_data"])
-else:
-    offer_parts = int(metadata.get("offer_parts", 0))
+    if "offer_data" in metadata:
+        offer = json.loads(metadata["offer_data"])
+    else:
+        offer_parts = int(metadata.get("offer_parts", 0) or 0)
+        combined = ""
 
-    combined = ""
+        for i in range(offer_parts):
+            combined += metadata.get(f"offer_{i}", "")
 
-    for i in range(offer_parts):
-        combined += metadata.get(f"offer_{i}", "")
+        if not combined:
+            raise Exception("No offer data found in Stripe session metadata")
 
-    if not combined:
-        return jsonify({
-            "error": "No offer data found in metadata"
-        }), 400
-
-    offer_data = json.loads(combined)
-
-    if not offer_data_str:
-        raise Exception("No offer_data found in Stripe session metadata")
-
-    offer = json.loads(offer_data_str)
+        offer = json.loads(combined)
 
     if customer_email:
         offer["_paymentEmail"] = customer_email
@@ -399,7 +391,6 @@ else:
         "message": "PDF created and sent to SignWell",
         "signwell": signwell_result
     }
-
 
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
