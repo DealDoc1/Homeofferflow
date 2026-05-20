@@ -379,7 +379,9 @@ def handle_stripe_checkout(event):
 
     pdf_bytes, addenda_info = fill_and_merge(offer)
 
-    signwell_result = send_to_signwell(pdf_bytes, offer, addenda_info)
+    signwell_result = {
+    "skipped": "SignWell temporarily disabled while testing"
+}
 
     send_confirmation_email(
         offer.get("buyerEmail") or customer_email,
