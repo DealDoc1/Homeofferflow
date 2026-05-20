@@ -1112,29 +1112,69 @@
 
   // ── PAYMENT — SERVER-SIDE CHECKOUT ──
   async function handlePayment() {
-    const email = document.getElementById('paymentEmail').value;
-    if (!email) { alert('Please enter your email address.'); return; }
-    if (!state.selectedPlan) { alert('Please select a plan above.'); return; }
+  collectData();
 
-    const btn = document.getElementById('payBtn');
-    btn.textContent = 'Processing...';
-    btn.disabled = true;
+  const email = document.getElementById('paymentEmail').value;
 
-    const priceMap = {
-      'self':                 'price_1TYTYqAELe66ESXnhNQmydWn',
-      'agent':                'price_1TYTbiAELe66ESXnF6HNKELh',
-      'attorney':             'price_1TYTewAELe66ESXnE83aaaHa',
-      'agent-transaction':    'price_1TYTfSAELe66ESXnrp6Em3ps',
-      'attorney-transaction': 'price_1TYU0AAELe66ESXn3vY87JoT',
-    };
+  if (!email) {
+    alert('Please enter your email address.');
+    return;
+  }
 
-    const priceId = priceMap[state.selectedPlan];
-    if (!priceId) {
-      alert('Plan not found. Please select a plan and try again.');
-      btn.textContent = `Pay $${state.selectedPrice.toLocaleString()} & Continue →`;
-      btn.disabled = false;
-      return;
+  if (!state.selectedPlan) {
+    alert('Please select a plan above.');
+    return;
+  }
+
+  const btn = document.getElementById('payBtn');
+  btn.textContent = 'Processing...';
+  btn.disabled = true;
+
+  const priceMap = {
+    'self':                 'price_1TYTYqAELe66ESXnhNQmydWn',
+    'agent':                'price_1TYTbiAELe66ESXnF6HNKELh',
+    'attorney':             'price_1TYTewAELe66ESXnE83aaaHa',
+    'agent-transaction':    'price_1TYTfSAELe66ESXnrp6Em3ps',
+    'attorney-transaction': 'price_1TYU0AAELe66ESXn3vY87JoT',
+  };
+
+  const priceId = priceMap[state.selectedPlan];
+
+  if (!priceId) {
+    alert('Plan not found. Please select a plan and try again.');
+    btn.textContent = `Pay $${state.selectedPrice.toLocaleString()} & Continue →`;
+    btn.disabled = false;
+    return;
+  }
+
+  try {
+    sessionStorage.setItem('hofOfferData', JSON.stringify(state.data));
+
+    const response = await fetch('/api/create-checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        priceId: priceId,
+        email: email,
+        plan: state.selectedPlan,
+        offerData: state.data
+      })
+    });
+
+    const result = await response.json();
+
+    if (result.error) {
+      throw new Error(result.error);
     }
+
+    window.location.href = result.url;
+
+  } catch(e) {
+    console.error('Payment error:', e);
+    alert('Payment error: ' + e.message);
+    btn.textContent = `Pay $${state.selectedPrice.toLocaleString()} & Continue →`;
+    btn.disabled = false;
+  }
 
     try {
       sessionStorage.setItem('hofOfferData', JSON.stringify(state.data));
