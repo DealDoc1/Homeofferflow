@@ -1,5 +1,8 @@
 {
+  "name": "homeofferflow",
+  "version": "1.0.0",
+  "private": true,
   "dependencies": {
-    "stripe": "^14.0.0"
+    "stripe": "^18.0.0"
   }
 }
