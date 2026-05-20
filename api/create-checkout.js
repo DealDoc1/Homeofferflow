@@ -6,13 +6,10 @@ module.exports = async (req, res) => {
   }
 
   const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
-
   const { priceId, email, plan, offerData } = req.body;
 
   if (!priceId || !email || !plan || !offerData) {
-    return res.status(400).json({
-      error: 'Missing priceId, email, plan, or offerData'
-    });
+    return res.status(400).json({ error: 'Missing priceId, email, plan, or offerData' });
   }
 
   try {
@@ -22,20 +19,24 @@ module.exports = async (req, res) => {
       _plan: plan
     });
 
+    const chunks = offerDataString.match(/.{1,450}/g) || [];
+
+    const metadata = {
+      plan: plan,
+      offer_parts: String(chunks.length)
+    };
+
+    chunks.forEach((chunk, i) => {
+      metadata[`offer_${i}`] = chunk;
+    });
+
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [{ price: priceId, quantity: 1 }],
       mode: 'payment',
       customer_email: email,
-
-      client_reference_id: Buffer.from(offerDataString).toString('base64'),
-
       allow_promotion_codes: true,
-
-      metadata: {
-        plan: plan
-      },
-
+      metadata,
       success_url: `${req.headers.origin}/?success=true&plan=${encodeURIComponent(plan)}`,
       cancel_url: req.headers.origin,
     });
