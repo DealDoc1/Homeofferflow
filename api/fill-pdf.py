@@ -102,10 +102,23 @@ def parse_lot_block(lot_str):
     lot_num = block_num = ''
     if not lot_str:
         return lot_num, block_num
-    lot_m = re.search(r'lot\s*(\S+)', lot_str, re.I)
-    blk_m = re.search(r'block\s*(\S+)', lot_str, re.I)
-    lot_num   = lot_m.group(1) if lot_m else ''
-    block_num = blk_m.group(1) if blk_m else ''
+
+    text = lot_str.strip()
+
+    lot_m = re.search(r'(?:lot|l)\s*[:#-]?\s*([A-Za-z0-9.-]+)', text, re.I)
+    blk_m = re.search(r'(?:block|blk|b)\s*[:#-]?\s*([A-Za-z0-9.-]+)', text, re.I)
+
+    if lot_m:
+        lot_num = lot_m.group(1).strip(' ,;')
+    if blk_m:
+        block_num = blk_m.group(1).strip(' ,;')
+
+    if not lot_num and not block_num:
+        slash_m = re.search(r'^\s*([A-Za-z0-9.-]+)\s*/\s*([A-Za-z0-9.-]+)\s*$', text)
+        if slash_m:
+            lot_num = slash_m.group(1)
+            block_num = slash_m.group(2)
+
     return lot_num, block_num
 
 
