@@ -22,22 +22,20 @@ module.exports = async (req, res) => {
       _plan: plan
     });
 
-    if (offerDataString.length > 4500) {
-      return res.status(400).json({
-        error: 'Offer data is too large for Stripe metadata. Need server-side storage.'
-      });
-    }
-
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [{ price: priceId, quantity: 1 }],
       mode: 'payment',
       customer_email: email,
+
+      client_reference_id: Buffer.from(offerDataString).toString('base64'),
+
       allow_promotion_codes: true,
+
       metadata: {
-        offer_data: offerDataString,
         plan: plan
       },
+
       success_url: `${req.headers.origin}/?success=true&plan=${encodeURIComponent(plan)}`,
       cancel_url: req.headers.origin,
     });
