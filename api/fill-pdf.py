@@ -369,7 +369,7 @@ def send_to_signwell(pdf_bytes, offer, addenda_info):
 
     payload = {
     "test_mode": True,
-    "files": [{
+    "fields": [fields],
         "name": f"HomeOfferFlow_Offer_{addr.replace(' ','_')}.pdf",
         "file_base64": pdf_b64,
     }],
