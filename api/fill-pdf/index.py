@@ -354,8 +354,24 @@ def handle_stripe_checkout(event):
         or ""
     )
 
-    metadata = session.get("metadata", {}) or {}
-    offer_data_str = metadata.get("offer_data", "")
+    metadata = session.get("metadata", {})
+
+if "offer_data" in metadata:
+    offer_data = json.loads(metadata["offer_data"])
+else:
+    offer_parts = int(metadata.get("offer_parts", 0))
+
+    combined = ""
+
+    for i in range(offer_parts):
+        combined += metadata.get(f"offer_{i}", "")
+
+    if not combined:
+        return jsonify({
+            "error": "No offer data found in metadata"
+        }), 400
+
+    offer_data = json.loads(combined)
 
     if not offer_data_str:
         raise Exception("No offer_data found in Stripe session metadata")
