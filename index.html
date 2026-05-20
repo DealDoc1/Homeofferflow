@@ -381,7 +381,12 @@
         <div class="field">
           <div class="field-label-row"><label>Second Buyer (optional)</label><button class="helper-btn" onclick="toggleHelper('h-b2')">?</button></div>
           <div class="helper-box" id="h-b2"><strong>💡 Co-Buyer / Spouse</strong>If buying with a spouse, partner, or co-investor, enter their full legal name here. Both names will appear on the contract and deed. Leave blank if buying alone.</div>
-          <input type="text" id="buyer2" placeholder="Full legal name of co-buyer, if any"/>
+          <input type="text" id="buyer2" placeholder="Full legal name of co-buyer, if any" oninput="toggleBuyer2Email()"/>
+        </div>
+        <div class="field" id="buyer2EmailField" style="display:none;">
+          <div class="field-label-row"><label>Co-Buyer Email</label><button class="helper-btn" onclick="toggleHelper('h-b2email')">?</button></div>
+          <div class="helper-box" id="h-b2email"><strong>💡 Co-Buyer Signing Link</strong>The co-buyer will receive their own signing link via email after you sign. They must sign separately to complete the offer.</div>
+          <input type="email" id="buyer2Email" placeholder="cobuer@email.com"/>
         </div>
         <div class="field">
           <div class="field-label-row"><label>Seller Name(s)</label><button class="helper-btn" onclick="toggleHelper('h-sel')">?</button></div>
@@ -902,6 +907,7 @@
       'step1':  () => {
         s.buyer1 = `${g('buyer1First')} ${g('buyer1Last')}`.trim();
         s.buyer2 = g('buyer2'); s.seller = g('seller1');
+        s.buyer2Email = g('buyer2Email');
         s.buyerMailAddr = g('buyerMailAddr'); s.buyerPhone = g('buyerPhone'); s.buyerEmail = g('buyerEmail');
       },
       'step2':  () => {
@@ -1167,28 +1173,20 @@
 
   // Handle successful payment return
   if (window.location.search.includes('success=true')) {
-    const plan = new URLSearchParams(window.location.search).get('plan');
-    const names = { 'self':'Self-Serve', 'agent':'Agent Review', 'attorney':'Attorney Review', 'agent-transaction':'Agent Transaction Support', 'attorney-transaction':'Attorney Transaction Support' };
-    setTimeout(async () => {
+    setTimeout(() => {
       const msg = document.createElement('div');
-      msg.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#4a8c6f;color:#fff;padding:1rem 2rem;border-radius:10px;font-family:DM Sans,sans-serif;font-weight:600;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,0.3);text-align:center;min-width:300px;';
-      msg.innerHTML = `✅ Payment successful!<br><span style="font-weight:400;font-size:0.85rem;">Generating your offer PDF...</span>`;
+      msg.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#4a8c6f;color:#fff;padding:1.5rem 2rem;border-radius:10px;font-family:DM Sans,sans-serif;font-weight:600;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,0.3);text-align:center;min-width:320px;max-width:480px;line-height:1.5;';
+      msg.innerHTML = `✅ Payment successful!<br/><span style="font-weight:400;font-size:0.9rem;display:block;margin-top:0.5rem;">Check your email — your offer is ready to sign.<br/>Click the signing link in your email to review and sign your TREC contract.</span>`;
       document.body.appendChild(msg);
-      try {
-        const savedState = sessionStorage.getItem('hofOfferData');
-        if (savedState) {
-          state.data = JSON.parse(savedState);
-          await generateOfferPDF();
-          msg.innerHTML = `✅ Payment successful! Your offer PDF has been downloaded.<br><span style="font-weight:400;font-size:0.85rem;">Check your downloads folder. Receipt sent to your email.</span>`;
-        } else {
-          msg.innerHTML = `✅ Payment successful! Thank you for your ${names[plan]||'HomeOfferFlow'} purchase.<br><span style="font-weight:400;font-size:0.85rem;">Please re-open the wizard to download your offer.</span>`;
-        }
-      } catch(e) {
-        msg.innerHTML = `✅ Payment successful!<br><span style="font-weight:400;font-size:0.85rem;">Please re-open the wizard to download your offer.</span>`;
-      }
-      setTimeout(() => msg.remove(), 8000);
+      setTimeout(() => msg.remove(), 12000);
       window.history.replaceState({}, '', '/');
     }, 500);
+  }
+
+  function toggleBuyer2Email() {
+    const buyer2 = document.getElementById('buyer2');
+    const emailField = document.getElementById('buyer2EmailField');
+    if (emailField) emailField.style.display = buyer2.value.trim() ? 'flex' : 'none';
   }
 
   // ── SMART DEFAULTS ──
