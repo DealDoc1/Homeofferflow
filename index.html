@@ -1114,7 +1114,14 @@
   async function handlePayment() {
   collectData();
 
-  const email = document.getElementById('paymentEmail').value;
+  const emailInput = document.getElementById('paymentEmail');
+  const buyerEmailInput = document.getElementById('buyerEmail');
+
+  if (!emailInput.value && buyerEmailInput && buyerEmailInput.value) {
+    emailInput.value = buyerEmailInput.value;
+  }
+
+  const email = emailInput.value.trim();
 
   if (!email) {
     alert('Please enter your email address.');
@@ -1131,31 +1138,22 @@
   btn.disabled = true;
 
   const priceMap = {
-    'self':                 'price_1TYTYqAELe66ESXnhNQmydWn',
-    'agent':                'price_1TYTbiAELe66ESXnF6HNKELh',
-    'attorney':             'price_1TYTewAELe66ESXnE83aaaHa',
-    'agent-transaction':    'price_1TYTfSAELe66ESXnrp6Em3ps',
+    'self': 'price_1TYTYqAELe66ESXnhNQmydWn',
+    'agent': 'price_1TYTbiAELe66ESXnF6HNKELh',
+    'attorney': 'price_1TYTewAELe66ESXnE83aaaHa',
+    'agent-transaction': 'price_1TYTfSAELe66ESXnrp6Em3ps',
     'attorney-transaction': 'price_1TYU0AAELe66ESXn3vY87JoT',
   };
 
   const priceId = priceMap[state.selectedPlan];
 
-  if (!priceId) {
-    alert('Plan not found. Please select a plan and try again.');
-    btn.textContent = `Pay $${state.selectedPrice.toLocaleString()} & Continue →`;
-    btn.disabled = false;
-    return;
-  }
-
   try {
-    sessionStorage.setItem('hofOfferData', JSON.stringify(state.data));
-
     const response = await fetch('/api/create-checkout', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        priceId: priceId,
-        email: email,
+        priceId,
+        email,
         plan: state.selectedPlan,
         offerData: state.data
       })
@@ -1163,48 +1161,16 @@
 
     const result = await response.json();
 
-    if (result.error) {
-      throw new Error(result.error);
-    }
+    if (result.error) throw new Error(result.error);
 
     window.location.href = result.url;
 
   } catch(e) {
-    console.error('Payment error:', e);
     alert('Payment error: ' + e.message);
     btn.textContent = `Pay $${state.selectedPrice.toLocaleString()} & Continue →`;
     btn.disabled = false;
   }
-
-    try {
-      sessionStorage.setItem('hofOfferData', JSON.stringify(state.data));
-
-      const response = await fetch('/api/create-checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          priceId: priceId,
-          email: email,
-          plan: state.selectedPlan
-        })
-      });
-
-      const result = await response.json();
-
-      if (result.error) {
-        throw new Error(result.error);
-      }
-
-      window.location.href = result.url;
-
-    } catch(e) {
-      console.error('Payment error:', e);
-      alert('Payment error: ' + e.message);
-      btn.textContent = `Pay $${state.selectedPrice.toLocaleString()} & Continue →`;
-      btn.disabled = false;
-    }
-  }
-
+}
   document.querySelectorAll('.pill').forEach(p => {
     p.addEventListener('click', () => { document.querySelectorAll('.pill').forEach(x=>x.classList.remove('active')); p.classList.add('active'); });
   });
