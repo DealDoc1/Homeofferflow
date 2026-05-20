@@ -355,21 +355,21 @@ def send_to_signwell(pdf_bytes, offer, addenda_info):
     fields = build_signwell_fields(offer, addenda_info)
 
     payload = {
-        "test_mode": False,
-        "files": [{
-            "name": f"HomeOfferFlow_Offer_{addr.replace(' ','_')}.pdf",
-            "file_base64": pdf_b64,
-        }],
-        "name": f"Offer — {addr}",
-        "subject": f"Please sign your offer: {addr}",
-        "message": f"Your HomeOfferFlow offer for {addr} is ready to sign. Please review and sign below.",
-        "signers": signers,
-        "fields": fields,
-        "send_emails": True,
-        "allow_decline": True,
-        "redirect_url": f"{BASE_URL}/?signed=true",
-        "callback_url": f"{BASE_URL}/api/fill-pdf",
-    }
+    "test_mode": True,
+    "files": [{
+        "name": f"HomeOfferFlow_Offer_{addr.replace(' ','_')}.pdf",
+        "file_base64": pdf_b64,
+    }],
+    "name": f"Offer — {addr}",
+    "subject": f"Please sign your offer: {addr}",
+    "message": f"Your HomeOfferFlow offer for {addr} is ready to sign. Please review and sign below.",
+    "signers": signers,
+    "fields": [fields],
+    "send_emails": True,
+    "allow_decline": True,
+    "redirect_url": f"{BASE_URL}/?signed=true",
+    "callback_url": f"{BASE_URL}/api/fill-pdf",
+}
 
     resp = httpx.post(
         "https://www.signwell.com/api/v1/documents/",
