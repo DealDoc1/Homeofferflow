@@ -895,6 +895,12 @@
     if (sid === 'step7') { applySmartDefaults(); }
     if (sid === 'step2') { setTimeout(initPlacesService, 150); }
     if (sid === 'step05') { setTimeout(initPlacesService, 150); }
+    if (STEPS[state.step] === 'step9') {
+  collectData();
+  const paymentEmail = document.getElementById('paymentEmail');
+  const buyerEmail = document.getElementById('buyerEmail');
+  if (paymentEmail && buyerEmail && !paymentEmail.value) {
+    paymentEmail.value = buyerEmail.value;
   }
 
   function collectData() {
