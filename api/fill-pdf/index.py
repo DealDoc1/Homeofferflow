@@ -394,10 +394,11 @@ def handle_stripe_checkout(event):
 }
 
     send_confirmation_email(
-        offer.get("buyerEmail") or customer_email,
-        offer.get("buyer1", "Buyer"),
-        offer.get("address", "Property")
-    )
+    offer.get("buyerEmail") or customer_email,
+    offer.get("buyer1", "Buyer"),
+    offer.get("address", "Property"),
+    pdf_bytes
+)
 
     return {
         "status": "ok",
