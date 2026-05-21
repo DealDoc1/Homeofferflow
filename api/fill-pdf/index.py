@@ -1,16 +1,14 @@
-import json
-import os
-import base64
-import hashlib
-import hmac
-import httpx
+import json, os, base64, hashlib, hmac, httpx
 from io import BytesIO
 from http.server import BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
 
+from pypdf import PdfReader, PdfWriter
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import letter
+
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
 STRIPE_WHSEC = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
-SIGNWELL_API_KEY = os.environ.get("SIGNWELL_API_KEY", "")
 
 FROM_EMAIL = "offers@homeofferflow.com"
 SUPPORT_EMAIL = "support@homeofferflow.com"
@@ -24,509 +22,440 @@ SALE_CONT_PDF = os.path.join(BASE_DIR, "sale_of_other_property_addendum.pdf")
 BACKUP_PDF = os.path.join(BASE_DIR, "back_up_contract_addendum.pdf")
 
 
-def fmt_money(val):
+def fmt_money(v):
     try:
-        if val is None or val == "":
+        if v in [None, ""]:
             return ""
-        return f"${int(float(val)):,}"
-    except Exception:
-        return str(val) if val else ""
+        return f"{int(float(v)):,}"
+    except:
+        return str(v or "")
 
 
-def fmt_plain_money(val):
-    try:
-        if val is None or val == "":
-            return ""
-        return f"{int(float(val)):,}"
-    except Exception:
-        return str(val) if val else ""
+def fmt_money_dollar(v):
+    x = fmt_money(v)
+    return f"${x}" if x else ""
 
 
-def fmt_date_parts(val):
-    if not val:
+def split_date(v):
+    if not v:
         return "", ""
     try:
         from datetime import datetime
-        d = datetime.strptime(val, "%Y-%m-%d")
+        d = datetime.strptime(v, "%Y-%m-%d")
         return d.strftime("%B %d").replace(" 0", " "), str(d.year)[-2:]
-    except Exception:
-        return val, ""
+    except:
+        return str(v), ""
 
 
-def split_date(val):
-    if not val:
-        return "", "", ""
-    try:
-        from datetime import datetime
-        d = datetime.strptime(val, "%Y-%m-%d")
-        return str(d.day), d.strftime("%B"), str(d.year)
-    except Exception:
-        return "", "", ""
-
-
-def parse_lot_block(lot_str):
+def parse_lot_block(v):
     import re
-    lot_num = ""
-    block_num = ""
-
-    if not lot_str:
-        return lot_num, block_num
-
-    lot_m = re.search(r"lot\s*([A-Za-z0-9\-]+)", lot_str, re.I)
-    blk_m = re.search(r"block\s*([A-Za-z0-9\-]+)", lot_str, re.I)
-
-    if lot_m:
-        lot_num = lot_m.group(1)
-
-    if blk_m:
-        block_num = blk_m.group(1)
-
-    return lot_num, block_num
+    lot = ""
+    block = ""
+    if not v:
+        return lot, block
+    m = re.search(r"lot\s*([A-Za-z0-9\-]+)", v, re.I)
+    if m:
+        lot = m.group(1)
+    m = re.search(r"block\s*([A-Za-z0-9\-]+)", v, re.I)
+    if m:
+        block = m.group(1)
+    return lot, block
 
 
-def verify_stripe_signature(body_bytes, sig_header, secret):
+def verify_stripe_signature(body, sig_header, secret):
     if not secret:
         return True
-
     try:
         parts = {}
         for item in sig_header.split(","):
             k, v = item.split("=", 1)
             parts.setdefault(k, []).append(v)
-
         timestamp = parts.get("t", [""])[0]
         signatures = parts.get("v1", [])
-        signed_payload = timestamp.encode() + b"." + body_bytes
-        expected = hmac.new(secret.encode(), signed_payload, hashlib.sha256).hexdigest()
-
-        return any(hmac.compare_digest(expected, sig) for sig in signatures)
-    except Exception:
+        expected = hmac.new(secret.encode(), timestamp.encode() + b"." + body, hashlib.sha256).hexdigest()
+        return any(hmac.compare_digest(expected, s) for s in signatures)
+    except:
         return False
 
 
-def force_need_appearances(writer):
-    try:
-        from pypdf.generic import BooleanObject, NameObject, DictionaryObject
-        if "/AcroForm" not in writer._root_object:
-            writer._root_object.update({NameObject("/AcroForm"): DictionaryObject()})
-        writer._root_object["/AcroForm"].update({
-            NameObject("/NeedAppearances"): BooleanObject(True)
-        })
-    except Exception:
-        pass
+def text(c, x, y, value, size=9):
+    if value in [None, ""]:
+        return
+    c.setFont("Helvetica", size)
+    c.drawString(x, y, str(value))
 
 
-def safe_set(writer, field_name, value):
-    if value is None:
-        value = ""
-    try:
-        for page in writer.pages:
-            writer.update_page_form_field_values(page, {field_name: str(value)})
-    except Exception:
-        pass
+def money(c, x, y, value, size=9):
+    if value in [None, ""]:
+        return
+    c.setFont("Helvetica", size)
+    c.drawRightString(x, y, fmt_money(value))
 
 
-def safe_check(writer, field_name, checked):
-    try:
-        from pypdf.generic import NameObject
-
-        desired = NameObject("/Yes") if checked else NameObject("/Off")
-
-        for page in writer.pages:
-            if "/Annots" not in page:
-                continue
-
-            for annot_ref in page["/Annots"]:
-                annot = annot_ref.get_object()
-
-                if annot.get("/T") == field_name:
-                    annot.update({
-                        NameObject("/V"): desired,
-                        NameObject("/AS"): desired,
-                    })
-
-                    if "/Kids" in annot:
-                        for kid_ref in annot["/Kids"]:
-                            kid = kid_ref.get_object()
-                            kid.update({
-                                NameObject("/AS"): desired
-                            })
-
-        for page in writer.pages:
-            writer.update_page_form_field_values(page, {field_name: "/Yes" if checked else "/Off"})
-
-    except Exception:
-        try:
-            for page in writer.pages:
-                writer.update_page_form_field_values(page, {field_name: "/Yes" if checked else "/Off"})
-        except Exception:
-            pass
+def check(c, x, y):
+    c.setFont("Helvetica-Bold", 12)
+    c.drawString(x, y, "X")
 
 
-def get_pdf_fields(path):
-    from pypdf import PdfReader
-    reader = PdfReader(path)
-    out = {}
-    fields = reader.get_fields()
-    if fields:
-        for k, v in fields.items():
-            out[k] = {
-                "value": str(v.get("/V", "")),
-                "type": str(v.get("/FT", ""))
-            }
-    return out
-
-
-def fill_pdf_to_bytes(path, field_values=None, checkbox_values=None):
-    from pypdf import PdfReader, PdfWriter
-
-    reader = PdfReader(path)
-    writer = PdfWriter()
-    writer.append(reader)
-
-    force_need_appearances(writer)
-
-    for field_name, value in (field_values or {}).items():
-        safe_set(writer, field_name, value)
-
-    for field_name, checked in (checkbox_values or {}).items():
-        safe_check(writer, field_name, checked)
-
-    force_need_appearances(writer)
-
+def overlay_page(width=612, height=792):
     buf = BytesIO()
-    writer.write(buf)
-    return buf.getvalue()
+    c = canvas.Canvas(buf, pagesize=(width, height))
+    return buf, c
 
 
-def append_pdf_bytes(main_writer, pdf_bytes):
-    from pypdf import PdfReader
-    main_writer.append(PdfReader(BytesIO(pdf_bytes)))
+def stamp_main_contract(pdf_bytes, offer):
+    reader = PdfReader(BytesIO(pdf_bytes))
+    writer = PdfWriter()
 
+    s = offer or {}
+    lot, block = parse_lot_block(s.get("lot", ""))
+    addr = f"{s.get('address','')}, {s.get('city','')}, TX {s.get('zip','')}".strip(", ")
 
-def build_main_contract_maps(s):
-    lot_num, block_num = parse_lot_block(s.get("lot", ""))
-    addr_full = f"{s.get('address','')}, {s.get('city','')}, TX {s.get('zip','')}".strip(", ")
-
-    try:
-        price = float(s.get("price", 0) or 0)
-        loan = float(s.get("loanAmount", 0) or 0)
-        cash = price - loan
-    except Exception:
-        price = 0
-        loan = 0
-        cash = 0
-
-    buyer_name = s.get("buyer1", "")
+    buyer = s.get("buyer1", "")
     if s.get("buyer2"):
-        buyer_name += f" and {s.get('buyer2')}"
+        buyer += f" and {s.get('buyer2')}"
+
+    price = float(s.get("price", 0) or 0)
+    loan = float(s.get("loanAmount", 0) or 0)
+    cash = price - loan
 
     financing = s.get("financing", "")
     has_loan = financing in ["conventional", "fha", "va", "usda"]
     has_hoa = s.get("hoa") in ["yes", "unknown"]
-    has_sale_cont = s.get("saleContingency") == "yes"
-    has_backup = s.get("backupOffer") == "yes"
-    has_mud = s.get("mud") in ["yes", "unknown"]
 
-    survey = s.get("survey", "sellerExisting")
-    title_payer = s.get("titlePayer", "seller")
-    title_amend = s.get("titleAmendment", "i")
-    seller_disc = s.get("sellerDisclosure", "notReceived")
-    as_is = s.get("asIs", "yes")
+    closing_md, closing_yy = split_date(s.get("closingDate"))
 
-    closing_md, closing_yy = fmt_date_parts(s.get("closingDate"))
+    for i, page in enumerate(reader.pages):
+        width = float(page.mediabox.width)
+        height = float(page.mediabox.height)
+        buf, c = overlay_page(width, height)
 
-    escrow_name = s.get("escrowAgent") or s.get("titleCompany", "")
-    escrow_address = s.get("escrowAddress") or s.get("titleAddress", "")
+        if i == 0:
+            text(c, 242, 642, s.get("seller", ""), 9)
+            text(c, 395, 642, buyer, 9)
 
-    # IMPORTANT:
-    # Do NOT use these fields anymore:
-    # acknowledged by Seller and Buyers agreement to pay Seller
-    # acknowledged by Seller and Buyers agreement to pay Seller 1
-    # acknowledged by Seller and Buyers agreement to pay Seller2
-    # Those were polluting Section 12 in the visual PDF.
+            text(c, 118, 562, lot, 9)
+            text(c, 190, 562, block, 9)
+            text(c, 260, 562, s.get("subdiv", ""), 9)
+            text(c, 152, 548, s.get("city", ""), 9)
+            text(c, 288, 548, s.get("county", ""), 9)
+            text(c, 138, 533, addr, 9)
 
-    field_values = {
-        # Page 1
-        "1 PARTIES The parties to this contract are": s.get("seller", ""),
-        "Seller and": buyer_name,
-        "A LAND Lot": lot_num,
-        "Block": block_num,
-        "undefined": s.get("subdiv", ""),
-        "Addition City of": s.get("city", ""),
-        "County of": s.get("county", ""),
-        "Texas known as": addr_full,
+            text(c, 90, 381, "", 9)
 
-        "be removed prior to delivery of possession": "",
-        "undefined_2": "",
-        "undefined_3": fmt_money(cash) if has_loan else fmt_money(price),
-        "undefined_4": fmt_money(loan) if has_loan else "",
-        "undefined_5": fmt_money(price),
+            money(c, 557, 319, cash if has_loan else price, 9)
+            if has_loan:
+                check(c, 382, 286)
+                money(c, 557, 286, loan, 9)
+            money(c, 557, 262, price, 9)
 
-        # Page 2 Section 5
-        # These two are the best available main-form escrow blanks from the field list.
-        "undefined_6": escrow_name,
-        "undefined_7": escrow_address,
+        elif i == 1:
+            escrow = s.get("escrowAgent") or s.get("titleCompany", "")
+            escrow_addr = s.get("escrowAddress") or s.get("titleAddress", "")
 
-        "as earnest money to": fmt_money(s.get("earnest")),
-        "as earnest money to 2": fmt_money(s.get("optionFee")),
-        "earnest money of": "",
-        "to escrow agent within": "",
-        "to escrow agent within 1": "",
+            text(c, 258, 711, escrow, 9)
+            text(c, 142, 696, escrow_addr, 9)
+            money(c, 355, 696, s.get("earnest"), 9)
+            money(c, 520, 696, s.get("optionFee"), 9)
 
-        # Section 6
-        "insurance Title Policy issued by": s.get("titleCompany", ""),
-        "the Title Company and Buyers lenders Check one box only": str(s.get("surveyDays", "7")) if survey == "sellerExisting" else "",
-        "receipt or the date specified in this paragraph whichever is earlier": str(s.get("surveyDays", "7")) if survey == "buyerNew" else "",
-        "than 3 days prior to Closing Date": str(s.get("surveyDays", "7")) if survey == "sellerNew" else "",
-        "Commitment other than items 6A1 through 9 above or which prohibit the following use": s.get("intendedUse", ""),
-        "the Commitment Exception Documents and the survey Buyers failure to object within the": str(s.get("objectionDays", "")),
+            text(c, 235, 643, "", 9)
+            text(c, 438, 643, "", 9)
 
-        # Section 7
-        "Within": str(s.get("disclosureDays", "3")) if seller_disc == "notReceived" else "",
-        "following specific repairs and treatments": s.get("repairsText", "") if as_is == "repairs" else "",
+            text(c, 264, 476, s.get("optionDays", "7"), 9)
 
-        # Section 9
-        "A The closing of the sale will be on or before": closing_md,
-        "20": closing_yy,
+            if s.get("titlePayer", "seller") == "seller":
+                check(c, 341, 323)
+            else:
+                check(c, 395, 323)
 
-        # Section 12
-        "Buyers Expenses as allowed by the lender": fmt_money(s.get("concessionAmount", "")) if s.get("wantsConcessions") == "yes" else "",
+            text(c, 292, 307, s.get("titleCompany", ""), 9)
 
-        # Section 21 notices
-        "at": s.get("buyerMailAddr", ""),
-        "Phone 51": s.get("buyerPhone", ""),
-        "AC1": s.get("buyerEmail", ""),
+            if s.get("titleAmendment", "i") == "i":
+                check(c, 86, 177)
+            else:
+                check(c, 86, 158)
+                if s.get("titleAmendment") == "ii_buyer":
+                    check(c, 417, 158)
+                else:
+                    check(c, 470, 158)
 
-        # Repeated property address fields
-        "Contract Concerning": addr_full,
-        "Contract Concerning_2": addr_full,
-        "Contract Concerning_3": addr_full,
-        "Contract Concerning_4": addr_full,
-        "Address of Property": addr_full,
-        "Address of Property_2": addr_full,
-        "Addr of Prop": addr_full,
+        elif i == 2:
+            survey = s.get("survey", "sellerExisting")
+            survey_days = s.get("surveyDays", "7")
 
-        # Broker section
-        "Associates Name": s.get("agentName", "") if s.get("hasBuyerAgent") == "yes" else "",
-        "License No": s.get("agentLicense", "") if s.get("hasBuyerAgent") == "yes" else "",
-        "Associates Email Address": s.get("agentEmail", "") if s.get("hasBuyerAgent") == "yes" else "",
-        "Phone": s.get("agentPhone", "") if s.get("hasBuyerAgent") == "yes" else "",
-        "Other Broker Firm": s.get("agentBrokerage", "") if s.get("hasBuyerAgent") == "yes" else "",
+            if survey == "sellerExisting":
+                check(c, 54, 708)
+                text(c, 96, 708, survey_days, 9)
+                if s.get("surveyIfRejectedPaidBy", "buyer") == "seller":
+                    check(c, 461, 621)
+                else:
+                    check(c, 515, 621)
+            elif survey == "buyerNew":
+                check(c, 54, 604)
+                text(c, 96, 604, survey_days, 9)
+            elif survey == "sellerNew":
+                check(c, 54, 556)
+                text(c, 96, 556, survey_days, 9)
 
-        # Receipts page
-        "Escrow Agent": escrow_name,
-        "Escrow Agent_2": escrow_name,
-        "Escrow Agent_3": escrow_name,
-        "Option Fee in the form of": fmt_money(s.get("optionFee")),
-    }
+            text(c, 438, 423, s.get("intendedUse", ""), 9)
+            text(c, 361, 394, s.get("objectionDays", ""), 9)
 
-    checkbox_values = {
-        # Section 3 Sales Price B
-        "B Sum of all financing described in the attached": has_loan,
-        "Third Party Financing Addendum": has_loan,
+            if has_hoa:
+                check(c, 355, 288)
+            else:
+                check(c, 382, 288)
 
-        # Section 6 Title
-        "A TITLE POLICY Seller shall furnish to Buyer at": title_payer == "seller",
-        "Sellers": title_payer == "seller",
-        "Seller": title_payer == "buyer",
-        "i will not be amended or deleted from the title policy or": title_amend == "i",
-        "ii will be amended to read shortages in area at the expense of": title_amend in ["ii_buyer", "ii_seller"],
-        "Buyer": title_amend == "ii_buyer",
-        "Sellers_2": title_amend == "ii_seller",
+        elif i == 3:
+            disc = s.get("sellerDisclosure", "notReceived")
+            if disc == "received":
+                check(c, 52, 276)
+            elif disc == "notReceived":
+                check(c, 52, 254)
+                text(c, 219, 254, s.get("disclosureDays", "3"), 9)
+            elif disc == "exempt":
+                check(c, 52, 211)
 
-        # Section 6 Survey
-        "1Within": survey == "sellerExisting",
-        "2Within": survey == "buyerNew",
-        "2 Within": survey == "buyerNew",
-        "3Within": survey == "sellerNew",
-        "Buyers expense no later": survey == "sellerExisting" and s.get("surveyIfRejectedPaidBy", "buyer") == "buyer",
-        "Sellers_2": survey == "sellerExisting" and s.get("surveyIfRejectedPaidBy") == "seller",
+        elif i == 4:
+            if s.get("asIs", "yes") == "repairs":
+                check(c, 52, 731)
+                text(c, 96, 697, s.get("repairsText", ""), 8)
+            else:
+                check(c, 52, 751)
 
-        # HOA
-        "is": has_hoa,
-        "is not": not has_hoa,
+            text(c, 445, 413, closing_md, 9)
+            text(c, 538, 413, closing_yy, 9)
 
-        # Seller disclosure
-        "Within one": seller_disc == "received",
-        "Within two": seller_disc == "notReceived",
-        "Within three": seller_disc == "exempt",
+        elif i == 5:
+            if s.get("possession", "funding") == "funding":
+                check(c, 414, 715)
+            else:
+                check(c, 510, 715)
 
-        # As-is
-        "1 Buyer accepts the Property As Is": as_is == "yes",
-        "As Is": as_is == "yes",
-        "2 Buyer accepts the Property As Is provided Seller at Sellers expense shall complete the": as_is == "repairs",
-        "As Is except": as_is == "repairs",
+            if s.get("wantsConcessions") == "yes":
+                check(c, 394, 351)
+                money(c, 514, 337, s.get("concessionAmount"), 9)
 
-        # Possession
-        "upon": s.get("possession", "funding") == "funding",
+        elif i == 7:
+            text(c, 120, 205, s.get("buyerMailAddr", addr), 8)
+            text(c, 90, 174, s.get("buyerPhone", ""), 8)
+            text(c, 105, 144, s.get("buyerEmail", ""), 8)
 
-        # Section 12 concession checkbox
-        "Dollar Amt": s.get("wantsConcessions") == "yes",
+            if has_loan:
+                check(c, 52, 669)
+            if has_hoa:
+                check(c, 52, 621)
+            if s.get("saleContingency") == "yes":
+                check(c, 52, 572)
+            if s.get("backupOffer") == "yes":
+                check(c, 52, 536)
+            if s.get("mud") in ["yes", "unknown"]:
+                check(c, 366, 567)
 
-        # Section 22 addenda
-        "Addendum for Property Subject to": has_hoa,
-        "Addendum for Sale of Other Property by": has_sale_cont,
-        "Addendum for BackUp Contract": has_backup,
-        "PID": has_mud,
+        elif i == 10:
+            escrow = s.get("escrowAgent") or s.get("titleCompany", "")
+            money(c, 126, 147, s.get("earnest"), 9)
+            text(c, 70, 117, escrow, 8)
+            money(c, 126, 73, s.get("optionFee"), 9)
+            text(c, 70, 44, escrow, 8)
 
-        # Broker section
-        "Buyer only": s.get("hasBuyerAgent") == "yes",
-    }
+        c.save()
+        buf.seek(0)
+        overlay = PdfReader(buf)
+        page.merge_page(overlay.pages[0])
+        writer.add_page(page)
 
-    return field_values, checkbox_values
+    out = BytesIO()
+    writer.write(out)
+    return out.getvalue()
 
 
-def build_financing_maps(s):
-    addr_full = f"{s.get('address','')}, {s.get('city','')}, TX {s.get('zip','')}".strip(", ")
+def stamp_financing_addendum(path, offer):
+    reader = PdfReader(path)
+    writer = PdfWriter()
+    s = offer or {}
+
+    addr = f"{s.get('address','')}, {s.get('city','')}"
     financing = s.get("financing", "")
-    loan_amount = s.get("loanAmount", "")
-    loan_years = s.get("loanYears", "") or "30"
-    interest_rate = s.get("interestRate", "") or ""
-    approval_days = s.get("buyerApprovalDays", "") or "21"
-    origination = s.get("originationPercent", "") or ""
+    loan = s.get("loanAmount", "")
+    years = s.get("loanYears", "30")
+    rate = s.get("interestRate", "")
+    approval_days = s.get("buyerApprovalDays", "21")
 
-    fields = {
-        "Street Address and City": f"{s.get('address','')}, {s.get('city','')}",
-        "Address of Property": addr_full,
+    for i, page in enumerate(reader.pages):
+        width = float(page.mediabox.width)
+        height = float(page.mediabox.height)
+        buf, c = overlay_page(width, height)
 
-        "any financed PMI premium due in full in 1": fmt_plain_money(loan_amount),
-        "any financed PMI premium due in full in 2": loan_years,
-        "per annum for the first": interest_rate,
-        "shown on Buyers Loan Estimate for the loan not to exceed": origination,
+        if i == 0:
+            text(c, 230, 623, addr, 9)
 
-        "Text1": approval_days,
-        "value of the Property established by the Department of Veterans Affairs": fmt_plain_money(s.get("price", "")) if financing in ["fha", "va"] else "",
-    }
+            if financing == "conventional":
+                check(c, 52, 547)
+                check(c, 88, 531)
+                money(c, 392, 522, loan, 9)
+                text(c, 277, 503, years, 9)
+                text(c, 443, 503, rate, 9)
+            elif financing == "fha":
+                check(c, 52, 397)
+                money(c, 325, 374, loan, 9)
+                text(c, 170, 354, years, 9)
+                text(c, 302, 354, rate, 9)
+            elif financing == "va":
+                check(c, 52, 329)
+                money(c, 405, 321, loan, 9)
+                text(c, 232, 302, years, 9)
+                text(c, 347, 302, rate, 9)
+            elif financing == "usda":
+                check(c, 52, 263)
+                money(c, 414, 254, loan, 9)
+                text(c, 222, 236, years, 9)
+                text(c, 345, 236, rate, 9)
 
-    checks = {
-        "1 Conventional Financing": financing == "conventional",
-        "a A first mortgage loan in the principal amount of": financing == "conventional",
-        "3 FHA Insured Financing A Section": financing == "fha",
-        "4 VA Guaranteed Financing A VA guaranteed loan of not less than": financing == "va",
-        "5 USDA Guaranteed Financing A USDAguaranteed loan of not less than": financing == "usda",
-        "This contract is subject to Buyer obtaining Buyer Approval If Buyer cannot obtain Buyer": financing in ["conventional", "fha", "va", "usda"],
-    }
+        elif i == 1:
+            text(c, 230, 88, f"{s.get('address','')}, {s.get('city','')}, TX {s.get('zip','')}", 8)
+            check(c, 52, 718)
+            text(c, 307, 710, approval_days, 9)
 
-    return fields, checks
+        c.save()
+        buf.seek(0)
+        overlay = PdfReader(buf)
+        page.merge_page(overlay.pages[0])
+        writer.add_page(page)
 
-
-def build_hoa_maps(s):
-    fields = {
-        "Street Address and City": f"{s.get('address','')}, {s.get('city','')}",
-        "Name of Property Owners Association Association and Phone Number": s.get("hoaName", "") or "TBD",
-        "the Subdivision Information to the Buyer If Seller delivers the Subdivision Information Buyer may terminate": s.get("hoaDeliveryDays", "") or "3",
-        "D DEPOSITS FOR RESERVES Buyer shall pay any deposits for reserves required at closing by the Association": fmt_plain_money(s.get("hoaTransferCap", "") or "0"),
-    }
-
-    checks = {
-        "1 Within": True,
-        "undefined": False,
-        "3Buyer has received and approved the Subdivision Information before signing the contract Buyer": False,
-        "4Buyer does not require delivery of the Subdivision Information": False,
-        "does not require an updated resale certificate If Buyer requires an updated resale certificate Seller at": True,
-        "Seller shall pay the Title Company the cost of obtaining the": True,
-    }
-
-    return fields, checks
-
-
-def build_sale_contingency_maps(s):
-    addr_full = f"{s.get('address','')}, {s.get('city','')}, TX {s.get('zip','')}".strip(", ")
-    contingency_date = s.get("saleContingencyDate", "") or s.get("closingDate", "")
-    day, month, year = split_date(contingency_date)
-
-    fields = {
-        "Address of Property": addr_full,
-        "Address on or before": s.get("saleContingencyAddress", "") or "",
-        "Contingency is not satisfied or waived by Buyer by the above date the contract will terminate": f"{month} {day}".strip(),
-        "20": year[-2:] if year else "",
-        "terminate automatically and the earnest money will be refunded to Buyer": s.get("saleContingencyWaiverDays", "") or "",
-        "All notices and waivers must be in writing and are": fmt_plain_money(s.get("saleContingencyAdditionalEarnest", "") or ""),
-    }
-
-    return fields, {}
+    out = BytesIO()
+    writer.write(out)
+    return out.getvalue()
 
 
-def build_backup_maps(s):
-    addr_full = f"{s.get('address','')}, {s.get('city','')}, TX {s.get('zip','')}".strip(", ")
-    first_contract_date = s.get("backupFirstContractDate", "")
-    exp_date = s.get("backupExpirationDate", "") or s.get("closingDate", "")
+def stamp_hoa_addendum(path, offer):
+    reader = PdfReader(path)
+    writer = PdfWriter()
+    s = offer or {}
 
-    d1, m1, y1 = split_date(first_contract_date)
-    d2, m2, y2 = split_date(exp_date)
+    for i, page in enumerate(reader.pages):
+        width = float(page.mediabox.width)
+        height = float(page.mediabox.height)
+        buf, c = overlay_page(width, height)
 
-    fields = {
-        "Address of Property": addr_full,
-        "Text1": fmt_plain_money(s.get("backupAdditionalEarnest", "") or ""),
-        "Text1 1": fmt_plain_money(s.get("backupAdditionalOptionFee", "") or ""),
-        "Text1 2": s.get("backupAdditionalDays", "") or "",
-        "Except as provided by this Addendum neither party is required to perform under the": f"{m1} {d1}".strip(),
-        "20": y1[-2:] if y1 else "",
-        "the BackUp Contract terminates and the earnest money will be refunded to Buyer  Seller must": f"{m2} {d2}".strip(),
-        "20_2": y2[-2:] if y2 else "",
-    }
+        if i == 0:
+            text(c, 190, 666, f"{s.get('address','')}, {s.get('city','')}", 9)
+            text(c, 210, 644, s.get("hoaName", "TBD"), 9)
 
-    return fields, {}
+            check(c, 52, 589)
+            text(c, 102, 589, s.get("hoaDeliveryDays", "3"), 9)
+
+            money(c, 470, 327, s.get("hoaTransferCap", "0"), 9)
+
+            if s.get("hoaInfoPayer", "seller") == "buyer":
+                check(c, 399, 246)
+            else:
+                check(c, 448, 246)
+
+        c.save()
+        buf.seek(0)
+        overlay = PdfReader(buf)
+        page.merge_page(overlay.pages[0])
+        writer.add_page(page)
+
+    out = BytesIO()
+    writer.write(out)
+    return out.getvalue()
+
+
+def stamp_sale_contingency(path, offer):
+    reader = PdfReader(path)
+    writer = PdfWriter()
+    s = offer or {}
+
+    md, yy = split_date(s.get("saleContingencyDate") or s.get("closingDate"))
+    addr = f"{s.get('address','')}, {s.get('city','')}, TX {s.get('zip','')}"
+
+    for i, page in enumerate(reader.pages):
+        width = float(page.mediabox.width)
+        height = float(page.mediabox.height)
+        buf, c = overlay_page(width, height)
+
+        if i == 0:
+            text(c, 200, 648, addr, 9)
+            text(c, 135, 560, s.get("saleContingencyAddress", ""), 9)
+            text(c, 315, 550, md, 9)
+            text(c, 410, 550, yy, 9)
+            text(c, 251, 469, s.get("saleContingencyWaiverDays", ""), 9)
+            money(c, 377, 397, s.get("saleContingencyAdditionalEarnest", ""), 9)
+
+        c.save()
+        buf.seek(0)
+        overlay = PdfReader(buf)
+        page.merge_page(overlay.pages[0])
+        writer.add_page(page)
+
+    out = BytesIO()
+    writer.write(out)
+    return out.getvalue()
+
+
+def stamp_backup(path, offer):
+    reader = PdfReader(path)
+    writer = PdfWriter()
+    s = offer or {}
+
+    first_md, first_yy = split_date(s.get("backupFirstContractDate"))
+    exp_md, exp_yy = split_date(s.get("backupExpirationDate") or s.get("closingDate"))
+    addr = f"{s.get('address','')}, {s.get('city','')}, TX {s.get('zip','')}"
+
+    for i, page in enumerate(reader.pages):
+        width = float(page.mediabox.width)
+        height = float(page.mediabox.height)
+        buf, c = overlay_page(width, height)
+
+        if i == 0:
+            text(c, 210, 666, addr, 9)
+            money(c, 256, 555, s.get("backupAdditionalEarnest", ""), 9)
+            money(c, 434, 555, s.get("backupAdditionalOptionFee", ""), 9)
+            text(c, 287, 537, s.get("backupAdditionalDays", ""), 9)
+
+            text(c, 340, 284, first_md, 9)
+            text(c, 420, 284, first_yy, 9)
+
+            text(c, 330, 234, exp_md, 9)
+            text(c, 410, 234, exp_yy, 9)
+
+        c.save()
+        buf.seek(0)
+        overlay = PdfReader(buf)
+        page.merge_page(overlay.pages[0])
+        writer.add_page(page)
+
+    out = BytesIO()
+    writer.write(out)
+    return out.getvalue()
 
 
 def fill_and_merge(offer):
-    from pypdf import PdfReader, PdfWriter
-
     s = offer or {}
-
-    financing = s.get("financing", "")
-    has_loan = financing in ["conventional", "fha", "va", "usda"]
-    has_hoa = s.get("hoa") in ["yes", "unknown"]
-    has_sale_cont = s.get("saleContingency") == "yes"
-    has_backup = s.get("backupOffer") == "yes"
-
-    main_fields, main_checks = build_main_contract_maps(s)
-    main_bytes = fill_pdf_to_bytes(MAIN_PDF, main_fields, main_checks)
-
     final_writer = PdfWriter()
-    final_writer.append(PdfReader(BytesIO(main_bytes)))
-    force_need_appearances(final_writer)
 
-    addenda_info = []
+    main_stamped = stamp_main_contract(open(MAIN_PDF, "rb").read(), s)
+    final_writer.append(PdfReader(BytesIO(main_stamped)))
 
-    if has_loan:
-        f_fields, f_checks = build_financing_maps(s)
-        f_bytes = fill_pdf_to_bytes(FINANCING_PDF, f_fields, f_checks)
-        append_pdf_bytes(final_writer, f_bytes)
-        addenda_info.append(("financing", FINANCING_PDF))
+    if s.get("financing") in ["conventional", "fha", "va", "usda"]:
+        final_writer.append(PdfReader(BytesIO(stamp_financing_addendum(FINANCING_PDF, s))))
 
-    if has_hoa:
-        h_fields, h_checks = build_hoa_maps(s)
-        h_bytes = fill_pdf_to_bytes(HOA_PDF, h_fields, h_checks)
-        append_pdf_bytes(final_writer, h_bytes)
-        addenda_info.append(("hoa", HOA_PDF))
+    if s.get("hoa") in ["yes", "unknown"]:
+        final_writer.append(PdfReader(BytesIO(stamp_hoa_addendum(HOA_PDF, s))))
 
-    if has_sale_cont:
-        sc_fields, sc_checks = build_sale_contingency_maps(s)
-        sc_bytes = fill_pdf_to_bytes(SALE_CONT_PDF, sc_fields, sc_checks)
-        append_pdf_bytes(final_writer, sc_bytes)
-        addenda_info.append(("sale_contingency", SALE_CONT_PDF))
+    if s.get("saleContingency") == "yes":
+        final_writer.append(PdfReader(BytesIO(stamp_sale_contingency(SALE_CONT_PDF, s))))
 
-    if has_backup:
-        b_fields, b_checks = build_backup_maps(s)
-        b_bytes = fill_pdf_to_bytes(BACKUP_PDF, b_fields, b_checks)
-        append_pdf_bytes(final_writer, b_bytes)
-        addenda_info.append(("backup", BACKUP_PDF))
+    if s.get("backupOffer") == "yes":
+        final_writer.append(PdfReader(BytesIO(stamp_backup(BACKUP_PDF, s))))
 
-    force_need_appearances(final_writer)
-
-    buf = BytesIO()
-    final_writer.write(buf)
-    return buf.getvalue(), addenda_info
+    out = BytesIO()
+    final_writer.write(out)
+    return out.getvalue(), []
 
 
 def send_confirmation_email(to_email, buyer_name, addr, pdf_bytes=None):
-    if not RESEND_API_KEY:
-        raise Exception("Missing RESEND_API_KEY")
-
-    safe_addr = (addr or "Property").replace(" ", "_").replace("/", "_")
-
     payload = {
         "from": FROM_EMAIL,
         "to": [to_email],
@@ -536,7 +465,7 @@ def send_confirmation_email(to_email, buyer_name, addr, pdf_bytes=None):
         <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">
           <h2>Your HomeOfferFlow offer PDF is ready, {buyer_name}.</h2>
           <p>Your payment was successful and your filled offer for <strong>{addr}</strong> is attached.</p>
-          <p><strong>Review every field carefully.</strong> This version is for testing PDF field accuracy before SignWell is re-enabled.</p>
+          <p><strong>Review every field carefully.</strong></p>
           <p style="background:#fff3cd;padding:1rem;border-radius:8px;font-size:0.9rem;">
             HomeOfferFlow is not a law firm and does not provide legal advice.
           </p>
@@ -545,13 +474,12 @@ def send_confirmation_email(to_email, buyer_name, addr, pdf_bytes=None):
     }
 
     if pdf_bytes:
-        payload["attachments"] = [
-            {
-                "filename": f"HomeOfferFlow_Offer_{safe_addr}.pdf",
-                "content": base64.b64encode(pdf_bytes).decode(),
-                "content_type": "application/pdf"
-            }
-        ]
+        safe_addr = (addr or "Property").replace(" ", "_").replace("/", "_")
+        payload["attachments"] = [{
+            "filename": f"HomeOfferFlow_Offer_{safe_addr}.pdf",
+            "content": base64.b64encode(pdf_bytes).decode(),
+            "content_type": "application/pdf"
+        }]
 
     resp = httpx.post(
         "https://api.resend.com/emails",
@@ -571,36 +499,22 @@ def send_confirmation_email(to_email, buyer_name, addr, pdf_bytes=None):
 
 def handle_stripe_checkout(event):
     session = event.get("data", {}).get("object", {})
-
-    customer_email = (
-        session.get("customer_email")
-        or session.get("customer_details", {}).get("email")
-        or ""
-    )
-
+    customer_email = session.get("customer_email") or session.get("customer_details", {}).get("email") or ""
     metadata = session.get("metadata", {}) or {}
 
     if "offer_data" in metadata:
         offer = json.loads(metadata["offer_data"])
     else:
-        offer_parts = int(metadata.get("offer_parts", 0) or 0)
-        combined = ""
-
-        for i in range(offer_parts):
-            combined += metadata.get(f"offer_{i}", "")
-
+        parts = int(metadata.get("offer_parts", 0) or 0)
+        combined = "".join(metadata.get(f"offer_{i}", "") for i in range(parts))
         if not combined:
             raise Exception("No offer data found in Stripe session metadata")
-
         offer = json.loads(combined)
-
-    if customer_email:
-        offer["_paymentEmail"] = customer_email
 
     if not offer.get("buyerEmail") and customer_email:
         offer["buyerEmail"] = customer_email
 
-    pdf_bytes, addenda_info = fill_and_merge(offer)
+    pdf_bytes, _ = fill_and_merge(offer)
 
     send_confirmation_email(
         offer.get("buyerEmail") or customer_email,
@@ -609,71 +523,39 @@ def handle_stripe_checkout(event):
         pdf_bytes
     )
 
-    return {
-        "status": "ok",
-        "message": "PDF created and emailed for review",
-        "signwell": {
-            "skipped": "SignWell temporarily disabled while testing PDF field accuracy"
-        },
-        "addenda": addenda_info
-    }
+    return {"status": "ok", "message": "Stamped PDF created and emailed"}
 
 
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
-        try:
-            parsed = urlparse(self.path)
-            query = parse_qs(parsed.query)
-
-            if "debug" in query:
-                self._json(200, {
-                    "main_fields": get_pdf_fields(MAIN_PDF),
-                    "financing_fields": get_pdf_fields(FINANCING_PDF) if os.path.exists(FINANCING_PDF) else {},
-                    "hoa_fields": get_pdf_fields(HOA_PDF) if os.path.exists(HOA_PDF) else {},
-                    "sale_cont_fields": get_pdf_fields(SALE_CONT_PDF) if os.path.exists(SALE_CONT_PDF) else {},
-                    "backup_fields": get_pdf_fields(BACKUP_PDF) if os.path.exists(BACKUP_PDF) else {},
-                })
-                return
-
-            self._json(200, {
-                "status": "fill-pdf live",
-                "debug_fields_url": "/api/fill-pdf?debug=1",
-                "main_pdf_exists": os.path.exists(MAIN_PDF),
-                "financing_pdf_exists": os.path.exists(FINANCING_PDF),
-                "hoa_pdf_exists": os.path.exists(HOA_PDF),
-                "sale_cont_pdf_exists": os.path.exists(SALE_CONT_PDF),
-                "backup_pdf_exists": os.path.exists(BACKUP_PDF),
-                "signwell_key_set": bool(SIGNWELL_API_KEY),
-                "resend_key_set": bool(RESEND_API_KEY),
-                "stripe_webhook_secret_set": bool(STRIPE_WHSEC)
-            })
-
-        except Exception as e:
-            self._json(500, {"error": str(e)})
+        self._json(200, {
+            "status": "stamped fill-pdf live",
+            "main_pdf_exists": os.path.exists(MAIN_PDF),
+            "financing_pdf_exists": os.path.exists(FINANCING_PDF),
+            "hoa_pdf_exists": os.path.exists(HOA_PDF),
+            "sale_cont_pdf_exists": os.path.exists(SALE_CONT_PDF),
+            "backup_pdf_exists": os.path.exists(BACKUP_PDF),
+            "resend_key_set": bool(RESEND_API_KEY),
+            "stripe_webhook_secret_set": bool(STRIPE_WHSEC)
+        })
 
     def do_POST(self):
         try:
-            content_length = int(self.headers.get("Content-Length", 0))
-            body = self.rfile.read(content_length)
+            length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(length)
 
-            sig_header = self.headers.get("stripe-signature", "")
-
-            if sig_header:
-                if not verify_stripe_signature(body, sig_header, STRIPE_WHSEC):
-                    self._json(401, {"error": "Invalid Stripe signature"})
-                    return
+            sig = self.headers.get("stripe-signature", "")
+            if sig and not verify_stripe_signature(body, sig, STRIPE_WHSEC):
+                self._json(401, {"error": "Invalid Stripe signature"})
+                return
 
             event = json.loads(body.decode("utf-8"))
 
             if event.get("type") == "checkout.session.completed":
-                result = handle_stripe_checkout(event)
-                self._json(200, result)
+                self._json(200, handle_stripe_checkout(event))
                 return
 
-            self._json(200, {
-                "status": "ignored",
-                "event_type": event.get("type")
-            })
+            self._json(200, {"status": "ignored", "event_type": event.get("type")})
 
         except Exception as e:
             print("ERROR:", str(e))
