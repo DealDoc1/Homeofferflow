@@ -309,7 +309,7 @@ def send_to_signwell(pdf_bytes, offer, addenda_info):
     return resp.json()
 
 
-def send_confirmation_email(to_email, buyer_name, addr):
+def send_confirmation_email(to_email, buyer_name, addr, pdf_bytes=None):
     if not RESEND_API_KEY:
         raise Exception("Missing RESEND_API_KEY")
 
@@ -317,18 +317,28 @@ def send_confirmation_email(to_email, buyer_name, addr):
         "from": FROM_EMAIL,
         "to": [to_email],
         "bcc": [SUPPORT_EMAIL],
-        "subject": f"Your Offer is Being Prepared — {addr}",
+        "subject": f"Your Filled Offer PDF — {addr}",
         "html": f"""
         <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">
-          <h2>Your HomeOfferFlow offer is being prepared, {buyer_name}.</h2>
-          <p>Your payment was successful and your offer for <strong>{addr}</strong> is being sent for signature.</p>
-          <p>Please watch for a separate signing email from HomeOfferFlow or SignWell.</p>
+          <h2>Your HomeOfferFlow offer PDF is ready, {buyer_name}.</h2>
+          <p>Your payment was successful and your filled offer for <strong>{addr}</strong> is attached.</p>
+          <p><strong>Review every field carefully.</strong> This version is for testing PDF field accuracy before SignWell is re-enabled.</p>
           <p style="background:#fff3cd;padding:1rem;border-radius:8px;font-size:0.9rem;">
             HomeOfferFlow is not a law firm and does not provide legal advice.
           </p>
         </div>
         """
     }
+
+    if pdf_bytes:
+        safe_addr = (addr or "Property").replace(" ", "_").replace("/", "_")
+        payload["attachments"] = [
+            {
+                "filename": f"HomeOfferFlow_Offer_{safe_addr}.pdf",
+                "content": base64.b64encode(pdf_bytes).decode(),
+                "content_type": "application/pdf"
+            }
+        ]
 
     resp = httpx.post(
         "https://api.resend.com/emails",
