@@ -1,4 +1,3 @@
-# force redeploy 2026-05-20
 import json
 import os
 import base64
@@ -14,7 +13,7 @@ SIGNWELL_API_KEY = os.environ.get("SIGNWELL_API_KEY", "")
 
 FROM_EMAIL = "offers@homeofferflow.com"
 SUPPORT_EMAIL = "support@homeofferflow.com"
-BASE_URL = "https://homeofferflow.com"
+BASE_URL = "https://www.homeofferflow.com"
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -82,9 +81,26 @@ def verify_stripe_signature(body_bytes, sig_header, secret):
         expected = hmac.new(secret.encode(), signed_payload, hashlib.sha256).hexdigest()
 
         return any(hmac.compare_digest(expected, sig) for sig in signatures)
-
     except Exception:
         return False
+
+
+def safe_set(writer, field_name, value):
+    if value is None:
+        value = ""
+    try:
+        for page in writer.pages:
+            writer.update_page_form_field_values(page, {field_name: str(value)})
+    except Exception:
+        pass
+
+
+def safe_check(writer, field_name, checked):
+    try:
+        for page in writer.pages:
+            writer.update_page_form_field_values(page, {field_name: "/Yes" if checked else "/Off"})
+    except Exception:
+        pass
 
 
 def fill_and_merge(offer):
@@ -109,11 +125,16 @@ def fill_and_merge(offer):
     if s.get("buyer2"):
         buyer_name += f" and {s.get('buyer2')}"
 
-    has_loan = s.get("financing") in ["conventional", "fha", "va", "usda"]
+    financing = s.get("financing", "")
+    has_loan = financing in ["conventional", "fha", "va", "usda"]
     has_hoa = s.get("hoa") in ["yes", "unknown"]
     has_sale_cont = s.get("saleContingency") == "yes"
     has_backup = s.get("backupOffer") == "yes"
     has_mud = s.get("mud") in ["yes", "unknown"]
+
+    reader = PdfReader(MAIN_PDF)
+    writer = PdfWriter()
+    writer.append(reader)
 
     field_values = {
         "1 PARTIES The parties to this contract are": s.get("seller", ""),
@@ -167,33 +188,39 @@ def fill_and_merge(offer):
         "Addr of Prop": addr_full,
     }
 
-    reader = PdfReader(MAIN_PDF)
-    writer = PdfWriter()
-    writer.append(reader)
+    for field_name, value in field_values.items():
+        safe_set(writer, field_name, value)
 
-    for page in writer.pages:
-        writer.update_page_form_field_values(page, field_values)
+    survey = s.get("survey", "")
+    title_payer = s.get("titlePayer", "seller")
+    title_amend = s.get("titleAmendment", "i")
+    seller_disc = s.get("sellerDisclosure", "received")
+    as_is = s.get("asIs", "yes")
 
-    checkbox_map = {
+    checkbox_values = {
         "Third Party Financing Addendum": has_loan,
 
-        "1Within": s.get("survey") == "sellerExisting",
-        "2 Within": s.get("survey") == "buyerNew",
-        "3Within": s.get("survey") == "noSurvey",
+        "A TITLE POLICY Seller shall furnish to Buyer at": title_payer == "seller",
+        "Sellers": title_payer == "seller",
+        "Seller": title_payer == "buyer",
 
-        "A TITLE POLICY Seller shall furnish to Buyer at": s.get("titlePayer", "seller") == "seller",
-        "Sellers": s.get("titlePayer", "seller") == "seller",
-        "Seller": s.get("titlePayer") == "buyer",
-
-        "i will not be amended or deleted from the title policy or": s.get("titleAmendment", "i") == "i",
-        "ii will be amended to read shortages in area at the expense of": s.get("titleAmendment") in ["ii_buyer", "ii_seller"],
-        "Buyer": s.get("titleAmendment") == "ii_buyer",
+        "i will not be amended or deleted from the title policy or": title_amend == "i",
+        "ii will be amended to read shortages in area at the expense of": title_amend in ["ii_buyer", "ii_seller"],
+        "Buyer": title_amend == "ii_buyer",
 
         "is": has_hoa,
         "is not": not has_hoa,
 
-        "1 Buyer accepts the Property As Is": s.get("asIs", "yes") == "yes",
-        "2 Buyer accepts the Property As Is provided Seller at Sellers expense shall complete the": s.get("asIs") == "repairs",
+        "1Within": survey == "sellerExisting",
+        "2 Within": survey == "buyerNew",
+        "3Within": survey == "noSurvey",
+
+        "Within one": seller_disc == "received",
+        "Within two": seller_disc == "notReceived",
+        "Within three": seller_disc == "exempt",
+
+        "1 Buyer accepts the Property As Is": as_is == "yes",
+        "2 Buyer accepts the Property As Is provided Seller at Sellers expense shall complete the": as_is == "repairs",
 
         "upon": s.get("possession") == "funding",
 
@@ -202,19 +229,11 @@ def fill_and_merge(offer):
         "Addendum for BackUp Contract": has_backup,
         "PID": has_mud,
 
-        "Within one": s.get("sellerDisclosure", "received") == "received",
-        "Within two": s.get("sellerDisclosure") == "notReceived",
-        "Within three": s.get("sellerDisclosure") == "exempt",
-
         "Buyer only": s.get("hasBuyerAgent") == "yes",
     }
 
-    for field_name, should_check in checkbox_map.items():
-        try:
-            for page in writer.pages:
-                writer.update_page_form_field_values(page, {field_name: "/Yes" if should_check else "/Off"})
-        except Exception:
-            pass
+    for field_name, checked in checkbox_values.items():
+        safe_check(writer, field_name, checked)
 
     addenda_info = []
 
@@ -242,76 +261,11 @@ def fill_and_merge(offer):
     return buf.getvalue(), addenda_info
 
 
-def build_signwell_payload(pdf_bytes, offer, addenda_info):
-    pdf_b64 = base64.b64encode(pdf_bytes).decode()
-
-    buyer1_name = offer.get("buyer1") or "Buyer"
-    buyer1_email = offer.get("buyerEmail") or offer.get("_paymentEmail") or ""
-
-    buyer2_name = offer.get("buyer2", "").strip()
-    buyer2_email = offer.get("buyer2Email", "").strip()
-
-    addr = offer.get("address") or "Property"
-
-    signers = [
-        {
-            "id": "1",
-            "name": buyer1_name,
-            "email": buyer1_email,
-            "order": 1
-        }
-    ]
-
-    if buyer2_name and buyer2_email:
-        signers.append({
-            "id": "2",
-            "name": buyer2_name,
-            "email": buyer2_email,
-            "order": 2
-        })
-
-    return {
-        "test_mode": False,
-        "name": f"Offer — {addr}",
-        "subject": f"Please sign your offer: {addr}",
-        "message": f"Your HomeOfferFlow offer for {addr} is ready to sign. Please review and sign below.",
-        "files": [
-            {
-                "name": f"HomeOfferFlow_Offer_{addr.replace(' ', '_')}.pdf",
-                "file_base64": pdf_b64
-            }
-        ],
-        "recipients": signers,
-        "send_email": True,
-        "callback_url": f"{BASE_URL}/api/fill-pdf"
-    }
-
-
-def send_to_signwell(pdf_bytes, offer, addenda_info):
-    if not SIGNWELL_API_KEY:
-        raise Exception("Missing SIGNWELL_API_KEY")
-
-    payload = build_signwell_payload(pdf_bytes, offer, addenda_info)
-
-    resp = httpx.post(
-        "https://www.signwell.com/api/v1/documents/",
-        headers={
-            "X-Api-Key": SIGNWELL_API_KEY,
-            "Content-Type": "application/json"
-        },
-        json=payload,
-        timeout=60
-    )
-
-    if resp.status_code not in [200, 201]:
-        raise Exception(f"SignWell error {resp.status_code}: {resp.text[:1000]}")
-
-    return resp.json()
-
-
 def send_confirmation_email(to_email, buyer_name, addr, pdf_bytes=None):
     if not RESEND_API_KEY:
         raise Exception("Missing RESEND_API_KEY")
+
+    safe_addr = (addr or "Property").replace(" ", "_").replace("/", "_")
 
     payload = {
         "from": FROM_EMAIL,
@@ -331,7 +285,6 @@ def send_confirmation_email(to_email, buyer_name, addr, pdf_bytes=None):
     }
 
     if pdf_bytes:
-        safe_addr = (addr or "Property").replace(" ", "_").replace("/", "_")
         payload["attachments"] = [
             {
                 "filename": f"HomeOfferFlow_Offer_{safe_addr}.pdf",
@@ -390,27 +343,32 @@ def handle_stripe_checkout(event):
     pdf_bytes, addenda_info = fill_and_merge(offer)
 
     signwell_result = {
-    "skipped": "SignWell temporarily disabled while testing"
-}
+        "skipped": "SignWell temporarily disabled while testing PDF field accuracy"
+    }
 
     send_confirmation_email(
-    offer.get("buyerEmail") or customer_email,
-    offer.get("buyer1", "Buyer"),
-    offer.get("address", "Property"),
-    pdf_bytes
-)
+        offer.get("buyerEmail") or customer_email,
+        offer.get("buyer1", "Buyer"),
+        offer.get("address", "Property"),
+        pdf_bytes
+    )
 
     return {
         "status": "ok",
-        "message": "PDF created and sent to SignWell",
+        "message": "PDF created and emailed for review",
         "signwell": signwell_result
     }
+
 
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
         self._json(200, {
             "status": "fill-pdf live",
             "main_pdf_exists": os.path.exists(MAIN_PDF),
+            "financing_pdf_exists": os.path.exists(FINANCING_PDF),
+            "hoa_pdf_exists": os.path.exists(HOA_PDF),
+            "sale_cont_pdf_exists": os.path.exists(SALE_CONT_PDF),
+            "backup_pdf_exists": os.path.exists(BACKUP_PDF),
             "signwell_key_set": bool(SIGNWELL_API_KEY),
             "resend_key_set": bool(RESEND_API_KEY),
             "stripe_webhook_secret_set": bool(STRIPE_WHSEC)
@@ -442,9 +400,7 @@ class handler(BaseHTTPRequestHandler):
 
         except Exception as e:
             print("ERROR:", str(e))
-            self._json(500, {
-                "error": str(e)
-            })
+            self._json(500, {"error": str(e)})
 
     def _json(self, code, data):
         self.send_response(code)
