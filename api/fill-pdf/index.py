@@ -428,27 +428,48 @@ def send_confirmation_email(
             f"Resend error {r.status_code}: {r.text}"
         )
 
-
 def handle_checkout(event):
-
     session = event.get("data", {}).get("object", {})
+
+    customer_email = (
+        session.get("customer_email")
+        or session.get("customer_details", {}).get("email")
+        or ""
+    )
 
     metadata = session.get("metadata", {}) or {}
 
-    offer = json.loads(metadata["offer_data"])
+    if "offer_data" in metadata:
+        offer = json.loads(metadata["offer_data"])
+    else:
+        parts = int(metadata.get("offer_parts", 0) or 0)
+        combined = ""
+
+        for i in range(parts):
+            combined += metadata.get(f"offer_{i}", "")
+
+        if not combined:
+            raise Exception(f"No offer_data or offer_parts found. Metadata keys: {list(metadata.keys())}")
+
+        offer = json.loads(combined)
+
+    if not offer.get("buyerEmail") and customer_email:
+        offer["buyerEmail"] = customer_email
 
     pdf_bytes = fill_and_merge(offer)
 
     send_confirmation_email(
-        offer.get("buyerEmail"),
-        offer.get("buyer1"),
-        offer.get("address"),
+        offer.get("buyerEmail") or customer_email,
+        offer.get("buyer1", "Buyer"),
+        offer.get("address", "Property"),
         pdf_bytes
     )
 
     return {
-        "status": "ok"
+        "status": "ok",
+        "message": "PDF created and emailed"
     }
+
 
 
 class Handler(BaseHTTPRequestHandler):
