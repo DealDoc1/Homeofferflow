@@ -1,11 +1,9 @@
 import json, os, base64, hashlib, hmac, httpx
 from io import BytesIO
 from http.server import BaseHTTPRequestHandler
-from urllib.parse import urlparse, parse_qs
 
 from pypdf import PdfReader, PdfWriter
 from reportlab.pdfgen import canvas
-from reportlab.lib.pagesizes import letter
 
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
 STRIPE_WHSEC = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
@@ -27,13 +25,8 @@ def fmt_money(v):
         if v in [None, ""]:
             return ""
         return f"{int(float(v)):,}"
-    except:
+    except Exception:
         return str(v or "")
-
-
-def fmt_money_dollar(v):
-    x = fmt_money(v)
-    return f"${x}" if x else ""
 
 
 def split_date(v):
@@ -43,7 +36,7 @@ def split_date(v):
         from datetime import datetime
         d = datetime.strptime(v, "%Y-%m-%d")
         return d.strftime("%B %d").replace(" 0", " "), str(d.year)[-2:]
-    except:
+    except Exception:
         return str(v), ""
 
 
@@ -70,17 +63,24 @@ def verify_stripe_signature(body, sig_header, secret):
         for item in sig_header.split(","):
             k, v = item.split("=", 1)
             parts.setdefault(k, []).append(v)
+
         timestamp = parts.get("t", [""])[0]
         signatures = parts.get("v1", [])
-        expected = hmac.new(secret.encode(), timestamp.encode() + b"." + body, hashlib.sha256).hexdigest()
+        expected = hmac.new(
+            secret.encode(),
+            timestamp.encode() + b"." + body,
+            hashlib.sha256
+        ).hexdigest()
+
         return any(hmac.compare_digest(expected, s) for s in signatures)
-    except:
+    except Exception:
         return False
 
 
 def text(c, x, y, value, size=9):
     if value in [None, ""]:
         return
+    c.setFillColorRGB(0, 0, 0)
     c.setFont("Helvetica", size)
     c.drawString(x, y, str(value))
 
@@ -88,11 +88,13 @@ def text(c, x, y, value, size=9):
 def money(c, x, y, value, size=9):
     if value in [None, ""]:
         return
+    c.setFillColorRGB(0, 0, 0)
     c.setFont("Helvetica", size)
     c.drawRightString(x, y, fmt_money(value))
 
 
 def check(c, x, y):
+    c.setFillColorRGB(0, 0, 0)
     c.setFont("Helvetica-Bold", 12)
     c.drawString(x, y, "X")
 
@@ -100,7 +102,21 @@ def check(c, x, y):
 def overlay_page(width=612, height=792):
     buf = BytesIO()
     c = canvas.Canvas(buf, pagesize=(width, height))
+
+    # Prevent blank overlay PDFs from having zero pages.
+    c.setFillColorRGB(1, 1, 1)
+    c.setFont("Helvetica", 1)
+    c.drawString(0, 0, ".")
+
+    c.setFillColorRGB(0, 0, 0)
     return buf, c
+
+
+def merge_overlay(page, buf):
+    buf.seek(0)
+    overlay = PdfReader(buf)
+    if len(overlay.pages) > 0:
+        page.merge_page(overlay.pages[0])
 
 
 def stamp_main_contract(pdf_bytes, offer):
@@ -141,12 +157,12 @@ def stamp_main_contract(pdf_bytes, offer):
             text(c, 288, 548, s.get("county", ""), 9)
             text(c, 138, 533, addr, 9)
 
-            text(c, 90, 381, "", 9)
-
             money(c, 557, 319, cash if has_loan else price, 9)
+
             if has_loan:
                 check(c, 382, 286)
                 money(c, 557, 286, loan, 9)
+
             money(c, 557, 262, price, 9)
 
         elif i == 1:
@@ -157,9 +173,6 @@ def stamp_main_contract(pdf_bytes, offer):
             text(c, 142, 696, escrow_addr, 9)
             money(c, 355, 696, s.get("earnest"), 9)
             money(c, 520, 696, s.get("optionFee"), 9)
-
-            text(c, 235, 643, "", 9)
-            text(c, 438, 643, "", 9)
 
             text(c, 264, 476, s.get("optionDays", "7"), 9)
 
@@ -259,9 +272,7 @@ def stamp_main_contract(pdf_bytes, offer):
             text(c, 70, 44, escrow, 8)
 
         c.save()
-        buf.seek(0)
-        overlay = PdfReader(buf)
-        page.merge_page(overlay.pages[0])
+        merge_overlay(page, buf)
         writer.add_page(page)
 
     out = BytesIO()
@@ -295,16 +306,19 @@ def stamp_financing_addendum(path, offer):
                 money(c, 392, 522, loan, 9)
                 text(c, 277, 503, years, 9)
                 text(c, 443, 503, rate, 9)
+
             elif financing == "fha":
                 check(c, 52, 397)
                 money(c, 325, 374, loan, 9)
                 text(c, 170, 354, years, 9)
                 text(c, 302, 354, rate, 9)
+
             elif financing == "va":
                 check(c, 52, 329)
                 money(c, 405, 321, loan, 9)
                 text(c, 232, 302, years, 9)
                 text(c, 347, 302, rate, 9)
+
             elif financing == "usda":
                 check(c, 52, 263)
                 money(c, 414, 254, loan, 9)
@@ -317,9 +331,7 @@ def stamp_financing_addendum(path, offer):
             text(c, 307, 710, approval_days, 9)
 
         c.save()
-        buf.seek(0)
-        overlay = PdfReader(buf)
-        page.merge_page(overlay.pages[0])
+        merge_overlay(page, buf)
         writer.add_page(page)
 
     out = BytesIO()
@@ -340,10 +352,8 @@ def stamp_hoa_addendum(path, offer):
         if i == 0:
             text(c, 190, 666, f"{s.get('address','')}, {s.get('city','')}", 9)
             text(c, 210, 644, s.get("hoaName", "TBD"), 9)
-
             check(c, 52, 589)
             text(c, 102, 589, s.get("hoaDeliveryDays", "3"), 9)
-
             money(c, 470, 327, s.get("hoaTransferCap", "0"), 9)
 
             if s.get("hoaInfoPayer", "seller") == "buyer":
@@ -352,9 +362,7 @@ def stamp_hoa_addendum(path, offer):
                 check(c, 448, 246)
 
         c.save()
-        buf.seek(0)
-        overlay = PdfReader(buf)
-        page.merge_page(overlay.pages[0])
+        merge_overlay(page, buf)
         writer.add_page(page)
 
     out = BytesIO()
@@ -384,9 +392,7 @@ def stamp_sale_contingency(path, offer):
             money(c, 377, 397, s.get("saleContingencyAdditionalEarnest", ""), 9)
 
         c.save()
-        buf.seek(0)
-        overlay = PdfReader(buf)
-        page.merge_page(overlay.pages[0])
+        merge_overlay(page, buf)
         writer.add_page(page)
 
     out = BytesIO()
@@ -413,17 +419,13 @@ def stamp_backup(path, offer):
             money(c, 256, 555, s.get("backupAdditionalEarnest", ""), 9)
             money(c, 434, 555, s.get("backupAdditionalOptionFee", ""), 9)
             text(c, 287, 537, s.get("backupAdditionalDays", ""), 9)
-
             text(c, 340, 284, first_md, 9)
             text(c, 420, 284, first_yy, 9)
-
             text(c, 330, 234, exp_md, 9)
             text(c, 410, 234, exp_yy, 9)
 
         c.save()
-        buf.seek(0)
-        overlay = PdfReader(buf)
-        page.merge_page(overlay.pages[0])
+        merge_overlay(page, buf)
         writer.add_page(page)
 
     out = BytesIO()
@@ -456,6 +458,9 @@ def fill_and_merge(offer):
 
 
 def send_confirmation_email(to_email, buyer_name, addr, pdf_bytes=None):
+    if not RESEND_API_KEY:
+        raise Exception("Missing RESEND_API_KEY")
+
     payload = {
         "from": FROM_EMAIL,
         "to": [to_email],
@@ -499,7 +504,12 @@ def send_confirmation_email(to_email, buyer_name, addr, pdf_bytes=None):
 
 def handle_stripe_checkout(event):
     session = event.get("data", {}).get("object", {})
-    customer_email = session.get("customer_email") or session.get("customer_details", {}).get("email") or ""
+    customer_email = (
+        session.get("customer_email")
+        or session.get("customer_details", {}).get("email")
+        or ""
+    )
+
     metadata = session.get("metadata", {}) or {}
 
     if "offer_data" in metadata:
@@ -507,8 +517,10 @@ def handle_stripe_checkout(event):
     else:
         parts = int(metadata.get("offer_parts", 0) or 0)
         combined = "".join(metadata.get(f"offer_{i}", "") for i in range(parts))
+
         if not combined:
             raise Exception("No offer data found in Stripe session metadata")
+
         offer = json.loads(combined)
 
     if not offer.get("buyerEmail") and customer_email:
@@ -529,7 +541,7 @@ def handle_stripe_checkout(event):
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         self._json(200, {
-            "status": "stamped fill-pdf live",
+            "status": "stamped fill-pdf live v2",
             "main_pdf_exists": os.path.exists(MAIN_PDF),
             "financing_pdf_exists": os.path.exists(FINANCING_PDF),
             "hoa_pdf_exists": os.path.exists(HOA_PDF),
