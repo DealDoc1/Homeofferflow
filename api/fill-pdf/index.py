@@ -6,6 +6,7 @@ import hmac
 import httpx
 from io import BytesIO
 from http.server import BaseHTTPRequestHandler
+from urllib.parse import urlparse, parse_qs
 
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
 STRIPE_WHSEC = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
@@ -42,6 +43,17 @@ def fmt_date(val):
         return d.strftime("%B %d, %Y").replace(" 0", " ")
     except Exception:
         return val
+
+
+def split_date(val):
+    if not val:
+        return "", "", ""
+    try:
+        from datetime import datetime
+        d = datetime.strptime(val, "%Y-%m-%d")
+        return str(d.day), d.strftime("%B"), str(d.year)
+    except Exception:
+        return "", "", ""
 
 
 def parse_lot_block(lot_str):
@@ -103,13 +115,26 @@ def safe_check(writer, field_name, checked):
         pass
 
 
+def get_pdf_fields(path):
+    from pypdf import PdfReader
+    reader = PdfReader(path)
+    out = {}
+    fields = reader.get_fields()
+    if fields:
+        for k, v in fields.items():
+            out[k] = {
+                "value": str(v.get("/V", "")),
+                "type": str(v.get("/FT", ""))
+            }
+    return out
+
+
 def fill_and_merge(offer):
     from pypdf import PdfReader, PdfWriter
 
     s = offer or {}
 
     lot_num, block_num = parse_lot_block(s.get("lot", ""))
-
     addr_full = f"{s.get('address','')}, {s.get('city','')}, TX {s.get('zip','')}".strip(", ")
 
     try:
@@ -147,13 +172,17 @@ def fill_and_merge(offer):
         "County of": s.get("county", ""),
         "Texas known as": addr_full,
 
-       "be removed prior to delivery of possession": "",
-"undefined_3": fmt_money(cash) if has_loan else fmt_money(price),
-"undefined_4": fmt_money(loan) if has_loan else "",
-"undefined_5": fmt_money(price),
+        # IMPORTANT FIX:
+        # undefined_2 was wrong. It hits exclusions area.
+        "be removed prior to delivery of possession": "",
+        "undefined_2": "",
+        "undefined_3": fmt_money(cash) if has_loan else fmt_money(price),
+        "undefined_4": fmt_money(loan) if has_loan else "",
+        "undefined_5": fmt_money(price),
 
         "as earnest money to": fmt_money(s.get("earnest")),
         "as earnest money to 2": fmt_money(s.get("earnest")),
+        "earnest money of": fmt_money(s.get("earnest")),
 
         "acknowledged by Seller and Buyers agreement to pay Seller": fmt_money(s.get("optionFee")),
         "acknowledged by Seller and Buyers agreement to pay Seller 1": str(s.get("optionDays", "")),
@@ -162,6 +191,7 @@ def fill_and_merge(offer):
 
         "insurance Title Policy issued by": s.get("titleCompany", ""),
         "A The closing of the sale will be on or before": fmt_date(s.get("closingDate")),
+        "20": "",
 
         "when mailed to": s.get("buyerMailAddr", ""),
         "Phone 51": s.get("buyerPhone", ""),
@@ -176,6 +206,7 @@ def fill_and_merge(offer):
         "Buyers Expenses as allowed by the lender": fmt_money(s.get("concessionAmount", "")) if s.get("wantsConcessions") == "yes" else "",
 
         "Commitment other than items 6A1 through 9 above or which prohibit the following use": s.get("intendedUse", ""),
+        "following specific repairs and treatments": s.get("repairsText", "") if s.get("asIs") == "repairs" else "",
 
         "Within": str(s.get("disclosureDays", "3")) if s.get("sellerDisclosure") == "notReceived" else "",
         "receipt or the date specified in this paragraph whichever is earlier": str(s.get("surveyDays", "7")),
@@ -200,6 +231,7 @@ def fill_and_merge(offer):
 
     checkbox_values = {
         "Third Party Financing Addendum": has_loan,
+        "B Sum of all financing described in the attached": has_loan,
 
         "A TITLE POLICY Seller shall furnish to Buyer at": title_payer == "seller",
         "Sellers": title_payer == "seller",
@@ -212,7 +244,10 @@ def fill_and_merge(offer):
         "is": has_hoa,
         "is not": not has_hoa,
 
+        # IMPORTANT FIX:
+        # actual checkbox is 2Within, not 2 Within.
         "1Within": survey == "sellerExisting",
+        "2Within": survey == "buyerNew",
         "2 Within": survey == "buyerNew",
         "3Within": survey == "noSurvey",
 
@@ -221,7 +256,9 @@ def fill_and_merge(offer):
         "Within three": seller_disc == "exempt",
 
         "1 Buyer accepts the Property As Is": as_is == "yes",
+        "As Is": as_is == "yes",
         "2 Buyer accepts the Property As Is provided Seller at Sellers expense shall complete the": as_is == "repairs",
+        "As Is except": as_is == "repairs",
 
         "upon": s.get("possession") == "funding",
 
@@ -360,25 +397,34 @@ def handle_stripe_checkout(event):
         "signwell": signwell_result
     }
 
+
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         try:
-            from pypdf import PdfReader
+            parsed = urlparse(self.path)
+            query = parse_qs(parsed.query)
 
-            reader = PdfReader(MAIN_PDF)
-            all_fields = {}
-
-            fields = reader.get_fields()
-            if fields:
-                for k, v in fields.items():
-                    all_fields[k] = {
-                        "value": str(v.get("/V", "")),
-                        "type": str(v.get("/FT", ""))
-                    }
+            if "debug" in query:
+                self._json(200, {
+                    "main_fields": get_pdf_fields(MAIN_PDF),
+                    "financing_fields": get_pdf_fields(FINANCING_PDF) if os.path.exists(FINANCING_PDF) else {},
+                    "hoa_fields": get_pdf_fields(HOA_PDF) if os.path.exists(HOA_PDF) else {},
+                    "sale_cont_fields": get_pdf_fields(SALE_CONT_PDF) if os.path.exists(SALE_CONT_PDF) else {},
+                    "backup_fields": get_pdf_fields(BACKUP_PDF) if os.path.exists(BACKUP_PDF) else {},
+                })
+                return
 
             self._json(200, {
-                "field_count": len(all_fields),
-                "fields": all_fields
+                "status": "fill-pdf live",
+                "debug_fields_url": "/api/fill-pdf?debug=1",
+                "main_pdf_exists": os.path.exists(MAIN_PDF),
+                "financing_pdf_exists": os.path.exists(FINANCING_PDF),
+                "hoa_pdf_exists": os.path.exists(HOA_PDF),
+                "sale_cont_pdf_exists": os.path.exists(SALE_CONT_PDF),
+                "backup_pdf_exists": os.path.exists(BACKUP_PDF),
+                "signwell_key_set": bool(SIGNWELL_API_KEY),
+                "resend_key_set": bool(RESEND_API_KEY),
+                "stripe_webhook_secret_set": bool(STRIPE_WHSEC)
             })
 
         except Exception as e:
