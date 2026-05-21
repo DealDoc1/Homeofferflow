@@ -147,9 +147,10 @@ def fill_and_merge(offer):
         "County of": s.get("county", ""),
         "Texas known as": addr_full,
 
-        "undefined_2": fmt_money(cash) if has_loan else fmt_money(price),
-        "undefined_4": fmt_money(loan) if has_loan else "",
-        "undefined_5": fmt_money(price),
+       "be removed prior to delivery of possession": "",
+"undefined_3": fmt_money(cash) if has_loan else fmt_money(price),
+"undefined_4": fmt_money(loan) if has_loan else "",
+"undefined_5": fmt_money(price),
 
         "as earnest money to": fmt_money(s.get("earnest")),
         "as earnest money to 2": fmt_money(s.get("earnest")),
