@@ -359,30 +359,29 @@ def handle_stripe_checkout(event):
         "signwell": signwell_result
     }
 
+class Handler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        try:
+            from pypdf import PdfReader
 
-class handler(BaseHTTPRequestHandler):
-   def do_GET(self):
-    try:
-        from pypdf import PdfReader
+            reader = PdfReader(MAIN_PDF)
+            all_fields = {}
 
-        reader = PdfReader(MAIN_PDF)
+            fields = reader.get_fields()
+            if fields:
+                for k, v in fields.items():
+                    all_fields[k] = {
+                        "value": str(v.get("/V", "")),
+                        "type": str(v.get("/FT", ""))
+                    }
 
-        all_fields = {}
+            self._json(200, {
+                "field_count": len(all_fields),
+                "fields": all_fields
+            })
 
-        if reader.get_fields():
-            for k, v in reader.get_fields().items():
-                all_fields[k] = {
-                    "value": str(v.get("/V", "")),
-                    "type": str(v.get("/FT", ""))
-                }
-
-        self._json(200, {
-            "field_count": len(all_fields),
-            "fields": all_fields
-        })
-
-    except Exception as e:
-        self._json(500, {"error": str(e)})
+        except Exception as e:
+            self._json(500, {"error": str(e)})
 
     def do_POST(self):
         try:
@@ -417,3 +416,6 @@ class handler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", "application/json")
         self.end_headers()
         self.wfile.write(json.dumps(data).encode())
+
+
+handler = Handler
