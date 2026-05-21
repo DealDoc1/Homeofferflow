@@ -361,18 +361,28 @@ def handle_stripe_checkout(event):
 
 
 class handler(BaseHTTPRequestHandler):
-    def do_GET(self):
+   def do_GET(self):
+    try:
+        from pypdf import PdfReader
+
+        reader = PdfReader(MAIN_PDF)
+
+        all_fields = {}
+
+        if reader.get_fields():
+            for k, v in reader.get_fields().items():
+                all_fields[k] = {
+                    "value": str(v.get("/V", "")),
+                    "type": str(v.get("/FT", ""))
+                }
+
         self._json(200, {
-            "status": "fill-pdf live",
-            "main_pdf_exists": os.path.exists(MAIN_PDF),
-            "financing_pdf_exists": os.path.exists(FINANCING_PDF),
-            "hoa_pdf_exists": os.path.exists(HOA_PDF),
-            "sale_cont_pdf_exists": os.path.exists(SALE_CONT_PDF),
-            "backup_pdf_exists": os.path.exists(BACKUP_PDF),
-            "signwell_key_set": bool(SIGNWELL_API_KEY),
-            "resend_key_set": bool(RESEND_API_KEY),
-            "stripe_webhook_secret_set": bool(STRIPE_WHSEC)
+            "field_count": len(all_fields),
+            "fields": all_fields
         })
+
+    except Exception as e:
+        self._json(500, {"error": str(e)})
 
     def do_POST(self):
         try:
