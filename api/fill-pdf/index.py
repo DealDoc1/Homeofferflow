@@ -14,7 +14,6 @@ SIGNWELL_API_KEY = os.environ.get("SIGNWELL_API_KEY", "")
 
 FROM_EMAIL = "offers@homeofferflow.com"
 SUPPORT_EMAIL = "support@homeofferflow.com"
-BASE_URL = "https://www.homeofferflow.com"
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -43,15 +42,15 @@ def fmt_plain_money(val):
         return str(val) if val else ""
 
 
-def fmt_date(val):
+def fmt_date_parts(val):
     if not val:
-        return ""
+        return "", ""
     try:
         from datetime import datetime
         d = datetime.strptime(val, "%Y-%m-%d")
-        return d.strftime("%B %d, %Y").replace(" 0", " ")
+        return d.strftime("%B %d").replace(" 0", " "), str(d.year)[-2:]
     except Exception:
-        return val
+        return val, ""
 
 
 def split_date(val):
@@ -97,13 +96,24 @@ def verify_stripe_signature(body_bytes, sig_header, secret):
 
         timestamp = parts.get("t", [""])[0]
         signatures = parts.get("v1", [])
-
         signed_payload = timestamp.encode() + b"." + body_bytes
         expected = hmac.new(secret.encode(), signed_payload, hashlib.sha256).hexdigest()
 
         return any(hmac.compare_digest(expected, sig) for sig in signatures)
     except Exception:
         return False
+
+
+def force_need_appearances(writer):
+    try:
+        from pypdf.generic import BooleanObject, NameObject, DictionaryObject
+        if "/AcroForm" not in writer._root_object:
+            writer._root_object.update({NameObject("/AcroForm"): DictionaryObject()})
+        writer._root_object["/AcroForm"].update({
+            NameObject("/NeedAppearances"): BooleanObject(True)
+        })
+    except Exception:
+        pass
 
 
 def safe_set(writer, field_name, value):
@@ -118,10 +128,39 @@ def safe_set(writer, field_name, value):
 
 def safe_check(writer, field_name, checked):
     try:
+        from pypdf.generic import NameObject
+
+        desired = NameObject("/Yes") if checked else NameObject("/Off")
+
+        for page in writer.pages:
+            if "/Annots" not in page:
+                continue
+
+            for annot_ref in page["/Annots"]:
+                annot = annot_ref.get_object()
+
+                if annot.get("/T") == field_name:
+                    annot.update({
+                        NameObject("/V"): desired,
+                        NameObject("/AS"): desired,
+                    })
+
+                    if "/Kids" in annot:
+                        for kid_ref in annot["/Kids"]:
+                            kid = kid_ref.get_object()
+                            kid.update({
+                                NameObject("/AS"): desired
+                            })
+
         for page in writer.pages:
             writer.update_page_form_field_values(page, {field_name: "/Yes" if checked else "/Off"})
+
     except Exception:
-        pass
+        try:
+            for page in writer.pages:
+                writer.update_page_form_field_values(page, {field_name: "/Yes" if checked else "/Off"})
+        except Exception:
+            pass
 
 
 def get_pdf_fields(path):
@@ -145,11 +184,15 @@ def fill_pdf_to_bytes(path, field_values=None, checkbox_values=None):
     writer = PdfWriter()
     writer.append(reader)
 
+    force_need_appearances(writer)
+
     for field_name, value in (field_values or {}).items():
         safe_set(writer, field_name, value)
 
     for field_name, checked in (checkbox_values or {}).items():
         safe_check(writer, field_name, checked)
+
+    force_need_appearances(writer)
 
     buf = BytesIO()
     writer.write(buf)
@@ -158,8 +201,7 @@ def fill_pdf_to_bytes(path, field_values=None, checkbox_values=None):
 
 def append_pdf_bytes(main_writer, pdf_bytes):
     from pypdf import PdfReader
-    reader = PdfReader(BytesIO(pdf_bytes))
-    main_writer.append(reader)
+    main_writer.append(PdfReader(BytesIO(pdf_bytes)))
 
 
 def build_main_contract_maps(s):
@@ -186,16 +228,28 @@ def build_main_contract_maps(s):
     has_backup = s.get("backupOffer") == "yes"
     has_mud = s.get("mud") in ["yes", "unknown"]
 
-    survey = s.get("survey", "")
+    survey = s.get("survey", "sellerExisting")
     title_payer = s.get("titlePayer", "seller")
     title_amend = s.get("titleAmendment", "i")
-    seller_disc = s.get("sellerDisclosure", "received")
+    seller_disc = s.get("sellerDisclosure", "notReceived")
     as_is = s.get("asIs", "yes")
 
+    closing_md, closing_yy = fmt_date_parts(s.get("closingDate"))
+
+    escrow_name = s.get("escrowAgent") or s.get("titleCompany", "")
+    escrow_address = s.get("escrowAddress") or s.get("titleAddress", "")
+
+    # IMPORTANT:
+    # Do NOT use these fields anymore:
+    # acknowledged by Seller and Buyers agreement to pay Seller
+    # acknowledged by Seller and Buyers agreement to pay Seller 1
+    # acknowledged by Seller and Buyers agreement to pay Seller2
+    # Those were polluting Section 12 in the visual PDF.
+
     field_values = {
+        # Page 1
         "1 PARTIES The parties to this contract are": s.get("seller", ""),
         "Seller and": buyer_name,
-
         "A LAND Lot": lot_num,
         "Block": block_num,
         "undefined": s.get("subdiv", ""),
@@ -209,37 +263,42 @@ def build_main_contract_maps(s):
         "undefined_4": fmt_money(loan) if has_loan else "",
         "undefined_5": fmt_money(price),
 
+        # Page 2 Section 5
+        # These two are the best available main-form escrow blanks from the field list.
+        "undefined_6": escrow_name,
+        "undefined_7": escrow_address,
+
         "as earnest money to": fmt_money(s.get("earnest")),
-        "as earnest money to 2": fmt_money(s.get("earnest")),
-        "earnest money of": fmt_money(s.get("earnest")),
+        "as earnest money to 2": fmt_money(s.get("optionFee")),
+        "earnest money of": "",
+        "to escrow agent within": "",
+        "to escrow agent within 1": "",
 
-        "acknowledged by Seller and Buyers agreement to pay Seller": fmt_money(s.get("optionFee")),
-        "acknowledged by Seller and Buyers agreement to pay Seller 1": str(s.get("optionDays", "")),
-        "acknowledged by Seller and Buyers agreement to pay Seller2": fmt_money(s.get("optionFee")),
-        "Option Fee in the form of": fmt_money(s.get("optionFee")),
-
+        # Section 6
         "insurance Title Policy issued by": s.get("titleCompany", ""),
-        "A The closing of the sale will be on or before": fmt_date(s.get("closingDate")),
-        "20": "",
+        "the Title Company and Buyers lenders Check one box only": str(s.get("surveyDays", "7")) if survey == "sellerExisting" else "",
+        "receipt or the date specified in this paragraph whichever is earlier": str(s.get("surveyDays", "7")) if survey == "buyerNew" else "",
+        "than 3 days prior to Closing Date": str(s.get("surveyDays", "7")) if survey == "sellerNew" else "",
+        "Commitment other than items 6A1 through 9 above or which prohibit the following use": s.get("intendedUse", ""),
+        "the Commitment Exception Documents and the survey Buyers failure to object within the": str(s.get("objectionDays", "")),
 
-        "when mailed to": s.get("buyerMailAddr", ""),
+        # Section 7
+        "Within": str(s.get("disclosureDays", "3")) if seller_disc == "notReceived" else "",
+        "following specific repairs and treatments": s.get("repairsText", "") if as_is == "repairs" else "",
+
+        # Section 9
+        "A The closing of the sale will be on or before": closing_md,
+        "20": closing_yy,
+
+        # Section 12
+        "Buyers Expenses as allowed by the lender": fmt_money(s.get("concessionAmount", "")) if s.get("wantsConcessions") == "yes" else "",
+
+        # Section 21 notices
+        "at": s.get("buyerMailAddr", ""),
         "Phone 51": s.get("buyerPhone", ""),
         "AC1": s.get("buyerEmail", ""),
 
-        "Associates Name": s.get("agentName", "") if s.get("hasBuyerAgent") == "yes" else "",
-        "License No": s.get("agentLicense", "") if s.get("hasBuyerAgent") == "yes" else "",
-        "Associates Email Address": s.get("agentEmail", "") if s.get("hasBuyerAgent") == "yes" else "",
-        "Phone": s.get("agentPhone", "") if s.get("hasBuyerAgent") == "yes" else "",
-        "Other Broker Firm": s.get("agentBrokerage", "") if s.get("hasBuyerAgent") == "yes" else "",
-
-        "Buyers Expenses as allowed by the lender": fmt_money(s.get("concessionAmount", "")) if s.get("wantsConcessions") == "yes" else "",
-
-        "Commitment other than items 6A1 through 9 above or which prohibit the following use": s.get("intendedUse", ""),
-        "following specific repairs and treatments": s.get("repairsText", "") if as_is == "repairs" else "",
-
-        "Within": str(s.get("disclosureDays", "3")) if seller_disc == "notReceived" else "",
-        "receipt or the date specified in this paragraph whichever is earlier": str(s.get("surveyDays", "7")),
-
+        # Repeated property address fields
         "Contract Concerning": addr_full,
         "Contract Concerning_2": addr_full,
         "Contract Concerning_3": addr_full,
@@ -248,46 +307,70 @@ def build_main_contract_maps(s):
         "Address of Property_2": addr_full,
         "Addr of Prop": addr_full,
 
-        "Escrow Agent": s.get("titleCompany", ""),
-        "Escrow Agent_2": s.get("titleCompany", ""),
-        "Escrow Agent_3": s.get("titleCompany", ""),
+        # Broker section
+        "Associates Name": s.get("agentName", "") if s.get("hasBuyerAgent") == "yes" else "",
+        "License No": s.get("agentLicense", "") if s.get("hasBuyerAgent") == "yes" else "",
+        "Associates Email Address": s.get("agentEmail", "") if s.get("hasBuyerAgent") == "yes" else "",
+        "Phone": s.get("agentPhone", "") if s.get("hasBuyerAgent") == "yes" else "",
+        "Other Broker Firm": s.get("agentBrokerage", "") if s.get("hasBuyerAgent") == "yes" else "",
+
+        # Receipts page
+        "Escrow Agent": escrow_name,
+        "Escrow Agent_2": escrow_name,
+        "Escrow Agent_3": escrow_name,
+        "Option Fee in the form of": fmt_money(s.get("optionFee")),
     }
 
     checkbox_values = {
-        "Third Party Financing Addendum": has_loan,
+        # Section 3 Sales Price B
         "B Sum of all financing described in the attached": has_loan,
+        "Third Party Financing Addendum": has_loan,
 
+        # Section 6 Title
         "A TITLE POLICY Seller shall furnish to Buyer at": title_payer == "seller",
         "Sellers": title_payer == "seller",
         "Seller": title_payer == "buyer",
-
         "i will not be amended or deleted from the title policy or": title_amend == "i",
         "ii will be amended to read shortages in area at the expense of": title_amend in ["ii_buyer", "ii_seller"],
         "Buyer": title_amend == "ii_buyer",
+        "Sellers_2": title_amend == "ii_seller",
 
-        "is": has_hoa,
-        "is not": not has_hoa,
-
+        # Section 6 Survey
         "1Within": survey == "sellerExisting",
         "2Within": survey == "buyerNew",
         "2 Within": survey == "buyerNew",
+        "3Within": survey == "sellerNew",
+        "Buyers expense no later": survey == "sellerExisting" and s.get("surveyIfRejectedPaidBy", "buyer") == "buyer",
+        "Sellers_2": survey == "sellerExisting" and s.get("surveyIfRejectedPaidBy") == "seller",
 
+        # HOA
+        "is": has_hoa,
+        "is not": not has_hoa,
+
+        # Seller disclosure
         "Within one": seller_disc == "received",
         "Within two": seller_disc == "notReceived",
         "Within three": seller_disc == "exempt",
 
+        # As-is
         "1 Buyer accepts the Property As Is": as_is == "yes",
         "As Is": as_is == "yes",
         "2 Buyer accepts the Property As Is provided Seller at Sellers expense shall complete the": as_is == "repairs",
         "As Is except": as_is == "repairs",
 
-        "upon": s.get("possession") == "funding",
+        # Possession
+        "upon": s.get("possession", "funding") == "funding",
 
+        # Section 12 concession checkbox
+        "Dollar Amt": s.get("wantsConcessions") == "yes",
+
+        # Section 22 addenda
         "Addendum for Property Subject to": has_hoa,
         "Addendum for Sale of Other Property by": has_sale_cont,
         "Addendum for BackUp Contract": has_backup,
         "PID": has_mud,
 
+        # Broker section
         "Buyer only": s.get("hasBuyerAgent") == "yes",
     }
 
@@ -298,7 +381,6 @@ def build_financing_maps(s):
     addr_full = f"{s.get('address','')}, {s.get('city','')}, TX {s.get('zip','')}".strip(", ")
     financing = s.get("financing", "")
     loan_amount = s.get("loanAmount", "")
-
     loan_years = s.get("loanYears", "") or "30"
     interest_rate = s.get("interestRate", "") or ""
     approval_days = s.get("buyerApprovalDays", "") or "21"
@@ -313,23 +395,8 @@ def build_financing_maps(s):
         "per annum for the first": interest_rate,
         "shown on Buyers Loan Estimate for the loan not to exceed": origination,
 
-        "excluding any financed MIP amortizable monthly for not less": fmt_plain_money(loan_amount),
-        "than": loan_years,
-        "years with interest not to exceed_2": interest_rate,
-        "Charges as shown on Buyers Loan Estimate for the loan not to exceed": origination,
-
-        "excluding any financed Funding Fee amortizable monthly for not less than": fmt_plain_money(loan_amount),
-        "years": loan_years,
-        "with interest not to exceed": interest_rate,
-        "per annum for the first_4": "",
-        "Origination Charges as shown on Buyers Loan Estimate for the loan not to exceed": origination,
-
-        "any financed Funding Fee amortizable monthly for not less than": fmt_plain_money(loan_amount),
-        "per annum for the first_3": interest_rate,
-
-        "This contract is subject to Buyer obtaining Buyer Approval If Buyer cannot obtain Buyer": True,
         "Text1": approval_days,
-        "value of the Property established by the Department of Veterans Affairs": fmt_plain_money(s.get("price", "")),
+        "value of the Property established by the Department of Veterans Affairs": fmt_plain_money(s.get("price", "")) if financing in ["fha", "va"] else "",
     }
 
     checks = {
@@ -345,11 +412,9 @@ def build_financing_maps(s):
 
 
 def build_hoa_maps(s):
-    addr_full = f"{s.get('address','')}, {s.get('city','')}, TX {s.get('zip','')}".strip(", ")
-
     fields = {
         "Street Address and City": f"{s.get('address','')}, {s.get('city','')}",
-        "Name of Property Owners Association Association and Phone Number": s.get("hoaName", "") or "TBD / See MLS or HOA documents",
+        "Name of Property Owners Association Association and Phone Number": s.get("hoaName", "") or "TBD",
         "the Subdivision Information to the Buyer If Seller delivers the Subdivision Information Buyer may terminate": s.get("hoaDeliveryDays", "") or "3",
         "D DEPOSITS FOR RESERVES Buyer shall pay any deposits for reserves required at closing by the Association": fmt_plain_money(s.get("hoaTransferCap", "") or "0"),
     }
@@ -359,9 +424,7 @@ def build_hoa_maps(s):
         "undefined": False,
         "3Buyer has received and approved the Subdivision Information before signing the contract Buyer": False,
         "4Buyer does not require delivery of the Subdivision Information": False,
-        "does": False,
         "does not require an updated resale certificate If Buyer requires an updated resale certificate Seller at": True,
-        "Buyer": False,
         "Seller shall pay the Title Company the cost of obtaining the": True,
     }
 
@@ -370,17 +433,16 @@ def build_hoa_maps(s):
 
 def build_sale_contingency_maps(s):
     addr_full = f"{s.get('address','')}, {s.get('city','')}, TX {s.get('zip','')}".strip(", ")
-
     contingency_date = s.get("saleContingencyDate", "") or s.get("closingDate", "")
     day, month, year = split_date(contingency_date)
 
     fields = {
         "Address of Property": addr_full,
-        "Address on or before": s.get("saleContingencyAddress", "") or "Buyer’s current property address TBD",
+        "Address on or before": s.get("saleContingencyAddress", "") or "",
         "Contingency is not satisfied or waived by Buyer by the above date the contract will terminate": f"{month} {day}".strip(),
         "20": year[-2:] if year else "",
-        "terminate automatically and the earnest money will be refunded to Buyer": s.get("saleContingencyWaiverDays", "") or "2",
-        "All notices and waivers must be in writing and are": fmt_plain_money(s.get("saleContingencyAdditionalEarnest", "") or "0"),
+        "terminate automatically and the earnest money will be refunded to Buyer": s.get("saleContingencyWaiverDays", "") or "",
+        "All notices and waivers must be in writing and are": fmt_plain_money(s.get("saleContingencyAdditionalEarnest", "") or ""),
     }
 
     return fields, {}
@@ -388,7 +450,6 @@ def build_sale_contingency_maps(s):
 
 def build_backup_maps(s):
     addr_full = f"{s.get('address','')}, {s.get('city','')}, TX {s.get('zip','')}".strip(", ")
-
     first_contract_date = s.get("backupFirstContractDate", "")
     exp_date = s.get("backupExpirationDate", "") or s.get("closingDate", "")
 
@@ -397,9 +458,9 @@ def build_backup_maps(s):
 
     fields = {
         "Address of Property": addr_full,
-        "Text1": fmt_plain_money(s.get("backupAdditionalEarnest", "") or "0"),
-        "Text1 1": fmt_plain_money(s.get("backupAdditionalOptionFee", "") or "0"),
-        "Text1 2": s.get("backupAdditionalDays", "") or "3",
+        "Text1": fmt_plain_money(s.get("backupAdditionalEarnest", "") or ""),
+        "Text1 1": fmt_plain_money(s.get("backupAdditionalOptionFee", "") or ""),
+        "Text1 2": s.get("backupAdditionalDays", "") or "",
         "Except as provided by this Addendum neither party is required to perform under the": f"{m1} {d1}".strip(),
         "20": y1[-2:] if y1 else "",
         "the BackUp Contract terminates and the earnest money will be refunded to Buyer  Seller must": f"{m2} {d2}".strip(),
@@ -421,11 +482,11 @@ def fill_and_merge(offer):
     has_backup = s.get("backupOffer") == "yes"
 
     main_fields, main_checks = build_main_contract_maps(s)
-
     main_bytes = fill_pdf_to_bytes(MAIN_PDF, main_fields, main_checks)
 
     final_writer = PdfWriter()
     final_writer.append(PdfReader(BytesIO(main_bytes)))
+    force_need_appearances(final_writer)
 
     addenda_info = []
 
@@ -452,6 +513,8 @@ def fill_and_merge(offer):
         b_bytes = fill_pdf_to_bytes(BACKUP_PDF, b_fields, b_checks)
         append_pdf_bytes(final_writer, b_bytes)
         addenda_info.append(("backup", BACKUP_PDF))
+
+    force_need_appearances(final_writer)
 
     buf = BytesIO()
     final_writer.write(buf)
@@ -539,10 +602,6 @@ def handle_stripe_checkout(event):
 
     pdf_bytes, addenda_info = fill_and_merge(offer)
 
-    signwell_result = {
-        "skipped": "SignWell temporarily disabled while testing PDF field accuracy"
-    }
-
     send_confirmation_email(
         offer.get("buyerEmail") or customer_email,
         offer.get("buyer1", "Buyer"),
@@ -553,7 +612,9 @@ def handle_stripe_checkout(event):
     return {
         "status": "ok",
         "message": "PDF created and emailed for review",
-        "signwell": signwell_result,
+        "signwell": {
+            "skipped": "SignWell temporarily disabled while testing PDF field accuracy"
+        },
         "addenda": addenda_info
     }
 
