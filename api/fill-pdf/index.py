@@ -9,13 +9,12 @@ STRIPE_WHSEC   = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
 FROM_EMAIL     = "offers@homeofferflow.com"
 SUPPORT_EMAIL  = "support@homeofferflow.com"
 
-BASE_DIR      = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+BASE_DIR      = "/var/task"
 MAIN_PDF      = os.path.join(BASE_DIR, "20-18_0.pdf")
 FINANCING_PDF = os.path.join(BASE_DIR, "third_party_financing_addendum.pdf")
 HOA_PDF       = os.path.join(BASE_DIR, "hoa_addendum.pdf")
 SALE_PDF      = os.path.join(BASE_DIR, "sale_of_other_property_addendum.pdf")
 BACKUP_PDF    = os.path.join(BASE_DIR, "back_up_contract_addendum.pdf")
-
 
 def fmt_money(v):
     if not v: return ""
