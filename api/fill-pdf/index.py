@@ -131,7 +131,8 @@ def fill_and_merge(offer):
         "Buyers Expenses as allowed by the lender":    fmt_money(s.get("sellerConcessions", 0)),
 
         # Section 21 — Notices to Buyer
-        "when mailed to handdelivered at or transmitted by fax or electronic transmission as follows": s.get("buyerMailAddr", ""),
+        "when mailed to handdelivered at or transmitted by fax or electronic transmission as follows": s.get("buyerMailAddr",""),
+
         "Phone 51":                                    s.get("buyerPhone", ""),
         "AC1":                                         s.get("buyerEmail", ""),
 
@@ -139,7 +140,7 @@ def fill_and_merge(offer):
         # "Attorney is":   s.get("buyerAttorney", ""),
 
         # Page 10 — Broker info (buyer's agent)
-        "Associates Name numb 1":  s.get("agentName", "") if s.get("hasBuyerAgent") == "yes" else "",
+        "Associates Name numb 1":   s.get("agentName","")     if s.get("hasBuyerAgent") == "yes" else "",
         "License No":              s.get("agentLicense", "") if s.get("hasBuyerAgent") == "yes" else "",
         "Associates Email Address": s.get("agentEmail", "") if s.get("hasBuyerAgent") == "yes" else "",
         "Phone":                   s.get("agentPhone", "") if s.get("hasBuyerAgent") == "yes" else "",
