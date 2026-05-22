@@ -54,7 +54,9 @@ def check_field(writer, name, checked=True):
 
 def fill_and_merge(offer):
     s = offer
-    addr_full = f"{s.get('address','')}, {s.get('city','')}, TX {s.get('zip','')}"
+
+    # ── Derived values ──
+    addr_full  = f"{s.get('address','')}, {s.get('city','')}, TX {s.get('zip','')}"
     buyer_full = s.get("buyer1", "")
     if s.get("buyer2"): buyer_full += f" and {s['buyer2']}"
 
@@ -67,50 +69,130 @@ def fill_and_merge(offer):
     has_sale = s.get("saleContingency") == "yes"
     has_bkup = s.get("backupOffer") == "yes"
 
+    # Closing date — split into month/day and year
+    closing_raw = s.get("closingDate", "")  # expected: "2025-04-04" or "April 4, 2025"
+    closing_display = closing_raw  # e.g. "April 4, 2025" — adjust formatting as needed
+    closing_year = ""
+    if "-" in closing_raw:
+        parts = closing_raw.split("-")
+        closing_year = parts[0]
+        from datetime import datetime
+        try:
+            dt = datetime.strptime(closing_raw, "%Y-%m-%d")
+            closing_display = dt.strftime("%B %d, %Y")
+            closing_year = dt.strftime("%Y")
+        except:
+            pass
+
     reader = PdfReader(MAIN_PDF)
     writer = PdfWriter()
     writer.append(reader)
 
-    # TEXT FIELDS
+    # ── TEXT FIELDS ──
+    # Field names are EXACT AcroForm field names from the PDF
     text_map = {
-        "Buyer": buyer_full,
-        "Seller": s.get("seller", ""),
-        "Lot": s.get("lot", ""),
-        "Block": "",
-        "Addition, City of": s.get("city", ""),
-        "County of": s.get("county", ""),
-        "Texas, known as": addr_full,
-        "3A": f"{int(cash):,}" if has_loan else f"{int(price):,}",
-        "3B": f"{int(loan):,}" if has_loan else "",
-        "3C": f"{int(price):,}",
-        "earnest money": f"{int(s.get('earnest',0)):,}",
-        "Option Fee": f"{int(s.get('optionFee',0)):,}",
-        "Option Period": s.get("optionDays", "7"),
-        "Closing Date": s.get("closingDate", ""),
-        "To Buyer at": s.get("buyerMailAddr", ""),
-        "Phone": s.get("buyerPhone", ""),
-        "E-mail": s.get("buyerEmail", ""),
-        "Associate's Name": s.get("agentName", "") if s.get("hasBuyerAgent") == "yes" else "",
-        "License No.": s.get("agentLicense", "") if s.get("hasBuyerAgent") == "yes" else "",
-        "Associate's Email Address": s.get("agentEmail", "") if s.get("hasBuyerAgent") == "yes" else "",
-        "Escrow Agent": s.get("escrowAgent", "Kate Lewis Tucker - Chicago Title DFW"),
-        "Escrow Address": s.get("escrowAddress", "2770 Main Street, Suite 114, Frisco, TX 75033"),
+        # Section 1 — Parties
+        "1 PARTIES The parties to this contract are": s.get("seller", ""),   # Seller name(s)
+        "Seller and":                                  buyer_full,             # Buyer name(s)
+
+        # Section 2 — Property description
+        "A LAND Lot":                                  s.get("lot", ""),
+        "Block":                                       s.get("block", ""),
+        "Addition City of":                            s.get("subdivision", ""),
+        "County of":                                   s.get("county", ""),
+        "Texas known as":                              addr_full,              # Full address + zip
+
+        # Section 3 — Sales price
+        "undefined_3":   fmt_money(int(cash)),                               # 3A cash portion
+        "undefined_4":   fmt_money(int(loan)) if has_loan else "",           # 3B loan amount
+        "undefined_5":   fmt_money(int(price)),                              # 3C total price
+
+        # Section 5 — Earnest money & option
+        "undefined_6":   s.get("escrowAgent", "Kate Lewis Tucker - Chicago Title DFW"),
+        "undefined_7":   s.get("escrowAddress", "2770 Main Street, Suite 114, Frisco, TX 75033"),
+        "as earnest money to":   fmt_money(s.get("earnest", 0)),             # Earnest money $
+        "as earnest money to 2": fmt_money(s.get("optionFee", 0)),           # Option fee $
+        "the Title Company and Buyers lenders Check one box only": s.get("optionDays", "7"),  # Option days
+
+        # Section 6 — Title & survey
+        "insurance Title Policy issued by":            s.get("titleCompany", "Chicago Title DFW - Forgey Law Group PLLC"),
+        "receipt or the date specified in this paragraph whichever is earlier": s.get("surveyDays", ""),
+        "Commitment other than items 6A1 through 9 above or which prohibit the following use": s.get("intendedUse", ""),
+        "the Commitment Exception Documents and the survey Buyers failure to object within the": s.get("disclosureDays", ""),
+
+        # Section 7 — Property condition
+        "following specific repairs and treatments":   s.get("repairs", ""),
+
+        # Section 9 — Closing
+        "A The closing of the sale will be on or before": closing_display,   # e.g. "April 4, 2025"
+        "20":                                          closing_year,          # just the year
+
+        # Section 12 — Seller concessions
+        "Buyers Expenses as allowed by the lender":    fmt_money(s.get("sellerConcessions", 0)),
+
+        # Section 21 — Notices to Buyer
+        "when mailed to handdelivered at or transmitted by fax or electronic transmission as follows": s.get("buyerMailAddr", ""),
+        "Phone 51":                                    s.get("buyerPhone", ""),
+        "AC1":                                         s.get("buyerEmail", ""),
+
+        # Section 23 — Attorney info (leave blank unless collected)
+        # "Attorney is":   s.get("buyerAttorney", ""),
+
+        # Page 10 — Broker info (buyer's agent)
+        "Associates Name numb 1":  s.get("agentName", "") if s.get("hasBuyerAgent") == "yes" else "",
+        "License No":              s.get("agentLicense", "") if s.get("hasBuyerAgent") == "yes" else "",
+        "Associates Email Address": s.get("agentEmail", "") if s.get("hasBuyerAgent") == "yes" else "",
+        "Phone":                   s.get("agentPhone", "") if s.get("hasBuyerAgent") == "yes" else "",
+        "Other Broker Firm":       s.get("brokerageName", "") if s.get("hasBuyerAgent") == "yes" else "",
     }
 
     for name, value in text_map.items():
-        set_text_field(writer, name, value)
+        set_text_field(writer, name, str(value) if value else "")
 
-    # CHECKBOXES
+    # ── CHECKBOXES ──
+    # Addenda checkboxes — exact field names from PDF
     check_field(writer, "Third Party Financing Addendum", has_loan)
-    check_field(writer, "Addendum for Property Subject to Mandatory Membership in a Property Owners Association", has_hoa)
-    check_field(writer, "Addendum for Sale of Other Property by Buyer", has_sale)
-    check_field(writer, 'Addendum for "Back-Up" Contract', has_bkup)
+    check_field(writer, "Addendum for Property Subject to", has_hoa)        # HOA addendum
+    check_field(writer, "Addendum for Sale of Other Property by", has_sale) # Sale contingency
+    check_field(writer, "Addendum for BackUp Contract", has_bkup)           # Back-up contract
 
+    # Possession checkbox
     if s.get("possession") == "funding":
-        check_field(writer, "upon closing and funding", True)
-    if s.get("asIs") == "yes":
-        check_field(writer, "Buyer accepts the Property As Is", True)
+        check_field(writer, "upon", True)                                   # "upon closing and funding"
 
+    # As-Is checkbox
+    if s.get("asIs") == "yes":
+        check_field(writer, "As Is", True)                                  # Buyer accepts As Is
+    else:
+        check_field(writer, "As Is except", True)                           # As Is with repairs
+
+    # Title policy expense — default to Seller pays (most common in TX)
+    check_field(writer, "Sellers", True)                                    # Seller furnishes title policy
+
+    # HOA membership checkbox
+    if has_hoa:
+        check_field(writer, "is", True)                                     # Property IS subject to HOA
+    else:
+        check_field(writer, "is not", True)                                 # Property is NOT subject to HOA
+
+    # Survey option — default to option 1 (Seller provides existing survey)
+    # Uncomment and wire to wizard if you collect this:
+    # check_field(writer, "1Within", True)
+
+    # ── MERGE ADDENDA ──
+    for path, flag in [
+        (FINANCING_PDF, has_loan),
+        (HOA_PDF,       has_hoa),
+        (SALE_PDF,      has_sale),
+        (BACKUP_PDF,    has_bkup),
+    ]:
+        if flag and os.path.exists(path):
+            writer.append(PdfReader(path))
+
+    out = BytesIO()
+    writer.write(out)
+    return out.getvalue()
+    
     # MERGE ADDENDA
     for path, flag in [(FINANCING_PDF, has_loan), (HOA_PDF, has_hoa), (SALE_PDF, has_sale), (BACKUP_PDF, has_bkup)]:
         if flag and os.path.exists(path):
