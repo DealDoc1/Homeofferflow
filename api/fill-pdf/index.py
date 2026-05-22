@@ -17,12 +17,10 @@ SALE_PDF      = os.path.join(BASE_DIR, "sale_of_other_property_addendum.pdf")
 BACKUP_PDF    = os.path.join(BASE_DIR, "back_up_contract_addendum.pdf")
 
 
-# ── HELPERS ──────────────────────────────────────────────────────────────────
-
 def fmt_money(v):
     if not v: return ""
     try:
-        return f"{int(float(v)):,}"
+        return f"{int(float(str(v))):,}"
     except:
         return str(v)
 
@@ -107,8 +105,6 @@ def verify_stripe_signature(body, sig_header, secret):
         return False
 
 
-# ── FILL + MERGE ──────────────────────────────────────────────────────────────
-
 def fill_and_merge(offer):
     s = offer
     lot, block = parse_lot_block(s.get("lot", ""))
@@ -135,38 +131,59 @@ def fill_and_merge(offer):
     writer.append(reader)
 
     text_fields = {
+        # Section 1 — Parties
         "1 PARTIES The parties to this contract are": s.get("seller", ""),
         "Seller and":                                  buyer,
+
+        # Section 2 — Property
         "A LAND Lot":       lot,
         "Block":            block,
-        "undefined":        s.get("subdiv", ""),
+        "undefined":        s.get("subdiv", ""),        # subdivision/addition name
         "Addition City of": s.get("city", ""),
         "County of":        s.get("county", ""),
         "Texas known as":   addr_full,
-        "undefined_3":      fmt_money(cash) if has_loan else fmt_money(price),
-        "undefined_4":      fmt_money(loan) if has_loan else "",
-        "undefined_5":      fmt_money(price),
+
+        # Section 3 — Sales Price
+        "undefined_3": fmt_money(cash) if has_loan else fmt_money(price),  # 3A cash
+        "undefined_4": fmt_money(loan) if has_loan else "",                 # 3B loan
+        "undefined_5": fmt_money(price),                                    # 3C total
+
+        # Section 5 — Earnest money & option
+        "undefined_6":           s.get("escrowAgent", "Kate Lewis Tucker - Chicago Title DFW"),
+        "undefined_7":           s.get("escrowAddress", "2770 Main Street, Suite 114, Frisco, TX 75033"),
         "as earnest money to":   fmt_money(s.get("earnest")),
         "as earnest money to 2": fmt_money(s.get("optionFee")),
         "the Title Company and Buyers lenders Check one box only": str(s.get("optionDays", "7")),
-        "Buyers Expenses as allowed by the lender": fmt_money(s.get("concessionAmount")) if s.get("wantsConcessions") == "yes" else "",
-        "undefined_6": s.get("escrowAgent", "Kate Lewis Tucker - Chicago Title DFW"),
-        "undefined_7": s.get("escrowAddress", "2770 Main Street, Suite 114, Frisco, TX 75033"),
+
+        # Section 6 — Title & survey
+        "insurance Title Policy issued by": s.get("titleCompany", "Chicago Title DFW - Forgey Law Group PLLC"),
         "receipt or the date specified in this paragraph whichever is earlier": str(s.get("surveyDays", "7")),
         "Commitment other than items 6A1 through 9 above or which prohibit the following use": s.get("intendedUse", ""),
         "the Commitment Exception Documents and the survey Buyers failure to object within the": str(s.get("disclosureDays", "3")) if s.get("sellerDisclosure") == "notReceived" else "",
+
+        # Section 7 — Property condition
         "following specific repairs and treatments": s.get("repairsText", "") if s.get("asIs") == "repairs" else "",
+
+        # Section 9 — Closing
         "A The closing of the sale will be on or before": closing_md,
-        "20":  closing_yy,
-        "insurance Title Policy issued by": s.get("titleCompany", "Chicago Title DFW - Forgey Law Group PLLC"),
+        "20": closing_yy,
+
+        # Section 12 — Seller concessions
+        "Buyers Expenses as allowed by the lender": fmt_money(s.get("concessionAmount")) if s.get("wantsConcessions") == "yes" else "",
+
+        # Section 21 — Notices to Buyer
         "when mailed to handdelivered at or transmitted by fax or electronic transmission as follows": s.get("buyerMailAddr", ""),
-        "Phone 51":       s.get("buyerPhone", ""),
-        "AC1":            s.get("buyerEmail", ""),
-        "Associates Name numb 1":   s.get("agentName", "")    if s.get("hasBuyerAgent") == "yes" else "",
-        "License No":               s.get("agentLicense", "") if s.get("hasBuyerAgent") == "yes" else "",
-        "Associates Email Address":  s.get("agentEmail", "")  if s.get("hasBuyerAgent") == "yes" else "",
-        "Phone":                    s.get("agentPhone", "")   if s.get("hasBuyerAgent") == "yes" else "",
-        "Other Broker Firm":        s.get("agentBrokerage", "") if s.get("hasBuyerAgent") == "yes" else "",
+        "Phone 51": s.get("buyerPhone", ""),
+        "AC1":      s.get("buyerEmail", ""),
+
+        # Page 10 — Broker info
+        "Associates Name numb 1":  s.get("agentName", "")    if s.get("hasBuyerAgent") == "yes" else "",
+        "License No":              s.get("agentLicense", "") if s.get("hasBuyerAgent") == "yes" else "",
+        "Associates Email Address": s.get("agentEmail", "")  if s.get("hasBuyerAgent") == "yes" else "",
+        "Phone":                   s.get("agentPhone", "")   if s.get("hasBuyerAgent") == "yes" else "",
+        "Other Broker Firm":       s.get("agentBrokerage", "") if s.get("hasBuyerAgent") == "yes" else "",
+
+        # Address headers on every page
         "Contract Concerning":   addr_full,
         "Contract Concerning_2": addr_full,
         "Contract Concerning_3": addr_full,
@@ -179,27 +196,27 @@ def fill_and_merge(offer):
     for name, value in text_fields.items():
         set_field(writer, name, str(value) if value else "")
 
-    title_payer  = s.get("titlePayer", "seller")
-    title_amend  = s.get("titleAmendment", "i")
-    survey       = s.get("survey", "")
-    seller_disc  = s.get("sellerDisclosure", "received")
-    as_is        = s.get("asIs", "yes")
-    possession   = s.get("possession", "funding")
+    title_payer = s.get("titlePayer", "seller")
+    title_amend = s.get("titleAmendment", "i")
+    survey      = s.get("survey", "")
+    seller_disc = s.get("sellerDisclosure", "received")
+    as_is       = s.get("asIs", "yes")
+    possession  = s.get("possession", "funding")
 
     checkbox_map = {
         "B Sum of all financing described in the attached": has_loan,
         "Third Party Financing Addendum":                   has_loan,
         "A TITLE POLICY Seller shall furnish to Buyer at":  title_payer == "seller",
-        "Sellers":    title_payer == "seller",
-        "Seller":     title_payer == "buyer",
-        "i will not be amended or deleted from the title policy or": title_amend == "i",
-        "ii will be amended to read shortages in area at the expense of": title_amend in ["ii_buyer", "ii_seller"],
-        "Buyer":      title_amend == "ii_buyer",
-        "1Within":    survey == "sellerExisting",
-        "2 Within":   survey == "buyerNew",
-        "3Within":    survey == "noSurvey",
-        "is":         has_hoa,
-        "is not":     not has_hoa,
+        "Sellers":  title_payer == "seller",
+        "Seller":   title_payer == "buyer",
+        "i will not be amended or deleted from the title policy or":                 title_amend == "i",
+        "ii will be amended to read shortages in area at the expense of":            title_amend in ["ii_buyer", "ii_seller"],
+        "Buyer":    title_amend == "ii_buyer",
+        "1Within":  survey == "sellerExisting",
+        "2 Within": survey == "buyerNew",
+        "3Within":  survey == "noSurvey",
+        "is":       has_hoa,
+        "is not":   not has_hoa,
         "Within one":   seller_disc == "received",
         "Within two":   seller_disc == "notReceived",
         "Within three": seller_disc == "exempt",
@@ -232,8 +249,6 @@ def fill_and_merge(offer):
     writer.write(out)
     return out.getvalue()
 
-
-# ── EMAIL ─────────────────────────────────────────────────────────────────────
 
 def send_email(to_email, buyer_name, addr, pdf_bytes):
     filename = f"HomeOfferFlow_Offer_{addr.replace(' ','_').replace(',','')}.pdf"
@@ -276,15 +291,12 @@ def send_email(to_email, buyer_name, addr, pdf_bytes):
         raise Exception(f"Resend error {r.status_code}: {r.text[:200]}")
 
 
-# ── STRIPE HANDLER ────────────────────────────────────────────────────────────
-
 def handle_checkout(event):
     session        = event.get("data", {}).get("object", {})
     customer_email = (session.get("customer_email") or
                       session.get("customer_details", {}).get("email", ""))
     metadata       = session.get("metadata", {}) or {}
 
-    # Reassemble chunked offer data
     if "offer_data" in metadata:
         offer = json.loads(metadata["offer_data"])
     else:
@@ -308,8 +320,6 @@ def handle_checkout(event):
 
     return {"status": "ok", "message": "PDF created and emailed"}
 
-
-# ── HTTP HANDLER ──────────────────────────────────────────────────────────────
 
 class Handler(BaseHTTPRequestHandler):
 
