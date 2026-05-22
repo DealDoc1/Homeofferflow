@@ -214,11 +214,24 @@ def handle_checkout(event):
     pass  # ← paste your original handle_checkout here
 
 class Handler(BaseHTTPRequestHandler):
-    def do_GET(self):
-        self.send_response(200)
-        self.send_header("Content-Type", "application/json")
-        self.end_headers()
-        self.wfile.write(json.dumps({"status": "ok"}).encode())
+   def do_GET(self):
+    import os
+    try:
+        contents = os.listdir(BASE_DIR) if os.path.exists(BASE_DIR) else []
+    except Exception as e:
+        contents = str(e)
+    out = {
+        "status": "ok",
+        "base_dir": BASE_DIR,
+        "main_pdf_exists": os.path.exists(MAIN_PDF),
+        "main_pdf_path": MAIN_PDF,
+        "cwd": os.getcwd(),
+        "dir_contents": contents
+    }
+    self.send_response(200)
+    self.send_header("Content-Type", "application/json")
+    self.end_headers()
+    self.wfile.write(json.dumps(out).encode())
 
     def do_POST(self):
         # (keep your existing POST logic with Stripe webhook)
