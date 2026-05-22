@@ -795,10 +795,11 @@
 <!-- ── GOOGLE MAPS — loaded LAST, after DOM is ready ── -->
 <script>
   // Called by Google when the API is ready
-  function initAutocomplete() {
-    wirePropertyAddress();
-    wireBuyerMailAddress();
-  }
+  window.initAutocomplete = function() {
+  window._mapsReady = true;
+  console.log('Google Maps loaded');
+  if (window._hofPlacesSetup) window._hofPlacesSetup();
+};
 
   // ── PROPERTY ADDRESS autocomplete (Step 2) ──
   function wirePropertyAddress() {
