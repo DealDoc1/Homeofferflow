@@ -233,7 +233,26 @@ class Handler(BaseHTTPRequestHandler):
     self.wfile.write(json.dumps(out).encode())
 
     def do_POST(self):
-        # (keep your existing POST logic with Stripe webhook)
-        pass  # ← paste your original do_POST here
+    try:
+        length = int(self.headers.get("Content-Length", 0))
+        body   = self.rfile.read(length)
+        sig    = self.headers.get("stripe-signature","")
+        if sig and not verify_stripe_signature(body, sig, STRIPE_WHSEC):
+            self._json(401, {"error": "Invalid Stripe signature"}); return
+        event = json.loads(body.decode("utf-8"))
+        if event.get("type") == "checkout.session.completed":
+            result = handle_checkout(event)
+            self._json(200, result)
+        else:
+            self._json(200, {"status": "ignored"})
+    except Exception as e:
+        print("ERROR:", str(e))
+        self._json(500, {"error": str(e)})
+
+def _json(self, code, data):
+    self.send_response(code)
+    self.send_header("Content-Type","application/json")
+    self.end_headers()
+    self.wfile.write(json.dumps(data).encode())
 
 handler = Handler
