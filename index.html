@@ -1228,4 +1228,13 @@
     setTimeout(function() {
       const msg = document.createElement('div');
       msg.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#4a8c6f;color:#fff;padding:1.5rem 2rem;border-radius:10px;font-family:DM Sans,sans-serif;font-weight:600;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,0.3);text-align:center;min-width:320px;max-width:480px;line-height:1.5;';
-      msg.innerHTML = '✅ Payment successful!<br/><span style="font-weight:400;font-size:0.9rem;display:block;margin-top:0.5rem;">Check your email — your offer is ready to sign.<br/>Click the signing
+      msg.innerHTML = '✅ Payment successful!<br/><span style="font-weight:400;font-size:0.9rem;display:block;margin-top:0.5rem;">Check your email — your offer is ready to sign.<br/>Click the signing link in your email to review and sign your TREC contract.</span>';
+      document.body.appendChild(msg);
+      setTimeout(function() { msg.remove(); }, 12000);
+      window.history.replaceState({}, '', '/');
+    }, 500);
+  }
+</script>
+
+</body>
+</html>
