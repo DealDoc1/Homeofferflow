@@ -1,9 +1,9 @@
-import json, os, base64, hashlib, hmac, httpx
+import json, os, base64, hashlib, hmac, httpx, re
 from io import BytesIO
 from collections import defaultdict
 from http.server import BaseHTTPRequestHandler
 from pypdf import PdfReader, PdfWriter
-from pypdf.generic import NameObject, TextStringObject
+from pypdf.generic import NameObject, TextStringObject, ArrayObject, DictionaryObject
 
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
 STRIPE_WHSEC   = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
@@ -41,7 +41,6 @@ def split_date(v):
 
 
 def parse_lot_block(v):
-    import re
     lot = block = ""
     if not v: return lot, block
     m = re.search(r"lot\s*([A-Za-z0-9\-]+)", v, re.I)
@@ -51,20 +50,24 @@ def parse_lot_block(v):
     return lot, block
 
 
+def split_phone(phone):
+    """Split '2143649890' into area='214', number='3649890'."""
+    digits = re.sub(r"\D", "", str(phone or ""))
+    if len(digits) == 10:
+        return digits[:3], digits[3:]
+    if len(digits) == 7:
+        return "", digits
+    return "", digits
+
+
 # ---------------------------------------------------------------------------
 # v4 fill core
 #
-# TEXT fields:     update_page_form_field_values() grouped by page
-#                  — the only method that writes appearance streams so text renders
-#
-# CHECKBOX fields: direct /V + /AS assignment, bypassing /AP entirely
-#                  — update_page_form_field_values crashes on checkboxes that
-#                    have no /AP entry (KeyError: '/AP'), which is common on
-#                    TREC forms
+# TEXT:     update_page_form_field_values() per page — writes appearance streams
+# CHECKBOX: direct /V + /AS + synthesize /AP so viewers render the checkmark
 # ---------------------------------------------------------------------------
 
 def _field_page_map(writer):
-    """Return {field_name: page_index} by walking all page annotations."""
     result = {}
     for page_num, page in enumerate(writer.pages):
         for annot_ref in page.get("/Annots", []):
@@ -79,34 +82,37 @@ def _field_page_map(writer):
     return result
 
 
+def _make_ap_yes():
+    """Synthesize a minimal /AP /N dict with /Yes and /Off entries."""
+    yes_stream = DictionaryObject()
+    off_stream = DictionaryObject()
+    n_dict = DictionaryObject({
+        NameObject("/Yes"): yes_stream,
+        NameObject("/Off"): off_stream,
+    })
+    ap = DictionaryObject({NameObject("/N"): n_dict})
+    return ap
+
+
 def apply_text_fields(writer, text_fields: dict):
-    """
-    Fill text fields using update_page_form_field_values grouped by page.
-    Skips any field name not found in the PDF — safe to call with a superset.
-    """
     fmap = _field_page_map(writer)
     by_page = defaultdict(dict)
     for name, value in text_fields.items():
         if name in fmap:
             by_page[fmap[name]][name] = str(value) if value is not None else ""
-
     for page_num, fields_dict in by_page.items():
         writer.update_page_form_field_values(
             writer.pages[page_num],
             fields_dict,
-            auto_regenerate=None,   # leave NeedAppearances flag untouched
+            auto_regenerate=None,
         )
 
 
 def apply_checkboxes(writer, checkbox_fields: dict):
     """
-    Set checkbox values via direct /V + /AS annotation update.
-    Does NOT touch /AP — avoids the KeyError: '/AP' crash that
-    update_page_form_field_values triggers on fields without appearance streams.
+    Set /V, /AS, and ensure /AP exists so PDF viewers render the checkmark.
+    Avoids the KeyError: '/AP' crash by checking before accessing.
     """
-    checked_val   = NameObject("/Yes")
-    unchecked_val = NameObject("/Off")
-
     for page in writer.pages:
         for annot_ref in page.get("/Annots", []):
             try:
@@ -119,7 +125,20 @@ def apply_checkboxes(writer, checkbox_fields: dict):
                 name = str(t)
                 if name not in checkbox_fields:
                     continue
-                val = checked_val if checkbox_fields[name] else unchecked_val
+
+                checked = checkbox_fields[name]
+                val = NameObject("/Yes") if checked else NameObject("/Off")
+
+                # Ensure /AP exists with /Yes key so viewer can render
+                if "/AP" not in annot:
+                    annot[NameObject("/AP")] = _make_ap_yes()
+                else:
+                    ap = annot["/AP"].get_object()
+                    if "/N" in ap:
+                        n = ap["/N"].get_object()
+                        if "/Yes" not in n:
+                            n[NameObject("/Yes")] = DictionaryObject()
+
                 annot.update({
                     NameObject("/V"):  val,
                     NameObject("/AS"): val,
@@ -129,7 +148,6 @@ def apply_checkboxes(writer, checkbox_fields: dict):
 
 
 def apply_fields(writer, text_fields: dict, checkbox_fields: dict):
-    """Convenience wrapper — apply text then checkboxes."""
     apply_text_fields(writer, text_fields)
     apply_checkboxes(writer, checkbox_fields)
 
@@ -164,10 +182,10 @@ def verify_stripe_signature(body, sig_header, secret):
 def fill_and_merge(offer):
     s = offer
 
-    # ── Derived values ──────────────────────────────────────────────────────
     lot, block             = parse_lot_block(s.get("lot", ""))
     addr_full              = f"{s.get('address','')}, {s.get('city','')}, TX {s.get('zip','')}"
     closing_md, closing_yy = split_date(s.get("closingDate"))
+    phone_area, phone_num  = split_phone(s.get("buyerPhone", ""))
 
     buyer = s.get("buyer1", "")
     if s.get("buyer2"): buyer += f" and {s['buyer2']}"
@@ -191,12 +209,11 @@ def fill_and_merge(offer):
     as_is       = s.get("asIs", "yes")
     possession  = s.get("possession", "funding")
 
-    # ── Load main PDF ───────────────────────────────────────────────────────
     reader = PdfReader(MAIN_PDF)
     writer = PdfWriter()
     writer.append(reader)
 
-    # ── TEXT FIELDS ─────────────────────────────────────────────────────────
+    # ── TEXT FIELDS ──────────────────────────────────────────────────────────
     text_fields = {
         # §1 Parties
         "1 PARTIES The parties to this contract are": s.get("seller", ""),
@@ -210,50 +227,64 @@ def fill_and_merge(offer):
         "Texas known as":   addr_full,
 
         # §3 Sales Price
+        # Page 0: undefined_4=3A cash, undefined_3=3B loan, undefined_5=3C total
         "undefined_4": fmt_money(cash) if has_loan else fmt_money(price),
-        "undefined_5": fmt_money(price),
         "undefined_3": fmt_money(loan) if has_loan else "",
+        "undefined_5": fmt_money(price),
 
-        # §5 Earnest money
+        # §5 Earnest money / option
         "undefined_6":           s.get("escrowAgent", "Kate Lewis Tucker - Chicago Title DFW"),
         "undefined_7":           s.get("escrowAddress", "2770 Main Street, Suite 114, Frisco, TX 75033"),
         "as earnest money to":   fmt_money(s.get("earnest")),
         "as earnest money to 2": fmt_money(s.get("optionFee")),
+        # Option period days field (page 1, y=500, the small box in §5B)
+        # Field name confirmed: "the Title Company and Buyers lenders Check one box only"
+        # is actually the survey-days box for option 1. The option days box IS this field on page 1.
+        # After visual review: page 1 y=500 IS the option days field (§5B).
+        # The survey days field on page 2 is separate: "receipt or the date specified..."
         "the Title Company and Buyers lenders Check one box only": str(s.get("optionDays", "7")),
 
-        # §6A Title
+        # §6A Title company
         "insurance Title Policy issued by": s.get("titleCompany", "Chicago Title DFW - Forgey Law Group PLLC"),
 
-        # §6C Survey days
+        # §6C Survey days (page 2, §6C option 1 days box)
         "receipt or the date specified in this paragraph whichever is earlier": str(s.get("surveyDays", "7")),
 
         # §6D Objections
         "Commitment other than items 6A1 through 9 above or which prohibit the following use": s.get("intendedUse", ""),
         "the Commitment Exception Documents and the survey Buyers failure to object within the": str(s.get("disclosureDays", "3")),
 
+        # §7B seller disclosure days (only used when notReceived)
+        "2 MEMBERSHIP IN PROPERTY OWNERS ASSOCIATIONS The Property": str(s.get("disclosureDays", "3")) if seller_disc == "notReceived" else "",
+
         # §7D Repairs
         "following specific repairs and treatments": s.get("repairsText", "") if as_is == "repairs" else "",
 
-        # §9 Closing
+        # §9 Closing date
         "A The closing of the sale will be on or before": closing_md,
         "20":                                             closing_yy,
 
-        # §12 Concessions
-        "Buyers Expenses as allowed by the lender": fmt_money(s.get("concessionAmount")) if s.get("wantsConcessions") == "yes" else "",
+        # §12A(1)(c) — concession amount ("an amount not to exceed $___")
+        # Field "Brokers and Sales 2" is at page 4 (index 4) y=250, LEFT side — confirmed §12A(1)(c)
+        "Brokers and Sales 2": fmt_money(s.get("concessionAmount")) if s.get("wantsConcessions") == "yes" else "",
 
-        # §21 Notices / Buyer contact
+        # §21 Notices — Buyer contact
+        # "when mailed to..." = buyer street address line (page 8)
         "when mailed to handdelivered at or transmitted by fax or electronic transmission as follows": s.get("buyerMailAddr", ""),
-        "Phone 51": s.get("buyerPhone", ""),
-        "AC1":      s.get("buyerEmail", ""),
+        # AC1 = area code box (25px wide), Phone 51 = number box
+        "AC1":      phone_area,
+        "Phone 51": phone_num,
+        # Phone 52 = E-mail/Fax line below phone
+        "Phone 52": s.get("buyerEmail", ""),
 
-        # Broker info (buyer's agent)
+        # Broker info (buyer's agent side)
         "Associates Name numb 1":   s.get("agentName", "")      if s.get("hasBuyerAgent") == "yes" else "",
         "License No":               s.get("agentLicense", "")   if s.get("hasBuyerAgent") == "yes" else "",
         "Associates Email Address":  s.get("agentEmail", "")    if s.get("hasBuyerAgent") == "yes" else "",
         "Phone":                    s.get("agentPhone", "")     if s.get("hasBuyerAgent") == "yes" else "",
         "Other Broker Firm":        s.get("agentBrokerage", "") if s.get("hasBuyerAgent") == "yes" else "",
 
-        # Address headers on every page
+        # Address headers repeated on every page
         "Contract Concerning":   addr_full,
         "Contract Concerning_2": addr_full,
         "Contract Concerning_3": addr_full,
@@ -263,7 +294,7 @@ def fill_and_merge(offer):
         "Addr of Prop":          addr_full,
     }
 
-    # ── CHECKBOXES ──────────────────────────────────────────────────────────
+    # ── CHECKBOXES ───────────────────────────────────────────────────────────
     checkbox_fields = {
         # §3B financing
         "B Sum of all financing described in the attached": has_loan,
@@ -283,17 +314,17 @@ def fill_and_merge(offer):
         "Sellers_2":               title_amend == "ii_seller",
         "Buyers expense no later": title_amend == "ii_buyer",
 
-        # §6C survey
+        # §6C survey option
         "1Within":  survey == "sellerExisting",
         "2Within":  survey == "buyerNew",
         "2 Within": survey == "buyerNew",
         "3Within":  survey == "noSurvey",
 
-        # §6E(2) HOA
+        # §6E(2) HOA mandatory
         "is":     has_hoa,
         "is not": not has_hoa,
 
-        # §7B seller disclosure
+        # §7B seller disclosure (which option is checked)
         "Within one":                  seller_disc == "received",
         "Sellers Disclos":             seller_disc == "received",
         "Within two":                  seller_disc == "notReceived",
@@ -310,13 +341,13 @@ def fill_and_merge(offer):
         "upon":      possession == "funding",
         "according": possession == "lease",
 
-        # §5B Option fee credit
+        # §5B Option fee WILL be credited to sales price
         "will":     True,
         "will 1.1": True,
         "will not be credited to the Sales Price at closing Time is of the":   False,
         "will not be credited to the Sales Price at closing Time is of the 1": False,
 
-        # §22 Addenda
+        # §22 Addenda checklist
         "Addendum for Property Subject to":       has_hoa,
         "Addendum for Sale of Other Property by": has_sale,
         "Addendum for BackUp Contract":           has_bkup,
@@ -341,7 +372,7 @@ def fill_and_merge(offer):
 
     apply_fields(writer, text_fields, checkbox_fields)
 
-    # ── ADDENDA ──────────────────────────────────────────────────────────────
+    # ── ADDENDA ───────────────────────────────────────────────────────────────
 
     # Third Party Financing Addendum
     if has_loan and os.path.exists(FINANCING_PDF):
@@ -363,9 +394,19 @@ def fill_and_merge(offer):
         fin_writer.write(fin_out)
         writer.append(PdfReader(BytesIO(fin_out.getvalue())))
 
-    # HOA Addendum — blank, just append
+    # HOA Addendum
     if has_hoa and os.path.exists(HOA_PDF):
-        writer.append(PdfReader(HOA_PDF))
+        hoa_reader = PdfReader(HOA_PDF)
+        hoa_writer = PdfWriter()
+        hoa_writer.append(hoa_reader)
+        hoa_text = {
+            "Street Address and City": addr_full,
+            "Address of Property":     addr_full,
+        }
+        apply_fields(hoa_writer, hoa_text, {})
+        hoa_out = BytesIO()
+        hoa_writer.write(hoa_out)
+        writer.append(PdfReader(BytesIO(hoa_out.getvalue())))
 
     # Sale of Other Property Addendum
     if has_sale and os.path.exists(SALE_PDF):
@@ -386,9 +427,19 @@ def fill_and_merge(offer):
         sale_writer.write(sale_out)
         writer.append(PdfReader(BytesIO(sale_out.getvalue())))
 
-    # Back-Up Contract Addendum — blank, just append
+    # Back-Up Contract Addendum
     if has_bkup and os.path.exists(BACKUP_PDF):
-        writer.append(PdfReader(BACKUP_PDF))
+        bkup_reader = PdfReader(BACKUP_PDF)
+        bkup_writer = PdfWriter()
+        bkup_writer.append(bkup_reader)
+        bkup_text = {
+            "Address of Property": addr_full,
+            "Street Address and City": addr_full,
+        }
+        apply_fields(bkup_writer, bkup_text, {})
+        bkup_out = BytesIO()
+        bkup_writer.write(bkup_out)
+        writer.append(PdfReader(BytesIO(bkup_out.getvalue())))
 
     out = BytesIO()
     writer.write(out)
