@@ -163,8 +163,6 @@ def verify_stripe_signature(body, sig_header, secret):
 # ---------------------------------------------------------------------------
 # Field coordinate map
 # Coordinates are (x, y) — PDF origin is bottom-left.
-# y values are the BOTTOM of each field rect from the dump above.
-# We draw text slightly above the bottom: y + 2.
 # ---------------------------------------------------------------------------
 
 def ck(condition): return CHECK if condition else ""
@@ -193,81 +191,109 @@ def build_pages_data(s, addr_full, buyer, closing_md, closing_yy,
         (457, 257, fmt_money(price)),
         # §3B Third Party Financing checkbox
         (314, 285, ck(has_loan)),
-        # §6A title payer — Seller's expense x=48 y=134, Sellers radio x=61 y=98, Buyer radio x=60 y=84
-        (48,  136, ck(title_payer == "seller")),
-        (61,  100, ck(title_payer == "seller")),
-        (60,   86, ck(title_payer == "buyer")),
-        # §6A(8) title amendment — (i) x=48 y=196, (ii) x=48 y=170
-        (48,  198, ck(title_amend == "i")),
-        (48,  172, ck(title_amend in ["ii_buyer", "ii_seller"])),
-        # §4 LEASES — intentionally all blank (unrepresented buyers rarely need these)
+        # §4 LEASES — only check if user selected them (all default false)
+        (48, 207, ck(s.get("leaseResidential") == "yes")),   # §4A residential leases
+        (48, 180, ck(s.get("leaseFixture") == "yes")),        # §4B fixture leases
+        (48, 145, ck(s.get("leaseNaturalResource") == "yes")), # §4C natural resource leases
+        (61, 109, ck(s.get("leaseNaturalResource") == "yes" and s.get("leaseNRDelivered") == "yes")),  # §4C(1)
+        (61,  94, ck(s.get("leaseNaturalResource") == "yes" and s.get("leaseNRDelivered") == "no")),   # §4C(2)
     ]
 
     # ── PAGE 2 (index 1) ────────────────────────────────────────────────────
-    # Escrow agent field width = 153px — use font 7 to avoid overrun
+    # FIX: address was missing on page 2 — the header line is at y=758
     escrow_agent = s.get("escrowAgent", "Kate Lewis Tucker - Chicago Title DFW")
     escrow_addr  = s.get("escrowAddress", "2770 Main Street, Suite 114, Frisco, TX 75033")
     pages[1] = [
-        (153, 701, escrow_agent,  7),    # §5A escrow agent (narrow field, small font)
-        (75,  691, escrow_addr,   7),    # §5A escrow address (narrow field, small font)
+        (128, 758, addr_full),                               # FIX: header address was missing
+        (153, 701, escrow_agent,  7),                        # §5A escrow agent (narrow field)
+        (75,  691, escrow_addr,   7),                        # §5A escrow address
         (293, 691, fmt_money(s.get("earnest", ""))),
         (488, 691, fmt_money(s.get("optionFee", ""))),
         (76,  503, str(s.get("optionDays", "7"))),
+        # §6A title policy — FIX: Seller checkbox was at wrong coords
+        # Seller's: x=313.0 top=430.9 -> rl_y=361.1; Buyer's: x=368.1 rl_y=361.1
+        (313, 361, ck(title_payer == "seller")),             # FIX: was (48,136) wrong page
+        (368, 361, ck(title_payer == "buyer")),
+        # §6A(8)(i)/(ii) — FIX: (i) should be checked by default
+        # (i) x=75.1 top=604.4 -> rl_y=187.6
+        # (ii) x=75.1 top=614.7 -> rl_y=177.3
+        (75, 188, ck(title_amend == "i")),                   # FIX: was wrong page
+        (75, 177, ck(title_amend in ["ii_buyer", "ii_seller"])),
+        # §6A(8)(ii) sub — Buyer x=434.9 rl_y=179.0, Seller x=498.6 rl_y=177.3
+        (435, 179, ck(title_amend == "ii_buyer")),
+        (499, 177, ck(title_amend == "ii_seller")),
         (285, 342, s.get("titleCompany", "Chicago Title DFW - Forgey Law Group PLLC")),
-        # §6C survey page 2 — 2Within x=76 y=178, 3Within x=75 y=167
+        # §6C survey — on page 2: option 2 (buyerNew) x=76 rl_y=178, option 3 (noSurvey) x=75 rl_y=169
         (76,  180, ck(survey == "buyerNew")),
         (75,  169, ck(survey == "noSurvey")),
-        # §6E(2) HOA
+        # §6E(2) HOA membership
         (435, 170, ck(has_hoa)),
         (499, 170, ck(not has_hoa)),
     ]
 
     # ── PAGE 3 (index 2) ────────────────────────────────────────────────────
-    # Header field on page 3 is 'Page 3 of 10' at x=130 y=749
     pages[2] = [
         (130, 751, addr_full),
-        # §6C survey option 1 — 1Within x=454 y=316, also Seller's sub-checkbox x=58 y=706
-        (454, 318, ck(survey == "sellerExisting")),   # §6C(1) checked
-        (478, 317, ck(survey == "buyerNew")),          # §6C(2) checked
-        (58,  708, ck(survey == "sellerExisting")),    # §6C(1) Seller's expense default
-        (125, 707, str(s.get("surveyDays", "7"))),     # §6C(1) days blank
-        (124, 579, str(s.get("surveyDays", "7"))),     # §6C(2)/(3) days blank
-        # §6D objection days
-        (371, 515, str(s.get("objectionDays", "3"))),
-        # §7B seller disclosure — Within one x=144, Within two x=198, Within three x=59 (all y=640/630)
-        (144, 642, ck(seller_disc == "received")),
-        (198, 642, ck(seller_disc == "notReceived")),
-        (59,  632, ck(seller_disc == "exempt")),
-        # §7B(2) days blank — '3 days prior' field x=125 y=627
-        (125, 629, str(s.get("disclosureDays", "3")) if seller_disc == "notReceived" else ""),
+        # §6C survey option 1 — nq glyph at x=58 top=74.5 rl_y=717.5
+        (58,  718, ck(survey == "sellerExisting")),          # §6C(1) checkbox
+        (125, 717, str(s.get("surveyDays", "7"))),           # §6C(1) days blank
+        # §6C(1) sub — Seller's expense x=142 rl_y=651, Buyer's x=197 rl_y=649
+        (142, 651, ck(survey == "sellerExisting")),          # §6C(1) Seller's expense default
+        (197, 649, ck(False)),                               # §6C(1) Buyer's expense (not default)
+        # §6C(3) — x=59.7 top=202.8 rl_y=589.2
+        (60,  589, ck(survey == "noSurvey")),                # §6C(3) Seller new survey
+        (125, 579, str(s.get("surveyDays", "7"))),           # §6C(2)/(3) days blank
+        # §6D objection days — x=371 rl_y=327 (from nqis at top=465)
+        (371, 327, str(s.get("objectionDays", "3"))),
+        # §7B seller disclosure — checkboxes at:
+        # (1) received: x=59.7 top=152.9 rl_y=639.1 (the lone 'q' at top=152.9)
+        # Wait — page 3 has §6C and §6E; §7B is on page 4. Let me keep these on page 4.
     ]
 
-    # ── PAGE 4 (index 3) — Property condition, As-Is, Possession ────────────
+    # ── PAGE 4 (index 3) — §7B Seller Disclosure ────────────────────────────
+    # §7B checkboxes confirmed at:
+    # (1) received: qn at x=61.8 top=632.0 rl_y=160.0
+    # (2) not received: q at x=61.8 top=643.0 rl_y=149.0
+    # (3) exempt: qn at x=61.8 top=702.0 rl_y=90.0
     pages[3] = [
         (128, 751, addr_full),
-        (62,  151, ck(as_is == "yes")),
-        (62,  140, ck(as_is == "repairs")),
-        (62,   81, ck(possession == "funding")),
+        # §7B seller disclosure — FIX: was on wrong page (page 3 index 2); they're on page 4 index 3
+        (62,  160, ck(seller_disc == "received")),           # §7B(1) buyer received notice
+        (62,  149, ck(seller_disc == "notReceived")),        # §7B(2) buyer NOT received
+        (62,   90, ck(seller_disc == "exempt")),             # §7B(3) seller exempt
+        # §7B(2) days blank — between 'Within' and 'days after' on that line
+        (178, 149, str(s.get("disclosureDays", "3")) if seller_disc == "notReceived" else ""),
     ]
 
-    # ── PAGE 5 (index 4) — Closing date, As-Is duplicate ────────────────────
+    # ── PAGE 5 (index 4) — §7D As-Is ────────────────────────────────────────
+    # §7D(1) As-Is: qn at x=58.2 top=100.0 rl_y=692.0
+    # §7D(2) As-Is with repairs: q at x=58.2 top=112.7 rl_y=679.3
     pages[4] = [
         (128, 751, addr_full),
-        (59,  683, ck(as_is == "yes")),
-        (59,  671, ck(as_is == "repairs")),
-        (291, 197, closing_md),
-        (442, 197, closing_yy),
-        # §12A(1)(c) concession — field 'Brokers and Sales 2' x=73 y=239
-        (73,  241, fmt_money(s.get("concessionAmount", "")) if s.get("concessionAmount") else ""),
+        (59,  692, ck(as_is == "yes")),                      # §7D(1) Buyer accepts As Is
+        (59,  679, ck(as_is == "repairs")),                  # §7D(2) As Is with repairs
+        # §9A closing date — 'before' ends at x=255; date field starts ~x=291 top=587.9 rl_y=204.1
+        (291, 204, closing_md),
+        (442, 204, closing_yy),
+        # §8 Broker disclosure field
+        (73,  241, s.get("brokerDisclosure", "")),
     ]
 
-    # ── PAGE 6 (index 5) — Option fee credit, Possession ────────────────────
+    # ── PAGE 6 (index 5) — §10 Possession, §12A ────────────────────────────
+    # Possession: nqupon at x=351 top=123.8 rl_y=668.2, qaccording at x=498.7 rl_y=668.2
+    # §12A(1)(b): q$ at x=110.9 rl_y=314.2, q at x=236.3 rl_y=314.2
+    # §12A(1)(c): $ at x=240.4 top=489.4 rl_y=302.6 — draw amount at x=253
     pages[5] = [
         (129, 751, addr_full),
-        (351, 659, ck(True)),   # §5B option fee will be credited
+        # §10 Possession — FIX: was on page 4; it's on page 6 (index 5)
+        (351, 668, ck(possession == "funding")),             # "upon closing and funding"
+        (499, 668, ck(possession == "lease")),               # "according to temp lease"
+        # §12A(1)(b) seller concession checkbox + amount
+        (111, 314, ck(bool(s.get("concessionAmount")))),     # $ checkbox
+        (253, 303, fmt_money(s.get("concessionAmount", "")) if s.get("concessionAmount") else ""),  # §12A(1)(c) amount
     ]
 
-    # ── PAGE 7 (index 6) — (pages with no address header in template, skip) ─
+    # ── PAGE 7 (index 6) — no fillable fields ───────────────────────────────
 
     # ── PAGE 8 (index 7) — Notices & Addenda ─────────────────────────────────
     pages[7] = [
@@ -276,11 +302,11 @@ def build_pages_data(s, addr_full, buyer, closing_md, closing_yy,
         (139, 649, phone_area),
         (166, 650, phone_num),
         (135, 624, s.get("buyerEmail", "")),
-        # §22 Addenda — only check applicable ones
-        (65,  519, ck(has_loan)),
-        (65,  490, ck(has_hoa)),
-        (65,  427, ck(has_sale)),
-        (66,  378, ck(has_bkup)),
+        # §22 Addenda checkboxes — only check applicable ones
+        (65,  519, ck(has_loan)),   # Third Party Financing
+        (65,  490, ck(has_hoa)),    # HOA
+        (65,  427, ck(has_sale)),   # Sale of Other Property
+        (66,  378, ck(has_bkup)),   # Back-Up Contract
     ]
 
     # ── PAGE 9 (index 8) — Execution ─────────────────────────────────────────
@@ -367,8 +393,7 @@ def fill_and_merge(offer):
             ],
             1: [
                 (57, 730, addr_full),
-                # §2A Buyer Approval — driven by wizard answer "buyerApproval"
-                # "yes" = subject to approval, "no" = not subject, blank = leave for user
+                # §2A Buyer Approval
                 (82, 694, ck(s.get("buyerApproval") == "yes")),
                 (82, 562, ck(s.get("buyerApproval") == "no")),
             ],
@@ -383,14 +408,11 @@ def fill_and_merge(offer):
             0: [
                 (36, 660, addr_full),
                 (36, 634, hoa_name),
-                # §A — driven by wizard answer "hoaSubdivisionInfo": "seller", "buyer", "received", "notRequired"
-                (43, 557, ck(s.get("hoaSubdivisionInfo") == "seller")),   # option 1
-                (43, 501, ck(s.get("hoaSubdivisionInfo") == "buyer")),    # option 2
-                (43, 453, ck(s.get("hoaSubdivisionInfo") == "received")), # option 3
-                (43, 404, ck(s.get("hoaSubdivisionInfo") == "notRequired")), # option 4
-                # §C — fees/reserves (wizard field "hoaReserves", blank if not provided)
+                (43, 557, ck(s.get("hoaSubdivisionInfo") == "seller")),
+                (43, 501, ck(s.get("hoaSubdivisionInfo") == "buyer")),
+                (43, 453, ck(s.get("hoaSubdivisionInfo") == "received")),
+                (43, 404, ck(s.get("hoaSubdivisionInfo") == "notRequired")),
                 (370, 309, fmt_money(s.get("hoaReserves", "")) if s.get("hoaReserves") else ""),
-                # §D — driven by wizard answer "hoaTitleCost": "buyer" or "seller"
                 (227, 234, ck(s.get("hoaTitleCost") == "buyer")),
                 (273, 234, ck(s.get("hoaTitleCost") == "seller")),
             ],
@@ -400,17 +422,19 @@ def fill_and_merge(offer):
 
     # Sale of Other Property Addendum
     if has_sale and os.path.exists(SALE_PDF):
-        # Address field x=54 y=622
         sale_contingent_addr = s.get("salePropertyAddr", "")
         sale_contingency_md, sale_contingency_yy = split_date(s.get("saleContingencyDate", ""))
         sale_waiver_days = str(s.get("saleWaiverDays", "3"))
+        sale_additional_earnest = fmt_money(s.get("saleAdditionalEarnest", "")) if s.get("saleAdditionalEarnest") else ""
         sale_pages = {
             0: [
-                (54, 624, addr_full),                          # Property address (correct field)
-                (68, 559, sale_contingent_addr),               # §A contingent property address
-                (174, 548, sale_contingency_md),               # §A on or before (date)
-                (395, 548, sale_contingency_yy),               # §A year
-                (145, 451, sale_waiver_days),                  # §B waiver days
+                (54,  624, addr_full),                  # Property address header
+                (55,  568, sale_contingent_addr),       # §A buyer's other property address
+                                                        #   (top=224.0 rl_y=568.0 — the 'at' line)
+                (138, 554, sale_contingency_md),        # §A contingency date (on or before)
+                (400, 554, sale_contingency_yy),        # §A year (after '20')
+                (150, 457, sale_waiver_days),           # §B waiver days blank
+                (497, 423, sale_additional_earnest),    # §C additional earnest $ amount
             ],
         }
         sale_bytes = stamp_pdf(SALE_PDF, sale_pages)
@@ -418,17 +442,36 @@ def fill_and_merge(offer):
 
     # Back-Up Contract Addendum
     if has_bkup and os.path.exists(BACKUP_PDF):
-        bkup_first_contract_md, bkup_first_contract_yy = split_date(s.get("bkupFirstContractDate", ""))
-        bkup_terminate_md, bkup_terminate_yy = split_date(s.get("bkupTerminateDate", ""))
+        bkup_addl_earnest    = fmt_money(s.get("bkupAdditionalEarnest", "")) if s.get("bkupAdditionalEarnest") else ""
+        bkup_addl_option     = fmt_money(s.get("bkupAdditionalOption", ""))  if s.get("bkupAdditionalOption")  else ""
+        bkup_addl_days       = str(s.get("bkupAdditionalDays", ""))
+        bkup_first_contract_md,  bkup_first_contract_yy  = split_date(s.get("bkupFirstContractDate", ""))
+        bkup_terminate_md,       bkup_terminate_yy        = split_date(s.get("bkupTerminateDate", ""))
         bkup_pages = {
             0: [
-                (55, 658, addr_full),                          # Address header
-                # §G first contract date
-                (148, 252, bkup_first_contract_md),
-                (339, 253, bkup_first_contract_yy),
-                # §H termination date
-                (148, 210, bkup_terminate_md),
-                (336, 211, bkup_terminate_yy),
+                (55,  658, addr_full),                  # Address header
+                # §A(2) additional earnest/option/days
+                # '$_________' blank at x=332.9 top=252.9 rl_y=539.1 — draw after $
+                (400, 539, bkup_addl_earnest),          # §A(2) additional earnest money amount
+                # 'Option Fee of $' — next segment on same line at x=551.6 top=252.9
+                # continues to next line at x=88.1 top=263 (rl_y=529)
+                (88,  529, bkup_addl_option),           # §A(2) additional option fee amount
+                # 'within ____ days' blank — on line starting 'to Escrow Agent within'
+                # that line is top~263 but let's check: x=88.1 top=263.9... need to place
+                # days blank after 'within' on page 0 line 3 of §A(2)
+                # From coord scan: top=263.9 is continuation. Place days at ~x=230
+                (230, 519, bkup_addl_days),             # §A(2) days blank
+                # §G first contract date: blank line x=165 top=532 rl_y=260
+                (165, 260, bkup_first_contract_md),     # §G first contract date
+                (339, 260, bkup_first_contract_yy),     # §G year
+                # §H termination date: blank starts after 'before' x=335 top=573 rl_y=219
+                (335, 219, bkup_terminate_md),          # §H termination date
+                (492, 219, bkup_terminate_yy),          # §H year
+            ],
+            1: [
+                # Back-Up page 2 address header — 'Addendum for Back-Up Contract ___'
+                # top=48.2 rl_y=743.8; address goes on the blank line after 'Contract'
+                (182, 744, addr_full),                  # FIX: page 2 address header
             ],
         }
         bkup_bytes = stamp_pdf(BACKUP_PDF, bkup_pages)
