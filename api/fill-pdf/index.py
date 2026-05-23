@@ -69,22 +69,51 @@ def split_phone(phone):
 def fill_pdf_fields(pdf_path, all_fields: dict) -> bytes:
     """
     Fill an AcroForm PDF using clone_reader_document_root.
-    all_fields: combined dict of text fields (str values) and
-                checkbox fields ("/Yes" or "/Off" string values).
-    Returns filled PDF bytes.
+    Falls back to page-by-page filling if the bulk call hits a /AP error.
     """
     reader = PdfReader(pdf_path)
     writer = PdfWriter()
     writer.clone_reader_document_root(reader)
 
-    # Fill all fields across all pages in one call
-    writer.update_page_form_field_values(
-        None,           # None = all pages
-        all_fields,
-        auto_regenerate=True,
-    )
+    try:
+        # Fill all fields across all pages in one call
+        writer.update_page_form_field_values(
+            None,
+            all_fields,
+            auto_regenerate=True,
+        )
+    except Exception as e:
+        if "AP" in str(e) or "appearance" in str(e).lower():
+            # Some addenda PDFs have checkbox fields without /AP streams.
+            # Fall back: fill text fields only via update, skip problem checkboxes.
+            text_only = {k: v for k, v in all_fields.items()
+                         if not v.startswith("/Yes") and not v.startswith("/Off")}
+            checkbox_only = {k: v for k, v in all_fields.items()
+                             if v.startswith("/Yes") or v.startswith("/Off")}
+            # Fill text fields safely
+            if text_only:
+                try:
+                    writer.update_page_form_field_values(None, text_only, auto_regenerate=True)
+                except Exception:
+                    pass
+            # Set checkbox values directly without touching /AP
+            from pypdf.generic import NameObject as NO
+            for page in writer.pages:
+                for annot_ref in page.get("/Annots", []):
+                    try:
+                        annot = annot_ref.get_object()
+                        if annot.get("/Subtype") != "/Widget":
+                            continue
+                        t = str(annot.get("/T", ""))
+                        if t in checkbox_only:
+                            val = NO(checkbox_only[t])
+                            annot[NO("/V")]  = val
+                            annot[NO("/AS")] = val
+                    except Exception:
+                        pass
+        else:
+            raise
 
-    # Belt-and-suspenders: set NeedAppearances too
     try:
         af = writer._root_object["/AcroForm"].get_object()
         af[NameObject("/NeedAppearances")] = BooleanObject(True)
