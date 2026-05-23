@@ -3,6 +3,7 @@ from io import BytesIO
 from collections import defaultdict
 from http.server import BaseHTTPRequestHandler
 from pypdf import PdfReader, PdfWriter
+from pypdf.generic import NameObject, TextStringObject
 
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
 STRIPE_WHSEC   = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
@@ -51,37 +52,20 @@ def parse_lot_block(v):
 
 
 # ---------------------------------------------------------------------------
-# v4 fill core — update_page_form_field_values grouped by page
-# This is the confirmed fix: set_field() annotation loops do NOT render visually.
+# v4 fill core
+#
+# TEXT fields:     update_page_form_field_values() grouped by page
+#                  — the only method that writes appearance streams so text renders
+#
+# CHECKBOX fields: direct /V + /AS assignment, bypassing /AP entirely
+#                  — update_page_form_field_values crashes on checkboxes that
+#                    have no /AP entry (KeyError: '/AP'), which is common on
+#                    TREC forms
 # ---------------------------------------------------------------------------
 
-def _build_field_page_map(reader):
-    """Walk every page's annotations and return {field_name: page_index}."""
-    field_to_page = {}
-    for page_num, page in enumerate(reader.pages):
-        for annot_ref in page.get("/Annots", []):
-            try:
-                obj = annot_ref.get_object()
-                if obj.get("/Subtype") == "/Widget":
-                    t = obj.get("/T")
-                    if t:
-                        field_to_page[str(t)] = page_num
-            except:
-                pass
-    return field_to_page
-
-
-def apply_fields(writer, text_fields: dict, checkbox_fields: dict):
-    """
-    Fill text and checkbox fields using update_page_form_field_values()
-    grouped by page — the only pypdf method that updates appearance streams
-    so values are visually rendered.
-
-    text_fields:     {acroform_name: string_value}
-    checkbox_fields: {acroform_name: bool}
-    """
-    # Build name→page map from the writer's current pages
-    field_to_page = {}
+def _field_page_map(writer):
+    """Return {field_name: page_index} by walking all page annotations."""
+    result = {}
     for page_num, page in enumerate(writer.pages):
         for annot_ref in page.get("/Annots", []):
             try:
@@ -89,31 +73,65 @@ def apply_fields(writer, text_fields: dict, checkbox_fields: dict):
                 if obj.get("/Subtype") == "/Widget":
                     t = obj.get("/T")
                     if t:
-                        field_to_page[str(t)] = page_num
+                        result[str(t)] = page_num
             except:
                 pass
+    return result
 
-    # Merge everything into one flat dict with correct values
-    all_fields = {}
+
+def apply_text_fields(writer, text_fields: dict):
+    """
+    Fill text fields using update_page_form_field_values grouped by page.
+    Skips any field name not found in the PDF — safe to call with a superset.
+    """
+    fmap = _field_page_map(writer)
+    by_page = defaultdict(dict)
     for name, value in text_fields.items():
-        all_fields[name] = str(value) if value is not None else ""
-    for name, checked in checkbox_fields.items():
-        all_fields[name] = "/Yes" if checked else "/Off"
+        if name in fmap:
+            by_page[fmap[name]][name] = str(value) if value is not None else ""
 
-    # Group by page
-    pages_fields = defaultdict(dict)
-    for name, value in all_fields.items():
-        if name in field_to_page:
-            pages_fields[field_to_page[name]][name] = value
-        # If field not found in map, skip silently — addenda have their own writers
-
-    # Apply per page
-    for page_num, fields_dict in pages_fields.items():
+    for page_num, fields_dict in by_page.items():
         writer.update_page_form_field_values(
             writer.pages[page_num],
             fields_dict,
-            auto_regenerate=False,
+            auto_regenerate=None,   # leave NeedAppearances flag untouched
         )
+
+
+def apply_checkboxes(writer, checkbox_fields: dict):
+    """
+    Set checkbox values via direct /V + /AS annotation update.
+    Does NOT touch /AP — avoids the KeyError: '/AP' crash that
+    update_page_form_field_values triggers on fields without appearance streams.
+    """
+    checked_val   = NameObject("/Yes")
+    unchecked_val = NameObject("/Off")
+
+    for page in writer.pages:
+        for annot_ref in page.get("/Annots", []):
+            try:
+                annot = annot_ref.get_object()
+                if annot.get("/Subtype") != "/Widget":
+                    continue
+                t = annot.get("/T")
+                if not t:
+                    continue
+                name = str(t)
+                if name not in checkbox_fields:
+                    continue
+                val = checked_val if checkbox_fields[name] else unchecked_val
+                annot.update({
+                    NameObject("/V"):  val,
+                    NameObject("/AS"): val,
+                })
+            except:
+                pass
+
+
+def apply_fields(writer, text_fields: dict, checkbox_fields: dict):
+    """Convenience wrapper — apply text then checkboxes."""
+    apply_text_fields(writer, text_fields)
+    apply_checkboxes(writer, checkbox_fields)
 
 
 # ---------------------------------------------------------------------------
@@ -147,8 +165,8 @@ def fill_and_merge(offer):
     s = offer
 
     # ── Derived values ──────────────────────────────────────────────────────
-    lot, block         = parse_lot_block(s.get("lot", ""))
-    addr_full          = f"{s.get('address','')}, {s.get('city','')}, TX {s.get('zip','')}"
+    lot, block             = parse_lot_block(s.get("lot", ""))
+    addr_full              = f"{s.get('address','')}, {s.get('city','')}, TX {s.get('zip','')}"
     closing_md, closing_yy = split_date(s.get("closingDate"))
 
     buyer = s.get("buyer1", "")
@@ -192,9 +210,9 @@ def fill_and_merge(offer):
         "Texas known as":   addr_full,
 
         # §3 Sales Price
-        "undefined_4": fmt_money(cash) if has_loan else fmt_money(price),   # 3A cash
-        "undefined_5": fmt_money(price),                                     # 3C total
-        "undefined_3": fmt_money(loan) if has_loan else "",                  # 3B loan
+        "undefined_4": fmt_money(cash) if has_loan else fmt_money(price),
+        "undefined_5": fmt_money(price),
+        "undefined_3": fmt_money(loan) if has_loan else "",
 
         # §5 Earnest money
         "undefined_6":           s.get("escrowAgent", "Kate Lewis Tucker - Chicago Title DFW"),
@@ -229,11 +247,11 @@ def fill_and_merge(offer):
         "AC1":      s.get("buyerEmail", ""),
 
         # Broker info (buyer's agent)
-        "Associates Name numb 1":  s.get("agentName", "")      if s.get("hasBuyerAgent") == "yes" else "",
-        "License No":              s.get("agentLicense", "")   if s.get("hasBuyerAgent") == "yes" else "",
-        "Associates Email Address": s.get("agentEmail", "")    if s.get("hasBuyerAgent") == "yes" else "",
-        "Phone":                   s.get("agentPhone", "")     if s.get("hasBuyerAgent") == "yes" else "",
-        "Other Broker Firm":       s.get("agentBrokerage", "") if s.get("hasBuyerAgent") == "yes" else "",
+        "Associates Name numb 1":   s.get("agentName", "")      if s.get("hasBuyerAgent") == "yes" else "",
+        "License No":               s.get("agentLicense", "")   if s.get("hasBuyerAgent") == "yes" else "",
+        "Associates Email Address":  s.get("agentEmail", "")    if s.get("hasBuyerAgent") == "yes" else "",
+        "Phone":                    s.get("agentPhone", "")     if s.get("hasBuyerAgent") == "yes" else "",
+        "Other Broker Firm":        s.get("agentBrokerage", "") if s.get("hasBuyerAgent") == "yes" else "",
 
         # Address headers on every page
         "Contract Concerning":   addr_full,
@@ -261,8 +279,8 @@ def fill_and_merge(offer):
         # §6A(8) title amendment
         "i will not be amended or deleted from the title policy or":      title_amend == "i",
         "ii will be amended to read shortages in area at the expense of": title_amend in ["ii_buyer", "ii_seller"],
-        "Buyer":             title_amend == "ii_buyer",
-        "Sellers_2":         title_amend == "ii_seller",
+        "Buyer":                   title_amend == "ii_buyer",
+        "Sellers_2":               title_amend == "ii_seller",
         "Buyers expense no later": title_amend == "ii_buyer",
 
         # §6C survey
@@ -276,17 +294,17 @@ def fill_and_merge(offer):
         "is not": not has_hoa,
 
         # §7B seller disclosure
-        "Within one":              seller_disc == "received",
-        "Sellers Disclos":         seller_disc == "received",
-        "Within two":              seller_disc == "notReceived",
+        "Within one":                  seller_disc == "received",
+        "Sellers Disclos":             seller_disc == "received",
+        "Within two":                  seller_disc == "notReceived",
         "Addend. for Sellers Disclos": seller_disc == "notReceived",
-        "Within three":            seller_disc == "exempt",
+        "Within three":                seller_disc == "exempt",
 
         # §7D As Is
         "As Is":        as_is == "yes",
         "As Is except": as_is == "repairs",
-        "1 Buyer accepts the Property As Is":                                                              as_is == "yes",
-        "2 Buyer accepts the Property As Is provided Seller at Sellers expense shall complete the":        as_is == "repairs",
+        "1 Buyer accepts the Property As Is":                                                       as_is == "yes",
+        "2 Buyer accepts the Property As Is provided Seller at Sellers expense shall complete the": as_is == "repairs",
 
         # §10 Possession
         "upon":      possession == "funding",
@@ -321,7 +339,6 @@ def fill_and_merge(offer):
         "PID": s.get("mud") in ["yes", "unknown"],
     }
 
-    # ── Apply all fields to main PDF using v4 method ─────────────────────────
     apply_fields(writer, text_fields, checkbox_fields)
 
     # ── ADDENDA ──────────────────────────────────────────────────────────────
@@ -335,11 +352,11 @@ def fill_and_merge(offer):
             "Street Address and City": addr_full,
         }
         fin_checks = {
-            "1 Conventional Financing":                                                                    s.get("financing") == "conventional",
-            "3 FHA Insured Financing A Section":                                                           s.get("financing") == "fha",
-            "4 VA Guaranteed Financing A VA guaranteed loan of not less than":                             s.get("financing") == "va",
-            "5 USDA Guaranteed Financing A USDAguaranteed loan of not less than":                         s.get("financing") == "usda",
-            "This contract is subject to Buyer obtaining Buyer Approval If Buyer cannot obtain Buyer":    True,
+            "1 Conventional Financing":                                                                 s.get("financing") == "conventional",
+            "3 FHA Insured Financing A Section":                                                        s.get("financing") == "fha",
+            "4 VA Guaranteed Financing A VA guaranteed loan of not less than":                          s.get("financing") == "va",
+            "5 USDA Guaranteed Financing A USDAguaranteed loan of not less than":                      s.get("financing") == "usda",
+            "This contract is subject to Buyer obtaining Buyer Approval If Buyer cannot obtain Buyer": True,
         }
         apply_fields(fin_writer, fin_text, fin_checks)
         fin_out = BytesIO()
@@ -456,7 +473,7 @@ def handle_checkout(event):
 
 
 # ---------------------------------------------------------------------------
-# HTTP handler (Vercel / serverless HTTP)
+# HTTP handler
 # ---------------------------------------------------------------------------
 
 class Handler(BaseHTTPRequestHandler):
