@@ -2,7 +2,8 @@ import json, os, base64, hashlib, hmac, httpx, re
 from io import BytesIO
 from http.server import BaseHTTPRequestHandler
 from pypdf import PdfReader, PdfWriter
-from pypdf.generic import NameObject, BooleanObject
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import letter
 
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
 STRIPE_WHSEC   = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
@@ -15,6 +16,10 @@ FINANCING_PDF = os.path.join(BASE_DIR, "third_party_financing_addendum.pdf")
 HOA_PDF       = os.path.join(BASE_DIR, "hoa_addendum.pdf")
 SALE_PDF      = os.path.join(BASE_DIR, "sale_of_other_property_addendum.pdf")
 BACKUP_PDF    = os.path.join(BASE_DIR, "back_up_contract_addendum.pdf")
+
+FONT      = "Helvetica"
+FONT_SIZE = 9
+CHECK     = "■"   # filled square rendered as checkmark overlay
 
 
 # ---------------------------------------------------------------------------
@@ -54,79 +59,82 @@ def split_phone(phone):
 
 
 # ---------------------------------------------------------------------------
-# Core fill — THE WORKING METHOD
-#
-# writer.clone_reader_document_root(reader) properly clones the entire PDF
-# including AcroForm structure. Then update_page_form_field_values(None, ...)
-# fills ALL pages at once with auto_regenerate=True so both text fields
-# AND checkboxes render visually.
-#
-# writer.append(reader) was the root cause of all blank-field issues —
-# it clones pages but leaves AcroForm fields as indirect refs to the
-# original objects, causing appearance streams to never be generated.
+# Overlay engine — stamp text/checks directly onto PDF pages
 # ---------------------------------------------------------------------------
 
-def fill_pdf_fields(pdf_path, all_fields: dict) -> bytes:
+def make_overlay(page_entries, page_width=612, page_height=792):
     """
-    Fill an AcroForm PDF using clone_reader_document_root.
-    Falls back to page-by-page filling if the bulk call hits a /AP error.
+    page_entries: list of (x, y, text, font_size=None)
+    x, y are PDF coords (origin bottom-left).
+    Returns bytes of a single-page transparent PDF overlay.
     """
-    reader = PdfReader(pdf_path)
+    buf = BytesIO()
+    c = canvas.Canvas(buf, pagesize=(page_width, page_height))
+    c.setFont(FONT, FONT_SIZE)
+    for entry in page_entries:
+        x, y, text = entry[0], entry[1], entry[2]
+        fs = entry[3] if len(entry) > 3 else FONT_SIZE
+        if not text:
+            continue
+        c.setFont(FONT, fs)
+        c.drawString(x, y, str(text))
+    c.save()
+    buf.seek(0)
+    return buf.read()
+
+
+def stamp_pdf(base_pdf_path, pages_data: dict) -> bytes:
+    """
+    Stamp text overlays onto a PDF.
+    Clears all existing AcroForm field values first to avoid bleed-through
+    from previously filled template data.
+    pages_data: {page_index_0based: [(x, y, text), ...]}
+    Returns stamped PDF bytes.
+    """
+    reader = PdfReader(base_pdf_path)
     writer = PdfWriter()
-    writer.clone_reader_document_root(reader)
 
-    try:
-        # Fill all fields across all pages in one call
-        writer.update_page_form_field_values(
-            None,
-            all_fields,
-            auto_regenerate=True,
-        )
-    except Exception as e:
-        if "AP" in str(e) or "appearance" in str(e).lower():
-            # Some addenda PDFs have checkbox fields without /AP streams.
-            # Fall back: fill text fields only via update, skip problem checkboxes.
-            text_only = {k: v for k, v in all_fields.items()
-                         if not v.startswith("/Yes") and not v.startswith("/Off")}
-            checkbox_only = {k: v for k, v in all_fields.items()
-                             if v.startswith("/Yes") or v.startswith("/Off")}
-            # Fill text fields safely
-            if text_only:
-                try:
-                    writer.update_page_form_field_values(None, text_only, auto_regenerate=True)
-                except Exception:
-                    pass
-            # Set checkbox values directly without touching /AP
-            from pypdf.generic import NameObject as NO
-            for page in writer.pages:
-                for annot_ref in page.get("/Annots", []):
-                    try:
-                        annot = annot_ref.get_object()
-                        if annot.get("/Subtype") != "/Widget":
-                            continue
-                        t = str(annot.get("/T", ""))
-                        if t in checkbox_only:
-                            val = NO(checkbox_only[t])
-                            annot[NO("/V")]  = val
-                            annot[NO("/AS")] = val
-                    except Exception:
-                        pass
-        else:
-            raise
+    for i, page in enumerate(reader.pages):
+        w = float(page.mediabox.width)
+        h = float(page.mediabox.height)
+        writer.add_page(page)
 
+        # Clear all AcroForm widget values on this page so old data doesn't show
+        for annot_ref in page.get("/Annots", []):
+            try:
+                obj = annot_ref.get_object()
+                if obj.get("/Subtype") == "/Widget":
+                    from pypdf.generic import NameObject, TextStringObject
+                    ft = obj.get("/FT", "")
+                    if ft == "/Btn":
+                        obj[NameObject("/V")]  = NameObject("/Off")
+                        obj[NameObject("/AS")] = NameObject("/Off")
+                    elif ft == "/Tx":
+                        obj[NameObject("/V")] = TextStringObject("")
+            except:
+                pass
+
+        entries = pages_data.get(i, [])
+        if not entries:
+            continue
+
+        overlay_bytes = make_overlay(entries, w, h)
+        overlay_reader = PdfReader(BytesIO(overlay_bytes))
+        overlay_page = overlay_reader.pages[0]
+        writer.pages[i].merge_page(overlay_page)
+
+    final_out = BytesIO()
+    # Force viewer to regenerate appearances so cleared fields render as empty
     try:
-        af = writer._root_object["/AcroForm"].get_object()
-        af[NameObject("/NeedAppearances")] = BooleanObject(True)
+        from pypdf.generic import NameObject, BooleanObject
+        root = writer._root_object
+        if '/AcroForm' in root:
+            af = root['/AcroForm'].get_object()
+            af[NameObject('/NeedAppearances')] = BooleanObject(True)
     except Exception:
         pass
-
-    out = BytesIO()
-    writer.write(out)
-    return out.getvalue()
-
-
-# ---------------------------------------------------------------------------
-# Stripe signature verification
+    writer.write(final_out)
+    return final_out.getvalue()
 # ---------------------------------------------------------------------------
 
 def verify_stripe_signature(body, sig_header, secret):
@@ -149,7 +157,150 @@ def verify_stripe_signature(body, sig_header, secret):
 
 
 # ---------------------------------------------------------------------------
-# Main PDF fill + addenda merge
+# Field coordinate map
+# Coordinates are (x, y) — PDF origin is bottom-left.
+# y values are the BOTTOM of each field rect from the dump above.
+# We draw text slightly above the bottom: y + 2.
+# ---------------------------------------------------------------------------
+
+def ck(condition): return CHECK if condition else ""
+
+
+def build_pages_data(s, addr_full, buyer, closing_md, closing_yy,
+                     phone_area, phone_num, has_loan, has_hoa,
+                     has_sale, has_bkup, price, loan, cash,
+                     title_payer, title_amend, survey, seller_disc,
+                     as_is, possession, lot, block):
+
+    pages = {}
+
+    # ── PAGE 1 (index 0) ────────────────────────────────────────────────────
+    # Checkbox coordinates from blank template field dump (x=left edge, y=bottom of rect)
+    pages[0] = [
+        # Text fields
+        (280, 690, s.get("seller", "")),           # §1 Seller name
+        (124, 679, buyer),                          # §1 Buyer name
+        (127, 616, lot),                            # §2A Lot
+        (222, 616, block),                          # §2A Block
+        (157, 606, s.get("city", "")),              # §2A City
+        (387, 606, s.get("county", "")),            # §2A County
+        (161, 595, addr_full),                      # §2A Address
+        (457, 319, fmt_money(loan) if has_loan else ""),          # §3B loan sum
+        (457, 269, fmt_money(cash) if has_loan else fmt_money(price)),  # §3A cash
+        (457, 257, fmt_money(price)),               # §3C total
+        # §3B checkboxes (x=314 y=283 = Third Party Financing)
+        (314, 285, ck(has_loan)),                   # Third Party Financing checkbox
+        # §6A(8) title amendment (x=48 y=196/170)
+        (48,  198, ck(title_amend == "i")),         # (i) will not be amended
+        (48,  172, ck(title_amend in ["ii_buyer", "ii_seller"])),  # (ii) will be amended
+        # §6A title payer (x=48 y=134 = seller expense, x=61 y=98 = Sellers, x=60 y=84 = Seller/Buyer)
+        (48,  136, ck(title_payer == "seller")),    # Seller's expense checkbox
+        (61,  100, ck(title_payer == "seller")),    # "Sellers" radio
+        (60,   86, ck(title_payer == "buyer")),     # "Buyer's" radio
+    ]
+
+    # ── PAGE 2 (index 1) ────────────────────────────────────────────────────
+    pages[1] = [
+        # Text fields
+        (153, 701, s.get("escrowAgent", "Kate Lewis Tucker - Chicago Title DFW")),
+        (75,  691, s.get("escrowAddress", "2770 Main Street, Suite 114, Frisco, TX 75033")),
+        (293, 691, fmt_money(s.get("earnest", ""))),   # §5A earnest $
+        (488, 691, fmt_money(s.get("optionFee", ""))), # §5A option fee $
+        (76,  503, str(s.get("optionDays", "7"))),     # §5B option period days
+        (285, 342, s.get("titleCompany", "Chicago Title DFW - Forgey Law Group PLLC")),
+        # §6C survey — 2Within x=76 y=178, 3Within x=75 y=167
+        (76,  180, ck(survey == "buyerNew")),           # §6C(2) buyer new survey
+        (75,  169, ck(survey == "noSurvey")),           # §6C(3) no survey
+        # §6E(2) HOA — is x=435 y=168, is not x=499 y=168
+        (435, 170, ck(has_hoa)),                        # "is" mandatory HOA
+        (499, 170, ck(not has_hoa)),                    # "is not" mandatory HOA
+    ]
+
+    # ── PAGE 3 (index 2) ────────────────────────────────────────────────────
+    pages[2] = [
+        # §6C survey days & option 1
+        (124, 579, str(s.get("surveyDays", "7"))),      # Survey days box
+        (454, 318, ck(survey == "sellerExisting")),      # §6C(1) seller existing survey
+        (478, 317, ck(survey == "buyerNew")),            # §6C(2) buyer new survey
+        # §6D objection days
+        (371, 515, str(s.get("disclosureDays", "3"))),  # Title objection days
+        # §7B seller disclosure — Within one x=144 y=640, Within two x=198 y=640, Within three x=59 y=630
+        (144, 642, ck(seller_disc == "received")),       # (1) Buyer received notice
+        (198, 642, ck(seller_disc == "notReceived")),    # (2) Buyer not received
+        (59,  632, ck(seller_disc == "exempt")),         # (3) Seller exempt
+    ]
+
+    # ── PAGE 4 (index 3) — As-Is, Possession ────────────────────────────────
+    pages[3] = [
+        (128, 751, addr_full),                           # Header
+        # §7D As-Is — x=62 y=149/138
+        (62,  151, ck(as_is == "yes")),                  # (1) As Is
+        (62,  140, ck(as_is == "repairs")),              # (2) As Is with repairs
+        # §10 Possession — upon x=62 y=79
+        (62,   81, ck(possession == "funding")),         # Upon closing and funding
+    ]
+
+    # ── PAGE 5 (index 4) — Closing date, As-Is duplicate, Settlement ─────────
+    pages[4] = [
+        (128, 751, addr_full),                           # Header
+        # §7D As-Is duplicate checkboxes on this page — x=59 y=681/669
+        (59,  683, ck(as_is == "yes")),                  # As Is
+        (59,  671, ck(as_is == "repairs")),              # As Is except
+        # §9 Closing date — x=291 y=195, year x=442 y=195
+        (291, 197, closing_md),                          # Closing date (month day)
+        (442, 197, closing_yy),                          # Closing year (2 digits)
+    ]
+
+    # ── PAGE 6 (index 5) — Option fee credit ─────────────────────────────────
+    pages[5] = [
+        (129, 751, addr_full),                           # Header
+        # §5B option fee WILL be credited — x=351 y=657
+        (351, 659, ck(True)),                            # "will" be credited
+    ]
+
+    # ── PAGE 8 (index 7) — Notices & Addenda checklist ───────────────────────
+    pages[7] = [
+        (129, 751, addr_full),                           # Header
+        # §21 Buyer notices
+        (133, 699, s.get("buyerMailAddr", "")),          # Buyer mailing address
+        (139, 649, phone_area),                          # Buyer phone area code
+        (166, 650, phone_num),                           # Buyer phone number
+        (135, 624, s.get("buyerEmail", "")),             # Buyer email
+        # §22 Addenda checkboxes — only check what applies, leave rest blank
+        (65,  519, ck(has_loan)),                        # Third Party Financing
+        (65,  490, ck(has_hoa)),                         # HOA Addendum
+        (65,  427, ck(has_sale)),                        # Sale of Other Property
+        (66,  378, ck(has_bkup)),                        # Back-Up Contract
+        # All others intentionally left unchecked (empty string = no stamp)
+    ]
+
+    # ── PAGE 9 (index 8) — Execution ─────────────────────────────────────────
+    pages[8] = [
+        (129, 751, addr_full),                           # Header
+    ]
+
+    # ── PAGE 10 (index 9) — Broker info ──────────────────────────────────────
+    pages[9] = [
+        (126, 751, addr_full),                           # Header
+        # Buyer's agent info (only if has agent)
+        (50,  631, s.get("agentBrokerage", "") if s.get("hasBuyerAgent") == "yes" else ""),
+        (50,  562, s.get("agentName", "")      if s.get("hasBuyerAgent") == "yes" else ""),
+        (50,  502, s.get("agentEmail", "")     if s.get("hasBuyerAgent") == "yes" else ""),
+        (216, 502, s.get("agentPhone", "")     if s.get("hasBuyerAgent") == "yes" else ""),
+        # Buyer only rep checkbox x=109 y=598
+        (109, 600, ck(s.get("hasBuyerAgent") == "yes")),
+    ]
+
+    # ── PAGE 11 (index 10) — Receipts ────────────────────────────────────────
+    pages[10] = [
+        (127, 751, addr_full),                           # Header
+    ]
+
+    return pages
+
+
+# ---------------------------------------------------------------------------
+# Fill and merge
 # ---------------------------------------------------------------------------
 
 def fill_and_merge(offer):
@@ -182,194 +333,58 @@ def fill_and_merge(offer):
     as_is       = s.get("asIs", "yes")
     possession  = s.get("possession", "funding")
 
-    # ── Build combined fields dict ──────────────────────────────────────────
-    # Checkbox values must be "/Yes" or "/Off" strings
-    def cb(condition): return "/Yes" if condition else "/Off"
+    pages_data = build_pages_data(
+        s, addr_full, buyer, closing_md, closing_yy,
+        phone_area, phone_num, has_loan, has_hoa, has_sale, has_bkup,
+        price, loan, cash, title_payer, title_amend, survey,
+        seller_disc, as_is, possession, lot, block
+    )
 
-    fields = {
-        # §1 Parties
-        "1 PARTIES The parties to this contract are": s.get("seller", ""),
-        "Seller and":                                  buyer,
+    # Stamp main contract
+    main_bytes = stamp_pdf(MAIN_PDF, pages_data)
 
-        # §2 Property
-        "A LAND Lot":       lot,
-        "Block":            block,
-        "Addition City of": s.get("city", ""),
-        "County of":        s.get("county", ""),
-        "Texas known as":   addr_full,
-
-        # §3 Sales Price
-        "undefined_4": fmt_money(cash) if has_loan else fmt_money(price),
-        "undefined_3": fmt_money(loan) if has_loan else "",
-        "undefined_5": fmt_money(price),
-
-        # §3B checkboxes
-        "B Sum of all financing described in the attached": cb(has_loan),
-        "Third Party Financing Addendum":                   cb(has_loan),
-        "Loan Assumption Addendum":                         cb(False),
-        "Seller Financing Addendum":                        cb(False),
-
-        # §5 Earnest money
-        "undefined_6":           s.get("escrowAgent", "Kate Lewis Tucker - Chicago Title DFW"),
-        "undefined_7":           s.get("escrowAddress", "2770 Main Street, Suite 114, Frisco, TX 75033"),
-        "as earnest money to":   fmt_money(s.get("earnest")),
-        "as earnest money to 2": fmt_money(s.get("optionFee")),
-        "the Title Company and Buyers lenders Check one box only": str(s.get("optionDays", "7")),
-
-        # §5B option fee credit checkboxes
-        "will":     cb(True),
-        "will 1.1": cb(True),
-        "will not be credited to the Sales Price at closing Time is of the":   cb(False),
-        "will not be credited to the Sales Price at closing Time is of the 1": cb(False),
-
-        # §6A Title
-        "A TITLE POLICY Seller shall furnish to Buyer at": cb(title_payer == "seller"),
-        "Sellers":                                          cb(title_payer == "seller"),
-        "Seller":                                           cb(title_payer == "buyer"),
-        "insurance Title Policy issued by": s.get("titleCompany", "Chicago Title DFW - Forgey Law Group PLLC"),
-
-        # §6A(8) title amendment
-        "i will not be amended or deleted from the title policy or":      cb(title_amend == "i"),
-        "ii will be amended to read shortages in area at the expense of": cb(title_amend in ["ii_buyer", "ii_seller"]),
-        "Buyer":                   cb(title_amend == "ii_buyer"),
-        "Sellers_2":               cb(title_amend == "ii_seller"),
-        "Buyers expense no later": cb(title_amend == "ii_buyer"),
-
-        # §6C survey
-        "1Within":  cb(survey == "sellerExisting"),
-        "2Within":  cb(survey == "buyerNew"),
-        "2 Within": cb(survey == "buyerNew"),
-        "3Within":  cb(survey == "noSurvey"),
-        "receipt or the date specified in this paragraph whichever is earlier": str(s.get("surveyDays", "7")),
-
-        # §6D objections
-        "Commitment other than items 6A1 through 9 above or which prohibit the following use": s.get("intendedUse", ""),
-        "the Commitment Exception Documents and the survey Buyers failure to object within the": str(s.get("disclosureDays", "3")),
-
-        # §6E(2) HOA
-        "is":     cb(has_hoa),
-        "is not": cb(not has_hoa),
-
-        # §7B seller disclosure
-        "Within one":                  cb(seller_disc == "received"),
-        "Sellers Disclos":             cb(seller_disc == "received"),
-        "Within two":                  cb(seller_disc == "notReceived"),
-        "Addend. for Sellers Disclos": cb(seller_disc == "notReceived"),
-        "Within three":                cb(seller_disc == "exempt"),
-        "Text4":                       str(s.get("disclosureDays", "3")) if seller_disc == "notReceived" else "",
-
-        # §7D As Is
-        "As Is":        cb(as_is == "yes"),
-        "As Is except": cb(as_is == "repairs"),
-        "1 Buyer accepts the Property As Is":                                                       cb(as_is == "yes"),
-        "2 Buyer accepts the Property As Is provided Seller at Sellers expense shall complete the": cb(as_is == "repairs"),
-        "following specific repairs and treatments": s.get("repairsText", "") if as_is == "repairs" else "",
-
-        # §9 Closing
-        "A The closing of the sale will be on or before": closing_md,
-        "20":                                             closing_yy,
-
-        # §10 Possession
-        "upon":      cb(possession == "funding"),
-        "according": cb(possession == "lease"),
-
-        # §21 Notices
-        "when mailed to handdelivered at or transmitted by fax or electronic transmission as follows": s.get("buyerMailAddr", ""),
-        "AC1":      phone_area,
-        "Phone 51": phone_num,
-        "Phone 52": s.get("buyerEmail", ""),
-
-        # §22 Addenda checkboxes
-        "Addendum for Property Subject to":       cb(has_hoa),
-        "Addendum for Sale of Other Property by": cb(has_sale),
-        "Addendum for BackUp Contract":           cb(has_bkup),
-        "Loan Assumption Addendum_2":             cb(False),
-        "Environmental Assessment Threatened or": cb(False),
-        "Addendum for Property Located Seaward":  cb(False),
-        "Addendum for Property in a Propane Gas": cb(False),
-        "Sellers Temporary Residential Lease":    cb(False),
-        "Buyers Temporary Residential Lease":     cb(False),
-        "Short Sale Addendum":                    cb(False),
-        "Addendum for Section 1031":              cb(False),
-        "Addendum for Reservation of Oil Gas":    cb(False),
-
-        # Broker
-        "Buyer only":                          cb(s.get("hasBuyerAgent") == "yes"),
-        "Seller only as Sellers agent":        cb(False),
-        "Seller and Buyer as an intermediary": cb(False),
-        "Associates Name numb 1":   s.get("agentName", "")      if s.get("hasBuyerAgent") == "yes" else "",
-        "License No":               s.get("agentLicense", "")   if s.get("hasBuyerAgent") == "yes" else "",
-        "Associates Email Address":  s.get("agentEmail", "")    if s.get("hasBuyerAgent") == "yes" else "",
-        "Phone":                    s.get("agentPhone", "")     if s.get("hasBuyerAgent") == "yes" else "",
-        "Other Broker Firm":        s.get("agentBrokerage", "") if s.get("hasBuyerAgent") == "yes" else "",
-
-        # MUD/PID
-        "PID": cb(s.get("mud") in ["yes", "unknown"]),
-
-        # Address headers
-        "Contract Concerning":   addr_full,
-        "Contract Concerning_2": addr_full,
-        "Contract Concerning_3": addr_full,
-        "Contract Concerning_4": addr_full,
-        "Address of Property":   addr_full,
-        "Address of Property_2": addr_full,
-        "Addr of Prop":          addr_full,
-    }
-
-    # Fill main contract
-    main_bytes = fill_pdf_fields(MAIN_PDF, fields)
-
-    # Merge addenda
-    writer = PdfWriter()
-    writer.append(PdfReader(BytesIO(main_bytes)))
+    # Merge addenda with address headers and key fields stamped
+    merger = PdfWriter()
+    merger.append(PdfReader(BytesIO(main_bytes)))
 
     # Third Party Financing Addendum
     if has_loan and os.path.exists(FINANCING_PDF):
-        fin_fields = {
-            "Street Address and City": addr_full,
-            "1 Conventional Financing":   "/Yes" if s.get("financing") == "conventional" else "/Off",
-            "3 FHA Insured Financing A Section": "/Yes" if s.get("financing") == "fha" else "/Off",
-            "4 VA Guaranteed Financing A VA guaranteed loan of not less than": "/Yes" if s.get("financing") == "va" else "/Off",
-            "5 USDA Guaranteed Financing A USDAguaranteed loan of not less than": "/Yes" if s.get("financing") == "usda" else "/Off",
-            "This contract is subject to Buyer obtaining Buyer Approval If Buyer cannot obtain Buyer": "/Yes",
+        fin_pages = {
+            0: [
+                (55, 638, addr_full),
+                (57, 559, ck(s.get("financing") == "conventional")),
+                (57, 417, ck(s.get("financing") == "fha")),
+                (58, 302, ck(s.get("financing") == "va")),
+                (56, 242, ck(s.get("financing") == "usda")),
+            ],
+            1: [
+                (57, 730, addr_full),
+                (84, 594, ck(True)),   # subject to buyer approval
+            ],
         }
-        fin_bytes = fill_pdf_fields(FINANCING_PDF, fin_fields)
-        writer.append(PdfReader(BytesIO(fin_bytes)))
+        fin_bytes = stamp_pdf(FINANCING_PDF, fin_pages)
+        merger.append(PdfReader(BytesIO(fin_bytes)))
 
     # HOA Addendum
     if has_hoa and os.path.exists(HOA_PDF):
-        hoa_fields = {
-            "Street Address and City": addr_full,
-            "Address of Property":     addr_full,
-        }
-        hoa_bytes = fill_pdf_fields(HOA_PDF, hoa_fields)
-        writer.append(PdfReader(BytesIO(hoa_bytes)))
+        hoa_pages = {0: [(36, 660, addr_full)]}
+        hoa_bytes = stamp_pdf(HOA_PDF, hoa_pages)
+        merger.append(PdfReader(BytesIO(hoa_bytes)))
 
     # Sale of Other Property Addendum
     if has_sale and os.path.exists(SALE_PDF):
-        contingency_md, contingency_yy = split_date(s.get("saleContingencyDate", ""))
-        sale_fields = {
-            "Address of Property":  addr_full,
-            "Address on or before": s.get("salePropertyAddr", ""),
-            "Contingency is not satisfied or waived by Buyer by the above date the contract will terminate": contingency_md,
-            "20":                   contingency_yy,
-            "terminate automatically and the earnest money will be refunded to Buyer": s.get("saleWaiverDays", ""),
-            "All notices and waivers must be in writing and are": fmt_money(s.get("saleAdditionalEarnest")),
-        }
-        sale_bytes = fill_pdf_fields(SALE_PDF, sale_fields)
-        writer.append(PdfReader(BytesIO(sale_bytes)))
+        sale_pages = {0: [(55, 658, addr_full)]}
+        sale_bytes = stamp_pdf(SALE_PDF, sale_pages)
+        merger.append(PdfReader(BytesIO(sale_bytes)))
 
     # Back-Up Contract Addendum
     if has_bkup and os.path.exists(BACKUP_PDF):
-        bkup_fields = {
-            "Address of Property":     addr_full,
-            "Street Address and City": addr_full,
-        }
-        bkup_bytes = fill_pdf_fields(BACKUP_PDF, bkup_fields)
-        writer.append(PdfReader(BytesIO(bkup_bytes)))
+        bkup_pages = {0: [(55, 658, addr_full)]}
+        bkup_bytes = stamp_pdf(BACKUP_PDF, bkup_pages)
+        merger.append(PdfReader(BytesIO(bkup_bytes)))
 
     out = BytesIO()
-    writer.write(out)
+    merger.write(out)
     return out.getvalue()
 
 
@@ -408,8 +423,7 @@ def send_email(to_email, buyer_name, addr, pdf_bytes):
     r = httpx.post(
         "https://api.resend.com/emails",
         headers={"Authorization": f"Bearer {RESEND_API_KEY}", "Content-Type": "application/json"},
-        json=payload,
-        timeout=30
+        json=payload, timeout=30
     )
     if r.status_code not in [200, 201, 202]:
         raise Exception(f"Resend error {r.status_code}: {r.text[:200]}")
