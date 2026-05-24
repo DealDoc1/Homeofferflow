@@ -20,7 +20,7 @@ BACKUP_PDF    = os.path.join(BASE_DIR, "back_up_contract_addendum.pdf")
 
 FONT      = "Helvetica"
 FONT_SIZE = 9
-CHECK     = "■"
+CHECK     = "X"
 
 def fmt_money(v):
     if not v: return ""
