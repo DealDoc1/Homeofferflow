@@ -56,13 +56,24 @@ def split_phone(phone):
 def make_overlay(page_entries, page_width=612, page_height=792):
     buf = BytesIO()
     c = canvas.Canvas(buf, pagesize=(page_width, page_height))
+
     for entry in page_entries:
         x, y, text = entry[0], entry[1], entry[2]
         fs = entry[3] if len(entry) > 3 else FONT_SIZE
+
         if not text:
             continue
-        c.setFont(FONT, fs)
-        c.drawString(x, y, str(text))
+
+        # Global correction:
+        # Text was landing slightly high.
+        # Checkmarks were landing slightly high/left.
+        if str(text) == CHECK:
+            c.setFont("Helvetica-Bold", 8)
+            c.drawString(x + 2, y - 4, str(text))
+        else:
+            c.setFont(FONT, fs)
+            c.drawString(x, y - 3, str(text))
+
     c.save()
     buf.seek(0)
     return buf.read()
