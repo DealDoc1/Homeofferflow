@@ -534,23 +534,23 @@ def fill_and_merge(offer):
                 # Conventional
                 (58,  558, ck(financing == "conventional"), "check_small"),
 
-                # 1A(1) checkbox
-                (84,  549, ck(financing == "conventional"), "check_small"),
+                # 1A(1) checkbox — moved slightly right/down from prior version
+                (87,  545, ck(financing == "conventional"), "check_small"),
 
                 # First mortgage amount
                 (377, 544, fmt_money(s.get("loanAmount", "")) if financing == "conventional" else ""),
 
-                # "due in full in ___ year(s)"
-                (300, 531, loan_years if financing == "conventional" else ""),
+                # "due in full in ___ year(s)" — up a hair, slight right
+                (305, 534, loan_years if financing == "conventional" else ""),
 
-                # "interest not to exceed ___ %"
-                (540, 531, interest_cap if financing == "conventional" else ""),
+                # "interest not to exceed ___ %" — left from prior
+                (510, 531, interest_cap if financing == "conventional" else ""),
 
-                # "for the first ___ year(s)"
-                (250, 518, interest_first_years if financing == "conventional" else ""),
+                # "for the first ___ year(s)" — up and slightly right
+                (255, 522, interest_first_years if financing == "conventional" else ""),
 
-                # "origination charges not to exceed ___ %"
-                (460, 518, origination_cap if financing == "conventional" else ""),
+                # "origination charges not to exceed ___ %" — left significantly and down
+                (392, 515, origination_cap if financing == "conventional" else ""),
 
                 # FHA
                 (59,  445, ck(financing == "fha"), "check_small"),
@@ -580,8 +580,8 @@ def fill_and_merge(offer):
                 # Address
                 (205, 729, addr_full, 8),
 
-                # §2A Buyer approval
-                (81, 693, ck(s.get("buyerApproval", "yes") != "no"), "check_small"),
+                # §2A Buyer approval — moved slightly up/left
+                (79, 695, ck(s.get("buyerApproval", "yes") != "no"), "check_small"),
 
                 # Buyer approval days
                 (382, 684, buyer_approval_days if s.get("buyerApproval", "yes") != "no" else ""),
@@ -626,7 +626,7 @@ def fill_and_merge(offer):
 
                 # D title company information cost — default Seller
                 (238, 235, ck(hoa_title_cost == "buyer"), "check_small"),
-                (282, 235, ck(hoa_title_cost == "seller"), "check_small"),
+                (276, 235, ck(hoa_title_cost == "seller"), "check_small"),
             ],
         }
 
@@ -641,19 +641,18 @@ def fill_and_merge(offer):
                 # Header property address
                 (245, 626, addr_full, 8),
 
-                # Paragraph A
-                # Address was too low.
-                (83, 559, s.get("salePropertyAddr", ""), 8),
+                # Paragraph A address — move up from prior
+                (83, 565, s.get("salePropertyAddr", ""), 8),
 
-                # Date was far too right and a hair high.
-                (285, 550, sale_md),
-                (430, 550, sale_yy),
+                # Paragraph A date — move left; y kept basically same
+                (225, 550, sale_md),
+                (370, 550, sale_yy),
 
-                # Paragraph B — number was a hair low.
-                (204, 450, str(s.get("saleWaiverDays", "3"))),
+                # Paragraph B — move up a hair
+                (204, 453, str(s.get("saleWaiverDays", "3"))),
 
-                # Paragraph C — value was far too left and a hair low.
-                (500, 415, fmt_money(s.get("saleAdditionalEarnest", "")) if s.get("saleAdditionalEarnest") else ""),
+                # Paragraph C — move right significantly and up a hair
+                (560, 418, fmt_money(s.get("saleAdditionalEarnest", "")) if s.get("saleAdditionalEarnest") else ""),
             ],
         }
 
@@ -670,26 +669,22 @@ def fill_and_merge(offer):
                 (245, 660, addr_full, 8),
 
                 # Paragraph A(2)
-                # $2,500 is fine.
                 (345, 531, fmt_money(s.get("bkupAdditionalEarnest", "")) if s.get("bkupAdditionalEarnest") else ""),
-
-                # $100 was a hair low.
                 (101, 521, fmt_money(s.get("bkupAdditionalOption", "")) if s.get("bkupAdditionalOption") else ""),
-
-                # 3 days was low and right.
                 (298, 522, str(s.get("bkupAdditionalDays", "")) if s.get("bkupAdditionalDays") else ""),
 
-                # Paragraph G — May 1 and year shifted left.
+                # Paragraph G
+                # May 1 is fine; only year moved left.
                 (215, 254, bkup_first_md),
-                (370, 254, bkup_first_yy),
+                (345, 254, bkup_first_yy),
 
-                # Paragraph H — moved down/left a hair.
+                # Paragraph H — leave as fine
                 (379, 216, bkup_term_md),
                 (524, 216, bkup_term_yy),
             ],
             1: [
-                # Page 2 top address
-                (166, 760, addr_full, 8),
+                # Page 2 top address — moved down about two lines
+                (166, 735, addr_full, 8),
             ],
         }
 
