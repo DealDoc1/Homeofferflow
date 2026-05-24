@@ -391,19 +391,24 @@ def fill_and_merge(offer):
     # §C amount: (244, 441) | §D buyer: (147, 394) | §D seller: (176, 394)
     if has_hoa and os.path.exists(HOA_PDF):
         hoa_info  = s.get("hoaSubdivisionInfo", "")
-        hoa_pages = {
+                hoa_pages = {
             0: [
-                (23,  702, addr_full),
-                (23,  680, s.get("hoaName", "")),
-                (23,  625, ck(hoa_info == "seller")),
-                (55,  625, str(s.get("hoaDays", "")) if hoa_info == "seller" else ""),
-                (23,  580, ck(hoa_info == "buyer")),
-                (55,  580, str(s.get("hoaDays", "")) if hoa_info == "buyer" else ""),
-                (23,  541, ck(hoa_info == "received")),
-                (23,  505, ck(hoa_info == "notRequired")),
-                (244, 441, fmt_money(s.get("hoaReserves", "")) if s.get("hoaReserves") else ""),
-                (147, 394, ck(s.get("hoaTitleCost") == "buyer")),
-                (176, 394, ck(s.get("hoaTitleCost") == "seller")),
+                (180, 662, addr_full, 8),
+                (180, 632, s.get("hoaName", ""), 8),
+
+                (52, 555, ck(hoa_info == "seller" or hoa_info == "")),
+                (110, 555, str(s.get("hoaDays", "3")) if hoa_info in ["seller", ""] else ""),
+
+                (52, 499, ck(hoa_info == "buyer")),
+                (110, 499, str(s.get("hoaDays", "")) if hoa_info == "buyer" else ""),
+
+                (52, 460, ck(hoa_info == "received")),
+                (52, 424, ck(hoa_info == "notRequired")),
+
+                (410, 313, fmt_money(s.get("hoaReserves", "")) if s.get("hoaReserves") else ""),
+
+                (400, 235, ck(s.get("hoaTitleCost") == "buyer")),
+                (431, 235, ck(s.get("hoaTitleCost") == "seller" or not s.get("hoaTitleCost"))),
             ],
         }
         hoa_bytes = stamp_pdf(HOA_PDF, hoa_pages)
