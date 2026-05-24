@@ -116,7 +116,7 @@ def make_overlay(page_entries, page_width=612, page_height=792):
             style = entry[4]
 
         if str(text) == CHECK:
-            c.setFont("Helvetica-Bold", 8)
+            c.setFont("Helvetica-Bold", 9.5)
 
             if style == "check_small":
                 c.drawString(x, y, str(text))
