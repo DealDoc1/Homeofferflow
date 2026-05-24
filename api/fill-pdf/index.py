@@ -26,7 +26,7 @@ def fmt_money(v):
     if v in [None, ""]:
         return ""
     try:
-        return f"{int(float(str(v))):,}"
+        return f"{int(float(str(v).replace(',', ''))):,}"
     except Exception:
         return str(v)
 
@@ -42,16 +42,20 @@ def split_date(v):
         return str(v), ""
 
 
-def parse_lot_block(v):
-    lot = block = ""
+def parse_lot_block_from_text(v):
+    lot = ""
+    block = ""
+
     if not v:
         return lot, block
 
-    m = re.search(r"lot\s*([A-Za-z0-9\-]+)", str(v), re.I)
+    text = str(v)
+
+    m = re.search(r"lot\s*([A-Za-z0-9\-]+)", text, re.I)
     if m:
         lot = m.group(1)
 
-    m = re.search(r"block\s*([A-Za-z0-9\-]+)", str(v), re.I)
+    m = re.search(r"block\s*([A-Za-z0-9\-]+)", text, re.I)
     if m:
         block = m.group(1)
 
@@ -69,27 +73,55 @@ def ck(condition):
     return CHECK if condition else ""
 
 
+def first_present(*vals):
+    for v in vals:
+        if v not in [None, ""]:
+            return v
+    return ""
+
+
 def make_overlay(page_entries, page_width=612, page_height=792):
     """
-    Draw stamped text/checkmarks onto a transparent overlay.
+    Stamped overlay renderer.
 
-    Important:
-    - Text is drawn at the supplied coordinate. Do not use the old y - 3 shift.
-    - X marks are drawn at x + 1, y + 1 to center inside checkboxes.
+    Text:
+      Drawn at the exact coordinate supplied.
+
+    Checkboxes:
+      Drawn at x+1, y+1 generally.
+      If a checkbox needs special micro-positioning, pass:
+        (x, y, CHECK, "check")
+      or:
+        (x, y, CHECK, "check_small")
     """
     buf = BytesIO()
     c = canvas.Canvas(buf, pagesize=(page_width, page_height))
 
     for entry in page_entries:
         x, y, text = entry[0], entry[1], entry[2]
-        fs = entry[3] if len(entry) > 3 else FONT_SIZE
 
         if text in [None, ""]:
             continue
 
+        style = None
+        fs = FONT_SIZE
+
+        if len(entry) > 3:
+            if isinstance(entry[3], str):
+                style = entry[3]
+            else:
+                fs = entry[3]
+
+        if len(entry) > 4:
+            style = entry[4]
+
         if str(text) == CHECK:
             c.setFont("Helvetica-Bold", 8)
-            c.drawString(x + 1, y + 1, str(text))
+
+            if style == "check_small":
+                c.drawString(x, y, str(text))
+            else:
+                c.drawString(x + 1, y + 1, str(text))
         else:
             c.setFont(FONT, fs)
             c.drawString(x, y, str(text))
@@ -109,7 +141,7 @@ def stamp_pdf(base_pdf_path, pages_data: dict) -> bytes:
 
         writer.add_page(page)
 
-        # Clear original fillable appearances so the stamped overlay is the visible source.
+        # Clear original fillable appearances so stamped overlay is the visible source.
         for annot_ref in page.get("/Annots", []):
             try:
                 obj = annot_ref.get_object()
@@ -210,6 +242,13 @@ def build_pages_data(
 ):
     pages = {}
 
+    concession_amount = first_present(
+        s.get("concessionAmount"),
+        s.get("sellerConcessions"),
+        s.get("sellerCredit"),
+        s.get("buyerExpenseCredit")
+    )
+
     # PAGE 1 — Parties, Property, Sales Price, Leases
     pages[0] = [
         # §1 Parties
@@ -225,20 +264,21 @@ def build_pages_data(
         (161, 595, addr_full),
 
         # §3 Sales Price
-        # A = Cash portion, B = Financing, C = Total
+        # A = Cash portion, B = Financing, C = Total.
+        # The attached output shows this order correctly as 450,000 / 50,000 / 500,000.
         (457, 318, fmt_money(cash) if has_loan else fmt_money(price)),
         (457, 269, fmt_money(loan) if has_loan else ""),
         (457, 257, fmt_money(price)),
 
         # §3B Third Party Financing checkbox
-        (314, 283, ck(has_loan)),
+        (315, 284, ck(has_loan), "check_small"),
 
         # §4 Leases
-        (48, 194, ck(s.get("leaseResidential") == "yes")),
-        (48, 169, ck(s.get("leaseFixture") == "yes")),
-        (48, 133, ck(s.get("leaseNaturalResource") == "yes")),
-        (61,  97, ck(s.get("leaseNaturalResource") == "yes" and s.get("leaseNRDelivered") == "yes")),
-        (61,  83, ck(s.get("leaseNaturalResource") == "yes" and s.get("leaseNRDelivered") == "no")),
+        (48, 194, ck(s.get("leaseResidential") == "yes"), "check_small"),
+        (48, 169, ck(s.get("leaseFixture") == "yes"), "check_small"),
+        (48, 133, ck(s.get("leaseNaturalResource") == "yes"), "check_small"),
+        (61,  97, ck(s.get("leaseNaturalResource") == "yes" and s.get("leaseNRDelivered") == "yes"), "check_small"),
+        (61,  83, ck(s.get("leaseNaturalResource") == "yes" and s.get("leaseNRDelivered") == "no"), "check_small"),
     ]
 
     # PAGE 2 — Earnest Money, Option Fee, Title Policy
@@ -254,46 +294,47 @@ def build_pages_data(
         (293, 691, fmt_money(s.get("earnest", ""))),
         (488, 691, fmt_money(s.get("optionFee", ""))),
 
-        # §5B Termination Option days
-        # This is intentionally lower than the old 648 coordinate.
-        (111, 503, str(s.get("optionDays", "7"))),
+        # §5B Termination Option days — centered more in the blank
+        (130, 503, str(s.get("optionDays", "7"))),
 
         # §6A Title Policy
-        (313, 351, ck(title_payer == "seller")),
-        (368, 351, ck(title_payer == "buyer")),
+        (314, 351, ck(title_payer == "seller"), "check_small"),
+        (369, 351, ck(title_payer == "buyer"), "check_small"),
         (285, 342, s.get("titleCompany", "Chicago Title DFW - Forgey Law Group PLLC")),
 
-        # §6A(8) area/boundary exception
-        (75,  188, ck(title_amend == "i")),
-        (75,  166, ck(title_amend in ["ii_buyer", "ii_seller"])),
-        (435, 166, ck(title_amend == "ii_buyer")),
-        (499, 166, ck(title_amend == "ii_seller")),
+        # §6A(8)(i)/(ii) — moved down from prior high position
+        (75,  180, ck(title_amend == "i"), "check_small"),
+        (75,  166, ck(title_amend in ["ii_buyer", "ii_seller"]), "check_small"),
+        (435, 166, ck(title_amend == "ii_buyer"), "check_small"),
+        (499, 166, ck(title_amend == "ii_seller"), "check_small"),
     ]
 
     # PAGE 3 — Survey, Objections, HOA
+    survey_reject_payer = s.get("surveyIfRejectedPaidBy", "seller")
+
     pages[2] = [
         (130, 751, addr_full),
 
         # §6C Survey
-        (58,  707, ck(survey == "sellerExisting")),
+        (58,  707, ck(survey == "sellerExisting"), "check_small"),
         (125, 707, str(s.get("surveyDays", "7")) if survey == "sellerExisting" else ""),
 
-        # Existing survey follow-up cost if rejected
-        (142, 638, ck(survey == "sellerExisting" and s.get("surveyIfRejectedPaidBy") == "seller")),
-        (197, 638, ck(survey == "sellerExisting" and s.get("surveyIfRejectedPaidBy", "buyer") != "seller")),
+        # If seller existing survey is selected, default rejected-survey cost to Seller unless changed.
+        (142, 638, ck(survey == "sellerExisting" and survey_reject_payer == "seller"), "check_small"),
+        (197, 638, ck(survey == "sellerExisting" and survey_reject_payer == "buyer"), "check_small"),
 
-        (60,  628, ck(survey == "buyerNew")),
+        (60,  628, ck(survey == "buyerNew"), "check_small"),
         (125, 629, str(s.get("surveyDays", "7")) if survey == "buyerNew" else ""),
 
-        (60,  578, ck(survey == "sellerNew")),
+        (60,  578, ck(survey == "sellerNew"), "check_small"),
         (125, 578, str(s.get("surveyDays", "7")) if survey == "sellerNew" else ""),
 
         # §6D Objection days
         (371, 429, str(s.get("objectionDays", "3"))),
 
         # §6E(2) HOA membership
-        (454, 314, ck(has_hoa)),
-        (478, 314, ck(not has_hoa)),
+        (455, 314, ck(has_hoa), "check_small"),
+        (479, 314, ck(not has_hoa), "check_small"),
     ]
 
     # PAGE 4 — Seller Disclosure
@@ -301,9 +342,9 @@ def build_pages_data(
         (128, 751, addr_full),
 
         # §7B Seller Disclosure
-        (62,  148, ck(seller_disc == "received")),
-        (62,  138, ck(seller_disc == "notReceived")),
-        (62,   78, ck(seller_disc == "exempt")),
+        (62,  148, ck(seller_disc == "received"), "check_small"),
+        (62,  138, ck(seller_disc == "notReceived"), "check_small"),
+        (62,   78, ck(seller_disc == "exempt"), "check_small"),
         (320, 139, str(s.get("disclosureDays", "3")) if seller_disc == "notReceived" else ""),
     ]
 
@@ -312,8 +353,8 @@ def build_pages_data(
         (128, 751, addr_full),
 
         # §7D As-Is
-        (59,  679, ck(as_is == "yes")),
-        (59,  668, ck(as_is == "repairs")),
+        (59,  679, ck(as_is == "yes"), "check_small"),
+        (59,  668, ck(as_is == "repairs"), "check_small"),
         (89,  654, s.get("repairsText", "") if as_is == "repairs" else "", 8),
 
         # §8 Broker disclosure
@@ -328,13 +369,13 @@ def build_pages_data(
     pages[5] = [
         (129, 751, addr_full),
 
-        # §10 Possession
-        (351, 657, ck(possession == "funding")),
-        (499, 657, ck(possession == "lease")),
+        # §10 Possession — moved right a hair
+        (354, 657, ck(possession == "funding"), "check_small"),
+        (501, 657, ck(possession == "lease"), "check_small"),
 
-        # §12 Seller concessions
-        (111, 303, ck(bool(s.get("concessionAmount")))),
-        (253, 295, fmt_money(s.get("concessionAmount", "")) if s.get("concessionAmount") else ""),
+        # §12 A(1)(c) Seller credit / concessions
+        (111, 303, ck(bool(concession_amount)), "check_small"),
+        (253, 295, fmt_money(concession_amount) if concession_amount else ""),
     ]
 
     # PAGE 8 — Notices and Addenda
@@ -347,11 +388,11 @@ def build_pages_data(
         (166, 650, phone_num),
         (135, 624, s.get("buyerEmail", "")),
 
-        # §22 Addenda checkboxes
-        (65,  516, ck(has_loan)),
-        (65,  486, ck(has_hoa)),
-        (65,  423, ck(has_sale)),
-        (65,  375, ck(has_bkup)),
+        # §22 Addenda checkboxes — adjusted up/right
+        (68,  519, ck(has_loan), "check_small"),
+        (68,  489, ck(has_hoa), "check_small"),
+        (68,  426, ck(has_sale), "check_small"),
+        (68,  378, ck(has_bkup), "check_small"),
     ]
 
     # PAGE 9
@@ -367,7 +408,7 @@ def build_pages_data(
         (50,  562, s.get("agentName", "") if s.get("hasBuyerAgent") == "yes" else ""),
         (50,  502, s.get("agentEmail", "") if s.get("hasBuyerAgent") == "yes" else ""),
         (216, 502, s.get("agentPhone", "") if s.get("hasBuyerAgent") == "yes" else ""),
-        (109, 600, ck(s.get("hasBuyerAgent") == "yes")),
+        (109, 600, ck(s.get("hasBuyerAgent") == "yes"), "check_small"),
     ]
 
     # PAGE 11
@@ -381,7 +422,22 @@ def build_pages_data(
 def fill_and_merge(offer):
     s = offer or {}
 
-    lot, block = parse_lot_block(s.get("lot", ""))
+    # Lot/block support:
+    # The current curl did not include lot/block data, so they cannot appear unless the wizard sends them.
+    lot = first_present(s.get("lotNumber"), s.get("lot"))
+    block = first_present(s.get("blockNumber"), s.get("block"))
+
+    if not lot or not block:
+        parsed_lot, parsed_block = parse_lot_block_from_text(
+            first_present(
+                s.get("legalDescription"),
+                s.get("lotBlock"),
+                s.get("lot")
+            )
+        )
+        lot = lot or parsed_lot
+        block = block or parsed_block
+
     addr_full = f"{s.get('address','')}, {s.get('city','')}, TX {s.get('zip','')}".strip(", ")
     closing_md, closing_yy = split_date(s.get("closingDate"))
     phone_area, phone_num = split_phone(s.get("buyerPhone", ""))
@@ -443,24 +499,68 @@ def fill_and_merge(offer):
     if has_loan and os.path.exists(FINANCING_PDF):
         financing = s.get("financing")
 
+        loan_years = first_present(s.get("loanYears"), s.get("loanTermYears"), "30")
+        interest_cap = first_present(s.get("interestRateCap"), s.get("loanInterestCap"), "")
+        interest_first_years = first_present(s.get("interestFirstYears"), s.get("loanYears"), s.get("loanTermYears"), "30")
+        origination_cap = first_present(s.get("originationCap"), s.get("loanOriginationCap"), "")
+
+        buyer_approval_days = first_present(
+            s.get("buyerApprovalDays"),
+            s.get("financingApprovalDays"),
+            "21"
+        )
+
+        fha_va_value = fmt_money(price) if financing in ["fha", "va"] else ""
+
         fin_pages = {
             0: [
+                # Header property address
                 (205, 642, addr_full, 8),
 
                 # Conventional
-                (61,  557, ck(financing == "conventional")),
-                (91,  542, ck(financing == "conventional")),
+                (59,  557, ck(financing == "conventional"), "check_small"),
+                (90,  542, ck(financing == "conventional"), "check_small"),
                 (360, 540, fmt_money(s.get("loanAmount", "")) if financing == "conventional" else ""),
+                (198, 529, loan_years if financing == "conventional" else ""),
+                (333, 529, interest_cap if financing == "conventional" else ""),
+                (140, 517, interest_first_years if financing == "conventional" else ""),
+                (365, 517, origination_cap if financing == "conventional" else ""),
 
-                # FHA / VA / USDA
-                (61,  445, ck(financing == "fha")),
-                (61,  398, ck(financing == "va")),
-                (61,  359, ck(financing == "usda")),
+                # FHA
+                (59,  445, ck(financing == "fha"), "check_small"),
+                (256, 445, fmt_money(s.get("loanAmount", "")) if financing == "fha" else ""),
+                (122, 422, loan_years if financing == "fha" else ""),
+                (262, 422, interest_cap if financing == "fha" else ""),
+                (70,  411, interest_first_years if financing == "fha" else ""),
+                (340, 411, origination_cap if financing == "fha" else ""),
+
+                # VA
+                (59,  398, ck(financing == "va"), "check_small"),
+                (441, 398, fmt_money(s.get("loanAmount", "")) if financing == "va" else ""),
+                (194, 375, loan_years if financing == "va" else ""),
+                (335, 375, interest_cap if financing == "va" else ""),
+                (144, 363, interest_first_years if financing == "va" else ""),
+                (415, 363, origination_cap if financing == "va" else ""),
+
+                # USDA
+                (59,  359, ck(financing == "usda"), "check_small"),
+                (454, 359, fmt_money(s.get("loanAmount", "")) if financing == "usda" else ""),
+                (420, 337, loan_years if financing == "usda" else ""),
+                (212, 325, interest_cap if financing == "usda" else ""),
+                (387, 325, interest_first_years if financing == "usda" else ""),
+                (72,  313, origination_cap if financing == "usda" else ""),
             ],
             1: [
                 (205, 724, addr_full, 8),
-                (92,  684, ck(s.get("buyerApproval", "yes") != "no")),
-                (92,  584, ck(s.get("buyerApproval") == "no")),
+
+                # §2A Buyer approval
+                (90, 684, ck(s.get("buyerApproval", "yes") != "no"), "check_small"),
+                (322, 683, buyer_approval_days if s.get("buyerApproval", "yes") != "no" else ""),
+
+                (90, 584, ck(s.get("buyerApproval") == "no"), "check_small"),
+
+                # §4 FHA/VA required provision value
+                (205, 382, fha_va_value),
             ],
         }
 
@@ -470,32 +570,34 @@ def fill_and_merge(offer):
     if has_hoa and os.path.exists(HOA_PDF):
         hoa_info = s.get("hoaSubdivisionInfo") or "seller"
         hoa_title_cost = s.get("hoaTitleCost") or "seller"
+        hoa_days = first_present(s.get("hoaDays"), "7")
+        hoa_name = first_present(s.get("hoaName"), s.get("associationName"), s.get("poaName"))
 
         hoa_pages = {
             0: [
                 (180, 662, addr_full, 8),
-                (180, 632, s.get("hoaName", ""), 8),
+                (180, 632, hoa_name, 8),
 
                 # A(1) Seller obtains/delivers subdivision information
-                (52,  555, ck(hoa_info == "seller")),
-                (110, 555, str(s.get("hoaDays", "3")) if hoa_info == "seller" else ""),
+                (49, 555, ck(hoa_info == "seller"), "check_small"),
+                (110, 555, str(hoa_days) if hoa_info == "seller" else ""),
 
                 # A(2) Buyer obtains subdivision information
-                (52,  499, ck(hoa_info == "buyer")),
-                (110, 499, str(s.get("hoaDays", "")) if hoa_info == "buyer" else ""),
+                (49, 499, ck(hoa_info == "buyer"), "check_small"),
+                (110, 499, str(hoa_days) if hoa_info == "buyer" else ""),
 
                 # A(3) already received
-                (52,  460, ck(hoa_info == "received")),
+                (49, 460, ck(hoa_info == "received"), "check_small"),
 
                 # A(4) not required
-                (52,  424, ck(hoa_info == "notRequired")),
+                (49, 424, ck(hoa_info == "notRequired"), "check_small"),
 
-                # C reserves/transfer cap
-                (410, 313, fmt_money(s.get("hoaReserves", "")) if s.get("hoaReserves") else ""),
+                # C reserves/transfer cap — default 0 unless user enters other amount
+                (410, 313, fmt_money(first_present(s.get("hoaReserves"), "0"))),
 
-                # D title company information cost
-                (400, 235, ck(hoa_title_cost == "buyer")),
-                (431, 235, ck(hoa_title_cost == "seller")),
+                # D title company information cost — default Seller
+                (400, 235, ck(hoa_title_cost == "buyer"), "check_small"),
+                (431, 235, ck(hoa_title_cost == "seller"), "check_small"),
             ],
         }
 
@@ -505,14 +607,22 @@ def fill_and_merge(offer):
     if has_sale and os.path.exists(SALE_PDF):
         sale_md, sale_yy = split_date(s.get("saleContingencyDate", ""))
 
+        # Prior version was globally too high/left.
         sale_pages = {
             0: [
-                (23,  704, addr_full),
-                (35,  633, s.get("salePropertyAddr", "")),
-                (90,  621, sale_md),
-                (254, 621, sale_yy),
-                (84,  554, str(s.get("saleWaiverDays", "3"))),
-                (315, 530, fmt_money(s.get("saleAdditionalEarnest", "")) if s.get("saleAdditionalEarnest") else ""),
+                # Header property address
+                (245, 626, addr_full, 8),
+
+                # Paragraph A
+                (85, 529, s.get("salePropertyAddr", "")),
+                (398, 529, sale_md),
+                (548, 529, sale_yy),
+
+                # Paragraph B waiver days
+                (235, 421, str(s.get("saleWaiverDays", "3"))),
+
+                # Paragraph C additional earnest money
+                (580, 386, fmt_money(s.get("saleAdditionalEarnest", "")) if s.get("saleAdditionalEarnest") else ""),
             ],
         }
 
@@ -523,19 +633,24 @@ def fill_and_merge(offer):
         bkup_first_md, bkup_first_yy = split_date(s.get("bkupFirstContractDate", ""))
         bkup_term_md,  bkup_term_yy  = split_date(s.get("bkupTerminateDate", ""))
 
+        # Prior version was globally too high/left.
         bkup_pages = {
             0: [
-                (23,  712, addr_full),
+                # Header property address
+                (245, 660, addr_full, 8),
 
-                (215, 561, fmt_money(s.get("bkupAdditionalEarnest", "")) if s.get("bkupAdditionalEarnest") else ""),
-                (39,  549, fmt_money(s.get("bkupAdditionalOption", "")) if s.get("bkupAdditionalOption") else ""),
-                (152, 549, str(s.get("bkupAdditionalDays", "")) if s.get("bkupAdditionalDays") else ""),
+                # Paragraph A(2)
+                (390, 529, fmt_money(s.get("bkupAdditionalEarnest", "")) if s.get("bkupAdditionalEarnest") else ""),
+                (105, 516, fmt_money(s.get("bkupAdditionalOption", "")) if s.get("bkupAdditionalOption") else ""),
+                (382, 516, str(s.get("bkupAdditionalDays", "")) if s.get("bkupAdditionalDays") else ""),
 
-                (95,  426, bkup_first_md),
-                (208, 426, bkup_first_yy),
+                # Paragraph G first contract date
+                (320, 251, bkup_first_md),
+                (473, 251, bkup_first_yy),
 
-                (212, 396, bkup_term_md),
-                (315, 396, bkup_term_yy),
+                # Paragraph H termination date
+                (450, 221, bkup_term_md),
+                (594, 221, bkup_term_yy),
             ],
             1: [
                 (118, 766, addr_full),
