@@ -262,8 +262,11 @@
 
   <div class="wizard-progress">
     <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:10%"></div></div>
-    <div class="progress-meta"><span class="step-name" id="stepName">Disclaimer</span><span id="stepCount">Step 1 of 11</span></div>
-  </div>
+    <div class="progress-meta">
+  <span class="step-name" id="stepName">Disclaimer</span>
+  <span id="saveStatus">All Changes Saved</span>
+  <span id="stepCount">Step 1 of 11</span>
+</div>
 
   <div class="wizard-body">
     <div class="wizard-step active" id="step0">
@@ -1505,6 +1508,236 @@
       window.history.replaceState({}, '', '/');
     }, 500);
   }
+</script>
+  <script>
+/* =========================================
+   HOMEOFFERFLOW AUTO SAVE SYSTEM
+   ========================================= */
+
+const HOF_STORAGE_KEY = 'hof_offer_draft_v1';
+
+function getAllFormData() {
+  const data = {};
+
+  // Inputs
+  document.querySelectorAll('input, textarea, select').forEach(el => {
+    if (!el.id) return;
+
+    if (el.type === 'radio') {
+      if (el.checked) {
+        data[el.name] = el.value;
+      }
+    } else if (el.type === 'checkbox') {
+      data[el.id] = el.checked;
+    } else {
+      data[el.id] = el.value;
+    }
+  });
+
+  // Current wizard step
+  data.currentStep = currentStep || 0;
+
+  return data;
+}
+
+function saveDraft() {
+  try {
+    const data = getAllFormData();
+
+    localStorage.setItem(
+      HOF_STORAGE_KEY,
+      JSON.stringify(data)
+    );
+
+    updateSaveStatus('✓ Draft Saved');
+
+  } catch (err) {
+    console.error('Save failed', err);
+  }
+}
+
+function restoreDraft() {
+  try {
+    const raw = localStorage.getItem(HOF_STORAGE_KEY);
+
+    if (!raw) return;
+
+    updateSaveStatus('Restoring Draft...');
+
+    const data = JSON.parse(raw);
+
+    Object.keys(data).forEach(key => {
+      const el = document.getElementById(key);
+
+      if (!el) return;
+
+      if (el.type === 'checkbox') {
+        el.checked = data[key];
+      } else {
+        el.value = data[key];
+      }
+    });
+
+    // Restore radios
+    Object.keys(data).forEach(key => {
+      const radio = document.querySelector(
+        `input[name="${key}"][value="${data[key]}"]`
+      );
+
+      if (radio) {
+        radio.checked = true;
+
+        const card = radio.closest('.radio-card');
+
+        if (card) {
+          card.parentElement
+            .querySelectorAll('.radio-card')
+            .forEach(c => c.classList.remove('selected'));
+
+          card.classList.add('selected');
+        }
+      }
+    });
+
+    // Restore wizard step
+    if (typeof showStep === 'function' && data.currentStep !== undefined) {
+      setTimeout(() => {
+        showStep(data.currentStep);
+      }, 200);
+    }
+
+    // Trigger conditional sections
+    triggerConditionalUI();
+
+    updateSaveStatus('✓ Draft Restored');
+
+  } catch (err) {
+    console.error('Restore failed', err);
+  }
+}
+
+function clearDraft() {
+  localStorage.removeItem(HOF_STORAGE_KEY);
+}
+
+function triggerConditionalUI() {
+
+  // HOA
+  const hoa = document.querySelector('input[name="hoa"]:checked');
+  if (hoa) {
+    const hoaDetails = document.getElementById('hoaDetails');
+    if (hoaDetails) {
+      hoaDetails.style.display =
+        hoa.value === 'yes' || hoa.value === 'unknown'
+          ? 'block'
+          : 'none';
+    }
+  }
+
+  // Financing
+  const financing = document.querySelector('input[name="financing"]:checked');
+  if (financing) {
+    const financingDetails =
+      document.getElementById('financingDetails');
+
+    if (financingDetails) {
+      financingDetails.style.display =
+        financing.value === 'cash'
+          ? 'none'
+          : 'block';
+    }
+  }
+
+  // Sale contingency
+  const sale = document.querySelector(
+    'input[name="saleContingency"]:checked'
+  );
+
+  if (sale) {
+    const saleDetails =
+      document.getElementById('saleContingencyDetails');
+
+    if (saleDetails) {
+      saleDetails.style.display =
+        sale.value === 'yes'
+          ? 'block'
+          : 'none';
+    }
+  }
+
+  // Backup
+  const backup = document.querySelector(
+    'input[name="backupOffer"]:checked'
+  );
+
+  if (backup) {
+    const backupDetails =
+      document.getElementById('backupDetails');
+
+    if (backupDetails) {
+      backupDetails.style.display =
+        backup.value === 'yes'
+          ? 'block'
+          : 'none';
+    }
+  }
+}
+
+function updateSaveStatus(text) {
+  const el = document.getElementById('saveStatus');
+
+  if (!el) return;
+
+  el.innerText = text;
+
+  clearTimeout(window.__hofSaveTimer);
+
+  window.__hofSaveTimer = setTimeout(() => {
+    el.innerText = 'All Changes Saved';
+  }, 2000);
+}
+
+/* =========================================
+   AUTO SAVE LISTENERS
+   ========================================= */
+
+document.addEventListener('input', () => {
+  updateSaveStatus('Saving...');
+  saveDraft();
+});
+
+document.addEventListener('change', () => {
+  updateSaveStatus('Saving...');
+  saveDraft();
+});
+
+/* =========================================
+   PAGE EXIT PROTECTION
+   ========================================= */
+
+window.addEventListener('beforeunload', function (e) {
+
+  const hasData =
+    localStorage.getItem(HOF_STORAGE_KEY);
+
+  if (!hasData) return;
+
+  e.preventDefault();
+  e.returnValue = '';
+
+});
+
+/* =========================================
+   INITIALIZE
+   ========================================= */
+
+window.addEventListener('load', () => {
+
+  setTimeout(() => {
+    restoreDraft();
+  }, 300);
+
+});
 </script>
 </body>
 </html>
