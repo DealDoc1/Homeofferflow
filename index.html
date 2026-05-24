@@ -1209,40 +1209,193 @@
   }
 
   function wireSmartCalculations() {
-    const priceEl = document.getElementById('offerPrice');
-    const loanEl = document.getElementById('loanAmount');
-    const downEl = document.getElementById('downPayment');
-    const earnestEl = document.getElementById('earnestMoney');
+  const priceEl = document.getElementById('offerPrice');
+  const earnestEl = document.getElementById('earnestMoney');
+  const optionEl = document.getElementById('optionFee');
+  const optionDaysEl = document.getElementById('optionDays');
+  const loanEl = document.getElementById('loanAmount');
+  const downEl = document.getElementById('downPayment');
 
-    if (priceEl && !priceEl._wired) {
-      priceEl._wired = true;
-      priceEl.addEventListener('input', syncFinancingFieldsFromPrice);
-      priceEl.addEventListener('blur', syncFinancingFieldsFromPrice);
-    }
+  if (!priceEl || priceEl._wired) return;
+  priceEl._wired = true;
 
-    if (downEl && !downEl._wired) {
-      downEl._wired = true;
-      downEl.addEventListener('input', () => {
-        downEl._userEdited = true;
-        const price = numFromEl(priceEl);
-        if (price && loanEl) setMoneyVal(loanEl, price - numFromEl(downEl));
-      });
-    }
+  function getSelectedFinancing() {
+    const checked = document.querySelector('input[name="financing"]:checked');
+    return checked ? checked.value : 'conventional';
+  }
 
-    if (loanEl && !loanEl._wired) {
-      loanEl._wired = true;
-      loanEl.addEventListener('input', () => {
-        loanEl._userEdited = true;
-        const price = numFromEl(priceEl);
-        if (price && downEl) setMoneyVal(downEl, price - numFromEl(loanEl));
-      });
-    }
-
-    if (earnestEl && !earnestEl._wired) {
-      earnestEl._wired = true;
-      earnestEl.addEventListener('input', () => { earnestEl._userEdited = true; });
+  function getDefaultDownPaymentPercent(financing) {
+    switch (financing) {
+      case 'fha': return 0.035;
+      case 'va': return 0;
+      case 'usda': return 0;
+      case 'cash': return 1;
+      case 'conventional':
+      default: return 0.10;
     }
   }
+
+  function getDownPaymentLabel(financing) {
+    switch (financing) {
+      case 'fha': return '✓ FHA default: 3.5% minimum down payment';
+      case 'va': return '✓ VA default: 0% down for eligible buyers';
+      case 'usda': return '✓ USDA default: 0% down for eligible buyers/properties';
+      case 'cash': return '✓ Cash offer: full price paid in cash';
+      case 'conventional':
+      default: return '✓ Practical default: 10% down. Some programs allow less.';
+    }
+  }
+
+  function num(el) {
+    if (!el) return 0;
+    const n = Number(String(el.value || '').replace(/[$,\s]/g, ''));
+    return Number.isFinite(n) ? n : 0;
+  }
+
+  function setVal(el, value) {
+    if (!el) return;
+    el.value = Math.max(Math.round(value), 0);
+  }
+
+  function showFieldRecommendation(field, text) {
+    if (!field) return;
+
+    let helper = field.parentElement.querySelector('.smart-recommendation');
+
+    if (!helper) {
+      helper = document.createElement('div');
+      helper.className = 'smart-recommendation';
+      helper.style.cssText = `
+        margin-top: 0.35rem;
+        color: var(--sage-light);
+        font-size: 0.76rem;
+        font-weight: 600;
+        animation: fadeUp 0.2s ease;
+      `;
+      field.parentElement.appendChild(helper);
+    }
+
+    helper.textContent = text;
+  }
+
+  function calculateDefaults() {
+    const price = num(priceEl);
+    if (!price) return;
+
+    const financing = getSelectedFinancing();
+    const downPct = getDefaultDownPaymentPercent(financing);
+
+    if (earnestEl && !earnestEl.dataset.userEdited) {
+      setVal(earnestEl, price * 0.01);
+      showFieldRecommendation(earnestEl, '✓ Typical earnest money: about 1% of price');
+    }
+
+    if (optionEl && !optionEl.dataset.userEdited) {
+      setVal(optionEl, 250);
+      showFieldRecommendation(optionEl, '✓ Common Texas option fee starting point');
+    }
+
+    if (optionDaysEl && !optionDaysEl.dataset.userEdited) {
+      setVal(optionDaysEl, 7);
+      showFieldRecommendation(optionDaysEl, '✓ Common inspection/option period: 7 days');
+    }
+
+    if (financing === 'cash') {
+      if (downEl && !downEl.dataset.userEdited) {
+        setVal(downEl, price);
+        showFieldRecommendation(downEl, getDownPaymentLabel(financing));
+      }
+
+      if (loanEl && !loanEl.dataset.userEdited) {
+        setVal(loanEl, 0);
+        showFieldRecommendation(loanEl, '✓ Cash offer: loan amount is $0');
+      }
+
+      return;
+    }
+
+    if (downEl && !downEl.dataset.userEdited) {
+      setVal(downEl, price * downPct);
+      showFieldRecommendation(downEl, getDownPaymentLabel(financing));
+    }
+
+    if (loanEl && !loanEl.dataset.userEdited) {
+      setVal(loanEl, price - num(downEl));
+      showFieldRecommendation(loanEl, '✓ Automatically calculated from price minus down payment');
+    }
+  }
+
+  function recalcFromDownPayment() {
+    const price = num(priceEl);
+    if (!price || !downEl || !loanEl) return;
+
+    loanEl.dataset.userEdited = 'true';
+    setVal(loanEl, price - num(downEl));
+    showFieldRecommendation(loanEl, '✓ Updated from your down payment');
+  }
+
+  function recalcFromLoanAmount() {
+    const price = num(priceEl);
+    if (!price || !downEl || !loanEl) return;
+
+    downEl.dataset.userEdited = 'true';
+    setVal(downEl, price - num(loanEl));
+    showFieldRecommendation(downEl, '✓ Updated from your loan amount');
+  }
+
+  priceEl.addEventListener('input', calculateDefaults);
+  priceEl.addEventListener('blur', calculateDefaults);
+
+  if (earnestEl && !earnestEl._smartWired) {
+    earnestEl._smartWired = true;
+    earnestEl.addEventListener('input', () => {
+      earnestEl.dataset.userEdited = 'true';
+    });
+  }
+
+  if (optionEl && !optionEl._smartWired) {
+    optionEl._smartWired = true;
+    optionEl.addEventListener('input', () => {
+      optionEl.dataset.userEdited = 'true';
+    });
+  }
+
+  if (optionDaysEl && !optionDaysEl._smartWired) {
+    optionDaysEl._smartWired = true;
+    optionDaysEl.addEventListener('input', () => {
+      optionDaysEl.dataset.userEdited = 'true';
+    });
+  }
+
+  if (downEl && !downEl._smartWired) {
+    downEl._smartWired = true;
+    downEl.addEventListener('input', () => {
+      downEl.dataset.userEdited = 'true';
+      recalcFromDownPayment();
+    });
+  }
+
+  if (loanEl && !loanEl._smartWired) {
+    loanEl._smartWired = true;
+    loanEl.addEventListener('input', () => {
+      loanEl.dataset.userEdited = 'true';
+      recalcFromLoanAmount();
+    });
+  }
+
+  document.querySelectorAll('input[name="financing"]').forEach(radio => {
+    if (radio._smartWired) return;
+    radio._smartWired = true;
+
+    radio.addEventListener('change', () => {
+      if (downEl) downEl.dataset.userEdited = '';
+      if (loanEl) loanEl.dataset.userEdited = '';
+      calculateDefaults();
+    });
+  });
+
+  calculateDefaults();
+}
 
   // ── GOOGLE PLACES — new AutocompleteSuggestion API ──
   let _autocompleteService = null;
