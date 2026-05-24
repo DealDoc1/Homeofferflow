@@ -362,18 +362,22 @@ def fill_and_merge(offer):
     # va: (23, 443) | usda: (23, 404)
     # p2 addr: (23, 759) | subject to approval: (47, 718) | not subject: (47, 614)
     if has_loan and os.path.exists(FINANCING_PDF):
-        fin_pages = {
+                fin_pages = {
             0: [
-                (23, 697, addr_full),
-                (23, 602, ck(s.get("financing") == "conventional")),
-                (23, 490, ck(s.get("financing") == "fha")),
-                (23, 443, ck(s.get("financing") == "va")),
-                (23, 404, ck(s.get("financing") == "usda")),
+                (205, 642, addr_full, 8),
+
+                (61, 557, ck(s.get("financing") == "conventional")),
+                (91, 542, ck(s.get("financing") == "conventional")),
+                (360, 540, fmt_money(s.get("loanAmount", "")) if s.get("financing") == "conventional" else ""),
+
+                (61, 445, ck(s.get("financing") == "fha")),
+                (61, 398, ck(s.get("financing") == "va")),
+                (61, 359, ck(s.get("financing") == "usda")),
             ],
             1: [
-                (23, 759, addr_full),
-                (47, 718, ck(s.get("buyerApproval") == "yes")),
-                (47, 614, ck(s.get("buyerApproval") == "no")),
+                (205, 724, addr_full, 8),
+                (92, 684, ck(s.get("buyerApproval", "yes") != "no")),
+                (92, 584, ck(s.get("buyerApproval") == "no")),
             ],
         }
         fin_bytes = stamp_pdf(FINANCING_PDF, fin_pages)
