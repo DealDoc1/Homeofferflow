@@ -81,17 +81,6 @@ def first_present(*vals):
 
 
 def make_overlay(page_entries, page_width=612, page_height=792):
-    """
-    Stamped overlay renderer.
-
-    Text:
-      Drawn at exact supplied coordinate.
-
-    Checkboxes:
-      Drawn with a slightly larger X.
-      Standard X style = x + 1, y + 1.
-      check_small style = exact x/y coordinate.
-    """
     buf = BytesIO()
     c = canvas.Canvas(buf, pagesize=(page_width, page_height))
 
@@ -139,7 +128,6 @@ def stamp_pdf(base_pdf_path, pages_data: dict) -> bytes:
 
         writer.add_page(page)
 
-        # Clear original fillable appearances so stamped overlay is the visible source.
         for annot_ref in page.get("/Annots", []):
             try:
                 obj = annot_ref.get_object()
@@ -247,7 +235,6 @@ def build_pages_data(
         s.get("buyerExpenseCredit")
     )
 
-    # PAGE 1 — Parties, Property, Sales Price, Leases
     pages[0] = [
         (280, 690, s.get("seller", "")),
         (124, 679, buyer),
@@ -259,7 +246,6 @@ def build_pages_data(
         (387, 606, s.get("county", "")),
         (161, 595, addr_full),
 
-        # 3A Cash, 3B Financing, 3C Total
         (457, 318, fmt_money(cash) if has_loan else fmt_money(price)),
         (457, 269, fmt_money(loan) if has_loan else ""),
         (457, 257, fmt_money(price)),
@@ -273,7 +259,6 @@ def build_pages_data(
         (61,  83, ck(s.get("leaseNaturalResource") == "yes" and s.get("leaseNRDelivered") == "no"), "check_small"),
     ]
 
-    # PAGE 2 — Earnest Money, Option Fee, Title Policy
     escrow_agent = s.get("escrowAgent", "Kate Lewis Tucker - Chicago Title DFW")
     escrow_addr  = s.get("escrowAddress", "2770 Main Street, Suite 114, Frisco, TX 75033")
 
@@ -297,7 +282,6 @@ def build_pages_data(
         (499, 166, ck(title_amend == "ii_seller"), "check_small"),
     ]
 
-    # PAGE 3 — Survey, Objections, HOA
     survey_reject_payer = s.get("surveyIfRejectedPaidBy", "seller")
 
     pages[2] = [
@@ -315,13 +299,10 @@ def build_pages_data(
         (60,  578, ck(survey == "sellerNew"), "check_small"),
         (125, 578, str(s.get("surveyDays", "7")) if survey == "sellerNew" else ""),
 
-        # 6D intentionally blank unless wizard later asks for objections days.
-
         (458, 317, ck(has_hoa), "check_small"),
         (479, 314, ck(not has_hoa), "check_small"),
     ]
 
-    # PAGE 4 — Seller Disclosure
     pages[3] = [
         (128, 751, addr_full),
 
@@ -331,7 +312,6 @@ def build_pages_data(
         (324, 139, str(s.get("disclosureDays", "3")) if seller_disc == "notReceived" else ""),
     ]
 
-    # PAGE 5 — As-Is, Repairs, Broker Disclosure, Closing Date
     pages[4] = [
         (128, 751, addr_full),
 
@@ -345,23 +325,19 @@ def build_pages_data(
         (442, 197, closing_yy),
     ]
 
-    # PAGE 6 — Possession, Settlement/Expenses
     pages[5] = [
         (129, 751, addr_full),
 
         (356, 660, ck(possession == "funding"), "check_small"),
         (501, 657, ck(possession == "lease"), "check_small"),
 
-        # 12A(1)(c) only. No checkbox.
         (253, 295, fmt_money(concession_amount) if concession_amount else ""),
     ]
 
-    # PAGE 7 — Address header only
     pages[6] = [
         (129, 751, addr_full),
     ]
 
-    # PAGE 8 — Notices and Addenda
     pages[7] = [
         (129, 751, addr_full),
 
@@ -471,7 +447,6 @@ def fill_and_merge(offer):
     merger = PdfWriter()
     merger.append(PdfReader(BytesIO(main_bytes)))
 
-    # THIRD PARTY FINANCING ADDENDUM
     if has_loan and os.path.exists(FINANCING_PDF):
         financing = s.get("financing")
 
@@ -497,28 +472,16 @@ def fill_and_merge(offer):
             0: [
                 (205, 642, addr_full, 8),
 
-                # Conventional
                 (58,  558, ck(financing == "conventional"), "check_small"),
-
-                # 1A(1) checkbox — user said this is fine enough now, so keep stable.
                 (87, 545, ck(financing == "conventional"), "check_small"),
 
-                # First mortgage amount
                 (377, 544, fmt_money(s.get("loanAmount", "")) if financing == "conventional" else ""),
 
-                # Loan term — user said fine.
                 (305, 534, loan_years if financing == "conventional" else ""),
-
-                # Interest cap — was too far left, move right from prior.
                 (525, 531, interest_cap if financing == "conventional" else ""),
-
-                # First years — was too far right, move left.
                 (240, 522, interest_first_years if financing == "conventional" else ""),
-
-                # Origination cap — too high/right, move left and down.
                 (384, 511, origination_cap if financing == "conventional" else ""),
 
-                # FHA
                 (59,  445, ck(financing == "fha"), "check_small"),
                 (256, 445, fmt_money(s.get("loanAmount", "")) if financing == "fha" else ""),
                 (122, 422, loan_years if financing == "fha" else ""),
@@ -526,7 +489,6 @@ def fill_and_merge(offer):
                 (70,  411, interest_first_years if financing == "fha" else ""),
                 (340, 411, origination_cap if financing == "fha" else ""),
 
-                # VA
                 (59,  398, ck(financing == "va"), "check_small"),
                 (441, 398, fmt_money(s.get("loanAmount", "")) if financing == "va" else ""),
                 (194, 375, loan_years if financing == "va" else ""),
@@ -534,7 +496,6 @@ def fill_and_merge(offer):
                 (144, 363, interest_first_years if financing == "va" else ""),
                 (415, 363, origination_cap if financing == "va" else ""),
 
-                # USDA
                 (59,  359, ck(financing == "usda"), "check_small"),
                 (454, 359, fmt_money(s.get("loanAmount", "")) if financing == "usda" else ""),
                 (420, 337, loan_years if financing == "usda" else ""),
@@ -545,21 +506,19 @@ def fill_and_merge(offer):
             1: [
                 (205, 729, addr_full, 8),
 
-                # Buyer approval X — move right only, same height.
-                (81, 695, ck(s.get("buyerApproval", "yes") != "no"), "check_small"),
+                # Page 13 §2A checkbox: moved right a hair.
+                (83, 695, ck(s.get("buyerApproval", "yes") != "no"), "check_small"),
 
                 (382, 684, buyer_approval_days if s.get("buyerApproval", "yes") != "no" else ""),
 
                 (90, 584, ck(s.get("buyerApproval") == "no"), "check_small"),
 
-                # FHA/VA required value
                 (205, 382, fha_va_value),
             ],
         }
 
         merger.append(PdfReader(BytesIO(stamp_pdf(FINANCING_PDF, fin_pages))))
 
-    # HOA ADDENDUM
     if has_hoa and os.path.exists(HOA_PDF):
         hoa_info = s.get("hoaSubdivisionInfo") or "seller"
         hoa_title_cost = s.get("hoaTitleCost") or "seller"
@@ -583,15 +542,12 @@ def fill_and_merge(offer):
                 (410, 310, fmt_money(first_present(s.get("hoaReserves"), "0"))),
 
                 (238, 235, ck(hoa_title_cost == "buyer"), "check_small"),
-
-                # Seller X — user said move left only 1.
                 (275, 235, ck(hoa_title_cost == "seller"), "check_small"),
             ],
         }
 
         merger.append(PdfReader(BytesIO(stamp_pdf(HOA_PDF, hoa_pages))))
 
-    # SALE OF OTHER PROPERTY ADDENDUM
     if has_sale and os.path.exists(SALE_PDF):
         sale_md, sale_yy = split_date(s.get("saleContingencyDate", ""))
 
@@ -599,23 +555,21 @@ def fill_and_merge(offer):
             0: [
                 (245, 626, addr_full, 8),
 
-                # Address was high: move down.
                 (83, 561, s.get("salePropertyAddr", ""), 8),
 
-                # Month/day acceptable-ish. Year was too far left: move year right.
                 (225, 550, sale_md),
-                (390, 550, sale_yy),
+
+                # Page 15 §A year: moved down and right.
+                (400, 547, sale_yy),
 
                 (204, 453, str(s.get("saleWaiverDays", "3"))),
 
-                # Money too far right; move left moderately, not huge.
                 (535, 418, fmt_money(s.get("saleAdditionalEarnest", "")) if s.get("saleAdditionalEarnest") else ""),
             ],
         }
 
         merger.append(PdfReader(BytesIO(stamp_pdf(SALE_PDF, sale_pages))))
 
-    # BACK-UP CONTRACT ADDENDUM
     if has_bkup and os.path.exists(BACKUP_PDF):
         bkup_first_md, bkup_first_yy = split_date(s.get("bkupFirstContractDate", ""))
         bkup_term_md,  bkup_term_yy  = split_date(s.get("bkupTerminateDate", ""))
@@ -628,16 +582,13 @@ def fill_and_merge(offer):
                 (101, 521, fmt_money(s.get("bkupAdditionalOption", "")) if s.get("bkupAdditionalOption") else ""),
                 (298, 522, str(s.get("bkupAdditionalDays", "")) if s.get("bkupAdditionalDays") else ""),
 
-                # G: May 1 and year are non-issue now; keep stable.
                 (215, 254, bkup_first_md),
                 (345, 254, bkup_first_yy),
 
-                # H: leave alone.
                 (379, 216, bkup_term_md),
                 (524, 216, bkup_term_yy),
             ],
             1: [
-                # Page 2 address too low and too far left: move up and right.
                 (181, 745, addr_full, 8),
             ],
         }
