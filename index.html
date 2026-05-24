@@ -1216,12 +1216,9 @@
   const loanEl = document.getElementById('loanAmount');
   const downEl = document.getElementById('downPayment');
 
-  if (!priceEl || priceEl._wired) return;
-  priceEl._wired = true;
-
   function getSelectedFinancing() {
     const checked = document.querySelector('input[name="financing"]:checked');
-    return checked ? checked.value : 'conventional';
+    return checked ? checked.value : '';
   }
 
   function getDefaultDownPaymentPercent(financing) {
@@ -1230,8 +1227,8 @@
       case 'va': return 0;
       case 'usda': return 0;
       case 'cash': return 1;
-      case 'conventional':
-      default: return 0.10;
+      case 'conventional': return 0.10;
+      default: return null;
     }
   }
 
@@ -1241,8 +1238,8 @@
       case 'va': return '✓ VA default: 0% down for eligible buyers';
       case 'usda': return '✓ USDA default: 0% down for eligible buyers/properties';
       case 'cash': return '✓ Cash offer: full price paid in cash';
-      case 'conventional':
-      default: return '✓ Practical default: 10% down. Some programs allow less.';
+      case 'conventional': return '✓ Practical default: 10% down. Some programs allow less.';
+      default: return '';
     }
   }
 
@@ -1258,7 +1255,7 @@
   }
 
   function showFieldRecommendation(field, text) {
-    if (!field) return;
+    if (!field || !text) return;
 
     let helper = field.parentElement.querySelector('.smart-recommendation');
 
@@ -1278,12 +1275,9 @@
     helper.textContent = text;
   }
 
-  function calculateDefaults() {
+  function calculatePriceTermsOnly() {
     const price = num(priceEl);
     if (!price) return;
-
-    const financing = getSelectedFinancing();
-    const downPct = getDefaultDownPaymentPercent(financing);
 
     if (earnestEl && !earnestEl.dataset.userEdited) {
       setVal(earnestEl, price * 0.01);
@@ -1299,6 +1293,19 @@
       setVal(optionDaysEl, 7);
       showFieldRecommendation(optionDaysEl, '✓ Common inspection/option period: 7 days');
     }
+  }
+
+  function calculateFinancingDefaults(forceReset = false) {
+    const price = num(priceEl);
+    if (!price) return;
+
+    const financing = getSelectedFinancing();
+    const downPct = getDefaultDownPaymentPercent(financing);
+
+    if (downPct === null) return;
+
+    if (forceReset && downEl) downEl.dataset.userEdited = '';
+    if (forceReset && loanEl) loanEl.dataset.userEdited = '';
 
     if (financing === 'cash') {
       if (downEl && !downEl.dataset.userEdited) {
@@ -1343,29 +1350,25 @@
     showFieldRecommendation(downEl, '✓ Updated from your loan amount');
   }
 
-  priceEl.addEventListener('input', calculateDefaults);
-  priceEl.addEventListener('blur', calculateDefaults);
-
-  if (earnestEl && !earnestEl._smartWired) {
-    earnestEl._smartWired = true;
-    earnestEl.addEventListener('input', () => {
-      earnestEl.dataset.userEdited = 'true';
+  if (priceEl && !priceEl._smartWired) {
+    priceEl._smartWired = true;
+    priceEl.addEventListener('input', () => {
+      calculatePriceTermsOnly();
+      calculateFinancingDefaults(false);
+    });
+    priceEl.addEventListener('blur', () => {
+      calculatePriceTermsOnly();
+      calculateFinancingDefaults(false);
     });
   }
 
-  if (optionEl && !optionEl._smartWired) {
-    optionEl._smartWired = true;
-    optionEl.addEventListener('input', () => {
-      optionEl.dataset.userEdited = 'true';
+  [earnestEl, optionEl, optionDaysEl].filter(Boolean).forEach(el => {
+    if (el._smartWired) return;
+    el._smartWired = true;
+    el.addEventListener('input', () => {
+      el.dataset.userEdited = 'true';
     });
-  }
-
-  if (optionDaysEl && !optionDaysEl._smartWired) {
-    optionDaysEl._smartWired = true;
-    optionDaysEl.addEventListener('input', () => {
-      optionDaysEl.dataset.userEdited = 'true';
-    });
-  }
+  });
 
   if (downEl && !downEl._smartWired) {
     downEl._smartWired = true;
@@ -1388,13 +1391,12 @@
     radio._smartWired = true;
 
     radio.addEventListener('change', () => {
-      if (downEl) downEl.dataset.userEdited = '';
-      if (loanEl) loanEl.dataset.userEdited = '';
-      calculateDefaults();
+      calculateFinancingDefaults(true);
     });
   });
 
-  calculateDefaults();
+  calculatePriceTermsOnly();
+  calculateFinancingDefaults(false);
 }
 
   // ── GOOGLE PLACES — new AutocompleteSuggestion API ──
