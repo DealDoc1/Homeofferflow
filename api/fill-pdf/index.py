@@ -368,7 +368,7 @@ def build_pages_data(
     pages[5] = [
         (129, 751, addr_full),
 
-        # §10 Possession — nudged left from prior version
+        # §10 Possession
         (356, 660, ck(possession == "funding"), "check_small"),
         (501, 657, ck(possession == "lease"), "check_small"),
 
@@ -392,7 +392,7 @@ def build_pages_data(
         (166, 650, phone_num),
         (135, 624, s.get("buyerEmail", "")),
 
-        # §22 Addenda checkboxes — nudged down/left from prior version
+        # §22 Addenda checkboxes
         (68,  519, ck(has_loan), "check_small"),
         (68,  489, ck(has_hoa), "check_small"),
         (68,  426, ck(has_sale), "check_small"),
@@ -533,22 +533,24 @@ def fill_and_merge(offer):
 
                 # Conventional
                 (58,  558, ck(financing == "conventional"), "check_small"),
-                (88,  546, ck(financing == "conventional"), "check_small"),
 
-                # First mortgage amount / terms
+                # 1A(1) checkbox
+                (84,  549, ck(financing == "conventional"), "check_small"),
+
+                # First mortgage amount
                 (377, 544, fmt_money(s.get("loanAmount", "")) if financing == "conventional" else ""),
 
                 # "due in full in ___ year(s)"
-                (222, 531, loan_years if financing == "conventional" else ""),
+                (300, 531, loan_years if financing == "conventional" else ""),
 
                 # "interest not to exceed ___ %"
-                (382, 531, interest_cap if financing == "conventional" else ""),
+                (540, 531, interest_cap if financing == "conventional" else ""),
 
                 # "for the first ___ year(s)"
-                (160, 518, interest_first_years if financing == "conventional" else ""),
+                (250, 518, interest_first_years if financing == "conventional" else ""),
 
                 # "origination charges not to exceed ___ %"
-                (417, 518, origination_cap if financing == "conventional" else ""),
+                (460, 518, origination_cap if financing == "conventional" else ""),
 
                 # FHA
                 (59,  445, ck(financing == "fha"), "check_small"),
@@ -575,12 +577,14 @@ def fill_and_merge(offer):
                 (72,  313, origination_cap if financing == "usda" else ""),
             ],
             1: [
-                # Address was low in prior output; moved up.
+                # Address
                 (205, 729, addr_full, 8),
 
                 # §2A Buyer approval
-                (84, 690, ck(s.get("buyerApproval", "yes") != "no"), "check_small"),
-                (340, 684, buyer_approval_days if s.get("buyerApproval", "yes") != "no" else ""),
+                (81, 693, ck(s.get("buyerApproval", "yes") != "no"), "check_small"),
+
+                # Buyer approval days
+                (382, 684, buyer_approval_days if s.get("buyerApproval", "yes") != "no" else ""),
 
                 (90, 584, ck(s.get("buyerApproval") == "no"), "check_small"),
 
@@ -621,8 +625,8 @@ def fill_and_merge(offer):
                 (410, 310, fmt_money(first_present(s.get("hoaReserves"), "0"))),
 
                 # D title company information cost — default Seller
-                (400, 235, ck(hoa_title_cost == "buyer"), "check_small"),
-                (409, 235, ck(hoa_title_cost == "seller"), "check_small"),
+                (238, 235, ck(hoa_title_cost == "buyer"), "check_small"),
+                (282, 235, ck(hoa_title_cost == "seller"), "check_small"),
             ],
         }
 
@@ -637,16 +641,19 @@ def fill_and_merge(offer):
                 # Header property address
                 (245, 626, addr_full, 8),
 
-                # Paragraph A — moved up, separated address/date
-                (83, 552, s.get("salePropertyAddr", ""), 8),
-                (410, 552, sale_md),
-                (557, 552, sale_yy),
+                # Paragraph A
+                # Address was too low.
+                (83, 559, s.get("salePropertyAddr", ""), 8),
 
-                # Paragraph B
-                (204, 447, str(s.get("saleWaiverDays", "3"))),
+                # Date was far too right and a hair high.
+                (285, 550, sale_md),
+                (430, 550, sale_yy),
 
-                # Paragraph C
-                (387, 412, fmt_money(s.get("saleAdditionalEarnest", "")) if s.get("saleAdditionalEarnest") else ""),
+                # Paragraph B — number was a hair low.
+                (204, 450, str(s.get("saleWaiverDays", "3"))),
+
+                # Paragraph C — value was far too left and a hair low.
+                (500, 415, fmt_money(s.get("saleAdditionalEarnest", "")) if s.get("saleAdditionalEarnest") else ""),
             ],
         }
 
@@ -663,17 +670,22 @@ def fill_and_merge(offer):
                 (245, 660, addr_full, 8),
 
                 # Paragraph A(2)
+                # $2,500 is fine.
                 (345, 531, fmt_money(s.get("bkupAdditionalEarnest", "")) if s.get("bkupAdditionalEarnest") else ""),
-                (101, 518, fmt_money(s.get("bkupAdditionalOption", "")) if s.get("bkupAdditionalOption") else ""),
-                (306, 518, str(s.get("bkupAdditionalDays", "")) if s.get("bkupAdditionalDays") else ""),
 
-                # Paragraph G first contract date
-                (250, 254, bkup_first_md),
-                (402, 254, bkup_first_yy),
+                # $100 was a hair low.
+                (101, 521, fmt_money(s.get("bkupAdditionalOption", "")) if s.get("bkupAdditionalOption") else ""),
 
-                # Paragraph H termination date
-                (387, 219, bkup_term_md),
-                (532, 219, bkup_term_yy),
+                # 3 days was low and right.
+                (298, 522, str(s.get("bkupAdditionalDays", "")) if s.get("bkupAdditionalDays") else ""),
+
+                # Paragraph G — May 1 and year shifted left.
+                (215, 254, bkup_first_md),
+                (370, 254, bkup_first_yy),
+
+                # Paragraph H — moved down/left a hair.
+                (379, 216, bkup_term_md),
+                (524, 216, bkup_term_yy),
             ],
             1: [
                 # Page 2 top address
