@@ -258,8 +258,10 @@
 <div class="wizard-overlay" id="wizardOverlay">
   <div class="wizard-header">
     <div class="wizard-logo">Home<span>Offer</span>Flow</div>
-    <button class="wizard-close" onclick="closeWizard()">✕</button>
-  </div>
+   <div style="display:flex; align-items:center; gap:0.75rem;">
+  <button onclick="startNewOffer()" style="background:transparent; border:1px solid rgba(255,255,255,0.15); color:var(--gray-light); padding:0.45rem 0.75rem; border-radius:6px; font-family:'DM Sans',sans-serif; font-size:0.78rem; cursor:pointer;">New Offer</button>
+  <button class="wizard-close" onclick="closeWizard()">✕</button>
+</div>
 
   <div class="wizard-progress">
     <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:10%"></div></div>
@@ -655,9 +657,24 @@
   }
 
   function closeWizard() {
-    document.getElementById('wizardOverlay').classList.remove('active');
-    document.body.style.overflow = '';
+  document.getElementById('wizardOverlay').classList.remove('active');
+  document.body.style.overflow = '';
+}
+
+function startNewOffer() {
+  const ok = confirm('Start a new offer? This will clear the saved draft on this device.');
+
+  if (!ok) return;
+
+  try {
+    localStorage.removeItem('hof_offer_draft_v1');
+    sessionStorage.removeItem('hofOfferData');
+  } catch (e) {
+    console.error('Could not clear draft', e);
   }
+
+  window.location.href = window.location.pathname;
+}
 
   function updateProgress() {
     const pct = ((state.step + 1) / STEPS.length) * 100;
