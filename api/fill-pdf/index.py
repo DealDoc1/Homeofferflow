@@ -269,13 +269,15 @@ def build_pages_data(
 
         (315, 284, ck(has_loan), "check_small"),
 
-        (50, 196, ck(lease_residential), "check_small"),
-        (50, 171, ck(lease_fixture), "check_small"),
-        (50, 135, ck(lease_natural), "check_small"),
-        (63,  99, ck(lease_natural and val_lower(lease_nr_delivered) == "yes"), "check_small"),
-        (63,  85, ck(lease_natural and val_lower(lease_nr_delivered) == "no"), "check_small"),
-        (466, 70, str(lease_nr_days) if lease_natural and val_lower(lease_nr_delivered) == "no" else ""),
-        (350, 45, str(lease_nr_term_days) if lease_natural and val_lower(lease_nr_delivered) == "no" else ""),
+        # Lease addenda are not currently generated/attached by HomeOfferFlow.
+        # Do not check Section 4 lease boxes unless the matching addendum PDFs are included in the final packet.
+        #(50, 196, ck(lease_residential), "check_small"),
+        #(50, 171, ck(lease_fixture), "check_small"),
+        #(50, 135, ck(lease_natural), "check_small"),
+        #(63,  99, ck(lease_natural and val_lower(lease_nr_delivered) == "yes"), "check_small"),
+        #(63,  85, ck(lease_natural and val_lower(lease_nr_delivered) == "no"), "check_small"),
+        #(466, 70, str(lease_nr_days) if lease_natural and val_lower(lease_nr_delivered) == "no" else ""),
+        #(350, 45, str(lease_nr_term_days) if lease_natural and val_lower(lease_nr_delivered) == "no" else ""),
     ]
 
     escrow_agent = s.get("escrowAgent", "Kate Lewis Tucker - Chicago Title DFW")
@@ -389,8 +391,9 @@ def build_pages_data(
         (68,  426, ck(has_sale), "check_small"),
         (68,  378, ck(has_bkup), "check_small"),
 
-     (319, 365, ck(lease_residential), "check_small"),
-(319, 350, ck(lease_fixture), "check_small"),
+        # Do not check lease addenda on Section 22 unless those exact addendum PDFs are generated and attached.
+        #(319, 352, ck(lease_residential), "check_small"),
+        #(319, 337, ck(lease_fixture), "check_small"),
         # Do not check the PID/MUD addendum box unless an actual notice addendum is generated and attached.
         # The wizard should warn users to confirm this with seller/title instead.
         #(319, 305, ck(val_lower(s.get("mud")) in ["yes", "unknown"] or truthy(s.get("pid"))), "check_small"),
