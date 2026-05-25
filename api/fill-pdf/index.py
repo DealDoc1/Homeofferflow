@@ -558,21 +558,21 @@ def fill_and_merge(offer):
                 (384, 511, origination_cap if financing == "conventional" else ""),
 
                 # C. FHA insured financing. Includes default FHA section if not supplied.
-                (58,  418, ck(financing == "fha"), "check_small"),
-                (260, 421, first_present(s.get("fhaSection"), s.get("fhaProgram"), "203(b)") if financing == "fha" else "", 8),
-                (93,  405, fmt_money(s.get("loanAmount", "")) if financing == "fha" else ""),
-                (135, 392, loan_years if financing == "fha" else ""),
-                (359, 392, interest_cap if financing == "fha" else ""),
-                (128, 378, interest_first_years if financing == "fha" else ""),
-                (245, 365, origination_cap if financing == "fha" else ""),
+                (58,  416, ck(financing == "fha"), "check_small"),
+                (273, 420, first_present(s.get("fhaSection"), s.get("fhaProgram"), "203(b)") if financing == "fha" else "", 8),
+                (99,  411, fmt_money(s.get("loanAmount", "")) if financing == "fha" else ""),
+                (136, 397, loan_years if financing == "fha" else ""),
+                (358, 397, interest_cap if financing == "fha" else ""),
+                (116, 383, interest_first_years if financing == "fha" else ""),
+                (240, 371, origination_cap if financing == "fha" else ""),
 
                 # D. VA guaranteed financing.
-                (60,  355, ck(financing == "va"), "check_small"),
-                (482, 354, fmt_money(s.get("loanAmount", "")) if financing == "va" else ""),
-                (501, 341, loan_years if financing == "va" else ""),
-                (253, 330, interest_cap if financing == "va" else ""),
-                (398, 328, interest_first_years if financing == "va" else ""),
-                (96,  313, origination_cap if financing == "va" else ""),
+                (63,  353, ck(financing == "va"), "check_small"),
+                (482, 349, fmt_money(s.get("loanAmount", "")) if financing == "va" else ""),
+                (497, 333, loan_years if financing == "va" else ""),
+                (246, 325, interest_cap if financing == "va" else ""),
+                (391, 321, interest_first_years if financing == "va" else ""),
+                (82,  306, origination_cap if financing == "va" else ""),
                 
                 # E. USDA guaranteed financing.
                 (58,  307, ck(financing == "usda"), "check_small"),
@@ -592,7 +592,7 @@ def fill_and_merge(offer):
 
                 (90, 584, ck(s.get("buyerApproval") == "no"), "check_small"),
 
-                (125, 427, fha_va_value),
+                (125, 421, fha_va_value),
             ],
         }
 
