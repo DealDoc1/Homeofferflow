@@ -611,15 +611,15 @@ def fill_and_merge(offer):
                 (101, 407, fmt_money(s.get("loanAmount", "")) if financing == "fha" else ""),
                 (142, 394, loan_years if financing == "fha" else ""),
                 (356, 394, interest_cap if financing == "fha" else ""),
-                (116, 381, interest_first_years if financing == "fha" else ""),
+                (111, 381, interest_first_years if financing == "fha" else ""),
                 (229, 371, origination_cap if financing == "fha" else ""),
 
                 # D. VA guaranteed financing.
                 (58,  358, ck(financing == "va"), "check_small"),
                 (466, 363, fmt_money(s.get("loanAmount", "")) if financing == "va" else ""),
                 (490, 346, loan_years if financing == "va" else ""),
-                (244, 334, interest_cap if financing == "va" else ""),
-                (410, 334, interest_first_years if financing == "va" else ""),
+                (240, 335, interest_cap if financing == "va" else ""),
+                (410, 335, interest_first_years if financing == "va" else ""),
                 (118, 315, origination_cap if financing == "va" else ""),
 
                 # E. USDA guaranteed financing.
