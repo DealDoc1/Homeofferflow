@@ -389,8 +389,8 @@ def build_pages_data(
         (68,  426, ck(has_sale), "check_small"),
         (68,  378, ck(has_bkup), "check_small"),
 
-       (319, 373, ck(lease_residential), "check_small"),
-(319, 358, ck(lease_fixture), "check_small"),
+     (319, 365, ck(lease_residential), "check_small"),
+(319, 350, ck(lease_fixture), "check_small"),
         # Do not check the PID/MUD addendum box unless an actual notice addendum is generated and attached.
         # The wizard should warn users to confirm this with seller/title instead.
         #(319, 305, ck(val_lower(s.get("mud")) in ["yes", "unknown"] or truthy(s.get("pid"))), "check_small"),
