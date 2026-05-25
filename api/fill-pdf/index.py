@@ -542,7 +542,7 @@ def fill_and_merge(offer):
             "21"
         )
 
-        fha_va_value = fmt_money(price) if financing in ["fha", "va"] else ""
+       fha_va_value = fmt_money(first_present(s.get("appraisedValue"), s.get("price"))) if financing in ["fha", "va"] else ""
 
         fin_pages = {
             0: [
@@ -592,7 +592,7 @@ def fill_and_merge(offer):
 
                 (90, 584, ck(s.get("buyerApproval") == "no"), "check_small"),
 
-                (205, 382, fha_va_value),
+                (92, 457, fha_va_value),
             ],
         }
 
