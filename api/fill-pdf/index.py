@@ -542,7 +542,7 @@ def fill_and_merge(offer):
             "21"
         )
 
-       fha_va_value = fmt_money(first_present(s.get("appraisedValue"), s.get("price"))) if financing in ["fha", "va"] else ""
+        fha_va_value = fmt_money(first_present(s.get("appraisedValue"), s.get("price"))) if financing in ["fha", "va"] else ""
 
         fin_pages = {
             0: [
@@ -763,7 +763,7 @@ def handle_checkout(event):
     }
 
 
-class Handler(BaseHTTPRequestHandler):
+class handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         try:
@@ -811,6 +811,3 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", "application/json")
         self.end_headers()
         self.wfile.write(json.dumps(data).encode())
-
-
-handler = Handler
