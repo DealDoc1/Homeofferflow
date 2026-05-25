@@ -592,7 +592,7 @@ def fill_and_merge(offer):
 
                 (90, 584, ck(s.get("buyerApproval") == "no"), "check_small"),
 
-                (125, 437, fha_va_value),
+                (125, 427, fha_va_value),
             ],
         }
 
