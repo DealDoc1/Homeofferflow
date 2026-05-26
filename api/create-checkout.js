@@ -6,13 +6,27 @@ module.exports = async (req, res) => {
   }
 
   const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
-  const { priceId, email, plan, offerData } = req.body;
+  const { priceId, email, plan, offerData, successUrl, cancelUrl } = req.body;
 
   if (!priceId || !email || !plan || !offerData) {
     return res.status(400).json({ error: 'Missing priceId, email, plan, or offerData' });
   }
 
   try {
+    const origin =
+      req.headers.origin ||
+      (req.headers.host ? `https://${req.headers.host}` : 'https://www.homeofferflow.com');
+
+    const safeSuccessUrl =
+      successUrl && String(successUrl).startsWith('http')
+        ? successUrl
+        : `${origin}/?payment=success&plan=${encodeURIComponent(plan)}`;
+
+    const safeCancelUrl =
+      cancelUrl && String(cancelUrl).startsWith('http')
+        ? cancelUrl
+        : `${origin}/?payment=cancelled&plan=${encodeURIComponent(plan)}`;
+
     const offerDataString = JSON.stringify({
       ...offerData,
       _paymentEmail: email,
@@ -22,7 +36,8 @@ module.exports = async (req, res) => {
     const chunks = offerDataString.match(/.{1,450}/g) || [];
 
     const metadata = {
-      plan: plan,
+      plan,
+      payment_email: email,
       offer_parts: String(chunks.length)
     };
 
@@ -37,8 +52,8 @@ module.exports = async (req, res) => {
       customer_email: email,
       allow_promotion_codes: true,
       metadata,
-      success_url: `${req.headers.origin}/?success=true&plan=${encodeURIComponent(plan)}`,
-      cancel_url: req.headers.origin,
+      success_url: safeSuccessUrl,
+      cancel_url: safeCancelUrl
     });
 
     return res.status(200).json({ url: session.url });
