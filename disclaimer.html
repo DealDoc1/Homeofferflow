@@ -1,0 +1,75 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root { --navy:#0d1f35; --navy-mid:#152840; --gold:#c8973f; --gold-light:#e8b86d; --white:#fff; --gray:#a8bdd1; --sage:#6db38f; --warn:#e8935a; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:'DM Sans',sans-serif; background:var(--navy); color:var(--white); line-height:1.65; }
+    body::before { content:''; position:fixed; inset:0; background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E"); pointer-events:none; opacity:.6; }
+    .wrap { position:relative; max-width:900px; margin:0 auto; padding:3rem 1.25rem 4rem; }
+    .top { display:flex; justify-content:space-between; gap:1rem; align-items:center; margin-bottom:2.5rem; }
+    .logo { font-family:'Playfair Display',serif; font-size:1.45rem; font-weight:800; color:var(--white); text-decoration:none; }
+    .logo span { color:var(--gold); }
+    .back { color:var(--gold-light); text-decoration:none; font-weight:700; font-size:.9rem; }
+    .card { background:rgba(255,255,255,.035); border:1px solid rgba(255,255,255,.09); border-radius:18px; padding:2rem; box-shadow:0 18px 60px rgba(0,0,0,.22); }
+    h1 { font-family:'Playfair Display',serif; font-size:clamp(2rem,5vw,3rem); line-height:1.1; margin:0 0 .5rem; }
+    h2 { font-family:'Playfair Display',serif; font-size:1.45rem; margin:2rem 0 .5rem; color:var(--gold-light); }
+    h3 { font-size:1rem; margin:1.3rem 0 .4rem; color:var(--white); }
+    p, li { color:var(--gray); font-size:.96rem; }
+    strong { color:var(--white); }
+    a { color:var(--gold-light); }
+    ul { padding-left:1.25rem; }
+    .updated { color:var(--sage); font-weight:700; font-size:.85rem; margin-bottom:1.25rem; }
+    .notice { background:rgba(232,147,90,.08); border:1px solid rgba(232,147,90,.25); color:var(--warn); border-radius:12px; padding:1rem; margin:1.25rem 0; }
+    .notice p { margin:0; color:var(--warn); }
+    footer { color:#7a8fa8; font-size:.82rem; text-align:center; margin-top:2rem; }
+  </style>
+  <title>Disclaimer | HomeOfferFlow</title>
+</head>
+<body>
+  <main class="wrap">
+    <div class="top"><a class="logo" href="/">Home<span>Offer</span>Flow</a><a class="back" href="/">← Back to HomeOfferFlow</a></div>
+    <section class="card">
+      <h1>Disclaimer</h1>
+      <div class="updated">Last updated: May 26, 2026</div>
+      <div class="notice"><p><strong>Read this carefully before using HomeOfferFlow.</strong> Real estate contracts can create legally binding obligations. HomeOfferFlow is software, not a substitute for a licensed Texas real estate agent, broker, attorney, lender, title company, inspector, or other qualified professional.</p></div>
+
+      <h2>1. Not Legal Advice</h2>
+      <p>HomeOfferFlow does not provide legal advice, legal opinions, legal strategy, contract interpretation, or legal representation. Information shown in the workflow, helper text, summaries, emails, or generated documents is for general informational and form-completion purposes only.</p>
+
+      <h2>2. Not a Law Firm or Attorney</h2>
+      <p>HomeOfferFlow is not a law firm. No attorney-client relationship is created by using the site, answering questions, generating documents, paying for a product, receiving emails, or requesting optional review/support services unless you separately enter into a written engagement agreement with a licensed attorney.</p>
+
+      <h2>3. Not a Real Estate Brokerage or Buyer Representation</h2>
+      <p>HomeOfferFlow is not acting as your real estate agent, broker, fiduciary, transaction coordinator, or representative. Use of HomeOfferFlow does not create a buyer representation agreement, listing agreement, intermediary relationship, agency relationship, fiduciary relationship, or brokerage-client relationship.</p>
+
+      <h2>4. TREC Forms</h2>
+      <p>HomeOfferFlow may assist in completing TREC-promulgated forms. TREC forms are public records and may be available to the public, but they are primarily intended for use by trained Texas real estate license holders. You are responsible for determining whether the forms and addenda generated are appropriate for your transaction.</p>
+
+      <h2>5. User-Provided Information</h2>
+      <p>Documents are generated from the information you provide. If you enter incomplete, inaccurate, outdated, misunderstood, or inappropriate information, the generated documents may be incomplete, inaccurate, or unsuitable.</p>
+
+      <h2>6. No Guarantee of Acceptance or Success</h2>
+      <p>HomeOfferFlow does not guarantee that any offer will be accepted, countered, reviewed, signed, funded, closed, or legally enforceable. Seller decisions, listing agent practices, market conditions, financing, inspections, appraisals, title issues, HOA issues, disclosures, and other transaction factors are outside our control.</p>
+
+      <h2>7. Deadlines and Later Changes</h2>
+      <p>You are responsible for tracking deadlines and reviewing any counteroffers, amendments, revised contracts, signature requests, disclosure documents, addenda, or other changes sent after your offer packet is generated. HomeOfferFlow does not monitor your transaction after generation unless expressly agreed in a separate written service agreement.</p>
+
+      <h2>8. Professional Review Recommended</h2>
+      <p>Before submitting, signing, or relying on any real estate document, you should consider having it reviewed by a licensed Texas real estate agent, broker, attorney, lender, title company, or other qualified professional as appropriate for your situation.</p>
+
+      <h2>9. AI or Automated Guidance</h2>
+      <p>If HomeOfferFlow offers AI-assisted review, scoring, summaries, or suggestions, those features are informational only and may be incomplete or incorrect. AI output is not legal advice, brokerage advice, financial advice, or a substitute for professional review.</p>
+
+      <h2>10. Contact</h2>
+      <p>Questions may be sent to <a href="mailto:support@homeofferflow.com">support@homeofferflow.com</a>.</p>
+
+    </section>
+    <footer>© 2026 HomeOfferFlow · A BrewBQ Investments LLC product · support@homeofferflow.com</footer>
+  </main>
+</body>
+</html>
