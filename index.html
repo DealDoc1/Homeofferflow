@@ -12,36 +12,50 @@
       console.log('Google Maps loaded');
       if (window._hofPlacesSetup) window._hofPlacesSetup();
     };
-  
+    
   function checkPaymentReturn() {
-    const params = new URLSearchParams(window.location.search);
-    const showingPaid = params.get('showing') === 'success';
-    const paid = params.get('payment') === 'success' || params.get('success') === 'true' || params.get('session_id');
+  // Subscription checkout returns should not trigger the offer-packet success screen.
+  if (window.__hofSubscriptionReturn) return;
 
-    if (!paid && !showingPaid) return;
+  const params = new URLSearchParams(window.location.search);
 
-    // Prevent saved-draft restore from overriding the success screen after Stripe returns.
-    window.__hofPaymentReturn = true;
+  if (params.get('subscription')) return;
 
-    try {
-      const saved = sessionStorage.getItem('hofOfferData');
-      if (saved) state.data = { ...state.data, ...JSON.parse(saved) };
+  const showingPaid = params.get('showing') === 'success';
+  const paid =
+    params.get('payment') === 'success' ||
+    params.get('success') === 'true' ||
+    params.get('session_id');
 
-      const savedShowing = sessionStorage.getItem('hofShowingData');
-      if (savedShowing) state.data = { ...state.data, ...JSON.parse(savedShowing) };
-    } catch (e) {}
+  if (!paid && !showingPaid) return;
 
-    openWizard();
+  // Prevent saved-draft restore from overriding the success screen after Stripe returns.
+  window.__hofPaymentReturn = true;
 
-    const paymentEmail = params.get('email') || state.data.buyerEmail || state.data._paymentEmail || state.data.buyerEmail || document.getElementById('paymentEmail')?.value || '';
+  try {
+    const saved = sessionStorage.getItem('hofOfferData');
+    if (saved) state.data = { ...state.data, ...JSON.parse(saved) };
 
-    if (showingPaid) showShowingSuccess(paymentEmail);
-    else showPaymentSuccess(paymentEmail);
+    const savedShowing = sessionStorage.getItem('hofShowingData');
+    if (savedShowing) state.data = { ...state.data, ...JSON.parse(savedShowing) };
+  } catch (e) {}
 
-    // Clean the URL so refreshes do not re-trigger the success state forever.
-    const cleanUrl = window.location.origin + window.location.pathname;
-    window.history.replaceState({}, document.title, cleanUrl);
-  }
+  openWizard();
+
+  const paymentEmail =
+    params.get('email') ||
+    state.data.buyerEmail ||
+    state.data._paymentEmail ||
+    document.getElementById('paymentEmail')?.value ||
+    '';
+
+  if (showingPaid) showShowingSuccess(paymentEmail);
+  else showPaymentSuccess(paymentEmail);
+
+  // Clean the URL so refreshes do not re-trigger the success state forever.
+  const cleanUrl = window.location.origin + window.location.pathname;
+  window.history.replaceState({}, document.title, cleanUrl);
+}
 
   window.addEventListener('load', checkPaymentReturn);
 
