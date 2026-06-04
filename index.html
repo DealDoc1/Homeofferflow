@@ -57,7 +57,8 @@
   window.history.replaceState({}, document.title, cleanUrl);
 }
 
-  window.addEventListener('load', checkPaymentReturn);
+  window.addEventListener('load', checkSubscriptionReturn);
+window.addEventListener('load', checkPaymentReturn);
 
 
   window.addEventListener('resize', () => {
