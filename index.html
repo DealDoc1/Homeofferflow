@@ -1680,12 +1680,23 @@ window.addEventListener('load', checkPaymentReturn);
       </div>
       <div class="usage-meter"><div class="usage-fill" style="width:${pct}%"></div></div>
       <div class="usage-copy"><strong>${used} / ${limit}</strong> signed offer packets used for ${escapeAttr(usage.billingMonth || getBillingMonth())}. ${good ? 'You can generate and send new packets.' : 'Generation is blocked until billing/access is updated.'}</div>
-      <div class="account-actions-row" style="margin-top:0.85rem;">
-        <button class="btn-secondary" type="button" onclick="startSubscriptionCheckout('${role}','monthly')">${isPaid ? 'Change to Monthly' : 'Subscribe Monthly'}</button>
-        <button class="btn-secondary" type="button" onclick="startSubscriptionCheckout('${role}','annual')">${isPaid ? 'Change to Annual' : 'Subscribe Annual'}</button>
-      </div>
-      <div style="margin-top:0.55rem; color:var(--gray); font-size:0.74rem; line-height:1.45;">Promo codes can be entered at Stripe checkout. Beta users can keep testing until you switch them to paid access.</div>
-    `;
+     ${isPaid ? `
+  <div class="account-actions-row" style="margin-top:0.85rem;">
+    <button class="btn-secondary" type="button" onclick="alert('Billing portal is coming next. For now, manage this subscription in Stripe or contact support@homeofferflow.com.')">
+      Manage Billing
+    </button>
+  </div>
+  <div style="margin-top:0.55rem; color:var(--gray); font-size:0.74rem; line-height:1.45;">
+    Your subscription is active. New subscription checkout is hidden to prevent duplicate subscriptions.
+  </div>
+` : `
+  <div class="account-actions-row" style="margin-top:0.85rem;">
+    <button class="btn-secondary" type="button" onclick="startSubscriptionCheckout('${role}','monthly')">Subscribe Monthly</button>
+    <button class="btn-secondary" type="button" onclick="startSubscriptionCheckout('${role}','annual')">Subscribe Annual</button>
+  </div>
+  <div style="margin-top:0.55rem; color:var(--gray); font-size:0.74rem; line-height:1.45;">
+    Promo codes can be entered at Stripe checkout. Beta users can keep testing until you switch them to paid access.
+  </div>
   }
 
   async function startSubscriptionCheckout(plan = 'agent', billing = 'monthly') {
