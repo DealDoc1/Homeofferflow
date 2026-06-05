@@ -185,8 +185,11 @@ class handler(BaseHTTPRequestHandler):
         if not current_period_end and first_item:
             current_period_end = first_item.get("current_period_end")
 
-        cancel_at_period_end = bool(sub.get("cancel_at_period_end", False))
         cancel_at = sub.get("cancel_at")
+        cancel_at_period_end = bool(sub.get("cancel_at_period_end", False))
+
+        if cancel_at and status in ("active", "trialing"):
+        cancel_at_period_end = True
 
         payload = {
             "role": role,
