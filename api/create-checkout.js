@@ -5,14 +5,27 @@ module.exports = async (req, res) => {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
-  const { priceId, email, plan, offerData, successUrl, cancelUrl } = req.body;
-
-  if (!priceId || !email || !plan || !offerData) {
-    return res.status(400).json({ error: 'Missing priceId, email, plan, or offerData' });
-  }
-
   try {
+    const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
+
+    const {
+      priceId,
+      email,
+      plan = 'self',
+      offerData = {},
+      successUrl,
+      cancelUrl
+    } = req.body || {};
+
+    if (!email || !email.includes('@')) {
+      return res.status(400).json({ error: 'Missing or invalid email' });
+    }
+
+    const finalPriceId =
+      priceId ||
+      process.env.STRIPE_BUYER_OFFER_PRICE_ID ||
+      'price_1TYTYqAELe66ESXnhNQmydWn';
+
     const origin =
       req.headers.origin ||
       (req.headers.host ? `https://${req.headers.host}` : 'https://www.homeofferflow.com');
@@ -20,12 +33,12 @@ module.exports = async (req, res) => {
     const safeSuccessUrl =
       successUrl && String(successUrl).startsWith('http')
         ? successUrl
-        : `${origin}/?payment=success&plan=${encodeURIComponent(plan)}`;
+        : `${origin}/?payment=success&email=${encodeURIComponent(email)}`;
 
     const safeCancelUrl =
       cancelUrl && String(cancelUrl).startsWith('http')
         ? cancelUrl
-        : `${origin}/?payment=cancelled&plan=${encodeURIComponent(plan)}`;
+        : `${origin}/?payment=cancelled`;
 
     const offerDataString = JSON.stringify({
       ...offerData,
@@ -47,7 +60,7 @@ module.exports = async (req, res) => {
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
-      line_items: [{ price: priceId, quantity: 1 }],
+      line_items: [{ price: finalPriceId, quantity: 1 }],
       mode: 'payment',
       customer_email: email,
       allow_promotion_codes: true,
@@ -57,9 +70,8 @@ module.exports = async (req, res) => {
     });
 
     return res.status(200).json({ url: session.url });
-
   } catch (err) {
     console.error('Stripe checkout error:', err);
-    return res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: err.message || 'Stripe checkout failed' });
   }
 };
