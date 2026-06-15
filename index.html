@@ -57,8 +57,10 @@
   window.history.replaceState({}, document.title, cleanUrl);
 }
 
-  window.addEventListener('load', checkSubscriptionReturn);
-window.addEventListener('load', checkPaymentReturn);
+  window.addEventListener('load', function () {
+  if (typeof checkSubscriptionReturn === 'function') checkSubscriptionReturn();
+  if (typeof checkPaymentReturn === 'function') checkPaymentReturn();
+});
 
 
   window.addEventListener('resize', () => {
