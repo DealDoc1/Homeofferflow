@@ -2888,15 +2888,23 @@ window.addEventListener('load', checkPaymentReturn);
     return parts.join(', ').replace(', TX,', ', TX');
   }
 
-  function cleanOfferStatus(status) {
-    const raw = String(status || 'Draft').trim();
-    const compact = raw.toLowerCase().replace(/[_\s-]+/g, ' ');
-    if (compact.includes('fail')) return 'Generation Failed';
-    if (compact.includes('generating')) return 'Generating';
-    if (compact.includes('generated') || compact.includes('complete')) return 'Generated';
-    if (compact.includes('delete')) return 'Deleted';
-    return raw || 'Draft';
-  }
+ function cleanOfferStatus(status) {
+  const raw = String(status || 'Draft').trim();
+  const compact = raw.toLowerCase().replace(/[_\s-]+/g, ' ');
+
+  if (compact.includes('awaiting')) return 'Awaiting Signature';
+  if (compact.includes('viewed')) return 'Viewed';
+  if (compact.includes('signed')) return 'Signed';
+  if (compact.includes('declined')) return 'Declined';
+  if (compact.includes('expired')) return 'Expired';
+
+  if (compact.includes('fail')) return 'Generation Failed';
+  if (compact.includes('generating')) return 'Generating';
+  if (compact.includes('generated') || compact.includes('complete')) return 'Generated';
+  if (compact.includes('delete')) return 'Deleted';
+
+  return raw || 'Draft';
+}
 
   function offerStatusClass(status) {
     const clean = cleanOfferStatus(status).toLowerCase();
