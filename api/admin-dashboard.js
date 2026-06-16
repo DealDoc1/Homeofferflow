@@ -95,12 +95,15 @@ function cleanStatusLabel(status) {
   const compact = raw.toLowerCase().replace(/[_\s-]+/g, ' ');
 
   if (!compact) return '';
-  if (compact.includes('awaiting')) return 'Awaiting Signature';
+  if (compact.includes('awaiting')) return 'Awaiting Buyer Signature';
+  if (compact.includes('buyer signature')) return 'Awaiting Buyer Signature';
   if (compact.includes('viewed')) return 'Viewed';
-  if (compact.includes('signed') || compact.includes('completed') || compact === 'complete') return 'Signed';
+  if (compact.includes('in progress')) return 'Partially Signed';
+  if (compact.includes('partial')) return 'Partially Signed';
+  if (compact.includes('signed') || compact.includes('completed') || compact === 'complete') return 'Buyer Signatures Complete';
   if (compact.includes('declined')) return 'Declined';
   if (compact.includes('expired')) return 'Expired';
-  if (compact.includes('sent')) return 'Awaiting Signature';
+  if (compact.includes('sent')) return 'Awaiting Buyer Signature';
   if (compact.includes('created') || compact.includes('generated')) return 'Created';
   if (compact.includes('draft')) return 'Draft';
   if (compact.includes('delete')) return 'Deleted';
@@ -149,11 +152,10 @@ function normalizeOfferForAdmin(offer = {}) {
   let normalizedSignwellStatus = cleanStatusLabel(directSignwellStatus);
   const normalStatus = cleanStatusLabel(offer.status || '');
 
-  // SignWell often returns a document id with status "Created" before later webhook events.
-  // If a SignWell document exists and the current status is only created/generated/sent,
-  // treat it as awaiting buyer signature.
+  // SignWell often returns a document id with status 'Created' before webhooks move it to viewed/signed.
+  // If a SignWell document exists and the current status is only created/generated/sent, treat it as awaiting buyer signature.
   if (documentId && ['Created', 'Generated', 'Sent'].includes(normalizedSignwellStatus || normalStatus)) {
-    normalizedSignwellStatus = 'Awaiting Signature';
+    normalizedSignwellStatus = 'Awaiting Buyer Signature';
   }
 
   const displayStatus = normalizedSignwellStatus || normalStatus || 'Draft';
@@ -175,7 +177,8 @@ function buildStatusMetrics(offers = []) {
 
     if (lower.includes('awaiting')) acc.awaitingSignature += 1;
     else if (lower.includes('viewed')) acc.viewed += 1;
-    else if (lower.includes('signed')) acc.signed += 1;
+    else if (lower.includes('partial') || lower.includes('in progress')) acc.partial += 1;
+    else if (lower.includes('signed') || lower.includes('buyer signatures complete')) acc.signed += 1;
     else if (lower.includes('declined')) acc.declined += 1;
     else if (lower.includes('expired')) acc.expired += 1;
 
@@ -183,6 +186,7 @@ function buildStatusMetrics(offers = []) {
   }, {
     awaitingSignature: 0,
     viewed: 0,
+    partial: 0,
     signed: 0,
     declined: 0,
     expired: 0
@@ -270,6 +274,7 @@ module.exports = async (req, res) => {
         signwell: signwellMetrics,
         awaitingSignatureCount: signwellMetrics.awaitingSignature,
         viewedCount: signwellMetrics.viewed,
+        partialCount: signwellMetrics.partial,
         signedCount: signwellMetrics.signed,
         declinedCount: signwellMetrics.declined,
         expiredCount: signwellMetrics.expired
