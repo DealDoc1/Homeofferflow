@@ -149,7 +149,10 @@ function normalizeOfferForAdmin(offer = {}) {
   let normalizedSignwellStatus = cleanStatusLabel(directSignwellStatus);
   const normalStatus = cleanStatusLabel(offer.status || '');
 
-  if (!normalizedSignwellStatus && documentId && ['Created', 'Generated'].includes(normalStatus)) {
+  // SignWell often returns a document id with status "Created" before later webhook events.
+  // If a SignWell document exists and the current status is only created/generated/sent,
+  // treat it as awaiting buyer signature.
+  if (documentId && ['Created', 'Generated', 'Sent'].includes(normalizedSignwellStatus || normalStatus)) {
     normalizedSignwellStatus = 'Awaiting Signature';
   }
 
