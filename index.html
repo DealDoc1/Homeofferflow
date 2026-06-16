@@ -1726,16 +1726,46 @@ window.addEventListener('load', checkPaymentReturn);
       target.dataset.loaded = '1';
       target.innerHTML = `
         <div class="admin-grid">
-          <div class="admin-metric"><div class="admin-metric-label">Offer Orders</div><div class="admin-metric-value">${metrics.offerCount || offers.length || 0}</div></div>
-          <div class="admin-metric"><div class="admin-metric-label">Showings</div><div class="admin-metric-value">${metrics.showingCount || showings.length || 0}</div></div>
-          <div class="admin-metric"><div class="admin-metric-label">Subscriptions</div><div class="admin-metric-value">${metrics.subscriptionCount || subscriptions.length || 0}</div></div>
-          <div class="admin-metric"><div class="admin-metric-label">Est. Offer Volume</div><div class="admin-metric-value">${adminMoney(metrics.offerVolume || 0)}</div></div>
-        </div>
-        <div class="admin-section"><h4>Recent Offers</h4>${renderAdminRows(offers, 'offers')}</div>
-        <div class="admin-section"><h4>Recent Showing Requests</h4>${renderAdminRows(showings, 'showings')}</div>
-        <div class="admin-section"><h4>Subscriptions / Beta Users</h4>${renderAdminRows(subscriptions, 'subscriptions')}</div>
-        <div class="admin-section"><h4>Feedback / Issues</h4>${renderAdminRows(feedback, 'feedback')}</div>
-      `;
+  <div class="admin-metric">
+    <div class="admin-metric-label">Offer Orders</div>
+    <div class="admin-metric-value">${metrics.offerCount || offers.length || 0}</div>
+  </div>
+
+  <div class="admin-metric">
+    <div class="admin-metric-label">Showings</div>
+    <div class="admin-metric-value">${metrics.showingCount || showings.length || 0}</div>
+  </div>
+
+  <div class="admin-metric">
+    <div class="admin-metric-label">Subscriptions</div>
+    <div class="admin-metric-value">${metrics.subscriptionCount || subscriptions.length || 0}</div>
+  </div>
+
+  <div class="admin-metric">
+    <div class="admin-metric-label">Offer Volume</div>
+    <div class="admin-metric-value">${adminMoney(metrics.offerVolume || 0)}</div>
+  </div>
+
+  <div class="admin-metric">
+    <div class="admin-metric-label">Awaiting Signature</div>
+    <div class="admin-metric-value">${awaitingCount}</div>
+  </div>
+
+  <div class="admin-metric">
+    <div class="admin-metric-label">Viewed</div>
+    <div class="admin-metric-value">${viewedCount}</div>
+  </div>
+
+  <div class="admin-metric">
+    <div class="admin-metric-label">Signed</div>
+    <div class="admin-metric-value">${signedCount}</div>
+  </div>
+
+  <div class="admin-metric">
+    <div class="admin-metric-label">Declined</div>
+    <div class="admin-metric-value">${declinedCount}</div>
+  </div>
+</div>
     } catch (err) {
       console.error('Admin dashboard load failed:', err);
       target.innerHTML = '<div class="admin-empty">Admin dashboard error: ' + adminSafe(err?.message || err) + '</div>';
