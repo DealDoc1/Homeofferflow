@@ -2907,13 +2907,21 @@ window.addEventListener('load', checkPaymentReturn);
 }
 
   function offerStatusClass(status) {
-    const clean = cleanOfferStatus(status).toLowerCase();
-    if (clean.includes('fail')) return 'status-failed';
-    if (clean.includes('generating')) return 'status-generating';
-    if (clean.includes('generated')) return 'status-generated';
-    if (clean.includes('delete')) return 'status-deleted';
-    return 'status-draft';
-  }
+  const clean = cleanOfferStatus(status).toLowerCase();
+
+  if (clean.includes('awaiting')) return 'status-generating';
+  if (clean.includes('viewed')) return 'status-generated';
+  if (clean.includes('signed')) return 'status-generated';
+  if (clean.includes('declined')) return 'status-failed';
+  if (clean.includes('expired')) return 'status-failed';
+
+  if (clean.includes('fail')) return 'status-failed';
+  if (clean.includes('generating')) return 'status-generating';
+  if (clean.includes('generated')) return 'status-generated';
+  if (clean.includes('delete')) return 'status-deleted';
+
+  return 'status-draft';
+}
 
   function getOfferPacketMeta(offer) {
     const d = offer.offer_data || {};
