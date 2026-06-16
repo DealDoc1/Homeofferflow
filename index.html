@@ -1707,6 +1707,21 @@ window.addEventListener('load', checkPaymentReturn);
       const showings = result.showings || [];
       const subscriptions = result.subscriptions || [];
       const feedback = result.feedback || [];
+      const awaitingCount = offers.filter(o =>
+        String(o.signwell_status || '').toLowerCase().includes('awaiting')
+      ).length;
+
+      const viewedCount = offers.filter(o =>
+        String(o.signwell_status || '').toLowerCase().includes('viewed')
+      ).length;
+
+      const signedCount = offers.filter(o =>
+        String(o.signwell_status || '').toLowerCase().includes('signed')
+      ).length;
+
+      const declinedCount = offers.filter(o =>
+        String(o.signwell_status || '').toLowerCase().includes('declined')
+      ).length;
 
       target.dataset.loaded = '1';
       target.innerHTML = `
