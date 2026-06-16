@@ -61,6 +61,18 @@ async function selectRecent(table, orderCandidates = ['created_at', 'updated_at'
   return supabaseSelect(table, `?select=*&limit=${limit}`);
 }
 
+function parseJsonObject(value) {
+  if (!value) return {};
+  if (typeof value === 'object') return value;
+  if (typeof value !== 'string') return {};
+  try {
+    const parsed = JSON.parse(value);
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch (err) {
+    return {};
+  }
+}
+
 function parseMetadataObject(metadata = {}) {
   const count = Number(metadata.offer_parts || 0);
   if (!count) return {};
@@ -76,6 +88,102 @@ function parseMetadataObject(metadata = {}) {
     console.warn('Could not parse checkout metadata offer payload:', err?.message || err);
     return {};
   }
+}
+
+function cleanStatusLabel(status) {
+  const raw = String(status || '').trim();
+  const compact = raw.toLowerCase().replace(/[_\s-]+/g, ' ');
+
+  if (!compact) return '';
+  if (compact.includes('awaiting')) return 'Awaiting Signature';
+  if (compact.includes('viewed')) return 'Viewed';
+  if (compact.includes('signed') || compact.includes('completed') || compact === 'complete') return 'Signed';
+  if (compact.includes('declined')) return 'Declined';
+  if (compact.includes('expired')) return 'Expired';
+  if (compact.includes('sent')) return 'Awaiting Signature';
+  if (compact.includes('created') || compact.includes('generated')) return 'Created';
+  if (compact.includes('draft')) return 'Draft';
+  if (compact.includes('delete')) return 'Deleted';
+
+  return raw;
+}
+
+function getNestedSignWellStatus(offerData = {}) {
+  return (
+    offerData.signwellStatus ||
+    offerData.signwell_status ||
+    offerData.signwell?.status ||
+    offerData.signwell?.response?.status ||
+    offerData.signwell?.response?.document_status ||
+    offerData.signwell?.response?.data?.status ||
+    ''
+  );
+}
+
+function getNestedSignWellDocumentId(offerData = {}) {
+  return (
+    offerData.signwellDocumentId ||
+    offerData.signwell_document_id ||
+    offerData.signwell?.document_id ||
+    offerData.signwell?.id ||
+    offerData.signwell?.response?.id ||
+    offerData.signwell?.response?.document_id ||
+    offerData.signwell?.response?.data?.id ||
+    ''
+  );
+}
+
+function normalizeOfferForAdmin(offer = {}) {
+  const offerData = parseJsonObject(offer.offer_data);
+
+  const documentId =
+    offer.signwell_document_id ||
+    getNestedSignWellDocumentId(offerData) ||
+    '';
+
+  const directSignwellStatus =
+    offer.signwell_status ||
+    getNestedSignWellStatus(offerData) ||
+    '';
+
+  let normalizedSignwellStatus = cleanStatusLabel(directSignwellStatus);
+  const normalStatus = cleanStatusLabel(offer.status || '');
+
+  if (!normalizedSignwellStatus && documentId && ['Created', 'Generated'].includes(normalStatus)) {
+    normalizedSignwellStatus = 'Awaiting Signature';
+  }
+
+  const displayStatus = normalizedSignwellStatus || normalStatus || 'Draft';
+
+  return {
+    ...offer,
+    offer_data: offerData,
+    signwell_document_id: documentId || offer.signwell_document_id || null,
+    signwell_status: normalizedSignwellStatus || offer.signwell_status || null,
+    display_status: displayStatus,
+    status: offer.status || displayStatus
+  };
+}
+
+function buildStatusMetrics(offers = []) {
+  return offers.reduce((acc, offer) => {
+    const status = cleanStatusLabel(offer.signwell_status || offer.display_status || offer.status || '');
+    const lower = status.toLowerCase();
+
+    if (lower.includes('awaiting')) acc.awaitingSignature += 1;
+    else if (lower.includes('viewed')) acc.viewed += 1;
+    else if (lower.includes('signed')) acc.signed += 1;
+    else if (lower.includes('declined')) acc.declined += 1;
+    else if (lower.includes('expired')) acc.expired += 1;
+
+    return acc;
+  }, {
+    awaitingSignature: 0,
+    viewed: 0,
+    signed: 0,
+    declined: 0,
+    expired: 0
+  });
 }
 
 async function getStripeSessions() {
@@ -119,12 +227,15 @@ module.exports = async (req, res) => {
   try {
     const admin = await verifyAdmin(req);
 
-    const [offers, feedback, subscriptions, sessions] = await Promise.all([
+    const [rawOffers, feedback, subscriptions, sessions] = await Promise.all([
       selectRecent('hof_offers', ['last_updated', 'generated_at', 'created_at'], 50),
       selectRecent('hof_feedback', ['created_at', 'updated_at'], 50),
       selectRecent('hof_subscriptions', ['updated_at', 'created_at'], 50),
       getStripeSessions()
     ]);
+
+    const offers = (rawOffers || []).map(normalizeOfferForAdmin);
+    const signwellMetrics = buildStatusMetrics(offers);
 
     const paidSessions = sessions.filter((s) => s.payment_status === 'paid');
 
@@ -138,7 +249,7 @@ module.exports = async (req, res) => {
 
     const showingRevenue = showings.reduce((sum, s) => sum + Number(s.amount_total || 0), 0);
 
-    const offerVolume = (offers || []).reduce((sum, o) => {
+    const offerVolume = offers.reduce((sum, o) => {
       return sum + (Number(o.offer_price || 0) || 0);
     }, 0);
 
@@ -152,7 +263,13 @@ module.exports = async (req, res) => {
         feedbackCount: feedback.length,
         offerVolume,
         offerCheckoutRevenue,
-        showingRevenue
+        showingRevenue,
+        signwell: signwellMetrics,
+        awaitingSignatureCount: signwellMetrics.awaitingSignature,
+        viewedCount: signwellMetrics.viewed,
+        signedCount: signwellMetrics.signed,
+        declinedCount: signwellMetrics.declined,
+        expiredCount: signwellMetrics.expired
       },
       offers,
       showings,
