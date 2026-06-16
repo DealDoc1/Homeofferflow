@@ -2941,7 +2941,11 @@ window.addEventListener('load', checkPaymentReturn);
     const rows = offers.map(o => {
       const subtitle = getOfferSubtitle(o);
       const price = o.offer_price ? '$' + Number(o.offer_price).toLocaleString() : '—';
-      const status = cleanOfferStatus(o.status || 'Draft');
+      const status = cleanOfferStatus(
+        o.signwell_status ||
+        o.status ||
+        'Draft'
+);
       const statusClass = offerStatusClass(status);
       const packetMeta = getOfferPacketMeta(o);
       const statusMetaHtml = packetMeta.length
