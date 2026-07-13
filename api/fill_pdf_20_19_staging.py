@@ -4,6 +4,7 @@ from http.server import BaseHTTPRequestHandler
 
 from pypdf import PdfReader, PdfWriter
 from reportlab.pdfgen import canvas
+from reportlab.pdfbase.pdfmetrics import stringWidth
 
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
 STRIPE_WHSEC   = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
@@ -321,6 +322,52 @@ def debug_grid_entries(step=25):
         entries.append((x, 745, str(x), 4))
 
     return entries
+
+
+def repair_text_entries(text):
+    """Fit Paragraph 7D(2) text onto its short first blank and full second blank."""
+    raw = " ".join(str(text or "").replace("\r", " ").replace("\n", " ").split())
+    if not raw:
+        return []
+
+    words = raw.split()
+    # The first printed blank begins after "repairs and treatments:"; the second
+    # blank spans the full text width. Reduce type only when both blanks need it.
+    for fs in [9.5, 9.25, 9.0, 8.75, 8.5, 8.25, 8.0, 7.75, 7.5, 7.25, 7.0, 6.75, 6.5, 6.25]:
+        first = []
+        while words:
+            trial = " ".join(first + [words[0]])
+            if stringWidth(trial, FONT, fs) <= 246:
+                first.append(words.pop(0))
+            else:
+                break
+
+        second = " ".join(words)
+        if stringWidth(second, FONT, fs) <= 463:
+            return [
+                (305, 699, " ".join(first), fs),
+                (89, 686, second, fs),
+            ]
+
+        # Retry from the full text at a smaller size.
+        words = raw.split()
+
+    # Extremely long instructions stay clipped to the two available blanks rather
+    # than spilling into the printed warning below.
+    first = []
+    while words:
+        trial = " ".join(first + [words[0]])
+        if stringWidth(trial, FONT, 6.25) <= 246:
+            first.append(words.pop(0))
+        else:
+            break
+    second = " ".join(words)
+    while second and stringWidth(second + "...", FONT, 6.25) > 463:
+        words.pop()
+        second = " ".join(words)
+    if second:
+        second += "..."
+    return [(305, 699, " ".join(first), 6.25), (89, 686, second, 6.25)]
 
 
 def add_debug_grid_to_pages(pages_dict):
@@ -650,8 +697,8 @@ def build_pages_data(
 
         (62,  720, ck(as_is == "yes"), "check_small"),
         (62,  712, ck(as_is == "repairs"), "check_small"),
-        # 17Y: keep repair text inside the two repair blanks; previous y was too low and crowded the instruction line.
-        *wrapped_entries(89, 705, s.get("repairsText", "") if as_is == "repairs" else "", max_chars=68, line_gap=7, fs=7.0, max_lines=2),
+        # 17Z: the first repair blank starts after the printed label; the second is full-width.
+        *repair_text_entries(s.get("repairsText", "") if as_is == "repairs" else ""),
 
         (428, 400, fmt_money(first_present(
             s.get("residentialServiceAmount"),
@@ -1100,15 +1147,14 @@ def fill_and_merge(offer):
             0: [
                 (245, 660, addr_full, 8),
 
-                # 17Y: Backup A(2) coordinate reset from user screenshots.
-                # First value belongs in the first money blank; option fee/days are on the next line.
-                (360, 529, fmt_money(bkup_addl_earnest) if bkup_addl_earnest else "", 8.5),
-                (92, 518, fmt_money(bkup_addl_option) if bkup_addl_option else "", 8.5),
-                (265, 518, str(bkup_addl_days) if bkup_addl_days else "", 8.5),
+                # 17Z: values are seated directly above the printed A(2) underscores.
+                (350, 522, fmt_money(bkup_addl_earnest) if bkup_addl_earnest else "", 8.5),
+                (90, 511, fmt_money(bkup_addl_option) if bkup_addl_option else "", 8.5),
+                (288, 511, str(bkup_addl_days) if bkup_addl_days else "", 8.5),
 
-                # 17Y: Paragraph G First Contract date; year moved left into the actual 20___ blank.
-                (112, 232, bkup_first_md, 8.5),
-                (257, 232, bkup_first_yy, 8.5),
+                # 17Z: Paragraph G date belongs on the line after "Contract) dated".
+                (170, 221, bkup_first_md, 8.5),
+                (348, 221, bkup_first_yy, 8.5),
 
                 (386, 176, bkup_term_md),
                 (530, 176, bkup_term_yy),
