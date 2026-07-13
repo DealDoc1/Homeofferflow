@@ -973,13 +973,14 @@ def fill_and_merge(offer):
                 (410, 335, interest_first_years if financing == "va" else ""),
                 (118, 315, origination_cap if financing == "va" else ""),
 
-                # E. USDA guaranteed financing.
+                # E. USDA guaranteed financing. Release 18A USDA-only coordinate fix.
+                # Loan amount and term were already usable; keep them frozen.
                 (58,  307, ck(financing == "usda"), "check_small"),
                 (482, 307, fmt_money(s.get("loanAmount", "")) if financing == "usda" else ""),
                 (492, 294, loan_years if financing == "usda" else ""),
-                (272, 282, interest_cap if financing == "usda" else ""),
-                (428, 282, interest_first_years if financing == "usda" else ""),
-                (139, 264, origination_cap if financing == "usda" else ""),
+                (230, 282, interest_cap if financing == "usda" else ""),
+                (395, 282, interest_first_years if financing == "usda" else ""),
+                (520, 264, origination_cap if financing == "usda" else ""),
             ],
             1: [
                 (205, 729, addr_full, 8),
