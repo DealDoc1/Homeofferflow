@@ -2429,7 +2429,7 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
 </nav>
 
 <section class="hero">
-  <div class="hero-badge"><span class="dot"></span>TREC 20-18 · Mandatory Jan 2025 · Official Texas Forms</div>
+  <div class="hero-badge"><span class="dot"></span>TREC 20-19 · Effective July 2026 · Official Texas Forms</div>
   <div class="user-pills">
     <div class="pill active" data-audience="homebuyer" onclick="setAudience('homebuyer')">Homebuyer</div>
     <div class="pill" data-audience="agent" onclick="setAudience('agent')">Agent / Broker</div>
@@ -2444,8 +2444,8 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
   </div>
   <div class="hero-price-note" id="heroPriceNote">No payment required to begin. Review the full offer summary before paying. <strong>Homebuyer offer packet: $99.</strong></div>
   <div class="trust-bar">
-    <div class="trust-item"><span class="dot"></span>TREC 1-4 Family Residential (20-18)</div>
-    <div class="trust-item"><span class="dot"></span>2025 mandatory addenda</div>
+    <div class="trust-item"><span class="dot"></span>TREC 1-4 Family Residential (20-19)</div>
+    <div class="trust-item"><span class="dot"></span>Verified buyer packet paths</div>
     <div class="trust-item"><span class="dot"></span>Mobile-first</div>
     <div class="trust-item"><span class="dot"></span>Instant PDF delivery</div>
   </div>
@@ -2463,7 +2463,7 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
   <h2>From blank contract to completed offer — fast.</h2>
   <div class="steps">
     <div class="step-card"><div class="step-num">01</div><h3>Answer plain questions</h3><p>No legal jargon. One section at a time. Built-in helper tips on every confusing field.</p></div>
-    <div class="step-card"><div class="step-num">02</div><h3>We fill the TREC form</h3><p>Your answers auto-populate the official TREC 20-18 contract and all 2025 required addenda.</p></div>
+    <div class="step-card"><div class="step-num">02</div><h3>We fill the TREC form</h3><p>Your answers auto-populate the official TREC 20-19 contract and the addenda currently supported by HomeOfferFlow.</p></div>
     <div class="step-card"><div class="step-num">03</div><h3>Review your offer</h3><p>See a plain-English summary of every field before you pay. Go back and fix anything.</p></div>
     <div class="step-card"><div class="step-num">04</div><h3>Download & send</h3><p>Pay once, download instantly. Optional agent or attorney review add-on available.</p></div>
   </div>
@@ -2730,7 +2730,7 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
       <h2>Before we begin</h2>
       <p class="step-desc">Please review and accept the following disclaimer before building your offer.</p>
       <div class="notice warn">⚠️ <strong>Not legal advice.</strong> HomeOfferFlow is a form-completion tool only. You are responsible for verifying all information. Consider having a licensed agent or attorney review before submitting.</div>
-      <div class="notice gold">📋 <strong>Current form:</strong> TREC One to Four Family Residential Contract (Resale) No. 20-18 — Mandatory as of January 3, 2025. All 2025 addenda updates included.</div>
+      <div class="notice gold">📋 <strong>Current form:</strong> TREC One to Four Family Residential Contract (Resale) No. 20-19 — Effective July 1, 2026.</div>
       <div class="notice sage">🔒 Your information is used only to fill your TREC form and is not shared with third parties except to process payment.</div>
       <div class="notice sage">✅ You can review your full offer summary before paying. Starting the wizard does not create a charge.</div>
       <div class="terms-check" id="termsCheckRow" onclick="toggleTermsFromRow(event)">
@@ -2804,7 +2804,7 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
         <div class="hof-guide-copy">Tell us who is making the offer and who owns the property. Use the names exactly how you want them to appear on the contract.</div>
         <div class="hof-guide-chip-row"><span class="hof-guide-chip"><strong>✓</strong> Legal names</span><span class="hof-guide-chip"><strong>✓</strong> Contact info</span><span class="hof-guide-chip"><strong>✓</strong> Editable later</span></div>
       </div>
-      <div class="trec-badge">✓ TREC 20-18 · Section 1 — Parties & §21 Notices</div>
+      <div class="trec-badge">✓ TREC 20-19 · Section 1 — Parties & §21 Notices</div>
       <h2 id="partiesStepTitle">Who's buying?</h2>
       <p class="step-desc" id="partiesStepDesc">Enter full legal names exactly as they should appear on the contract. We'll also collect your contact info for the Notices section.</p>
       <div class="field-group">
@@ -2867,7 +2867,7 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
         <div class="hof-guide-copy">Start with the address and legal description. HomeOfferFlow will use public property context for the AI review when available, without asking you for manual MLS fields.</div>
         <div class="hof-guide-chip-row"><span class="hof-guide-chip"><strong>✓</strong> Address first</span><span class="hof-guide-chip"><strong>✓</strong> Legal description</span><span class="hof-guide-chip"><strong>✓</strong> Automatic market context</span></div>
       </div>
-      <div class="trec-badge">✓ TREC 20-18 · Section 2 — Property & §4 Leases</div>
+      <div class="trec-badge">✓ TREC 20-19 · Section 2 — Property & §4 Leases</div>
       <h2>The property</h2>
       <p class="step-desc">Start with the address. Then enter the legal description from the listing or county record. We split Lot and Block out clearly so the contract fills correctly.</p>
       <div class="field-group">
@@ -2897,7 +2897,7 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
           <div class="field" style="margin-top:0.9rem;"><div class="field-label-row"><label>Full Legal Description (optional override)</label><button class="helper-btn" onclick="toggleHelper('h-legal')">?</button></div><div class="helper-box" id="h-legal"><strong>💡 Optional</strong>If the MLS has a full legal description that includes more than Lot/Block/Subdivision, paste it here. Otherwise we will build it automatically.</div><textarea id="legalDescription" rows="2" placeholder="Optional — paste full legal description if available"></textarea></div>
       </div>
 
-      <div class="notice gold">📋 <strong>2025 Update (TREC 20-18 §4C):</strong> Natural resource leases now include geothermal energy by law. This is automatically noted in your contract.</div>
+      <div class="notice gold">📋 <strong>TREC 20-19 §4:</strong> Lease-related contract paths require additional forms. HomeOfferFlow will unlock those paths after their targeted PDF testing is complete.</div>
 
       <div style="margin-top:1rem; padding-top:0.75rem; border-top:1px solid rgba(255,255,255,0.07);">
         <p style="font-size:0.8rem; font-weight:700; color:var(--gold-light); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.5rem;">§4 — Leases on the Property</p>
@@ -2905,8 +2905,8 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
         <div class="radio-group-label" style="margin-top:0.75rem;">Are you aware of any leases on this property?</div>
         <div class="radio-cards">
           <label class="radio-card" onclick="selectCard(this,'leases','no')"><input type="radio" name="leases" value="no"/><div class="radio-dot"></div><div class="radio-card-text"><strong>No — not aware of any leases</strong><small>Most common for standard resale homes</small></div></label>
-          <label class="radio-card" onclick="selectCard(this,'leases','residential')"><input type="radio" name="leases" value="residential"/><div class="radio-dot"></div><div class="radio-card-text"><strong>Yes — residential lease</strong><small>Addendum for Residential Leases will be included</small></div></label>
-          <label class="radio-card" onclick="selectCard(this,'leases','fixture')"><input type="radio" name="leases" value="fixture"/><div class="radio-dot"></div><div class="radio-card-text"><strong>Yes — fixture lease</strong><small>Solar panels, propane tank, water softener, etc.</small></div></label>
+          <label class="radio-card" style="opacity:0.55;cursor:not-allowed;"><input type="radio" name="leases" value="residential" disabled/><div class="radio-dot"></div><div class="radio-card-text"><strong>Yes — residential lease</strong><small>Temporarily unavailable while the required addendum is tested</small></div></label>
+          <label class="radio-card" style="opacity:0.55;cursor:not-allowed;"><input type="radio" name="leases" value="fixture" disabled/><div class="radio-dot"></div><div class="radio-card-text"><strong>Yes — fixture lease</strong><small>Temporarily unavailable while the required addendum is tested</small></div></label>
           <label class="radio-card" onclick="selectCard(this,'leases','unknown')"><input type="radio" name="leases" value="unknown"/><div class="radio-dot"></div><div class="radio-card-text"><strong>Not sure — I'll ask the listing agent</strong><small>Leave blank for now</small></div></label>
         </div>
       </div>
@@ -2920,7 +2920,7 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
         <div class="hof-guide-copy">Enter your offer price and financing. We’ll keep the math tied together and show payment/cash-to-close estimates as you go.</div>
         <div class="hof-guide-chip-row"><span class="hof-guide-chip"><strong>✓</strong> Offer price</span><span class="hof-guide-chip"><strong>✓</strong> Loan math</span><span class="hof-guide-chip"><strong>✓</strong> Estimated payment</span></div>
       </div>
-      <div class="trec-badge">✓ TREC 20-18 · Section 3 Sales Price · Third Party Financing Addendum</div>
+      <div class="trec-badge">✓ TREC 20-19 · Section 3 Sales Price · Third Party Financing Addendum</div>
       <h2>Price, financing & deposits</h2>
       <p class="step-desc">Start with your offer price, then choose how you are paying. We’ll calculate down payment, loan amount, earnest money, option fee, and common financing defaults together.</p>
       <div class="field-group">
@@ -3066,7 +3066,7 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
         <div class="hof-guide-copy">HOA, sale contingency, backup offer, and personal-property items only create follow-up questions when they actually apply.</div>
         <div class="hof-guide-chip-row"><span class="hof-guide-chip"><strong>✓</strong> HOA</span><span class="hof-guide-chip"><strong>✓</strong> Contingencies</span><span class="hof-guide-chip"><strong>✓</strong> Addenda</span></div>
       </div>
-      <div class="trec-badge">✓ TREC 20-18 · Addenda Selection</div>
+      <div class="trec-badge">✓ TREC 20-19 · Addenda Selection</div>
       <h2>HOA & contingencies</h2>
       <p class="step-desc">We only ask follow-up questions when they apply.</p>
 
@@ -3167,7 +3167,7 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
         <div class="hof-guide-copy">Survey, title, disclosures, and property-condition choices can matter. We’ll keep the wording practical and flag what should be verified.</div>
         <div class="hof-guide-chip-row"><span class="hof-guide-chip"><strong>✓</strong> Title</span><span class="hof-guide-chip"><strong>✓</strong> Survey</span><span class="hof-guide-chip"><strong>✓</strong> Disclosures</span></div>
       </div>
-      <div class="trec-badge">✓ TREC 20-18 · §6 Title & Survey · §7 Property Condition</div>
+      <div class="trec-badge">✓ TREC 20-19 · §6 Title & Survey · §7 Property Condition</div>
       <h2>Title, survey & disclosures</h2>
       <p class="step-desc">These questions complete required contract sections.</p>
 
@@ -3254,7 +3254,7 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
         <div class="hof-guide-copy">A cleaner closing timeline and clear concessions can make the offer easier to understand and compare.</div>
         <div class="hof-guide-chip-row"><span class="hof-guide-chip"><strong>✓</strong> Closing date</span><span class="hof-guide-chip"><strong>✓</strong> Possession</span><span class="hof-guide-chip"><strong>✓</strong> Seller concessions</span></div>
       </div>
-      <div class="trec-badge">✓ TREC 20-18 · §9 Closing · §8 Brokers · §12 Expenses</div>
+      <div class="trec-badge">✓ TREC 20-19 · §9 Closing · §8 Brokers · §12 Expenses</div>
       <h2>Closing details</h2>
       <p class="step-desc">A few final deal terms before review.</p>
       <div class="field-group">
@@ -6763,6 +6763,35 @@ function routeAfterMagicLinkIfNeeded() {
   }
 
 
+  function controlledLaunchUnsupportedPaths(offerData) {
+    const data = offerData || {};
+    const blocked = [];
+    const leases = String(data.leases || '').toLowerCase();
+    if (['residential', 'fixture', 'naturalresource', 'natural_resource', 'natural resource'].includes(leases)) {
+      blocked.push('Paragraph 4 lease addendum');
+    }
+    if (data.buyerTemporaryLease === 'yes' || ['lease', 'temporaryLease'].includes(data.possession)) {
+      blocked.push("Buyer's Temporary Residential Lease");
+    }
+    if (data.sellerTemporaryLease === 'yes') blocked.push("Seller's Temporary Residential Lease");
+    if (data.sellerFinancing === 'yes') blocked.push('Seller Financing Addendum');
+    if (data.loanAssumption === 'yes') blocked.push('Loan Assumption Addendum');
+    return [...new Set(blocked)];
+  }
+
+
+  function confirmControlledLaunchSupport(offerData) {
+    const blocked = controlledLaunchUnsupportedPaths(offerData);
+    if (!blocked.length) return true;
+    alert(
+      'This packet includes an option that HomeOfferFlow is still testing: ' +
+      blocked.join(', ') +
+      '. Please contact support before purchasing or generating this packet.'
+    );
+    return false;
+  }
+
+
 
   async function handlePayment() {
     const btn = document.getElementById('payBtn');
@@ -6786,6 +6815,7 @@ function routeAfterMagicLinkIfNeeded() {
       }
 
       try { collectAllData(); } catch (e) { try { collectData(); } catch (_) {} }
+      if (!confirmControlledLaunchSupport(state.data)) return;
 
       const email = (
         document.getElementById('paymentEmail')?.value ||
@@ -6879,6 +6909,7 @@ function routeAfterMagicLinkIfNeeded() {
     if (!(await canGenerateOffer(true))) return;
 
     collectAllData();
+    if (!confirmControlledLaunchSupport(state.data)) return;
 
     const email =
       state.data.buyerEmail ||
