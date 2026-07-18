@@ -5,6 +5,13 @@ from http.server import BaseHTTPRequestHandler
 from pypdf import PdfReader, PdfWriter
 from reportlab.pdfgen import canvas
 
+from api.fill_pdf_20_19_production_adapter import (
+    UnsupportedOfferPathError,
+    build_signwell_fields_20_19,
+    fill_and_merge_20_19,
+    validate_supported_offer,
+)
+
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
 STRIPE_WHSEC   = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
 FROM_EMAIL     = "offers@homeofferflow.com"
@@ -14,8 +21,8 @@ ADMIN_ORDER_EMAIL = os.environ.get("ADMIN_ORDER_EMAIL") or SHOWING_NOTIFY_EMAIL
 SIGNWELL_API_KEY = os.environ.get("SIGNWELL_API_KEY", "")
 # Safe default: SignWell is OFF unless explicitly enabled in Vercel.
 SIGNWELL_ENABLED = os.environ.get("SIGNWELL_ENABLED", "false").strip().lower() in ["1", "true", "yes", "on"]
-# Safe default: test mode is ON while we build/signature-coordinate test.
-SIGNWELL_TEST_MODE = os.environ.get("SIGNWELL_TEST_MODE", "true").strip().lower() not in ["0", "false", "no", "off"]
+# Production default: live signatures. Vercel may explicitly set true for emergency testing.
+SIGNWELL_TEST_MODE = os.environ.get("SIGNWELL_TEST_MODE", "false").strip().lower() not in ["0", "false", "no", "off"]
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "").rstrip("/")
 SUPABASE_SERVICE_ROLE_KEY = (
@@ -26,11 +33,11 @@ SUPABASE_SERVICE_ROLE_KEY = (
 )
 
 BASE_DIR      = "/var/task"
-MAIN_PDF      = os.path.join(BASE_DIR, "20-18_0.pdf")
+MAIN_PDF      = os.path.join(BASE_DIR, "20-19_0.pdf")
 FINANCING_PDF = os.path.join(BASE_DIR, "third_party_financing_addendum.pdf")
 HOA_PDF       = os.path.join(BASE_DIR, "hoa_addendum.pdf")
 SALE_PDF      = os.path.join(BASE_DIR, "sale_of_other_property_addendum.pdf")
-BACKUP_PDF    = os.path.join(BASE_DIR, "back_up_contract_addendum.pdf")
+BACKUP_PDF    = os.path.join(BASE_DIR, "backup_contract_addendum_11-9.pdf")
 APPRAISAL_PDF = os.path.join(BASE_DIR, "appraisal_addendum.pdf")
 APPRAISAL_PDF_ALT = os.path.join(os.path.dirname(__file__), "appraisal_addendum.pdf")
 NON_REALTY_PDF = os.path.join(BASE_DIR, "non_realty_items_addendum.pdf")
@@ -499,7 +506,7 @@ def build_pages_data(
         (68,  426, ck(has_sale), "check_small"),
         (68,  378, ck(has_bkup), "check_small"),
         (68,  321, ck(has_appraisal), "check_small"),
-        # Non-Realty Items Addendum is not listed by name on TREC 20-18 §22, so mark Other and list it.
+        # Legacy rollback mapping: Non-Realty Items was not listed by name on the prior form.
         (319, 244, ck(has_non_realty), "check_small"),
         (370, 244, "Non-Realty Items Addendum" if has_non_realty else "", 7),
 
@@ -1213,6 +1220,12 @@ def build_signwell_fields(offer, pdf_bytes):
 
     return fields
 
+
+# Production cutover: use the Release 18B TREC 20-19 packet and SignWell maps.
+# The legacy functions above remain in this file only as an immediate rollback reference.
+fill_and_merge = fill_and_merge_20_19
+build_signwell_fields = build_signwell_fields_20_19
+
 def post_signwell_document(payload):
     print("SIGNWELL DEBUG request summary:", json.dumps({
         "test_mode": payload.get("test_mode"),
@@ -1823,6 +1836,7 @@ def handle_checkout(event):
     if not offer.get("buyerEmail") and customer_email:
         offer["buyerEmail"] = customer_email
 
+    validate_supported_offer(offer)
     pdf_bytes = fill_and_merge(offer)
 
     signwell_info = create_signwell_signature_request(offer, pdf_bytes)
@@ -1866,6 +1880,8 @@ class handler(BaseHTTPRequestHandler):
         self._json(200, {
             "status": "ok",
             "debug_grid": DEBUG_GRID,
+            "trec_main_form": "20-19 production",
+            "release": "18B-controlled-launch",
             "base_dir": BASE_DIR,
             "main_pdf_exists": os.path.exists(MAIN_PDF),
             "financing_pdf_exists": os.path.exists(FINANCING_PDF),
@@ -1875,6 +1891,7 @@ class handler(BaseHTTPRequestHandler):
             "appraisal_pdf_exists": os.path.exists(APPRAISAL_PDF),
             "non_realty_pdf_exists": os.path.exists(NON_REALTY_PDF),
             "uploaded_docs_append_enabled": True,
+            "unsupported_paths_rejected": True,
             "signwell_enabled": SIGNWELL_ENABLED,
             "signwell_test_mode": SIGNWELL_TEST_MODE,
             "signwell_api_key_present": bool(SIGNWELL_API_KEY),
@@ -1910,6 +1927,7 @@ class handler(BaseHTTPRequestHandler):
                 offer = payload
 
             if offer:
+                validate_supported_offer(offer)
                 pdf_bytes = fill_and_merge(offer)
                 filename_addr = re.sub(r"[^A-Za-z0-9]+", "_", str(offer.get("address", "offer")).strip()).strip("_") or "offer"
                 filename = f"HomeOfferFlow_Offer_{filename_addr}.pdf"
@@ -1924,6 +1942,13 @@ class handler(BaseHTTPRequestHandler):
 
             self._json(400, {"error": "No offer data provided"})
 
+        except UnsupportedOfferPathError as e:
+            print("UNSUPPORTED OFFER PATH:", str(e))
+            self._json(422, {
+                "error": str(e),
+                "code": "unsupported_offer_path",
+                "unsupported_paths": e.paths,
+            })
         except Exception as e:
             print("ERROR:", str(e))
             self._json(500, {"error": str(e)})
