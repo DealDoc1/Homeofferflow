@@ -94,6 +94,16 @@ class ControlledLaunchTests(unittest.TestCase):
         )
         self.assertEqual(len(PdfReader(BytesIO(packet)).pages), 14)
 
+    def test_verified_percentage_contribution_packet_builds(self):
+        packet = adapter.fill_and_merge_20_19(
+            minimal_offer(
+                hasBuyerAgent="yes",
+                brokerFeeType="percent",
+                brokerFeePercent="3",
+            )
+        )
+        self.assertEqual(len(PdfReader(BytesIO(packet)).pages), 12)
+
     def test_uploaded_disclosure_is_preserved_after_main_packet(self):
         offer = minimal_offer(
             uploadedDisclosureDocs=[{
@@ -124,7 +134,6 @@ class ControlledLaunchTests(unittest.TestCase):
             minimal_offer(environmentalAssessment="yes"),
             minimal_offer(mineralReservation="yes"),
             minimal_offer(leadBasedPaintAttached="yes"),
-            minimal_offer(brokerFeeType="percent", brokerFeePercent="3"),
         ]
         for offer in blocked_offers:
             with self.subTest(offer=offer):
