@@ -73,14 +73,6 @@ def validate_supported_offer(offer):
     if _truthy(offer.get("sellerTemporaryLease")):
         blocked.append("Seller Temporary Residential Lease")
 
-    compensation_types = {
-        _normalized(offer.get("brokerFeeType")),
-        _normalized(offer.get("sellerBrokerCompType")),
-        _normalized(offer.get("buyerBrokerCompType")),
-    }
-    if compensation_types.intersection({"percent", "percentage", "%"}):
-        blocked.append("Paragraph 12B percentage contribution")
-
     unsupported_flags = {
         "sellerFinancing": "Seller Financing Addendum",
         "loanAssumption": "Loan Assumption Addendum",
@@ -220,7 +212,7 @@ def build_signwell_fields_20_19(offer, pdf_bytes):
                 safe_name = "".join(
                     character if character.isalnum() else "_"
                     for character in str(doc.get("name") or f"uploaded_doc_{doc_index + 1}")[:32]
-                ).strip("_") or f"uploaded_doc_{doc_index + 1}"
+                ).strip("_") or f"upoaded_doc_{doc_index + 1}"
 
                 field = {
                     "api_id": f"uploaded_{doc_index + 1}_{safe_name}_p{page_in_doc}_{placement_type}_{placement_index + 1}",
