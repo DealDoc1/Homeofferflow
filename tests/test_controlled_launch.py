@@ -127,6 +127,10 @@ class ControlledLaunchTests(unittest.TestCase):
     def test_unverified_paths_fail_closed(self):
         blocked_offers = [
             minimal_offer(leases="residential"),
+            minimal_offer(leases="residentialLease"),
+            minimal_offer(leases="fixtureLease"),
+            minimal_offer(leases="naturalResource"),
+            minimal_offer(leases="naturalResourceLease"),
             minimal_offer(financing="seller financing"),
             minimal_offer(financing="loan assumption"),
             minimal_offer(possession="temporaryLease", buyerTemporaryLease="yes"),
