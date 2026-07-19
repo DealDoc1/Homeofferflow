@@ -124,6 +124,7 @@ class ControlledLaunchTests(unittest.TestCase):
             minimal_offer(environmentalAssessment="yes"),
             minimal_offer(mineralReservation="yes"),
             minimal_offer(leadBasedPaintAttached="yes"),
+            minimal_offer(brokerFeeType="percent", brokerFeePercent="3"),
         ]
         for offer in blocked_offers:
             with self.subTest(offer=offer):

@@ -73,6 +73,14 @@ def validate_supported_offer(offer):
     if _truthy(offer.get("sellerTemporaryLease")):
         blocked.append("Seller Temporary Residential Lease")
 
+    compensation_types = {
+        _normalized(offer.get("brokerFeeType")),
+        _normalized(offer.get("sellerBrokerCompType")),
+        _normalized(offer.get("buyerBrokerCompType")),
+    }
+    if compensation_types.intersection({"percent", "percentage", "%"}):
+        blocked.append("Paragraph 12B percentage contribution")
+
     unsupported_flags = {
         "sellerFinancing": "Seller Financing Addendum",
         "loanAssumption": "Loan Assumption Addendum",
