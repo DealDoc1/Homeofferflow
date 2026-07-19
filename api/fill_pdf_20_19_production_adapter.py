@@ -47,10 +47,14 @@ def validate_supported_offer(offer):
     if leases in {
         "residential",
         "residential lease",
+        "residentiallease",
         "fixture",
         "fixture lease",
+        "fixturelease",
         "natural resource",
         "natural resource lease",
+        "naturalresource",
+        "naturalresourcelease",
     }:
         blocked.append("Paragraph 4 lease")
 
