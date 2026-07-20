@@ -96,11 +96,17 @@ def lead_pdf_path():
 
 def buyer_temp_lease_pdf_path():
     return find_existing_pdf(
+        "buyer_temporary_residential_lease_16-7.pdf",
+        "buyer_temporary_residential_lease_16_7.pdf",
         "buyer_temporary_residential_lease.pdf",
         "buyer_temp_residential_lease.pdf",
         "buyers_temporary_residential_lease.pdf",
         "temporary_residential_lease_buyer.pdf",
         "buyer_temporary_lease.pdf",
+        "trec_16-7.pdf",
+        "trec_16_7.pdf",
+        "TREC_16-7.pdf",
+        "TREC_16_7.pdf",
         "trec_16-6.pdf",
         "trec_16_6.pdf",
         "TREC_16-6.pdf",
@@ -177,6 +183,11 @@ def first_present(*vals):
 
 def truthy(v):
     return str(v).strip().lower() in ["yes", "true", "1", "y", "on"]
+
+
+def buyer_temp_lease_requested(s):
+    possession = val_lower(first_present(s.get("possession"), s.get("possessionType")))
+    return possession in ["temporarylease", "temporary_lease", "lease", "buyerlease", "buyertemporarylease"] or truthy(s.get("buyerTemporaryLease"))
 
 
 def normalize_financing(v):
@@ -287,6 +298,47 @@ def wrapped_entries(x, y, text, max_chars=88, line_gap=11, fs=7, max_lines=10):
     for i, line in enumerate(lines[:max_lines]):
         out.append((x, y - (i * line_gap), line, fs))
     return out
+
+
+def fitted_blank_entries(text, blanks, fs=8):
+    """Fit text across blanks with different x positions and widths."""
+    words = " ".join(str(text or "").replace("\r", " ").replace("\n", " ").split()).split()
+    if not words:
+        return []
+
+    entries = []
+    for x, y, width in blanks:
+        line = []
+        while words:
+            trial = " ".join(line + [words[0]])
+            if stringWidth(trial, FONT, fs) <= width:
+                line.append(words.pop(0))
+            else:
+                break
+        if line:
+            entries.append((x, y, " ".join(line), fs))
+        if not words:
+            break
+
+    if words and entries:
+        x, y, current, current_fs = entries[-1]
+        remaining = (current + " " + " ".join(words)).strip()
+        width = blanks[len(entries) - 1][2]
+        while remaining and stringWidth(remaining + "...", FONT, current_fs) > width:
+            remaining = remaining.rsplit(" ", 1)[0] if " " in remaining else remaining[:-1]
+        entries[-1] = (x, y, remaining + "...", current_fs)
+    return entries
+
+
+def format_full_date(v):
+    if not v:
+        return ""
+    try:
+        from datetime import datetime
+        d = datetime.strptime(str(v), "%Y-%m-%d")
+        return d.strftime("%B %d, %Y").replace(" 0", " ")
+    except Exception:
+        return str(v)
 
 def val_lower(v):
     return str(v or "").strip().lower()
@@ -1057,11 +1109,102 @@ def fill_and_merge(offer):
         merger.append(PdfReader(BytesIO(stamp_pdf(lead_path, lead_pages))))
 
     buyer_temp_lease_path = buyer_temp_lease_pdf_path()
-    buyer_temp_lease_attached = (possession == "lease" or truthy(s.get("buyerTemporaryLease"))) and buyer_temp_lease_path and os.path.exists(buyer_temp_lease_path)
+    buyer_temp_lease_attached = buyer_temp_lease_requested(s) and buyer_temp_lease_path and os.path.exists(buyer_temp_lease_path)
     if buyer_temp_lease_attached:
-        # Staging only: append when a buyer temporary lease PDF is present in the repo.
-        # Field/signature coordinates should be QA-tested when that PDF is added.
-        temp_lease_pages = {0: [(180, 662, addr_full, 8)]}
+        # TREC 16-7 (effective 01/05/2026). Current form 54-1 expressly states
+        # that a separate Landlord Floodplain and Flood Notice is not required
+        # with a TREC temporary residential lease.
+        temp_landlord = first_present(s.get("buyerTemporaryLeaseLandlord"), s.get("seller"))
+        temp_tenant = first_present(s.get("buyerTemporaryLeaseTenant"), buyer)
+        temp_start_date = format_full_date(first_present(
+            s.get("buyerTemporaryLeaseStartDate"),
+            s.get("buyerTempLeaseStartDate"),
+            s.get("temporaryLeaseStartDate"),
+        ))
+        temp_rent_per_day = first_present(
+            s.get("buyerTemporaryLeaseRentPerDay"),
+            s.get("buyerTempLeaseDailyRent"),
+            s.get("temporaryLeaseRentPerDay"),
+        )
+        temp_total_rent = first_present(
+            s.get("buyerTemporaryLeaseTotalRent"),
+            s.get("buyerTempLeaseTotalRent"),
+            s.get("temporaryLeaseTotalRent"),
+        )
+        temp_deposit = first_present(
+            s.get("buyerTemporaryLeaseDeposit"),
+            s.get("buyerTempLeaseDeposit"),
+            s.get("temporaryLeaseDeposit"),
+        )
+        temp_utilities = first_present(
+            s.get("buyerTemporaryLeaseUtilitiesPaidBySeller"),
+            s.get("buyerTempLeaseUtilities"),
+            s.get("temporaryLeaseUtilities"),
+        )
+        temp_pets = first_present(
+            s.get("buyerTemporaryLeasePetsAllowed"),
+            s.get("buyerTempLeasePets"),
+            s.get("temporaryLeasePets"),
+        )
+        temp_special = first_present(
+            s.get("buyerTemporaryLeaseSpecialProvisions"),
+            s.get("buyerTempLeaseSpecialProvisions"),
+            s.get("temporaryLeaseSpecialProvisions"),
+        )
+        temp_holdover = first_present(
+            s.get("buyerTemporaryLeaseHoldoverPerDay"),
+            s.get("buyerTempLeaseHoldoverPerDay"),
+            s.get("temporaryLeaseHoldoverPerDay"),
+        )
+
+        landlord_phone_area, landlord_phone_number = split_phone(first_present(s.get("sellerPhone"), s.get("landlordPhone")))
+        tenant_phone_area, tenant_phone_number = split_phone(first_present(s.get("buyerPhone"), s.get("tenantPhone")))
+        landlord_fax_area, landlord_fax_number = split_phone(first_present(s.get("sellerFax"), s.get("landlordFax")))
+        tenant_fax_area, tenant_fax_number = split_phone(first_present(s.get("buyerFax"), s.get("tenantFax")))
+
+        temp_lease_pages = {
+            0: [
+                # Page 1: every fillable agreement blank. Initials are SignWell fields.
+                (253, 683, temp_landlord, 8),
+                (128, 672, temp_tenant, 8),
+                (208, 644, addr_full, 8),
+                (267, 617, temp_start_date, 8),
+                (183, 589, fmt_money(temp_rent_per_day), 8),
+                (282, 578, fmt_money(temp_total_rent), 8),
+                (259, 528, fmt_money(temp_deposit), 8),
+                *fitted_blank_entries(temp_utilities, [(462, 435, 105), (49, 424, 384)], fs=8),
+                *fitted_blank_entries(temp_pets, [(340, 380, 225)], fs=8),
+                *fitted_blank_entries(temp_special, [
+                    (182, 263, 384),
+                    (49, 252, 518),
+                    (49, 241, 518),
+                    (49, 230, 518),
+                    (49, 219, 518),
+                    (49, 208, 518),
+                    (49, 197, 518),
+                    (49, 186, 518),
+                ], fs=8),
+            ],
+            1: [
+                # Page 2: property, holdover, and both parties' notice information.
+                (189, 747, addr_full, 8),
+                (344, 537, fmt_money(temp_holdover), 8),
+
+                *wrapped_entries(136, 328, first_present(s.get("sellerMailAddr"), s.get("landlordMailAddr")), max_chars=38, line_gap=20, fs=7.5, max_lines=3),
+                (141, 268, landlord_phone_area, 7.5),
+                (190, 268, landlord_phone_number, 7.5),
+                (141, 247, landlord_fax_area, 7.5),
+                (190, 247, landlord_fax_number, 7.5),
+                (136, 228, first_present(s.get("sellerEmail"), s.get("landlordEmail")), 7.5),
+
+                *wrapped_entries(384, 328, first_present(s.get("buyerMailAddr"), s.get("tenantMailAddr")), max_chars=44, line_gap=20, fs=7.5, max_lines=3),
+                (390, 268, tenant_phone_area, 7.5),
+                (438, 268, tenant_phone_number, 7.5),
+                (390, 247, tenant_fax_area, 7.5),
+                (438, 247, tenant_fax_number, 7.5),
+                (384, 228, first_present(s.get("buyerEmail"), s.get("tenantEmail")), 7.5),
+            ],
+        }
         temp_lease_pages = add_debug_grid_to_pages(temp_lease_pages)
         merger.append(PdfReader(BytesIO(stamp_pdf(buyer_temp_lease_path, temp_lease_pages))))
 
@@ -1206,6 +1349,7 @@ def build_signwell_fields(offer, pdf_bytes):
         offer.get("sellerLeadDisclosureAttached"),
         offer.get("leadDisclosureAttached"),
     )) and bool(lead_pdf_path())
+    buyer_temp_lease_attached = buyer_temp_lease_requested(offer) and bool(buyer_temp_lease_pdf_path())
 
     main_contract_pages = list(range(1, min(page_count, 9) + 1))
     main_signature_page = 10 if page_count >= 10 else max(page_count, 1)
@@ -1216,6 +1360,7 @@ def build_signwell_fields(offer, pdf_bytes):
     appraisal_page = None
     non_realty_page = None
     lead_page = None
+    buyer_temp_page_1 = buyer_temp_signature_page = None
     hoa_page = None
     sale_page = None
     backup_page_1 = backup_signature_page = None
@@ -1233,6 +1378,10 @@ def build_signwell_fields(offer, pdf_bytes):
     if lead_addendum_attached:
         lead_page = next_page
         next_page += 1
+    if buyer_temp_lease_attached:
+        buyer_temp_page_1 = next_page
+        buyer_temp_signature_page = next_page + 1
+        next_page += 2
     if has_hoa:
         hoa_page = next_page
         next_page += 1
@@ -1332,6 +1481,17 @@ def build_signwell_fields(offer, pdf_bytes):
         if first_present(offer.get("agentEmail"), offer.get("buyerAgentEmail"), ""):
             add_sig_date_pair("buyer_agent_lead_based_paint_addendum", lead_page, 76, 905, 246, 905, "3")
 
+    # TREC 16-7 Buyer Temporary Residential Lease. Buyer-side packet creates
+    # Tenant fields only; Landlord initials/signatures remain for seller execution.
+    if buyer_temp_page_1:
+        add_field("buyer1_initials_buyer_temp_lease_p1", "initials", buyer_temp_page_1, 450, 1004, recipient_id="1", width=24, height=10)
+        if has_buyer2:
+            add_field("buyer2_initials_buyer_temp_lease_p1", "initials", buyer_temp_page_1, 482, 1004, recipient_id="2", width=24, height=10)
+    if buyer_temp_signature_page:
+        add_field("buyer1_signature_buyer_temp_lease", "signature", buyer_temp_signature_page, 470, 789, recipient_id="1", width=145, height=20)
+        if has_buyer2:
+            add_field("buyer2_signature_buyer_temp_lease", "signature", buyer_temp_signature_page, 470, 857, recipient_id="2", width=145, height=20)
+
     # HOA/POA Addendum - buyer signatures only. No seller fields.
     if hoa_page:
         # 17Q: HOA buyer signatures moved up onto the two Buyer lines.
@@ -1371,6 +1531,7 @@ def build_signwell_fields(offer, pdf_bytes):
         "has_non_realty": has_non_realty,
         "lead_required_warning_only": lead_required,
         "lead_addendum_attached": lead_addendum_attached,
+        "buyer_temp_lease_attached": buyer_temp_lease_attached,
         "has_sale": has_sale,
         "has_backup": has_backup,
         "pages": {
@@ -1379,6 +1540,8 @@ def build_signwell_fields(offer, pdf_bytes):
             "appraisal_page": appraisal_page,
             "non_realty_page": non_realty_page,
             "lead_page": lead_page,
+            "buyer_temp_page_1": buyer_temp_page_1,
+            "buyer_temp_signature_page": buyer_temp_signature_page,
             "hoa_page": hoa_page,
             "sale_page": sale_page,
             "backup_page_1": backup_page_1,
