@@ -70,9 +70,16 @@ def validate_supported_offer(offer):
             blocked.append(label)
 
     possession = _normalized(offer.get("possession") or offer.get("possessionType"))
-    if possession in {"temporarylease", "temporary lease", "lease", "buyerlease", "buyer lease"}:
-        blocked.append("Buyer Temporary Residential Lease")
-    if _truthy(offer.get("buyerTemporaryLease")):
+    buyer_temp_flag = _truthy(offer.get("buyerTemporaryLease"))
+    buyer_temp_possession = possession in {"temporarylease", "temporary lease"}
+
+    # TREC 16-7 Buyer Temporary Residential Lease completed rendered-PDF and
+    # SignWell QA on the exact explicit production shape below. Keep compact or
+    # ambiguous aliases fail-closed so this unlock does not broaden Paragraph 4
+    # or Seller Temporary Residential Lease support.
+    if buyer_temp_flag != buyer_temp_possession:
+        blocked.append("Buyer Temporary Residential Lease configuration")
+    if possession in {"lease", "buyerlease", "buyer lease"}:
         blocked.append("Buyer Temporary Residential Lease")
     if _truthy(offer.get("sellerTemporaryLease")):
         blocked.append("Seller Temporary Residential Lease")
