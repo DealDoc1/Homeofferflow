@@ -104,6 +104,30 @@ class ControlledLaunchTests(unittest.TestCase):
         )
         self.assertEqual(len(PdfReader(BytesIO(packet)).pages), 12)
 
+    def test_verified_buyer_temporary_lease_packet_builds(self):
+        offer = minimal_offer(
+            hasBuyerAgent="yes",
+            buyer2="Controlled Launch Buyer Two",
+            buyer2Email="buyer2@example.com",
+            possession="temporaryLease",
+            buyerTemporaryLease="yes",
+            buyerTemporaryLeaseStartDate="2026-08-01",
+            buyerTemporaryLeaseRentPerDay="100",
+            buyerTemporaryLeaseTotalRent="1400",
+            buyerTemporaryLeaseDeposit="500",
+            buyerTemporaryLeaseUtilitiesPaidBySeller="Water and trash.",
+            buyerTemporaryLeasePetsAllowed="One dog under 40 pounds.",
+            buyerTemporaryLeaseSpecialProvisions="Tenant will maintain the yard.",
+            buyerTemporaryLeaseHoldoverPerDay="250",
+        )
+        packet = adapter.fill_and_merge_20_19(offer)
+        self.assertEqual(len(PdfReader(BytesIO(packet)).pages), 14)
+
+        fields = adapter.build_signwell_fields_20_19(offer, packet)[0]
+        by_id = {field["api_id"]: field for field in fields}
+        self.assertEqual(by_id["buyer1_signature_buyer_temp_lease"]["page"], 14)
+        self.assertEqual(by_id["buyer2_signature_buyer_temp_lease"]["page"], 14)
+
     def test_uploaded_disclosure_is_preserved_after_main_packet(self):
         offer = minimal_offer(
             uploadedDisclosureDocs=[{
@@ -133,7 +157,6 @@ class ControlledLaunchTests(unittest.TestCase):
             minimal_offer(leases="naturalResourceLease"),
             minimal_offer(financing="seller financing"),
             minimal_offer(financing="loan assumption"),
-            minimal_offer(possession="temporaryLease", buyerTemporaryLease="yes"),
             minimal_offer(hydrostaticTesting="yes"),
             minimal_offer(environmentalAssessment="yes"),
             minimal_offer(mineralReservation="yes"),
