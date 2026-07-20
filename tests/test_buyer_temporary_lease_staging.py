@@ -140,17 +140,40 @@ class BuyerTemporaryLeaseStagingTests(unittest.TestCase):
         self.assertEqual(by_id["buyer1_signature_buyer_temp_lease"]["page"], 16)
         self.assertEqual(by_id["buyer1_hoa_addendum_signature"]["page"], 17)
 
-    def test_production_still_rejects_buyer_temporary_lease(self):
-        with self.assertRaises(production.UnsupportedOfferPathError):
-            production.validate_supported_offer(buyer_temp_offer())
+    def test_production_accepts_visually_verified_buyer_temporary_lease(self):
+        offer = buyer_temp_offer()
+        self.assertTrue(production.validate_supported_offer(offer))
 
-    def test_vercel_staging_bundle_includes_current_lease_form(self):
+        packet = production.fill_and_merge_20_19(offer)
+        self.assertEqual(len(PdfReader(BytesIO(packet)).pages), 14)
+
+        fields = production.build_signwell_fields_20_19(offer, packet)[0]
+        by_id = {field["api_id"]: field for field in fields}
+        self.assertEqual(by_id["buyer1_initials_buyer_temp_lease_p1"]["page"], 13)
+        self.assertEqual(by_id["buyer2_initials_buyer_temp_lease_p1"]["page"], 13)
+        self.assertEqual(by_id["buyer1_signature_buyer_temp_lease"]["page"], 14)
+        self.assertEqual(by_id["buyer2_signature_buyer_temp_lease"]["page"], 14)
+
+    def test_production_rejects_incomplete_or_ambiguous_buyer_lease_requests(self):
+        for updates in [
+            {"buyerTemporaryLease": "no"},
+            {"possession": "funding"},
+            {"possession": "lease"},
+        ]:
+            offer = buyer_temp_offer()
+            offer.update(updates)
+            with self.subTest(updates=updates):
+                with self.assertRaises(production.UnsupportedOfferPathError):
+                    production.validate_supported_offer(offer)
+
+    def test_vercel_staging_and_production_bundles_include_current_lease_form(self):
         config = json.loads((ROOT / "vercel.json").read_text())
-        staging_config = config["functions"]["api/fill_pdf_20_19_staging.py"]
-        self.assertEqual(
-            staging_config["includeFiles"],
-            "buyer_temporary_residential_lease_16-7.pdf",
-        )
+        for function_path in ["api/fill_pdf_20_19_staging.py", "api/fill-pdf.py"]:
+            with self.subTest(function_path=function_path):
+                self.assertEqual(
+                    config["functions"][function_path]["includeFiles"],
+                    "buyer_temporary_residential_lease_16-7.pdf",
+                )
 
 
 if __name__ == "__main__":
