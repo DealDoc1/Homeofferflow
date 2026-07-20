@@ -1,4 +1,5 @@
 from io import BytesIO
+import json
 from pathlib import Path
 import unittest
 
@@ -142,6 +143,14 @@ class BuyerTemporaryLeaseStagingTests(unittest.TestCase):
     def test_production_still_rejects_buyer_temporary_lease(self):
         with self.assertRaises(production.UnsupportedOfferPathError):
             production.validate_supported_offer(buyer_temp_offer())
+
+    def test_vercel_staging_bundle_includes_current_lease_form(self):
+        config = json.loads((ROOT / "vercel.json").read_text())
+        staging_config = config["functions"]["api/fill_pdf_20_19_staging.py"]
+        self.assertEqual(
+            staging_config["includeFiles"],
+            "buyer_temporary_residential_lease_16-7.pdf",
+        )
 
 
 if __name__ == "__main__":
