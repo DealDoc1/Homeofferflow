@@ -671,6 +671,7 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
 .platform-pill { display:inline-flex; border-radius:999px; padding:0.22rem 0.55rem; margin:0.15rem 0.2rem 0.15rem 0; font-size:0.66rem; font-weight:900; text-transform:uppercase; letter-spacing:0.04em; border:1px solid rgba(200,151,63,0.32); color:var(--gold-light); background:rgba(200,151,63,0.08); }
 .platform-pill.good { border-color:rgba(74,140,111,0.35); color:var(--sage-light); background:rgba(74,140,111,0.10); }
 .platform-pill.warn { border-color:rgba(232,147,90,0.35); color:var(--warn); background:rgba(232,147,90,0.10); }
+.platform-pill.bad { border-color:rgba(180,75,75,0.38); color:#ffb3b3; background:rgba(180,75,75,0.11); }
 .platform-actions { display:flex; flex-wrap:wrap; gap:0.6rem; margin-top:0.9rem; }
 .platform-actions button { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.13); color:var(--gray-light); border-radius:8px; padding:0.62rem 0.82rem; font-family:'DM Sans',sans-serif; font-size:0.78rem; font-weight:900; cursor:pointer; }
 .platform-actions button:hover { border-color:rgba(200,151,63,0.45); color:var(--gold-light); background:rgba(200,151,63,0.07); }
@@ -2492,7 +2493,7 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
 </section>
 
 <footer>
-  <p>© 2025 HomeOfferFlow · A BrewBQ Investments LLC product · <a href="/terms.html" target="_blank" rel="noopener">Terms of Service</a> · <a href="/privacy.html" target="_blank" rel="noopener">Privacy Policy</a> · <a href="/disclaimer.html" target="_blank" rel="noopener">Disclaimer</a></p>
+  <p>© 2025 HomeOfferFlow · A BrewBQ Investments LLC product · <a href="/terms.html" target="_blank" rel="noopener">Terms of Service</a> · <a href="/privacy.html" target="_blank" rel="noopener">Privacy Policy</a> · <a href="/disclaimer.html" target="_blank" rel="noopener">Disclaimer</a> · <a href="?partner=1" onclick="event.preventDefault(); openFoundingPartnerModal();">Become a Founding Partner</a></p>
   <p>Built for Texas homebuyers, investors, and agents who want faster, cleaner offer packets.</p>
   <p>HomeOfferFlow is not a law firm, does not provide legal advice, and does not represent you as your real estate agent. This tool assists with completing official TREC forms only. For legal guidance, consult a licensed Texas real estate attorney or broker.</p>
   <p>TREC forms provided by the Texas Real Estate Commission · <a href="https://trec.texas.gov" target="_blank">trec.texas.gov</a></p>
@@ -3722,6 +3723,14 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
           <div>${adminDate(row.created_at || row.inserted_at)}</div>
         </div>`;
       }
+      if (type === 'partner-leads') {
+        return `<div class="admin-row">
+          <div><strong>${adminSafe(row.company_name || 'Partner lead')}</strong><div class="admin-muted">${adminSafe(row.contact_name || '')} · ${adminSafe(row.contact_email || '')}</div></div>
+          <div>${adminSafe(row.market_area || '')}<div class="admin-muted">${adminSafe(row.preferred_model || '')}</div></div>
+          <div><span class="admin-pill ${['qualified','converted'].includes(String(row.status || '')) ? 'good' : 'warn'}">${adminSafe(row.status || 'new')}</span><div class="admin-muted">${adminSafe(row.partner_type || 'other')}</div></div>
+          <div>${adminDate(row.created_at)}</div>
+        </div>`;
+      }
       return `<div class="admin-row">
         <div><strong>${adminSafe(row.property_address || 'Offer')}</strong><div class="admin-muted">${adminSafe(row.buyer_name || '')} · ${adminSafe(row.buyer_email || '')}</div></div>
         <div>${adminMoney(row.offer_price || 0)}<div class="admin-muted">${adminSafe(row.role || '')}</div></div>
@@ -3759,6 +3768,14 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
       const showings = result.showings || [];
       const subscriptions = result.subscriptions || [];
       const feedback = result.feedback || [];
+      const partnerLeads = result.partnerLeads || [];
+      window.hofAdminTrackerPayload = {
+        roadmap: result.roadmap || [],
+        qaScenarios: result.qaScenarios || [],
+        qaRuns: result.qaRuns || [],
+        releases: result.releases || [],
+        partnerLeads
+      };
       const awaitingCount = offers.filter(o => getOfferSigningBucket(o) === 'awaiting').length;
       const viewedCount = offers.filter(o => getOfferSigningBucket(o) === 'viewed').length;
       const partialCount = offers.filter(o => getOfferSigningBucket(o) === 'partial').length;
@@ -3781,6 +3798,11 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
           <div class="admin-metric">
             <div class="admin-metric-label">Subscriptions</div>
             <div class="admin-metric-value">${metrics.subscriptionCount || subscriptions.length || 0}</div>
+          </div>
+
+          <div class="admin-metric">
+            <div class="admin-metric-label">Partner Leads</div>
+            <div class="admin-metric-value">${metrics.partnerLeadCount || partnerLeads.length || 0}</div>
           </div>
 
           <div class="admin-metric">
@@ -3832,6 +3854,11 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
         <div class="admin-section">
           <h4>Feedback</h4>
           ${renderAdminRows(feedback.slice(0, 8), 'feedback')}
+        </div>
+
+        <div class="admin-section">
+          <h4>Founding Partner Leads</h4>
+          ${renderAdminRows(partnerLeads.slice(0, 12), 'partner-leads')}
         </div>
       `;
     } catch (err) {
@@ -8158,7 +8185,9 @@ function routeAfterMagicLinkIfNeeded() {
     brokerage: null,
     partners: [],
     sellerLeads: [],
-    roadmap: []
+    roadmap: [],
+    qaScenarios: [],
+    releases: []
   };
 
   function platformStatus(id, message, type = 'ok') {
@@ -8807,21 +8836,74 @@ function routeAfterMagicLinkIfNeeded() {
     }
   }
 
+  function trackerPillTone(status) {
+    const value = String(status || '').toLowerCase();
+    if (['done', 'production', 'deployed', 'passed', 'staging_passed'].includes(value)) return 'good';
+    if (['blocked', 'failed', 'rolled_back'].includes(value)) return 'bad';
+    if (['in_progress', 'qa', 'partial', 'running'].includes(value)) return 'warn';
+    return '';
+  }
+
   async function renderRoadmapFoundationBlock() {
-    const client = getSupabaseClient();
-    if (!client) return '<div class="admin-empty">Supabase unavailable.</div>';
     try {
-      const { data, error } = await client.from('hof_roadmap_items').select('*').order('priority', { ascending:true }).limit(30);
-      if (error) throw error;
-      hofPlatform.roadmap = data || [];
-      return `<div class="admin-section"><h4>Product Roadmap Checklist</h4>${hofPlatform.roadmap.map(item => `
+      const tracker = window.hofAdminTrackerPayload;
+      if (!tracker) throw new Error('Admin tracker data was not returned by the server.');
+      hofPlatform.roadmap = tracker.roadmap || [];
+      hofPlatform.qaScenarios = tracker.qaScenarios || [];
+      hofPlatform.releases = tracker.releases || [];
+
+      const productionCount = hofPlatform.roadmap.filter(item => ['production', 'done'].includes(item.status)).length;
+      const blockedCount = hofPlatform.roadmap.filter(item => item.status === 'blocked').length;
+      const verifiedCount = hofPlatform.qaScenarios.filter(item => ['passed', 'staging_passed', 'production'].includes(item.current_status)).length;
+
+      const summary = `<div class="platform-kpi-row">
+        <div class="platform-kpi"><span>Enhancements</span><strong>${hofPlatform.roadmap.length}</strong></div>
+        <div class="platform-kpi"><span>Production / Done</span><strong>${productionCount}</strong></div>
+        <div class="platform-kpi"><span>Blocked Paths</span><strong>${blockedCount}</strong></div>
+      </div>`;
+
+      const roadmapHtml = `<div class="admin-section"><h4>Revenue-Led Product Roadmap — Supabase Source of Truth</h4><p style="margin:.25rem 0 .9rem;color:var(--gray-light);font-size:.78rem;">Ordered by market adoption, ease of entry, and revenue proximity. Product price has zero weight.</p>${summary}${hofPlatform.roadmap.map(item => `
         <div class="roadmap-row">
-          <div><span class="platform-pill">${escapeAttr(item.category || 'Roadmap')}</span></div>
-          <div><strong>${escapeAttr(item.title || '')}</strong><span>${escapeAttr(item.description || '')}</span></div>
-          <div><span class="platform-pill ${item.status === 'done' ? 'good' : item.status === 'in_progress' ? 'warn' : ''}">${escapeAttr(item.status || 'planned')}</span></div>
+          <div><span class="platform-pill">#${escapeAttr(item.priority || '—')} · ${escapeAttr(item.category || 'Roadmap')}</span></div>
+          <div><strong>${escapeAttr(item.title || '')}</strong><span>${escapeAttr(item.description || '')}</span>
+            ${item.metadata?.priority_tier ? `<small style="display:block;margin-top:.35rem;color:var(--gold-light);">${escapeAttr(item.metadata.priority_tier.replaceAll('_', ' '))} · Market ${escapeAttr(item.metadata.market_adoption_score ?? '—')}/5 · Ease ${escapeAttr(item.metadata.ease_of_entry_score ?? '—')}/5</small>` : ''}
+            ${item.metadata?.priority_rationale ? `<small style="display:block;margin-top:.25rem;">${escapeAttr(item.metadata.priority_rationale)}</small>` : ''}
+            ${item.next_action ? `<small style="display:block;margin-top:.35rem;color:var(--gold-light);">Next: ${escapeAttr(item.next_action)}</small>` : ''}
+            ${item.known_issues ? `<small style="display:block;margin-top:.25rem;color:#ffb3b3;">Known issue: ${escapeAttr(item.known_issues)}</small>` : ''}
+          </div>
+          <div>
+            <span class="platform-pill ${trackerPillTone(item.status)}">${escapeAttr(item.status || 'planned')}</span>
+            <span class="platform-pill ${trackerPillTone(item.qa_status)}">QA: ${escapeAttr(item.qa_status || 'not_tested')}</span>
+            ${item.current_release ? `<small style="display:block;margin-top:.25rem;">${escapeAttr(item.current_release)}</small>` : ''}
+          </div>
         </div>`).join('') || '<div class="admin-empty">No roadmap items found.</div>'}</div>`;
+
+      const qaHtml = `<div class="admin-section"><h4>QA Coverage — ${verifiedCount} of ${hofPlatform.qaScenarios.length} Verified</h4>${hofPlatform.qaScenarios.map(item => `
+        <div class="roadmap-row">
+          <div><span class="platform-pill">${escapeAttr(item.category || 'QA')}</span></div>
+          <div><strong>${escapeAttr(item.title || '')}</strong><span>${escapeAttr(item.description || '')}</span>
+            ${item.notes ? `<small style="display:block;margin-top:.3rem;">${escapeAttr(item.notes)}</small>` : ''}
+          </div>
+          <div><span class="platform-pill ${trackerPillTone(item.current_status)}">${escapeAttr(item.current_status || 'not_tested')}</span>
+            ${item.last_verified_release ? `<small style="display:block;margin-top:.25rem;">${escapeAttr(item.last_verified_release)}</small>` : ''}
+          </div>
+        </div>`).join('') || '<div class="admin-empty">No QA scenarios found.</div>'}</div>`;
+
+      const releasesHtml = `<div class="admin-section"><h4>Release History and Gates</h4>${hofPlatform.releases.map(item => `
+        <div class="roadmap-row">
+          <div><span class="platform-pill">${escapeAttr(item.environment || 'staging')}</span></div>
+          <div><strong>${escapeAttr(item.title || '')}</strong><span>${escapeAttr(item.summary || '')}</span>
+            ${item.next_action ? `<small style="display:block;margin-top:.35rem;color:var(--gold-light);">Next: ${escapeAttr(item.next_action)}</small>` : ''}
+          </div>
+          <div><span class="platform-pill ${trackerPillTone(item.status)}">${escapeAttr(item.status || 'planned')}</span>
+            <span class="platform-pill ${trackerPillTone(item.qa_status)}">QA: ${escapeAttr(item.qa_status || 'not_tested')}</span>
+            ${item.github_pr ? `<small style="display:block;margin-top:.25rem;">${escapeAttr(item.github_pr)}</small>` : ''}
+          </div>
+        </div>`).join('') || '<div class="admin-empty">No releases found.</div>'}</div>`;
+
+      return roadmapHtml + qaHtml + releasesHtml;
     } catch (err) {
-      return '<div class="admin-section"><h4>Product Roadmap Checklist</h4><div class="admin-empty">Roadmap could not load: ' + escapeAttr(err?.message || err) + '</div></div>';
+      return '<div class="admin-section"><h4>Product and QA Tracker</h4><div class="admin-empty">Tracker could not load: ' + escapeAttr(err?.message || err) + '</div></div>';
     }
   }
 
@@ -8832,7 +8914,7 @@ function routeAfterMagicLinkIfNeeded() {
       const target = document.getElementById('adminDashboardContent');
       if (target && isCurrentAdmin()) {
         const roadmapHtml = await renderRoadmapFoundationBlock();
-        if (!target.innerHTML.includes('Product Roadmap Checklist')) target.insertAdjacentHTML('beforeend', roadmapHtml);
+        if (!target.innerHTML.includes('Revenue-Led Product Roadmap — Supabase Source of Truth')) target.insertAdjacentHTML('beforeend', roadmapHtml);
       }
     };
   }
@@ -9057,6 +9139,120 @@ function routeAfterMagicLinkIfNeeded() {
       return result;
     };
   }
+})();
+</script>
+
+<div class="modal-backdrop" id="foundingPartnerModal" aria-hidden="true" style="display:none; position:fixed; inset:0; z-index:10080; background:rgba(0,0,0,.74); backdrop-filter:blur(8px); align-items:center; justify-content:center; padding:1rem;">
+  <div class="modal-card" style="width:min(760px,100%); max-height:90vh; overflow:auto; background:linear-gradient(180deg,#0b1828,#07111d); border:1px solid rgba(200,151,63,.32); border-radius:20px; box-shadow:0 24px 80px rgba(0,0,0,.48); padding:1.2rem;">
+    <div style="display:flex; justify-content:space-between; gap:1rem; align-items:flex-start; margin-bottom:.9rem;">
+      <div>
+        <div class="section-label" style="margin-bottom:.35rem;">Limited market-by-market pilot</div>
+        <h3 style="font-family:'Playfair Display',serif; color:var(--white); margin:0 0 .3rem; font-size:1.55rem;">Become a HomeOfferFlow Founding Partner</h3>
+        <p style="color:var(--gray-light); line-height:1.55; margin:0;">Apply for early placement opportunities in the buyer, agent, and FSBO seller workflows. We are collecting qualified partners now while transaction volume grows.</p>
+      </div>
+      <button type="button" onclick="closeFoundingPartnerModal()" aria-label="Close partner application" style="border:none;background:transparent;color:var(--gray-light);font-size:1.5rem;cursor:pointer;">×</button>
+    </div>
+
+    <div class="notice gold" style="margin-bottom:.9rem;"><strong>Founding pilot—not a referral promise.</strong><br>Submitting interest does not guarantee placement, exclusivity, leads, or transaction volume. Any paid placement terms will be documented separately before launch.</div>
+
+    <div class="platform-grid">
+      <div class="field"><label for="foundingPartnerType">Partner category</label><select id="foundingPartnerType"><option value="title">Title company / fee attorney</option><option value="lender">Mortgage lender</option><option value="inspection">Home inspection</option><option value="home_warranty">Home warranty</option><option value="insurance">Home insurance</option><option value="photography_video">Photography / video</option><option value="staging">Home staging</option><option value="repairs_handyman">Repairs / handyman</option><option value="cleaning">Cleaning</option><option value="moving_storage">Moving / storage</option><option value="lawn_pool">Lawn / pool</option><option value="other">Other real-estate service</option></select></div>
+      <div class="field"><label for="foundingPartnerCompany">Company name</label><input id="foundingPartnerCompany" autocomplete="organization" placeholder="Company name"></div>
+      <div class="field"><label for="foundingPartnerContact">Contact name</label><input id="foundingPartnerContact" autocomplete="name" placeholder="Full name"></div>
+      <div class="field"><label for="foundingPartnerEmail">Business email</label><input id="foundingPartnerEmail" type="email" autocomplete="email" placeholder="you@company.com"></div>
+      <div class="field"><label for="foundingPartnerPhone">Phone</label><input id="foundingPartnerPhone" autocomplete="tel" placeholder="(214) 555-0000"></div>
+      <div class="field"><label for="foundingPartnerWebsite">Website</label><input id="foundingPartnerWebsite" type="url" autocomplete="url" placeholder="https://company.com"></div>
+      <div class="field"><label for="foundingPartnerMarket">Primary market area</label><input id="foundingPartnerMarket" placeholder="Collin / Denton / Grayson County"></div>
+      <div class="field"><label for="foundingPartnerFocus">Customer focus</label><input id="foundingPartnerFocus" placeholder="First-time buyers, agents, FSBO sellers..."></div>
+      <div class="field"><label for="foundingPartnerModel">Placement interest</label><select id="foundingPartnerModel"><option value="founding_pilot">Founding partner pilot</option><option value="monthly_placement">Monthly category placement</option><option value="market_exclusive">Discuss market/category exclusivity</option><option value="discuss">Not sure—discuss options</option></select></div>
+      <div class="field"><label for="foundingPartnerBudget">Potential monthly test budget</label><select id="foundingPartnerBudget"><option value="discuss">Discuss first</option><option value="under_250">Under $250</option><option value="250_499">$250–$499</option><option value="500_999">$500–$999</option><option value="1000_plus">$1,000+</option></select></div>
+    </div>
+
+    <div class="field" style="margin-top:.8rem;"><label for="foundingPartnerMessage">What would make the pilot valuable to you?</label><textarea id="foundingPartnerMessage" rows="3" placeholder="Markets served, ideal customer, category preferences, or questions..."></textarea></div>
+    <div aria-hidden="true" style="position:absolute;left:-10000px;top:auto;width:1px;height:1px;overflow:hidden;"><label for="foundingPartnerConfirm">Leave this field blank</label><input id="foundingPartnerConfirm" tabindex="-1" autocomplete="off"></div>
+
+    <label class="terms-check" style="margin-top:.8rem;"><input type="checkbox" id="foundingPartnerConsent"><span>I understand this is an application for a limited advertising/placement pilot. It is not a promise of referrals, leads, exclusivity, or transaction volume.</span></label>
+
+    <div class="account-actions-row" style="margin-top:1rem;">
+      <button class="btn-primary" type="button" id="foundingPartnerSubmit" onclick="submitFoundingPartnerLead()">Submit Partner Interest</button>
+      <button class="btn-secondary" type="button" onclick="closeFoundingPartnerModal()">Cancel</button>
+    </div>
+    <div id="foundingPartnerStatus" class="platform-status"></div>
+  </div>
+</div>
+
+<script id="hof-founding-partner-intake-v1">
+(function(){
+  function value(id){ return (document.getElementById(id)?.value || '').trim(); }
+  function params(){
+    try { return new URLSearchParams(window.location.search || ''); }
+    catch (_) { return new URLSearchParams(); }
+  }
+  window.openFoundingPartnerModal = function(){
+    const modal = document.getElementById('foundingPartnerModal');
+    if (!modal) return;
+    modal.style.display = 'flex';
+    modal.setAttribute('aria-hidden', 'false');
+    setTimeout(() => document.getElementById('foundingPartnerCompany')?.focus(), 0);
+  };
+  window.closeFoundingPartnerModal = function(){
+    const modal = document.getElementById('foundingPartnerModal');
+    if (!modal) return;
+    modal.style.display = 'none';
+    modal.setAttribute('aria-hidden', 'true');
+  };
+  window.submitFoundingPartnerLead = async function(){
+    const status = document.getElementById('foundingPartnerStatus');
+    const submit = document.getElementById('foundingPartnerSubmit');
+    const query = params();
+    const payload = {
+      partner_type: value('foundingPartnerType'),
+      company_name: value('foundingPartnerCompany'),
+      contact_name: value('foundingPartnerContact'),
+      contact_email: value('foundingPartnerEmail'),
+      contact_phone: value('foundingPartnerPhone'),
+      website_url: value('foundingPartnerWebsite'),
+      market_area: value('foundingPartnerMarket'),
+      customer_focus: value('foundingPartnerFocus'),
+      preferred_model: value('foundingPartnerModel'),
+      monthly_budget_range: value('foundingPartnerBudget'),
+      message: value('foundingPartnerMessage'),
+      company_website_confirm: value('foundingPartnerConfirm'),
+      source: query.get('utm_source') ? 'tracked_partner_landing' : 'website_partner_modal',
+      utm_source: query.get('utm_source') || '',
+      utm_medium: query.get('utm_medium') || '',
+      utm_campaign: query.get('utm_campaign') || '',
+      utm_content: query.get('utm_content') || '',
+      landing_page: window.location.href
+    };
+    if (!payload.company_name || !payload.contact_name || !payload.contact_email || !payload.market_area) {
+      if (status) { status.textContent = 'Company, contact name, email, and market area are required.'; status.className = 'platform-status err'; }
+      return;
+    }
+    if (!document.getElementById('foundingPartnerConsent')?.checked) {
+      if (status) { status.textContent = 'Please acknowledge the founding-pilot terms before submitting.'; status.className = 'platform-status err'; }
+      return;
+    }
+    if (submit) submit.disabled = true;
+    if (status) { status.textContent = 'Submitting partner interest...'; status.className = 'platform-status'; }
+    try {
+      const response = await fetch('/api/partner-lead', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify(payload)
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || 'Could not submit partner interest.');
+      if (status) { status.textContent = 'Received. We will review the market and category before discussing pilot placement terms.'; status.className = 'platform-status ok'; }
+      if (submit) submit.textContent = 'Interest Received';
+    } catch (error) {
+      if (status) { status.textContent = error?.message || String(error); status.className = 'platform-status err'; }
+      if (submit) submit.disabled = false;
+    }
+  };
+  document.addEventListener('DOMContentLoaded', function(){
+    if (params().get('partner') === '1') setTimeout(window.openFoundingPartnerModal, 80);
+  });
 })();
 </script>
 
