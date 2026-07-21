@@ -1,10 +1,11 @@
-# HomeOfferFlow Partner Advertising — Founding Market Rate Card
+# HomeOfferFlow Partner Advertising — Founding Partner Launch Offer
 
-Monthly pilot pricing is per service category and market. Availability and final deliverables are confirmed in a written advertising agreement.
+The Founding Partner launch offer gives an approved partner the first 90 days for the price of one standard month. It covers one service category and market, begins when the placement goes live, has no setup fee, and does not renew automatically. The launch offer is limited to the first 10 approved partners. Availability and final deliverables are confirmed in a written advertising agreement.
 
 | Placement | Market Listing | Featured Partner | Premier Market Sponsor |
 |---|---:|---:|---:|
-| Monthly pilot rate | $149 | $399 | $799 |
+| Founding 90-day total | $149 one time | $399 one time | $799 one time |
+| Standard rate after pilot | $149/month | $399/month | $799/month |
 | Category directory | Standard company profile | Profile plus separate sponsored brand card | Top sponsored brand module above neutral directory |
 | Neutral provider selector | Selectable; never preselected | Selectable; never preselected | Selectable; never preselected |
 | Buyer workflow | Directory access | Sponsored education or CTA outside selector | Premier sponsored module outside selector |
@@ -13,7 +14,7 @@ Monthly pilot pricing is per service category and market. Availability and final
 | Reporting | Views and outbound clicks | Views, clicks, and CTA engagement | Priority monthly performance summary |
 | Inventory | Open subject to qualification | Limited by category and market | One active Premier sponsor per category and market during pilot |
 
-## Market Listing — $149/month
+## Market Listing — $149 for the first 90 days
 
 Best for a local provider that wants an early, credible presence while HomeOfferFlow builds transaction volume.
 
@@ -21,8 +22,10 @@ Best for a local provider that wants an early, credible presence while HomeOffer
 - Selectable in neutral provider results.
 - Logo, contact details, website, and service area.
 - Profile-view and outbound-click reporting.
+- Founding Partner badge and onboarding included.
+- Optional renewal after the pilot at the standard $149/month rate.
 
-## Featured Partner — $399/month
+## Featured Partner — $399 for the first 90 days
 
 Best for a provider that wants both a selectable profile and visible brand advertising around a relevant decision moment.
 
@@ -30,8 +33,10 @@ Best for a provider that wants both a selectable profile and visible brand adver
 - Clearly labeled sponsored brand card separate from the category directory.
 - Sponsored education or CTA card outside the provider selector in the relevant workflow step.
 - Enhanced profile with an offer, scheduling link, or media CTA.
+- Founding Partner badge, onboarding, and a 90-day performance review.
+- Optional renewal after the pilot at the standard $399/month rate.
 
-## Premier Market Sponsor — $799/month
+## Premier Market Sponsor — $799 for the first 90 days
 
 Best for a category leader that wants the highest-visibility sponsored inventory in a defined market.
 
@@ -39,7 +44,16 @@ Best for a category leader that wants the highest-visibility sponsored inventory
 - First sponsored brand module, separate from and above the neutral category directory.
 - Premier sponsored module outside the provider selector in relevant buyer, agent, and FSBO workflow steps.
 - One active Premier sponsor per category and market during the pilot.
-- Priority onboarding and monthly performance summary.
+- Priority onboarding, creative setup, and 90-day performance review.
+- Optional renewal after the pilot at the standard $799/month rate.
+
+## Founding launch terms
+
+- Available to the first 10 approved partners.
+- The 90-day clock begins when the placement goes live.
+- No setup fee and no automatic renewal.
+- Renewal requires a separate written agreement at the then-current standard rate.
+- A partner may change or expand its category/market placement only through a written update.
 
 ## Consumer-choice and advertising terms
 

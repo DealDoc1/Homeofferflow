@@ -9155,6 +9155,8 @@ function routeAfterMagicLinkIfNeeded() {
   .partner-tier-price { display:flex; align-items:flex-end; gap:.25rem; margin:.45rem 0 .25rem; }
   .partner-tier-price strong { color:var(--gold-light); font-family:'Playfair Display',serif; font-size:1.85rem; line-height:1; }
   .partner-tier-price span { color:var(--gray-light); font-size:.76rem; }
+  .partner-tier-standard { display:block; margin:-.05rem 0 .55rem; color:#9aa7b7; font-size:.69rem; }
+  .partner-tier-standard s { text-decoration-color:rgba(255,255,255,.55); text-decoration-thickness:1px; }
   .partner-tier-summary { min-height:44px; margin:0 0 .7rem; color:var(--gray-light); font-size:.78rem; line-height:1.45; }
   .partner-tier-list { display:grid; gap:.42rem; margin:0 0 .85rem; padding:0; list-style:none; color:#d8e1ec; font-size:.76rem; line-height:1.38; }
   .partner-tier-list > span { position:relative; display:block; padding-left:1rem; }
@@ -9191,26 +9193,28 @@ function routeAfterMagicLinkIfNeeded() {
   <div class="modal-card partner-sales-modal" role="dialog" aria-modal="true" aria-labelledby="foundingPartnerTitle">
     <div style="display:flex; justify-content:space-between; gap:1rem; align-items:flex-start; margin-bottom:.9rem;">
       <div>
-        <div class="section-label" style="margin-bottom:.35rem;">Limited market-by-market pilot</div>
+        <div class="section-label" style="margin-bottom:.35rem;">Founding Partner launch offer</div>
         <h3 id="foundingPartnerTitle" style="font-family:'Playfair Display',serif; color:var(--white); margin:0 0 .3rem; font-size:1.55rem;">Own the Right Moment in the Home Journey</h3>
         <p style="color:var(--gray-light); line-height:1.55; margin:0;">Choose a category-and-market advertising tier built to put your brand in front of buyers, agents, and FSBO sellers while they are actively making decisions.</p>
       </div>
       <button type="button" onclick="closeFoundingPartnerModal()" aria-label="Close partner application" style="border:none;background:transparent;color:var(--gray-light);font-size:1.5rem;cursor:pointer;">×</button>
     </div>
 
-    <div class="notice gold" style="margin-bottom:.9rem;"><strong>Founding market inventory is limited.</strong><br>Rates below are monthly pilot rates per category and market. Final availability, deliverables, and pricing are confirmed in a written advertising agreement.</div>
+    <div class="notice gold" style="margin-bottom:.9rem;"><strong>Get the first 90 days for the price of one standard month.</strong><br>The launch offer is available to the first 10 approved partners. It includes onboarding, has no setup fee, and does not renew automatically. Each placement covers one category and market.</div>
 
     <div class="partner-tier-grid" role="radiogroup" aria-label="Partner advertising tier">
       <button type="button" class="partner-tier-card" data-partner-tier="founding_pilot" role="radio" aria-checked="false" onclick="selectFoundingPartnerTier('founding_pilot')">
         <span class="partner-tier-badge subtle">Build visibility</span>
         <h4>Market Listing</h4>
-        <div class="partner-tier-price"><strong>$149</strong><span>/ month<br>category + market</span></div>
+        <div class="partner-tier-price"><strong>$149</strong><span>one time<br>first 90 days</span></div>
+        <span class="partner-tier-standard"><s>Standard: $149/month</s> after the pilot, only if renewed</span>
         <p class="partner-tier-summary">A credible, selectable presence wherever consumers compare providers in your category.</p>
         <span class="partner-tier-list">
           <span>Company profile in the category directory</span>
           <span>Available in the neutral workflow provider selector</span>
           <span>Logo, contact details, service area, and website CTA</span>
           <span>Profile-view and outbound-click reporting</span>
+          <span>Founding Partner badge and onboarding included</span>
         </span>
         <span class="partner-tier-select-copy">Select Market Listing</span>
       </button>
@@ -9218,13 +9222,15 @@ function routeAfterMagicLinkIfNeeded() {
       <button type="button" class="partner-tier-card is-selected" data-partner-tier="monthly_placement" role="radio" aria-checked="true" onclick="selectFoundingPartnerTier('monthly_placement')">
         <span class="partner-tier-badge">Recommended</span>
         <h4>Featured Partner</h4>
-        <div class="partner-tier-price"><strong>$399</strong><span>/ month<br>category + market</span></div>
+        <div class="partner-tier-price"><strong>$399</strong><span>one time<br>first 90 days</span></div>
+        <span class="partner-tier-standard"><s>Standard: $399/month</s> after the pilot, only if renewed</span>
         <p class="partner-tier-summary">More brand exposure on category pages and at a relevant decision point in the workflow.</p>
         <span class="partner-tier-list">
           <span>Everything in Market Listing</span>
           <span>Clearly labeled sponsored brand card near the category directory</span>
           <span>Sponsored education or CTA card in the relevant workflow step</span>
           <span>Enhanced profile with offer, media, or scheduling CTA</span>
+          <span>Founding Partner badge, onboarding, and 90-day review</span>
         </span>
         <span class="partner-tier-select-copy">Selected</span>
       </button>
@@ -9232,13 +9238,15 @@ function routeAfterMagicLinkIfNeeded() {
       <button type="button" class="partner-tier-card premier" data-partner-tier="market_exclusive" role="radio" aria-checked="false" onclick="selectFoundingPartnerTier('market_exclusive')">
         <span class="partner-tier-badge">Highest visibility</span>
         <h4>Premier Market Sponsor</h4>
-        <div class="partner-tier-price"><strong>$799</strong><span>/ month<br>category + market</span></div>
+        <div class="partner-tier-price"><strong>$799</strong><span>one time<br>first 90 days</span></div>
+        <span class="partner-tier-standard"><s>Standard: $799/month</s> after the pilot, only if renewed</span>
         <p class="partner-tier-summary">The top sponsored brand position across the category and its relevant HomeOfferFlow moments.</p>
         <span class="partner-tier-list">
           <span>Everything in Featured Partner</span>
           <span>First sponsored brand module, separate from and above the neutral category directory</span>
           <span>Premier sponsored module outside the provider selector in relevant buyer, agent, and FSBO workflows</span>
           <span>One active Premier sponsor per category and market during the pilot</span>
+          <span>Priority onboarding, creative setup, and 90-day review</span>
         </span>
         <span class="partner-tier-select-copy">Select Premier</span>
       </button>
@@ -9260,7 +9268,7 @@ function routeAfterMagicLinkIfNeeded() {
 
     <div class="partner-safety-note"><span aria-hidden="true">✓</span><div><strong>Consumer choice stays protected.</strong> Partner fees pay for disclosed advertising inventory—not referrals, closings, or required selection. HomeOfferFlow never preselects a paid provider, and users may choose any provider or none.</div></div>
 
-    <div class="partner-selected-tier" aria-live="polite"><span>Selected advertising tier</span><strong id="foundingPartnerTierSelection">Featured Partner · $399/month per category + market</strong></div>
+    <div class="partner-selected-tier" aria-live="polite"><span>Selected 90-day Founding Partner pilot</span><strong id="foundingPartnerTierSelection">Featured Partner · $399 one time for the first 90 days</strong></div>
     <select id="foundingPartnerModel" class="partner-tier-native-select" aria-label="Selected advertising tier"><option value="founding_pilot">Market Listing</option><option value="monthly_placement" selected>Featured Partner</option><option value="market_exclusive">Premier Market Sponsor</option><option value="discuss">Custom / multi-market plan</option></select>
 
     <div class="platform-grid">
@@ -9272,13 +9280,13 @@ function routeAfterMagicLinkIfNeeded() {
       <div class="field"><label for="foundingPartnerWebsite">Website</label><input id="foundingPartnerWebsite" type="url" autocomplete="url" placeholder="https://company.com"></div>
       <div class="field"><label for="foundingPartnerMarket">Primary market area</label><input id="foundingPartnerMarket" placeholder="Collin / Denton / Grayson County"></div>
       <div class="field"><label for="foundingPartnerFocus">Customer focus</label><input id="foundingPartnerFocus" placeholder="First-time buyers, agents, FSBO sellers..."></div>
-      <div class="field"><label for="foundingPartnerBudget">Monthly placement budget</label><select id="foundingPartnerBudget"><option value="discuss">Discuss first</option><option value="under_250">Under $250</option><option value="250_499" selected>$250–$499</option><option value="500_999">$500–$999</option><option value="1000_plus">$1,000+</option></select></div>
+      <div class="field"><label for="foundingPartnerBudget">Expected monthly budget after the pilot</label><select id="foundingPartnerBudget"><option value="discuss">Discuss first</option><option value="under_250">Under $250</option><option value="250_499" selected>$250–$499</option><option value="500_999">$500–$999</option><option value="1000_plus">$1,000+</option></select></div>
     </div>
 
     <div class="field" style="margin-top:.8rem;"><label for="foundingPartnerMessage">What would make the pilot valuable to you?</label><textarea id="foundingPartnerMessage" rows="3" placeholder="Markets served, ideal customer, category preferences, or questions..."></textarea></div>
     <div aria-hidden="true" style="position:absolute;left:-10000px;top:auto;width:1px;height:1px;overflow:hidden;"><label for="foundingPartnerConfirm">Leave this field blank</label><input id="foundingPartnerConfirm" tabindex="-1" autocomplete="off"></div>
 
-    <label class="terms-check" style="margin-top:.8rem;"><input type="checkbox" id="foundingPartnerConsent"><span>I understand this is an application for a flat-fee advertising pilot. Placement does not promise referrals, leads, exclusivity, transactions, or closings, and final terms require a written agreement.</span></label>
+    <label class="terms-check" style="margin-top:.8rem;"><input type="checkbox" id="foundingPartnerConsent"><span>I understand this is an application for a 90-day flat-fee advertising pilot that begins when placement goes live and does not renew automatically. Placement does not promise referrals, leads, exclusivity, transactions, or closings, and final terms require a written agreement.</span></label>
 
     <div class="account-actions-row" style="margin-top:1rem;">
       <button class="btn-primary" type="button" id="foundingPartnerSubmit" onclick="submitFoundingPartnerLead()">Submit Partner Interest</button>
@@ -9291,9 +9299,9 @@ function routeAfterMagicLinkIfNeeded() {
 <script id="hof-founding-partner-intake-v1">
 (function(){
   const partnerTierDetails = {
-    founding_pilot: { label:'Market Listing', price:'$149/month per category + market', budget:'under_250' },
-    monthly_placement: { label:'Featured Partner', price:'$399/month per category + market', budget:'250_499' },
-    market_exclusive: { label:'Premier Market Sponsor', price:'$799/month per category + market', budget:'500_999' },
+    founding_pilot: { label:'Market Listing', price:'$149 one time for the first 90 days', budget:'under_250' },
+    monthly_placement: { label:'Featured Partner', price:'$399 one time for the first 90 days', budget:'250_499' },
+    market_exclusive: { label:'Premier Market Sponsor', price:'$799 one time for the first 90 days', budget:'500_999' },
     discuss: { label:'Custom / multi-market plan', price:'Pricing discussed after market review', budget:'discuss' }
   };
   function value(id){ return (document.getElementById(id)?.value || '').trim(); }
