@@ -1,0 +1,75 @@
+import importlib.util
+import os
+import unittest
+from pathlib import Path
+from unittest import IsolatedAsyncioTestCase
+from unittest.mock import AsyncMock, patch
+
+
+MODULE_PATH = Path(__file__).resolve().parents[1] / "api" / "admin-dashboard.py"
+os.environ.setdefault("SUPABASE_URL", "https://example.supabase.co")
+os.environ.setdefault("SUPABASE_SERVICE_ROLE_KEY", "test-service-key")
+SPEC = importlib.util.spec_from_file_location("admin_dashboard", MODULE_PATH)
+admin_dashboard = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(admin_dashboard)
+
+
+class FakeResponse:
+    def __init__(self, status_code, payload):
+        self.status_code = status_code
+        self._payload = payload
+
+    def json(self):
+        return self._payload
+
+
+class FakeClient:
+    def __init__(self, response):
+        self.response = response
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb):
+        return False
+
+    async def get(self, *_args, **_kwargs):
+        return self.response
+
+
+class AdminTrackerSecurityTests(IsolatedAsyncioTestCase):
+    async def test_missing_bearer_token_is_rejected_without_network_call(self):
+        self.assertIsNone(await admin_dashboard._verified_user(""))
+        self.assertIsNone(await admin_dashboard._verified_user("Basic no"))
+
+    async def test_auth_user_endpoint_validates_session_and_returns_verified_identity(self):
+        response = FakeResponse(200, {"id": "user-123", "email": "ADMIN@EXAMPLE.COM"})
+        with patch.object(admin_dashboard.httpx, "AsyncClient", return_value=FakeClient(response)):
+            user = await admin_dashboard._verified_user("Bearer signed-session-token")
+        self.assertEqual(user, {"id": "user-123", "email": "admin@example.com"})
+
+    async def test_invalid_session_is_rejected(self):
+        response = FakeResponse(401, {"message": "invalid token"})
+        with patch.object(admin_dashboard.httpx, "AsyncClient", return_value=FakeClient(response)):
+            self.assertIsNone(await admin_dashboard._verified_user("Bearer invalid"))
+
+    async def test_platform_admin_membership_is_checked_for_non_allowlisted_user(self):
+        with patch.object(admin_dashboard, "_get", new=AsyncMock(return_value=[])) as get_rows:
+            allowed = await admin_dashboard._is_platform_admin({"id": "user-456", "email": "agent@example.com"})
+        self.assertFalse(allowed)
+        get_rows.assert_awaited_once()
+
+    async def test_verified_default_admin_email_is_allowed(self):
+        with patch.object(admin_dashboard, "_get", new=AsyncMock()) as get_rows:
+            allowed = await admin_dashboard._is_platform_admin({"id": "user-789", "email": "andrewchri@gmail.com"})
+        self.assertTrue(allowed)
+        get_rows.assert_not_awaited()
+
+    async def test_optional_admin_dataset_fails_open_to_empty_list(self):
+        with patch.object(admin_dashboard, "_get", new=AsyncMock(side_effect=RuntimeError("table missing"))):
+            rows = await admin_dashboard._get_optional("hof_partner_leads?select=*")
+        self.assertEqual(rows, [])
+
+
+if __name__ == "__main__":
+    unittest.main()
