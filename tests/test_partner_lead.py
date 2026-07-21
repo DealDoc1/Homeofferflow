@@ -82,6 +82,26 @@ class PartnerLeadTests(unittest.TestCase):
         self.assertEqual(payload["preferred_model"], "founding_pilot")
         self.assertEqual(payload["monthly_budget_range"], "discuss")
 
+    def test_public_sales_tiers_map_to_allowed_models_and_budget_bands(self):
+        tiers = (
+            ("founding_pilot", "under_250"),
+            ("monthly_placement", "250_499"),
+            ("market_exclusive", "500_999"),
+        )
+        for preferred_model, monthly_budget_range in tiers:
+            with self.subTest(preferred_model=preferred_model):
+                payload = fsbo_lead._build_partner_payload({
+                    "partner_type": "inspection",
+                    "company_name": "North Texas Partner",
+                    "contact_name": "Pat Partner",
+                    "contact_email": "pat@example.com",
+                    "market_area": "North Texas",
+                    "preferred_model": preferred_model,
+                    "monthly_budget_range": monthly_budget_range,
+                })
+                self.assertEqual(payload["preferred_model"], preferred_model)
+                self.assertEqual(payload["monthly_budget_range"], monthly_budget_range)
+
     def test_server_insert_uses_service_role_and_partner_table(self):
         payload = fsbo_lead._build_partner_payload({
             "partner_type": "inspection",
