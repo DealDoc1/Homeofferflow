@@ -286,6 +286,9 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
     .step-card p, .audience-card p { font-size: 0.87rem; color: var(--gray); line-height: 1.6; }
     .audience-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 1.25rem; margin-top: 3rem; }
     .audience-card { background: linear-gradient(135deg, rgba(200,151,63,0.07), rgba(200,151,63,0.02)); border: 1px solid rgba(200,151,63,0.14); border-radius: 14px; padding: 2.25rem 1.75rem; }
+    .audience-card-link { display: block; color: inherit; text-decoration: none; transition: transform 0.25s ease, border-color 0.25s ease, background 0.25s ease, box-shadow 0.25s ease; }
+    .audience-card-link:hover, .audience-card-link:focus-visible { transform: translateY(-3px); border-color: rgba(200,151,63,0.42); background: linear-gradient(135deg, rgba(200,151,63,0.12), rgba(200,151,63,0.035)); box-shadow: 0 14px 32px rgba(0,0,0,0.18); outline: none; }
+    .audience-card-link:focus-visible { box-shadow: 0 0 0 3px rgba(200,151,63,0.22), 0 14px 32px rgba(0,0,0,0.18); }
     .audience-icon { font-size: 2.2rem; margin-bottom: 1.1rem; }
     .audience-card h3 { font-family: 'Playfair Display', serif; font-size: 1.25rem; font-weight: 700; margin-bottom: 0.65rem; }
     .audience-price { margin-top: 1.25rem; display: inline-block; background: rgba(200,151,63,0.14); color: var(--gold-light); padding: 0.3rem 0.8rem; border-radius: 100px; font-size: 0.78rem; font-weight: 600; }
@@ -671,6 +674,7 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
 .platform-pill { display:inline-flex; border-radius:999px; padding:0.22rem 0.55rem; margin:0.15rem 0.2rem 0.15rem 0; font-size:0.66rem; font-weight:900; text-transform:uppercase; letter-spacing:0.04em; border:1px solid rgba(200,151,63,0.32); color:var(--gold-light); background:rgba(200,151,63,0.08); }
 .platform-pill.good { border-color:rgba(74,140,111,0.35); color:var(--sage-light); background:rgba(74,140,111,0.10); }
 .platform-pill.warn { border-color:rgba(232,147,90,0.35); color:var(--warn); background:rgba(232,147,90,0.10); }
+.platform-pill.bad { border-color:rgba(180,75,75,0.38); color:#ffb3b3; background:rgba(180,75,75,0.11); }
 .platform-actions { display:flex; flex-wrap:wrap; gap:0.6rem; margin-top:0.9rem; }
 .platform-actions button { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.13); color:var(--gray-light); border-radius:8px; padding:0.62rem 0.82rem; font-family:'DM Sans',sans-serif; font-size:0.78rem; font-weight:900; cursor:pointer; }
 .platform-actions button:hover { border-color:rgba(200,151,63,0.45); color:var(--gold-light); background:rgba(200,151,63,0.07); }
@@ -2473,12 +2477,18 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
 
 <section class="section">
   <div class="section-label">Who It's For</div>
-  <h2>Built for every kind of Texas buyer.</h2>
+  <h2>Built for every side of the Texas transaction.</h2>
   <div class="audience-grid">
     <div class="audience-card"><div class="audience-icon">🏠</div><h3>Homebuyers</h3><p>Build a Texas resale offer packet with plain-English guidance, AI competitiveness review, and buyer-side signing when the packet is ready.</p><span class="audience-price">$99 per completed offer packet</span></div>
     <div class="audience-card"><div class="audience-icon">🏢</div><h3>Agents & Brokers</h3><p>Create client-ready Texas offer packets from the field, track buyer-side signature status, duplicate prior offers, and collect beta feedback for broker review.</p><span class="audience-price">Agent / broker beta workspace</span></div>
     <div class="audience-card"><div class="audience-icon">📈</div><h3>Investors</h3><p>Use saved defaults and repeat-offer workflows to move faster while still keeping financing, option, title, and addenda terms organized.</p><span class="audience-price">Investor repeat-offer workflow</span></div>
     <div class="audience-card"><div class="audience-icon">🏷️</div><h3>FSBO Sellers</h3><p>Request seller packages, flat-fee MLS interest, offer review, contract-to-close support, and local partner suggestions without checkout yet.</p><span class="audience-price">Packages from $0 to $2,999+ · intake only</span></div>
+    <a class="audience-card audience-card-link" href="?partner=1" onclick="event.preventDefault(); openFoundingPartnerModal();" aria-label="Explore HomeOfferFlow founding partner opportunities">
+      <div class="audience-icon">🤝</div>
+      <h3>Service Partners</h3>
+      <p>Reach Texas buyers, sellers, agents, and investors with market-based placements across title, inspection, lending, insurance, and home warranty categories.</p>
+      <span class="audience-price">Founding partner placements from $149</span>
+    </a>
   </div>
 </section>
 
@@ -2492,7 +2502,7 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
 </section>
 
 <footer>
-  <p>© 2025 HomeOfferFlow · A BrewBQ Investments LLC product · <a href="/terms.html" target="_blank" rel="noopener">Terms of Service</a> · <a href="/privacy.html" target="_blank" rel="noopener">Privacy Policy</a> · <a href="/disclaimer.html" target="_blank" rel="noopener">Disclaimer</a></p>
+  <p>© 2025 HomeOfferFlow · A BrewBQ Investments LLC product · <a href="/terms.html" target="_blank" rel="noopener">Terms of Service</a> · <a href="/privacy.html" target="_blank" rel="noopener">Privacy Policy</a> · <a href="/disclaimer.html" target="_blank" rel="noopener">Disclaimer</a> · <a href="?partner=1" onclick="event.preventDefault(); openFoundingPartnerModal();">Become a Founding Partner</a></p>
   <p>Built for Texas homebuyers, investors, and agents who want faster, cleaner offer packets.</p>
   <p>HomeOfferFlow is not a law firm, does not provide legal advice, and does not represent you as your real estate agent. This tool assists with completing official TREC forms only. For legal guidance, consult a licensed Texas real estate attorney or broker.</p>
   <p>TREC forms provided by the Texas Real Estate Commission · <a href="https://trec.texas.gov" target="_blank">trec.texas.gov</a></p>
@@ -3722,6 +3732,14 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
           <div>${adminDate(row.created_at || row.inserted_at)}</div>
         </div>`;
       }
+      if (type === 'partner-leads') {
+        return `<div class="admin-row">
+          <div><strong>${adminSafe(row.company_name || 'Partner lead')}</strong><div class="admin-muted">${adminSafe(row.contact_name || '')} · ${adminSafe(row.contact_email || '')}</div></div>
+          <div>${adminSafe(row.market_area || '')}<div class="admin-muted">${adminSafe(row.preferred_model || '')}</div></div>
+          <div><span class="admin-pill ${['qualified','converted'].includes(String(row.status || '')) ? 'good' : 'warn'}">${adminSafe(row.status || 'new')}</span><div class="admin-muted">${adminSafe(row.partner_type || 'other')}</div></div>
+          <div>${adminDate(row.created_at)}</div>
+        </div>`;
+      }
       return `<div class="admin-row">
         <div><strong>${adminSafe(row.property_address || 'Offer')}</strong><div class="admin-muted">${adminSafe(row.buyer_name || '')} · ${adminSafe(row.buyer_email || '')}</div></div>
         <div>${adminMoney(row.offer_price || 0)}<div class="admin-muted">${adminSafe(row.role || '')}</div></div>
@@ -3759,6 +3777,14 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
       const showings = result.showings || [];
       const subscriptions = result.subscriptions || [];
       const feedback = result.feedback || [];
+      const partnerLeads = result.partnerLeads || [];
+      window.hofAdminTrackerPayload = {
+        roadmap: result.roadmap || [],
+        qaScenarios: result.qaScenarios || [],
+        qaRuns: result.qaRuns || [],
+        releases: result.releases || [],
+        partnerLeads
+      };
       const awaitingCount = offers.filter(o => getOfferSigningBucket(o) === 'awaiting').length;
       const viewedCount = offers.filter(o => getOfferSigningBucket(o) === 'viewed').length;
       const partialCount = offers.filter(o => getOfferSigningBucket(o) === 'partial').length;
@@ -3781,6 +3807,11 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
           <div class="admin-metric">
             <div class="admin-metric-label">Subscriptions</div>
             <div class="admin-metric-value">${metrics.subscriptionCount || subscriptions.length || 0}</div>
+          </div>
+
+          <div class="admin-metric">
+            <div class="admin-metric-label">Partner Leads</div>
+            <div class="admin-metric-value">${metrics.partnerLeadCount || partnerLeads.length || 0}</div>
           </div>
 
           <div class="admin-metric">
@@ -3832,6 +3863,11 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
         <div class="admin-section">
           <h4>Feedback</h4>
           ${renderAdminRows(feedback.slice(0, 8), 'feedback')}
+        </div>
+
+        <div class="admin-section">
+          <h4>Founding Partner Leads</h4>
+          ${renderAdminRows(partnerLeads.slice(0, 12), 'partner-leads')}
         </div>
       `;
     } catch (err) {
@@ -8158,7 +8194,9 @@ function routeAfterMagicLinkIfNeeded() {
     brokerage: null,
     partners: [],
     sellerLeads: [],
-    roadmap: []
+    roadmap: [],
+    qaScenarios: [],
+    releases: []
   };
 
   function platformStatus(id, message, type = 'ok') {
@@ -8363,19 +8401,19 @@ function routeAfterMagicLinkIfNeeded() {
     el.innerHTML = `
       <div class="platform-card">
         <h4>Partner Marketplace Foundation</h4>
-        <p>Advertising placements only: title, warranty, inspection, insurance, and lender. This is not a referral-fee workflow.</p>
+        <p>Flat-fee advertising inventory only. Paid sponsor modules stay separate from the neutral provider selector and are never preselected.</p>
         <div class="platform-kpi-row">
-          <div class="platform-kpi"><span>Title Slot</span><strong>Ready</strong></div>
-          <div class="platform-kpi"><span>Warranty Slot</span><strong>Ready</strong></div>
-          <div class="platform-kpi"><span>Tracking</span><strong>Next</strong></div>
+          <div class="platform-kpi"><span>Market Listing</span><strong>$149</strong></div>
+          <div class="platform-kpi"><span>Featured</span><strong>$399</strong></div>
+          <div class="platform-kpi"><span>Premier</span><strong>$799</strong></div>
         </div>
-        <div class="notice gold">Founding partner pricing can stay low until you have volume. Use this to create beta title/warranty placements for demos.</div>
+        <div class="notice gold">Pilot rates are monthly per category and market. Premier is limited to one active sponsored inventory position per category and market, but it never creates required selection or referral rights.</div>
       </div>
       <div class="partner-create-card">
         <h4 style="color:var(--gold-light); font-size:0.86rem; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:0.75rem;">Create Partner Placement</h4>
         <div class="platform-grid">
           <div class="field"><label>Partner Type</label><select id="partnerType"><option value="title">Title</option><option value="warranty">Home Warranty</option><option value="inspection">Inspection</option><option value="lender">Lender</option><option value="insurance">Insurance</option></select></div>
-          <div class="field"><label>Placement Tier</label><select id="partnerTier"><option value="founding">Founding</option><option value="premier">Premier</option><option value="exclusive_market">Exclusive Market</option></select></div>
+          <div class="field"><label>Placement Tier</label><select id="partnerTier"><option value="founding">Market Listing · $149</option><option value="premier">Featured Partner · $399</option><option value="exclusive_market">Premier Market Sponsor · $799</option></select></div>
           <div class="field"><label>Partner Name</label><input id="partnerName" placeholder="Forgey Law Group / Chicago Title"></div>
           <div class="field"><label>Market Area</label><input id="partnerMarket" placeholder="Collin / Grayson County"></div>
           <div class="field"><label>Contact Name</label><input id="partnerContactName" placeholder="Contact name"></div>
@@ -8807,21 +8845,74 @@ function routeAfterMagicLinkIfNeeded() {
     }
   }
 
+  function trackerPillTone(status) {
+    const value = String(status || '').toLowerCase();
+    if (['done', 'production', 'deployed', 'passed', 'staging_passed'].includes(value)) return 'good';
+    if (['blocked', 'failed', 'rolled_back'].includes(value)) return 'bad';
+    if (['in_progress', 'qa', 'partial', 'running'].includes(value)) return 'warn';
+    return '';
+  }
+
   async function renderRoadmapFoundationBlock() {
-    const client = getSupabaseClient();
-    if (!client) return '<div class="admin-empty">Supabase unavailable.</div>';
     try {
-      const { data, error } = await client.from('hof_roadmap_items').select('*').order('priority', { ascending:true }).limit(30);
-      if (error) throw error;
-      hofPlatform.roadmap = data || [];
-      return `<div class="admin-section"><h4>Product Roadmap Checklist</h4>${hofPlatform.roadmap.map(item => `
+      const tracker = window.hofAdminTrackerPayload;
+      if (!tracker) throw new Error('Admin tracker data was not returned by the server.');
+      hofPlatform.roadmap = tracker.roadmap || [];
+      hofPlatform.qaScenarios = tracker.qaScenarios || [];
+      hofPlatform.releases = tracker.releases || [];
+
+      const productionCount = hofPlatform.roadmap.filter(item => ['production', 'done'].includes(item.status)).length;
+      const blockedCount = hofPlatform.roadmap.filter(item => item.status === 'blocked').length;
+      const verifiedCount = hofPlatform.qaScenarios.filter(item => ['passed', 'staging_passed', 'production'].includes(item.current_status)).length;
+
+      const summary = `<div class="platform-kpi-row">
+        <div class="platform-kpi"><span>Enhancements</span><strong>${hofPlatform.roadmap.length}</strong></div>
+        <div class="platform-kpi"><span>Production / Done</span><strong>${productionCount}</strong></div>
+        <div class="platform-kpi"><span>Blocked Paths</span><strong>${blockedCount}</strong></div>
+      </div>`;
+
+      const roadmapHtml = `<div class="admin-section"><h4>Revenue-Led Product Roadmap — Supabase Source of Truth</h4><p style="margin:.25rem 0 .9rem;color:var(--gray-light);font-size:.78rem;">Ordered by market adoption, ease of entry, and revenue proximity. Product price has zero weight.</p>${summary}${hofPlatform.roadmap.map(item => `
         <div class="roadmap-row">
-          <div><span class="platform-pill">${escapeAttr(item.category || 'Roadmap')}</span></div>
-          <div><strong>${escapeAttr(item.title || '')}</strong><span>${escapeAttr(item.description || '')}</span></div>
-          <div><span class="platform-pill ${item.status === 'done' ? 'good' : item.status === 'in_progress' ? 'warn' : ''}">${escapeAttr(item.status || 'planned')}</span></div>
+          <div><span class="platform-pill">#${escapeAttr(item.priority || '—')} · ${escapeAttr(item.category || 'Roadmap')}</span></div>
+          <div><strong>${escapeAttr(item.title || '')}</strong><span>${escapeAttr(item.description || '')}</span>
+            ${item.metadata?.priority_tier ? `<small style="display:block;margin-top:.35rem;color:var(--gold-light);">${escapeAttr(item.metadata.priority_tier.replaceAll('_', ' '))} · Market ${escapeAttr(item.metadata.market_adoption_score ?? '—')}/5 · Ease ${escapeAttr(item.metadata.ease_of_entry_score ?? '—')}/5</small>` : ''}
+            ${item.metadata?.priority_rationale ? `<small style="display:block;margin-top:.25rem;">${escapeAttr(item.metadata.priority_rationale)}</small>` : ''}
+            ${item.next_action ? `<small style="display:block;margin-top:.35rem;color:var(--gold-light);">Next: ${escapeAttr(item.next_action)}</small>` : ''}
+            ${item.known_issues ? `<small style="display:block;margin-top:.25rem;color:#ffb3b3;">Known issue: ${escapeAttr(item.known_issues)}</small>` : ''}
+          </div>
+          <div>
+            <span class="platform-pill ${trackerPillTone(item.status)}">${escapeAttr(item.status || 'planned')}</span>
+            <span class="platform-pill ${trackerPillTone(item.qa_status)}">QA: ${escapeAttr(item.qa_status || 'not_tested')}</span>
+            ${item.current_release ? `<small style="display:block;margin-top:.25rem;">${escapeAttr(item.current_release)}</small>` : ''}
+          </div>
         </div>`).join('') || '<div class="admin-empty">No roadmap items found.</div>'}</div>`;
+
+      const qaHtml = `<div class="admin-section"><h4>QA Coverage — ${verifiedCount} of ${hofPlatform.qaScenarios.length} Verified</h4>${hofPlatform.qaScenarios.map(item => `
+        <div class="roadmap-row">
+          <div><span class="platform-pill">${escapeAttr(item.category || 'QA')}</span></div>
+          <div><strong>${escapeAttr(item.title || '')}</strong><span>${escapeAttr(item.description || '')}</span>
+            ${item.notes ? `<small style="display:block;margin-top:.3rem;">${escapeAttr(item.notes)}</small>` : ''}
+          </div>
+          <div><span class="platform-pill ${trackerPillTone(item.current_status)}">${escapeAttr(item.current_status || 'not_tested')}</span>
+            ${item.last_verified_release ? `<small style="display:block;margin-top:.25rem;">${escapeAttr(item.last_verified_release)}</small>` : ''}
+          </div>
+        </div>`).join('') || '<div class="admin-empty">No QA scenarios found.</div>'}</div>`;
+
+      const releasesHtml = `<div class="admin-section"><h4>Release History and Gates</h4>${hofPlatform.releases.map(item => `
+        <div class="roadmap-row">
+          <div><span class="platform-pill">${escapeAttr(item.environment || 'staging')}</span></div>
+          <div><strong>${escapeAttr(item.title || '')}</strong><span>${escapeAttr(item.summary || '')}</span>
+            ${item.next_action ? `<small style="display:block;margin-top:.35rem;color:var(--gold-light);">Next: ${escapeAttr(item.next_action)}</small>` : ''}
+          </div>
+          <div><span class="platform-pill ${trackerPillTone(item.status)}">${escapeAttr(item.status || 'planned')}</span>
+            <span class="platform-pill ${trackerPillTone(item.qa_status)}">QA: ${escapeAttr(item.qa_status || 'not_tested')}</span>
+            ${item.github_pr ? `<small style="display:block;margin-top:.25rem;">${escapeAttr(item.github_pr)}</small>` : ''}
+          </div>
+        </div>`).join('') || '<div class="admin-empty">No releases found.</div>'}</div>`;
+
+      return roadmapHtml + qaHtml + releasesHtml;
     } catch (err) {
-      return '<div class="admin-section"><h4>Product Roadmap Checklist</h4><div class="admin-empty">Roadmap could not load: ' + escapeAttr(err?.message || err) + '</div></div>';
+      return '<div class="admin-section"><h4>Product and QA Tracker</h4><div class="admin-empty">Tracker could not load: ' + escapeAttr(err?.message || err) + '</div></div>';
     }
   }
 
@@ -8832,7 +8923,7 @@ function routeAfterMagicLinkIfNeeded() {
       const target = document.getElementById('adminDashboardContent');
       if (target && isCurrentAdmin()) {
         const roadmapHtml = await renderRoadmapFoundationBlock();
-        if (!target.innerHTML.includes('Product Roadmap Checklist')) target.insertAdjacentHTML('beforeend', roadmapHtml);
+        if (!target.innerHTML.includes('Revenue-Led Product Roadmap — Supabase Source of Truth')) target.insertAdjacentHTML('beforeend', roadmapHtml);
       }
     };
   }
@@ -9057,6 +9148,262 @@ function routeAfterMagicLinkIfNeeded() {
       return result;
     };
   }
+})();
+</script>
+
+<style id="hof-founding-partner-sales-v2">
+  .partner-sales-modal { width:min(1080px,100%); max-height:92vh; overflow:auto; background:linear-gradient(180deg,#0b1828,#07111d); border:1px solid rgba(200,151,63,.32); border-radius:20px; box-shadow:0 24px 80px rgba(0,0,0,.48); padding:1.25rem; }
+  .partner-tier-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:.75rem; margin:.9rem 0; }
+  .partner-tier-card { position:relative; display:flex; flex-direction:column; min-height:310px; padding:1rem; text-align:left; color:var(--white); background:rgba(255,255,255,.025); border:1px solid rgba(255,255,255,.12); border-radius:16px; cursor:pointer; transition:transform .18s ease,border-color .18s ease,background .18s ease,box-shadow .18s ease; }
+  .partner-tier-card:hover { transform:translateY(-2px); border-color:rgba(200,151,63,.52); background:rgba(200,151,63,.055); }
+  .partner-tier-card.is-selected { border-color:var(--gold); background:linear-gradient(180deg,rgba(200,151,63,.14),rgba(200,151,63,.045)); box-shadow:0 0 0 2px rgba(200,151,63,.12),0 14px 35px rgba(0,0,0,.22); }
+  .partner-tier-card.premier { border-color:rgba(200,151,63,.48); }
+  .partner-tier-badge { align-self:flex-start; min-height:22px; margin-bottom:.55rem; padding:.18rem .5rem; border-radius:999px; color:var(--navy); background:var(--gold); font-size:.66rem; font-weight:800; letter-spacing:.055em; text-transform:uppercase; }
+  .partner-tier-badge.subtle { color:var(--gold-light); background:rgba(200,151,63,.12); }
+  .partner-tier-card h4 { margin:0; color:var(--white); font-size:1.08rem; }
+  .partner-tier-price { display:flex; align-items:flex-end; gap:.25rem; margin:.45rem 0 .25rem; }
+  .partner-tier-price strong { color:var(--gold-light); font-family:'Playfair Display',serif; font-size:1.85rem; line-height:1; }
+  .partner-tier-price span { color:var(--gray-light); font-size:.76rem; }
+  .partner-tier-standard { display:block; margin:-.05rem 0 .55rem; color:#9aa7b7; font-size:.69rem; }
+  .partner-tier-standard s { text-decoration-color:rgba(255,255,255,.55); text-decoration-thickness:1px; }
+  .partner-tier-summary { min-height:44px; margin:0 0 .7rem; color:var(--gray-light); font-size:.78rem; line-height:1.45; }
+  .partner-tier-list { display:grid; gap:.42rem; margin:0 0 .85rem; padding:0; list-style:none; color:#d8e1ec; font-size:.76rem; line-height:1.38; }
+  .partner-tier-list > span { position:relative; display:block; padding-left:1rem; }
+  .partner-tier-list > span::before { content:'✓'; position:absolute; left:0; color:var(--gold-light); font-weight:800; }
+  .partner-tier-select-copy { margin-top:auto; padding-top:.65rem; border-top:1px solid rgba(255,255,255,.09); color:var(--gold-light); font-size:.73rem; font-weight:800; letter-spacing:.045em; text-transform:uppercase; }
+  .partner-placement-wrap { margin:.9rem 0 1rem; border:1px solid rgba(255,255,255,.1); border-radius:14px; overflow:hidden; }
+  .partner-placement-title { display:flex; justify-content:space-between; gap:1rem; align-items:center; padding:.72rem .85rem; background:rgba(255,255,255,.035); }
+  .partner-placement-title strong { color:var(--white); font-size:.88rem; }
+  .partner-placement-title span { color:var(--gray-light); font-size:.7rem; }
+  .partner-placement-table { width:100%; border-collapse:collapse; color:#d7e0eb; font-size:.72rem; }
+  .partner-placement-table th,.partner-placement-table td { padding:.62rem .68rem; border-top:1px solid rgba(255,255,255,.075); vertical-align:top; text-align:left; line-height:1.35; }
+  .partner-placement-table th { color:var(--gold-light); background:rgba(200,151,63,.045); font-size:.67rem; letter-spacing:.035em; text-transform:uppercase; }
+  .partner-placement-table td:first-child { color:var(--white); font-weight:700; }
+  .partner-safety-note { display:grid; grid-template-columns:auto 1fr; gap:.65rem; align-items:flex-start; margin:.75rem 0 1rem; padding:.72rem .8rem; border:1px solid rgba(133,184,159,.25); border-radius:12px; background:rgba(133,184,159,.065); color:#cfe0d7; font-size:.72rem; line-height:1.45; }
+  .partner-safety-note strong { color:#dff0e7; }
+  .partner-selected-tier { display:flex; align-items:center; justify-content:space-between; gap:1rem; margin:.85rem 0 .3rem; padding:.68rem .8rem; border:1px solid rgba(200,151,63,.24); border-radius:12px; background:rgba(200,151,63,.06); }
+  .partner-selected-tier span { color:var(--gray-light); font-size:.72rem; }
+  .partner-selected-tier strong { color:var(--gold-light); font-size:.8rem; }
+  .partner-tier-native-select { position:absolute!important; width:1px!important; height:1px!important; overflow:hidden!important; clip:rect(0,0,0,0)!important; white-space:nowrap!important; }
+  @media (max-width:860px) {
+    .partner-tier-grid { grid-template-columns:1fr; }
+    .partner-tier-card { min-height:0; }
+    .partner-placement-wrap { overflow-x:auto; }
+    .partner-placement-table { min-width:720px; }
+  }
+  @media (max-width:540px) {
+    .partner-sales-modal { padding:.9rem; }
+    .partner-tier-price strong { font-size:1.55rem; }
+    .partner-selected-tier { align-items:flex-start; flex-direction:column; gap:.25rem; }
+  }
+</style>
+
+<div class="modal-backdrop" id="foundingPartnerModal" aria-hidden="true" style="display:none; position:fixed; inset:0; z-index:10080; background:rgba(0,0,0,.74); backdrop-filter:blur(8px); align-items:center; justify-content:center; padding:1rem;">
+  <div class="modal-card partner-sales-modal" role="dialog" aria-modal="true" aria-labelledby="foundingPartnerTitle">
+    <div style="display:flex; justify-content:space-between; gap:1rem; align-items:flex-start; margin-bottom:.9rem;">
+      <div>
+        <div class="section-label" style="margin-bottom:.35rem;">Founding Partner launch offer</div>
+        <h3 id="foundingPartnerTitle" style="font-family:'Playfair Display',serif; color:var(--white); margin:0 0 .3rem; font-size:1.55rem;">Own the Right Moment in the Home Journey</h3>
+        <p style="color:var(--gray-light); line-height:1.55; margin:0;">Choose a category-and-market advertising tier built to put your brand in front of buyers, agents, and FSBO sellers while they are actively making decisions.</p>
+      </div>
+      <button type="button" onclick="closeFoundingPartnerModal()" aria-label="Close partner application" style="border:none;background:transparent;color:var(--gray-light);font-size:1.5rem;cursor:pointer;">×</button>
+    </div>
+
+    <div class="notice gold" style="margin-bottom:.9rem;"><strong>Get the first 90 days for the price of one standard month.</strong><br>The launch offer is available to the first 10 approved partners. It includes onboarding, has no setup fee, and does not renew automatically. Each placement covers one category and market.</div>
+
+    <div class="partner-tier-grid" role="radiogroup" aria-label="Partner advertising tier">
+      <button type="button" class="partner-tier-card" data-partner-tier="founding_pilot" role="radio" aria-checked="false" onclick="selectFoundingPartnerTier('founding_pilot')">
+        <span class="partner-tier-badge subtle">Build visibility</span>
+        <h4>Market Listing</h4>
+        <div class="partner-tier-price"><strong>$149</strong><span>one time<br>first 90 days</span></div>
+        <span class="partner-tier-standard"><s>Standard: $149/month</s> after the pilot, only if renewed</span>
+        <p class="partner-tier-summary">A credible, selectable presence wherever consumers compare providers in your category.</p>
+        <span class="partner-tier-list">
+          <span>Company profile in the category directory</span>
+          <span>Available in the neutral workflow provider selector</span>
+          <span>Logo, contact details, service area, and website CTA</span>
+          <span>Profile-view and outbound-click reporting</span>
+          <span>Founding Partner badge and onboarding included</span>
+        </span>
+        <span class="partner-tier-select-copy">Select Market Listing</span>
+      </button>
+
+      <button type="button" class="partner-tier-card is-selected" data-partner-tier="monthly_placement" role="radio" aria-checked="true" onclick="selectFoundingPartnerTier('monthly_placement')">
+        <span class="partner-tier-badge">Recommended</span>
+        <h4>Featured Partner</h4>
+        <div class="partner-tier-price"><strong>$399</strong><span>one time<br>first 90 days</span></div>
+        <span class="partner-tier-standard"><s>Standard: $399/month</s> after the pilot, only if renewed</span>
+        <p class="partner-tier-summary">More brand exposure on category pages and at a relevant decision point in the workflow.</p>
+        <span class="partner-tier-list">
+          <span>Everything in Market Listing</span>
+          <span>Clearly labeled sponsored brand card near the category directory</span>
+          <span>Sponsored education or CTA card in the relevant workflow step</span>
+          <span>Enhanced profile with offer, media, or scheduling CTA</span>
+          <span>Founding Partner badge, onboarding, and 90-day review</span>
+        </span>
+        <span class="partner-tier-select-copy">Selected</span>
+      </button>
+
+      <button type="button" class="partner-tier-card premier" data-partner-tier="market_exclusive" role="radio" aria-checked="false" onclick="selectFoundingPartnerTier('market_exclusive')">
+        <span class="partner-tier-badge">Highest visibility</span>
+        <h4>Premier Market Sponsor</h4>
+        <div class="partner-tier-price"><strong>$799</strong><span>one time<br>first 90 days</span></div>
+        <span class="partner-tier-standard"><s>Standard: $799/month</s> after the pilot, only if renewed</span>
+        <p class="partner-tier-summary">The top sponsored brand position across the category and its relevant HomeOfferFlow moments.</p>
+        <span class="partner-tier-list">
+          <span>Everything in Featured Partner</span>
+          <span>First sponsored brand module, separate from and above the neutral category directory</span>
+          <span>Premier sponsored module outside the provider selector in relevant buyer, agent, and FSBO workflows</span>
+          <span>One active Premier sponsor per category and market during the pilot</span>
+          <span>Priority onboarding, creative setup, and 90-day review</span>
+        </span>
+        <span class="partner-tier-select-copy">Select Premier</span>
+      </button>
+    </div>
+
+    <div class="partner-placement-wrap" aria-label="Partner tier placement comparison">
+      <div class="partner-placement-title"><strong>Exactly where each tier appears</strong><span>All paid placements are labeled “Sponsored.”</span></div>
+      <table class="partner-placement-table">
+        <thead><tr><th>Placement</th><th>Market Listing</th><th>Featured Partner</th><th>Premier Sponsor</th></tr></thead>
+        <tbody>
+          <tr><td>Category directory</td><td>Standard company profile</td><td>Profile plus a separate sponsored brand card near directory</td><td>Top sponsored brand module above the neutral directory</td></tr>
+          <tr><td>Provider selection</td><td>Selectable in neutral results</td><td>Selectable in neutral results</td><td>Selectable in neutral results; never preselected</td></tr>
+          <tr><td>Buyer workflow</td><td>Directory access</td><td>Sponsored education / CTA outside selector</td><td>Premier sponsored module outside selector</td></tr>
+          <tr><td>Agent + FSBO workflows</td><td>Directory access</td><td>Sponsored education / CTA outside selector</td><td>Premier sponsored module outside selector</td></tr>
+          <tr><td>Reporting</td><td>Views + outbound clicks</td><td>Views, clicks + CTA engagement</td><td>Priority monthly performance summary</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="partner-safety-note"><span aria-hidden="true">✓</span><div><strong>Consumer choice stays protected.</strong> Partner fees pay for disclosed advertising inventory—not referrals, closings, or required selection. HomeOfferFlow never preselects a paid provider, and users may choose any provider or none.</div></div>
+
+    <div class="partner-selected-tier" aria-live="polite"><span>Selected 90-day Founding Partner pilot</span><strong id="foundingPartnerTierSelection">Featured Partner · $399 one time for the first 90 days</strong></div>
+    <select id="foundingPartnerModel" class="partner-tier-native-select" aria-label="Selected advertising tier"><option value="founding_pilot">Market Listing</option><option value="monthly_placement" selected>Featured Partner</option><option value="market_exclusive">Premier Market Sponsor</option><option value="discuss">Custom / multi-market plan</option></select>
+
+    <div class="platform-grid">
+      <div class="field"><label for="foundingPartnerType">Partner category</label><select id="foundingPartnerType"><option value="title">Title company / fee attorney</option><option value="lender">Mortgage lender</option><option value="inspection">Home inspection</option><option value="home_warranty">Home warranty</option><option value="insurance">Home insurance</option><option value="photography_video">Photography / video</option><option value="staging">Home staging</option><option value="repairs_handyman">Repairs / handyman</option><option value="cleaning">Cleaning</option><option value="moving_storage">Moving / storage</option><option value="lawn_pool">Lawn / pool</option><option value="other">Other real-estate service</option></select></div>
+      <div class="field"><label for="foundingPartnerCompany">Company name</label><input id="foundingPartnerCompany" autocomplete="organization" placeholder="Company name"></div>
+      <div class="field"><label for="foundingPartnerContact">Contact name</label><input id="foundingPartnerContact" autocomplete="name" placeholder="Full name"></div>
+      <div class="field"><label for="foundingPartnerEmail">Business email</label><input id="foundingPartnerEmail" type="email" autocomplete="email" placeholder="you@company.com"></div>
+      <div class="field"><label for="foundingPartnerPhone">Phone</label><input id="foundingPartnerPhone" autocomplete="tel" placeholder="(214) 555-0000"></div>
+      <div class="field"><label for="foundingPartnerWebsite">Website</label><input id="foundingPartnerWebsite" type="url" autocomplete="url" placeholder="https://company.com"></div>
+      <div class="field"><label for="foundingPartnerMarket">Primary market area</label><input id="foundingPartnerMarket" placeholder="Collin / Denton / Grayson County"></div>
+      <div class="field"><label for="foundingPartnerFocus">Customer focus</label><input id="foundingPartnerFocus" placeholder="First-time buyers, agents, FSBO sellers..."></div>
+      <div class="field"><label for="foundingPartnerBudget">Expected monthly budget after the pilot</label><select id="foundingPartnerBudget"><option value="discuss">Discuss first</option><option value="under_250">Under $250</option><option value="250_499" selected>$250–$499</option><option value="500_999">$500–$999</option><option value="1000_plus">$1,000+</option></select></div>
+    </div>
+
+    <div class="field" style="margin-top:.8rem;"><label for="foundingPartnerMessage">What would make the pilot valuable to you?</label><textarea id="foundingPartnerMessage" rows="3" placeholder="Markets served, ideal customer, category preferences, or questions..."></textarea></div>
+    <div aria-hidden="true" style="position:absolute;left:-10000px;top:auto;width:1px;height:1px;overflow:hidden;"><label for="foundingPartnerConfirm">Leave this field blank</label><input id="foundingPartnerConfirm" tabindex="-1" autocomplete="off"></div>
+
+    <label class="terms-check" style="margin-top:.8rem;"><input type="checkbox" id="foundingPartnerConsent"><span>I understand this is an application for a 90-day flat-fee advertising pilot that begins when placement goes live and does not renew automatically. Placement does not promise referrals, leads, exclusivity, transactions, or closings, and final terms require a written agreement.</span></label>
+
+    <div class="account-actions-row" style="margin-top:1rem;">
+      <button class="btn-primary" type="button" id="foundingPartnerSubmit" onclick="submitFoundingPartnerLead()">Submit Partner Interest</button>
+      <button class="btn-secondary" type="button" onclick="closeFoundingPartnerModal()">Cancel</button>
+    </div>
+    <div id="foundingPartnerStatus" class="platform-status"></div>
+  </div>
+</div>
+
+<script id="hof-founding-partner-intake-v1">
+(function(){
+  const partnerTierDetails = {
+    founding_pilot: { label:'Market Listing', price:'$149 one time for the first 90 days', budget:'under_250' },
+    monthly_placement: { label:'Featured Partner', price:'$399 one time for the first 90 days', budget:'250_499' },
+    market_exclusive: { label:'Premier Market Sponsor', price:'$799 one time for the first 90 days', budget:'500_999' },
+    discuss: { label:'Custom / multi-market plan', price:'Pricing discussed after market review', budget:'discuss' }
+  };
+  function value(id){ return (document.getElementById(id)?.value || '').trim(); }
+  function params(){
+    try { return new URLSearchParams(window.location.search || ''); }
+    catch (_) { return new URLSearchParams(); }
+  }
+  window.openFoundingPartnerModal = function(){
+    const modal = document.getElementById('foundingPartnerModal');
+    if (!modal) return;
+    modal.style.display = 'flex';
+    modal.setAttribute('aria-hidden', 'false');
+    setTimeout(() => document.querySelector('.partner-tier-card.is-selected')?.focus(), 0);
+  };
+  window.selectFoundingPartnerTier = function(model){
+    const detail = partnerTierDetails[model] || partnerTierDetails.monthly_placement;
+    const select = document.getElementById('foundingPartnerModel');
+    const budget = document.getElementById('foundingPartnerBudget');
+    const summary = document.getElementById('foundingPartnerTierSelection');
+    const submit = document.getElementById('foundingPartnerSubmit');
+    if (select) select.value = model;
+    if (budget) budget.value = detail.budget;
+    if (summary) summary.textContent = detail.label + ' · ' + detail.price;
+    document.querySelectorAll('[data-partner-tier]').forEach(function(card){
+      const selected = card.getAttribute('data-partner-tier') === model;
+      card.classList.toggle('is-selected', selected);
+      card.setAttribute('aria-checked', selected ? 'true' : 'false');
+      const copy = card.querySelector('.partner-tier-select-copy');
+      const cardModel = card.getAttribute('data-partner-tier');
+      if (copy) copy.textContent = selected ? 'Selected' : (cardModel === 'market_exclusive' ? 'Select Premier' : 'Select ' + (partnerTierDetails[cardModel]?.label || 'tier'));
+    });
+    if (submit) submit.textContent = 'Apply for ' + detail.label;
+  };
+  window.closeFoundingPartnerModal = function(){
+    const modal = document.getElementById('foundingPartnerModal');
+    if (!modal) return;
+    modal.style.display = 'none';
+    modal.setAttribute('aria-hidden', 'true');
+  };
+  window.submitFoundingPartnerLead = async function(){
+    const status = document.getElementById('foundingPartnerStatus');
+    const submit = document.getElementById('foundingPartnerSubmit');
+    const query = params();
+    const payload = {
+      request_type: 'founding_partner',
+      partner_type: value('foundingPartnerType'),
+      company_name: value('foundingPartnerCompany'),
+      contact_name: value('foundingPartnerContact'),
+      contact_email: value('foundingPartnerEmail'),
+      contact_phone: value('foundingPartnerPhone'),
+      website_url: value('foundingPartnerWebsite'),
+      market_area: value('foundingPartnerMarket'),
+      customer_focus: value('foundingPartnerFocus'),
+      preferred_model: value('foundingPartnerModel'),
+      monthly_budget_range: value('foundingPartnerBudget'),
+      message: value('foundingPartnerMessage'),
+      company_website_confirm: value('foundingPartnerConfirm'),
+      source: query.get('utm_source') ? 'tracked_partner_landing' : 'website_partner_modal',
+      utm_source: query.get('utm_source') || '',
+      utm_medium: query.get('utm_medium') || '',
+      utm_campaign: query.get('utm_campaign') || '',
+      utm_content: query.get('utm_content') || '',
+      landing_page: window.location.href
+    };
+    if (!payload.company_name || !payload.contact_name || !payload.contact_email || !payload.market_area) {
+      if (status) { status.textContent = 'Company, contact name, email, and market area are required.'; status.className = 'platform-status err'; }
+      return;
+    }
+    if (!document.getElementById('foundingPartnerConsent')?.checked) {
+      if (status) { status.textContent = 'Please acknowledge the founding-pilot terms before submitting.'; status.className = 'platform-status err'; }
+      return;
+    }
+    if (submit) submit.disabled = true;
+    if (status) { status.textContent = 'Submitting partner interest...'; status.className = 'platform-status'; }
+    try {
+      const response = await fetch('/api/fsbo-lead', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify(payload)
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || 'Could not submit partner interest.');
+      if (status) { status.textContent = 'Received. We will review the market and category before discussing pilot placement terms.'; status.className = 'platform-status ok'; }
+      if (submit) submit.textContent = 'Interest Received';
+    } catch (error) {
+      if (status) { status.textContent = error?.message || String(error); status.className = 'platform-status err'; }
+      if (submit) submit.disabled = false;
+    }
+  };
+  document.addEventListener('DOMContentLoaded', function(){
+    window.selectFoundingPartnerTier('monthly_placement');
+    if (params().get('partner') === '1') setTimeout(window.openFoundingPartnerModal, 80);
+  });
 })();
 </script>
 
