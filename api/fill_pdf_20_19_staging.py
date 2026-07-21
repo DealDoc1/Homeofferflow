@@ -1634,9 +1634,9 @@ def build_signwell_fields(offer, pdf_bytes):
         if has_buyer2:
             add_field("buyer2_initials_seller_temp_lease_p1", "initials", seller_temp_page_1, 328, 1004, recipient_id="2", width=24, height=10)
     if seller_temp_signature_page:
-        add_field("buyer1_signature_seller_temp_lease", "signature", seller_temp_signature_page, 78, 789, recipient_id="1", width=145, height=20)
+        add_field("buyer1_signature_seller_temp_lease", "signature", seller_temp_signature_page, 78, 777, recipient_id="1", width=145, height=20)
         if has_buyer2:
-            add_field("buyer2_signature_seller_temp_lease", "signature", seller_temp_signature_page, 78, 857, recipient_id="2", width=145, height=20)
+            add_field("buyer2_signature_seller_temp_lease", "signature", seller_temp_signature_page, 78, 845, recipient_id="2", width=145, height=20)
 
     # HOA/POA Addendum - buyer signatures only. No seller fields.
     if hoa_page:
