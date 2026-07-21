@@ -1,5 +1,5 @@
 -- HomeOfferFlow founding-partner intake.
--- Server-only Data API access: the browser posts to /api/partner-lead and the
+-- Server-only Data API access: the browser posts to /api/fsbo-lead and the
 -- Vercel function inserts using the Supabase service role.
 
 create table if not exists public.hof_partner_leads (
