@@ -22,6 +22,20 @@ class PartnerTierUiTests(unittest.TestCase):
                 self.assertIn(label, self.html)
                 self.assertIn(rate, self.html)
 
+    def test_founder_offer_is_a_clear_nonrenewing_90_day_pilot(self):
+        required_copy = (
+            "first 90 days for the price of one standard month",
+            "first 10 approved partners",
+            "no setup fee",
+            "does not renew automatically",
+            "Standard: $149/month",
+            "Standard: $399/month",
+            "Standard: $799/month",
+        )
+        for copy in required_copy:
+            with self.subTest(copy=copy):
+                self.assertIn(copy, self.html)
+
     def test_public_tiers_keep_existing_server_safe_model_values(self):
         for value in ("founding_pilot", "monthly_placement", "market_exclusive"):
             with self.subTest(value=value):
