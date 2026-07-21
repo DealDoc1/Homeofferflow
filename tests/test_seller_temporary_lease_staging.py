@@ -127,6 +127,8 @@ class SellerTemporaryLeaseStagingTests(unittest.TestCase):
         self.assertEqual(by_id["buyer2_signature_seller_temp_lease"]["page"], 14)
         self.assertLess(by_id["buyer1_signature_seller_temp_lease"]["x"], 200)
         self.assertLess(by_id["buyer2_signature_seller_temp_lease"]["x"], 200)
+        self.assertEqual(by_id["buyer1_signature_seller_temp_lease"]["y"], 777)
+        self.assertEqual(by_id["buyer2_signature_seller_temp_lease"]["y"], 845)
 
     def test_seller_lease_pages_shift_following_addenda_without_overlap(self):
         offer = seller_temp_offer()
