@@ -286,6 +286,9 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
     .step-card p, .audience-card p { font-size: 0.87rem; color: var(--gray); line-height: 1.6; }
     .audience-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 1.25rem; margin-top: 3rem; }
     .audience-card { background: linear-gradient(135deg, rgba(200,151,63,0.07), rgba(200,151,63,0.02)); border: 1px solid rgba(200,151,63,0.14); border-radius: 14px; padding: 2.25rem 1.75rem; }
+    .audience-card-link { display: block; color: inherit; text-decoration: none; transition: transform 0.25s ease, border-color 0.25s ease, background 0.25s ease, box-shadow 0.25s ease; }
+    .audience-card-link:hover, .audience-card-link:focus-visible { transform: translateY(-3px); border-color: rgba(200,151,63,0.42); background: linear-gradient(135deg, rgba(200,151,63,0.12), rgba(200,151,63,0.035)); box-shadow: 0 14px 32px rgba(0,0,0,0.18); outline: none; }
+    .audience-card-link:focus-visible { box-shadow: 0 0 0 3px rgba(200,151,63,0.22), 0 14px 32px rgba(0,0,0,0.18); }
     .audience-icon { font-size: 2.2rem; margin-bottom: 1.1rem; }
     .audience-card h3 { font-family: 'Playfair Display', serif; font-size: 1.25rem; font-weight: 700; margin-bottom: 0.65rem; }
     .audience-price { margin-top: 1.25rem; display: inline-block; background: rgba(200,151,63,0.14); color: var(--gold-light); padding: 0.3rem 0.8rem; border-radius: 100px; font-size: 0.78rem; font-weight: 600; }
@@ -2474,12 +2477,18 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
 
 <section class="section">
   <div class="section-label">Who It's For</div>
-  <h2>Built for every kind of Texas buyer.</h2>
+  <h2>Built for every side of the Texas transaction.</h2>
   <div class="audience-grid">
     <div class="audience-card"><div class="audience-icon">🏠</div><h3>Homebuyers</h3><p>Build a Texas resale offer packet with plain-English guidance, AI competitiveness review, and buyer-side signing when the packet is ready.</p><span class="audience-price">$99 per completed offer packet</span></div>
     <div class="audience-card"><div class="audience-icon">🏢</div><h3>Agents & Brokers</h3><p>Create client-ready Texas offer packets from the field, track buyer-side signature status, duplicate prior offers, and collect beta feedback for broker review.</p><span class="audience-price">Agent / broker beta workspace</span></div>
     <div class="audience-card"><div class="audience-icon">📈</div><h3>Investors</h3><p>Use saved defaults and repeat-offer workflows to move faster while still keeping financing, option, title, and addenda terms organized.</p><span class="audience-price">Investor repeat-offer workflow</span></div>
     <div class="audience-card"><div class="audience-icon">🏷️</div><h3>FSBO Sellers</h3><p>Request seller packages, flat-fee MLS interest, offer review, contract-to-close support, and local partner suggestions without checkout yet.</p><span class="audience-price">Packages from $0 to $2,999+ · intake only</span></div>
+    <a class="audience-card audience-card-link" href="?partner=1" onclick="event.preventDefault(); openFoundingPartnerModal();" aria-label="Explore HomeOfferFlow founding partner opportunities">
+      <div class="audience-icon">🤝</div>
+      <h3>Service Partners</h3>
+      <p>Reach Texas buyers, sellers, agents, and investors with market-based placements across title, inspection, lending, insurance, and home warranty categories.</p>
+      <span class="audience-price">Founding partner placements from $149</span>
+    </a>
   </div>
 </section>
 
