@@ -9206,6 +9206,7 @@ function routeAfterMagicLinkIfNeeded() {
     const submit = document.getElementById('foundingPartnerSubmit');
     const query = params();
     const payload = {
+      request_type: 'founding_partner',
       partner_type: value('foundingPartnerType'),
       company_name: value('foundingPartnerCompany'),
       contact_name: value('foundingPartnerContact'),
@@ -9236,7 +9237,7 @@ function routeAfterMagicLinkIfNeeded() {
     if (submit) submit.disabled = true;
     if (status) { status.textContent = 'Submitting partner interest...'; status.className = 'platform-status'; }
     try {
-      const response = await fetch('/api/partner-lead', {
+      const response = await fetch('/api/fsbo-lead', {
         method: 'POST',
         headers: {'Content-Type':'application/json'},
         body: JSON.stringify(payload)

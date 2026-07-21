@@ -7,7 +7,7 @@ Founding Partner Revenue Pilot v1
 ## What it adds
 
 - Public founding-partner application modal linked from the site footer.
-- Server-side `/api/partner-lead` intake endpoint.
+- Server-side founding-partner intake through the existing `/api/fsbo-lead` function, avoiding an additional Vercel function.
 - Supabase `hof_partner_leads` table with server-only access, RLS, and explicit grants.
 - UTM/source attribution for founder outreach and social campaigns.
 - Founding-partner lead count and lead list in the authenticated admin dashboard.
@@ -36,7 +36,7 @@ Confirm:
 
 Include:
 
-- `api/partner-lead.py`
+- `api/fsbo-lead.py`
 - `api/admin-dashboard.py`
 - `index.html`
 - `supabase/homeofferflow_partner_leads.sql`
@@ -81,4 +81,3 @@ If the public intake fails:
 1. Roll back the Vercel deployment.
 2. Leave `hof_partner_leads` in place so submitted leads are not lost.
 3. Do not roll back or modify any offer/PDF route.
-
