@@ -5,12 +5,12 @@ from pathlib import Path
 from unittest.mock import patch
 
 
-MODULE_PATH = Path(__file__).resolve().parents[1] / "api" / "partner-lead.py"
+MODULE_PATH = Path(__file__).resolve().parents[1] / "api" / "fsbo-lead.py"
 os.environ.setdefault("SUPABASE_URL", "https://example.supabase.co")
 os.environ.setdefault("SUPABASE_SERVICE_ROLE_KEY", "test-service-key")
-SPEC = importlib.util.spec_from_file_location("partner_lead", MODULE_PATH)
-partner_lead = importlib.util.module_from_spec(SPEC)
-SPEC.loader.exec_module(partner_lead)
+SPEC = importlib.util.spec_from_file_location("fsbo_lead", MODULE_PATH)
+fsbo_lead = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(fsbo_lead)
 
 
 class FakeResponse:
@@ -39,11 +39,11 @@ class FakeClient:
 class PartnerLeadTests(unittest.TestCase):
     def test_required_fields_are_enforced(self):
         with self.assertRaisesRegex(ValueError, "required"):
-            partner_lead._build_payload({"company_name": "Title Co"})
+            fsbo_lead._build_partner_payload({"company_name": "Title Co"})
 
     def test_invalid_email_is_rejected(self):
         with self.assertRaisesRegex(ValueError, "valid contact email"):
-            partner_lead._build_payload({
+            fsbo_lead._build_partner_payload({
                 "company_name": "Title Co",
                 "contact_name": "Pat Partner",
                 "contact_email": "not-an-email",
@@ -51,7 +51,7 @@ class PartnerLeadTests(unittest.TestCase):
             })
 
     def test_payload_is_normalized_and_choices_are_allowlisted(self):
-        payload = partner_lead._build_payload({
+        payload = fsbo_lead._build_partner_payload({
             "partner_type": "title",
             "company_name": "  North   Texas Title  ",
             "contact_name": " Pat Partner ",
@@ -69,7 +69,7 @@ class PartnerLeadTests(unittest.TestCase):
         self.assertEqual(payload["status"], "new")
 
     def test_unknown_choices_fall_back_to_safe_defaults(self):
-        payload = partner_lead._build_payload({
+        payload = fsbo_lead._build_partner_payload({
             "partner_type": "unsupported",
             "company_name": "Example Co",
             "contact_name": "Pat Partner",
@@ -83,15 +83,15 @@ class PartnerLeadTests(unittest.TestCase):
         self.assertEqual(payload["monthly_budget_range"], "discuss")
 
     def test_server_insert_uses_service_role_and_partner_table(self):
-        payload = partner_lead._build_payload({
+        payload = fsbo_lead._build_partner_payload({
             "partner_type": "inspection",
             "company_name": "Inspect North Texas",
             "contact_name": "Pat Partner",
             "contact_email": "pat@example.com",
             "market_area": "DFW",
         })
-        with patch.object(partner_lead.httpx, "Client", FakeClient):
-            row = partner_lead._insert_partner_lead(payload)
+        with patch.object(fsbo_lead.httpx, "Client", FakeClient):
+            row = fsbo_lead._insert_partner_lead(payload)
         self.assertEqual(row["id"], "partner-lead-123")
 
 
