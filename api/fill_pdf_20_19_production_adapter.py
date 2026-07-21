@@ -81,7 +81,13 @@ def validate_supported_offer(offer):
         blocked.append("Buyer Temporary Residential Lease configuration")
     if possession in {"lease", "buyerlease", "buyer lease"}:
         blocked.append("Buyer Temporary Residential Lease")
-    if _truthy(offer.get("sellerTemporaryLease")):
+    seller_temp_possession = possession in {
+        "sellertemporarylease",
+        "seller temporary lease",
+        "sellerlease",
+        "seller lease",
+    }
+    if _truthy(offer.get("sellerTemporaryLease")) or seller_temp_possession:
         blocked.append("Seller Temporary Residential Lease")
 
     unsupported_flags = {

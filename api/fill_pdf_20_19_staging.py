@@ -114,6 +114,22 @@ def buyer_temp_lease_pdf_path():
     )
 
 
+def seller_temp_lease_pdf_path():
+    return find_existing_pdf(
+        "seller_temporary_residential_lease_15-7.pdf",
+        "seller_temporary_residential_lease_15_7.pdf",
+        "seller_temporary_residential_lease.pdf",
+        "seller_temp_residential_lease.pdf",
+        "sellers_temporary_residential_lease.pdf",
+        "temporary_residential_lease_seller.pdf",
+        "seller_temporary_lease.pdf",
+        "trec_15-7.pdf",
+        "trec_15_7.pdf",
+        "TREC_15-7.pdf",
+        "TREC_15_7.pdf",
+    )
+
+
 def fmt_money(v):
     if v in [None, ""]:
         return ""
@@ -188,6 +204,11 @@ def truthy(v):
 def buyer_temp_lease_requested(s):
     possession = val_lower(first_present(s.get("possession"), s.get("possessionType")))
     return possession in ["temporarylease", "temporary_lease", "lease", "buyerlease", "buyertemporarylease"] or truthy(s.get("buyerTemporaryLease"))
+
+
+def seller_temp_lease_requested(s):
+    possession = val_lower(first_present(s.get("possession"), s.get("possessionType")))
+    return possession in ["sellertemporarylease", "seller_temporary_lease", "sellerlease"] or truthy(s.get("sellerTemporaryLease"))
 
 
 def normalize_financing(v):
@@ -835,8 +856,9 @@ def build_pages_data(
         (62, 655, ck(has_sale), "check_small"),
         (62, 642, ck(has_appraisal), "check_small"),
 
-        # Leases
-        (62, 516, ck(possession == "lease" or truthy(s.get("buyerTemporaryLease"))), "check_small"),
+        # Leases. Buyer and Seller temporary leases are separate Paragraph 22 rows.
+        (62, 516, ck(buyer_temp_lease_requested(s)), "check_small"),
+        (62, 503, ck(seller_temp_lease_requested(s)), "check_small"),
 
         # Statutory disclosures and notices
         (62, 430, ck(lead_addendum_attached), "check_small"),
@@ -936,7 +958,7 @@ def fill_and_merge(offer):
     else:
         as_is = "yes"
     possession_raw = val_lower(first_present(s.get("possession"), s.get("possessionType"), "funding"))
-    if possession_raw in ["temporarylease", "lease", "buyerlease", "buyertemporarylease"] or truthy(s.get("buyerTemporaryLease")):
+    if buyer_temp_lease_requested(s) or seller_temp_lease_requested(s):
         possession = "lease"
     else:
         possession = "funding"
@@ -1208,6 +1230,112 @@ def fill_and_merge(offer):
         temp_lease_pages = add_debug_grid_to_pages(temp_lease_pages)
         merger.append(PdfReader(BytesIO(stamp_pdf(buyer_temp_lease_path, temp_lease_pages))))
 
+    seller_temp_lease_path = seller_temp_lease_pdf_path()
+    seller_temp_lease_attached = seller_temp_lease_requested(s) and seller_temp_lease_path and os.path.exists(seller_temp_lease_path)
+    if seller_temp_lease_attached:
+        # TREC 15-7 (effective 01/05/2026). In this buyer-side offer packet,
+        # Buyer is Landlord and Seller is Tenant. Only buyer/Landlord SignWell
+        # fields are created; Tenant/Seller execution fields remain blank.
+        seller_temp_landlord = first_present(s.get("sellerTemporaryLeaseLandlord"), buyer)
+        seller_temp_tenant = first_present(s.get("sellerTemporaryLeaseTenant"), s.get("seller"))
+        seller_temp_termination_date = format_full_date(first_present(
+            s.get("sellerTemporaryLeaseTerminationDate"),
+            s.get("sellerTempLeaseTerminationDate"),
+            s.get("temporaryLeaseTerminationDate"),
+        ))
+        seller_temp_rent_per_day = first_present(
+            s.get("sellerTemporaryLeaseRentPerDay"),
+            s.get("sellerTempLeaseDailyRent"),
+            s.get("temporaryLeaseRentPerDay"),
+        )
+        seller_temp_deposit = first_present(
+            s.get("sellerTemporaryLeaseDeposit"),
+            s.get("sellerTempLeaseDeposit"),
+            s.get("temporaryLeaseDeposit"),
+        )
+        seller_temp_utilities = first_present(
+            s.get("sellerTemporaryLeaseUtilitiesPaidByBuyer"),
+            s.get("sellerTempLeaseUtilities"),
+            s.get("temporaryLeaseUtilities"),
+        )
+        seller_temp_pets = first_present(
+            s.get("sellerTemporaryLeasePetsAllowed"),
+            s.get("sellerTempLeasePets"),
+            s.get("temporaryLeasePets"),
+        )
+        seller_temp_special = first_present(
+            s.get("sellerTemporaryLeaseSpecialProvisions"),
+            s.get("sellerTempLeaseSpecialProvisions"),
+            s.get("temporaryLeaseSpecialProvisions"),
+        )
+        seller_temp_holdover = first_present(
+            s.get("sellerTemporaryLeaseHoldoverPerDay"),
+            s.get("sellerTempLeaseHoldoverPerDay"),
+            s.get("temporaryLeaseHoldoverPerDay"),
+        )
+
+        landlord_phone_area, landlord_phone_number = split_phone(first_present(s.get("buyerPhone"), s.get("landlordPhone")))
+        tenant_phone_area, tenant_phone_number = split_phone(first_present(s.get("sellerPhone"), s.get("tenantPhone")))
+        landlord_fax_area, landlord_fax_number = split_phone(first_present(s.get("buyerFax"), s.get("landlordFax")))
+        tenant_fax_area, tenant_fax_number = split_phone(first_present(s.get("sellerFax"), s.get("tenantFax")))
+
+        seller_temp_lease_pages = {
+            0: [
+                # Page 1 AcroForm blank coordinates from official TREC 15-7.
+                *fitted_blank_entries(seller_temp_landlord, [(262, 682, 307)], fs=8),
+                *fitted_blank_entries(seller_temp_tenant, [(130, 671, 394)], fs=8),
+                *fitted_blank_entries(addr_full, [(210, 641, 359), (52, 630, 466)], fs=8),
+                (170, 600, seller_temp_termination_date, 8),
+                (308, 581, fmt_money(seller_temp_rent_per_day), 8),
+                (433, 529, fmt_money(seller_temp_deposit), 8),
+                *fitted_blank_entries(seller_temp_utilities, [(331, 466, 238)], fs=8),
+                *fitted_blank_entries(seller_temp_pets, [(342, 406, 227)], fs=8),
+                *fitted_blank_entries(seller_temp_special, [
+                    (183, 305, 386),
+                    (51, 294, 518),
+                    (51, 283, 518),
+                    (51, 272, 518),
+                    (51, 261, 518),
+                    (51, 250, 518),
+                    (51, 239, 518),
+                    (51, 228, 518),
+                    (51, 217, 518),
+                    (51, 206, 518),
+                    (51, 195, 518),
+                    (51, 184, 518),
+                ], fs=8),
+            ],
+            1: [
+                # Page 2: property, holdover, and Landlord/Tenant notices.
+                *fitted_blank_entries(addr_full, [(190, 747, 286)], fs=8),
+                (239, 535, fmt_money(seller_temp_holdover), 8),
+
+                *fitted_blank_entries(first_present(s.get("buyerMailAddr"), s.get("landlordMailAddr")), [
+                    (125, 328, 179),
+                    (50, 309, 254),
+                    (50, 290, 254),
+                ], fs=7.5),
+                (134, 271, landlord_phone_area, 7.5),
+                (163, 271, landlord_phone_number, 7.5),
+                (134, 252, landlord_fax_area, 7.5),
+                (163, 252, landlord_fax_number, 7.5),
+                (97, 235, first_present(s.get("buyerEmail"), s.get("landlordEmail")), 7.5),
+
+                *fitted_blank_entries(first_present(s.get("sellerMailAddr"), s.get("tenantMailAddr")), [
+                    (392, 328, 183),
+                    (324, 309, 251),
+                    (324, 290, 251),
+                ], fs=7.5),
+                (398, 271, tenant_phone_area, 7.5),
+                (430, 271, tenant_phone_number, 7.5),
+                (398, 252, tenant_fax_area, 7.5),
+                (431, 252, tenant_fax_number, 7.5),
+                (371, 235, first_present(s.get("sellerEmail"), s.get("tenantEmail")), 7.5),
+            ],
+        }
+        seller_temp_lease_pages = add_debug_grid_to_pages(seller_temp_lease_pages)
+        merger.append(PdfReader(BytesIO(stamp_pdf(seller_temp_lease_path, seller_temp_lease_pages))))
+
     if has_hoa and os.path.exists(HOA_PDF):
         hoa_info = s.get("hoaSubdivisionInfo") or "seller"
         hoa_title_cost = s.get("hoaTitleCost") or "seller"
@@ -1350,6 +1478,7 @@ def build_signwell_fields(offer, pdf_bytes):
         offer.get("leadDisclosureAttached"),
     )) and bool(lead_pdf_path())
     buyer_temp_lease_attached = buyer_temp_lease_requested(offer) and bool(buyer_temp_lease_pdf_path())
+    seller_temp_lease_attached = seller_temp_lease_requested(offer) and bool(seller_temp_lease_pdf_path())
 
     main_contract_pages = list(range(1, min(page_count, 9) + 1))
     main_signature_page = 10 if page_count >= 10 else max(page_count, 1)
@@ -1361,6 +1490,7 @@ def build_signwell_fields(offer, pdf_bytes):
     non_realty_page = None
     lead_page = None
     buyer_temp_page_1 = buyer_temp_signature_page = None
+    seller_temp_page_1 = seller_temp_signature_page = None
     hoa_page = None
     sale_page = None
     backup_page_1 = backup_signature_page = None
@@ -1381,6 +1511,10 @@ def build_signwell_fields(offer, pdf_bytes):
     if buyer_temp_lease_attached:
         buyer_temp_page_1 = next_page
         buyer_temp_signature_page = next_page + 1
+        next_page += 2
+    if seller_temp_lease_attached:
+        seller_temp_page_1 = next_page
+        seller_temp_signature_page = next_page + 1
         next_page += 2
     if has_hoa:
         hoa_page = next_page
@@ -1492,6 +1626,18 @@ def build_signwell_fields(offer, pdf_bytes):
         if has_buyer2:
             add_field("buyer2_signature_buyer_temp_lease", "signature", buyer_temp_signature_page, 470, 857, recipient_id="2", width=145, height=20)
 
+    # TREC 15-7 Seller Temporary Residential Lease. Buyer is Landlord, so the
+    # buyer initials/signatures belong on the left Landlord fields. Tenant/Seller
+    # execution fields remain blank for the listing side.
+    if seller_temp_page_1:
+        add_field("buyer1_initials_seller_temp_lease_p1", "initials", seller_temp_page_1, 296, 1004, recipient_id="1", width=24, height=10)
+        if has_buyer2:
+            add_field("buyer2_initials_seller_temp_lease_p1", "initials", seller_temp_page_1, 328, 1004, recipient_id="2", width=24, height=10)
+    if seller_temp_signature_page:
+        add_field("buyer1_signature_seller_temp_lease", "signature", seller_temp_signature_page, 78, 789, recipient_id="1", width=145, height=20)
+        if has_buyer2:
+            add_field("buyer2_signature_seller_temp_lease", "signature", seller_temp_signature_page, 78, 857, recipient_id="2", width=145, height=20)
+
     # HOA/POA Addendum - buyer signatures only. No seller fields.
     if hoa_page:
         # 17Q: HOA buyer signatures moved up onto the two Buyer lines.
@@ -1532,6 +1678,7 @@ def build_signwell_fields(offer, pdf_bytes):
         "lead_required_warning_only": lead_required,
         "lead_addendum_attached": lead_addendum_attached,
         "buyer_temp_lease_attached": buyer_temp_lease_attached,
+        "seller_temp_lease_attached": seller_temp_lease_attached,
         "has_sale": has_sale,
         "has_backup": has_backup,
         "pages": {
@@ -1542,6 +1689,8 @@ def build_signwell_fields(offer, pdf_bytes):
             "lead_page": lead_page,
             "buyer_temp_page_1": buyer_temp_page_1,
             "buyer_temp_signature_page": buyer_temp_signature_page,
+            "seller_temp_page_1": seller_temp_page_1,
+            "seller_temp_signature_page": seller_temp_signature_page,
             "hoa_page": hoa_page,
             "sale_page": sale_page,
             "backup_page_1": backup_page_1,
