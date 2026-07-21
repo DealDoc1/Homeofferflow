@@ -2,82 +2,80 @@
 
 ## Update name
 
-Founding Partner Revenue Pilot v1
+Founding Partner Revenue Pilot v2
 
 ## What it adds
 
-- Public founding-partner application modal linked from the site footer.
-- Server-side founding-partner intake through the existing `/api/fsbo-lead` function, avoiding an additional Vercel function.
-- Supabase `hof_partner_leads` table with server-only access, RLS, and explicit grants.
-- UTM/source attribution for founder outreach and social campaigns.
-- Founding-partner lead count and lead list in the authenticated admin dashboard.
-- Revenue roadmap split between the near-term founding pilot and the later full partner marketplace.
+- Three selectable monthly advertising tiers priced per category and market:
+  - Market Listing — $149
+  - Featured Partner — $399
+  - Premier Market Sponsor — $799
+- An exact placement comparison covering category pages, provider selection, buyer workflow, agent/FSBO workflow, and reporting.
+- Premier sponsored inventory above the neutral category directory and inside relevant workflow moments.
+- Neutral provider results for every tier: paid partners are never preselected, required, or ranked inside the selector because of payment.
+- Public tier selection stored through the existing `/api/fsbo-lead` partner-intake path.
+- UTM/source attribution and authenticated admin review.
 
-This update does not change the production TREC contract, PDF coordinates, offer-generation routes, pricing, Stripe, or SignWell behavior.
+This release changes partner-pilot presentation only. It does not change TREC contract files, PDF coordinates, offer-generation routes, Stripe, or SignWell.
 
-## Deployment order
+## Commercial rules carried by the preview
 
-### 1. Apply the database migration
+1. Rates are monthly and apply to one category in one market.
+2. All paid advertising modules are labeled `Sponsored`.
+3. Premier inventory is limited to one active sponsored position per category and market during the pilot.
+4. The neutral provider selector never preselects a paid partner and does not rank providers based on payment.
+5. A user may choose any provider or no provider.
+6. Fees are not contingent on referrals, leads, transactions, or closings.
+7. Final availability and deliverables require a written advertising agreement.
 
-Run the full contents of:
+The commercial agreement and final implementation should receive legal/compliance review before paid settlement-service advertising is activated.
 
-`supabase/homeofferflow_partner_leads.sql`
+## Preview files
 
-in the HomeOfferFlow Supabase SQL editor.
-
-Confirm:
-
-- `public.hof_partner_leads` exists.
-- RLS is enabled.
-- `anon` and `authenticated` do not have table privileges.
-- `service_role` has select, insert, update, and delete privileges.
-
-### 2. Deploy a Vercel preview
-
-Include:
-
+- `index.html`
 - `api/fsbo-lead.py`
 - `api/admin-dashboard.py`
-- `index.html`
+- `tests/test_partner_lead.py`
+- `tests/test_partner_tier_ui.py`
 - `supabase/homeofferflow_partner_leads.sql`
 - `supabase/homeofferflow_product_tracker.sql`
-- `supabase/homeofferflow_revenue_priority_2026_07.sql`
-- `supabase/README.md`
-- `tests/test_partner_lead.py`
-- `tests/test_admin_tracker.py`
+- `PARTNER_RATE_CARD.md`
 
-Do not alter or replace the live PDF-generation files as part of this deployment.
+## Preview QA
 
-### 3. Preview QA
-
-Open the preview with:
+Open the existing preview with:
 
 `?partner=1&utm_source=founder_outreach&utm_medium=direct&utm_campaign=founding_partner_pilot`
 
 Verify:
 
 1. The partner modal opens automatically.
-2. The pilot disclaimer clearly says there is no promise of referrals, leads, exclusivity, or transaction volume.
-3. Missing required fields are rejected.
-4. An invalid email is rejected.
-5. A valid submission returns the success state.
-6. The row appears in `public.hof_partner_leads` with the UTM values.
-7. The authenticated admin dashboard shows the new lead.
-8. A non-admin cannot load partner-lead data from the admin endpoint.
-9. The main buyer-offer flow still opens and the production PDF routes are unchanged.
+2. The three tier cards show $149, $399, and $799 monthly rates per category and market.
+3. Featured Partner is selected by default.
+4. Selecting each card updates the selected-tier summary, budget band, and submit-button copy.
+5. The placement table clearly distinguishes sponsored inventory from neutral provider selection.
+6. The consumer-choice disclosure says users may choose any provider or none.
+7. Missing required fields and invalid email addresses are rejected.
+8. A valid submission returns the success state.
+9. The stored row has the selected `preferred_model`, matching budget band, and UTM values.
+10. The authenticated admin dashboard shows the submitted lead.
+11. The main buyer-offer flow still opens and no PDF-generation file changed.
 
-### 4. Promote after preview approval
+Delete the preview smoke-test lead after verification.
 
-Promote the verified Vercel preview to production. Then repeat one valid partner submission using:
+## Production gate
 
-`https://www.homeofferflow.com/?partner=1&utm_source=founder_outreach&utm_medium=direct&utm_campaign=founding_partner_pilot`
+Do not promote this partner preview to production until:
 
-Delete or mark the production smoke-test lead as `declined` after verification.
+- the user approves the tier names, rates, and visual presentation;
+- the provider-selection separation is verified in the rendered preview;
+- the partner advertising agreement is reviewed;
+- one complete test lead has been stored and deleted successfully.
 
 ## Rollback
 
-If the public intake fails:
+If the public intake or presentation fails:
 
-1. Roll back the Vercel deployment.
+1. Roll back the Vercel preview deployment.
 2. Leave `hof_partner_leads` in place so submitted leads are not lost.
 3. Do not roll back or modify any offer/PDF route.
