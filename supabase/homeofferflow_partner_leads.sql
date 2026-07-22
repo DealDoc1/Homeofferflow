@@ -6,9 +6,12 @@ create table if not exists public.hof_partner_leads (
   id uuid primary key default gen_random_uuid(),
   partner_type text not null default 'other'
     check (partner_type in (
-      'title', 'lender', 'inspection', 'home_warranty', 'insurance',
-      'photography_video', 'staging', 'repairs_handyman', 'cleaning',
-      'moving_storage', 'lawn_pool', 'other'
+      'title', 'lender', 'inspection', 'surveyor', 'home_warranty',
+      'insurance', 'roofing', 'hvac', 'plumbing', 'electrical',
+      'foundation_structural', 'general_contractor', 'pest_termite',
+      'septic_well', 'restoration', 'photography_video', 'staging',
+      'repairs_handyman', 'cleaning', 'moving_storage', 'lawn_pool',
+      'security_smart_home', 'other'
     )),
   company_name text not null,
   contact_name text not null,

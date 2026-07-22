@@ -41,6 +41,7 @@ The commercial agreement and final implementation should receive legal/complianc
 - `tests/test_partner_lead.py`
 - `tests/test_partner_tier_ui.py`
 - `supabase/homeofferflow_partner_leads.sql`
+- `supabase/homeofferflow_expand_partner_categories.sql`
 - `supabase/homeofferflow_product_tracker.sql`
 - `PARTNER_RATE_CARD.md`
 
@@ -64,6 +65,20 @@ Verify:
 10. The stored row has the selected `preferred_model`, matching budget band, and UTM values.
 11. The authenticated admin dashboard shows the submitted lead.
 12. The main buyer-offer flow still opens and no PDF-generation file changed.
+
+## PR #10 category-constraint follow-up
+
+The public UI and `/api/fsbo-lead` allowlist include the expanded home-service
+categories. Before accepting live applications for those categories, apply
+`supabase/homeofferflow_expand_partner_categories.sql` to the HomeOfferFlow
+Supabase project and confirm its verification query returns a validated
+`hof_partner_leads_partner_type_check` constraint containing the same values as
+`ALLOWED_PARTNER_TYPES` in `api/fsbo-lead.py`.
+
+After the constraint is applied, submit one non-production smoke-test lead on a
+Vercel preview using `roofing`, confirm the API returns `ok: true`, verify the
+stored row retains `partner_type = roofing`, and delete that test row. Do not use
+a real partner's contact details for the smoke test.
 
 Delete the preview smoke-test lead after verification.
 
