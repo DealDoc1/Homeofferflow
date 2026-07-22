@@ -102,6 +102,31 @@ class PartnerLeadTests(unittest.TestCase):
                 self.assertEqual(payload["preferred_model"], preferred_model)
                 self.assertEqual(payload["monthly_budget_range"], monthly_budget_range)
 
+    def test_roofing_and_home_service_categories_are_preserved(self):
+        categories = (
+            "roofing",
+            "hvac",
+            "plumbing",
+            "electrical",
+            "foundation_structural",
+            "general_contractor",
+            "pest_termite",
+            "septic_well",
+            "restoration",
+            "surveyor",
+            "security_smart_home",
+        )
+        for partner_type in categories:
+            with self.subTest(partner_type=partner_type):
+                payload = fsbo_lead._build_partner_payload({
+                    "partner_type": partner_type,
+                    "company_name": "North Texas Home Services",
+                    "contact_name": "Pat Partner",
+                    "contact_email": "pat@example.com",
+                    "market_area": "North Texas",
+                })
+                self.assertEqual(payload["partner_type"], partner_type)
+
     def test_server_insert_uses_service_role_and_partner_table(self):
         payload = fsbo_lead._build_partner_payload({
             "partner_type": "inspection",

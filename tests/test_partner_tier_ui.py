@@ -68,6 +68,27 @@ class PartnerTierUiTests(unittest.TestCase):
         )
         self.assertIn("openFoundingPartnerModal();", self.html)
 
+    def test_partner_category_list_includes_roofing_and_home_services(self):
+        expected_categories = (
+            ('roofing', 'Roofing contractor'),
+            ('hvac', 'HVAC / heating and air'),
+            ('plumbing', 'Plumbing'),
+            ('electrical', 'Electrical'),
+            ('foundation_structural', 'Foundation / structural repair'),
+            ('general_contractor', 'General contractor / remodeling'),
+            ('pest_termite', 'Pest control / termite'),
+            ('septic_well', 'Septic / well service'),
+            ('restoration', 'Water / fire restoration'),
+            ('surveyor', 'Property surveyor'),
+            ('security_smart_home', 'Security / smart home'),
+        )
+        for value, label in expected_categories:
+            with self.subTest(value=value):
+                self.assertIn(
+                    f'<option value="{value}">{label}</option>',
+                    self.html,
+                )
+
 
 if __name__ == "__main__":
     unittest.main()
