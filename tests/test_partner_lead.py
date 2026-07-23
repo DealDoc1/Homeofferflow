@@ -1,11 +1,14 @@
 import importlib.util
 import os
+import re
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 
 
 MODULE_PATH = Path(__file__).resolve().parents[1] / "api" / "fsbo-lead.py"
+BASELINE_SCHEMA_PATH = Path(__file__).resolve().parents[1] / "supabase" / "homeofferflow_partner_leads.sql"
+CATEGORY_MIGRATION_PATH = Path(__file__).resolve().parents[1] / "supabase" / "homeofferflow_expand_partner_categories.sql"
 os.environ.setdefault("SUPABASE_URL", "https://example.supabase.co")
 os.environ.setdefault("SUPABASE_SERVICE_ROLE_KEY", "test-service-key")
 SPEC = importlib.util.spec_from_file_location("fsbo_lead", MODULE_PATH)
@@ -37,6 +40,17 @@ class FakeClient:
 
 
 class PartnerLeadTests(unittest.TestCase):
+    @staticmethod
+    def _constraint_categories(sql, marker):
+        match = re.search(
+            rf"{re.escape(marker)}.*?check\s*\(partner_type\s+in\s*\((.*?)\)\)",
+            sql,
+            flags=re.IGNORECASE | re.DOTALL,
+        )
+        if not match:
+            raise AssertionError(f"Could not find partner category constraint after {marker!r}.")
+        return set(re.findall(r"'([a-z0-9_]+)'", match.group(1)))
+
     def test_required_fields_are_enforced(self):
         with self.assertRaisesRegex(ValueError, "required"):
             fsbo_lead._build_partner_payload({"company_name": "Title Co"})
@@ -126,6 +140,25 @@ class PartnerLeadTests(unittest.TestCase):
                     "market_area": "North Texas",
                 })
                 self.assertEqual(payload["partner_type"], partner_type)
+
+    def test_database_constraints_allow_every_api_partner_type(self):
+        baseline_sql = BASELINE_SCHEMA_PATH.read_text(encoding="utf-8")
+        migration_sql = CATEGORY_MIGRATION_PATH.read_text(encoding="utf-8")
+        baseline_categories = self._constraint_categories(
+            baseline_sql,
+            "partner_type text not null default 'other'",
+        )
+        migration_categories = self._constraint_categories(
+            migration_sql,
+            "add constraint hof_partner_leads_partner_type_check",
+        )
+
+        self.assertEqual(baseline_categories, fsbo_lead.ALLOWED_PARTNER_TYPES)
+        self.assertEqual(migration_categories, fsbo_lead.ALLOWED_PARTNER_TYPES)
+        self.assertIn(
+            "validate constraint hof_partner_leads_partner_type_check",
+            migration_sql.lower(),
+        )
 
     def test_server_insert_uses_service_role_and_partner_table(self):
         payload = fsbo_lead._build_partner_payload({
