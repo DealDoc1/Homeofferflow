@@ -3723,7 +3723,7 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
     const status = select.value;
     if (button) { button.disabled = true; button.textContent = 'Saving…'; }
     try {
-      const response = await fetch('/api/admin-partner-lead', {
+      const response = await fetch('/api/admin-dashboard', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
