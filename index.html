@@ -2608,6 +2608,7 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
       <div class="account-card">
         <h4 id="dashboardRoleLabel">Agent Dashboard</h4>
         <p id="dashboardWelcome" style="color:var(--gray-light); line-height:1.6; margin-bottom:1rem;">Welcome back.</p>
+        <div id="agentActivationCard" class="agent-activation-card" aria-live="polite"></div>
         <div id="profileCompletionNotice" class="notice gold" style="margin-bottom:1rem;">Complete your profile once to prefill your offer packets and defaults.</div>
         <div id="betaOnboardingChecklist" class="beta-checklist-card"></div>
         <div id="subscriptionUsageCard" class="subscription-card">
@@ -3985,9 +3986,9 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
     await loadAccountProfile();
     await loadOrCreateSubscription();
     await loadCurrentUsage();
+    await loadMyOffers();
     renderAccountDashboard();
     renderAccountProfileForm();
-    loadMyOffers();
     const modal = document.getElementById('accountModal');
     if (modal) {
       modal.classList.add('active');
@@ -4989,7 +4990,11 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
     const user = hofAuth.session?.user;
     const list = document.getElementById('myOffersList');
     if (!list) return;
-    if (!client || !user) { list.textContent = 'Sign in to view offers.'; return; }
+    if (!client || !user) {
+      hofAuth.myOffers = [];
+      list.textContent = 'Sign in to view offers.';
+      return [];
+    }
     try {
       const { data, error } = await client
         .from('hof_offers')
@@ -4999,17 +5004,24 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
         .order('last_updated', { ascending:false })
         .limit(25);
       if (error) throw error;
+      hofAuth.myOffers = data || [];
       if (!data || !data.length) {
         list.className = 'offer-empty';
         list.textContent = 'No saved offers yet. Create your first offer and future drafts will show here.';
-        return;
+        try { renderAgentActivationCard(); } catch (e) {}
+        return [];
       }
       list.className = '';
       list.innerHTML = renderMyOffers(data);
+      try { renderAgentActivationCard(); } catch (e) {}
+      return data;
     } catch (err) {
+      hofAuth.myOffers = [];
       list.className = 'offer-empty';
       list.textContent = 'Could not load offers yet.';
       console.warn('Offers load failed:', err);
+      try { renderAgentActivationCard(); } catch (e) {}
+      return [];
     }
   }
 
@@ -10855,6 +10867,351 @@ function routeAfterMagicLinkIfNeeded() {
     addLandingPathStrip(); enhanceFeedbackModal();
     try { root.updateAuthUI?.(); } catch(e) {}
   }
+})();
+</script>
+
+<style id="hof-agent-activation-v16-css">
+  .agent-activation-card {
+    display: none;
+    margin: 0 0 1rem;
+    padding: 1rem;
+    border: 1px solid rgba(200,151,63,.34);
+    border-radius: 18px;
+    background:
+      radial-gradient(circle at 0 0, rgba(200,151,63,.18), transparent 38%),
+      linear-gradient(180deg, rgba(255,255,255,.065), rgba(255,255,255,.03));
+    box-shadow: 0 18px 48px rgba(0,0,0,.2), inset 0 1px 0 rgba(255,255,255,.05);
+  }
+  .agent-activation-card.show { display: block; }
+  .agent-activation-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  .agent-activation-kicker {
+    color: var(--sage-light);
+    font-size: .68rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    margin-bottom: .25rem;
+  }
+  .agent-activation-card h4 {
+    color: var(--white);
+    font-family: 'Playfair Display', serif;
+    font-size: 1.25rem;
+    line-height: 1.15;
+    margin: 0;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+  .agent-activation-card p {
+    color: var(--gray-light);
+    font-size: .84rem;
+    line-height: 1.5;
+    margin: .45rem 0 .8rem;
+    max-width: 46rem;
+  }
+  .agent-activation-progress {
+    flex: 0 0 auto;
+    color: var(--gold-light);
+    background: rgba(200,151,63,.1);
+    border: 1px solid rgba(200,151,63,.28);
+    border-radius: 999px;
+    padding: .34rem .58rem;
+    font-size: .7rem;
+    font-weight: 900;
+    white-space: nowrap;
+  }
+  .agent-activation-steps {
+    display: grid;
+    grid-template-columns: repeat(3,minmax(0,1fr));
+    gap: .55rem;
+    margin: .75rem 0;
+  }
+  .agent-activation-step {
+    display: flex;
+    gap: .48rem;
+    align-items: flex-start;
+    color: var(--gray);
+    border: 1px solid rgba(255,255,255,.09);
+    background: rgba(255,255,255,.035);
+    border-radius: 12px;
+    padding: .62rem;
+    font-size: .73rem;
+    line-height: 1.3;
+    font-weight: 800;
+  }
+  .agent-activation-step.done {
+    color: var(--white);
+    border-color: rgba(74,140,111,.32);
+    background: rgba(74,140,111,.08);
+  }
+  .agent-activation-step span {
+    display: grid;
+    place-items: center;
+    width: 19px;
+    min-width: 19px;
+    height: 19px;
+    border-radius: 50%;
+    background: rgba(255,255,255,.08);
+    color: var(--gray-light);
+    font-size: .68rem;
+  }
+  .agent-activation-step.done span {
+    background: var(--sage);
+    color: #07111d;
+  }
+  .agent-activation-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .55rem;
+    margin-top: .8rem;
+  }
+  .agent-activation-actions button {
+    border-radius: 999px;
+    padding: .68rem .9rem;
+    font-family: 'DM Sans', sans-serif;
+    font-size: .76rem;
+    font-weight: 900;
+    cursor: pointer;
+  }
+  .agent-activation-primary {
+    color: #07111d;
+    background: var(--gold);
+    border: 1px solid var(--gold);
+  }
+  .agent-activation-secondary {
+    color: var(--gray-light);
+    background: rgba(255,255,255,.04);
+    border: 1px solid rgba(255,255,255,.14);
+  }
+  .agent-activation-primary:hover { background: var(--gold-light); }
+  .agent-activation-secondary:hover {
+    color: var(--gold-light);
+    border-color: rgba(200,151,63,.45);
+    background: rgba(200,151,63,.07);
+  }
+  @media (max-width: 680px) {
+    .agent-activation-top { display: block; }
+    .agent-activation-progress { display: inline-flex; margin-top: .65rem; }
+    .agent-activation-steps { grid-template-columns: 1fr; }
+    .agent-activation-actions { display: grid; grid-template-columns: 1fr; }
+    .agent-activation-actions button { width: 100%; }
+  }
+</style>
+
+<script id="hof-agent-activation-v16-js">
+(function(){
+  const root = window;
+
+  function safe(value) {
+    if (typeof root.escapeAttr === 'function') return root.escapeAttr(value);
+    return String(value ?? '').replace(/[&<>"']/g, ch => ({
+      '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
+    }[ch]));
+  }
+
+  function offers() {
+    return Array.isArray(root.hofAuth?.myOffers) ? root.hofAuth.myOffers : [];
+  }
+
+  function profileComplete() {
+    const profile = root.hofAuth?.accountProfile || {};
+    const role = String(root.hofAuth?.role || 'agent').toLowerCase();
+    if (role === 'investor') {
+      return !!(
+        (profile.investor_entity_name || profile.signer_name) &&
+        profile.investor_email &&
+        profile.investor_phone
+      );
+    }
+    return [
+      profile.agent_name,
+      profile.license_number,
+      profile.agent_email,
+      profile.agent_phone,
+      profile.brokerage_name
+    ].every(value => String(value || '').trim());
+  }
+
+  function subscriptionActive() {
+    const status = String(root.hofAuth?.subscription?.status || 'beta').toLowerCase();
+    return ['active', 'trialing', 'free_admin'].includes(status);
+  }
+
+  function draftOffer() {
+    return offers().find(offer => {
+      const status = String(
+        root.getOfferBestStatus?.(offer) || offer?.status || 'Draft'
+      ).toLowerCase();
+      return status.includes('draft') || status.includes('generation failed');
+    }) || null;
+  }
+
+  function activationState() {
+    const hasProfile = profileComplete();
+    const hasOffer = offers().length > 0;
+    const hasPlan = subscriptionActive();
+    const draft = draftOffer();
+    const complete = [hasProfile, hasOffer, hasPlan].filter(Boolean).length;
+
+    if (!hasProfile) {
+      return {
+        key: 'profile',
+        title: 'Complete your profile once',
+        body: 'Save your license, brokerage, contact, title, escrow, and common offer defaults so future packets start ready.',
+        primary: 'Complete Profile',
+        secondary: 'Create Offer Without Defaults',
+        complete, hasProfile, hasOffer, hasPlan
+      };
+    }
+    if (!hasOffer) {
+      return {
+        key: 'first_offer',
+        title: 'Create your first client-ready offer',
+        body: 'Your saved defaults are ready. Start a Texas offer, review every term, and save it to your workspace.',
+        primary: 'Create First Offer',
+        secondary: 'Review Saved Profile',
+        complete, hasProfile, hasOffer, hasPlan
+      };
+    }
+    if (!hasPlan) {
+      return {
+        key: 'subscribe',
+        title: 'Activate recurring access',
+        body: 'You have an offer in your workspace. Choose a plan to keep generating and sending offer packets without interrupting your workflow.',
+        primary: 'View Monthly Plan',
+        secondary: draft ? 'Resume Current Offer' : 'Open Offer Workspace',
+        draftId: draft?.id || '',
+        complete, hasProfile, hasOffer, hasPlan
+      };
+    }
+    if (draft) {
+      return {
+        key: 'resume',
+        title: 'Resume your latest offer',
+        body: `${draft.property_address || 'Your draft'} is ready to continue. Pick up where you stopped without re-entering your saved defaults.`,
+        primary: 'Resume Offer',
+        secondary: 'Open Offer Workspace',
+        draftId: draft.id || '',
+        complete, hasProfile, hasOffer, hasPlan
+      };
+    }
+    return {
+      key: 'repeat',
+      title: 'Start your next offer',
+      body: 'Your profile, workspace, and access are ready. Create another packet or review prior buyer-signing activity.',
+      primary: 'Create New Offer',
+      secondary: 'Open Offer Workspace',
+      complete, hasProfile, hasOffer, hasPlan
+    };
+  }
+
+  function logActivationEvent(name, metadata = {}) {
+    try { root.trackEvent?.(name, metadata); } catch (e) {}
+    try {
+      root.logOfferEvent?.(
+        metadata.offerId || null,
+        String(name || '').toLowerCase().replace(/[^a-z0-9]+/g, '_'),
+        '',
+        'Agent activation dashboard event.',
+        metadata
+      );
+    } catch (e) {}
+  }
+
+  root.handleAgentActivationAction = function handleAgentActivationAction(action, offerId = '') {
+    logActivationEvent('Agent Activation Action', { action, offerId: offerId || null });
+    if (action === 'profile') return root.showAccountTab?.('profile');
+    if (action === 'new_offer') return root.startAccountOffer?.();
+    if (action === 'offers') return root.showAccountTab?.('offers');
+    if (action === 'resume' && offerId) return root.resumeOffer?.(offerId);
+    if (action === 'subscribe') {
+      const plan = String(root.hofAuth?.role || 'agent').toLowerCase() === 'investor' ? 'investor' : 'agent';
+      return root.startSubscriptionCheckout?.(plan, 'monthly');
+    }
+  };
+
+  root.toggleAgentReadinessChecklist = function toggleAgentReadinessChecklist() {
+    const checklist = document.getElementById('betaOnboardingChecklist');
+    if (!checklist) return;
+    const showing = checklist.style.display !== 'none';
+    checklist.style.display = showing ? 'none' : 'block';
+    logActivationEvent('Agent Readiness Checklist Toggled', { open: !showing });
+  };
+
+  root.renderAgentActivationCard = function renderAgentActivationCard() {
+    const card = document.getElementById('agentActivationCard');
+    if (!card || !root.hofAuth?.session) return;
+    const state = activationState();
+    const steps = [
+      { done: state.hasProfile, label: 'Profile and defaults' },
+      { done: state.hasOffer, label: 'First saved offer' },
+      { done: state.hasPlan, label: 'Active subscription' }
+    ];
+    const id = String(state.draftId || '').replace(/[^a-zA-Z0-9-]/g, '');
+
+    const primaryAction =
+      state.key === 'profile' ? 'profile' :
+      state.key === 'first_offer' || state.key === 'repeat' ? 'new_offer' :
+      state.key === 'subscribe' ? 'subscribe' :
+      'resume';
+    const secondaryAction =
+      state.key === 'profile' ? 'new_offer' :
+      state.key === 'first_offer' ? 'profile' :
+      state.key === 'subscribe' && id ? 'resume' :
+      'offers';
+
+    card.innerHTML = `
+      <div class="agent-activation-top">
+        <div>
+          <div class="agent-activation-kicker">Your next best action</div>
+          <h4>${safe(state.title)}</h4>
+        </div>
+        <div class="agent-activation-progress">${state.complete}/3 ready</div>
+      </div>
+      <p>${safe(state.body)}</p>
+      <div class="agent-activation-steps" aria-label="Account activation progress">
+        ${steps.map(step => `
+          <div class="agent-activation-step ${step.done ? 'done' : ''}">
+            <span>${step.done ? '✓' : '•'}</span>${safe(step.label)}
+          </div>`).join('')}
+      </div>
+      <div class="agent-activation-actions">
+        <button class="agent-activation-primary" type="button" onclick="handleAgentActivationAction('${primaryAction}','${id}')">${safe(state.primary)}</button>
+        <button class="agent-activation-secondary" type="button" onclick="handleAgentActivationAction('${secondaryAction}','${id}')">${safe(state.secondary)}</button>
+        <button class="agent-activation-secondary" type="button" onclick="toggleAgentReadinessChecklist()">Beta Readiness Checklist</button>
+      </div>`;
+    card.classList.add('show');
+
+    const checklist = document.getElementById('betaOnboardingChecklist');
+    if (checklist && !checklist.dataset.activationChoice) {
+      checklist.style.display = 'none';
+      checklist.dataset.activationChoice = 'collapsed';
+    }
+
+    const userId = root.hofAuth?.session?.user?.id || 'account';
+    const viewKey = `hof_activation_viewed_${userId}_${state.key}`;
+    try {
+      if (!sessionStorage.getItem(viewKey)) {
+        sessionStorage.setItem(viewKey, '1');
+        logActivationEvent('Agent Activation Dashboard Viewed', {
+          nextAction: state.key,
+          progress: state.complete,
+          offerCount: offers().length
+        });
+      }
+    } catch (e) {}
+  };
+
+  const previousRenderDashboard = root.renderAccountDashboard;
+  root.renderAccountDashboard = function renderAccountDashboard() {
+    if (typeof previousRenderDashboard === 'function') previousRenderDashboard();
+    document.getElementById('release15DashboardCard')?.remove();
+    root.renderAgentActivationCard();
+  };
 })();
 </script>
 
