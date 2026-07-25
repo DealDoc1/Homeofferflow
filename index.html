@@ -3505,7 +3505,9 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
   }
   const SUPABASE_URL = 'https://acqylchftrjjoablvqyq.supabase.co';
   const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_KNp9ZbXMTNyhgnjcKFF-6A_IoLwyQLU';
-  const SUPABASE_REDIRECT_URL = 'https://www.homeofferflow.com';
+  const SUPABASE_REDIRECT_URL = ['http:', 'https:'].includes(window.location.protocol)
+    ? `${window.location.origin}${window.location.pathname}`
+    : 'https://www.homeofferflow.com/';
   const HOF_ADMIN_EMAILS = ['andrewchri@gmail.com', 'support@homeofferflow.com', 'andrew@ondemanddfw.com'];
 
   const hofAuth = {
