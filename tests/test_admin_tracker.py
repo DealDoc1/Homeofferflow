@@ -36,6 +36,9 @@ class FakeClient:
     async def get(self, *_args, **_kwargs):
         return self.response
 
+    async def patch(self, *_args, **_kwargs):
+        return self.response
+
 
 class AdminTrackerSecurityTests(IsolatedAsyncioTestCase):
     async def test_missing_bearer_token_is_rejected_without_network_call(self):
@@ -69,6 +72,30 @@ class AdminTrackerSecurityTests(IsolatedAsyncioTestCase):
         with patch.object(admin_dashboard, "_get", new=AsyncMock(side_effect=RuntimeError("table missing"))):
             rows = await admin_dashboard._get_optional("hof_partner_leads?select=*")
         self.assertEqual(rows, [])
+
+    async def test_partner_lead_update_requires_uuid_and_allowlisted_status(self):
+        lead_id = "e35eace9-2760-4b11-a01a-07ee65f2744e"
+        self.assertEqual(
+            admin_dashboard._parse_partner_lead_update({"lead_id": lead_id, "status": "QUALIFIED"}),
+            (lead_id, "qualified"),
+        )
+        with self.assertRaisesRegex(ValueError, "lead ID"):
+            admin_dashboard._parse_partner_lead_update({"lead_id": "not-a-uuid", "status": "qualified"})
+        with self.assertRaisesRegex(ValueError, "valid partner lead status"):
+            admin_dashboard._parse_partner_lead_update({"lead_id": lead_id, "status": "deleted"})
+
+    async def test_partner_lead_update_returns_saved_row(self):
+        lead_id = "e35eace9-2760-4b11-a01a-07ee65f2744e"
+        response = FakeResponse(200, [{"id": lead_id, "status": "contacted"}])
+        with patch.object(admin_dashboard.httpx, "AsyncClient", return_value=FakeClient(response)):
+            row = await admin_dashboard._update_partner_lead(lead_id, "contacted")
+        self.assertEqual(row, {"id": lead_id, "status": "contacted"})
+
+    async def test_partner_lead_update_does_not_succeed_when_lead_is_missing(self):
+        response = FakeResponse(200, [])
+        with patch.object(admin_dashboard.httpx, "AsyncClient", return_value=FakeClient(response)):
+            with self.assertRaisesRegex(ValueError, "not found"):
+                await admin_dashboard._update_partner_lead("e35eace9-2760-4b11-a01a-07ee65f2744e", "contacted")
 
 
 if __name__ == "__main__":

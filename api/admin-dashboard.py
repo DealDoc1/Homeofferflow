@@ -1,5 +1,7 @@
 import os
 import json
+import uuid
+from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler
 import httpx
 
@@ -7,6 +9,8 @@ SUPABASE_URL = os.environ.get("SUPABASE_URL", "").rstrip("/")
 SUPABASE_SERVICE_ROLE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or os.environ.get("SUPABASE_SERVICE_ROLE") or os.environ.get("SUPABASE_SERVICE_KEY") or ""
 ADMIN_EMAILS = {e.strip().lower() for e in (os.environ.get("ADMIN_EMAILS") or os.environ.get("HOF_ADMIN_EMAILS") or "").split(",") if e.strip()}
 DEFAULT_ADMIN_EMAILS = {"andrew@ondemanddfw.com", "andrewchri@gmail.com", "support@homeofferflow.com"}
+ALLOWED_PARTNER_LEAD_STATUSES = {"new", "contacted", "qualified", "waitlist", "converted", "declined"}
+MAX_BODY_BYTES = 12_000
 
 
 def _json(handler, code, payload):
@@ -14,7 +18,7 @@ def _json(handler, code, payload):
     handler.send_response(code)
     handler.send_header("Content-Type", "application/json")
     handler.send_header("Access-Control-Allow-Origin", "*")
-    handler.send_header("Access-Control-Allow-Methods", "GET, OPTIONS")
+    handler.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
     handler.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization")
     handler.end_headers()
     handler.wfile.write(body)
@@ -65,6 +69,34 @@ async def _is_platform_admin(user):
         return True
     rows = await _get(f"hof_platform_admins?user_id=eq.{user['id']}&select=user_id&limit=1")
     return bool(rows)
+
+
+def _parse_partner_lead_update(data):
+    lead_id = str(data.get("lead_id") or "").strip()
+    status = str(data.get("status") or "").strip().lower()
+    try:
+        lead_id = str(uuid.UUID(lead_id))
+    except (TypeError, ValueError, AttributeError):
+        raise ValueError("A valid partner lead ID is required.")
+    if status not in ALLOWED_PARTNER_LEAD_STATUSES:
+        raise ValueError("Choose a valid partner lead status.")
+    return lead_id, status
+
+
+async def _update_partner_lead(lead_id, status):
+    payload = {"status": status, "updated_at": datetime.now(timezone.utc).isoformat()}
+    async with httpx.AsyncClient(timeout=12) as client:
+        response = await client.patch(
+            f"{SUPABASE_URL}/rest/v1/hof_partner_leads?id=eq.{lead_id}",
+            headers={**_headers(), "Prefer": "return=representation"},
+            json=payload,
+        )
+    if response.status_code >= 300:
+        raise RuntimeError("Could not update the partner lead.")
+    rows = response.json()
+    if not isinstance(rows, list) or not rows:
+        raise ValueError("Partner lead was not found.")
+    return rows[0]
 
 
 class handler(BaseHTTPRequestHandler):
@@ -136,3 +168,32 @@ class handler(BaseHTTPRequestHandler):
             })
         except Exception as e:
             _json(self, 500, {"error": str(e)})
+
+    def do_POST(self):
+        if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
+            _json(self, 500, {"error": "Supabase env vars missing"})
+            return
+        try:
+            import asyncio
+            user = asyncio.run(_verified_user(self.headers.get("authorization", "")))
+            if not user:
+                _json(self, 401, {"error": "A valid signed-in session is required."})
+                return
+            if not asyncio.run(_is_platform_admin(user)):
+                _json(self, 403, {"error": "Admin access is not enabled for this account."})
+                return
+            length = int(self.headers.get("Content-Length", "0") or "0")
+            if length <= 0 or length > MAX_BODY_BYTES:
+                _json(self, 400, {"error": "Invalid request size."})
+                return
+            data = json.loads(self.rfile.read(length).decode("utf-8"))
+            lead_id, status = _parse_partner_lead_update(data)
+            row = asyncio.run(_update_partner_lead(lead_id, status))
+            _json(self, 200, {"ok": True, "lead": row})
+        except ValueError as exc:
+            _json(self, 400, {"error": str(exc)[:300]})
+        except json.JSONDecodeError:
+            _json(self, 400, {"error": "Invalid JSON."})
+        except Exception as exc:
+            print("Admin partner lead update error:", str(exc))
+            _json(self, 500, {"error": "Could not update the partner lead."})

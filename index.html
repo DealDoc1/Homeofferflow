@@ -628,6 +628,10 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
 .admin-pill { display:inline-flex; border-radius:999px; padding:0.25rem 0.55rem; font-size:0.68rem; font-weight:900; text-transform:uppercase; letter-spacing:0.04em; border:1px solid rgba(200,151,63,0.32); color:var(--gold-light); background:rgba(200,151,63,0.08); }
 .admin-pill.good { border-color:rgba(74,140,111,0.35); color:var(--sage-light); background:rgba(74,140,111,0.10); }
 .admin-pill.warn { border-color:rgba(232,147,90,0.35); color:var(--warn); background:rgba(232,147,90,0.10); }
+.partner-lead-admin-actions { display:flex; gap:0.45rem; align-items:center; flex-wrap:wrap; }
+.partner-lead-admin-actions select { min-width:132px; border:1px solid rgba(255,255,255,0.16); border-radius:8px; background:rgba(255,255,255,0.05); color:var(--white); padding:0.44rem 0.5rem; font:inherit; font-size:0.76rem; }
+.partner-lead-admin-actions button { border:1px solid rgba(200,151,63,0.46); border-radius:8px; background:rgba(200,151,63,0.11); color:var(--gold-light); padding:0.44rem 0.58rem; font:inherit; font-size:0.72rem; font-weight:900; cursor:pointer; }
+.partner-lead-admin-actions button:hover { background:rgba(200,151,63,0.2); }
 .admin-toolbar { display:flex; flex-wrap:wrap; gap:0.55rem; margin:0.8rem 0 0; }
 .admin-toolbar button { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.13); color:var(--gray-light); border-radius:8px; padding:0.55rem 0.75rem; font-family:'DM Sans',sans-serif; font-size:0.76rem; font-weight:900; cursor:pointer; }
 .admin-toolbar button:hover { border-color:rgba(200,151,63,0.45); color:var(--gold-light); background:rgba(200,151,63,0.07); }
@@ -3707,6 +3711,36 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
     return str.trim() ? escapeAttr(str) : fallback;
   }
 
+  function partnerLeadStatusOptions(currentStatus) {
+    const statuses = ['new', 'contacted', 'qualified', 'waitlist', 'converted', 'declined'];
+    return statuses.map(status => `<option value="${status}" ${status === currentStatus ? 'selected' : ''}>${status.replace(/_/g, ' ')}</option>`).join('');
+  }
+
+  async function updatePartnerLeadStatus(leadId) {
+    const select = document.getElementById(`partnerLeadStatus-${leadId}`);
+    const button = document.getElementById(`partnerLeadSave-${leadId}`);
+    if (!select || !hofAuth?.session?.access_token) return;
+    const status = select.value;
+    if (button) { button.disabled = true; button.textContent = 'Saving…'; }
+    try {
+      const response = await fetch('/api/admin-dashboard', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${hofAuth.session.access_token}`
+        },
+        body: JSON.stringify({ lead_id: leadId, status })
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || result.error) throw new Error(result.error || 'Could not update partner lead.');
+      await loadAdminDashboard(true);
+    } catch (err) {
+      console.error('Partner lead update failed:', err);
+      if (button) { button.disabled = false; button.textContent = 'Save'; }
+      alert(err?.message || 'Could not update partner lead.');
+    }
+  }
+
   function renderAdminRows(rows = [], type = 'offers') {
     if (!rows.length) return '<div class="admin-empty">No records found.</div>';
     return rows.map(row => {
@@ -3736,11 +3770,14 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
         </div>`;
       }
       if (type === 'partner-leads') {
+        const leadId = String(row.id || '');
+        const status = String(row.status || 'new');
+        const canUpdate = /^[0-9a-f-]{36}$/i.test(leadId);
         return `<div class="admin-row">
           <div><strong>${adminSafe(row.company_name || 'Partner lead')}</strong><div class="admin-muted">${adminSafe(row.contact_name || '')} · ${adminSafe(row.contact_email || '')}</div></div>
           <div>${adminSafe(row.market_area || '')}<div class="admin-muted">${adminSafe(row.preferred_model || '')}</div></div>
           <div><span class="admin-pill ${['qualified','converted'].includes(String(row.status || '')) ? 'good' : 'warn'}">${adminSafe(row.status || 'new')}</span><div class="admin-muted">${adminSafe(row.partner_type || 'other')}</div></div>
-          <div>${adminDate(row.created_at)}</div>
+          <div>${adminDate(row.created_at)}${canUpdate ? `<div class="partner-lead-admin-actions"><select id="partnerLeadStatus-${leadId}" aria-label="Status for ${adminSafe(row.company_name || 'partner lead')}">${partnerLeadStatusOptions(status)}</select><button id="partnerLeadSave-${leadId}" type="button" onclick="updatePartnerLeadStatus('${leadId}')">Save</button></div>` : ''}</div>
         </div>`;
       }
       return `<div class="admin-row">
