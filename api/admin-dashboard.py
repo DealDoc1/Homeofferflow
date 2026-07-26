@@ -10,6 +10,14 @@ SUPABASE_SERVICE_ROLE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or os.en
 ADMIN_EMAILS = {e.strip().lower() for e in (os.environ.get("ADMIN_EMAILS") or os.environ.get("HOF_ADMIN_EMAILS") or "").split(",") if e.strip()}
 DEFAULT_ADMIN_EMAILS = {"andrew@ondemanddfw.com", "andrewchri@gmail.com", "support@homeofferflow.com"}
 ALLOWED_PARTNER_LEAD_STATUSES = {"new", "contacted", "qualified", "waitlist", "converted", "declined"}
+ALLOWED_PARTNER_PLACEMENT_TIERS = {"founding", "premier", "exclusive_market"}
+ALLOWED_PARTNER_TYPES = {
+    "title", "lender", "inspection", "surveyor", "home_warranty", "insurance",
+    "roofing", "hvac", "plumbing", "electrical", "foundation_structural",
+    "general_contractor", "pest_termite", "septic_well", "restoration",
+    "photography_video", "staging", "repairs_handyman", "cleaning",
+    "moving_storage", "lawn_pool", "security_smart_home", "other",
+}
 MAX_BODY_BYTES = 12_000
 
 
@@ -99,6 +107,62 @@ async def _update_partner_lead(lead_id, status):
     return rows[0]
 
 
+def _clean_text(value, maximum):
+    value = " ".join(str(value or "").strip().split())
+    return value[:maximum] if value else None
+
+
+def _parse_partner_placement(data):
+    partner_name = _clean_text(data.get("partner_name"), 250)
+    partner_type = _clean_text(data.get("partner_type"), 80)
+    market_area = _clean_text(data.get("market_area"), 300)
+    placement_tier = _clean_text(data.get("placement_tier"), 80)
+    website_url = _clean_text(data.get("website_url"), 500)
+    logo_url = _clean_text(data.get("logo_url"), 500)
+    if not partner_name or not market_area:
+        raise ValueError("Partner name and market area are required.")
+    if partner_type not in ALLOWED_PARTNER_TYPES:
+        raise ValueError("Choose a valid partner category.")
+    if placement_tier not in ALLOWED_PARTNER_PLACEMENT_TIERS:
+        raise ValueError("Choose a valid placement tier.")
+    if website_url and not website_url.startswith(("https://", "http://")):
+        raise ValueError("Website URL must start with https:// or http://.")
+    if logo_url and not logo_url.startswith(("https://", "http://")):
+        raise ValueError("Logo URL must start with https:// or http://.")
+    try:
+        monthly_fee = float(data.get("monthly_fee")) if data.get("monthly_fee") not in (None, "") else None
+    except (TypeError, ValueError):
+        raise ValueError("Monthly fee must be a number.")
+    if monthly_fee is not None and (monthly_fee < 0 or monthly_fee > 100000):
+        raise ValueError("Monthly fee is outside the allowed range.")
+    return {
+        "brokerage_id": None,
+        "partner_name": partner_name,
+        "partner_type": partner_type,
+        "market_area": market_area,
+        "placement_tier": placement_tier,
+        "website_url": website_url,
+        "logo_url": logo_url,
+        "monthly_fee": monthly_fee,
+        "is_active": True,
+    }
+
+
+async def _create_platform_partner_placement(payload):
+    async with httpx.AsyncClient(timeout=12) as client:
+        response = await client.post(
+            f"{SUPABASE_URL}/rest/v1/hof_partner_placements",
+            headers={**_headers(), "Prefer": "return=representation"},
+            json=payload,
+        )
+    if response.status_code >= 300:
+        raise RuntimeError("Could not create the partner placement.")
+    rows = response.json()
+    if not isinstance(rows, list) or not rows:
+        raise RuntimeError("Partner placement was not returned after saving.")
+    return rows[0]
+
+
 class handler(BaseHTTPRequestHandler):
     def do_OPTIONS(self):
         _json(self, 200, {"status": "ok"})
@@ -121,6 +185,7 @@ class handler(BaseHTTPRequestHandler):
             subs = asyncio.run(_get("hof_subscriptions?select=*&order=created_at.desc&limit=50")) if True else []
             brokerages = asyncio.run(_get("hof_brokerages?select=*&order=created_at.desc&limit=50"))
             partner_leads = asyncio.run(_get_optional("hof_partner_leads?select=*&order=created_at.desc&limit=100"))
+            partner_placements = asyncio.run(_get_optional("hof_partner_placements?select=id,partner_type,partner_name,website_url,logo_url,market_area,placement_tier,monthly_fee,is_active,created_at&brokerage_id=is.null&order=created_at.desc&limit=100"))
             roadmap = asyncio.run(_get("hof_roadmap_items?select=*&order=priority.asc&limit=100"))
             qa_scenarios = asyncio.run(_get("hof_qa_scenarios?select=*&active=eq.true&order=priority.asc&limit=100"))
             qa_runs = asyncio.run(_get("hof_qa_runs?select=*&order=created_at.desc&limit=50"))
@@ -145,6 +210,7 @@ class handler(BaseHTTPRequestHandler):
                 "brokerageCount": len(brokerages),
                 "partnerLeadCount": len(partner_leads),
                 "qualifiedPartnerLeadCount": len([lead for lead in partner_leads if lead.get("status") in {"qualified", "converted"}]),
+                "activePartnerPlacementCount": len([placement for placement in partner_placements if placement.get("is_active")]),
                 "eventCount": len(events),
                 "roadmapCount": len(roadmap),
                 "roadmapBlockedCount": len([item for item in roadmap if item.get("status") == "blocked"]),
@@ -159,6 +225,7 @@ class handler(BaseHTTPRequestHandler):
                 "subscriptions": subs,
                 "brokerages": brokerages,
                 "partnerLeads": partner_leads,
+                "partnerPlacements": partner_placements,
                 "roadmap": roadmap,
                 "qaScenarios": qa_scenarios,
                 "qaRuns": qa_runs,
@@ -187,6 +254,11 @@ class handler(BaseHTTPRequestHandler):
                 _json(self, 400, {"error": "Invalid request size."})
                 return
             data = json.loads(self.rfile.read(length).decode("utf-8"))
+            if data.get("action") == "create_platform_partner_placement":
+                payload = _parse_partner_placement(data)
+                row = asyncio.run(_create_platform_partner_placement(payload))
+                _json(self, 200, {"ok": True, "partnerPlacement": row})
+                return
             lead_id, status = _parse_partner_lead_update(data)
             row = asyncio.run(_update_partner_lead(lead_id, status))
             _json(self, 200, {"ok": True, "lead": row})

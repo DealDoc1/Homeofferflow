@@ -748,6 +748,34 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
 .partner-create-card { background:rgba(74,140,111,0.06); border:1px solid rgba(74,140,111,0.18); border-radius:14px; padding:1rem; margin-bottom:1rem; }
 @media (max-width:760px) { .ai-review-grid { grid-template-columns:1fr; } .ai-review-head { align-items:flex-start; } }
 
+/* Platform-wide post-offer local-help journey. Partner inventory is never owned by an agent or brokerage. */
+.now-what { margin-top:1.25rem; text-align:left; border:1px solid rgba(200,151,63,.26); border-radius:16px; overflow:hidden; background:linear-gradient(180deg,rgba(200,151,63,.08),rgba(255,255,255,.025)); }
+.now-what-head { padding:1rem 1rem .8rem; border-bottom:1px solid rgba(255,255,255,.09); }
+.now-what-kicker { color:var(--gold-light); font-size:.68rem; font-weight:900; letter-spacing:.08em; text-transform:uppercase; }
+.now-what h3 { margin:.25rem 0 .35rem; color:var(--white); font-family:'Playfair Display',serif; font-size:1.28rem; }
+.now-what-head p,.now-what-note { margin:0; color:var(--gray-light); font-size:.8rem; line-height:1.5; }
+.now-what-timeline { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:.55rem; padding:1rem; }
+.now-what-milestone { border:1px solid rgba(255,255,255,.09); border-radius:12px; background:rgba(255,255,255,.035); padding:.7rem; }
+.now-what-milestone strong { display:block; color:var(--white); font-size:.78rem; margin-bottom:.22rem; }
+.now-what-milestone span { color:var(--gray-light); font-size:.72rem; line-height:1.35; }
+.now-what-directory { padding:0 1rem 1rem; }
+.now-what-directory h4 { margin:0 0 .25rem; color:var(--gold-light); font-size:.75rem; letter-spacing:.06em; text-transform:uppercase; }
+.now-what-category { border-top:1px solid rgba(255,255,255,.08); padding:.8rem 0; }
+.now-what-category:first-of-type { border-top:none; }
+.now-what-category-head { display:flex; justify-content:space-between; gap:.6rem; align-items:flex-start; }
+.now-what-category h5 { margin:0; color:var(--white); font-size:.84rem; }
+.now-what-category p { margin:.18rem 0 0; color:var(--gray-light); font-size:.74rem; line-height:1.4; }
+.now-what-neutral { color:var(--sage-light); border:1px solid rgba(74,140,111,.28); background:rgba(74,140,111,.08); border-radius:999px; padding:.22rem .42rem; white-space:nowrap; font-size:.62rem; font-weight:900; }
+.now-what-partners { display:grid; gap:.45rem; margin-top:.6rem; }
+.now-what-partner { display:flex; gap:.55rem; justify-content:space-between; align-items:center; border:1px solid rgba(255,255,255,.1); background:rgba(255,255,255,.03); border-radius:10px; padding:.62rem .68rem; }
+.now-what-partner-name { color:var(--white); font-size:.78rem; font-weight:800; }
+.now-what-partner-meta { color:var(--gray); font-size:.68rem; margin-top:.12rem; }
+.now-what-badge { display:inline-flex; margin-top:.26rem; border:1px solid rgba(200,151,63,.35); border-radius:999px; padding:.16rem .35rem; color:var(--gold-light); background:rgba(200,151,63,.09); font-size:.58rem; font-weight:900; letter-spacing:.04em; text-transform:uppercase; }
+.now-what-partner a { color:var(--gold-light); font-size:.7rem; font-weight:900; text-decoration:none; white-space:nowrap; }
+.now-what-empty { margin-top:.55rem; padding:.62rem .68rem; color:var(--gray-light); border:1px dashed rgba(255,255,255,.16); border-radius:10px; font-size:.73rem; line-height:1.4; }
+.now-what-note { padding:.85rem 1rem 1rem; border-top:1px solid rgba(255,255,255,.08); }
+@media (max-width:640px) { .now-what-timeline { grid-template-columns:1fr; } .now-what-category-head { display:block; } .now-what-neutral { display:inline-flex; margin-top:.4rem; } }
+
 
 
 /* Ops Bundle v1: offer detail drawer + timeline */
@@ -3400,6 +3428,20 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
           <div style="font-size:0.78rem; color:var(--gray); text-transform:uppercase; letter-spacing:0.05em; font-weight:700;">Sent to</div>
           <div id="successEmail" style="font-size:1rem; font-weight:800; color:var(--white); margin-top:0.25rem;">the email you entered</div>
         </div>
+
+        <section class="now-what" id="nowWhatPartnerJourney" aria-labelledby="nowWhatTitle">
+          <div class="now-what-head">
+            <div class="now-what-kicker">Your transaction, your choices</div>
+            <h3 id="nowWhatTitle">Now what?</h3>
+            <p>Use this as a practical checklist after your offer is sent. Local provider listings are optional resources from HomeOfferFlow—not required selections or transaction advice.</p>
+          </div>
+          <div class="now-what-timeline" id="nowWhatTimeline"></div>
+          <div class="now-what-directory">
+            <h4>Explore local help when you need it</h4>
+            <div id="nowWhatPartnerDirectory" aria-live="polite"><div class="now-what-empty">Loading available local provider profiles…</div></div>
+          </div>
+          <p class="now-what-note">You are free to choose any provider or none. HomeOfferFlow does not require a provider and does not change your offer, closing, lender, title, inspection, or repair decisions.</p>
+        </section>
 
         <div class="success-actions">
           <button class="btn-primary" type="button" onclick="backToHomeAfterPayment()" style="width:100%;">Back to Home</button>
@@ -6443,6 +6485,7 @@ function routeAfterMagicLinkIfNeeded() {
 
     const successIndex = getCurrentSteps().indexOf('stepSuccess');
     if (successIndex >= 0) showStep(successIndex);
+    renderNowWhatPartnerJourney();
   }
 
   function buildReview() {
@@ -6653,6 +6696,113 @@ function routeAfterMagicLinkIfNeeded() {
     if (ef) ef.style.display = b2.value.trim() ? 'flex' : 'none';
   }
 
+  const NOW_WHAT_PARTNER_LABELS = {
+    lender: 'Lender', title: 'Title / closing', inspection: 'Inspection', surveyor: 'Surveyor',
+    home_warranty: 'Home warranty', insurance: 'Insurance', roofing: 'Roofing', hvac: 'HVAC',
+    plumbing: 'Plumbing', electrical: 'Electrical', foundation_structural: 'Foundation / structural repair',
+    general_contractor: 'General contractor / remodeling', pest_termite: 'Pest / termite',
+    septic_well: 'Septic / well', restoration: 'Water / fire restoration', photography_video: 'Photography / video',
+    staging: 'Staging', repairs_handyman: 'Repairs / handyman', cleaning: 'Cleaning',
+    moving_storage: 'Moving / storage', lawn_pool: 'Lawn / pool', security_smart_home: 'Security / smart home', other: 'Other local service'
+  };
+  const NOW_WHAT_REGULATED_TYPES = new Set(['lender', 'title', 'inspection', 'surveyor']);
+  const NOW_WHAT_GROUPS = [
+    {
+      title: 'Choose settlement providers independently',
+      detail: 'Compare lender, title/closing, survey, and inspection options directly. HomeOfferFlow does not rank or preselect providers in these categories.',
+      types: ['lender', 'title', 'inspection', 'surveyor'],
+      neutral: true
+    },
+    {
+      title: 'During the option period and repair planning',
+      detail: 'If your contract becomes effective, confirm the option deadline with your transaction professional before scheduling inspections or evaluating repairs.',
+      types: ['pest_termite', 'foundation_structural', 'roofing', 'hvac', 'plumbing', 'electrical', 'restoration', 'general_contractor']
+    },
+    {
+      title: 'As closing and move-in approach',
+      detail: 'Make a move plan, then explore optional home-service providers for the transition and first weeks of ownership.',
+      types: ['insurance', 'home_warranty', 'moving_storage', 'cleaning', 'security_smart_home', 'lawn_pool', 'septic_well', 'repairs_handyman']
+    }
+  ];
+
+  function nowWhatEscape(value) {
+    return String(value ?? '').replace(/[&<>"']/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[char]));
+  }
+
+  function nowWhatFormatDate(value) {
+    if (!value) return '';
+    const date = new Date(value + 'T12:00:00');
+    return Number.isNaN(date.getTime()) ? '' : date.toLocaleDateString([], { month:'short', day:'numeric', year:'numeric' });
+  }
+
+  function nowWhatPartnerSort(left, right) {
+    const rank = { exclusive_market: 0, premier: 1, founding: 2 };
+    const leftRegulated = NOW_WHAT_REGULATED_TYPES.has(left.partner_type);
+    const rightRegulated = NOW_WHAT_REGULATED_TYPES.has(right.partner_type);
+    if (!leftRegulated && !rightRegulated && (rank[left.placement_tier] ?? 9) !== (rank[right.placement_tier] ?? 9)) {
+      return (rank[left.placement_tier] ?? 9) - (rank[right.placement_tier] ?? 9);
+    }
+    return String(left.partner_name || '').localeCompare(String(right.partner_name || ''));
+  }
+
+  function renderNowWhatTimeline(data = {}) {
+    const target = document.getElementById('nowWhatTimeline');
+    if (!target) return;
+    const closing = nowWhatFormatDate(data.closingDate || data.closing_date);
+    const optionDays = Number(data.optionDays || data.option_days || 0);
+    const financing = String(data.financing || '').toLowerCase();
+    const milestones = [
+      {
+        title: 'Right after sending',
+        body: financing && financing !== 'cash' ? 'Keep lender, proof-of-funds, and offer communications organized.' : 'Keep your offer documents and proof of funds organized.'
+      },
+      {
+        title: optionDays > 0 ? `Option period (${optionDays} days requested)` : 'If the contract becomes effective',
+        body: 'Confirm the effective date and deadlines with your agent, attorney, lender, title company, or other transaction professional.'
+      },
+      {
+        title: closing ? `Target closing: ${closing}` : 'Before closing',
+        body: 'Coordinate closing, insurance, moving, and property transition details after the parties agree on the contract.'
+      }
+    ];
+    target.innerHTML = milestones.map(item => `<div class="now-what-milestone"><strong>${nowWhatEscape(item.title)}</strong><span>${nowWhatEscape(item.body)}</span></div>`).join('');
+  }
+
+  function renderNowWhatDirectory(partners = []) {
+    const target = document.getElementById('nowWhatPartnerDirectory');
+    if (!target) return;
+    target.innerHTML = NOW_WHAT_GROUPS.map(group => {
+      const matches = partners.filter(partner => group.types.includes(partner.partner_type)).sort(nowWhatPartnerSort);
+      const cards = matches.length ? matches.map(partner => {
+        const regulated = NOW_WHAT_REGULATED_TYPES.has(partner.partner_type);
+        const website = String(partner.website_url || '');
+        const tierLabel = partner.placement_tier === 'exclusive_market' ? 'Premier Sponsor' : partner.placement_tier === 'premier' ? 'Featured Partner' : 'Sponsored listing';
+        return `<div class="now-what-partner">
+          <div><div class="now-what-partner-name">${nowWhatEscape(partner.partner_name || 'Local provider')}</div><div class="now-what-partner-meta">${nowWhatEscape(NOW_WHAT_PARTNER_LABELS[partner.partner_type] || 'Local service')} · ${nowWhatEscape(partner.market_area || 'Local market')}</div>${regulated ? '' : `<span class="now-what-badge">${tierLabel}</span>`}</div>
+          ${website ? `<a href="${nowWhatEscape(website)}" target="_blank" rel="noopener noreferrer" onclick="try { trackEvent('Partner Directory Outbound Click', { partnerType: '${nowWhatEscape(partner.partner_type)}', placementTier: '${nowWhatEscape(partner.placement_tier)}' }); } catch (e) {}">Visit site ↗</a>` : ''}
+        </div>`;
+      }).join('') : `<div class="now-what-empty">No active HomeOfferFlow provider profiles are available here yet. You may choose any qualified provider independently.</div>`;
+      return `<section class="now-what-category"><div class="now-what-category-head"><div><h5>${nowWhatEscape(group.title)}</h5><p>${nowWhatEscape(group.detail)}</p></div>${group.neutral ? '<span class="now-what-neutral">Neutral directory</span>' : ''}</div><div class="now-what-partners">${cards}</div></section>`;
+    }).join('');
+  }
+
+  async function renderNowWhatPartnerJourney() {
+    const target = document.getElementById('nowWhatPartnerJourney');
+    if (!target) return;
+    const data = state.data || {};
+    renderNowWhatTimeline(data);
+    try { trackEvent('Now What Partner Journey Viewed', { userType: data.userType || 'homebuyer' }); } catch (e) {}
+    try {
+      const response = await fetch('/api/fsbo-lead?partner_directory=1');
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || !result.ok) throw new Error(result.error || 'Directory unavailable');
+      renderNowWhatDirectory(Array.isArray(result.partners) ? result.partners : []);
+    } catch (error) {
+      const directory = document.getElementById('nowWhatPartnerDirectory');
+      if (directory) directory.innerHTML = '<div class="now-what-empty">Local provider profiles are not available right now. You may choose any qualified provider independently.</div>';
+    }
+  }
+
 
   function showPaymentSuccess(email) {
     window.__hofPaymentReturn = true;
@@ -6691,6 +6841,7 @@ function routeAfterMagicLinkIfNeeded() {
 
     const successIndex = getCurrentSteps().indexOf('stepSuccess');
     if (successIndex >= 0) showStep(successIndex);
+    renderNowWhatPartnerJourney();
   }
 
   function backToHomeAfterPayment() {
@@ -8451,26 +8602,24 @@ function routeAfterMagicLinkIfNeeded() {
     el.className = '';
     el.innerHTML = `
       <div class="platform-card">
-        <h4>Partner Marketplace Foundation</h4>
-        <p>Flat-fee advertising inventory only. Paid sponsor modules stay separate from the neutral provider selector and are never preselected.</p>
+        <h4>HomeOfferFlow Partner Marketplace</h4>
+        <p>Platform-wide advertising inventory only. These placements belong to HomeOfferFlow, never to an agent or brokerage. Paid sponsor modules stay separate from the neutral provider selector and are never preselected.</p>
         <div class="platform-kpi-row">
           <div class="platform-kpi"><span>Market Listing</span><strong>$149</strong></div>
           <div class="platform-kpi"><span>Featured</span><strong>$399</strong></div>
           <div class="platform-kpi"><span>Premier</span><strong>$799</strong></div>
         </div>
-        <div class="notice gold">Pilot rates are monthly per category and market. Premier is limited to one active sponsored inventory position per category and market, but it never creates required selection or referral rights.</div>
+        <div class="notice gold">Pilot rates are per category and market. Premier is limited to one active sponsored inventory position per category and market, but it never creates required selection or referral rights.</div>
       </div>
       <div class="partner-create-card">
         <h4 style="color:var(--gold-light); font-size:0.86rem; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:0.75rem;">Create Partner Placement</h4>
         <div class="platform-grid">
-          <div class="field"><label>Partner Type</label><select id="partnerType"><option value="title">Title</option><option value="warranty">Home Warranty</option><option value="inspection">Inspection</option><option value="lender">Lender</option><option value="insurance">Insurance</option></select></div>
+          <div class="field"><label>Partner Type</label><select id="partnerType"><option value="title">Title / closing</option><option value="lender">Lender</option><option value="inspection">Inspection</option><option value="surveyor">Property surveyor</option><option value="insurance">Home insurance</option><option value="home_warranty">Home warranty</option><option value="roofing">Roofing</option><option value="hvac">HVAC</option><option value="plumbing">Plumbing</option><option value="electrical">Electrical</option><option value="foundation_structural">Foundation / structural repair</option><option value="general_contractor">General contractor / remodeling</option><option value="pest_termite">Pest / termite</option><option value="septic_well">Septic / well</option><option value="restoration">Water / fire restoration</option><option value="moving_storage">Moving / storage</option><option value="cleaning">Cleaning</option><option value="security_smart_home">Security / smart home</option></select></div>
           <div class="field"><label>Placement Tier</label><select id="partnerTier"><option value="founding">Market Listing · $149</option><option value="premier">Featured Partner · $399</option><option value="exclusive_market">Premier Market Sponsor · $799</option></select></div>
           <div class="field"><label>Partner Name</label><input id="partnerName" placeholder="Forgey Law Group / Chicago Title"></div>
           <div class="field"><label>Market Area</label><input id="partnerMarket" placeholder="Collin / Grayson County"></div>
-          <div class="field"><label>Contact Name</label><input id="partnerContactName" placeholder="Contact name"></div>
-          <div class="field"><label>Contact Email</label><input id="partnerContactEmail" type="email" placeholder="partner@example.com"></div>
-          <div class="field"><label>Contact Phone</label><input id="partnerContactPhone" placeholder="(214) 555-0000"></div>
-          <div class="field"><label>Monthly Fee</label><input id="partnerMonthlyFee" type="number" placeholder="149"></div>
+          <div class="field"><label>Public website</label><input id="partnerWebsite" type="url" placeholder="https://partner.example"></div>
+          <div class="field"><label>Pilot / monthly fee</label><input id="partnerMonthlyFee" type="number" placeholder="149"></div>
         </div>
         <div class="platform-actions"><button type="button" onclick="savePartnerPlacementFoundation()">Save Partner Placement</button><button type="button" onclick="loadPartnerPlacementsFoundation()">Refresh Partners</button></div>
         <div id="partnerFoundationStatus" class="platform-status"></div>
@@ -8480,26 +8629,26 @@ function routeAfterMagicLinkIfNeeded() {
   }
 
   async function savePartnerPlacementFoundation() {
-    const client = getSupabaseClient();
-    const user = platformUser();
-    if (!client || !user) return platformStatus('partnerFoundationStatus', 'Sign in before saving a partner placement.', 'err');
+    const token = hofAuth?.session?.access_token;
+    if (!token || !isCurrentAdmin()) return platformStatus('partnerFoundationStatus', 'HomeOfferFlow admin access is required to save a platform placement.', 'err');
     try {
-      if (!hofPlatform.brokerage) await loadBrokerageFoundation();
       const payload = {
-        brokerage_id: hofPlatform.brokerage?.id || null,
+        action: 'create_platform_partner_placement',
         partner_type: getVal('partnerType') || 'title',
         partner_name: getVal('partnerName') || 'Founding Partner',
-        contact_name: getVal('partnerContactName') || null,
-        contact_email: getVal('partnerContactEmail') || null,
-        contact_phone: getVal('partnerContactPhone') || null,
         market_area: getVal('partnerMarket') || null,
         placement_tier: getVal('partnerTier') || 'founding',
-        monthly_fee: moneyNumber(getVal('partnerMonthlyFee')) || null,
-        is_active: true
+        website_url: getVal('partnerWebsite') || null,
+        monthly_fee: moneyNumber(getVal('partnerMonthlyFee')) || null
       };
-      const { error } = await client.from('hof_partner_placements').insert(payload);
-      if (error) throw error;
-      platformStatus('partnerFoundationStatus', 'Partner placement saved. This is advertising placement only, not a referral workflow.', 'ok');
+      const response = await fetch('/api/admin-dashboard', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify(payload)
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || result.error) throw new Error(result.error || 'Could not save platform placement.');
+      platformStatus('partnerFoundationStatus', 'Platform placement saved. It can now appear in the central Now What directory when its category is relevant.', 'ok');
       await loadPartnerPlacementsFoundation();
     } catch (err) {
       console.error('Partner placement save failed:', err);
@@ -8509,18 +8658,19 @@ function routeAfterMagicLinkIfNeeded() {
 
   async function loadPartnerPlacementsFoundation() {
     const list = document.getElementById('partnerPlacementList');
-    const client = getSupabaseClient();
-    if (!list || !client) return;
+    const token = hofAuth?.session?.access_token;
+    if (!list || !token || !isCurrentAdmin()) return;
     try {
-      const { data, error } = await client.from('hof_partner_placements').select('*').eq('is_active', true).order('created_at', { ascending:false }).limit(20);
-      if (error) throw error;
-      hofPlatform.partners = data || [];
+      const response = await fetch('/api/admin-dashboard', { headers: { 'Authorization': `Bearer ${token}` } });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || result.error) throw new Error(result.error || 'Could not load platform placements.');
+      hofPlatform.partners = result.partnerPlacements || [];
       list.innerHTML = hofPlatform.partners.length ? hofPlatform.partners.map(row => `
         <div class="platform-list-item"><strong>${escapeAttr(row.partner_name || 'Partner')}</strong>
           <span class="platform-pill good">${escapeAttr(row.partner_type || 'partner')}</span>
           <span class="platform-pill">${escapeAttr(row.placement_tier || 'founding')}</span><br>
-          ${escapeAttr(row.market_area || '')} ${row.contact_email ? '· ' + escapeAttr(row.contact_email) : ''} ${row.monthly_fee ? '· ' + adminMoney(row.monthly_fee) + '/mo' : ''}
-        </div>`).join('') : '<div class="platform-list-item">No active partner placements yet. Add rows in Supabase when you sell the first founding title partner.</div>';
+          ${escapeAttr(row.market_area || '')} ${row.website_url ? '· ' + escapeAttr(row.website_url) : ''} ${row.monthly_fee ? '· ' + adminMoney(row.monthly_fee) + '/mo' : ''}
+        </div>`).join('') : '<div class="platform-list-item">No active platform placements yet. Add the first converted founding partner here when onboarding is complete.</div>';
     } catch (err) {
       console.warn('Partner placement load failed:', err);
       list.innerHTML = '<div class="platform-list-item">Partners could not load: ' + escapeAttr(err?.message || err) + '</div>';

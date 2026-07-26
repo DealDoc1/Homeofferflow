@@ -39,6 +39,9 @@ class FakeClient:
     async def patch(self, *_args, **_kwargs):
         return self.response
 
+    async def post(self, *_args, **_kwargs):
+        return self.response
+
 
 class AdminTrackerSecurityTests(IsolatedAsyncioTestCase):
     async def test_missing_bearer_token_is_rejected_without_network_call(self):
@@ -96,6 +99,44 @@ class AdminTrackerSecurityTests(IsolatedAsyncioTestCase):
         with patch.object(admin_dashboard.httpx, "AsyncClient", return_value=FakeClient(response)):
             with self.assertRaisesRegex(ValueError, "not found"):
                 await admin_dashboard._update_partner_lead("e35eace9-2760-4b11-a01a-07ee65f2744e", "contacted")
+
+    async def test_platform_partner_placement_is_validated_and_not_brokerage_owned(self):
+        payload = admin_dashboard._parse_partner_placement({
+            "partner_name": "North Texas Movers",
+            "partner_type": "moving_storage",
+            "market_area": "DFW",
+            "placement_tier": "premier",
+            "website_url": "https://example.com",
+            "monthly_fee": "399",
+        })
+        self.assertIsNone(payload["brokerage_id"])
+        self.assertEqual(payload["placement_tier"], "premier")
+        self.assertEqual(payload["monthly_fee"], 399.0)
+        with self.assertRaisesRegex(ValueError, "Website URL"):
+            admin_dashboard._parse_partner_placement({
+                "partner_name": "Bad URL Co",
+                "partner_type": "moving_storage",
+                "market_area": "DFW",
+                "placement_tier": "founding",
+                "website_url": "example.com",
+            })
+
+    async def test_platform_partner_placement_returns_saved_row(self):
+        response = FakeResponse(201, [{"id": "placement-1", "brokerage_id": None, "partner_name": "North Texas Movers"}])
+        payload = {
+            "brokerage_id": None,
+            "partner_name": "North Texas Movers",
+            "partner_type": "moving_storage",
+            "market_area": "DFW",
+            "placement_tier": "founding",
+            "website_url": "https://example.com",
+            "logo_url": None,
+            "monthly_fee": 149.0,
+            "is_active": True,
+        }
+        with patch.object(admin_dashboard.httpx, "AsyncClient", return_value=FakeClient(response)):
+            row = await admin_dashboard._create_platform_partner_placement(payload)
+        self.assertEqual(row["id"], "placement-1")
 
 
 if __name__ == "__main__":
