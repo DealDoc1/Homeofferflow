@@ -1,8 +1,8 @@
 # HomeOfferFlow Partner Advertising — Founding Partner Launch Offer
 
-The Founding Partner launch offer gives an approved partner the first 90 days for the price of one standard month. It covers one service category and market, begins when the placement goes live, has no setup fee, and does not renew automatically. The launch offer is limited to the first 10 approved partners. Availability and final deliverables are confirmed in a written advertising agreement.
+The Founding Partner launch offer gives an approved partner the first 90 days for the price of one standard month. It covers one service category and market, starts at checkout, has no setup fee, then renews monthly at the standard rate after 90 days unless cancelled. The launch offer is limited to the first 10 approved partners. Availability and final deliverables are confirmed in a written advertising agreement.
 
-| Placement | Market Listing | Featured Partner | Premier Market Sponsor |
+| Placement | Core Partner | Featured Partner | Premier Partner |
 |---|---:|---:|---:|
 | Founding 90-day total | $149 one time | $399 one time | $799 one time |
 | Standard rate after pilot | $149/month | $399/month | $799/month |
@@ -14,7 +14,7 @@ The Founding Partner launch offer gives an approved partner the first 90 days fo
 | Reporting | Views and outbound clicks | Views, clicks, and CTA engagement | Priority monthly performance summary |
 | Inventory | Open subject to qualification | Limited by category and market | One active Premier sponsor per category and market during pilot |
 
-## Market Listing — $149 for the first 90 days
+## Core Partner — $149 for the first 90 days
 
 Best for a local provider that wants an early, credible presence while HomeOfferFlow builds transaction volume.
 
@@ -23,20 +23,20 @@ Best for a local provider that wants an early, credible presence while HomeOffer
 - Logo, contact details, website, and service area.
 - Profile-view and outbound-click reporting.
 - Founding Partner badge and onboarding included.
-- Optional renewal after the pilot at the standard $149/month rate.
+- Automatically renews at the standard $149/month rate after 90 days unless cancelled.
 
 ## Featured Partner — $399 for the first 90 days
 
 Best for a provider that wants both a selectable profile and visible brand advertising around a relevant decision moment.
 
-- Everything in Market Listing.
+- Everything in Core Partner.
 - Clearly labeled sponsored brand card separate from the category directory.
 - Sponsored education or CTA card outside the provider selector in the relevant workflow step.
 - Enhanced profile with an offer, scheduling link, or media CTA.
 - Founding Partner badge, onboarding, and a 90-day performance review.
-- Optional renewal after the pilot at the standard $399/month rate.
+- Automatically renews at the standard $399/month rate after 90 days unless cancelled.
 
-## Premier Market Sponsor — $799 for the first 90 days
+## Premier Partner — $799 for the first 90 days
 
 Best for a category leader that wants the highest-visibility sponsored inventory in a defined market.
 
@@ -45,13 +45,13 @@ Best for a category leader that wants the highest-visibility sponsored inventory
 - Premier sponsored module outside the provider selector in relevant buyer, agent, and FSBO workflow steps.
 - One active Premier sponsor per category and market during the pilot.
 - Priority onboarding, creative setup, and 90-day performance review.
-- Optional renewal after the pilot at the standard $799/month rate.
+- Automatically renews at the standard $799/month rate after 90 days unless cancelled.
 
 ## Founding launch terms
 
 - Available to the first 10 approved partners.
 - The 90-day clock begins when the placement goes live.
-- No setup fee and no automatic renewal.
+- No setup fee; automatically renews monthly after the 90-day launch period unless cancelled.
 - Renewal requires a separate written agreement at the then-current standard rate.
 - A partner may change or expand its category/market placement only through a written update.
 

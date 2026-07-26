@@ -7,10 +7,10 @@ Founding Partner Revenue Pilot v3 — 90-Day Launch Offer
 ## What it adds
 
 - A 90-day Founding Partner launch offer priced per category and market:
-  - Market Listing — $149 one time for the first 90 days; $149/month only if renewed
-  - Featured Partner — $399 one time for the first 90 days; $399/month only if renewed
-  - Premier Market Sponsor — $799 one time for the first 90 days; $799/month only if renewed
-- No setup fee, no automatic renewal, and availability limited to the first 10 approved partners.
+  - Core Partner — $149 for the first 90 days; then $149/month unless cancelled
+  - Featured Partner — $399 for the first 90 days; then $399/month unless cancelled
+  - Premier Partner — $799 for the first 90 days; then $799/month unless cancelled
+- No setup fee; monthly renewal begins after the 90-day launch period unless cancelled; availability is limited to the first 10 approved partners.
 - An exact placement comparison covering category pages, provider selection, buyer workflow, agent/FSBO workflow, and reporting.
 - Premier sponsored inventory above the neutral category directory and inside relevant workflow moments.
 - Neutral provider results for every tier: paid partners are never preselected, required, or ranked inside the selector because of payment.
@@ -22,7 +22,7 @@ This release changes partner-pilot presentation only. It does not change TREC co
 ## Commercial rules carried by the preview
 
 1. The launch price covers the first 90 days for one category in one market and begins when placement goes live.
-2. The pilot has no setup fee and does not renew automatically.
+2. The pilot has no setup fee and renews monthly after 90 days unless cancelled.
 3. A standard monthly rate applies only after a separate written renewal.
 4. All paid advertising modules are labeled `Sponsored`.
 5. Premier inventory is limited to one active sponsored position per category and market during the pilot.
@@ -57,7 +57,7 @@ Verify:
 2. The three tier cards show $149, $399, and $799 as one-time 90-day launch prices, with standard monthly renewal rates visible.
 3. Featured Partner is selected by default.
 4. Selecting each card updates the 90-day selected-tier summary, expected post-pilot budget band, and submit-button copy.
-5. The launch terms clearly state first 10 approved partners, no setup fee, and no automatic renewal.
+5. The launch terms clearly state first 10 approved partners, no setup fee, and monthly renewal after 90 days unless cancelled.
 6. The placement table clearly distinguishes sponsored inventory from neutral provider selection.
 7. The consumer-choice disclosure says users may choose any provider or none.
 8. Missing required fields and invalid email addresses are rejected.

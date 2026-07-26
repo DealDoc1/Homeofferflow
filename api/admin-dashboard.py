@@ -10,6 +10,7 @@ SUPABASE_SERVICE_ROLE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or os.en
 ADMIN_EMAILS = {e.strip().lower() for e in (os.environ.get("ADMIN_EMAILS") or os.environ.get("HOF_ADMIN_EMAILS") or "").split(",") if e.strip()}
 DEFAULT_ADMIN_EMAILS = {"andrew@ondemanddfw.com", "andrewchri@gmail.com", "support@homeofferflow.com"}
 ALLOWED_PARTNER_LEAD_STATUSES = {"new", "contacted", "qualified", "waitlist", "converted", "declined"}
+ALLOWED_PARTNER_ONBOARDING_STATUSES = {"not_started", "ready", "in_progress", "complete"}
 ALLOWED_PARTNER_PLACEMENT_TIERS = {"founding", "premier", "exclusive_market"}
 ALLOWED_PARTNER_TYPES = {
     "title", "lender", "inspection", "surveyor", "home_warranty", "insurance",
@@ -88,11 +89,16 @@ def _parse_partner_lead_update(data):
         raise ValueError("A valid partner lead ID is required.")
     if status not in ALLOWED_PARTNER_LEAD_STATUSES:
         raise ValueError("Choose a valid partner lead status.")
-    return lead_id, status
+    onboarding_status = str(data.get("onboarding_status") or "").strip().lower()
+    if onboarding_status and onboarding_status not in ALLOWED_PARTNER_ONBOARDING_STATUSES:
+        raise ValueError("Choose a valid partner onboarding status.")
+    return lead_id, status, onboarding_status or None
 
 
-async def _update_partner_lead(lead_id, status):
+async def _update_partner_lead(lead_id, status, onboarding_status=None):
     payload = {"status": status, "updated_at": datetime.now(timezone.utc).isoformat()}
+    if onboarding_status:
+        payload["onboarding_status"] = onboarding_status
     async with httpx.AsyncClient(timeout=12) as client:
         response = await client.patch(
             f"{SUPABASE_URL}/rest/v1/hof_partner_leads?id=eq.{lead_id}",
@@ -259,8 +265,8 @@ class handler(BaseHTTPRequestHandler):
                 row = asyncio.run(_create_platform_partner_placement(payload))
                 _json(self, 200, {"ok": True, "partnerPlacement": row})
                 return
-            lead_id, status = _parse_partner_lead_update(data)
-            row = asyncio.run(_update_partner_lead(lead_id, status))
+            lead_id, status, onboarding_status = _parse_partner_lead_update(data)
+            row = asyncio.run(_update_partner_lead(lead_id, status, onboarding_status))
             _json(self, 200, {"ok": True, "lead": row})
         except ValueError as exc:
             _json(self, 400, {"error": str(exc)[:300]})

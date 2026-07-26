@@ -3758,8 +3758,14 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
     return statuses.map(status => `<option value="${status}" ${status === currentStatus ? 'selected' : ''}>${status.replace(/_/g, ' ')}</option>`).join('');
   }
 
+  function partnerOnboardingStatusOptions(currentStatus) {
+    const statuses = ['not_started', 'ready', 'in_progress', 'complete'];
+    return statuses.map(status => `<option value="${status}" ${status === currentStatus ? 'selected' : ''}>${status.replace(/_/g, ' ')}</option>`).join('');
+  }
+
   async function updatePartnerLeadStatus(leadId) {
     const select = document.getElementById(`partnerLeadStatus-${leadId}`);
+    const onboardingSelect = document.getElementById(`partnerOnboardingStatus-${leadId}`);
     const button = document.getElementById(`partnerLeadSave-${leadId}`);
     if (!select || !hofAuth?.session?.access_token) return;
     const status = select.value;
@@ -3771,7 +3777,7 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${hofAuth.session.access_token}`
         },
-        body: JSON.stringify({ lead_id: leadId, status })
+        body: JSON.stringify({ lead_id: leadId, status, onboarding_status: onboardingSelect?.value || '' })
       });
       const result = await response.json().catch(() => ({}));
       if (!response.ok || result.error) throw new Error(result.error || 'Could not update partner lead.');
@@ -3814,12 +3820,14 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
       if (type === 'partner-leads') {
         const leadId = String(row.id || '');
         const status = String(row.status || 'new');
+        const paymentStatus = String(row.payment_status || 'not_started');
+        const onboardingStatus = String(row.onboarding_status || 'not_started');
         const canUpdate = /^[0-9a-f-]{36}$/i.test(leadId);
         return `<div class="admin-row">
           <div><strong>${adminSafe(row.company_name || 'Partner lead')}</strong><div class="admin-muted">${adminSafe(row.contact_name || '')} · ${adminSafe(row.contact_email || '')}</div></div>
           <div>${adminSafe(row.market_area || '')}<div class="admin-muted">${adminSafe(row.preferred_model || '')}</div></div>
-          <div><span class="admin-pill ${['qualified','converted'].includes(String(row.status || '')) ? 'good' : 'warn'}">${adminSafe(row.status || 'new')}</span><div class="admin-muted">${adminSafe(row.partner_type || 'other')}</div></div>
-          <div>${adminDate(row.created_at)}${canUpdate ? `<div class="partner-lead-admin-actions"><select id="partnerLeadStatus-${leadId}" aria-label="Status for ${adminSafe(row.company_name || 'partner lead')}">${partnerLeadStatusOptions(status)}</select><button id="partnerLeadSave-${leadId}" type="button" onclick="updatePartnerLeadStatus('${leadId}')">Save</button></div>` : ''}</div>
+          <div><span class="admin-pill ${paymentStatus === 'paid' ? 'good' : 'warn'}">${adminSafe(paymentStatus)}</span><div class="admin-muted">${adminSafe(row.partner_type || 'other')} · onboarding: ${adminSafe(onboardingStatus)}</div></div>
+          <div>${adminDate(row.created_at)}${canUpdate ? `<div class="partner-lead-admin-actions"><select id="partnerLeadStatus-${leadId}" aria-label="Review status for ${adminSafe(row.company_name || 'partner lead')}">${partnerLeadStatusOptions(status)}</select><select id="partnerOnboardingStatus-${leadId}" aria-label="Onboarding status for ${adminSafe(row.company_name || 'partner lead')}">${partnerOnboardingStatusOptions(onboardingStatus)}</select><button id="partnerLeadSave-${leadId}" type="button" onclick="updatePartnerLeadStatus('${leadId}')">Save</button></div>` : ''}</div>
         </div>`;
       }
       return `<div class="admin-row">
@@ -6776,7 +6784,7 @@ function routeAfterMagicLinkIfNeeded() {
       const cards = matches.length ? matches.map(partner => {
         const regulated = NOW_WHAT_REGULATED_TYPES.has(partner.partner_type);
         const website = String(partner.website_url || '');
-        const tierLabel = partner.placement_tier === 'exclusive_market' ? 'Premier Sponsor' : partner.placement_tier === 'premier' ? 'Featured Partner' : 'Sponsored listing';
+        const tierLabel = partner.placement_tier === 'exclusive_market' ? 'Sponsored · Premier Partner' : partner.placement_tier === 'premier' ? 'Sponsored · Featured Partner' : 'Sponsored · Core Partner';
         return `<div class="now-what-partner">
           <div><div class="now-what-partner-name">${nowWhatEscape(partner.partner_name || 'Local provider')}</div><div class="now-what-partner-meta">${nowWhatEscape(NOW_WHAT_PARTNER_LABELS[partner.partner_type] || 'Local service')} · ${nowWhatEscape(partner.market_area || 'Local market')}</div>${regulated ? '' : `<span class="now-what-badge">${tierLabel}</span>`}</div>
           ${website ? `<a href="${nowWhatEscape(website)}" target="_blank" rel="noopener noreferrer" onclick="try { trackEvent('Partner Directory Outbound Click', { partnerType: '${nowWhatEscape(partner.partner_type)}', placementTier: '${nowWhatEscape(partner.placement_tier)}' }); } catch (e) {}">Visit site ↗</a>` : ''}
@@ -8603,19 +8611,19 @@ function routeAfterMagicLinkIfNeeded() {
     el.innerHTML = `
       <div class="platform-card">
         <h4>HomeOfferFlow Partner Marketplace</h4>
-        <p>Platform-wide advertising inventory only. These placements belong to HomeOfferFlow, never to an agent or brokerage. Paid sponsor modules stay separate from the neutral provider selector and are never preselected.</p>
+        <p>Platform-wide advertising inventory only. These placements belong to HomeOfferFlow, never to an agent or brokerage. Paid placement modules stay separate from the neutral provider selector and are never preselected.</p>
         <div class="platform-kpi-row">
-          <div class="platform-kpi"><span>Market Listing</span><strong>$149</strong></div>
-          <div class="platform-kpi"><span>Featured</span><strong>$399</strong></div>
-          <div class="platform-kpi"><span>Premier</span><strong>$799</strong></div>
+          <div class="platform-kpi"><span>Core Partner</span><strong>$149</strong></div>
+          <div class="platform-kpi"><span>Featured Partner</span><strong>$399</strong></div>
+          <div class="platform-kpi"><span>Premier Partner</span><strong>$799</strong></div>
         </div>
-        <div class="notice gold">Pilot rates are per category and market. Premier is limited to one active sponsored inventory position per category and market, but it never creates required selection or referral rights.</div>
+        <div class="notice gold">Pilot rates are per category and market. Premier Partner is limited to one active paid placement position per category and market, but it never creates required selection or referral rights.</div>
       </div>
       <div class="partner-create-card">
         <h4 style="color:var(--gold-light); font-size:0.86rem; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:0.75rem;">Create Partner Placement</h4>
         <div class="platform-grid">
           <div class="field"><label>Partner Type</label><select id="partnerType"><option value="title">Title / closing</option><option value="lender">Lender</option><option value="inspection">Inspection</option><option value="surveyor">Property surveyor</option><option value="insurance">Home insurance</option><option value="home_warranty">Home warranty</option><option value="roofing">Roofing</option><option value="hvac">HVAC</option><option value="plumbing">Plumbing</option><option value="electrical">Electrical</option><option value="foundation_structural">Foundation / structural repair</option><option value="general_contractor">General contractor / remodeling</option><option value="pest_termite">Pest / termite</option><option value="septic_well">Septic / well</option><option value="restoration">Water / fire restoration</option><option value="moving_storage">Moving / storage</option><option value="cleaning">Cleaning</option><option value="security_smart_home">Security / smart home</option></select></div>
-          <div class="field"><label>Placement Tier</label><select id="partnerTier"><option value="founding">Market Listing · $149</option><option value="premier">Featured Partner · $399</option><option value="exclusive_market">Premier Market Sponsor · $799</option></select></div>
+          <div class="field"><label>Placement Tier</label><select id="partnerTier"><option value="founding">Core Partner · $149</option><option value="premier">Featured Partner · $399</option><option value="exclusive_market">Premier Partner · $799</option></select></div>
           <div class="field"><label>Partner Name</label><input id="partnerName" placeholder="Forgey Law Group / Chicago Title"></div>
           <div class="field"><label>Market Area</label><input id="partnerMarket" placeholder="Collin / Grayson County"></div>
           <div class="field"><label>Public website</label><input id="partnerWebsite" type="url" placeholder="https://partner.example"></div>
@@ -9410,14 +9418,15 @@ function routeAfterMagicLinkIfNeeded() {
       <button type="button" onclick="closeFoundingPartnerModal()" aria-label="Close partner application" style="border:none;background:transparent;color:var(--gray-light);font-size:1.5rem;cursor:pointer;">×</button>
     </div>
 
-    <div class="notice gold" style="margin-bottom:.9rem;"><strong>Get the first 90 days for the price of one standard month.</strong><br>The launch offer is available to the first 10 approved partners. It includes onboarding, has no setup fee, and does not renew automatically. Each placement covers one category and market.</div>
+    <div class="notice gold" style="margin-bottom:.9rem;"><strong>Get the first 90 days for the price of one standard month.</strong><br>The launch offer is available to the first 10 approved partners. It includes onboarding, has no setup fee, then renews monthly at the standard rate after 90 days unless cancelled. Each placement covers one category and market.</div>
+    <div class="notice sage" id="foundingPartnerCheckoutConfirmation" style="display:none;margin-bottom:.9rem;"><strong>Checkout complete — welcome to onboarding.</strong><br>We will confirm payment, category and market availability, collect your logo and placement details, then activate the agreed platform-wide placement. After the 90-day launch period, your plan renews monthly unless cancelled.</div>
 
     <div class="partner-tier-grid" role="radiogroup" aria-label="Partner advertising tier">
       <button type="button" class="partner-tier-card" data-partner-tier="founding_pilot" role="radio" aria-checked="false" onclick="selectFoundingPartnerTier('founding_pilot')">
         <span class="partner-tier-badge subtle">Build visibility</span>
-        <h4>Market Listing</h4>
+        <h4>Core Partner</h4>
         <div class="partner-tier-price"><strong>$149</strong><span>one time<br>first 90 days</span></div>
-        <span class="partner-tier-standard"><s>Standard: $149/month</s> after the pilot, only if renewed</span>
+        <span class="partner-tier-standard">Then $149/month after 90 days, unless cancelled</span>
         <p class="partner-tier-summary">A credible, selectable presence wherever consumers compare providers in your category.</p>
         <span class="partner-tier-list">
           <span>Company profile in the category directory</span>
@@ -9426,17 +9435,17 @@ function routeAfterMagicLinkIfNeeded() {
           <span>Profile-view and outbound-click reporting</span>
           <span>Founding Partner badge and onboarding included</span>
         </span>
-        <span class="partner-tier-select-copy">Select Market Listing</span>
+        <span class="partner-tier-select-copy">Select Core Partner</span>
       </button>
 
       <button type="button" class="partner-tier-card is-selected" data-partner-tier="monthly_placement" role="radio" aria-checked="true" onclick="selectFoundingPartnerTier('monthly_placement')">
         <span class="partner-tier-badge">Recommended</span>
         <h4>Featured Partner</h4>
         <div class="partner-tier-price"><strong>$399</strong><span>one time<br>first 90 days</span></div>
-        <span class="partner-tier-standard"><s>Standard: $399/month</s> after the pilot, only if renewed</span>
+        <span class="partner-tier-standard">Then $399/month after 90 days, unless cancelled</span>
         <p class="partner-tier-summary">More brand exposure on category pages and at a relevant decision point in the workflow.</p>
         <span class="partner-tier-list">
-          <span>Everything in Market Listing</span>
+          <span>Everything in Core Partner</span>
           <span>Clearly labeled sponsored brand card near the category directory</span>
           <span>Sponsored education or CTA card in the relevant workflow step</span>
           <span>Enhanced profile with offer, media, or scheduling CTA</span>
@@ -9447,9 +9456,9 @@ function routeAfterMagicLinkIfNeeded() {
 
       <button type="button" class="partner-tier-card premier" data-partner-tier="market_exclusive" role="radio" aria-checked="false" onclick="selectFoundingPartnerTier('market_exclusive')">
         <span class="partner-tier-badge">Highest visibility</span>
-        <h4>Premier Market Sponsor</h4>
+        <h4>Premier Partner</h4>
         <div class="partner-tier-price"><strong>$799</strong><span>one time<br>first 90 days</span></div>
-        <span class="partner-tier-standard"><s>Standard: $799/month</s> after the pilot, only if renewed</span>
+        <span class="partner-tier-standard">Then $799/month after 90 days, unless cancelled</span>
         <p class="partner-tier-summary">The top sponsored brand position across the category and its relevant HomeOfferFlow moments.</p>
         <span class="partner-tier-list">
           <span>Everything in Featured Partner</span>
@@ -9465,7 +9474,7 @@ function routeAfterMagicLinkIfNeeded() {
     <div class="partner-placement-wrap" aria-label="Partner tier placement comparison">
       <div class="partner-placement-title"><strong>Exactly where each tier appears</strong><span>All paid placements are labeled “Sponsored.”</span></div>
       <table class="partner-placement-table">
-        <thead><tr><th>Placement</th><th>Market Listing</th><th>Featured Partner</th><th>Premier Sponsor</th></tr></thead>
+        <thead><tr><th>Placement</th><th>Core Partner</th><th>Featured Partner</th><th>Premier Partner</th></tr></thead>
         <tbody>
           <tr><td>Category directory</td><td>Standard company profile</td><td>Profile plus a separate sponsored brand card near directory</td><td>Top sponsored brand module above the neutral directory</td></tr>
           <tr><td>Provider selection</td><td>Selectable in neutral results</td><td>Selectable in neutral results</td><td>Selectable in neutral results; never preselected</td></tr>
@@ -9479,7 +9488,7 @@ function routeAfterMagicLinkIfNeeded() {
     <div class="partner-safety-note"><span aria-hidden="true">✓</span><div><strong>Consumer choice stays protected.</strong> Partner fees pay for disclosed advertising inventory—not referrals, closings, or required selection. HomeOfferFlow never preselects a paid provider, and users may choose any provider or none.</div></div>
 
     <div class="partner-selected-tier" aria-live="polite"><span>Selected 90-day Founding Partner pilot</span><strong id="foundingPartnerTierSelection">Featured Partner · $399 one time for the first 90 days</strong></div>
-    <select id="foundingPartnerModel" class="partner-tier-native-select" aria-label="Selected advertising tier"><option value="founding_pilot">Market Listing</option><option value="monthly_placement" selected>Featured Partner</option><option value="market_exclusive">Premier Market Sponsor</option><option value="discuss">Custom / multi-market plan</option></select>
+    <select id="foundingPartnerModel" class="partner-tier-native-select" aria-label="Selected advertising tier"><option value="founding_pilot">Core Partner</option><option value="monthly_placement" selected>Featured Partner</option><option value="market_exclusive">Premier Partner</option><option value="discuss">Custom / multi-market plan</option></select>
 
     <div class="platform-grid">
       <div class="field"><label for="foundingPartnerType">Partner category</label><select id="foundingPartnerType"><option value="title">Title company / fee attorney</option><option value="lender">Mortgage lender</option><option value="inspection">Home inspection</option><option value="surveyor">Property surveyor</option><option value="home_warranty">Home warranty</option><option value="insurance">Home insurance</option><option value="roofing">Roofing contractor</option><option value="hvac">HVAC / heating and air</option><option value="plumbing">Plumbing</option><option value="electrical">Electrical</option><option value="foundation_structural">Foundation / structural repair</option><option value="general_contractor">General contractor / remodeling</option><option value="pest_termite">Pest control / termite</option><option value="septic_well">Septic / well service</option><option value="restoration">Water / fire restoration</option><option value="repairs_handyman">Repairs / handyman</option><option value="photography_video">Photography / video</option><option value="staging">Home staging</option><option value="cleaning">Cleaning</option><option value="moving_storage">Moving / storage</option><option value="lawn_pool">Lawn / pool</option><option value="security_smart_home">Security / smart home</option><option value="other">Other real-estate service</option></select></div>
@@ -9496,10 +9505,10 @@ function routeAfterMagicLinkIfNeeded() {
     <div class="field" style="margin-top:.8rem;"><label for="foundingPartnerMessage">What would make the pilot valuable to you?</label><textarea id="foundingPartnerMessage" rows="3" placeholder="Markets served, ideal customer, category preferences, or questions..."></textarea></div>
     <div aria-hidden="true" style="position:absolute;left:-10000px;top:auto;width:1px;height:1px;overflow:hidden;"><label for="foundingPartnerConfirm">Leave this field blank</label><input id="foundingPartnerConfirm" tabindex="-1" autocomplete="off"></div>
 
-    <label class="terms-check" style="margin-top:.8rem;"><input type="checkbox" id="foundingPartnerConsent"><span>I understand this is an application for a 90-day flat-fee advertising pilot that begins when placement goes live and does not renew automatically. Placement does not promise referrals, leads, exclusivity, transactions, or closings, and final terms require a written agreement.</span></label>
+    <label class="terms-check" style="margin-top:.8rem;"><input type="checkbox" id="foundingPartnerConsent"><span>I understand the discounted 90-day launch period begins at checkout and my plan then renews monthly at the standard rate unless I cancel. Placement does not promise referrals, leads, exclusivity, transactions, or closings, and final terms require a written agreement.</span></label>
 
     <div class="account-actions-row" style="margin-top:1rem;">
-      <button class="btn-primary" type="button" id="foundingPartnerSubmit" onclick="submitFoundingPartnerLead()">Submit Partner Interest</button>
+      <button class="btn-primary" type="button" id="foundingPartnerSubmit" onclick="submitFoundingPartnerLead()">Continue to Secure Checkout</button>
       <button class="btn-secondary" type="button" onclick="closeFoundingPartnerModal()">Cancel</button>
     </div>
     <div id="foundingPartnerStatus" class="platform-status"></div>
@@ -9509,9 +9518,9 @@ function routeAfterMagicLinkIfNeeded() {
 <script id="hof-founding-partner-intake-v1">
 (function(){
   const partnerTierDetails = {
-    founding_pilot: { label:'Market Listing', price:'$149 one time for the first 90 days', budget:'under_250' },
-    monthly_placement: { label:'Featured Partner', price:'$399 one time for the first 90 days', budget:'250_499' },
-    market_exclusive: { label:'Premier Market Sponsor', price:'$799 one time for the first 90 days', budget:'500_999' },
+    founding_pilot: { label:'Core Partner', price:'$149 for the first 90 days, then $149/month', budget:'under_250' },
+    monthly_placement: { label:'Featured Partner', price:'$399 for the first 90 days, then $399/month', budget:'250_499' },
+    market_exclusive: { label:'Premier Partner', price:'$799 for the first 90 days, then $799/month', budget:'500_999' },
     discuss: { label:'Custom / multi-market plan', price:'Pricing discussed after market review', budget:'discuss' }
   };
   function value(id){ return (document.getElementById(id)?.value || '').trim(); }
@@ -9524,6 +9533,8 @@ function routeAfterMagicLinkIfNeeded() {
     if (!modal) return;
     modal.style.display = 'flex';
     modal.setAttribute('aria-hidden', 'false');
+    const confirmation = document.getElementById('foundingPartnerCheckoutConfirmation');
+    if (confirmation) confirmation.style.display = params().get('partner_checkout') === 'success' ? 'block' : 'none';
     setTimeout(() => document.querySelector('.partner-tier-card.is-selected')?.focus(), 0);
   };
   window.selectFoundingPartnerTier = function(model){
@@ -9585,7 +9596,7 @@ function routeAfterMagicLinkIfNeeded() {
       return;
     }
     if (submit) submit.disabled = true;
-    if (status) { status.textContent = 'Submitting partner interest...'; status.className = 'platform-status'; }
+    if (status) { status.textContent = 'Saving your application...'; status.className = 'platform-status'; }
     try {
       const response = await fetch('/api/fsbo-lead', {
         method: 'POST',
@@ -9593,9 +9604,16 @@ function routeAfterMagicLinkIfNeeded() {
         body: JSON.stringify(payload)
       });
       const result = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(result.error || 'Could not submit partner interest.');
-      if (status) { status.textContent = 'Received. We will review the market and category before discussing pilot placement terms.'; status.className = 'platform-status ok'; }
-      if (submit) submit.textContent = 'Interest Received';
+      if (!response.ok || !result.partner_lead_id) throw new Error(result.error || 'Could not submit partner interest.');
+      if (status) { status.textContent = 'Opening secure Stripe Checkout...'; status.className = 'platform-status'; }
+      const checkoutResponse = await fetch('/api/create-partner-checkout', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ partnerLeadId: result.partner_lead_id })
+      });
+      const checkout = await checkoutResponse.json().catch(() => ({}));
+      if (!checkoutResponse.ok || !checkout.url) throw new Error(checkout.error || 'Could not start secure checkout.');
+      window.location.assign(checkout.url);
     } catch (error) {
       if (status) { status.textContent = error?.message || String(error); status.className = 'platform-status err'; }
       if (submit) submit.disabled = false;

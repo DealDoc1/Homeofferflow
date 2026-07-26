@@ -87,7 +87,10 @@ class handler(BaseHTTPRequestHandler):
                 "customer.subscription.updated",
                 "customer.subscription.deleted",
             ):
-                self._handle_subscription_event(data_object, event_type)
+                if (data_object.get("metadata") or {}).get("partner_lead_id"):
+                    self._sync_partner_subscription(data_object, event_type)
+                else:
+                    self._handle_subscription_event(data_object, event_type)
 
             elif event_type == "invoice.payment_failed":
                 self._handle_invoice_status(data_object, "past_due")
@@ -220,9 +223,14 @@ class handler(BaseHTTPRequestHandler):
         return payload, user_id, email
 
     def _handle_checkout_completed(self, session):
+        metadata = session.get("metadata", {}) or {}
+        partner_lead_id = metadata.get("partner_lead_id") or session.get("client_reference_id") or ""
+        if partner_lead_id:
+            self._mark_partner_lead_paid(partner_lead_id, session)
+            return
+
         subscription_id = session.get("subscription", "")
         customer_id = session.get("customer", "")
-        metadata = session.get("metadata", {}) or {}
 
         sub = self._stripe_get_subscription(subscription_id)
 
@@ -297,6 +305,58 @@ class handler(BaseHTTPRequestHandler):
             response = client.patch(url, headers=headers, json=payload)
             if response.status_code >= 300:
                 raise Exception(f"Supabase patch failed: {response.status_code} {response.text}")
+
+    def _mark_partner_lead_paid(self, lead_id, session):
+        """Move a paid founding-partner application into admin onboarding.
+
+        Stripe is the source of truth for payment. The existing lead status remains
+        intact so the admin review and placement-approval workflow is preserved.
+        """
+        self._require_supabase()
+        payload = {
+            "payment_status": "paid",
+            "onboarding_status": "ready",
+            "stripe_checkout_session_id": session.get("id") or None,
+            "stripe_payment_intent_id": session.get("payment_intent") or None,
+            "stripe_customer_id": session.get("customer") or None,
+            "stripe_subscription_id": session.get("subscription") or None,
+            "subscription_status": "trialing" if session.get("subscription") else None,
+            "paid_at": self._iso_now(),
+            "updated_at": self._iso_now(),
+        }
+        url = f"{SUPABASE_URL}/rest/v1/hof_partner_leads?id=eq.{lead_id}"
+        headers = self._supabase_headers()
+        headers["Prefer"] = "return=minimal"
+        with httpx.Client(timeout=15) as client:
+            response = client.patch(url, headers=headers, json=payload)
+            if response.status_code >= 300:
+                raise Exception(f"Partner lead payment update failed: {response.status_code} {response.text}")
+
+    def _sync_partner_subscription(self, subscription, event_type):
+        metadata = subscription.get("metadata", {}) or {}
+        lead_id = metadata.get("partner_lead_id")
+        if not lead_id:
+            return
+        status = _stripe_status_to_hof(subscription.get("status"))
+        if event_type == "customer.subscription.deleted":
+            status = "canceled"
+        payload = {
+            "stripe_subscription_id": subscription.get("id") or None,
+            "stripe_customer_id": subscription.get("customer") or None,
+            "subscription_status": status,
+            "updated_at": self._iso_now(),
+        }
+        current_period_end = subscription.get("current_period_end")
+        if current_period_end:
+            payload["current_period_end"] = self._timestamp_to_iso(current_period_end)
+        self._require_supabase()
+        url = f"{SUPABASE_URL}/rest/v1/hof_partner_leads?id=eq.{lead_id}"
+        headers = self._supabase_headers()
+        headers["Prefer"] = "return=minimal"
+        with httpx.Client(timeout=15) as client:
+            response = client.patch(url, headers=headers, json=payload)
+            if response.status_code >= 300:
+                raise Exception(f"Partner subscription update failed: {response.status_code} {response.text}")
 
     def _supabase_headers(self):
         return {

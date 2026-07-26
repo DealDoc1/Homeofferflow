@@ -27,9 +27,9 @@ class NowWhatPartnerJourneyTests(unittest.TestCase):
         self.assertIn("regulated ? ''", self.html)
 
     def test_unregulated_partners_have_explicit_sponsored_label(self):
-        self.assertIn("Premier Sponsor", self.html)
+        self.assertIn("Premier Partner", self.html)
         self.assertIn("Featured Partner", self.html)
-        self.assertIn("Sponsored listing", self.html)
+        self.assertIn("Sponsored · Core Partner", self.html)
 
 
 if __name__ == "__main__":
