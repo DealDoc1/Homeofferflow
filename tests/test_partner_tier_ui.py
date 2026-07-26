@@ -13,9 +13,9 @@ class PartnerTierUiTests(unittest.TestCase):
 
     def test_three_public_tiers_and_rates_are_present(self):
         expected = (
-            ("Market Listing", "$149"),
+            ("Core Partner", "$149"),
             ("Featured Partner", "$399"),
-            ("Premier Market Sponsor", "$799"),
+            ("Premier Partner", "$799"),
         )
         for label, rate in expected:
             with self.subTest(label=label):
@@ -27,10 +27,10 @@ class PartnerTierUiTests(unittest.TestCase):
             "first 90 days for the price of one standard month",
             "first 10 approved partners",
             "no setup fee",
-            "does not renew automatically",
-            "Standard: $149/month",
-            "Standard: $399/month",
-            "Standard: $799/month",
+            "then renews monthly at the standard rate after 90 days unless cancelled",
+            "Then $149/month after 90 days, unless cancelled",
+            "Then $399/month after 90 days, unless cancelled",
+            "Then $799/month after 90 days, unless cancelled",
         )
         for copy in required_copy:
             with self.subTest(copy=copy):

@@ -80,18 +80,20 @@ class AdminTrackerSecurityTests(IsolatedAsyncioTestCase):
         lead_id = "e35eace9-2760-4b11-a01a-07ee65f2744e"
         self.assertEqual(
             admin_dashboard._parse_partner_lead_update({"lead_id": lead_id, "status": "QUALIFIED"}),
-            (lead_id, "qualified"),
+            (lead_id, "qualified", None),
         )
         with self.assertRaisesRegex(ValueError, "lead ID"):
             admin_dashboard._parse_partner_lead_update({"lead_id": "not-a-uuid", "status": "qualified"})
         with self.assertRaisesRegex(ValueError, "valid partner lead status"):
             admin_dashboard._parse_partner_lead_update({"lead_id": lead_id, "status": "deleted"})
+        with self.assertRaisesRegex(ValueError, "valid partner onboarding status"):
+            admin_dashboard._parse_partner_lead_update({"lead_id": lead_id, "status": "qualified", "onboarding_status": "sent"})
 
     async def test_partner_lead_update_returns_saved_row(self):
         lead_id = "e35eace9-2760-4b11-a01a-07ee65f2744e"
         response = FakeResponse(200, [{"id": lead_id, "status": "contacted"}])
         with patch.object(admin_dashboard.httpx, "AsyncClient", return_value=FakeClient(response)):
-            row = await admin_dashboard._update_partner_lead(lead_id, "contacted")
+            row = await admin_dashboard._update_partner_lead(lead_id, "contacted", "in_progress")
         self.assertEqual(row, {"id": lead_id, "status": "contacted"})
 
     async def test_partner_lead_update_does_not_succeed_when_lead_is_missing(self):
