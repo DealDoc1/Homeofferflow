@@ -9606,10 +9606,10 @@ function routeAfterMagicLinkIfNeeded() {
       const result = await response.json().catch(() => ({}));
       if (!response.ok || !result.partner_lead_id) throw new Error(result.error || 'Could not submit partner interest.');
       if (status) { status.textContent = 'Opening secure Stripe Checkout...'; status.className = 'platform-status'; }
-      const checkoutResponse = await fetch('/api/create-partner-checkout', {
+      const checkoutResponse = await fetch('/api/fsbo-lead', {
         method: 'POST',
         headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ partnerLeadId: result.partner_lead_id })
+        body: JSON.stringify({ request_type: 'founding_partner_checkout', partner_lead_id: result.partner_lead_id })
       });
       const checkout = await checkoutResponse.json().catch(() => ({}));
       if (!checkoutResponse.ok || !checkout.url) throw new Error(checkout.error || 'Could not start secure checkout.');

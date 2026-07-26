@@ -16,6 +16,7 @@ SUPABASE_SERVICE_ROLE_KEY = (
 )
 MAX_BODY_BYTES = 60_000
 EMAIL_RE = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
+LEAD_ID_RE = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$", re.I)
 ALLOWED_PARTNER_TYPES = {
     "title",
     "lender",
@@ -44,6 +45,16 @@ ALLOWED_PARTNER_TYPES = {
 ALLOWED_MODELS = {"founding_pilot", "monthly_placement", "market_exclusive", "discuss"}
 ALLOWED_BUDGETS = {"under_250", "250_499", "500_999", "1000_plus", "discuss"}
 PUBLIC_PARTNER_FIELDS = "id,partner_type,partner_name,website_url,logo_url,market_area,placement_tier"
+PRICE_ENV_BY_TIER = {
+    "founding_pilot": "STRIPE_FOUNDING_PARTNER_LISTING_PRICE_ID",
+    "monthly_placement": "STRIPE_FOUNDING_PARTNER_FEATURED_PRICE_ID",
+    "market_exclusive": "STRIPE_FOUNDING_PARTNER_PREMIER_PRICE_ID",
+}
+MONTHLY_PRICE_ENV_BY_TIER = {
+    "founding_pilot": "STRIPE_FOUNDING_PARTNER_LISTING_MONTHLY_PRICE_ID",
+    "monthly_placement": "STRIPE_FOUNDING_PARTNER_FEATURED_MONTHLY_PRICE_ID",
+    "market_exclusive": "STRIPE_FOUNDING_PARTNER_PREMIER_MONTHLY_PRICE_ID",
+}
 
 
 def _send(handler, status, payload):
@@ -134,6 +145,105 @@ def _insert_partner_lead(payload):
     return rows[0] if isinstance(rows, list) and rows else {}
 
 
+def _partner_checkout_origin(headers):
+    # Derive the return target from the deployed request host, not a caller-supplied URL.
+    host = (headers.get("host") or "www.homeofferflow.com").split(",", 1)[0].strip()
+    if not host or any(char in host for char in "/\\@"):
+        host = "www.homeofferflow.com"
+    proto = (headers.get("x-forwarded-proto") or "https").split(",", 1)[0].strip().lower()
+    return f"{proto if proto in {'http', 'https'} else 'https'}://{host}"
+
+
+def _get_partner_lead_for_checkout(lead_id):
+    query = urlencode({
+        "id": f"eq.{lead_id}",
+        "select": "id,contact_email,partner_type,market_area,preferred_model,status,payment_status",
+        "limit": "1",
+    })
+    headers = {"apikey": SUPABASE_SERVICE_ROLE_KEY, "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}"}
+    with httpx.Client(timeout=15) as client:
+        response = client.get(f"{SUPABASE_URL}/rest/v1/hof_partner_leads?{query}", headers=headers)
+    if response.status_code >= 300:
+        raise RuntimeError("Could not load the partner application.")
+    rows = response.json() if response.text else []
+    return rows[0] if isinstance(rows, list) and rows else None
+
+
+def _mark_partner_checkout_started(lead_id):
+    headers = {
+        "apikey": SUPABASE_SERVICE_ROLE_KEY,
+        "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}",
+        "Content-Type": "application/json",
+        "Prefer": "return=minimal",
+    }
+    with httpx.Client(timeout=15) as client:
+        response = client.patch(
+            f"{SUPABASE_URL}/rest/v1/hof_partner_leads?id=eq.{lead_id}",
+            headers=headers,
+            json={"payment_status": "checkout_started"},
+        )
+    if response.status_code >= 300:
+        raise RuntimeError("Could not save the checkout state.")
+
+
+def _create_partner_checkout(lead_id, headers):
+    stripe_secret_key = os.environ.get("STRIPE_SECRET_KEY", "")
+    if not stripe_secret_key:
+        raise RuntimeError("Partner checkout is not configured.")
+    if not LEAD_ID_RE.match(lead_id):
+        raise ValueError("A valid partner application is required.")
+    lead = _get_partner_lead_for_checkout(lead_id)
+    if not lead:
+        raise LookupError("Partner application was not found.")
+    if lead.get("status") in {"declined", "waitlist"}:
+        raise PermissionError("This application is not eligible for checkout.")
+    if lead.get("payment_status") == "paid":
+        raise PermissionError("This partner application has already been paid.")
+
+    tier = lead.get("preferred_model") or ""
+    launch_price_id = os.environ.get(PRICE_ENV_BY_TIER.get(tier, ""), "")
+    monthly_price_id = os.environ.get(MONTHLY_PRICE_ENV_BY_TIER.get(tier, ""), "")
+    if not launch_price_id or not monthly_price_id:
+        raise RuntimeError("This founding-partner tier is not configured for checkout.")
+
+    origin = _partner_checkout_origin(headers)
+    form = {
+        "mode": "subscription",
+        "customer_email": lead["contact_email"],
+        "client_reference_id": lead_id,
+        "line_items[0][price]": launch_price_id,
+        "line_items[0][quantity]": "1",
+        "line_items[1][price]": monthly_price_id,
+        "line_items[1][quantity]": "1",
+        "allow_promotion_codes": "true",
+        "payment_method_collection": "always",
+        "success_url": f"{origin}/?partner=1&partner_checkout=success&session_id={{CHECKOUT_SESSION_ID}}",
+        "cancel_url": f"{origin}/?partner=1&partner_checkout=cancelled",
+        "metadata[source]": "homeofferflow_founding_partner",
+        "metadata[partner_lead_id]": lead_id,
+        "metadata[partner_tier]": tier,
+        "metadata[partner_email]": lead["contact_email"],
+        "metadata[partner_type]": lead.get("partner_type") or "other",
+        "metadata[market_area]": lead.get("market_area") or "",
+        "subscription_data[trial_period_days]": "90",
+        "subscription_data[metadata][source]": "homeofferflow_founding_partner",
+        "subscription_data[metadata][partner_lead_id]": lead_id,
+        "subscription_data[metadata][partner_tier]": tier,
+    }
+    with httpx.Client(timeout=20) as client:
+        response = client.post(
+            "https://api.stripe.com/v1/checkout/sessions",
+            data=form,
+            headers={"Authorization": f"Bearer {stripe_secret_key}"},
+        )
+    result = response.json() if response.text else {}
+    if response.status_code >= 400 or not result.get("url"):
+        message = result.get("error", {}).get("message") if isinstance(result.get("error"), dict) else None
+        raise RuntimeError(message or "Could not create Stripe Checkout.")
+    _mark_partner_checkout_started(lead_id)
+    return result["url"]
+
+
 def _list_public_partner_placements(category=None, market=None):
     """Return only public, platform-wide placement fields for the directory."""
     params = {
@@ -176,6 +286,17 @@ class handler(BaseHTTPRequestHandler):
             if length <= 0 or length > MAX_BODY_BYTES:
                 return _send(self, 400, {'error': 'Invalid request size.'})
             data = json.loads(self.rfile.read(length).decode('utf-8'))
+
+            if _text(data.get('request_type'), 80) == 'founding_partner_checkout':
+                lead_id = _text(data.get('partner_lead_id'), 80) or ''
+                try:
+                    return _send(self, 200, {'url': _create_partner_checkout(lead_id, self.headers)})
+                except ValueError as exc:
+                    return _send(self, 400, {'error': str(exc)})
+                except LookupError as exc:
+                    return _send(self, 404, {'error': str(exc)})
+                except PermissionError as exc:
+                    return _send(self, 409, {'error': str(exc)})
 
             if _text(data.get('request_type'), 80) == 'founding_partner':
                 # Quietly accept bots that fill the hidden field without polluting the CRM.

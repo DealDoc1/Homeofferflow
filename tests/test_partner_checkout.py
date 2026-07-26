@@ -6,7 +6,7 @@ from unittest.mock import patch
 
 
 ROOT = Path(__file__).resolve().parents[1]
-CHECKOUT_PATH = ROOT / "api" / "create-partner-checkout" / "index.py"
+CHECKOUT_PATH = ROOT / "api" / "fsbo-lead.py"
 WEBHOOK_PATH = ROOT / "api" / "stripe-webhook" / "index.py"
 
 os.environ.setdefault("SUPABASE_URL", "https://example.supabase.co")
@@ -68,13 +68,13 @@ class PartnerCheckoutTests(unittest.TestCase):
         self.assertEqual(partner_checkout.MONTHLY_PRICE_ENV_BY_TIER["market_exclusive"], "STRIPE_FOUNDING_PARTNER_PREMIER_MONTHLY_PRICE_ID")
 
     def test_checkout_origin_uses_request_host_not_a_redirect_parameter(self):
-        self.assertEqual(partner_checkout._origin({"host": "preview-homeofferflow.vercel.app", "x-forwarded-proto": "https"}), "https://preview-homeofferflow.vercel.app")
-        self.assertEqual(partner_checkout._origin({"host": "bad.example/path"}), "https://www.homeofferflow.com")
+        self.assertEqual(partner_checkout._partner_checkout_origin({"host": "preview-homeofferflow.vercel.app", "x-forwarded-proto": "https"}), "https://preview-homeofferflow.vercel.app")
+        self.assertEqual(partner_checkout._partner_checkout_origin({"host": "bad.example/path"}), "https://www.homeofferflow.com")
 
     def test_checkout_reads_existing_partner_lead_from_central_table(self):
         Client.requests = []
         with patch.object(partner_checkout.httpx, "Client", Client):
-            lead = partner_checkout._get_partner_lead("e35eace9-2760-4b11-a01a-07ee65f2744e")
+            lead = partner_checkout._get_partner_lead_for_checkout("e35eace9-2760-4b11-a01a-07ee65f2744e")
         self.assertEqual(lead["contact_email"], "partner@example.com")
         self.assertIn("hof_partner_leads", Client.requests[0][1])
 
