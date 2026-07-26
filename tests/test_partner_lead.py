@@ -36,7 +36,17 @@ class FakeClient:
 
     def post(self, url, headers=None, json=None):
         self.request = {"url": url, "headers": headers, "json": json}
+        type(self).last_request = self.request
         return FakeResponse()
+
+    def get(self, url, headers=None):
+        self.request = {"url": url, "headers": headers}
+        type(self).last_request = self.request
+        response = FakeResponse()
+        response.status_code = 200
+        response.text = '[{"id":"placement-1","partner_name":"North Texas Movers"}]'
+        response.json = lambda: [{"id": "placement-1", "partner_name": "North Texas Movers"}]
+        return response
 
 
 class PartnerLeadTests(unittest.TestCase):
@@ -171,6 +181,16 @@ class PartnerLeadTests(unittest.TestCase):
         with patch.object(fsbo_lead.httpx, "Client", FakeClient):
             row = fsbo_lead._insert_partner_lead(payload)
         self.assertEqual(row["id"], "partner-lead-123")
+
+    def test_public_directory_only_requests_platform_wide_safe_fields(self):
+        with patch.object(fsbo_lead.httpx, "Client", FakeClient):
+            rows = fsbo_lead._list_public_partner_placements("moving_storage", "DFW")
+        self.assertEqual(rows[0]["partner_name"], "North Texas Movers")
+        request_url = FakeClient.last_request["url"]
+        self.assertIn("brokerage_id=is.null", request_url)
+        self.assertIn("partner_type=eq.moving_storage", request_url)
+        self.assertIn("select=id%2Cpartner_type%2Cpartner_name", request_url)
+        self.assertNotIn("contact_email", request_url)
 
 
 if __name__ == "__main__":

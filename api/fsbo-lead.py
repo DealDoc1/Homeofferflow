@@ -3,6 +3,7 @@ import json
 import re
 from http.server import BaseHTTPRequestHandler
 from datetime import datetime, timezone
+from urllib.parse import parse_qs, urlencode, urlparse
 
 import httpx
 
@@ -42,6 +43,7 @@ ALLOWED_PARTNER_TYPES = {
 }
 ALLOWED_MODELS = {"founding_pilot", "monthly_placement", "market_exclusive", "discuss"}
 ALLOWED_BUDGETS = {"under_250", "250_499", "500_999", "1000_plus", "discuss"}
+PUBLIC_PARTNER_FIELDS = "id,partner_type,partner_name,website_url,logo_url,market_area,placement_tier"
 
 
 def _send(handler, status, payload):
@@ -49,7 +51,7 @@ def _send(handler, status, payload):
     handler.send_response(status)
     handler.send_header('Content-Type', 'application/json; charset=utf-8')
     handler.send_header('Access-Control-Allow-Origin', '*')
-    handler.send_header('Access-Control-Allow-Methods', 'POST, OPTIONS')
+    handler.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
     handler.send_header('Access-Control-Allow-Headers', 'Content-Type, Authorization')
     handler.send_header('Cache-Control', 'no-store')
     handler.end_headers()
@@ -132,6 +134,36 @@ def _insert_partner_lead(payload):
     return rows[0] if isinstance(rows, list) and rows else {}
 
 
+def _list_public_partner_placements(category=None, market=None):
+    """Return only public, platform-wide placement fields for the directory."""
+    params = {
+        "select": PUBLIC_PARTNER_FIELDS,
+        "is_active": "eq.true",
+        "brokerage_id": "is.null",
+        "order": "partner_name.asc",
+        "limit": "100",
+    }
+    if category in ALLOWED_PARTNER_TYPES:
+        params["partner_type"] = f"eq.{category}"
+    if market:
+        safe_market = re.sub(r"[^a-zA-Z0-9 ,.&/-]", "", market)[:100]
+        if safe_market:
+            params["market_area"] = f"ilike.*{safe_market}*"
+    headers = {
+        "apikey": SUPABASE_SERVICE_ROLE_KEY,
+        "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}",
+    }
+    with httpx.Client(timeout=12.0) as client:
+        response = client.get(
+            f"{SUPABASE_URL}/rest/v1/hof_partner_placements?{urlencode(params)}",
+            headers=headers,
+        )
+    if response.status_code >= 300:
+        raise RuntimeError(f"Supabase directory read failed with status {response.status_code}.")
+    rows = response.json() if response.text else []
+    return rows if isinstance(rows, list) else []
+
+
 class handler(BaseHTTPRequestHandler):
     def do_OPTIONS(self):
         _send(self, 204, {})
@@ -196,3 +228,17 @@ class handler(BaseHTTPRequestHandler):
             return _send(self, 400, {'error': 'Invalid JSON.'})
         except Exception as exc:
             return _send(self, 500, {'error': str(exc)[:500]})
+
+    def do_GET(self):
+        if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
+            return _send(self, 500, {'error': 'Supabase service role is not configured.'})
+        try:
+            query = parse_qs(urlparse(self.path).query)
+            if query.get('partner_directory', [''])[0] != '1':
+                return _send(self, 404, {'error': 'Not found.'})
+            category = _text(query.get('category', [''])[0], 80)
+            market = _text(query.get('market', [''])[0], 100)
+            rows = _list_public_partner_placements(category, market)
+            return _send(self, 200, {'ok': True, 'partners': rows})
+        except Exception as exc:
+            return _send(self, 500, {'error': 'Could not load partner directory.', 'detail': str(exc)[:300]})
