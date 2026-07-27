@@ -54,8 +54,8 @@
 - `SUPABASE_URL`
 - `SUPABASE_SERVICE_ROLE_KEY` (or an already-supported alias)
 
-The OnDemand trial reuses `STRIPE_AGENT_MONTHLY_PRICE_ID`. Confirm in Stripe
-that this Price is recurring monthly at **$29 USD** before launch.
+The OnDemand trial reuses `STRIPE_AGENT_MONTHLY_PRICE_ID`. The project owner
+confirmed on July 27, 2026 that this Price is recurring monthly at **$29 USD**.
 
 ### New required environment variable
 
