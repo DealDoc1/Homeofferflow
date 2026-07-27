@@ -256,11 +256,11 @@ class OnDemandLaunchPageTests(unittest.TestCase):
         self.assertNotIn("role: role", final_script)
         self.assertNotIn("is_brokerage_admin:true", final_script.replace(" ", ""))
 
-    def test_brokerage_seed_does_not_invent_broker_identity(self):
+    def test_brokerage_seed_uses_confirmed_broker_identity(self):
         self.assertIn("'OnDemand Realty'", MIGRATION)
         self.assertIn("'ondemand'", MIGRATION)
-        self.assertNotIn("contact_name", MIGRATION)
-        self.assertNotIn("contact_email", MIGRATION)
+        self.assertIn("'Tyler Demando'", MIGRATION)
+        self.assertIn("'tyler@ondemanddfw.com'", MIGRATION)
 
 
 if __name__ == "__main__":

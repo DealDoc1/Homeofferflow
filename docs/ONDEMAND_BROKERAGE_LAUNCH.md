@@ -19,8 +19,9 @@
 - Disables promotion codes on the OnDemand path while preserving promotion
   codes and monthly/annual choices on the standard Agent and Investor paths.
 - Associates successful OnDemand enrollees with the OnDemand Realty brokerage.
-- Makes broker identity configurable through `ONDEMAND_BROKER_EMAIL`; no broker
-  name, email, license, logo, address, or phone was invented.
+- Configures confirmed broker Tyler Demando through
+  `ONDEMAND_BROKER_EMAIL=tyler@ondemanddfw.com`. No license, logo, address, or
+  phone was invented.
 - Adds broker-level activity reporting with no buyer names, buyer emails,
   property addresses, offer terms, prices, or PDF/document contents.
 - Moves account role, brokerage membership, and subscription authority to
@@ -61,7 +62,7 @@ that this Price is recurring monthly at **$29 USD** before launch.
 Set this to the broker's exact, confirmed Supabase sign-in email:
 
 ```text
-ONDEMAND_BROKER_EMAIL=broker-confirmed-email@example.com
+ONDEMAND_BROKER_EMAIL=tyler@ondemanddfw.com
 ```
 
 Apply it to Preview and Production. Do not guess this value. An exact email
@@ -107,7 +108,9 @@ It created/updated:
 - the database-level `brokerage_admin` profile role
 - membership uniqueness and role/status constraints
 
-The broker's personal identity remains blank/configurable.
+The brokerage contact is Tyler Demando (`tyler@ondemanddfw.com`), as confirmed
+by the project owner. His exact Supabase sign-in email becomes authoritative
+only when the Vercel environment variable is configured.
 
 Apply this migration in the coordinated application release:
 
@@ -122,7 +125,7 @@ browser code should not be left running after those permissions are removed.
 
 ## 6. Preview deployment and test
 
-1. Set `ONDEMAND_BROKER_EMAIL` with the broker's confirmed email.
+1. Set `ONDEMAND_BROKER_EMAIL=tyler@ondemanddfw.com`.
 2. Add the Preview `/ondemand` URL to Supabase Auth redirects.
 3. Deploy the branch to Vercel Preview.
 4. Open `/ondemand` in a private browser window.

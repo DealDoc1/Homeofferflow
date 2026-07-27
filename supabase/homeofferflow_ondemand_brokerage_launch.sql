@@ -32,9 +32,9 @@ create index if not exists hof_profiles_brokerage_id_idx
 create index if not exists hof_offers_user_id_created_at_idx
   on public.hof_offers (user_id, created_at desc);
 
--- A launch slug is the server-side routing key. Broker identity is not seeded;
--- configure ONDEMAND_BROKER_EMAIL in Vercel after the broker confirms the email
--- they will use to sign in.
+-- A launch slug is the server-side routing key. Tyler Demando and
+-- tyler@ondemanddfw.com were confirmed by the project owner on July 27, 2026.
+-- ONDEMAND_BROKER_EMAIL must use the same exact email in Vercel.
 create unique index if not exists hof_brokerages_slug_unique_idx
   on public.hof_brokerages (lower(slug))
   where slug is not null;
@@ -47,6 +47,8 @@ insert into public.hof_brokerages (
   user_cap,
   billing_status,
   plan_name,
+  contact_name,
+  contact_email,
   is_active,
   updated_at
 )
@@ -58,6 +60,8 @@ select
   300,
   'trial',
   'OnDemand Agent Launch',
+  'Tyler Demando',
+  'tyler@ondemanddfw.com',
   true,
   now()
 where not exists (
@@ -73,6 +77,8 @@ set
   org_type = 'brokerage',
   user_cap = greatest(coalesce(user_cap, 0), 300),
   plan_name = 'OnDemand Agent Launch',
+  contact_name = 'Tyler Demando',
+  contact_email = 'tyler@ondemanddfw.com',
   is_active = true,
   updated_at = now()
 where lower(slug) = 'ondemand';
