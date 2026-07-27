@@ -8,6 +8,12 @@
       "includeFiles": "buyer_temporary_residential_lease_16-7.pdf"
     }
   },
+  "rewrites": [
+    {
+      "source": "/ondemand",
+      "destination": "/ondemand.html"
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)",

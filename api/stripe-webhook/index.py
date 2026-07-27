@@ -176,6 +176,8 @@ class handler(BaseHTTPRequestHandler):
         email = metadata.get("email") or ""
         role = metadata.get("role") or role
         plan = metadata.get("plan_full") or metadata.get("plan") or plan
+        brokerage_id = metadata.get("brokerage_id") or ""
+        launch_source = metadata.get("launch_source") or ""
 
         # Stripe API versions can expose the current billing period either
         # on the subscription or on the first subscription item.
@@ -220,7 +222,18 @@ class handler(BaseHTTPRequestHandler):
         else:
             payload["cancel_at"] = None
 
-        return payload, user_id, email
+        trial_start = sub.get("trial_start")
+        trial_end = sub.get("trial_end")
+        if trial_start:
+            payload["trial_started_at"] = self._timestamp_to_iso(trial_start)
+        if trial_end:
+            payload["trial_ends_at"] = self._timestamp_to_iso(trial_end)
+        if brokerage_id:
+            payload["brokerage_id"] = brokerage_id
+        if launch_source:
+            payload["launch_source"] = launch_source
+
+        return payload, user_id, email, brokerage_id
 
     def _handle_checkout_completed(self, session):
         metadata = session.get("metadata", {}) or {}
@@ -244,29 +257,84 @@ class handler(BaseHTTPRequestHandler):
         merged_metadata.update(sub.get("metadata", {}) or {})
         sub["metadata"] = merged_metadata
 
-        payload, user_id, email = self._extract_subscription_payload(sub, metadata)
+        payload, user_id, email, brokerage_id = self._extract_subscription_payload(sub, metadata)
 
         if customer_id:
             payload["stripe_customer_id"] = customer_id
 
         if user_id:
             self._upsert_subscription_by_user_id(payload)
+            if brokerage_id:
+                self._activate_brokerage_membership(user_id, email, brokerage_id)
         elif subscription_id:
             self._patch_subscription_by_stripe_subscription_id(subscription_id, payload)
 
     def _handle_subscription_event(self, sub, event_type):
-        payload, user_id, email = self._extract_subscription_payload(sub)
+        payload, user_id, email, brokerage_id = self._extract_subscription_payload(sub)
 
         if event_type == "customer.subscription.deleted":
             payload["status"] = "canceled"
 
         if user_id:
             self._upsert_subscription_by_user_id(payload)
+            if brokerage_id and payload.get("status") in ("active", "trialing"):
+                self._activate_brokerage_membership(user_id, email, brokerage_id)
         elif payload.get("stripe_subscription_id"):
             self._patch_subscription_by_stripe_subscription_id(
                 payload["stripe_subscription_id"],
                 payload,
             )
+
+    def _activate_brokerage_membership(self, user_id, email, brokerage_id):
+        self._require_supabase()
+        members_url = (
+            f"{SUPABASE_URL}/rest/v1/hof_brokerage_members"
+            f"?select=id,role"
+            f"&brokerage_id=eq.{brokerage_id}"
+            f"&user_id=eq.{user_id}"
+            "&limit=1"
+        )
+        headers = self._supabase_headers()
+        with httpx.Client(timeout=15) as client:
+            current = client.get(members_url, headers=headers)
+            if current.status_code >= 300:
+                raise Exception(
+                    f"Brokerage membership lookup failed: "
+                    f"{current.status_code} {current.text}"
+                )
+
+            existing = current.json()
+            if existing:
+                response = client.patch(
+                    (
+                        f"{SUPABASE_URL}/rest/v1/hof_brokerage_members"
+                        f"?id=eq.{existing[0]['id']}"
+                    ),
+                    headers={**headers, "Prefer": "return=minimal"},
+                    json={
+                        "email": email or None,
+                        "status": "active",
+                        "updated_at": self._iso_now(),
+                    },
+                )
+            else:
+                response = client.post(
+                    f"{SUPABASE_URL}/rest/v1/hof_brokerage_members",
+                    headers={**headers, "Prefer": "return=minimal"},
+                    json={
+                        "brokerage_id": brokerage_id,
+                        "user_id": user_id,
+                        "email": email or None,
+                        "role": "agent",
+                        "status": "active",
+                        "updated_at": self._iso_now(),
+                    },
+                )
+            if response.status_code >= 300:
+                raise Exception(
+                    f"Brokerage membership activation failed: "
+                    f"{response.status_code} {response.text}"
+                )
 
     def _handle_invoice_status(self, invoice, status):
         subscription_id = invoice.get("subscription", "")
