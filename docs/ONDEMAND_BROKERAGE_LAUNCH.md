@@ -24,6 +24,10 @@
   phone was invented.
 - Adds broker-level activity reporting with no buyer names, buyer emails,
   property addresses, offer terms, prices, or PDF/document contents.
+- Discloses on `/ondemand` that this launch covers the current buyer-side offer
+  packet and supported purchase addenda only. Standalone buyer representation
+  agreements, listing agreements, and seller disclosure notices remain in the
+  brokerage's approved workflow until their dedicated releases are complete.
 - Moves account role, brokerage membership, and subscription authority to
   server-controlled data.
 - Does not edit `api/fill-pdf.py`, `20-18_0.pdf`, the staging coordinate file,
@@ -41,6 +45,7 @@
 - `supabase/homeofferflow_ondemand_broker_seed.sql`
 - `supabase/homeofferflow_brokerage_security_hardening.sql`
 - `tests/test_ondemand_brokerage_launch.py`
+- `docs/AGENT_FORM_COVERAGE_ROADMAP.md`
 
 ## 4. Environment and account setup
 
