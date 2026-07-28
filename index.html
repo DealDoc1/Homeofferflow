@@ -11422,5 +11422,252 @@ function routeAfterMagicLinkIfNeeded() {
 })();
 </script>
 
+<style id="hof-ondemand-launch-styles">
+  .ondemand-account-banner {
+    border:1px solid rgba(200,151,63,.34);
+    border-radius:14px;
+    padding:1rem;
+    margin:0 0 1rem;
+    background:linear-gradient(135deg,rgba(200,151,63,.12),rgba(109,179,143,.07));
+  }
+  .ondemand-account-banner h4 { color:var(--gold-light); margin:0 0 .3rem; }
+  .ondemand-account-banner p { margin:0; color:var(--gray-light); line-height:1.55; }
+  .brokerage-safe-table { width:100%; border-collapse:collapse; margin-top:.85rem; font-size:.8rem; }
+  .brokerage-safe-table th,.brokerage-safe-table td { padding:.65rem .5rem; border-bottom:1px solid rgba(255,255,255,.1); text-align:left; }
+  .brokerage-safe-table th { color:var(--gold-light); font-size:.7rem; text-transform:uppercase; letter-spacing:.05em; }
+  .brokerage-safe-kpis { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:.65rem; margin:.85rem 0; }
+  .brokerage-safe-kpi { padding:.75rem; border:1px solid rgba(255,255,255,.12); border-radius:12px; background:rgba(255,255,255,.035); }
+  .brokerage-safe-kpi span { display:block; color:var(--gray); font-size:.68rem; text-transform:uppercase; letter-spacing:.05em; }
+  .brokerage-safe-kpi strong { display:block; color:var(--white); font-size:1.2rem; margin-top:.18rem; }
+  .ondemand-trial-link { display:inline-flex; margin-top:.65rem; color:var(--gold-light); font-weight:800; text-decoration:none; }
+  @media(max-width:700px) {
+    .brokerage-safe-kpis { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    .brokerage-safe-table { display:block; overflow-x:auto; }
+  }
+</style>
+<script id="hof-ondemand-brokerage-launch-v1">
+(function(){
+  const root = window;
+  const safe = root.escapeAttr || function(v) {
+    return String(v ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  };
+  const nowIso = () => new Date().toISOString();
+  const normalizedRole = value => {
+    const role = String(value || '').trim().toLowerCase();
+    if (role === 'brokerage_admin' || role === 'broker' || role === 'team_lead') return 'broker';
+    if (role === 'investor') return 'investor';
+    return 'agent';
+  };
+
+  root.ensureProfileShell = async function ensureProfileShell(session = root.hofAuth?.session) {
+    const client = root.getSupabaseClient?.();
+    const user = session?.user;
+    if (!client || !user) return;
+    try {
+      let profileResult = await client
+        .from('hof_profiles')
+        .select('id,email,role,brokerage_id,is_brokerage_admin,team_name')
+        .eq('id', user.id)
+        .maybeSingle();
+      if (profileResult.error) throw profileResult.error;
+
+      if (!profileResult.data) {
+        const inserted = await client.from('hof_profiles').insert({
+          id:user.id,
+          email:user.email,
+          updated_at:nowIso()
+        }).select('id,email,role,brokerage_id,is_brokerage_admin,team_name').single();
+        if (inserted.error) throw inserted.error;
+        profileResult = inserted;
+      } else if (profileResult.data.email !== user.email) {
+        const updated = await client.from('hof_profiles')
+          .update({ email:user.email, updated_at:nowIso() })
+          .eq('id',user.id)
+          .select('id,email,role,brokerage_id,is_brokerage_admin,team_name')
+          .single();
+        if (updated.error) throw updated.error;
+        profileResult = updated;
+      }
+
+      const authoritative = profileResult.data || {};
+      const role = normalizedRole(authoritative.role);
+      root.hofAuth.authoritativeProfile = authoritative;
+      root.hofAuth.authoritativeRole = role;
+      root.hofAuth.role = role;
+      root.hofAuth.profileReady = true;
+      if (root.state?.data) root.state.data.userType = role === 'investor' ? 'investor' : 'agent';
+      try { localStorage.setItem('hof_auth_role', role); } catch(e) {}
+      await root.loadAccountProfile?.();
+      await root.loadOrCreateSubscription?.();
+      await root.loadCurrentUsage?.();
+      await root.loadBrokerageFoundation?.();
+      root.updateAuthUI?.();
+    } catch (error) {
+      console.warn('Authoritative profile load failed:', error);
+      root.hofAuth.profileReady = false;
+    }
+  };
+
+  root.loadOrCreateSubscription = async function loadSubscription() {
+    const client = root.getSupabaseClient?.();
+    const user = root.hofAuth?.session?.user;
+    if (!client || !user) return null;
+    const role = root.hofAuth?.role === 'investor' ? 'investor' : 'agent';
+    const fallback = {
+      status:'inactive',
+      plan:role === 'investor' ? 'investor_starter' : 'agent_starter',
+      packet_limit:role === 'investor' ? 15 : 10
+    };
+    try {
+      const result = await client.from('hof_subscriptions').select('*').eq('user_id',user.id).maybeSingle();
+      if (result.error) throw result.error;
+      root.hofAuth.subscription = result.data || fallback;
+    } catch(error) {
+      console.warn('Subscription load failed:', error);
+      root.hofAuth.subscription = fallback;
+    }
+    root.renderSubscriptionCard?.();
+    return root.hofAuth.subscription;
+  };
+
+  const priorSubscriptionRender = root.renderSubscriptionCard;
+  root.renderSubscriptionCard = function renderSubscriptionCard() {
+    if (typeof priorSubscriptionRender === 'function') priorSubscriptionRender();
+    const card = document.getElementById('subscriptionUsageCard');
+    if (!card) return;
+    card.innerHTML = card.innerHTML
+      .replace(/Beta Subscription/g,'Subscription')
+      .replace(/Promo codes can be entered at Stripe checkout\. Beta users can keep testing until you switch them to paid access\./g,
+        'Choose a monthly or annual plan in secure Stripe checkout.');
+    const status = String(root.hofAuth?.subscription?.status || 'inactive').toLowerCase();
+    const brokerageSlug = root.hofPlatform?.brokerage?.slug;
+    if (!['active','trialing','free_admin'].includes(status) && !card.querySelector('.ondemand-trial-link')) {
+      card.insertAdjacentHTML('beforeend',
+        '<a class="ondemand-trial-link" href="/ondemand">' +
+        (brokerageSlug === 'ondemand' ? 'Start your OnDemand 60-day free trial →' : 'OnDemand Realty agent? Get 60 days free →') +
+        '</a>');
+    }
+  };
+
+  root.loadBrokerageFoundation = async function loadBrokerageFoundation() {
+    const client = root.getSupabaseClient?.();
+    const user = root.hofAuth?.session?.user;
+    if (!client || !user) return null;
+    try {
+      const profileResult = await client
+        .from('hof_profiles')
+        .select('id,brokerage_id,is_brokerage_admin,role,team_name')
+        .eq('id',user.id)
+        .maybeSingle();
+      if (profileResult.error) throw profileResult.error;
+      root.hofAuth.authoritativeProfile = profileResult.data || null;
+      const brokerageId = profileResult.data?.brokerage_id;
+      if (!brokerageId) {
+        root.hofPlatform.brokerage = null;
+        return null;
+      }
+      const [brokerageResult,membershipResult] = await Promise.all([
+        client.from('hof_brokerages')
+          .select('id,name,dba_name,slug,logo_url,brand_color,website_url,license_number,plan_name,billing_status')
+          .eq('id',brokerageId).maybeSingle(),
+        client.from('hof_brokerage_members')
+          .select('role,status,created_at,updated_at')
+          .eq('brokerage_id',brokerageId).eq('user_id',user.id).maybeSingle()
+      ]);
+      if (brokerageResult.error) throw brokerageResult.error;
+      if (membershipResult.error) throw membershipResult.error;
+      root.hofPlatform.brokerage = brokerageResult.data || null;
+      root.hofPlatform.brokerageMembership = membershipResult.data || null;
+      return root.hofPlatform.brokerage;
+    } catch(error) {
+      console.warn('Brokerage membership load failed:', error);
+      return null;
+    }
+  };
+
+  async function brokerSummary() {
+    const session = root.hofAuth?.session;
+    if (!session?.access_token) throw new Error('Sign in again to load brokerage reporting.');
+    const response = await fetch('/api/admin-dashboard?scope=brokerage', {
+      headers:{ Authorization:'Bearer ' + session.access_token }
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Brokerage reporting is unavailable.');
+    return data;
+  }
+
+  root.renderBrokerageFoundationPanel = async function renderBrokerageFoundationPanel() {
+    const el = document.getElementById('brokerageFoundationPanel');
+    if (!el) return;
+    if (!root.hofPlatform?.brokerage) await root.loadBrokerageFoundation?.();
+    const b = root.hofPlatform?.brokerage;
+    const membership = root.hofPlatform?.brokerageMembership;
+    const profile = root.hofAuth?.authoritativeProfile || {};
+    if (!b) {
+      el.innerHTML = '<div class="platform-card"><h4>Brokerage connection</h4>' +
+        '<p>This account is not connected to a brokerage. OnDemand agents should enroll through the dedicated launch page.</p>' +
+        '<a class="ondemand-trial-link" href="/ondemand">Open the OnDemand launch →</a></div>';
+      return;
+    }
+    const name = b.dba_name || b.name || 'Your brokerage';
+    const isBroker = profile.is_brokerage_admin || profile.role === 'brokerage_admin' ||
+      membership?.role === 'broker_admin' || membership?.role === 'owner';
+    el.innerHTML = '<div class="platform-card"><div class="ondemand-account-banner">' +
+      '<h4>' + safe(name) + '</h4><p>Your HomeOfferFlow account is connected to this brokerage. ' +
+      'Membership: <strong>' + safe(membership?.status || 'pending') + '</strong>.</p></div>' +
+      '<p>Brokerage identity and permissions are managed by HomeOfferFlow—not editable from the browser.</p></div>' +
+      (isBroker ? '<div class="platform-card" id="brokerSafeDashboard"><h4>Brokerage activity</h4><p>Loading privacy-limited agent activity…</p></div>' : '');
+    if (!isBroker) return;
+    try {
+      const data = await brokerSummary();
+      const m = data.metrics || {};
+      const agents = data.agents || [];
+      document.getElementById('brokerSafeDashboard').innerHTML =
+        '<h4>Brokerage activity</h4>' +
+        '<p>Operational visibility only. Buyer names, property addresses, offer terms, and document contents are not included.</p>' +
+        '<div class="brokerage-safe-kpis">' +
+          '<div class="brokerage-safe-kpi"><span>Members</span><strong>' + Number(m.memberCount || 0) + '</strong></div>' +
+          '<div class="brokerage-safe-kpi"><span>Active members</span><strong>' + Number(m.activeMemberCount || 0) + '</strong></div>' +
+          '<div class="brokerage-safe-kpi"><span>Offers</span><strong>' + Number(m.offerCount || 0) + '</strong></div>' +
+          '<div class="brokerage-safe-kpi"><span>Signed</span><strong>' + Number(m.signedCount || 0) + '</strong></div>' +
+        '</div>' +
+        '<table class="brokerage-safe-table"><thead><tr><th>Agent</th><th>Membership</th><th>Plan</th><th>Offers</th><th>Signed</th></tr></thead><tbody>' +
+        (agents.length ? agents.map(agent =>
+          '<tr><td><strong>' + safe(agent.name || agent.email || 'Agent') + '</strong><br><span>' + safe(agent.email || '') + '</span></td>' +
+          '<td>' + safe(agent.membershipStatus || 'pending') + '</td>' +
+          '<td>' + safe(agent.subscriptionStatus || 'inactive') + '</td>' +
+          '<td>' + Number(agent.activity?.offerCount || 0) + '</td>' +
+          '<td>' + Number(agent.activity?.signedCount || 0) + '</td></tr>'
+        ).join('') : '<tr><td colspan="5">No agents have enrolled yet.</td></tr>') +
+        '</tbody></table>';
+    } catch(error) {
+      document.getElementById('brokerSafeDashboard').innerHTML =
+        '<h4>Brokerage activity</h4><div class="platform-status err">' + safe(error.message) + '</div>';
+    }
+  };
+
+  root.saveBrokerageFoundation = function saveBrokerageFoundation() {
+    if (typeof root.platformStatus === 'function') {
+      root.platformStatus('brokerageFoundationStatus',
+        'Brokerage identity and broker permissions are server-managed. Contact the platform administrator for changes.','err');
+    }
+  };
+
+  const priorDashboard = root.renderAccountDashboard;
+  root.renderAccountDashboard = function renderAccountDashboard() {
+    if (typeof priorDashboard === 'function') priorDashboard();
+    const panel = document.getElementById('accountPanelDashboard');
+    const brokerage = root.hofPlatform?.brokerage;
+    if (!panel || !brokerage || document.getElementById('ondemandAccountBanner')) return;
+    const banner = document.createElement('div');
+    banner.id = 'ondemandAccountBanner';
+    banner.className = 'ondemand-account-banner';
+    banner.innerHTML = '<h4>' + safe(brokerage.dba_name || brokerage.name || 'OnDemand Realty') + '</h4>' +
+      '<p>This agent workspace is connected to your brokerage. Open the Brokerage tab for membership details' +
+      (root.hofAuth?.authoritativeProfile?.is_brokerage_admin ? ' and privacy-limited agent activity.' : '.') + '</p>';
+    panel.prepend(banner);
+  };
+})();
+</script>
 </body>
 </html>

@@ -1,6 +1,7 @@
 import os
 import json
 import uuid
+import urllib.parse
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler
 import httpx
@@ -78,6 +79,175 @@ async def _is_platform_admin(user):
         return True
     rows = await _get(f"hof_platform_admins?user_id=eq.{user['id']}&select=user_id&limit=1")
     return bool(rows)
+
+
+async def _brokerage_admin_context(user):
+    if not user:
+        return None
+    profiles = await _get(
+        "hof_profiles?"
+        f"id=eq.{urllib.parse.quote(user['id'])}"
+        "&select=id,brokerage_id,is_brokerage_admin,role&limit=1"
+    )
+    if not profiles:
+        return None
+    profile = profiles[0]
+    brokerage_id = profile.get("brokerage_id")
+    if not brokerage_id:
+        return None
+    role = str(profile.get("role") or "").lower()
+    is_admin = bool(profile.get("is_brokerage_admin")) or role == "brokerage_admin"
+    if not is_admin:
+        memberships = await _get(
+            "hof_brokerage_members?"
+            f"brokerage_id=eq.{urllib.parse.quote(str(brokerage_id))}"
+            f"&user_id=eq.{urllib.parse.quote(user['id'])}"
+            "&status=eq.active&role=in.(broker_admin,owner)&select=id&limit=1"
+        )
+        is_admin = bool(memberships)
+    if not is_admin:
+        return None
+    brokerages = await _get(
+        "hof_brokerages?"
+        f"id=eq.{urllib.parse.quote(str(brokerage_id))}"
+        "&is_active=eq.true&select=id,name,dba_name,slug,logo_url,brand_color,"
+        "website_url,license_number,plan_name,billing_status,user_cap&limit=1"
+    )
+    if not brokerages:
+        return None
+    return {"profile": profile, "brokerage": brokerages[0]}
+
+
+def _offer_status_bucket(status):
+    status = str(status or "").lower()
+    if "signed" in status:
+        return "signed"
+    if "partial" in status:
+        return "partial"
+    if "view" in status:
+        return "viewed"
+    if "await" in status or "sent" in status or "created" in status:
+        return "awaiting"
+    if "draft" in status:
+        return "draft"
+    return "other"
+
+
+async def _brokerage_dashboard_payload(context):
+    brokerage = context["brokerage"]
+    brokerage_id = str(brokerage["id"])
+    members = await _get(
+        "hof_brokerage_members?"
+        f"brokerage_id=eq.{urllib.parse.quote(brokerage_id)}"
+        "&select=user_id,email,role,status,created_at,updated_at"
+        "&order=created_at.asc&limit=500"
+    )
+    user_ids = [str(row.get("user_id")) for row in members if row.get("user_id")]
+    agent_profiles = []
+    subscriptions = []
+    offers = []
+    if user_ids:
+        encoded_ids = ",".join(urllib.parse.quote(user_id) for user_id in user_ids)
+        agent_profiles = await _get_optional(
+            "hof_agent_profiles?"
+            f"user_id=in.({encoded_ids})"
+            "&select=user_id,agent_name,agent_email,license_number"
+        )
+        subscriptions = await _get_optional(
+            "hof_subscriptions?"
+            f"user_id=in.({encoded_ids})"
+            "&select=user_id,status,plan,trial_ends_at,current_period_end"
+        )
+        offers = await _get_optional(
+            "hof_offers?"
+            f"user_id=in.({encoded_ids})"
+            "&deleted_at=is.null&select=user_id,status,signwell_status,created_at,updated_at"
+            "&order=created_at.desc&limit=2000"
+        )
+
+    profile_by_user = {str(row.get("user_id")): row for row in agent_profiles}
+    subscription_by_user = {str(row.get("user_id")): row for row in subscriptions}
+    activity_by_user = {}
+    for row in offers:
+        user_id = str(row.get("user_id") or "")
+        if not user_id:
+            continue
+        activity = activity_by_user.setdefault(
+            user_id,
+            {
+                "offerCount": 0,
+                "signedCount": 0,
+                "awaitingCount": 0,
+                "draftCount": 0,
+                "lastOfferAt": None,
+            },
+        )
+        activity["offerCount"] += 1
+        bucket = _offer_status_bucket(row.get("signwell_status") or row.get("status"))
+        if bucket == "signed":
+            activity["signedCount"] += 1
+        elif bucket == "awaiting":
+            activity["awaitingCount"] += 1
+        elif bucket == "draft":
+            activity["draftCount"] += 1
+        activity["lastOfferAt"] = activity["lastOfferAt"] or row.get("updated_at") or row.get("created_at")
+
+    safe_agents = []
+    for member in members:
+        user_id = str(member.get("user_id") or "")
+        profile = profile_by_user.get(user_id, {})
+        subscription = subscription_by_user.get(user_id, {})
+        safe_agents.append(
+            {
+                "userId": user_id,
+                "name": profile.get("agent_name"),
+                "email": profile.get("agent_email") or member.get("email"),
+                "licenseNumber": profile.get("license_number"),
+                "role": member.get("role") or "agent",
+                "membershipStatus": member.get("status") or "pending",
+                "subscriptionStatus": subscription.get("status"),
+                "plan": subscription.get("plan"),
+                "trialEndsAt": subscription.get("trial_ends_at"),
+                "currentPeriodEnd": subscription.get("current_period_end"),
+                "activity": activity_by_user.get(
+                    user_id,
+                    {
+                        "offerCount": 0,
+                        "signedCount": 0,
+                        "awaitingCount": 0,
+                        "draftCount": 0,
+                        "lastOfferAt": None,
+                    },
+                ),
+            }
+        )
+
+    return {
+        "brokerage": brokerage,
+        "metrics": {
+            "memberCount": len(members),
+            "activeMemberCount": len([row for row in members if row.get("status") == "active"]),
+            "trialingCount": len([row for row in subscriptions if row.get("status") == "trialing"]),
+            "activeSubscriptionCount": len(
+                [row for row in subscriptions if row.get("status") in {"active", "trialing"}]
+            ),
+            "offerCount": len(offers),
+            "signedCount": len(
+                [
+                    row
+                    for row in offers
+                    if _offer_status_bucket(row.get("signwell_status") or row.get("status")) == "signed"
+                ]
+            ),
+        },
+        "agents": safe_agents,
+        "privacy": {
+            "buyerDetailsIncluded": False,
+            "propertyDetailsIncluded": False,
+            "offerTermsIncluded": False,
+            "documentContentsIncluded": False,
+        },
+    }
 
 
 def _parse_partner_lead_update(data):
@@ -182,6 +352,16 @@ class handler(BaseHTTPRequestHandler):
             user = asyncio.run(_verified_user(self.headers.get("authorization", "")))
             if not user:
                 _json(self, 401, {"error": "A valid signed-in session is required."})
+                return
+            query = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+            scope = str((query.get("scope") or [""])[0]).strip().lower()
+            if scope == "brokerage":
+                context = asyncio.run(_brokerage_admin_context(user))
+                if not context:
+                    _json(self, 403, {"error": "Brokerage admin access is not enabled for this account."})
+                    return
+                payload = asyncio.run(_brokerage_dashboard_payload(context))
+                _json(self, 200, payload)
                 return
             if not asyncio.run(_is_platform_admin(user)):
                 _json(self, 403, {"error": "Admin access is not enabled for this account."})
