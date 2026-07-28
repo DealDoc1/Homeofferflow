@@ -16,6 +16,7 @@ INDEX_HTML = (ROOT / "index.html").read_text(encoding="utf-8")
 VERCEL = json.loads((ROOT / "vercel.json").read_text(encoding="utf-8"))
 MIGRATION = (ROOT / "supabase" / "homeofferflow_ondemand_brokerage_launch.sql").read_text(encoding="utf-8")
 HARDENING = (ROOT / "supabase" / "homeofferflow_brokerage_security_hardening.sql").read_text(encoding="utf-8")
+BROKER_SEED = (ROOT / "supabase" / "homeofferflow_ondemand_broker_seed.sql").read_text(encoding="utf-8")
 
 os.environ.setdefault("STRIPE_SECRET_KEY", "sk_test_example")
 os.environ.setdefault("STRIPE_AGENT_MONTHLY_PRICE_ID", "price_existing_agent_monthly")
@@ -261,6 +262,11 @@ class OnDemandLaunchPageTests(unittest.TestCase):
         self.assertIn("'ondemand'", MIGRATION)
         self.assertIn("'Tyler Demando'", MIGRATION)
         self.assertIn("'tyler@ondemanddfw.com'", MIGRATION)
+        self.assertIn("'Tyler Demando'", BROKER_SEED)
+        self.assertIn("'tyler@ondemanddfw.com'", BROKER_SEED)
+        self.assertIn("'brokerage_admin'", BROKER_SEED)
+        self.assertIn("'broker_admin'", BROKER_SEED)
+        self.assertIn("'active'", BROKER_SEED)
 
 
 if __name__ == "__main__":
