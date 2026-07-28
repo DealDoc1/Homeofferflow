@@ -38,6 +38,7 @@
 - `api/stripe-webhook/index.py`
 - `api/admin-dashboard.py`
 - `supabase/homeofferflow_ondemand_brokerage_launch.sql`
+- `supabase/homeofferflow_ondemand_broker_seed.sql`
 - `supabase/homeofferflow_brokerage_security_hardening.sql`
 - `tests/test_ondemand_brokerage_launch.py`
 
@@ -111,6 +112,15 @@ It created/updated:
 The brokerage contact is Tyler Demando (`tyler@ondemanddfw.com`), as confirmed
 by the project owner. His exact Supabase sign-in email becomes authoritative
 only when the Vercel environment variable is configured.
+
+Apply this idempotent broker seed after Tyler's Supabase Auth account exists:
+
+```text
+supabase/homeofferflow_ondemand_broker_seed.sql
+```
+
+It assigns Tyler the `brokerage_admin` profile role and active `broker_admin`
+membership for OnDemand Realty without creating or guessing any personal data.
 
 Apply this migration in the coordinated application release:
 
