@@ -244,6 +244,17 @@ class OnDemandLaunchPageTests(unittest.TestCase):
         self.assertNotIn("coupon", LAUNCH_HTML.lower())
         self.assertNotIn("promo code", LAUNCH_HTML.lower())
 
+    def test_launch_clearly_discloses_current_agent_form_scope(self):
+        for text in (
+            "buyer-side offer packet",
+            "not yet a complete transaction-form library",
+            "buyer representation agreements",
+            "listing agreements",
+            "seller disclosure notices",
+            "brokerage-approved workflow",
+        ):
+            self.assertIn(text.lower(), LAUNCH_HTML.lower())
+
     def test_launch_requires_authenticated_checkout_and_terms_confirmation(self):
         self.assertIn('"Authorization": `Bearer ${state.session.access_token}`', LAUNCH_HTML)
         self.assertIn('id="terms" type="checkbox"', LAUNCH_HTML)

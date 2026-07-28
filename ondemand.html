@@ -109,10 +109,25 @@
     .status.ok { background:rgba(109,179,143,.11); border:1px solid rgba(109,179,143,.35); color:#bce8d0; }
     .status.err { background:rgba(224,108,90,.10); border:1px solid rgba(224,108,90,.32); color:#ffc0b7; }
     .fine { color:var(--muted); font-size:12px; line-height:1.55; margin:13px 0 0; }
+    .scope {
+      margin:34px 0 0; padding:28px; border:1px solid var(--line); border-radius:20px;
+      background:rgba(7,17,29,.48);
+    }
+    .scope-kicker { color:var(--gold-2); font-size:13px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; }
+    .scope h2 { font-family:"Playfair Display",serif; font-size:clamp(28px,4vw,40px); margin:10px 0 10px; }
+    .scope-intro { color:#d5e1ec; line-height:1.6; margin:0; max-width:860px; }
+    .scope-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:20px; }
+    .scope-card { border:1px solid var(--line); border-radius:14px; padding:18px; background:rgba(255,255,255,.035); }
+    .scope-card h3 { margin:0 0 8px; font-size:16px; }
+    .scope-card p { margin:0; color:var(--muted); line-height:1.55; font-size:14px; }
+    .scope-card.included h3 { color:#bce8d0; }
+    .scope-card.not-yet h3 { color:var(--gold-2); }
+    .scope-note { color:var(--muted); font-size:13px; line-height:1.55; margin:17px 0 0; }
     .footer { border-top:1px solid var(--line); margin-top:38px; padding-top:22px; color:var(--muted); font-size:13px; display:flex; justify-content:space-between; gap:18px; }
     @media (max-width:820px) {
       .hero { grid-template-columns:1fr; padding-top:50px; gap:35px; }
       .benefits { grid-template-columns:1fr; }
+      .scope-grid { grid-template-columns:1fr; }
       .card { padding:23px; }
     }
     @media (max-width:520px) {
@@ -196,6 +211,25 @@
           </p>
         </div>
       </aside>
+    </section>
+
+    <section class="scope" id="launch-scope" aria-labelledby="scopeTitle">
+      <div class="scope-kicker">Please read before enrolling</div>
+      <h2 id="scopeTitle">Built for buyer-side offer packets today.</h2>
+      <p class="scope-intro">
+        The OnDemand launch helps agents prepare the current HomeOfferFlow buyer-side offer packet and its supported purchase addenda. It is not yet a complete transaction-form library or transaction-management system.
+      </p>
+      <div class="scope-grid">
+        <article class="scope-card included">
+          <h3>Included in this launch</h3>
+          <p>Guided buyer offer preparation, currently supported purchase addenda, buyer electronic-signature delivery, and an OnDemand-connected agent account.</p>
+        </article>
+        <article class="scope-card not-yet">
+          <h3>Continue using OnDemand-approved forms for now</h3>
+          <p>HomeOfferFlow does not yet create or send standalone buyer representation agreements, listing agreements, or seller disclosure notices. Continue using your brokerage-approved workflow for those documents.</p>
+        </article>
+      </div>
+      <p class="scope-note">HomeOfferFlow will add the broader agent form library in stages, with broker-approved source forms, signing roles, visual PDF QA, and transaction-specific safeguards before each form is released.</p>
     </section>
 
     <footer class="footer">
