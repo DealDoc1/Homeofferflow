@@ -18,6 +18,7 @@ ROOT = Path(__file__).resolve().parents[1]
 PRODUCTION_ENTRYPOINT = ROOT / "api" / "fill-pdf.py"
 CURRENT_CONTRACT = ROOT / "20-19_0.pdf"
 GOLDEN_RENDER_CHECK = ROOT / "scripts" / "check_golden_packet_rendering.py"
+SIGNWELL_STATUS_TEST = ROOT / "tests" / "test_signwell_status_api.js"
 
 
 def run_step(label: str, command: list[str]) -> None:
@@ -40,6 +41,7 @@ def check_published_contract_route() -> None:
 def main() -> None:
     check_published_contract_route()
     run_step("Full automated test suite", [sys.executable, "-m", "unittest", "discover", "-s", "tests"])
+    run_step("Signed-offer status endpoint regression", ["node", "--test", str(SIGNWELL_STATUS_TEST)])
     run_step("Rendered golden-packet regression", [sys.executable, str(GOLDEN_RENDER_CHECK)])
 
     print(

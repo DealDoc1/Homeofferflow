@@ -10,13 +10,20 @@ function json(res, status, payload) {
   res.status(status).json(payload);
 }
 
+class ApiError extends Error {
+  constructor(status, message) {
+    super(message);
+    this.status = status;
+  }
+}
+
 async function verifyUser(req) {
   const auth = req.headers.authorization || '';
   const token = auth.startsWith('Bearer ') ? auth.slice(7) : '';
 
-  if (!token) throw new Error('Missing auth token.');
+  if (!token) throw new ApiError(401, 'Please sign in before refreshing SignWell status.');
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-    throw new Error('Missing Supabase environment variables.');
+    throw new ApiError(503, 'Status refresh is temporarily unavailable.');
   }
 
   const response = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
@@ -29,7 +36,7 @@ async function verifyUser(req) {
   const user = await response.json().catch(() => ({}));
 
   if (!response.ok || !user.id || !user.email) {
-    throw new Error('Could not verify signed-in user.');
+    throw new ApiError(401, 'Please sign in before refreshing SignWell status.');
   }
 
   const email = String(user.email || '').toLowerCase();
@@ -56,7 +63,8 @@ async function supabaseRequest(path, options = {}) {
   const data = text ? JSON.parse(text) : null;
 
   if (!response.ok) {
-    throw new Error(`Supabase request failed ${response.status}: ${text.slice(0, 1000)}`);
+    console.error('Supabase request failed while refreshing SignWell status:', response.status, text.slice(0, 1000));
+    throw new ApiError(502, 'Could not save the latest SignWell status. Please try again.');
   }
 
   return data;
@@ -179,7 +187,7 @@ function deriveStatus(document = {}) {
 }
 
 async function getOfferForUser(offerId, user) {
-  if (!offerId) throw new Error('Missing offerId.');
+  if (!offerId) throw new ApiError(400, 'Choose an offer before refreshing its SignWell status.');
 
   const filters = [
     `id=eq.${encodeURIComponent(offerId)}`,
@@ -197,15 +205,15 @@ async function getOfferForUser(offerId, user) {
   const offer = Array.isArray(rows) ? rows[0] : null;
 
   if (!offer) {
-    throw new Error('Offer not found or access denied.');
+    throw new ApiError(404, 'Offer not found.');
   }
 
   return offer;
 }
 
 async function getSignWellDocument(documentId) {
-  if (!SIGNWELL_API_KEY) throw new Error('Missing SIGNWELL_API_KEY.');
-  if (!documentId) throw new Error('Missing SignWell document id.');
+  if (!SIGNWELL_API_KEY) throw new ApiError(503, 'Status refresh is temporarily unavailable.');
+  if (!documentId) throw new ApiError(400, 'This offer does not have a SignWell document ID.');
 
   const response = await fetch(`https://www.signwell.com/api/v1/documents/${encodeURIComponent(documentId)}`, {
     method: 'GET',
@@ -219,7 +227,8 @@ async function getSignWellDocument(documentId) {
   const data = text ? JSON.parse(text) : {};
 
   if (!response.ok) {
-    throw new Error(`SignWell status lookup failed ${response.status}: ${text.slice(0, 1000)}`);
+    console.error('SignWell status lookup failed:', response.status, text.slice(0, 1000));
+    throw new ApiError(502, 'Could not retrieve the latest SignWell status. Please try again.');
   }
 
   return data;
@@ -285,10 +294,12 @@ module.exports = async (req, res) => {
   try {
     const user = await verifyUser(req);
 
-    const body =
-      typeof req.body === 'object' && req.body
-        ? req.body
-        : JSON.parse(req.body || '{}');
+    let body;
+    try {
+      body = typeof req.body === 'object' && req.body ? req.body : JSON.parse(req.body || '{}');
+    } catch (err) {
+      throw new ApiError(400, 'The status refresh request was not valid. Please try again.');
+    }
 
     const offerId = body.offerId || body.offer_id || '';
 
@@ -323,8 +334,8 @@ module.exports = async (req, res) => {
     });
   } catch (err) {
     console.error('SignWell status refresh failed:', err);
-    return json(res, 400, {
-      error: err?.message || 'SignWell status refresh failed.'
+    return json(res, err instanceof ApiError ? err.status : 500, {
+      error: err instanceof ApiError ? err.message : 'Could not refresh SignWell status. Please try again.'
     });
   }
 };
