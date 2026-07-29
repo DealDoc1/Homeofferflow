@@ -2,6 +2,7 @@ import importlib.util
 import io
 import json
 import os
+import asyncio
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -87,6 +88,23 @@ class MembershipClient:
     def post(self, url, **kwargs):
         self.requests.append(("post", url, kwargs))
         return Response(201, {}, "")
+
+
+class BrokerageRosterClient:
+    last_patch = None
+
+    def __init__(self, *args, **kwargs):
+        pass
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *args):
+        return False
+
+    async def patch(self, url, **kwargs):
+        self.__class__.last_patch = (url, kwargs)
+        return Response(200, [{"status": "suspended"}])
 
 
 class OnDemandCheckoutTests(unittest.TestCase):
@@ -207,6 +225,57 @@ class OnDemandCheckoutTests(unittest.TestCase):
 
 
 class BrokerageAuthorizationTests(unittest.TestCase):
+    def test_broker_can_suspend_an_agent_but_not_themself_or_a_broker(self):
+        actor = {"id": "11111111-1111-1111-1111-111111111111", "email": "tyler@ondemanddfw.com"}
+        context = {"brokerage": {"id": "22222222-2222-2222-2222-222222222222"}}
+
+        async def broker_context(_actor):
+            return context
+
+        async def agent_members(_path):
+            return [{
+                "id": "membership-1",
+                "user_id": "33333333-3333-3333-3333-333333333333",
+                "role": "agent",
+                "status": "active",
+            }]
+
+        with patch.object(admin, "_brokerage_admin_context", broker_context), \
+             patch.object(admin, "_get", agent_members), \
+             patch.object(admin.httpx, "AsyncClient", BrokerageRosterClient):
+            result = asyncio.run(admin._set_brokerage_member_status(actor, {
+                "user_id": "33333333-3333-3333-3333-333333333333",
+                "membership_status": "suspended",
+            }))
+        self.assertTrue(result["changed"])
+        self.assertEqual(result["membershipStatus"], "suspended")
+        self.assertEqual(BrokerageRosterClient.last_patch[1]["json"]["status"], "suspended")
+
+        with patch.object(admin, "_brokerage_admin_context", broker_context):
+            with self.assertRaisesRegex(PermissionError, "cannot change your own"):
+                asyncio.run(admin._set_brokerage_member_status(actor, {
+                    "user_id": actor["id"], "membership_status": "suspended"
+                }))
+
+    def test_brokerage_membership_endpoint_only_changes_agent_membership(self):
+        source = ADMIN_PATH.read_text(encoding="utf-8")
+        self.assertIn('data.get("action") == "set_brokerage_member_status"', source)
+        self.assertIn('ALLOWED_BROKERAGE_MEMBER_STATUSES = {"active", "suspended"}', source)
+        start = source.index("async def _set_brokerage_member_status")
+        end = source.index("def _parse_partner_lead_update", start)
+        segment = source[start:end]
+        self.assertIn("You cannot change your own brokerage-admin membership", segment)
+        self.assertIn('member.get("role") or "agent") != "agent"', segment)
+        self.assertNotIn("hof_subscriptions?", segment)
+        self.assertNotIn("hof_offers?", segment)
+
+    def test_brokerage_roster_ui_discloses_membership_scope(self):
+        marker = INDEX_HTML.index('id="hof-ondemand-brokerage-launch-v1"')
+        final_script = INDEX_HTML[marker:]
+        self.assertIn("setBrokerageMemberStatus", final_script)
+        self.assertIn("HomeOfferFlow subscription or delete their offers", final_script)
+        self.assertIn("HomeOfferFlow billing or delete their offers", final_script)
+
     def test_webhook_activation_preserves_existing_broker_role(self):
         member_handler = webhook.handler.__new__(webhook.handler)
         MembershipClient.requests = []
