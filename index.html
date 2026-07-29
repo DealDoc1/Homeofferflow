@@ -11593,6 +11593,10 @@ function routeAfterMagicLinkIfNeeded() {
   .brokerage-membership-note { color:var(--gray); font-size:.75rem; line-height:1.45; margin:.4rem 0 .8rem; }
   .brokerage-access-button { border:1px solid rgba(200,151,63,.42); border-radius:999px; background:rgba(200,151,63,.08); color:var(--gold-light); cursor:pointer; font:800 .7rem 'DM Sans',sans-serif; padding:.38rem .55rem; white-space:nowrap; }
   .brokerage-access-button:hover { border-color:var(--gold); background:rgba(200,151,63,.16); }
+  .brokerage-invite-form { display:flex; flex-wrap:wrap; gap:.55rem; align-items:center; margin:.9rem 0 .3rem; }
+  .brokerage-invite-form input { flex:1 1 220px; min-width:0; padding:.62rem .7rem; border:1px solid rgba(255,255,255,.16); border-radius:9px; background:rgba(0,0,0,.18); color:var(--white); }
+  .brokerage-invite-result { margin:.55rem 0 .2rem; color:var(--sage-light); font-size:.78rem; line-height:1.45; }
+  .brokerage-pending-invites { margin:.7rem 0 0; color:var(--gray-light); font-size:.76rem; line-height:1.5; }
   .ondemand-trial-link { display:inline-flex; margin-top:.65rem; color:var(--gold-light); font-weight:800; text-decoration:none; }
   @media(max-width:700px) {
     .brokerage-safe-kpis { grid-template-columns:repeat(2,minmax(0,1fr)); }
@@ -11792,6 +11796,40 @@ function routeAfterMagicLinkIfNeeded() {
     }
   };
 
+  root.createBrokerageInvite = async function createBrokerageInvite() {
+    const session = root.hofAuth?.session;
+    const input = document.getElementById('brokerageInviteEmail');
+    const result = document.getElementById('brokerageInviteResult');
+    const email = String(input?.value || '').trim().toLowerCase();
+    if (!session?.access_token) return alert('Sign in again before inviting an agent.');
+    if (!email || !email.includes('@')) {
+      if (result) result.textContent = 'Enter the agent’s email address first.';
+      return;
+    }
+    if (result) result.textContent = 'Creating secure invite link…';
+    try {
+      const response = await fetch('/api/admin-dashboard', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + session.access_token },
+        body: JSON.stringify({ action: 'create_brokerage_invite', email })
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.invite?.inviteUrl) throw new Error(data.error || 'Could not create the secure invite link.');
+      const link = data.invite.inviteUrl;
+      try {
+        await navigator.clipboard.writeText(link);
+        if (result) result.textContent = 'Invite link copied. Send it only to ' + data.invite.email + '.';
+      } catch (_) {
+        window.prompt('Copy this secure invite link and send it only to ' + data.invite.email + ':', link);
+        if (result) result.textContent = 'Secure invite link created for ' + data.invite.email + '.';
+      }
+      if (input) input.value = '';
+      await root.renderBrokerageFoundationPanel();
+    } catch (error) {
+      if (result) result.textContent = error.message || 'Could not create the secure invite link.';
+    }
+  };
+
   root.renderBrokerageFoundationPanel = async function renderBrokerageFoundationPanel() {
     const el = document.getElementById('brokerageFoundationPanel');
     if (!el) return;
@@ -11818,10 +11856,15 @@ function routeAfterMagicLinkIfNeeded() {
       const data = await brokerSummary();
       const m = data.metrics || {};
       const agents = data.agents || [];
+      const pendingInvites = data.pendingInvites || [];
       document.getElementById('brokerSafeDashboard').innerHTML =
         '<h4>Brokerage activity</h4>' +
         '<p>Operational visibility only. Buyer names, property addresses, offer terms, and document contents are not included.</p>' +
         '<p class="brokerage-membership-note">Suspending an agent removes brokerage-managed access only. It does not cancel that agent\'s HomeOfferFlow subscription or delete their offers.</p>' +
+        '<div class="brokerage-invite-form"><input id="brokerageInviteEmail" type="email" inputmode="email" autocomplete="email" placeholder="Agent email address" aria-label="Agent email address">' +
+        '<button type="button" class="brokerage-access-button" onclick="createBrokerageInvite()">Create invite link</button></div>' +
+        '<p id="brokerageInviteResult" class="brokerage-invite-result">The link works only for the invited email, expires in 14 days, and does not start billing until the agent completes Stripe checkout.</p>' +
+        (pendingInvites.length ? '<p class="brokerage-pending-invites"><strong>Pending invites:</strong> ' + pendingInvites.map(invite => safe(invite.email || 'Agent')).join(', ') + '.</p>' : '') +
         '<div class="brokerage-safe-kpis">' +
           '<div class="brokerage-safe-kpi"><span>Members</span><strong>' + Number(m.memberCount || 0) + '</strong></div>' +
           '<div class="brokerage-safe-kpi"><span>Active members</span><strong>' + Number(m.activeMemberCount || 0) + '</strong></div>' +

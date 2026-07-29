@@ -247,7 +247,13 @@
         auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
       });
       const $ = (id) => document.getElementById(id);
-      const state = { session: null, config: null };
+      const initialParams = new URLSearchParams(window.location.search);
+      const state = {
+        session: null,
+        config: null,
+        inviteToken: initialParams.get("invite") || "",
+        inviteStatus: initialParams.get("invite") ? "pending" : "none"
+      };
       const renewal = new Date();
       renewal.setDate(renewal.getDate() + 60);
       const renewalText = renewal.toLocaleDateString(undefined, {
@@ -304,6 +310,36 @@
         $("checkoutButton").disabled = true;
       }
 
+      async function acceptBrokerageInvite(session) {
+        if (!state.inviteToken || state.inviteStatus === "accepted" || state.inviteStatus === "in_progress" || state.inviteStatus === "failed") return;
+        if (!session?.access_token) return;
+        state.inviteStatus = "in_progress";
+        showStatus("Verifying your OnDemand brokerage invite…");
+        try {
+          const response = await fetch("/api/admin-dashboard", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${session.access_token}`
+            },
+            body: JSON.stringify({ action: "accept_brokerage_invite", invite_token: state.inviteToken })
+          });
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok || !data.membership?.accepted) {
+            throw new Error(data.error || "This brokerage invite could not be accepted.");
+          }
+          state.inviteStatus = "accepted";
+          state.inviteToken = "";
+          const clean = new URL(window.location.href);
+          clean.searchParams.delete("invite");
+          window.history.replaceState({}, document.title, clean.pathname + clean.search + clean.hash);
+          showStatus("Your OnDemand brokerage connection is confirmed. Continue to activate your 60-day trial.", "ok");
+        } catch (error) {
+          state.inviteStatus = "failed";
+          showStatus(error.message || "This brokerage invite could not be accepted.", "err");
+        }
+      }
+
       async function sendMagicLink() {
         const button = $("signInButton");
         const email = $("email").value.trim().toLowerCase();
@@ -316,7 +352,7 @@
         const { error } = await client.auth.signInWithOtp({
           email,
           options: {
-            emailRedirectTo: `${window.location.origin}/ondemand`,
+            emailRedirectTo: `${window.location.origin}/ondemand${state.inviteToken ? `?invite=${encodeURIComponent(state.inviteToken)}` : ""}`,
             data: { signup_source: "ondemand" }
           }
         });
@@ -331,6 +367,14 @@
       async function startCheckout() {
         const button = $("checkoutButton");
         if (!state.session?.access_token || !$("terms").checked) return;
+        if (state.inviteStatus === "in_progress") {
+          showStatus("Your brokerage invite is still being verified.", "err");
+          return;
+        }
+        if (state.inviteStatus === "failed") {
+          showStatus("Resolve the brokerage invite before starting checkout.", "err");
+          return;
+        }
         setBusy(button, true, "Opening Stripe…", "Continue to secure checkout");
         showStatus("");
         try {
@@ -361,7 +405,11 @@
         }
         const { data } = await client.auth.getSession();
         renderSession(data.session);
-        client.auth.onAuthStateChange((_event, session) => renderSession(session));
+        await acceptBrokerageInvite(data.session);
+        client.auth.onAuthStateChange((_event, session) => {
+          renderSession(session);
+          acceptBrokerageInvite(session);
+        });
       }
 
       $("signInButton").addEventListener("click", sendMagicLink);

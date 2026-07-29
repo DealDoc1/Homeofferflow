@@ -23,6 +23,8 @@ ALLOWED_PARTNER_TYPES = {
     "moving_storage", "lawn_pool", "security_smart_home", "other",
 }
 MAX_BODY_BYTES = 12_000
+PUBLIC_APP_ORIGIN = (os.environ.get("PUBLIC_APP_URL") or "https://www.homeofferflow.com").rstrip("/")
+BROKERAGE_INVITE_EMAIL_RE = re.compile(r"(?=.{3,254}$)[^@\s]+@[^@\s]+\.[^@\s]+$")
 TXR_1501_FORM_CODE = "TXR-1501"
 TXR_1506_FORM_CODE = "TXR-1506"
 TXR_1507_FORM_CODE = "TXR-1507"
@@ -148,6 +150,12 @@ async def _brokerage_dashboard_payload(context):
         "&select=user_id,email,role,status,created_at,updated_at"
         "&order=created_at.asc&limit=500"
     )
+    pending_invites = await _get_optional(
+        "hof_brokerage_invites?"
+        f"brokerage_id=eq.{urllib.parse.quote(brokerage_id)}"
+        "&status=eq.pending&select=id,email,role,status,created_at,expires_at"
+        "&order=created_at.desc&limit=100"
+    )
     user_ids = [str(row.get("user_id")) for row in members if row.get("user_id")]
     agent_profiles = []
     subscriptions = []
@@ -247,6 +255,17 @@ async def _brokerage_dashboard_payload(context):
             ),
         },
         "agents": safe_agents,
+        "pendingInvites": [
+            {
+                "id": str(invite.get("id") or ""),
+                "email": invite.get("email"),
+                "role": invite.get("role") or "agent",
+                "status": invite.get("status") or "pending",
+                "createdAt": invite.get("created_at"),
+                "expiresAt": invite.get("expires_at"),
+            }
+            for invite in pending_invites
+        ],
         "privacy": {
             "buyerDetailsIncluded": False,
             "propertyDetailsIncluded": False,
@@ -254,6 +273,199 @@ async def _brokerage_dashboard_payload(context):
             "documentContentsIncluded": False,
         },
     }
+
+
+def _normalized_invite_email(value):
+    email = str(value or "").strip().lower()
+    if not BROKERAGE_INVITE_EMAIL_RE.fullmatch(email):
+        raise ValueError("Enter a valid agent email address.")
+    return email
+
+
+def _parse_timestamp(value):
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except (TypeError, ValueError):
+        return None
+
+
+def _brokerage_invite_url(token):
+    token = str(token or "").strip()
+    if not re.fullmatch(r"[a-f0-9]{32,128}", token):
+        raise RuntimeError("The invite link could not be created.")
+    return f"{PUBLIC_APP_ORIGIN}/ondemand?invite={urllib.parse.quote(token, safe='')}"
+
+
+async def _create_brokerage_invite(actor, data):
+    """Create or return one pending agent-only invite for the broker's own brokerage.
+
+    The token is returned only to the authorized broker who created the invite.
+    It never gives the browser direct database access, does not alter billing,
+    and acceptance later requires an authenticated account with the same email.
+    """
+    context = await _brokerage_admin_context(actor)
+    if not context:
+        raise PermissionError("Brokerage admin access is not enabled for this account.")
+    email = _normalized_invite_email(data.get("email"))
+    brokerage_id = str(context["brokerage"]["id"])
+
+    active_members = await _get(
+        "hof_brokerage_members?"
+        f"brokerage_id=eq.{urllib.parse.quote(brokerage_id)}"
+        f"&email=eq.{urllib.parse.quote(email)}&status=eq.active"
+        "&select=id&limit=1"
+    )
+    if active_members:
+        raise ValueError("That agent already has active access to this brokerage.")
+
+    pending = await _get(
+        "hof_brokerage_invites?"
+        f"brokerage_id=eq.{urllib.parse.quote(brokerage_id)}"
+        f"&email=eq.{urllib.parse.quote(email)}&status=eq.pending"
+        "&select=id,email,role,status,invite_token,expires_at&limit=1"
+    )
+    now = datetime.now(timezone.utc)
+    if pending:
+        invite = pending[0]
+        expiry = _parse_timestamp(invite.get("expires_at"))
+        if expiry and expiry > now and invite.get("invite_token"):
+            return {
+                "email": email,
+                "expiresAt": invite.get("expires_at"),
+                "inviteUrl": _brokerage_invite_url(invite["invite_token"]),
+                "reused": True,
+            }
+        async with httpx.AsyncClient(timeout=12) as client:
+            response = await client.patch(
+                f"{SUPABASE_URL}/rest/v1/hof_brokerage_invites?"
+                f"id=eq.{urllib.parse.quote(str(invite['id']))}&status=eq.pending",
+                headers={**_headers(), "Prefer": "return=representation"},
+                json={"status": "expired"},
+            )
+        if response.status_code >= 300:
+            raise RuntimeError("Could not refresh the expired invite.")
+
+    record = {
+        "brokerage_id": brokerage_id,
+        "email": email,
+        "role": "agent",
+        "status": "pending",
+        "invited_by": actor["id"],
+    }
+    async with httpx.AsyncClient(timeout=12) as client:
+        response = await client.post(
+            f"{SUPABASE_URL}/rest/v1/hof_brokerage_invites",
+            headers={**_headers(), "Prefer": "return=representation"},
+            json=record,
+        )
+    if response.status_code not in {200, 201}:
+        raise RuntimeError("Could not create the brokerage invite.")
+    rows = response.json()
+    if not isinstance(rows, list) or not rows or not rows[0].get("invite_token"):
+        raise RuntimeError("The invite link could not be created.")
+    invite = rows[0]
+    return {
+        "email": email,
+        "expiresAt": invite.get("expires_at"),
+        "inviteUrl": _brokerage_invite_url(invite["invite_token"]),
+        "reused": False,
+    }
+
+
+async def _accept_brokerage_invite(actor, data):
+    """Attach the signed-in, email-matched agent to one valid broker invite."""
+    token = str(data.get("invite_token") or "").strip().lower()
+    if not re.fullmatch(r"[a-f0-9]{32,128}", token):
+        raise ValueError("This brokerage invite link is invalid.")
+    invites = await _get(
+        "hof_brokerage_invites?"
+        f"invite_token=eq.{urllib.parse.quote(token)}&status=eq.pending"
+        "&select=id,brokerage_id,email,role,status,expires_at&limit=1"
+    )
+    if not invites:
+        raise ValueError("This brokerage invite is no longer available.")
+    invite = invites[0]
+    if _normalized_invite_email(actor.get("email")) != _normalized_invite_email(invite.get("email")):
+        raise PermissionError("Sign in with the email address that received this brokerage invite.")
+    expiry = _parse_timestamp(invite.get("expires_at"))
+    if not expiry or expiry <= datetime.now(timezone.utc):
+        async with httpx.AsyncClient(timeout=12) as client:
+            await client.patch(
+                f"{SUPABASE_URL}/rest/v1/hof_brokerage_invites?"
+                f"id=eq.{urllib.parse.quote(str(invite['id']))}&status=eq.pending",
+                headers=_headers(), json={"status": "expired"},
+            )
+        raise ValueError("This brokerage invite has expired. Ask your broker for a new link.")
+    if str(invite.get("role") or "agent") != "agent":
+        raise PermissionError("This invite does not grant agent access.")
+
+    brokerage_id = str(invite.get("brokerage_id") or "")
+    profiles = await _get(
+        "hof_profiles?"
+        f"id=eq.{urllib.parse.quote(actor['id'])}"
+        "&select=id,email,role,brokerage_id,is_brokerage_admin&limit=1"
+    )
+    profile = profiles[0] if profiles else None
+    if profile and profile.get("brokerage_id") and str(profile["brokerage_id"]) != brokerage_id:
+        raise PermissionError("This account is already connected to another brokerage. Contact HomeOfferFlow support.")
+    if profile and (str(profile.get("role") or "agent") != "agent" or profile.get("is_brokerage_admin")):
+        raise PermissionError("Brokerage administrator accounts cannot accept an agent invite.")
+
+    existing_members = await _get(
+        "hof_brokerage_members?"
+        f"brokerage_id=eq.{urllib.parse.quote(brokerage_id)}"
+        f"&user_id=eq.{urllib.parse.quote(actor['id'])}"
+        "&select=id,role,status&limit=1"
+    )
+    if existing_members and str(existing_members[0].get("role") or "agent") != "agent":
+        raise PermissionError("Broker and owner memberships must be managed by HomeOfferFlow support.")
+    if existing_members and str(existing_members[0].get("status") or "") == "suspended":
+        raise PermissionError("This brokerage membership is suspended. Contact your broker.")
+
+    now_iso = datetime.now(timezone.utc).isoformat()
+    async with httpx.AsyncClient(timeout=12) as client:
+        if profile:
+            profile_response = await client.patch(
+                f"{SUPABASE_URL}/rest/v1/hof_profiles?id=eq.{urllib.parse.quote(actor['id'])}",
+                headers={**_headers(), "Prefer": "return=representation"},
+                json={"brokerage_id": brokerage_id, "updated_at": now_iso},
+            )
+        else:
+            profile_response = await client.post(
+                f"{SUPABASE_URL}/rest/v1/hof_profiles",
+                headers={**_headers(), "Prefer": "return=representation"},
+                json={"id": actor["id"], "email": actor["email"], "role": "agent", "brokerage_id": brokerage_id, "updated_at": now_iso},
+            )
+        if profile_response.status_code not in {200, 201}:
+            raise RuntimeError("Could not connect this account to the brokerage.")
+
+        if existing_members:
+            membership_response = await client.patch(
+                f"{SUPABASE_URL}/rest/v1/hof_brokerage_members?"
+                f"id=eq.{urllib.parse.quote(str(existing_members[0]['id']))}",
+                headers={**_headers(), "Prefer": "return=representation"},
+                json={"email": actor["email"], "status": "active", "updated_at": now_iso},
+            )
+        else:
+            membership_response = await client.post(
+                f"{SUPABASE_URL}/rest/v1/hof_brokerage_members",
+                headers={**_headers(), "Prefer": "return=representation"},
+                json={"brokerage_id": brokerage_id, "user_id": actor["id"], "email": actor["email"], "role": "agent", "status": "active", "updated_at": now_iso},
+            )
+        if membership_response.status_code not in {200, 201}:
+            raise RuntimeError("Could not activate the brokerage membership.")
+
+        invite_response = await client.patch(
+            f"{SUPABASE_URL}/rest/v1/hof_brokerage_invites?"
+            f"id=eq.{urllib.parse.quote(str(invite['id']))}&status=eq.pending",
+            headers={**_headers(), "Prefer": "return=representation"},
+            json={"status": "accepted", "accepted_by": actor["id"], "accepted_at": now_iso},
+        )
+    if invite_response.status_code >= 300:
+        raise RuntimeError("Could not finalize the brokerage invite.")
+    return {"brokerageId": brokerage_id, "accepted": True}
 
 
 async def _set_brokerage_member_status(actor, data):
@@ -806,6 +1018,14 @@ class handler(BaseHTTPRequestHandler):
                 _json(self, 400, {"error": "Invalid request size."})
                 return
             data = json.loads(self.rfile.read(length).decode("utf-8"))
+            if data.get("action") == "create_brokerage_invite":
+                invite = asyncio.run(_create_brokerage_invite(user, data))
+                _json(self, 201, {"ok": True, "invite": invite})
+                return
+            if data.get("action") == "accept_brokerage_invite":
+                membership = asyncio.run(_accept_brokerage_invite(user, data))
+                _json(self, 200, {"ok": True, "membership": membership})
+                return
             if data.get("action") == "set_brokerage_member_status":
                 result = asyncio.run(_set_brokerage_member_status(user, data))
                 _json(self, 200, {"ok": True, "membership": result})
@@ -839,6 +1059,8 @@ class handler(BaseHTTPRequestHandler):
             _json(self, 200, {"ok": True, "lead": row})
         except ValueError as exc:
             _json(self, 400, {"error": str(exc)[:300]})
+        except PermissionError as exc:
+            _json(self, 403, {"error": str(exc)[:300]})
         except json.JSONDecodeError:
             _json(self, 400, {"error": "Invalid JSON."})
         except Exception as exc:
