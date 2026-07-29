@@ -105,7 +105,9 @@ class handler(BaseHTTPRequestHandler):
 
         except Exception as e:
             print("Stripe webhook error:", str(e))
-            self._send_json(500, {"error": str(e)})
+            # Stripe receives a retryable failure, but the response must not
+            # expose Supabase/Stripe implementation details to a caller.
+            self._send_json(500, {"error": "Webhook processing failed."})
 
     def _verify_stripe_signature(self, raw_body, sig_header):
         try:
