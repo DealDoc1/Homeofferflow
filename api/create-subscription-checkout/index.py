@@ -120,7 +120,6 @@ class handler(BaseHTTPRequestHandler):
                 email = verified_user["email"]
                 user_id = verified_user["id"]
                 brokerage = self._get_brokerage(ONDEMAND_SLUG)
-                self._enroll_ondemand_user(verified_user, brokerage)
 
             if self._has_current_subscription(user_id):
                 self._json(
@@ -280,70 +279,6 @@ class handler(BaseHTTPRequestHandler):
         if not rows:
             raise RuntimeError("OnDemand brokerage launch is not configured.")
         return rows[0]
-
-    def _enroll_ondemand_user(self, user, brokerage):
-        now = _iso_now()
-        is_broker = bool(ONDEMAND_BROKER_EMAIL and user["email"] == ONDEMAND_BROKER_EMAIL)
-        profile_role = "brokerage_admin" if is_broker else "agent"
-        member_role = "broker_admin" if is_broker else "agent"
-        member_status = "active" if is_broker else "pending"
-        brokerage_name = brokerage.get("dba_name") or brokerage.get("name") or "OnDemand Realty"
-
-        profile_payload = {
-            "id": user["id"],
-            "email": user["email"],
-            "role": profile_role,
-            "brokerage_id": brokerage["id"],
-            "team_name": brokerage_name,
-            "is_brokerage_admin": is_broker,
-            "updated_at": now,
-        }
-        member_payload = {
-            "brokerage_id": brokerage["id"],
-            "user_id": user["id"],
-            "email": user["email"],
-            "role": member_role,
-            "status": member_status,
-            "updated_at": now,
-        }
-
-        with httpx.Client(timeout=12) as client:
-            profile_response = client.post(
-                f"{SUPABASE_URL}/rest/v1/hof_profiles?on_conflict=id",
-                headers=_service_headers("resolution=merge-duplicates,return=minimal"),
-                json=profile_payload,
-            )
-            if profile_response.status_code >= 300:
-                raise RuntimeError("Could not associate this account with OnDemand Realty.")
-
-            member_response = client.post(
-                f"{SUPABASE_URL}/rest/v1/hof_brokerage_members?on_conflict=brokerage_id,user_id",
-                headers=_service_headers("resolution=merge-duplicates,return=minimal"),
-                json=member_payload,
-            )
-            if member_response.status_code >= 300:
-                raise RuntimeError("Could not create the OnDemand brokerage membership.")
-
-            agent_response = client.get(
-                f"{SUPABASE_URL}/rest/v1/hof_agent_profiles",
-                params={"user_id": f"eq.{user['id']}", "select": "user_id,brokerage_name,brokerage_license", "limit": "1"},
-                headers=_service_headers(),
-            )
-            if agent_response.status_code < 300:
-                rows = agent_response.json()
-                if rows:
-                    patch = {"updated_at": now}
-                    if not rows[0].get("brokerage_name"):
-                        patch["brokerage_name"] = brokerage_name
-                    if brokerage.get("license_number") and not rows[0].get("brokerage_license"):
-                        patch["brokerage_license"] = brokerage["license_number"]
-                    if len(patch) > 1:
-                        client.patch(
-                            f"{SUPABASE_URL}/rest/v1/hof_agent_profiles",
-                            params={"user_id": f"eq.{user['id']}"},
-                            headers=_service_headers("return=minimal"),
-                            json=patch,
-                        )
 
     def _has_current_subscription(self, user_id):
         self._require_supabase()
