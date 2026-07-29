@@ -59,6 +59,7 @@
 - `STRIPE_SUBSCRIPTION_WEBHOOK_SECRET`
 - `SUPABASE_URL`
 - `SUPABASE_SERVICE_ROLE_KEY` (or an already-supported alias)
+- `RESEND_API_KEY` for broker-created invitation email delivery
 
 The OnDemand trial reuses `STRIPE_AGENT_MONTHLY_PRICE_ID`. The project owner
 confirmed on July 27, 2026 that this Price is recurring monthly at **$29 USD**.
@@ -74,6 +75,23 @@ ONDEMAND_BROKER_EMAIL=tyler@ondemanddfw.com
 Apply it to Preview and Production. Do not guess this value. An exact email
 match is what gives the account `brokerage_admin` / `broker_admin` authority.
 All other OnDemand users are enrolled as agents.
+
+### Brokerage invitation email delivery
+
+When a brokerage administrator creates or resends an agent invite, HomeOfferFlow
+emails the secure, email-bound invite link through Resend. The invite record is
+created before delivery is attempted, so a temporary email-provider failure does
+not lose the invite: the broker still receives a copied link to send manually.
+
+The existing `RESEND_API_KEY` is sufficient. Optionally configure:
+
+```text
+BROKERAGE_INVITE_FROM_EMAIL=offers@homeofferflow.com
+BROKERAGE_INVITE_REPLY_TO=support@homeofferflow.com
+```
+
+If the optional values are absent, the application uses the existing feedback
+sender address and then the established HomeOfferFlow sender fallback.
 
 ### Supabase Auth redirect allowlist
 
@@ -138,12 +156,15 @@ users to create subscription state, brokerage membership, or authorization
 fields themselves. Apply it immediately with the updated `index.html`; the old
 browser code should not be left running after those permissions are removed.
 
-## 6. Preview deployment and test
+## 6. Production QA
 
-1. Set `ONDEMAND_BROKER_EMAIL=tyler@ondemanddfw.com`.
-2. Add the Preview `/ondemand` URL to Supabase Auth redirects.
-3. Deploy the branch to Vercel Preview.
-4. Open `/ondemand` in a private browser window.
+This project deliberately uses **one intentional Production deployment** after
+tests pass. Do not create routine Vercel previews; the Hobby deployment limit
+requires release batching.
+
+1. Confirm `ONDEMAND_BROKER_EMAIL=tyler@ondemanddfw.com` and the required
+   Stripe/Supabase/Resend environment variables are present in Production.
+2. Open `/ondemand` in a private browser window.
 5. Verify the page says:
    - `$0 today`
    - `60 days free`
@@ -179,14 +200,13 @@ browser code should not be left running after those permissions are removed.
 
 ## 7. Production deployment
 
-1. Confirm the Preview checklist passes.
-2. Deploy the application changes to Production.
-3. Immediately apply
+1. Confirm the production QA checklist passes on the completed release.
+2. Immediately apply
    `supabase/homeofferflow_brokerage_security_hardening.sql`.
-4. Open `https://www.homeofferflow.com/ondemand`.
-5. Repeat one agent test and one configured broker test.
-6. Verify Stripe webhook delivery and Supabase row state.
-7. Verify these existing production paths:
+3. Open `https://www.homeofferflow.com/ondemand`.
+4. Repeat one agent test and one configured broker test.
+5. Verify Stripe webhook delivery and Supabase row state.
+6. Verify these existing production paths:
    - home page loads
    - Agent and Investor authentication
    - existing paid subscriber billing portal
@@ -194,7 +214,7 @@ browser code should not be left running after those permissions are removed.
    - offer dashboard
    - offer generation
    - SignWell signature flow
-8. Run the repository test suite:
+7. Run the repository test suite:
 
 ```text
 PYTHONPATH=/private/tmp/homeofferflow_test_deps \

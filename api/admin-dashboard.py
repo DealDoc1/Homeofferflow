@@ -9,6 +9,14 @@ import httpx
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "").rstrip("/")
 SUPABASE_SERVICE_ROLE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or os.environ.get("SUPABASE_SERVICE_ROLE") or os.environ.get("SUPABASE_SERVICE_KEY") or ""
+RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
+BROKERAGE_INVITE_FROM_EMAIL = (
+    os.environ.get("BROKERAGE_INVITE_FROM_EMAIL")
+    or os.environ.get("FEEDBACK_FROM_EMAIL")
+    or os.environ.get("FROM_EMAIL")
+    or "offers@homeofferflow.com"
+)
+BROKERAGE_INVITE_REPLY_TO = os.environ.get("BROKERAGE_INVITE_REPLY_TO", "").strip()
 ADMIN_EMAILS = {e.strip().lower() for e in (os.environ.get("ADMIN_EMAILS") or os.environ.get("HOF_ADMIN_EMAILS") or "").split(",") if e.strip()}
 DEFAULT_ADMIN_EMAILS = {"andrew@ondemanddfw.com", "andrewchri@gmail.com", "support@homeofferflow.com"}
 ALLOWED_PARTNER_LEAD_STATUSES = {"new", "contacted", "qualified", "waitlist", "converted", "declined"}
@@ -306,6 +314,74 @@ def _brokerage_invite_url(token):
     return f"{PUBLIC_APP_ORIGIN}/ondemand?invite={urllib.parse.quote(token, safe='')}"
 
 
+def _invite_html_escape(value):
+    return (
+        str(value or "")
+        .replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace('"', "&quot;")
+        .replace("'", "&#x27;")
+    )
+
+
+async def _deliver_brokerage_invite_email(email, brokerage, invite_url):
+    """Email a broker-created invite without making delivery an access gate."""
+    if not RESEND_API_KEY:
+        return {"status": "not_configured"}
+
+    brokerage_name = str(
+        (brokerage or {}).get("dba_name")
+        or (brokerage or {}).get("name")
+        or "your brokerage"
+    ).strip()
+    safe_name = _invite_html_escape(brokerage_name)
+    safe_url = _invite_html_escape(invite_url)
+    payload = {
+        "from": f"HomeOfferFlow <{BROKERAGE_INVITE_FROM_EMAIL}>",
+        "to": [email],
+        "subject": f"You’re invited to join {brokerage_name} on HomeOfferFlow",
+        "text": (
+            f"Your broker invited you to join {brokerage_name} on HomeOfferFlow.\n\n"
+            f"Accept your invitation: {invite_url}\n\n"
+            "Sign in or create your account using this email address. "
+            "The invitation is personal and should not be forwarded."
+        ),
+        "html": (
+            '<div style="font-family:Arial,sans-serif;line-height:1.5;color:#172033;">'
+            f"<h2>You’re invited to join {safe_name}</h2>"
+            "<p>Your broker invited you to connect your HomeOfferFlow account to the brokerage.</p>"
+            f'<p><a href="{safe_url}" style="display:inline-block;padding:12px 18px;'
+            'border-radius:8px;background:#123047;color:#ffffff;text-decoration:none;font-weight:700;">'
+            "Accept invitation</a></p>"
+            "<p style=\"font-size:13px;color:#5f6b7a;\">Sign in or create your account using this email address. "
+            "This invitation is personal and should not be forwarded.</p>"
+            "</div>"
+        ),
+    }
+    if BROKERAGE_INVITE_REPLY_TO:
+        payload["reply_to"] = BROKERAGE_INVITE_REPLY_TO
+
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            response = await client.post(
+                "https://api.resend.com/emails",
+                headers={
+                    "Authorization": f"Bearer {RESEND_API_KEY}",
+                    "Content-Type": "application/json",
+                },
+                json=payload,
+            )
+        if response.status_code >= 300:
+            print(f"Brokerage invite email failed: {response.status_code}")
+            return {"status": "failed"}
+        data = response.json() if response.text else {}
+        return {"status": "sent", "emailId": data.get("id")}
+    except Exception as exc:
+        print(f"Brokerage invite email failed: {str(exc)[:300]}")
+        return {"status": "failed"}
+
+
 async def _create_brokerage_invite(actor, data):
     """Create or return one pending agent-only invite for the broker's own brokerage.
 
@@ -339,11 +415,15 @@ async def _create_brokerage_invite(actor, data):
         invite = pending[0]
         expiry = _parse_timestamp(invite.get("expires_at"))
         if expiry and expiry > now and invite.get("invite_token"):
+            invite_url = _brokerage_invite_url(invite["invite_token"])
             return {
                 "email": email,
                 "expiresAt": invite.get("expires_at"),
-                "inviteUrl": _brokerage_invite_url(invite["invite_token"]),
+                "inviteUrl": invite_url,
                 "reused": True,
+                "emailDelivery": await _deliver_brokerage_invite_email(
+                    email, context["brokerage"], invite_url
+                ),
             }
         async with httpx.AsyncClient(timeout=12) as client:
             response = await client.patch(
@@ -374,11 +454,15 @@ async def _create_brokerage_invite(actor, data):
     if not isinstance(rows, list) or not rows or not rows[0].get("invite_token"):
         raise RuntimeError("The invite link could not be created.")
     invite = rows[0]
+    invite_url = _brokerage_invite_url(invite["invite_token"])
     return {
         "email": email,
         "expiresAt": invite.get("expires_at"),
-        "inviteUrl": _brokerage_invite_url(invite["invite_token"]),
+        "inviteUrl": invite_url,
         "reused": False,
+        "emailDelivery": await _deliver_brokerage_invite_email(
+            email, context["brokerage"], invite_url
+        ),
     }
 
 

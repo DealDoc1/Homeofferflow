@@ -11945,12 +11945,18 @@ function routeAfterMagicLinkIfNeeded() {
       const data = await response.json().catch(() => ({}));
       if (!response.ok || !data.invite?.inviteUrl) throw new Error(data.error || 'Could not create the secure invite link.');
       const link = data.invite.inviteUrl;
+      const delivery = String(data.invite?.emailDelivery?.status || 'not_configured');
+      const deliveryMessage = delivery === 'sent'
+        ? 'Invitation email sent to ' + data.invite.email + '. '
+        : (delivery === 'failed'
+          ? 'The invitation email could not be sent, but '
+          : 'Email delivery is not configured, so ');
       try {
         await navigator.clipboard.writeText(link);
-        if (result) result.textContent = 'Invite link copied. Send it only to ' + data.invite.email + '.';
+        if (result) result.textContent = deliveryMessage + 'the secure link was copied. Send it only to ' + data.invite.email + '.';
       } catch (_) {
         window.prompt('Copy this secure invite link and send it only to ' + data.invite.email + ':', link);
-        if (result) result.textContent = 'Secure invite link created for ' + data.invite.email + '.';
+        if (result) result.textContent = deliveryMessage + 'a secure invite link was created for ' + data.invite.email + '.';
       }
       if (input) input.value = '';
       await root.renderBrokerageFoundationPanel();
