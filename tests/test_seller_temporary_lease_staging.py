@@ -145,12 +145,33 @@ class SellerTemporaryLeaseStagingTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "either the Buyer or Seller"):
             staging.fill_and_merge(offer)
 
-    def test_production_remains_fail_closed_until_staging_packet_is_visually_approved(self):
+    def test_production_accepts_the_visually_verified_seller_temporary_lease(self):
         offer = seller_temp_offer()
-        with self.assertRaises(production.UnsupportedOfferPathError):
-            production.validate_supported_offer(offer)
+        self.assertTrue(production.validate_supported_offer(offer))
 
-    def test_only_staging_bundle_includes_seller_temp_lease_source(self):
+        packet = production.fill_and_merge_20_19(offer)
+        self.assertEqual(len(PdfReader(BytesIO(packet)).pages), 14)
+
+        fields = production.build_signwell_fields_20_19(offer, packet)[0]
+        by_id = {field["api_id"]: field for field in fields}
+        self.assertEqual(by_id["buyer1_initials_seller_temp_lease_p1"]["page"], 13)
+        self.assertEqual(by_id["buyer2_initials_seller_temp_lease_p1"]["page"], 13)
+        self.assertEqual(by_id["buyer1_signature_seller_temp_lease"]["page"], 14)
+        self.assertEqual(by_id["buyer2_signature_seller_temp_lease"]["page"], 14)
+
+    def test_production_rejects_incomplete_or_conflicting_seller_lease_requests(self):
+        for updates in [
+            {"sellerTemporaryLease": "no"},
+            {"possession": "funding"},
+            {"buyerTemporaryLease": "yes", "possession": "sellerTemporaryLease"},
+        ]:
+            offer = seller_temp_offer()
+            offer.update(updates)
+            with self.subTest(updates=updates):
+                with self.assertRaises(production.UnsupportedOfferPathError):
+                    production.validate_supported_offer(offer)
+
+    def test_staging_and_production_bundles_include_seller_temp_lease_source(self):
         config = json.loads((ROOT / "vercel.json").read_text())
         self.assertIsInstance(
             config["functions"]["api/fill_pdf_20_19_staging.py"]["includeFiles"], str
@@ -159,10 +180,24 @@ class SellerTemporaryLeaseStagingTests(unittest.TestCase):
             "seller_temporary_residential_lease_15-7.pdf",
             config["functions"]["api/fill_pdf_20_19_staging.py"]["includeFiles"],
         )
-        self.assertEqual(
+        self.assertIn(
+            "seller_temporary_residential_lease_15-7.pdf",
             config["functions"]["api/fill-pdf.py"]["includeFiles"],
-            "buyer_temporary_residential_lease_16-7.pdf",
         )
+
+    def test_agent_offer_builder_exposes_the_supported_seller_lease_path(self):
+        app = (ROOT / "index.html").read_text()
+        for expected in [
+            'value="sellerTemporaryLease"',
+            'id="sellerTemporaryLeaseDetails"',
+            'id="sellerTemporaryLeaseTerminationDate"',
+            'id="sellerTemporaryLeaseRentPerDay"',
+            'id="sellerTemporaryLeaseDeposit"',
+            'id="sellerTemporaryLeaseHoldoverPerDay"',
+            "s.sellerTemporaryLease = s.possession === 'sellerTemporaryLease' ? 'yes' : 'no';",
+        ]:
+            with self.subTest(expected=expected):
+                self.assertIn(expected, app)
 
 
 if __name__ == "__main__":

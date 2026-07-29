@@ -3302,8 +3302,20 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
       <p class="step-desc">A few final deal terms before review.</p>
       <div class="field-group">
         <div class="field"><div class="field-label-row"><label>Target Closing Date</label><button class="helper-btn" onclick="toggleHelper('h-closing-date')">?</button></div><div class="helper-box" id="h-closing-date"><strong>💡 Closing Date</strong>HomeOfferFlow defaults to about 30 days from today and rolls forward if that date falls on a weekend or standard banking holiday. Confirm with lender, title company, agent, and the parties before sending.</div><div class="date-field-wrap"><input type="date" id="closingDate"/></div></div>
-        <div class="field"><div class="field-label-row"><label>Possession</label><button class="helper-btn" onclick="toggleHelper('h-possession')">?</button></div><div class="helper-box" id="h-possession"><strong>💡 Possession Timing</strong>“Upon Funding” is commonly used because closing and funding are not always the same instant. Possession at closing or leaseback terms should match what the parties negotiate.</div><select id="possession"><option value="">Select...</option><option value="closing">At Closing</option><option value="funding">Upon Funding (recommended)</option><option value="leaseback">Seller Leaseback</option></select></div>
+        <div class="field"><div class="field-label-row"><label>Possession</label><button class="helper-btn" onclick="toggleHelper('h-possession')">?</button></div><div class="helper-box" id="h-possession"><strong>💡 Possession Timing</strong>“Upon Funding” is commonly used because closing and funding are not always the same instant. A seller leaseback requires a separate TREC Seller's Temporary Residential Lease signed by the parties.</div><select id="possession" onchange="toggleSellerTemporaryLeaseDetails()"><option value="">Select...</option><option value="closing">At Closing</option><option value="funding">Upon Funding (recommended)</option><option value="sellerTemporaryLease">Seller Temporary Lease After Closing</option></select></div>
         <div class="field"><div class="field-label-row"><label>Title Company (optional)</label><button class="helper-btn" onclick="toggleHelper('h-title-company')">?</button></div><div class="helper-box" id="h-title-company"><strong>💡 Title Company</strong>This is the title/escrow company requested for the transaction. Buyer and seller can negotiate title company selection. Agents may also use brokerage-preferred defaults if appropriate.</div><input type="text" id="titleCompany" placeholder="e.g. Alamo Title Company" value="Chicago Title DFW - Forgey Law Group PLLC"/></div>
+      </div>
+
+      <div id="sellerTemporaryLeaseDetails" class="notice sage" style="display:none; margin:0 0 1.25rem;">
+        <strong>Seller temporary lease after closing</strong>
+        <p style="margin:0.45rem 0 0.8rem;">This adds TREC 15-7. The buyer is the landlord and the seller is the tenant. Enter only terms agreed by the parties; the completed packet will route the buyer-landlord signatures and leave seller-tenant execution for the listing side.</p>
+        <div class="field-group" style="margin-bottom:0;">
+          <div class="field-row"><div class="field"><label>Lease Termination Date</label><input type="date" id="sellerTemporaryLeaseTerminationDate"/></div><div class="field"><label>Daily Rent</label><input type="number" min="0" step="0.01" id="sellerTemporaryLeaseRentPerDay" placeholder="e.g. 125"/></div></div>
+          <div class="field-row"><div class="field"><label>Security Deposit</label><input type="number" min="0" step="0.01" id="sellerTemporaryLeaseDeposit" placeholder="e.g. 1000"/></div><div class="field"><label>Holdover Amount Per Day</label><input type="number" min="0" step="0.01" id="sellerTemporaryLeaseHoldoverPerDay" placeholder="e.g. 300"/></div></div>
+          <div class="field"><label>Utilities Buyer Will Pay</label><input type="text" id="sellerTemporaryLeaseUtilitiesPaidByBuyer" placeholder="e.g. Water and trash"/></div>
+          <div class="field"><label>Pets Allowed</label><input type="text" id="sellerTemporaryLeasePetsAllowed" placeholder="e.g. One dog under 40 pounds"/></div>
+          <div class="field"><label>Special Lease Provisions</label><textarea id="sellerTemporaryLeaseSpecialProvisions" rows="3" placeholder="Only terms the parties have agreed to"></textarea></div>
+        </div>
       </div>
 
       <div style="padding-top:0.75rem; border-top:1px solid rgba(255,255,255,0.07); margin-bottom:1.25rem;">
@@ -6170,6 +6182,14 @@ function routeAfterMagicLinkIfNeeded() {
         s.closingDate = getVal('closingDate');
         s.possession = getVal('possession') || 'funding';
         s.titleCompany = getVal('titleCompany');
+        s.sellerTemporaryLease = s.possession === 'sellerTemporaryLease' ? 'yes' : 'no';
+        s.sellerTemporaryLeaseTerminationDate = s.sellerTemporaryLease === 'yes' ? getVal('sellerTemporaryLeaseTerminationDate') : '';
+        s.sellerTemporaryLeaseRentPerDay = s.sellerTemporaryLease === 'yes' ? moneyNumber(getVal('sellerTemporaryLeaseRentPerDay')) : '';
+        s.sellerTemporaryLeaseDeposit = s.sellerTemporaryLease === 'yes' ? moneyNumber(getVal('sellerTemporaryLeaseDeposit')) : '';
+        s.sellerTemporaryLeaseHoldoverPerDay = s.sellerTemporaryLease === 'yes' ? moneyNumber(getVal('sellerTemporaryLeaseHoldoverPerDay')) : '';
+        s.sellerTemporaryLeaseUtilitiesPaidByBuyer = s.sellerTemporaryLease === 'yes' ? getVal('sellerTemporaryLeaseUtilitiesPaidByBuyer') : '';
+        s.sellerTemporaryLeasePetsAllowed = s.sellerTemporaryLease === 'yes' ? getVal('sellerTemporaryLeasePetsAllowed') : '';
+        s.sellerTemporaryLeaseSpecialProvisions = s.sellerTemporaryLease === 'yes' ? getVal('sellerTemporaryLeaseSpecialProvisions') : '';
 
         const agentRadio = getRadio('hasBuyerAgent');
         s.hasBuyerAgent = (s.userType === 'agent') ? 'yes' : (agentRadio || s.hasBuyerAgent || 'no');
@@ -6549,6 +6569,7 @@ function routeAfterMagicLinkIfNeeded() {
       <div class="review-section"><div class="review-section-title">Closing</div>
         <div class="review-row"><span class="rl">Closing Date</span><span class="rv">${fmt(s.closingDate)}</span></div>
         <div class="review-row"><span class="rl">Possession</span><span class="rv">${fmt(s.possession)}</span></div>
+        ${s.sellerTemporaryLease === 'yes' ? `<div class="review-row"><span class="rl">Seller Temporary Lease</span><span class="rv">Through ${fmt(s.sellerTemporaryLeaseTerminationDate)} · ${fmtM(s.sellerTemporaryLeaseRentPerDay)}/day</span></div>` : ''}
         <div class="review-row"><span class="rl">Title Company</span><span class="rv">${s.titleCompany || 'TBD'}</span></div>
         <div class="review-row"><span class="rl">Buyer's Agent</span><span class="rv">${s.hasBuyerAgent === 'yes' ? (s.agentName || 'Yes — name not entered') : 'None'}</span></div>
         ${s.hasBuyerAgent === 'yes' && s.agentBrokerage ? `<div class="review-row"><span class="rl">Brokerage</span><span class="rv">${s.agentBrokerage}</span></div>` : ''}
@@ -6568,6 +6589,7 @@ function routeAfterMagicLinkIfNeeded() {
           ${atag('Uploaded Disclosure Docs', (window.hofUploadedDisclosureDocs || []).length > 0)}
           ${atag('MUD/PID Disclosure', s.mud === 'yes' || s.mud === 'unknown')}
           ${atag('Lead-Based Paint — flag', s.leadBuiltBefore1978 === 'yes' || s.leadBuiltBefore1978 === 'unknown')}
+          ${atag("Seller's Temporary Residential Lease", s.sellerTemporaryLease === 'yes')}
         </div>
       </div>`;
   }
@@ -7018,10 +7040,20 @@ function routeAfterMagicLinkIfNeeded() {
     if (['residential', 'fixture', 'naturalresource', 'natural_resource', 'natural resource'].includes(leases)) {
       blocked.push('Paragraph 4 lease addendum');
     }
-    if (data.buyerTemporaryLease === 'yes' || ['lease', 'temporaryLease'].includes(data.possession)) {
-      blocked.push("Buyer's Temporary Residential Lease");
+    const possession = String(data.possession || '').trim();
+    const buyerTemporaryLease = data.buyerTemporaryLease === 'yes';
+    const sellerTemporaryLease = data.sellerTemporaryLease === 'yes';
+    const buyerTemporaryLeaseSelected = possession === 'temporaryLease';
+    const sellerTemporaryLeaseSelected = possession === 'sellerTemporaryLease';
+    if (buyerTemporaryLease !== buyerTemporaryLeaseSelected) {
+      blocked.push("Buyer's Temporary Residential Lease configuration");
     }
-    if (data.sellerTemporaryLease === 'yes') blocked.push("Seller's Temporary Residential Lease");
+    if (sellerTemporaryLease !== sellerTemporaryLeaseSelected) {
+      blocked.push("Seller's Temporary Residential Lease configuration");
+    }
+    if (buyerTemporaryLease && sellerTemporaryLease) {
+      blocked.push('conflicting temporary residential leases');
+    }
     if (data.sellerFinancing === 'yes') blocked.push('Seller Financing Addendum');
     if (data.loanAssumption === 'yes') blocked.push('Loan Assumption Addendum');
     return [...new Set(blocked)];
@@ -7037,6 +7069,12 @@ function routeAfterMagicLinkIfNeeded() {
       '. Please contact support before purchasing or generating this packet.'
     );
     return false;
+  }
+
+  function toggleSellerTemporaryLeaseDetails() {
+    const selected = getVal('possession') === 'sellerTemporaryLease';
+    const details = document.getElementById('sellerTemporaryLeaseDetails');
+    if (details) details.style.display = selected ? 'block' : 'none';
   }
 
 

@@ -73,16 +73,24 @@ def validate_supported_offer(offer):
     buyer_temp_flag = _truthy(offer.get("buyerTemporaryLease"))
     buyer_temp_possession = possession in {"temporarylease", "temporary lease"}
 
-    # TREC 16-7 Buyer Temporary Residential Lease completed rendered-PDF and
-    # SignWell QA on the exact explicit production shape below. Keep compact or
-    # ambiguous aliases fail-closed so this unlock does not broaden Paragraph 4
-    # or Seller Temporary Residential Lease support.
+    # TREC 16-7 Buyer Temporary Residential Lease and TREC 15-7 Seller
+    # Temporary Residential Lease have completed rendered-PDF and SignWell
+    # placement QA. Keep aliases tight and require the explicit flag that the
+    # offer-builder sends, so a generic Paragraph 4 lease never slips through.
     if buyer_temp_flag != buyer_temp_possession:
         blocked.append("Buyer Temporary Residential Lease configuration")
     if possession in {"lease", "buyerlease", "buyer lease"}:
         blocked.append("Buyer Temporary Residential Lease")
-    if _truthy(offer.get("sellerTemporaryLease")):
-        blocked.append("Seller Temporary Residential Lease")
+
+    seller_temp_flag = _truthy(offer.get("sellerTemporaryLease"))
+    seller_temp_possession = possession in {
+        "sellertemporarylease",
+        "seller temporary lease",
+    }
+    if seller_temp_flag != seller_temp_possession:
+        blocked.append("Seller Temporary Residential Lease configuration")
+    if buyer_temp_flag and seller_temp_flag:
+        blocked.append("conflicting temporary residential leases")
 
     unsupported_flags = {
         "sellerFinancing": "Seller Financing Addendum",
