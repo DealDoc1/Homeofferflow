@@ -12190,7 +12190,7 @@ function routeAfterMagicLinkIfNeeded() {
     const status = modal.querySelector('#txr1507DraftStatus');
     const clientNames = [form.get('clientOne'), form.get('clientTwo')].map(value => String(value || '').trim()).filter(Boolean);
     const payload = {
-      action: 'create_draft', formCode: FORM_CODE, formSourceId: source.id, clientNames,
+      action: 'create_txr_1507_draft', formCode: FORM_CODE, formSourceId: source.id, clientNames,
       marketArea: form.get('marketArea'), termStart: form.get('termStart'), termEnd: form.get('termEnd'),
       serviceLevel: form.get('serviceLevel'), showingFee: form.get('showingFee'), intermediary: form.get('intermediary'),
       compensation: { purchasePercentage: form.get('purchasePercentage'), purchaseFlatFee: form.get('purchaseFlatFee'), leaseOneMonthPercentage: form.get('leaseOneMonthPercentage'), leaseTotalRentsPercentage: form.get('leaseTotalRentsPercentage'), leaseFlatFee: form.get('leaseFlatFee') }
@@ -12198,7 +12198,7 @@ function routeAfterMagicLinkIfNeeded() {
     try {
       status.className = 'hof-iabs-status'; status.textContent = 'Saving private agreement draft…';
       const token = root.hofAuth?.session?.access_token;
-      const response = await fetch('/api/standalone-agreement', { method:'POST', headers:{ 'Content-Type':'application/json', Authorization:`Bearer ${token}` }, body:JSON.stringify(payload) });
+      const response = await fetch('/api/admin-dashboard', { method:'POST', headers:{ 'Content-Type':'application/json', Authorization:`Bearer ${token}` }, body:JSON.stringify(payload) });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || 'Could not save the agreement draft.');
       status.className = 'hof-iabs-status ready'; status.textContent = 'Draft saved privately. It has not been sent for signature.';
