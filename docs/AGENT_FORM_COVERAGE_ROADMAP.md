@@ -18,6 +18,9 @@ This language appears on `/ondemand` before an agent begins the 60-day trial.
 - The current production purchase contract workflow and its supported purchase
   addenda.
 - Buyer electronic-signature delivery for the generated offer packet.
+- Seller Temporary Residential Lease (TREC 15-7) when the seller remains in
+  possession after closing, including the defined buyer/landlord and
+  seller/tenant execution roles.
 - Agent accounts, OnDemand attribution, a 60-day card-required trial, and
   broker-level aggregate activity visibility with buyer and property details
   withheld.

@@ -29,7 +29,7 @@ transaction follow-up form families below.
 | --- | --- |
 | Buyer-side purchase packet | TREC 20-19 buyer offer workflow and its verified purchase addenda |
 | Buyer temporary possession | TREC 16-7 Buyer Temporary Residential Lease |
-| Seller temporary possession | Staging-verified only; not unlocked in production yet |
+| Seller temporary possession | Production: TREC 15-7 Seller Temporary Residential Lease, with buyer/landlord and seller/tenant execution routing and completed-signature visual QA |
 | IABS | Agent-owned, private profile PDF; optional per-packet attachment, never automatic |
 | Seller/listing documents | Existing PDF uploads may be appended when appropriate; HomeOfferFlow does not generate or send standalone seller-side forms yet |
 
@@ -95,3 +95,22 @@ the first listing-side catalog forms (TXR-1101, TXR-1102, TXR-1406, and
 TXR-1418). This works for any brokerage or verified organization; it is not an
 OnDemand-specific product permission. Seller/listing generation and signing
 remain unavailable until their separate release gates pass.
+
+## TXR execution readiness
+
+The next executable document is **TXR-1507 Short Form**, because it is the
+smallest complete buyer/tenant-representation workflow and establishes the
+reusable standalone-agreement pattern. Its private draft intake, data
+validation, source-vault checks, and agent UI are already in place. Before it
+can create or send a document, HomeOfferFlow must record authority to use the
+exact source, map the private source revision, define its signer/initial plan,
+and complete rendered, signed QA.
+
+The other supplied TXR forms remain sequenced as follows:
+
+1. TXR-1507 Short Form — executable buyer/tenant relationship workflow.
+2. TXR-1501 Long Form — separate six-page relationship workflow; never a
+   fallback or automatic substitution for the Short Form.
+3. TXR-1508 — strictly limited unrepresented-customer showing workflow.
+4. TXR-1506 — standalone consumer notice/acknowledgement, never automatic in
+   an offer packet.
