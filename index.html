@@ -33,13 +33,12 @@
 
   if (params.get('subscription')) return;
 
-  const showingPaid = params.get('showing') === 'success';
   const paid =
     params.get('payment') === 'success' ||
     params.get('success') === 'true' ||
     params.get('session_id');
 
-  if (!paid && !showingPaid) return;
+  if (!paid) return;
 
   // Prevent saved-draft restore from overriding the success screen after Stripe returns.
   window.__hofPaymentReturn = true;
@@ -48,8 +47,6 @@
     const saved = sessionStorage.getItem('hofOfferData');
     if (saved) state.data = { ...state.data, ...JSON.parse(saved) };
 
-    const savedShowing = sessionStorage.getItem('hofShowingData');
-    if (savedShowing) state.data = { ...state.data, ...JSON.parse(savedShowing) };
   } catch (e) {}
 
   openWizard();
@@ -61,8 +58,7 @@
     document.getElementById('paymentEmail')?.value ||
     '';
 
-  if (showingPaid) showShowingSuccess(paymentEmail);
-  else showPaymentSuccess(paymentEmail);
+  showPaymentSuccess(paymentEmail);
 
   // Clean the URL so refreshes do not re-trigger the success state forever.
   const cleanUrl = window.location.origin + window.location.pathname;
@@ -2786,32 +2782,14 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
       <div class="hof-interview-guide" data-hof-guide="step05">
         <div class="hof-guide-kicker">✨ Property visit</div>
         <div class="hof-guide-title">Have you actually seen the home?</div>
-        <div class="hof-guide-copy">Before we write terms, let’s make sure you’re comfortable with what you’re offering on and know your showing options.</div>
-        <div class="hof-guide-chip-row"><span class="hof-guide-chip"><strong>✓</strong> Seen it</span><span class="hof-guide-chip"><strong>✓</strong> Book a showing</span><span class="hof-guide-chip"><strong>✓</strong> No pressure</span></div>
+        <div class="hof-guide-copy">Before we write terms, make sure you are comfortable with the property and have arranged any viewing you need.</div>
+        <div class="hof-guide-chip-row"><span class="hof-guide-chip"><strong>✓</strong> Seen it</span><span class="hof-guide-chip"><strong>✓</strong> Viewing guidance</span><span class="hof-guide-chip"><strong>✓</strong> No pressure</span></div>
       </div>
       <h2>Have you seen the property?</h2>
       <p class="step-desc">Before writing an offer, it is important that you know what you are offering on.</p>
       <div class="radio-cards">
         <label class="radio-card" onclick="selectCard(this,'seenProperty','yes')"><input type="radio" name="seenProperty" value="yes"/><div class="radio-dot"></div><div class="radio-card-text"><strong>Yes — I've seen it</strong><small>Ready to write my offer</small></div></label>
-        <label class="radio-card" onclick="selectCard(this,'seenProperty','book')"><input type="radio" name="seenProperty" value="book"/><div class="radio-dot"></div><div class="radio-card-text"><strong>No — book a showing for $50</strong><small>A licensed OnDemand Realty agent will accompany you</small></div></label>
-        <label class="radio-card" onclick="selectCard(this,'seenProperty','myself')"><input type="radio" name="seenProperty" value="myself"/><div class="radio-dot"></div><div class="radio-card-text"><strong>No — I'll arrange it myself</strong><small>See guidance below</small></div></label>
-      </div>
-
-      <div id="showingForm" style="display:none; margin-top:0.5rem;">
-        <div class="notice sage">🏠 A licensed OnDemand Realty agent will accompany you through the property as a neutral professional. You remain unrepresented with no commission obligation. $50 flat fee collected at booking.</div>
-        <div class="field-group" style="margin-top:1rem;">
-          <div class="field"><label>Property Address</label><input type="text" id="showingAddress" placeholder="Address you want to view"/></div>
-          <div class="field-row">
-            <div class="field"><label>Preferred Date</label><div class="date-field-wrap"><input type="date" id="showingDate"/></div></div>
-            <div class="field"><label>Preferred Time</label><select id="showingTime"><option value="">Select...</option><option>9:00 AM</option><option>10:00 AM</option><option>11:00 AM</option><option>12:00 PM</option><option>1:00 PM</option><option>2:00 PM</option><option>3:00 PM</option><option>4:00 PM</option><option>5:00 PM</option></select></div>
-          </div>
-          <div class="field"><label>Your Name</label><input type="text" id="showingName" placeholder="Your full name"/></div>
-          <div class="field"><label>Your Email Address</label><input type="email" id="showingEmail" placeholder="you@example.com"/></div>
-          <div class="field"><label>Your Phone Number</label><input type="tel" id="showingPhone" placeholder="(214) 555-0000"/></div>
-          <div class="field"><label>Notes for Showing Agent <span style="color:var(--gray);font-weight:500;">(optional)</span></label><textarea id="showingNotes" placeholder="Gate code, preferred contact method, timing flexibility, etc." rows="3" style="width:100%;"></textarea></div>
-          <button class="btn-primary" style="width:100%; margin-top:0.5rem;" onclick="bookShowing()">Book Showing — $50 →</button>
-          <div id="showingInlineMessage" class="notice sage" style="display:none; margin-top:0.75rem;"></div>
-        </div>
+        <label class="radio-card" onclick="selectCard(this,'seenProperty','myself')"><input type="radio" name="seenProperty" value="myself"/><div class="radio-dot"></div><div class="radio-card-text"><strong>No — I'll arrange a viewing before continuing</strong><small>See practical guidance below</small></div></label>
       </div>
 
       <div id="showingHelper" style="display:none; margin-top:0.5rem;">
@@ -5577,11 +5555,6 @@ function routeAfterMagicLinkIfNeeded() {
   }
 
 
-  // TODO: Replace this with your live Stripe Price ID for the $50 showing booking product.
-  // Example format: price_1234567890abcdef
-  const SHOWING_BOOKING_PRICE_ID = 'price_1TbACXAELe66ESXnt409xxjE';
-
-
   function applyAudienceWorkflow() {
     const userType = state.data.userType || 'homebuyer';
 
@@ -6460,123 +6433,6 @@ function routeAfterMagicLinkIfNeeded() {
     saveDraft();
   }
 
-  async function bookShowing() {
-    trackEvent('Showing Request Started', {});
-    const addr = document.getElementById('showingAddress').value.trim();
-    const date = document.getElementById('showingDate').value.trim();
-    const time = document.getElementById('showingTime').value.trim();
-    const name = (
-      document.getElementById('showingName')?.value ||
-      state.data.buyer1 ||
-      ''
-    ).trim();
-    const email = (
-      document.getElementById('showingEmail')?.value ||
-      state.data.buyerEmail ||
-      document.getElementById('buyerEmail')?.value ||
-      ''
-    ).trim();
-    const phone = document.getElementById('showingPhone').value.trim();
-    const notes = (document.getElementById('showingNotes')?.value || '').trim();
-    const msg = document.getElementById('showingInlineMessage');
-    const btn = event?.currentTarget;
-
-    if (!addr || !date || !time || !name || !email || !phone) {
-      if (msg) {
-        msg.style.display = 'block';
-        msg.className = 'notice warn';
-        msg.innerHTML = 'Please fill in the property address, preferred date, preferred time, your name, email address, and phone number.';
-      }
-      return;
-    }
-
-    if (!SHOWING_BOOKING_PRICE_ID || SHOWING_BOOKING_PRICE_ID.includes('REPLACE_WITH')) {
-      if (msg) {
-        msg.style.display = 'block';
-        msg.className = 'notice warn';
-        msg.innerHTML = '<strong>Stripe setup needed.</strong><br>Create a $50 Showing Booking Price in Stripe, then replace <code>SHOWING_BOOKING_PRICE_ID</code> in index.html.';
-      }
-      return;
-    }
-
-    const showingData = {
-      type: 'showing_booking',
-      showingAddress: addr,
-      showingDate: date,
-      showingTime: time,
-      showingPhone: phone,
-      showingNotes: notes,
-      buyerName: name,
-      buyerEmail: email,
-      userType: state.data.userType || 'homebuyer'
-    };
-
-    try {
-      if (btn) {
-        btn.disabled = true;
-        btn.textContent = 'Redirecting to payment...';
-      }
-
-      if (msg) {
-        msg.style.display = 'block';
-        msg.className = 'notice sage';
-        msg.innerHTML = '<strong>Opening secure payment...</strong><br>You will be redirected to Stripe to pay the $50 showing booking fee.';
-      }
-
-      sessionStorage.setItem('hofShowingData', JSON.stringify(showingData));
-
-      const response = await fetch('/api/create-checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          priceId: SHOWING_BOOKING_PRICE_ID,
-          email,
-          plan: 'showing-booking',
-          offerData: showingData,
-          successUrl: `${window.location.origin}${window.location.pathname}?showing=success`,
-          cancelUrl: `${window.location.origin}${window.location.pathname}?showing=cancelled`
-        })
-      });
-
-      const result = await response.json();
-
-      if (result.error) throw new Error(result.error);
-
-      if (result.url) {
-        window.location.href = result.url;
-        return;
-      }
-
-      showShowingSuccess(email);
-    } catch (e) {
-      console.error('Showing payment error:', e);
-      if (msg) {
-        msg.style.display = 'block';
-        msg.className = 'notice warn';
-        msg.innerHTML = 'Showing payment error: ' + e.message;
-      }
-      if (btn) {
-        btn.disabled = false;
-        btn.textContent = 'Book Showing — $50 →';
-      }
-    }
-  }
-
-  function showShowingSuccess(email) {
-    trackEvent('Showing Payment Success Returned', {});
-    const successEmail = document.getElementById('successEmail');
-    const successMessage = document.getElementById('successMessage');
-
-    if (successEmail) successEmail.textContent = email || state.data.buyerEmail || 'the email you entered';
-    if (successMessage) {
-      successMessage.textContent = 'Showing request received — check your email for next steps.';
-    }
-
-    const successIndex = getCurrentSteps().indexOf('stepSuccess');
-    if (successIndex >= 0) showStep(successIndex);
-    renderNowWhatPartnerJourney();
-  }
-
   function buildReview() {
     const s = state.data;
     const fmt = v => v || '<span style="color:var(--warn);font-size:0.8rem;">Not entered</span>';
@@ -6710,7 +6566,6 @@ function routeAfterMagicLinkIfNeeded() {
     }
 
     if (group === 'seenProperty') {
-      document.getElementById('showingForm').style.display = value === 'book' ? 'block' : 'none';
       document.getElementById('showingHelper').style.display = value === 'myself' ? 'block' : 'none';
     }
 
@@ -7863,7 +7718,6 @@ function routeAfterMagicLinkIfNeeded() {
       return;
     }
     _wireGoogleAutocomplete('propAddress', fillAddressFields);
-    _wireGoogleAutocomplete('showingAddress', null);
     _wireGoogleAutocomplete('buyerMailAddr', fillBuyerMailAddressField);
     _wireGoogleAutocomplete('propertyToSell', null);
     _wireGoogleAutocomplete('propertyToSellAddress', null);
@@ -8194,9 +8048,7 @@ function routeAfterMagicLinkIfNeeded() {
 
     if (type !== 'homebuyer') {
       state.data.seenProperty = '';
-      const showingForm = document.getElementById('showingForm');
       const showingHelper = document.getElementById('showingHelper');
-      if (showingForm) showingForm.style.display = 'none';
       if (showingHelper) showingHelper.style.display = 'none';
     }
 
@@ -8397,9 +8249,7 @@ function routeAfterMagicLinkIfNeeded() {
     if (backupDetails) backupDetails.style.display = backup === 'yes' ? 'block' : 'none';
 
     const seenProperty = document.querySelector('input[name="seenProperty"]:checked')?.value || '';
-    const showingForm = document.getElementById('showingForm');
     const showingHelper = document.getElementById('showingHelper');
-    if (showingForm) showingForm.style.display = seenProperty === 'book' ? 'block' : 'none';
     if (showingHelper) showingHelper.style.display = seenProperty === 'myself' ? 'block' : 'none';
 
     const buyer2 = document.getElementById('buyer2');
