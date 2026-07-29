@@ -16,6 +16,15 @@ class VercelHobbyReleaseProcessTests(unittest.TestCase):
         self.assertIn("vercel deploy --prod --yes", guide)
         self.assertIn("full local test suite", guide)
         self.assertIn("--expected-deploy-author-email andrewchri@gmail.com", guide)
+        self.assertIn("PRODUCTION_RELEASE_CHECKLIST.md", guide)
+
+    def test_authoritative_checklist_keeps_packet_qa_and_production_gates_together(self):
+        checklist = (ROOT / "docs" / "PRODUCTION_RELEASE_CHECKLIST.md").read_text()
+        self.assertIn("Every applicable blank, checkbox, initial, signature, and date", checklist)
+        self.assertIn("release_preflight.py", checklist)
+        self.assertIn("vercel deploy --prod --yes --scope dealdoc1s-projects", checklist)
+        self.assertIn("never send Stripe test", checklist)
+        self.assertIn("production database", checklist)
 
 
 if __name__ == "__main__":

@@ -1,5 +1,9 @@
 # Vercel Hobby release process
 
+For the complete cross-system gate (tests, legal-form evidence, direct
+production deployment, and post-deploy verification), use
+[`PRODUCTION_RELEASE_CHECKLIST.md`](PRODUCTION_RELEASE_CHECKLIST.md).
+
 HomeOfferFlow disables automatic Git deployments so a branch push or merge does
 not consume a Vercel deployment by itself.
 
