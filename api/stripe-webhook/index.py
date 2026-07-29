@@ -267,7 +267,11 @@ class handler(BaseHTTPRequestHandler):
 
         if user_id:
             self._upsert_subscription_by_user_id(payload)
-            if brokerage_id:
+            # Checkout completion is not itself an access grant. Stripe can
+            # deliver events out of order, so only associate the agent after
+            # the authoritative subscription object is actually active or in
+            # its paid-card trial period.
+            if brokerage_id and payload.get("status") in ("active", "trialing"):
                 self._activate_brokerage_membership(user_id, email, brokerage_id)
         elif subscription_id:
             self._patch_subscription_by_stripe_subscription_id(subscription_id, payload)
