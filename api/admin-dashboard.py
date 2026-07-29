@@ -23,6 +23,7 @@ ALLOWED_PARTNER_TYPES = {
 }
 MAX_BODY_BYTES = 12_000
 TXR_1501_FORM_CODE = "TXR-1501"
+TXR_1506_FORM_CODE = "TXR-1506"
 TXR_1507_FORM_CODE = "TXR-1507"
 TXR_1508_FORM_CODE = "TXR-1508"
 
@@ -545,6 +546,40 @@ def _parse_txr_1508_draft(data):
     }
 
 
+def _parse_txr_1506_draft(data):
+    """Validate a private general-information notice acknowledgement draft.
+
+    The notice may be used with buyers, tenants, landlords, or sellers. It
+    does not establish representation and remains draft-only until the
+    brokerage approves a source-specific acknowledgment/signing workflow.
+    """
+    if data.get("formCode") != TXR_1506_FORM_CODE:
+        raise ValueError("Only TXR-1506 is available through this action.")
+    client_names = _agreement_clients(data)
+    form_source_id = _agreement_text(data.get("formSourceId"), "Approved TXR-1506 source", 80)
+    try:
+        form_source_id = str(uuid.UUID(form_source_id))
+    except (TypeError, ValueError, AttributeError):
+        raise ValueError("Choose an approved TXR-1506 source from your brokerage.")
+    consumer_role = str(data.get("consumerRole") or "").strip()
+    if consumer_role not in {"buyer", "tenant", "seller", "landlord", "other"}:
+        raise ValueError("Choose the consumer's transaction role.")
+    additional_notice = " ".join(str(data.get("additionalNotice") or "").strip().split())
+    if len(additional_notice) > 1000:
+        raise ValueError("Additional notice is too long.")
+    if data.get("noticeAcknowledgment") is not True:
+        raise ValueError("Confirm that the consumer will review and acknowledge the notice.")
+    return {
+        "form_source_id": form_source_id,
+        "client_names": client_names,
+        "agreement_data": {
+            "consumer_role": consumer_role,
+            "additional_notice": additional_notice,
+            "notice_acknowledgment": True,
+        },
+    }
+
+
 async def _active_brokerage_member(user):
     profiles = await _get(
         "hof_profiles?"
@@ -612,6 +647,10 @@ async def _create_txr_1501_draft(user, data):
 
 async def _create_txr_1508_draft(user, data):
     return await _create_representation_draft(user, data, TXR_1508_FORM_CODE, _parse_txr_1508_draft)
+
+
+async def _create_txr_1506_draft(user, data):
+    return await _create_representation_draft(user, data, TXR_1506_FORM_CODE, _parse_txr_1506_draft)
 
 
 class handler(BaseHTTPRequestHandler):
@@ -722,6 +761,10 @@ class handler(BaseHTTPRequestHandler):
                 return
             if data.get("action") == "create_txr_1508_draft":
                 draft = asyncio.run(_create_txr_1508_draft(user, data))
+                _json(self, 201, {"status": "ok", "agreement": draft})
+                return
+            if data.get("action") == "create_txr_1506_draft":
+                draft = asyncio.run(_create_txr_1506_draft(user, data))
                 _json(self, 201, {"status": "ok", "agreement": draft})
                 return
             if not asyncio.run(_is_platform_admin(user)):
