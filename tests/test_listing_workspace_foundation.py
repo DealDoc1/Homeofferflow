@@ -26,6 +26,12 @@ class ListingWorkspaceFoundationTests(unittest.TestCase):
         self.assertIn("never seller names, addresses, notes", MIGRATION)
         self.assertIn("aggregate sale/lease/status counts", DOC)
 
+    def test_broker_summary_is_not_anonymous_rpc(self):
+        self.assertIn(
+            "revoke all on function public.hof_brokerage_listing_workspace_summary() from anon;",
+            MIGRATION,
+        )
+
     def test_dashboard_workspace_ui_preserves_private_form_boundary(self):
         self.assertIn("Private Listing Workspace", INDEX)
         self.assertIn("saveListingWorkspaceFoundation", INDEX)

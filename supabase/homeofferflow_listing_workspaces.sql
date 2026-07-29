@@ -77,6 +77,7 @@ $$;
 revoke all on public.hof_listing_workspaces from anon;
 grant select, insert, update on public.hof_listing_workspaces to authenticated;
 revoke all on function public.hof_brokerage_listing_workspace_summary() from public;
+revoke all on function public.hof_brokerage_listing_workspace_summary() from anon;
 grant execute on function public.hof_brokerage_listing_workspace_summary() to authenticated;
 
 commit;
