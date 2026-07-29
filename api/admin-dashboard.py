@@ -92,7 +92,11 @@ async def _verified_user(auth_header):
 async def _is_platform_admin(user):
     if not user:
         return False
-    allowed = ADMIN_EMAILS or DEFAULT_ADMIN_EMAILS
+    # The environment list can add controlled operations accounts, but it must
+    # never silently remove the core HomeOfferFlow platform-admin accounts.
+    # This keeps support access recoverable if a production env update omits an
+    # address by mistake.
+    allowed = DEFAULT_ADMIN_EMAILS | ADMIN_EMAILS
     if user["email"] in allowed:
         return True
     rows = await _get(f"hof_platform_admins?user_id=eq.{user['id']}&select=user_id&limit=1")

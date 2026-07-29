@@ -71,6 +71,13 @@ class AdminTrackerSecurityTests(IsolatedAsyncioTestCase):
         self.assertTrue(allowed)
         get_rows.assert_not_awaited()
 
+    async def test_default_platform_admins_remain_allowed_when_env_adds_operations_admins(self):
+        with patch.object(admin_dashboard, "ADMIN_EMAILS", {"operations@example.com"}), \
+             patch.object(admin_dashboard, "_get", new=AsyncMock()) as get_rows:
+            allowed = await admin_dashboard._is_platform_admin({"id": "support-1", "email": "support@homeofferflow.com"})
+        self.assertTrue(allowed)
+        get_rows.assert_not_awaited()
+
     async def test_brokerage_dashboard_requires_active_broker_membership_even_if_profile_flag_is_stale(self):
         user = {"id": "user-123", "email": "former-broker@example.com"}
         profile = [{
