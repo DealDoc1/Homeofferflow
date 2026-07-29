@@ -172,9 +172,9 @@ class BuyerTemporaryLeaseStagingTests(unittest.TestCase):
             "buyer_temporary_residential_lease_16-7.pdf",
             config["functions"]["api/fill_pdf_20_19_staging.py"]["includeFiles"],
         )
-        self.assertEqual(
-            config["functions"]["api/fill-pdf.py"]["includeFiles"],
+        self.assertIn(
             "buyer_temporary_residential_lease_16-7.pdf",
+            config["functions"]["api/fill-pdf.py"]["includeFiles"],
         )
 
 

@@ -9,6 +9,7 @@ from api.fill_pdf_20_19_production_adapter import (
     UnsupportedOfferPathError,
     build_signwell_fields_20_19,
     fill_and_merge_20_19,
+    seller_temporary_lease_execution_parties,
     validate_supported_offer,
 )
 
@@ -16,7 +17,7 @@ RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
 STRIPE_WHSEC   = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
 FROM_EMAIL     = "offers@homeofferflow.com"
 SUPPORT_EMAIL  = "support@homeofferflow.com"
-SHOWING_NOTIFY_EMAIL = os.environ.get("SHOWING_NOTIFY_EMAIL", "andrew@ondemandfw.com,support@homeofferflow.com")
+SHOWING_NOTIFY_EMAIL = os.environ.get("SHOWING_NOTIFY_EMAIL", "andrew@ondemanddfw.com,support@homeofferflow.com")
 ADMIN_ORDER_EMAIL = os.environ.get("ADMIN_ORDER_EMAIL") or SHOWING_NOTIFY_EMAIL
 SIGNWELL_API_KEY = os.environ.get("SIGNWELL_API_KEY", "")
 # Safe default: SignWell is OFF unless explicitly enabled in Vercel.
@@ -1307,6 +1308,17 @@ def create_signwell_signature_request(offer, pdf_bytes):
     if buyer2_email:
         recipients.append({"id": "2", "name": buyer2_name, "email": buyer2_email})
 
+    # A TREC 15-7 Seller's Temporary Residential Lease is fully executed only
+    # when the current Seller signs as Tenant.  The recipient/field positions
+    # were verified in the completed four-party staging packet before this
+    # production path was enabled.
+    seller_lease_parties = seller_temporary_lease_execution_parties(offer)
+    if seller_lease_parties:
+        recipients.extend([
+            {"id": party["id"], "name": party["name"], "email": party["email"]}
+            for party in seller_lease_parties
+        ])
+
     filename_safe_addr = re.sub(r"[^A-Za-z0-9_\-]+", "_", str(addr)).strip("_") or "Offer"
     filename = f"HomeOfferFlow_Offer_{filename_safe_addr}.pdf"
     file_payload = [{"name": filename, "file_base64": base64.b64encode(pdf_bytes).decode()}]
@@ -1350,12 +1362,19 @@ def create_signwell_signature_request(offer, pdf_bytes):
     else:
         contact_sentence = f"Questions? Contact {agent_name}."
 
+    signing_scope_message = (
+        "Please carefully review and sign in the order requested. This packet includes a Seller's Temporary Residential Lease: "
+        "the Buyer signs as Landlord first and the Seller signs as Tenant after Buyer signatures are complete.\n\n"
+        if seller_lease_parties else
+        "Please carefully review and sign the buyer-side offer documents. "
+        "Seller signatures, seller initials, counteroffers, amendments, and seller-side changes are handled separately by the seller or listing side.\n\n"
+    )
+
     if str(offer.get("userType") or offer.get("role") or "homebuyer").lower() in ["agent", "investor"] and (agent_email or agent_phone):
         signwell_message = (
-            f"Your Texas offer packet has been prepared through HomeOfferFlow.\n\n"
-            "Please carefully review and sign the buyer-side offer documents. "
-            "Seller signatures, seller initials, counteroffers, amendments, and seller-side changes are handled separately by the seller or listing side.\n\n"
-            f"Questions about the offer terms? Contact {agent_name} at " + " or ".join(agent_contact_parts) + ".\n\n"
+            f"Your Texas offer packet has been prepared through HomeOfferFlow.\n\n" +
+            signing_scope_message +
+            f"Questions about the offer terms? Contact {agent_name} at " + " or ".join(agent_contact_parts) + ".\n\n" +
             "HomeOfferFlow does not automatically submit offers to a seller, listing broker, or MLS.\n\n"
             "Terms of Service: https://www.homeofferflow.com/terms.html\n"
             "Privacy Policy: https://www.homeofferflow.com/privacy.html\n"
@@ -1366,9 +1385,8 @@ def create_signwell_signature_request(offer, pdf_bytes):
         )
     else:
         signwell_message = (
-            "Your Texas offer packet has been prepared through HomeOfferFlow.\n\n"
-            "Please carefully review and sign the buyer-side offer documents. "
-            "Seller signatures, seller initials, counteroffers, amendments, and seller-side changes are handled separately by the seller or listing side.\n\n"
+            "Your Texas offer packet has been prepared through HomeOfferFlow.\n\n" +
+            signing_scope_message +
             "HomeOfferFlow does not automatically submit offers to a seller, listing broker, or MLS.\n\n"
             "Questions or technical issues? Email: support@homeofferflow.com\n\n"
             "Terms of Service: https://www.homeofferflow.com/terms.html\n"
@@ -1383,7 +1401,7 @@ def create_signwell_signature_request(offer, pdf_bytes):
         "test_mode": SIGNWELL_TEST_MODE,
         "draft": False,
         "reminders": True,
-        "apply_signing_order": False,
+        "apply_signing_order": bool(seller_lease_parties),
         "embedded_signing": False,
         "with_signature_page": False,
         "custom_requester_name": "HomeOfferFlow",
@@ -1399,9 +1417,13 @@ def create_signwell_signature_request(offer, pdf_bytes):
             "prepared_by_agent_email": str(agent_email)[:250],
             "prepared_by_agent_phone": str(agent_phone)[:80],
             "property_address": str(addr)[:450],
-            "buyer_count": str(len(recipients)),
+            "buyer_count": str(1 + (1 if buyer2_email else 0)),
+            "seller_temporary_lease_tenant_count": str(len(seller_lease_parties)),
             "test_mode": str(SIGNWELL_TEST_MODE).lower(),
-            "debug_payload": "bundle_v12_buyer_only_all_addenda"
+            "debug_payload": (
+                "bundle_v13_seller_temporary_lease_multisigner"
+                if seller_lease_parties else "bundle_v12_buyer_only_all_addenda"
+            )
         }
     }
 
@@ -1411,7 +1433,10 @@ def create_signwell_signature_request(offer, pdf_bytes):
             return {
                 "enabled": True,
                 "ok": True,
-                "mode": "bundle_v12_buyer_only_all_addenda",
+                "mode": (
+                    "bundle_v13_seller_temporary_lease_multisigner"
+                    if seller_lease_parties else "bundle_v12_buyer_only_all_addenda"
+                ),
                 "test_mode": SIGNWELL_TEST_MODE,
                 "field_count": len(fields[0]) if fields else 0,
                 "document_id": data.get("id") or data.get("document_id"),
@@ -1421,7 +1446,10 @@ def create_signwell_signature_request(offer, pdf_bytes):
         return {
             "enabled": True,
             "ok": False,
-            "mode": "bundle_v12_buyer_only_all_addenda_failed",
+            "mode": (
+                "bundle_v13_seller_temporary_lease_multisigner_failed"
+                if seller_lease_parties else "bundle_v12_buyer_only_all_addenda_failed"
+            ),
             "test_mode": SIGNWELL_TEST_MODE,
             "field_count": len(fields[0]) if fields else 0,
             "signwell_error": data

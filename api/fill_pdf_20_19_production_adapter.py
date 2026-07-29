@@ -32,6 +32,57 @@ def _normalized(value):
     return str(value or "").strip().lower().replace("_", " ").replace("-", " ")
 
 
+def seller_temporary_lease_execution_parties(offer):
+    """Return production Seller/Tenant SignWell recipients for TREC 15-7.
+
+    Buyers sign the lease as Landlords.  A Seller's Temporary Residential Lease
+    is not complete unless the current Seller/Tenant signs too, so production
+    refuses to generate a seller-lease packet without the actual Seller/Tenant
+    contact details needed for those signature requests.
+    """
+    offer = offer or {}
+    possession = _normalized(offer.get("possession") or offer.get("possessionType"))
+    requested = _truthy(offer.get("sellerTemporaryLease")) or possession in {"seller temporary lease", "sellertemporarylease"}
+    if not requested:
+        return []
+
+    candidates = [
+        (
+            verified.first_present(offer.get("seller1Name"), offer.get("seller1"), offer.get("seller")),
+            verified.first_present(offer.get("seller1Email"), offer.get("sellerEmail"), offer.get("tenantEmail")),
+        ),
+        (offer.get("seller2Name"), offer.get("seller2Email")),
+    ]
+    buyer_emails = {
+        str(value or "").strip().lower()
+        for value in (offer.get("buyerEmail"), offer.get("buyer2Email"))
+        if str(value or "").strip()
+    }
+    parties = []
+    used_emails = set(buyer_emails)
+    for index, (raw_name, raw_email) in enumerate(candidates, start=1):
+        name = str(raw_name or "").strip()
+        email = str(raw_email or "").strip().lower()
+        if not name and not email:
+            continue
+        if not name or not email:
+            raise UnsupportedOfferPathError([
+                f"Seller Temporary Residential Lease Seller {index} name and email"
+            ])
+        if email in used_emails:
+            raise UnsupportedOfferPathError([
+                "distinct Seller Temporary Residential Lease signer emails"
+            ])
+        used_emails.add(email)
+        parties.append({"id": str(index + 2), "name": name, "email": email, "seller_index": index})
+
+    if not parties:
+        raise UnsupportedOfferPathError([
+            "Seller Temporary Residential Lease Seller/Tenant signer"
+        ])
+    return parties
+
+
 def validate_supported_offer(offer):
     """Fail closed for buyer paths that have not passed rendered-PDF QA."""
     offer = offer or {}
@@ -81,8 +132,12 @@ def validate_supported_offer(offer):
         blocked.append("Buyer Temporary Residential Lease configuration")
     if possession in {"lease", "buyerlease", "buyer lease"}:
         blocked.append("Buyer Temporary Residential Lease")
-    if _truthy(offer.get("sellerTemporaryLease")):
-        blocked.append("Seller Temporary Residential Lease")
+    seller_temp_flag = _truthy(offer.get("sellerTemporaryLease"))
+    seller_temp_possession = possession in {"seller temporary lease", "sellertemporarylease"}
+    if seller_temp_flag != seller_temp_possession:
+        blocked.append("Seller Temporary Residential Lease configuration")
+    if _truthy(offer.get("sellerExecutionTestMode")):
+        blocked.append("staging-only Seller Temporary Residential Lease test mode")
 
     unsupported_flags = {
         "sellerFinancing": "Seller Financing Addendum",
@@ -104,6 +159,9 @@ def validate_supported_offer(offer):
 
     if blocked:
         raise UnsupportedOfferPathError(blocked)
+
+    if seller_temp_flag:
+        seller_temporary_lease_execution_parties(offer)
 
     return True
 
@@ -164,11 +222,58 @@ def fill_and_merge_20_19(offer):
 
 
 def build_signwell_fields_20_19(offer, pdf_bytes):
-    """Use verified 20-19 fields and append existing manual upload placements."""
+    """Use verified 20-19 fields and append approved production placements."""
     fields = verified.build_signwell_fields(offer, pdf_bytes)
     if not fields:
         fields = [[]]
     fields_for_file = fields[0]
+
+    seller_execution_parties = seller_temporary_lease_execution_parties(offer)
+    if seller_execution_parties:
+        # The source builder already places the Buyer/Landlord fields.  The
+        # completed four-party staging packet visually verified these Seller /
+        # Tenant coordinates, so production adds only the corresponding
+        # Seller/Tenant fields here rather than reusing the staging allowlist.
+        by_id = {field.get("api_id"): field for field in fields_for_file}
+        main_signature_page = by_id.get("buyer1_main_contract_signature", {}).get("page", 10)
+        lease_initial_page = by_id.get("buyer1_initials_seller_temp_lease_p1", {}).get("page")
+        lease_signature_page = by_id.get("buyer1_signature_seller_temp_lease", {}).get("page")
+
+        def append_field(api_id, field_type, page, x, y, recipient_id, width, height, **extra):
+            if not page:
+                return
+            field = {
+                "api_id": api_id,
+                "type": field_type,
+                "page": page,
+                "x": x,
+                "y": y,
+                "recipient_id": recipient_id,
+                "required": True,
+                "width": width,
+                "height": height,
+            }
+            field.update(extra)
+            fields_for_file.append(field)
+
+        def append_signature_date(prefix, page, x, y, date_x, date_y, recipient_id):
+            append_field(f"{prefix}_signature", "signature", page, x, y, recipient_id, 145, 20)
+            append_field(
+                f"{prefix}_date", "date", page, date_x, date_y, recipient_id, 66, 16,
+                date_format="MM/DD/YYYY", lock_sign_date=True,
+            )
+
+        for party in seller_execution_parties:
+            recipient_id = party["id"]
+            index = party["seller_index"]
+            if index == 1:
+                append_signature_date("seller1_main_contract", main_signature_page, 420, 433, 591, 433, recipient_id)
+                append_field("seller1_initials_seller_temp_lease_p1", "initials", lease_initial_page, 476, 1004, recipient_id, 24, 10)
+                append_field("seller1_signature_seller_temp_lease", "signature", lease_signature_page, 440, 777, recipient_id, 145, 20)
+            elif index == 2:
+                append_signature_date("seller2_main_contract", main_signature_page, 420, 568, 591, 568, recipient_id)
+                append_field("seller2_initials_seller_temp_lease_p1", "initials", lease_initial_page, 508, 1004, recipient_id, 24, 10)
+                append_field("seller2_signature_seller_temp_lease", "signature", lease_signature_page, 440, 845, recipient_id, 145, 20)
 
     docs = _uploaded_docs(offer)
     if not docs:

@@ -145,12 +145,33 @@ class SellerTemporaryLeaseStagingTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "either the Buyer or Seller"):
             staging.fill_and_merge(offer)
 
-    def test_production_remains_fail_closed_until_staging_packet_is_visually_approved(self):
+    def test_production_accepts_the_completed_four_party_qa_shape(self):
         offer = seller_temp_offer()
-        with self.assertRaises(production.UnsupportedOfferPathError):
+        offer.update({
+            "seller1Name": "Seller Lease Seller One",
+            "seller1Email": "seller1@example.com",
+            "seller2Name": "Seller Lease Seller Two",
+            "seller2Email": "seller2@example.com",
+        })
+        self.assertTrue(production.validate_supported_offer(offer))
+        packet = production.fill_and_merge_20_19(offer)
+        self.assertEqual(len(PdfReader(BytesIO(packet)).pages), 14)
+        fields = production.build_signwell_fields_20_19(offer, packet)[0]
+        by_id = {field["api_id"]: field for field in fields}
+        self.assertEqual(by_id["seller1_main_contract_signature"]["page"], 10)
+        self.assertEqual(by_id["seller2_main_contract_signature"]["page"], 10)
+        self.assertEqual(by_id["seller1_initials_seller_temp_lease_p1"]["page"], 13)
+        self.assertEqual(by_id["seller2_initials_seller_temp_lease_p1"]["page"], 13)
+        self.assertEqual(by_id["seller1_signature_seller_temp_lease"]["page"], 14)
+        self.assertEqual(by_id["seller2_signature_seller_temp_lease"]["page"], 14)
+
+    def test_production_requires_seller_tenant_email_for_seller_lease_execution(self):
+        offer = seller_temp_offer()
+        offer.pop("sellerEmail")
+        with self.assertRaisesRegex(production.UnsupportedOfferPathError, "Seller 1 name and email"):
             production.validate_supported_offer(offer)
 
-    def test_only_staging_bundle_includes_seller_temp_lease_source(self):
+    def test_production_and_staging_bundle_include_seller_temp_lease_source(self):
         config = json.loads((ROOT / "vercel.json").read_text())
         self.assertIsInstance(
             config["functions"]["api/fill_pdf_20_19_staging.py"]["includeFiles"], str
@@ -159,9 +180,9 @@ class SellerTemporaryLeaseStagingTests(unittest.TestCase):
             "seller_temporary_residential_lease_15-7.pdf",
             config["functions"]["api/fill_pdf_20_19_staging.py"]["includeFiles"],
         )
-        self.assertEqual(
+        self.assertIn(
+            "seller_temporary_residential_lease_15-7.pdf",
             config["functions"]["api/fill-pdf.py"]["includeFiles"],
-            "buyer_temporary_residential_lease_16-7.pdf",
         )
 
 

@@ -3302,7 +3302,26 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
       <p class="step-desc">A few final deal terms before review.</p>
       <div class="field-group">
         <div class="field"><div class="field-label-row"><label>Target Closing Date</label><button class="helper-btn" onclick="toggleHelper('h-closing-date')">?</button></div><div class="helper-box" id="h-closing-date"><strong>💡 Closing Date</strong>HomeOfferFlow defaults to about 30 days from today and rolls forward if that date falls on a weekend or standard banking holiday. Confirm with lender, title company, agent, and the parties before sending.</div><div class="date-field-wrap"><input type="date" id="closingDate"/></div></div>
-        <div class="field"><div class="field-label-row"><label>Possession</label><button class="helper-btn" onclick="toggleHelper('h-possession')">?</button></div><div class="helper-box" id="h-possession"><strong>💡 Possession Timing</strong>“Upon Funding” is commonly used because closing and funding are not always the same instant. Possession at closing or leaseback terms should match what the parties negotiate.</div><select id="possession"><option value="">Select...</option><option value="closing">At Closing</option><option value="funding">Upon Funding (recommended)</option><option value="leaseback">Seller Leaseback</option></select></div>
+        <div class="field"><div class="field-label-row"><label>Possession</label><button class="helper-btn" onclick="toggleHelper('h-possession')">?</button></div><div class="helper-box" id="h-possession"><strong>💡 Possession Timing</strong>“Upon Funding” is commonly used because closing and funding are not always the same instant. Possession after closing requires a written lease that both sides sign.</div><select id="possession" onchange="toggleSellerTemporaryLeaseFields()"><option value="">Select...</option><option value="closing">At Closing</option><option value="funding">Upon Funding (recommended)</option><option value="sellerTemporaryLease">Seller remains temporarily after closing</option></select></div>
+        <div id="sellerTemporaryLeaseFields" style="display:none; margin-top:0.9rem; padding:1rem; border:1px solid rgba(227,186,86,0.45); border-radius:12px; background:rgba(227,186,86,0.08);">
+          <p style="font-size:0.84rem; font-weight:700; color:var(--gold-light); margin:0 0 0.4rem;">Seller's Temporary Residential Lease</p>
+          <p class="step-desc" style="margin:0 0 0.75rem;">This adds TREC 15-7. Buyers sign as landlords first; the current seller signs as tenant afterward. Enter the seller's actual signing contact details.</p>
+          <div class="field-group">
+            <div class="field"><label>Seller / tenant 1 full name</label><input id="seller1Name" type="text" placeholder="Required for signature"></div>
+            <div class="field"><label>Seller / tenant 1 email</label><input id="seller1Email" type="email" placeholder="Required for signature"></div>
+            <div class="field"><label>Seller / tenant 2 full name (if applicable)</label><input id="seller2Name" type="text" placeholder="Optional"></div>
+            <div class="field"><label>Seller / tenant 2 email (if applicable)</label><input id="seller2Email" type="email" placeholder="Optional"></div>
+            <div class="field"><label>Seller / tenant mailing address</label><input id="sellerMailAddr" type="text" placeholder="For lease notices"></div>
+            <div class="field"><label>Seller / tenant phone</label><input id="sellerPhone" type="tel" placeholder="For lease notices"></div>
+            <div class="field"><label>Lease termination date</label><input id="sellerTemporaryLeaseTerminationDate" type="date"></div>
+            <div class="field"><label>Daily rent</label><input id="sellerTemporaryLeaseRentPerDay" inputmode="decimal" placeholder="e.g. 125"></div>
+            <div class="field"><label>Security deposit</label><input id="sellerTemporaryLeaseDeposit" inputmode="decimal" placeholder="e.g. 1000"></div>
+            <div class="field"><label>Utilities buyer / landlord will pay</label><input id="sellerTemporaryLeaseUtilitiesPaidByBuyer" type="text" placeholder="e.g. Water and trash"></div>
+            <div class="field"><label>Permitted pets</label><input id="sellerTemporaryLeasePetsAllowed" type="text" placeholder="e.g. One dog under 40 pounds"></div>
+            <div class="field"><label>Holdover charge per day</label><input id="sellerTemporaryLeaseHoldoverPerDay" inputmode="decimal" placeholder="e.g. 300"></div>
+          </div>
+          <div class="field" style="margin-top:0.7rem;"><label>Lease special provisions</label><textarea id="sellerTemporaryLeaseSpecialProvisions" rows="3" placeholder="Enter only terms agreed by the parties."></textarea></div>
+        </div>
         <div class="field"><div class="field-label-row"><label>Title Company (optional)</label><button class="helper-btn" onclick="toggleHelper('h-title-company')">?</button></div><div class="helper-box" id="h-title-company"><strong>💡 Title Company</strong>This is the title/escrow company requested for the transaction. Buyer and seller can negotiate title company selection. Agents may also use brokerage-preferred defaults if appropriate.</div><input type="text" id="titleCompany" placeholder="e.g. Alamo Title Company" value="Chicago Title DFW - Forgey Law Group PLLC"/></div>
       </div>
 
@@ -5984,6 +6003,8 @@ function routeAfterMagicLinkIfNeeded() {
       setTimeout(updatePaymentCalculator, 75);
     }
 
+    if (sid === 'step7') toggleSellerTemporaryLeaseFields();
+
     if (sid === 'step8') {
       collectAllData();
       buildReview();
@@ -6221,6 +6242,20 @@ function routeAfterMagicLinkIfNeeded() {
       'step7': () => {
         s.closingDate = getVal('closingDate');
         s.possession = getVal('possession') || 'funding';
+        s.sellerTemporaryLease = s.possession === 'sellerTemporaryLease' ? 'yes' : 'no';
+        s.seller1Name = getVal('seller1Name');
+        s.seller1Email = getVal('seller1Email');
+        s.seller2Name = getVal('seller2Name');
+        s.seller2Email = getVal('seller2Email');
+        s.sellerMailAddr = getVal('sellerMailAddr');
+        s.sellerPhone = getVal('sellerPhone');
+        s.sellerTemporaryLeaseTerminationDate = getVal('sellerTemporaryLeaseTerminationDate');
+        s.sellerTemporaryLeaseRentPerDay = getVal('sellerTemporaryLeaseRentPerDay');
+        s.sellerTemporaryLeaseDeposit = getVal('sellerTemporaryLeaseDeposit');
+        s.sellerTemporaryLeaseUtilitiesPaidByBuyer = getVal('sellerTemporaryLeaseUtilitiesPaidByBuyer');
+        s.sellerTemporaryLeasePetsAllowed = getVal('sellerTemporaryLeasePetsAllowed');
+        s.sellerTemporaryLeaseSpecialProvisions = getVal('sellerTemporaryLeaseSpecialProvisions');
+        s.sellerTemporaryLeaseHoldoverPerDay = getVal('sellerTemporaryLeaseHoldoverPerDay');
         s.titleCompany = getVal('titleCompany');
 
         const agentRadio = getRadio('hasBuyerAgent');
@@ -7073,10 +7108,39 @@ function routeAfterMagicLinkIfNeeded() {
     if (data.buyerTemporaryLease === 'yes' || ['lease', 'temporaryLease'].includes(data.possession)) {
       blocked.push("Buyer's Temporary Residential Lease");
     }
-    if (data.sellerTemporaryLease === 'yes') blocked.push("Seller's Temporary Residential Lease");
     if (data.sellerFinancing === 'yes') blocked.push('Seller Financing Addendum');
     if (data.loanAssumption === 'yes') blocked.push('Loan Assumption Addendum');
     return [...new Set(blocked)];
+  }
+
+  function toggleSellerTemporaryLeaseFields() {
+    const active = getVal('possession') === 'sellerTemporaryLease';
+    const fields = document.getElementById('sellerTemporaryLeaseFields');
+    if (!fields) return;
+    fields.style.display = active ? 'block' : 'none';
+  }
+
+  function validateSellerTemporaryLeaseInputs(data) {
+    if ((data || {}).possession !== 'sellerTemporaryLease') return true;
+    const seller1Name = String(data.seller1Name || '').trim();
+    const seller1Email = String(data.seller1Email || '').trim();
+    const seller2Name = String(data.seller2Name || '').trim();
+    const seller2Email = String(data.seller2Email || '').trim();
+    const buyerEmails = [data.buyerEmail, data.buyer2Email].filter(Boolean).map(value => String(value).trim().toLowerCase());
+    const sellerEmails = [seller1Email, seller2Email].filter(Boolean).map(value => value.toLowerCase());
+    if (!seller1Name || !seller1Email) {
+      alert("Seller's Temporary Residential Lease requires the current seller / tenant 1 name and email for signature routing.");
+      return false;
+    }
+    if ((seller2Name && !seller2Email) || (!seller2Name && seller2Email)) {
+      alert("Enter both the name and email for seller / tenant 2, or leave both blank.");
+      return false;
+    }
+    if (new Set(buyerEmails.concat(sellerEmails)).size !== buyerEmails.length + sellerEmails.length) {
+      alert('Each signer needs a different email address.');
+      return false;
+    }
+    return true;
   }
 
 
@@ -7116,6 +7180,7 @@ function routeAfterMagicLinkIfNeeded() {
 
       try { collectAllData(); } catch (e) { try { collectData(); } catch (_) {} }
       if (!confirmControlledLaunchSupport(state.data)) return;
+      if (!validateSellerTemporaryLeaseInputs(state.data)) return;
 
       const email = (
         document.getElementById('paymentEmail')?.value ||
@@ -7210,6 +7275,7 @@ function routeAfterMagicLinkIfNeeded() {
 
     collectAllData();
     if (!confirmControlledLaunchSupport(state.data)) return;
+    if (!validateSellerTemporaryLeaseInputs(state.data)) return;
 
     const email =
       state.data.buyerEmail ||
