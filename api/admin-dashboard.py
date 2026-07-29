@@ -1218,6 +1218,9 @@ class handler(BaseHTTPRequestHandler):
             qa_scenarios = asyncio.run(_get("hof_qa_scenarios?select=*&active=eq.true&order=priority.asc&limit=100"))
             qa_runs = asyncio.run(_get("hof_qa_runs?select=*&order=created_at.desc&limit=50"))
             releases = asyncio.run(_get("hof_releases?select=*&order=created_at.desc&limit=20"))
+            stripe_webhook_events = asyncio.run(_get_optional(
+                "hof_stripe_webhook_events?select=stripe_event_id,event_type,livemode,processing_state,error_code,received_at,processed_at&order=received_at.desc&limit=50"
+            ))
             total_volume = sum(float(o.get("offer_price") or 0) for o in offers)
             def bucket(s):
                 s = str(s or "").lower()
@@ -1245,6 +1248,11 @@ class handler(BaseHTTPRequestHandler):
                 "qaScenarioCount": len(qa_scenarios),
                 "qaVerifiedCount": len([item for item in qa_scenarios if item.get("current_status") in {"passed", "staging_passed", "production"}]),
                 "releaseCount": len(releases),
+                "stripeWebhookEventCount": len(stripe_webhook_events),
+                "stripeWebhookAttentionCount": len([
+                    item for item in stripe_webhook_events
+                    if item.get("processing_state") == "failed"
+                ]),
             }
             _json(self, 200, {
                 "metrics": metrics,
@@ -1258,6 +1266,7 @@ class handler(BaseHTTPRequestHandler):
                 "qaScenarios": qa_scenarios,
                 "qaRuns": qa_runs,
                 "releases": releases,
+                "stripeWebhookEvents": stripe_webhook_events,
                 "showings": [],
                 "feedback": [],
             })

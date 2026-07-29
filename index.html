@@ -3831,6 +3831,16 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
           <div>${adminDate(row.created_at)}${canUpdate ? `<div class="partner-lead-admin-actions"><select id="partnerLeadStatus-${leadId}" aria-label="Review status for ${adminSafe(row.company_name || 'partner lead')}">${partnerLeadStatusOptions(status)}</select><select id="partnerOnboardingStatus-${leadId}" aria-label="Onboarding status for ${adminSafe(row.company_name || 'partner lead')}">${partnerOnboardingStatusOptions(onboardingStatus)}</select><button id="partnerLeadSave-${leadId}" type="button" onclick="updatePartnerLeadStatus('${leadId}')">Save</button></div>` : ''}</div>
         </div>`;
       }
+      if (type === 'stripe-webhooks') {
+        const state = String(row.processing_state || 'received');
+        const mode = row.livemode ? 'Live' : 'Sandbox';
+        return `<div class="admin-row">
+          <div><strong>${adminSafe(row.event_type || 'Stripe event')}</strong><div class="admin-muted">${adminSafe(row.stripe_event_id || '')}</div></div>
+          <div>${adminSafe(mode)}</div>
+          <div><span class="admin-pill ${state === 'processed' || state === 'ignored' ? 'good' : 'warn'}">${adminSafe(state)}</span>${row.error_code ? `<div class="admin-muted">${adminSafe(row.error_code)}</div>` : ''}</div>
+          <div>${adminDate(row.processed_at || row.received_at)}</div>
+        </div>`;
+      }
       return `<div class="admin-row">
         <div><strong>${adminSafe(row.property_address || 'Offer')}</strong><div class="admin-muted">${adminSafe(row.buyer_name || '')} · ${adminSafe(row.buyer_email || '')}</div></div>
         <div>${adminMoney(row.offer_price || 0)}<div class="admin-muted">${adminSafe(row.role || '')}</div></div>
@@ -3867,6 +3877,7 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
       const offers = result.offers || [];
       const showings = result.showings || [];
       const subscriptions = result.subscriptions || [];
+      const stripeWebhookEvents = result.stripeWebhookEvents || [];
       const feedback = result.feedback || [];
       const partnerLeads = result.partnerLeads || [];
       window.hofAdminTrackerPayload = {
@@ -3898,6 +3909,11 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
           <div class="admin-metric">
             <div class="admin-metric-label">Subscriptions</div>
             <div class="admin-metric-value">${metrics.subscriptionCount || subscriptions.length || 0}</div>
+          </div>
+
+          <div class="admin-metric">
+            <div class="admin-metric-label">Billing Webhook Attention</div>
+            <div class="admin-metric-value">${metrics.stripeWebhookAttentionCount || 0}</div>
           </div>
 
           <div class="admin-metric">
@@ -3949,6 +3965,11 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
         <div class="admin-section">
           <h4>Subscriptions</h4>
           ${renderAdminRows(subscriptions.slice(0, 8), 'subscriptions')}
+        </div>
+
+        <div class="admin-section">
+          <h4>Billing Webhook Activity</h4>
+          ${renderAdminRows(stripeWebhookEvents.slice(0, 12), 'stripe-webhooks')}
         </div>
 
         <div class="admin-section">

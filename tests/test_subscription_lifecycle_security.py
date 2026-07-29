@@ -326,6 +326,18 @@ class SubscriptionLifecycleSecurityTests(unittest.TestCase):
         self.assertIn("revoke all on table public.hof_stripe_webhook_events from anon, authenticated", migration)
         self.assertIn("grant all on table public.hof_stripe_webhook_events to service_role", migration)
 
+    def test_platform_admin_can_monitor_webhook_delivery_without_customer_or_payment_data(self):
+        admin_source = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
+        self.assertIn("stripeWebhookEvents", admin_source)
+        self.assertIn(
+            "select=stripe_event_id,event_type,livemode,processing_state,error_code,received_at,processed_at",
+            admin_source,
+        )
+        self.assertNotIn("hof_stripe_webhook_events?select=*", admin_source)
+        for sensitive in ("customer_email", "payment_method", "card_last4", "event_payload"):
+            self.assertNotIn(sensitive, admin_source)
+        self.assertIn("Billing Webhook Activity", INDEX_HTML)
+
     def test_webhook_failure_does_not_expose_internal_error_text(self):
         event = {"type": "checkout.session.completed", "data": {"object": {}}}
         raw = json.dumps(event).encode()
