@@ -12,6 +12,7 @@ import hashlib
 import json
 import shutil
 import subprocess
+import sys
 import tempfile
 from io import BytesIO, StringIO
 from pathlib import Path
@@ -22,7 +23,12 @@ from pypdf import PdfReader
 ROOT = Path(__file__).resolve().parents[1]
 BASELINE_PATH = ROOT / "tests" / "fixtures" / "golden_packet_rendering.json"
 POPPLER = shutil.which("pdftoppm")
-PYTHON_TEST_ROOT = ROOT
+
+# Running a script by file path places ``scripts/`` on sys.path, not the
+# repository root. Add the root explicitly so the documented command can
+# import the controlled packet fixtures and production adapter.
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 
 def _offer_scenarios():
