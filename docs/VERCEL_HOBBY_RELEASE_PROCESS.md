@@ -21,6 +21,20 @@ For each completed batch:
    - This check requires approved source, authorization, signing plan,
      rendered signed-PDF QA, regression evidence, and release authority. It does
      not replace any of those human gates.
+   - Vercel also evaluates the **author email on the commit being deployed**.
+     The release commit must use an email that belongs to the HomeOfferFlow
+     Vercel team. For the current deployment team, add this author check to the
+     same command:
+
+     ```bash
+     python3 scripts/release_preflight.py \
+       --base origin/main \
+       --expected-deploy-author-email andrewchri@gmail.com
+     ```
+
+     This does not grant anyone product authority. It only prevents Vercel from
+     silently blocking a valid build because its commit author lacks Vercel-team
+     access.
 3. Merge the verified pull request.
 4. From the checked-out production commit, run one explicit production deploy:
 

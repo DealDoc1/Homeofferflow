@@ -37,6 +37,18 @@ def _git_changed_files(base: str) -> list[str]:
     return [line.strip() for line in result.stdout.splitlines() if line.strip()]
 
 
+def _git_commit_author_email() -> str:
+    """Return the author email Vercel will evaluate for the deployment commit."""
+    result = subprocess.run(
+        ["git", "log", "-1", "--format=%ae"],
+        cwd=ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return result.stdout.strip().lower()
+
+
 def _is_packet_or_form_change(path: str) -> bool:
     normalized = path.replace("\\", "/").lower()
     return (
@@ -76,11 +88,31 @@ def _parse_args(argv: Iterable[str] | None = None) -> argparse.Namespace:
         type=Path,
         help="Completed release-evidence Markdown file for a packet/form change.",
     )
+    parser.add_argument(
+        "--expected-deploy-author-email",
+        help=(
+            "Optional Vercel-team commit-author email. When supplied, block "
+            "deployment if HEAD was authored by a different email."
+        ),
+    )
     return parser.parse_args(argv)
 
 
 def main(argv: Iterable[str] | None = None) -> int:
     args = _parse_args(argv)
+    if args.expected_deploy_author_email:
+        expected_author = args.expected_deploy_author_email.strip().lower()
+        actual_author = _git_commit_author_email()
+        if actual_author != expected_author:
+            print(
+                "Preflight blocked: HEAD is authored by "
+                f"{actual_author or '(missing)'}, but the Vercel deployment team "
+                f"expects {expected_author}. Create the release commit with a Vercel-team "
+                "member email before deploying.",
+                file=sys.stderr,
+            )
+            return 2
+
     changed_files = args.changed_file or _git_changed_files(args.base)
     form_change = any(_is_packet_or_form_change(path) for path in changed_files)
 

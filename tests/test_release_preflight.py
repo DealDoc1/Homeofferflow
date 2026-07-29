@@ -2,6 +2,7 @@ from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -58,6 +59,34 @@ Release authority: product reviewer approved the release copy.
                     "20-19_0.pdf",
                     "--evidence-file",
                     str(evidence),
+                ]
+            )
+        self.assertEqual(result, 2)
+
+    def test_expected_deploy_author_accepts_the_matching_commit_author(self):
+        with patch.object(
+            release_preflight, "_git_commit_author_email", return_value="andrewchri@gmail.com"
+        ):
+            result = release_preflight.main(
+                [
+                    "--changed-file",
+                    "index.html",
+                    "--expected-deploy-author-email",
+                    "andrewchri@gmail.com",
+                ]
+            )
+        self.assertEqual(result, 0)
+
+    def test_expected_deploy_author_rejects_a_non_member_author(self):
+        with patch.object(
+            release_preflight, "_git_commit_author_email", return_value="agent@brokerage.com"
+        ):
+            result = release_preflight.main(
+                [
+                    "--changed-file",
+                    "index.html",
+                    "--expected-deploy-author-email",
+                    "andrewchri@gmail.com",
                 ]
             )
         self.assertEqual(result, 2)

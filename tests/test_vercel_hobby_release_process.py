@@ -15,6 +15,7 @@ class VercelHobbyReleaseProcessTests(unittest.TestCase):
         guide = (ROOT / "docs" / "VERCEL_HOBBY_RELEASE_PROCESS.md").read_text()
         self.assertIn("vercel deploy --prod --yes", guide)
         self.assertIn("full local test suite", guide)
+        self.assertIn("--expected-deploy-author-email andrewchri@gmail.com", guide)
 
 
 if __name__ == "__main__":
