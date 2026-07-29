@@ -30,18 +30,36 @@ This is the first missing agent workflow because it belongs at the beginning of
 the buyer relationship, before an offer is prepared.
 
 Important source-form rule: TREC does **not** promulgate a buyer representation
-agreement. OnDemand must provide the broker-approved agreement and confirm the
-right to use it in HomeOfferFlow before implementation. The product must not
-substitute, generate, or improvise legal agreement language.
+agreement. For the Texas REALTORS® member workflow, the approved source forms
+are TXR-1501 Residential Buyer/Tenant Representation Agreement - Long Form and
+TXR-1507 Residential Buyer/Tenant Representation Agreement - Short Form. The
+agent must choose the correct broker-approved form; HomeOfferFlow must not
+silently default a client into either agreement or improvise legal agreement
+language.
+
+The supplied July 2026 Texas REALTORS® source-form inventory also identifies
+TXR-1506 General Information and Notice to Consumers and TXR-1508
+Unrepresented Customer Showing Form as closely related buyer-intake workflows.
+They are separate releases, not addenda to a purchase offer.
 
 Release requirements:
 
 - broker-approved source PDF/template and version owner;
+- a verified authorization model for Texas REALTORS® forms (the source form
+  itself limits use to authorized members);
+- an explicit agent choice between the Long Form and Short Form, with no
+  preselected legal agreement;
 - guided data intake limited to the approved agreement fields;
 - correct agent, broker, and buyer signer/recipient roles;
 - secure association to the agent and brokerage;
 - rendered-PDF, signature-placement, and single-/multi-buyer QA;
 - broker approval before production release.
+
+Foundation completed locally: `supabase/homeofferflow_brokerage_form_sources.sql`
+creates a private brokerage-source vault for TXR-1501, TXR-1506, TXR-1507,
+and TXR-1508. It requires a brokerage administrator's authorization attestation
+and deliberately prevents agents from downloading restricted source PDFs in
+their browsers. It does not activate or distribute a form by itself.
 
 ### 2. Seller disclosure workflow
 
