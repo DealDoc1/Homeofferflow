@@ -1,5 +1,8 @@
 import base64
+import contextlib
+import json
 from io import BytesIO
+from io import StringIO
 from pathlib import Path
 import unittest
 
@@ -9,6 +12,7 @@ from api import fill_pdf_20_19_production_adapter as adapter
 
 
 ROOT = Path(__file__).resolve().parents[1]
+GOLDEN_RENDER_BASELINE = ROOT / "tests" / "fixtures" / "golden_packet_rendering.json"
 
 
 def configure_local_forms():
@@ -147,6 +151,67 @@ class ControlledLaunchTests(unittest.TestCase):
         uploaded = [field for field in fields if field["api_id"].startswith("uploaded_")]
         self.assertEqual(len(uploaded), 1)
         self.assertEqual(uploaded[0]["page"], 13)
+
+    def test_uploaded_listing_documents_keep_agent_selected_packet_order(self):
+        first = one_page_pdf_base64()
+        second = one_page_pdf_base64()
+        offer = minimal_offer(uploadedDisclosureDocs=[
+            {"name": "seller-disclosure.pdf", "type": "seller_disclosure", "base64": first},
+            {"name": "survey.pdf", "type": "survey", "base64": second},
+        ])
+        packet = adapter.fill_and_merge_20_19(offer)
+        self.assertEqual(len(PdfReader(BytesIO(packet)).pages), 14)
+
+    def test_ten_golden_packet_scenarios_keep_supported_packet_shape_and_signers(self):
+        conventional = {
+            "financing": "conventional", "thirdPartyFinancing": "yes",
+            "loanAmount": "400000", "cashAmount": "100000", "loanType": "conventional",
+            "loanTerm": "30", "interestRate": "6.5", "loanOriginationFee": "0",
+        }
+        backup = {
+            "backupOffer": "yes", "backupAdditionalEarnest": "500",
+            "backupAdditionalOptionFee": "100", "backupAdditionalDays": "3",
+            "firstContractDate": "2026-06-01", "backupTerminationDate": "2026-08-01",
+        }
+        scenarios = [
+            ("cash_single", {}, 12, {"buyer1_main_contract_signature"}, {"buyer2_main_contract_signature"}),
+            ("cash_two", {"buyer2": "Second Buyer", "buyer2Email": "second@example.com"}, 12,
+             {"buyer1_main_contract_signature", "buyer2_main_contract_signature"}, set()),
+            ("conventional_single", conventional, 14,
+             {"buyer1_financing_addendum_signature"}, set()),
+            ("conventional_two_buyers", {**conventional, "buyer2": "Second Buyer", "buyer2Email": "second@example.com", "asIs": "no", "repairsText": "Repair window", "homeWarrantyAmount": "700", "concessionAmount": "5000"}, 14,
+             {"buyer1_financing_addendum_signature", "buyer2_financing_addendum_signature"}, set()),
+            ("hoa", {"hoa": "yes", "hoaDelivery": "seller", "hoaDeliveryDays": "7", "hoaTransferFeeCap": "0", "hoaName": "Example HOA"}, 13,
+             {"buyer1_hoa_addendum_signature"}, set()),
+            ("appraisal", {**conventional, "appraisalAddendum": "partialWaiver", "appraisalWaiverType": "partialWaiver", "appraisalMinimum": "475000"}, 15,
+             {"buyer1_appraisal_addendum_signature"}, set()),
+            ("sale_of_other_property", {"saleContingency": "yes", "salePropertyAddress": "1 Sale St", "saleContingencyDate": "2026-08-01", "saleWaiverDays": "3", "saleAdditionalEarnest": "1000"}, 13,
+             {"buyer1_sale_other_property_addendum_signature"}, set()),
+            ("backup_contract", backup, 14,
+             {"buyer1_backup_addendum_signature"}, set()),
+            ("all_supported_addenda", {**conventional, **backup, "buyer2": "Second Buyer", "buyer2Email": "second@example.com", "hoa": "yes", "hoaDelivery": "seller", "hoaDeliveryDays": "7", "hoaTransferFeeCap": "0", "hoaName": "Example HOA", "appraisalAddendum": "partialWaiver", "appraisalWaiverType": "partialWaiver", "appraisalMinimum": "475000", "saleContingency": "yes", "salePropertyAddress": "1 Sale St", "saleContingencyDate": "2026-08-01", "saleWaiverDays": "3", "saleAdditionalEarnest": "1000", "nonRealtyItems": "yes", "nonRealtyItemsAmount": "750", "nonRealtyItemsText": "Refrigerator"}, 20,
+             {"buyer1_financing_addendum_signature", "buyer1_appraisal_addendum_signature", "buyer1_hoa_addendum_signature", "buyer1_sale_other_property_addendum_signature", "buyer1_backup_addendum_signature"}, set()),
+            ("sparse_optional_fields", {"buyer2": "", "buyer2Email": "", "earnest": "", "optionFee": "", "optionDays": "", "survey": "noSurvey", "surveyDays": "", "objectionDays": "", "escrowAgent": "", "escrowAddress": "", "titleCompany": ""}, 12,
+             {"buyer1_main_contract_signature"}, {"buyer2_main_contract_signature", "buyer1_financing_addendum_signature"}),
+        ]
+
+        for name, overrides, expected_pages, required_fields, forbidden_fields in scenarios:
+            with self.subTest(scenario=name), contextlib.redirect_stdout(StringIO()):
+                packet = adapter.fill_and_merge_20_19(minimal_offer(**overrides))
+                fields = adapter.build_signwell_fields_20_19(minimal_offer(**overrides), packet)[0]
+            field_ids = {field["api_id"] for field in fields}
+            self.assertEqual(len(PdfReader(BytesIO(packet)).pages), expected_pages)
+            self.assertTrue(required_fields <= field_ids)
+            self.assertFalse(forbidden_fields & field_ids)
+
+    def test_golden_render_baseline_covers_each_supported_golden_scenario(self):
+        manifest = json.loads(GOLDEN_RENDER_BASELINE.read_text(encoding="utf-8"))
+        self.assertEqual(manifest["renderer"], "pdftoppm")
+        self.assertEqual(manifest["max_width"], 612)
+        self.assertEqual(len(manifest["scenarios"]), 10)
+        for scenario in manifest["scenarios"].values():
+            self.assertEqual(len(scenario["pages"]), scenario["page_count"])
+            self.assertTrue(scenario["field_ids"])
 
     def test_unverified_paths_fail_closed(self):
         blocked_offers = [

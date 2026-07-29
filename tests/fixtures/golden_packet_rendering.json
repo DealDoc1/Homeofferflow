@@ -1,0 +1,964 @@
+{
+  "max_width": 612,
+  "renderer": "pdftoppm",
+  "scenarios": {
+    "all_supported_addenda": {
+      "field_ids": [
+        "buyer1_appraisal_addendum_date",
+        "buyer1_appraisal_addendum_signature",
+        "buyer1_backup_addendum_date",
+        "buyer1_backup_addendum_signature",
+        "buyer1_financing_addendum_date",
+        "buyer1_financing_addendum_signature",
+        "buyer1_hoa_addendum_date",
+        "buyer1_hoa_addendum_signature",
+        "buyer1_initials_backup_p1",
+        "buyer1_initials_financing_p1",
+        "buyer1_initials_main_p1",
+        "buyer1_initials_main_p2",
+        "buyer1_initials_main_p3",
+        "buyer1_initials_main_p4",
+        "buyer1_initials_main_p5",
+        "buyer1_initials_main_p6",
+        "buyer1_initials_main_p7",
+        "buyer1_initials_main_p8",
+        "buyer1_initials_main_p9",
+        "buyer1_main_contract_date",
+        "buyer1_main_contract_signature",
+        "buyer1_non_realty_items_addendum_date",
+        "buyer1_non_realty_items_addendum_signature",
+        "buyer1_sale_other_property_addendum_date",
+        "buyer1_sale_other_property_addendum_signature",
+        "buyer2_appraisal_addendum_date",
+        "buyer2_appraisal_addendum_signature",
+        "buyer2_backup_addendum_date",
+        "buyer2_backup_addendum_signature",
+        "buyer2_financing_addendum_date",
+        "buyer2_financing_addendum_signature",
+        "buyer2_hoa_addendum_date",
+        "buyer2_hoa_addendum_signature",
+        "buyer2_initials_backup_p1",
+        "buyer2_initials_financing_p1",
+        "buyer2_initials_main_p1",
+        "buyer2_initials_main_p2",
+        "buyer2_initials_main_p3",
+        "buyer2_initials_main_p4",
+        "buyer2_initials_main_p5",
+        "buyer2_initials_main_p6",
+        "buyer2_initials_main_p7",
+        "buyer2_initials_main_p8",
+        "buyer2_initials_main_p9",
+        "buyer2_main_contract_date",
+        "buyer2_main_contract_signature",
+        "buyer2_non_realty_items_addendum_date",
+        "buyer2_non_realty_items_addendum_signature",
+        "buyer2_sale_other_property_addendum_date",
+        "buyer2_sale_other_property_addendum_signature"
+      ],
+      "page_count": 20,
+      "pages": [
+        {
+          "height": 792,
+          "sha256": "d295e202369789e840965f5d6b81c439ca3955d72eaceefc4f60ce891807e1af",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "7d80b85c6ecb40762937108fd6cafd759b65714401dd5c532385b922e7dd353a",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "481adc288039e64cd45f2e36aad8856fb80720c6f0f7ab7f579daf3e241d5d0b",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "4f661d097f3e24e540f37cc18c04220990b53e2db1d7e24f28f875375e38e0de",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "549b23ff5625a17f6032d6025ab6ec6c89bc49c246cc7756338964cdd6b8636a",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "a5c9813edc191cbb1b6eb530865970a5238429e3e4cf14c624580fd395b18163",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "e2a27d80ff943d532806fa6cc3876f0f21ba69ffb8f18d447fb57d2062e1c8e8",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "b091eba145e904dcd454e91d4a11f93ac5fc27b323795eeaa2afea059810f01f",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "6d3c41070d9e1ebad37be95b715b216c715bf33f9e2fe28c58a16e7767ff0d08",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "6f90655d16285a1039ba7ce9df1e84b26a0b305f5055b9110b064b6f4aaebc02",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "e916ea9ff9a6e09cc53d8edfa30b9fcdff9f0f21860ad3d6836b6a80bdefe0bf",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "a02d36b88b04c88a31a3d71a76ea6cd1ed2e8ef4040cf9c32aff85c9f6657aa2",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "6bb79b248f3cd3852213ab6f21e0e7688412a03c7e4ee48979c31d5717baa80a",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "d840cc6bc9bc5ec1fb5cf869d84c07218de40d355979f44ae5b386dcbc4609f4",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "c5f83dace3c1cc7cd6d5f743866172e6129ca9e308b772b42f4ee6967dbf5529",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "b9f4d2a724d8be3e825c657cc858d482d169033e875d2e23eefee1d81934b0f8",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "eb92521a08200668ceda1201068166ecbaefabe75a6b9c4a9b74ad8acdaf5e5c",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "415774762370b865b1e228f489531c1a4fe708ed9f8bb05c60102eb756ff3bc5",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "4797d32261f9c24d3296c6ed0e577532b620cd92d58e7dd59afc389c486a8be0",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "6aea9ca8c4b49800aae1d4ce9c9597053243aa1965bd52f8fa689a2415f2b05c",
+          "width": 612
+        }
+      ]
+    },
+    "appraisal": {
+      "field_ids": [
+        "buyer1_appraisal_addendum_date",
+        "buyer1_appraisal_addendum_signature",
+        "buyer1_financing_addendum_date",
+        "buyer1_financing_addendum_signature",
+        "buyer1_initials_financing_p1",
+        "buyer1_initials_main_p1",
+        "buyer1_initials_main_p2",
+        "buyer1_initials_main_p3",
+        "buyer1_initials_main_p4",
+        "buyer1_initials_main_p5",
+        "buyer1_initials_main_p6",
+        "buyer1_initials_main_p7",
+        "buyer1_initials_main_p8",
+        "buyer1_initials_main_p9",
+        "buyer1_main_contract_date",
+        "buyer1_main_contract_signature"
+      ],
+      "page_count": 15,
+      "pages": [
+        {
+          "height": 792,
+          "sha256": "fe74229f44cae579e41588315c6898fa0cd9ca5b6da3963b09ed728346835f87",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "7d80b85c6ecb40762937108fd6cafd759b65714401dd5c532385b922e7dd353a",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "eb46534dc67775edc85e3b41d06e497e33ea558e7b5b86c6ef80bb144becc3ff",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "4f661d097f3e24e540f37cc18c04220990b53e2db1d7e24f28f875375e38e0de",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "549b23ff5625a17f6032d6025ab6ec6c89bc49c246cc7756338964cdd6b8636a",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "a5c9813edc191cbb1b6eb530865970a5238429e3e4cf14c624580fd395b18163",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "e2a27d80ff943d532806fa6cc3876f0f21ba69ffb8f18d447fb57d2062e1c8e8",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "b091eba145e904dcd454e91d4a11f93ac5fc27b323795eeaa2afea059810f01f",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "e2d4659ddcb0a9243e41a4757a98dbc431a94563a0cafbf5802b141b3b2d76c6",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "6f90655d16285a1039ba7ce9df1e84b26a0b305f5055b9110b064b6f4aaebc02",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "e916ea9ff9a6e09cc53d8edfa30b9fcdff9f0f21860ad3d6836b6a80bdefe0bf",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "a02d36b88b04c88a31a3d71a76ea6cd1ed2e8ef4040cf9c32aff85c9f6657aa2",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "6bb79b248f3cd3852213ab6f21e0e7688412a03c7e4ee48979c31d5717baa80a",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "d840cc6bc9bc5ec1fb5cf869d84c07218de40d355979f44ae5b386dcbc4609f4",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "c5f83dace3c1cc7cd6d5f743866172e6129ca9e308b772b42f4ee6967dbf5529",
+          "width": 612
+        }
+      ]
+    },
+    "backup_contract": {
+      "field_ids": [
+        "buyer1_backup_addendum_date",
+        "buyer1_backup_addendum_signature",
+        "buyer1_initials_backup_p1",
+        "buyer1_initials_main_p1",
+        "buyer1_initials_main_p2",
+        "buyer1_initials_main_p3",
+        "buyer1_initials_main_p4",
+        "buyer1_initials_main_p5",
+        "buyer1_initials_main_p6",
+        "buyer1_initials_main_p7",
+        "buyer1_initials_main_p8",
+        "buyer1_initials_main_p9",
+        "buyer1_main_contract_date",
+        "buyer1_main_contract_signature"
+      ],
+      "page_count": 14,
+      "pages": [
+        {
+          "height": 792,
+          "sha256": "fa964a50e6aaed09f4fdc1b4eb6f56ef488097831aba784991b7d02aa6b811e6",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "7d80b85c6ecb40762937108fd6cafd759b65714401dd5c532385b922e7dd353a",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "eb46534dc67775edc85e3b41d06e497e33ea558e7b5b86c6ef80bb144becc3ff",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "4f661d097f3e24e540f37cc18c04220990b53e2db1d7e24f28f875375e38e0de",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "549b23ff5625a17f6032d6025ab6ec6c89bc49c246cc7756338964cdd6b8636a",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "a5c9813edc191cbb1b6eb530865970a5238429e3e4cf14c624580fd395b18163",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "e2a27d80ff943d532806fa6cc3876f0f21ba69ffb8f18d447fb57d2062e1c8e8",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "b091eba145e904dcd454e91d4a11f93ac5fc27b323795eeaa2afea059810f01f",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "c43a3cd5712e97ac41747534dbc2badf38b9bf094cd40bf67fd9300993d830ed",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "6f90655d16285a1039ba7ce9df1e84b26a0b305f5055b9110b064b6f4aaebc02",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "e916ea9ff9a6e09cc53d8edfa30b9fcdff9f0f21860ad3d6836b6a80bdefe0bf",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "a02d36b88b04c88a31a3d71a76ea6cd1ed2e8ef4040cf9c32aff85c9f6657aa2",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "4797d32261f9c24d3296c6ed0e577532b620cd92d58e7dd59afc389c486a8be0",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "6aea9ca8c4b49800aae1d4ce9c9597053243aa1965bd52f8fa689a2415f2b05c",
+          "width": 612
+        }
+      ]
+    },
+    "cash_single": {
+      "field_ids": [
+        "buyer1_initials_main_p1",
+        "buyer1_initials_main_p2",
+        "buyer1_initials_main_p3",
+        "buyer1_initials_main_p4",
+        "buyer1_initials_main_p5",
+        "buyer1_initials_main_p6",
+        "buyer1_initials_main_p7",
+        "buyer1_initials_main_p8",
+        "buyer1_initials_main_p9",
+        "buyer1_main_contract_date",
+        "buyer1_main_contract_signature"
+      ],
+      "page_count": 12,
+      "pages": [
+        {
+          "height": 792,
+          "sha256": "fa964a50e6aaed09f4fdc1b4eb6f56ef488097831aba784991b7d02aa6b811e6",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "7d80b85c6ecb40762937108fd6cafd759b65714401dd5c532385b922e7dd353a",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "eb46534dc67775edc85e3b41d06e497e33ea558e7b5b86c6ef80bb144becc3ff",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "4f661d097f3e24e540f37cc18c04220990b53e2db1d7e24f28f875375e38e0de",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "549b23ff5625a17f6032d6025ab6ec6c89bc49c246cc7756338964cdd6b8636a",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "a5c9813edc191cbb1b6eb530865970a5238429e3e4cf14c624580fd395b18163",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "e2a27d80ff943d532806fa6cc3876f0f21ba69ffb8f18d447fb57d2062e1c8e8",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "b091eba145e904dcd454e91d4a11f93ac5fc27b323795eeaa2afea059810f01f",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "d2707aa60c912d631b074c1dc99ad17f3dfb37682622954800f435cf76963083",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "6f90655d16285a1039ba7ce9df1e84b26a0b305f5055b9110b064b6f4aaebc02",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "e916ea9ff9a6e09cc53d8edfa30b9fcdff9f0f21860ad3d6836b6a80bdefe0bf",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "a02d36b88b04c88a31a3d71a76ea6cd1ed2e8ef4040cf9c32aff85c9f6657aa2",
+          "width": 612
+        }
+      ]
+    },
+    "cash_two": {
+      "field_ids": [
+        "buyer1_initials_main_p1",
+        "buyer1_initials_main_p2",
+        "buyer1_initials_main_p3",
+        "buyer1_initials_main_p4",
+        "buyer1_initials_main_p5",
+        "buyer1_initials_main_p6",
+        "buyer1_initials_main_p7",
+        "buyer1_initials_main_p8",
+        "buyer1_initials_main_p9",
+        "buyer1_main_contract_date",
+        "buyer1_main_contract_signature",
+        "buyer2_initials_main_p1",
+        "buyer2_initials_main_p2",
+        "buyer2_initials_main_p3",
+        "buyer2_initials_main_p4",
+        "buyer2_initials_main_p5",
+        "buyer2_initials_main_p6",
+        "buyer2_initials_main_p7",
+        "buyer2_initials_main_p8",
+        "buyer2_initials_main_p9",
+        "buyer2_main_contract_date",
+        "buyer2_main_contract_signature"
+      ],
+      "page_count": 12,
+      "pages": [
+        {
+          "height": 792,
+          "sha256": "e787a9b77f2d4d53ae4677dc41a8553b93036341b45725e0b749dfd147d08770",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "7d80b85c6ecb40762937108fd6cafd759b65714401dd5c532385b922e7dd353a",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "eb46534dc67775edc85e3b41d06e497e33ea558e7b5b86c6ef80bb144becc3ff",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "4f661d097f3e24e540f37cc18c04220990b53e2db1d7e24f28f875375e38e0de",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "549b23ff5625a17f6032d6025ab6ec6c89bc49c246cc7756338964cdd6b8636a",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "a5c9813edc191cbb1b6eb530865970a5238429e3e4cf14c624580fd395b18163",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "e2a27d80ff943d532806fa6cc3876f0f21ba69ffb8f18d447fb57d2062e1c8e8",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "b091eba145e904dcd454e91d4a11f93ac5fc27b323795eeaa2afea059810f01f",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "d2707aa60c912d631b074c1dc99ad17f3dfb37682622954800f435cf76963083",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "6f90655d16285a1039ba7ce9df1e84b26a0b305f5055b9110b064b6f4aaebc02",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "e916ea9ff9a6e09cc53d8edfa30b9fcdff9f0f21860ad3d6836b6a80bdefe0bf",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "a02d36b88b04c88a31a3d71a76ea6cd1ed2e8ef4040cf9c32aff85c9f6657aa2",
+          "width": 612
+        }
+      ]
+    },
+    "conventional_single": {
+      "field_ids": [
+        "buyer1_financing_addendum_date",
+        "buyer1_financing_addendum_signature",
+        "buyer1_initials_financing_p1",
+        "buyer1_initials_main_p1",
+        "buyer1_initials_main_p2",
+        "buyer1_initials_main_p3",
+        "buyer1_initials_main_p4",
+        "buyer1_initials_main_p5",
+        "buyer1_initials_main_p6",
+        "buyer1_initials_main_p7",
+        "buyer1_initials_main_p8",
+        "buyer1_initials_main_p9",
+        "buyer1_main_contract_date",
+        "buyer1_main_contract_signature"
+      ],
+      "page_count": 14,
+      "pages": [
+        {
+          "height": 792,
+          "sha256": "fe74229f44cae579e41588315c6898fa0cd9ca5b6da3963b09ed728346835f87",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "7d80b85c6ecb40762937108fd6cafd759b65714401dd5c532385b922e7dd353a",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "eb46534dc67775edc85e3b41d06e497e33ea558e7b5b86c6ef80bb144becc3ff",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "4f661d097f3e24e540f37cc18c04220990b53e2db1d7e24f28f875375e38e0de",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "549b23ff5625a17f6032d6025ab6ec6c89bc49c246cc7756338964cdd6b8636a",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "a5c9813edc191cbb1b6eb530865970a5238429e3e4cf14c624580fd395b18163",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "e2a27d80ff943d532806fa6cc3876f0f21ba69ffb8f18d447fb57d2062e1c8e8",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "b091eba145e904dcd454e91d4a11f93ac5fc27b323795eeaa2afea059810f01f",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "93f93d4d7f96b8d3e460aec31524802ab249d9bdec4ee3207f30c1644ec7fb24",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "6f90655d16285a1039ba7ce9df1e84b26a0b305f5055b9110b064b6f4aaebc02",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "e916ea9ff9a6e09cc53d8edfa30b9fcdff9f0f21860ad3d6836b6a80bdefe0bf",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "a02d36b88b04c88a31a3d71a76ea6cd1ed2e8ef4040cf9c32aff85c9f6657aa2",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "6bb79b248f3cd3852213ab6f21e0e7688412a03c7e4ee48979c31d5717baa80a",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "d840cc6bc9bc5ec1fb5cf869d84c07218de40d355979f44ae5b386dcbc4609f4",
+          "width": 612
+        }
+      ]
+    },
+    "conventional_two_buyers": {
+      "field_ids": [
+        "buyer1_financing_addendum_date",
+        "buyer1_financing_addendum_signature",
+        "buyer1_initials_financing_p1",
+        "buyer1_initials_main_p1",
+        "buyer1_initials_main_p2",
+        "buyer1_initials_main_p3",
+        "buyer1_initials_main_p4",
+        "buyer1_initials_main_p5",
+        "buyer1_initials_main_p6",
+        "buyer1_initials_main_p7",
+        "buyer1_initials_main_p8",
+        "buyer1_initials_main_p9",
+        "buyer1_main_contract_date",
+        "buyer1_main_contract_signature",
+        "buyer2_financing_addendum_date",
+        "buyer2_financing_addendum_signature",
+        "buyer2_initials_financing_p1",
+        "buyer2_initials_main_p1",
+        "buyer2_initials_main_p2",
+        "buyer2_initials_main_p3",
+        "buyer2_initials_main_p4",
+        "buyer2_initials_main_p5",
+        "buyer2_initials_main_p6",
+        "buyer2_initials_main_p7",
+        "buyer2_initials_main_p8",
+        "buyer2_initials_main_p9",
+        "buyer2_main_contract_date",
+        "buyer2_main_contract_signature"
+      ],
+      "page_count": 14,
+      "pages": [
+        {
+          "height": 792,
+          "sha256": "d295e202369789e840965f5d6b81c439ca3955d72eaceefc4f60ce891807e1af",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "7d80b85c6ecb40762937108fd6cafd759b65714401dd5c532385b922e7dd353a",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "eb46534dc67775edc85e3b41d06e497e33ea558e7b5b86c6ef80bb144becc3ff",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "4f661d097f3e24e540f37cc18c04220990b53e2db1d7e24f28f875375e38e0de",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "8b35cf16d19403173b3bc9e2d8220db545f8f9976bc8c9ba2ba4f764a3ce6778",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "cfb0de096089e54098f94d53dc5492d07f0f51fd20e56e70731c9bf1b73a1027",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "e2a27d80ff943d532806fa6cc3876f0f21ba69ffb8f18d447fb57d2062e1c8e8",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "b091eba145e904dcd454e91d4a11f93ac5fc27b323795eeaa2afea059810f01f",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "93f93d4d7f96b8d3e460aec31524802ab249d9bdec4ee3207f30c1644ec7fb24",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "6f90655d16285a1039ba7ce9df1e84b26a0b305f5055b9110b064b6f4aaebc02",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "e916ea9ff9a6e09cc53d8edfa30b9fcdff9f0f21860ad3d6836b6a80bdefe0bf",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "a02d36b88b04c88a31a3d71a76ea6cd1ed2e8ef4040cf9c32aff85c9f6657aa2",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "6bb79b248f3cd3852213ab6f21e0e7688412a03c7e4ee48979c31d5717baa80a",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "d840cc6bc9bc5ec1fb5cf869d84c07218de40d355979f44ae5b386dcbc4609f4",
+          "width": 612
+        }
+      ]
+    },
+    "hoa": {
+      "field_ids": [
+        "buyer1_hoa_addendum_date",
+        "buyer1_hoa_addendum_signature",
+        "buyer1_initials_main_p1",
+        "buyer1_initials_main_p2",
+        "buyer1_initials_main_p3",
+        "buyer1_initials_main_p4",
+        "buyer1_initials_main_p5",
+        "buyer1_initials_main_p6",
+        "buyer1_initials_main_p7",
+        "buyer1_initials_main_p8",
+        "buyer1_initials_main_p9",
+        "buyer1_main_contract_date",
+        "buyer1_main_contract_signature"
+      ],
+      "page_count": 13,
+      "pages": [
+        {
+          "height": 792,
+          "sha256": "fa964a50e6aaed09f4fdc1b4eb6f56ef488097831aba784991b7d02aa6b811e6",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "7d80b85c6ecb40762937108fd6cafd759b65714401dd5c532385b922e7dd353a",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "481adc288039e64cd45f2e36aad8856fb80720c6f0f7ab7f579daf3e241d5d0b",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "4f661d097f3e24e540f37cc18c04220990b53e2db1d7e24f28f875375e38e0de",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "549b23ff5625a17f6032d6025ab6ec6c89bc49c246cc7756338964cdd6b8636a",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "a5c9813edc191cbb1b6eb530865970a5238429e3e4cf14c624580fd395b18163",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "e2a27d80ff943d532806fa6cc3876f0f21ba69ffb8f18d447fb57d2062e1c8e8",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "b091eba145e904dcd454e91d4a11f93ac5fc27b323795eeaa2afea059810f01f",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "f1459563033fc0cff114e65aee3f983108b01c5acee09a7dee2acc85c38be667",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "6f90655d16285a1039ba7ce9df1e84b26a0b305f5055b9110b064b6f4aaebc02",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "e916ea9ff9a6e09cc53d8edfa30b9fcdff9f0f21860ad3d6836b6a80bdefe0bf",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "a02d36b88b04c88a31a3d71a76ea6cd1ed2e8ef4040cf9c32aff85c9f6657aa2",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "eb92521a08200668ceda1201068166ecbaefabe75a6b9c4a9b74ad8acdaf5e5c",
+          "width": 612
+        }
+      ]
+    },
+    "sale_of_other_property": {
+      "field_ids": [
+        "buyer1_initials_main_p1",
+        "buyer1_initials_main_p2",
+        "buyer1_initials_main_p3",
+        "buyer1_initials_main_p4",
+        "buyer1_initials_main_p5",
+        "buyer1_initials_main_p6",
+        "buyer1_initials_main_p7",
+        "buyer1_initials_main_p8",
+        "buyer1_initials_main_p9",
+        "buyer1_main_contract_date",
+        "buyer1_main_contract_signature",
+        "buyer1_sale_other_property_addendum_date",
+        "buyer1_sale_other_property_addendum_signature"
+      ],
+      "page_count": 13,
+      "pages": [
+        {
+          "height": 792,
+          "sha256": "fa964a50e6aaed09f4fdc1b4eb6f56ef488097831aba784991b7d02aa6b811e6",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "7d80b85c6ecb40762937108fd6cafd759b65714401dd5c532385b922e7dd353a",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "eb46534dc67775edc85e3b41d06e497e33ea558e7b5b86c6ef80bb144becc3ff",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "4f661d097f3e24e540f37cc18c04220990b53e2db1d7e24f28f875375e38e0de",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "549b23ff5625a17f6032d6025ab6ec6c89bc49c246cc7756338964cdd6b8636a",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "a5c9813edc191cbb1b6eb530865970a5238429e3e4cf14c624580fd395b18163",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "e2a27d80ff943d532806fa6cc3876f0f21ba69ffb8f18d447fb57d2062e1c8e8",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "b091eba145e904dcd454e91d4a11f93ac5fc27b323795eeaa2afea059810f01f",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "9a7938120d21ee7783a8beca24a4b16f1a1a8c652ba0709ecbd9f0cd56c3705d",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "6f90655d16285a1039ba7ce9df1e84b26a0b305f5055b9110b064b6f4aaebc02",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "e916ea9ff9a6e09cc53d8edfa30b9fcdff9f0f21860ad3d6836b6a80bdefe0bf",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "a02d36b88b04c88a31a3d71a76ea6cd1ed2e8ef4040cf9c32aff85c9f6657aa2",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "415774762370b865b1e228f489531c1a4fe708ed9f8bb05c60102eb756ff3bc5",
+          "width": 612
+        }
+      ]
+    },
+    "sparse_optional_fields": {
+      "field_ids": [
+        "buyer1_initials_main_p1",
+        "buyer1_initials_main_p2",
+        "buyer1_initials_main_p3",
+        "buyer1_initials_main_p4",
+        "buyer1_initials_main_p5",
+        "buyer1_initials_main_p6",
+        "buyer1_initials_main_p7",
+        "buyer1_initials_main_p8",
+        "buyer1_initials_main_p9",
+        "buyer1_main_contract_date",
+        "buyer1_main_contract_signature"
+      ],
+      "page_count": 12,
+      "pages": [
+        {
+          "height": 792,
+          "sha256": "fa964a50e6aaed09f4fdc1b4eb6f56ef488097831aba784991b7d02aa6b811e6",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "09a156931165042bf3a22b8b967b1e125bfe2e04d12f244db901d76c1a18897a",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "368d29a4d3d3ada7b9dc32756389b62f6b0e56dfe1377fd4cae88d5a837d617b",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "4f661d097f3e24e540f37cc18c04220990b53e2db1d7e24f28f875375e38e0de",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "549b23ff5625a17f6032d6025ab6ec6c89bc49c246cc7756338964cdd6b8636a",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "a5c9813edc191cbb1b6eb530865970a5238429e3e4cf14c624580fd395b18163",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "e2a27d80ff943d532806fa6cc3876f0f21ba69ffb8f18d447fb57d2062e1c8e8",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "b091eba145e904dcd454e91d4a11f93ac5fc27b323795eeaa2afea059810f01f",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "d2707aa60c912d631b074c1dc99ad17f3dfb37682622954800f435cf76963083",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "6f90655d16285a1039ba7ce9df1e84b26a0b305f5055b9110b064b6f4aaebc02",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "e916ea9ff9a6e09cc53d8edfa30b9fcdff9f0f21860ad3d6836b6a80bdefe0bf",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "a02d36b88b04c88a31a3d71a76ea6cd1ed2e8ef4040cf9c32aff85c9f6657aa2",
+          "width": 612
+        }
+      ]
+    }
+  },
+  "version": 1
+}
