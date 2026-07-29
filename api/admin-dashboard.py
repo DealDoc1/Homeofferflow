@@ -121,7 +121,8 @@ async def _brokerage_admin_context(user):
         "hof_brokerages?"
         f"id=eq.{urllib.parse.quote(str(brokerage_id))}"
         "&is_active=eq.true&select=id,name,dba_name,slug,logo_url,brand_color,"
-        "website_url,license_number,plan_name,billing_status,user_cap&limit=1"
+        "website_url,license_number,plan_name,billing_status,user_cap,"
+        "default_title_company,default_title_contact&limit=1"
     )
     if not brokerages:
         return None

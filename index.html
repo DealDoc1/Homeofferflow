@@ -11775,7 +11775,7 @@ function routeAfterMagicLinkIfNeeded() {
       }
       const [brokerageResult,membershipResult] = await Promise.all([
         client.from('hof_brokerages')
-          .select('id,name,dba_name,slug,logo_url,brand_color,website_url,license_number,plan_name,billing_status')
+          .select('id,name,dba_name,slug,logo_url,brand_color,website_url,license_number,plan_name,billing_status,default_title_company,default_title_contact')
           .eq('id',brokerageId).maybeSingle(),
         client.from('hof_brokerage_members')
           .select('role,status,created_at,updated_at')
