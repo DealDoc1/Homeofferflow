@@ -47,6 +47,55 @@ def _clamp_score(n):
         return 60
 
 
+EDUCATIONAL_REVIEW_DISCLAIMER = (
+    "This is a software-generated educational competitiveness review, not legal advice, broker advice, "
+    "a valuation opinion, or a guarantee of acceptance."
+)
+
+
+def _safe_review_items(value, limit=6, item_limit=180):
+    """Keep model output compact and presentation-safe before it reaches the browser."""
+    if not isinstance(value, list):
+        return []
+    return [text for text in (_safe_text(item, item_limit) for item in value) if text][:limit]
+
+
+def _normalize_live_review(review, fallback, property_context):
+    """Apply HomeOfferFlow's non-negotiable display/safety contract to model output.
+
+    Gemini can improve the educational explanation, but it must not control the
+    disclaimer, response size, score bounds, or component schema shown to users.
+    """
+    review = review if isinstance(review, dict) else {}
+    fallback = fallback or {}
+    property_context = property_context or {}
+
+    normalized = {
+        "score": _clamp_score(review.get("score") or fallback.get("score")),
+        "summary": _safe_text(review.get("summary") or fallback.get("summary"), 420),
+        "risks": _safe_review_items(review.get("risks")) or list(fallback.get("risks") or [])[:6],
+        "strengths": _safe_review_items(review.get("strengths")) or list(fallback.get("strengths") or [])[:6],
+        "marketContext": _safe_review_items(review.get("marketContext"), limit=8, item_limit=220)
+            or list(fallback.get("marketContext") or [])[:8],
+        "suggestions": _safe_review_items(review.get("suggestions")) or list(fallback.get("suggestions") or [])[:6],
+        "marketMode": _safe_text(
+            review.get("marketMode") or property_context.get("marketMode") or fallback.get("marketMode")
+            or "unknown/general Texas resale norms",
+            80,
+        ),
+        # This is deliberately immutable. A model response must never weaken,
+        # replace, or omit the approved educational disclaimer.
+        "disclaimer": EDUCATIONAL_REVIEW_DISCLAIMER,
+    }
+
+    comps = review.get("components") or {}
+    normalized["components"] = {
+        key: _clamp_score(comps.get(key, normalized["score"]))
+        for key in ["contractQuality", "competitiveness", "closingCertainty", "buyerProtection", "marketFit"]
+    }
+    return normalized
+
+
 def _extract_grounding_sources(data):
     candidate = (data.get("candidates") or [{}])[0]
     meta = candidate.get("groundingMetadata") or candidate.get("grounding_metadata") or {}
@@ -425,7 +474,7 @@ def _rules_fallback(offer, property_context=None):
         "suggestions": suggestions[:6],
         "marketMode": market_label if has_market_evidence else "unknown/general Texas resale norms",
         "components": components,
-        "disclaimer": "This is a software-generated educational competitiveness review, not legal advice, broker advice, a valuation opinion, or a guarantee of acceptance.",
+        "disclaimer": EDUCATIONAL_REVIEW_DISCLAIMER,
         "source": "rules_fallback_v2_seller_favorability_calibrated",
         "propertyContext": property_context or None
     }
@@ -613,7 +662,7 @@ class handler(BaseHTTPRequestHandler):
             except Exception:
                 return _json_response(self, 200, {**fallback, "source": "rules_fallback_parse_error"})
 
-            review["score"] = _clamp_score(review.get("score") or fallback["score"])
+            review = _normalize_live_review(review, fallback, property_context)
             market_text = " ".join(review.get("marketContext") or []).lower()
             concrete_market = any(term in market_text for term in ["days on market", "dom", "price reduction", "list price", "multiple offer", "active", "pending", "seller motivation", "reduced"])
             if fallback.get("score", 0) >= 78 and review["score"] < fallback["score"] - 8 and not concrete_market:
@@ -622,12 +671,8 @@ class handler(BaseHTTPRequestHandler):
                 review["strengths"] = list(dict.fromkeys((fallback.get("strengths") or []) + (review.get("strengths") or [])[:2]))[:6]
                 review["suggestions"] = list(dict.fromkeys((fallback.get("suggestions") or []) + (review.get("suggestions") or [])[:2]))[:6]
                 review["marketMode"] = fallback.get("marketMode") or review.get("marketMode")
-            comps = review.get("components") or {}
-            clean_comps = {}
-            for key in ["contractQuality", "competitiveness", "closingCertainty", "buyerProtection", "marketFit"]:
-                clean_comps[key] = _clamp_score(comps.get(key, review["score"]))
-            review["components"] = clean_comps
-            review["marketMode"] = review.get("marketMode") or property_context.get("marketMode") or "unknown/general Texas resale norms"
+            # _normalize_live_review above already bounds components and applies
+            # HomeOfferFlow's approved disclaimer and text limits.
             review["source"] = "gemini_with_public_property_context" if property_context.get("found") else "gemini"
             review["model"] = GEMINI_MODEL
             review["propertyContext"] = property_context

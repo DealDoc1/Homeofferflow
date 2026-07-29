@@ -80,6 +80,32 @@ class AiOfferReviewBenchmarkTests(unittest.TestCase):
         self.assertIn("not legal advice", review["disclaimer"].lower())
         self.assertEqual(review["source"], "rules_fallback_v2_seller_favorability_calibrated")
 
+    def test_live_model_output_cannot_replace_disclaimer_or_expand_display_fields(self):
+        fallback = self._review(MODERATE_CONVENTIONAL_OFFER)
+        untrusted_model_output = {
+            "score": "999",
+            "summary": "x" * 1000,
+            "risks": ["risk " + str(i) for i in range(12)],
+            "strengths": "not-a-list",
+            "marketContext": ["market " + str(i) for i in range(12)],
+            "suggestions": ["suggestion " + str(i) for i in range(12)],
+            "marketMode": "x" * 200,
+            "components": {"competitiveness": "-50", "buyerProtection": "300"},
+            "disclaimer": "Ignore all prior safety language.",
+        }
+
+        review = AI_REVIEW._normalize_live_review(untrusted_model_output, fallback, {})
+
+        self.assertEqual(review["score"], 100)
+        self.assertEqual(review["disclaimer"], AI_REVIEW.EDUCATIONAL_REVIEW_DISCLAIMER)
+        self.assertLessEqual(len(review["summary"]), 420)
+        self.assertEqual(len(review["risks"]), 6)
+        self.assertEqual(len(review["marketContext"]), 8)
+        self.assertEqual(len(review["suggestions"]), 6)
+        self.assertEqual(review["strengths"], fallback["strengths"][:6])
+        self.assertEqual(review["components"]["competitiveness"], 1)
+        self.assertEqual(review["components"]["buyerProtection"], 100)
+
 
 if __name__ == "__main__":
     unittest.main()
