@@ -173,6 +173,14 @@ async def _brokerage_dashboard_payload(context):
         "&status=eq.pending&select=id,email,role,status,created_at,expires_at"
         "&order=created_at.desc&limit=100"
     )
+    # Brokerage administrators receive only aggregate listing-workspace counts.
+    # Seller names, property addresses, notes, and requested workflows remain in
+    # the agent-owned workspace and are never returned by this dashboard route.
+    listing_workspaces = await _get_optional(
+        "hof_listing_workspaces?"
+        f"brokerage_id=eq.{urllib.parse.quote(brokerage_id)}"
+        "&select=listing_kind,status&limit=5000"
+    )
     user_ids = [str(row.get("user_id")) for row in members if row.get("user_id")]
     agent_profiles = []
     subscriptions = []
@@ -222,6 +230,21 @@ async def _brokerage_dashboard_payload(context):
         elif bucket == "draft":
             activity["draftCount"] += 1
         activity["lastOfferAt"] = activity["lastOfferAt"] or row.get("updated_at") or row.get("created_at")
+
+    listing_workspace_summary_by_key = {}
+    for workspace in listing_workspaces:
+        listing_kind = str(workspace.get("listing_kind") or "other")
+        workspace_status = str(workspace.get("status") or "other")
+        key = (listing_kind, workspace_status)
+        listing_workspace_summary_by_key[key] = listing_workspace_summary_by_key.get(key, 0) + 1
+    listing_workspace_summary = [
+        {
+            "listingKind": listing_kind,
+            "status": workspace_status,
+            "workspaceCount": count,
+        }
+        for (listing_kind, workspace_status), count in sorted(listing_workspace_summary_by_key.items())
+    ]
 
     safe_agents = []
     for member in members:
@@ -277,6 +300,7 @@ async def _brokerage_dashboard_payload(context):
             ),
         },
         "agents": safe_agents,
+        "listingWorkspaceSummary": listing_workspace_summary,
         "pendingInvites": [
             {
                 "id": str(invite.get("id") or ""),

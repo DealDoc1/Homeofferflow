@@ -4,6 +4,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 MIGRATION = (ROOT / "supabase" / "homeofferflow_listing_workspaces.sql").read_text()
+SERVER_ONLY_MIGRATION = (ROOT / "supabase" / "homeofferflow_listing_workspace_summary_server_only.sql").read_text()
 DOC = (ROOT / "docs" / "SELLER_LISTING_WORKSPACE_FOUNDATION.md").read_text()
 INDEX = (ROOT / "index.html").read_text()
 
@@ -36,8 +37,29 @@ class ListingWorkspaceFoundationTests(unittest.TestCase):
         self.assertIn("Private Listing Workspace", INDEX)
         self.assertIn("saveListingWorkspaceFoundation", INDEX)
         self.assertIn("hof_listing_workspaces", INDEX)
-        self.assertIn("hof_brokerage_listing_workspace_summary", INDEX)
+        self.assertIn("/api/admin-dashboard?scope=brokerage", INDEX)
+        self.assertNotIn("client.rpc('hof_brokerage_listing_workspace_summary')", INDEX)
         self.assertIn("It has not created a form or signature request.", INDEX)
+
+    def test_broker_summary_uses_server_authorized_aggregate_only_payload(self):
+        admin = (ROOT / "api" / "admin-dashboard.py").read_text()
+        start = admin.index("async def _brokerage_dashboard_payload")
+        end = admin.index("def _normalized_invite_email", start)
+        segment = admin[start:end]
+        self.assertIn("listingWorkspaceSummary", segment)
+        self.assertIn("&select=listing_kind,status", segment)
+        for sensitive in ("seller_names", "property_address", "confidential_notes", "requested_workflows"):
+            self.assertNotIn(sensitive, segment)
+
+    def test_server_only_migration_revokes_browser_execution(self):
+        self.assertIn(
+            "revoke all on function public.hof_brokerage_listing_workspace_summary() from authenticated;",
+            SERVER_ONLY_MIGRATION,
+        )
+        self.assertIn(
+            "grant execute on function public.hof_brokerage_listing_workspace_summary() to service_role;",
+            SERVER_ONLY_MIGRATION,
+        )
 
     def test_dashboard_shows_source_readiness_without_activating_forms(self):
         self.assertIn("Listing Form Readiness", INDEX)

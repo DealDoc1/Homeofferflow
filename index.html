@@ -8751,13 +8751,29 @@ function routeAfterMagicLinkIfNeeded() {
       const mayViewSummary = profile.is_brokerage_admin === true || String(profile.role || '').toLowerCase() === 'brokerage_admin' || isCurrentAdmin();
       if (!summary) return;
       if (!mayViewSummary) { summary.textContent = ''; return; }
-      const result = await client.rpc('hof_brokerage_listing_workspace_summary');
-      if (result.error) throw result.error;
-      const counts = result.data || [];
-      summary.textContent = counts.length
-        ? 'Brokerage workflow counts: ' + counts.map(row => `${listingWorkspaceLabel(row.listing_kind)} / ${listingWorkspaceLabel(row.status)}: ${row.workspace_count}`).join(' · ')
-        : 'Brokerage workflow counts: no listing workspaces yet.';
-      summary.className = 'platform-status ok';
+      // This is served by the broker-authorized dashboard endpoint rather than
+      // a browser-callable database function. The endpoint returns aggregate
+      // counts only; it never returns seller, property, note, or form data.
+      try {
+        const accessToken = hofAuth?.session?.access_token;
+        if (!accessToken) throw new Error('Sign in again to load brokerage reporting.');
+        const dashboardResponse = await fetch('/api/admin-dashboard?scope=brokerage', {
+          headers: { Authorization: `Bearer ${accessToken}` }
+        });
+        const dashboard = await dashboardResponse.json().catch(() => ({}));
+        if (!dashboardResponse.ok || dashboard.error) {
+          throw new Error(dashboard.error || 'Brokerage reporting is unavailable.');
+        }
+        const counts = dashboard.listingWorkspaceSummary || [];
+        summary.textContent = counts.length
+          ? 'Brokerage workflow counts: ' + counts.map(row => `${listingWorkspaceLabel(row.listingKind)} / ${listingWorkspaceLabel(row.status)}: ${row.workspaceCount}`).join(' · ')
+          : 'Brokerage workflow counts: no listing workspaces yet.';
+        summary.className = 'platform-status ok';
+      } catch (summaryError) {
+        console.warn('Brokerage listing-workspace summary unavailable:', summaryError);
+        summary.textContent = 'Brokerage workflow counts are temporarily unavailable.';
+        summary.className = 'platform-status';
+      }
     } catch (err) {
       console.warn('Listing workspace load failed:', err);
       list.innerHTML = '<div class="platform-list-item">Listing workspaces could not load: ' + escapeAttr(err?.message || err) + '</div>';
