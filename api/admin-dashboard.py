@@ -1209,6 +1209,16 @@ class handler(BaseHTTPRequestHandler):
                 _json(self, 403, {"error": "Admin access is not enabled for this account."})
                 return
             offers = asyncio.run(_get("hof_offers?select=*&order=created_at.desc&limit=100"))
+            # Keep activation reporting aggregate-only. The platform dashboard already
+            # has a separate, permission-checked recent-offers view; these rows are
+            # intentionally limited to lifecycle fields so the funnel never needs
+            # buyer, property, pricing, or document data.
+            agent_profiles = asyncio.run(_get_optional(
+                "hof_agent_profiles?select=user_id,agent_name,license_number,agent_email,agent_phone,brokerage_name&limit=2000"
+            ))
+            agent_lifecycle_offers = asyncio.run(_get_optional(
+                "hof_offers?role=eq.agent&deleted_at=is.null&select=user_id,status,signwell_status,created_at,updated_at&limit=2000"
+            ))
             events = asyncio.run(_get("hof_offer_events?select=*&order=created_at.desc&limit=50"))
             subs = asyncio.run(_get("hof_subscriptions?select=*&order=created_at.desc&limit=50")) if True else []
             brokerages = asyncio.run(_get("hof_brokerages?select=*&order=created_at.desc&limit=50"))
@@ -1229,10 +1239,41 @@ class handler(BaseHTTPRequestHandler):
                 if "view" in s: return "viewed"
                 if "await" in s or "sent" in s or "created" in s: return "awaiting"
                 return "other"
+
+            def _agent_profile_complete(profile):
+                return all(
+                    str(profile.get(field) or "").strip()
+                    for field in (
+                        "agent_name",
+                        "license_number",
+                        "agent_email",
+                        "agent_phone",
+                        "brokerage_name",
+                    )
+                )
+
+            agent_offer_counts = {}
+            agent_updated_draft_count = 0
+            for offer in agent_lifecycle_offers:
+                user_id = str(offer.get("user_id") or "")
+                if user_id:
+                    agent_offer_counts[user_id] = agent_offer_counts.get(user_id, 0) + 1
+                offer_status = str(offer.get("signwell_status") or offer.get("status") or "").lower()
+                if "draft" in offer_status and offer.get("updated_at") and offer.get("created_at") and offer.get("updated_at") != offer.get("created_at"):
+                    agent_updated_draft_count += 1
             metrics = {
                 "offerCount": len(offers),
                 "homebuyerOfferCount": len([o for o in offers if o.get("role") == "homebuyer"]),
                 "agentOfferCount": len([o for o in offers if o.get("role") == "agent"]),
+                "agentProfileCount": len(agent_profiles),
+                "agentProfileCompleteCount": len([
+                    profile for profile in agent_profiles if _agent_profile_complete(profile)
+                ]),
+                "agentFirstOfferCount": len(agent_offer_counts),
+                "agentRepeatOfferCount": len([
+                    user_id for user_id, count in agent_offer_counts.items() if count > 1
+                ]),
+                "agentUpdatedDraftCount": agent_updated_draft_count,
                 "investorOfferCount": len([o for o in offers if o.get("role") == "investor"]),
                 "signedCount": len([o for o in offers if bucket(o.get("signwell_status") or o.get("status")) == "signed"]),
                 "awaitingCount": len([o for o in offers if bucket(o.get("signwell_status") or o.get("status")) == "awaiting"]),

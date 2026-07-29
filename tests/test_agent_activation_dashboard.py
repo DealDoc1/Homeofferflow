@@ -8,6 +8,32 @@ HTML = INDEX_PATH.read_text(encoding="utf-8")
 
 
 class AgentActivationDashboardTests(unittest.TestCase):
+    def test_platform_admin_exposes_aggregate_agent_activation_metrics_only(self):
+        api = (INDEX_PATH.parent / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
+
+        for expected in (
+            "agentProfileCompleteCount",
+            "agentFirstOfferCount",
+            "agentRepeatOfferCount",
+            "agentUpdatedDraftCount",
+        ):
+            self.assertIn(expected, api)
+
+        self.assertIn(
+            "hof_offers?role=eq.agent&deleted_at=is.null&select=user_id,status,signwell_status,created_at,updated_at",
+            api,
+        )
+        self.assertNotIn("buyer_name", api[api.index("agent_lifecycle_offers"):api.index("events =")])
+
+    def test_platform_admin_renders_agent_activation_funnel_metrics(self):
+        for expected in (
+            "Agent Profiles Ready",
+            "Agents With a Saved Offer",
+            "Repeat-Offer Agents",
+            "Updated Agent Drafts",
+        ):
+            self.assertIn(expected, HTML)
+
     def test_activation_card_is_present_in_dashboard(self):
         dashboard_start = HTML.index('id="accountPanelDashboard"')
         dashboard_end = HTML.index('id="accountPanelProfile"')

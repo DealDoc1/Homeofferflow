@@ -3912,6 +3912,26 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
           </div>
 
           <div class="admin-metric">
+            <div class="admin-metric-label">Agent Profiles Ready</div>
+            <div class="admin-metric-value">${metrics.agentProfileCompleteCount || 0} / ${metrics.agentProfileCount || 0}</div>
+          </div>
+
+          <div class="admin-metric">
+            <div class="admin-metric-label">Agents With a Saved Offer</div>
+            <div class="admin-metric-value">${metrics.agentFirstOfferCount || 0}</div>
+          </div>
+
+          <div class="admin-metric">
+            <div class="admin-metric-label">Repeat-Offer Agents</div>
+            <div class="admin-metric-value">${metrics.agentRepeatOfferCount || 0}</div>
+          </div>
+
+          <div class="admin-metric">
+            <div class="admin-metric-label">Updated Agent Drafts</div>
+            <div class="admin-metric-value">${metrics.agentUpdatedDraftCount || 0}</div>
+          </div>
+
+          <div class="admin-metric">
             <div class="admin-metric-label">Billing Webhook Attention</div>
             <div class="admin-metric-value">${metrics.stripeWebhookAttentionCount || 0}</div>
           </div>
