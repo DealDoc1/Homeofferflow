@@ -315,6 +315,39 @@ class SubscriptionLifecycleSecurityTests(unittest.TestCase):
         self.assertEqual(captured["payload"]["stripe_subscription_id"], "sub_canceled")
         self.assertFalse(captured["payload"]["cancel_at_period_end"])
 
+    def test_scheduled_cancellation_keeps_access_until_the_saved_end_date(self):
+        request = webhook.handler.__new__(webhook.handler)
+        captured = {}
+        request._iso_now = lambda: "2026-07-29T00:00:00Z"
+        request._upsert_subscription_by_user_id = lambda payload: captured.update(payload=payload)
+        request._activate_brokerage_membership = lambda *_args: captured.update(
+            brokerage_membership_activated=True
+        )
+
+        request._handle_subscription_event(
+            {
+                "id": "sub_scheduled_cancel",
+                "customer": "cus_scheduled_cancel",
+                "status": "active",
+                "cancel_at_period_end": True,
+                "cancel_at": 1782777600,
+                "metadata": {
+                    "user_id": "user-scheduled-cancel",
+                    "email": "agent@ondemand.test",
+                    "plan": "agent",
+                    "role": "agent",
+                    "brokerage_id": "ondemand-brokerage",
+                },
+                "items": {"data": [{"price": {"id": "price_agent_monthly"}}]},
+            },
+            "customer.subscription.updated",
+        )
+
+        self.assertEqual(captured["payload"]["status"], "active")
+        self.assertTrue(captured["payload"]["cancel_at_period_end"])
+        self.assertEqual(captured["payload"]["cancel_at"], "2026-06-30T00:00:00Z")
+        self.assertTrue(captured["brokerage_membership_activated"])
+
     def test_checkout_does_not_activate_brokerage_membership_for_a_non_active_subscription(self):
         request = webhook.handler.__new__(webhook.handler)
         captured = {}
