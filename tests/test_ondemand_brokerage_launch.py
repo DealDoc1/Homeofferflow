@@ -137,6 +137,16 @@ class BrokerageInviteClient:
         return Response(200, [{"id": "updated"}])
 
 
+class BrokerageInviteEmailClient(BrokerageInviteClient):
+    email_request = None
+
+    async def post(self, url, **kwargs):
+        if url == "https://api.resend.com/emails":
+            self.__class__.email_request = (url, kwargs)
+            return Response(200, {"id": "re_invite_123"}, "{\"id\":\"re_invite_123\"}")
+        return await super().post(url, **kwargs)
+
+
 class BrokerageBrandingClient:
     last_patch = None
 
@@ -365,6 +375,8 @@ class BrokerageAuthorizationTests(unittest.TestCase):
         self.assertIn("setBrokerageMemberStatus", final_script)
         self.assertIn("HomeOfferFlow subscription or delete their offers", final_script)
         self.assertIn("HomeOfferFlow billing or delete their offers", final_script)
+        self.assertIn("Invitation email sent to", final_script)
+        self.assertIn("Email delivery is not configured", final_script)
 
     def test_broker_can_create_an_agent_only_invite_link(self):
         actor = {"id": "11111111-1111-1111-1111-111111111111", "email": "tyler@ondemanddfw.com"}
@@ -388,6 +400,31 @@ class BrokerageAuthorizationTests(unittest.TestCase):
         invite_write = next(request for request in BrokerageInviteClient.requests if request[0] == "post")
         self.assertEqual(invite_write[2]["json"]["role"], "agent")
         self.assertEqual(invite_write[2]["json"]["status"], "pending")
+        self.assertEqual(result["emailDelivery"]["status"], "not_configured")
+
+    def test_brokerage_invite_sends_email_when_resend_is_configured(self):
+        actor = {"id": "11111111-1111-1111-1111-111111111111", "email": "tyler@ondemanddfw.com"}
+        context = {"brokerage": {"id": "22222222-2222-2222-2222-222222222222", "name": "OnDemand Realty"}}
+
+        async def broker_context(_actor):
+            return context
+
+        async def no_existing_access(_path):
+            return []
+
+        BrokerageInviteEmailClient.requests = []
+        BrokerageInviteEmailClient.email_request = None
+        with patch.object(admin, "RESEND_API_KEY", "re_test_invite"), \
+             patch.object(admin, "_brokerage_admin_context", broker_context), \
+             patch.object(admin, "_get", no_existing_access), \
+             patch.object(admin.httpx, "AsyncClient", BrokerageInviteEmailClient):
+            result = asyncio.run(admin._create_brokerage_invite(actor, {"email": "agent@example.com"}))
+
+        self.assertEqual(result["emailDelivery"], {"status": "sent", "emailId": "re_invite_123"})
+        resend_payload = BrokerageInviteEmailClient.email_request[1]["json"]
+        self.assertEqual(resend_payload["to"], ["agent@example.com"])
+        self.assertIn("OnDemand Realty", resend_payload["subject"])
+        self.assertIn(result["inviteUrl"], resend_payload["text"])
 
     def test_invite_acceptance_requires_the_invited_email_before_any_write(self):
         actor = {"id": "33333333-3333-3333-3333-333333333333", "email": "wrong@example.com"}
