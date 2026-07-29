@@ -72,7 +72,11 @@ class AdminTrackerSecurityTests(IsolatedAsyncioTestCase):
         get_rows.assert_not_awaited()
 
     async def test_optional_admin_dataset_fails_open_to_empty_list(self):
-        with patch.object(admin_dashboard, "_get", new=AsyncMock(side_effect=RuntimeError("table missing"))):
+        # The production helper intentionally logs optional-dataset failures;
+        # suppress that expected diagnostic here so a passing test suite does
+        # not look like a live database failure.
+        with patch.object(admin_dashboard, "_get", new=AsyncMock(side_effect=RuntimeError("table missing"))), \
+             patch("builtins.print"):
             rows = await admin_dashboard._get_optional("hof_partner_leads?select=*")
         self.assertEqual(rows, [])
 
