@@ -2472,8 +2472,8 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
     <div class="pill" data-audience="investor" onclick="setAudience('investor')">Investor</div>
     <div class="pill" data-audience="fsbo" onclick="setAudience('fsbo')">FSBO Seller</div>
   </div>
-  <h1 id="heroHeadline">Write a <em>real offer</em><br/>in under 10 minutes.</h1>
-  <p class="hero-sub" id="heroSub">Answer plain-English questions, review your terms, get an AI competitiveness check, and generate a clean Texas offer packet when you are ready.</p>
+  <h1 id="heroHeadline">Write a real estate offer<br/><em>without the confusion.</em></h1>
+  <p class="hero-sub" id="heroSub">HomeOfferFlow guides you through a supported Texas buyer-offer packet in plain English, then lets you review every term before signing or sending.</p>
   <div class="hero-actions">
     <button class="btn-primary" id="heroCta" onclick="startPrimaryOffer()">Start Your Offer — $99</button>
     <button class="btn-secondary" onclick="document.getElementById('how').scrollIntoView()">See How It Works</button>
@@ -2496,10 +2496,10 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
 
 <section class="section" id="how">
   <div class="section-label">How It Works</div>
-  <h2>From blank contract to completed offer — fast.</h2>
+  <h2>From plain questions to a Texas offer packet.</h2>
   <div class="steps">
     <div class="step-card"><div class="step-num">01</div><h3>Answer plain questions</h3><p>No legal jargon. One section at a time. Built-in helper tips on every confusing field.</p></div>
-    <div class="step-card"><div class="step-num">02</div><h3>We fill the TREC form</h3><p>Your answers auto-populate the official TREC 20-19 contract and the addenda currently supported by HomeOfferFlow.</p></div>
+    <div class="step-card"><div class="step-num">02</div><h3>We prepare the supported forms</h3><p>Your answers populate the TREC 20-19 buyer offer contract and the purchase addenda currently supported by HomeOfferFlow.</p></div>
     <div class="step-card"><div class="step-num">03</div><h3>Review your offer</h3><p>See a plain-English summary of every field before you pay. Go back and fix anything.</p></div>
     <div class="step-card"><div class="step-num">04</div><h3>Download & send</h3><p>Pay once, download instantly. Optional agent or attorney review add-on available.</p></div>
   </div>
@@ -2512,7 +2512,7 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
   <h2>Built for every side of the Texas transaction.</h2>
   <div class="audience-grid">
     <div class="audience-card"><div class="audience-icon">🏠</div><h3>Homebuyers</h3><p>Build a Texas resale offer packet with plain-English guidance, AI competitiveness review, and buyer-side signing when the packet is ready.</p><span class="audience-price">$99 per completed offer packet</span></div>
-    <div class="audience-card"><div class="audience-icon">🏢</div><h3>Agents & Brokers</h3><p>Create client-ready Texas offer packets from the field, track buyer-side signature status, duplicate prior offers, and collect beta feedback for broker review.</p><span class="audience-price">Agent / broker beta workspace</span></div>
+    <div class="audience-card"><div class="audience-icon">🏢</div><h3>Agents & Brokers</h3><p>Create supported Texas buyer-offer packets from the field, track buyer-side signature status, duplicate prior offers, and collect broker-reviewed feedback.</p><span class="audience-price">Agent / broker workspace</span></div>
     <div class="audience-card"><div class="audience-icon">📈</div><h3>Investors</h3><p>Use saved defaults and repeat-offer workflows to move faster while still keeping financing, option, title, and addenda terms organized.</p><span class="audience-price">Investor repeat-offer workflow</span></div>
     <div class="audience-card"><div class="audience-icon">🏷️</div><h3>FSBO Sellers</h3><p>Request seller packages, flat-fee MLS interest, offer review, contract-to-close support, and local partner suggestions without checkout yet.</p><span class="audience-price">Packages from $0 to $2,999+ · intake only</span></div>
     <a class="audience-card audience-card-link" href="?partner=1" onclick="event.preventDefault(); openFoundingPartnerModal();" aria-label="Explore HomeOfferFlow founding partner opportunities">
@@ -8055,18 +8055,18 @@ function routeAfterMagicLinkIfNeeded() {
 
     const copy = {
       homebuyer: {
-        headline: 'Write a <em>real offer</em><br/>in under 10 minutes.',
-        sub: 'Answer plain-English questions, review your terms, get an AI competitiveness check, and generate a clean Texas offer packet when you are ready.',
+        headline: 'Write a real estate offer<br/><em>without the confusion.</em>',
+        sub: 'HomeOfferFlow guides you through a supported Texas buyer-offer packet in plain English, then lets you review every term before signing or sending.',
         cta: 'Start Your Offer',
         nav: 'Build Your Offer →',
         priceNote: 'No payment required to begin. Review your full offer summary before paying. <strong>Pay $99 only when your completed offer packet is ready.</strong>'
       },
       agent: {
-        headline: 'Write cleaner Texas <em>offers faster</em>.',
-        sub: 'Draft client-ready Texas resale offers from your phone with fewer missed blanks, smarter addenda logic, buyer-side e-signature, and faster revisions.',
+        headline: 'Write supported Texas <em>offers faster</em>.',
+        sub: 'Prepare client-ready Texas buyer-offer packets from your phone with guided questions, supported purchase addenda, buyer-side e-signature, and saved profiles.',
         cta: 'Start Agent Draft',
         nav: 'Start Agent Draft →',
-        priceNote: 'Built for client-ready Texas offer packets, buyer-side e-signature, and repeat-use agent workflows. <strong>Agent beta accounts and saved profiles are coming soon.</strong>'
+        priceNote: 'Built for supported Texas buyer-offer packets, buyer-side e-signature, and repeat-use agent workflows. <strong>Standalone representation, listing, and seller forms are not yet included.</strong>'
       },
       investor: {
         headline: 'Make more <em>offers</em>, faster.',
@@ -11104,14 +11104,14 @@ function routeAfterMagicLinkIfNeeded() {
     if (typeof oldSetAudience === 'function') oldSetAudience(type);
     const copy = {
       homebuyer: {
-        headline: 'Write a <em>real offer</em><br/>before you leave the driveway.',
-        sub: 'Answer plain-English questions, review your terms, run an AI competitiveness check, and generate a clean Texas offer packet when you are ready.',
+        headline: 'Write a real estate offer<br/><em>without the confusion.</em>',
+        sub: 'HomeOfferFlow guides you through a supported Texas buyer-offer packet in plain English, then lets you review every term before signing or sending.',
         cta: 'Start Homebuyer Offer — $99', nav: 'Build Your Offer →', note: 'No payment required to begin. Review your full offer summary before checkout. <strong>Pay $99 only when the completed offer packet is ready.</strong>'
       },
       agent: {
-        headline: 'A faster Texas offer workflow for <em>agents & brokers</em>.',
-        sub: 'Create client-ready Texas offer packets from your phone, send buyer-side signatures, track status, duplicate prior offers, and collect beta feedback for broker review.',
-        cta: 'Open Agent / Broker Workspace', nav: 'Agent / Broker Login →', note: 'Built for broker-supervised beta testing. <strong>Buyer-side signing only; agents remain responsible for review, advice, submission, negotiation, and compliance.</strong>'
+        headline: 'A clearer Texas buyer-offer workflow for <em>agents & brokers</em>.',
+        sub: 'Create supported Texas buyer-offer packets from your phone, send buyer-side signatures, track status, duplicate prior offers, and collect broker-reviewed feedback.',
+        cta: 'Open Agent / Broker Workspace', nav: 'Agent / Broker Login →', note: 'Built for broker-supervised beta testing. <strong>Buyer-side offer packets only; standalone representation, listing, and seller forms are not yet included.</strong>'
       },
       investor: {
         headline: 'Make more <em>investment offers</em> with less retyping.',
