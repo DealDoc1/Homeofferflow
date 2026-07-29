@@ -14,6 +14,20 @@ SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
 SUPABASE_SERVICE_ROLE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
 
 
+def _test_events_allowed():
+    """Allow Stripe sandbox events only in an intentionally isolated environment.
+
+    Production uses the live Stripe webhook secret and production Supabase.  A
+    Stripe test-mode endpoint must not be able to alter those live subscription
+    records if a test signing secret is ever configured there by mistake.
+    """
+    return os.environ.get("STRIPE_WEBHOOK_ALLOW_TEST_EVENTS", "").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+    }
+
+
 def _stripe_status_to_hof(status):
     status = (status or "").lower()
 
@@ -78,6 +92,14 @@ class handler(BaseHTTPRequestHandler):
             event = json.loads(raw_body.decode("utf-8"))
             event_type = event.get("type", "")
             data_object = event.get("data", {}).get("object", {}) or {}
+
+            # Stripe marks sandbox deliveries with livemode=false.  Reject
+            # those by default so the production endpoint can only mutate
+            # billing state from real Stripe events.  A separate nonproduction
+            # deployment may opt in explicitly for lifecycle QA.
+            if event.get("livemode") is False and not _test_events_allowed():
+                self._send_json(400, {"error": "Stripe test events are not accepted here."})
+                return
 
             if event_type == "checkout.session.completed":
                 self._handle_checkout_completed(data_object)
