@@ -203,6 +203,30 @@ class SubscriptionLifecycleSecurityTests(unittest.TestCase):
         request._handle_invoice_status({"subscription": "sub_payment_failed"}, "past_due")
         self.assertEqual(captured["payload"]["status"], "past_due")
 
+    def test_deleted_subscription_is_recorded_as_canceled(self):
+        request = webhook.handler.__new__(webhook.handler)
+        captured = {}
+        request._iso_now = lambda: "2026-07-29T00:00:00Z"
+        request._upsert_subscription_by_user_id = lambda payload: captured.update(payload=payload)
+        request._activate_brokerage_membership = lambda *_args: self.fail(
+            "A canceled subscription must not activate brokerage membership."
+        )
+
+        request._handle_subscription_event(
+            {
+                "id": "sub_canceled",
+                "customer": "cus_canceled",
+                "status": "canceled",
+                "metadata": {"user_id": "user-canceled", "plan": "agent", "role": "agent"},
+                "items": {"data": [{"price": {"id": "price_agent_monthly"}}]},
+            },
+            "customer.subscription.deleted",
+        )
+
+        self.assertEqual(captured["payload"]["status"], "canceled")
+        self.assertEqual(captured["payload"]["stripe_subscription_id"], "sub_canceled")
+        self.assertFalse(captured["payload"]["cancel_at_period_end"])
+
     def test_account_ui_discloses_trial_renewal_and_scheduled_cancellation(self):
         self.assertIn("Free trial active through", INDEX_HTML)
         self.assertIn("renews at $29/month", INDEX_HTML)

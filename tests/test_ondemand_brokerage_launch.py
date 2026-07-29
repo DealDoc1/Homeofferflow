@@ -146,6 +146,11 @@ class OnDemandCheckoutTests(unittest.TestCase):
             form["subscription_data[trial_settings][end_behavior][missing_payment_method]"],
             "cancel",
         )
+        self.assertFalse(
+            any("cancel_at" in key for key in form),
+            "The OnDemand trial must renew normally; cancellation is only the"
+            " documented fallback when no payment method is available at trial end.",
+        )
         self.assertNotIn("allow_promotion_codes", form)
         self.assertEqual(form["metadata[brokerage_slug]"], "ondemand")
         self.assertEqual(form["subscription_data[metadata][user_id]"], "user-1")
