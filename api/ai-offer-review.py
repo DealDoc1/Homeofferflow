@@ -1,6 +1,7 @@
 import os
 import json
 import re
+import hashlib
 from http.server import BaseHTTPRequestHandler
 from datetime import datetime, timezone
 
@@ -11,6 +12,22 @@ GEMINI_MODEL = os.environ.get("GEMINI_MODEL") or "gemini-2.5-flash"
 GEMINI_GROUNDING_MODEL = os.environ.get("GEMINI_GROUNDING_MODEL") or GEMINI_MODEL
 ENABLE_PROPERTY_CONTEXT = (os.environ.get("ENABLE_PROPERTY_CONTEXT") or "true").lower() not in {"0", "false", "no"}
 MAX_BODY_BYTES = 120_000
+SUPABASE_URL = (os.environ.get("SUPABASE_URL") or "").rstrip("/")
+SUPABASE_SERVICE_ROLE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or ""
+
+
+def _positive_int(value, default, minimum=1, maximum=100):
+    try:
+        return max(minimum, min(maximum, int(value)))
+    except Exception:
+        return default
+
+
+# The live review makes two paid Gemini calls when public property context is
+# enabled. Keep this deliberately modest for the public, pre-checkout flow.
+AI_OFFER_REVIEW_HOURLY_LIMIT = _positive_int(
+    os.environ.get("AI_OFFER_REVIEW_HOURLY_LIMIT"), 12, minimum=1, maximum=100
+)
 
 
 def _json_response(handler, status, payload):
@@ -23,6 +40,42 @@ def _json_response(handler, status, payload):
     handler.send_header("Cache-Control", "no-store")
     handler.end_headers()
     handler.wfile.write(body)
+
+
+def _client_rate_limit_key(headers):
+    """Return an irreversible, request-scoped key; never persist raw IP data."""
+    forwarded = _safe_text(headers.get("x-forwarded-for", ""), 256)
+    client_ip = forwarded.split(",")[0].strip() if forwarded else ""
+    client_ip = client_ip or _safe_text(headers.get("cf-connecting-ip", ""), 128)
+    client_ip = client_ip or _safe_text(headers.get("x-real-ip", ""), 128)
+    client_ip = client_ip or "unavailable-client-address"
+    return hashlib.sha256(f"homeofferflow:ai-offer-review:{client_ip}".encode("utf-8")).hexdigest()
+
+
+def _consume_ai_offer_review_rate_limit(headers):
+    """Atomically consume one hourly allowance through a service-role-only RPC."""
+    if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
+        return False, "rate_limit_unavailable"
+
+    try:
+        with httpx.Client(timeout=4.0) as client:
+            response = client.post(
+                f"{SUPABASE_URL}/rest/v1/rpc/hof_consume_ai_offer_review_rate_limit",
+                headers={
+                    "apikey": SUPABASE_SERVICE_ROLE_KEY,
+                    "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "p_key": _client_rate_limit_key(headers),
+                    "p_limit": AI_OFFER_REVIEW_HOURLY_LIMIT,
+                },
+            )
+        if response.status_code >= 400:
+            return False, "rate_limit_unavailable"
+        return (bool(response.json()), "ok")
+    except Exception:
+        return False, "rate_limit_unavailable"
 
 
 def _safe_number(value, default=0):
@@ -554,6 +607,21 @@ class handler(BaseHTTPRequestHandler):
             offer = payload.get("offer") or payload
             if not isinstance(offer, dict):
                 return _json_response(self, 400, {"error": "Missing offer object."})
+
+            # Do this before public-web grounding or Gemini generation. The
+            # fallback remains free and available when AI is not configured.
+            if GEMINI_API_KEY:
+                allowed, rate_limit_status = _consume_ai_offer_review_rate_limit(self.headers)
+                if not allowed:
+                    if rate_limit_status == "ok":
+                        return _json_response(self, 429, {
+                            "error": "AI review limit reached. Please try again in about an hour.",
+                            "code": "ai_review_rate_limited",
+                        })
+                    return _json_response(self, 503, {
+                        "error": "AI review is temporarily unavailable. Please try again shortly.",
+                        "code": "ai_review_unavailable",
+                    })
 
             property_context = _grounded_property_context(offer)
             fallback = _rules_fallback(offer, property_context)
