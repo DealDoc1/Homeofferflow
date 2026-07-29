@@ -249,6 +249,35 @@ class SubscriptionLifecycleSecurityTests(unittest.TestCase):
         self.assertEqual(captured["payload"]["stripe_subscription_id"], "sub_canceled")
         self.assertFalse(captured["payload"]["cancel_at_period_end"])
 
+    def test_checkout_does_not_activate_brokerage_membership_for_a_non_active_subscription(self):
+        request = webhook.handler.__new__(webhook.handler)
+        captured = {}
+        request._stripe_get_subscription = lambda _subscription_id: {
+            "id": "sub_incomplete",
+            "customer": "cus_incomplete",
+            "status": "incomplete",
+            "metadata": {
+                "user_id": "user-incomplete",
+                "email": "agent@ondemand.test",
+                "brokerage_id": "ondemand-brokerage",
+                "launch_source": "ondemand",
+            },
+            "items": {"data": [{"price": {"id": "price_agent_monthly"}}]},
+        }
+        request._upsert_subscription_by_user_id = lambda payload: captured.update(payload=payload)
+        request._activate_brokerage_membership = lambda *_args: self.fail(
+            "A non-active subscription must not activate brokerage membership."
+        )
+
+        request._handle_checkout_completed({
+            "subscription": "sub_incomplete",
+            "customer": "cus_incomplete",
+            "metadata": {"brokerage_id": "ondemand-brokerage"},
+        })
+
+        self.assertEqual(captured["payload"]["status"], "past_due")
+        self.assertEqual(captured["payload"]["brokerage_id"], "ondemand-brokerage")
+
     def test_account_ui_discloses_trial_renewal_and_scheduled_cancellation(self):
         self.assertIn("Free trial active through", INDEX_HTML)
         self.assertIn("renews at $29/month", INDEX_HTML)
