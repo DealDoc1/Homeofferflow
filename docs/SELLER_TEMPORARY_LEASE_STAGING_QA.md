@@ -1,18 +1,18 @@
-# Seller's Temporary Residential Lease — Staging QA
+# Seller's Temporary Residential Lease — Production QA Record
 
 ## Release scope
 
-This document tests the staging-only implementation of **TREC 15-7 Seller's
-Temporary Residential Lease**. It must not be promoted to the production offer
-route until the completed, signed staging packet is visually approved.
+This record preserves the completed-signature QA for **TREC 15-7 Seller's
+Temporary Residential Lease**. The verified path was enabled in the production
+TREC 20-19 adapter in release `071b773`.
 
-Production remains on the verified TREC 20-19 Release 18B offer route. This
-staging QA must not change the production offer-generation/signing flow.
+Production remains on the verified TREC 20-19 offer route. Treat the recorded
+coordinates as locked; any later change requires a fresh completed-signature
+visual QA pass.
 
-The test is valid only against:
-
-- `/api/fill_pdf_20_19_staging`
-- `api/fill_pdf_20_19_staging.py`
+The same field map is exercised by the production adapter. The console payload
+below remains useful for controlled regression testing against staging before a
+future packet-assembly change.
 
 ## Exact browser-console payload
 
@@ -139,8 +139,8 @@ then retain it with the staging QA record.
 | 14 | Signatures and dates | Both buyer/landlord signature and date fields sit on their respective landlord lines; no field overlaps body text or footer. |
 | Entire packet | Addenda ordering | No unrequested lease or finance addendum is present; page count is 14 for this exact payload. |
 
-## Release gate
+## Ongoing release gate
 
-Keep this feature staging-only until all rows above pass in the **completed
-signed PDF**. A source-render check is not a substitute for completed SignWell
-signature/date placement QA.
+This production path has passed its completed-signature visual QA. Keep it in
+the rendered regression suite, and do not move any lease field or signature
+coordinate unless the changed completed signed PDF is visually approved again.

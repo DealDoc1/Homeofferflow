@@ -199,6 +199,13 @@ class SellerTemporaryLeaseStagingTests(unittest.TestCase):
             with self.subTest(expected=expected):
                 self.assertIn(expected, app)
 
+    def test_catalog_and_qa_record_identify_the_production_unlock(self):
+        catalog = (ROOT / "docs" / "TEXAS_AGENT_FORM_CATALOG.md").read_text()
+        qa_record = (ROOT / "docs" / "SELLER_TEMPORARY_LEASE_STAGING_QA.md").read_text()
+        self.assertIn("production verified and coordinate-locked", catalog)
+        self.assertIn("enabled in the production", qa_record)
+        self.assertNotIn("must not be promoted to the production", qa_record)
+
 
 if __name__ == "__main__":
     unittest.main()

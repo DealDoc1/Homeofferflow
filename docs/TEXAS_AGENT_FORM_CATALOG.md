@@ -29,7 +29,7 @@ transaction follow-up form families below.
 | --- | --- |
 | Buyer-side purchase packet | TREC 20-19 buyer offer workflow and its verified purchase addenda |
 | Buyer temporary possession | TREC 16-7 Buyer Temporary Residential Lease |
-| Seller temporary possession | Staging-verified only; not unlocked in production yet |
+| Seller temporary possession | TREC 15-7 Seller Temporary Residential Lease; production verified and coordinate-locked |
 | IABS | Agent-owned, private profile PDF; optional per-packet attachment, never automatic |
 | Seller/listing documents | Existing PDF uploads may be appended when appropriate; HomeOfferFlow does not generate or send standalone seller-side forms yet |
 
