@@ -23,6 +23,10 @@ SIGNWELL_API_KEY = os.environ.get("SIGNWELL_API_KEY", "")
 SIGNWELL_ENABLED = os.environ.get("SIGNWELL_ENABLED", "false").strip().lower() in ["1", "true", "yes", "on"]
 # Production default: live signatures. Vercel may explicitly set true for emergency testing.
 SIGNWELL_TEST_MODE = os.environ.get("SIGNWELL_TEST_MODE", "false").strip().lower() not in ["0", "false", "no", "off"]
+# SignWell request/response payloads can contain customer names and email
+# addresses. Keep verbose diagnostics opt-in rather than emitting them for
+# every production offer.
+SIGNWELL_DEBUG_LOGS = os.environ.get("SIGNWELL_DEBUG_LOGS", "false").strip().lower() in ["1", "true", "yes", "on"]
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "").rstrip("/")
 SUPABASE_SERVICE_ROLE_KEY = (
@@ -50,6 +54,12 @@ CHECK     = "X"
 # Keep False for production/customer PDFs.
 # Set True only temporarily if you want coordinate grid marks on every generated page.
 DEBUG_GRID = False
+
+
+def signwell_debug(label, payload, limit=3000):
+    """Emit verbose SignWell diagnostics only when explicitly enabled."""
+    if SIGNWELL_DEBUG_LOGS:
+        print(label, json.dumps(payload)[:limit])
 
 
 def fmt_money(v):
@@ -1193,7 +1203,7 @@ def build_signwell_fields(offer, pdf_bytes):
 
     fields = [fields_for_file]
 
-    print("SIGNWELL DEBUG field payload:", json.dumps({
+    signwell_debug("SIGNWELL DEBUG field payload:", {
         "page_count": page_count,
         "main_signature_page": main_signature_page,
         "has_buyer2": has_buyer2,
@@ -1216,7 +1226,7 @@ def build_signwell_fields(offer, pdf_bytes):
         },
         "field_count": len(fields_for_file),
         "fields": fields
-    })[:5000])
+    }, limit=5000)
 
     return fields
 
@@ -1227,7 +1237,7 @@ fill_and_merge = fill_and_merge_20_19
 build_signwell_fields = build_signwell_fields_20_19
 
 def post_signwell_document(payload):
-    print("SIGNWELL DEBUG request summary:", json.dumps({
+    signwell_debug("SIGNWELL DEBUG request summary:", {
         "test_mode": payload.get("test_mode"),
         "draft": payload.get("draft"),
         "with_signature_page": payload.get("with_signature_page"),
@@ -1236,7 +1246,7 @@ def post_signwell_document(payload):
         "file_count": len(payload.get("files", [])),
         "field_outer_count": len(payload.get("fields", [])) if payload.get("fields") else 0,
         "field_count_file_1": len(payload.get("fields", [[]])[0]) if payload.get("fields") else 0,
-    })[:3000])
+    })
 
     r = httpx.post(
         "https://www.signwell.com/api/v1/documents",
@@ -1245,9 +1255,9 @@ def post_signwell_document(payload):
         timeout=45
     )
 
-    # Always log the SignWell response while we are stabilizing the integration.
-    print("SIGNWELL RESPONSE STATUS:", r.status_code)
-    print("SIGNWELL RESPONSE BODY:", r.text[:3000])
+    signwell_debug("SIGNWELL RESPONSE:", {"status": r.status_code, "body": r.text})
+    if r.status_code not in [200, 201, 202]:
+        print("SignWell document request failed with status", r.status_code)
 
     if r.status_code not in [200, 201, 202]:
         return False, {"status_code": r.status_code, "error": r.text[:3000]}
@@ -1271,11 +1281,11 @@ def create_signwell_signature_request(offer, pdf_bytes):
     - Minimal Buyer 1 signature field only until SignWell accepts the payload.
     - Logs SignWell request summary and full response body to Vercel logs.
     """
-    print("SIGNWELL DEBUG env:", json.dumps({
+    signwell_debug("SIGNWELL DEBUG env:", {
         "enabled": SIGNWELL_ENABLED,
         "test_mode": SIGNWELL_TEST_MODE,
         "api_key_present": bool(SIGNWELL_API_KEY)
-    }))
+    })
 
     if not SIGNWELL_ENABLED:
         return {"enabled": False, "skipped": "SIGNWELL_ENABLED is false"}
