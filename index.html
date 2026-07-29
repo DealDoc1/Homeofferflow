@@ -8555,8 +8555,23 @@ function routeAfterMagicLinkIfNeeded() {
         <div class="platform-actions"><button type="button" onclick="saveSellerLeadFoundation()">Save Seller Lead</button><button type="button" onclick="loadSellerLeadsFoundation()">Refresh Leads</button></div>
         <div id="sellerFoundationStatus" class="platform-status"></div>
       </div>
-      <div class="platform-card"><h4>Recent Seller Leads</h4><div id="sellerLeadList" class="platform-list"><div class="platform-list-item">No seller leads loaded yet.</div></div></div>`;
+      <div class="platform-card"><h4>Recent Seller Leads</h4><div id="sellerLeadList" class="platform-list"><div class="platform-list-item">No seller leads loaded yet.</div></div></div>
+      <div class="platform-card">
+        <h4>Private Listing Workspace</h4>
+        <p>Create a private workspace for a sale or lease listing. This organizes intake and requested workflows only; it does not create a legal form, send a packet, or collect signatures.</p>
+        <div class="platform-grid">
+          <div class="field"><label>Listing Type</label><select id="listingWorkspaceKind"><option value="sale">For Sale</option><option value="lease">For Lease</option></select></div>
+          <div class="field"><label>Property Address</label><input id="listingWorkspaceAddress" maxlength="400" placeholder="123 Main St, City, TX" required></div>
+          <div class="field" style="grid-column:1 / -1;"><label>Seller / landlord names</label><input id="listingWorkspaceSellerNames" maxlength="720" placeholder="Separate multiple names with a semicolon" required></div>
+        </div>
+        <div class="field" style="margin-top:0.8rem;"><label>Requested workflow planning</label><div style="display:flex; gap:.75rem; flex-wrap:wrap; margin-top:.4rem;"><label style="display:flex; gap:.35rem; align-items:center;"><input type="checkbox" name="listingWorkflow" value="listing_agreement"> Listing agreement</label><label style="display:flex; gap:.35rem; align-items:center;"><input type="checkbox" name="listingWorkflow" value="seller_disclosure"> Seller disclosure</label><label style="display:flex; gap:.35rem; align-items:center;"><input type="checkbox" name="listingWorkflow" value="lease_listing"> Lease listing</label></div></div>
+        <div class="field" style="margin-top:0.8rem;"><label>Private notes</label><textarea id="listingWorkspaceNotes" rows="3" maxlength="4000" placeholder="Internal planning notes. Do not enter unnecessary sensitive information."></textarea></div>
+        <div class="platform-actions"><button type="button" onclick="saveListingWorkspaceFoundation()">Create Private Workspace</button><button type="button" onclick="loadListingWorkspacesFoundation()">Refresh Workspaces</button></div>
+        <div id="listingWorkspaceStatus" class="platform-status"></div>
+      </div>
+      <div class="platform-card"><h4>My Listing Workspaces</h4><div id="listingWorkspaceList" class="platform-list"><div class="platform-list-item">No listing workspaces loaded yet.</div></div><div id="listingWorkspaceBrokerSummary" class="platform-status" style="margin-top:.75rem;"></div></div>`;
     loadSellerLeadsFoundation();
+    loadListingWorkspacesFoundation();
   }
 
   async function saveSellerLeadFoundation() {
@@ -8607,6 +8622,92 @@ function routeAfterMagicLinkIfNeeded() {
     } catch (err) {
       console.warn('Seller leads load failed:', err);
       list.innerHTML = '<div class="platform-list-item">Seller leads could not load: ' + escapeAttr(err?.message || err) + '</div>';
+    }
+  }
+
+  function listingWorkspaceRequestedWorkflows() {
+    return Array.from(document.querySelectorAll('input[name="listingWorkflow"]:checked')).map(input => input.value);
+  }
+
+  function listingWorkspaceSellerNames() {
+    return String(getVal('listingWorkspaceSellerNames') || '')
+      .split(/[;\n]+/)
+      .map(value => value.trim())
+      .filter(Boolean)
+      .slice(0, 4);
+  }
+
+  async function saveListingWorkspaceFoundation() {
+    const client = getSupabaseClient();
+    const user = platformUser();
+    if (!client || !user) return platformStatus('listingWorkspaceStatus', 'Sign in before creating a listing workspace.', 'err');
+    const propertyAddress = String(getVal('listingWorkspaceAddress') || '').trim();
+    const sellerNames = listingWorkspaceSellerNames();
+    if (!propertyAddress) return platformStatus('listingWorkspaceStatus', 'Enter the property address before creating a workspace.', 'err');
+    if (!sellerNames.length) return platformStatus('listingWorkspaceStatus', 'Enter at least one seller or landlord name. Use semicolons between multiple names.', 'err');
+    try {
+      if (!hofPlatform.brokerage) await loadBrokerageFoundation();
+      if (!hofPlatform.brokerage?.id) throw new Error('Your account is not yet associated with a brokerage. Contact support before creating a listing workspace.');
+      const payload = {
+        brokerage_id: hofPlatform.brokerage.id,
+        agent_user_id: user.id,
+        listing_kind: getVal('listingWorkspaceKind') === 'lease' ? 'lease' : 'sale',
+        property_address: propertyAddress,
+        seller_names: sellerNames,
+        status: 'intake',
+        requested_workflows: listingWorkspaceRequestedWorkflows(),
+        confidential_notes: String(getVal('listingWorkspaceNotes') || '').trim() || null
+      };
+      const { error } = await client.from('hof_listing_workspaces').insert(payload);
+      if (error) throw error;
+      document.getElementById('listingWorkspaceAddress').value = '';
+      document.getElementById('listingWorkspaceSellerNames').value = '';
+      document.getElementById('listingWorkspaceNotes').value = '';
+      document.querySelectorAll('input[name="listingWorkflow"]').forEach(input => { input.checked = false; });
+      platformStatus('listingWorkspaceStatus', 'Private listing workspace created. It has not created a form or signature request.', 'ok');
+      await loadListingWorkspacesFoundation();
+    } catch (err) {
+      console.error('Listing workspace save failed:', err);
+      platformStatus('listingWorkspaceStatus', err?.message || 'Could not create the listing workspace.', 'err');
+    }
+  }
+
+  function listingWorkspaceLabel(value) {
+    return String(value || '').replace(/_/g, ' ').replace(/\b\w/g, letter => letter.toUpperCase());
+  }
+
+  async function loadListingWorkspacesFoundation() {
+    const list = document.getElementById('listingWorkspaceList');
+    const summary = document.getElementById('listingWorkspaceBrokerSummary');
+    const client = getSupabaseClient();
+    const user = platformUser();
+    if (!list || !client || !user) return;
+    try {
+      const { data, error } = await client.from('hof_listing_workspaces')
+        .select('id, listing_kind, property_address, seller_names, status, requested_workflows, updated_at')
+        .order('updated_at', { ascending:false }).limit(20);
+      if (error) throw error;
+      const workspaces = data || [];
+      list.innerHTML = workspaces.length ? workspaces.map(workspace => {
+        const workflows = Array.isArray(workspace.requested_workflows) && workspace.requested_workflows.length
+          ? workspace.requested_workflows.map(listingWorkspaceLabel).join(' · ') : 'No workflow selected yet';
+        return `<div class="platform-list-item"><strong>${escapeAttr(workspace.property_address || 'Listing workspace')}</strong><span class="platform-pill">${escapeAttr(listingWorkspaceLabel(workspace.listing_kind))}</span><span class="platform-pill">${escapeAttr(listingWorkspaceLabel(workspace.status))}</span><br>${escapeAttr((workspace.seller_names || []).join(' · '))}<br><small>${escapeAttr(workflows)}</small></div>`;
+      }).join('') : '<div class="platform-list-item">No private listing workspaces yet.</div>';
+      const profile = hofAuth.accountProfile || hofAuth.authoritativeProfile || {};
+      const mayViewSummary = profile.is_brokerage_admin === true || String(profile.role || '').toLowerCase() === 'brokerage_admin' || isCurrentAdmin();
+      if (!summary) return;
+      if (!mayViewSummary) { summary.textContent = ''; return; }
+      const result = await client.rpc('hof_brokerage_listing_workspace_summary');
+      if (result.error) throw result.error;
+      const counts = result.data || [];
+      summary.textContent = counts.length
+        ? 'Brokerage workflow counts: ' + counts.map(row => `${listingWorkspaceLabel(row.listing_kind)} / ${listingWorkspaceLabel(row.status)}: ${row.workspace_count}`).join(' · ')
+        : 'Brokerage workflow counts: no listing workspaces yet.';
+      summary.className = 'platform-status ok';
+    } catch (err) {
+      console.warn('Listing workspace load failed:', err);
+      list.innerHTML = '<div class="platform-list-item">Listing workspaces could not load: ' + escapeAttr(err?.message || err) + '</div>';
+      if (summary) { summary.textContent = ''; summary.className = 'platform-status'; }
     }
   }
 

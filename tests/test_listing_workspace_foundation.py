@@ -5,6 +5,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 MIGRATION = (ROOT / "supabase" / "homeofferflow_listing_workspaces.sql").read_text()
 DOC = (ROOT / "docs" / "SELLER_LISTING_WORKSPACE_FOUNDATION.md").read_text()
+INDEX = (ROOT / "index.html").read_text()
 
 
 class ListingWorkspaceFoundationTests(unittest.TestCase):
@@ -24,6 +25,13 @@ class ListingWorkspaceFoundationTests(unittest.TestCase):
         self.assertIn("count(*)::bigint", MIGRATION)
         self.assertIn("never seller names, addresses, notes", MIGRATION)
         self.assertIn("aggregate sale/lease/status counts", DOC)
+
+    def test_dashboard_workspace_ui_preserves_private_form_boundary(self):
+        self.assertIn("Private Listing Workspace", INDEX)
+        self.assertIn("saveListingWorkspaceFoundation", INDEX)
+        self.assertIn("hof_listing_workspaces", INDEX)
+        self.assertIn("hof_brokerage_listing_workspace_summary", INDEX)
+        self.assertIn("It has not created a form or signature request.", INDEX)
 
 
 if __name__ == "__main__":
