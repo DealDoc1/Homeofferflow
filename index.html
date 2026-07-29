@@ -3190,13 +3190,13 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
       <div style="margin-top:1.5rem; padding-top:1.25rem; border-top:1px solid rgba(255,255,255,0.08);">
         <div class="radio-group-label">Optional uploaded disclosure documents</div>
         <div class="notice sage" style="margin-bottom:0.75rem;">
-          Phase 1: upload PDF disclosures or listing-side documents and HomeOfferFlow will append them to the final offer packet before it is sent to SignWell. Signature placement on uploaded docs is coming next.
+          Upload listing-side PDFs you already have—such as a seller disclosure, survey, T-47/T-47.1, HOA documents, or PID/MUD notices. HomeOfferFlow appends only the PDFs you explicitly upload, in the order shown below. These attachments do not receive buyer signature fields unless a separate approved workflow adds them.
         </div>
         <div class="field-group">
           <div class="field">
-            <label>Upload PDF attachments</label>
+            <label>Add PDF attachments</label>
             <input type="file" id="uploadedDisclosureDocs" accept="application/pdf,.pdf" multiple onchange="handleUploadedDisclosureDocs(this.files)"/>
-            <small style="display:block; margin-top:0.35rem; color:var(--muted);">PDF only. Suggested max: 5 files, 15MB each. Examples: seller disclosure, survey, T-47/T-47.1, HOA docs, PID/MUD notices.</small>
+            <small style="display:block; margin-top:0.35rem; color:var(--muted);">PDF only. Up to 5 files, 15MB each. Add more files later, remove files, or change their final packet order below.</small>
           </div>
           <div id="uploadedDocsList" class="notice gold" style="display:none;"></div>
         </div>
@@ -6524,6 +6524,10 @@ function routeAfterMagicLinkIfNeeded() {
     const fmtM = v => v !== '' && v !== undefined && v !== null ? '$' + Number(v).toLocaleString() : '';
     const atag = (label, on) => `<span class="addendum-tag ${on ? '' : 'na'}">${on ? '✓' : '—'} ${label}</span>`;
     const hasLoan = ['conventional','fha','va','usda'].includes(s.financing);
+    const uploadedDocs = window.hofUploadedDisclosureDocs || [];
+    const uploadedDocsSummary = uploadedDocs.length
+      ? `<div class="notice sage" style="margin-top:0.8rem; padding:0.7rem;"><strong>Listing-side PDFs appended after the contract packet:</strong>${uploadedDocs.map((doc, index) => `<br>${index + 1}. ${escapeHtml(doc.name)}${doc.type && doc.type !== 'uploaded_disclosure' ? ` — ${escapeHtml(uploadedDisclosureDocTypeLabel(doc.type))}` : ''}`).join('')}</div>`
+      : '';
 
     document.getElementById('reviewSummary').innerHTML = `
       <div class="review-section"><div class="review-section-title">Parties</div>
@@ -6590,6 +6594,7 @@ function routeAfterMagicLinkIfNeeded() {
           ${atag('MUD/PID Disclosure', s.mud === 'yes' || s.mud === 'unknown')}
           ${atag('Lead-Based Paint — flag', s.leadBuiltBefore1978 === 'yes' || s.leadBuiltBefore1978 === 'unknown')}
           ${atag("Seller's Temporary Residential Lease", s.sellerTemporaryLease === 'yes')}
+          ${uploadedDocsSummary}
         </div>
       </div>`;
   }
@@ -6964,6 +6969,27 @@ function routeAfterMagicLinkIfNeeded() {
 
   window.hofUploadedDisclosureDocs = window.hofUploadedDisclosureDocs || [];
 
+  const UPLOADED_DISCLOSURE_MAX_FILES = 5;
+  const UPLOADED_DISCLOSURE_MAX_BYTES = 15 * 1024 * 1024;
+  const UPLOADED_DISCLOSURE_TYPES = [
+    ['uploaded_disclosure', 'Listing disclosure / other PDF'],
+    ['seller_disclosure', 'Seller disclosure'],
+    ['survey', 'Survey'],
+    ['t47', 'T-47 / T-47.1 affidavit'],
+    ['hoa', 'HOA document'],
+    ['pid_mud', 'PID / MUD notice'],
+  ];
+
+  function uploadedDisclosureDocTypeLabel(type) {
+    const selected = UPLOADED_DISCLOSURE_TYPES.find(([value]) => value === type);
+    return selected ? selected[1] : 'Listing disclosure / other PDF';
+  }
+
+  function syncUploadedDisclosureDocNames() {
+    const docs = window.hofUploadedDisclosureDocs || [];
+    state.data.uploadedDocNames = docs.map(doc => doc.name);
+  }
+
   function renderUploadedDocsList() {
     const box = document.getElementById('uploadedDocsList');
     const docs = window.hofUploadedDisclosureDocs || [];
@@ -6974,8 +7000,49 @@ function routeAfterMagicLinkIfNeeded() {
       return;
     }
     box.style.display = 'block';
-    box.innerHTML = '<strong>Uploaded docs to append:</strong><br>' + docs.map((d, i) => `${i + 1}. ${escapeHtml(d.name)} (${Math.round((d.size || 0) / 1024).toLocaleString()} KB)`).join('<br>');
+    box.innerHTML = '<strong>Packet attachment order</strong><div style="font-size:0.78rem;line-height:1.45;margin:0.3rem 0 0.65rem;">These listing-side PDFs will be appended after the contract packet in this exact order. Confirm the order before checkout.</div>' + docs.map((d, i) => {
+      const options = UPLOADED_DISCLOSURE_TYPES.map(([value, label]) =>
+        `<option value="${value}" ${d.type === value ? 'selected' : ''}>${escapeHtml(label)}</option>`
+      ).join('');
+      const controls = [
+        `<button type="button" onclick="moveUploadedDisclosureDoc(${i},-1)" ${i === 0 ? 'disabled' : ''} aria-label="Move ${escapeAttr(d.name)} up">↑</button>`,
+        `<button type="button" onclick="moveUploadedDisclosureDoc(${i},1)" ${i === docs.length - 1 ? 'disabled' : ''} aria-label="Move ${escapeAttr(d.name)} down">↓</button>`,
+        `<button type="button" onclick="removeUploadedDisclosureDoc(${i})" aria-label="Remove ${escapeAttr(d.name)}">Remove</button>`
+      ].join(' ');
+      return `<div style="padding:0.65rem 0;border-top:1px solid rgba(255,255,255,0.14);"><strong>${i + 1}. ${escapeHtml(d.name)}</strong> <span style="font-size:0.78rem;color:var(--muted);">(${Math.round((d.size || 0) / 1024).toLocaleString()} KB)</span><div style="display:flex;gap:0.45rem;flex-wrap:wrap;align-items:center;margin-top:0.45rem;"><label style="font-size:0.76rem;">Type <select onchange="setUploadedDisclosureDocType(${i},this.value)" style="margin-left:0.25rem;">${options}</select></label><span style="display:inline-flex;gap:0.3rem;">${controls}</span></div></div>`;
+    }).join('');
   }
+
+  window.removeUploadedDisclosureDoc = function removeUploadedDisclosureDoc(index) {
+    const docs = window.hofUploadedDisclosureDocs || [];
+    if (index < 0 || index >= docs.length) return;
+    docs.splice(index, 1);
+    window.hofUploadedDisclosureDocs = docs;
+    syncUploadedDisclosureDocNames();
+    renderUploadedDocsList();
+    try { renderReview(); } catch (_) {}
+  };
+
+  window.moveUploadedDisclosureDoc = function moveUploadedDisclosureDoc(index, direction) {
+    const docs = window.hofUploadedDisclosureDocs || [];
+    const destination = index + Number(direction || 0);
+    if (index < 0 || index >= docs.length || destination < 0 || destination >= docs.length) return;
+    [docs[index], docs[destination]] = [docs[destination], docs[index]];
+    window.hofUploadedDisclosureDocs = docs;
+    syncUploadedDisclosureDocNames();
+    renderUploadedDocsList();
+    try { renderReview(); } catch (_) {}
+  };
+
+  window.setUploadedDisclosureDocType = function setUploadedDisclosureDocType(index, type) {
+    const docs = window.hofUploadedDisclosureDocs || [];
+    const allowed = new Set(UPLOADED_DISCLOSURE_TYPES.map(([value]) => value));
+    if (!docs[index] || !allowed.has(type)) return;
+    docs[index].type = type;
+    syncUploadedDisclosureDocNames();
+    renderUploadedDocsList();
+    try { renderReview(); } catch (_) {}
+  };
 
   function readFileAsBase64(file) {
     return new Promise((resolve, reject) => {
@@ -6992,10 +7059,9 @@ function routeAfterMagicLinkIfNeeded() {
 
   async function handleUploadedDisclosureDocs(fileList) {
     const files = Array.from(fileList || []);
-    const maxFiles = 5;
-    const maxBytes = 15 * 1024 * 1024;
-    if (files.length > maxFiles) {
-      alert(`Please upload ${maxFiles} PDFs or fewer for this beta version.`);
+    const existingDocs = window.hofUploadedDisclosureDocs || [];
+    if (existingDocs.length + files.length > UPLOADED_DISCLOSURE_MAX_FILES) {
+      alert(`You can attach up to ${UPLOADED_DISCLOSURE_MAX_FILES} PDFs. Remove an existing attachment before adding more.`);
       const input = document.getElementById('uploadedDisclosureDocs');
       if (input) input.value = '';
       return;
@@ -7007,11 +7073,16 @@ function routeAfterMagicLinkIfNeeded() {
         alert('Only PDF files can be uploaded right now: ' + file.name);
         continue;
       }
-      if (file.size > maxBytes) {
+      if (file.size > UPLOADED_DISCLOSURE_MAX_BYTES) {
         alert('This PDF is too large for beta upload: ' + file.name + '. Please keep each file under 15MB.');
         continue;
       }
       try {
+        const base64 = await readFileAsBase64(file);
+        if (!base64.startsWith('JVBER')) {
+          alert('This file does not appear to be a valid PDF: ' + file.name);
+          continue;
+        }
         docs.push({
           name: file.name,
           type: 'uploaded_disclosure',
@@ -7019,15 +7090,17 @@ function routeAfterMagicLinkIfNeeded() {
           mimeType: 'application/pdf',
           needsBuyerSignature: false,
           needsBuyerInitials: false,
-          base64: await readFileAsBase64(file)
+          base64
         });
       } catch (err) {
         console.error('Upload read failed:', err);
         alert('Could not read uploaded PDF: ' + file.name);
       }
     }
-    window.hofUploadedDisclosureDocs = docs;
-    state.data.uploadedDocNames = docs.map(d => d.name);
+    window.hofUploadedDisclosureDocs = [...existingDocs, ...docs];
+    syncUploadedDisclosureDocNames();
+    const input = document.getElementById('uploadedDisclosureDocs');
+    if (input) input.value = '';
     renderUploadedDocsList();
     try { renderReview(); } catch (e) {}
   }

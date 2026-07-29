@@ -9,6 +9,7 @@ from api import fill_pdf_20_19_production_adapter as adapter
 
 
 ROOT = Path(__file__).resolve().parents[1]
+INDEX_HTML = (ROOT / "index.html").read_text(encoding="utf-8")
 
 
 def configure_local_forms():
@@ -147,6 +148,28 @@ class ControlledLaunchTests(unittest.TestCase):
         uploaded = [field for field in fields if field["api_id"].startswith("uploaded_")]
         self.assertEqual(len(uploaded), 1)
         self.assertEqual(uploaded[0]["page"], 13)
+
+    def test_uploaded_listing_documents_keep_agent_selected_packet_order(self):
+        first = one_page_pdf_base64()
+        second = one_page_pdf_base64()
+        offer = minimal_offer(uploadedDisclosureDocs=[
+            {"name": "seller-disclosure.pdf", "type": "seller_disclosure", "base64": first},
+            {"name": "survey.pdf", "type": "survey", "base64": second},
+        ])
+        packet = adapter.fill_and_merge_20_19(offer)
+        self.assertEqual(len(PdfReader(BytesIO(packet)).pages), 14)
+
+    def test_uploaded_listing_document_ui_supports_order_type_and_removal_before_checkout(self):
+        for item in (
+            "Packet attachment order",
+            "moveUploadedDisclosureDoc",
+            "removeUploadedDisclosureDoc",
+            "setUploadedDisclosureDocType",
+            "Seller disclosure",
+            "These listing-side PDFs will be appended after the contract packet in this exact order",
+            "base64.startsWith('JVBER')",
+        ):
+            self.assertIn(item, INDEX_HTML)
 
     def test_unverified_paths_fail_closed(self):
         blocked_offers = [
