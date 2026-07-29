@@ -605,7 +605,7 @@ def build_pages_data(
     """
     TREC 20-19 STAGING coordinate map.
 
-    This is intentionally separate from the production 20-18 route. It updates the main
+    This is intentionally separate from the production TREC 20-19 route. It updates the main
     contract mapping for the new 12-page 20-19 form. Coordinates still require visual QA
     against generated test packets before production switch.
     """
