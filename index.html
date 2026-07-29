@@ -12938,5 +12938,62 @@ function routeAfterMagicLinkIfNeeded() {
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', renderNoticeCard, { once:true }); else renderNoticeCard();
 })();
 </script>
+<style id="hof-agent-launch-scope-v1">
+  .hof-launch-scope-card { border:1px solid rgba(113,184,157,.34); background:rgba(74,140,111,.07); margin-top:1rem; }
+  .hof-launch-scope-card h4 { margin-bottom:.4rem; }
+  .hof-launch-scope-card p { color:var(--gray-light); font-size:.86rem; line-height:1.52; }
+  .hof-launch-scope-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.7rem; margin:.9rem 0; }
+  .hof-launch-scope-item { border:1px solid rgba(255,255,255,.10); border-radius:10px; padding:.7rem; font-size:.82rem; line-height:1.45; color:var(--gray-light); }
+  .hof-launch-scope-item strong { display:block; color:var(--white); margin-bottom:.2rem; }
+  .hof-launch-scope-item.ready strong { color:var(--sage-light); }
+  .hof-launch-scope-item.not-ready strong { color:var(--gold-light); }
+  @media (max-width:640px) { .hof-launch-scope-grid { grid-template-columns:1fr; } }
+</style>
+<script id="hof-agent-launch-scope-v1">
+(function () {
+  const root = window;
+
+  function isAgentAccount() {
+    return String(root.hofAuth?.role || '').toLowerCase() !== 'investor';
+  }
+
+  function renderLaunchScope() {
+    const panel = document.getElementById('accountPanelDashboard');
+    if (!panel || !isAgentAccount() || document.getElementById('agentLaunchScopeCard')) return;
+    const card = document.createElement('div');
+    card.id = 'agentLaunchScopeCard';
+    card.className = 'account-card hof-launch-scope-card';
+    card.innerHTML = `
+      <h4>Forms available in HomeOfferFlow</h4>
+      <p>Use this as a quick launch-scope check before you promise a client a document or signing workflow.</p>
+      <div class="hof-launch-scope-grid">
+        <div class="hof-launch-scope-item ready">
+          <strong>Available now</strong>
+          Texas residential purchase-offer packets, supported purchase addenda, buyer-side e-signing, saved offer defaults, and an optional profile IABS attachment.
+        </div>
+        <div class="hof-launch-scope-item not-ready">
+          <strong>Not a live signing workflow yet</strong>
+          Buyer/tenant representation agreements, listing agreements, seller disclosures, lease-listing and tenant-representation packets, and any form marked draft-only in your workspace.
+        </div>
+      </div>
+      <p><strong>Important:</strong> Do not represent a draft-only or unavailable form as generated, sent, or executed through HomeOfferFlow. Use your brokerage-approved process for those documents until HomeOfferFlow releases the separately mapped and signed workflow.</p>`;
+    const subscription = document.getElementById('subscriptionUsageCard');
+    if (subscription?.parentElement) subscription.insertAdjacentElement('afterend', card);
+    else panel.appendChild(card);
+  }
+
+  const priorDashboard = root.renderAccountDashboard;
+  root.renderAccountDashboard = function renderAccountDashboardWithLaunchScope() {
+    if (typeof priorDashboard === 'function') priorDashboard.apply(this, arguments);
+    renderLaunchScope();
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', renderLaunchScope, { once:true });
+  } else {
+    renderLaunchScope();
+  }
+})();
+</script>
 </body>
 </html>
