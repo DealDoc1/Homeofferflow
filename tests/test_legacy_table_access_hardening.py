@@ -9,6 +9,9 @@ MIGRATION = (ROOT / "supabase" / "homeofferflow_legacy_table_access_hardening.sq
 PRIVATE_BROWSER_TABLES = (
     ROOT / "supabase" / "homeofferflow_private_browser_tables_no_anon.sql"
 ).read_text(encoding="utf-8")
+OFFER_OWNERSHIP_POLICY = (
+    ROOT / "supabase" / "homeofferflow_offer_ownership_insert_policy.sql"
+).read_text(encoding="utf-8")
 
 
 class LegacyTableAccessHardeningTests(unittest.TestCase):
@@ -45,6 +48,10 @@ class LegacyTableAccessHardeningTests(unittest.TestCase):
             "hof_usage_events",
         ):
             self.assertIn(f"public.{table_name}", PRIVATE_BROWSER_TABLES)
+
+    def test_offer_inserts_cannot_use_the_legacy_null_owner_policy(self):
+        self.assertIn('drop policy if exists "hof_offers own insert"', OFFER_OWNERSHIP_POLICY)
+        self.assertIn("public.hof_offers", OFFER_OWNERSHIP_POLICY)
 
 
 if __name__ == "__main__":
