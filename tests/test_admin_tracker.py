@@ -71,6 +71,37 @@ class AdminTrackerSecurityTests(IsolatedAsyncioTestCase):
         self.assertTrue(allowed)
         get_rows.assert_not_awaited()
 
+    async def test_brokerage_dashboard_requires_active_broker_membership_even_if_profile_flag_is_stale(self):
+        user = {"id": "user-123", "email": "former-broker@example.com"}
+        profile = [{
+            "id": "user-123",
+            "brokerage_id": "brokerage-123",
+            "is_brokerage_admin": True,
+            "role": "brokerage_admin",
+        }]
+
+        with patch.object(admin_dashboard, "_get", new=AsyncMock(side_effect=[profile, []])) as get_rows:
+            context = await admin_dashboard._brokerage_admin_context(user)
+
+        self.assertIsNone(context)
+        self.assertEqual(get_rows.await_count, 2)
+
+    async def test_brokerage_dashboard_accepts_active_broker_membership(self):
+        user = {"id": "user-123", "email": "broker@example.com"}
+        profile = [{
+            "id": "user-123",
+            "brokerage_id": "brokerage-123",
+            "is_brokerage_admin": False,
+            "role": "agent",
+        }]
+        membership = [{"id": "membership-123"}]
+        brokerage = [{"id": "brokerage-123", "name": "OnDemand Realty"}]
+
+        with patch.object(admin_dashboard, "_get", new=AsyncMock(side_effect=[profile, membership, brokerage])):
+            context = await admin_dashboard._brokerage_admin_context(user)
+
+        self.assertEqual(context["brokerage"]["id"], "brokerage-123")
+
     async def test_optional_admin_dataset_fails_open_to_empty_list(self):
         with patch.object(admin_dashboard, "_get", new=AsyncMock(side_effect=RuntimeError("table missing"))):
             rows = await admin_dashboard._get_optional("hof_partner_leads?select=*")
