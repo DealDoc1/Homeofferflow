@@ -1,5 +1,6 @@
 import base64
 import contextlib
+import json
 from io import BytesIO
 from io import StringIO
 from pathlib import Path
@@ -12,6 +13,7 @@ from api import fill_pdf_20_19_production_adapter as adapter
 
 ROOT = Path(__file__).resolve().parents[1]
 INDEX_HTML = (ROOT / "index.html").read_text(encoding="utf-8")
+GOLDEN_RENDER_BASELINE = ROOT / "tests" / "fixtures" / "golden_packet_rendering.json"
 
 
 def configure_local_forms():
@@ -214,6 +216,15 @@ class ControlledLaunchTests(unittest.TestCase):
             self.assertEqual(len(PdfReader(BytesIO(packet)).pages), expected_pages)
             self.assertTrue(required_fields <= field_ids)
             self.assertFalse(forbidden_fields & field_ids)
+
+    def test_golden_render_baseline_covers_each_supported_golden_scenario(self):
+        manifest = json.loads(GOLDEN_RENDER_BASELINE.read_text(encoding="utf-8"))
+        self.assertEqual(manifest["renderer"], "pdftoppm")
+        self.assertEqual(manifest["max_width"], 612)
+        self.assertEqual(len(manifest["scenarios"]), 10)
+        for scenario in manifest["scenarios"].values():
+            self.assertEqual(len(scenario["pages"]), scenario["page_count"])
+            self.assertTrue(scenario["field_ids"])
 
     def test_unverified_paths_fail_closed(self):
         blocked_offers = [
