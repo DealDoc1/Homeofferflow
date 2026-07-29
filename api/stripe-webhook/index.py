@@ -287,6 +287,7 @@ class handler(BaseHTTPRequestHandler):
 
     def _activate_brokerage_membership(self, user_id, email, brokerage_id):
         self._require_supabase()
+        self._associate_brokerage_profile(user_id, email, brokerage_id)
         members_url = (
             f"{SUPABASE_URL}/rest/v1/hof_brokerage_members"
             f"?select=id,role"
@@ -334,6 +335,58 @@ class handler(BaseHTTPRequestHandler):
                 raise Exception(
                     f"Brokerage membership activation failed: "
                     f"{response.status_code} {response.text}"
+                )
+
+    def _associate_brokerage_profile(self, user_id, email, brokerage_id):
+        """Associate a paid/trialing launch enrollee without changing elevated roles.
+
+        This runs only from the signature-verified Stripe webhook. Checkout may
+        be canceled, so it must never create a brokerage relationship by itself.
+        Existing broker-admin/owner profile roles are intentionally preserved.
+        """
+        profiles_url = f"{SUPABASE_URL}/rest/v1/hof_profiles"
+        headers = self._supabase_headers()
+        now = self._iso_now()
+
+        with httpx.Client(timeout=15) as client:
+            current = client.get(
+                profiles_url,
+                params={"id": f"eq.{user_id}", "select": "id,role,is_brokerage_admin", "limit": "1"},
+                headers=headers,
+            )
+            if current.status_code >= 300:
+                raise Exception(
+                    f"Brokerage profile lookup failed: {current.status_code} {current.text}"
+                )
+
+            existing = current.json()
+            if existing:
+                response = client.patch(
+                    f"{profiles_url}?id=eq.{user_id}",
+                    headers={**headers, "Prefer": "return=minimal"},
+                    json={
+                        "email": email or None,
+                        "brokerage_id": brokerage_id,
+                        "updated_at": now,
+                    },
+                )
+            else:
+                response = client.post(
+                    f"{profiles_url}?on_conflict=id",
+                    headers={**headers, "Prefer": "resolution=merge-duplicates,return=minimal"},
+                    json={
+                        "id": user_id,
+                        "email": email or None,
+                        "role": "agent",
+                        "brokerage_id": brokerage_id,
+                        "is_brokerage_admin": False,
+                        "updated_at": now,
+                    },
+                )
+
+            if response.status_code >= 300:
+                raise Exception(
+                    f"Brokerage profile association failed: {response.status_code} {response.text}"
                 )
 
     def _handle_invoice_status(self, invoice, status):

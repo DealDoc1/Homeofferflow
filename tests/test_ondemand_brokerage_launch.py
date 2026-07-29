@@ -115,8 +115,6 @@ class OnDemandCheckoutTests(unittest.TestCase):
             "slug": "ondemand",
         }
         request._has_current_subscription = lambda _user_id: False
-        request._enroll_ondemand_user = lambda _user, _brokerage: None
-
         with patch.object(checkout.httpx, "Client", StripeClient):
             request.do_POST()
 
@@ -151,7 +149,6 @@ class OnDemandCheckoutTests(unittest.TestCase):
         }
         request.rfile = io.BytesIO(body)
         captured = {}
-        enrolled = []
         request._json = lambda code, data: captured.update(code=code, data=data)
         request._require_supabase = lambda: None
         request._verified_user = lambda _header: {
@@ -164,17 +161,43 @@ class OnDemandCheckoutTests(unittest.TestCase):
             "dba_name": "OnDemand Realty",
             "slug": "ondemand",
         }
-        request._enroll_ondemand_user = (
-            lambda user, brokerage: enrolled.append((user, brokerage))
-        )
         request._has_current_subscription = lambda _user_id: True
 
         with patch.object(checkout.httpx, "Client", StripeClient):
             request.do_POST()
 
         self.assertEqual(captured["code"], 409)
-        self.assertEqual(len(enrolled), 1)
         self.assertIsNone(StripeClient.last_request)
+
+    def test_ondemand_checkout_defers_brokerage_membership_until_stripe_confirms(self):
+        source = CHECKOUT_PATH.read_text(encoding="utf-8")
+        self.assertNotIn("def _enroll_ondemand_user", source)
+        self.assertNotIn("self._enroll_ondemand_user", source)
+
+    def test_webhook_profile_association_preserves_existing_broker_role(self):
+        class ProfileAndMembershipClient(MembershipClient):
+            def get(self, url, **kwargs):
+                self.requests.append(("get", url, kwargs))
+                if url.endswith("/rest/v1/hof_profiles"):
+                    return Response(200, [{"id": "user-1", "role": "brokerage_admin", "is_brokerage_admin": True}])
+                return Response(200, [{"id": "member-1", "role": "broker_admin"}])
+
+        member_handler = webhook.handler.__new__(webhook.handler)
+        ProfileAndMembershipClient.requests = []
+        with patch.object(member_handler, "_require_supabase"), patch.object(
+            webhook.httpx, "Client", ProfileAndMembershipClient
+        ):
+            member_handler._activate_brokerage_membership(
+                "user-1", "broker@ondemand.test", "brokerage-1"
+            )
+
+        profile_patch = next(
+            request for request in ProfileAndMembershipClient.requests
+            if request[0] == "patch" and "/rest/v1/hof_profiles" in request[1]
+        )
+        self.assertEqual(profile_patch[2]["json"]["brokerage_id"], "brokerage-1")
+        self.assertNotIn("role", profile_patch[2]["json"])
+        self.assertNotIn("is_brokerage_admin", profile_patch[2]["json"])
 
     def test_launch_origin_rejects_untrusted_domains(self):
         self.assertEqual(
@@ -194,7 +217,11 @@ class BrokerageAuthorizationTests(unittest.TestCase):
             member_handler._activate_brokerage_membership(
                 "user-1", "broker@ondemand.test", "brokerage-1"
             )
-        writes = [request for request in MembershipClient.requests if request[0] in {"patch", "post"}]
+        writes = [
+            request
+            for request in MembershipClient.requests
+            if request[0] in {"patch", "post"} and "/rest/v1/hof_brokerage_members" in request[1]
+        ]
         self.assertEqual(writes[0][0], "patch")
         self.assertNotIn("role", writes[0][2]["json"])
         self.assertEqual(writes[0][2]["json"]["status"], "active")
