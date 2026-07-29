@@ -2250,28 +2250,11 @@ def handle_checkout(event):
 class handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
-        try:
-            contents = os.listdir(BASE_DIR) if os.path.exists(BASE_DIR) else []
-        except Exception as e:
-            contents = str(e)
-
         self._json(200, {
             "status": "ok",
-            "debug_grid": DEBUG_GRID,
+            "route": "fill_pdf_20_19_staging",
+            "staging_only": True,
             "trec_main_form": "20-19 staging",
-            "base_dir": BASE_DIR,
-            "main_pdf_exists": os.path.exists(MAIN_PDF),
-            "financing_pdf_exists": os.path.exists(FINANCING_PDF),
-            "hoa_pdf_exists": os.path.exists(HOA_PDF),
-            "sale_pdf_exists": os.path.exists(SALE_PDF),
-            "backup_pdf_exists": os.path.exists(BACKUP_PDF),
-            "appraisal_pdf_exists": os.path.exists(APPRAISAL_PDF),
-            "non_realty_pdf_exists": os.path.exists(NON_REALTY_PDF),
-            "signwell_enabled": SIGNWELL_ENABLED,
-            "signwell_test_mode": SIGNWELL_TEST_MODE,
-            "signwell_api_key_present": bool(SIGNWELL_API_KEY),
-            "cwd": os.getcwd(),
-            "dir_contents": contents
         })
 
     def do_POST(self):

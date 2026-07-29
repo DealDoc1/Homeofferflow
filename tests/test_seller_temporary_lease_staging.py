@@ -246,6 +246,13 @@ class SellerTemporaryLeaseStagingTests(unittest.TestCase):
             "buyer_temporary_residential_lease_16-7.pdf",
         )
 
+    def test_staging_health_route_does_not_disclose_runtime_details(self):
+        source = (ROOT / "api" / "fill_pdf_20_19_staging.py").read_text()
+        self.assertIn('"route": "fill_pdf_20_19_staging"', source)
+        self.assertIn('"staging_only": True', source)
+        self.assertNotIn('"dir_contents": contents', source)
+        self.assertNotIn('"signwell_api_key_present": bool(SIGNWELL_API_KEY)', source)
+
 
 if __name__ == "__main__":
     unittest.main()
