@@ -1,6 +1,6 @@
 from io import BytesIO
-import json
 from pathlib import Path
+import json
 import unittest
 
 from pypdf import PdfReader
@@ -27,19 +27,21 @@ def configure_local_forms():
     staging.LEAD_PDF_ALT = staging.LEAD_PDF
 
 
-def buyer_temp_offer():
+def seller_temp_offer():
     return {
         "userType": "agent",
         "hasBuyerAgent": "yes",
-        "buyer1": "Lease Test Buyer One",
-        "buyer2": "Lease Test Buyer Two",
+        "buyer1": "Seller Lease Buyer One",
+        "buyer2": "Seller Lease Buyer Two",
         "buyerEmail": "buyer1@example.com",
         "buyer2Email": "buyer2@example.com",
         "buyerPhone": "2143649890",
+        "buyerFax": "2145550101",
         "buyerMailAddr": "721 Broderick Lane, Prosper, TX 75078",
-        "seller": "Lease Test Seller One and Lease Test Seller Two",
+        "seller": "Seller Lease Seller One and Seller Lease Seller Two",
         "sellerEmail": "seller@example.com",
         "sellerPhone": "9725550134",
+        "sellerFax": "9725550199",
         "sellerMailAddr": "100 Seller Lane, Van Alstyne, TX 75495",
         "address": "1438 Whitaker Road",
         "city": "Van Alstyne",
@@ -66,16 +68,15 @@ def buyer_temp_offer():
         "sellerWaterDisclosure": "received",
         "asIs": "yes",
         "closingDate": "2026-08-15",
-        "possession": "temporaryLease",
-        "buyerTemporaryLease": "yes",
-        "buyerTemporaryLeaseStartDate": "2026-08-01",
-        "buyerTemporaryLeaseRentPerDay": "100",
-        "buyerTemporaryLeaseTotalRent": "1400",
-        "buyerTemporaryLeaseDeposit": "500",
-        "buyerTemporaryLeaseUtilitiesPaidBySeller": "Water and trash.",
-        "buyerTemporaryLeasePetsAllowed": "One dog under 40 pounds.",
-        "buyerTemporaryLeaseSpecialProvisions": "Tenant will maintain the yard and return all keys and garage remotes at closing.",
-        "buyerTemporaryLeaseHoldoverPerDay": "250",
+        "possession": "sellerTemporaryLease",
+        "sellerTemporaryLease": "yes",
+        "sellerTemporaryLeaseTerminationDate": "2026-08-31",
+        "sellerTemporaryLeaseRentPerDay": "125",
+        "sellerTemporaryLeaseDeposit": "1000",
+        "sellerTemporaryLeaseUtilitiesPaidByBuyer": "Water and trash",
+        "sellerTemporaryLeasePetsAllowed": "One dog under 40 pounds",
+        "sellerTemporaryLeaseSpecialProvisions": "Tenant will maintain the yard and return all keys and garage remotes when possession is surrendered.",
+        "sellerTemporaryLeaseHoldoverPerDay": "300",
         "saleContingency": "no",
         "backupOffer": "no",
         "appraisalAddendum": "none",
@@ -92,84 +93,70 @@ def buyer_temp_offer():
     }
 
 
-class BuyerTemporaryLeaseStagingTests(unittest.TestCase):
+class SellerTemporaryLeaseStagingTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         configure_local_forms()
 
-    def test_staging_appends_current_two_page_16_7(self):
-        packet = staging.fill_and_merge(buyer_temp_offer())
+    def test_staging_appends_the_two_page_seller_temporary_lease(self):
+        packet = staging.fill_and_merge(seller_temp_offer())
         reader = PdfReader(BytesIO(packet))
         self.assertEqual(len(reader.pages), 14)
         lease_text = "\n".join(page.extract_text() or "" for page in reader.pages[12:14])
         for expected in [
-            "Lease Test Seller One and Lease Test Seller Two",
-            "Lease Test Buyer One and Lease Test Buyer Two",
-            "August 1, 2026",
-            "1,400",
-            "Water and trash.",
-            "One dog under 40 pounds.",
-            "250",
-            "seller@example.com",
+            "Seller Lease Buyer One and Seller Lease Buyer Two",
+            "Seller Lease Seller One and Seller Lease Seller Two",
+            "August 31, 2026",
+            "125",
+            "1,000",
+            "Water and trash",
+            "One dog under 40 pounds",
+            "300",
             "buyer1@example.com",
+            "seller@example.com",
         ]:
             self.assertIn(expected, lease_text)
 
-    def test_staging_signwell_fields_target_tenant_lines(self):
-        offer = buyer_temp_offer()
+    def test_signwell_fields_target_buyer_landlord_lines(self):
+        offer = seller_temp_offer()
         packet = staging.fill_and_merge(offer)
         fields = staging.build_signwell_fields(offer, packet)[0]
         by_id = {field["api_id"]: field for field in fields}
-        self.assertEqual(by_id["buyer1_initials_buyer_temp_lease_p1"]["page"], 13)
-        self.assertEqual(by_id["buyer2_initials_buyer_temp_lease_p1"]["page"], 13)
-        self.assertEqual(by_id["buyer1_signature_buyer_temp_lease"]["page"], 14)
-        self.assertEqual(by_id["buyer2_signature_buyer_temp_lease"]["page"], 14)
+        self.assertEqual(by_id["buyer1_initials_seller_temp_lease_p1"]["page"], 13)
+        self.assertEqual(by_id["buyer2_initials_seller_temp_lease_p1"]["page"], 13)
+        self.assertEqual(by_id["buyer1_signature_seller_temp_lease"]["page"], 14)
+        self.assertEqual(by_id["buyer2_signature_seller_temp_lease"]["page"], 14)
+        self.assertLess(by_id["buyer1_signature_seller_temp_lease"]["x"], 200)
+        self.assertLess(by_id["buyer2_signature_seller_temp_lease"]["x"], 200)
 
-    def test_lease_pages_shift_following_addenda_without_overlap(self):
-        offer = buyer_temp_offer()
-        offer.update({
-            "financing": "conventional",
-            "loanAmount": "400000",
-            "hoa": "yes",
-            "hoaName": "Test Property Owners Association",
-        })
+    def test_addendum_page_offsets_remain_correct(self):
+        offer = seller_temp_offer()
+        offer.update({"financing": "conventional", "loanAmount": "400000", "hoa": "yes", "hoaName": "Test POA"})
         packet = staging.fill_and_merge(offer)
         self.assertEqual(len(PdfReader(BytesIO(packet)).pages), 17)
         fields = staging.build_signwell_fields(offer, packet)[0]
         by_id = {field["api_id"]: field for field in fields}
-        self.assertEqual(by_id["buyer1_signature_buyer_temp_lease"]["page"], 16)
+        self.assertEqual(by_id["buyer1_signature_seller_temp_lease"]["page"], 16)
         self.assertEqual(by_id["buyer1_hoa_addendum_signature"]["page"], 17)
 
-    def test_production_accepts_visually_verified_buyer_temporary_lease(self):
-        offer = buyer_temp_offer()
-        self.assertTrue(production.validate_supported_offer(offer))
+    def test_staging_rejects_conflicting_temporary_lease_paths(self):
+        offer = seller_temp_offer()
+        offer.update({"buyerTemporaryLease": "yes", "possession": "sellerTemporaryLease"})
+        with self.assertRaisesRegex(ValueError, "either the Buyer or Seller"):
+            staging.fill_and_merge(offer)
 
-        packet = production.fill_and_merge_20_19(offer)
-        self.assertEqual(len(PdfReader(BytesIO(packet)).pages), 14)
+    def test_production_remains_fail_closed_until_staging_packet_is_visually_approved(self):
+        offer = seller_temp_offer()
+        with self.assertRaises(production.UnsupportedOfferPathError):
+            production.validate_supported_offer(offer)
 
-        fields = production.build_signwell_fields_20_19(offer, packet)[0]
-        by_id = {field["api_id"]: field for field in fields}
-        self.assertEqual(by_id["buyer1_initials_buyer_temp_lease_p1"]["page"], 13)
-        self.assertEqual(by_id["buyer2_initials_buyer_temp_lease_p1"]["page"], 13)
-        self.assertEqual(by_id["buyer1_signature_buyer_temp_lease"]["page"], 14)
-        self.assertEqual(by_id["buyer2_signature_buyer_temp_lease"]["page"], 14)
-
-    def test_production_rejects_incomplete_or_ambiguous_buyer_lease_requests(self):
-        for updates in [
-            {"buyerTemporaryLease": "no"},
-            {"possession": "funding"},
-            {"possession": "lease"},
-        ]:
-            offer = buyer_temp_offer()
-            offer.update(updates)
-            with self.subTest(updates=updates):
-                with self.assertRaises(production.UnsupportedOfferPathError):
-                    production.validate_supported_offer(offer)
-
-    def test_vercel_staging_and_production_bundles_include_current_lease_form(self):
+    def test_only_staging_bundle_includes_seller_temp_lease_source(self):
         config = json.loads((ROOT / "vercel.json").read_text())
+        self.assertIsInstance(
+            config["functions"]["api/fill_pdf_20_19_staging.py"]["includeFiles"], str
+        )
         self.assertIn(
-            "buyer_temporary_residential_lease_16-7.pdf",
+            "seller_temporary_residential_lease_15-7.pdf",
             config["functions"]["api/fill_pdf_20_19_staging.py"]["includeFiles"],
         )
         self.assertEqual(

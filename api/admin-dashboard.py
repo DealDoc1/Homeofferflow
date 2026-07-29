@@ -1,6 +1,7 @@
 import os
 import json
 import uuid
+import re
 import urllib.parse
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler
@@ -21,6 +22,7 @@ ALLOWED_PARTNER_TYPES = {
     "moving_storage", "lawn_pool", "security_smart_home", "other",
 }
 MAX_BODY_BYTES = 12_000
+TXR_1507_FORM_CODE = "TXR-1507"
 
 
 def _json(handler, code, payload):
@@ -339,6 +341,120 @@ async def _create_platform_partner_placement(payload):
     return rows[0]
 
 
+def _agreement_text(value, field, maximum=400):
+    value = " ".join(str(value or "").strip().split())
+    if not value:
+        raise ValueError(f"{field} is required.")
+    if len(value) > maximum:
+        raise ValueError(f"{field} is too long.")
+    return value
+
+
+def _parse_txr_1507_draft(data):
+    if data.get("formCode") != TXR_1507_FORM_CODE:
+        raise ValueError("Only TXR-1507 is available through this action.")
+    client_values = data.get("clientNames")
+    if not isinstance(client_values, list) or not (1 <= len(client_values) <= 2):
+        raise ValueError("Add one or two client names.")
+    client_names = [_agreement_text(value, "Each client name", 180) for value in client_values]
+    market_area = _agreement_text(data.get("marketArea"), "Market area", 800)
+    term_start = _agreement_text(data.get("termStart"), "Term start date", 30)
+    term_end = _agreement_text(data.get("termEnd"), "Term end date", 30)
+    if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", term_start) or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", term_end):
+        raise ValueError("Use YYYY-MM-DD for both term dates.")
+    service_level = str(data.get("serviceLevel") or "").strip()
+    if service_level not in {"full_services", "showing_services"}:
+        raise ValueError("Choose Full Services or Showing Services.")
+    showing_fee = str(data.get("showingFee") or "").strip()
+    if service_level == "showing_services" and not showing_fee:
+        raise ValueError("Showing Services requires the execution fee.")
+    intermediary = str(data.get("intermediary") or "").strip()
+    if intermediary not in {"authorized", "not_authorized"}:
+        raise ValueError("Choose whether intermediary is authorized.")
+    form_source_id = _agreement_text(data.get("formSourceId"), "Approved TXR-1507 source", 80)
+    try:
+        form_source_id = str(uuid.UUID(form_source_id))
+    except (TypeError, ValueError, AttributeError):
+        raise ValueError("Choose an approved TXR-1507 source from your brokerage.")
+    compensation = data.get("compensation") or {}
+    if not isinstance(compensation, dict):
+        raise ValueError("Compensation data is invalid.")
+    return {
+        "form_source_id": form_source_id,
+        "client_names": client_names,
+        "agreement_data": {
+            "market_area": market_area,
+            "term_start": term_start,
+            "term_end": term_end,
+            "service_level": service_level,
+            "showing_fee": showing_fee,
+            "purchase_percentage": str(compensation.get("purchasePercentage") or "").strip(),
+            "purchase_flat_fee": str(compensation.get("purchaseFlatFee") or "").strip(),
+            "lease_one_month_percentage": str(compensation.get("leaseOneMonthPercentage") or "").strip(),
+            "lease_total_rents_percentage": str(compensation.get("leaseTotalRentsPercentage") or "").strip(),
+            "lease_flat_fee": str(compensation.get("leaseFlatFee") or "").strip(),
+            "intermediary": intermediary,
+        },
+    }
+
+
+async def _active_brokerage_member(user):
+    profiles = await _get(
+        "hof_profiles?"
+        f"id=eq.{urllib.parse.quote(user['id'])}"
+        "&select=id,brokerage_id&limit=1"
+    )
+    if not profiles or not profiles[0].get("brokerage_id"):
+        raise PermissionError("An active brokerage membership is required for this agreement.")
+    brokerage_id = str(profiles[0]["brokerage_id"])
+    memberships = await _get(
+        "hof_brokerage_members?"
+        f"user_id=eq.{urllib.parse.quote(user['id'])}"
+        f"&brokerage_id=eq.{urllib.parse.quote(brokerage_id)}"
+        "&status=eq.active&select=id&limit=1"
+    )
+    if not memberships:
+        raise PermissionError("Your brokerage membership is not active.")
+    return brokerage_id
+
+
+async def _create_txr_1507_draft(user, data):
+    draft = _parse_txr_1507_draft(data)
+    brokerage_id = await _active_brokerage_member(user)
+    sources = await _get(
+        "hof_brokerage_form_sources?"
+        f"id=eq.{urllib.parse.quote(draft['form_source_id'])}"
+        f"&brokerage_id=eq.{urllib.parse.quote(brokerage_id)}"
+        f"&form_code=eq.{TXR_1507_FORM_CODE}&status=eq.approved"
+        "&authorization_attested=is.true&select=id,source_revision&limit=1"
+    )
+    if not sources:
+        raise ValueError("Choose an approved TXR-1507 source from your brokerage.")
+    source = sources[0]
+    record = {
+        "brokerage_id": brokerage_id,
+        "agent_user_id": user["id"],
+        "form_source_id": source["id"],
+        "form_code": TXR_1507_FORM_CODE,
+        "source_revision": source["source_revision"],
+        "status": "draft",
+        "client_names": draft["client_names"],
+        "agreement_data": draft["agreement_data"],
+    }
+    async with httpx.AsyncClient(timeout=12) as client:
+        response = await client.post(
+            f"{SUPABASE_URL}/rest/v1/hof_standalone_agreements",
+            headers={**_headers(), "Prefer": "return=representation"},
+            json=record,
+        )
+    if response.status_code not in {200, 201}:
+        raise RuntimeError("Could not save the agreement draft.")
+    rows = response.json()
+    if not isinstance(rows, list) or not rows:
+        raise RuntimeError("Agreement draft was not returned after saving.")
+    return rows[0]
+
+
 class handler(BaseHTTPRequestHandler):
     def do_OPTIONS(self):
         _json(self, 200, {"status": "ok"})
@@ -432,14 +548,18 @@ class handler(BaseHTTPRequestHandler):
             if not user:
                 _json(self, 401, {"error": "A valid signed-in session is required."})
                 return
-            if not asyncio.run(_is_platform_admin(user)):
-                _json(self, 403, {"error": "Admin access is not enabled for this account."})
-                return
             length = int(self.headers.get("Content-Length", "0") or "0")
             if length <= 0 or length > MAX_BODY_BYTES:
                 _json(self, 400, {"error": "Invalid request size."})
                 return
             data = json.loads(self.rfile.read(length).decode("utf-8"))
+            if data.get("action") == "create_txr_1507_draft":
+                draft = asyncio.run(_create_txr_1507_draft(user, data))
+                _json(self, 201, {"status": "ok", "agreement": draft})
+                return
+            if not asyncio.run(_is_platform_admin(user)):
+                _json(self, 403, {"error": "Admin access is not enabled for this account."})
+                return
             if data.get("action") == "create_platform_partner_placement":
                 payload = _parse_partner_placement(data)
                 row = asyncio.run(_create_platform_partner_placement(payload))
