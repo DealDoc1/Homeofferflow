@@ -1,5 +1,8 @@
 import os
 import json
+import hashlib
+import hmac
+import time
 from http.server import BaseHTTPRequestHandler
 from datetime import datetime, timezone
 import httpx
@@ -11,8 +14,15 @@ SUPABASE_SERVICE_ROLE_KEY = (
     or os.environ.get("SUPABASE_SERVICE_KEY")
     or ""
 )
-SIGNWELL_WEBHOOK_SECRET = os.environ.get("SIGNWELL_WEBHOOK_SECRET", "")
+# SignWell signs each event using the webhook ID returned by its Webhooks API.
+# Keep the earlier variable as a temporary compatibility fallback while the
+# production environment is migrated to the unambiguous name below.
+SIGNWELL_WEBHOOK_ID = (
+    os.environ.get("SIGNWELL_WEBHOOK_ID", "")
+    or os.environ.get("SIGNWELL_WEBHOOK_SECRET", "")
+).strip()
 MAX_BODY = 300_000
+EVENT_TOLERANCE_SECONDS = 300
 
 
 def _json(handler, code, payload):
@@ -52,9 +62,11 @@ def _first(*vals):
 
 
 def _event_type(payload):
+    event = payload.get("event") if isinstance(payload.get("event"), dict) else {}
     return _first(
+        event.get("type"),
         payload.get("event_type"),
-        payload.get("event"),
+        payload.get("event") if isinstance(payload.get("event"), str) else None,
         payload.get("type"),
         payload.get("name"),
         _deep_get(payload, "data", "event_type"),
@@ -74,6 +86,8 @@ def _document_id(payload):
         data.get("id"),
         document.get("id"),
         document.get("document_id"),
+        _deep_get(payload, "data", "object", "id"),
+        _deep_get(payload, "data", "object", "document_id"),
         _deep_get(payload, "data", "document", "id"),
     )
 
@@ -83,6 +97,7 @@ def _recipient_stats(payload):
         payload.get("recipients"),
         _deep_get(payload, "data", "recipients"),
         _deep_get(payload, "document", "recipients"),
+        _deep_get(payload, "data", "object", "recipients"),
         _deep_get(payload, "data", "document", "recipients"),
     ) or []
     if not isinstance(recipients, list):
@@ -119,6 +134,35 @@ def _status_for(payload):
         return "Sent for Signature", "Awaiting Buyer Signature"
 
     return "Sent for Signature", "Pending"
+
+
+def _verify_event(payload, now=None):
+    """Verify SignWell's documented event HMAC and short replay window."""
+    if not SIGNWELL_WEBHOOK_ID:
+        return False
+
+    event = payload.get("event") if isinstance(payload.get("event"), dict) else {}
+    event_type = str(event.get("type") or "").strip()
+    event_hash = str(event.get("hash") or "").strip().lower()
+    event_time = event.get("time")
+    if not event_type or not event_hash or event_time in (None, ""):
+        return False
+
+    try:
+        event_time_number = int(float(event_time))
+    except (TypeError, ValueError):
+        return False
+
+    current_time = float(time.time() if now is None else now)
+    if abs(current_time - event_time_number) > EVENT_TOLERANCE_SECONDS:
+        return False
+
+    expected_hash = hmac.new(
+        SIGNWELL_WEBHOOK_ID.encode("utf-8"),
+        f"{event_type}@{event_time}".encode("utf-8"),
+        hashlib.sha256,
+    ).hexdigest()
+    return hmac.compare_digest(expected_hash, event_hash)
 
 
 async def _insert_event(document_id, event_type, payload, mapped_status, mapped_signwell_status):
@@ -165,7 +209,9 @@ class handler(BaseHTTPRequestHandler):
         _json(self, 200, {"status": "ok", "route": "signwell-webhook"})
 
     def do_POST(self):
-        # Always return 200 to SignWell after logging attempt, so the webhook is not disabled for non-critical mapping errors.
+        # Return a non-success only for authentication/configuration failures.
+        # Once verified, preserve the previous acknowledged-delivery behavior
+        # for non-critical downstream persistence errors.
         try:
             length = int(self.headers.get("content-length", "0") or "0")
             if length > MAX_BODY:
@@ -176,7 +222,15 @@ class handler(BaseHTTPRequestHandler):
             try:
                 payload = json.loads(raw.decode("utf-8") or "{}")
             except Exception:
-                payload = {"raw": raw.decode("utf-8", errors="replace")}
+                _json(self, 400, {"status": "ignored", "reason": "invalid_json"})
+                return
+
+            if not SIGNWELL_WEBHOOK_ID:
+                _json(self, 503, {"status": "unavailable", "reason": "webhook_verification_not_configured"})
+                return
+            if not _verify_event(payload):
+                _json(self, 401, {"status": "ignored", "reason": "invalid_event_signature"})
+                return
 
             event_type = _event_type(payload)
             document_id = _document_id(payload)

@@ -57,6 +57,7 @@
 - `STRIPE_INVESTOR_MONTHLY_PRICE_ID`
 - `STRIPE_INVESTOR_ANNUAL_PRICE_ID`
 - `STRIPE_SUBSCRIPTION_WEBHOOK_SECRET`
+- `SIGNWELL_WEBHOOK_ID` for verified document-status events
 - `SUPABASE_URL`
 - `SUPABASE_SERVICE_ROLE_KEY` (or an already-supported alias)
 - `RESEND_API_KEY` for broker-created invitation email delivery
