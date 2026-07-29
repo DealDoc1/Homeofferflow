@@ -50,8 +50,8 @@ Locked coordinates / known exceptions: Effective Date intentionally remains blan
 ## Regression
 
 - Dedicated golden scenario added: four-recipient Seller Temporary Lease staging scenario and production SignWell recipient-order test.
-- Existing buyer-offer regression scenarios run: full local suite.
-- Test result / evidence: 186 tests passed locally on 2026-07-29.
+- Existing buyer-offer regression scenarios run: full local suite plus the eleven-scenario rendering baseline.
+- Test result / evidence: 188 tests passed locally on 2026-07-29. The Seller Temporary Lease golden rendering matches its approved baseline.
 
 ## Release authority
 

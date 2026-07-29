@@ -1327,7 +1327,7 @@ def fill_and_merge(offer):
                 (430, 271, tenant_phone_number, 7.5),
                 (398, 252, tenant_fax_area, 7.5),
                 (431, 252, tenant_fax_number, 7.5),
-                (371, 235, first_present(s.get("sellerEmail"), s.get("tenantEmail")), 7.5),
+                (371, 235, first_present(s.get("sellerEmail"), s.get("seller1Email"), s.get("tenantEmail")), 7.5),
             ],
         }
         seller_temp_lease_pages = add_debug_grid_to_pages(seller_temp_lease_pages)

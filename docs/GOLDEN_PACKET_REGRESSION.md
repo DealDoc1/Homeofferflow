@@ -16,8 +16,9 @@ fields. It is a safety net, not a substitute for visual completed-PDF review.
 | 6 | Appraisal partial waiver | Financing plus appraisal addendum order and signer plan |
 | 7 | Sale of Other Property | Sale addendum and signer plan |
 | 8 | Backup Contract | Two-page backup addendum and signature-page signer plan |
-| 9 | All supported addenda | 20-page stress packet and all major addendum signer plans |
-| 10 | Sparse optional fields | Base packet remains valid without optional values or addenda |
+| 9 | Seller's Temporary Residential Lease | Four-party Buyer/Landlord and Seller/Tenant signing order and placement |
+| 10 | All supported addenda | 20-page stress packet and all major addendum signer plans |
+| 11 | Sparse optional fields | Base packet remains valid without optional values or addenda |
 
 ## Required checks
 

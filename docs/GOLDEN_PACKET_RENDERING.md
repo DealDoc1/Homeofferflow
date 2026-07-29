@@ -1,6 +1,6 @@
 # Golden packet rendered-PDF regression
 
-`scripts/check_golden_packet_rendering.py` renders the ten supported golden
+`scripts/check_golden_packet_rendering.py` renders the eleven supported golden
 packets at 96 DPI and compares every page's pixel fingerprint, page count, and
 SignWell field IDs to the committed baseline manifest.
 

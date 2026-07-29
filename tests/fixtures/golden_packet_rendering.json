@@ -881,6 +881,117 @@
         }
       ]
     },
+    "seller_temporary_lease": {
+      "field_ids": [
+        "buyer1_initials_main_p1",
+        "buyer1_initials_main_p2",
+        "buyer1_initials_main_p3",
+        "buyer1_initials_main_p4",
+        "buyer1_initials_main_p5",
+        "buyer1_initials_main_p6",
+        "buyer1_initials_main_p7",
+        "buyer1_initials_main_p8",
+        "buyer1_initials_main_p9",
+        "buyer1_initials_seller_temp_lease_p1",
+        "buyer1_main_contract_date",
+        "buyer1_main_contract_signature",
+        "buyer1_signature_seller_temp_lease",
+        "buyer2_initials_main_p1",
+        "buyer2_initials_main_p2",
+        "buyer2_initials_main_p3",
+        "buyer2_initials_main_p4",
+        "buyer2_initials_main_p5",
+        "buyer2_initials_main_p6",
+        "buyer2_initials_main_p7",
+        "buyer2_initials_main_p8",
+        "buyer2_initials_main_p9",
+        "buyer2_initials_seller_temp_lease_p1",
+        "buyer2_main_contract_date",
+        "buyer2_main_contract_signature",
+        "buyer2_signature_seller_temp_lease",
+        "seller1_initials_seller_temp_lease_p1",
+        "seller1_main_contract_date",
+        "seller1_main_contract_signature",
+        "seller1_signature_seller_temp_lease",
+        "seller2_initials_seller_temp_lease_p1",
+        "seller2_main_contract_date",
+        "seller2_main_contract_signature",
+        "seller2_signature_seller_temp_lease"
+      ],
+      "page_count": 14,
+      "pages": [
+        {
+          "height": 792,
+          "sha256": "4cd27c3c9b48338be1074fc19f2811085b629f1b4e06d1dc0fa75ab2951bb770",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "7d80b85c6ecb40762937108fd6cafd759b65714401dd5c532385b922e7dd353a",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "eb46534dc67775edc85e3b41d06e497e33ea558e7b5b86c6ef80bb144becc3ff",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "4f661d097f3e24e540f37cc18c04220990b53e2db1d7e24f28f875375e38e0de",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "549b23ff5625a17f6032d6025ab6ec6c89bc49c246cc7756338964cdd6b8636a",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "dda40aabe2ca71455fc0709ab1d5bcb5b92de450ce47b813367434d52a586c69",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "e2a27d80ff943d532806fa6cc3876f0f21ba69ffb8f18d447fb57d2062e1c8e8",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "4d6fd41fede1e7faa5f5a59b10f711b7bc7a6727d1172144ad1bc738270187ed",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "02e7465c4bc5c808480633494538b41118cbc9dbddadbbe6da693398d2552df9",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "6f90655d16285a1039ba7ce9df1e84b26a0b305f5055b9110b064b6f4aaebc02",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "e916ea9ff9a6e09cc53d8edfa30b9fcdff9f0f21860ad3d6836b6a80bdefe0bf",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "a02d36b88b04c88a31a3d71a76ea6cd1ed2e8ef4040cf9c32aff85c9f6657aa2",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "887e1f61ce7e650607205bb999668a7423c78471d771e3fbf13e87409642df91",
+          "width": 612
+        },
+        {
+          "height": 792,
+          "sha256": "37e0fb610809eced3f63a1f1190ac033a0376fa45c0a3a7db8788442c355c4af",
+          "width": 612
+        }
+      ]
+    },
     "sparse_optional_fields": {
       "field_ids": [
         "buyer1_initials_main_p1",

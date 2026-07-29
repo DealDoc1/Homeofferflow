@@ -129,6 +129,14 @@ class SellerTemporaryLeaseStagingTests(unittest.TestCase):
         self.assertLess(by_id["buyer1_signature_seller_temp_lease"]["x"], 200)
         self.assertLess(by_id["buyer2_signature_seller_temp_lease"]["x"], 200)
 
+    def test_lease_tenant_notice_email_falls_back_to_seller_signature_email(self):
+        offer = seller_temp_offer()
+        offer.pop("sellerEmail")
+        offer["seller1Email"] = "seller1@example.com"
+        packet = staging.fill_and_merge(offer)
+        lease_text = "\n".join(page.extract_text() or "" for page in PdfReader(BytesIO(packet)).pages[12:14])
+        self.assertIn("seller1@example.com", lease_text)
+
     def test_addendum_page_offsets_remain_correct(self):
         offer = seller_temp_offer()
         offer.update({"financing": "conventional", "loanAmount": "400000", "hoa": "yes", "hoaName": "Test POA"})

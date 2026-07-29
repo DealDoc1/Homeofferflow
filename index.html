@@ -6245,6 +6245,7 @@ function routeAfterMagicLinkIfNeeded() {
         s.sellerTemporaryLease = s.possession === 'sellerTemporaryLease' ? 'yes' : 'no';
         s.seller1Name = getVal('seller1Name');
         s.seller1Email = getVal('seller1Email');
+        s.sellerEmail = s.seller1Email;
         s.seller2Name = getVal('seller2Name');
         s.seller2Email = getVal('seller2Email');
         s.sellerMailAddr = getVal('sellerMailAddr');
