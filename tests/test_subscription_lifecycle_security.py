@@ -288,12 +288,48 @@ class SubscriptionLifecycleSecurityTests(unittest.TestCase):
                 "STRIPE_WEBHOOK_ALLOW_TEST_EVENTS": "true",
                 "VERCEL_ENV": "preview",
                 "STRIPE_WEBHOOK_TEST_ENVIRONMENT": "preview",
+                "STRIPE_WEBHOOK_TEST_SUPABASE_URL": "https://test.example.supabase.co",
+                "SUPABASE_PRODUCTION_URL": "https://production.example.supabase.co",
             },
         ):
-            request.do_POST()
+            with patch.object(webhook, "SUPABASE_URL", "https://test.example.supabase.co"):
+                request.do_POST()
 
         self.assertEqual(captured["invoice"]["subscription"], "sub_sandbox")
         self.assertEqual(captured["status"], "active")
+
+    def test_preview_with_production_database_cannot_process_sandbox_events(self):
+        event = {
+            "livemode": False,
+            "type": "invoice.paid",
+            "data": {"object": {"subscription": "sub_sandbox"}},
+        }
+        raw = json.dumps(event).encode()
+        request = webhook.handler.__new__(webhook.handler)
+        request.headers = {"Content-Length": str(len(raw)), "Stripe-Signature": "test"}
+        request.rfile = io.BytesIO(raw)
+        request._verify_stripe_signature = lambda *_args: True
+        request._handle_invoice_status = lambda *_args: self.fail(
+            "A preview sharing production Supabase must not process Stripe test events."
+        )
+        captured = {}
+        request._send_json = lambda code, data: captured.update(code=code, data=data)
+
+        with patch.dict(
+            os.environ,
+            {
+                "STRIPE_WEBHOOK_ALLOW_TEST_EVENTS": "true",
+                "VERCEL_ENV": "preview",
+                "STRIPE_WEBHOOK_TEST_ENVIRONMENT": "preview",
+                "STRIPE_WEBHOOK_TEST_SUPABASE_URL": "https://production.example.supabase.co",
+                "SUPABASE_PRODUCTION_URL": "https://production.example.supabase.co",
+            },
+        ):
+            with patch.object(webhook, "SUPABASE_URL", "https://production.example.supabase.co"):
+                request.do_POST()
+
+        self.assertEqual(captured["code"], 400)
+        self.assertEqual(captured["data"]["error"], "Stripe test events are not accepted here.")
 
     def test_production_never_accepts_sandbox_events_even_if_the_flag_is_set(self):
         event = {

@@ -17,11 +17,15 @@ SUPABASE_SERVICE_ROLE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
 def _test_events_allowed():
     """Allow Stripe sandbox events only in an intentionally isolated environment.
 
-    Production uses the live Stripe webhook secret and production Supabase.  A
+    Production uses the live Stripe webhook secret and production Supabase. A
     Stripe test-mode endpoint must not be able to alter those live subscription
-    records if a test signing secret is ever configured there by mistake. A
-    simple boolean is not enough: require both a non-production Vercel runtime
-    and an explicit matching environment acknowledgement.
+    records if a test signing secret is ever configured there by mistake.
+
+    A Vercel preview is *not* isolation on its own: projects commonly share
+    production Supabase credentials with preview deployments. Require an
+    explicit, distinct test Supabase URL as well as the preview/test runtime
+    acknowledgement. If either URL is absent, or the runtime database is the
+    production database, reject the test event.
     """
     explicitly_enabled = os.environ.get("STRIPE_WEBHOOK_ALLOW_TEST_EVENTS", "").strip().lower() in {
         "1",
@@ -32,10 +36,22 @@ def _test_events_allowed():
     acknowledged_environment = os.environ.get(
         "STRIPE_WEBHOOK_TEST_ENVIRONMENT", ""
     ).strip().lower()
+    runtime_database_url = SUPABASE_URL.strip().rstrip("/")
+    test_database_url = os.environ.get(
+        "STRIPE_WEBHOOK_TEST_SUPABASE_URL", ""
+    ).strip().rstrip("/")
+    production_database_url = os.environ.get(
+        "SUPABASE_PRODUCTION_URL", ""
+    ).strip().rstrip("/")
     return (
         explicitly_enabled
         and vercel_environment in {"preview", "development", "test"}
         and acknowledged_environment == vercel_environment
+        and bool(runtime_database_url)
+        and bool(test_database_url)
+        and bool(production_database_url)
+        and runtime_database_url == test_database_url
+        and runtime_database_url != production_database_url
     )
 
 
