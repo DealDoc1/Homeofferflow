@@ -12161,13 +12161,13 @@ function routeAfterMagicLinkIfNeeded() {
           <label class="hof-agreement-wide">Market Area (required)<textarea name="marketArea" required maxlength="800" placeholder="Example: Collin and Denton Counties, Texas"></textarea></label>
           <label>Term begins<input name="termStart" type="date" required></label>
           <label>Term ends<input name="termEnd" type="date" required></label>
-          <div class="hof-agreement-wide"><span style="display:block;color:var(--gray-light);font-weight:700;font-size:.82rem;margin-bottom:.4rem">Services</span><div class="hof-agreement-services"><label><input type="radio" name="serviceLevel" value="full_services" checked> Full Services</label><label><input type="radio" name="serviceLevel" value="showing_services"> Showing Services</label></div></div>
-          <label id="txr1507ShowingFeeWrap">Showing Services execution fee<input name="showingFee" inputmode="decimal" placeholder="Required only for Showing Services"></label>
-          <label>Purchase compensation %<input name="purchasePercentage" inputmode="decimal" placeholder="Optional"></label>
-          <label>Purchase flat fee<input name="purchaseFlatFee" inputmode="decimal" placeholder="Optional"></label>
-          <label>Lease: % of one month’s rent<input name="leaseOneMonthPercentage" inputmode="decimal" placeholder="Optional"></label>
-          <label>Lease: % of all rents<input name="leaseTotalRentsPercentage" inputmode="decimal" placeholder="Optional"></label>
-          <label>Lease flat fee<input name="leaseFlatFee" inputmode="decimal" placeholder="Optional"></label>
+          <div class="hof-agreement-wide"><span style="display:block;color:var(--gray-light);font-weight:700;font-size:.82rem;margin-bottom:.4rem">Services</span><div class="hof-agreement-services"><label><input type="radio" name="serviceLevel" value="full_services" required> Full Services</label><label><input type="radio" name="serviceLevel" value="showing_services"> Showing Services</label></div></div>
+          <label id="txr1507ShowingFeeWrap" style="display:none">Showing Services execution fee<input name="showingFee" inputmode="decimal" placeholder="Required only for Showing Services"></label>
+          <label>Purchase compensation %<input name="purchasePercentage" inputmode="decimal" placeholder="Enter only if broker-approved"></label>
+          <label>Purchase flat fee<input name="purchaseFlatFee" inputmode="decimal" placeholder="Enter only if broker-approved"></label>
+          <label>Lease: % of one month’s rent<input name="leaseOneMonthPercentage" inputmode="decimal" placeholder="Enter only if broker-approved"></label>
+          <label>Lease: % of all rents<input name="leaseTotalRentsPercentage" inputmode="decimal" placeholder="Enter only if broker-approved"></label>
+          <label>Lease flat fee<input name="leaseFlatFee" inputmode="decimal" placeholder="Enter only if broker-approved"></label>
           <label>Intermediary choice<select name="intermediary" required><option value="">Choose one…</option><option value="authorized">Client authorizes intermediary</option><option value="not_authorized">Client does not authorize intermediary</option></select></label>
         </div>
         <div id="txr1507DraftStatus" class="hof-iabs-status"></div>
@@ -12177,9 +12177,12 @@ function routeAfterMagicLinkIfNeeded() {
     modal.querySelector('#txr1507Cancel').addEventListener('click', () => modal.remove());
     modal.addEventListener('click', event => { if (event.target === modal) modal.remove(); });
     modal.querySelectorAll('input[name="serviceLevel"]').forEach(input => input.addEventListener('change', () => {
-      const showing = modal.querySelector('input[name="serviceLevel"]:checked').value === 'showing_services';
-      modal.querySelector('[name="showingFee"]').required = showing;
-      modal.querySelector('#txr1507ShowingFeeWrap').style.opacity = showing ? '1' : '.58';
+      const selected = modal.querySelector('input[name="serviceLevel"]:checked');
+      const showing = selected?.value === 'showing_services';
+      const fee = modal.querySelector('[name="showingFee"]');
+      fee.required = showing;
+      if (!showing) fee.value = '';
+      modal.querySelector('#txr1507ShowingFeeWrap').style.display = showing ? 'grid' : 'none';
     }));
     modal.querySelector('#txr1507AgreementForm').addEventListener('submit', event => submitDraft(event, source, modal));
   }

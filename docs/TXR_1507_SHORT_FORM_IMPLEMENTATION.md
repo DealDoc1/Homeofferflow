@@ -29,6 +29,10 @@ the Long Form, or infer compensation terms.
 | 7A Lease fee | One-month-rent percentage, total-rents percentage, and/or flat fee | Agent selects only terms broker approves. |
 | 8 Intermediary | Client authorizes / does not authorize | Required explicit choice. |
 
+Draft validation requires an explicit service choice, valid ordered term dates,
+and at least one broker-approved purchase or lease compensation field. It only
+validates agent-entered values; it does not calculate or recommend compensation.
+
 ## Roles and signing
 
 | Role | Responsibility | Signing fields |
