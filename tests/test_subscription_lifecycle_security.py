@@ -93,6 +93,7 @@ class SubscriptionLifecycleSecurityTests(unittest.TestCase):
         portal.STRIPE_SECRET_KEY = "sk_test_example"
         portal.SUPABASE_URL = "https://example.supabase.co"
         portal.SUPABASE_SERVICE_ROLE_KEY = "service-test-key"
+        webhook.STRIPE_WEBHOOK_SECRET = "whsec_test_example"
         CheckoutStripeClient.last_post = None
         BillingClient.last_portal_post = None
 
@@ -187,6 +188,47 @@ class SubscriptionLifecycleSecurityTests(unittest.TestCase):
         self.assertEqual(captured["payload"]["status"], "trialing")
         self.assertIn("trial_ends_at", captured["payload"])
 
+    def test_invoice_paid_event_dispatches_the_same_safe_access_refresh(self):
+        event = {
+            "type": "invoice.paid",
+            "data": {"object": {"subscription": "sub_paid"}},
+        }
+        raw = json.dumps(event).encode()
+        request = webhook.handler.__new__(webhook.handler)
+        request.headers = {"Content-Length": str(len(raw)), "Stripe-Signature": "test"}
+        request.rfile = io.BytesIO(raw)
+        request._verify_stripe_signature = lambda *_args: True
+        captured = {}
+        request._handle_invoice_status = lambda invoice, status: captured.update(
+            invoice=invoice, status=status
+        )
+        request._send_json = lambda *_args: None
+
+        request.do_POST()
+
+        self.assertEqual(captured["invoice"]["subscription"], "sub_paid")
+        self.assertEqual(captured["status"], "active")
+
+    def test_webhook_failure_does_not_expose_internal_error_text(self):
+        event = {"type": "checkout.session.completed", "data": {"object": {}}}
+        raw = json.dumps(event).encode()
+        request = webhook.handler.__new__(webhook.handler)
+        request.headers = {"Content-Length": str(len(raw)), "Stripe-Signature": "test"}
+        request.rfile = io.BytesIO(raw)
+        request._verify_stripe_signature = lambda *_args: True
+        request._handle_checkout_completed = lambda *_args: (_ for _ in ()).throw(
+            RuntimeError("internal upstream diagnostic")
+        )
+        captured = {}
+        request._send_json = lambda code, data: captured.update(code=code, data=data)
+
+        with patch("builtins.print"):
+            request.do_POST()
+
+        self.assertEqual(captured["code"], 500)
+        self.assertEqual(captured["data"]["error"], "Webhook processing failed.")
+        self.assertNotIn("diagnostic", captured["data"]["error"])
+
     def test_failed_invoice_immediately_marks_subscription_past_due(self):
         request = webhook.handler.__new__(webhook.handler)
         captured = {}
@@ -202,6 +244,59 @@ class SubscriptionLifecycleSecurityTests(unittest.TestCase):
         )
         request._handle_invoice_status({"subscription": "sub_payment_failed"}, "past_due")
         self.assertEqual(captured["payload"]["status"], "past_due")
+
+    def test_deleted_subscription_is_recorded_as_canceled(self):
+        request = webhook.handler.__new__(webhook.handler)
+        captured = {}
+        request._iso_now = lambda: "2026-07-29T00:00:00Z"
+        request._upsert_subscription_by_user_id = lambda payload: captured.update(payload=payload)
+        request._activate_brokerage_membership = lambda *_args: self.fail(
+            "A canceled subscription must not activate brokerage membership."
+        )
+
+        request._handle_subscription_event(
+            {
+                "id": "sub_canceled",
+                "customer": "cus_canceled",
+                "status": "canceled",
+                "metadata": {"user_id": "user-canceled", "plan": "agent", "role": "agent"},
+                "items": {"data": [{"price": {"id": "price_agent_monthly"}}]},
+            },
+            "customer.subscription.deleted",
+        )
+
+        self.assertEqual(captured["payload"]["status"], "canceled")
+        self.assertEqual(captured["payload"]["stripe_subscription_id"], "sub_canceled")
+        self.assertFalse(captured["payload"]["cancel_at_period_end"])
+
+    def test_checkout_does_not_activate_brokerage_membership_for_a_non_active_subscription(self):
+        request = webhook.handler.__new__(webhook.handler)
+        captured = {}
+        request._stripe_get_subscription = lambda _subscription_id: {
+            "id": "sub_incomplete",
+            "customer": "cus_incomplete",
+            "status": "incomplete",
+            "metadata": {
+                "user_id": "user-incomplete",
+                "email": "agent@ondemand.test",
+                "brokerage_id": "ondemand-brokerage",
+                "launch_source": "ondemand",
+            },
+            "items": {"data": [{"price": {"id": "price_agent_monthly"}}]},
+        }
+        request._upsert_subscription_by_user_id = lambda payload: captured.update(payload=payload)
+        request._activate_brokerage_membership = lambda *_args: self.fail(
+            "A non-active subscription must not activate brokerage membership."
+        )
+
+        request._handle_checkout_completed({
+            "subscription": "sub_incomplete",
+            "customer": "cus_incomplete",
+            "metadata": {"brokerage_id": "ondemand-brokerage"},
+        })
+
+        self.assertEqual(captured["payload"]["status"], "past_due")
+        self.assertEqual(captured["payload"]["brokerage_id"], "ondemand-brokerage")
 
     def test_account_ui_discloses_trial_renewal_and_scheduled_cancellation(self):
         self.assertIn("Free trial active through", INDEX_HTML)

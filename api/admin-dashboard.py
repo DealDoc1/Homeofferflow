@@ -13,6 +13,7 @@ ADMIN_EMAILS = {e.strip().lower() for e in (os.environ.get("ADMIN_EMAILS") or os
 DEFAULT_ADMIN_EMAILS = {"andrew@ondemanddfw.com", "andrewchri@gmail.com", "support@homeofferflow.com"}
 ALLOWED_PARTNER_LEAD_STATUSES = {"new", "contacted", "qualified", "waitlist", "converted", "declined"}
 ALLOWED_PARTNER_ONBOARDING_STATUSES = {"not_started", "ready", "in_progress", "complete"}
+ALLOWED_BROKERAGE_MEMBER_STATUSES = {"active", "suspended"}
 ALLOWED_PARTNER_PLACEMENT_TIERS = {"founding", "premier", "exclusive_market"}
 ALLOWED_PARTNER_TYPES = {
     "title", "lender", "inspection", "surveyor", "home_warranty", "insurance",
@@ -253,6 +254,60 @@ async def _brokerage_dashboard_payload(context):
             "documentContentsIncluded": False,
         },
     }
+
+
+async def _set_brokerage_member_status(actor, data):
+    """Let a brokerage administrator manage agent membership, never billing.
+
+    This deliberately changes only the brokerage-membership record. A broker
+    cannot alter a member's Stripe subscription, account credentials, offers,
+    or another broker's role from this endpoint.
+    """
+    context = await _brokerage_admin_context(actor)
+    if not context:
+        raise PermissionError("Brokerage admin access is not enabled for this account.")
+
+    target_user_id = str(data.get("user_id") or "").strip()
+    try:
+        target_user_id = str(uuid.UUID(target_user_id))
+    except (TypeError, ValueError, AttributeError):
+        raise ValueError("Choose a valid brokerage member.")
+    if target_user_id == str(actor["id"]):
+        raise PermissionError("You cannot change your own brokerage-admin membership here.")
+
+    desired_status = str(data.get("membership_status") or "").strip().lower()
+    if desired_status not in ALLOWED_BROKERAGE_MEMBER_STATUSES:
+        raise ValueError("Choose active or suspended brokerage access.")
+
+    brokerage_id = str(context["brokerage"]["id"])
+    members = await _get(
+        "hof_brokerage_members?"
+        f"brokerage_id=eq.{urllib.parse.quote(brokerage_id)}"
+        f"&user_id=eq.{urllib.parse.quote(target_user_id)}"
+        "&select=id,user_id,email,role,status&limit=1"
+    )
+    if not members:
+        raise ValueError("That agent is not a member of this brokerage.")
+    member = members[0]
+    if str(member.get("role") or "agent") != "agent":
+        raise PermissionError("Broker and owner memberships must be managed by HomeOfferFlow support.")
+    if str(member.get("status") or "") == desired_status:
+        return {"userId": target_user_id, "membershipStatus": desired_status, "changed": False}
+
+    async with httpx.AsyncClient(timeout=12) as client:
+        response = await client.patch(
+            f"{SUPABASE_URL}/rest/v1/hof_brokerage_members?"
+            f"id=eq.{urllib.parse.quote(str(member['id']))}"
+            f"&brokerage_id=eq.{urllib.parse.quote(brokerage_id)}",
+            headers={**_headers(), "Prefer": "return=representation"},
+            json={"status": desired_status, "updated_at": datetime.now(timezone.utc).isoformat()},
+        )
+    if response.status_code >= 300:
+        raise RuntimeError("Could not update this brokerage membership.")
+    rows = response.json()
+    if not isinstance(rows, list) or not rows:
+        raise RuntimeError("Brokerage membership was not found after updating.")
+    return {"userId": target_user_id, "membershipStatus": rows[0].get("status") or desired_status, "changed": True}
 
 
 def _parse_partner_lead_update(data):
@@ -751,6 +806,10 @@ class handler(BaseHTTPRequestHandler):
                 _json(self, 400, {"error": "Invalid request size."})
                 return
             data = json.loads(self.rfile.read(length).decode("utf-8"))
+            if data.get("action") == "set_brokerage_member_status":
+                result = asyncio.run(_set_brokerage_member_status(user, data))
+                _json(self, 200, {"ok": True, "membership": result})
+                return
             if data.get("action") == "create_txr_1507_draft":
                 draft = asyncio.run(_create_txr_1507_draft(user, data))
                 _json(self, 201, {"status": "ok", "agreement": draft})
