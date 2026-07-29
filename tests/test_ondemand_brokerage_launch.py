@@ -18,6 +18,9 @@ VERCEL = json.loads((ROOT / "vercel.json").read_text(encoding="utf-8"))
 MIGRATION = (ROOT / "supabase" / "homeofferflow_ondemand_brokerage_launch.sql").read_text(encoding="utf-8")
 HARDENING = (ROOT / "supabase" / "homeofferflow_brokerage_security_hardening.sql").read_text(encoding="utf-8")
 BROKER_SEED = (ROOT / "supabase" / "homeofferflow_ondemand_broker_seed.sql").read_text(encoding="utf-8")
+INVITE_MIGRATION = (ROOT / "supabase" / "homeofferflow_brokerage_invites.sql").read_text(encoding="utf-8")
+INVITE_DENY_MIGRATION = (ROOT / "supabase" / "homeofferflow_brokerage_invites_rls_deny.sql").read_text(encoding="utf-8")
+BRANDING_MIGRATION = (ROOT / "supabase" / "homeofferflow_brokerage_branding_storage.sql").read_text(encoding="utf-8")
 
 os.environ.setdefault("STRIPE_SECRET_KEY", "sk_test_example")
 os.environ.setdefault("STRIPE_AGENT_MONTHLY_PRICE_ID", "price_existing_agent_monthly")
@@ -105,6 +108,98 @@ class BrokerageRosterClient:
     async def patch(self, url, **kwargs):
         self.__class__.last_patch = (url, kwargs)
         return Response(200, [{"status": "suspended"}])
+
+
+class BrokerageInviteClient:
+    requests = []
+
+    def __init__(self, *args, **kwargs):
+        pass
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *args):
+        return False
+
+    async def post(self, url, **kwargs):
+        self.__class__.requests.append(("post", url, kwargs))
+        if "hof_brokerage_invites" in url:
+            return Response(201, [{
+                "email": "agent@example.com",
+                "invite_token": "a" * 32,
+                "expires_at": "2030-01-15T12:00:00+00:00",
+            }])
+        return Response(201, [{"id": "created"}])
+
+    async def patch(self, url, **kwargs):
+        self.__class__.requests.append(("patch", url, kwargs))
+        return Response(200, [{"id": "updated"}])
+
+
+class BrokerageInviteEmailClient(BrokerageInviteClient):
+    email_request = None
+
+    async def post(self, url, **kwargs):
+        if url == "https://api.resend.com/emails":
+            self.__class__.email_request = (url, kwargs)
+            return Response(200, {"id": "re_invite_123"}, "{\"id\":\"re_invite_123\"}")
+        return await super().post(url, **kwargs)
+
+
+class BrokerageBrandingClient:
+    last_patch = None
+
+    def __init__(self, *args, **kwargs):
+        pass
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *args):
+        return False
+
+    async def patch(self, url, **kwargs):
+        self.__class__.last_patch = (url, kwargs)
+        return Response(200, [{
+            "id": "22222222-2222-2222-2222-222222222222",
+            "name": "OnDemand Realty",
+            "dba_name": "OnDemand Realty",
+            "brand_color": "#123456",
+            "logo_url": "https://example.supabase.co/storage/v1/object/public/brokerage-branding/22222222-2222-2222-2222-222222222222/brand-logo.png",
+        }])
+
+
+class BrokerageDefaultsClient:
+    last_request = None
+
+    def __init__(self, *args, **kwargs):
+        pass
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *args):
+        return False
+
+    async def patch(self, url, **kwargs):
+        self.__class__.last_request = ("patch", url, kwargs)
+        if "hof_brokerages" in url:
+            return Response(200, [{
+                "default_title_company": "Sample Title",
+                "default_title_contact": "Taylor Escrow",
+            }])
+        return Response(200, [{
+            "preferred_title_company": "Sample Title",
+            "preferred_escrow_agent": "Taylor Escrow",
+        }])
+
+    async def post(self, url, **kwargs):
+        self.__class__.last_request = ("post", url, kwargs)
+        return Response(201, [{
+            "preferred_title_company": "Sample Title",
+            "preferred_escrow_agent": "Taylor Escrow",
+        }])
 
 
 class OnDemandCheckoutTests(unittest.TestCase):
@@ -280,6 +375,227 @@ class BrokerageAuthorizationTests(unittest.TestCase):
         self.assertIn("setBrokerageMemberStatus", final_script)
         self.assertIn("HomeOfferFlow subscription or delete their offers", final_script)
         self.assertIn("HomeOfferFlow billing or delete their offers", final_script)
+        self.assertIn("Invitation email sent to", final_script)
+        self.assertIn("Email delivery is not configured", final_script)
+
+    def test_broker_can_create_an_agent_only_invite_link(self):
+        actor = {"id": "11111111-1111-1111-1111-111111111111", "email": "tyler@ondemanddfw.com"}
+        context = {"brokerage": {"id": "22222222-2222-2222-2222-222222222222"}}
+
+        async def broker_context(_actor):
+            return context
+
+        async def no_existing_access(_path):
+            return []
+
+        BrokerageInviteClient.requests = []
+        with patch.object(admin, "_brokerage_admin_context", broker_context), \
+             patch.object(admin, "_get", no_existing_access), \
+             patch.object(admin.httpx, "AsyncClient", BrokerageInviteClient):
+            result = asyncio.run(admin._create_brokerage_invite(actor, {"email": "AGENT@example.com"}))
+
+        self.assertFalse(result["reused"])
+        self.assertEqual(result["email"], "agent@example.com")
+        self.assertEqual(result["inviteUrl"], "https://www.homeofferflow.com/ondemand?invite=" + "a" * 32)
+        invite_write = next(request for request in BrokerageInviteClient.requests if request[0] == "post")
+        self.assertEqual(invite_write[2]["json"]["role"], "agent")
+        self.assertEqual(invite_write[2]["json"]["status"], "pending")
+        self.assertEqual(result["emailDelivery"]["status"], "not_configured")
+
+    def test_brokerage_invite_sends_email_when_resend_is_configured(self):
+        actor = {"id": "11111111-1111-1111-1111-111111111111", "email": "tyler@ondemanddfw.com"}
+        context = {"brokerage": {"id": "22222222-2222-2222-2222-222222222222", "name": "OnDemand Realty"}}
+
+        async def broker_context(_actor):
+            return context
+
+        async def no_existing_access(_path):
+            return []
+
+        BrokerageInviteEmailClient.requests = []
+        BrokerageInviteEmailClient.email_request = None
+        with patch.object(admin, "RESEND_API_KEY", "re_test_invite"), \
+             patch.object(admin, "_brokerage_admin_context", broker_context), \
+             patch.object(admin, "_get", no_existing_access), \
+             patch.object(admin.httpx, "AsyncClient", BrokerageInviteEmailClient):
+            result = asyncio.run(admin._create_brokerage_invite(actor, {"email": "agent@example.com"}))
+
+        self.assertEqual(result["emailDelivery"], {"status": "sent", "emailId": "re_invite_123"})
+        resend_payload = BrokerageInviteEmailClient.email_request[1]["json"]
+        self.assertEqual(resend_payload["to"], ["agent@example.com"])
+        self.assertIn("OnDemand Realty", resend_payload["subject"])
+        self.assertIn(result["inviteUrl"], resend_payload["text"])
+
+    def test_invite_acceptance_requires_the_invited_email_before_any_write(self):
+        actor = {"id": "33333333-3333-3333-3333-333333333333", "email": "wrong@example.com"}
+
+        async def invite_only(_path):
+            return [{
+                "id": "invite-1",
+                "brokerage_id": "22222222-2222-2222-2222-222222222222",
+                "email": "agent@example.com",
+                "role": "agent",
+                "status": "pending",
+                "expires_at": "2030-01-15T12:00:00+00:00",
+            }]
+
+        BrokerageInviteClient.requests = []
+        with patch.object(admin, "_get", invite_only), \
+             patch.object(admin.httpx, "AsyncClient", BrokerageInviteClient):
+            with self.assertRaisesRegex(PermissionError, "email address that received"):
+                asyncio.run(admin._accept_brokerage_invite(actor, {"invite_token": "a" * 32}))
+        self.assertEqual(BrokerageInviteClient.requests, [])
+
+    def test_invite_endpoints_and_ui_keep_tokens_private_from_dashboard(self):
+        source = ADMIN_PATH.read_text(encoding="utf-8")
+        self.assertIn('data.get("action") == "create_brokerage_invite"', source)
+        self.assertIn('data.get("action") == "accept_brokerage_invite"', source)
+        dashboard_start = source.index("async def _brokerage_dashboard_payload")
+        dashboard_end = source.index("def _normalized_invite_email", dashboard_start)
+        dashboard_segment = source[dashboard_start:dashboard_end]
+        self.assertIn("pendingInvites", dashboard_segment)
+        self.assertNotIn("invite_token", dashboard_segment)
+        marker = INDEX_HTML.index('id="hof-ondemand-brokerage-launch-v1"')
+        final_script = INDEX_HTML[marker:]
+        self.assertIn("createBrokerageInvite", final_script)
+        self.assertIn("Create invite link", final_script)
+        self.assertIn("works only for the invited email", final_script)
+
+    def test_invite_migration_is_private_and_allows_one_pending_agent_invite(self):
+        self.assertIn("alter column brokerage_id set not null", INVITE_MIGRATION)
+        self.assertIn("check (role = 'agent')", INVITE_MIGRATION)
+        self.assertIn("status in ('pending', 'accepted', 'expired', 'revoked')", INVITE_MIGRATION)
+        self.assertIn("one_pending_email", INVITE_MIGRATION)
+        self.assertIn("revoke all on table public.hof_brokerage_invites from anon, authenticated", INVITE_MIGRATION)
+        self.assertIn("grant all on table public.hof_brokerage_invites to service_role", INVITE_MIGRATION)
+        self.assertIn("create policy hof_brokerage_invites_deny_browser", INVITE_DENY_MIGRATION)
+        self.assertIn("on public.hof_brokerage_invites", INVITE_DENY_MIGRATION)
+        self.assertIn("to anon, authenticated", INVITE_DENY_MIGRATION)
+
+    def test_broker_can_update_only_own_storage_backed_branding(self):
+        actor = {"id": "11111111-1111-1111-1111-111111111111", "email": "tyler@ondemanddfw.com"}
+        brokerage_id = "22222222-2222-2222-2222-222222222222"
+
+        async def broker_context(_actor):
+            return {"brokerage": {"id": brokerage_id}}
+
+        BrokerageBrandingClient.last_patch = None
+        payload = {
+            "brand_color": "#123456",
+            "logo_url": "https://example.supabase.co/storage/v1/object/public/brokerage-branding/"
+                        + brokerage_id + "/brand-logo.png",
+        }
+        with patch.object(admin, "_brokerage_admin_context", broker_context), \
+             patch.object(admin.httpx, "AsyncClient", BrokerageBrandingClient):
+            result = asyncio.run(admin._update_brokerage_branding(actor, payload))
+
+        self.assertEqual(result["brandColor"], "#123456")
+        self.assertIn("id=eq." + brokerage_id, BrokerageBrandingClient.last_patch[0])
+        self.assertEqual(BrokerageBrandingClient.last_patch[1]["json"]["brand_color"], "#123456")
+
+    def test_branding_rejects_arbitrary_logo_urls_and_invalid_colors(self):
+        brokerage_id = "22222222-2222-2222-2222-222222222222"
+        with self.assertRaisesRegex(ValueError, "#RRGGBB"):
+            admin._parse_brokerage_branding_update({"brand_color": "blue"}, brokerage_id)
+        with self.assertRaisesRegex(ValueError, "uploaded through"):
+            admin._parse_brokerage_branding_update({
+                "logo_url": "https://attacker.example/logo.png"
+            }, brokerage_id)
+
+    def test_branding_storage_migration_limits_writes_to_active_broker_admins(self):
+        self.assertIn("'brokerage-branding'", BRANDING_MIGRATION)
+        self.assertIn("public = true", BRANDING_MIGRATION)
+        self.assertIn("file_size_limit = 2097152", BRANDING_MIGRATION)
+        self.assertIn("array['image/png', 'image/jpeg', 'image/webp']", BRANDING_MIGRATION)
+        self.assertIn("on storage.objects for all to authenticated", BRANDING_MIGRATION)
+        self.assertIn("m.status = 'active'", BRANDING_MIGRATION)
+        self.assertIn("m.role in ('broker_admin', 'owner')", BRANDING_MIGRATION)
+        self.assertIn("p.brokerage_id::text = (storage.foldername(name))[1]", BRANDING_MIGRATION)
+        self.assertIn("brand-logo.png", BRANDING_MIGRATION)
+
+    def test_brokerage_branding_ui_uses_limited_direct_storage_upload(self):
+        marker = INDEX_HTML.index('id="hof-ondemand-brokerage-launch-v1"')
+        final_script = INDEX_HTML[marker:]
+        self.assertIn("saveBrokerageBranding", final_script)
+        self.assertIn("update_brokerage_branding", final_script)
+        self.assertIn("brokerage-branding", final_script)
+        self.assertIn("image/png', 'image/jpeg', 'image/webp'", final_script)
+        self.assertIn("2 * 1024 * 1024", final_script)
+        self.assertIn("Only active brokerage admins can update", final_script)
+
+    def test_broker_can_save_title_suggestions_but_not_transaction_terms(self):
+        actor = {"id": "11111111-1111-1111-1111-111111111111", "email": "tyler@ondemanddfw.com"}
+        brokerage_id = "22222222-2222-2222-2222-222222222222"
+
+        async def broker_context(_actor):
+            return {"brokerage": {"id": brokerage_id}}
+
+        BrokerageDefaultsClient.last_request = None
+        with patch.object(admin, "_brokerage_admin_context", broker_context), \
+             patch.object(admin.httpx, "AsyncClient", BrokerageDefaultsClient):
+            result = asyncio.run(admin._update_brokerage_shared_defaults(actor, {
+                "default_title_company": "Sample Title",
+                "default_title_contact": "Taylor Escrow",
+                "default_option_fee": "9999",
+            }))
+
+        self.assertEqual(result["defaultTitleCompany"], "Sample Title")
+        self.assertEqual(result["defaultTitleContact"], "Taylor Escrow")
+        saved = BrokerageDefaultsClient.last_request[2]["json"]
+        self.assertEqual(set(saved) - {"updated_at"}, {"default_title_company", "default_title_contact"})
+
+    def test_agent_can_opt_in_to_connected_brokerage_title_defaults_only(self):
+        actor = {"id": "33333333-3333-3333-3333-333333333333", "email": "agent@example.com"}
+        brokerage_id = "22222222-2222-2222-2222-222222222222"
+
+        async def lookup(path):
+            if path.startswith("hof_profiles?"):
+                return [{"id": actor["id"], "brokerage_id": brokerage_id}]
+            if path.startswith("hof_brokerage_members?"):
+                return [{"id": "membership-1"}]
+            if path.startswith("hof_brokerages?"):
+                return [{"default_title_company": "Sample Title", "default_title_contact": "Taylor Escrow"}]
+            if path.startswith("hof_agent_profiles?"):
+                return [{"user_id": actor["id"]}]
+            raise AssertionError(path)
+
+        BrokerageDefaultsClient.last_request = None
+        with patch.object(admin, "_get", lookup), \
+             patch.object(admin.httpx, "AsyncClient", BrokerageDefaultsClient):
+            result = asyncio.run(admin._apply_brokerage_shared_defaults(actor))
+
+        self.assertEqual(result["preferredTitleCompany"], "Sample Title")
+        self.assertEqual(result["preferredEscrowAgent"], "Taylor Escrow")
+        self.assertEqual(BrokerageDefaultsClient.last_request[0], "patch")
+        self.assertNotIn("default_option_fee", BrokerageDefaultsClient.last_request[2]["json"])
+
+    def test_brokerage_shared_defaults_and_seat_visibility_ui_are_explicit(self):
+        marker = INDEX_HTML.index('id="hof-ondemand-brokerage-launch-v1"')
+        final_script = INDEX_HTML[marker:]
+        for item in (
+            "saveBrokerageSharedDefaults",
+            "applyBrokerageSharedDefaults",
+            "update_brokerage_shared_defaults",
+            "apply_brokerage_shared_defaults",
+            "Agents must choose to copy",
+            "Agent seats",
+            "agentSeatCap",
+        ):
+            self.assertIn(item, final_script)
+
+    def test_brokerage_title_defaults_reload_for_brokers_and_connected_agents(self):
+        source = ADMIN_PATH.read_text(encoding="utf-8")
+        context_start = source.index("async def _brokerage_admin_context")
+        context_end = source.index("async def _brokerage_dashboard_payload", context_start)
+        context = source[context_start:context_end]
+        self.assertIn("default_title_company,default_title_contact", context)
+
+        marker = INDEX_HTML.index('id="hof-ondemand-brokerage-launch-v1"')
+        final_script = INDEX_HTML[marker:]
+        self.assertIn(
+            "billing_status,default_title_company,default_title_contact",
+            final_script,
+        )
 
     def test_webhook_activation_preserves_existing_broker_role(self):
         member_handler = webhook.handler.__new__(webhook.handler)
@@ -359,7 +675,9 @@ class OnDemandLaunchPageTests(unittest.TestCase):
     def test_launch_requires_authenticated_checkout_and_terms_confirmation(self):
         self.assertIn('"Authorization": `Bearer ${state.session.access_token}`', LAUNCH_HTML)
         self.assertIn('id="terms" type="checkbox"', LAUNCH_HTML)
-        self.assertIn('emailRedirectTo: `${window.location.origin}/ondemand`', LAUNCH_HTML)
+        self.assertIn('emailRedirectTo: `${window.location.origin}/ondemand${state.inviteToken', LAUNCH_HTML)
+        self.assertIn('action: "accept_brokerage_invite"', LAUNCH_HTML)
+        self.assertIn("Sign in with the email address that received this brokerage invite", ADMIN_PATH.read_text(encoding="utf-8"))
 
     def test_browser_no_longer_creates_beta_subscription_or_sets_authorization_fields(self):
         marker = INDEX_HTML.index('id="hof-ondemand-brokerage-launch-v1"')

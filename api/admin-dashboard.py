@@ -9,6 +9,14 @@ import httpx
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "").rstrip("/")
 SUPABASE_SERVICE_ROLE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or os.environ.get("SUPABASE_SERVICE_ROLE") or os.environ.get("SUPABASE_SERVICE_KEY") or ""
+RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
+BROKERAGE_INVITE_FROM_EMAIL = (
+    os.environ.get("BROKERAGE_INVITE_FROM_EMAIL")
+    or os.environ.get("FEEDBACK_FROM_EMAIL")
+    or os.environ.get("FROM_EMAIL")
+    or "offers@homeofferflow.com"
+)
+BROKERAGE_INVITE_REPLY_TO = os.environ.get("BROKERAGE_INVITE_REPLY_TO", "").strip()
 ADMIN_EMAILS = {e.strip().lower() for e in (os.environ.get("ADMIN_EMAILS") or os.environ.get("HOF_ADMIN_EMAILS") or "").split(",") if e.strip()}
 DEFAULT_ADMIN_EMAILS = {"andrew@ondemanddfw.com", "andrewchri@gmail.com", "support@homeofferflow.com"}
 ALLOWED_PARTNER_LEAD_STATUSES = {"new", "contacted", "qualified", "waitlist", "converted", "declined"}
@@ -23,6 +31,10 @@ ALLOWED_PARTNER_TYPES = {
     "moving_storage", "lawn_pool", "security_smart_home", "other",
 }
 MAX_BODY_BYTES = 12_000
+PUBLIC_APP_ORIGIN = (os.environ.get("PUBLIC_APP_URL") or "https://www.homeofferflow.com").rstrip("/")
+BROKERAGE_INVITE_EMAIL_RE = re.compile(r"(?=.{3,254}$)[^@\s]+@[^@\s]+\.[^@\s]+$")
+BROKERAGE_BRAND_COLOR_RE = re.compile(r"#[0-9a-fA-F]{6}$")
+BROKERAGE_BRANDING_BUCKET = "brokerage-branding"
 TXR_1501_FORM_CODE = "TXR-1501"
 TXR_1506_FORM_CODE = "TXR-1506"
 TXR_1507_FORM_CODE = "TXR-1507"
@@ -117,7 +129,8 @@ async def _brokerage_admin_context(user):
         "hof_brokerages?"
         f"id=eq.{urllib.parse.quote(str(brokerage_id))}"
         "&is_active=eq.true&select=id,name,dba_name,slug,logo_url,brand_color,"
-        "website_url,license_number,plan_name,billing_status,user_cap&limit=1"
+        "website_url,license_number,plan_name,billing_status,user_cap,"
+        "default_title_company,default_title_contact&limit=1"
     )
     if not brokerages:
         return None
@@ -147,6 +160,12 @@ async def _brokerage_dashboard_payload(context):
         f"brokerage_id=eq.{urllib.parse.quote(brokerage_id)}"
         "&select=user_id,email,role,status,created_at,updated_at"
         "&order=created_at.asc&limit=500"
+    )
+    pending_invites = await _get_optional(
+        "hof_brokerage_invites?"
+        f"brokerage_id=eq.{urllib.parse.quote(brokerage_id)}"
+        "&status=eq.pending&select=id,email,role,status,created_at,expires_at"
+        "&order=created_at.desc&limit=100"
     )
     user_ids = [str(row.get("user_id")) for row in members if row.get("user_id")]
     agent_profiles = []
@@ -233,6 +252,11 @@ async def _brokerage_dashboard_payload(context):
         "metrics": {
             "memberCount": len(members),
             "activeMemberCount": len([row for row in members if row.get("status") == "active"]),
+            "agentSeatCount": len([
+                row for row in members
+                if row.get("status") == "active" and (row.get("role") or "agent") == "agent"
+            ]),
+            "agentSeatCap": brokerage.get("user_cap"),
             "trialingCount": len([row for row in subscriptions if row.get("status") == "trialing"]),
             "activeSubscriptionCount": len(
                 [row for row in subscriptions if row.get("status") in {"active", "trialing"}]
@@ -247,6 +271,17 @@ async def _brokerage_dashboard_payload(context):
             ),
         },
         "agents": safe_agents,
+        "pendingInvites": [
+            {
+                "id": str(invite.get("id") or ""),
+                "email": invite.get("email"),
+                "role": invite.get("role") or "agent",
+                "status": invite.get("status") or "pending",
+                "createdAt": invite.get("created_at"),
+                "expiresAt": invite.get("expires_at"),
+            }
+            for invite in pending_invites
+        ],
         "privacy": {
             "buyerDetailsIncluded": False,
             "propertyDetailsIncluded": False,
@@ -254,6 +289,442 @@ async def _brokerage_dashboard_payload(context):
             "documentContentsIncluded": False,
         },
     }
+
+
+def _normalized_invite_email(value):
+    email = str(value or "").strip().lower()
+    if not BROKERAGE_INVITE_EMAIL_RE.fullmatch(email):
+        raise ValueError("Enter a valid agent email address.")
+    return email
+
+
+def _parse_timestamp(value):
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except (TypeError, ValueError):
+        return None
+
+
+def _brokerage_invite_url(token):
+    token = str(token or "").strip()
+    if not re.fullmatch(r"[a-f0-9]{32,128}", token):
+        raise RuntimeError("The invite link could not be created.")
+    return f"{PUBLIC_APP_ORIGIN}/ondemand?invite={urllib.parse.quote(token, safe='')}"
+
+
+def _invite_html_escape(value):
+    return (
+        str(value or "")
+        .replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace('"', "&quot;")
+        .replace("'", "&#x27;")
+    )
+
+
+async def _deliver_brokerage_invite_email(email, brokerage, invite_url):
+    """Email a broker-created invite without making delivery an access gate."""
+    if not RESEND_API_KEY:
+        return {"status": "not_configured"}
+
+    brokerage_name = str(
+        (brokerage or {}).get("dba_name")
+        or (brokerage or {}).get("name")
+        or "your brokerage"
+    ).strip()
+    safe_name = _invite_html_escape(brokerage_name)
+    safe_url = _invite_html_escape(invite_url)
+    payload = {
+        "from": f"HomeOfferFlow <{BROKERAGE_INVITE_FROM_EMAIL}>",
+        "to": [email],
+        "subject": f"You’re invited to join {brokerage_name} on HomeOfferFlow",
+        "text": (
+            f"Your broker invited you to join {brokerage_name} on HomeOfferFlow.\n\n"
+            f"Accept your invitation: {invite_url}\n\n"
+            "Sign in or create your account using this email address. "
+            "The invitation is personal and should not be forwarded."
+        ),
+        "html": (
+            '<div style="font-family:Arial,sans-serif;line-height:1.5;color:#172033;">'
+            f"<h2>You’re invited to join {safe_name}</h2>"
+            "<p>Your broker invited you to connect your HomeOfferFlow account to the brokerage.</p>"
+            f'<p><a href="{safe_url}" style="display:inline-block;padding:12px 18px;'
+            'border-radius:8px;background:#123047;color:#ffffff;text-decoration:none;font-weight:700;">'
+            "Accept invitation</a></p>"
+            "<p style=\"font-size:13px;color:#5f6b7a;\">Sign in or create your account using this email address. "
+            "This invitation is personal and should not be forwarded.</p>"
+            "</div>"
+        ),
+    }
+    if BROKERAGE_INVITE_REPLY_TO:
+        payload["reply_to"] = BROKERAGE_INVITE_REPLY_TO
+
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            response = await client.post(
+                "https://api.resend.com/emails",
+                headers={
+                    "Authorization": f"Bearer {RESEND_API_KEY}",
+                    "Content-Type": "application/json",
+                },
+                json=payload,
+            )
+        if response.status_code >= 300:
+            print(f"Brokerage invite email failed: {response.status_code}")
+            return {"status": "failed"}
+        data = response.json() if response.text else {}
+        return {"status": "sent", "emailId": data.get("id")}
+    except Exception as exc:
+        print(f"Brokerage invite email failed: {str(exc)[:300]}")
+        return {"status": "failed"}
+
+
+async def _create_brokerage_invite(actor, data):
+    """Create or return one pending agent-only invite for the broker's own brokerage.
+
+    The token is returned only to the authorized broker who created the invite.
+    It never gives the browser direct database access, does not alter billing,
+    and acceptance later requires an authenticated account with the same email.
+    """
+    context = await _brokerage_admin_context(actor)
+    if not context:
+        raise PermissionError("Brokerage admin access is not enabled for this account.")
+    email = _normalized_invite_email(data.get("email"))
+    brokerage_id = str(context["brokerage"]["id"])
+
+    active_members = await _get(
+        "hof_brokerage_members?"
+        f"brokerage_id=eq.{urllib.parse.quote(brokerage_id)}"
+        f"&email=eq.{urllib.parse.quote(email)}&status=eq.active"
+        "&select=id&limit=1"
+    )
+    if active_members:
+        raise ValueError("That agent already has active access to this brokerage.")
+
+    pending = await _get(
+        "hof_brokerage_invites?"
+        f"brokerage_id=eq.{urllib.parse.quote(brokerage_id)}"
+        f"&email=eq.{urllib.parse.quote(email)}&status=eq.pending"
+        "&select=id,email,role,status,invite_token,expires_at&limit=1"
+    )
+    now = datetime.now(timezone.utc)
+    if pending:
+        invite = pending[0]
+        expiry = _parse_timestamp(invite.get("expires_at"))
+        if expiry and expiry > now and invite.get("invite_token"):
+            invite_url = _brokerage_invite_url(invite["invite_token"])
+            return {
+                "email": email,
+                "expiresAt": invite.get("expires_at"),
+                "inviteUrl": invite_url,
+                "reused": True,
+                "emailDelivery": await _deliver_brokerage_invite_email(
+                    email, context["brokerage"], invite_url
+                ),
+            }
+        async with httpx.AsyncClient(timeout=12) as client:
+            response = await client.patch(
+                f"{SUPABASE_URL}/rest/v1/hof_brokerage_invites?"
+                f"id=eq.{urllib.parse.quote(str(invite['id']))}&status=eq.pending",
+                headers={**_headers(), "Prefer": "return=representation"},
+                json={"status": "expired"},
+            )
+        if response.status_code >= 300:
+            raise RuntimeError("Could not refresh the expired invite.")
+
+    record = {
+        "brokerage_id": brokerage_id,
+        "email": email,
+        "role": "agent",
+        "status": "pending",
+        "invited_by": actor["id"],
+    }
+    async with httpx.AsyncClient(timeout=12) as client:
+        response = await client.post(
+            f"{SUPABASE_URL}/rest/v1/hof_brokerage_invites",
+            headers={**_headers(), "Prefer": "return=representation"},
+            json=record,
+        )
+    if response.status_code not in {200, 201}:
+        raise RuntimeError("Could not create the brokerage invite.")
+    rows = response.json()
+    if not isinstance(rows, list) or not rows or not rows[0].get("invite_token"):
+        raise RuntimeError("The invite link could not be created.")
+    invite = rows[0]
+    invite_url = _brokerage_invite_url(invite["invite_token"])
+    return {
+        "email": email,
+        "expiresAt": invite.get("expires_at"),
+        "inviteUrl": invite_url,
+        "reused": False,
+        "emailDelivery": await _deliver_brokerage_invite_email(
+            email, context["brokerage"], invite_url
+        ),
+    }
+
+
+def _parse_brokerage_branding_update(data, brokerage_id):
+    """Validate only public, brokerage-owned brand presentation fields.
+
+    The browser uploads a logo to the fixed public Storage folder after Storage
+    RLS verifies the caller is an active broker admin.  This API then accepts
+    only that brokerage's resulting URL, never an arbitrary remote URL.
+    """
+    updates = {}
+    if "brand_color" in data:
+        color = str(data.get("brand_color") or "").strip()
+        if color and not BROKERAGE_BRAND_COLOR_RE.fullmatch(color):
+            raise ValueError("Brand color must use the format #RRGGBB.")
+        updates["brand_color"] = color or None
+    if "logo_url" in data:
+        logo_url = str(data.get("logo_url") or "").strip()
+        if logo_url:
+            allowed_prefix = (
+                f"{SUPABASE_URL}/storage/v1/object/public/"
+                f"{BROKERAGE_BRANDING_BUCKET}/{brokerage_id}/"
+            )
+            if not SUPABASE_URL or not logo_url.startswith(allowed_prefix):
+                raise ValueError("Logo must be uploaded through the brokerage branding tool.")
+        updates["logo_url"] = logo_url or None
+    if not updates:
+        raise ValueError("Choose a brand color or upload a logo first.")
+    return updates
+
+
+async def _update_brokerage_branding(actor, data):
+    """Let an active broker admin update only their own public branding."""
+    context = await _brokerage_admin_context(actor)
+    if not context:
+        raise PermissionError("Brokerage admin access is not enabled for this account.")
+    brokerage_id = str(context["brokerage"]["id"])
+    updates = _parse_brokerage_branding_update(data, brokerage_id)
+    updates["updated_at"] = datetime.now(timezone.utc).isoformat()
+    async with httpx.AsyncClient(timeout=12) as client:
+        response = await client.patch(
+            f"{SUPABASE_URL}/rest/v1/hof_brokerages?"
+            f"id=eq.{urllib.parse.quote(brokerage_id)}",
+            headers={**_headers(), "Prefer": "return=representation"},
+            json=updates,
+        )
+    if response.status_code >= 300:
+        raise RuntimeError("Could not save brokerage branding.")
+    rows = response.json()
+    if not isinstance(rows, list) or not rows:
+        raise RuntimeError("Brokerage branding was not found after saving.")
+    brokerage = rows[0]
+    return {
+        "id": str(brokerage.get("id") or brokerage_id),
+        "name": brokerage.get("name"),
+        "dbaName": brokerage.get("dba_name"),
+        "logoUrl": brokerage.get("logo_url"),
+        "brandColor": brokerage.get("brand_color"),
+    }
+
+
+def _shared_default_text(value, field, maximum=250):
+    value = " ".join(str(value or "").strip().split())
+    if len(value) > maximum:
+        raise ValueError(f"{field} is too long.")
+    return value or None
+
+
+async def _update_brokerage_shared_defaults(actor, data):
+    """Save non-transactional brokerage suggestions for agent opt-in only."""
+    context = await _brokerage_admin_context(actor)
+    if not context:
+        raise PermissionError("Brokerage admin access is not enabled for this account.")
+    title_company = _shared_default_text(data.get("default_title_company"), "Title company")
+    title_contact = _shared_default_text(data.get("default_title_contact"), "Title contact")
+    if not title_company and not title_contact:
+        raise ValueError("Enter a title company or escrow contact first.")
+    brokerage_id = str(context["brokerage"]["id"])
+    payload = {
+        "default_title_company": title_company,
+        "default_title_contact": title_contact,
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }
+    async with httpx.AsyncClient(timeout=12) as client:
+        response = await client.patch(
+            f"{SUPABASE_URL}/rest/v1/hof_brokerages?"
+            f"id=eq.{urllib.parse.quote(brokerage_id)}",
+            headers={**_headers(), "Prefer": "return=representation"},
+            json=payload,
+        )
+    if response.status_code >= 300:
+        raise RuntimeError("Could not save brokerage defaults.")
+    rows = response.json()
+    if not isinstance(rows, list) or not rows:
+        raise RuntimeError("Brokerage defaults were not found after saving.")
+    row = rows[0]
+    return {
+        "defaultTitleCompany": row.get("default_title_company"),
+        "defaultTitleContact": row.get("default_title_contact"),
+    }
+
+
+async def _apply_brokerage_shared_defaults(actor):
+    """Copy a connected brokerage's title suggestions into the agent's profile.
+
+    This is deliberately opt-in. It does not overwrite a contract, select a
+    transaction term, or grant access to a brokerage the agent does not have.
+    """
+    profiles = await _get(
+        "hof_profiles?"
+        f"id=eq.{urllib.parse.quote(actor['id'])}"
+        "&select=id,brokerage_id&limit=1"
+    )
+    if not profiles or not profiles[0].get("brokerage_id"):
+        raise ValueError("Connect to a brokerage before using brokerage defaults.")
+    brokerage_id = str(profiles[0]["brokerage_id"])
+    memberships = await _get(
+        "hof_brokerage_members?"
+        f"brokerage_id=eq.{urllib.parse.quote(brokerage_id)}"
+        f"&user_id=eq.{urllib.parse.quote(actor['id'])}"
+        "&status=eq.active&select=id&limit=1"
+    )
+    if not memberships:
+        raise PermissionError("Your active brokerage membership is required to use these defaults.")
+    brokerages = await _get(
+        "hof_brokerages?"
+        f"id=eq.{urllib.parse.quote(brokerage_id)}"
+        "&is_active=eq.true&select=default_title_company,default_title_contact&limit=1"
+    )
+    if not brokerages:
+        raise ValueError("Your brokerage defaults are not available.")
+    defaults = brokerages[0]
+    title_company = defaults.get("default_title_company")
+    title_contact = defaults.get("default_title_contact")
+    if not title_company and not title_contact:
+        raise ValueError("Your brokerage has not set title defaults yet.")
+    payload = {
+        "preferred_title_company": title_company,
+        "preferred_escrow_agent": title_contact or title_company,
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }
+    existing = await _get(
+        "hof_agent_profiles?"
+        f"user_id=eq.{urllib.parse.quote(actor['id'])}&select=user_id&limit=1"
+    )
+    async with httpx.AsyncClient(timeout=12) as client:
+        if existing:
+            response = await client.patch(
+                f"{SUPABASE_URL}/rest/v1/hof_agent_profiles?"
+                f"user_id=eq.{urllib.parse.quote(actor['id'])}",
+                headers={**_headers(), "Prefer": "return=representation"},
+                json=payload,
+            )
+        else:
+            response = await client.post(
+                f"{SUPABASE_URL}/rest/v1/hof_agent_profiles",
+                headers={**_headers(), "Prefer": "return=representation"},
+                json={**payload, "user_id": actor["id"], "agent_email": actor["email"]},
+            )
+    if response.status_code >= 300:
+        raise RuntimeError("Could not apply brokerage defaults to your profile.")
+    rows = response.json()
+    if not isinstance(rows, list) or not rows:
+        raise RuntimeError("Your agent profile was not returned after updating.")
+    return {
+        "preferredTitleCompany": rows[0].get("preferred_title_company"),
+        "preferredEscrowAgent": rows[0].get("preferred_escrow_agent"),
+    }
+
+
+async def _accept_brokerage_invite(actor, data):
+    """Attach the signed-in, email-matched agent to one valid broker invite."""
+    token = str(data.get("invite_token") or "").strip().lower()
+    if not re.fullmatch(r"[a-f0-9]{32,128}", token):
+        raise ValueError("This brokerage invite link is invalid.")
+    invites = await _get(
+        "hof_brokerage_invites?"
+        f"invite_token=eq.{urllib.parse.quote(token)}&status=eq.pending"
+        "&select=id,brokerage_id,email,role,status,expires_at&limit=1"
+    )
+    if not invites:
+        raise ValueError("This brokerage invite is no longer available.")
+    invite = invites[0]
+    if _normalized_invite_email(actor.get("email")) != _normalized_invite_email(invite.get("email")):
+        raise PermissionError("Sign in with the email address that received this brokerage invite.")
+    expiry = _parse_timestamp(invite.get("expires_at"))
+    if not expiry or expiry <= datetime.now(timezone.utc):
+        async with httpx.AsyncClient(timeout=12) as client:
+            await client.patch(
+                f"{SUPABASE_URL}/rest/v1/hof_brokerage_invites?"
+                f"id=eq.{urllib.parse.quote(str(invite['id']))}&status=eq.pending",
+                headers=_headers(), json={"status": "expired"},
+            )
+        raise ValueError("This brokerage invite has expired. Ask your broker for a new link.")
+    if str(invite.get("role") or "agent") != "agent":
+        raise PermissionError("This invite does not grant agent access.")
+
+    brokerage_id = str(invite.get("brokerage_id") or "")
+    profiles = await _get(
+        "hof_profiles?"
+        f"id=eq.{urllib.parse.quote(actor['id'])}"
+        "&select=id,email,role,brokerage_id,is_brokerage_admin&limit=1"
+    )
+    profile = profiles[0] if profiles else None
+    if profile and profile.get("brokerage_id") and str(profile["brokerage_id"]) != brokerage_id:
+        raise PermissionError("This account is already connected to another brokerage. Contact HomeOfferFlow support.")
+    if profile and (str(profile.get("role") or "agent") != "agent" or profile.get("is_brokerage_admin")):
+        raise PermissionError("Brokerage administrator accounts cannot accept an agent invite.")
+
+    existing_members = await _get(
+        "hof_brokerage_members?"
+        f"brokerage_id=eq.{urllib.parse.quote(brokerage_id)}"
+        f"&user_id=eq.{urllib.parse.quote(actor['id'])}"
+        "&select=id,role,status&limit=1"
+    )
+    if existing_members and str(existing_members[0].get("role") or "agent") != "agent":
+        raise PermissionError("Broker and owner memberships must be managed by HomeOfferFlow support.")
+    if existing_members and str(existing_members[0].get("status") or "") == "suspended":
+        raise PermissionError("This brokerage membership is suspended. Contact your broker.")
+
+    now_iso = datetime.now(timezone.utc).isoformat()
+    async with httpx.AsyncClient(timeout=12) as client:
+        if profile:
+            profile_response = await client.patch(
+                f"{SUPABASE_URL}/rest/v1/hof_profiles?id=eq.{urllib.parse.quote(actor['id'])}",
+                headers={**_headers(), "Prefer": "return=representation"},
+                json={"brokerage_id": brokerage_id, "updated_at": now_iso},
+            )
+        else:
+            profile_response = await client.post(
+                f"{SUPABASE_URL}/rest/v1/hof_profiles",
+                headers={**_headers(), "Prefer": "return=representation"},
+                json={"id": actor["id"], "email": actor["email"], "role": "agent", "brokerage_id": brokerage_id, "updated_at": now_iso},
+            )
+        if profile_response.status_code not in {200, 201}:
+            raise RuntimeError("Could not connect this account to the brokerage.")
+
+        if existing_members:
+            membership_response = await client.patch(
+                f"{SUPABASE_URL}/rest/v1/hof_brokerage_members?"
+                f"id=eq.{urllib.parse.quote(str(existing_members[0]['id']))}",
+                headers={**_headers(), "Prefer": "return=representation"},
+                json={"email": actor["email"], "status": "active", "updated_at": now_iso},
+            )
+        else:
+            membership_response = await client.post(
+                f"{SUPABASE_URL}/rest/v1/hof_brokerage_members",
+                headers={**_headers(), "Prefer": "return=representation"},
+                json={"brokerage_id": brokerage_id, "user_id": actor["id"], "email": actor["email"], "role": "agent", "status": "active", "updated_at": now_iso},
+            )
+        if membership_response.status_code not in {200, 201}:
+            raise RuntimeError("Could not activate the brokerage membership.")
+
+        invite_response = await client.patch(
+            f"{SUPABASE_URL}/rest/v1/hof_brokerage_invites?"
+            f"id=eq.{urllib.parse.quote(str(invite['id']))}&status=eq.pending",
+            headers={**_headers(), "Prefer": "return=representation"},
+            json={"status": "accepted", "accepted_by": actor["id"], "accepted_at": now_iso},
+        )
+    if invite_response.status_code >= 300:
+        raise RuntimeError("Could not finalize the brokerage invite.")
+    return {"brokerageId": brokerage_id, "accepted": True}
 
 
 async def _set_brokerage_member_status(actor, data):
@@ -806,6 +1277,26 @@ class handler(BaseHTTPRequestHandler):
                 _json(self, 400, {"error": "Invalid request size."})
                 return
             data = json.loads(self.rfile.read(length).decode("utf-8"))
+            if data.get("action") == "create_brokerage_invite":
+                invite = asyncio.run(_create_brokerage_invite(user, data))
+                _json(self, 201, {"ok": True, "invite": invite})
+                return
+            if data.get("action") == "update_brokerage_branding":
+                branding = asyncio.run(_update_brokerage_branding(user, data))
+                _json(self, 200, {"ok": True, "branding": branding})
+                return
+            if data.get("action") == "update_brokerage_shared_defaults":
+                defaults = asyncio.run(_update_brokerage_shared_defaults(user, data))
+                _json(self, 200, {"ok": True, "defaults": defaults})
+                return
+            if data.get("action") == "apply_brokerage_shared_defaults":
+                profile = asyncio.run(_apply_brokerage_shared_defaults(user))
+                _json(self, 200, {"ok": True, "profile": profile})
+                return
+            if data.get("action") == "accept_brokerage_invite":
+                membership = asyncio.run(_accept_brokerage_invite(user, data))
+                _json(self, 200, {"ok": True, "membership": membership})
+                return
             if data.get("action") == "set_brokerage_member_status":
                 result = asyncio.run(_set_brokerage_member_status(user, data))
                 _json(self, 200, {"ok": True, "membership": result})
@@ -839,6 +1330,8 @@ class handler(BaseHTTPRequestHandler):
             _json(self, 200, {"ok": True, "lead": row})
         except ValueError as exc:
             _json(self, 400, {"error": str(exc)[:300]})
+        except PermissionError as exc:
+            _json(self, 403, {"error": str(exc)[:300]})
         except json.JSONDecodeError:
             _json(self, 400, {"error": "Invalid JSON."})
         except Exception as exc:
