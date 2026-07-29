@@ -328,6 +328,52 @@ def _normalized_invite_email(value):
     return email
 
 
+def _brokerage_agent_seat_cap(brokerage):
+    """Return the configured agent-seat cap, or None when the brokerage is uncapped."""
+    raw_cap = (brokerage or {}).get("user_cap")
+    if raw_cap in (None, ""):
+        return None
+    try:
+        cap = int(raw_cap)
+    except (TypeError, ValueError):
+        raise RuntimeError("This brokerage has an invalid agent-seat limit.")
+    if cap < 0:
+        raise RuntimeError("This brokerage has an invalid agent-seat limit.")
+    return cap
+
+
+async def _brokerage_agent_seat_counts(brokerage_id):
+    """Count active agent seats and pending agent invitations server-side."""
+    active_agents = await _get(
+        "hof_brokerage_members?"
+        f"brokerage_id=eq.{urllib.parse.quote(str(brokerage_id))}"
+        "&role=eq.agent&status=eq.active&select=id&limit=10001"
+    )
+    pending_agent_invites = await _get(
+        "hof_brokerage_invites?"
+        f"brokerage_id=eq.{urllib.parse.quote(str(brokerage_id))}"
+        "&role=eq.agent&status=eq.pending&select=id&limit=10001"
+    )
+    return len(active_agents), len(pending_agent_invites)
+
+
+async def _require_available_agent_seat(brokerage, include_pending):
+    """Fail before a new invite or membership would exceed an agent-seat cap."""
+    cap = _brokerage_agent_seat_cap(brokerage)
+    if cap is None:
+        return
+    brokerage_id = str((brokerage or {}).get("id") or "")
+    if not brokerage_id:
+        raise RuntimeError("This brokerage is not configured correctly.")
+    active_count, pending_count = await _brokerage_agent_seat_counts(brokerage_id)
+    occupied = active_count + (pending_count if include_pending else 0)
+    if occupied >= cap:
+        raise ValueError(
+            f"This brokerage has reached its {cap}-agent seat limit. "
+            "Suspend an agent or revoke an unused invitation before adding another."
+        )
+
+
 def _parse_timestamp(value):
     if not value:
         return None
@@ -464,6 +510,11 @@ async def _create_brokerage_invite(actor, data):
             )
         if response.status_code >= 300:
             raise RuntimeError("Could not refresh the expired invite.")
+
+    # Pending invitations reserve seats so a broker cannot create a larger
+    # launch cohort than the brokerage plan allows. Reusing an existing invite
+    # above does not consume another seat.
+    await _require_available_agent_seat(context["brokerage"], include_pending=True)
 
     record = {
         "brokerage_id": brokerage_id,
@@ -712,6 +763,19 @@ async def _accept_brokerage_invite(actor, data):
         raise PermissionError("Broker and owner memberships must be managed by HomeOfferFlow support.")
     if existing_members and str(existing_members[0].get("status") or "") == "suspended":
         raise PermissionError("This brokerage membership is suspended. Contact your broker.")
+
+    # An existing active agent does not consume a new seat. A first-time invite
+    # acceptance does, so give the broker a clear error before attempting the
+    # change. The database trigger supplies the final concurrency-safe guard.
+    if not existing_members:
+        brokerages = await _get(
+            "hof_brokerages?"
+            f"id=eq.{urllib.parse.quote(brokerage_id)}"
+            "&is_active=eq.true&select=id,user_cap&limit=1"
+        )
+        if not brokerages:
+            raise ValueError("This brokerage is no longer active.")
+        await _require_available_agent_seat(brokerages[0], include_pending=False)
 
     now_iso = datetime.now(timezone.utc).isoformat()
     async with httpx.AsyncClient(timeout=12) as client:
