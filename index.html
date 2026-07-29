@@ -11914,6 +11914,71 @@ function routeAfterMagicLinkIfNeeded() {
     }
   };
 
+  root.saveBrokerageSharedDefaults = async function saveBrokerageSharedDefaults() {
+    const session = root.hofAuth?.session;
+    const brokerage = root.hofPlatform?.brokerage;
+    const result = document.getElementById('brokerageDefaultsResult');
+    const titleCompany = String(document.getElementById('brokerageDefaultTitleCompany')?.value || '').trim();
+    const titleContact = String(document.getElementById('brokerageDefaultTitleContact')?.value || '').trim();
+    if (!session?.access_token || !brokerage?.id) {
+      if (result) result.textContent = 'Sign in again before changing brokerage defaults.';
+      return;
+    }
+    if (!titleCompany && !titleContact) {
+      if (result) result.textContent = 'Enter a title company or escrow contact first.';
+      return;
+    }
+    if (result) result.textContent = 'Saving shared defaults…';
+    try {
+      const response = await fetch('/api/admin-dashboard', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + session.access_token },
+        body: JSON.stringify({
+          action: 'update_brokerage_shared_defaults',
+          default_title_company: titleCompany,
+          default_title_contact: titleContact
+        })
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.defaults) throw new Error(data.error || 'Could not save brokerage defaults.');
+      root.hofPlatform.brokerage = Object.assign({}, brokerage, {
+        default_title_company: data.defaults.defaultTitleCompany || null,
+        default_title_contact: data.defaults.defaultTitleContact || null
+      });
+      if (result) result.textContent = 'Shared title defaults saved. Agents choose whether to copy them into their own profile.';
+      await root.renderBrokerageFoundationPanel();
+    } catch (error) {
+      if (result) result.textContent = error.message || 'Could not save brokerage defaults.';
+    }
+  };
+
+  root.applyBrokerageSharedDefaults = async function applyBrokerageSharedDefaults() {
+    const session = root.hofAuth?.session;
+    const result = document.getElementById('brokerageDefaultsResult');
+    if (!session?.access_token) {
+      if (result) result.textContent = 'Sign in again before using brokerage defaults.';
+      return;
+    }
+    if (result) result.textContent = 'Copying brokerage title defaults to your profile…';
+    try {
+      const response = await fetch('/api/admin-dashboard', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + session.access_token },
+        body: JSON.stringify({ action: 'apply_brokerage_shared_defaults' })
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.profile) throw new Error(data.error || 'Could not apply brokerage defaults.');
+      root.hofAuth.accountProfile = Object.assign({}, root.hofAuth.accountProfile || {}, {
+        preferred_title_company: data.profile.preferredTitleCompany || null,
+        preferred_escrow_agent: data.profile.preferredEscrowAgent || null
+      });
+      if (typeof root.applyProfileDefaultsToWizard === 'function') root.applyProfileDefaultsToWizard(true);
+      if (result) result.textContent = 'Brokerage title defaults are now saved in your profile. You can change them anytime in Profile.';
+    } catch (error) {
+      if (result) result.textContent = error.message || 'Could not apply brokerage defaults.';
+    }
+  };
+
   root.renderBrokerageFoundationPanel = async function renderBrokerageFoundationPanel() {
     const el = document.getElementById('brokerageFoundationPanel');
     if (!el) return;
@@ -11930,10 +11995,20 @@ function routeAfterMagicLinkIfNeeded() {
     const name = b.dba_name || b.name || 'Your brokerage';
     const isBroker = profile.is_brokerage_admin || profile.role === 'brokerage_admin' ||
       membership?.role === 'broker_admin' || membership?.role === 'owner';
+    const titleDefault = b.default_title_company || '';
+    const contactDefault = b.default_title_contact || '';
+    const agentDefaultsCard = (!isBroker && (titleDefault || contactDefault))
+      ? '<div class="platform-card"><h4>Brokerage title defaults</h4><p>' +
+        (titleDefault ? 'Suggested title company: <strong>' + safe(titleDefault) + '</strong>.' : '') +
+        (contactDefault ? ' Suggested escrow contact: <strong>' + safe(contactDefault) + '</strong>.' : '') +
+        '</p><button type="button" class="brokerage-access-button" onclick="applyBrokerageSharedDefaults()">Use these in my profile</button>' +
+        '<p id="brokerageDefaultsResult" class="brokerage-invite-result">This copies suggestions into your profile; it does not change an existing offer.</p></div>'
+      : '';
     el.innerHTML = '<div class="platform-card"><div class="ondemand-account-banner">' +
       '<h4>' + safe(name) + '</h4><p>Your HomeOfferFlow account is connected to this brokerage. ' +
       'Membership: <strong>' + safe(membership?.status || 'pending') + '</strong>.</p></div>' +
       '<p>Brokerage identity and permissions are managed by HomeOfferFlow—not editable from the browser.</p></div>' +
+      agentDefaultsCard +
       (isBroker ? '<div class="platform-card" id="brokerSafeDashboard"><h4>Brokerage activity</h4><p>Loading privacy-limited agent activity…</p></div>' : '');
     if (!isBroker) return;
     try {
@@ -11950,6 +12025,11 @@ function routeAfterMagicLinkIfNeeded() {
         '<input id="brokerageLogoFile" type="file" accept="image/png,image/jpeg,image/webp" aria-label="Brokerage logo (PNG, JPG, or WebP)">' +
         '<button type="button" class="brokerage-access-button" onclick="saveBrokerageBranding()">Save branding</button></div>' +
         '<p id="brokerageBrandingResult" class="brokerage-invite-result">Set a public color and optional PNG, JPG, or WebP logo (2 MB max). Only active brokerage admins can update this branding.</p>' +
+        '<div class="brokerage-invite-form"><label for="brokerageDefaultTitleCompany">Shared title defaults</label>' +
+        '<input id="brokerageDefaultTitleCompany" type="text" value="' + safe(b.default_title_company || '') + '" placeholder="Suggested title company" aria-label="Suggested title company">' +
+        '<input id="brokerageDefaultTitleContact" type="text" value="' + safe(b.default_title_contact || '') + '" placeholder="Suggested escrow contact" aria-label="Suggested escrow contact">' +
+        '<button type="button" class="brokerage-access-button" onclick="saveBrokerageSharedDefaults()">Save shared defaults</button></div>' +
+        '<p id="brokerageDefaultsResult" class="brokerage-invite-result">These are optional suggestions. Agents must choose to copy them into their own profile; no offer is changed automatically.</p>' +
         '<div class="brokerage-invite-form"><input id="brokerageInviteEmail" type="email" inputmode="email" autocomplete="email" placeholder="Agent email address" aria-label="Agent email address">' +
         '<button type="button" class="brokerage-access-button" onclick="createBrokerageInvite()">Create invite link</button></div>' +
         '<p id="brokerageInviteResult" class="brokerage-invite-result">The link works only for the invited email, expires in 14 days, and does not start billing until the agent completes Stripe checkout.</p>' +
@@ -11957,6 +12037,7 @@ function routeAfterMagicLinkIfNeeded() {
         '<div class="brokerage-safe-kpis">' +
           '<div class="brokerage-safe-kpi"><span>Members</span><strong>' + Number(m.memberCount || 0) + '</strong></div>' +
           '<div class="brokerage-safe-kpi"><span>Active members</span><strong>' + Number(m.activeMemberCount || 0) + '</strong></div>' +
+          '<div class="brokerage-safe-kpi"><span>Agent seats</span><strong>' + Number(m.agentSeatCount || 0) + ' / ' + (m.agentSeatCap == null ? '—' : Number(m.agentSeatCap)) + '</strong></div>' +
           '<div class="brokerage-safe-kpi"><span>Offers</span><strong>' + Number(m.offerCount || 0) + '</strong></div>' +
           '<div class="brokerage-safe-kpi"><span>Signed</span><strong>' + Number(m.signedCount || 0) + '</strong></div>' +
         '</div>' +
