@@ -33,6 +33,13 @@ class ListingWorkspaceFoundationTests(unittest.TestCase):
         self.assertIn("hof_brokerage_listing_workspace_summary", INDEX)
         self.assertIn("It has not created a form or signature request.", INDEX)
 
+    def test_dashboard_shows_source_readiness_without_activating_forms(self):
+        self.assertIn("Listing Form Readiness", INDEX)
+        self.assertIn("loadListingWorkspaceSourceReadiness", INDEX)
+        self.assertIn("Execution remains gated.", INDEX)
+        self.assertIn("TXR-1101", INDEX)
+        self.assertIn("TXR-1406", INDEX)
+
 
 if __name__ == "__main__":
     unittest.main()

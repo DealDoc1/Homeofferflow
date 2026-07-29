@@ -1,5 +1,8 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "git": {
+    "deploymentEnabled": false
+  },
   "functions": {
     "api/fill-pdf.py": {
       "includeFiles": "buyer_temporary_residential_lease_16-7.pdf"
