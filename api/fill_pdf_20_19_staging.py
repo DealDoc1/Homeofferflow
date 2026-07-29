@@ -17,6 +17,9 @@ SIGNWELL_API_KEY = os.environ.get("SIGNWELL_API_KEY", "")
 SIGNWELL_ENABLED = os.environ.get("SIGNWELL_ENABLED", "false").strip().lower() in ["1", "true", "yes", "on"]
 # Safe default: test mode is ON while we build/signature-coordinate test.
 SIGNWELL_TEST_MODE = os.environ.get("SIGNWELL_TEST_MODE", "true").strip().lower() not in ["0", "false", "no", "off"]
+# SignWell request/response diagnostics are deliberately opt-in.  The normal
+# offer path must not flood function logs or expose recipient data.
+SIGNWELL_DEBUG = os.environ.get("SIGNWELL_DEBUG", "false").strip().lower() in ["1", "true", "yes", "on"]
 
 BASE_DIR      = "/var/task"
 MAIN_PDF      = os.path.join(BASE_DIR, "20-19_0.pdf")
@@ -44,6 +47,12 @@ CHECK     = "X"
 # Keep False for production/customer PDFs.
 # Set True only temporarily if you want coordinate grid marks on every generated page.
 DEBUG_GRID = False
+
+
+def signwell_debug(event, details):
+    """Emit compact, non-recipient SignWell diagnostics only when enabled."""
+    if SIGNWELL_DEBUG:
+        print("SIGNWELL DEBUG {}: {}".format(event, json.dumps(details, default=str)[:3000]))
 
 
 def find_existing_pdf(*names):
@@ -1657,7 +1666,7 @@ def build_signwell_fields(offer, pdf_bytes):
 
     fields = [fields_for_file]
 
-    print("SIGNWELL DEBUG field payload:", json.dumps({
+    signwell_debug("field_summary", {
         "page_count": page_count,
         "main_signature_page": main_signature_page,
         "has_buyer2": has_buyer2,
@@ -1687,22 +1696,20 @@ def build_signwell_fields(offer, pdf_bytes):
             "backup_signature_page": backup_signature_page,
         },
         "field_count": len(fields_for_file),
-        "fields": fields
-    })[:5000])
+    })
 
     return fields
 
 def post_signwell_document(payload):
-    print("SIGNWELL DEBUG request summary:", json.dumps({
+    signwell_debug("request_summary", {
         "test_mode": payload.get("test_mode"),
         "draft": payload.get("draft"),
         "with_signature_page": payload.get("with_signature_page"),
         "recipient_count": len(payload.get("recipients", [])),
-        "recipient_emails": [r.get("email") for r in payload.get("recipients", [])],
         "file_count": len(payload.get("files", [])),
         "field_outer_count": len(payload.get("fields", [])) if payload.get("fields") else 0,
         "field_count_file_1": len(payload.get("fields", [[]])[0]) if payload.get("fields") else 0,
-    })[:3000])
+    })
 
     r = httpx.post(
         "https://www.signwell.com/api/v1/documents",
@@ -1711,9 +1718,7 @@ def post_signwell_document(payload):
         timeout=45
     )
 
-    # Always log the SignWell response while we are stabilizing the integration.
-    print("SIGNWELL RESPONSE STATUS:", r.status_code)
-    print("SIGNWELL RESPONSE BODY:", r.text[:3000])
+    signwell_debug("response", {"status_code": r.status_code, "body": r.text[:3000]})
 
     if r.status_code not in [200, 201, 202]:
         return False, {"status_code": r.status_code, "error": r.text[:3000]}
@@ -1735,13 +1740,13 @@ def create_signwell_signature_request(offer, pdf_bytes):
     - Test mode defaults ON unless SIGNWELL_TEST_MODE=false.
     - No generic SignWell signature page.
     - Minimal Buyer 1 signature field only until SignWell accepts the payload.
-    - Logs SignWell request summary and full response body to Vercel logs.
+    - Emits compact SignWell diagnostics only when SIGNWELL_DEBUG=true.
     """
-    print("SIGNWELL DEBUG env:", json.dumps({
+    signwell_debug("configuration", {
         "enabled": SIGNWELL_ENABLED,
         "test_mode": SIGNWELL_TEST_MODE,
         "api_key_present": bool(SIGNWELL_API_KEY)
-    }))
+    })
 
     if not SIGNWELL_ENABLED:
         return {"enabled": False, "skipped": "SIGNWELL_ENABLED is false"}
