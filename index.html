@@ -12221,5 +12221,137 @@ function routeAfterMagicLinkIfNeeded() {
   else renderAgreementCard();
 })();
 </script>
+<script id="hof-txr1501-drafts-v1">
+(function () {
+  const root = window;
+  const FORM_CODE = 'TXR-1501';
+  const escape = value => String(value ?? '').replace(/[&<>\"]/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[char]));
+  const profile = () => root.hofAuth?.authoritativeProfile || {};
+  const brokerageId = () => root.hofPlatform?.brokerage?.id || profile().brokerage_id || null;
+  const activeAgent = () => {
+    const role = String(root.hofAuth?.role || profile().role || '').toLowerCase();
+    return !!root.hofAuth?.session?.user && !!brokerageId() && (role === 'agent' || role === 'brokerage_admin');
+  };
+
+  async function approvedLongFormSource() {
+    const client = root.getSupabaseClient?.();
+    if (!client || !brokerageId()) return null;
+    const { data, error } = await client.from('hof_brokerage_form_sources')
+      .select('id,form_code,source_revision')
+      .eq('brokerage_id', brokerageId()).eq('form_code', FORM_CODE)
+      .eq('status', 'approved').eq('authorization_attested', true)
+      .order('updated_at', { ascending:false }).limit(1).maybeSingle();
+    if (error) throw error;
+    return data || null;
+  }
+
+  async function renderLongFormCard() {
+    const panel = document.getElementById('accountPanelDashboard');
+    if (!panel || !activeAgent() || document.getElementById('txr1501AgreementCard')) return;
+    const card = document.createElement('div');
+    card.id = 'txr1501AgreementCard';
+    card.className = 'account-card hof-agreement-card';
+    card.innerHTML = '<h4>Buyer/Tenant Representation Agreement - Long Form</h4><p id="txr1501AgreementCopy">Checking whether your brokerage has approved the Texas REALTORS® Long Form…</p>';
+    panel.appendChild(card);
+    try {
+      const source = await approvedLongFormSource();
+      const copy = card.querySelector('#txr1501AgreementCopy');
+      if (!source) {
+        copy.textContent = 'TXR-1501 is not yet enabled for your brokerage. A brokerage administrator must privately upload and approve the current authorized source form first.';
+        return;
+      }
+      copy.innerHTML = `Start a private TXR-1501 Long Form draft using your brokerage-approved ${escape(source.source_revision)} source. Choose this form deliberately; it is not a substitute for the Short Form. A draft is not sent or signed.`;
+      const button = document.createElement('button');
+      button.type = 'button'; button.className = 'btn-secondary'; button.textContent = 'Start TXR-1501 draft';
+      button.addEventListener('click', () => openLongDraftDialog(source));
+      card.appendChild(button);
+    } catch (error) {
+      console.error('TXR-1501 source check failed:', error);
+      card.querySelector('#txr1501AgreementCopy').textContent = 'The approved-form check is temporarily unavailable.';
+    }
+  }
+
+  function openLongDraftDialog(source) {
+    document.getElementById('txr1501AgreementDialog')?.remove();
+    const modal = document.createElement('div');
+    modal.id = 'txr1501AgreementDialog'; modal.className = 'hof-agreement-modal';
+    modal.innerHTML = `
+      <form class="hof-agreement-dialog" id="txr1501AgreementForm">
+        <h3>TXR-1501 Long Form draft</h3>
+        <p>Source revision ${escape(source.source_revision)} is approved by your brokerage. Enter only broker-approved terms after reviewing them with your client. This saves a private draft only; it does not create, send, or sign the source form.</p>
+        <div class="hof-agreement-grid">
+          <label>Client 1 full name<input name="clientOne" required maxlength="180"></label>
+          <label>Client 2 full name (optional)<input name="clientTwo" maxlength="180"></label>
+          <label class="hof-agreement-wide">Client mailing address<input name="clientAddress" required maxlength="300"></label>
+          <label>City, State, ZIP<input name="clientCityStateZip" required maxlength="180"></label>
+          <label>Client phone<input name="clientPhone" required maxlength="80"></label>
+          <label class="hof-agreement-wide">Client email<input name="clientEmail" required type="email" maxlength="180"></label>
+          <label class="hof-agreement-wide">Market Area (required)<textarea name="marketArea" required maxlength="800" placeholder="Example: Collin and Denton Counties, Texas"></textarea></label>
+          <label>Term begins<input name="termStart" type="date" required></label>
+          <label>Term ends<input name="termEnd" type="date" required></label>
+          <label>Purchase compensation %<input name="purchasePercentage" inputmode="decimal" placeholder="Enter only if broker-approved"></label>
+          <label>Purchase flat fee<input name="purchaseFlatFee" inputmode="decimal" placeholder="Enter only if broker-approved"></label>
+          <label>Lease: % of one month’s rent<input name="leaseOneMonthPercentage" inputmode="decimal" placeholder="Enter only if broker-approved"></label>
+          <label>Lease: % of all rents<input name="leaseTotalRentsPercentage" inputmode="decimal" placeholder="Enter only if broker-approved"></label>
+          <label>Lease flat fee<input name="leaseFlatFee" inputmode="decimal" placeholder="Enter only if broker-approved"></label>
+          <label>Retainer (optional)<input name="retainerAmount" inputmode="decimal" placeholder="Enter only if broker-approved"></label>
+          <label id="txr1501RetainerWrap" style="display:none">Retainer treatment<select name="retainerTreatment"><option value="">Choose one…</option><option value="apply">Apply toward other fees</option><option value="not_apply">Do not apply toward other fees</option></select></label>
+          <label>Protection period days (optional)<input name="protectionDays" inputmode="numeric" placeholder="Enter only if broker-approved"></label>
+          <label>Payment county<input name="paymentCounty" required maxlength="100" placeholder="Example: Collin"></label>
+          <label class="hof-agreement-wide">Intermediary choice<select name="intermediary" required><option value="">Choose one…</option><option value="authorized">Client authorizes intermediary</option><option value="not_authorized">Client does not authorize intermediary</option></select></label>
+        </div>
+        <div id="txr1501DraftStatus" class="hof-iabs-status"></div>
+        <div class="hof-agreement-footer"><button class="btn-secondary" type="button" id="txr1501Cancel">Cancel</button><button class="btn-primary" type="submit">Save private draft</button></div>
+      </form>`;
+    document.body.appendChild(modal);
+    modal.querySelector('#txr1501Cancel').addEventListener('click', () => modal.remove());
+    modal.addEventListener('click', event => { if (event.target === modal) modal.remove(); });
+    const retainer = modal.querySelector('[name="retainerAmount"]');
+    const syncRetainer = () => {
+      const active = !!String(retainer.value || '').trim();
+      const wrap = modal.querySelector('#txr1501RetainerWrap');
+      const select = modal.querySelector('[name="retainerTreatment"]');
+      wrap.style.display = active ? 'grid' : 'none'; select.required = active;
+      if (!active) select.value = '';
+    };
+    retainer.addEventListener('input', syncRetainer); syncRetainer();
+    modal.querySelector('#txr1501AgreementForm').addEventListener('submit', event => submitLongDraft(event, source, modal));
+  }
+
+  async function submitLongDraft(event, source, modal) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    const status = modal.querySelector('#txr1501DraftStatus');
+    const clientNames = [form.get('clientOne'), form.get('clientTwo')].map(value => String(value || '').trim()).filter(Boolean);
+    const payload = {
+      action: 'create_txr_1501_draft', formCode: FORM_CODE, formSourceId: source.id, clientNames,
+      clientAddress: form.get('clientAddress'), clientCityStateZip: form.get('clientCityStateZip'), clientPhone: form.get('clientPhone'), clientEmail: form.get('clientEmail'),
+      marketArea: form.get('marketArea'), termStart: form.get('termStart'), termEnd: form.get('termEnd'),
+      retainerAmount: form.get('retainerAmount'), retainerTreatment: form.get('retainerTreatment'), protectionDays: form.get('protectionDays'), paymentCounty: form.get('paymentCounty'), intermediary: form.get('intermediary'),
+      compensation: { purchasePercentage: form.get('purchasePercentage'), purchaseFlatFee: form.get('purchaseFlatFee'), leaseOneMonthPercentage: form.get('leaseOneMonthPercentage'), leaseTotalRentsPercentage: form.get('leaseTotalRentsPercentage'), leaseFlatFee: form.get('leaseFlatFee') }
+    };
+    try {
+      status.className = 'hof-iabs-status'; status.textContent = 'Saving private agreement draft…';
+      const token = root.hofAuth?.session?.access_token;
+      const response = await fetch('/api/admin-dashboard', { method:'POST', headers:{ 'Content-Type':'application/json', Authorization:`Bearer ${token}` }, body:JSON.stringify(payload) });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Could not save the agreement draft.');
+      status.className = 'hof-iabs-status ready'; status.textContent = 'Draft saved privately. It has not been sent for signature.';
+      event.currentTarget.querySelector('button[type="submit"]').disabled = true;
+    } catch (error) {
+      console.error('TXR-1501 draft failed:', error);
+      status.className = 'hof-iabs-status error'; status.textContent = error.message || 'Could not save the agreement draft.';
+    }
+  }
+
+  const priorDashboard = root.renderAccountDashboard;
+  root.renderAccountDashboard = function renderAccountDashboardWithLongAgreementDrafts() {
+    if (typeof priorDashboard === 'function') priorDashboard.apply(this, arguments);
+    renderLongFormCard();
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', renderLongFormCard, { once:true });
+  else renderLongFormCard();
+})();
+</script>
 </body>
 </html>

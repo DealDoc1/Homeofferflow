@@ -22,6 +22,7 @@ ALLOWED_PARTNER_TYPES = {
     "moving_storage", "lawn_pool", "security_smart_home", "other",
 }
 MAX_BODY_BYTES = 12_000
+TXR_1501_FORM_CODE = "TXR-1501"
 TXR_1507_FORM_CODE = "TXR-1507"
 
 
@@ -377,16 +378,7 @@ def _agreement_percentage(value, field):
     return value
 
 
-def _parse_txr_1507_draft(data):
-    if data.get("formCode") != TXR_1507_FORM_CODE:
-        raise ValueError("Only TXR-1507 is available through this action.")
-    client_values = data.get("clientNames")
-    if not isinstance(client_values, list) or not (1 <= len(client_values) <= 2):
-        raise ValueError("Add one or two client names.")
-    client_names = [_agreement_text(value, "Each client name", 180) for value in client_values]
-    if len({name.casefold() for name in client_names}) != len(client_names):
-        raise ValueError("Each client must be listed only once.")
-    market_area = _agreement_text(data.get("marketArea"), "Market area", 800)
+def _agreement_date_range(data):
     term_start = _agreement_text(data.get("termStart"), "Term start date", 30)
     term_end = _agreement_text(data.get("termEnd"), "Term end date", 30)
     if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", term_start) or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", term_end):
@@ -398,6 +390,40 @@ def _parse_txr_1507_draft(data):
         raise ValueError("Use valid calendar dates for both term dates.")
     if end_date < start_date:
         raise ValueError("Term end date cannot be before the term start date.")
+    return term_start, term_end
+
+
+def _agreement_clients(data):
+    client_values = data.get("clientNames")
+    if not isinstance(client_values, list) or not (1 <= len(client_values) <= 2):
+        raise ValueError("Add one or two client names.")
+    client_names = [_agreement_text(value, "Each client name", 180) for value in client_values]
+    if len({name.casefold() for name in client_names}) != len(client_names):
+        raise ValueError("Each client must be listed only once.")
+    return client_names
+
+
+def _agreement_compensation(compensation):
+    if not isinstance(compensation, dict):
+        raise ValueError("Compensation data is invalid.")
+    values = {
+        "purchase_percentage": _agreement_percentage(compensation.get("purchasePercentage"), "Purchase compensation"),
+        "purchase_flat_fee": _agreement_money(compensation.get("purchaseFlatFee"), "Purchase flat fee"),
+        "lease_one_month_percentage": _agreement_percentage(compensation.get("leaseOneMonthPercentage"), "Lease one-month-rent compensation"),
+        "lease_total_rents_percentage": _agreement_percentage(compensation.get("leaseTotalRentsPercentage"), "Lease total-rents compensation"),
+        "lease_flat_fee": _agreement_money(compensation.get("leaseFlatFee"), "Lease flat fee"),
+    }
+    if not any(values.values()):
+        raise ValueError("Choose at least one broker-approved purchase or lease compensation term.")
+    return values
+
+
+def _parse_txr_1507_draft(data):
+    if data.get("formCode") != TXR_1507_FORM_CODE:
+        raise ValueError("Only TXR-1507 is available through this action.")
+    client_names = _agreement_clients(data)
+    market_area = _agreement_text(data.get("marketArea"), "Market area", 800)
+    term_start, term_end = _agreement_date_range(data)
     service_level = str(data.get("serviceLevel") or "").strip()
     if service_level not in {"full_services", "showing_services"}:
         raise ValueError("Choose Full Services or Showing Services.")
@@ -412,16 +438,7 @@ def _parse_txr_1507_draft(data):
         form_source_id = str(uuid.UUID(form_source_id))
     except (TypeError, ValueError, AttributeError):
         raise ValueError("Choose an approved TXR-1507 source from your brokerage.")
-    compensation = data.get("compensation") or {}
-    if not isinstance(compensation, dict):
-        raise ValueError("Compensation data is invalid.")
-    purchase_percentage = _agreement_percentage(compensation.get("purchasePercentage"), "Purchase compensation")
-    purchase_flat_fee = _agreement_money(compensation.get("purchaseFlatFee"), "Purchase flat fee")
-    lease_one_month_percentage = _agreement_percentage(compensation.get("leaseOneMonthPercentage"), "Lease one-month-rent compensation")
-    lease_total_rents_percentage = _agreement_percentage(compensation.get("leaseTotalRentsPercentage"), "Lease total-rents compensation")
-    lease_flat_fee = _agreement_money(compensation.get("leaseFlatFee"), "Lease flat fee")
-    if not any((purchase_percentage, purchase_flat_fee, lease_one_month_percentage, lease_total_rents_percentage, lease_flat_fee)):
-        raise ValueError("Choose at least one broker-approved purchase or lease compensation term.")
+    compensation = _agreement_compensation(data.get("compensation") or {})
     return {
         "form_source_id": form_source_id,
         "client_names": client_names,
@@ -431,11 +448,60 @@ def _parse_txr_1507_draft(data):
             "term_end": term_end,
             "service_level": service_level,
             "showing_fee": showing_fee,
-            "purchase_percentage": purchase_percentage,
-            "purchase_flat_fee": purchase_flat_fee,
-            "lease_one_month_percentage": lease_one_month_percentage,
-            "lease_total_rents_percentage": lease_total_rents_percentage,
-            "lease_flat_fee": lease_flat_fee,
+            **compensation,
+            "intermediary": intermediary,
+        },
+    }
+
+
+def _parse_txr_1501_draft(data):
+    if data.get("formCode") != TXR_1501_FORM_CODE:
+        raise ValueError("Only TXR-1501 is available through this action.")
+    client_names = _agreement_clients(data)
+    form_source_id = _agreement_text(data.get("formSourceId"), "Approved TXR-1501 source", 80)
+    try:
+        form_source_id = str(uuid.UUID(form_source_id))
+    except (TypeError, ValueError, AttributeError):
+        raise ValueError("Choose an approved TXR-1501 source from your brokerage.")
+    market_area = _agreement_text(data.get("marketArea"), "Market area", 800)
+    term_start, term_end = _agreement_date_range(data)
+    client_address = _agreement_text(data.get("clientAddress"), "Client address", 300)
+    client_city_state_zip = _agreement_text(data.get("clientCityStateZip"), "Client city, state, and ZIP", 180)
+    client_phone = _agreement_text(data.get("clientPhone"), "Client phone", 80)
+    client_email = _agreement_text(data.get("clientEmail"), "Client email", 180)
+    if not re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", client_email):
+        raise ValueError("Client email must be valid.")
+    compensation = _agreement_compensation(data.get("compensation") or {})
+    retainer_amount = _agreement_money(data.get("retainerAmount"), "Retainer")
+    retainer_treatment = str(data.get("retainerTreatment") or "").strip()
+    if retainer_amount and retainer_treatment not in {"apply", "not_apply"}:
+        raise ValueError("Choose how the broker-approved retainer is treated.")
+    if not retainer_amount:
+        retainer_treatment = ""
+    protection_days = str(data.get("protectionDays") or "").strip()
+    if protection_days:
+        if not re.fullmatch(r"\d{1,4}", protection_days) or not (1 <= int(protection_days) <= 9999):
+            raise ValueError("Protection period days must be a whole number from 1 to 9999.")
+    payment_county = _agreement_text(data.get("paymentCounty"), "Payment county", 100)
+    intermediary = str(data.get("intermediary") or "").strip()
+    if intermediary not in {"authorized", "not_authorized"}:
+        raise ValueError("Choose whether intermediary is authorized.")
+    return {
+        "form_source_id": form_source_id,
+        "client_names": client_names,
+        "agreement_data": {
+            "market_area": market_area,
+            "term_start": term_start,
+            "term_end": term_end,
+            "client_address": client_address,
+            "client_city_state_zip": client_city_state_zip,
+            "client_phone": client_phone,
+            "client_email": client_email,
+            **compensation,
+            "retainer_amount": retainer_amount,
+            "retainer_treatment": retainer_treatment,
+            "protection_days": protection_days,
+            "payment_county": payment_county,
             "intermediary": intermediary,
         },
     }
@@ -461,24 +527,24 @@ async def _active_brokerage_member(user):
     return brokerage_id
 
 
-async def _create_txr_1507_draft(user, data):
-    draft = _parse_txr_1507_draft(data)
+async def _create_representation_draft(user, data, form_code, parser):
+    draft = parser(data)
     brokerage_id = await _active_brokerage_member(user)
     sources = await _get(
         "hof_brokerage_form_sources?"
         f"id=eq.{urllib.parse.quote(draft['form_source_id'])}"
         f"&brokerage_id=eq.{urllib.parse.quote(brokerage_id)}"
-        f"&form_code=eq.{TXR_1507_FORM_CODE}&status=eq.approved"
+        f"&form_code=eq.{urllib.parse.quote(form_code)}&status=eq.approved"
         "&authorization_attested=is.true&select=id,source_revision&limit=1"
     )
     if not sources:
-        raise ValueError("Choose an approved TXR-1507 source from your brokerage.")
+        raise ValueError(f"Choose an approved {form_code} source from your brokerage.")
     source = sources[0]
     record = {
         "brokerage_id": brokerage_id,
         "agent_user_id": user["id"],
         "form_source_id": source["id"],
-        "form_code": TXR_1507_FORM_CODE,
+        "form_code": form_code,
         "source_revision": source["source_revision"],
         "status": "draft",
         "client_names": draft["client_names"],
@@ -496,6 +562,14 @@ async def _create_txr_1507_draft(user, data):
     if not isinstance(rows, list) or not rows:
         raise RuntimeError("Agreement draft was not returned after saving.")
     return rows[0]
+
+
+async def _create_txr_1507_draft(user, data):
+    return await _create_representation_draft(user, data, TXR_1507_FORM_CODE, _parse_txr_1507_draft)
+
+
+async def _create_txr_1501_draft(user, data):
+    return await _create_representation_draft(user, data, TXR_1501_FORM_CODE, _parse_txr_1501_draft)
 
 
 class handler(BaseHTTPRequestHandler):
@@ -598,6 +672,10 @@ class handler(BaseHTTPRequestHandler):
             data = json.loads(self.rfile.read(length).decode("utf-8"))
             if data.get("action") == "create_txr_1507_draft":
                 draft = asyncio.run(_create_txr_1507_draft(user, data))
+                _json(self, 201, {"status": "ok", "agreement": draft})
+                return
+            if data.get("action") == "create_txr_1501_draft":
+                draft = asyncio.run(_create_txr_1501_draft(user, data))
                 _json(self, 201, {"status": "ok", "agreement": draft})
                 return
             if not asyncio.run(_is_platform_admin(user)):
