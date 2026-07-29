@@ -11848,6 +11848,10 @@ function routeAfterMagicLinkIfNeeded() {
     const client = root.getSupabaseClient?.();
     const user = root.hofAuth?.session?.user;
     if (!client || !user) return null;
+    // The account shell can finish authentication before an earlier optional
+    // platform enhancement initializes this namespace. Brokerage access must
+    // remain optional and must never prevent a signed-in user opening Account.
+    root.hofPlatform = root.hofPlatform || {};
     try {
       const profileResult = await client
         .from('hof_profiles')
