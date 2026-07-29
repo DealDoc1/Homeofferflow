@@ -128,6 +128,58 @@ class SellerTemporaryLeaseStagingTests(unittest.TestCase):
         self.assertEqual(by_id["buyer2_signature_seller_temp_lease"]["page"], 14)
         self.assertLess(by_id["buyer1_signature_seller_temp_lease"]["x"], 200)
         self.assertLess(by_id["buyer2_signature_seller_temp_lease"]["x"], 200)
+        self.assertEqual(by_id["buyer1_signature_seller_temp_lease"]["recipient_id"], "1")
+        self.assertEqual(by_id["buyer2_signature_seller_temp_lease"]["recipient_id"], "2")
+        self.assertFalse(any(field_id.startswith(("seller_", "tenant_"))
+                             for field_id in by_id))
+
+    def test_staging_packet_is_explicitly_buyer_execution_only(self):
+        """Seller/Tenant execution is a separate, not-yet-released workflow."""
+        source = (ROOT / "api" / "fill_pdf_20_19_staging.py").read_text()
+        self.assertIn("sellerExecutionTestMode", source)
+        self.assertIn("explicit multi-signer staging QA", source)
+        self.assertEqual(
+            staging.seller_temp_lease_execution_stage(seller_temp_offer()),
+            "buyer_landlord_signature_only_pending_seller_tenant_execution",
+        )
+        self.assertEqual(staging.seller_temp_lease_execution_stage({}), "not_applicable")
+
+    def test_explicit_seller_execution_mode_adds_only_seller_lease_and_contract_fields(self):
+        offer = seller_temp_offer()
+        offer.update({
+            "sellerExecutionTestMode": "yes",
+            "seller1Name": "Seller Lease Seller One",
+            "seller1Email": "seller1@example.com",
+            "seller2Name": "Seller Lease Seller Two",
+            "seller2Email": "seller2@example.com",
+        })
+        packet = staging.fill_and_merge(offer)
+        fields = staging.build_signwell_fields(offer, packet)[0]
+        by_id = {field["api_id"]: field for field in fields}
+        self.assertEqual(
+            staging.seller_temp_lease_execution_stage(offer),
+            "staging_multisigner_test_pending_completed_pdf_qa",
+        )
+        for field_id, recipient_id in {
+            "seller1_main_contract_signature": "3",
+            "seller1_main_contract_date": "3",
+            "seller2_main_contract_signature": "4",
+            "seller2_main_contract_date": "4",
+            "seller1_initials_seller_temp_lease_p1": "3",
+            "seller2_initials_seller_temp_lease_p1": "4",
+            "seller1_signature_seller_temp_lease": "3",
+            "seller2_signature_seller_temp_lease": "4",
+        }.items():
+            self.assertEqual(by_id[field_id]["recipient_id"], recipient_id)
+        self.assertEqual(by_id["seller1_main_contract_signature"]["page"], 10)
+        self.assertEqual(by_id["seller1_signature_seller_temp_lease"]["page"], 14)
+        self.assertFalse(any(field_id.startswith("seller1_hoa") for field_id in by_id))
+
+    def test_explicit_seller_execution_mode_requires_distinct_seller_email(self):
+        offer = seller_temp_offer()
+        offer.update({"sellerExecutionTestMode": "yes", "seller1Email": offer["buyerEmail"]})
+        with self.assertRaisesRegex(ValueError, "distinct email"):
+            staging.seller_execution_test_parties(offer)
 
     def test_addendum_page_offsets_remain_correct(self):
         offer = seller_temp_offer()

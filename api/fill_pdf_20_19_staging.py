@@ -10,16 +10,13 @@ RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
 STRIPE_WHSEC   = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
 FROM_EMAIL     = "offers@homeofferflow.com"
 SUPPORT_EMAIL  = "support@homeofferflow.com"
-SHOWING_NOTIFY_EMAIL = os.environ.get("SHOWING_NOTIFY_EMAIL", "andrew@ondemandfw.com,support@homeofferflow.com")
+SHOWING_NOTIFY_EMAIL = os.environ.get("SHOWING_NOTIFY_EMAIL", "andrew@ondemanddfw.com,support@homeofferflow.com")
 ADMIN_ORDER_EMAIL = os.environ.get("ADMIN_ORDER_EMAIL") or SHOWING_NOTIFY_EMAIL
 SIGNWELL_API_KEY = os.environ.get("SIGNWELL_API_KEY", "")
 # Safe default: SignWell is OFF unless explicitly enabled in Vercel.
 SIGNWELL_ENABLED = os.environ.get("SIGNWELL_ENABLED", "false").strip().lower() in ["1", "true", "yes", "on"]
 # Safe default: test mode is ON while we build/signature-coordinate test.
 SIGNWELL_TEST_MODE = os.environ.get("SIGNWELL_TEST_MODE", "true").strip().lower() not in ["0", "false", "no", "off"]
-# Verbose SignWell diagnostics can include recipient details. They are opt-in
-# for controlled staging diagnosis only.
-SIGNWELL_DEBUG_LOGS = os.environ.get("SIGNWELL_DEBUG_LOGS", "false").strip().lower() in ["1", "true", "yes", "on"]
 
 BASE_DIR      = "/var/task"
 MAIN_PDF      = os.path.join(BASE_DIR, "20-19_0.pdf")
@@ -47,12 +44,6 @@ CHECK     = "X"
 # Keep False for production/customer PDFs.
 # Set True only temporarily if you want coordinate grid marks on every generated page.
 DEBUG_GRID = False
-
-
-def signwell_debug(label, payload, limit=3000):
-    """Emit verbose SignWell diagnostics only when explicitly enabled."""
-    if SIGNWELL_DEBUG_LOGS:
-        print(label, json.dumps(payload)[:limit])
 
 
 def find_existing_pdf(*names):
@@ -219,6 +210,62 @@ def buyer_temp_lease_requested(s):
 def seller_temp_lease_requested(s):
     possession = val_lower(first_present(s.get("possession"), s.get("possessionType")))
     return possession in ["sellertemporarylease", "seller_temporary_lease", "sellerlease"] or truthy(s.get("sellerTemporaryLease"))
+
+
+def seller_execution_test_requested(s):
+    """Explicit opt-in for the staging-only multi-signer acceptance test."""
+    return seller_temp_lease_requested(s) and truthy(s.get("sellerExecutionTestMode"))
+
+
+def seller_execution_test_parties(s):
+    """Validate distinct Seller/Tenant recipients for the staging-only test.
+
+    This intentionally has no production counterpart. It gives the rendered
+    staging packet an auditable recipient order without making a normal offer
+    packet seller-executable.
+    """
+    if not seller_execution_test_requested(s):
+        return []
+
+    candidates = [
+        (
+            first_present(s.get("seller1Name"), s.get("seller1"), s.get("seller")),
+            first_present(s.get("seller1Email"), s.get("sellerEmail"), s.get("tenantEmail")),
+        ),
+        (s.get("seller2Name"), s.get("seller2Email")),
+    ]
+    parties = []
+    used_emails = {
+        str(email).strip().lower()
+        for email in [s.get("buyerEmail"), s.get("buyer2Email")]
+        if str(email or "").strip()
+    }
+    for index, (raw_name, raw_email) in enumerate(candidates, start=1):
+        name = str(raw_name or "").strip()
+        email = str(raw_email or "").strip().lower()
+        if not name and not email:
+            continue
+        if not name or not email:
+            raise ValueError(f"Seller {index} name and email are both required for the seller execution staging test.")
+        if email in used_emails:
+            raise ValueError("Every SignWell recipient needs a distinct email address for the seller execution staging test.")
+        used_emails.add(email)
+        parties.append({"id": str(index + 2), "name": name, "email": email, "seller_index": index})
+
+    if not parties:
+        raise ValueError("At least one Seller/Tenant recipient is required for the seller execution staging test.")
+    return parties
+
+
+def seller_temp_lease_execution_stage(s):
+    """Describe the current signer boundary without implying full lease execution."""
+    if seller_execution_test_requested(s):
+        # The actual completion and rendered-PDF inspection remain release gates.
+        seller_execution_test_parties(s)
+        return "staging_multisigner_test_pending_completed_pdf_qa"
+    if seller_temp_lease_requested(s) and seller_temp_lease_pdf_path():
+        return "buyer_landlord_signature_only_pending_seller_tenant_execution"
+    return "not_applicable"
 
 
 def normalize_financing(v):
@@ -1443,11 +1490,12 @@ def fill_and_merge(offer):
 
 def build_signwell_fields(offer, pdf_bytes):
     """
-    Buyer-only SignWell field map.
+    SignWell field map.
 
     Scope:
     - Buyer 1 + optional Buyer 2 only.
-    - No seller signature or seller initials fields.
+    - Seller signature/initial fields are permitted only when the explicit
+      sellerExecutionTestMode staging switch is enabled for a TREC 15-7 test.
     - No effective-date field.
     - No generic SignWell signature page.
     - Main contract initials on pages 1-8 only. Buyer 2 main initials shifted right; Buyer 2 signature/addenda coordinates adjusted from two-buyer QA. Buyer 1 addenda micro-nudges applied from v14 baseline.
@@ -1476,6 +1524,8 @@ def build_signwell_fields(offer, pdf_bytes):
     )) and bool(lead_pdf_path())
     buyer_temp_lease_attached = buyer_temp_lease_requested(offer) and bool(buyer_temp_lease_pdf_path())
     seller_temp_lease_attached = seller_temp_lease_requested(offer) and bool(seller_temp_lease_pdf_path())
+    seller_execution_test_parties_list = seller_execution_test_parties(offer)
+    seller_execution_test = bool(seller_execution_test_parties_list)
     if buyer_temp_lease_attached and seller_temp_lease_attached:
         raise ValueError("Choose either the Buyer or Seller Temporary Residential Lease, not both.")
 
@@ -1574,6 +1624,13 @@ def build_signwell_fields(offer, pdf_bytes):
     add_sig_date_pair("buyer1_main_contract", main_signature_page, 115, 433, 286, 433, "1")
     if has_buyer2:
         add_sig_date_pair("buyer2_main_contract", main_signature_page, 115, 568, 286, 568, "2")
+    if seller_execution_test:
+        # Staging-only seller coordinates, derived from the rendered 20-19
+        # execution page. They are deliberately gated until real completed-PDF
+        # QA verifies every recipient path.
+        add_sig_date_pair("seller1_main_contract", main_signature_page, 420, 433, 591, 433, "3")
+        if len(seller_execution_test_parties_list) > 1:
+            add_sig_date_pair("seller2_main_contract", main_signature_page, 420, 568, 591, 568, "4")
 
     # Main contract initials: pages 1-9 for 20-19 staging. No signature page, broker-contact page, or receipts page initials.
     for page in main_contract_pages:
@@ -1612,7 +1669,8 @@ def build_signwell_fields(offer, pdf_bytes):
         if has_buyer2:
             add_sig_date_pair("buyer2_lead_based_paint_addendum", lead_page, 76, 827, 246, 827, "2")
         if first_present(offer.get("agentEmail"), offer.get("buyerAgentEmail"), ""):
-            add_sig_date_pair("buyer_agent_lead_based_paint_addendum", lead_page, 76, 905, 246, 905, "3")
+            agent_recipient_id = str(3 + len(seller_execution_test_parties_list))
+            add_sig_date_pair("buyer_agent_lead_based_paint_addendum", lead_page, 76, 905, 246, 905, agent_recipient_id)
 
     # TREC 16-7 Buyer Temporary Residential Lease. Buyer-side packet creates
     # Tenant fields only; Landlord initials/signatures remain for seller execution.
@@ -1627,15 +1685,23 @@ def build_signwell_fields(offer, pdf_bytes):
 
     # TREC 15-7 Seller Temporary Residential Lease. Buyer is Landlord, so the
     # buyer initials/signatures belong on the left Landlord fields. Tenant/Seller
-    # execution fields remain blank for the listing side.
+    # fields are enabled only for explicit multi-signer staging QA.
     if seller_temp_page_1:
         add_field("buyer1_initials_seller_temp_lease_p1", "initials", seller_temp_page_1, 296, 1004, recipient_id="1", width=24, height=10)
         if has_buyer2:
             add_field("buyer2_initials_seller_temp_lease_p1", "initials", seller_temp_page_1, 328, 1004, recipient_id="2", width=24, height=10)
+        if seller_execution_test:
+            add_field("seller1_initials_seller_temp_lease_p1", "initials", seller_temp_page_1, 476, 1004, recipient_id="3", width=24, height=10)
+            if len(seller_execution_test_parties_list) > 1:
+                add_field("seller2_initials_seller_temp_lease_p1", "initials", seller_temp_page_1, 508, 1004, recipient_id="4", width=24, height=10)
     if seller_temp_signature_page:
         add_field("buyer1_signature_seller_temp_lease", "signature", seller_temp_signature_page, 78, 777, recipient_id="1", width=145, height=20)
         if has_buyer2:
             add_field("buyer2_signature_seller_temp_lease", "signature", seller_temp_signature_page, 78, 845, recipient_id="2", width=145, height=20)
+        if seller_execution_test:
+            add_field("seller1_signature_seller_temp_lease", "signature", seller_temp_signature_page, 440, 777, recipient_id="3", width=145, height=20)
+            if len(seller_execution_test_parties_list) > 1:
+                add_field("seller2_signature_seller_temp_lease", "signature", seller_temp_signature_page, 440, 845, recipient_id="4", width=145, height=20)
 
     # HOA/POA Addendum - buyer signatures only. No seller fields.
     if hoa_page:
@@ -1666,7 +1732,7 @@ def build_signwell_fields(offer, pdf_bytes):
 
     fields = [fields_for_file]
 
-    signwell_debug("SIGNWELL DEBUG field payload:", {
+    print("SIGNWELL DEBUG field payload:", json.dumps({
         "page_count": page_count,
         "main_signature_page": main_signature_page,
         "has_buyer2": has_buyer2,
@@ -1697,12 +1763,12 @@ def build_signwell_fields(offer, pdf_bytes):
         },
         "field_count": len(fields_for_file),
         "fields": fields
-    }, limit=5000)
+    })[:5000])
 
     return fields
 
 def post_signwell_document(payload):
-    signwell_debug("SIGNWELL DEBUG request summary:", {
+    print("SIGNWELL DEBUG request summary:", json.dumps({
         "test_mode": payload.get("test_mode"),
         "draft": payload.get("draft"),
         "with_signature_page": payload.get("with_signature_page"),
@@ -1711,7 +1777,7 @@ def post_signwell_document(payload):
         "file_count": len(payload.get("files", [])),
         "field_outer_count": len(payload.get("fields", [])) if payload.get("fields") else 0,
         "field_count_file_1": len(payload.get("fields", [[]])[0]) if payload.get("fields") else 0,
-    })
+    })[:3000])
 
     r = httpx.post(
         "https://www.signwell.com/api/v1/documents",
@@ -1720,9 +1786,9 @@ def post_signwell_document(payload):
         timeout=45
     )
 
-    signwell_debug("SIGNWELL RESPONSE:", {"status": r.status_code, "body": r.text})
-    if r.status_code not in [200, 201, 202]:
-        print("SignWell document request failed with status", r.status_code)
+    # Always log the SignWell response while we are stabilizing the integration.
+    print("SIGNWELL RESPONSE STATUS:", r.status_code)
+    print("SIGNWELL RESPONSE BODY:", r.text[:3000])
 
     if r.status_code not in [200, 201, 202]:
         return False, {"status_code": r.status_code, "error": r.text[:3000]}
@@ -1746,11 +1812,11 @@ def create_signwell_signature_request(offer, pdf_bytes):
     - Minimal Buyer 1 signature field only until SignWell accepts the payload.
     - Logs SignWell request summary and full response body to Vercel logs.
     """
-    signwell_debug("SIGNWELL DEBUG env:", {
+    print("SIGNWELL DEBUG env:", json.dumps({
         "enabled": SIGNWELL_ENABLED,
         "test_mode": SIGNWELL_TEST_MODE,
         "api_key_present": bool(SIGNWELL_API_KEY)
-    })
+    }))
 
     if not SIGNWELL_ENABLED:
         return {"enabled": False, "skipped": "SIGNWELL_ENABLED is false"}
@@ -1772,6 +1838,13 @@ def create_signwell_signature_request(offer, pdf_bytes):
     if buyer2_email:
         recipients.append({"id": "2", "name": buyer2_name, "email": buyer2_email})
 
+    seller_execution_parties = seller_execution_test_parties(offer)
+    if seller_execution_parties:
+        recipients.extend([
+            {"id": party["id"], "name": party["name"], "email": party["email"]}
+            for party in seller_execution_parties
+        ])
+
     # Only add the buyer-agent/broker as a SignWell recipient when an explicitly attached
     # lead-based paint disclosure needs the broker acknowledgment signed. This preserves
     # the normal buyer-only offer workflow and avoids adding a third signer to ordinary packets.
@@ -1784,7 +1857,7 @@ def create_signwell_signature_request(offer, pdf_bytes):
     agent_email_for_signing = first_present(offer.get("agentEmail"), offer.get("buyerAgentEmail"), "")
     if lead_addendum_attached_for_agent and agent_email_for_signing:
         recipients.append({
-            "id": "3",
+            "id": str(3 + len(seller_execution_parties)),
             "name": first_present(offer.get("agentName"), offer.get("buyerAgentName"), "Buyer Agent"),
             "email": agent_email_for_signing,
         })
@@ -1832,10 +1905,27 @@ def create_signwell_signature_request(offer, pdf_bytes):
     else:
         contact_sentence = f"Questions? Contact {agent_name}."
 
+    seller_temp_execution_stage = seller_temp_lease_execution_stage(offer)
+    seller_temp_execution_notice = (
+        "\n\nStaging test only: Buyer/Landlord recipients sign first, followed by Seller/Tenant recipients. "
+        "This packet is not approved for production use until every completed signature field is visually audited."
+        if seller_temp_execution_stage == "staging_multisigner_test_pending_completed_pdf_qa" else
+        "\n\nImportant: this packet includes a Seller's Temporary Residential Lease. "
+        "You are signing it as Landlord. Seller/Tenant execution is not included "
+        "in this buyer-side request and remains required before that lease is fully executed."
+        if seller_temp_execution_stage != "not_applicable" else ""
+    )
+
+    signing_instruction = (
+        "Please review and sign in the order requested."
+        if seller_execution_parties else
+        "Please review and sign your buyer-side offer packet. "
+        "Seller-side signatures and seller initials are handled separately by the seller or listing side."
+    )
     signwell_message = (
         f"{agent_name} prepared this Texas offer packet using HomeOfferFlow.\n\n"
-        "Please review and sign your buyer-side offer packet. "
-        "Seller-side signatures and seller initials are handled separately by the seller or listing side.\n\n"
+        f"{signing_instruction}"
+        f"{seller_temp_execution_notice}\n\n"
         f"{contact_sentence}\n\n"
         "HomeOfferFlow is a form-completion software tool. It is not a law firm, "
         "does not provide legal advice, and does not represent you as your real estate agent."
@@ -1845,7 +1935,7 @@ def create_signwell_signature_request(offer, pdf_bytes):
         "test_mode": SIGNWELL_TEST_MODE,
         "draft": False,
         "reminders": True,
-        "apply_signing_order": False,
+        "apply_signing_order": bool(seller_execution_parties),
         "embedded_signing": False,
         "with_signature_page": False,
         "custom_requester_name": "HomeOfferFlow",
@@ -1861,9 +1951,14 @@ def create_signwell_signature_request(offer, pdf_bytes):
             "prepared_by_agent_email": str(agent_email)[:250],
             "prepared_by_agent_phone": str(agent_phone)[:80],
             "property_address": str(addr)[:450],
-            "buyer_count": str(len(recipients)),
+            "buyer_count": str(1 + (1 if buyer2_email else 0)),
+            "seller_execution_test_recipient_count": str(len(seller_execution_parties)),
+            "seller_temp_lease_execution_stage": seller_temp_execution_stage,
             "test_mode": str(SIGNWELL_TEST_MODE).lower(),
-            "debug_payload": "staging_20_19_buyer_only_all_addenda"
+            "debug_payload": (
+                "staging_20_19_multisigner_seller_lease_qa"
+                if seller_execution_parties else "staging_20_19_buyer_only_all_addenda"
+            )
         }
     }
 
@@ -1873,9 +1968,13 @@ def create_signwell_signature_request(offer, pdf_bytes):
             return {
                 "enabled": True,
                 "ok": True,
-                "mode": "staging_20_19_buyer_only_all_addenda",
+                "mode": (
+                    "staging_20_19_multisigner_seller_lease_qa"
+                    if seller_execution_parties else "staging_20_19_buyer_only_all_addenda"
+                ),
                 "test_mode": SIGNWELL_TEST_MODE,
                 "field_count": len(fields[0]) if fields else 0,
+                "seller_temp_lease_execution_stage": seller_temp_execution_stage,
                 "document_id": data.get("id") or data.get("document_id"),
                 "response": data
             }
@@ -1883,9 +1982,13 @@ def create_signwell_signature_request(offer, pdf_bytes):
         return {
             "enabled": True,
             "ok": False,
-            "mode": "staging_20_19_buyer_only_all_addenda_failed",
+            "mode": (
+                "staging_20_19_multisigner_seller_lease_qa_failed"
+                if seller_execution_parties else "staging_20_19_buyer_only_all_addenda_failed"
+            ),
             "test_mode": SIGNWELL_TEST_MODE,
             "field_count": len(fields[0]) if fields else 0,
+            "seller_temp_lease_execution_stage": seller_temp_execution_stage,
             "signwell_error": data
         }
 

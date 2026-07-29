@@ -2,9 +2,12 @@
 
 ## Release scope
 
-This document tests the staging-only implementation of **TREC 15-7 Seller's
-Temporary Residential Lease**. It must not be promoted to the production offer
-route until the completed, signed staging packet is visually approved.
+This document tests the staging-only, explicitly enabled **multi-signer
+execution test** for **TREC 15-7 Seller's Temporary Residential Lease**. The
+test sends Buyers as Landlords first, then Sellers as Tenants. It also places
+Seller acceptance signatures on the main contract execution page. It must not
+be promoted to the production offer route until the completed multi-party PDF
+has been visually approved.
 
 Production remains unchanged:
 
@@ -38,7 +41,11 @@ closure lets it be run repeatedly without redeclaration errors.
     buyerMailAddr: "721 Broderick Lane, Prosper, TX 75078",
 
     seller: "Seller Lease Seller One and Seller Lease Seller Two",
-    sellerEmail: "seller@example.com",
+    seller1Name: "Seller Lease Seller One",
+    seller1Email: "andrewchri+sellerleaseSeller1@gmail.com",
+    seller2Name: "Seller Lease Seller Two",
+    seller2Email: "andrewchri+sellerleaseSeller2@gmail.com",
+    sellerEmail: "andrewchri+sellerleaseSeller1@gmail.com",
     sellerPhone: "9725550134",
     sellerFax: "9725550199",
     sellerMailAddr: "100 Seller Lane, Van Alstyne, TX 75495",
@@ -74,6 +81,9 @@ closure lets it be run repeatedly without redeclaration errors.
     closingDate: "2026-08-15",
     possession: "sellerTemporaryLease",
     sellerTemporaryLease: "yes",
+    // Required explicit opt-in. This is staging QA only; never use it for a
+    // live production packet until the completed PDF passes the audit below.
+    sellerExecutionTestMode: "yes",
     sellerTemporaryLeaseTerminationDate: "2026-08-31",
     sellerTemporaryLeaseRentPerDay: "125",
     sellerTemporaryLeaseDeposit: "1000",
@@ -125,9 +135,25 @@ closure lets it be run repeatedly without redeclaration errors.
 })();
 ```
 
-Use the two different buyer emails exactly as shown; SignWell rejects duplicate
-recipient email addresses. Sign both buyers, download the completed packet,
-then retain it with the staging QA record.
+Use the four different email addresses exactly as shown; SignWell rejects
+duplicate recipient email addresses. Gmail plus-addresses deliver to the same
+inbox while remaining distinct SignWell recipients. This request uses signing
+order: Buyers sign first as **Landlords**, then Sellers sign as **Tenants**.
+Complete every recipient turn, download the completed packet, and retain it
+with the staging QA record.
+
+## Signer roles and release boundary
+
+| Document / party | Explicit staging test | Required before full release |
+|---|---|---|
+| Main contract / Buyer | Signs the Buyer execution line first. | Verify both Buyer signatures/dates in completed PDF. |
+| Main contract / Seller | Signs the Seller acceptance line after Buyers. | Verify both Seller signatures/dates in completed PDF. Do not prefill Effective Date; it is broker-completed after final acceptance. |
+| TREC 15-7 / Buyer | Signs/initials as **Landlord**. | Verify Landlord initials/signatures in completed PDF. |
+| TREC 15-7 / Seller | Signs/initials as **Tenant**. | Verify Tenant initials/signatures in completed PDF. |
+
+This is a private staging test only. A completed PDF that merely contains
+fields is not approval: every field below must be visually inspected after all
+four recipients complete their turn.
 
 ## Required visual audit
 
@@ -139,13 +165,15 @@ then retain it with the staging QA record.
 | 13 | Property and term | Address and August 31, 2026 termination date are in their blanks. |
 | 13 | Money terms | $125 daily rent and $1,000 deposit are in their respective blanks. |
 | 13 | Terms | Utilities, pets, and special provisions are readable and stay inside their printed areas. |
-| 13 | Initials | Each buyer/landlord initial field is on the printed landlord initial line. |
+| 10 | Main contract Seller acceptance | Both seller signatures/dates sit on the two Seller execution lines. Effective Date remains blank for broker completion after final acceptance. |
+| 13 | Initials | Each buyer/landlord initial is on the printed Landlord line, and each seller/tenant initial is on the printed Tenant line. |
 | 14 | Holdover / notices | $300 holdover amount and buyer/seller notice contacts are in their blanks. |
-| 14 | Signatures and dates | Both buyer/landlord signature and date fields sit on their respective landlord lines; no field overlaps body text or footer. |
+| 14 | Landlord signatures | Both buyer/landlord signatures sit on their respective Landlord lines; no field overlaps body text or footer. TREC 15-7 does not provide separate printed date blanks on this page. |
+| 14 | Tenant signatures | Both seller/tenant signatures sit on their respective Tenant lines; no field overlaps body text or footer. |
 | Entire packet | Addenda ordering | No unrequested lease or finance addendum is present; page count is 14 for this exact payload. |
 
 ## Release gate
 
-Keep this feature staging-only until all rows above pass in the **completed
-signed PDF**. A source-render check is not a substitute for completed SignWell
-signature/date placement QA.
+Keep this feature staging-only until every row above passes in the **completed
+four-recipient signed PDF**. A source-render check, unit test, or unsigned
+SignWell preview is not a substitute for completed SignWell placement QA.
