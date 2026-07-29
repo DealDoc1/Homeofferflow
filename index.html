@@ -2501,7 +2501,7 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
     <div class="step-card"><div class="step-num">01</div><h3>Answer plain questions</h3><p>No legal jargon. One section at a time. Built-in helper tips on every confusing field.</p></div>
     <div class="step-card"><div class="step-num">02</div><h3>We prepare the supported forms</h3><p>Your answers populate the TREC 20-19 buyer offer contract and the purchase addenda currently supported by HomeOfferFlow.</p></div>
     <div class="step-card"><div class="step-num">03</div><h3>Review your offer</h3><p>See a plain-English summary of every field before you pay. Go back and fix anything.</p></div>
-    <div class="step-card"><div class="step-num">04</div><h3>Download & send</h3><p>Pay once, download instantly. Optional agent or attorney review add-on available.</p></div>
+    <div class="step-card"><div class="step-num">04</div><h3>Download & send</h3><p>Pay once, receive your packet, and review it with your own licensed agent or attorney before submitting.</p></div>
   </div>
 </section>
 
@@ -3478,20 +3478,15 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
         <div class="hof-guide-copy">After checkout, HomeOfferFlow generates the offer packet and sends the signing email. You still control what you sign and submit.</div>
         <div class="hof-guide-chip-row"><span class="hof-guide-chip"><strong>✓</strong> Stripe checkout</span><span class="hof-guide-chip"><strong>✓</strong> PDF packet</span><span class="hof-guide-chip"><strong>✓</strong> Signing email</span></div>
       </div>
-      <h2>Choose your plan</h2>
-      <p class="step-desc">Your offer is ready. Select the level of support that's right for you.</p>
-      <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:0.6rem; margin-bottom:1.5rem;">
-        <div class="pricing-card" id="plan-self" onclick="selectPlan('self', 99)"><div class="plan-name">Self-Serve</div><div class="plan-price">$99</div><div class="plan-features"><div class="plan-feature">✓ Fill offer</div><div class="plan-feature">✓ Sign</div><div class="plan-feature">✓ Send to agent</div></div></div>
-        <div class="pricing-card popular" id="plan-agent" onclick="selectPlan('agent', 298)"><div class="popular-badge">Most Popular</div><div class="plan-name">Agent Review</div><div class="plan-price">$298</div><div class="plan-sub">$99 + $199 review</div><div class="plan-features"><div class="plan-feature">✓ Everything in Self-Serve</div><div class="plan-feature">✓ Licensed TX agent reviews</div><div class="plan-feature">✓ Within 2 hours</div></div></div>
-        <div class="pricing-card" id="plan-attorney" onclick="selectPlan('attorney', 448)"><div class="plan-name">Attorney Review</div><div class="plan-price">$448</div><div class="plan-sub">$99 + $349 review</div><div class="plan-features"><div class="plan-feature">✓ Everything in Self-Serve</div><div class="plan-feature">✓ Licensed TX attorney</div><div class="plan-feature">✓ Legal risk assessment</div></div></div>
+      <h2>Review your packet</h2>
+      <p class="step-desc">Your self-service Texas buyer-offer packet is ready to purchase for $99.</p>
+      <div style="display:grid; grid-template-columns:1fr; gap:0.6rem; margin-bottom:1.5rem;">
+        <div class="pricing-card popular" id="plan-self" onclick="selectPlan('self', 99)"><div class="popular-badge">Current packet</div><div class="plan-name">Self-Serve Buyer Offer Packet</div><div class="plan-price">$99</div><div class="plan-features"><div class="plan-feature">✓ Guided buyer-offer workflow</div><div class="plan-feature">✓ Supported purchase addenda</div><div class="plan-feature">✓ Buyer-side signing delivery</div></div></div>
       </div>
 
       <div style="background:rgba(200,151,63,0.06); border:1px solid rgba(200,151,63,0.2); border-radius:12px; padding:1rem; margin-bottom:1.25rem;">
-        <p style="font-size:0.8rem; font-weight:700; color:var(--gold-light); margin-bottom:0.5rem; text-transform:uppercase; letter-spacing:0.05em;">Need full transaction support?</p>
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem;">
-          <div class="upsell-mini" id="plan-agent-transaction" onclick="selectPlan('agent-transaction', 999)"><div style="font-weight:700; font-size:0.9rem;">Agent Support</div><div style="color:var(--gold); font-weight:700;">$999</div><div style="font-size:0.75rem; color:var(--gray);">Full deal guidance</div></div>
-          <div class="upsell-mini" id="plan-attorney-transaction" onclick="selectPlan('attorney-transaction', 1499)"><div style="font-weight:700; font-size:0.9rem;">Attorney Support</div><div style="color:var(--gold); font-weight:700;">$1,499</div><div style="font-size:0.75rem; color:var(--gray);">Full legal coverage</div></div>
-        </div>
+        <p style="font-size:0.8rem; font-weight:700; color:var(--gold-light); margin-bottom:0.35rem; text-transform:uppercase; letter-spacing:0.05em;">Important</p>
+        <p style="margin:0; font-size:0.86rem; color:var(--gray-light);">HomeOfferFlow does not include an agent, broker, or attorney review service with this purchase. Review your packet with the licensed professional of your choice before submitting if you want professional advice.</p>
       </div>
 
       <div id="selectedPlanDisplay" style="display:none; background:rgba(74,140,111,0.1); border:1px solid rgba(74,140,111,0.3); border-radius:10px; padding:1rem; margin-bottom:1.25rem; text-align:center;">
@@ -6297,11 +6292,7 @@ function routeAfterMagicLinkIfNeeded() {
     if (el) el.classList.add('selected');
 
     const names = {
-      self: 'Self-Serve',
-      agent: 'Agent Review',
-      attorney: 'Attorney Review',
-      'agent-transaction': 'Agent Transaction Support',
-      'attorney-transaction': 'Attorney Transaction Support'
+      self: 'Self-Serve Buyer Offer Packet'
     };
 
     document.getElementById('selectedPlanDisplay').style.display = 'block';

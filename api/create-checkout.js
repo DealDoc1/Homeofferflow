@@ -1,5 +1,23 @@
 const Stripe = require('stripe');
 
+const SELF_SERVE_PLAN = 'self';
+const FALLBACK_ORIGIN = 'https://www.homeofferflow.com';
+
+function safeOrigin(req) {
+  const candidate = req.headers.origin || (req.headers.host ? `https://${req.headers.host}` : FALLBACK_ORIGIN);
+  try {
+    const parsed = new URL(candidate);
+    const host = parsed.hostname.toLowerCase();
+    const allowed = host === 'homeofferflow.com'
+      || host === 'www.homeofferflow.com'
+      || host === 'homeofferflow.vercel.app'
+      || (host.startsWith('homeofferflow-') && host.endsWith('.vercel.app'));
+    return parsed.protocol === 'https:' && allowed ? parsed.origin : FALLBACK_ORIGIN;
+  } catch (_err) {
+    return FALLBACK_ORIGIN;
+  }
+}
+
 module.exports = async (req, res) => {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -9,47 +27,44 @@ module.exports = async (req, res) => {
     const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 
     const {
-      priceId,
       email,
-      plan = 'self',
+      plan = SELF_SERVE_PLAN,
       offerData = {},
-      successUrl,
-      cancelUrl
+      priceId
     } = req.body || {};
 
     if (!email || !email.includes('@')) {
       return res.status(400).json({ error: 'Missing or invalid email' });
     }
 
-    const finalPriceId =
-      priceId ||
-      process.env.STRIPE_BUYER_OFFER_PRICE_ID ||
-      'price_1TYTYqAELe66ESXnhNQmydWn';
+    // The browser must never be able to select an arbitrary Stripe Price or
+    // claim an unfulfilled support tier. HomeOfferFlow currently fulfills one
+    // consumer product: the $99 self-service buyer-offer packet.
+    if (String(plan || '').trim().toLowerCase() !== SELF_SERVE_PLAN) {
+      return res.status(400).json({
+        error: 'Only the Self-Serve buyer offer packet is currently available for checkout.'
+      });
+    }
+    if (priceId) {
+      return res.status(400).json({ error: 'Checkout price is selected by HomeOfferFlow, not the browser.' });
+    }
 
-    const origin =
-      req.headers.origin ||
-      (req.headers.host ? `https://${req.headers.host}` : 'https://www.homeofferflow.com');
+    const finalPriceId = process.env.STRIPE_BUYER_OFFER_PRICE_ID || 'price_1TYTYqAELe66ESXnhNQmydWn';
 
-    const safeSuccessUrl =
-      successUrl && String(successUrl).startsWith('http')
-        ? successUrl
-        : `${origin}/?payment=success&email=${encodeURIComponent(email)}`;
-
-    const safeCancelUrl =
-      cancelUrl && String(cancelUrl).startsWith('http')
-        ? cancelUrl
-        : `${origin}/?payment=cancelled`;
+    const origin = safeOrigin(req);
+    const safeSuccessUrl = `${origin}/?payment=success&email=${encodeURIComponent(email)}`;
+    const safeCancelUrl = `${origin}/?payment=cancelled`;
 
     const offerDataString = JSON.stringify({
       ...offerData,
       _paymentEmail: email,
-      _plan: plan
+      _plan: SELF_SERVE_PLAN
     });
 
     const chunks = offerDataString.match(/.{1,450}/g) || [];
 
     const metadata = {
-      plan,
+      plan: SELF_SERVE_PLAN,
       payment_email: email,
       offer_parts: String(chunks.length)
     };
