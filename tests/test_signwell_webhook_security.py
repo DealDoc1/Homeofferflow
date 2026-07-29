@@ -3,6 +3,7 @@ import hmac
 import importlib.util
 import io
 import json
+import asyncio
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -82,8 +83,16 @@ class SignWellWebhookSecurityTests(unittest.TestCase):
         request.end_headers = lambda: None
         request.wfile = io.BytesIO()
 
-        async def inserted(document_id, event_type, *_args):
-            captured.update(insert_document_id=document_id, insert_event_type=event_type)
+        async def found_offer(document_id):
+            captured.update(lookup_document_id=document_id)
+            return {"id": "offer-123", "user_id": "user-123"}
+
+        async def inserted(document_id, event_type, *args):
+            captured.update(
+                insert_document_id=document_id,
+                insert_event_type=event_type,
+                event_offer=args[-1],
+            )
             return type("Response", (), {"status_code": 201})()
 
         async def updated(document_id, *_args):
@@ -91,14 +100,53 @@ class SignWellWebhookSecurityTests(unittest.TestCase):
             return type("Response", (), {"status_code": 200})()
 
         with patch.object(webhook.time, "time", return_value=self.now), patch.object(
-            webhook, "_insert_event", inserted
+            webhook, "_offer_for_document", found_offer
+        ), patch.object(webhook, "_insert_event", inserted
         ), patch.object(webhook, "_update_offer", updated):
             request.do_POST()
 
         self.assertEqual(captured["code"], 200)
         self.assertEqual(captured["insert_event_type"], "document_completed")
         self.assertEqual(captured["insert_document_id"], "a692e1ce-9929-4541-adc7-61932bab39d3")
+        self.assertEqual(captured["lookup_document_id"], "a692e1ce-9929-4541-adc7-61932bab39d3")
+        self.assertEqual(captured["event_offer"], {"id": "offer-123", "user_id": "user-123"})
         self.assertEqual(captured["update_document_id"], "a692e1ce-9929-4541-adc7-61932bab39d3")
+
+    def test_verified_event_is_persisted_with_its_offer_and_owner(self):
+        captured = {}
+
+        class Response:
+            status_code = 201
+
+        class Client:
+            def __init__(self, *args, **kwargs):
+                pass
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, *args):
+                return False
+
+            async def post(self, url, **kwargs):
+                captured.update(url=url, payload=kwargs["json"])
+                return Response()
+
+        with patch.object(webhook.httpx, "AsyncClient", Client):
+            asyncio.run(
+                webhook._insert_event(
+                    "doc-123",
+                    "document_completed",
+                    {"event": {"type": "document_completed"}},
+                    "Buyer Signed",
+                    "Buyer Signatures Complete",
+                    {"id": "offer-123", "user_id": "user-123"},
+                )
+            )
+
+        self.assertTrue(captured["url"].endswith("/rest/v1/hof_offer_events"))
+        self.assertEqual(captured["payload"]["offer_id"], "offer-123")
+        self.assertEqual(captured["payload"]["user_id"], "user-123")
 
 
 if __name__ == "__main__":

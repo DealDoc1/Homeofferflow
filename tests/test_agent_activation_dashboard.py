@@ -35,6 +35,12 @@ class AgentActivationDashboardTests(unittest.TestCase):
         self.assertIn("hofAuth.myOffers = data || [];", HTML)
         self.assertIn("renderAgentActivationCard();", HTML)
 
+    def test_offer_detail_queries_are_explicitly_scoped_to_the_signed_in_owner(self):
+        self.assertGreaterEqual(
+            HTML.count(".from('hof_offers').select('*').eq('user_id', user.id).eq('id', offerId).maybeSingle()"),
+            2,
+        )
+
     def test_activation_funnel_has_profile_offer_and_subscription_steps(self):
         script_start = HTML.index('id="hof-agent-activation-v16-js"')
         script_end = HTML.index("</script>", script_start)

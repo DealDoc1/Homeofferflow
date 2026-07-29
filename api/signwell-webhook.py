@@ -165,10 +165,33 @@ def _verify_event(payload, now=None):
     return hmac.compare_digest(expected_hash, event_hash)
 
 
-async def _insert_event(document_id, event_type, payload, mapped_status, mapped_signwell_status):
+async def _offer_for_document(document_id):
+    """Find the offer owner before recording a verified SignWell event.
+
+    Webhook events originate outside an authenticated browser session. Linking a
+    verified document ID back to its offer keeps the event timeline useful to
+    the offer owner and avoids leaving ownerless signing events in the table.
+    """
+    if not document_id or not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
+        return None
+    async with httpx.AsyncClient(timeout=12) as client:
+        response = await client.get(
+            f"{SUPABASE_URL}/rest/v1/hof_offers?signwell_document_id=eq.{document_id}&select=id,user_id",
+            headers=_headers(),
+        )
+    if not response.is_success:
+        print("signwell offer lookup failed", response.status_code, response.text[:500])
+        return None
+    rows = response.json() if response.text else []
+    return rows[0] if isinstance(rows, list) and rows else None
+
+
+async def _insert_event(document_id, event_type, payload, mapped_status, mapped_signwell_status, offer=None):
     if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
         return None
     event_payload = {
+        "offer_id": (offer or {}).get("id") or None,
+        "user_id": (offer or {}).get("user_id") or None,
         "event_type": event_type,
         "signwell_document_id": document_id,
         "metadata": {
@@ -236,11 +259,16 @@ class handler(BaseHTTPRequestHandler):
             document_id = _document_id(payload)
             mapped_status, mapped_signwell_status = _status_for(payload)
 
+            offer = None
             import asyncio
             event_resp = None
             patch_resp = None
             try:
-                event_resp = asyncio.run(_insert_event(document_id, event_type, payload, mapped_status, mapped_signwell_status))
+                offer = asyncio.run(_offer_for_document(document_id))
+            except Exception as e:
+                print("signwell offer lookup failed", repr(e))
+            try:
+                event_resp = asyncio.run(_insert_event(document_id, event_type, payload, mapped_status, mapped_signwell_status, offer))
             except Exception as e:
                 print("signwell event insert failed", repr(e))
             try:
