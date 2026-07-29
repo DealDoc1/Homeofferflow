@@ -44,6 +44,26 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "requires the execution fee"):
             MODULE._parse_txr_1507_draft(payload)
 
+    def test_draft_rejects_invalid_term_or_unselected_compensation(self):
+        payload = valid_payload()
+        payload["termEnd"] = "2026-07-31"
+        with self.assertRaisesRegex(ValueError, "cannot be before"):
+            MODULE._parse_txr_1507_draft(payload)
+        payload = valid_payload()
+        payload["compensation"] = {}
+        with self.assertRaisesRegex(ValueError, "at least one broker-approved"):
+            MODULE._parse_txr_1507_draft(payload)
+
+    def test_draft_does_not_accept_duplicate_clients_or_malformed_fees(self):
+        payload = valid_payload()
+        payload["clientNames"] = ["Test Buyer", "test buyer"]
+        with self.assertRaisesRegex(ValueError, "listed only once"):
+            MODULE._parse_txr_1507_draft(payload)
+        payload = valid_payload()
+        payload["compensation"] = {"purchaseFlatFee": "five hundred"}
+        with self.assertRaisesRegex(ValueError, "dollar amount"):
+            MODULE._parse_txr_1507_draft(payload)
+
     def test_no_more_than_two_clients_and_market_area_are_required(self):
         payload = valid_payload()
         payload["clientNames"] = ["One", "Two", "Three"]
@@ -62,6 +82,8 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
         self.assertIn("create_txr_1507_draft", HTML)
         self.assertIn("/api/admin-dashboard", HTML)
         self.assertIn("Draft saved privately. It has not been sent for signature.", HTML)
+        self.assertIn('name="serviceLevel" value="full_services" required', HTML)
+        self.assertNotIn('name="serviceLevel" value="full_services" checked', HTML)
 
     def test_draft_action_reuses_an_existing_authenticated_function(self):
         self.assertFalse((ROOT / "api" / "standalone-agreement.py").exists())

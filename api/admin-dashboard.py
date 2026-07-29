@@ -350,6 +350,33 @@ def _agreement_text(value, field, maximum=400):
     return value
 
 
+def _agreement_money(value, field):
+    """Keep agreement draft fee values bounded and machine-readable.
+
+    The agent, not HomeOfferFlow, decides which broker-approved compensation
+    terms apply. This helper only rejects malformed values before they become a
+    private draft; it does not calculate, choose, or alter a fee.
+    """
+    value = str(value or "").strip().replace(",", "")
+    if not value:
+        return ""
+    if not re.fullmatch(r"\d{1,9}(?:\.\d{1,2})?", value):
+        raise ValueError(f"{field} must be a dollar amount with no more than two decimals.")
+    return value
+
+
+def _agreement_percentage(value, field):
+    """Validate an explicitly supplied percentage without inferring a term."""
+    value = str(value or "").strip().replace("%", "")
+    if not value:
+        return ""
+    if not re.fullmatch(r"\d{1,3}(?:\.\d{1,3})?", value):
+        raise ValueError(f"{field} must be a percentage.")
+    if float(value) > 100:
+        raise ValueError(f"{field} cannot be greater than 100%.")
+    return value
+
+
 def _parse_txr_1507_draft(data):
     if data.get("formCode") != TXR_1507_FORM_CODE:
         raise ValueError("Only TXR-1507 is available through this action.")
@@ -357,15 +384,24 @@ def _parse_txr_1507_draft(data):
     if not isinstance(client_values, list) or not (1 <= len(client_values) <= 2):
         raise ValueError("Add one or two client names.")
     client_names = [_agreement_text(value, "Each client name", 180) for value in client_values]
+    if len({name.casefold() for name in client_names}) != len(client_names):
+        raise ValueError("Each client must be listed only once.")
     market_area = _agreement_text(data.get("marketArea"), "Market area", 800)
     term_start = _agreement_text(data.get("termStart"), "Term start date", 30)
     term_end = _agreement_text(data.get("termEnd"), "Term end date", 30)
     if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", term_start) or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", term_end):
         raise ValueError("Use YYYY-MM-DD for both term dates.")
+    try:
+        start_date = datetime.strptime(term_start, "%Y-%m-%d").date()
+        end_date = datetime.strptime(term_end, "%Y-%m-%d").date()
+    except ValueError:
+        raise ValueError("Use valid calendar dates for both term dates.")
+    if end_date < start_date:
+        raise ValueError("Term end date cannot be before the term start date.")
     service_level = str(data.get("serviceLevel") or "").strip()
     if service_level not in {"full_services", "showing_services"}:
         raise ValueError("Choose Full Services or Showing Services.")
-    showing_fee = str(data.get("showingFee") or "").strip()
+    showing_fee = _agreement_money(data.get("showingFee"), "Showing Services execution fee")
     if service_level == "showing_services" and not showing_fee:
         raise ValueError("Showing Services requires the execution fee.")
     intermediary = str(data.get("intermediary") or "").strip()
@@ -379,6 +415,13 @@ def _parse_txr_1507_draft(data):
     compensation = data.get("compensation") or {}
     if not isinstance(compensation, dict):
         raise ValueError("Compensation data is invalid.")
+    purchase_percentage = _agreement_percentage(compensation.get("purchasePercentage"), "Purchase compensation")
+    purchase_flat_fee = _agreement_money(compensation.get("purchaseFlatFee"), "Purchase flat fee")
+    lease_one_month_percentage = _agreement_percentage(compensation.get("leaseOneMonthPercentage"), "Lease one-month-rent compensation")
+    lease_total_rents_percentage = _agreement_percentage(compensation.get("leaseTotalRentsPercentage"), "Lease total-rents compensation")
+    lease_flat_fee = _agreement_money(compensation.get("leaseFlatFee"), "Lease flat fee")
+    if not any((purchase_percentage, purchase_flat_fee, lease_one_month_percentage, lease_total_rents_percentage, lease_flat_fee)):
+        raise ValueError("Choose at least one broker-approved purchase or lease compensation term.")
     return {
         "form_source_id": form_source_id,
         "client_names": client_names,
@@ -388,11 +431,11 @@ def _parse_txr_1507_draft(data):
             "term_end": term_end,
             "service_level": service_level,
             "showing_fee": showing_fee,
-            "purchase_percentage": str(compensation.get("purchasePercentage") or "").strip(),
-            "purchase_flat_fee": str(compensation.get("purchaseFlatFee") or "").strip(),
-            "lease_one_month_percentage": str(compensation.get("leaseOneMonthPercentage") or "").strip(),
-            "lease_total_rents_percentage": str(compensation.get("leaseTotalRentsPercentage") or "").strip(),
-            "lease_flat_fee": str(compensation.get("leaseFlatFee") or "").strip(),
+            "purchase_percentage": purchase_percentage,
+            "purchase_flat_fee": purchase_flat_fee,
+            "lease_one_month_percentage": lease_one_month_percentage,
+            "lease_total_rents_percentage": lease_total_rents_percentage,
+            "lease_flat_fee": lease_flat_fee,
             "intermediary": intermediary,
         },
     }
