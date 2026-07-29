@@ -84,7 +84,8 @@ transaction follow-up form families below.
 
 ## Immediate build target
 
-The next implementation target is **TXR-1507 Short Form**, with TXR-1501
-available as a separate agent-selected form after its own mapping and visual
-QA. This order gives OnDemand agents a practical buyer-representation workflow
-without pretending that one agreement fits every client or transaction.
+TXR-1507 now has a private, source-gated draft foundation. The next
+buyer-representation build target is **TXR-1501 Long Form**, also as a separate
+agent-selected private draft. Neither form is an executable/signable workflow
+until its own source approval, field mapping, signer plan, and rendered QA are
+complete.

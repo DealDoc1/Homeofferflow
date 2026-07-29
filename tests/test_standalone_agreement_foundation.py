@@ -5,6 +5,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 MIGRATION = (ROOT / "supabase" / "homeofferflow_standalone_agreements.sql").read_text()
+EXPANSION_MIGRATION = (ROOT / "supabase" / "homeofferflow_expand_standalone_representation_forms.sql").read_text()
 HTML = (ROOT / "index.html").read_text(encoding="utf-8")
 SPEC = importlib.util.spec_from_file_location("standalone_agreement", ROOT / "api" / "admin-dashboard.py")
 MODULE = importlib.util.module_from_spec(SPEC)
@@ -25,12 +26,31 @@ def valid_payload():
     }
 
 
+def valid_long_payload():
+    return {
+        "formCode": "TXR-1501",
+        "formSourceId": "00000000-0000-0000-0000-000000000001",
+        "clientNames": ["Test Buyer"],
+        "clientAddress": "721 Broderick Lane",
+        "clientCityStateZip": "Prosper, TX 75078",
+        "clientPhone": "2143649890",
+        "clientEmail": "buyer@example.com",
+        "marketArea": "Collin and Denton Counties, Texas",
+        "termStart": "2026-08-01",
+        "termEnd": "2027-01-31",
+        "paymentCounty": "Collin",
+        "intermediary": "authorized",
+        "compensation": {"purchasePercentage": "3"},
+    }
+
+
 class StandaloneAgreementFoundationTests(unittest.TestCase):
     def test_private_standalone_records_are_separate_from_offers(self):
         self.assertIn("create table if not exists public.hof_standalone_agreements", MIGRATION)
         self.assertIn("form_code text not null check (form_code in ('TXR-1507'))", MIGRATION)
         self.assertIn("remain aggregate-only", MIGRATION)
         self.assertIn("hof_standalone_agreements_select_own", MIGRATION)
+        self.assertIn("('TXR-1501', 'TXR-1507')", EXPANSION_MIGRATION)
 
     def test_valid_short_form_draft_requires_every_decision(self):
         draft = MODULE._parse_txr_1507_draft(valid_payload())
@@ -74,6 +94,26 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Market area"):
             MODULE._parse_txr_1507_draft(payload)
 
+    def test_valid_long_form_draft_is_private_and_deliberate(self):
+        draft = MODULE._parse_txr_1501_draft(valid_long_payload())
+        self.assertEqual(draft["client_names"], ["Test Buyer"])
+        self.assertEqual(draft["agreement_data"]["payment_county"], "Collin")
+        self.assertEqual(draft["agreement_data"]["purchase_percentage"], "3")
+
+    def test_long_form_rejects_invalid_contact_retainer_or_protection_terms(self):
+        payload = valid_long_payload()
+        payload["clientEmail"] = "not-an-email"
+        with self.assertRaisesRegex(ValueError, "email must be valid"):
+            MODULE._parse_txr_1501_draft(payload)
+        payload = valid_long_payload()
+        payload["retainerAmount"] = "500"
+        with self.assertRaisesRegex(ValueError, "retainer"):
+            MODULE._parse_txr_1501_draft(payload)
+        payload = valid_long_payload()
+        payload["protectionDays"] = "0"
+        with self.assertRaisesRegex(ValueError, "Protection period"):
+            MODULE._parse_txr_1501_draft(payload)
+
     def test_agent_ui_requires_an_approved_private_source_and_saves_draft_only(self):
         self.assertIn("Start TXR-1507 draft", HTML)
         self.assertIn("approved-form check", HTML)
@@ -84,9 +124,13 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
         self.assertIn("Draft saved privately. It has not been sent for signature.", HTML)
         self.assertIn('name="serviceLevel" value="full_services" required', HTML)
         self.assertNotIn('name="serviceLevel" value="full_services" checked', HTML)
+        self.assertIn("Start TXR-1501 draft", HTML)
+        self.assertIn("TXR-1501 is not yet enabled for your brokerage", HTML)
+        self.assertIn("create_txr_1501_draft", HTML)
 
     def test_draft_action_reuses_an_existing_authenticated_function(self):
         self.assertFalse((ROOT / "api" / "standalone-agreement.py").exists())
         backend = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
         self.assertIn("create_txr_1507_draft", backend)
+        self.assertIn("create_txr_1501_draft", backend)
         self.assertIn("_active_brokerage_member", backend)
