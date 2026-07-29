@@ -30,7 +30,7 @@
   brokerage's approved workflow until their dedicated releases are complete.
 - Moves account role, brokerage membership, and subscription authority to
   server-controlled data.
-- Does not edit `api/fill-pdf.py`, `20-18_0.pdf`, the staging coordinate file,
+- Does not edit `api/fill-pdf.py`, the active TREC 20-19 contract flow, the staging coordinate file,
   or the offer-generation/signing workflow.
 
 ## 3. Files
@@ -231,4 +231,4 @@ PYTHONPYCACHEPREFIX=/private/tmp/hof_pycache \
   enrollment without deleting history.
 - Do not restore browser-side role or subscription write access as a normal
   rollback. Fix forward or temporarily disable `/ondemand`.
-- Production `api/fill-pdf.py` and `20-18_0.pdf` were not changed by this release.
+- Production `api/fill-pdf.py` and the active TREC 20-19 contract flow were not changed by this release.
