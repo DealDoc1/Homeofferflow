@@ -605,9 +605,8 @@ def build_pages_data(
     """
     TREC 20-19 STAGING coordinate map.
 
-    This is intentionally separate from the production 20-18 route. It updates the main
-    contract mapping for the new 12-page 20-19 form. Coordinates still require visual QA
-    against generated test packets before production switch.
+    This remains a separately testable coordinate map for the production 20-19 route.
+    Coordinate changes require visual QA against generated test packets before release.
     """
     pages = {}
 
@@ -755,7 +754,7 @@ def build_pages_data(
         (479, 314, ck(not has_hoa), "check_small"),
     ]
 
-    # 20-19 Page 4: seller disclosure moved higher than 20-18.
+    # 20-19 Page 4: seller disclosure placement follows the current contract layout.
     pages[3] = [
         (128, 751, addr_full),
 
@@ -1560,7 +1559,8 @@ def build_signwell_fields(offer, pdf_bytes):
             lock_sign_date=True,
         )
 
-    # Main contract page 10 - TREC 20-19 execution page. Coordinates are carried over from the visually similar 20-18 execution page and must be QA-tested.
+    # Main contract page 10 - TREC 20-19 execution page. Coordinate changes
+    # must be visually QA-tested before release.
     # 17S: Buyer 1 main signature was about 3 points too low.
     add_sig_date_pair("buyer1_main_contract", main_signature_page, 115, 433, 286, 433, "1")
     if has_buyer2:

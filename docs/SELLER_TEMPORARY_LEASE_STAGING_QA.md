@@ -6,10 +6,8 @@ This document tests the staging-only implementation of **TREC 15-7 Seller's
 Temporary Residential Lease**. It must not be promoted to the production offer
 route until the completed, signed staging packet is visually approved.
 
-Production remains unchanged:
-
-- `api/fill-pdf.py`
-- `20-18_0.pdf`
+Production remains on the verified TREC 20-19 Release 18B offer route. This
+staging QA must not change the production offer-generation/signing flow.
 
 The test is valid only against:
 
