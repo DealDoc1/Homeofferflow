@@ -93,6 +93,7 @@ class SubscriptionLifecycleSecurityTests(unittest.TestCase):
         portal.STRIPE_SECRET_KEY = "sk_test_example"
         portal.SUPABASE_URL = "https://example.supabase.co"
         portal.SUPABASE_SERVICE_ROLE_KEY = "service-test-key"
+        webhook.STRIPE_WEBHOOK_SECRET = "whsec_test_example"
         CheckoutStripeClient.last_post = None
         BillingClient.last_portal_post = None
 
@@ -186,6 +187,27 @@ class SubscriptionLifecycleSecurityTests(unittest.TestCase):
         self.assertEqual(captured["subscription_id"], "sub_trial")
         self.assertEqual(captured["payload"]["status"], "trialing")
         self.assertIn("trial_ends_at", captured["payload"])
+
+    def test_invoice_paid_event_dispatches_the_same_safe_access_refresh(self):
+        event = {
+            "type": "invoice.paid",
+            "data": {"object": {"subscription": "sub_paid"}},
+        }
+        raw = json.dumps(event).encode()
+        request = webhook.handler.__new__(webhook.handler)
+        request.headers = {"Content-Length": str(len(raw)), "Stripe-Signature": "test"}
+        request.rfile = io.BytesIO(raw)
+        request._verify_stripe_signature = lambda *_args: True
+        captured = {}
+        request._handle_invoice_status = lambda invoice, status: captured.update(
+            invoice=invoice, status=status
+        )
+        request._send_json = lambda *_args: None
+
+        request.do_POST()
+
+        self.assertEqual(captured["invoice"]["subscription"], "sub_paid")
+        self.assertEqual(captured["status"], "active")
 
     def test_failed_invoice_immediately_marks_subscription_past_due(self):
         request = webhook.handler.__new__(webhook.handler)

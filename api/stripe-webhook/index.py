@@ -95,7 +95,10 @@ class handler(BaseHTTPRequestHandler):
             elif event_type == "invoice.payment_failed":
                 self._handle_invoice_status(data_object, "past_due")
 
-            elif event_type == "invoice.payment_succeeded":
+            # Stripe can deliver either event name for a successful invoice,
+            # depending on the endpoint's configured event selection. Both are
+            # safe to process: the subscription update is idempotent.
+            elif event_type in ("invoice.payment_succeeded", "invoice.paid"):
                 self._handle_invoice_status(data_object, "active")
 
             self._send_json(200, {"received": True, "event_type": event_type})
