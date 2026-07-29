@@ -19,13 +19,24 @@ def _test_events_allowed():
 
     Production uses the live Stripe webhook secret and production Supabase.  A
     Stripe test-mode endpoint must not be able to alter those live subscription
-    records if a test signing secret is ever configured there by mistake.
+    records if a test signing secret is ever configured there by mistake. A
+    simple boolean is not enough: require both a non-production Vercel runtime
+    and an explicit matching environment acknowledgement.
     """
-    return os.environ.get("STRIPE_WEBHOOK_ALLOW_TEST_EVENTS", "").strip().lower() in {
+    explicitly_enabled = os.environ.get("STRIPE_WEBHOOK_ALLOW_TEST_EVENTS", "").strip().lower() in {
         "1",
         "true",
         "yes",
     }
+    vercel_environment = os.environ.get("VERCEL_ENV", "").strip().lower()
+    acknowledged_environment = os.environ.get(
+        "STRIPE_WEBHOOK_TEST_ENVIRONMENT", ""
+    ).strip().lower()
+    return (
+        explicitly_enabled
+        and vercel_environment in {"preview", "development", "test"}
+        and acknowledged_environment == vercel_environment
+    )
 
 
 def _stripe_status_to_hof(status):

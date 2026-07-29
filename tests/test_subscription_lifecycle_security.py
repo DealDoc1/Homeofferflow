@@ -123,6 +123,8 @@ class SubscriptionLifecycleSecurityTests(unittest.TestCase):
         portal.SUPABASE_SERVICE_ROLE_KEY = "service-test-key"
         webhook.STRIPE_WEBHOOK_SECRET = "whsec_test_example"
         os.environ.pop("STRIPE_WEBHOOK_ALLOW_TEST_EVENTS", None)
+        os.environ.pop("STRIPE_WEBHOOK_TEST_ENVIRONMENT", None)
+        os.environ.pop("VERCEL_ENV", None)
         CheckoutStripeClient.last_post = None
         BillingClient.last_portal_post = None
         WebhookLedgerClient.insert_rows = [{"stripe_event_id": "evt_new"}]
@@ -280,11 +282,48 @@ class SubscriptionLifecycleSecurityTests(unittest.TestCase):
         )
         request._send_json = lambda *_args: None
 
-        with patch.dict(os.environ, {"STRIPE_WEBHOOK_ALLOW_TEST_EVENTS": "true"}):
+        with patch.dict(
+            os.environ,
+            {
+                "STRIPE_WEBHOOK_ALLOW_TEST_EVENTS": "true",
+                "VERCEL_ENV": "preview",
+                "STRIPE_WEBHOOK_TEST_ENVIRONMENT": "preview",
+            },
+        ):
             request.do_POST()
 
         self.assertEqual(captured["invoice"]["subscription"], "sub_sandbox")
         self.assertEqual(captured["status"], "active")
+
+    def test_production_never_accepts_sandbox_events_even_if_the_flag_is_set(self):
+        event = {
+            "livemode": False,
+            "type": "invoice.paid",
+            "data": {"object": {"subscription": "sub_sandbox"}},
+        }
+        raw = json.dumps(event).encode()
+        request = webhook.handler.__new__(webhook.handler)
+        request.headers = {"Content-Length": str(len(raw)), "Stripe-Signature": "test"}
+        request.rfile = io.BytesIO(raw)
+        request._verify_stripe_signature = lambda *_args: True
+        request._handle_invoice_status = lambda *_args: self.fail(
+            "Production must never process Stripe sandbox events."
+        )
+        captured = {}
+        request._send_json = lambda code, data: captured.update(code=code, data=data)
+
+        with patch.dict(
+            os.environ,
+            {
+                "STRIPE_WEBHOOK_ALLOW_TEST_EVENTS": "true",
+                "VERCEL_ENV": "production",
+                "STRIPE_WEBHOOK_TEST_ENVIRONMENT": "production",
+            },
+        ):
+            request.do_POST()
+
+        self.assertEqual(captured["code"], 400)
+        self.assertEqual(captured["data"]["error"], "Stripe test events are not accepted here.")
 
     def test_webhook_ledger_deduplicates_completed_events_without_storing_event_body(self):
         request = webhook.handler.__new__(webhook.handler)
