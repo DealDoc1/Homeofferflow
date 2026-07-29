@@ -259,22 +259,11 @@ values
   ('seo-hero-update', 'Marketing', 'SEO hero update', 'Use the approved plain-English Texas offer positioning and avoid legal guarantees.', 34, 'planned', 'backlog', 'not_tested', 'Next index.html release', null, 'Approved headline is not deployed.', 'Deploy “Write a Real Estate Offer Without the Confusion” with supporting copy.', null, false, '{}'),
   ('additional-texas-forms', 'Forms', 'Additional Texas promulgated forms', 'Expand the verified form catalog through isolated, fail-closed releases.', 35, 'in_progress', 'staging', 'partial', 'Ongoing', 'Controlled expansion', 'Several optional forms remain blocked.', 'Unlock one targeted form only after full blank, checkbox, attachment, and signature QA.', null, false, '{}'),
   ('state-expansion', 'Expansion', 'State expansion architecture', 'Prepare form configuration and product architecture for Arizona and additional states.', 90, 'deferred', 'backlog', 'not_tested', 'Post-Texas roadmap', null, 'Texas coverage is still being completed.', 'Resume after the Texas buyer and seller workflows are stable.', null, false, '{}')
-on conflict (slug) do update set
-  category = excluded.category,
-  title = excluded.title,
-  description = excluded.description,
-  priority = excluded.priority,
-  status = excluded.status,
-  environment = excluded.environment,
-  qa_status = excluded.qa_status,
-  target_release = excluded.target_release,
-  current_release = excluded.current_release,
-  known_issues = excluded.known_issues,
-  next_action = excluded.next_action,
-  github_ref = excluded.github_ref,
-  is_locked = excluded.is_locked,
-  metadata = excluded.metadata,
-  updated_at = now();
+-- This file establishes the initial roadmap only.  Runtime releases and
+-- reconciliation scripts own every existing row's status, QA evidence, and
+-- next action.  Re-running the seed must never roll a verified production
+-- release back to its original "planned" or "staging" state.
+on conflict (slug) do nothing;
 
 insert into public.hof_qa_scenarios
   (scenario_key, title, category, description, payload_name, priority, current_status, last_verified_release, coverage, notes)

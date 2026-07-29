@@ -9,8 +9,8 @@ MIGRATION = (
 
 
 class AiBenchmarkTrackerReconciliationTests(unittest.TestCase):
-    def test_tracker_records_the_released_benchmark(self):
-        self.assertIn("PR #42 AI offer-review benchmark guardrails", MIGRATION)
+    def test_tracker_records_the_released_benchmark_and_response_hardening(self):
+        self.assertIn("AI offer-review benchmark and live-response safety hardening", MIGRATION)
         self.assertIn("ai-offer-competitiveness", MIGRATION)
 
     def test_tracker_retains_human_calibration_gate(self):
