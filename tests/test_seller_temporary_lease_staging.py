@@ -2,6 +2,7 @@ from io import BytesIO
 from pathlib import Path
 import json
 import unittest
+from unittest.mock import patch
 
 from pypdf import PdfReader
 
@@ -98,6 +99,22 @@ class SellerTemporaryLeaseStagingTests(unittest.TestCase):
     def setUpClass(cls):
         configure_local_forms()
 
+    def setUp(self):
+        self._qa_enabled = staging.SELLER_EXECUTION_QA_ENABLED
+        self._qa_allowlist = staging.SELLER_EXECUTION_QA_ALLOWED_EMAILS
+        staging.SELLER_EXECUTION_QA_ENABLED = True
+        staging.SELLER_EXECUTION_QA_ALLOWED_EMAILS = {
+            "buyer1@example.com",
+            "buyer2@example.com",
+            "seller1@example.com",
+            "seller2@example.com",
+            "seller@example.com",
+        }
+
+    def tearDown(self):
+        staging.SELLER_EXECUTION_QA_ENABLED = self._qa_enabled
+        staging.SELLER_EXECUTION_QA_ALLOWED_EMAILS = self._qa_allowlist
+
     def test_staging_appends_the_two_page_seller_temporary_lease(self):
         packet = staging.fill_and_merge(seller_temp_offer())
         reader = PdfReader(BytesIO(packet))
@@ -179,6 +196,19 @@ class SellerTemporaryLeaseStagingTests(unittest.TestCase):
         offer = seller_temp_offer()
         offer.update({"sellerExecutionTestMode": "yes", "seller1Email": offer["buyerEmail"]})
         with self.assertRaisesRegex(ValueError, "distinct email"):
+            staging.seller_execution_test_parties(offer)
+
+    def test_explicit_seller_execution_mode_is_fail_closed_without_runtime_gate(self):
+        offer = seller_temp_offer()
+        offer.update({"sellerExecutionTestMode": "yes"})
+        with patch.object(staging, "SELLER_EXECUTION_QA_ENABLED", False):
+            with self.assertRaisesRegex(ValueError, "disabled"):
+                staging.seller_execution_test_parties(offer)
+
+    def test_explicit_seller_execution_mode_rejects_unlisted_recipient(self):
+        offer = seller_temp_offer()
+        offer.update({"sellerExecutionTestMode": "yes", "seller1Email": "unlisted@example.com"})
+        with self.assertRaisesRegex(ValueError, "approved allowlist"):
             staging.seller_execution_test_parties(offer)
 
     def test_addendum_page_offsets_remain_correct(self):

@@ -20,6 +20,15 @@ SIGNWELL_TEST_MODE = os.environ.get("SIGNWELL_TEST_MODE", "true").strip().lower(
 # Verbose SignWell diagnostics can include recipient details. They are opt-in
 # for controlled staging diagnosis only.
 SIGNWELL_DEBUG_LOGS = os.environ.get("SIGNWELL_DEBUG_LOGS", "false").strip().lower() in ["1", "true", "yes", "on"]
+# Seller-side execution is a tightly controlled staging QA exercise. It is
+# disabled by default and must be enabled with an explicit recipient allowlist
+# before this route will create Seller/Tenant signature fields.
+SELLER_EXECUTION_QA_ENABLED = os.environ.get("STAGING_SELLER_EXECUTION_QA_ENABLED", "false").strip().lower() in ["1", "true", "yes", "on"]
+SELLER_EXECUTION_QA_ALLOWED_EMAILS = {
+    email.strip().lower()
+    for email in os.environ.get("STAGING_SELLER_EXECUTION_QA_ALLOWED_EMAILS", "").split(",")
+    if email.strip()
+}
 
 BASE_DIR      = "/var/task"
 MAIN_PDF      = os.path.join(BASE_DIR, "20-19_0.pdf")
@@ -235,6 +244,10 @@ def seller_execution_test_parties(s):
     """
     if not seller_execution_test_requested(s):
         return []
+    if not SELLER_EXECUTION_QA_ENABLED:
+        raise ValueError("Seller execution staging QA is disabled. Enable its explicit staging environment gate first.")
+    if not SELLER_EXECUTION_QA_ALLOWED_EMAILS:
+        raise ValueError("Seller execution staging QA requires an approved recipient allowlist.")
 
     candidates = [
         (
@@ -258,6 +271,8 @@ def seller_execution_test_parties(s):
             raise ValueError(f"Seller {index} name and email are both required for the seller execution staging test.")
         if email in used_emails:
             raise ValueError("Every SignWell recipient needs a distinct email address for the seller execution staging test.")
+        if email not in SELLER_EXECUTION_QA_ALLOWED_EMAILS:
+            raise ValueError("Seller execution staging QA recipient is not on the approved allowlist.")
         used_emails.add(email)
         parties.append({"id": str(index + 2), "name": name, "email": email, "seller_index": index})
 
