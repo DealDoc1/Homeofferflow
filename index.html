@@ -11916,5 +11916,165 @@ function routeAfterMagicLinkIfNeeded() {
   else mount();
 })();
 </script>
+<style id="hof-brokerage-form-sources-v1">
+  .hof-form-source-card { border:1px solid rgba(200,151,63,.30); background:rgba(200,151,63,.05); margin-top:1rem; }
+  .hof-form-source-card h4 { margin-bottom:.35rem; }
+  .hof-form-source-card p, .hof-form-source-card small { color:var(--gray-light); line-height:1.48; }
+  .hof-form-source-grid { display:grid; grid-template-columns:1fr 1fr; gap:.7rem; margin-top:.8rem; }
+  .hof-form-source-grid label { display:grid; gap:.3rem; color:var(--gray-light); font-size:.82rem; font-weight:700; }
+  .hof-form-source-grid input, .hof-form-source-grid select { width:100%; }
+  .hof-form-source-attest { display:flex; align-items:flex-start; gap:.55rem; margin-top:.85rem; color:var(--gray-light); font-size:.82rem; line-height:1.45; }
+  .hof-form-source-attest input { margin-top:.22rem; width:18px; height:18px; accent-color:var(--sage); }
+  .hof-form-source-list { margin:.9rem 0 0; padding:0; list-style:none; border-top:1px solid rgba(255,255,255,.10); }
+  .hof-form-source-list li { display:flex; justify-content:space-between; gap:.75rem; padding:.65rem 0; border-bottom:1px solid rgba(255,255,255,.08); color:var(--gray-light); font-size:.84rem; }
+  .hof-form-source-list strong { color:var(--white); }
+  @media (max-width:640px) { .hof-form-source-grid { grid-template-columns:1fr; } }
+</style>
+<script id="hof-brokerage-form-sources-v1">
+(function () {
+  const root = window;
+  const BUCKET = 'brokerage-form-sources';
+  const MAX_BYTES = 10 * 1024 * 1024;
+  const FORM_CODES = ['TXR-1507', 'TXR-1501', 'TXR-1508', 'TXR-1506'];
+  const escape = value => String(value ?? '').replace(/[&<>\"]/g, char => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'
+  }[char]));
+  const authority = () => root.hofAuth?.authoritativeProfile || {};
+  const brokerage = () => root.hofPlatform?.brokerage || null;
+  const isBrokerageAdmin = () => {
+    const profile = authority();
+    return !!brokerage() && (profile.is_brokerage_admin === true || String(profile.role || '').toLowerCase() === 'brokerage_admin');
+  };
+  const safeRevision = value => String(value || '').trim().replace(/[^a-zA-Z0-9._-]+/g, '-').slice(0, 48);
+
+  async function loadSources() {
+    const client = root.getSupabaseClient?.();
+    const currentBrokerage = brokerage();
+    if (!client || !currentBrokerage || !isBrokerageAdmin()) return [];
+    const { data, error } = await client
+      .from('hof_brokerage_form_sources')
+      .select('id,form_code,source_revision,status,original_filename,updated_at')
+      .eq('brokerage_id', currentBrokerage.id)
+      .order('updated_at', { ascending: false });
+    if (error) throw error;
+    return data || [];
+  }
+
+  function renderBrokerageFormSources() {
+    const panel = document.getElementById('accountPanelDashboard');
+    if (!panel || !isBrokerageAdmin() || document.getElementById('brokerageFormSourceCard')) return;
+    const currentBrokerage = brokerage();
+    const card = document.createElement('div');
+    card.id = 'brokerageFormSourceCard';
+    card.className = 'account-card hof-form-source-card';
+    card.innerHTML = `
+      <h4>Brokerage-approved form sources</h4>
+      <p>Upload only a current PDF your brokerage is authorized to use. These PDFs remain private; agents cannot download them from HomeOfferFlow. Uploading a source does not activate a workflow or send any document.</p>
+      <div class="hof-form-source-grid">
+        <label>Form
+          <select id="brokerageFormCode">${FORM_CODES.map(code => `<option value="${code}">${code}</option>`).join('')}</select>
+        </label>
+        <label>Revision shown on form
+          <input id="brokerageFormRevision" maxlength="48" placeholder="Example: 06-15-26">
+        </label>
+        <label style="grid-column:1/-1">Authorized source PDF
+          <input id="brokerageFormFile" type="file" accept="application/pdf,.pdf">
+        </label>
+      </div>
+      <label class="hof-form-source-attest" for="brokerageFormAttestation">
+        <input id="brokerageFormAttestation" type="checkbox">
+        <span>I am authorized to upload and approve this exact source PDF for ${escape(currentBrokerage?.dba_name || currentBrokerage?.name || 'this brokerage')}. I understand this records approval only; a separate HomeOfferFlow release is still required before the form can be completed or sent.</span>
+      </label>
+      <div class="hof-iabs-actions">
+        <button class="btn-secondary" type="button" id="brokerageFormUploadButton">Save approved source</button>
+      </div>
+      <div id="brokerageFormSourceStatus" class="hof-iabs-status"></div>
+      <ul id="brokerageFormSourceList" class="hof-form-source-list"><li>Loading approved source records…</li></ul>`;
+    panel.appendChild(card);
+    card.querySelector('#brokerageFormUploadButton')?.addEventListener('click', uploadSource);
+    refreshList();
+  }
+
+  async function refreshList() {
+    const list = document.getElementById('brokerageFormSourceList');
+    if (!list || !isBrokerageAdmin()) return;
+    try {
+      const sources = await loadSources();
+      list.innerHTML = sources.length ? sources.map(source => `<li><span><strong>${escape(source.form_code)}</strong> · ${escape(source.source_revision)}<br><small>${escape(source.original_filename)}</small></span><span>${escape(source.status)}</span></li>`).join('') : '<li>No brokerage form sources saved yet.</li>';
+    } catch (error) {
+      console.error('Brokerage form-source list failed:', error);
+      list.innerHTML = '<li>Could not load form-source records.</li>';
+    }
+  }
+
+  async function uploadSource() {
+    const client = root.getSupabaseClient?.();
+    const user = root.hofAuth?.session?.user;
+    const currentBrokerage = brokerage();
+    const status = document.getElementById('brokerageFormSourceStatus');
+    const code = document.getElementById('brokerageFormCode')?.value;
+    const revision = document.getElementById('brokerageFormRevision')?.value?.trim();
+    const file = document.getElementById('brokerageFormFile')?.files?.[0];
+    const attested = !!document.getElementById('brokerageFormAttestation')?.checked;
+    if (!client || !user || !currentBrokerage || !isBrokerageAdmin()) return alert('Your brokerage-admin session is required.');
+    if (!FORM_CODES.includes(code)) return alert('Choose a supported form source.');
+    if (!safeRevision(revision)) return alert('Enter the revision printed on the source form.');
+    if (!file || !(file.type === 'application/pdf' || /\.pdf$/i.test(file.name || ''))) return alert('Choose a PDF source form.');
+    if (!file.size || file.size > MAX_BYTES) return alert('Source PDFs must be 10 MB or smaller.');
+    if (!attested) return alert('Confirm that you are authorized to approve this exact source PDF.');
+    if (status) { status.className = 'hof-iabs-status'; status.textContent = 'Saving private brokerage form source…'; }
+    const revisionKey = safeRevision(revision);
+    const path = `${currentBrokerage.id}/${code}-${revisionKey}-${Date.now()}.pdf`;
+    try {
+      const { data: existing, error: existingError } = await client
+        .from('hof_brokerage_form_sources')
+        .select('id').eq('brokerage_id', currentBrokerage.id)
+        .eq('form_code', code).eq('source_revision', revision).neq('status', 'retired').limit(1);
+      if (existingError) throw existingError;
+      if (existing?.length) throw new Error(`An active ${code} source with revision ${revision} is already saved. Retire it through a future broker workflow before replacing it.`);
+      const { error: uploadError } = await client.storage.from(BUCKET).upload(path, file, {
+        contentType: 'application/pdf', upsert: false, cacheControl: 'private, max-age=0'
+      });
+      if (uploadError) throw uploadError;
+      const now = new Date().toISOString();
+      const { error: insertError } = await client.from('hof_brokerage_form_sources').insert({
+        brokerage_id: currentBrokerage.id,
+        form_code: code,
+        source_revision: revision,
+        status: 'approved',
+        storage_bucket: BUCKET,
+        storage_path: path,
+        original_filename: file.name.slice(0, 180),
+        mime_type: 'application/pdf',
+        byte_size: file.size,
+        authorization_attested: true,
+        authorized_by_user_id: user.id,
+        authorized_at: now,
+        updated_at: now
+      });
+      if (insertError) {
+        await client.storage.from(BUCKET).remove([path]);
+        throw insertError;
+      }
+      if (status) { status.className = 'hof-iabs-status ready'; status.textContent = `${code} source saved privately. It is not yet an active signing workflow.`; }
+      document.getElementById('brokerageFormFile').value = '';
+      document.getElementById('brokerageFormAttestation').checked = false;
+      await refreshList();
+    } catch (error) {
+      console.error('Brokerage form source upload failed:', error);
+      if (status) { status.className = 'hof-iabs-status error'; status.textContent = error.message || 'Could not save the private form source.'; }
+    }
+  }
+
+  const priorDashboard = root.renderAccountDashboard;
+  root.renderAccountDashboard = function renderAccountDashboardWithFormSources() {
+    if (typeof priorDashboard === 'function') priorDashboard.apply(this, arguments);
+    renderBrokerageFormSources();
+  };
+  const mount = () => renderBrokerageFormSources();
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount, { once:true });
+  else mount();
+})();
+</script>
 </body>
 </html>

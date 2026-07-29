@@ -4,6 +4,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 MIGRATION = (ROOT / "supabase" / "homeofferflow_brokerage_form_sources.sql").read_text()
+HTML = (ROOT / "index.html").read_text(encoding="utf-8")
 
 
 class BrokerageFormSourceFoundationTests(unittest.TestCase):
@@ -25,6 +26,13 @@ class BrokerageFormSourceFoundationTests(unittest.TestCase):
         self.assertIn("hof_brokerage_form_sources_storage_admin_manage", MIGRATION)
         self.assertIn("m.role in ('broker_admin', 'owner')", MIGRATION)
         self.assertIn("Agents never get Storage access", MIGRATION)
+
+    def test_broker_admin_can_upload_attested_private_source_but_cannot_activate_a_workflow(self):
+        self.assertIn("Brokerage-approved form sources", HTML)
+        self.assertIn("I am authorized to upload and approve this exact source PDF", HTML)
+        self.assertIn("agents cannot download them from HomeOfferFlow", HTML)
+        self.assertIn("It is not yet an active signing workflow.", HTML)
+        self.assertIn("authorization_attested: true", HTML)
 
 
 if __name__ == "__main__":
