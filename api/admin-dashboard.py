@@ -24,6 +24,7 @@ ALLOWED_PARTNER_TYPES = {
 MAX_BODY_BYTES = 12_000
 TXR_1501_FORM_CODE = "TXR-1501"
 TXR_1507_FORM_CODE = "TXR-1507"
+TXR_1508_FORM_CODE = "TXR-1508"
 
 
 def _json(handler, code, payload):
@@ -507,6 +508,43 @@ def _parse_txr_1501_draft(data):
     }
 
 
+def _parse_txr_1508_draft(data):
+    """Validate a private TXR-1508 showing draft without inferring agency.
+
+    TXR-1508 is intentionally limited to an unrepresented customer showing.
+    This record is only a broker-approved-source draft; it is not a completed
+    form, a showing authorization, or a representation agreement.
+    """
+    if data.get("formCode") != TXR_1508_FORM_CODE:
+        raise ValueError("Only TXR-1508 is available through this action.")
+    client_names = _agreement_clients(data)
+    form_source_id = _agreement_text(data.get("formSourceId"), "Approved TXR-1508 source", 80)
+    try:
+        form_source_id = str(uuid.UUID(form_source_id))
+    except (TypeError, ValueError, AttributeError):
+        raise ValueError("Choose an approved TXR-1508 source from your brokerage.")
+    property_address = _agreement_text(data.get("propertyAddress"), "Property address and city", 400)
+    other_broker_values = data.get("otherBrokerAgreement")
+    if not isinstance(other_broker_values, list) or len(other_broker_values) != len(client_names):
+        raise ValueError("Confirm each customer's current representation-agreement status.")
+    other_broker_agreement = []
+    for value in other_broker_values:
+        if value not in {"yes", "no"}:
+            raise ValueError("Confirm each customer's current representation-agreement status.")
+        other_broker_agreement.append(value)
+    if data.get("unrepresentedAcknowledgment") is not True:
+        raise ValueError("Confirm the no-representation, no-compensation, and no-advice limits.")
+    return {
+        "form_source_id": form_source_id,
+        "client_names": client_names,
+        "agreement_data": {
+            "property_address": property_address,
+            "other_broker_agreement": other_broker_agreement,
+            "unrepresented_acknowledgment": True,
+        },
+    }
+
+
 async def _active_brokerage_member(user):
     profiles = await _get(
         "hof_profiles?"
@@ -570,6 +608,10 @@ async def _create_txr_1507_draft(user, data):
 
 async def _create_txr_1501_draft(user, data):
     return await _create_representation_draft(user, data, TXR_1501_FORM_CODE, _parse_txr_1501_draft)
+
+
+async def _create_txr_1508_draft(user, data):
+    return await _create_representation_draft(user, data, TXR_1508_FORM_CODE, _parse_txr_1508_draft)
 
 
 class handler(BaseHTTPRequestHandler):
@@ -676,6 +718,10 @@ class handler(BaseHTTPRequestHandler):
                 return
             if data.get("action") == "create_txr_1501_draft":
                 draft = asyncio.run(_create_txr_1501_draft(user, data))
+                _json(self, 201, {"status": "ok", "agreement": draft})
+                return
+            if data.get("action") == "create_txr_1508_draft":
+                draft = asyncio.run(_create_txr_1508_draft(user, data))
                 _json(self, 201, {"status": "ok", "agreement": draft})
                 return
             if not asyncio.run(_is_platform_admin(user)):

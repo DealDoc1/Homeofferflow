@@ -84,8 +84,8 @@ transaction follow-up form families below.
 
 ## Immediate build target
 
-TXR-1507 now has a private, source-gated draft foundation. The next
-buyer-representation build target is **TXR-1501 Long Form**, also as a separate
-agent-selected private draft. Neither form is an executable/signable workflow
-until its own source approval, field mapping, signer plan, and rendered QA are
-complete.
+TXR-1507 and TXR-1501 now have private, source-gated draft foundations. The
+next distinct buyer-side workflow is **TXR-1508 Unrepresented Customer Showing
+Form**, as a separate private draft that preserves its no-representation scope.
+None of these forms is an executable/signable workflow until its own source
+approval, field mapping, signer plan, and rendered QA are complete.

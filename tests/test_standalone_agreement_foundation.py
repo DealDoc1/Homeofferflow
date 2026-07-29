@@ -6,6 +6,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 MIGRATION = (ROOT / "supabase" / "homeofferflow_standalone_agreements.sql").read_text()
 EXPANSION_MIGRATION = (ROOT / "supabase" / "homeofferflow_expand_standalone_representation_forms.sql").read_text()
+SHOWING_MIGRATION = (ROOT / "supabase" / "homeofferflow_add_txr_1508_showing_drafts.sql").read_text()
 HTML = (ROOT / "index.html").read_text(encoding="utf-8")
 SPEC = importlib.util.spec_from_file_location("standalone_agreement", ROOT / "api" / "admin-dashboard.py")
 MODULE = importlib.util.module_from_spec(SPEC)
@@ -44,6 +45,17 @@ def valid_long_payload():
     }
 
 
+def valid_showing_payload():
+    return {
+        "formCode": "TXR-1508",
+        "formSourceId": "00000000-0000-0000-0000-000000000001",
+        "clientNames": ["Test Customer"],
+        "propertyAddress": "1438 Whitaker Road, Van Alstyne, TX",
+        "otherBrokerAgreement": ["no"],
+        "unrepresentedAcknowledgment": True,
+    }
+
+
 class StandaloneAgreementFoundationTests(unittest.TestCase):
     def test_private_standalone_records_are_separate_from_offers(self):
         self.assertIn("create table if not exists public.hof_standalone_agreements", MIGRATION)
@@ -51,6 +63,7 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
         self.assertIn("remain aggregate-only", MIGRATION)
         self.assertIn("hof_standalone_agreements_select_own", MIGRATION)
         self.assertIn("('TXR-1501', 'TXR-1507')", EXPANSION_MIGRATION)
+        self.assertIn("('TXR-1501', 'TXR-1507', 'TXR-1508')", SHOWING_MIGRATION)
 
     def test_valid_short_form_draft_requires_every_decision(self):
         draft = MODULE._parse_txr_1507_draft(valid_payload())
@@ -114,6 +127,22 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Protection period"):
             MODULE._parse_txr_1501_draft(payload)
 
+    def test_valid_showing_draft_is_limited_to_unrepresented_customer_intake(self):
+        draft = MODULE._parse_txr_1508_draft(valid_showing_payload())
+        self.assertEqual(draft["client_names"], ["Test Customer"])
+        self.assertEqual(draft["agreement_data"]["other_broker_agreement"], ["no"])
+        self.assertTrue(draft["agreement_data"]["unrepresented_acknowledgment"])
+
+    def test_showing_draft_requires_each_representation_status_and_limit_acknowledgment(self):
+        payload = valid_showing_payload()
+        payload["otherBrokerAgreement"] = []
+        with self.assertRaisesRegex(ValueError, "representation-agreement status"):
+            MODULE._parse_txr_1508_draft(payload)
+        payload = valid_showing_payload()
+        payload["unrepresentedAcknowledgment"] = False
+        with self.assertRaisesRegex(ValueError, "no-representation"):
+            MODULE._parse_txr_1508_draft(payload)
+
     def test_agent_ui_requires_an_approved_private_source_and_saves_draft_only(self):
         self.assertIn("Start TXR-1507 draft", HTML)
         self.assertIn("approved-form check", HTML)
@@ -127,10 +156,15 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
         self.assertIn("Start TXR-1501 draft", HTML)
         self.assertIn("TXR-1501 is not yet enabled for your brokerage", HTML)
         self.assertIn("create_txr_1501_draft", HTML)
+        self.assertIn("Start TXR-1508 draft", HTML)
+        self.assertIn("TXR-1508 is not yet enabled for your brokerage", HTML)
+        self.assertIn("create_txr_1508_draft", HTML)
+        self.assertIn("no representation, no compensation, no advice", HTML)
 
     def test_draft_action_reuses_an_existing_authenticated_function(self):
         self.assertFalse((ROOT / "api" / "standalone-agreement.py").exists())
         backend = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
         self.assertIn("create_txr_1507_draft", backend)
         self.assertIn("create_txr_1501_draft", backend)
+        self.assertIn("create_txr_1508_draft", backend)
         self.assertIn("_active_brokerage_member", backend)
