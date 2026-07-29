@@ -9,7 +9,10 @@ route until the completed, signed staging packet is visually approved.
 Production remains unchanged:
 
 - `api/fill-pdf.py`
-- `20-18_0.pdf`
+- the production TREC 20-19 packet and its existing signing flow
+
+The legacy `20-18_0.pdf` file is not the active production contract. Do not
+change the production adapter while completing this staging-only QA.
 
 The test is valid only against:
 
