@@ -4272,22 +4272,20 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
 
 
   async function openBillingPortal() {
-    const customerId =
-      hofAuth?.subscription?.stripe_customer_id ||
-      hofAuth?.subscription?.customer_id ||
-      '';
-
-    if (!customerId) {
-      alert('Billing portal is not ready because this account does not have a Stripe customer ID yet. Refresh your account or contact support@homeofferflow.com.');
+    const accessToken = hofAuth?.session?.access_token || '';
+    if (!accessToken) {
+      alert('Please sign in again before opening billing.');
       return;
     }
 
     try {
       const response = await fetch('/api/create-billing-portal', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + accessToken
+        },
         body: JSON.stringify({
-          customerId,
           returnUrl: window.location.origin + window.location.pathname + '?billing=returned'
         })
       });
@@ -4311,11 +4309,12 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
 
   async function startSubscriptionCheckout(plan = 'agent', billing = 'monthly') {
     const user = hofAuth?.session?.user;
+    const accessToken = hofAuth?.session?.access_token || '';
     const normalizedPlan = plan === 'investor' ? 'investor' : 'agent';
     const normalizedBilling = billing === 'annual' ? 'annual' : 'monthly';
     const email = user?.email || document.getElementById('authEmail')?.value?.trim() || document.getElementById('paymentEmail')?.value?.trim() || '';
 
-    if (!email || !email.includes('@')) {
+    if (!email || !email.includes('@') || !accessToken) {
       alert('Please log in before starting a subscription.');
       openAuthModal(normalizedPlan);
       return;
@@ -4326,7 +4325,10 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
 
       const response = await fetch('/api/create-subscription-checkout', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + accessToken
+        },
         body: JSON.stringify({
           plan: normalizedPlan,
           billing: normalizedBilling,
@@ -11545,6 +11547,28 @@ function routeAfterMagicLinkIfNeeded() {
         'Choose a monthly or annual plan in secure Stripe checkout.');
     const status = String(root.hofAuth?.subscription?.status || 'inactive').toLowerCase();
     const brokerageSlug = root.hofPlatform?.brokerage?.slug;
+    const subscription = root.hofAuth?.subscription || {};
+    const formatBillingDate = (value) => {
+      if (!value) return '';
+      const date = new Date(value);
+      return Number.isNaN(date.getTime()) ? '' : date.toLocaleDateString(undefined, {
+        month: 'long', day: 'numeric', year: 'numeric'
+      });
+    };
+    const trialEnds = formatBillingDate(subscription.trial_ends_at);
+    const cancellationEnds = formatBillingDate(subscription.cancel_at || subscription.current_period_end);
+    if (status === 'trialing' && trialEnds && !card.querySelector('.subscription-trial-notice')) {
+      card.insertAdjacentHTML('beforeend',
+        '<div class="subscription-trial-notice" style="margin-top:0.75rem; font-size:0.78rem; line-height:1.45; color:var(--gray);">' +
+        '<strong>Free trial active through ' + safe(trialEnds) + '.</strong> Your plan renews at $29/month on that date unless you cancel in Manage Billing.' +
+        '</div>');
+    }
+    if (subscription.cancel_at_period_end && cancellationEnds && !card.querySelector('.subscription-cancel-notice')) {
+      card.insertAdjacentHTML('beforeend',
+        '<div class="subscription-cancel-notice" style="margin-top:0.75rem; font-size:0.78rem; line-height:1.45; color:var(--warn);">' +
+        '<strong>Cancellation scheduled.</strong> Access remains available through ' + safe(cancellationEnds) + '.' +
+        '</div>');
+    }
     if (!['active','trialing','free_admin'].includes(status) && !card.querySelector('.ondemand-trial-link')) {
       card.insertAdjacentHTML('beforeend',
         '<a class="ondemand-trial-link" href="/ondemand">' +

@@ -341,10 +341,30 @@ class handler(BaseHTTPRequestHandler):
         if not subscription_id:
             return
 
-        payload = {
-            "status": status,
-            "updated_at": self._iso_now(),
-        }
+        # An initial $0 trial invoice can be paid while the subscription itself
+        # is still `trialing`. Do not let an invoice event accidentally turn a
+        # trial into an active subscription just because Stripe delivered events
+        # out of order. Stripe's current subscription object is authoritative.
+        try:
+            subscription = self._stripe_get_subscription(subscription_id)
+        except Exception as error:
+            print("Stripe subscription refresh for invoice event failed:", str(error))
+            subscription = None
+
+        if subscription:
+            payload, _, _, _ = self._extract_subscription_payload(subscription)
+            # A failed collection attempt must immediately remove packet access,
+            # even if the subscription object has not yet reflected `past_due`.
+            if status == "past_due":
+                payload["status"] = "past_due"
+            payload["updated_at"] = self._iso_now()
+        else:
+            # Preserve the existing behavior as a safe fallback so Stripe can
+            # retry the webhook without losing the billing state update.
+            payload = {
+                "status": status,
+                "updated_at": self._iso_now(),
+            }
 
         self._patch_subscription_by_stripe_subscription_id(subscription_id, payload)
 

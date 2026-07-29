@@ -88,6 +88,15 @@ class handler(BaseHTTPRequestHandler):
                 self._json(500, {"error": "Missing STRIPE_SECRET_KEY"})
                 return
 
+            # Checkout must always be tied to the authenticated HomeOfferFlow
+            # account. Never trust a user ID or email supplied in the browser
+            # request body: those are customer-facing fields, not authority.
+            self._require_supabase()
+            verified_user = self._verified_user(self.headers.get("authorization", ""))
+            if not verified_user:
+                self._json(401, {"error": "Sign in before starting subscription checkout."})
+                return
+
             length = int(self.headers.get("Content-Length", 0))
             if length <= 0 or length > MAX_BODY_BYTES:
                 self._json(400, {"error": "Invalid request size."})
@@ -99,17 +108,12 @@ class handler(BaseHTTPRequestHandler):
             is_ondemand = launch == ONDEMAND_SLUG
             plan = (body.get("plan") or "agent").strip().lower()
             billing = (body.get("billing") or "monthly").strip().lower()
-            email = (body.get("email") or "").strip().lower()
             role = (body.get("role") or plan).strip().lower()
-            user_id = (body.get("userId") or body.get("user_id") or "").strip()
+            email = verified_user["email"]
+            user_id = verified_user["id"]
             brokerage = None
 
             if is_ondemand:
-                self._require_supabase()
-                verified_user = self._verified_user(self.headers.get("authorization", ""))
-                if not verified_user:
-                    self._json(401, {"error": "Sign in through the OnDemand launch page before starting checkout."})
-                    return
                 plan = "agent"
                 billing = "monthly"
                 role = "agent"
@@ -117,17 +121,18 @@ class handler(BaseHTTPRequestHandler):
                 user_id = verified_user["id"]
                 brokerage = self._get_brokerage(ONDEMAND_SLUG)
                 self._enroll_ondemand_user(verified_user, brokerage)
-                if self._has_current_subscription(user_id):
-                    self._json(
-                        409,
-                        {
-                            "error": (
-                                "This account already has an active or trialing subscription. "
-                                "Open HomeOfferFlow billing instead of starting a duplicate plan."
-                            )
-                        },
-                    )
-                    return
+
+            if self._has_current_subscription(user_id):
+                self._json(
+                    409,
+                    {
+                        "error": (
+                            "This account already has an active or trialing subscription. "
+                            "Open HomeOfferFlow billing instead of starting a duplicate plan."
+                        )
+                    },
+                )
+                return
 
             if plan not in ["agent", "investor"]:
                 self._json(400, {"error": "Invalid plan. Use agent or investor."})
