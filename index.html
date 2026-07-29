@@ -8569,9 +8569,11 @@ function routeAfterMagicLinkIfNeeded() {
         <div class="platform-actions"><button type="button" onclick="saveListingWorkspaceFoundation()">Create Private Workspace</button><button type="button" onclick="loadListingWorkspacesFoundation()">Refresh Workspaces</button></div>
         <div id="listingWorkspaceStatus" class="platform-status"></div>
       </div>
-      <div class="platform-card"><h4>My Listing Workspaces</h4><div id="listingWorkspaceList" class="platform-list"><div class="platform-list-item">No listing workspaces loaded yet.</div></div><div id="listingWorkspaceBrokerSummary" class="platform-status" style="margin-top:.75rem;"></div></div>`;
+      <div class="platform-card"><h4>My Listing Workspaces</h4><div id="listingWorkspaceList" class="platform-list"><div class="platform-list-item">No listing workspaces loaded yet.</div></div><div id="listingWorkspaceBrokerSummary" class="platform-status" style="margin-top:.75rem;"></div></div>
+      <div class="platform-card"><h4>Listing Form Readiness</h4><p>These are private brokerage source-approval indicators only. An approved source does not make a listing agreement or seller disclosure executable, sendable, or signable in HomeOfferFlow.</p><div id="listingWorkspaceSourceReadiness" class="platform-list"><div class="platform-list-item">Checking brokerage source readiness…</div></div></div>`;
     loadSellerLeadsFoundation();
     loadListingWorkspacesFoundation();
+    loadListingWorkspaceSourceReadiness();
   }
 
   async function saveSellerLeadFoundation() {
@@ -8708,6 +8710,37 @@ function routeAfterMagicLinkIfNeeded() {
       console.warn('Listing workspace load failed:', err);
       list.innerHTML = '<div class="platform-list-item">Listing workspaces could not load: ' + escapeAttr(err?.message || err) + '</div>';
       if (summary) { summary.textContent = ''; summary.className = 'platform-status'; }
+    }
+  }
+
+  async function loadListingWorkspaceSourceReadiness() {
+    const target = document.getElementById('listingWorkspaceSourceReadiness');
+    const client = getSupabaseClient();
+    if (!target || !client) return;
+    const required = [
+      ['TXR-1101', 'Residential listing agreement — sale'],
+      ['TXR-1102', 'Residential listing agreement — lease'],
+      ['TXR-1406', 'Seller’s Disclosure Notice'],
+      ['TXR-1418', 'Seller’s Disclosure Notice update']
+    ];
+    try {
+      if (!hofPlatform.brokerage) await loadBrokerageFoundation();
+      const brokerageId = hofPlatform.brokerage?.id;
+      if (!brokerageId) { target.innerHTML = '<div class="platform-list-item">Join a brokerage before listing form readiness can be checked.</div>'; return; }
+      const { data, error } = await client.from('hof_brokerage_form_sources')
+        .select('form_code, source_revision')
+        .eq('brokerage_id', brokerageId)
+        .eq('status', 'approved').eq('authorization_attested', true)
+        .in('form_code', required.map(row => row[0]));
+      if (error) throw error;
+      const approved = new Map((data || []).map(row => [row.form_code, row.source_revision]));
+      target.innerHTML = required.map(([code, label]) => {
+        const revision = approved.get(code);
+        return `<div class="platform-list-item"><strong>${escapeAttr(code)}</strong> · ${escapeAttr(label)}<span class="platform-pill ${revision ? 'good' : ''}">${revision ? 'Source approved' : 'Source not approved'}</span>${revision ? `<br><small>Brokerage source revision: ${escapeAttr(revision)}. Execution remains gated.</small>` : '<br><small>Brokerage administrator must privately upload and approve an authorized current source before implementation can begin.</small>'}</div>`;
+      }).join('');
+    } catch (err) {
+      console.warn('Listing source readiness load failed:', err);
+      target.innerHTML = '<div class="platform-list-item">Listing source readiness could not load. Source PDFs remain private.</div>';
     }
   }
 
