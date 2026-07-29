@@ -209,6 +209,26 @@ class SubscriptionLifecycleSecurityTests(unittest.TestCase):
         self.assertEqual(captured["invoice"]["subscription"], "sub_paid")
         self.assertEqual(captured["status"], "active")
 
+    def test_webhook_failure_does_not_expose_internal_error_text(self):
+        event = {"type": "checkout.session.completed", "data": {"object": {}}}
+        raw = json.dumps(event).encode()
+        request = webhook.handler.__new__(webhook.handler)
+        request.headers = {"Content-Length": str(len(raw)), "Stripe-Signature": "test"}
+        request.rfile = io.BytesIO(raw)
+        request._verify_stripe_signature = lambda *_args: True
+        request._handle_checkout_completed = lambda *_args: (_ for _ in ()).throw(
+            RuntimeError("internal upstream diagnostic")
+        )
+        captured = {}
+        request._send_json = lambda code, data: captured.update(code=code, data=data)
+
+        with patch("builtins.print"):
+            request.do_POST()
+
+        self.assertEqual(captured["code"], 500)
+        self.assertEqual(captured["data"]["error"], "Webhook processing failed.")
+        self.assertNotIn("diagnostic", captured["data"]["error"])
+
     def test_failed_invoice_immediately_marks_subscription_past_due(self):
         request = webhook.handler.__new__(webhook.handler)
         captured = {}
