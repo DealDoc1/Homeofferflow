@@ -3,6 +3,7 @@ import json
 import hashlib
 import hmac
 import time
+import urllib.parse
 from http.server import BaseHTTPRequestHandler
 from datetime import datetime, timezone
 import httpx
@@ -174,9 +175,10 @@ async def _offer_for_document(document_id):
     """
     if not document_id or not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
         return None
+    document_filter = urllib.parse.quote(str(document_id), safe="")
     async with httpx.AsyncClient(timeout=12) as client:
         response = await client.get(
-            f"{SUPABASE_URL}/rest/v1/hof_offers?signwell_document_id=eq.{document_id}&select=id,user_id",
+            f"{SUPABASE_URL}/rest/v1/hof_offers?signwell_document_id=eq.{document_filter}&select=id,user_id",
             headers=_headers(),
         )
     if not response.is_success:
@@ -209,6 +211,7 @@ async def _insert_event(document_id, event_type, payload, mapped_status, mapped_
 async def _update_offer(document_id, mapped_status, mapped_signwell_status, payload):
     if not document_id or not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
         return None
+    document_filter = urllib.parse.quote(str(document_id), safe="")
     update_payload = {
         "status": mapped_status,
         "signwell_status": mapped_signwell_status,
@@ -218,7 +221,7 @@ async def _update_offer(document_id, mapped_status, mapped_signwell_status, payl
         update_payload["signed_at"] = datetime.now(timezone.utc).isoformat()
     async with httpx.AsyncClient(timeout=12) as client:
         return await client.patch(
-            f"{SUPABASE_URL}/rest/v1/hof_offers?signwell_document_id=eq.{document_id}&select=id,status,signwell_status",
+            f"{SUPABASE_URL}/rest/v1/hof_offers?signwell_document_id=eq.{document_filter}&select=id,status,signwell_status",
             headers=_headers(),
             json=update_payload,
         )

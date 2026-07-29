@@ -132,21 +132,66 @@ class SignWellWebhookSecurityTests(unittest.TestCase):
                 captured.update(url=url, payload=kwargs["json"])
                 return Response()
 
-        with patch.object(webhook.httpx, "AsyncClient", Client):
-            asyncio.run(
-                webhook._insert_event(
-                    "doc-123",
-                    "document_completed",
-                    {"event": {"type": "document_completed"}},
-                    "Buyer Signed",
-                    "Buyer Signatures Complete",
-                    {"id": "offer-123", "user_id": "user-123"},
+        original_url = webhook.SUPABASE_URL
+        original_key = webhook.SUPABASE_SERVICE_ROLE_KEY
+        webhook.SUPABASE_URL = "https://example.supabase.co"
+        webhook.SUPABASE_SERVICE_ROLE_KEY = "service-key"
+        try:
+            with patch.object(webhook.httpx, "AsyncClient", Client):
+                asyncio.run(
+                    webhook._insert_event(
+                        "doc-123",
+                        "document_completed",
+                        {"event": {"type": "document_completed"}},
+                        "Buyer Signed",
+                        "Buyer Signatures Complete",
+                        {"id": "offer-123", "user_id": "user-123"},
+                    )
                 )
-            )
+        finally:
+            webhook.SUPABASE_URL = original_url
+            webhook.SUPABASE_SERVICE_ROLE_KEY = original_key
 
         self.assertTrue(captured["url"].endswith("/rest/v1/hof_offer_events"))
         self.assertEqual(captured["payload"]["offer_id"], "offer-123")
         self.assertEqual(captured["payload"]["user_id"], "user-123")
+
+    def test_document_lookup_url_encodes_the_external_document_id(self):
+        captured = {}
+
+        class Response:
+            is_success = True
+            text = "[]"
+
+            def json(self):
+                return []
+
+        class Client:
+            def __init__(self, *args, **kwargs):
+                pass
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, *args):
+                return False
+
+            async def get(self, url, **kwargs):
+                captured["url"] = url
+                return Response()
+
+        original_url = webhook.SUPABASE_URL
+        original_key = webhook.SUPABASE_SERVICE_ROLE_KEY
+        webhook.SUPABASE_URL = "https://example.supabase.co"
+        webhook.SUPABASE_SERVICE_ROLE_KEY = "service-key"
+        try:
+            with patch.object(webhook.httpx, "AsyncClient", Client):
+                self.assertIsNone(asyncio.run(webhook._offer_for_document("doc/unsafe?value=1")))
+        finally:
+            webhook.SUPABASE_URL = original_url
+            webhook.SUPABASE_SERVICE_ROLE_KEY = original_key
+
+        self.assertIn("signwell_document_id=eq.doc%2Funsafe%3Fvalue%3D1", captured["url"])
 
 
 if __name__ == "__main__":
