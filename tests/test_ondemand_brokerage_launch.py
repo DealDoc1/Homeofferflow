@@ -546,6 +546,20 @@ class BrokerageAuthorizationTests(unittest.TestCase):
         ):
             self.assertIn(item, final_script)
 
+    def test_brokerage_title_defaults_reload_for_brokers_and_connected_agents(self):
+        source = ADMIN_PATH.read_text(encoding="utf-8")
+        context_start = source.index("async def _brokerage_admin_context")
+        context_end = source.index("async def _brokerage_dashboard_payload", context_start)
+        context = source[context_start:context_end]
+        self.assertIn("default_title_company,default_title_contact", context)
+
+        marker = INDEX_HTML.index('id="hof-ondemand-brokerage-launch-v1"')
+        final_script = INDEX_HTML[marker:]
+        self.assertIn(
+            "billing_status,default_title_company,default_title_contact",
+            final_script,
+        )
+
     def test_webhook_activation_preserves_existing_broker_role(self):
         member_handler = webhook.handler.__new__(webhook.handler)
         MembershipClient.requests = []
