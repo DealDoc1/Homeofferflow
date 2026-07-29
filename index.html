@@ -2534,7 +2534,7 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
 </section>
 
 <footer>
-  <p>© 2025 HomeOfferFlow · A BrewBQ Investments LLC product · <a href="/terms.html" target="_blank" rel="noopener">Terms of Service</a> · <a href="/privacy.html" target="_blank" rel="noopener">Privacy Policy</a> · <a href="/disclaimer.html" target="_blank" rel="noopener">Disclaimer</a> · <a href="?partner=1" onclick="event.preventDefault(); openFoundingPartnerModal();">Become a Founding Partner</a></p>
+  <p>© 2026 HomeOfferFlow · A BrewBQ Investments LLC product · <a href="/terms.html" target="_blank" rel="noopener">Terms of Service</a> · <a href="/privacy.html" target="_blank" rel="noopener">Privacy Policy</a> · <a href="/disclaimer.html" target="_blank" rel="noopener">Disclaimer</a> · <a href="/esign-consent.html" target="_blank" rel="noopener">E-Sign Consent</a> · <a href="?partner=1" onclick="event.preventDefault(); openFoundingPartnerModal();">Become a Founding Partner</a></p>
   <p>Built for Texas homebuyers, investors, and agents who want faster, cleaner offer packets.</p>
   <p>HomeOfferFlow is not a law firm, does not provide legal advice, and does not represent you as your real estate agent. This tool assists with completing official TREC forms only. For legal guidance, consult a licensed Texas real estate attorney or broker.</p>
   <p>TREC forms provided by the Texas Real Estate Commission · <a href="https://trec.texas.gov" target="_blank">trec.texas.gov</a></p>
@@ -2554,7 +2554,7 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
       <li><strong>Refund Policy.</strong> Due to the digital nature of this product, all sales are final once your PDF is generated and downloaded.</li>
       <li><strong>Texas Jurisdiction.</strong> These terms are governed by the laws of the State of Texas.</li>
     </ul>
-    <p>By proceeding, you acknowledge that you have read, understood, and agree to the full <a href="/terms.html" target="_blank" rel="noopener" style="color:var(--gold);">Terms of Service</a>, <a href="/privacy.html" target="_blank" rel="noopener" style="color:var(--gold);">Privacy Policy</a>, and <a href="/disclaimer.html" target="_blank" rel="noopener" style="color:var(--gold);">Disclaimer</a>.</p>
+    <p>By proceeding, you acknowledge that you have read, understood, and agree to the full <a href="/terms.html" target="_blank" rel="noopener" style="color:var(--gold);">Terms of Service</a>, <a href="/privacy.html" target="_blank" rel="noopener" style="color:var(--gold);">Privacy Policy</a>, <a href="/disclaimer.html" target="_blank" rel="noopener" style="color:var(--gold);">Disclaimer</a>, and <a href="/esign-consent.html" target="_blank" rel="noopener" style="color:var(--gold);">Electronic Communications and E-Sign Consent</a>.</p>
     <button class="btn-primary" onclick="closeTerms()" style="width:100%; margin-top:1rem;">I Understand — Close</button>
   </div>
 </div>
@@ -2778,7 +2778,7 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
       <div class="notice sage">✅ You can review your full offer summary before paying. Starting the wizard does not create a charge.</div>
       <div class="terms-check" id="termsCheckRow" onclick="toggleTermsFromRow(event)">
         <input type="checkbox" id="termsAccepted" onchange="handleTermsChange()"/>
-        <label for="termsAccepted">I understand that HomeOfferFlow is a form-completion software tool, not a law firm, attorney, real estate brokerage, or buyer representation service. I have read and agree to the <a href="/terms.html" target="_blank" rel="noopener" onclick="event.stopPropagation()">Terms of Service</a>, <a href="/privacy.html" target="_blank" rel="noopener" onclick="event.stopPropagation()">Privacy Policy</a>, and <a href="/disclaimer.html" target="_blank" rel="noopener" onclick="event.stopPropagation()">Disclaimer</a>. I am responsible for verifying all information before submitting, signing, or relying on any offer document.</label>
+        <label for="termsAccepted">I understand that HomeOfferFlow is a form-completion software tool, not a law firm, attorney, real estate brokerage, or buyer representation service. I have read and agree to the <a href="/terms.html" target="_blank" rel="noopener" onclick="event.stopPropagation()">Terms of Service</a>, <a href="/privacy.html" target="_blank" rel="noopener" onclick="event.stopPropagation()">Privacy Policy</a>, <a href="/disclaimer.html" target="_blank" rel="noopener" onclick="event.stopPropagation()">Disclaimer</a>, and <a href="/esign-consent.html" target="_blank" rel="noopener" onclick="event.stopPropagation()">Electronic Communications and E-Sign Consent</a>. I consent to electronic communications and records, and I am responsible for verifying all information before submitting, signing, or relying on any offer document.</label>
       </div>
     </div>
 
@@ -3534,6 +3534,7 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
   function getCurrentStepNames() {
     return getCurrentStepConfig().names;
   }
+  const LEGAL_POLICY_VERSION = '2026-07-29';
   const state = { step: 0, data: {}, termsOK: false, selectedPlan: null, selectedPrice: 0 };
 
   const HOF_HOMEBUYER_DEFAULTS = {
@@ -5849,7 +5850,17 @@ function routeAfterMagicLinkIfNeeded() {
   function handleTermsChange() {
     const cb = document.getElementById('termsAccepted');
     state.termsOK = !!cb.checked;
+    if (cb.checked) {
+      state.data.legalAcceptance = {
+        policyVersion: LEGAL_POLICY_VERSION,
+        acceptedAt: new Date().toISOString(),
+        source: 'offer_wizard'
+      };
+    } else {
+      delete state.data.legalAcceptance;
+    }
     document.getElementById('termsCheckRow').classList.toggle('accepted', cb.checked);
+    scheduleDraftSave?.();
     updateProgress();
   }
 
