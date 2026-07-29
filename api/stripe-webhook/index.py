@@ -101,6 +101,17 @@ class handler(BaseHTTPRequestHandler):
                 self._send_json(400, {"error": "Stripe test events are not accepted here."})
                 return
 
+            event_id = str(event.get("id") or "").strip()
+            if not self._claim_webhook_event(event_id, event_type, event, data_object):
+                self._send_json(200, {
+                    "received": True,
+                    "event_type": event_type,
+                    "duplicate": True,
+                })
+                return
+
+            processing_state = "processed"
+
             if event_type == "checkout.session.completed":
                 self._handle_checkout_completed(data_object)
 
@@ -123,10 +134,23 @@ class handler(BaseHTTPRequestHandler):
             elif event_type in ("invoice.payment_succeeded", "invoice.paid"):
                 self._handle_invoice_status(data_object, "active")
 
+            else:
+                processing_state = "ignored"
+
+            self._record_webhook_event(event_id, processing_state)
+
             self._send_json(200, {"received": True, "event_type": event_type})
 
         except Exception as e:
             print("Stripe webhook error:", str(e))
+            try:
+                self._record_webhook_event(
+                    locals().get("event_id", ""),
+                    "failed",
+                    "processing_failed",
+                )
+            except Exception as ledger_error:
+                print("Stripe webhook ledger error:", str(ledger_error))
             # Stripe receives a retryable failure, but the response must not
             # expose Supabase/Stripe implementation details to a caller.
             self._send_json(500, {"error": "Webhook processing failed."})
@@ -166,6 +190,104 @@ class handler(BaseHTTPRequestHandler):
 
         except Exception:
             return False
+
+    def _claim_webhook_event(self, event_id, event_type, event, data_object):
+        """Return whether a signature-verified Stripe event needs processing.
+
+        Stripe retries deliveries until it receives a 2xx response.  The ledger
+        stores only delivery metadata, never the full event body, and lets a
+        completed delivery return 200 without reapplying billing mutations.
+        Events without an ID are processed normally so malformed internal test
+        fixtures cannot weaken a genuine Stripe delivery.
+        """
+        if not event_id:
+            return True
+
+        self._require_supabase()
+        payload = {
+            "stripe_event_id": event_id,
+            "event_type": str(event_type or "unknown"),
+            "livemode": bool(event.get("livemode")),
+            "stripe_subscription_id": str(data_object.get("subscription") or data_object.get("id") or "") or None,
+            "stripe_customer_id": str(data_object.get("customer") or "") or None,
+            "processing_state": "received",
+            "received_at": self._iso_now(),
+        }
+        url = f"{SUPABASE_URL}/rest/v1/hof_stripe_webhook_events?on_conflict=stripe_event_id"
+        headers = self._supabase_headers()
+        headers["Prefer"] = "resolution=ignore-duplicates,return=representation"
+
+        with httpx.Client(timeout=15) as client:
+            response = client.post(url, headers=headers, json=payload)
+            if response.status_code >= 300:
+                raise Exception(
+                    f"Stripe webhook ledger insert failed: {response.status_code} {response.text}"
+                )
+            inserted = response.json()
+            if isinstance(inserted, list) and inserted:
+                return True
+
+            existing = client.get(
+                f"{SUPABASE_URL}/rest/v1/hof_stripe_webhook_events",
+                params={
+                    "stripe_event_id": f"eq.{event_id}",
+                    "select": "processing_state",
+                    "limit": "1",
+                },
+                headers=self._supabase_headers(),
+            )
+            if existing.status_code >= 300:
+                raise Exception(
+                    f"Stripe webhook ledger lookup failed: {existing.status_code} {existing.text}"
+                )
+            rows = existing.json()
+            if not rows:
+                raise Exception("Stripe webhook ledger did not retain the event.")
+
+            state = str(rows[0].get("processing_state") or "").lower()
+            if state in {"processed", "ignored"}:
+                return False
+
+            retry = client.patch(
+                f"{SUPABASE_URL}/rest/v1/hof_stripe_webhook_events"
+                f"?stripe_event_id=eq.{event_id}&processing_state=in.(received,failed)",
+                headers={**self._supabase_headers(), "Prefer": "return=minimal"},
+                json={
+                    "processing_state": "received",
+                    "error_code": None,
+                    "received_at": self._iso_now(),
+                    "updated_at": self._iso_now(),
+                },
+            )
+            if retry.status_code >= 300:
+                raise Exception(
+                    f"Stripe webhook ledger retry claim failed: {retry.status_code} {retry.text}"
+                )
+            return True
+
+    def _record_webhook_event(self, event_id, processing_state, error_code=None):
+        if not event_id:
+            return
+
+        self._require_supabase()
+        payload = {
+            "processing_state": processing_state,
+            "error_code": error_code,
+            "updated_at": self._iso_now(),
+        }
+        if processing_state in {"processed", "ignored"}:
+            payload["processed_at"] = self._iso_now()
+
+        with httpx.Client(timeout=15) as client:
+            response = client.patch(
+                f"{SUPABASE_URL}/rest/v1/hof_stripe_webhook_events?stripe_event_id=eq.{event_id}",
+                headers={**self._supabase_headers(), "Prefer": "return=minimal"},
+                json=payload,
+            )
+            if response.status_code >= 300:
+                raise Exception(
+                    f"Stripe webhook ledger update failed: {response.status_code} {response.text}"
+                )
 
     def _stripe_get_subscription(self, subscription_id):
         if not subscription_id:

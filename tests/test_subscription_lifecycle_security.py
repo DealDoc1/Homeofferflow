@@ -11,6 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 CHECKOUT_PATH = ROOT / "api" / "create-subscription-checkout" / "index.py"
 PORTAL_PATH = ROOT / "api" / "create-billing-portal" / "index.py"
 WEBHOOK_PATH = ROOT / "api" / "stripe-webhook" / "index.py"
+LEDGER_MIGRATION = ROOT / "supabase" / "homeofferflow_stripe_webhook_event_ledger.sql"
 INDEX_HTML = (ROOT / "index.html").read_text(encoding="utf-8")
 
 os.environ.setdefault("STRIPE_SECRET_KEY", "sk_test_example")
@@ -83,6 +84,33 @@ class BillingClient:
         return Response(200, {"id": "bps_test", "url": "https://billing.stripe.test/session"})
 
 
+class WebhookLedgerClient:
+    insert_rows = [{"stripe_event_id": "evt_new"}]
+    existing_state = "processed"
+    requests = []
+
+    def __init__(self, *args, **kwargs):
+        pass
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        return False
+
+    def post(self, url, **kwargs):
+        self.__class__.requests.append(("post", url, kwargs))
+        return Response(201, self.__class__.insert_rows)
+
+    def get(self, url, **kwargs):
+        self.__class__.requests.append(("get", url, kwargs))
+        return Response(200, [{"processing_state": self.__class__.existing_state}])
+
+    def patch(self, url, **kwargs):
+        self.__class__.requests.append(("patch", url, kwargs))
+        return Response(204, [])
+
+
 class SubscriptionLifecycleSecurityTests(unittest.TestCase):
     def setUp(self):
         checkout.STRIPE_SECRET_KEY = "sk_test_example"
@@ -97,6 +125,9 @@ class SubscriptionLifecycleSecurityTests(unittest.TestCase):
         os.environ.pop("STRIPE_WEBHOOK_ALLOW_TEST_EVENTS", None)
         CheckoutStripeClient.last_post = None
         BillingClient.last_portal_post = None
+        WebhookLedgerClient.insert_rows = [{"stripe_event_id": "evt_new"}]
+        WebhookLedgerClient.existing_state = "processed"
+        WebhookLedgerClient.requests = []
 
     def _checkout_request(self, body, authorization="Bearer verified-token"):
         raw = json.dumps(body).encode()
@@ -254,6 +285,46 @@ class SubscriptionLifecycleSecurityTests(unittest.TestCase):
 
         self.assertEqual(captured["invoice"]["subscription"], "sub_sandbox")
         self.assertEqual(captured["status"], "active")
+
+    def test_webhook_ledger_deduplicates_completed_events_without_storing_event_body(self):
+        request = webhook.handler.__new__(webhook.handler)
+        request._iso_now = lambda: "2026-07-29T00:00:00Z"
+        event = {"id": "evt_completed", "livemode": True}
+        data = {"subscription": "sub_completed", "customer": "cus_completed"}
+
+        WebhookLedgerClient.insert_rows = []
+        WebhookLedgerClient.existing_state = "processed"
+        with patch.object(webhook.httpx, "Client", WebhookLedgerClient):
+            self.assertFalse(request._claim_webhook_event("evt_completed", "invoice.paid", event, data))
+
+        self.assertEqual(WebhookLedgerClient.requests[0][0], "post")
+        self.assertEqual(WebhookLedgerClient.requests[1][0], "get")
+        stored = WebhookLedgerClient.requests[0][2]["json"]
+        self.assertEqual(stored["stripe_event_id"], "evt_completed")
+        self.assertNotIn("data", stored)
+        self.assertNotIn("customer_email", stored)
+
+    def test_webhook_ledger_records_processing_result_and_allows_failed_retry(self):
+        request = webhook.handler.__new__(webhook.handler)
+        request._iso_now = lambda: "2026-07-29T00:00:00Z"
+        event = {"id": "evt_retry", "livemode": True}
+
+        WebhookLedgerClient.insert_rows = []
+        WebhookLedgerClient.existing_state = "failed"
+        with patch.object(webhook.httpx, "Client", WebhookLedgerClient):
+            self.assertTrue(request._claim_webhook_event("evt_retry", "invoice.paid", event, {}))
+            request._record_webhook_event("evt_retry", "processed")
+
+        patch_payloads = [entry[2]["json"] for entry in WebhookLedgerClient.requests if entry[0] == "patch"]
+        self.assertEqual(patch_payloads[0]["processing_state"], "received")
+        self.assertEqual(patch_payloads[1]["processing_state"], "processed")
+        self.assertIn("processed_at", patch_payloads[1])
+
+    def test_webhook_ledger_is_server_only(self):
+        migration = LEDGER_MIGRATION.read_text(encoding="utf-8")
+        self.assertIn("enable row level security", migration)
+        self.assertIn("revoke all on table public.hof_stripe_webhook_events from anon, authenticated", migration)
+        self.assertIn("grant all on table public.hof_stripe_webhook_events to service_role", migration)
 
     def test_webhook_failure_does_not_expose_internal_error_text(self):
         event = {"type": "checkout.session.completed", "data": {"object": {}}}
