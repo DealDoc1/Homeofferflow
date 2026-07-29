@@ -25,6 +25,8 @@ ALLOWED_PARTNER_TYPES = {
 MAX_BODY_BYTES = 12_000
 PUBLIC_APP_ORIGIN = (os.environ.get("PUBLIC_APP_URL") or "https://www.homeofferflow.com").rstrip("/")
 BROKERAGE_INVITE_EMAIL_RE = re.compile(r"(?=.{3,254}$)[^@\s]+@[^@\s]+\.[^@\s]+$")
+BROKERAGE_BRAND_COLOR_RE = re.compile(r"#[0-9a-fA-F]{6}$")
+BROKERAGE_BRANDING_BUCKET = "brokerage-branding"
 TXR_1501_FORM_CODE = "TXR-1501"
 TXR_1506_FORM_CODE = "TXR-1506"
 TXR_1507_FORM_CODE = "TXR-1507"
@@ -371,6 +373,64 @@ async def _create_brokerage_invite(actor, data):
         "expiresAt": invite.get("expires_at"),
         "inviteUrl": _brokerage_invite_url(invite["invite_token"]),
         "reused": False,
+    }
+
+
+def _parse_brokerage_branding_update(data, brokerage_id):
+    """Validate only public, brokerage-owned brand presentation fields.
+
+    The browser uploads a logo to the fixed public Storage folder after Storage
+    RLS verifies the caller is an active broker admin.  This API then accepts
+    only that brokerage's resulting URL, never an arbitrary remote URL.
+    """
+    updates = {}
+    if "brand_color" in data:
+        color = str(data.get("brand_color") or "").strip()
+        if color and not BROKERAGE_BRAND_COLOR_RE.fullmatch(color):
+            raise ValueError("Brand color must use the format #RRGGBB.")
+        updates["brand_color"] = color or None
+    if "logo_url" in data:
+        logo_url = str(data.get("logo_url") or "").strip()
+        if logo_url:
+            allowed_prefix = (
+                f"{SUPABASE_URL}/storage/v1/object/public/"
+                f"{BROKERAGE_BRANDING_BUCKET}/{brokerage_id}/"
+            )
+            if not SUPABASE_URL or not logo_url.startswith(allowed_prefix):
+                raise ValueError("Logo must be uploaded through the brokerage branding tool.")
+        updates["logo_url"] = logo_url or None
+    if not updates:
+        raise ValueError("Choose a brand color or upload a logo first.")
+    return updates
+
+
+async def _update_brokerage_branding(actor, data):
+    """Let an active broker admin update only their own public branding."""
+    context = await _brokerage_admin_context(actor)
+    if not context:
+        raise PermissionError("Brokerage admin access is not enabled for this account.")
+    brokerage_id = str(context["brokerage"]["id"])
+    updates = _parse_brokerage_branding_update(data, brokerage_id)
+    updates["updated_at"] = datetime.now(timezone.utc).isoformat()
+    async with httpx.AsyncClient(timeout=12) as client:
+        response = await client.patch(
+            f"{SUPABASE_URL}/rest/v1/hof_brokerages?"
+            f"id=eq.{urllib.parse.quote(brokerage_id)}",
+            headers={**_headers(), "Prefer": "return=representation"},
+            json=updates,
+        )
+    if response.status_code >= 300:
+        raise RuntimeError("Could not save brokerage branding.")
+    rows = response.json()
+    if not isinstance(rows, list) or not rows:
+        raise RuntimeError("Brokerage branding was not found after saving.")
+    brokerage = rows[0]
+    return {
+        "id": str(brokerage.get("id") or brokerage_id),
+        "name": brokerage.get("name"),
+        "dbaName": brokerage.get("dba_name"),
+        "logoUrl": brokerage.get("logo_url"),
+        "brandColor": brokerage.get("brand_color"),
     }
 
 
@@ -1021,6 +1081,10 @@ class handler(BaseHTTPRequestHandler):
             if data.get("action") == "create_brokerage_invite":
                 invite = asyncio.run(_create_brokerage_invite(user, data))
                 _json(self, 201, {"ok": True, "invite": invite})
+                return
+            if data.get("action") == "update_brokerage_branding":
+                branding = asyncio.run(_update_brokerage_branding(user, data))
+                _json(self, 200, {"ok": True, "branding": branding})
                 return
             if data.get("action") == "accept_brokerage_invite":
                 membership = asyncio.run(_accept_brokerage_invite(user, data))

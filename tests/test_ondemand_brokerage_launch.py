@@ -20,6 +20,7 @@ HARDENING = (ROOT / "supabase" / "homeofferflow_brokerage_security_hardening.sql
 BROKER_SEED = (ROOT / "supabase" / "homeofferflow_ondemand_broker_seed.sql").read_text(encoding="utf-8")
 INVITE_MIGRATION = (ROOT / "supabase" / "homeofferflow_brokerage_invites.sql").read_text(encoding="utf-8")
 INVITE_DENY_MIGRATION = (ROOT / "supabase" / "homeofferflow_brokerage_invites_rls_deny.sql").read_text(encoding="utf-8")
+BRANDING_MIGRATION = (ROOT / "supabase" / "homeofferflow_brokerage_branding_storage.sql").read_text(encoding="utf-8")
 
 os.environ.setdefault("STRIPE_SECRET_KEY", "sk_test_example")
 os.environ.setdefault("STRIPE_AGENT_MONTHLY_PRICE_ID", "price_existing_agent_monthly")
@@ -134,6 +135,29 @@ class BrokerageInviteClient:
     async def patch(self, url, **kwargs):
         self.__class__.requests.append(("patch", url, kwargs))
         return Response(200, [{"id": "updated"}])
+
+
+class BrokerageBrandingClient:
+    last_patch = None
+
+    def __init__(self, *args, **kwargs):
+        pass
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *args):
+        return False
+
+    async def patch(self, url, **kwargs):
+        self.__class__.last_patch = (url, kwargs)
+        return Response(200, [{
+            "id": "22222222-2222-2222-2222-222222222222",
+            "name": "OnDemand Realty",
+            "dba_name": "OnDemand Realty",
+            "brand_color": "#123456",
+            "logo_url": "https://example.supabase.co/storage/v1/object/public/brokerage-branding/22222222-2222-2222-2222-222222222222/brand-logo.png",
+        }])
 
 
 class OnDemandCheckoutTests(unittest.TestCase):
@@ -373,6 +397,57 @@ class BrokerageAuthorizationTests(unittest.TestCase):
         self.assertIn("create policy hof_brokerage_invites_deny_browser", INVITE_DENY_MIGRATION)
         self.assertIn("on public.hof_brokerage_invites", INVITE_DENY_MIGRATION)
         self.assertIn("to anon, authenticated", INVITE_DENY_MIGRATION)
+
+    def test_broker_can_update_only_own_storage_backed_branding(self):
+        actor = {"id": "11111111-1111-1111-1111-111111111111", "email": "tyler@ondemanddfw.com"}
+        brokerage_id = "22222222-2222-2222-2222-222222222222"
+
+        async def broker_context(_actor):
+            return {"brokerage": {"id": brokerage_id}}
+
+        BrokerageBrandingClient.last_patch = None
+        payload = {
+            "brand_color": "#123456",
+            "logo_url": "https://example.supabase.co/storage/v1/object/public/brokerage-branding/"
+                        + brokerage_id + "/brand-logo.png",
+        }
+        with patch.object(admin, "_brokerage_admin_context", broker_context), \
+             patch.object(admin.httpx, "AsyncClient", BrokerageBrandingClient):
+            result = asyncio.run(admin._update_brokerage_branding(actor, payload))
+
+        self.assertEqual(result["brandColor"], "#123456")
+        self.assertIn("id=eq." + brokerage_id, BrokerageBrandingClient.last_patch[0])
+        self.assertEqual(BrokerageBrandingClient.last_patch[1]["json"]["brand_color"], "#123456")
+
+    def test_branding_rejects_arbitrary_logo_urls_and_invalid_colors(self):
+        brokerage_id = "22222222-2222-2222-2222-222222222222"
+        with self.assertRaisesRegex(ValueError, "#RRGGBB"):
+            admin._parse_brokerage_branding_update({"brand_color": "blue"}, brokerage_id)
+        with self.assertRaisesRegex(ValueError, "uploaded through"):
+            admin._parse_brokerage_branding_update({
+                "logo_url": "https://attacker.example/logo.png"
+            }, brokerage_id)
+
+    def test_branding_storage_migration_limits_writes_to_active_broker_admins(self):
+        self.assertIn("'brokerage-branding'", BRANDING_MIGRATION)
+        self.assertIn("public = true", BRANDING_MIGRATION)
+        self.assertIn("file_size_limit = 2097152", BRANDING_MIGRATION)
+        self.assertIn("array['image/png', 'image/jpeg', 'image/webp']", BRANDING_MIGRATION)
+        self.assertIn("on storage.objects for all to authenticated", BRANDING_MIGRATION)
+        self.assertIn("m.status = 'active'", BRANDING_MIGRATION)
+        self.assertIn("m.role in ('broker_admin', 'owner')", BRANDING_MIGRATION)
+        self.assertIn("p.brokerage_id::text = (storage.foldername(name))[1]", BRANDING_MIGRATION)
+        self.assertIn("brand-logo.png", BRANDING_MIGRATION)
+
+    def test_brokerage_branding_ui_uses_limited_direct_storage_upload(self):
+        marker = INDEX_HTML.index('id="hof-ondemand-brokerage-launch-v1"')
+        final_script = INDEX_HTML[marker:]
+        self.assertIn("saveBrokerageBranding", final_script)
+        self.assertIn("update_brokerage_branding", final_script)
+        self.assertIn("brokerage-branding", final_script)
+        self.assertIn("image/png', 'image/jpeg', 'image/webp'", final_script)
+        self.assertIn("2 * 1024 * 1024", final_script)
+        self.assertIn("Only active brokerage admins can update", final_script)
 
     def test_webhook_activation_preserves_existing_broker_role(self):
         member_handler = webhook.handler.__new__(webhook.handler)

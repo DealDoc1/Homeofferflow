@@ -11857,6 +11857,63 @@ function routeAfterMagicLinkIfNeeded() {
     }
   };
 
+  root.saveBrokerageBranding = async function saveBrokerageBranding() {
+    const session = root.hofAuth?.session;
+    const brokerage = root.hofPlatform?.brokerage;
+    const client = root.getSupabaseClient?.();
+    const result = document.getElementById('brokerageBrandingResult');
+    const colorInput = document.getElementById('brokerageBrandColor');
+    const logoInput = document.getElementById('brokerageLogoFile');
+    const color = String(colorInput?.value || '').trim();
+    const logo = logoInput?.files?.[0] || null;
+    if (!session?.access_token || !brokerage?.id || !client) {
+      if (result) result.textContent = 'Sign in again before changing brokerage branding.';
+      return;
+    }
+    if (!/^#[0-9a-fA-F]{6}$/.test(color)) {
+      if (result) result.textContent = 'Choose a valid brand color.';
+      return;
+    }
+    if (logo && !['image/png', 'image/jpeg', 'image/webp'].includes(logo.type)) {
+      if (result) result.textContent = 'Use a PNG, JPG, or WebP logo.';
+      return;
+    }
+    if (logo && logo.size > 2 * 1024 * 1024) {
+      if (result) result.textContent = 'Logo files must be 2 MB or smaller.';
+      return;
+    }
+    if (result) result.textContent = logo ? 'Uploading logo…' : 'Saving brand color…';
+    try {
+      const payload = { action: 'update_brokerage_branding', brand_color: color };
+      if (logo) {
+        const extension = logo.type === 'image/png' ? 'png' : (logo.type === 'image/webp' ? 'webp' : 'jpg');
+        const path = String(brokerage.id) + '/brand-logo.' + extension;
+        const upload = await client.storage.from('brokerage-branding').upload(path, logo, {
+          cacheControl: '3600', upsert: true, contentType: logo.type
+        });
+        if (upload.error) throw upload.error;
+        const publicUrl = client.storage.from('brokerage-branding').getPublicUrl(path)?.data?.publicUrl;
+        if (!publicUrl) throw new Error('The uploaded logo URL could not be created.');
+        payload.logo_url = publicUrl;
+      }
+      const response = await fetch('/api/admin-dashboard', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + session.access_token },
+        body: JSON.stringify(payload)
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.branding) throw new Error(data.error || 'Could not save brokerage branding.');
+      root.hofPlatform.brokerage = Object.assign({}, brokerage, {
+        brand_color: data.branding.brandColor || null,
+        logo_url: data.branding.logoUrl || null
+      });
+      if (result) result.textContent = 'Brokerage branding saved.';
+      await root.renderBrokerageFoundationPanel();
+    } catch (error) {
+      if (result) result.textContent = error.message || 'Could not save brokerage branding.';
+    }
+  };
+
   root.renderBrokerageFoundationPanel = async function renderBrokerageFoundationPanel() {
     const el = document.getElementById('brokerageFoundationPanel');
     if (!el) return;
@@ -11888,6 +11945,11 @@ function routeAfterMagicLinkIfNeeded() {
         '<h4>Brokerage activity</h4>' +
         '<p>Operational visibility only. Buyer names, property addresses, offer terms, and document contents are not included.</p>' +
         '<p class="brokerage-membership-note">Suspending an agent removes brokerage-managed access only. It does not cancel that agent\'s HomeOfferFlow subscription or delete their offers.</p>' +
+        '<div class="brokerage-invite-form" style="margin-top:1rem"><label for="brokerageBrandColor">Brokerage branding</label>' +
+        '<input id="brokerageBrandColor" type="color" value="' + safe(b.brand_color || '#2563eb') + '" aria-label="Brokerage brand color">' +
+        '<input id="brokerageLogoFile" type="file" accept="image/png,image/jpeg,image/webp" aria-label="Brokerage logo (PNG, JPG, or WebP)">' +
+        '<button type="button" class="brokerage-access-button" onclick="saveBrokerageBranding()">Save branding</button></div>' +
+        '<p id="brokerageBrandingResult" class="brokerage-invite-result">Set a public color and optional PNG, JPG, or WebP logo (2 MB max). Only active brokerage admins can update this branding.</p>' +
         '<div class="brokerage-invite-form"><input id="brokerageInviteEmail" type="email" inputmode="email" autocomplete="email" placeholder="Agent email address" aria-label="Agent email address">' +
         '<button type="button" class="brokerage-access-button" onclick="createBrokerageInvite()">Create invite link</button></div>' +
         '<p id="brokerageInviteResult" class="brokerage-invite-result">The link works only for the invited email, expires in 14 days, and does not start billing until the agent completes Stripe checkout.</p>' +
