@@ -113,18 +113,20 @@ async def _brokerage_admin_context(user):
     brokerage_id = profile.get("brokerage_id")
     if not brokerage_id:
         return None
-    role = str(profile.get("role") or "").lower()
-    is_admin = bool(profile.get("is_brokerage_admin")) or role == "brokerage_admin"
-    if not is_admin:
-        memberships = await _get(
-            "hof_brokerage_members?"
-            f"brokerage_id=eq.{urllib.parse.quote(str(brokerage_id))}"
-            f"&user_id=eq.{urllib.parse.quote(user['id'])}"
-            "&status=eq.active&role=in.(broker_admin,owner)&select=id&limit=1"
-        )
-        is_admin = bool(memberships)
-    if not is_admin:
+
+    # A profile flag alone must never outlive a suspended or removed brokerage
+    # membership. Brokerage-visible dashboards expose roster and aggregate offer
+    # activity, so every broker context requires an active broker/owner
+    # membership in addition to the profile's brokerage association.
+    memberships = await _get(
+        "hof_brokerage_members?"
+        f"brokerage_id=eq.{urllib.parse.quote(str(brokerage_id))}"
+        f"&user_id=eq.{urllib.parse.quote(user['id'])}"
+        "&status=eq.active&role=in.(broker_admin,owner)&select=id&limit=1"
+    )
+    if not memberships:
         return None
+
     brokerages = await _get(
         "hof_brokerages?"
         f"id=eq.{urllib.parse.quote(str(brokerage_id))}"
