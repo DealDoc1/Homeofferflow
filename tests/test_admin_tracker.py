@@ -152,6 +152,43 @@ class AdminTrackerSecurityTests(IsolatedAsyncioTestCase):
         self.assertIn("hof_brokerage_members_enforce_agent_seat_cap", migration)
         self.assertIn("active_agents + pending_invites >= cap", migration)
 
+    async def test_brokerage_dashboard_returns_operational_counts_not_offer_or_listing_details(self):
+        context = {
+            "brokerage": {"id": "brokerage-123", "user_cap": 300, "name": "Example Realty"}
+        }
+        members = [{"user_id": "agent-123", "email": "agent@example.com", "role": "agent", "status": "active"}]
+        agent_profiles = [{"user_id": "agent-123", "agent_name": "Agent Example", "agent_email": "agent@example.com", "license_number": "123"}]
+        subscriptions = [{"user_id": "agent-123", "status": "trialing", "plan": "agent_starter_monthly", "trial_ends_at": "2026-09-01", "current_period_end": None}]
+        # These sensitive keys simulate an upstream mistake. The dashboard
+        # payload must ignore them rather than forwarding them to a broker.
+        offers = [{
+            "user_id": "agent-123", "status": "sent", "signwell_status": "awaiting_signature",
+            "created_at": "2026-07-29T00:00:00Z", "updated_at": "2026-07-29T00:00:00Z",
+            "buyer_name": "Private Buyer", "property_address": "123 Private Lane",
+            "offer_terms": {"price": 500000}, "document_contents": "private",
+        }]
+        listing_workspaces = [{"listing_kind": "sale", "status": "intake", "seller_names": ["Private Seller"], "property_address": "456 Private Road"}]
+
+        with patch.object(admin_dashboard, "_get", new=AsyncMock(return_value=members)), patch.object(
+            admin_dashboard,
+            "_get_optional",
+            new=AsyncMock(side_effect=[[], listing_workspaces, agent_profiles, subscriptions, offers]),
+        ):
+            payload = await admin_dashboard._brokerage_dashboard_payload(context)
+
+        agent = payload["agents"][0]
+        self.assertEqual(agent["activity"]["offerCount"], 1)
+        self.assertEqual(payload["listingWorkspaceSummary"], [{"listingKind": "sale", "status": "intake", "workspaceCount": 1}])
+        self.assertEqual(payload["privacy"], {
+            "buyerDetailsIncluded": False,
+            "propertyDetailsIncluded": False,
+            "offerTermsIncluded": False,
+            "documentContentsIncluded": False,
+        })
+        serialized = str(payload)
+        for sensitive_value in ("Private Buyer", "123 Private Lane", "500000", "private", "Private Seller", "456 Private Road"):
+            self.assertNotIn(sensitive_value, serialized)
+
     async def test_optional_admin_dataset_fails_open_to_empty_list(self):
         with patch.object(admin_dashboard, "_get", new=AsyncMock(side_effect=RuntimeError("table missing"))):
             rows = await admin_dashboard._get_optional("hof_partner_leads?select=*")
