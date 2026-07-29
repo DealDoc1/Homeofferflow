@@ -18,6 +18,8 @@ VERCEL = json.loads((ROOT / "vercel.json").read_text(encoding="utf-8"))
 MIGRATION = (ROOT / "supabase" / "homeofferflow_ondemand_brokerage_launch.sql").read_text(encoding="utf-8")
 HARDENING = (ROOT / "supabase" / "homeofferflow_brokerage_security_hardening.sql").read_text(encoding="utf-8")
 BROKER_SEED = (ROOT / "supabase" / "homeofferflow_ondemand_broker_seed.sql").read_text(encoding="utf-8")
+INVITE_MIGRATION = (ROOT / "supabase" / "homeofferflow_brokerage_invites.sql").read_text(encoding="utf-8")
+INVITE_DENY_MIGRATION = (ROOT / "supabase" / "homeofferflow_brokerage_invites_rls_deny.sql").read_text(encoding="utf-8")
 
 os.environ.setdefault("STRIPE_SECRET_KEY", "sk_test_example")
 os.environ.setdefault("STRIPE_AGENT_MONTHLY_PRICE_ID", "price_existing_agent_monthly")
@@ -105,6 +107,33 @@ class BrokerageRosterClient:
     async def patch(self, url, **kwargs):
         self.__class__.last_patch = (url, kwargs)
         return Response(200, [{"status": "suspended"}])
+
+
+class BrokerageInviteClient:
+    requests = []
+
+    def __init__(self, *args, **kwargs):
+        pass
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *args):
+        return False
+
+    async def post(self, url, **kwargs):
+        self.__class__.requests.append(("post", url, kwargs))
+        if "hof_brokerage_invites" in url:
+            return Response(201, [{
+                "email": "agent@example.com",
+                "invite_token": "a" * 32,
+                "expires_at": "2030-01-15T12:00:00+00:00",
+            }])
+        return Response(201, [{"id": "created"}])
+
+    async def patch(self, url, **kwargs):
+        self.__class__.requests.append(("patch", url, kwargs))
+        return Response(200, [{"id": "updated"}])
 
 
 class OnDemandCheckoutTests(unittest.TestCase):
@@ -276,6 +305,75 @@ class BrokerageAuthorizationTests(unittest.TestCase):
         self.assertIn("HomeOfferFlow subscription or delete their offers", final_script)
         self.assertIn("HomeOfferFlow billing or delete their offers", final_script)
 
+    def test_broker_can_create_an_agent_only_invite_link(self):
+        actor = {"id": "11111111-1111-1111-1111-111111111111", "email": "tyler@ondemanddfw.com"}
+        context = {"brokerage": {"id": "22222222-2222-2222-2222-222222222222"}}
+
+        async def broker_context(_actor):
+            return context
+
+        async def no_existing_access(_path):
+            return []
+
+        BrokerageInviteClient.requests = []
+        with patch.object(admin, "_brokerage_admin_context", broker_context), \
+             patch.object(admin, "_get", no_existing_access), \
+             patch.object(admin.httpx, "AsyncClient", BrokerageInviteClient):
+            result = asyncio.run(admin._create_brokerage_invite(actor, {"email": "AGENT@example.com"}))
+
+        self.assertFalse(result["reused"])
+        self.assertEqual(result["email"], "agent@example.com")
+        self.assertEqual(result["inviteUrl"], "https://www.homeofferflow.com/ondemand?invite=" + "a" * 32)
+        invite_write = next(request for request in BrokerageInviteClient.requests if request[0] == "post")
+        self.assertEqual(invite_write[2]["json"]["role"], "agent")
+        self.assertEqual(invite_write[2]["json"]["status"], "pending")
+
+    def test_invite_acceptance_requires_the_invited_email_before_any_write(self):
+        actor = {"id": "33333333-3333-3333-3333-333333333333", "email": "wrong@example.com"}
+
+        async def invite_only(_path):
+            return [{
+                "id": "invite-1",
+                "brokerage_id": "22222222-2222-2222-2222-222222222222",
+                "email": "agent@example.com",
+                "role": "agent",
+                "status": "pending",
+                "expires_at": "2030-01-15T12:00:00+00:00",
+            }]
+
+        BrokerageInviteClient.requests = []
+        with patch.object(admin, "_get", invite_only), \
+             patch.object(admin.httpx, "AsyncClient", BrokerageInviteClient):
+            with self.assertRaisesRegex(PermissionError, "email address that received"):
+                asyncio.run(admin._accept_brokerage_invite(actor, {"invite_token": "a" * 32}))
+        self.assertEqual(BrokerageInviteClient.requests, [])
+
+    def test_invite_endpoints_and_ui_keep_tokens_private_from_dashboard(self):
+        source = ADMIN_PATH.read_text(encoding="utf-8")
+        self.assertIn('data.get("action") == "create_brokerage_invite"', source)
+        self.assertIn('data.get("action") == "accept_brokerage_invite"', source)
+        dashboard_start = source.index("async def _brokerage_dashboard_payload")
+        dashboard_end = source.index("def _normalized_invite_email", dashboard_start)
+        dashboard_segment = source[dashboard_start:dashboard_end]
+        self.assertIn("pendingInvites", dashboard_segment)
+        self.assertNotIn("invite_token", dashboard_segment)
+        marker = INDEX_HTML.index('id="hof-ondemand-brokerage-launch-v1"')
+        final_script = INDEX_HTML[marker:]
+        self.assertIn("createBrokerageInvite", final_script)
+        self.assertIn("Create invite link", final_script)
+        self.assertIn("works only for the invited email", final_script)
+
+    def test_invite_migration_is_private_and_allows_one_pending_agent_invite(self):
+        self.assertIn("alter column brokerage_id set not null", INVITE_MIGRATION)
+        self.assertIn("check (role = 'agent')", INVITE_MIGRATION)
+        self.assertIn("status in ('pending', 'accepted', 'expired', 'revoked')", INVITE_MIGRATION)
+        self.assertIn("one_pending_email", INVITE_MIGRATION)
+        self.assertIn("revoke all on table public.hof_brokerage_invites from anon, authenticated", INVITE_MIGRATION)
+        self.assertIn("grant all on table public.hof_brokerage_invites to service_role", INVITE_MIGRATION)
+        self.assertIn("create policy hof_brokerage_invites_deny_browser", INVITE_DENY_MIGRATION)
+        self.assertIn("on public.hof_brokerage_invites", INVITE_DENY_MIGRATION)
+        self.assertIn("to anon, authenticated", INVITE_DENY_MIGRATION)
+
     def test_webhook_activation_preserves_existing_broker_role(self):
         member_handler = webhook.handler.__new__(webhook.handler)
         MembershipClient.requests = []
@@ -354,7 +452,9 @@ class OnDemandLaunchPageTests(unittest.TestCase):
     def test_launch_requires_authenticated_checkout_and_terms_confirmation(self):
         self.assertIn('"Authorization": `Bearer ${state.session.access_token}`', LAUNCH_HTML)
         self.assertIn('id="terms" type="checkbox"', LAUNCH_HTML)
-        self.assertIn('emailRedirectTo: `${window.location.origin}/ondemand`', LAUNCH_HTML)
+        self.assertIn('emailRedirectTo: `${window.location.origin}/ondemand${state.inviteToken', LAUNCH_HTML)
+        self.assertIn('action: "accept_brokerage_invite"', LAUNCH_HTML)
+        self.assertIn("Sign in with the email address that received this brokerage invite", ADMIN_PATH.read_text(encoding="utf-8"))
 
     def test_browser_no_longer_creates_beta_subscription_or_sets_authorization_fields(self):
         marker = INDEX_HTML.index('id="hof-ondemand-brokerage-launch-v1"')
