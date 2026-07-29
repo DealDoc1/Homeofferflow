@@ -5,6 +5,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 MIGRATION = (ROOT / "supabase" / "homeofferflow_standalone_agreements.sql").read_text()
+HTML = (ROOT / "index.html").read_text(encoding="utf-8")
 SPEC = importlib.util.spec_from_file_location("standalone_agreement", ROOT / "api" / "standalone-agreement.py")
 MODULE = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(MODULE)
@@ -52,3 +53,11 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
         payload["marketArea"] = ""
         with self.assertRaisesRegex(ValueError, "Market area"):
             MODULE.validate_draft(payload)
+
+    def test_agent_ui_requires_an_approved_private_source_and_saves_draft_only(self):
+        self.assertIn("Start TXR-1507 draft", HTML)
+        self.assertIn("approved-form check", HTML)
+        self.assertIn("Source revision", HTML)
+        self.assertIn("This saves a private draft only", HTML)
+        self.assertIn("/api/standalone-agreement", HTML)
+        self.assertIn("Draft saved privately. It has not been sent for signature.", HTML)

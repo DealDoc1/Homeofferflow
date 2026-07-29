@@ -12076,5 +12076,147 @@ function routeAfterMagicLinkIfNeeded() {
   else mount();
 })();
 </script>
+<style id="hof-txr1507-drafts-v1">
+  .hof-agreement-card { border:1px solid rgba(74,140,111,.34); background:rgba(74,140,111,.065); margin-top:1rem; }
+  .hof-agreement-card h4 { margin-bottom:.35rem; }
+  .hof-agreement-card p { color:var(--gray-light); font-size:.86rem; line-height:1.5; }
+  .hof-agreement-modal { position:fixed; z-index:10020; inset:0; display:grid; place-items:center; padding:1rem; background:rgba(0,0,0,.72); }
+  .hof-agreement-dialog { width:min(760px,100%); max-height:92vh; overflow:auto; padding:1.25rem; border:1px solid rgba(200,151,63,.40); border-radius:16px; background:var(--navy-dark); box-shadow:0 22px 80px rgba(0,0,0,.5); }
+  .hof-agreement-dialog h3 { margin:0 0 .35rem; color:var(--white); }
+  .hof-agreement-dialog p { color:var(--gray-light); line-height:1.45; }
+  .hof-agreement-grid { display:grid; grid-template-columns:1fr 1fr; gap:.75rem; margin:1rem 0; }
+  .hof-agreement-grid label { display:grid; gap:.28rem; color:var(--gray-light); font-weight:700; font-size:.82rem; }
+  .hof-agreement-grid input, .hof-agreement-grid select, .hof-agreement-grid textarea { width:100%; }
+  .hof-agreement-grid textarea { min-height:76px; resize:vertical; }
+  .hof-agreement-wide { grid-column:1/-1; }
+  .hof-agreement-services { display:flex; flex-wrap:wrap; gap:.85rem; color:var(--gray-light); font-size:.88rem; }
+  .hof-agreement-services label { display:flex; gap:.38rem; align-items:center; }
+  .hof-agreement-footer { display:flex; justify-content:flex-end; gap:.6rem; margin-top:1rem; }
+  @media (max-width:640px) { .hof-agreement-grid { grid-template-columns:1fr; } .hof-agreement-wide { grid-column:auto; } }
+</style>
+<script id="hof-txr1507-drafts-v1">
+(function () {
+  const root = window;
+  const FORM_CODE = 'TXR-1507';
+  const escape = value => String(value ?? '').replace(/[&<>\"]/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[char]));
+  const profile = () => root.hofAuth?.authoritativeProfile || {};
+  const brokerageId = () => root.hofPlatform?.brokerage?.id || profile().brokerage_id || null;
+  const activeAgent = () => {
+    const role = String(root.hofAuth?.role || profile().role || '').toLowerCase();
+    return !!root.hofAuth?.session?.user && !!brokerageId() && (role === 'agent' || role === 'brokerage_admin');
+  };
+
+  async function approvedShortFormSource() {
+    const client = root.getSupabaseClient?.();
+    if (!client || !brokerageId()) return null;
+    const { data, error } = await client.from('hof_brokerage_form_sources')
+      .select('id,form_code,source_revision')
+      .eq('brokerage_id', brokerageId())
+      .eq('form_code', FORM_CODE)
+      .eq('status', 'approved')
+      .eq('authorization_attested', true)
+      .order('updated_at', { ascending:false }).limit(1).maybeSingle();
+    if (error) throw error;
+    return data || null;
+  }
+
+  async function renderAgreementCard() {
+    const panel = document.getElementById('accountPanelDashboard');
+    if (!panel || !activeAgent() || document.getElementById('txr1507AgreementCard')) return;
+    const card = document.createElement('div');
+    card.id = 'txr1507AgreementCard';
+    card.className = 'account-card hof-agreement-card';
+    card.innerHTML = '<h4>Buyer/Tenant Representation Agreement</h4><p id="txr1507AgreementCopy">Checking whether your brokerage has approved the Texas REALTORS® Short Form…</p>';
+    panel.appendChild(card);
+    try {
+      const source = await approvedShortFormSource();
+      const copy = card.querySelector('#txr1507AgreementCopy');
+      if (!source) {
+        copy.textContent = 'TXR-1507 is not yet enabled for your brokerage. A brokerage administrator must privately upload and approve the current authorized source form first.';
+        return;
+      }
+      copy.innerHTML = `Start a private TXR-1507 Short Form draft using your brokerage-approved ${escape(source.source_revision)} source. A draft is not sent or signed until the separate review and signing release is complete.`;
+      const button = document.createElement('button');
+      button.type = 'button'; button.className = 'btn-secondary'; button.textContent = 'Start TXR-1507 draft';
+      button.addEventListener('click', () => openDraftDialog(source));
+      card.appendChild(button);
+    } catch (error) {
+      console.error('TXR-1507 source check failed:', error);
+      card.querySelector('#txr1507AgreementCopy').textContent = 'The approved-form check is temporarily unavailable.';
+    }
+  }
+
+  function openDraftDialog(source) {
+    document.getElementById('txr1507AgreementDialog')?.remove();
+    const modal = document.createElement('div');
+    modal.id = 'txr1507AgreementDialog';
+    modal.className = 'hof-agreement-modal';
+    modal.innerHTML = `
+      <form class="hof-agreement-dialog" id="txr1507AgreementForm">
+        <h3>TXR-1507 Short Form draft</h3>
+        <p>Source revision ${escape(source.source_revision)} is approved by your brokerage. Review every term with your client. This saves a private draft only; it does not send or sign an agreement.</p>
+        <div class="hof-agreement-grid">
+          <label>Client 1 full name<input name="clientOne" required maxlength="180"></label>
+          <label>Client 2 full name (optional)<input name="clientTwo" maxlength="180"></label>
+          <label class="hof-agreement-wide">Market Area (required)<textarea name="marketArea" required maxlength="800" placeholder="Example: Collin and Denton Counties, Texas"></textarea></label>
+          <label>Term begins<input name="termStart" type="date" required></label>
+          <label>Term ends<input name="termEnd" type="date" required></label>
+          <div class="hof-agreement-wide"><span style="display:block;color:var(--gray-light);font-weight:700;font-size:.82rem;margin-bottom:.4rem">Services</span><div class="hof-agreement-services"><label><input type="radio" name="serviceLevel" value="full_services" checked> Full Services</label><label><input type="radio" name="serviceLevel" value="showing_services"> Showing Services</label></div></div>
+          <label id="txr1507ShowingFeeWrap">Showing Services execution fee<input name="showingFee" inputmode="decimal" placeholder="Required only for Showing Services"></label>
+          <label>Purchase compensation %<input name="purchasePercentage" inputmode="decimal" placeholder="Optional"></label>
+          <label>Purchase flat fee<input name="purchaseFlatFee" inputmode="decimal" placeholder="Optional"></label>
+          <label>Lease: % of one month’s rent<input name="leaseOneMonthPercentage" inputmode="decimal" placeholder="Optional"></label>
+          <label>Lease: % of all rents<input name="leaseTotalRentsPercentage" inputmode="decimal" placeholder="Optional"></label>
+          <label>Lease flat fee<input name="leaseFlatFee" inputmode="decimal" placeholder="Optional"></label>
+          <label>Intermediary choice<select name="intermediary" required><option value="">Choose one…</option><option value="authorized">Client authorizes intermediary</option><option value="not_authorized">Client does not authorize intermediary</option></select></label>
+        </div>
+        <div id="txr1507DraftStatus" class="hof-iabs-status"></div>
+        <div class="hof-agreement-footer"><button class="btn-secondary" type="button" id="txr1507Cancel">Cancel</button><button class="btn-primary" type="submit">Save private draft</button></div>
+      </form>`;
+    document.body.appendChild(modal);
+    modal.querySelector('#txr1507Cancel').addEventListener('click', () => modal.remove());
+    modal.addEventListener('click', event => { if (event.target === modal) modal.remove(); });
+    modal.querySelectorAll('input[name="serviceLevel"]').forEach(input => input.addEventListener('change', () => {
+      const showing = modal.querySelector('input[name="serviceLevel"]:checked').value === 'showing_services';
+      modal.querySelector('[name="showingFee"]').required = showing;
+      modal.querySelector('#txr1507ShowingFeeWrap').style.opacity = showing ? '1' : '.58';
+    }));
+    modal.querySelector('#txr1507AgreementForm').addEventListener('submit', event => submitDraft(event, source, modal));
+  }
+
+  async function submitDraft(event, source, modal) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    const status = modal.querySelector('#txr1507DraftStatus');
+    const clientNames = [form.get('clientOne'), form.get('clientTwo')].map(value => String(value || '').trim()).filter(Boolean);
+    const payload = {
+      action: 'create_draft', formCode: FORM_CODE, formSourceId: source.id, clientNames,
+      marketArea: form.get('marketArea'), termStart: form.get('termStart'), termEnd: form.get('termEnd'),
+      serviceLevel: form.get('serviceLevel'), showingFee: form.get('showingFee'), intermediary: form.get('intermediary'),
+      compensation: { purchasePercentage: form.get('purchasePercentage'), purchaseFlatFee: form.get('purchaseFlatFee'), leaseOneMonthPercentage: form.get('leaseOneMonthPercentage'), leaseTotalRentsPercentage: form.get('leaseTotalRentsPercentage'), leaseFlatFee: form.get('leaseFlatFee') }
+    };
+    try {
+      status.className = 'hof-iabs-status'; status.textContent = 'Saving private agreement draft…';
+      const token = root.hofAuth?.session?.access_token;
+      const response = await fetch('/api/standalone-agreement', { method:'POST', headers:{ 'Content-Type':'application/json', Authorization:`Bearer ${token}` }, body:JSON.stringify(payload) });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Could not save the agreement draft.');
+      status.className = 'hof-iabs-status ready'; status.textContent = 'Draft saved privately. It has not been sent for signature.';
+      event.currentTarget.querySelector('button[type="submit"]').disabled = true;
+    } catch (error) {
+      console.error('TXR-1507 draft failed:', error);
+      status.className = 'hof-iabs-status error'; status.textContent = error.message || 'Could not save the agreement draft.';
+    }
+  }
+
+  const priorDashboard = root.renderAccountDashboard;
+  root.renderAccountDashboard = function renderAccountDashboardWithAgreementDrafts() {
+    if (typeof priorDashboard === 'function') priorDashboard.apply(this, arguments);
+    renderAgreementCard();
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', renderAgreementCard, { once:true });
+  else renderAgreementCard();
+})();
+</script>
 </body>
 </html>
