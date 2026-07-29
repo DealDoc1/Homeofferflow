@@ -160,6 +160,38 @@ class BrokerageBrandingClient:
         }])
 
 
+class BrokerageDefaultsClient:
+    last_request = None
+
+    def __init__(self, *args, **kwargs):
+        pass
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *args):
+        return False
+
+    async def patch(self, url, **kwargs):
+        self.__class__.last_request = ("patch", url, kwargs)
+        if "hof_brokerages" in url:
+            return Response(200, [{
+                "default_title_company": "Sample Title",
+                "default_title_contact": "Taylor Escrow",
+            }])
+        return Response(200, [{
+            "preferred_title_company": "Sample Title",
+            "preferred_escrow_agent": "Taylor Escrow",
+        }])
+
+    async def post(self, url, **kwargs):
+        self.__class__.last_request = ("post", url, kwargs)
+        return Response(201, [{
+            "preferred_title_company": "Sample Title",
+            "preferred_escrow_agent": "Taylor Escrow",
+        }])
+
+
 class OnDemandCheckoutTests(unittest.TestCase):
     def setUp(self):
         checkout.STRIPE_SECRET_KEY = "sk_test_example"
@@ -453,6 +485,66 @@ class BrokerageAuthorizationTests(unittest.TestCase):
         self.assertIn("image/png', 'image/jpeg', 'image/webp'", final_script)
         self.assertIn("2 * 1024 * 1024", final_script)
         self.assertIn("Only active brokerage admins can update", final_script)
+
+    def test_broker_can_save_title_suggestions_but_not_transaction_terms(self):
+        actor = {"id": "11111111-1111-1111-1111-111111111111", "email": "tyler@ondemanddfw.com"}
+        brokerage_id = "22222222-2222-2222-2222-222222222222"
+
+        async def broker_context(_actor):
+            return {"brokerage": {"id": brokerage_id}}
+
+        BrokerageDefaultsClient.last_request = None
+        with patch.object(admin, "_brokerage_admin_context", broker_context), \
+             patch.object(admin.httpx, "AsyncClient", BrokerageDefaultsClient):
+            result = asyncio.run(admin._update_brokerage_shared_defaults(actor, {
+                "default_title_company": "Sample Title",
+                "default_title_contact": "Taylor Escrow",
+                "default_option_fee": "9999",
+            }))
+
+        self.assertEqual(result["defaultTitleCompany"], "Sample Title")
+        self.assertEqual(result["defaultTitleContact"], "Taylor Escrow")
+        saved = BrokerageDefaultsClient.last_request[2]["json"]
+        self.assertEqual(set(saved) - {"updated_at"}, {"default_title_company", "default_title_contact"})
+
+    def test_agent_can_opt_in_to_connected_brokerage_title_defaults_only(self):
+        actor = {"id": "33333333-3333-3333-3333-333333333333", "email": "agent@example.com"}
+        brokerage_id = "22222222-2222-2222-2222-222222222222"
+
+        async def lookup(path):
+            if path.startswith("hof_profiles?"):
+                return [{"id": actor["id"], "brokerage_id": brokerage_id}]
+            if path.startswith("hof_brokerage_members?"):
+                return [{"id": "membership-1"}]
+            if path.startswith("hof_brokerages?"):
+                return [{"default_title_company": "Sample Title", "default_title_contact": "Taylor Escrow"}]
+            if path.startswith("hof_agent_profiles?"):
+                return [{"user_id": actor["id"]}]
+            raise AssertionError(path)
+
+        BrokerageDefaultsClient.last_request = None
+        with patch.object(admin, "_get", lookup), \
+             patch.object(admin.httpx, "AsyncClient", BrokerageDefaultsClient):
+            result = asyncio.run(admin._apply_brokerage_shared_defaults(actor))
+
+        self.assertEqual(result["preferredTitleCompany"], "Sample Title")
+        self.assertEqual(result["preferredEscrowAgent"], "Taylor Escrow")
+        self.assertEqual(BrokerageDefaultsClient.last_request[0], "patch")
+        self.assertNotIn("default_option_fee", BrokerageDefaultsClient.last_request[2]["json"])
+
+    def test_brokerage_shared_defaults_and_seat_visibility_ui_are_explicit(self):
+        marker = INDEX_HTML.index('id="hof-ondemand-brokerage-launch-v1"')
+        final_script = INDEX_HTML[marker:]
+        for item in (
+            "saveBrokerageSharedDefaults",
+            "applyBrokerageSharedDefaults",
+            "update_brokerage_shared_defaults",
+            "apply_brokerage_shared_defaults",
+            "Agents must choose to copy",
+            "Agent seats",
+            "agentSeatCap",
+        ):
+            self.assertIn(item, final_script)
 
     def test_webhook_activation_preserves_existing_broker_role(self):
         member_handler = webhook.handler.__new__(webhook.handler)

@@ -243,6 +243,11 @@ async def _brokerage_dashboard_payload(context):
         "metrics": {
             "memberCount": len(members),
             "activeMemberCount": len([row for row in members if row.get("status") == "active"]),
+            "agentSeatCount": len([
+                row for row in members
+                if row.get("status") == "active" and (row.get("role") or "agent") == "agent"
+            ]),
+            "agentSeatCap": brokerage.get("user_cap"),
             "trialingCount": len([row for row in subscriptions if row.get("status") == "trialing"]),
             "activeSubscriptionCount": len(
                 [row for row in subscriptions if row.get("status") in {"active", "trialing"}]
@@ -431,6 +436,115 @@ async def _update_brokerage_branding(actor, data):
         "dbaName": brokerage.get("dba_name"),
         "logoUrl": brokerage.get("logo_url"),
         "brandColor": brokerage.get("brand_color"),
+    }
+
+
+def _shared_default_text(value, field, maximum=250):
+    value = " ".join(str(value or "").strip().split())
+    if len(value) > maximum:
+        raise ValueError(f"{field} is too long.")
+    return value or None
+
+
+async def _update_brokerage_shared_defaults(actor, data):
+    """Save non-transactional brokerage suggestions for agent opt-in only."""
+    context = await _brokerage_admin_context(actor)
+    if not context:
+        raise PermissionError("Brokerage admin access is not enabled for this account.")
+    title_company = _shared_default_text(data.get("default_title_company"), "Title company")
+    title_contact = _shared_default_text(data.get("default_title_contact"), "Title contact")
+    if not title_company and not title_contact:
+        raise ValueError("Enter a title company or escrow contact first.")
+    brokerage_id = str(context["brokerage"]["id"])
+    payload = {
+        "default_title_company": title_company,
+        "default_title_contact": title_contact,
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }
+    async with httpx.AsyncClient(timeout=12) as client:
+        response = await client.patch(
+            f"{SUPABASE_URL}/rest/v1/hof_brokerages?"
+            f"id=eq.{urllib.parse.quote(brokerage_id)}",
+            headers={**_headers(), "Prefer": "return=representation"},
+            json=payload,
+        )
+    if response.status_code >= 300:
+        raise RuntimeError("Could not save brokerage defaults.")
+    rows = response.json()
+    if not isinstance(rows, list) or not rows:
+        raise RuntimeError("Brokerage defaults were not found after saving.")
+    row = rows[0]
+    return {
+        "defaultTitleCompany": row.get("default_title_company"),
+        "defaultTitleContact": row.get("default_title_contact"),
+    }
+
+
+async def _apply_brokerage_shared_defaults(actor):
+    """Copy a connected brokerage's title suggestions into the agent's profile.
+
+    This is deliberately opt-in. It does not overwrite a contract, select a
+    transaction term, or grant access to a brokerage the agent does not have.
+    """
+    profiles = await _get(
+        "hof_profiles?"
+        f"id=eq.{urllib.parse.quote(actor['id'])}"
+        "&select=id,brokerage_id&limit=1"
+    )
+    if not profiles or not profiles[0].get("brokerage_id"):
+        raise ValueError("Connect to a brokerage before using brokerage defaults.")
+    brokerage_id = str(profiles[0]["brokerage_id"])
+    memberships = await _get(
+        "hof_brokerage_members?"
+        f"brokerage_id=eq.{urllib.parse.quote(brokerage_id)}"
+        f"&user_id=eq.{urllib.parse.quote(actor['id'])}"
+        "&status=eq.active&select=id&limit=1"
+    )
+    if not memberships:
+        raise PermissionError("Your active brokerage membership is required to use these defaults.")
+    brokerages = await _get(
+        "hof_brokerages?"
+        f"id=eq.{urllib.parse.quote(brokerage_id)}"
+        "&is_active=eq.true&select=default_title_company,default_title_contact&limit=1"
+    )
+    if not brokerages:
+        raise ValueError("Your brokerage defaults are not available.")
+    defaults = brokerages[0]
+    title_company = defaults.get("default_title_company")
+    title_contact = defaults.get("default_title_contact")
+    if not title_company and not title_contact:
+        raise ValueError("Your brokerage has not set title defaults yet.")
+    payload = {
+        "preferred_title_company": title_company,
+        "preferred_escrow_agent": title_contact or title_company,
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }
+    existing = await _get(
+        "hof_agent_profiles?"
+        f"user_id=eq.{urllib.parse.quote(actor['id'])}&select=user_id&limit=1"
+    )
+    async with httpx.AsyncClient(timeout=12) as client:
+        if existing:
+            response = await client.patch(
+                f"{SUPABASE_URL}/rest/v1/hof_agent_profiles?"
+                f"user_id=eq.{urllib.parse.quote(actor['id'])}",
+                headers={**_headers(), "Prefer": "return=representation"},
+                json=payload,
+            )
+        else:
+            response = await client.post(
+                f"{SUPABASE_URL}/rest/v1/hof_agent_profiles",
+                headers={**_headers(), "Prefer": "return=representation"},
+                json={**payload, "user_id": actor["id"], "agent_email": actor["email"]},
+            )
+    if response.status_code >= 300:
+        raise RuntimeError("Could not apply brokerage defaults to your profile.")
+    rows = response.json()
+    if not isinstance(rows, list) or not rows:
+        raise RuntimeError("Your agent profile was not returned after updating.")
+    return {
+        "preferredTitleCompany": rows[0].get("preferred_title_company"),
+        "preferredEscrowAgent": rows[0].get("preferred_escrow_agent"),
     }
 
 
@@ -1085,6 +1199,14 @@ class handler(BaseHTTPRequestHandler):
             if data.get("action") == "update_brokerage_branding":
                 branding = asyncio.run(_update_brokerage_branding(user, data))
                 _json(self, 200, {"ok": True, "branding": branding})
+                return
+            if data.get("action") == "update_brokerage_shared_defaults":
+                defaults = asyncio.run(_update_brokerage_shared_defaults(user, data))
+                _json(self, 200, {"ok": True, "defaults": defaults})
+                return
+            if data.get("action") == "apply_brokerage_shared_defaults":
+                profile = asyncio.run(_apply_brokerage_shared_defaults(user))
+                _json(self, 200, {"ok": True, "profile": profile})
                 return
             if data.get("action") == "accept_brokerage_invite":
                 membership = asyncio.run(_accept_brokerage_invite(user, data))
