@@ -2,8 +2,10 @@
 
 This foundation separates agent-owned seller/listing intake from buyer offers
 and from legal-form drafts. It supports a sale or lease workspace, property
-address, one-to-four seller names, requested workflow labels, and confidential
-agent notes.
+address, one-to-four seller names, requested workflow labels, confidential
+agent notes, and agent-owned progress statuses. Agents can mark a workspace as
+intake, source pending, draft, ready for review, or archived. These statuses
+organize internal work only.
 
 ## Privacy model
 

@@ -33,6 +33,13 @@ class ListingWorkspaceFoundationTests(unittest.TestCase):
         self.assertIn("hof_brokerage_listing_workspace_summary", INDEX)
         self.assertIn("It has not created a form or signature request.", INDEX)
 
+    def test_agent_can_update_only_workspace_progress_statuses(self):
+        self.assertIn("LISTING_WORKSPACE_STATUSES", INDEX)
+        self.assertIn("updateListingWorkspaceStatus", INDEX)
+        self.assertIn("Private workflow status", INDEX)
+        self.assertIn("This does not create, send, or sign a form.", INDEX)
+        self.assertIn(".eq('id', workspaceId)", INDEX)
+
     def test_dashboard_shows_source_readiness_without_activating_forms(self):
         self.assertIn("Listing Form Readiness", INDEX)
         self.assertIn("loadListingWorkspaceSourceReadiness", INDEX)

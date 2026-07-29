@@ -8789,6 +8789,35 @@ function routeAfterMagicLinkIfNeeded() {
     return String(value || '').replace(/_/g, ' ').replace(/\b\w/g, letter => letter.toUpperCase());
   }
 
+  const LISTING_WORKSPACE_STATUSES = ['intake', 'source_pending', 'draft', 'ready_for_review', 'archived'];
+
+  function listingWorkspaceStatusOptions(current) {
+    return LISTING_WORKSPACE_STATUSES.map(status =>
+      `<option value="${status}" ${status === current ? 'selected' : ''}>${escapeAttr(listingWorkspaceLabel(status))}</option>`
+    ).join('');
+  }
+
+  async function updateListingWorkspaceStatus(workspaceId, nextStatus) {
+    const client = getSupabaseClient();
+    const user = platformUser();
+    const status = String(nextStatus || '').trim();
+    if (!client || !user) return platformStatus('listingWorkspaceStatus', 'Sign in before updating a listing workspace.', 'err');
+    if (!LISTING_WORKSPACE_STATUSES.includes(status)) {
+      return platformStatus('listingWorkspaceStatus', 'Choose a valid listing-workspace status.', 'err');
+    }
+    try {
+      const { error } = await client.from('hof_listing_workspaces')
+        .update({ status, updated_at: new Date().toISOString() })
+        .eq('id', workspaceId);
+      if (error) throw error;
+      platformStatus('listingWorkspaceStatus', `Workspace marked ${listingWorkspaceLabel(status)}. This does not create, send, or sign a form.`, 'ok');
+      await loadListingWorkspacesFoundation();
+    } catch (err) {
+      console.error('Listing workspace status update failed:', err);
+      platformStatus('listingWorkspaceStatus', err?.message || 'Could not update the listing workspace.', 'err');
+    }
+  }
+
   async function loadListingWorkspacesFoundation() {
     const list = document.getElementById('listingWorkspaceList');
     const summary = document.getElementById('listingWorkspaceBrokerSummary');
@@ -8804,7 +8833,7 @@ function routeAfterMagicLinkIfNeeded() {
       list.innerHTML = workspaces.length ? workspaces.map(workspace => {
         const workflows = Array.isArray(workspace.requested_workflows) && workspace.requested_workflows.length
           ? workspace.requested_workflows.map(listingWorkspaceLabel).join(' · ') : 'No workflow selected yet';
-        return `<div class="platform-list-item"><strong>${escapeAttr(workspace.property_address || 'Listing workspace')}</strong><span class="platform-pill">${escapeAttr(listingWorkspaceLabel(workspace.listing_kind))}</span><span class="platform-pill">${escapeAttr(listingWorkspaceLabel(workspace.status))}</span><br>${escapeAttr((workspace.seller_names || []).join(' · '))}<br><small>${escapeAttr(workflows)}</small></div>`;
+        return `<div class="platform-list-item"><strong>${escapeAttr(workspace.property_address || 'Listing workspace')}</strong><span class="platform-pill">${escapeAttr(listingWorkspaceLabel(workspace.listing_kind))}</span><span class="platform-pill">${escapeAttr(listingWorkspaceLabel(workspace.status))}</span><br>${escapeAttr((workspace.seller_names || []).join(' · '))}<br><small>${escapeAttr(workflows)}</small><div style="display:flex;gap:.45rem;align-items:center;flex-wrap:wrap;margin-top:.6rem;"><label style="font-size:.78rem;">Private workflow status <select id="listingWorkspaceStatus-${escapeAttr(workspace.id)}">${listingWorkspaceStatusOptions(workspace.status)}</select></label><button type="button" class="btn-secondary" onclick="updateListingWorkspaceStatus('${escapeAttr(workspace.id)}', document.getElementById('listingWorkspaceStatus-${escapeAttr(workspace.id)}').value)">Update status</button></div></div>`;
       }).join('') : '<div class="platform-list-item">No private listing workspaces yet.</div>';
       const profile = hofAuth.accountProfile || hofAuth.authoritativeProfile || {};
       const mayViewSummary = profile.is_brokerage_admin === true || String(profile.role || '').toLowerCase() === 'brokerage_admin' || isCurrentAdmin();
