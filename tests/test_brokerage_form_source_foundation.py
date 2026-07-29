@@ -4,6 +4,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 MIGRATION = (ROOT / "supabase" / "homeofferflow_brokerage_form_sources.sql").read_text()
+LISTING_EXPANSION = (ROOT / "supabase" / "homeofferflow_expand_brokerage_listing_form_sources.sql").read_text()
 HTML = (ROOT / "index.html").read_text(encoding="utf-8")
 
 
@@ -26,6 +27,13 @@ class BrokerageFormSourceFoundationTests(unittest.TestCase):
         self.assertIn("hof_brokerage_form_sources_storage_admin_manage", MIGRATION)
         self.assertIn("m.role in ('broker_admin', 'owner')", MIGRATION)
         self.assertIn("Agents never get Storage access", MIGRATION)
+
+    def test_listing_side_sources_are_private_and_do_not_activate_workflows(self):
+        for form_code in ("TXR-1101", "TXR-1102", "TXR-1406", "TXR-1418"):
+            self.assertIn(f"'{form_code}'", LISTING_EXPANSION)
+            self.assertIn(f"'{form_code}'", HTML)
+        self.assertIn("does not enable form completion", LISTING_EXPANSION)
+        self.assertIn("Source approval never activates a workflow", HTML)
 
     def test_broker_admin_can_upload_attested_private_source_but_cannot_activate_a_workflow(self):
         self.assertIn("Brokerage-approved form sources", HTML)
