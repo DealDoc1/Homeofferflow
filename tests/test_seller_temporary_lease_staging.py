@@ -152,6 +152,9 @@ class SellerTemporaryLeaseStagingTests(unittest.TestCase):
 
     def test_only_staging_bundle_includes_seller_temp_lease_source(self):
         config = json.loads((ROOT / "vercel.json").read_text())
+        self.assertIsInstance(
+            config["functions"]["api/fill_pdf_20_19_staging.py"]["includeFiles"], str
+        )
         self.assertIn(
             "seller_temporary_residential_lease_15-7.pdf",
             config["functions"]["api/fill_pdf_20_19_staging.py"]["includeFiles"],
