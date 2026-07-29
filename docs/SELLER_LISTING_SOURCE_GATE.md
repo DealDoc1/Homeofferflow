@@ -1,7 +1,7 @@
 # Seller/listing source gate
 
 The brokerage form-source vault accepts the following listing-side codes only
-as private, broker-admin-approved sources:
+as private, source-owner-authorized sources:
 
 | Code | Intended future workflow |
 | --- | --- |
@@ -13,4 +13,6 @@ as private, broker-admin-approved sources:
 Uploading an authorized source does **not** make it available to agents,
 generate a document, create a signature request, or permit source download.
 Each workflow requires its own data model, recipient/signing plan, field map,
-completed-PDF visual QA, and broker approval before it can be released.
+completed-PDF visual QA, and HomeOfferFlow release-authority approval before
+it can be released. A customer organization must additionally attest only when
+it owns the private source.

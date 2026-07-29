@@ -18,9 +18,9 @@ The Long Form intake records the following agent-entered terms privately:
 | --- | --- | --- |
 | Parties | One or two client names and client contact details | The final broker details must come from the brokerage profile, not a browser field. |
 | Market Area / Term | Market area and ordered start/end dates | Never permit a blank market area or an end date before the start date. |
-| Broker compensation | Purchase and lease percentage and/or flat-fee terms | Require at least one broker-approved term; do not calculate or suggest a fee. |
+| Broker compensation | Purchase and lease percentage and/or flat-fee terms | Require at least one agent-confirmed authorized term; do not calculate or suggest a fee. |
 | Retainer | Optional amount and treatment election | Require an explicit treatment only if a retainer is supplied. |
-| Protection period | Optional whole-number days | Store only an agent-confirmed broker-approved value. |
+| Protection period | Optional whole-number days | Store only an agent-confirmed authorized value. |
 | Payment county | County for payment direction | Required for the eventual mapping. |
 | Intermediary | Authorized or not authorized | Require an explicit selection. |
 
@@ -28,14 +28,15 @@ The Long Form intake records the following agent-entered terms privately:
 
 Before this becomes a completed or sent agreement, HomeOfferFlow must have:
 
-1. A current TXR-1501 source privately uploaded and expressly approved by an
-   authorized OnDemand brokerage administrator.
+1. A current TXR-1501 source privately uploaded and attested by an authorized
+   source-owner administrator.
 2. A form-specific field map for all six pages, including broker/associate
    information, client initials, and both client signature lines.
-3. A broker-approved signer plan for broker, associate, and one- or two-client
+3. An authorized signer plan for broker, associate, and one- or two-client
    variants.
 4. Rendered and completed SignWell QA for each applicable printed blank,
    checkbox, initial, signature, and date.
-5. OnDemand approval of the final source revision and client-facing language.
+5. HomeOfferFlow release-authority approval of the final workflow and
+   client-facing language.
 
 Until those gates pass, the workflow remains a private draft record only.

@@ -8747,7 +8747,7 @@ function routeAfterMagicLinkIfNeeded() {
       const approved = new Map((data || []).map(row => [row.form_code, row.source_revision]));
       target.innerHTML = required.map(([code, label]) => {
         const revision = approved.get(code);
-        return `<div class="platform-list-item"><strong>${escapeAttr(code)}</strong> · ${escapeAttr(label)}<span class="platform-pill ${revision ? 'good' : ''}">${revision ? 'Source approved' : 'Source not approved'}</span>${revision ? `<br><small>Brokerage source revision: ${escapeAttr(revision)}. Execution remains gated.</small>` : '<br><small>Brokerage administrator must privately upload and approve an authorized current source before implementation can begin.</small>'}</div>`;
+        return `<div class="platform-list-item"><strong>${escapeAttr(code)}</strong> · ${escapeAttr(label)}<span class="platform-pill ${revision ? 'good' : ''}">${revision ? 'Source approved' : 'Source not approved'}</span>${revision ? `<br><small>Organization source revision: ${escapeAttr(revision)}. Execution remains gated.</small>` : '<br><small>An authorized organization administrator must privately upload and attest to the current authorized source before implementation can begin.</small>'}</div>`;
       }).join('');
     } catch (err) {
       console.warn('Listing source readiness load failed:', err);
@@ -12502,7 +12502,7 @@ function routeAfterMagicLinkIfNeeded() {
       const source = await approvedShortFormSource();
       const copy = card.querySelector('#txr1507AgreementCopy');
       if (!source) {
-        copy.textContent = 'TXR-1507 is not yet enabled for your brokerage. A brokerage administrator must privately upload and approve the current authorized source form first.';
+        copy.textContent = 'TXR-1507 is not yet enabled for your organization. An authorized administrator must privately upload and attest to the current authorized source form first.';
         return;
       }
       copy.innerHTML = `Start a private TXR-1507 Short Form draft using your brokerage-approved ${escape(source.source_revision)} source. A draft is not sent or signed until the separate review and signing release is complete.`;
@@ -12627,7 +12627,7 @@ function routeAfterMagicLinkIfNeeded() {
       const source = await approvedLongFormSource();
       const copy = card.querySelector('#txr1501AgreementCopy');
       if (!source) {
-        copy.textContent = 'TXR-1501 is not yet enabled for your brokerage. A brokerage administrator must privately upload and approve the current authorized source form first.';
+        copy.textContent = 'TXR-1501 is not yet enabled for your organization. An authorized administrator must privately upload and attest to the current authorized source form first.';
         return;
       }
       copy.innerHTML = `Start a private TXR-1501 Long Form draft using your brokerage-approved ${escape(source.source_revision)} source. Choose this form deliberately; it is not a substitute for the Short Form. A draft is not sent or signed.`;
@@ -12759,7 +12759,7 @@ function routeAfterMagicLinkIfNeeded() {
       const source = await approvedShowingSource();
       const copy = card.querySelector('#txr1508AgreementCopy');
       if (!source) {
-        copy.textContent = 'TXR-1508 is not yet enabled for your brokerage. A brokerage administrator must privately upload and approve the current authorized source form first.';
+        copy.textContent = 'TXR-1508 is not yet enabled for your organization. An authorized administrator must privately upload and attest to the current authorized source form first.';
         return;
       }
       copy.innerHTML = `Start a private TXR-1508 showing draft using your brokerage-approved ${escape(source.source_revision)} source. This is an unrepresented-customer workflow, not a buyer representation agreement. A draft is not sent or signed.`;
@@ -12874,7 +12874,7 @@ function routeAfterMagicLinkIfNeeded() {
     panel.appendChild(card);
     try {
       const source = await approvedNoticeSource(), copy = card.querySelector('#txr1506AgreementCopy');
-      if (!source) { copy.textContent = 'TXR-1506 is not yet enabled for your brokerage. A brokerage administrator must privately upload and approve the current authorized source form first.'; return; }
+      if (!source) { copy.textContent = 'TXR-1506 is not yet enabled for your organization. An authorized administrator must privately upload and attest to the current authorized source form first.'; return; }
       copy.innerHTML = `Start a private TXR-1506 notice draft using your brokerage-approved ${escape(source.source_revision)} source. This is a consumer notice, not a representation agreement. A draft is not sent or signed.`;
       const button = document.createElement('button'); button.type = 'button'; button.className = 'btn-secondary'; button.textContent = 'Start TXR-1506 draft';
       button.addEventListener('click', () => openNoticeDraft(source)); card.appendChild(button);

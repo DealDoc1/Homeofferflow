@@ -18,4 +18,6 @@ agent notes.
 Creating a workspace does not create representation, a listing agreement, a
 seller disclosure, a PDF, or a signature request. Listing-side form execution
 remains blocked until an authorized source, field map, signer plan, rendered
-completed-PDF QA, and broker approval are complete.
+completed-PDF QA, and HomeOfferFlow release-authority approval are complete.
+A customer organization attestation is required only when it owns the private
+source.

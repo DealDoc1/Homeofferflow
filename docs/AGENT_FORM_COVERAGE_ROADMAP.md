@@ -33,7 +33,7 @@ Important source-form rule: TREC does **not** promulgate a buyer representation
 agreement. For the Texas REALTORS® member workflow, the approved source forms
 are TXR-1501 Residential Buyer/Tenant Representation Agreement - Long Form and
 TXR-1507 Residential Buyer/Tenant Representation Agreement - Short Form. The
-agent must choose the correct broker-approved form; HomeOfferFlow must not
+agent must choose the correct authorized form; HomeOfferFlow must not
 silently default a client into either agreement or improvise legal agreement
 language.
 
@@ -44,7 +44,7 @@ They are separate releases, not addenda to a purchase offer.
 
 Release requirements:
 
-- broker-approved source PDF/template and version owner;
+- authorized source PDF/template and version owner;
 - a verified authorization model for Texas REALTORS® forms (the source form
   itself limits use to authorized members);
 - an explicit agent choice between the Long Form and Short Form, with no
@@ -53,7 +53,8 @@ Release requirements:
 - correct agent, broker, and buyer signer/recipient roles;
 - secure association to the agent and brokerage;
 - rendered-PDF, signature-placement, and single-/multi-buyer QA;
-- broker approval before production release.
+- HomeOfferFlow release authority approval before production release;
+- source-owner attestation when a customer brokerage supplies a private source.
 
 Foundation completed locally: `supabase/homeofferflow_brokerage_form_sources.sql`
 creates a private brokerage-source vault for TXR-1501, TXR-1506, TXR-1507,
@@ -76,47 +77,50 @@ Release requirements:
 - property and listing association with access controls;
 - visible review/attestation step for the seller;
 - rendered-PDF and field-by-field QA;
-- broker approval before production release.
+- HomeOfferFlow release authority approval before production release.
 
 ### 3. Listing agreement workflow
 
 Build this as the opening of the seller/listing workspace, paired with the
 seller disclosure workflow rather than as another offer addendum. Listing
-agreements are brokerage/private agreements, so OnDemand must supply the
-broker-approved source agreement and authorize its use before implementation.
+agreements are usually organization-private agreements, so the source owner
+must supply the authorized source agreement and attest to its use before
+implementation.
 
 Release requirements:
 
-- broker-approved source agreement and version owner;
-- seller, listing agent, broker, and any team/supervisor roles defined by
-  OnDemand;
+- authorized source agreement and version owner;
+- seller, listing agent, broker, and any team/supervisor roles defined by the
+  source-owning organization;
 - listing-specific data intake and electronic signatures;
-- visibility limited to the assigned brokerage team and authorized broker
+- visibility limited to the assigned organization team and authorized
   administrators;
 - rendered-PDF, signature-placement, and multi-seller QA;
-- broker approval before production release.
+- HomeOfferFlow release authority approval before production release.
 
 ### 4. Core transaction follow-up forms
 
 After the relationship and listing foundations are live, add the documents
 agents most often need after an offer is written: approved amendments,
-termination/notice workflows, and remaining broker-approved transaction forms.
+termination/notice workflows, and remaining authorized transaction forms.
 Each form is a separate release, not a checkbox added to the offer wizard.
 
 ## Non-negotiable release gate for every new form
 
-1. **Approved source:** confirm the official or brokerage-approved source form,
+1. **Approved source:** confirm the official or source-owner-authorized form,
    current version, and authority to use it.
 2. **Data model:** add only the information needed for that document and keep
    buyer/seller data separated by role.
-3. **Signing plan:** define each recipient, signing order, and broker oversight
-   before any e-signature fields are placed.
+3. **Signing plan:** define each recipient, signing order, and applicable
+   organization oversight before any e-signature fields are placed.
 4. **Visual QA:** inspect every applicable blank, checkbox, initial, signature,
    and date on a rendered completed PDF.
 5. **Regression:** add a dedicated golden test packet for the new form and run
    existing purchase-packet regressions.
-6. **Broker approval:** Tyler Demando or his delegated OnDemand reviewer signs
-   off on the source form, workflow, and release copy before production.
+6. **Release authority:** HomeOfferFlow's CEO or delegated product reviewer
+   signs off on the workflow and release copy before production. If a customer
+   brokerage or organization supplies a private source, its authorized source
+   owner must separately attest to the source and version.
 
 ## Communication rule
 

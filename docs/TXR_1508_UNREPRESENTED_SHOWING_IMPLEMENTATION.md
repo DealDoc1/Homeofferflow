@@ -26,12 +26,13 @@ source.
 
 Before this becomes a completed or sent showing form, HomeOfferFlow must have:
 
-1. A current TXR-1508 source privately uploaded and expressly approved by an
-   authorized OnDemand brokerage administrator.
+1. A current TXR-1508 source privately uploaded and attested by an authorized
+   source-owner administrator.
 2. A field map for every printed blank, checkbox, broker initial, customer
    initial, date, and one- or two-customer variant.
-3. A broker-approved signer and initials plan.
+3. An authorized signer and initials plan.
 4. Rendered and completed SignWell QA for every applicable printed field.
-5. OnDemand approval of the final source revision and customer-facing copy.
+5. HomeOfferFlow release-authority approval of the final workflow and
+   customer-facing copy.
 
 Until those gates pass, the workflow remains a private draft record only.

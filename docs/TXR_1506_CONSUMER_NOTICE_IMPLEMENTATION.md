@@ -25,7 +25,7 @@ default.
 
 Before this becomes a completed or sent acknowledgement, HomeOfferFlow must
 have an approved private source, a six-page field map including every consumer
-initial/date and final-page signature/date, a broker-approved signer plan, and
+initial/date and final-page signature/date, an authorized signer plan, and
 rendered completed SignWell QA for every applicable printed field.
 
 Until those gates pass, this workflow remains a private draft record only.

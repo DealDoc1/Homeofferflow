@@ -90,7 +90,8 @@ unrepresented showing, or general consumer notice. None is an
 executable/signable workflow until its own source approval, field mapping,
 signer plan, and rendered QA are complete.
 
-The source vault now also accepts broker-approved private sources for the first
-listing-side catalog forms (TXR-1101, TXR-1102, TXR-1406, and TXR-1418). This
-is only a source-control prerequisite; seller/listing generation and signing
+The source vault now also accepts source-owner-authorized private sources for
+the first listing-side catalog forms (TXR-1101, TXR-1102, TXR-1406, and
+TXR-1418). This works for any brokerage or verified organization; it is not an
+OnDemand-specific product permission. Seller/listing generation and signing
 remain unavailable until their separate release gates pass.

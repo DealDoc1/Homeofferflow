@@ -8,9 +8,10 @@
 - **Source rule on the form:** Texas REALTORS member use only
 
 The source is intentionally **not** included in the public repository. An
-authorized brokerage administrator must upload and approve the exact revision
-to the private `brokerage-form-sources` vault before any signing workflow is
-enabled.
+authorized organization administrator must upload and attest to the exact
+revision in the private form-source vault before any signing workflow is
+enabled. The organization may be a brokerage, team, or another verified source
+owner; it is not limited to OnDemand.
 
 ## Agent intake
 
@@ -30,7 +31,8 @@ the Long Form, or infer compensation terms.
 | 8 Intermediary | Client authorizes / does not authorize | Required explicit choice. |
 
 Draft validation requires an explicit service choice, valid ordered term dates,
-and at least one broker-approved purchase or lease compensation field. It only
+and at least one agent-confirmed authorized purchase or lease compensation
+field. It only
 validates agent-entered values; it does not calculate or recommend compensation.
 
 ## Roles and signing
@@ -42,7 +44,7 @@ validates agent-entered values; it does not calculate or recommend compensation.
 | Client 1 | Buyer or tenant client | Initial on page 1; signature/date on page 2 |
 | Client 2 | Optional second buyer or tenant client | Initial on page 1; second signature/date on page 2 |
 
-The signing plan must be confirmed against the broker-approved source before
+The signing plan must be confirmed against the authorized source before
 activation. The current buyer-offer packet SignWell coordinates must never be
 reused for this standalone agreement.
 
@@ -77,8 +79,9 @@ inspect every printed blank, checkbox, initial, signature, and date:
 
 The workflow remains unavailable until all of the following are complete:
 
-1. Tyler or another authorized OnDemand brokerage administrator uploads and
-   approves the exact source revision in the private source vault.
+1. An authorized source-owner administrator uploads and attests to the exact
+   source revision in the private source vault.
 2. The standalone agreement record/API and intake UI are implemented.
 3. Completed SignWell staging packets pass the QA table above.
-4. Broker approves the rendered source, signing plan, and launch copy.
+4. HomeOfferFlow release authority approves the rendered workflow, signing
+   plan, and launch copy.

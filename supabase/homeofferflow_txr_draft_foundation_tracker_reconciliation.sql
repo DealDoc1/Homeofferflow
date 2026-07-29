@@ -11,12 +11,12 @@ set
   environment = 'source_gate',
   qa_status = 'not_tested',
   current_release = 'Private draft foundation',
-  known_issues = 'OnDemand has no approved private source record. The draft foundation cannot expose, generate, send, or sign this Texas REALTORS form until a brokerage administrator uploads and attests to the current authorized source.',
+  known_issues = 'No authorized private source record is available. The draft foundation cannot expose, generate, send, or sign this Texas REALTORS form until an authorized source-owner administrator uploads and attests to the current authorized source.',
   next_action = case slug
-    when 'txr-1507-short-buyer-tenant-representation' then 'Tyler Demando must upload and approve the authorized TXR-1507 source. Then complete mapping, signer plan, rendered-PDF QA, and broker approval.'
-    when 'txr-1501-long-buyer-tenant-representation' then 'Tyler Demando must upload and approve the authorized TXR-1501 source. Then complete its separate mapping, signer plan, rendered-PDF QA, and broker approval; never substitute it for TXR-1507.'
-    when 'txr-1508-unrepresented-showing' then 'Tyler Demando must upload and approve the authorized TXR-1508 source. Then complete the separate no-representation workflow, signer plan, and rendered-PDF QA.'
-    when 'txr-1506-general-information-notice' then 'Tyler Demando must upload and approve the authorized TXR-1506 source. Then complete the separate consumer-notice acknowledgment, signer plan, and rendered-PDF QA.'
+    when 'txr-1507-short-buyer-tenant-representation' then 'An authorized source owner must upload and attest to the TXR-1507 source. Then complete mapping, signer plan, rendered-PDF QA, and HomeOfferFlow release-authority approval.'
+    when 'txr-1501-long-buyer-tenant-representation' then 'An authorized source owner must upload and attest to the TXR-1501 source. Then complete its separate mapping, signer plan, rendered-PDF QA, and HomeOfferFlow release-authority approval; never substitute it for TXR-1507.'
+    when 'txr-1508-unrepresented-showing' then 'An authorized source owner must upload and attest to the TXR-1508 source. Then complete the separate no-representation workflow, signer plan, rendered-PDF QA, and HomeOfferFlow release-authority approval.'
+    when 'txr-1506-general-information-notice' then 'An authorized source owner must upload and attest to the TXR-1506 source. Then complete the separate consumer-notice acknowledgment, signer plan, rendered-PDF QA, and HomeOfferFlow release-authority approval.'
   end
 where slug in (
   'txr-1507-short-buyer-tenant-representation',

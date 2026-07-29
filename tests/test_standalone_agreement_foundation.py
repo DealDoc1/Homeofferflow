@@ -175,14 +175,14 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
         self.assertIn('name="serviceLevel" value="full_services" required', HTML)
         self.assertNotIn('name="serviceLevel" value="full_services" checked', HTML)
         self.assertIn("Start TXR-1501 draft", HTML)
-        self.assertIn("TXR-1501 is not yet enabled for your brokerage", HTML)
+        self.assertIn("TXR-1501 is not yet enabled for your organization", HTML)
         self.assertIn("create_txr_1501_draft", HTML)
         self.assertIn("Start TXR-1508 draft", HTML)
-        self.assertIn("TXR-1508 is not yet enabled for your brokerage", HTML)
+        self.assertIn("TXR-1508 is not yet enabled for your organization", HTML)
         self.assertIn("create_txr_1508_draft", HTML)
         self.assertIn("no representation, no compensation, no advice", HTML)
         self.assertIn("Start TXR-1506 draft", HTML)
-        self.assertIn("TXR-1506 is not yet enabled for your brokerage", HTML)
+        self.assertIn("TXR-1506 is not yet enabled for your organization", HTML)
         self.assertIn("create_txr_1506_draft", HTML)
 
     def test_draft_action_reuses_an_existing_authenticated_function(self):
