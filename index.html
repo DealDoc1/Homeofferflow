@@ -8442,13 +8442,13 @@ function routeAfterMagicLinkIfNeeded() {
         <div id="brokerageFoundationStatus" class="platform-status"></div>
       </div>
       <div class="platform-card">
-        <h4>Brokerage Admin Dashboard Shell</h4>
+        <h4>Brokerage Administration</h4>
         <div class="platform-kpi-row">
           <div class="platform-kpi"><span>Branding</span><strong>${b?.id ? 'Saved' : 'Draft'}</strong></div>
           <div class="platform-kpi"><span>Role</span><strong>${hofAuth.accountProfile?.is_brokerage_admin || isCurrentAdmin() ? 'Admin' : 'Agent'}</strong></div>
-          <div class="platform-kpi"><span>Next</span><strong>Agents</strong></div>
+          <div class="platform-kpi"><span>Access</span><strong>Managed</strong></div>
         </div>
-        <p>Next build: add/remove agents, view all brokerage offers, usage by agent, partner clicks, and compliance checklist.</p>
+        <p>Brokerage membership, invites, activity totals, and shared defaults are managed through the secure brokerage workspace. Broker activity is intentionally limited to operational totals, not buyer or offer details.</p>
       </div>`;
   }
 
@@ -11011,12 +11011,12 @@ function routeAfterMagicLinkIfNeeded() {
     if (!el || !isBroker() || document.getElementById('brokerageBrokerIntroV14')) return;
     el.insertAdjacentHTML('afterbegin', `
       <div class="broker-role-card" id="brokerageBrokerIntroV14">
-        <h4>Brokerage / Team Lead Shell</h4>
-        <p>This is the right place for broker-level setup. Today it stores branding and defaults. The next layer can add agent invites, team offer visibility, compliance queues, and brokerage-wide billing.</p>
+        <h4>Brokerage / Team Lead Workspace</h4>
+        <p>Use this area for brokerage branding, agent access, secure invite links, shared defaults, and privacy-limited operational activity. Buyer names, addresses, offer terms, and documents are not exposed here.</p>
         <div class="broker-role-grid">
           <div class="broker-role-chip"><strong>Defaults</strong><span>Brokerage, license, title, escrow, disclaimers.</span></div>
-          <div class="broker-role-chip"><strong>Oversight</strong><span>Future team offers, statuses, and beta feedback.</span></div>
-          <div class="broker-role-chip"><strong>Compliance</strong><span>Future broker review queue and issue flags.</span></div>
+          <div class="broker-role-chip"><strong>Oversight</strong><span>Roster status and aggregate offer activity only.</span></div>
+          <div class="broker-role-chip"><strong>Privacy</strong><span>Buyer and offer details remain restricted.</span></div>
         </div>
       </div>`);
   };
