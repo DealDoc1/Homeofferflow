@@ -9139,11 +9139,11 @@ function routeAfterMagicLinkIfNeeded() {
     el.className = '';
     el.innerHTML = `
       <div class="platform-card">
-        <h4>AI Offer Review Foundation</h4>
-        <p>This is the placeholder shell for the future Gemini-powered offer score, risk checklist, and strategy recommendations.</p>
+        <h4>Offer Review</h4>
+        <p>Use the offer review before sending a packet for an educational strength and risk summary. The offer workspace uses the live review when it is available and automatically falls back to the rules-based review when it is not.</p>
         <div class="ai-score-ring">${score}</div>
-        <div class="notice gold">Placeholder score only. This does not call AI yet and should not be presented as advice. It confirms the UI/database path is ready.</div>
-        <div class="platform-actions"><button type="button" onclick="saveAiReviewPlaceholder()">Save Placeholder Review</button><button type="button" onclick="openWizard(true); showStepById && showStepById('step8')">Open Offer Review</button></div>
+        <div class="notice gold">This dashboard snapshot is rules-based. Open the offer review to run the live educational review when available. Neither result is legal advice, broker advice, a valuation opinion, or a guarantee of acceptance.</div>
+        <div class="platform-actions"><button type="button" onclick="saveAiReviewPlaceholder()">Save Review Snapshot</button><button type="button" onclick="openWizard(true); showStepById && showStepById('step8')">Open Offer Review</button></div>
         <div id="aiFoundationStatus" class="platform-status"></div>
       </div>
       <div class="platform-card">
