@@ -663,7 +663,8 @@ class OnDemandLaunchPageTests(unittest.TestCase):
 
     def test_launch_clearly_discloses_current_agent_form_scope(self):
         for text in (
-            "buyer-side offer packet",
+            "purchase-offer packet",
+            "seller temporary residential lease when seller post-closing possession applies",
             "not yet a complete transaction-form library",
             "buyer representation agreements",
             "listing agreements",

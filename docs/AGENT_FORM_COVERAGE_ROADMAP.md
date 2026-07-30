@@ -2,8 +2,9 @@
 
 ## Launch scope: OnDemand Realty
 
-The OnDemand launch is intentionally scoped to the current **buyer-side offer
-packet** and its currently supported purchase addenda. It is not represented as
+The OnDemand launch is intentionally scoped to the current **purchase-offer
+packet** and its currently supported purchase addenda, including the Seller
+Temporary Residential Lease when seller post-closing possession applies. It is not represented as
 a complete transaction-form library or a transaction-management platform.
 
 Agents must continue using OnDemand-approved workflows for standalone buyer
@@ -128,6 +129,6 @@ Each form is a separate release, not a checkbox added to the offer wizard.
 ## Communication rule
 
 Until each workflow passes the release gate, sales, onboarding, and the product
-UI must say **"currently supported buyer-side offer packets and addenda"** —
+UI must say **"currently supported purchase-offer packets and addenda"** —
 not "all agent forms," "complete transaction management," or equivalent broad
 claims.
