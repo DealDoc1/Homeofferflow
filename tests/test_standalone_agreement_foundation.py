@@ -185,6 +185,14 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
         self.assertIn("TXR-1506 is not yet enabled for your organization", HTML)
         self.assertIn("create_txr_1506_draft", HTML)
 
+    def test_agents_can_only_view_their_own_private_draft_summaries(self):
+        self.assertIn('id="hof-private-form-drafts-v1"', HTML)
+        self.assertIn(".from('hof_standalone_agreements')", HTML)
+        self.assertIn(".eq('agent_user_id', user.id)", HTML)
+        self.assertIn(".eq('status', 'draft')", HTML)
+        self.assertIn("HomeOfferFlow does not download, send, or sign them from this list.", HTML)
+        self.assertNotIn("agreement_data", HTML[HTML.index('id="hof-private-form-drafts-v1"'):])
+
     def test_draft_action_reuses_an_existing_authenticated_function(self):
         self.assertFalse((ROOT / "api" / "standalone-agreement.py").exists())
         backend = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")

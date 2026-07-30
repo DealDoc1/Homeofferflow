@@ -12931,5 +12931,88 @@ function routeAfterMagicLinkIfNeeded() {
   }
 })();
 </script>
+<style id="hof-private-form-drafts-v1">
+  .hof-private-form-drafts-card { border:1px solid rgba(113,184,157,.30); background:rgba(74,140,111,.055); margin-top:1rem; }
+  .hof-private-form-drafts-card h4 { margin-bottom:.35rem; }
+  .hof-private-form-drafts-card p { color:var(--gray-light); font-size:.86rem; line-height:1.5; }
+  .hof-private-form-drafts-list { list-style:none; margin:.8rem 0 0; padding:0; border-top:1px solid rgba(255,255,255,.10); }
+  .hof-private-form-drafts-list li { display:flex; justify-content:space-between; align-items:flex-start; gap:.7rem; padding:.65rem 0; border-bottom:1px solid rgba(255,255,255,.08); color:var(--gray-light); font-size:.84rem; line-height:1.4; }
+  .hof-private-form-drafts-list strong { color:var(--white); }
+  .hof-private-form-drafts-list small { color:var(--gray-light); }
+  @media (max-width:640px) { .hof-private-form-drafts-list li { display:block; } }
+</style>
+<script id="hof-private-form-drafts-v1">
+(function () {
+  const root = window;
+  const escape = value => String(value ?? '').replace(/[&<>\"]/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[char]));
+  const formatDate = value => {
+    const date = new Date(value);
+    return Number.isNaN(date.valueOf()) ? 'Saved draft' : date.toLocaleDateString(undefined, { month:'short', day:'numeric', year:'numeric' });
+  };
+  const activeAgent = () => {
+    const profile = root.hofAuth?.authoritativeProfile || {};
+    return !!root.hofAuth?.session?.user && String(profile.role || '').toLowerCase() !== 'investor';
+  };
+
+  async function loadPrivateDrafts() {
+    const client = root.getSupabaseClient?.();
+    const user = root.hofAuth?.session?.user;
+    if (!client || !user) return [];
+    const { data, error } = await client
+      .from('hof_standalone_agreements')
+      .select('form_code,source_revision,status,client_names,created_at,updated_at')
+      .eq('agent_user_id', user.id)
+      .eq('status', 'draft')
+      .order('updated_at', { ascending:false })
+      .limit(25);
+    if (error) throw error;
+    return data || [];
+  }
+
+  async function refreshPrivateDrafts() {
+    const list = document.getElementById('privateFormDraftsList');
+    if (!list) return;
+    try {
+      const drafts = await loadPrivateDrafts();
+      if (!drafts.length) {
+        list.innerHTML = '<li>No private form drafts saved yet.</li>';
+        return;
+      }
+      list.innerHTML = drafts.map(draft => {
+        const clients = Array.isArray(draft.client_names) && draft.client_names.length
+          ? draft.client_names.map(escape).join(', ')
+          : 'Client name not available';
+        return `<li><span><strong>${escape(draft.form_code)}</strong> · ${clients}<br><small>Approved source revision: ${escape(draft.source_revision)} · ${formatDate(draft.updated_at || draft.created_at)}</small></span><span>Private draft</span></li>`;
+      }).join('');
+    } catch (error) {
+      console.error('Private form draft list failed:', error);
+      list.innerHTML = '<li>Could not load private form drafts.</li>';
+    }
+  }
+
+  function renderPrivateDraftsCard() {
+    const panel = document.getElementById('accountPanelDashboard');
+    if (!panel || !activeAgent() || document.getElementById('privateFormDraftsCard')) return;
+    const card = document.createElement('div');
+    card.id = 'privateFormDraftsCard';
+    card.className = 'account-card hof-private-form-drafts-card';
+    card.innerHTML = `
+      <h4>Private form drafts</h4>
+      <p>These are your saved source-gated form intakes. They are private to you and remain drafts only—HomeOfferFlow does not download, send, or sign them from this list.</p>
+      <ul id="privateFormDraftsList" class="hof-private-form-drafts-list"><li>Loading private form drafts…</li></ul>`;
+    panel.appendChild(card);
+    refreshPrivateDrafts();
+  }
+
+  const priorDashboard = root.renderAccountDashboard;
+  root.renderAccountDashboard = function renderAccountDashboardWithPrivateFormDrafts() {
+    if (typeof priorDashboard === 'function') priorDashboard.apply(this, arguments);
+    renderPrivateDraftsCard();
+  };
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', renderPrivateDraftsCard, { once:true });
+  else renderPrivateDraftsCard();
+})();
+</script>
 </body>
 </html>
