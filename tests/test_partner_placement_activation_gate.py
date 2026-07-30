@@ -29,9 +29,15 @@ class PartnerPlacementActivationGateTests(unittest.TestCase):
     def test_public_directory_hides_partner_contact_and_agreement_records(self):
         self.assertIn("revoke all on table public.hof_partner_placements from anon, authenticated", PUBLIC_VIEW_MIGRATION)
         self.assertIn("create or replace view public.hof_public_partner_placements", PUBLIC_VIEW_MIGRATION)
-        self.assertIn("grant select on table public.hof_public_partner_placements to anon, authenticated", PUBLIC_VIEW_MIGRATION)
         self.assertNotIn("contact_email,", PUBLIC_VIEW_MIGRATION)
         self.assertNotIn("source_lead_id,", PUBLIC_VIEW_MIGRATION)
+
+    def test_legacy_public_view_is_hardened_as_server_only_security_invoker(self):
+        hardening = (ROOT / "supabase" / "homeofferflow_partner_public_view_invoker_hardening.sql").read_text(encoding="utf-8")
+        self.assertIn("security_invoker = true", hardening)
+        self.assertIn("revoke all on table public.hof_public_partner_placements from public, anon, authenticated", hardening)
+        self.assertIn("grant select on table public.hof_public_partner_placements to service_role", hardening)
+        self.assertNotIn("to anon, authenticated", hardening)
 
 
 if __name__ == "__main__":
