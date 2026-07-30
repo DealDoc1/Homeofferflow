@@ -251,6 +251,13 @@ class OnDemandCheckoutTests(unittest.TestCase):
         self.assertEqual(form["subscription_data[metadata][user_id]"], "user-1")
         self.assertIn("/ondemand?checkout=success", form["success_url"])
 
+    def test_launch_acknowledgement_links_to_the_current_legal_package(self):
+        for href in ("/terms.html", "/privacy.html", "/disclaimer.html", "/esign-consent.html"):
+            with self.subTest(href=href):
+                self.assertIn(href, LAUNCH_HTML)
+        self.assertIn("my Agent plan will automatically", LAUNCH_HTML)
+        self.assertIn("renew at <strong>$29/month</strong> unless I cancel", LAUNCH_HTML)
+
     def test_normal_subscription_checkout_still_supports_promotion_codes(self):
         source = CHECKOUT_PATH.read_text(encoding="utf-8")
         self.assertIn('form["allow_promotion_codes"] = "true"', source)
