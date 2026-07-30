@@ -3,7 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#173f35" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="HomeOfferFlow" />
   <title>HomeOfferFlow — Write Your Offer in Minutes</title>
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="icon" href="/assets/homeofferflow-app-icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="/assets/homeofferflow-app-icon.svg" />
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
 
   
@@ -13013,6 +13021,16 @@ function routeAfterMagicLinkIfNeeded() {
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', renderPrivateDraftsCard, { once:true });
   else renderPrivateDraftsCard();
 })();
+</script>
+<script id="hof-pwa-registration-v1">
+  // Keep offline support limited to the public app shell. Offers, documents,
+  // authenticated data, and API responses are always fetched from the network.
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/service-worker.js', { scope: '/' })
+        .catch(error => console.warn('HomeOfferFlow offline support was not registered:', error));
+    });
+  }
 </script>
 </body>
 </html>
