@@ -24,6 +24,7 @@ def valid_payload():
         "termEnd": "2027-01-31",
         "serviceLevel": "full_services",
         "intermediary": "authorized",
+        "formUseAttested": True,
         "compensation": {"purchasePercentage": "3"},
     }
 
@@ -88,6 +89,12 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
         payload = valid_payload()
         payload["serviceLevel"] = "showing_services"
         with self.assertRaisesRegex(ValueError, "requires the execution fee"):
+            MODULE._parse_txr_1507_draft(payload)
+
+    def test_short_form_requires_agent_authority_attestation(self):
+        payload = valid_payload()
+        payload["formUseAttested"] = False
+        with self.assertRaisesRegex(ValueError, "authorized to use this TXR form"):
             MODULE._parse_txr_1507_draft(payload)
 
     def test_draft_rejects_invalid_term_or_unselected_compensation(self):
@@ -170,6 +177,7 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
         self.assertIn("Source revision", HTML)
         self.assertIn("This saves a private draft only", HTML)
         self.assertIn("create_txr_1507_draft", HTML)
+        self.assertIn("currently authorized to use this Texas REALTORS", HTML)
         self.assertIn("/api/admin-dashboard", HTML)
         self.assertIn("Draft saved privately. It has not been sent for signature.", HTML)
         self.assertIn('name="serviceLevel" value="full_services" required', HTML)

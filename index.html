@@ -12536,6 +12536,7 @@ function routeAfterMagicLinkIfNeeded() {
           <label>Lease: % of all rents<input name="leaseTotalRentsPercentage" inputmode="decimal" placeholder="Enter only if broker-approved"></label>
           <label>Lease flat fee<input name="leaseFlatFee" inputmode="decimal" placeholder="Enter only if broker-approved"></label>
           <label>Intermediary choice<select name="intermediary" required><option value="">Choose one…</option><option value="authorized">Client authorizes intermediary</option><option value="not_authorized">Client does not authorize intermediary</option></select></label>
+          <label class="hof-agreement-wide hof-agreement-services"><input name="formUseAttested" type="checkbox" required> I confirm that I am currently authorized to use this Texas REALTORS® form for my brokerage and that the selected source revision is the approved source for this agreement.</label>
         </div>
         <div id="txr1507DraftStatus" class="hof-iabs-status"></div>
         <div class="hof-agreement-footer"><button class="btn-secondary" type="button" id="txr1507Cancel">Cancel</button><button class="btn-primary" type="submit">Save private draft</button></div>
@@ -12562,7 +12563,7 @@ function routeAfterMagicLinkIfNeeded() {
     const payload = {
       action: 'create_txr_1507_draft', formCode: FORM_CODE, formSourceId: source.id, clientNames,
       marketArea: form.get('marketArea'), termStart: form.get('termStart'), termEnd: form.get('termEnd'),
-      serviceLevel: form.get('serviceLevel'), showingFee: form.get('showingFee'), intermediary: form.get('intermediary'),
+      serviceLevel: form.get('serviceLevel'), showingFee: form.get('showingFee'), intermediary: form.get('intermediary'), formUseAttested: form.get('formUseAttested') === 'on',
       compensation: { purchasePercentage: form.get('purchasePercentage'), purchaseFlatFee: form.get('purchaseFlatFee'), leaseOneMonthPercentage: form.get('leaseOneMonthPercentage'), leaseTotalRentsPercentage: form.get('leaseTotalRentsPercentage'), leaseFlatFee: form.get('leaseFlatFee') }
     };
     try {

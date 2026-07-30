@@ -7,11 +7,13 @@
 - **Length:** 2 pages
 - **Source rule on the form:** Texas REALTORS member use only
 
-The source is intentionally **not** included in the public repository. An
-authorized organization administrator must upload and attest to the exact
-revision in the private form-source vault before any signing workflow is
-enabled. The organization may be a brokerage, team, or another verified source
-owner; it is not limited to OnDemand.
+The source is intentionally **not** included in the public repository. Each
+agent using this workflow must affirm that they are currently authorized to use
+the selected Texas REALTORS® form for their brokerage. The exact revision is
+kept in the private, brokerage-scoped form-source vault before any signing
+workflow is enabled. This is a source-control and correct-broker-identity
+requirement; it is not an OnDemand-only approval requirement and does not
+require Tyler Demando's approval for HomeOfferFlow product development.
 
 ## Agent intake
 
@@ -51,7 +53,8 @@ reused for this standalone agreement.
 ## Data and authorization safeguards
 
 1. Require an active agent membership in the same brokerage as the approved
-   TXR-1507 source.
+   TXR-1507 source and an explicit per-draft attestation that the agent is
+   currently authorized to use that TXR form for the brokerage.
 2. Require an approved form source for **TXR-1507** and its displayed revision.
 3. Persist the source record ID, source revision, brokerage ID, agent ID, and
    final agreement record together.

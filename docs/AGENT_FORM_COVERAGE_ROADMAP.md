@@ -49,8 +49,10 @@ They are separate releases, not addenda to a purchase offer.
 Release requirements:
 
 - authorized source PDF/template and version owner;
-- a verified authorization model for Texas REALTORS® forms (the source form
-  itself limits use to authorized members);
+- an explicit per-agent attestation that the user is currently authorized to
+  use the selected Texas REALTORS® form for the user's brokerage (the source
+  form itself limits use to authorized members), plus a private source record
+  for the exact revision;
 - an explicit agent choice between the Long Form and Short Form, with no
   preselected legal agreement;
 - guided data intake limited to the approved agreement fields;
