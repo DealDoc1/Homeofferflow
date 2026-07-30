@@ -914,22 +914,17 @@ def _clean_text(value, maximum):
 
 
 def _parse_partner_placement(data):
-    partner_name = _clean_text(data.get("partner_name"), 250)
-    partner_type = _clean_text(data.get("partner_type"), 80)
-    market_area = _clean_text(data.get("market_area"), 300)
+    source_lead_id = str(data.get("partner_lead_id") or "").strip()
+    try:
+        source_lead_id = str(uuid.UUID(source_lead_id))
+    except (TypeError, ValueError, AttributeError):
+        raise ValueError("Choose a valid paid partner application.")
+    agreement_confirmed = data.get("agreement_confirmed") is True
+    if not agreement_confirmed:
+        raise ValueError("Confirm that the required advertising agreement is on file before activating a placement.")
     placement_tier = _clean_text(data.get("placement_tier"), 80)
-    website_url = _clean_text(data.get("website_url"), 500)
-    logo_url = _clean_text(data.get("logo_url"), 500)
-    if not partner_name or not market_area:
-        raise ValueError("Partner name and market area are required.")
-    if partner_type not in ALLOWED_PARTNER_TYPES:
-        raise ValueError("Choose a valid partner category.")
     if placement_tier not in ALLOWED_PARTNER_PLACEMENT_TIERS:
         raise ValueError("Choose a valid placement tier.")
-    if website_url and not website_url.startswith(("https://", "http://")):
-        raise ValueError("Website URL must start with https:// or http://.")
-    if logo_url and not logo_url.startswith(("https://", "http://")):
-        raise ValueError("Logo URL must start with https:// or http://.")
     try:
         monthly_fee = float(data.get("monthly_fee")) if data.get("monthly_fee") not in (None, "") else None
     except (TypeError, ValueError):
@@ -937,24 +932,64 @@ def _parse_partner_placement(data):
     if monthly_fee is not None and (monthly_fee < 0 or monthly_fee > 100000):
         raise ValueError("Monthly fee is outside the allowed range.")
     return {
-        "brokerage_id": None,
-        "partner_name": partner_name,
-        "partner_type": partner_type,
-        "market_area": market_area,
+        "source_lead_id": source_lead_id,
         "placement_tier": placement_tier,
-        "website_url": website_url,
-        "logo_url": logo_url,
         "monthly_fee": monthly_fee,
-        "is_active": True,
     }
 
 
+async def _paid_partner_lead_for_placement(lead_id):
+    rows = await _get(
+        "hof_partner_leads?"
+        f"id=eq.{urllib.parse.quote(lead_id)}&"
+        "select=id,company_name,contact_name,contact_email,contact_phone,website_url,partner_type,market_area,status,payment_status,onboarding_status&limit=1"
+    )
+    if not rows:
+        raise ValueError("The selected partner application was not found.")
+    lead = rows[0]
+    if str(lead.get("payment_status") or "") != "paid":
+        raise PermissionError("Only a paid partner application can activate a public placement.")
+    if str(lead.get("status") or "") in {"declined", "waitlist"}:
+        raise PermissionError("This partner application is not eligible for a public placement.")
+    partner_type = str(lead.get("partner_type") or "").strip()
+    if partner_type not in ALLOWED_PARTNER_TYPES:
+        raise ValueError("The selected partner application has an unsupported category.")
+    if not _clean_text(lead.get("company_name"), 250) or not _clean_text(lead.get("market_area"), 300):
+        raise ValueError("The selected partner application is missing its company name or market area.")
+    return lead
+
+
 async def _create_platform_partner_placement(payload):
+    lead = await _paid_partner_lead_for_placement(payload["source_lead_id"])
+    existing = await _get(
+        "hof_partner_placements?"
+        f"source_lead_id=eq.{urllib.parse.quote(payload['source_lead_id'])}&"
+        "is_active=is.true&select=id&limit=1"
+    )
+    if existing:
+        raise ValueError("This paid partner application already has an active placement.")
+    now = datetime.now(timezone.utc).isoformat()
+    record = {
+        "brokerage_id": None,
+        "source_lead_id": payload["source_lead_id"],
+        "partner_name": _clean_text(lead.get("company_name"), 250),
+        "partner_type": str(lead.get("partner_type") or "").strip(),
+        "contact_name": _clean_text(lead.get("contact_name"), 250),
+        "contact_email": _clean_text(lead.get("contact_email"), 254),
+        "contact_phone": _clean_text(lead.get("contact_phone"), 80),
+        "website_url": _clean_text(lead.get("website_url"), 500),
+        "market_area": _clean_text(lead.get("market_area"), 300),
+        "placement_tier": payload["placement_tier"],
+        "monthly_fee": payload["monthly_fee"],
+        "agreement_confirmed_at": now,
+        "activated_at": now,
+        "is_active": True,
+    }
     async with httpx.AsyncClient(timeout=12) as client:
         response = await client.post(
             f"{SUPABASE_URL}/rest/v1/hof_partner_placements",
             headers={**_headers(), "Prefer": "return=representation"},
-            json=payload,
+            json=record,
         )
     if response.status_code >= 300:
         raise RuntimeError("Could not create the partner placement.")

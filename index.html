@@ -8738,13 +8738,12 @@ function routeAfterMagicLinkIfNeeded() {
       <div class="partner-create-card">
         <h4 style="color:var(--gold-light); font-size:0.86rem; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:0.75rem;">Create Partner Placement</h4>
         <div class="platform-grid">
-          <div class="field"><label>Partner Type</label><select id="partnerType"><option value="title">Title / closing</option><option value="lender">Lender</option><option value="inspection">Inspection</option><option value="surveyor">Property surveyor</option><option value="insurance">Home insurance</option><option value="home_warranty">Home warranty</option><option value="roofing">Roofing</option><option value="hvac">HVAC</option><option value="plumbing">Plumbing</option><option value="electrical">Electrical</option><option value="foundation_structural">Foundation / structural repair</option><option value="general_contractor">General contractor / remodeling</option><option value="pest_termite">Pest / termite</option><option value="septic_well">Septic / well</option><option value="restoration">Water / fire restoration</option><option value="moving_storage">Moving / storage</option><option value="cleaning">Cleaning</option><option value="security_smart_home">Security / smart home</option></select></div>
+          <div class="field"><label>Paid partner application</label><select id="partnerLeadId" disabled><option value="">Loading paid applications…</option></select></div>
           <div class="field"><label>Placement Tier</label><select id="partnerTier"><option value="founding">Core Partner · $149</option><option value="premier">Featured Partner · $399</option><option value="exclusive_market">Premier Partner · $799</option></select></div>
-          <div class="field"><label>Partner Name</label><input id="partnerName" placeholder="Forgey Law Group / Chicago Title"></div>
-          <div class="field"><label>Market Area</label><input id="partnerMarket" placeholder="Collin / Grayson County"></div>
-          <div class="field"><label>Public website</label><input id="partnerWebsite" type="url" placeholder="https://partner.example"></div>
           <div class="field"><label>Pilot / monthly fee</label><input id="partnerMonthlyFee" type="number" placeholder="149"></div>
         </div>
+        <label style="display:flex;align-items:flex-start;gap:.55rem;margin-top:.85rem;color:var(--gray-light);font-size:.84rem;line-height:1.45;"><input id="partnerAgreementConfirmed" type="checkbox" style="margin-top:.2rem;"> <span>I confirm the required written advertising agreement is on file and authorize this paid partner application to become a public placement. This does not change Stripe billing.</span></label>
+        <div class="notice gold" style="margin-top:.7rem;">Public placement details are derived from the paid application so company, category, and market cannot be mismatched. Paid placements remain separate from neutral provider selection.</div>
         <div class="platform-actions"><button type="button" onclick="savePartnerPlacementFoundation()">Save Partner Placement</button><button type="button" onclick="loadPartnerPlacementsFoundation()">Refresh Partners</button></div>
         <div id="partnerFoundationStatus" class="platform-status"></div>
       </div>
@@ -8758,12 +8757,10 @@ function routeAfterMagicLinkIfNeeded() {
     try {
       const payload = {
         action: 'create_platform_partner_placement',
-        partner_type: getVal('partnerType') || 'title',
-        partner_name: getVal('partnerName') || 'Founding Partner',
-        market_area: getVal('partnerMarket') || null,
+        partner_lead_id: getVal('partnerLeadId'),
         placement_tier: getVal('partnerTier') || 'founding',
-        website_url: getVal('partnerWebsite') || null,
-        monthly_fee: moneyNumber(getVal('partnerMonthlyFee')) || null
+        monthly_fee: moneyNumber(getVal('partnerMonthlyFee')) || null,
+        agreement_confirmed: !!document.getElementById('partnerAgreementConfirmed')?.checked
       };
       const response = await fetch('/api/admin-dashboard', {
         method: 'POST',
@@ -8772,7 +8769,7 @@ function routeAfterMagicLinkIfNeeded() {
       });
       const result = await response.json().catch(() => ({}));
       if (!response.ok || result.error) throw new Error(result.error || 'Could not save platform placement.');
-      platformStatus('partnerFoundationStatus', 'Platform placement saved. It can now appear in the central Now What directory when its category is relevant.', 'ok');
+      platformStatus('partnerFoundationStatus', 'Agreement-confirmed placement saved. It can now appear in the central Now What directory when its category is relevant.', 'ok');
       await loadPartnerPlacementsFoundation();
     } catch (err) {
       console.error('Partner placement save failed:', err);
@@ -8789,6 +8786,7 @@ function routeAfterMagicLinkIfNeeded() {
       const result = await response.json().catch(() => ({}));
       if (!response.ok || result.error) throw new Error(result.error || 'Could not load platform placements.');
       hofPlatform.partners = result.partnerPlacements || [];
+      populatePaidPartnerPlacementLeads(result.partnerLeads || []);
       list.innerHTML = hofPlatform.partners.length ? hofPlatform.partners.map(row => `
         <div class="platform-list-item"><strong>${escapeAttr(row.partner_name || 'Partner')}</strong>
           <span class="platform-pill good">${escapeAttr(row.partner_type || 'partner')}</span>
@@ -8799,6 +8797,16 @@ function routeAfterMagicLinkIfNeeded() {
       console.warn('Partner placement load failed:', err);
       list.innerHTML = '<div class="platform-list-item">Partners could not load: ' + escapeAttr(err?.message || err) + '</div>';
     }
+  }
+
+  function populatePaidPartnerPlacementLeads(leads) {
+    const select = document.getElementById('partnerLeadId');
+    if (!select) return;
+    const paid = (leads || []).filter(lead => String(lead?.payment_status || '') === 'paid' && !['declined', 'waitlist'].includes(String(lead?.status || '')));
+    select.disabled = !paid.length;
+    select.innerHTML = paid.length
+      ? '<option value="">Choose a paid application…</option>' + paid.map(lead => '<option value="' + escapeAttr(lead.id || '') + '">' + escapeAttr(lead.company_name || 'Partner') + ' · ' + escapeAttr(lead.partner_type || 'other') + ' · ' + escapeAttr(lead.market_area || 'market') + '</option>').join('')
+      : '<option value="">No eligible paid applications</option>';
   }
 
   function estimateOfferScoreFromCurrentState() {
