@@ -3534,7 +3534,7 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
   function getCurrentStepNames() {
     return getCurrentStepConfig().names;
   }
-  const LEGAL_POLICY_VERSION = '2026-07-29';
+  const LEGAL_POLICY_VERSION = '2026-07-30';
   const state = { step: 0, data: {}, termsOK: false, selectedPlan: null, selectedPrice: 0 };
 
   const HOF_HOMEBUYER_DEFAULTS = {
@@ -12301,6 +12301,13 @@ function routeAfterMagicLinkIfNeeded() {
     return !!brokerage() && (profile.is_brokerage_admin === true || String(profile.role || '').toLowerCase() === 'brokerage_admin');
   };
   const safeRevision = value => String(value || '').trim().replace(/[^a-zA-Z0-9._-]+/g, '-').slice(0, 48);
+  async function sourceFingerprint(file) {
+    if (!window.crypto?.subtle || !file?.arrayBuffer) {
+      throw new Error('This browser cannot securely fingerprint the source PDF. Use a current browser and try again.');
+    }
+    const digest = await window.crypto.subtle.digest('SHA-256', await file.arrayBuffer());
+    return Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
+  }
 
   async function loadSources() {
     const client = root.getSupabaseClient?.();
@@ -12308,7 +12315,7 @@ function routeAfterMagicLinkIfNeeded() {
     if (!client || !currentBrokerage || !isBrokerageAdmin()) return [];
     const { data, error } = await client
       .from('hof_brokerage_form_sources')
-      .select('id,form_code,source_revision,status,original_filename,updated_at')
+      .select('id,form_code,source_revision,status,original_filename,source_sha256,updated_at')
       .eq('brokerage_id', currentBrokerage.id)
       .order('updated_at', { ascending: false });
     if (error) throw error;
@@ -12355,7 +12362,10 @@ function routeAfterMagicLinkIfNeeded() {
     if (!list || !isBrokerageAdmin()) return;
     try {
       const sources = await loadSources();
-      list.innerHTML = sources.length ? sources.map(source => `<li><span><strong>${escape(source.form_code)}</strong> · ${escape(source.source_revision)}<br><small>${escape(source.original_filename)}</small></span><span>${escape(source.status)}</span></li>`).join('') : '<li>No brokerage form sources saved yet.</li>';
+      list.innerHTML = sources.length ? sources.map(source => {
+        const fingerprint = source.source_sha256 ? `<br><small>SHA-256: ${escape(source.source_sha256.slice(0, 12))}…</small>` : '';
+        return `<li><span><strong>${escape(source.form_code)}</strong> · ${escape(source.source_revision)}<br><small>${escape(source.original_filename)}</small>${fingerprint}</span><span>${escape(source.status)}</span></li>`;
+      }).join('') : '<li>No brokerage form sources saved yet.</li>';
     } catch (error) {
       console.error('Brokerage form-source list failed:', error);
       list.innerHTML = '<li>Could not load form-source records.</li>';
@@ -12381,6 +12391,7 @@ function routeAfterMagicLinkIfNeeded() {
     const revisionKey = safeRevision(revision);
     const path = `${currentBrokerage.id}/${code}-${revisionKey}-${Date.now()}.pdf`;
     try {
+      const sourceSha256 = await sourceFingerprint(file);
       const { data: existing, error: existingError } = await client
         .from('hof_brokerage_form_sources')
         .select('id').eq('brokerage_id', currentBrokerage.id)
@@ -12402,6 +12413,7 @@ function routeAfterMagicLinkIfNeeded() {
         original_filename: file.name.slice(0, 180),
         mime_type: 'application/pdf',
         byte_size: file.size,
+        source_sha256: sourceSha256,
         authorization_attested: true,
         authorized_by_user_id: user.id,
         authorized_at: now,

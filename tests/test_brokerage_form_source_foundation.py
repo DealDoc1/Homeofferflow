@@ -28,6 +28,13 @@ class BrokerageFormSourceFoundationTests(unittest.TestCase):
         self.assertIn("m.role in ('broker_admin', 'owner')", MIGRATION)
         self.assertIn("Agents never get Storage access", MIGRATION)
 
+    def test_private_source_uploads_record_an_exact_pdf_fingerprint(self):
+        fingerprint_migration = (ROOT / "supabase" / "homeofferflow_brokerage_form_source_fingerprint.sql").read_text(encoding="utf-8")
+        self.assertIn("source_sha256", fingerprint_migration)
+        self.assertIn("^[0-9a-f]{64}$", fingerprint_migration)
+        self.assertIn("crypto.subtle.digest('SHA-256'", HTML)
+        self.assertIn("source_sha256: sourceSha256", HTML)
+
     def test_listing_side_sources_are_private_and_do_not_activate_workflows(self):
         for form_code in ("TXR-1101", "TXR-1102", "TXR-1406", "TXR-1418"):
             self.assertIn(f"'{form_code}'", LISTING_EXPANSION)
