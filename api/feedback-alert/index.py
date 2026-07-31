@@ -28,6 +28,7 @@ def _html_escape(value):
 def _build_email(payload):
     feedback = payload.get("feedback") or {}
     issue_type = _safe(payload.get("issueType") or feedback.get("issue_type") or "feedback")
+    calibration_scenario = _safe(payload.get("calibrationScenario") or feedback.get("calibration_scenario") or "")
     account_email = _safe(payload.get("accountEmail") or feedback.get("email") or "unknown")
     role = _safe(payload.get("role") or feedback.get("role") or "")
     message = _safe(payload.get("message") or feedback.get("message") or "")
@@ -41,6 +42,7 @@ def _build_email(payload):
     text = f"""New HomeOfferFlow beta feedback
 
 Issue type: {issue_type}
+Calibration scenario: {calibration_scenario}
 Account: {account_email}
 Role: {role}
 Feedback ID: {feedback_id}
@@ -60,6 +62,7 @@ User agent:
     <div style="font-family:Arial,sans-serif;line-height:1.5;color:#111827;">
       <h2>New HomeOfferFlow beta feedback</h2>
       <p><strong>Issue type:</strong> {_html_escape(issue_type)}<br>
+      <strong>Calibration scenario:</strong> {_html_escape(calibration_scenario)}<br>
       <strong>Account:</strong> {_html_escape(account_email)}<br>
       <strong>Role:</strong> {_html_escape(role)}<br>
       <strong>Feedback ID:</strong> {_html_escape(feedback_id)}<br>

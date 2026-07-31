@@ -17,10 +17,11 @@ class FeedbackSubmissionTests(unittest.TestCase):
             MODULE._parse_payload(payload)
 
     def test_payload_normalizes_context_and_rejects_unknown_issue_type(self):
-        payload = b'{"issueType":"ai_review","message":"  anonymous note  ","role":"agent","anonymized":true,"pageUrl":"https://example.com/test","userAgent":"test"}'
+        payload = b'{"issueType":"ai_review","message":"  anonymous note  ","role":"agent","anonymized":true,"calibrationScenario":"AI-CAL-01","pageUrl":"https://example.com/test","userAgent":"test"}'
         parsed = MODULE._parse_payload(payload)
         self.assertEqual(parsed["message"], "anonymous note")
         self.assertEqual(parsed["issue_type"], "ai_review")
+        self.assertEqual(parsed["calibration_scenario"], "AI-CAL-01")
         with self.assertRaisesRegex(ValueError, "valid feedback issue type"):
             MODULE._parse_payload(b'{"issueType":"nope","message":"x"}')
 

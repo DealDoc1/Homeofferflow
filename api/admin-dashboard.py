@@ -31,6 +31,13 @@ ALLOWED_PARTNER_TYPES = {
     "moving_storage", "lawn_pool", "security_smart_home", "other",
 }
 AI_CALIBRATION_REVIEWER_ROLES = {"agent", "broker", "brokerage_admin"}
+AI_CALIBRATION_SCENARIOS = {
+    "AI-CAL-01",
+    "AI-CAL-02",
+    "AI-CAL-03",
+    "AI-CAL-04",
+    "AI-CAL-05",
+}
 MAX_BODY_BYTES = 12_000
 PUBLIC_APP_ORIGIN = (os.environ.get("PUBLIC_APP_URL") or "https://www.homeofferflow.com").rstrip("/")
 BROKERAGE_INVITE_EMAIL_RE = re.compile(r"(?=.{3,254}$)[^@\s]+@[^@\s]+\.[^@\s]+$")
@@ -88,7 +95,16 @@ def _is_ai_calibration_evidence(item):
     return (
         str((item or {}).get("issue_type") or "").lower() == "ai_review"
         and str((item or {}).get("role") or "").lower() in AI_CALIBRATION_REVIEWER_ROLES
+        and str((item or {}).get("calibration_scenario") or "").upper() in AI_CALIBRATION_SCENARIOS
     )
+
+
+def _ai_calibration_scenario_ids(items):
+    return sorted({
+        str((item or {}).get("calibration_scenario") or "").upper()
+        for item in (items or [])
+        if _is_ai_calibration_evidence(item)
+    })
 
 
 async def _get(path):
@@ -1681,7 +1697,7 @@ class handler(BaseHTTPRequestHandler):
             # user-agent, and page URL out of the dashboard response; the
             # existing feedback record remains available for support workflows.
             feedback = asyncio.run(_get_optional(
-                "hof_feedback?select=id,issue_type,message,status,role,created_at&order=created_at.desc&limit=100"
+                "hof_feedback?select=id,issue_type,calibration_scenario,message,status,role,created_at&order=created_at.desc&limit=100"
             ))
             ai_review_outputs = asyncio.run(_get_optional(
                 "hof_ai_offer_reviews?select=id,created_at&order=created_at.desc&limit=100"
@@ -1753,9 +1769,8 @@ class handler(BaseHTTPRequestHandler):
                 # Generated AI outputs are useful context, but do not count as
                 # human calibration evidence for the five-scenario release gate.
                 "aiReviewOutputCount": len(ai_review_outputs),
-                "aiCalibrationFeedbackCount": len([
-                    item for item in feedback if _is_ai_calibration_evidence(item)
-                ]),
+                "aiCalibrationFeedbackCount": len(_ai_calibration_scenario_ids(feedback)),
+                "aiCalibrationScenarioIds": _ai_calibration_scenario_ids(feedback),
             }
             # Five anonymized, human-reviewed scenarios are the minimum evidence
             # threshold documented for any AI scoring/calibration expansion. Keep
@@ -1763,7 +1778,7 @@ class handler(BaseHTTPRequestHandler):
             # having a feedback feed with having enough calibration evidence.
             metrics["aiCalibrationTarget"] = 5
             metrics["aiCalibrationReady"] = (
-                metrics["aiCalibrationFeedbackCount"] >= metrics["aiCalibrationTarget"]
+                set(metrics["aiCalibrationScenarioIds"]) == AI_CALIBRATION_SCENARIOS
             )
             _json(self, 200, {
                 "metrics": metrics,

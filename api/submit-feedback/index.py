@@ -27,6 +27,13 @@ ALLOWED_ISSUE_TYPES = {
     "other",
 }
 ALLOWED_ROLES = {"agent", "investor", "homebuyer", "broker", "brokerage_admin"}
+AI_CALIBRATION_SCENARIOS = {
+    "AI-CAL-01",
+    "AI-CAL-02",
+    "AI-CAL-03",
+    "AI-CAL-04",
+    "AI-CAL-05",
+}
 
 
 def _json(handler, status, payload):
@@ -89,11 +96,20 @@ def _parse_payload(raw):
         raise ValueError("Feedback message is too long.")
     if issue_type == "ai_review" and payload.get("anonymized") is not True:
         raise ValueError("AI calibration feedback must be anonymized before submission.")
+    calibration_scenario = _clean(
+        payload.get("calibrationScenario") or payload.get("calibration_scenario"),
+        20,
+    ) or None
+    if issue_type == "ai_review" and calibration_scenario not in AI_CALIBRATION_SCENARIOS:
+        raise ValueError("Choose one of the five documented AI calibration scenarios.")
+    if issue_type != "ai_review":
+        calibration_scenario = None
     role = _clean(payload.get("role"), 40).lower()
     if role not in ALLOWED_ROLES:
         role = "agent"
     return {
         "issue_type": issue_type,
+        "calibration_scenario": calibration_scenario,
         "message": message,
         "role": role,
         "page_url": _clean(payload.get("pageUrl") or payload.get("page_url"), MAX_CONTEXT_LENGTH),
@@ -116,6 +132,7 @@ def _save_feedback(user, feedback):
             "user_id": user["id"],
             "email": user["email"],
             "issue_type": feedback["issue_type"],
+            "calibration_scenario": feedback["calibration_scenario"],
             "message": feedback["message"],
             "role": feedback["role"],
             "page_url": feedback["page_url"],
@@ -134,6 +151,7 @@ def _save_feedback(user, feedback):
         "id": row.get("id"),
         "created_at": row.get("created_at"),
         "issue_type": row.get("issue_type"),
+        "calibration_scenario": row.get("calibration_scenario"),
         "message": row.get("message"),
         "role": row.get("role"),
         "email": user["email"],

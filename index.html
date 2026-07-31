@@ -2747,6 +2747,18 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
       <textarea id="feedbackMessage" placeholder="Tell us what you were doing, what went wrong, what page/form/field was involved, and what you expected to happen."></textarea>
     </div>
 
+    <div class="feedback-field" id="aiFeedbackScenarioField" style="display:none;">
+      <label for="aiFeedbackScenario">Calibration scenario</label>
+      <select id="aiFeedbackScenario">
+        <option value="">Choose the documented scenario you reviewed…</option>
+        <option value="AI-CAL-01">AI-CAL-01 · Hot listing / competitive financed offer</option>
+        <option value="AI-CAL-02">AI-CAL-02 · Stale listing / seller motivation</option>
+        <option value="AI-CAL-03">AI-CAL-03 · Materially weak contingent offer</option>
+        <option value="AI-CAL-04">AI-CAL-04 · Government-backed financing / appraisal protection</option>
+        <option value="AI-CAL-05">AI-CAL-05 · Cash offer / unusual possession request</option>
+      </select>
+    </div>
+
     <div class="feedback-field" id="aiFeedbackPrivacyGuard" style="display:none;">
       <label style="display:flex; gap:.55rem; align-items:flex-start; text-transform:none; letter-spacing:0; font-size:.82rem; line-height:1.45;">
         <input id="aiFeedbackAnonymized" type="checkbox" style="margin-top:.2rem;">
@@ -4685,9 +4697,13 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
     const type = document.getElementById('feedbackIssueType');
     const guard = document.getElementById('aiFeedbackPrivacyGuard');
     const checkbox = document.getElementById('aiFeedbackAnonymized');
+    const scenarioField = document.getElementById('aiFeedbackScenarioField');
+    const scenario = document.getElementById('aiFeedbackScenario');
     const isCalibration = type?.value === 'ai_review';
     if (guard) guard.style.display = isCalibration ? 'block' : 'none';
+    if (scenarioField) scenarioField.style.display = isCalibration ? 'block' : 'none';
     if (!isCalibration && checkbox) checkbox.checked = false;
+    if (!isCalibration && scenario) scenario.value = '';
   }
 
   function closeBetaFeedback() {
@@ -4704,6 +4720,7 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
     const issueType = document.getElementById('feedbackIssueType')?.value || 'other';
     const message = document.getElementById('feedbackMessage')?.value?.trim() || '';
     const anonymizedCalibration = document.getElementById('aiFeedbackAnonymized')?.checked === true;
+    const calibrationScenario = document.getElementById('aiFeedbackScenario')?.value || '';
     const btn = document.getElementById('submitFeedbackBtn');
 
     if (!message) {
@@ -4713,6 +4730,10 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
 
     if (issueType === 'ai_review' && !anonymizedCalibration) {
       setFeedbackStatus('AI calibration notes must be anonymized before submission.', 'err');
+      return;
+    }
+    if (issueType === 'ai_review' && !calibrationScenario) {
+      setFeedbackStatus('Choose the documented calibration scenario you reviewed.', 'err');
       return;
     }
 
@@ -4742,7 +4763,8 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
           role: feedbackRole,
           pageUrl: window.location.href,
           userAgent: navigator.userAgent || '',
-          anonymized: anonymizedCalibration
+          anonymized: anonymizedCalibration,
+          calibrationScenario
         })
       });
       const feedbackResult = await feedbackResponse.json().catch(() => ({}));
@@ -4759,6 +4781,7 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
             accountEmail: user.email || '',
             role: feedbackRole,
             issueType,
+            calibrationScenario,
             message,
             pageUrl: window.location.href,
             userAgent: navigator.userAgent || ''
