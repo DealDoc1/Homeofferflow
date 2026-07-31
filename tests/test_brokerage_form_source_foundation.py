@@ -29,6 +29,8 @@ class BrokerageFormSourceFoundationTests(unittest.TestCase):
         self.assertIn("Agents never get Storage access", MIGRATION)
 
     def test_private_source_uploads_record_an_exact_pdf_fingerprint(self):
+        self.assertIn("source_sha256", MIGRATION)
+        self.assertIn("^[0-9a-f]{64}$", MIGRATION)
         fingerprint_migration = (ROOT / "supabase" / "homeofferflow_brokerage_form_source_fingerprint.sql").read_text(encoding="utf-8")
         self.assertIn("source_sha256", fingerprint_migration)
         self.assertIn("^[0-9a-f]{64}$", fingerprint_migration)

@@ -20,6 +20,8 @@ create table if not exists public.hof_brokerage_form_sources (
   mime_type text not null default 'application/pdf'
     check (mime_type = 'application/pdf'),
   byte_size bigint not null check (byte_size > 0 and byte_size <= 10485760),
+  source_sha256 text
+    check (source_sha256 is null or source_sha256 ~ '^[0-9a-f]{64}$'),
   authorization_attested boolean not null default false,
   authorized_by_user_id uuid references auth.users(id) on delete set null,
   authorized_at timestamptz,
@@ -34,6 +36,12 @@ create table if not exists public.hof_brokerage_form_sources (
     or (authorization_attested = true and authorized_by_user_id is not null and authorized_at is not null)
   )
 );
+
+-- Keep this base migration safe for databases where the table already exists
+-- from an earlier revision. The follow-up fingerprint migration adds the
+-- explanatory comment and reasserts the constraint idempotently.
+alter table public.hof_brokerage_form_sources
+  add column if not exists source_sha256 text;
 
 create unique index if not exists hof_brokerage_form_sources_active_revision_idx
   on public.hof_brokerage_form_sources (brokerage_id, form_code, source_revision)
