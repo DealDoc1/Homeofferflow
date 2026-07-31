@@ -71,7 +71,7 @@ and deliberately prevents agents from downloading restricted source PDFs in
 their browsers. It does not activate or distribute a form by itself.
 
 The source-specific renderer and signer-map foundation is now staged in
-`api/txr_1507.py`. It preserves the supplied two-page source, overlays only
+`lib/txr_1507.py`. It preserves the supplied two-page source, overlays only
 validated intake values, and keeps the client one- and client two-signer maps
 separate from the purchase-packet coordinates. This is renderer QA work, not
 an executable or production signing release: an authorized brokerage
@@ -83,7 +83,7 @@ authorization, approved source status, and source revision on every request.
 It does not send or sign documents and never returns the private source URL.
 
 The companion TXR-1501 Long Form foundation is now staged in
-`api/txr_1501.py`. The authorized six-page source was visually inspected
+`lib/txr_1501.py`. The authorized six-page source was visually inspected
 page-by-page, and a sample overlay was rendered and checked for the party and
 contact rows, market area, term dates, compensation, intermediary choice, and
 printed-name areas. TXR-1501 drafts require the same explicit brokerage-use
