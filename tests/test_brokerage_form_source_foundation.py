@@ -66,6 +66,8 @@ class BrokerageFormSourceFoundationTests(unittest.TestCase):
         self.assertIn("scope=brokerage_form_sources", HTML)
         self.assertIn("scope=approved_brokerage_sources", HTML)
         self.assertIn("_brokerage_form_sources_payload", (ROOT / "api" / "admin-dashboard.py").read_text())
+        dashboard_source = (ROOT / "api" / "admin-dashboard.py").read_text()
+        self.assertIn("_json(self, 403, {\"error\": str(exc)})", dashboard_source)
         # Browser reads must use the server endpoint; only the authorized upload
         # path may still issue a direct insert into the private registry.
         self.assertNotIn(".from('hof_brokerage_form_sources')\n        .select", HTML)

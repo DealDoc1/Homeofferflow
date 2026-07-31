@@ -1606,11 +1606,19 @@ class handler(BaseHTTPRequestHandler):
                 return
             scope = str((query.get("scope") or [""])[0]).strip().lower()
             if scope == "brokerage_form_sources":
-                payload = asyncio.run(_brokerage_form_sources_payload(user, approved_only=False))
+                try:
+                    payload = asyncio.run(_brokerage_form_sources_payload(user, approved_only=False))
+                except PermissionError as exc:
+                    _json(self, 403, {"error": str(exc)})
+                    return
                 _json(self, 200, payload)
                 return
             if scope == "approved_brokerage_sources":
-                payload = asyncio.run(_brokerage_form_sources_payload(user, approved_only=True))
+                try:
+                    payload = asyncio.run(_brokerage_form_sources_payload(user, approved_only=True))
+                except PermissionError as exc:
+                    _json(self, 403, {"error": str(exc)})
+                    return
                 _json(self, 200, payload)
                 return
             if scope == "brokerage":
