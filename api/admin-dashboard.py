@@ -6,6 +6,7 @@ import urllib.parse
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler
 import httpx
+from lib import platform_form_source_upload as platform_source
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "").rstrip("/")
 SUPABASE_SERVICE_ROLE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or os.environ.get("SUPABASE_SERVICE_ROLE") or os.environ.get("SUPABASE_SERVICE_KEY") or ""
@@ -39,6 +40,7 @@ AI_CALIBRATION_SCENARIOS = {
     "AI-CAL-05",
 }
 MAX_BODY_BYTES = 12_000
+MAX_SOURCE_UPLOAD_BODY_BYTES = 15 * 1024 * 1024
 PUBLIC_APP_ORIGIN = (os.environ.get("PUBLIC_APP_URL") or "https://www.homeofferflow.com").rstrip("/")
 BROKERAGE_INVITE_EMAIL_RE = re.compile(r"(?=.{3,254}$)[^@\s]+@[^@\s]+\.[^@\s]+$")
 BROKERAGE_BRAND_COLOR_RE = re.compile(r"#[0-9a-fA-F]{6}$")
@@ -1659,6 +1661,14 @@ class handler(BaseHTTPRequestHandler):
                     return
                 _json(self, 200, payload)
                 return
+            if scope == "platform_source_brokerages":
+                try:
+                    payload = asyncio.run(platform_source._active_brokerages(user))
+                except PermissionError as exc:
+                    _json(self, 403, {"error": str(exc)})
+                    return
+                _json(self, 200, payload)
+                return
             if scope == "brokerage":
                 context = asyncio.run(_brokerage_admin_context(user))
                 if not context:
@@ -1810,10 +1820,18 @@ class handler(BaseHTTPRequestHandler):
                 _json(self, 401, {"error": "A valid signed-in session is required."})
                 return
             length = int(self.headers.get("Content-Length", "0") or "0")
-            if length <= 0 or length > MAX_BODY_BYTES:
+            if length <= 0 or length > MAX_SOURCE_UPLOAD_BODY_BYTES:
                 _json(self, 400, {"error": "Invalid request size."})
                 return
-            data = json.loads(self.rfile.read(length).decode("utf-8"))
+            raw_body = self.rfile.read(length)
+            data = json.loads(raw_body.decode("utf-8"))
+            if data.get("action") == "upload_platform_form_source":
+                source = asyncio.run(platform_source._upload_source(user, raw_body))
+                _json(self, 201, {"ok": True, "source": source})
+                return
+            if length > MAX_BODY_BYTES:
+                _json(self, 400, {"error": "Invalid request size."})
+                return
             if data.get("action") == "create_brokerage_invite":
                 invite = asyncio.run(_create_brokerage_invite(user, data))
                 _json(self, 201, {"ok": True, "invite": invite})
