@@ -332,6 +332,38 @@ class OnDemandCheckoutTests(unittest.TestCase):
 
 
 class BrokerageAuthorizationTests(unittest.TestCase):
+    def test_brokerage_txr_authorization_status_is_strictly_allowlisted(self):
+        self.assertEqual(
+            admin._parse_brokerage_txr_authorization({"txr_authorization": "all_agents_authorized"}),
+            "all_agents_authorized",
+        )
+        self.assertEqual(
+            admin._parse_brokerage_txr_authorization({"txr_authorization": "not_all"}),
+            "not_all",
+        )
+        with self.assertRaisesRegex(ValueError, "valid Texas REALTORS"):
+            admin._parse_brokerage_txr_authorization({"txr_authorization": "yes"})
+
+    def test_broker_can_save_txr_authorization_without_granting_agent_access(self):
+        actor = {"id": "11111111-1111-1111-1111-111111111111", "email": "tyler@ondemanddfw.com"}
+
+        async def broker_context(_actor):
+            return {"brokerage": {"id": "22222222-2222-2222-2222-222222222222"}}
+
+        BrokerageBrandingClient.last_patch = None
+        with patch.object(admin, "_brokerage_admin_context", broker_context), \
+             patch.object(admin.httpx, "AsyncClient", BrokerageBrandingClient):
+            result = asyncio.run(admin._update_brokerage_txr_authorization(actor, {
+                "txr_authorization": "all_agents_authorized"
+            }))
+        self.assertTrue(result["agentAttestationRequired"])
+        self.assertTrue(result["sourceApprovalSeparate"])
+        saved = BrokerageBrandingClient.last_patch[1]["json"]
+        self.assertTrue(saved["txr_all_agents_authorized"])
+        self.assertEqual(saved["txr_authorization_attested_by"], actor["id"])
+        self.assertNotIn("role", saved)
+        self.assertNotIn("status", saved)
+
     def test_broker_can_suspend_an_agent_but_not_themself_or_a_broker(self):
         actor = {"id": "11111111-1111-1111-1111-111111111111", "email": "tyler@ondemanddfw.com"}
         context = {"brokerage": {"id": "22222222-2222-2222-2222-222222222222"}}
@@ -384,6 +416,8 @@ class BrokerageAuthorizationTests(unittest.TestCase):
         self.assertIn("HomeOfferFlow billing or delete their offers", final_script)
         self.assertIn("Invitation email sent to", final_script)
         self.assertIn("Email delivery is not configured", final_script)
+        self.assertIn("saveBrokerageTxrAuthorization", final_script)
+        self.assertIn("Brokerage TXR / NAR authorization", final_script)
 
     def test_broker_can_create_an_agent_only_invite_link(self):
         actor = {"id": "11111111-1111-1111-1111-111111111111", "email": "tyler@ondemanddfw.com"}

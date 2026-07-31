@@ -11737,7 +11737,7 @@ function routeAfterMagicLinkIfNeeded() {
       }
       const [brokerageResult,membershipResult] = await Promise.all([
         client.from('hof_brokerages')
-          .select('id,name,dba_name,slug,logo_url,brand_color,website_url,license_number,plan_name,billing_status,default_title_company,default_title_contact')
+          .select('id,name,dba_name,slug,logo_url,brand_color,website_url,license_number,plan_name,billing_status,default_title_company,default_title_contact,txr_all_agents_authorized,txr_authorization_attested_at')
           .eq('id',brokerageId).maybeSingle(),
         client.from('hof_brokerage_members')
           .select('role,status,created_at,updated_at')
@@ -11882,6 +11882,35 @@ function routeAfterMagicLinkIfNeeded() {
     }
   };
 
+  root.saveBrokerageTxrAuthorization = async function saveBrokerageTxrAuthorization() {
+    const session = root.hofAuth?.session;
+    const brokerage = root.hofPlatform?.brokerage;
+    const result = document.getElementById('brokerageTxrAuthorizationResult');
+    const value = String(document.getElementById('brokerageTxrAuthorization')?.value || 'unknown');
+    if (!session?.access_token || !brokerage?.id) {
+      if (result) result.textContent = 'Sign in again before saving the authorization status.';
+      return;
+    }
+    if (result) result.textContent = 'Saving brokerage authorization status…';
+    try {
+      const response = await fetch('/api/admin-dashboard', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + session.access_token },
+        body: JSON.stringify({ action: 'update_brokerage_txr_authorization', txr_authorization: value })
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.authorization) throw new Error(data.error || 'Could not save the authorization status.');
+      root.hofPlatform.brokerage = Object.assign({}, brokerage, {
+        txr_all_agents_authorized: data.authorization.allAgentsAuthorized,
+        txr_authorization_attested_at: data.authorization.attestedAt || null
+      });
+      if (result) result.textContent = 'Brokerage authorization status saved. Each agent must still attest individually, and source approval remains separate.';
+      await root.renderBrokerageFoundationPanel();
+    } catch (error) {
+      if (result) result.textContent = error.message || 'Could not save the authorization status.';
+    }
+  };
+
   root.saveBrokerageSharedDefaults = async function saveBrokerageSharedDefaults() {
     const session = root.hofAuth?.session;
     const brokerage = root.hofPlatform?.brokerage;
@@ -11992,6 +12021,13 @@ function routeAfterMagicLinkIfNeeded() {
         '<h4>Brokerage activity</h4>' +
         '<p>Operational visibility only. Buyer names, property addresses, offer terms, and document contents are not included.</p>' +
         '<div class="brokerage-membership-note"><strong>TXR / NAR authorization:</strong> ' + safe(authorizationMessage) + '</div>' +
+        '<div class="brokerage-invite-form"><label for="brokerageTxrAuthorization">Brokerage TXR / NAR authorization</label>' +
+        '<select id="brokerageTxrAuthorization" aria-label="Brokerage TXR / NAR authorization">' +
+          '<option value="unknown"' + (!authorization.attestedAt ? ' selected' : '') + '>Not confirmed yet</option>' +
+          '<option value="all_agents_authorized"' + (authorization.allAgentsAuthorized ? ' selected' : '') + '>Yes — all participating agents are authorized</option>' +
+          '<option value="not_all"' + (authorization.attestedAt && !authorization.allAgentsAuthorized ? ' selected' : '') + '>No / not all participating agents are authorized</option>' +
+        '</select><button type="button" class="brokerage-access-button" onclick="saveBrokerageTxrAuthorization()">Save authorization</button></div>' +
+        '<p id="brokerageTxrAuthorizationResult" class="brokerage-invite-result">This is the broker-admin attestation only. Every agent confirms separately before using a restricted form.</p>' +
         '<p class="brokerage-membership-note">Suspending an agent removes brokerage-managed access only. It does not cancel that agent\'s HomeOfferFlow subscription or delete their offers.</p>' +
         '<div class="brokerage-invite-form" style="margin-top:1rem"><label for="brokerageBrandColor">Brokerage branding</label>' +
         '<input id="brokerageBrandColor" type="color" value="' + safe(b.brand_color || '#2563eb') + '" aria-label="Brokerage brand color">' +
