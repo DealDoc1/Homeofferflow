@@ -1258,9 +1258,33 @@ async def _active_brokerage_member(user):
     return brokerage_id
 
 
+async def _require_brokerage_txr_authorization(brokerage_id):
+    """Require the brokerage administrator's organization-level TXR gate.
+
+    A brokerage attestation is not inferred from a license number and does not
+    replace the agent's point-of-use checkbox. It is the server-side switch
+    that keeps restricted Texas REALTORS® source workflows disabled until the
+    brokerage has affirmatively confirmed that its participating agents are
+    authorized members/users.
+    """
+    rows = await _get(
+        "hof_brokerages?"
+        f"id=eq.{urllib.parse.quote(str(brokerage_id))}"
+        "&is_active=eq.true&txr_all_agents_authorized=is.true"
+        "&txr_authorization_attested_by=not.is.null"
+        "&txr_authorization_attested_at=not.is.null"
+        "&select=id&limit=1"
+    )
+    if not rows:
+        raise PermissionError(
+            "Your brokerage must first confirm that its participating agents are authorized Texas REALTORS® / NAR users."
+        )
+
+
 async def _create_representation_draft(user, data, form_code, parser):
     draft = parser(data)
     brokerage_id = await _active_brokerage_member(user)
+    await _require_brokerage_txr_authorization(brokerage_id)
     sources = await _get(
         "hof_brokerage_form_sources?"
         f"id=eq.{urllib.parse.quote(draft['form_source_id'])}"

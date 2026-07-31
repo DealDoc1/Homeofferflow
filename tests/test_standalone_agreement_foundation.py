@@ -208,4 +208,7 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
         self.assertIn("create_txr_1501_draft", backend)
         self.assertIn("create_txr_1508_draft", backend)
         self.assertIn("create_txr_1506_draft", backend)
+        self.assertIn("_require_brokerage_txr_authorization", backend)
+        self.assertIn("txr_all_agents_authorized=is.true", backend)
+        self.assertIn("txr_authorization_attested_by=not.is.null", backend)
         self.assertIn("_active_brokerage_member", backend)

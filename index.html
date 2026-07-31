@@ -12499,6 +12499,7 @@ function routeAfterMagicLinkIfNeeded() {
   const escape = value => String(value ?? '').replace(/[&<>\"]/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[char]));
   const profile = () => root.hofAuth?.authoritativeProfile || {};
   const brokerageId = () => root.hofPlatform?.brokerage?.id || profile().brokerage_id || null;
+  const brokerageTxrAuthorized = () => root.hofPlatform?.brokerage?.txr_all_agents_authorized === true && !!root.hofPlatform?.brokerage?.txr_authorization_attested_at;
   const activeAgent = () => {
     const role = String(root.hofAuth?.role || profile().role || '').toLowerCase();
     return !!root.hofAuth?.session?.user && !!brokerageId() && (role === 'agent' || role === 'brokerage_admin');
@@ -12527,6 +12528,10 @@ function routeAfterMagicLinkIfNeeded() {
     card.innerHTML = '<h4>Buyer/Tenant Representation Agreement</h4><p id="txr1507AgreementCopy">Checking whether your brokerage has approved the Texas REALTORS® Short Form…</p>';
     panel.appendChild(card);
     try {
+      if (!brokerageTxrAuthorized()) {
+        card.querySelector('#txr1507AgreementCopy').textContent = 'TXR-1507 is locked until your brokerage administrator confirms that participating agents are authorized Texas REALTORS® / NAR users in Brokerage Setup.';
+        return;
+      }
       const source = await approvedShortFormSource();
       const copy = card.querySelector('#txr1507AgreementCopy');
       if (!source) {
@@ -12653,6 +12658,10 @@ function routeAfterMagicLinkIfNeeded() {
     card.innerHTML = '<h4>Buyer/Tenant Representation Agreement - Long Form</h4><p id="txr1501AgreementCopy">Checking whether your brokerage has approved the Texas REALTORS® Long Form…</p>';
     panel.appendChild(card);
     try {
+      if (!(root.hofPlatform?.brokerage?.txr_all_agents_authorized === true && root.hofPlatform?.brokerage?.txr_authorization_attested_at)) {
+        card.querySelector('#txr1501AgreementCopy').textContent = 'TXR-1501 is locked until your brokerage administrator confirms that participating agents are authorized Texas REALTORS® / NAR users in Brokerage Setup.';
+        return;
+      }
       const source = await approvedLongFormSource();
       const copy = card.querySelector('#txr1501AgreementCopy');
       if (!source) {
@@ -12785,6 +12794,10 @@ function routeAfterMagicLinkIfNeeded() {
     card.innerHTML = '<h4>Unrepresented Customer Showing Form</h4><p id="txr1508AgreementCopy">Checking whether your brokerage has approved the Texas REALTORS® showing-form source…</p>';
     panel.appendChild(card);
     try {
+      if (!(root.hofPlatform?.brokerage?.txr_all_agents_authorized === true && root.hofPlatform?.brokerage?.txr_authorization_attested_at)) {
+        card.querySelector('#txr1508AgreementCopy').textContent = 'TXR-1508 is locked until your brokerage administrator confirms that participating agents are authorized Texas REALTORS® / NAR users in Brokerage Setup.';
+        return;
+      }
       const source = await approvedShowingSource();
       const copy = card.querySelector('#txr1508AgreementCopy');
       if (!source) {
@@ -12902,6 +12915,10 @@ function routeAfterMagicLinkIfNeeded() {
     card.innerHTML = '<h4>General Information and Notice to Consumers</h4><p id="txr1506AgreementCopy">Checking whether your brokerage has approved the Texas REALTORS® consumer-notice source…</p>';
     panel.appendChild(card);
     try {
+      if (!(root.hofPlatform?.brokerage?.txr_all_agents_authorized === true && root.hofPlatform?.brokerage?.txr_authorization_attested_at)) {
+        card.querySelector('#txr1506AgreementCopy').textContent = 'TXR-1506 is locked until your brokerage administrator confirms that participating agents are authorized Texas REALTORS® / NAR users in Brokerage Setup.';
+        return;
+      }
       const source = await approvedNoticeSource(), copy = card.querySelector('#txr1506AgreementCopy');
       if (!source) { copy.textContent = 'TXR-1506 is not yet enabled for your organization. An authorized administrator must privately upload and attest to the current authorized source form first.'; return; }
       copy.innerHTML = `Start a private TXR-1506 notice draft using your brokerage-approved ${escape(source.source_revision)} source. This is a consumer notice, not a representation agreement. A draft is not sent or signed.`;
