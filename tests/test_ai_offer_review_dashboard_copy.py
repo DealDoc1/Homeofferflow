@@ -17,6 +17,11 @@ class AiOfferReviewDashboardCopyTests(unittest.TestCase):
         self.assertNotIn("Placeholder score only. This does not call AI yet", INDEX_HTML)
         self.assertIn(">Save Review Snapshot<", INDEX_HTML)
 
+    def test_review_result_has_anonymized_calibration_feedback_path(self):
+        self.assertIn('value="ai_review"', INDEX_HTML)
+        self.assertIn("openAiCalibrationFeedback()", INDEX_HTML)
+        self.assertIn("do not include names, exact addresses, MLS numbers", INDEX_HTML)
+
 
 if __name__ == "__main__":
     unittest.main()
