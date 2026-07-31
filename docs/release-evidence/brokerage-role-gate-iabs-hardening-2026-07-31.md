@@ -46,6 +46,13 @@ and regression checks passed.
   returned HTTP 200 and showed the brokerage launch, 60-day trial, $29/month
   renewal disclosure, current workflow scope, and Texas REALTORS®/NAR
   restricted-form authorization language.
+- Live launch configuration verification: `GET /api/create-subscription-checkout?launch=ondemand`
+  returned `trialDays=60`, `monthlyPrice=29`, and the OnDemand Realty brokerage
+  record.
+- Post-release focused regression run: 79 tests passed, including brokerage
+  gate/source foundation, standalone-agreement validation, OnDemand checkout,
+  seller temporary lease reconciliation, TXR tracker reconciliation, mobile
+  roadmap, and release-preflight coverage.
 
 ## Rollback
 
