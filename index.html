@@ -8543,11 +8543,17 @@ function routeAfterMagicLinkIfNeeded() {
     }
     const payload = {
       name: getVal('brandBrokerageName') || 'My Brokerage',
+      org_type: getVal('brandOrgType') || 'brokerage',
+      slug: getVal('brandSlug') || null,
       dba_name: getVal('brandDbaName') || null,
       license_number: getVal('brandLicense') || null,
       logo_url: getVal('brandLogoUrl') || null,
       brand_color: getVal('brandColor') || '#2563eb',
-      website_url: getVal('brandWebsite') || null,
+      website_url: getVal('brandWebsiteUrl') || null,
+      office_address: getVal('brandOfficeAddress') || null,
+      office_city: getVal('brandOfficeCity') || null,
+      office_state: getVal('brandOfficeState') || 'TX',
+      office_zip: getVal('brandOfficeZip') || null,
       contact_name: getVal('brandContactName') || null,
       contact_email: getVal('brandContactEmail') || user.email,
       contact_phone: getVal('brandContactPhone') || null,
