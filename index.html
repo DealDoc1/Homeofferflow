@@ -12872,7 +12872,7 @@ function routeAfterMagicLinkIfNeeded() {
     const payload = {
       action: 'create_txr_1508_draft', formCode: FORM_CODE, formSourceId: source.id,
       clientNames: customerNames, propertyAddress: form.get('propertyAddress'), otherBrokerAgreement,
-      unrepresentedAcknowledgment: form.get('unrepresentedAcknowledgment') === 'on'
+      unrepresentedAcknowledgment: form.get('unrepresentedAcknowledgment') === 'on', signerPlan: form.get('signerPlan'), formUseAttested: form.get('formUseAttested') === 'on'
     };
     try {
       status.className = 'hof-iabs-status'; status.textContent = 'Saving private showing draft…';

@@ -58,6 +58,8 @@ def valid_showing_payload():
         "propertyAddress": "1438 Whitaker Road, Van Alstyne, TX",
         "otherBrokerAgreement": ["no"],
         "unrepresentedAcknowledgment": True,
+        "signerPlan": "associate_and_clients",
+        "formUseAttested": True,
     }
 
 
@@ -182,6 +184,16 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
         payload = valid_showing_payload()
         payload["unrepresentedAcknowledgment"] = False
         with self.assertRaisesRegex(ValueError, "no-representation"):
+            MODULE._parse_txr_1508_draft(payload)
+
+    def test_showing_draft_requires_explicit_acknowledger_and_attestation(self):
+        payload = valid_showing_payload()
+        payload.pop("signerPlan")
+        with self.assertRaisesRegex(ValueError, "broker or associate"):
+            MODULE._parse_txr_1508_draft(payload)
+        payload = valid_showing_payload()
+        payload["formUseAttested"] = False
+        with self.assertRaisesRegex(ValueError, "authorized to use this TXR form"):
             MODULE._parse_txr_1508_draft(payload)
 
     def test_notice_draft_requires_role_and_consumer_acknowledgment(self):

@@ -1215,6 +1215,11 @@ def _parse_txr_1508_draft(data):
         other_broker_agreement.append(value)
     if data.get("unrepresentedAcknowledgment") is not True:
         raise ValueError("Confirm the no-representation, no-compensation, and no-advice limits.")
+    signer_plan = str(data.get("signerPlan") or "").strip()
+    if signer_plan not in {"associate_and_clients", "broker_and_clients"}:
+        raise ValueError("Choose whether the broker or associate will acknowledge TXR-1508.")
+    if data.get("formUseAttested") is not True:
+        raise ValueError("Confirm that you are currently authorized to use this TXR form for your brokerage.")
     return {
         "form_source_id": form_source_id,
         "client_names": client_names,
@@ -1222,6 +1227,8 @@ def _parse_txr_1508_draft(data):
             "property_address": property_address,
             "other_broker_agreement": other_broker_agreement,
             "unrepresented_acknowledgment": True,
+            "signer_plan": signer_plan,
+            "form_use_attested": True,
         },
     }
 
@@ -1431,6 +1438,9 @@ async def _render_representation_draft_preview(user, agreement_id):
     if agreement.get("form_code") == TXR_1501_FORM_CODE:
         from api.txr_1501 import render_txr_1501
         return render_txr_1501(response.content, render_data, brokerage_rows[0], profile_rows[0] if profile_rows else {})
+    if agreement.get("form_code") == TXR_1508_FORM_CODE:
+        from api.txr_1508 import render_txr_1508
+        return render_txr_1508(response.content, render_data, brokerage_rows[0], profile_rows[0] if profile_rows else {})
     raise ValueError("Private preview is not available for this form yet.")
 
 
