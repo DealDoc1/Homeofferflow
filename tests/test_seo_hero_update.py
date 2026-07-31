@@ -9,8 +9,10 @@ INDEX = (ROOT / "index.html").read_text(encoding="utf-8")
 class SeoHeroUpdateTests(unittest.TestCase):
     def test_homebuyer_hero_uses_the_approved_plain_english_positioning(self):
         self.assertIn(
-            "Write a real estate offer<br/><em>without the confusion.</em>", INDEX
+            "Write a Real Estate Offer<br/><em>Without the Confusion.</em>", INDEX
         )
+        self.assertIn("Write a Real Estate Offer Without the Confusion | HomeOfferFlow", INDEX)
+        self.assertIn('name="description"', INDEX)
         self.assertIn(
             "supported Texas buyer-offer packet in plain English", INDEX
         )
