@@ -8449,7 +8449,7 @@ function routeAfterMagicLinkIfNeeded() {
           <div class="field"><label>Contact Email</label><input id="brandContactEmail" value="${escapeAttr(b.contact_email || profileValue('agent_email', hofAuth.session?.user?.email || ''))}" placeholder="brokerage@email.com"></div>
           <div class="field"><label>Contact Phone</label><input id="brandContactPhone" value="${escapeAttr(b.contact_phone || profileValue('agent_phone'))}" placeholder="(214) 555-0000"></div>
           <div class="field"><label>Default Title Company</label><input id="brandDefaultTitle" value="${escapeAttr(b.default_title_company || profileValue('default_title_company'))}" placeholder="Preferred title company"></div>
-          <div class="field" style="grid-column:1/-1"><label>Are all participating agents current Texas REALTORS® / NAR members and authorized to use the brokerage’s member forms?</label><select id="brandTxrAuthorization"><option value="unknown" ${!b.txr_all_agents_authorized && !b.txr_authorization_attested_at ? 'selected' : ''}>Not confirmed yet</option><option value="all_agents_authorized" ${b.txr_all_agents_authorized ? 'selected' : ''}>Yes — all participating agents are authorized Texas REALTORS® / NAR users</option><option value="not_all" ${b.txr_all_agents_authorized === false && b.txr_authorization_attested_at ? 'selected' : ''}>No / not all participating agents are authorized</option></select><label class="brokerage-txr-attestation"><input id="brandTxrAttestation" type="checkbox"> I attest that this status is accurate for the brokerage. Each agent still confirms their own current authorization before using a restricted Texas REALTORS® / NAR source form.</label><small style="display:block;color:var(--gray-light);margin-top:.3rem;line-height:1.45">This records the brokerage administrator’s attestation; it does not replace approval of the private source form.</small></div>
+          <div class="field" style="grid-column:1/-1"><label>Are all participating agents current Texas REALTORS® / NAR members and authorized to use the brokerage’s member forms?</label><select id="brandTxrAuthorization"><option value="unknown" ${!b.txr_all_agents_authorized && !b.txr_authorization_attested_at ? 'selected' : ''}>Not confirmed yet</option><option value="all_agents_authorized" ${b.txr_all_agents_authorized ? 'selected' : ''}>Yes — all participating agents are authorized Texas REALTORS® / NAR users</option><option value="not_all" ${b.txr_all_agents_authorized === false && b.txr_authorization_attested_at ? 'selected' : ''}>No / not all participating agents are authorized</option></select><label class="brokerage-txr-attestation"><input id="brandTxrAttestation" type="checkbox"> I attest that this status is accurate for the brokerage. Each agent still confirms their own current authorization before using a restricted Texas REALTORS® / NAR source form.</label><small style="display:block;color:var(--gray-light);margin-top:.3rem;line-height:1.45">This is not inferred from a license number. The attestation does not replace approval of the private source form.</small></div>
         </div>
         <div class="field" style="margin-top:0.8rem;"><label>Brokerage Disclaimer</label><textarea id="brandDisclaimer" rows="3" placeholder="Optional brokerage/team disclaimer shown in branded experiences.">${escapeAttr(b.disclaimer || '')}</textarea></div>
         <div class="notice gold" style="margin-top:0.8rem;"><strong>Logo upload note:</strong> URL works today. True file upload needs Supabase Storage bucket setup, so I left it as a safe URL field for this deploy.</div>
@@ -8472,6 +8472,11 @@ function routeAfterMagicLinkIfNeeded() {
     const user = platformUser();
     if (!client || !user) return platformStatus('brokerageFoundationStatus', 'Sign in before saving brokerage branding.', 'err');
     const now = new Date().toISOString();
+    const txrStatus = getVal('brandTxrAuthorization');
+    const txrAttested = document.getElementById('brandTxrAttestation')?.checked === true;
+    if (txrStatus !== 'unknown' && !txrAttested) {
+      return platformStatus('brokerageFoundationStatus', 'Check the brokerage Texas REALTORS® / NAR attestation before saving this authorization status.', 'err');
+    }
     const payload = {
       name: getVal('brandBrokerageName') || 'My Brokerage',
       dba_name: getVal('brandDbaName') || null,
@@ -8484,9 +8489,9 @@ function routeAfterMagicLinkIfNeeded() {
       contact_phone: getVal('brandContactPhone') || null,
       disclaimer: getVal('brandDisclaimer') || null,
       default_title_company: getVal('brandDefaultTitle') || null,
-      txr_all_agents_authorized: getVal('brandTxrAuthorization') === 'all_agents_authorized',
-      txr_authorization_attested_by: getVal('brandTxrAuthorization') === 'unknown' ? null : user.id,
-      txr_authorization_attested_at: getVal('brandTxrAuthorization') === 'unknown' ? null : now,
+      txr_all_agents_authorized: txrStatus === 'all_agents_authorized',
+      txr_authorization_attested_by: txrStatus === 'unknown' || !txrAttested ? null : user.id,
+      txr_authorization_attested_at: txrStatus === 'unknown' || !txrAttested ? null : now,
       created_by: user.id,
       updated_at: now
     };

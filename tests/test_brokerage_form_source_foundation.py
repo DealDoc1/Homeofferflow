@@ -41,6 +41,9 @@ class BrokerageFormSourceFoundationTests(unittest.TestCase):
         self.assertIn("txr_authorization_attested_by", authorization_migration)
         self.assertIn("brandTxrAuthorization", HTML)
         self.assertIn("Each agent still confirms their own current authorization", HTML)
+        self.assertIn("brandTxrAttestation", HTML)
+        self.assertIn("Check the brokerage Texas REALTORS® / NAR attestation before saving", HTML)
+        self.assertIn("This is not inferred from a license number", HTML)
 
     def test_listing_side_sources_are_private_and_do_not_activate_workflows(self):
         for form_code in ("TXR-1101", "TXR-1102", "TXR-1406", "TXR-1418"):
