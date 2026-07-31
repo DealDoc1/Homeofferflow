@@ -18,6 +18,7 @@ QA and does not authorize a SignWell release.
 | One buyer, Full Services, purchase percentage, intermediary authorized | Client/broker, market area, dates, Full Services, purchase percentage | Authorized intermediary, printed names/license fields | Draft render usable; signatures intentionally blank |
 | Two buyers, Full Services, purchase flat fee, intermediary not authorized | Two clients, dates, Full Services, flat fee | Not-authorized intermediary, both client printed-name fields | Draft render usable; signatures intentionally blank |
 | One tenant, Showing Services, lease percentage, intermediary not authorized | Showing Services, execution fee, lease percentage | Not-authorized intermediary, tenant printed name | Draft render usable; signatures intentionally blank |
+| Two tenants, Full Services, all lease compensation terms, intermediary authorized | Two clients, dates, Full Services, one-month percentage, total-rents percentage, flat fee | Authorized intermediary, broker/client printed names | Draft render usable; all lease compensation entries sit in their printed blanks; signatures intentionally blank |
 
 ## Validation coverage
 
