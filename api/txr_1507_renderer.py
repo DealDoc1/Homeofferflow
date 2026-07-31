@@ -163,13 +163,13 @@ def overlay_entries(data: Mapping[str, Any], broker: Mapping[str, Any]) -> Dict[
     p1 += [_entry(240, 512, _fmt_date(normalized["term_start"]), 8), _entry(450, 512, _fmt_date(normalized["term_end"]), 8)]
     p1 += [_check(57, 457) if normalized["service_level"] == "full_services" else _check(57, 421)]
     if normalized["service_level"] == "showing_services":
-        p1.append(_entry(500, 417, normalized["showing_fee"], 8))
+        p1.append(_entry(330, 410, normalized["showing_fee"], 8))
     p1 += [
-        _entry(215, 197, normalized["purchase_percentage"], 8),
-        _entry(520, 197, normalized["purchase_flat_fee"], 8),
-        _entry(225, 178, normalized["lease_one_month_percentage"], 8),
-        _entry(375, 178, normalized["lease_total_rents_percentage"], 8),
-        _entry(520, 178, normalized["lease_flat_fee"], 8),
+        _entry(180, 197, normalized["purchase_percentage"], 8),
+        _entry(410, 197, normalized["purchase_flat_fee"], 8),
+        _entry(150, 178, normalized["lease_one_month_percentage"], 8),
+        _entry(315, 178, normalized["lease_total_rents_percentage"], 8),
+        _entry(230, 170, normalized["lease_flat_fee"], 8),
     ]
 
     p2: List[Tuple[float, float, str, float]] = []
