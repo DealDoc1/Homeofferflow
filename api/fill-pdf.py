@@ -5,7 +5,7 @@ from http.server import BaseHTTPRequestHandler
 from pypdf import PdfReader, PdfWriter
 from reportlab.pdfgen import canvas
 
-from api.fill_pdf_20_19_production_adapter import (
+from lib.production_adapter import (
     UnsupportedOfferPathError,
     build_signwell_fields_20_19,
     fill_and_merge_20_19,

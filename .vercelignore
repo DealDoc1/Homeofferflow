@@ -1,0 +1,7 @@
+# Staging-only contract route. Keep it in the repository for controlled QA;
+# do not count it as a production Hobby-plan function.
+api/fill_pdf_20_19_staging.py
+
+# Local Python bytecode is never part of a deployment.
+**/__pycache__/
+*.pyc

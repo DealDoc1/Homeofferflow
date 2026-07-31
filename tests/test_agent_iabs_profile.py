@@ -5,7 +5,7 @@ import unittest
 
 from pypdf import PdfReader, PdfWriter
 
-from api import fill_pdf_20_19_production_adapter as adapter
+from lib import production_adapter as adapter
 
 
 ROOT = Path(__file__).resolve().parents[1]

@@ -6,7 +6,7 @@ import unittest
 from pypdf import PdfReader
 
 from api import fill_pdf_20_19_staging as staging
-from api import fill_pdf_20_19_production_adapter as production
+from lib import production_adapter as production
 
 
 ROOT = Path(__file__).resolve().parents[1]

@@ -4,7 +4,7 @@ import unittest
 from pypdf import PdfReader
 from reportlab.pdfgen.canvas import Canvas
 
-from api.txr_1507 import build_signwell_fields_txr1507, render_txr_1507
+from lib.txr_1507 import build_signwell_fields_txr1507, render_txr_1507
 
 
 def blank_two_page_pdf():
