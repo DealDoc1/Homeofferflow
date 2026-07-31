@@ -6,7 +6,7 @@ import unittest
 from pypdf import PdfReader
 
 from api import fill_pdf_20_19_staging as staging
-from api import fill_pdf_20_19_production_adapter as production
+from lib import production_adapter as production
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -166,12 +166,11 @@ class BuyerTemporaryLeaseStagingTests(unittest.TestCase):
                 with self.assertRaises(production.UnsupportedOfferPathError):
                     production.validate_supported_offer(offer)
 
-    def test_vercel_staging_and_production_bundles_include_current_lease_form(self):
+    def test_vercel_production_bundle_includes_current_lease_form_and_staging_is_kept_out(self):
         config = json.loads((ROOT / "vercel.json").read_text())
-        self.assertIn(
-            "buyer_temporary_residential_lease_16-7.pdf",
-            config["functions"]["api/fill_pdf_20_19_staging.py"]["includeFiles"],
-        )
+        # Staging remains a repository-only route under the Hobby deployment
+        # cap; it is deliberately excluded from the production function list.
+        self.assertNotIn("api/fill_pdf_20_19_staging.py", config["functions"])
         self.assertIn(
             "buyer_temporary_residential_lease_16-7.pdf",
             config["functions"]["api/fill-pdf.py"]["includeFiles"],

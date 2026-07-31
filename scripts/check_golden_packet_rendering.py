@@ -83,7 +83,7 @@ def build_manifest(selected=None):
     if not POPPLER:
         raise RuntimeError("pdftoppm is required for golden packet rendering.")
     from tests.test_controlled_launch import configure_local_forms, minimal_offer
-    from api import fill_pdf_20_19_production_adapter as adapter
+    from lib import production_adapter as adapter
 
     configure_local_forms()
     manifest = {"version": 1, "renderer": "pdftoppm", "max_width": 612, "scenarios": {}}

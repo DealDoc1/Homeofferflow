@@ -1573,16 +1573,16 @@ async def _render_representation_draft_preview(user, agreement_id):
         "compensation": {key: agreement_data.get(key, "") for key in compensation_keys},
     }
     if agreement.get("form_code") == TXR_1507_FORM_CODE:
-        from api.txr_1507 import render_txr_1507
+        from lib.txr_1507 import render_txr_1507
         return render_txr_1507(response.content, render_data, brokerage_rows[0], profile_rows[0] if profile_rows else {})
     if agreement.get("form_code") == TXR_1501_FORM_CODE:
-        from api.txr_1501 import render_txr_1501
+        from lib.txr_1501 import render_txr_1501
         return render_txr_1501(response.content, render_data, brokerage_rows[0], profile_rows[0] if profile_rows else {})
     if agreement.get("form_code") == TXR_1508_FORM_CODE:
-        from api.txr_1508 import render_txr_1508
+        from lib.txr_1508 import render_txr_1508
         return render_txr_1508(response.content, render_data, brokerage_rows[0], profile_rows[0] if profile_rows else {})
     if agreement.get("form_code") == TXR_1506_FORM_CODE:
-        from api.txr_1506 import render_txr_1506
+        from lib.txr_1506 import render_txr_1506
         return render_txr_1506(response.content, render_data, brokerage_rows[0])
     raise ValueError("Private preview is not available for this form yet.")
 
