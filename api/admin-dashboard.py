@@ -1482,6 +1482,12 @@ class handler(BaseHTTPRequestHandler):
             stripe_webhook_events = asyncio.run(_get_optional(
                 "hof_stripe_webhook_events?select=stripe_event_id,event_type,livemode,processing_state,error_code,received_at,processed_at&order=received_at.desc&limit=50"
             ))
+            # Platform-admin-only calibration feed. Keep direct account email,
+            # user-agent, and page URL out of the dashboard response; the
+            # existing feedback record remains available for support workflows.
+            feedback = asyncio.run(_get_optional(
+                "hof_feedback?select=id,issue_type,message,status,role,created_at&order=created_at.desc&limit=100"
+            ))
             total_volume = sum(float(o.get("offer_price") or 0) for o in offers)
             def bucket(s):
                 s = str(s or "").lower()
@@ -1545,6 +1551,10 @@ class handler(BaseHTTPRequestHandler):
                     item for item in stripe_webhook_events
                     if item.get("processing_state") == "failed"
                 ]),
+                "feedbackCount": len(feedback),
+                "aiCalibrationFeedbackCount": len([
+                    item for item in feedback if item.get("issue_type") == "ai_review"
+                ]),
             }
             _json(self, 200, {
                 "metrics": metrics,
@@ -1560,7 +1570,7 @@ class handler(BaseHTTPRequestHandler):
                 "releases": releases,
                 "stripeWebhookEvents": stripe_webhook_events,
                 "showings": [],
-                "feedback": [],
+                "feedback": feedback,
             })
         except Exception as e:
             _json(self, 500, {"error": str(e)})
