@@ -8503,7 +8503,11 @@ function routeAfterMagicLinkIfNeeded() {
       };
       result = await writeBrokerage(payload);
       if (result.error && String(result.error.message || '').toLowerCase().includes('column')) {
-        const { org_type, slug, office_address, office_city, office_state, office_zip, txr_all_agents_authorized, txr_authorization_attested_by, txr_authorization_attested_at, ...legacyPayload } = payload;
+        // Compatibility fallback may omit older branding-only columns, but it
+        // must never omit the TXR/NAR gate. If those columns are unavailable,
+        // fail closed instead of creating a brokerage with an unrecorded
+        // authorization policy.
+        const { org_type, slug, office_address, office_city, office_state, office_zip, ...legacyPayload } = payload;
         result = await writeBrokerage(legacyPayload);
       }
       if (result.error) throw result.error;

@@ -503,6 +503,7 @@ class BrokerageAuthorizationTests(unittest.TestCase):
         final_script = INDEX_HTML[marker:]
         self.assertIn("Restricted form readiness", final_script)
         self.assertIn("Awaiting approved source", final_script)
+        self.assertIn("must never omit the TXR/NAR gate", INDEX_HTML)
 
     def test_invite_migration_is_private_and_allows_one_pending_agent_invite(self):
         self.assertIn("alter column brokerage_id set not null", INVITE_MIGRATION)
