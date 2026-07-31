@@ -44,10 +44,12 @@
 ## Regression
 
 - Dedicated golden scenario added: Brokerage-branding propagation contract test.
-- Existing buyer-offer regression scenarios run: Full automated suite, 271
+- Existing buyer-offer regression scenarios run: Full automated suite, 275
   tests passed.
-- Test result / evidence: `tests/test_brokerage_branding_propagation.py` and
-  `tests/test_brokerage_branding_tracker_reconciliation.py` passed.
+- Test result / evidence: `tests/test_brokerage_branding_propagation.py`,
+  `tests/test_brokerage_branding_tracker_reconciliation.py`,
+  `tests/test_ai_calibration_tracker_reconciliation.py`, and
+  `tests/test_brokerage_ops_tracker_reconciliation.py` passed.
 
 ## Release authority
 
