@@ -12908,7 +12908,9 @@ function routeAfterMagicLinkIfNeeded() {
           ${customerStatusField(1)}
           <label>Customer 2 full name (optional)<input name="customerTwo" maxlength="180"></label>
           <div id="txr1508CustomerTwoStatus" style="display:none">${customerStatusField(2)}</div>
+          <label>Signer plan<select name="signerPlan" required><option value="">Choose one…</option><option value="associate_and_clients">Associate and customer(s)</option><option value="broker_and_clients">Broker and customer(s)</option></select><small>Choose deliberately; HomeOfferFlow will not infer whether the associate or broker acknowledges the showing form.</small></label>
           <label class="hof-agreement-wide hof-agreement-services"><input name="unrepresentedAcknowledgment" type="checkbox" required> I confirm this is an unrepresented-customer showing draft only: no representation, no compensation, no advice or opinions, and no other brokerage services are being promised through this draft.</label>
+          <label class="hof-agreement-wide hof-agreement-services"><input name="formUseAttested" type="checkbox" required> I attest that I am a current Texas REALTORS® / NAR member (or otherwise individually authorized), that I am currently authorized to use this Texas REALTORS® form for my brokerage, and that the selected source revision is the approved source for this showing draft.</label>
         </div>
         <div id="txr1508DraftStatus" class="hof-iabs-status"></div>
         <div class="hof-agreement-footer"><button class="btn-secondary" type="button" id="txr1508Cancel">Cancel</button><button class="btn-primary" type="submit">Save private draft</button></div>
