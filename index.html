@@ -12577,6 +12577,31 @@ function routeAfterMagicLinkIfNeeded() {
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || 'Could not save the agreement draft.');
       status.className = 'hof-iabs-status ready'; status.textContent = 'Draft saved privately. It has not been sent for signature.';
+      const agreementId = result?.agreement?.id;
+      if (agreementId) {
+        const renderButton = document.createElement('button');
+        renderButton.type = 'button';
+        renderButton.className = 'btn-secondary';
+        renderButton.textContent = 'Generate private PDF for review';
+        renderButton.addEventListener('click', async () => {
+          renderButton.disabled = true;
+          status.textContent = 'Generating a private PDF for review…';
+          try {
+            const token = root.hofAuth?.session?.access_token;
+            const renderResponse = await fetch('/api/admin-dashboard', { method:'POST', headers:{ 'Content-Type':'application/json', Authorization:`Bearer ${token}` }, body:JSON.stringify({ action:'render_txr_1507_draft', agreementId }) });
+            const rendered = await renderResponse.json();
+            if (!renderResponse.ok) throw new Error(rendered.error || 'Could not generate the private PDF.');
+            status.className = 'hof-iabs-status ready';
+            status.innerHTML = `Private draft PDF generated. <a href="${escape(rendered?.agreement?.download_url || '')}" target="_blank" rel="noopener">Open PDF for review</a> (link expires in 15 minutes). It is not sent for signature.`;
+            renderButton.remove();
+          } catch (error) {
+            console.error('TXR-1507 private render failed:', error);
+            renderButton.disabled = false;
+            status.className = 'hof-iabs-status error'; status.textContent = error.message || 'Could not generate the private PDF.';
+          }
+        });
+        event.currentTarget.querySelector('.hof-agreement-footer')?.prepend(renderButton);
+      }
       event.currentTarget.querySelector('button[type="submit"]').disabled = true;
     } catch (error) {
       console.error('TXR-1507 draft failed:', error);
