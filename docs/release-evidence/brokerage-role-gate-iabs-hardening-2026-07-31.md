@@ -31,8 +31,21 @@ Changed runtime behavior is limited to:
 
 ## Release decision
 
-Ready to bundle into the next intentional production deployment. This is not
-itself a deployment record; no Vercel deployment was triggered for this batch.
+Released in the intentional production deployment below after the preflight
+and regression checks passed.
+
+## Production deployment record
+
+- Vercel deployment: `dpl_7qEbd31vKKtikB9N9kZb9nvqHoKb`
+- Production commit: `a3cb94b23640b66a70a9c6bf52d834f040d34eb6`
+- Branch: `release/intentional-prod-2026-07-31-ai-scenario-gate`
+- State: `READY`
+- Canonical aliases verified: `https://homeofferflow.com` and
+  `https://www.homeofferflow.com`
+- Live OnDemand launch verification: `https://www.homeofferflow.com/ondemand`
+  returned HTTP 200 and showed the brokerage launch, 60-day trial, $29/month
+  renewal disclosure, current workflow scope, and Texas REALTORS®/NAR
+  restricted-form authorization language.
 
 ## Rollback
 
