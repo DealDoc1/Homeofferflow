@@ -2733,6 +2733,7 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
         <option value="missing_addendum">Missing addendum or form</option>
         <option value="billing">Billing / subscription issue</option>
         <option value="crm_data">CRM / saved data issue</option>
+        <option value="ai_review">AI offer review calibration</option>
         <option value="suggestion">Suggestion / improvement</option>
         <option value="other">Other</option>
       </select>
@@ -9098,6 +9099,7 @@ function routeAfterMagicLinkIfNeeded() {
         <div class="ai-review-actions ai-review-actions-v5">
           <button type="button" onclick="runLiveAiOfferReview()" ${loading ? 'disabled' : ''}>${loading ? loadingText : liveButton}</button>
           <button type="button" onclick="showAiImproveBox()">${improveButton}</button>
+          <button type="button" onclick="openAiCalibrationFeedback()">Review this result</button>
           <button type="button" onclick="prevStep()">Edit Terms</button>
         </div>
         <div id="aiImproveBox" class="ai-improve-box"><strong>${improveTitle}</strong><div class="ai-clean-list">${improveHtml}</div></div>
@@ -9124,6 +9126,31 @@ function routeAfterMagicLinkIfNeeded() {
       console.error('Live AI review failed:', err);
       renderAiOfferReviewResult({ ...fallback, summary: 'Live AI review was unavailable, so the rules-based review is shown instead. ' + (err?.message || '') }, false);
     }
+  }
+
+  function openAiCalibrationFeedback() {
+    if (typeof openBetaFeedback !== 'function') return;
+    openBetaFeedback();
+    setTimeout(() => {
+      const review = state.data?._lastAiReview || normalizeAiReviewResult(null);
+      const issue = document.getElementById('feedbackIssueType');
+      const title = document.getElementById('feedbackTitle');
+      const intro = document.querySelector('#feedbackModal .feedback-head p');
+      const message = document.getElementById('feedbackMessage');
+      if (issue) issue.value = 'ai_review';
+      if (title) title.textContent = 'Review AI Offer Assessment';
+      if (intro) intro.textContent = 'Use anonymized transaction facts only. Tell us what was useful, misleading, insufficient, or missing. This feedback calibrates the educational review and does not change the offer.';
+      if (message && !message.value) {
+        message.value = [
+          'AI review calibration note',
+          'Score shown: ' + String(review.score ?? 'unknown'),
+          'Market mode shown: ' + String(review.marketMode || 'unknown'),
+          '',
+          'Expert assessment (do not include names, exact addresses, MLS numbers, or other direct identifiers):'
+        ].join('\n');
+        message.focus();
+      }
+    }, 0);
   }
 
   async function saveAiReviewResultToSupabase(result) {
