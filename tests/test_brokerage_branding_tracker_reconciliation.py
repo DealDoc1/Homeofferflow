@@ -11,7 +11,8 @@ ADMIN = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
 class BrokerageBrandingTrackerReconciliationTests(unittest.TestCase):
     def test_tracker_records_implemented_upload_but_keeps_qa_gate(self):
         self.assertIn("Broker-admin-only logo upload", SQL)
-        self.assertIn("Packet/email propagation", SQL)
+        self.assertIn("PDF visual branding", SQL)
+        self.assertIn("signing-message propagation", SQL)
         self.assertIn("authenticated brokerage-admin QA", SQL)
         self.assertIn("where slug = 'brokerage-branding'", SQL)
 
