@@ -53,6 +53,11 @@ and regression checks passed.
   gate/source foundation, standalone-agreement validation, OnDemand checkout,
   seller temporary lease reconciliation, TXR tracker reconciliation, mobile
   roadmap, and release-preflight coverage.
+- Live Supabase verification: the OnDemand brokerage exists, Tyler Demando's
+  `tyler@ondemanddfw.com` profile is an active `brokerage_admin` membership, and
+  the brokerage authorization status remains unset (`false` with no attestation
+  actor/timestamp). Restricted forms therefore remain fail-closed until an
+  authorized brokerage administrator records the assertion.
 
 ## Rollback
 
