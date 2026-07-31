@@ -96,6 +96,12 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
         asyncio = importlib.import_module("asyncio")
         asyncio.run(run())
 
+    def test_server_authors_agent_form_use_attestation_metadata(self):
+        backend = (ROOT / "api" / "admin-dashboard.py").read_text()
+        self.assertIn('agreement_data["form_use_attested_by"] = user["id"]', backend)
+        self.assertIn('agreement_data["form_use_attested_at"] = datetime.now(timezone.utc).isoformat()', backend)
+        self.assertIn("does not infer membership from a", backend)
+
     def test_private_standalone_records_are_separate_from_offers(self):
         self.assertIn("create table if not exists public.hof_standalone_agreements", MIGRATION)
         self.assertIn("form_code text not null check (form_code in ('TXR-1507'))", MIGRATION)

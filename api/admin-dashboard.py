@@ -1456,6 +1456,14 @@ async def _create_representation_draft(user, data, form_code, parser):
     if not sources:
         raise ValueError(f"Choose an approved {form_code} source from your brokerage.")
     source = sources[0]
+    # Preserve the agent's point-of-use attestation as server-authored audit
+    # metadata. The browser checkbox is required by each parser, but the
+    # identity and timestamp must come from the authenticated request rather
+    # than client-supplied fields. This does not infer membership from a
+    # license number or replace the brokerage/source authorization gates.
+    agreement_data = dict(draft["agreement_data"] or {})
+    agreement_data["form_use_attested_by"] = user["id"]
+    agreement_data["form_use_attested_at"] = datetime.now(timezone.utc).isoformat()
     record = {
         "brokerage_id": brokerage_id,
         "agent_user_id": user["id"],
@@ -1464,7 +1472,7 @@ async def _create_representation_draft(user, data, form_code, parser):
         "source_revision": source["source_revision"],
         "status": "draft",
         "client_names": draft["client_names"],
-        "agreement_data": draft["agreement_data"],
+        "agreement_data": agreement_data,
     }
     async with httpx.AsyncClient(timeout=12) as client:
         response = await client.post(
