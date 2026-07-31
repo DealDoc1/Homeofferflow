@@ -21,6 +21,8 @@ class AiOfferReviewDashboardCopyTests(unittest.TestCase):
         self.assertIn('value="ai_review"', INDEX_HTML)
         self.assertIn("openAiCalibrationFeedback()", INDEX_HTML)
         self.assertIn("do not include names, exact addresses, MLS numbers", INDEX_HTML)
+        self.assertIn('id="aiFeedbackAnonymized"', INDEX_HTML)
+        self.assertIn("AI calibration notes must be anonymized before submission.", INDEX_HTML)
 
     def test_admin_dashboard_surfaces_calibration_notes(self):
         self.assertIn("AI Calibration Notes", INDEX_HTML)

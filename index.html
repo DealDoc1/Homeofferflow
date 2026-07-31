@@ -2726,7 +2726,7 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
 
     <div class="feedback-field">
       <label for="feedbackIssueType">Issue type</label>
-      <select id="feedbackIssueType">
+      <select id="feedbackIssueType" onchange="syncAiFeedbackPrivacyGuard()">
         <option value="bug">Bug / something broken</option>
         <option value="pdf_field">PDF field or placement issue</option>
         <option value="signwell">SignWell / signature issue</option>
@@ -2742,6 +2742,13 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
     <div class="feedback-field">
       <label for="feedbackMessage">What happened?</label>
       <textarea id="feedbackMessage" placeholder="Tell us what you were doing, what went wrong, what page/form/field was involved, and what you expected to happen."></textarea>
+    </div>
+
+    <div class="feedback-field" id="aiFeedbackPrivacyGuard" style="display:none;">
+      <label style="display:flex; gap:.55rem; align-items:flex-start; text-transform:none; letter-spacing:0; font-size:.82rem; line-height:1.45;">
+        <input id="aiFeedbackAnonymized" type="checkbox" style="margin-top:.2rem;">
+        <span>I confirm this AI-review calibration note is anonymized and does not include names, exact addresses, MLS numbers, phone numbers, email addresses, or other identifying transaction details.</span>
+      </label>
     </div>
 
     <div class="feedback-actions">
@@ -4657,6 +4664,7 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
       status.className = 'feedback-status';
     }
     if (type && !type.value) type.value = 'bug';
+    syncAiFeedbackPrivacyGuard();
     if (msg && !msg.value) {
       msg.value = '';
     }
@@ -4666,6 +4674,15 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
       setTimeout(() => msg?.focus(), 80);
     }
     return false;
+  }
+
+  function syncAiFeedbackPrivacyGuard() {
+    const type = document.getElementById('feedbackIssueType');
+    const guard = document.getElementById('aiFeedbackPrivacyGuard');
+    const checkbox = document.getElementById('aiFeedbackAnonymized');
+    const isCalibration = type?.value === 'ai_review';
+    if (guard) guard.style.display = isCalibration ? 'block' : 'none';
+    if (!isCalibration && checkbox) checkbox.checked = false;
   }
 
   function closeBetaFeedback() {
@@ -4681,10 +4698,16 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
     const user = hofAuth?.session?.user || null;
     const issueType = document.getElementById('feedbackIssueType')?.value || 'other';
     const message = document.getElementById('feedbackMessage')?.value?.trim() || '';
+    const anonymizedCalibration = document.getElementById('aiFeedbackAnonymized')?.checked === true;
     const btn = document.getElementById('submitFeedbackBtn');
 
     if (!message) {
       setFeedbackStatus('Please enter a short description before submitting.', 'err');
+      return;
+    }
+
+    if (issueType === 'ai_review' && !anonymizedCalibration) {
+      setFeedbackStatus('AI calibration notes must be anonymized before submission.', 'err');
       return;
     }
 
