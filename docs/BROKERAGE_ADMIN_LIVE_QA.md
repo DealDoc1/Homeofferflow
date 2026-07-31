@@ -20,27 +20,33 @@ buyer names, property addresses, offer terms, or document contents.
 4. Confirm the TXR / NAR authorization control is visible to the broker admin.
 5. Confirm the control explains that each agent must attest individually and
    that an approved private source is required separately.
-6. Leave the status as `Not confirmed yet` unless the broker is intentionally
-   recording the brokerage assertion. A brokerage assertion must never be
+6. Select `Yes` or `No / not all` only when the broker is intentionally
+   recording the brokerage assertion, then verify the explicit attestation
+   checkbox is required before saving. A brokerage assertion must never be
    inferred from a license number or silently written by an agent.
-7. Verify branding controls reject invalid colors and reject non-image files or
+7. Leave the status as `Not confirmed yet` when the brokerage has not made that
+   assertion. Confirm that an unconfirmed status can be saved without creating
+   an authorization attestation.
+8. Verify branding controls reject invalid colors and reject non-image files or
    files larger than 2 MB. If a logo is intentionally uploaded, verify it is
    visible only as brokerage branding.
-8. Verify shared title defaults can be saved and that an agent must explicitly
+9. Verify shared title defaults can be saved and that an agent must explicitly
    copy them into their own profile; saving defaults must not alter an existing
    offer.
-9. If an invitation is intentionally tested, verify it is email-bound, expires
+10. If an invitation is intentionally tested, verify it is email-bound, expires
    in 14 days, grants agent access only, and does not cancel or change the
    invitee's HomeOfferFlow subscription.
-10. As the invited agent, accept the invitation with the matching email and
-    verify the membership is active. Confirm the agent cannot see brokerage
-    activity totals for other members or change brokerage authorization.
+11. As the invited agent, accept the invitation with the matching email and
+   verify the membership is active. Confirm the agent cannot see brokerage
+   activity totals for other members or change brokerage authorization.
 
 ## TXR/NAR authorization behavior
 
 - The brokerage administrator may record whether participating agents are
   authorized Texas REALTORS® / NAR members or otherwise authorized by the
   source owner.
+- The broker-admin API rejects a definitive status unless the explicit
+  attestation checkbox is confirmed; the browser control is not the only gate.
 - Every agent must still attest to their own current authorization before
   creating a restricted TXR draft.
 - The exact private source PDF must be uploaded and attested by an authorized
