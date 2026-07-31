@@ -1832,8 +1832,20 @@ def create_signwell_signature_request(offer, pdf_bytes):
     else:
         contact_sentence = f"Questions? Contact {agent_name}."
 
-    signwell_message = (
+    brokerage_name = first_present(
+        offer.get("brokerageName"),
+        offer.get("brokerage_name"),
+        offer.get("agentBrokerage"),
+        ""
+    )
+    prepared_by_line = (
+        f"{agent_name} with {brokerage_name} prepared this Texas offer packet using HomeOfferFlow.\n\n"
+        if brokerage_name else
         f"{agent_name} prepared this Texas offer packet using HomeOfferFlow.\n\n"
+    )
+
+    signwell_message = (
+        prepared_by_line +
         "Please review and sign your buyer-side offer packet. "
         "Seller-side signatures and seller initials are handled separately by the seller or listing side.\n\n"
         f"{contact_sentence}\n\n"
@@ -1857,6 +1869,7 @@ def create_signwell_signature_request(offer, pdf_bytes):
         "fields": fields,
         "metadata": {
             "source": "HomeOfferFlow",
+            "brokerage_name": str(brokerage_name)[:250],
             "prepared_by_agent_name": str(agent_name)[:250],
             "prepared_by_agent_email": str(agent_email)[:250],
             "prepared_by_agent_phone": str(agent_phone)[:80],

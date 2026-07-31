@@ -7205,8 +7205,13 @@ function routeAfterMagicLinkIfNeeded() {
       sessionStorage.setItem('hofOfferData', JSON.stringify(state.data));
 
       const profileIabsDoc = await window.getProfileIabsOfferDoc?.();
+      const activeBrokerage = window.hofPlatform?.brokerage || null;
       const packetOfferData = {
         ...state.data,
+        brokerageName: activeBrokerage?.name || activeBrokerage?.dba_name || state.data.brokerageName || '',
+        brokerageLogoUrl: activeBrokerage?.logo_url || state.data.brokerageLogoUrl || '',
+        brokerageBrandColor: activeBrokerage?.brand_color || state.data.brokerageBrandColor || '',
+        brokerageContactEmail: activeBrokerage?.contact_email || state.data.brokerageContactEmail || '',
         uploadedDisclosureDocs: [
           ...(window.hofUploadedDisclosureDocs || []).map(d => ({
           name: d.name,

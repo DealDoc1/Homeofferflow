@@ -1370,9 +1370,21 @@ def create_signwell_signature_request(offer, pdf_bytes):
         "Seller signatures, seller initials, counteroffers, amendments, and seller-side changes are handled separately by the seller or listing side.\n\n"
     )
 
+    brokerage_name = first_present(
+        offer.get("brokerageName"),
+        offer.get("brokerage_name"),
+        offer.get("agentBrokerage"),
+        ""
+    )
+    prepared_by_line = (
+        f"Your Texas offer packet has been prepared by {agent_name} with {brokerage_name} through HomeOfferFlow.\n\n"
+        if brokerage_name else
+        "Your Texas offer packet has been prepared through HomeOfferFlow.\n\n"
+    )
+
     if str(offer.get("userType") or offer.get("role") or "homebuyer").lower() in ["agent", "investor"] and (agent_email or agent_phone):
         signwell_message = (
-            f"Your Texas offer packet has been prepared through HomeOfferFlow.\n\n" +
+            prepared_by_line +
             signing_scope_message +
             f"Questions about the offer terms? Contact {agent_name} at " + " or ".join(agent_contact_parts) + ".\n\n" +
             "HomeOfferFlow does not automatically submit offers to a seller, listing broker, or MLS.\n\n"
@@ -1385,7 +1397,7 @@ def create_signwell_signature_request(offer, pdf_bytes):
         )
     else:
         signwell_message = (
-            "Your Texas offer packet has been prepared through HomeOfferFlow.\n\n" +
+            prepared_by_line +
             signing_scope_message +
             "HomeOfferFlow does not automatically submit offers to a seller, listing broker, or MLS.\n\n"
             "Questions or technical issues? Email: support@homeofferflow.com\n\n"
@@ -1413,6 +1425,7 @@ def create_signwell_signature_request(offer, pdf_bytes):
         "fields": fields,
         "metadata": {
             "source": "HomeOfferFlow",
+            "brokerage_name": str(brokerage_name)[:250],
             "prepared_by_agent_name": str(agent_name)[:250],
             "prepared_by_agent_email": str(agent_email)[:250],
             "prepared_by_agent_phone": str(agent_phone)[:80],
