@@ -8,6 +8,7 @@ MIGRATION = (ROOT / "supabase" / "homeofferflow_standalone_agreements.sql").read
 EXPANSION_MIGRATION = (ROOT / "supabase" / "homeofferflow_expand_standalone_representation_forms.sql").read_text()
 SHOWING_MIGRATION = (ROOT / "supabase" / "homeofferflow_add_txr_1508_showing_drafts.sql").read_text()
 NOTICE_MIGRATION = (ROOT / "supabase" / "homeofferflow_add_txr_1506_notice_drafts.sql").read_text()
+GENERATED_STORAGE_MIGRATION = (ROOT / "supabase" / "homeofferflow_generated_agreements_storage.sql").read_text()
 HTML = (ROOT / "index.html").read_text(encoding="utf-8")
 SPEC = importlib.util.spec_from_file_location("standalone_agreement", ROOT / "api" / "admin-dashboard.py")
 MODULE = importlib.util.module_from_spec(SPEC)
@@ -78,6 +79,8 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
         self.assertIn("('TXR-1501', 'TXR-1507')", EXPANSION_MIGRATION)
         self.assertIn("('TXR-1501', 'TXR-1507', 'TXR-1508')", SHOWING_MIGRATION)
         self.assertIn("('TXR-1501', 'TXR-1506', 'TXR-1507', 'TXR-1508')", NOTICE_MIGRATION)
+        self.assertIn("brokerage-generated-agreements", GENERATED_STORAGE_MIGRATION)
+        self.assertIn("hof_generated_agreements_agent_select_own", GENERATED_STORAGE_MIGRATION)
 
     def test_valid_short_form_draft_requires_every_decision(self):
         draft = MODULE._parse_txr_1507_draft(valid_payload())
@@ -205,6 +208,7 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
         self.assertFalse((ROOT / "api" / "standalone-agreement.py").exists())
         backend = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
         self.assertIn("create_txr_1507_draft", backend)
+        self.assertIn("render_txr_1507_draft", backend)
         self.assertIn("create_txr_1501_draft", backend)
         self.assertIn("create_txr_1508_draft", backend)
         self.assertIn("create_txr_1506_draft", backend)

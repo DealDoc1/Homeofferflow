@@ -7,6 +7,11 @@ from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler
 import httpx
 
+try:
+    from txr_1507_renderer import render_txr_1507_draft
+except ImportError:  # pragma: no cover - supports direct module loading in tests
+    from api.txr_1507_renderer import render_txr_1507_draft
+
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "").rstrip("/")
 SUPABASE_SERVICE_ROLE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or os.environ.get("SUPABASE_SERVICE_ROLE") or os.environ.get("SUPABASE_SERVICE_KEY") or ""
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
@@ -39,6 +44,7 @@ TXR_1501_FORM_CODE = "TXR-1501"
 TXR_1506_FORM_CODE = "TXR-1506"
 TXR_1507_FORM_CODE = "TXR-1507"
 TXR_1508_FORM_CODE = "TXR-1508"
+GENERATED_AGREEMENTS_BUCKET = "brokerage-generated-agreements"
 
 
 def _json(handler, code, payload):
@@ -1299,6 +1305,136 @@ async def _create_txr_1507_draft(user, data):
     return await _create_representation_draft(user, data, TXR_1507_FORM_CODE, _parse_txr_1507_draft)
 
 
+def _uuid_value(value, field):
+    try:
+        return str(uuid.UUID(str(value)))
+    except (TypeError, ValueError, AttributeError):
+        raise ValueError(f"{field} must be a valid identifier.")
+
+
+async def _storage_object_bytes(bucket, path):
+    encoded_bucket = urllib.parse.quote(str(bucket), safe="")
+    encoded_path = urllib.parse.quote(str(path), safe="/")
+    async with httpx.AsyncClient(timeout=20) as client:
+        response = await client.get(
+            f"{SUPABASE_URL}/storage/v1/object/{encoded_bucket}/{encoded_path}",
+            headers={"apikey": SUPABASE_SERVICE_ROLE_KEY, "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}"},
+        )
+    if response.status_code != 200:
+        raise RuntimeError("The approved private form source could not be retrieved.")
+    return response.content
+
+
+async def _storage_upload_pdf(bucket, path, pdf_bytes):
+    encoded_bucket = urllib.parse.quote(str(bucket), safe="")
+    encoded_path = urllib.parse.quote(str(path), safe="/")
+    async with httpx.AsyncClient(timeout=20) as client:
+        response = await client.post(
+            f"{SUPABASE_URL}/storage/v1/object/{encoded_bucket}/{encoded_path}",
+            headers={
+                "apikey": SUPABASE_SERVICE_ROLE_KEY,
+                "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}",
+                "Content-Type": "application/pdf",
+                "x-upsert": "true",
+            },
+            content=pdf_bytes,
+        )
+    if response.status_code >= 300:
+        raise RuntimeError("The generated private agreement could not be stored.")
+
+
+async def _storage_signed_url(bucket, path, expires_in=900):
+    encoded_bucket = urllib.parse.quote(str(bucket), safe="")
+    encoded_path = urllib.parse.quote(str(path), safe="/")
+    async with httpx.AsyncClient(timeout=12) as client:
+        response = await client.post(
+            f"{SUPABASE_URL}/storage/v1/object/sign/{encoded_bucket}/{encoded_path}",
+            headers=_headers(),
+            json={"expiresIn": int(expires_in)},
+        )
+    if response.status_code >= 300:
+        raise RuntimeError("The generated agreement download link could not be created.")
+    payload = response.json() if response.content else {}
+    signed = payload.get("signedURL") or payload.get("signedUrl") or payload.get("signed_url")
+    if not signed:
+        raise RuntimeError("The generated agreement download link was empty.")
+    if signed.startswith("/"):
+        signed = f"{SUPABASE_URL}/storage/v1{signed}"
+    return signed
+
+
+async def _render_txr_1507_draft(user, data):
+    agreement_id = _uuid_value(data.get("agreementId"), "Agreement ID")
+    rows = await _get(
+        "hof_standalone_agreements?"
+        f"id=eq.{urllib.parse.quote(agreement_id)}"
+        f"&agent_user_id=eq.{urllib.parse.quote(user['id'])}"
+        "&form_code=eq.TXR-1507&status=in.(draft,ready_for_review)"
+        "&select=id,brokerage_id,agent_user_id,form_source_id,source_revision,status,client_names,agreement_data"
+        "&limit=1"
+    )
+    if not rows:
+        raise ValueError("The TXR-1507 draft was not found or is not owned by this agent.")
+    agreement = rows[0]
+    brokerage_id = _uuid_value(agreement.get("brokerage_id"), "Brokerage ID")
+    source_rows = await _get(
+        "hof_brokerage_form_sources?"
+        f"id=eq.{urllib.parse.quote(str(agreement['form_source_id']))}"
+        f"&brokerage_id=eq.{urllib.parse.quote(brokerage_id)}"
+        "&form_code=eq.TXR-1507&status=eq.approved&authorization_attested=is.true"
+        "&select=id,source_revision,storage_bucket,storage_path&limit=1"
+    )
+    if not source_rows:
+        raise ValueError("The approved TXR-1507 source is no longer available.")
+    source = source_rows[0]
+    source_bytes = await _storage_object_bytes(source["storage_bucket"], source["storage_path"])
+    broker_rows = await _get(
+        "hof_brokerages?"
+        f"id=eq.{urllib.parse.quote(brokerage_id)}&is_active=eq.true"
+        "&select=name,license_number&limit=1"
+    )
+    if not broker_rows:
+        raise ValueError("The active brokerage profile is not available.")
+    agent_rows = await _get_optional(
+        "hof_agent_profiles?"
+        f"user_id=eq.{urllib.parse.quote(user['id'])}"
+        "&select=agent_name,license_number&limit=1"
+    )
+    broker = {
+        "name": broker_rows[0].get("name"),
+        "license": broker_rows[0].get("license_number"),
+        "associate_name": agent_rows[0].get("agent_name") if agent_rows else "",
+        "associate_license": agent_rows[0].get("license_number") if agent_rows else "",
+    }
+    agreement_data = dict(agreement.get("agreement_data") or {})
+    agreement_data["client_names"] = agreement.get("client_names") or []
+    pdf_bytes = render_txr_1507_draft(source_bytes, source["source_revision"], agreement_data, broker)
+    storage_path = f"{brokerage_id}/{user['id']}/{agreement_id}.pdf"
+    await _storage_upload_pdf(GENERATED_AGREEMENTS_BUCKET, storage_path, pdf_bytes)
+    patch = {
+        "status": "ready_for_review",
+        "generated_storage_bucket": GENERATED_AGREEMENTS_BUCKET,
+        "generated_storage_path": storage_path,
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }
+    async with httpx.AsyncClient(timeout=12) as client:
+        response = await client.patch(
+            f"{SUPABASE_URL}/rest/v1/hof_standalone_agreements?id=eq.{urllib.parse.quote(agreement_id)}&agent_user_id=eq.{urllib.parse.quote(user['id'])}",
+            headers={**_headers(), "Prefer": "return=representation"},
+            json=patch,
+        )
+    if response.status_code >= 300:
+        raise RuntimeError("The generated agreement record could not be updated.")
+    signed_url = await _storage_signed_url(GENERATED_AGREEMENTS_BUCKET, storage_path)
+    return {
+        "id": agreement_id,
+        "status": "ready_for_review",
+        "page_count": 2,
+        "download_url": signed_url,
+        "expires_in": 900,
+    }
+
+
 async def _create_txr_1501_draft(user, data):
     return await _create_representation_draft(user, data, TXR_1501_FORM_CODE, _parse_txr_1501_draft)
 
@@ -1486,6 +1622,10 @@ class handler(BaseHTTPRequestHandler):
             if data.get("action") == "create_txr_1507_draft":
                 draft = asyncio.run(_create_txr_1507_draft(user, data))
                 _json(self, 201, {"status": "ok", "agreement": draft})
+                return
+            if data.get("action") == "render_txr_1507_draft":
+                rendered = asyncio.run(_render_txr_1507_draft(user, data))
+                _json(self, 200, {"status": "ok", "agreement": rendered})
                 return
             if data.get("action") == "create_txr_1501_draft":
                 draft = asyncio.run(_create_txr_1501_draft(user, data))
