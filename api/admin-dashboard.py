@@ -528,6 +528,10 @@ def _parse_brokerage_txr_authorization(data):
     value = str(data.get("txr_authorization") or "").strip().lower()
     if value not in {"unknown", "all_agents_authorized", "not_all"}:
         raise ValueError("Choose a valid Texas REALTORS® / NAR authorization status.")
+    if value != "unknown" and data.get("txr_attestation_confirmed") is not True:
+        raise ValueError(
+            "Confirm the brokerage's Texas REALTORS® / NAR authorization status before saving."
+        )
     return value
 
 

@@ -327,15 +327,17 @@ class OnDemandCheckoutTests(unittest.TestCase):
 class BrokerageAuthorizationTests(unittest.TestCase):
     def test_brokerage_txr_authorization_status_is_strictly_allowlisted(self):
         self.assertEqual(
-            admin._parse_brokerage_txr_authorization({"txr_authorization": "all_agents_authorized"}),
+            admin._parse_brokerage_txr_authorization({"txr_authorization": "all_agents_authorized", "txr_attestation_confirmed": True}),
             "all_agents_authorized",
         )
         self.assertEqual(
-            admin._parse_brokerage_txr_authorization({"txr_authorization": "not_all"}),
+            admin._parse_brokerage_txr_authorization({"txr_authorization": "not_all", "txr_attestation_confirmed": True}),
             "not_all",
         )
         with self.assertRaisesRegex(ValueError, "valid Texas REALTORS"):
             admin._parse_brokerage_txr_authorization({"txr_authorization": "yes"})
+        with self.assertRaisesRegex(ValueError, "authorization status"):
+            admin._parse_brokerage_txr_authorization({"txr_authorization": "all_agents_authorized"})
 
     def test_broker_can_save_txr_authorization_without_granting_agent_access(self):
         actor = {"id": "11111111-1111-1111-1111-111111111111", "email": "tyler@ondemanddfw.com"}
@@ -347,7 +349,8 @@ class BrokerageAuthorizationTests(unittest.TestCase):
         with patch.object(admin, "_brokerage_admin_context", broker_context), \
              patch.object(admin.httpx, "AsyncClient", BrokerageBrandingClient):
             result = asyncio.run(admin._update_brokerage_txr_authorization(actor, {
-                "txr_authorization": "all_agents_authorized"
+                "txr_authorization": "all_agents_authorized",
+                "txr_attestation_confirmed": True,
             }))
         self.assertTrue(result["agentAttestationRequired"])
         self.assertTrue(result["sourceApprovalSeparate"])
@@ -411,6 +414,7 @@ class BrokerageAuthorizationTests(unittest.TestCase):
         self.assertIn("Email delivery is not configured", final_script)
         self.assertIn("saveBrokerageTxrAuthorization", final_script)
         self.assertIn("Brokerage TXR / NAR authorization", final_script)
+        self.assertIn("brokerageTxrAttestation", final_script)
 
     def test_broker_can_create_an_agent_only_invite_link(self):
         actor = {"id": "11111111-1111-1111-1111-111111111111", "email": "tyler@ondemanddfw.com"}
