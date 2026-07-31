@@ -9,7 +9,10 @@ begin;
 create table if not exists public.hof_brokerage_form_sources (
   id uuid primary key default gen_random_uuid(),
   brokerage_id uuid not null references public.hof_brokerages(id) on delete cascade,
-  form_code text not null check (form_code in ('TXR-1501', 'TXR-1506', 'TXR-1507', 'TXR-1508')),
+  form_code text not null check (form_code in (
+    'TXR-1501', 'TXR-1506', 'TXR-1507', 'TXR-1508',
+    'TXR-1101', 'TXR-1102', 'TXR-1406', 'TXR-1418'
+  )),
   source_revision text not null,
   status text not null default 'draft'
     check (status in ('draft', 'approved', 'retired')),

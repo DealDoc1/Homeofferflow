@@ -48,6 +48,7 @@ class BrokerageFormSourceFoundationTests(unittest.TestCase):
 
     def test_listing_side_sources_are_private_and_do_not_activate_workflows(self):
         for form_code in ("TXR-1101", "TXR-1102", "TXR-1406", "TXR-1418"):
+            self.assertIn(f"'{form_code}'", MIGRATION)
             self.assertIn(f"'{form_code}'", LISTING_EXPANSION)
             self.assertIn(f"'{form_code}'", HTML)
         self.assertIn("does not enable form completion", LISTING_EXPANSION)
