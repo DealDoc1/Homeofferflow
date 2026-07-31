@@ -1105,7 +1105,7 @@ def _parse_txr_1507_draft(data):
     if signer_plan not in {"clients_only", "clients_and_associate", "clients_and_broker"}:
         raise ValueError("Choose who will sign the TXR-1507 agreement.")
     if data.get("formUseAttested") is not True:
-        raise ValueError("Confirm that you are currently authorized to use this TXR form for your brokerage.")
+        raise ValueError("Confirm that you are a current Texas REALTORS® / NAR member (or otherwise individually authorized) and are currently authorized to use this TXR form for your brokerage.")
     form_source_id = _agreement_text(data.get("formSourceId"), "Approved TXR-1507 source", 80)
     try:
         form_source_id = str(uuid.UUID(form_source_id))
@@ -1165,7 +1165,7 @@ def _parse_txr_1501_draft(data):
     if signer_plan not in {"clients_only", "clients_and_associate", "clients_and_broker"}:
         raise ValueError("Choose who will sign the TXR-1501 agreement.")
     if data.get("formUseAttested") is not True:
-        raise ValueError("Confirm that you are currently authorized to use this TXR form for your brokerage.")
+        raise ValueError("Confirm that you are a current Texas REALTORS® / NAR member (or otherwise individually authorized) and are currently authorized to use this TXR form for your brokerage.")
     return {
         "form_source_id": form_source_id,
         "client_names": client_names,
@@ -1219,7 +1219,7 @@ def _parse_txr_1508_draft(data):
     if signer_plan not in {"associate_and_clients", "broker_and_clients"}:
         raise ValueError("Choose whether the broker or associate will acknowledge TXR-1508.")
     if data.get("formUseAttested") is not True:
-        raise ValueError("Confirm that you are currently authorized to use this TXR form for your brokerage.")
+        raise ValueError("Confirm that you are a current Texas REALTORS® / NAR member (or otherwise individually authorized) and are currently authorized to use this TXR form for your brokerage.")
     return {
         "form_source_id": form_source_id,
         "client_names": client_names,
@@ -1260,7 +1260,7 @@ def _parse_txr_1506_draft(data):
     if signer_plan not in {"consumers_only", "consumers_and_associate", "consumers_and_broker"}:
         raise ValueError("Choose who will acknowledge the TXR-1506 notice.")
     if data.get("formUseAttested") is not True:
-        raise ValueError("Confirm that you are currently authorized to use this TXR form for your brokerage.")
+        raise ValueError("Confirm that you are a current Texas REALTORS® / NAR member (or otherwise individually authorized) and are currently authorized to use this TXR form for your brokerage.")
     return {
         "form_source_id": form_source_id,
         "client_names": client_names,

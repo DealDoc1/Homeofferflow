@@ -224,6 +224,7 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
         self.assertIn("This saves a private draft only", HTML)
         self.assertIn("create_txr_1507_draft", HTML)
         self.assertIn("currently authorized to use this Texas REALTORS", HTML)
+        self.assertIn("current Texas REALTORS® / NAR member", HTML)
         self.assertIn("/api/admin-dashboard", HTML)
         self.assertIn("Draft saved privately. It has not been sent for signature.", HTML)
         self.assertIn('name="serviceLevel" value="full_services" required', HTML)
