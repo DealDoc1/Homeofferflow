@@ -39,6 +39,16 @@ TXR_1501_FORM_CODE = "TXR-1501"
 TXR_1506_FORM_CODE = "TXR-1506"
 TXR_1507_FORM_CODE = "TXR-1507"
 TXR_1508_FORM_CODE = "TXR-1508"
+BROKERAGE_TXR_FORM_CODES = (
+    "TXR-1507",
+    "TXR-1501",
+    "TXR-1508",
+    "TXR-1506",
+    "TXR-1101",
+    "TXR-1102",
+    "TXR-1406",
+    "TXR-1418",
+)
 
 
 def _pdf_response(handler, pdf_bytes, filename):
@@ -147,7 +157,8 @@ async def _brokerage_admin_context(user):
         f"id=eq.{urllib.parse.quote(str(brokerage_id))}"
         "&is_active=eq.true&select=id,name,dba_name,slug,logo_url,brand_color,"
         "website_url,license_number,plan_name,billing_status,user_cap,"
-        "default_title_company,default_title_contact&limit=1"
+        "default_title_company,default_title_contact,txr_all_agents_authorized,"
+        "txr_authorization_attested_by,txr_authorization_attested_at&limit=1"
     )
     if not brokerages:
         return None
@@ -183,6 +194,16 @@ async def _brokerage_dashboard_payload(context):
         f"brokerage_id=eq.{urllib.parse.quote(brokerage_id)}"
         "&status=eq.pending&select=id,email,role,status,created_at,expires_at"
         "&order=created_at.desc&limit=100"
+    )
+    # Expose only source-readiness metadata to the broker dashboard. Never
+    # return storage paths, filenames, fingerprints, or source URLs here.
+    # Agents do not receive this payload, and source PDFs remain private.
+    form_sources = await _get_optional(
+        "hof_brokerage_form_sources?"
+        f"brokerage_id=eq.{urllib.parse.quote(brokerage_id)}"
+        "&status=neq.retired"
+        "&select=form_code,source_revision,status,authorization_attested,updated_at"
+        "&order=updated_at.desc&limit=500"
     )
     # Brokerage administrators receive only aggregate listing-workspace counts.
     # Seller names, property addresses, notes, and requested workflows remain in
@@ -257,6 +278,30 @@ async def _brokerage_dashboard_payload(context):
         for (listing_kind, workspace_status), count in sorted(listing_workspace_summary_by_key.items())
     ]
 
+    latest_source_by_code = {}
+    for source in form_sources:
+        code = str(source.get("form_code") or "")
+        if code and code not in latest_source_by_code:
+            latest_source_by_code[code] = source
+    brokerage_gate_ready = (
+        brokerage.get("txr_all_agents_authorized") is True
+        and brokerage.get("txr_authorization_attested_at") is not None
+    )
+    source_readiness = []
+    for form_code in BROKERAGE_TXR_FORM_CODES:
+        source = latest_source_by_code.get(form_code) or {}
+        status = str(source.get("status") or "not_uploaded")
+        source_attested = source.get("authorization_attested") is True
+        source_readiness.append({
+            "formCode": form_code,
+            "sourceRevision": source.get("source_revision"),
+            "status": status,
+            "sourceAttested": source_attested,
+            "brokerageAuthorized": brokerage_gate_ready,
+            "readyForRestrictedDraft": brokerage_gate_ready and status == "approved" and source_attested,
+            "updatedAt": source.get("updated_at"),
+        })
+
     safe_agents = []
     for member in members:
         user_id = str(member.get("user_id") or "")
@@ -289,6 +334,7 @@ async def _brokerage_dashboard_payload(context):
 
     return {
         "brokerage": brokerage,
+        "sourceReadiness": source_readiness,
         "metrics": {
             "memberCount": len(members),
             "activeMemberCount": len([row for row in members if row.get("status") == "active"]),

@@ -172,13 +172,14 @@ class AdminTrackerSecurityTests(IsolatedAsyncioTestCase):
         with patch.object(admin_dashboard, "_get", new=AsyncMock(return_value=members)), patch.object(
             admin_dashboard,
             "_get_optional",
-            new=AsyncMock(side_effect=[[], listing_workspaces, agent_profiles, subscriptions, offers]),
+            new=AsyncMock(side_effect=[[], [], listing_workspaces, agent_profiles, subscriptions, offers]),
         ):
             payload = await admin_dashboard._brokerage_dashboard_payload(context)
 
         agent = payload["agents"][0]
         self.assertEqual(agent["activity"]["offerCount"], 1)
         self.assertEqual(payload["listingWorkspaceSummary"], [{"listingKind": "sale", "status": "intake", "workspaceCount": 1}])
+        self.assertEqual(len(payload["sourceReadiness"]), 8)
         self.assertEqual(payload["privacy"], {
             "buyerDetailsIncluded": False,
             "propertyDetailsIncluded": False,

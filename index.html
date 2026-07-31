@@ -11774,7 +11774,7 @@ function routeAfterMagicLinkIfNeeded() {
       }
       const [brokerageResult,membershipResult] = await Promise.all([
         client.from('hof_brokerages')
-          .select('id,name,dba_name,slug,logo_url,brand_color,website_url,license_number,plan_name,billing_status,default_title_company,default_title_contact')
+          .select('id,name,dba_name,slug,logo_url,brand_color,website_url,license_number,plan_name,billing_status,default_title_company,default_title_contact,txr_all_agents_authorized,txr_authorization_attested_by,txr_authorization_attested_at')
           .eq('id',brokerageId).maybeSingle(),
         client.from('hof_brokerage_members')
           .select('role,status,created_at,updated_at')
@@ -12058,6 +12058,14 @@ function routeAfterMagicLinkIfNeeded() {
       const m = data.metrics || {};
       const agents = data.agents || [];
       const pendingInvites = data.pendingInvites || [];
+      const sourceReadiness = data.sourceReadiness || [];
+      const sourceStatusLabel = source => source.readyForRestrictedDraft
+        ? '<span style="color:var(--sage-light)">Ready for private draft</span>'
+        : (source.status === 'not_uploaded'
+          ? '<span style="color:var(--gold-light)">Awaiting approved source</span>'
+          : (source.status === 'approved' && !source.sourceAttested
+            ? '<span style="color:var(--gold-light)">Source authorization incomplete</span>'
+            : '<span style="color:var(--gray-light)">Brokerage/source gate incomplete</span>'));
       document.getElementById('brokerSafeDashboard').innerHTML =
         '<h4>Brokerage activity</h4>' +
         '<p>Operational visibility only. Buyer names, property addresses, offer terms, and document contents are not included.</p>' +
@@ -12070,6 +12078,11 @@ function routeAfterMagicLinkIfNeeded() {
           '<option value="not_all"' + (b.txr_all_agents_authorized === false && b.txr_authorization_attested_at ? ' selected' : '') + '>No / not all participating agents are authorized</option>' +
         '</select><label class="brokerage-txr-attestation"><input id="brokerageTxrAttestation" type="checkbox"> I attest that this status is accurate for the brokerage.</label><button type="button" class="brokerage-access-button" onclick="saveBrokerageTxrAuthorization()">Save authorization status</button></div>' +
         '<p id="brokerageTxrAuthorizationResult" class="brokerage-invite-result">' + (b.txr_all_agents_authorized === true && b.txr_authorization_attested_at ? 'Authorized status saved. Agents still attest individually.' : 'Restricted Texas REALTORS® / NAR source workflows are locked until this is confirmed.') + '</p></div>' +
+        '<div class="platform-card" style="margin:1rem 0 0;padding:.8rem"><h4>Restricted form readiness</h4>' +
+        '<p class="brokerage-membership-note">Status only — this does not activate sending or signing. A restricted form is ready for the private-draft foundation only when the brokerage gate and its exact approved source revision are both present.</p>' +
+        '<table class="brokerage-safe-table"><thead><tr><th>Form</th><th>Source</th><th>Status</th></tr></thead><tbody>' +
+        (sourceReadiness.length ? sourceReadiness.map(source => '<tr><td><strong>' + safe(source.formCode) + '</strong></td><td>' + (source.sourceRevision ? safe(source.sourceRevision) : '—') + '</td><td>' + sourceStatusLabel(source) + '</td></tr>').join('') : '<tr><td colspan="3">Source readiness is unavailable until the private source table is installed.</td></tr>') +
+        '</tbody></table></div>' +
         '<div class="brokerage-invite-form" style="margin-top:1rem"><label for="brokerageBrandColor">Brokerage branding</label>' +
         '<input id="brokerageBrandColor" type="color" value="' + safe(b.brand_color || '#2563eb') + '" aria-label="Brokerage brand color">' +
         '<input id="brokerageLogoFile" type="file" accept="image/png,image/jpeg,image/webp" aria-label="Brokerage logo (PNG, JPG, or WebP)">' +

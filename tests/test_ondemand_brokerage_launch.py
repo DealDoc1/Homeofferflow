@@ -489,6 +489,21 @@ class BrokerageAuthorizationTests(unittest.TestCase):
         self.assertIn("Create invite link", final_script)
         self.assertIn("works only for the invited email", final_script)
 
+    def test_broker_dashboard_exposes_source_readiness_without_private_source_details(self):
+        source = ADMIN_PATH.read_text(encoding="utf-8")
+        start = source.index("async def _brokerage_dashboard_payload")
+        end = source.index("def _normalized_invite_email", start)
+        segment = source[start:end]
+        self.assertIn("sourceReadiness", segment)
+        self.assertIn("storage paths, filenames, fingerprints, or source URLs", segment)
+        self.assertIn('"readyForRestrictedDraft": brokerage_gate_ready', segment)
+        self.assertIn("BROKERAGE_TXR_FORM_CODES", segment)
+
+        marker = INDEX_HTML.index('id="hof-ondemand-brokerage-launch-v1"')
+        final_script = INDEX_HTML[marker:]
+        self.assertIn("Restricted form readiness", final_script)
+        self.assertIn("Awaiting approved source", final_script)
+
     def test_invite_migration_is_private_and_allows_one_pending_agent_invite(self):
         self.assertIn("alter column brokerage_id set not null", INVITE_MIGRATION)
         self.assertIn("check (role = 'agent')", INVITE_MIGRATION)
