@@ -10,6 +10,7 @@ EXPANSION_MIGRATION = (ROOT / "supabase" / "homeofferflow_expand_standalone_repr
 SHOWING_MIGRATION = (ROOT / "supabase" / "homeofferflow_add_txr_1508_showing_drafts.sql").read_text()
 NOTICE_MIGRATION = (ROOT / "supabase" / "homeofferflow_add_txr_1506_notice_drafts.sql").read_text()
 HTML = (ROOT / "index.html").read_text(encoding="utf-8")
+BACKEND = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
 SPEC = importlib.util.spec_from_file_location("standalone_agreement", ROOT / "api" / "admin-dashboard.py")
 MODULE = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(MODULE)
@@ -123,6 +124,12 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
         payload.pop("signerPlan")
         with self.assertRaisesRegex(ValueError, "Choose who will sign"):
             MODULE._parse_txr_1507_draft(payload)
+
+    def test_restricted_form_cards_support_brokerage_roles_without_bypassing_attestation(self):
+        role_guard = "['agent', 'broker', 'brokerage_admin', 'broker_admin', 'owner', 'team_lead'].includes(role)"
+        self.assertGreaterEqual(HTML.count(role_guard), 4)
+        self.assertIn("Each agent still confirms their own current authorization", HTML)
+        self.assertIn("await _require_brokerage_txr_authorization(brokerage_id)", BACKEND)
 
     def test_showing_services_requires_its_execution_fee(self):
         payload = valid_payload()
