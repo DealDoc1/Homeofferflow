@@ -48,6 +48,30 @@ buyer names, property addresses, offer terms, or document contents.
 - HomeOfferFlow release authority and completed rendered/signature QA remain
   separate release gates.
 
+## Platform source-owner intake (separate from broker-admin QA)
+
+The private source-owner intake is available only to a platform administrator
+through the authenticated account dashboard. It is not a broker-admin control
+and it is not exposed to agents.
+
+1. Sign in as a platform administrator and open the authenticated account
+   dashboard.
+2. Confirm the **Platform source-owner intake** card is visible. A broker admin
+   who is not a platform administrator must not see it.
+3. Select an active brokerage, the exact form code, and the revision printed on
+   the authorized PDF.
+4. Select the authorized PDF and confirm the exact-source authorization
+   attestation. The browser computes the SHA-256 fingerprint before upload.
+5. Verify the success message says the source was saved privately and that
+   workflow activation remains locked.
+6. Verify the source record is brokerage-scoped, private, fingerprinted, and
+   associated with the authorizing platform-admin user and timestamp.
+7. Verify no draft, signer fields, email, or SignWell document was created by
+   the upload.
+8. Do not upload a source during ordinary broker-admin QA. Do not activate a
+   TXR workflow until its signer plan, rendered PDF, completed signed PDF, and
+   release-authority approval are separately recorded.
+
 ## Exact OnDemand/Texas REALTORS® gate run
 
 Use this sequence for the first authenticated broker-admin session. It is

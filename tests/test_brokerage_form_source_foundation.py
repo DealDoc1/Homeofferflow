@@ -85,6 +85,15 @@ class BrokerageFormSourceFoundationTests(unittest.TestCase):
         ):
             self.assertIn(text, BROKERAGE_QA)
 
+    def test_broker_admin_qa_separates_platform_source_owner_intake(self):
+        for text in (
+            "Platform source-owner intake",
+            "platform administrator",
+            "workflow activation remains locked",
+            "no draft, signer fields, email, or SignWell document was created",
+        ):
+            self.assertIn(text, BROKERAGE_QA)
+
     def test_listing_side_sources_are_private_and_do_not_activate_workflows(self):
         for form_code in ("TXR-1101", "TXR-1102", "TXR-1406", "TXR-1418"):
             self.assertIn(f"'{form_code}'", MIGRATION)
