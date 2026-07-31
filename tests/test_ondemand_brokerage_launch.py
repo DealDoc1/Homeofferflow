@@ -756,6 +756,9 @@ class OnDemandLaunchPageTests(unittest.TestCase):
             "listing agreements",
             "seller disclosure notices",
             "brokerage-approved workflow",
+            "restricted Texas REALTORS",
+            "individual agent attestation",
+            "approved private source revision",
         ):
             self.assertIn(text.lower(), LAUNCH_HTML.lower())
 
