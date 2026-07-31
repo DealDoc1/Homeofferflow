@@ -1,6 +1,7 @@
 import importlib.util
 from pathlib import Path
 import unittest
+import asyncio
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -8,6 +9,7 @@ MIGRATION = (ROOT / "supabase" / "homeofferflow_standalone_agreements.sql").read
 EXPANSION_MIGRATION = (ROOT / "supabase" / "homeofferflow_expand_standalone_representation_forms.sql").read_text()
 SHOWING_MIGRATION = (ROOT / "supabase" / "homeofferflow_add_txr_1508_showing_drafts.sql").read_text()
 NOTICE_MIGRATION = (ROOT / "supabase" / "homeofferflow_add_txr_1506_notice_drafts.sql").read_text()
+GENERATED_STORAGE_MIGRATION = (ROOT / "supabase" / "homeofferflow_generated_agreements_storage.sql").read_text()
 HTML = (ROOT / "index.html").read_text(encoding="utf-8")
 SPEC = importlib.util.spec_from_file_location("standalone_agreement", ROOT / "api" / "admin-dashboard.py")
 MODULE = importlib.util.module_from_spec(SPEC)
@@ -24,6 +26,7 @@ def valid_payload():
         "termEnd": "2027-01-31",
         "serviceLevel": "full_services",
         "intermediary": "authorized",
+        "formUseAttested": True,
         "compensation": {"purchasePercentage": "3"},
     }
 
@@ -42,6 +45,7 @@ def valid_long_payload():
         "termEnd": "2027-01-31",
         "paymentCounty": "Collin",
         "intermediary": "authorized",
+        "formUseAttested": True,
         "compensation": {"purchasePercentage": "3"},
     }
 
@@ -53,6 +57,7 @@ def valid_showing_payload():
         "clientNames": ["Test Customer"],
         "propertyAddress": "1438 Whitaker Road, Van Alstyne, TX",
         "otherBrokerAgreement": ["no"],
+        "formUseAttested": True,
         "unrepresentedAcknowledgment": True,
     }
 
@@ -64,6 +69,7 @@ def valid_notice_payload():
         "clientNames": ["Test Consumer"],
         "consumerRole": "buyer",
         "additionalNotice": "",
+        "formUseAttested": True,
         "noticeAcknowledgment": True,
     }
 
@@ -77,6 +83,8 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
         self.assertIn("('TXR-1501', 'TXR-1507')", EXPANSION_MIGRATION)
         self.assertIn("('TXR-1501', 'TXR-1507', 'TXR-1508')", SHOWING_MIGRATION)
         self.assertIn("('TXR-1501', 'TXR-1506', 'TXR-1507', 'TXR-1508')", NOTICE_MIGRATION)
+        self.assertIn("brokerage-generated-agreements", GENERATED_STORAGE_MIGRATION)
+        self.assertIn("hof_generated_agreements_agent_select_own", GENERATED_STORAGE_MIGRATION)
 
     def test_valid_short_form_draft_requires_every_decision(self):
         draft = MODULE._parse_txr_1507_draft(valid_payload())
@@ -84,11 +92,34 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
         self.assertEqual(draft["agreement_data"]["service_level"], "full_services")
         self.assertEqual(draft["agreement_data"]["intermediary"], "authorized")
 
+    def test_all_restricted_form_dialogs_show_the_agent_attestation(self):
+        self.assertGreaterEqual(HTML.count('name="formUseAttested" type="checkbox" required'), 4)
+        self.assertIn("formUseAttested: form.get('formUseAttested') === 'on'", HTML)
+
     def test_showing_services_requires_its_execution_fee(self):
         payload = valid_payload()
         payload["serviceLevel"] = "showing_services"
         with self.assertRaisesRegex(ValueError, "requires the execution fee"):
             MODULE._parse_txr_1507_draft(payload)
+
+    def test_short_form_requires_agent_authority_attestation(self):
+        payload = valid_payload()
+        payload["formUseAttested"] = False
+        with self.assertRaisesRegex(ValueError, "authorized to use TXR-1507"):
+            MODULE._parse_txr_1507_draft(payload)
+
+    def test_every_restricted_txr_draft_requires_agent_authority_attestation(self):
+        cases = [
+            (valid_long_payload, MODULE._parse_txr_1501_draft, "TXR-1501"),
+            (valid_showing_payload, MODULE._parse_txr_1508_draft, "TXR-1508"),
+            (valid_notice_payload, MODULE._parse_txr_1506_draft, "TXR-1506"),
+        ]
+        for factory, parser, form_code in cases:
+            payload = factory()
+            payload["formUseAttested"] = False
+            with self.subTest(form_code=form_code):
+                with self.assertRaisesRegex(ValueError, f"authorized to use {form_code}"):
+                    parser(payload)
 
     def test_draft_rejects_invalid_term_or_unselected_compensation(self):
         payload = valid_payload()
@@ -170,26 +201,45 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
         self.assertIn("Source revision", HTML)
         self.assertIn("This saves a private draft only", HTML)
         self.assertIn("create_txr_1507_draft", HTML)
+        self.assertIn("current Texas REALTORS® / NAR member", HTML)
+        self.assertGreaterEqual(HTML.count('name="formUseAttested" type="checkbox" required'), 4)
         self.assertIn("/api/admin-dashboard", HTML)
         self.assertIn("Draft saved privately. It has not been sent for signature.", HTML)
+        self.assertIn("Generate private PDF for review", HTML)
+        self.assertIn("render_txr_1507_draft", HTML)
         self.assertIn('name="serviceLevel" value="full_services" required', HTML)
         self.assertNotIn('name="serviceLevel" value="full_services" checked', HTML)
         self.assertIn("Start TXR-1501 draft", HTML)
-        self.assertIn("TXR-1501 is not yet enabled for your brokerage", HTML)
+        self.assertIn("TXR-1501 is not yet enabled for your organization", HTML)
         self.assertIn("create_txr_1501_draft", HTML)
         self.assertIn("Start TXR-1508 draft", HTML)
-        self.assertIn("TXR-1508 is not yet enabled for your brokerage", HTML)
+        self.assertIn("TXR-1508 is not yet enabled for your organization", HTML)
         self.assertIn("create_txr_1508_draft", HTML)
         self.assertIn("no representation, no compensation, no advice", HTML)
         self.assertIn("Start TXR-1506 draft", HTML)
-        self.assertIn("TXR-1506 is not yet enabled for your brokerage", HTML)
+        self.assertIn("TXR-1506 is not yet enabled for your organization", HTML)
         self.assertIn("create_txr_1506_draft", HTML)
+
+    def test_agents_can_only_view_their_own_private_draft_summaries(self):
+        self.assertIn('id="hof-private-form-drafts-v1"', HTML)
+        self.assertIn(".from('hof_standalone_agreements')", HTML)
+        self.assertIn(".eq('agent_user_id', user.id)", HTML)
+        self.assertIn(".eq('status', 'draft')", HTML)
+        self.assertIn("HomeOfferFlow does not download, send, or sign them from this list.", HTML)
+        self.assertNotIn("agreement_data", HTML[HTML.index('id="hof-private-form-drafts-v1"'):])
 
     def test_draft_action_reuses_an_existing_authenticated_function(self):
         self.assertFalse((ROOT / "api" / "standalone-agreement.py").exists())
         backend = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
         self.assertIn("create_txr_1507_draft", backend)
+        self.assertIn("render_txr_1507_draft", backend)
+        self.assertIn("send_txr_1507_staging", backend)
+        self.assertIn("TXR_1507_SIGNWELL_STAGING_ENABLED", backend)
         self.assertIn("create_txr_1501_draft", backend)
         self.assertIn("create_txr_1508_draft", backend)
         self.assertIn("create_txr_1506_draft", backend)
         self.assertIn("_active_brokerage_member", backend)
+
+    def test_staging_signwell_action_is_fail_closed_by_default(self):
+        with self.assertRaisesRegex(PermissionError, "staging signing is not enabled"):
+            asyncio.run(MODULE._send_txr_1507_staging({"id": "user"}, {"agreementId": "00000000-0000-0000-0000-000000000001", "signerPlan": {}}))

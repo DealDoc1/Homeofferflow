@@ -7,10 +7,13 @@
 - **Length:** 2 pages
 - **Source rule on the form:** Texas REALTORS member use only
 
-The source is intentionally **not** included in the public repository. An
-authorized brokerage administrator must upload and approve the exact revision
-to the private `brokerage-form-sources` vault before any signing workflow is
-enabled.
+The source is intentionally **not** included in the public repository. Each
+agent using this workflow must affirm that they are currently authorized to use
+the selected Texas REALTORS® form for their brokerage. The exact revision is
+kept in the private, brokerage-scoped form-source vault before any signing
+workflow is enabled. This is a source-control and correct-broker-identity
+requirement; it is not an OnDemand-only approval requirement and does not
+require Tyler Demando's approval for HomeOfferFlow product development.
 
 ## Agent intake
 
@@ -30,7 +33,8 @@ the Long Form, or infer compensation terms.
 | 8 Intermediary | Client authorizes / does not authorize | Required explicit choice. |
 
 Draft validation requires an explicit service choice, valid ordered term dates,
-and at least one broker-approved purchase or lease compensation field. It only
+and at least one agent-confirmed authorized purchase or lease compensation
+field. It only
 validates agent-entered values; it does not calculate or recommend compensation.
 
 ## Roles and signing
@@ -42,14 +46,21 @@ validates agent-entered values; it does not calculate or recommend compensation.
 | Client 1 | Buyer or tenant client | Initial on page 1; signature/date on page 2 |
 | Client 2 | Optional second buyer or tenant client | Initial on page 1; second signature/date on page 2 |
 
-The signing plan must be confirmed against the broker-approved source before
+The signing plan must be confirmed against the authorized source before
 activation. The current buyer-offer packet SignWell coordinates must never be
 reused for this standalone agreement.
 
 ## Data and authorization safeguards
 
 1. Require an active agent membership in the same brokerage as the approved
-   TXR-1507 source.
+   source and an explicit per-draft attestation that the agent is currently
+   authorized to use that selected Texas REALTORS® form for the brokerage. The
+   intake attestation expressly asks the agent to confirm current Texas
+   REALTORS® / NAR membership or another current source-owner authorization;
+   a brokerage-level assertion never replaces the individual agent attestation.
+   The same gate applies to the TXR-1501, TXR-1508, and TXR-1506 draft
+   foundations; an agent cannot bypass authorization by choosing another
+   restricted form.
 2. Require an approved form source for **TXR-1507** and its displayed revision.
 3. Persist the source record ID, source revision, brokerage ID, agent ID, and
    final agreement record together.
@@ -77,8 +88,34 @@ inspect every printed blank, checkbox, initial, signature, and date:
 
 The workflow remains unavailable until all of the following are complete:
 
-1. Tyler or another authorized OnDemand brokerage administrator uploads and
-   approves the exact source revision in the private source vault.
+1. An authorized source-owner administrator uploads and attests to the exact
+   source revision in the private source vault.
 2. The standalone agreement record/API and intake UI are implemented.
 3. Completed SignWell staging packets pass the QA table above.
-4. Broker approves the rendered source, signing plan, and launch copy.
+4. HomeOfferFlow release authority approves the rendered workflow, signing
+   plan, and launch copy.
+
+## Current implementation status
+
+- The brokerage setup flow records whether the brokerage administrator attests
+  that its agents are authorized to use Texas REALTORS® forms. This is a
+  brokerage-level signal only; it does not replace each agent's own attestation.
+- Every restricted TXR draft intake (TXR-1501, TXR-1506, TXR-1507, and
+  TXR-1508) requires the individual agent to affirm current authorization and
+  to select an approved private source revision.
+- `api/txr_1507_renderer.py` now provides a source-bytes-in, two-page draft
+  renderer with validation and a provisional coordinate map. It intentionally
+  does not fetch or expose source PDFs, create SignWell packets, or imply that
+  a draft is ready to sign.
+- `api/txr_1507_signwell.py` now requires an explicit broker-versus-associate
+  signer choice and one or two distinct client recipients. Its field map is
+  isolated from the offer-packet field map and remains staging-only until
+  completed packets are visually reviewed.
+- The authenticated admin route has a separate `send_txr_1507_staging`
+  action, but it is fail-closed unless `TXR_1507_SIGNWELL_STAGING_ENABLED=true`
+  **and** `SIGNWELL_TEST_MODE=true`. It cannot accidentally send a production
+  TXR packet, and production offer signing is untouched.
+- The renderer has been tested against a generated two-page fixture and one
+  private rendering of the authorized TXR-1507 source. The private rendering
+  still requires the scenario-by-scenario visual QA table above before any
+  endpoint or signing release is enabled.
