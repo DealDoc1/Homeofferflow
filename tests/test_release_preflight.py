@@ -33,6 +33,10 @@ Release authority: product reviewer approved the release copy.
         result = release_preflight.main(["--changed-file", "api/fill-pdf.py"])
         self.assertEqual(result, 2)
 
+    def test_standalone_form_renderer_requires_evidence(self):
+        result = release_preflight.main(["--changed-file", "api/txr_1507_renderer.py"])
+        self.assertEqual(result, 2)
+
     def test_packet_change_accepts_completed_evidence(self):
         with tempfile.TemporaryDirectory() as directory:
             evidence = Path(directory) / "buyer-rep.md"

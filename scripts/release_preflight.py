@@ -55,6 +55,10 @@ def _is_packet_or_form_change(path: str) -> bool:
         normalized.endswith(".pdf")
         or normalized in {"api/fill-pdf.py", "api/fill_pdf_20_19_staging.py"}
         or normalized.startswith("api/fill_pdf_20_19_staging_release")
+        or normalized in {"api/txr_1507_renderer.py"}
+        or normalized.startswith("docs/txr_")
+        or normalized.startswith("supabase/homeofferflow_brokerage_form_sources")
+        or normalized.startswith("supabase/homeofferflow_generated_agreements_storage")
         or normalized.startswith("forms/")
     )
 
