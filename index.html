@@ -8443,6 +8443,7 @@ function routeAfterMagicLinkIfNeeded() {
           <div class="field"><label>Contact Email</label><input id="brandContactEmail" value="${escapeAttr(b.contact_email || profileValue('agent_email', hofAuth.session?.user?.email || ''))}" placeholder="brokerage@email.com"></div>
           <div class="field"><label>Contact Phone</label><input id="brandContactPhone" value="${escapeAttr(b.contact_phone || profileValue('agent_phone'))}" placeholder="(214) 555-0000"></div>
           <div class="field"><label>Default Title Company</label><input id="brandDefaultTitle" value="${escapeAttr(b.default_title_company || profileValue('default_title_company'))}" placeholder="Preferred title company"></div>
+          <div class="field" style="grid-column:1/-1"><label>Texas REALTORS® / NAR authorization for agents</label><select id="brandTxrAuthorization"><option value="unknown" ${!b.txr_all_agents_authorized && !b.txr_authorization_attested_at ? 'selected' : ''}>Not confirmed yet</option><option value="all_agents_authorized" ${b.txr_all_agents_authorized ? 'selected' : ''}>Yes — all participating agents are currently authorized members</option><option value="not_all" ${b.txr_all_agents_authorized === false && b.txr_authorization_attested_at ? 'selected' : ''}>No / not all participating agents are authorized</option></select><small style="display:block;color:var(--gray-light);margin-top:.3rem;line-height:1.45">This records the brokerage administrator’s attestation. Each agent still confirms their own current authorization before using a restricted Texas REALTORS® source form.</small></div>
         </div>
         <div class="field" style="margin-top:0.8rem;"><label>Brokerage Disclaimer</label><textarea id="brandDisclaimer" rows="3" placeholder="Optional brokerage/team disclaimer shown in branded experiences.">${escapeAttr(b.disclaimer || '')}</textarea></div>
         <div class="notice gold" style="margin-top:0.8rem;"><strong>Logo upload note:</strong> URL works today. True file upload needs Supabase Storage bucket setup, so I left it as a safe URL field for this deploy.</div>
@@ -8477,6 +8478,9 @@ function routeAfterMagicLinkIfNeeded() {
       contact_phone: getVal('brandContactPhone') || null,
       disclaimer: getVal('brandDisclaimer') || null,
       default_title_company: getVal('brandDefaultTitle') || null,
+      txr_all_agents_authorized: getVal('brandTxrAuthorization') === 'all_agents_authorized',
+      txr_authorization_attested_by: getVal('brandTxrAuthorization') === 'unknown' ? null : user.id,
+      txr_authorization_attested_at: getVal('brandTxrAuthorization') === 'unknown' ? null : now,
       created_by: user.id,
       updated_at: now
     };
@@ -8488,7 +8492,7 @@ function routeAfterMagicLinkIfNeeded() {
       };
       result = await writeBrokerage(payload);
       if (result.error && String(result.error.message || '').toLowerCase().includes('column')) {
-        const { org_type, slug, office_address, office_city, office_state, office_zip, ...legacyPayload } = payload;
+        const { org_type, slug, office_address, office_city, office_state, office_zip, txr_all_agents_authorized, txr_authorization_attested_by, txr_authorization_attested_at, ...legacyPayload } = payload;
         result = await writeBrokerage(legacyPayload);
       }
       if (result.error) throw result.error;

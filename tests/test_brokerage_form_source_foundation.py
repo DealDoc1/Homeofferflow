@@ -35,6 +35,13 @@ class BrokerageFormSourceFoundationTests(unittest.TestCase):
         self.assertIn("crypto.subtle.digest('SHA-256'", HTML)
         self.assertIn("source_sha256: sourceSha256", HTML)
 
+    def test_brokerage_setup_records_txr_authorization_policy(self):
+        authorization_migration = (ROOT / "supabase" / "homeofferflow_brokerage_txr_authorization.sql").read_text(encoding="utf-8")
+        self.assertIn("txr_all_agents_authorized", authorization_migration)
+        self.assertIn("txr_authorization_attested_by", authorization_migration)
+        self.assertIn("brandTxrAuthorization", HTML)
+        self.assertIn("Each agent still confirms their own current authorization", HTML)
+
     def test_listing_side_sources_are_private_and_do_not_activate_workflows(self):
         for form_code in ("TXR-1101", "TXR-1102", "TXR-1406", "TXR-1418"):
             self.assertIn(f"'{form_code}'", LISTING_EXPANSION)
