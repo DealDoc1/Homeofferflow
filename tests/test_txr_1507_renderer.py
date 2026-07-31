@@ -74,6 +74,28 @@ class TXR1507RendererTests(unittest.TestCase):
         self.assertIn("08/01/2026", text)
         self.assertIn("01/31/2027", text)
 
+    def test_renderer_accepts_full_lease_compensation_matrix(self):
+        data = {
+            "client_names": ["Tenant One", "Tenant Two"],
+            "market_area": "Dallas and Collin Counties, Texas",
+            "term_start": "2026-08-15",
+            "term_end": "2027-08-14",
+            "service_level": "full_services",
+            "lease_one_month_percentage": "100",
+            "lease_total_rents_percentage": "5",
+            "lease_flat_fee": "750",
+            "intermediary": "authorized",
+        }
+        normalized = MODULE.normalize_txr_1507_data(data)
+        self.assertEqual(normalized["lease_one_month_percentage"], "100")
+        self.assertEqual(normalized["lease_total_rents_percentage"], "5")
+        self.assertEqual(normalized["lease_flat_fee"], "750")
+        entries = MODULE.overlay_entries(data, {"name": "OnDemand Realty", "license": "9010832"})
+        page_one_text = " ".join(entry[2] for entry in entries[0])
+        self.assertIn("100", page_one_text)
+        self.assertIn("5", page_one_text)
+        self.assertIn("750", page_one_text)
+
 
 if __name__ == "__main__":
     unittest.main()
