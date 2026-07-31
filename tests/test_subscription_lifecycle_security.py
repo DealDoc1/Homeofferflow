@@ -473,6 +473,76 @@ class SubscriptionLifecycleSecurityTests(unittest.TestCase):
         self.assertEqual(captured["payload"]["stripe_subscription_id"], "sub_canceled")
         self.assertFalse(captured["payload"]["cancel_at_period_end"])
 
+    def test_deleted_agent_subscription_suspends_existing_brokerage_membership(self):
+        request = webhook.handler.__new__(webhook.handler)
+        captured = {}
+        request._upsert_subscription_by_user_id = lambda payload: captured.update(
+            payload=payload
+        )
+        request._suspend_brokerage_membership_for_billing = (
+            lambda user_id, email, brokerage_id: captured.update(
+                suspended=(user_id, email, brokerage_id)
+            )
+        )
+
+        request._handle_subscription_event(
+            {
+                "id": "sub_deleted_agent",
+                "customer": "cus_deleted_agent",
+                "status": "canceled",
+                "metadata": {
+                    "user_id": "user-deleted-agent",
+                    "email": "agent@ondemand.test",
+                    "plan": "agent",
+                    "role": "agent",
+                    "brokerage_id": "ondemand-brokerage",
+                },
+                "items": {"data": [{"price": {"id": "price_agent_monthly"}}]},
+            },
+            "customer.subscription.deleted",
+        )
+
+        self.assertEqual(
+            captured["suspended"],
+            ("user-deleted-agent", "agent@ondemand.test", "ondemand-brokerage"),
+        )
+
+    def test_failed_invoice_suspends_agent_brokerage_membership(self):
+        request = webhook.handler.__new__(webhook.handler)
+        captured = {}
+        request._iso_now = lambda: "2026-07-29T00:00:00Z"
+        request._stripe_get_subscription = lambda _subscription_id: {
+            "id": "sub_failed_agent",
+            "customer": "cus_failed_agent",
+            "status": "active",
+            "metadata": {
+                "user_id": "user-failed-agent",
+                "role": "agent",
+                "brokerage_id": "ondemand-brokerage",
+            },
+            "items": {"data": [{"price": {"id": "price_agent_monthly"}}]},
+        }
+        request._patch_subscription_by_stripe_subscription_id = (
+            lambda subscription_id, payload: captured.update(
+                subscription_id=subscription_id, payload=payload
+            )
+        )
+        request._suspend_brokerage_membership_for_billing = (
+            lambda user_id, email, brokerage_id: captured.update(
+                suspended=(user_id, email, brokerage_id)
+            )
+        )
+
+        request._handle_invoice_status(
+            {"subscription": "sub_failed_agent"}, "past_due"
+        )
+
+        self.assertEqual(captured["payload"]["status"], "past_due")
+        self.assertEqual(
+            captured["suspended"],
+            ("user-failed-agent", "", "ondemand-brokerage"),
+        )
+
     def test_scheduled_cancellation_keeps_access_until_the_saved_end_date(self):
         request = webhook.handler.__new__(webhook.handler)
         captured = {}
