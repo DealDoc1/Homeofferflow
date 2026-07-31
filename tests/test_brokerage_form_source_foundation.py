@@ -41,6 +41,7 @@ class BrokerageFormSourceFoundationTests(unittest.TestCase):
         self.assertIn("txr_all_agents_authorized", authorization_migration)
         self.assertIn("txr_authorization_attested_by", authorization_migration)
         self.assertIn("brandTxrAuthorization", HTML)
+        self.assertIn("current members of both NAR and Texas REALTORS", HTML)
         self.assertIn("Each agent still confirms their own current authorization", HTML)
         self.assertIn("brandTxrAttestation", HTML)
         self.assertIn("Check the brokerage Texas REALTORS® / NAR attestation before saving", HTML)
