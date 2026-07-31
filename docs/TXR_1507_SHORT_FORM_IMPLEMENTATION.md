@@ -104,6 +104,10 @@ The workflow remains unavailable until all of the following are complete:
   signer choice and one or two distinct client recipients. Its field map is
   isolated from the offer-packet field map and remains staging-only until
   completed packets are visually reviewed.
+- The authenticated admin route has a separate `send_txr_1507_staging`
+  action, but it is fail-closed unless `TXR_1507_SIGNWELL_STAGING_ENABLED=true`
+  **and** `SIGNWELL_TEST_MODE=true`. It cannot accidentally send a production
+  TXR packet, and production offer signing is untouched.
 - The renderer has been tested against a generated two-page fixture and one
   private rendering of the authorized TXR-1507 source. The private rendering
   still requires the scenario-by-scenario visual QA table above before any
