@@ -31,6 +31,12 @@ class AgentLaunchScopeTests(unittest.TestCase):
         self.assertIn("each agent must confirm their own current authorization", HTML)
         self.assertIn("never infers membership from a license number alone", HTML)
 
+    def test_scope_provides_a_dedicated_missing_form_request_path(self):
+        self.assertIn("openMissingFormRequest", HTML)
+        self.assertIn("Request a Missing Form", HTML)
+        self.assertIn("issue.value = 'missing_addendum'", HTML)
+        self.assertIn("Do not include confidential client information", HTML)
+
 
 if __name__ == "__main__":
     unittest.main()
