@@ -47,6 +47,18 @@ class BrokerageFormSourceFoundationTests(unittest.TestCase):
         self.assertIn("Check the brokerage Texas REALTORS® / NAR attestation before saving", HTML)
         self.assertIn("This is not inferred from a license number", HTML)
 
+    def test_every_restricted_txr_workflow_requires_individual_nar_texas_realtors_attestation(self):
+        """Keep the point-of-use membership/authority gate on every TXR workflow."""
+        attestation = "I attest that I am a current Texas REALTORS® / NAR member"
+        self.assertEqual(HTML.count(attestation), 4)
+        for form_code in ("TXR-1501", "TXR-1506", "TXR-1507", "TXR-1508"):
+            marker = f"id=\"hof-{form_code.lower().replace('-', '')}-drafts-v1\""
+            self.assertIn(marker, HTML)
+        dashboard = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
+        self.assertGreaterEqual(dashboard.count("formUseAttested"), 4)
+        self.assertIn("form_use_attested_by", dashboard)
+        self.assertIn("form_use_attested_at", dashboard)
+
     def test_listing_side_sources_are_private_and_do_not_activate_workflows(self):
         for form_code in ("TXR-1101", "TXR-1102", "TXR-1406", "TXR-1418"):
             self.assertIn(f"'{form_code}'", MIGRATION)
