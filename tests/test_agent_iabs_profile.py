@@ -13,6 +13,9 @@ HTML = (ROOT / "index.html").read_text(encoding="utf-8")
 MIGRATION = (ROOT / "supabase" / "homeofferflow_agent_iabs_profile.sql").read_text(
     encoding="utf-8"
 )
+STORAGE_PATH_MIGRATION = (ROOT / "supabase" / "homeofferflow_agent_iabs_storage_exact_path.sql").read_text(
+    encoding="utf-8"
+)
 
 
 def one_page_pdf_base64():
@@ -36,6 +39,11 @@ class AgentIabsProfileTests(unittest.TestCase):
         self.assertIn("for insert to authenticated", MIGRATION)
         self.assertIn("for update to authenticated", MIGRATION)
         self.assertIn("for delete to authenticated", MIGRATION)
+
+    def test_iabs_storage_policy_is_limited_to_the_single_profile_object(self):
+        self.assertIn("name = (select auth.uid()::text || '/iabs.pdf')", STORAGE_PATH_MIGRATION)
+        self.assertNotIn("storage.foldername(name))[1]", STORAGE_PATH_MIGRATION)
+        self.assertEqual(STORAGE_PATH_MIGRATION.count("name = (select auth.uid()::text || '/iabs.pdf')"), 5)
 
     def test_profile_and_offer_controls_are_optional_and_not_auto_attached(self):
         self.assertIn("<h4>My IABS</h4>", HTML)
