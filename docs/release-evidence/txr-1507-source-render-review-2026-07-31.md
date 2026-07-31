@@ -22,6 +22,12 @@
   explicit source-owner approval, especially whether the broker/associate must
   initial or sign in addition to the client(s).
 
+The implementation was also rendered against the actual authorized local
+`TXR1507.pdf` source (revision 06-15-26), not only a synthetic blank two-page
+fixture. Both rendered pages were visually inspected. The overlay is readable
+and remains a private draft; the visual review does not approve the signer
+checkbox choice or authorize a SignWell send.
+
 ## Open release gates
 
 1. Upload and attest the exact source revision in the private brokerage source
