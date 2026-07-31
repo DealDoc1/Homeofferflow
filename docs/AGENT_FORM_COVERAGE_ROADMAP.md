@@ -68,6 +68,15 @@ and TXR-1508. It requires a brokerage administrator's authorization attestation
 and deliberately prevents agents from downloading restricted source PDFs in
 their browsers. It does not activate or distribute a form by itself.
 
+The source-specific renderer and signer-map foundation is now staged in
+`api/txr_1507.py`. It preserves the supplied two-page source, overlays only
+validated intake values, and keeps the client one- and client two-signer maps
+separate from the purchase-packet coordinates. This is renderer QA work, not
+an executable or production signing release: an authorized brokerage
+administrator must still upload and attest to the source, and the associate /
+client signing order must pass completed SignWell visual QA before a send
+action is exposed.
+
 ### 2. Seller disclosure workflow
 
 Build this as a seller-side workflow, separate from the buyer offer wizard.
