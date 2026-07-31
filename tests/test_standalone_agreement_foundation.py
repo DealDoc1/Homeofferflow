@@ -1,6 +1,7 @@
 import importlib.util
 from pathlib import Path
 import unittest
+import asyncio
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -211,7 +212,13 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
         backend = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
         self.assertIn("create_txr_1507_draft", backend)
         self.assertIn("render_txr_1507_draft", backend)
+        self.assertIn("send_txr_1507_staging", backend)
+        self.assertIn("TXR_1507_SIGNWELL_STAGING_ENABLED", backend)
         self.assertIn("create_txr_1501_draft", backend)
         self.assertIn("create_txr_1508_draft", backend)
         self.assertIn("create_txr_1506_draft", backend)
         self.assertIn("_active_brokerage_member", backend)
+
+    def test_staging_signwell_action_is_fail_closed_by_default(self):
+        with self.assertRaisesRegex(PermissionError, "staging signing is not enabled"):
+            asyncio.run(MODULE._send_txr_1507_staging({"id": "user"}, {"agreementId": "00000000-0000-0000-0000-000000000001", "signerPlan": {}}))

@@ -2,6 +2,7 @@ import os
 import json
 import uuid
 import re
+import base64
 import urllib.parse
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler
@@ -11,6 +12,10 @@ try:
     from txr_1507_renderer import render_txr_1507_draft
 except ImportError:  # pragma: no cover - supports direct module loading in tests
     from api.txr_1507_renderer import render_txr_1507_draft
+try:
+    from txr_1507_signwell import build_txr_1507_recipients, build_txr_1507_signwell_fields
+except ImportError:  # pragma: no cover - supports direct module loading in tests
+    from api.txr_1507_signwell import build_txr_1507_recipients, build_txr_1507_signwell_fields
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "").rstrip("/")
 SUPABASE_SERVICE_ROLE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or os.environ.get("SUPABASE_SERVICE_ROLE") or os.environ.get("SUPABASE_SERVICE_KEY") or ""
@@ -45,6 +50,9 @@ TXR_1506_FORM_CODE = "TXR-1506"
 TXR_1507_FORM_CODE = "TXR-1507"
 TXR_1508_FORM_CODE = "TXR-1508"
 GENERATED_AGREEMENTS_BUCKET = "brokerage-generated-agreements"
+SIGNWELL_API_KEY = os.environ.get("SIGNWELL_API_KEY", "")
+SIGNWELL_TEST_MODE = os.environ.get("SIGNWELL_TEST_MODE", "false").strip().lower() not in {"0", "false", "no", "off"}
+TXR_1507_SIGNWELL_STAGING_ENABLED = os.environ.get("TXR_1507_SIGNWELL_STAGING_ENABLED", "false").strip().lower() in {"1", "true", "yes", "on"}
 
 
 def _json(handler, code, payload):
@@ -1435,6 +1443,83 @@ async def _render_txr_1507_draft(user, data):
     }
 
 
+async def _send_txr_1507_staging(user, data):
+    """Create an isolated SignWell test request after explicit QA approval.
+
+    This is intentionally fail-closed. It cannot run in production unless a
+    separate staging flag is enabled and SignWell remains in test mode.
+    """
+    if not TXR_1507_SIGNWELL_STAGING_ENABLED or not SIGNWELL_TEST_MODE:
+        raise PermissionError("TXR-1507 staging signing is not enabled.")
+    if not SIGNWELL_API_KEY:
+        raise RuntimeError("SignWell test credentials are not configured.")
+    agreement_id = _uuid_value(data.get("agreementId"), "Agreement ID")
+    signer_plan = data.get("signerPlan") or data.get("signer_plan")
+    recipients = build_txr_1507_recipients(signer_plan)
+    fields = build_txr_1507_signwell_fields(signer_plan)
+    rows = await _get(
+        "hof_standalone_agreements?"
+        f"id=eq.{urllib.parse.quote(agreement_id)}"
+        f"&agent_user_id=eq.{urllib.parse.quote(user['id'])}"
+        "&form_code=eq.TXR-1507&status=eq.ready_for_review"
+        "&select=id,brokerage_id,generated_storage_bucket,generated_storage_path,client_names&limit=1"
+    )
+    if not rows:
+        raise ValueError("Generate and review the private TXR-1507 PDF before staging signature.")
+    agreement = rows[0]
+    if agreement.get("generated_storage_bucket") != GENERATED_AGREEMENTS_BUCKET:
+        raise ValueError("The TXR-1507 generated PDF is not in the approved private bucket.")
+    pdf_bytes = await _storage_object_bytes(agreement["generated_storage_bucket"], agreement["generated_storage_path"])
+    filename = f"HomeOfferFlow_TXR-1507_{agreement_id}.pdf"
+    payload = {
+        "test_mode": True,
+        "draft": False,
+        "reminders": False,
+        "apply_signing_order": False,
+        "embedded_signing": False,
+        "with_signature_page": False,
+        "custom_requester_name": "HomeOfferFlow TXR-1507 QA",
+        "name": f"HomeOfferFlow TXR-1507 QA — {agreement_id}",
+        "subject": "HomeOfferFlow TXR-1507 staging QA",
+        "message": (
+            "This is a private staging QA request for TXR-1507. Review every field, checkbox, initial, signature, and date. "
+            "This is not a production transaction and must not be used with a client."
+        ),
+        "recipients": recipients,
+        "files": [{"name": filename, "file_base64": base64.b64encode(pdf_bytes).decode("ascii")}],
+        "fields": [fields],
+        "metadata": {"source": "HomeOfferFlow", "form_code": "TXR-1507", "standalone_agreement_id": agreement_id, "staging_qa": "true"},
+    }
+    async with httpx.AsyncClient(timeout=45) as client:
+        response = await client.post(
+            "https://www.signwell.com/api/v1/documents",
+            headers={"X-Api-Key": SIGNWELL_API_KEY, "Content-Type": "application/json"},
+            json=payload,
+        )
+    if response.status_code not in {200, 201, 202}:
+        raise RuntimeError(f"SignWell staging request failed: {response.status_code}")
+    result = response.json() if response.content else {}
+    document_id = result.get("id") or result.get("document_id") or result.get("response", {}).get("id")
+    if not document_id:
+        raise RuntimeError("SignWell created no document ID for the staging request.")
+    patch = {
+        "status": "sent",
+        "signwell_document_id": str(document_id),
+        "signwell_status": str(result.get("status") or "sent"),
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+        "sent_at": datetime.now(timezone.utc).isoformat(),
+    }
+    async with httpx.AsyncClient(timeout=12) as client:
+        update = await client.patch(
+            f"{SUPABASE_URL}/rest/v1/hof_standalone_agreements?id=eq.{urllib.parse.quote(agreement_id)}&agent_user_id=eq.{urllib.parse.quote(user['id'])}",
+            headers={**_headers(), "Prefer": "return=representation"},
+            json=patch,
+        )
+    if update.status_code >= 300:
+        raise RuntimeError("The staging SignWell document was created but the agreement record was not updated.")
+    return {"id": agreement_id, "status": "sent", "signwell_document_id": str(document_id), "recipient_count": len(recipients), "test_mode": True}
+
+
 async def _create_txr_1501_draft(user, data):
     return await _create_representation_draft(user, data, TXR_1501_FORM_CODE, _parse_txr_1501_draft)
 
@@ -1626,6 +1711,10 @@ class handler(BaseHTTPRequestHandler):
             if data.get("action") == "render_txr_1507_draft":
                 rendered = asyncio.run(_render_txr_1507_draft(user, data))
                 _json(self, 200, {"status": "ok", "agreement": rendered})
+                return
+            if data.get("action") == "send_txr_1507_staging":
+                staging = asyncio.run(_send_txr_1507_staging(user, data))
+                _json(self, 200, {"status": "ok", "agreement": staging})
                 return
             if data.get("action") == "create_txr_1501_draft":
                 draft = asyncio.run(_create_txr_1501_draft(user, data))
