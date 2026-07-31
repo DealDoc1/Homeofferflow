@@ -4716,16 +4716,8 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
       return;
     }
 
-    const payload = {
-      user_id: user.id,
-      role: hofAuth?.role || state?.data?.userType || 'agent',
-      email: user.email || '',
-      issue_type: issueType,
-      message,
-      page_url: window.location.href,
-      user_agent: navigator.userAgent || '',
-      status: 'new'
-    };
+    const feedbackToken = hofAuth?.session?.access_token || '';
+    const feedbackRole = hofAuth?.role || state?.data?.userType || 'agent';
 
     try {
       if (btn) {
@@ -4733,8 +4725,24 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
         btn.textContent = 'Submitting...';
       }
 
-      const { data: savedFeedback, error } = await client.from('hof_feedback').insert(payload).select('*').single();
-      if (error) throw error;
+      const feedbackResponse = await fetch('/api/submit-feedback', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${feedbackToken}`
+        },
+        body: JSON.stringify({
+          issueType,
+          message,
+          role: feedbackRole,
+          pageUrl: window.location.href,
+          userAgent: navigator.userAgent || '',
+          anonymized: anonymizedCalibration
+        })
+      });
+      const feedbackResult = await feedbackResponse.json().catch(() => ({}));
+      if (!feedbackResponse.ok || !feedbackResult.feedback) throw new Error(feedbackResult.error || 'Feedback could not be saved.');
+      const savedFeedback = feedbackResult.feedback;
 
       let alertOk = false;
       try {
@@ -4742,9 +4750,9 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            feedback: savedFeedback || payload,
+            feedback: savedFeedback,
             accountEmail: user.email || '',
-            role: payload.role || '',
+            role: feedbackRole,
             issueType,
             message,
             pageUrl: window.location.href,
