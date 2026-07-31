@@ -1161,6 +1161,11 @@ def _parse_txr_1501_draft(data):
     intermediary = str(data.get("intermediary") or "").strip()
     if intermediary not in {"authorized", "not_authorized"}:
         raise ValueError("Choose whether intermediary is authorized.")
+    signer_plan = str(data.get("signerPlan") or "").strip()
+    if signer_plan not in {"clients_only", "clients_and_associate", "clients_and_broker"}:
+        raise ValueError("Choose who will sign the TXR-1501 agreement.")
+    if data.get("formUseAttested") is not True:
+        raise ValueError("Confirm that you are currently authorized to use this TXR form for your brokerage.")
     return {
         "form_source_id": form_source_id,
         "client_names": client_names,
@@ -1178,6 +1183,8 @@ def _parse_txr_1501_draft(data):
             "protection_days": protection_days,
             "payment_county": payment_county,
             "intermediary": intermediary,
+            "signer_plan": signer_plan,
+            "form_use_attested": True,
         },
     }
 
@@ -1350,8 +1357,8 @@ async def _create_txr_1506_draft(user, data):
     return await _create_representation_draft(user, data, TXR_1506_FORM_CODE, _parse_txr_1506_draft)
 
 
-async def _render_txr_1507_draft_preview(user, agreement_id):
-    """Render an agent's own approved-source TXR-1507 draft privately.
+async def _render_representation_draft_preview(user, agreement_id):
+    """Render an agent's own approved-source representation draft privately.
 
     This endpoint intentionally stops at a PDF preview. It does not mutate the
     agreement, create a SignWell document, or expose the private source URL.
@@ -1369,8 +1376,8 @@ async def _render_txr_1507_draft_preview(user, agreement_id):
         f"id=eq.{urllib.parse.quote(agreement_uuid)}"
         f"&agent_user_id=eq.{urllib.parse.quote(user['id'])}"
         f"&brokerage_id=eq.{urllib.parse.quote(brokerage_id)}"
-        "&form_code=eq.TXR-1507&status=eq.draft"
-        "&select=id,form_source_id,source_revision,client_names,agreement_data&limit=1"
+        "&status=eq.draft"
+        "&select=id,form_code,form_source_id,source_revision,client_names,agreement_data&limit=1"
     )
     if not agreements:
         raise PermissionError("That private agreement draft is unavailable.")
@@ -1379,11 +1386,11 @@ async def _render_txr_1507_draft_preview(user, agreement_id):
         "hof_brokerage_form_sources?"
         f"id=eq.{urllib.parse.quote(str(agreement['form_source_id']))}"
         f"&brokerage_id=eq.{urllib.parse.quote(brokerage_id)}"
-        "&form_code=eq.TXR-1507&status=eq.approved&authorization_attested=is.true"
+        f"&form_code=eq.{urllib.parse.quote(str(agreement.get('form_code') or ''))}&status=eq.approved&authorization_attested=is.true"
         "&select=id,source_revision,storage_bucket,storage_path,original_filename&limit=1"
     )
     if not sources:
-        raise ValueError("The approved TXR-1507 source is no longer available.")
+        raise ValueError("The approved source for this private agreement is no longer available.")
     source = sources[0]
     if source.get("source_revision") != agreement.get("source_revision"):
         raise ValueError("The draft source revision no longer matches the approved source.")
@@ -1418,13 +1425,18 @@ async def _render_txr_1507_draft_preview(user, agreement_id):
         **agreement_data,
         "compensation": {key: agreement_data.get(key, "") for key in compensation_keys},
     }
-    from api.txr_1507 import render_txr_1507
-    return render_txr_1507(
-        response.content,
-        render_data,
-        brokerage_rows[0],
-        profile_rows[0] if profile_rows else {},
-    )
+    if agreement.get("form_code") == TXR_1507_FORM_CODE:
+        from api.txr_1507 import render_txr_1507
+        return render_txr_1507(response.content, render_data, brokerage_rows[0], profile_rows[0] if profile_rows else {})
+    if agreement.get("form_code") == TXR_1501_FORM_CODE:
+        from api.txr_1501 import render_txr_1501
+        return render_txr_1501(response.content, render_data, brokerage_rows[0], profile_rows[0] if profile_rows else {})
+    raise ValueError("Private preview is not available for this form yet.")
+
+
+async def _render_txr_1507_draft_preview(user, agreement_id):
+    """Backward-compatible wrapper for the TXR-1507 private preview."""
+    return await _render_representation_draft_preview(user, agreement_id)
 
 
 class handler(BaseHTTPRequestHandler):
@@ -1444,7 +1456,7 @@ class handler(BaseHTTPRequestHandler):
             query = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
             preview_agreement = str((query.get("preview_agreement") or [""])[0]).strip()
             if preview_agreement:
-                pdf = asyncio.run(_render_txr_1507_draft_preview(user, preview_agreement))
+                pdf = asyncio.run(_render_representation_draft_preview(user, preview_agreement))
                 _pdf_response(self, pdf, "TXR-1507-private-draft-preview.pdf")
                 return
             scope = str((query.get("scope") or [""])[0]).strip().lower()

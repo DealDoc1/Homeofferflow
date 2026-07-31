@@ -82,6 +82,17 @@ that revalidates ownership, active brokerage membership, brokerage
 authorization, approved source status, and source revision on every request.
 It does not send or sign documents and never returns the private source URL.
 
+The companion TXR-1501 Long Form foundation is now staged in
+`api/txr_1501.py`. The authorized six-page source was visually inspected
+page-by-page, and a sample overlay was rendered and checked for the party and
+contact rows, market area, term dates, compensation, intermediary choice, and
+printed-name areas. TXR-1501 drafts require the same explicit brokerage-use
+attestation and deliberate signer plan as TXR-1507, and private previews use
+the approved source revision without exposing its storage URL. Coordinates and
+signer placement remain provisional until a real brokerage-approved source is
+uploaded, the broker/associate/client signing plan is confirmed, and a
+completed signed PDF passes visual QA. No TXR-1501 send/sign action is enabled.
+
 ### 2. Seller disclosure workflow
 
 Build this as a seller-side workflow, separate from the buyer offer wizard.

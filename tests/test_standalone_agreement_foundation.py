@@ -44,6 +44,8 @@ def valid_long_payload():
         "termEnd": "2027-01-31",
         "paymentCounty": "Collin",
         "intermediary": "authorized",
+        "signerPlan": "clients_only",
+        "formUseAttested": True,
         "compensation": {"purchasePercentage": "3"},
     }
 
@@ -140,6 +142,17 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
         self.assertEqual(draft["client_names"], ["Test Buyer"])
         self.assertEqual(draft["agreement_data"]["payment_county"], "Collin")
         self.assertEqual(draft["agreement_data"]["purchase_percentage"], "3")
+        self.assertEqual(draft["agreement_data"]["signer_plan"], "clients_only")
+
+    def test_long_form_requires_explicit_signer_plan_and_authority_attestation(self):
+        payload = valid_long_payload()
+        payload.pop("signerPlan")
+        with self.assertRaisesRegex(ValueError, "Choose who will sign"):
+            MODULE._parse_txr_1501_draft(payload)
+        payload = valid_long_payload()
+        payload["formUseAttested"] = False
+        with self.assertRaisesRegex(ValueError, "authorized to use this TXR form"):
+            MODULE._parse_txr_1501_draft(payload)
 
     def test_long_form_rejects_invalid_contact_retainer_or_protection_terms(self):
         payload = valid_long_payload()

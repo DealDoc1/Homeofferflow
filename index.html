@@ -12713,6 +12713,8 @@ function routeAfterMagicLinkIfNeeded() {
           <label>Protection period days (optional)<input name="protectionDays" inputmode="numeric" placeholder="Enter only if broker-approved"></label>
           <label>Payment county<input name="paymentCounty" required maxlength="100" placeholder="Example: Collin"></label>
           <label class="hof-agreement-wide">Intermediary choice<select name="intermediary" required><option value="">Choose one…</option><option value="authorized">Client authorizes intermediary</option><option value="not_authorized">Client does not authorize intermediary</option></select></label>
+          <label>Signer plan<select name="signerPlan" required><option value="">Choose one…</option><option value="clients_only">Clients sign only</option><option value="clients_and_associate">Clients and associate sign</option><option value="clients_and_broker">Clients and broker sign</option></select><small>Choose deliberately; HomeOfferFlow will not infer who must sign.</small></label>
+          <label class="hof-agreement-wide hof-agreement-services"><input name="formUseAttested" type="checkbox" required> I confirm that I am currently authorized to use this Texas REALTORS® form for my brokerage and that the selected source revision is the approved source for this agreement.</label>
         </div>
         <div id="txr1501DraftStatus" class="hof-iabs-status"></div>
         <div class="hof-agreement-footer"><button class="btn-secondary" type="button" id="txr1501Cancel">Cancel</button><button class="btn-primary" type="submit">Save private draft</button></div>
@@ -12741,7 +12743,7 @@ function routeAfterMagicLinkIfNeeded() {
       action: 'create_txr_1501_draft', formCode: FORM_CODE, formSourceId: source.id, clientNames,
       clientAddress: form.get('clientAddress'), clientCityStateZip: form.get('clientCityStateZip'), clientPhone: form.get('clientPhone'), clientEmail: form.get('clientEmail'),
       marketArea: form.get('marketArea'), termStart: form.get('termStart'), termEnd: form.get('termEnd'),
-      retainerAmount: form.get('retainerAmount'), retainerTreatment: form.get('retainerTreatment'), protectionDays: form.get('protectionDays'), paymentCounty: form.get('paymentCounty'), intermediary: form.get('intermediary'),
+      retainerAmount: form.get('retainerAmount'), retainerTreatment: form.get('retainerTreatment'), protectionDays: form.get('protectionDays'), paymentCounty: form.get('paymentCounty'), intermediary: form.get('intermediary'), signerPlan: form.get('signerPlan'), formUseAttested: form.get('formUseAttested') === 'on',
       compensation: { purchasePercentage: form.get('purchasePercentage'), purchaseFlatFee: form.get('purchaseFlatFee'), leaseOneMonthPercentage: form.get('leaseOneMonthPercentage'), leaseTotalRentsPercentage: form.get('leaseTotalRentsPercentage'), leaseFlatFee: form.get('leaseFlatFee') }
     };
     try {
