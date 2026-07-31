@@ -616,6 +616,52 @@ async def _update_brokerage_branding(actor, data):
     }
 
 
+def _parse_brokerage_txr_authorization(data):
+    """Validate the broker-admin organization-level TXR/NAR gate."""
+    status = str(data.get("status") or "").strip()
+    if status not in {"unknown", "all_agents_authorized", "not_all"}:
+        raise ValueError("Choose a valid Texas REALTORS® / NAR authorization status.")
+    if status == "unknown":
+        return False, None
+    if data.get("attestation") is not True:
+        raise ValueError("The brokerage administrator must attest to this Texas REALTORS® / NAR status.")
+    return status == "all_agents_authorized", True
+
+
+async def _update_brokerage_txr_authorization(actor, data):
+    """Let only an active brokerage admin record the organization gate."""
+    context = await _brokerage_admin_context(actor)
+    if not context:
+        raise PermissionError("Brokerage admin access is not enabled for this account.")
+    authorized, attested = _parse_brokerage_txr_authorization(data)
+    brokerage_id = str(context["brokerage"]["id"])
+    now = datetime.now(timezone.utc).isoformat()
+    payload = {
+        "txr_all_agents_authorized": authorized,
+        "txr_authorization_attested_by": actor["id"] if attested else None,
+        "txr_authorization_attested_at": now if attested else None,
+        "updated_at": now,
+    }
+    async with httpx.AsyncClient(timeout=12) as client:
+        response = await client.patch(
+            f"{SUPABASE_URL}/rest/v1/hof_brokerages?"
+            f"id=eq.{urllib.parse.quote(brokerage_id)}",
+            headers={**_headers(), "Prefer": "return=representation"},
+            json=payload,
+        )
+    if response.status_code >= 300:
+        raise RuntimeError("Could not save the brokerage Texas REALTORS® / NAR authorization status.")
+    rows = response.json()
+    if not isinstance(rows, list) or not rows:
+        raise RuntimeError("The brokerage authorization status was not found after saving.")
+    row = rows[0]
+    return {
+        "allAgentsAuthorized": row.get("txr_all_agents_authorized") is True,
+        "attestedAt": row.get("txr_authorization_attested_at"),
+        "attestedBy": row.get("txr_authorization_attested_by"),
+    }
+
+
 def _shared_default_text(value, field, maximum=250):
     value = " ".join(str(value or "").strip().split())
     if len(value) > maximum:
@@ -1629,6 +1675,10 @@ class handler(BaseHTTPRequestHandler):
             if data.get("action") == "update_brokerage_branding":
                 branding = asyncio.run(_update_brokerage_branding(user, data))
                 _json(self, 200, {"ok": True, "branding": branding})
+                return
+            if data.get("action") == "update_brokerage_txr_authorization":
+                authorization = asyncio.run(_update_brokerage_txr_authorization(user, data))
+                _json(self, 200, {"ok": True, "authorization": authorization})
                 return
             if data.get("action") == "update_brokerage_shared_defaults":
                 defaults = asyncio.run(_update_brokerage_shared_defaults(user, data))

@@ -202,6 +202,27 @@ class BrokerageDefaultsClient:
         }])
 
 
+class BrokerageTxrClient:
+    last_patch = None
+
+    def __init__(self, *args, **kwargs):
+        pass
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *args):
+        return False
+
+    async def patch(self, url, **kwargs):
+        self.__class__.last_patch = (url, kwargs)
+        return Response(200, [{
+            "txr_all_agents_authorized": True,
+            "txr_authorization_attested_by": "11111111-1111-1111-1111-111111111111",
+            "txr_authorization_attested_at": "2030-01-15T12:00:00+00:00",
+        }])
+
+
 class OnDemandCheckoutTests(unittest.TestCase):
     def setUp(self):
         checkout.STRIPE_SECRET_KEY = "sk_test_example"
@@ -500,6 +521,40 @@ class BrokerageAuthorizationTests(unittest.TestCase):
         self.assertIn("id=eq." + brokerage_id, BrokerageBrandingClient.last_patch[0])
         self.assertEqual(BrokerageBrandingClient.last_patch[1]["json"]["brand_color"], "#123456")
 
+    def test_brokerage_txr_authorization_requires_admin_attestation_and_writes_only_gate_fields(self):
+        actor = {"id": "11111111-1111-1111-1111-111111111111", "email": "tyler@ondemanddfw.com"}
+        brokerage_id = "22222222-2222-2222-2222-222222222222"
+
+        async def broker_context(_actor):
+            return {"brokerage": {"id": brokerage_id}}
+
+        with patch.object(admin, "_brokerage_admin_context", broker_context):
+            with self.assertRaisesRegex(ValueError, "administrator must attest"):
+                asyncio.run(admin._update_brokerage_txr_authorization(actor, {
+                    "status": "all_agents_authorized",
+                    "attestation": False,
+                }))
+
+        BrokerageTxrClient.last_patch = None
+        with patch.object(admin, "_brokerage_admin_context", broker_context), \
+             patch.object(admin.httpx, "AsyncClient", BrokerageTxrClient):
+            result = asyncio.run(admin._update_brokerage_txr_authorization(actor, {
+                "status": "all_agents_authorized",
+                "attestation": True,
+            }))
+
+        self.assertTrue(result["allAgentsAuthorized"])
+        self.assertIn("id=eq." + brokerage_id, BrokerageTxrClient.last_patch[0])
+        saved = BrokerageTxrClient.last_patch[1]["json"]
+        self.assertEqual(saved["txr_all_agents_authorized"], True)
+        self.assertEqual(saved["txr_authorization_attested_by"], actor["id"])
+        self.assertEqual(set(saved), {
+            "txr_all_agents_authorized",
+            "txr_authorization_attested_by",
+            "txr_authorization_attested_at",
+            "updated_at",
+        })
+
     def test_branding_rejects_arbitrary_logo_urls_and_invalid_colors(self):
         brokerage_id = "22222222-2222-2222-2222-222222222222"
         with self.assertRaisesRegex(ValueError, "#RRGGBB"):
@@ -529,6 +584,14 @@ class BrokerageAuthorizationTests(unittest.TestCase):
         self.assertIn("image/png', 'image/jpeg', 'image/webp'", final_script)
         self.assertIn("2 * 1024 * 1024", final_script)
         self.assertIn("Only active brokerage admins can update", final_script)
+
+    def test_brokerage_ui_exposes_the_live_txr_authorization_gate(self):
+        marker = INDEX_HTML.index('id="hof-ondemand-brokerage-launch-v1"')
+        final_script = INDEX_HTML[marker:]
+        self.assertIn("saveBrokerageTxrAuthorization", final_script)
+        self.assertIn("update_brokerage_txr_authorization", final_script)
+        self.assertIn("Texas REALTORS® / NAR form authorization", final_script)
+        self.assertIn("This organization-level gate is not inferred from a license number", final_script)
 
     def test_broker_can_save_title_suggestions_but_not_transaction_terms(self):
         actor = {"id": "11111111-1111-1111-1111-111111111111", "email": "tyler@ondemanddfw.com"}
