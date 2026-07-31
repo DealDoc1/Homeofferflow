@@ -53,8 +53,11 @@ reused for this standalone agreement.
 ## Data and authorization safeguards
 
 1. Require an active agent membership in the same brokerage as the approved
-   TXR-1507 source and an explicit per-draft attestation that the agent is
-   currently authorized to use that TXR form for the brokerage.
+   source and an explicit per-draft attestation that the agent is currently
+   authorized to use that selected Texas REALTORS® form for the brokerage.
+   The same gate applies to the TXR-1501, TXR-1508, and TXR-1506 draft
+   foundations; an agent cannot bypass authorization by choosing another
+   restricted form.
 2. Require an approved form source for **TXR-1507** and its displayed revision.
 3. Persist the source record ID, source revision, brokerage ID, agent ID, and
    final agreement record together.
@@ -94,8 +97,9 @@ The workflow remains unavailable until all of the following are complete:
 - The brokerage setup flow records whether the brokerage administrator attests
   that its agents are authorized to use Texas REALTORS® forms. This is a
   brokerage-level signal only; it does not replace each agent's own attestation.
-- The TXR-1507 draft intake requires the individual agent to affirm current
-  authorization and to select an approved private source revision.
+- Every restricted TXR draft intake (TXR-1501, TXR-1506, TXR-1507, and
+  TXR-1508) requires the individual agent to affirm current authorization and
+  to select an approved private source revision.
 - `api/txr_1507_renderer.py` now provides a source-bytes-in, two-page draft
   renderer with validation and a provisional coordinate map. It intentionally
   does not fetch or expose source PDFs, create SignWell packets, or imply that

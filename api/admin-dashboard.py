@@ -1089,6 +1089,14 @@ def _agreement_compensation(compensation):
     return values
 
 
+def _require_form_use_attestation(data, form_code):
+    """Require the individual agent's authorization for every restricted form."""
+    if data.get("formUseAttested") is not True:
+        raise ValueError(
+            f"Confirm that you are currently authorized to use {form_code} for your brokerage."
+        )
+
+
 def _parse_txr_1507_draft(data):
     if data.get("formCode") != TXR_1507_FORM_CODE:
         raise ValueError("Only TXR-1507 is available through this action.")
@@ -1104,8 +1112,7 @@ def _parse_txr_1507_draft(data):
     intermediary = str(data.get("intermediary") or "").strip()
     if intermediary not in {"authorized", "not_authorized"}:
         raise ValueError("Choose whether intermediary is authorized.")
-    if data.get("formUseAttested") is not True:
-        raise ValueError("Confirm that you are currently authorized to use this TXR form for your brokerage.")
+    _require_form_use_attestation(data, TXR_1507_FORM_CODE)
     form_source_id = _agreement_text(data.get("formSourceId"), "Approved TXR-1507 source", 80)
     try:
         form_source_id = str(uuid.UUID(form_source_id))
@@ -1131,6 +1138,7 @@ def _parse_txr_1507_draft(data):
 def _parse_txr_1501_draft(data):
     if data.get("formCode") != TXR_1501_FORM_CODE:
         raise ValueError("Only TXR-1501 is available through this action.")
+    _require_form_use_attestation(data, TXR_1501_FORM_CODE)
     client_names = _agreement_clients(data)
     form_source_id = _agreement_text(data.get("formSourceId"), "Approved TXR-1501 source", 80)
     try:
@@ -1177,6 +1185,7 @@ def _parse_txr_1501_draft(data):
             "protection_days": protection_days,
             "payment_county": payment_county,
             "intermediary": intermediary,
+            "form_use_attested": True,
         },
     }
 
@@ -1190,6 +1199,7 @@ def _parse_txr_1508_draft(data):
     """
     if data.get("formCode") != TXR_1508_FORM_CODE:
         raise ValueError("Only TXR-1508 is available through this action.")
+    _require_form_use_attestation(data, TXR_1508_FORM_CODE)
     client_names = _agreement_clients(data)
     form_source_id = _agreement_text(data.get("formSourceId"), "Approved TXR-1508 source", 80)
     try:
@@ -1214,6 +1224,7 @@ def _parse_txr_1508_draft(data):
             "property_address": property_address,
             "other_broker_agreement": other_broker_agreement,
             "unrepresented_acknowledgment": True,
+            "form_use_attested": True,
         },
     }
 
@@ -1227,6 +1238,7 @@ def _parse_txr_1506_draft(data):
     """
     if data.get("formCode") != TXR_1506_FORM_CODE:
         raise ValueError("Only TXR-1506 is available through this action.")
+    _require_form_use_attestation(data, TXR_1506_FORM_CODE)
     client_names = _agreement_clients(data)
     form_source_id = _agreement_text(data.get("formSourceId"), "Approved TXR-1506 source", 80)
     try:
@@ -1248,6 +1260,7 @@ def _parse_txr_1506_draft(data):
             "consumer_role": consumer_role,
             "additional_notice": additional_notice,
             "notice_acknowledgment": True,
+            "form_use_attested": True,
         },
     }
 

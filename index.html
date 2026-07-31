@@ -12696,6 +12696,7 @@ function routeAfterMagicLinkIfNeeded() {
           <label>Protection period days (optional)<input name="protectionDays" inputmode="numeric" placeholder="Enter only if broker-approved"></label>
           <label>Payment county<input name="paymentCounty" required maxlength="100" placeholder="Example: Collin"></label>
           <label class="hof-agreement-wide">Intermediary choice<select name="intermediary" required><option value="">Choose one…</option><option value="authorized">Client authorizes intermediary</option><option value="not_authorized">Client does not authorize intermediary</option></select></label>
+          <label class="hof-agreement-wide hof-agreement-services"><input name="formUseAttested" type="checkbox" required> I confirm that I am currently authorized to use TXR-1501 for my brokerage and that the selected source revision is the approved source for this agreement.</label>
         </div>
         <div id="txr1501DraftStatus" class="hof-iabs-status"></div>
         <div class="hof-agreement-footer"><button class="btn-secondary" type="button" id="txr1501Cancel">Cancel</button><button class="btn-primary" type="submit">Save private draft</button></div>
@@ -12725,7 +12726,8 @@ function routeAfterMagicLinkIfNeeded() {
       clientAddress: form.get('clientAddress'), clientCityStateZip: form.get('clientCityStateZip'), clientPhone: form.get('clientPhone'), clientEmail: form.get('clientEmail'),
       marketArea: form.get('marketArea'), termStart: form.get('termStart'), termEnd: form.get('termEnd'),
       retainerAmount: form.get('retainerAmount'), retainerTreatment: form.get('retainerTreatment'), protectionDays: form.get('protectionDays'), paymentCounty: form.get('paymentCounty'), intermediary: form.get('intermediary'),
-      compensation: { purchasePercentage: form.get('purchasePercentage'), purchaseFlatFee: form.get('purchaseFlatFee'), leaseOneMonthPercentage: form.get('leaseOneMonthPercentage'), leaseTotalRentsPercentage: form.get('leaseTotalRentsPercentage'), leaseFlatFee: form.get('leaseFlatFee') }
+      compensation: { purchasePercentage: form.get('purchasePercentage'), purchaseFlatFee: form.get('purchaseFlatFee'), leaseOneMonthPercentage: form.get('leaseOneMonthPercentage'), leaseTotalRentsPercentage: form.get('leaseTotalRentsPercentage'), leaseFlatFee: form.get('leaseFlatFee') },
+      formUseAttested: form.get('formUseAttested') === 'on'
     };
     try {
       status.className = 'hof-iabs-status'; status.textContent = 'Saving private agreement draft…';
@@ -12818,6 +12820,7 @@ function routeAfterMagicLinkIfNeeded() {
           ${customerStatusField(1)}
           <label>Customer 2 full name (optional)<input name="customerTwo" maxlength="180"></label>
           <div id="txr1508CustomerTwoStatus" style="display:none">${customerStatusField(2)}</div>
+          <label class="hof-agreement-wide hof-agreement-services"><input name="formUseAttested" type="checkbox" required> I confirm that I am currently authorized to use TXR-1508 for my brokerage and that the selected source revision is the approved source for this showing form.</label>
           <label class="hof-agreement-wide hof-agreement-services"><input name="unrepresentedAcknowledgment" type="checkbox" required> I confirm this is an unrepresented-customer showing draft only: no representation, no compensation, no advice or opinions, and no other brokerage services are being promised through this draft.</label>
         </div>
         <div id="txr1508DraftStatus" class="hof-iabs-status"></div>
@@ -12849,7 +12852,8 @@ function routeAfterMagicLinkIfNeeded() {
     const payload = {
       action: 'create_txr_1508_draft', formCode: FORM_CODE, formSourceId: source.id,
       clientNames: customerNames, propertyAddress: form.get('propertyAddress'), otherBrokerAgreement,
-      unrepresentedAcknowledgment: form.get('unrepresentedAcknowledgment') === 'on'
+      unrepresentedAcknowledgment: form.get('unrepresentedAcknowledgment') === 'on',
+      formUseAttested: form.get('formUseAttested') === 'on'
     };
     try {
       status.className = 'hof-iabs-status'; status.textContent = 'Saving private showing draft…';
@@ -12910,13 +12914,13 @@ function routeAfterMagicLinkIfNeeded() {
   function openNoticeDraft(source) {
     document.getElementById('txr1506AgreementDialog')?.remove();
     const modal = document.createElement('div'); modal.id = 'txr1506AgreementDialog'; modal.className = 'hof-agreement-modal';
-    modal.innerHTML = `<form class="hof-agreement-dialog" id="txr1506AgreementForm"><h3>TXR-1506 consumer notice draft</h3><p>Source revision ${escape(source.source_revision)} is approved by your brokerage. This saves a private draft only; it does not create, send, or sign the source form.</p><div class="hof-agreement-grid"><label>Consumer 1 full name<input name="consumerOne" required maxlength="180"></label><label>Consumer 2 full name (optional)<input name="consumerTwo" maxlength="180"></label><label>Consumer transaction role<select name="consumerRole" required><option value="">Choose one…</option><option value="buyer">Buyer</option><option value="tenant">Tenant</option><option value="seller">Seller</option><option value="landlord">Landlord</option><option value="other">Other</option></select></label><label class="hof-agreement-wide">Other notice text (optional)<textarea name="additionalNotice" maxlength="1000" placeholder="Enter only agent-confirmed text for the source form's Other area."></textarea></label><label class="hof-agreement-wide hof-agreement-services"><input name="noticeAcknowledgment" type="checkbox" required> I confirm the consumer will receive, read, and acknowledge this general information notice. This draft does not create representation.</label></div><div id="txr1506DraftStatus" class="hof-iabs-status"></div><div class="hof-agreement-footer"><button class="btn-secondary" type="button" id="txr1506Cancel">Cancel</button><button class="btn-primary" type="submit">Save private draft</button></div></form>`;
+    modal.innerHTML = `<form class="hof-agreement-dialog" id="txr1506AgreementForm"><h3>TXR-1506 consumer notice draft</h3><p>Source revision ${escape(source.source_revision)} is approved by your brokerage. This saves a private draft only; it does not create, send, or sign the source form.</p><div class="hof-agreement-grid"><label>Consumer 1 full name<input name="consumerOne" required maxlength="180"></label><label>Consumer 2 full name (optional)<input name="consumerTwo" maxlength="180"></label><label>Consumer transaction role<select name="consumerRole" required><option value="">Choose one…</option><option value="buyer">Buyer</option><option value="tenant">Tenant</option><option value="seller">Seller</option><option value="landlord">Landlord</option><option value="other">Other</option></select></label><label class="hof-agreement-wide">Other notice text (optional)<textarea name="additionalNotice" maxlength="1000" placeholder="Enter only agent-confirmed text for the source form's Other area."></textarea></label><label class="hof-agreement-wide hof-agreement-services"><input name="formUseAttested" type="checkbox" required> I confirm that I am currently authorized to use TXR-1506 for my brokerage and that the selected source revision is the approved source for this notice.</label><label class="hof-agreement-wide hof-agreement-services"><input name="noticeAcknowledgment" type="checkbox" required> I confirm the consumer will receive, read, and acknowledge this general information notice. This draft does not create representation.</label></div><div id="txr1506DraftStatus" class="hof-iabs-status"></div><div class="hof-agreement-footer"><button class="btn-secondary" type="button" id="txr1506Cancel">Cancel</button><button class="btn-primary" type="submit">Save private draft</button></div></form>`;
     document.body.appendChild(modal); modal.querySelector('#txr1506Cancel').addEventListener('click', () => modal.remove()); modal.addEventListener('click', event => { if (event.target === modal) modal.remove(); });
     modal.querySelector('#txr1506AgreementForm').addEventListener('submit', event => submitNoticeDraft(event, source, modal));
   }
   async function submitNoticeDraft(event, source, modal) {
     event.preventDefault(); const form = new FormData(event.currentTarget), status = modal.querySelector('#txr1506DraftStatus');
-    const payload = { action:'create_txr_1506_draft', formCode:FORM_CODE, formSourceId:source.id, clientNames:[form.get('consumerOne'), form.get('consumerTwo')].map(v => String(v || '').trim()).filter(Boolean), consumerRole:form.get('consumerRole'), additionalNotice:form.get('additionalNotice'), noticeAcknowledgment:form.get('noticeAcknowledgment') === 'on' };
+    const payload = { action:'create_txr_1506_draft', formCode:FORM_CODE, formSourceId:source.id, clientNames:[form.get('consumerOne'), form.get('consumerTwo')].map(v => String(v || '').trim()).filter(Boolean), consumerRole:form.get('consumerRole'), additionalNotice:form.get('additionalNotice'), formUseAttested:form.get('formUseAttested') === 'on', noticeAcknowledgment:form.get('noticeAcknowledgment') === 'on' };
     try { status.className = 'hof-iabs-status'; status.textContent = 'Saving private notice draft…'; const token = root.hofAuth?.session?.access_token; const response = await fetch('/api/admin-dashboard', { method:'POST', headers:{'Content-Type':'application/json', Authorization:`Bearer ${token}`}, body:JSON.stringify(payload) }); const result = await response.json(); if (!response.ok) throw new Error(result.error || 'Could not save the notice draft.'); status.className = 'hof-iabs-status ready'; status.textContent = 'Draft saved privately. It has not been sent for signature.'; event.currentTarget.querySelector('button[type="submit"]').disabled = true; } catch (error) { console.error('TXR-1506 draft failed:', error); status.className = 'hof-iabs-status error'; status.textContent = error.message || 'Could not save the notice draft.'; }
   }
   const priorDashboard = root.renderAccountDashboard;

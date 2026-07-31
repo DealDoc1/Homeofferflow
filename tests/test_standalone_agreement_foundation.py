@@ -45,6 +45,7 @@ def valid_long_payload():
         "termEnd": "2027-01-31",
         "paymentCounty": "Collin",
         "intermediary": "authorized",
+        "formUseAttested": True,
         "compensation": {"purchasePercentage": "3"},
     }
 
@@ -56,6 +57,7 @@ def valid_showing_payload():
         "clientNames": ["Test Customer"],
         "propertyAddress": "1438 Whitaker Road, Van Alstyne, TX",
         "otherBrokerAgreement": ["no"],
+        "formUseAttested": True,
         "unrepresentedAcknowledgment": True,
     }
 
@@ -67,6 +69,7 @@ def valid_notice_payload():
         "clientNames": ["Test Consumer"],
         "consumerRole": "buyer",
         "additionalNotice": "",
+        "formUseAttested": True,
         "noticeAcknowledgment": True,
     }
 
@@ -89,6 +92,10 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
         self.assertEqual(draft["agreement_data"]["service_level"], "full_services")
         self.assertEqual(draft["agreement_data"]["intermediary"], "authorized")
 
+    def test_all_restricted_form_dialogs_show_the_agent_attestation(self):
+        self.assertGreaterEqual(HTML.count('name="formUseAttested" type="checkbox" required'), 4)
+        self.assertIn("formUseAttested: form.get('formUseAttested') === 'on'", HTML)
+
     def test_showing_services_requires_its_execution_fee(self):
         payload = valid_payload()
         payload["serviceLevel"] = "showing_services"
@@ -98,8 +105,21 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
     def test_short_form_requires_agent_authority_attestation(self):
         payload = valid_payload()
         payload["formUseAttested"] = False
-        with self.assertRaisesRegex(ValueError, "authorized to use this TXR form"):
+        with self.assertRaisesRegex(ValueError, "authorized to use TXR-1507"):
             MODULE._parse_txr_1507_draft(payload)
+
+    def test_every_restricted_txr_draft_requires_agent_authority_attestation(self):
+        cases = [
+            (valid_long_payload, MODULE._parse_txr_1501_draft, "TXR-1501"),
+            (valid_showing_payload, MODULE._parse_txr_1508_draft, "TXR-1508"),
+            (valid_notice_payload, MODULE._parse_txr_1506_draft, "TXR-1506"),
+        ]
+        for factory, parser, form_code in cases:
+            payload = factory()
+            payload["formUseAttested"] = False
+            with self.subTest(form_code=form_code):
+                with self.assertRaisesRegex(ValueError, f"authorized to use {form_code}"):
+                    parser(payload)
 
     def test_draft_rejects_invalid_term_or_unselected_compensation(self):
         payload = valid_payload()
