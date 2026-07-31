@@ -11984,9 +11984,14 @@ function routeAfterMagicLinkIfNeeded() {
       const m = data.metrics || {};
       const agents = data.agents || [];
       const pendingInvites = data.pendingInvites || [];
+      const authorization = data.authorization || {};
+      const authorizationMessage = authorization.allAgentsAuthorized
+        ? 'Brokerage administrator attestation recorded. Each agent must still confirm their own current authorization before using a restricted Texas REALTORS® form.'
+        : 'Brokerage-wide Texas REALTORS® / NAR authorization is not confirmed yet. Set it in Brokerage settings when accurate. Each agent must still confirm their own current authorization, and an approved private source is required separately.';
       document.getElementById('brokerSafeDashboard').innerHTML =
         '<h4>Brokerage activity</h4>' +
         '<p>Operational visibility only. Buyer names, property addresses, offer terms, and document contents are not included.</p>' +
+        '<div class="brokerage-membership-note"><strong>TXR / NAR authorization:</strong> ' + safe(authorizationMessage) + '</div>' +
         '<p class="brokerage-membership-note">Suspending an agent removes brokerage-managed access only. It does not cancel that agent\'s HomeOfferFlow subscription or delete their offers.</p>' +
         '<div class="brokerage-invite-form" style="margin-top:1rem"><label for="brokerageBrandColor">Brokerage branding</label>' +
         '<input id="brokerageBrandColor" type="color" value="' + safe(b.brand_color || '#2563eb') + '" aria-label="Brokerage brand color">' +

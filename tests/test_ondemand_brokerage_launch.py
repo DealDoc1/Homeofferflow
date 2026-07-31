@@ -587,6 +587,9 @@ class BrokerageAuthorizationTests(unittest.TestCase):
             "Agents must choose to copy",
             "Agent seats",
             "agentSeatCap",
+            "TXR / NAR authorization",
+            "Each agent must still confirm",
+            "approved private source is required separately",
         ):
             self.assertIn(item, final_script)
 

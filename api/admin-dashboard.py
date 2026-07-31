@@ -150,7 +150,8 @@ async def _brokerage_admin_context(user):
         f"id=eq.{urllib.parse.quote(str(brokerage_id))}"
         "&is_active=eq.true&select=id,name,dba_name,slug,logo_url,brand_color,"
         "website_url,license_number,plan_name,billing_status,user_cap,"
-        "default_title_company,default_title_contact&limit=1"
+        "default_title_company,default_title_contact,txr_all_agents_authorized,"
+        "txr_authorization_attested_at&limit=1"
     )
     if not brokerages:
         return None
@@ -292,6 +293,12 @@ async def _brokerage_dashboard_payload(context):
 
     return {
         "brokerage": brokerage,
+        "authorization": {
+            "allAgentsAuthorized": brokerage.get("txr_all_agents_authorized") is True,
+            "attestedAt": brokerage.get("txr_authorization_attested_at"),
+            "agentAttestationRequired": True,
+            "sourceApprovalSeparate": True,
+        },
         "metrics": {
             "memberCount": len(members),
             "activeMemberCount": len([row for row in members if row.get("status") == "active"]),

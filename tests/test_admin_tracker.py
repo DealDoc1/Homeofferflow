@@ -185,6 +185,12 @@ class AdminTrackerSecurityTests(IsolatedAsyncioTestCase):
             "offerTermsIncluded": False,
             "documentContentsIncluded": False,
         })
+        self.assertEqual(payload["authorization"], {
+            "allAgentsAuthorized": False,
+            "attestedAt": None,
+            "agentAttestationRequired": True,
+            "sourceApprovalSeparate": True,
+        })
         serialized = str(payload)
         for sensitive_value in ("Private Buyer", "123 Private Lane", "500000", "private", "Private Seller", "456 Private Road"):
             self.assertNotIn(sensitive_value, serialized)
