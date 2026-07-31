@@ -25,6 +25,9 @@ class VercelHobbyReleaseProcessTests(unittest.TestCase):
         self.assertIn("vercel deploy --prod --yes --scope dealdoc1s-projects", checklist)
         self.assertIn("never send Stripe test", checklist)
         self.assertIn("production database", checklist)
+        self.assertIn("Restricted Texas REALTORS", checklist)
+        self.assertIn("exact SHA-256 fingerprint", checklist)
+        self.assertIn("Source approval has not been mistaken for workflow activation", checklist)
 
 
 if __name__ == "__main__":
