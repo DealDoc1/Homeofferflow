@@ -69,8 +69,8 @@ def render_txr_1506(source_pdf_bytes, data, brokerage):
 def build_signwell_fields_txr1506(data, *, client_count=1):
     """Return explicit receipt-initial and signature/date fields."""
     signer_plan = data.get("signer_plan")
-    if signer_plan not in {"consumers_only", "consumers_and_associate", "consumers_and_broker"}:
-        raise ValueError("Choose who will acknowledge the TXR-1506 notice.")
+    if signer_plan not in {"consumers_and_associate", "consumers_and_broker"}:
+        raise ValueError("Choose an authorized broker or broker-associate signer for the TXR-1506 notice.")
     fields = []
     for page in range(1, 6):
         fields.append({"api_id": f"txr1506_client1_initials_p{page}", "type": "initials", "page": page, "x": 520, "y": 1000, "recipient_id": "1", "required": True, "width": 44, "height": 16})
@@ -85,10 +85,9 @@ def build_signwell_fields_txr1506(data, *, client_count=1):
             {"api_id": "txr1506_client2_signature_p6", "type": "signature", "page": 6, "x": 60, "y": 895, "recipient_id": "2", "required": True, "width": 190, "height": 26},
             {"api_id": "txr1506_client2_date_p6", "type": "date", "page": 6, "x": 455, "y": 895, "recipient_id": "2", "required": True, "width": 88, "height": 20, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
         ])
-    if signer_plan != "consumers_only":
-        role = "associate" if signer_plan == "consumers_and_associate" else "broker"
-        fields.extend([
-            {"api_id": f"txr1506_{role}_signature_p6", "type": "signature", "page": 6, "x": 60, "y": 760, "recipient_id": role, "required": True, "width": 190, "height": 26},
-            {"api_id": f"txr1506_{role}_date_p6", "type": "date", "page": 6, "x": 330, "y": 760, "recipient_id": role, "required": True, "width": 88, "height": 20, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
-        ])
+    role = "associate" if signer_plan == "consumers_and_associate" else "broker"
+    fields.extend([
+        {"api_id": f"txr1506_{role}_signature_p6", "type": "signature", "page": 6, "x": 60, "y": 760, "recipient_id": role, "required": True, "width": 190, "height": 26},
+        {"api_id": f"txr1506_{role}_date_p6", "type": "date", "page": 6, "x": 330, "y": 760, "recipient_id": role, "required": True, "width": 88, "height": 20, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
+    ])
     return [fields]

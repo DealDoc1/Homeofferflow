@@ -33,8 +33,8 @@ intake values.
   were visible in the intended sections.
 - The renderer left Special Provisions and source boilerplate untouched.
 - The signer map remains deliberately separate from the purchase packet and
-  requires an explicit `clients_only`, `clients_and_associate`, or
-  `clients_and_broker` plan.
+  requires an explicit brokerage signer plan: clients plus the authorized
+  associate or clients plus the authorized broker.
 
 ### TXR-1506 - General Information and Notice to Consumers
 
@@ -43,7 +43,8 @@ intake values.
   the final source page; source notice text and footer initials areas remained
   intact.
 - The signer map supports one or two consumer recipients and requires an
-  explicit consumer-only, associate, or broker acknowledgement plan.
+  explicit authorized associate or broker acknowledgement plan because the
+  source includes a brokerage execution line.
 
 ### TXR-1507 - Residential Buyer/Tenant Representation Agreement, Short Form
 

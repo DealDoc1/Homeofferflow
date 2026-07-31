@@ -26,7 +26,7 @@ def valid_payload():
         "termEnd": "2027-01-31",
         "serviceLevel": "full_services",
         "intermediary": "authorized",
-        "signerPlan": "clients_only",
+        "signerPlan": "clients_and_associate",
         "formUseAttested": True,
         "compensation": {"purchasePercentage": "3"},
     }
@@ -46,7 +46,7 @@ def valid_long_payload():
         "termEnd": "2027-01-31",
         "paymentCounty": "Collin",
         "intermediary": "authorized",
-        "signerPlan": "clients_only",
+        "signerPlan": "clients_and_associate",
         "formUseAttested": True,
         "compensation": {"purchasePercentage": "3"},
     }
@@ -73,7 +73,7 @@ def valid_notice_payload():
         "consumerRole": "buyer",
         "additionalNotice": "",
         "noticeAcknowledgment": True,
-        "signerPlan": "consumers_only",
+        "signerPlan": "consumers_and_associate",
         "formUseAttested": True,
     }
 
@@ -117,12 +117,12 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
         self.assertEqual(draft["client_names"], ["Test Buyer"])
         self.assertEqual(draft["agreement_data"]["service_level"], "full_services")
         self.assertEqual(draft["agreement_data"]["intermediary"], "authorized")
-        self.assertEqual(draft["agreement_data"]["signer_plan"], "clients_only")
+        self.assertEqual(draft["agreement_data"]["signer_plan"], "clients_and_associate")
 
     def test_short_form_requires_an_explicit_signer_plan(self):
         payload = valid_payload()
         payload.pop("signerPlan")
-        with self.assertRaisesRegex(ValueError, "Choose who will sign"):
+        with self.assertRaisesRegex(ValueError, "Choose an authorized broker"):
             MODULE._parse_txr_1507_draft(payload)
 
     def test_restricted_form_cards_support_brokerage_roles_without_bypassing_attestation(self):
@@ -178,12 +178,12 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
         self.assertEqual(draft["client_names"], ["Test Buyer"])
         self.assertEqual(draft["agreement_data"]["payment_county"], "Collin")
         self.assertEqual(draft["agreement_data"]["purchase_percentage"], "3")
-        self.assertEqual(draft["agreement_data"]["signer_plan"], "clients_only")
+        self.assertEqual(draft["agreement_data"]["signer_plan"], "clients_and_associate")
 
     def test_long_form_requires_explicit_signer_plan_and_authority_attestation(self):
         payload = valid_long_payload()
         payload.pop("signerPlan")
-        with self.assertRaisesRegex(ValueError, "Choose who will sign"):
+        with self.assertRaisesRegex(ValueError, "Choose an authorized broker"):
             MODULE._parse_txr_1501_draft(payload)
         payload = valid_long_payload()
         payload["formUseAttested"] = False
@@ -232,7 +232,7 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
 
     def test_notice_draft_requires_role_and_consumer_acknowledgment(self):
         draft = MODULE._parse_txr_1506_draft(valid_notice_payload())
-        self.assertEqual(draft["agreement_data"]["signer_plan"], "consumers_only")
+        self.assertEqual(draft["agreement_data"]["signer_plan"], "consumers_and_associate")
         self.assertEqual(draft["agreement_data"]["consumer_role"], "buyer")
         payload = valid_notice_payload()
         payload["noticeAcknowledgment"] = False
@@ -242,7 +242,7 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
     def test_notice_draft_requires_explicit_signer_plan_and_attestation(self):
         payload = valid_notice_payload()
         payload.pop("signerPlan")
-        with self.assertRaisesRegex(ValueError, "who will acknowledge"):
+        with self.assertRaisesRegex(ValueError, "Choose an authorized broker"):
             MODULE._parse_txr_1506_draft(payload)
         payload = valid_notice_payload()
         payload["formUseAttested"] = False
