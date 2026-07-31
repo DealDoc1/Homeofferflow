@@ -54,7 +54,10 @@ reused for this standalone agreement.
 
 1. Require an active agent membership in the same brokerage as the approved
    source and an explicit per-draft attestation that the agent is currently
-   authorized to use that selected Texas REALTORS® form for the brokerage.
+   authorized to use that selected Texas REALTORS® form for the brokerage. The
+   intake attestation expressly asks the agent to confirm current Texas
+   REALTORS® / NAR membership or another current source-owner authorization;
+   a brokerage-level assertion never replaces the individual agent attestation.
    The same gate applies to the TXR-1501, TXR-1508, and TXR-1506 draft
    foundations; an agent cannot bypass authorization by choosing another
    restricted form.

@@ -1142,7 +1142,7 @@ def _require_form_use_attestation(data, form_code):
     """Require the individual agent's authorization for every restricted form."""
     if data.get("formUseAttested") is not True:
         raise ValueError(
-            f"Confirm that you are currently authorized to use {form_code} for your brokerage."
+            f"Confirm that you are a current Texas REALTORS® / NAR member (or otherwise currently authorized by the source owner) and are authorized to use {form_code} for your brokerage."
         )
 
 
