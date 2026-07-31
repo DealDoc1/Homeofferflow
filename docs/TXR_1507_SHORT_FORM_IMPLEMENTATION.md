@@ -88,3 +88,19 @@ The workflow remains unavailable until all of the following are complete:
 3. Completed SignWell staging packets pass the QA table above.
 4. HomeOfferFlow release authority approves the rendered workflow, signing
    plan, and launch copy.
+
+## Current implementation status
+
+- The brokerage setup flow records whether the brokerage administrator attests
+  that its agents are authorized to use Texas REALTORS® forms. This is a
+  brokerage-level signal only; it does not replace each agent's own attestation.
+- The TXR-1507 draft intake requires the individual agent to affirm current
+  authorization and to select an approved private source revision.
+- `api/txr_1507_renderer.py` now provides a source-bytes-in, two-page draft
+  renderer with validation and a provisional coordinate map. It intentionally
+  does not fetch or expose source PDFs, create SignWell packets, or imply that
+  a draft is ready to sign.
+- The renderer has been tested against a generated two-page fixture and one
+  private rendering of the authorized TXR-1507 source. The private rendering
+  still requires the scenario-by-scenario visual QA table above before any
+  endpoint or signing release is enabled.
