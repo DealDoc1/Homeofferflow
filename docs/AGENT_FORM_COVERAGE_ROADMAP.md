@@ -52,7 +52,8 @@ Release requirements:
 - an explicit per-agent attestation that the user is currently authorized to
   use the selected Texas REALTORS® form for the user's brokerage (the source
   form itself limits use to authorized members), plus a private source record
-  for the exact revision;
+  for the exact revision. This authorization gate is enforced consistently
+  across TXR-1501, TXR-1506, TXR-1507, and TXR-1508;
 - an explicit agent choice between the Long Form and Short Form, with no
   preselected legal agreement;
 - guided data intake limited to the approved agreement fields;
