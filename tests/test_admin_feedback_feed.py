@@ -14,6 +14,8 @@ class AdminFeedbackFeedTests(unittest.TestCase):
         source = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
         self.assertIn("hof_feedback?select=id,issue_type,message,status,role,created_at", source)
         self.assertIn('"feedbackCount": len(feedback)', source)
+        self.assertIn('hof_ai_offer_reviews?select=id,created_at', source)
+        self.assertIn('"aiReviewOutputCount": len(ai_review_outputs)', source)
         self.assertIn('"aiCalibrationFeedbackCount"', source)
         self.assertIn('"aiCalibrationTarget"', source)
         self.assertIn('"aiCalibrationReady"', source)

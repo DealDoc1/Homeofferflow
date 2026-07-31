@@ -1669,6 +1669,9 @@ class handler(BaseHTTPRequestHandler):
             feedback = asyncio.run(_get_optional(
                 "hof_feedback?select=id,issue_type,message,status,role,created_at&order=created_at.desc&limit=100"
             ))
+            ai_review_outputs = asyncio.run(_get_optional(
+                "hof_ai_offer_reviews?select=id,created_at&order=created_at.desc&limit=100"
+            ))
             total_volume = sum(float(o.get("offer_price") or 0) for o in offers)
             def bucket(s):
                 s = str(s or "").lower()
@@ -1733,6 +1736,9 @@ class handler(BaseHTTPRequestHandler):
                     if item.get("processing_state") == "failed"
                 ]),
                 "feedbackCount": len(feedback),
+                # Generated AI outputs are useful context, but do not count as
+                # human calibration evidence for the five-scenario release gate.
+                "aiReviewOutputCount": len(ai_review_outputs),
                 "aiCalibrationFeedbackCount": len([
                     item for item in feedback if item.get("issue_type") == "ai_review"
                 ]),
