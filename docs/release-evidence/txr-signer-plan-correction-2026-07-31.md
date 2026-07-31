@@ -21,6 +21,9 @@ brokerage execution line.
 
 - The exact supplied source PDFs were rendered and reviewed page by page in
   `txr-source-render-review-2026-07-31-all.md`.
+- A SignWell-coordinate field overlay was rendered against the exact TXR-1506
+  and TXR-1507 sources. The brokerage signer and client/consumer boxes now sit
+  on the printed signature/date lines in the source-coordinate simulation.
 - The updated source-specific renderer and parser tests pass.
 - The broader local suite passes with 92 tests.
 

@@ -57,6 +57,8 @@ class Txr1507RendererTests(unittest.TestCase):
         self.assertEqual(len(two), 8)
         self.assertTrue(all(field["page"] in {1, 2} for field in two))
         self.assertTrue(all(field["recipient_id"] in {"1", "2", "associate"} for field in two))
+        self.assertEqual(next(field["y"] for field in two if field["api_id"] == "txr1507_associate_signature_p2"), 715)
+        self.assertEqual(next(field["y"] for field in two if field["api_id"] == "txr1507_client2_signature_p2"), 820)
         self.assertEqual({field["api_id"] for field in one}, {
             "txr1507_client1_initials_p1",
             "txr1507_client1_signature_p2",

@@ -77,17 +77,17 @@ def build_signwell_fields_txr1506(data, *, client_count=1):
         if client_count == 2:
             fields.append({"api_id": f"txr1506_client2_initials_p{page}", "type": "initials", "page": page, "x": 620, "y": 1000, "recipient_id": "2", "required": True, "width": 44, "height": 16})
     fields.extend([
-        {"api_id": "txr1506_client1_signature_p6", "type": "signature", "page": 6, "x": 60, "y": 830, "recipient_id": "1", "required": True, "width": 190, "height": 26},
-        {"api_id": "txr1506_client1_date_p6", "type": "date", "page": 6, "x": 455, "y": 830, "recipient_id": "1", "required": True, "width": 88, "height": 20, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
+        {"api_id": "txr1506_client1_signature_p6", "type": "signature", "page": 6, "x": 60, "y": 893, "recipient_id": "1", "required": True, "width": 190, "height": 26},
+        {"api_id": "txr1506_client1_date_p6", "type": "date", "page": 6, "x": 455, "y": 893, "recipient_id": "1", "required": True, "width": 88, "height": 20, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
     ])
     if client_count == 2:
         fields.extend([
-            {"api_id": "txr1506_client2_signature_p6", "type": "signature", "page": 6, "x": 60, "y": 895, "recipient_id": "2", "required": True, "width": 190, "height": 26},
-            {"api_id": "txr1506_client2_date_p6", "type": "date", "page": 6, "x": 455, "y": 895, "recipient_id": "2", "required": True, "width": 88, "height": 20, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
+            {"api_id": "txr1506_client2_signature_p6", "type": "signature", "page": 6, "x": 60, "y": 939, "recipient_id": "2", "required": True, "width": 190, "height": 26},
+            {"api_id": "txr1506_client2_date_p6", "type": "date", "page": 6, "x": 455, "y": 939, "recipient_id": "2", "required": True, "width": 88, "height": 20, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
         ])
     role = "associate" if signer_plan == "consumers_and_associate" else "broker"
     fields.extend([
-        {"api_id": f"txr1506_{role}_signature_p6", "type": "signature", "page": 6, "x": 60, "y": 760, "recipient_id": role, "required": True, "width": 190, "height": 26},
-        {"api_id": f"txr1506_{role}_date_p6", "type": "date", "page": 6, "x": 330, "y": 760, "recipient_id": role, "required": True, "width": 88, "height": 20, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
+        {"api_id": f"txr1506_{role}_signature_p6", "type": "signature", "page": 6, "x": 60, "y": 800, "recipient_id": role, "required": True, "width": 190, "height": 26},
+        {"api_id": f"txr1506_{role}_date_p6", "type": "date", "page": 6, "x": 330, "y": 800, "recipient_id": role, "required": True, "width": 88, "height": 20, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
     ])
     return [fields]
