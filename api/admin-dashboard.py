@@ -1090,6 +1090,9 @@ def _parse_txr_1507_draft(data):
     intermediary = str(data.get("intermediary") or "").strip()
     if intermediary not in {"authorized", "not_authorized"}:
         raise ValueError("Choose whether intermediary is authorized.")
+    signer_plan = str(data.get("signerPlan") or "").strip()
+    if signer_plan not in {"clients_only", "clients_and_associate", "clients_and_broker"}:
+        raise ValueError("Choose who will sign the TXR-1507 agreement.")
     if data.get("formUseAttested") is not True:
         raise ValueError("Confirm that you are currently authorized to use this TXR form for your brokerage.")
     form_source_id = _agreement_text(data.get("formSourceId"), "Approved TXR-1507 source", 80)
@@ -1109,6 +1112,7 @@ def _parse_txr_1507_draft(data):
             "showing_fee": showing_fee,
             **compensation,
             "intermediary": intermediary,
+            "signer_plan": signer_plan,
             "form_use_attested": True,
         },
     }

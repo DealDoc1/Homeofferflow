@@ -57,6 +57,8 @@ Release requirements:
   preselected legal agreement;
 - guided data intake limited to the approved agreement fields;
 - correct agent, broker, and buyer signer/recipient roles;
+- an explicit TXR-1507 signer plan (clients only, clients plus associate, or
+  clients plus broker) captured before any future SignWell send action;
 - secure association to the agent and brokerage;
 - rendered-PDF, signature-placement, and single-/multi-buyer QA;
 - HomeOfferFlow release authority approval before production release;
@@ -74,7 +76,6 @@ validated intake values, and keeps the client one- and client two-signer maps
 separate from the purchase-packet coordinates. This is renderer QA work, not
 an executable or production signing release: an authorized brokerage
 administrator must still upload and attest to the source, and the associate /
-client signing order must pass completed SignWell visual QA before a send
 action is exposed.
 
 ### 2. Seller disclosure workflow

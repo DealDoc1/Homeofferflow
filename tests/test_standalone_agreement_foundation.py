@@ -24,6 +24,7 @@ def valid_payload():
         "termEnd": "2027-01-31",
         "serviceLevel": "full_services",
         "intermediary": "authorized",
+        "signerPlan": "clients_only",
         "formUseAttested": True,
         "compensation": {"purchasePercentage": "3"},
     }
@@ -84,6 +85,13 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
         self.assertEqual(draft["client_names"], ["Test Buyer"])
         self.assertEqual(draft["agreement_data"]["service_level"], "full_services")
         self.assertEqual(draft["agreement_data"]["intermediary"], "authorized")
+        self.assertEqual(draft["agreement_data"]["signer_plan"], "clients_only")
+
+    def test_short_form_requires_an_explicit_signer_plan(self):
+        payload = valid_payload()
+        payload.pop("signerPlan")
+        with self.assertRaisesRegex(ValueError, "Choose who will sign"):
+            MODULE._parse_txr_1507_draft(payload)
 
     def test_showing_services_requires_its_execution_fee(self):
         payload = valid_payload()
