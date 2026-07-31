@@ -64,6 +64,12 @@ class PlatformFormSourceUploadTests(unittest.TestCase):
         self.assertIn("Platform-admin access is required", source)
         self.assertIn("authorization_attested", source)
 
+    def test_private_source_endpoint_does_not_advertise_wildcard_cors(self):
+        source = (ROOT / "lib" / "platform_form_source_upload.py").read_text()
+        self.assertIn('handler.send_header("Access-Control-Allow-Origin", PUBLIC_APP_ORIGIN)', source)
+        self.assertIn('handler.send_header("Vary", "Origin")', source)
+        self.assertNotIn('handler.send_header("Access-Control-Allow-Origin", "*")', source)
+
     def test_post_route_passes_raw_json_bytes_to_the_fingerprint_parser(self):
         source = (ROOT / "lib" / "platform_form_source_upload.py").read_text()
         self.assertIn("raw_payload = self.rfile.read(length)", source)

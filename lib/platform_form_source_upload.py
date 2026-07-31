@@ -57,7 +57,11 @@ def _json(handler, status, payload):
     body = json.dumps(payload, default=str).encode("utf-8")
     handler.send_response(status)
     handler.send_header("Content-Type", "application/json")
-    handler.send_header("Access-Control-Allow-Origin", "*")
+    # This endpoint handles private source PDFs and requires a signed-in
+    # platform-admin bearer token. Do not advertise it to arbitrary browser
+    # origins; keep the browser surface restricted to the configured app.
+    handler.send_header("Access-Control-Allow-Origin", PUBLIC_APP_ORIGIN)
+    handler.send_header("Vary", "Origin")
     handler.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
     handler.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization")
     handler.send_header("Content-Length", str(len(body)))
