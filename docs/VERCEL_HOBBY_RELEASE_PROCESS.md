@@ -7,6 +7,13 @@ production deployment, and post-deploy verification), use
 HomeOfferFlow disables automatic Git deployments so a branch push or merge does
 not consume a Vercel deployment by itself.
 
+The production bundle must stay at or below Vercel Hobby's 12 Serverless
+Function limit. Internal Python adapters and private TXR renderers live under
+`lib/`, not `api/`, so Vercel does not count them as public functions. The
+20-19 staging route remains in source control for controlled QA but is excluded
+from the production bundle through `.vercelignore`. The regression suite locks
+this function count before a release.
+
 For each completed batch:
 
 1. Run the full local test suite and `git diff --check`.
