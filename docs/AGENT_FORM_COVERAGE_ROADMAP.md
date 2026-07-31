@@ -2,8 +2,9 @@
 
 ## Launch scope: OnDemand Realty
 
-The OnDemand launch is intentionally scoped to the current **buyer-side offer
-packet** and its currently supported purchase addenda. It is not represented as
+The OnDemand launch is intentionally scoped to the current **purchase-offer
+packet** and its currently supported purchase addenda, including the Seller
+Temporary Residential Lease when seller post-closing possession applies. It is not represented as
 a complete transaction-form library or a transaction-management platform.
 
 Agents must continue using OnDemand-approved workflows for standalone buyer
@@ -48,12 +49,16 @@ They are separate releases, not addenda to a purchase offer.
 Release requirements:
 
 - authorized source PDF/template and version owner;
-- a verified authorization model for Texas REALTORS® forms (the source form
-  itself limits use to authorized members);
+- an explicit per-agent attestation that the user is currently authorized to
+  use the selected Texas REALTORS® form for the user's brokerage (the source
+  form itself limits use to authorized members), plus a private source record
+  for the exact revision;
 - an explicit agent choice between the Long Form and Short Form, with no
   preselected legal agreement;
 - guided data intake limited to the approved agreement fields;
 - correct agent, broker, and buyer signer/recipient roles;
+- an explicit TXR-1507 signer plan (clients only, clients plus associate, or
+  clients plus broker) captured before any future SignWell send action;
 - secure association to the agent and brokerage;
 - rendered-PDF, signature-placement, and single-/multi-buyer QA;
 - HomeOfferFlow release authority approval before production release;
@@ -64,6 +69,29 @@ creates a private brokerage-source vault for TXR-1501, TXR-1506, TXR-1507,
 and TXR-1508. It requires a brokerage administrator's authorization attestation
 and deliberately prevents agents from downloading restricted source PDFs in
 their browsers. It does not activate or distribute a form by itself.
+
+The source-specific renderer and signer-map foundation is now staged in
+`api/txr_1507.py`. It preserves the supplied two-page source, overlays only
+validated intake values, and keeps the client one- and client two-signer maps
+separate from the purchase-packet coordinates. This is renderer QA work, not
+an executable or production signing release: an authorized brokerage
+administrator must still upload and attest to the source, and the associate /
+client signing order must pass completed SignWell visual QA before a send
+action is exposed. Private TXR-1507 drafts now have an agent-only PDF preview
+that revalidates ownership, active brokerage membership, brokerage
+authorization, approved source status, and source revision on every request.
+It does not send or sign documents and never returns the private source URL.
+
+The companion TXR-1501 Long Form foundation is now staged in
+`api/txr_1501.py`. The authorized six-page source was visually inspected
+page-by-page, and a sample overlay was rendered and checked for the party and
+contact rows, market area, term dates, compensation, intermediary choice, and
+printed-name areas. TXR-1501 drafts require the same explicit brokerage-use
+attestation and deliberate signer plan as TXR-1507, and private previews use
+the approved source revision without exposing its storage URL. Coordinates and
+signer placement remain provisional until a real brokerage-approved source is
+uploaded, the broker/associate/client signing plan is confirmed, and a
+completed signed PDF passes visual QA. No TXR-1501 send/sign action is enabled.
 
 ### 2. Seller disclosure workflow
 
@@ -128,6 +156,6 @@ Each form is a separate release, not a checkbox added to the offer wizard.
 ## Communication rule
 
 Until each workflow passes the release gate, sales, onboarding, and the product
-UI must say **"currently supported buyer-side offer packets and addenda"** —
+UI must say **"currently supported purchase-offer packets and addenda"** —
 not "all agent forms," "complete transaction management," or equivalent broad
 claims.

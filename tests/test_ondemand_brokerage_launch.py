@@ -202,6 +202,27 @@ class BrokerageDefaultsClient:
         }])
 
 
+class BrokerageTxrClient:
+    last_patch = None
+
+    def __init__(self, *args, **kwargs):
+        pass
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *args):
+        return False
+
+    async def patch(self, url, **kwargs):
+        self.__class__.last_patch = (url, kwargs)
+        return Response(200, [{
+            "txr_all_agents_authorized": True,
+            "txr_authorization_attested_by": "11111111-1111-1111-1111-111111111111",
+            "txr_authorization_attested_at": "2030-01-15T12:00:00+00:00",
+        }])
+
+
 class OnDemandCheckoutTests(unittest.TestCase):
     def setUp(self):
         checkout.STRIPE_SECRET_KEY = "sk_test_example"
@@ -250,6 +271,13 @@ class OnDemandCheckoutTests(unittest.TestCase):
         self.assertEqual(form["metadata[brokerage_slug]"], "ondemand")
         self.assertEqual(form["subscription_data[metadata][user_id]"], "user-1")
         self.assertIn("/ondemand?checkout=success", form["success_url"])
+
+    def test_launch_acknowledgement_links_to_the_current_legal_package(self):
+        for href in ("/terms.html", "/privacy.html", "/disclaimer.html", "/esign-consent.html"):
+            with self.subTest(href=href):
+                self.assertIn(href, LAUNCH_HTML)
+        self.assertIn("my Agent plan will automatically", LAUNCH_HTML)
+        self.assertIn("renew at <strong>$29/month</strong> unless I cancel", LAUNCH_HTML)
 
     def test_normal_subscription_checkout_still_supports_promotion_codes(self):
         source = CHECKOUT_PATH.read_text(encoding="utf-8")
@@ -461,6 +489,22 @@ class BrokerageAuthorizationTests(unittest.TestCase):
         self.assertIn("Create invite link", final_script)
         self.assertIn("works only for the invited email", final_script)
 
+    def test_broker_dashboard_exposes_source_readiness_without_private_source_details(self):
+        source = ADMIN_PATH.read_text(encoding="utf-8")
+        start = source.index("async def _brokerage_dashboard_payload")
+        end = source.index("def _normalized_invite_email", start)
+        segment = source[start:end]
+        self.assertIn("sourceReadiness", segment)
+        self.assertIn("storage paths, filenames, fingerprints, or source URLs", segment)
+        self.assertIn('"readyForRestrictedDraft": brokerage_gate_ready', segment)
+        self.assertIn("BROKERAGE_TXR_FORM_CODES", segment)
+
+        marker = INDEX_HTML.index('id="hof-ondemand-brokerage-launch-v1"')
+        final_script = INDEX_HTML[marker:]
+        self.assertIn("Restricted form readiness", final_script)
+        self.assertIn("Awaiting approved source", final_script)
+        self.assertIn("must never omit the TXR/NAR gate", INDEX_HTML)
+
     def test_invite_migration_is_private_and_allows_one_pending_agent_invite(self):
         self.assertIn("alter column brokerage_id set not null", INVITE_MIGRATION)
         self.assertIn("check (role = 'agent')", INVITE_MIGRATION)
@@ -493,6 +537,40 @@ class BrokerageAuthorizationTests(unittest.TestCase):
         self.assertIn("id=eq." + brokerage_id, BrokerageBrandingClient.last_patch[0])
         self.assertEqual(BrokerageBrandingClient.last_patch[1]["json"]["brand_color"], "#123456")
 
+    def test_brokerage_txr_authorization_requires_admin_attestation_and_writes_only_gate_fields(self):
+        actor = {"id": "11111111-1111-1111-1111-111111111111", "email": "tyler@ondemanddfw.com"}
+        brokerage_id = "22222222-2222-2222-2222-222222222222"
+
+        async def broker_context(_actor):
+            return {"brokerage": {"id": brokerage_id}}
+
+        with patch.object(admin, "_brokerage_admin_context", broker_context):
+            with self.assertRaisesRegex(ValueError, "administrator must attest"):
+                asyncio.run(admin._update_brokerage_txr_authorization(actor, {
+                    "status": "all_agents_authorized",
+                    "attestation": False,
+                }))
+
+        BrokerageTxrClient.last_patch = None
+        with patch.object(admin, "_brokerage_admin_context", broker_context), \
+             patch.object(admin.httpx, "AsyncClient", BrokerageTxrClient):
+            result = asyncio.run(admin._update_brokerage_txr_authorization(actor, {
+                "status": "all_agents_authorized",
+                "attestation": True,
+            }))
+
+        self.assertTrue(result["allAgentsAuthorized"])
+        self.assertIn("id=eq." + brokerage_id, BrokerageTxrClient.last_patch[0])
+        saved = BrokerageTxrClient.last_patch[1]["json"]
+        self.assertEqual(saved["txr_all_agents_authorized"], True)
+        self.assertEqual(saved["txr_authorization_attested_by"], actor["id"])
+        self.assertEqual(set(saved), {
+            "txr_all_agents_authorized",
+            "txr_authorization_attested_by",
+            "txr_authorization_attested_at",
+            "updated_at",
+        })
+
     def test_branding_rejects_arbitrary_logo_urls_and_invalid_colors(self):
         brokerage_id = "22222222-2222-2222-2222-222222222222"
         with self.assertRaisesRegex(ValueError, "#RRGGBB"):
@@ -522,6 +600,14 @@ class BrokerageAuthorizationTests(unittest.TestCase):
         self.assertIn("image/png', 'image/jpeg', 'image/webp'", final_script)
         self.assertIn("2 * 1024 * 1024", final_script)
         self.assertIn("Only active brokerage admins can update", final_script)
+
+    def test_brokerage_ui_exposes_the_live_txr_authorization_gate(self):
+        marker = INDEX_HTML.index('id="hof-ondemand-brokerage-launch-v1"')
+        final_script = INDEX_HTML[marker:]
+        self.assertIn("saveBrokerageTxrAuthorization", final_script)
+        self.assertIn("update_brokerage_txr_authorization", final_script)
+        self.assertIn("Texas REALTORS® / NAR form authorization", final_script)
+        self.assertIn("This organization-level gate is not inferred from a license number", final_script)
 
     def test_broker_can_save_title_suggestions_but_not_transaction_terms(self):
         actor = {"id": "11111111-1111-1111-1111-111111111111", "email": "tyler@ondemanddfw.com"}
@@ -663,12 +749,16 @@ class OnDemandLaunchPageTests(unittest.TestCase):
 
     def test_launch_clearly_discloses_current_agent_form_scope(self):
         for text in (
-            "buyer-side offer packet",
+            "purchase-offer packet",
+            "seller temporary residential lease when seller post-closing possession applies",
             "not yet a complete transaction-form library",
             "buyer representation agreements",
             "listing agreements",
             "seller disclosure notices",
             "brokerage-approved workflow",
+            "restricted Texas REALTORS",
+            "individual agent attestation",
+            "approved private source revision",
         ):
             self.assertIn(text.lower(), LAUNCH_HTML.lower())
 

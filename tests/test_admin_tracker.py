@@ -172,13 +172,14 @@ class AdminTrackerSecurityTests(IsolatedAsyncioTestCase):
         with patch.object(admin_dashboard, "_get", new=AsyncMock(return_value=members)), patch.object(
             admin_dashboard,
             "_get_optional",
-            new=AsyncMock(side_effect=[[], listing_workspaces, agent_profiles, subscriptions, offers]),
+            new=AsyncMock(side_effect=[[], [], listing_workspaces, agent_profiles, subscriptions, offers]),
         ):
             payload = await admin_dashboard._brokerage_dashboard_payload(context)
 
         agent = payload["agents"][0]
         self.assertEqual(agent["activity"]["offerCount"], 1)
         self.assertEqual(payload["listingWorkspaceSummary"], [{"listingKind": "sale", "status": "intake", "workspaceCount": 1}])
+        self.assertEqual(len(payload["sourceReadiness"]), 8)
         self.assertEqual(payload["privacy"], {
             "buyerDetailsIncluded": False,
             "propertyDetailsIncluded": False,
@@ -222,41 +223,61 @@ class AdminTrackerSecurityTests(IsolatedAsyncioTestCase):
 
     async def test_platform_partner_placement_is_validated_and_not_brokerage_owned(self):
         payload = admin_dashboard._parse_partner_placement({
-            "partner_name": "North Texas Movers",
-            "partner_type": "moving_storage",
-            "market_area": "DFW",
+            "partner_lead_id": "e35eace9-2760-4b11-a01a-07ee65f2744e",
+            "agreement_confirmed": True,
             "placement_tier": "premier",
-            "website_url": "https://example.com",
             "monthly_fee": "399",
         })
-        self.assertIsNone(payload["brokerage_id"])
+        self.assertEqual(payload["source_lead_id"], "e35eace9-2760-4b11-a01a-07ee65f2744e")
         self.assertEqual(payload["placement_tier"], "premier")
         self.assertEqual(payload["monthly_fee"], 399.0)
-        with self.assertRaisesRegex(ValueError, "Website URL"):
+        with self.assertRaisesRegex(ValueError, "agreement"):
             admin_dashboard._parse_partner_placement({
-                "partner_name": "Bad URL Co",
-                "partner_type": "moving_storage",
-                "market_area": "DFW",
+                "partner_lead_id": "e35eace9-2760-4b11-a01a-07ee65f2744e",
                 "placement_tier": "founding",
-                "website_url": "example.com",
             })
 
     async def test_platform_partner_placement_returns_saved_row(self):
         response = FakeResponse(201, [{"id": "placement-1", "brokerage_id": None, "partner_name": "North Texas Movers"}])
         payload = {
-            "brokerage_id": None,
-            "partner_name": "North Texas Movers",
+            "source_lead_id": "e35eace9-2760-4b11-a01a-07ee65f2744e",
+            "placement_tier": "founding",
+            "monthly_fee": 149.0,
+        }
+        lead = {
+            "id": payload["source_lead_id"],
+            "company_name": "North Texas Movers",
+            "contact_name": "Partner Contact",
+            "contact_email": "partner@example.com",
+            "contact_phone": "2145550100",
+            "website_url": "https://example.com",
             "partner_type": "moving_storage",
             "market_area": "DFW",
-            "placement_tier": "founding",
-            "website_url": "https://example.com",
-            "logo_url": None,
-            "monthly_fee": 149.0,
-            "is_active": True,
+            "status": "qualified",
+            "payment_status": "paid",
+            "onboarding_status": "ready",
         }
-        with patch.object(admin_dashboard.httpx, "AsyncClient", return_value=FakeClient(response)):
+        with patch.object(admin_dashboard, "_get", new=AsyncMock(side_effect=[[lead], []])), \
+             patch.object(admin_dashboard.httpx, "AsyncClient", return_value=FakeClient(response)):
             row = await admin_dashboard._create_platform_partner_placement(payload)
         self.assertEqual(row["id"], "placement-1")
+
+    async def test_unpaid_partner_application_cannot_activate_public_placement(self):
+        lead = {
+            "id": "e35eace9-2760-4b11-a01a-07ee65f2744e",
+            "company_name": "North Texas Movers",
+            "partner_type": "moving_storage",
+            "market_area": "DFW",
+            "payment_status": "checkout_started",
+            "status": "qualified",
+        }
+        with patch.object(admin_dashboard, "_get", new=AsyncMock(return_value=[lead])):
+            with self.assertRaisesRegex(PermissionError, "paid partner application"):
+                await admin_dashboard._create_platform_partner_placement({
+                    "source_lead_id": lead["id"],
+                    "placement_tier": "founding",
+                    "monthly_fee": 149.0,
+                })
 
 
 if __name__ == "__main__":

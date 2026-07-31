@@ -39,6 +39,27 @@ TXR_1501_FORM_CODE = "TXR-1501"
 TXR_1506_FORM_CODE = "TXR-1506"
 TXR_1507_FORM_CODE = "TXR-1507"
 TXR_1508_FORM_CODE = "TXR-1508"
+BROKERAGE_TXR_FORM_CODES = (
+    "TXR-1507",
+    "TXR-1501",
+    "TXR-1508",
+    "TXR-1506",
+    "TXR-1101",
+    "TXR-1102",
+    "TXR-1406",
+    "TXR-1418",
+)
+
+
+def _pdf_response(handler, pdf_bytes, filename):
+    body = bytes(pdf_bytes or b"")
+    handler.send_response(200)
+    handler.send_header("Content-Type", "application/pdf")
+    handler.send_header("Content-Disposition", f'inline; filename="{filename}"')
+    handler.send_header("Content-Length", str(len(body)))
+    handler.send_header("Cache-Control", "private, no-store")
+    handler.end_headers()
+    handler.wfile.write(body)
 
 
 def _json(handler, code, payload):
@@ -136,7 +157,8 @@ async def _brokerage_admin_context(user):
         f"id=eq.{urllib.parse.quote(str(brokerage_id))}"
         "&is_active=eq.true&select=id,name,dba_name,slug,logo_url,brand_color,"
         "website_url,license_number,plan_name,billing_status,user_cap,"
-        "default_title_company,default_title_contact&limit=1"
+        "default_title_company,default_title_contact,txr_all_agents_authorized,"
+        "txr_authorization_attested_by,txr_authorization_attested_at&limit=1"
     )
     if not brokerages:
         return None
@@ -172,6 +194,16 @@ async def _brokerage_dashboard_payload(context):
         f"brokerage_id=eq.{urllib.parse.quote(brokerage_id)}"
         "&status=eq.pending&select=id,email,role,status,created_at,expires_at"
         "&order=created_at.desc&limit=100"
+    )
+    # Expose only source-readiness metadata to the broker dashboard. Never
+    # return storage paths, filenames, fingerprints, or source URLs here.
+    # Agents do not receive this payload, and source PDFs remain private.
+    form_sources = await _get_optional(
+        "hof_brokerage_form_sources?"
+        f"brokerage_id=eq.{urllib.parse.quote(brokerage_id)}"
+        "&status=neq.retired"
+        "&select=form_code,source_revision,status,authorization_attested,updated_at"
+        "&order=updated_at.desc&limit=500"
     )
     # Brokerage administrators receive only aggregate listing-workspace counts.
     # Seller names, property addresses, notes, and requested workflows remain in
@@ -246,6 +278,30 @@ async def _brokerage_dashboard_payload(context):
         for (listing_kind, workspace_status), count in sorted(listing_workspace_summary_by_key.items())
     ]
 
+    latest_source_by_code = {}
+    for source in form_sources:
+        code = str(source.get("form_code") or "")
+        if code and code not in latest_source_by_code:
+            latest_source_by_code[code] = source
+    brokerage_gate_ready = (
+        brokerage.get("txr_all_agents_authorized") is True
+        and brokerage.get("txr_authorization_attested_at") is not None
+    )
+    source_readiness = []
+    for form_code in BROKERAGE_TXR_FORM_CODES:
+        source = latest_source_by_code.get(form_code) or {}
+        status = str(source.get("status") or "not_uploaded")
+        source_attested = source.get("authorization_attested") is True
+        source_readiness.append({
+            "formCode": form_code,
+            "sourceRevision": source.get("source_revision"),
+            "status": status,
+            "sourceAttested": source_attested,
+            "brokerageAuthorized": brokerage_gate_ready,
+            "readyForRestrictedDraft": brokerage_gate_ready and status == "approved" and source_attested,
+            "updatedAt": source.get("updated_at"),
+        })
+
     safe_agents = []
     for member in members:
         user_id = str(member.get("user_id") or "")
@@ -278,6 +334,7 @@ async def _brokerage_dashboard_payload(context):
 
     return {
         "brokerage": brokerage,
+        "sourceReadiness": source_readiness,
         "metrics": {
             "memberCount": len(members),
             "activeMemberCount": len([row for row in members if row.get("status") == "active"]),
@@ -605,6 +662,52 @@ async def _update_brokerage_branding(actor, data):
     }
 
 
+def _parse_brokerage_txr_authorization(data):
+    """Validate the broker-admin organization-level TXR/NAR gate."""
+    status = str(data.get("status") or "").strip()
+    if status not in {"unknown", "all_agents_authorized", "not_all"}:
+        raise ValueError("Choose a valid Texas REALTORS® / NAR authorization status.")
+    if status == "unknown":
+        return False, None
+    if data.get("attestation") is not True:
+        raise ValueError("The brokerage administrator must attest to this Texas REALTORS® / NAR status.")
+    return status == "all_agents_authorized", True
+
+
+async def _update_brokerage_txr_authorization(actor, data):
+    """Let only an active brokerage admin record the organization gate."""
+    context = await _brokerage_admin_context(actor)
+    if not context:
+        raise PermissionError("Brokerage admin access is not enabled for this account.")
+    authorized, attested = _parse_brokerage_txr_authorization(data)
+    brokerage_id = str(context["brokerage"]["id"])
+    now = datetime.now(timezone.utc).isoformat()
+    payload = {
+        "txr_all_agents_authorized": authorized,
+        "txr_authorization_attested_by": actor["id"] if attested else None,
+        "txr_authorization_attested_at": now if attested else None,
+        "updated_at": now,
+    }
+    async with httpx.AsyncClient(timeout=12) as client:
+        response = await client.patch(
+            f"{SUPABASE_URL}/rest/v1/hof_brokerages?"
+            f"id=eq.{urllib.parse.quote(brokerage_id)}",
+            headers={**_headers(), "Prefer": "return=representation"},
+            json=payload,
+        )
+    if response.status_code >= 300:
+        raise RuntimeError("Could not save the brokerage Texas REALTORS® / NAR authorization status.")
+    rows = response.json()
+    if not isinstance(rows, list) or not rows:
+        raise RuntimeError("The brokerage authorization status was not found after saving.")
+    row = rows[0]
+    return {
+        "allAgentsAuthorized": row.get("txr_all_agents_authorized") is True,
+        "attestedAt": row.get("txr_authorization_attested_at"),
+        "attestedBy": row.get("txr_authorization_attested_by"),
+    }
+
+
 def _shared_default_text(value, field, maximum=250):
     value = " ".join(str(value or "").strip().split())
     if len(value) > maximum:
@@ -914,22 +1017,17 @@ def _clean_text(value, maximum):
 
 
 def _parse_partner_placement(data):
-    partner_name = _clean_text(data.get("partner_name"), 250)
-    partner_type = _clean_text(data.get("partner_type"), 80)
-    market_area = _clean_text(data.get("market_area"), 300)
+    source_lead_id = str(data.get("partner_lead_id") or "").strip()
+    try:
+        source_lead_id = str(uuid.UUID(source_lead_id))
+    except (TypeError, ValueError, AttributeError):
+        raise ValueError("Choose a valid paid partner application.")
+    agreement_confirmed = data.get("agreement_confirmed") is True
+    if not agreement_confirmed:
+        raise ValueError("Confirm that the required advertising agreement is on file before activating a placement.")
     placement_tier = _clean_text(data.get("placement_tier"), 80)
-    website_url = _clean_text(data.get("website_url"), 500)
-    logo_url = _clean_text(data.get("logo_url"), 500)
-    if not partner_name or not market_area:
-        raise ValueError("Partner name and market area are required.")
-    if partner_type not in ALLOWED_PARTNER_TYPES:
-        raise ValueError("Choose a valid partner category.")
     if placement_tier not in ALLOWED_PARTNER_PLACEMENT_TIERS:
         raise ValueError("Choose a valid placement tier.")
-    if website_url and not website_url.startswith(("https://", "http://")):
-        raise ValueError("Website URL must start with https:// or http://.")
-    if logo_url and not logo_url.startswith(("https://", "http://")):
-        raise ValueError("Logo URL must start with https:// or http://.")
     try:
         monthly_fee = float(data.get("monthly_fee")) if data.get("monthly_fee") not in (None, "") else None
     except (TypeError, ValueError):
@@ -937,24 +1035,64 @@ def _parse_partner_placement(data):
     if monthly_fee is not None and (monthly_fee < 0 or monthly_fee > 100000):
         raise ValueError("Monthly fee is outside the allowed range.")
     return {
-        "brokerage_id": None,
-        "partner_name": partner_name,
-        "partner_type": partner_type,
-        "market_area": market_area,
+        "source_lead_id": source_lead_id,
         "placement_tier": placement_tier,
-        "website_url": website_url,
-        "logo_url": logo_url,
         "monthly_fee": monthly_fee,
-        "is_active": True,
     }
 
 
+async def _paid_partner_lead_for_placement(lead_id):
+    rows = await _get(
+        "hof_partner_leads?"
+        f"id=eq.{urllib.parse.quote(lead_id)}&"
+        "select=id,company_name,contact_name,contact_email,contact_phone,website_url,partner_type,market_area,status,payment_status,onboarding_status&limit=1"
+    )
+    if not rows:
+        raise ValueError("The selected partner application was not found.")
+    lead = rows[0]
+    if str(lead.get("payment_status") or "") != "paid":
+        raise PermissionError("Only a paid partner application can activate a public placement.")
+    if str(lead.get("status") or "") in {"declined", "waitlist"}:
+        raise PermissionError("This partner application is not eligible for a public placement.")
+    partner_type = str(lead.get("partner_type") or "").strip()
+    if partner_type not in ALLOWED_PARTNER_TYPES:
+        raise ValueError("The selected partner application has an unsupported category.")
+    if not _clean_text(lead.get("company_name"), 250) or not _clean_text(lead.get("market_area"), 300):
+        raise ValueError("The selected partner application is missing its company name or market area.")
+    return lead
+
+
 async def _create_platform_partner_placement(payload):
+    lead = await _paid_partner_lead_for_placement(payload["source_lead_id"])
+    existing = await _get(
+        "hof_partner_placements?"
+        f"source_lead_id=eq.{urllib.parse.quote(payload['source_lead_id'])}&"
+        "is_active=is.true&select=id&limit=1"
+    )
+    if existing:
+        raise ValueError("This paid partner application already has an active placement.")
+    now = datetime.now(timezone.utc).isoformat()
+    record = {
+        "brokerage_id": None,
+        "source_lead_id": payload["source_lead_id"],
+        "partner_name": _clean_text(lead.get("company_name"), 250),
+        "partner_type": str(lead.get("partner_type") or "").strip(),
+        "contact_name": _clean_text(lead.get("contact_name"), 250),
+        "contact_email": _clean_text(lead.get("contact_email"), 254),
+        "contact_phone": _clean_text(lead.get("contact_phone"), 80),
+        "website_url": _clean_text(lead.get("website_url"), 500),
+        "market_area": _clean_text(lead.get("market_area"), 300),
+        "placement_tier": payload["placement_tier"],
+        "monthly_fee": payload["monthly_fee"],
+        "agreement_confirmed_at": now,
+        "activated_at": now,
+        "is_active": True,
+    }
     async with httpx.AsyncClient(timeout=12) as client:
         response = await client.post(
             f"{SUPABASE_URL}/rest/v1/hof_partner_placements",
             headers={**_headers(), "Prefer": "return=representation"},
-            json=payload,
+            json=record,
         )
     if response.status_code >= 300:
         raise RuntimeError("Could not create the partner placement.")
@@ -1055,6 +1193,11 @@ def _parse_txr_1507_draft(data):
     intermediary = str(data.get("intermediary") or "").strip()
     if intermediary not in {"authorized", "not_authorized"}:
         raise ValueError("Choose whether intermediary is authorized.")
+    signer_plan = str(data.get("signerPlan") or "").strip()
+    if signer_plan not in {"clients_only", "clients_and_associate", "clients_and_broker"}:
+        raise ValueError("Choose who will sign the TXR-1507 agreement.")
+    if data.get("formUseAttested") is not True:
+        raise ValueError("Confirm that you are a current Texas REALTORS® / NAR member (or otherwise individually authorized) and are currently authorized to use this TXR form for your brokerage.")
     form_source_id = _agreement_text(data.get("formSourceId"), "Approved TXR-1507 source", 80)
     try:
         form_source_id = str(uuid.UUID(form_source_id))
@@ -1072,6 +1215,8 @@ def _parse_txr_1507_draft(data):
             "showing_fee": showing_fee,
             **compensation,
             "intermediary": intermediary,
+            "signer_plan": signer_plan,
+            "form_use_attested": True,
         },
     }
 
@@ -1108,6 +1253,11 @@ def _parse_txr_1501_draft(data):
     intermediary = str(data.get("intermediary") or "").strip()
     if intermediary not in {"authorized", "not_authorized"}:
         raise ValueError("Choose whether intermediary is authorized.")
+    signer_plan = str(data.get("signerPlan") or "").strip()
+    if signer_plan not in {"clients_only", "clients_and_associate", "clients_and_broker"}:
+        raise ValueError("Choose who will sign the TXR-1501 agreement.")
+    if data.get("formUseAttested") is not True:
+        raise ValueError("Confirm that you are a current Texas REALTORS® / NAR member (or otherwise individually authorized) and are currently authorized to use this TXR form for your brokerage.")
     return {
         "form_source_id": form_source_id,
         "client_names": client_names,
@@ -1125,6 +1275,8 @@ def _parse_txr_1501_draft(data):
             "protection_days": protection_days,
             "payment_county": payment_county,
             "intermediary": intermediary,
+            "signer_plan": signer_plan,
+            "form_use_attested": True,
         },
     }
 
@@ -1155,6 +1307,11 @@ def _parse_txr_1508_draft(data):
         other_broker_agreement.append(value)
     if data.get("unrepresentedAcknowledgment") is not True:
         raise ValueError("Confirm the no-representation, no-compensation, and no-advice limits.")
+    signer_plan = str(data.get("signerPlan") or "").strip()
+    if signer_plan not in {"associate_and_clients", "broker_and_clients"}:
+        raise ValueError("Choose whether the broker or associate will acknowledge TXR-1508.")
+    if data.get("formUseAttested") is not True:
+        raise ValueError("Confirm that you are a current Texas REALTORS® / NAR member (or otherwise individually authorized) and are currently authorized to use this TXR form for your brokerage.")
     return {
         "form_source_id": form_source_id,
         "client_names": client_names,
@@ -1162,6 +1319,8 @@ def _parse_txr_1508_draft(data):
             "property_address": property_address,
             "other_broker_agreement": other_broker_agreement,
             "unrepresented_acknowledgment": True,
+            "signer_plan": signer_plan,
+            "form_use_attested": True,
         },
     }
 
@@ -1189,6 +1348,11 @@ def _parse_txr_1506_draft(data):
         raise ValueError("Additional notice is too long.")
     if data.get("noticeAcknowledgment") is not True:
         raise ValueError("Confirm that the consumer will review and acknowledge the notice.")
+    signer_plan = str(data.get("signerPlan") or "").strip()
+    if signer_plan not in {"consumers_only", "consumers_and_associate", "consumers_and_broker"}:
+        raise ValueError("Choose who will acknowledge the TXR-1506 notice.")
+    if data.get("formUseAttested") is not True:
+        raise ValueError("Confirm that you are a current Texas REALTORS® / NAR member (or otherwise individually authorized) and are currently authorized to use this TXR form for your brokerage.")
     return {
         "form_source_id": form_source_id,
         "client_names": client_names,
@@ -1196,6 +1360,8 @@ def _parse_txr_1506_draft(data):
             "consumer_role": consumer_role,
             "additional_notice": additional_notice,
             "notice_acknowledgment": True,
+            "signer_plan": signer_plan,
+            "form_use_attested": True,
         },
     }
 
@@ -1220,9 +1386,66 @@ async def _active_brokerage_member(user):
     return brokerage_id
 
 
+async def _brokerage_form_sources_payload(user, approved_only=False):
+    """Return sanitized source metadata through the server, never raw table access.
+
+    The source table contains private storage locators and upload fingerprints.
+    Agents only need to know whether an approved, attested revision exists;
+    brokerage administrators may see the private audit metadata in their own
+    dashboard. Neither response ever exposes a PDF URL or storage path.
+    """
+    if approved_only:
+        brokerage_id = await _active_brokerage_member(user)
+        rows = await _get_optional(
+            "hof_brokerage_form_sources?"
+            f"brokerage_id=eq.{urllib.parse.quote(str(brokerage_id))}"
+            "&status=eq.approved&authorization_attested=is.true"
+            "&select=id,form_code,source_revision,status,authorization_attested,updated_at"
+            "&order=updated_at.desc&limit=500"
+        )
+        return {"sources": rows}
+
+    context = await _brokerage_admin_context(user)
+    if not context:
+        raise PermissionError("Brokerage admin access is not enabled for this account.")
+    brokerage_id = str(context["brokerage"]["id"])
+    rows = await _get_optional(
+        "hof_brokerage_form_sources?"
+        f"brokerage_id=eq.{urllib.parse.quote(brokerage_id)}"
+        "&status=neq.retired"
+        "&select=id,form_code,source_revision,status,original_filename,source_sha256,updated_at"
+        "&order=updated_at.desc&limit=500"
+    )
+    return {"sources": rows}
+
+
+async def _require_brokerage_txr_authorization(brokerage_id):
+    """Require the brokerage administrator's organization-level TXR gate.
+
+    A brokerage attestation is not inferred from a license number and does not
+    replace the agent's point-of-use checkbox. It is the server-side switch
+    that keeps restricted Texas REALTORS® source workflows disabled until the
+    brokerage has affirmatively confirmed that its participating agents are
+    authorized members/users.
+    """
+    rows = await _get(
+        "hof_brokerages?"
+        f"id=eq.{urllib.parse.quote(str(brokerage_id))}"
+        "&is_active=eq.true&txr_all_agents_authorized=is.true"
+        "&txr_authorization_attested_by=not.is.null"
+        "&txr_authorization_attested_at=not.is.null"
+        "&select=id&limit=1"
+    )
+    if not rows:
+        raise PermissionError(
+            "Your brokerage must first confirm that its participating agents are authorized Texas REALTORS® / NAR users."
+        )
+
+
 async def _create_representation_draft(user, data, form_code, parser):
     draft = parser(data)
     brokerage_id = await _active_brokerage_member(user)
+    await _require_brokerage_txr_authorization(brokerage_id)
     sources = await _get(
         "hof_brokerage_form_sources?"
         f"id=eq.{urllib.parse.quote(draft['form_source_id'])}"
@@ -1233,6 +1456,14 @@ async def _create_representation_draft(user, data, form_code, parser):
     if not sources:
         raise ValueError(f"Choose an approved {form_code} source from your brokerage.")
     source = sources[0]
+    # Preserve the agent's point-of-use attestation as server-authored audit
+    # metadata. The browser checkbox is required by each parser, but the
+    # identity and timestamp must come from the authenticated request rather
+    # than client-supplied fields. This does not infer membership from a
+    # license number or replace the brokerage/source authorization gates.
+    agreement_data = dict(draft["agreement_data"] or {})
+    agreement_data["form_use_attested_by"] = user["id"]
+    agreement_data["form_use_attested_at"] = datetime.now(timezone.utc).isoformat()
     record = {
         "brokerage_id": brokerage_id,
         "agent_user_id": user["id"],
@@ -1241,7 +1472,7 @@ async def _create_representation_draft(user, data, form_code, parser):
         "source_revision": source["source_revision"],
         "status": "draft",
         "client_names": draft["client_names"],
-        "agreement_data": draft["agreement_data"],
+        "agreement_data": agreement_data,
     }
     async with httpx.AsyncClient(timeout=12) as client:
         response = await client.post(
@@ -1273,6 +1504,94 @@ async def _create_txr_1506_draft(user, data):
     return await _create_representation_draft(user, data, TXR_1506_FORM_CODE, _parse_txr_1506_draft)
 
 
+async def _render_representation_draft_preview(user, agreement_id):
+    """Render an agent's own approved-source representation draft privately.
+
+    This endpoint intentionally stops at a PDF preview. It does not mutate the
+    agreement, create a SignWell document, or expose the private source URL.
+    Every request revalidates the agent's active membership, brokerage TXR
+    authorization, approved source, and draft ownership.
+    """
+    try:
+        agreement_uuid = str(uuid.UUID(str(agreement_id)))
+    except (TypeError, ValueError, AttributeError):
+        raise ValueError("Choose a valid private agreement draft.")
+    brokerage_id = await _active_brokerage_member(user)
+    await _require_brokerage_txr_authorization(brokerage_id)
+    agreements = await _get(
+        "hof_standalone_agreements?"
+        f"id=eq.{urllib.parse.quote(agreement_uuid)}"
+        f"&agent_user_id=eq.{urllib.parse.quote(user['id'])}"
+        f"&brokerage_id=eq.{urllib.parse.quote(brokerage_id)}"
+        "&status=eq.draft"
+        "&select=id,form_code,form_source_id,source_revision,client_names,agreement_data&limit=1"
+    )
+    if not agreements:
+        raise PermissionError("That private agreement draft is unavailable.")
+    agreement = agreements[0]
+    sources = await _get(
+        "hof_brokerage_form_sources?"
+        f"id=eq.{urllib.parse.quote(str(agreement['form_source_id']))}"
+        f"&brokerage_id=eq.{urllib.parse.quote(brokerage_id)}"
+        f"&form_code=eq.{urllib.parse.quote(str(agreement.get('form_code') or ''))}&status=eq.approved&authorization_attested=is.true"
+        "&select=id,source_revision,storage_bucket,storage_path,original_filename&limit=1"
+    )
+    if not sources:
+        raise ValueError("The approved source for this private agreement is no longer available.")
+    source = sources[0]
+    if source.get("source_revision") != agreement.get("source_revision"):
+        raise ValueError("The draft source revision no longer matches the approved source.")
+    async with httpx.AsyncClient(timeout=20) as client:
+        response = await client.get(
+            f"{SUPABASE_URL}/storage/v1/object/"
+            f"{urllib.parse.quote(str(source['storage_bucket']), safe='')}/"
+            f"{urllib.parse.quote(str(source['storage_path']), safe='/')}",
+            headers=_headers(),
+        )
+    if response.status_code != 200 or not response.content.startswith(b"%PDF"):
+        raise RuntimeError("The approved TXR-1507 source could not be loaded.")
+    brokerage_rows = await _get(
+        "hof_brokerages?"
+        f"id=eq.{urllib.parse.quote(brokerage_id)}"
+        "&select=id,name,dba_name,license_number&limit=1"
+    )
+    profile_rows = await _get(
+        "hof_profiles?"
+        f"id=eq.{urllib.parse.quote(user['id'])}"
+        "&select=agent_name,license_number&limit=1"
+    )
+    if not brokerage_rows:
+        raise RuntimeError("The brokerage record could not be loaded.")
+    agreement_data = agreement.get("agreement_data") or {}
+    compensation_keys = (
+        "purchase_percentage", "purchase_flat_fee", "lease_one_month_percentage",
+        "lease_total_rents_percentage", "lease_flat_fee"
+    )
+    render_data = {
+        "client_names": agreement.get("client_names") or [],
+        **agreement_data,
+        "compensation": {key: agreement_data.get(key, "") for key in compensation_keys},
+    }
+    if agreement.get("form_code") == TXR_1507_FORM_CODE:
+        from api.txr_1507 import render_txr_1507
+        return render_txr_1507(response.content, render_data, brokerage_rows[0], profile_rows[0] if profile_rows else {})
+    if agreement.get("form_code") == TXR_1501_FORM_CODE:
+        from api.txr_1501 import render_txr_1501
+        return render_txr_1501(response.content, render_data, brokerage_rows[0], profile_rows[0] if profile_rows else {})
+    if agreement.get("form_code") == TXR_1508_FORM_CODE:
+        from api.txr_1508 import render_txr_1508
+        return render_txr_1508(response.content, render_data, brokerage_rows[0], profile_rows[0] if profile_rows else {})
+    if agreement.get("form_code") == TXR_1506_FORM_CODE:
+        from api.txr_1506 import render_txr_1506
+        return render_txr_1506(response.content, render_data, brokerage_rows[0])
+    raise ValueError("Private preview is not available for this form yet.")
+
+
+async def _render_txr_1507_draft_preview(user, agreement_id):
+    """Backward-compatible wrapper for the TXR-1507 private preview."""
+    return await _render_representation_draft_preview(user, agreement_id)
+
+
 class handler(BaseHTTPRequestHandler):
     def do_OPTIONS(self):
         _json(self, 200, {"status": "ok"})
@@ -1288,7 +1607,28 @@ class handler(BaseHTTPRequestHandler):
                 _json(self, 401, {"error": "A valid signed-in session is required."})
                 return
             query = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+            preview_agreement = str((query.get("preview_agreement") or [""])[0]).strip()
+            if preview_agreement:
+                pdf = asyncio.run(_render_representation_draft_preview(user, preview_agreement))
+                _pdf_response(self, pdf, "TXR-1507-private-draft-preview.pdf")
+                return
             scope = str((query.get("scope") or [""])[0]).strip().lower()
+            if scope == "brokerage_form_sources":
+                try:
+                    payload = asyncio.run(_brokerage_form_sources_payload(user, approved_only=False))
+                except PermissionError as exc:
+                    _json(self, 403, {"error": str(exc)})
+                    return
+                _json(self, 200, payload)
+                return
+            if scope == "approved_brokerage_sources":
+                try:
+                    payload = asyncio.run(_brokerage_form_sources_payload(user, approved_only=True))
+                except PermissionError as exc:
+                    _json(self, 403, {"error": str(exc)})
+                    return
+                _json(self, 200, payload)
+                return
             if scope == "brokerage":
                 context = asyncio.run(_brokerage_admin_context(user))
                 if not context:
@@ -1322,6 +1662,15 @@ class handler(BaseHTTPRequestHandler):
             releases = asyncio.run(_get("hof_releases?select=*&order=created_at.desc&limit=20"))
             stripe_webhook_events = asyncio.run(_get_optional(
                 "hof_stripe_webhook_events?select=stripe_event_id,event_type,livemode,processing_state,error_code,received_at,processed_at&order=received_at.desc&limit=50"
+            ))
+            # Platform-admin-only calibration feed. Keep direct account email,
+            # user-agent, and page URL out of the dashboard response; the
+            # existing feedback record remains available for support workflows.
+            feedback = asyncio.run(_get_optional(
+                "hof_feedback?select=id,issue_type,message,status,role,created_at&order=created_at.desc&limit=100"
+            ))
+            ai_review_outputs = asyncio.run(_get_optional(
+                "hof_ai_offer_reviews?select=id,created_at&order=created_at.desc&limit=100"
             ))
             total_volume = sum(float(o.get("offer_price") or 0) for o in offers)
             def bucket(s):
@@ -1386,7 +1735,22 @@ class handler(BaseHTTPRequestHandler):
                     item for item in stripe_webhook_events
                     if item.get("processing_state") == "failed"
                 ]),
+                "feedbackCount": len(feedback),
+                # Generated AI outputs are useful context, but do not count as
+                # human calibration evidence for the five-scenario release gate.
+                "aiReviewOutputCount": len(ai_review_outputs),
+                "aiCalibrationFeedbackCount": len([
+                    item for item in feedback if item.get("issue_type") == "ai_review"
+                ]),
             }
+            # Five anonymized, human-reviewed scenarios are the minimum evidence
+            # threshold documented for any AI scoring/calibration expansion. Keep
+            # this as an explicit dashboard signal so an operator cannot confuse
+            # having a feedback feed with having enough calibration evidence.
+            metrics["aiCalibrationTarget"] = 5
+            metrics["aiCalibrationReady"] = (
+                metrics["aiCalibrationFeedbackCount"] >= metrics["aiCalibrationTarget"]
+            )
             _json(self, 200, {
                 "metrics": metrics,
                 "offers": offers,
@@ -1401,7 +1765,7 @@ class handler(BaseHTTPRequestHandler):
                 "releases": releases,
                 "stripeWebhookEvents": stripe_webhook_events,
                 "showings": [],
-                "feedback": [],
+                "feedback": feedback,
             })
         except Exception as e:
             _json(self, 500, {"error": str(e)})
@@ -1428,6 +1792,10 @@ class handler(BaseHTTPRequestHandler):
             if data.get("action") == "update_brokerage_branding":
                 branding = asyncio.run(_update_brokerage_branding(user, data))
                 _json(self, 200, {"ok": True, "branding": branding})
+                return
+            if data.get("action") == "update_brokerage_txr_authorization":
+                authorization = asyncio.run(_update_brokerage_txr_authorization(user, data))
+                _json(self, 200, {"ok": True, "authorization": authorization})
                 return
             if data.get("action") == "update_brokerage_shared_defaults":
                 defaults = asyncio.run(_update_brokerage_shared_defaults(user, data))

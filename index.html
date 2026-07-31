@@ -3,7 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#173f35" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="HomeOfferFlow" />
   <title>HomeOfferFlow — Write Your Offer in Minutes</title>
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="icon" href="/assets/homeofferflow-app-icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="/assets/homeofferflow-app-icon.svg" />
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
 
   
@@ -33,13 +41,12 @@
 
   if (params.get('subscription')) return;
 
-  const showingPaid = params.get('showing') === 'success';
   const paid =
     params.get('payment') === 'success' ||
     params.get('success') === 'true' ||
     params.get('session_id');
 
-  if (!paid && !showingPaid) return;
+  if (!paid) return;
 
   // Prevent saved-draft restore from overriding the success screen after Stripe returns.
   window.__hofPaymentReturn = true;
@@ -48,8 +55,6 @@
     const saved = sessionStorage.getItem('hofOfferData');
     if (saved) state.data = { ...state.data, ...JSON.parse(saved) };
 
-    const savedShowing = sessionStorage.getItem('hofShowingData');
-    if (savedShowing) state.data = { ...state.data, ...JSON.parse(savedShowing) };
   } catch (e) {}
 
   openWizard();
@@ -61,8 +66,7 @@
     document.getElementById('paymentEmail')?.value ||
     '';
 
-  if (showingPaid) showShowingSuccess(paymentEmail);
-  else showPaymentSuccess(paymentEmail);
+  showPaymentSuccess(paymentEmail);
 
   // Clean the URL so refreshes do not re-trigger the success state forever.
   const cleanUrl = window.location.origin + window.location.pathname;
@@ -2722,13 +2726,14 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
 
     <div class="feedback-field">
       <label for="feedbackIssueType">Issue type</label>
-      <select id="feedbackIssueType">
+      <select id="feedbackIssueType" onchange="syncAiFeedbackPrivacyGuard()">
         <option value="bug">Bug / something broken</option>
         <option value="pdf_field">PDF field or placement issue</option>
         <option value="signwell">SignWell / signature issue</option>
         <option value="missing_addendum">Missing addendum or form</option>
         <option value="billing">Billing / subscription issue</option>
         <option value="crm_data">CRM / saved data issue</option>
+        <option value="ai_review">AI offer review calibration</option>
         <option value="suggestion">Suggestion / improvement</option>
         <option value="other">Other</option>
       </select>
@@ -2737,6 +2742,13 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
     <div class="feedback-field">
       <label for="feedbackMessage">What happened?</label>
       <textarea id="feedbackMessage" placeholder="Tell us what you were doing, what went wrong, what page/form/field was involved, and what you expected to happen."></textarea>
+    </div>
+
+    <div class="feedback-field" id="aiFeedbackPrivacyGuard" style="display:none;">
+      <label style="display:flex; gap:.55rem; align-items:flex-start; text-transform:none; letter-spacing:0; font-size:.82rem; line-height:1.45;">
+        <input id="aiFeedbackAnonymized" type="checkbox" style="margin-top:.2rem;">
+        <span>I confirm this AI-review calibration note is anonymized and does not include names, exact addresses, MLS numbers, phone numbers, email addresses, or other identifying transaction details.</span>
+      </label>
     </div>
 
     <div class="feedback-actions">
@@ -2786,32 +2798,14 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
       <div class="hof-interview-guide" data-hof-guide="step05">
         <div class="hof-guide-kicker">✨ Property visit</div>
         <div class="hof-guide-title">Have you actually seen the home?</div>
-        <div class="hof-guide-copy">Before we write terms, let’s make sure you’re comfortable with what you’re offering on and know your showing options.</div>
-        <div class="hof-guide-chip-row"><span class="hof-guide-chip"><strong>✓</strong> Seen it</span><span class="hof-guide-chip"><strong>✓</strong> Book a showing</span><span class="hof-guide-chip"><strong>✓</strong> No pressure</span></div>
+        <div class="hof-guide-copy">Before we write terms, make sure you are comfortable with the property and have arranged any viewing you need.</div>
+        <div class="hof-guide-chip-row"><span class="hof-guide-chip"><strong>✓</strong> Seen it</span><span class="hof-guide-chip"><strong>✓</strong> Viewing guidance</span><span class="hof-guide-chip"><strong>✓</strong> No pressure</span></div>
       </div>
       <h2>Have you seen the property?</h2>
       <p class="step-desc">Before writing an offer, it is important that you know what you are offering on.</p>
       <div class="radio-cards">
         <label class="radio-card" onclick="selectCard(this,'seenProperty','yes')"><input type="radio" name="seenProperty" value="yes"/><div class="radio-dot"></div><div class="radio-card-text"><strong>Yes — I've seen it</strong><small>Ready to write my offer</small></div></label>
-        <label class="radio-card" onclick="selectCard(this,'seenProperty','book')"><input type="radio" name="seenProperty" value="book"/><div class="radio-dot"></div><div class="radio-card-text"><strong>No — book a showing for $50</strong><small>A licensed OnDemand Realty agent will accompany you</small></div></label>
-        <label class="radio-card" onclick="selectCard(this,'seenProperty','myself')"><input type="radio" name="seenProperty" value="myself"/><div class="radio-dot"></div><div class="radio-card-text"><strong>No — I'll arrange it myself</strong><small>See guidance below</small></div></label>
-      </div>
-
-      <div id="showingForm" style="display:none; margin-top:0.5rem;">
-        <div class="notice sage">🏠 A licensed OnDemand Realty agent will accompany you through the property as a neutral professional. You remain unrepresented with no commission obligation. $50 flat fee collected at booking.</div>
-        <div class="field-group" style="margin-top:1rem;">
-          <div class="field"><label>Property Address</label><input type="text" id="showingAddress" placeholder="Address you want to view"/></div>
-          <div class="field-row">
-            <div class="field"><label>Preferred Date</label><div class="date-field-wrap"><input type="date" id="showingDate"/></div></div>
-            <div class="field"><label>Preferred Time</label><select id="showingTime"><option value="">Select...</option><option>9:00 AM</option><option>10:00 AM</option><option>11:00 AM</option><option>12:00 PM</option><option>1:00 PM</option><option>2:00 PM</option><option>3:00 PM</option><option>4:00 PM</option><option>5:00 PM</option></select></div>
-          </div>
-          <div class="field"><label>Your Name</label><input type="text" id="showingName" placeholder="Your full name"/></div>
-          <div class="field"><label>Your Email Address</label><input type="email" id="showingEmail" placeholder="you@example.com"/></div>
-          <div class="field"><label>Your Phone Number</label><input type="tel" id="showingPhone" placeholder="(214) 555-0000"/></div>
-          <div class="field"><label>Notes for Showing Agent <span style="color:var(--gray);font-weight:500;">(optional)</span></label><textarea id="showingNotes" placeholder="Gate code, preferred contact method, timing flexibility, etc." rows="3" style="width:100%;"></textarea></div>
-          <button class="btn-primary" style="width:100%; margin-top:0.5rem;" onclick="bookShowing()">Book Showing — $50 →</button>
-          <div id="showingInlineMessage" class="notice sage" style="display:none; margin-top:0.75rem;"></div>
-        </div>
+        <label class="radio-card" onclick="selectCard(this,'seenProperty','myself')"><input type="radio" name="seenProperty" value="myself"/><div class="radio-dot"></div><div class="radio-card-text"><strong>No — I'll arrange a viewing before continuing</strong><small>See practical guidance below</small></div></label>
       </div>
 
       <div id="showingHelper" style="display:none; margin-top:0.5rem;">
@@ -3548,7 +3542,7 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
   function getCurrentStepNames() {
     return getCurrentStepConfig().names;
   }
-  const LEGAL_POLICY_VERSION = '2026-07-29';
+  const LEGAL_POLICY_VERSION = '2026-07-30';
   const state = { step: 0, data: {}, termsOK: false, selectedPlan: null, selectedPrice: 0 };
 
   const HOF_HOMEBUYER_DEFAULTS = {
@@ -3951,6 +3945,13 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
           </div>
 
           <div class="admin-metric">
+            <div class="admin-metric-label">AI Calibration Notes</div>
+            <div class="admin-metric-value">${metrics.aiCalibrationFeedbackCount || 0} / ${metrics.aiCalibrationTarget || 5}</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.aiReviewOutputCount || 0} generated review outputs (not calibration evidence)</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:${metrics.aiCalibrationReady ? 'var(--sage-light)' : 'var(--gold-light)'}">${metrics.aiCalibrationReady ? 'Ready for expert review gate' : 'Needs anonymized scenarios'}</div>
+          </div>
+
+          <div class="admin-metric">
             <div class="admin-metric-label">Partner Leads</div>
             <div class="admin-metric-value">${metrics.partnerLeadCount || partnerLeads.length || 0}</div>
           </div>
@@ -4007,7 +4008,7 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
         </div>
 
         <div class="admin-section">
-          <h4>Feedback</h4>
+          <h4>Feedback and AI Calibration</h4>
           ${renderAdminRows(feedback.slice(0, 8), 'feedback')}
         </div>
 
@@ -4665,6 +4666,7 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
       status.className = 'feedback-status';
     }
     if (type && !type.value) type.value = 'bug';
+    syncAiFeedbackPrivacyGuard();
     if (msg && !msg.value) {
       msg.value = '';
     }
@@ -4674,6 +4676,15 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
       setTimeout(() => msg?.focus(), 80);
     }
     return false;
+  }
+
+  function syncAiFeedbackPrivacyGuard() {
+    const type = document.getElementById('feedbackIssueType');
+    const guard = document.getElementById('aiFeedbackPrivacyGuard');
+    const checkbox = document.getElementById('aiFeedbackAnonymized');
+    const isCalibration = type?.value === 'ai_review';
+    if (guard) guard.style.display = isCalibration ? 'block' : 'none';
+    if (!isCalibration && checkbox) checkbox.checked = false;
   }
 
   function closeBetaFeedback() {
@@ -4689,10 +4700,16 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
     const user = hofAuth?.session?.user || null;
     const issueType = document.getElementById('feedbackIssueType')?.value || 'other';
     const message = document.getElementById('feedbackMessage')?.value?.trim() || '';
+    const anonymizedCalibration = document.getElementById('aiFeedbackAnonymized')?.checked === true;
     const btn = document.getElementById('submitFeedbackBtn');
 
     if (!message) {
       setFeedbackStatus('Please enter a short description before submitting.', 'err');
+      return;
+    }
+
+    if (issueType === 'ai_review' && !anonymizedCalibration) {
+      setFeedbackStatus('AI calibration notes must be anonymized before submission.', 'err');
       return;
     }
 
@@ -4701,16 +4718,8 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
       return;
     }
 
-    const payload = {
-      user_id: user.id,
-      role: hofAuth?.role || state?.data?.userType || 'agent',
-      email: user.email || '',
-      issue_type: issueType,
-      message,
-      page_url: window.location.href,
-      user_agent: navigator.userAgent || '',
-      status: 'new'
-    };
+    const feedbackToken = hofAuth?.session?.access_token || '';
+    const feedbackRole = hofAuth?.role || state?.data?.userType || 'agent';
 
     try {
       if (btn) {
@@ -4718,8 +4727,24 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
         btn.textContent = 'Submitting...';
       }
 
-      const { data: savedFeedback, error } = await client.from('hof_feedback').insert(payload).select('*').single();
-      if (error) throw error;
+      const feedbackResponse = await fetch('/api/submit-feedback', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${feedbackToken}`
+        },
+        body: JSON.stringify({
+          issueType,
+          message,
+          role: feedbackRole,
+          pageUrl: window.location.href,
+          userAgent: navigator.userAgent || '',
+          anonymized: anonymizedCalibration
+        })
+      });
+      const feedbackResult = await feedbackResponse.json().catch(() => ({}));
+      if (!feedbackResponse.ok || !feedbackResult.feedback) throw new Error(feedbackResult.error || 'Feedback could not be saved.');
+      const savedFeedback = feedbackResult.feedback;
 
       let alertOk = false;
       try {
@@ -4727,9 +4752,9 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            feedback: savedFeedback || payload,
+            feedback: savedFeedback,
             accountEmail: user.email || '',
-            role: payload.role || '',
+            role: feedbackRole,
             issueType,
             message,
             pageUrl: window.location.href,
@@ -5575,11 +5600,6 @@ function routeAfterMagicLinkIfNeeded() {
       console.warn('Analytics event failed:', name, e);
     }
   }
-
-
-  // TODO: Replace this with your live Stripe Price ID for the $50 showing booking product.
-  // Example format: price_1234567890abcdef
-  const SHOWING_BOOKING_PRICE_ID = 'price_1TbACXAELe66ESXnt409xxjE';
 
 
   function applyAudienceWorkflow() {
@@ -6460,123 +6480,6 @@ function routeAfterMagicLinkIfNeeded() {
     saveDraft();
   }
 
-  async function bookShowing() {
-    trackEvent('Showing Request Started', {});
-    const addr = document.getElementById('showingAddress').value.trim();
-    const date = document.getElementById('showingDate').value.trim();
-    const time = document.getElementById('showingTime').value.trim();
-    const name = (
-      document.getElementById('showingName')?.value ||
-      state.data.buyer1 ||
-      ''
-    ).trim();
-    const email = (
-      document.getElementById('showingEmail')?.value ||
-      state.data.buyerEmail ||
-      document.getElementById('buyerEmail')?.value ||
-      ''
-    ).trim();
-    const phone = document.getElementById('showingPhone').value.trim();
-    const notes = (document.getElementById('showingNotes')?.value || '').trim();
-    const msg = document.getElementById('showingInlineMessage');
-    const btn = event?.currentTarget;
-
-    if (!addr || !date || !time || !name || !email || !phone) {
-      if (msg) {
-        msg.style.display = 'block';
-        msg.className = 'notice warn';
-        msg.innerHTML = 'Please fill in the property address, preferred date, preferred time, your name, email address, and phone number.';
-      }
-      return;
-    }
-
-    if (!SHOWING_BOOKING_PRICE_ID || SHOWING_BOOKING_PRICE_ID.includes('REPLACE_WITH')) {
-      if (msg) {
-        msg.style.display = 'block';
-        msg.className = 'notice warn';
-        msg.innerHTML = '<strong>Stripe setup needed.</strong><br>Create a $50 Showing Booking Price in Stripe, then replace <code>SHOWING_BOOKING_PRICE_ID</code> in index.html.';
-      }
-      return;
-    }
-
-    const showingData = {
-      type: 'showing_booking',
-      showingAddress: addr,
-      showingDate: date,
-      showingTime: time,
-      showingPhone: phone,
-      showingNotes: notes,
-      buyerName: name,
-      buyerEmail: email,
-      userType: state.data.userType || 'homebuyer'
-    };
-
-    try {
-      if (btn) {
-        btn.disabled = true;
-        btn.textContent = 'Redirecting to payment...';
-      }
-
-      if (msg) {
-        msg.style.display = 'block';
-        msg.className = 'notice sage';
-        msg.innerHTML = '<strong>Opening secure payment...</strong><br>You will be redirected to Stripe to pay the $50 showing booking fee.';
-      }
-
-      sessionStorage.setItem('hofShowingData', JSON.stringify(showingData));
-
-      const response = await fetch('/api/create-checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          priceId: SHOWING_BOOKING_PRICE_ID,
-          email,
-          plan: 'showing-booking',
-          offerData: showingData,
-          successUrl: `${window.location.origin}${window.location.pathname}?showing=success`,
-          cancelUrl: `${window.location.origin}${window.location.pathname}?showing=cancelled`
-        })
-      });
-
-      const result = await response.json();
-
-      if (result.error) throw new Error(result.error);
-
-      if (result.url) {
-        window.location.href = result.url;
-        return;
-      }
-
-      showShowingSuccess(email);
-    } catch (e) {
-      console.error('Showing payment error:', e);
-      if (msg) {
-        msg.style.display = 'block';
-        msg.className = 'notice warn';
-        msg.innerHTML = 'Showing payment error: ' + e.message;
-      }
-      if (btn) {
-        btn.disabled = false;
-        btn.textContent = 'Book Showing — $50 →';
-      }
-    }
-  }
-
-  function showShowingSuccess(email) {
-    trackEvent('Showing Payment Success Returned', {});
-    const successEmail = document.getElementById('successEmail');
-    const successMessage = document.getElementById('successMessage');
-
-    if (successEmail) successEmail.textContent = email || state.data.buyerEmail || 'the email you entered';
-    if (successMessage) {
-      successMessage.textContent = 'Showing request received — check your email for next steps.';
-    }
-
-    const successIndex = getCurrentSteps().indexOf('stepSuccess');
-    if (successIndex >= 0) showStep(successIndex);
-    renderNowWhatPartnerJourney();
-  }
-
   function buildReview() {
     const s = state.data;
     const fmt = v => v || '<span style="color:var(--warn);font-size:0.8rem;">Not entered</span>';
@@ -6710,7 +6613,6 @@ function routeAfterMagicLinkIfNeeded() {
     }
 
     if (group === 'seenProperty') {
-      document.getElementById('showingForm').style.display = value === 'book' ? 'block' : 'none';
       document.getElementById('showingHelper').style.display = value === 'myself' ? 'block' : 'none';
     }
 
@@ -7304,8 +7206,13 @@ function routeAfterMagicLinkIfNeeded() {
       sessionStorage.setItem('hofOfferData', JSON.stringify(state.data));
 
       const profileIabsDoc = await window.getProfileIabsOfferDoc?.();
+      const activeBrokerage = window.hofPlatform?.brokerage || null;
       const packetOfferData = {
         ...state.data,
+        brokerageName: activeBrokerage?.name || activeBrokerage?.dba_name || state.data.brokerageName || '',
+        brokerageLogoUrl: activeBrokerage?.logo_url || state.data.brokerageLogoUrl || '',
+        brokerageBrandColor: activeBrokerage?.brand_color || state.data.brokerageBrandColor || '',
+        brokerageContactEmail: activeBrokerage?.contact_email || state.data.brokerageContactEmail || '',
         uploadedDisclosureDocs: [
           ...(window.hofUploadedDisclosureDocs || []).map(d => ({
           name: d.name,
@@ -7863,7 +7770,6 @@ function routeAfterMagicLinkIfNeeded() {
       return;
     }
     _wireGoogleAutocomplete('propAddress', fillAddressFields);
-    _wireGoogleAutocomplete('showingAddress', null);
     _wireGoogleAutocomplete('buyerMailAddr', fillBuyerMailAddressField);
     _wireGoogleAutocomplete('propertyToSell', null);
     _wireGoogleAutocomplete('propertyToSellAddress', null);
@@ -8165,14 +8071,14 @@ function routeAfterMagicLinkIfNeeded() {
         sub: 'Prepare client-ready Texas buyer-offer packets from your phone with guided questions, supported purchase addenda, buyer-side e-signature, and saved profiles.',
         cta: 'Start Agent Draft',
         nav: 'Start Agent Draft →',
-        priceNote: 'Built for supported Texas buyer-offer packets, buyer-side e-signature, and repeat-use agent workflows. <strong>Standalone representation, listing, and seller forms are not yet included.</strong>'
+        priceNote: 'Built for supported Texas buyer-offer packets, buyer-side e-signature, and repeat-use agent workflows. <strong>Representation and notice forms are in private preview foundations; listing and seller-form signing workflows are not live yet.</strong>'
       },
       investor: {
         headline: 'Make more <em>offers</em>, faster.',
-        sub: 'Build clean Texas offers quickly, stay consistent across deals, and move faster when the right property hits. Saved investor profiles and repeat-offer tools are coming soon.',
+        sub: 'Build clean Texas offers quickly, stay consistent across deals, and move faster when the right property hits. Save investor defaults and duplicate prior offers when repeat terms fit the next deal.',
         cta: 'Build Investor Offer',
         nav: 'Build Investor Offer →',
-        priceNote: 'Built for fast investment offers, repeat deal flow, and flexible terms. <strong>Investor saved profiles and repeat-offer tools are coming soon.</strong>'
+        priceNote: 'Built for fast investment offers, repeat deal flow, and flexible terms. <strong>Save deal defaults, duplicate prior offers, and review every term before signing or sending.</strong>'
       },
       fsbo: {
         headline: 'Sell smarter with <em>FSBO support</em>.',
@@ -8194,9 +8100,7 @@ function routeAfterMagicLinkIfNeeded() {
 
     if (type !== 'homebuyer') {
       state.data.seenProperty = '';
-      const showingForm = document.getElementById('showingForm');
       const showingHelper = document.getElementById('showingHelper');
-      if (showingForm) showingForm.style.display = 'none';
       if (showingHelper) showingHelper.style.display = 'none';
     }
 
@@ -8397,9 +8301,7 @@ function routeAfterMagicLinkIfNeeded() {
     if (backupDetails) backupDetails.style.display = backup === 'yes' ? 'block' : 'none';
 
     const seenProperty = document.querySelector('input[name="seenProperty"]:checked')?.value || '';
-    const showingForm = document.getElementById('showingForm');
     const showingHelper = document.getElementById('showingHelper');
-    if (showingForm) showingForm.style.display = seenProperty === 'book' ? 'block' : 'none';
     if (showingHelper) showingHelper.style.display = seenProperty === 'myself' ? 'block' : 'none';
 
     const buyer2 = document.getElementById('buyer2');
@@ -8585,6 +8487,7 @@ function routeAfterMagicLinkIfNeeded() {
           <div class="field"><label>Contact Email</label><input id="brandContactEmail" value="${escapeAttr(b.contact_email || profileValue('agent_email', hofAuth.session?.user?.email || ''))}" placeholder="brokerage@email.com"></div>
           <div class="field"><label>Contact Phone</label><input id="brandContactPhone" value="${escapeAttr(b.contact_phone || profileValue('agent_phone'))}" placeholder="(214) 555-0000"></div>
           <div class="field"><label>Default Title Company</label><input id="brandDefaultTitle" value="${escapeAttr(b.default_title_company || profileValue('default_title_company'))}" placeholder="Preferred title company"></div>
+          <div class="field" style="grid-column:1/-1"><label>Are all participating agents current members of both NAR and Texas REALTORS®, or otherwise individually authorized to use the brokerage’s member forms?</label><select id="brandTxrAuthorization"><option value="unknown" ${!b.txr_all_agents_authorized && !b.txr_authorization_attested_at ? 'selected' : ''}>Not confirmed yet</option><option value="all_agents_authorized" ${b.txr_all_agents_authorized ? 'selected' : ''}>Yes — all participating agents are authorized Texas REALTORS® / NAR users</option><option value="not_all" ${b.txr_all_agents_authorized === false && b.txr_authorization_attested_at ? 'selected' : ''}>No / not all participating agents are authorized</option></select><label class="brokerage-txr-attestation"><input id="brandTxrAttestation" type="checkbox"> I attest that this status is accurate for the brokerage. Each agent still confirms their own current authorization before using a restricted Texas REALTORS® / NAR source form.</label><small style="display:block;color:var(--gray-light);margin-top:.3rem;line-height:1.45">This is not inferred from a license number. The attestation does not replace approval of the private source form.</small></div>
         </div>
         <div class="field" style="margin-top:0.8rem;"><label>Brokerage Disclaimer</label><textarea id="brandDisclaimer" rows="3" placeholder="Optional brokerage/team disclaimer shown in branded experiences.">${escapeAttr(b.disclaimer || '')}</textarea></div>
         <div class="notice gold" style="margin-top:0.8rem;"><strong>Logo upload note:</strong> URL works today. True file upload needs Supabase Storage bucket setup, so I left it as a safe URL field for this deploy.</div>
@@ -8592,13 +8495,13 @@ function routeAfterMagicLinkIfNeeded() {
         <div id="brokerageFoundationStatus" class="platform-status"></div>
       </div>
       <div class="platform-card">
-        <h4>Brokerage Admin Dashboard Shell</h4>
+        <h4>Brokerage Administration</h4>
         <div class="platform-kpi-row">
           <div class="platform-kpi"><span>Branding</span><strong>${b?.id ? 'Saved' : 'Draft'}</strong></div>
           <div class="platform-kpi"><span>Role</span><strong>${hofAuth.accountProfile?.is_brokerage_admin || isCurrentAdmin() ? 'Admin' : 'Agent'}</strong></div>
-          <div class="platform-kpi"><span>Next</span><strong>Agents</strong></div>
+          <div class="platform-kpi"><span>Access</span><strong>Managed</strong></div>
         </div>
-        <p>Next build: add/remove agents, view all brokerage offers, usage by agent, partner clicks, and compliance checklist.</p>
+        <p>Brokerage membership, invites, activity totals, and shared defaults are managed through the secure brokerage workspace. Broker activity is intentionally limited to operational totals, not buyer or offer details.</p>
       </div>`;
   }
 
@@ -8607,6 +8510,11 @@ function routeAfterMagicLinkIfNeeded() {
     const user = platformUser();
     if (!client || !user) return platformStatus('brokerageFoundationStatus', 'Sign in before saving brokerage branding.', 'err');
     const now = new Date().toISOString();
+    const txrStatus = getVal('brandTxrAuthorization');
+    const txrAttested = document.getElementById('brandTxrAttestation')?.checked === true;
+    if (txrStatus !== 'unknown' && !txrAttested) {
+      return platformStatus('brokerageFoundationStatus', 'Check the brokerage Texas REALTORS® / NAR attestation before saving this authorization status.', 'err');
+    }
     const payload = {
       name: getVal('brandBrokerageName') || 'My Brokerage',
       dba_name: getVal('brandDbaName') || null,
@@ -8619,6 +8527,9 @@ function routeAfterMagicLinkIfNeeded() {
       contact_phone: getVal('brandContactPhone') || null,
       disclaimer: getVal('brandDisclaimer') || null,
       default_title_company: getVal('brandDefaultTitle') || null,
+      txr_all_agents_authorized: txrStatus === 'all_agents_authorized',
+      txr_authorization_attested_by: txrStatus === 'unknown' || !txrAttested ? null : user.id,
+      txr_authorization_attested_at: txrStatus === 'unknown' || !txrAttested ? null : now,
       created_by: user.id,
       updated_at: now
     };
@@ -8630,6 +8541,10 @@ function routeAfterMagicLinkIfNeeded() {
       };
       result = await writeBrokerage(payload);
       if (result.error && String(result.error.message || '').toLowerCase().includes('column')) {
+        // Compatibility fallback may omit older branding-only columns, but it
+        // must never omit the TXR/NAR gate. If those columns are unavailable,
+        // fail closed instead of creating a brokerage with an unrecorded
+        // authorization policy.
         const { org_type, slug, office_address, office_city, office_state, office_zip, ...legacyPayload } = payload;
         result = await writeBrokerage(legacyPayload);
       }
@@ -8841,8 +8756,7 @@ function routeAfterMagicLinkIfNeeded() {
 
   async function loadListingWorkspaceSourceReadiness() {
     const target = document.getElementById('listingWorkspaceSourceReadiness');
-    const client = getSupabaseClient();
-    if (!target || !client) return;
+    if (!target) return;
     const required = [
       ['TXR-1101', 'Residential listing agreement — sale'],
       ['TXR-1102', 'Residential listing agreement — lease'],
@@ -8853,13 +8767,12 @@ function routeAfterMagicLinkIfNeeded() {
       if (!hofPlatform.brokerage) await loadBrokerageFoundation();
       const brokerageId = hofPlatform.brokerage?.id;
       if (!brokerageId) { target.innerHTML = '<div class="platform-list-item">Join a brokerage before listing form readiness can be checked.</div>'; return; }
-      const { data, error } = await client.from('hof_brokerage_form_sources')
-        .select('form_code, source_revision')
-        .eq('brokerage_id', brokerageId)
-        .eq('status', 'approved').eq('authorization_attested', true)
-        .in('form_code', required.map(row => row[0]));
-      if (error) throw error;
-      const approved = new Map((data || []).map(row => [row.form_code, row.source_revision]));
+      const token = hofAuth?.session?.access_token;
+      if (!token) throw new Error('A signed-in session is required.');
+      const response = await fetch('/api/admin-dashboard?scope=approved_brokerage_sources', { headers: { Authorization: `Bearer ${token}` } });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || 'Could not load approved brokerage sources.');
+      const approved = new Map((payload.sources || []).map(row => [row.form_code, row.source_revision]));
       target.innerHTML = required.map(([code, label]) => {
         const revision = approved.get(code);
         return `<div class="platform-list-item"><strong>${escapeAttr(code)}</strong> · ${escapeAttr(label)}<span class="platform-pill ${revision ? 'good' : ''}">${revision ? 'Source approved' : 'Source not approved'}</span>${revision ? `<br><small>Organization source revision: ${escapeAttr(revision)}. Execution remains gated.</small>` : '<br><small>An authorized organization administrator must privately upload and attest to the current authorized source before implementation can begin.</small>'}</div>`;
@@ -8888,13 +8801,12 @@ function routeAfterMagicLinkIfNeeded() {
       <div class="partner-create-card">
         <h4 style="color:var(--gold-light); font-size:0.86rem; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:0.75rem;">Create Partner Placement</h4>
         <div class="platform-grid">
-          <div class="field"><label>Partner Type</label><select id="partnerType"><option value="title">Title / closing</option><option value="lender">Lender</option><option value="inspection">Inspection</option><option value="surveyor">Property surveyor</option><option value="insurance">Home insurance</option><option value="home_warranty">Home warranty</option><option value="roofing">Roofing</option><option value="hvac">HVAC</option><option value="plumbing">Plumbing</option><option value="electrical">Electrical</option><option value="foundation_structural">Foundation / structural repair</option><option value="general_contractor">General contractor / remodeling</option><option value="pest_termite">Pest / termite</option><option value="septic_well">Septic / well</option><option value="restoration">Water / fire restoration</option><option value="moving_storage">Moving / storage</option><option value="cleaning">Cleaning</option><option value="security_smart_home">Security / smart home</option></select></div>
+          <div class="field"><label>Paid partner application</label><select id="partnerLeadId" disabled><option value="">Loading paid applications…</option></select></div>
           <div class="field"><label>Placement Tier</label><select id="partnerTier"><option value="founding">Core Partner · $149</option><option value="premier">Featured Partner · $399</option><option value="exclusive_market">Premier Partner · $799</option></select></div>
-          <div class="field"><label>Partner Name</label><input id="partnerName" placeholder="Forgey Law Group / Chicago Title"></div>
-          <div class="field"><label>Market Area</label><input id="partnerMarket" placeholder="Collin / Grayson County"></div>
-          <div class="field"><label>Public website</label><input id="partnerWebsite" type="url" placeholder="https://partner.example"></div>
           <div class="field"><label>Pilot / monthly fee</label><input id="partnerMonthlyFee" type="number" placeholder="149"></div>
         </div>
+        <label style="display:flex;align-items:flex-start;gap:.55rem;margin-top:.85rem;color:var(--gray-light);font-size:.84rem;line-height:1.45;"><input id="partnerAgreementConfirmed" type="checkbox" style="margin-top:.2rem;"> <span>I confirm the required written advertising agreement is on file and authorize this paid partner application to become a public placement. This does not change Stripe billing.</span></label>
+        <div class="notice gold" style="margin-top:.7rem;">Public placement details are derived from the paid application so company, category, and market cannot be mismatched. Paid placements remain separate from neutral provider selection.</div>
         <div class="platform-actions"><button type="button" onclick="savePartnerPlacementFoundation()">Save Partner Placement</button><button type="button" onclick="loadPartnerPlacementsFoundation()">Refresh Partners</button></div>
         <div id="partnerFoundationStatus" class="platform-status"></div>
       </div>
@@ -8908,12 +8820,10 @@ function routeAfterMagicLinkIfNeeded() {
     try {
       const payload = {
         action: 'create_platform_partner_placement',
-        partner_type: getVal('partnerType') || 'title',
-        partner_name: getVal('partnerName') || 'Founding Partner',
-        market_area: getVal('partnerMarket') || null,
+        partner_lead_id: getVal('partnerLeadId'),
         placement_tier: getVal('partnerTier') || 'founding',
-        website_url: getVal('partnerWebsite') || null,
-        monthly_fee: moneyNumber(getVal('partnerMonthlyFee')) || null
+        monthly_fee: moneyNumber(getVal('partnerMonthlyFee')) || null,
+        agreement_confirmed: !!document.getElementById('partnerAgreementConfirmed')?.checked
       };
       const response = await fetch('/api/admin-dashboard', {
         method: 'POST',
@@ -8922,7 +8832,7 @@ function routeAfterMagicLinkIfNeeded() {
       });
       const result = await response.json().catch(() => ({}));
       if (!response.ok || result.error) throw new Error(result.error || 'Could not save platform placement.');
-      platformStatus('partnerFoundationStatus', 'Platform placement saved. It can now appear in the central Now What directory when its category is relevant.', 'ok');
+      platformStatus('partnerFoundationStatus', 'Agreement-confirmed placement saved. It can now appear in the central Now What directory when its category is relevant.', 'ok');
       await loadPartnerPlacementsFoundation();
     } catch (err) {
       console.error('Partner placement save failed:', err);
@@ -8939,6 +8849,7 @@ function routeAfterMagicLinkIfNeeded() {
       const result = await response.json().catch(() => ({}));
       if (!response.ok || result.error) throw new Error(result.error || 'Could not load platform placements.');
       hofPlatform.partners = result.partnerPlacements || [];
+      populatePaidPartnerPlacementLeads(result.partnerLeads || []);
       list.innerHTML = hofPlatform.partners.length ? hofPlatform.partners.map(row => `
         <div class="platform-list-item"><strong>${escapeAttr(row.partner_name || 'Partner')}</strong>
           <span class="platform-pill good">${escapeAttr(row.partner_type || 'partner')}</span>
@@ -8949,6 +8860,16 @@ function routeAfterMagicLinkIfNeeded() {
       console.warn('Partner placement load failed:', err);
       list.innerHTML = '<div class="platform-list-item">Partners could not load: ' + escapeAttr(err?.message || err) + '</div>';
     }
+  }
+
+  function populatePaidPartnerPlacementLeads(leads) {
+    const select = document.getElementById('partnerLeadId');
+    if (!select) return;
+    const paid = (leads || []).filter(lead => String(lead?.payment_status || '') === 'paid' && !['declined', 'waitlist'].includes(String(lead?.status || '')));
+    select.disabled = !paid.length;
+    select.innerHTML = paid.length
+      ? '<option value="">Choose a paid application…</option>' + paid.map(lead => '<option value="' + escapeAttr(lead.id || '') + '">' + escapeAttr(lead.company_name || 'Partner') + ' · ' + escapeAttr(lead.partner_type || 'other') + ' · ' + escapeAttr(lead.market_area || 'market') + '</option>').join('')
+      : '<option value="">No eligible paid applications</option>';
   }
 
   function estimateOfferScoreFromCurrentState() {
@@ -9228,6 +9149,7 @@ function routeAfterMagicLinkIfNeeded() {
         <div class="ai-review-actions ai-review-actions-v5">
           <button type="button" onclick="runLiveAiOfferReview()" ${loading ? 'disabled' : ''}>${loading ? loadingText : liveButton}</button>
           <button type="button" onclick="showAiImproveBox()">${improveButton}</button>
+          <button type="button" onclick="openAiCalibrationFeedback()">Review this result</button>
           <button type="button" onclick="prevStep()">Edit Terms</button>
         </div>
         <div id="aiImproveBox" class="ai-improve-box"><strong>${improveTitle}</strong><div class="ai-clean-list">${improveHtml}</div></div>
@@ -9256,6 +9178,31 @@ function routeAfterMagicLinkIfNeeded() {
     }
   }
 
+  function openAiCalibrationFeedback() {
+    if (typeof openBetaFeedback !== 'function') return;
+    openBetaFeedback();
+    setTimeout(() => {
+      const review = state.data?._lastAiReview || normalizeAiReviewResult(null);
+      const issue = document.getElementById('feedbackIssueType');
+      const title = document.getElementById('feedbackTitle');
+      const intro = document.querySelector('#feedbackModal .feedback-head p');
+      const message = document.getElementById('feedbackMessage');
+      if (issue) issue.value = 'ai_review';
+      if (title) title.textContent = 'Review AI Offer Assessment';
+      if (intro) intro.textContent = 'Use anonymized transaction facts only. Tell us what was useful, misleading, insufficient, or missing. This feedback calibrates the educational review and does not change the offer.';
+      if (message && !message.value) {
+        message.value = [
+          'AI review calibration note',
+          'Score shown: ' + String(review.score ?? 'unknown'),
+          'Market mode shown: ' + String(review.marketMode || 'unknown'),
+          '',
+          'Expert assessment (do not include names, exact addresses, MLS numbers, or other direct identifiers):'
+        ].join('\n');
+        message.focus();
+      }
+    }, 0);
+  }
+
   async function saveAiReviewResultToSupabase(result) {
     const client = getSupabaseClient();
     const user = platformUser();
@@ -9281,11 +9228,11 @@ function routeAfterMagicLinkIfNeeded() {
     el.className = '';
     el.innerHTML = `
       <div class="platform-card">
-        <h4>AI Offer Review Foundation</h4>
-        <p>This is the placeholder shell for the future Gemini-powered offer score, risk checklist, and strategy recommendations.</p>
+        <h4>Offer Review</h4>
+        <p>Use the offer review before sending a packet for an educational strength and risk summary. The offer workspace uses the live review when it is available and automatically falls back to the rules-based review when it is not.</p>
         <div class="ai-score-ring">${score}</div>
-        <div class="notice gold">Placeholder score only. This does not call AI yet and should not be presented as advice. It confirms the UI/database path is ready.</div>
-        <div class="platform-actions"><button type="button" onclick="saveAiReviewPlaceholder()">Save Placeholder Review</button><button type="button" onclick="openWizard(true); showStepById && showStepById('step8')">Open Offer Review</button></div>
+        <div class="notice gold">This dashboard snapshot is rules-based. Open the offer review to run the live educational review when available. Neither result is legal advice, broker advice, a valuation opinion, or a guarantee of acceptance.</div>
+        <div class="platform-actions"><button type="button" onclick="saveAiReviewPlaceholder()">Save Review Snapshot</button><button type="button" onclick="openWizard(true); showStepById && showStepById('step8')">Open Offer Review</button></div>
         <div id="aiFoundationStatus" class="platform-status"></div>
       </div>
       <div class="platform-card">
@@ -11161,12 +11108,12 @@ function routeAfterMagicLinkIfNeeded() {
     if (!el || !isBroker() || document.getElementById('brokerageBrokerIntroV14')) return;
     el.insertAdjacentHTML('afterbegin', `
       <div class="broker-role-card" id="brokerageBrokerIntroV14">
-        <h4>Brokerage / Team Lead Shell</h4>
-        <p>This is the right place for broker-level setup. Today it stores branding and defaults. The next layer can add agent invites, team offer visibility, compliance queues, and brokerage-wide billing.</p>
+        <h4>Brokerage / Team Lead Workspace</h4>
+        <p>Use this area for brokerage branding, agent access, secure invite links, shared defaults, and privacy-limited operational activity. Buyer names, addresses, offer terms, and documents are not exposed here.</p>
         <div class="broker-role-grid">
           <div class="broker-role-chip"><strong>Defaults</strong><span>Brokerage, license, title, escrow, disclaimers.</span></div>
-          <div class="broker-role-chip"><strong>Oversight</strong><span>Future team offers, statuses, and beta feedback.</span></div>
-          <div class="broker-role-chip"><strong>Compliance</strong><span>Future broker review queue and issue flags.</span></div>
+          <div class="broker-role-chip"><strong>Oversight</strong><span>Roster status and aggregate offer activity only.</span></div>
+          <div class="broker-role-chip"><strong>Privacy</strong><span>Buyer and offer details remain restricted.</span></div>
         </div>
       </div>`);
   };
@@ -11226,7 +11173,7 @@ function routeAfterMagicLinkIfNeeded() {
       agent: {
         headline: 'A clearer Texas buyer-offer workflow for <em>agents & brokers</em>.',
         sub: 'Create supported Texas buyer-offer packets from your phone, send buyer-side signatures, track status, duplicate prior offers, and collect broker-reviewed feedback.',
-        cta: 'Open Agent / Broker Workspace', nav: 'Agent / Broker Login →', note: 'Built for broker-supervised beta testing. <strong>Buyer-side offer packets only; standalone representation, listing, and seller forms are not yet included.</strong>'
+        cta: 'Open Agent / Broker Workspace', nav: 'Agent / Broker Login →', note: 'Built for broker-supervised beta testing. <strong>Buyer-side offer packets are live; representation and notice forms are private-preview foundations, while listing and seller-form signing workflows are not live yet.</strong>'
       },
       investor: {
         headline: 'Make more <em>investment offers</em> with less retyping.',
@@ -11848,6 +11795,10 @@ function routeAfterMagicLinkIfNeeded() {
     const client = root.getSupabaseClient?.();
     const user = root.hofAuth?.session?.user;
     if (!client || !user) return null;
+    // The account shell can finish authentication before an earlier optional
+    // platform enhancement initializes this namespace. Brokerage access must
+    // remain optional and must never prevent a signed-in user opening Account.
+    root.hofPlatform = root.hofPlatform || {};
     try {
       const profileResult = await client
         .from('hof_profiles')
@@ -11863,7 +11814,7 @@ function routeAfterMagicLinkIfNeeded() {
       }
       const [brokerageResult,membershipResult] = await Promise.all([
         client.from('hof_brokerages')
-          .select('id,name,dba_name,slug,logo_url,brand_color,website_url,license_number,plan_name,billing_status,default_title_company,default_title_contact')
+          .select('id,name,dba_name,slug,logo_url,brand_color,website_url,license_number,plan_name,billing_status,default_title_company,default_title_contact,txr_all_agents_authorized,txr_authorization_attested_by,txr_authorization_attested_at')
           .eq('id',brokerageId).maybeSingle(),
         client.from('hof_brokerage_members')
           .select('role,status,created_at,updated_at')
@@ -12008,6 +11959,43 @@ function routeAfterMagicLinkIfNeeded() {
     }
   };
 
+  root.saveBrokerageTxrAuthorization = async function saveBrokerageTxrAuthorization() {
+    const session = root.hofAuth?.session;
+    const result = document.getElementById('brokerageTxrAuthorizationResult');
+    const status = String(document.getElementById('brokerageTxrAuthorization')?.value || 'unknown');
+    const attestation = document.getElementById('brokerageTxrAttestation')?.checked === true;
+    if (!session?.access_token) {
+      if (result) result.textContent = 'Sign in again before saving the brokerage authorization status.';
+      return;
+    }
+    if (status !== 'unknown' && !attestation) {
+      if (result) result.textContent = 'Check the administrator attestation before saving this status.';
+      return;
+    }
+    if (result) result.textContent = 'Saving Texas REALTORS® / NAR authorization status…';
+    try {
+      const response = await fetch('/api/admin-dashboard', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + session.access_token },
+        body: JSON.stringify({ action: 'update_brokerage_txr_authorization', status, attestation })
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.authorization) throw new Error(data.error || 'Could not save the brokerage authorization status.');
+      const auth = data.authorization;
+      root.hofPlatform.brokerage = Object.assign({}, root.hofPlatform.brokerage, {
+        txr_all_agents_authorized: auth.allAgentsAuthorized,
+        txr_authorization_attested_at: auth.attestedAt,
+        txr_authorization_attested_by: auth.attestedBy
+      });
+      if (result) result.textContent = auth.allAgentsAuthorized
+        ? 'Saved. Restricted Texas REALTORS® / NAR source workflows may now be used after each agent completes the point-of-use attestation and an approved source is available.'
+        : 'Saved. Restricted Texas REALTORS® / NAR source workflows remain locked for this brokerage.';
+      await root.renderBrokerageFoundationPanel();
+    } catch (error) {
+      if (result) result.textContent = error.message || 'Could not save the brokerage authorization status.';
+    }
+  };
+
   root.saveBrokerageSharedDefaults = async function saveBrokerageSharedDefaults() {
     const session = root.hofAuth?.session;
     const brokerage = root.hofPlatform?.brokerage;
@@ -12110,10 +12098,31 @@ function routeAfterMagicLinkIfNeeded() {
       const m = data.metrics || {};
       const agents = data.agents || [];
       const pendingInvites = data.pendingInvites || [];
+      const sourceReadiness = data.sourceReadiness || [];
+      const sourceStatusLabel = source => source.readyForRestrictedDraft
+        ? '<span style="color:var(--sage-light)">Ready for private draft</span>'
+        : (source.status === 'not_uploaded'
+          ? '<span style="color:var(--gold-light)">Awaiting approved source</span>'
+          : (source.status === 'approved' && !source.sourceAttested
+            ? '<span style="color:var(--gold-light)">Source authorization incomplete</span>'
+            : '<span style="color:var(--gray-light)">Brokerage/source gate incomplete</span>'));
       document.getElementById('brokerSafeDashboard').innerHTML =
         '<h4>Brokerage activity</h4>' +
         '<p>Operational visibility only. Buyer names, property addresses, offer terms, and document contents are not included.</p>' +
         '<p class="brokerage-membership-note">Suspending an agent removes brokerage-managed access only. It does not cancel that agent\'s HomeOfferFlow subscription or delete their offers.</p>' +
+        '<div class="platform-card" style="margin:1rem 0 0;padding:.8rem"><h4>Texas REALTORS® / NAR form authorization</h4>' +
+        '<p class="brokerage-membership-note">This organization-level gate is not inferred from a license number. Each agent must still attest at point of use, and each form requires an approved private source revision.</p>' +
+        '<div class="brokerage-invite-form"><select id="brokerageTxrAuthorization" aria-label="Brokerage Texas REALTORS authorization status">' +
+          '<option value="unknown"' + (!b.txr_authorization_attested_at ? ' selected' : '') + '>Not confirmed yet</option>' +
+          '<option value="all_agents_authorized"' + (b.txr_all_agents_authorized === true ? ' selected' : '') + '>Yes — all participating agents are authorized Texas REALTORS® / NAR users</option>' +
+          '<option value="not_all"' + (b.txr_all_agents_authorized === false && b.txr_authorization_attested_at ? ' selected' : '') + '>No / not all participating agents are authorized</option>' +
+        '</select><label class="brokerage-txr-attestation"><input id="brokerageTxrAttestation" type="checkbox"> I attest that this status is accurate for the brokerage.</label><button type="button" class="brokerage-access-button" onclick="saveBrokerageTxrAuthorization()">Save authorization status</button></div>' +
+        '<p id="brokerageTxrAuthorizationResult" class="brokerage-invite-result">' + (b.txr_all_agents_authorized === true && b.txr_authorization_attested_at ? 'Authorized status saved. Agents still attest individually.' : 'Restricted Texas REALTORS® / NAR source workflows are locked until this is confirmed.') + '</p></div>' +
+        '<div class="platform-card" style="margin:1rem 0 0;padding:.8rem"><h4>Restricted form readiness</h4>' +
+        '<p class="brokerage-membership-note">Status only — this does not activate sending or signing. A restricted form is ready for the private-draft foundation only when the brokerage gate and its exact approved source revision are both present.</p>' +
+        '<table class="brokerage-safe-table"><thead><tr><th>Form</th><th>Source</th><th>Status</th></tr></thead><tbody>' +
+        (sourceReadiness.length ? sourceReadiness.map(source => '<tr><td><strong>' + safe(source.formCode) + '</strong></td><td>' + (source.sourceRevision ? safe(source.sourceRevision) : '—') + '</td><td>' + sourceStatusLabel(source) + '</td></tr>').join('') : '<tr><td colspan="3">Source readiness is unavailable until the private source table is installed.</td></tr>') +
+        '</tbody></table></div>' +
         '<div class="brokerage-invite-form" style="margin-top:1rem"><label for="brokerageBrandColor">Brokerage branding</label>' +
         '<input id="brokerageBrandColor" type="color" value="' + safe(b.brand_color || '#2563eb') + '" aria-label="Brokerage brand color">' +
         '<input id="brokerageLogoFile" type="file" accept="image/png,image/jpeg,image/webp" aria-label="Brokerage logo (PNG, JPG, or WebP)">' +
@@ -12431,19 +12440,37 @@ function routeAfterMagicLinkIfNeeded() {
     return !!brokerage() && (profile.is_brokerage_admin === true || String(profile.role || '').toLowerCase() === 'brokerage_admin');
   };
   const safeRevision = value => String(value || '').trim().replace(/[^a-zA-Z0-9._-]+/g, '-').slice(0, 48);
+  async function sourceFingerprint(file) {
+    if (!window.crypto?.subtle || !file?.arrayBuffer) {
+      throw new Error('This browser cannot securely fingerprint the source PDF. Use a current browser and try again.');
+    }
+    const digest = await window.crypto.subtle.digest('SHA-256', await file.arrayBuffer());
+    return Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
+  }
 
   async function loadSources() {
-    const client = root.getSupabaseClient?.();
     const currentBrokerage = brokerage();
-    if (!client || !currentBrokerage || !isBrokerageAdmin()) return [];
-    const { data, error } = await client
-      .from('hof_brokerage_form_sources')
-      .select('id,form_code,source_revision,status,original_filename,updated_at')
-      .eq('brokerage_id', currentBrokerage.id)
-      .order('updated_at', { ascending: false });
-    if (error) throw error;
-    return data || [];
+    const token = root.hofAuth?.session?.access_token;
+    if (!currentBrokerage || !isBrokerageAdmin() || !token) return [];
+    const response = await fetch('/api/admin-dashboard?scope=brokerage_form_sources', {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(payload.error || 'Could not load brokerage form sources.');
+    return payload.sources || [];
   }
+
+  root.hofLoadApprovedBrokerageSource = async function (formCode) {
+    const token = root.hofAuth?.session?.access_token;
+    const brokerageId = brokerage()?.id;
+    if (!token || !brokerageId || !formCode) return null;
+    const response = await fetch('/api/admin-dashboard?scope=approved_brokerage_sources', {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(payload.error || 'Could not check approved brokerage form sources.');
+    return (payload.sources || []).find(source => source.form_code === formCode) || null;
+  };
 
   function renderBrokerageFormSources() {
     const panel = document.getElementById('accountPanelDashboard');
@@ -12485,7 +12512,10 @@ function routeAfterMagicLinkIfNeeded() {
     if (!list || !isBrokerageAdmin()) return;
     try {
       const sources = await loadSources();
-      list.innerHTML = sources.length ? sources.map(source => `<li><span><strong>${escape(source.form_code)}</strong> · ${escape(source.source_revision)}<br><small>${escape(source.original_filename)}</small></span><span>${escape(source.status)}</span></li>`).join('') : '<li>No brokerage form sources saved yet.</li>';
+      list.innerHTML = sources.length ? sources.map(source => {
+        const fingerprint = source.source_sha256 ? `<br><small>SHA-256: ${escape(source.source_sha256.slice(0, 12))}…</small>` : '';
+        return `<li><span><strong>${escape(source.form_code)}</strong> · ${escape(source.source_revision)}<br><small>${escape(source.original_filename)}</small>${fingerprint}</span><span>${escape(source.status)}</span></li>`;
+      }).join('') : '<li>No brokerage form sources saved yet.</li>';
     } catch (error) {
       console.error('Brokerage form-source list failed:', error);
       list.innerHTML = '<li>Could not load form-source records.</li>';
@@ -12511,12 +12541,9 @@ function routeAfterMagicLinkIfNeeded() {
     const revisionKey = safeRevision(revision);
     const path = `${currentBrokerage.id}/${code}-${revisionKey}-${Date.now()}.pdf`;
     try {
-      const { data: existing, error: existingError } = await client
-        .from('hof_brokerage_form_sources')
-        .select('id').eq('brokerage_id', currentBrokerage.id)
-        .eq('form_code', code).eq('source_revision', revision).neq('status', 'retired').limit(1);
-      if (existingError) throw existingError;
-      if (existing?.length) throw new Error(`An active ${code} source with revision ${revision} is already saved. Retire it through a future broker workflow before replacing it.`);
+      const sourceSha256 = await sourceFingerprint(file);
+      const existing = (await loadSources()).find(source => source.form_code === code && source.source_revision === revision);
+      if (existing) throw new Error(`An active ${code} source with revision ${revision} is already saved. Retire it through a future broker workflow before replacing it.`);
       const { error: uploadError } = await client.storage.from(BUCKET).upload(path, file, {
         contentType: 'application/pdf', upsert: false, cacheControl: 'private, max-age=0'
       });
@@ -12532,6 +12559,7 @@ function routeAfterMagicLinkIfNeeded() {
         original_filename: file.name.slice(0, 180),
         mime_type: 'application/pdf',
         byte_size: file.size,
+        source_sha256: sourceSha256,
         authorization_attested: true,
         authorized_by_user_id: user.id,
         authorized_at: now,
@@ -12586,23 +12614,14 @@ function routeAfterMagicLinkIfNeeded() {
   const escape = value => String(value ?? '').replace(/[&<>\"]/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[char]));
   const profile = () => root.hofAuth?.authoritativeProfile || {};
   const brokerageId = () => root.hofPlatform?.brokerage?.id || profile().brokerage_id || null;
+  const brokerageTxrAuthorized = () => root.hofPlatform?.brokerage?.txr_all_agents_authorized === true && !!root.hofPlatform?.brokerage?.txr_authorization_attested_at;
   const activeAgent = () => {
     const role = String(root.hofAuth?.role || profile().role || '').toLowerCase();
     return !!root.hofAuth?.session?.user && !!brokerageId() && (role === 'agent' || role === 'brokerage_admin');
   };
 
   async function approvedShortFormSource() {
-    const client = root.getSupabaseClient?.();
-    if (!client || !brokerageId()) return null;
-    const { data, error } = await client.from('hof_brokerage_form_sources')
-      .select('id,form_code,source_revision')
-      .eq('brokerage_id', brokerageId())
-      .eq('form_code', FORM_CODE)
-      .eq('status', 'approved')
-      .eq('authorization_attested', true)
-      .order('updated_at', { ascending:false }).limit(1).maybeSingle();
-    if (error) throw error;
-    return data || null;
+    return root.hofLoadApprovedBrokerageSource?.(FORM_CODE) || null;
   }
 
   async function renderAgreementCard() {
@@ -12614,6 +12633,10 @@ function routeAfterMagicLinkIfNeeded() {
     card.innerHTML = '<h4>Buyer/Tenant Representation Agreement</h4><p id="txr1507AgreementCopy">Checking whether your brokerage has approved the Texas REALTORS® Short Form…</p>';
     panel.appendChild(card);
     try {
+      if (!brokerageTxrAuthorized()) {
+        card.querySelector('#txr1507AgreementCopy').textContent = 'TXR-1507 is locked until your brokerage administrator confirms that participating agents are authorized Texas REALTORS® / NAR users in Brokerage Setup.';
+        return;
+      }
       const source = await approvedShortFormSource();
       const copy = card.querySelector('#txr1507AgreementCopy');
       if (!source) {
@@ -12654,6 +12677,8 @@ function routeAfterMagicLinkIfNeeded() {
           <label>Lease: % of all rents<input name="leaseTotalRentsPercentage" inputmode="decimal" placeholder="Enter only if broker-approved"></label>
           <label>Lease flat fee<input name="leaseFlatFee" inputmode="decimal" placeholder="Enter only if broker-approved"></label>
           <label>Intermediary choice<select name="intermediary" required><option value="">Choose one…</option><option value="authorized">Client authorizes intermediary</option><option value="not_authorized">Client does not authorize intermediary</option></select></label>
+          <label>Signer plan<select name="signerPlan" required><option value="">Choose one…</option><option value="clients_only">Clients sign only</option><option value="clients_and_associate">Clients and associate sign</option><option value="clients_and_broker">Clients and broker sign</option></select><small>Choose deliberately; HomeOfferFlow will not infer whether the associate or broker must sign.</small></label>
+          <label class="hof-agreement-wide hof-agreement-services"><input name="formUseAttested" type="checkbox" required> I attest that I am a current Texas REALTORS® / NAR member (or otherwise individually authorized), that I am currently authorized to use this Texas REALTORS® form for my brokerage, and that the selected source revision is the approved source for this agreement.</label>
         </div>
         <div id="txr1507DraftStatus" class="hof-iabs-status"></div>
         <div class="hof-agreement-footer"><button class="btn-secondary" type="button" id="txr1507Cancel">Cancel</button><button class="btn-primary" type="submit">Save private draft</button></div>
@@ -12680,7 +12705,7 @@ function routeAfterMagicLinkIfNeeded() {
     const payload = {
       action: 'create_txr_1507_draft', formCode: FORM_CODE, formSourceId: source.id, clientNames,
       marketArea: form.get('marketArea'), termStart: form.get('termStart'), termEnd: form.get('termEnd'),
-      serviceLevel: form.get('serviceLevel'), showingFee: form.get('showingFee'), intermediary: form.get('intermediary'),
+      serviceLevel: form.get('serviceLevel'), showingFee: form.get('showingFee'), intermediary: form.get('intermediary'), signerPlan: form.get('signerPlan'), formUseAttested: form.get('formUseAttested') === 'on',
       compensation: { purchasePercentage: form.get('purchasePercentage'), purchaseFlatFee: form.get('purchaseFlatFee'), leaseOneMonthPercentage: form.get('leaseOneMonthPercentage'), leaseTotalRentsPercentage: form.get('leaseTotalRentsPercentage'), leaseFlatFee: form.get('leaseFlatFee') }
     };
     try {
@@ -12719,15 +12744,7 @@ function routeAfterMagicLinkIfNeeded() {
   };
 
   async function approvedLongFormSource() {
-    const client = root.getSupabaseClient?.();
-    if (!client || !brokerageId()) return null;
-    const { data, error } = await client.from('hof_brokerage_form_sources')
-      .select('id,form_code,source_revision')
-      .eq('brokerage_id', brokerageId()).eq('form_code', FORM_CODE)
-      .eq('status', 'approved').eq('authorization_attested', true)
-      .order('updated_at', { ascending:false }).limit(1).maybeSingle();
-    if (error) throw error;
-    return data || null;
+    return root.hofLoadApprovedBrokerageSource?.(FORM_CODE) || null;
   }
 
   async function renderLongFormCard() {
@@ -12739,6 +12756,10 @@ function routeAfterMagicLinkIfNeeded() {
     card.innerHTML = '<h4>Buyer/Tenant Representation Agreement - Long Form</h4><p id="txr1501AgreementCopy">Checking whether your brokerage has approved the Texas REALTORS® Long Form…</p>';
     panel.appendChild(card);
     try {
+      if (!(root.hofPlatform?.brokerage?.txr_all_agents_authorized === true && root.hofPlatform?.brokerage?.txr_authorization_attested_at)) {
+        card.querySelector('#txr1501AgreementCopy').textContent = 'TXR-1501 is locked until your brokerage administrator confirms that participating agents are authorized Texas REALTORS® / NAR users in Brokerage Setup.';
+        return;
+      }
       const source = await approvedLongFormSource();
       const copy = card.querySelector('#txr1501AgreementCopy');
       if (!source) {
@@ -12784,6 +12805,8 @@ function routeAfterMagicLinkIfNeeded() {
           <label>Protection period days (optional)<input name="protectionDays" inputmode="numeric" placeholder="Enter only if broker-approved"></label>
           <label>Payment county<input name="paymentCounty" required maxlength="100" placeholder="Example: Collin"></label>
           <label class="hof-agreement-wide">Intermediary choice<select name="intermediary" required><option value="">Choose one…</option><option value="authorized">Client authorizes intermediary</option><option value="not_authorized">Client does not authorize intermediary</option></select></label>
+          <label>Signer plan<select name="signerPlan" required><option value="">Choose one…</option><option value="clients_only">Clients sign only</option><option value="clients_and_associate">Clients and associate sign</option><option value="clients_and_broker">Clients and broker sign</option></select><small>Choose deliberately; HomeOfferFlow will not infer who must sign.</small></label>
+          <label class="hof-agreement-wide hof-agreement-services"><input name="formUseAttested" type="checkbox" required> I attest that I am a current Texas REALTORS® / NAR member (or otherwise individually authorized), that I am currently authorized to use this Texas REALTORS® form for my brokerage, and that the selected source revision is the approved source for this agreement.</label>
         </div>
         <div id="txr1501DraftStatus" class="hof-iabs-status"></div>
         <div class="hof-agreement-footer"><button class="btn-secondary" type="button" id="txr1501Cancel">Cancel</button><button class="btn-primary" type="submit">Save private draft</button></div>
@@ -12812,7 +12835,7 @@ function routeAfterMagicLinkIfNeeded() {
       action: 'create_txr_1501_draft', formCode: FORM_CODE, formSourceId: source.id, clientNames,
       clientAddress: form.get('clientAddress'), clientCityStateZip: form.get('clientCityStateZip'), clientPhone: form.get('clientPhone'), clientEmail: form.get('clientEmail'),
       marketArea: form.get('marketArea'), termStart: form.get('termStart'), termEnd: form.get('termEnd'),
-      retainerAmount: form.get('retainerAmount'), retainerTreatment: form.get('retainerTreatment'), protectionDays: form.get('protectionDays'), paymentCounty: form.get('paymentCounty'), intermediary: form.get('intermediary'),
+      retainerAmount: form.get('retainerAmount'), retainerTreatment: form.get('retainerTreatment'), protectionDays: form.get('protectionDays'), paymentCounty: form.get('paymentCounty'), intermediary: form.get('intermediary'), signerPlan: form.get('signerPlan'), formUseAttested: form.get('formUseAttested') === 'on',
       compensation: { purchasePercentage: form.get('purchasePercentage'), purchaseFlatFee: form.get('purchaseFlatFee'), leaseOneMonthPercentage: form.get('leaseOneMonthPercentage'), leaseTotalRentsPercentage: form.get('leaseTotalRentsPercentage'), leaseFlatFee: form.get('leaseFlatFee') }
     };
     try {
@@ -12851,15 +12874,7 @@ function routeAfterMagicLinkIfNeeded() {
   };
 
   async function approvedShowingSource() {
-    const client = root.getSupabaseClient?.();
-    if (!client || !brokerageId()) return null;
-    const { data, error } = await client.from('hof_brokerage_form_sources')
-      .select('id,form_code,source_revision')
-      .eq('brokerage_id', brokerageId()).eq('form_code', FORM_CODE)
-      .eq('status', 'approved').eq('authorization_attested', true)
-      .order('updated_at', { ascending:false }).limit(1).maybeSingle();
-    if (error) throw error;
-    return data || null;
+    return root.hofLoadApprovedBrokerageSource?.(FORM_CODE) || null;
   }
 
   async function renderShowingCard() {
@@ -12871,6 +12886,10 @@ function routeAfterMagicLinkIfNeeded() {
     card.innerHTML = '<h4>Unrepresented Customer Showing Form</h4><p id="txr1508AgreementCopy">Checking whether your brokerage has approved the Texas REALTORS® showing-form source…</p>';
     panel.appendChild(card);
     try {
+      if (!(root.hofPlatform?.brokerage?.txr_all_agents_authorized === true && root.hofPlatform?.brokerage?.txr_authorization_attested_at)) {
+        card.querySelector('#txr1508AgreementCopy').textContent = 'TXR-1508 is locked until your brokerage administrator confirms that participating agents are authorized Texas REALTORS® / NAR users in Brokerage Setup.';
+        return;
+      }
       const source = await approvedShowingSource();
       const copy = card.querySelector('#txr1508AgreementCopy');
       if (!source) {
@@ -12906,7 +12925,9 @@ function routeAfterMagicLinkIfNeeded() {
           ${customerStatusField(1)}
           <label>Customer 2 full name (optional)<input name="customerTwo" maxlength="180"></label>
           <div id="txr1508CustomerTwoStatus" style="display:none">${customerStatusField(2)}</div>
+          <label>Signer plan<select name="signerPlan" required><option value="">Choose one…</option><option value="associate_and_clients">Associate and customer(s)</option><option value="broker_and_clients">Broker and customer(s)</option></select><small>Choose deliberately; HomeOfferFlow will not infer whether the associate or broker acknowledges the showing form.</small></label>
           <label class="hof-agreement-wide hof-agreement-services"><input name="unrepresentedAcknowledgment" type="checkbox" required> I confirm this is an unrepresented-customer showing draft only: no representation, no compensation, no advice or opinions, and no other brokerage services are being promised through this draft.</label>
+          <label class="hof-agreement-wide hof-agreement-services"><input name="formUseAttested" type="checkbox" required> I attest that I am a current Texas REALTORS® / NAR member (or otherwise individually authorized), that I am currently authorized to use this Texas REALTORS® form for my brokerage, and that the selected source revision is the approved source for this showing draft.</label>
         </div>
         <div id="txr1508DraftStatus" class="hof-iabs-status"></div>
         <div class="hof-agreement-footer"><button class="btn-secondary" type="button" id="txr1508Cancel">Cancel</button><button class="btn-primary" type="submit">Save private draft</button></div>
@@ -12937,7 +12958,7 @@ function routeAfterMagicLinkIfNeeded() {
     const payload = {
       action: 'create_txr_1508_draft', formCode: FORM_CODE, formSourceId: source.id,
       clientNames: customerNames, propertyAddress: form.get('propertyAddress'), otherBrokerAgreement,
-      unrepresentedAcknowledgment: form.get('unrepresentedAcknowledgment') === 'on'
+      unrepresentedAcknowledgment: form.get('unrepresentedAcknowledgment') === 'on', signerPlan: form.get('signerPlan'), formUseAttested: form.get('formUseAttested') === 'on'
     };
     try {
       status.className = 'hof-iabs-status'; status.textContent = 'Saving private showing draft…';
@@ -12973,13 +12994,7 @@ function routeAfterMagicLinkIfNeeded() {
     return !!root.hofAuth?.session?.user && !!brokerageId() && (role === 'agent' || role === 'brokerage_admin');
   };
   async function approvedNoticeSource() {
-    const client = root.getSupabaseClient?.();
-    if (!client || !brokerageId()) return null;
-    const { data, error } = await client.from('hof_brokerage_form_sources').select('id,source_revision')
-      .eq('brokerage_id', brokerageId()).eq('form_code', FORM_CODE).eq('status', 'approved')
-      .eq('authorization_attested', true).order('updated_at', { ascending:false }).limit(1).maybeSingle();
-    if (error) throw error;
-    return data || null;
+    return root.hofLoadApprovedBrokerageSource?.(FORM_CODE) || null;
   }
   async function renderNoticeCard() {
     const panel = document.getElementById('accountPanelDashboard');
@@ -12988,6 +13003,10 @@ function routeAfterMagicLinkIfNeeded() {
     card.innerHTML = '<h4>General Information and Notice to Consumers</h4><p id="txr1506AgreementCopy">Checking whether your brokerage has approved the Texas REALTORS® consumer-notice source…</p>';
     panel.appendChild(card);
     try {
+      if (!(root.hofPlatform?.brokerage?.txr_all_agents_authorized === true && root.hofPlatform?.brokerage?.txr_authorization_attested_at)) {
+        card.querySelector('#txr1506AgreementCopy').textContent = 'TXR-1506 is locked until your brokerage administrator confirms that participating agents are authorized Texas REALTORS® / NAR users in Brokerage Setup.';
+        return;
+      }
       const source = await approvedNoticeSource(), copy = card.querySelector('#txr1506AgreementCopy');
       if (!source) { copy.textContent = 'TXR-1506 is not yet enabled for your organization. An authorized administrator must privately upload and attest to the current authorized source form first.'; return; }
       copy.innerHTML = `Start a private TXR-1506 notice draft using your brokerage-approved ${escape(source.source_revision)} source. This is a consumer notice, not a representation agreement. A draft is not sent or signed.`;
@@ -12998,13 +13017,13 @@ function routeAfterMagicLinkIfNeeded() {
   function openNoticeDraft(source) {
     document.getElementById('txr1506AgreementDialog')?.remove();
     const modal = document.createElement('div'); modal.id = 'txr1506AgreementDialog'; modal.className = 'hof-agreement-modal';
-    modal.innerHTML = `<form class="hof-agreement-dialog" id="txr1506AgreementForm"><h3>TXR-1506 consumer notice draft</h3><p>Source revision ${escape(source.source_revision)} is approved by your brokerage. This saves a private draft only; it does not create, send, or sign the source form.</p><div class="hof-agreement-grid"><label>Consumer 1 full name<input name="consumerOne" required maxlength="180"></label><label>Consumer 2 full name (optional)<input name="consumerTwo" maxlength="180"></label><label>Consumer transaction role<select name="consumerRole" required><option value="">Choose one…</option><option value="buyer">Buyer</option><option value="tenant">Tenant</option><option value="seller">Seller</option><option value="landlord">Landlord</option><option value="other">Other</option></select></label><label class="hof-agreement-wide">Other notice text (optional)<textarea name="additionalNotice" maxlength="1000" placeholder="Enter only agent-confirmed text for the source form's Other area."></textarea></label><label class="hof-agreement-wide hof-agreement-services"><input name="noticeAcknowledgment" type="checkbox" required> I confirm the consumer will receive, read, and acknowledge this general information notice. This draft does not create representation.</label></div><div id="txr1506DraftStatus" class="hof-iabs-status"></div><div class="hof-agreement-footer"><button class="btn-secondary" type="button" id="txr1506Cancel">Cancel</button><button class="btn-primary" type="submit">Save private draft</button></div></form>`;
+    modal.innerHTML = `<form class="hof-agreement-dialog" id="txr1506AgreementForm"><h3>TXR-1506 consumer notice draft</h3><p>Source revision ${escape(source.source_revision)} is approved by your brokerage. This saves a private draft only; it does not create, send, or sign the source form.</p><div class="hof-agreement-grid"><label>Consumer 1 full name<input name="consumerOne" required maxlength="180"></label><label>Consumer 2 full name (optional)<input name="consumerTwo" maxlength="180"></label><label>Consumer transaction role<select name="consumerRole" required><option value="">Choose one…</option><option value="buyer">Buyer</option><option value="tenant">Tenant</option><option value="seller">Seller</option><option value="landlord">Landlord</option><option value="other">Other</option></select></label><label class="hof-agreement-wide">Other notice text (optional)<textarea name="additionalNotice" maxlength="1000" placeholder="Enter only agent-confirmed text for the source form's Other area."></textarea></label><label>Signer plan<select name="signerPlan" required><option value="">Choose one…</option><option value="consumers_only">Consumers acknowledge only</option><option value="consumers_and_associate">Consumers and associate</option><option value="consumers_and_broker">Consumers and broker</option></select></label><label class="hof-agreement-wide hof-agreement-services"><input name="noticeAcknowledgment" type="checkbox" required> I confirm the consumer will receive, read, and acknowledge this general information notice. This draft does not create representation.</label><label class="hof-agreement-wide hof-agreement-services"><input name="formUseAttested" type="checkbox" required> I attest that I am a current Texas REALTORS® / NAR member (or otherwise individually authorized), that I am currently authorized to use this Texas REALTORS® form for my brokerage, and that the selected source revision is the approved source for this notice.</label></div><div id="txr1506DraftStatus" class="hof-iabs-status"></div><div class="hof-agreement-footer"><button class="btn-secondary" type="button" id="txr1506Cancel">Cancel</button><button class="btn-primary" type="submit">Save private draft</button></div></form>`;
     document.body.appendChild(modal); modal.querySelector('#txr1506Cancel').addEventListener('click', () => modal.remove()); modal.addEventListener('click', event => { if (event.target === modal) modal.remove(); });
     modal.querySelector('#txr1506AgreementForm').addEventListener('submit', event => submitNoticeDraft(event, source, modal));
   }
   async function submitNoticeDraft(event, source, modal) {
     event.preventDefault(); const form = new FormData(event.currentTarget), status = modal.querySelector('#txr1506DraftStatus');
-    const payload = { action:'create_txr_1506_draft', formCode:FORM_CODE, formSourceId:source.id, clientNames:[form.get('consumerOne'), form.get('consumerTwo')].map(v => String(v || '').trim()).filter(Boolean), consumerRole:form.get('consumerRole'), additionalNotice:form.get('additionalNotice'), noticeAcknowledgment:form.get('noticeAcknowledgment') === 'on' };
+    const payload = { action:'create_txr_1506_draft', formCode:FORM_CODE, formSourceId:source.id, clientNames:[form.get('consumerOne'), form.get('consumerTwo')].map(v => String(v || '').trim()).filter(Boolean), consumerRole:form.get('consumerRole'), additionalNotice:form.get('additionalNotice'), noticeAcknowledgment:form.get('noticeAcknowledgment') === 'on', signerPlan:form.get('signerPlan'), formUseAttested:form.get('formUseAttested') === 'on' };
     try { status.className = 'hof-iabs-status'; status.textContent = 'Saving private notice draft…'; const token = root.hofAuth?.session?.access_token; const response = await fetch('/api/admin-dashboard', { method:'POST', headers:{'Content-Type':'application/json', Authorization:`Bearer ${token}`}, body:JSON.stringify(payload) }); const result = await response.json(); if (!response.ok) throw new Error(result.error || 'Could not save the notice draft.'); status.className = 'hof-iabs-status ready'; status.textContent = 'Draft saved privately. It has not been sent for signature.'; event.currentTarget.querySelector('button[type="submit"]').disabled = true; } catch (error) { console.error('TXR-1506 draft failed:', error); status.className = 'hof-iabs-status error'; status.textContent = error.message || 'Could not save the notice draft.'; }
   }
   const priorDashboard = root.renderAccountDashboard;
@@ -13043,11 +13062,11 @@ function routeAfterMagicLinkIfNeeded() {
       <div class="hof-launch-scope-grid">
         <div class="hof-launch-scope-item ready">
           <strong>Available now</strong>
-          Texas residential purchase-offer packets, supported purchase addenda, buyer-side e-signing, saved offer defaults, and an optional profile IABS attachment.
+          Texas residential purchase-offer packets, supported purchase addenda, Seller Temporary Residential Lease when seller post-closing possession applies, buyer-side e-signing, saved offer defaults, and an optional profile IABS attachment.
         </div>
         <div class="hof-launch-scope-item not-ready">
           <strong>Not a live signing workflow yet</strong>
-          Buyer/tenant representation agreements, listing agreements, seller disclosures, lease-listing and tenant-representation packets, and any form marked draft-only in your workspace.
+          Buyer/tenant representation agreements (TXR-1501 and TXR-1507), TXR-1508, and TXR-1506 are private-preview foundations only; listing agreements, seller disclosures, lease-listing and tenant-representation packets, and any form marked draft-only are not live signing workflows.
         </div>
       </div>
       <p><strong>Important:</strong> Do not represent a draft-only or unavailable form as generated, sent, or executed through HomeOfferFlow. Use your brokerage-approved process for those documents until HomeOfferFlow releases the separately mapped and signed workflow.</p>`;
@@ -13068,6 +13087,120 @@ function routeAfterMagicLinkIfNeeded() {
     renderLaunchScope();
   }
 })();
+</script>
+<style id="hof-private-form-drafts-v1">
+  .hof-private-form-drafts-card { border:1px solid rgba(113,184,157,.30); background:rgba(74,140,111,.055); margin-top:1rem; }
+  .hof-private-form-drafts-card h4 { margin-bottom:.35rem; }
+  .hof-private-form-drafts-card p { color:var(--gray-light); font-size:.86rem; line-height:1.5; }
+  .hof-private-form-drafts-list { list-style:none; margin:.8rem 0 0; padding:0; border-top:1px solid rgba(255,255,255,.10); }
+  .hof-private-form-drafts-list li { display:flex; justify-content:space-between; align-items:flex-start; gap:.7rem; padding:.65rem 0; border-bottom:1px solid rgba(255,255,255,.08); color:var(--gray-light); font-size:.84rem; line-height:1.4; }
+  .hof-private-form-drafts-list strong { color:var(--white); }
+  .hof-private-form-drafts-list small { color:var(--gray-light); }
+  @media (max-width:640px) { .hof-private-form-drafts-list li { display:block; } }
+</style>
+<script id="hof-private-form-drafts-v1">
+(function () {
+  const root = window;
+  const escape = value => String(value ?? '').replace(/[&<>\"]/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[char]));
+  const formatDate = value => {
+    const date = new Date(value);
+    return Number.isNaN(date.valueOf()) ? 'Saved draft' : date.toLocaleDateString(undefined, { month:'short', day:'numeric', year:'numeric' });
+  };
+  const activeAgent = () => {
+    const profile = root.hofAuth?.authoritativeProfile || {};
+    return !!root.hofAuth?.session?.user && String(profile.role || '').toLowerCase() !== 'investor';
+  };
+
+  async function loadPrivateDrafts() {
+    const client = root.getSupabaseClient?.();
+    const user = root.hofAuth?.session?.user;
+    if (!client || !user) return [];
+      const { data, error } = await client
+        .from('hof_standalone_agreements')
+        .select('id,form_code,source_revision,status,client_names,created_at,updated_at')
+      .eq('agent_user_id', user.id)
+      .eq('status', 'draft')
+      .order('updated_at', { ascending:false })
+      .limit(25);
+    if (error) throw error;
+    return data || [];
+  }
+
+  async function refreshPrivateDrafts() {
+    const list = document.getElementById('privateFormDraftsList');
+    if (!list) return;
+    try {
+      const drafts = await loadPrivateDrafts();
+      if (!drafts.length) {
+        list.innerHTML = '<li>No private form drafts saved yet.</li>';
+        return;
+      }
+      list.innerHTML = drafts.map(draft => {
+        const clients = Array.isArray(draft.client_names) && draft.client_names.length
+          ? draft.client_names.map(escape).join(', ')
+          : 'Client name not available';
+        return `<li><span><strong>${escape(draft.form_code)}</strong> · ${clients}<br><small>Approved source revision: ${escape(draft.source_revision)} · ${formatDate(draft.updated_at || draft.created_at)}</small></span><span><button type="button" class="btn-secondary hof-private-draft-preview" data-agreement-id="${escape(draft.id)}">Preview PDF</button></span></li>`;
+      }).join('');
+      list.querySelectorAll('.hof-private-draft-preview').forEach(button => {
+        button.addEventListener('click', async () => {
+          const token = root.hofAuth?.session?.access_token;
+          if (!token) return;
+          const original = button.textContent;
+          button.disabled = true; button.textContent = 'Loading…';
+          try {
+            const response = await fetch('/api/admin-dashboard?preview_agreement=' + encodeURIComponent(button.dataset.agreementId), { headers: { Authorization: `Bearer ${token}` } });
+            if (!response.ok) throw new Error('Preview is unavailable.');
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
+            window.open(url, '_blank', 'noopener');
+            setTimeout(() => URL.revokeObjectURL(url), 60000);
+          } catch (error) {
+            console.error('Private draft preview failed:', error);
+            alert(error.message || 'Preview is unavailable.');
+          } finally {
+            button.disabled = false; button.textContent = original;
+          }
+        });
+      });
+    } catch (error) {
+      console.error('Private form draft list failed:', error);
+      list.innerHTML = '<li>Could not load private form drafts.</li>';
+    }
+  }
+
+  function renderPrivateDraftsCard() {
+    const panel = document.getElementById('accountPanelDashboard');
+    if (!panel || !activeAgent() || document.getElementById('privateFormDraftsCard')) return;
+    const card = document.createElement('div');
+    card.id = 'privateFormDraftsCard';
+    card.className = 'account-card hof-private-form-drafts-card';
+    card.innerHTML = `
+      <h4>Private form drafts</h4>
+      <p>These are your saved source-gated form intakes. They are private to you and remain drafts only—HomeOfferFlow does not download, send, or sign them from this list.</p>
+      <ul id="privateFormDraftsList" class="hof-private-form-drafts-list"><li>Loading private form drafts…</li></ul>`;
+    panel.appendChild(card);
+    refreshPrivateDrafts();
+  }
+
+  const priorDashboard = root.renderAccountDashboard;
+  root.renderAccountDashboard = function renderAccountDashboardWithPrivateFormDrafts() {
+    if (typeof priorDashboard === 'function') priorDashboard.apply(this, arguments);
+    renderPrivateDraftsCard();
+  };
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', renderPrivateDraftsCard, { once:true });
+  else renderPrivateDraftsCard();
+})();
+</script>
+<script id="hof-pwa-registration-v1">
+  // Keep offline support limited to the public app shell. Offers, documents,
+  // authenticated data, and API responses are always fetched from the network.
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/service-worker.js', { scope: '/' })
+        .catch(error => console.warn('HomeOfferFlow offline support was not registered:', error));
+    });
+  }
 </script>
 </body>
 </html>

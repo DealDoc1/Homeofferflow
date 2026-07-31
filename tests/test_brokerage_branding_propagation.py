@@ -1,0 +1,26 @@
+import pathlib
+import unittest
+
+
+ROOT = pathlib.Path(__file__).resolve().parents[1]
+INDEX = (ROOT / "index.html").read_text(encoding="utf-8")
+PRODUCTION = (ROOT / "api" / "fill-pdf.py").read_text(encoding="utf-8")
+STAGING = (ROOT / "api" / "fill_pdf_20_19_staging.py").read_text(encoding="utf-8")
+
+
+class BrokerageBrandingPropagationTests(unittest.TestCase):
+    def test_saved_offer_payload_carries_active_brokerage_branding(self):
+        for value in ("brokerageName", "brokerageLogoUrl", "brokerageBrandColor", "brokerageContactEmail"):
+            self.assertIn(value, INDEX)
+        self.assertIn("window.hofPlatform?.brokerage", INDEX)
+
+    def test_production_and_staging_signing_messages_identify_brokerage(self):
+        for source in (PRODUCTION, STAGING):
+            self.assertIn("brokerage_name", source)
+            self.assertIn("brokerageName", source)
+            self.assertIn("prepared_by_line", source)
+            self.assertIn("HomeOfferFlow", source)
+
+
+if __name__ == "__main__":
+    unittest.main()

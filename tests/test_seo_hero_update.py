@@ -18,7 +18,7 @@ class SeoHeroUpdateTests(unittest.TestCase):
     def test_agent_copy_does_not_overstate_current_form_coverage(self):
         self.assertIn("Write supported Texas <em>offers faster</em>.", INDEX)
         self.assertIn(
-            "Standalone representation, listing, and seller forms are not yet included.",
+            "Representation and notice forms are in private preview foundations; listing and seller-form signing workflows are not live yet.",
             INDEX,
         )
 

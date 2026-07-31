@@ -6,6 +6,7 @@ ROOT = Path(__file__).resolve().parents[1]
 MIGRATION = (ROOT / "supabase" / "homeofferflow_brokerage_form_sources.sql").read_text()
 LISTING_EXPANSION = (ROOT / "supabase" / "homeofferflow_expand_brokerage_listing_form_sources.sql").read_text()
 HTML = (ROOT / "index.html").read_text(encoding="utf-8")
+SERVER_ONLY = (ROOT / "supabase" / "homeofferflow_brokerage_form_sources_server_only_select.sql").read_text(encoding="utf-8")
 
 
 class BrokerageFormSourceFoundationTests(unittest.TestCase):
@@ -28,8 +29,27 @@ class BrokerageFormSourceFoundationTests(unittest.TestCase):
         self.assertIn("m.role in ('broker_admin', 'owner')", MIGRATION)
         self.assertIn("Agents never get Storage access", MIGRATION)
 
+    def test_private_source_uploads_record_an_exact_pdf_fingerprint(self):
+        fingerprint_migration = (ROOT / "supabase" / "homeofferflow_brokerage_form_source_fingerprint.sql").read_text(encoding="utf-8")
+        self.assertIn("source_sha256", fingerprint_migration)
+        self.assertIn("^[0-9a-f]{64}$", fingerprint_migration)
+        self.assertIn("crypto.subtle.digest('SHA-256'", HTML)
+        self.assertIn("source_sha256: sourceSha256", HTML)
+
+    def test_brokerage_setup_records_txr_authorization_policy(self):
+        authorization_migration = (ROOT / "supabase" / "homeofferflow_brokerage_txr_authorization.sql").read_text(encoding="utf-8")
+        self.assertIn("txr_all_agents_authorized", authorization_migration)
+        self.assertIn("txr_authorization_attested_by", authorization_migration)
+        self.assertIn("brandTxrAuthorization", HTML)
+        self.assertIn("current members of both NAR and Texas REALTORS", HTML)
+        self.assertIn("Each agent still confirms their own current authorization", HTML)
+        self.assertIn("brandTxrAttestation", HTML)
+        self.assertIn("Check the brokerage Texas REALTORS® / NAR attestation before saving", HTML)
+        self.assertIn("This is not inferred from a license number", HTML)
+
     def test_listing_side_sources_are_private_and_do_not_activate_workflows(self):
         for form_code in ("TXR-1101", "TXR-1102", "TXR-1406", "TXR-1418"):
+            self.assertIn(f"'{form_code}'", MIGRATION)
             self.assertIn(f"'{form_code}'", LISTING_EXPANSION)
             self.assertIn(f"'{form_code}'", HTML)
         self.assertIn("does not enable form completion", LISTING_EXPANSION)
@@ -41,6 +61,18 @@ class BrokerageFormSourceFoundationTests(unittest.TestCase):
         self.assertIn("agents cannot download them from HomeOfferFlow", HTML)
         self.assertIn("It is not yet an active signing workflow.", HTML)
         self.assertIn("authorization_attested: true", HTML)
+
+    def test_source_metadata_reads_are_server_only(self):
+        self.assertIn("revoke select on table public.hof_brokerage_form_sources from authenticated", SERVER_ONLY)
+        self.assertIn("grant insert, update, delete on table public.hof_brokerage_form_sources to authenticated", SERVER_ONLY)
+        self.assertIn("scope=brokerage_form_sources", HTML)
+        self.assertIn("scope=approved_brokerage_sources", HTML)
+        self.assertIn("_brokerage_form_sources_payload", (ROOT / "api" / "admin-dashboard.py").read_text())
+        dashboard_source = (ROOT / "api" / "admin-dashboard.py").read_text()
+        self.assertIn("_json(self, 403, {\"error\": str(exc)})", dashboard_source)
+        # Browser reads must use the server endpoint; only the authorized upload
+        # path may still issue a direct insert into the private registry.
+        self.assertNotIn(".from('hof_brokerage_form_sources')\n        .select", HTML)
 
 
 if __name__ == "__main__":

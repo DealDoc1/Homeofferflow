@@ -4,7 +4,8 @@
 
 This release creates a private, source-gated **draft intake** for the Texas
 REALTORS(R) Unrepresented Customer Showing Form (TXR-1508, revision 02-25-26
-reviewed locally). It does not create a PDF, place initials or signatures,
+reviewed locally). It now has a private-preview renderer and explicit signer
+map in `api/txr_1508.py`, but it does not place live initials or signatures,
 send a showing form, or expose a member source PDF.
 
 TXR-1508 is not a buyer representation agreement. HomeOfferFlow must never
@@ -20,6 +21,7 @@ source.
 | Customer | One or two customer names | Do not reuse a buyer-representation draft without an explicit agent choice. |
 | Other representation | One explicit yes/no answer for each customer | A blank answer cannot be saved. |
 | Limits acknowledgement | Agent confirms the unrepresented, no-compensation, and no-advice limits | Required before the private draft can be saved. |
+| Acknowledgement signer | Explicitly choose broker or associate with customers | Required; HomeOfferFlow never infers the responsible signer. |
 | Broker information | Broker firm and associate fields | Final values must come from the brokerage profile, never a browser field. |
 
 ## Signing and release gate
@@ -34,5 +36,10 @@ Before this becomes a completed or sent showing form, HomeOfferFlow must have:
 4. Rendered and completed SignWell QA for every applicable printed field.
 5. HomeOfferFlow release-authority approval of the final workflow and
    customer-facing copy.
+
+The authorized one-page source was visually inspected and a sample overlay was
+rendered for property, broker, associate, customer, and representation-status
+fields. That is preview QA only; completed-signature visual QA is still
+required before any send action is exposed.
 
 Until those gates pass, the workflow remains a private draft record only.

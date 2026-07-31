@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">HomeOfferFlow</title>
+  <desc id="desc">A document flowing into a Texas home outline.</desc>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#173f35"/>
+      <stop offset="1" stop-color="#2f7d67"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#background)"/>
+  <path d="M128 254 256 145l128 109v122a27 27 0 0 1-27 27H155a27 27 0 0 1-27-27V254Z" fill="#f8f4e9"/>
+  <path d="M224 403v-96h64v96" fill="#d4aa55"/>
+  <path d="M196 223h120" stroke="#173f35" stroke-width="18" stroke-linecap="round"/>
+  <path d="M206 188h100v83H206z" fill="#fff"/>
+  <path d="M229 216h54M229 241h39" stroke="#2f7d67" stroke-width="12" stroke-linecap="round"/>
+  <path d="m306 260 30 30 58-64" fill="none" stroke="#d4aa55" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

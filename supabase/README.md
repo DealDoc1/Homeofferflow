@@ -24,6 +24,9 @@ platform-admin access, and reads the tracker using the server-only service key.
 - `homeofferflow_product_tracker.sql` creates and seeds the current tracker.
 - `homeofferflow_tracker_server_access.sql` records the server-only access
   hardening applied after the initial live migration.
+- `homeofferflow_ai_feedback_rls_hardening.sql` restricts AI-review snapshots
+  and feedback to authenticated owner-scoped reads/inserts; feedback submitted
+  through the server route continues to use the service role.
 - `homeofferflow_revenue_priority_2026_07.sql` orders the roadmap using market
   adoption, ease of shipping/adoption, and proximity to recurring revenue.
   Current product price has zero weight. Completed production features are in
