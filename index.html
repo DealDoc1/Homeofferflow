@@ -12237,7 +12237,10 @@ function routeAfterMagicLinkIfNeeded() {
   const escape = value => String(value ?? '').replace(/[&<>\"]/g, char => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'
   }[char]));
-  const isAgentAccount = () => String(root.hofAuth?.role || '').toLowerCase() !== 'investor';
+  const isAgentAccount = () => {
+    const role = String(root.hofAuth?.role || '').toLowerCase();
+    return !!root.hofAuth?.session?.user && ['agent', 'broker', 'brokerage_admin', 'team_lead'].includes(role);
+  };
   const filePath = userId => `${userId}/iabs.pdf`;
 
   async function blobToBase64(blob) {

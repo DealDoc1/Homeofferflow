@@ -41,6 +41,8 @@ class AgentIabsProfileTests(unittest.TestCase):
         self.assertIn("<h4>My IABS</h4>", HTML)
         self.assertIn("Include my IABS?", HTML)
         self.assertIn("It is never attached automatically.", HTML)
+        self.assertIn("['agent', 'broker', 'brokerage_admin', 'team_lead'].includes(role)", HTML)
+        self.assertIn("!!root.hofAuth?.session?.user", HTML)
         self.assertIn("includeAgentIabs", HTML)
         self.assertIn("if (!isAgentAccount() || !root.state?.data?.includeAgentIabs) return null;", HTML)
         self.assertIn("needsBuyerSignature: false", HTML)
