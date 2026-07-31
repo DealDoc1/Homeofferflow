@@ -32,3 +32,6 @@ limited release, compare a documented sample of anonymized, real transaction
 scenarios against review by an experienced Texas broker or agent. Record where
 the output was useful, misleading, or insufficient, then adjust the feature
 without claiming it can replace professional judgment.
+
+Use [AI_OFFER_REVIEW_EXPERT_QA.md](AI_OFFER_REVIEW_EXPERT_QA.md) for the
+structured calibration record and release threshold.
