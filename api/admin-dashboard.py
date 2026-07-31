@@ -41,6 +41,17 @@ TXR_1507_FORM_CODE = "TXR-1507"
 TXR_1508_FORM_CODE = "TXR-1508"
 
 
+def _pdf_response(handler, pdf_bytes, filename):
+    body = bytes(pdf_bytes or b"")
+    handler.send_response(200)
+    handler.send_header("Content-Type", "application/pdf")
+    handler.send_header("Content-Disposition", f'inline; filename="{filename}"')
+    handler.send_header("Content-Length", str(len(body)))
+    handler.send_header("Cache-Control", "private, no-store")
+    handler.end_headers()
+    handler.wfile.write(body)
+
+
 def _json(handler, code, payload):
     body = json.dumps(payload, default=str).encode("utf-8")
     handler.send_response(code)
@@ -1339,6 +1350,83 @@ async def _create_txr_1506_draft(user, data):
     return await _create_representation_draft(user, data, TXR_1506_FORM_CODE, _parse_txr_1506_draft)
 
 
+async def _render_txr_1507_draft_preview(user, agreement_id):
+    """Render an agent's own approved-source TXR-1507 draft privately.
+
+    This endpoint intentionally stops at a PDF preview. It does not mutate the
+    agreement, create a SignWell document, or expose the private source URL.
+    Every request revalidates the agent's active membership, brokerage TXR
+    authorization, approved source, and draft ownership.
+    """
+    try:
+        agreement_uuid = str(uuid.UUID(str(agreement_id)))
+    except (TypeError, ValueError, AttributeError):
+        raise ValueError("Choose a valid private agreement draft.")
+    brokerage_id = await _active_brokerage_member(user)
+    await _require_brokerage_txr_authorization(brokerage_id)
+    agreements = await _get(
+        "hof_standalone_agreements?"
+        f"id=eq.{urllib.parse.quote(agreement_uuid)}"
+        f"&agent_user_id=eq.{urllib.parse.quote(user['id'])}"
+        f"&brokerage_id=eq.{urllib.parse.quote(brokerage_id)}"
+        "&form_code=eq.TXR-1507&status=eq.draft"
+        "&select=id,form_source_id,source_revision,client_names,agreement_data&limit=1"
+    )
+    if not agreements:
+        raise PermissionError("That private agreement draft is unavailable.")
+    agreement = agreements[0]
+    sources = await _get(
+        "hof_brokerage_form_sources?"
+        f"id=eq.{urllib.parse.quote(str(agreement['form_source_id']))}"
+        f"&brokerage_id=eq.{urllib.parse.quote(brokerage_id)}"
+        "&form_code=eq.TXR-1507&status=eq.approved&authorization_attested=is.true"
+        "&select=id,source_revision,storage_bucket,storage_path,original_filename&limit=1"
+    )
+    if not sources:
+        raise ValueError("The approved TXR-1507 source is no longer available.")
+    source = sources[0]
+    if source.get("source_revision") != agreement.get("source_revision"):
+        raise ValueError("The draft source revision no longer matches the approved source.")
+    async with httpx.AsyncClient(timeout=20) as client:
+        response = await client.get(
+            f"{SUPABASE_URL}/storage/v1/object/"
+            f"{urllib.parse.quote(str(source['storage_bucket']), safe='')}/"
+            f"{urllib.parse.quote(str(source['storage_path']), safe='/')}",
+            headers=_headers(),
+        )
+    if response.status_code != 200 or not response.content.startswith(b"%PDF"):
+        raise RuntimeError("The approved TXR-1507 source could not be loaded.")
+    brokerage_rows = await _get(
+        "hof_brokerages?"
+        f"id=eq.{urllib.parse.quote(brokerage_id)}"
+        "&select=id,name,dba_name,license_number&limit=1"
+    )
+    profile_rows = await _get(
+        "hof_profiles?"
+        f"id=eq.{urllib.parse.quote(user['id'])}"
+        "&select=agent_name,license_number&limit=1"
+    )
+    if not brokerage_rows:
+        raise RuntimeError("The brokerage record could not be loaded.")
+    agreement_data = agreement.get("agreement_data") or {}
+    compensation_keys = (
+        "purchase_percentage", "purchase_flat_fee", "lease_one_month_percentage",
+        "lease_total_rents_percentage", "lease_flat_fee"
+    )
+    render_data = {
+        "client_names": agreement.get("client_names") or [],
+        **agreement_data,
+        "compensation": {key: agreement_data.get(key, "") for key in compensation_keys},
+    }
+    from api.txr_1507 import render_txr_1507
+    return render_txr_1507(
+        response.content,
+        render_data,
+        brokerage_rows[0],
+        profile_rows[0] if profile_rows else {},
+    )
+
+
 class handler(BaseHTTPRequestHandler):
     def do_OPTIONS(self):
         _json(self, 200, {"status": "ok"})
@@ -1354,6 +1442,11 @@ class handler(BaseHTTPRequestHandler):
                 _json(self, 401, {"error": "A valid signed-in session is required."})
                 return
             query = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+            preview_agreement = str((query.get("preview_agreement") or [""])[0]).strip()
+            if preview_agreement:
+                pdf = asyncio.run(_render_txr_1507_draft_preview(user, preview_agreement))
+                _pdf_response(self, pdf, "TXR-1507-private-draft-preview.pdf")
+                return
             scope = str((query.get("scope") or [""])[0]).strip().lower()
             if scope == "brokerage":
                 context = asyncio.run(_brokerage_admin_context(user))

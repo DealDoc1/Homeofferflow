@@ -76,7 +76,11 @@ validated intake values, and keeps the client one- and client two-signer maps
 separate from the purchase-packet coordinates. This is renderer QA work, not
 an executable or production signing release: an authorized brokerage
 administrator must still upload and attest to the source, and the associate /
-action is exposed.
+client signing order must pass completed SignWell visual QA before a send
+action is exposed. Private TXR-1507 drafts now have an agent-only PDF preview
+that revalidates ownership, active brokerage membership, brokerage
+authorization, approved source status, and source revision on every request.
+It does not send or sign documents and never returns the private source URL.
 
 ### 2. Seller disclosure workflow
 

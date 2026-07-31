@@ -207,6 +207,8 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
         self.assertIn(".eq('agent_user_id', user.id)", HTML)
         self.assertIn(".eq('status', 'draft')", HTML)
         self.assertIn("HomeOfferFlow does not download, send, or sign them from this list.", HTML)
+        self.assertIn("Preview PDF", HTML)
+        self.assertIn("preview_agreement=", HTML)
         self.assertNotIn("agreement_data", HTML[HTML.index('id="hof-private-form-drafts-v1"'):])
 
     def test_draft_action_reuses_an_existing_authenticated_function(self):
@@ -220,3 +222,5 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
         self.assertIn("txr_all_agents_authorized=is.true", backend)
         self.assertIn("txr_authorization_attested_by=not.is.null", backend)
         self.assertIn("_active_brokerage_member", backend)
+        self.assertIn("_render_txr_1507_draft_preview", backend)
+        self.assertIn("Cache-Control", backend)

@@ -13028,9 +13028,9 @@ function routeAfterMagicLinkIfNeeded() {
     const client = root.getSupabaseClient?.();
     const user = root.hofAuth?.session?.user;
     if (!client || !user) return [];
-    const { data, error } = await client
-      .from('hof_standalone_agreements')
-      .select('form_code,source_revision,status,client_names,created_at,updated_at')
+      const { data, error } = await client
+        .from('hof_standalone_agreements')
+        .select('id,form_code,source_revision,status,client_names,created_at,updated_at')
       .eq('agent_user_id', user.id)
       .eq('status', 'draft')
       .order('updated_at', { ascending:false })
@@ -13052,8 +13052,29 @@ function routeAfterMagicLinkIfNeeded() {
         const clients = Array.isArray(draft.client_names) && draft.client_names.length
           ? draft.client_names.map(escape).join(', ')
           : 'Client name not available';
-        return `<li><span><strong>${escape(draft.form_code)}</strong> · ${clients}<br><small>Approved source revision: ${escape(draft.source_revision)} · ${formatDate(draft.updated_at || draft.created_at)}</small></span><span>Private draft</span></li>`;
+        return `<li><span><strong>${escape(draft.form_code)}</strong> · ${clients}<br><small>Approved source revision: ${escape(draft.source_revision)} · ${formatDate(draft.updated_at || draft.created_at)}</small></span><span><button type="button" class="btn-secondary hof-private-draft-preview" data-agreement-id="${escape(draft.id)}">Preview PDF</button></span></li>`;
       }).join('');
+      list.querySelectorAll('.hof-private-draft-preview').forEach(button => {
+        button.addEventListener('click', async () => {
+          const token = root.hofAuth?.session?.access_token;
+          if (!token) return;
+          const original = button.textContent;
+          button.disabled = true; button.textContent = 'Loading…';
+          try {
+            const response = await fetch('/api/admin-dashboard?preview_agreement=' + encodeURIComponent(button.dataset.agreementId), { headers: { Authorization: `Bearer ${token}` } });
+            if (!response.ok) throw new Error('Preview is unavailable.');
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
+            window.open(url, '_blank', 'noopener');
+            setTimeout(() => URL.revokeObjectURL(url), 60000);
+          } catch (error) {
+            console.error('Private draft preview failed:', error);
+            alert(error.message || 'Preview is unavailable.');
+          } finally {
+            button.disabled = false; button.textContent = original;
+          }
+        });
+      });
     } catch (error) {
       console.error('Private form draft list failed:', error);
       list.innerHTML = '<li>Could not load private form drafts.</li>';
