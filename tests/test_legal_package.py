@@ -36,3 +36,5 @@ class LegalPackageTests(unittest.TestCase):
         self.assertIn("Hardware and Software Requirements", esign)
         self.assertIn("Source Rights", terms)
         self.assertIn("draft-only", disclaimer)
+        self.assertIn("individual point-of-use attestation", terms)
+        self.assertIn("active brokerage-level authorization", disclaimer)
