@@ -49,6 +49,26 @@ class BrokerageFormSourceFoundationTests(unittest.TestCase):
         self.assertIn("Check the brokerage Texas REALTORS® / NAR attestation before saving", HTML)
         self.assertIn("This is not inferred from a license number", HTML)
 
+    def test_brokerage_setup_persists_all_visible_identity_fields(self):
+        """Prevent branding/setup inputs from silently becoming display-only."""
+        for field_id in (
+            "brandOrgType",
+            "brandSlug",
+            "brandWebsiteUrl",
+            "brandOfficeAddress",
+            "brandOfficeCity",
+            "brandOfficeState",
+            "brandOfficeZip",
+        ):
+            self.assertIn(f"getVal('{field_id}')", HTML)
+        self.assertIn("org_type: getVal('brandOrgType')", HTML)
+        self.assertIn("slug: getVal('brandSlug')", HTML)
+        self.assertIn("website_url: getVal('brandWebsiteUrl')", HTML)
+        self.assertIn("office_address: getVal('brandOfficeAddress')", HTML)
+        self.assertIn("office_city: getVal('brandOfficeCity')", HTML)
+        self.assertIn("office_state: getVal('brandOfficeState')", HTML)
+        self.assertIn("office_zip: getVal('brandOfficeZip')", HTML)
+
     def test_every_restricted_txr_workflow_requires_individual_nar_texas_realtors_attestation(self):
         """Keep the point-of-use membership/authority gate on every TXR workflow."""
         attestation = "I attest that I am a current Texas REALTORS® / NAR member"
@@ -82,6 +102,15 @@ class BrokerageFormSourceFoundationTests(unittest.TestCase):
             "SHA-256 fingerprint",
             "No / not all",
             "completed signed PDF",
+        ):
+            self.assertIn(text, BROKERAGE_QA)
+
+    def test_broker_admin_qa_separates_platform_source_owner_intake(self):
+        for text in (
+            "Platform source-owner intake",
+            "platform administrator",
+            "workflow activation remains locked",
+            "no draft, signer fields, email, or SignWell document was created",
         ):
             self.assertIn(text, BROKERAGE_QA)
 

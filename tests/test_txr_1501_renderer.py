@@ -32,7 +32,7 @@ def sample_data():
         "protection_days": "30",
         "payment_county": "Collin",
         "intermediary": "authorized",
-        "signer_plan": "clients_only",
+        "signer_plan": "clients_and_associate",
     }
 
 
@@ -51,13 +51,15 @@ class Txr1501RendererTests(unittest.TestCase):
             self.assertIn(expected, text)
 
     def test_signer_map_requires_plan_and_supports_one_or_two_clients(self):
-        one = build_signwell_fields_txr1501({**sample_data(), "signer_plan": "clients_only"}, client_count=1)[0]
-        two = build_signwell_fields_txr1501({**sample_data(), "signer_plan": "clients_only"}, client_count=2)[0]
-        self.assertEqual(len(one), 2)
-        self.assertEqual(len(two), 4)
+        one = build_signwell_fields_txr1501({**sample_data(), "signer_plan": "clients_and_associate"}, client_count=1)[0]
+        two = build_signwell_fields_txr1501({**sample_data(), "signer_plan": "clients_and_associate"}, client_count=2)[0]
+        self.assertEqual(len(one), 4)
+        self.assertEqual(len(two), 6)
         self.assertTrue(all(field["page"] == 6 for field in two))
-        self.assertEqual({field["api_id"] for field in one}, {"txr1501_client1_signature_p6", "txr1501_client1_date_p6"})
-        with self.assertRaisesRegex(ValueError, "Choose who will sign"):
+        self.assertEqual({field["api_id"] for field in one}, {"txr1501_client1_signature_p6", "txr1501_client1_date_p6", "txr1501_associate_signature_p6", "txr1501_associate_date_p6"})
+        with self.assertRaisesRegex(ValueError, "authorized broker"):
+            build_signwell_fields_txr1501({**sample_data(), "signer_plan": "clients_only"}, client_count=1)
+        with self.assertRaisesRegex(ValueError, "authorized broker"):
             build_signwell_fields_txr1501({**sample_data(), "signer_plan": ""}, client_count=1)
 
 

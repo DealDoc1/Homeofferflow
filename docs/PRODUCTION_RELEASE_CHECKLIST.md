@@ -55,6 +55,22 @@ visual-QA gates required for a packet or legal-form release.
 
 Do not use staging coordinates or text extraction alone as evidence of PDF QA.
 
+## 3A. Restricted Texas REALTORS® source gate
+
+For any release that touches a restricted Texas REALTORS® / NAR workflow:
+
+- [ ] Brokerage authorization is recorded by the brokerage administrator; it
+  is not inferred from a license number.
+- [ ] Each agent attests individually at the point of use.
+- [ ] If a source PDF is private to a brokerage, it was uploaded through the
+  platform source-owner intake by an authorized platform administrator or
+  source owner, with the printed revision and exact SHA-256 fingerprint.
+- [ ] The source record is private and brokerage-scoped.
+- [ ] Source approval has not been mistaken for workflow activation; no draft,
+  signer fields, email, or SignWell document is created by source intake alone.
+- [ ] Signer plan, rendered completed packet QA, completed-signature visual QA,
+  and release-authority approval are recorded separately before activation.
+
 ## 4. Production deploy
 
 HomeOfferFlow disables automatic Git deployments to conserve Vercel Hobby

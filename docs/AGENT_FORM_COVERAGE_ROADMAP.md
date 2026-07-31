@@ -11,6 +11,12 @@ Agents must continue using OnDemand-approved workflows for standalone buyer
 representation agreements, listing agreements, seller disclosure notices, and
 any other documents not expressly available in HomeOfferFlow.
 
+The authenticated agent dashboard now includes a **Request a missing form**
+action. It routes the request into the existing support/feedback queue with a
+form-request category and asks for the transaction role and intended workflow;
+agents are instructed not to include confidential client information. A
+request records demand only—it never unlocks, generates, or sends a legal form.
+
 This language appears on `/ondemand` before an agent begins the 60-day trial.
 
 ## What is live now
@@ -73,14 +79,19 @@ their browsers. It does not activate or distribute a form by itself.
 The source-specific renderer and signer-map foundation is now staged in
 `lib/txr_1507.py`. It preserves the supplied two-page source, overlays only
 validated intake values, and keeps the client one- and client two-signer maps
-separate from the purchase-packet coordinates. This is renderer QA work, not
-an executable or production signing release: an authorized brokerage
-administrator must still upload and attest to the source, and the associate /
-client signing order must pass completed SignWell visual QA before a send
-action is exposed. Private TXR-1507 drafts now have an agent-only PDF preview
-that revalidates ownership, active brokerage membership, brokerage
-authorization, approved source status, and source revision on every request.
-It does not send or sign documents and never returns the private source URL.
+separate from the purchase-packet coordinates. Because the source includes a
+brokerage execution line, the signer plan now requires clients plus the
+authorized associate or clients plus the authorized broker; a client-only plan
+is rejected. Source-coordinate overlays have been re-rendered against the
+exact private source to seat the brokerage and client fields on the printed
+signature/date lines. This is renderer QA work, not an executable or production
+signing release: an authorized brokerage administrator must still upload and
+attest to the source, and the associate/client signing order must pass completed
+SignWell visual QA before a send action is exposed. Private TXR-1507 drafts now
+have an agent-only PDF preview that revalidates ownership, active brokerage
+membership, brokerage authorization, approved source status, and source
+revision on every request. It does not send or sign documents and never returns
+the private source URL.
 
 The companion TXR-1501 Long Form foundation is now staged in
 `lib/txr_1501.py`. The authorized six-page source was visually inspected

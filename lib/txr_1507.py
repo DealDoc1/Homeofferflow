@@ -128,15 +128,23 @@ def build_signwell_fields_txr1507(data, *, client_count=1):
     # SignWell's letter-page coordinates use a 4/3 scale and a top-origin
     # system in the existing HomeOfferFlow integration. These positions are
     # intentionally separate from the purchase-packet map.
+    signer_plan = data.get("signer_plan")
+    if signer_plan not in {"clients_and_associate", "clients_and_broker"}:
+        raise ValueError("Choose an authorized broker or broker-associate signer for the TXR-1507 agreement.")
     fields = [
         {"api_id": "txr1507_client1_initials_p1", "type": "initials", "page": 1, "x": 444, "y": 1003, "recipient_id": "1", "required": True, "width": 32, "height": 14},
-        {"api_id": "txr1507_client1_signature_p2", "type": "signature", "page": 2, "x": 432, "y": 666, "recipient_id": "1", "required": True, "width": 190, "height": 26},
-        {"api_id": "txr1507_client1_date_p2", "type": "date", "page": 2, "x": 660, "y": 666, "recipient_id": "1", "required": True, "width": 88, "height": 20, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
+        {"api_id": "txr1507_client1_signature_p2", "type": "signature", "page": 2, "x": 432, "y": 715, "recipient_id": "1", "required": True, "width": 190, "height": 26},
+        {"api_id": "txr1507_client1_date_p2", "type": "date", "page": 2, "x": 660, "y": 715, "recipient_id": "1", "required": True, "width": 88, "height": 20, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
     ]
     if client_count == 2:
         fields.extend([
             {"api_id": "txr1507_client2_initials_p1", "type": "initials", "page": 1, "x": 494, "y": 1003, "recipient_id": "2", "required": True, "width": 32, "height": 14},
-            {"api_id": "txr1507_client2_signature_p2", "type": "signature", "page": 2, "x": 432, "y": 784, "recipient_id": "2", "required": True, "width": 190, "height": 26},
-            {"api_id": "txr1507_client2_date_p2", "type": "date", "page": 2, "x": 660, "y": 784, "recipient_id": "2", "required": True, "width": 88, "height": 20, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
+            {"api_id": "txr1507_client2_signature_p2", "type": "signature", "page": 2, "x": 432, "y": 820, "recipient_id": "2", "required": True, "width": 190, "height": 26},
+            {"api_id": "txr1507_client2_date_p2", "type": "date", "page": 2, "x": 660, "y": 820, "recipient_id": "2", "required": True, "width": 88, "height": 20, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
         ])
+    role = "associate" if signer_plan == "clients_and_associate" else "broker"
+    fields.extend([
+        {"api_id": f"txr1507_{role}_signature_p2", "type": "signature", "page": 2, "x": 70, "y": 715, "recipient_id": role, "required": True, "width": 190, "height": 26},
+        {"api_id": f"txr1507_{role}_date_p2", "type": "date", "page": 2, "x": 270, "y": 715, "recipient_id": role, "required": True, "width": 88, "height": 20, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
+    ])
     return [fields]
