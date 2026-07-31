@@ -11887,6 +11887,7 @@ function routeAfterMagicLinkIfNeeded() {
     const brokerage = root.hofPlatform?.brokerage;
     const result = document.getElementById('brokerageTxrAuthorizationResult');
     const value = String(document.getElementById('brokerageTxrAuthorization')?.value || 'unknown');
+    const attestationConfirmed = document.getElementById('brokerageTxrAttestation')?.checked === true;
     if (!session?.access_token || !brokerage?.id) {
       if (result) result.textContent = 'Sign in again before saving the authorization status.';
       return;
@@ -11896,7 +11897,7 @@ function routeAfterMagicLinkIfNeeded() {
       const response = await fetch('/api/admin-dashboard', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + session.access_token },
-        body: JSON.stringify({ action: 'update_brokerage_txr_authorization', txr_authorization: value })
+        body: JSON.stringify({ action: 'update_brokerage_txr_authorization', txr_authorization: value, txr_attestation_confirmed: attestationConfirmed })
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok || !data.authorization) throw new Error(data.error || 'Could not save the authorization status.');
@@ -12026,7 +12027,7 @@ function routeAfterMagicLinkIfNeeded() {
           '<option value="unknown"' + (!authorization.attestedAt ? ' selected' : '') + '>Not confirmed yet</option>' +
           '<option value="all_agents_authorized"' + (authorization.allAgentsAuthorized ? ' selected' : '') + '>Yes — all participating agents are authorized</option>' +
           '<option value="not_all"' + (authorization.attestedAt && !authorization.allAgentsAuthorized ? ' selected' : '') + '>No / not all participating agents are authorized</option>' +
-        '</select><button type="button" class="brokerage-access-button" onclick="saveBrokerageTxrAuthorization()">Save authorization</button></div>' +
+        '</select><label class="brokerage-txr-attestation"><input id="brokerageTxrAttestation" type="checkbox"> I attest that this status is accurate for the brokerage and understand that each agent must separately confirm their own current Texas REALTORS® / NAR authorization before using a restricted source form.</label><button type="button" class="brokerage-access-button" onclick="saveBrokerageTxrAuthorization()">Save authorization</button></div>' +
         '<p id="brokerageTxrAuthorizationResult" class="brokerage-invite-result">This is the broker-admin attestation only. Every agent confirms separately before using a restricted form.</p>' +
         '<p class="brokerage-membership-note">Suspending an agent removes brokerage-managed access only. It does not cancel that agent\'s HomeOfferFlow subscription or delete their offers.</p>' +
         '<div class="brokerage-invite-form" style="margin-top:1rem"><label for="brokerageBrandColor">Brokerage branding</label>' +
