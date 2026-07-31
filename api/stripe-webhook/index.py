@@ -3,6 +3,7 @@ import os
 import time
 import hmac
 import hashlib
+import urllib.parse
 from http.server import BaseHTTPRequestHandler
 
 import httpx
@@ -459,6 +460,10 @@ class handler(BaseHTTPRequestHandler):
             self._upsert_subscription_by_user_id(payload)
             if brokerage_id and payload.get("status") in ("active", "trialing"):
                 self._activate_brokerage_membership(user_id, email, brokerage_id)
+            elif brokerage_id and payload.get("status") in ("past_due", "canceled"):
+                self._suspend_brokerage_membership_for_billing(
+                    user_id, email, brokerage_id
+                )
         elif payload.get("stripe_subscription_id"):
             self._patch_subscription_by_stripe_subscription_id(
                 payload["stripe_subscription_id"],
@@ -600,6 +605,62 @@ class handler(BaseHTTPRequestHandler):
             }
 
         self._patch_subscription_by_stripe_subscription_id(subscription_id, payload)
+
+        # A failed collection must also remove brokerage-managed agent access.
+        # Do not create a membership here and do not alter broker-admin/owner
+        # roles; those roles are organization governance, not subscription
+        # seats. A later active/trialing subscription event can restore an
+        # agent membership through the normal activation path.
+        refreshed_status = str(payload.get("status") or "").lower()
+        if refreshed_status in ("past_due", "canceled"):
+            user_id = payload.get("user_id")
+            brokerage_id = payload.get("brokerage_id")
+            if user_id and brokerage_id:
+                self._suspend_brokerage_membership_for_billing(
+                    user_id, "", brokerage_id
+                )
+
+    def _suspend_brokerage_membership_for_billing(
+        self, user_id, email, brokerage_id
+    ):
+        """Suspend only an agent seat when its subscription is non-current.
+
+        This deliberately updates an existing agent membership only. It never
+        creates a row, changes a role, or touches brokerage admins/owners.
+        """
+        self._require_supabase()
+        members_url = (
+            f"{SUPABASE_URL}/rest/v1/hof_brokerage_members"
+            f"?brokerage_id=eq.{urllib.parse.quote(str(brokerage_id), safe='')}"
+            f"&user_id=eq.{urllib.parse.quote(str(user_id), safe='')}"
+            "&role=eq.agent&select=id&limit=1"
+        )
+        headers = self._supabase_headers()
+        with httpx.Client(timeout=15) as client:
+            current = client.get(members_url, headers=headers)
+            if current.status_code >= 300:
+                raise Exception(
+                    f"Brokerage membership lookup failed: "
+                    f"{current.status_code} {current.text}"
+                )
+            rows = current.json()
+            if not rows:
+                return
+            response = client.patch(
+                f"{SUPABASE_URL}/rest/v1/hof_brokerage_members"
+                f"?id=eq.{urllib.parse.quote(str(rows[0]['id']), safe='')}",
+                headers={**headers, "Prefer": "return=minimal"},
+                json={
+                    "email": email or None,
+                    "status": "suspended",
+                    "updated_at": self._iso_now(),
+                },
+            )
+            if response.status_code >= 300:
+                raise Exception(
+                    f"Brokerage membership suspension failed: "
+                    f"{response.status_code} {response.text}"
+                )
 
     def _upsert_subscription_by_user_id(self, payload):
         self._require_supabase()

@@ -68,8 +68,8 @@ webhook payload data into tickets or the dashboard.
 | 3 | Deliver `customer.subscription.created` | The isolated ledger records the event as `processed`; no duplicate membership is created. |
 | 4 | Deliver `invoice.paid` during the trial | The subscription remains `trialing`, not incorrectly promoted to `active`. |
 | 5 | Cancel at period end through Stripe test mode | `cancel_at_period_end=true` is recorded; access persists through the stored end date. |
-| 6 | Restore the subscription or create another test subscription, then deliver `invoice.payment_failed` | Status becomes `past_due`; no unrelated account is affected. |
-| 7 | Deliver `customer.subscription.deleted` | Status becomes `canceled`; brokerage activation is not re-created. |
+| 6 | Restore the subscription or create another test subscription, then deliver `invoice.payment_failed` | Subscription becomes `past_due`; an existing agent brokerage membership becomes `suspended`; no unrelated account is affected. |
+| 7 | Deliver `customer.subscription.deleted` | Subscription becomes `canceled`; an existing agent brokerage membership becomes `suspended`; brokerage activation is not re-created. |
 | 8 | Resend a previously processed Stripe event | Endpoint returns success without reapplying the billing mutation; its ledger row remains a single event record. |
 | 9 | Send one Stripe test event to the production endpoint only if Stripe allows a safe manual delivery | Production returns a rejection for `livemode=false`; do not repeat or use a live event. |
 
