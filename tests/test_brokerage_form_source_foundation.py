@@ -7,6 +7,7 @@ MIGRATION = (ROOT / "supabase" / "homeofferflow_brokerage_form_sources.sql").rea
 LISTING_EXPANSION = (ROOT / "supabase" / "homeofferflow_expand_brokerage_listing_form_sources.sql").read_text()
 HTML = (ROOT / "index.html").read_text(encoding="utf-8")
 SERVER_ONLY = (ROOT / "supabase" / "homeofferflow_brokerage_form_sources_server_only_select.sql").read_text(encoding="utf-8")
+BROKERAGE_INDEXES = (ROOT / "supabase" / "homeofferflow_brokerage_fk_indexes.sql").read_text(encoding="utf-8")
 
 
 class BrokerageFormSourceFoundationTests(unittest.TestCase):
@@ -58,6 +59,19 @@ class BrokerageFormSourceFoundationTests(unittest.TestCase):
         self.assertGreaterEqual(dashboard.count("formUseAttested"), 4)
         self.assertIn("form_use_attested_by", dashboard)
         self.assertIn("form_use_attested_at", dashboard)
+
+    def test_brokerage_rollout_foreign_keys_have_targeted_indexes(self):
+        for index_name in (
+            "hof_brokerage_form_sources_authorized_by_user_id_idx",
+            "hof_brokerage_invites_accepted_by_idx",
+            "hof_brokerage_invites_invited_by_idx",
+            "hof_brokerage_members_invited_by_idx",
+            "hof_brokerage_members_user_id_idx",
+            "hof_brokerages_created_by_idx",
+            "hof_brokerages_txr_authorization_attested_by_idx",
+        ):
+            self.assertIn(f"create index if not exists {index_name}", BROKERAGE_INDEXES)
+        self.assertIn("do not alter RLS", BROKERAGE_INDEXES)
 
     def test_listing_side_sources_are_private_and_do_not_activate_workflows(self):
         for form_code in ("TXR-1101", "TXR-1102", "TXR-1406", "TXR-1418"):
