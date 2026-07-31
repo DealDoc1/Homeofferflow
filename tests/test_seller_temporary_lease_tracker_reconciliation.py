@@ -9,12 +9,12 @@ MIGRATION = (
 
 
 class SellerTemporaryLeaseTrackerReconciliationTests(unittest.TestCase):
-    def test_tracker_never_marks_the_fail_closed_path_as_production(self):
+    def test_tracker_matches_the_verified_production_release(self):
         self.assertIn("where slug = 'seller-temporary-lease'", MIGRATION)
-        self.assertIn("status = 'staging_passed'", MIGRATION)
-        self.assertIn("environment = 'staging'", MIGRATION)
-        self.assertIn("Production adapter still blocks this path", MIGRATION)
-        self.assertNotIn("status = 'production'", MIGRATION)
+        self.assertIn("status = 'production'", MIGRATION)
+        self.assertIn("environment = 'production'", MIGRATION)
+        self.assertIn("buyer/landlord and seller/tenant execution routing", MIGRATION)
+        self.assertIn("approved seller-lease golden regression", MIGRATION)
 
 
 if __name__ == "__main__":

@@ -1,21 +1,21 @@
--- Reconcile the roadmap summary with the fail-closed production adapter.
+-- Reconcile the roadmap summary with the production TREC 15-7 release.
 --
--- TREC 15-7 Seller's Temporary Residential Lease has a staging packet and
--- documented staging QA, but api/fill_pdf_20_19_production_adapter.py still
--- rejects this path. The tracker must not advertise it as production until the
--- completed signed-PDF release gate and production verification are approved.
+-- The seller temporary lease passed the documented staging packet and
+-- completed-signature review, then received the production execution release.
+-- Keep the tracker explicit about the required buyer/landlord and
+-- seller/tenant signing order and the ongoing regression obligation.
 
 begin;
 
 update public.hof_roadmap_items
 set
-  status = 'staging_passed',
-  environment = 'staging',
+  status = 'production',
+  environment = 'production',
   qa_status = 'passed',
-  target_release = 'Next production unlock',
-  current_release = 'agent/seller-temp-lease-staging',
-  known_issues = 'Production adapter still blocks this path until the completed signed-PDF release gate is approved.',
-  next_action = 'Complete the documented signed staging packet review, then create a production unlock PR and verify the production packet.',
+  target_release = 'Production',
+  current_release = 'Seller temporary lease production release (2026-07-29)',
+  known_issues = null,
+  next_action = 'Production Seller Temporary Residential Lease (TREC 15-7) is live with buyer/landlord and seller/tenant execution routing. Run the approved seller-lease golden regression after every packet assembly or signature-placement change.',
   is_locked = true
 where slug = 'seller-temporary-lease';
 
