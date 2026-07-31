@@ -3946,7 +3946,8 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
 
           <div class="admin-metric">
             <div class="admin-metric-label">AI Calibration Notes</div>
-            <div class="admin-metric-value">${metrics.aiCalibrationFeedbackCount || 0}</div>
+            <div class="admin-metric-value">${metrics.aiCalibrationFeedbackCount || 0} / ${metrics.aiCalibrationTarget || 5}</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:${metrics.aiCalibrationReady ? 'var(--sage-light)' : 'var(--gold-light)'}">${metrics.aiCalibrationReady ? 'Ready for expert review gate' : 'Needs anonymized scenarios'}</div>
           </div>
 
           <div class="admin-metric">

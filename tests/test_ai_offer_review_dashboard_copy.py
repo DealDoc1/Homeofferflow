@@ -27,6 +27,8 @@ class AiOfferReviewDashboardCopyTests(unittest.TestCase):
     def test_admin_dashboard_surfaces_calibration_notes(self):
         self.assertIn("AI Calibration Notes", INDEX_HTML)
         self.assertIn("Feedback and AI Calibration", INDEX_HTML)
+        self.assertIn("metrics.aiCalibrationFeedbackCount || 0} / ${metrics.aiCalibrationTarget || 5}", INDEX_HTML)
+        self.assertIn("metrics.aiCalibrationReady", INDEX_HTML)
 
 
 if __name__ == "__main__":

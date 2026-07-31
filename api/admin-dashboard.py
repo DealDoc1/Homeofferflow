@@ -1737,6 +1737,14 @@ class handler(BaseHTTPRequestHandler):
                     item for item in feedback if item.get("issue_type") == "ai_review"
                 ]),
             }
+            # Five anonymized, human-reviewed scenarios are the minimum evidence
+            # threshold documented for any AI scoring/calibration expansion. Keep
+            # this as an explicit dashboard signal so an operator cannot confuse
+            # having a feedback feed with having enough calibration evidence.
+            metrics["aiCalibrationTarget"] = 5
+            metrics["aiCalibrationReady"] = (
+                metrics["aiCalibrationFeedbackCount"] >= metrics["aiCalibrationTarget"]
+            )
             _json(self, 200, {
                 "metrics": metrics,
                 "offers": offers,

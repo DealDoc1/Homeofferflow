@@ -15,6 +15,8 @@ class AdminFeedbackFeedTests(unittest.TestCase):
         self.assertIn("hof_feedback?select=id,issue_type,message,status,role,created_at", source)
         self.assertIn('"feedbackCount": len(feedback)', source)
         self.assertIn('"aiCalibrationFeedbackCount"', source)
+        self.assertIn('"aiCalibrationTarget"', source)
+        self.assertIn('"aiCalibrationReady"', source)
         self.assertNotIn("select=*", source[source.index("hof_feedback?"):source.index("hof_feedback?") + 180])
 
 
