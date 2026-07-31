@@ -68,7 +68,9 @@ def _overlay(data, brokerage, associate):
         _draw_check(canvas, 57, 425)
         _draw(canvas, data["showing_fee"], 316, 425, size=8)
 
-    _draw(canvas, compensation.get("purchase_percentage"), 223, 196, size=8)
+    # The source prints the percent sign at roughly x=216.  Keep the entered
+    # percentage inside the preceding blank rather than overprinting "%".
+    _draw(canvas, compensation.get("purchase_percentage"), 190, 196, size=8)
     _draw(canvas, compensation.get("purchase_flat_fee"), 480, 196, size=8)
     _draw(canvas, compensation.get("lease_one_month_percentage"), 231, 177, size=8)
     _draw(canvas, compensation.get("lease_total_rents_percentage"), 385, 177, size=8)
@@ -79,7 +81,9 @@ def _overlay(data, brokerage, associate):
     # Page 2 - intermediary choice, printed names, and license fields. The
     # signature/date widgets are supplied separately to SignWell.
     if data["intermediary"] == "authorized":
-        _draw_check(canvas, 211, 628)
+        # TXR-1507's first intermediary box is near x=177 on the source page;
+        # x=211 lands between the two printed boxes.
+        _draw_check(canvas, 177, 628)
     else:
         _draw_check(canvas, 345, 628)
 
