@@ -11,6 +11,12 @@ Agents must continue using OnDemand-approved workflows for standalone buyer
 representation agreements, listing agreements, seller disclosure notices, and
 any other documents not expressly available in HomeOfferFlow.
 
+The authenticated agent dashboard now includes a **Request a missing form**
+action. It routes the request into the existing support/feedback queue with a
+form-request category and asks for the transaction role and intended workflow;
+agents are instructed not to include confidential client information. A
+request records demand only—it never unlocks, generates, or sends a legal form.
+
 This language appears on `/ondemand` before an agent begins the 60-day trial.
 
 ## What is live now
