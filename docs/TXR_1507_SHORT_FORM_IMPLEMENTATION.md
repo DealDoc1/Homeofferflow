@@ -100,6 +100,10 @@ The workflow remains unavailable until all of the following are complete:
   renderer with validation and a provisional coordinate map. It intentionally
   does not fetch or expose source PDFs, create SignWell packets, or imply that
   a draft is ready to sign.
+- `api/txr_1507_signwell.py` now requires an explicit broker-versus-associate
+  signer choice and one or two distinct client recipients. Its field map is
+  isolated from the offer-packet field map and remains staging-only until
+  completed packets are visually reviewed.
 - The renderer has been tested against a generated two-page fixture and one
   private rendering of the authorized TXR-1507 source. The private rendering
   still requires the scenario-by-scenario visual QA table above before any
