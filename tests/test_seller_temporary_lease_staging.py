@@ -179,15 +179,12 @@ class SellerTemporaryLeaseStagingTests(unittest.TestCase):
         with self.assertRaisesRegex(production.UnsupportedOfferPathError, "Seller 1 name and email"):
             production.validate_supported_offer(offer)
 
-    def test_production_and_staging_bundle_include_seller_temp_lease_source(self):
+    def test_production_bundle_includes_seller_temp_lease_source_and_staging_is_kept_out(self):
         config = json.loads((ROOT / "vercel.json").read_text())
-        self.assertIsInstance(
-            config["functions"]["api/fill_pdf_20_19_staging.py"]["includeFiles"], str
-        )
-        self.assertIn(
-            "seller_temporary_residential_lease_15-7.pdf",
-            config["functions"]["api/fill_pdf_20_19_staging.py"]["includeFiles"],
-        )
+        # The staging route is kept in source control for controlled QA but is
+        # excluded from the production Hobby deployment to stay under 12
+        # Serverless Functions.
+        self.assertNotIn("api/fill_pdf_20_19_staging.py", config["functions"])
         self.assertIn(
             "seller_temporary_residential_lease_15-7.pdf",
             config["functions"]["api/fill-pdf.py"]["includeFiles"],
