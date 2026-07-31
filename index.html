@@ -3,7 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#173f35" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="HomeOfferFlow" />
   <title>HomeOfferFlow — Write Your Offer in Minutes</title>
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="icon" href="/assets/homeofferflow-app-icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="/assets/homeofferflow-app-icon.svg" />
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
 
   
@@ -33,13 +41,12 @@
 
   if (params.get('subscription')) return;
 
-  const showingPaid = params.get('showing') === 'success';
   const paid =
     params.get('payment') === 'success' ||
     params.get('success') === 'true' ||
     params.get('session_id');
 
-  if (!paid && !showingPaid) return;
+  if (!paid) return;
 
   // Prevent saved-draft restore from overriding the success screen after Stripe returns.
   window.__hofPaymentReturn = true;
@@ -48,8 +55,6 @@
     const saved = sessionStorage.getItem('hofOfferData');
     if (saved) state.data = { ...state.data, ...JSON.parse(saved) };
 
-    const savedShowing = sessionStorage.getItem('hofShowingData');
-    if (savedShowing) state.data = { ...state.data, ...JSON.parse(savedShowing) };
   } catch (e) {}
 
   openWizard();
@@ -61,8 +66,7 @@
     document.getElementById('paymentEmail')?.value ||
     '';
 
-  if (showingPaid) showShowingSuccess(paymentEmail);
-  else showPaymentSuccess(paymentEmail);
+  showPaymentSuccess(paymentEmail);
 
   // Clean the URL so refreshes do not re-trigger the success state forever.
   const cleanUrl = window.location.origin + window.location.pathname;
@@ -147,7 +151,7 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
     target.innerHTML = '<div class="offer-empty">Loading offer...</div>';
     if (!client || !user || !offerId) { target.innerHTML = '<div class="offer-empty">Sign in to view offer details.</div>'; return; }
     try {
-      const { data: offer, error } = await client.from('hof_offers').select('*').eq('user_id', user.id).eq('id', offerId).maybeSingle();
+      const { data: offer, error } = await client.from('hof_offers').select('*').eq('id', offerId).maybeSingle();
       if (error) throw error;
       if (!offer) throw new Error('Offer not found.');
       let events = [];
@@ -2472,8 +2476,8 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
     <div class="pill" data-audience="investor" onclick="setAudience('investor')">Investor</div>
     <div class="pill" data-audience="fsbo" onclick="setAudience('fsbo')">FSBO Seller</div>
   </div>
-  <h1 id="heroHeadline">Write a Real Estate <em>Offer</em><br/>Without the Confusion.</h1>
-  <p class="hero-sub" id="heroSub">A plain-English, mobile-friendly way to prepare a Texas offer packet. No agent? No problem. You stay in control of every term.</p>
+  <h1 id="heroHeadline">Write a real estate offer<br/><em>without the confusion.</em></h1>
+  <p class="hero-sub" id="heroSub">HomeOfferFlow guides you through a supported Texas buyer-offer packet in plain English, then lets you review every term before signing or sending.</p>
   <div class="hero-actions">
     <button class="btn-primary" id="heroCta" onclick="startPrimaryOffer()">Start Your Offer — $99</button>
     <button class="btn-secondary" onclick="document.getElementById('how').scrollIntoView()">See How It Works</button>
@@ -2496,12 +2500,12 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
 
 <section class="section" id="how">
   <div class="section-label">How It Works</div>
-  <h2>From blank contract to completed offer — fast.</h2>
+  <h2>From plain questions to a Texas offer packet.</h2>
   <div class="steps">
     <div class="step-card"><div class="step-num">01</div><h3>Answer plain questions</h3><p>No legal jargon. One section at a time. Built-in helper tips on every confusing field.</p></div>
-    <div class="step-card"><div class="step-num">02</div><h3>Build the right packet</h3><p>Your answers populate the current TREC 20-19 contract and the addenda HomeOfferFlow supports for your selected terms.</p></div>
+    <div class="step-card"><div class="step-num">02</div><h3>We prepare the supported forms</h3><p>Your answers populate the TREC 20-19 buyer offer contract and the purchase addenda currently supported by HomeOfferFlow.</p></div>
     <div class="step-card"><div class="step-num">03</div><h3>Review your offer</h3><p>See a plain-English summary of every field before you pay. Go back and fix anything.</p></div>
-    <div class="step-card"><div class="step-num">04</div><h3>Download & send</h3><p>Pay once, download instantly. Optional agent or attorney review add-on available.</p></div>
+    <div class="step-card"><div class="step-num">04</div><h3>Download & send</h3><p>Pay once, receive your packet, and review it with your own licensed agent or attorney before submitting.</p></div>
   </div>
 </section>
 
@@ -2512,7 +2516,7 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
   <h2>Built for every side of the Texas transaction.</h2>
   <div class="audience-grid">
     <div class="audience-card"><div class="audience-icon">🏠</div><h3>Homebuyers</h3><p>Build a Texas resale offer packet with plain-English guidance, AI competitiveness review, and buyer-side signing when the packet is ready.</p><span class="audience-price">$99 per completed offer packet</span></div>
-    <div class="audience-card"><div class="audience-icon">🏢</div><h3>Agents & Brokers</h3><p>Create client-ready Texas offer packets from the field, track buyer-side signature status, duplicate prior offers, and collect beta feedback for broker review.</p><span class="audience-price">Agent / broker beta workspace</span></div>
+    <div class="audience-card"><div class="audience-icon">🏢</div><h3>Agents & Brokers</h3><p>Create supported Texas buyer-offer packets from the field, track buyer-side signature status, duplicate prior offers, and collect broker-reviewed feedback.</p><span class="audience-price">Agent / broker workspace</span></div>
     <div class="audience-card"><div class="audience-icon">📈</div><h3>Investors</h3><p>Use saved defaults and repeat-offer workflows to move faster while still keeping financing, option, title, and addenda terms organized.</p><span class="audience-price">Investor repeat-offer workflow</span></div>
     <div class="audience-card"><div class="audience-icon">🏷️</div><h3>FSBO Sellers</h3><p>Request seller packages, flat-fee MLS interest, offer review, contract-to-close support, and local partner suggestions without checkout yet.</p><span class="audience-price">Packages from $0 to $2,999+ · intake only</span></div>
     <a class="audience-card audience-card-link" href="?partner=1" onclick="event.preventDefault(); openFoundingPartnerModal();" aria-label="Explore HomeOfferFlow founding partner opportunities">
@@ -2786,32 +2790,14 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
       <div class="hof-interview-guide" data-hof-guide="step05">
         <div class="hof-guide-kicker">✨ Property visit</div>
         <div class="hof-guide-title">Have you actually seen the home?</div>
-        <div class="hof-guide-copy">Before we write terms, let’s make sure you’re comfortable with what you’re offering on and know your showing options.</div>
-        <div class="hof-guide-chip-row"><span class="hof-guide-chip"><strong>✓</strong> Seen it</span><span class="hof-guide-chip"><strong>✓</strong> Book a showing</span><span class="hof-guide-chip"><strong>✓</strong> No pressure</span></div>
+        <div class="hof-guide-copy">Before we write terms, make sure you are comfortable with the property and have arranged any viewing you need.</div>
+        <div class="hof-guide-chip-row"><span class="hof-guide-chip"><strong>✓</strong> Seen it</span><span class="hof-guide-chip"><strong>✓</strong> Viewing guidance</span><span class="hof-guide-chip"><strong>✓</strong> No pressure</span></div>
       </div>
       <h2>Have you seen the property?</h2>
       <p class="step-desc">Before writing an offer, it is important that you know what you are offering on.</p>
       <div class="radio-cards">
         <label class="radio-card" onclick="selectCard(this,'seenProperty','yes')"><input type="radio" name="seenProperty" value="yes"/><div class="radio-dot"></div><div class="radio-card-text"><strong>Yes — I've seen it</strong><small>Ready to write my offer</small></div></label>
-        <label class="radio-card" onclick="selectCard(this,'seenProperty','book')"><input type="radio" name="seenProperty" value="book"/><div class="radio-dot"></div><div class="radio-card-text"><strong>No — book a showing for $50</strong><small>A licensed OnDemand Realty agent will accompany you</small></div></label>
-        <label class="radio-card" onclick="selectCard(this,'seenProperty','myself')"><input type="radio" name="seenProperty" value="myself"/><div class="radio-dot"></div><div class="radio-card-text"><strong>No — I'll arrange it myself</strong><small>See guidance below</small></div></label>
-      </div>
-
-      <div id="showingForm" style="display:none; margin-top:0.5rem;">
-        <div class="notice sage">🏠 A licensed OnDemand Realty agent will accompany you through the property as a neutral professional. You remain unrepresented with no commission obligation. $50 flat fee collected at booking.</div>
-        <div class="field-group" style="margin-top:1rem;">
-          <div class="field"><label>Property Address</label><input type="text" id="showingAddress" placeholder="Address you want to view"/></div>
-          <div class="field-row">
-            <div class="field"><label>Preferred Date</label><div class="date-field-wrap"><input type="date" id="showingDate"/></div></div>
-            <div class="field"><label>Preferred Time</label><select id="showingTime"><option value="">Select...</option><option>9:00 AM</option><option>10:00 AM</option><option>11:00 AM</option><option>12:00 PM</option><option>1:00 PM</option><option>2:00 PM</option><option>3:00 PM</option><option>4:00 PM</option><option>5:00 PM</option></select></div>
-          </div>
-          <div class="field"><label>Your Name</label><input type="text" id="showingName" placeholder="Your full name"/></div>
-          <div class="field"><label>Your Email Address</label><input type="email" id="showingEmail" placeholder="you@example.com"/></div>
-          <div class="field"><label>Your Phone Number</label><input type="tel" id="showingPhone" placeholder="(214) 555-0000"/></div>
-          <div class="field"><label>Notes for Showing Agent <span style="color:var(--gray);font-weight:500;">(optional)</span></label><textarea id="showingNotes" placeholder="Gate code, preferred contact method, timing flexibility, etc." rows="3" style="width:100%;"></textarea></div>
-          <button class="btn-primary" style="width:100%; margin-top:0.5rem;" onclick="bookShowing()">Book Showing — $50 →</button>
-          <div id="showingInlineMessage" class="notice sage" style="display:none; margin-top:0.75rem;"></div>
-        </div>
+        <label class="radio-card" onclick="selectCard(this,'seenProperty','myself')"><input type="radio" name="seenProperty" value="myself"/><div class="radio-dot"></div><div class="radio-card-text"><strong>No — I'll arrange a viewing before continuing</strong><small>See practical guidance below</small></div></label>
       </div>
 
       <div id="showingHelper" style="display:none; margin-top:0.5rem;">
@@ -3190,13 +3176,13 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
       <div style="margin-top:1.5rem; padding-top:1.25rem; border-top:1px solid rgba(255,255,255,0.08);">
         <div class="radio-group-label">Optional uploaded disclosure documents</div>
         <div class="notice sage" style="margin-bottom:0.75rem;">
-          Upload listing-side PDFs you already have—such as a seller disclosure, survey, T-47/T-47.1, HOA documents, or PID/MUD notices. HomeOfferFlow appends only the PDFs you explicitly upload, in the order shown below. These attachments do not receive buyer signature fields unless a separate approved workflow adds them.
+          Phase 1: upload PDF disclosures or listing-side documents and HomeOfferFlow will append them to the final offer packet before it is sent to SignWell. Signature placement on uploaded docs is coming next.
         </div>
         <div class="field-group">
           <div class="field">
-            <label>Add PDF attachments</label>
+            <label>Upload PDF attachments</label>
             <input type="file" id="uploadedDisclosureDocs" accept="application/pdf,.pdf" multiple onchange="handleUploadedDisclosureDocs(this.files)"/>
-            <small style="display:block; margin-top:0.35rem; color:var(--muted);">PDF only. Up to 5 files, 15MB each. Add more files later, remove files, or change their final packet order below.</small>
+            <small style="display:block; margin-top:0.35rem; color:var(--muted);">PDF only. Suggested max: 5 files, 15MB each. Examples: seller disclosure, survey, T-47/T-47.1, HOA docs, PID/MUD notices.</small>
           </div>
           <div id="uploadedDocsList" class="notice gold" style="display:none;"></div>
         </div>
@@ -3302,20 +3288,27 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
       <p class="step-desc">A few final deal terms before review.</p>
       <div class="field-group">
         <div class="field"><div class="field-label-row"><label>Target Closing Date</label><button class="helper-btn" onclick="toggleHelper('h-closing-date')">?</button></div><div class="helper-box" id="h-closing-date"><strong>💡 Closing Date</strong>HomeOfferFlow defaults to about 30 days from today and rolls forward if that date falls on a weekend or standard banking holiday. Confirm with lender, title company, agent, and the parties before sending.</div><div class="date-field-wrap"><input type="date" id="closingDate"/></div></div>
-        <div class="field"><div class="field-label-row"><label>Possession</label><button class="helper-btn" onclick="toggleHelper('h-possession')">?</button></div><div class="helper-box" id="h-possession"><strong>💡 Possession Timing</strong>“Upon Funding” is commonly used because closing and funding are not always the same instant. A seller leaseback requires a separate TREC Seller's Temporary Residential Lease signed by the parties.</div><select id="possession" onchange="toggleSellerTemporaryLeaseDetails()"><option value="">Select...</option><option value="closing">At Closing</option><option value="funding">Upon Funding (recommended)</option><option value="sellerTemporaryLease">Seller Temporary Lease After Closing</option></select></div>
-        <div class="field"><div class="field-label-row"><label>Title Company (optional)</label><button class="helper-btn" onclick="toggleHelper('h-title-company')">?</button></div><div class="helper-box" id="h-title-company"><strong>💡 Title Company</strong>This is the title/escrow company requested for the transaction. Buyer and seller can negotiate title company selection. Agents may also use brokerage-preferred defaults if appropriate.</div><input type="text" id="titleCompany" placeholder="e.g. Alamo Title Company" value="Chicago Title DFW - Forgey Law Group PLLC"/></div>
-      </div>
-
-      <div id="sellerTemporaryLeaseDetails" class="notice sage" style="display:none; margin:0 0 1.25rem;">
-        <strong>Seller temporary lease after closing</strong>
-        <p style="margin:0.45rem 0 0.8rem;">This adds TREC 15-7. The buyer is the landlord and the seller is the tenant. Enter only terms agreed by the parties; the completed packet will route the buyer-landlord signatures and leave seller-tenant execution for the listing side.</p>
-        <div class="field-group" style="margin-bottom:0;">
-          <div class="field-row"><div class="field"><label>Lease Termination Date</label><input type="date" id="sellerTemporaryLeaseTerminationDate"/></div><div class="field"><label>Daily Rent</label><input type="number" min="0" step="0.01" id="sellerTemporaryLeaseRentPerDay" placeholder="e.g. 125"/></div></div>
-          <div class="field-row"><div class="field"><label>Security Deposit</label><input type="number" min="0" step="0.01" id="sellerTemporaryLeaseDeposit" placeholder="e.g. 1000"/></div><div class="field"><label>Holdover Amount Per Day</label><input type="number" min="0" step="0.01" id="sellerTemporaryLeaseHoldoverPerDay" placeholder="e.g. 300"/></div></div>
-          <div class="field"><label>Utilities Buyer Will Pay</label><input type="text" id="sellerTemporaryLeaseUtilitiesPaidByBuyer" placeholder="e.g. Water and trash"/></div>
-          <div class="field"><label>Pets Allowed</label><input type="text" id="sellerTemporaryLeasePetsAllowed" placeholder="e.g. One dog under 40 pounds"/></div>
-          <div class="field"><label>Special Lease Provisions</label><textarea id="sellerTemporaryLeaseSpecialProvisions" rows="3" placeholder="Only terms the parties have agreed to"></textarea></div>
+        <div class="field"><div class="field-label-row"><label>Possession</label><button class="helper-btn" onclick="toggleHelper('h-possession')">?</button></div><div class="helper-box" id="h-possession"><strong>💡 Possession Timing</strong>“Upon Funding” is commonly used because closing and funding are not always the same instant. Possession after closing requires a written lease that both sides sign.</div><select id="possession" onchange="toggleSellerTemporaryLeaseFields()"><option value="">Select...</option><option value="closing">At Closing</option><option value="funding">Upon Funding (recommended)</option><option value="sellerTemporaryLease">Seller remains temporarily after closing</option></select></div>
+        <div id="sellerTemporaryLeaseFields" style="display:none; margin-top:0.9rem; padding:1rem; border:1px solid rgba(227,186,86,0.45); border-radius:12px; background:rgba(227,186,86,0.08);">
+          <p style="font-size:0.84rem; font-weight:700; color:var(--gold-light); margin:0 0 0.4rem;">Seller's Temporary Residential Lease</p>
+          <p class="step-desc" style="margin:0 0 0.75rem;">This adds TREC 15-7. Buyers sign as landlords first; the current seller signs as tenant afterward. Enter the seller's actual signing contact details.</p>
+          <div class="field-group">
+            <div class="field"><label>Seller / tenant 1 full name</label><input id="seller1Name" type="text" placeholder="Required for signature"></div>
+            <div class="field"><label>Seller / tenant 1 email</label><input id="seller1Email" type="email" placeholder="Required for signature"></div>
+            <div class="field"><label>Seller / tenant 2 full name (if applicable)</label><input id="seller2Name" type="text" placeholder="Optional"></div>
+            <div class="field"><label>Seller / tenant 2 email (if applicable)</label><input id="seller2Email" type="email" placeholder="Optional"></div>
+            <div class="field"><label>Seller / tenant mailing address</label><input id="sellerMailAddr" type="text" placeholder="For lease notices"></div>
+            <div class="field"><label>Seller / tenant phone</label><input id="sellerPhone" type="tel" placeholder="For lease notices"></div>
+            <div class="field"><label>Lease termination date</label><input id="sellerTemporaryLeaseTerminationDate" type="date"></div>
+            <div class="field"><label>Daily rent</label><input id="sellerTemporaryLeaseRentPerDay" inputmode="decimal" placeholder="e.g. 125"></div>
+            <div class="field"><label>Security deposit</label><input id="sellerTemporaryLeaseDeposit" inputmode="decimal" placeholder="e.g. 1000"></div>
+            <div class="field"><label>Utilities buyer / landlord will pay</label><input id="sellerTemporaryLeaseUtilitiesPaidByBuyer" type="text" placeholder="e.g. Water and trash"></div>
+            <div class="field"><label>Permitted pets</label><input id="sellerTemporaryLeasePetsAllowed" type="text" placeholder="e.g. One dog under 40 pounds"></div>
+            <div class="field"><label>Holdover charge per day</label><input id="sellerTemporaryLeaseHoldoverPerDay" inputmode="decimal" placeholder="e.g. 300"></div>
+          </div>
+          <div class="field" style="margin-top:0.7rem;"><label>Lease special provisions</label><textarea id="sellerTemporaryLeaseSpecialProvisions" rows="3" placeholder="Enter only terms agreed by the parties."></textarea></div>
         </div>
+        <div class="field"><div class="field-label-row"><label>Title Company (optional)</label><button class="helper-btn" onclick="toggleHelper('h-title-company')">?</button></div><div class="helper-box" id="h-title-company"><strong>💡 Title Company</strong>This is the title/escrow company requested for the transaction. Buyer and seller can negotiate title company selection. Agents may also use brokerage-preferred defaults if appropriate.</div><input type="text" id="titleCompany" placeholder="e.g. Alamo Title Company" value="Chicago Title DFW - Forgey Law Group PLLC"/></div>
       </div>
 
       <div style="padding-top:0.75rem; border-top:1px solid rgba(255,255,255,0.07); margin-bottom:1.25rem;">
@@ -3471,20 +3464,15 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
         <div class="hof-guide-copy">After checkout, HomeOfferFlow generates the offer packet and sends the signing email. You still control what you sign and submit.</div>
         <div class="hof-guide-chip-row"><span class="hof-guide-chip"><strong>✓</strong> Stripe checkout</span><span class="hof-guide-chip"><strong>✓</strong> PDF packet</span><span class="hof-guide-chip"><strong>✓</strong> Signing email</span></div>
       </div>
-      <h2>Choose your plan</h2>
-      <p class="step-desc">Your offer is ready. Select the level of support that's right for you.</p>
-      <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:0.6rem; margin-bottom:1.5rem;">
-        <div class="pricing-card" id="plan-self" onclick="selectPlan('self', 99)"><div class="plan-name">Self-Serve</div><div class="plan-price">$99</div><div class="plan-features"><div class="plan-feature">✓ Fill offer</div><div class="plan-feature">✓ Sign</div><div class="plan-feature">✓ Send to agent</div></div></div>
-        <div class="pricing-card popular" id="plan-agent" onclick="selectPlan('agent', 298)"><div class="popular-badge">Most Popular</div><div class="plan-name">Agent Review</div><div class="plan-price">$298</div><div class="plan-sub">$99 + $199 review</div><div class="plan-features"><div class="plan-feature">✓ Everything in Self-Serve</div><div class="plan-feature">✓ Licensed TX agent reviews</div><div class="plan-feature">✓ Within 2 hours</div></div></div>
-        <div class="pricing-card" id="plan-attorney" onclick="selectPlan('attorney', 448)"><div class="plan-name">Attorney Review</div><div class="plan-price">$448</div><div class="plan-sub">$99 + $349 review</div><div class="plan-features"><div class="plan-feature">✓ Everything in Self-Serve</div><div class="plan-feature">✓ Licensed TX attorney</div><div class="plan-feature">✓ Legal risk assessment</div></div></div>
+      <h2>Review your packet</h2>
+      <p class="step-desc">Your self-service Texas buyer-offer packet is ready to purchase for $99.</p>
+      <div style="display:grid; grid-template-columns:1fr; gap:0.6rem; margin-bottom:1.5rem;">
+        <div class="pricing-card popular" id="plan-self" onclick="selectPlan('self', 99)"><div class="popular-badge">Current packet</div><div class="plan-name">Self-Serve Buyer Offer Packet</div><div class="plan-price">$99</div><div class="plan-features"><div class="plan-feature">✓ Guided buyer-offer workflow</div><div class="plan-feature">✓ Supported purchase addenda</div><div class="plan-feature">✓ Buyer-side signing delivery</div></div></div>
       </div>
 
       <div style="background:rgba(200,151,63,0.06); border:1px solid rgba(200,151,63,0.2); border-radius:12px; padding:1rem; margin-bottom:1.25rem;">
-        <p style="font-size:0.8rem; font-weight:700; color:var(--gold-light); margin-bottom:0.5rem; text-transform:uppercase; letter-spacing:0.05em;">Need full transaction support?</p>
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem;">
-          <div class="upsell-mini" id="plan-agent-transaction" onclick="selectPlan('agent-transaction', 999)"><div style="font-weight:700; font-size:0.9rem;">Agent Support</div><div style="color:var(--gold); font-weight:700;">$999</div><div style="font-size:0.75rem; color:var(--gray);">Full deal guidance</div></div>
-          <div class="upsell-mini" id="plan-attorney-transaction" onclick="selectPlan('attorney-transaction', 1499)"><div style="font-weight:700; font-size:0.9rem;">Attorney Support</div><div style="color:var(--gold); font-weight:700;">$1,499</div><div style="font-size:0.75rem; color:var(--gray);">Full legal coverage</div></div>
-        </div>
+        <p style="font-size:0.8rem; font-weight:700; color:var(--gold-light); margin-bottom:0.35rem; text-transform:uppercase; letter-spacing:0.05em;">Important</p>
+        <p style="margin:0; font-size:0.86rem; color:var(--gray-light);">HomeOfferFlow does not include an agent, broker, or attorney review service with this purchase. Review your packet with the licensed professional of your choice before submitting if you want professional advice.</p>
       </div>
 
       <div id="selectedPlanDisplay" style="display:none; background:rgba(74,140,111,0.1); border:1px solid rgba(74,140,111,0.3); border-radius:10px; padding:1rem; margin-bottom:1.25rem; text-align:center;">
@@ -3546,7 +3534,7 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
   function getCurrentStepNames() {
     return getCurrentStepConfig().names;
   }
-  const LEGAL_POLICY_VERSION = '2026-07-29';
+  const LEGAL_POLICY_VERSION = '2026-07-30';
   const state = { step: 0, data: {}, termsOK: false, selectedPlan: null, selectedPrice: 0 };
 
   const HOF_HOMEBUYER_DEFAULTS = {
@@ -3843,6 +3831,16 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
           <div>${adminDate(row.created_at)}${canUpdate ? `<div class="partner-lead-admin-actions"><select id="partnerLeadStatus-${leadId}" aria-label="Review status for ${adminSafe(row.company_name || 'partner lead')}">${partnerLeadStatusOptions(status)}</select><select id="partnerOnboardingStatus-${leadId}" aria-label="Onboarding status for ${adminSafe(row.company_name || 'partner lead')}">${partnerOnboardingStatusOptions(onboardingStatus)}</select><button id="partnerLeadSave-${leadId}" type="button" onclick="updatePartnerLeadStatus('${leadId}')">Save</button></div>` : ''}</div>
         </div>`;
       }
+      if (type === 'stripe-webhooks') {
+        const state = String(row.processing_state || 'received');
+        const mode = row.livemode ? 'Live' : 'Sandbox';
+        return `<div class="admin-row">
+          <div><strong>${adminSafe(row.event_type || 'Stripe event')}</strong><div class="admin-muted">${adminSafe(row.stripe_event_id || '')}</div></div>
+          <div>${adminSafe(mode)}</div>
+          <div><span class="admin-pill ${state === 'processed' || state === 'ignored' ? 'good' : 'warn'}">${adminSafe(state)}</span>${row.error_code ? `<div class="admin-muted">${adminSafe(row.error_code)}</div>` : ''}</div>
+          <div>${adminDate(row.processed_at || row.received_at)}</div>
+        </div>`;
+      }
       return `<div class="admin-row">
         <div><strong>${adminSafe(row.property_address || 'Offer')}</strong><div class="admin-muted">${adminSafe(row.buyer_name || '')} · ${adminSafe(row.buyer_email || '')}</div></div>
         <div>${adminMoney(row.offer_price || 0)}<div class="admin-muted">${adminSafe(row.role || '')}</div></div>
@@ -3879,6 +3877,7 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
       const offers = result.offers || [];
       const showings = result.showings || [];
       const subscriptions = result.subscriptions || [];
+      const stripeWebhookEvents = result.stripeWebhookEvents || [];
       const feedback = result.feedback || [];
       const partnerLeads = result.partnerLeads || [];
       window.hofAdminTrackerPayload = {
@@ -3910,6 +3909,31 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
           <div class="admin-metric">
             <div class="admin-metric-label">Subscriptions</div>
             <div class="admin-metric-value">${metrics.subscriptionCount || subscriptions.length || 0}</div>
+          </div>
+
+          <div class="admin-metric">
+            <div class="admin-metric-label">Agent Profiles Ready</div>
+            <div class="admin-metric-value">${metrics.agentProfileCompleteCount || 0} / ${metrics.agentProfileCount || 0}</div>
+          </div>
+
+          <div class="admin-metric">
+            <div class="admin-metric-label">Agents With a Saved Offer</div>
+            <div class="admin-metric-value">${metrics.agentFirstOfferCount || 0}</div>
+          </div>
+
+          <div class="admin-metric">
+            <div class="admin-metric-label">Repeat-Offer Agents</div>
+            <div class="admin-metric-value">${metrics.agentRepeatOfferCount || 0}</div>
+          </div>
+
+          <div class="admin-metric">
+            <div class="admin-metric-label">Updated Agent Drafts</div>
+            <div class="admin-metric-value">${metrics.agentUpdatedDraftCount || 0}</div>
+          </div>
+
+          <div class="admin-metric">
+            <div class="admin-metric-label">Billing Webhook Attention</div>
+            <div class="admin-metric-value">${metrics.stripeWebhookAttentionCount || 0}</div>
           </div>
 
           <div class="admin-metric">
@@ -3961,6 +3985,11 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
         <div class="admin-section">
           <h4>Subscriptions</h4>
           ${renderAdminRows(subscriptions.slice(0, 8), 'subscriptions')}
+        </div>
+
+        <div class="admin-section">
+          <h4>Billing Webhook Activity</h4>
+          ${renderAdminRows(stripeWebhookEvents.slice(0, 12), 'stripe-webhooks')}
         </div>
 
         <div class="admin-section">
@@ -5534,11 +5563,6 @@ function routeAfterMagicLinkIfNeeded() {
   }
 
 
-  // TODO: Replace this with your live Stripe Price ID for the $50 showing booking product.
-  // Example format: price_1234567890abcdef
-  const SHOWING_BOOKING_PRICE_ID = 'price_1TbACXAELe66ESXnt409xxjE';
-
-
   function applyAudienceWorkflow() {
     const userType = state.data.userType || 'homebuyer';
 
@@ -5955,6 +5979,8 @@ function routeAfterMagicLinkIfNeeded() {
       setTimeout(updatePaymentCalculator, 75);
     }
 
+    if (sid === 'step7') toggleSellerTemporaryLeaseFields();
+
     if (sid === 'step8') {
       collectAllData();
       buildReview();
@@ -6192,15 +6218,22 @@ function routeAfterMagicLinkIfNeeded() {
       'step7': () => {
         s.closingDate = getVal('closingDate');
         s.possession = getVal('possession') || 'funding';
-        s.titleCompany = getVal('titleCompany');
         s.sellerTemporaryLease = s.possession === 'sellerTemporaryLease' ? 'yes' : 'no';
-        s.sellerTemporaryLeaseTerminationDate = s.sellerTemporaryLease === 'yes' ? getVal('sellerTemporaryLeaseTerminationDate') : '';
-        s.sellerTemporaryLeaseRentPerDay = s.sellerTemporaryLease === 'yes' ? moneyNumber(getVal('sellerTemporaryLeaseRentPerDay')) : '';
-        s.sellerTemporaryLeaseDeposit = s.sellerTemporaryLease === 'yes' ? moneyNumber(getVal('sellerTemporaryLeaseDeposit')) : '';
-        s.sellerTemporaryLeaseHoldoverPerDay = s.sellerTemporaryLease === 'yes' ? moneyNumber(getVal('sellerTemporaryLeaseHoldoverPerDay')) : '';
-        s.sellerTemporaryLeaseUtilitiesPaidByBuyer = s.sellerTemporaryLease === 'yes' ? getVal('sellerTemporaryLeaseUtilitiesPaidByBuyer') : '';
-        s.sellerTemporaryLeasePetsAllowed = s.sellerTemporaryLease === 'yes' ? getVal('sellerTemporaryLeasePetsAllowed') : '';
-        s.sellerTemporaryLeaseSpecialProvisions = s.sellerTemporaryLease === 'yes' ? getVal('sellerTemporaryLeaseSpecialProvisions') : '';
+        s.seller1Name = getVal('seller1Name');
+        s.seller1Email = getVal('seller1Email');
+        s.sellerEmail = s.seller1Email;
+        s.seller2Name = getVal('seller2Name');
+        s.seller2Email = getVal('seller2Email');
+        s.sellerMailAddr = getVal('sellerMailAddr');
+        s.sellerPhone = getVal('sellerPhone');
+        s.sellerTemporaryLeaseTerminationDate = getVal('sellerTemporaryLeaseTerminationDate');
+        s.sellerTemporaryLeaseRentPerDay = getVal('sellerTemporaryLeaseRentPerDay');
+        s.sellerTemporaryLeaseDeposit = getVal('sellerTemporaryLeaseDeposit');
+        s.sellerTemporaryLeaseUtilitiesPaidByBuyer = getVal('sellerTemporaryLeaseUtilitiesPaidByBuyer');
+        s.sellerTemporaryLeasePetsAllowed = getVal('sellerTemporaryLeasePetsAllowed');
+        s.sellerTemporaryLeaseSpecialProvisions = getVal('sellerTemporaryLeaseSpecialProvisions');
+        s.sellerTemporaryLeaseHoldoverPerDay = getVal('sellerTemporaryLeaseHoldoverPerDay');
+        s.titleCompany = getVal('titleCompany');
 
         const agentRadio = getRadio('hasBuyerAgent');
         s.hasBuyerAgent = (s.userType === 'agent') ? 'yes' : (agentRadio || s.hasBuyerAgent || 'no');
@@ -6240,11 +6273,7 @@ function routeAfterMagicLinkIfNeeded() {
     if (el) el.classList.add('selected');
 
     const names = {
-      self: 'Self-Serve',
-      agent: 'Agent Review',
-      attorney: 'Attorney Review',
-      'agent-transaction': 'Agent Transaction Support',
-      'attorney-transaction': 'Attorney Transaction Support'
+      self: 'Self-Serve Buyer Offer Packet'
     };
 
     document.getElementById('selectedPlanDisplay').style.display = 'block';
@@ -6412,133 +6441,12 @@ function routeAfterMagicLinkIfNeeded() {
     saveDraft();
   }
 
-  async function bookShowing() {
-    trackEvent('Showing Request Started', {});
-    const addr = document.getElementById('showingAddress').value.trim();
-    const date = document.getElementById('showingDate').value.trim();
-    const time = document.getElementById('showingTime').value.trim();
-    const name = (
-      document.getElementById('showingName')?.value ||
-      state.data.buyer1 ||
-      ''
-    ).trim();
-    const email = (
-      document.getElementById('showingEmail')?.value ||
-      state.data.buyerEmail ||
-      document.getElementById('buyerEmail')?.value ||
-      ''
-    ).trim();
-    const phone = document.getElementById('showingPhone').value.trim();
-    const notes = (document.getElementById('showingNotes')?.value || '').trim();
-    const msg = document.getElementById('showingInlineMessage');
-    const btn = event?.currentTarget;
-
-    if (!addr || !date || !time || !name || !email || !phone) {
-      if (msg) {
-        msg.style.display = 'block';
-        msg.className = 'notice warn';
-        msg.innerHTML = 'Please fill in the property address, preferred date, preferred time, your name, email address, and phone number.';
-      }
-      return;
-    }
-
-    if (!SHOWING_BOOKING_PRICE_ID || SHOWING_BOOKING_PRICE_ID.includes('REPLACE_WITH')) {
-      if (msg) {
-        msg.style.display = 'block';
-        msg.className = 'notice warn';
-        msg.innerHTML = '<strong>Stripe setup needed.</strong><br>Create a $50 Showing Booking Price in Stripe, then replace <code>SHOWING_BOOKING_PRICE_ID</code> in index.html.';
-      }
-      return;
-    }
-
-    const showingData = {
-      type: 'showing_booking',
-      showingAddress: addr,
-      showingDate: date,
-      showingTime: time,
-      showingPhone: phone,
-      showingNotes: notes,
-      buyerName: name,
-      buyerEmail: email,
-      userType: state.data.userType || 'homebuyer'
-    };
-
-    try {
-      if (btn) {
-        btn.disabled = true;
-        btn.textContent = 'Redirecting to payment...';
-      }
-
-      if (msg) {
-        msg.style.display = 'block';
-        msg.className = 'notice sage';
-        msg.innerHTML = '<strong>Opening secure payment...</strong><br>You will be redirected to Stripe to pay the $50 showing booking fee.';
-      }
-
-      sessionStorage.setItem('hofShowingData', JSON.stringify(showingData));
-
-      const response = await fetch('/api/create-checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          priceId: SHOWING_BOOKING_PRICE_ID,
-          email,
-          plan: 'showing-booking',
-          offerData: showingData,
-          successUrl: `${window.location.origin}${window.location.pathname}?showing=success`,
-          cancelUrl: `${window.location.origin}${window.location.pathname}?showing=cancelled`
-        })
-      });
-
-      const result = await response.json();
-
-      if (result.error) throw new Error(result.error);
-
-      if (result.url) {
-        window.location.href = result.url;
-        return;
-      }
-
-      showShowingSuccess(email);
-    } catch (e) {
-      console.error('Showing payment error:', e);
-      if (msg) {
-        msg.style.display = 'block';
-        msg.className = 'notice warn';
-        msg.innerHTML = 'Showing payment error: ' + e.message;
-      }
-      if (btn) {
-        btn.disabled = false;
-        btn.textContent = 'Book Showing — $50 →';
-      }
-    }
-  }
-
-  function showShowingSuccess(email) {
-    trackEvent('Showing Payment Success Returned', {});
-    const successEmail = document.getElementById('successEmail');
-    const successMessage = document.getElementById('successMessage');
-
-    if (successEmail) successEmail.textContent = email || state.data.buyerEmail || 'the email you entered';
-    if (successMessage) {
-      successMessage.textContent = 'Showing request received — check your email for next steps.';
-    }
-
-    const successIndex = getCurrentSteps().indexOf('stepSuccess');
-    if (successIndex >= 0) showStep(successIndex);
-    renderNowWhatPartnerJourney();
-  }
-
   function buildReview() {
     const s = state.data;
     const fmt = v => v || '<span style="color:var(--warn);font-size:0.8rem;">Not entered</span>';
     const fmtM = v => v !== '' && v !== undefined && v !== null ? '$' + Number(v).toLocaleString() : '';
     const atag = (label, on) => `<span class="addendum-tag ${on ? '' : 'na'}">${on ? '✓' : '—'} ${label}</span>`;
     const hasLoan = ['conventional','fha','va','usda'].includes(s.financing);
-    const uploadedDocs = window.hofUploadedDisclosureDocs || [];
-    const uploadedDocsSummary = uploadedDocs.length
-      ? `<div class="notice sage" style="margin-top:0.8rem; padding:0.7rem;"><strong>Listing-side PDFs appended after the contract packet:</strong>${uploadedDocs.map((doc, index) => `<br>${index + 1}. ${escapeHtml(doc.name)}${doc.type && doc.type !== 'uploaded_disclosure' ? ` — ${escapeHtml(uploadedDisclosureDocTypeLabel(doc.type))}` : ''}`).join('')}</div>`
-      : '';
 
     document.getElementById('reviewSummary').innerHTML = `
       <div class="review-section"><div class="review-section-title">Parties</div>
@@ -6584,7 +6492,6 @@ function routeAfterMagicLinkIfNeeded() {
       <div class="review-section"><div class="review-section-title">Closing</div>
         <div class="review-row"><span class="rl">Closing Date</span><span class="rv">${fmt(s.closingDate)}</span></div>
         <div class="review-row"><span class="rl">Possession</span><span class="rv">${fmt(s.possession)}</span></div>
-        ${s.sellerTemporaryLease === 'yes' ? `<div class="review-row"><span class="rl">Seller Temporary Lease</span><span class="rv">Through ${fmt(s.sellerTemporaryLeaseTerminationDate)} · ${fmtM(s.sellerTemporaryLeaseRentPerDay)}/day</span></div>` : ''}
         <div class="review-row"><span class="rl">Title Company</span><span class="rv">${s.titleCompany || 'TBD'}</span></div>
         <div class="review-row"><span class="rl">Buyer's Agent</span><span class="rv">${s.hasBuyerAgent === 'yes' ? (s.agentName || 'Yes — name not entered') : 'None'}</span></div>
         ${s.hasBuyerAgent === 'yes' && s.agentBrokerage ? `<div class="review-row"><span class="rl">Brokerage</span><span class="rv">${s.agentBrokerage}</span></div>` : ''}
@@ -6604,8 +6511,6 @@ function routeAfterMagicLinkIfNeeded() {
           ${atag('Uploaded Disclosure Docs', (window.hofUploadedDisclosureDocs || []).length > 0)}
           ${atag('MUD/PID Disclosure', s.mud === 'yes' || s.mud === 'unknown')}
           ${atag('Lead-Based Paint — flag', s.leadBuiltBefore1978 === 'yes' || s.leadBuiltBefore1978 === 'unknown')}
-          ${atag("Seller's Temporary Residential Lease", s.sellerTemporaryLease === 'yes')}
-          ${uploadedDocsSummary}
         </div>
       </div>`;
   }
@@ -6669,7 +6574,6 @@ function routeAfterMagicLinkIfNeeded() {
     }
 
     if (group === 'seenProperty') {
-      document.getElementById('showingForm').style.display = value === 'book' ? 'block' : 'none';
       document.getElementById('showingHelper').style.display = value === 'myself' ? 'block' : 'none';
     }
 
@@ -6980,27 +6884,6 @@ function routeAfterMagicLinkIfNeeded() {
 
   window.hofUploadedDisclosureDocs = window.hofUploadedDisclosureDocs || [];
 
-  const UPLOADED_DISCLOSURE_MAX_FILES = 5;
-  const UPLOADED_DISCLOSURE_MAX_BYTES = 15 * 1024 * 1024;
-  const UPLOADED_DISCLOSURE_TYPES = [
-    ['uploaded_disclosure', 'Listing disclosure / other PDF'],
-    ['seller_disclosure', 'Seller disclosure'],
-    ['survey', 'Survey'],
-    ['t47', 'T-47 / T-47.1 affidavit'],
-    ['hoa', 'HOA document'],
-    ['pid_mud', 'PID / MUD notice'],
-  ];
-
-  function uploadedDisclosureDocTypeLabel(type) {
-    const selected = UPLOADED_DISCLOSURE_TYPES.find(([value]) => value === type);
-    return selected ? selected[1] : 'Listing disclosure / other PDF';
-  }
-
-  function syncUploadedDisclosureDocNames() {
-    const docs = window.hofUploadedDisclosureDocs || [];
-    state.data.uploadedDocNames = docs.map(doc => doc.name);
-  }
-
   function renderUploadedDocsList() {
     const box = document.getElementById('uploadedDocsList');
     const docs = window.hofUploadedDisclosureDocs || [];
@@ -7011,49 +6894,8 @@ function routeAfterMagicLinkIfNeeded() {
       return;
     }
     box.style.display = 'block';
-    box.innerHTML = '<strong>Packet attachment order</strong><div style="font-size:0.78rem;line-height:1.45;margin:0.3rem 0 0.65rem;">These listing-side PDFs will be appended after the contract packet in this exact order. Confirm the order before checkout.</div>' + docs.map((d, i) => {
-      const options = UPLOADED_DISCLOSURE_TYPES.map(([value, label]) =>
-        `<option value="${value}" ${d.type === value ? 'selected' : ''}>${escapeHtml(label)}</option>`
-      ).join('');
-      const controls = [
-        `<button type="button" onclick="moveUploadedDisclosureDoc(${i},-1)" ${i === 0 ? 'disabled' : ''} aria-label="Move ${escapeAttr(d.name)} up">↑</button>`,
-        `<button type="button" onclick="moveUploadedDisclosureDoc(${i},1)" ${i === docs.length - 1 ? 'disabled' : ''} aria-label="Move ${escapeAttr(d.name)} down">↓</button>`,
-        `<button type="button" onclick="removeUploadedDisclosureDoc(${i})" aria-label="Remove ${escapeAttr(d.name)}">Remove</button>`
-      ].join(' ');
-      return `<div style="padding:0.65rem 0;border-top:1px solid rgba(255,255,255,0.14);"><strong>${i + 1}. ${escapeHtml(d.name)}</strong> <span style="font-size:0.78rem;color:var(--muted);">(${Math.round((d.size || 0) / 1024).toLocaleString()} KB)</span><div style="display:flex;gap:0.45rem;flex-wrap:wrap;align-items:center;margin-top:0.45rem;"><label style="font-size:0.76rem;">Type <select onchange="setUploadedDisclosureDocType(${i},this.value)" style="margin-left:0.25rem;">${options}</select></label><span style="display:inline-flex;gap:0.3rem;">${controls}</span></div></div>`;
-    }).join('');
+    box.innerHTML = '<strong>Uploaded docs to append:</strong><br>' + docs.map((d, i) => `${i + 1}. ${escapeHtml(d.name)} (${Math.round((d.size || 0) / 1024).toLocaleString()} KB)`).join('<br>');
   }
-
-  window.removeUploadedDisclosureDoc = function removeUploadedDisclosureDoc(index) {
-    const docs = window.hofUploadedDisclosureDocs || [];
-    if (index < 0 || index >= docs.length) return;
-    docs.splice(index, 1);
-    window.hofUploadedDisclosureDocs = docs;
-    syncUploadedDisclosureDocNames();
-    renderUploadedDocsList();
-    try { renderReview(); } catch (_) {}
-  };
-
-  window.moveUploadedDisclosureDoc = function moveUploadedDisclosureDoc(index, direction) {
-    const docs = window.hofUploadedDisclosureDocs || [];
-    const destination = index + Number(direction || 0);
-    if (index < 0 || index >= docs.length || destination < 0 || destination >= docs.length) return;
-    [docs[index], docs[destination]] = [docs[destination], docs[index]];
-    window.hofUploadedDisclosureDocs = docs;
-    syncUploadedDisclosureDocNames();
-    renderUploadedDocsList();
-    try { renderReview(); } catch (_) {}
-  };
-
-  window.setUploadedDisclosureDocType = function setUploadedDisclosureDocType(index, type) {
-    const docs = window.hofUploadedDisclosureDocs || [];
-    const allowed = new Set(UPLOADED_DISCLOSURE_TYPES.map(([value]) => value));
-    if (!docs[index] || !allowed.has(type)) return;
-    docs[index].type = type;
-    syncUploadedDisclosureDocNames();
-    renderUploadedDocsList();
-    try { renderReview(); } catch (_) {}
-  };
 
   function readFileAsBase64(file) {
     return new Promise((resolve, reject) => {
@@ -7070,9 +6912,10 @@ function routeAfterMagicLinkIfNeeded() {
 
   async function handleUploadedDisclosureDocs(fileList) {
     const files = Array.from(fileList || []);
-    const existingDocs = window.hofUploadedDisclosureDocs || [];
-    if (existingDocs.length + files.length > UPLOADED_DISCLOSURE_MAX_FILES) {
-      alert(`You can attach up to ${UPLOADED_DISCLOSURE_MAX_FILES} PDFs. Remove an existing attachment before adding more.`);
+    const maxFiles = 5;
+    const maxBytes = 15 * 1024 * 1024;
+    if (files.length > maxFiles) {
+      alert(`Please upload ${maxFiles} PDFs or fewer for this beta version.`);
       const input = document.getElementById('uploadedDisclosureDocs');
       if (input) input.value = '';
       return;
@@ -7084,16 +6927,11 @@ function routeAfterMagicLinkIfNeeded() {
         alert('Only PDF files can be uploaded right now: ' + file.name);
         continue;
       }
-      if (file.size > UPLOADED_DISCLOSURE_MAX_BYTES) {
+      if (file.size > maxBytes) {
         alert('This PDF is too large for beta upload: ' + file.name + '. Please keep each file under 15MB.');
         continue;
       }
       try {
-        const base64 = await readFileAsBase64(file);
-        if (!base64.startsWith('JVBER')) {
-          alert('This file does not appear to be a valid PDF: ' + file.name);
-          continue;
-        }
         docs.push({
           name: file.name,
           type: 'uploaded_disclosure',
@@ -7101,17 +6939,15 @@ function routeAfterMagicLinkIfNeeded() {
           mimeType: 'application/pdf',
           needsBuyerSignature: false,
           needsBuyerInitials: false,
-          base64
+          base64: await readFileAsBase64(file)
         });
       } catch (err) {
         console.error('Upload read failed:', err);
         alert('Could not read uploaded PDF: ' + file.name);
       }
     }
-    window.hofUploadedDisclosureDocs = [...existingDocs, ...docs];
-    syncUploadedDisclosureDocNames();
-    const input = document.getElementById('uploadedDisclosureDocs');
-    if (input) input.value = '';
+    window.hofUploadedDisclosureDocs = docs;
+    state.data.uploadedDocNames = docs.map(d => d.name);
     renderUploadedDocsList();
     try { renderReview(); } catch (e) {}
   }
@@ -7124,23 +6960,42 @@ function routeAfterMagicLinkIfNeeded() {
     if (['residential', 'fixture', 'naturalresource', 'natural_resource', 'natural resource'].includes(leases)) {
       blocked.push('Paragraph 4 lease addendum');
     }
-    const possession = String(data.possession || '').trim();
-    const buyerTemporaryLease = data.buyerTemporaryLease === 'yes';
-    const sellerTemporaryLease = data.sellerTemporaryLease === 'yes';
-    const buyerTemporaryLeaseSelected = possession === 'temporaryLease';
-    const sellerTemporaryLeaseSelected = possession === 'sellerTemporaryLease';
-    if (buyerTemporaryLease !== buyerTemporaryLeaseSelected) {
-      blocked.push("Buyer's Temporary Residential Lease configuration");
-    }
-    if (sellerTemporaryLease !== sellerTemporaryLeaseSelected) {
-      blocked.push("Seller's Temporary Residential Lease configuration");
-    }
-    if (buyerTemporaryLease && sellerTemporaryLease) {
-      blocked.push('conflicting temporary residential leases');
+    if (data.buyerTemporaryLease === 'yes' || ['lease', 'temporaryLease'].includes(data.possession)) {
+      blocked.push("Buyer's Temporary Residential Lease");
     }
     if (data.sellerFinancing === 'yes') blocked.push('Seller Financing Addendum');
     if (data.loanAssumption === 'yes') blocked.push('Loan Assumption Addendum');
     return [...new Set(blocked)];
+  }
+
+  function toggleSellerTemporaryLeaseFields() {
+    const active = getVal('possession') === 'sellerTemporaryLease';
+    const fields = document.getElementById('sellerTemporaryLeaseFields');
+    if (!fields) return;
+    fields.style.display = active ? 'block' : 'none';
+  }
+
+  function validateSellerTemporaryLeaseInputs(data) {
+    if ((data || {}).possession !== 'sellerTemporaryLease') return true;
+    const seller1Name = String(data.seller1Name || '').trim();
+    const seller1Email = String(data.seller1Email || '').trim();
+    const seller2Name = String(data.seller2Name || '').trim();
+    const seller2Email = String(data.seller2Email || '').trim();
+    const buyerEmails = [data.buyerEmail, data.buyer2Email].filter(Boolean).map(value => String(value).trim().toLowerCase());
+    const sellerEmails = [seller1Email, seller2Email].filter(Boolean).map(value => value.toLowerCase());
+    if (!seller1Name || !seller1Email) {
+      alert("Seller's Temporary Residential Lease requires the current seller / tenant 1 name and email for signature routing.");
+      return false;
+    }
+    if ((seller2Name && !seller2Email) || (!seller2Name && seller2Email)) {
+      alert("Enter both the name and email for seller / tenant 2, or leave both blank.");
+      return false;
+    }
+    if (new Set(buyerEmails.concat(sellerEmails)).size !== buyerEmails.length + sellerEmails.length) {
+      alert('Each signer needs a different email address.');
+      return false;
+    }
+    return true;
   }
 
 
@@ -7153,12 +7008,6 @@ function routeAfterMagicLinkIfNeeded() {
       '. Please contact support before purchasing or generating this packet.'
     );
     return false;
-  }
-
-  function toggleSellerTemporaryLeaseDetails() {
-    const selected = getVal('possession') === 'sellerTemporaryLease';
-    const details = document.getElementById('sellerTemporaryLeaseDetails');
-    if (details) details.style.display = selected ? 'block' : 'none';
   }
 
 
@@ -7186,6 +7035,7 @@ function routeAfterMagicLinkIfNeeded() {
 
       try { collectAllData(); } catch (e) { try { collectData(); } catch (_) {} }
       if (!confirmControlledLaunchSupport(state.data)) return;
+      if (!validateSellerTemporaryLeaseInputs(state.data)) return;
 
       const email = (
         document.getElementById('paymentEmail')?.value ||
@@ -7280,6 +7130,7 @@ function routeAfterMagicLinkIfNeeded() {
 
     collectAllData();
     if (!confirmControlledLaunchSupport(state.data)) return;
+    if (!validateSellerTemporaryLeaseInputs(state.data)) return;
 
     const email =
       state.data.buyerEmail ||
@@ -7875,7 +7726,6 @@ function routeAfterMagicLinkIfNeeded() {
       return;
     }
     _wireGoogleAutocomplete('propAddress', fillAddressFields);
-    _wireGoogleAutocomplete('showingAddress', null);
     _wireGoogleAutocomplete('buyerMailAddr', fillBuyerMailAddressField);
     _wireGoogleAutocomplete('propertyToSell', null);
     _wireGoogleAutocomplete('propertyToSellAddress', null);
@@ -8166,25 +8016,25 @@ function routeAfterMagicLinkIfNeeded() {
 
     const copy = {
       homebuyer: {
-        headline: 'Write a Real Estate <em>Offer</em><br/>Without the Confusion.',
-        sub: 'A plain-English, mobile-friendly way to prepare a Texas offer packet. No agent? No problem. You stay in control of every term.',
+        headline: 'Write a real estate offer<br/><em>without the confusion.</em>',
+        sub: 'HomeOfferFlow guides you through a supported Texas buyer-offer packet in plain English, then lets you review every term before signing or sending.',
         cta: 'Start Your Offer',
         nav: 'Build Your Offer →',
         priceNote: 'No payment required to begin. Review your full offer summary before paying. <strong>Pay $99 only when your completed offer packet is ready.</strong>'
       },
       agent: {
-        headline: 'Write cleaner Texas <em>offers faster</em>.',
-        sub: 'Draft client-ready Texas resale offers from your phone with fewer missed blanks, smarter addenda logic, buyer-side e-signature, and faster revisions.',
+        headline: 'Write supported Texas <em>offers faster</em>.',
+        sub: 'Prepare client-ready Texas buyer-offer packets from your phone with guided questions, supported purchase addenda, buyer-side e-signature, and saved profiles.',
         cta: 'Start Agent Draft',
         nav: 'Start Agent Draft →',
-        priceNote: 'Built for client-ready Texas offer packets, buyer-side e-signature, and repeat-use workflows. <strong>Agent plans are $29/month; OnDemand Realty agents receive 60 days free with a card on file.</strong>'
+        priceNote: 'Built for supported Texas buyer-offer packets, buyer-side e-signature, and repeat-use agent workflows. <strong>Standalone representation, listing, and seller forms are not yet included.</strong>'
       },
       investor: {
         headline: 'Make more <em>offers</em>, faster.',
-        sub: 'Build clean Texas offers quickly, stay consistent across deals, and move faster when the right property hits. Saved investor profiles and repeat-offer tools are coming soon.',
+        sub: 'Build clean Texas offers quickly, stay consistent across deals, and move faster when the right property hits. Save investor defaults and duplicate prior offers when repeat terms fit the next deal.',
         cta: 'Build Investor Offer',
         nav: 'Build Investor Offer →',
-        priceNote: 'Built for fast investment offers, repeat deal flow, and flexible terms. <strong>Investor saved profiles and repeat-offer tools are coming soon.</strong>'
+        priceNote: 'Built for fast investment offers, repeat deal flow, and flexible terms. <strong>Save deal defaults, duplicate prior offers, and review every term before signing or sending.</strong>'
       },
       fsbo: {
         headline: 'Sell smarter with <em>FSBO support</em>.',
@@ -8206,9 +8056,7 @@ function routeAfterMagicLinkIfNeeded() {
 
     if (type !== 'homebuyer') {
       state.data.seenProperty = '';
-      const showingForm = document.getElementById('showingForm');
       const showingHelper = document.getElementById('showingHelper');
-      if (showingForm) showingForm.style.display = 'none';
       if (showingHelper) showingHelper.style.display = 'none';
     }
 
@@ -8409,9 +8257,7 @@ function routeAfterMagicLinkIfNeeded() {
     if (backupDetails) backupDetails.style.display = backup === 'yes' ? 'block' : 'none';
 
     const seenProperty = document.querySelector('input[name="seenProperty"]:checked')?.value || '';
-    const showingForm = document.getElementById('showingForm');
     const showingHelper = document.getElementById('showingHelper');
-    if (showingForm) showingForm.style.display = seenProperty === 'book' ? 'block' : 'none';
     if (showingHelper) showingHelper.style.display = seenProperty === 'myself' ? 'block' : 'none';
 
     const buyer2 = document.getElementById('buyer2');
@@ -8605,13 +8451,13 @@ function routeAfterMagicLinkIfNeeded() {
         <div id="brokerageFoundationStatus" class="platform-status"></div>
       </div>
       <div class="platform-card">
-        <h4>Brokerage Admin Dashboard Shell</h4>
+        <h4>Brokerage Administration</h4>
         <div class="platform-kpi-row">
           <div class="platform-kpi"><span>Branding</span><strong>${b?.id ? 'Saved' : 'Draft'}</strong></div>
           <div class="platform-kpi"><span>Role</span><strong>${hofAuth.accountProfile?.is_brokerage_admin || isCurrentAdmin() ? 'Admin' : 'Agent'}</strong></div>
-          <div class="platform-kpi"><span>Next</span><strong>Agents</strong></div>
+          <div class="platform-kpi"><span>Access</span><strong>Managed</strong></div>
         </div>
-        <p>Next build: add/remove agents, view all brokerage offers, usage by agent, partner clicks, and compliance checklist.</p>
+        <p>Brokerage membership, invites, activity totals, and shared defaults are managed through the secure brokerage workspace. Broker activity is intentionally limited to operational totals, not buyer or offer details.</p>
       </div>`;
   }
 
@@ -8804,35 +8650,6 @@ function routeAfterMagicLinkIfNeeded() {
     return String(value || '').replace(/_/g, ' ').replace(/\b\w/g, letter => letter.toUpperCase());
   }
 
-  const LISTING_WORKSPACE_STATUSES = ['intake', 'source_pending', 'draft', 'ready_for_review', 'archived'];
-
-  function listingWorkspaceStatusOptions(current) {
-    return LISTING_WORKSPACE_STATUSES.map(status =>
-      `<option value="${status}" ${status === current ? 'selected' : ''}>${escapeAttr(listingWorkspaceLabel(status))}</option>`
-    ).join('');
-  }
-
-  async function updateListingWorkspaceStatus(workspaceId, nextStatus) {
-    const client = getSupabaseClient();
-    const user = platformUser();
-    const status = String(nextStatus || '').trim();
-    if (!client || !user) return platformStatus('listingWorkspaceStatus', 'Sign in before updating a listing workspace.', 'err');
-    if (!LISTING_WORKSPACE_STATUSES.includes(status)) {
-      return platformStatus('listingWorkspaceStatus', 'Choose a valid listing-workspace status.', 'err');
-    }
-    try {
-      const { error } = await client.from('hof_listing_workspaces')
-        .update({ status, updated_at: new Date().toISOString() })
-        .eq('id', workspaceId);
-      if (error) throw error;
-      platformStatus('listingWorkspaceStatus', `Workspace marked ${listingWorkspaceLabel(status)}. This does not create, send, or sign a form.`, 'ok');
-      await loadListingWorkspacesFoundation();
-    } catch (err) {
-      console.error('Listing workspace status update failed:', err);
-      platformStatus('listingWorkspaceStatus', err?.message || 'Could not update the listing workspace.', 'err');
-    }
-  }
-
   async function loadListingWorkspacesFoundation() {
     const list = document.getElementById('listingWorkspaceList');
     const summary = document.getElementById('listingWorkspaceBrokerSummary');
@@ -8848,19 +8665,35 @@ function routeAfterMagicLinkIfNeeded() {
       list.innerHTML = workspaces.length ? workspaces.map(workspace => {
         const workflows = Array.isArray(workspace.requested_workflows) && workspace.requested_workflows.length
           ? workspace.requested_workflows.map(listingWorkspaceLabel).join(' · ') : 'No workflow selected yet';
-        return `<div class="platform-list-item"><strong>${escapeAttr(workspace.property_address || 'Listing workspace')}</strong><span class="platform-pill">${escapeAttr(listingWorkspaceLabel(workspace.listing_kind))}</span><span class="platform-pill">${escapeAttr(listingWorkspaceLabel(workspace.status))}</span><br>${escapeAttr((workspace.seller_names || []).join(' · '))}<br><small>${escapeAttr(workflows)}</small><div style="display:flex;gap:.45rem;align-items:center;flex-wrap:wrap;margin-top:.6rem;"><label style="font-size:.78rem;">Private workflow status <select id="listingWorkspaceStatus-${escapeAttr(workspace.id)}">${listingWorkspaceStatusOptions(workspace.status)}</select></label><button type="button" class="btn-secondary" onclick="updateListingWorkspaceStatus('${escapeAttr(workspace.id)}', document.getElementById('listingWorkspaceStatus-${escapeAttr(workspace.id)}').value)">Update status</button></div></div>`;
+        return `<div class="platform-list-item"><strong>${escapeAttr(workspace.property_address || 'Listing workspace')}</strong><span class="platform-pill">${escapeAttr(listingWorkspaceLabel(workspace.listing_kind))}</span><span class="platform-pill">${escapeAttr(listingWorkspaceLabel(workspace.status))}</span><br>${escapeAttr((workspace.seller_names || []).join(' · '))}<br><small>${escapeAttr(workflows)}</small></div>`;
       }).join('') : '<div class="platform-list-item">No private listing workspaces yet.</div>';
       const profile = hofAuth.accountProfile || hofAuth.authoritativeProfile || {};
       const mayViewSummary = profile.is_brokerage_admin === true || String(profile.role || '').toLowerCase() === 'brokerage_admin' || isCurrentAdmin();
       if (!summary) return;
       if (!mayViewSummary) { summary.textContent = ''; return; }
-      const result = await client.rpc('hof_brokerage_listing_workspace_summary');
-      if (result.error) throw result.error;
-      const counts = result.data || [];
-      summary.textContent = counts.length
-        ? 'Brokerage workflow counts: ' + counts.map(row => `${listingWorkspaceLabel(row.listing_kind)} / ${listingWorkspaceLabel(row.status)}: ${row.workspace_count}`).join(' · ')
-        : 'Brokerage workflow counts: no listing workspaces yet.';
-      summary.className = 'platform-status ok';
+      // This is served by the broker-authorized dashboard endpoint rather than
+      // a browser-callable database function. The endpoint returns aggregate
+      // counts only; it never returns seller, property, note, or form data.
+      try {
+        const accessToken = hofAuth?.session?.access_token;
+        if (!accessToken) throw new Error('Sign in again to load brokerage reporting.');
+        const dashboardResponse = await fetch('/api/admin-dashboard?scope=brokerage', {
+          headers: { Authorization: `Bearer ${accessToken}` }
+        });
+        const dashboard = await dashboardResponse.json().catch(() => ({}));
+        if (!dashboardResponse.ok || dashboard.error) {
+          throw new Error(dashboard.error || 'Brokerage reporting is unavailable.');
+        }
+        const counts = dashboard.listingWorkspaceSummary || [];
+        summary.textContent = counts.length
+          ? 'Brokerage workflow counts: ' + counts.map(row => `${listingWorkspaceLabel(row.listingKind)} / ${listingWorkspaceLabel(row.status)}: ${row.workspaceCount}`).join(' · ')
+          : 'Brokerage workflow counts: no listing workspaces yet.';
+        summary.className = 'platform-status ok';
+      } catch (summaryError) {
+        console.warn('Brokerage listing-workspace summary unavailable:', summaryError);
+        summary.textContent = 'Brokerage workflow counts are temporarily unavailable.';
+        summary.className = 'platform-status';
+      }
     } catch (err) {
       console.warn('Listing workspace load failed:', err);
       list.innerHTML = '<div class="platform-list-item">Listing workspaces could not load: ' + escapeAttr(err?.message || err) + '</div>';
@@ -8891,7 +8724,7 @@ function routeAfterMagicLinkIfNeeded() {
       const approved = new Map((data || []).map(row => [row.form_code, row.source_revision]));
       target.innerHTML = required.map(([code, label]) => {
         const revision = approved.get(code);
-        return `<div class="platform-list-item"><strong>${escapeAttr(code)}</strong> · ${escapeAttr(label)}<span class="platform-pill ${revision ? 'good' : ''}">${revision ? 'Source approved' : 'Source not approved'}</span>${revision ? `<br><small>Brokerage source revision: ${escapeAttr(revision)}. Execution remains gated.</small>` : '<br><small>Brokerage administrator must privately upload and approve an authorized current source before implementation can begin.</small>'}</div>`;
+        return `<div class="platform-list-item"><strong>${escapeAttr(code)}</strong> · ${escapeAttr(label)}<span class="platform-pill ${revision ? 'good' : ''}">${revision ? 'Source approved' : 'Source not approved'}</span>${revision ? `<br><small>Organization source revision: ${escapeAttr(revision)}. Execution remains gated.</small>` : '<br><small>An authorized organization administrator must privately upload and attest to the current authorized source before implementation can begin.</small>'}</div>`;
       }).join('');
     } catch (err) {
       console.warn('Listing source readiness load failed:', err);
@@ -8917,13 +8750,12 @@ function routeAfterMagicLinkIfNeeded() {
       <div class="partner-create-card">
         <h4 style="color:var(--gold-light); font-size:0.86rem; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:0.75rem;">Create Partner Placement</h4>
         <div class="platform-grid">
-          <div class="field"><label>Partner Type</label><select id="partnerType"><option value="title">Title / closing</option><option value="lender">Lender</option><option value="inspection">Inspection</option><option value="surveyor">Property surveyor</option><option value="insurance">Home insurance</option><option value="home_warranty">Home warranty</option><option value="roofing">Roofing</option><option value="hvac">HVAC</option><option value="plumbing">Plumbing</option><option value="electrical">Electrical</option><option value="foundation_structural">Foundation / structural repair</option><option value="general_contractor">General contractor / remodeling</option><option value="pest_termite">Pest / termite</option><option value="septic_well">Septic / well</option><option value="restoration">Water / fire restoration</option><option value="moving_storage">Moving / storage</option><option value="cleaning">Cleaning</option><option value="security_smart_home">Security / smart home</option></select></div>
+          <div class="field"><label>Paid partner application</label><select id="partnerLeadId" disabled><option value="">Loading paid applications…</option></select></div>
           <div class="field"><label>Placement Tier</label><select id="partnerTier"><option value="founding">Core Partner · $149</option><option value="premier">Featured Partner · $399</option><option value="exclusive_market">Premier Partner · $799</option></select></div>
-          <div class="field"><label>Partner Name</label><input id="partnerName" placeholder="Forgey Law Group / Chicago Title"></div>
-          <div class="field"><label>Market Area</label><input id="partnerMarket" placeholder="Collin / Grayson County"></div>
-          <div class="field"><label>Public website</label><input id="partnerWebsite" type="url" placeholder="https://partner.example"></div>
           <div class="field"><label>Pilot / monthly fee</label><input id="partnerMonthlyFee" type="number" placeholder="149"></div>
         </div>
+        <label style="display:flex;align-items:flex-start;gap:.55rem;margin-top:.85rem;color:var(--gray-light);font-size:.84rem;line-height:1.45;"><input id="partnerAgreementConfirmed" type="checkbox" style="margin-top:.2rem;"> <span>I confirm the required written advertising agreement is on file and authorize this paid partner application to become a public placement. This does not change Stripe billing.</span></label>
+        <div class="notice gold" style="margin-top:.7rem;">Public placement details are derived from the paid application so company, category, and market cannot be mismatched. Paid placements remain separate from neutral provider selection.</div>
         <div class="platform-actions"><button type="button" onclick="savePartnerPlacementFoundation()">Save Partner Placement</button><button type="button" onclick="loadPartnerPlacementsFoundation()">Refresh Partners</button></div>
         <div id="partnerFoundationStatus" class="platform-status"></div>
       </div>
@@ -8937,12 +8769,10 @@ function routeAfterMagicLinkIfNeeded() {
     try {
       const payload = {
         action: 'create_platform_partner_placement',
-        partner_type: getVal('partnerType') || 'title',
-        partner_name: getVal('partnerName') || 'Founding Partner',
-        market_area: getVal('partnerMarket') || null,
+        partner_lead_id: getVal('partnerLeadId'),
         placement_tier: getVal('partnerTier') || 'founding',
-        website_url: getVal('partnerWebsite') || null,
-        monthly_fee: moneyNumber(getVal('partnerMonthlyFee')) || null
+        monthly_fee: moneyNumber(getVal('partnerMonthlyFee')) || null,
+        agreement_confirmed: !!document.getElementById('partnerAgreementConfirmed')?.checked
       };
       const response = await fetch('/api/admin-dashboard', {
         method: 'POST',
@@ -8951,7 +8781,7 @@ function routeAfterMagicLinkIfNeeded() {
       });
       const result = await response.json().catch(() => ({}));
       if (!response.ok || result.error) throw new Error(result.error || 'Could not save platform placement.');
-      platformStatus('partnerFoundationStatus', 'Platform placement saved. It can now appear in the central Now What directory when its category is relevant.', 'ok');
+      platformStatus('partnerFoundationStatus', 'Agreement-confirmed placement saved. It can now appear in the central Now What directory when its category is relevant.', 'ok');
       await loadPartnerPlacementsFoundation();
     } catch (err) {
       console.error('Partner placement save failed:', err);
@@ -8968,6 +8798,7 @@ function routeAfterMagicLinkIfNeeded() {
       const result = await response.json().catch(() => ({}));
       if (!response.ok || result.error) throw new Error(result.error || 'Could not load platform placements.');
       hofPlatform.partners = result.partnerPlacements || [];
+      populatePaidPartnerPlacementLeads(result.partnerLeads || []);
       list.innerHTML = hofPlatform.partners.length ? hofPlatform.partners.map(row => `
         <div class="platform-list-item"><strong>${escapeAttr(row.partner_name || 'Partner')}</strong>
           <span class="platform-pill good">${escapeAttr(row.partner_type || 'partner')}</span>
@@ -8978,6 +8809,16 @@ function routeAfterMagicLinkIfNeeded() {
       console.warn('Partner placement load failed:', err);
       list.innerHTML = '<div class="platform-list-item">Partners could not load: ' + escapeAttr(err?.message || err) + '</div>';
     }
+  }
+
+  function populatePaidPartnerPlacementLeads(leads) {
+    const select = document.getElementById('partnerLeadId');
+    if (!select) return;
+    const paid = (leads || []).filter(lead => String(lead?.payment_status || '') === 'paid' && !['declined', 'waitlist'].includes(String(lead?.status || '')));
+    select.disabled = !paid.length;
+    select.innerHTML = paid.length
+      ? '<option value="">Choose a paid application…</option>' + paid.map(lead => '<option value="' + escapeAttr(lead.id || '') + '">' + escapeAttr(lead.company_name || 'Partner') + ' · ' + escapeAttr(lead.partner_type || 'other') + ' · ' + escapeAttr(lead.market_area || 'market') + '</option>').join('')
+      : '<option value="">No eligible paid applications</option>';
   }
 
   function estimateOfferScoreFromCurrentState() {
@@ -9310,11 +9151,11 @@ function routeAfterMagicLinkIfNeeded() {
     el.className = '';
     el.innerHTML = `
       <div class="platform-card">
-        <h4>AI Offer Review Foundation</h4>
-        <p>This is the placeholder shell for the future Gemini-powered offer score, risk checklist, and strategy recommendations.</p>
+        <h4>Offer Review</h4>
+        <p>Use the offer review before sending a packet for an educational strength and risk summary. The offer workspace uses the live review when it is available and automatically falls back to the rules-based review when it is not.</p>
         <div class="ai-score-ring">${score}</div>
-        <div class="notice gold">Placeholder score only. This does not call AI yet and should not be presented as advice. It confirms the UI/database path is ready.</div>
-        <div class="platform-actions"><button type="button" onclick="saveAiReviewPlaceholder()">Save Placeholder Review</button><button type="button" onclick="openWizard(true); showStepById && showStepById('step8')">Open Offer Review</button></div>
+        <div class="notice gold">This dashboard snapshot is rules-based. Open the offer review to run the live educational review when available. Neither result is legal advice, broker advice, a valuation opinion, or a guarantee of acceptance.</div>
+        <div class="platform-actions"><button type="button" onclick="saveAiReviewPlaceholder()">Save Review Snapshot</button><button type="button" onclick="openWizard(true); showStepById && showStepById('step8')">Open Offer Review</button></div>
         <div id="aiFoundationStatus" class="platform-status"></div>
       </div>
       <div class="platform-card">
@@ -10703,7 +10544,7 @@ function routeAfterMagicLinkIfNeeded() {
     target.innerHTML = '<div class="offer-empty">Loading offer workspace detail...</div>';
     if (!client || !user || !offerId) { target.innerHTML = '<div class="offer-empty">Sign in to view offer details.</div>'; return; }
     try {
-      const { data: offer, error } = await client.from('hof_offers').select('*').eq('user_id', user.id).eq('id', offerId).maybeSingle();
+      const { data: offer, error } = await client.from('hof_offers').select('*').eq('id', offerId).maybeSingle();
       if (error) throw error;
       if (!offer) throw new Error('Offer not found.');
       let events = [];
@@ -11190,12 +11031,12 @@ function routeAfterMagicLinkIfNeeded() {
     if (!el || !isBroker() || document.getElementById('brokerageBrokerIntroV14')) return;
     el.insertAdjacentHTML('afterbegin', `
       <div class="broker-role-card" id="brokerageBrokerIntroV14">
-        <h4>Brokerage / Team Lead Shell</h4>
-        <p>This is the right place for broker-level setup. Today it stores branding and defaults. The next layer can add agent invites, team offer visibility, compliance queues, and brokerage-wide billing.</p>
+        <h4>Brokerage / Team Lead Workspace</h4>
+        <p>Use this area for brokerage branding, agent access, secure invite links, shared defaults, and privacy-limited operational activity. Buyer names, addresses, offer terms, and documents are not exposed here.</p>
         <div class="broker-role-grid">
           <div class="broker-role-chip"><strong>Defaults</strong><span>Brokerage, license, title, escrow, disclaimers.</span></div>
-          <div class="broker-role-chip"><strong>Oversight</strong><span>Future team offers, statuses, and beta feedback.</span></div>
-          <div class="broker-role-chip"><strong>Compliance</strong><span>Future broker review queue and issue flags.</span></div>
+          <div class="broker-role-chip"><strong>Oversight</strong><span>Roster status and aggregate offer activity only.</span></div>
+          <div class="broker-role-chip"><strong>Privacy</strong><span>Buyer and offer details remain restricted.</span></div>
         </div>
       </div>`);
   };
@@ -11248,14 +11089,14 @@ function routeAfterMagicLinkIfNeeded() {
     if (typeof oldSetAudience === 'function') oldSetAudience(type);
     const copy = {
       homebuyer: {
-        headline: 'Write a Real Estate <em>Offer</em><br/>Without the Confusion.',
-        sub: 'A plain-English, mobile-friendly way to prepare a Texas offer packet. No agent? No problem. You stay in control of every term.',
+        headline: 'Write a real estate offer<br/><em>without the confusion.</em>',
+        sub: 'HomeOfferFlow guides you through a supported Texas buyer-offer packet in plain English, then lets you review every term before signing or sending.',
         cta: 'Start Homebuyer Offer — $99', nav: 'Build Your Offer →', note: 'No payment required to begin. Review your full offer summary before checkout. <strong>Pay $99 only when the completed offer packet is ready.</strong>'
       },
       agent: {
-        headline: 'A faster Texas offer workflow for <em>agents & brokers</em>.',
-        sub: 'Create client-ready Texas offer packets from your phone, send buyer-side signatures, track status, duplicate prior offers, and collect beta feedback for broker review.',
-        cta: 'Open Agent / Broker Workspace', nav: 'Agent / Broker Login →', note: 'Built for broker-supervised beta testing. <strong>Buyer-side signing only; agents remain responsible for review, advice, submission, negotiation, and compliance.</strong>'
+        headline: 'A clearer Texas buyer-offer workflow for <em>agents & brokers</em>.',
+        sub: 'Create supported Texas buyer-offer packets from your phone, send buyer-side signatures, track status, duplicate prior offers, and collect broker-reviewed feedback.',
+        cta: 'Open Agent / Broker Workspace', nav: 'Agent / Broker Login →', note: 'Built for broker-supervised beta testing. <strong>Buyer-side offer packets only; standalone representation, listing, and seller forms are not yet included.</strong>'
       },
       investor: {
         headline: 'Make more <em>investment offers</em> with less retyping.',
@@ -11877,6 +11718,10 @@ function routeAfterMagicLinkIfNeeded() {
     const client = root.getSupabaseClient?.();
     const user = root.hofAuth?.session?.user;
     if (!client || !user) return null;
+    // The account shell can finish authentication before an earlier optional
+    // platform enhancement initializes this namespace. Brokerage access must
+    // remain optional and must never prevent a signed-in user opening Account.
+    root.hofPlatform = root.hofPlatform || {};
     try {
       const profileResult = await client
         .from('hof_profiles')
@@ -11892,7 +11737,7 @@ function routeAfterMagicLinkIfNeeded() {
       }
       const [brokerageResult,membershipResult] = await Promise.all([
         client.from('hof_brokerages')
-          .select('id,name,dba_name,slug,logo_url,brand_color,website_url,license_number,plan_name,billing_status,default_title_company,default_title_contact')
+          .select('id,name,dba_name,slug,logo_url,brand_color,website_url,license_number,plan_name,billing_status,default_title_company,default_title_contact,txr_all_agents_authorized,txr_authorization_attested_at')
           .eq('id',brokerageId).maybeSingle(),
         client.from('hof_brokerage_members')
           .select('role,status,created_at,updated_at')
@@ -12037,6 +11882,35 @@ function routeAfterMagicLinkIfNeeded() {
     }
   };
 
+  root.saveBrokerageTxrAuthorization = async function saveBrokerageTxrAuthorization() {
+    const session = root.hofAuth?.session;
+    const brokerage = root.hofPlatform?.brokerage;
+    const result = document.getElementById('brokerageTxrAuthorizationResult');
+    const value = String(document.getElementById('brokerageTxrAuthorization')?.value || 'unknown');
+    if (!session?.access_token || !brokerage?.id) {
+      if (result) result.textContent = 'Sign in again before saving the authorization status.';
+      return;
+    }
+    if (result) result.textContent = 'Saving brokerage authorization status…';
+    try {
+      const response = await fetch('/api/admin-dashboard', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + session.access_token },
+        body: JSON.stringify({ action: 'update_brokerage_txr_authorization', txr_authorization: value })
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.authorization) throw new Error(data.error || 'Could not save the authorization status.');
+      root.hofPlatform.brokerage = Object.assign({}, brokerage, {
+        txr_all_agents_authorized: data.authorization.allAgentsAuthorized,
+        txr_authorization_attested_at: data.authorization.attestedAt || null
+      });
+      if (result) result.textContent = 'Brokerage authorization status saved. Each agent must still attest individually, and source approval remains separate.';
+      await root.renderBrokerageFoundationPanel();
+    } catch (error) {
+      if (result) result.textContent = error.message || 'Could not save the authorization status.';
+    }
+  };
+
   root.saveBrokerageSharedDefaults = async function saveBrokerageSharedDefaults() {
     const session = root.hofAuth?.session;
     const brokerage = root.hofPlatform?.brokerage;
@@ -12139,9 +12013,21 @@ function routeAfterMagicLinkIfNeeded() {
       const m = data.metrics || {};
       const agents = data.agents || [];
       const pendingInvites = data.pendingInvites || [];
+      const authorization = data.authorization || {};
+      const authorizationMessage = authorization.allAgentsAuthorized
+        ? 'Brokerage administrator attestation recorded. Each agent must still confirm their own current authorization before using a restricted Texas REALTORS® form.'
+        : 'Brokerage-wide Texas REALTORS® / NAR authorization is not confirmed yet. Set it in Brokerage settings when accurate. Each agent must still confirm their own current authorization, and an approved private source is required separately.';
       document.getElementById('brokerSafeDashboard').innerHTML =
         '<h4>Brokerage activity</h4>' +
         '<p>Operational visibility only. Buyer names, property addresses, offer terms, and document contents are not included.</p>' +
+        '<div class="brokerage-membership-note"><strong>TXR / NAR authorization:</strong> ' + safe(authorizationMessage) + '</div>' +
+        '<div class="brokerage-invite-form"><label for="brokerageTxrAuthorization">Brokerage TXR / NAR authorization</label>' +
+        '<select id="brokerageTxrAuthorization" aria-label="Brokerage TXR / NAR authorization">' +
+          '<option value="unknown"' + (!authorization.attestedAt ? ' selected' : '') + '>Not confirmed yet</option>' +
+          '<option value="all_agents_authorized"' + (authorization.allAgentsAuthorized ? ' selected' : '') + '>Yes — all participating agents are authorized</option>' +
+          '<option value="not_all"' + (authorization.attestedAt && !authorization.allAgentsAuthorized ? ' selected' : '') + '>No / not all participating agents are authorized</option>' +
+        '</select><button type="button" class="brokerage-access-button" onclick="saveBrokerageTxrAuthorization()">Save authorization</button></div>' +
+        '<p id="brokerageTxrAuthorizationResult" class="brokerage-invite-result">This is the broker-admin attestation only. Every agent confirms separately before using a restricted form.</p>' +
         '<p class="brokerage-membership-note">Suspending an agent removes brokerage-managed access only. It does not cancel that agent\'s HomeOfferFlow subscription or delete their offers.</p>' +
         '<div class="brokerage-invite-form" style="margin-top:1rem"><label for="brokerageBrandColor">Brokerage branding</label>' +
         '<input id="brokerageBrandColor" type="color" value="' + safe(b.brand_color || '#2563eb') + '" aria-label="Brokerage brand color">' +
@@ -12460,6 +12346,13 @@ function routeAfterMagicLinkIfNeeded() {
     return !!brokerage() && (profile.is_brokerage_admin === true || String(profile.role || '').toLowerCase() === 'brokerage_admin');
   };
   const safeRevision = value => String(value || '').trim().replace(/[^a-zA-Z0-9._-]+/g, '-').slice(0, 48);
+  async function sourceFingerprint(file) {
+    if (!window.crypto?.subtle || !file?.arrayBuffer) {
+      throw new Error('This browser cannot securely fingerprint the source PDF. Use a current browser and try again.');
+    }
+    const digest = await window.crypto.subtle.digest('SHA-256', await file.arrayBuffer());
+    return Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
+  }
 
   async function loadSources() {
     const client = root.getSupabaseClient?.();
@@ -12467,7 +12360,7 @@ function routeAfterMagicLinkIfNeeded() {
     if (!client || !currentBrokerage || !isBrokerageAdmin()) return [];
     const { data, error } = await client
       .from('hof_brokerage_form_sources')
-      .select('id,form_code,source_revision,status,original_filename,updated_at')
+      .select('id,form_code,source_revision,status,original_filename,source_sha256,updated_at')
       .eq('brokerage_id', currentBrokerage.id)
       .order('updated_at', { ascending: false });
     if (error) throw error;
@@ -12514,7 +12407,10 @@ function routeAfterMagicLinkIfNeeded() {
     if (!list || !isBrokerageAdmin()) return;
     try {
       const sources = await loadSources();
-      list.innerHTML = sources.length ? sources.map(source => `<li><span><strong>${escape(source.form_code)}</strong> · ${escape(source.source_revision)}<br><small>${escape(source.original_filename)}</small></span><span>${escape(source.status)}</span></li>`).join('') : '<li>No brokerage form sources saved yet.</li>';
+      list.innerHTML = sources.length ? sources.map(source => {
+        const fingerprint = source.source_sha256 ? `<br><small>SHA-256: ${escape(source.source_sha256.slice(0, 12))}…</small>` : '';
+        return `<li><span><strong>${escape(source.form_code)}</strong> · ${escape(source.source_revision)}<br><small>${escape(source.original_filename)}</small>${fingerprint}</span><span>${escape(source.status)}</span></li>`;
+      }).join('') : '<li>No brokerage form sources saved yet.</li>';
     } catch (error) {
       console.error('Brokerage form-source list failed:', error);
       list.innerHTML = '<li>Could not load form-source records.</li>';
@@ -12540,6 +12436,7 @@ function routeAfterMagicLinkIfNeeded() {
     const revisionKey = safeRevision(revision);
     const path = `${currentBrokerage.id}/${code}-${revisionKey}-${Date.now()}.pdf`;
     try {
+      const sourceSha256 = await sourceFingerprint(file);
       const { data: existing, error: existingError } = await client
         .from('hof_brokerage_form_sources')
         .select('id').eq('brokerage_id', currentBrokerage.id)
@@ -12561,6 +12458,7 @@ function routeAfterMagicLinkIfNeeded() {
         original_filename: file.name.slice(0, 180),
         mime_type: 'application/pdf',
         byte_size: file.size,
+        source_sha256: sourceSha256,
         authorization_attested: true,
         authorized_by_user_id: user.id,
         authorized_at: now,
@@ -12646,7 +12544,7 @@ function routeAfterMagicLinkIfNeeded() {
       const source = await approvedShortFormSource();
       const copy = card.querySelector('#txr1507AgreementCopy');
       if (!source) {
-        copy.textContent = 'TXR-1507 is not yet enabled for your brokerage. A brokerage administrator must privately upload and approve the current authorized source form first.';
+        copy.textContent = 'TXR-1507 is not yet enabled for your organization. An authorized administrator must privately upload and attest to the current authorized source form first.';
         return;
       }
       copy.innerHTML = `Start a private TXR-1507 Short Form draft using your brokerage-approved ${escape(source.source_revision)} source. A draft is not sent or signed until the separate review and signing release is complete.`;
@@ -12683,6 +12581,7 @@ function routeAfterMagicLinkIfNeeded() {
           <label>Lease: % of all rents<input name="leaseTotalRentsPercentage" inputmode="decimal" placeholder="Enter only if broker-approved"></label>
           <label>Lease flat fee<input name="leaseFlatFee" inputmode="decimal" placeholder="Enter only if broker-approved"></label>
           <label>Intermediary choice<select name="intermediary" required><option value="">Choose one…</option><option value="authorized">Client authorizes intermediary</option><option value="not_authorized">Client does not authorize intermediary</option></select></label>
+          <label class="hof-agreement-wide hof-agreement-services"><input name="formUseAttested" type="checkbox" required> I confirm that I am currently authorized to use this Texas REALTORS® form for my brokerage and that the selected source revision is the approved source for this agreement.</label>
         </div>
         <div id="txr1507DraftStatus" class="hof-iabs-status"></div>
         <div class="hof-agreement-footer"><button class="btn-secondary" type="button" id="txr1507Cancel">Cancel</button><button class="btn-primary" type="submit">Save private draft</button></div>
@@ -12709,7 +12608,7 @@ function routeAfterMagicLinkIfNeeded() {
     const payload = {
       action: 'create_txr_1507_draft', formCode: FORM_CODE, formSourceId: source.id, clientNames,
       marketArea: form.get('marketArea'), termStart: form.get('termStart'), termEnd: form.get('termEnd'),
-      serviceLevel: form.get('serviceLevel'), showingFee: form.get('showingFee'), intermediary: form.get('intermediary'),
+      serviceLevel: form.get('serviceLevel'), showingFee: form.get('showingFee'), intermediary: form.get('intermediary'), formUseAttested: form.get('formUseAttested') === 'on',
       compensation: { purchasePercentage: form.get('purchasePercentage'), purchaseFlatFee: form.get('purchaseFlatFee'), leaseOneMonthPercentage: form.get('leaseOneMonthPercentage'), leaseTotalRentsPercentage: form.get('leaseTotalRentsPercentage'), leaseFlatFee: form.get('leaseFlatFee') }
     };
     try {
@@ -12719,6 +12618,31 @@ function routeAfterMagicLinkIfNeeded() {
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || 'Could not save the agreement draft.');
       status.className = 'hof-iabs-status ready'; status.textContent = 'Draft saved privately. It has not been sent for signature.';
+      const agreementId = result?.agreement?.id;
+      if (agreementId) {
+        const renderButton = document.createElement('button');
+        renderButton.type = 'button';
+        renderButton.className = 'btn-secondary';
+        renderButton.textContent = 'Generate private PDF for review';
+        renderButton.addEventListener('click', async () => {
+          renderButton.disabled = true;
+          status.textContent = 'Generating a private PDF for review…';
+          try {
+            const token = root.hofAuth?.session?.access_token;
+            const renderResponse = await fetch('/api/admin-dashboard', { method:'POST', headers:{ 'Content-Type':'application/json', Authorization:`Bearer ${token}` }, body:JSON.stringify({ action:'render_txr_1507_draft', agreementId }) });
+            const rendered = await renderResponse.json();
+            if (!renderResponse.ok) throw new Error(rendered.error || 'Could not generate the private PDF.');
+            status.className = 'hof-iabs-status ready';
+            status.innerHTML = `Private draft PDF generated. <a href="${escape(rendered?.agreement?.download_url || '')}" target="_blank" rel="noopener">Open PDF for review</a> (link expires in 15 minutes). It is not sent for signature.`;
+            renderButton.remove();
+          } catch (error) {
+            console.error('TXR-1507 private render failed:', error);
+            renderButton.disabled = false;
+            status.className = 'hof-iabs-status error'; status.textContent = error.message || 'Could not generate the private PDF.';
+          }
+        });
+        event.currentTarget.querySelector('.hof-agreement-footer')?.prepend(renderButton);
+      }
       event.currentTarget.querySelector('button[type="submit"]').disabled = true;
     } catch (error) {
       console.error('TXR-1507 draft failed:', error);
@@ -12771,7 +12695,7 @@ function routeAfterMagicLinkIfNeeded() {
       const source = await approvedLongFormSource();
       const copy = card.querySelector('#txr1501AgreementCopy');
       if (!source) {
-        copy.textContent = 'TXR-1501 is not yet enabled for your brokerage. A brokerage administrator must privately upload and approve the current authorized source form first.';
+        copy.textContent = 'TXR-1501 is not yet enabled for your organization. An authorized administrator must privately upload and attest to the current authorized source form first.';
         return;
       }
       copy.innerHTML = `Start a private TXR-1501 Long Form draft using your brokerage-approved ${escape(source.source_revision)} source. Choose this form deliberately; it is not a substitute for the Short Form. A draft is not sent or signed.`;
@@ -12813,6 +12737,7 @@ function routeAfterMagicLinkIfNeeded() {
           <label>Protection period days (optional)<input name="protectionDays" inputmode="numeric" placeholder="Enter only if broker-approved"></label>
           <label>Payment county<input name="paymentCounty" required maxlength="100" placeholder="Example: Collin"></label>
           <label class="hof-agreement-wide">Intermediary choice<select name="intermediary" required><option value="">Choose one…</option><option value="authorized">Client authorizes intermediary</option><option value="not_authorized">Client does not authorize intermediary</option></select></label>
+          <label class="hof-agreement-wide hof-agreement-services"><input name="formUseAttested" type="checkbox" required> I confirm that I am currently authorized to use TXR-1501 for my brokerage and that the selected source revision is the approved source for this agreement.</label>
         </div>
         <div id="txr1501DraftStatus" class="hof-iabs-status"></div>
         <div class="hof-agreement-footer"><button class="btn-secondary" type="button" id="txr1501Cancel">Cancel</button><button class="btn-primary" type="submit">Save private draft</button></div>
@@ -12842,7 +12767,8 @@ function routeAfterMagicLinkIfNeeded() {
       clientAddress: form.get('clientAddress'), clientCityStateZip: form.get('clientCityStateZip'), clientPhone: form.get('clientPhone'), clientEmail: form.get('clientEmail'),
       marketArea: form.get('marketArea'), termStart: form.get('termStart'), termEnd: form.get('termEnd'),
       retainerAmount: form.get('retainerAmount'), retainerTreatment: form.get('retainerTreatment'), protectionDays: form.get('protectionDays'), paymentCounty: form.get('paymentCounty'), intermediary: form.get('intermediary'),
-      compensation: { purchasePercentage: form.get('purchasePercentage'), purchaseFlatFee: form.get('purchaseFlatFee'), leaseOneMonthPercentage: form.get('leaseOneMonthPercentage'), leaseTotalRentsPercentage: form.get('leaseTotalRentsPercentage'), leaseFlatFee: form.get('leaseFlatFee') }
+      compensation: { purchasePercentage: form.get('purchasePercentage'), purchaseFlatFee: form.get('purchaseFlatFee'), leaseOneMonthPercentage: form.get('leaseOneMonthPercentage'), leaseTotalRentsPercentage: form.get('leaseTotalRentsPercentage'), leaseFlatFee: form.get('leaseFlatFee') },
+      formUseAttested: form.get('formUseAttested') === 'on'
     };
     try {
       status.className = 'hof-iabs-status'; status.textContent = 'Saving private agreement draft…';
@@ -12903,7 +12829,7 @@ function routeAfterMagicLinkIfNeeded() {
       const source = await approvedShowingSource();
       const copy = card.querySelector('#txr1508AgreementCopy');
       if (!source) {
-        copy.textContent = 'TXR-1508 is not yet enabled for your brokerage. A brokerage administrator must privately upload and approve the current authorized source form first.';
+        copy.textContent = 'TXR-1508 is not yet enabled for your organization. An authorized administrator must privately upload and attest to the current authorized source form first.';
         return;
       }
       copy.innerHTML = `Start a private TXR-1508 showing draft using your brokerage-approved ${escape(source.source_revision)} source. This is an unrepresented-customer workflow, not a buyer representation agreement. A draft is not sent or signed.`;
@@ -12935,6 +12861,7 @@ function routeAfterMagicLinkIfNeeded() {
           ${customerStatusField(1)}
           <label>Customer 2 full name (optional)<input name="customerTwo" maxlength="180"></label>
           <div id="txr1508CustomerTwoStatus" style="display:none">${customerStatusField(2)}</div>
+          <label class="hof-agreement-wide hof-agreement-services"><input name="formUseAttested" type="checkbox" required> I confirm that I am currently authorized to use TXR-1508 for my brokerage and that the selected source revision is the approved source for this showing form.</label>
           <label class="hof-agreement-wide hof-agreement-services"><input name="unrepresentedAcknowledgment" type="checkbox" required> I confirm this is an unrepresented-customer showing draft only: no representation, no compensation, no advice or opinions, and no other brokerage services are being promised through this draft.</label>
         </div>
         <div id="txr1508DraftStatus" class="hof-iabs-status"></div>
@@ -12966,7 +12893,8 @@ function routeAfterMagicLinkIfNeeded() {
     const payload = {
       action: 'create_txr_1508_draft', formCode: FORM_CODE, formSourceId: source.id,
       clientNames: customerNames, propertyAddress: form.get('propertyAddress'), otherBrokerAgreement,
-      unrepresentedAcknowledgment: form.get('unrepresentedAcknowledgment') === 'on'
+      unrepresentedAcknowledgment: form.get('unrepresentedAcknowledgment') === 'on',
+      formUseAttested: form.get('formUseAttested') === 'on'
     };
     try {
       status.className = 'hof-iabs-status'; status.textContent = 'Saving private showing draft…';
@@ -13018,7 +12946,7 @@ function routeAfterMagicLinkIfNeeded() {
     panel.appendChild(card);
     try {
       const source = await approvedNoticeSource(), copy = card.querySelector('#txr1506AgreementCopy');
-      if (!source) { copy.textContent = 'TXR-1506 is not yet enabled for your brokerage. A brokerage administrator must privately upload and approve the current authorized source form first.'; return; }
+      if (!source) { copy.textContent = 'TXR-1506 is not yet enabled for your organization. An authorized administrator must privately upload and attest to the current authorized source form first.'; return; }
       copy.innerHTML = `Start a private TXR-1506 notice draft using your brokerage-approved ${escape(source.source_revision)} source. This is a consumer notice, not a representation agreement. A draft is not sent or signed.`;
       const button = document.createElement('button'); button.type = 'button'; button.className = 'btn-secondary'; button.textContent = 'Start TXR-1506 draft';
       button.addEventListener('click', () => openNoticeDraft(source)); card.appendChild(button);
@@ -13027,19 +12955,169 @@ function routeAfterMagicLinkIfNeeded() {
   function openNoticeDraft(source) {
     document.getElementById('txr1506AgreementDialog')?.remove();
     const modal = document.createElement('div'); modal.id = 'txr1506AgreementDialog'; modal.className = 'hof-agreement-modal';
-    modal.innerHTML = `<form class="hof-agreement-dialog" id="txr1506AgreementForm"><h3>TXR-1506 consumer notice draft</h3><p>Source revision ${escape(source.source_revision)} is approved by your brokerage. This saves a private draft only; it does not create, send, or sign the source form.</p><div class="hof-agreement-grid"><label>Consumer 1 full name<input name="consumerOne" required maxlength="180"></label><label>Consumer 2 full name (optional)<input name="consumerTwo" maxlength="180"></label><label>Consumer transaction role<select name="consumerRole" required><option value="">Choose one…</option><option value="buyer">Buyer</option><option value="tenant">Tenant</option><option value="seller">Seller</option><option value="landlord">Landlord</option><option value="other">Other</option></select></label><label class="hof-agreement-wide">Other notice text (optional)<textarea name="additionalNotice" maxlength="1000" placeholder="Enter only agent-confirmed text for the source form's Other area."></textarea></label><label class="hof-agreement-wide hof-agreement-services"><input name="noticeAcknowledgment" type="checkbox" required> I confirm the consumer will receive, read, and acknowledge this general information notice. This draft does not create representation.</label></div><div id="txr1506DraftStatus" class="hof-iabs-status"></div><div class="hof-agreement-footer"><button class="btn-secondary" type="button" id="txr1506Cancel">Cancel</button><button class="btn-primary" type="submit">Save private draft</button></div></form>`;
+    modal.innerHTML = `<form class="hof-agreement-dialog" id="txr1506AgreementForm"><h3>TXR-1506 consumer notice draft</h3><p>Source revision ${escape(source.source_revision)} is approved by your brokerage. This saves a private draft only; it does not create, send, or sign the source form.</p><div class="hof-agreement-grid"><label>Consumer 1 full name<input name="consumerOne" required maxlength="180"></label><label>Consumer 2 full name (optional)<input name="consumerTwo" maxlength="180"></label><label>Consumer transaction role<select name="consumerRole" required><option value="">Choose one…</option><option value="buyer">Buyer</option><option value="tenant">Tenant</option><option value="seller">Seller</option><option value="landlord">Landlord</option><option value="other">Other</option></select></label><label class="hof-agreement-wide">Other notice text (optional)<textarea name="additionalNotice" maxlength="1000" placeholder="Enter only agent-confirmed text for the source form's Other area."></textarea></label><label class="hof-agreement-wide hof-agreement-services"><input name="formUseAttested" type="checkbox" required> I confirm that I am currently authorized to use TXR-1506 for my brokerage and that the selected source revision is the approved source for this notice.</label><label class="hof-agreement-wide hof-agreement-services"><input name="noticeAcknowledgment" type="checkbox" required> I confirm the consumer will receive, read, and acknowledge this general information notice. This draft does not create representation.</label></div><div id="txr1506DraftStatus" class="hof-iabs-status"></div><div class="hof-agreement-footer"><button class="btn-secondary" type="button" id="txr1506Cancel">Cancel</button><button class="btn-primary" type="submit">Save private draft</button></div></form>`;
     document.body.appendChild(modal); modal.querySelector('#txr1506Cancel').addEventListener('click', () => modal.remove()); modal.addEventListener('click', event => { if (event.target === modal) modal.remove(); });
     modal.querySelector('#txr1506AgreementForm').addEventListener('submit', event => submitNoticeDraft(event, source, modal));
   }
   async function submitNoticeDraft(event, source, modal) {
     event.preventDefault(); const form = new FormData(event.currentTarget), status = modal.querySelector('#txr1506DraftStatus');
-    const payload = { action:'create_txr_1506_draft', formCode:FORM_CODE, formSourceId:source.id, clientNames:[form.get('consumerOne'), form.get('consumerTwo')].map(v => String(v || '').trim()).filter(Boolean), consumerRole:form.get('consumerRole'), additionalNotice:form.get('additionalNotice'), noticeAcknowledgment:form.get('noticeAcknowledgment') === 'on' };
+    const payload = { action:'create_txr_1506_draft', formCode:FORM_CODE, formSourceId:source.id, clientNames:[form.get('consumerOne'), form.get('consumerTwo')].map(v => String(v || '').trim()).filter(Boolean), consumerRole:form.get('consumerRole'), additionalNotice:form.get('additionalNotice'), formUseAttested:form.get('formUseAttested') === 'on', noticeAcknowledgment:form.get('noticeAcknowledgment') === 'on' };
     try { status.className = 'hof-iabs-status'; status.textContent = 'Saving private notice draft…'; const token = root.hofAuth?.session?.access_token; const response = await fetch('/api/admin-dashboard', { method:'POST', headers:{'Content-Type':'application/json', Authorization:`Bearer ${token}`}, body:JSON.stringify(payload) }); const result = await response.json(); if (!response.ok) throw new Error(result.error || 'Could not save the notice draft.'); status.className = 'hof-iabs-status ready'; status.textContent = 'Draft saved privately. It has not been sent for signature.'; event.currentTarget.querySelector('button[type="submit"]').disabled = true; } catch (error) { console.error('TXR-1506 draft failed:', error); status.className = 'hof-iabs-status error'; status.textContent = error.message || 'Could not save the notice draft.'; }
   }
   const priorDashboard = root.renderAccountDashboard;
   root.renderAccountDashboard = function renderAccountDashboardWithNoticeDrafts() { if (typeof priorDashboard === 'function') priorDashboard.apply(this, arguments); renderNoticeCard(); };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', renderNoticeCard, { once:true }); else renderNoticeCard();
 })();
+</script>
+<style id="hof-agent-launch-scope-v1">
+  .hof-launch-scope-card { border:1px solid rgba(113,184,157,.34); background:rgba(74,140,111,.07); margin-top:1rem; }
+  .hof-launch-scope-card h4 { margin-bottom:.4rem; }
+  .hof-launch-scope-card p { color:var(--gray-light); font-size:.86rem; line-height:1.52; }
+  .hof-launch-scope-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.7rem; margin:.9rem 0; }
+  .hof-launch-scope-item { border:1px solid rgba(255,255,255,.10); border-radius:10px; padding:.7rem; font-size:.82rem; line-height:1.45; color:var(--gray-light); }
+  .hof-launch-scope-item strong { display:block; color:var(--white); margin-bottom:.2rem; }
+  .hof-launch-scope-item.ready strong { color:var(--sage-light); }
+  .hof-launch-scope-item.not-ready strong { color:var(--gold-light); }
+  @media (max-width:640px) { .hof-launch-scope-grid { grid-template-columns:1fr; } }
+</style>
+<script id="hof-agent-launch-scope-v1">
+(function () {
+  const root = window;
+
+  function isAgentAccount() {
+    return String(root.hofAuth?.role || '').toLowerCase() !== 'investor';
+  }
+
+  function renderLaunchScope() {
+    const panel = document.getElementById('accountPanelDashboard');
+    if (!panel || !isAgentAccount() || document.getElementById('agentLaunchScopeCard')) return;
+    const card = document.createElement('div');
+    card.id = 'agentLaunchScopeCard';
+    card.className = 'account-card hof-launch-scope-card';
+    card.innerHTML = `
+      <h4>Forms available in HomeOfferFlow</h4>
+      <p>Use this as a quick launch-scope check before you promise a client a document or signing workflow.</p>
+      <div class="hof-launch-scope-grid">
+        <div class="hof-launch-scope-item ready">
+          <strong>Available now</strong>
+          Texas residential purchase-offer packets, supported purchase addenda, Seller Temporary Residential Lease when seller post-closing possession applies, buyer-side e-signing, saved offer defaults, and an optional profile IABS attachment.
+        </div>
+        <div class="hof-launch-scope-item not-ready">
+          <strong>Not a live signing workflow yet</strong>
+          Buyer/tenant representation agreements, listing agreements, seller disclosures, lease-listing and tenant-representation packets, and any form marked draft-only in your workspace.
+        </div>
+      </div>
+      <p><strong>Important:</strong> Do not represent a draft-only or unavailable form as generated, sent, or executed through HomeOfferFlow. Use your brokerage-approved process for those documents until HomeOfferFlow releases the separately mapped and signed workflow.</p>`;
+    const subscription = document.getElementById('subscriptionUsageCard');
+    if (subscription?.parentElement) subscription.insertAdjacentElement('afterend', card);
+    else panel.appendChild(card);
+  }
+
+  const priorDashboard = root.renderAccountDashboard;
+  root.renderAccountDashboard = function renderAccountDashboardWithLaunchScope() {
+    if (typeof priorDashboard === 'function') priorDashboard.apply(this, arguments);
+    renderLaunchScope();
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', renderLaunchScope, { once:true });
+  } else {
+    renderLaunchScope();
+  }
+})();
+</script>
+<style id="hof-private-form-drafts-v1">
+  .hof-private-form-drafts-card { border:1px solid rgba(113,184,157,.30); background:rgba(74,140,111,.055); margin-top:1rem; }
+  .hof-private-form-drafts-card h4 { margin-bottom:.35rem; }
+  .hof-private-form-drafts-card p { color:var(--gray-light); font-size:.86rem; line-height:1.5; }
+  .hof-private-form-drafts-list { list-style:none; margin:.8rem 0 0; padding:0; border-top:1px solid rgba(255,255,255,.10); }
+  .hof-private-form-drafts-list li { display:flex; justify-content:space-between; align-items:flex-start; gap:.7rem; padding:.65rem 0; border-bottom:1px solid rgba(255,255,255,.08); color:var(--gray-light); font-size:.84rem; line-height:1.4; }
+  .hof-private-form-drafts-list strong { color:var(--white); }
+  .hof-private-form-drafts-list small { color:var(--gray-light); }
+  @media (max-width:640px) { .hof-private-form-drafts-list li { display:block; } }
+</style>
+<script id="hof-private-form-drafts-v1">
+(function () {
+  const root = window;
+  const escape = value => String(value ?? '').replace(/[&<>\"]/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[char]));
+  const formatDate = value => {
+    const date = new Date(value);
+    return Number.isNaN(date.valueOf()) ? 'Saved draft' : date.toLocaleDateString(undefined, { month:'short', day:'numeric', year:'numeric' });
+  };
+  const activeAgent = () => {
+    const profile = root.hofAuth?.authoritativeProfile || {};
+    return !!root.hofAuth?.session?.user && String(profile.role || '').toLowerCase() !== 'investor';
+  };
+
+  async function loadPrivateDrafts() {
+    const client = root.getSupabaseClient?.();
+    const user = root.hofAuth?.session?.user;
+    if (!client || !user) return [];
+    const { data, error } = await client
+      .from('hof_standalone_agreements')
+      .select('form_code,source_revision,status,client_names,created_at,updated_at')
+      .eq('agent_user_id', user.id)
+      .eq('status', 'draft')
+      .order('updated_at', { ascending:false })
+      .limit(25);
+    if (error) throw error;
+    return data || [];
+  }
+
+  async function refreshPrivateDrafts() {
+    const list = document.getElementById('privateFormDraftsList');
+    if (!list) return;
+    try {
+      const drafts = await loadPrivateDrafts();
+      if (!drafts.length) {
+        list.innerHTML = '<li>No private form drafts saved yet.</li>';
+        return;
+      }
+      list.innerHTML = drafts.map(draft => {
+        const clients = Array.isArray(draft.client_names) && draft.client_names.length
+          ? draft.client_names.map(escape).join(', ')
+          : 'Client name not available';
+        return `<li><span><strong>${escape(draft.form_code)}</strong> · ${clients}<br><small>Approved source revision: ${escape(draft.source_revision)} · ${formatDate(draft.updated_at || draft.created_at)}</small></span><span>Private draft</span></li>`;
+      }).join('');
+    } catch (error) {
+      console.error('Private form draft list failed:', error);
+      list.innerHTML = '<li>Could not load private form drafts.</li>';
+    }
+  }
+
+  function renderPrivateDraftsCard() {
+    const panel = document.getElementById('accountPanelDashboard');
+    if (!panel || !activeAgent() || document.getElementById('privateFormDraftsCard')) return;
+    const card = document.createElement('div');
+    card.id = 'privateFormDraftsCard';
+    card.className = 'account-card hof-private-form-drafts-card';
+    card.innerHTML = `
+      <h4>Private form drafts</h4>
+      <p>These are your saved source-gated form intakes. They are private to you and remain drafts only—HomeOfferFlow does not download, send, or sign them from this list.</p>
+      <ul id="privateFormDraftsList" class="hof-private-form-drafts-list"><li>Loading private form drafts…</li></ul>`;
+    panel.appendChild(card);
+    refreshPrivateDrafts();
+  }
+
+  const priorDashboard = root.renderAccountDashboard;
+  root.renderAccountDashboard = function renderAccountDashboardWithPrivateFormDrafts() {
+    if (typeof priorDashboard === 'function') priorDashboard.apply(this, arguments);
+    renderPrivateDraftsCard();
+  };
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', renderPrivateDraftsCard, { once:true });
+  else renderPrivateDraftsCard();
+})();
+</script>
+<script id="hof-pwa-registration-v1">
+  // Keep offline support limited to the public app shell. Offers, documents,
+  // authenticated data, and API responses are always fetched from the network.
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/service-worker.js', { scope: '/' })
+        .catch(error => console.warn('HomeOfferFlow offline support was not registered:', error));
+    });
+  }
 </script>
 </body>
 </html>
