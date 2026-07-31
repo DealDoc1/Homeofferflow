@@ -6,6 +6,7 @@ ROOT = Path(__file__).resolve().parents[1]
 MIGRATION = (ROOT / "supabase" / "homeofferflow_brokerage_form_sources.sql").read_text()
 LISTING_EXPANSION = (ROOT / "supabase" / "homeofferflow_expand_brokerage_listing_form_sources.sql").read_text()
 HTML = (ROOT / "index.html").read_text(encoding="utf-8")
+SERVER_ONLY = (ROOT / "supabase" / "homeofferflow_brokerage_form_sources_server_only_select.sql").read_text(encoding="utf-8")
 
 
 class BrokerageFormSourceFoundationTests(unittest.TestCase):
@@ -58,6 +59,16 @@ class BrokerageFormSourceFoundationTests(unittest.TestCase):
         self.assertIn("agents cannot download them from HomeOfferFlow", HTML)
         self.assertIn("It is not yet an active signing workflow.", HTML)
         self.assertIn("authorization_attested: true", HTML)
+
+    def test_source_metadata_reads_are_server_only(self):
+        self.assertIn("revoke select on table public.hof_brokerage_form_sources from authenticated", SERVER_ONLY)
+        self.assertIn("grant insert, update, delete on table public.hof_brokerage_form_sources to authenticated", SERVER_ONLY)
+        self.assertIn("scope=brokerage_form_sources", HTML)
+        self.assertIn("scope=approved_brokerage_sources", HTML)
+        self.assertIn("_brokerage_form_sources_payload", (ROOT / "api" / "admin-dashboard.py").read_text())
+        # Browser reads must use the server endpoint; only the authorized upload
+        # path may still issue a direct insert into the private registry.
+        self.assertNotIn(".from('hof_brokerage_form_sources')\n        .select", HTML)
 
 
 if __name__ == "__main__":

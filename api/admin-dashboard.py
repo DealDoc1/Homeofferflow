@@ -1386,6 +1386,39 @@ async def _active_brokerage_member(user):
     return brokerage_id
 
 
+async def _brokerage_form_sources_payload(user, approved_only=False):
+    """Return sanitized source metadata through the server, never raw table access.
+
+    The source table contains private storage locators and upload fingerprints.
+    Agents only need to know whether an approved, attested revision exists;
+    brokerage administrators may see the private audit metadata in their own
+    dashboard. Neither response ever exposes a PDF URL or storage path.
+    """
+    if approved_only:
+        brokerage_id = await _active_brokerage_member(user)
+        rows = await _get_optional(
+            "hof_brokerage_form_sources?"
+            f"brokerage_id=eq.{urllib.parse.quote(str(brokerage_id))}"
+            "&status=eq.approved&authorization_attested=is.true"
+            "&select=id,form_code,source_revision,status,authorization_attested,updated_at"
+            "&order=updated_at.desc&limit=500"
+        )
+        return {"sources": rows}
+
+    context = await _brokerage_admin_context(user)
+    if not context:
+        raise PermissionError("Brokerage admin access is not enabled for this account.")
+    brokerage_id = str(context["brokerage"]["id"])
+    rows = await _get_optional(
+        "hof_brokerage_form_sources?"
+        f"brokerage_id=eq.{urllib.parse.quote(brokerage_id)}"
+        "&status=neq.retired"
+        "&select=id,form_code,source_revision,status,original_filename,source_sha256,updated_at"
+        "&order=updated_at.desc&limit=500"
+    )
+    return {"sources": rows}
+
+
 async def _require_brokerage_txr_authorization(brokerage_id):
     """Require the brokerage administrator's organization-level TXR gate.
 
@@ -1572,6 +1605,14 @@ class handler(BaseHTTPRequestHandler):
                 _pdf_response(self, pdf, "TXR-1507-private-draft-preview.pdf")
                 return
             scope = str((query.get("scope") or [""])[0]).strip().lower()
+            if scope == "brokerage_form_sources":
+                payload = asyncio.run(_brokerage_form_sources_payload(user, approved_only=False))
+                _json(self, 200, payload)
+                return
+            if scope == "approved_brokerage_sources":
+                payload = asyncio.run(_brokerage_form_sources_payload(user, approved_only=True))
+                _json(self, 200, payload)
+                return
             if scope == "brokerage":
                 context = asyncio.run(_brokerage_admin_context(user))
                 if not context:

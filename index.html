@@ -8718,8 +8718,7 @@ function routeAfterMagicLinkIfNeeded() {
 
   async function loadListingWorkspaceSourceReadiness() {
     const target = document.getElementById('listingWorkspaceSourceReadiness');
-    const client = getSupabaseClient();
-    if (!target || !client) return;
+    if (!target) return;
     const required = [
       ['TXR-1101', 'Residential listing agreement — sale'],
       ['TXR-1102', 'Residential listing agreement — lease'],
@@ -8730,13 +8729,12 @@ function routeAfterMagicLinkIfNeeded() {
       if (!hofPlatform.brokerage) await loadBrokerageFoundation();
       const brokerageId = hofPlatform.brokerage?.id;
       if (!brokerageId) { target.innerHTML = '<div class="platform-list-item">Join a brokerage before listing form readiness can be checked.</div>'; return; }
-      const { data, error } = await client.from('hof_brokerage_form_sources')
-        .select('form_code, source_revision')
-        .eq('brokerage_id', brokerageId)
-        .eq('status', 'approved').eq('authorization_attested', true)
-        .in('form_code', required.map(row => row[0]));
-      if (error) throw error;
-      const approved = new Map((data || []).map(row => [row.form_code, row.source_revision]));
+      const token = hofAuth?.session?.access_token;
+      if (!token) throw new Error('A signed-in session is required.');
+      const response = await fetch('/api/admin-dashboard?scope=approved_brokerage_sources', { headers: { Authorization: `Bearer ${token}` } });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || 'Could not load approved brokerage sources.');
+      const approved = new Map((payload.sources || []).map(row => [row.form_code, row.source_revision]));
       target.innerHTML = required.map(([code, label]) => {
         const revision = approved.get(code);
         return `<div class="platform-list-item"><strong>${escapeAttr(code)}</strong> · ${escapeAttr(label)}<span class="platform-pill ${revision ? 'good' : ''}">${revision ? 'Source approved' : 'Source not approved'}</span>${revision ? `<br><small>Organization source revision: ${escapeAttr(revision)}. Execution remains gated.</small>` : '<br><small>An authorized organization administrator must privately upload and attest to the current authorized source before implementation can begin.</small>'}</div>`;
@@ -12413,17 +12411,28 @@ function routeAfterMagicLinkIfNeeded() {
   }
 
   async function loadSources() {
-    const client = root.getSupabaseClient?.();
     const currentBrokerage = brokerage();
-    if (!client || !currentBrokerage || !isBrokerageAdmin()) return [];
-    const { data, error } = await client
-      .from('hof_brokerage_form_sources')
-      .select('id,form_code,source_revision,status,original_filename,source_sha256,updated_at')
-      .eq('brokerage_id', currentBrokerage.id)
-      .order('updated_at', { ascending: false });
-    if (error) throw error;
-    return data || [];
+    const token = root.hofAuth?.session?.access_token;
+    if (!currentBrokerage || !isBrokerageAdmin() || !token) return [];
+    const response = await fetch('/api/admin-dashboard?scope=brokerage_form_sources', {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(payload.error || 'Could not load brokerage form sources.');
+    return payload.sources || [];
   }
+
+  root.hofLoadApprovedBrokerageSource = async function (formCode) {
+    const token = root.hofAuth?.session?.access_token;
+    const brokerageId = brokerage()?.id;
+    if (!token || !brokerageId || !formCode) return null;
+    const response = await fetch('/api/admin-dashboard?scope=approved_brokerage_sources', {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(payload.error || 'Could not check approved brokerage form sources.');
+    return (payload.sources || []).find(source => source.form_code === formCode) || null;
+  };
 
   function renderBrokerageFormSources() {
     const panel = document.getElementById('accountPanelDashboard');
@@ -12495,12 +12504,8 @@ function routeAfterMagicLinkIfNeeded() {
     const path = `${currentBrokerage.id}/${code}-${revisionKey}-${Date.now()}.pdf`;
     try {
       const sourceSha256 = await sourceFingerprint(file);
-      const { data: existing, error: existingError } = await client
-        .from('hof_brokerage_form_sources')
-        .select('id').eq('brokerage_id', currentBrokerage.id)
-        .eq('form_code', code).eq('source_revision', revision).neq('status', 'retired').limit(1);
-      if (existingError) throw existingError;
-      if (existing?.length) throw new Error(`An active ${code} source with revision ${revision} is already saved. Retire it through a future broker workflow before replacing it.`);
+      const existing = (await loadSources()).find(source => source.form_code === code && source.source_revision === revision);
+      if (existing) throw new Error(`An active ${code} source with revision ${revision} is already saved. Retire it through a future broker workflow before replacing it.`);
       const { error: uploadError } = await client.storage.from(BUCKET).upload(path, file, {
         contentType: 'application/pdf', upsert: false, cacheControl: 'private, max-age=0'
       });
@@ -12578,17 +12583,7 @@ function routeAfterMagicLinkIfNeeded() {
   };
 
   async function approvedShortFormSource() {
-    const client = root.getSupabaseClient?.();
-    if (!client || !brokerageId()) return null;
-    const { data, error } = await client.from('hof_brokerage_form_sources')
-      .select('id,form_code,source_revision')
-      .eq('brokerage_id', brokerageId())
-      .eq('form_code', FORM_CODE)
-      .eq('status', 'approved')
-      .eq('authorization_attested', true)
-      .order('updated_at', { ascending:false }).limit(1).maybeSingle();
-    if (error) throw error;
-    return data || null;
+    return root.hofLoadApprovedBrokerageSource?.(FORM_CODE) || null;
   }
 
   async function renderAgreementCard() {
@@ -12711,15 +12706,7 @@ function routeAfterMagicLinkIfNeeded() {
   };
 
   async function approvedLongFormSource() {
-    const client = root.getSupabaseClient?.();
-    if (!client || !brokerageId()) return null;
-    const { data, error } = await client.from('hof_brokerage_form_sources')
-      .select('id,form_code,source_revision')
-      .eq('brokerage_id', brokerageId()).eq('form_code', FORM_CODE)
-      .eq('status', 'approved').eq('authorization_attested', true)
-      .order('updated_at', { ascending:false }).limit(1).maybeSingle();
-    if (error) throw error;
-    return data || null;
+    return root.hofLoadApprovedBrokerageSource?.(FORM_CODE) || null;
   }
 
   async function renderLongFormCard() {
@@ -12849,15 +12836,7 @@ function routeAfterMagicLinkIfNeeded() {
   };
 
   async function approvedShowingSource() {
-    const client = root.getSupabaseClient?.();
-    if (!client || !brokerageId()) return null;
-    const { data, error } = await client.from('hof_brokerage_form_sources')
-      .select('id,form_code,source_revision')
-      .eq('brokerage_id', brokerageId()).eq('form_code', FORM_CODE)
-      .eq('status', 'approved').eq('authorization_attested', true)
-      .order('updated_at', { ascending:false }).limit(1).maybeSingle();
-    if (error) throw error;
-    return data || null;
+    return root.hofLoadApprovedBrokerageSource?.(FORM_CODE) || null;
   }
 
   async function renderShowingCard() {
@@ -12977,13 +12956,7 @@ function routeAfterMagicLinkIfNeeded() {
     return !!root.hofAuth?.session?.user && !!brokerageId() && (role === 'agent' || role === 'brokerage_admin');
   };
   async function approvedNoticeSource() {
-    const client = root.getSupabaseClient?.();
-    if (!client || !brokerageId()) return null;
-    const { data, error } = await client.from('hof_brokerage_form_sources').select('id,source_revision')
-      .eq('brokerage_id', brokerageId()).eq('form_code', FORM_CODE).eq('status', 'approved')
-      .eq('authorization_attested', true).order('updated_at', { ascending:false }).limit(1).maybeSingle();
-    if (error) throw error;
-    return data || null;
+    return root.hofLoadApprovedBrokerageSource?.(FORM_CODE) || null;
   }
   async function renderNoticeCard() {
     const panel = document.getElementById('accountPanelDashboard');
