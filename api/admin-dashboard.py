@@ -30,6 +30,7 @@ ALLOWED_PARTNER_TYPES = {
     "photography_video", "staging", "repairs_handyman", "cleaning",
     "moving_storage", "lawn_pool", "security_smart_home", "other",
 }
+AI_CALIBRATION_REVIEWER_ROLES = {"agent", "broker", "brokerage_admin"}
 MAX_BODY_BYTES = 12_000
 PUBLIC_APP_ORIGIN = (os.environ.get("PUBLIC_APP_URL") or "https://www.homeofferflow.com").rstrip("/")
 BROKERAGE_INVITE_EMAIL_RE = re.compile(r"(?=.{3,254}$)[^@\s]+@[^@\s]+\.[^@\s]+$")
@@ -75,6 +76,19 @@ def _json(handler, code, payload):
 
 def _headers():
     return {"apikey": SUPABASE_SERVICE_ROLE_KEY, "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}", "Content-Type": "application/json"}
+
+
+def _is_ai_calibration_evidence(item):
+    """Count only anonymized AI notes from an agent or brokerage professional.
+
+    The feedback endpoint enforces anonymization before persistence. The
+    dashboard must still avoid treating a homebuyer/investor comment as the
+    documented broker/agent calibration evidence threshold.
+    """
+    return (
+        str((item or {}).get("issue_type") or "").lower() == "ai_review"
+        and str((item or {}).get("role") or "").lower() in AI_CALIBRATION_REVIEWER_ROLES
+    )
 
 
 async def _get(path):
@@ -1740,7 +1754,7 @@ class handler(BaseHTTPRequestHandler):
                 # human calibration evidence for the five-scenario release gate.
                 "aiReviewOutputCount": len(ai_review_outputs),
                 "aiCalibrationFeedbackCount": len([
-                    item for item in feedback if item.get("issue_type") == "ai_review"
+                    item for item in feedback if _is_ai_calibration_evidence(item)
                 ]),
             }
             # Five anonymized, human-reviewed scenarios are the minimum evidence
