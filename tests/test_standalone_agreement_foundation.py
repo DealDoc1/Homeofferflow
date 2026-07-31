@@ -71,6 +71,8 @@ def valid_notice_payload():
         "consumerRole": "buyer",
         "additionalNotice": "",
         "noticeAcknowledgment": True,
+        "signerPlan": "consumers_only",
+        "formUseAttested": True,
     }
 
 
@@ -198,10 +200,21 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
 
     def test_notice_draft_requires_role_and_consumer_acknowledgment(self):
         draft = MODULE._parse_txr_1506_draft(valid_notice_payload())
+        self.assertEqual(draft["agreement_data"]["signer_plan"], "consumers_only")
         self.assertEqual(draft["agreement_data"]["consumer_role"], "buyer")
         payload = valid_notice_payload()
         payload["noticeAcknowledgment"] = False
         with self.assertRaisesRegex(ValueError, "review and acknowledge"):
+            MODULE._parse_txr_1506_draft(payload)
+
+    def test_notice_draft_requires_explicit_signer_plan_and_attestation(self):
+        payload = valid_notice_payload()
+        payload.pop("signerPlan")
+        with self.assertRaisesRegex(ValueError, "who will acknowledge"):
+            MODULE._parse_txr_1506_draft(payload)
+        payload = valid_notice_payload()
+        payload["formUseAttested"] = False
+        with self.assertRaisesRegex(ValueError, "authorized to use this TXR form"):
             MODULE._parse_txr_1506_draft(payload)
 
     def test_agent_ui_requires_an_approved_private_source_and_saves_draft_only(self):

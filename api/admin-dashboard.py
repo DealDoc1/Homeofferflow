@@ -1256,6 +1256,11 @@ def _parse_txr_1506_draft(data):
         raise ValueError("Additional notice is too long.")
     if data.get("noticeAcknowledgment") is not True:
         raise ValueError("Confirm that the consumer will review and acknowledge the notice.")
+    signer_plan = str(data.get("signerPlan") or "").strip()
+    if signer_plan not in {"consumers_only", "consumers_and_associate", "consumers_and_broker"}:
+        raise ValueError("Choose who will acknowledge the TXR-1506 notice.")
+    if data.get("formUseAttested") is not True:
+        raise ValueError("Confirm that you are currently authorized to use this TXR form for your brokerage.")
     return {
         "form_source_id": form_source_id,
         "client_names": client_names,
@@ -1263,6 +1268,8 @@ def _parse_txr_1506_draft(data):
             "consumer_role": consumer_role,
             "additional_notice": additional_notice,
             "notice_acknowledgment": True,
+            "signer_plan": signer_plan,
+            "form_use_attested": True,
         },
     }
 
@@ -1441,6 +1448,9 @@ async def _render_representation_draft_preview(user, agreement_id):
     if agreement.get("form_code") == TXR_1508_FORM_CODE:
         from api.txr_1508 import render_txr_1508
         return render_txr_1508(response.content, render_data, brokerage_rows[0], profile_rows[0] if profile_rows else {})
+    if agreement.get("form_code") == TXR_1506_FORM_CODE:
+        from api.txr_1506 import render_txr_1506
+        return render_txr_1506(response.content, render_data, brokerage_rows[0])
     raise ValueError("Private preview is not available for this form yet.")
 
 

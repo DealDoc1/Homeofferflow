@@ -1,5 +1,9 @@
 # TXR-1506 General Information and Notice to Consumers - Draft Foundation
 
+The private preview renderer and explicit consumer/broker acknowledgement map
+are staged in `api/txr_1506.py`. This remains a standalone notice workflow;
+it is not automatically appended to purchase offers.
+
 ## Scope of this release
 
 This release creates only a private, source-gated draft intake for the Texas
