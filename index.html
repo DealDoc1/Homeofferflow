@@ -13173,7 +13173,13 @@ function routeAfterMagicLinkIfNeeded() {
     return payload.brokerages || [];
   }
   function renderPlatformSourceIntake() {
-    const panel = document.getElementById('accountPanelDashboard');
+    // Keep private source-owner controls with the platform-admin operations
+    // surface.  The dashboard is also rendered for ordinary agents, and
+    // mounting the card there made it easy for an authorized admin to miss it
+    // when they opened the Admin tab.  The dashboard fallback preserves
+    // compatibility with older account shells that do not yet have the admin
+    // panel mounted.
+    const panel = document.getElementById('accountPanelAdmin') || document.getElementById('accountPanelDashboard');
     if (!panel || !isPlatformAdmin() || document.getElementById('platformFormSourceCard')) return;
     const card = document.createElement('div');
     card.id = 'platformFormSourceCard';
