@@ -1,4 +1,5 @@
 import importlib.util
+from unittest.mock import AsyncMock, patch
 from pathlib import Path
 import unittest
 
@@ -77,6 +78,24 @@ def valid_notice_payload():
 
 
 class StandaloneAgreementFoundationTests(unittest.TestCase):
+    def test_server_gate_requires_active_attested_brokerage_authorization(self):
+        async def run():
+            with patch.object(MODULE, "_get", new=AsyncMock(return_value=[{"id": "brokerage-1"}])) as get_rows:
+                result = await MODULE._require_brokerage_txr_authorization("brokerage-1")
+                self.assertIsNone(result)
+                request_url = get_rows.await_args.args[0]
+                self.assertIn("is_active=eq.true", request_url)
+                self.assertIn("txr_all_agents_authorized=is.true", request_url)
+                self.assertIn("txr_authorization_attested_by=not.is.null", request_url)
+                self.assertIn("txr_authorization_attested_at=not.is.null", request_url)
+
+            with patch.object(MODULE, "_get", new=AsyncMock(return_value=[])):
+                with self.assertRaisesRegex(PermissionError, "Texas REALTORS.*NAR"):
+                    await MODULE._require_brokerage_txr_authorization("brokerage-1")
+
+        asyncio = importlib.import_module("asyncio")
+        asyncio.run(run())
+
     def test_private_standalone_records_are_separate_from_offers(self):
         self.assertIn("create table if not exists public.hof_standalone_agreements", MIGRATION)
         self.assertIn("form_code text not null check (form_code in ('TXR-1507'))", MIGRATION)
