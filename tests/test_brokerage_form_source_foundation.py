@@ -33,6 +33,8 @@ class BrokerageFormSourceFoundationTests(unittest.TestCase):
         self.assertIn("txr_all_agents_authorized", authorization_migration)
         self.assertIn("txr_authorization_attested_by", authorization_migration)
         self.assertIn("brandTxrAuthorization", HTML)
+        self.assertIn("brandTxrAttestation", HTML)
+        self.assertIn("update_brokerage_txr_authorization", HTML)
         self.assertIn("Each agent still confirms their own current authorization", HTML)
 
     def test_listing_side_sources_are_private_and_do_not_activate_workflows(self):

@@ -8443,7 +8443,7 @@ function routeAfterMagicLinkIfNeeded() {
           <div class="field"><label>Contact Email</label><input id="brandContactEmail" value="${escapeAttr(b.contact_email || profileValue('agent_email', hofAuth.session?.user?.email || ''))}" placeholder="brokerage@email.com"></div>
           <div class="field"><label>Contact Phone</label><input id="brandContactPhone" value="${escapeAttr(b.contact_phone || profileValue('agent_phone'))}" placeholder="(214) 555-0000"></div>
           <div class="field"><label>Default Title Company</label><input id="brandDefaultTitle" value="${escapeAttr(b.default_title_company || profileValue('default_title_company'))}" placeholder="Preferred title company"></div>
-          <div class="field" style="grid-column:1/-1"><label>Texas REALTORS® / NAR authorization for agents</label><select id="brandTxrAuthorization"><option value="unknown" ${!b.txr_all_agents_authorized && !b.txr_authorization_attested_at ? 'selected' : ''}>Not confirmed yet</option><option value="all_agents_authorized" ${b.txr_all_agents_authorized ? 'selected' : ''}>Yes — all participating agents are currently authorized members</option><option value="not_all" ${b.txr_all_agents_authorized === false && b.txr_authorization_attested_at ? 'selected' : ''}>No / not all participating agents are authorized</option></select><small style="display:block;color:var(--gray-light);margin-top:.3rem;line-height:1.45">This records the brokerage administrator’s attestation. Each agent still confirms their own current authorization before using a restricted Texas REALTORS® source form.</small></div>
+          <div class="field" style="grid-column:1/-1"><label>Texas REALTORS® / NAR authorization for agents</label><select id="brandTxrAuthorization"><option value="unknown" ${!b.txr_all_agents_authorized && !b.txr_authorization_attested_at ? 'selected' : ''}>Not confirmed yet</option><option value="all_agents_authorized" ${b.txr_all_agents_authorized ? 'selected' : ''}>Yes — all participating agents are currently authorized members</option><option value="not_all" ${b.txr_all_agents_authorized === false && b.txr_authorization_attested_at ? 'selected' : ''}>No / not all participating agents are authorized</option></select><label class="brokerage-txr-attestation"><input id="brandTxrAttestation" type="checkbox"> I attest that this status is accurate for the brokerage. Each agent still confirms their own current authorization before using a restricted Texas REALTORS® / NAR source form.</label><small style="display:block;color:var(--gray-light);margin-top:.3rem;line-height:1.45">This records the brokerage administrator’s attestation; it does not replace approval of the private source form.</small></div>
         </div>
         <div class="field" style="margin-top:0.8rem;"><label>Brokerage Disclaimer</label><textarea id="brandDisclaimer" rows="3" placeholder="Optional brokerage/team disclaimer shown in branded experiences.">${escapeAttr(b.disclaimer || '')}</textarea></div>
         <div class="notice gold" style="margin-top:0.8rem;"><strong>Logo upload note:</strong> URL works today. True file upload needs Supabase Storage bucket setup, so I left it as a safe URL field for this deploy.</div>
@@ -8466,6 +8466,11 @@ function routeAfterMagicLinkIfNeeded() {
     const user = platformUser();
     if (!client || !user) return platformStatus('brokerageFoundationStatus', 'Sign in before saving brokerage branding.', 'err');
     const now = new Date().toISOString();
+    const txrAuthorization = getVal('brandTxrAuthorization') || 'unknown';
+    const txrAttestationConfirmed = document.getElementById('brandTxrAttestation')?.checked === true;
+    if (txrAuthorization !== 'unknown' && !txrAttestationConfirmed) {
+      return platformStatus('brokerageFoundationStatus', 'Check the brokerage TXR / NAR attestation before saving an authorization status.', 'err');
+    }
     const payload = {
       name: getVal('brandBrokerageName') || 'My Brokerage',
       dba_name: getVal('brandDbaName') || null,
@@ -8478,9 +8483,6 @@ function routeAfterMagicLinkIfNeeded() {
       contact_phone: getVal('brandContactPhone') || null,
       disclaimer: getVal('brandDisclaimer') || null,
       default_title_company: getVal('brandDefaultTitle') || null,
-      txr_all_agents_authorized: getVal('brandTxrAuthorization') === 'all_agents_authorized',
-      txr_authorization_attested_by: getVal('brandTxrAuthorization') === 'unknown' ? null : user.id,
-      txr_authorization_attested_at: getVal('brandTxrAuthorization') === 'unknown' ? null : now,
       created_by: user.id,
       updated_at: now
     };
@@ -8498,6 +8500,22 @@ function routeAfterMagicLinkIfNeeded() {
       if (result.error) throw result.error;
       hofPlatform.brokerage = result.data;
       await client.from('hof_profiles').update({ brokerage_id: result.data.id, is_brokerage_admin: true, team_name: payload.dba_name || payload.name, updated_at: now }).eq('id', user.id);
+      const session = hofAuth?.session;
+      if (session?.access_token) {
+        const authorizationResponse = await fetch('/api/admin-dashboard', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + session.access_token },
+          body: JSON.stringify({ action: 'update_brokerage_txr_authorization', txr_authorization: txrAuthorization, txr_attestation_confirmed: txrAttestationConfirmed })
+        });
+        const authorizationData = await authorizationResponse.json().catch(() => ({}));
+        if (!authorizationResponse.ok || !authorizationData.authorization) {
+          throw new Error(authorizationData.error || 'Brokerage branding saved, but TXR / NAR authorization could not be recorded.');
+        }
+        hofPlatform.brokerage = Object.assign({}, hofPlatform.brokerage, {
+          txr_all_agents_authorized: authorizationData.authorization.allAgentsAuthorized,
+          txr_authorization_attested_at: authorizationData.authorization.attestedAt || null
+        });
+      }
       platformStatus('brokerageFoundationStatus', 'Brokerage branding saved. This account is now marked as brokerage admin for the foundation build.', 'ok');
     } catch (err) {
       console.error('Save brokerage failed:', err);
