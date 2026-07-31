@@ -48,6 +48,42 @@ buyer names, property addresses, offer terms, or document contents.
 - HomeOfferFlow release authority and completed rendered/signature QA remain
   separate release gates.
 
+## Exact OnDemand/Texas REALTORS® gate run
+
+Use this sequence for the first authenticated broker-admin session. It is
+intentionally separate from ordinary branding and roster QA:
+
+1. Leave the brokerage status at `Not confirmed yet` and verify every
+   restricted TXR workflow remains locked.
+2. Select `Yes — all participating agents are authorized Texas REALTORS® / NAR
+   users`, check the administrator attestation, and save.
+3. Verify the success message still says that each agent must attest
+   individually and that an approved private source is required separately.
+4. Sign in as an agent in the same brokerage. Verify the agent can see the
+   restricted-form card but cannot start a draft until an approved private
+   source exists and the agent checks the individual membership/authority
+   attestation.
+5. If a source-owner upload is intentionally part of the test, upload only the
+   authorized private PDF, confirm its SHA-256 fingerprint, attest to that
+   exact source, and verify the source remains private and brokerage-scoped.
+   Source approval alone must not create, send, or sign a document.
+6. Re-test the negative path by changing the brokerage status to `No / not all
+   participating agents are authorized`; verify restricted workflows lock
+   again and an agent cannot override that state.
+7. Do not mark a TXR workflow released until its completed signed PDF has been
+   visually inspected page-by-page and release authority has recorded approval.
+
+Expected evidence for the first OnDemand session:
+
+| Check | Expected result |
+|---|---|
+| Broker account | Tyler Demando, `brokerage_admin`, active OnDemand membership |
+| Brokerage assertion | Saved only by the broker-admin, with actor and timestamp |
+| Agent assertion | Required at point of use; never inferred from a license number |
+| Source PDF | Private, exact fingerprint recorded, no browser download for agents |
+| Draft behavior | Private draft only until separate rendered/signing release |
+| Negative path | `No / not all` locks restricted workflows again |
+
 ## Evidence to record
 
 Record the date, production URL, signed-in role, visible controls, and result of

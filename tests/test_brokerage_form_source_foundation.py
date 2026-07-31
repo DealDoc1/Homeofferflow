@@ -8,6 +8,7 @@ LISTING_EXPANSION = (ROOT / "supabase" / "homeofferflow_expand_brokerage_listing
 HTML = (ROOT / "index.html").read_text(encoding="utf-8")
 SERVER_ONLY = (ROOT / "supabase" / "homeofferflow_brokerage_form_sources_server_only_select.sql").read_text(encoding="utf-8")
 BROKERAGE_INDEXES = (ROOT / "supabase" / "homeofferflow_brokerage_fk_indexes.sql").read_text(encoding="utf-8")
+BROKERAGE_QA = (ROOT / "docs" / "BROKERAGE_ADMIN_LIVE_QA.md").read_text(encoding="utf-8")
 
 
 class BrokerageFormSourceFoundationTests(unittest.TestCase):
@@ -72,6 +73,17 @@ class BrokerageFormSourceFoundationTests(unittest.TestCase):
         ):
             self.assertIn(f"create index if not exists {index_name}", BROKERAGE_INDEXES)
         self.assertIn("do not alter RLS", BROKERAGE_INDEXES)
+
+    def test_broker_admin_qa_covers_positive_and_negative_txr_gate_paths(self):
+        for text in (
+            "Not confirmed yet",
+            "all participating agents are authorized Texas REALTORS",
+            "each agent must attest individually",
+            "SHA-256 fingerprint",
+            "No / not all",
+            "completed signed PDF",
+        ):
+            self.assertIn(text, BROKERAGE_QA)
 
     def test_listing_side_sources_are_private_and_do_not_activate_workflows(self):
         for form_code in ("TXR-1101", "TXR-1102", "TXR-1406", "TXR-1418"):
