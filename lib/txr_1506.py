@@ -42,11 +42,13 @@ def _overlay(data, brokerage):
         canvas.showPage()
 
     # Page 6: optional Other text, provider printed name, and consumer names.
-    _draw_wrapped(canvas, data.get("additional_notice"), 52, 318, width_chars=100, line_height=10)
+    # The source's Other area has two printed rules. Keep the optional text
+    # between them rather than drawing directly on either rule.
+    _draw_wrapped(canvas, data.get("additional_notice"), 52, 312, width_chars=100, line_height=10)
     _draw(canvas, broker_name, 55, 210)
-    _draw(canvas, clients[0] if clients else "", 55, 102)
+    _draw(canvas, clients[0] if clients else "", 55, 108)
     if len(clients) > 1:
-        _draw(canvas, clients[1], 55, 66)
+        _draw(canvas, clients[1], 55, 72)
     canvas.save()
     packet.seek(0)
     return packet.read()
