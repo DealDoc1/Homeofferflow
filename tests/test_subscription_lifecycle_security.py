@@ -543,6 +543,43 @@ class SubscriptionLifecycleSecurityTests(unittest.TestCase):
             ("user-failed-agent", "", "ondemand-brokerage"),
         )
 
+    def test_recovered_subscription_reactivates_existing_brokerage_membership(self):
+        """A recovered payment restores the existing agent seat."""
+        request = webhook.handler.__new__(webhook.handler)
+        captured = {}
+        request._upsert_subscription_by_user_id = lambda payload: captured.update(
+            payload=payload
+        )
+        request._activate_brokerage_membership = lambda user_id, email, brokerage_id: captured.update(
+            activated=(user_id, email, brokerage_id)
+        )
+        request._suspend_brokerage_membership_for_billing = lambda *_args: self.fail(
+            "An active recovered subscription must not remain suspended."
+        )
+
+        request._handle_subscription_event(
+            {
+                "id": "sub_recovered_agent",
+                "customer": "cus_recovered_agent",
+                "status": "active",
+                "metadata": {
+                    "user_id": "user-recovered-agent",
+                    "email": "agent@ondemand.test",
+                    "plan": "agent",
+                    "role": "agent",
+                    "brokerage_id": "ondemand-brokerage",
+                },
+                "items": {"data": [{"price": {"id": "price_agent_monthly"}}]},
+            },
+            "customer.subscription.updated",
+        )
+
+        self.assertEqual(captured["payload"]["status"], "active")
+        self.assertEqual(
+            captured["activated"],
+            ("user-recovered-agent", "agent@ondemand.test", "ondemand-brokerage"),
+        )
+
     def test_scheduled_cancellation_keeps_access_until_the_saved_end_date(self):
         request = webhook.handler.__new__(webhook.handler)
         captured = {}
