@@ -5,9 +5,9 @@
 
 update public.hof_roadmap_items
 set
-  known_issues = 'Broker-admin-only logo upload and brand-color editing are implemented. Packet/email propagation and authenticated live brokerage-admin QA remain outstanding.',
-  next_action = 'Run authenticated brokerage-admin QA for logo upload, color saving, shared defaults, roster visibility, and one invitation; then verify packet/email branding propagation before marking complete.',
-  current_release = 'Broker-admin branding storage and update flow implemented; propagation QA pending (2026-07-31)',
+  known_issues = 'Broker-admin-only logo upload and brand-color editing are implemented, and brokerage identity now appears in generated signing messages. PDF visual branding, packet propagation, and authenticated live brokerage-admin QA remain outstanding.',
+  next_action = 'Run authenticated brokerage-admin QA for logo upload, color saving, shared defaults, roster visibility, and one invitation; then verify PDF/packet branding propagation before marking complete.',
+  current_release = 'Broker-admin branding storage plus signing-message propagation implemented; PDF propagation QA pending (2026-07-31)',
   updated_at = now()
 where slug = 'brokerage-branding';
 
