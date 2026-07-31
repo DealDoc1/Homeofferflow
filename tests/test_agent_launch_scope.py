@@ -26,6 +26,11 @@ class AgentLaunchScopeTests(unittest.TestCase):
             HTML,
         )
 
+    def test_scope_explains_two_level_texas_realtors_authorization_gate(self):
+        self.assertIn("brokerage administrator must attest", HTML)
+        self.assertIn("each agent must confirm their own current authorization", HTML)
+        self.assertIn("never infers membership from a license number alone", HTML)
+
 
 if __name__ == "__main__":
     unittest.main()
