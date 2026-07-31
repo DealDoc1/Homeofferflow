@@ -22,6 +22,10 @@ class AiOfferReviewDashboardCopyTests(unittest.TestCase):
         self.assertIn("openAiCalibrationFeedback()", INDEX_HTML)
         self.assertIn("do not include names, exact addresses, MLS numbers", INDEX_HTML)
 
+    def test_admin_dashboard_surfaces_calibration_notes(self):
+        self.assertIn("AI Calibration Notes", INDEX_HTML)
+        self.assertIn("Feedback and AI Calibration", INDEX_HTML)
+
 
 if __name__ == "__main__":
     unittest.main()
