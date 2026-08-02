@@ -49,8 +49,9 @@
 ## Regression
 
 - Dedicated golden scenario added: Brokerage-branding propagation contract test.
-- Existing buyer-offer regression scenarios run: Full automated suite, 275
-  tests passed.
+- Existing buyer-offer regression scenarios run: Full automated suite, 318
+  tests passed; the TXR-1507 renderer coverage also includes full-services
+  purchase compensation and showing-services lease compensation paths.
 - Test result / evidence: `tests/test_txr_1507_renderer.py`,
   `tests/test_brokerage_branding_propagation.py`,
   `tests/test_brokerage_branding_tracker_reconciliation.py`,
