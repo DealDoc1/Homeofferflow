@@ -42,6 +42,25 @@ visual-QA gates required for a packet or legal-form release.
 - [ ] Confirm the release commit is authored by `andrewchri@gmail.com`; Vercel
   uses that author identity for the current production team.
 
+## 2A. Account, billing, and brokerage-admin regression
+
+For any release that changes authentication, subscriptions, brokerage access,
+or dashboard authorization:
+
+- [ ] Verify platform-admin fallback access using the focused admin regression
+  suite; a missing browser subscription row must not block platform admins.
+- [ ] Verify brokerage administrators and agents do not receive the platform
+  admin fallback or any free-access bypass.
+- [ ] Verify real active, canceled, and trial subscription rows remain
+  authoritative.
+- [ ] Verify the OnDemand launch path still requires a card, shows the 60-day
+  trial and $29/month renewal, and preserves the normal billing path.
+- [ ] Verify brokerage-admin roster, invitation, branding, shared-defaults,
+  and restricted-form readiness surfaces remain scoped to the administrator's
+  own brokerage.
+- [ ] Verify the canonical site and the least-invasive authenticated dashboard
+  check after deployment.
+
 ## 3. Additional packet/form gates
 
 - [ ] Approved source and version are recorded privately.
