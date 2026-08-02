@@ -76,6 +76,34 @@ def _verified_user(token):
     return {"id": str(data["id"]), "email": str(data["email"]).strip().lower()}
 
 
+def _authoritative_role(user):
+    """Read the role from the protected profile, never from browser JSON."""
+    if not user or not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
+        return None
+    try:
+        response = httpx.get(
+            f"{SUPABASE_URL}/rest/v1/hof_profiles"
+            f"?id=eq.{user['id']}&select=role,is_brokerage_admin&limit=1",
+            headers={
+                "apikey": SUPABASE_SERVICE_ROLE_KEY,
+                "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}",
+            },
+            timeout=12,
+        )
+        if response.status_code >= 300:
+            return None
+        rows = response.json()
+        if not isinstance(rows, list) or not rows:
+            return None
+        profile = rows[0] or {}
+        if profile.get("is_brokerage_admin") is True or str(profile.get("role") or "").lower() == "brokerage_admin":
+            return "brokerage_admin"
+        role = str(profile.get("role") or "").lower()
+        return role if role in {"agent", "investor", "homebuyer"} else "agent"
+    except Exception:
+        return None
+
+
 def _parse_payload(raw):
     if len(raw) > MAX_BODY_BYTES:
         raise ValueError("Feedback payload is too large.")
@@ -177,6 +205,14 @@ class handler(BaseHTTPRequestHandler):
                 return
             payload = self.rfile.read(length)
             feedback = _parse_payload(payload)
+            authoritative_role = _authoritative_role(user)
+            if feedback["issue_type"] == "ai_review":
+                if authoritative_role not in {"agent", "brokerage_admin"}:
+                    _json(self, 403, {"error": "AI calibration feedback requires an active agent or brokerage administrator profile."})
+                    return
+                feedback["role"] = authoritative_role
+            else:
+                feedback["role"] = authoritative_role or "agent"
             saved = _save_feedback(user, feedback)
             _json(self, 201, {"ok": True, "feedback": saved})
         except ValueError as exc:
