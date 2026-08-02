@@ -1,0 +1,41 @@
+import importlib.util
+import unittest
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[1]
+MODULE_PATH = ROOT / "api" / "ai-offer-review.py"
+SPEC = importlib.util.spec_from_file_location("save_ai_review", MODULE_PATH)
+MODULE = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(MODULE)
+
+
+class AiReviewServerEndpointTests(unittest.TestCase):
+    def test_snapshot_parser_bounds_score_and_keeps_server_owned_fields_out(self):
+        parsed = MODULE._parse_snapshot(
+            b'{"offerId":"12345678-1234-1234-1234-123456789012","score":88,"summary":"Useful","risks":{"items":[]},"suggestions":{"items":[]},"user_id":"attacker"}'
+        )
+        self.assertEqual(parsed["score"], 88)
+        self.assertNotIn("user_id", parsed)
+
+    def test_snapshot_parser_rejects_invalid_score_and_offer_id(self):
+        with self.assertRaisesRegex(ValueError, "between 1 and 100"):
+            MODULE._parse_snapshot(b'{"score":101}')
+        with self.assertRaisesRegex(ValueError, "offer id is invalid"):
+            MODULE._parse_snapshot(b'{"offerId":"not-a-real-id"}')
+
+    def test_ui_uses_server_endpoint_with_session_token(self):
+        html = (ROOT / "index.html").read_text(encoding="utf-8")
+        self.assertIn("action: 'save_snapshot'", html)
+        self.assertIn("/api/ai-offer-review", html)
+        self.assertIn("'Authorization': `Bearer ${token}`", html)
+        self.assertNotIn("client.from('hof_ai_offer_reviews').insert", html)
+
+    def test_server_only_migration_removes_browser_privileges(self):
+        migration = (ROOT / "supabase" / "homeofferflow_ai_reviews_server_only.sql").read_text(encoding="utf-8")
+        self.assertIn("revoke all on table public.hof_ai_offer_reviews from anon, authenticated", migration)
+        self.assertIn("grant all on table public.hof_ai_offer_reviews to service_role", migration)
+
+
+if __name__ == "__main__":
+    unittest.main()

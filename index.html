@@ -9237,17 +9237,21 @@ function routeAfterMagicLinkIfNeeded() {
   }
 
   async function saveAiReviewResultToSupabase(result) {
-    const client = getSupabaseClient();
     const user = platformUser();
-    if (!client || !user || !result) return;
-    await client.from('hof_ai_offer_reviews').insert({
-      user_id: user.id,
-      offer_id: state.data?._hofOfferId || null,
-      score: Number(result.score || 0) || null,
-      summary: result.summary || '',
-      risks: { items: result.risks || [], source: result.source || '', model: result.model || '' },
-      suggestions: { items: result.suggestions || [], strengths: result.strengths || [], marketContext: result.marketContext || [] }
+    const token = hofAuth?.session?.access_token;
+    if (!user || !result || !token) return;
+    const response = await fetch('/api/ai-offer-review', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify({ action: 'save_snapshot', snapshot: {
+        offerId: state.data?._hofOfferId || null,
+        score: Number(result.score || 0) || null,
+        summary: result.summary || '',
+        risks: { items: result.risks || [], source: result.source || '', model: result.model || '' },
+        suggestions: { items: result.suggestions || [], strengths: result.strengths || [], marketContext: result.marketContext || [] }
+      }})
     });
+    if (!response.ok) throw new Error('AI review snapshot could not be saved.');
   }
 
   function renderInlineAiOfferReview() {
@@ -9279,20 +9283,23 @@ function routeAfterMagicLinkIfNeeded() {
   }
 
   async function saveAiReviewPlaceholder() {
-    const client = getSupabaseClient();
     const user = platformUser();
-    if (!client || !user) return platformStatus('aiFoundationStatus', 'Sign in before saving an AI review snapshot.', 'err');
+    const token = hofAuth?.session?.access_token;
+    if (!user || !token) return platformStatus('aiFoundationStatus', 'Sign in before saving an AI review snapshot.', 'err');
     const result = state.data?._lastAiReview || normalizeAiReviewResult(null);
     try {
-      const { error } = await client.from('hof_ai_offer_reviews').insert({
-        user_id: user.id,
-        offer_id: state.data?._hofOfferId || null,
-        score: Number(result.score || 0) || null,
-        summary: result.summary || 'Offer strength review snapshot saved.',
-        risks: { items: result.risks || [], source: result.source || 'rules', model: result.model || '' },
-        suggestions: { items: result.suggestions || [], strengths: result.strengths || [], marketContext: result.marketContext || [] }
+      const response = await fetch('/api/ai-offer-review', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ action: 'save_snapshot', snapshot: {
+          offerId: state.data?._hofOfferId || null,
+          score: Number(result.score || 0) || null,
+          summary: result.summary || 'Offer strength review snapshot saved.',
+          risks: { items: result.risks || [], source: result.source || 'rules', model: result.model || '' },
+          suggestions: { items: result.suggestions || [], strengths: result.strengths || [], marketContext: result.marketContext || [] }
+        }})
       });
-      if (error) throw error;
+      if (!response.ok) throw new Error('AI review snapshot could not be saved.');
       platformStatus('aiFoundationStatus', 'AI offer review snapshot saved to Supabase.', 'ok');
     } catch (err) {
       console.error('AI review snapshot save failed:', err);
