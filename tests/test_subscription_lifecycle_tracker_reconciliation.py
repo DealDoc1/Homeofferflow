@@ -10,7 +10,7 @@ MIGRATION = (
 
 class SubscriptionLifecycleTrackerReconciliationTests(unittest.TestCase):
     def test_tracker_names_the_released_scheduled_cancellation_qa(self):
-        self.assertIn("0bd51eb staged agent billing access hardening", MIGRATION)
+        self.assertIn("51feaeb staged agent billing access hardening", MIGRATION)
         self.assertIn("suspension of existing agent brokerage memberships", MIGRATION)
         self.assertIn("scheduled cancellations", MIGRATION)
 

@@ -45,6 +45,7 @@ class AiCalibrationScenarioTrackingTests(unittest.TestCase):
             self.assertIn(scenario, INDEX)
         self.assertIn("calibrationScenario", INDEX)
         self.assertIn("aiCalibrationScenarioIds", ADMIN)
+        self.assertIn("aiCalibrationMissingScenarioIds", ADMIN)
         self.assertIn("set(metrics[\"aiCalibrationScenarioIds\"]) == AI_CALIBRATION_SCENARIOS", ADMIN)
 
 
