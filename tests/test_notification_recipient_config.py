@@ -11,12 +11,12 @@ class NotificationRecipientConfigTests(unittest.TestCase):
         self.assertIn("andrew@ondemanddfw.com,support@homeofferflow.com", production)
         self.assertNotIn("andrew@ondemandfw.com", production)
 
-        # The 20-19 staging notification correction is intentionally excluded
-        # from this production candidate and will ship with its own staged
-        # packet QA. Keep the route's configurable recipient declaration here
-        # so the separation remains explicit.
+        # Staging must use the same canonical recipient default. This is a
+        # notification-only correction and does not change PDF coordinates or
+        # the production offer-generation route.
         staging = (ROOT / "api/fill_pdf_20_19_staging.py").read_text(encoding="utf-8")
-        self.assertIn("SHOWING_NOTIFY_EMAIL", staging)
+        self.assertIn("andrew@ondemanddfw.com,support@homeofferflow.com", staging)
+        self.assertNotIn("andrew@ondemandfw.com", staging)
 
 
 if __name__ == "__main__":
