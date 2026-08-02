@@ -6,6 +6,11 @@ recommended terms. Run each case through the existing offer-review interface,
 record the output in [`AI_OFFER_REVIEW_CALIBRATION_WORKSHEET.md`](AI_OFFER_REVIEW_CALIBRATION_WORKSHEET.md),
 and keep the cases separate from any client record.
 
+The same cases are available as a machine-readable, anonymized fixture pack in
+[`AI_OFFER_REVIEW_CALIBRATION_FIXTURES.json`](AI_OFFER_REVIEW_CALIBRATION_FIXTURES.json).
+The JSON file is a test input catalog only; it does not approve a calibration
+change or activate a new model/scoring rule.
+
 Do not use exact addresses, names, MLS numbers, or live transaction identifiers.
 The reviewer must assess the output independently and must not treat the score
 as a prediction of acceptance.
