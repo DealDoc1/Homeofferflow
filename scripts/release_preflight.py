@@ -55,6 +55,8 @@ def _is_packet_or_form_change(path: str) -> bool:
         normalized.endswith(".pdf")
         or normalized in {"api/fill-pdf.py", "api/fill_pdf_20_19_staging.py"}
         or normalized.startswith("api/fill_pdf_20_19_staging_release")
+        or normalized.startswith("api/txr_")
+        or normalized.startswith("lib/txr_")
         or normalized.startswith("forms/")
     )
 
@@ -66,6 +68,58 @@ def _missing_evidence(evidence_text: str) -> list[str]:
     if any(marker in normalized for marker in placeholders):
         missing.append("completed evidence (not placeholders)")
     return missing
+
+
+def _required_scope_marker_groups(changed_files: list[str]) -> tuple[tuple[str, ...], ...]:
+    """Return per-target scope markers the evidence must identify.
+
+    Generic evidence is not enough for a packet/form release: a completed
+    lease QA packet must not authorize an unrelated TXR or purchase-packet
+    change.  Keep the markers intentionally broad enough for human-written
+    evidence while requiring an unmistakable connection to the changed file.
+    """
+    normalized = {path.replace("\\", "/").lower() for path in changed_files}
+    groups: list[tuple[str, ...]] = []
+    if any(
+        path.endswith("api/fill_pdf_20_19_staging.py")
+        or path.startswith("api/fill_pdf_20_19_staging_release")
+        for path in normalized
+    ):
+        groups.append(("20-19", "20 19", "purchase offer"))
+    if any(path.endswith("api/fill-pdf.py") for path in normalized):
+        groups.append(("production offer", "purchase offer", "contract packet"))
+    if any(path.endswith("20-19_0.pdf") for path in normalized):
+        groups.append(("20-19", "20 19", "purchase offer"))
+    if any(path.endswith("20-18_0.pdf") for path in normalized):
+        groups.append(("20-18", "20 18", "purchase offer"))
+    if any(path.startswith("forms/") for path in normalized):
+        groups.extend(
+            (Path(path).stem.replace("_", " ").replace("-", " "),)
+            for path in normalized
+            if path.startswith("forms/")
+        )
+    txr_paths = [
+        path for path in normalized
+        if path.startswith("api/txr_") or path.startswith("lib/txr_")
+    ]
+    for path in txr_paths:
+        stem = Path(path).stem.replace("_", " ").replace("-", " ")
+        if stem.startswith("txr "):
+            groups.append((stem,))
+    # A repeated route/PDF mapping should only create one evidence requirement.
+    return tuple(dict.fromkeys(groups))
+
+
+def _missing_scope_evidence(evidence_text: str, changed_files: list[str]) -> str | None:
+    groups = _required_scope_marker_groups(changed_files)
+    if not groups:
+        return None
+    normalized = " ".join(evidence_text.lower().replace("_", " ").replace("-", " ").split())
+    missing_groups = [group for group in groups if not any(marker in normalized for marker in group)]
+    if not missing_groups:
+        return None
+    expected = "; ".join("one of: " + ", ".join(group) for group in missing_groups)
+    return "evidence does not identify every changed packet/form scope (expected " + expected + ")"
 
 
 def _parse_args(argv: Iterable[str] | None = None) -> argparse.Namespace:
@@ -134,6 +188,12 @@ def main(argv: Iterable[str] | None = None) -> int:
         return 2
 
     missing = _missing_evidence(evidence_path.read_text(encoding="utf-8"))
+    scope_missing = _missing_scope_evidence(
+        evidence_path.read_text(encoding="utf-8"),
+        changed_files,
+    )
+    if scope_missing:
+        missing.append(scope_missing)
     if missing:
         print(
             "Preflight blocked: evidence is incomplete: " + ", ".join(missing),
