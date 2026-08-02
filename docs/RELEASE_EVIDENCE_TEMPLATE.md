@@ -9,6 +9,10 @@ to certify an existing release retroactively.
 - Release name:
 - Git commit / pull request:
 - Production scope:
+- Changed packet/form target marker: include the exact route, form code, or
+  packet identifier changed by this release (for example `20-19 purchase
+  offer`, `TREC 15-7 Seller's Temporary Residential Lease`, or `TXR-1507`).
+  Generic evidence from another packet or form cannot authorize this release.
 
 ## Approved source
 
