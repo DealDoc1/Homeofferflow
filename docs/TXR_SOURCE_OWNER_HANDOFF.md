@@ -5,11 +5,13 @@ source PDFs. It does not approve, distribute, or release any form.
 
 ## Required source-owner action
 
-An active brokerage administrator must sign in to the brokerage workspace and
-upload each source through **Brokerage-approved form sources**. The
-administrator must confirm authority for the exact PDF. HomeOfferFlow keeps
-the source in private Storage and does not expose it to agents merely because
-it was uploaded.
+An active brokerage administrator may sign in to the brokerage workspace and
+upload each source through **Brokerage-approved form sources**. When Andrew is
+staging a source on a brokerage's behalf, the platform-admin-only
+**Platform source-owner intake** is the equivalent path. In either case, the
+authenticated uploader must confirm authority for the exact PDF. HomeOfferFlow
+keeps the source in private Storage and does not expose it to agents merely
+because it was uploaded.
 
 The brokerage-level authorization status and each agent's individual TXR/NAR
 attestation remain separate controls. A source upload does not activate a
