@@ -11773,8 +11773,14 @@ function routeAfterMagicLinkIfNeeded() {
     const user = root.hofAuth?.session?.user;
     if (!client || !user) return null;
     const role = root.hofAuth?.role === 'investor' ? 'investor' : 'agent';
+    const platformAdmin = typeof root.isCurrentAdmin === 'function' && root.isCurrentAdmin();
     const fallback = {
-      status:'inactive',
+      // Platform admins retain their internal admin access even when the
+      // subscription row is temporarily unavailable to the browser. This
+      // does not grant free access to brokerage administrators or agents.
+      // The non-admin fallback remains status:'inactive'; platform admins use
+      // the separate internal free_admin status only when the row is unavailable.
+      status: platformAdmin ? 'free_admin' : 'inactive',
       plan:role === 'investor' ? 'investor_starter' : 'agent_starter',
       packet_limit:role === 'investor' ? 15 : 10
     };
@@ -13344,3 +13350,4 @@ function routeAfterMagicLinkIfNeeded() {
 </script>
 </body>
 </html>
+
