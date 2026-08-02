@@ -10,8 +10,8 @@ does not make the AI review legal, brokerage, or market advice.
 
 ## Reviewer requirements
 
-Each reviewer should be a currently practicing Texas real-estate broker or
-agent. The reviewer should evaluate the same anonymized scenario and generated
+Each reviewer should be a currently practicing Texas real-estate broker or agent.
+The reviewer should evaluate the same anonymized scenario and generated
 review output independently, without seeing another reviewer's disposition.
 
 Do not include names, exact addresses, MLS numbers, client details, phone
