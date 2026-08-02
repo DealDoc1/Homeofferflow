@@ -11,6 +11,90 @@ GEMINI_MODEL = os.environ.get("GEMINI_MODEL") or "gemini-2.5-flash"
 GEMINI_GROUNDING_MODEL = os.environ.get("GEMINI_GROUNDING_MODEL") or GEMINI_MODEL
 ENABLE_PROPERTY_CONTEXT = (os.environ.get("ENABLE_PROPERTY_CONTEXT") or "true").lower() not in {"0", "false", "no"}
 MAX_BODY_BYTES = 120_000
+SNAPSHOT_MAX_BODY_BYTES = 24_000
+SNAPSHOT_UUID_RE = re.compile(r"^[0-9a-fA-F-]{20,80}$")
+SUPABASE_URL = os.environ.get("SUPABASE_URL", "").rstrip("/")
+SUPABASE_SERVICE_ROLE_KEY = (
+    os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+    or os.environ.get("SUPABASE_SERVICE_ROLE")
+    or os.environ.get("SUPABASE_SERVICE_KEY")
+    or ""
+)
+
+
+def _service_headers():
+    return {"apikey": SUPABASE_SERVICE_ROLE_KEY, "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}", "Content-Type": "application/json"}
+
+
+def _verified_user(auth_header):
+    if not auth_header or not auth_header.lower().startswith("bearer ") or not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
+        return None
+    token = auth_header.split(" ", 1)[1].strip()
+    if not token:
+        return None
+    response = httpx.get(
+        f"{SUPABASE_URL}/auth/v1/user",
+        headers={"apikey": SUPABASE_SERVICE_ROLE_KEY, "Authorization": f"Bearer {token}"},
+        timeout=12,
+    )
+    if response.status_code != 200:
+        return None
+    payload = response.json()
+    return {"id": str(payload["id"])} if payload.get("id") else None
+
+
+def _parse_snapshot(raw):
+    if len(raw) > SNAPSHOT_MAX_BODY_BYTES:
+        raise ValueError("AI review snapshot is too large.")
+    try:
+        payload = json.loads(raw.decode("utf-8") or "{}")
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        raise ValueError("AI review snapshot must be valid JSON.")
+    if not isinstance(payload, dict):
+        raise ValueError("AI review snapshot must be an object.")
+    score = payload.get("score")
+    try:
+        score = int(score) if score is not None else None
+    except (TypeError, ValueError):
+        raise ValueError("AI review score must be a number.")
+    if score is not None and not 1 <= score <= 100:
+        raise ValueError("AI review score must be between 1 and 100.")
+    offer_id = str(payload.get("offerId") or payload.get("offer_id") or "").strip()[:80]
+    if offer_id and not SNAPSHOT_UUID_RE.match(offer_id):
+        raise ValueError("AI review offer id is invalid.")
+    def obj(value):
+        if not isinstance(value, dict):
+            return {}
+        if len(json.dumps(value, ensure_ascii=False)) > 8_000:
+            raise ValueError("AI review snapshot is too large.")
+        return value
+    return {
+        "offer_id": offer_id or None,
+        "score": score,
+        "summary": str(payload.get("summary") or "").strip()[:4_000],
+        "risks": obj(payload.get("risks")),
+        "suggestions": obj(payload.get("suggestions")),
+    }
+
+
+def _save_snapshot(user, snapshot):
+    if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
+        raise RuntimeError("AI review storage is not configured.")
+    response = httpx.post(
+        f"{SUPABASE_URL}/rest/v1/hof_ai_offer_reviews",
+        headers={**_service_headers(), "Prefer": "return=representation"},
+        json={"user_id": user["id"], **snapshot},
+        timeout=12,
+    )
+    if response.status_code >= 300:
+        raise RuntimeError("AI review snapshot could not be saved.")
+    rows = response.json() if response.text else []
+    if not isinstance(rows, list) or not rows:
+        raise RuntimeError("AI review snapshot was not returned after saving.")
+    row = rows[0]
+    return {"id": row.get("id"), "created_at": row.get("created_at"), "score": row.get("score")}
+
+
 
 
 def _json_response(handler, status, payload):
@@ -600,6 +684,12 @@ class handler(BaseHTTPRequestHandler):
                 return _json_response(self, 400, {"error": "Invalid request size."})
             raw = self.rfile.read(length)
             payload = json.loads(raw.decode("utf-8"))
+            if payload.get("action") == "save_snapshot":
+                user = _verified_user(self.headers.get("Authorization", ""))
+                if not user:
+                    return _json_response(self, 401, {"error": "Sign in before saving an AI review snapshot."})
+                snapshot = _parse_snapshot(json.dumps(payload.get("snapshot") or {}).encode("utf-8"))
+                return _json_response(self, 201, {"ok": True, "review": _save_snapshot(user, snapshot)})
             offer = payload.get("offer") or payload
             if not isinstance(offer, dict):
                 return _json_response(self, 400, {"error": "Missing offer object."})
