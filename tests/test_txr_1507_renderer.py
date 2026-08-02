@@ -32,6 +32,7 @@ def sample_data():
             "lease_flat_fee": "",
         },
         "intermediary": "authorized",
+        "signer_plan": "clients_and_associate",
     }
 
 
@@ -49,18 +50,48 @@ class Txr1507RendererTests(unittest.TestCase):
         for expected in ("Test Buyer One, Test Buyer Two", "OnDemand Realty", "1438 Whitaker Road", "2026-08-01", "2027-01-31", "9010832", "Andrew Christian"):
             self.assertIn(expected, text)
 
+    def test_renderer_covers_showing_services_and_lease_compensation_path(self):
+        data = sample_data()
+        data.update({
+            "service_level": "showing_services",
+            "showing_fee": "150",
+            "intermediary": "not_authorized",
+            "compensation": {
+                "purchase_percentage": "",
+                "purchase_flat_fee": "",
+                "lease_one_month_percentage": "50",
+                "lease_total_rents_percentage": "10",
+                "lease_flat_fee": "250",
+            },
+        })
+        rendered = render_txr_1507(
+            blank_two_page_pdf(),
+            data,
+            {"legal_name": "OnDemand Realty", "license_number": "9010832"},
+            {"name": "Andrew Christian", "license_number": "0738821"},
+        )
+        text = "\n".join(page.extract_text() or "" for page in PdfReader(io.BytesIO(rendered)).pages)
+        for expected in ("150", "50", "10", "250"):
+            self.assertIn(expected, text)
+
     def test_signer_map_is_separate_for_one_and_two_clients(self):
         one = build_signwell_fields_txr1507(sample_data(), client_count=1)[0]
         two = build_signwell_fields_txr1507(sample_data(), client_count=2)[0]
-        self.assertEqual(len(one), 3)
-        self.assertEqual(len(two), 6)
+        self.assertEqual(len(one), 5)
+        self.assertEqual(len(two), 8)
         self.assertTrue(all(field["page"] in {1, 2} for field in two))
-        self.assertTrue(all(field["recipient_id"] in {"1", "2"} for field in two))
+        self.assertTrue(all(field["recipient_id"] in {"1", "2", "associate"} for field in two))
+        self.assertEqual(next(field["y"] for field in two if field["api_id"] == "txr1507_associate_signature_p2"), 715)
+        self.assertEqual(next(field["y"] for field in two if field["api_id"] == "txr1507_client2_signature_p2"), 820)
         self.assertEqual({field["api_id"] for field in one}, {
             "txr1507_client1_initials_p1",
             "txr1507_client1_signature_p2",
             "txr1507_client1_date_p2",
+            "txr1507_associate_signature_p2",
+            "txr1507_associate_date_p2",
         })
+        with self.assertRaisesRegex(ValueError, "authorized broker"):
+            build_signwell_fields_txr1507({**sample_data(), "signer_plan": "clients_only"}, client_count=1)
 
 
 if __name__ == "__main__":
