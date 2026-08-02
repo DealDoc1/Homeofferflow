@@ -10,7 +10,7 @@ RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
 STRIPE_WHSEC   = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
 FROM_EMAIL     = "offers@homeofferflow.com"
 SUPPORT_EMAIL  = "support@homeofferflow.com"
-SHOWING_NOTIFY_EMAIL = os.environ.get("SHOWING_NOTIFY_EMAIL", "andrew@ondemandfw.com,support@homeofferflow.com")
+SHOWING_NOTIFY_EMAIL = os.environ.get("SHOWING_NOTIFY_EMAIL", "andrew@ondemanddfw.com,support@homeofferflow.com")
 ADMIN_ORDER_EMAIL = os.environ.get("ADMIN_ORDER_EMAIL") or SHOWING_NOTIFY_EMAIL
 SIGNWELL_API_KEY = os.environ.get("SIGNWELL_API_KEY", "")
 # Safe default: SignWell is OFF unless explicitly enabled in Vercel.
