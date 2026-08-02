@@ -6,6 +6,7 @@ import urllib.parse
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler
 import httpx
+from lib import platform_form_source_upload as platform_source
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "").rstrip("/")
 SUPABASE_SERVICE_ROLE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or os.environ.get("SUPABASE_SERVICE_ROLE") or os.environ.get("SUPABASE_SERVICE_KEY") or ""
@@ -39,6 +40,7 @@ AI_CALIBRATION_SCENARIOS = {
     "AI-CAL-05",
 }
 MAX_BODY_BYTES = 12_000
+MAX_SOURCE_UPLOAD_BODY_BYTES = 15 * 1024 * 1024
 PUBLIC_APP_ORIGIN = (os.environ.get("PUBLIC_APP_URL") or "https://www.homeofferflow.com").rstrip("/")
 BROKERAGE_INVITE_EMAIL_RE = re.compile(r"(?=.{3,254}$)[^@\s]+@[^@\s]+\.[^@\s]+$")
 BROKERAGE_BRAND_COLOR_RE = re.compile(r"#[0-9a-fA-F]{6}$")
@@ -216,7 +218,7 @@ async def _brokerage_dashboard_payload(context):
     members = await _get(
         "hof_brokerage_members?"
         f"brokerage_id=eq.{urllib.parse.quote(brokerage_id)}"
-        "&select=user_id,email,role,status,created_at,updated_at"
+        "&select=user_id,email,role,status,txr_agent_authorized,txr_agent_attested_at,created_at,updated_at"
         "&order=created_at.asc&limit=500"
     )
     pending_invites = await _get_optional(
@@ -345,6 +347,8 @@ async def _brokerage_dashboard_payload(context):
                 "licenseNumber": profile.get("license_number"),
                 "role": member.get("role") or "agent",
                 "membershipStatus": member.get("status") or "pending",
+                "txrAgentAuthorized": member.get("txr_agent_authorized") is True,
+                "txrAgentAttestedAt": member.get("txr_agent_attested_at"),
                 "subscriptionStatus": subscription.get("status"),
                 "plan": subscription.get("plan"),
                 "trialEndsAt": subscription.get("trial_ends_at"),
@@ -992,13 +996,26 @@ async def _set_brokerage_member_status(actor, data):
     if str(member.get("status") or "") == desired_status:
         return {"userId": target_user_id, "membershipStatus": desired_status, "changed": False}
 
+    membership_update = {
+        "status": desired_status,
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }
+    # Suspension invalidates the prior point-of-use attestation. If the agent
+    # is later restored, they must attest again before using a restricted form.
+    if desired_status == "suspended":
+        membership_update.update({
+            "txr_agent_authorized": False,
+            "txr_agent_attested_by": None,
+            "txr_agent_attested_at": None,
+        })
+
     async with httpx.AsyncClient(timeout=12) as client:
         response = await client.patch(
             f"{SUPABASE_URL}/rest/v1/hof_brokerage_members?"
             f"id=eq.{urllib.parse.quote(str(member['id']))}"
             f"&brokerage_id=eq.{urllib.parse.quote(brokerage_id)}",
             headers={**_headers(), "Prefer": "return=representation"},
-            json={"status": desired_status, "updated_at": datetime.now(timezone.utc).isoformat()},
+            json=membership_update,
         )
     if response.status_code >= 300:
         raise RuntimeError("Could not update this brokerage membership.")
@@ -1224,8 +1241,8 @@ def _parse_txr_1507_draft(data):
     if intermediary not in {"authorized", "not_authorized"}:
         raise ValueError("Choose whether intermediary is authorized.")
     signer_plan = str(data.get("signerPlan") or "").strip()
-    if signer_plan not in {"clients_only", "clients_and_associate", "clients_and_broker"}:
-        raise ValueError("Choose who will sign the TXR-1507 agreement.")
+    if signer_plan not in {"clients_and_associate", "clients_and_broker"}:
+        raise ValueError("Choose an authorized broker or broker-associate signer for the TXR-1507 agreement.")
     if data.get("formUseAttested") is not True:
         raise ValueError("Confirm that you are a current Texas REALTORS® / NAR member (or otherwise individually authorized) and are currently authorized to use this TXR form for your brokerage.")
     form_source_id = _agreement_text(data.get("formSourceId"), "Approved TXR-1507 source", 80)
@@ -1284,8 +1301,8 @@ def _parse_txr_1501_draft(data):
     if intermediary not in {"authorized", "not_authorized"}:
         raise ValueError("Choose whether intermediary is authorized.")
     signer_plan = str(data.get("signerPlan") or "").strip()
-    if signer_plan not in {"clients_only", "clients_and_associate", "clients_and_broker"}:
-        raise ValueError("Choose who will sign the TXR-1501 agreement.")
+    if signer_plan not in {"clients_and_associate", "clients_and_broker"}:
+        raise ValueError("Choose an authorized broker or broker-associate signer for the TXR-1501 agreement.")
     if data.get("formUseAttested") is not True:
         raise ValueError("Confirm that you are a current Texas REALTORS® / NAR member (or otherwise individually authorized) and are currently authorized to use this TXR form for your brokerage.")
     return {
@@ -1379,8 +1396,8 @@ def _parse_txr_1506_draft(data):
     if data.get("noticeAcknowledgment") is not True:
         raise ValueError("Confirm that the consumer will review and acknowledge the notice.")
     signer_plan = str(data.get("signerPlan") or "").strip()
-    if signer_plan not in {"consumers_only", "consumers_and_associate", "consumers_and_broker"}:
-        raise ValueError("Choose who will acknowledge the TXR-1506 notice.")
+    if signer_plan not in {"consumers_and_associate", "consumers_and_broker"}:
+        raise ValueError("Choose an authorized broker or broker-associate signer for the TXR-1506 notice.")
     if data.get("formUseAttested") is not True:
         raise ValueError("Confirm that you are a current Texas REALTORS® / NAR member (or otherwise individually authorized) and are currently authorized to use this TXR form for your brokerage.")
     return {
@@ -1472,6 +1489,35 @@ async def _require_brokerage_txr_authorization(brokerage_id):
         )
 
 
+async def _record_agent_txr_attestation(user, brokerage_id):
+    """Record the authenticated agent's point-of-use TXR/NAR attestation.
+
+    The browser checkbox is required by each restricted-form parser. This
+    server-authored membership record makes the attestation auditable without
+    trusting a client-supplied user id or inferring membership from a license.
+    """
+    now = datetime.now(timezone.utc).isoformat()
+    async with httpx.AsyncClient(timeout=12) as client:
+        response = await client.patch(
+            f"{SUPABASE_URL}/rest/v1/hof_brokerage_members?"
+            f"brokerage_id=eq.{urllib.parse.quote(str(brokerage_id))}"
+            f"&user_id=eq.{urllib.parse.quote(user['id'])}&status=eq.active",
+            headers={**_headers(), "Prefer": "return=representation"},
+            json={
+                "txr_agent_authorized": True,
+                "txr_agent_attested_by": user["id"],
+                "txr_agent_attested_at": now,
+                "updated_at": now,
+            },
+        )
+    if response.status_code >= 300:
+        raise RuntimeError("Could not record the agent's Texas REALTORS® / NAR authorization attestation.")
+    rows = response.json()
+    if not isinstance(rows, list) or not rows:
+        raise PermissionError("Your active brokerage membership could not be updated for this restricted form.")
+    return now
+
+
 async def _create_representation_draft(user, data, form_code, parser):
     draft = parser(data)
     brokerage_id = await _active_brokerage_member(user)
@@ -1486,6 +1532,7 @@ async def _create_representation_draft(user, data, form_code, parser):
     if not sources:
         raise ValueError(f"Choose an approved {form_code} source from your brokerage.")
     source = sources[0]
+    agent_attested_at = await _record_agent_txr_attestation(user, brokerage_id)
     # Preserve the agent's point-of-use attestation as server-authored audit
     # metadata. The browser checkbox is required by each parser, but the
     # identity and timestamp must come from the authenticated request rather
@@ -1493,7 +1540,10 @@ async def _create_representation_draft(user, data, form_code, parser):
     # license number or replace the brokerage/source authorization gates.
     agreement_data = dict(draft["agreement_data"] or {})
     agreement_data["form_use_attested_by"] = user["id"]
+    # Keep the agreement metadata server-authored as before; the membership
+    # timestamp is the canonical audit value for this request.
     agreement_data["form_use_attested_at"] = datetime.now(timezone.utc).isoformat()
+    agreement_data["form_use_attested_at"] = agent_attested_at
     record = {
         "brokerage_id": brokerage_id,
         "agent_user_id": user["id"],
@@ -1659,6 +1709,14 @@ class handler(BaseHTTPRequestHandler):
                     return
                 _json(self, 200, payload)
                 return
+            if scope == "platform_source_brokerages":
+                try:
+                    payload = asyncio.run(platform_source._active_brokerages(user))
+                except PermissionError as exc:
+                    _json(self, 403, {"error": str(exc)})
+                    return
+                _json(self, 200, payload)
+                return
             if scope == "brokerage":
                 context = asyncio.run(_brokerage_admin_context(user))
                 if not context:
@@ -1777,6 +1835,9 @@ class handler(BaseHTTPRequestHandler):
             # this as an explicit dashboard signal so an operator cannot confuse
             # having a feedback feed with having enough calibration evidence.
             metrics["aiCalibrationTarget"] = 5
+            metrics["aiCalibrationMissingScenarioIds"] = sorted(
+                AI_CALIBRATION_SCENARIOS - set(metrics["aiCalibrationScenarioIds"])
+            )
             metrics["aiCalibrationReady"] = (
                 set(metrics["aiCalibrationScenarioIds"]) == AI_CALIBRATION_SCENARIOS
             )
@@ -1810,10 +1871,18 @@ class handler(BaseHTTPRequestHandler):
                 _json(self, 401, {"error": "A valid signed-in session is required."})
                 return
             length = int(self.headers.get("Content-Length", "0") or "0")
-            if length <= 0 or length > MAX_BODY_BYTES:
+            if length <= 0 or length > MAX_SOURCE_UPLOAD_BODY_BYTES:
                 _json(self, 400, {"error": "Invalid request size."})
                 return
-            data = json.loads(self.rfile.read(length).decode("utf-8"))
+            raw_body = self.rfile.read(length)
+            data = json.loads(raw_body.decode("utf-8"))
+            if data.get("action") == "upload_platform_form_source":
+                source = asyncio.run(platform_source._upload_source(user, raw_body))
+                _json(self, 201, {"ok": True, "source": source})
+                return
+            if length > MAX_BODY_BYTES:
+                _json(self, 400, {"error": "Invalid request size."})
+                return
             if data.get("action") == "create_brokerage_invite":
                 invite = asyncio.run(_create_brokerage_invite(user, data))
                 _json(self, 201, {"ok": True, "invite": invite})
