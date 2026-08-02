@@ -3964,6 +3964,7 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
             <div class="admin-metric-value">${metrics.aiCalibrationFeedbackCount || 0} / ${metrics.aiCalibrationTarget || 5}</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.aiReviewOutputCount || 0} generated review outputs (not calibration evidence)</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:${metrics.aiCalibrationReady ? 'var(--sage-light)' : 'var(--gold-light)'}">${metrics.aiCalibrationReady ? 'Ready for expert review gate' : 'Needs anonymized scenarios'}</div>
+            ${metrics.aiCalibrationReady ? '' : `<div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Missing: ${(metrics.aiCalibrationMissingScenarioIds || ['AI-CAL-01','AI-CAL-02','AI-CAL-03','AI-CAL-04','AI-CAL-05']).join(', ')}</div>`}
           </div>
 
           <div class="admin-metric">
@@ -8543,11 +8544,17 @@ function routeAfterMagicLinkIfNeeded() {
     }
     const payload = {
       name: getVal('brandBrokerageName') || 'My Brokerage',
+      org_type: getVal('brandOrgType') || 'brokerage',
+      slug: getVal('brandSlug') || null,
       dba_name: getVal('brandDbaName') || null,
       license_number: getVal('brandLicense') || null,
       logo_url: getVal('brandLogoUrl') || null,
       brand_color: getVal('brandColor') || '#2563eb',
-      website_url: getVal('brandWebsite') || null,
+      website_url: getVal('brandWebsiteUrl') || null,
+      office_address: getVal('brandOfficeAddress') || null,
+      office_city: getVal('brandOfficeCity') || null,
+      office_state: getVal('brandOfficeState') || 'TX',
+      office_zip: getVal('brandOfficeZip') || null,
       contact_name: getVal('brandContactName') || null,
       contact_email: getVal('brandContactEmail') || user.email,
       contact_phone: getVal('brandContactPhone') || null,
@@ -11050,7 +11057,7 @@ function routeAfterMagicLinkIfNeeded() {
     brokerCard.className = 'broker-role-card';
     brokerCard.innerHTML = `
       <h4>Broker / Team Lead Mode</h4>
-      <p>This account uses the agent offer workflow, but the dashboard copy and brokerage tab are broker-facing. Full agent invitations, permissions, team billing, and compliance review can be added later without creating a separate login path.</p>
+      <p>This account uses the agent offer workflow with brokerage administration layered on top. Available brokerage tools include secure agent invitations, membership access controls, privacy-limited activity, branding, shared defaults, and restricted-form authorization status. Team billing and a full compliance-review workspace remain roadmap items.</p>
       <div class="broker-role-grid">
         <div class="broker-role-chip"><strong>Account path</strong><span>Agent / Broker login</span></div>
         <div class="broker-role-chip"><strong>Offer path</strong><span>Agent packet builder</span></div>
@@ -11091,7 +11098,7 @@ function routeAfterMagicLinkIfNeeded() {
       card.className = 'broker-role-card';
       card.innerHTML = `
         <h4>Broker role foundation</h4>
-        <p>Broker is now an elevated role inside the Agent path. For beta, it gives broker-facing language and a brokerage setup shell while agents still use the same packet builder.</p>
+        <p>Broker is an elevated role inside the Agent path. Brokers can manage their brokerage workspace while agents continue using the same packet builder and their own subscriptions.</p>
         <div class="broker-role-grid">
           <div class="broker-role-chip"><strong>Now</strong><span>Test workflow, defaults, feedback, offer workspace.</span></div>
           <div class="broker-role-chip"><strong>Next</strong><span>Invite agents, view team offers, compliance review.</span></div>
@@ -12170,10 +12177,11 @@ function routeAfterMagicLinkIfNeeded() {
           '<div class="brokerage-safe-kpi"><span>Offers</span><strong>' + Number(m.offerCount || 0) + '</strong></div>' +
           '<div class="brokerage-safe-kpi"><span>Signed</span><strong>' + Number(m.signedCount || 0) + '</strong></div>' +
         '</div>' +
-        '<table class="brokerage-safe-table"><thead><tr><th>Agent</th><th>Membership</th><th>Plan</th><th>Offers</th><th>Signed</th><th>Brokerage access</th></tr></thead><tbody>' +
+        '<table class="brokerage-safe-table"><thead><tr><th>Agent</th><th>Membership</th><th>TXR/NAR attestation</th><th>Plan</th><th>Offers</th><th>Signed</th><th>Brokerage access</th></tr></thead><tbody>' +
         (agents.length ? agents.map(agent =>
           '<tr><td><strong>' + safe(agent.name || agent.email || 'Agent') + '</strong><br><span>' + safe(agent.email || '') + '</span></td>' +
           '<td>' + safe(agent.membershipStatus || 'pending') + '</td>' +
+          '<td>' + (agent.txrAgentAuthorized ? '<span title="Attested ' + safe(agent.txrAgentAttestedAt || '') + '">Attested</span>' : 'Not yet attested') + '</td>' +
           '<td>' + safe(agent.subscriptionStatus || 'inactive') + '</td>' +
           '<td>' + Number(agent.activity?.offerCount || 0) + '</td>' +
           '<td>' + Number(agent.activity?.signedCount || 0) + '</td>' +
@@ -12182,7 +12190,7 @@ function routeAfterMagicLinkIfNeeded() {
               ? '<button type="button" class="brokerage-access-button" onclick="setBrokerageMemberStatus(\'' + safe(agent.userId) + '\',\'suspended\')">Suspend</button>'
               : '<button type="button" class="brokerage-access-button" onclick="setBrokerageMemberStatus(\'' + safe(agent.userId) + '\',\'active\')">Restore</button>')
             : '<span>Support-managed</span>') + '</td></tr>'
-        ).join('') : '<tr><td colspan="6">No agents have enrolled yet.</td></tr>') +
+        ).join('') : '<tr><td colspan="7">No agents have enrolled yet.</td></tr>') +
         '</tbody></table>';
     } catch(error) {
       document.getElementById('brokerSafeDashboard').innerHTML =
@@ -12237,7 +12245,10 @@ function routeAfterMagicLinkIfNeeded() {
   const escape = value => String(value ?? '').replace(/[&<>\"]/g, char => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'
   }[char]));
-  const isAgentAccount = () => String(root.hofAuth?.role || '').toLowerCase() !== 'investor';
+  const isAgentAccount = () => {
+    const role = String(root.hofAuth?.role || '').toLowerCase();
+    return !!root.hofAuth?.session?.user && ['agent', 'broker', 'brokerage_admin', 'team_lead'].includes(role);
+  };
   const filePath = userId => `${userId}/iabs.pdf`;
 
   async function blobToBase64(blob) {
@@ -12643,7 +12654,7 @@ function routeAfterMagicLinkIfNeeded() {
   const brokerageTxrAuthorized = () => root.hofPlatform?.brokerage?.txr_all_agents_authorized === true && !!root.hofPlatform?.brokerage?.txr_authorization_attested_at;
   const activeAgent = () => {
     const role = String(root.hofAuth?.role || profile().role || '').toLowerCase();
-    return !!root.hofAuth?.session?.user && !!brokerageId() && (role === 'agent' || role === 'brokerage_admin');
+    return !!root.hofAuth?.session?.user && !!brokerageId() && ['agent', 'broker', 'brokerage_admin', 'broker_admin', 'owner', 'team_lead'].includes(role);
   };
 
   async function approvedShortFormSource() {
@@ -12703,8 +12714,8 @@ function routeAfterMagicLinkIfNeeded() {
           <label>Lease: % of all rents<input name="leaseTotalRentsPercentage" inputmode="decimal" placeholder="Enter only if broker-approved"></label>
           <label>Lease flat fee<input name="leaseFlatFee" inputmode="decimal" placeholder="Enter only if broker-approved"></label>
           <label>Intermediary choice<select name="intermediary" required><option value="">Choose one…</option><option value="authorized">Client authorizes intermediary</option><option value="not_authorized">Client does not authorize intermediary</option></select></label>
-          <label>Signer plan<select name="signerPlan" required><option value="">Choose one…</option><option value="clients_only">Clients sign only</option><option value="clients_and_associate">Clients and associate sign</option><option value="clients_and_broker">Clients and broker sign</option></select><small>Choose deliberately; HomeOfferFlow will not infer whether the associate or broker must sign.</small></label>
-          <label class="hof-agreement-wide hof-agreement-services"><input name="formUseAttested" type="checkbox" required> I attest that I am a current Texas REALTORS® / NAR member (or otherwise individually authorized), that I am currently authorized to use this Texas REALTORS® form for my brokerage, and that the selected source revision is the approved source for this agreement.</label>
+          <label>Signer plan<select name="signerPlan" required><option value="">Choose one…</option><option value="clients_and_associate">Clients and broker associate sign</option><option value="clients_and_broker">Clients and broker sign</option></select><small>This source includes a brokerage execution line. Choose the authorized broker or broker associate signer; HomeOfferFlow will not infer it.</small></label>
+          <label class="hof-agreement-wide hof-agreement-services"><input name="formUseAttested" type="checkbox" required> I attest that I am a current Texas REALTORS® / NAR member (or otherwise individually authorized), that I am currently authorized to use this Texas REALTORS® form for my brokerage, and that the selected source revision is the approved source for this agreement. HomeOfferFlow records this attestation with my active brokerage membership.</label>
         </div>
         <div id="txr1507DraftStatus" class="hof-iabs-status"></div>
         <div class="hof-agreement-footer"><button class="btn-secondary" type="button" id="txr1507Cancel">Cancel</button><button class="btn-primary" type="submit">Save private draft</button></div>
@@ -12766,7 +12777,7 @@ function routeAfterMagicLinkIfNeeded() {
   const brokerageId = () => root.hofPlatform?.brokerage?.id || profile().brokerage_id || null;
   const activeAgent = () => {
     const role = String(root.hofAuth?.role || profile().role || '').toLowerCase();
-    return !!root.hofAuth?.session?.user && !!brokerageId() && (role === 'agent' || role === 'brokerage_admin');
+    return !!root.hofAuth?.session?.user && !!brokerageId() && ['agent', 'broker', 'brokerage_admin', 'broker_admin', 'owner', 'team_lead'].includes(role);
   };
 
   async function approvedLongFormSource() {
@@ -12831,8 +12842,8 @@ function routeAfterMagicLinkIfNeeded() {
           <label>Protection period days (optional)<input name="protectionDays" inputmode="numeric" placeholder="Enter only if broker-approved"></label>
           <label>Payment county<input name="paymentCounty" required maxlength="100" placeholder="Example: Collin"></label>
           <label class="hof-agreement-wide">Intermediary choice<select name="intermediary" required><option value="">Choose one…</option><option value="authorized">Client authorizes intermediary</option><option value="not_authorized">Client does not authorize intermediary</option></select></label>
-          <label>Signer plan<select name="signerPlan" required><option value="">Choose one…</option><option value="clients_only">Clients sign only</option><option value="clients_and_associate">Clients and associate sign</option><option value="clients_and_broker">Clients and broker sign</option></select><small>Choose deliberately; HomeOfferFlow will not infer who must sign.</small></label>
-          <label class="hof-agreement-wide hof-agreement-services"><input name="formUseAttested" type="checkbox" required> I attest that I am a current Texas REALTORS® / NAR member (or otherwise individually authorized), that I am currently authorized to use this Texas REALTORS® form for my brokerage, and that the selected source revision is the approved source for this agreement.</label>
+          <label>Signer plan<select name="signerPlan" required><option value="">Choose one…</option><option value="clients_and_associate">Clients and broker associate sign</option><option value="clients_and_broker">Clients and broker sign</option></select><small>This source includes a brokerage execution line. Choose the authorized broker or broker associate signer; HomeOfferFlow will not infer it.</small></label>
+          <label class="hof-agreement-wide hof-agreement-services"><input name="formUseAttested" type="checkbox" required> I attest that I am a current Texas REALTORS® / NAR member (or otherwise individually authorized), that I am currently authorized to use this Texas REALTORS® form for my brokerage, and that the selected source revision is the approved source for this agreement. HomeOfferFlow records this attestation with my active brokerage membership.</label>
         </div>
         <div id="txr1501DraftStatus" class="hof-iabs-status"></div>
         <div class="hof-agreement-footer"><button class="btn-secondary" type="button" id="txr1501Cancel">Cancel</button><button class="btn-primary" type="submit">Save private draft</button></div>
@@ -12896,7 +12907,7 @@ function routeAfterMagicLinkIfNeeded() {
   const brokerageId = () => root.hofPlatform?.brokerage?.id || profile().brokerage_id || null;
   const activeAgent = () => {
     const role = String(root.hofAuth?.role || profile().role || '').toLowerCase();
-    return !!root.hofAuth?.session?.user && !!brokerageId() && (role === 'agent' || role === 'brokerage_admin');
+    return !!root.hofAuth?.session?.user && !!brokerageId() && ['agent', 'broker', 'brokerage_admin', 'broker_admin', 'owner', 'team_lead'].includes(role);
   };
 
   async function approvedShowingSource() {
@@ -12953,7 +12964,7 @@ function routeAfterMagicLinkIfNeeded() {
           <div id="txr1508CustomerTwoStatus" style="display:none">${customerStatusField(2)}</div>
           <label>Signer plan<select name="signerPlan" required><option value="">Choose one…</option><option value="associate_and_clients">Associate and customer(s)</option><option value="broker_and_clients">Broker and customer(s)</option></select><small>Choose deliberately; HomeOfferFlow will not infer whether the associate or broker acknowledges the showing form.</small></label>
           <label class="hof-agreement-wide hof-agreement-services"><input name="unrepresentedAcknowledgment" type="checkbox" required> I confirm this is an unrepresented-customer showing draft only: no representation, no compensation, no advice or opinions, and no other brokerage services are being promised through this draft.</label>
-          <label class="hof-agreement-wide hof-agreement-services"><input name="formUseAttested" type="checkbox" required> I attest that I am a current Texas REALTORS® / NAR member (or otherwise individually authorized), that I am currently authorized to use this Texas REALTORS® form for my brokerage, and that the selected source revision is the approved source for this showing draft.</label>
+          <label class="hof-agreement-wide hof-agreement-services"><input name="formUseAttested" type="checkbox" required> I attest that I am a current Texas REALTORS® / NAR member (or otherwise individually authorized), that I am currently authorized to use this Texas REALTORS® form for my brokerage, and that the selected source revision is the approved source for this showing draft. HomeOfferFlow records this attestation with my active brokerage membership.</label>
         </div>
         <div id="txr1508DraftStatus" class="hof-iabs-status"></div>
         <div class="hof-agreement-footer"><button class="btn-secondary" type="button" id="txr1508Cancel">Cancel</button><button class="btn-primary" type="submit">Save private draft</button></div>
@@ -13017,7 +13028,7 @@ function routeAfterMagicLinkIfNeeded() {
   const brokerageId = () => root.hofPlatform?.brokerage?.id || profile().brokerage_id || null;
   const activeAgent = () => {
     const role = String(root.hofAuth?.role || profile().role || '').toLowerCase();
-    return !!root.hofAuth?.session?.user && !!brokerageId() && (role === 'agent' || role === 'brokerage_admin');
+    return !!root.hofAuth?.session?.user && !!brokerageId() && ['agent', 'broker', 'brokerage_admin', 'broker_admin', 'owner', 'team_lead'].includes(role);
   };
   async function approvedNoticeSource() {
     return root.hofLoadApprovedBrokerageSource?.(FORM_CODE) || null;
@@ -13043,7 +13054,7 @@ function routeAfterMagicLinkIfNeeded() {
   function openNoticeDraft(source) {
     document.getElementById('txr1506AgreementDialog')?.remove();
     const modal = document.createElement('div'); modal.id = 'txr1506AgreementDialog'; modal.className = 'hof-agreement-modal';
-    modal.innerHTML = `<form class="hof-agreement-dialog" id="txr1506AgreementForm"><h3>TXR-1506 consumer notice draft</h3><p>Source revision ${escape(source.source_revision)} is approved by your brokerage. This saves a private draft only; it does not create, send, or sign the source form.</p><div class="hof-agreement-grid"><label>Consumer 1 full name<input name="consumerOne" required maxlength="180"></label><label>Consumer 2 full name (optional)<input name="consumerTwo" maxlength="180"></label><label>Consumer transaction role<select name="consumerRole" required><option value="">Choose one…</option><option value="buyer">Buyer</option><option value="tenant">Tenant</option><option value="seller">Seller</option><option value="landlord">Landlord</option><option value="other">Other</option></select></label><label class="hof-agreement-wide">Other notice text (optional)<textarea name="additionalNotice" maxlength="1000" placeholder="Enter only agent-confirmed text for the source form's Other area."></textarea></label><label>Signer plan<select name="signerPlan" required><option value="">Choose one…</option><option value="consumers_only">Consumers acknowledge only</option><option value="consumers_and_associate">Consumers and associate</option><option value="consumers_and_broker">Consumers and broker</option></select></label><label class="hof-agreement-wide hof-agreement-services"><input name="noticeAcknowledgment" type="checkbox" required> I confirm the consumer will receive, read, and acknowledge this general information notice. This draft does not create representation.</label><label class="hof-agreement-wide hof-agreement-services"><input name="formUseAttested" type="checkbox" required> I attest that I am a current Texas REALTORS® / NAR member (or otherwise individually authorized), that I am currently authorized to use this Texas REALTORS® form for my brokerage, and that the selected source revision is the approved source for this notice.</label></div><div id="txr1506DraftStatus" class="hof-iabs-status"></div><div class="hof-agreement-footer"><button class="btn-secondary" type="button" id="txr1506Cancel">Cancel</button><button class="btn-primary" type="submit">Save private draft</button></div></form>`;
+    modal.innerHTML = `<form class="hof-agreement-dialog" id="txr1506AgreementForm"><h3>TXR-1506 consumer notice draft</h3><p>Source revision ${escape(source.source_revision)} is approved by your brokerage. This saves a private draft only; it does not create, send, or sign the source form.</p><div class="hof-agreement-grid"><label>Consumer 1 full name<input name="consumerOne" required maxlength="180"></label><label>Consumer 2 full name (optional)<input name="consumerTwo" maxlength="180"></label><label>Consumer transaction role<select name="consumerRole" required><option value="">Choose one…</option><option value="buyer">Buyer</option><option value="tenant">Tenant</option><option value="seller">Seller</option><option value="landlord">Landlord</option><option value="other">Other</option></select></label><label class="hof-agreement-wide">Other notice text (optional)<textarea name="additionalNotice" maxlength="1000" placeholder="Enter only agent-confirmed text for the source form's Other area."></textarea></label><label>Signer plan<select name="signerPlan" required><option value="">Choose one…</option><option value="consumers_and_associate">Consumers and broker associate</option><option value="consumers_and_broker">Consumers and broker</option></select><small>This source includes a brokerage execution line. Choose the authorized broker or broker associate signer; HomeOfferFlow will not infer it.</small></label><label class="hof-agreement-wide hof-agreement-services"><input name="noticeAcknowledgment" type="checkbox" required> I confirm the consumer will receive, read, and acknowledge this general information notice. This draft does not create representation.</label><label class="hof-agreement-wide hof-agreement-services"><input name="formUseAttested" type="checkbox" required> I attest that I am a current Texas REALTORS® / NAR member (or otherwise individually authorized), that I am currently authorized to use this Texas REALTORS® form for my brokerage, and that the selected source revision is the approved source for this notice. HomeOfferFlow records this attestation with my active brokerage membership.</label></div><div id="txr1506DraftStatus" class="hof-iabs-status"></div><div class="hof-agreement-footer"><button class="btn-secondary" type="button" id="txr1506Cancel">Cancel</button><button class="btn-primary" type="submit">Save private draft</button></div></form>`;
     document.body.appendChild(modal); modal.querySelector('#txr1506Cancel').addEventListener('click', () => modal.remove()); modal.addEventListener('click', event => { if (event.target === modal) modal.remove(); });
     modal.querySelector('#txr1506AgreementForm').addEventListener('submit', event => submitNoticeDraft(event, source, modal));
   }
@@ -13072,6 +13083,21 @@ function routeAfterMagicLinkIfNeeded() {
 (function () {
   const root = window;
 
+  function openMissingFormRequest() {
+    if (typeof root.openBetaFeedback === 'function') root.openBetaFeedback();
+    setTimeout(() => {
+      const issue = document.getElementById('feedbackIssueType');
+      const title = document.getElementById('feedbackTitle');
+      const intro = document.querySelector('#feedbackModal .feedback-head p');
+      const message = document.getElementById('feedbackMessage');
+      if (issue) issue.value = 'missing_addendum';
+      if (title) title.textContent = 'Request a Missing Form';
+      if (intro) intro.textContent = 'Tell us the exact Texas form or workflow you need and whether it is for a buyer, seller, landlord, tenant, or listing-side transaction.';
+      if (message) message.placeholder = 'Name the form/workflow, transaction role, and what you need it to do. Do not include confidential client information.';
+    }, 0);
+  }
+  root.openMissingFormRequest = openMissingFormRequest;
+
   function isAgentAccount() {
     return String(root.hofAuth?.role || '').toLowerCase() !== 'investor';
   }
@@ -13095,7 +13121,9 @@ function routeAfterMagicLinkIfNeeded() {
           Buyer/tenant representation agreements (TXR-1501 and TXR-1507), TXR-1508, and TXR-1506 are private-preview foundations only; listing agreements, seller disclosures, lease-listing and tenant-representation packets, and any form marked draft-only are not live signing workflows.
         </div>
       </div>
-      <p><strong>Important:</strong> Do not represent a draft-only or unavailable form as generated, sent, or executed through HomeOfferFlow. Use your brokerage-approved process for those documents until HomeOfferFlow releases the separately mapped and signed workflow.</p>`;
+      <p><strong>Important:</strong> Do not represent a draft-only or unavailable form as generated, sent, or executed through HomeOfferFlow. Use your brokerage-approved process for those documents until HomeOfferFlow releases the separately mapped and signed workflow.</p>
+      <p><strong>Texas REALTORS® / NAR source gate:</strong> If a restricted member form becomes available for your brokerage, the brokerage administrator must attest that participating agents are authorized, and each agent must confirm their own current authorization at the point of use. HomeOfferFlow never infers membership from a license number alone.</p>
+      <div class="beta-checklist-actions"><button type="button" onclick="openMissingFormRequest()">Request a missing form</button></div>`;
     const subscription = document.getElementById('subscriptionUsageCard');
     if (subscription?.parentElement) subscription.insertAdjacentElement('afterend', card);
     else panel.appendChild(card);
@@ -13112,6 +13140,85 @@ function routeAfterMagicLinkIfNeeded() {
   } else {
     renderLaunchScope();
   }
+})();
+</script>
+<style id="hof-platform-source-intake-v1">
+  .hof-platform-source-card { border:1px solid rgba(200,151,63,.34); background:rgba(200,151,63,.06); margin-top:1rem; }
+  .hof-platform-source-card p, .hof-platform-source-card small { color:var(--gray-light); line-height:1.48; }
+  .hof-platform-source-grid { display:grid; grid-template-columns:1fr 1fr; gap:.7rem; margin:.8rem 0; }
+  .hof-platform-source-grid label { display:grid; gap:.3rem; color:var(--gray-light); font-size:.82rem; font-weight:700; }
+  .hof-platform-source-grid input, .hof-platform-source-grid select { width:100%; }
+  @media (max-width:640px) { .hof-platform-source-grid { grid-template-columns:1fr; } }
+</style>
+<script id="hof-platform-source-intake-v1">
+(function () {
+  const root = window;
+  const FORM_CODES = ['TXR-1507', 'TXR-1501', 'TXR-1508', 'TXR-1506', 'TXR-1101', 'TXR-1102', 'TXR-1406', 'TXR-1418'];
+  const BUCKET_LIMIT = 10 * 1024 * 1024;
+  const escape = value => String(value ?? '').replace(/[&<>\"]/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[char]));
+  const isPlatformAdmin = () => typeof root.isCurrentAdmin === 'function' && root.isCurrentAdmin();
+  const toBase64 = bytes => {
+    let binary = '';
+    const chunk = 0x8000;
+    for (let index = 0; index < bytes.length; index += chunk) binary += String.fromCharCode(...bytes.subarray(index, Math.min(index + chunk, bytes.length)));
+    return btoa(binary);
+  };
+  async function sourceFingerprint(file) {
+    const digest = await crypto.subtle.digest('SHA-256', await file.arrayBuffer());
+    return Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
+  }
+  async function loadBrokerages() {
+    const token = root.hofAuth?.session?.access_token;
+    const response = await fetch('/api/admin-dashboard?scope=platform_source_brokerages', { headers: { Authorization: `Bearer ${token}` } });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(payload.error || 'Could not load active brokerages.');
+    return payload.brokerages || [];
+  }
+  function renderPlatformSourceIntake() {
+    // Keep private source-owner controls with the platform-admin operations
+    // surface.  The dashboard is also rendered for ordinary agents, and
+    // mounting the card there made it easy for an authorized admin to miss it
+    // when they opened the Admin tab.  The dashboard fallback preserves
+    // compatibility with older account shells that do not yet have the admin
+    // panel mounted.
+    const panel = document.getElementById('accountPanelAdmin') || document.getElementById('accountPanelDashboard');
+    if (!panel || !isPlatformAdmin() || document.getElementById('platformFormSourceCard')) return;
+    const card = document.createElement('div');
+    card.id = 'platformFormSourceCard';
+    card.className = 'account-card hof-platform-source-card';
+    card.innerHTML = `<h4>Platform source-owner intake</h4><p>Store an exact, authorized brokerage PDF privately. This does not activate, render, send, or sign a form; separate signer and release QA remains required.</p><div class="hof-platform-source-grid"><label>Brokerage<select id="platformSourceBrokerage"><option value="">Loading active brokerages…</option></select></label><label>Form<select id="platformSourceForm">${FORM_CODES.map(code => `<option value="${code}">${code}</option>`).join('')}</select></label><label>Revision shown on form<input id="platformSourceRevision" maxlength="48" placeholder="Example: 06-15-26"></label><label>Authorized source PDF<input id="platformSourceFile" type="file" accept="application/pdf,.pdf"></label></div><label style="display:flex;gap:.55rem;align-items:flex-start;color:var(--gray-light);font-size:.82rem;line-height:1.45"><input id="platformSourceAttestation" type="checkbox" style="margin-top:.2rem;width:18px;height:18px"><span>I am authorized to approve this exact source PDF for the selected brokerage. I understand this records private source approval only and does not release a workflow.</span></label><div class="hof-iabs-actions"><button class="btn-secondary" type="button" id="platformSourceUploadButton">Save private source</button></div><div id="platformSourceStatus" class="hof-iabs-status"></div>`;
+    panel.appendChild(card);
+    card.querySelector('#platformSourceUploadButton').addEventListener('click', upload);
+    loadBrokerages().then(brokerages => {
+      const select = card.querySelector('#platformSourceBrokerage');
+      select.innerHTML = brokerages.length ? brokerages.map(item => `<option value="${escape(item.id)}">${escape(item.name)}${item.slug ? ` (${escape(item.slug)})` : ''}</option>`).join('') : '<option value="">No active brokerages</option>';
+    }).catch(error => { card.querySelector('#platformSourceStatus').className = 'hof-iabs-status error'; card.querySelector('#platformSourceStatus').textContent = error.message; });
+  }
+  async function upload() {
+    const card = document.getElementById('platformFormSourceCard');
+    const status = card?.querySelector('#platformSourceStatus');
+    const file = card?.querySelector('#platformSourceFile')?.files?.[0];
+    const brokerageId = card?.querySelector('#platformSourceBrokerage')?.value;
+    const formCode = card?.querySelector('#platformSourceForm')?.value;
+    const sourceRevision = card?.querySelector('#platformSourceRevision')?.value?.trim();
+    const authorizationAttested = card?.querySelector('#platformSourceAttestation')?.checked === true;
+    if (!file || !/\.pdf$/i.test(file.name || '') || file.type && file.type !== 'application/pdf') return alert('Choose an authorized PDF source.');
+    if (file.size > BUCKET_LIMIT) return alert('Source PDFs must be 10 MB or smaller.');
+    if (!brokerageId || !sourceRevision || !authorizationAttested) return alert('Choose a brokerage, enter the printed revision, and confirm authorization.');
+    try {
+      status.className = 'hof-iabs-status'; status.textContent = 'Fingerprinting and saving the private source…';
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      const token = root.hofAuth?.session?.access_token;
+      const response = await fetch('/api/admin-dashboard', { method:'POST', headers:{ 'Content-Type':'application/json', Authorization:`Bearer ${token}` }, body:JSON.stringify({ action:'upload_platform_form_source', brokerageId, formCode, sourceRevision, originalFilename:file.name, sourceSha256:await sourceFingerprint(file), contentBase64:toBase64(bytes), authorizationAttested }) });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || 'Could not save the private source.');
+      status.className = 'hof-iabs-status ready'; status.textContent = `${payload.source.formCode} ${payload.source.sourceRevision} saved privately. Workflow activation remains locked.`;
+      card.querySelector('#platformSourceFile').value = ''; card.querySelector('#platformSourceAttestation').checked = false;
+    } catch (error) { status.className = 'hof-iabs-status error'; status.textContent = error.message || 'Could not save the private source.'; }
+  }
+  const priorDashboard = root.renderAccountDashboard;
+  root.renderAccountDashboard = function renderAccountDashboardWithPlatformSourceIntake() { if (typeof priorDashboard === 'function') priorDashboard.apply(this, arguments); renderPlatformSourceIntake(); };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', renderPlatformSourceIntake, { once:true }); else renderPlatformSourceIntake();
 })();
 </script>
 <style id="hof-private-form-drafts-v1">
