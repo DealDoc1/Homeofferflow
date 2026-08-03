@@ -2,7 +2,7 @@
 
 ## Automated verification
 
-The current branch passes all 18 automated tests covering:
+The current branch passes all 374 automated tests covering:
 
 - the five required calibration scenario identifiers;
 - feedback API validation and scenario tracking;
@@ -10,9 +10,12 @@ The current branch passes all 18 automated tests covering:
 - the expert calibration worksheet;
 - calibration tracker reconciliation and production safeguards.
 - browser-side enforcement of the product-approved educational disclaimer.
+- structured browser-side capture of calibration evidence dimensions and
+  required reviewer disposition.
 
-The current production release is `5279aec` (2026-08-03). It hardens the
-browser renderer without changing AI scoring or wording.
+The current production release is `d9eb70b` (2026-08-03), deployed as
+`dpl_9ouocpBidjaTrC7feae4UHHFEJzs`. It adds structured calibration evidence
+capture without changing AI scoring or wording.
 
 ## Human evidence status
 

@@ -1,13 +1,13 @@
--- Record the staged AI calibration evidence safeguard without claiming that
--- the current production deployment already contains it.
+-- Record the production AI calibration evidence safeguard without claiming
+-- that human calibration reviews are complete.
 
 begin;
 
 update public.hof_roadmap_items
 set
-  current_release = 'AI calibration reviewer-role threshold hardening (staged 2026-07-31)',
-  known_issues = 'The staged dashboard counts only anonymized AI-review notes from agents, brokers, or brokerage administrators toward the five-scenario threshold. It has not been bundled into the next intentional Vercel production release. Human calibration review is still required.',
-  next_action = 'Bundle the staged safeguard into the next intentional production deployment, then collect and document five anonymized broker/agent calibration scenarios before changing scoring or wording.',
+  current_release = 'd9eb70b structured AI calibration review evidence (production 2026-08-03; dpl_9ouocpBidjaTrC7feae4UHHFEJzs)',
+  known_issues = 'The production feedback form now captures useful, misleading or unsafe, insufficient or missing, disclaimer clarity, overclaiming risk, and reviewer disposition for anonymized AI-review notes. Human calibration review is still required; no scoring or wording change is approved.',
+  next_action = 'Collect and document five anonymized broker/experienced-agent calibration scenarios using AI-CAL-01 through AI-CAL-05 before changing scoring or wording.',
   updated_at = now()
 where slug = 'ai-offer-competitiveness';
 
