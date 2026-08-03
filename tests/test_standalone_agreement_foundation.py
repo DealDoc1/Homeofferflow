@@ -298,4 +298,7 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
         self.assertIn("txr_authorization_attested_by=not.is.null", backend)
         self.assertIn("_active_brokerage_member", backend)
         self.assertIn("_render_txr_1507_draft_preview", backend)
+        self.assertIn("The approved {agreement.get('form_code') or 'TXR'} source could not be loaded.", backend)
+        self.assertIn('standalone-agreement-private-draft-preview.pdf', backend)
+        self.assertNotIn('TXR-1507-private-draft-preview.pdf', backend)
         self.assertIn("Cache-Control", backend)

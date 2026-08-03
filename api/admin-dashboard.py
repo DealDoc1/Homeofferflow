@@ -1629,7 +1629,9 @@ async def _render_representation_draft_preview(user, agreement_id):
             headers=_headers(),
         )
     if response.status_code != 200 or not response.content.startswith(b"%PDF"):
-        raise RuntimeError("The approved TXR-1507 source could not be loaded.")
+        raise RuntimeError(
+            f"The approved {agreement.get('form_code') or 'TXR'} source could not be loaded."
+        )
     brokerage_rows = await _get(
         "hof_brokerages?"
         f"id=eq.{urllib.parse.quote(brokerage_id)}"
@@ -1690,7 +1692,7 @@ class handler(BaseHTTPRequestHandler):
             preview_agreement = str((query.get("preview_agreement") or [""])[0]).strip()
             if preview_agreement:
                 pdf = asyncio.run(_render_representation_draft_preview(user, preview_agreement))
-                _pdf_response(self, pdf, "TXR-1507-private-draft-preview.pdf")
+                _pdf_response(self, pdf, "standalone-agreement-private-draft-preview.pdf")
                 return
             scope = str((query.get("scope") or [""])[0]).strip().lower()
             if scope == "brokerage_form_sources":
