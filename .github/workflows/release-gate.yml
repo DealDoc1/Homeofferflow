@@ -1,0 +1,70 @@
+name: HomeOfferFlow production release gate
+
+on:
+  workflow_dispatch:
+    inputs:
+      evidence_file:
+        description: >-
+          Completed docs/release-evidence Markdown file. Required when the
+          selected commit changes a packet, legal form, PDF, or mapping route.
+        required: false
+        type: string
+      base_ref:
+        description: Git reference to compare with the release commit
+        required: true
+        default: origin/main
+        type: string
+      expected_deploy_author_email:
+        description: Commit author email permitted for the current Vercel team
+        required: true
+        default: andrewchri@gmail.com
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  release-gate:
+    name: Verify release evidence and regression suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out exact release commit
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: Install pinned test dependencies
+        run: python -m pip install --requirement requirements.txt
+
+      - name: Run full regression suite
+        env:
+          PYTHONPATH: .
+        run: python -m unittest discover -s tests -q
+
+      - name: Check patch whitespace
+        run: git diff --check "${{ inputs.base_ref }}" "${{ github.sha }}"
+
+      - name: Run fail-closed release preflight
+        env:
+          PYTHONPATH: .
+        run: |
+          args=(
+            --base "${{ inputs.base_ref }}"
+            --expected-deploy-author-email "${{ inputs.expected_deploy_author_email }}"
+          )
+          if [[ -n "${{ inputs.evidence_file }}" ]]; then
+            args+=(--evidence-file "${{ inputs.evidence_file }}")
+          fi
+          python scripts/release_preflight.py "${args[@]}"
+
+      - name: State deployment boundary
+        run: |
+          echo "Release gate passed. No Vercel deployment was started by this workflow."
+          echo "Use docs/PRODUCTION_RELEASE_CHECKLIST.md for the single intentional production deploy."

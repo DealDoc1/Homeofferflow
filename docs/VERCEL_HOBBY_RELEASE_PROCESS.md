@@ -55,6 +55,13 @@ For each completed batch:
 
 5. Verify `https://www.homeofferflow.com/` and the affected workflow.
 
+The repository also provides a manual GitHub Actions **production release gate**
+(`.github/workflows/release-gate.yml`). Run it from the exact commit intended
+for release, supplying the completed evidence path when the change touches a
+packet or legal form. The workflow runs the full regression suite and the
+fail-closed preflight, but intentionally does **not** deploy to Vercel. After
+it passes, follow the single explicit deployment step above.
+
 This keeps the release cadence deliberate and avoids separate automatic preview
 and production builds. It does not relax the legal-form source, signer-plan, or
 completed-PDF visual-QA gates.

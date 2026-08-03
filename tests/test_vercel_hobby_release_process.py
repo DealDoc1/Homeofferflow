@@ -29,6 +29,16 @@ class VercelHobbyReleaseProcessTests(unittest.TestCase):
         self.assertIn("exact SHA-256 fingerprint", checklist)
         self.assertIn("Source approval has not been mistaken for workflow activation", checklist)
 
+    def test_manual_release_gate_runs_preflight_without_deploying(self):
+        workflow = (ROOT / ".github" / "workflows" / "release-gate.yml").read_text()
+        self.assertIn("workflow_dispatch:", workflow)
+        self.assertIn("base_ref:", workflow)
+        self.assertIn('default: origin/main', workflow)
+        self.assertIn("python -m unittest discover -s tests -q", workflow)
+        self.assertIn("python scripts/release_preflight.py", workflow)
+        self.assertIn("--expected-deploy-author-email", workflow)
+        self.assertIn("No Vercel deployment was started", workflow)
+
 
 if __name__ == "__main__":
     unittest.main()
