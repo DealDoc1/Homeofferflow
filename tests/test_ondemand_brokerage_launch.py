@@ -516,6 +516,31 @@ class BrokerageAuthorizationTests(unittest.TestCase):
         self.assertEqual(membership_write[2]["json"]["role"], "agent")
         self.assertEqual(invite_write[2]["json"]["status"], "accepted")
 
+    def test_expired_invite_is_closed_without_connecting_the_agent(self):
+        actor = {"id": "33333333-3333-3333-3333-333333333333", "email": "agent@example.com"}
+
+        async def expired_invite(_path):
+            return [{
+                "id": "invite-expired",
+                "brokerage_id": "22222222-2222-2222-2222-222222222222",
+                "email": "agent@example.com",
+                "role": "agent",
+                "status": "pending",
+                "expires_at": "2020-01-15T12:00:00+00:00",
+            }]
+
+        BrokerageInviteClient.requests = []
+        with patch.object(admin, "_get", expired_invite), \
+             patch.object(admin.httpx, "AsyncClient", BrokerageInviteClient):
+            with self.assertRaisesRegex(ValueError, "invite has expired"):
+                asyncio.run(admin._accept_brokerage_invite(actor, {"invite_token": "a" * 32}))
+
+        self.assertEqual(len(BrokerageInviteClient.requests), 1)
+        request = BrokerageInviteClient.requests[0]
+        self.assertEqual(request[0], "patch")
+        self.assertIn("hof_brokerage_invites", request[1])
+        self.assertEqual(request[2]["json"], {"status": "expired"})
+
     def test_invite_endpoints_and_ui_keep_tokens_private_from_dashboard(self):
         source = ADMIN_PATH.read_text(encoding="utf-8")
         self.assertIn('data.get("action") == "create_brokerage_invite"', source)
