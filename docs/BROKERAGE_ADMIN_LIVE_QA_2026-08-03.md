@@ -7,6 +7,10 @@ brokerage administrator. It does not claim authenticated UI completion.
 
 Production URL: `https://www.homeofferflow.com/`
 
+Latest verified production commit: `5279aec`
+
+Latest Vercel deployment: `dpl_DxwyQcHQA6HdonrDpfgzrFXTT2Yq` (READY)
+
 ## Verified
 
 | Check | Expected | Result |
@@ -16,7 +20,7 @@ Production URL: `https://www.homeofferflow.com/`
 | `GET /api/admin-dashboard?scope=roadmap` without a session | `401` with a signed-in-session requirement | Pass |
 | `GET /api/feedback-alert` health route | `200` and `{\"ok\":true,\"route\":\"feedback-alert\"}` | Pass |
 | Production runtime errors | No grouped errors in the selected 24-hour window | Pass |
-| Local regression suite | All tests green | Pass — 363 tests |
+| Local regression suite | All tests green | Pass — 367 tests |
 
 The live brokerage membership check was completed without querying or
 publishing buyer-sensitive offer data. Organizational roster details remain

@@ -9,6 +9,10 @@ The current branch passes all 18 automated tests covering:
 - bounded offer-review behavior and dashboard copy;
 - the expert calibration worksheet;
 - calibration tracker reconciliation and production safeguards.
+- browser-side enforcement of the product-approved educational disclaimer.
+
+The current production release is `5279aec` (2026-08-03). It hardens the
+browser renderer without changing AI scoring or wording.
 
 ## Human evidence status
 
