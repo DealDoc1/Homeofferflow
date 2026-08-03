@@ -37,6 +37,15 @@ def _build_email(payload):
     feedback_id = _safe(feedback.get("id") or "")
     created_at = _safe(feedback.get("created_at") or datetime.now(timezone.utc).isoformat())
 
+    # Calibration evidence must be anonymized. The saved feedback record is
+    # still audit-addressable by the platform administrator, but the support
+    # alert should not forward account identity or browser/page context that a
+    # reviewer did not include in the calibration note itself.
+    if issue_type == "ai_review":
+        account_email = "redacted for calibration"
+        page_url = "redacted for calibration"
+        user_agent = "redacted for calibration"
+
     subject = f"HomeOfferFlow beta feedback: {issue_type}"
 
     text = f"""New HomeOfferFlow beta feedback
