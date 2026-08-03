@@ -11828,6 +11828,13 @@ function routeAfterMagicLinkIfNeeded() {
     } catch (error) {
       console.warn('Authoritative profile load failed:', error);
       root.hofAuth.profileReady = false;
+      root.hofAuth.profileLoadError = 'Your account profile could not be loaded.';
+      const brokeragePanel = document.getElementById('brokerageFoundationPanel');
+      if (brokeragePanel) {
+        brokeragePanel.className = 'platform-status err';
+        brokeragePanel.innerHTML = '<strong>Account workspace temporarily unavailable.</strong><br><span>We could not verify your account profile or brokerage access. Your saved offer data was not changed.</span><br><button type="button" class="brokerage-access-button" style="margin-top:.65rem" onclick="window.location.reload()">Retry account connection</button>';
+      }
+      root.updateAuthUI?.();
     }
   };
 
