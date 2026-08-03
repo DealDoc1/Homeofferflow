@@ -3205,9 +3205,13 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
           <div class="field">
             <label>Upload PDF attachments</label>
             <input type="file" id="uploadedDisclosureDocs" accept="application/pdf,.pdf" multiple onchange="handleUploadedDisclosureDocs(this.files)"/>
-            <small style="display:block; margin-top:0.35rem; color:var(--muted);">PDF only. Suggested max: 5 files, 15MB each. Examples: seller disclosure, survey, T-47/T-47.1, HOA docs, PID/MUD notices.</small>
+            <small style="display:block; margin-top:0.35rem; color:var(--muted);">PDF only. Up to 5 files, 15MB each. You will label and order them before the packet is generated. Examples: seller disclosure, survey, T-47/T-47.1, HOA docs, PID/MUD notices.</small>
           </div>
           <div id="uploadedDocsList" class="notice gold" style="display:none;"></div>
+          <label id="uploadedDisclosureAckRow" class="terms-check" style="display:none; margin-top:.75rem;">
+            <input type="checkbox" id="uploadedDisclosureAck"/>
+            <span>I reviewed the uploaded PDFs, labels, and packet order. I have authority to include these documents with this offer, and I understand HomeOfferFlow appends them without creating or interpreting the seller-side form.</span>
+          </label>
         </div>
       </div>
     </div>
@@ -6950,17 +6954,69 @@ function routeAfterMagicLinkIfNeeded() {
 
   window.hofUploadedDisclosureDocs = window.hofUploadedDisclosureDocs || [];
 
+  const uploadedDisclosureTypes = [
+    ['seller_disclosure', "Seller's Disclosure"],
+    ['survey', 'Survey / T-47'],
+    ['hoa_documents', 'HOA / POA documents'],
+    ['pid_mud_notice', 'PID / MUD notice'],
+    ['lead_based_paint', 'Lead-based paint disclosure'],
+    ['other', 'Other uploaded document']
+  ];
+
+  function moveUploadedDisclosure(index, direction) {
+    const docs = window.hofUploadedDisclosureDocs || [];
+    const target = index + direction;
+    if (target < 0 || target >= docs.length) return;
+    [docs[index], docs[target]] = [docs[target], docs[index]];
+    renderUploadedDocsList();
+    try { renderReview(); } catch (e) {}
+  }
+
+  function validateUploadedDisclosureDocs() {
+    const docs = window.hofUploadedDisclosureDocs || [];
+    if (!docs.length) return true;
+    const ack = document.getElementById('uploadedDisclosureAck');
+    if (!ack?.checked) {
+      alert('Review the uploaded PDF labels and order, then confirm that you have authority to include them.');
+      return false;
+    }
+    if (docs.some(doc => !uploadedDisclosureTypes.some(([code]) => code === doc.type))) {
+      alert('Choose a document type for every uploaded PDF before continuing.');
+      return false;
+    }
+    return true;
+  }
+
   function renderUploadedDocsList() {
     const box = document.getElementById('uploadedDocsList');
+    const ackRow = document.getElementById('uploadedDisclosureAckRow');
     const docs = window.hofUploadedDisclosureDocs || [];
     if (!box) return;
     if (!docs.length) {
       box.style.display = 'none';
       box.innerHTML = '';
+      if (ackRow) ackRow.style.display = 'none';
       return;
     }
     box.style.display = 'block';
-    box.innerHTML = '<strong>Uploaded docs to append:</strong><br>' + docs.map((d, i) => `${i + 1}. ${escapeHtml(d.name)} (${Math.round((d.size || 0) / 1024).toLocaleString()} KB)`).join('<br>');
+    if (ackRow) ackRow.style.display = 'flex';
+    box.innerHTML = '<strong>Packet order (first listed is appended first):</strong>' + docs.map((d, i) => `
+      <div class="uploaded-doc-row" data-uploaded-index="${i}" style="display:flex;gap:.45rem;align-items:center;flex-wrap:wrap;margin-top:.55rem;">
+        <span style="min-width:1.25rem;font-weight:800;">${i + 1}.</span>
+        <span style="flex:1;min-width:12rem;">${escapeHtml(d.name)} <small>(${Math.round((d.size || 0) / 1024).toLocaleString()} KB)</small></span>
+        <select class="uploaded-doc-type" aria-label="Document type for ${escapeHtml(d.name)}">${uploadedDisclosureTypes.map(([code, label]) => `<option value="${code}"${d.type === code ? ' selected' : ''}>${label}</option>`).join('')}</select>
+        <button type="button" class="btn-secondary uploaded-doc-up" ${i === 0 ? 'disabled' : ''}>↑</button>
+        <button type="button" class="btn-secondary uploaded-doc-down" ${i === docs.length - 1 ? 'disabled' : ''}>↓</button>
+      </div>`).join('');
+    box.querySelectorAll('.uploaded-doc-row').forEach(row => {
+      const index = Number(row.dataset.uploadedIndex);
+      row.querySelector('.uploaded-doc-type')?.addEventListener('change', event => {
+        docs[index].type = event.target.value;
+        try { renderReview(); } catch (e) {}
+      });
+      row.querySelector('.uploaded-doc-up')?.addEventListener('click', () => moveUploadedDisclosure(index, -1));
+      row.querySelector('.uploaded-doc-down')?.addEventListener('click', () => moveUploadedDisclosure(index, 1));
+    });
   }
 
   function readFileAsBase64(file) {
@@ -7000,7 +7056,7 @@ function routeAfterMagicLinkIfNeeded() {
       try {
         docs.push({
           name: file.name,
-          type: 'uploaded_disclosure',
+          type: 'other',
           size: file.size,
           mimeType: 'application/pdf',
           needsBuyerSignature: false,
@@ -7013,6 +7069,8 @@ function routeAfterMagicLinkIfNeeded() {
       }
     }
     window.hofUploadedDisclosureDocs = docs;
+    const ack = document.getElementById('uploadedDisclosureAck');
+    if (ack) ack.checked = false;
     state.data.uploadedDocNames = docs.map(d => d.name);
     renderUploadedDocsList();
     try { renderReview(); } catch (e) {}
@@ -7102,6 +7160,7 @@ function routeAfterMagicLinkIfNeeded() {
       try { collectAllData(); } catch (e) { try { collectData(); } catch (_) {} }
       if (!confirmControlledLaunchSupport(state.data)) return;
       if (!validateSellerTemporaryLeaseInputs(state.data)) return;
+      if (!validateUploadedDisclosureDocs()) return;
 
       const email = (
         document.getElementById('paymentEmail')?.value ||
@@ -7197,6 +7256,7 @@ function routeAfterMagicLinkIfNeeded() {
     collectAllData();
     if (!confirmControlledLaunchSupport(state.data)) return;
     if (!validateSellerTemporaryLeaseInputs(state.data)) return;
+    if (!validateUploadedDisclosureDocs()) return;
 
     const email =
       state.data.buyerEmail ||
@@ -13350,4 +13410,3 @@ function routeAfterMagicLinkIfNeeded() {
 </script>
 </body>
 </html>
-
