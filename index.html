@@ -2766,6 +2766,33 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
       </label>
     </div>
 
+    <div id="aiFeedbackStructuredFields" style="display:none;">
+      <div class="feedback-field">
+        <label for="aiFeedbackUseful">What was useful?</label>
+        <textarea id="aiFeedbackUseful" placeholder="Record the most useful accurate point, or write None."></textarea>
+      </div>
+      <div class="feedback-field">
+        <label for="aiFeedbackConcern">What was misleading or unsafe?</label>
+        <textarea id="aiFeedbackConcern" placeholder="Record any overconfident, misleading, or unsafe point, or write None."></textarea>
+      </div>
+      <div class="feedback-field">
+        <label for="aiFeedbackMissing">What was insufficient or missing?</label>
+        <textarea id="aiFeedbackMissing" placeholder="Record a missing factor or limitation, or write None."></textarea>
+      </div>
+      <div class="feedback-field">
+        <label for="aiFeedbackDisclaimer">Did the disclaimer remain clear?</label>
+        <select id="aiFeedbackDisclaimer"><option value="">Choose one…</option><option value="yes">Yes</option><option value="no">No</option></select>
+      </div>
+      <div class="feedback-field">
+        <label for="aiFeedbackOverclaiming">Did the output imply acceptance, valuation, legal advice, or broker direction?</label>
+        <select id="aiFeedbackOverclaiming"><option value="">Choose one…</option><option value="no">No</option><option value="yes">Yes</option></select>
+      </div>
+      <div class="feedback-field">
+        <label for="aiFeedbackDisposition">Reviewer disposition</label>
+        <select id="aiFeedbackDisposition"><option value="">Choose one…</option><option value="keep">Useful / keep</option><option value="revise_wording">Needs wording revision</option><option value="revise_scoring">Needs scoring revision</option><option value="do_not_use">Unsafe until revised</option></select>
+      </div>
+    </div>
+
     <div class="feedback-actions">
       <button class="btn-primary" id="submitFeedbackBtn" type="button" onclick="submitBetaFeedback()">Submit Feedback</button>
       <button class="btn-secondary" type="button" onclick="closeBetaFeedback()">Cancel</button>
@@ -4704,9 +4731,11 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
     const checkbox = document.getElementById('aiFeedbackAnonymized');
     const scenarioField = document.getElementById('aiFeedbackScenarioField');
     const scenario = document.getElementById('aiFeedbackScenario');
+    const structured = document.getElementById('aiFeedbackStructuredFields');
     const isCalibration = type?.value === 'ai_review';
     if (guard) guard.style.display = isCalibration ? 'block' : 'none';
     if (scenarioField) scenarioField.style.display = isCalibration ? 'block' : 'none';
+    if (structured) structured.style.display = isCalibration ? 'block' : 'none';
     if (!isCalibration && checkbox) checkbox.checked = false;
     if (!isCalibration && scenario) scenario.value = '';
   }
@@ -4726,6 +4755,14 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
     const message = document.getElementById('feedbackMessage')?.value?.trim() || '';
     const anonymizedCalibration = document.getElementById('aiFeedbackAnonymized')?.checked === true;
     const calibrationScenario = document.getElementById('aiFeedbackScenario')?.value || '';
+    const aiReviewFields = {
+      useful: document.getElementById('aiFeedbackUseful')?.value?.trim() || '',
+      concern: document.getElementById('aiFeedbackConcern')?.value?.trim() || '',
+      missing: document.getElementById('aiFeedbackMissing')?.value?.trim() || '',
+      disclaimer: document.getElementById('aiFeedbackDisclaimer')?.value || '',
+      overclaiming: document.getElementById('aiFeedbackOverclaiming')?.value || '',
+      disposition: document.getElementById('aiFeedbackDisposition')?.value || ''
+    };
     const btn = document.getElementById('submitFeedbackBtn');
 
     if (!message) {
@@ -4742,12 +4779,31 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
       return;
     }
 
+    if (issueType === 'ai_review') {
+      const missingStructured = Object.entries(aiReviewFields).filter(([, value]) => !value).map(([key]) => key);
+      if (missingStructured.length) {
+        setFeedbackStatus('Complete every calibration review field before submitting.', 'err');
+        return;
+      }
+    }
+
     if (!client || !user) {
       setFeedbackStatus('Please sign in before sending feedback.', 'err');
       return;
     }
 
     const feedbackToken = hofAuth?.session?.access_token || '';
+    const submittedMessage = issueType === 'ai_review'
+      ? [
+          message ? `Reviewer summary: ${message}` : '',
+          `Useful: ${aiReviewFields.useful}`,
+          `Misleading or unsafe: ${aiReviewFields.concern}`,
+          `Insufficient or missing: ${aiReviewFields.missing}`,
+          `Disclaimer remained clear: ${aiReviewFields.disclaimer}`,
+          `Implied acceptance, valuation, legal advice, or broker direction: ${aiReviewFields.overclaiming}`,
+          `Reviewer disposition: ${aiReviewFields.disposition}`
+        ].filter(Boolean).join('\n')
+      : message;
     const feedbackRole = hofAuth?.role || state?.data?.userType || 'agent';
 
     try {
@@ -4764,7 +4820,7 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
         },
         body: JSON.stringify({
           issueType,
-          message,
+          message: submittedMessage,
           role: feedbackRole,
           pageUrl: window.location.href,
           userAgent: navigator.userAgent || '',
@@ -4787,7 +4843,7 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
             role: feedbackRole,
             issueType,
             calibrationScenario,
-            message,
+            message: submittedMessage,
             pageUrl: window.location.href,
             userAgent: navigator.userAgent || ''
           })
@@ -4803,6 +4859,8 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
       try { renderBetaOnboardingChecklist(); } catch (e) {}
       setFeedbackStatus(alertOk ? 'Thanks — feedback received and alert sent.' : 'Thanks — feedback received. Email alert did not send, but it is saved in Supabase.', 'ok');
       document.getElementById('feedbackMessage').value = '';
+      ['aiFeedbackUseful','aiFeedbackConcern','aiFeedbackMissing'].forEach(id => { const field = document.getElementById(id); if (field) field.value = ''; });
+      ['aiFeedbackDisclaimer','aiFeedbackOverclaiming','aiFeedbackDisposition','aiFeedbackScenario'].forEach(id => { const field = document.getElementById(id); if (field) field.value = ''; });
       setTimeout(closeBetaFeedback, alertOk ? 1200 : 2200);
     } catch (err) {
       console.error('Feedback submit failed:', err);

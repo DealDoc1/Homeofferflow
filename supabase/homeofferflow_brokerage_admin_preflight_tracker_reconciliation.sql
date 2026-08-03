@@ -1,4 +1,4 @@
--- Record the verified brokerage-admin precondition without overclaiming
+-- Record the verified active brokerage-admin account precondition without overclaiming
 -- authenticated UI QA or packet/signature propagation.
 -- This is generic product-state language: no named broker is a product gate.
 
