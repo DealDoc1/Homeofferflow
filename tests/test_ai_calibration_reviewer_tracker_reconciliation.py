@@ -11,11 +11,11 @@ SQL = (
 
 
 class AiCalibrationReviewerTrackerReconciliationTests(unittest.TestCase):
-    def test_tracker_marks_reviewer_role_safeguard_as_staged(self):
+    def test_tracker_preserves_structured_review_evidence_gate(self):
         self.assertIn("where slug = 'ai-offer-competitiveness'", SQL)
-        self.assertIn("reviewer-role threshold hardening (staged", SQL)
-        self.assertIn("has not been bundled into the next intentional Vercel production release", SQL)
-        self.assertIn("five anonymized broker/agent calibration scenarios", SQL)
+        self.assertIn("d9eb70b structured AI calibration review evidence", SQL)
+        self.assertIn("Human calibration review is still required", SQL)
+        self.assertIn("five anonymized broker/experienced-agent calibration scenarios", SQL)
 
 
 if __name__ == "__main__":

@@ -19,7 +19,7 @@ class TxrDraftFoundationTrackerReconciliationTests(unittest.TestCase):
             self.assertIn(slug, MIGRATION)
         self.assertIn("status = 'blocked'", MIGRATION)
         self.assertIn("environment = 'source_gate'", MIGRATION)
-        self.assertIn("current_release = 'Private draft foundation'", MIGRATION)
+        self.assertIn("current_release = 'Unsigned local source/render QA verified 2026-08-03'", MIGRATION)
         self.assertIn("cannot expose, generate, send, or sign", MIGRATION)
 
 

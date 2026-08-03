@@ -19,7 +19,7 @@ visual-QA gates required for a packet or legal-form release.
 - [ ] Run the full automated suite:
 
   ```bash
-  PYTHONPATH=/private/tmp/hof_httpx_only \
+  PYTHONPATH=/private/tmp/homeofferflow_test_deps:/Users/andrewchristian/.cache/codex-runtimes/codex-primary-runtime/dependencies/python \
   /Users/andrewchristian/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/bin/python3 \
   -m unittest discover -s tests -p 'test_*.py'
   ```
@@ -27,7 +27,7 @@ visual-QA gates required for a packet or legal-form release.
 - [ ] Run the release preflight from the exact commit intended for production:
 
   ```bash
-  PYTHONPATH=/private/tmp/hof_httpx_only \
+  PYTHONPATH=/private/tmp/homeofferflow_test_deps:/Users/andrewchristian/.cache/codex-runtimes/codex-primary-runtime/dependencies/python \
   /Users/andrewchristian/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/bin/python3 \
   scripts/release_preflight.py --base origin/main \
   --expected-deploy-author-email andrewchri@gmail.com
