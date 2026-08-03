@@ -9,7 +9,7 @@ update public.hof_roadmap_items
 set
   status = 'blocked',
   environment = 'source_gate',
-  qa_status = 'not_tested',
+  qa_status = 'partial',
   current_release = 'Unsigned local source/render QA verified 2026-08-03',
   known_issues = 'The privately supplied source identity and unsigned draft render passed locally, but no authorized private source record is available in the vault. The draft foundation cannot expose, generate, send, or sign this Texas REALTORS form until an authorized source-owner administrator uploads and attests to the current authorized source.',
   next_action = case slug
