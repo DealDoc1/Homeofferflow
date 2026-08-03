@@ -15,7 +15,7 @@ through source and QA gates.
 
 - `tests/test_agent_launch_scope.py` verifies the request action, category, and
   privacy guidance.
-- Full repository suite: 303 passed.
+- Full repository suite: 363 passed in the current verified main baseline.
 - No legal-form source, field mapping, signer plan, or production PDF workflow
   was changed.
 
