@@ -13,6 +13,11 @@ Example (run locally, never commit the token):
     --brokerage-slug ondemand --dry-run
 
 Remove ``--dry-run`` only after reviewing the inventory and the destination.
+
+For a local inventory without network access or a token:
+
+  python scripts/upload_private_txr_sources.py \
+    '/private/path/HomeOfferFlow' --inventory-only
 """
 
 from __future__ import annotations
@@ -28,7 +33,10 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
-from scripts.verify_private_txr_sources import EXPECTED, verify
+try:
+    from scripts.verify_private_txr_sources import EXPECTED, verify
+except ModuleNotFoundError:  # direct `python scripts/...` execution from repo root
+    from verify_private_txr_sources import EXPECTED, verify
 
 
 def _request(base_url: str, token: str, method: str, path: str, payload=None):
@@ -79,6 +87,23 @@ def _payload(path: Path, form_code: str, revision: str, brokerage_id: str, attes
     }
 
 
+def _inventory(directory: Path):
+    """Return the verified local source plan without contacting the API."""
+    results = verify(directory)
+    if not all(item["ok"] for item in results):
+        return None, results
+    plan = []
+    for form_code, expected in EXPECTED.items():
+        path = directory / expected["filename"]
+        plan.append({
+            "formCode": form_code,
+            "revision": expected["revision"],
+            "filename": path.name,
+            "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+        })
+    return plan, results
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("directory", type=Path, help="Private directory containing the four TXR PDFs")
@@ -86,16 +111,22 @@ def main(argv=None):
     parser.add_argument("--access-token", default=os.environ.get("HOF_ACCESS_TOKEN"), help="Supabase access token (or HOF_ACCESS_TOKEN)")
     parser.add_argument("--brokerage-id")
     parser.add_argument("--brokerage-slug")
-    parser.add_argument("--dry-run", action="store_true", help="Verify and print the upload plan without sending PDFs")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--dry-run", action="store_true", help="Verify the destination and print the upload plan without sending PDFs")
+    mode.add_argument("--inventory-only", action="store_true", help="Verify local PDFs and print their upload plan without a token or network request")
     args = parser.parse_args(argv)
+    directory = args.directory.expanduser().resolve()
+    plan, results = _inventory(directory)
+    if plan is None:
+        print(json.dumps({"all_ok": False, "sources": results}, indent=2), file=sys.stderr)
+        return 2
+
+    if args.inventory_only:
+        print(json.dumps({"ok": True, "inventoryOnly": True, "sources": plan}, indent=2))
+        return 0
 
     if not args.access_token:
         parser.error("An existing Supabase access token is required via --access-token or HOF_ACCESS_TOKEN.")
-    directory = args.directory.expanduser().resolve()
-    results = verify(directory)
-    if not all(item["ok"] for item in results):
-        print(json.dumps({"all_ok": False, "sources": results}, indent=2), file=sys.stderr)
-        return 2
 
     status, brokerage_payload = _request(
         args.base_url, args.access_token, "GET", "/api/admin-dashboard?scope=platform_source_brokerages"
@@ -111,11 +142,11 @@ def main(argv=None):
         print(str(exc), file=sys.stderr)
         return 4
 
-    plan = []
-    for form_code, expected in EXPECTED.items():
+    for item in plan:
+        form_code = item["formCode"]
+        expected = EXPECTED[form_code]
         path = directory / expected["filename"]
         payload = _payload(path, form_code, expected["revision"], brokerage["id"], True)
-        plan.append({"formCode": form_code, "revision": expected["revision"], "filename": path.name, "sha256": payload["sourceSha256"]})
         if not args.dry_run:
             upload_status, response = _request(
                 args.base_url, args.access_token, "POST", "/api/admin-dashboard", {
