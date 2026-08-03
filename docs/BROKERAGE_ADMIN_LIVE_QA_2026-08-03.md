@@ -16,7 +16,7 @@ Production URL: `https://www.homeofferflow.com/`
 | `GET /api/admin-dashboard?scope=roadmap` without a session | `401` with a signed-in-session requirement | Pass |
 | `GET /api/feedback-alert` health route | `200` and `{\"ok\":true,\"route\":\"feedback-alert\"}` | Pass |
 | Production runtime errors | No grouped errors in the selected 24-hour window | Pass |
-| Local regression suite | All tests green | Pass — 352 tests |
+| Local regression suite | All tests green | Pass — 360 tests |
 
 ## Not yet verified
 
@@ -32,3 +32,4 @@ must be completed before the brokerage workspace tracker is marked passed:
 
 No source form was uploaded, no Texas REALTORS® authorization was inferred,
 and no restricted workflow was activated during this check.
+
