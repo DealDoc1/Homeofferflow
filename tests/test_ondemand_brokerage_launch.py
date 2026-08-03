@@ -229,6 +229,32 @@ class OnDemandCheckoutTests(unittest.TestCase):
         checkout.AGENT_MONTHLY_PRICE_ID = "price_existing_agent_monthly"
         StripeClient.last_request = None
 
+    def test_public_ondemand_launch_metadata_exposes_only_safe_trial_contract(self):
+        request = checkout.handler.__new__(checkout.handler)
+        request.path = "/api/create-subscription-checkout?launch=ondemand"
+        captured = {}
+        request._json = lambda code, data: captured.update(code=code, data=data)
+        request._get_brokerage = lambda _slug: {
+            "id": "brokerage-1",
+            "name": "OnDemand Realty",
+            "dba_name": "OnDemand Realty",
+            "slug": "ondemand",
+            "logo_url": None,
+            "brand_color": "#2563eb",
+            "website_url": None,
+            "plan_name": "OnDemand Agent Launch",
+            "internal_notes": "must not be exposed",
+        }
+
+        request.do_GET()
+
+        self.assertEqual(captured["code"], 200)
+        self.assertEqual(captured["data"]["launch"], "ondemand")
+        self.assertEqual(captured["data"]["trialDays"], 60)
+        self.assertEqual(captured["data"]["monthlyPrice"], 29)
+        self.assertEqual(captured["data"]["brokerage"]["name"], "OnDemand Realty")
+        self.assertNotIn("internal_notes", captured["data"]["brokerage"])
+
     def test_ondemand_checkout_uses_native_card_required_trial_and_existing_price(self):
         body = json.dumps({"launch": "ondemand", "plan": "investor", "billing": "annual"}).encode()
         request = checkout.handler.__new__(checkout.handler)
@@ -858,3 +884,4 @@ class OnDemandLaunchPageTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
