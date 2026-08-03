@@ -20,7 +20,7 @@ Latest Vercel deployment: `dpl_DxwyQcHQA6HdonrDpfgzrFXTT2Yq` (READY)
 | `GET /api/admin-dashboard?scope=roadmap` without a session | `401` with a signed-in-session requirement | Pass |
 | `GET /api/feedback-alert` health route | `200` and `{\"ok\":true,\"route\":\"feedback-alert\"}` | Pass |
 | Production runtime errors | No grouped errors in the selected 24-hour window | Pass |
-| Local regression suite | All tests green | Pass — 367 tests |
+| Local regression suite | All tests green | Pass — 368 tests (including brokerage invite acceptance coverage) |
 
 The live brokerage membership check was completed without querying or
 publishing buyer-sensitive offer data. Organizational roster details remain
