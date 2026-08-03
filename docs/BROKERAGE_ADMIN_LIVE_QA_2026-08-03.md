@@ -7,9 +7,9 @@ brokerage administrator. It does not claim authenticated UI completion.
 
 Production URL: `https://www.homeofferflow.com/`
 
-Latest verified production commit: `5279aec`
+Latest verified production commit: `0f9e6a3`
 
-Latest Vercel deployment: `dpl_DxwyQcHQA6HdonrDpfgzrFXTT2Yq` (READY)
+Latest Vercel deployment: `dpl_7qtoizrohNaxfwp2gJv5t98rmsQC` (READY)
 
 ## Verified
 
@@ -20,7 +20,8 @@ Latest Vercel deployment: `dpl_DxwyQcHQA6HdonrDpfgzrFXTT2Yq` (READY)
 | `GET /api/admin-dashboard?scope=roadmap` without a session | `401` with a signed-in-session requirement | Pass |
 | `GET /api/feedback-alert` health route | `200` and `{\"ok\":true,\"route\":\"feedback-alert\"}` | Pass |
 | Production runtime errors | No grouped errors in the selected 24-hour window | Pass |
-| Local regression suite | All tests green | Pass — 370 tests (including brokerage invite acceptance, expiry coverage, and the live-QA runbook guard) |
+| Profile-load failure handling | Privacy-safe retry state replaces indefinite brokerage loading | Pass — verified in `index.html` and focused regression test |
+| Local regression suite | All tests green | Pass — 371 tests (including brokerage invite acceptance, expiry coverage, live-QA runbook, and profile-load failure coverage) |
 
 The live brokerage membership check was completed without querying or
 publishing buyer-sensitive offer data. Organizational roster details remain
