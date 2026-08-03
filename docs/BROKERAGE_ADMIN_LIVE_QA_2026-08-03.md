@@ -18,10 +18,10 @@ Latest Vercel deployment: `dpl_9ouocpBidjaTrC7feae4UHHFEJzs` (READY)
 | Public OnDemand launch page | Loads and describes the 60-day trial, renewal price, and current launch scope | Pass |
 | `GET /api/admin-dashboard?scope=brokerage` without a session | `401` with a signed-in-session requirement | Pass |
 | `GET /api/admin-dashboard?scope=roadmap` without a session | `401` with a signed-in-session requirement | Pass |
-| `GET /api/feedback-alert` health route | `200` and `{\"ok\":true,\"route\":\"feedback-alert\"}` | Pass |
+| `GET /api/feedback-alert` health route | `200` and `{"ok":true,"route":"feedback-alert"}` | Pass |
 | Production runtime errors | No grouped errors in the selected 24-hour window | Pass |
 | Profile-load failure handling | Privacy-safe retry state replaces indefinite brokerage loading | Pass — verified in `index.html` and focused regression test |
-| Local regression suite | All tests green | Pass — 371 tests (including brokerage invite acceptance, expiry coverage, live-QA runbook, and profile-load failure coverage) |
+| Local regression suite | All tests green | Pass — 383 tests (including brokerage invite acceptance, expiry coverage, live-QA runbook, profile-load failure coverage, release-gate checks, and AI-calibration record validation) |
 
 The live brokerage membership check was completed without querying or
 publishing buyer-sensitive offer data. Organizational roster details remain
