@@ -21,7 +21,7 @@ rows directly, or activates a workflow.
 ## Verification
 
 - Dedicated uploader tests: 2 passed.
-- Full repository suite: 376 tests passed.
+- Full repository suite: 383 tests passed on the current branch.
 - The command remains dry-run-first; restricted forms remain disabled until
   source-owner approval, signer-plan review, rendered-PDF QA, completed-signature
   QA, and release-authority approval are recorded.
