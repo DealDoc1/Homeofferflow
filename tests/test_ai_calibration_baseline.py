@@ -21,8 +21,14 @@ class AiCalibrationBaselineTests(unittest.TestCase):
         )
         for scenario in report["scenarios"].values():
             self.assertIn("review_question", scenario)
+            self.assertIsInstance(scenario["review_flags"], list)
             self.assertIn("technical_baseline", scenario)
             self.assertIn("disclaimer", scenario["technical_baseline"])
+
+    def test_baseline_surfaces_calibration_watch_flags_without_changing_scoring(self):
+        report = json.loads(BASELINE.read_text(encoding="utf-8"))
+        self.assertIn("summary_market_mode_conflict", report["scenarios"]["AI-CAL-02"]["review_flags"])
+        self.assertIn("seller_advantage_score_low", report["scenarios"]["AI-CAL-01"]["review_flags"])
 
 
 if __name__ == "__main__":
