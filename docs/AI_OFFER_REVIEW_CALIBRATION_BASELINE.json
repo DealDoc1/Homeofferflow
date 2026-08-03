@@ -1,0 +1,213 @@
+{
+  "version": "2026-08-03",
+  "purpose": "Anonymized deterministic baseline for independent reviewer comparison.",
+  "calibration_evidence": false,
+  "release_gate": "Five completed independent expert reviews are still required before scoring or wording changes.",
+  "source": "api/ai-offer-review.py::_rules_fallback",
+  "scenarios": {
+    "AI-CAL-01": {
+      "id": "AI-CAL-01",
+      "review_question": "Does the output reflect strong seller leverage without claiming the offer will be accepted?",
+      "technical_baseline": {
+        "score": 49,
+        "summary": "Built-in competitiveness review completed. Market leverage appears strong seller advantage.",
+        "risks": [
+          "Closing date is missing."
+        ],
+        "strengths": [
+          "Offer price is at or above list price.",
+          "Earnest money is around or above a common 1% Texas starting point.",
+          "Short option period can improve seller confidence.",
+          "Option fee is present and appears within a typical starter range.",
+          "Conventional financing is generally cleaner than FHA/VA/USDA if pre-approval is strong.",
+          "No sale-of-other-property contingency keeps the offer cleaner for the seller."
+        ],
+        "marketContext": [
+          "Days on market: 2",
+          "Listing language/context suggests stronger seller leverage.",
+          "Offer is approximately 100.0% of list price.",
+          "Financed offer strength depends on pre-approval quality, appraisal posture, and closing timeline."
+        ],
+        "suggestions": [
+          "In a seller-advantaged situation, keep terms clean and verify proof of funds/pre-approval strength."
+        ],
+        "marketMode": "strong seller advantage",
+        "components": {
+          "contractQuality": 88,
+          "competitiveness": 49,
+          "closingCertainty": 86,
+          "buyerProtection": 82,
+          "marketFit": 5
+        },
+        "disclaimer": "This is a software-generated educational competitiveness review, not legal advice, broker advice, a valuation opinion, or a guarantee of acceptance.",
+        "source": "rules_fallback_v2_seller_favorability_calibrated",
+        "propertyContext": null
+      }
+    },
+    "AI-CAL-02": {
+      "id": "AI-CAL-02",
+      "review_question": "Does the output distinguish stale-listing leverage without inventing property facts?",
+      "technical_baseline": {
+        "score": 100,
+        "summary": "Entered terms read seller-favorable. Market data is still needed to judge how aggressive this is for the specific property.",
+        "risks": [
+          "Seller concessions reduce seller net proceeds.",
+          "Closing date is missing."
+        ],
+        "strengths": [
+          "Earnest money is around or above a common 1% Texas starting point.",
+          "Option period is within a common Texas starter range.",
+          "Option fee is present and appears within a typical starter range.",
+          "Conventional financing is generally cleaner than FHA/VA/USDA if pre-approval is strong.",
+          "No sale-of-other-property contingency keeps the offer cleaner for the seller.",
+          "Buyer paying the owner title policy is seller-favorable."
+        ],
+        "marketContext": [
+          "Days on market: 120",
+          "Price reductions identified: 3",
+          "Listing language/context suggests seller motivation.",
+          "Offer is approximately 97.0% of list price.",
+          "Financed offer strength depends on pre-approval quality, appraisal posture, and closing timeline."
+        ],
+        "suggestions": [
+          "Reduce or remove seller concessions if competitiveness matters more than cash-to-close relief.",
+          "This reads seller-favorable from the entered terms. Verify live market context before relying on the score.",
+          "Buyer leverage may support more negotiation if DOM/reductions/motivation evidence is reliable."
+        ],
+        "marketMode": "strong buyer advantage",
+        "components": {
+          "contractQuality": 86,
+          "competitiveness": 100,
+          "closingCertainty": 82,
+          "buyerProtection": 88,
+          "marketFit": 100
+        },
+        "disclaimer": "This is a software-generated educational competitiveness review, not legal advice, broker advice, a valuation opinion, or a guarantee of acceptance.",
+        "source": "rules_fallback_v2_seller_favorability_calibrated",
+        "propertyContext": null
+      }
+    },
+    "AI-CAL-03": {
+      "id": "AI-CAL-03",
+      "review_question": "Does the output identify each material seller-facing risk and explain tradeoffs rather than directing a term change?",
+      "technical_baseline": {
+        "score": 35,
+        "summary": "Built-in competitiveness review completed. Market leverage appears balanced/unknown.",
+        "risks": [
+          "Offer price is materially below list price.",
+          "Option period is a little longer than a seller-favored posture.",
+          "Sale-of-other-property contingency can materially reduce seller confidence.",
+          "Seller concessions reduce seller net proceeds.",
+          "Closing date is missing."
+        ],
+        "strengths": [
+          "Earnest money is present, though below a strong seller-favorable level.",
+          "Option fee is present and appears within a typical starter range.",
+          "Conventional financing is generally cleaner than FHA/VA/USDA if pre-approval is strong.",
+          "Buyer paying the owner title policy is seller-favorable.",
+          "Buyer-paid title amendment cost reduces seller expense.",
+          "Survey election appears cleaner for seller expense/timing."
+        ],
+        "marketContext": [
+          "Offer is approximately 94.0% of list price.",
+          "Financed offer strength depends on pre-approval quality, appraisal posture, and closing timeline."
+        ],
+        "suggestions": [
+          "Remove or tighten the sale contingency if possible.",
+          "Reduce or remove seller concessions if competitiveness matters more than cash-to-close relief.",
+          "Verify DOM, price changes, listing status, and seller motivation to make the score more market-specific."
+        ],
+        "marketMode": "balanced/unknown",
+        "components": {
+          "contractQuality": 79,
+          "competitiveness": 35,
+          "closingCertainty": 52,
+          "buyerProtection": 88,
+          "marketFit": 60
+        },
+        "disclaimer": "This is a software-generated educational competitiveness review, not legal advice, broker advice, a valuation opinion, or a guarantee of acceptance.",
+        "source": "rules_fallback_v2_seller_favorability_calibrated",
+        "propertyContext": null
+      }
+    },
+    "AI-CAL-04": {
+      "id": "AI-CAL-04",
+      "review_question": "Does the output describe financing and appraisal timing without treating the financing type as inherently unacceptable?",
+      "technical_baseline": {
+        "score": 85,
+        "summary": "Entered terms read seller-favorable. Market data is still needed to judge how aggressive this is for the specific property.",
+        "risks": [
+          "Government-backed financing may add appraisal or property-condition sensitivity.",
+          "Seller concessions reduce seller net proceeds.",
+          "Partial appraisal protection can be less seller-friendly than a waiver.",
+          "Closing date is missing."
+        ],
+        "strengths": [
+          "Offer price is at or above list price.",
+          "Earnest money is around or above a common 1% Texas starting point.",
+          "Option period is within a common Texas starter range.",
+          "Option fee is present and appears within a typical starter range.",
+          "No sale-of-other-property contingency keeps the offer cleaner for the seller.",
+          "Buyer paying the owner title policy is seller-favorable."
+        ],
+        "marketContext": [
+          "Offer is approximately 100.0% of list price."
+        ],
+        "suggestions": [
+          "Reduce or remove seller concessions if competitiveness matters more than cash-to-close relief.",
+          "This reads seller-favorable from the entered terms. Verify live market context before relying on the score.",
+          "Verify DOM, price changes, listing status, and seller motivation to make the score more market-specific."
+        ],
+        "marketMode": "balanced/unknown",
+        "components": {
+          "contractQuality": 82,
+          "competitiveness": 85,
+          "closingCertainty": 74,
+          "buyerProtection": 88,
+          "marketFit": 68
+        },
+        "disclaimer": "This is a software-generated educational competitiveness review, not legal advice, broker advice, a valuation opinion, or a guarantee of acceptance.",
+        "source": "rules_fallback_v2_seller_favorability_calibrated",
+        "propertyContext": null
+      }
+    },
+    "AI-CAL-05": {
+      "id": "AI-CAL-05",
+      "review_question": "Does the output focus on entered terms, disclose missing market context, and avoid legal direction?",
+      "technical_baseline": {
+        "score": 100,
+        "summary": "Entered terms read seller-favorable. Market data is still needed to judge how aggressive this is for the specific property.",
+        "risks": [
+          "Closing date is missing."
+        ],
+        "strengths": [
+          "Offer price is close to list price.",
+          "Earnest money is around or above a common 1% Texas starting point.",
+          "Short option period can improve seller confidence.",
+          "Option fee is present and appears within a typical starter range.",
+          "Cash financing is highly seller-friendly because it improves certainty and removes lender risk.",
+          "No sale-of-other-property contingency keeps the offer cleaner for the seller."
+        ],
+        "marketContext": [
+          "Offer is approximately 99.0% of list price."
+        ],
+        "suggestions": [
+          "This reads seller-favorable from the entered terms. Verify live market context before relying on the score.",
+          "Verify DOM, price changes, listing status, and seller motivation to make the score more market-specific."
+        ],
+        "marketMode": "balanced/unknown",
+        "components": {
+          "contractQuality": 88,
+          "competitiveness": 100,
+          "closingCertainty": 96,
+          "buyerProtection": 82,
+          "marketFit": 68
+        },
+        "disclaimer": "This is a software-generated educational competitiveness review, not legal advice, broker advice, a valuation opinion, or a guarantee of acceptance.",
+        "source": "rules_fallback_v2_seller_favorability_calibrated",
+        "propertyContext": null
+      }
+    }
+  }
+}
+
