@@ -23,7 +23,7 @@ rows directly, or activates a workflow.
 ## Verification
 
 - Dedicated uploader tests: 3 passed.
-- Full repository suite: 384 tests passed on the current branch.
+- Full repository suite: 385 tests passed on the current branch.
 - Local inventory verification passed for all four supplied source PDFs.
 - The command remains dry-run-first; restricted forms remain disabled until
   source-owner approval, signer-plan review, rendered-PDF QA, completed-signature
