@@ -21,7 +21,7 @@ Latest Vercel deployment: `dpl_9ouocpBidjaTrC7feae4UHHFEJzs` (READY)
 | `GET /api/feedback-alert` health route | `200` and `{\"ok\":true,\"route\":\"feedback-alert\"}` | Pass |
 | Production runtime errors | No grouped errors in the selected 24-hour window | Pass |
 | Profile-load failure handling | Privacy-safe retry state replaces indefinite brokerage loading | Pass — verified in `index.html` and focused regression test |
-| Local regression suite | All tests green | Pass — 385 tests (including brokerage invite acceptance, expiry coverage, live-QA runbook, profile-load failure coverage, release-gate checks, and AI-calibration record validation) |
+| Local regression suite | All tests green | Pass — 386 tests (including brokerage invite acceptance, expiry coverage, live-QA runbook, profile-load failure coverage, release-gate checks, and AI-calibration record validation) |
 
 The live brokerage membership check was completed without querying or
 publishing buyer-sensitive offer data. Organizational roster details remain
