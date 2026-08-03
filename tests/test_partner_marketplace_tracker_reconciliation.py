@@ -10,8 +10,10 @@ class PartnerMarketplaceTrackerReconciliationTests(unittest.TestCase):
     def test_tracker_reflects_paid_activation_and_the_remaining_commercial_decision(self):
         self.assertIn("where slug = 'partner-marketplace'", SQL)
         self.assertIn("agreement-confirmed placement activation", SQL)
-        self.assertIn("checkout starts the 90-day trial and auto-renewal", SQL)
-        self.assertIn("placement-live start and separate written renewal", SQL)
+        self.assertIn("Checkout is authoritative for commercial billing", SQL)
+        self.assertIn("launch charge is collected at checkout", SQL)
+        self.assertIn("renews monthly unless canceled", SQL)
+        self.assertIn("written agreement before activation", SQL)
 
 
 if __name__ == "__main__":

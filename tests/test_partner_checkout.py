@@ -39,6 +39,7 @@ class Response:
 
 class Client:
     requests = []
+    post_response = {"url": "https://checkout.stripe.test/session"}
 
     def __init__(self, *args, **kwargs):
         pass
@@ -56,6 +57,10 @@ class Client:
     def patch(self, url, **kwargs):
         Client.requests.append(("patch", url, kwargs))
         return Response(status_code=204, text="")
+
+    def post(self, url, **kwargs):
+        Client.requests.append(("post", url, kwargs))
+        return Response(payload=Client.post_response, text='{"url":"https://checkout.stripe.test/session"}')
 
 
 class PartnerCheckoutTests(unittest.TestCase):
@@ -89,6 +94,28 @@ class PartnerCheckoutTests(unittest.TestCase):
         self.assertIn("hof_partner_leads", calls[0][1])
         self.assertEqual(calls[0][2]["json"]["payment_status"], "paid")
         self.assertEqual(calls[0][2]["json"]["onboarding_status"], "ready")
+
+    def test_partner_checkout_collects_launch_charge_and_defers_recurring_plan_for_90_days(self):
+        Client.requests = []
+        with patch.object(partner_checkout, "_get_partner_lead_for_checkout", return_value={
+            "id": "e35eace9-2760-4b11-a01a-07ee65f2744e",
+            "preferred_model": "monthly_placement",
+            "contact_email": "partner@example.com",
+            "status": "approved",
+        }), patch.object(partner_checkout, "_mark_partner_checkout_started"), patch.object(partner_checkout.httpx, "Client", Client):
+            result = partner_checkout._create_partner_checkout(
+                "e35eace9-2760-4b11-a01a-07ee65f2744e",
+                {"host": "www.homeofferflow.com", "x-forwarded-proto": "https"},
+            )
+        self.assertEqual(result, "https://checkout.stripe.test/session")
+        post = next(request for request in Client.requests if request[0] == "post")
+        form = post[2]["data"]
+        self.assertEqual(form["mode"], "subscription")
+        self.assertEqual(form["line_items[0][price]"], "price_featured")
+        self.assertEqual(form["line_items[1][price]"], "price_featured_monthly")
+        self.assertEqual(form["subscription_data[trial_period_days]"], "90")
+        self.assertEqual(form["payment_method_collection"], "always")
+        self.assertNotIn("cancel_at", form)
 
 
 if __name__ == "__main__":

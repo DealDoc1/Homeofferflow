@@ -26,4 +26,4 @@ create index if not exists hof_partner_leads_payment_onboarding_idx
   on public.hof_partner_leads(payment_status, onboarding_status, created_at desc);
 
 comment on column public.hof_partner_leads.payment_status is
-  'Stripe Checkout state for the one-time 90-day founding-partner pilot.';
+  'Stripe Checkout state for the founding-partner launch charge and 90-day trial subscription.';

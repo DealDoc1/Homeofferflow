@@ -4,8 +4,8 @@
 
 update public.hof_roadmap_items
 set
-  current_release = 'Paid partner placement activation and privacy gate (2026-07-29)',
-  known_issues = 'Paid partner applications and agreement-confirmed placement activation are live. The public directory now exposes only curated placement fields. Commercial terms still conflict: checkout starts the 90-day trial and auto-renewal, while pilot documents say placement-live start and separate written renewal.',
-  next_action = 'Choose the founding-partner trial start and renewal rule, then align Stripe, checkout copy, and rate-card terms. After agreement confirmation, activate one paid partner application through the controlled placement workflow and verify public directory display.',
+  current_release = 'Paid partner placement activation and privacy gate (2026-07-29); renewal terms reconciled (2026-08-03)',
+  known_issues = 'Paid partner applications and agreement-confirmed placement activation are live. The public directory exposes only curated placement fields. Checkout is authoritative for commercial billing: the launch charge is collected at checkout, the recurring plan begins after the 90-day trial, and it renews monthly unless canceled. Placement-specific scope and inventory still require a written agreement before activation.',
+  next_action = 'Confirm one paid partner application against the written placement agreement, activate it through the controlled workflow, and verify the curated public directory display.',
   updated_at = now()
 where slug = 'partner-marketplace';
