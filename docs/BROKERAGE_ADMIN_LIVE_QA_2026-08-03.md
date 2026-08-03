@@ -27,6 +27,14 @@ The live brokerage membership check was completed without querying or
 publishing buyer-sensitive offer data. Organizational roster details remain
 internal to the authenticated QA record.
 
+## Current preconditions
+
+- The live OnDemand brokerage is active.
+- A brokerage-scoped administrator profile exists for the brokerage.
+- The private form-source vault currently has no source records.
+- The connected browser session did not expose an authenticated administrator
+  profile, so no authenticated UI QA or source upload is claimed here.
+
 ## Not yet verified
 
 The following require an authenticated active `brokerage_admin` session and
