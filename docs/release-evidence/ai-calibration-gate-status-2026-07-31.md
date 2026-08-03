@@ -2,7 +2,7 @@
 
 ## Automated verification
 
-The current branch passes all 374 automated tests covering:
+The current branch passes all 384 automated tests covering:
 
 - the five required calibration scenario identifiers;
 - feedback API validation and scenario tracking;
