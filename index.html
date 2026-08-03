@@ -9105,6 +9105,7 @@ function routeAfterMagicLinkIfNeeded() {
 
   function normalizeAiReviewResult(result) {
     const fallback = getInlineAiOfferAnalysis();
+    const approvedEducationalDisclaimer = 'This is a software-generated educational competitiveness review, not legal advice, broker advice, a valuation opinion, or a guarantee of acceptance.';
     if (!result || result.error) {
       const base = {
         score: fallback.score,
@@ -9113,7 +9114,7 @@ function routeAfterMagicLinkIfNeeded() {
         strengths: fallback.strengths || [],
         marketContext: fallback.market || [],
         suggestions: fallback.suggestions || [],
-        disclaimer: 'This is educational software feedback, not legal advice, broker advice, valuation advice, or a guarantee of acceptance.',
+        disclaimer: approvedEducationalDisclaimer,
         source: 'rules',
         marketMode: 'unknown'
       };
@@ -9127,7 +9128,9 @@ function routeAfterMagicLinkIfNeeded() {
       strengths: Array.isArray(result.strengths) ? result.strengths : (fallback.strengths || []),
       marketContext: Array.isArray(result.marketContext) ? result.marketContext : (fallback.market || []),
       suggestions: Array.isArray(result.suggestions) ? result.suggestions : (fallback.suggestions || []),
-      disclaimer: result.disclaimer || 'This is educational software feedback, not legal advice, broker advice, valuation advice, or a guarantee of acceptance.',
+      // The browser must not allow a model/API response to replace the
+      // product-approved educational disclaimer shown to users.
+      disclaimer: approvedEducationalDisclaimer,
       source: result.source || 'gemini',
       model: result.model || '',
       marketMode: result.marketMode || 'unknown'
