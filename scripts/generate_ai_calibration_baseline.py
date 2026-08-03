@@ -62,6 +62,9 @@ def _offer_for_fixture(scenario):
         "survey": "buyerNew",
         "asIs": "no",
         "possession": "funding" if scenario["id"] != "AI-CAL-05" else "sellerTemporaryLease",
+        # Keep the technical baseline focused on offer competitiveness rather
+        # than treating an omitted closing date as a calibration defect.
+        "closingDate": "2026-08-24",
         "sellerDisclosure": "received",
         "hoa": "no",
         "marketContext": scenario["market_context"],
@@ -83,9 +86,20 @@ def generate():
     scenarios = {}
     for scenario in catalog["scenarios"]:
         output = review._rules_fallback(_offer_for_fixture(scenario), {})
+        review_flags = []
+        market_mode = str(output.get("marketMode") or "")
+        summary = str(output.get("summary") or "")
+        score = int(output.get("score") or 0)
+        if "seller advantage" in market_mode and score < 70:
+            review_flags.append("seller_advantage_score_low")
+        if "buyer advantage" in market_mode and score >= 85:
+            review_flags.append("buyer_advantage_score_high")
+        if "seller-favorable" in summary and "buyer advantage" in market_mode:
+            review_flags.append("summary_market_mode_conflict")
         scenarios[scenario["id"]] = {
             "id": scenario["id"],
             "review_question": scenario["review_question"],
+            "review_flags": review_flags,
             "technical_baseline": output,
         }
     report = {
