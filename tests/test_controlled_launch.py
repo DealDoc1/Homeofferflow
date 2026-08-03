@@ -108,6 +108,28 @@ class ControlledLaunchTests(unittest.TestCase):
         )
         self.assertEqual(len(PdfReader(BytesIO(packet)).pages), 12)
 
+    def test_verified_percentage_contributions_render_both_12b_paths(self):
+        """Keep both 20-19 Paragraph 12B percentage paths covered.
+
+        The production adapter delegates the verified coordinate renderer to the
+        staging source of truth.  Checking the rendered page text here catches a
+        regression where one percentage value is silently dropped while the
+        packet still has the expected page count.
+        """
+        offer = minimal_offer(
+            hasBuyerAgent="yes",
+            brokerFeeType="percent",
+            brokerFeePercent="3",
+            buyerBrokerCompType="percent",
+            buyerBrokerCompPercent="2.5",
+        )
+        packet = adapter.verified.fill_and_merge(offer)
+        pages = PdfReader(BytesIO(packet)).pages
+        self.assertEqual(len(pages), 12)
+        page_seven_text = pages[6].extract_text() or ""
+        self.assertIn("3", page_seven_text)
+        self.assertIn("2.5", page_seven_text)
+
     def test_verified_buyer_temporary_lease_packet_builds(self):
         offer = minimal_offer(
             hasBuyerAgent="yes",
@@ -252,3 +274,4 @@ class ControlledLaunchTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
