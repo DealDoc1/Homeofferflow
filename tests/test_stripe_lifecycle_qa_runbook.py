@@ -20,6 +20,7 @@ class StripeLifecycleQaRunbookTests(unittest.TestCase):
             "customer.subscription.updated",
             "customer.subscription.deleted",
             "invoice.paid",
+            "invoice.payment_succeeded",
             "invoice.payment_failed",
         ):
             self.assertIn(event, RUNBOOK)
@@ -28,6 +29,16 @@ class StripeLifecycleQaRunbookTests(unittest.TestCase):
         self.assertIn("`past_due`", RUNBOOK)
         self.assertIn("`canceled`", RUNBOOK)
 
+    def test_runbook_requires_trial_checkout_and_cleanup_evidence(self):
+        for phrase in (
+            "Card is collected; $0 is due today",
+            "future $29/month renewal is disclosed",
+            "Remove the Stripe test endpoint",
+            "Delete or pause the isolated Supabase branch",
+        ):
+            self.assertIn(phrase, RUNBOOK)
+
 
 if __name__ == "__main__":
     unittest.main()
+
