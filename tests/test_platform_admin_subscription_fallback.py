@@ -24,6 +24,18 @@ class PlatformAdminSubscriptionFallbackTests(unittest.TestCase):
         self.assertIn("const HOF_ADMIN_EMAILS", allowlist)
         self.assertNotIn("brokerage_admin", allowlist)
 
+    def test_brokerage_admin_identity_is_not_a_platform_admin_bypass(self):
+        allowlist_start = INDEX.index("const HOF_ADMIN_EMAILS")
+        allowlist_end = INDEX.index("];", allowlist_start) + 2
+        allowlist = INDEX[allowlist_start:allowlist_end].lower()
+        self.assertNotIn("tyler@ondemanddfw.com", allowlist)
+
+        backend = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8").lower()
+        default_admin_start = backend.index("default_admin_emails")
+        default_admin_end = backend.index("}", default_admin_start) + 1
+        default_admins = backend[default_admin_start:default_admin_end]
+        self.assertNotIn("tyler@ondemanddfw.com", default_admins)
+
 
 if __name__ == "__main__":
     unittest.main()
