@@ -5,7 +5,7 @@ import os
 import asyncio
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -473,6 +473,48 @@ class BrokerageAuthorizationTests(unittest.TestCase):
             with self.assertRaisesRegex(PermissionError, "email address that received"):
                 asyncio.run(admin._accept_brokerage_invite(actor, {"invite_token": "a" * 32}))
         self.assertEqual(BrokerageInviteClient.requests, [])
+
+    def test_invite_acceptance_connects_agent_profile_membership_and_consumes_invite(self):
+        actor = {"id": "33333333-3333-3333-3333-333333333333", "email": "agent@example.com"}
+
+        async def lookup(path):
+            if path.startswith("hof_brokerage_invites?"):
+                return [{
+                    "id": "invite-1",
+                    "brokerage_id": "22222222-2222-2222-2222-222222222222",
+                    "email": "agent@example.com",
+                    "role": "agent",
+                    "status": "pending",
+                    "expires_at": "2030-01-15T12:00:00+00:00",
+                }]
+            if path.startswith("hof_profiles?"):
+                return []
+            if path.startswith("hof_brokerage_members?"):
+                return []
+            if path.startswith("hof_brokerages?"):
+                return [{"id": "22222222-2222-2222-2222-222222222222", "user_cap": 10}]
+            raise AssertionError(path)
+
+        BrokerageInviteClient.requests = []
+        with patch.object(admin, "_get", lookup), \
+             patch.object(admin, "_require_available_agent_seat", new=AsyncMock()), \
+             patch.object(admin.httpx, "AsyncClient", BrokerageInviteClient):
+            result = asyncio.run(admin._accept_brokerage_invite(actor, {"invite_token": "a" * 32}))
+
+        self.assertEqual(result, {
+            "brokerageId": "22222222-2222-2222-2222-222222222222",
+            "accepted": True,
+        })
+        writes = [request for request in BrokerageInviteClient.requests if request[0] in {"post", "patch"}]
+        self.assertEqual(len(writes), 3)
+        profile_write = next(request for request in writes if "hof_profiles" in request[1])
+        membership_write = next(request for request in writes if "hof_brokerage_members" in request[1])
+        invite_write = next(request for request in writes if "hof_brokerage_invites" in request[1])
+        self.assertEqual(profile_write[2]["json"]["role"], "agent")
+        self.assertEqual(profile_write[2]["json"]["brokerage_id"], "22222222-2222-2222-2222-222222222222")
+        self.assertEqual(membership_write[2]["json"]["status"], "active")
+        self.assertEqual(membership_write[2]["json"]["role"], "agent")
+        self.assertEqual(invite_write[2]["json"]["status"], "accepted")
 
     def test_invite_endpoints_and_ui_keep_tokens_private_from_dashboard(self):
         source = ADMIN_PATH.read_text(encoding="utf-8")
