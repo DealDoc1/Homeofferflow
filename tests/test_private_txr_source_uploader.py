@@ -36,6 +36,15 @@ class PrivateTxrSourceUploaderTests(unittest.TestCase):
             with patch.object(module, "verify", return_value=[{"ok": True}] * 4), patch.object(module, "_request", side_effect=fake_request):
                 self.assertEqual(module.main([str(directory), "--access-token", "token", "--brokerage-slug", "ondemand", "--dry-run"]), 0)
 
+    def test_inventory_only_needs_no_token_or_network(self):
+        with tempfile.TemporaryDirectory() as directory:
+            directory = Path(directory)
+            for expected in module.EXPECTED.values():
+                (directory / expected["filename"]).write_bytes(b"private-pdf")
+
+            with patch.object(module, "verify", return_value=[{"ok": True}] * 4), patch.object(module, "_request", side_effect=AssertionError("inventory-only must not call the API")):
+                self.assertEqual(module.main([str(directory), "--inventory-only"]), 0)
+
 
 if __name__ == "__main__":
     unittest.main()
