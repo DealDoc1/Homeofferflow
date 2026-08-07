@@ -348,6 +348,14 @@ def render_unsigned_preview(source_pdf_bytes: bytes, form_code: str, values: dic
                     _draw(canvas, values[value_key], anchor["x"], anchor["y"], size=8)
         if form_code == "TREC-61-0" and page_number == 1:
             _draw(canvas, values.get("propertyAddress"), 220, 634, size=8)
+            groundwater = _clean(values.get("in_groundwater_district") or "").upper()
+            if groundwater in {"Y", "N", "U"}:
+                key = {"Y": "groundwater_district_yes", "N": "groundwater_district_no", "U": "groundwater_district_unknown"}[groundwater]
+                _check(canvas, field_map[key]["x"], field_map[key]["y"])
+            wells = _clean(values.get("water_wells_known") or "").upper()
+            if wells in {"Y", "N"}:
+                key = "water_well_yes" if wells == "Y" else "water_well_no"
+                _check(canvas, field_map[key]["x"], field_map[key]["y"])
             for key in (
                 "groundwater_district_yes",
                 "groundwater_district_no",
@@ -360,6 +368,18 @@ def render_unsigned_preview(source_pdf_bytes: bytes, form_code: str, values: dic
                 if values.get(key):
                     _check(canvas, field_map[key]["x"], field_map[key]["y"])
         if form_code == "TREC-61-0" and page_number == 2:
+            semantic_water = (
+                ("water_well_on_another_property", "water_other_property_yes", "water_other_property_no"),
+                ("water_well_relies_on_outside_rights", "outside_groundwater_rights_yes", "outside_groundwater_rights_no"),
+                ("groundwater_rights_severed_sold_leased", "rights_severed_yes", "rights_severed_no"),
+                ("surface_water_right", "surface_water_right_yes", "surface_water_right_no"),
+                ("pond_lake_or_water_tank", "pond_lake_tank_yes", "pond_lake_tank_no"),
+            )
+            for response_key, yes_key, no_key in semantic_water:
+                response = _clean(values.get(response_key) or "").upper()
+                if response in {"Y", "N"}:
+                    key = yes_key if response == "Y" else no_key
+                    _check(canvas, field_map[key]["x"], field_map[key]["y"])
             for key in (
                 "water_other_property_yes",
                 "water_other_property_no",
