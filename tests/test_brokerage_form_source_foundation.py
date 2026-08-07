@@ -122,6 +122,13 @@ class BrokerageFormSourceFoundationTests(unittest.TestCase):
         self.assertIn("does not enable form completion", LISTING_EXPANSION)
         self.assertIn("Source approval never activates a workflow", HTML)
 
+    def test_supplied_trec_seller_sources_are_cataloged_but_not_activated(self):
+        for form_code in ("TREC-55-1", "TREC-61-0"):
+            self.assertIn(f"'{form_code}'", MIGRATION)
+            self.assertIn(f'"{form_code}"', (ROOT / "lib" / "platform_form_source_upload.py").read_text())
+            self.assertIn(form_code, HTML)
+        self.assertIn("supplied source", HTML)
+
     def test_broker_admin_can_upload_attested_private_source_but_cannot_activate_a_workflow(self):
         self.assertIn("Brokerage-approved form sources", HTML)
         self.assertIn("I am authorized to upload and approve this exact source PDF", HTML)
@@ -144,3 +151,4 @@ class BrokerageFormSourceFoundationTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
