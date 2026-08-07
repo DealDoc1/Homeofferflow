@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler
 import httpx
 from lib import platform_form_source_upload as platform_source
+from lib import seller_disclosure_draft
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "").rstrip("/")
 SUPABASE_SERVICE_ROLE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or os.environ.get("SUPABASE_SERVICE_ROLE") or os.environ.get("SUPABASE_SERVICE_KEY") or ""
@@ -49,6 +50,8 @@ TXR_1501_FORM_CODE = "TXR-1501"
 TXR_1506_FORM_CODE = "TXR-1506"
 TXR_1507_FORM_CODE = "TXR-1507"
 TXR_1508_FORM_CODE = "TXR-1508"
+TREC_55_1_FORM_CODE = "TREC-55-1"
+TREC_61_0_FORM_CODE = "TREC-61-0"
 BROKERAGE_TXR_FORM_CODES = (
     "TXR-1507",
     "TXR-1501",
@@ -1509,6 +1512,62 @@ async def _require_brokerage_txr_authorization(brokerage_id):
         )
 
 
+async def _create_seller_disclosure_draft(user, data):
+    """Create an agent-owned seller disclosure draft, never a sendable packet."""
+    draft = seller_disclosure_draft.parse_seller_disclosure_draft(data)
+    brokerage_id = await _active_brokerage_member(user)
+    source_rows = await _get(
+        "hof_brokerage_form_sources?"
+        f"id=eq.{urllib.parse.quote(draft['disclosure_source_id'])}"
+        f"&brokerage_id=eq.{urllib.parse.quote(str(brokerage_id))}"
+        f"&form_code=eq.{TREC_55_1_FORM_CODE}"
+        "&status=eq.approved&authorization_attested=is.true"
+        "&select=id,source_revision&limit=1"
+    )
+    if not source_rows:
+        raise ValueError("Choose an approved TREC-55-1 source from your brokerage.")
+    water_rows = []
+    if draft.get("water_source_id"):
+        water_rows = await _get(
+            "hof_brokerage_form_sources?"
+            f"id=eq.{urllib.parse.quote(draft['water_source_id'])}"
+            f"&brokerage_id=eq.{urllib.parse.quote(str(brokerage_id))}"
+            f"&form_code=eq.{TREC_61_0_FORM_CODE}"
+            "&status=eq.approved&authorization_attested=is.true"
+            "&select=id,source_revision&limit=1"
+        )
+        if not water_rows:
+            raise ValueError("Choose an approved TREC-61-0 source from your brokerage.")
+    record = {
+        "brokerage_id": brokerage_id,
+        "agent_user_id": user["id"],
+        "listing_workspace_id": draft.get("listing_workspace_id"),
+        "disclosure_source_id": source_rows[0]["id"],
+        "water_source_id": water_rows[0]["id"] if water_rows else None,
+        "disclosure_source_revision": source_rows[0]["source_revision"],
+        "water_source_revision": water_rows[0]["source_revision"] if water_rows else None,
+        "status": "draft",
+        "property_address": draft["property_address"],
+        "seller_names": draft["seller_names"],
+        "buyer_names": draft["buyer_names"],
+        "response_data": draft["response_data"],
+        "water_rights_data": draft["water_rights_data"],
+        "seller_review_attested": False,
+    }
+    async with httpx.AsyncClient(timeout=12) as client:
+        response = await client.post(
+            f"{SUPABASE_URL}/rest/v1/hof_seller_disclosure_drafts",
+            headers={**_headers(), "Prefer": "return=representation"},
+            json=record,
+        )
+    if response.status_code not in {200, 201}:
+        raise RuntimeError("Could not save the seller disclosure draft.")
+    rows = response.json()
+    if not isinstance(rows, list) or not rows:
+        raise RuntimeError("Seller disclosure draft was not returned after saving.")
+    return rows[0]
+
+
 async def _record_agent_txr_attestation(user, brokerage_id):
     """Record the authenticated agent's point-of-use TXR/NAR attestation.
 
@@ -1731,6 +1790,17 @@ class handler(BaseHTTPRequestHandler):
                     return
                 _json(self, 200, payload)
                 return
+            if scope == "seller_disclosure_drafts":
+                brokerage_id = asyncio.run(_active_brokerage_member(user))
+                rows = asyncio.run(_get(
+                    "hof_seller_disclosure_drafts?"
+                    f"agent_user_id=eq.{urllib.parse.quote(user['id'])}"
+                    f"&brokerage_id=eq.{urllib.parse.quote(str(brokerage_id))}"
+                    "&select=id,listing_workspace_id,property_address,seller_names,buyer_names,status,disclosure_source_revision,water_source_revision,seller_review_attested,created_at,updated_at"
+                    "&order=updated_at.desc&limit=100"
+                ))
+                _json(self, 200, {"drafts": rows})
+                return
             if scope == "platform_source_brokerages":
                 try:
                     payload = asyncio.run(platform_source._active_brokerages(user))
@@ -1932,6 +2002,10 @@ class handler(BaseHTTPRequestHandler):
             if data.get("action") == "set_brokerage_member_status":
                 result = asyncio.run(_set_brokerage_member_status(user, data))
                 _json(self, 200, {"ok": True, "membership": result})
+                return
+            if data.get("action") == "create_seller_disclosure_draft":
+                draft = asyncio.run(_create_seller_disclosure_draft(user, data))
+                _json(self, 201, {"status": "ok", "draft": draft, "workflowActivated": False})
                 return
             if data.get("action") == "create_txr_1507_draft":
                 draft = asyncio.run(_create_txr_1507_draft(user, data))
