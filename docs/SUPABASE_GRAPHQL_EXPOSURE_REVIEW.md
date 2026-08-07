@@ -9,8 +9,10 @@ browser application intentionally uses Supabase's authenticated Data API
 directly for several signed-in workflows. A blanket revoke would break offer
 creation, profiles, subscriptions, brokerage setup, agent documents, and
 addenda/source workflows. Usage telemetry is the first dependency moved behind
-an authenticated server action; its server-only privilege migration is
-was applied on 2026-08-07 after the runtime/server tests passed.
+an authenticated server action; its server-only privilege migration was
+applied on 2026-08-07 after the runtime/server tests passed. A live ACL
+check confirmed direct browser access is denied while service-role writes are
+retained.
 
 The Supabase advisor warning `0027_pg_graphql_authenticated_table_exposed` is
 therefore tracked as a reviewed warning, not an unreviewed vulnerability. RLS
