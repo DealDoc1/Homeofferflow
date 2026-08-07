@@ -38,6 +38,16 @@ TREC_55_1_MAP = {
     "water_supply_well": {"page": 1, "x": 292, "y": 166},
     "water_supply_mud": {"page": 1, "x": 404, "y": 166},
     "water_supply_coop": {"page": 1, "x": 512, "y": 166},
+    "liquid_propane_lp_community": {"page": 1, "x": 172, "y": 249},
+    "liquid_propane_on_property": {"page": 1, "x": 314, "y": 249},
+    "fuel_gas_black_iron": {"page": 1, "x": 185, "y": 231},
+    "fuel_gas_corrugated_stainless": {"page": 1, "x": 315, "y": 231},
+    "fuel_gas_copper": {"page": 1, "x": 450, "y": 231},
+    "garage_attached": {"page": 1, "x": 110, "y": 214},
+    "garage_not_attached": {"page": 1, "x": 230, "y": 214},
+    "garage_carport": {"page": 1, "x": 370, "y": 214},
+    "garage_door_electronic": {"page": 1, "x": 190, "y": 198},
+    "garage_door_controls": {"page": 1, "x": 310, "y": 198},
     "repair_awareness_yes": {"page": 1, "x": 133, "y": 103},
     "repair_awareness_no": {"page": 1, "x": 167, "y": 103},
     "smoke_detectors_yes": {"page": 2, "x": 219, "y": 728},
@@ -233,6 +243,10 @@ def render_unsigned_preview(source_pdf_bytes: bytes, form_code: str, values: dic
                 "water_heater_gas", "water_heater_electric",
                 "water_supply_city", "water_supply_well",
                 "water_supply_mud", "water_supply_coop",
+                "liquid_propane_lp_community", "liquid_propane_on_property",
+                "fuel_gas_black_iron", "fuel_gas_corrugated_stainless", "fuel_gas_copper",
+                "garage_attached", "garage_not_attached", "garage_carport",
+                "garage_door_electronic", "garage_door_controls",
             ):
                 if values.get(key):
                     _check(canvas, field_map[key]["x"], field_map[key]["y"])
