@@ -2000,11 +2000,23 @@ class handler(BaseHTTPRequestHandler):
             return
         try:
             import asyncio
+            query = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+            review_token = str((query.get("review_seller_disclosure") or [""])[0]).strip()
+            review_pdf_token = str((query.get("review_seller_disclosure_pdf") or [""])[0]).strip()
+            if review_token:
+                _json(self, 200, asyncio.run(_seller_review_payload(review_token)))
+                return
+            if review_pdf_token:
+                link, _draft = asyncio.run(_seller_review_context(review_pdf_token))
+                pdf = asyncio.run(_render_seller_disclosure_draft_preview(
+                    None, link["draft_id"], review_context=link
+                ))
+                _pdf_response(self, pdf, "seller-disclosure-review-preview.pdf")
+                return
             user = asyncio.run(_verified_user(self.headers.get("authorization", "")))
             if not user:
                 _json(self, 401, {"error": "A valid signed-in session is required."})
                 return
-            query = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
             preview_seller_disclosure = str((query.get("preview_seller_disclosure") or [""])[0]).strip()
             if preview_seller_disclosure:
                 pdf = asyncio.run(_render_seller_disclosure_draft_preview(user, preview_seller_disclosure))
