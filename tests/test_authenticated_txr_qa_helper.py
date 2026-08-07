@@ -50,5 +50,15 @@ class AuthenticatedTxrQaHelperTests(unittest.TestCase):
         for form_code, signer_plan in expected.items():
             self.assertEqual(MODULE._payload(form_code, 1)["signerPlan"], signer_plan)
 
+    def test_seller_disclosure_payload_is_review_only_and_uses_both_approved_sources(self):
+        payload = MODULE._seller_disclosure_payload(2)
+        self.assertEqual(payload["action"], "create_seller_disclosure_draft")
+        self.assertEqual(payload["formCode"], "TREC-55-1")
+        self.assertEqual(payload["disclosureSourceId"], MODULE.SELLER_SOURCE_IDS["TREC-55-1"])
+        self.assertEqual(payload["waterSourceId"], MODULE.SELLER_SOURCE_IDS["TREC-61-0"])
+        self.assertEqual(len(payload["sellerNames"]), 2)
+        self.assertNotIn("signerPlan", payload)
+        self.assertNotIn("send", payload)
+
 if __name__ == "__main__":
     unittest.main()

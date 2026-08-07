@@ -38,3 +38,8 @@ HomeOfferFlow still needs authenticated point-of-use QA, a document-specific
 signer plan, controlled completed-signature visual QA, and release-authority
 approval. Seller review links remain review/attestation-only until those gates
 are separately satisfied.
+
+The authenticated QA helper now supports `--form TREC-55-1` with a two-seller
+scenario. It uses the approved TREC-55-1 and TREC-61-0 source IDs, downloads a
+private unsigned preview, and records that the workflow is seller-review-only;
+it has no SignWell send action.
