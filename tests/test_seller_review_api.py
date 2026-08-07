@@ -28,7 +28,7 @@ class SellerReviewApiTests(unittest.TestCase):
         self.assertIn("hof_seller_disclosure_review_links", sql)
         self.assertIn("enable row level security", sql.lower())
         self.assertIn("revoke all on public.hof_seller_disclosure_review_links", sql.lower())
-        self.assertIn("grant all on table", sql.lower())
+        self.assertIn("grant all on public.hof_seller_disclosure_review_links", sql.lower())
         self.assertIn("session_expires_at", sql)
         self.assertIn("seller_attested_at", sql)
 
