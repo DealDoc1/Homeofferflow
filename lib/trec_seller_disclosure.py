@@ -32,6 +32,12 @@ TREC_55_1_MAP = {
     "item_responses_page_1": {"page": 1, "y_start": 570, "row_height": 18},
     "roof_type": {"page": 1, "x": 120, "y": 140, "width": 230},
     "roof_age": {"page": 1, "x": 380, "y": 140, "width": 120},
+    "water_heater_gas": {"page": 1, "x": 172, "y": 185},
+    "water_heater_electric": {"page": 1, "x": 292, "y": 185},
+    "water_supply_city": {"page": 1, "x": 172, "y": 166},
+    "water_supply_well": {"page": 1, "x": 292, "y": 166},
+    "water_supply_mud": {"page": 1, "x": 404, "y": 166},
+    "water_supply_coop": {"page": 1, "x": 512, "y": 166},
     "repair_awareness_yes": {"page": 1, "x": 133, "y": 103},
     "repair_awareness_no": {"page": 1, "x": 167, "y": 103},
     "smoke_detectors_yes": {"page": 2, "x": 219, "y": 728},
@@ -223,6 +229,13 @@ def render_unsigned_preview(source_pdf_bytes: bytes, form_code: str, values: dic
             _draw(canvas, values.get("seller_occupancy_duration"), 492, 596, size=8)
             _draw(canvas, values.get("roof_type"), 120, 140, size=8)
             _draw(canvas, values.get("roof_age"), 380, 140, size=8)
+            for key in (
+                "water_heater_gas", "water_heater_electric",
+                "water_supply_city", "water_supply_well",
+                "water_supply_mud", "water_supply_coop",
+            ):
+                if values.get(key):
+                    _check(canvas, field_map[key]["x"], field_map[key]["y"])
             for key, x, y in TREC_55_1_ITEM_ROWS:
                 _response(canvas, values.get(key), x, y)
         if form_code == "TREC-55-1" and page_number == 3:
