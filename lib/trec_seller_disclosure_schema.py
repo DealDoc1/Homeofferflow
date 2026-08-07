@@ -105,7 +105,7 @@ def schema_for(form_code: str) -> dict:
 
 def validate_response_keys(form_code: str, response: dict) -> None:
     schema = schema_for(form_code)
-    allowed = {"property_address"}
+    allowed = {"property_address", "notes"}
     for section in schema["sections"]:
         allowed.update(section.get("fields", []))
         if section.get("notes_field"):
