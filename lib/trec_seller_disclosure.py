@@ -45,14 +45,14 @@ TREC_55_1_MAP = {
     "fema_yes": {"page": 3, "x": 145, "y": 119},
     "fema_no": {"page": 3, "x": 195, "y": 119},
     "other_disclosures_page_4": {"page": 4, "y_start": 690, "row_height": 28},
-    "seller_signature_1": {"page": 4, "x": 45, "y": 177, "width": 235},
-    "seller_date_1": {"page": 4, "x": 255, "y": 177, "width": 70},
-    "seller_signature_2": {"page": 4, "x": 345, "y": 177, "width": 235},
-    "seller_date_2": {"page": 4, "x": 550, "y": 177, "width": 45},
-    "purchaser_signature_1": {"page": 4, "x": 45, "y": 92, "width": 235},
-    "purchaser_date_1": {"page": 4, "x": 255, "y": 92, "width": 70},
-    "purchaser_signature_2": {"page": 4, "x": 345, "y": 92, "width": 235},
-    "purchaser_date_2": {"page": 4, "x": 550, "y": 92, "width": 45},
+    "seller_signature_1": {"page": 4, "x": 45, "y": 205, "width": 235},
+    "seller_date_1": {"page": 4, "x": 255, "y": 205, "width": 70},
+    "seller_signature_2": {"page": 4, "x": 345, "y": 205, "width": 235},
+    "seller_date_2": {"page": 4, "x": 550, "y": 205, "width": 45},
+    "purchaser_signature_1": {"page": 4, "x": 45, "y": 115, "width": 235},
+    "purchaser_date_1": {"page": 4, "x": 255, "y": 115, "width": 70},
+    "purchaser_signature_2": {"page": 4, "x": 345, "y": 115, "width": 235},
+    "purchaser_date_2": {"page": 4, "x": 550, "y": 115, "width": 45},
 }
 
 TREC_61_0_MAP = {
@@ -64,14 +64,14 @@ TREC_61_0_MAP = {
     "water_well_no": {"page": 1, "x": 427, "y": 258},
     "well_owned_seller": {"page": 1, "x": 48, "y": 145},
     "well_other_party": {"page": 1, "x": 48, "y": 120},
-    "seller_signature_1": {"page": 2, "x": 42, "y": 144, "width": 235},
-    "seller_date_1": {"page": 2, "x": 255, "y": 144, "width": 70},
-    "seller_signature_2": {"page": 2, "x": 345, "y": 144, "width": 235},
-    "seller_date_2": {"page": 2, "x": 550, "y": 144, "width": 45},
-    "buyer_signature_1": {"page": 2, "x": 42, "y": 98, "width": 235},
-    "buyer_date_1": {"page": 2, "x": 255, "y": 98, "width": 70},
-    "buyer_signature_2": {"page": 2, "x": 345, "y": 98, "width": 235},
-    "buyer_date_2": {"page": 2, "x": 550, "y": 98, "width": 45},
+    "seller_signature_1": {"page": 2, "x": 42, "y": 178, "width": 235},
+    "seller_date_1": {"page": 2, "x": 255, "y": 178, "width": 70},
+    "seller_signature_2": {"page": 2, "x": 345, "y": 178, "width": 235},
+    "seller_date_2": {"page": 2, "x": 550, "y": 178, "width": 45},
+    "buyer_signature_1": {"page": 2, "x": 42, "y": 122, "width": 235},
+    "buyer_date_1": {"page": 2, "x": 255, "y": 122, "width": 70},
+    "buyer_signature_2": {"page": 2, "x": 345, "y": 122, "width": 235},
+    "buyer_date_2": {"page": 2, "x": 550, "y": 122, "width": 45},
 }
 
 def source_contract(form_code: str) -> dict[str, Any]:
@@ -126,10 +126,19 @@ def render_unsigned_preview(source_pdf_bytes: bytes, form_code: str, values: dic
         if form_code == "TREC-55-1" and page_number == 3:
             _draw(canvas, values.get("repairDescription"), 330, 717, size=7)
         if form_code == "TREC-55-1" and page_number == 4:
-            if values.get("sellerSignature1"):
-                _draw(canvas, values["sellerSignature1"], 45, 177, size=8)
-            if values.get("sellerDate1"):
-                _draw(canvas, values["sellerDate1"], 255, 177, size=8)
+            for value_key, map_key in (
+                ("sellerSignature1", "seller_signature_1"),
+                ("sellerDate1", "seller_date_1"),
+                ("sellerSignature2", "seller_signature_2"),
+                ("sellerDate2", "seller_date_2"),
+                ("purchaserSignature1", "purchaser_signature_1"),
+                ("purchaserDate1", "purchaser_date_1"),
+                ("purchaserSignature2", "purchaser_signature_2"),
+                ("purchaserDate2", "purchaser_date_2"),
+            ):
+                if values.get(value_key):
+                    anchor = field_map[map_key]
+                    _draw(canvas, values[value_key], anchor["x"], anchor["y"], size=8)
         if form_code == "TREC-61-0" and page_number == 1:
             _draw(canvas, values.get("propertyAddress"), 220, 634, size=8)
             for key in (
@@ -143,6 +152,20 @@ def render_unsigned_preview(source_pdf_bytes: bytes, form_code: str, values: dic
             ):
                 if values.get(key):
                     _check(canvas, field_map[key]["x"], field_map[key]["y"])
+        if form_code == "TREC-61-0" and page_number == 2:
+            for value_key, map_key in (
+                ("sellerSignature1", "seller_signature_1"),
+                ("sellerDate1", "seller_date_1"),
+                ("sellerSignature2", "seller_signature_2"),
+                ("sellerDate2", "seller_date_2"),
+                ("buyerSignature1", "buyer_signature_1"),
+                ("buyerDate1", "buyer_date_1"),
+                ("buyerSignature2", "buyer_signature_2"),
+                ("buyerDate2", "buyer_date_2"),
+            ):
+                if values.get(value_key):
+                    anchor = field_map[map_key]
+                    _draw(canvas, values[value_key], anchor["x"], anchor["y"], size=8)
         canvas.showPage()
         canvas.save()
         overlay_stream.seek(0)
