@@ -275,3 +275,16 @@ def test_trec_55_1_canonical_item_aliases():
     assert mapping["garage_opener_electronic"] == {"page": 1, "x": 190, "y": 198}
     assert mapping["garage_opener_controls"] == {"page": 1, "x": 310, "y": 198}
     assert mapping["hot_tub"] == {"page": 1, "x": 470, "y": 336}
+
+
+def test_trec_55_1_flood_response_anchors():
+    assert TREC_55_1_FLOOD_ROWS == (
+        ("present_flood_insurance", 58, 650),
+        ("previous_reservoir_release_flooding", 58, 632),
+        ("previous_natural_flood_water_penetration", 58, 614),
+        ("in_100_year_floodplain", 58, 596),
+        ("in_500_year_floodplain", 58, 578),
+        ("in_floodway", 58, 560),
+        ("in_flood_pool", 58, 542),
+        ("in_reservoir", 58, 524),
+    )
