@@ -123,7 +123,7 @@ def render_unsigned_preview(source_pdf_bytes: bytes, form_code: str, values: dic
                 if values.get(key):
                     _check(canvas, field_map[key]["x"], field_map[key]["y"])
         if form_code == "TREC-55-1" and page_number == 3:
-            _draw(canvas, values.get("repairDescription"), 330, 112, size=7)
+            _draw(canvas, values.get("repairDescription"), 330, 717, size=7)
         if form_code == "TREC-55-1" and page_number == 4:
             if values.get("sellerSignature1"):
                 _draw(canvas, values["sellerSignature1"], 45, 177, size=8)
