@@ -64,6 +64,16 @@ TREC_61_0_MAP = {
     "water_well_no": {"page": 1, "x": 427, "y": 258},
     "well_owned_seller": {"page": 1, "x": 48, "y": 145},
     "well_other_party": {"page": 1, "x": 48, "y": 120},
+    "water_other_property_yes": {"page": 2, "x": 281, "y": 698},
+    "water_other_property_no": {"page": 2, "x": 322, "y": 698},
+    "outside_groundwater_rights_yes": {"page": 2, "x": 410, "y": 625},
+    "outside_groundwater_rights_no": {"page": 2, "x": 451, "y": 625},
+    "rights_severed_yes": {"page": 2, "x": 72, "y": 545},
+    "rights_severed_no": {"page": 2, "x": 112, "y": 545},
+    "surface_water_right_yes": {"page": 2, "x": 428, "y": 485},
+    "surface_water_right_no": {"page": 2, "x": 468, "y": 485},
+    "pond_lake_tank_yes": {"page": 2, "x": 72, "y": 390},
+    "pond_lake_tank_no": {"page": 2, "x": 112, "y": 390},
     "seller_signature_1": {"page": 2, "x": 42, "y": 178, "width": 235},
     "seller_date_1": {"page": 2, "x": 255, "y": 178, "width": 70},
     "seller_signature_2": {"page": 2, "x": 345, "y": 178, "width": 235},
@@ -160,6 +170,20 @@ def render_unsigned_preview(source_pdf_bytes: bytes, form_code: str, values: dic
                 if values.get(key):
                     _check(canvas, field_map[key]["x"], field_map[key]["y"])
         if form_code == "TREC-61-0" and page_number == 2:
+            for key in (
+                "water_other_property_yes",
+                "water_other_property_no",
+                "outside_groundwater_rights_yes",
+                "outside_groundwater_rights_no",
+                "rights_severed_yes",
+                "rights_severed_no",
+                "surface_water_right_yes",
+                "surface_water_right_no",
+                "pond_lake_tank_yes",
+                "pond_lake_tank_no",
+            ):
+                if values.get(key):
+                    _check(canvas, field_map[key]["x"], field_map[key]["y"])
             for value_key, map_key in (
                 ("sellerSignature1", "seller_signature_1"),
                 ("sellerDate1", "seller_date_1"),
