@@ -35,7 +35,7 @@ API policies. These are reviewed, not ignored:
 ## Verification evidence
 
 - Local release preflight passed for the current non-form evidence branch.
-- Full regression suite passed: `421 tests`, `OK`.
+- Full regression suite passed: `422 tests`, `OK`.
 - The live `hof_standalone_agreements` form-code constraint accepts exactly
   `TXR-1501`, `TXR-1506`, `TXR-1507`, and `TXR-1508`.
 - Targeted Stripe lifecycle, OnDemand checkout, brokerage authorization, and
