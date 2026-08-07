@@ -94,6 +94,11 @@ jobs:
         with:
           node-version: 20
 
+      - name: Set up uv for Vercel Python build
+        uses: astral-sh/setup-uv@v6
+        with:
+          version: "latest"
+
       - name: Install pinned Vercel CLI
         run: npm install --global vercel@57.0.0
 
