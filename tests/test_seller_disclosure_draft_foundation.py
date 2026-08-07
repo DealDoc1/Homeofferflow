@@ -62,6 +62,10 @@ class SellerDisclosureFoundationContractTests(unittest.TestCase):
         self.assertIn("status = 'draft'", migration)
         self.assertIn("create_seller_disclosure_draft", api)
         self.assertIn("workflowActivated", api)
+        self.assertIn("preview_seller_disclosure", api)
+        self.assertIn("_render_seller_disclosure_draft_preview", api)
+        self.assertIn("render_unsigned_preview", api)
+        self.assertIn("draft_id", api)
         self.assertNotIn("signwell_document_id", migration)
 
 if __name__ == "__main__":
