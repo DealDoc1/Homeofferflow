@@ -108,6 +108,7 @@ def render_unsigned_preview(source_pdf_bytes: bytes, form_code: str, values: dic
     if not qa_mode:
         raise ValueError("Unsigned seller-disclosure preview requires explicit qa_mode=True.")
     contract = source_contract(form_code)
+    validate_source_bytes(form_code, source_pdf_bytes)
     source = PdfReader(BytesIO(source_pdf_bytes))
     if len(source.pages) != contract["page_count"]:
         raise ValueError(f"{form_code} source must contain exactly {contract['page_count']} pages.")
