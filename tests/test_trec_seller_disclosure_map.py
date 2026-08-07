@@ -80,6 +80,15 @@ class TrecSellerDisclosureMapTests(unittest.TestCase):
                 ("urea_formaldehyde_insulation", 318, 227),
                 ("improper_drainage", 58, 209),
                 ("radon_gas", 318, 209),
+                ("water_damage_not_flood", 58, 191),
+                ("lead_based_paint", 318, 191),
+                ("landfill_settling_soil_movement_fault_lines", 58, 173),
+                ("aluminum_wiring", 318, 173),
+                ("single_blockable_main_drain", 58, 155),
+                ("previous_fires", 318, 155),
+                ("unplatted_easements", 318, 137),
+                ("subsurface_structure_or_pits", 318, 119),
+                ("previous_methamphetamine_use", 318, 97),
             ),
         )
 
