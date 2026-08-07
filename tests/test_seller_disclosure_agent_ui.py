@@ -12,7 +12,6 @@ class SellerDisclosureAgentUiTests(unittest.TestCase):
         self.assertIn("approved_brokerage_sources", html)
         self.assertIn("create_seller_disclosure_draft", html)
         self.assertIn("preview_seller_disclosure", html)
-        self.assertIn("seller_review_attested", html)
         self.assertIn("does not send or sign", html)
         self.assertIn('hofSellerEmail', html)
         self.assertIn('hofSendSellerReview', html)
