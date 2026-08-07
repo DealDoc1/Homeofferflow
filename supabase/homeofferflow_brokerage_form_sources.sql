@@ -11,7 +11,8 @@ create table if not exists public.hof_brokerage_form_sources (
   brokerage_id uuid not null references public.hof_brokerages(id) on delete cascade,
   form_code text not null check (form_code in (
     'TXR-1501', 'TXR-1506', 'TXR-1507', 'TXR-1508',
-    'TXR-1101', 'TXR-1102', 'TXR-1406', 'TXR-1418'
+    'TXR-1101', 'TXR-1102', 'TXR-1406', 'TXR-1418',
+    'TREC-55-1', 'TREC-61-0'
   )),
   source_revision text not null,
   status text not null default 'draft'
@@ -162,3 +163,4 @@ commit;
 -- select form_code, source_revision, status, authorization_attested
 -- from public.hof_brokerage_form_sources
 -- where brokerage_id = (select id from public.hof_brokerages where slug = 'ondemand');
+
