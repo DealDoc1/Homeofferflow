@@ -91,6 +91,12 @@ TREC_55_1_CONDITION_ROWS = (
     ("defect_other_structural_components", 255, 405),
 )
 
+TREC_55_1_ITEM_ROWS = (
+    ("range", 58, 570),
+    ("oven", 211, 570),
+    ("microwave", 391, 570),
+)
+
 def source_contract(form_code: str) -> dict[str, Any]:
     if form_code == "TREC-55-1":
         return {"form_code": form_code, "page_count": TREC_55_1_PAGE_COUNT, "field_map": TREC_55_1_MAP, "source_sha256": TREC_55_1_SOURCE_SHA256, "activation_status": "pending_visual_qa"}
@@ -145,6 +151,8 @@ def render_unsigned_preview(source_pdf_bytes: bytes, form_code: str, values: dic
                 if values.get(key):
                     _check(canvas, field_map[key]["x"], field_map[key]["y"])
             _draw(canvas, values.get("seller_occupancy_duration"), 492, 596, size=8)
+            for key, x, y in TREC_55_1_ITEM_ROWS:
+                _response(canvas, values.get(key), x, y)
         if form_code == "TREC-55-1" and page_number == 3:
             for key in ("repair_condition_yes", "repair_condition_no"):
                 if values.get(key):
@@ -222,3 +230,4 @@ def render_unsigned_preview(source_pdf_bytes: bytes, form_code: str, values: dic
     output = BytesIO()
     writer.write(output)
     return output.getvalue()
+
