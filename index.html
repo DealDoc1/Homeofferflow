@@ -13477,6 +13477,156 @@ function routeAfterMagicLinkIfNeeded() {
   else renderPrivateDraftsCard();
 })();
 </script>
+
+<style id="hof-seller-disclosure-draft-ui-v1">
+.hof-seller-disclosure-card .hof-seller-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.hof-seller-disclosure-card label{display:flex;flex-direction:column;gap:5px}
+.hof-seller-disclosure-card input,.hof-seller-disclosure-card select{padding:9px;border:1px solid #cbd5e1;border-radius:8px}
+.hof-seller-disclosure-card details{margin-top:14px;border-top:1px solid #e2e8f0;padding-top:10px}
+.hof-seller-disclosure-card summary{cursor:pointer;font-weight:700}
+.hof-seller-response-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 16px;margin-top:10px}
+.hof-seller-response-row{display:grid;grid-template-columns:1fr 95px;align-items:center;gap:8px}
+.hof-seller-disclosure-card .hof-seller-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+@media(max-width:700px){.hof-seller-disclosure-card .hof-seller-grid,.hof-seller-response-grid{grid-template-columns:1fr}}
+</style>
+<script id="hof-seller-disclosure-draft-ui-v1">
+(function () {
+  const root = window;
+  const escape = value => String(value ?? '').replace(/[&<>"]/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[char]));
+  const profile = () => root.hofAuth?.authoritativeProfile || {};
+  const active = () => !!root.hofAuth?.session?.user && String(profile().role || '').toLowerCase() !== 'investor';
+  const responseGroups = [
+    ['Property items', [
+      ['range','Range'],['oven','Oven'],['microwave','Microwave'],['dishwasher','Dishwasher'],['trash_compactor','Trash Compactor'],['disposal','Disposal'],
+      ['washer_dryer_hookups','Washer/Dryer Hookups'],['window_screens','Window Screens'],['rain_gutters','Rain Gutters'],['security_system','Security System'],
+      ['fire_detection_equipment','Fire Detection Equipment'],['intercom_system','Intercom System'],['smoke_detector','Smoke Detector'],
+      ['smoke_detector_hearing_impaired','Smoke Detector-Hearing Impaired'],['carbon_monoxide_alarm','Carbon Monoxide Alarm'],['emergency_escape_ladders','Emergency Escape Ladder(s)'],
+      ['tv_antenna','TV Antenna'],['cable_tv_wiring','Cable TV Wiring'],['satellite_dish','Satellite Dish'],['ceiling_fans','Ceiling Fan(s)'],['attic_fans','Attic Fan(s)'],
+      ['exhaust_fans','Exhaust Fan(s)'],['central_ac','Central A/C'],['central_heating','Central Heating'],['wall_window_ac','Wall/Window A/C'],
+      ['plumbing_system','Plumbing System'],['septic_system','Septic System'],['public_sewer_system','Public Sewer System'],['patio_decking','Patio/Decking'],
+      ['outdoor_grill','Outdoor Grill'],['fences','Fences'],['pool','Pool'],['sauna','Sauna'],['spa','Spa'],['hot_tub','Hot Tub'],['pool_equipment','Pool Equipment'],
+      ['pool_heater','Pool Heater'],['automatic_lawn_sprinkler_system','Automatic Lawn Sprinkler System'],['fireplace_wood_burning','Fireplace(s) & Chimney (Wood burning)'],
+      ['fireplace_mock','Fireplace(s) & Chimney (Mock)'],['natural_gas_lines','Natural Gas Lines'],['gas_fixtures','Gas Fixtures'],['lp_community','LP Community (Captive)'],
+      ['lp_on_property','LP on Property'],['fuel_gas_black_iron','Fuel Gas: Black Iron Pipe'],['fuel_gas_corrugated_steel','Fuel Gas: Corrugated Stainless Steel Tubing'],
+      ['fuel_gas_copper','Fuel Gas: Copper'],['garage_attached','Garage Attached'],['garage_not_attached','Garage Not Attached'],['carport','Carport'],
+      ['garage_opener_electronic','Garage Door Opener Electronic'],['garage_opener_controls','Garage Door Opener Control(s)'],['water_heater_gas','Water Heater Gas'],
+      ['water_heater_electric','Water Heater Electric'],['water_supply_city','Water Supply City'],['water_supply_well','Water Supply Well'],['water_supply_mud','Water Supply MUD'],
+      ['water_supply_coop','Water Supply Co-op']
+    ]],
+    ['Known defects', [
+      ['defect_interior_walls','Interior walls'],['defect_ceilings','Ceilings'],['defect_floors','Floors'],['defect_exterior_walls','Exterior walls'],
+      ['defect_doors','Doors'],['defect_windows','Windows'],['defect_roof','Roof'],['defect_foundation_slabs','Foundation/slabs'],['defect_sidewalks','Sidewalks'],
+      ['defect_walls_fences','Walls/fences'],['defect_driveways','Driveways'],['defect_intercom','Intercom'],['defect_plumbing_sewers_septics','Plumbing/sewers/septics'],
+      ['defect_electrical_systems','Electrical systems'],['defect_lighting_fixtures','Lighting fixtures'],['defect_other_structural_components','Other structural components']
+    ]],
+    ['Conditions', [
+      ['active_termites','Active termites'],['previous_structural_or_roof_repair','Previous structural/roof repair'],['termite_or_wood_rot_needing_repair','Termite/wood rot needing repair'],
+      ['hazardous_toxic_waste','Hazardous/toxic waste'],['previous_termite_damage','Previous termite damage'],['asbestos_components','Asbestos components'],
+      ['previous_termite_treatment','Previous termite treatment'],['urea_formaldehyde_insulation','Urea-formaldehyde insulation'],['improper_drainage','Improper drainage'],
+      ['radon_gas','Radon gas'],['water_damage_not_flood','Water damage (not flood)'],['lead_based_paint','Lead-based paint'],
+      ['landfill_settling_soil_movement_fault_lines','Landfill/settling/soil movement/fault lines'],['aluminum_wiring','Aluminum wiring'],
+      ['single_blockable_main_drain','Single blockable main drain'],['previous_fires','Previous fires'],['unplatted_easements','Unplatted easements'],
+      ['subsurface_structure_or_pits','Subsurface structure or pits'],['previous_methamphetamine_use','Previous methamphetamine use']
+    ]],
+    ['Flood and repairs', [
+      ['property_needs_repair','Property needs repair'],['present_flood_insurance','Present flood insurance coverage'],
+      ['previous_reservoir_release_flooding','Previous reservoir release flooding'],['previous_natural_flood_water_penetration','Previous natural-flood water penetration'],
+      ['in_100_year_floodplain','In 100-year floodplain'],['in_500_year_floodplain','In 500-year floodplain'],['in_floodway','In a floodway'],
+      ['in_flood_pool','In a flood pool'],['in_reservoir','In a reservoir'],['filed_flood_claim','Filed flood claim'],
+      ['received_fema_or_sba_assistance','Received FEMA/SBA assistance']
+    ]],
+    ['Additional disclosures', [
+      ['unpermitted_modifications','Unpermitted modifications'],['hoa_assessments','HOA assessments'],['common_area','Common area'],
+      ['deed_or_ordinance_violations','Deed/ordinance violations'],['property_lawsuits','Property lawsuits'],['health_or_safety_condition','Health/safety condition'],
+      ['large_rainwater_system','Large rainwater system'],['groundwater_or_subsidence_district','Groundwater/subsidence district'],
+      ['conservation_easements','Conservation easements'],['covered_by_insurance','Covered by insurance'],['covered_by_windstorm_insurance','Covered by windstorm insurance'],
+      ['unable_to_insure','Unable to insure'],['private_road_maintenance','Private-road maintenance'],['storage_tanks','Storage tanks'],
+      ['large_aboveground_storage_tanks','Large aboveground storage tanks']
+    ]]
+  ];
+  const renderResponses = () => responseGroups.map(([title, fields]) =>
+    '<details><summary>' + escape(title) + '</summary><div class="hof-seller-response-grid">' +
+    fields.map(([key,label]) => '<label class="hof-seller-response-row"><span>' + escape(label) + '</span><select data-seller-response="' + escape(key) + '"><option value="">—</option><option value="Y">Yes (Y)</option><option value="N">No (N)</option><option value="U">Unknown (U)</option></select></label>').join('') +
+    '</div></details>'
+  ).join('');
+  async function approvedSources() {
+    const token = root.hofAuth?.session?.access_token;
+    if (!token) return [];
+    const response = await fetch('/api/admin-dashboard?scope=approved_brokerage_sources', {headers:{Authorization:'Bearer ' + token}});
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(payload.error || 'Could not load approved brokerage sources.');
+    return payload.sources || [];
+  }
+  async function loadDrafts() {
+    const client = root.getSupabaseClient?.();
+    const user = root.hofAuth?.session?.user;
+    if (!client || !user) return [];
+    const {data,error} = await client.from('hof_seller_disclosure_drafts')
+      .select('id,property_address,seller_names,buyer_names,status,disclosure_source_revision,water_source_revision,created_at,updated_at')
+      .eq('agent_user_id', user.id).order('updated_at',{ascending:false}).limit(25);
+    if (error) throw error;
+    return data || [];
+  }
+  async function refreshDrafts() {
+    const list = document.getElementById('hofSellerDraftList');
+    if (!list) return;
+    try {
+      const drafts = await loadDrafts();
+      list.innerHTML = drafts.length ? drafts.map(d => '<li><span><strong>' + escape(d.property_address) + '</strong><br><small>' + escape((d.seller_names || []).join(', ')) + ' · ' + escape(d.disclosure_source_revision || '') + (d.water_source_revision ? ' + TREC-61-0' : '') + '</small></span><button type="button" class="btn-secondary hof-seller-preview" data-id="' + escape(d.id) + '">Preview PDF</button></li>').join('') : '<li>No seller disclosure drafts saved yet.</li>';
+      list.querySelectorAll('.hof-seller-preview').forEach(button => button.addEventListener('click', async () => {
+        const token = root.hofAuth?.session?.access_token;
+        button.disabled = true; button.textContent = 'Loading…';
+        try {
+          const response = await fetch('/api/admin-dashboard?preview_seller_disclosure=' + encodeURIComponent(button.dataset.id), {headers:{Authorization:'Bearer ' + token}});
+          if (!response.ok) throw new Error('Private seller preview is unavailable.');
+          const url = URL.createObjectURL(await response.blob()); window.open(url,'_blank','noopener'); setTimeout(() => URL.revokeObjectURL(url),60000);
+        } catch (error) { alert(error.message || 'Private seller preview is unavailable.'); }
+        finally { button.disabled = false; button.textContent = 'Preview PDF'; }
+      }));
+    } catch (error) { console.error(error); list.innerHTML = '<li>Could not load seller disclosure drafts.</li>'; }
+  }
+  async function renderCard() {
+    const panel = document.getElementById('accountPanelDashboard');
+    if (!panel || !active() || document.getElementById('hofSellerDisclosureCard')) return;
+    const card = document.createElement('div'); card.id = 'hofSellerDisclosureCard'; card.className = 'account-card hof-seller-disclosure-card';
+    card.innerHTML = '<h4>Seller disclosure draft</h4><p>Use only an approved source your brokerage is authorized to use. This creates a private draft for seller review; it does not send or sign a document.</p>' +
+      '<div class="hof-seller-grid"><label>Property address<input id="hofSellerAddress" maxlength="400" placeholder="Street address, city, state, ZIP"></label><label>TREC-55-1 source<select id="hofSellerSource"></select></label><label>Seller 1 name<input id="hofSeller1" maxlength="180"></label><label>Seller 2 name (optional)<input id="hofSeller2" maxlength="180"></label><label>Buyer 1 name (optional)<input id="hofBuyer1" maxlength="180"></label><label>Buyer 2 name (optional)<input id="hofBuyer2" maxlength="180"></label><label>TREC-61-0 water-rights source (optional)<select id="hofWaterSource"><option value="">Do not include</option></select></label></div>' +
+      renderResponses() +
+      '<div class="hof-seller-actions"><button class="btn-primary" type="button" id="hofSaveSellerDraft">Save private draft</button><span id="hofSellerDraftStatus" class="hof-iabs-status"></span></div><h5>My seller disclosure drafts</h5><ul id="hofSellerDraftList" class="hof-private-form-drafts-list"><li>Loading…</li></ul>';
+    panel.appendChild(card);
+    try {
+      const sources = await approvedSources();
+      const seller = sources.find(s => s.form_code === 'TREC-55-1');
+      const water = sources.find(s => s.form_code === 'TREC-61-0');
+      document.getElementById('hofSellerSource').innerHTML = seller ? '<option value="' + escape(seller.id) + '">' + escape(seller.source_revision) + '</option>' : '<option value="">No approved TREC-55-1 source</option>';
+      if (water) document.getElementById('hofWaterSource').insertAdjacentHTML('beforeend','<option value="' + escape(water.id) + '">' + escape(water.source_revision) + '</option>');
+    } catch (error) { document.getElementById('hofSellerDraftStatus').textContent = error.message || 'Approved sources unavailable.'; }
+    document.getElementById('hofSaveSellerDraft').addEventListener('click', async () => {
+      const status = document.getElementById('hofSellerDraftStatus');
+      const token = root.hofAuth?.session?.access_token;
+      const sellerNames = [document.getElementById('hofSeller1').value, document.getElementById('hofSeller2').value].map(v => v.trim()).filter(Boolean);
+      const buyerNames = [document.getElementById('hofBuyer1').value, document.getElementById('hofBuyer2').value].map(v => v.trim()).filter(Boolean);
+      const responseData = {};
+      card.querySelectorAll('[data-seller-response]').forEach(select => { if (select.value) responseData[select.dataset.sellerResponse] = select.value; });
+      const payload = {action:'create_seller_disclosure_draft',formCode:'TREC-55-1',disclosureSourceId:document.getElementById('hofSellerSource').value,waterSourceId:document.getElementById('hofWaterSource').value || null,propertyAddress:document.getElementById('hofSellerAddress').value,sellerNames,buyerNames,responseData,waterRightsData:{}};
+      if (!token) return alert('Sign in before saving a seller disclosure draft.');
+      if (!payload.disclosureSourceId || !payload.propertyAddress.trim() || !sellerNames.length) return alert('Enter the property address, at least one seller, and choose the approved TREC-55-1 source.');
+      status.textContent = 'Saving private draft…';
+      try {
+        const response = await fetch('/api/admin-dashboard',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer ' + token},body:JSON.stringify(payload)});
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(result.error || 'Could not save seller disclosure draft.');
+        status.textContent = 'Saved as a private draft. Seller review and signing are not active yet.';
+        await refreshDrafts();
+      } catch (error) { status.textContent = error.message || 'Could not save seller disclosure draft.'; }
+    });
+    refreshDrafts();
+  }
+  const previous = root.renderAccountDashboard;
+  root.renderAccountDashboard = function renderAccountDashboardWithSellerDisclosureDrafts() { if (typeof previous === 'function') previous.apply(this, arguments); renderCard(); };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', renderCard, {once:true}); else renderCard();
+})();
+</script>
 <script id="hof-pwa-registration-v1">
   // Keep offline support limited to the public app shell. Offers, documents,
   // authenticated data, and API responses are always fetched from the network.
