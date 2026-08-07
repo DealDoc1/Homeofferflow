@@ -26,6 +26,12 @@ class TrecSellerDisclosureMapTests(unittest.TestCase):
             {"page": 1, "x": 492, "y": 596, "width": 100},
         )
 
+    def test_signature_anchors_match_reviewed_lines(self):
+        self.assertEqual(MODULE.TREC_55_1_MAP["seller_signature_1"]["y"], 205)
+        self.assertEqual(MODULE.TREC_55_1_MAP["purchaser_signature_1"]["y"], 115)
+        self.assertEqual(MODULE.TREC_61_0_MAP["seller_signature_1"]["y"], 178)
+        self.assertEqual(MODULE.TREC_61_0_MAP["buyer_signature_1"]["y"], 122)
+
     def test_trec_61_water_well_anchors_match_reviewed_rows(self):
         field_map = MODULE.TREC_61_0_MAP
         self.assertEqual(field_map["water_well_yes"], {"page": 1, "x": 383, "y": 258})
