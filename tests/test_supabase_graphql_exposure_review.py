@@ -8,7 +8,7 @@ DOC = (ROOT / "docs" / "SUPABASE_GRAPHQL_EXPOSURE_REVIEW.md").read_text(encoding
 
 class SupabaseGraphqlExposureReviewTests(unittest.TestCase):
     def test_review_records_the_non_destructive_decision(self):
-        self.assertIn("Do not revoke `authenticated` access or drop `pg_graphql`", DOC)
+        self.assertIn("Do not revoke `authenticated` access broadly or drop `pg_graphql`", DOC)
         self.assertIn("RLS\nand table grants remain the actual authorization boundary", DOC)
 
     def test_review_covers_sensitive_browser_dependencies(self):
@@ -32,6 +32,11 @@ class SupabaseGraphqlExposureReviewTests(unittest.TestCase):
         migration = (ROOT / "supabase" / "homeofferflow_feedback_server_only.sql").read_text(encoding="utf-8")
         self.assertIn("revoke all on table public.hof_feedback from anon, authenticated", migration)
         self.assertIn("grant all on table public.hof_feedback to service_role", migration)
+
+    def test_usage_telemetry_is_first_prepared_server_only_dependency(self):
+        self.assertIn("/api/submit-feedback", DOC)
+        self.assertIn("signed-in production smoke test passes", DOC)
+        self.assertIn("hof_usage_events", DOC)
 
 
 if __name__ == "__main__":

@@ -4261,27 +4261,28 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
   }
 
   async function loadCurrentUsage() {
-    const client = getSupabaseClient();
     const user = hofAuth.session?.user;
     const billingMonth = getBillingMonth();
     const limit = Number(hofAuth.subscription?.packet_limit || (hofAuth.role === 'investor' ? 15 : 10));
 
-    if (!client || !user) {
+    if (!user || !hofAuth.session?.access_token) {
       hofAuth.usage = { used: 0, limit, billingMonth };
       renderSubscriptionCard();
       return hofAuth.usage;
     }
 
     try {
-      const { data, error } = await client
-        .from('hof_usage_events')
-        .select('quantity')
-        .eq('user_id', user.id)
-        .eq('billing_month', billingMonth)
-        .eq('event_type', 'signed_packet');
-      if (error) throw error;
-      const used = (data || []).reduce((sum, row) => sum + (Number(row.quantity) || 0), 0);
-      hofAuth.usage = { used, limit, billingMonth };
+      const response = await fetch('/api/submit-feedback', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${hofAuth.session.access_token}`
+        },
+        body: JSON.stringify({ action: 'usage_summary', billingMonth })
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || 'Usage could not be loaded.');
+      hofAuth.usage = { used: Number(data.used) || 0, limit, billingMonth: data.billingMonth || billingMonth };
       renderSubscriptionCard();
       return hofAuth.usage;
     } catch (err) {
@@ -4516,19 +4517,26 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
   }
 
   async function recordUsageEvent(offerId, eventType = 'signed_packet', quantity = 1, metadata = {}) {
-    const client = getSupabaseClient();
     const user = hofAuth.session?.user;
-    if (!client || !user) return;
+    const accessToken = hofAuth.session?.access_token;
+    if (!user || !accessToken) return;
     try {
-      await client.from('hof_usage_events').insert({
-        user_id: user.id,
-        offer_id: offerId || state.data?._hofOfferId || null,
-        event_type: eventType,
-        quantity,
-        billing_month: getBillingMonth(),
-        metadata: metadata || {},
-        created_at: new Date().toISOString()
+      const response = await fetch('/api/submit-feedback', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`
+        },
+        body: JSON.stringify({
+          action: 'usage_event',
+          offerId: offerId || state.data?._hofOfferId || null,
+          eventType,
+          quantity,
+          billingMonth: getBillingMonth(),
+          metadata: metadata || {}
+        })
       });
+      if (!response.ok) throw new Error((await response.json().catch(() => ({}))).error || 'Usage event could not be saved.');
       await loadCurrentUsage();
     } catch (err) {
       console.warn('Usage event log failed:', err);
