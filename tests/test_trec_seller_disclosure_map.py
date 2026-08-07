@@ -32,6 +32,10 @@ class TrecSellerDisclosureMapTests(unittest.TestCase):
         self.assertEqual(MODULE.TREC_61_0_MAP["seller_signature_1"]["y"], 178)
         self.assertEqual(MODULE.TREC_61_0_MAP["buyer_signature_1"]["y"], 122)
 
+    def test_trec_55_repair_awareness_anchors_are_explicit(self):
+        self.assertEqual(MODULE.TREC_55_1_MAP["repair_condition_yes"], {"page": 3, "x": 487, "y": 728})
+        self.assertEqual(MODULE.TREC_55_1_MAP["repair_condition_no"], {"page": 3, "x": 58, "y": 713})
+
     def test_trec_61_water_well_anchors_match_reviewed_rows(self):
         field_map = MODULE.TREC_61_0_MAP
         self.assertEqual(field_map["water_well_yes"], {"page": 1, "x": 383, "y": 258})
