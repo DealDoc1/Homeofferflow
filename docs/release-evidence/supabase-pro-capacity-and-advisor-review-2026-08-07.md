@@ -35,7 +35,7 @@ API policies. These are reviewed, not ignored:
 ## Verification evidence
 
 - Local release preflight passed for the current non-form evidence branch.
-- Full regression suite passed: `402 tests`, `OK`.
+- Full regression suite passed: `407 tests`, `OK`.
 - Targeted Stripe lifecycle, OnDemand checkout, brokerage authorization, and
   admin-security tests passed.
 - Working tree was clean after verification.
