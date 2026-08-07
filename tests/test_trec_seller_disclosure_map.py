@@ -16,11 +16,16 @@ class TrecSellerDisclosureMapTests(unittest.TestCase):
             contract = MODULE.source_contract(code)
             self.assertEqual(contract["page_count"], pages)
             self.assertEqual(contract["activation_status"], "pending_visual_qa")
+            self.assertEqual(len(contract["source_sha256"]), 64)
             self.assertIn("property_address" if code == "TREC-55-1" else "property_address_page_1", contract["field_map"])
 
     def test_preview_requires_explicit_qa_mode(self):
         with self.assertRaisesRegex(ValueError, "qa_mode"):
             MODULE.render_unsigned_preview(b"%PDF", "TREC-55-1", {}, qa_mode=False)
+
+    def test_source_fingerprint_gate(self):
+        with self.assertRaisesRegex(ValueError, "fingerprint"):
+            MODULE.validate_source_bytes("TREC-55-1", b"not-the-approved-source")
 
     def test_unknown_form_rejected(self):
         with self.assertRaises(ValueError):
