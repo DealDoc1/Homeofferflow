@@ -31,6 +31,16 @@ class BrokerageAdminLiveVerifierTests(unittest.TestCase):
         errors = module.validate(payload, "ondemand")
         self.assertTrue(any("private" in error or "buyer" in error for error in errors))
 
+    def test_nested_sensitive_fields_fail_closed(self):
+        payload = self._payload()
+        payload["agents"][0]["activity"] = {"recent": [{"offerData": {"address": "secret"}}]}
+        errors = module.validate(payload, "ondemand")
+        self.assertTrue(any("buyer" in error for error in errors))
+
+    def test_non_object_response_fails_closed(self):
+        errors = module.validate([], "ondemand")
+        self.assertEqual(errors, ["Brokerage response must be a JSON object."])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -37,6 +37,8 @@ def _get(base_url: str, token: str):
 
 def validate(payload, expected_slug=None):
     errors = []
+    if not isinstance(payload, dict):
+        return ["Brokerage response must be a JSON object."]
     brokerage = payload.get("brokerage") or {}
     metrics = payload.get("metrics") or {}
     privacy = payload.get("privacy") or {}
@@ -53,12 +55,21 @@ def validate(payload, expected_slug=None):
     if not isinstance(payload.get("sourceReadiness"), list):
         errors.append("Source-readiness metadata is missing.")
     forbidden = {"buyer", "buyerEmail", "seller", "address", "offerData", "documentContents", "storagePath", "sourceSha256"}
+    def contains_forbidden_key(value):
+        if isinstance(value, dict):
+            if forbidden.intersection(value):
+                return True
+            return any(contains_forbidden_key(child) for child in value.values())
+        if isinstance(value, list):
+            return any(contains_forbidden_key(child) for child in value)
+        return False
+
     for item in payload.get("agents") or []:
-        if forbidden.intersection(item):
+        if contains_forbidden_key(item):
             errors.append("Brokerage roster contains a buyer, offer-detail, or source-secret field.")
             break
     for item in payload.get("sourceReadiness") or []:
-        if forbidden.intersection(item):
+        if contains_forbidden_key(item):
             errors.append("Source-readiness payload contains a private source field.")
             break
     return errors

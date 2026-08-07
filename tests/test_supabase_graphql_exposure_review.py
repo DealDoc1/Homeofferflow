@@ -36,10 +36,10 @@ class SupabaseGraphqlExposureReviewTests(unittest.TestCase):
 
     def test_usage_telemetry_is_first_prepared_server_only_dependency(self):
         self.assertIn("/api/submit-feedback", DOC)
-        self.assertIn("signed-in production smoke test passes", DOC)
+        self.assertIn("live ACL", DOC)
+        self.assertIn("direct browser access is denied", DOC)
         self.assertIn("hof_usage_events", DOC)
 
 
 if __name__ == "__main__":
     unittest.main()
-

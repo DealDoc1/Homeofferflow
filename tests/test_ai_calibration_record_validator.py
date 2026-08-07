@@ -50,6 +50,16 @@ class AiCalibrationRecordValidatorTests(unittest.TestCase):
     def test_malformed_container_fails_closed(self):
         self.assertTrue(any("JSON array" in error for error in module.validate({"review": []})))
 
+    def test_incomplete_review_content_fails_closed(self):
+        record = self._record("AI-CAL-01")
+        record["useful_output"] = ""
+        record["displayed_score"] = 101
+        record["review_date"] = "August 3"
+        errors = module.validate([record])
+        self.assertTrue(any("useful_output must be non-empty" in error for error in errors))
+        self.assertTrue(any("displayed_score must be between 0 and 100" in error for error in errors))
+        self.assertTrue(any("review_date must be ISO-8601" in error for error in errors))
+
 
 if __name__ == "__main__":
     unittest.main()

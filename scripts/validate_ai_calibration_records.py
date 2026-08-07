@@ -8,6 +8,7 @@ scoring, wording, or the production calibration state.
 from __future__ import annotations
 
 import argparse
+from datetime import date
 import json
 import re
 import sys
@@ -36,6 +37,15 @@ ALLOWED_DISPOSITIONS = {"useful", "needs_revision", "unsafe_until_revised"}
 EMAIL_RE = re.compile(r"\b[^\s@]+@[^\s@]+\.[^\s@]+\b")
 PHONE_RE = re.compile(r"(?<!\d)(?:\+?1[\s.-]?)?(?:\(?\d{3}\)?[\s.-]?)\d{3}[\s.-]?\d{4}(?!\d)")
 PII_MARKERS = ("mls", "client name", "client_name", "street address", "exact address")
+NON_EMPTY_FIELDS = (
+    "review_date",
+    "displayed_market_mode",
+    "displayed_source_model",
+    "useful_output",
+    "misleading_or_unsafe",
+    "insufficient_or_missing",
+    "recommended_change",
+)
 
 
 def _as_reviews(payload):
@@ -79,6 +89,21 @@ def validate(payload):
             errors.append(f"{scenario_id or '(missing scenario_id)'} has an invalid reviewer_role")
         if record.get("disposition") not in ALLOWED_DISPOSITIONS:
             errors.append(f"{scenario_id or '(missing scenario_id)'} has an invalid disposition")
+        for field in NON_EMPTY_FIELDS:
+            value = record.get(field)
+            if not isinstance(value, str) or not value.strip():
+                errors.append(f"{scenario_id or '(missing scenario_id)'} {field} must be non-empty")
+        review_date = record.get("review_date")
+        if isinstance(review_date, str) and review_date.strip():
+            try:
+                date.fromisoformat(review_date)
+            except ValueError:
+                errors.append(f"{scenario_id or '(missing scenario_id)'} review_date must be ISO-8601 YYYY-MM-DD")
+        displayed_score = record.get("displayed_score")
+        if isinstance(displayed_score, bool) or not isinstance(displayed_score, (int, float)):
+            errors.append(f"{scenario_id or '(missing scenario_id)'} displayed_score must be numeric")
+        elif not 0 <= displayed_score <= 100:
+            errors.append(f"{scenario_id or '(missing scenario_id)'} displayed_score must be between 0 and 100")
         for field in ("disclaimer_clear", "overclaiming_or_advice"):
             if not isinstance(record.get(field), bool):
                 errors.append(f"{scenario_id or '(missing scenario_id)'} {field} must be boolean")
