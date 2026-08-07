@@ -1,5 +1,6 @@
 import json
 import os
+import re
 from http.server import BaseHTTPRequestHandler
 
 import httpx
@@ -34,6 +35,9 @@ AI_CALIBRATION_SCENARIOS = {
     "AI-CAL-04",
     "AI-CAL-05",
 }
+ALLOWED_USAGE_EVENT_TYPES = {"signed_packet"}
+USAGE_BILLING_MONTH_RE = re.compile(r"^\d{4}-(0[1-9]|1[0-2])$")
+MAX_USAGE_METADATA_KEYS = 8
 
 
 def _json(handler, status, payload):
@@ -145,6 +149,113 @@ def _parse_payload(raw):
     }
 
 
+def _parse_json_object(raw):
+    if len(raw) > MAX_BODY_BYTES:
+        raise ValueError("Request payload is too large.")
+    try:
+        payload = json.loads(raw.decode("utf-8") or "{}")
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        raise ValueError("Request payload must be valid JSON.")
+    if not isinstance(payload, dict):
+        raise ValueError("Request payload must be an object.")
+    return payload
+
+
+def _clean_usage_metadata(value):
+    """Keep usage telemetry small and non-sensitive before it reaches storage."""
+    if value in (None, ""):
+        return {}
+    if not isinstance(value, dict):
+        raise ValueError("Usage metadata must be an object.")
+    if len(value) > MAX_USAGE_METADATA_KEYS:
+        raise ValueError("Usage metadata contains too many fields.")
+    clean = {}
+    for key, raw in value.items():
+        name = _clean(key, 40)
+        if not name:
+            continue
+        if isinstance(raw, (str, int, float, bool)) or raw is None:
+            clean[name] = _clean(raw, 160) if isinstance(raw, str) else raw
+    return clean
+
+
+def _parse_usage_event(payload):
+    event_type = _clean(payload.get("eventType") or payload.get("event_type"), 40)
+    if event_type not in ALLOWED_USAGE_EVENT_TYPES:
+        raise ValueError("Choose a valid usage event type.")
+    try:
+        quantity = int(payload.get("quantity", 1))
+    except (TypeError, ValueError):
+        raise ValueError("Usage quantity must be a positive integer.")
+    if quantity < 1 or quantity > 10:
+        raise ValueError("Usage quantity must be between 1 and 10.")
+    billing_month = _clean(payload.get("billingMonth") or payload.get("billing_month"), 7)
+    if not USAGE_BILLING_MONTH_RE.fullmatch(billing_month):
+        raise ValueError("Usage billing month must use YYYY-MM format.")
+    offer_id = _clean(payload.get("offerId") or payload.get("offer_id"), 80) or None
+    if offer_id and not re.fullmatch(r"[0-9a-fA-F-]{16,80}", offer_id):
+        raise ValueError("Usage offer ID is invalid.")
+    return {
+        "event_type": event_type,
+        "quantity": quantity,
+        "billing_month": billing_month,
+        "offer_id": offer_id,
+        "metadata": _clean_usage_metadata(payload.get("metadata")),
+    }
+
+
+def _save_usage_event(user, event):
+    if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
+        raise RuntimeError("Usage storage is not configured.")
+    if event["offer_id"]:
+        response = httpx.get(
+            f"{SUPABASE_URL}/rest/v1/hof_offers"
+            f"?id=eq.{event['offer_id']}&user_id=eq.{user['id']}&select=id&limit=1",
+            headers={"apikey": SUPABASE_SERVICE_ROLE_KEY, "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}"},
+            timeout=12,
+        )
+        if response.status_code >= 300 or not response.json():
+            raise ValueError("Usage offer ID does not belong to this account.")
+    response = httpx.post(
+        f"{SUPABASE_URL}/rest/v1/hof_usage_events",
+        headers={
+            "apikey": SUPABASE_SERVICE_ROLE_KEY,
+            "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}",
+            "Content-Type": "application/json",
+            "Prefer": "return=representation",
+        },
+        json={
+            "user_id": user["id"],
+            "offer_id": event["offer_id"],
+            "event_type": event["event_type"],
+            "quantity": event["quantity"],
+            "billing_month": event["billing_month"],
+            "metadata": event["metadata"],
+        },
+        timeout=12,
+    )
+    if response.status_code >= 300:
+        raise RuntimeError("Usage event could not be saved.")
+    return {"ok": True}
+
+
+def _usage_summary(user, billing_month):
+    billing_month = _clean(billing_month, 7)
+    if not USAGE_BILLING_MONTH_RE.fullmatch(billing_month):
+        raise ValueError("Usage billing month must use YYYY-MM format.")
+    response = httpx.get(
+        f"{SUPABASE_URL}/rest/v1/hof_usage_events"
+        f"?user_id=eq.{user['id']}&billing_month=eq.{billing_month}"
+        "&event_type=eq.signed_packet&select=quantity",
+        headers={"apikey": SUPABASE_SERVICE_ROLE_KEY, "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}"},
+        timeout=12,
+    )
+    if response.status_code >= 300:
+        raise RuntimeError("Usage could not be loaded.")
+    rows = response.json() if response.text else []
+    return {"billingMonth": billing_month, "used": sum(int(row.get("quantity") or 0) for row in rows)}
+
+
 def _save_feedback(user, feedback):
     if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
         raise RuntimeError("Feedback storage is not configured.")
@@ -201,9 +312,20 @@ class handler(BaseHTTPRequestHandler):
                 return
             length = int(self.headers.get("Content-Length") or 0)
             if length > MAX_BODY_BYTES:
-                _json(self, 413, {"error": "Feedback payload is too large."})
+                _json(self, 413, {"error": "Request payload is too large."})
                 return
             payload = self.rfile.read(length)
+            request = _parse_json_object(payload)
+            action = _clean(request.get("action"), 40)
+            if action == "usage_summary":
+                summary = _usage_summary(user, request.get("billingMonth") or request.get("billing_month"))
+                _json(self, 200, summary)
+                return
+            if action == "usage_event":
+                event = _parse_usage_event(request)
+                saved = _save_usage_event(user, event)
+                _json(self, 201, saved)
+                return
             feedback = _parse_payload(payload)
             authoritative_role = _authoritative_role(user)
             if feedback["issue_type"] == "ai_review":
