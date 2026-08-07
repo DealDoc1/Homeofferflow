@@ -41,6 +41,8 @@ visual-QA gates required for a packet or legal-form release.
 
 - [ ] Confirm the release commit is authored by `andrewchri@gmail.com`; Vercel
   uses that author identity for the current production team.
+- [ ] Confirm the exact Vercel project and `main` commit that will be deployed;
+  do not invoke an unverified or stale deploy-hook URL.
 
 ## 2A. Account, billing, and brokerage-admin regression
 
@@ -112,6 +114,9 @@ Vercel deploy.
 
 - [ ] Check the canonical home page.
 - [ ] Check each affected API route or workflow using the least-invasive test.
+- [ ] Scan production runtime errors for the prior 24 hours before and after
+  the deployment; investigate any new 5xx or function errors before release
+  sign-off.
 - [ ] Verify Stripe/Supabase/SignWell side effects only in an isolated test
   environment or an approved real transaction flow; never send Stripe test
   events into the production database.
