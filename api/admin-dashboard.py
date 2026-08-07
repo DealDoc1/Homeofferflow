@@ -4,8 +4,10 @@ import uuid
 import re
 import urllib.parse
 from datetime import datetime, timezone
+from io import BytesIO
 from http.server import BaseHTTPRequestHandler
 import httpx
+from pypdf import PdfReader, PdfWriter
 from lib import platform_form_source_upload as platform_source
 from lib import seller_disclosure_draft
 
@@ -1663,6 +1665,104 @@ async def _create_txr_1506_draft(user, data):
     return await _create_representation_draft(user, data, TXR_1506_FORM_CODE, _parse_txr_1506_draft)
 
 
+async def _render_seller_disclosure_draft_preview(user, draft_id):
+    """Render an agent-owned seller disclosure draft as a private QA preview.
+
+    This rechecks draft ownership, active brokerage membership, approved source
+    authorization, and source revisions on every request. It never changes the
+    draft, creates a SignWell document, or marks the workflow ready to send.
+    """
+    try:
+        draft_uuid = str(uuid.UUID(str(draft_id)))
+    except (TypeError, ValueError, AttributeError):
+        raise ValueError("Choose a valid private seller disclosure draft.")
+
+    brokerage_id = await _active_brokerage_member(user)
+    drafts = await _get(
+        "hof_seller_disclosure_drafts?"
+        f"id=eq.{urllib.parse.quote(draft_uuid)}"
+        f"&agent_user_id=eq.{urllib.parse.quote(user['id'])}"
+        f"&brokerage_id=eq.{urllib.parse.quote(str(brokerage_id))}"
+        "&status=eq.draft"
+        "&select=id,property_address,response_data,water_rights_data,"
+        "disclosure_source_id,water_source_id,disclosure_source_revision,water_source_revision"
+        "&limit=1"
+    )
+    if not drafts:
+        raise PermissionError("That private seller disclosure draft is unavailable.")
+    draft = drafts[0]
+
+    async def _approved_source(source_id, form_code, expected_revision):
+        if not source_id:
+            return None
+        rows = await _get(
+            "hof_brokerage_form_sources?"
+            f"id=eq.{urllib.parse.quote(str(source_id))}"
+            f"&brokerage_id=eq.{urllib.parse.quote(str(brokerage_id))}"
+            f"&form_code=eq.{urllib.parse.quote(form_code)}"
+            "&status=eq.approved&authorization_attested=is.true"
+            "&select=id,source_revision,storage_bucket,storage_path&limit=1"
+        )
+        if not rows:
+            raise ValueError(f"The approved {form_code} source is no longer available.")
+        source = rows[0]
+        if source.get("source_revision") != expected_revision:
+            raise ValueError(f"The {form_code} draft source revision no longer matches the approved source.")
+        return source
+
+    async def _source_bytes(source):
+        async with httpx.AsyncClient(timeout=20) as client:
+            response = await client.get(
+                f"{SUPABASE_URL}/storage/v1/object/"
+                f"{urllib.parse.quote(str(source['storage_bucket']), safe='')}/"
+                f"{urllib.parse.quote(str(source['storage_path']), safe='/')}",
+                headers=_headers(),
+            )
+        if response.status_code != 200 or not response.content.startswith(b"%PDF"):
+            raise RuntimeError("The approved seller-disclosure source could not be loaded.")
+        return response.content
+
+    disclosure_source = await _approved_source(
+        draft.get("disclosure_source_id"), TREC_55_1_FORM_CODE,
+        draft.get("disclosure_source_revision"),
+    )
+    if not disclosure_source:
+        raise ValueError("The seller disclosure source is missing.")
+    water_source = await _approved_source(
+        draft.get("water_source_id"), TREC_61_0_FORM_CODE,
+        draft.get("water_source_revision"),
+    )
+
+    from lib.trec_seller_disclosure import render_unsigned_preview
+
+    response_values = dict(draft.get("response_data") or {})
+    response_values["propertyAddress"] = draft.get("property_address") or ""
+    preview = render_unsigned_preview(
+        await _source_bytes(disclosure_source),
+        TREC_55_1_FORM_CODE,
+        response_values,
+        qa_mode=True,
+    )
+    if water_source:
+        water_values = dict(draft.get("water_rights_data") or {})
+        water_values["propertyAddress"] = draft.get("property_address") or ""
+        water_preview = render_unsigned_preview(
+            await _source_bytes(water_source),
+            TREC_61_0_FORM_CODE,
+            water_values,
+            qa_mode=True,
+        )
+        writer = PdfWriter()
+        for payload in (preview, water_preview):
+            reader = PdfReader(BytesIO(payload))
+            for page in reader.pages:
+                writer.add_page(page)
+        merged = BytesIO()
+        writer.write(merged)
+        preview = merged.getvalue()
+    return preview
+
+
 async def _render_representation_draft_preview(user, agreement_id):
     """Render an agent's own approved-source representation draft privately.
 
@@ -1768,6 +1868,11 @@ class handler(BaseHTTPRequestHandler):
                 _json(self, 401, {"error": "A valid signed-in session is required."})
                 return
             query = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+            preview_seller_disclosure = str((query.get("preview_seller_disclosure") or [""])[0]).strip()
+            if preview_seller_disclosure:
+                pdf = asyncio.run(_render_seller_disclosure_draft_preview(user, preview_seller_disclosure))
+                _pdf_response(self, pdf, "seller-disclosure-private-draft-preview.pdf")
+                return
             preview_agreement = str((query.get("preview_agreement") or [""])[0]).strip()
             if preview_agreement:
                 pdf = asyncio.run(_render_representation_draft_preview(user, preview_agreement))
