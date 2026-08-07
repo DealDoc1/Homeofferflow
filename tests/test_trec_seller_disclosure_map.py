@@ -288,3 +288,16 @@ def test_trec_55_1_flood_response_anchors():
         ("in_flood_pool", 58, 542),
         ("in_reservoir", 58, 524),
     )
+
+
+def test_trec_55_1_additional_disclosure_anchors():
+    assert TREC_55_1_ADDITIONAL_ROWS == (
+        ("unpermitted_modifications", 58, 704), ("hoa_assessments", 58, 686),
+        ("common_area", 58, 668), ("deed_or_ordinance_violations", 58, 650),
+        ("property_lawsuits", 58, 632), ("health_or_safety_condition", 58, 614),
+        ("large_rainwater_system", 58, 596), ("groundwater_or_subsidence_district", 58, 578),
+        ("conservation_easements", 58, 560), ("covered_by_insurance", 58, 542),
+        ("covered_by_windstorm_insurance", 58, 524), ("unable_to_insure", 58, 496),
+        ("private_road_maintenance", 58, 478), ("storage_tanks", 58, 460),
+        ("large_aboveground_storage_tanks", 58, 442),
+    )
