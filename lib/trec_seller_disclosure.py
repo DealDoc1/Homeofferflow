@@ -23,8 +23,8 @@ TREC_61_0_PAGE_COUNT = 2
 # production-approved until the rendered preview is reviewed page by page.
 TREC_55_1_MAP = {
     "property_address": {"page": 1, "x": 185, "y": 674, "width": 390},
-    "seller_occupancy_yes": {"page": 1, "x": 96, "y": 604},
-    "seller_occupancy_no": {"page": 1, "x": 133, "y": 604},
+    "seller_occupancy_yes": {"page": 1, "x": 76, "y": 604},
+    "seller_occupancy_no": {"page": 1, "x": 102, "y": 604},
     "seller_occupancy_duration": {"page": 1, "x": 492, "y": 596, "width": 100},
     "item_responses_page_1": {"page": 1, "y_start": 570, "row_height": 18},
     "repair_awareness_yes": {"page": 1, "x": 133, "y": 103},
