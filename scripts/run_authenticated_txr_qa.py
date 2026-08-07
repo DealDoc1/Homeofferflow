@@ -137,27 +137,17 @@ def _seller_disclosure_payload(seller_count: int):
     }
 
 
-def main(argv=None):
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--base-url", default="https://www.homeofferflow.com")
-    parser.add_argument("--access-token", default=os.environ.get("HOF_ACCESS_TOKEN"))
-    parser.add_argument("--form", choices=tuple(SOURCE_IDS) + ("TREC-55-1",), default="TXR-1507")
-    parser.add_argument("--clients", type=int, choices=(1, 2), default=1)
-    parser.add_argument("--output-dir", type=Path, required=True)
-    args = parser.parse_args(argv)
-    if not args.access_token:
-        parser.error("Use an existing Supabase access token via --access-token or HOF_ACCESS_TOKEN.")
-
-    args.output_dir.expanduser().mkdir(parents=True, exist_ok=True)
-    seller_disclosure = args.form == "TREC-55-1"
+def _run_one(base_url: str, access_token: str, form: str, client_count: int, output_dir: Path):
+    output_dir.expanduser().mkdir(parents=True, exist_ok=True)
+    seller_disclosure = form == "TREC-55-1"
     draft_payload = (
-        _seller_disclosure_payload(args.clients)
+        _seller_disclosure_payload(client_count)
         if seller_disclosure
-        else _payload(args.form, args.clients)
+        else _payload(form, client_count)
     )
     status, content_type, raw = _request(
-        args.base_url,
-        args.access_token,
+        base_url,
+        access_token,
         "/api/admin-dashboard",
         method="POST",
         body=draft_payload,
@@ -175,20 +165,17 @@ def main(argv=None):
         if seller_disclosure
         else f"/api/admin-dashboard?preview_agreement={agreement_id}"
     )
-    preview_status, preview_type, preview = _request(args.base_url, args.access_token, preview_path)
+    preview_status, preview_type, preview = _request(base_url, access_token, preview_path)
     if preview_status >= 300 or "pdf" not in preview_type.lower():
         raise RuntimeError(f"Preview returned HTTP {preview_status} with content type {preview_type!r}.")
 
     subject_count = "seller" if seller_disclosure else "client"
-    pdf_path = args.output_dir.expanduser() / f"{args.form.lower()}-{args.clients}-{subject_count}-private-preview.pdf"
+    pdf_path = output_dir.expanduser() / f"{form.lower()}-{client_count}-{subject_count}-private-preview.pdf"
     pdf_path.write_bytes(preview)
     report = {
         "ok": True,
-        "form_code": args.form,
-        "client_count": args.clients,
-        # Preserve the document-specific plan in the QA report. TXR-1508 and
-        # TXR-1506 use different signer-plan vocabulary from the representation
-        # agreements, so a hard-coded value would create misleading evidence.
+        "form_code": form,
+        "client_count": client_count,
         "signer_plan": None if seller_disclosure else draft_payload.get("signerPlan"),
         "seller_review_only": seller_disclosure,
         "water_source_attached": bool(seller_disclosure and draft_payload.get("waterSourceId")),
@@ -197,11 +184,35 @@ def main(argv=None):
         "signing_sent": False,
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
-    report_path = args.output_dir.expanduser() / (
-        f"{args.form.lower()}-{args.clients}-{subject_count}-qa-report.json"
+    report_path = output_dir.expanduser() / (
+        f"{form.lower()}-{client_count}-{subject_count}-qa-report.json"
     )
     report_path.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
-    print(json.dumps(report, indent=2))
+    return report
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--base-url", default="https://www.homeofferflow.com")
+    parser.add_argument("--access-token", default=os.environ.get("HOF_ACCESS_TOKEN"))
+    parser.add_argument(
+        "--form",
+        choices=tuple(SOURCE_IDS) + ("TREC-55-1", "ALL"),
+        default="TXR-1507",
+        help="Form to preview, or ALL for every supported TXR form plus TREC-55-1.",
+    )
+    parser.add_argument("--clients", type=int, choices=(1, 2), default=1)
+    parser.add_argument("--output-dir", type=Path, required=True)
+    args = parser.parse_args(argv)
+    if not args.access_token:
+        parser.error("Use an existing Supabase access token via --access-token or HOF_ACCESS_TOKEN.")
+
+    forms = tuple(SOURCE_IDS) + ("TREC-55-1",) if args.form == "ALL" else (args.form,)
+    reports = [
+        _run_one(args.base_url, args.access_token, form, args.clients, args.output_dir / form.lower())
+        for form in forms
+    ]
+    print(json.dumps(reports[0] if len(reports) == 1 else {"ok": True, "reports": reports}, indent=2))
     return 0
 
 

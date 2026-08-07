@@ -62,8 +62,14 @@ class AuthenticatedTxrQaHelperTests(unittest.TestCase):
 
     def test_helper_report_names_reflect_seller_subjects_without_relabeling_them_as_clients(self):
         source = (ROOT / "scripts" / "run_authenticated_txr_qa.py").read_text()
-        self.assertIn('f"{args.form.lower()}-{args.clients}-{subject_count}-qa-report.json"', source)
+        self.assertIn('f"{form.lower()}-{client_count}-{subject_count}-qa-report.json"', source)
         self.assertIn('subject_count = "seller" if seller_disclosure else "client"', source)
+
+    def test_helper_exposes_an_all_form_matrix_mode_without_signing(self):
+        source = (ROOT / "scripts" / "run_authenticated_txr_qa.py").read_text()
+        self.assertIn('("TREC-55-1", "ALL")', source)
+        self.assertIn('forms = tuple(SOURCE_IDS) + ("TREC-55-1",) if args.form == "ALL" else (args.form,)', source)
+        self.assertIn('"signing_sent": False', source)
 
 if __name__ == "__main__":
     unittest.main()
