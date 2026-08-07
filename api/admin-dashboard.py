@@ -1857,25 +1857,31 @@ async def _attest_seller_review(session_token, data):
     return {"ok": True, "attestedAt": now, "attestedName": seller_name, "workflowActivated": False}
 
 
-async def _render_seller_disclosure_draft_preview(user, draft_id):
-    """Render an agent-owned seller disclosure draft as a private QA preview.
-
-    This rechecks draft ownership, active brokerage membership, approved source
-    authorization, and source revisions on every request. It never changes the
-    draft, creates a SignWell document, or marks the workflow ready to send.
-    """
+async def _render_seller_disclosure_draft_preview(user, draft_id, review_context=None):
+    """Render an agent-owned or email-verified seller draft as an unsigned preview."""
     try:
         draft_uuid = str(uuid.UUID(str(draft_id)))
     except (TypeError, ValueError, AttributeError):
         raise ValueError("Choose a valid private seller disclosure draft.")
-
-    brokerage_id = await _active_brokerage_member(user)
+    if review_context:
+        brokerage_id = str(review_context["brokerage_id"])
+        draft_query = (
+            "hof_seller_disclosure_drafts?"
+            f"id=eq.{urllib.parse.quote(draft_uuid)}"
+            f"&brokerage_id=eq.{urllib.parse.quote(brokerage_id)}"
+            "&status=eq.draft"
+        )
+    else:
+        brokerage_id = await _active_brokerage_member(user)
+        draft_query = (
+            "hof_seller_disclosure_drafts?"
+            f"id=eq.{urllib.parse.quote(draft_uuid)}"
+            f"&agent_user_id=eq.{urllib.parse.quote(user['id'])}"
+            f"&brokerage_id=eq.{urllib.parse.quote(str(brokerage_id))}"
+            "&status=eq.draft"
+        )
     drafts = await _get(
-        "hof_seller_disclosure_drafts?"
-        f"id=eq.{urllib.parse.quote(draft_uuid)}"
-        f"&agent_user_id=eq.{urllib.parse.quote(user['id'])}"
-        f"&brokerage_id=eq.{urllib.parse.quote(str(brokerage_id))}"
-        "&status=eq.draft"
+        draft_query
         "&select=id,property_address,response_data,water_rights_data,"
         "disclosure_source_id,water_source_id,disclosure_source_revision,water_source_revision"
         "&limit=1"
