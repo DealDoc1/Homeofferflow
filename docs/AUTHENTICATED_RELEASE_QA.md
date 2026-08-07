@@ -32,6 +32,20 @@ The summary must show:
 - previews for TXR-1501, TXR-1506, TXR-1507, and TXR-1508
 - the form-specific signer plan preserved in each report
 
+After the bundle finishes, run the offline validator before visual review:
+
+```bash
+PYTHONPATH=. \\
+python scripts/validate_authenticated_release_qa.py \\
+  /tmp/homeofferflow-auth-qa/authenticated-release-qa-summary.json
+```
+
+The validator checks all eight form/client-count combinations, confirms that
+brokerage privacy flags remain false, confirms `signing_sent: false`, verifies
+each preview/report exists, and rejects sensitive transaction data in the
+metadata reports. It does not contact the application or create any side
+effect.
+
 ## Visual review
 
 Render every generated PDF and inspect every applicable visible blank,
