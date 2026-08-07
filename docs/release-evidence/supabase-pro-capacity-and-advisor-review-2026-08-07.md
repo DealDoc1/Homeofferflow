@@ -35,7 +35,7 @@ API policies. These are reviewed, not ignored:
 ## Verification evidence
 
 - Local release preflight passed for the current non-form evidence branch.
-- Full regression suite passed: `415 tests`, `OK`.
+- Full regression suite passed: `417 tests`, `OK`.
 - Targeted Stripe lifecycle, OnDemand checkout, brokerage authorization, and
   admin-security tests passed.
 - Read-only live endpoint checks passed without creating checkout or payment
