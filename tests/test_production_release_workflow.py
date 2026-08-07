@@ -11,12 +11,14 @@ class ProductionReleaseWorkflowTests(unittest.TestCase):
     def setUpClass(cls):
         cls.text = WORKFLOW.read_text(encoding="utf-8")
 
-    def test_release_is_manual_and_confirmation_gated(self):
+    def test_release_requires_manual_or_explicit_marker_confirmation(self):
         self.assertIn("workflow_dispatch:", self.text)
         self.assertIn("confirmation:", self.text)
         self.assertIn("inputs.confirmation == 'DEPLOY'", self.text)
         self.assertIn("inputs.confirmation != 'DEPLOY'", self.text)
-        self.assertNotIn("on:\n  push:", self.text)
+        self.assertIn("push:", self.text)
+        self.assertIn("[deploy-production]", self.text)
+        self.assertIn("github.event_name == 'push'", self.text)
 
     def test_release_runs_preflight_before_deploying(self):
         self.assertIn("needs: verify", self.text)
