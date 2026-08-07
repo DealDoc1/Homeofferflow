@@ -13601,9 +13601,9 @@ function routeAfterMagicLinkIfNeeded() {
     if (!panel || !active() || document.getElementById('hofSellerDisclosureCard')) return;
     const card = document.createElement('div'); card.id = 'hofSellerDisclosureCard'; card.className = 'account-card hof-seller-disclosure-card';
     card.innerHTML = '<h4>Seller disclosure draft</h4><p>Use only an approved source your brokerage is authorized to use. This creates a private draft for seller review; it does not send or sign a document.</p>' +
-      '<div class="hof-seller-grid"><label>Property address<input id="hofSellerAddress" maxlength="400" placeholder="Street address, city, state, ZIP"></label><label>TREC-55-1 source<select id="hofSellerSource"></select></label><label>Seller 1 name<input id="hofSeller1" maxlength="180"></label><label>Seller 2 name (optional)<input id="hofSeller2" maxlength="180"></label><label>Buyer 1 name (optional)<input id="hofBuyer1" maxlength="180"></label><label>Buyer 2 name (optional)<input id="hofBuyer2" maxlength="180"></label><label>TREC-61-0 water-rights source (optional)<select id="hofWaterSource"><option value="">Do not include</option></select></label></div>' +
+      '<div class="hof-seller-grid"><label>Property address<input id="hofSellerAddress" maxlength="400" placeholder="Street address, city, state, ZIP"></label><label>Seller review email<input id="hofSellerEmail" type="email" maxlength="320" autocomplete="email" placeholder="seller@example.com"></label><label>TREC-55-1 source<select id="hofSellerSource"></select></label><label>Seller 1 name<input id="hofSeller1" maxlength="180"></label><label>Seller 2 name (optional)<input id="hofSeller2" maxlength="180"></label><label>Buyer 1 name (optional)<input id="hofBuyer1" maxlength="180"></label><label>Buyer 2 name (optional)<input id="hofBuyer2" maxlength="180"></label><label>TREC-61-0 water-rights source (optional)<select id="hofWaterSource"><option value="">Do not include</option></select></label></div>' +
       renderResponses() + renderWaterResponses() +
-      '<div class="hof-seller-actions"><button class="btn-primary" type="button" id="hofSaveSellerDraft">Save private draft</button><span id="hofSellerDraftStatus" class="hof-iabs-status"></span></div><h5>My seller disclosure drafts</h5><ul id="hofSellerDraftList" class="hof-private-form-drafts-list"><li>Loading…</li></ul>';
+      '<div class="hof-seller-actions"><button class="btn-primary" type="button" id="hofSaveSellerDraft">Save private draft</button><button class="btn-secondary" type="button" id="hofSendSellerReview" disabled>Send seller review email</button><span id="hofSellerDraftStatus" class="hof-iabs-status"></span></div><h5>My seller disclosure drafts</h5><ul id="hofSellerDraftList" class="hof-private-form-drafts-list"><li>Loading…</li></ul>';
     panel.appendChild(card);
     try {
       const sources = await approvedSources();
@@ -13630,8 +13630,35 @@ function routeAfterMagicLinkIfNeeded() {
         const result = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(result.error || 'Could not save seller disclosure draft.');
         status.textContent = 'Saved as a private draft. Seller review and signing are not active yet.';
+        card.dataset.sellerDraftId = result.draft?.id || '';
+        const sendButton = document.getElementById('hofSendSellerReview');
+        if (sendButton) sendButton.disabled = !(card.dataset.sellerDraftId && document.getElementById('hofSellerEmail').value.trim());
         await refreshDrafts();
       } catch (error) { status.textContent = error.message || 'Could not save seller disclosure draft.'; }
+    });
+    document.getElementById('hofSellerEmail').addEventListener('input', () => {
+      const button = document.getElementById('hofSendSellerReview');
+      if (button) button.disabled = !(card.dataset.sellerDraftId && document.getElementById('hofSellerEmail').value.trim());
+    });
+    document.getElementById('hofSendSellerReview').addEventListener('click', async () => {
+      const status = document.getElementById('hofSellerDraftStatus');
+      const token = root.hofAuth?.session?.access_token;
+      const draftId = card.dataset.sellerDraftId || '';
+      const sellerEmail = document.getElementById('hofSellerEmail').value.trim();
+      if (!token) return alert('Sign in before sending a seller review request.');
+      if (!draftId || !sellerEmail) return alert('Save the draft and enter the seller review email first.');
+      status.textContent = 'Sending secure seller review email…';
+      const button = document.getElementById('hofSendSellerReview');
+      button.disabled = true;
+      try {
+        const response = await fetch('/api/admin-dashboard',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer ' + token},body:JSON.stringify({action:'create_seller_disclosure_review_link',draftId,sellerEmail})});
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(result.error || 'Could not send seller review email.');
+        status.textContent = 'Secure review email sent. The seller must verify the one-time code; signing is not active.';
+      } catch (error) {
+        status.textContent = error.message || 'Could not send seller review email.';
+        button.disabled = false;
+      }
     });
     refreshDrafts();
   }
