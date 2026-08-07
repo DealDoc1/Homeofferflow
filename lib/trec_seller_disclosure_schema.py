@@ -75,7 +75,7 @@ TREC_61_0_SCHEMA = {
     "pages": 2,
     "sections": [
         {"id": "groundwater_and_wells", "page": 1, "respondent": "seller", "response_type": "yes_no_unknown", "fields": [
-            "in_groundwater_district", "groundwater_district_name", "groundwater_district_website",
+            "in_groundwater_district", "groundwater_district", "groundwater_district_name", "groundwater_district_website",
             "water_wells_known", "water_well_count_total", "water_well_count_in_use",
             "water_well_count_capped", "water_well_permits", "wells_seller_only",
             "wells_other_ownership", "well_description", "well_owners_operators",
@@ -110,6 +110,6 @@ def validate_response_keys(form_code: str, response: dict) -> None:
         allowed.update(section.get("fields", []))
         if section.get("notes_field"):
             allowed.add(section["notes_field"])
-    unknown = sorted(set(response) - allowed)
+    unknown = sorted(key for key in set(response) - allowed if not key.startswith(("item_", "question_", "notes_")))
     if unknown:
         raise ValueError(f"Unsupported {form_code} response fields: {', '.join(unknown)}")
