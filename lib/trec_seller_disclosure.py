@@ -124,6 +124,9 @@ def render_unsigned_preview(source_pdf_bytes: bytes, form_code: str, values: dic
                     _check(canvas, field_map[key]["x"], field_map[key]["y"])
             _draw(canvas, values.get("seller_occupancy_duration"), 492, 596, size=8)
         if form_code == "TREC-55-1" and page_number == 3:
+            for key in ("repair_condition_yes", "repair_condition_no"):
+                if values.get(key):
+                    _check(canvas, field_map[key]["x"], field_map[key]["y"])
             _draw(canvas, values.get("repairDescription"), 330, 717, size=7)
         if form_code == "TREC-55-1" and page_number == 4:
             for value_key, map_key in (
