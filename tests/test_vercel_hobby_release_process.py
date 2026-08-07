@@ -28,6 +28,8 @@ class VercelHobbyReleaseProcessTests(unittest.TestCase):
         self.assertIn("Restricted Texas REALTORS", checklist)
         self.assertIn("exact SHA-256 fingerprint", checklist)
         self.assertIn("Source approval has not been mistaken for workflow activation", checklist)
+        self.assertIn("do not invoke an unverified or stale deploy-hook URL", checklist)
+        self.assertIn("Scan production runtime errors", checklist)
 
     def test_manual_release_gate_runs_preflight_without_deploying(self):
         workflow = (ROOT / ".github" / "workflows" / "release-gate.yml").read_text()
