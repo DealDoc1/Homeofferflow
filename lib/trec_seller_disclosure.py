@@ -101,6 +101,9 @@ TREC_55_1_ITEM_ROWS = (
     ("washer_dryer_hookups", 58, 534),
     ("window_screens", 211, 534),
     ("rain_gutters", 391, 534),
+    ("security_system", 58, 516),
+    ("fire_detection_equipment", 211, 516),
+    ("intercom_system", 391, 516),
 )
 
 def source_contract(form_code: str) -> dict[str, Any]:
