@@ -60,10 +60,10 @@ TREC_61_0_MAP = {
     "groundwater_district_yes": {"page": 1, "x": 408, "y": 258},
     "groundwater_district_no": {"page": 1, "x": 453, "y": 258},
     "groundwater_district_unknown": {"page": 1, "x": 497, "y": 258},
-    "water_well_yes": {"page": 1, "x": 383, "y": 222},
-    "water_well_no": {"page": 1, "x": 427, "y": 222},
-    "well_owned_seller": {"page": 1, "x": 48, "y": 126},
-    "well_other_party": {"page": 1, "x": 48, "y": 82},
+    "water_well_yes": {"page": 1, "x": 383, "y": 258},
+    "water_well_no": {"page": 1, "x": 427, "y": 258},
+    "well_owned_seller": {"page": 1, "x": 48, "y": 145},
+    "well_other_party": {"page": 1, "x": 48, "y": 120},
     "seller_signature_1": {"page": 2, "x": 42, "y": 144, "width": 235},
     "seller_date_1": {"page": 2, "x": 255, "y": 144, "width": 70},
     "seller_signature_2": {"page": 2, "x": 345, "y": 144, "width": 235},
@@ -131,7 +131,15 @@ def render_unsigned_preview(source_pdf_bytes: bytes, form_code: str, values: dic
                 _draw(canvas, values["sellerDate1"], 255, 177, size=8)
         if form_code == "TREC-61-0" and page_number == 1:
             _draw(canvas, values.get("propertyAddress"), 220, 634, size=8)
-            for key in ("groundwater_district_yes", "groundwater_district_no", "groundwater_district_unknown"):
+            for key in (
+                "groundwater_district_yes",
+                "groundwater_district_no",
+                "groundwater_district_unknown",
+                "water_well_yes",
+                "water_well_no",
+                "well_owned_seller",
+                "well_other_party",
+            ):
                 if values.get(key):
                     _check(canvas, field_map[key]["x"], field_map[key]["y"])
         canvas.showPage()
