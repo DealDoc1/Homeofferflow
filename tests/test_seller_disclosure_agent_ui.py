@@ -14,6 +14,9 @@ class SellerDisclosureAgentUiTests(unittest.TestCase):
         self.assertIn("preview_seller_disclosure", html)
         self.assertIn("seller_review_attested", html)
         self.assertIn("does not send or sign", html)
+        self.assertIn('hofSellerEmail', html)
+        self.assertIn('hofSendSellerReview', html)
+        self.assertIn('create_seller_disclosure_review_link', html)
 
     def test_response_controls_cover_all_mapped_groups(self):
         html = (ROOT / "index.html").read_text()
