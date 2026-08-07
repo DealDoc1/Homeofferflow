@@ -35,6 +35,14 @@ class PlatformFormSourceUploadTests(unittest.TestCase):
         self.assertEqual(parsed["source_revision"], "06-15-26")
         self.assertEqual(parsed["source_sha256"], hashlib.sha256(parsed["content"]).hexdigest())
 
+    def test_parser_accepts_supplied_trec_seller_sources(self):
+        for form_code, filename in (("TREC-55-1", "seller_disclosure_notice_55-1.pdf"), ("TREC-61-0", "seller_water_disclosure_61-0.pdf")):
+            payload = self._payload()
+            payload["formCode"] = form_code
+            payload["originalFilename"] = filename
+            parsed = module._parse_payload(json.dumps(payload).encode())
+            self.assertEqual(parsed["form_code"], form_code)
+
     def test_parser_rejects_non_pdf_even_with_valid_base64(self):
         content = b"not a pdf"
         with self.assertRaisesRegex(ValueError, "not a PDF"):
@@ -90,3 +98,4 @@ class PlatformFormSourceUploadTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
