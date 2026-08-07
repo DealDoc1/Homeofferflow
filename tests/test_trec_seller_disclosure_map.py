@@ -73,6 +73,12 @@ class TrecSellerDisclosureMapTests(unittest.TestCase):
                 ("tv_antenna", 58, 426),
                 ("cable_tv_wiring", 211, 426),
                 ("satellite_dish", 391, 426),
+                ("ceiling_fans", 58, 408),
+                ("attic_fans", 211, 408),
+                ("exhaust_fans", 391, 408),
+                ("central_ac", 58, 390),
+                ("central_heating", 211, 390),
+                ("wall_window_ac", 391, 390),
             ),
         )
 
