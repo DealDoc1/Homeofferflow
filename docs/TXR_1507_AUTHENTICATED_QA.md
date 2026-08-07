@@ -22,11 +22,17 @@ the token into a file:
 ```bash
 HOF_ACCESS_TOKEN="YOUR_EXISTING_SUPABASE_ACCESS_TOKEN" \
 python scripts/run_authenticated_txr_qa.py \
+  --form TXR-1507 \
   --output-dir /tmp/txr-1507-qa \
   --clients 1
 ```
 
 Run the same command with `--clients 2` for the second signer-plan scenario.
+
+The helper also accepts `--form TXR-1501`, `--form TXR-1508`, and
+`--form TXR-1506`; each uses its own approved source record and draft action.
+Those forms remain separate release candidates and do not inherit TXR-1507's
+release approval.
 
 The helper creates a private draft and downloads the preview PDF. It never
 sends a SignWell document and writes only metadata to its JSON report.

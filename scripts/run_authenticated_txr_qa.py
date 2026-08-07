@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Create and download a private TXR-1507 preview for authenticated QA.
+"""Create and download a private TXR preview for authenticated QA.
 
 This helper never sends a SignWell document. It uses an existing Supabase
 access token, creates a private draft through the authenticated production
@@ -10,9 +10,11 @@ written to the report.
 Usage::
 
     HOF_ACCESS_TOKEN='...' python scripts/run_authenticated_txr_qa.py \
-      --output-dir /tmp/txr-1507-qa --clients 1
+      --form TXR-1507 --output-dir /tmp/txr-1507-qa --clients 1
 
-Use ``--clients 2`` for the two-client signer-plan scenario.
+Use ``--clients 2`` for the two-client signer-plan scenario. The same helper
+supports TXR-1501, TXR-1508, and TXR-1506 so each form can be QA'd before its
+separate release gate is approved.
 """
 
 from __future__ import annotations
@@ -27,8 +29,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 
-SOURCE_ID = "016b54b3-61e9-4857-a048-f62f04fb8db9"
-FORM_CODE = "TXR-1507"
+SOURCE_IDS = {
+    "TXR-1501": "084958a8-fa91-498b-a31a-024f5a0dc310",
+    "TXR-1506": "39970342-064d-478d-868e-3a0399db91f4",
+    "TXR-1507": "016b54b3-61e9-4857-a048-f62f04fb8db9",
+    "TXR-1508": "ec9f2965-36a9-4079-9255-6def587bc3d7",
+}
 
 
 def _request(base_url: str, token: str, path: str, *, method="GET", body=None):
@@ -50,23 +56,60 @@ def _request(base_url: str, token: str, path: str, *, method="GET", body=None):
         raise RuntimeError(f"Could not reach HomeOfferFlow: {exc.reason}") from exc
 
 
-def _payload(client_count: int):
+def _payload(form_code: str, client_count: int):
     clients = ["TXR QA Client One"]
     if client_count == 2:
         clients.append("TXR QA Client Two")
-    return {
-        "action": "create_txr_1507_draft",
-        "formCode": FORM_CODE,
-        "formSourceId": SOURCE_ID,
+    common = {
+        "formCode": form_code,
+        "formSourceId": SOURCE_IDS[form_code],
         "clientNames": clients,
-        "marketArea": "Collin and Denton Counties, Texas",
-        "termStart": "2026-08-01",
-        "termEnd": "2027-01-31",
-        "serviceLevel": "full_services",
-        "intermediary": "authorized",
-        "signerPlan": "clients_and_associate",
         "formUseAttested": True,
-        "compensation": {"purchasePercentage": "3"},
+    }
+    if form_code == "TXR-1507":
+        return {
+            **common,
+            "action": "create_txr_1507_draft",
+            "marketArea": "Collin and Denton Counties, Texas",
+            "termStart": "2026-08-01",
+            "termEnd": "2027-01-31",
+            "serviceLevel": "full_services",
+            "intermediary": "authorized",
+            "signerPlan": "clients_and_associate",
+            "compensation": {"purchasePercentage": "3"},
+        }
+    if form_code == "TXR-1501":
+        return {
+            **common,
+            "action": "create_txr_1501_draft",
+            "clientAddress": "100 Example Street",
+            "clientCityStateZip": "Example, TX 75000",
+            "clientPhone": "0000000000",
+            "clientEmail": "txr-qa@example.invalid",
+            "marketArea": "Collin and Denton Counties, Texas",
+            "termStart": "2026-08-01",
+            "termEnd": "2027-01-31",
+            "paymentCounty": "Collin",
+            "intermediary": "authorized",
+            "signerPlan": "clients_and_associate",
+            "compensation": {"purchasePercentage": "3"},
+        }
+    if form_code == "TXR-1508":
+        return {
+            **common,
+            "action": "create_txr_1508_draft",
+            "propertyAddress": "100 Example Street, Example City, TX 75000",
+            "otherBrokerAgreement": ["no"] * client_count,
+            "unrepresentedAcknowledgment": True,
+            "signerPlan": "associate_and_clients",
+        }
+    return {
+        **common,
+        "action": "create_txr_1506_draft",
+        "consumerRole": "buyer",
+        "additionalNotice": "Please review and ask questions before signing.",
+        "noticeAcknowledgment": True,
+        "signerPlan": "consumers_and_associate",
     }
 
 
@@ -74,6 +117,7 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--base-url", default="https://www.homeofferflow.com")
     parser.add_argument("--access-token", default=os.environ.get("HOF_ACCESS_TOKEN"))
+    parser.add_argument("--form", choices=tuple(SOURCE_IDS), default="TXR-1507")
     parser.add_argument("--clients", type=int, choices=(1, 2), default=1)
     parser.add_argument("--output-dir", type=Path, required=True)
     args = parser.parse_args(argv)
@@ -86,7 +130,7 @@ def main(argv=None):
         args.access_token,
         "/api/admin-dashboard",
         method="POST",
-        body=_payload(args.clients),
+        body=_payload(args.form, args.clients),
     )
     if status >= 300 or "json" not in content_type.lower():
         raise RuntimeError(f"Draft creation returned HTTP {status} with content type {content_type!r}.")
@@ -101,11 +145,11 @@ def main(argv=None):
     if preview_status >= 300 or "pdf" not in preview_type.lower():
         raise RuntimeError(f"Preview returned HTTP {preview_status} with content type {preview_type!r}.")
 
-    pdf_path = args.output_dir.expanduser() / f"txr-1507-{args.clients}-client-private-preview.pdf"
+    pdf_path = args.output_dir.expanduser() / f"{args.form.lower()}-{args.clients}-client-private-preview.pdf"
     pdf_path.write_bytes(preview)
     report = {
         "ok": True,
-        "form_code": FORM_CODE,
+        "form_code": args.form,
         "client_count": args.clients,
         "signer_plan": "clients_and_associate",
         "draft_id_present": True,
@@ -113,7 +157,7 @@ def main(argv=None):
         "signing_sent": False,
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
-    report_path = args.output_dir.expanduser() / f"txr-1507-{args.clients}-client-qa-report.json"
+    report_path = args.output_dir.expanduser() / f"{args.form.lower()}-{args.clients}-client-qa-report.json"
     report_path.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(report, indent=2))
     return 0

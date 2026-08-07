@@ -13,7 +13,7 @@ SPEC.loader.exec_module(MODULE)
 
 class AuthenticatedTxrQaHelperTests(unittest.TestCase):
     def test_one_client_payload_is_restricted_and_explicit(self):
-        payload = MODULE._payload(1)
+        payload = MODULE._payload("TXR-1507", 1)
         self.assertEqual(payload["action"], "create_txr_1507_draft")
         self.assertEqual(payload["formCode"], "TXR-1507")
         self.assertEqual(payload["signerPlan"], "clients_and_associate")
@@ -23,9 +23,22 @@ class AuthenticatedTxrQaHelperTests(unittest.TestCase):
         self.assertNotIn("phone", payload)
 
     def test_two_client_payload_has_two_distinct_test_clients(self):
-        payload = MODULE._payload(2)
+        payload = MODULE._payload("TXR-1507", 2)
         self.assertEqual(len(payload["clientNames"]), 2)
         self.assertEqual(len(set(payload["clientNames"])), 2)
+
+    def test_all_supported_forms_have_distinct_actions_and_sources(self):
+        expected = {
+            "TXR-1501": "create_txr_1501_draft",
+            "TXR-1506": "create_txr_1506_draft",
+            "TXR-1507": "create_txr_1507_draft",
+            "TXR-1508": "create_txr_1508_draft",
+        }
+        for form_code, action in expected.items():
+            payload = MODULE._payload(form_code, 1)
+            self.assertEqual(payload["action"], action)
+            self.assertEqual(payload["formCode"], form_code)
+            self.assertIn("formSourceId", payload)
 
 if __name__ == "__main__":
     unittest.main()
