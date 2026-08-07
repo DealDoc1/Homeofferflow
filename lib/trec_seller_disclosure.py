@@ -296,13 +296,24 @@ def render_unsigned_preview(source_pdf_bytes: bytes, form_code: str, values: dic
             for key, x, y in TREC_55_1_ITEM_ROWS:
                 _response(canvas, values.get(key), x, y)
         if form_code == "TREC-55-1" and page_number == 3:
-            for key in ("repair_condition_yes", "repair_condition_no"):
-                if values.get(key):
-                    _check(canvas, field_map[key]["x"], field_map[key]["y"])
+            repair_response = _clean(values.get("property_needs_repair") or "").upper()
+            if repair_response == "Y" or values.get("repair_condition_yes"):
+                _check(canvas, field_map["repair_condition_yes"]["x"], field_map["repair_condition_yes"]["y"])
+            if repair_response == "N" or values.get("repair_condition_no"):
+                _check(canvas, field_map["repair_condition_no"]["x"], field_map["repair_condition_no"]["y"])
             _draw(canvas, values.get("repairDescription"), 330, 717, size=7)
             for key, x, y in TREC_55_1_FLOOD_ROWS:
                 _response(canvas, values.get(key), x, y)
         if form_code == "TREC-55-1" and page_number == 2:
+            smoke_response = _clean(values.get("working_smoke_detectors") or "").upper()
+            smoke_keys = {
+                "Y": "smoke_detectors_yes",
+                "N": "smoke_detectors_no",
+                "U": "smoke_detectors_unknown",
+            }
+            if smoke_response in smoke_keys:
+                anchor = field_map[smoke_keys[smoke_response]]
+                _check(canvas, anchor["x"], anchor["y"])
             for key in ("smoke_detectors_yes", "smoke_detectors_no", "smoke_detectors_unknown"):
                 if values.get(key):
                     _check(canvas, field_map[key]["x"], field_map[key]["y"])
@@ -310,6 +321,15 @@ def render_unsigned_preview(source_pdf_bytes: bytes, form_code: str, values: dic
                 _response(canvas, values.get(key), x, y)
             for key, x, y in TREC_55_1_CONDITION4_ROWS:
                 _response(canvas, values.get(key), x, y)
+        if form_code == "TREC-55-1" and page_number == 3:
+            flood_claim = _clean(values.get("filed_flood_claim") or "").upper()
+            if flood_claim in {"Y", "N"}:
+                key = "flood_claim_yes" if flood_claim == "Y" else "flood_claim_no"
+                _check(canvas, field_map[key]["x"], field_map[key]["y"])
+            fema_response = _clean(values.get("received_fema_or_sba_assistance") or "").upper()
+            if fema_response in {"Y", "N"}:
+                key = "fema_yes" if fema_response == "Y" else "fema_no"
+                _check(canvas, field_map[key]["x"], field_map[key]["y"])
         if form_code == "TREC-55-1" and page_number == 4:
             for key, x, y in TREC_55_1_ADDITIONAL_ROWS:
                 _response(canvas, values.get(key), x, y)
