@@ -30,6 +30,8 @@ TREC_55_1_MAP = {
     "seller_occupancy_no": {"page": 1, "x": 102, "y": 604},
     "seller_occupancy_duration": {"page": 1, "x": 492, "y": 596, "width": 100},
     "item_responses_page_1": {"page": 1, "y_start": 570, "row_height": 18},
+    "roof_type": {"page": 1, "x": 110, "y": 140, "width": 240},
+    "roof_age": {"page": 1, "x": 380, "y": 140, "width": 120},
     "repair_awareness_yes": {"page": 1, "x": 133, "y": 103},
     "repair_awareness_no": {"page": 1, "x": 167, "y": 103},
     "smoke_detectors_yes": {"page": 2, "x": 219, "y": 728},
@@ -219,6 +221,8 @@ def render_unsigned_preview(source_pdf_bytes: bytes, form_code: str, values: dic
                 if values.get(key):
                     _check(canvas, field_map[key]["x"], field_map[key]["y"])
             _draw(canvas, values.get("seller_occupancy_duration"), 492, 596, size=8)
+            _draw(canvas, values.get("roof_type"), 110, 140, size=8)
+            _draw(canvas, values.get("roof_age"), 380, 140, size=8)
             for key, x, y in TREC_55_1_ITEM_ROWS:
                 _response(canvas, values.get(key), x, y)
         if form_code == "TREC-55-1" and page_number == 3:
