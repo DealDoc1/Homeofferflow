@@ -19,6 +19,12 @@ therefore tracked as a reviewed warning, not an unreviewed vulnerability. RLS
 and table grants remain the actual authorization boundary; GraphQL schema
 visibility is a separate concern.
 
+## Authentication hardening
+
+On 2026-08-07, Supabase Pro's Email-provider setting **Prevent use of leaked
+passwords** was enabled for the HomeOfferFlow production project. A follow-up
+security-advisor check no longer reports `auth_leaked_password_protection`.
+
 ## Evidence reviewed
 
 The production code directly calls these tables from `index.html` or a
