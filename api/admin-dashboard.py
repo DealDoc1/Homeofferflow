@@ -1733,7 +1733,7 @@ async def _create_seller_disclosure_review_link(user, data):
         requested_reviews = [{"sellerEmail": data.get("sellerEmail"), "sellerName": seller_names[0], "sellerIndex": 1}]
     if not isinstance(requested_reviews, list) or not requested_reviews or len(requested_reviews) > 2:
         raise ValueError("Provide one review recipient per seller.")
-    if len(requested_reviews) > len(seller_names) and seller_names != [None]:
+    if seller_names != [None] and len(requested_reviews) != len(seller_names):
         raise ValueError("Provide one review recipient per listed seller.")
     normalized_reviews = []
     seen_indexes = set()

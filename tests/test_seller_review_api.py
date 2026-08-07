@@ -43,6 +43,7 @@ class SellerReviewApiTests(unittest.TestCase):
         self.assertIn("sellerIndex", api)
         self.assertIn("Seller 2 review email", ui)
         self.assertIn("one review recipient per seller", api)
+        self.assertIn("len(requested_reviews) != len(seller_names)", api)
         self.assertIn("_refresh_seller_review_attestation", api)
         self.assertIn("allSellersAttested", api)
         self.assertIn("seller_review_attested_at", api)
