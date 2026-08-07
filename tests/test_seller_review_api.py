@@ -43,8 +43,11 @@ class SellerReviewApiTests(unittest.TestCase):
         self.assertIn("sellerIndex", api)
         self.assertIn("Seller 2 review email", ui)
         self.assertIn("one review recipient per seller", api)
+        self.assertIn("_refresh_seller_review_attestation", api)
+        self.assertIn("allSellersAttested", api)
         review_page = (ROOT / "seller-review.html").read_text()
         self.assertIn("d.sellerName", review_page)
+        self.assertIn("All listed sellers have reviewed", review_page)
 
     def test_draft_creation_revalidates_listing_workspace_ownership(self):
         source = (ROOT / "api" / "admin-dashboard.py").read_text()

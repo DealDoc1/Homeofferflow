@@ -13585,7 +13585,7 @@ function routeAfterMagicLinkIfNeeded() {
     const user = root.hofAuth?.session?.user;
     if (!client || !user) return [];
     const {data,error} = await client.from('hof_seller_disclosure_drafts')
-      .select('id,property_address,seller_names,buyer_names,status,disclosure_source_revision,water_source_revision,created_at,updated_at')
+      .select('id,property_address,seller_names,buyer_names,status,disclosure_source_revision,water_source_revision,seller_review_attested,created_at,updated_at')
       .eq('agent_user_id', user.id).order('updated_at',{ascending:false}).limit(25);
     if (error) throw error;
     return data || [];
@@ -13595,7 +13595,7 @@ function routeAfterMagicLinkIfNeeded() {
     if (!list) return;
     try {
       const drafts = await loadDrafts();
-      list.innerHTML = drafts.length ? drafts.map(d => '<li><span><strong>' + escape(d.property_address) + '</strong><br><small>' + escape((d.seller_names || []).join(', ')) + ' · ' + escape(d.disclosure_source_revision || '') + (d.water_source_revision ? ' + TREC-61-0' : '') + '</small></span><button type="button" class="btn-secondary hof-seller-preview" data-id="' + escape(d.id) + '">Preview PDF</button></li>').join('') : '<li>No seller disclosure drafts saved yet.</li>';
+      list.innerHTML = drafts.length ? drafts.map(d => '<li><span><strong>' + escape(d.property_address) + '</strong><br><small>' + escape((d.seller_names || []).join(', ')) + ' · ' + escape(d.disclosure_source_revision || '') + (d.water_source_revision ? ' + TREC-61-0' : '') + (d.seller_review_attested ? ' · All seller reviews complete' : '') + '</small></span><button type="button" class="btn-secondary hof-seller-preview" data-id="' + escape(d.id) + '">Preview PDF</button></li>').join('') : '<li>No seller disclosure drafts saved yet.</li>';
       list.querySelectorAll('.hof-seller-preview').forEach(button => button.addEventListener('click', async () => {
         const token = root.hofAuth?.session?.access_token;
         button.disabled = true; button.textContent = 'Loading…';

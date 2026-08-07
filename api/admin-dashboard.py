@@ -1888,6 +1888,50 @@ async def _seller_review_payload(session_token):
     }
 
 
+async def _refresh_seller_review_attestation(draft_id, brokerage_id):
+    """Mark the draft reviewed only after every listed seller has attested."""
+    drafts = await _get(
+        "hof_seller_disclosure_drafts?"
+        f"id=eq.{urllib.parse.quote(str(draft_id))}"
+        f"&brokerage_id=eq.{urllib.parse.quote(str(brokerage_id))}"
+        "&status=eq.draft&select=id,seller_names,seller_review_attested&limit=1"
+    )
+    if not drafts:
+        return False
+    seller_names = [" ".join(str(name).strip().split()) for name in (drafts[0].get("seller_names") or []) if str(name).strip()]
+    links = await _get(
+        "hof_seller_disclosure_review_links?"
+        f"draft_id=eq.{urllib.parse.quote(str(draft_id))}"
+        f"&brokerage_id=eq.{urllib.parse.quote(str(brokerage_id))}"
+        "&revoked_at=is.null&select=seller_name,seller_index,seller_attested_at"
+    )
+    if not seller_names:
+        return False
+    complete = True
+    for index, expected_name in enumerate(seller_names, start=1):
+        matching = [
+            link for link in links
+            if (link.get("seller_index") == index or (len(seller_names) == 1 and link.get("seller_index") is None))
+            and seller_review_access.seller_name_matches(link.get("seller_name") or expected_name, [expected_name])
+            and link.get("seller_attested_at")
+        ]
+        if not matching:
+            complete = False
+            break
+    if complete and not drafts[0].get("seller_review_attested"):
+        now = datetime.now(timezone.utc).isoformat()
+        async with httpx.AsyncClient(timeout=12) as client:
+            response = await client.patch(
+                f"{SUPABASE_URL}/rest/v1/hof_seller_disclosure_drafts?"
+                f"id=eq.{urllib.parse.quote(str(draft_id))}&brokerage_id=eq.{urllib.parse.quote(str(brokerage_id))}",
+                headers={**_headers(), "Prefer": "return=minimal"},
+                json={"seller_review_attested": True, "updated_at": now},
+            )
+        if response.status_code >= 300:
+            raise RuntimeError("Could not update the seller disclosure review status.")
+    return complete
+
+
 async def _attest_seller_review(session_token, data):
     link, draft = await _seller_review_context(session_token)
     if link.get("seller_attested_at"):
@@ -1905,7 +1949,8 @@ async def _attest_seller_review(session_token, data):
         )
     if response.status_code >= 300:
         raise RuntimeError("Could not record the seller review attestation.")
-    return {"ok": True, "attestedAt": now, "attestedName": seller_name, "workflowActivated": False}
+    all_sellers_attested = await _refresh_seller_review_attestation(link["draft_id"], link["brokerage_id"])
+    return {"ok": True, "attestedAt": now, "attestedName": seller_name, "allSellersAttested": all_sellers_attested, "workflowActivated": False}
 
 
 async def _render_seller_disclosure_draft_preview(user, draft_id, review_context=None):
