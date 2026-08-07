@@ -5,6 +5,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 MIGRATION = (ROOT / "supabase" / "homeofferflow_listing_workspaces.sql").read_text()
 SERVER_ONLY_MIGRATION = (ROOT / "supabase" / "homeofferflow_listing_workspace_summary_server_only.sql").read_text()
+HARDENING_MIGRATION = (ROOT / "supabase" / "homeofferflow_listing_workspace_hardening.sql").read_text()
 DOC = (ROOT / "docs" / "SELLER_LISTING_WORKSPACE_FOUNDATION.md").read_text()
 INDEX = (ROOT / "index.html").read_text()
 
@@ -68,6 +69,19 @@ class ListingWorkspaceFoundationTests(unittest.TestCase):
         self.assertIn("TXR-1101", INDEX)
         self.assertIn("TXR-1406", INDEX)
 
+    def test_workspace_hardening_allowlists_requested_workflows_and_refreshes_timestamp(self):
+        self.assertIn("hof_listing_workspaces_requested_workflows_allowed", HARDENING_MIGRATION)
+        for workflow in ("listing_agreement", "seller_disclosure", "lease_listing"):
+            self.assertIn(f"'{workflow}'", HARDENING_MIGRATION)
+        self.assertIn("hof_listing_workspaces_touch_updated_at", HARDENING_MIGRATION)
+        self.assertIn("new.updated_at = now()", HARDENING_MIGRATION)
+
+    def test_seller_status_notice_explains_live_boundary(self):
+        self.assertIn("Seller-side launch status:", INDEX)
+        self.assertIn("executable listing agreements, seller disclosures, and lease-listing packets", INDEX.lower())
+        self.assertIn("completed-signature visual QA", INDEX)
+
 
 if __name__ == "__main__":
     unittest.main()
+
