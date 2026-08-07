@@ -2,6 +2,7 @@ import os
 import json
 import uuid
 import re
+import html
 import urllib.parse
 from datetime import datetime, timezone
 from io import BytesIO
@@ -1796,7 +1797,7 @@ async def _seller_review_context(session_token):
     rows = await _get(
         "hof_seller_disclosure_review_links?"
         f"session_token_hash=eq.{urllib.parse.quote(session_hash)}"
-        "&select=id,draft_id,brokerage_id,agent_user_id,session_expires_at,revoked_at,seller_attested_at,seller_attested_name&limit=1"
+        "&select=id,draft_id,brokerage_id,agent_user_id,session_expires_at,revoked_at,viewed_at,seller_attested_at,seller_attested_name&limit=1"
     )
     if not rows or rows[0].get("revoked_at") or not seller_review_access.is_active(rows[0].get("session_expires_at")):
         raise PermissionError("Your seller review session is invalid or expired.")
