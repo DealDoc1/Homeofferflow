@@ -125,12 +125,13 @@ def main(argv=None):
         parser.error("Use an existing Supabase access token via --access-token or HOF_ACCESS_TOKEN.")
 
     args.output_dir.expanduser().mkdir(parents=True, exist_ok=True)
+    draft_payload = _payload(args.form, args.clients)
     status, content_type, raw = _request(
         args.base_url,
         args.access_token,
         "/api/admin-dashboard",
         method="POST",
-        body=_payload(args.form, args.clients),
+        body=draft_payload,
     )
     if status >= 300 or "json" not in content_type.lower():
         raise RuntimeError(f"Draft creation returned HTTP {status} with content type {content_type!r}.")
@@ -151,7 +152,10 @@ def main(argv=None):
         "ok": True,
         "form_code": args.form,
         "client_count": args.clients,
-        "signer_plan": "clients_and_associate",
+        # Preserve the document-specific plan in the QA report. TXR-1508 and
+        # TXR-1506 use different signer-plan vocabulary from the representation
+        # agreements, so a hard-coded value would create misleading evidence.
+        "signer_plan": draft_payload.get("signerPlan"),
         "draft_id_present": True,
         "preview_pdf": str(pdf_path),
         "signing_sent": False,
@@ -169,4 +173,3 @@ if __name__ == "__main__":
     except RuntimeError as exc:
         print(f"QA failed: {exc}", file=sys.stderr)
         raise SystemExit(2)
-

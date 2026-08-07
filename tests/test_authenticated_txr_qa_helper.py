@@ -40,6 +40,15 @@ class AuthenticatedTxrQaHelperTests(unittest.TestCase):
             self.assertEqual(payload["formCode"], form_code)
             self.assertIn("formSourceId", payload)
 
+    def test_each_form_payload_carries_its_actual_signer_plan(self):
+        expected = {
+            "TXR-1501": "clients_and_associate",
+            "TXR-1506": "consumers_and_associate",
+            "TXR-1507": "clients_and_associate",
+            "TXR-1508": "associate_and_clients",
+        }
+        for form_code, signer_plan in expected.items():
+            self.assertEqual(MODULE._payload(form_code, 1)["signerPlan"], signer_plan)
+
 if __name__ == "__main__":
     unittest.main()
-
