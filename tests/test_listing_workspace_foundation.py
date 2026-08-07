@@ -71,6 +71,7 @@ class ListingWorkspaceFoundationTests(unittest.TestCase):
 
     def test_workspace_hardening_allowlists_requested_workflows_and_refreshes_timestamp(self):
         self.assertIn("hof_listing_workspaces_requested_workflows_allowed", HARDENING_MIGRATION)
+        self.assertIn("hof_listing_workflows_allowed(value jsonb)", HARDENING_MIGRATION)
         for workflow in ("listing_agreement", "seller_disclosure", "lease_listing"):
             self.assertIn(f"'{workflow}'", HARDENING_MIGRATION)
         self.assertIn("hof_listing_workspaces_touch_updated_at", HARDENING_MIGRATION)
