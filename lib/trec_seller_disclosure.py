@@ -129,6 +129,24 @@ TREC_55_1_CONDITION_ROWS = (
     ("defect_lighting_fixtures", 408, 392),
 )
 
+TREC_55_1_ADDITIONAL_ROWS = (
+    ("unpermitted_modifications", 58, 704),
+    ("hoa_assessments", 58, 686),
+    ("common_area", 58, 668),
+    ("deed_or_ordinance_violations", 58, 650),
+    ("property_lawsuits", 58, 632),
+    ("health_or_safety_condition", 58, 614),
+    ("large_rainwater_system", 58, 596),
+    ("groundwater_or_subsidence_district", 58, 578),
+    ("conservation_easements", 58, 560),
+    ("covered_by_insurance", 58, 542),
+    ("covered_by_windstorm_insurance", 58, 524),
+    ("unable_to_insure", 58, 496),
+    ("private_road_maintenance", 58, 478),
+    ("storage_tanks", 58, 460),
+    ("large_aboveground_storage_tanks", 58, 442),
+)
+
 TREC_55_1_FLOOD_ROWS = (
     ("present_flood_insurance", 58, 650),
     ("previous_reservoir_release_flooding", 58, 632),
@@ -293,6 +311,8 @@ def render_unsigned_preview(source_pdf_bytes: bytes, form_code: str, values: dic
             for key, x, y in TREC_55_1_CONDITION4_ROWS:
                 _response(canvas, values.get(key), x, y)
         if form_code == "TREC-55-1" and page_number == 4:
+            for key, x, y in TREC_55_1_ADDITIONAL_ROWS:
+                _response(canvas, values.get(key), x, y)
             for value_key, map_key in (
                 ("sellerSignature1", "seller_signature_1"),
                 ("sellerDate1", "seller_date_1"),
