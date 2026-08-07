@@ -122,6 +122,30 @@ def _missing_scope_evidence(evidence_text: str, changed_files: list[str]) -> str
     return "evidence does not identify every changed packet/form scope (expected " + expected + ")"
 
 
+def _missing_restricted_form_evidence(evidence_text: str, changed_files: list[str]) -> list[str]:
+    """Require the stronger gates for restricted TXR renderer/source changes."""
+    normalized_files = {path.replace("\\", "/").lower() for path in changed_files}
+    restricted_change = any(
+        path.startswith("api/txr_")
+        or path.startswith("lib/txr_")
+        or "brokerage_form_source" in path
+        or "standalone_agreement" in path
+        for path in normalized_files
+    )
+    if not restricted_change:
+        return []
+    normalized = " ".join(evidence_text.lower().replace("_", " ").replace("-", " ").split())
+    required_groups = (
+        ("authenticated qa", "authenticated preview qa", "authenticated point of use qa"),
+        ("completed signature visual qa", "completed signed pdf qa", "completed signature qa"),
+        ("source vault", "approved private source", "source revision"),
+        ("agent attestation", "form use attestation", "authorized agent attestation"),
+    )
+    return [
+        "restricted TXR evidence is missing " + "/".join(group[0] for group in required_groups if not any(marker in normalized for marker in group))
+    ] if any(not any(marker in normalized for marker in group) for group in required_groups) else []
+
+
 def _parse_args(argv: Iterable[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Check HomeOfferFlow release evidence before a production deployment."
@@ -188,6 +212,7 @@ def main(argv: Iterable[str] | None = None) -> int:
         return 2
 
     missing = _missing_evidence(evidence_path.read_text(encoding="utf-8"))
+    missing.extend(_missing_restricted_form_evidence(evidence_path.read_text(encoding="utf-8"), changed_files))
     scope_missing = _missing_scope_evidence(
         evidence_path.read_text(encoding="utf-8"),
         changed_files,
