@@ -64,6 +64,9 @@ class TrecSellerDisclosureMapTests(unittest.TestCase):
                 ("dishwasher", 58, 552),
                 ("trash_compactor", 211, 552),
                 ("disposal", 391, 552),
+                ("washer_dryer_hookups", 58, 534),
+                ("window_screens", 211, 534),
+                ("rain_gutters", 391, 534),
             ),
         )
 
