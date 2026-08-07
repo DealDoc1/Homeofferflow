@@ -1940,7 +1940,10 @@ async def _attest_seller_review(session_token, data):
     if link.get("seller_attested_at"):
         return {"ok": True, "alreadyAttested": True, "workflowActivated": False}
     seller_name = " ".join(str(data.get("sellerName") or "").strip().split())
-    if not seller_review_access.seller_name_matches(seller_name, draft.get("seller_names") or []):
+    expected_seller_names = [link.get("seller_name")] if link.get("seller_name") else (draft.get("seller_names") or [])
+    if link.get("seller_name") is None and len(expected_seller_names) != 1:
+        raise PermissionError("This review link is not assigned to a specific seller. Ask the agent to resend the seller review request.")
+    if not seller_review_access.seller_name_matches(seller_name, expected_seller_names):
         raise PermissionError("Enter the name of one of the listed sellers exactly as it appears on the disclosure.")
     now = datetime.now(timezone.utc).isoformat()
     async with httpx.AsyncClient(timeout=12) as client:

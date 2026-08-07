@@ -47,6 +47,8 @@ class SellerReviewApiTests(unittest.TestCase):
         self.assertIn("allSellersAttested", api)
         self.assertIn("seller_review_attested_at", api)
         self.assertIn("seller_review_attested_by", api)
+        self.assertIn("This review link is not assigned to a specific seller", api)
+        self.assertIn("expected_seller_names", api)
         review_page = (ROOT / "seller-review.html").read_text()
         self.assertIn("d.sellerName", review_page)
         self.assertIn("All listed sellers have reviewed", review_page)
