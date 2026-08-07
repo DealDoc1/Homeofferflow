@@ -13544,6 +13544,17 @@ function routeAfterMagicLinkIfNeeded() {
       ['large_aboveground_storage_tanks','Large aboveground storage tanks']
     ]]
   ];
+  const waterGroups = [['TREC-61-0 water rights', [
+    ['in_groundwater_district','In groundwater conservation district'],['water_wells_known','Water wells known'],
+    ['water_well_on_another_property','Water well on another property'],['water_well_relies_on_outside_rights','Relies on outside groundwater rights'],
+    ['groundwater_rights_severed_sold_leased','Groundwater rights severed/sold/leased'],['surface_water_right','Surface-water right'],
+    ['pond_lake_or_water_tank','Pond/lake/water tank']
+  ]]];
+  const renderWaterResponses = () => waterGroups.map(([title, fields]) =>
+    '<details><summary>' + escape(title) + '</summary><div class="hof-seller-response-grid">' +
+    fields.map(([key,label]) => '<label class="hof-seller-response-row"><span>' + escape(label) + '</span><select data-water-response="' + escape(key) + '"><option value="">—</option><option value="Y">Yes (Y)</option><option value="N">No (N)</option><option value="U">Unknown (U)</option></select></label>').join('') +
+    '</div></details>'
+  ).join('');
   const renderResponses = () => responseGroups.map(([title, fields]) =>
     '<details><summary>' + escape(title) + '</summary><div class="hof-seller-response-grid">' +
     fields.map(([key,label]) => '<label class="hof-seller-response-row"><span>' + escape(label) + '</span><select data-seller-response="' + escape(key) + '"><option value="">—</option><option value="Y">Yes (Y)</option><option value="N">No (N)</option><option value="U">Unknown (U)</option></select></label>').join('') +
@@ -13591,7 +13602,7 @@ function routeAfterMagicLinkIfNeeded() {
     const card = document.createElement('div'); card.id = 'hofSellerDisclosureCard'; card.className = 'account-card hof-seller-disclosure-card';
     card.innerHTML = '<h4>Seller disclosure draft</h4><p>Use only an approved source your brokerage is authorized to use. This creates a private draft for seller review; it does not send or sign a document.</p>' +
       '<div class="hof-seller-grid"><label>Property address<input id="hofSellerAddress" maxlength="400" placeholder="Street address, city, state, ZIP"></label><label>TREC-55-1 source<select id="hofSellerSource"></select></label><label>Seller 1 name<input id="hofSeller1" maxlength="180"></label><label>Seller 2 name (optional)<input id="hofSeller2" maxlength="180"></label><label>Buyer 1 name (optional)<input id="hofBuyer1" maxlength="180"></label><label>Buyer 2 name (optional)<input id="hofBuyer2" maxlength="180"></label><label>TREC-61-0 water-rights source (optional)<select id="hofWaterSource"><option value="">Do not include</option></select></label></div>' +
-      renderResponses() +
+      renderResponses() + renderWaterResponses() +
       '<div class="hof-seller-actions"><button class="btn-primary" type="button" id="hofSaveSellerDraft">Save private draft</button><span id="hofSellerDraftStatus" class="hof-iabs-status"></span></div><h5>My seller disclosure drafts</h5><ul id="hofSellerDraftList" class="hof-private-form-drafts-list"><li>Loading…</li></ul>';
     panel.appendChild(card);
     try {
@@ -13608,7 +13619,9 @@ function routeAfterMagicLinkIfNeeded() {
       const buyerNames = [document.getElementById('hofBuyer1').value, document.getElementById('hofBuyer2').value].map(v => v.trim()).filter(Boolean);
       const responseData = {};
       card.querySelectorAll('[data-seller-response]').forEach(select => { if (select.value) responseData[select.dataset.sellerResponse] = select.value; });
-      const payload = {action:'create_seller_disclosure_draft',formCode:'TREC-55-1',disclosureSourceId:document.getElementById('hofSellerSource').value,waterSourceId:document.getElementById('hofWaterSource').value || null,propertyAddress:document.getElementById('hofSellerAddress').value,sellerNames,buyerNames,responseData,waterRightsData:{}};
+      const waterRightsData = {};
+      card.querySelectorAll('[data-water-response]').forEach(select => { if (select.value) waterRightsData[select.dataset.waterResponse] = select.value; });
+      const payload = {action:'create_seller_disclosure_draft',formCode:'TREC-55-1',disclosureSourceId:document.getElementById('hofSellerSource').value,waterSourceId:document.getElementById('hofWaterSource').value || null,propertyAddress:document.getElementById('hofSellerAddress').value,sellerNames,buyerNames,responseData,waterRightsData};
       if (!token) return alert('Sign in before saving a seller disclosure draft.');
       if (!payload.disclosureSourceId || !payload.propertyAddress.trim() || !sellerNames.length) return alert('Enter the property address, at least one seller, and choose the approved TREC-55-1 source.');
       status.textContent = 'Saving private draft…';
