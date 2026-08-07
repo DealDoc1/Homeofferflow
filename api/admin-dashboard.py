@@ -709,12 +709,32 @@ def _parse_brokerage_txr_authorization(data):
 
 
 async def _update_brokerage_txr_authorization(actor, data):
-    """Let only an active brokerage admin record the organization gate."""
+    """Record the organization gate for a brokerage admin or platform owner.
+
+    Brokerage admins may attest only for their own brokerage. A HomeOfferFlow
+    platform admin may attest for a specific active brokerage by supplying its
+    brokerage_id; this keeps brokerage authority scoped while allowing the
+    product owner to configure a launch before the broker creates an account.
+    """
     context = await _brokerage_admin_context(actor)
-    if not context:
-        raise PermissionError("Brokerage admin access is not enabled for this account.")
+    if context:
+        brokerage_id = str(context["brokerage"]["id"])
+    else:
+        if not await _is_platform_admin(actor):
+            raise PermissionError("Brokerage admin access is not enabled for this account.")
+        brokerage_id = str(data.get("brokerage_id") or "").strip()
+        try:
+            brokerage_id = str(uuid.UUID(brokerage_id))
+        except (TypeError, ValueError, AttributeError):
+            raise ValueError("A valid brokerage_id is required for platform-admin authorization.")
+        rows = await _get(
+            "hof_brokerages?"
+            f"id=eq.{urllib.parse.quote(brokerage_id)}"
+            "&is_active=eq.true&select=id&limit=1"
+        )
+        if not rows:
+            raise ValueError("That brokerage is not active.")
     authorized, attested = _parse_brokerage_txr_authorization(data)
-    brokerage_id = str(context["brokerage"]["id"])
     now = datetime.now(timezone.utc).isoformat()
     payload = {
         "txr_all_agents_authorized": authorized,
