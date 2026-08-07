@@ -100,30 +100,34 @@ def render_unsigned_preview(source_pdf_bytes: bytes, form_code: str, values: dic
     source = PdfReader(BytesIO(source_pdf_bytes))
     if len(source.pages) != contract["page_count"]:
         raise ValueError(f"{form_code} source must contain exactly {contract['page_count']} pages.")
-    overlay_stream = BytesIO()
-    canvas = Canvas(overlay_stream, pagesize=(PAGE_WIDTH, PAGE_HEIGHT))
     field_map = contract["field_map"]
-    if form_code == "TREC-55-1":
-        _draw(canvas, values.get("propertyAddress"), 185, 674, size=8)
-        for key in ("seller_occupancy_yes", "seller_occupancy_no"):
-            if values.get(key):
-                _check(canvas, field_map[key]["x"], field_map[key]["y"])
-        _draw(canvas, values.get("repairDescription"), 330, 112, size=7)
-        if values.get("sellerSignature1"):
-            _draw(canvas, values["sellerSignature1"], 45, 177, size=8)
-        if values.get("sellerDate1"):
-            _draw(canvas, values["sellerDate1"], 255, 177, size=8)
-    else:
-        _draw(canvas, values.get("propertyAddress"), 220, 634, size=8)
-        for key in ("groundwater_district_yes", "groundwater_district_no", "groundwater_district_unknown"):
-            if values.get(key):
-                _check(canvas, field_map[key]["x"], field_map[key]["y"])
-    canvas.save()
-    overlay_stream.seek(0)
-    overlay = PdfReader(overlay_stream)
+    overlays = []
+    for page_number in range(1, contract["page_count"] + 1):
+        overlay_stream = BytesIO()
+        canvas = Canvas(overlay_stream, pagesize=(PAGE_WIDTH, PAGE_HEIGHT))
+        if form_code == "TREC-55-1" and page_number == 1:
+            _draw(canvas, values.get("propertyAddress"), 185, 674, size=8)
+            for key in ("seller_occupancy_yes", "seller_occupancy_no"):
+                if values.get(key):
+                    _check(canvas, field_map[key]["x"], field_map[key]["y"])
+        if form_code == "TREC-55-1" and page_number == 3:
+            _draw(canvas, values.get("repairDescription"), 330, 112, size=7)
+        if form_code == "TREC-55-1" and page_number == 4:
+            if values.get("sellerSignature1"):
+                _draw(canvas, values["sellerSignature1"], 45, 177, size=8)
+            if values.get("sellerDate1"):
+                _draw(canvas, values["sellerDate1"], 255, 177, size=8)
+        if form_code == "TREC-61-0" and page_number == 1:
+            _draw(canvas, values.get("propertyAddress"), 220, 634, size=8)
+            for key in ("groundwater_district_yes", "groundwater_district_no", "groundwater_district_unknown"):
+                if values.get(key):
+                    _check(canvas, field_map[key]["x"], field_map[key]["y"])
+        canvas.save()
+        overlay_stream.seek(0)
+        overlays.append(PdfReader(overlay_stream).pages[0])
     writer = PdfWriter()
     for index, page in enumerate(source.pages):
-        page.merge_page(overlay.pages[0] if index == 0 else overlay.pages[min(index, len(overlay.pages)-1)])
+        page.merge_page(overlays[index])
         writer.add_page(page)
     output = BytesIO()
     writer.write(output)
