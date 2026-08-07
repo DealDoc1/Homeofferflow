@@ -14,7 +14,7 @@ class SupabaseProCapacityEvidenceTests(unittest.TestCase):
         for marker in (
             "Plan: `pro`",
             "Status: `ACTIVE_HEALTHY`",
-            "407 tests",
+            "410 tests",
             "Do not apply a blanket `revoke all ... from authenticated` migration.",
             "Completed-signature visual QA",
             "One intentional bundled production deployment",

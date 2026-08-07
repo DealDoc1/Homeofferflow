@@ -35,9 +35,13 @@ API policies. These are reviewed, not ignored:
 ## Verification evidence
 
 - Local release preflight passed for the current non-form evidence branch.
-- Full regression suite passed: `407 tests`, `OK`.
+- Full regression suite passed: `410 tests`, `OK`.
 - Targeted Stripe lifecycle, OnDemand checkout, brokerage authorization, and
   admin-security tests passed.
+- Read-only live endpoint checks passed without creating checkout or payment
+  side effects: OnDemand launch metadata returned a 60-day trial and $29
+  monthly price, while unauthenticated brokerage-admin access returned HTTP
+  401.
 - Working tree was clean after verification.
 - No Vercel deployment was triggered.
 
