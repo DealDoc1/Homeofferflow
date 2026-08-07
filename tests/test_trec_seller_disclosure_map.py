@@ -61,6 +61,9 @@ class TrecSellerDisclosureMapTests(unittest.TestCase):
                 ("range", 58, 570),
                 ("oven", 211, 570),
                 ("microwave", 391, 570),
+                ("dishwasher", 58, 552),
+                ("trash_compactor", 211, 552),
+                ("disposal", 391, 552),
             ),
         )
 
