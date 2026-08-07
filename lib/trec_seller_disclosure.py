@@ -48,6 +48,14 @@ TREC_55_1_MAP = {
     "garage_carport": {"page": 1, "x": 370, "y": 214},
     "garage_door_electronic": {"page": 1, "x": 190, "y": 198},
     "garage_door_controls": {"page": 1, "x": 310, "y": 198},
+    # Canonical schema names retained alongside earlier QA aliases.
+    "lp_community": {"page": 1, "x": 172, "y": 249},
+    "lp_on_property": {"page": 1, "x": 314, "y": 249},
+    "fuel_gas_corrugated_steel": {"page": 1, "x": 315, "y": 231},
+    "carport": {"page": 1, "x": 370, "y": 214},
+    "garage_opener_electronic": {"page": 1, "x": 190, "y": 198},
+    "garage_opener_controls": {"page": 1, "x": 310, "y": 198},
+    "hot_tub": {"page": 1, "x": 470, "y": 336},
     "repair_awareness_yes": {"page": 1, "x": 133, "y": 103},
     "repair_awareness_no": {"page": 1, "x": 167, "y": 103},
     "smoke_detectors_yes": {"page": 2, "x": 219, "y": 728},
@@ -251,6 +259,8 @@ def render_unsigned_preview(source_pdf_bytes: bytes, form_code: str, values: dic
                 "fuel_gas_black_iron", "fuel_gas_corrugated_stainless", "fuel_gas_copper",
                 "garage_attached", "garage_not_attached", "garage_carport",
                 "garage_door_electronic", "garage_door_controls",
+                "lp_community", "lp_on_property", "fuel_gas_corrugated_steel",
+                "carport", "garage_opener_electronic", "garage_opener_controls", "hot_tub",
             ):
                 if values.get(key):
                     _check(canvas, field_map[key]["x"], field_map[key]["y"])
