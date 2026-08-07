@@ -256,3 +256,11 @@ def test_trec_55_1_page1_gas_and_garage_anchors():
     assert mapping["garage_carport"] == {"page": 1, "x": 370, "y": 214}
     assert mapping["garage_door_electronic"] == {"page": 1, "x": 190, "y": 198}
     assert mapping["garage_door_controls"] == {"page": 1, "x": 310, "y": 198}
+
+
+def test_trec_55_1_page1_safety_item_anchors():
+    rows = dict((key, (x, y)) for key, x, y in TREC_55_1_ITEM_ROWS)
+    assert rows["smoke_detector"] == (211, 498)
+    assert rows["smoke_detector_hearing_impaired"] == (211, 480)
+    assert rows["carbon_monoxide_alarm"] == (211, 462)
+    assert rows["emergency_escape_ladders"] == (211, 444)
