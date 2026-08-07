@@ -8921,7 +8921,9 @@ function routeAfterMagicLinkIfNeeded() {
       ['TXR-1101', 'Residential listing agreement — sale'],
       ['TXR-1102', 'Residential listing agreement — lease'],
       ['TXR-1406', 'Seller’s Disclosure Notice'],
-      ['TXR-1418', 'Seller’s Disclosure Notice update']
+      ['TXR-1418', 'Seller’s Disclosure Notice update'],
+      ['TREC-55-1', 'TREC Seller’s Disclosure Notice (supplied source)'],
+      ['TREC-61-0', 'TREC Seller Water Disclosure (supplied source)']
     ];
     try {
       if (!hofPlatform.brokerage) await loadBrokerageFoundation();
@@ -12616,7 +12618,7 @@ function routeAfterMagicLinkIfNeeded() {
   // intentionally listed here only so a brokerage admin can privately retain
   // the exact authorized source while the separate mapping/signing release is
   // still gated.
-  const FORM_CODES = ['TXR-1507', 'TXR-1501', 'TXR-1508', 'TXR-1506', 'TXR-1101', 'TXR-1102', 'TXR-1406', 'TXR-1418'];
+  const FORM_CODES = ['TXR-1507', 'TXR-1501', 'TXR-1508', 'TXR-1506', 'TXR-1101', 'TXR-1102', 'TXR-1406', 'TXR-1418', 'TREC-55-1', 'TREC-61-0'];
   const escape = value => String(value ?? '').replace(/[&<>\"]/g, char => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'
   }[char]));

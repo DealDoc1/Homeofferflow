@@ -40,6 +40,7 @@ MAX_BODY_BYTES = 15 * 1024 * 1024
 FORM_CODES = {
     "TXR-1501", "TXR-1506", "TXR-1507", "TXR-1508",
     "TXR-1101", "TXR-1102", "TXR-1406", "TXR-1418",
+    "TREC-55-1", "TREC-61-0",
 }
 REVISION_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,47}$")
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
@@ -316,3 +317,4 @@ class handler(BaseHTTPRequestHandler):
 
     def log_message(self, *_args):
         return
+
