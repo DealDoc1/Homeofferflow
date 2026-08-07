@@ -1521,6 +1521,16 @@ async def _create_seller_disclosure_draft(user, data):
     """Create an agent-owned seller disclosure draft, never a sendable packet."""
     draft = seller_disclosure_draft.parse_seller_disclosure_draft(data)
     brokerage_id = await _active_brokerage_member(user)
+    if draft.get("listing_workspace_id"):
+        workspace_rows = await _get(
+            "hof_listing_workspaces?"
+            f"id=eq.{urllib.parse.quote(str(draft['listing_workspace_id']))}"
+            f"&agent_user_id=eq.{urllib.parse.quote(user['id'])}"
+            f"&brokerage_id=eq.{urllib.parse.quote(str(brokerage_id))}"
+            "&select=id&limit=1"
+        )
+        if not workspace_rows:
+            raise PermissionError("That private listing workspace is unavailable to this agent.")
     source_rows = await _get(
         "hof_brokerage_form_sources?"
         f"id=eq.{urllib.parse.quote(draft['disclosure_source_id'])}"

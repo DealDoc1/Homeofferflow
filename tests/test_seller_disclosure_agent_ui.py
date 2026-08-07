@@ -45,6 +45,12 @@ class SellerDisclosureAgentUiTests(unittest.TestCase):
         self.assertIn("property_needs_repair", renderer)
         self.assertIn("filed_flood_claim", renderer)
 
+    def test_seller_draft_can_link_to_private_listing_workspace(self):
+        html = (ROOT / "index.html").read_text()
+        self.assertIn('id="hofSellerWorkspace"', html)
+        self.assertIn("loadListingWorkspaces", html)
+        self.assertIn("listingWorkspaceId", html)
+
 
 if __name__ == "__main__":
     unittest.main()

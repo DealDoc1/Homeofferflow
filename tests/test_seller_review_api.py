@@ -32,6 +32,13 @@ class SellerReviewApiTests(unittest.TestCase):
         self.assertIn("session_expires_at", sql)
         self.assertIn("seller_attested_at", sql)
 
+    def test_draft_creation_revalidates_listing_workspace_ownership(self):
+        source = (ROOT / "api" / "admin-dashboard.py").read_text()
+        self.assertIn("_create_seller_disclosure_draft", source)
+        self.assertIn("That private listing workspace is unavailable to this agent.", source)
+        self.assertIn("agent_user_id=eq.", source)
+        self.assertIn("brokerage_id=eq.", source)
+
 
 if __name__ == "__main__":
     unittest.main()

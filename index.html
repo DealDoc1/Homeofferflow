@@ -13568,6 +13568,18 @@ function routeAfterMagicLinkIfNeeded() {
     if (!response.ok) throw new Error(payload.error || 'Could not load approved brokerage sources.');
     return payload.sources || [];
   }
+  async function loadListingWorkspaces() {
+    const client = root.getSupabaseClient?.();
+    const user = root.hofAuth?.session?.user;
+    if (!client || !user) return [];
+    const {data, error} = await client.from('hof_listing_workspaces')
+      .select('id,listing_kind,property_address,seller_names,status,updated_at')
+      .eq('agent_user_id', user.id)
+      .order('updated_at', {ascending:false})
+      .limit(50);
+    if (error) throw error;
+    return data || [];
+  }
   async function loadDrafts() {
     const client = root.getSupabaseClient?.();
     const user = root.hofAuth?.session?.user;
@@ -13601,7 +13613,7 @@ function routeAfterMagicLinkIfNeeded() {
     if (!panel || !active() || document.getElementById('hofSellerDisclosureCard')) return;
     const card = document.createElement('div'); card.id = 'hofSellerDisclosureCard'; card.className = 'account-card hof-seller-disclosure-card';
     card.innerHTML = '<h4>Seller disclosure draft</h4><p>Use only an approved source your brokerage is authorized to use. This creates a private draft for seller review; it does not send or sign a document.</p>' +
-      '<div class="hof-seller-grid"><label>Property address<input id="hofSellerAddress" maxlength="400" placeholder="Street address, city, state, ZIP"></label><label>Seller review email<input id="hofSellerEmail" type="email" maxlength="320" autocomplete="email" placeholder="seller@example.com"></label><label>TREC-55-1 source<select id="hofSellerSource"></select></label><label>Seller 1 name<input id="hofSeller1" maxlength="180"></label><label>Seller 2 name (optional)<input id="hofSeller2" maxlength="180"></label><label>Buyer 1 name (optional)<input id="hofBuyer1" maxlength="180"></label><label>Buyer 2 name (optional)<input id="hofBuyer2" maxlength="180"></label><label>TREC-61-0 water-rights source (optional)<select id="hofWaterSource"><option value="">Do not include</option></select></label></div>' +
+      '<div class="hof-seller-grid"><label>Private listing workspace (optional)<select id="hofSellerWorkspace"><option value="">Do not link to a workspace</option></select></label><label>Property address<input id="hofSellerAddress" maxlength="400" placeholder="Street address, city, state, ZIP"></label><label>Seller review email<input id="hofSellerEmail" type="email" maxlength="320" autocomplete="email" placeholder="seller@example.com"></label><label>TREC-55-1 source<select id="hofSellerSource"></select></label><label>Seller 1 name<input id="hofSeller1" maxlength="180"></label><label>Seller 2 name (optional)<input id="hofSeller2" maxlength="180"></label><label>Buyer 1 name (optional)<input id="hofBuyer1" maxlength="180"></label><label>Buyer 2 name (optional)<input id="hofBuyer2" maxlength="180"></label><label>TREC-61-0 water-rights source (optional)<select id="hofWaterSource"><option value="">Do not include</option></select></label></div>' +
       renderResponses() + renderWaterResponses() +
       '<div class="hof-seller-actions"><button class="btn-primary" type="button" id="hofSaveSellerDraft">Save private draft</button><button class="btn-secondary" type="button" id="hofSendSellerReview" disabled>Send seller review email</button><span id="hofSellerDraftStatus" class="hof-iabs-status"></span></div><h5>My seller disclosure drafts</h5><ul id="hofSellerDraftList" class="hof-private-form-drafts-list"><li>Loading…</li></ul>';
     panel.appendChild(card);
@@ -13611,6 +13623,11 @@ function routeAfterMagicLinkIfNeeded() {
       const water = sources.find(s => s.form_code === 'TREC-61-0');
       document.getElementById('hofSellerSource').innerHTML = seller ? '<option value="' + escape(seller.id) + '">' + escape(seller.source_revision) + '</option>' : '<option value="">No approved TREC-55-1 source</option>';
       if (water) document.getElementById('hofWaterSource').insertAdjacentHTML('beforeend','<option value="' + escape(water.id) + '">' + escape(water.source_revision) + '</option>');
+      const workspaces = await loadListingWorkspaces();
+      document.getElementById('hofSellerWorkspace').insertAdjacentHTML('beforeend', workspaces.map(workspace => {
+        const label = [workspace.property_address, workspace.listing_kind, (workspace.seller_names || []).join(', ')].filter(Boolean).join(' · ');
+        return '<option value="' + escape(workspace.id) + '">' + escape(label) + '</option>';
+      }).join(''));
     } catch (error) { document.getElementById('hofSellerDraftStatus').textContent = error.message || 'Approved sources unavailable.'; }
     document.getElementById('hofSaveSellerDraft').addEventListener('click', async () => {
       const status = document.getElementById('hofSellerDraftStatus');
@@ -13621,7 +13638,7 @@ function routeAfterMagicLinkIfNeeded() {
       card.querySelectorAll('[data-seller-response]').forEach(select => { if (select.value) responseData[select.dataset.sellerResponse] = select.value; });
       const waterRightsData = {};
       card.querySelectorAll('[data-water-response]').forEach(select => { if (select.value) waterRightsData[select.dataset.waterResponse] = select.value; });
-      const payload = {action:'create_seller_disclosure_draft',formCode:'TREC-55-1',disclosureSourceId:document.getElementById('hofSellerSource').value,waterSourceId:document.getElementById('hofWaterSource').value || null,propertyAddress:document.getElementById('hofSellerAddress').value,sellerNames,buyerNames,responseData,waterRightsData};
+      const payload = {action:'create_seller_disclosure_draft',formCode:'TREC-55-1',disclosureSourceId:document.getElementById('hofSellerSource').value,waterSourceId:document.getElementById('hofWaterSource').value || null,listingWorkspaceId:document.getElementById('hofSellerWorkspace').value || null,propertyAddress:document.getElementById('hofSellerAddress').value,sellerNames,buyerNames,responseData,waterRightsData};
       if (!token) return alert('Sign in before saving a seller disclosure draft.');
       if (!payload.disclosureSourceId || !payload.propertyAddress.trim() || !sellerNames.length) return alert('Enter the property address, at least one seller, and choose the approved TREC-55-1 source.');
       status.textContent = 'Saving private draft…';
@@ -13679,4 +13696,3 @@ function routeAfterMagicLinkIfNeeded() {
 </script>
 </body>
 </html>
-
