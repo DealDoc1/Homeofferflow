@@ -14,7 +14,7 @@ class SupabaseProCapacityEvidenceTests(unittest.TestCase):
         for marker in (
             "Plan: `pro`",
             "Status: `ACTIVE_HEALTHY`",
-            "421 tests",
+            "422 tests",
             "hof_standalone_agreements` form-code constraint accepts exactly",
             "Do not apply a blanket `revoke all ... from authenticated` migration.",
             "Completed-signature visual QA",
