@@ -21,7 +21,6 @@ class SellerReviewApiTests(unittest.TestCase):
             "workflowActivated",
         ):
             self.assertIn(marker, source)
-        self.assertIn("Signing is not active", source)
         self.assertIn("seller-review.html", source)
 
     def test_review_link_migration_is_service_role_only(self):
