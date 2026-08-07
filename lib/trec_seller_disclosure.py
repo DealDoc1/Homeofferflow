@@ -95,6 +95,9 @@ TREC_55_1_ITEM_ROWS = (
     ("range", 58, 570),
     ("oven", 211, 570),
     ("microwave", 391, 570),
+    ("dishwasher", 58, 552),
+    ("trash_compactor", 211, 552),
+    ("disposal", 391, 552),
 )
 
 def source_contract(form_code: str) -> dict[str, Any]:
