@@ -129,6 +129,17 @@ TREC_55_1_CONDITION_ROWS = (
     ("defect_lighting_fixtures", 408, 392),
 )
 
+TREC_55_1_FLOOD_ROWS = (
+    ("present_flood_insurance", 58, 650),
+    ("previous_reservoir_release_flooding", 58, 632),
+    ("previous_natural_flood_water_penetration", 58, 614),
+    ("in_100_year_floodplain", 58, 596),
+    ("in_500_year_floodplain", 58, 578),
+    ("in_floodway", 58, 560),
+    ("in_flood_pool", 58, 542),
+    ("in_reservoir", 58, 524),
+)
+
 TREC_55_1_CONDITION4_ROWS = (
     ("active_termites", 58, 281),
     ("previous_structural_or_roof_repair", 318, 281),
@@ -271,6 +282,8 @@ def render_unsigned_preview(source_pdf_bytes: bytes, form_code: str, values: dic
                 if values.get(key):
                     _check(canvas, field_map[key]["x"], field_map[key]["y"])
             _draw(canvas, values.get("repairDescription"), 330, 717, size=7)
+            for key, x, y in TREC_55_1_FLOOD_ROWS:
+                _response(canvas, values.get(key), x, y)
         if form_code == "TREC-55-1" and page_number == 2:
             for key in ("smoke_detectors_yes", "smoke_detectors_no", "smoke_detectors_unknown"):
                 if values.get(key):
