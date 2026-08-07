@@ -25,3 +25,11 @@ activate a restricted form workflow.
 The public launch copy is aligned with the current roadmap and does not claim a
 complete agent transaction-form library. Authenticated account, billing,
 brokerage-admin, and restricted-form QA remain separate gates.
+
+## Read-only endpoint checks
+
+- `GET /api/create-subscription-checkout?launch=ondemand` returned HTTP 200 with
+  `trialDays: 60`, `monthlyPrice: 29`, and the active `ondemand` brokerage.
+- `GET /api/admin-dashboard?scope=brokerage` without a session returned HTTP
+  401 with `A valid signed-in session is required.`
+- No checkout session was created and no payment method or email was submitted.

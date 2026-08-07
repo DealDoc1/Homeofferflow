@@ -25,6 +25,15 @@ class PublicOnDemandLaunchScopeEvidenceTests(unittest.TestCase):
         self.assertIn("not send a sign-in link", DOC)
         self.assertIn("remain separate gates", DOC)
 
+    def test_read_only_endpoint_checks_record_trial_and_admin_denial(self):
+        for marker in (
+            "trialDays: 60",
+            "monthlyPrice: 29",
+            "without a session returned HTTP",
+            "A valid signed-in session is required.",
+        ):
+            self.assertIn(marker, DOC)
+
 
 if __name__ == "__main__":
     unittest.main()
