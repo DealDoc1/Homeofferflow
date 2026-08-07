@@ -23,6 +23,28 @@ The July 28, 2026 Texas REALTORS® blank-form list was also reviewed. It
 confirms the adjacent residential listing, seller disclosure, leasing, and
 transaction follow-up form families below.
 
+## Additional form families confirmed by the supplied inventory
+
+The supplied inventory is a catalog of available member forms, not a license
+to reproduce every form in the product. These are the next Texas residential
+workflows that matter for an agent launch:
+
+| Priority family | Confirmed forms | Product implication |
+| --- | --- | --- |
+| Listing-side representation | TXR-1101 Residential Listing Agreement - Exclusive Right to Sell; TXR-1102 Residential Listing Agreement - Exclusive Right to Lease | Separate sale-listing and lease-listing workflows; neither is an offer addendum. Exact source PDFs and signer plans remain required before activation. |
+| Seller disclosures | TXR-1406 Seller's Disclosure Notice; TXR-1418 Update to Seller's Disclosure Notice; TREC-55-1; TREC-61-0 | Keep seller disclosure preparation separate from the buyer offer question. The current TREC-55-1/TREC-61-0 foundation is the first seller-side implementation; TXR-1406/TXR-1418 remain separately source-gated. |
+| Buyer relationship | TXR-1501, TXR-1507, TXR-1508, TXR-1506 | These supplied exact PDFs are already source-vaulted and have private preview foundations; signing remains gated by authenticated and completed-PDF QA. |
+| Leasing | TXR-2001 Residential Lease; TXR-2003 Residential Lease Application; TXR-2011 Multi-Family Lease; TXR-1910 Seller's Temporary Residential Lease; TXR-1911 Buyer's Temporary Residential Lease | The temporary-lease execution path is live for the supported purchase scenario. Full landlord/tenant leasing needs its own workflow and signer plan. |
+| Agent disclosures and notices | TXR-2501 IABS 1-2; TXR-1409 Intermediary Relationship Notice; TXR-1417 Representation Disclosure; TXR-1504 Notice from Buyer's Agent to Seller | IABS remains an agent-owned profile document with optional packet inclusion. The other notices require separate source, role, and delivery rules. |
+| Transaction follow-up | TXR-1503 Termination; TXR-1505 Amendment; TXR-1903 Amendment of Contract; TXR-1902 Notice of Buyer's Termination; TXR-1958 Critical Date List | Build after the relationship and listing foundations; each form needs its own data model and regression scenario. |
+
+The inventory also confirms specialized addenda such as seller financing,
+loan assumption, residential/fixture leases, hydrostatic testing, minerals,
+environmental assessment, HOA/PID notices, and property-condition notices.
+Those remain intentionally sequenced after the core relationship, listing,
+disclosure, and lease workflows. No form is enabled merely because it appears
+in the inventory.
+
 ## What HomeOfferFlow supports today
 
 | Workflow | Current scope |
