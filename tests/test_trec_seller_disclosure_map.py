@@ -55,6 +55,11 @@ class TrecSellerDisclosureMapTests(unittest.TestCase):
                 ("defect_windows", 408, 473),
                 ("defect_roof", 58, 446),
                 ("defect_foundation_slabs", 238, 446),
+                ("defect_sidewalks", 408, 446),
+                ("defect_walls_fences", 58, 419),
+                ("defect_driveways", 238, 419),
+                ("defect_intercom", 408, 419),
+                ("defect_plumbing_sewers_septics", 58, 392),
             ),
         )
 
