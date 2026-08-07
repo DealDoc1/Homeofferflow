@@ -103,6 +103,19 @@ TREC_55_1_CONDITION_ROWS = (
     ("defect_lighting_fixtures", 408, 392),
 )
 
+TREC_55_1_CONDITION4_ROWS = (
+    ("active_termites", 58, 281),
+    ("previous_structural_or_roof_repair", 318, 281),
+    ("termite_or_wood_rot_needing_repair", 58, 263),
+    ("hazardous_toxic_waste", 318, 263),
+    ("previous_termite_damage", 58, 245),
+    ("asbestos_components", 318, 245),
+    ("previous_termite_treatment", 58, 227),
+    ("urea_formaldehyde_insulation", 318, 227),
+    ("improper_drainage", 58, 209),
+    ("radon_gas", 318, 209),
+)
+
 TREC_55_1_ITEM_ROWS = (
     ("range", 58, 570),
     ("oven", 211, 570),
@@ -209,6 +222,8 @@ def render_unsigned_preview(source_pdf_bytes: bytes, form_code: str, values: dic
                 if values.get(key):
                     _check(canvas, field_map[key]["x"], field_map[key]["y"])
             for key, x, y in TREC_55_1_CONDITION_ROWS:
+                _response(canvas, values.get(key), x, y)
+            for key, x, y in TREC_55_1_CONDITION4_ROWS:
                 _response(canvas, values.get(key), x, y)
         if form_code == "TREC-55-1" and page_number == 4:
             for value_key, map_key in (

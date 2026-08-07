@@ -66,6 +66,23 @@ class TrecSellerDisclosureMapTests(unittest.TestCase):
         )
 
 
+    def test_trec_55_section4_condition_rows_are_explicit(self):
+        self.assertEqual(
+            MODULE.TREC_55_1_CONDITION4_ROWS,
+            (
+                ("active_termites", 58, 281),
+                ("previous_structural_or_roof_repair", 318, 281),
+                ("termite_or_wood_rot_needing_repair", 58, 263),
+                ("hazardous_toxic_waste", 318, 263),
+                ("previous_termite_damage", 58, 245),
+                ("asbestos_components", 318, 245),
+                ("previous_termite_treatment", 58, 227),
+                ("urea_formaldehyde_insulation", 318, 227),
+                ("improper_drainage", 58, 209),
+                ("radon_gas", 318, 209),
+            ),
+        )
+
     def test_trec_55_first_item_response_rows_are_explicit(self):
         self.assertEqual(
             MODULE.TREC_55_1_ITEM_ROWS,
