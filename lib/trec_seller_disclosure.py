@@ -8,6 +8,7 @@ verified.
 from __future__ import annotations
 
 from io import BytesIO
+import hashlib
 from typing import Any
 
 from pypdf import PdfReader, PdfWriter
@@ -17,6 +18,8 @@ PAGE_WIDTH = 612
 PAGE_HEIGHT = 792
 TREC_55_1_PAGE_COUNT = 4
 TREC_61_0_PAGE_COUNT = 2
+TREC_55_1_SOURCE_SHA256 = "65a52e167c290814930624ba230e232c152573359f1388cdb5e1237a62e4239a"
+TREC_61_0_SOURCE_SHA256 = "91056ab6520af8cbef319986e03490f1bf6947817c3d3f563348f80f957f871f"
 
 # Coordinates are PDF points with origin at bottom-left. These are initial
 # source-specific anchors from the supplied 05-04-2026 PDFs. They are not
@@ -73,10 +76,18 @@ TREC_61_0_MAP = {
 
 def source_contract(form_code: str) -> dict[str, Any]:
     if form_code == "TREC-55-1":
-        return {"form_code": form_code, "page_count": TREC_55_1_PAGE_COUNT, "field_map": TREC_55_1_MAP, "activation_status": "pending_visual_qa"}
+        return {"form_code": form_code, "page_count": TREC_55_1_PAGE_COUNT, "field_map": TREC_55_1_MAP, "source_sha256": TREC_55_1_SOURCE_SHA256, "activation_status": "pending_visual_qa"}
     if form_code == "TREC-61-0":
-        return {"form_code": form_code, "page_count": TREC_61_0_PAGE_COUNT, "field_map": TREC_61_0_MAP, "activation_status": "pending_visual_qa"}
+        return {"form_code": form_code, "page_count": TREC_61_0_PAGE_COUNT, "field_map": TREC_61_0_MAP, "source_sha256": TREC_61_0_SOURCE_SHA256, "activation_status": "pending_visual_qa"}
     raise ValueError("Unsupported seller disclosure form.")
+
+def validate_source_bytes(form_code: str, source_pdf_bytes: bytes) -> None:
+    """Reject a private source unless its fingerprint matches the approved PDF."""
+    expected = source_contract(form_code)["source_sha256"]
+    actual = hashlib.sha256(source_pdf_bytes).hexdigest()
+    if actual != expected:
+        raise ValueError(f"{form_code} source fingerprint does not match the approved revision.")
+
 
 def _clean(value: Any) -> str:
     return " ".join(str(value or "").strip().split())
