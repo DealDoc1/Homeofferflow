@@ -242,3 +242,17 @@ class TrecSellerDisclosureMapTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def test_trec_55_1_page1_gas_and_garage_anchors():
+    mapping = source_contract("TREC-55-1")["field_map"]
+    assert mapping["liquid_propane_lp_community"] == {"page": 1, "x": 172, "y": 249}
+    assert mapping["liquid_propane_on_property"] == {"page": 1, "x": 314, "y": 249}
+    assert mapping["fuel_gas_black_iron"] == {"page": 1, "x": 185, "y": 231}
+    assert mapping["fuel_gas_corrugated_stainless"] == {"page": 1, "x": 315, "y": 231}
+    assert mapping["fuel_gas_copper"] == {"page": 1, "x": 450, "y": 231}
+    assert mapping["garage_attached"] == {"page": 1, "x": 110, "y": 214}
+    assert mapping["garage_not_attached"] == {"page": 1, "x": 230, "y": 214}
+    assert mapping["garage_carport"] == {"page": 1, "x": 370, "y": 214}
+    assert mapping["garage_door_electronic"] == {"page": 1, "x": 190, "y": 198}
+    assert mapping["garage_door_controls"] == {"page": 1, "x": 310, "y": 198}
