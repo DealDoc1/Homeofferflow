@@ -42,6 +42,23 @@ class TrecSellerDisclosureMapTests(unittest.TestCase):
         self.assertEqual(field_map["smoke_detectors_no"], {"page": 2, "x": 248, "y": 728})
         self.assertEqual(field_map["smoke_detectors_unknown"], {"page": 2, "x": 283, "y": 728})
 
+    def test_trec_61_page2_response_anchors_are_explicit(self):
+        field_map = MODULE.TREC_61_0_MAP
+        expected = {
+            "water_other_property_yes": {"page": 2, "x": 281, "y": 698},
+            "water_other_property_no": {"page": 2, "x": 322, "y": 698},
+            "outside_groundwater_rights_yes": {"page": 2, "x": 410, "y": 625},
+            "outside_groundwater_rights_no": {"page": 2, "x": 451, "y": 625},
+            "rights_severed_yes": {"page": 2, "x": 72, "y": 545},
+            "rights_severed_no": {"page": 2, "x": 112, "y": 545},
+            "surface_water_right_yes": {"page": 2, "x": 428, "y": 485},
+            "surface_water_right_no": {"page": 2, "x": 468, "y": 485},
+            "pond_lake_tank_yes": {"page": 2, "x": 72, "y": 390},
+            "pond_lake_tank_no": {"page": 2, "x": 112, "y": 390},
+        }
+        for key, anchor in expected.items():
+            self.assertEqual(field_map[key], anchor)
+
     def test_trec_61_water_well_anchors_match_reviewed_rows(self):
         field_map = MODULE.TREC_61_0_MAP
         self.assertEqual(field_map["water_well_yes"], {"page": 1, "x": 383, "y": 258})
