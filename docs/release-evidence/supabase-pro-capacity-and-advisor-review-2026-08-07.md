@@ -35,7 +35,7 @@ API policies. These are reviewed, not ignored:
 ## Verification evidence
 
 - Local release preflight passed for the current non-form evidence branch.
-- Full regression suite passed: `420 tests`, `OK`.
+- Full regression suite passed: `421 tests`, `OK`.
 - The live `hof_standalone_agreements` form-code constraint accepts exactly
   `TXR-1501`, `TXR-1506`, `TXR-1507`, and `TXR-1508`.
 - Targeted Stripe lifecycle, OnDemand checkout, brokerage authorization, and
@@ -44,6 +44,7 @@ API policies. These are reviewed, not ignored:
   side effects: OnDemand launch metadata returned a 60-day trial and $29
   monthly price, while unauthenticated brokerage-admin access returned HTTP
   401.
+- Working tree was clean after verification.
 - No Vercel deployment was triggered.
 
 ## Remaining release gates
