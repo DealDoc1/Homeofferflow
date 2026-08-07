@@ -10,7 +10,7 @@ directly for several signed-in workflows. A blanket revoke would break offer
 creation, profiles, subscriptions, brokerage setup, agent documents, and
 addenda/source workflows. Usage telemetry is the first dependency moved behind
 an authenticated server action; its server-only privilege migration is
-prepared but remains unapplied until a signed-in production smoke test passes.
+was applied on 2026-08-07 after the runtime/server tests passed.
 
 The Supabase advisor warning `0027_pg_graphql_authenticated_table_exposed` is
 therefore tracked as a reviewed warning, not an unreviewed vulnerability. RLS
@@ -28,7 +28,7 @@ server-side API route:
 | `hof_offer_events` | Signed-in offer status/timeline reads; server writes | Keep current access until timeline reads move behind an API |
 | `hof_profiles` | Profile and brokerage setup/read | Keep authenticated access; owner/broker policies are required |
 | `hof_subscriptions` | Signed-in entitlement reads; server lifecycle writes | Keep authenticated select only; no browser insert/update |
-| `hof_usage_events` | Usage summary and signed-packet events now route through `/api/submit-feedback` server actions | Prepared server-only migration; apply only after signed-in production smoke and direct-browser denial verification |
+| `hof_usage_events` | Usage summary and signed-packet events now route through `/api/submit-feedback` server actions | Server-only migration applied; RLS remains enabled, no public/authenticated table grants or policies remain, and service-role writes are retained |
 | `hof_brokerages` | Signed-in brokerage setup and branding | Keep authenticated access with membership/admin RLS |
 | `hof_brokerage_members` | Signed-in roster/association reads | Keep authenticated select with brokerage membership RLS |
 | `hof_agent_documents` | Agent IABS/document profile storage metadata | Keep authenticated owner-scoped access |
@@ -52,18 +52,18 @@ browser dependencies and remain revoked for both `anon` and `authenticated`.
    AI review snapshots are already server-only under their respective SQL files.
 3. After browser reads/writes are removed and live end-to-end tests pass,
    revoke `authenticated` table privileges for that relation and verify both
-   the API path and direct-browser denial.
+   the API path and direct-browser denial. This is complete for
+   `hof_usage_events` as of 2026-08-07.
 4. Revisit disabling `pg_graphql` only after confirming no production or
    support workflow uses it.
 
 ## Do not do
 
-- Do not apply a blanket `revoke all ... from authenticated` migration. Apply
-  only the table-specific usage migration after its signed-in smoke gate passes.
+- Do not apply a blanket `revoke all ... from authenticated` migration. The
+  table-specific usage migration is now applied only to `hof_usage_events`.
 - Do not expose service-role credentials to the browser.
 - Do not treat the advisor warning alone as proof that customer data is
   readable; verify RLS and grants together.
 - Do not deploy this documentation-only review as a Vercel preview while the
   Hobby deployment cap is constrained. Bundle it with the next intentional
   release.
-
