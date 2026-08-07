@@ -264,3 +264,14 @@ def test_trec_55_1_page1_safety_item_anchors():
     assert rows["smoke_detector_hearing_impaired"] == (211, 480)
     assert rows["carbon_monoxide_alarm"] == (211, 462)
     assert rows["emergency_escape_ladders"] == (211, 444)
+
+
+def test_trec_55_1_canonical_item_aliases():
+    mapping = source_contract("TREC-55-1")["field_map"]
+    assert mapping["lp_community"] == {"page": 1, "x": 172, "y": 249}
+    assert mapping["lp_on_property"] == {"page": 1, "x": 314, "y": 249}
+    assert mapping["fuel_gas_corrugated_steel"] == {"page": 1, "x": 315, "y": 231}
+    assert mapping["carport"] == {"page": 1, "x": 370, "y": 214}
+    assert mapping["garage_opener_electronic"] == {"page": 1, "x": 190, "y": 198}
+    assert mapping["garage_opener_controls"] == {"page": 1, "x": 310, "y": 198}
+    assert mapping["hot_tub"] == {"page": 1, "x": 470, "y": 336}
