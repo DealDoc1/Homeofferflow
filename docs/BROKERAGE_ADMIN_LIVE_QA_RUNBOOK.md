@@ -4,6 +4,32 @@ Use this runbook with an authenticated active `brokerage_admin` account. It is
 an observation checklist, not an authorization to activate restricted Texas
 REALTORS® forms.
 
+## Automated preflight (run this first)
+
+Before opening the interactive checklist, run the read-only verifier with an
+existing Supabase access token:
+
+```bash
+HOF_ACCESS_TOKEN='YOUR_TOKEN' python scripts/verify_brokerage_admin_live.py \
+  --base-url https://www.homeofferflow.com \
+  --brokerage-slug ondemand
+```
+
+The verifier calls only `GET /api/admin-dashboard?scope=brokerage`. It does
+not create invites, change membership, update branding, read offer terms, or
+send documents. It writes a metadata-only report and fails if aggregate
+metrics, roster/source-readiness metadata, or the privacy contract are
+missing. Do not paste the token or the report into a public issue.
+
+Expected result:
+
+```json
+{ "ok": true, "brokerage": { "slug": "ondemand" }, "errors": [] }
+```
+
+A failed preflight is a stop condition: fix the API/authorization/privacy
+problem before performing the interactive steps below.
+
 ## Preconditions
 
 - Open `https://www.homeofferflow.com/` in a clean browser session.
@@ -106,6 +132,7 @@ Expected: no restricted form can be drafted, sent, or signed from this QA run.
 Record only:
 
 - production commit and date;
+- verifier result and timestamp;
 - reviewer role (brokerage administrator);
 - brokerage slug/name;
 - pass/fail for each numbered section;
