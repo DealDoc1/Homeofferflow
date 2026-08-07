@@ -1,7 +1,7 @@
 # Vercel Hobby release process
 
-For the complete cross-system gate (tests, legal-form evidence, direct
-production deployment, and post-deploy verification), use
+For the complete cross-system gate (tests, legal-form evidence, the
+confirmation-gated production deployment, and post-deploy verification), use
 [`PRODUCTION_RELEASE_CHECKLIST.md`](PRODUCTION_RELEASE_CHECKLIST.md).
 
 HomeOfferFlow disables automatic Git deployments so a branch push or merge does
@@ -47,20 +47,15 @@ For each completed batch:
      silently blocking a valid build because its commit author lacks Vercel-team
      access.
 3. Merge the verified pull request.
-4. From the checked-out production commit, run one explicit production deploy:
-
-   ```bash
-   vercel deploy --prod --yes
-   ```
-
+4. Run `.github/workflows/production-release.yml` from the exact checked-out
+   production commit. Enter `DEPLOY` explicitly; the workflow performs the
+   prebuilt Vercel deployment, readiness check, and canonical-domain check.
 5. Verify `https://www.homeofferflow.com/` and the affected workflow.
 
-The repository also provides a manual GitHub Actions **production release gate**
-(`.github/workflows/release-gate.yml`). Run it from the exact commit intended
-for release, supplying the completed evidence path when the change touches a
-packet or legal form. The workflow runs the full regression suite and the
-fail-closed preflight, but intentionally does **not** deploy to Vercel. After
-it passes, follow the single explicit deployment step above.
+The repository also retains the read-only manual GitHub Actions **release gate**
+(`.github/workflows/release-gate.yml`) for verification-only runs. The
+confirmation-gated `production-release.yml` workflow is the only approved path
+that deploys to Vercel.
 
 This keeps the release cadence deliberate and avoids separate automatic preview
 and production builds. It does not relax the legal-form source, signer-plan, or

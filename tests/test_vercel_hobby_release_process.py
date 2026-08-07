@@ -13,7 +13,8 @@ class VercelHobbyReleaseProcessTests(unittest.TestCase):
 
     def test_release_documentation_requires_one_explicit_production_deploy(self):
         guide = (ROOT / "docs" / "VERCEL_HOBBY_RELEASE_PROCESS.md").read_text()
-        self.assertIn("vercel deploy --prod --yes", guide)
+        self.assertIn(".github/workflows/production-release.yml", guide)
+        self.assertNotIn("vercel deploy --prod --yes", guide)
         self.assertIn("full local test suite", guide)
         self.assertIn("--expected-deploy-author-email andrewchri@gmail.com", guide)
         self.assertIn("PRODUCTION_RELEASE_CHECKLIST.md", guide)
@@ -22,7 +23,8 @@ class VercelHobbyReleaseProcessTests(unittest.TestCase):
         checklist = (ROOT / "docs" / "PRODUCTION_RELEASE_CHECKLIST.md").read_text()
         self.assertIn("Every applicable blank, checkbox, initial, signature, and date", checklist)
         self.assertIn("release_preflight.py", checklist)
-        self.assertIn("vercel deploy --prod --yes --scope dealdoc1s-projects", checklist)
+        self.assertIn(".github/workflows/production-release.yml", checklist)
+        self.assertNotIn("vercel deploy --prod --yes --scope dealdoc1s-projects", checklist)
         self.assertIn("never send Stripe test", checklist)
         self.assertIn("production database", checklist)
         self.assertIn("Restricted Texas REALTORS", checklist)

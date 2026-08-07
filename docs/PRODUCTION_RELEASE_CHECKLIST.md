@@ -96,15 +96,19 @@ For any release that touches a restricted Texas REALTORS® / NAR workflow:
 
 HomeOfferFlow disables automatic Git deployments to conserve Vercel Hobby
 capacity. Pushes do not deploy by themselves. Bundle verified runtime work,
-then run one explicit production deployment:
+then run the confirmation-gated GitHub Actions workflow:
 
-```bash
-vercel deploy --prod --yes --scope dealdoc1s-projects
+```text
+.github/workflows/production-release.yml
 ```
 
-- [ ] Capture the deployment URL and ID.
-- [ ] Wait until `vercel inspect <deployment-url> --scope dealdoc1s-projects`
-  reports **Ready**.
+- [ ] Open **Actions → HomeOfferFlow intentional production release**.
+- [ ] Select the exact verified `main` commit.
+- [ ] Enter `DEPLOY` in the confirmation field.
+- [ ] Supply the completed evidence file when the batch changes a packet or
+  legal-form workflow.
+- [ ] Confirm the workflow's Vercel deployment URL and ID.
+- [ ] Confirm the workflow's readiness check reports **Ready**.
 - [ ] Confirm `https://www.homeofferflow.com/` is an alias of that deployment.
 
 Documentation- and test-only commits do not require a separate customer-facing
