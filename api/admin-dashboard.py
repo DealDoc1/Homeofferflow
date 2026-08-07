@@ -2212,6 +2212,17 @@ class handler(BaseHTTPRequestHandler):
             return
         try:
             import asyncio
+            query = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+            attest_token = str((query.get("attest_seller_review") or [""])[0]).strip()
+            if attest_token:
+                length = int(self.headers.get("Content-Length", "0") or "0")
+                if length <= 0 or length > MAX_BODY_BYTES:
+                    _json(self, 400, {"error": "Invalid request size."})
+                    return
+                data = json.loads(self.rfile.read(length).decode("utf-8"))
+                result = asyncio.run(_attest_seller_review(attest_token, data))
+                _json(self, 200, result)
+                return
             user = asyncio.run(_verified_user(self.headers.get("authorization", "")))
             if not user:
                 _json(self, 401, {"error": "A valid signed-in session is required."})
@@ -2260,6 +2271,10 @@ class handler(BaseHTTPRequestHandler):
             if data.get("action") == "create_seller_disclosure_draft":
                 draft = asyncio.run(_create_seller_disclosure_draft(user, data))
                 _json(self, 201, {"status": "ok", "draft": draft, "workflowActivated": False})
+                return
+            if data.get("action") == "create_seller_disclosure_review_link":
+                link = asyncio.run(_create_seller_disclosure_review_link(user, data))
+                _json(self, 201, {"status": "ok", "reviewLink": link, "workflowActivated": False})
                 return
             if data.get("action") == "create_txr_1507_draft":
                 draft = asyncio.run(_create_txr_1507_draft(user, data))
