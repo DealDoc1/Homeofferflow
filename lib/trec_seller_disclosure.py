@@ -83,11 +83,11 @@ TREC_55_1_MAP = {
 
 TREC_61_0_MAP = {
     "property_address_page_1": {"page": 1, "x": 220, "y": 634, "width": 350},
-    "groundwater_district_yes": {"page": 1, "x": 408, "y": 258},
-    "groundwater_district_no": {"page": 1, "x": 453, "y": 258},
-    "groundwater_district_unknown": {"page": 1, "x": 497, "y": 258},
+    "groundwater_district_yes": {"page": 1, "x": 400, "y": 287},
+    "groundwater_district_no": {"page": 1, "x": 444, "y": 287},
+    "groundwater_district_unknown": {"page": 1, "x": 484, "y": 287},
     "water_well_yes": {"page": 1, "x": 383, "y": 258},
-    "water_well_no": {"page": 1, "x": 427, "y": 258},
+    "water_well_no": {"page": 1, "x": 420, "y": 258},
     "well_owned_seller": {"page": 1, "x": 48, "y": 145},
     "well_other_party": {"page": 1, "x": 48, "y": 120},
     "water_other_property_yes": {"page": 2, "x": 281, "y": 698},
@@ -296,13 +296,24 @@ def render_unsigned_preview(source_pdf_bytes: bytes, form_code: str, values: dic
             for key, x, y in TREC_55_1_ITEM_ROWS:
                 _response(canvas, values.get(key), x, y)
         if form_code == "TREC-55-1" and page_number == 3:
-            for key in ("repair_condition_yes", "repair_condition_no"):
-                if values.get(key):
-                    _check(canvas, field_map[key]["x"], field_map[key]["y"])
+            repair_response = _clean(values.get("property_needs_repair") or "").upper()
+            if repair_response == "Y" or values.get("repair_condition_yes"):
+                _check(canvas, field_map["repair_condition_yes"]["x"], field_map["repair_condition_yes"]["y"])
+            if repair_response == "N" or values.get("repair_condition_no"):
+                _check(canvas, field_map["repair_condition_no"]["x"], field_map["repair_condition_no"]["y"])
             _draw(canvas, values.get("repairDescription"), 330, 717, size=7)
             for key, x, y in TREC_55_1_FLOOD_ROWS:
                 _response(canvas, values.get(key), x, y)
         if form_code == "TREC-55-1" and page_number == 2:
+            smoke_response = _clean(values.get("working_smoke_detectors") or "").upper()
+            smoke_keys = {
+                "Y": "smoke_detectors_yes",
+                "N": "smoke_detectors_no",
+                "U": "smoke_detectors_unknown",
+            }
+            if smoke_response in smoke_keys:
+                anchor = field_map[smoke_keys[smoke_response]]
+                _check(canvas, anchor["x"], anchor["y"])
             for key in ("smoke_detectors_yes", "smoke_detectors_no", "smoke_detectors_unknown"):
                 if values.get(key):
                     _check(canvas, field_map[key]["x"], field_map[key]["y"])
@@ -310,6 +321,15 @@ def render_unsigned_preview(source_pdf_bytes: bytes, form_code: str, values: dic
                 _response(canvas, values.get(key), x, y)
             for key, x, y in TREC_55_1_CONDITION4_ROWS:
                 _response(canvas, values.get(key), x, y)
+        if form_code == "TREC-55-1" and page_number == 3:
+            flood_claim = _clean(values.get("filed_flood_claim") or "").upper()
+            if flood_claim in {"Y", "N"}:
+                key = "flood_claim_yes" if flood_claim == "Y" else "flood_claim_no"
+                _check(canvas, field_map[key]["x"], field_map[key]["y"])
+            fema_response = _clean(values.get("received_fema_or_sba_assistance") or "").upper()
+            if fema_response in {"Y", "N"}:
+                key = "fema_yes" if fema_response == "Y" else "fema_no"
+                _check(canvas, field_map[key]["x"], field_map[key]["y"])
         if form_code == "TREC-55-1" and page_number == 4:
             for key, x, y in TREC_55_1_ADDITIONAL_ROWS:
                 _response(canvas, values.get(key), x, y)
@@ -328,6 +348,14 @@ def render_unsigned_preview(source_pdf_bytes: bytes, form_code: str, values: dic
                     _draw(canvas, values[value_key], anchor["x"], anchor["y"], size=8)
         if form_code == "TREC-61-0" and page_number == 1:
             _draw(canvas, values.get("propertyAddress"), 220, 634, size=8)
+            groundwater = _clean(values.get("in_groundwater_district") or "").upper()
+            if groundwater in {"Y", "N", "U"}:
+                key = {"Y": "groundwater_district_yes", "N": "groundwater_district_no", "U": "groundwater_district_unknown"}[groundwater]
+                _check(canvas, field_map[key]["x"], field_map[key]["y"])
+            wells = _clean(values.get("water_wells_known") or "").upper()
+            if wells in {"Y", "N"}:
+                key = "water_well_yes" if wells == "Y" else "water_well_no"
+                _check(canvas, field_map[key]["x"], field_map[key]["y"])
             for key in (
                 "groundwater_district_yes",
                 "groundwater_district_no",
@@ -340,6 +368,18 @@ def render_unsigned_preview(source_pdf_bytes: bytes, form_code: str, values: dic
                 if values.get(key):
                     _check(canvas, field_map[key]["x"], field_map[key]["y"])
         if form_code == "TREC-61-0" and page_number == 2:
+            semantic_water = (
+                ("water_well_on_another_property", "water_other_property_yes", "water_other_property_no"),
+                ("water_well_relies_on_outside_rights", "outside_groundwater_rights_yes", "outside_groundwater_rights_no"),
+                ("groundwater_rights_severed_sold_leased", "rights_severed_yes", "rights_severed_no"),
+                ("surface_water_right", "surface_water_right_yes", "surface_water_right_no"),
+                ("pond_lake_or_water_tank", "pond_lake_tank_yes", "pond_lake_tank_no"),
+            )
+            for response_key, yes_key, no_key in semantic_water:
+                response = _clean(values.get(response_key) or "").upper()
+                if response in {"Y", "N"}:
+                    key = yes_key if response == "Y" else no_key
+                    _check(canvas, field_map[key]["x"], field_map[key]["y"])
             for key in (
                 "water_other_property_yes",
                 "water_other_property_no",
