@@ -64,6 +64,20 @@ class TrecSellerDisclosureMapTests(unittest.TestCase):
             ),
         )
 
+
+    def test_trec_55_reviewed_item_response_rows_are_explicit(self):
+        self.assertEqual(
+            MODULE.TREC_55_1_ITEM_ROWS,
+            (
+                ("range", 58, 570),
+                ("oven", 211, 570),
+                ("microwave", 391, 570),
+                ("dishwasher", 58, 552),
+                ("trash_compactor", 211, 552),
+                ("disposal", 391, 552),
+            ),
+        )
+
     def test_trec_61_page2_response_anchors_are_explicit(self):
         field_map = MODULE.TREC_61_0_MAP
         expected = {
