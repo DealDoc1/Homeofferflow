@@ -69,7 +69,7 @@ class TrecSellerDisclosureMapTests(unittest.TestCase):
     def test_trec_55_roof_fields_are_explicit(self):
         self.assertEqual(
             MODULE.TREC_55_1_MAP["roof_type"],
-            {"page": 1, "x": 110, "y": 140, "width": 240},
+            {"page": 1, "x": 120, "y": 140, "width": 230},
         )
         self.assertEqual(
             MODULE.TREC_55_1_MAP["roof_age"],
