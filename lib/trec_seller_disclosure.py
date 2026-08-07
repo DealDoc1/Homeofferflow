@@ -113,6 +113,18 @@ TREC_55_1_ITEM_ROWS = (
     ("central_ac", 58, 390),
     ("central_heating", 211, 390),
     ("wall_window_ac", 391, 390),
+    ("plumbing_system", 58, 372),
+    ("septic_system", 211, 372),
+    ("public_sewer_system", 391, 372),
+    ("patio_decking", 58, 354),
+    ("outdoor_grill", 211, 354),
+    ("fences", 391, 354),
+    ("pool", 58, 336),
+    ("sauna", 211, 336),
+    ("spa", 391, 336),
+    ("pool_equipment", 58, 318),
+    ("pool_heater", 211, 318),
+    ("automatic_lawn_sprinkler_system", 391, 318),
 )
 
 def source_contract(form_code: str) -> dict[str, Any]:
