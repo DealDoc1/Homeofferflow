@@ -10,6 +10,8 @@ from __future__ import annotations
 import json
 import uuid
 
+from lib.trec_seller_disclosure_schema import validate_response_keys
+
 
 MAX_ADDRESS = 400
 MAX_NAME = 180
@@ -55,6 +57,8 @@ def parse_seller_disclosure_draft(data: dict) -> dict:
     water_rights_data = data.get("waterRightsData") or {}
     if not isinstance(response_data, dict) or not isinstance(water_rights_data, dict):
         raise ValueError("Disclosure responses must be objects.")
+    validate_response_keys("TREC-55-1", response_data)
+    validate_response_keys("TREC-61-0", water_rights_data)
     encoded_response = json.dumps(
         {"responseData": response_data, "waterRightsData": water_rights_data},
         separators=(",", ":"),
