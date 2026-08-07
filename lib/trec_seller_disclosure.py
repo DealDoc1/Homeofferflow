@@ -83,9 +83,9 @@ TREC_55_1_MAP = {
 
 TREC_61_0_MAP = {
     "property_address_page_1": {"page": 1, "x": 220, "y": 634, "width": 350},
-    "groundwater_district_yes": {"page": 1, "x": 400, "y": 258},
-    "groundwater_district_no": {"page": 1, "x": 444, "y": 258},
-    "groundwater_district_unknown": {"page": 1, "x": 484, "y": 258},
+    "groundwater_district_yes": {"page": 1, "x": 400, "y": 287},
+    "groundwater_district_no": {"page": 1, "x": 444, "y": 287},
+    "groundwater_district_unknown": {"page": 1, "x": 484, "y": 287},
     "water_well_yes": {"page": 1, "x": 383, "y": 258},
     "water_well_no": {"page": 1, "x": 420, "y": 258},
     "well_owned_seller": {"page": 1, "x": 48, "y": 145},
