@@ -13613,7 +13613,7 @@ function routeAfterMagicLinkIfNeeded() {
     if (!panel || !active() || document.getElementById('hofSellerDisclosureCard')) return;
     const card = document.createElement('div'); card.id = 'hofSellerDisclosureCard'; card.className = 'account-card hof-seller-disclosure-card';
     card.innerHTML = '<h4>Seller disclosure draft</h4><p>Use only an approved source your brokerage is authorized to use. This creates a private draft for seller review; it does not send or sign a document.</p>' +
-      '<div class="hof-seller-grid"><label>Private listing workspace (optional)<select id="hofSellerWorkspace"><option value="">Do not link to a workspace</option></select></label><label>Property address<input id="hofSellerAddress" maxlength="400" placeholder="Street address, city, state, ZIP"></label><label>Seller review email<input id="hofSellerEmail" type="email" maxlength="320" autocomplete="email" placeholder="seller@example.com"></label><label>TREC-55-1 source<select id="hofSellerSource"></select></label><label>Seller 1 name<input id="hofSeller1" maxlength="180"></label><label>Seller 2 name (optional)<input id="hofSeller2" maxlength="180"></label><label>Buyer 1 name (optional)<input id="hofBuyer1" maxlength="180"></label><label>Buyer 2 name (optional)<input id="hofBuyer2" maxlength="180"></label><label>TREC-61-0 water-rights source (optional)<select id="hofWaterSource"><option value="">Do not include</option></select></label></div>' +
+      '<div class="hof-seller-grid"><label>Private listing workspace (optional)<select id="hofSellerWorkspace"><option value="">Do not link to a workspace</option></select></label><label>Property address<input id="hofSellerAddress" maxlength="400" placeholder="Street address, city, state, ZIP"></label><label>TREC-55-1 source<select id="hofSellerSource"></select></label><label>Seller 1 name<input id="hofSeller1" maxlength="180"></label><label>Seller 1 review email<input id="hofSellerEmail" type="email" maxlength="320" autocomplete="email" placeholder="seller1@example.com"></label><label>Seller 2 name (optional)<input id="hofSeller2" maxlength="180"></label><label>Seller 2 review email (optional)<input id="hofSeller2Email" type="email" maxlength="320" autocomplete="email" placeholder="seller2@example.com"></label><label>Buyer 1 name (optional)<input id="hofBuyer1" maxlength="180"></label><label>Buyer 2 name (optional)<input id="hofBuyer2" maxlength="180"></label><label>TREC-61-0 water-rights source (optional)<select id="hofWaterSource"><option value="">Do not include</option></select></label></div>' +
       renderResponses() + renderWaterResponses() +
       '<div class="hof-seller-actions"><button class="btn-primary" type="button" id="hofSaveSellerDraft">Save private draft</button><button class="btn-secondary" type="button" id="hofSendSellerReview" disabled>Send seller review email</button><span id="hofSellerDraftStatus" class="hof-iabs-status"></span></div><h5>My seller disclosure drafts</h5><ul id="hofSellerDraftList" class="hof-private-form-drafts-list"><li>Loading…</li></ul>';
     panel.appendChild(card);
@@ -13661,14 +13661,21 @@ function routeAfterMagicLinkIfNeeded() {
       const status = document.getElementById('hofSellerDraftStatus');
       const token = root.hofAuth?.session?.access_token;
       const draftId = card.dataset.sellerDraftId || '';
-      const sellerEmail = document.getElementById('hofSellerEmail').value.trim();
+      const seller1Email = document.getElementById('hofSellerEmail').value.trim();
+      const seller2Email = document.getElementById('hofSeller2Email').value.trim();
+      const seller1Name = document.getElementById('hofSeller1').value.trim();
+      const seller2Name = document.getElementById('hofSeller2').value.trim();
       if (!token) return alert('Sign in before sending a seller review request.');
-      if (!draftId || !sellerEmail) return alert('Save the draft and enter the seller review email first.');
+      if (!draftId || !seller1Email || !seller1Name) return alert('Save the draft and enter Seller 1 name and review email first.');
+      if (seller2Name && !seller2Email) return alert('Enter Seller 2 review email or remove Seller 2 name.');
+      if (seller2Email && !seller2Name) return alert('Enter Seller 2 name before adding a second review email.');
       status.textContent = 'Sending secure seller review email…';
       const button = document.getElementById('hofSendSellerReview');
       button.disabled = true;
       try {
-        const response = await fetch('/api/admin-dashboard',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer ' + token},body:JSON.stringify({action:'create_seller_disclosure_review_link',draftId,sellerEmail})});
+        const sellerReviews = [{sellerEmail:seller1Email,sellerName:seller1Name,sellerIndex:1}];
+        if (seller2Email) sellerReviews.push({sellerEmail:seller2Email,sellerName:seller2Name,sellerIndex:2});
+        const response = await fetch('/api/admin-dashboard',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer ' + token},body:JSON.stringify({action:'create_seller_disclosure_review_link',draftId,sellerNames:[seller1Name,seller2Name].filter(Boolean),sellerReviews})});
         const result = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(result.error || 'Could not send seller review email.');
         status.textContent = 'Secure review email sent. The seller must verify the one-time code; signing is not active.';

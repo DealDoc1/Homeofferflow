@@ -1718,46 +1718,84 @@ async def _create_seller_disclosure_review_link(user, data):
         f"&agent_user_id=eq.{urllib.parse.quote(user['id'])}"
         f"&brokerage_id=eq.{urllib.parse.quote(str(brokerage_id))}"
         "&status=eq.draft"
-        "&select=id,property_address&limit=1"
+        "&select=id,property_address,seller_names&limit=1"
     )
     if not drafts:
         raise PermissionError("That private seller disclosure draft is unavailable.")
-    email = seller_review_access.normalize_email(data.get("sellerEmail"))
-    issued = seller_review_access.issue_credentials()
-    review_url = f"{PUBLIC_APP_ORIGIN}/seller-review.html?token={urllib.parse.quote(issued['token'], safe='')}"
-    record = {
-        "draft_id": draft_id,
-        "brokerage_id": brokerage_id,
-        "agent_user_id": user["id"],
-        "seller_email": email,
-        "token_hash": issued["token_hash"],
-        "verification_code_hash": issued["verification_code_hash"],
-        "expires_at": issued["expires_at"],
-    }
+    seller_names = [" ".join(str(name).strip().split()) for name in (drafts[0].get("seller_names") or data.get("sellerNames") or []) if str(name).strip()]
+    if not seller_names:
+        # Preserve the original one-seller API contract for existing clients.
+        seller_names = [None]
+    if len(seller_names) > 2:
+        raise ValueError("A seller disclosure can have no more than two seller review recipients.")
+    requested_reviews = data.get("sellerReviews")
+    if requested_reviews is None:
+        requested_reviews = [{"sellerEmail": data.get("sellerEmail"), "sellerName": seller_names[0], "sellerIndex": 1}]
+    if not isinstance(requested_reviews, list) or not requested_reviews or len(requested_reviews) > 2:
+        raise ValueError("Provide one review recipient per seller.")
+    if len(requested_reviews) > len(seller_names) and seller_names != [None]:
+        raise ValueError("Provide one review recipient per listed seller.")
+    normalized_reviews = []
+    seen_indexes = set()
+    seen_emails = set()
+    for position, review in enumerate(requested_reviews, start=1):
+        if not isinstance(review, dict):
+            raise ValueError("Each seller review recipient must be an object.")
+        email = seller_review_access.normalize_email(review.get("sellerEmail"))
+        seller_index = review.get("sellerIndex") or position
+        try:
+            seller_index = int(seller_index)
+        except (TypeError, ValueError):
+            raise ValueError("Seller review recipient index must be 1 or 2.")
+        if seller_index < 1 or seller_index > len(seller_names) or seller_index in seen_indexes:
+            raise ValueError("Provide one unique review recipient per seller.")
+        seller_name = " ".join(str(review.get("sellerName") or (seller_names[seller_index - 1] if seller_names != [None] else "")).strip().split()) or None
+        if seller_names != [None] and not seller_review_access.seller_name_matches(seller_name, [seller_names[seller_index - 1]]):
+            raise ValueError("Seller review recipient names must match the saved seller names.")
+        if email in seen_emails:
+            raise ValueError("Each seller review recipient must use a different email address.")
+        seen_indexes.add(seller_index)
+        seen_emails.add(email)
+        normalized_reviews.append({"email": email, "seller_name": seller_name, "seller_index": seller_index})
+    created = []
     async with httpx.AsyncClient(timeout=12) as client:
-        response = await client.post(
-            f"{SUPABASE_URL}/rest/v1/hof_seller_disclosure_review_links",
-            headers={**_headers(), "Prefer": "return=representation"},
-            json=record,
-        )
-    if response.status_code not in {200, 201}:
-        raise RuntimeError("Could not create the seller review request. Apply the seller review migration first.")
-    rows = response.json()
-    try:
-        await _deliver_seller_review_email(
-            email, review_url, issued["code"], issued["expires_at"], drafts[0]["property_address"]
-        )
-    except Exception:
-        if rows:
-            async with httpx.AsyncClient(timeout=12) as client:
-                await client.patch(
-                    f"{SUPABASE_URL}/rest/v1/hof_seller_disclosure_review_links?"
-                    f"id=eq.{urllib.parse.quote(str(rows[0].get('id')))}",
-                    headers=_headers(),
-                    json={"revoked_at": datetime.now(timezone.utc).isoformat()},
+        for review in normalized_reviews:
+            issued = seller_review_access.issue_credentials()
+            review_url = f"{PUBLIC_APP_ORIGIN}/seller-review.html?token={urllib.parse.quote(issued['token'], safe='')}"
+            record = {
+                "draft_id": draft_id,
+                "brokerage_id": brokerage_id,
+                "agent_user_id": user["id"],
+                "seller_email": review["email"],
+                "seller_name": review["seller_name"],
+                "seller_index": review["seller_index"],
+                "token_hash": issued["token_hash"],
+                "verification_code_hash": issued["verification_code_hash"],
+                "expires_at": issued["expires_at"],
+            }
+            response = await client.post(
+                f"{SUPABASE_URL}/rest/v1/hof_seller_disclosure_review_links",
+                headers={**_headers(), "Prefer": "return=representation"},
+                json=record,
+            )
+            if response.status_code not in {200, 201}:
+                raise RuntimeError("Could not create the seller review request. Apply the seller review migration first.")
+            rows = response.json()
+            try:
+                await _deliver_seller_review_email(
+                    review["email"], review_url, issued["code"], issued["expires_at"], drafts[0]["property_address"]
                 )
-        raise
-    return {"id": rows[0].get("id") if rows else None, "expiresAt": issued["expires_at"], "workflowActivated": False}
+            except Exception:
+                if rows:
+                    await client.patch(
+                        f"{SUPABASE_URL}/rest/v1/hof_seller_disclosure_review_links?"
+                        f"id=eq.{urllib.parse.quote(str(rows[0].get('id')))}",
+                        headers=_headers(),
+                        json={"revoked_at": datetime.now(timezone.utc).isoformat()},
+                    )
+                raise
+            created.append({"id": rows[0].get("id") if rows else None, "sellerIndex": review["seller_index"], "expiresAt": issued["expires_at"]})
+    return {"links": created, "id": created[0]["id"] if created else None, "expiresAt": created[0]["expiresAt"] if created else None, "workflowActivated": False}
 
 
 async def _seller_review_pending(token):
@@ -1808,7 +1846,7 @@ async def _seller_review_context(session_token):
     rows = await _get(
         "hof_seller_disclosure_review_links?"
         f"session_token_hash=eq.{urllib.parse.quote(session_hash)}"
-        "&select=id,draft_id,brokerage_id,agent_user_id,session_expires_at,revoked_at,viewed_at,seller_attested_at,seller_attested_name&limit=1"
+        "&select=id,draft_id,brokerage_id,agent_user_id,seller_name,seller_index,session_expires_at,revoked_at,viewed_at,seller_attested_at,seller_attested_name&limit=1"
     )
     if not rows or rows[0].get("revoked_at") or not seller_review_access.is_active(rows[0].get("session_expires_at")):
         raise PermissionError("Your seller review session is invalid or expired.")
@@ -1841,6 +1879,8 @@ async def _seller_review_payload(session_token):
         "id": link["id"],
         "propertyAddress": draft.get("property_address"),
         "sellerNames": draft.get("seller_names") or [],
+        "sellerName": link.get("seller_name"),
+        "sellerIndex": link.get("seller_index"),
         "buyerNames": draft.get("buyer_names") or [],
         "expiresAt": link.get("session_expires_at"),
         "sellerAttested": bool(link.get("seller_attested_at")),

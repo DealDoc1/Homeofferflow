@@ -32,6 +32,20 @@ class SellerReviewApiTests(unittest.TestCase):
         self.assertIn("session_expires_at", sql)
         self.assertIn("seller_attested_at", sql)
 
+    def test_multi_seller_review_fields_are_targeted_and_additive(self):
+        sql = (ROOT / "supabase" / "homeofferflow_seller_disclosure_multi_seller_review.sql").read_text()
+        api = (ROOT / "api" / "admin-dashboard.py").read_text()
+        ui = (ROOT / "index.html").read_text()
+        self.assertIn("seller_name", sql)
+        self.assertIn("seller_index", sql)
+        self.assertIn("hof_seller_review_links_draft_seller_idx", sql)
+        self.assertIn("sellerReviews", api)
+        self.assertIn("sellerIndex", api)
+        self.assertIn("Seller 2 review email", ui)
+        self.assertIn("one review recipient per seller", api)
+        review_page = (ROOT / "seller-review.html").read_text()
+        self.assertIn("d.sellerName", review_page)
+
     def test_draft_creation_revalidates_listing_workspace_ownership(self):
         source = (ROOT / "api" / "admin-dashboard.py").read_text()
         self.assertIn("_create_seller_disclosure_draft", source)
