@@ -1881,7 +1881,7 @@ async def _render_seller_disclosure_draft_preview(user, draft_id, review_context
             "&status=eq.draft"
         )
     drafts = await _get(
-        draft_query
+        draft_query +
         "&select=id,property_address,response_data,water_rights_data,"
         "disclosure_source_id,water_source_id,disclosure_source_revision,water_source_revision"
         "&limit=1"
