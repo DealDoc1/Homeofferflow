@@ -134,6 +134,7 @@ def render_unsigned_preview(source_pdf_bytes: bytes, form_code: str, values: dic
             for key in ("groundwater_district_yes", "groundwater_district_no", "groundwater_district_unknown"):
                 if values.get(key):
                     _check(canvas, field_map[key]["x"], field_map[key]["y"])
+        canvas.showPage()
         canvas.save()
         overlay_stream.seek(0)
         overlays.append(PdfReader(overlay_stream).pages[0])
