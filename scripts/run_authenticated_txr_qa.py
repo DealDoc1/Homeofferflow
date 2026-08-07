@@ -197,7 +197,9 @@ def main(argv=None):
         "signing_sent": False,
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
-    report_path = args.output_dir.expanduser() / f"{args.form.lower()}-{args.clients}-client-qa-report.json"
+    report_path = args.output_dir.expanduser() / (
+        f"{args.form.lower()}-{args.clients}-{subject_count}-qa-report.json"
+    )
     report_path.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(report, indent=2))
     return 0

@@ -60,5 +60,10 @@ class AuthenticatedTxrQaHelperTests(unittest.TestCase):
         self.assertNotIn("signerPlan", payload)
         self.assertNotIn("send", payload)
 
+    def test_helper_report_names_reflect_seller_subjects_without_relabeling_them_as_clients(self):
+        source = (ROOT / "scripts" / "run_authenticated_txr_qa.py").read_text()
+        self.assertIn('f"{args.form.lower()}-{args.clients}-{subject_count}-qa-report.json"', source)
+        self.assertIn('subject_count = "seller" if seller_disclosure else "client"', source)
+
 if __name__ == "__main__":
     unittest.main()
