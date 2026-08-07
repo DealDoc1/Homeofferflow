@@ -45,6 +45,8 @@ class SellerReviewApiTests(unittest.TestCase):
         self.assertIn("one review recipient per seller", api)
         self.assertIn("_refresh_seller_review_attestation", api)
         self.assertIn("allSellersAttested", api)
+        self.assertIn("seller_review_attested_at", api)
+        self.assertIn("seller_review_attested_by", api)
         review_page = (ROOT / "seller-review.html").read_text()
         self.assertIn("d.sellerName", review_page)
         self.assertIn("All listed sellers have reviewed", review_page)

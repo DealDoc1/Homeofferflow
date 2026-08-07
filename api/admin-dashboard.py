@@ -1903,7 +1903,7 @@ async def _refresh_seller_review_attestation(draft_id, brokerage_id):
         "hof_seller_disclosure_review_links?"
         f"draft_id=eq.{urllib.parse.quote(str(draft_id))}"
         f"&brokerage_id=eq.{urllib.parse.quote(str(brokerage_id))}"
-        "&revoked_at=is.null&select=seller_name,seller_index,seller_attested_at"
+        "&revoked_at=is.null&select=seller_name,seller_index,seller_attested_at,agent_user_id"
     )
     if not seller_names:
         return False
@@ -1920,12 +1920,15 @@ async def _refresh_seller_review_attestation(draft_id, brokerage_id):
             break
     if complete and not drafts[0].get("seller_review_attested"):
         now = datetime.now(timezone.utc).isoformat()
+        attested_by = next((link.get("agent_user_id") for link in links if link.get("agent_user_id")), None)
+        if not attested_by:
+            return False
         async with httpx.AsyncClient(timeout=12) as client:
             response = await client.patch(
                 f"{SUPABASE_URL}/rest/v1/hof_seller_disclosure_drafts?"
                 f"id=eq.{urllib.parse.quote(str(draft_id))}&brokerage_id=eq.{urllib.parse.quote(str(brokerage_id))}",
                 headers={**_headers(), "Prefer": "return=minimal"},
-                json={"seller_review_attested": True, "updated_at": now},
+                json={"seller_review_attested": True, "seller_review_attested_at": now, "seller_review_attested_by": attested_by, "updated_at": now},
             )
         if response.status_code >= 300:
             raise RuntimeError("Could not update the seller disclosure review status.")
