@@ -123,6 +123,8 @@ class ReleasePreflightTests(unittest.TestCase):
             evidence.write_text(
                 self._completed_evidence()
                 + "\nProduction scope: TXR-1507 short buyer/tenant representation.\n"
+                + "Authenticated preview QA completed. Source vault and source revision verified.\n"
+                + "Agent attestation recorded. Completed-signature visual QA passed.\n"
             )
             result = release_preflight.main(
                 [
@@ -133,6 +135,23 @@ class ReleasePreflightTests(unittest.TestCase):
                 ]
             )
         self.assertEqual(result, 0)
+
+    def test_txr_renderer_change_requires_restricted_form_gates(self):
+        with tempfile.TemporaryDirectory() as directory:
+            evidence = Path(directory) / "txr-1507.md"
+            evidence.write_text(
+                self._completed_evidence()
+                + "\nProduction scope: TXR-1507 short buyer/tenant representation.\n"
+            )
+            result = release_preflight.main(
+                [
+                    "--changed-file",
+                    "lib/txr_1507.py",
+                    "--evidence-file",
+                    str(evidence),
+                ]
+            )
+        self.assertEqual(result, 2)
 
     def test_multiple_txr_renderer_changes_require_each_form_marker(self):
         with tempfile.TemporaryDirectory() as directory:
