@@ -130,6 +130,10 @@ class TrecSellerDisclosureMapTests(unittest.TestCase):
                 ("security_system", 58, 516),
                 ("fire_detection_equipment", 211, 516),
                 ("intercom_system", 391, 516),
+                ("smoke_detector", 211, 498),
+                ("smoke_detector_hearing_impaired", 211, 480),
+                ("carbon_monoxide_alarm", 211, 462),
+                ("emergency_escape_ladders", 211, 444),
                 ("tv_antenna", 58, 426),
                 ("cable_tv_wiring", 211, 426),
                 ("satellite_dish", 391, 426),
@@ -175,6 +179,10 @@ class TrecSellerDisclosureMapTests(unittest.TestCase):
                 ("security_system", 58, 516),
                 ("fire_detection_equipment", 211, 516),
                 ("intercom_system", 391, 516),
+                ("smoke_detector", 211, 498),
+                ("smoke_detector_hearing_impaired", 211, 480),
+                ("carbon_monoxide_alarm", 211, 462),
+                ("emergency_escape_ladders", 211, 444),
                 ("tv_antenna", 58, 426),
                 ("cable_tv_wiring", 211, 426),
                 ("satellite_dish", 391, 426),
@@ -223,7 +231,7 @@ class TrecSellerDisclosureMapTests(unittest.TestCase):
     def test_trec_61_water_well_anchors_match_reviewed_rows(self):
         field_map = MODULE.TREC_61_0_MAP
         self.assertEqual(field_map["water_well_yes"], {"page": 1, "x": 383, "y": 258})
-        self.assertEqual(field_map["water_well_no"], {"page": 1, "x": 427, "y": 258})
+        self.assertEqual(field_map["water_well_no"], {"page": 1, "x": 420, "y": 258})
         self.assertEqual(field_map["well_owned_seller"], {"page": 1, "x": 48, "y": 145})
         self.assertEqual(field_map["well_other_party"], {"page": 1, "x": 48, "y": 120})
 
