@@ -66,6 +66,18 @@ class TrecSellerDisclosureMapTests(unittest.TestCase):
         )
 
 
+    def test_trec_55_water_utility_fields_are_explicit(self):
+        expected = {
+            "water_heater_gas": {"page": 1, "x": 172, "y": 185},
+            "water_heater_electric": {"page": 1, "x": 292, "y": 185},
+            "water_supply_city": {"page": 1, "x": 172, "y": 166},
+            "water_supply_well": {"page": 1, "x": 292, "y": 166},
+            "water_supply_mud": {"page": 1, "x": 404, "y": 166},
+            "water_supply_coop": {"page": 1, "x": 512, "y": 166},
+        }
+        for key, anchor in expected.items():
+            self.assertEqual(MODULE.TREC_55_1_MAP[key], anchor)
+
     def test_trec_55_roof_fields_are_explicit(self):
         self.assertEqual(
             MODULE.TREC_55_1_MAP["roof_type"],
