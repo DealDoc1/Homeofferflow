@@ -84,6 +84,13 @@ TREC_61_0_MAP = {
     "buyer_date_2": {"page": 2, "x": 550, "y": 122, "width": 45},
 }
 
+TREC_55_1_CONDITION_ROWS = (
+    ("defect_interior_walls", 58, 500),
+    ("defect_ceilings", 238, 500),
+    ("defect_floors", 408, 500),
+    ("defect_other_structural_components", 255, 405),
+)
+
 def source_contract(form_code: str) -> dict[str, Any]:
     if form_code == "TREC-55-1":
         return {"form_code": form_code, "page_count": TREC_55_1_PAGE_COUNT, "field_map": TREC_55_1_MAP, "source_sha256": TREC_55_1_SOURCE_SHA256, "activation_status": "pending_visual_qa"}
@@ -107,6 +114,11 @@ def _draw(c: Canvas, value: Any, x: float, y: float, *, size: float = 8) -> None
     if value:
         c.setFont("Helvetica", size)
         c.drawString(x, y, value)
+
+def _response(c: Canvas, value: Any, x: float, y: float) -> None:
+    value = _clean(value).upper()
+    if value in {"Y", "N", "U"}:
+        _draw(c, value, x, y, size=8)
 
 def _check(c: Canvas, x: float, y: float) -> None:
     c.setLineWidth(1.2)
@@ -142,6 +154,8 @@ def render_unsigned_preview(source_pdf_bytes: bytes, form_code: str, values: dic
             for key in ("smoke_detectors_yes", "smoke_detectors_no", "smoke_detectors_unknown"):
                 if values.get(key):
                     _check(canvas, field_map[key]["x"], field_map[key]["y"])
+            for key, x, y in TREC_55_1_CONDITION_ROWS:
+                _response(canvas, values.get(key), x, y)
         if form_code == "TREC-55-1" and page_number == 4:
             for value_key, map_key in (
                 ("sellerSignature1", "seller_signature_1"),

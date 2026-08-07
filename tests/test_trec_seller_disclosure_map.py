@@ -42,6 +42,17 @@ class TrecSellerDisclosureMapTests(unittest.TestCase):
         self.assertEqual(field_map["smoke_detectors_no"], {"page": 2, "x": 248, "y": 728})
         self.assertEqual(field_map["smoke_detectors_unknown"], {"page": 2, "x": 283, "y": 728})
 
+    def test_trec_55_reviewed_condition_rows_are_explicit(self):
+        self.assertEqual(
+            MODULE.TREC_55_1_CONDITION_ROWS,
+            (
+                ("defect_interior_walls", 58, 500),
+                ("defect_ceilings", 238, 500),
+                ("defect_floors", 408, 500),
+                ("defect_other_structural_components", 255, 405),
+            ),
+        )
+
     def test_trec_61_page2_response_anchors_are_explicit(self):
         field_map = MODULE.TREC_61_0_MAP
         expected = {
