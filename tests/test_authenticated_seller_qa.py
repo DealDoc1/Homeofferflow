@@ -60,6 +60,11 @@ class AuthenticatedSellerQaTests(unittest.TestCase):
             errors = errors_for_summary(summary)
             self.assertIn("signing_sent must be false", errors)
 
+    def test_runner_exposes_render_pages_without_signing(self):
+        source = (runner.__file__ and Path(runner.__file__).read_text())
+        self.assertIn("--render-pages", source)
+        self.assertIn("render_pages=render_pages", source)
+
 
 if __name__ == "__main__":
     unittest.main()

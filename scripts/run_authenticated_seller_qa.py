@@ -37,7 +37,7 @@ def _parse_sellers(value: str) -> list[int]:
     return counts
 
 
-def run(base_url: str, token: str, output_dir: Path, seller_counts: list[int]):
+def run(base_url: str, token: str, output_dir: Path, seller_counts: list[int], *, render_pages: bool = False):
     output_dir.expanduser().mkdir(parents=True, exist_ok=True)
     reports = [
         qa._run_one(
@@ -46,6 +46,7 @@ def run(base_url: str, token: str, output_dir: Path, seller_counts: list[int]):
             "TREC-55-1",
             seller_count,
             output_dir.expanduser(),
+            render_pages=render_pages,
         )
         for seller_count in seller_counts
     ]
@@ -77,12 +78,13 @@ def main(argv=None):
         default="1,2",
         help="comma-separated seller counts, each 1 or 2 (default: 1,2)",
     )
+    parser.add_argument("--render-pages", action="store_true", help="Render each private preview into page images for visual review.")
     args = parser.parse_args(argv)
     if not args.access_token:
         parser.error("Use an existing Supabase access token via --access-token or HOF_ACCESS_TOKEN.")
     try:
         seller_counts = _parse_sellers(args.sellers)
-        summary = run(args.base_url, args.access_token, args.output_dir, seller_counts)
+        summary = run(args.base_url, args.access_token, args.output_dir, seller_counts, render_pages=args.render_pages)
     except (RuntimeError, ValueError) as exc:
         print(f"Authenticated seller QA failed: {exc}", file=sys.stderr)
         return 2

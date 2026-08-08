@@ -71,5 +71,11 @@ class AuthenticatedTxrQaHelperTests(unittest.TestCase):
         self.assertIn('forms = tuple(SOURCE_IDS) + ("TREC-55-1",) if args.form == "ALL" else (args.form,)', source)
         self.assertIn('"signing_sent": False', source)
 
+    def test_helper_can_request_rendered_page_manifests_without_signing(self):
+        source = (ROOT / "scripts" / "run_authenticated_txr_qa.py").read_text()
+        self.assertIn("--render-pages", source)
+        self.assertIn("render_manifest", source)
+        self.assertIn("render_pages=args.render_pages", source)
+
 if __name__ == "__main__":
     unittest.main()

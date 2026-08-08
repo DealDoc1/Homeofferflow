@@ -49,6 +49,12 @@ class AuthenticatedReleaseQaTests(unittest.TestCase):
             summary = json.loads((Path(temp_dir) / "authenticated-release-qa-summary.json").read_text())
             self.assertFalse(summary["signing_sent"])
 
+    def test_release_runner_exposes_optional_visual_rendering(self):
+        source = SCRIPT.read_text(encoding="utf-8")
+        self.assertIn("--render-pages", source)
+        self.assertIn("render_manifest", source)
+        self.assertIn("render_pages=args.render_pages", source)
+
 
 if __name__ == "__main__":
     unittest.main()

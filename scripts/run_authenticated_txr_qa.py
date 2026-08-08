@@ -30,6 +30,11 @@ import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 
+try:
+    from scripts import render_qa_pdf
+except ModuleNotFoundError:  # pragma: no cover - supports direct script execution
+    import render_qa_pdf
+
 
 SOURCE_IDS = {
     "TXR-1501": "084958a8-fa91-498b-a31a-024f5a0dc310",
@@ -137,7 +142,7 @@ def _seller_disclosure_payload(seller_count: int):
     }
 
 
-def _run_one(base_url: str, access_token: str, form: str, client_count: int, output_dir: Path):
+def _run_one(base_url: str, access_token: str, form: str, client_count: int, output_dir: Path, *, render_pages: bool = False):
     output_dir.expanduser().mkdir(parents=True, exist_ok=True)
     seller_disclosure = form == "TREC-55-1"
     draft_payload = (
@@ -184,6 +189,10 @@ def _run_one(base_url: str, access_token: str, form: str, client_count: int, out
         "signing_sent": False,
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
+    if render_pages:
+        render_dir = output_dir.expanduser() / f"{form.lower()}-{client_count}-{subject_count}-rendered"
+        render_qa_pdf.render(pdf_path, render_dir)
+        report["render_manifest"] = str(render_dir / "render-manifest.json")
     report_path = output_dir.expanduser() / (
         f"{form.lower()}-{client_count}-{subject_count}-qa-report.json"
     )
@@ -203,13 +212,14 @@ def main(argv=None):
     )
     parser.add_argument("--clients", type=int, choices=(1, 2), default=1)
     parser.add_argument("--output-dir", type=Path, required=True)
+    parser.add_argument("--render-pages", action="store_true", help="Render each private preview into page images for visual review.")
     args = parser.parse_args(argv)
     if not args.access_token:
         parser.error("Use an existing Supabase access token via --access-token or HOF_ACCESS_TOKEN.")
 
     forms = tuple(SOURCE_IDS) + ("TREC-55-1",) if args.form == "ALL" else (args.form,)
     reports = [
-        _run_one(args.base_url, args.access_token, form, args.clients, args.output_dir / form.lower())
+        _run_one(args.base_url, args.access_token, form, args.clients, args.output_dir / form.lower(), render_pages=args.render_pages)
         for form in forms
     ]
     print(json.dumps(reports[0] if len(reports) == 1 else {"ok": True, "reports": reports}, indent=2))

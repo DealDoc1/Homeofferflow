@@ -18,6 +18,7 @@ from pathlib import Path
 
 import run_authenticated_txr_qa as txr_qa
 import verify_brokerage_admin_live as admin_qa
+import render_qa_pdf
 
 
 def _parse_clients(value: str) -> list[int]:
@@ -36,7 +37,7 @@ def _parse_clients(value: str) -> list[int]:
     return clients
 
 
-def run(base_url: str, token: str, output_dir: Path, forms: list[str], clients: list[int]):
+def run(base_url: str, token: str, output_dir: Path, forms: list[str], clients: list[int], *, render_pages: bool = False):
     output_dir.expanduser().mkdir(parents=True, exist_ok=True)
     status, admin_payload = admin_qa._get(base_url, token)
     admin_errors = (
@@ -96,6 +97,10 @@ def run(base_url: str, token: str, output_dir: Path, forms: list[str], clients: 
                 "preview_pdf": str(pdf_path),
                 "signing_sent": False,
             }
+            if render_pages:
+                render_dir = output_dir / f"{form.lower()}-{client_count}-client-rendered"
+                render_qa_pdf.render(pdf_path, render_dir)
+                item["render_manifest"] = str(render_dir / "render-manifest.json")
             report_path.write_text(json.dumps(item, indent=2) + "\n", encoding="utf-8")
             report["txr_previews"].append(item)
 
@@ -120,6 +125,7 @@ def main(argv=None):
         default="1,2",
         help="comma-separated client counts, each 1 or 2 (default: 1,2)",
     )
+    parser.add_argument("--render-pages", action="store_true", help="Render each private preview into page images for visual review.")
     args = parser.parse_args(argv)
     if not args.access_token:
         parser.error("Use an existing Supabase access token via --access-token or HOF_ACCESS_TOKEN.")
@@ -129,7 +135,7 @@ def main(argv=None):
         parser.error(f"unsupported form code(s): {', '.join(unknown)}")
     try:
         clients = _parse_clients(args.clients)
-        report = run(args.base_url, args.access_token, args.output_dir.expanduser(), forms, clients)
+        report = run(args.base_url, args.access_token, args.output_dir.expanduser(), forms, clients, render_pages=args.render_pages)
     except (RuntimeError, ValueError) as exc:
         print(f"Authenticated QA failed: {exc}", file=sys.stderr)
         return 2

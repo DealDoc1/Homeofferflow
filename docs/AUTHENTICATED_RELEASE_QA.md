@@ -13,7 +13,8 @@ HOF_ACCESS_TOKEN="YOUR_EXISTING_TOKEN" \
 PYTHONPATH=/private/tmp/homeofferflow_test_deps:/Users/andrewchristian/.cache/codex-runtimes/codex-primary-runtime/dependencies/python \
 /Users/andrewchristian/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/bin/python3 \
 scripts/run_authenticated_release_qa.py \
-  --output-dir /tmp/homeofferflow-auth-qa
+  --output-dir /tmp/homeofferflow-auth-qa \
+  --render-pages
 ```
 
 Do not paste the token into chat or commit it. The command writes one summary
