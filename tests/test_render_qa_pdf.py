@@ -1,5 +1,6 @@
 import tempfile
 import unittest
+import shutil
 from pathlib import Path
 
 from pypdf import PdfWriter
@@ -8,6 +9,7 @@ from scripts.render_qa_pdf import render
 
 
 class RenderQaPdfTests(unittest.TestCase):
+    @unittest.skipUnless(shutil.which("pdftoppm"), "pdftoppm is not installed in this test environment")
     def test_render_is_page_count_guarded_and_metadata_only(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
