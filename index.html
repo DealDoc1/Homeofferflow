@@ -12201,6 +12201,15 @@ function routeAfterMagicLinkIfNeeded() {
     }
   };
 
+  root.resendBrokerageInvite = async function resendBrokerageInvite(email) {
+    const input = document.getElementById('brokerageInviteEmail');
+    const result = document.getElementById('brokerageInviteResult');
+    const normalized = String(email || '').trim().toLowerCase();
+    if (input) input.value = normalized;
+    if (result) result.textContent = 'Resending the secure invitation…';
+    await root.createBrokerageInvite();
+  };
+
   root.revokeBrokerageInvite = async function revokeBrokerageInvite(inviteId, email) {
     const session = root.hofAuth?.session;
     if (!session?.access_token) return alert('Sign in again before revoking an invitation.');
@@ -12453,7 +12462,7 @@ function routeAfterMagicLinkIfNeeded() {
         '<div class="brokerage-invite-form"><input id="brokerageInviteEmail" type="email" inputmode="email" autocomplete="email" placeholder="Agent email address" aria-label="Agent email address">' +
         '<button type="button" class="brokerage-access-button" onclick="createBrokerageInvite()">Create invite link</button></div>' +
         '<p id="brokerageInviteResult" class="brokerage-invite-result">The link works only for the invited email, expires in 14 days, and does not start billing until the agent completes Stripe checkout.</p>' +
-        (pendingInvites.length ? '<div class="brokerage-pending-invites"><strong>Pending invites:</strong>' + pendingInvites.map(invite => '<div style="display:flex;align-items:center;gap:.55rem;margin-top:.35rem"><span>' + safe(invite.email || 'Agent') + '</span><button type="button" class="brokerage-access-button" onclick="revokeBrokerageInvite(\'' + safe(invite.id) + '\')">Revoke</button></div>').join('') + '</div>' : '') +
+        (pendingInvites.length ? '<div class="brokerage-pending-invites"><strong>Pending invites:</strong>' + pendingInvites.map(invite => '<div style="display:flex;align-items:center;gap:.55rem;margin-top:.35rem;flex-wrap:wrap"><span>' + safe(invite.email || 'Agent') + (invite.expires_at ? ' <small>(expires ' + safe(formatBillingDate(invite.expires_at)) + ')</small>' : '') + '</span><button type="button" class="brokerage-access-button" onclick="resendBrokerageInvite(\'' + safe(invite.email || '') + '\')">Resend</button><button type="button" class="brokerage-access-button" onclick="revokeBrokerageInvite(\'' + safe(invite.id) + '\',\'' + safe(invite.email || '') + '\')">Revoke</button></div>').join('') + '</div>' : '') +
         '<div class="brokerage-safe-kpis">' +
           '<div class="brokerage-safe-kpi"><span>Members</span><strong>' + Number(m.memberCount || 0) + '</strong></div>' +
           '<div class="brokerage-safe-kpi"><span>Active members</span><strong>' + Number(m.activeMemberCount || 0) + '</strong></div>' +
