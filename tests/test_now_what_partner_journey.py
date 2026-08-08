@@ -31,6 +31,12 @@ class NowWhatPartnerJourneyTests(unittest.TestCase):
         self.assertIn("Featured Partner", self.html)
         self.assertIn("Sponsored · Core Partner", self.html)
 
+    def test_directory_supports_local_search_category_filter_and_click_attribution(self):
+        self.assertIn('id="nowWhatPartnerSearch"', self.html)
+        self.assertIn('id="nowWhatPartnerCategory"', self.html)
+        self.assertIn("window.__hofPartnerDirectoryRows", self.html)
+        self.assertIn("partnerId:", self.html)
+
 
 if __name__ == "__main__":
     unittest.main()
