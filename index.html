@@ -4126,7 +4126,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <div class="admin-metric-value">${metrics.aiCalibrationFeedbackCount || 0} / ${metrics.aiCalibrationTarget || 5}</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.aiReviewOutputCount || 0} generated review outputs (not calibration evidence)</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:${metrics.aiCalibrationReady ? 'var(--sage-light)' : 'var(--gold-light)'}">${metrics.aiCalibrationReady ? 'Ready for expert review gate' : 'Needs anonymized scenarios'}</div>
-            ${metrics.aiCalibrationReady ? '' : `<div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Missing: ${missingCalibrationIds.join(', ')}</div><div style="margin-top:.35rem">${calibrationReviewActions}</div>`}
+            ${metrics.aiCalibrationReady ? '' : `<div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Missing: ${missingCalibrationIds.join(', ')}</div><div style="margin-top:.35rem">${calibrationReviewActions} <button type="button" class="admin-contact-action" onclick="downloadAiCalibrationReviewerPacket()">Download reviewer packet</button></div>`}
           </div>
 
           <div class="admin-metric">
@@ -4962,6 +4962,30 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     syncAiFeedbackPrivacyGuard();
     if (scenario && /^AI-CAL-0[1-5]$/.test(String(scenarioId || ''))) scenario.value = scenarioId;
     document.getElementById('feedbackMessage')?.focus();
+  }
+
+  function downloadAiCalibrationReviewerPacket() {
+    const packet = [
+      'HomeOfferFlow AI offer-review calibration reviewer packet',
+      'Review each anonymized scenario as a qualified broker or agent. Do not include names, exact addresses, MLS numbers, phone numbers, email addresses, or other identifying details.',
+      'Submit one in-app AI calibration note per scenario using the matching scenario ID.',
+      '',
+      'AI-CAL-01 — Hot listing with a competitive financed offer, no sale contingency, seller-paid title policy, short option period, and a highest-and-best deadline.',
+      'AI-CAL-02 — Same offer terms, but the property has been listed for several months with price reductions and seller motivation.',
+      'AI-CAL-03 — Materially below-list financed offer with a long option period, sale contingency, substantial seller concession, and low earnest money.',
+      'AI-CAL-04 — Government-backed financing with appraisal protection, otherwise competitive price and ordinary option period.',
+      'AI-CAL-05 — Strong price and cash contribution with an unusual closing or possession request and no reliable public market context.',
+      '',
+      'For each note, record what was useful, misleading or unsafe, missing, whether the disclaimer was clear, and disposition: keep, revise, or remove.',
+      'Generated review output is not calibration evidence by itself. Five independent anonymized scenario notes are required before scoring or wording changes.',
+      'https://homeofferflow.com'
+    ].join('\n');
+    const blobUrl = URL.createObjectURL(new Blob([packet], { type: 'text/plain;charset=utf-8' }));
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = 'homeofferflow-ai-calibration-reviewer-packet.txt';
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
   }
 
   function syncAiFeedbackPrivacyGuard() {
