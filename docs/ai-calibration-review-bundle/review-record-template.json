@@ -1,0 +1,79 @@
+{
+  "reviews": [
+    {
+      "scenario_id": "AI-CAL-01",
+      "review_date": "",
+      "reviewer_role": "agent",
+      "displayed_score": null,
+      "displayed_market_mode": "",
+      "displayed_source_model": "",
+      "useful_output": "",
+      "misleading_or_unsafe": "",
+      "insufficient_or_missing": "",
+      "disclaimer_clear": false,
+      "overclaiming_or_advice": false,
+      "recommended_change": "",
+      "disposition": "needs_revision"
+    },
+    {
+      "scenario_id": "AI-CAL-02",
+      "review_date": "",
+      "reviewer_role": "agent",
+      "displayed_score": null,
+      "displayed_market_mode": "",
+      "displayed_source_model": "",
+      "useful_output": "",
+      "misleading_or_unsafe": "",
+      "insufficient_or_missing": "",
+      "disclaimer_clear": false,
+      "overclaiming_or_advice": false,
+      "recommended_change": "",
+      "disposition": "needs_revision"
+    },
+    {
+      "scenario_id": "AI-CAL-03",
+      "review_date": "",
+      "reviewer_role": "agent",
+      "displayed_score": null,
+      "displayed_market_mode": "",
+      "displayed_source_model": "",
+      "useful_output": "",
+      "misleading_or_unsafe": "",
+      "insufficient_or_missing": "",
+      "disclaimer_clear": false,
+      "overclaiming_or_advice": false,
+      "recommended_change": "",
+      "disposition": "needs_revision"
+    },
+    {
+      "scenario_id": "AI-CAL-04",
+      "review_date": "",
+      "reviewer_role": "agent",
+      "displayed_score": null,
+      "displayed_market_mode": "",
+      "displayed_source_model": "",
+      "useful_output": "",
+      "misleading_or_unsafe": "",
+      "insufficient_or_missing": "",
+      "disclaimer_clear": false,
+      "overclaiming_or_advice": false,
+      "recommended_change": "",
+      "disposition": "needs_revision"
+    },
+    {
+      "scenario_id": "AI-CAL-05",
+      "review_date": "",
+      "reviewer_role": "agent",
+      "displayed_score": null,
+      "displayed_market_mode": "",
+      "displayed_source_model": "",
+      "useful_output": "",
+      "misleading_or_unsafe": "",
+      "insufficient_or_missing": "",
+      "disclaimer_clear": false,
+      "overclaiming_or_advice": false,
+      "recommended_change": "",
+      "disposition": "needs_revision"
+    }
+  ]
+}

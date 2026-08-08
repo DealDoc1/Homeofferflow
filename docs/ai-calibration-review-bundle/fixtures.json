@@ -1,0 +1,82 @@
+{
+  "version": "2026-08-02",
+  "purpose": "Anonymized calibration inputs for expert review of the educational AI offer assessment.",
+  "release_gate": "Five completed expert reviews are required before scoring or wording changes.",
+  "scenarios": [
+    {
+      "id": "AI-CAL-01",
+      "property_context": "City/county only; newly listed suburban resale",
+      "listing_posture": "hot",
+      "price_vs_list": "at_list",
+      "financing": "conventional",
+      "earnest_money": "1%",
+      "option_days": 5,
+      "seller_concessions": 0,
+      "sale_contingency": false,
+      "appraisal_posture": "standard_third_party_financing",
+      "possession": "ordinary_closing_and_funding",
+      "market_context": "Multiple showings; competing offers reported",
+      "review_question": "Does the output reflect strong seller leverage without claiming the offer will be accepted?"
+    },
+    {
+      "id": "AI-CAL-02",
+      "property_context": "City/county only; suburban resale",
+      "listing_posture": "stale",
+      "price_vs_list": "97%",
+      "financing": "conventional",
+      "earnest_money": "1%",
+      "option_days": 7,
+      "seller_concessions": 5000,
+      "sale_contingency": false,
+      "appraisal_posture": "standard_third_party_financing",
+      "possession": "ordinary_closing_and_funding",
+      "market_context": "Multiple price reductions; seller motivation reported; few recent showings",
+      "review_question": "Does the output distinguish stale-listing leverage without inventing property facts?"
+    },
+    {
+      "id": "AI-CAL-03",
+      "property_context": "City/county only; ordinary resale",
+      "listing_posture": "balanced_or_unknown",
+      "price_vs_list": "94%",
+      "financing": "conventional",
+      "earnest_money": "0.5%",
+      "option_days": 10,
+      "seller_concessions": 12000,
+      "sale_contingency": true,
+      "appraisal_posture": "standard_third_party_financing",
+      "possession": "delayed_closing",
+      "market_context": "Unknown",
+      "review_question": "Does the output identify each material seller-facing risk and explain tradeoffs rather than directing a term change?"
+    },
+    {
+      "id": "AI-CAL-04",
+      "property_context": "City/county only; ordinary resale",
+      "listing_posture": "balanced",
+      "price_vs_list": "at_list",
+      "financing": "government_backed",
+      "earnest_money": "1%",
+      "option_days": 7,
+      "seller_concessions": 3000,
+      "sale_contingency": false,
+      "appraisal_posture": "appraisal_protection_selected",
+      "possession": "ordinary_closing_and_funding",
+      "market_context": "No verified public listing context",
+      "review_question": "Does the output describe financing and appraisal timing without treating the financing type as inherently unacceptable?"
+    },
+    {
+      "id": "AI-CAL-05",
+      "property_context": "City/county only; ordinary resale",
+      "listing_posture": "unknown",
+      "price_vs_list": "99%",
+      "financing": "cash",
+      "earnest_money": "1.5%",
+      "option_days": 5,
+      "seller_concessions": 0,
+      "sale_contingency": false,
+      "appraisal_posture": "not_applicable",
+      "possession": "unusual_post_closing_possession_request",
+      "market_context": "Unknown; no reliable public listing context",
+      "review_question": "Does the output focus on entered terms, disclose missing market context, and avoid legal direction?"
+    }
+  ]
+}
