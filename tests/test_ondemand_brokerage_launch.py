@@ -449,6 +449,18 @@ class BrokerageAuthorizationTests(unittest.TestCase):
         self.assertIn("Email agent", final_script)
         self.assertIn("mailto:${encodeURIComponent(email)}", final_script)
 
+    def test_broker_roster_supports_privacy_safe_agent_filtering(self):
+        marker = INDEX_HTML.index('id="hof-ondemand-brokerage-launch-v1"')
+        final_script = INDEX_HTML[marker:]
+        for expected in (
+            "filterBrokerageAgents",
+            "brokerageAgentFilter",
+            "data-brokerage-agent-row",
+            "brokerageAgentFilterSummary",
+            "Name, email, status, or next action",
+        ):
+            self.assertIn(expected, final_script)
+
     def test_broker_can_create_an_agent_only_invite_link(self):
         actor = {"id": "11111111-1111-1111-1111-111111111111", "email": "tyler@ondemanddfw.com"}
         context = {"brokerage": {"id": "22222222-2222-2222-2222-222222222222"}}
