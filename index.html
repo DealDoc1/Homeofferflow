@@ -4386,16 +4386,20 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
     const isPaid = ['active', 'trialing', 'free_admin'].includes(status);
     const isBlocked = ['past_due', 'canceled'].includes(status);
     const good = subscriptionAllowsGeneration(sub) && used < limit;
+    const remaining = Math.max(0, limit - used);
 
     let actionHtml = '';
 
     if (isPaid) {
       actionHtml =
         '<div class="account-actions-row" style="margin-top:0.85rem;">' +
+          (good ? '<button class="btn-primary" type="button" onclick="startAccountOffer()">Create Next Offer</button>' : '') +
           '<button class="btn-secondary" type="button" onclick="openBillingPortal()">Manage Billing</button>' +
         '</div>' +
         '<div style="margin-top:0.55rem; color:var(--gray); font-size:0.74rem; line-height:1.45;">' +
-          'Your subscription is active. New subscription checkout is hidden to prevent duplicate subscriptions.' +
+          (good
+            ? ('Your subscription is active. ' + remaining + ' packet' + (remaining === 1 ? '' : 's') + ' remain this month; keep your client workflow moving from this dashboard.')
+            : 'Your subscription is active, but this month\'s packet allowance is used. Manage billing to review access options.') +
         '</div>';
     } else if (isBlocked) {
       actionHtml =

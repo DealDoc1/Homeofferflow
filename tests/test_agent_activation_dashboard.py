@@ -97,6 +97,16 @@ class AgentActivationDashboardTests(unittest.TestCase):
         for action in ("profile", "new_offer", "offers", "resume", "subscribe"):
             self.assertRegex(script, rf"action === ['\"]{action}['\"]")
 
+    def test_active_subscription_keeps_next_offer_action_visible(self):
+        subscription_start = HTML.index("function renderSubscriptionCard()")
+        subscription_end = HTML.index("async function openBillingPortal", subscription_start)
+        subscription = HTML[subscription_start:subscription_end]
+
+        self.assertIn("const remaining = Math.max(0, limit - used);", subscription)
+        self.assertIn('Create Next Offer', subscription)
+        self.assertIn("remaining + ' packet'", subscription)
+        self.assertIn("startAccountOffer()", subscription)
+
     def test_legacy_demo_card_is_removed_by_final_dashboard_renderer(self):
         script_start = HTML.index('id="hof-agent-activation-v16-js"')
         script_end = HTML.index("</script>", script_start)
