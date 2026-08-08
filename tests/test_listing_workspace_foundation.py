@@ -82,7 +82,12 @@ class ListingWorkspaceFoundationTests(unittest.TestCase):
         self.assertIn("executable listing agreements, seller disclosures, and lease-listing packets", INDEX.lower())
         self.assertIn("completed-signature visual QA", INDEX)
 
+    def test_saved_seller_lead_can_seed_a_private_workspace(self):
+        self.assertIn("startListingWorkspaceFromLead", INDEX)
+        self.assertIn("Prepare listing workspace", INDEX)
+        self.assertIn("Seller lead details copied into a private listing workspace draft", INDEX)
+        self.assertIn("seller-lead-actions", INDEX)
+
 
 if __name__ == "__main__":
     unittest.main()
-
