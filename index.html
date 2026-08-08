@@ -4543,6 +4543,35 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
     }
   }
 
+  async function preflightUsage(quantity = 1) {
+    const accessToken = hofAuth.session?.access_token;
+    if (!accessToken) return false;
+    const billingMonth = getBillingMonth();
+    const response = await fetch('/api/submit-feedback', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`
+      },
+      body: JSON.stringify({ action: 'usage_preflight', billingMonth, quantity })
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || data.allowed !== true) {
+      const message = data.status && !['beta', 'trialing', 'active', 'free_admin'].includes(data.status)
+        ? 'Your HomeOfferFlow access is not active. Update billing or contact support before generating a new packet.'
+        : `You have reached your ${data.limit || hofAuth.usage?.limit || 10}-packet monthly limit. Upgrade/contact support before generating another signed packet.`;
+      alert(data.error || message);
+      return false;
+    }
+    hofAuth.usage = {
+      used: Number(data.used) || 0,
+      limit: Number(data.limit) || hofAuth.subscription?.packet_limit || 10,
+      billingMonth: data.billingMonth || billingMonth
+    };
+    renderSubscriptionCard();
+    return true;
+  }
+
   async function saveOfferDraftToSupabase(status = 'Draft') {
     const client = getSupabaseClient();
     const user = hofAuth.session?.user;
@@ -7342,6 +7371,10 @@ function routeAfterMagicLinkIfNeeded() {
       alert('Please enter a buyer email before generating the packet.');
       return;
     }
+
+    // Re-check against the server immediately before generation so stale UI
+    // usage cannot consume a packet outside the account's allowance.
+    if (!(await preflightUsage(1))) return;
 
     const nextBtn = document.getElementById('nextBtn');
     const oldText = nextBtn ? nextBtn.textContent : '';
