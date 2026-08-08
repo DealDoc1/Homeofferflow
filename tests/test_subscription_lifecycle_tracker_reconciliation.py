@@ -10,9 +10,9 @@ MIGRATION = (
 
 class SubscriptionLifecycleTrackerReconciliationTests(unittest.TestCase):
     def test_tracker_names_the_released_scheduled_cancellation_qa(self):
-        self.assertIn("51feaeb staged agent billing access hardening", MIGRATION)
-        self.assertIn("suspension of existing agent brokerage memberships", MIGRATION)
-        self.assertIn("scheduled cancellations", MIGRATION)
+        self.assertIn("77e787b brokerage billing suspension reason hardening", MIGRATION)
+        self.assertIn("billing suspension", MIGRATION)
+        self.assertIn("renewal recovery", MIGRATION)
 
     def test_tracker_preserves_a_safe_nonproduction_lifecycle_gate(self):
         self.assertIn("dedicated nonproduction Stripe endpoint", MIGRATION)
