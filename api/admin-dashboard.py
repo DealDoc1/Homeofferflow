@@ -1047,7 +1047,7 @@ async def _set_brokerage_member_status(actor, data):
         "hof_brokerage_members?"
         f"brokerage_id=eq.{urllib.parse.quote(brokerage_id)}"
         f"&user_id=eq.{urllib.parse.quote(target_user_id)}"
-        "&select=id,user_id,email,role,status&limit=1"
+        "&select=id,user_id,email,role,status,suspension_reason&limit=1"
     )
     if not members:
         raise ValueError("That agent is not a member of this brokerage.")
@@ -1065,10 +1065,13 @@ async def _set_brokerage_member_status(actor, data):
     # is later restored, they must attest again before using a restricted form.
     if desired_status == "suspended":
         membership_update.update({
+            "suspension_reason": "manual",
             "txr_agent_authorized": False,
             "txr_agent_attested_by": None,
             "txr_agent_attested_at": None,
         })
+    elif desired_status == "active":
+        membership_update["suspension_reason"] = None
 
     async with httpx.AsyncClient(timeout=12) as client:
         response = await client.patch(
