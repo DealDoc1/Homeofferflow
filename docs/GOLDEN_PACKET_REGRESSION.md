@@ -35,6 +35,13 @@ or SignWell placements, also generate and visually inspect the applicable
 rendered packet and completed signed PDF. Keep previously passed coordinates
 locked unless the rendering proves a regression.
 
+GitHub Actions runs `scripts/check_golden_packet_rendering.py
+--structural-only` after the unit tests. That CI mode still renders every
+approved scenario and verifies page counts and field IDs, but does not compare
+platform-specific raster hashes. The full image-hash baseline remains the
+local visual-review gate because Poppler/font rasterization can differ between
+developer macOS and Ubuntu runners.
+
 ## Out of scope
 
 These scenarios cover only currently supported buyer-side purchase packets and
