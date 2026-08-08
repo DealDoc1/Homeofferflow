@@ -10228,6 +10228,28 @@ function routeAfterMagicLinkIfNeeded() {
     const price = item.price ? `<span style="display:inline-flex;margin-left:.4rem;border:1px solid rgba(200,151,63,.35);color:var(--gold-light);border-radius:999px;padding:.12rem .42rem;font-size:.7rem;font-weight:900;">${item.price}</span>` : '';
     if (el) el.innerHTML = `<strong>${item.title}${price}</strong><br>${item.body}`;
   };
+  window.downloadFsboRequestSummary = function downloadFsboRequestSummary() {
+    const key = fsboVal('fsboNeed') || 'free_intake';
+    const item = fsboNeedCopy[key] || fsboNeedCopy.free_intake;
+    const partners = getFsboPartners();
+    const summary = [
+      'HomeOfferFlow FSBO seller request summary',
+      `Package interest: ${item.title} (${item.price})`,
+      `Property: ${fsboVal('fsboPropertyAddress') || 'Not provided'}`,
+      `Seller: ${fsboVal('fsboSellerName') || 'Not provided'}`,
+      `Email: ${fsboVal('fsboSellerEmail') || 'Not provided'}`,
+      `Timeline: ${fsboVal('fsboTimeline') || 'Not sure yet'}`,
+      `Partner interests: ${partners.length ? partners.join(', ') : 'None selected'}`,
+      '',
+      'This is an intake record, not checkout, representation, a confirmed service order, or legal advice. Scope, availability, provider involvement, and final pricing must be confirmed separately.'
+    ].join('\n');
+    const url = URL.createObjectURL(new Blob([summary], { type: 'text/plain;charset=utf-8' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'homeofferflow-fsbo-request-summary.txt';
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
   window.submitFsboSellerLead = async function(){
     const status = document.getElementById('fsboSellerStatus');
     const payload = {
@@ -10263,8 +10285,15 @@ function routeAfterMagicLinkIfNeeded() {
       const res = await fetch('/api/fsbo-lead', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
       const data = await res.json().catch(()=>({}));
       if (!res.ok) throw new Error(data.error || 'Could not save seller request.');
-      if (status) { status.textContent = 'Saved. We will use this package interest and partner request for FSBO seller follow-up.'; status.className = 'platform-status ok'; }
-      setTimeout(()=>window.closeFsboSellerModal?.(), 1200);
+      const selected = fsboNeedCopy[fsboVal('fsboNeed')] || fsboNeedCopy.free_intake;
+      if (status) {
+        status.className = 'platform-status ok';
+        status.innerHTML = '<strong>Seller request saved.</strong><br>' +
+          escapeAttr(selected.title) + ' is recorded for follow-up. A human review is still required to confirm scope, provider involvement, availability, and final pricing before any paid service begins.' +
+          '<div class="account-actions-row" style="margin-top:.7rem;display:flex;gap:.55rem;flex-wrap:wrap;">' +
+          '<button class="btn-secondary" type="button" onclick="downloadFsboRequestSummary()">Download request summary</button>' +
+          '<button class="btn-secondary" type="button" onclick="closeFsboSellerModal()">Done</button></div>';
+      }
     } catch (err) {
       if (status) { status.textContent = err.message || String(err); status.className = 'platform-status err'; }
     }
