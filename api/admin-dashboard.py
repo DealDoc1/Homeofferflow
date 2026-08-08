@@ -2716,6 +2716,38 @@ class handler(BaseHTTPRequestHandler):
                 if str(subscription.get("status") or "").lower() in {"active", "trialing", "free_admin"}
             }
             agent_offer_user_ids = set(agent_offer_counts)
+            profile_by_user_id = {
+                str(profile.get("user_id") or ""): profile
+                for profile in agent_profiles
+                if profile.get("user_id")
+            }
+            activation_follow_up_queue = []
+            for user_id, profile in profile_by_user_id.items():
+                email = str(profile.get("agent_email") or "").strip()
+                if not email:
+                    continue
+                if user_id in agent_offer_user_ids and user_id not in active_agent_subscription_ids:
+                    activation_follow_up_queue.append({
+                        "agent_name": profile.get("agent_name") or "Agent",
+                        "agent_email": email,
+                        "reason": "Offer created without active access",
+                        "priority": 1,
+                    })
+                elif user_id not in complete_agent_profile_ids:
+                    activation_follow_up_queue.append({
+                        "agent_name": profile.get("agent_name") or "Agent",
+                        "agent_email": email,
+                        "reason": "Complete profile to unlock faster repeat offers",
+                        "priority": 2,
+                    })
+                elif user_id not in agent_offer_user_ids:
+                    activation_follow_up_queue.append({
+                        "agent_name": profile.get("agent_name") or "Agent",
+                        "agent_email": email,
+                        "reason": "Create a first saved offer",
+                        "priority": 3,
+                    })
+            activation_follow_up_queue.sort(key=lambda item: (item["priority"], item["agent_name"].lower()))
             metrics = {
                 "offerCount": len(offers),
                 "homebuyerOfferCount": len([o for o in offers if o.get("role") == "homebuyer"]),
@@ -2728,6 +2760,7 @@ class handler(BaseHTTPRequestHandler):
                 "agentFirstOfferCount": len(agent_offer_counts),
                 "agentWithoutOfferCount": len(agent_profile_ids - agent_offer_user_ids),
                 "agentOfferWithoutActiveSubscriptionCount": len(agent_offer_user_ids - active_agent_subscription_ids),
+                "activationFollowUpCount": len(activation_follow_up_queue),
                 "agentRepeatOfferCount": len([
                     user_id for user_id, count in agent_offer_counts.items() if count > 1
                 ]),
@@ -2788,6 +2821,7 @@ class handler(BaseHTTPRequestHandler):
                 "stripeWebhookEvents": stripe_webhook_events,
                 "showings": [],
                 "feedback": feedback,
+                "activationFollowUpQueue": activation_follow_up_queue[:50],
             })
         except Exception as e:
             _json(self, 500, {"error": str(e)})
