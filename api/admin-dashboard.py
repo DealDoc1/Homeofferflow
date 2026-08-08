@@ -2890,6 +2890,9 @@ class handler(BaseHTTPRequestHandler):
                     item for item in stripe_webhook_events
                     if item.get("processing_state") == "failed"
                 ]),
+                "billingPortalOpenCount": len([
+                    item for item in events if item.get("event_type") == "billing_portal_opened"
+                ]),
                 "feedbackCount": len(feedback),
                 # Generated AI outputs are useful context, but do not count as
                 # human calibration evidence for the five-scenario release gate.

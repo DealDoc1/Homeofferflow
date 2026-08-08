@@ -4140,6 +4140,12 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           </div>
 
           <div class="admin-metric">
+            <div class="admin-metric-label">Billing Portal Opens</div>
+            <div class="admin-metric-value">${metrics.billingPortalOpenCount || 0}</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Authenticated billing intent signals.</div>
+          </div>
+
+          <div class="admin-metric">
             <div class="admin-metric-label">AI Calibration Notes</div>
             <div class="admin-metric-value">${metrics.aiCalibrationFeedbackCount || 0} / ${metrics.aiCalibrationTarget || 5}</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.aiReviewOutputCount || 0} generated review outputs (not calibration evidence)</div>
@@ -4562,7 +4568,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   }
 
 
-  async function openBillingPortal() {
+  async function openBillingPortal(source = 'subscription_card') {
     const accessToken = hofAuth?.session?.access_token || '';
     if (!accessToken) {
       alert('Please sign in again before opening billing.');
@@ -4570,6 +4576,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     }
 
     try {
+      await logOfferEvent(null, 'billing_portal_opened', hofAuth?.subscription?.status || '', 'Opened Stripe Billing portal.', { source });
       const response = await fetch('/api/create-billing-portal', {
         method: 'POST',
         headers: {
@@ -12656,7 +12663,7 @@ function routeAfterMagicLinkIfNeeded() {
       card.insertAdjacentHTML('beforeend',
         '<div class="subscription-trial-notice" style="margin-top:0.75rem; font-size:0.78rem; line-height:1.45; color:' + (trialDaysRemaining !== null && trialDaysRemaining <= 3 ? 'var(--gold-light)' : 'var(--gray)') + ';">' +
         '<strong>' + trialNoticeLead + '.</strong> Your plan renews at $29/month on that date unless you cancel in Manage Billing.' +
-        (trialDaysRemaining !== null && trialDaysRemaining <= 3 ? ' <button type="button" class="btn-secondary" style="margin-top:.45rem" onclick="openBillingPortal()">Review Manage Billing</button>' : '') +
+        (trialDaysRemaining !== null && trialDaysRemaining <= 3 ? ' <button type="button" class="btn-secondary" style="margin-top:.45rem" onclick="openBillingPortal(\'trial_renewal_urgency\')">Review Manage Billing</button>' : '') +
         '</div>');
     }
     if (subscription.cancel_at_period_end && cancellationEnds && !card.querySelector('.subscription-cancel-notice')) {
