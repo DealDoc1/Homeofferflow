@@ -107,6 +107,11 @@ jobs:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN" --scope=dealdoc1s-projects
 
+      - name: Check Vercel Hobby deployment capacity
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: python scripts/check_vercel_deployment_capacity.py
+
       - name: Build the exact production artifact
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}

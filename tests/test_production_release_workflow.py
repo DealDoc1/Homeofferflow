@@ -25,6 +25,8 @@ class ProductionReleaseWorkflowTests(unittest.TestCase):
         self.assertIn("python scripts/release_preflight.py", self.text)
         self.assertIn("python -m unittest discover -s tests -q", self.text)
         self.assertIn("vercel pull --yes --environment=production", self.text)
+        self.assertIn("Check Vercel Hobby deployment capacity", self.text)
+        self.assertIn("python scripts/check_vercel_deployment_capacity.py", self.text)
         self.assertIn("vercel build --prod", self.text)
         self.assertIn("vercel deploy --prebuilt --prod --yes", self.text)
 
