@@ -2636,6 +2636,33 @@ class handler(BaseHTTPRequestHandler):
                     "&select=id,listing_workspace_id,disclosure_source_id,water_source_id,property_address,seller_names,buyer_names,response_data,water_rights_data,status,disclosure_source_revision,water_source_revision,seller_review_attested,created_at,updated_at"
                     "&order=updated_at.desc&limit=100"
                 ))
+                review_links = asyncio.run(_get_optional(
+                    "hof_seller_disclosure_review_links?"
+                    f"agent_user_id=eq.{urllib.parse.quote(user['id'])}"
+                    f"&brokerage_id=eq.{urllib.parse.quote(str(brokerage_id))}"
+                    "&select=draft_id,seller_name,seller_index,expires_at,revoked_at,viewed_at,verified_at,seller_attested_at,created_at"
+                    "&order=created_at.desc&limit=300"
+                ))
+                links_by_draft = {}
+                for link in review_links:
+                    links_by_draft.setdefault(str(link.get("draft_id") or ""), []).append({
+                        "sellerName": link.get("seller_name"),
+                        "sellerIndex": link.get("seller_index"),
+                        "expiresAt": link.get("expires_at"),
+                        "revokedAt": link.get("revoked_at"),
+                        "viewedAt": link.get("viewed_at"),
+                        "verifiedAt": link.get("verified_at"),
+                        "sellerAttestedAt": link.get("seller_attested_at"),
+                        "createdAt": link.get("created_at"),
+                    })
+                for row in rows:
+                    links = links_by_draft.get(str(row.get("id") or ""), [])
+                    row["sellerReviewLinks"] = links
+                    row["sellerReviewProgress"] = {
+                        "requested": len(links),
+                        "verified": len([link for link in links if link.get("verifiedAt")]),
+                        "attested": len([link for link in links if link.get("sellerAttestedAt")]),
+                    }
                 _json(self, 200, {"drafts": rows})
                 return
             if scope == "standalone_agreements":

@@ -61,6 +61,14 @@ class SellerReviewApiTests(unittest.TestCase):
         self.assertIn("agent_user_id=eq.", source)
         self.assertIn("brokerage_id=eq.", source)
 
+    def test_draft_listing_surfaces_private_review_progress(self):
+        api = (ROOT / "api" / "admin-dashboard.py").read_text()
+        ui = (ROOT / "index.html").read_text()
+        self.assertIn("sellerReviewLinks", api)
+        self.assertIn("sellerReviewProgress", api)
+        self.assertIn("No seller review request sent", ui)
+        self.assertIn("reviewStatus", ui)
+
 
 if __name__ == "__main__":
     unittest.main()

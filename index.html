@@ -14624,7 +14624,15 @@ function routeAfterMagicLinkIfNeeded() {
     try {
       const drafts = await loadDrafts();
       draftCache.clear(); drafts.forEach(d => draftCache.set(String(d.id), d));
-      list.innerHTML = drafts.length ? drafts.map(d => '<li data-seller-draft-row data-search="' + escape([d.property_address, ...(d.seller_names || []), d.status, d.disclosure_source_revision, d.water_source_revision].filter(Boolean).join(' ')) + '"><span><strong>' + escape(d.property_address) + '</strong><br><small>' + escape((d.seller_names || []).join(', ')) + ' · ' + escape(d.disclosure_source_revision || '') + (d.water_source_revision ? ' + TREC-61-0' : '') + (d.seller_review_attested ? ' · All seller reviews complete' : '') + '</small></span><button type="button" class="btn-secondary hof-seller-load" data-id="' + escape(d.id) + '">Load draft</button><button type="button" class="btn-secondary hof-seller-preview" data-id="' + escape(d.id) + '">Preview PDF</button></li>').join('') : '<li>No seller disclosure drafts saved yet.</li>';
+      list.innerHTML = drafts.length ? drafts.map(d => {
+        const progress = d.sellerReviewProgress || {};
+        const reviewStatus = d.seller_review_attested
+          ? 'All seller reviews complete'
+          : progress.requested
+            ? (progress.attested ? progress.attested + ' seller review' + (progress.attested === 1 ? '' : 's') + ' complete' : progress.requested + ' review request' + (progress.requested === 1 ? '' : 's') + ' sent')
+            : 'No seller review request sent';
+        return '<li data-seller-draft-row data-search="' + escape([d.property_address, ...(d.seller_names || []), d.status, d.disclosure_source_revision, d.water_source_revision, reviewStatus].filter(Boolean).join(' ')) + '"><span><strong>' + escape(d.property_address) + '</strong><br><small>' + escape((d.seller_names || []).join(', ')) + ' · ' + escape(d.disclosure_source_revision || '') + (d.water_source_revision ? ' + TREC-61-0' : '') + ' · ' + escape(reviewStatus) + '</small></span><button type="button" class="btn-secondary hof-seller-load" data-id="' + escape(d.id) + '">Load draft</button><button type="button" class="btn-secondary hof-seller-preview" data-id="' + escape(d.id) + '">Preview PDF</button></li>';
+      }).join('') : '<li>No seller disclosure drafts saved yet.</li>';
       const summary = document.getElementById('hofSellerDraftSummary');
       if (summary) summary.textContent = `${drafts.length} draft${drafts.length === 1 ? '' : 's'} shown.`;
       list.querySelectorAll('.hof-seller-preview').forEach(button => button.addEventListener('click', async () => {
