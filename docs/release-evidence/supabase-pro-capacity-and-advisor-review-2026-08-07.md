@@ -2,6 +2,8 @@
 
 ## Scope
 
+Verification refreshed: 2026-08-08.
+
 This evidence records the Supabase plan upgrade and the follow-up health and
 advisor review. It does not change packet generation, legal-form sources,
 signer plans, or production offer-generation routes.
@@ -35,7 +37,10 @@ API policies. These are reviewed, not ignored:
 ## Verification evidence
 
 - Local release preflight passed for the current non-form evidence branch.
-- Full regression suite passed: `427 tests`, `OK`.
+- Full regression suite passed: `499 tests`, `OK`.
+- Repository Supabase preflight passed with 62 ordered migrations and a valid
+  project-bound `supabase/config.toml`; the preflight now runs in GitHub Actions
+  on every main push.
 - The live `hof_standalone_agreements` form-code constraint accepts exactly
   `TXR-1501`, `TXR-1506`, `TXR-1507`, and `TXR-1508`.
 - Targeted Stripe lifecycle, OnDemand checkout, brokerage authorization, and
