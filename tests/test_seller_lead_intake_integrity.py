@@ -6,7 +6,12 @@ ROOT = Path(__file__).resolve().parents[1]
 MIGRATION = (
     ROOT / "supabase/migrations/20260808160000_seller_lead_intake_integrity.sql"
 ).read_text(encoding="utf-8")
+PACKAGE_MIGRATION = (
+    ROOT / "supabase/migrations/20260808190000_seller_lead_package_context.sql"
+).read_text(encoding="utf-8")
 INDEX = (ROOT / "index.html").read_text(encoding="utf-8")
+API = (ROOT / "api/fsbo-lead.py").read_text(encoding="utf-8")
+ADMIN_API = (ROOT / "api/admin-dashboard.py").read_text(encoding="utf-8")
 
 
 class SellerLeadIntakeIntegrityTests(unittest.TestCase):
@@ -39,6 +44,25 @@ class SellerLeadIntakeIntegrityTests(unittest.TestCase):
             "select('id,user_id,brokerage_id,seller_type,property_address,seller_name,seller_email,seller_phone,asking_price,mortgage_balance,desired_close_date,notes,status,created_at,updated_at')",
             INDEX,
         )
+
+    def test_package_context_is_persisted_and_admin_follow_up_is_available(self):
+        for marker in (
+            "property_city",
+            "property_county",
+            "property_state",
+            "property_zip",
+            "service_level",
+            "package_name",
+            "package_price",
+            "timeline",
+            "partner_categories",
+        ):
+            self.assertIn(marker, PACKAGE_MIGRATION)
+            self.assertIn(marker, API)
+            self.assertIn(marker, ADMIN_API)
+        self.assertIn("scope == \"seller_leads\"", ADMIN_API)
+        self.assertIn("update_seller_lead", ADMIN_API)
+        self.assertIn("Seller / FSBO Follow-up Queue", INDEX)
 
 
 if __name__ == "__main__":

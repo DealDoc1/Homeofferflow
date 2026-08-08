@@ -35,6 +35,7 @@ ADMIN_EMAILS = {e.strip().lower() for e in (os.environ.get("ADMIN_EMAILS") or os
 DEFAULT_ADMIN_EMAILS = {"andrew@ondemanddfw.com", "andrewchri@gmail.com", "support@homeofferflow.com"}
 ALLOWED_PARTNER_LEAD_STATUSES = {"new", "contacted", "qualified", "waitlist", "converted", "declined"}
 ALLOWED_PARTNER_ONBOARDING_STATUSES = {"not_started", "ready", "in_progress", "complete"}
+ALLOWED_SELLER_LEAD_STATUSES = {"new", "contacted", "qualified", "converted", "archived"}
 ALLOWED_BROKERAGE_MEMBER_STATUSES = {"active", "suspended"}
 ALLOWED_PARTNER_PLACEMENT_TIERS = {"founding", "premier", "exclusive_market"}
 ALLOWED_PARTNER_TYPES = {
@@ -1142,6 +1143,34 @@ def _parse_partner_lead_update(data):
     if onboarding_status and onboarding_status not in ALLOWED_PARTNER_ONBOARDING_STATUSES:
         raise ValueError("Choose a valid partner onboarding status.")
     return lead_id, status, onboarding_status or None
+
+
+def _parse_seller_lead_update(data):
+    lead_id = str(data.get("seller_lead_id") or "").strip()
+    status = str(data.get("status") or "").strip().lower()
+    try:
+        lead_id = str(uuid.UUID(lead_id))
+    except (TypeError, ValueError, AttributeError):
+        raise ValueError("A valid seller lead ID is required.")
+    if status not in ALLOWED_SELLER_LEAD_STATUSES:
+        raise ValueError("Choose a valid seller lead status.")
+    return lead_id, status
+
+
+async def _update_seller_lead(lead_id, status):
+    payload = {"status": status, "updated_at": datetime.now(timezone.utc).isoformat()}
+    async with httpx.AsyncClient(timeout=12) as client:
+        response = await client.patch(
+            f"{SUPABASE_URL}/rest/v1/hof_seller_leads?id=eq.{lead_id}",
+            headers={**_headers(), "Prefer": "return=representation"},
+            json=payload,
+        )
+    if response.status_code >= 300:
+        raise RuntimeError("Could not update the seller lead.")
+    rows = response.json()
+    if not isinstance(rows, list) or not rows:
+        raise ValueError("Seller lead was not found.")
+    return rows[0]
 
 
 async def _update_partner_lead(lead_id, status, onboarding_status=None):
@@ -2543,6 +2572,17 @@ class handler(BaseHTTPRequestHandler):
                     return
                 _json(self, 200, payload)
                 return
+            if scope == "seller_leads":
+                if not asyncio.run(_is_platform_admin(user)):
+                    _json(self, 403, {"error": "Admin access is not enabled for this account."})
+                    return
+                rows = asyncio.run(_get_optional(
+                    "hof_seller_leads?select=id,property_address,property_city,property_county,property_state,property_zip,"
+                    "seller_name,seller_email,seller_phone,asking_price,service_level,package_name,package_price,"
+                    "timeline,partner_categories,notes,status,created_at,updated_at&order=created_at.desc&limit=200"
+                ))
+                _json(self, 200, {"sellerLeads": rows})
+                return
             if scope == "brokerage":
                 context = asyncio.run(_brokerage_admin_context(user))
                 if not context:
@@ -2569,6 +2609,11 @@ class handler(BaseHTTPRequestHandler):
             subs = asyncio.run(_get("hof_subscriptions?select=*&order=created_at.desc&limit=50")) if True else []
             brokerages = asyncio.run(_get("hof_brokerages?select=*&order=created_at.desc&limit=50"))
             partner_leads = asyncio.run(_get_optional("hof_partner_leads?select=*&order=created_at.desc&limit=100"))
+            seller_leads = asyncio.run(_get_optional(
+                "hof_seller_leads?select=id,property_address,property_city,property_county,property_state,property_zip,"
+                "seller_name,seller_email,seller_phone,asking_price,service_level,package_name,package_price,"
+                "timeline,partner_categories,notes,status,created_at,updated_at&order=created_at.desc&limit=200"
+            ))
             partner_placements = asyncio.run(_get_optional("hof_partner_placements?select=id,partner_type,partner_name,website_url,logo_url,market_area,placement_tier,monthly_fee,is_active,created_at&brokerage_id=is.null&order=created_at.desc&limit=100"))
             roadmap = asyncio.run(_get("hof_roadmap_items?select=*&order=priority.asc&limit=100"))
             qa_scenarios = asyncio.run(_get("hof_qa_scenarios?select=*&active=eq.true&order=priority.asc&limit=100"))
@@ -2637,6 +2682,8 @@ class handler(BaseHTTPRequestHandler):
                 "brokerageCount": len(brokerages),
                 "partnerLeadCount": len(partner_leads),
                 "qualifiedPartnerLeadCount": len([lead for lead in partner_leads if lead.get("status") in {"qualified", "converted"}]),
+                "sellerLeadCount": len(seller_leads),
+                "qualifiedSellerLeadCount": len([lead for lead in seller_leads if lead.get("status") in {"qualified", "converted"}]),
                 "activePartnerPlacementCount": len([placement for placement in partner_placements if placement.get("is_active")]),
                 "eventCount": len(events),
                 "roadmapCount": len(roadmap),
@@ -2674,6 +2721,7 @@ class handler(BaseHTTPRequestHandler):
                 "subscriptions": subs,
                 "brokerages": brokerages,
                 "partnerLeads": partner_leads,
+                "sellerLeads": seller_leads,
                 "partnerPlacements": partner_placements,
                 "roadmap": roadmap,
                 "qaScenarios": qa_scenarios,
@@ -2791,6 +2839,11 @@ class handler(BaseHTTPRequestHandler):
                 payload = _parse_partner_placement(data)
                 row = asyncio.run(_create_platform_partner_placement(payload))
                 _json(self, 200, {"ok": True, "partnerPlacement": row})
+                return
+            if data.get("action") == "update_seller_lead":
+                lead_id, status = _parse_seller_lead_update(data)
+                row = asyncio.run(_update_seller_lead(lead_id, status))
+                _json(self, 200, {"ok": True, "sellerLead": row})
                 return
             lead_id, status, onboarding_status = _parse_partner_lead_update(data)
             row = asyncio.run(_update_partner_lead(lead_id, status, onboarding_status))

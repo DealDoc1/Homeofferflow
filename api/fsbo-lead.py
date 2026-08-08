@@ -90,6 +90,19 @@ def _choice(value, allowed, default):
     return value if value in allowed else default
 
 
+def _partner_category_list(value):
+    if value in (None, ""):
+        return []
+    if not isinstance(value, list):
+        raise ValueError("Partner categories must be a list.")
+    clean = []
+    for item in value[:12]:
+        category = _text(item, 80)
+        if category in ALLOWED_PARTNER_TYPES and category not in clean:
+            clean.append(category)
+    return clean
+
+
 def _build_partner_payload(data):
     company_name = _text(data.get("company_name"), 250)
     contact_name = _text(data.get("contact_name"), 250)
@@ -314,16 +327,33 @@ class handler(BaseHTTPRequestHandler):
             seller_email = _text(data.get('seller_email') or data.get('email'), 250)
             if not property_address or not seller_email:
                 return _send(self, 400, {'error': 'Property address and seller email are required.'})
+            if not EMAIL_RE.match(seller_email):
+                return _send(self, 400, {'error': 'Enter a valid seller email.'})
+
+            partner_categories = _partner_category_list(data.get('partner_categories'))
+            service_level = _text(data.get('service_level'), 80) or 'free_intake'
+            package_name = _text(data.get('package_name'), 180) or 'Free Seller Intake'
+            package_price = _text(data.get('package_price'), 80) or '$0'
+            timeline = _text(data.get('timeline'), 80) or 'not_sure'
 
             payload = {
                 'seller_type': 'fsbo',
                 'property_address': property_address,
+                'property_city': _text(data.get('property_city'), 120),
+                'property_county': _text(data.get('property_county'), 120),
+                'property_state': _text(data.get('property_state'), 20) or 'TX',
+                'property_zip': _text(data.get('property_zip'), 20),
                 'seller_name': _text(data.get('seller_name') or data.get('name'), 250),
                 'seller_email': seller_email,
                 'seller_phone': _text(data.get('seller_phone') or data.get('phone'), 80),
                 'asking_price': _money(data.get('asking_price')),
                 'mortgage_balance': _money(data.get('mortgage_balance')),
                 'desired_close_date': _text(data.get('desired_close_date'), 40),
+                'service_level': service_level,
+                'package_name': package_name,
+                'package_price': package_price,
+                'timeline': timeline,
+                'partner_categories': partner_categories,
                 'notes': _text(data.get('notes'), 1500),
                 'status': _text(data.get('status'), 80) or 'new',
                 'created_at': datetime.now(timezone.utc).isoformat(),
