@@ -2670,7 +2670,18 @@ class handler(BaseHTTPRequestHandler):
                 "seller_name,seller_email,seller_phone,asking_price,service_level,package_name,package_price,"
                 "timeline,partner_categories,notes,status,created_at,updated_at&order=created_at.desc&limit=200"
             ))
-            partner_placements = asyncio.run(_get_optional("hof_partner_placements?select=id,partner_type,partner_name,website_url,logo_url,market_area,placement_tier,monthly_fee,is_active,created_at,activated_at,agreement_confirmed_at&brokerage_id=is.null&order=created_at.desc&limit=100"))
+            partner_placements = asyncio.run(_get_optional("hof_partner_placements?select=id,source_lead_id,partner_type,partner_name,website_url,logo_url,market_area,placement_tier,monthly_fee,is_active,created_at,activated_at,agreement_confirmed_at&brokerage_id=is.null&order=created_at.desc&limit=100"))
+            active_partner_source_lead_ids = {
+                str(placement.get("source_lead_id") or "")
+                for placement in partner_placements
+                if placement.get("is_active") and placement.get("source_lead_id")
+            }
+            paid_partner_activation_queue = [
+                lead for lead in partner_leads
+                if str(lead.get("payment_status") or "").lower() == "paid"
+                and str(lead.get("status") or "").lower() not in {"declined", "waitlist"}
+                and str(lead.get("id") or "") not in active_partner_source_lead_ids
+            ]
             roadmap = asyncio.run(_get("hof_roadmap_items?select=*&order=priority.asc&limit=100"))
             qa_scenarios = asyncio.run(_get("hof_qa_scenarios?select=*&active=eq.true&order=priority.asc&limit=100"))
             qa_runs = asyncio.run(_get("hof_qa_runs?select=*&order=created_at.desc&limit=50"))
@@ -2797,6 +2808,7 @@ class handler(BaseHTTPRequestHandler):
                 "sellerLeadCount": len(seller_leads),
                 "qualifiedSellerLeadCount": len([lead for lead in seller_leads if lead.get("status") in {"qualified", "converted"}]),
                 "activePartnerPlacementCount": len([placement for placement in partner_placements if placement.get("is_active")]),
+                "paidPartnerActivationQueueCount": len(paid_partner_activation_queue),
                 "eventCount": len(events),
                 "roadmapCount": len(roadmap),
                 "roadmapBlockedCount": len([item for item in roadmap if item.get("status") == "blocked"]),
@@ -2835,6 +2847,7 @@ class handler(BaseHTTPRequestHandler):
                 "partnerLeads": partner_leads,
                 "sellerLeads": seller_leads,
                 "partnerPlacements": partner_placements,
+                "paidPartnerActivationQueue": paid_partner_activation_queue[:50],
                 "roadmap": roadmap,
                 "qaScenarios": qa_scenarios,
                 "qaRuns": qa_runs,
