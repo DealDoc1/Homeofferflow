@@ -33,13 +33,21 @@ class AuthenticatedReleaseQaTests(unittest.TestCase):
                     "documentContentsIncluded": False,
                 },
                 "agents": [],
-                "sourceReadiness": [],
+                "sourceReadiness": [
+                    {"formCode": "TXR-1506", "readyForRestrictedDraft": True},
+                ],
             }
 
         def fake_request(base_url, token, path, *, method="GET", body=None):
             if method == "POST":
                 return 200, "application/json", json.dumps({"agreement": {"id": "draft-1"}}).encode()
-            return 200, "application/pdf", b"%PDF-1.7 qa"
+            if "preview_agreement=" in path:
+                return 200, "application/pdf", b"%PDF-1.7 qa"
+            return 200, "application/json", json.dumps({
+                "sourceReadiness": [
+                    {"formCode": "TXR-1506", "readyForRestrictedDraft": True},
+                ],
+            }).encode()
 
         with tempfile.TemporaryDirectory() as temp_dir, patch.object(qa.admin_qa, "_get", fake_admin_get), patch.object(qa.txr_qa, "_request", fake_request):
             report = qa.run("https://example.test", "token", Path(temp_dir), ["TXR-1506"], [1])

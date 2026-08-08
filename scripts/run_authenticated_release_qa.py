@@ -57,6 +57,13 @@ def run(base_url: str, token: str, output_dir: Path, forms: list[str], clients: 
         "signing_sent": False,
     }
 
+    # The combined runner must enforce the same live source gate as the
+    # single-form helper before creating *any* restricted draft.  Keeping this
+    # check here prevents a caller from accidentally bypassing authorization,
+    # approval, or individual-attestation readiness by using the bundle path.
+    if not admin_errors:
+        txr_qa._assert_restricted_sources_ready(base_url, token, forms)
+
     for form in forms:
         for client_count in clients:
             payload = txr_qa._payload(form, client_count)
