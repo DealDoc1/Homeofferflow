@@ -30,6 +30,12 @@ class AiOfferReviewDashboardCopyTests(unittest.TestCase):
         self.assertIn("Remove any private details before sharing.", INDEX_HTML)
         self.assertIn("review.disclaimer", INDEX_HTML)
 
+    def test_review_history_surfaces_repeat_usage_score_momentum(self):
+        self.assertIn("saved review${reviews.length === 1 ? '' : 's'}", INDEX_HTML)
+        self.assertIn("Latest ${latestScore}/100", INDEX_HTML)
+        self.assertIn("Best ${bestScore}/100", INDEX_HTML)
+        self.assertIn("Run another review", INDEX_HTML)
+
     def test_admin_dashboard_surfaces_calibration_notes(self):
         self.assertIn("AI Calibration Notes", INDEX_HTML)
         self.assertIn("Feedback and AI Calibration", INDEX_HTML)
