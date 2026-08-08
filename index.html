@@ -12941,16 +12941,20 @@ function routeAfterMagicLinkIfNeeded() {
     const email = String(agent?.email || '').trim();
     if (!email) return '<span>—</span>';
     const engagement = String(agent?.engagement || 'needs_follow_up');
-    const subject = engagement === 'needs_subscription'
-      ? 'Keep your HomeOfferFlow offer workflow active'
-      : engagement === 'needs_activation'
+    const subject = engagement === 'needs_billing'
+      ? 'Action needed to keep your HomeOfferFlow workflow active'
+      : engagement === 'needs_subscription'
+        ? 'Keep your HomeOfferFlow offer workflow active'
+        : engagement === 'needs_activation'
         ? 'Let’s get your first HomeOfferFlow offer moving'
         : engagement === 'needs_follow_up'
           ? 'Quick HomeOfferFlow follow-up'
           : 'Your HomeOfferFlow trial and next offer';
-    const body = engagement === 'needs_subscription'
-      ? 'I noticed you have a saved HomeOfferFlow offer but no active access for the next client workflow. Sign in to review subscription options before creating the next packet: https://homeofferflow.com'
-      : engagement === 'needs_activation'
+    const body = engagement === 'needs_billing'
+      ? 'I noticed your HomeOfferFlow billing needs attention while you still have offer activity. Open Manage Billing to update access before the next client packet: https://homeofferflow.com'
+      : engagement === 'needs_subscription'
+        ? 'I noticed you have a saved HomeOfferFlow offer but no active access for the next client workflow. Sign in to review subscription options before creating the next packet: https://homeofferflow.com'
+        : engagement === 'needs_activation'
         ? 'I noticed you have HomeOfferFlow access but no saved offer yet. Let’s set up your first offer together: https://homeofferflow.com'
         : engagement === 'needs_follow_up'
           ? 'Checking in on your HomeOfferFlow workspace. Let me know if you want help moving the next client offer forward: https://homeofferflow.com'
@@ -13147,6 +13151,7 @@ function routeAfterMagicLinkIfNeeded() {
           '<div class="brokerage-safe-kpi"><span>Signed</span><strong>' + Number(m.signedCount || 0) + '</strong></div>' +
           '<div class="brokerage-safe-kpi"><span>Needs activation</span><strong>' + Number(m.agentsNeedingActivation || 0) + '</strong></div>' +
           '<div class="brokerage-safe-kpi"><span>Needs access</span><strong>' + Number(m.agentsNeedingSubscription || 0) + '</strong></div>' +
+          '<div class="brokerage-safe-kpi"><span>Billing attention</span><strong>' + Number(m.agentsNeedingBilling || 0) + '</strong></div>' +
           '<div class="brokerage-safe-kpi"><span>Trials ending soon</span><strong>' + Number(m.trialsEndingSoon || 0) + '</strong></div>' +
         '</div>' +
         '<div class="brokerage-seat-momentum"><strong>' + (seatPercent == null ? 'Team growth' : 'Seat utilization: ' + seatPercent + '%') + '</strong><span>' + safe(seatMomentum) + '</span><button type="button" class="brokerage-access-button" onclick="document.getElementById(\'brokerageInviteEmail\')?.focus()">Invite an agent</button></div>' +
