@@ -18,6 +18,8 @@ or Supabase data behavior.
 - `tests/test_pwa_baseline.py`
 - `tests/test_subscription_lifecycle_tracker_reconciliation.py`
 - `tests/test_tracker_reconciliation_2026_08_08.py`
+- `scripts/check_production_pwa.py`
+- `tests/test_production_pwa_check.py`
 
 ## Verification
 
@@ -26,6 +28,10 @@ or Supabase data behavior.
 - `git diff --check`: passed.
 - `scripts/release_preflight.py --base 3abba8d --expected-deploy-author-email andrewchri@gmail.com`: passed; no packet/form source or mapping change detected.
 - `main` is clean and pushed through `0c10217232e3e4cd934144fc28f5ce5a8fee0a26`.
+- The read-only production PWA smoke check is intentionally red against the
+  current baseline because production has not received the new manifest yet;
+  it reports the missing `lang`, `dir`, `orientation`, and
+  `prefer_related_applications` fields.
 
 ## Deployment state
 
@@ -36,7 +42,8 @@ workflow is run for the exact `main` commit.
 
 ## Post-deploy checks
 
-1. Confirm the canonical manifest is served from `https://www.homeofferflow.com/manifest.webmanifest`.
-2. Confirm the home page remains HTTP 200.
-3. Confirm authentication, offer generation, signing, billing, and the
+1. Run `python scripts/check_production_pwa.py --origin https://www.homeofferflow.com` and require a pass.
+2. Confirm the canonical manifest is served from `https://www.homeofferflow.com/manifest.webmanifest`.
+3. Confirm the home page remains HTTP 200.
+4. Confirm authentication, offer generation, signing, billing, and the
    restricted-form gates remain unchanged.
