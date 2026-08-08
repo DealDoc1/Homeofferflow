@@ -17,7 +17,7 @@ packet assets present.
 
 ## Automated verification
 
-- Full Python suite: **519 tests passed**.
+- Full Python suite: **527 tests passed**.
 - Golden packet rendering: **approved baseline matched** for cash single/two
   buyer, conventional single/two buyer, HOA, appraisal, sale of other
   property, backup, seller temporary lease, all supported addenda, and sparse
@@ -57,7 +57,12 @@ completed-signature gates.
 
 ## Deployment note
 
-The current main branch contains no new packet/form runtime change after the
-verified production deployment. Because Git deployments are disabled to stay
-within the Vercel Hobby deployment limit, no redundant customer-facing Vercel
-deployment was triggered for this verification-only record.
+The verified main branch was intentionally promoted through the guarded
+production workflow after the full regression and rendered-placement checks:
+
+- commit: `9b4cda9d08aeee9b0367acc8bac8a2bc86f3d1f6`;
+- Vercel deployment: `https://homeofferflow-3arpxyd4t-dealdoc1s-projects.vercel.app`;
+- GitHub Actions release run: `31250621342` (verify and deploy jobs passed).
+
+Git deployments remain disabled to stay within the Vercel Hobby deployment
+limit; this was the single intentional production deployment.
