@@ -32,7 +32,11 @@ buyer names, property addresses, offer terms, or document contents.
 9. If an invitation is intentionally tested, verify it is email-bound, expires
    in 14 days, grants agent access only, and does not cancel or change the
    invitee's HomeOfferFlow subscription.
-10. As the invited agent, accept the invitation with the matching email and
+10. Before acceptance, select **Revoke** for the pending invitation and verify
+    the invitation disappears and its prior URL no longer works. Revocation
+    must not cancel billing or remove any existing membership.
+11. Create a fresh invitation, then as the invited agent accept it with the
+    matching email and
     verify the membership is active. Confirm the agent cannot see brokerage
     activity totals for other members or change brokerage authorization.
 
