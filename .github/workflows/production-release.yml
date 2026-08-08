@@ -40,12 +40,12 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Check out exact release commit
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.12'
           cache: pip
@@ -85,12 +85,12 @@ jobs:
       url: https://www.homeofferflow.com/
     steps:
       - name: Check out exact release commit
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 20
 
