@@ -12009,6 +12009,9 @@ function routeAfterMagicLinkIfNeeded() {
   .brokerage-invite-form input { flex:1 1 220px; min-width:0; padding:.62rem .7rem; border:1px solid rgba(255,255,255,.16); border-radius:9px; background:rgba(0,0,0,.18); color:var(--white); }
   .brokerage-invite-result { margin:.55rem 0 .2rem; color:var(--sage-light); font-size:.78rem; line-height:1.45; }
   .brokerage-pending-invites { margin:.7rem 0 0; color:var(--gray-light); font-size:.76rem; line-height:1.5; }
+  .brokerage-seat-momentum { display:flex; flex-wrap:wrap; align-items:center; gap:.55rem .8rem; margin:1rem 0 .25rem; padding:.7rem .8rem; border:1px solid rgba(74,140,111,.3); border-radius:11px; background:rgba(74,140,111,.07); color:var(--gray-light); font-size:.76rem; }
+  .brokerage-seat-momentum strong { color:var(--sage-light); }
+  .brokerage-seat-momentum span { flex:1 1 220px; }
   .ondemand-trial-link { display:inline-flex; margin-top:.65rem; color:var(--gold-light); font-weight:800; text-decoration:none; }
   @media(max-width:700px) {
     .brokerage-safe-kpis { grid-template-columns:repeat(2,minmax(0,1fr)); }
@@ -12545,6 +12548,15 @@ function routeAfterMagicLinkIfNeeded() {
       root.hofPlatform.brokerageAgents = agents;
       const pendingInvites = data.pendingInvites || [];
       const sourceReadiness = data.sourceReadiness || [];
+      const seatCount = Number(m.agentSeatCount || 0);
+      const seatCap = m.agentSeatCap == null ? null : Number(m.agentSeatCap);
+      const openSeats = seatCap == null ? null : Math.max(0, seatCap - seatCount);
+      const seatPercent = seatCap && seatCap > 0 ? Math.min(100, Math.round((seatCount / seatCap) * 100)) : null;
+      const seatMomentum = seatCap == null
+        ? 'Invite agents as your brokerage workflow grows.'
+        : openSeats > 0
+          ? `${openSeats} seat${openSeats === 1 ? '' : 's'} available for your next agent${openSeats === 1 ? '' : 's'}.`
+          : 'All available agent seats are assigned. Contact support if you need more capacity.';
       const sourceStatusLabel = source => source.readyForRestrictedDraft
         ? '<span style="color:var(--sage-light)">Ready for private draft</span>'
         : (source.status === 'not_uploaded'
@@ -12592,6 +12604,7 @@ function routeAfterMagicLinkIfNeeded() {
           '<div class="brokerage-safe-kpi"><span>Needs activation</span><strong>' + Number(m.agentsNeedingActivation || 0) + '</strong></div>' +
           '<div class="brokerage-safe-kpi"><span>Trials ending soon</span><strong>' + Number(m.trialsEndingSoon || 0) + '</strong></div>' +
         '</div>' +
+        '<div class="brokerage-seat-momentum"><strong>' + (seatPercent == null ? 'Team growth' : 'Seat utilization: ' + seatPercent + '%') + '</strong><span>' + safe(seatMomentum) + '</span><button type="button" class="brokerage-access-button" onclick="document.getElementById(\'brokerageInviteEmail\')?.focus()">Invite an agent</button></div>' +
         '<div class="brokerage-invite-form" style="margin-top:1rem"><label for="brokerageAgentFilter">Find an agent</label><input id="brokerageAgentFilter" type="search" placeholder="Name, email, status, or next action" aria-label="Find an agent" oninput="filterBrokerageAgents(this.value)"><button type="button" class="brokerage-access-button" onclick="exportBrokerageRoster()">Download roster CSV</button><span id="brokerageAgentFilterSummary" class="brokerage-invite-result">' + Number(agents.length) + ' agent' + (agents.length === 1 ? '' : 's') + ' shown.</span></div>' +
         '<table class="brokerage-safe-table"><thead><tr><th>Agent</th><th>Membership</th><th>TXR/NAR attestation</th><th>Plan</th><th>Offers</th><th>Signed</th><th>Next action</th><th>Follow up</th><th>Brokerage access</th></tr></thead><tbody>' +
         (agents.length ? agents.map(agent =>
