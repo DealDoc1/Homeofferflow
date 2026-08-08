@@ -8928,6 +8928,25 @@ function routeAfterMagicLinkIfNeeded() {
         <div id="listingWorkspaceStatus" class="platform-status"></div>
       </div>
       <div class="platform-card"><h4>My Listing Workspaces</h4><div id="listingWorkspaceList" class="platform-list"><div class="platform-list-item">No listing workspaces loaded yet.</div></div><div id="listingWorkspaceBrokerSummary" class="platform-status" style="margin-top:.75rem;"></div></div>
+      <div class="platform-card" id="listingWorkspaceOfferComparisonCard">
+        <h4>Seller Offer Comparison Worksheet</h4>
+        <p>Keep a private, educational comparison of offers connected to a listing workspace. This does not rank, recommend, accept, reject, or create a contract.</p>
+        <div class="platform-grid">
+          <div class="field"><label for="listingOfferWorkspace">Listing workspace</label><select id="listingOfferWorkspace"><option value="">Load a workspace first</option></select></div>
+          <div class="field"><label for="listingOfferLabel">Offer label</label><input id="listingOfferLabel" maxlength="120" placeholder="Buyer 1 / received June 8"></div>
+          <div class="field"><label for="listingOfferPrice">Offer price</label><input id="listingOfferPrice" type="number" min="0" step="0.01" inputmode="decimal" placeholder="500000"></div>
+          <div class="field"><label for="listingOfferFinancing">Financing</label><input id="listingOfferFinancing" maxlength="80" placeholder="Cash, conventional, FHA…"></div>
+          <div class="field"><label for="listingOfferConcessions">Seller concessions</label><input id="listingOfferConcessions" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0"></div>
+          <div class="field"><label for="listingOfferClosingDate">Proposed closing date</label><input id="listingOfferClosingDate" type="date"></div>
+          <div class="field"><label for="listingOfferOptionDays">Option period (days)</label><input id="listingOfferOptionDays" type="number" min="0" max="365" step="1" placeholder="7"></div>
+          <div class="field"><label for="listingOfferStatus">Worksheet status</label><select id="listingOfferStatus"><option value="received">Received</option><option value="reviewing">Reviewing</option><option value="preferred">Preferred for discussion</option><option value="declined">Declined / no longer active</option></select></div>
+        </div>
+        <div class="field" style="margin-top:.8rem;"><label for="listingOfferContingencies">Contingencies / terms to verify</label><textarea id="listingOfferContingencies" rows="2" maxlength="2000" placeholder="Appraisal, sale-of-other-property, inspection, financing, or other terms to verify with the proper professional."></textarea></div>
+        <div class="field" style="margin-top:.8rem;"><label for="listingOfferNotes">Private comparison notes</label><textarea id="listingOfferNotes" rows="2" maxlength="4000" placeholder="Net-impact questions, missing documents, follow-up items, or seller discussion notes."></textarea></div>
+        <div class="platform-actions"><button type="button" onclick="saveListingWorkspaceOffer()">Save Offer Comparison</button><button type="button" onclick="loadListingWorkspaceOffersFoundation()">Refresh Comparisons</button></div>
+        <div id="listingOfferStatusMessage" class="platform-status"></div>
+        <div id="listingWorkspaceOfferList" class="platform-list" style="margin-top:.8rem;"><div class="platform-list-item">Select a workspace to load comparison notes.</div></div>
+      </div>
       <div class="platform-card"><h4>Listing Form Readiness</h4><p>These are private brokerage source-approval indicators only. An approved source does not make a listing agreement or seller disclosure executable, sendable, or signable in HomeOfferFlow.</p><div id="listingWorkspaceSourceReadiness" class="platform-list"><div class="platform-list-item">Checking brokerage source readiness…</div></div><div class="notice" style="margin-top:.75rem;"><strong>Next seller-side release sequence:</strong> (1) authorize the exact listing/lease and seller-disclosure PDFs, (2) map fields and signer roles, (3) run authenticated one-client/two-client preview QA, (4) complete signed visual QA, then (5) activate sending. Until then, the workspace remains the safe place to collect the listing request and keep it private.</div></div>`;
     loadSellerLeadsFoundation();
     loadListingWorkspacesFoundation();
@@ -9051,6 +9070,83 @@ function routeAfterMagicLinkIfNeeded() {
     return String(value || '').replace(/_/g, ' ').replace(/\b\w/g, letter => letter.toUpperCase());
   }
 
+  function listingOfferMoney(value) {
+    const amount = Number(value);
+    return Number.isFinite(amount) ? adminMoney(amount) : '—';
+  }
+
+  function renderListingWorkspaceOfferRows(rows = []) {
+    const list = document.getElementById('listingWorkspaceOfferList');
+    if (!list) return;
+    list.innerHTML = rows.length ? rows.map(row => `
+      <div class="platform-list-item"><strong>${escapeAttr(row.offer_label || 'Offer')}</strong>
+        <span class="platform-pill ${row.status === 'preferred' ? 'good' : ''}">${escapeAttr(listingWorkspaceLabel(row.status || 'received'))}</span>
+        <span class="platform-pill">${escapeAttr(listingOfferMoney(row.offer_price))}</span><br>
+        ${escapeAttr(row.financing_type || 'Financing not entered')}${row.seller_concessions != null ? ' · concessions ' + escapeAttr(listingOfferMoney(row.seller_concessions)) : ''}${row.closing_date ? ' · close ' + escapeAttr(row.closing_date) : ''}${row.option_days != null ? ' · option ' + escapeAttr(row.option_days) + ' days' : ''}
+        ${row.contingency_notes ? '<br><small>Terms to verify: ' + escapeAttr(row.contingency_notes) + '</small>' : ''}
+      </div>`).join('') : '<div class="platform-list-item">No comparison notes for this workspace yet.</div>';
+  }
+
+  async function loadListingWorkspaceOffersFoundation() {
+    const client = getSupabaseClient();
+    const user = platformUser();
+    const select = document.getElementById('listingOfferWorkspace');
+    const list = document.getElementById('listingWorkspaceOfferList');
+    if (!client || !user || !select || !list) return;
+    const workspaceId = String(select.value || '');
+    if (!workspaceId) {
+      list.innerHTML = '<div class="platform-list-item">Select a workspace to load comparison notes.</div>';
+      return;
+    }
+    try {
+      const { data, error } = await client.from('hof_listing_workspace_offers')
+        .select('id,workspace_id,offer_label,offer_price,financing_type,seller_concessions,closing_date,option_days,contingency_notes,status,private_notes,created_at,updated_at')
+        .eq('workspace_id', workspaceId).order('updated_at', { ascending:false }).limit(20);
+      if (error) throw error;
+      renderListingWorkspaceOfferRows(data || []);
+    } catch (err) {
+      console.warn('Listing workspace offer comparison load failed:', err);
+      list.innerHTML = '<div class="platform-list-item">Offer comparisons could not load: ' + escapeAttr(err?.message || err) + '</div>';
+    }
+  }
+
+  async function saveListingWorkspaceOffer() {
+    const client = getSupabaseClient();
+    const user = platformUser();
+    const status = document.getElementById('listingOfferStatusMessage');
+    const workspaceId = String(getVal('listingOfferWorkspace') || '');
+    const label = String(getVal('listingOfferLabel') || '').trim();
+    if (!client || !user) return platformStatus('listingOfferStatusMessage', 'Sign in before saving an offer comparison.', 'err');
+    if (!workspaceId) return platformStatus('listingOfferStatusMessage', 'Choose a listing workspace first.', 'err');
+    if (!label) return platformStatus('listingOfferStatusMessage', 'Add a short label for this offer.', 'err');
+    const numericOrNull = value => String(value || '').trim() ? Number(value) : null;
+    const payload = {
+      workspace_id: workspaceId,
+      agent_user_id: user.id,
+      offer_label: label,
+      offer_price: numericOrNull(getVal('listingOfferPrice')),
+      financing_type: String(getVal('listingOfferFinancing') || '').trim() || null,
+      seller_concessions: numericOrNull(getVal('listingOfferConcessions')),
+      closing_date: getVal('listingOfferClosingDate') || null,
+      option_days: numericOrNull(getVal('listingOfferOptionDays')),
+      contingency_notes: String(getVal('listingOfferContingencies') || '').trim() || null,
+      status: getVal('listingOfferStatus') || 'received',
+      private_notes: String(getVal('listingOfferNotes') || '').trim() || null
+    };
+    if (status) status.textContent = 'Saving private offer comparison…';
+    try {
+      const { error } = await client.from('hof_listing_workspace_offers').insert(payload);
+      if (error) throw error;
+      if (status) { status.className = 'platform-status ok'; status.textContent = 'Offer comparison saved privately. It is not a recommendation or contract decision.'; }
+      ['listingOfferLabel','listingOfferPrice','listingOfferFinancing','listingOfferConcessions','listingOfferClosingDate','listingOfferOptionDays','listingOfferContingencies','listingOfferNotes'].forEach(id => { const field = document.getElementById(id); if (field) field.value = ''; });
+      const state = document.getElementById('listingOfferStatus'); if (state) state.value = 'received';
+      await loadListingWorkspaceOffersFoundation();
+    } catch (err) {
+      console.error('Listing workspace offer comparison save failed:', err);
+      if (status) { status.className = 'platform-status err'; status.textContent = err?.message || 'Could not save offer comparison.'; }
+    }
+  }
+
   async function loadListingWorkspacesFoundation() {
     const list = document.getElementById('listingWorkspaceList');
     const summary = document.getElementById('listingWorkspaceBrokerSummary');
@@ -9063,6 +9159,15 @@ function routeAfterMagicLinkIfNeeded() {
         .order('updated_at', { ascending:false }).limit(20);
       if (error) throw error;
       const workspaces = data || [];
+      const workspaceSelect = document.getElementById('listingOfferWorkspace');
+      if (workspaceSelect) {
+        const currentWorkspaceId = workspaceSelect.value;
+        workspaceSelect.innerHTML = workspaces.length
+          ? workspaces.map(workspace => `<option value="${escapeAttr(workspace.id)}">${escapeAttr(workspace.property_address || 'Listing workspace')} · ${escapeAttr(listingWorkspaceLabel(workspace.listing_kind))}</option>`).join('')
+          : '<option value="">Load a workspace first</option>';
+        if (currentWorkspaceId && workspaces.some(workspace => String(workspace.id) === currentWorkspaceId)) workspaceSelect.value = currentWorkspaceId;
+        workspaceSelect.onchange = loadListingWorkspaceOffersFoundation;
+      }
       list.innerHTML = workspaces.length ? workspaces.map(workspace => {
         const workflows = Array.isArray(workspace.requested_workflows) && workspace.requested_workflows.length
           ? workspace.requested_workflows.map(listingWorkspaceLabel).join(' · ') : 'No workflow selected yet';
@@ -9070,36 +9175,41 @@ function routeAfterMagicLinkIfNeeded() {
       }).join('') : '<div class="platform-list-item">No private listing workspaces yet.</div>';
       const profile = hofAuth.accountProfile || hofAuth.authoritativeProfile || {};
       const mayViewSummary = profile.is_brokerage_admin === true || String(profile.role || '').toLowerCase() === 'brokerage_admin' || isCurrentAdmin();
-      if (!summary) return;
-      if (!mayViewSummary) { summary.textContent = ''; return; }
-      // This is served by the broker-authorized dashboard endpoint rather than
-      // a browser-callable database function. The endpoint returns aggregate
-      // counts only; it never returns seller, property, note, or form data.
-      try {
-        const accessToken = hofAuth?.session?.access_token;
-        if (!accessToken) throw new Error('Sign in again to load brokerage reporting.');
-        const dashboardResponse = await fetch('/api/admin-dashboard?scope=brokerage', {
-          headers: { Authorization: `Bearer ${accessToken}` }
-        });
-        const dashboard = await dashboardResponse.json().catch(() => ({}));
-        if (!dashboardResponse.ok || dashboard.error) {
-          throw new Error(dashboard.error || 'Brokerage reporting is unavailable.');
+      if (summary) {
+        if (!mayViewSummary) {
+          summary.textContent = '';
+        } else {
+          // This is served by the broker-authorized dashboard endpoint rather than
+          // a browser-callable database function. The endpoint returns aggregate
+          // counts only; it never returns seller, property, note, or form data.
+          try {
+            const accessToken = hofAuth?.session?.access_token;
+            if (!accessToken) throw new Error('Sign in again to load brokerage reporting.');
+            const dashboardResponse = await fetch('/api/admin-dashboard?scope=brokerage', {
+              headers: { Authorization: `Bearer ${accessToken}` }
+            });
+            const dashboard = await dashboardResponse.json().catch(() => ({}));
+            if (!dashboardResponse.ok || dashboard.error) {
+              throw new Error(dashboard.error || 'Brokerage reporting is unavailable.');
+            }
+            const counts = dashboard.listingWorkspaceSummary || [];
+            summary.textContent = counts.length
+              ? 'Brokerage workflow counts: ' + counts.map(row => `${listingWorkspaceLabel(row.listingKind)} / ${listingWorkspaceLabel(row.status)}: ${row.workspaceCount}`).join(' · ')
+              : 'Brokerage workflow counts: no listing workspaces yet.';
+            summary.className = 'platform-status ok';
+          } catch (summaryError) {
+            console.warn('Brokerage listing-workspace summary unavailable:', summaryError);
+            summary.textContent = 'Brokerage workflow counts are temporarily unavailable.';
+            summary.className = 'platform-status';
+          }
         }
-        const counts = dashboard.listingWorkspaceSummary || [];
-        summary.textContent = counts.length
-          ? 'Brokerage workflow counts: ' + counts.map(row => `${listingWorkspaceLabel(row.listingKind)} / ${listingWorkspaceLabel(row.status)}: ${row.workspaceCount}`).join(' · ')
-          : 'Brokerage workflow counts: no listing workspaces yet.';
-        summary.className = 'platform-status ok';
-      } catch (summaryError) {
-        console.warn('Brokerage listing-workspace summary unavailable:', summaryError);
-        summary.textContent = 'Brokerage workflow counts are temporarily unavailable.';
-        summary.className = 'platform-status';
       }
     } catch (err) {
       console.warn('Listing workspace load failed:', err);
       list.innerHTML = '<div class="platform-list-item">Listing workspaces could not load: ' + escapeAttr(err?.message || err) + '</div>';
       if (summary) { summary.textContent = ''; summary.className = 'platform-status'; }
     }
+    await loadListingWorkspaceOffersFoundation();
   }
 
   async function loadListingWorkspaceSourceReadiness() {
