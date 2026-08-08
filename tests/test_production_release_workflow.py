@@ -39,6 +39,7 @@ class ProductionReleaseWorkflowTests(unittest.TestCase):
         self.assertIn("vercel inspect", self.text)
         self.assertIn("https://www.homeofferflow.com/", self.text)
         self.assertIn("python scripts/check_production_pwa.py --origin https://www.homeofferflow.com", self.text)
+        self.assertIn("python scripts/check_production_release.py --origin https://www.homeofferflow.com", self.text)
 
 
 if __name__ == "__main__":

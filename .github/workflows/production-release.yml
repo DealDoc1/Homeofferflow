@@ -149,6 +149,9 @@ jobs:
       - name: Verify production PWA shell
         run: python scripts/check_production_pwa.py --origin https://www.homeofferflow.com
 
+      - name: Verify production API and packet runtime
+        run: python scripts/check_production_release.py --origin https://www.homeofferflow.com
+
       - name: Record deployment boundary
         run: |
           echo "Intentional production deployment completed from ${GITHUB_SHA}."
