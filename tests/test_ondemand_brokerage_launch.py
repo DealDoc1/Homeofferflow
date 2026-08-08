@@ -836,6 +836,9 @@ class BrokerageAuthorizationTests(unittest.TestCase):
             "Agents must choose to copy",
             "Agent seats",
             "agentSeatCap",
+            "brokerage-seat-momentum",
+            "Seat utilization",
+            "Invite an agent",
         ):
             self.assertIn(item, final_script)
 
