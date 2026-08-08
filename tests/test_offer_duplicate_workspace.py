@@ -27,6 +27,12 @@ class OfferDuplicateWorkspaceTests(unittest.TestCase):
         self.assertIn("status: 'Draft'", body)
         self.assertIn("signwell_document_id", body)
 
+    def test_offer_detail_query_is_scoped_to_authenticated_owner(self):
+        start = HTML.index("root.viewOfferDetails = async function(offerId)")
+        end = HTML.index("\n  };", start)
+        body = HTML[start:end]
+        self.assertIn(".eq('user_id', user.id).eq('id', offerId)", body)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -154,7 +154,7 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
     target.innerHTML = '<div class="offer-empty">Loading offer...</div>';
     if (!client || !user || !offerId) { target.innerHTML = '<div class="offer-empty">Sign in to view offer details.</div>'; return; }
     try {
-      const { data: offer, error } = await client.from('hof_offers').select('*').eq('id', offerId).maybeSingle();
+      const { data: offer, error } = await client.from('hof_offers').select('*').eq('user_id', user.id).eq('id', offerId).maybeSingle();
       if (error) throw error;
       if (!offer) throw new Error('Offer not found.');
       let events = [];
@@ -10801,7 +10801,7 @@ function routeAfterMagicLinkIfNeeded() {
     target.innerHTML = '<div class="offer-empty">Loading offer workspace detail...</div>';
     if (!client || !user || !offerId) { target.innerHTML = '<div class="offer-empty">Sign in to view offer details.</div>'; return; }
     try {
-      const { data: offer, error } = await client.from('hof_offers').select('*').eq('id', offerId).maybeSingle();
+      const { data: offer, error } = await client.from('hof_offers').select('*').eq('user_id', user.id).eq('id', offerId).maybeSingle();
       if (error) throw error;
       if (!offer) throw new Error('Offer not found.');
       let events = [];
