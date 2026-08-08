@@ -63,6 +63,9 @@ class SellerLeadIntakeIntegrityTests(unittest.TestCase):
         self.assertIn("scope == \"seller_leads\"", ADMIN_API)
         self.assertIn("update_seller_lead", ADMIN_API)
         self.assertIn("Seller / FSBO Follow-up Queue", INDEX)
+        self.assertIn("admin-contact-action", INDEX)
+        self.assertIn("mailto:${encodeURIComponent(email)}", INDEX)
+        self.assertIn("tel:${encodeURIComponent(phone)}", INDEX)
 
 
 if __name__ == "__main__":

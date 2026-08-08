@@ -639,6 +639,8 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
 .partner-lead-admin-actions select { min-width:132px; border:1px solid rgba(255,255,255,0.16); border-radius:8px; background:rgba(255,255,255,0.05); color:var(--white); padding:0.44rem 0.5rem; font:inherit; font-size:0.76rem; }
 .partner-lead-admin-actions button { border:1px solid rgba(200,151,63,0.46); border-radius:8px; background:rgba(200,151,63,0.11); color:var(--gold-light); padding:0.44rem 0.58rem; font:inherit; font-size:0.72rem; font-weight:900; cursor:pointer; }
 .partner-lead-admin-actions button:hover { background:rgba(200,151,63,0.2); }
+.admin-contact-action { border:1px solid rgba(74,140,111,0.42); border-radius:8px; background:rgba(74,140,111,0.1); color:var(--sage-light); padding:0.36rem 0.52rem; font:inherit; font-size:0.7rem; font-weight:900; text-decoration:none; }
+.admin-contact-action:hover { background:rgba(74,140,111,0.2); }
 .admin-toolbar { display:flex; flex-wrap:wrap; gap:0.55rem; margin:0.8rem 0 0; }
 .admin-toolbar button { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.13); color:var(--gray-light); border-radius:8px; padding:0.55rem 0.75rem; font-family:'DM Sans',sans-serif; font-size:0.76rem; font-weight:900; cursor:pointer; }
 .admin-toolbar button:hover { border-color:rgba(200,151,63,0.45); color:var(--gold-light); background:rgba(200,151,63,0.07); }
@@ -3924,8 +3926,14 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
         const canUpdate = /^[0-9a-f-]{36}$/i.test(leadId);
         const location = [row.property_city, row.property_state, row.property_zip].filter(Boolean).join(', ');
         const partners = Array.isArray(row.partner_categories) ? row.partner_categories.join(', ') : '';
+        const email = String(row.seller_email || '').trim();
+        const phone = String(row.seller_phone || '').trim();
+        const contactActions = [
+          email ? `<a class="admin-contact-action" href="mailto:${encodeURIComponent(email)}">Email</a>` : '',
+          phone ? `<a class="admin-contact-action" href="tel:${encodeURIComponent(phone)}">Call</a>` : ''
+        ].filter(Boolean).join(' ');
         return `<div class="admin-row">
-          <div><strong>${adminSafe(row.seller_name || 'Seller lead')}</strong><div class="admin-muted">${adminSafe(row.seller_email || '')} · ${adminSafe(row.seller_phone || '')}</div></div>
+          <div><strong>${adminSafe(row.seller_name || 'Seller lead')}</strong><div class="admin-muted">${adminSafe(email)} · ${adminSafe(phone)}</div>${contactActions ? `<div class="partner-lead-admin-actions">${contactActions}</div>` : ''}</div>
           <div><strong>${adminSafe(row.package_name || row.service_level || 'Seller intake')}</strong><div class="admin-muted">${adminSafe(location || row.property_address || '')}</div></div>
           <div><span class="admin-pill ${status === 'converted' ? 'good' : status === 'archived' ? '' : 'warn'}">${adminSafe(status)}</span><div class="admin-muted">${adminSafe(row.timeline || 'timeline not set')}${partners ? ` · ${adminSafe(partners)}` : ''}</div></div>
           <div>${adminDate(row.created_at)}${canUpdate ? `<div class="partner-lead-admin-actions"><select id="sellerLeadStatus-${leadId}" aria-label="Review status for ${adminSafe(row.seller_name || 'seller lead')}">${sellerLeadStatusOptions(status)}</select><button id="sellerLeadSave-${leadId}" type="button" onclick="updateSellerLeadStatus('${leadId}')">Save</button></div>` : ''}</div>
