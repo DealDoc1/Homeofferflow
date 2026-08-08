@@ -2894,6 +2894,13 @@ class handler(BaseHTTPRequestHandler):
             activation_action_count = len([
                 item for item in events if item.get("event_type") == "agent_activation_action"
             ])
+            activation_milestone_counts = {"profile": 0, "first_offer": 0, "subscription": 0}
+            for item in events:
+                if item.get("event_type") != "agent_activation_milestone_reached":
+                    continue
+                milestone = str((item.get("metadata") or {}).get("milestone") or "").strip().lower()
+                if milestone in activation_milestone_counts:
+                    activation_milestone_counts[milestone] += 1
             metrics = {
                 "offerCount": len(offers),
                 "homebuyerOfferCount": len([o for o in offers if o.get("role") == "homebuyer"]),
@@ -2951,6 +2958,7 @@ class handler(BaseHTTPRequestHandler):
                 "activationActionCount": activation_action_count,
                 "activationActionRate": round((activation_action_count / activation_dashboard_view_count) * 100)
                 if activation_dashboard_view_count else 0,
+                "activationMilestoneCounts": activation_milestone_counts,
                 "feedbackCount": len(feedback),
                 # Generated AI outputs are useful context, but do not count as
                 # human calibration evidence for the five-scenario release gate.

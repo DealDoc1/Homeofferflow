@@ -4138,6 +4138,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <div class="admin-metric-label">Activation Action Rate</div>
             <div class="admin-metric-value">${metrics.activationActionRate || 0}%</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.activationActionCount || 0} actions from ${metrics.activationDashboardViewCount || 0} dashboard views.</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Milestones: profile ${Number(metrics.activationMilestoneCounts?.profile || 0)} · first offer ${Number(metrics.activationMilestoneCounts?.first_offer || 0)} · subscription ${Number(metrics.activationMilestoneCounts?.subscription || 0)}.</div>
           </div>
 
           <div class="admin-metric">
@@ -12471,6 +12472,20 @@ function routeAfterMagicLinkIfNeeded() {
     }
 
     const userId = root.hofAuth?.session?.user?.id || 'account';
+    const milestoneState = {
+      profile: state.hasProfile,
+      first_offer: state.hasOffer,
+      subscription: state.hasPlan
+    };
+    Object.entries(milestoneState).forEach(([milestone, reached]) => {
+      if (!reached) return;
+      const milestoneKey = `hof_activation_milestone_${userId}_${milestone}`;
+      try {
+        if (sessionStorage.getItem(milestoneKey)) return;
+        sessionStorage.setItem(milestoneKey, '1');
+        logActivationEvent('Agent Activation Milestone Reached', { milestone });
+      } catch (e) {}
+    });
     const viewKey = `hof_activation_viewed_${userId}_${state.key}`;
     try {
       if (!sessionStorage.getItem(viewKey)) {
