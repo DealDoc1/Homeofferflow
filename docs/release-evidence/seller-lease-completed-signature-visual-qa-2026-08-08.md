@@ -32,7 +32,7 @@ high resolution on the dense/interactive pages. The review covered:
 
 - `tests.test_seller_temporary_lease_production_signwell`: passed.
 - `tests.test_seller_temporary_lease_staging`: passed.
-- Full repository suite: 508 tests passed.
+- Full repository suite: 513 tests passed.
 
 This evidence covers the seller temporary lease packet only. It does not
 replace the separate authenticated/completed-signature gate for restricted TXR
