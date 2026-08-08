@@ -16,6 +16,14 @@ visual-QA gates required for a packet or legal-form release.
 ## 2. Validate before publishing
 
 - [ ] Run `git diff --check`.
+- [ ] Run the repository Supabase branch preflight; it must report a valid
+  `supabase/config.toml`, non-empty migration files, and a unique ordered
+  migration chain:
+
+  ```bash
+  python scripts/preflight_supabase_branch.py
+  ```
+
 - [ ] Run the full automated suite:
 
   ```bash
