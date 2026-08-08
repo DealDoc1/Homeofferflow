@@ -4445,6 +4445,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     const isBlocked = ['past_due', 'canceled'].includes(status);
     const good = subscriptionAllowsGeneration(sub) && used < limit;
     const remaining = Math.max(0, limit - used);
+    const nearLimit = isPaid && good && pct >= 80;
 
     let actionHtml = '';
 
@@ -4501,6 +4502,8 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         <strong>${used} / ${limit}</strong> signed offer packets used for ${escapeAttr(usage.billingMonth || getBillingMonth())}.
         ${good ? 'You can generate and send new packets.' : 'Generation is blocked until billing/access is updated.'}
       </div>
+
+      ${nearLimit ? '<div class="notice gold" style="margin-top:.7rem;font-size:.76rem;line-height:1.45;"><strong>Almost at this month’s packet limit.</strong> You have ' + remaining + ' packet' + (remaining === 1 ? '' : 's') + ' left. Finish urgent client work, then review billing options before access pauses.</div>' : ''}
 
       ${actionHtml}
     `;
