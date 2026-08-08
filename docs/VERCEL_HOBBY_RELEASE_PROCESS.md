@@ -14,6 +14,10 @@ Function limit. Internal Python adapters and private TXR renderers live under
 from the production bundle through `.vercelignore`. The regression suite locks
 this function count before a release.
 
+Vercel's separate Hobby deployment limit is 100 deployments per rolling
+24-hour window. The release workflow checks that daily deployment limit before
+building. It must not be confused with the 12-function project cap above.
+
 For each completed batch:
 
 1. Run the full local test suite and `git diff --check`.

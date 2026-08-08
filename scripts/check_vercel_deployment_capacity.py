@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Fail closed before an intentional Vercel production deployment.
 
-Vercel Hobby accounts have a rolling deployment limit.  The release workflow
-uses this check before building or deploying so an authorized release cannot
-consume another deployment while the rolling window is already full.
+Vercel Hobby accounts allow 100 deployments per rolling 24-hour window. The
+release workflow uses this check before building or deploying so an authorized
+release cannot consume another deployment while that window is already full.
 """
 
 from __future__ import annotations
@@ -17,7 +17,9 @@ from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
 
-DEFAULT_LIMIT = 12
+# The separate 12-function project cap is enforced by the bundle tests. It is
+# not the Hobby deployment-per-day limit.
+DEFAULT_LIMIT = 100
 DEFAULT_WINDOW_SECONDS = 24 * 60 * 60
 
 

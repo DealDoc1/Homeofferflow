@@ -12,6 +12,9 @@ SPEC.loader.exec_module(MODULE)
 
 
 class VercelDeploymentCapacityTests(unittest.TestCase):
+    def test_default_limit_is_vercels_hobby_daily_deployment_limit(self):
+        self.assertEqual(MODULE.DEFAULT_LIMIT, 100)
+
     def test_counts_only_deployments_inside_rolling_window(self):
         now = 1_000_000
         payload = {
