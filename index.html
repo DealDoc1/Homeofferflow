@@ -13090,6 +13090,8 @@ function routeAfterMagicLinkIfNeeded() {
       const agents = data.agents || [];
       root.hofPlatform.brokerageAgents = agents;
       const pendingInvites = data.pendingInvites || [];
+      const pendingInvitesExpiringSoon = Number(m.pendingInvitesExpiringSoon || 0);
+      const pendingInvitesExpired = Number(m.pendingInvitesExpired || 0);
       const sourceReadiness = data.sourceReadiness || [];
       const seatCount = Number(m.agentSeatCount || 0);
       const seatCap = m.agentSeatCap == null ? null : Number(m.agentSeatCap);
@@ -13154,7 +13156,8 @@ function routeAfterMagicLinkIfNeeded() {
         '<div class="brokerage-invite-form"><input id="brokerageInviteEmail" type="email" inputmode="email" autocomplete="email" placeholder="Agent email address" aria-label="Agent email address">' +
         '<button type="button" class="brokerage-access-button" onclick="createBrokerageInvite()">Create invite link</button></div>' +
         '<p id="brokerageInviteResult" class="brokerage-invite-result">The link works only for the invited email, expires in 14 days, and does not start billing until the agent completes Stripe checkout.</p>' +
-        (pendingInvites.length ? '<div class="brokerage-pending-invites"><strong>Pending invites:</strong>' + pendingInvites.map(invite => '<div style="display:flex;align-items:center;gap:.55rem;margin-top:.35rem;flex-wrap:wrap"><span>' + safe(invite.email || 'Agent') + (invite.expires_at ? ' <small>(expires ' + safe(formatBillingDate(invite.expires_at)) + ')</small>' : '') + '</span><button type="button" class="brokerage-access-button" onclick="resendBrokerageInvite(\'' + safe(invite.email || '') + '\')">Resend</button><button type="button" class="brokerage-access-button" onclick="revokeBrokerageInvite(\'' + safe(invite.id) + '\',\'' + safe(invite.email || '') + '\')">Revoke</button></div>').join('') + '</div>' : '') +
+        ((pendingInvitesExpiringSoon || pendingInvitesExpired) ? '<div class="notice gold" style="margin-top:1rem"><strong>Invitation attention:</strong> ' + (pendingInvitesExpired ? pendingInvitesExpired + ' expired' + (pendingInvitesExpired === 1 ? ' invite' : ' invites') + '. ' : '') + (pendingInvitesExpiringSoon ? pendingInvitesExpiringSoon + ' pending invite' + (pendingInvitesExpiringSoon === 1 ? ' expires' : 's expire') + ' within 3 days.' : '') + ' Resend the invite to protect your next seat.</div>' : '') +
+        (pendingInvites.length ? '<div class="brokerage-pending-invites"><strong>Pending invites:</strong>' + pendingInvites.map(invite => { const inviteExpiry = invite.expiresAt || invite.expires_at; return '<div style="display:flex;align-items:center;gap:.55rem;margin-top:.35rem;flex-wrap:wrap"><span>' + safe(invite.email || 'Agent') + (inviteExpiry ? ' <small>(expires ' + safe(formatBillingDate(inviteExpiry)) + ')</small>' : '') + '</span><button type="button" class="brokerage-access-button" onclick="resendBrokerageInvite(\'' + safe(invite.email || '') + '\')">Resend</button><button type="button" class="brokerage-access-button" onclick="revokeBrokerageInvite(\'' + safe(invite.id) + '\',\'' + safe(invite.email || '') + '\')">Revoke</button></div>'; }).join('') + '</div>' : '') +
         '<div class="brokerage-safe-kpis">' +
           '<div class="brokerage-safe-kpi"><span>Members</span><strong>' + Number(m.memberCount || 0) + '</strong></div>' +
           '<div class="brokerage-safe-kpi"><span>Active members</span><strong>' + Number(m.activeMemberCount || 0) + '</strong></div>' +
@@ -13165,6 +13168,7 @@ function routeAfterMagicLinkIfNeeded() {
           '<div class="brokerage-safe-kpi"><span>Needs access</span><strong>' + Number(m.agentsNeedingSubscription || 0) + '</strong></div>' +
           '<div class="brokerage-safe-kpi"><span>Billing attention</span><strong>' + Number(m.agentsNeedingBilling || 0) + '</strong></div>' +
           '<div class="brokerage-safe-kpi"><span>Trials ending soon</span><strong>' + Number(m.trialsEndingSoon || 0) + '</strong></div>' +
+          '<div class="brokerage-safe-kpi"><span>Invites expiring soon</span><strong>' + pendingInvitesExpiringSoon + '</strong></div>' +
         '</div>' +
         '<div class="brokerage-seat-momentum"><strong>' + (seatPercent == null ? 'Team growth' : 'Seat utilization: ' + seatPercent + '%') + '</strong><span>' + safe(seatMomentum) + '</span><button type="button" class="brokerage-access-button" onclick="document.getElementById(\'brokerageInviteEmail\')?.focus()">Invite an agent</button></div>' +
         '<div class="brokerage-invite-form" style="margin-top:1rem"><label for="brokerageAgentFilter">Find an agent</label><input id="brokerageAgentFilter" type="search" placeholder="Name, email, status, or next action" aria-label="Find an agent" oninput="filterBrokerageAgents(this.value)"><button type="button" class="brokerage-access-button" onclick="exportBrokerageRoster()">Download roster CSV</button><span id="brokerageAgentFilterSummary" class="brokerage-invite-result">' + Number(agents.length) + ' agent' + (agents.length === 1 ? '' : 's') + ' shown.</span></div>' +
