@@ -13910,12 +13910,26 @@ function routeAfterMagicLinkIfNeeded() {
     if (error) throw error;
     return data || [];
   }
+  root.filterSellerDisclosureDrafts = function filterSellerDisclosureDrafts(value) {
+    const query = String(value || '').trim().toLowerCase();
+    const rows = Array.from(document.querySelectorAll('[data-seller-draft-row]'));
+    let visible = 0;
+    rows.forEach(row => {
+      const matches = !query || String(row.dataset.search || '').includes(query);
+      row.hidden = !matches;
+      if (matches) visible += 1;
+    });
+    const summary = document.getElementById('hofSellerDraftSummary');
+    if (summary) summary.textContent = query ? `${visible} matching draft${visible === 1 ? '' : 's'}.` : `${visible} draft${visible === 1 ? '' : 's'} shown.`;
+  };
   async function refreshDrafts() {
     const list = document.getElementById('hofSellerDraftList');
     if (!list) return;
     try {
       const drafts = await loadDrafts();
-      list.innerHTML = drafts.length ? drafts.map(d => '<li><span><strong>' + escape(d.property_address) + '</strong><br><small>' + escape((d.seller_names || []).join(', ')) + ' · ' + escape(d.disclosure_source_revision || '') + (d.water_source_revision ? ' + TREC-61-0' : '') + (d.seller_review_attested ? ' · All seller reviews complete' : '') + '</small></span><button type="button" class="btn-secondary hof-seller-preview" data-id="' + escape(d.id) + '">Preview PDF</button></li>').join('') : '<li>No seller disclosure drafts saved yet.</li>';
+      list.innerHTML = drafts.length ? drafts.map(d => '<li data-seller-draft-row data-search="' + escape([d.property_address, ...(d.seller_names || []), d.status, d.disclosure_source_revision, d.water_source_revision].filter(Boolean).join(' ')) + '"><span><strong>' + escape(d.property_address) + '</strong><br><small>' + escape((d.seller_names || []).join(', ')) + ' · ' + escape(d.disclosure_source_revision || '') + (d.water_source_revision ? ' + TREC-61-0' : '') + (d.seller_review_attested ? ' · All seller reviews complete' : '') + '</small></span><button type="button" class="btn-secondary hof-seller-preview" data-id="' + escape(d.id) + '">Preview PDF</button></li>').join('') : '<li>No seller disclosure drafts saved yet.</li>';
+      const summary = document.getElementById('hofSellerDraftSummary');
+      if (summary) summary.textContent = `${drafts.length} draft${drafts.length === 1 ? '' : 's'} shown.`;
       list.querySelectorAll('.hof-seller-preview').forEach(button => button.addEventListener('click', async () => {
         const token = root.hofAuth?.session?.access_token;
         button.disabled = true; button.textContent = 'Loading…';
@@ -13935,7 +13949,7 @@ function routeAfterMagicLinkIfNeeded() {
     card.innerHTML = '<h4>Seller disclosure draft</h4><p>Use only an approved source your brokerage is authorized to use. This creates a private draft for seller review; it does not send or sign a document.</p>' +
       '<div class="hof-seller-grid"><label>Private listing workspace (optional)<select id="hofSellerWorkspace"><option value="">Do not link to a workspace</option></select></label><label>Property address<input id="hofSellerAddress" maxlength="400" placeholder="Street address, city, state, ZIP"></label><label>TREC-55-1 source<select id="hofSellerSource"></select></label><label>Seller 1 name<input id="hofSeller1" maxlength="180"></label><label>Seller 1 review email<input id="hofSellerEmail" type="email" maxlength="320" autocomplete="email" placeholder="seller1@example.com"></label><label>Seller 2 name (optional)<input id="hofSeller2" maxlength="180"></label><label>Seller 2 review email (optional)<input id="hofSeller2Email" type="email" maxlength="320" autocomplete="email" placeholder="seller2@example.com"></label><label>Buyer 1 name (optional)<input id="hofBuyer1" maxlength="180"></label><label>Buyer 2 name (optional)<input id="hofBuyer2" maxlength="180"></label><label>TREC-61-0 water-rights source (optional)<select id="hofWaterSource"><option value="">Do not include</option></select></label></div>' +
       renderResponses() + renderWaterResponses() +
-      '<div class="hof-seller-actions"><button class="btn-primary" type="button" id="hofSaveSellerDraft">Save private draft</button><button class="btn-secondary" type="button" id="hofSendSellerReview" disabled>Send seller review email</button><span id="hofSellerDraftStatus" class="hof-iabs-status"></span></div><h5>My seller disclosure drafts</h5><ul id="hofSellerDraftList" class="hof-private-form-drafts-list"><li>Loading…</li></ul>';
+      '<div class="hof-seller-actions"><button class="btn-primary" type="button" id="hofSaveSellerDraft">Save private draft</button><button class="btn-secondary" type="button" id="hofSendSellerReview" disabled>Send seller review email</button><span id="hofSellerDraftStatus" class="hof-iabs-status"></span></div><h5>My seller disclosure drafts</h5><div class="hof-seller-actions"><input id="hofSellerDraftFilter" type="search" placeholder="Search address, seller, or source" aria-label="Search seller disclosure drafts" oninput="filterSellerDisclosureDrafts(this.value)"><span id="hofSellerDraftSummary" class="hof-iabs-status"></span></div><ul id="hofSellerDraftList" class="hof-private-form-drafts-list"><li>Loading…</li></ul>';
     panel.appendChild(card);
     try {
       const sources = await approvedSources();

@@ -51,6 +51,17 @@ class SellerDisclosureAgentUiTests(unittest.TestCase):
         self.assertIn("loadListingWorkspaces", html)
         self.assertIn("listingWorkspaceId", html)
 
+    def test_seller_draft_list_supports_private_search(self):
+        html = (ROOT / "index.html").read_text()
+        for expected in (
+            "filterSellerDisclosureDrafts",
+            "hofSellerDraftFilter",
+            "data-seller-draft-row",
+            "hofSellerDraftSummary",
+            "Search address, seller, or source",
+        ):
+            self.assertIn(expected, html)
+
 
 if __name__ == "__main__":
     unittest.main()
