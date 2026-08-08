@@ -4075,6 +4075,12 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       const declinedCount = offers.filter(o => getOfferSigningBucket(o) === 'declined').length;
       const missingCalibrationIds = (metrics.aiCalibrationMissingScenarioIds || ['AI-CAL-01','AI-CAL-02','AI-CAL-03','AI-CAL-04','AI-CAL-05']).filter(id => /^AI-CAL-0[1-5]$/.test(String(id)));
       const calibrationDispositions = metrics.aiCalibrationDispositionCounts || { keep: 0, revise: 0, remove: 0 };
+      const calibrationScenarioDispositions = metrics.aiCalibrationScenarioDispositionCounts || {};
+      const calibrationScenarioSummary = ['AI-CAL-01','AI-CAL-02','AI-CAL-03','AI-CAL-04','AI-CAL-05'].map(id => {
+        const disposition = calibrationScenarioDispositions[id] || {};
+        const labels = ['keep', 'revise', 'remove'].filter(value => Number(disposition[value] || 0) > 0);
+        return id + ': ' + (labels.length ? labels.join(', ') : 'missing');
+      }).join(' · ');
       const calibrationReviewActions = metrics.aiCalibrationReady ? '' : missingCalibrationIds.map(id => `<button type="button" class="admin-contact-action" onclick="startAiCalibrationReview('${id}')">Review ${id}</button>`).join(' ');
 
       target.dataset.loaded = '1';
@@ -4150,6 +4156,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <div class="admin-metric-value">${metrics.aiCalibrationFeedbackCount || 0} / ${metrics.aiCalibrationTarget || 5}</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.aiReviewOutputCount || 0} generated review outputs (not calibration evidence)</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Disposition: keep <strong>${calibrationDispositions.keep || 0}</strong> · revise <strong>${calibrationDispositions.revise || 0}</strong> · remove <strong>${calibrationDispositions.remove || 0}</strong></div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Scenarios: ${adminSafe(calibrationScenarioSummary)}</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:${metrics.aiCalibrationReady ? 'var(--sage-light)' : 'var(--gold-light)'}">${metrics.aiCalibrationReady ? 'Ready for expert review gate' : 'Needs anonymized scenarios'}</div>
             ${metrics.aiCalibrationReady ? '' : `<div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Missing: ${missingCalibrationIds.join(', ')}</div><div style="margin-top:.35rem">${calibrationReviewActions} <button type="button" class="admin-contact-action" onclick="downloadAiCalibrationReviewerPacket()">Download reviewer packet</button></div>`}
           </div>
