@@ -170,6 +170,13 @@ create table if not exists public.hof_qa_runs (
   unique (scenario_id, release_name, environment)
 );
 
+-- The remote schema baseline may already contain hof_qa_runs without the
+-- table-level constraint (older schema snapshots preserved the table but not
+-- every unique constraint).  Keep replay on a fresh Supabase branch
+-- idempotent before the seed statements use ON CONFLICT below.
+create unique index if not exists hof_qa_runs_scenario_release_environment_key
+  on public.hof_qa_runs(scenario_id, release_name, environment);
+
 create table if not exists public.hof_qa_results (
   id uuid primary key default gen_random_uuid(),
   run_id uuid not null references public.hof_qa_runs(id) on delete cascade,
@@ -378,5 +385,4 @@ on conflict (scenario_id, release_name, environment) do update set
   evidence_ref = excluded.evidence_ref,
   completed_at = excluded.completed_at,
   notes = excluded.notes;
-
 
