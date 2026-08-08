@@ -26,7 +26,7 @@ def _load_verified_staging_module():
     existing = sys.modules.get("api.fill_pdf_20_19_staging")
     if existing is not None:
         return existing
-    source = Path(__file__).resolve().parent.parent / "api" / "fill_pdf_20_19_staging.py"
+    source = Path(__file__).resolve().parent / "verified_20_19.py"
     spec = importlib.util.spec_from_file_location("_hof_verified_20_19_staging", source)
     if spec is None or spec.loader is None:
         raise ImportError(f"Could not load verified 20-19 adapter from {source}")
