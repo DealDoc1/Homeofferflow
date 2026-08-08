@@ -125,6 +125,15 @@ Vercel deploy.
 ## 5. Post-deploy verification
 
 - [ ] Check the canonical home page.
+- [ ] Run the read-only production contract check:
+
+  ```bash
+  python scripts/check_production_release.py --origin https://www.homeofferflow.com
+  ```
+
+  It validates the live 20-19 release, supported packet assets, production
+  SignWell mode, fail-closed unsupported paths, and the public legal/PWA pages
+  without creating a packet or sending a document.
 - [ ] Check each affected API route or workflow using the least-invasive test.
 - [ ] Scan production runtime errors for the prior 24 hours before and after
   the deployment; investigate any new 5xx or function errors before release
