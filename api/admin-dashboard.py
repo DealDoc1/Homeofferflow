@@ -5,7 +5,7 @@ import re
 import html
 import base64
 import urllib.parse
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from io import BytesIO
 from http.server import BaseHTTPRequestHandler
 import httpx
@@ -363,10 +363,34 @@ async def _brokerage_dashboard_payload(context):
         })
 
     safe_agents = []
+    now = datetime.now(timezone.utc)
+    activation_count = 0
+    trials_ending_soon = 0
     for member in members:
         user_id = str(member.get("user_id") or "")
         profile = profile_by_user.get(user_id, {})
         subscription = subscription_by_user.get(user_id, {})
+        activity = activity_by_user.get(
+            user_id,
+            {"offerCount": 0, "signedCount": 0, "awaitingCount": 0, "draftCount": 0, "lastOfferAt": None},
+        )
+        if activity["offerCount"] == 0 and (member.get("status") or "pending") == "active":
+            engagement = "needs_activation"
+            next_action = "Create the first offer"
+            activation_count += 1
+        else:
+            last_offer = _parse_timestamp(activity.get("lastOfferAt"))
+            if last_offer and (now - last_offer).days <= 30:
+                engagement = "active"
+                next_action = "Keep building client offers"
+            else:
+                engagement = "needs_follow_up"
+                next_action = "Follow up on the workspace"
+        trial_end = _parse_timestamp(subscription.get("trial_ends_at"))
+        if trial_end and now <= trial_end <= now + timedelta(days=14):
+            trials_ending_soon += 1
+            if engagement != "needs_activation":
+                next_action = "Review trial before renewal"
         safe_agents.append(
             {
                 "userId": user_id,
@@ -381,16 +405,9 @@ async def _brokerage_dashboard_payload(context):
                 "plan": subscription.get("plan"),
                 "trialEndsAt": subscription.get("trial_ends_at"),
                 "currentPeriodEnd": subscription.get("current_period_end"),
-                "activity": activity_by_user.get(
-                    user_id,
-                    {
-                        "offerCount": 0,
-                        "signedCount": 0,
-                        "awaitingCount": 0,
-                        "draftCount": 0,
-                        "lastOfferAt": None,
-                    },
-                ),
+                "activity": activity,
+                "engagement": engagement,
+                "nextAction": next_action,
             }
         )
 
@@ -417,6 +434,8 @@ async def _brokerage_dashboard_payload(context):
                     if _offer_status_bucket(row.get("signwell_status") or row.get("status")) == "signed"
                 ]
             ),
+            "agentsNeedingActivation": activation_count,
+            "trialsEndingSoon": trials_ending_soon,
         },
         "agents": safe_agents,
         "listingWorkspaceSummary": listing_workspace_summary,
@@ -497,7 +516,8 @@ def _parse_timestamp(value):
     if not value:
         return None
     try:
-        return datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+        parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+        return parsed.replace(tzinfo=timezone.utc) if parsed.tzinfo is None else parsed
     except (TypeError, ValueError):
         return None
 
