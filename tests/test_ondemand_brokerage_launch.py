@@ -432,6 +432,14 @@ class BrokerageAuthorizationTests(unittest.TestCase):
         self.assertIn("Invitation email sent to", final_script)
         self.assertIn("Email delivery is not configured", final_script)
 
+    def test_pending_invites_can_be_resent_without_exposing_tokens(self):
+        marker = INDEX_HTML.index('id="hof-ondemand-brokerage-launch-v1"')
+        final_script = INDEX_HTML[marker:]
+        self.assertIn("root.resendBrokerageInvite", final_script)
+        self.assertIn("onclick=\"resendBrokerageInvite", final_script)
+        self.assertIn("invite.expires_at", final_script)
+        self.assertNotIn("invite.invite_token", final_script)
+
     def test_broker_can_create_an_agent_only_invite_link(self):
         actor = {"id": "11111111-1111-1111-1111-111111111111", "email": "tyler@ondemanddfw.com"}
         context = {"brokerage": {"id": "22222222-2222-2222-2222-222222222222"}}
