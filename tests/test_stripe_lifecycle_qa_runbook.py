@@ -38,7 +38,11 @@ class StripeLifecycleQaRunbookTests(unittest.TestCase):
         ):
             self.assertIn(phrase, RUNBOOK)
 
+    def test_runbook_uses_full_test_dependencies_for_lifecycle_guard(self):
+        self.assertIn("python3", RUNBOOK)
+        self.assertIn("tests.test_subscription_lifecycle_security", RUNBOOK)
+        self.assertNotIn("PYTHONPATH=/private/tmp/hof_httpx_only", RUNBOOK)
+
 
 if __name__ == "__main__":
     unittest.main()
-

@@ -99,10 +99,14 @@ webhook payload data into tickets or the dashboard.
 Run this before the manual checklist:
 
 ```bash
-PYTHONPATH=/private/tmp/hof_httpx_only \
-/Users/andrewchristian/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/bin/python3 \
+python3 \
 -m unittest tests.test_subscription_lifecycle_security
 ```
+
+Run this with the repository's normal test dependencies. Do not prepend the
+old `hof_httpx_only` compatibility shim: it intentionally omits
+`httpx.Client`, while the lifecycle tests replace that client with deterministic
+test doubles.
 
 The suite proves that production rejects Stripe test-mode events, a preview
 sharing production Supabase also rejects them, and only an explicitly isolated
