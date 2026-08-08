@@ -31,7 +31,13 @@ class OfferDuplicateWorkspaceTests(unittest.TestCase):
         start = HTML.index("root.viewOfferDetails = async function(offerId)")
         end = HTML.index("\n  };", start)
         body = HTML[start:end]
-        self.assertIn(".eq('user_id', user.id).eq('id', offerId)", body)
+        self.assertIn(".eq('user_id', user.id).eq('id', offerId).is('deleted_at', null)", body)
+
+    def test_resume_lookup_excludes_deleted_offers(self):
+        start = HTML.index("async function getOfferById(id)")
+        end = HTML.index("\n  function applyOfferDataToFields", start)
+        body = HTML[start:end]
+        self.assertIn(".eq('user_id', user.id).eq('id', id).is('deleted_at', null)", body)
 
 
 if __name__ == "__main__":
