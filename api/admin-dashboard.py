@@ -377,7 +377,12 @@ async def _brokerage_dashboard_payload(context):
         )
         subscription_status = str(subscription.get("status") or "").lower()
         has_active_access = subscription_status in {"active", "trialing", "free_admin"}
-        if activity["offerCount"] > 0 and not has_active_access:
+        billing_attention = subscription_status in {"past_due", "canceled", "incomplete", "incomplete_expired"}
+        if activity["offerCount"] > 0 and billing_attention:
+            engagement = "needs_billing"
+            next_action = "Fix billing before the next offer"
+            activation_count += 1
+        elif activity["offerCount"] > 0 and not has_active_access:
             engagement = "needs_subscription"
             next_action = "Review access before the next offer"
             activation_count += 1
@@ -436,6 +441,9 @@ async def _brokerage_dashboard_payload(context):
             "offerCount": len(offers),
             "agentsNeedingSubscription": len([
                 agent for agent in safe_agents if agent.get("engagement") == "needs_subscription"
+            ]),
+            "agentsNeedingBilling": len([
+                agent for agent in safe_agents if agent.get("engagement") == "needs_billing"
             ]),
             "signedCount": len(
                 [
