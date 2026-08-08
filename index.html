@@ -9070,6 +9070,29 @@ function routeAfterMagicLinkIfNeeded() {
     return String(value || '').replace(/_/g, ' ').replace(/\b\w/g, letter => letter.toUpperCase());
   }
 
+  function listingWorkspaceStatusOptions(currentStatus) {
+    return ['intake', 'source_pending', 'draft', 'ready_for_review', 'archived'].map(status => `<option value="${status}" ${status === currentStatus ? 'selected' : ''}>${listingWorkspaceLabel(status)}</option>`).join('');
+  }
+
+  window.updateListingWorkspaceStatus = async function updateListingWorkspaceStatus(workspaceId) {
+    const id = String(workspaceId || '');
+    const select = document.getElementById(`listingWorkspaceStatus-${id}`);
+    const client = getSupabaseClient();
+    const user = platformUser();
+    if (!client || !user || !select) return platformStatus('listingWorkspaceStatus', 'Sign in before updating a listing workspace.', 'err');
+    if (!/^[0-9a-f-]{20,80}$/i.test(id)) return platformStatus('listingWorkspaceStatus', 'Listing workspace identifier is invalid.', 'err');
+    platformStatus('listingWorkspaceStatus', 'Updating private workspace status…');
+    try {
+      const { error } = await client.from('hof_listing_workspaces').update({ status: select.value, updated_at: new Date().toISOString() }).eq('id', id).eq('agent_user_id', user.id);
+      if (error) throw error;
+      platformStatus('listingWorkspaceStatus', 'Private listing workspace status updated.', 'ok');
+      await loadListingWorkspacesFoundation();
+    } catch (err) {
+      console.error('Listing workspace status update failed:', err);
+      platformStatus('listingWorkspaceStatus', err?.message || 'Could not update listing workspace status.', 'err');
+    }
+  };
+
   function listingOfferMoney(value) {
     const amount = Number(value);
     return Number.isFinite(amount) ? adminMoney(amount) : '—';
@@ -9197,7 +9220,11 @@ function routeAfterMagicLinkIfNeeded() {
       list.innerHTML = workspaces.length ? workspaces.map(workspace => {
         const workflows = Array.isArray(workspace.requested_workflows) && workspace.requested_workflows.length
           ? workspace.requested_workflows.map(listingWorkspaceLabel).join(' · ') : 'No workflow selected yet';
-        return `<div class="platform-list-item"><strong>${escapeAttr(workspace.property_address || 'Listing workspace')}</strong><span class="platform-pill">${escapeAttr(listingWorkspaceLabel(workspace.listing_kind))}</span><span class="platform-pill">${escapeAttr(listingWorkspaceLabel(workspace.status))}</span><br>${escapeAttr((workspace.seller_names || []).join(' · '))}<br><small>${escapeAttr(workflows)}</small></div>`;
+        const workspaceId = String(workspace.id || '');
+        const statusControls = /^[0-9a-f-]{20,80}$/i.test(workspaceId)
+          ? `<div class="seller-lead-actions"><select id="listingWorkspaceStatus-${escapeAttr(workspaceId)}" aria-label="Listing workspace status">${listingWorkspaceStatusOptions(workspace.status || 'intake')}</select><button type="button" class="brokerage-access-button" onclick="updateListingWorkspaceStatus('${escapeAttr(workspaceId)}')">Save status</button></div>`
+          : '';
+        return `<div class="platform-list-item"><strong>${escapeAttr(workspace.property_address || 'Listing workspace')}</strong><span class="platform-pill">${escapeAttr(listingWorkspaceLabel(workspace.listing_kind))}</span><span class="platform-pill">${escapeAttr(listingWorkspaceLabel(workspace.status))}</span><br>${escapeAttr((workspace.seller_names || []).join(' · '))}<br><small>${escapeAttr(workflows)}</small>${statusControls}</div>`;
       }).join('') : '<div class="platform-list-item">No private listing workspaces yet.</div>';
       const profile = hofAuth.accountProfile || hofAuth.authoritativeProfile || {};
       const mayViewSummary = profile.is_brokerage_admin === true || String(profile.role || '').toLowerCase() === 'brokerage_admin' || isCurrentAdmin();

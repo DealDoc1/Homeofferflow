@@ -100,6 +100,8 @@ class ListingWorkspaceFoundationTests(unittest.TestCase):
         self.assertIn("saveListingWorkspaceOffer", INDEX)
         self.assertIn("updateListingWorkspaceOfferStatus", INDEX)
         self.assertIn("Save status", INDEX)
+        self.assertIn("updateListingWorkspaceStatus", INDEX)
+        self.assertIn("listingWorkspaceStatusOptions", INDEX)
         self.assertIn("It is not a recommendation or contract decision.", INDEX)
 
 
