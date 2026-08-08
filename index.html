@@ -12641,13 +12641,22 @@ function routeAfterMagicLinkIfNeeded() {
         month: 'long', day: 'numeric', year: 'numeric'
       });
     };
-    const trialEnds = formatBillingDate(subscription.trial_ends_at);
+    const trialEndsRaw = subscription.trial_ends_at;
+    const trialEnds = formatBillingDate(trialEndsRaw);
+    const trialEndTimestamp = trialEndsRaw ? new Date(trialEndsRaw).getTime() : NaN;
+    const trialDaysRemaining = Number.isFinite(trialEndTimestamp)
+      ? Math.max(0, Math.ceil((trialEndTimestamp - Date.now()) / 86400000))
+      : null;
+    const trialNoticeLead = trialDaysRemaining !== null && trialDaysRemaining <= 3
+      ? 'Free trial ends in ' + trialDaysRemaining + ' day' + (trialDaysRemaining === 1 ? '' : 's')
+      : 'Free trial active through ' + safe(trialEnds);
     const cancellationEnds = formatBillingDate(subscription.cancel_at || subscription.current_period_end);
     const renewalDate = formatBillingDate(subscription.current_period_end);
     if (status === 'trialing' && trialEnds && !card.querySelector('.subscription-trial-notice')) {
       card.insertAdjacentHTML('beforeend',
-        '<div class="subscription-trial-notice" style="margin-top:0.75rem; font-size:0.78rem; line-height:1.45; color:var(--gray);">' +
-        '<strong>Free trial active through ' + safe(trialEnds) + '.</strong> Your plan renews at $29/month on that date unless you cancel in Manage Billing.' +
+        '<div class="subscription-trial-notice" style="margin-top:0.75rem; font-size:0.78rem; line-height:1.45; color:' + (trialDaysRemaining !== null && trialDaysRemaining <= 3 ? 'var(--gold-light)' : 'var(--gray)') + ';">' +
+        '<strong>' + trialNoticeLead + '.</strong> Your plan renews at $29/month on that date unless you cancel in Manage Billing.' +
+        (trialDaysRemaining !== null && trialDaysRemaining <= 3 ? ' <button type="button" class="btn-secondary" style="margin-top:.45rem" onclick="openBillingPortal()">Review Manage Billing</button>' : '') +
         '</div>');
     }
     if (subscription.cancel_at_period_end && cancellationEnds && !card.querySelector('.subscription-cancel-notice')) {
