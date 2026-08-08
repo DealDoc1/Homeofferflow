@@ -3476,6 +3476,7 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
         <div style="width:72px; height:72px; border-radius:999px; background:rgba(74,140,111,0.18); border:1px solid rgba(74,140,111,0.45); display:flex; align-items:center; justify-content:center; font-size:2rem; margin:0 auto 1rem;">✅</div>
         <h2>Payment successful</h2>
         <p class="step-desc" id="successMessage">Check your email — your offer packet is ready. You can safely close this page after saving the email/PDF.</p>
+        <div id="successBrokerageBrand" class="notice" style="display:none; text-align:left; margin-top:1rem; align-items:center; gap:.75rem;"></div>
 
         <div class="notice sage" style="text-align:left; margin-top:1.25rem;">
           <strong>Next steps</strong><br/>
@@ -7029,6 +7030,20 @@ function routeAfterMagicLinkIfNeeded() {
 
     if (successEmail) successEmail.textContent = email || state.data.buyerEmail || 'the email you entered';
     if (successMessage) successMessage.textContent = 'Check your email — your offer packet is ready.';
+
+    const brokerage = window.hofPlatform?.brokerage || {};
+    const brand = document.getElementById('successBrokerageBrand');
+    const brandName = String(brokerage.dba_name || brokerage.name || state.data.brokerageName || '').trim();
+    const brandLogo = String(brokerage.logo_url || state.data.brokerageLogoUrl || '').trim();
+    const brandColor = /^#[0-9a-f]{6}$/i.test(String(brokerage.brand_color || state.data.brokerageBrandColor || ''))
+      ? String(brokerage.brand_color || state.data.brokerageBrandColor)
+      : '#c8973f';
+    if (brand && brandName) {
+      brand.style.display = 'flex';
+      brand.style.borderColor = brandColor;
+      brand.innerHTML = (brandLogo ? '<img src="' + escapeAttr(brandLogo) + '" alt="" style="width:42px;height:42px;object-fit:contain;border-radius:8px;background:rgba(255,255,255,.08);">' : '') +
+        '<div><strong style="color:' + brandColor + ';">' + escapeAttr(brandName) + '</strong><br><span style="font-size:.8rem;color:var(--gray-light);">Offer packet prepared with your brokerage workspace.</span></div>';
+    }
 
     if ((state.data.userType || '') !== 'homebuyer' && !window.__hofSubscriptionPacketGenerated) {
       saveOfferDraftToSupabase('Generated').then((offer) => {
