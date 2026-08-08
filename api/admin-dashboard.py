@@ -375,7 +375,13 @@ async def _brokerage_dashboard_payload(context):
             user_id,
             {"offerCount": 0, "signedCount": 0, "awaitingCount": 0, "draftCount": 0, "lastOfferAt": None},
         )
-        if activity["offerCount"] == 0 and (member.get("status") or "pending") == "active":
+        subscription_status = str(subscription.get("status") or "").lower()
+        has_active_access = subscription_status in {"active", "trialing", "free_admin"}
+        if activity["offerCount"] > 0 and not has_active_access:
+            engagement = "needs_subscription"
+            next_action = "Review access before the next offer"
+            activation_count += 1
+        elif activity["offerCount"] == 0 and (member.get("status") or "pending") == "active":
             engagement = "needs_activation"
             next_action = "Create the first offer"
             activation_count += 1
@@ -428,6 +434,9 @@ async def _brokerage_dashboard_payload(context):
                 [row for row in subscriptions if row.get("status") in {"active", "trialing"}]
             ),
             "offerCount": len(offers),
+            "agentsNeedingSubscription": len([
+                agent for agent in safe_agents if agent.get("engagement") == "needs_subscription"
+            ]),
             "signedCount": len(
                 [
                     row
