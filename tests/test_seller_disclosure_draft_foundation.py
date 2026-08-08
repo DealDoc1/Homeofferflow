@@ -61,6 +61,8 @@ class SellerDisclosureFoundationContractTests(unittest.TestCase):
         self.assertIn("seller_review_attested", migration)
         self.assertIn("status = 'draft'", migration)
         self.assertIn("create_seller_disclosure_draft", api)
+        self.assertIn("update_seller_disclosure_draft", api)
+        self.assertIn("_update_seller_disclosure_draft", api)
         self.assertIn("workflowActivated", api)
         self.assertIn("preview_seller_disclosure", api)
         self.assertIn("_render_seller_disclosure_draft_preview", api)
