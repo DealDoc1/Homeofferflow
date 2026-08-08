@@ -5625,7 +5625,15 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
       const offer = await getOfferById(id);
       if (!offer) return alert('Offer not found.');
       const copyData = { ...(offer.offer_data || {}) };
-      delete copyData._hofOfferId;
+      // A duplicate is a new, unsent draft. Never carry over identifiers or
+      // status from the source packet, or the new card can appear to have an
+      // existing SignWell document and expose stale signing actions.
+      [
+        '_hofOfferId', 'signwell', 'signwellDocumentId', 'signwellStatus',
+        'signwell_document_id', 'signwell_status', 'generatedAt', 'generated_at',
+        'packetGeneratedAt', 'signingUrl', 'signing_url', 'embeddedSigningUrl',
+        'embedded_signing_url', 'recipients'
+      ].forEach((key) => { delete copyData[key]; });
       const insertResult = await client.from('hof_offers').insert({
         user_id: user.id,
         role: offer.role || hofAuth.role || 'agent',
