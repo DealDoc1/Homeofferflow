@@ -40,6 +40,14 @@ USAGE_BILLING_MONTH_RE = re.compile(r"^\d{4}-(0[1-9]|1[0-2])$")
 MAX_USAGE_METADATA_KEYS = 8
 
 
+class UsageLimitError(ValueError):
+    """A signed-packet request would exceed the account's current allowance."""
+
+    def __init__(self, summary):
+        self.summary = summary
+        super().__init__("Monthly packet usage limit reached.")
+
+
 def _json(handler, status, payload):
     body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
     handler.send_response(status)
@@ -207,6 +215,9 @@ def _parse_usage_event(payload):
 def _save_usage_event(user, event):
     if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
         raise RuntimeError("Usage storage is not configured.")
+    preflight = _usage_preflight(user, event["billing_month"], event["quantity"])
+    if not preflight["allowed"]:
+        raise UsageLimitError(preflight)
     if event["offer_id"]:
         response = httpx.get(
             f"{SUPABASE_URL}/rest/v1/hof_offers"
@@ -254,6 +265,52 @@ def _usage_summary(user, billing_month):
         raise RuntimeError("Usage could not be loaded.")
     rows = response.json() if response.text else []
     return {"billingMonth": billing_month, "used": sum(int(row.get("quantity") or 0) for row in rows)}
+
+
+def _usage_preflight(user, billing_month, quantity=1):
+    """Return an authoritative allowance before a packet is generated."""
+    try:
+        quantity = int(quantity)
+    except (TypeError, ValueError):
+        raise ValueError("Usage quantity must be a positive integer.")
+    if quantity < 1 or quantity > 10:
+        raise ValueError("Usage quantity must be between 1 and 10.")
+    billing_month = _clean(billing_month, 7)
+    if not USAGE_BILLING_MONTH_RE.fullmatch(billing_month):
+        raise ValueError("Usage billing month must use YYYY-MM format.")
+    if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
+        raise RuntimeError("Usage storage is not configured.")
+
+    role = _authoritative_role(user) or "agent"
+    response = httpx.get(
+        f"{SUPABASE_URL}/rest/v1/hof_subscriptions"
+        f"?user_id=eq.{user['id']}&select=status,packet_limit&limit=1",
+        headers={"apikey": SUPABASE_SERVICE_ROLE_KEY, "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}"},
+        timeout=12,
+    )
+    if response.status_code >= 300:
+        raise RuntimeError("Subscription could not be loaded.")
+    rows = response.json() if response.text else []
+    subscription = rows[0] if isinstance(rows, list) and rows else {}
+    status = str(subscription.get("status") or "beta").lower()
+    default_limit = 15 if role == "investor" else 10
+    try:
+        limit = int(subscription.get("packet_limit") or default_limit)
+    except (TypeError, ValueError):
+        limit = default_limit
+    limit = max(0, min(limit, 10000))
+    summary = _usage_summary(user, billing_month)
+    used = int(summary.get("used") or 0)
+    allowed_status = status in {"beta", "trialing", "active", "free_admin"}
+    allowed = allowed_status and used + quantity <= limit
+    return {
+        "allowed": allowed,
+        "status": status,
+        "billingMonth": billing_month,
+        "used": used,
+        "limit": limit,
+        "remaining": max(0, limit - used),
+    }
 
 
 def _save_feedback(user, feedback):
@@ -321,6 +378,14 @@ class handler(BaseHTTPRequestHandler):
                 summary = _usage_summary(user, request.get("billingMonth") or request.get("billing_month"))
                 _json(self, 200, summary)
                 return
+            if action == "usage_preflight":
+                summary = _usage_preflight(
+                    user,
+                    request.get("billingMonth") or request.get("billing_month"),
+                    request.get("quantity", 1),
+                )
+                _json(self, 200, summary)
+                return
             if action == "usage_event":
                 event = _parse_usage_event(request)
                 saved = _save_usage_event(user, event)
@@ -337,6 +402,8 @@ class handler(BaseHTTPRequestHandler):
                 feedback["role"] = authoritative_role or "agent"
             saved = _save_feedback(user, feedback)
             _json(self, 201, {"ok": True, "feedback": saved})
+        except UsageLimitError as exc:
+            _json(self, 409, {"error": str(exc), **exc.summary})
         except ValueError as exc:
             _json(self, 400, {"error": str(exc)})
         except Exception as exc:
