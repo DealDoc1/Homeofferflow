@@ -2776,6 +2776,24 @@ class handler(BaseHTTPRequestHandler):
                 for profile in agent_profiles
                 if profile.get("user_id")
             }
+            trial_ending_soon_queue = []
+            for subscription in subs:
+                if str(subscription.get("status") or "").lower() != "trialing":
+                    continue
+                trial_end = _parse_timestamp(subscription.get("trial_ends_at"))
+                user_id = str(subscription.get("user_id") or "")
+                profile = profile_by_user_id.get(user_id, {})
+                email = str(profile.get("agent_email") or "").strip()
+                if not trial_end or not email or not (now <= trial_end <= now + timedelta(days=14)):
+                    continue
+                trial_ending_soon_queue.append({
+                    "agent_name": profile.get("agent_name") or "Agent",
+                    "agent_email": email,
+                    "trial_ends_at": subscription.get("trial_ends_at"),
+                    "reason": "Review your trial before renewal",
+                    "category": "trial",
+                    "priority": 1,
+                })
             activation_follow_up_queue = []
             for user_id, profile in profile_by_user_id.items():
                 email = str(profile.get("agent_email") or "").strip()
@@ -2836,6 +2854,7 @@ class handler(BaseHTTPRequestHandler):
                 "retentionFollowUpCount": len([
                     item for item in activation_follow_up_queue if item.get("category") == "retention"
                 ]),
+                "trialEndingSoonCount": len(trial_ending_soon_queue),
                 "agentRepeatOfferCount": len([
                     user_id for user_id, count in agent_offer_counts.items() if count > 1
                 ]),
@@ -2909,6 +2928,7 @@ class handler(BaseHTTPRequestHandler):
                 "showings": [],
                 "feedback": feedback,
                 "activationFollowUpQueue": activation_follow_up_queue[:50],
+                "trialEndingSoonQueue": trial_ending_soon_queue[:50],
             })
         except Exception as e:
             _json(self, 500, {"error": str(e)})

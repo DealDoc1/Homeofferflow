@@ -3895,9 +3895,12 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     const reason = String(row?.reason || 'continue your HomeOfferFlow setup').trim();
     const billing = row?.category === 'billing';
     const retention = row?.category === 'retention';
-    const subject = billing ? 'Action needed to keep your HomeOfferFlow access active' : retention ? 'Keep your HomeOfferFlow workflow moving' : 'HomeOfferFlow next step';
+    const trial = row?.category === 'trial';
+    const subject = billing ? 'Action needed to keep your HomeOfferFlow access active' : trial ? 'Your HomeOfferFlow trial is nearing renewal' : retention ? 'Keep your HomeOfferFlow workflow moving' : 'HomeOfferFlow next step';
     const body = billing
       ? `Hi ${name}, your HomeOfferFlow billing needs attention before the next client packet. Sign in and open Manage Billing to update access: https://homeofferflow.com`
+      : trial
+        ? `Hi ${name}, your HomeOfferFlow trial is nearing renewal. Sign in to review your plan and Manage Billing before the trial ends: https://homeofferflow.com`
       : retention
         ? `Hi ${name}, I’m checking in on your HomeOfferFlow workspace before your next client offer. Sign in here if you want help keeping the workflow moving: https://homeofferflow.com`
       : `Hi ${name}, your HomeOfferFlow next step is to ${reason.toLowerCase()}. Sign in here to continue: https://homeofferflow.com`;
@@ -4056,6 +4059,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       const paidPartnerActivationQueue = result.paidPartnerActivationQueue || [];
       const sellerLeads = result.sellerLeads || [];
       const activationFollowUpQueue = result.activationFollowUpQueue || [];
+      const trialEndingSoonQueue = result.trialEndingSoonQueue || [];
       window.hofAdminTrackerPayload = {
         roadmap: result.roadmap || [],
         qaScenarios: result.qaScenarios || [],
@@ -4122,6 +4126,12 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <div class="admin-metric-label">Activation Follow-up Queue</div>
             <div class="admin-metric-value">${metrics.activationFollowUpCount || activationFollowUpQueue.length || 0}</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Prioritized outreach: ${metrics.retentionFollowUpCount || 0} retention · ${metrics.activationFollowUpCount || activationFollowUpQueue.length || 0} total.</div>
+          </div>
+
+          <div class="admin-metric">
+            <div class="admin-metric-label">Trials Ending Soon</div>
+            <div class="admin-metric-value">${metrics.trialEndingSoonCount || trialEndingSoonQueue.length || 0}</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Trial accounts within 14 days of renewal.</div>
           </div>
 
           <div class="admin-metric">
@@ -4203,6 +4213,11 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         <div class="admin-section">
           <h4>Agent Activation Follow-up</h4>
           ${activationFollowUpQueue.length ? activationFollowUpQueue.slice(0, 24).map(row => `<div class="admin-row"><div><strong>${adminSafe(row.agent_name || 'Agent')}</strong><div class="admin-muted">${adminSafe(row.agent_email || '')}</div></div><div>${adminSafe(row.reason || '')}</div><div><span class="admin-pill ${Number(row.priority) === 1 ? 'warn' : ''}">${Number(row.priority) === 1 ? 'Revenue first' : row.category === 'retention' ? 'Retention' : 'Activation'}</span></div><div>${adminActivationFollowUpAction(row)}</div></div>`).join('') : '<div class="admin-empty">No activation follow-up needed.</div>'}
+        </div>
+
+        <div class="admin-section">
+          <h4>Trial Renewal Follow-up</h4>
+          ${trialEndingSoonQueue.length ? trialEndingSoonQueue.slice(0, 24).map(row => `<div class="admin-row"><div><strong>${adminSafe(row.agent_name || 'Agent')}</strong><div class="admin-muted">${adminSafe(row.agent_email || '')}</div></div><div>${adminSafe(row.reason || '')}</div><div><span class="admin-pill warn">Renewal</span></div><div>${adminActivationFollowUpAction(row)}</div></div>`).join('') : '<div class="admin-empty">No trials are within the 14-day renewal window.</div>'}
         </div>
 
         <div class="admin-section">
