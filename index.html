@@ -12835,6 +12835,20 @@ function routeAfterMagicLinkIfNeeded() {
     return `<a class="brokerage-follow-up-action" href="mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}">Email agent</a>`;
   }
 
+  function brokerageAgentDate(value) {
+    if (!value) return '—';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '—';
+    return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+
+  function brokerageAgentBillingWindow(agent) {
+    const status = String(agent?.subscriptionStatus || '').toLowerCase();
+    if (status === 'trialing' && agent?.trialEndsAt) return 'Trial ends ' + brokerageAgentDate(agent.trialEndsAt);
+    if (agent?.currentPeriodEnd && ['active', 'trialing'].includes(status)) return 'Period ends ' + brokerageAgentDate(agent.currentPeriodEnd);
+    return status || 'No active plan';
+  }
+
   root.filterBrokerageAgents = function filterBrokerageAgents(value) {
     const query = String(value || '').trim().toLowerCase();
     const rows = Array.from(document.querySelectorAll('[data-brokerage-agent-row]'));
@@ -12850,12 +12864,13 @@ function routeAfterMagicLinkIfNeeded() {
 
   root.exportBrokerageRoster = function exportBrokerageRoster() {
     const agents = Array.isArray(root.hofPlatform?.brokerageAgents) ? root.hofPlatform.brokerageAgents : [];
-    const headers = ['Agent', 'Email', 'Membership', 'Plan', 'Offers', 'Signed', 'Next action', 'Engagement'];
+    const headers = ['Agent', 'Email', 'Membership', 'Plan / renewal', 'Last activity', 'Offers', 'Signed', 'Next action', 'Engagement'];
     const values = agents.map(agent => [
       agent.name || agent.email || 'Agent',
       agent.email || '',
       agent.membershipStatus || 'pending',
-      agent.subscriptionStatus || 'inactive',
+      brokerageAgentBillingWindow(agent),
+      brokerageAgentDate(agent.activity?.lastOfferAt),
       Number(agent.activity?.offerCount || 0),
       Number(agent.activity?.signedCount || 0),
       agent.nextAction || 'Keep building client offers',
@@ -13012,12 +13027,13 @@ function routeAfterMagicLinkIfNeeded() {
         '</div>' +
         '<div class="brokerage-seat-momentum"><strong>' + (seatPercent == null ? 'Team growth' : 'Seat utilization: ' + seatPercent + '%') + '</strong><span>' + safe(seatMomentum) + '</span><button type="button" class="brokerage-access-button" onclick="document.getElementById(\'brokerageInviteEmail\')?.focus()">Invite an agent</button></div>' +
         '<div class="brokerage-invite-form" style="margin-top:1rem"><label for="brokerageAgentFilter">Find an agent</label><input id="brokerageAgentFilter" type="search" placeholder="Name, email, status, or next action" aria-label="Find an agent" oninput="filterBrokerageAgents(this.value)"><button type="button" class="brokerage-access-button" onclick="exportBrokerageRoster()">Download roster CSV</button><span id="brokerageAgentFilterSummary" class="brokerage-invite-result">' + Number(agents.length) + ' agent' + (agents.length === 1 ? '' : 's') + ' shown.</span></div>' +
-        '<table class="brokerage-safe-table"><thead><tr><th>Agent</th><th>Membership</th><th>TXR/NAR attestation</th><th>Plan</th><th>Offers</th><th>Signed</th><th>Next action</th><th>Follow up</th><th>Brokerage access</th></tr></thead><tbody>' +
+        '<table class="brokerage-safe-table"><thead><tr><th>Agent</th><th>Membership</th><th>TXR/NAR attestation</th><th>Plan / renewal</th><th>Last activity</th><th>Offers</th><th>Signed</th><th>Next action</th><th>Follow up</th><th>Brokerage access</th></tr></thead><tbody>' +
         (agents.length ? agents.map(agent =>
           '<tr data-brokerage-agent-row data-search="' + safe([agent.name, agent.email, agent.membershipStatus, agent.subscriptionStatus, agent.nextAction, agent.engagement].filter(Boolean).join(' ')) + '"><td><strong>' + safe(agent.name || agent.email || 'Agent') + '</strong><br><span>' + safe(agent.email || '') + '</span></td>' +
           '<td>' + safe(agent.membershipStatus || 'pending') + '</td>' +
           '<td>' + (agent.txrAgentAuthorized ? '<span title="Attested ' + safe(agent.txrAgentAttestedAt || '') + '">Attested</span>' : 'Not yet attested') + '</td>' +
-          '<td>' + safe(agent.subscriptionStatus || 'inactive') + '</td>' +
+          '<td>' + safe(brokerageAgentBillingWindow(agent)) + '</td>' +
+          '<td>' + safe(brokerageAgentDate(agent.activity?.lastOfferAt)) + '</td>' +
           '<td>' + Number(agent.activity?.offerCount || 0) + '</td>' +
           '<td>' + Number(agent.activity?.signedCount || 0) + '</td>' +
           '<td>' + safe(agent.nextAction || 'Keep building client offers') + '</td>' +
@@ -13027,7 +13043,7 @@ function routeAfterMagicLinkIfNeeded() {
               ? '<button type="button" class="brokerage-access-button" onclick="setBrokerageMemberStatus(\'' + safe(agent.userId) + '\',\'suspended\')">Suspend</button>'
               : '<button type="button" class="brokerage-access-button" onclick="setBrokerageMemberStatus(\'' + safe(agent.userId) + '\',\'active\')">Restore</button>')
             : '<span>Support-managed</span>') + '</td></tr>'
-        ).join('') : '<tr><td colspan="9">No agents have enrolled yet.</td></tr>') +
+        ).join('') : '<tr><td colspan="10">No agents have enrolled yet.</td></tr>') +
         '</tbody></table>';
       root.renderBrokerageBrandPreview();
     } catch(error) {
