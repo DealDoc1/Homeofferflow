@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
-"""Create and download a private TXR preview for authenticated QA.
+"""Create and optionally send a private TXR QA draft.
 
-This helper never sends a SignWell document. It uses an existing Supabase
-access token, creates a private draft through the authenticated production
-API, downloads the private preview PDF, and writes a metadata-only report.
+By default this helper never sends a SignWell document. It uses an existing
+Supabase access token, creates a private draft through the authenticated API,
+downloads the private preview PDF, and writes a metadata-only report. With
+the explicit ``--send`` flag it can send only to an isolated QA base URL;
+production URLs are refused.
 No client names, addresses, compensation values, tokens, or source URLs are
 written to the report.
 
@@ -11,6 +13,13 @@ Usage::
 
     HOF_ACCESS_TOKEN='...' python scripts/run_authenticated_txr_qa.py \
       --form TXR-1507 --output-dir /tmp/txr-1507-qa --clients 1
+
+To send an isolated test-mode request after reviewing the preview:
+
+    HOF_ACCESS_TOKEN='...' python scripts/run_authenticated_txr_qa.py \
+      --base-url https://isolated-qa.example --form TXR-1507 \
+      --output-dir /tmp/txr-1507-qa --clients 1 --send \
+      --client-email qa-client@example.com
 
 Use ``--clients 2`` for the two-client signer-plan scenario. The same helper
 supports TXR-1501, TXR-1508, and TXR-1506 so each form can be QA'd before its
@@ -174,7 +183,17 @@ def _assert_restricted_sources_ready(base_url: str, access_token: str, forms):
         )
 
 
-def _run_one(base_url: str, access_token: str, form: str, client_count: int, output_dir: Path, *, render_pages: bool = False):
+def _run_one(
+    base_url: str,
+    access_token: str,
+    form: str,
+    client_count: int,
+    output_dir: Path,
+    *,
+    render_pages: bool = False,
+    send: bool = False,
+    client_emails: list[str] | None = None,
+):
     output_dir.expanduser().mkdir(parents=True, exist_ok=True)
     seller_disclosure = form == "TREC-55-1"
     draft_payload = (
@@ -221,6 +240,32 @@ def _run_one(base_url: str, access_token: str, form: str, client_count: int, out
         "signing_sent": False,
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
+    if send:
+        emails = [str(value or "").strip() for value in (client_emails or [])]
+        if len(emails) != client_count or any("@" not in email for email in emails):
+            raise RuntimeError("--send requires one valid client email per test client.")
+        send_status, send_type, send_raw = _request(
+            base_url,
+            access_token,
+            "/api/admin-dashboard",
+            method="POST",
+            body={
+                "action": "send_txr_agreement_for_signature",
+                "agreementId": agreement_id,
+                "clientEmails": emails,
+            },
+        )
+        if send_status >= 300 or "json" not in send_type.lower():
+            raise RuntimeError(
+                f"Signing request returned HTTP {send_status} with content type {send_type!r}."
+            )
+        send_result = json.loads(send_raw.decode("utf-8"))
+        if not send_result.get("ok"):
+            raise RuntimeError("Signing request did not report ok=true.")
+        report["signing_sent"] = True
+        report["signwell_document_id_present"] = bool(send_result.get("documentId"))
+        report["recipient_count"] = send_result.get("recipientCount")
+        report["signing_urls_returned"] = bool(send_result.get("signingUrls"))
     if render_pages:
         render_dir = output_dir.expanduser() / f"{form.lower()}-{client_count}-{subject_count}-rendered"
         render_qa_pdf.render(pdf_path, render_dir)
@@ -245,14 +290,29 @@ def main(argv=None):
     parser.add_argument("--clients", type=int, choices=(1, 2), default=1)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--render-pages", action="store_true", help="Render each private preview into page images for visual review.")
+    parser.add_argument("--send", action="store_true", help="Send the reviewed draft in isolated SignWell test mode.")
+    parser.add_argument("--client-email", action="append", default=[], help="QA client email; repeat for two-client forms.")
     args = parser.parse_args(argv)
     if not args.access_token:
         parser.error("Use an existing Supabase access token via --access-token or HOF_ACCESS_TOKEN.")
+    if args.send and args.base_url.rstrip("/").lower() in {"https://www.homeofferflow.com", "https://homeofferflow.com"}:
+        parser.error("Refusing to send restricted TXR QA from the production URL; use an isolated QA deployment.")
+    if args.send and len(args.client_email) != args.clients:
+        parser.error("--send requires --client-email once per client.")
 
     forms = tuple(SOURCE_IDS) + ("TREC-55-1",) if args.form == "ALL" else (args.form,)
     _assert_restricted_sources_ready(args.base_url, args.access_token, forms)
     reports = [
-        _run_one(args.base_url, args.access_token, form, args.clients, args.output_dir / form.lower(), render_pages=args.render_pages)
+        _run_one(
+            args.base_url,
+            args.access_token,
+            form,
+            args.clients,
+            args.output_dir / form.lower(),
+            render_pages=args.render_pages,
+            send=args.send,
+            client_emails=args.client_email,
+        )
         for form in forms
     ]
     print(json.dumps(reports[0] if len(reports) == 1 else {"ok": True, "reports": reports}, indent=2))

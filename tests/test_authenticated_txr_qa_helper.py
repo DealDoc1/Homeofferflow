@@ -77,5 +77,12 @@ class AuthenticatedTxrQaHelperTests(unittest.TestCase):
         self.assertIn("render_manifest", source)
         self.assertIn("render_pages=args.render_pages", source)
 
+    def test_send_mode_requires_isolated_base_url_and_explicit_client_emails(self):
+        source = (ROOT / "scripts" / "run_authenticated_txr_qa.py").read_text()
+        self.assertIn('parser.add_argument("--send"', source)
+        self.assertIn('parser.add_argument("--client-email"', source)
+        self.assertIn("Refusing to send restricted TXR QA from the production URL", source)
+        self.assertIn('"action": "send_txr_agreement_for_signature"', source)
+
 if __name__ == "__main__":
     unittest.main()
