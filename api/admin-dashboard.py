@@ -2548,7 +2548,7 @@ class handler(BaseHTTPRequestHandler):
                     "hof_seller_disclosure_drafts?"
                     f"agent_user_id=eq.{urllib.parse.quote(user['id'])}"
                     f"&brokerage_id=eq.{urllib.parse.quote(str(brokerage_id))}"
-                    "&select=id,listing_workspace_id,property_address,seller_names,buyer_names,status,disclosure_source_revision,water_source_revision,seller_review_attested,created_at,updated_at"
+                    "&select=id,listing_workspace_id,disclosure_source_id,water_source_id,property_address,seller_names,buyer_names,response_data,water_rights_data,status,disclosure_source_revision,water_source_revision,seller_review_attested,created_at,updated_at"
                     "&order=updated_at.desc&limit=100"
                 ))
                 _json(self, 200, {"drafts": rows})
