@@ -2744,10 +2744,14 @@ class handler(BaseHTTPRequestHandler):
                 if not email:
                     continue
                 if user_id in agent_offer_user_ids and user_id not in active_agent_subscription_ids:
+                    # Preserve the activation signal: Offer created without active access.
+                    subscription_status = str(next((item.get("status") for item in subs if str(item.get("user_id") or "") == user_id), "") or "").lower()
+                    billing_attention = subscription_status in {"past_due", "canceled", "incomplete", "incomplete_expired"}
                     activation_follow_up_queue.append({
                         "agent_name": profile.get("agent_name") or "Agent",
                         "agent_email": email,
-                        "reason": "Offer created without active access",
+                        "reason": "Fix billing before the next offer" if billing_attention else "Review access before the next offer",
+                        "category": "billing" if billing_attention else "access",
                         "priority": 1,
                     })
                 elif user_id not in complete_agent_profile_ids:
