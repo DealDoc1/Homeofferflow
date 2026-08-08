@@ -12299,6 +12299,13 @@ function routeAfterMagicLinkIfNeeded() {
   .brokerage-invite-form { display:flex; flex-wrap:wrap; gap:.55rem; align-items:center; margin:.9rem 0 .3rem; }
   .brokerage-invite-form input { flex:1 1 220px; min-width:0; padding:.62rem .7rem; border:1px solid rgba(255,255,255,.16); border-radius:9px; background:rgba(0,0,0,.18); color:var(--white); }
   .brokerage-invite-result { margin:.55rem 0 .2rem; color:var(--sage-light); font-size:.78rem; line-height:1.45; }
+  .brokerage-brand-preview { margin:.8rem 0 1rem; padding:.85rem; border:1px solid rgba(255,255,255,.12); border-radius:12px; background:linear-gradient(135deg,rgba(255,255,255,.045),rgba(255,255,255,.015)); }
+  .brokerage-brand-preview-head { display:flex; justify-content:space-between; gap:.6rem; flex-wrap:wrap; color:var(--gray); font-size:.72rem; text-transform:uppercase; letter-spacing:.05em; }
+  .brokerage-brand-preview-head strong { color:var(--gold-light); font-weight:600; }
+  .brokerage-brand-preview-card { margin-top:.7rem; padding:1rem; border-radius:10px; background:var(--white); color:#17202b; border-top:5px solid #2563eb; }
+  .brokerage-brand-preview-card img { max-width:150px; max-height:42px; object-fit:contain; object-position:left center; display:block; margin-bottom:.55rem; }
+  .brokerage-brand-preview-card strong { display:block; font-size:1rem; }
+  .brokerage-brand-preview-card span { display:block; margin-top:.25rem; color:#536171; font-size:.78rem; }
   .brokerage-pending-invites { margin:.7rem 0 0; color:var(--gray-light); font-size:.76rem; line-height:1.5; }
   .brokerage-seat-momentum { display:flex; flex-wrap:wrap; align-items:center; gap:.55rem .8rem; margin:1rem 0 .25rem; padding:.7rem .8rem; border:1px solid rgba(74,140,111,.3); border-radius:11px; background:rgba(74,140,111,.07); color:var(--gray-light); font-size:.76rem; }
   .brokerage-seat-momentum strong { color:var(--sage-light); }
@@ -12801,6 +12808,31 @@ function routeAfterMagicLinkIfNeeded() {
     if (summary) summary.textContent = `Downloaded ${agents.length} privacy-limited agent record${agents.length === 1 ? '' : 's'}.`;
   };
 
+  root.renderBrokerageBrandPreview = function renderBrokerageBrandPreview() {
+    const body = document.getElementById('brokerageBrandPreviewBody');
+    if (!body) return;
+    const brokerage = root.hofPlatform?.brokerage || {};
+    const colorInput = document.getElementById('brokerageBrandColor');
+    const color = /^#[0-9a-f]{6}$/i.test(String(colorInput?.value || brokerage.brand_color || ''))
+      ? String(colorInput?.value || brokerage.brand_color)
+      : '#2563eb';
+    const name = safe(brokerage.dba_name || brokerage.name || 'Your brokerage');
+    const logoInput = document.getElementById('brokerageLogoFile');
+    const selectedLogo = logoInput?.files?.[0];
+    const render = logoUrl => {
+      const logo = logoUrl ? '<img src="' + safe(logoUrl) + '" alt="' + name + ' logo">' : '';
+      body.innerHTML = '<div class="brokerage-brand-preview-card" style="border-top-color:' + color + '">' + logo +
+        '<strong>' + name + '</strong><span>Prepared through HomeOfferFlow</span><span>Buyer-side offer packet ready for review</span></div>';
+    };
+    if (selectedLogo && /^image\/(png|jpe?g|webp)$/i.test(selectedLogo.type) && selectedLogo.size <= 2 * 1024 * 1024 && typeof FileReader !== 'undefined') {
+      const reader = new FileReader();
+      reader.onload = () => render(String(reader.result || ''));
+      reader.readAsDataURL(selectedLogo);
+    } else {
+      render(brokerage.logo_url || '');
+    }
+  };
+
   root.renderBrokerageFoundationPanel = async function renderBrokerageFoundationPanel() {
     const el = document.getElementById('brokerageFoundationPanel');
     if (!el) return;
@@ -12874,10 +12906,11 @@ function routeAfterMagicLinkIfNeeded() {
         (sourceReadiness.length ? sourceReadiness.map(source => '<tr><td><strong>' + safe(source.formCode) + '</strong></td><td>' + (source.sourceRevision ? safe(source.sourceRevision) : '—') + '</td><td>' + sourceStatusLabel(source) + '</td></tr>').join('') : '<tr><td colspan="3">Source readiness is unavailable until the private source table is installed.</td></tr>') +
         '</tbody></table></div>' +
         '<div class="brokerage-invite-form" style="margin-top:1rem"><label for="brokerageBrandColor">Brokerage branding</label>' +
-        '<input id="brokerageBrandColor" type="color" value="' + safe(b.brand_color || '#2563eb') + '" aria-label="Brokerage brand color">' +
-        '<input id="brokerageLogoFile" type="file" accept="image/png,image/jpeg,image/webp" aria-label="Brokerage logo (PNG, JPG, or WebP)">' +
+        '<input id="brokerageBrandColor" type="color" value="' + safe(b.brand_color || '#2563eb') + '" aria-label="Brokerage brand color" oninput="renderBrokerageBrandPreview()">' +
+        '<input id="brokerageLogoFile" type="file" accept="image/png,image/jpeg,image/webp" aria-label="Brokerage logo (PNG, JPG, or WebP)" onchange="renderBrokerageBrandPreview()">' +
         '<button type="button" class="brokerage-access-button" onclick="saveBrokerageBranding()">Save branding</button></div>' +
         '<p id="brokerageBrandingResult" class="brokerage-invite-result">Set a public color and optional PNG, JPG, or WebP logo (2 MB max). Only active brokerage admins can update this branding.</p>' +
+        '<div id="brokerageBrandPreview" class="brokerage-brand-preview"><div class="brokerage-brand-preview-head"><span>Brand preview</span><strong>Offer packet + email touchpoint</strong></div><div id="brokerageBrandPreviewBody"></div></div>' +
         '<div class="brokerage-invite-form"><label for="brokerageDefaultTitleCompany">Shared title defaults</label>' +
         '<input id="brokerageDefaultTitleCompany" type="text" value="' + safe(b.default_title_company || '') + '" placeholder="Suggested title company" aria-label="Suggested title company">' +
         '<input id="brokerageDefaultTitleContact" type="text" value="' + safe(b.default_title_contact || '') + '" placeholder="Suggested escrow contact" aria-label="Suggested escrow contact">' +
@@ -12915,6 +12948,7 @@ function routeAfterMagicLinkIfNeeded() {
             : '<span>Support-managed</span>') + '</td></tr>'
         ).join('') : '<tr><td colspan="9">No agents have enrolled yet.</td></tr>') +
         '</tbody></table>';
+      root.renderBrokerageBrandPreview();
     } catch(error) {
       document.getElementById('brokerSafeDashboard').innerHTML =
         '<h4>Brokerage activity</h4><div class="platform-status err">' + safe(error.message) + '</div>';
