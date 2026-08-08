@@ -172,7 +172,7 @@ class AdminTrackerSecurityTests(IsolatedAsyncioTestCase):
         with patch.object(admin_dashboard, "_get", new=AsyncMock(return_value=members)), patch.object(
             admin_dashboard,
             "_get_optional",
-            new=AsyncMock(side_effect=[[], [], listing_workspaces, agent_profiles, subscriptions, offers]),
+            new=AsyncMock(side_effect=[[], [], [], listing_workspaces, agent_profiles, subscriptions, offers]),
         ):
             payload = await admin_dashboard._brokerage_dashboard_payload(context)
 

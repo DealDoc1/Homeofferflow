@@ -256,6 +256,16 @@ async def _brokerage_dashboard_payload(context):
         "&status=eq.pending&select=id,email,role,status,created_at,expires_at"
         "&order=created_at.desc&limit=100"
     )
+    invite_history = await _get_optional(
+        "hof_brokerage_invites?"
+        f"brokerage_id=eq.{urllib.parse.quote(brokerage_id)}"
+        "&select=status,created_at,accepted_at"
+        "&order=created_at.desc&limit=500"
+    )
+    accepted_invite_count = len([
+        invite for invite in invite_history if invite.get("status") == "accepted"
+    ])
+    invite_acceptance_rate = round((accepted_invite_count / len(invite_history)) * 100) if invite_history else 0
     now = datetime.now(timezone.utc)
     pending_invites_expiring_soon = [
         invite for invite in pending_invites
@@ -470,6 +480,9 @@ async def _brokerage_dashboard_payload(context):
             "pendingInviteCount": len(pending_invites),
             "pendingInvitesExpiringSoon": len(pending_invites_expiring_soon),
             "pendingInvitesExpired": len(pending_invites_expired),
+            "inviteTotalCount": len(invite_history),
+            "acceptedInviteCount": accepted_invite_count,
+            "inviteAcceptanceRate": invite_acceptance_rate,
         },
         "agents": safe_agents,
         "listingWorkspaceSummary": listing_workspace_summary,
