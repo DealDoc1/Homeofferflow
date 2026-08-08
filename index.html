@@ -4036,6 +4036,8 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       const partialCount = offers.filter(o => getOfferSigningBucket(o) === 'partial').length;
       const signedCount = offers.filter(o => getOfferSigningBucket(o) === 'signed').length;
       const declinedCount = offers.filter(o => getOfferSigningBucket(o) === 'declined').length;
+      const missingCalibrationIds = (metrics.aiCalibrationMissingScenarioIds || ['AI-CAL-01','AI-CAL-02','AI-CAL-03','AI-CAL-04','AI-CAL-05']).filter(id => /^AI-CAL-0[1-5]$/.test(String(id)));
+      const calibrationReviewActions = metrics.aiCalibrationReady ? '' : missingCalibrationIds.map(id => `<button type="button" class="admin-contact-action" onclick="startAiCalibrationReview('${id}')">Review ${id}</button>`).join(' ');
 
       target.dataset.loaded = '1';
       target.innerHTML = `
@@ -4085,7 +4087,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <div class="admin-metric-value">${metrics.aiCalibrationFeedbackCount || 0} / ${metrics.aiCalibrationTarget || 5}</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.aiReviewOutputCount || 0} generated review outputs (not calibration evidence)</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:${metrics.aiCalibrationReady ? 'var(--sage-light)' : 'var(--gold-light)'}">${metrics.aiCalibrationReady ? 'Ready for expert review gate' : 'Needs anonymized scenarios'}</div>
-            ${metrics.aiCalibrationReady ? '' : `<div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Missing: ${(metrics.aiCalibrationMissingScenarioIds || ['AI-CAL-01','AI-CAL-02','AI-CAL-03','AI-CAL-04','AI-CAL-05']).join(', ')}</div>`}
+            ${metrics.aiCalibrationReady ? '' : `<div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Missing: ${missingCalibrationIds.join(', ')}</div><div style="margin-top:.35rem">${calibrationReviewActions}</div>`}
           </div>
 
           <div class="admin-metric">
@@ -4903,6 +4905,16 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       setTimeout(() => msg?.focus(), 80);
     }
     return false;
+  }
+
+  function startAiCalibrationReview(scenarioId) {
+    openBetaFeedback();
+    const type = document.getElementById('feedbackIssueType');
+    const scenario = document.getElementById('aiFeedbackScenario');
+    if (type) type.value = 'ai_review';
+    syncAiFeedbackPrivacyGuard();
+    if (scenario && /^AI-CAL-0[1-5]$/.test(String(scenarioId || ''))) scenario.value = scenarioId;
+    document.getElementById('feedbackMessage')?.focus();
   }
 
   function syncAiFeedbackPrivacyGuard() {
