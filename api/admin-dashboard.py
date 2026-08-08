@@ -2854,6 +2854,13 @@ class handler(BaseHTTPRequestHandler):
                         "priority": 3,
                     })
             activation_follow_up_queue.sort(key=lambda item: (item["priority"], item["agent_name"].lower()))
+            billing_portal_open_by_source = {}
+            for item in events:
+                if item.get("event_type") != "billing_portal_opened":
+                    continue
+                metadata = item.get("metadata") or {}
+                source = str(metadata.get("source") or "unknown").strip().lower()[:80] or "unknown"
+                billing_portal_open_by_source[source] = billing_portal_open_by_source.get(source, 0) + 1
             metrics = {
                 "offerCount": len(offers),
                 "homebuyerOfferCount": len([o for o in offers if o.get("role") == "homebuyer"]),
@@ -2906,6 +2913,7 @@ class handler(BaseHTTPRequestHandler):
                 "billingPortalOpenCount": len([
                     item for item in events if item.get("event_type") == "billing_portal_opened"
                 ]),
+                "billingPortalOpenBySource": billing_portal_open_by_source,
                 "feedbackCount": len(feedback),
                 # Generated AI outputs are useful context, but do not count as
                 # human calibration evidence for the five-scenario release gate.

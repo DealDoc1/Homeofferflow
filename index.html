@@ -4142,7 +4142,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           <div class="admin-metric">
             <div class="admin-metric-label">Billing Portal Opens</div>
             <div class="admin-metric-value">${metrics.billingPortalOpenCount || 0}</div>
-            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Authenticated billing intent signals.</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Authenticated billing intent signals · ${Number(metrics.billingPortalOpenBySource?.trial_renewal_urgency || 0)} from trial urgency.</div>
           </div>
 
           <div class="admin-metric">

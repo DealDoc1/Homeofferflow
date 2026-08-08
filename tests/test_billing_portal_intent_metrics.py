@@ -10,6 +10,7 @@ class BillingPortalIntentMetricsTests(unittest.TestCase):
         backend = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
         frontend = (ROOT / "index.html").read_text(encoding="utf-8")
         self.assertIn('"billingPortalOpenCount"', backend)
+        self.assertIn('"billingPortalOpenBySource"', backend)
         self.assertIn("billing_portal_opened", frontend)
         self.assertIn("trial_renewal_urgency", frontend)
         self.assertIn('Billing Portal Opens', frontend)
