@@ -78,6 +78,7 @@
 
   window.addEventListener('load', () => { try { if (typeof checkSubscriptionReturn === 'function') checkSubscriptionReturn(); } catch (e) { console.warn('Subscription return check skipped:', e); } });
 window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 'function') checkPaymentReturn(); } catch (e) { console.warn('Payment return check skipped:', e); } });
+window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 'function') checkBillingReturn(); } catch (e) { console.warn('Billing return check skipped:', e); } });
 
 
   window.addEventListener('resize', () => {
@@ -4576,6 +4577,42 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
     try {
       window.history.replaceState({}, document.title, window.location.origin + window.location.pathname);
     } catch(e) {}
+  }
+
+  async function checkBillingReturn() {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('billing') !== 'returned') return;
+
+    // Stripe's portal can change payment method, cancellation state, or plan
+    // without redirecting through our API. Refresh the authoritative rows as
+    // soon as the authenticated session is available so Account never shows
+    // stale access or usage information after a billing change.
+    window.__hofBillingReturn = true;
+    let session = hofAuth?.session;
+    for (let attempt = 0; !session && attempt < 20; attempt += 1) {
+      await new Promise(resolve => setTimeout(resolve, 250));
+      session = hofAuth?.session;
+    }
+
+    if (session) {
+      try {
+        if (typeof ensureProfileShell === 'function' && !hofAuth.profileReady) {
+          await ensureProfileShell(session);
+        } else {
+          await loadOrCreateSubscription();
+          await loadCurrentUsage();
+        }
+        await openAccountDashboard({ tab: 'dashboard' });
+        setAccountStatus('Billing settings refreshed. Your current access and packet allowance are up to date.', 'ok');
+      } catch (error) {
+        console.warn('Billing return refresh failed:', error);
+        setAccountStatus('Billing returned successfully. Refresh Account again if your access details have not updated yet.', 'err');
+      }
+    }
+
+    try {
+      window.history.replaceState({}, document.title, window.location.origin + window.location.pathname);
+    } catch (error) {}
   }
 
   async function canGenerateOffer(showAlert = true) {
