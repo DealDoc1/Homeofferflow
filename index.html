@@ -9408,6 +9408,15 @@ function routeAfterMagicLinkIfNeeded() {
     loadPartnerPlacementsFoundation();
   }
 
+  function partnerPlacementLifecycle(row) {
+    if (!row?.is_active) return { label: 'Inactive', tone: 'warn', action: 'Confirm whether this placement should be reactivated.' };
+    const activatedAt = Date.parse(row.activated_at || '');
+    if (!Number.isFinite(activatedAt)) return { label: 'Awaiting activation', tone: 'warn', action: 'Complete the agreement-confirmed activation workflow.' };
+    const elapsedDays = Math.max(0, Math.floor((Date.now() - activatedAt) / 86400000));
+    if (elapsedDays < 90) return { label: `Launch period · ${90 - elapsedDays} days left`, tone: 'good', action: 'Collect creative and review placement setup before recurring billing begins.' };
+    return { label: 'Renewal review window', tone: 'good', action: 'Review placement performance and confirm continuation; Stripe remains the billing authority.' };
+  }
+
   async function savePartnerPlacementFoundation() {
     const token = hofAuth?.session?.access_token;
     if (!token || !isCurrentAdmin()) return platformStatus('partnerFoundationStatus', 'HomeOfferFlow admin access is required to save a platform placement.', 'err');
@@ -9444,12 +9453,20 @@ function routeAfterMagicLinkIfNeeded() {
       if (!response.ok || result.error) throw new Error(result.error || 'Could not load platform placements.');
       hofPlatform.partners = result.partnerPlacements || [];
       populatePaidPartnerPlacementLeads(result.partnerLeads || []);
-      list.innerHTML = hofPlatform.partners.length ? hofPlatform.partners.map(row => `
-        <div class="platform-list-item"><strong>${escapeAttr(row.partner_name || 'Partner')}</strong>
+      const lifecycleRows = hofPlatform.partners.map(partnerPlacementLifecycle);
+      const launchCount = lifecycleRows.filter(item => item.label.startsWith('Launch period')).length;
+      const renewalCount = lifecycleRows.filter(item => item.label === 'Renewal review window').length;
+      const summary = hofPlatform.partners.length ? `<div class="notice" style="margin-bottom:.75rem;">${launchCount} in launch period · ${renewalCount} ready for renewal review. Billing remains controlled by Stripe; these labels track placement operations only.</div>` : '';
+      list.innerHTML = hofPlatform.partners.length ? summary + hofPlatform.partners.map((row, index) => {
+        const lifecycle = lifecycleRows[index];
+        return `<div class="platform-list-item"><strong>${escapeAttr(row.partner_name || 'Partner')}</strong>
+          <span class="platform-pill ${lifecycle.tone}">${escapeAttr(lifecycle.label)}</span>
           <span class="platform-pill good">${escapeAttr(row.partner_type || 'partner')}</span>
           <span class="platform-pill">${escapeAttr(row.placement_tier || 'founding')}</span><br>
-          ${escapeAttr(row.market_area || '')} ${row.website_url ? '· ' + escapeAttr(row.website_url) : ''} ${row.monthly_fee ? '· ' + adminMoney(row.monthly_fee) + '/mo' : ''}
-        </div>`).join('') : '<div class="platform-list-item">No active platform placements yet. Add the first converted founding partner here when onboarding is complete.</div>';
+          ${escapeAttr(row.market_area || '')} ${row.website_url ? '· ' + escapeAttr(row.website_url) : ''} ${row.monthly_fee ? '· ' + adminMoney(row.monthly_fee) + '/mo' : ''}<br>
+          <small>${escapeAttr(lifecycle.action)}</small>
+        </div>`;
+      }).join('') : '<div class="platform-list-item">No active platform placements yet. Add the first converted founding partner here when onboarding is complete.</div>';
     } catch (err) {
       console.warn('Partner placement load failed:', err);
       list.innerHTML = '<div class="platform-list-item">Partners could not load: ' + escapeAttr(err?.message || err) + '</div>';

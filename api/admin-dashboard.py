@@ -2653,7 +2653,7 @@ class handler(BaseHTTPRequestHandler):
                 "seller_name,seller_email,seller_phone,asking_price,service_level,package_name,package_price,"
                 "timeline,partner_categories,notes,status,created_at,updated_at&order=created_at.desc&limit=200"
             ))
-            partner_placements = asyncio.run(_get_optional("hof_partner_placements?select=id,partner_type,partner_name,website_url,logo_url,market_area,placement_tier,monthly_fee,is_active,created_at&brokerage_id=is.null&order=created_at.desc&limit=100"))
+            partner_placements = asyncio.run(_get_optional("hof_partner_placements?select=id,partner_type,partner_name,website_url,logo_url,market_area,placement_tier,monthly_fee,is_active,created_at,activated_at,agreement_confirmed_at&brokerage_id=is.null&order=created_at.desc&limit=100"))
             roadmap = asyncio.run(_get("hof_roadmap_items?select=*&order=priority.asc&limit=100"))
             qa_scenarios = asyncio.run(_get("hof_qa_scenarios?select=*&active=eq.true&order=priority.asc&limit=100"))
             qa_runs = asyncio.run(_get("hof_qa_runs?select=*&order=created_at.desc&limit=50"))
