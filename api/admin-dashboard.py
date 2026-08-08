@@ -2738,6 +2738,15 @@ class handler(BaseHTTPRequestHandler):
                 and str(lead.get("status") or "").lower() not in {"declined", "waitlist"}
                 and str(lead.get("id") or "") not in active_partner_source_lead_ids
             ]
+            paid_partner_lead_count = len([
+                lead for lead in partner_leads
+                if str(lead.get("payment_status") or "").lower() == "paid"
+            ])
+            partner_onboarding_ready_count = len([
+                lead for lead in partner_leads
+                if str(lead.get("payment_status") or "").lower() == "paid"
+                and str(lead.get("onboarding_status") or "").lower() in {"ready", "complete", "completed"}
+            ])
             roadmap = asyncio.run(_get("hof_roadmap_items?select=*&order=priority.asc&limit=100"))
             qa_scenarios = asyncio.run(_get("hof_qa_scenarios?select=*&active=eq.true&order=priority.asc&limit=100"))
             qa_runs = asyncio.run(_get("hof_qa_runs?select=*&order=created_at.desc&limit=50"))
@@ -2939,6 +2948,10 @@ class handler(BaseHTTPRequestHandler):
                 "qualifiedSellerLeadCount": len([lead for lead in seller_leads if lead.get("status") in {"qualified", "converted"}]),
                 "activePartnerPlacementCount": len([placement for placement in partner_placements if placement.get("is_active")]),
                 "paidPartnerActivationQueueCount": len(paid_partner_activation_queue),
+                "paidPartnerLeadCount": paid_partner_lead_count,
+                "partnerOnboardingReadyCount": partner_onboarding_ready_count,
+                "partnerActivationRate": round((len(active_partner_source_lead_ids) / paid_partner_lead_count) * 100)
+                if paid_partner_lead_count else 0,
                 "eventCount": len(events),
                 "roadmapCount": len(roadmap),
                 "roadmapBlockedCount": len([item for item in roadmap if item.get("status") == "blocked"]),
