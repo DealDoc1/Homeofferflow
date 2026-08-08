@@ -79,6 +79,28 @@ def valid_notice_payload():
 
 
 class StandaloneAgreementFoundationTests(unittest.TestCase):
+    def test_platform_admin_without_brokerage_membership_cannot_bypass_agreement_gate(self):
+        async def run():
+            platform_admin = {"id": "platform-user", "email": "andrewchri@gmail.com"}
+            with patch.object(
+                MODULE,
+                "_get",
+                new=AsyncMock(return_value=[{"id": platform_admin["id"], "brokerage_id": None}]),
+            ):
+                with self.assertRaisesRegex(PermissionError, "active brokerage membership"):
+                    await MODULE._active_brokerage_member(platform_admin)
+
+            responses = [
+                [{"id": platform_admin["id"], "brokerage_id": "brokerage-1"}],
+                [],
+            ]
+            with patch.object(MODULE, "_get", new=AsyncMock(side_effect=responses)):
+                with self.assertRaisesRegex(PermissionError, "membership is not active"):
+                    await MODULE._active_brokerage_member(platform_admin)
+
+        asyncio = importlib.import_module("asyncio")
+        asyncio.run(run())
+
     def test_server_gate_requires_active_attested_brokerage_authorization(self):
         async def run():
             with patch.object(MODULE, "_get", new=AsyncMock(return_value=[{"id": "brokerage-1"}])) as get_rows:
