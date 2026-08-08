@@ -4131,7 +4131,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           <div class="admin-metric">
             <div class="admin-metric-label">Trials Ending Soon</div>
             <div class="admin-metric-value">${metrics.trialEndingSoonCount || trialEndingSoonQueue.length || 0}</div>
-            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Trial accounts within 14 days of renewal.</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.trialEndingWithin3DaysCount || 0} within 3 days · ${metrics.trialEndingSoonCount || trialEndingSoonQueue.length || 0} within 14 days.</div>
           </div>
 
           <div class="admin-metric">
@@ -4217,7 +4217,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 
         <div class="admin-section">
           <h4>Trial Renewal Follow-up</h4>
-          ${trialEndingSoonQueue.length ? trialEndingSoonQueue.slice(0, 24).map(row => `<div class="admin-row"><div><strong>${adminSafe(row.agent_name || 'Agent')}</strong><div class="admin-muted">${adminSafe(row.agent_email || '')}</div></div><div>${adminSafe(row.reason || '')}</div><div><span class="admin-pill warn">Renewal</span></div><div>${adminActivationFollowUpAction(row)}</div></div>`).join('') : '<div class="admin-empty">No trials are within the 14-day renewal window.</div>'}
+          ${trialEndingSoonQueue.length ? trialEndingSoonQueue.slice(0, 24).map(row => `<div class="admin-row"><div><strong>${adminSafe(row.agent_name || 'Agent')}</strong><div class="admin-muted">${adminSafe(row.agent_email || '')}</div></div><div>${adminSafe(row.reason || '')}<div class="admin-muted">Renews ${adminDate(row.trial_ends_at)}</div></div><div><span class="admin-pill warn">Renewal</span></div><div>${adminActivationFollowUpAction(row)}</div></div>`).join('') : '<div class="admin-empty">No trials are within the 14-day renewal window.</div>'}
         </div>
 
         <div class="admin-section">

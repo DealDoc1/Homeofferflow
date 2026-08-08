@@ -11,8 +11,10 @@ class TrialRenewalFollowUpTests(unittest.TestCase):
         frontend = (ROOT / "index.html").read_text(encoding="utf-8")
         self.assertIn('"trialEndingSoonQueue"', backend)
         self.assertIn('"trialEndingSoonCount"', backend)
+        self.assertIn('"trialEndingWithin3DaysCount"', backend)
         self.assertIn('Trials Ending Soon', frontend)
         self.assertIn('Trial Renewal Follow-up', frontend)
+        self.assertIn('within 3 days', frontend)
         self.assertIn('Your HomeOfferFlow trial is nearing renewal', frontend)
 
 

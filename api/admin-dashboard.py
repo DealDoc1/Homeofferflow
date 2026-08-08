@@ -2794,6 +2794,9 @@ class handler(BaseHTTPRequestHandler):
                     "category": "trial",
                     "priority": 1,
                 })
+            trial_ending_soon_queue.sort(
+                key=lambda item: _parse_timestamp(item.get("trial_ends_at")) or datetime.max.replace(tzinfo=timezone.utc)
+            )
             activation_follow_up_queue = []
             for user_id, profile in profile_by_user_id.items():
                 email = str(profile.get("agent_email") or "").strip()
@@ -2855,6 +2858,11 @@ class handler(BaseHTTPRequestHandler):
                     item for item in activation_follow_up_queue if item.get("category") == "retention"
                 ]),
                 "trialEndingSoonCount": len(trial_ending_soon_queue),
+                "trialEndingWithin3DaysCount": len([
+                    item for item in trial_ending_soon_queue
+                    if (trial_end := _parse_timestamp(item.get("trial_ends_at")))
+                    and now <= trial_end <= now + timedelta(days=3)
+                ]),
                 "agentRepeatOfferCount": len([
                     user_id for user_id, count in agent_offer_counts.items() if count > 1
                 ]),
