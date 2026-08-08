@@ -5878,6 +5878,25 @@ function routeAfterMagicLinkIfNeeded() {
     }
   }
 
+  function trackPartnerDirectoryImpressions(partners) {
+    (partners || []).forEach(partner => {
+      const partnerId = String(partner?.id || '').trim();
+      if (!partnerId) return;
+      const key = 'hof_partner_impression_' + partnerId;
+      try {
+        if (sessionStorage.getItem(key)) return;
+        sessionStorage.setItem(key, '1');
+      } catch (_) {
+        // Analytics should never block the neutral directory from rendering.
+      }
+      trackEvent('Partner Directory Impression', {
+        partnerId,
+        partnerType: String(partner?.partner_type || ''),
+        placementTier: String(partner?.placement_tier || '')
+      });
+    });
+  }
+
 
   function applyAudienceWorkflow() {
     const userType = state.data.userType || 'homebuyer';
@@ -7059,6 +7078,7 @@ function routeAfterMagicLinkIfNeeded() {
       }).join('') : `<div class="now-what-empty">No active HomeOfferFlow provider profiles are available here yet. You may choose any qualified provider independently.</div>`;
       return `<section class="now-what-category"><div class="now-what-category-head"><div><h5>${nowWhatEscape(group.title)}</h5><p>${nowWhatEscape(group.detail)}</p></div>${group.neutral ? '<span class="now-what-neutral">Neutral directory</span>' : ''}</div><div class="now-what-partners">${cards}</div></section>`;
     }).join('');
+    trackPartnerDirectoryImpressions(visiblePartners);
   }
 
   async function renderNowWhatPartnerJourney() {
