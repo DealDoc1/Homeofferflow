@@ -19,7 +19,12 @@ class SubscriptionLifecycleTrackerReconciliationTests(unittest.TestCase):
         self.assertIn("requires the next intentional Vercel production deployment", LEGACY_MIGRATION)
 
     def test_tracker_names_the_released_scheduled_cancellation_qa(self):
-        self.assertIn("3abba8d verified production release", CURRENT_MIGRATION)
+        # The current tracker may advance to a new release commit. Assert the
+        # release semantics here; the historical migration test above is the
+        # correct place to pin an immutable commit marker.
+        self.assertIn("current_release = '", CURRENT_MIGRATION)
+        self.assertIn("verified production release", CURRENT_MIGRATION)
+        self.assertIn("billing lifecycle protections included", CURRENT_MIGRATION)
         self.assertIn("billing suspension", CURRENT_MIGRATION)
         self.assertIn("renewal recovery", CURRENT_MIGRATION)
 

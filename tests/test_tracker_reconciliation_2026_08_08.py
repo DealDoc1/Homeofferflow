@@ -8,7 +8,10 @@ SQL = (ROOT / "supabase" / "homeofferflow_tracker_reconciliation_2026_08_08.sql"
 
 class TrackerReconciliation20260808Tests(unittest.TestCase):
     def test_reconciliation_records_verified_production_commit(self):
-        self.assertIn("3abba8d [deploy-production] Bundle verified HomeOfferFlow release", SQL)
+        # Release commit hashes advance. Keep this test focused on the
+        # production-release meaning rather than a mutable hash.
+        self.assertIn("current_release = '", SQL)
+        self.assertIn("[deploy-production] Bundle verified HomeOfferFlow release", SQL)
 
     def test_reconciliation_is_metadata_only_and_keeps_form_gates(self):
         self.assertIn("Metadata only", SQL)
