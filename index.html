@@ -9663,6 +9663,39 @@ function routeAfterMagicLinkIfNeeded() {
     }
   };
 
+  root.copyAiCalibrationPacket = async function copyAiCalibrationPacket() {
+    const review = normalizeAiReviewResult(state.data?._lastAiReview || null);
+    const packet = [
+      'HomeOfferFlow AI calibration packet',
+      'Use anonymized transaction facts only. Do not add names, exact addresses, MLS numbers, phone numbers, or email addresses.',
+      '',
+      `Score shown: ${review.score}/100`,
+      `Market mode: ${review.marketMode || 'unknown'}`,
+      `Summary: ${review.summary || 'Review completed.'}`,
+      `Score drivers: ${Object.entries(review.components || {}).map(([key, value]) => `${key} ${value}`).join('; ') || 'Not listed.'}`,
+      `Strengths: ${(review.strengths || []).slice(0, 6).join('; ') || 'None listed.'}`,
+      `Risks: ${(review.risks || []).slice(0, 6).join('; ') || 'None listed.'}`,
+      `Suggestions: ${(review.suggestions || []).slice(0, 6).join('; ') || 'None listed.'}`,
+      '',
+      'Reviewer assessment:',
+      'Useful:',
+      'Misleading or unsafe:',
+      'Insufficient or missing:',
+      'Disclaimer clear (yes/no):',
+      'Implied acceptance, valuation, legal advice, or broker direction (yes/no):',
+      'Disposition (keep / revise / remove):',
+      '',
+      review.disclaimer
+    ].join('\n');
+    try {
+      await navigator.clipboard.writeText(packet);
+      const status = document.getElementById('aiFoundationStatus');
+      if (status) { status.className = 'platform-status ok'; status.textContent = 'Calibration packet copied. Remove private details before sharing.'; }
+    } catch (_) {
+      window.prompt('Copy this anonymized AI calibration packet:', packet);
+    }
+  };
+
   function renderAiOfferReviewResult(r, loading = false) {
     const el = document.getElementById('inlineAiOfferReview');
     if (!el) return;
@@ -9747,6 +9780,7 @@ function routeAfterMagicLinkIfNeeded() {
           <button type="button" onclick="runLiveAiOfferReview()" ${loading ? 'disabled' : ''}>${loading ? loadingText : liveButton}</button>
           <button type="button" onclick="showAiImproveBox()">${improveButton}</button>
           <button type="button" onclick="copyAiReviewSummary()">Copy Review Summary</button>
+          <button type="button" onclick="copyAiCalibrationPacket()">Copy Calibration Packet</button>
           <button type="button" onclick="openAiCalibrationFeedback()">Review this result</button>
           <button type="button" onclick="prevStep()">Edit Terms</button>
         </div>
