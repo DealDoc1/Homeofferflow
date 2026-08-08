@@ -480,6 +480,41 @@ class BrokerageAuthorizationTests(unittest.TestCase):
         self.assertIn("OnDemand Realty", resend_payload["subject"])
         self.assertIn(result["inviteUrl"], resend_payload["text"])
 
+    def test_broker_can_revoke_only_a_pending_agent_invite_in_own_brokerage(self):
+        actor = {"id": "11111111-1111-1111-1111-111111111111", "email": "tyler@ondemanddfw.com"}
+        context = {"brokerage": {"id": "22222222-2222-2222-2222-222222222222"}}
+        invite_id = "44444444-4444-4444-4444-444444444444"
+
+        async def broker_context(_actor):
+            return context
+
+        async def pending_invite(_path):
+            return [{"id": invite_id, "email": "agent@example.com", "status": "pending"}]
+
+        BrokerageInviteClient.requests = []
+        with patch.object(admin, "_brokerage_admin_context", broker_context), \
+             patch.object(admin, "_get", pending_invite), \
+             patch.object(admin.httpx, "AsyncClient", BrokerageInviteClient):
+            result = asyncio.run(admin._revoke_brokerage_invite(actor, {"invite_id": invite_id}))
+
+        self.assertEqual(result["inviteId"], invite_id)
+        self.assertEqual(result["status"], "revoked")
+        writes = [request for request in BrokerageInviteClient.requests if request[0] == "patch"]
+        self.assertEqual(len(writes), 1)
+        self.assertIn("status=eq.pending", writes[0][1])
+        self.assertEqual(writes[0][2]["json"], {"status": "revoked"})
+
+    def test_brokerage_invite_revoke_is_exposed_without_leaking_tokens(self):
+        source = ADMIN_PATH.read_text(encoding="utf-8")
+        self.assertIn('data.get("action") == "revoke_brokerage_invite"', source)
+        dashboard_start = source.index("async def _brokerage_dashboard_payload")
+        dashboard_end = source.index("def _normalized_invite_email", dashboard_start)
+        dashboard_segment = source[dashboard_start:dashboard_end]
+        self.assertNotIn("invite_token", dashboard_segment)
+        final_script = INDEX_HTML[INDEX_HTML.index('id="hof-ondemand-brokerage-launch-v1"'):]
+        self.assertIn("revokeBrokerageInvite", final_script)
+        self.assertIn("Revoke", final_script)
+
     def test_invite_acceptance_requires_the_invited_email_before_any_write(self):
         actor = {"id": "33333333-3333-3333-3333-333333333333", "email": "wrong@example.com"}
 
@@ -884,4 +919,3 @@ class OnDemandLaunchPageTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

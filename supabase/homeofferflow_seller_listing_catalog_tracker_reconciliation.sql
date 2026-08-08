@@ -5,9 +5,9 @@ begin;
 
 update public.hof_roadmap_items
 set
-  current_release = 'Seller/listing intake catalog and golden scenarios (2026-07-31)',
-  known_issues = 'Private sale and lease intake, aggregate-only brokerage counts, and source-readiness checks are live. Two anonymized intake scenarios now define the QA contract. Listing agreements, seller disclosures, packet generation, checkout, and signing remain source-gated.',
-  next_action = 'Obtain authorized sources for the first requested seller/listing workflow, define its document-specific signer plan and field map, then complete rendered completed-PDF QA and release approval before enabling generation or signing.',
+  current_release = 'Seller/listing intake catalog and golden scenarios; TREC-55-1/TREC-61-0 unsigned preview QA verified (2026-08-07)',
+  known_issues = 'Private sale and lease intake, aggregate-only brokerage counts, approved TREC-55-1/TREC-61-0 sources, and unsigned preview rendering are live. Authenticated seller review QA, signer mapping, completed-signature visual QA, and release approval remain open. Listing agreements and unsupported seller forms remain source-gated.',
+  next_action = 'Run authenticated TREC-55-1 seller review previews for one and two sellers, then complete recipient/signature mapping, rendered completed-PDF QA, and completed-signature visual QA before enabling seller disclosure generation or signing.',
   updated_at = now()
 where slug = 'seller-workflow';
 

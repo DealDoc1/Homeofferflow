@@ -54,3 +54,12 @@ check. The following release gates remain open:
 
 TXR-1507 remains blocked from production signing until those gates are
 completed.
+
+## Recheck - 2026-08-08
+
+The existing one-client and two-client previews were re-rendered and visually
+inspected again. Both remain two-page PDFs with the expected distinct client
+rows, broker/associate execution area, service and intermediary selections,
+and blank signature/date lines. The PDFs contain no AcroForm fields and no
+completed-signature artifact; this is consistent with the private overlay
+preview path and does not satisfy the completed-signature gate.

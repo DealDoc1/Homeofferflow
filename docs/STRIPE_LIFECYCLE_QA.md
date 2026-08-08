@@ -29,8 +29,9 @@ for that guard.
 1. Create an isolated Supabase branch. Its database begins without production
    user data.
 2. Run the tracked HomeOfferFlow Supabase migrations on that branch before
-   testing Stripe. Verify that `hof_subscriptions` and
-   `hof_stripe_webhook_events` exist there.
+   testing Stripe. Verify that `hof_subscriptions`,
+   `hof_stripe_webhook_events`, and the `suspension_reason` column from
+   `supabase/homeofferflow_billing_suspension_reason.sql` exist there.
 3. Deploy the exact release branch to a nonproduction Vercel URL with the
    branch database credentials and the isolation variables above.
 4. In Stripe **test mode**, create a webhook endpoint for:
@@ -72,6 +73,15 @@ webhook payload data into tickets or the dashboard.
 | 7 | Deliver `customer.subscription.deleted` | Subscription becomes `canceled`; an existing agent brokerage membership becomes `suspended`; brokerage activation is not re-created. |
 | 8 | Resend a previously processed Stripe event | Endpoint returns success without reapplying the billing mutation; its ledger row remains a single event record. |
 | 9 | Send one Stripe test event to the production endpoint only if Stripe allows a safe manual delivery | Production returns a rejection for `livemode=false`; do not repeat or use a live event. |
+
+## Brokerage suspension safety
+
+- Stripe billing suspension writes `suspension_reason=billing`.
+- A broker-dashboard suspension writes `suspension_reason=manual`.
+- A successful Stripe renewal may restore only an existing `billing` suspension;
+  it must not undo a broker's manual suspension.
+- Billing events must not convert a removed membership into a suspended or active
+  seat.
 
 ## Evidence and cleanup
 

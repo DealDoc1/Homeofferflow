@@ -34,6 +34,35 @@ The helper also accepts `--form TXR-1501`, `--form TXR-1508`, and
 Those forms remain separate release candidates and do not inherit TXR-1507's
 release approval.
 
+For a single authenticated QA run covering every supplied TXR foundation plus
+the seller disclosure preview, use `--form ALL`. This creates one private
+unsigned preview per form beneath the output directory; it still never sends
+or signs anything:
+
+```bash
+HOF_ACCESS_TOKEN="YOUR_EXISTING_SUPABASE_ACCESS_TOKEN" \
+python scripts/run_authenticated_txr_qa.py \
+  --form ALL \
+  --output-dir /tmp/homeofferflow-form-matrix-qa \
+  --clients 2
+```
+
+For the seller-side disclosure preview, use the same helper with
+`--form TREC-55-1`. It creates a private draft using the approved TREC-55-1
+source and attaches the approved TREC-61-0 water-rights source:
+
+```bash
+HOF_ACCESS_TOKEN="YOUR_EXISTING_SUPABASE_ACCESS_TOKEN" \
+python scripts/run_authenticated_txr_qa.py \
+  --form TREC-55-1 \
+  --output-dir /tmp/trec-seller-disclosure-qa \
+  --clients 2
+```
+
+In this mode `--clients` means seller count. The helper uses anonymous QA
+names, downloads the private unsigned preview, and records `seller_review_only`
+in the metadata report. It never creates a signature request.
+
 The helper creates a private draft and downloads the preview PDF. It never
 sends a SignWell document and writes only metadata to its JSON report.
 
@@ -78,4 +107,3 @@ recorded:
 7. HomeOfferFlow release-authority approval.
 
 Source approval alone must never expose a send or signing action.
-

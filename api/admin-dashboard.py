@@ -646,6 +646,39 @@ async def _create_brokerage_invite(actor, data):
     }
 
 
+async def _revoke_brokerage_invite(actor, data):
+    """Revoke one pending agent invite belonging to the caller's brokerage."""
+    context = await _brokerage_admin_context(actor)
+    if not context:
+        raise PermissionError("Brokerage admin access is not enabled for this account.")
+    try:
+        invite_id = str(uuid.UUID(str(data.get("invite_id") or "")))
+    except (TypeError, ValueError, AttributeError):
+        raise ValueError("Choose a valid pending brokerage invite.")
+    brokerage_id = str(context["brokerage"]["id"])
+    invites = await _get(
+        "hof_brokerage_invites?"
+        f"id=eq.{urllib.parse.quote(invite_id)}"
+        f"&brokerage_id=eq.{urllib.parse.quote(brokerage_id)}"
+        "&role=eq.agent&status=eq.pending&select=id,email,status&limit=1"
+    )
+    if not invites:
+        raise ValueError("That pending brokerage invite is no longer available.")
+    async with httpx.AsyncClient(timeout=12) as client:
+        response = await client.patch(
+            f"{SUPABASE_URL}/rest/v1/hof_brokerage_invites?"
+            f"id=eq.{urllib.parse.quote(invite_id)}&brokerage_id=eq.{urllib.parse.quote(brokerage_id)}&status=eq.pending",
+            headers={**_headers(), "Prefer": "return=representation"},
+            json={"status": "revoked"},
+        )
+    if response.status_code >= 300:
+        raise RuntimeError("Could not revoke the brokerage invite.")
+    rows = response.json()
+    if not isinstance(rows, list) or not rows:
+        raise RuntimeError("The brokerage invite was not found after revocation.")
+    return {"inviteId": invite_id, "email": rows[0].get("email"), "status": rows[0].get("status") or "revoked"}
+
+
 def _parse_brokerage_branding_update(data, brokerage_id):
     """Validate only public, brokerage-owned brand presentation fields.
 
@@ -1014,7 +1047,7 @@ async def _set_brokerage_member_status(actor, data):
         "hof_brokerage_members?"
         f"brokerage_id=eq.{urllib.parse.quote(brokerage_id)}"
         f"&user_id=eq.{urllib.parse.quote(target_user_id)}"
-        "&select=id,user_id,email,role,status&limit=1"
+        "&select=id,user_id,email,role,status,suspension_reason&limit=1"
     )
     if not members:
         raise ValueError("That agent is not a member of this brokerage.")
@@ -1032,10 +1065,13 @@ async def _set_brokerage_member_status(actor, data):
     # is later restored, they must attest again before using a restricted form.
     if desired_status == "suspended":
         membership_update.update({
+            "suspension_reason": "manual",
             "txr_agent_authorized": False,
             "txr_agent_attested_by": None,
             "txr_agent_attested_at": None,
         })
+    elif desired_status == "active":
+        membership_update["suspension_reason"] = None
 
     async with httpx.AsyncClient(timeout=12) as client:
         response = await client.patch(
@@ -1733,7 +1769,7 @@ async def _create_seller_disclosure_review_link(user, data):
         requested_reviews = [{"sellerEmail": data.get("sellerEmail"), "sellerName": seller_names[0], "sellerIndex": 1}]
     if not isinstance(requested_reviews, list) or not requested_reviews or len(requested_reviews) > 2:
         raise ValueError("Provide one review recipient per seller.")
-    if len(requested_reviews) > len(seller_names) and seller_names != [None]:
+    if seller_names != [None] and len(requested_reviews) != len(seller_names):
         raise ValueError("Provide one review recipient per listed seller.")
     normalized_reviews = []
     seen_indexes = set()
@@ -2414,6 +2450,10 @@ class handler(BaseHTTPRequestHandler):
             if data.get("action") == "create_brokerage_invite":
                 invite = asyncio.run(_create_brokerage_invite(user, data))
                 _json(self, 201, {"ok": True, "invite": invite})
+                return
+            if data.get("action") == "revoke_brokerage_invite":
+                invite = asyncio.run(_revoke_brokerage_invite(user, data))
+                _json(self, 200, {"ok": True, "invite": invite})
                 return
             if data.get("action") == "update_brokerage_branding":
                 branding = asyncio.run(_update_brokerage_branding(user, data))

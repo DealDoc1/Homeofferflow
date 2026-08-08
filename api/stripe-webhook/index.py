@@ -475,7 +475,7 @@ class handler(BaseHTTPRequestHandler):
         self._associate_brokerage_profile(user_id, email, brokerage_id)
         members_url = (
             f"{SUPABASE_URL}/rest/v1/hof_brokerage_members"
-            f"?select=id,role"
+            f"?select=id,role,status,suspension_reason"
             f"&brokerage_id=eq.{brokerage_id}"
             f"&user_id=eq.{user_id}"
             "&limit=1"
@@ -491,6 +491,12 @@ class handler(BaseHTTPRequestHandler):
 
             existing = current.json()
             if existing:
+                member = existing[0]
+                if (
+                    str(member.get("status") or "") == "suspended"
+                    and str(member.get("suspension_reason") or "") != "billing"
+                ):
+                    return
                 response = client.patch(
                     (
                         f"{SUPABASE_URL}/rest/v1/hof_brokerage_members"
@@ -500,6 +506,7 @@ class handler(BaseHTTPRequestHandler):
                     json={
                         "email": email or None,
                         "status": "active",
+                        "suspension_reason": None,
                         "updated_at": self._iso_now(),
                     },
                 )
@@ -513,6 +520,7 @@ class handler(BaseHTTPRequestHandler):
                         "email": email or None,
                         "role": "agent",
                         "status": "active",
+                        "suspension_reason": None,
                         "updated_at": self._iso_now(),
                     },
                 )
@@ -633,7 +641,8 @@ class handler(BaseHTTPRequestHandler):
             f"{SUPABASE_URL}/rest/v1/hof_brokerage_members"
             f"?brokerage_id=eq.{urllib.parse.quote(str(brokerage_id), safe='')}"
             f"&user_id=eq.{urllib.parse.quote(str(user_id), safe='')}"
-            "&role=eq.agent&select=id&limit=1"
+            "&role=eq.agent&status=in.(active,suspended)"
+            "&select=id,status,suspension_reason&limit=1"
         )
         headers = self._supabase_headers()
         with httpx.Client(timeout=15) as client:
@@ -646,6 +655,15 @@ class handler(BaseHTTPRequestHandler):
             rows = current.json()
             if not rows:
                 return
+            member = rows[0]
+            if (
+                str(member.get("status") or "") == "removed"
+                or (
+                    str(member.get("status") or "") == "suspended"
+                    and str(member.get("suspension_reason") or "") == "manual"
+                )
+            ):
+                return
             response = client.patch(
                 f"{SUPABASE_URL}/rest/v1/hof_brokerage_members"
                 f"?id=eq.{urllib.parse.quote(str(rows[0]['id']), safe='')}",
@@ -653,6 +671,7 @@ class handler(BaseHTTPRequestHandler):
                 json={
                     "email": email or None,
                     "status": "suspended",
+                    "suspension_reason": "billing",
                     "updated_at": self._iso_now(),
                 },
             )

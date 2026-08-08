@@ -12087,6 +12087,24 @@ function routeAfterMagicLinkIfNeeded() {
     }
   };
 
+  root.revokeBrokerageInvite = async function revokeBrokerageInvite(inviteId, email) {
+    const session = root.hofAuth?.session;
+    if (!session?.access_token) return alert('Sign in again before revoking an invitation.');
+    if (!window.confirm('Revoke the pending invitation for ' + String(email || 'this agent') + '? The link will stop working immediately.')) return;
+    try {
+      const response = await fetch('/api/admin-dashboard', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + session.access_token },
+        body: JSON.stringify({ action: 'revoke_brokerage_invite', invite_id: inviteId })
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || 'Could not revoke the invitation.');
+      await root.renderBrokerageFoundationPanel();
+    } catch (error) {
+      alert(error.message || 'Could not revoke the invitation.');
+    }
+  };
+
   root.saveBrokerageBranding = async function saveBrokerageBranding() {
     const session = root.hofAuth?.session;
     const brokerage = root.hofPlatform?.brokerage;
@@ -12321,7 +12339,7 @@ function routeAfterMagicLinkIfNeeded() {
         '<div class="brokerage-invite-form"><input id="brokerageInviteEmail" type="email" inputmode="email" autocomplete="email" placeholder="Agent email address" aria-label="Agent email address">' +
         '<button type="button" class="brokerage-access-button" onclick="createBrokerageInvite()">Create invite link</button></div>' +
         '<p id="brokerageInviteResult" class="brokerage-invite-result">The link works only for the invited email, expires in 14 days, and does not start billing until the agent completes Stripe checkout.</p>' +
-        (pendingInvites.length ? '<p class="brokerage-pending-invites"><strong>Pending invites:</strong> ' + pendingInvites.map(invite => safe(invite.email || 'Agent')).join(', ') + '.</p>' : '') +
+        (pendingInvites.length ? '<div class="brokerage-pending-invites"><strong>Pending invites:</strong>' + pendingInvites.map(invite => '<div style="display:flex;align-items:center;gap:.55rem;margin-top:.35rem"><span>' + safe(invite.email || 'Agent') + '</span><button type="button" class="brokerage-access-button" onclick="revokeBrokerageInvite(\'' + safe(invite.id) + '\')">Revoke</button></div>').join('') + '</div>' : '') +
         '<div class="brokerage-safe-kpis">' +
           '<div class="brokerage-safe-kpi"><span>Members</span><strong>' + Number(m.memberCount || 0) + '</strong></div>' +
           '<div class="brokerage-safe-kpi"><span>Active members</span><strong>' + Number(m.activeMemberCount || 0) + '</strong></div>' +

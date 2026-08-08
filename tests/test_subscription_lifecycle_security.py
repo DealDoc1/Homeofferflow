@@ -580,6 +580,81 @@ class SubscriptionLifecycleSecurityTests(unittest.TestCase):
             ("user-recovered-agent", "agent@ondemand.test", "ondemand-brokerage"),
         )
 
+    def test_recovered_subscription_does_not_undo_manual_broker_suspension(self):
+        request = webhook.handler.__new__(webhook.handler)
+        captured = {}
+        request._upsert_subscription_by_user_id = lambda payload: captured.update(payload=payload)
+        request._associate_brokerage_profile = lambda *_args: None
+
+        class Client:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_args):
+                return False
+
+            def get(self, *_args, **_kwargs):
+                return Response(200, [{
+                    "id": "member-manual",
+                    "role": "agent",
+                    "status": "suspended",
+                    "suspension_reason": "manual",
+                }])
+
+            def patch(self, *_args, **_kwargs):
+                self.patched = True
+                return Response(200, [])
+
+            def post(self, *_args, **_kwargs):
+                self.posted = True
+                return Response(201, [])
+
+        client = Client()
+        client.patched = False
+        client.posted = False
+        with patch.object(webhook.httpx, "Client", return_value=client):
+            request._activate_brokerage_membership(
+                "user-manual", "agent@ondemand.test", "ondemand-brokerage"
+            )
+
+        self.assertFalse(client.patched)
+        self.assertFalse(client.posted)
+
+    def test_billing_suspension_does_not_relabel_manual_or_removed_memberships(self):
+        request = webhook.handler.__new__(webhook.handler)
+        request._require_supabase = lambda: None
+        request._iso_now = lambda: "2026-07-29T00:00:00Z"
+
+        class Client:
+            rows = []
+            patched = False
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_args):
+                return False
+
+            def get(self, *_args, **_kwargs):
+                return Response(200, self.rows)
+
+            def patch(self, *_args, **_kwargs):
+                self.patched = True
+                return Response(200, [])
+
+        for rows in (
+            [{"id": "member-manual", "status": "suspended", "suspension_reason": "manual"}],
+            [{"id": "member-removed", "status": "removed", "suspension_reason": None}],
+        ):
+            client = Client()
+            client.rows = rows
+            client.patched = False
+            with patch.object(webhook.httpx, "Client", return_value=client):
+                request._suspend_brokerage_membership_for_billing(
+                    "user-agent", "", "ondemand-brokerage"
+                )
+            self.assertFalse(client.patched)
+
     def test_scheduled_cancellation_keeps_access_until_the_saved_end_date(self):
         request = webhook.handler.__new__(webhook.handler)
         captured = {}

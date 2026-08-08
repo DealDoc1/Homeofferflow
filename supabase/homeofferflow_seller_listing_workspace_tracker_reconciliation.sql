@@ -8,9 +8,9 @@ set
   status = 'in_progress',
   environment = 'production',
   qa_status = 'partial',
-  current_release = 'Seller/listing workspace foundation (2026-07-31)',
-  known_issues = 'Agent-private sale/lease intake and aggregate-only brokerage counts are live. Listing agreements, seller disclosures, packet generation, checkout, and signing remain source-gated and are not created by workspace intake.',
-  next_action = 'Define the first agent-led seller packet catalog and two anonymized golden seller scenarios; obtain authorized sources, signer plans, rendered-PDF QA, and release approval before enabling any seller form.',
+  current_release = 'TREC-55-1/TREC-61-0 unsigned preview QA verified (2026-08-07)',
+  known_issues = 'Agent-private sale/lease intake, aggregate-only brokerage counts, approved TREC-55-1/TREC-61-0 sources, and unsigned preview rendering are live. Authenticated seller review QA, document-specific signer mapping, completed-signature visual QA, and release approval remain open; listing agreements and other seller forms remain source-gated.',
+  next_action = 'Run authenticated TREC-55-1 seller review previews for one and two sellers, then complete recipient/signature mapping, rendered-PDF QA, and completed-signature visual QA before enabling seller disclosure generation or signing.',
   updated_at = now()
 where slug = 'seller-workflow';
 

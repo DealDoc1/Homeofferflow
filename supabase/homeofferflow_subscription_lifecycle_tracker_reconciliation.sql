@@ -4,9 +4,9 @@
 
 update public.hof_roadmap_items
 set
-  current_release = '51feaeb staged agent billing access hardening',
-  known_issues = 'Native 60-day card-required trial checkout and production webhook handling are live. Automated coverage includes trial invoices, renewal dispatch, failed payments, completed cancellations, scheduled cancellations, and suspension of existing agent brokerage memberships when billing becomes past_due or canceled. The hardening commit is staged and must be deployed in the next intentional production release. A real Stripe Sandbox lifecycle must remain isolated from the production webhook endpoint.',
-  next_action = 'Bundle 51feaeb into the next intentional production deployment, then monitor live webhook deliveries. Run renewal, failed-payment, and cancellation simulations only through a dedicated nonproduction Stripe endpoint or legitimate account lifecycle; never connect Stripe test-mode events to production.',
+  current_release = '77e787b brokerage billing suspension reason hardening',
+  known_issues = 'Stripe lifecycle guardrails are covered by the automated suite and the suspension_reason schema is live. The webhook code change is pushed but still requires the next intentional Vercel production deployment. A real Stripe Sandbox lifecycle must remain isolated from the production webhook endpoint.',
+  next_action = 'Bundle 77e787b into the next intentional production deployment, then verify manual broker suspension, billing suspension, renewal recovery, and removed-seat protection against live webhook delivery metadata through a dedicated nonproduction Stripe endpoint. never connect Stripe test-mode events to production.',
   updated_at = now()
 where slug = 'subscription-usage-management';
 

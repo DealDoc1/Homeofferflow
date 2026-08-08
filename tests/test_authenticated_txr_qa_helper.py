@@ -50,5 +50,26 @@ class AuthenticatedTxrQaHelperTests(unittest.TestCase):
         for form_code, signer_plan in expected.items():
             self.assertEqual(MODULE._payload(form_code, 1)["signerPlan"], signer_plan)
 
+    def test_seller_disclosure_payload_is_review_only_and_uses_both_approved_sources(self):
+        payload = MODULE._seller_disclosure_payload(2)
+        self.assertEqual(payload["action"], "create_seller_disclosure_draft")
+        self.assertEqual(payload["formCode"], "TREC-55-1")
+        self.assertEqual(payload["disclosureSourceId"], MODULE.SELLER_SOURCE_IDS["TREC-55-1"])
+        self.assertEqual(payload["waterSourceId"], MODULE.SELLER_SOURCE_IDS["TREC-61-0"])
+        self.assertEqual(len(payload["sellerNames"]), 2)
+        self.assertNotIn("signerPlan", payload)
+        self.assertNotIn("send", payload)
+
+    def test_helper_report_names_reflect_seller_subjects_without_relabeling_them_as_clients(self):
+        source = (ROOT / "scripts" / "run_authenticated_txr_qa.py").read_text()
+        self.assertIn('f"{form.lower()}-{client_count}-{subject_count}-qa-report.json"', source)
+        self.assertIn('subject_count = "seller" if seller_disclosure else "client"', source)
+
+    def test_helper_exposes_an_all_form_matrix_mode_without_signing(self):
+        source = (ROOT / "scripts" / "run_authenticated_txr_qa.py").read_text()
+        self.assertIn('("TREC-55-1", "ALL")', source)
+        self.assertIn('forms = tuple(SOURCE_IDS) + ("TREC-55-1",) if args.form == "ALL" else (args.form,)', source)
+        self.assertIn('"signing_sent": False', source)
+
 if __name__ == "__main__":
     unittest.main()

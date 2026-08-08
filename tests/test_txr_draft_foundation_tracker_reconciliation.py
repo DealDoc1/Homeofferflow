@@ -19,8 +19,10 @@ class TxrDraftFoundationTrackerReconciliationTests(unittest.TestCase):
             self.assertIn(slug, MIGRATION)
         self.assertIn("status = 'blocked'", MIGRATION)
         self.assertIn("environment = 'source_gate'", MIGRATION)
-        self.assertIn("current_release = 'Unsigned local source/render QA verified 2026-08-03'", MIGRATION)
-        self.assertIn("cannot expose, generate, send, or sign", MIGRATION)
+        self.assertIn("current_release = '259c6ee TXR-1507 unsigned one/two-client render recheck (2026-08-08)'", MIGRATION)
+        self.assertIn("authenticated point-of-use QA", MIGRATION)
+        self.assertIn("completed-signature visual QA", MIGRATION)
+        self.assertIn("cannot send or promote forms by themselves", MIGRATION)
 
 
 if __name__ == "__main__":
