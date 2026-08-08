@@ -3497,6 +3497,10 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
           <div class="now-what-timeline" id="nowWhatTimeline"></div>
           <div class="now-what-directory">
             <h4>Explore local help when you need it</h4>
+            <div id="nowWhatPartnerFilters" style="display:flex;flex-wrap:wrap;gap:.5rem;margin:.65rem 0 .85rem;">
+              <input id="nowWhatPartnerSearch" type="search" placeholder="Search provider or market" aria-label="Search local providers" style="flex:1 1 220px;min-width:0;padding:.55rem .65rem;border:1px solid rgba(255,255,255,.14);border-radius:8px;background:rgba(255,255,255,.04);color:var(--white);">
+              <select id="nowWhatPartnerCategory" aria-label="Filter local providers by category" style="flex:0 1 220px;padding:.55rem .65rem;border:1px solid rgba(255,255,255,.14);border-radius:8px;background:rgba(13,31,53,.92);color:var(--white);"><option value="">All categories</option></select>
+            </div>
             <div id="nowWhatPartnerDirectory" aria-live="polite"><div class="now-what-empty">Loading available local provider profiles…</div></div>
           </div>
           <p class="now-what-note">You are free to choose any provider or none. HomeOfferFlow does not require a provider and does not change your offer, closing, lender, title, inspection, or repair decisions.</p>
@@ -6896,15 +6900,22 @@ function routeAfterMagicLinkIfNeeded() {
   function renderNowWhatDirectory(partners = []) {
     const target = document.getElementById('nowWhatPartnerDirectory');
     if (!target) return;
+    window.__hofPartnerDirectoryRows = Array.isArray(partners) ? partners : [];
+    const search = String(document.getElementById('nowWhatPartnerSearch')?.value || '').trim().toLowerCase();
+    const category = String(document.getElementById('nowWhatPartnerCategory')?.value || '').trim();
+    const visiblePartners = window.__hofPartnerDirectoryRows.filter(partner => {
+      const text = [partner.partner_name, partner.market_area, partner.partner_type].filter(Boolean).join(' ').toLowerCase();
+      return (!search || text.includes(search)) && (!category || partner.partner_type === category);
+    });
     target.innerHTML = NOW_WHAT_GROUPS.map(group => {
-      const matches = partners.filter(partner => group.types.includes(partner.partner_type)).sort(nowWhatPartnerSort);
+      const matches = visiblePartners.filter(partner => group.types.includes(partner.partner_type)).sort(nowWhatPartnerSort);
       const cards = matches.length ? matches.map(partner => {
         const regulated = NOW_WHAT_REGULATED_TYPES.has(partner.partner_type);
         const website = String(partner.website_url || '');
         const tierLabel = partner.placement_tier === 'exclusive_market' ? 'Sponsored · Premier Partner' : partner.placement_tier === 'premier' ? 'Sponsored · Featured Partner' : 'Sponsored · Core Partner';
         return `<div class="now-what-partner">
           <div><div class="now-what-partner-name">${nowWhatEscape(partner.partner_name || 'Local provider')}</div><div class="now-what-partner-meta">${nowWhatEscape(NOW_WHAT_PARTNER_LABELS[partner.partner_type] || 'Local service')} · ${nowWhatEscape(partner.market_area || 'Local market')}</div>${regulated ? '' : `<span class="now-what-badge">${tierLabel}</span>`}</div>
-          ${website ? `<a href="${nowWhatEscape(website)}" target="_blank" rel="noopener noreferrer" onclick="try { trackEvent('Partner Directory Outbound Click', { partnerType: '${nowWhatEscape(partner.partner_type)}', placementTier: '${nowWhatEscape(partner.placement_tier)}' }); } catch (e) {}">Visit site ↗</a>` : ''}
+          ${website ? `<a href="${nowWhatEscape(website)}" target="_blank" rel="noopener noreferrer" onclick="try { trackEvent('Partner Directory Outbound Click', { partnerId: '${nowWhatEscape(partner.id || '')}', partnerType: '${nowWhatEscape(partner.partner_type)}', placementTier: '${nowWhatEscape(partner.placement_tier)}' }); } catch (e) {}">Visit site ↗</a>` : ''}
         </div>`;
       }).join('') : `<div class="now-what-empty">No active HomeOfferFlow provider profiles are available here yet. You may choose any qualified provider independently.</div>`;
       return `<section class="now-what-category"><div class="now-what-category-head"><div><h5>${nowWhatEscape(group.title)}</h5><p>${nowWhatEscape(group.detail)}</p></div>${group.neutral ? '<span class="now-what-neutral">Neutral directory</span>' : ''}</div><div class="now-what-partners">${cards}</div></section>`;
@@ -6916,6 +6927,14 @@ function routeAfterMagicLinkIfNeeded() {
     if (!target) return;
     const data = state.data || {};
     renderNowWhatTimeline(data);
+    const categorySelect = document.getElementById('nowWhatPartnerCategory');
+    if (categorySelect && !categorySelect.dataset.ready) {
+      const categoryOptions = [...new Map(NOW_WHAT_GROUPS.flatMap(group => group.types.map(type => [type, NOW_WHAT_PARTNER_LABELS[type] || 'Local service']))).entries()];
+      categorySelect.insertAdjacentHTML('beforeend', categoryOptions.map(([value, label]) => `<option value="${nowWhatEscape(value)}">${nowWhatEscape(label)}</option>`).join(''));
+      categorySelect.dataset.ready = '1';
+      document.getElementById('nowWhatPartnerSearch')?.addEventListener('input', () => renderNowWhatDirectory(window.__hofPartnerDirectoryRows || []));
+      categorySelect.addEventListener('change', () => renderNowWhatDirectory(window.__hofPartnerDirectoryRows || []));
+    }
     try { trackEvent('Now What Partner Journey Viewed', { userType: data.userType || 'homebuyer' }); } catch (e) {}
     try {
       const response = await fetch('/api/fsbo-lead?partner_directory=1');
