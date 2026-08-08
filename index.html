@@ -8960,12 +8960,27 @@ function routeAfterMagicLinkIfNeeded() {
           <span class="platform-pill ${row.seller_type === 'fsbo' ? 'good' : ''}">${escapeAttr(row.seller_type || 'seller')}</span>
           <span class="platform-pill">${escapeAttr(row.status || 'new')}</span><br>
           ${escapeAttr(row.seller_name || '')} ${row.seller_email ? '· ' + escapeAttr(row.seller_email) : ''} ${row.asking_price ? '· ' + adminMoney(row.asking_price) : ''}
+          ${/^[0-9a-f-]{20,80}$/i.test(String(row.id || '')) ? `<div class="seller-lead-actions"><button type="button" class="brokerage-access-button" onclick="startListingWorkspaceFromLead('${escapeAttr(row.id)}')">Prepare listing workspace</button></div>` : ''}
         </div>`).join('') : '<div class="platform-list-item">No seller leads yet.</div>';
     } catch (err) {
       console.warn('Seller leads load failed:', err);
       list.innerHTML = '<div class="platform-list-item">Seller leads could not load: ' + escapeAttr(err?.message || err) + '</div>';
     }
   }
+
+  window.startListingWorkspaceFromLead = function startListingWorkspaceFromLead(leadId) {
+    const id = String(leadId || '');
+    const lead = (Array.isArray(hofPlatform.sellerLeads) ? hofPlatform.sellerLeads : []).find(row => String(row.id || '') === id);
+    if (!lead) return platformStatus('sellerFoundationStatus', 'Refresh seller leads before preparing a workspace.', 'err');
+    const address = document.getElementById('listingWorkspaceAddress');
+    const sellerNames = document.getElementById('listingWorkspaceSellerNames');
+    const kind = document.getElementById('listingWorkspaceKind');
+    if (address) address.value = lead.property_address || '';
+    if (sellerNames) sellerNames.value = lead.seller_name || '';
+    if (kind) kind.value = lead.seller_type === 'fsbo' ? 'sale' : 'sale';
+    document.getElementById('listingWorkspaceAddress')?.scrollIntoView({behavior:'smooth', block:'center'});
+    platformStatus('listingWorkspaceStatus', 'Seller lead details copied into a private listing workspace draft. Review and save when ready.', 'ok');
+  };
 
   function listingWorkspaceRequestedWorkflows() {
     return Array.from(document.querySelectorAll('input[name="listingWorkflow"]:checked')).map(input => input.value);
@@ -12012,6 +12027,7 @@ function routeAfterMagicLinkIfNeeded() {
   .brokerage-seat-momentum { display:flex; flex-wrap:wrap; align-items:center; gap:.55rem .8rem; margin:1rem 0 .25rem; padding:.7rem .8rem; border:1px solid rgba(74,140,111,.3); border-radius:11px; background:rgba(74,140,111,.07); color:var(--gray-light); font-size:.76rem; }
   .brokerage-seat-momentum strong { color:var(--sage-light); }
   .brokerage-seat-momentum span { flex:1 1 220px; }
+  .seller-lead-actions { margin-top:.55rem; }
   .ondemand-trial-link { display:inline-flex; margin-top:.65rem; color:var(--gold-light); font-weight:800; text-decoration:none; }
   @media(max-width:700px) {
     .brokerage-safe-kpis { grid-template-columns:repeat(2,minmax(0,1fr)); }
