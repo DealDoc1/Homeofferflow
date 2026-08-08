@@ -45,6 +45,11 @@ class TxrSigningRequestPathTests(unittest.TestCase):
         self.assertIn("scope=standalone_agreements", html)
         self.assertIn("send_txr_agreement_for_signature", html)
         self.assertIn("agreement.status === 'draft'", html)
+        self.assertIn("Preview only — signing QA pending", html)
+
+    def test_standalone_scope_reports_the_signing_gate_state(self):
+        source = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
+        self.assertIn('"signingEnabled": TXR_SIGNING_ENABLED', source)
 
 
 if __name__ == "__main__":

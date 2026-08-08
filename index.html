@@ -13257,7 +13257,7 @@ function routeAfterMagicLinkIfNeeded() {
     const response = await fetch('/api/admin-dashboard?scope=standalone_agreements', { headers: { Authorization: `Bearer ${token()}` } });
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(payload.error || 'Could not load standalone agreement drafts.');
-    return payload.agreements || [];
+    return payload;
   }
 
   function openSendDialog(agreement, refresh) {
@@ -13308,12 +13308,15 @@ function routeAfterMagicLinkIfNeeded() {
     const list = card.querySelector('#hofStandaloneAgreementList');
     const refresh = async () => {
       try {
-        const agreements = await loadAgreements();
+        const payload = await loadAgreements();
+        const agreements = payload.agreements || [];
+        const signingEnabled = payload.signingEnabled === true;
         if (!agreements.length) { list.innerHTML = '<div class="hof-iabs-status">No standalone agreement drafts yet.</div>'; return; }
         list.innerHTML = agreements.map(agreement => {
-          const canSend = agreement.status === 'draft';
+          const canSend = signingEnabled && agreement.status === 'draft';
           const names = (agreement.client_names || []).join(', ');
-          return `<div style="display:flex;justify-content:space-between;align-items:center;gap:.75rem;flex-wrap:wrap;border-top:1px solid rgba(255,255,255,.12);padding:.7rem 0"><span><strong>${escape(agreement.form_code)}</strong><small style="display:block;color:var(--gray-light)">${escape(names)} · ${escape(agreement.status || 'draft')}</small></span><span style="display:flex;gap:.4rem;flex-wrap:wrap"><button type="button" class="btn-secondary" data-preview="${escape(agreement.id)}">Preview</button>${canSend ? `<button type="button" class="btn-primary" data-send="${escape(agreement.id)}">Send for signature</button>` : ''}</span></div>`;
+          const gate = !signingEnabled && agreement.status === 'draft' ? '<small style="display:block;color:var(--gold-light)">Preview only — signing QA pending</small>' : '';
+          return `<div style="display:flex;justify-content:space-between;align-items:center;gap:.75rem;flex-wrap:wrap;border-top:1px solid rgba(255,255,255,.12);padding:.7rem 0"><span><strong>${escape(agreement.form_code)}</strong><small style="display:block;color:var(--gray-light)">${escape(names)} · ${escape(agreement.status || 'draft')}</small>${gate}</span><span style="display:flex;gap:.4rem;flex-wrap:wrap"><button type="button" class="btn-secondary" data-preview="${escape(agreement.id)}">Preview</button>${canSend ? `<button type="button" class="btn-primary" data-send="${escape(agreement.id)}">Send for signature</button>` : ''}</span></div>`;
         }).join('');
         list.querySelectorAll('[data-preview]').forEach(button => button.addEventListener('click', async () => {
           button.disabled = true;

@@ -2483,7 +2483,7 @@ class handler(BaseHTTPRequestHandler):
                     "&select=id,form_code,source_revision,client_names,status,signwell_status,signwell_document_id,created_at,updated_at,sent_at,signed_at"
                     "&order=updated_at.desc&limit=100"
                 ))
-                _json(self, 200, {"agreements": rows})
+                _json(self, 200, {"agreements": rows, "signingEnabled": TXR_SIGNING_ENABLED})
                 return
             if scope == "platform_source_brokerages":
                 try:
