@@ -13246,6 +13246,97 @@ function routeAfterMagicLinkIfNeeded() {
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', renderNoticeCard, { once:true }); else renderNoticeCard();
 })();
 </script>
+<script id="hof-standalone-agreement-signing-v1">
+(function () {
+  const root = window;
+  const escape = value => String(value ?? '').replace(/[&<>\"]/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[char]));
+  const token = () => root.hofAuth?.session?.access_token || '';
+  const activeAgent = () => !!root.hofAuth?.session?.user;
+
+  async function loadAgreements() {
+    const response = await fetch('/api/admin-dashboard?scope=standalone_agreements', { headers: { Authorization: `Bearer ${token()}` } });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(payload.error || 'Could not load standalone agreement drafts.');
+    return payload.agreements || [];
+  }
+
+  function openSendDialog(agreement, refresh) {
+    document.getElementById('hofStandaloneSendDialog')?.remove();
+    const names = agreement.client_names || [];
+    const modal = document.createElement('div');
+    modal.id = 'hofStandaloneSendDialog';
+    modal.className = 'hof-agreement-modal';
+    modal.innerHTML = `<form class="hof-agreement-dialog" id="hofStandaloneSendForm">
+      <h3>Send ${escape(agreement.form_code)} for signature</h3>
+      <p>Confirm one unique email for each listed client. The selected broker or broker-associate signer is added from the authenticated brokerage record.</p>
+      <div class="hof-agreement-grid">${names.map((name, index) => `<label>Client ${index + 1}: ${escape(name)}<input name="clientEmail${index + 1}" required type="email" maxlength="254" autocomplete="email"></label>`).join('')}</div>
+      <div id="hofStandaloneSendStatus" class="hof-iabs-status"></div>
+      <div class="hof-agreement-footer"><button class="btn-secondary" type="button" id="hofStandaloneSendCancel">Cancel</button><button class="btn-primary" type="submit">Send signature request</button></div>
+    </form>`;
+    document.body.appendChild(modal);
+    modal.querySelector('#hofStandaloneSendCancel').addEventListener('click', () => modal.remove());
+    modal.addEventListener('click', event => { if (event.target === modal) modal.remove(); });
+    modal.querySelector('#hofStandaloneSendForm').addEventListener('submit', async event => {
+      event.preventDefault();
+      const status = modal.querySelector('#hofStandaloneSendStatus');
+      const form = new FormData(event.currentTarget);
+      const clientEmails = names.map((_, index) => String(form.get(`clientEmail${index + 1}`) || '').trim());
+      const submit = event.currentTarget.querySelector('button[type="submit"]');
+      submit.disabled = true; status.textContent = 'Sending securely…';
+      try {
+        const response = await fetch('/api/admin-dashboard', { method:'POST', headers:{'Content-Type':'application/json', Authorization:`Bearer ${token()}`}, body:JSON.stringify({ action:'send_txr_agreement_for_signature', agreementId:agreement.id, clientEmails }) });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(result.error || 'Could not send the signature request.');
+        status.className = 'hof-iabs-status ready'; status.textContent = 'Signature request sent.';
+        await refresh();
+        setTimeout(() => modal.remove(), 800);
+      } catch (error) {
+        status.className = 'hof-iabs-status error'; status.textContent = error.message || 'Could not send the signature request.';
+        submit.disabled = false;
+      }
+    });
+  }
+
+  async function renderCard() {
+    const panel = document.getElementById('accountPanelDashboard');
+    if (!panel || !activeAgent() || document.getElementById('hofStandaloneAgreementCard')) return;
+    const card = document.createElement('div');
+    card.id = 'hofStandaloneAgreementCard';
+    card.className = 'account-card hof-agreement-card';
+    card.innerHTML = '<h4>Texas REALTORS® agreement drafts</h4><p>Review private drafts, then send only after confirming the recipients and signer plan.</p><div id="hofStandaloneAgreementList"><div class="hof-iabs-status">Loading…</div></div>';
+    panel.appendChild(card);
+    const list = card.querySelector('#hofStandaloneAgreementList');
+    const refresh = async () => {
+      try {
+        const agreements = await loadAgreements();
+        if (!agreements.length) { list.innerHTML = '<div class="hof-iabs-status">No standalone agreement drafts yet.</div>'; return; }
+        list.innerHTML = agreements.map(agreement => {
+          const canSend = agreement.status === 'draft';
+          const names = (agreement.client_names || []).join(', ');
+          return `<div style="display:flex;justify-content:space-between;align-items:center;gap:.75rem;flex-wrap:wrap;border-top:1px solid rgba(255,255,255,.12);padding:.7rem 0"><span><strong>${escape(agreement.form_code)}</strong><small style="display:block;color:var(--gray-light)">${escape(names)} · ${escape(agreement.status || 'draft')}</small></span><span style="display:flex;gap:.4rem;flex-wrap:wrap"><button type="button" class="btn-secondary" data-preview="${escape(agreement.id)}">Preview</button>${canSend ? `<button type="button" class="btn-primary" data-send="${escape(agreement.id)}">Send for signature</button>` : ''}</span></div>`;
+        }).join('');
+        list.querySelectorAll('[data-preview]').forEach(button => button.addEventListener('click', async () => {
+          button.disabled = true;
+          try {
+            const response = await fetch('/api/admin-dashboard?preview_agreement=' + encodeURIComponent(button.dataset.preview), { headers:{ Authorization:`Bearer ${token()}` } });
+            if (!response.ok) throw new Error('Private preview unavailable.');
+            const url = URL.createObjectURL(await response.blob()); window.open(url, '_blank', 'noopener'); setTimeout(() => URL.revokeObjectURL(url), 60000);
+          } catch (error) { alert(error.message || 'Private preview unavailable.'); } finally { button.disabled = false; }
+        }));
+        list.querySelectorAll('[data-send]').forEach(button => button.addEventListener('click', () => {
+          const agreement = agreements.find(item => item.id === button.dataset.send);
+          if (agreement) openSendDialog(agreement, refresh);
+        }));
+      } catch (error) { list.innerHTML = `<div class="hof-iabs-status error">${escape(error.message || 'Could not load agreement drafts.')}</div>`; }
+    };
+    await refresh();
+  }
+
+  const previous = root.renderAccountDashboard;
+  root.renderAccountDashboard = function renderAccountDashboardWithStandaloneSigning() { if (typeof previous === 'function') previous.apply(this, arguments); renderCard(); };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', renderCard, {once:true}); else renderCard();
+})();
+</script>
 <style id="hof-agent-launch-scope-v1">
   .hof-launch-scope-card { border:1px solid rgba(113,184,157,.34); background:rgba(74,140,111,.07); margin-top:1rem; }
   .hof-launch-scope-card h4 { margin-bottom:.4rem; }

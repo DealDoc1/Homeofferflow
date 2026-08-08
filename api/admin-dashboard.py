@@ -3,6 +3,7 @@ import json
 import uuid
 import re
 import html
+import base64
 import urllib.parse
 from datetime import datetime, timezone
 from io import BytesIO
@@ -16,6 +17,13 @@ from lib import seller_review_access
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "").rstrip("/")
 SUPABASE_SERVICE_ROLE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or os.environ.get("SUPABASE_SERVICE_ROLE") or os.environ.get("SUPABASE_SERVICE_KEY") or ""
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
+SIGNWELL_API_KEY = os.environ.get("SIGNWELL_API_KEY", "")
+SIGNWELL_ENABLED = str(os.environ.get("SIGNWELL_ENABLED", "false")).lower() in {"1", "true", "yes", "on"}
+SIGNWELL_TEST_MODE = str(os.environ.get("SIGNWELL_TEST_MODE", "true")).lower() in {"1", "true", "yes", "on"}
+# Restricted TXR signing is deliberately opt-in.  A source/authorization gate
+# alone is not enough; the completed signed-PDF release gate must remain in
+# force before this is enabled in production.
+TXR_SIGNING_ENABLED = str(os.environ.get("HOF_TXR_SIGNING_ENABLED", "false")).lower() in {"1", "true", "yes", "on"}
 BROKERAGE_INVITE_FROM_EMAIL = (
     os.environ.get("BROKERAGE_INVITE_FROM_EMAIL")
     or os.environ.get("FEEDBACK_FROM_EMAIL")
@@ -131,6 +139,18 @@ async def _get_optional(path):
     except Exception as exc:
         print(f"Optional admin dataset unavailable ({path}): {str(exc)[:300]}")
         return []
+
+
+async def _patch(table, query, payload):
+    """Patch a service-owned row and fail closed on non-success responses."""
+    async with httpx.AsyncClient(timeout=12) as client:
+        response = await client.patch(
+            f"{SUPABASE_URL}/rest/v1/{table}?{query}",
+            headers={**_headers(), "Prefer": "return=minimal"},
+            json=payload,
+        )
+    if response.status_code >= 300:
+        raise RuntimeError(f"Supabase update failed: {table} {response.status_code} {response.text[:300]}")
 
 
 async def _verified_user(auth_header):
@@ -2189,6 +2209,202 @@ async def _render_txr_1507_draft_preview(user, agreement_id):
     return await _render_representation_draft_preview(user, agreement_id)
 
 
+def _valid_email(value):
+    return bool(re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", str(value or "").strip()))
+
+
+def _txr_signwell_fields(form_code, agreement_data, client_count):
+    """Dispatch to the source-specific SignWell field map.
+
+    Keeping this dispatch in the authenticated server route prevents a browser
+    from selecting an arbitrary field map or mixing coordinates between forms.
+    """
+    if form_code == TXR_1501_FORM_CODE:
+        from lib.txr_1501 import build_signwell_fields_txr1501
+        return build_signwell_fields_txr1501(agreement_data, client_count=client_count)
+    if form_code == TXR_1506_FORM_CODE:
+        from lib.txr_1506 import build_signwell_fields_txr1506
+        return build_signwell_fields_txr1506(agreement_data, client_count=client_count)
+    if form_code == TXR_1507_FORM_CODE:
+        from lib.txr_1507 import build_signwell_fields_txr1507
+        return build_signwell_fields_txr1507(agreement_data, client_count=client_count)
+    if form_code == TXR_1508_FORM_CODE:
+        from lib.txr_1508 import build_signwell_fields_txr1508
+        return build_signwell_fields_txr1508(agreement_data, client_count=client_count)
+    raise ValueError("This standalone form is not available for signing.")
+
+
+def _txr_signwell_recipients(agreement, client_emails, brokerage, agent_user):
+    client_names = agreement.get("client_names") or []
+    agreement_data = agreement.get("agreement_data") or {}
+    form_code = str(agreement.get("form_code") or "")
+    signer_plan = str(agreement_data.get("signer_plan") or "")
+    recipients = [
+        {"id": str(index), "name": client_names[index - 1], "email": client_emails[index - 1]}
+        for index in range(1, len(client_names) + 1)
+    ]
+    if form_code == TXR_1508_FORM_CODE:
+        role = "associate" if signer_plan == "associate_and_clients" else "broker"
+    elif form_code == TXR_1506_FORM_CODE:
+        role = "associate" if signer_plan == "consumers_and_associate" else "broker"
+    else:
+        role = "associate" if signer_plan == "clients_and_associate" else "broker"
+    if role == "associate":
+        associate_email = str(agent_user.get("email") or "").strip()
+        associate_name = str(agent_user.get("name") or "Broker associate").strip()
+        if not _valid_email(associate_email):
+            raise ValueError("The authorized broker associate account needs a valid email before signing.")
+        recipients.append({"id": role, "name": associate_name, "email": associate_email})
+    else:
+        broker_email = str(brokerage.get("contact_email") or "").strip()
+        broker_name = str(brokerage.get("contact_name") or brokerage.get("name") or "Broker").strip()
+        if not _valid_email(broker_email):
+            raise ValueError("The brokerage needs a valid broker contact email before broker signing can be sent.")
+        recipients.append({"id": role, "name": broker_name, "email": broker_email})
+    return recipients
+
+
+async def _send_txr_agreement_for_signature(user, data):
+    """Create one gated SignWell request for an owned standalone TXR draft.
+
+    This is intentionally separate from purchase-offer signing. It rechecks
+    active membership, brokerage authorization, approved source revision,
+    draft ownership, signer plan, and recipient emails on every send attempt.
+    """
+    if not TXR_SIGNING_ENABLED:
+        raise PermissionError("Restricted TXR signing is not enabled yet; completed signed-PDF release QA is still required.")
+    if not SIGNWELL_ENABLED or not SIGNWELL_API_KEY:
+        raise RuntimeError("SignWell signing is not configured for this environment.")
+    agreement_id = str(data.get("agreementId") or "").strip()
+    try:
+        agreement_uuid = str(uuid.UUID(agreement_id))
+    except (TypeError, ValueError, AttributeError):
+        raise ValueError("Choose a valid private agreement draft.")
+    brokerage_id = await _active_brokerage_member(user)
+    await _require_brokerage_txr_authorization(brokerage_id)
+    rows = await _get(
+        "hof_standalone_agreements?"
+        f"id=eq.{urllib.parse.quote(agreement_uuid)}"
+        f"&agent_user_id=eq.{urllib.parse.quote(user['id'])}"
+        f"&brokerage_id=eq.{urllib.parse.quote(brokerage_id)}"
+        "&status=eq.draft"
+        "&select=id,form_code,form_source_id,source_revision,client_names,agreement_data"
+        "&limit=1"
+    )
+    if not rows:
+        raise PermissionError("That private agreement draft is unavailable or has already been sent.")
+    agreement = rows[0]
+    form_code = str(agreement.get("form_code") or "")
+    if form_code not in {TXR_1501_FORM_CODE, TXR_1506_FORM_CODE, TXR_1507_FORM_CODE, TXR_1508_FORM_CODE}:
+        raise ValueError("This standalone form is not available for signing.")
+    client_names = agreement.get("client_names") or []
+    client_emails = data.get("clientEmails")
+    if not isinstance(client_emails, list):
+        client_emails = []
+    client_emails = [str(value or "").strip() for value in client_emails]
+    stored_emails = (agreement.get("agreement_data") or {}).get("client_emails") or []
+    if not client_emails and isinstance(stored_emails, list):
+        client_emails = [str(value or "").strip() for value in stored_emails]
+    if form_code == TXR_1501_FORM_CODE and not client_emails:
+        legacy_email = str((agreement.get("agreement_data") or {}).get("client_email") or "").strip()
+        if legacy_email:
+            client_emails = [legacy_email]
+    if len(client_emails) != len(client_names) or any(not _valid_email(email) for email in client_emails):
+        raise ValueError("Provide one valid, unique signing email for each client.")
+    if len({email.casefold() for email in client_emails}) != len(client_emails):
+        raise ValueError("Each client must use a different signing email.")
+    sources = await _get(
+        "hof_brokerage_form_sources?"
+        f"id=eq.{urllib.parse.quote(str(agreement['form_source_id']))}"
+        f"&brokerage_id=eq.{urllib.parse.quote(brokerage_id)}"
+        f"&form_code=eq.{urllib.parse.quote(form_code)}"
+        "&status=eq.approved&authorization_attested=is.true"
+        "&select=id,source_revision,storage_bucket,storage_path&limit=1"
+    )
+    if not sources or sources[0].get("source_revision") != agreement.get("source_revision"):
+        raise ValueError("The approved source revision for this draft is no longer available.")
+    source = sources[0]
+    async with httpx.AsyncClient(timeout=20) as client:
+        source_response = await client.get(
+            f"{SUPABASE_URL}/storage/v1/object/"
+            f"{urllib.parse.quote(str(source['storage_bucket']), safe='')}/"
+            f"{urllib.parse.quote(str(source['storage_path']), safe='/')}",
+            headers=_headers(),
+        )
+    if source_response.status_code != 200 or not source_response.content.startswith(b"%PDF"):
+        raise RuntimeError("The approved standalone source could not be loaded.")
+    brokerage_rows = await _get(
+        "hof_brokerages?"
+        f"id=eq.{urllib.parse.quote(brokerage_id)}"
+        "&select=id,name,dba_name,legal_name,license_number,contact_name,contact_email&limit=1"
+    )
+    profile_rows = await _get(
+        "hof_profiles?"
+        f"id=eq.{urllib.parse.quote(user['id'])}"
+        "&select=id,agent_name,email,license_number&limit=1"
+    )
+    brokerage = brokerage_rows[0] if brokerage_rows else {}
+    profile = profile_rows[0] if profile_rows else {}
+    agreement_data = dict(agreement.get("agreement_data") or {})
+    agreement_data["client_emails"] = client_emails
+    client_count = len(client_names)
+    fields = _txr_signwell_fields(form_code, {"client_names": client_names, **agreement_data}, client_count)
+    rendered = await _render_representation_draft_preview(user, agreement_uuid)
+    recipients = _txr_signwell_recipients(
+        agreement,
+        client_emails,
+        brokerage,
+        {"email": user.get("email") or profile.get("email"), "name": profile.get("agent_name") or user.get("email")},
+    )
+    address_label = form_code.replace("-", " ")
+    payload = {
+        "test_mode": SIGNWELL_TEST_MODE,
+        "draft": False,
+        "reminders": True,
+        "apply_signing_order": True,
+        "embedded_signing": False,
+        "with_signature_page": False,
+        "custom_requester_name": "HomeOfferFlow",
+        "name": f"HomeOfferFlow {address_label} — {agreement_uuid[:8]}",
+        "subject": f"HomeOfferFlow {address_label} for signature",
+        "message": (
+            "Please review and sign this brokerage-approved Texas REALTORS® form. "
+            "HomeOfferFlow is a form-completion and signing workflow, not a law firm or brokerage. "
+            "Confirm the terms with your authorized real-estate professional before signing."
+        ),
+        "recipients": recipients,
+        "files": [{"name": f"HomeOfferFlow_{address_label.replace(' ', '_')}.pdf", "file_base64": base64.b64encode(rendered).decode("ascii")}],
+        "fields": fields,
+        "metadata": {
+            "source": "HomeOfferFlow",
+            "standalone_agreement_id": agreement_uuid,
+            "form_code": form_code,
+            "source_revision": str(agreement.get("source_revision") or "")[:80],
+            "test_mode": str(SIGNWELL_TEST_MODE).lower(),
+        },
+    }
+    async with httpx.AsyncClient(timeout=45) as client:
+        response = await client.post(
+            "https://www.signwell.com/api/v1/documents",
+            headers={"X-Api-Key": SIGNWELL_API_KEY, "Content-Type": "application/json"},
+            json=payload,
+        )
+    if response.status_code not in {200, 201, 202}:
+        await _patch("hof_standalone_agreements", f"id=eq.{urllib.parse.quote(agreement_uuid)}", {"status": "failed", "updated_at": datetime.now(timezone.utc).isoformat()})
+        raise RuntimeError(f"SignWell rejected the signing request: HTTP {response.status_code}.")
+    result = response.json()
+    document_id = str(result.get("id") or result.get("document_id") or "").strip()
+    if not document_id:
+        raise RuntimeError("SignWell did not return a document id.")
+    now = datetime.now(timezone.utc).isoformat()
+    await _patch(
+        "hof_standalone_agreements",
+        f"id=eq.{urllib.parse.quote(agreement_uuid)}",
+        {"status": "sent", "signwell_document_id": document_id, "signwell_status": str(result.get("status") or "sent"), "sent_at": now, "updated_at": now, "agreement_data": agreement_data},
+    )
+    return {"ok": True, "formCode": form_code, "documentId": document_id, "status": result.get("status") or "sent", "testMode": SIGNWELL_TEST_MODE, "recipientCount": len(recipients)}
+
+
 class handler(BaseHTTPRequestHandler):
     def do_OPTIONS(self):
         _json(self, 200, {"status": "ok"})
@@ -2257,6 +2473,17 @@ class handler(BaseHTTPRequestHandler):
                     "&order=updated_at.desc&limit=100"
                 ))
                 _json(self, 200, {"drafts": rows})
+                return
+            if scope == "standalone_agreements":
+                brokerage_id = asyncio.run(_active_brokerage_member(user))
+                rows = asyncio.run(_get(
+                    "hof_standalone_agreements?"
+                    f"agent_user_id=eq.{urllib.parse.quote(user['id'])}"
+                    f"&brokerage_id=eq.{urllib.parse.quote(str(brokerage_id))}"
+                    "&select=id,form_code,source_revision,client_names,status,signwell_status,signwell_document_id,created_at,updated_at,sent_at,signed_at"
+                    "&order=updated_at.desc&limit=100"
+                ))
+                _json(self, 200, {"agreements": rows})
                 return
             if scope == "platform_source_brokerages":
                 try:
@@ -2502,6 +2729,10 @@ class handler(BaseHTTPRequestHandler):
             if data.get("action") == "create_txr_1506_draft":
                 draft = asyncio.run(_create_txr_1506_draft(user, data))
                 _json(self, 201, {"status": "ok", "agreement": draft})
+                return
+            if data.get("action") == "send_txr_agreement_for_signature":
+                result = asyncio.run(_send_txr_agreement_for_signature(user, data))
+                _json(self, 200, {"status": "ok", "signwell": result})
                 return
             if not asyncio.run(_is_platform_admin(user)):
                 _json(self, 403, {"error": "Admin access is not enabled for this account."})

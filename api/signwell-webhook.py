@@ -157,6 +157,44 @@ async def _update_offer(document_id, mapped_status, mapped_signwell_status, payl
         )
 
 
+def _standalone_status_for(mapped_status):
+    """Map the offer-oriented lifecycle label to standalone-agreement states."""
+    if mapped_status == "Buyer Signed":
+        return "signed"
+    if mapped_status == "Rejected":
+        return "void"
+    # Viewed, partially signed, sent, and pending all remain executable/sent
+    # from the agreement owner's perspective until SignWell reports completion.
+    return "sent"
+
+
+async def _update_standalone_agreement(document_id, mapped_status, mapped_signwell_status, payload):
+    """Keep standalone agreement lifecycle state in sync with SignWell.
+
+    This is intentionally a separate update from hof_offers: standalone TXR
+    agreements must never be mistaken for purchase offers or appear in offer
+    reporting. The query is scoped by SignWell document id, which is unique in
+    the standalone table.
+    """
+    if not document_id or not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
+        return None
+    now = datetime.now(timezone.utc).isoformat()
+    update_payload = {
+        "status": _standalone_status_for(mapped_status),
+        "signwell_status": mapped_signwell_status,
+        "updated_at": now,
+    }
+    if mapped_status == "Buyer Signed":
+        update_payload["signed_at"] = now
+    async with httpx.AsyncClient(timeout=12) as client:
+        return await client.patch(
+            f"{SUPABASE_URL}/rest/v1/hof_standalone_agreements?"
+            f"signwell_document_id=eq.{document_id}&select=id,status,signwell_status",
+            headers=_headers(),
+            json=update_payload,
+        )
+
+
 class handler(BaseHTTPRequestHandler):
     def do_OPTIONS(self):
         _json(self, 200, {"status": "ok"})
@@ -185,6 +223,7 @@ class handler(BaseHTTPRequestHandler):
             import asyncio
             event_resp = None
             patch_resp = None
+            standalone_patch_resp = None
             try:
                 event_resp = asyncio.run(_insert_event(document_id, event_type, payload, mapped_status, mapped_signwell_status))
             except Exception as e:
@@ -193,6 +232,14 @@ class handler(BaseHTTPRequestHandler):
                 patch_resp = asyncio.run(_update_offer(document_id, mapped_status, mapped_signwell_status, payload))
             except Exception as e:
                 print("signwell offer patch failed", repr(e))
+            try:
+                standalone_patch_resp = asyncio.run(
+                    _update_standalone_agreement(
+                        document_id, mapped_status, mapped_signwell_status, payload
+                    )
+                )
+            except Exception as e:
+                print("signwell standalone agreement patch failed", repr(e))
 
             _json(self, 200, {
                 "status": "ok",
@@ -203,6 +250,7 @@ class handler(BaseHTTPRequestHandler):
                 "mapped_signwell_status": mapped_signwell_status,
                 "event_status_code": getattr(event_resp, "status_code", None),
                 "patch_status_code": getattr(patch_resp, "status_code", None),
+                "standalone_patch_status_code": getattr(standalone_patch_resp, "status_code", None),
             })
         except Exception as e:
             print("signwell webhook fatal but acknowledged", repr(e))
