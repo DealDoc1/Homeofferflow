@@ -9,6 +9,10 @@ MIGRATION = (
 
 
 class SubscriptionLifecycleTrackerReconciliationTests(unittest.TestCase):
+    def test_legacy_reconciliation_is_preserved_as_historical_evidence(self):
+        self.assertIn("77e787b brokerage billing suspension reason hardening", MIGRATION)
+        self.assertIn("requires the next intentional Vercel production deployment", MIGRATION)
+
     def test_tracker_names_the_released_scheduled_cancellation_qa(self):
         self.assertIn("77e787b brokerage billing suspension reason hardening", MIGRATION)
         self.assertIn("billing suspension", MIGRATION)
