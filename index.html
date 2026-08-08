@@ -3888,6 +3888,21 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     return `<a class="admin-contact-action" href="mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}">Follow up</a>`;
   }
 
+  function sellerLeadAgeLabel(row) {
+    const createdAt = Date.parse(row?.created_at || '');
+    if (!Number.isFinite(createdAt)) return 'Age unavailable';
+    const days = Math.max(0, Math.floor((Date.now() - createdAt) / 86400000));
+    if (days === 0) return 'Received today';
+    return `${days} day${days === 1 ? '' : 's'} old`;
+  }
+
+  function sellerLeadUrgency(row) {
+    const status = String(row?.status || 'new').toLowerCase();
+    const createdAt = Date.parse(row?.created_at || '');
+    const ageDays = Number.isFinite(createdAt) ? Math.max(0, Math.floor((Date.now() - createdAt) / 86400000)) : 0;
+    return status === 'new' && ageDays >= 1 ? 'Needs contact' : status.replace(/_/g, ' ');
+  }
+
   async function updateSellerLeadStatus(leadId) {
     const select = document.getElementById(`sellerLeadStatus-${leadId}`);
     const button = document.getElementById(`sellerLeadSave-${leadId}`);
@@ -3969,7 +3984,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         return `<div class="admin-row">
           <div><strong>${adminSafe(row.seller_name || 'Seller lead')}</strong><div class="admin-muted">${adminSafe(email)} · ${adminSafe(phone)}</div>${contactActions ? `<div class="partner-lead-admin-actions">${contactActions}</div>` : ''}</div>
           <div><strong>${adminSafe(row.package_name || row.service_level || 'Seller intake')}</strong><div class="admin-muted">${adminSafe(location || row.property_address || '')}</div></div>
-          <div><span class="admin-pill ${status === 'converted' ? 'good' : status === 'archived' ? '' : 'warn'}">${adminSafe(status)}</span><div class="admin-muted">${adminSafe(row.timeline || 'timeline not set')}${partners ? ` · ${adminSafe(partners)}` : ''}</div></div>
+          <div><span class="admin-pill ${status === 'converted' ? 'good' : status === 'archived' ? '' : 'warn'}">${adminSafe(sellerLeadUrgency(row))}</span><div class="admin-muted">${adminSafe(sellerLeadAgeLabel(row))} · ${adminSafe(row.timeline || 'timeline not set')}${partners ? ` · ${adminSafe(partners)}` : ''}</div></div>
           <div>${adminDate(row.created_at)}${canUpdate ? `<div class="partner-lead-admin-actions"><select id="sellerLeadStatus-${leadId}" aria-label="Review status for ${adminSafe(row.seller_name || 'seller lead')}">${sellerLeadStatusOptions(status)}</select><button id="sellerLeadSave-${leadId}" type="button" onclick="updateSellerLeadStatus('${leadId}')">Save</button></div>` : ''}</div>
         </div>`;
       }
