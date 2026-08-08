@@ -4438,11 +4438,14 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     } else if (isBlocked) {
       actionHtml =
         '<div class="account-actions-row" style="margin-top:0.85rem;">' +
+          (status === 'past_due' ? '<button class="btn-primary" type="button" onclick="openBillingPortal()">Fix Billing</button>' : '') +
           '<button class="btn-secondary" type="button" onclick="startSubscriptionCheckout(\'' + role + '\',\'monthly\')">Reactivate Monthly</button>' +
           '<button class="btn-secondary" type="button" onclick="startSubscriptionCheckout(\'' + role + '\',\'annual\')">Reactivate Annual</button>' +
         '</div>' +
         '<div style="margin-top:0.55rem; color:var(--warn); font-size:0.74rem; line-height:1.45;">' +
-          'Your subscription needs attention before new paid packets can be generated.' +
+          (status === 'past_due'
+            ? 'Your latest payment needs attention. Update the saved payment method in Stripe Billing, then return here to refresh access.'
+            : 'Your subscription is canceled. Choose a plan below to restore paid packet access.') +
         '</div>';
     } else {
       actionHtml =
