@@ -16,7 +16,11 @@ class PwaBaselineTests(unittest.TestCase):
         self.assertIn("navigator.serviceWorker.register('/service-worker.js'", INDEX)
 
     def test_manifest_has_a_standalone_secure_app_shell_configuration(self):
+        self.assertEqual(MANIFEST["lang"], "en-US")
+        self.assertEqual(MANIFEST["dir"], "ltr")
         self.assertEqual(MANIFEST["display"], "standalone")
+        self.assertEqual(MANIFEST["orientation"], "portrait-primary")
+        self.assertFalse(MANIFEST["prefer_related_applications"])
         self.assertEqual(MANIFEST["start_url"], "/")
         self.assertEqual(MANIFEST["scope"], "/")
         self.assertEqual(MANIFEST["theme_color"], "#173f35")
