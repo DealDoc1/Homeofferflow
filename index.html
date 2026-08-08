@@ -4050,6 +4050,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       const stripeWebhookEvents = result.stripeWebhookEvents || [];
       const feedback = result.feedback || [];
       const partnerLeads = result.partnerLeads || [];
+      const paidPartnerActivationQueue = result.paidPartnerActivationQueue || [];
       const sellerLeads = result.sellerLeads || [];
       const activationFollowUpQueue = result.activationFollowUpQueue || [];
       window.hofAdminTrackerPayload = {
@@ -4135,6 +4136,12 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           <div class="admin-metric">
             <div class="admin-metric-label">Partner Leads</div>
             <div class="admin-metric-value">${metrics.partnerLeadCount || partnerLeads.length || 0}</div>
+          </div>
+
+          <div class="admin-metric">
+            <div class="admin-metric-label">Paid Partner Activation Queue</div>
+            <div class="admin-metric-value">${metrics.paidPartnerActivationQueueCount || paidPartnerActivationQueue.length || 0}</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Paid applications awaiting written-agreement activation.</div>
           </div>
 
           <div class="admin-metric">
