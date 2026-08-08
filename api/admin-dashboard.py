@@ -2759,6 +2759,17 @@ class handler(BaseHTTPRequestHandler):
                 for subscription in subs
                 if str(subscription.get("status") or "").lower() in {"active", "trialing", "free_admin"}
             }
+            now = datetime.now(timezone.utc)
+            agent_last_activity_at = {}
+            for offer in agent_lifecycle_offers:
+                user_id = str(offer.get("user_id") or "")
+                if not user_id:
+                    continue
+                activity_at = _parse_timestamp(offer.get("updated_at") or offer.get("created_at"))
+                if activity_at and (
+                    user_id not in agent_last_activity_at or activity_at > agent_last_activity_at[user_id]
+                ):
+                    agent_last_activity_at[user_id] = activity_at
             agent_offer_user_ids = set(agent_offer_counts)
             profile_by_user_id = {
                 str(profile.get("user_id") or ""): profile
@@ -2788,6 +2799,19 @@ class handler(BaseHTTPRequestHandler):
                         "reason": "Complete profile to unlock faster repeat offers",
                         "priority": 2,
                     })
+                elif (
+                    user_id in active_agent_subscription_ids
+                    and user_id in agent_offer_user_ids
+                    and user_id in agent_last_activity_at
+                    and (now - agent_last_activity_at[user_id]).days >= 30
+                ):
+                    activation_follow_up_queue.append({
+                        "agent_name": profile.get("agent_name") or "Agent",
+                        "agent_email": email,
+                        "reason": "Check in before the next client offer",
+                        "category": "retention",
+                        "priority": 3,
+                    })
                 elif user_id not in agent_offer_user_ids:
                     activation_follow_up_queue.append({
                         "agent_name": profile.get("agent_name") or "Agent",
@@ -2809,6 +2833,9 @@ class handler(BaseHTTPRequestHandler):
                 "agentWithoutOfferCount": len(agent_profile_ids - agent_offer_user_ids),
                 "agentOfferWithoutActiveSubscriptionCount": len(agent_offer_user_ids - active_agent_subscription_ids),
                 "activationFollowUpCount": len(activation_follow_up_queue),
+                "retentionFollowUpCount": len([
+                    item for item in activation_follow_up_queue if item.get("category") == "retention"
+                ]),
                 "agentRepeatOfferCount": len([
                     user_id for user_id, count in agent_offer_counts.items() if count > 1
                 ]),
