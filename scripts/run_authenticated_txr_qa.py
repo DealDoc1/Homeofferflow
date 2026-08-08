@@ -142,6 +142,38 @@ def _seller_disclosure_payload(seller_count: int):
     }
 
 
+def _assert_restricted_sources_ready(base_url: str, access_token: str, forms):
+    """Fail before draft creation when the live source gate is not ready."""
+    restricted_forms = [form for form in forms if form in SOURCE_IDS]
+    if not restricted_forms:
+        return
+    status, content_type, raw = _request(
+        base_url,
+        access_token,
+        "/api/admin-dashboard?scope=brokerage",
+    )
+    if status >= 300 or "json" not in content_type.lower():
+        raise RuntimeError(
+            f"Brokerage source preflight returned HTTP {status} with content type {content_type!r}."
+        )
+    payload = json.loads(raw.decode("utf-8"))
+    readiness = {
+        str(item.get("formCode") or ""): item
+        for item in (payload.get("sourceReadiness") or [])
+    }
+    not_ready = [
+        form
+        for form in restricted_forms
+        if (readiness.get(form) or {}).get("readyForRestrictedDraft") is not True
+    ]
+    if not_ready:
+        raise RuntimeError(
+            "Restricted-form source preflight is not ready for: "
+            + ", ".join(not_ready)
+            + ". Confirm brokerage authorization, individual attestation, and approved private source status first."
+        )
+
+
 def _run_one(base_url: str, access_token: str, form: str, client_count: int, output_dir: Path, *, render_pages: bool = False):
     output_dir.expanduser().mkdir(parents=True, exist_ok=True)
     seller_disclosure = form == "TREC-55-1"
@@ -218,6 +250,7 @@ def main(argv=None):
         parser.error("Use an existing Supabase access token via --access-token or HOF_ACCESS_TOKEN.")
 
     forms = tuple(SOURCE_IDS) + ("TREC-55-1",) if args.form == "ALL" else (args.form,)
+    _assert_restricted_sources_ready(args.base_url, args.access_token, forms)
     reports = [
         _run_one(args.base_url, args.access_token, form, args.clients, args.output_dir / form.lower(), render_pages=args.render_pages)
         for form in forms
