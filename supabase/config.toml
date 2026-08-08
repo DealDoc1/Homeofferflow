@@ -1,0 +1,16 @@
+# HomeOfferFlow Supabase project configuration.
+# Keep this file free of secrets; branch-specific credentials stay in Supabase.
+project_id = "acqylchftrjjoablvqyq"
+
+[api]
+enabled = true
+schemas = ["public", "storage", "graphql_public"]
+
+[db]
+major_version = 17
+
+[storage]
+enabled = true
+
+[auth]
+enabled = true

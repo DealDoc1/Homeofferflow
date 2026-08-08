@@ -1,0 +1,2 @@
+alter table public.hof_brokerage_members drop constraint if exists hof_brokerage_members_brokerage_user_key;
+

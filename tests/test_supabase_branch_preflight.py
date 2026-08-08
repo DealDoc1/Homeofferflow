@@ -13,11 +13,10 @@ SPEC.loader.exec_module(MODULE)
 
 
 class SupabaseBranchPreflightTests(unittest.TestCase):
-    def test_current_repository_fails_closed_without_migration_chain(self):
+    def test_current_repository_has_a_complete_ordered_migration_chain(self):
         report = MODULE.inspect_repository(ROOT)
-        self.assertFalse(report["ok"])
-        self.assertIn("supabase/config.toml is missing", report["errors"])
-        self.assertIn("supabase/migrations directory is missing", report["errors"])
+        self.assertTrue(report["ok"])
+        self.assertGreaterEqual(report["migrationCount"], 62)
 
     def test_complete_ordered_chain_passes(self):
         with tempfile.TemporaryDirectory() as directory:

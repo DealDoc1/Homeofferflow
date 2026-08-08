@@ -44,10 +44,12 @@ check:
 python scripts/preflight_supabase_branch.py
 ```
 
-The repository currently contains deployment SQL artifacts but not a complete
-ordered `supabase/migrations/` chain or `supabase/config.toml`, so the check is
-expected to fail closed. Do not create a Stripe test branch until the
-authoritative migration chain and project configuration are restored.
+The repository now contains a schema-only baseline plus the 61 ordered
+migrations pulled from the live Supabase migration history and a secret-free
+`supabase/config.toml`. The baseline intentionally contains no production rows,
+auth users, tokens, or storage objects. The check must pass before creating a
+paid Stripe test branch; a healthy branch and distinct database URL are still
+required before any Stripe test endpoint is created.
 
 ## Founding partner pilot
 
