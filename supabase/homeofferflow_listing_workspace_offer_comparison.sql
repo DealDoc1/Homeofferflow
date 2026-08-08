@@ -22,6 +22,19 @@ create table if not exists public.hof_listing_workspace_offers (
 );
 
 alter table public.hof_listing_workspace_offers enable row level security;
+drop policy if exists hof_listing_workspace_offers_select_own on public.hof_listing_workspace_offers;
+create policy hof_listing_workspace_offers_select_own on public.hof_listing_workspace_offers for select to authenticated
+  using (agent_user_id = (select auth.uid()) and exists (select 1 from public.hof_listing_workspaces w where w.id = workspace_id and w.agent_user_id = (select auth.uid())));
+drop policy if exists hof_listing_workspace_offers_insert_own on public.hof_listing_workspace_offers;
+create policy hof_listing_workspace_offers_insert_own on public.hof_listing_workspace_offers for insert to authenticated
+  with check (agent_user_id = (select auth.uid()) and exists (select 1 from public.hof_listing_workspaces w where w.id = workspace_id and w.agent_user_id = (select auth.uid())));
+drop policy if exists hof_listing_workspace_offers_update_own on public.hof_listing_workspace_offers;
+create policy hof_listing_workspace_offers_update_own on public.hof_listing_workspace_offers for update to authenticated
+  using (agent_user_id = (select auth.uid()) and exists (select 1 from public.hof_listing_workspaces w where w.id = workspace_id and w.agent_user_id = (select auth.uid())))
+  with check (agent_user_id = (select auth.uid()) and exists (select 1 from public.hof_listing_workspaces w where w.id = workspace_id and w.agent_user_id = (select auth.uid())));
+drop policy if exists hof_listing_workspace_offers_delete_own on public.hof_listing_workspace_offers;
+create policy hof_listing_workspace_offers_delete_own on public.hof_listing_workspace_offers for delete to authenticated
+  using (agent_user_id = (select auth.uid()) and exists (select 1 from public.hof_listing_workspaces w where w.id = workspace_id and w.agent_user_id = (select auth.uid())));
 revoke all on public.hof_listing_workspace_offers from anon;
 grant select, insert, update, delete on public.hof_listing_workspace_offers to authenticated;
 
