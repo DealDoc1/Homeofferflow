@@ -17,7 +17,8 @@ packet assets present.
 
 ## Automated verification
 
-- Full Python suite: **550 tests passed**.
+- Full Python suite: **555 tests passed** (including seller-intake integrity and
+  roadmap reconciliation coverage).
 - Golden packet rendering: **approved baseline matched** for cash single/two
   buyer, conventional single/two buyer, HOA, appraisal, sale of other
   property, backup, seller temporary lease, all supported addenda, and sparse
@@ -66,10 +67,10 @@ completed-signature gates.
 The verified main branch was intentionally promoted through the guarded
 production workflow after the full regression and rendered-placement checks:
 
-- verified main commit: `461f231cf87a035366772b6cb27bfb165aa63676`;
-- Vercel deployment: `https://homeofferflow-heaeogtos-dealdoc1s-projects.vercel.app`;
-- Vercel deployment ID: `dpl_Bv469CiqSS6nZ5aZfMxrh3J4dXg8`;
-- GitHub Actions test run: `31257211712` (all jobs passed). The deployment was
+- verified runtime commit: `26f4e2a Harden seller lead intake privacy and validation`;
+- Vercel deployment: `https://homeofferflow-cxfcayjys-dealdoc1s-projects.vercel.app`;
+- Vercel deployment ID: `dpl_8qguYXEPjeUh6CWYw71GTGpCNqvJ`;
+- GitHub Actions test run: `31257838336` (all jobs passed). The deployment was
   intentionally performed once from the verified main branch after the local
   placement/signature gates passed.
 
