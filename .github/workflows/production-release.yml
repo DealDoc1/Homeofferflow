@@ -129,6 +129,9 @@ jobs:
       - name: Verify canonical site responds
         run: curl --fail --silent --show-error --location --max-time 30 https://www.homeofferflow.com/ > /dev/null
 
+      - name: Verify production PWA shell
+        run: python scripts/check_production_pwa.py --origin https://www.homeofferflow.com
+
       - name: Record deployment boundary
         run: |
           echo "Intentional production deployment completed from ${GITHUB_SHA}."
