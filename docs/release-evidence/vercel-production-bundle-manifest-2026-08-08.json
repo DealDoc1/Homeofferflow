@@ -1,0 +1,283 @@
+{
+  "format": "homeofferflow-vercel-production-manifest-v1",
+  "excluded": {
+    "prefixes": [
+      "docs/",
+      "tests/",
+      "scripts/",
+      "supabase/"
+    ],
+    "files": [
+      "api/fill_pdf_20_19_staging.py"
+    ]
+  },
+  "file_count": 53,
+  "total_bytes": 7314757,
+  "files": [
+    {
+      "file": ".gitignore",
+      "bytes": 53,
+      "sha256": "acc78fef41c5a6213572d1fade3dc66686fce13f8398da290d98a0a0b09819ff"
+    },
+    {
+      "file": ".vercelignore",
+      "bytes": 239,
+      "sha256": "e9900bc4cfff5742eb0ebc51ea8505ae4f72f318fcca240c3f0a9227f7016e85"
+    },
+    {
+      "file": "20-18_0.pdf",
+      "bytes": 791388,
+      "sha256": "df02fbe9de3935496d0fc08cc2d9acfa1984713f3cee94c8b39eafd504a434d1"
+    },
+    {
+      "file": "20-19_0.pdf",
+      "bytes": 759476,
+      "sha256": "be3fa154f00476a674c73ba20f6c589111a905bc1e0894e0d5786b714f16f8d4"
+    },
+    {
+      "file": "FOUNDING_PARTNER_PILOT_DEPLOY.md",
+      "bytes": 5099,
+      "sha256": "2f0d6786962e53b5161f3c009cd849ab41d2b2eed75ae7273f317ce7483f5549"
+    },
+    {
+      "file": "PARTNER_RATE_CARD.md",
+      "bytes": 4364,
+      "sha256": "5d62ed45a57904951d8c9586f6753300c2b08d49aa85de92dc5645bdd831940e"
+    },
+    {
+      "file": "README.md",
+      "bytes": 200,
+      "sha256": "abda9ccff7ea55ec7fb904f94519b9c5e6de495a9ca2df7a6d0c73017d2226ba"
+    },
+    {
+      "file": "api/admin-dashboard.py",
+      "bytes": 121592,
+      "sha256": "a8745346db6f4600580551cb96ac221e37b638becac172d6c024e139214c3464"
+    },
+    {
+      "file": "api/ai-offer-review.py",
+      "bytes": 36053,
+      "sha256": "3a7b416533b16a44263a1c81fedd0ff497b2ce706ae64e1432b60d25dc362449"
+    },
+    {
+      "file": "api/create-billing-portal/index.py",
+      "bytes": 5462,
+      "sha256": "f102968fb0ef64ff5dbaa48e436200a4e4adcc2b7b3eaf3f49b033cac38bdfa0"
+    },
+    {
+      "file": "api/create-checkout.js",
+      "bytes": 2979,
+      "sha256": "32770aa8a93791032e1a952e881e8fb64e01553c39ae80309c571d47b687b5fa"
+    },
+    {
+      "file": "api/create-subscription-checkout/index.py",
+      "bytes": 12806,
+      "sha256": "b0fff7b105682fd93a841f9db282899f8f35edef77ea1ad5996db38b3495eac7"
+    },
+    {
+      "file": "api/feedback-alert/index.py",
+      "bytes": 5451,
+      "sha256": "91e206a03ff3586741437fb0145d455c966b81e0d5e6ef78ea39824846da04a6"
+    },
+    {
+      "file": "api/fill-pdf.py",
+      "bytes": 83447,
+      "sha256": "c1e9dd6f3a4b5bc908145d0a75fd1cfc93aba654e3acb9bb0d2b98c569b4130c"
+    },
+    {
+      "file": "api/fsbo-lead.py",
+      "bytes": 15991,
+      "sha256": "f06dd8f190dcff8ec5c02e60316c3bb222e6b800c6f4329ea99425aab810ec3a"
+    },
+    {
+      "file": "api/signwell-status.js",
+      "bytes": 10161,
+      "sha256": "bcc8b9ff1bbcf84cd584a0986a04386e188845eff6c3fbac5162744e2e715b5b"
+    },
+    {
+      "file": "api/signwell-webhook.py",
+      "bytes": 7817,
+      "sha256": "ba4a41449e38a681ea552a80a09a514d289e76ba8fb999038478a8a941b580d6"
+    },
+    {
+      "file": "api/stripe-webhook/index.py",
+      "bytes": 32189,
+      "sha256": "5bb271c04126ec5868afaa89d0dd6c505776b76c5722c933bc7550f3b428428c"
+    },
+    {
+      "file": "api/submit-feedback/index.py",
+      "bytes": 13376,
+      "sha256": "bc24699feb44cb8abd45db927978d2ec4b6251a93644e79ea42d6e19e659c0f8"
+    },
+    {
+      "file": "appraisal_addendum.pdf",
+      "bytes": 314033,
+      "sha256": "9cc7f9508a282830265dad72bdbef414afc3a78915c991b7e34d480d755e4b23"
+    },
+    {
+      "file": "assets/homeofferflow-app-icon.svg",
+      "bytes": 996,
+      "sha256": "8b3d2369fa6360deb49fc62a3150dd99d59b7b37575d897efa579260a993648d"
+    },
+    {
+      "file": "back_up_contract_addendum.pdf",
+      "bytes": 360604,
+      "sha256": "a79821a0534d9a09ae8586e0ac5678be240105fb99e3e0a237d4c9a773a5871c"
+    },
+    {
+      "file": "backup_contract_addendum_11-9.pdf",
+      "bytes": 291741,
+      "sha256": "1bc6edd2f69f43ad3d8a1cfd82603a395d7e68b0164170fa5800fbf80d33f832"
+    },
+    {
+      "file": "buyer_temporary_residential_lease_16-7.pdf",
+      "bytes": 893512,
+      "sha256": "6692db491db42fde7b78652c49c3f152433cf5a9f3be41668e180ae772a7702f"
+    },
+    {
+      "file": "disclaimer.html",
+      "bytes": 9255,
+      "sha256": "fc1e82ef71b83a635d9bdf8b18b2bd7e49a250a2bac1809769d345540139ec79"
+    },
+    {
+      "file": "esign-consent.html",
+      "bytes": 8332,
+      "sha256": "ba604abb3dec84d15c84d96e3d0e265e6ca4e9c2426b96ebbf26b853cffadf48"
+    },
+    {
+      "file": "field-mapper.html",
+      "bytes": 15918,
+      "sha256": "12d16084b4be48d5eaa0987e340edc22d74fe6dcbd8f663159e55d6e87438bb0"
+    },
+    {
+      "file": "hoa_addendum.pdf",
+      "bytes": 330327,
+      "sha256": "31c21aeb16ba6c916398211874bbb5a1f62718fc455fc90eb72b70103e8d332f"
+    },
+    {
+      "file": "index.html",
+      "bytes": 820191,
+      "sha256": "55b01d7b6837acabd80d099e452fd1e392f9eddf988982aa9a8cc42c26af793c"
+    },
+    {
+      "file": "lead_based_paint_56-0.pdf",
+      "bytes": 425718,
+      "sha256": "eb8bdfb943cafbe8402e6b44fe44d73eb66d6acd6a99f31f73498f938fd76e6c"
+    },
+    {
+      "file": "lib/platform_form_source_upload.py",
+      "bytes": 13314,
+      "sha256": "d9a4276dbbce4162701d3c9358bf7383526549ca775ee3a863491ad30d496d1d"
+    },
+    {
+      "file": "lib/production_adapter.py",
+      "bytes": 14484,
+      "sha256": "60de561b17106c34fab8902e76922f2b07b7bc86d9f6d965ff4b632fc78fe866"
+    },
+    {
+      "file": "lib/seller_disclosure_draft.py",
+      "bytes": 3533,
+      "sha256": "25e62a691e8cac88289de01ed738f86b573555858bbdc482db204c32094fc74a"
+    },
+    {
+      "file": "lib/seller_review_access.py",
+      "bytes": 3445,
+      "sha256": "6f21b937d8f86a74b03eb9ad8b9e10b160b542f088cd4c38cc50173e4e9265d6"
+    },
+    {
+      "file": "lib/trec_seller_disclosure.py",
+      "bytes": 20732,
+      "sha256": "f84cf9b322a646f223c21e5dae0c9e819494b79335fddafa89fc1847a3c29096"
+    },
+    {
+      "file": "lib/trec_seller_disclosure_schema.py",
+      "bytes": 7437,
+      "sha256": "dead2875a86370e513828ef8e7cfc9c92b4a26bc0fc498cf6b7dc9e4c9363adc"
+    },
+    {
+      "file": "lib/txr_1501.py",
+      "bytes": 7389,
+      "sha256": "925a33a116dcdc449f28e7b1e9266d3cb8b2eee56f2f6c2783ceab5024a14cb4"
+    },
+    {
+      "file": "lib/txr_1506.py",
+      "bytes": 4492,
+      "sha256": "ec66108a9b59736cd587e9c3d342f618ccffaa45da124a4dadede255421af1ad"
+    },
+    {
+      "file": "lib/txr_1507.py",
+      "bytes": 6983,
+      "sha256": "f2b8ace32d2b31c3a32fc8d30d7f8036b13dd735f7751d33ce1e1a2ddfd1570b"
+    },
+    {
+      "file": "lib/txr_1508.py",
+      "bytes": 4297,
+      "sha256": "0649838518fcd686d37faa9ab1e7ffa710c91dc47293883d332b559a75391365"
+    },
+    {
+      "file": "manifest.webmanifest",
+      "bytes": 552,
+      "sha256": "ac22a9d22b0f3a1f04855716cc94210c1fddd3be4a175c3aa4615e6d89be2461"
+    },
+    {
+      "file": "non_realty_items_addendum.pdf",
+      "bytes": 422877,
+      "sha256": "5a839817f3f12964b75615b1edcda99ad5697288555528f444f25cd9be64e319"
+    },
+    {
+      "file": "ondemand.html",
+      "bytes": 22462,
+      "sha256": "3555b67d3d0d79891c31b523b9ca6a4e34c95cc0a6d2626cf0d7de8455f2110c"
+    },
+    {
+      "file": "package.json",
+      "bytes": 120,
+      "sha256": "d8ee3688223844d39daef911fd4d58182e5b5df182ecaf7da7c1d6aa589e3f97"
+    },
+    {
+      "file": "privacy.html",
+      "bytes": 12223,
+      "sha256": "83eb5dfa21d45bd4a05c6e8a0f66543acfc86b76944982ee70ada3d9dfd0575b"
+    },
+    {
+      "file": "requirements.txt",
+      "bytes": 36,
+      "sha256": "0e22e234c9e508c20ae82966e33068b7725ab56fcdedb18eb3a25463cfd6d0cf"
+    },
+    {
+      "file": "sale_of_other_property_addendum.pdf",
+      "bytes": 66365,
+      "sha256": "3b29e372f7d41c0d75b5754969d893a26ea214e54807b689f098fca2da5778ba"
+    },
+    {
+      "file": "seller-review.html",
+      "bytes": 7623,
+      "sha256": "95de75a37dfa81046360138ea3bab5da8d10edbc805260a571e29d68379b6aed"
+    },
+    {
+      "file": "seller_temporary_residential_lease_15-7.pdf",
+      "bytes": 761930,
+      "sha256": "7b493c3ee665808eda55d36ac291ae8a469d0cb8be18d40c2bc981cacec61646"
+    },
+    {
+      "file": "service-worker.js",
+      "bytes": 1216,
+      "sha256": "072448ecde1440cc95256fd12412c50824562f0ad03fe592471def4c997b1f30"
+    },
+    {
+      "file": "terms.html",
+      "bytes": 18930,
+      "sha256": "8d1c86e701695412db4b08e8ef169829bffeda5378f6e79b3e2385281e2b0021"
+    },
+    {
+      "file": "third_party_financing_addendum.pdf",
+      "bytes": 534601,
+      "sha256": "e723f2a542c099c6b25d03240aaaefde1d3e914362bc1f4eae1353162647471a"
+    },
+    {
+      "file": "vercel.json",
+      "bytes": 946,
+      "sha256": "e00a7e02007aea6873ce28810e8b2063a29b688e148ec66bbf3488f426c8a8d5"
+    }
+  ]
+}
