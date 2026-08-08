@@ -2700,6 +2700,22 @@ class handler(BaseHTTPRequestHandler):
                 offer_status = str(offer.get("signwell_status") or offer.get("status") or "").lower()
                 if "draft" in offer_status and offer.get("updated_at") and offer.get("created_at") and offer.get("updated_at") != offer.get("created_at"):
                     agent_updated_draft_count += 1
+            complete_agent_profile_ids = {
+                str(profile.get("user_id") or "")
+                for profile in agent_profiles
+                if _agent_profile_complete(profile)
+            }
+            agent_profile_ids = {
+                str(profile.get("user_id") or "")
+                for profile in agent_profiles
+                if profile.get("user_id")
+            }
+            active_agent_subscription_ids = {
+                str(subscription.get("user_id") or "")
+                for subscription in subs
+                if str(subscription.get("status") or "").lower() in {"active", "trialing", "free_admin"}
+            }
+            agent_offer_user_ids = set(agent_offer_counts)
             metrics = {
                 "offerCount": len(offers),
                 "homebuyerOfferCount": len([o for o in offers if o.get("role") == "homebuyer"]),
@@ -2708,7 +2724,10 @@ class handler(BaseHTTPRequestHandler):
                 "agentProfileCompleteCount": len([
                     profile for profile in agent_profiles if _agent_profile_complete(profile)
                 ]),
+                "agentProfileIncompleteCount": len(agent_profile_ids - complete_agent_profile_ids),
                 "agentFirstOfferCount": len(agent_offer_counts),
+                "agentWithoutOfferCount": len(agent_profile_ids - agent_offer_user_ids),
+                "agentOfferWithoutActiveSubscriptionCount": len(agent_offer_user_ids - active_agent_subscription_ids),
                 "agentRepeatOfferCount": len([
                     user_id for user_id, count in agent_offer_counts.items() if count > 1
                 ]),

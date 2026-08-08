@@ -4093,6 +4093,13 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           </div>
 
           <div class="admin-metric">
+            <div class="admin-metric-label">Agent Activation Gaps</div>
+            <div class="admin-metric-label" style="margin-top:.3rem;color:var(--gray-light)">Incomplete profile: <strong>${metrics.agentProfileIncompleteCount || 0}</strong></div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">No saved offer: <strong>${metrics.agentWithoutOfferCount || 0}</strong></div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Offer without active access: <strong>${metrics.agentOfferWithoutActiveSubscriptionCount || 0}</strong></div>
+          </div>
+
+          <div class="admin-metric">
             <div class="admin-metric-label">Billing Webhook Attention</div>
             <div class="admin-metric-value">${metrics.stripeWebhookAttentionCount || 0}</div>
           </div>
