@@ -25,6 +25,18 @@ writes from the web client for several of these tables, so revoking the
 or expose data incorrectly. Each table requires an application-path review,
 least-privilege policy test, and migration-specific regression before change.
 
+## Access inventory check
+
+The live catalog check found RLS enabled and at least one policy on each
+reviewed sensitive table: `hof_profiles`, `hof_agent_profiles`,
+`hof_agent_documents`, `hof_brokerages`, `hof_brokerage_members`, `hof_offers`,
+`hof_offer_events`, `hof_listing_workspaces`, `hof_seller_leads`,
+`hof_seller_disclosure_drafts`, and `hof_subscriptions`. The reviewed policies
+are owner- or brokerage-scoped rather than blanket authenticated-user reads.
+The remaining GraphQL advisor warnings therefore describe schema visibility,
+not proof that every authenticated user can read every row through the app's
+REST paths.
+
 ## Next safe action
 
 Prioritize a table-by-table access review for buyer/offer data and brokerage
