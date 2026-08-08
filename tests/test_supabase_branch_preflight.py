@@ -48,6 +48,20 @@ class SupabaseBranchPreflightTests(unittest.TestCase):
         self.assertFalse(report["ok"])
         self.assertIn("migration version prefixes must be unique", report["errors"])
         self.assertTrue(any("14-digit version prefix" in error for error in report["errors"]))
+        self.assertTrue(any("migration file is empty" in error for error in report["errors"]))
+
+    def test_missing_project_id_fails_closed(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            migrations = root / "supabase" / "migrations"
+            migrations.mkdir(parents=True)
+            (root / "supabase" / "config.toml").write_text("[api]\nenabled = true\n", encoding="utf-8")
+            (migrations / "20260808000000_initial.sql").write_text("select 1;\n", encoding="utf-8")
+
+            report = MODULE.inspect_repository(root)
+
+        self.assertFalse(report["ok"])
+        self.assertIn("supabase/config.toml must declare a non-empty project_id", report["errors"])
 
 
 if __name__ == "__main__":

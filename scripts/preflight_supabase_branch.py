@@ -17,6 +17,7 @@ from pathlib import Path
 
 
 MIGRATION_NAME = re.compile(r"^(\d{14})_[a-z0-9][a-z0-9_-]*\.sql$")
+PROJECT_ID = re.compile(r'^\s*project_id\s*=\s*["\']([^"\']+)["\']\s*$', re.MULTILINE)
 
 
 def inspect_repository(root: Path) -> dict:
@@ -27,6 +28,10 @@ def inspect_repository(root: Path) -> dict:
 
     if not config_path.is_file():
         errors.append("supabase/config.toml is missing")
+    else:
+        config_text = config_path.read_text(encoding="utf-8")
+        if not PROJECT_ID.search(config_text):
+            errors.append("supabase/config.toml must declare a non-empty project_id")
 
     migration_files = sorted(migrations_dir.glob("*.sql")) if migrations_dir.is_dir() else []
     if not migrations_dir.is_dir():
@@ -42,6 +47,8 @@ def inspect_repository(root: Path) -> dict:
             invalid_names.append(path.name)
         else:
             versions.append(match.group(1))
+            if not path.read_text(encoding="utf-8").strip():
+                errors.append(f"migration file is empty: {path.name}")
 
     if invalid_names:
         errors.append(
