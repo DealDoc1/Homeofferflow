@@ -37,8 +37,38 @@ def _parse_sellers(value: str) -> list[int]:
     return counts
 
 
+def _assert_seller_sources_ready(base_url: str, token: str):
+    """Fail closed unless both approved seller sources are ready live."""
+    status, content_type, raw = qa._request(
+        base_url,
+        token,
+        "/api/admin-dashboard?scope=brokerage",
+    )
+    if status >= 300 or "json" not in content_type.lower():
+        raise RuntimeError(
+            f"Seller source preflight returned HTTP {status} with content type {content_type!r}."
+        )
+    payload = json.loads(raw.decode("utf-8"))
+    readiness = {
+        str(item.get("formCode") or ""): item
+        for item in (payload.get("sourceReadiness") or [])
+    }
+    missing = [
+        code
+        for code in ("TREC-55-1", "TREC-61-0")
+        if (readiness.get(code) or {}).get("readyForRestrictedDraft") is not True
+    ]
+    if missing:
+        raise RuntimeError(
+            "Seller source preflight is not ready for: "
+            + ", ".join(missing)
+            + ". Confirm approval and attestation before creating seller previews."
+        )
+
+
 def run(base_url: str, token: str, output_dir: Path, seller_counts: list[int], *, render_pages: bool = False):
     output_dir.expanduser().mkdir(parents=True, exist_ok=True)
+    _assert_seller_sources_ready(base_url, token)
     reports = [
         qa._run_one(
             base_url,

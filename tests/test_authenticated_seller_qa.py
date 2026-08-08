@@ -2,6 +2,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from scripts import run_authenticated_seller_qa as runner
 from scripts.validate_authenticated_seller_qa import errors_for_summary
@@ -64,6 +65,33 @@ class AuthenticatedSellerQaTests(unittest.TestCase):
         source = (runner.__file__ and Path(runner.__file__).read_text())
         self.assertIn("--render-pages", source)
         self.assertIn("render_pages=render_pages", source)
+
+    def test_seller_source_preflight_requires_both_approved_sources(self):
+        ready = {
+            "sourceReadiness": [
+                {"formCode": "TREC-55-1", "readyForRestrictedDraft": True},
+                {"formCode": "TREC-61-0", "readyForRestrictedDraft": True},
+            ]
+        }
+        with patch.object(
+            runner.qa,
+            "_request",
+            return_value=(200, "application/json", json.dumps(ready).encode()),
+        ):
+            runner._assert_seller_sources_ready("https://example.test", "token")
+
+        incomplete = {
+            "sourceReadiness": [
+                {"formCode": "TREC-55-1", "readyForRestrictedDraft": True},
+            ]
+        }
+        with patch.object(
+            runner.qa,
+            "_request",
+            return_value=(200, "application/json", json.dumps(incomplete).encode()),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "TREC-61-0"):
+                runner._assert_seller_sources_ready("https://example.test", "token")
 
 
 if __name__ == "__main__":
