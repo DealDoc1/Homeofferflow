@@ -46,6 +46,20 @@ each preview/report exists, and rejects sensitive transaction data in the
 metadata reports. It does not contact the application or create any side
 effect.
 
+Render each private preview into reviewable page images with the repository
+helper:
+
+```bash
+/Users/andrewchristian/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/bin/python3 \
+scripts/render_qa_pdf.py \
+  /tmp/homeofferflow-auth-qa/txr-1507-1-client-private-preview.pdf \
+  /tmp/homeofferflow-auth-qa/txr-1507-1-rendered
+```
+
+The helper writes `page-01.png`-style images and a metadata-only
+`render-manifest.json`. It never signs or sends anything; the manifest keeps
+the visual-review requirement explicit.
+
 ## Visual review
 
 Render every generated PDF and inspect every applicable visible blank,
