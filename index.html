@@ -12567,6 +12567,7 @@ function routeAfterMagicLinkIfNeeded() {
     };
     const trialEnds = formatBillingDate(subscription.trial_ends_at);
     const cancellationEnds = formatBillingDate(subscription.cancel_at || subscription.current_period_end);
+    const renewalDate = formatBillingDate(subscription.current_period_end);
     if (status === 'trialing' && trialEnds && !card.querySelector('.subscription-trial-notice')) {
       card.insertAdjacentHTML('beforeend',
         '<div class="subscription-trial-notice" style="margin-top:0.75rem; font-size:0.78rem; line-height:1.45; color:var(--gray);">' +
@@ -12577,6 +12578,12 @@ function routeAfterMagicLinkIfNeeded() {
       card.insertAdjacentHTML('beforeend',
         '<div class="subscription-cancel-notice" style="margin-top:0.75rem; font-size:0.78rem; line-height:1.45; color:var(--warn);">' +
         '<strong>Cancellation scheduled.</strong> Access remains available through ' + safe(cancellationEnds) + '.' +
+        '</div>');
+    }
+    if (['active','free_admin'].includes(status) && !subscription.cancel_at_period_end && renewalDate && !card.querySelector('.subscription-renewal-notice')) {
+      card.insertAdjacentHTML('beforeend',
+        '<div class="subscription-renewal-notice" style="margin-top:0.75rem; font-size:0.78rem; line-height:1.45; color:var(--gray);">' +
+        '<strong>Next renewal: ' + safe(renewalDate) + '.</strong> Manage Billing anytime to review or change your plan.' +
         '</div>');
     }
     if (!['active','trialing','free_admin'].includes(status) && !card.querySelector('.ondemand-trial-link')) {
