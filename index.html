@@ -14097,9 +14097,16 @@ function routeAfterMagicLinkIfNeeded() {
       }
       const scored = reviews.map(review => Number(review.score)).filter(score => Number.isFinite(score));
       const trend = scored.length > 1 ? scored[0] - scored[scored.length - 1] : 0;
+      const latestScore = scored.length ? scored[0] : null;
+      const bestScore = scored.length ? Math.max(...scored) : null;
       const trendLabel = scored.length > 1
         ? `${trend > 0 ? '↑' : trend < 0 ? '↓' : '→'} ${Math.abs(trend)} point${Math.abs(trend) === 1 ? '' : 's'} since your oldest saved review`
         : 'Save another review to see your score trend.';
+      const trendSummary = `<div style="display:flex;gap:.45rem;flex-wrap:wrap;margin:.15rem 0 .55rem;color:var(--gray-light);font-size:.76rem;">
+        <span class="platform-pill">${reviews.length} saved review${reviews.length === 1 ? '' : 's'}</span>
+        ${latestScore === null ? '' : `<span class="platform-pill">Latest ${latestScore}/100</span>`}
+        ${bestScore === null ? '' : `<span class="platform-pill good">Best ${bestScore}/100</span>`}
+      </div>`;
       const reviewItems = reviews.map(review => {
         const date = review.created_at ? new Date(review.created_at).toLocaleDateString() : 'Recent';
         const score = Number.isFinite(Number(review.score)) ? `${Number(review.score)}/100` : 'Score pending';
@@ -14120,7 +14127,7 @@ function routeAfterMagicLinkIfNeeded() {
           ${detailHtml}${reopen ? `<div style="margin-top:.45rem;">${reopen}</div>` : ''}
         </div>`;
       }).join('');
-      list.innerHTML = `<div style="margin:.15rem 0 .45rem;color:var(--gray-light);font-size:.76rem;">${escapeAttr(trendLabel)}</div>${reviewItems}<div class="account-actions-row"><button class="btn-secondary" type="button" onclick="startAccountOffer()">Run another review</button></div>`;
+      list.innerHTML = `${trendSummary}<div style="margin:.15rem 0 .45rem;color:var(--gray-light);font-size:.76rem;">${escapeAttr(trendLabel)}</div>${reviewItems}<div class="account-actions-row"><button class="btn-secondary" type="button" onclick="startAccountOffer()">Run another review</button></div>`;
     } catch (err) {
       list.textContent = err?.message || 'Review history could not load.';
     }
