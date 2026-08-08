@@ -11942,6 +11942,8 @@ function routeAfterMagicLinkIfNeeded() {
   .brokerage-safe-table { width:100%; border-collapse:collapse; margin-top:.85rem; font-size:.8rem; }
   .brokerage-safe-table th,.brokerage-safe-table td { padding:.65rem .5rem; border-bottom:1px solid rgba(255,255,255,.1); text-align:left; }
   .brokerage-safe-table th { color:var(--gold-light); font-size:.7rem; text-transform:uppercase; letter-spacing:.05em; }
+  .brokerage-follow-up-action { display:inline-block; border:1px solid rgba(74,140,111,.42); border-radius:8px; background:rgba(74,140,111,.1); color:var(--sage-light); padding:.36rem .52rem; font-size:.7rem; font-weight:900; text-decoration:none; white-space:nowrap; }
+  .brokerage-follow-up-action:hover { background:rgba(74,140,111,.2); }
   .brokerage-safe-kpis { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:.65rem; margin:.85rem 0; }
   .brokerage-safe-kpi { padding:.75rem; border:1px solid rgba(255,255,255,.12); border-radius:12px; background:rgba(255,255,255,.035); }
   .brokerage-safe-kpi span { display:block; color:var(--gray); font-size:.68rem; text-transform:uppercase; letter-spacing:.05em; }
@@ -12395,6 +12397,23 @@ function routeAfterMagicLinkIfNeeded() {
     }
   };
 
+  function brokerageAgentFollowUpAction(agent) {
+    const email = String(agent?.email || '').trim();
+    if (!email) return '<span>—</span>';
+    const engagement = String(agent?.engagement || 'needs_follow_up');
+    const subject = engagement === 'needs_activation'
+      ? 'Let’s get your first HomeOfferFlow offer moving'
+      : engagement === 'needs_follow_up'
+        ? 'Quick HomeOfferFlow follow-up'
+        : 'Your HomeOfferFlow trial and next offer';
+    const body = engagement === 'needs_activation'
+      ? 'I noticed you have HomeOfferFlow access but no saved offer yet. Let’s set up your first offer together: https://homeofferflow.com'
+      : engagement === 'needs_follow_up'
+        ? 'Checking in on your HomeOfferFlow workspace. Let me know if you want help moving the next client offer forward: https://homeofferflow.com'
+        : 'Let’s review your HomeOfferFlow trial and next client offer before renewal: https://homeofferflow.com';
+    return `<a class="brokerage-follow-up-action" href="mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}">Email agent</a>`;
+  }
+
   root.renderBrokerageFoundationPanel = async function renderBrokerageFoundationPanel() {
     const el = document.getElementById('brokerageFoundationPanel');
     if (!el) return;
@@ -12480,7 +12499,7 @@ function routeAfterMagicLinkIfNeeded() {
           '<div class="brokerage-safe-kpi"><span>Needs activation</span><strong>' + Number(m.agentsNeedingActivation || 0) + '</strong></div>' +
           '<div class="brokerage-safe-kpi"><span>Trials ending soon</span><strong>' + Number(m.trialsEndingSoon || 0) + '</strong></div>' +
         '</div>' +
-        '<table class="brokerage-safe-table"><thead><tr><th>Agent</th><th>Membership</th><th>TXR/NAR attestation</th><th>Plan</th><th>Offers</th><th>Signed</th><th>Next action</th><th>Brokerage access</th></tr></thead><tbody>' +
+        '<table class="brokerage-safe-table"><thead><tr><th>Agent</th><th>Membership</th><th>TXR/NAR attestation</th><th>Plan</th><th>Offers</th><th>Signed</th><th>Next action</th><th>Follow up</th><th>Brokerage access</th></tr></thead><tbody>' +
         (agents.length ? agents.map(agent =>
           '<tr><td><strong>' + safe(agent.name || agent.email || 'Agent') + '</strong><br><span>' + safe(agent.email || '') + '</span></td>' +
           '<td>' + safe(agent.membershipStatus || 'pending') + '</td>' +
@@ -12489,12 +12508,13 @@ function routeAfterMagicLinkIfNeeded() {
           '<td>' + Number(agent.activity?.offerCount || 0) + '</td>' +
           '<td>' + Number(agent.activity?.signedCount || 0) + '</td>' +
           '<td>' + safe(agent.nextAction || 'Keep building client offers') + '</td>' +
+          '<td>' + brokerageAgentFollowUpAction(agent) + '</td>' +
           '<td>' + (agent.role === 'agent'
             ? (agent.membershipStatus === 'active'
               ? '<button type="button" class="brokerage-access-button" onclick="setBrokerageMemberStatus(\'' + safe(agent.userId) + '\',\'suspended\')">Suspend</button>'
               : '<button type="button" class="brokerage-access-button" onclick="setBrokerageMemberStatus(\'' + safe(agent.userId) + '\',\'active\')">Restore</button>')
             : '<span>Support-managed</span>') + '</td></tr>'
-        ).join('') : '<tr><td colspan="8">No agents have enrolled yet.</td></tr>') +
+        ).join('') : '<tr><td colspan="9">No agents have enrolled yet.</td></tr>') +
         '</tbody></table>';
     } catch(error) {
       document.getElementById('brokerSafeDashboard').innerHTML =
