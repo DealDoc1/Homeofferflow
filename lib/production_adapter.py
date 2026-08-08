@@ -6,11 +6,40 @@ uploaded-disclosure workflow and rejects paths that have not completed visual QA
 """
 
 import base64
+import importlib.util
+import sys
 from io import BytesIO
+from pathlib import Path
 
 from pypdf import PdfReader, PdfWriter
 
-from api import fill_pdf_20_19_staging as verified
+
+
+def _load_verified_staging_module():
+    """Load the verified adapter without relying on Vercel's ``api`` package.
+
+    Vercel treats files under ``api/`` as serverless entrypoints rather than a
+    normal Python package. A namespace import works locally but can fail in
+    the deployed runtime, so production resolves the known source file
+    explicitly while keeping the same verified implementation.
+    """
+    existing = sys.modules.get("api.fill_pdf_20_19_staging")
+    if existing is not None:
+        return existing
+    source = Path(__file__).resolve().parent.parent / "api" / "fill_pdf_20_19_staging.py"
+    spec = importlib.util.spec_from_file_location("_hof_verified_20_19_staging", source)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"Could not load verified 20-19 adapter from {source}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    # Preserve compatibility with local tests and any code that imports the
+    # verified adapter through its historical module name, without requiring
+    # ``api/`` to become another Vercel function.
+    sys.modules.setdefault("api.fill_pdf_20_19_staging", module)
+    return module
+
+
+verified = _load_verified_staging_module()
 
 
 class UnsupportedOfferPathError(ValueError):
