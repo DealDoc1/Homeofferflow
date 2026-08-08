@@ -8805,7 +8805,7 @@ function routeAfterMagicLinkIfNeeded() {
     const user = platformUser();
     if (!list || !client || !user) return;
     try {
-      const { data, error } = await client.from('hof_seller_leads').select('*').order('created_at', { ascending:false }).limit(12);
+      const { data, error } = await client.from('hof_seller_leads').select('id,user_id,brokerage_id,seller_type,property_address,seller_name,seller_email,seller_phone,asking_price,mortgage_balance,desired_close_date,notes,status,created_at,updated_at').order('created_at', { ascending:false }).limit(12);
       if (error) throw error;
       hofPlatform.sellerLeads = data || [];
       list.innerHTML = hofPlatform.sellerLeads.length ? hofPlatform.sellerLeads.map(row => `
