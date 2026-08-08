@@ -3217,7 +3217,7 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
 
       <div id="nonRealtyDetails" style="display:none; margin-top:1rem;">
         <div class="field-group">
-          <div class="field"><label>Additional Sum for Non-Realty Items ($)</label><input type="number" id="nonRealtyAmount" value="10" placeholder="10"/></div>
+          <div class="field"><label>Additional Sum for Non-Realty Items ($)</label><input type="number" id="nonRealtyAmount" value="" placeholder="Leave blank if no separate amount"/></div>
           <div class="field"><label>Personal Property to Convey</label><textarea id="nonRealtyDescription" rows="5" placeholder="Example: Samsung stainless refrigerator located in kitchen; washer and dryer located in laundry room; patio furniture on back patio. Include model/serial numbers if known."></textarea></div>
           <div class="notice gold">Tip: Be specific. Personal property should be described carefully enough that everyone knows exactly what is included.</div>
         </div>
@@ -6322,7 +6322,7 @@ function routeAfterMagicLinkIfNeeded() {
 
         s.nonRealtyItems = getRadio('nonRealtyItems') || s.nonRealtyItems || 'no';
         if (s.nonRealtyItems === 'yes') {
-          s.nonRealtyAmount = moneyNumber(getVal('nonRealtyAmount') || '10');
+          s.nonRealtyAmount = moneyNumber(getVal('nonRealtyAmount') || '');
           s.nonRealtyDescription = getVal('nonRealtyDescription');
         } else {
           s.nonRealtyAmount = '';
@@ -6610,7 +6610,7 @@ function routeAfterMagicLinkIfNeeded() {
         ${hasLoan ? `<div class="review-row"><span class="rl">Down Payment / Cash</span><span class="rv">${fmtM(s.downPayment)}</span></div>` : ''}
         ${hasLoan ? `<div class="review-row"><span class="rl">Loan Amount</span><span class="rv">${fmtM(s.loanAmount)}</span></div>` : ''}
         ${s.appraisalAddendum && s.appraisalAddendum !== 'none' ? `<div class="review-row"><span class="rl">Appraisal Addendum</span><span class="rv">${s.appraisalAddendum === 'waiver' ? 'Waiver' : s.appraisalAddendum === 'partial' ? 'Partial waiver at ' + fmtM(s.appraisalPartialValue) : 'Additional termination right: ' + (s.appraisalTerminateDays || '—') + ' days / below ' + fmtM(s.appraisalTerminateValue)}</span></div>` : ''}
-        ${s.nonRealtyItems === 'yes' ? `<div class="review-row"><span class="rl">Non-Realty Items</span><span class="rv">${fmtM(s.nonRealtyAmount || 10)} · ${(s.nonRealtyDescription || '').slice(0, 120)}${(s.nonRealtyDescription || '').length > 120 ? '…' : ''}</span></div>` : ''}
+        ${s.nonRealtyItems === 'yes' ? `<div class="review-row"><span class="rl">Non-Realty Items</span><span class="rv">${s.nonRealtyAmount ? fmtM(s.nonRealtyAmount) : 'No separate amount'} · ${(s.nonRealtyDescription || '').slice(0, 120)}${(s.nonRealtyDescription || '').length > 120 ? '…' : ''}</span></div>` : ''}
         ${(window.hofUploadedDisclosureDocs || []).length ? `<div class="review-row"><span class="rl">Uploaded Docs</span><span class="rv">${(window.hofUploadedDisclosureDocs || []).map(d => d.name).join(', ')}</span></div>` : ''}
       </div>
 
@@ -6696,7 +6696,7 @@ function routeAfterMagicLinkIfNeeded() {
     if (group === 'nonRealtyItems') {
       const box = document.getElementById('nonRealtyDetails');
       if (box) box.style.display = value === 'yes' ? 'block' : 'none';
-      if (value === 'yes') setDefaultValue('nonRealtyAmount', '10');
+      if (value === 'yes') setDefaultValue('nonRealtyAmount', '');
     }
 
     if (group === 'survey') {
@@ -7578,7 +7578,7 @@ function routeAfterMagicLinkIfNeeded() {
 
     setDefaultValue('saleWaiverDays', '3');
     setDefaultValue('bkupAdditionalDays', '3');
-    setDefaultValue('nonRealtyAmount', '10');
+    setDefaultValue('nonRealtyAmount', '');
 
     const backupChecked = document.querySelector('input[name="backupOffer"]:checked');
     if (!backupChecked) setRadioValue('backupOffer', 'no');
