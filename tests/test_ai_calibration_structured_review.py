@@ -31,6 +31,12 @@ class AiCalibrationStructuredReviewTests(unittest.TestCase):
         self.assertIn("if (structured) structured.style.display = isCalibration ? 'block' : 'none';", HTML)
         self.assertIn("message: submittedMessage", HTML)
 
+    def test_saved_review_history_exposes_trend_details_and_reopen_action(self):
+        self.assertIn("const trend = scored.length > 1", HTML)
+        self.assertIn("Show risks and next moves", HTML)
+        self.assertIn("Open linked offer", HTML)
+        self.assertIn("resumeOffer('${escapeAttr(review.offer_id)}')", HTML)
+
 
 if __name__ == "__main__":
     unittest.main()

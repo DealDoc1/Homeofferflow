@@ -13950,14 +13950,32 @@ function routeAfterMagicLinkIfNeeded() {
         list.innerHTML = 'Run an AI review in an offer workspace and save it here for quick comparison on your next offer.';
         return;
       }
-      list.innerHTML = reviews.map(review => {
+      const scored = reviews.map(review => Number(review.score)).filter(score => Number.isFinite(score));
+      const trend = scored.length > 1 ? scored[0] - scored[scored.length - 1] : 0;
+      const trendLabel = scored.length > 1
+        ? `${trend > 0 ? '↑' : trend < 0 ? '↓' : '→'} ${Math.abs(trend)} point${Math.abs(trend) === 1 ? '' : 's'} since your oldest saved review`
+        : 'Save another review to see your score trend.';
+      const reviewItems = reviews.map(review => {
         const date = review.created_at ? new Date(review.created_at).toLocaleDateString() : 'Recent';
         const score = Number.isFinite(Number(review.score)) ? `${Number(review.score)}/100` : 'Score pending';
-        return `<div style="display:flex;justify-content:space-between;gap:.8rem;align-items:flex-start;padding:.55rem 0;border-bottom:1px solid rgba(255,255,255,.08);">
-          <div><strong style="color:var(--white);font-size:.82rem;">${escapeAttr(review.summary || 'Saved offer review')}</strong><div style="color:var(--gray);font-size:.72rem;margin-top:.18rem;">${escapeAttr(date)}${review.offer_id ? ' · linked offer' : ''}</div></div>
-          <span class="platform-pill good" style="white-space:nowrap;">${escapeAttr(score)}</span>
+        const risks = Array.isArray(review.risks?.items) ? review.risks.items.slice(0, 4) : [];
+        const suggestions = Array.isArray(review.suggestions?.items) ? review.suggestions.items.slice(0, 4) : [];
+        const detail = [...risks.map(item => `⚠ ${item}`), ...suggestions.map(item => `→ ${item}`)];
+        const detailHtml = detail.length
+          ? `<details style="margin-top:.45rem;"><summary style="cursor:pointer;color:var(--gold-light);font-size:.74rem;">Show risks and next moves</summary><div style="margin-top:.35rem;color:var(--gray-light);font-size:.75rem;line-height:1.45;">${detail.map(item => `<div>${escapeAttr(item)}</div>`).join('')}</div></details>`
+          : '';
+        const reopen = review.offer_id && /^[0-9a-f-]{20,80}$/i.test(String(review.offer_id))
+          ? `<button class="btn-secondary" type="button" style="font-size:.72rem;padding:.35rem .55rem;" onclick="resumeOffer('${escapeAttr(review.offer_id)}')">Open linked offer</button>`
+          : '';
+        return `<div style="padding:.65rem 0;border-bottom:1px solid rgba(255,255,255,.08);">
+          <div style="display:flex;justify-content:space-between;gap:.8rem;align-items:flex-start;">
+            <div><strong style="color:var(--white);font-size:.82rem;">${escapeAttr(review.summary || 'Saved offer review')}</strong><div style="color:var(--gray);font-size:.72rem;margin-top:.18rem;">${escapeAttr(date)}${review.offer_id ? ' · linked offer' : ''}</div></div>
+            <span class="platform-pill good" style="white-space:nowrap;">${escapeAttr(score)}</span>
+          </div>
+          ${detailHtml}${reopen ? `<div style="margin-top:.45rem;">${reopen}</div>` : ''}
         </div>`;
-      }).join('') + '<div class="account-actions-row"><button class="btn-secondary" type="button" onclick="startAccountOffer()">Run another review</button></div>';
+      }).join('');
+      list.innerHTML = `<div style="margin:.15rem 0 .45rem;color:var(--gray-light);font-size:.76rem;">${escapeAttr(trendLabel)}</div>${reviewItems}<div class="account-actions-row"><button class="btn-secondary" type="button" onclick="startAccountOffer()">Run another review</button></div>`;
     } catch (err) {
       list.textContent = err?.message || 'Review history could not load.';
     }
