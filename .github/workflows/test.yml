@@ -32,6 +32,11 @@ jobs:
           PYTHONPATH: .
         run: python -m unittest discover -s tests -q
 
+      - name: Check approved golden packet rendering
+        env:
+          PYTHONPATH: .
+        run: python scripts/check_golden_packet_rendering.py
+
       - name: Run Supabase branch preflight
         run: python scripts/preflight_supabase_branch.py
 
