@@ -472,7 +472,6 @@ class handler(BaseHTTPRequestHandler):
 
     def _activate_brokerage_membership(self, user_id, email, brokerage_id):
         self._require_supabase()
-        self._associate_brokerage_profile(user_id, email, brokerage_id)
         members_url = (
             f"{SUPABASE_URL}/rest/v1/hof_brokerage_members"
             f"?select=id,role,status,suspension_reason"
@@ -492,11 +491,23 @@ class handler(BaseHTTPRequestHandler):
             existing = current.json()
             if existing:
                 member = existing[0]
+                # A removed membership is an explicit brokerage decision, not
+                # a billing suspension. Never recreate it or silently restore
+                # the profile association when a later Stripe event arrives.
                 if (
-                    str(member.get("status") or "") == "suspended"
-                    and str(member.get("suspension_reason") or "") != "billing"
+                    str(member.get("status") or "") == "removed"
+                    or (
+                        str(member.get("status") or "") == "suspended"
+                        and str(member.get("suspension_reason") or "") != "billing"
+                    )
                 ):
                     return
+
+            # Associate the profile only after proving that an existing seat
+            # was not removed or manually suspended by the brokerage.
+            self._associate_brokerage_profile(user_id, email, brokerage_id)
+
+            if existing:
                 response = client.patch(
                     (
                         f"{SUPABASE_URL}/rest/v1/hof_brokerage_members"
@@ -597,8 +608,13 @@ class handler(BaseHTTPRequestHandler):
             print("Stripe subscription refresh for invoice event failed:", str(error))
             subscription = None
 
+        user_id = ""
+        email = ""
+        brokerage_id = ""
         if subscription:
-            payload, _, _, _ = self._extract_subscription_payload(subscription)
+            payload, user_id, email, brokerage_id = self._extract_subscription_payload(
+                subscription
+            )
             # A failed collection attempt must immediately remove packet access,
             # even if the subscription object has not yet reflected `past_due`.
             if status == "past_due":
@@ -621,11 +637,17 @@ class handler(BaseHTTPRequestHandler):
         # agent membership through the normal activation path.
         refreshed_status = str(payload.get("status") or "").lower()
         if refreshed_status in ("past_due", "canceled"):
-            user_id = payload.get("user_id")
-            brokerage_id = payload.get("brokerage_id")
             if user_id and brokerage_id:
                 self._suspend_brokerage_membership_for_billing(
                     user_id, "", brokerage_id
+                )
+        elif refreshed_status in ("active", "trialing"):
+            # Invoice recovery should restore a billing-suspended seat without
+            # waiting for a separately delivered subscription.updated event.
+            # The activation path preserves manual suspensions and removals.
+            if user_id and brokerage_id:
+                self._activate_brokerage_membership(
+                    user_id, email, brokerage_id
                 )
 
     def _suspend_brokerage_membership_for_billing(

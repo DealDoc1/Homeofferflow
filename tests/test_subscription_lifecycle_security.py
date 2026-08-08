@@ -584,7 +584,9 @@ class SubscriptionLifecycleSecurityTests(unittest.TestCase):
         request = webhook.handler.__new__(webhook.handler)
         captured = {}
         request._upsert_subscription_by_user_id = lambda payload: captured.update(payload=payload)
-        request._associate_brokerage_profile = lambda *_args: None
+        request._associate_brokerage_profile = lambda *_args: self.fail(
+            "A manually suspended membership must not restore the profile association."
+        )
 
         class Client:
             def __enter__(self):
@@ -619,6 +621,87 @@ class SubscriptionLifecycleSecurityTests(unittest.TestCase):
 
         self.assertFalse(client.patched)
         self.assertFalse(client.posted)
+
+    def test_recovered_subscription_does_not_restore_removed_membership(self):
+        request = webhook.handler.__new__(webhook.handler)
+        request._associate_brokerage_profile = lambda *_args: self.fail(
+            "A removed membership must not restore the profile association."
+        )
+
+        class Client:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_args):
+                return False
+
+            def get(self, *_args, **_kwargs):
+                return Response(200, [{
+                    "id": "member-removed",
+                    "role": "agent",
+                    "status": "removed",
+                    "suspension_reason": None,
+                }])
+
+            def patch(self, *_args, **_kwargs):
+                self.patched = True
+                return Response(200, [])
+
+            def post(self, *_args, **_kwargs):
+                self.posted = True
+                return Response(201, [])
+
+        client = Client()
+        client.patched = False
+        client.posted = False
+        with patch.object(webhook.httpx, "Client", return_value=client):
+            request._activate_brokerage_membership(
+                "user-removed", "agent@ondemand.test", "ondemand-brokerage"
+            )
+
+        self.assertFalse(client.patched)
+        self.assertFalse(client.posted)
+
+    def test_paid_invoice_restores_billing_suspended_membership(self):
+        request = webhook.handler.__new__(webhook.handler)
+        captured = {}
+        request._iso_now = lambda: "2026-07-29T00:00:00Z"
+        request._stripe_get_subscription = lambda _subscription_id: {
+            "id": "sub_recovered_invoice",
+            "customer": "cus_recovered_invoice",
+            "status": "active",
+            "metadata": {
+                "user_id": "user-recovered-invoice",
+                "email": "agent@ondemand.test",
+                "role": "agent",
+                "brokerage_id": "ondemand-brokerage",
+            },
+            "items": {"data": [{"price": {"id": "price_agent_monthly"}}]},
+        }
+        request._patch_subscription_by_stripe_subscription_id = (
+            lambda subscription_id, payload: captured.update(
+                subscription_id=subscription_id, payload=payload
+            )
+        )
+        request._activate_brokerage_membership = (
+            lambda user_id, email, brokerage_id: captured.update(
+                activated=(user_id, email, brokerage_id)
+            )
+        )
+
+        request._handle_invoice_status(
+            {"subscription": "sub_recovered_invoice"}, "active"
+        )
+
+        self.assertEqual(captured["payload"]["status"], "active")
+        self.assertEqual(
+            captured["activated"],
+            (
+                "user-recovered-invoice",
+                "agent@ondemand.test",
+                "ondemand-brokerage",
+            ),
+        )
 
     def test_billing_suspension_does_not_relabel_manual_or_removed_memberships(self):
         request = webhook.handler.__new__(webhook.handler)
