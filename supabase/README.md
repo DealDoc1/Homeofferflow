@@ -35,6 +35,20 @@ platform-admin access, and reads the tracker using the server-only service key.
   application table. The public browser posts to `/api/partner-lead`; only the
   Vercel function and authenticated admin endpoint use the service role.
 
+## Isolated branch preflight
+
+Before creating a paid Supabase development branch, run the local read-only
+check:
+
+```bash
+python scripts/preflight_supabase_branch.py
+```
+
+The repository currently contains deployment SQL artifacts but not a complete
+ordered `supabase/migrations/` chain or `supabase/config.toml`, so the check is
+expected to fail closed. Do not create a Stripe test branch until the
+authoritative migration chain and project configuration are restored.
+
 ## Founding partner pilot
 
 The pilot is intentionally separate from the full partner marketplace. It can
