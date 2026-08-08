@@ -51,6 +51,19 @@ class TxrSigningRequestPathTests(unittest.TestCase):
         source = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
         self.assertIn('"signingEnabled": TXR_SIGNING_ENABLED', source)
 
+    def test_signwell_signing_urls_are_extracted_only_from_https_recipient_urls(self):
+        self.assertEqual(
+            MODULE._signwell_signing_urls({
+                "recipients": [
+                    {"signing_url": "https://signwell.example/one"},
+                    {"embedded_signing_url": "https://signwell.example/two"},
+                    {"signing_url": "javascript:alert(1)"},
+                    {"signing_url": "https://signwell.example/one"},
+                ]
+            }),
+            ["https://signwell.example/one", "https://signwell.example/two"],
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

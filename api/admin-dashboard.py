@@ -2264,6 +2264,26 @@ def _txr_signwell_recipients(agreement, client_emails, brokerage, agent_user):
     return recipients
 
 
+def _signwell_signing_urls(result):
+    """Extract returned recipient signing URLs without persisting them."""
+    recipients = result.get("recipients") if isinstance(result, dict) else None
+    if not isinstance(recipients, list):
+        return []
+    urls = []
+    for recipient in recipients:
+        if not isinstance(recipient, dict):
+            continue
+        url = str(
+            recipient.get("signing_url")
+            or recipient.get("embedded_signing_url")
+            or recipient.get("signingUrl")
+            or ""
+        ).strip()
+        if url.startswith("https://") and url not in urls:
+            urls.append(url)
+    return urls
+
+
 async def _send_txr_agreement_for_signature(user, data):
     """Create one gated SignWell request for an owned standalone TXR draft.
 
@@ -2402,7 +2422,17 @@ async def _send_txr_agreement_for_signature(user, data):
         f"id=eq.{urllib.parse.quote(agreement_uuid)}",
         {"status": "sent", "signwell_document_id": document_id, "signwell_status": str(result.get("status") or "sent"), "sent_at": now, "updated_at": now, "agreement_data": agreement_data},
     )
-    return {"ok": True, "formCode": form_code, "documentId": document_id, "status": result.get("status") or "sent", "testMode": SIGNWELL_TEST_MODE, "recipientCount": len(recipients)}
+    return {
+        "ok": True,
+        "formCode": form_code,
+        "documentId": document_id,
+        "status": result.get("status") or "sent",
+        "testMode": SIGNWELL_TEST_MODE,
+        "recipientCount": len(recipients),
+        # SignWell may omit these for email-only requests. If present, they
+        # are returned only to the authenticated requester and never stored.
+        "signingUrls": _signwell_signing_urls(result),
+    }
 
 
 class handler(BaseHTTPRequestHandler):
