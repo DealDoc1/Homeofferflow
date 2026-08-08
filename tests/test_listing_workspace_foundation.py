@@ -98,6 +98,8 @@ class ListingWorkspaceFoundationTests(unittest.TestCase):
         self.assertIn("hof_listing_workspace_offers_delete_own", OFFER_COMPARISON_MIGRATION)
         self.assertIn("Seller Offer Comparison Worksheet", INDEX)
         self.assertIn("saveListingWorkspaceOffer", INDEX)
+        self.assertIn("updateListingWorkspaceOfferStatus", INDEX)
+        self.assertIn("Save status", INDEX)
         self.assertIn("It is not a recommendation or contract decision.", INDEX)
 
 
