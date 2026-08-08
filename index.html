@@ -5459,7 +5459,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     } catch (err) {
       hofAuth.myOffers = [];
       list.className = 'offer-empty';
-      list.textContent = 'Could not load offers yet.';
+      list.innerHTML = 'Could not load offers yet. <button type="button" class="btn-secondary" style="margin-top:.65rem" onclick="loadMyOffers()">Retry offers</button>';
       console.warn('Offers load failed:', err);
       try { renderAgentActivationCard(); } catch (e) {}
       return [];
