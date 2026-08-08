@@ -7,7 +7,10 @@ derived from the visually reviewed production placement map.
 """
 
 import unittest
+from io import BytesIO
 from pathlib import Path
+
+import pdfplumber
 
 from lib import production_adapter
 from tests.test_seller_temporary_lease_staging import seller_temp_offer
@@ -98,6 +101,43 @@ class SellerTemporaryLeaseGeometryTests(unittest.TestCase):
             self.assertEqual((field["width"], field["height"]), (24, 10))
             self.assertGreaterEqual(field["x"], 280)
             self.assertLessEqual(field["x"] + field["width"], 550)
+
+    def test_buyer_broker_contact_values_stay_on_their_named_rows(self):
+        """Page 11 must not shift the buyer-broker block up by one row."""
+        offer = seller_temp_offer()
+        offer.update(
+            {
+                "seller1Name": "Seller Lease Seller One",
+                "seller1Email": "seller1@example.com",
+                "seller2Name": "Seller Lease Seller Two",
+                "seller2Email": "seller2@example.com",
+            }
+        )
+        packet = production_adapter.fill_and_merge_20_19(offer)
+        with pdfplumber.open(BytesIO(packet)) as document:
+            words = document.pages[10].extract_words()
+
+        def top_for(text):
+            matches = [
+                word["top"]
+                for word in words
+                if word["text"] == text and word["x0"] >= 100
+            ]
+            self.assertTrue(matches, f"Expected rendered value {text!r} on page 11")
+            return matches[0]
+
+        rows = {
+            "OnDemand": (275, 295),
+            "9010832": (320, 335),
+            "Andrew": (335, 350),
+            "The": (350, 365),
+            "andrew@ondemanddfw.com": (365, 380),
+            "2143649890": (380, 395),
+        }
+        for text, (minimum, maximum) in rows.items():
+            top = top_for(text)
+            self.assertGreaterEqual(top, minimum, text)
+            self.assertLessEqual(top, maximum, text)
 
 
 if __name__ == "__main__":

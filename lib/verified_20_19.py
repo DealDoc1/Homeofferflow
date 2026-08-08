@@ -890,15 +890,16 @@ def build_pages_data(
     pages[10] = [
         (127, 751, addr_full),
 
-        # 17X: Buyer-only broker block reset again. Values sit just above the blank lines,
-        # not on top of labels. No seller/intermediary block is filled for this buyer-agent packet.
+        # Buyer-only broker block. The source form includes an Address row
+        # between Broker Firm and Broker Firm License No.; keep the remaining
+        # values on their named rows instead of shifting them one row upward.
         (110, 503, s.get("agentBrokerage", "") if has_buyer_agent else "", 9),
-        (176, 473, s.get("agentBrokerLicense", "") if has_buyer_agent else "", 9),
-        (150, 458, s.get("agentName", "") if has_buyer_agent else "", 9),
-        (125, 443, s.get("teamName", "") if has_buyer_agent else "", 9),
-        (150, 428, s.get("agentEmail", "") if has_buyer_agent else "", 9),
-        (170, 413, s.get("agentPhone", "") if has_buyer_agent else "", 9),
-        (425, 413, s.get("agentLicense", "") if has_buyer_agent else "", 9),
+        (176, 459, s.get("agentBrokerLicense", "") if has_buyer_agent else "", 9),
+        (150, 444, s.get("agentName", "") if has_buyer_agent else "", 9),
+        (125, 429, s.get("teamName", "") if has_buyer_agent else "", 9),
+        (150, 414, s.get("agentEmail", "") if has_buyer_agent else "", 9),
+        (170, 399, s.get("agentPhone", "") if has_buyer_agent else "", 9),
+        (425, 399, s.get("agentLicense", "") if has_buyer_agent else "", 9),
     ]
 
     # 20-19 Page 12: receipts, no buyer-generated fields.
