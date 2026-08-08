@@ -3825,6 +3825,20 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
     return statuses.map(status => `<option value="${status}" ${status === currentStatus ? 'selected' : ''}>${status.replace(/_/g, ' ')}</option>`).join('');
   }
 
+  function partnerLeadFollowUpAction(row) {
+    const email = String(row?.contact_email || '').trim();
+    if (!email) return '';
+    const paid = String(row?.payment_status || '') === 'paid';
+    const onboarding = String(row?.onboarding_status || 'not_started');
+    const subject = paid
+      ? 'HomeOfferFlow partner onboarding next step'
+      : 'HomeOfferFlow founding partner application';
+    const body = paid
+      ? 'Thanks for partnering with HomeOfferFlow. Let’s confirm your category, market, logo, and written placement terms so onboarding can move forward: https://homeofferflow.com/?partner=1'
+      : 'Following up on your HomeOfferFlow partner application. We can review category, market, tier, and next steps here: https://homeofferflow.com/?partner=1';
+    return `<a class="admin-contact-action" href="mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}">Email partner</a>`;
+  }
+
   async function updatePartnerLeadStatus(leadId) {
     const select = document.getElementById(`partnerLeadStatus-${leadId}`);
     const onboardingSelect = document.getElementById(`partnerOnboardingStatus-${leadId}`);
@@ -3915,7 +3929,7 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
         const onboardingStatus = String(row.onboarding_status || 'not_started');
         const canUpdate = /^[0-9a-f-]{36}$/i.test(leadId);
         return `<div class="admin-row">
-          <div><strong>${adminSafe(row.company_name || 'Partner lead')}</strong><div class="admin-muted">${adminSafe(row.contact_name || '')} · ${adminSafe(row.contact_email || '')}</div></div>
+          <div><strong>${adminSafe(row.company_name || 'Partner lead')}</strong><div class="admin-muted">${adminSafe(row.contact_name || '')} · ${adminSafe(row.contact_email || '')}</div>${partnerLeadFollowUpAction(row) ? `<div class="partner-lead-admin-actions">${partnerLeadFollowUpAction(row)}</div>` : ''}</div>
           <div>${adminSafe(row.market_area || '')}<div class="admin-muted">${adminSafe(row.preferred_model || '')}</div></div>
           <div><span class="admin-pill ${paymentStatus === 'paid' ? 'good' : 'warn'}">${adminSafe(paymentStatus)}</span><div class="admin-muted">${adminSafe(row.partner_type || 'other')} · onboarding: ${adminSafe(onboardingStatus)}</div></div>
           <div>${adminDate(row.created_at)}${canUpdate ? `<div class="partner-lead-admin-actions"><select id="partnerLeadStatus-${leadId}" aria-label="Review status for ${adminSafe(row.company_name || 'partner lead')}">${partnerLeadStatusOptions(status)}</select><select id="partnerOnboardingStatus-${leadId}" aria-label="Onboarding status for ${adminSafe(row.company_name || 'partner lead')}">${partnerOnboardingStatusOptions(onboardingStatus)}</select><button id="partnerLeadSave-${leadId}" type="button" onclick="updatePartnerLeadStatus('${leadId}')">Save</button></div>` : ''}</div>
