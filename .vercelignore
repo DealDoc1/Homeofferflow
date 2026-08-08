@@ -2,6 +2,11 @@
 # do not count it as a production Hobby-plan function.
 api/fill_pdf_20_19_staging.py
 
+# Legacy contract source. Production uses 20-19_0.pdf exclusively; keep the
+# obsolete 20-18 source out of future Vercel bundles while retaining it in git
+# for historical/reference tests.
+20-18_0.pdf
+
 # Local Python bytecode is never part of a deployment.
 **/__pycache__/
 *.pyc
