@@ -9148,7 +9148,7 @@ function routeAfterMagicLinkIfNeeded() {
         <span class="platform-pill">${escapeAttr(listingOfferMoney(row.offer_price))}</span><br>
         ${escapeAttr(row.financing_type || 'Financing not entered')}${row.seller_concessions != null ? ' · concessions ' + escapeAttr(listingOfferMoney(row.seller_concessions)) : ''}${row.closing_date ? ' · close ' + escapeAttr(row.closing_date) : ''}${row.option_days != null ? ' · option ' + escapeAttr(row.option_days) + ' days' : ''}
         ${row.contingency_notes ? '<br><small>Terms to verify: ' + escapeAttr(row.contingency_notes) + '</small>' : ''}
-        ${/^[0-9a-f-]{20,80}$/i.test(String(row.id || '')) ? `<div class="seller-lead-actions"><select id="listingOfferStatus-${escapeAttr(row.id)}" aria-label="Offer comparison status">${listingOfferStatusOptions(row.status || 'received')}</select><button type="button" class="brokerage-access-button" onclick="updateListingWorkspaceOfferStatus('${escapeAttr(row.id)}')">Save status</button></div>` : ''}
+        ${/^[0-9a-f-]{20,80}$/i.test(String(row.id || '')) ? `<div class="seller-lead-actions"><select id="listingOfferStatus-${escapeAttr(row.id)}" aria-label="Offer comparison status">${listingOfferStatusOptions(row.status || 'received')}</select><button type="button" class="brokerage-access-button" onclick="updateListingWorkspaceOfferStatus('${escapeAttr(row.id)}')">Save status</button><button type="button" class="brokerage-access-button" onclick="deleteListingWorkspaceOffer('${escapeAttr(row.id)}')">Remove</button></div>` : ''}
       </div>`).join('') : '<div class="platform-list-item">No comparison notes for this workspace yet.</div>';
   }
 
@@ -9170,6 +9170,27 @@ function routeAfterMagicLinkIfNeeded() {
     } catch (err) {
       console.error('Listing workspace offer comparison status update failed:', err);
       if (status) { status.className = 'platform-status err'; status.textContent = err?.message || 'Could not update offer comparison status.'; }
+    }
+  };
+
+  window.deleteListingWorkspaceOffer = async function deleteListingWorkspaceOffer(offerId) {
+    const id = String(offerId || '');
+    const workspaceId = String(getVal('listingOfferWorkspace') || '');
+    const client = getSupabaseClient();
+    const user = platformUser();
+    if (!client || !user || !workspaceId) return platformStatus('listingOfferStatusMessage', 'Choose a workspace and sign in before removing an offer comparison.', 'err');
+    if (!/^[0-9a-f-]{20,80}$/i.test(id)) return platformStatus('listingOfferStatusMessage', 'Offer comparison identifier is invalid.', 'err');
+    if (!window.confirm('Remove this private offer comparison? This cannot be undone.')) return;
+    const status = document.getElementById('listingOfferStatusMessage');
+    if (status) status.textContent = 'Removing private offer comparison…';
+    try {
+      const { error } = await client.from('hof_listing_workspace_offers').delete().eq('id', id).eq('workspace_id', workspaceId).eq('agent_user_id', user.id);
+      if (error) throw error;
+      if (status) { status.className = 'platform-status ok'; status.textContent = 'Private offer comparison removed.'; }
+      await loadListingWorkspaceOffersFoundation();
+    } catch (err) {
+      console.error('Listing workspace offer comparison removal failed:', err);
+      if (status) { status.className = 'platform-status err'; status.textContent = err?.message || 'Could not remove offer comparison.'; }
     }
   };
 
