@@ -2827,6 +2827,16 @@ class handler(BaseHTTPRequestHandler):
                 "aiCalibrationFeedbackCount": len(_ai_calibration_scenario_ids(feedback)),
                 "aiCalibrationScenarioIds": _ai_calibration_scenario_ids(feedback),
             }
+            ai_calibration_dispositions = {"keep": 0, "revise": 0, "remove": 0}
+            for item in feedback:
+                if not _is_ai_calibration_evidence(item):
+                    continue
+                message = str(item.get("message") or "").lower()
+                for disposition in ai_calibration_dispositions:
+                    if f"reviewer disposition: {disposition}" in message:
+                        ai_calibration_dispositions[disposition] += 1
+                        break
+            metrics["aiCalibrationDispositionCounts"] = ai_calibration_dispositions
             # Five anonymized, human-reviewed scenarios are the minimum evidence
             # threshold documented for any AI scoring/calibration expansion. Keep
             # this as an explicit dashboard signal so an operator cannot confuse
