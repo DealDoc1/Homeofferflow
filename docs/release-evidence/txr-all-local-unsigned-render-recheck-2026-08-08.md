@@ -25,4 +25,7 @@ production send/signing until authenticated point-of-use preview QA,
 document-specific signer-plan confirmation, controlled completed-signature
 visual QA, and release-authority approval are recorded.
 
-Full regression suite: 499 tests passed locally on 2026-08-08.
+Full regression suite: 513 tests passed locally on 2026-08-08 using the pinned
+test-dependency environment. The fresh rendered artifacts were written to
+`/private/tmp/txr_draft_qa_current/rendered` and were inspected page-by-page
+at rendered scale during this recheck.
