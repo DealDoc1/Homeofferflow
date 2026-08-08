@@ -7,6 +7,7 @@ ROOT = Path(__file__).resolve().parents[1]
 INDEX = (ROOT / "index.html").read_text(encoding="utf-8")
 MANIFEST = json.loads((ROOT / "manifest.webmanifest").read_text(encoding="utf-8"))
 WORKER = (ROOT / "service-worker.js").read_text(encoding="utf-8")
+VERCEL = json.loads((ROOT / "vercel.json").read_text(encoding="utf-8"))
 
 
 class PwaBaselineTests(unittest.TestCase):
@@ -31,6 +32,15 @@ class PwaBaselineTests(unittest.TestCase):
         self.assertIn("event.request.mode === 'navigate'", WORKER)
         self.assertIn("caches.match('/index.html')", WORKER)
         self.assertNotIn("caches.match(event.request)", WORKER)
+
+    def test_csp_allows_same_origin_service_worker_registration(self):
+        csp = next(
+            header["value"]
+            for entry in VERCEL["headers"]
+            for header in entry["headers"]
+            if header["key"] == "Content-Security-Policy"
+        )
+        self.assertIn("worker-src 'self' blob:", csp)
 
 
 if __name__ == "__main__":
