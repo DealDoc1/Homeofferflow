@@ -9663,9 +9663,9 @@ function routeAfterMagicLinkIfNeeded() {
     }
   };
 
-  root.copyAiCalibrationPacket = async function copyAiCalibrationPacket() {
+  function buildAiCalibrationPacket() {
     const review = normalizeAiReviewResult(state.data?._lastAiReview || null);
-    const packet = [
+    return [
       'HomeOfferFlow AI calibration packet',
       'Use anonymized transaction facts only. Do not add names, exact addresses, MLS numbers, phone numbers, or email addresses.',
       '',
@@ -9687,12 +9687,31 @@ function routeAfterMagicLinkIfNeeded() {
       '',
       review.disclaimer
     ].join('\n');
+  }
+
+  root.copyAiCalibrationPacket = async function copyAiCalibrationPacket() {
+    const packet = buildAiCalibrationPacket();
     try {
       await navigator.clipboard.writeText(packet);
       const status = document.getElementById('aiFoundationStatus');
       if (status) { status.className = 'platform-status ok'; status.textContent = 'Calibration packet copied. Remove private details before sharing.'; }
     } catch (_) {
       window.prompt('Copy this anonymized AI calibration packet:', packet);
+    }
+  };
+
+  root.downloadAiCalibrationPacket = function downloadAiCalibrationPacket() {
+    const packet = buildAiCalibrationPacket();
+    const blobUrl = URL.createObjectURL(new Blob([packet], { type: 'text/plain;charset=utf-8' }));
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = 'homeofferflow-ai-calibration-packet.txt';
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+    const status = document.getElementById('aiFoundationStatus');
+    if (status) {
+      status.className = 'platform-status ok';
+      status.textContent = 'Calibration packet downloaded. Remove private details before sharing.';
     }
   };
 
@@ -9781,6 +9800,7 @@ function routeAfterMagicLinkIfNeeded() {
           <button type="button" onclick="showAiImproveBox()">${improveButton}</button>
           <button type="button" onclick="copyAiReviewSummary()">Copy Review Summary</button>
           <button type="button" onclick="copyAiCalibrationPacket()">Copy Calibration Packet</button>
+          <button type="button" onclick="downloadAiCalibrationPacket()">Download Calibration Packet</button>
           <button type="button" onclick="openAiCalibrationFeedback()">Review this result</button>
           <button type="button" onclick="prevStep()">Edit Terms</button>
         </div>
