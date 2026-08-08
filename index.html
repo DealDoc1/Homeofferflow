@@ -3888,6 +3888,16 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     return `<a class="admin-contact-action" href="mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}">Follow up</a>`;
   }
 
+  function adminActivationFollowUpAction(row) {
+    const email = String(row?.agent_email || '').trim();
+    if (!email) return '';
+    const name = String(row?.agent_name || 'there').trim();
+    const reason = String(row?.reason || 'continue your HomeOfferFlow setup').trim();
+    const subject = 'HomeOfferFlow next step';
+    const body = `Hi ${name}, your HomeOfferFlow next step is to ${reason.toLowerCase()}. Sign in here to continue: https://homeofferflow.com`;
+    return `<a class="admin-contact-action" href="mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}">Email agent</a>`;
+  }
+
   function sellerLeadAgeLabel(row) {
     const createdAt = Date.parse(row?.created_at || '');
     if (!Number.isFinite(createdAt)) return 'Age unavailable';
@@ -4038,6 +4048,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       const feedback = result.feedback || [];
       const partnerLeads = result.partnerLeads || [];
       const sellerLeads = result.sellerLeads || [];
+      const activationFollowUpQueue = result.activationFollowUpQueue || [];
       window.hofAdminTrackerPayload = {
         roadmap: result.roadmap || [],
         qaScenarios: result.qaScenarios || [],
@@ -4097,6 +4108,12 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <div class="admin-metric-label" style="margin-top:.3rem;color:var(--gray-light)">Incomplete profile: <strong>${metrics.agentProfileIncompleteCount || 0}</strong></div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">No saved offer: <strong>${metrics.agentWithoutOfferCount || 0}</strong></div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Offer without active access: <strong>${metrics.agentOfferWithoutActiveSubscriptionCount || 0}</strong></div>
+          </div>
+
+          <div class="admin-metric">
+            <div class="admin-metric-label">Activation Follow-up Queue</div>
+            <div class="admin-metric-value">${metrics.activationFollowUpCount || activationFollowUpQueue.length || 0}</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Prioritized outreach for agents who can activate or convert.</div>
           </div>
 
           <div class="admin-metric">
@@ -4166,6 +4183,11 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         <div class="admin-section">
           <h4>Subscriptions</h4>
           ${renderAdminRows(subscriptions.slice(0, 8), 'subscriptions')}
+        </div>
+
+        <div class="admin-section">
+          <h4>Agent Activation Follow-up</h4>
+          ${activationFollowUpQueue.length ? activationFollowUpQueue.slice(0, 24).map(row => `<div class="admin-row"><div><strong>${adminSafe(row.agent_name || 'Agent')}</strong><div class="admin-muted">${adminSafe(row.agent_email || '')}</div></div><div>${adminSafe(row.reason || '')}</div><div><span class="admin-pill ${Number(row.priority) === 1 ? 'warn' : ''}">${Number(row.priority) === 1 ? 'Revenue first' : 'Activation'}</span></div><div>${adminActivationFollowUpAction(row)}</div></div>`).join('') : '<div class="admin-empty">No activation follow-up needed.</div>'}
         </div>
 
         <div class="admin-section">
