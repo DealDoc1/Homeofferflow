@@ -15,6 +15,12 @@ class BrokerageInviteAcceptanceMetricsTests(unittest.TestCase):
         self.assertIn('Invite acceptance', frontend)
         self.assertIn('acceptedInviteCount', frontend)
 
+    def test_pending_invites_surface_actionable_acceptance_follow_up(self):
+        frontend = (ROOT / "index.html").read_text(encoding="utf-8")
+        self.assertIn('First invite follow-up:', frontend)
+        self.assertIn('Invite follow-up:', frontend)
+        self.assertIn('inviteAcceptanceNotice', frontend)
+
 
 if __name__ == "__main__":
     unittest.main()
