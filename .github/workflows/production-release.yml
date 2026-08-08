@@ -59,14 +59,26 @@ jobs:
         run: python -m unittest discover -s tests -q
 
       - name: Check patch whitespace
-        run: git diff --check "${{ inputs.base_ref || 'HEAD^' }}" "${{ github.sha }}"
+        run: |
+          if [[ "${{ github.event_name }}" == "push" ]]; then
+            base_ref="$(python scripts/release_base_ref.py)"
+          else
+            base_ref="${{ inputs.base_ref }}"
+          fi
+          echo "Release preflight base: ${base_ref}"
+          git diff --check "${base_ref}" "${{ github.sha }}"
 
       - name: Run fail-closed release preflight
         env:
           PYTHONPATH: .
         run: |
+          if [[ "${{ github.event_name }}" == "push" ]]; then
+            base_ref="$(python scripts/release_base_ref.py)"
+          else
+            base_ref="${{ inputs.base_ref }}"
+          fi
           args=(
-            --base "${{ inputs.base_ref || 'HEAD^' }}"
+            --base "${base_ref}"
             --expected-deploy-author-email "${{ inputs.expected_deploy_author_email || 'andrewchri@gmail.com' }}"
           )
           if [[ -n "${{ inputs.evidence_file }}" ]]; then

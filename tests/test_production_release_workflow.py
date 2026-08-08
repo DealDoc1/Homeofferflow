@@ -23,6 +23,9 @@ class ProductionReleaseWorkflowTests(unittest.TestCase):
     def test_release_runs_preflight_before_deploying(self):
         self.assertIn("needs: verify", self.text)
         self.assertIn("python scripts/release_preflight.py", self.text)
+        self.assertIn("python scripts/release_base_ref.py", self.text)
+        self.assertIn('base_ref="${{ inputs.base_ref }}"', self.text)
+        self.assertNotIn("inputs.base_ref || 'HEAD^'", self.text)
         self.assertIn("python -m unittest discover -s tests -q", self.text)
         self.assertIn("vercel pull --yes --environment=production", self.text)
         self.assertIn("Check Vercel Hobby deployment capacity", self.text)
