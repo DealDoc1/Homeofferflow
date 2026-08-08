@@ -12467,6 +12467,31 @@ function routeAfterMagicLinkIfNeeded() {
     if (summary) summary.textContent = query ? `Showing ${visible} matching agent${visible === 1 ? '' : 's'}.` : `${visible} agent${visible === 1 ? '' : 's'} shown.`;
   };
 
+  root.exportBrokerageRoster = function exportBrokerageRoster() {
+    const agents = Array.isArray(root.hofPlatform?.brokerageAgents) ? root.hofPlatform.brokerageAgents : [];
+    const headers = ['Agent', 'Email', 'Membership', 'Plan', 'Offers', 'Signed', 'Next action', 'Engagement'];
+    const values = agents.map(agent => [
+      agent.name || agent.email || 'Agent',
+      agent.email || '',
+      agent.membershipStatus || 'pending',
+      agent.subscriptionStatus || 'inactive',
+      Number(agent.activity?.offerCount || 0),
+      Number(agent.activity?.signedCount || 0),
+      agent.nextAction || 'Keep building client offers',
+      agent.engagement || ''
+    ]);
+    const csvCell = value => '"' + String(value ?? '').replace(/"/g, '""') + '"';
+    const csv = [headers, ...values].map(row => row.map(csvCell).join(',')).join('\r\n');
+    const blobUrl = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = 'homeofferflow-brokerage-roster.csv';
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+    const summary = document.getElementById('brokerageAgentFilterSummary');
+    if (summary) summary.textContent = `Downloaded ${agents.length} privacy-limited agent record${agents.length === 1 ? '' : 's'}.`;
+  };
+
   root.renderBrokerageFoundationPanel = async function renderBrokerageFoundationPanel() {
     const el = document.getElementById('brokerageFoundationPanel');
     if (!el) return;
@@ -12503,6 +12528,7 @@ function routeAfterMagicLinkIfNeeded() {
       const data = await brokerSummary();
       const m = data.metrics || {};
       const agents = data.agents || [];
+      root.hofPlatform.brokerageAgents = agents;
       const pendingInvites = data.pendingInvites || [];
       const sourceReadiness = data.sourceReadiness || [];
       const sourceStatusLabel = source => source.readyForRestrictedDraft
@@ -12552,7 +12578,7 @@ function routeAfterMagicLinkIfNeeded() {
           '<div class="brokerage-safe-kpi"><span>Needs activation</span><strong>' + Number(m.agentsNeedingActivation || 0) + '</strong></div>' +
           '<div class="brokerage-safe-kpi"><span>Trials ending soon</span><strong>' + Number(m.trialsEndingSoon || 0) + '</strong></div>' +
         '</div>' +
-        '<div class="brokerage-invite-form" style="margin-top:1rem"><label for="brokerageAgentFilter">Find an agent</label><input id="brokerageAgentFilter" type="search" placeholder="Name, email, status, or next action" aria-label="Find an agent" oninput="filterBrokerageAgents(this.value)"><span id="brokerageAgentFilterSummary" class="brokerage-invite-result">' + Number(agents.length) + ' agent' + (agents.length === 1 ? '' : 's') + ' shown.</span></div>' +
+        '<div class="brokerage-invite-form" style="margin-top:1rem"><label for="brokerageAgentFilter">Find an agent</label><input id="brokerageAgentFilter" type="search" placeholder="Name, email, status, or next action" aria-label="Find an agent" oninput="filterBrokerageAgents(this.value)"><button type="button" class="brokerage-access-button" onclick="exportBrokerageRoster()">Download roster CSV</button><span id="brokerageAgentFilterSummary" class="brokerage-invite-result">' + Number(agents.length) + ' agent' + (agents.length === 1 ? '' : 's') + ' shown.</span></div>' +
         '<table class="brokerage-safe-table"><thead><tr><th>Agent</th><th>Membership</th><th>TXR/NAR attestation</th><th>Plan</th><th>Offers</th><th>Signed</th><th>Next action</th><th>Follow up</th><th>Brokerage access</th></tr></thead><tbody>' +
         (agents.length ? agents.map(agent =>
           '<tr data-brokerage-agent-row data-search="' + safe([agent.name, agent.email, agent.membershipStatus, agent.subscriptionStatus, agent.nextAction, agent.engagement].filter(Boolean).join(' ')) + '"><td><strong>' + safe(agent.name || agent.email || 'Agent') + '</strong><br><span>' + safe(agent.email || '') + '</span></td>' +

@@ -461,6 +461,19 @@ class BrokerageAuthorizationTests(unittest.TestCase):
         ):
             self.assertIn(expected, final_script)
 
+    def test_broker_roster_exports_only_privacy_limited_operational_fields(self):
+        marker = INDEX_HTML.index('id="hof-ondemand-brokerage-launch-v1"')
+        final_script = INDEX_HTML[marker:]
+        for expected in (
+            "exportBrokerageRoster",
+            "homeofferflow-brokerage-roster.csv",
+            "Download roster CSV",
+            "agent.activity?.offerCount",
+            "agent.activity?.signedCount",
+        ):
+            self.assertIn(expected, final_script)
+        self.assertNotIn("property_address", final_script[final_script.index("root.exportBrokerageRoster"):final_script.index("root.renderBrokerageFoundationPanel")])
+
     def test_broker_can_create_an_agent_only_invite_link(self):
         actor = {"id": "11111111-1111-1111-1111-111111111111", "email": "tyler@ondemanddfw.com"}
         context = {"brokerage": {"id": "22222222-2222-2222-2222-222222222222"}}
