@@ -14,6 +14,11 @@ class BrokerageBrandingPropagationTests(unittest.TestCase):
             self.assertIn(value, INDEX)
         self.assertIn("window.hofPlatform?.brokerage", INDEX)
 
+    def test_success_page_surfaces_connected_brokerage_branding(self):
+        for value in ("successBrokerageBrand", "Offer packet prepared with your brokerage workspace.", "brandColor", "brandLogo"):
+            self.assertIn(value, INDEX)
+        self.assertIn("/^#[0-9a-f]{6}$/i", INDEX)
+
     def test_production_and_staging_signing_messages_identify_brokerage(self):
         for source in (PRODUCTION, STAGING):
             self.assertIn("brokerage_name", source)
