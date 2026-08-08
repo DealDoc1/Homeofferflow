@@ -84,14 +84,14 @@ def build_signwell_fields_txr1508(data, *, client_count=1):
     if signer_plan not in {"associate_and_clients", "broker_and_clients"}:
         raise ValueError("Choose whether the broker or associate will acknowledge TXR-1508.")
     fields = [
-        {"api_id": "txr1508_agent_initials_p1", "type": "initials", "page": 1, "x": 348, "y": 365, "recipient_id": "associate" if signer_plan == "associate_and_clients" else "broker", "required": True, "width": 72, "height": 18},
-        {"api_id": "txr1508_agent_date_p1", "type": "date", "page": 1, "x": 660, "y": 365, "recipient_id": "associate" if signer_plan == "associate_and_clients" else "broker", "required": True, "width": 88, "height": 20, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
-        {"api_id": "txr1508_client1_initials_p1", "type": "initials", "page": 1, "x": 310, "y": 485, "recipient_id": "1", "required": True, "width": 72, "height": 18},
-        {"api_id": "txr1508_client1_date_p1", "type": "date", "page": 1, "x": 660, "y": 485, "recipient_id": "1", "required": True, "width": 88, "height": 20, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
+        {"api_id": "txr1508_agent_initials_p1", "type": "initials", "page": 1, "x": 520, "y": 672, "recipient_id": "associate" if signer_plan == "associate_and_clients" else "broker", "required": True, "width": 72, "height": 18},
+        {"api_id": "txr1508_agent_date_p1", "type": "date", "page": 1, "x": 625, "y": 672, "recipient_id": "associate" if signer_plan == "associate_and_clients" else "broker", "required": True, "width": 88, "height": 20, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
+        {"api_id": "txr1508_client1_initials_p1", "type": "initials", "page": 1, "x": 520, "y": 728, "recipient_id": "1", "required": True, "width": 72, "height": 18},
+        {"api_id": "txr1508_client1_date_p1", "type": "date", "page": 1, "x": 625, "y": 728, "recipient_id": "1", "required": True, "width": 88, "height": 20, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
     ]
     if client_count == 2:
         fields.extend([
-            {"api_id": "txr1508_client2_initials_p1", "type": "initials", "page": 1, "x": 310, "y": 545, "recipient_id": "2", "required": True, "width": 72, "height": 18},
-            {"api_id": "txr1508_client2_date_p1", "type": "date", "page": 1, "x": 660, "y": 545, "recipient_id": "2", "required": True, "width": 88, "height": 20, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
+            {"api_id": "txr1508_client2_initials_p1", "type": "initials", "page": 1, "x": 520, "y": 785, "recipient_id": "2", "required": True, "width": 72, "height": 18},
+            {"api_id": "txr1508_client2_date_p1", "type": "date", "page": 1, "x": 625, "y": 785, "recipient_id": "2", "required": True, "width": 88, "height": 20, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
         ])
     return [fields]

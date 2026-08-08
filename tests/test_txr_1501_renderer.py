@@ -57,6 +57,9 @@ class Txr1501RendererTests(unittest.TestCase):
         self.assertEqual(len(two), 6)
         self.assertTrue(all(field["page"] == 6 for field in two))
         self.assertEqual({field["api_id"] for field in one}, {"txr1501_client1_signature_p6", "txr1501_client1_date_p6", "txr1501_associate_signature_p6", "txr1501_associate_date_p6"})
+        self.assertEqual(next(field["y"] for field in two if field["api_id"] == "txr1501_client1_signature_p6"), 587)
+        self.assertEqual(next(field["y"] for field in two if field["api_id"] == "txr1501_client2_signature_p6"), 702)
+        self.assertEqual(next(field["y"] for field in two if field["api_id"] == "txr1501_associate_signature_p6"), 605)
         with self.assertRaisesRegex(ValueError, "authorized broker"):
             build_signwell_fields_txr1501({**sample_data(), "signer_plan": "clients_only"}, client_count=1)
         with self.assertRaisesRegex(ValueError, "authorized broker"):

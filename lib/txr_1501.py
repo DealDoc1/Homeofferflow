@@ -140,22 +140,22 @@ def build_signwell_fields_txr1501(data, *, client_count=1):
     if signer_plan not in {"clients_and_associate", "clients_and_broker"}:
         raise ValueError("Choose an authorized broker or broker-associate signer for the TXR-1501 agreement.")
     fields = [
-        {"api_id": "txr1501_client1_signature_p6", "type": "signature", "page": 6, "x": 432, "y": 674, "recipient_id": "1", "required": True, "width": 190, "height": 26},
-        {"api_id": "txr1501_client1_date_p6", "type": "date", "page": 6, "x": 660, "y": 674, "recipient_id": "1", "required": True, "width": 88, "height": 20, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
+        {"api_id": "txr1501_client1_signature_p6", "type": "signature", "page": 6, "x": 533, "y": 587, "recipient_id": "1", "required": True, "width": 120, "height": 26},
+        {"api_id": "txr1501_client1_date_p6", "type": "date", "page": 6, "x": 660, "y": 587, "recipient_id": "1", "required": True, "width": 50, "height": 20, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
     ]
     if client_count == 2:
         fields.extend([
-            {"api_id": "txr1501_client2_signature_p6", "type": "signature", "page": 6, "x": 432, "y": 796, "recipient_id": "2", "required": True, "width": 190, "height": 26},
-            {"api_id": "txr1501_client2_date_p6", "type": "date", "page": 6, "x": 660, "y": 796, "recipient_id": "2", "required": True, "width": 88, "height": 20, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
+            {"api_id": "txr1501_client2_signature_p6", "type": "signature", "page": 6, "x": 533, "y": 702, "recipient_id": "2", "required": True, "width": 120, "height": 26},
+            {"api_id": "txr1501_client2_date_p6", "type": "date", "page": 6, "x": 660, "y": 702, "recipient_id": "2", "required": True, "width": 50, "height": 20, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
         ])
     if signer_plan == "clients_and_associate":
         fields.extend([
-            {"api_id": "txr1501_associate_signature_p6", "type": "signature", "page": 6, "x": 70, "y": 674, "recipient_id": "associate", "required": True, "width": 190, "height": 26},
-            {"api_id": "txr1501_associate_date_p6", "type": "date", "page": 6, "x": 270, "y": 674, "recipient_id": "associate", "required": True, "width": 88, "height": 20, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
+            {"api_id": "txr1501_associate_signature_p6", "type": "signature", "page": 6, "x": 200, "y": 605, "recipient_id": "associate", "required": True, "width": 100, "height": 26},
+            {"api_id": "txr1501_associate_date_p6", "type": "date", "page": 6, "x": 300, "y": 605, "recipient_id": "associate", "required": True, "width": 40, "height": 20, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
         ])
     if signer_plan == "clients_and_broker":
         fields.extend([
-            {"api_id": "txr1501_broker_signature_p6", "type": "signature", "page": 6, "x": 70, "y": 674, "recipient_id": "broker", "required": True, "width": 190, "height": 26},
-            {"api_id": "txr1501_broker_date_p6", "type": "date", "page": 6, "x": 270, "y": 674, "recipient_id": "broker", "required": True, "width": 88, "height": 20, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
+            {"api_id": "txr1501_broker_signature_p6", "type": "signature", "page": 6, "x": 200, "y": 587, "recipient_id": "broker", "required": True, "width": 100, "height": 26},
+            {"api_id": "txr1501_broker_date_p6", "type": "date", "page": 6, "x": 300, "y": 587, "recipient_id": "broker", "required": True, "width": 40, "height": 20, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
         ])
     return [fields]
