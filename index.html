@@ -12306,6 +12306,14 @@ function routeAfterMagicLinkIfNeeded() {
   .brokerage-brand-preview-card img { max-width:150px; max-height:42px; object-fit:contain; object-position:left center; display:block; margin-bottom:.55rem; }
   .brokerage-brand-preview-card strong { display:block; font-size:1rem; }
   .brokerage-brand-preview-card span { display:block; margin-top:.25rem; color:#536171; font-size:.78rem; }
+  .brokerage-activation-card { margin:1rem 0; padding:.85rem; border:1px solid rgba(255,255,255,.12); border-radius:12px; background:rgba(255,255,255,.025); }
+  .brokerage-activation-card h4 { margin:0 0 .2rem; }
+  .brokerage-activation-summary { color:var(--gray-light); font-size:.78rem; margin:.25rem 0 .7rem; }
+  .brokerage-activation-list { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.45rem .8rem; margin:0; padding:0; list-style:none; }
+  .brokerage-activation-list li { display:flex; align-items:center; gap:.45rem; color:var(--gray-light); font-size:.78rem; }
+  .brokerage-activation-list li.is-complete { color:var(--sage-light); }
+  .brokerage-activation-list .activation-mark { width:1.25rem; height:1.25rem; display:inline-flex; align-items:center; justify-content:center; border-radius:50%; border:1px solid rgba(255,255,255,.22); font-size:.7rem; flex:0 0 auto; }
+  .brokerage-activation-list li.is-complete .activation-mark { border-color:var(--sage-light); background:rgba(104,211,145,.12); }
   .brokerage-pending-invites { margin:.7rem 0 0; color:var(--gray-light); font-size:.76rem; line-height:1.5; }
   .brokerage-seat-momentum { display:flex; flex-wrap:wrap; align-items:center; gap:.55rem .8rem; margin:1rem 0 .25rem; padding:.7rem .8rem; border:1px solid rgba(74,140,111,.3); border-radius:11px; background:rgba(74,140,111,.07); color:var(--gray-light); font-size:.76rem; }
   .brokerage-seat-momentum strong { color:var(--sage-light); }
@@ -12880,7 +12888,22 @@ function routeAfterMagicLinkIfNeeded() {
         ? 'Invite agents as your brokerage workflow grows.'
         : openSeats > 0
           ? `${openSeats} seat${openSeats === 1 ? '' : 's'} available for your next agent${openSeats === 1 ? '' : 's'}.`
-          : 'All available agent seats are assigned. Contact support if you need more capacity.';
+            : 'All available agent seats are assigned. Contact support if you need more capacity.';
+      const activationSteps = [
+        { label: 'Set brokerage branding', done: Boolean(b.brand_color || b.logo_url) },
+        { label: 'Add shared title defaults', done: Boolean(b.default_title_company || b.default_title_contact) },
+        { label: 'Invite or connect an agent', done: agents.length > 0 || pendingInvites.length > 0 },
+        { label: 'Create the first offer', done: Number(m.offerCount || 0) > 0 },
+        { label: 'Send the first packet for signing', done: Number(m.signedCount || 0) > 0 }
+      ];
+      const activationComplete = activationSteps.filter(step => step.done).length;
+      const activationCard = '<div class="brokerage-activation-card"><h4>Team launch checklist</h4>' +
+        '<p class="brokerage-activation-summary">' + activationComplete + ' of ' + activationSteps.length + ' launch steps complete. Use this as the fastest path to a repeatable team workflow.</p>' +
+        '<ul class="brokerage-activation-list">' + activationSteps.map(step =>
+          '<li class="' + (step.done ? 'is-complete' : '') + '"><span class="activation-mark">' + (step.done ? '✓' : '○') + '</span><span>' + safe(step.label) + '</span></li>'
+        ).join('') + '</ul>' +
+        (activationComplete < activationSteps.length ? '<button type="button" class="brokerage-access-button" style="margin-top:.7rem" onclick="document.getElementById(&quot;brokerageInviteEmail&quot;)?.focus()">Continue launch</button>' : '<p class="brokerage-invite-result">Your core team workflow is active. Keep using the workspace to build repeat usage.</p>') +
+        '</div>';
       const sourceStatusLabel = source => source.readyForRestrictedDraft
         ? '<span style="color:var(--sage-light)">Ready for private draft</span>'
         : (source.status === 'not_uploaded'
@@ -12911,6 +12934,7 @@ function routeAfterMagicLinkIfNeeded() {
         '<button type="button" class="brokerage-access-button" onclick="saveBrokerageBranding()">Save branding</button></div>' +
         '<p id="brokerageBrandingResult" class="brokerage-invite-result">Set a public color and optional PNG, JPG, or WebP logo (2 MB max). Only active brokerage admins can update this branding.</p>' +
         '<div id="brokerageBrandPreview" class="brokerage-brand-preview"><div class="brokerage-brand-preview-head"><span>Brand preview</span><strong>Offer packet + email touchpoint</strong></div><div id="brokerageBrandPreviewBody"></div></div>' +
+        activationCard +
         '<div class="brokerage-invite-form"><label for="brokerageDefaultTitleCompany">Shared title defaults</label>' +
         '<input id="brokerageDefaultTitleCompany" type="text" value="' + safe(b.default_title_company || '') + '" placeholder="Suggested title company" aria-label="Suggested title company">' +
         '<input id="brokerageDefaultTitleContact" type="text" value="' + safe(b.default_title_contact || '') + '" placeholder="Suggested escrow contact" aria-label="Suggested escrow contact">' +
