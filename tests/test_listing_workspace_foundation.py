@@ -6,6 +6,7 @@ ROOT = Path(__file__).resolve().parents[1]
 MIGRATION = (ROOT / "supabase" / "homeofferflow_listing_workspaces.sql").read_text()
 SERVER_ONLY_MIGRATION = (ROOT / "supabase" / "homeofferflow_listing_workspace_summary_server_only.sql").read_text()
 HARDENING_MIGRATION = (ROOT / "supabase" / "homeofferflow_listing_workspace_hardening.sql").read_text()
+OFFER_COMPARISON_MIGRATION = (ROOT / "supabase" / "migrations" / "20260808201500_listing_workspace_offer_comparison.sql").read_text()
 DOC = (ROOT / "docs" / "SELLER_LISTING_WORKSPACE_FOUNDATION.md").read_text()
 INDEX = (ROOT / "index.html").read_text()
 
@@ -87,6 +88,17 @@ class ListingWorkspaceFoundationTests(unittest.TestCase):
         self.assertIn("Prepare listing workspace", INDEX)
         self.assertIn("Seller lead details copied into a private listing workspace draft", INDEX)
         self.assertIn("seller-lead-actions", INDEX)
+
+    def test_private_offer_comparison_worksheet_is_owner_scoped(self):
+        self.assertIn("create table if not exists public.hof_listing_workspace_offers", OFFER_COMPARISON_MIGRATION)
+        self.assertIn("alter table public.hof_listing_workspace_offers enable row level security", OFFER_COMPARISON_MIGRATION)
+        self.assertIn("hof_listing_workspace_offers_select_own", OFFER_COMPARISON_MIGRATION)
+        self.assertIn("hof_listing_workspace_offers_insert_own", OFFER_COMPARISON_MIGRATION)
+        self.assertIn("hof_listing_workspace_offers_update_own", OFFER_COMPARISON_MIGRATION)
+        self.assertIn("hof_listing_workspace_offers_delete_own", OFFER_COMPARISON_MIGRATION)
+        self.assertIn("Seller Offer Comparison Worksheet", INDEX)
+        self.assertIn("saveListingWorkspaceOffer", INDEX)
+        self.assertIn("It is not a recommendation or contract decision.", INDEX)
 
 
 if __name__ == "__main__":
