@@ -45,6 +45,32 @@ Those remain intentionally sequenced after the core relationship, listing,
 disclosure, and lease workflows. No form is enabled merely because it appears
 in the inventory.
 
+## Inventory reconciliation - 2026-08-08
+
+The supplied 13-page Texas REALTORS(R) blank-form inventory was reconciled
+against this catalog. The following high-value residential forms were present
+in the inventory but were not previously called out as explicit roadmap items:
+
+| Form | Why it matters | Decision |
+| --- | --- | --- |
+| TXR-1503 Termination of Buyer/Tenant Representation Agreement | Relationship lifecycle close-out | Add immediately after TXR-1501/1507; requires the originating agreement and signer context. |
+| TXR-1505 Amendment to Buyer/Tenant Representation Agreement | Relationship lifecycle changes | Add with TXR-1503; never silently alter the original agreement. |
+| TXR-1925 Buyer's Walk-Through, Confirmation, and Acceptance Form | Common pre-closing buyer workflow | Add to the transaction follow-up release after amendments/termination. |
+| TXR-1958 Residential Contract Critical Date List | Deadline tracking and client-facing clarity | Add as a generated checklist only after the underlying contract dates are confirmed. |
+| TXR-2517 Wire Fraud Warning | High-value transaction safety notice | Add to the buyer/listing intake checklist as an explicit acknowledgement workflow. |
+| TXR-1904 Release of Earnest Money | Common post-termination follow-up | Add after termination workflows and define all payee/signature roles. |
+| TXR-1902 / TXR-1945 / TXR-1950 | Buyer termination, offer withdrawal, and seller termination paths | Add as separate role-specific workflows; never collapse them into one generic termination button. |
+| TXR-1912 | Sale-of-other-property contingency notices | Add with the existing sale-contingency packet, with buyer/seller notice recipients explicit. |
+| TXR-1407 / TXR-1421 / TXR-1420 | Sewer, property-condition, and special-taxing-district disclosures | Add to listing/seller disclosure intake, not the buyer offer wizard. |
+| TXR-1502 | Commercial buyer/tenant representation | Capture as a later commercial product track, separate from residential TXR-1501/1507. |
+
+The inventory also includes extensive commercial leasing, property-management,
+farm-and-ranch, and historical notice forms. They are cataloged as future
+coverage rather than launch scope. Their presence does not authorize
+reproduction or production distribution. Each still requires an exact source,
+authorized-use record, signer plan, rendered QA, completed signed-PDF QA, and
+release approval.
+
 ## What HomeOfferFlow supports today
 
 | Workflow | Current scope |
