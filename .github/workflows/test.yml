@@ -38,7 +38,7 @@ jobs:
       - name: Check approved golden packet rendering
         env:
           PYTHONPATH: .
-        run: python scripts/check_golden_packet_rendering.py
+        run: python scripts/check_golden_packet_rendering.py --structural-only
 
       - name: Run Supabase branch preflight
         run: python scripts/preflight_supabase_branch.py

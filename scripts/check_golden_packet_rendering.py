@@ -117,6 +117,11 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--write-baseline", action="store_true", help="Write a candidate manifest after visual approval.")
     parser.add_argument("--scenario", choices=sorted(_offer_scenarios()), help="Render one scenario; useful for local visual approval.")
+    parser.add_argument(
+        "--structural-only",
+        action="store_true",
+        help="Compare rendered page counts and field IDs without platform-specific image hashes (for CI).",
+    )
     args = parser.parse_args()
     actual = build_manifest(args.scenario)
     if args.write_baseline:
@@ -131,6 +136,22 @@ def main():
     expected = json.loads(BASELINE_PATH.read_text(encoding="utf-8"))
     if args.scenario:
         expected = {**expected, "scenarios": {args.scenario: expected["scenarios"].get(args.scenario)}}
+    if args.structural_only:
+        def structural(manifest):
+            return {
+                "version": manifest["version"],
+                "renderer": manifest["renderer"],
+                "max_width": manifest["max_width"],
+                "scenarios": {
+                    name: {
+                        "page_count": scenario["page_count"],
+                        "field_ids": scenario["field_ids"],
+                    }
+                    for name, scenario in manifest["scenarios"].items()
+                },
+            }
+        actual = structural(actual)
+        expected = structural(expected)
     if actual != expected:
         raise SystemExit("Golden packet rendering changed. Review rendered PDFs before updating the approved baseline.")
     print("Golden packet rendering matches the approved baseline.")
