@@ -70,7 +70,7 @@ production workflow after the full regression and rendered-placement checks:
 - verified runtime commit: `26f4e2a Harden seller lead intake privacy and validation`;
 - Vercel deployment: `https://homeofferflow-cxfcayjys-dealdoc1s-projects.vercel.app`;
 - Vercel deployment ID: `dpl_8qguYXEPjeUh6CWYw71GTGpCNqvJ`;
-- GitHub Actions test run: `31257838336` (all jobs passed). The deployment was
+- GitHub Actions test run: `31258649426` (all jobs passed). The deployment was
   intentionally performed once from the verified main branch after the local
   placement/signature gates passed.
 
