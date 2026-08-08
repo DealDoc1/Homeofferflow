@@ -43,13 +43,13 @@
 <body>
 
 <h1>🗂 HomeOfferFlow — PDF Field Mapper & Download Tester</h1>
-<p class="sub">Internal dev tool. Upload the TREC 20-18 PDF, inspect fields, test filling, and verify the download works.</p>
+<p class="sub">Internal dev tool. Upload the current TREC 20-19 PDF, inspect fields, test filling, and verify the download works.</p>
 
 <!-- STEP 1: LOAD PDF -->
 <div class="card">
   <h2>Step 1 — Load the TREC PDF</h2>
-  <p style="font-size:0.85rem; color:#7a8fa8; margin-bottom:1rem;">Upload your local copy of the TREC 20-18 PDF to test field mapping and download.</p>
-  <label class="upload-label" for="pdfUpload">📄 Click to upload trec_20-18.pdf</label>
+  <p style="font-size:0.85rem; color:#7a8fa8; margin-bottom:1rem;">Upload your local copy of the TREC 20-19 PDF to test field mapping and download.</p>
+  <label class="upload-label" for="pdfUpload">📄 Click to upload trec_20-19.pdf</label>
   <input type="file" id="pdfUpload" accept=".pdf" onchange="loadPDF(this)"/>
   <div id="loadStatus"></div>
 </div>
@@ -197,7 +197,7 @@
       });
       form.flatten();
       const out = await pdfDoc.save();
-      download(out, 'TREC_20-18_DEBUG_FIELD_NAMES.pdf');
+      download(out, 'TREC_20-19_DEBUG_FIELD_NAMES.pdf');
       log(`✓ Debug PDF downloaded — ${filled} fields filled with their names`, 'ok');
     } catch(e) {
       log(`✗ Error: ${e.message}`, 'err');
@@ -287,7 +287,7 @@
       } catch(e) { log(`Skip possession checkbox: ${e.message}`); }
 
       const out = await pdfDoc.save();
-      download(out, 'TREC_20-18_TEST_FILLED.pdf');
+      download(out, 'TREC_20-19_TEST_FILLED.pdf');
 
       const msg = `✓ PDF filled and downloaded! <br/><strong>${filled} fields filled</strong> · ${skipped} skipped · ${errors.length ? 'Fields that need remapping: ' + errors.slice(0,3).map(e=>`<code>${e}</code>`).join(', ') : 'No errors!'}`;
       setStatus('fillStatus', msg, filled > 0 ? 'ok' : 'err');
