@@ -1622,8 +1622,8 @@ async def _require_brokerage_txr_authorization(brokerage_id):
         )
 
 
-async def _create_seller_disclosure_draft(user, data):
-    """Create an agent-owned seller disclosure draft, never a sendable packet."""
+async def _prepare_seller_disclosure_draft_record(user, data):
+    """Validate an agent-owned seller disclosure draft, never a sendable packet."""
     draft = seller_disclosure_draft.parse_seller_disclosure_draft(data)
     brokerage_id = await _active_brokerage_member(user)
     if draft.get("listing_workspace_id"):
@@ -1674,6 +1674,11 @@ async def _create_seller_disclosure_draft(user, data):
         "water_rights_data": draft["water_rights_data"],
         "seller_review_attested": False,
     }
+    return brokerage_id, record
+
+
+async def _create_seller_disclosure_draft(user, data):
+    brokerage_id, record = await _prepare_seller_disclosure_draft_record(user, data)
     async with httpx.AsyncClient(timeout=12) as client:
         response = await client.post(
             f"{SUPABASE_URL}/rest/v1/hof_seller_disclosure_drafts",
@@ -1685,6 +1690,40 @@ async def _create_seller_disclosure_draft(user, data):
     rows = response.json()
     if not isinstance(rows, list) or not rows:
         raise RuntimeError("Seller disclosure draft was not returned after saving.")
+    return rows[0]
+
+
+async def _update_seller_disclosure_draft(user, data):
+    """Update an existing agent-owned draft without enabling seller sending."""
+    draft_id = str(data.get("draftId") or "").strip()
+    try:
+        draft_uuid = str(uuid.UUID(draft_id))
+    except (TypeError, ValueError, AttributeError):
+        raise ValueError("Choose a valid seller disclosure draft.")
+    brokerage_id, record = await _prepare_seller_disclosure_draft_record(user, data)
+    existing = await _get(
+        "hof_seller_disclosure_drafts?"
+        f"id=eq.{urllib.parse.quote(draft_uuid)}"
+        f"&agent_user_id=eq.{urllib.parse.quote(user['id'])}"
+        f"&brokerage_id=eq.{urllib.parse.quote(str(brokerage_id))}"
+        "&status=eq.draft&select=id&limit=1"
+    )
+    if not existing:
+        raise PermissionError("That private seller disclosure draft is unavailable.")
+    record["updated_at"] = datetime.now(timezone.utc).isoformat()
+    async with httpx.AsyncClient(timeout=12) as client:
+        response = await client.patch(
+            f"{SUPABASE_URL}/rest/v1/hof_seller_disclosure_drafts?id=eq.{urllib.parse.quote(draft_uuid)}"
+            f"&agent_user_id=eq.{urllib.parse.quote(user['id'])}"
+            f"&brokerage_id=eq.{urllib.parse.quote(str(brokerage_id))}&status=eq.draft",
+            headers={**_headers(), "Prefer": "return=representation"},
+            json=record,
+        )
+    if response.status_code >= 300:
+        raise RuntimeError("Could not update the seller disclosure draft.")
+    rows = response.json()
+    if not isinstance(rows, list) or not rows:
+        raise RuntimeError("Seller disclosure draft was not returned after updating.")
     return rows[0]
 
 
@@ -2807,6 +2846,10 @@ class handler(BaseHTTPRequestHandler):
             if data.get("action") == "create_seller_disclosure_draft":
                 draft = asyncio.run(_create_seller_disclosure_draft(user, data))
                 _json(self, 201, {"status": "ok", "draft": draft, "workflowActivated": False})
+                return
+            if data.get("action") == "update_seller_disclosure_draft":
+                draft = asyncio.run(_update_seller_disclosure_draft(user, data))
+                _json(self, 200, {"status": "ok", "draft": draft, "workflowActivated": False})
                 return
             if data.get("action") == "create_seller_disclosure_review_link":
                 link = asyncio.run(_create_seller_disclosure_review_link(user, data))

@@ -19,6 +19,7 @@ class SellerDisclosureAgentUiTests(unittest.TestCase):
         self.assertIn('loadSellerDisclosureDraft', html)
         self.assertIn('Load draft', html)
         self.assertIn('response_data', html)
+        self.assertIn("update_seller_disclosure_draft", html)
 
     def test_response_controls_cover_all_mapped_groups(self):
         html = (ROOT / "index.html").read_text()

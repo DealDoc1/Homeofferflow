@@ -14308,7 +14308,7 @@ function routeAfterMagicLinkIfNeeded() {
       card.querySelectorAll('[data-seller-response]').forEach(select => { if (select.value) responseData[select.dataset.sellerResponse] = select.value; });
       const waterRightsData = {};
       card.querySelectorAll('[data-water-response]').forEach(select => { if (select.value) waterRightsData[select.dataset.waterResponse] = select.value; });
-      const payload = {action:'create_seller_disclosure_draft',formCode:'TREC-55-1',disclosureSourceId:document.getElementById('hofSellerSource').value,waterSourceId:document.getElementById('hofWaterSource').value || null,listingWorkspaceId:document.getElementById('hofSellerWorkspace').value || null,propertyAddress:document.getElementById('hofSellerAddress').value,sellerNames,buyerNames,responseData,waterRightsData};
+      const payload = {action:card.dataset.loadedDraftId ? 'update_seller_disclosure_draft' : 'create_seller_disclosure_draft',draftId:card.dataset.loadedDraftId || '',formCode:'TREC-55-1',disclosureSourceId:document.getElementById('hofSellerSource').value,waterSourceId:document.getElementById('hofWaterSource').value || null,listingWorkspaceId:document.getElementById('hofSellerWorkspace').value || null,propertyAddress:document.getElementById('hofSellerAddress').value,sellerNames,buyerNames,responseData,waterRightsData};
       if (!token) return alert('Sign in before saving a seller disclosure draft.');
       if (!payload.disclosureSourceId || !payload.propertyAddress.trim() || !sellerNames.length) return alert('Enter the property address, at least one seller, and choose the approved TREC-55-1 source.');
       status.textContent = 'Saving private draft…';
@@ -14316,8 +14316,9 @@ function routeAfterMagicLinkIfNeeded() {
         const response = await fetch('/api/admin-dashboard',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer ' + token},body:JSON.stringify(payload)});
         const result = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(result.error || 'Could not save seller disclosure draft.');
-        status.textContent = 'Saved as a private draft. Seller review and signing are not active yet.';
+        status.textContent = (payload.action === 'update_seller_disclosure_draft' ? 'Private draft updated.' : 'Saved as a private draft.') + ' Seller review and signing are not active yet.';
         card.dataset.sellerDraftId = result.draft?.id || '';
+        card.dataset.loadedDraftId = result.draft?.id || '';
         const sendButton = document.getElementById('hofSendSellerReview');
         if (sendButton) sendButton.disabled = !(card.dataset.sellerDraftId && document.getElementById('hofSellerEmail').value.trim());
         await refreshDrafts();
