@@ -32,5 +32,8 @@ jobs:
           PYTHONPATH: .
         run: python -m unittest discover -s tests -q
 
+      - name: Run Supabase branch preflight
+        run: python scripts/preflight_supabase_branch.py
+
       - name: Check patch whitespace
         run: git diff --check
