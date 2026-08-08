@@ -9357,6 +9357,26 @@ function routeAfterMagicLinkIfNeeded() {
     box.classList.toggle('show');
   }
 
+  root.copyAiReviewSummary = async function copyAiReviewSummary() {
+    const review = normalizeAiReviewResult(state.data?._lastAiReview || null);
+    const summary = [
+      'HomeOfferFlow educational offer review',
+      `Score: ${review.score}/100`,
+      `Summary: ${review.summary || 'Review completed.'}`,
+      `Helps: ${(review.strengths || []).slice(0, 3).join('; ') || 'None listed.'}`,
+      `Watch: ${(review.risks || []).slice(0, 3).join('; ') || 'None listed.'}`,
+      '',
+      review.disclaimer
+    ].join('\n');
+    try {
+      await navigator.clipboard.writeText(summary);
+      const status = document.getElementById('aiFoundationStatus');
+      if (status) { status.className = 'platform-status ok'; status.textContent = 'Review summary copied. Remove any private details before sharing.'; }
+    } catch (_) {
+      window.prompt('Copy this educational review summary:', summary);
+    }
+  };
+
   function renderAiOfferReviewResult(r, loading = false) {
     const el = document.getElementById('inlineAiOfferReview');
     if (!el) return;
@@ -9440,6 +9460,7 @@ function routeAfterMagicLinkIfNeeded() {
         <div class="ai-review-actions ai-review-actions-v5">
           <button type="button" onclick="runLiveAiOfferReview()" ${loading ? 'disabled' : ''}>${loading ? loadingText : liveButton}</button>
           <button type="button" onclick="showAiImproveBox()">${improveButton}</button>
+          <button type="button" onclick="copyAiReviewSummary()">Copy Review Summary</button>
           <button type="button" onclick="openAiCalibrationFeedback()">Review this result</button>
           <button type="button" onclick="prevStep()">Edit Terms</button>
         </div>

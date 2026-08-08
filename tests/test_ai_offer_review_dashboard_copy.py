@@ -24,6 +24,12 @@ class AiOfferReviewDashboardCopyTests(unittest.TestCase):
         self.assertIn('id="aiFeedbackAnonymized"', INDEX_HTML)
         self.assertIn("AI calibration notes must be anonymized before submission.", INDEX_HTML)
 
+    def test_review_result_can_copy_a_privacy_reminded_summary(self):
+        self.assertIn("copyAiReviewSummary", INDEX_HTML)
+        self.assertIn("Copy Review Summary", INDEX_HTML)
+        self.assertIn("Remove any private details before sharing.", INDEX_HTML)
+        self.assertIn("review.disclaimer", INDEX_HTML)
+
     def test_admin_dashboard_surfaces_calibration_notes(self):
         self.assertIn("AI Calibration Notes", INDEX_HTML)
         self.assertIn("Feedback and AI Calibration", INDEX_HTML)
