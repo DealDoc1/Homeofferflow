@@ -256,6 +256,16 @@ async def _brokerage_dashboard_payload(context):
         "&status=eq.pending&select=id,email,role,status,created_at,expires_at"
         "&order=created_at.desc&limit=100"
     )
+    now = datetime.now(timezone.utc)
+    pending_invites_expiring_soon = [
+        invite for invite in pending_invites
+        if (expires_at := _parse_timestamp(invite.get("expires_at")))
+        and now <= expires_at <= now + timedelta(days=3)
+    ]
+    pending_invites_expired = [
+        invite for invite in pending_invites
+        if (expires_at := _parse_timestamp(invite.get("expires_at"))) and expires_at < now
+    ]
     # Expose only source-readiness metadata to the broker dashboard. Never
     # return storage paths, filenames, fingerprints, or source URLs here.
     # Agents do not receive this payload, and source PDFs remain private.
@@ -454,6 +464,9 @@ async def _brokerage_dashboard_payload(context):
             ),
             "agentsNeedingActivation": activation_count,
             "trialsEndingSoon": trials_ending_soon,
+            "pendingInviteCount": len(pending_invites),
+            "pendingInvitesExpiringSoon": len(pending_invites_expiring_soon),
+            "pendingInvitesExpired": len(pending_invites_expired),
         },
         "agents": safe_agents,
         "listingWorkspaceSummary": listing_workspace_summary,
