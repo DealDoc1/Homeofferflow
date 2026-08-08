@@ -17,7 +17,7 @@ packet assets present.
 
 ## Automated verification
 
-- Full Python suite: **527 tests passed**.
+- Full Python suite: **549 tests passed**.
 - Golden packet rendering: **approved baseline matched** for cash single/two
   buyer, conventional single/two buyer, HOA, appraisal, sale of other
   property, backup, seller temporary lease, all supported addenda, and sparse
@@ -26,6 +26,9 @@ packet assets present.
   change is being deployed.
 - Live production PWA smoke check: **passed**.
 - Canonical production pages and API health endpoint: **HTTP 200**.
+- Fresh live release check: `release=18B-controlled-launch`,
+  `trec_main_form=20-19 production`, `signwell_test_mode=false`, and all
+  public policy/launch pages returned HTTP 200.
 
 ## Rendered placement review
 
@@ -37,6 +40,9 @@ Fresh local renders were inspected visually, not inferred from text extraction:
 - backup addendum signature page: buyer/seller signature lines;
 - seller temporary lease page 2: notice fields, landlord/tenant fields, and
   signature/date lines.
+- Current local render recheck also covered the all-supported-addenda packet's
+  backup addendum page 1 and signature page, including the visible A(2) values,
+  Paragraph G/H dates, and buyer/seller signature lines.
 
 Existing completed signed-PDF evidence remains on file for the supported
 purchase packet and seller temporary lease. Those completed packets confirmed
