@@ -95,6 +95,42 @@ def _save_snapshot(user, snapshot):
     return {"id": row.get("id"), "created_at": row.get("created_at"), "score": row.get("score")}
 
 
+def _list_snapshots(user, limit=12):
+    """Return the signed-in user's recent reviews for repeat-use continuity."""
+    if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
+        raise RuntimeError("AI review storage is not configured.")
+    try:
+        limit = int(limit)
+    except (TypeError, ValueError):
+        limit = 12
+    limit = max(1, min(limit, 25))
+    response = httpx.get(
+        f"{SUPABASE_URL}/rest/v1/hof_ai_offer_reviews"
+        f"?user_id=eq.{user['id']}&select=id,offer_id,created_at,score,summary,risks,suggestions"
+        f"&order=created_at.desc&limit={limit}",
+        headers=_service_headers(),
+        timeout=12,
+    )
+    if response.status_code >= 300:
+        raise RuntimeError("AI review history could not be loaded.")
+    rows = response.json() if response.text else []
+    if not isinstance(rows, list):
+        return []
+    return [
+        {
+            "id": row.get("id"),
+            "offer_id": row.get("offer_id"),
+            "created_at": row.get("created_at"),
+            "score": row.get("score"),
+            "summary": _safe_text(row.get("summary"), 240),
+            "risks": row.get("risks") if isinstance(row.get("risks"), dict) else {},
+            "suggestions": row.get("suggestions") if isinstance(row.get("suggestions"), dict) else {},
+        }
+        for row in rows
+        if isinstance(row, dict)
+    ]
+
+
 def _json_response(handler, status, payload):
     body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
     handler.send_response(status)
@@ -688,6 +724,11 @@ class handler(BaseHTTPRequestHandler):
                     return _json_response(self, 401, {"error": "Sign in before saving an AI review snapshot."})
                 snapshot = _parse_snapshot(json.dumps(payload.get("snapshot") or {}).encode("utf-8"))
                 return _json_response(self, 201, {"ok": True, "review": _save_snapshot(user, snapshot)})
+            if payload.get("action") == "list_snapshots":
+                user = _verified_user(self.headers.get("Authorization", ""))
+                if not user:
+                    return _json_response(self, 401, {"error": "Sign in before loading AI review history."})
+                return _json_response(self, 200, {"ok": True, "reviews": _list_snapshots(user, payload.get("limit", 12))})
             offer = payload.get("offer") or payload
             if not isinstance(offer, dict):
                 return _json_response(self, 400, {"error": "Missing offer object."})
