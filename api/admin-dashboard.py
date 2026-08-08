@@ -463,6 +463,9 @@ async def _brokerage_dashboard_payload(context):
                 ]
             ),
             "agentsNeedingActivation": activation_count,
+            "agentsNeedingFollowUp": len([
+                agent for agent in safe_agents if agent.get("engagement") == "needs_follow_up"
+            ]),
             "trialsEndingSoon": trials_ending_soon,
             "pendingInviteCount": len(pending_invites),
             "pendingInvitesExpiringSoon": len(pending_invites_expiring_soon),
