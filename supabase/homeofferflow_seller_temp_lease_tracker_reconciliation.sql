@@ -1,22 +1,34 @@
--- Reconcile the roadmap summary with the fail-closed production adapter.
+-- Reconcile the roadmap summary with the verified production adapter.
 --
--- TREC 15-7 Seller's Temporary Residential Lease has a staging packet and
--- documented staging QA, but api/fill_pdf_20_19_production_adapter.py still
--- rejects this path. The tracker must not advertise it as production until the
--- completed signed-PDF release gate and production verification are approved.
+-- TREC 15-7 Seller's Temporary Residential Lease completed the documented
+-- four-party signed-PDF QA gate and has production recipient-order coverage.
+-- Keep this tracker migration aligned with the production reconciliation so
+-- stale staging-only status cannot generate misleading QA alerts.
 
 begin;
 
 update public.hof_roadmap_items
 set
-  status = 'staging_passed',
-  environment = 'staging',
+  status = 'production',
+  environment = 'production',
   qa_status = 'passed',
-  target_release = 'Next production unlock',
-  current_release = 'agent/seller-temp-lease-staging',
-  known_issues = 'Production adapter still blocks this path until the completed signed-PDF release gate is approved.',
-  next_action = 'Complete the documented signed staging packet review, then create a production unlock PR and verify the production packet.',
-  is_locked = true
+  target_release = null,
+  current_release = '08272d6 Release seller temporary lease execution',
+  known_issues = null,
+  next_action = 'Run the seller-temporary-lease scenario in the golden regression suite after any packet, signer, or production API change.',
+  is_locked = true,
+  updated_at = now()
 where slug = 'seller-temporary-lease';
+
+update public.hof_roadmap_items
+set
+  status = 'production',
+  environment = 'production',
+  qa_status = 'passed',
+  current_release = '08272d6 Release seller temporary lease execution',
+  known_issues = null,
+  next_action = 'Retain four-party seller temporary lease SignWell recipient-order coverage in every production release.',
+  updated_at = now()
+where slug = 'target-seller-temporary-lease';
 
 commit;

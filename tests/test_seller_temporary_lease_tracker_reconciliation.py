@@ -12,12 +12,12 @@ PRODUCTION_MIGRATION = (
 
 
 class SellerTemporaryLeaseTrackerReconciliationTests(unittest.TestCase):
-    def test_tracker_never_marks_the_fail_closed_path_as_production(self):
+    def test_tracker_matches_the_verified_production_release(self):
         self.assertIn("where slug = 'seller-temporary-lease'", MIGRATION)
-        self.assertIn("status = 'staging_passed'", MIGRATION)
-        self.assertIn("environment = 'staging'", MIGRATION)
-        self.assertIn("Production adapter still blocks this path", MIGRATION)
-        self.assertNotIn("status = 'production'", MIGRATION)
+        self.assertIn("status = 'production'", MIGRATION)
+        self.assertIn("environment = 'production'", MIGRATION)
+        self.assertIn("08272d6 Release seller temporary lease execution", MIGRATION)
+        self.assertIn("four-party seller temporary lease SignWell recipient-order coverage", MIGRATION)
 
     def test_production_reconciliation_matches_completed_release_evidence(self):
         self.assertIn("where slug = 'seller-temporary-lease'", PRODUCTION_MIGRATION)
