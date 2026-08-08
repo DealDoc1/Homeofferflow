@@ -14,6 +14,8 @@ class PartnerMarketplaceTrackerReconciliationTests(unittest.TestCase):
         self.assertIn("launch charge is collected at checkout", SQL)
         self.assertIn("renews monthly unless canceled", SQL)
         self.assertIn("written agreement before activation", SQL)
+        self.assertIn("lifecycle reporting and directory attribution instrumentation", SQL)
+        self.assertIn("impression/click events", SQL)
 
 
 if __name__ == "__main__":
