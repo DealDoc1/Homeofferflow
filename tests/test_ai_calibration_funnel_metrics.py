@@ -19,6 +19,7 @@ class AiCalibrationFunnelMetricTests(unittest.TestCase):
         self.assertIn('"aiCalibrationReviewStartCount"', backend)
         self.assertIn('"aiCalibrationPacketDownloadCount"', backend)
         self.assertIn('"aiCalibrationReviewerInviteCopyCount"', backend)
+        self.assertIn('"aiCalibrationReviewerEmailStartCount"', backend)
         self.assertIn('"aiCalibrationReviewCompletionCount"', backend)
         self.assertIn('aiCalibrationReviewCompletionRate', backend)
         self.assertIn('aiCalibrationScenarioFunnel', backend)
@@ -26,6 +27,7 @@ class AiCalibrationFunnelMetricTests(unittest.TestCase):
         self.assertIn("packet downloads", frontend)
         self.assertIn("completed", frontend)
         self.assertIn("copyAiCalibrationReviewerInvite", frontend)
+        self.assertIn("emailAiCalibrationReviewer", frontend)
         self.assertIn("reviewer outreach templates copied", frontend)
         self.assertIn("Scenario funnel", frontend)
 

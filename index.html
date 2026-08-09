@@ -4236,11 +4236,12 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.aiReviewOutputCount || 0} generated review outputs (not calibration evidence)</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.aiCalibrationReviewStartCount || 0} reviewer starts · ${metrics.aiCalibrationPacketDownloadCount || 0} packet downloads · ${metrics.aiCalibrationReviewCompletionCount || 0} completed (${Number(metrics.aiCalibrationReviewCompletionRate || 0).toFixed(1)}% of starts).</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.aiCalibrationReviewerInviteCopyCount || 0} reviewer outreach templates copied.</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.aiCalibrationReviewerEmailStartCount || 0} scenario-specific reviewer emails opened.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Disposition: keep <strong>${calibrationDispositions.keep || 0}</strong> · revise <strong>${calibrationDispositions.revise || 0}</strong> · remove <strong>${calibrationDispositions.remove || 0}</strong></div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Scenarios: ${adminSafe(calibrationScenarioSummary)}</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Scenario funnel (starts / packets / completed): ${adminSafe(calibrationFunnelSummary)}</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:${metrics.aiCalibrationReady ? 'var(--sage-light)' : 'var(--gold-light)'}">${metrics.aiCalibrationReady ? 'Ready for expert review gate' : 'Needs anonymized scenarios'}</div>
-            ${metrics.aiCalibrationReady ? '' : `<div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Missing: ${missingCalibrationIds.join(', ')}</div><div style="margin-top:.35rem">${calibrationReviewActions} <button type="button" class="admin-contact-action" onclick='downloadAiCalibrationReviewerPacket(${JSON.stringify(missingCalibrationIds)})'>Download reviewer packet</button> <button type="button" class="admin-contact-action" onclick='copyAiCalibrationReviewerInvite(${JSON.stringify(missingCalibrationIds)})'>Copy reviewer outreach</button></div>`}
+            ${metrics.aiCalibrationReady ? '' : `<div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Missing: ${missingCalibrationIds.join(', ')}</div><div style="margin-top:.35rem">${calibrationReviewActions} <button type="button" class="admin-contact-action" onclick='downloadAiCalibrationReviewerPacket(${JSON.stringify(missingCalibrationIds)})'>Download reviewer packet</button> <button type="button" class="admin-contact-action" onclick='copyAiCalibrationReviewerInvite(${JSON.stringify(missingCalibrationIds)})'>Copy reviewer outreach</button> ${missingCalibrationIds.slice(0, 5).map(id => `<button type="button" class="admin-contact-action" onclick="emailAiCalibrationReviewer('${id}')">Email ${id}</button>`).join(' ')}</div>`}
           </div>
 
           <div class="admin-metric">
@@ -5190,6 +5191,22 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     } catch (error) {
       alert('Could not copy the reviewer outreach template. Download the reviewer packet and copy its scenario list instead.');
     }
+  }
+
+  function emailAiCalibrationReviewer(scenarioId) {
+    const scenario = /^AI-CAL-0[1-5]$/.test(String(scenarioId || '')) ? String(scenarioId) : '';
+    if (!scenario) return false;
+    const subject = `HomeOfferFlow anonymized AI review: ${scenario}`;
+    const body = [
+      `Please review the anonymized HomeOfferFlow AI offer-competitiveness scenario ${scenario}.`,
+      'Use the reviewer packet, do not include identifying transaction details, and submit one in-app calibration note with a keep, revise, or remove disposition.',
+      'Reviewer packet and submission flow: https://homeofferflow.com'
+    ].join(' ');
+    logOfferEvent(null, 'ai_calibration_reviewer_email_started', 'started', 'AI calibration reviewer email opened.', {
+      calibrationScenario: scenario
+    });
+    window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    return false;
   }
 
   async function copyMissingFormIntakeBrief(codes = [], counts = {}) {
