@@ -13584,6 +13584,9 @@ function routeAfterMagicLinkIfNeeded() {
       const seatCap = m.agentSeatCap == null ? null : Number(m.agentSeatCap);
       const openSeats = seatCap == null ? null : Math.max(0, seatCap - seatCount);
       const seatPercent = seatCap && seatCap > 0 ? Math.min(100, Math.round((seatCount / seatCap) * 100)) : null;
+      const teamPacketUsage = Number(m.teamPacketUsage || 0);
+      const teamPacketLimit = Number(m.teamPacketLimit || 0);
+      const teamUsagePercent = teamPacketLimit > 0 ? Math.min(100, Math.round((teamPacketUsage / teamPacketLimit) * 100)) : null;
       const seatMomentum = seatCap == null
         ? 'Invite agents as your brokerage workflow grows.'
         : openSeats > 0
@@ -13652,6 +13655,7 @@ function routeAfterMagicLinkIfNeeded() {
           '<div class="brokerage-safe-kpi"><span>Agent seats</span><strong>' + Number(m.agentSeatCount || 0) + ' / ' + (m.agentSeatCap == null ? '—' : Number(m.agentSeatCap)) + '</strong></div>' +
           '<div class="brokerage-safe-kpi"><span>Offers</span><strong>' + Number(m.offerCount || 0) + '</strong></div>' +
           '<div class="brokerage-safe-kpi"><span>Signed</span><strong>' + Number(m.signedCount || 0) + '</strong></div>' +
+          '<div class="brokerage-safe-kpi"><span>Team packets this month</span><strong>' + teamPacketUsage + (teamPacketLimit ? ' / ' + teamPacketLimit : '') + '</strong><small>' + (m.usageBillingMonth ? safe(m.usageBillingMonth) : 'Current billing month') + '</small></div>' +
           '<div class="brokerage-safe-kpi"><span>Needs activation</span><strong>' + Number(m.agentsNeedingActivation || 0) + '</strong></div>' +
           '<div class="brokerage-safe-kpi"><span>Needs follow-up</span><strong>' + Number(m.agentsNeedingFollowUp || 0) + '</strong></div>' +
           '<div class="brokerage-safe-kpi"><span>Needs access</span><strong>' + Number(m.agentsNeedingSubscription || 0) + '</strong></div>' +
@@ -13663,14 +13667,15 @@ function routeAfterMagicLinkIfNeeded() {
           '<div class="brokerage-safe-kpi"><span>Accepted → active</span><strong>' + Number(m.acceptedInviteActivationRate || 0) + '%</strong><small>' + Number(m.acceptedInviteActiveCount || 0) + ' active · ' + acceptedInviteNeedingActivationCount + ' to finish · ' + Number(m.acceptedInviteNeedingActivationAgedCount || 0) + ' aged</small></div>' +
           '<div class="brokerage-safe-kpi"><span>Accepted → subscribed</span><strong>' + Number(m.acceptedInviteSubscriptionRate || 0) + '%</strong><small>' + Number(m.acceptedInviteSubscribedCount || 0) + ' with active access</small></div>' +
         '</div>' +
-        '<div class="brokerage-seat-momentum"><strong>' + (seatPercent == null ? 'Team growth' : 'Seat utilization: ' + seatPercent + '%') + '</strong><span>' + safe(seatMomentum) + '</span><button type="button" class="brokerage-access-button" onclick="document.getElementById(\'brokerageInviteEmail\')?.focus()">Invite an agent</button></div>' +
+        '<div class="brokerage-seat-momentum"><strong>' + (seatPercent == null ? 'Team growth' : 'Seat utilization: ' + seatPercent + '%') + '</strong><span>' + safe(seatMomentum) + (teamUsagePercent == null ? '' : ' Team packet usage: ' + teamUsagePercent + '% this month.') + '</span><button type="button" class="brokerage-access-button" onclick="document.getElementById(\'brokerageInviteEmail\')?.focus()">Invite an agent</button></div>' +
         '<div class="brokerage-invite-form" style="margin-top:1rem"><label for="brokerageAgentFilter">Find an agent</label><input id="brokerageAgentFilter" type="search" placeholder="Name, email, status, or next action" aria-label="Find an agent" oninput="filterBrokerageAgents(this.value)"><button type="button" class="brokerage-access-button" onclick="exportBrokerageRoster()">Download roster CSV</button><span id="brokerageAgentFilterSummary" class="brokerage-invite-result">' + Number(agents.length) + ' agent' + (agents.length === 1 ? '' : 's') + ' shown.</span></div>' +
-        '<table class="brokerage-safe-table"><thead><tr><th>Agent</th><th>Membership</th><th>TXR/NAR attestation</th><th>Plan / renewal</th><th>Last activity</th><th>Offers</th><th>Signed</th><th>Next action</th><th>Follow up</th><th>Brokerage access</th></tr></thead><tbody>' +
+        '<table class="brokerage-safe-table"><thead><tr><th>Agent</th><th>Membership</th><th>TXR/NAR attestation</th><th>Plan / renewal</th><th>Usage</th><th>Last activity</th><th>Offers</th><th>Signed</th><th>Next action</th><th>Follow up</th><th>Brokerage access</th></tr></thead><tbody>' +
         (agents.length ? agents.map(agent =>
           '<tr data-brokerage-agent-row data-search="' + safe([agent.name, agent.email, agent.membershipStatus, agent.subscriptionStatus, agent.nextAction, agent.engagement].filter(Boolean).join(' ')) + '"><td><strong>' + safe(agent.name || agent.email || 'Agent') + '</strong><br><span>' + safe(agent.email || '') + '</span></td>' +
           '<td>' + safe(agent.membershipStatus || 'pending') + (agent.inviteAccepted ? '<br><small>Invite accepted</small>' : '') + '</td>' +
           '<td>' + (agent.txrAgentAuthorized ? '<span title="Attested ' + safe(agent.txrAgentAttestedAt || '') + '">Attested</span>' : 'Not yet attested') + '</td>' +
           '<td>' + safe(brokerageAgentBillingWindow(agent)) + '</td>' +
+          '<td>' + Number(agent.usage?.used || 0) + (agent.usage?.limit ? ' / ' + Number(agent.usage.limit) : '') + '<br><small>' + safe(agent.usage?.billingMonth || '') + '</small></td>' +
           '<td>' + safe(brokerageAgentDate(agent.activity?.lastOfferAt)) + '</td>' +
           '<td>' + Number(agent.activity?.offerCount || 0) + '</td>' +
           '<td>' + Number(agent.activity?.signedCount || 0) + '</td>' +
@@ -13681,7 +13686,7 @@ function routeAfterMagicLinkIfNeeded() {
               ? '<button type="button" class="brokerage-access-button" onclick="setBrokerageMemberStatus(\'' + safe(agent.userId) + '\',\'suspended\')">Suspend</button>'
               : '<button type="button" class="brokerage-access-button" onclick="setBrokerageMemberStatus(\'' + safe(agent.userId) + '\',\'active\')">Restore</button>')
             : '<span>Support-managed</span>') + '</td></tr>'
-        ).join('') : '<tr><td colspan="10">No agents have enrolled yet.</td></tr>') +
+        ).join('') : '<tr><td colspan="11">No agents have enrolled yet.</td></tr>') +
         '</tbody></table>';
       root.renderBrokerageBrandPreview();
     } catch(error) {

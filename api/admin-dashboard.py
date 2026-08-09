@@ -421,6 +421,8 @@ async def _brokerage_dashboard_payload(context):
     agent_profiles = []
     subscriptions = []
     offers = []
+    usage_events = []
+    billing_month = datetime.now(timezone.utc).strftime("%Y-%m")
     if user_ids:
         encoded_ids = ",".join(urllib.parse.quote(user_id) for user_id in user_ids)
         agent_profiles = await _get_optional(
@@ -431,17 +433,39 @@ async def _brokerage_dashboard_payload(context):
         subscriptions = await _get_optional(
             "hof_subscriptions?"
             f"user_id=in.({encoded_ids})"
-            "&select=user_id,status,plan,trial_ends_at,current_period_end"
+            "&select=user_id,status,plan,packet_limit,trial_ends_at,current_period_end"
         )
+        # Usage telemetry is loaded after the core roster queries so older
+        # deployments without this optional table remain compatible.
         offers = await _get_optional(
             "hof_offers?"
             f"user_id=in.({encoded_ids})"
             "&deleted_at=is.null&select=user_id,status,signwell_status,created_at,updated_at"
             "&order=created_at.desc&limit=2000"
         )
+        try:
+            usage_events = await _get_optional(
+                "hof_usage_events?"
+                f"user_id=in.({encoded_ids})&billing_month=eq.{billing_month}"
+                "&event_type=eq.signed_packet&select=user_id,quantity&limit=100000"
+            )
+        except Exception:
+            # A missing or temporarily unavailable telemetry table must not
+            # hide the core brokerage roster and activity payload.
+            usage_events = []
 
     profile_by_user = {str(row.get("user_id")): row for row in agent_profiles}
     subscription_by_user = {str(row.get("user_id")): row for row in subscriptions}
+    usage_by_user = {}
+    for event in usage_events:
+        user_id = str(event.get("user_id") or "")
+        if not user_id:
+            continue
+        try:
+            quantity = max(0, int(event.get("quantity") or 0))
+        except (TypeError, ValueError):
+            quantity = 0
+        usage_by_user[user_id] = usage_by_user.get(user_id, 0) + quantity
     accepted_invite_user_ids = {
         str(member.get("user_id"))
         for member in members
@@ -539,6 +563,11 @@ async def _brokerage_dashboard_payload(context):
             {"offerCount": 0, "signedCount": 0, "awaitingCount": 0, "draftCount": 0, "lastOfferAt": None},
         )
         subscription_status = str(subscription.get("status") or "").lower()
+        monthly_used = usage_by_user.get(user_id, 0)
+        try:
+            monthly_limit = max(0, int(subscription.get("packet_limit") or 0))
+        except (TypeError, ValueError):
+            monthly_limit = 0
         has_active_access = subscription_status in {"active", "trialing", "free_admin"}
         billing_attention = subscription_status in {"past_due", "canceled", "incomplete", "incomplete_expired"}
         if invite_accepted and str(member.get("status") or "pending").lower() != "active":
@@ -585,6 +614,12 @@ async def _brokerage_dashboard_payload(context):
                 "plan": subscription.get("plan"),
                 "trialEndsAt": subscription.get("trial_ends_at"),
                 "currentPeriodEnd": subscription.get("current_period_end"),
+                "usage": {
+                    "billingMonth": billing_month,
+                    "used": monthly_used,
+                    "limit": monthly_limit,
+                    "remaining": max(0, monthly_limit - monthly_used) if monthly_limit else None,
+                },
                 "activity": activity,
                 "engagement": engagement,
                 "nextAction": next_action,
@@ -638,6 +673,13 @@ async def _brokerage_dashboard_payload(context):
             "acceptedInviteActivationRate": accepted_invite_activation_rate,
             "acceptedInviteSubscribedCount": accepted_invite_subscribed_count,
             "acceptedInviteSubscriptionRate": accepted_invite_subscription_rate,
+            "usageBillingMonth": billing_month,
+            "teamPacketUsage": sum(usage_by_user.values()),
+            "teamPacketLimit": sum(
+                max(0, int(row.get("packet_limit") or 0))
+                for row in subscriptions
+                if str(row.get("status") or "").lower() in {"active", "trialing", "free_admin"}
+            ),
         },
         "agents": safe_agents,
         "listingWorkspaceSummary": listing_workspace_summary,
