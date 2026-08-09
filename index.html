@@ -4219,6 +4219,8 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Privacy-safe requests for missing forms or addenda. Use this signal to rank the next source-intake workflow.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Top requested codes: ${adminSafe((metrics.missingFormTopCodes || []).join(' · '), 'No form code identified')}</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Demand counts: ${adminSafe(Object.entries(metrics.missingFormRequestCodeCounts || {}).slice(0, 5).map(([code, count]) => `${code} (${count})`).join(' · '), 'No normalized code requests')}</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.missingFormIntakeBriefCopyCount || 0} source-intake briefs copied.</div>
+            <div style="margin-top:.35rem"><button type="button" class="admin-contact-action" onclick='copyMissingFormIntakeBrief(${JSON.stringify(metrics.missingFormTopCodes || [])}, ${JSON.stringify(metrics.missingFormRequestCodeCounts || {})})'>Copy source-intake brief</button></div>
           </div>
 
           <div class="admin-metric">
@@ -5155,6 +5157,38 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       alert('Reviewer outreach template copied. Send it to a qualified broker or agent, then use the matching scenario ID in the feedback form.');
     } catch (error) {
       alert('Could not copy the reviewer outreach template. Download the reviewer packet and copy its scenario list instead.');
+    }
+  }
+
+  async function copyMissingFormIntakeBrief(codes = [], counts = {}) {
+    const requestedCodes = Array.isArray(codes)
+      ? codes.filter(code => /^[A-Z0-9 -]{2,40}$/i.test(String(code))).slice(0, 5)
+      : [];
+    const safeCounts = counts && typeof counts === 'object' ? counts : {};
+    const demandLines = requestedCodes.map(code => `${code} (${Number(safeCounts[code] || 0)} requests)`);
+    const brief = [
+      'HomeOfferFlow authorized Texas form source-intake request',
+      'Requested codes:',
+      ...(demandLines.length ? demandLines : ['No normalized code identified; please review the demand signal.']),
+      '',
+      'Please provide the current official source PDF/template, exact revision/version, source owner/authorization attestation, signer-role plan, and rendered field/signature QA evidence.',
+      'Demand evidence is not approval and must not activate, generate, send, or sign a legal form.',
+      'HomeOfferFlow: https://homeofferflow.com'
+    ].join('\n');
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(brief);
+      } else {
+        const textarea = document.createElement('textarea');
+        textarea.value = brief; textarea.setAttribute('readonly', ''); textarea.style.position = 'fixed'; textarea.style.opacity = '0';
+        document.body.appendChild(textarea); textarea.select(); document.execCommand('copy'); textarea.remove();
+      }
+      logOfferEvent(null, 'missing_form_intake_brief_copied', 'copied', 'Missing-form source intake brief copied.', {
+        requestedCodes
+      });
+      alert('Source-intake brief copied. Obtain authorized source ownership and QA before activation.');
+    } catch (error) {
+      alert('Could not copy the source-intake brief. Review the normalized demand codes and source requirements in the admin card.');
     }
   }
 

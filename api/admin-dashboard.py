@@ -2905,6 +2905,9 @@ class handler(BaseHTTPRequestHandler):
                 item for item in feedback if str(item.get("issue_type") or "").lower() == "missing_addendum"
             ])
             missing_form_request_code_counts = _missing_form_request_code_counts(feedback)
+            missing_form_intake_brief_copy_count = len([
+                item for item in events if item.get("event_type") == "missing_form_intake_brief_copied"
+            ])
             ai_review_outputs = asyncio.run(_get_optional(
                 "hof_ai_offer_reviews?select=id,created_at&order=created_at.desc&limit=100"
             ))
@@ -3224,6 +3227,7 @@ class handler(BaseHTTPRequestHandler):
                 "missingFormRequestCount": missing_form_request_count,
                 "missingFormRequestCodeCounts": missing_form_request_code_counts,
                 "missingFormTopCodes": list(missing_form_request_code_counts)[:5],
+                "missingFormIntakeBriefCopyCount": missing_form_intake_brief_copy_count,
                 # Generated AI outputs are useful context, but do not count as
                 # human calibration evidence for the five-scenario release gate.
                 "aiReviewOutputCount": len(ai_review_outputs),

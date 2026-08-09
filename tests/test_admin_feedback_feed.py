@@ -27,6 +27,8 @@ class AdminFeedbackFeedTests(unittest.TestCase):
         self.assertIn('"missingFormRequestCount": missing_form_request_count', source)
         self.assertIn('"missingFormRequestCodeCounts": missing_form_request_code_counts', source)
         self.assertIn('"missingFormTopCodes": list(missing_form_request_code_counts)[:5]', source)
+        self.assertIn('"missingFormIntakeBriefCopyCount": missing_form_intake_brief_copy_count', source)
+        self.assertIn('missing_form_intake_brief_copied', source)
         frontend = (ROOT / "index.html").read_text(encoding="utf-8")
         self.assertIn("Missing Form Demand", frontend)
         self.assertIn("missingFormRequestCount", frontend)
@@ -51,6 +53,8 @@ class AdminFeedbackFeedTests(unittest.TestCase):
         frontend = (ROOT / "index.html").read_text(encoding="utf-8")
         self.assertIn("missingFormRequestCodeCounts", frontend)
         self.assertIn("Demand counts:", frontend)
+        self.assertIn("copyMissingFormIntakeBrief", frontend)
+        self.assertIn("Copy source-intake brief", frontend)
 
 
 if __name__ == "__main__":
