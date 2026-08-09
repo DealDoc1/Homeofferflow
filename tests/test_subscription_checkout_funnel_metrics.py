@@ -28,6 +28,12 @@ class SubscriptionCheckoutFunnelMetricTests(unittest.TestCase):
         self.assertIn("hof_subscription_checkout_cancelled", source)
         self.assertIn("Checkout was canceled.", source)
 
+    def test_subscription_checkout_ignores_rapid_duplicate_starts(self):
+        source = (ROOT / "index.html").read_text(encoding="utf-8")
+        self.assertIn("if (window.__hofSubscriptionCheckoutInFlight) return;", source)
+        self.assertIn("window.__hofSubscriptionCheckoutInFlight = true;", source)
+        self.assertGreaterEqual(source.count("window.__hofSubscriptionCheckoutInFlight = false;"), 2)
+
 
 if __name__ == "__main__":
     unittest.main()

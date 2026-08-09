@@ -4758,6 +4758,8 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   }
 
   async function startSubscriptionCheckout(plan = 'agent', billing = 'monthly') {
+    if (window.__hofSubscriptionCheckoutInFlight) return;
+    window.__hofSubscriptionCheckoutInFlight = true;
     const user = hofAuth?.session?.user;
     const accessToken = hofAuth?.session?.access_token || '';
     const normalizedPlan = plan === 'investor' ? 'investor' : 'agent';
@@ -4765,6 +4767,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     const email = user?.email || document.getElementById('authEmail')?.value?.trim() || document.getElementById('paymentEmail')?.value?.trim() || '';
 
     if (!email || !email.includes('@') || !accessToken) {
+      window.__hofSubscriptionCheckoutInFlight = false;
       alert('Please log in before starting a subscription.');
       openAuthModal(normalizedPlan);
       return;
@@ -4793,6 +4796,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       if (!result.url) throw new Error('Stripe did not return a checkout URL.');
       window.location.href = result.url;
     } catch (err) {
+      window.__hofSubscriptionCheckoutInFlight = false;
       console.error('Subscription checkout failed:', err);
       alert('Subscription checkout failed: ' + (err?.message || err));
     }
