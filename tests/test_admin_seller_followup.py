@@ -16,6 +16,12 @@ class AdminSellerFollowUpTests(unittest.TestCase):
         self.assertIn("sellerFollowUpEmailStartCount", INDEX)
         self.assertIn('>Follow up</a>', INDEX)
 
+    def test_paid_partner_queue_reuses_tracked_follow_up_action(self):
+        queue_start = INDEX.index("if (type === 'paid-partner-activation')")
+        queue_end = INDEX.index("if (type === 'seller-leads')", queue_start)
+        queue = INDEX[queue_start:queue_end]
+        self.assertIn("partnerLeadFollowUpAction(row)", queue)
+
 
 if __name__ == "__main__":
     unittest.main()

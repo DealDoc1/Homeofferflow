@@ -4000,7 +4000,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       if (type === 'paid-partner-activation') {
         const email = String(row.contact_email || '').trim();
         const age = sellerLeadAgeLabel(row);
-        const followUp = email ? `<a class="admin-contact-action" href="mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent('HomeOfferFlow partner activation follow-up')}">Email partner</a>` : '';
+        const followUp = email ? partnerLeadFollowUpAction(row) : '';
         return `<div class="admin-row">
           <div><strong>${adminSafe(row.company_name || 'Paid partner')}</strong><div class="admin-muted">${adminSafe(row.contact_name || '')} · ${adminSafe(email)}</div>${followUp ? `<div class="partner-lead-admin-actions">${followUp}</div>` : ''}</div>
           <div>${adminSafe(row.partner_type || 'partner')}<div class="admin-muted">${adminSafe(row.market_area || '')}</div></div>
