@@ -12,6 +12,9 @@ class FsboRequestConfirmationTests(unittest.TestCase):
         self.assertIn("Seller request saved", HTML)
         self.assertIn("confirm scope, provider involvement, availability, and final pricing", HTML)
         self.assertIn("This is an intake record, not checkout", HTML)
+        self.assertIn("const fsboNextSteps", HTML)
+        self.assertIn("Your next steps:", HTML)
+        self.assertIn("Wait for qualified professional review before choosing a contract path.", HTML)
 
     def test_fsbo_submission_prevents_same_device_duplicate_lead_retries(self):
         self.assertIn('id="fsboSellerSubmit"', HTML)

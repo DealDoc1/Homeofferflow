@@ -10772,6 +10772,15 @@ function routeAfterMagicLinkIfNeeded() {
       body: 'A higher-touch path for motivated sellers: FSBO launch kit, flat-fee MLS interest, one seller offer review, contract-to-close support intake, and partner recommendations. Best for serious sellers trying to avoid traditional full-service listing costs while still getting structure.'
     }
   };
+  const fsboNextSteps = {
+    free_intake: ['Confirm your property facts and target timeline.', 'Gather recent photos, repair notes, and any prior listing information.', 'Watch for a HomeOfferFlow follow-up about the path that fits your goals.'],
+    seller_prep: ['List repairs, cleaning, staging, and photo-readiness needs.', 'Gather recent utility, improvement, and property-condition records.', 'Keep your target timing handy for scope and provider review.'],
+    launch_kit: ['Collect your best property photos and key upgrades.', 'Write down showing constraints and preferred launch timing.', 'Keep comparable homes or pricing questions ready for the planning conversation.'],
+    flat_fee_mls: ['Collect property facts, photos, and your preferred list timing.', 'Flag HOA, occupancy, and disclosure questions for the licensed-provider review.', 'Wait for availability, scope, and final pricing confirmation before taking payment action.'],
+    offer_review: ['Keep every buyer offer and addendum together.', 'Note financing, concession, option-period, and closing-date differences.', 'Wait for qualified professional review before choosing a contract path.'],
+    contract_help: ['Organize your accepted contract, title contact, and lender contact.', 'Write down upcoming deadlines and unanswered transaction questions.', 'Use the appropriate licensed party for legal, brokerage, title, and amendment decisions.'],
+    premium_bundle: ['Collect property facts, photos, and your target timeline.', 'List prep, marketing, MLS, offer-review, and closing-support priorities.', 'Wait for the confirmed scope and provider plan before any paid service begins.']
+  };
   window.selectFsboNeed = function(key) {
     const selected = fsboNeedCopy[key] ? key : 'free_intake';
     const input = document.getElementById('fsboNeed');
@@ -10793,6 +10802,7 @@ function routeAfterMagicLinkIfNeeded() {
     const key = fsboVal('fsboNeed') || 'free_intake';
     const item = fsboNeedCopy[key] || fsboNeedCopy.free_intake;
     const partners = getFsboPartners();
+    const steps = fsboNextSteps[key] || fsboNextSteps.free_intake;
     const summary = [
       'HomeOfferFlow FSBO seller request summary',
       `Package interest: ${item.title} (${item.price})`,
@@ -10801,6 +10811,9 @@ function routeAfterMagicLinkIfNeeded() {
       `Email: ${fsboVal('fsboSellerEmail') || 'Not provided'}`,
       `Timeline: ${fsboVal('fsboTimeline') || 'Not sure yet'}`,
       `Partner interests: ${partners.length ? partners.join(', ') : 'None selected'}`,
+      '',
+      'Your next steps:',
+      ...steps.map((step, index) => `${index + 1}. ${step}`),
       '',
       'This is an intake record, not checkout, representation, a confirmed service order, or legal advice. Scope, availability, provider involvement, and final pricing must be confirmed separately.'
     ].join('\n');
@@ -10858,10 +10871,12 @@ function routeAfterMagicLinkIfNeeded() {
       if (!res.ok) throw new Error(data.error || 'Could not save seller request.');
       try { sessionStorage.setItem(submissionKey, data.seller_lead_id || 'saved'); } catch (_) {}
       const selected = fsboNeedCopy[fsboVal('fsboNeed')] || fsboNeedCopy.free_intake;
+      const steps = fsboNextSteps[fsboVal('fsboNeed')] || fsboNextSteps.free_intake;
       if (status) {
         status.className = 'platform-status ok';
         status.innerHTML = '<strong>Seller request saved.</strong><br>' +
           escapeAttr(selected.title) + ' is recorded for follow-up. A human review is still required to confirm scope, provider involvement, availability, and final pricing before any paid service begins.' +
+          '<ol style="margin:.65rem 0 .1rem 1.2rem;color:var(--gray-light);line-height:1.45;">' + steps.map(step => '<li>' + escapeAttr(step) + '</li>').join('') + '</ol>' +
           '<div class="account-actions-row" style="margin-top:.7rem;display:flex;gap:.55rem;flex-wrap:wrap;">' +
           '<button class="btn-secondary" type="button" onclick="downloadFsboRequestSummary()">Download request summary</button>' +
           '<button class="btn-secondary" type="button" onclick="closeFsboSellerModal()">Done</button></div>';
