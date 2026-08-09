@@ -183,7 +183,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         ${renderOfferEvents(events)}
         <div class="offer-detail-actions">
           <button class="offer-action-btn" type="button" onclick="resumeOffer('${__opsEscape(offer.id)}')">Resume</button>
-          <button class="offer-action-btn" type="button" onclick="duplicateOffer('${__opsEscape(offer.id)}')">Duplicate</button>
+          <button class="offer-action-btn" type="button" onclick="duplicateOffer('${__opsEscape(offer.id)}', false, true)">Duplicate &amp; edit</button>
           <button class="offer-action-btn" type="button" onclick="refreshSignWellStatus('${__opsEscape(offer.id)}', this)">Refresh Status</button>
           <button class="offer-action-btn danger" type="button" onclick="closeOfferDetail()">Close</button>
         </div>`;
@@ -210,7 +210,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         <div class="offer-actions">
           <button class="offer-action-btn" type="button" onclick="viewOfferDetails('${__opsEscape(o.id)}')">View</button>
           <button class="offer-action-btn" type="button" onclick="resumeOffer('${__opsEscape(o.id)}')">Resume</button>
-          <button class="offer-action-btn" type="button" onclick="duplicateOffer('${__opsEscape(o.id)}')">Duplicate</button>
+          <button class="offer-action-btn" type="button" onclick="duplicateOffer('${__opsEscape(o.id)}', false, true)">Duplicate &amp; edit</button>
           ${o.signwell_document_id ? `<button class="offer-action-btn" type="button" onclick="refreshSignWellStatus('${__opsEscape(o.id)}', this)">Refresh</button>` : ''}
           <button class="offer-action-btn danger" type="button" onclick="deleteOffer('${__opsEscape(o.id)}')">Delete</button>
         </div>
@@ -6097,7 +6097,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         <div class="offer-crm-actions">
           <button class="offer-action-btn" type="button" onclick="viewOfferDetails('${escapeAttr(o.id)}')">View</button>
           <button class="offer-action-btn" type="button" onclick="resumeOffer('${escapeAttr(o.id)}')">Resume</button>
-          <button class="offer-action-btn" type="button" onclick="duplicateOffer('${escapeAttr(o.id)}')">Duplicate</button>
+          <button class="offer-action-btn" type="button" onclick="duplicateOffer('${escapeAttr(o.id)}', false, true)">Duplicate &amp; edit</button>
           ${hasSignwellDoc ? `<button class="offer-action-btn" type="button" onclick="refreshSignWellStatus('${escapeAttr(o.id)}', this)">Refresh</button>` : ''}
           <button class="offer-action-btn danger" type="button" onclick="deleteOffer('${escapeAttr(o.id)}')">Delete</button>
         </div>
@@ -11976,7 +11976,7 @@ function routeAfterMagicLinkIfNeeded() {
       <div class="offer-workspace-actions">
         <button class="offer-action-btn" type="button" onclick="viewOfferDetails('${esc(o.id)}')">View</button>
         <button class="offer-action-btn" type="button" onclick="resumeOffer('${esc(o.id)}')">Resume</button>
-        <button class="offer-action-btn" type="button" onclick="duplicateOffer('${esc(o.id)}')">Duplicate</button>
+        <button class="offer-action-btn" type="button" onclick="duplicateOffer('${esc(o.id)}', false, true)">Duplicate &amp; edit</button>
         ${hasDoc ? `<button class="offer-action-btn" type="button" onclick="refreshSignWellStatus('${esc(o.id)}', this)">Refresh</button>` : `<button class="offer-action-btn" type="button" onclick="viewOfferDetails('${esc(o.id)}')">Status</button>`}
         <button class="offer-action-btn danger" type="button" onclick="deleteOffer('${esc(o.id)}')">Delete</button>
       </div>
@@ -12135,7 +12135,7 @@ function routeAfterMagicLinkIfNeeded() {
         ${timeline}
         <div class="offer-detail-actions">
           <button class="offer-action-btn" type="button" onclick="resumeOffer('${esc(offer.id)}')">Resume</button>
-          <button class="offer-action-btn" type="button" onclick="duplicateOffer('${esc(offer.id)}')">Duplicate</button>
+          <button class="offer-action-btn" type="button" onclick="duplicateOffer('${esc(offer.id)}', false, true)">Duplicate &amp; edit</button>
           ${offer.signwell_document_id ? `<button class="offer-action-btn" type="button" onclick="refreshSignWellStatus('${esc(offer.id)}', this)">Refresh SignWell</button>` : ''}
           <button class="offer-action-btn danger" type="button" onclick="closeOfferDetail()">Close</button>
         </div>`;
