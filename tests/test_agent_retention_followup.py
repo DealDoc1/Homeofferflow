@@ -16,6 +16,8 @@ class AgentRetentionFollowUpTests(unittest.TestCase):
         self.assertIn("Retention", frontend)
         self.assertIn("retentionFollowUpAgedCount", frontend)
         self.assertIn("inactive 60+ days", frontend)
+        self.assertIn("Let’s restart your HomeOfferFlow workflow", frontend)
+        self.assertIn("Reactivate", frontend)
         self.assertIn("Keep your HomeOfferFlow workflow moving", frontend)
 
 
