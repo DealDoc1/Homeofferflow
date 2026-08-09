@@ -21,6 +21,12 @@ class OfferWorkspaceRetryTests(unittest.TestCase):
         self.assertIn("skipReload = false, suppressAlert = false", HTML)
         self.assertIn("Sync signing status", HTML)
 
+    def test_workspace_has_a_stale_draft_and_signing_attention_queue(self):
+        self.assertIn("function needsAttention(o)", HTML)
+        self.assertIn("Needs attention", HTML)
+        self.assertIn("Resume this stale draft", HTML)
+        self.assertIn("Refresh signing status and follow up", HTML)
+
 
 if __name__ == "__main__":
     unittest.main()

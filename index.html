@@ -11703,6 +11703,9 @@ function routeAfterMagicLinkIfNeeded() {
 
   function nextAction(o){
     const b = bucketForOffer(o);
+    const ageDays = Math.floor((Date.now() - new Date(o.last_updated || o.created_at || Date.now()).getTime()) / 86400000);
+    if (b === 'draft' && ageDays >= 2) return 'Resume this stale draft';
+    if ((b === 'generated' || b === 'signing') && ageDays >= 2) return 'Refresh signing status and follow up';
     if (b === 'draft') return 'Resume and finish packet';
     if (b === 'generated') return 'Confirm buyer signing email';
     if (b === 'signing') return 'Refresh buyer signing status';
@@ -11726,7 +11729,17 @@ function routeAfterMagicLinkIfNeeded() {
 
   function matchesFilter(o){
     if (state.filter === 'all') return true;
+    if (state.filter === 'attention') return needsAttention(o);
     return bucketForOffer(o) === state.filter;
+  }
+
+  function needsAttention(o){
+    const bucket = bucketForOffer(o);
+    if (!['draft', 'generated', 'signing'].includes(bucket)) return false;
+    const updated = new Date(o.last_updated || o.created_at || 0).getTime();
+    if (!Number.isFinite(updated) || updated <= 0) return false;
+    const ageDays = (Date.now() - updated) / 86400000;
+    return (bucket === 'draft' && ageDays >= 2) || ((bucket === 'generated' || bucket === 'signing') && ageDays >= 1);
   }
 
   function matchesQuery(o){
@@ -11749,8 +11762,9 @@ function routeAfterMagicLinkIfNeeded() {
   }
 
   function counts(offers){
-    const c = { all:offers.length, draft:0, generated:0, signing:0, signed:0, inactive:0 };
+    const c = { all:offers.length, attention:0, draft:0, generated:0, signing:0, signed:0, inactive:0 };
     offers.forEach(o => { const b = bucketForOffer(o); c[b] = (c[b] || 0) + 1; });
+    offers.forEach(o => { if (needsAttention(o)) c.attention += 1; });
     return c;
   }
 
@@ -11840,6 +11854,7 @@ function routeAfterMagicLinkIfNeeded() {
         </div>
         <div class="offer-filter-tabs">
           ${tab('all','All')}
+          ${tab('attention','Needs attention')}
           ${tab('draft','Drafts')}
           ${tab('generated','Generated')}
           ${tab('signing','Signing')}
