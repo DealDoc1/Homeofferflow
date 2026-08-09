@@ -2714,12 +2714,13 @@ class handler(BaseHTTPRequestHandler):
                     "hof_seller_disclosure_review_links?"
                     f"agent_user_id=eq.{urllib.parse.quote(user['id'])}"
                     f"&brokerage_id=eq.{urllib.parse.quote(str(brokerage_id))}"
-                    "&select=draft_id,seller_name,seller_index,expires_at,revoked_at,viewed_at,verified_at,seller_attested_at,created_at"
+                    "&select=draft_id,seller_email,seller_name,seller_index,expires_at,revoked_at,viewed_at,verified_at,seller_attested_at,created_at"
                     "&order=created_at.desc&limit=300"
                 ))
                 links_by_draft = {}
                 for link in review_links:
                     links_by_draft.setdefault(str(link.get("draft_id") or ""), []).append({
+                        "sellerEmail": link.get("seller_email"),
                         "sellerName": link.get("seller_name"),
                         "sellerIndex": link.get("seller_index"),
                         "expiresAt": link.get("expires_at"),

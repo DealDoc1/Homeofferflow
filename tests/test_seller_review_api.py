@@ -66,6 +66,8 @@ class SellerReviewApiTests(unittest.TestCase):
         ui = (ROOT / "index.html").read_text()
         self.assertIn("sellerReviewLinks", api)
         self.assertIn("sellerReviewProgress", api)
+        self.assertIn("seller_email", api)
+        self.assertIn("sellerEmail", api)
         self.assertIn("No seller review request sent", ui)
         self.assertIn("reviewStatus", ui)
 
@@ -74,6 +76,13 @@ class SellerReviewApiTests(unittest.TestCase):
         self.assertIn("/api/admin-dashboard?scope=seller_disclosure_drafts", ui)
         self.assertIn("Authorization: 'Bearer ' + token", ui)
         self.assertIn("return payload.drafts || []", ui)
+
+    def test_incomplete_review_can_restore_recipients_for_follow_up(self):
+        ui = (ROOT / "index.html").read_text()
+        self.assertIn("hof-seller-followup", ui)
+        self.assertIn("Review recipient details are restored", ui)
+        self.assertIn("sellerReviewLinks", ui)
+        self.assertIn("hofSeller2Email", ui)
 
 
 if __name__ == "__main__":

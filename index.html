@@ -14710,6 +14710,9 @@ function routeAfterMagicLinkIfNeeded() {
     setValue('hofWaterSource', draft.water_source_id);
     setValue('hofSeller1', draft.seller_names?.[0]);
     setValue('hofSeller2', draft.seller_names?.[1]);
+    const reviewLinks = Array.isArray(draft.sellerReviewLinks) ? draft.sellerReviewLinks : [];
+    setValue('hofSellerEmail', reviewLinks.find(link => Number(link.sellerIndex) === 1)?.sellerEmail);
+    setValue('hofSeller2Email', reviewLinks.find(link => Number(link.sellerIndex) === 2)?.sellerEmail);
     setValue('hofBuyer1', draft.buyer_names?.[0]);
     setValue('hofBuyer2', draft.buyer_names?.[1]);
     document.querySelectorAll('[data-seller-response]').forEach(select => { select.value = draft.response_data?.[select.dataset.sellerResponse] || ''; });
@@ -14717,8 +14720,13 @@ function routeAfterMagicLinkIfNeeded() {
     const card = document.getElementById('hofSellerDisclosureCard');
     if (card) {
       card.dataset.loadedDraftId = draft.id || '';
+      card.dataset.sellerDraftId = draft.id || '';
+      const sendButton = document.getElementById('hofSendSellerReview');
+      if (sendButton) sendButton.disabled = !(draft.id && document.getElementById('hofSellerEmail')?.value.trim());
       const status = document.getElementById('hofSellerDraftStatus');
-      if (status) status.textContent = 'Draft loaded. Save creates a new private revision; seller review and signing remain inactive.';
+      if (status) status.textContent = draft.sellerReviewProgress?.requested && !draft.seller_review_attested
+        ? 'Draft loaded. Review recipient details are restored so you can resend the secure seller review request.'
+        : 'Draft loaded. Save creates a new private revision; seller review and signing remain inactive.';
       card.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   };
@@ -14747,7 +14755,8 @@ function routeAfterMagicLinkIfNeeded() {
           : progress.requested
             ? (progress.attested ? progress.attested + ' seller review' + (progress.attested === 1 ? '' : 's') + ' complete' : progress.requested + ' review request' + (progress.requested === 1 ? '' : 's') + ' sent')
             : 'No seller review request sent';
-        return '<li data-seller-draft-row data-search="' + escape([d.property_address, ...(d.seller_names || []), d.status, d.disclosure_source_revision, d.water_source_revision, reviewStatus].filter(Boolean).join(' ')) + '"><span><strong>' + escape(d.property_address) + '</strong><br><small>' + escape((d.seller_names || []).join(', ')) + ' · ' + escape(d.disclosure_source_revision || '') + (d.water_source_revision ? ' + TREC-61-0' : '') + ' · ' + escape(reviewStatus) + '</small></span><button type="button" class="btn-secondary hof-seller-load" data-id="' + escape(d.id) + '">Load draft</button><button type="button" class="btn-secondary hof-seller-preview" data-id="' + escape(d.id) + '">Preview PDF</button></li>';
+        const followUp = progress.requested && !d.seller_review_attested ? '<button type="button" class="btn-secondary hof-seller-followup" data-id="' + escape(d.id) + '">Follow up</button>' : '';
+        return '<li data-seller-draft-row data-search="' + escape([d.property_address, ...(d.seller_names || []), d.status, d.disclosure_source_revision, d.water_source_revision, reviewStatus].filter(Boolean).join(' ')) + '"><span><strong>' + escape(d.property_address) + '</strong><br><small>' + escape((d.seller_names || []).join(', ')) + ' · ' + escape(d.disclosure_source_revision || '') + (d.water_source_revision ? ' + TREC-61-0' : '') + ' · ' + escape(reviewStatus) + '</small></span><button type="button" class="btn-secondary hof-seller-load" data-id="' + escape(d.id) + '">Load draft</button>' + followUp + '<button type="button" class="btn-secondary hof-seller-preview" data-id="' + escape(d.id) + '">Preview PDF</button></li>';
       }).join('') : '<li>No seller disclosure drafts saved yet.</li>';
       const summary = document.getElementById('hofSellerDraftSummary');
       if (summary) summary.textContent = `${drafts.length} draft${drafts.length === 1 ? '' : 's'} shown.`;
@@ -14762,6 +14771,10 @@ function routeAfterMagicLinkIfNeeded() {
         finally { button.disabled = false; button.textContent = 'Preview PDF'; }
       }));
       list.querySelectorAll('.hof-seller-load').forEach(button => button.addEventListener('click', () => root.loadSellerDisclosureDraft(button.dataset.id)));
+      list.querySelectorAll('.hof-seller-followup').forEach(button => button.addEventListener('click', () => {
+        root.loadSellerDisclosureDraft(button.dataset.id);
+        setTimeout(() => document.getElementById('hofSendSellerReview')?.focus(), 0);
+      }));
     } catch (error) { console.error(error); list.innerHTML = '<li>Could not load seller disclosure drafts.</li>'; }
   }
   async function renderCard() {
