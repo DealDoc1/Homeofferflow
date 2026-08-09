@@ -2912,6 +2912,9 @@ class handler(BaseHTTPRequestHandler):
             missing_form_intake_brief_copy_count = len([
                 item for item in events if item.get("event_type") == "missing_form_intake_brief_copied"
             ])
+            partner_follow_up_email_start_count = len([
+                item for item in events if item.get("event_type") == "partner_follow_up_email_started"
+            ])
             ai_review_outputs = asyncio.run(_get_optional(
                 "hof_ai_offer_reviews?select=id,created_at&order=created_at.desc&limit=100"
             ))
@@ -3185,6 +3188,7 @@ class handler(BaseHTTPRequestHandler):
                 "partnerActivationRate": round((len(active_partner_source_lead_ids) / paid_partner_lead_count) * 100)
                 if paid_partner_lead_count else 0,
                 "partnerActivationAvgDays": partner_activation_avg_days,
+                "partnerFollowUpEmailStartCount": partner_follow_up_email_start_count,
                 "eventCount": len(events),
                 "roadmapCount": len(roadmap),
                 "roadmapBlockedCount": len([item for item in roadmap if item.get("status") == "blocked"]),

@@ -11,6 +11,7 @@ class AgentActivationFollowUpQueueTests(unittest.TestCase):
         self.assertIn('"activationFollowUpQueue": activation_follow_up_queue[:50]', source)
         self.assertIn('activationFollowUpEmailStartCount', source)
         self.assertIn('brokerageActivationFollowUpEmailStartCount', source)
+        self.assertIn('partnerFollowUpEmailStartCount', source)
 
     def test_admin_ui_renders_actionable_queue(self):
         source = Path('index.html').read_text()
@@ -20,6 +21,7 @@ class AgentActivationFollowUpQueueTests(unittest.TestCase):
         self.assertIn('Email agent', source)
         self.assertIn('activation_follow_up_email_started', source)
         self.assertIn("surface: 'brokerage'", source)
+        self.assertIn('partner_follow_up_email_started', source)
 
 
 if __name__ == '__main__':
