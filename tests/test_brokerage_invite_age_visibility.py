@@ -15,6 +15,13 @@ class BrokerageInviteAgeVisibilityTests(unittest.TestCase):
         source = (ROOT / "index.html").read_text(encoding="utf-8")
         self.assertIn("pendingInvitesAged", source)
         self.assertIn("Invites older than 7 days", source)
+        self.assertIn("brokerageInviteAttention", source)
+        self.assertIn("Pending invites (oldest first)", source)
+
+    def test_server_orders_pending_invites_oldest_first(self):
+        source = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
+        self.assertIn("pending_invites.sort", source)
+        self.assertIn("_parse_timestamp(invite.get(\"created_at\"))", source)
 
 
 if __name__ == "__main__":

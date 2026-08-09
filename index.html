@@ -13122,6 +13122,17 @@ function routeAfterMagicLinkIfNeeded() {
     return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
   }
 
+  function brokerageInviteAttention(invite) {
+    const created = Date.parse(invite?.createdAt || invite?.created_at || '');
+    const expires = Date.parse(invite?.expiresAt || invite?.expires_at || '');
+    const now = Date.now();
+    const ageDays = Number.isFinite(created) ? Math.max(0, Math.floor((now - created) / 86400000)) : 0;
+    if (Number.isFinite(expires) && expires < now) return '<span class="admin-pill warn">Expired</span>';
+    if (Number.isFinite(expires) && expires <= now + (3 * 86400000)) return '<span class="admin-pill warn">Expires soon</span>';
+    if (ageDays >= 7) return '<span class="admin-pill warn">Aged · ' + ageDays + 'd</span>';
+    return '<span class="admin-pill">New</span>';
+  }
+
   function brokerageAgentBillingWindow(agent) {
     const status = String(agent?.subscriptionStatus || '').toLowerCase();
     if (status === 'trialing' && agent?.trialEndsAt) return 'Trial ends ' + brokerageAgentDate(agent.trialEndsAt);
@@ -13308,7 +13319,7 @@ function routeAfterMagicLinkIfNeeded() {
         '<p id="brokerageInviteResult" class="brokerage-invite-result">The link works only for the invited email, expires in 14 days, and does not start billing until the agent completes Stripe checkout.</p>' +
         ((pendingInvitesExpiringSoon || pendingInvitesExpired || pendingInvitesAged) ? '<div class="notice gold" style="margin-top:1rem"><strong>Invitation attention:</strong> ' + (pendingInvitesExpired ? pendingInvitesExpired + ' expired' + (pendingInvitesExpired === 1 ? ' invite' : ' invites') + '. ' : '') + (pendingInvitesExpiringSoon ? pendingInvitesExpiringSoon + ' pending invite' + (pendingInvitesExpiringSoon === 1 ? ' expires' : 's expire') + ' within 3 days. ' : '') + (pendingInvitesAged ? pendingInvitesAged + ' pending invite' + (pendingInvitesAged === 1 ? ' is' : 's are') + ' more than 7 days old. ' : '') + 'Resend the invite to protect your next seat.</div>' : '') +
         inviteAcceptanceNotice +
-        (pendingInvites.length ? '<div class="brokerage-pending-invites"><strong>Pending invites:</strong>' + pendingInvites.map(invite => { const inviteExpiry = invite.expiresAt || invite.expires_at; return '<div style="display:flex;align-items:center;gap:.55rem;margin-top:.35rem;flex-wrap:wrap"><span>' + safe(invite.email || 'Agent') + (inviteExpiry ? ' <small>(expires ' + safe(formatBillingDate(inviteExpiry)) + ')</small>' : '') + '</span><button type="button" class="brokerage-access-button" onclick="resendBrokerageInvite(\'' + safe(invite.email || '') + '\')">Resend</button><button type="button" class="brokerage-access-button" onclick="revokeBrokerageInvite(\'' + safe(invite.id) + '\',\'' + safe(invite.email || '') + '\')">Revoke</button></div>'; }).join('') + '</div>' : '') +
+        (pendingInvites.length ? '<div class="brokerage-pending-invites"><strong>Pending invites (oldest first):</strong>' + pendingInvites.map(invite => { const inviteExpiry = invite.expiresAt || invite.expires_at; return '<div style="display:flex;align-items:center;gap:.55rem;margin-top:.35rem;flex-wrap:wrap"><span>' + safe(invite.email || 'Agent') + ' ' + brokerageInviteAttention(invite) + (inviteExpiry ? ' <small>(expires ' + safe(formatBillingDate(inviteExpiry)) + ')</small>' : '') + '</span><button type="button" class="brokerage-access-button" onclick="resendBrokerageInvite(\'' + safe(invite.email || '') + '\')">Resend</button><button type="button" class="brokerage-access-button" onclick="revokeBrokerageInvite(\'' + safe(invite.id) + '\',\'' + safe(invite.email || '') + '\')">Revoke</button></div>'; }).join('') + '</div>' : '') +
         '<div class="brokerage-safe-kpis">' +
           '<div class="brokerage-safe-kpi"><span>Members</span><strong>' + Number(m.memberCount || 0) + '</strong></div>' +
           '<div class="brokerage-safe-kpi"><span>Active members</span><strong>' + Number(m.activeMemberCount || 0) + '</strong></div>' +

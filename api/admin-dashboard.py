@@ -325,6 +325,12 @@ async def _brokerage_dashboard_payload(context):
         if (created_at := _parse_timestamp(invite.get("created_at")))
         and created_at <= now - timedelta(days=7)
     ]
+    # Oldest pending invitations are the most likely to go stale and should
+    # appear first in the broker's follow-up workspace.
+    pending_invites.sort(
+        key=lambda invite: _parse_timestamp(invite.get("created_at"))
+        or datetime.max.replace(tzinfo=timezone.utc)
+    )
     # Expose only source-readiness metadata to the broker dashboard. Never
     # return storage paths, filenames, fingerprints, or source URLs here.
     # Agents do not receive this payload, and source PDFs remain private.
