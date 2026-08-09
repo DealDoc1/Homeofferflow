@@ -11,6 +11,8 @@ class AiCalibrationReviewerPacketLauncherTests(unittest.TestCase):
             self.assertIn(scenario, source)
         self.assertIn('Generated review output is not calibration evidence by itself.', source)
         self.assertIn('Download reviewer packet', source)
+        self.assertIn('missingScenarios', source)
+        self.assertIn('JSON.stringify(missingCalibrationIds)', source)
 
 
 if __name__ == '__main__':

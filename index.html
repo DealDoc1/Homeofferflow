@@ -4201,7 +4201,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Disposition: keep <strong>${calibrationDispositions.keep || 0}</strong> · revise <strong>${calibrationDispositions.revise || 0}</strong> · remove <strong>${calibrationDispositions.remove || 0}</strong></div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Scenarios: ${adminSafe(calibrationScenarioSummary)}</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:${metrics.aiCalibrationReady ? 'var(--sage-light)' : 'var(--gold-light)'}">${metrics.aiCalibrationReady ? 'Ready for expert review gate' : 'Needs anonymized scenarios'}</div>
-            ${metrics.aiCalibrationReady ? '' : `<div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Missing: ${missingCalibrationIds.join(', ')}</div><div style="margin-top:.35rem">${calibrationReviewActions} <button type="button" class="admin-contact-action" onclick="downloadAiCalibrationReviewerPacket()">Download reviewer packet</button></div>`}
+            ${metrics.aiCalibrationReady ? '' : `<div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Missing: ${missingCalibrationIds.join(', ')}</div><div style="margin-top:.35rem">${calibrationReviewActions} <button type="button" class="admin-contact-action" onclick='downloadAiCalibrationReviewerPacket(${JSON.stringify(missingCalibrationIds)})'>Download reviewer packet</button></div>`}
           </div>
 
           <div class="admin-metric">
@@ -5073,8 +5073,13 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     document.getElementById('feedbackMessage')?.focus();
   }
 
-  function downloadAiCalibrationReviewerPacket() {
-    logOfferEvent(null, 'ai_calibration_reviewer_packet_downloaded', 'downloaded', 'AI calibration reviewer packet downloaded.', {});
+  function downloadAiCalibrationReviewerPacket(scenarioIds = []) {
+    const requestedScenarios = Array.isArray(scenarioIds)
+      ? scenarioIds.filter(id => /^AI-CAL-0[1-5]$/.test(String(id))).slice(0, 5)
+      : [];
+    logOfferEvent(null, 'ai_calibration_reviewer_packet_downloaded', 'downloaded', 'AI calibration reviewer packet downloaded.', {
+      missingScenarios: requestedScenarios
+    });
     const packet = [
       'HomeOfferFlow AI offer-review calibration reviewer packet',
       'Review each anonymized scenario as a qualified broker or agent. Do not include names, exact addresses, MLS numbers, phone numbers, email addresses, or other identifying details.',
