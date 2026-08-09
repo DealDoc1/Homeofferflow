@@ -13151,12 +13151,18 @@ function routeAfterMagicLinkIfNeeded() {
   };
 
   root.createBrokerageInvite = async function createBrokerageInvite(isResend = false) {
+    if (root.__hofBrokerageInviteInFlight) return;
+    root.__hofBrokerageInviteInFlight = true;
     const session = root.hofAuth?.session;
     const input = document.getElementById('brokerageInviteEmail');
     const result = document.getElementById('brokerageInviteResult');
     const email = String(input?.value || '').trim().toLowerCase();
-    if (!session?.access_token) return alert('Sign in again before inviting an agent.');
+    if (!session?.access_token) {
+      root.__hofBrokerageInviteInFlight = false;
+      return alert('Sign in again before inviting an agent.');
+    }
     if (!email || !email.includes('@')) {
+      root.__hofBrokerageInviteInFlight = false;
       if (result) result.textContent = 'Enter the agent’s email address first.';
       return;
     }
@@ -13191,6 +13197,8 @@ function routeAfterMagicLinkIfNeeded() {
       await root.renderBrokerageFoundationPanel();
     } catch (error) {
       if (result) result.textContent = error.message || 'Could not create the secure invite link.';
+    } finally {
+      root.__hofBrokerageInviteInFlight = false;
     }
   };
 
