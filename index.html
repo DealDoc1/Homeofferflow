@@ -4264,7 +4264,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Last 30 days: ${adminSafe(Object.entries(metrics.missingFormRecentCodeCounts || {}).slice(0, 5).map(([code, count]) => `${code} (${count})`).join(' · '), 'No recent coded requests')}</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Intake priority: ${adminSafe((metrics.missingFormPriority || []).slice(0, 5).map(row => `${row.code} (#${row.rank}, score ${row.score})`).join(' · '), 'No ranked form demand')}</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.missingFormIntakeBriefCopyCount || 0} source-intake briefs copied.</div>
-            <div style="margin-top:.35rem"><button type="button" class="admin-contact-action" onclick='copyMissingFormIntakeBrief(${JSON.stringify(metrics.missingFormTopCodes || [])}, ${JSON.stringify(metrics.missingFormRequestCodeCounts || {})})'>Copy source-intake brief</button></div>
+            <div style="margin-top:.35rem"><button type="button" class="admin-contact-action" onclick='copyMissingFormIntakeBrief(${JSON.stringify(metrics.missingFormTopCodes || [])}, ${JSON.stringify(metrics.missingFormRequestCodeCounts || {})}, ${JSON.stringify(metrics.missingFormPriority || [])})'>Copy source-intake brief</button></div>
           </div>
 
           <div class="admin-metric">
@@ -5222,10 +5222,12 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     return false;
   }
 
-  async function copyMissingFormIntakeBrief(codes = [], counts = {}) {
-    const requestedCodes = Array.isArray(codes)
-      ? codes.filter(code => /^[A-Z0-9 -]{2,40}$/i.test(String(code))).slice(0, 5)
+  async function copyMissingFormIntakeBrief(codes = [], counts = {}, priority = []) {
+    const rankedCodes = Array.isArray(priority)
+      ? priority.map(row => row && row.code).filter(Boolean)
       : [];
+    const requestedCodes = (rankedCodes.length ? rankedCodes : codes)
+      .filter(code => /^[A-Z0-9 -]{2,40}$/i.test(String(code))).slice(0, 5);
     const safeCounts = counts && typeof counts === 'object' ? counts : {};
     const demandLines = requestedCodes.map(code => `${code} (${Number(safeCounts[code] || 0)} requests)`);
     const brief = [

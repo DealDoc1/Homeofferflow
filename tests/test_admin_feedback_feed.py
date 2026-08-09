@@ -57,6 +57,8 @@ class AdminFeedbackFeedTests(unittest.TestCase):
         self.assertIn("missingFormRecentCodeCounts", frontend)
         self.assertIn("Demand counts:", frontend)
         self.assertIn("Intake priority:", frontend)
+        self.assertIn("missingFormPriority || []", frontend)
+        self.assertIn("const rankedCodes", frontend)
         self.assertIn("copyMissingFormIntakeBrief", frontend)
         self.assertIn("Copy source-intake brief", frontend)
 
