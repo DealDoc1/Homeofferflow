@@ -7651,6 +7651,17 @@ function routeAfterMagicLinkIfNeeded() {
     try { renderReview(); } catch (e) {}
   }
 
+  function removeUploadedDisclosure(index) {
+    const docs = window.hofUploadedDisclosureDocs || [];
+    if (index < 0 || index >= docs.length) return;
+    docs.splice(index, 1);
+    const ack = document.getElementById('uploadedDisclosureAck');
+    if (ack) ack.checked = false;
+    state.data.uploadedDocNames = docs.map(d => d.name);
+    renderUploadedDocsList();
+    try { renderReview(); } catch (e) {}
+  }
+
   function validateUploadedDisclosureDocs() {
     const docs = window.hofUploadedDisclosureDocs || [];
     if (!docs.length) return true;
@@ -7686,6 +7697,7 @@ function routeAfterMagicLinkIfNeeded() {
         <select class="uploaded-doc-type" aria-label="Document type for ${escapeHtml(d.name)}">${uploadedDisclosureTypes.map(([code, label]) => `<option value="${code}"${d.type === code ? ' selected' : ''}>${label}</option>`).join('')}</select>
         <button type="button" class="btn-secondary uploaded-doc-up" ${i === 0 ? 'disabled' : ''}>↑</button>
         <button type="button" class="btn-secondary uploaded-doc-down" ${i === docs.length - 1 ? 'disabled' : ''}>↓</button>
+        <button type="button" class="btn-secondary uploaded-doc-remove" aria-label="Remove ${escapeHtml(d.name)}">Remove</button>
       </div>`).join('');
     box.querySelectorAll('.uploaded-doc-row').forEach(row => {
       const index = Number(row.dataset.uploadedIndex);
@@ -7695,6 +7707,7 @@ function routeAfterMagicLinkIfNeeded() {
       });
       row.querySelector('.uploaded-doc-up')?.addEventListener('click', () => moveUploadedDisclosure(index, -1));
       row.querySelector('.uploaded-doc-down')?.addEventListener('click', () => moveUploadedDisclosure(index, 1));
+      row.querySelector('.uploaded-doc-remove')?.addEventListener('click', () => removeUploadedDisclosure(index));
     });
   }
 

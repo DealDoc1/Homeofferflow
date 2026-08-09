@@ -34,6 +34,12 @@ class UploadedDisclosureWorkflowTests(unittest.TestCase):
         self.assertIn("signature !== '%PDF'", INDEX_HTML)
         self.assertIn("This file is not a readable PDF", INDEX_HTML)
 
+    def test_upload_list_can_remove_one_document_without_clearing_the_packet(self):
+        self.assertIn("function removeUploadedDisclosure(index)", INDEX_HTML)
+        self.assertIn("docs.splice(index, 1)", INDEX_HTML)
+        self.assertIn("uploaded-doc-remove", INDEX_HTML)
+        self.assertIn("Remove ${escapeHtml(d.name)}", INDEX_HTML)
+
 
 if __name__ == "__main__":
     unittest.main()
