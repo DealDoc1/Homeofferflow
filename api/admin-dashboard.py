@@ -2935,6 +2935,10 @@ class handler(BaseHTTPRequestHandler):
                 "agentRepeatOfferCount": len([
                     user_id for user_id, count in agent_offer_counts.items() if count > 1
                 ]),
+                "agentRepeatOfferRate": round((
+                    len([user_id for user_id, count in agent_offer_counts.items() if count > 1])
+                    / len(agent_offer_counts)
+                ) * 100) if agent_offer_counts else 0,
                 "agentUpdatedDraftCount": agent_updated_draft_count,
                 "investorOfferCount": len([o for o in offers if o.get("role") == "investor"]),
                 "signedCount": len([o for o in offers if bucket(o.get("signwell_status") or o.get("status")) == "signed"]),
