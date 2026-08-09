@@ -7733,6 +7733,12 @@ function routeAfterMagicLinkIfNeeded() {
         continue;
       }
       try {
+        const signatureBytes = new Uint8Array(await file.slice(0, 4).arrayBuffer());
+        const signature = String.fromCharCode(...signatureBytes);
+        if (signature !== '%PDF') {
+          alert('This file is not a readable PDF: ' + file.name);
+          continue;
+        }
         docs.push({
           name: file.name,
           type: 'other',

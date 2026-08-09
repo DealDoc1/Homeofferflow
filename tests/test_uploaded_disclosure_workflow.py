@@ -29,6 +29,11 @@ class UploadedDisclosureWorkflowTests(unittest.TestCase):
         self.assertIn("type: 'other'", INDEX_HTML)
         self.assertIn("I reviewed the uploaded PDFs, labels, and packet order", INDEX_HTML)
 
+    def test_upload_rejects_files_without_a_pdf_signature_before_packet_generation(self):
+        self.assertIn("file.slice(0, 4).arrayBuffer()", INDEX_HTML)
+        self.assertIn("signature !== '%PDF'", INDEX_HTML)
+        self.assertIn("This file is not a readable PDF", INDEX_HTML)
+
 
 if __name__ == "__main__":
     unittest.main()
