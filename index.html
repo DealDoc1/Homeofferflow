@@ -3842,13 +3842,22 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     if (!email) return '';
     const paid = String(row?.payment_status || '') === 'paid';
     const onboarding = String(row?.onboarding_status || 'not_started');
+    const activationStage = paid && onboarding === 'not_started'
+      ? 'confirm category, market, logo, and written placement terms'
+      : paid && onboarding === 'ready'
+      ? 'complete the partner onboarding details and confirm the launch window'
+      : paid && onboarding === 'in_progress'
+      ? 'finish the remaining onboarding details so the placement can go live'
+      : paid
+      ? 'review the next placement activation step'
+      : 'review category, market, tier, and next steps';
     const subject = paid
-      ? 'HomeOfferFlow partner onboarding next step'
+      ? `HomeOfferFlow partner activation: ${onboarding.replace(/_/g, ' ')}`
       : 'HomeOfferFlow founding partner application';
     const body = paid
-      ? 'Thanks for partnering with HomeOfferFlow. Let’s confirm your category, market, logo, and written placement terms so onboarding can move forward: https://homeofferflow.com/?partner=1'
-      : 'Following up on your HomeOfferFlow partner application. We can review category, market, tier, and next steps here: https://homeofferflow.com/?partner=1';
-    const eventMetadata = adminEventMetadata({ paid, onboarding, surface: 'admin' });
+      ? `Thanks for partnering with HomeOfferFlow. Let’s ${activationStage}: https://homeofferflow.com/?partner=1`
+      : `Following up on your HomeOfferFlow partner application. We can ${activationStage}: https://homeofferflow.com/?partner=1`;
+    const eventMetadata = adminEventMetadata({ paid, onboarding, activationStage, surface: 'admin' });
     return `<a class="admin-contact-action" href="mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}" onclick='logOfferEvent(null, "partner_follow_up_email_started", "started", "Partner follow-up email opened.", ${eventMetadata})'>Email partner</a>`;
   }
 
