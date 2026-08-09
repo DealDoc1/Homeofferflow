@@ -1,4 +1,4 @@
-const SHELL_CACHE = 'homeofferflow-shell-v3';
+const SHELL_CACHE = 'homeofferflow-shell-v4';
 const SHELL_ASSETS = [
   '/',
   '/index.html',
@@ -8,7 +8,13 @@ const SHELL_ASSETS = [
 
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(SHELL_CACHE).then(cache => cache.addAll(SHELL_ASSETS)));
-  self.skipWaiting();
+});
+
+// A newer shell waits for an explicit in-app confirmation before taking over.
+// That keeps an agent in control of a live field workflow while still making
+// the update immediately available from the dashboard notification.
+self.addEventListener('message', event => {
+  if (event.data?.type === 'HOF_SKIP_WAITING') self.skipWaiting();
 });
 
 self.addEventListener('activate', event => {

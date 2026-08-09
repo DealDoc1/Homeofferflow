@@ -15535,13 +15535,51 @@ function routeAfterMagicLinkIfNeeded() {
   };
 })();
 </script>
-<script id="hof-pwa-registration-v1">
+<style id="hof-pwa-update-v1-css">
+  .hof-pwa-update-card { position:fixed; right:1rem; bottom:1rem; z-index:10001; width:min(25rem,calc(100vw - 2rem)); padding:1rem; border:1px solid rgba(200,151,63,.55); border-radius:14px; background:#0b1b2e; box-shadow:0 16px 42px rgba(0,0,0,.35); color:var(--white); }
+  .hof-pwa-update-card strong { display:block; margin-bottom:.3rem; color:var(--gold-light); }
+  .hof-pwa-update-card p { margin:0 0 .8rem; color:var(--gray-light); font-size:.82rem; line-height:1.45; }
+  .hof-pwa-update-actions { display:flex; gap:.55rem; flex-wrap:wrap; }
+  .hof-pwa-update-actions button { margin:0; }
+</style>
+<script id="hof-pwa-registration-v2">
   // Keep offline support limited to the public app shell. Offers, documents,
   // authenticated data, and API responses are always fetched from the network.
   if ('serviceWorker' in navigator) {
+    let hofPwaRefreshRequested = false;
+
+    function showHomeOfferFlowUpdate(registration) {
+      if (!registration?.waiting || document.getElementById('hofPwaUpdateCard')) return;
+      const card = document.createElement('aside');
+      card.id = 'hofPwaUpdateCard';
+      card.className = 'hof-pwa-update-card';
+      card.setAttribute('role', 'status');
+      card.innerHTML = '<strong>HomeOfferFlow update ready</strong><p>A newer app version is ready. Update when you are between steps; your local draft stays on this device.</p><div class="hof-pwa-update-actions"><button type="button" class="btn-primary" id="hofPwaUpdateNow">Update now</button><button type="button" class="btn-secondary" id="hofPwaUpdateLater">Later</button></div>';
+      document.body.appendChild(card);
+      card.querySelector('#hofPwaUpdateLater')?.addEventListener('click', () => card.remove());
+      card.querySelector('#hofPwaUpdateNow')?.addEventListener('click', () => {
+        hofPwaRefreshRequested = true;
+        registration.waiting?.postMessage({ type: 'HOF_SKIP_WAITING' });
+      });
+    }
+
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('/service-worker.js', { scope: '/' })
+        .then(registration => {
+          showHomeOfferFlowUpdate(registration);
+          registration.addEventListener('updatefound', () => {
+            const installing = registration.installing;
+            installing?.addEventListener('statechange', () => {
+              if (installing.state === 'installed' && navigator.serviceWorker.controller) {
+                showHomeOfferFlowUpdate(registration);
+              }
+            });
+          });
+        })
         .catch(error => console.warn('HomeOfferFlow offline support was not registered:', error));
+    });
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (hofPwaRefreshRequested) window.location.reload();
     });
   }
 </script>
