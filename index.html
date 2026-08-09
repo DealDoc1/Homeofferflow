@@ -4502,6 +4502,12 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       modal.setAttribute('aria-hidden', 'false');
     }
     showAccountTab(opts.tab || (opts.postLogin && !isProfileMeaningful() ? 'profile' : 'dashboard'));
+    try {
+      if (sessionStorage.getItem('hof_subscription_checkout_cancelled') === '1') {
+        sessionStorage.removeItem('hof_subscription_checkout_cancelled');
+        setAccountStatus('Checkout was canceled. Your saved offer and account are still here—resume when you are ready.', 'err');
+      }
+    } catch (e) {}
   }
 
   function closeAccountDashboard() {
@@ -4807,6 +4813,13 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         await loadCurrentUsage();
         if (hofAuth.session) openAccountDashboard({ tab: 'dashboard' });
       }, 500);
+    }
+    if (result === 'cancelled') {
+      setTimeout(async () => {
+        await logOfferEvent(null, 'subscription_checkout_returned', 'cancelled', 'Returned from Stripe subscription checkout without completing payment.', { plan, billing });
+        try { sessionStorage.setItem('hof_subscription_checkout_cancelled', '1'); } catch (e) {}
+        if (hofAuth.session) await openAccountDashboard({ tab: 'dashboard' });
+      }, 250);
     }
 
     try {

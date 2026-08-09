@@ -21,6 +21,13 @@ class SubscriptionCheckoutFunnelMetricTests(unittest.TestCase):
         self.assertIn("subscriptionCheckoutReturnCount", source)
         self.assertIn("subscriptionCheckoutReturnRate", source)
 
+    def test_cancelled_checkout_returns_to_account_with_recovery_copy(self):
+        source = (ROOT / "index.html").read_text(encoding="utf-8")
+        self.assertIn("if (result === 'cancelled')", source)
+        self.assertIn("subscription_checkout_returned', 'cancelled'", source)
+        self.assertIn("hof_subscription_checkout_cancelled", source)
+        self.assertIn("Checkout was canceled.", source)
+
 
 if __name__ == "__main__":
     unittest.main()
