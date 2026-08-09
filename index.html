@@ -579,6 +579,11 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 .subscription-plan { font-weight:900; color:var(--white); font-size:1rem; }
 .subscription-status { display:inline-flex; align-items:center; gap:0.35rem; border-radius:999px; padding:0.3rem 0.65rem; font-size:0.72rem; font-weight:900; text-transform:uppercase; letter-spacing:0.04em; background:rgba(74,140,111,0.16); color:var(--sage-light); border:1px solid rgba(74,140,111,0.35); }
 .subscription-status.warn { background:rgba(232,147,90,0.10); color:var(--warn); border-color:rgba(232,147,90,0.35); }
+.pwa-install-card { border-color:rgba(74,140,111,.34); background:rgba(74,140,111,.07); }
+.pwa-install-card h4 { margin-bottom:.35rem; }
+.pwa-install-card p { color:var(--gray-light); font-size:.84rem; line-height:1.5; margin-bottom:.75rem; }
+.pwa-install-actions { display:flex; flex-wrap:wrap; gap:.55rem; align-items:center; }
+.pwa-install-note { color:var(--gray); font-size:.75rem; line-height:1.45; }
 .usage-meter { height:8px; background:rgba(255,255,255,0.08); border-radius:999px; overflow:hidden; margin-top:0.8rem; }
 .usage-fill { height:100%; background:linear-gradient(90deg, var(--sage), var(--gold)); border-radius:999px; transition:width 0.25s ease; }
 .usage-copy { margin-top:0.55rem; color:var(--gray-light); font-size:0.82rem; line-height:1.5; }
@@ -15426,6 +15431,87 @@ function routeAfterMagicLinkIfNeeded() {
   root.renderAccountDashboard = function renderAccountDashboardWithLegalReceipt(){
     if (typeof previous === 'function') previous.apply(this, arguments);
     loadReceipt();
+  };
+})();
+</script>
+<script id="hof-pwa-install-v1">
+(function(){
+  const root = window;
+  const dismissKey = 'hof_pwa_install_dismissed_until';
+  let deferredInstallPrompt = null;
+
+  function isStandalone(){
+    return window.matchMedia?.('(display-mode: standalone)').matches || navigator.standalone === true;
+  }
+
+  function isIos(){
+    return /iphone|ipad|ipod/i.test(navigator.userAgent || '') && !window.MSStream;
+  }
+
+  function isDismissed(){
+    try { return Number(localStorage.getItem(dismissKey) || 0) > Date.now(); }
+    catch (_) { return false; }
+  }
+
+  function dismissInstallCard(){
+    try { localStorage.setItem(dismissKey, String(Date.now() + 1000 * 60 * 60 * 24 * 30)); }
+    catch (_) {}
+    document.getElementById('hofPwaInstallCard')?.remove();
+  }
+
+  function renderInstallCard(){
+    const panel = document.getElementById('accountPanelDashboard');
+    if (!panel || !root.hofAuth?.session || isStandalone() || isDismissed()) return;
+    const existing = document.getElementById('hofPwaInstallCard');
+    if (existing) existing.remove();
+    if (!deferredInstallPrompt && !isIos()) return;
+    const card = document.createElement('div');
+    card.id = 'hofPwaInstallCard';
+    card.className = 'account-card pwa-install-card';
+    const ios = isIos();
+    card.innerHTML = `<h4>Keep HomeOfferFlow one tap away</h4>
+      <p>${ios
+        ? 'Install this workspace on your iPhone or iPad for a full-screen, app-like launch from your Home Screen.'
+        : 'Install HomeOfferFlow for a faster app-like launch and an offline-safe shell when you are between showings.'}</p>
+      <div class="pwa-install-actions">
+        ${ios
+          ? '<button class="btn-primary" type="button" id="hofPwaInstallHelp">How to add it</button>'
+          : '<button class="btn-primary" type="button" id="hofPwaInstallButton">Install HomeOfferFlow</button>'}
+        <button class="btn-secondary" type="button" id="hofPwaInstallDismiss">Not now</button>
+      </div>
+      <div id="hofPwaInstallNote" class="pwa-install-note" style="margin-top:.65rem;display:none"></div>`;
+    panel.appendChild(card);
+    card.querySelector('#hofPwaInstallDismiss')?.addEventListener('click', dismissInstallCard);
+    card.querySelector('#hofPwaInstallHelp')?.addEventListener('click', () => {
+      const note = card.querySelector('#hofPwaInstallNote');
+      if (note) { note.textContent = 'In Safari, tap Share, then choose “Add to Home Screen.”'; note.style.display = 'block'; }
+    });
+    card.querySelector('#hofPwaInstallButton')?.addEventListener('click', async () => {
+      if (!deferredInstallPrompt) return;
+      const button = card.querySelector('#hofPwaInstallButton');
+      if (button) { button.disabled = true; button.textContent = 'Opening install…'; }
+      try {
+        deferredInstallPrompt.prompt();
+        await deferredInstallPrompt.userChoice;
+      } catch (error) {
+        console.warn('PWA install prompt was unavailable:', error);
+      } finally {
+        deferredInstallPrompt = null;
+        renderInstallCard();
+      }
+    });
+  }
+
+  window.addEventListener('beforeinstallprompt', event => {
+    event.preventDefault();
+    deferredInstallPrompt = event;
+    renderInstallCard();
+  });
+  window.addEventListener('appinstalled', () => document.getElementById('hofPwaInstallCard')?.remove());
+  const previous = root.renderAccountDashboard;
+  root.renderAccountDashboard = function renderAccountDashboardWithPwaInstall(){
+    if (typeof previous === 'function') previous.apply(this, arguments);
+    renderInstallCard();
   };
 })();
 </script>
