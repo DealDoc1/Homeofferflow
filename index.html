@@ -4862,11 +4862,13 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     const sub = hofAuth.subscription;
     const usage = hofAuth.usage || { used: 0, limit: sub?.packet_limit || 10 };
     if (!subscriptionAllowsGeneration(sub)) {
-      if (showAlert) alert('Your HomeOfferFlow access is not active. Update billing or contact support before generating a new packet.');
+      const message = 'Your HomeOfferFlow access is not active. Update billing or contact support before generating a new packet.';
+      if (showAlert && window.confirm(message + ' Open Manage Billing now?')) await openBillingPortal('generation_blocked');
       return false;
     }
     if (Number(usage.used || 0) >= Number(usage.limit || 10)) {
-      if (showAlert) alert(`You have reached your ${usage.limit}-packet monthly beta limit. Upgrade/contact support before generating another signed packet.`);
+      const message = `You have reached your ${usage.limit}-packet monthly beta limit. Upgrade/contact support before generating another signed packet.`;
+      if (showAlert && window.confirm(message + ' Open Manage Billing now?')) await openBillingPortal('generation_limit');
       return false;
     }
     return true;

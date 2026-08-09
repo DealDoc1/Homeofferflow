@@ -23,6 +23,14 @@ class BillingRecoveryUiTests(unittest.TestCase):
         self.assertIn('Reactivate Annual', blocked)
         self.assertIn('Your subscription is canceled.', blocked)
 
+    def test_generation_guard_offers_billing_recovery_at_point_of_failure(self):
+        start = HTML.index("async function canGenerateOffer(showAlert = true)")
+        end = HTML.index("\n  async function logOfferEvent", start)
+        guard = HTML[start:end]
+        self.assertIn("Open Manage Billing now?", guard)
+        self.assertIn("openBillingPortal('generation_blocked')", guard)
+        self.assertIn("openBillingPortal('generation_limit')", guard)
+
 
 if __name__ == "__main__":
     unittest.main()
