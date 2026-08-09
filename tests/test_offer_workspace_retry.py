@@ -14,6 +14,13 @@ class OfferWorkspaceRetryTests(unittest.TestCase):
         self.assertIn('onclick="loadMyOffers()"', loader)
         self.assertIn("Retry offers", loader)
 
+    def test_workspace_refresh_syncs_active_signwell_documents_before_reload(self):
+        self.assertIn("root.hofRefreshOfferWorkspace = async function()", HTML)
+        self.assertIn("Promise.allSettled(active.map(offer => root.refreshSignWellStatus", HTML)
+        self.assertIn("slice(0, 5)", HTML)
+        self.assertIn("skipReload = false, suppressAlert = false", HTML)
+        self.assertIn("Sync signing status", HTML)
+
 
 if __name__ == "__main__":
     unittest.main()

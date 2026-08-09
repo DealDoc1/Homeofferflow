@@ -6056,7 +6056,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   }
 
 
-  async function refreshSignWellStatus(offerId, buttonEl) {
+  async function refreshSignWellStatus(offerId, buttonEl, skipReload = false, suppressAlert = false) {
     if (!offerId) return;
     if (!hofAuth.session?.access_token) {
       alert('Please sign in before refreshing SignWell status.');
@@ -6082,7 +6082,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       const result = await response.json().catch(() => ({}));
       if (!response.ok || result.error) throw new Error(result.error || 'Could not refresh SignWell status.');
 
-      await loadMyOffers();
+      if (!skipReload) await loadMyOffers();
       const adminPanel = document.getElementById('accountPanelAdmin');
       if (adminPanel?.classList.contains('active')) {
         const adminContent = document.getElementById('adminDashboardContent');
@@ -6091,7 +6091,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       }
     } catch (err) {
       console.error('SignWell status refresh failed:', err);
-      alert('Could not refresh SignWell status: ' + (err?.message || err));
+      if (!suppressAlert) alert('Could not refresh SignWell status: ' + (err?.message || err));
     } finally {
       if (buttonEl) {
         buttonEl.disabled = false;
@@ -11728,7 +11728,7 @@ function routeAfterMagicLinkIfNeeded() {
         <button class="offer-launch-card" type="button" onclick="startAccountOffer()"><strong>New Buyer Offer</strong><span>Start with your saved agent defaults.</span></button>
         <button class="offer-launch-card" type="button" onclick="hofDuplicateMostRecentOffer()"><strong>Duplicate Last</strong><span>Fastest path for repeat terms.</span></button>
         <button class="offer-launch-card" type="button" onclick="showAccountTab && showAccountTab('profile')"><strong>Profile Defaults</strong><span>Update agent, brokerage, title, and terms.</span></button>
-        <button class="offer-launch-card" type="button" onclick="hofRefreshOfferWorkspace()"><strong>Refresh Status</strong><span>Reload offers and signing updates.</span></button>
+        <button class="offer-launch-card" type="button" onclick="hofRefreshOfferWorkspace()"><strong>Sync signing status</strong><span>Ask SignWell for active updates, then reload offers.</span></button>
       </div>
 
       <div class="offer-workspace-stats">
@@ -11769,7 +11769,21 @@ function routeAfterMagicLinkIfNeeded() {
   root.hofSetOfferWorkspaceFilter = function(filter){ state.filter = filter || 'all'; rerender(); };
   root.hofSetOfferWorkspaceSearch = function(query){ state.query = query || ''; rerender(); };
   root.hofSetOfferWorkspaceSort = function(sort){ state.sort = sort || 'updated_desc'; rerender(); };
-  root.hofRefreshOfferWorkspace = function(){ if (typeof root.loadMyOffers === 'function') root.loadMyOffers(); else rerender(); };
+  root.hofRefreshOfferWorkspace = async function(){
+    if (typeof root.loadMyOffers !== 'function') return rerender();
+    const offers = Array.isArray(root.hofAuth?.myOffers) ? root.hofAuth.myOffers : await root.loadMyOffers();
+    const activeStatuses = new Set(['sent', 'viewed', 'partially_signed', 'awaiting_signature', 'in_progress']);
+    const active = (offers || []).filter(offer => {
+      const data = offer?.offer_data || {};
+      const documentId = offer?.signwell_document_id || data.signwellDocumentId || data.signwell?.document_id || data.signwell?.response?.id;
+      const status = String(offer?.signwell_status || data.signwellStatus || data.signwell?.response?.status || data.signwell?.status || offer?.status || '').toLowerCase().replace(/\s+/g, '_');
+      return documentId && (!status || activeStatuses.has(status));
+    }).slice(0, 5);
+    if (active.length && typeof root.refreshSignWellStatus === 'function') {
+      await Promise.allSettled(active.map(offer => root.refreshSignWellStatus(offer.id, null, true, true)));
+    }
+    await root.loadMyOffers();
+  };
   root.hofDuplicateMostRecentOffer = function(){
     const offers = sortedOffers(state.offers || []);
     if (!offers.length) { alert('No saved offers to duplicate yet.'); return; }
