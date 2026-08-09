@@ -18,6 +18,7 @@ class BrokerageOpsTrackerReconciliationTests(unittest.TestCase):
         self.assertIn("usageBillingMonth", source)
         self.assertIn("Team packets this month", frontend)
         self.assertIn("agent.usage", frontend)
+        self.assertIn("Packets remaining", frontend)
         self.assertIn("privacy-limited roster activity", SQL)
 
     def test_tracker_keeps_authenticated_qa_gate(self):

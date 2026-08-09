@@ -13534,12 +13534,17 @@ function routeAfterMagicLinkIfNeeded() {
 
   root.exportBrokerageRoster = function exportBrokerageRoster() {
     const agents = Array.isArray(root.hofPlatform?.brokerageAgents) ? root.hofPlatform.brokerageAgents : [];
-    const headers = ['Agent', 'Email', 'Membership', 'Plan / renewal', 'Last activity', 'Offers', 'Signed', 'Next action', 'Engagement'];
+    const headers = ['Agent', 'Email', 'Membership', 'Plan / renewal', 'Billing status', 'Usage month', 'Packets used', 'Packet limit', 'Packets remaining', 'Last activity', 'Offers', 'Signed', 'Next action', 'Engagement'];
     const values = agents.map(agent => [
       agent.name || agent.email || 'Agent',
       agent.email || '',
       agent.membershipStatus || 'pending',
       brokerageAgentBillingWindow(agent),
+      agent.subscriptionStatus || 'No active plan',
+      agent.usage?.billingMonth || '',
+      Number(agent.usage?.used || 0),
+      agent.usage?.limit == null ? '' : Number(agent.usage.limit),
+      agent.usage?.remaining == null ? '' : Number(agent.usage.remaining),
       brokerageAgentDate(agent.activity?.lastOfferAt),
       Number(agent.activity?.offerCount || 0),
       Number(agent.activity?.signedCount || 0),
