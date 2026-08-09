@@ -56,6 +56,14 @@ for that guard.
    Do not reuse a live key, live webhook secret, or production Supabase
    service-role key.
 
+Before creating the endpoint, run the repository preflight against the branch
+URL. It prints booleans only and fails unless every isolation control is true:
+
+```bash
+python scripts/verify_stripe_lifecycle_isolation.py \
+  --expected-supabase-url https://<isolated-branch-ref>.supabase.co
+```
+
 ## Required lifecycle checks
 
 Use a dedicated test account and Stripe test card. Record Stripe event IDs and
