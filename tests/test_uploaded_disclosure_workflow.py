@@ -46,6 +46,17 @@ class UploadedDisclosureWorkflowTests(unittest.TestCase):
         self.assertIn("docs[index].type = event.target.value;\n        resetUploadedDisclosureAcknowledgement();", INDEX_HTML)
         self.assertIn("docs.splice(index, 1);\n    resetUploadedDisclosureAcknowledgement();", INDEX_HTML)
 
+    def test_resuming_an_offer_never_reuses_prior_attachment_contents(self):
+        self.assertIn("function resetUploadedDisclosureDraftForOffer(data = {})", INDEX_HTML)
+        self.assertIn("window.hofUploadedDisclosureDocs = [];", INDEX_HTML)
+        self.assertIn("resetUploadedDisclosureDraftForOffer(offer.offer_data || {});", INDEX_HTML)
+        self.assertIn("resetUploadedDisclosureDraftForOffer({});", INDEX_HTML)
+        self.assertIn("Re-upload required before sending:", INDEX_HTML)
+
+    def test_duplicate_offer_drops_transaction_sensitive_attachments(self):
+        self.assertIn("delete copyData.uploadedDisclosureDocs;", INDEX_HTML)
+        self.assertIn("delete copyData.uploadedDocNames;", INDEX_HTML)
+
 
 if __name__ == "__main__":
     unittest.main()

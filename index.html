@@ -3248,6 +3248,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <small style="display:block; margin-top:0.35rem; color:var(--muted);">PDF only. Up to 5 files, 15MB each. You will label and order them before the packet is generated. Examples: seller disclosure, survey, T-47/T-47.1, HOA docs, PID/MUD notices.</small>
           </div>
           <div id="uploadedDocsList" class="notice gold" style="display:none;"></div>
+          <div id="uploadedDocsResumeNotice" class="notice warn" style="display:none; margin-top:.75rem;" role="status"></div>
           <label id="uploadedDisclosureAckRow" class="terms-check" style="display:none; margin-top:.75rem;">
             <input type="checkbox" id="uploadedDisclosureAck"/>
             <span>I reviewed the uploaded PDFs, labels, and packet order. I have authority to include these documents with this offer, and I understand HomeOfferFlow appends them without creating or interpreting the seller-side form.</span>
@@ -5822,6 +5823,9 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 
     state.step = 0;
     state.data = { userType: normalizedRole };
+    // A new offer starts with no listing-side documents. File inputs cannot be
+    // safely reused across transactions, even while the same tab remains open.
+    resetUploadedDisclosureDraftForOffer({});
     state.selectedPlan = null;
     state.selectedPrice = 0;
     state.termsOK = keepCheckedTerms;
@@ -6198,10 +6202,15 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         _hofOfferId: offer.id,
         userType: offer.role || hofAuth.role || 'agent'
       };
+      resetUploadedDisclosureDraftForOffer(offer.offer_data || {});
       setAudience(state.data.userType || 'agent');
       closeAccountDashboard();
       openWizard(true);
-      setTimeout(() => { applyOfferDataToFields(state.data); applyProfileDefaultsToWizard(false); }, 150);
+      setTimeout(() => {
+        applyOfferDataToFields(state.data);
+        applyProfileDefaultsToWizard(false);
+        renderUploadedDisclosureResumeNotice();
+      }, 150);
       await logOfferEvent(offer.id, isRetry ? 'resume_retry_succeeded' : 'resume_clicked', offer.status || 'Draft', isRetry ? 'Offer resumed after a dashboard retry.' : 'Offer resumed from dashboard.');
     } catch (err) {
       console.error('Resume failed:', err);
@@ -6232,6 +6241,10 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         'packetGeneratedAt', 'signingUrl', 'signing_url', 'embeddedSigningUrl',
         'embedded_signing_url', 'recipients'
       ].forEach((key) => { delete copyData[key]; });
+      // Listing-side PDFs can contain transaction-sensitive material. A new
+      // offer must never inherit attachment contents or a stale re-upload cue.
+      delete copyData.uploadedDisclosureDocs;
+      delete copyData.uploadedDocNames;
       const insertResult = await client.from('hof_offers').insert({
         user_id: user.id,
         role: offer.role || hofAuth.role || 'agent',
@@ -7716,6 +7729,42 @@ function routeAfterMagicLinkIfNeeded() {
     if (ack) ack.checked = false;
   }
 
+  function uploadedDisclosureDraftNames() {
+    const names = state?.data?.uploadedDocNames || state?.data?.uploadedDisclosureDocs || [];
+    return [...new Set((Array.isArray(names) ? names : []).map(doc =>
+      typeof doc === 'string' ? doc : doc?.name
+    ).filter(Boolean).map(name => String(name)))];
+  }
+
+  function renderUploadedDisclosureResumeNotice() {
+    const notice = document.getElementById('uploadedDocsResumeNotice');
+    if (!notice) return;
+    const present = new Set((window.hofUploadedDisclosureDocs || []).map(doc => String(doc.name || '')));
+    const missing = uploadedDisclosureDraftNames().filter(name => !present.has(name));
+    if (!missing.length) {
+      notice.style.display = 'none';
+      notice.textContent = '';
+      return;
+    }
+    notice.style.display = 'block';
+    notice.innerHTML = '<strong>Re-upload required before sending:</strong> ' +
+      missing.map(escapeHtml).join(', ') +
+      '. Attachments are not retained in drafts; upload each PDF again, label and order it, then confirm the final packet.';
+  }
+
+  function resetUploadedDisclosureDraftForOffer(data = {}) {
+    // File contents are never copied from a previous in-memory offer into a
+    // resumed or duplicated one. Keep only safe filenames as a re-upload cue.
+    window.hofUploadedDisclosureDocs = [];
+    const savedDocs = Array.isArray(data.uploadedDisclosureDocs) ? data.uploadedDisclosureDocs : [];
+    const savedNames = Array.isArray(data.uploadedDocNames) ? data.uploadedDocNames : savedDocs;
+    state.data.uploadedDocNames = [...new Set(savedNames.map(doc =>
+      typeof doc === 'string' ? doc : doc?.name
+    ).filter(Boolean).map(name => String(name)))];
+    resetUploadedDisclosureAcknowledgement();
+    renderUploadedDocsList();
+  }
+
   function removeUploadedDisclosure(index) {
     const docs = window.hofUploadedDisclosureDocs || [];
     if (index < 0 || index >= docs.length) return;
@@ -7723,6 +7772,7 @@ function routeAfterMagicLinkIfNeeded() {
     resetUploadedDisclosureAcknowledgement();
     state.data.uploadedDocNames = docs.map(d => d.name);
     renderUploadedDocsList();
+    renderUploadedDisclosureResumeNotice();
     try { renderReview(); } catch (e) {}
   }
 
@@ -7750,6 +7800,7 @@ function routeAfterMagicLinkIfNeeded() {
       box.style.display = 'none';
       box.innerHTML = '';
       if (ackRow) ackRow.style.display = 'none';
+      renderUploadedDisclosureResumeNotice();
       return;
     }
     box.style.display = 'block';
@@ -7774,6 +7825,7 @@ function routeAfterMagicLinkIfNeeded() {
       row.querySelector('.uploaded-doc-down')?.addEventListener('click', () => moveUploadedDisclosure(index, 1));
       row.querySelector('.uploaded-doc-remove')?.addEventListener('click', () => removeUploadedDisclosure(index));
     });
+    renderUploadedDisclosureResumeNotice();
   }
 
   function readFileAsBase64(file) {
