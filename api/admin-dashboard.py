@@ -2941,12 +2941,14 @@ class handler(BaseHTTPRequestHandler):
                     and user_id in agent_last_activity_at
                     and (now - agent_last_activity_at[user_id]).days >= 30
                 ):
+                    inactive_days = max(0, (now - agent_last_activity_at[user_id]).days)
                     activation_follow_up_queue.append({
                         "agent_name": profile.get("agent_name") or "Agent",
                         "agent_email": email,
                         "reason": "Check in before the next client offer",
                         "category": "retention",
                         "priority": 3,
+                        "inactive_days": inactive_days,
                     })
                 elif user_id not in agent_offer_user_ids:
                     activation_follow_up_queue.append({
@@ -2956,6 +2958,10 @@ class handler(BaseHTTPRequestHandler):
                         "priority": 3,
                     })
             activation_follow_up_queue.sort(key=lambda item: (item["priority"], item["agent_name"].lower()))
+            retention_follow_up_aged_count = len([
+                item for item in activation_follow_up_queue
+                if item.get("category") == "retention" and int(item.get("inactive_days") or 0) >= 60
+            ])
             billing_portal_open_by_source = {}
             for item in events:
                 if item.get("event_type") != "billing_portal_opened":
@@ -3023,6 +3029,7 @@ class handler(BaseHTTPRequestHandler):
                 "retentionFollowUpCount": len([
                     item for item in activation_follow_up_queue if item.get("category") == "retention"
                 ]),
+                "retentionFollowUpAgedCount": retention_follow_up_aged_count,
                 "trialEndingSoonCount": len(trial_ending_soon_queue),
                 "trialEndingWithin3DaysCount": len([
                     item for item in trial_ending_soon_queue

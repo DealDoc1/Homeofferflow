@@ -4132,7 +4132,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           <div class="admin-metric">
             <div class="admin-metric-label">Activation Follow-up Queue</div>
             <div class="admin-metric-value">${metrics.activationFollowUpCount || activationFollowUpQueue.length || 0}</div>
-            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Prioritized outreach: ${metrics.retentionFollowUpCount || 0} retention · ${metrics.activationFollowUpCount || activationFollowUpQueue.length || 0} total.</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Prioritized outreach: ${metrics.retentionFollowUpCount || 0} retention · ${metrics.retentionFollowUpAgedCount || 0} inactive 60+ days · ${metrics.activationFollowUpCount || activationFollowUpQueue.length || 0} total.</div>
           </div>
 
           <div class="admin-metric">
