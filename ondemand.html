@@ -259,6 +259,7 @@
         inviteToken: initialParams.get("invite") || "",
         inviteStatus: initialParams.get("invite") ? "pending" : "none"
       };
+      const LEGAL_POLICY_VERSION = "2026-07-30";
       const renewal = new Date();
       renewal.setDate(renewal.getDate() + 60);
       const renewalText = renewal.toLocaleDateString(undefined, {
@@ -276,6 +277,20 @@
       function setBusy(button, busy, busyText, idleText) {
         button.disabled = busy;
         button.textContent = busy ? busyText : idleText;
+      }
+
+      async function recordLegalAcceptance() {
+        const user = state.session?.user;
+        if (!user) throw new Error("Sign in before acknowledging the enrollment terms.");
+        const key = `hof_legal_acceptance_recorded_${LEGAL_POLICY_VERSION}`;
+        if (sessionStorage.getItem(key) === "1") return;
+        const { error } = await client.from("hof_legal_acceptances").insert({
+          user_id: user.id,
+          policy_version: LEGAL_POLICY_VERSION,
+          source: "ondemand_checkout"
+        });
+        if (error && error.code !== "23505") throw error;
+        sessionStorage.setItem(key, "1");
       }
 
       async function loadConfig() {
@@ -383,6 +398,7 @@
         setBusy(button, true, "Opening Stripe…", "Continue to secure checkout");
         showStatus("");
         try {
+          await recordLegalAcceptance();
           const response = await fetch("/api/create-subscription-checkout", {
             method: "POST",
             headers: {

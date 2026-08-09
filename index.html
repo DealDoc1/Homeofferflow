@@ -4919,6 +4919,29 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     }
   }
 
+  async function recordCurrentLegalAcceptance(source = 'offer_wizard') {
+    const client = getSupabaseClient();
+    const user = hofAuth.session?.user;
+    if (!client || !user) return false;
+    const key = `hof_legal_acceptance_recorded_${LEGAL_POLICY_VERSION}`;
+    try {
+      if (sessionStorage.getItem(key) === '1') return true;
+      const { error } = await client.from('hof_legal_acceptances').insert({
+        user_id: user.id,
+        policy_version: LEGAL_POLICY_VERSION,
+        source
+      });
+      // One immutable acceptance per policy version is intentional. A retry
+      // after a completed insert is still a successful acknowledgement.
+      if (error && error.code !== '23505') throw error;
+      sessionStorage.setItem(key, '1');
+      return true;
+    } catch (err) {
+      console.warn('Legal acceptance record could not be saved:', err);
+      return false;
+    }
+  }
+
   async function recordUsageEvent(offerId, eventType = 'signed_packet', quantity = 1, metadata = {}) {
     const user = hofAuth.session?.user;
     const accessToken = hofAuth.session?.access_token;
@@ -6628,6 +6651,7 @@ function routeAfterMagicLinkIfNeeded() {
         source: 'offer_wizard'
       };
       try {
+        recordCurrentLegalAcceptance('offer_wizard');
         const acceptanceKey = `hof_legal_acceptance_${LEGAL_POLICY_VERSION}`;
         if (sessionStorage.getItem(acceptanceKey) !== '1') {
           sessionStorage.setItem(acceptanceKey, '1');
