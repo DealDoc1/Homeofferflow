@@ -59,6 +59,11 @@ class PartnerTierUiTests(unittest.TestCase):
         self.assertIn("fetch('/api/fsbo-lead'", self.html)
         self.assertIn("request_type: 'founding_partner'", self.html)
 
+    def test_checkout_retry_reuses_saved_partner_lead(self):
+        self.assertIn("window.__hofFoundingPartnerLeadId", self.html)
+        self.assertIn("if (!partnerLeadId)", self.html)
+        self.assertIn("partner_lead_id: partnerLeadId", self.html)
+
     def test_admin_partner_leads_have_privacy_limited_follow_up_action(self):
         self.assertIn("partnerLeadFollowUpAction", self.html)
         self.assertIn("Email partner", self.html)

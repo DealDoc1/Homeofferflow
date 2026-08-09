@@ -10952,18 +10952,23 @@ function routeAfterMagicLinkIfNeeded() {
     if (submit) submit.disabled = true;
     if (status) { status.textContent = 'Saving your application...'; status.className = 'platform-status'; }
     try {
-      const response = await fetch('/api/fsbo-lead', {
-        method: 'POST',
-        headers: {'Content-Type':'application/json'},
-        body: JSON.stringify(payload)
-      });
-      const result = await response.json().catch(() => ({}));
-      if (!response.ok || !result.partner_lead_id) throw new Error(result.error || 'Could not submit partner interest.');
+      let partnerLeadId = window.__hofFoundingPartnerLeadId || '';
+      if (!partnerLeadId) {
+        const response = await fetch('/api/fsbo-lead', {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify(payload)
+        });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok || !result.partner_lead_id) throw new Error(result.error || 'Could not submit partner interest.');
+        partnerLeadId = result.partner_lead_id;
+        window.__hofFoundingPartnerLeadId = partnerLeadId;
+      }
       if (status) { status.textContent = 'Opening secure Stripe Checkout...'; status.className = 'platform-status'; }
       const checkoutResponse = await fetch('/api/fsbo-lead', {
         method: 'POST',
         headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ request_type: 'founding_partner_checkout', partner_lead_id: result.partner_lead_id })
+        body: JSON.stringify({ request_type: 'founding_partner_checkout', partner_lead_id: partnerLeadId })
       });
       const checkout = await checkoutResponse.json().catch(() => ({}));
       if (!checkoutResponse.ok || !checkout.url) throw new Error(checkout.error || 'Could not start secure checkout.');
