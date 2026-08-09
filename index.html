@@ -4160,6 +4160,12 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           </div>
 
           <div class="admin-metric">
+            <div class="admin-metric-label">Legal Acceptance Events</div>
+            <div class="admin-metric-value">${metrics.legalAcceptanceCount || 0}</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Privacy-safe acceptance signals for the current offer wizard.</div>
+          </div>
+
+          <div class="admin-metric">
             <div class="admin-metric-label">AI Calibration Notes</div>
             <div class="admin-metric-value">${metrics.aiCalibrationFeedbackCount || 0} / ${metrics.aiCalibrationTarget || 5}</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.aiReviewOutputCount || 0} generated review outputs (not calibration evidence)</div>
@@ -6363,6 +6369,16 @@ function routeAfterMagicLinkIfNeeded() {
         acceptedAt: new Date().toISOString(),
         source: 'offer_wizard'
       };
+      try {
+        const acceptanceKey = `hof_legal_acceptance_${LEGAL_POLICY_VERSION}`;
+        if (sessionStorage.getItem(acceptanceKey) !== '1') {
+          sessionStorage.setItem(acceptanceKey, '1');
+          logOfferEvent(null, 'legal_terms_accepted', 'accepted', 'Legal policy accepted.', {
+            policyVersion: LEGAL_POLICY_VERSION,
+            source: 'offer_wizard'
+          });
+        }
+      } catch (e) {}
     } else {
       delete state.data.legalAcceptance;
     }

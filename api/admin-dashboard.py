@@ -2976,6 +2976,9 @@ class handler(BaseHTTPRequestHandler):
                 "billingPortalOpenCount": len([
                     item for item in events if item.get("event_type") == "billing_portal_opened"
                 ]),
+                "legalAcceptanceCount": len([
+                    item for item in events if item.get("event_type") == "legal_terms_accepted"
+                ]),
                 "billingPortalOpenBySource": billing_portal_open_by_source,
                 "activationDashboardViewCount": activation_dashboard_view_count,
                 "activationActionCount": activation_action_count,
