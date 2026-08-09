@@ -389,6 +389,24 @@ async def _brokerage_dashboard_payload(context):
 
     profile_by_user = {str(row.get("user_id")): row for row in agent_profiles}
     subscription_by_user = {str(row.get("user_id")): row for row in subscriptions}
+    accepted_invite_user_ids = {
+        str(member.get("user_id"))
+        for member in members
+        if str(member.get("user_id") or "")
+        and str(
+            member.get("email")
+            or profile_by_user.get(str(member.get("user_id")), {}).get("agent_email")
+            or ""
+        ).strip().lower() in accepted_invite_emails
+    }
+    accepted_invite_subscribed_count = len({
+        user_id for user_id in accepted_invite_user_ids
+        if str(subscription_by_user.get(user_id, {}).get("status") or "").lower()
+        in {"active", "trialing", "free_admin"}
+    })
+    accepted_invite_subscription_rate = round(
+        (accepted_invite_subscribed_count / accepted_invite_count) * 100, 1
+    ) if accepted_invite_count else 0
     activity_by_user = {}
     for row in offers:
         user_id = str(row.get("user_id") or "")
@@ -564,6 +582,8 @@ async def _brokerage_dashboard_payload(context):
             "acceptedInviteActiveCount": accepted_invite_active_count,
             "acceptedInviteNeedingActivationCount": accepted_invite_needing_activation_count,
             "acceptedInviteActivationRate": accepted_invite_activation_rate,
+            "acceptedInviteSubscribedCount": accepted_invite_subscribed_count,
+            "acceptedInviteSubscriptionRate": accepted_invite_subscription_rate,
         },
         "agents": safe_agents,
         "listingWorkspaceSummary": listing_workspace_summary,
