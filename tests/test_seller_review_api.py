@@ -69,6 +69,12 @@ class SellerReviewApiTests(unittest.TestCase):
         self.assertIn("No seller review request sent", ui)
         self.assertIn("reviewStatus", ui)
 
+    def test_draft_list_uses_permission_checked_api_for_review_progress(self):
+        ui = (ROOT / "index.html").read_text()
+        self.assertIn("/api/admin-dashboard?scope=seller_disclosure_drafts", ui)
+        self.assertIn("Authorization: 'Bearer ' + token", ui)
+        self.assertIn("return payload.drafts || []", ui)
+
 
 if __name__ == "__main__":
     unittest.main()

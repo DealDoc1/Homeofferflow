@@ -14659,14 +14659,17 @@ function routeAfterMagicLinkIfNeeded() {
     return data || [];
   }
   async function loadDrafts() {
-    const client = root.getSupabaseClient?.();
-    const user = root.hofAuth?.session?.user;
-    if (!client || !user) return [];
-    const {data,error} = await client.from('hof_seller_disclosure_drafts')
-      .select('id,listing_workspace_id,disclosure_source_id,water_source_id,property_address,seller_names,buyer_names,response_data,water_rights_data,status,disclosure_source_revision,water_source_revision,seller_review_attested,created_at,updated_at')
-      .eq('agent_user_id', user.id).order('updated_at',{ascending:false}).limit(25);
-    if (error) throw error;
-    return data || [];
+    const token = root.hofAuth?.session?.access_token;
+    if (!token) return [];
+    const response = await fetch('/api/admin-dashboard?scope=seller_disclosure_drafts', {
+      headers: {Authorization: 'Bearer ' + token}
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(payload.error || 'Could not load seller disclosure drafts.');
+    // The permission-checked API joins the private review-link state and
+    // returns sellerReviewProgress; direct browser reads cannot see that
+    // service-role-only table and made every saved draft look unrequested.
+    return payload.drafts || [];
   }
   root.loadSellerDisclosureDraft = function loadSellerDisclosureDraft(draftId) {
     const draft = draftCache.get(String(draftId || ''));
