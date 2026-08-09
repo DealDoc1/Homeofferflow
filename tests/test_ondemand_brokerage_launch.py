@@ -444,6 +444,7 @@ class BrokerageAuthorizationTests(unittest.TestCase):
         marker = INDEX_HTML.index('id="hof-ondemand-brokerage-launch-v1"')
         final_script = INDEX_HTML[marker:]
         self.assertIn("brokerageAgentFollowUpAction", final_script)
+        self.assertIn(".replace(/'/g, '&#39;')", final_script)
         self.assertIn("brokerage-follow-up-action", final_script)
         self.assertIn("needs_activation", final_script)
         self.assertIn("Email agent", final_script)

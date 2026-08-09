@@ -13238,7 +13238,11 @@ function routeAfterMagicLinkIfNeeded() {
       : engagement === 'needs_follow_up'
           ? 'Checking in on your HomeOfferFlow workspace. Let me know if you want help moving the next client offer forward: https://homeofferflow.com'
           : 'Let’s review your HomeOfferFlow trial and next client offer before renewal: https://homeofferflow.com';
-    const eventMetadata = JSON.stringify({ engagement, surface: 'brokerage' });
+    const eventMetadata = JSON.stringify({ engagement, surface: 'brokerage' })
+      .replace(/&/g, '&amp;')
+      .replace(/'/g, '&#39;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
     return `<a class="brokerage-follow-up-action" href="mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}" onclick='logOfferEvent(null, "activation_follow_up_email_started", "started", "Activation follow-up email opened.", ${eventMetadata})'>Email agent</a>`;
   }
 
