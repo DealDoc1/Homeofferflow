@@ -276,6 +276,11 @@ async def _brokerage_dashboard_payload(context):
         invite for invite in pending_invites
         if (expires_at := _parse_timestamp(invite.get("expires_at"))) and expires_at < now
     ]
+    pending_invites_aged = [
+        invite for invite in pending_invites
+        if (created_at := _parse_timestamp(invite.get("created_at")))
+        and created_at <= now - timedelta(days=7)
+    ]
     # Expose only source-readiness metadata to the broker dashboard. Never
     # return storage paths, filenames, fingerprints, or source URLs here.
     # Agents do not receive this payload, and source PDFs remain private.
@@ -480,6 +485,7 @@ async def _brokerage_dashboard_payload(context):
             "pendingInviteCount": len(pending_invites),
             "pendingInvitesExpiringSoon": len(pending_invites_expiring_soon),
             "pendingInvitesExpired": len(pending_invites_expired),
+            "pendingInvitesAged": len(pending_invites_aged),
             "inviteTotalCount": len(invite_history),
             "acceptedInviteCount": accepted_invite_count,
             "inviteAcceptanceRate": invite_acceptance_rate,
