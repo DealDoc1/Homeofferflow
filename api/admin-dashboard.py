@@ -461,6 +461,8 @@ async def _brokerage_dashboard_payload(context):
         user_id = str(member.get("user_id") or "")
         profile = profile_by_user.get(user_id, {})
         subscription = subscription_by_user.get(user_id, {})
+        member_email = str(member.get("email") or profile.get("agent_email") or "").strip().lower()
+        invite_accepted = member_email in accepted_invite_emails
         activity = activity_by_user.get(
             user_id,
             {"offerCount": 0, "signedCount": 0, "awaitingCount": 0, "draftCount": 0, "lastOfferAt": None},
@@ -468,7 +470,11 @@ async def _brokerage_dashboard_payload(context):
         subscription_status = str(subscription.get("status") or "").lower()
         has_active_access = subscription_status in {"active", "trialing", "free_admin"}
         billing_attention = subscription_status in {"past_due", "canceled", "incomplete", "incomplete_expired"}
-        if activity["offerCount"] > 0 and billing_attention:
+        if invite_accepted and str(member.get("status") or "pending").lower() != "active":
+            engagement = "needs_activation"
+            next_action = "Finish account activation"
+            activation_count += 1
+        elif activity["offerCount"] > 0 and billing_attention:
             engagement = "needs_billing"
             next_action = "Fix billing before the next offer"
             activation_count += 1
@@ -501,6 +507,7 @@ async def _brokerage_dashboard_payload(context):
                 "licenseNumber": profile.get("license_number"),
                 "role": member.get("role") or "agent",
                 "membershipStatus": member.get("status") or "pending",
+                "inviteAccepted": invite_accepted,
                 "txrAgentAuthorized": member.get("txr_agent_authorized") is True,
                 "txrAgentAttestedAt": member.get("txr_agent_attested_at"),
                 "subscriptionStatus": subscription.get("status"),

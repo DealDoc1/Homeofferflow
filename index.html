@@ -13413,7 +13413,7 @@ function routeAfterMagicLinkIfNeeded() {
         '<table class="brokerage-safe-table"><thead><tr><th>Agent</th><th>Membership</th><th>TXR/NAR attestation</th><th>Plan / renewal</th><th>Last activity</th><th>Offers</th><th>Signed</th><th>Next action</th><th>Follow up</th><th>Brokerage access</th></tr></thead><tbody>' +
         (agents.length ? agents.map(agent =>
           '<tr data-brokerage-agent-row data-search="' + safe([agent.name, agent.email, agent.membershipStatus, agent.subscriptionStatus, agent.nextAction, agent.engagement].filter(Boolean).join(' ')) + '"><td><strong>' + safe(agent.name || agent.email || 'Agent') + '</strong><br><span>' + safe(agent.email || '') + '</span></td>' +
-          '<td>' + safe(agent.membershipStatus || 'pending') + '</td>' +
+          '<td>' + safe(agent.membershipStatus || 'pending') + (agent.inviteAccepted ? '<br><small>Invite accepted</small>' : '') + '</td>' +
           '<td>' + (agent.txrAgentAuthorized ? '<span title="Attested ' + safe(agent.txrAgentAttestedAt || '') + '">Attested</span>' : 'Not yet attested') + '</td>' +
           '<td>' + safe(brokerageAgentBillingWindow(agent)) + '</td>' +
           '<td>' + safe(brokerageAgentDate(agent.activity?.lastOfferAt)) + '</td>' +
