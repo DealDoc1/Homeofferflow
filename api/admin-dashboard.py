@@ -3243,6 +3243,10 @@ class handler(BaseHTTPRequestHandler):
                 "sellerReviewViewedCount": seller_review_viewed_count,
                 "sellerReviewVerifiedCount": seller_review_verified_count,
                 "sellerReviewAttestationCount": seller_review_attestation_count,
+                "sellerReviewAttestationGapCount": max(0, seller_review_verified_count - seller_review_attestation_count),
+                "sellerReviewAttestationGapRate": round(
+                    (max(0, seller_review_verified_count - seller_review_attestation_count) / seller_review_verified_count) * 100, 1
+                ) if seller_review_verified_count else 0,
                 "sellerReviewViewRate": round((seller_review_viewed_count / seller_review_request_count) * 100, 1)
                 if seller_review_request_count else 0,
                 "sellerReviewVerificationRate": round((seller_review_verified_count / seller_review_viewed_count) * 100, 1)
