@@ -142,6 +142,32 @@ async def _get_optional(path):
         return []
 
 
+async def _record_offer_event(user_id, event_type, message, metadata=None):
+    """Best-effort aggregate telemetry for authenticated or verified workflows."""
+    if not user_id or not event_type:
+        return
+    payload = {
+        "offer_id": None,
+        "user_id": str(user_id),
+        "event_type": str(event_type),
+        "status": "completed",
+        "message": str(message or "")[:240],
+        "metadata": metadata or {},
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    try:
+        async with httpx.AsyncClient(timeout=12) as client:
+            response = await client.post(
+                f"{SUPABASE_URL}/rest/v1/hof_offer_events",
+                headers={**_headers(), "Prefer": "return=minimal"},
+                json=payload,
+            )
+            if response.status_code >= 300:
+                return
+    except Exception:
+        return
+
+
 async def _patch(table, query, payload):
     """Patch a service-owned row and fail closed on non-success responses."""
     async with httpx.AsyncClient(timeout=12) as client:
@@ -2011,7 +2037,7 @@ async def _verify_seller_review(token, data):
     rows = await _get(
         "hof_seller_disclosure_review_links?"
         f"token_hash=eq.{urllib.parse.quote(token_hash)}"
-        "&select=id,expires_at,revoked_at,verification_code_hash&limit=1"
+        "&select=id,agent_user_id,seller_index,expires_at,revoked_at,verification_code_hash&limit=1"
     )
     if not rows or not seller_review_access.is_active(rows[0].get("expires_at")):
         raise PermissionError("This seller review link is invalid or expired.")
@@ -2034,6 +2060,12 @@ async def _verify_seller_review(token, data):
         )
     if response.status_code >= 300:
         raise RuntimeError("Could not verify the seller review request.")
+    await _record_offer_event(
+        row.get("agent_user_id"),
+        "seller_review_verified",
+        "Seller disclosure review recipient verified.",
+        {"sellerIndex": row.get("seller_index")},
+    )
     return {"sessionToken": session["token"], "sessionExpiresAt": session["expires_at"], "workflowActivated": False}
 
 
@@ -2066,6 +2098,12 @@ async def _seller_review_context(session_token):
                 f"id=eq.{urllib.parse.quote(str(link['id']))}",
                 headers=_headers(), json={"viewed_at": now, "updated_at": now}
             )
+        await _record_offer_event(
+            link.get("agent_user_id"),
+            "seller_review_viewed",
+            "Seller disclosure review opened.",
+            {"sellerIndex": link.get("seller_index")},
+        )
     return link, drafts[0]
 
 
@@ -2152,6 +2190,12 @@ async def _attest_seller_review(session_token, data):
     if response.status_code >= 300:
         raise RuntimeError("Could not record the seller review attestation.")
     all_sellers_attested = await _refresh_seller_review_attestation(link["draft_id"], link["brokerage_id"])
+    await _record_offer_event(
+        link.get("agent_user_id"),
+        "seller_review_attested",
+        "Seller disclosure review attested.",
+        {"sellerIndex": link.get("seller_index"), "allSellersAttested": all_sellers_attested},
+    )
     return {"ok": True, "attestedAt": now, "attestedName": seller_name, "allSellersAttested": all_sellers_attested, "workflowActivated": False}
 
 
@@ -2958,6 +3002,15 @@ class handler(BaseHTTPRequestHandler):
                 "qualifiedSellerLeadCount": len([lead for lead in seller_leads if lead.get("status") in {"qualified", "converted"}]),
                 "sellerReviewRequestCount": len([
                     item for item in events if item.get("event_type") == "seller_review_request_sent"
+                ]),
+                "sellerReviewViewedCount": len([
+                    item for item in events if item.get("event_type") == "seller_review_viewed"
+                ]),
+                "sellerReviewVerifiedCount": len([
+                    item for item in events if item.get("event_type") == "seller_review_verified"
+                ]),
+                "sellerReviewAttestationCount": len([
+                    item for item in events if item.get("event_type") == "seller_review_attested"
                 ]),
                 "activePartnerPlacementCount": len([placement for placement in partner_placements if placement.get("is_active")]),
                 "paidPartnerActivationQueueCount": len(paid_partner_activation_queue),
