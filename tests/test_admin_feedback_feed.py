@@ -28,6 +28,7 @@ class AdminFeedbackFeedTests(unittest.TestCase):
         self.assertIn('"missingFormRequestCodeCounts": missing_form_request_code_counts', source)
         self.assertIn('"missingFormRecentCodeCounts": missing_form_recent_code_counts', source)
         self.assertIn('"missingFormTopCodes": list(missing_form_request_code_counts)[:5]', source)
+        self.assertIn('"missingFormPriority": _missing_form_request_priority(feedback)', source)
         self.assertIn('"missingFormIntakeBriefCopyCount": missing_form_intake_brief_copy_count', source)
         self.assertIn('missing_form_intake_brief_copied', source)
         frontend = (ROOT / "index.html").read_text(encoding="utf-8")
@@ -55,6 +56,7 @@ class AdminFeedbackFeedTests(unittest.TestCase):
         self.assertIn("missingFormRequestCodeCounts", frontend)
         self.assertIn("missingFormRecentCodeCounts", frontend)
         self.assertIn("Demand counts:", frontend)
+        self.assertIn("Intake priority:", frontend)
         self.assertIn("copyMissingFormIntakeBrief", frontend)
         self.assertIn("Copy source-intake brief", frontend)
 

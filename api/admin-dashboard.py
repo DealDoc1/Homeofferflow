@@ -166,6 +166,30 @@ def _missing_form_request_recent_code_counts(items, days=30):
     return dict(sorted(counts.items(), key=lambda entry: (-entry[1], entry[0])))
 
 
+def _missing_form_request_priority(items, recent_days=30):
+    """Rank normalized missing-form demand for source-intake decisions.
+
+    Recent requests receive a 2x recency boost on top of lifetime demand so a
+    short launch surge can outrank an older, larger backlog. The result only
+    contains normalized codes and counts; request text is never exposed.
+    """
+    total_counts = _missing_form_request_code_counts(items)
+    recent_counts = _missing_form_request_recent_code_counts(items, days=recent_days)
+    rows = []
+    for code, total in total_counts.items():
+        recent = int(recent_counts.get(code) or 0)
+        rows.append({
+            "code": code,
+            "total": int(total),
+            "recent": recent,
+            "score": int(total) + (recent * 2),
+        })
+    rows.sort(key=lambda row: (-row["score"], -row["recent"], row["code"]))
+    for index, row in enumerate(rows, start=1):
+        row["rank"] = index
+    return rows
+
+
 async def _get(path):
     async with httpx.AsyncClient(timeout=12) as client:
         r = await client.get(f"{SUPABASE_URL}/rest/v1/{path}", headers=_headers())
@@ -3305,6 +3329,7 @@ class handler(BaseHTTPRequestHandler):
                 "missingFormRequestCodeCounts": missing_form_request_code_counts,
                 "missingFormRecentCodeCounts": missing_form_recent_code_counts,
                 "missingFormTopCodes": list(missing_form_request_code_counts)[:5],
+                "missingFormPriority": _missing_form_request_priority(feedback),
                 "missingFormIntakeBriefCopyCount": missing_form_intake_brief_copy_count,
                 # Generated AI outputs are useful context, but do not count as
                 # human calibration evidence for the five-scenario release gate.
