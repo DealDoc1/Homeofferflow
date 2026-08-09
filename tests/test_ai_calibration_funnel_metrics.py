@@ -20,9 +20,11 @@ class AiCalibrationFunnelMetricTests(unittest.TestCase):
         self.assertIn('"aiCalibrationPacketDownloadCount"', backend)
         self.assertIn('"aiCalibrationReviewCompletionCount"', backend)
         self.assertIn('aiCalibrationReviewCompletionRate', backend)
+        self.assertIn('aiCalibrationScenarioFunnel', backend)
         self.assertIn("reviewer starts", frontend)
         self.assertIn("packet downloads", frontend)
         self.assertIn("completed", frontend)
+        self.assertIn("Scenario funnel", frontend)
 
 
 if __name__ == "__main__":

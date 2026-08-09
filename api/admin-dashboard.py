@@ -3184,6 +3184,29 @@ class handler(BaseHTTPRequestHandler):
             metrics["aiCalibrationReviewCompletionRate"] = round((
                 metrics["aiCalibrationReviewCompletionCount"] / metrics["aiCalibrationReviewStartCount"]
             ) * 100, 1) if metrics["aiCalibrationReviewStartCount"] else 0
+            ai_calibration_scenario_funnel = {
+                scenario: {"starts": 0, "packet_downloads": 0, "completions": 0}
+                for scenario in AI_CALIBRATION_SCENARIOS
+            }
+            for item in events:
+                event_type = item.get("event_type")
+                metadata = item.get("metadata") or {}
+                if event_type == "ai_calibration_reviewer_packet_downloaded":
+                    requested = metadata.get("missingScenarios") or metadata.get("missing_scenarios") or []
+                    if isinstance(requested, list):
+                        for scenario in requested:
+                            scenario = str(scenario or "").upper()
+                            if scenario in ai_calibration_scenario_funnel:
+                                ai_calibration_scenario_funnel[scenario]["packet_downloads"] += 1
+                    continue
+                scenario = str(metadata.get("calibrationScenario") or metadata.get("calibration_scenario") or "").upper()
+                if scenario not in ai_calibration_scenario_funnel:
+                    continue
+                if event_type == "ai_calibration_review_started":
+                    ai_calibration_scenario_funnel[scenario]["starts"] += 1
+                elif event_type == "ai_calibration_review_completed":
+                    ai_calibration_scenario_funnel[scenario]["completions"] += 1
+            metrics["aiCalibrationScenarioFunnel"] = ai_calibration_scenario_funnel
             ai_calibration_dispositions = {"keep": 0, "revise": 0, "remove": 0}
             ai_calibration_scenario_dispositions = {
                 scenario: {"keep": 0, "revise": 0, "remove": 0}
