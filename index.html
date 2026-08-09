@@ -4177,6 +4177,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <div class="admin-metric-label">Billing Portal Opens</div>
             <div class="admin-metric-value">${metrics.billingPortalOpenCount || 0}</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Authenticated billing intent signals · ${Number(metrics.billingPortalOpenBySource?.trial_renewal_urgency || 0)} from trial urgency · ${Number(metrics.billingPortalOpenBySource?.renewal_urgency || 0)} from paid-renewal urgency.</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Usage awareness: ${metrics.subscriptionUsageNearLimitViewCount || 0} near-limit · ${metrics.subscriptionUsageExhaustedViewCount || 0} exhausted.</div>
           </div>
 
           <div class="admin-metric">
@@ -4582,6 +4583,19 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     const good = subscriptionAllowsGeneration(sub) && used < limit;
     const remaining = Math.max(0, limit - used);
     const nearLimit = isPaid && good && pct >= 80;
+    const usageExhausted = isPaid && !good && used >= limit;
+    try {
+      const awarenessKey = `hof_usage_awareness_${usage.billingMonth || getBillingMonth()}_${nearLimit ? 'near_limit' : usageExhausted ? 'exhausted' : 'normal'}`;
+      if ((nearLimit || usageExhausted) && !sessionStorage.getItem(awarenessKey)) {
+        sessionStorage.setItem(awarenessKey, '1');
+        logOfferEvent(null, nearLimit ? 'subscription_usage_near_limit_viewed' : 'subscription_usage_exhausted_viewed', 'viewed', 'Subscription usage awareness state viewed.', {
+          billingMonth: usage.billingMonth || getBillingMonth(),
+          used,
+          limit,
+          remaining
+        });
+      }
+    } catch (e) {}
 
     let actionHtml = '';
 
@@ -4589,7 +4603,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       actionHtml =
         '<div class="account-actions-row" style="margin-top:0.85rem;">' +
           (good ? '<button class="btn-primary" type="button" onclick="startAccountOffer()">Create Next Offer</button>' : '') +
-          '<button class="btn-secondary" type="button" onclick="openBillingPortal()">Manage Billing</button>' +
+          '<button class="btn-secondary" type="button" onclick="openBillingPortal(\'' + (nearLimit ? 'usage_near_limit' : 'subscription_card') + '\')">Manage Billing</button>' +
         '</div>' +
         '<div style="margin-top:0.55rem; color:var(--gray); font-size:0.74rem; line-height:1.45;">' +
           (good

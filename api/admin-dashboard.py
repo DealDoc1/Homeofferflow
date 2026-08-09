@@ -3035,7 +3035,13 @@ class handler(BaseHTTPRequestHandler):
                 if item.get("category") == "retention" and int(item.get("inactive_days") or 0) >= 60
             ])
             billing_portal_open_by_source = {}
+            usage_near_limit_view_count = 0
+            usage_exhausted_view_count = 0
             for item in events:
+                if item.get("event_type") == "subscription_usage_near_limit_viewed":
+                    usage_near_limit_view_count += 1
+                elif item.get("event_type") == "subscription_usage_exhausted_viewed":
+                    usage_exhausted_view_count += 1
                 if item.get("event_type") != "billing_portal_opened":
                     continue
                 metadata = item.get("metadata") or {}
@@ -3171,6 +3177,8 @@ class handler(BaseHTTPRequestHandler):
                 "billingPortalOpenCount": len([
                     item for item in events if item.get("event_type") == "billing_portal_opened"
                 ]),
+                "subscriptionUsageNearLimitViewCount": usage_near_limit_view_count,
+                "subscriptionUsageExhaustedViewCount": usage_exhausted_view_count,
                 "subscriptionCheckoutStartCount": subscription_checkout_start_count,
                 "subscriptionCheckoutReturnCount": subscription_checkout_return_count,
                 "subscriptionCheckoutReturnRate": round(

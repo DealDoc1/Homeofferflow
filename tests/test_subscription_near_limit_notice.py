@@ -10,6 +10,8 @@ class SubscriptionNearLimitNoticeTests(unittest.TestCase):
         self.assertIn("const nearLimit = isPaid && good && pct >= 80", HTML)
         self.assertIn("Almost at this month’s packet limit", HTML)
         self.assertIn("review billing options before access pauses", HTML)
+        self.assertIn("subscription_usage_near_limit_viewed", HTML)
+        self.assertIn("usage_near_limit", HTML)
 
 
 if __name__ == "__main__":
