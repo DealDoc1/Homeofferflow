@@ -52,4 +52,3 @@ The ledger contains no failed processing rows and no duplicate event IDs.
    sending any additional test events to production.
 4. Remove the test endpoint and pause/delete the isolated branch after the
    evidence packet is complete.
-
