@@ -4645,7 +4645,8 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     const role = hofAuth.role === 'investor' ? 'investor' : 'agent';
 
     const isPaid = ['active', 'trialing', 'free_admin'].includes(status);
-    const isBlocked = ['past_due', 'canceled'].includes(status);
+    const isBlocked = ['past_due', 'canceled', 'incomplete', 'incomplete_expired', 'unpaid', 'paused'].includes(status);
+    const billingRecoveryNeeded = status === 'past_due' || status === 'incomplete' || status === 'incomplete_expired' || status === 'unpaid' || status === 'paused';
     const good = subscriptionAllowsGeneration(sub) && used < limit;
     const remaining = Math.max(0, limit - used);
     const nearLimit = isPaid && good && pct >= 80;
@@ -4679,14 +4680,14 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     } else if (isBlocked) {
       actionHtml =
         '<div class="account-actions-row" style="margin-top:0.85rem;">' +
-          (status === 'past_due' ? '<button class="btn-primary" type="button" onclick="openBillingPortal()">Fix Billing</button>' : '') +
+          (billingRecoveryNeeded ? '<button class="btn-primary" type="button" onclick="' + (status === 'past_due' ? 'openBillingPortal()' : 'openBillingPortal(\'billing_recovery\')') + '">Fix Billing</button>' : '') +
           '<button class="btn-secondary" type="button" onclick="startSubscriptionCheckout(\'' + role + '\',\'monthly\')">Reactivate Monthly</button>' +
           '<button class="btn-secondary" type="button" onclick="startSubscriptionCheckout(\'' + role + '\',\'annual\')">Reactivate Annual</button>' +
         '</div>' +
         '<div style="margin-top:0.55rem; color:var(--warn); font-size:0.74rem; line-height:1.45;">' +
-          (status === 'past_due'
-            ? 'Your latest payment needs attention. Update the saved payment method in Stripe Billing, then return here to refresh access.'
-            : 'Your subscription is canceled. Choose a plan below to restore paid packet access.') +
+          (status === 'canceled'
+            ? 'Your subscription is canceled. Choose a plan below to restore paid packet access.'
+            : 'Your latest payment needs attention. Update the saved payment method in Stripe Billing, then return here to refresh access.') +
         '</div>';
     } else {
       actionHtml =
