@@ -2966,6 +2966,18 @@ class handler(BaseHTTPRequestHandler):
             subscription_checkout_return_count = len([
                 item for item in events if item.get("event_type") == "subscription_checkout_returned"
             ])
+            seller_review_request_count = len([
+                item for item in events if item.get("event_type") == "seller_review_request_sent"
+            ])
+            seller_review_viewed_count = len([
+                item for item in events if item.get("event_type") == "seller_review_viewed"
+            ])
+            seller_review_verified_count = len([
+                item for item in events if item.get("event_type") == "seller_review_verified"
+            ])
+            seller_review_attestation_count = len([
+                item for item in events if item.get("event_type") == "seller_review_attested"
+            ])
             metrics = {
                 "offerCount": len(offers),
                 "homebuyerOfferCount": len([o for o in offers if o.get("role") == "homebuyer"]),
@@ -3006,18 +3018,16 @@ class handler(BaseHTTPRequestHandler):
                 "qualifiedPartnerLeadCount": len([lead for lead in partner_leads if lead.get("status") in {"qualified", "converted"}]),
                 "sellerLeadCount": len(seller_leads),
                 "qualifiedSellerLeadCount": len([lead for lead in seller_leads if lead.get("status") in {"qualified", "converted"}]),
-                "sellerReviewRequestCount": len([
-                    item for item in events if item.get("event_type") == "seller_review_request_sent"
-                ]),
-                "sellerReviewViewedCount": len([
-                    item for item in events if item.get("event_type") == "seller_review_viewed"
-                ]),
-                "sellerReviewVerifiedCount": len([
-                    item for item in events if item.get("event_type") == "seller_review_verified"
-                ]),
-                "sellerReviewAttestationCount": len([
-                    item for item in events if item.get("event_type") == "seller_review_attested"
-                ]),
+                "sellerReviewRequestCount": seller_review_request_count,
+                "sellerReviewViewedCount": seller_review_viewed_count,
+                "sellerReviewVerifiedCount": seller_review_verified_count,
+                "sellerReviewAttestationCount": seller_review_attestation_count,
+                "sellerReviewViewRate": round((seller_review_viewed_count / seller_review_request_count) * 100, 1)
+                if seller_review_request_count else 0,
+                "sellerReviewVerificationRate": round((seller_review_verified_count / seller_review_viewed_count) * 100, 1)
+                if seller_review_viewed_count else 0,
+                "sellerReviewAttestationRate": round((seller_review_attestation_count / seller_review_verified_count) * 100, 1)
+                if seller_review_verified_count else 0,
                 "activePartnerPlacementCount": len([placement for placement in partner_placements if placement.get("is_active")]),
                 "paidPartnerActivationQueueCount": len(paid_partner_activation_queue),
                 "paidPartnerLeadCount": paid_partner_lead_count,

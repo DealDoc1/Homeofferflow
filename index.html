@@ -4204,6 +4204,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <div class="admin-metric-label">Seller / FSBO Leads</div>
             <div class="admin-metric-value">${metrics.sellerLeadCount || sellerLeads.length || 0}</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.sellerReviewRequestCount || 0} seller disclosure review requests initiated · ${metrics.sellerReviewViewedCount || 0} opened · ${metrics.sellerReviewVerifiedCount || 0} verified · ${metrics.sellerReviewAttestationCount || 0} attested.</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Stage conversion: ${Number(metrics.sellerReviewViewRate || 0).toFixed(1)}% opened · ${Number(metrics.sellerReviewVerificationRate || 0).toFixed(1)}% verified after opening · ${Number(metrics.sellerReviewAttestationRate || 0).toFixed(1)}% attested after verification.</div>
           </div>
 
           <div class="admin-metric">

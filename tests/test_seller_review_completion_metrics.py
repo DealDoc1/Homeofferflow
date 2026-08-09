@@ -19,8 +19,12 @@ class SellerReviewCompletionMetricTests(unittest.TestCase):
         for metric in ("sellerReviewViewedCount", "sellerReviewVerifiedCount", "sellerReviewAttestationCount"):
             self.assertIn(f'"{metric}"', backend)
             self.assertIn(metric, frontend)
+        for metric in ("sellerReviewViewRate", "sellerReviewVerificationRate", "sellerReviewAttestationRate"):
+            self.assertIn(f'"{metric}"', backend)
+            self.assertIn(metric, frontend)
         self.assertIn("verified", frontend)
         self.assertIn("attested", frontend)
+        self.assertIn("Stage conversion", frontend)
 
 
 if __name__ == "__main__":
