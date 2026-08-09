@@ -3032,6 +3032,12 @@ class handler(BaseHTTPRequestHandler):
                 "billingPortalOpenCount": len([
                     item for item in events if item.get("event_type") == "billing_portal_opened"
                 ]),
+                "subscriptionCheckoutStartCount": len([
+                    item for item in events if item.get("event_type") == "subscription_checkout_started"
+                ]),
+                "subscriptionCheckoutReturnCount": len([
+                    item for item in events if item.get("event_type") == "subscription_checkout_returned"
+                ]),
                 "brokerageInviteSentCount": len([
                     item for item in events if item.get("event_type") == "brokerage_invite_sent"
                 ]),
