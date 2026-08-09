@@ -10906,7 +10906,11 @@ function routeAfterMagicLinkIfNeeded() {
       if (submitButton) { submitButton.disabled = false; submitButton.textContent = 'Save Seller Request'; }
     }
   };
-  fsboDraftFields.forEach(id => document.getElementById(id)?.addEventListener('input', saveFsboDraft));
+  fsboDraftFields.forEach(id => {
+    const field = document.getElementById(id);
+    field?.addEventListener('input', saveFsboDraft);
+    field?.addEventListener('change', saveFsboDraft);
+  });
   document.querySelectorAll('input[name="fsboPartner"]').forEach(input => input.addEventListener('change', saveFsboDraft));
   const __oldOpenAccountDashboardFsbo = window.openAccountDashboard;
   if (typeof __oldOpenAccountDashboardFsbo === 'function') {

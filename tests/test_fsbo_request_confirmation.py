@@ -28,6 +28,7 @@ class FsboRequestConfirmationTests(unittest.TestCase):
         self.assertIn("function saveFsboDraft()", HTML)
         self.assertIn("window.restoreFsboDraft", HTML)
         self.assertIn("clearFsboDraft();", HTML)
+        self.assertIn("field?.addEventListener('change', saveFsboDraft)", HTML)
 
 
 if __name__ == "__main__":
