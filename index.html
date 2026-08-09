@@ -4162,7 +4162,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           <div class="admin-metric">
             <div class="admin-metric-label">Subscription Checkout Funnel</div>
             <div class="admin-metric-value">${metrics.subscriptionCheckoutStartCount || 0} started</div>
-            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.subscriptionCheckoutReturnCount || 0} returned from Stripe checkout.</div>
+              <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.subscriptionCheckoutReturnCount || 0} returned from Stripe checkout · ${Number(metrics.subscriptionCheckoutReturnRate || 0).toFixed(1)}% return rate.</div>
           </div>
 
           <div class="admin-metric">

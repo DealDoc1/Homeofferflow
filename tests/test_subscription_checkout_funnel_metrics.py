@@ -10,6 +10,7 @@ class SubscriptionCheckoutFunnelMetricTests(unittest.TestCase):
         source = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
         self.assertIn('"subscriptionCheckoutStartCount"', source)
         self.assertIn('"subscriptionCheckoutReturnCount"', source)
+        self.assertIn('"subscriptionCheckoutReturnRate"', source)
         self.assertIn("subscription_checkout_started", source)
         self.assertIn("subscription_checkout_returned", source)
 
@@ -18,6 +19,7 @@ class SubscriptionCheckoutFunnelMetricTests(unittest.TestCase):
         self.assertIn("Subscription Checkout Funnel", source)
         self.assertIn("subscriptionCheckoutStartCount", source)
         self.assertIn("subscriptionCheckoutReturnCount", source)
+        self.assertIn("subscriptionCheckoutReturnRate", source)
 
 
 if __name__ == "__main__":

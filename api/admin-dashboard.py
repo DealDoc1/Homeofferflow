@@ -2960,6 +2960,12 @@ class handler(BaseHTTPRequestHandler):
                 milestone = str((item.get("metadata") or {}).get("milestone") or "").strip().lower()
                 if milestone in activation_milestone_counts:
                     activation_milestone_counts[milestone] += 1
+            subscription_checkout_start_count = len([
+                item for item in events if item.get("event_type") == "subscription_checkout_started"
+            ])
+            subscription_checkout_return_count = len([
+                item for item in events if item.get("event_type") == "subscription_checkout_returned"
+            ])
             metrics = {
                 "offerCount": len(offers),
                 "homebuyerOfferCount": len([o for o in offers if o.get("role") == "homebuyer"]),
@@ -3032,12 +3038,12 @@ class handler(BaseHTTPRequestHandler):
                 "billingPortalOpenCount": len([
                     item for item in events if item.get("event_type") == "billing_portal_opened"
                 ]),
-                "subscriptionCheckoutStartCount": len([
-                    item for item in events if item.get("event_type") == "subscription_checkout_started"
-                ]),
-                "subscriptionCheckoutReturnCount": len([
-                    item for item in events if item.get("event_type") == "subscription_checkout_returned"
-                ]),
+                "subscriptionCheckoutStartCount": subscription_checkout_start_count,
+                "subscriptionCheckoutReturnCount": subscription_checkout_return_count,
+                "subscriptionCheckoutReturnRate": round(
+                    (subscription_checkout_return_count / subscription_checkout_start_count) * 100,
+                    1,
+                ) if subscription_checkout_start_count else 0,
                 "brokerageInviteSentCount": len([
                     item for item in events if item.get("event_type") == "brokerage_invite_sent"
                 ]),
