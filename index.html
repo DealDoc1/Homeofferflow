@@ -3897,18 +3897,29 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     if (!email) return '';
     const packageName = String(row?.package_name || row?.service_level || 'seller intake').trim();
     const timeline = String(row?.timeline || 'not set').trim();
+    const leadStatus = String(row?.status || 'new').trim().toLowerCase();
     const partners = Array.isArray(row?.partner_categories) ? row.partner_categories.filter(Boolean).slice(0, 6).join(', ') : '';
     const subject = `HomeOfferFlow seller follow-up: ${packageName}`;
+    const followUpStage = leadStatus === 'new'
+      ? 'confirm your seller goals and preferred timeline'
+      : leadStatus === 'contacted'
+      ? 'schedule a short review of your seller workflow and next step'
+      : leadStatus === 'qualified'
+      ? 'confirm the seller workflow scope, pricing, and licensed-provider requirements'
+      : leadStatus === 'converted'
+      ? 'check that your seller workflow is moving smoothly and identify the next support need'
+      : 'review whether HomeOfferFlow can support your next seller workflow';
     const body = [
       'Thanks for your HomeOfferFlow seller request.',
       `Package interest: ${packageName}.`,
       `Timeline: ${timeline}.`,
       partners ? `Partner interests: ${partners}.` : '',
-      'We can review the next step and confirm availability, pricing, and any licensed-provider requirements: https://homeofferflow.com'
+      `We can ${followUpStage}: https://homeofferflow.com`
     ].filter(Boolean).join(' ');
     const eventMetadata = adminEventMetadata({
       package: packageName.slice(0, 80),
-      status: String(row?.status || 'new').slice(0, 40),
+      status: leadStatus.slice(0, 40),
+      followUpStage,
       surface: 'admin'
     });
     return `<a class="admin-contact-action" href="mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}" onclick='logOfferEvent(null, "seller_follow_up_email_started", "started", "Seller lead follow-up email opened.", ${eventMetadata})'>Follow up</a>`;
