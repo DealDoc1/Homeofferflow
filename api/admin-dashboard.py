@@ -2830,6 +2830,23 @@ class handler(BaseHTTPRequestHandler):
                 for placement in partner_placements
                 if placement.get("is_active") and placement.get("source_lead_id")
             }
+            partner_leads_by_id = {
+                str(lead.get("id") or ""): lead
+                for lead in partner_leads
+                if lead.get("id")
+            }
+            partner_activation_durations = []
+            for placement in partner_placements:
+                if not placement.get("is_active"):
+                    continue
+                lead = partner_leads_by_id.get(str(placement.get("source_lead_id") or ""))
+                created_at = _parse_timestamp((lead or {}).get("created_at"))
+                activated_at = _parse_timestamp(placement.get("activated_at"))
+                if created_at and activated_at and activated_at >= created_at:
+                    partner_activation_durations.append((activated_at - created_at).total_seconds() / 86400)
+            partner_activation_avg_days = round(
+                sum(partner_activation_durations) / len(partner_activation_durations), 1
+            ) if partner_activation_durations else 0
             paid_partner_activation_queue = [
                 lead for lead in partner_leads
                 if str(lead.get("payment_status") or "").lower() == "paid"
@@ -3130,6 +3147,7 @@ class handler(BaseHTTPRequestHandler):
                 "paidPartnerActivationQueueAgedCount": paid_partner_activation_queue_aged_count,
                 "partnerActivationRate": round((len(active_partner_source_lead_ids) / paid_partner_lead_count) * 100)
                 if paid_partner_lead_count else 0,
+                "partnerActivationAvgDays": partner_activation_avg_days,
                 "eventCount": len(events),
                 "roadmapCount": len(roadmap),
                 "roadmapBlockedCount": len([item for item in roadmap if item.get("status") == "blocked"]),

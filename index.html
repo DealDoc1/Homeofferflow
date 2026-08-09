@@ -4223,6 +4223,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <div class="admin-metric-value">${metrics.partnerLeadCount || partnerLeads.length || 0}</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.paidPartnerLeadCount || 0} paid · ${metrics.partnerOnboardingReadyCount || 0} onboarding-ready · ${metrics.partnerActivationRate || 0}% activated.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.paidPartnerAgreementConfirmedCount || 0} agreements confirmed (${Number(metrics.paidPartnerAgreementConfirmationRate || 0).toFixed(1)}%).</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Average paid-partner time to activation: ${Number(metrics.partnerActivationAvgDays || 0).toFixed(1)} days.</div>
           </div>
 
           <div class="admin-metric">
