@@ -17,8 +17,18 @@ class BrokerageInviteFunnelMetricTests(unittest.TestCase):
         frontend = (ROOT / "index.html").read_text(encoding="utf-8")
         self.assertIn('"brokerageInviteSentCount"', backend)
         self.assertIn('"brokerageInviteResendCount"', backend)
+        for metric in (
+            "brokerageInviteTotalCount",
+            "brokerageInviteAcceptedCount",
+            "brokerageInvitePendingCount",
+            "brokerageInviteAgedCount",
+            "brokerageInviteAcceptanceRate",
+        ):
+            self.assertIn(f'"{metric}"', backend)
         self.assertIn("Brokerage Invites Sent", frontend)
         self.assertIn("brokerageInviteResendCount", frontend)
+        self.assertIn("brokerageInviteAcceptanceRate", frontend)
+        self.assertIn("pending more than 7 days", frontend)
 
 
 if __name__ == "__main__":

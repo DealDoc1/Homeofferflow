@@ -4169,7 +4169,8 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           <div class="admin-metric">
             <div class="admin-metric-label">Brokerage Invites Sent</div>
             <div class="admin-metric-value">${metrics.brokerageInviteSentCount || 0}</div>
-            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.brokerageInviteResendCount || 0} resends · compare with invite acceptance to target seat conversion.</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.brokerageInviteResendCount || 0} resends · ${metrics.brokerageInviteAcceptedCount || 0} accepted of ${metrics.brokerageInviteTotalCount || 0} (${Number(metrics.brokerageInviteAcceptanceRate || 0).toFixed(1)}%).</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.brokerageInvitePendingCount || 0} pending · ${metrics.brokerageInviteAgedCount || 0} pending more than 7 days.</div>
           </div>
 
           <div class="admin-metric">

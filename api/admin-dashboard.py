@@ -2770,6 +2770,9 @@ class handler(BaseHTTPRequestHandler):
             events = asyncio.run(_get("hof_offer_events?select=*&order=created_at.desc&limit=50"))
             subs = asyncio.run(_get("hof_subscriptions?select=*&order=created_at.desc&limit=50")) if True else []
             brokerages = asyncio.run(_get("hof_brokerages?select=*&order=created_at.desc&limit=50"))
+            brokerage_invites = asyncio.run(_get_optional(
+                "hof_brokerage_invites?select=status,created_at,accepted_at,expires_at&order=created_at.desc&limit=2000"
+            ))
             partner_leads = asyncio.run(_get_optional("hof_partner_leads?select=*&order=created_at.desc&limit=100"))
             seller_leads = asyncio.run(_get_optional(
                 "hof_seller_leads?select=id,property_address,property_city,property_county,property_state,property_zip,"
@@ -2978,6 +2981,19 @@ class handler(BaseHTTPRequestHandler):
             seller_review_attestation_count = len([
                 item for item in events if item.get("event_type") == "seller_review_attested"
             ])
+            brokerage_invite_total_count = len(brokerage_invites)
+            brokerage_invite_accepted_count = len([
+                invite for invite in brokerage_invites if str(invite.get("status") or "").lower() == "accepted"
+            ])
+            brokerage_invite_pending_count = len([
+                invite for invite in brokerage_invites if str(invite.get("status") or "").lower() == "pending"
+            ])
+            brokerage_invite_aged_count = len([
+                invite for invite in brokerage_invites
+                if str(invite.get("status") or "").lower() == "pending"
+                and (created_at := _parse_timestamp(invite.get("created_at")))
+                and created_at <= now - timedelta(days=7)
+            ])
             metrics = {
                 "offerCount": len(offers),
                 "homebuyerOfferCount": len([o for o in offers if o.get("role") == "homebuyer"]),
@@ -3062,6 +3078,13 @@ class handler(BaseHTTPRequestHandler):
                     if item.get("event_type") == "brokerage_invite_sent"
                     and (item.get("metadata") or {}).get("isResend") is True
                 ]),
+                "brokerageInviteTotalCount": brokerage_invite_total_count,
+                "brokerageInviteAcceptedCount": brokerage_invite_accepted_count,
+                "brokerageInvitePendingCount": brokerage_invite_pending_count,
+                "brokerageInviteAgedCount": brokerage_invite_aged_count,
+                "brokerageInviteAcceptanceRate": round(
+                    (brokerage_invite_accepted_count / brokerage_invite_total_count) * 100, 1
+                ) if brokerage_invite_total_count else 0,
                 "legalAcceptanceCount": len([
                     item for item in events if item.get("event_type") == "legal_terms_accepted"
                 ]),
