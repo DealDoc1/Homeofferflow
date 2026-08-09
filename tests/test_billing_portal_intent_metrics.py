@@ -13,6 +13,7 @@ class BillingPortalIntentMetricsTests(unittest.TestCase):
         self.assertIn('"billingPortalOpenBySource"', backend)
         self.assertIn("billing_portal_opened", frontend)
         self.assertIn("trial_renewal_urgency", frontend)
+        self.assertIn("renewal_urgency", frontend)
         self.assertIn('Billing Portal Opens', frontend)
 
 
