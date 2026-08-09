@@ -2979,6 +2979,14 @@ class handler(BaseHTTPRequestHandler):
                 "billingPortalOpenCount": len([
                     item for item in events if item.get("event_type") == "billing_portal_opened"
                 ]),
+                "brokerageInviteSentCount": len([
+                    item for item in events if item.get("event_type") == "brokerage_invite_sent"
+                ]),
+                "brokerageInviteResendCount": len([
+                    item for item in events
+                    if item.get("event_type") == "brokerage_invite_sent"
+                    and (item.get("metadata") or {}).get("isResend") is True
+                ]),
                 "legalAcceptanceCount": len([
                     item for item in events if item.get("event_type") == "legal_terms_accepted"
                 ]),

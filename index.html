@@ -4160,6 +4160,12 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           </div>
 
           <div class="admin-metric">
+            <div class="admin-metric-label">Brokerage Invites Sent</div>
+            <div class="admin-metric-value">${metrics.brokerageInviteSentCount || 0}</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.brokerageInviteResendCount || 0} resends · compare with invite acceptance to target seat conversion.</div>
+          </div>
+
+          <div class="admin-metric">
             <div class="admin-metric-label">Legal Acceptance Events</div>
             <div class="admin-metric-value">${metrics.legalAcceptanceCount || 0}</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Privacy-safe acceptance signals for the current offer wizard.</div>
@@ -12809,7 +12815,7 @@ function routeAfterMagicLinkIfNeeded() {
     }
   };
 
-  root.createBrokerageInvite = async function createBrokerageInvite() {
+  root.createBrokerageInvite = async function createBrokerageInvite(isResend = false) {
     const session = root.hofAuth?.session;
     const input = document.getElementById('brokerageInviteEmail');
     const result = document.getElementById('brokerageInviteResult');
@@ -12843,6 +12849,10 @@ function routeAfterMagicLinkIfNeeded() {
         if (result) result.textContent = deliveryMessage + 'a secure invite link was created for ' + data.invite.email + '.';
       }
       if (input) input.value = '';
+      root.logOfferEvent?.(null, 'brokerage_invite_sent', 'sent', 'Brokerage agent invitation sent.', {
+        isResend: Boolean(isResend),
+        role: 'agent'
+      });
       await root.renderBrokerageFoundationPanel();
     } catch (error) {
       if (result) result.textContent = error.message || 'Could not create the secure invite link.';
@@ -12855,7 +12865,7 @@ function routeAfterMagicLinkIfNeeded() {
     const normalized = String(email || '').trim().toLowerCase();
     if (input) input.value = normalized;
     if (result) result.textContent = 'Resending the secure invitation…';
-    await root.createBrokerageInvite();
+    await root.createBrokerageInvite(true);
   };
 
   root.revokeBrokerageInvite = async function revokeBrokerageInvite(inviteId, email) {
