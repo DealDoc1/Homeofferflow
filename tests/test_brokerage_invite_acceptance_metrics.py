@@ -10,6 +10,8 @@ class BrokerageInviteAcceptanceMetricsTests(unittest.TestCase):
         backend = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
         frontend = (ROOT / "index.html").read_text(encoding="utf-8")
         self.assertIn('"inviteAcceptanceRate"', backend)
+        self.assertIn('"acceptedInviteActivationRate"', backend)
+        self.assertIn('acceptedInviteNeedingActivationCount', backend)
         self.assertIn('"acceptedInviteCount"', backend)
         self.assertIn('"inviteTotalCount"', backend)
         self.assertIn('Invite acceptance', frontend)
@@ -20,6 +22,7 @@ class BrokerageInviteAcceptanceMetricsTests(unittest.TestCase):
         self.assertIn('First invite follow-up:', frontend)
         self.assertIn('Invite follow-up:', frontend)
         self.assertIn('inviteAcceptanceNotice', frontend)
+        self.assertIn('Accepted → active', frontend)
 
 
 if __name__ == "__main__":

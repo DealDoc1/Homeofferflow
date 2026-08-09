@@ -303,13 +303,28 @@ async def _brokerage_dashboard_payload(context):
     invite_history = await _get_optional(
         "hof_brokerage_invites?"
         f"brokerage_id=eq.{urllib.parse.quote(brokerage_id)}"
-        "&select=status,created_at,accepted_at"
+        "&select=status,email,created_at,accepted_at"
         "&order=created_at.desc&limit=500"
     )
     accepted_invite_count = len([
-        invite for invite in invite_history if invite.get("status") == "accepted"
+        invite for invite in invite_history if str(invite.get("status") or "").lower() == "accepted"
     ])
     invite_acceptance_rate = round((accepted_invite_count / len(invite_history)) * 100) if invite_history else 0
+    accepted_invite_emails = {
+        str(invite.get("email") or "").strip().lower()
+        for invite in invite_history
+        if str(invite.get("status") or "").lower() == "accepted" and str(invite.get("email") or "").strip()
+    }
+    active_member_emails = {
+        str(member.get("email") or "").strip().lower()
+        for member in members
+        if str(member.get("status") or "").lower() == "active" and str(member.get("email") or "").strip()
+    }
+    accepted_invite_active_count = len(accepted_invite_emails & active_member_emails)
+    accepted_invite_needing_activation_count = max(0, accepted_invite_count - accepted_invite_active_count)
+    accepted_invite_activation_rate = round(
+        (accepted_invite_active_count / accepted_invite_count) * 100, 1
+    ) if accepted_invite_count else 0
     now = datetime.now(timezone.utc)
     pending_invites_expiring_soon = [
         invite for invite in pending_invites
@@ -539,6 +554,9 @@ async def _brokerage_dashboard_payload(context):
             "inviteTotalCount": len(invite_history),
             "acceptedInviteCount": accepted_invite_count,
             "inviteAcceptanceRate": invite_acceptance_rate,
+            "acceptedInviteActiveCount": accepted_invite_active_count,
+            "acceptedInviteNeedingActivationCount": accepted_invite_needing_activation_count,
+            "acceptedInviteActivationRate": accepted_invite_activation_rate,
         },
         "agents": safe_agents,
         "listingWorkspaceSummary": listing_workspace_summary,

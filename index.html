@@ -13268,11 +13268,14 @@ function routeAfterMagicLinkIfNeeded() {
       const inviteTotalCount = Number(m.inviteTotalCount || 0);
       const acceptedInviteCount = Number(m.acceptedInviteCount || 0);
       const inviteAcceptanceRate = Number(m.inviteAcceptanceRate || 0);
+      const acceptedInviteNeedingActivationCount = Number(m.acceptedInviteNeedingActivationCount || 0);
       const inviteAcceptanceNotice = pendingInvites.length && inviteAcceptanceRate === 0
         ? '<div class="notice gold" style="margin-top:1rem"><strong>First invite follow-up:</strong> No invited agents have accepted yet. Resend a pending link or copy the secure link again while the next seat is still open.</div>'
         : (pendingInvites.length && inviteAcceptanceRate < 50
           ? '<div class="notice gold" style="margin-top:1rem"><strong>Invite follow-up:</strong> ' + inviteAcceptanceRate + '% of ' + inviteTotalCount + ' invites have been accepted. Follow up with the pending agents to keep team activation moving.</div>'
-          : '');
+          : (acceptedInviteNeedingActivationCount > 0
+            ? '<div class="notice gold" style="margin-top:1rem"><strong>Accepted-seat follow-up:</strong> ' + acceptedInviteNeedingActivationCount + ' accepted invite' + (acceptedInviteNeedingActivationCount === 1 ? ' is' : 's are') + ' not active in the brokerage yet. Help those agents finish account activation before inviting the next seat.</div>'
+            : ''));
       const sourceReadiness = data.sourceReadiness || [];
       const seatCount = Number(m.agentSeatCount || 0);
       const seatCap = m.agentSeatCap == null ? null : Number(m.agentSeatCap);
@@ -13354,6 +13357,7 @@ function routeAfterMagicLinkIfNeeded() {
           '<div class="brokerage-safe-kpi"><span>Invites expiring soon</span><strong>' + pendingInvitesExpiringSoon + '</strong></div>' +
           '<div class="brokerage-safe-kpi"><span>Invites older than 7 days</span><strong>' + pendingInvitesAged + '</strong></div>' +
           '<div class="brokerage-safe-kpi"><span>Invite acceptance</span><strong>' + inviteAcceptanceRate + '%</strong><small>' + acceptedInviteCount + ' / ' + inviteTotalCount + ' accepted</small></div>' +
+          '<div class="brokerage-safe-kpi"><span>Accepted → active</span><strong>' + Number(m.acceptedInviteActivationRate || 0) + '%</strong><small>' + Number(m.acceptedInviteActiveCount || 0) + ' active · ' + acceptedInviteNeedingActivationCount + ' to finish</small></div>' +
         '</div>' +
         '<div class="brokerage-seat-momentum"><strong>' + (seatPercent == null ? 'Team growth' : 'Seat utilization: ' + seatPercent + '%') + '</strong><span>' + safe(seatMomentum) + '</span><button type="button" class="brokerage-access-button" onclick="document.getElementById(\'brokerageInviteEmail\')?.focus()">Invite an agent</button></div>' +
         '<div class="brokerage-invite-form" style="margin-top:1rem"><label for="brokerageAgentFilter">Find an agent</label><input id="brokerageAgentFilter" type="search" placeholder="Name, email, status, or next action" aria-label="Find an agent" oninput="filterBrokerageAgents(this.value)"><button type="button" class="brokerage-access-button" onclick="exportBrokerageRoster()">Download roster CSV</button><span id="brokerageAgentFilterSummary" class="brokerage-invite-result">' + Number(agents.length) + ' agent' + (agents.length === 1 ? '' : 's') + ' shown.</span></div>' +
