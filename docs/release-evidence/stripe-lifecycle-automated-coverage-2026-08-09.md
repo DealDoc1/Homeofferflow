@@ -35,4 +35,3 @@ from a real signed test-mode endpoint for trialing, scheduled cancellation,
 past-due suspension, manual/removed preservation, duplicate delivery, and the
 production rejection response. The endpoint and branch should be cleaned up
 only after those snapshots are recorded.
-
