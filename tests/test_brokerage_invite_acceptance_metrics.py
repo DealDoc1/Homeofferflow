@@ -12,6 +12,7 @@ class BrokerageInviteAcceptanceMetricsTests(unittest.TestCase):
         self.assertIn('"inviteAcceptanceRate"', backend)
         self.assertIn('"acceptedInviteActivationRate"', backend)
         self.assertIn('acceptedInviteNeedingActivationCount', backend)
+        self.assertIn('acceptedInviteNeedingActivationAgedCount', backend)
         self.assertIn('inviteAccepted', backend)
         self.assertIn('"acceptedInviteCount"', backend)
         self.assertIn('"inviteTotalCount"', backend)

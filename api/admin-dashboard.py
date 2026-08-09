@@ -368,6 +368,13 @@ async def _brokerage_dashboard_payload(context):
     }
     accepted_invite_active_count = len(accepted_invite_emails & active_member_emails)
     accepted_invite_needing_activation_count = max(0, accepted_invite_count - accepted_invite_active_count)
+    accepted_invite_needing_activation_aged_count = len([
+        invite for invite in invite_history
+        if str(invite.get("status") or "").lower() == "accepted"
+        and str(invite.get("email") or "").strip().lower() not in active_member_emails
+        and (accepted_at := _parse_timestamp(invite.get("accepted_at") or invite.get("created_at")))
+        and accepted_at <= datetime.now(timezone.utc) - timedelta(days=3)
+    ])
     accepted_invite_activation_rate = round(
         (accepted_invite_active_count / accepted_invite_count) * 100, 1
     ) if accepted_invite_count else 0
@@ -627,6 +634,7 @@ async def _brokerage_dashboard_payload(context):
             "inviteAcceptanceRate": invite_acceptance_rate,
             "acceptedInviteActiveCount": accepted_invite_active_count,
             "acceptedInviteNeedingActivationCount": accepted_invite_needing_activation_count,
+            "acceptedInviteNeedingActivationAgedCount": accepted_invite_needing_activation_aged_count,
             "acceptedInviteActivationRate": accepted_invite_activation_rate,
             "acceptedInviteSubscribedCount": accepted_invite_subscribed_count,
             "acceptedInviteSubscriptionRate": accepted_invite_subscription_rate,
