@@ -94,6 +94,22 @@ webhook payload data into tickets or the dashboard.
 - Delete or pause the isolated Supabase branch once no longer needed to stop
   its hourly cost.
 
+For each required intermediate state, capture a privacy-limited checkpoint
+after the Stripe delivery using the repository helper below. The helper fails
+closed unless the runtime is nonproduction and the database URL is the
+explicitly isolated test URL.
+
+```bash
+python scripts/capture_stripe_lifecycle_snapshot.py \
+  --checkpoint "past_due suspension" \
+  --output artifacts/stripe-lifecycle/past-due-suspension.json
+```
+
+Repeat this for trialing, cancel-at-period-end, recovery, duplicate delivery,
+removed/manual membership preservation, and production test-event rejection.
+The resulting JSON contains status counts and lifecycle dates only; it is not a
+replacement for the signed Stripe delivery itself.
+
 ## Automated guard
 
 Run this before the manual checklist:
