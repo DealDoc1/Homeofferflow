@@ -11780,7 +11780,15 @@ function routeAfterMagicLinkIfNeeded() {
   const statusClass = function(status){ return root.offerStatusClass ? root.offerStatusClass(status) : 'status-draft'; };
   const subtitle = function(o){ return root.getOfferSubtitle ? root.getOfferSubtitle(o) : [o.property_city, o.property_state].filter(Boolean).join(', '); };
 
-  const state = root.hofOfferWorkspaceV10 = root.hofOfferWorkspaceV10 || { offers:[], filter:'all', query:'', sort:'updated_desc' };
+  const workspaceStateKey = 'hof_offer_workspace_state_v1';
+  function savedWorkspaceState(){
+    try { return JSON.parse(sessionStorage.getItem(workspaceStateKey) || '{}'); } catch (_) { return {}; }
+  }
+  function persistWorkspaceState(){
+    try { sessionStorage.setItem(workspaceStateKey, JSON.stringify({ filter: state.filter, query: state.query, sort: state.sort })); } catch (_) {}
+  }
+  const savedState = savedWorkspaceState();
+  const state = root.hofOfferWorkspaceV10 = root.hofOfferWorkspaceV10 || { offers:[], filter:savedState.filter || 'all', query:savedState.query || '', sort:savedState.sort || 'updated_desc' };
 
   function bucketForOffer(o){
     const status = cleanStatus(o).toLowerCase();
@@ -11978,9 +11986,9 @@ function routeAfterMagicLinkIfNeeded() {
     if (list) list.innerHTML = renderWorkspace(state.offers || []);
   }
 
-  root.hofSetOfferWorkspaceFilter = function(filter){ state.filter = filter || 'all'; rerender(); };
-  root.hofSetOfferWorkspaceSearch = function(query){ state.query = query || ''; rerender(); };
-  root.hofSetOfferWorkspaceSort = function(sort){ state.sort = sort || 'updated_desc'; rerender(); };
+  root.hofSetOfferWorkspaceFilter = function(filter){ state.filter = filter || 'all'; persistWorkspaceState(); rerender(); };
+  root.hofSetOfferWorkspaceSearch = function(query){ state.query = query || ''; persistWorkspaceState(); rerender(); };
+  root.hofSetOfferWorkspaceSort = function(sort){ state.sort = sort || 'updated_desc'; persistWorkspaceState(); rerender(); };
   root.hofRefreshOfferWorkspace = async function(){
     if (typeof root.loadMyOffers !== 'function') return rerender();
     const offers = Array.isArray(root.hofAuth?.myOffers) ? root.hofAuth.myOffers : await root.loadMyOffers();
