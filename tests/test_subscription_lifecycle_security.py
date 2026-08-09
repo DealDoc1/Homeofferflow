@@ -404,6 +404,8 @@ class SubscriptionLifecycleSecurityTests(unittest.TestCase):
     def test_platform_admin_can_monitor_webhook_delivery_without_customer_or_payment_data(self):
         admin_source = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
         self.assertIn("stripeWebhookEvents", admin_source)
+        self.assertIn('"stripeWebhookEventTypeCounts": stripe_webhook_event_type_counts', admin_source)
+        self.assertIn('"stripeWebhookRecoveryCount"', admin_source)
         self.assertIn(
             "select=stripe_event_id,event_type,livemode,processing_state,error_code,received_at,processed_at",
             admin_source,

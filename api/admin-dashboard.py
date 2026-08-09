@@ -2895,6 +2895,10 @@ class handler(BaseHTTPRequestHandler):
             stripe_webhook_events = asyncio.run(_get_optional(
                 "hof_stripe_webhook_events?select=stripe_event_id,event_type,livemode,processing_state,error_code,received_at,processed_at&order=received_at.desc&limit=50"
             ))
+            stripe_webhook_event_type_counts = {}
+            for item in stripe_webhook_events:
+                event_type = str(item.get("event_type") or "unknown").strip().lower()[:80] or "unknown"
+                stripe_webhook_event_type_counts[event_type] = stripe_webhook_event_type_counts.get(event_type, 0) + 1
             # Platform-admin-only calibration feed. Keep direct account email,
             # user-agent, and page URL out of the dashboard response; the
             # existing feedback record remains available for support workflows.
@@ -3188,10 +3192,16 @@ class handler(BaseHTTPRequestHandler):
                 "qaVerifiedCount": len([item for item in qa_scenarios if item.get("current_status") in {"passed", "staging_passed", "production"}]),
                 "releaseCount": len(releases),
                 "stripeWebhookEventCount": len(stripe_webhook_events),
+                "stripeWebhookEventTypeCounts": stripe_webhook_event_type_counts,
+                "stripeWebhookProcessedCount": len([
+                    item for item in stripe_webhook_events if item.get("processing_state") == "processed"
+                ]),
                 "stripeWebhookAttentionCount": len([
                     item for item in stripe_webhook_events
                     if item.get("processing_state") == "failed"
                 ]),
+                "stripeWebhookInvoiceFailureCount": stripe_webhook_event_type_counts.get("invoice.payment_failed", 0),
+                "stripeWebhookRecoveryCount": stripe_webhook_event_type_counts.get("invoice.paid", 0) + stripe_webhook_event_type_counts.get("invoice.payment_succeeded", 0),
                 "billingPortalOpenCount": len([
                     item for item in events if item.get("event_type") == "billing_portal_opened"
                 ]),
