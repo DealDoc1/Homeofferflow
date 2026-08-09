@@ -3208,6 +3208,10 @@ class handler(BaseHTTPRequestHandler):
                     item for item in stripe_webhook_events
                     if item.get("processing_state") == "failed"
                 ]),
+                "stripeWebhookRetryableCount": len([
+                    item for item in stripe_webhook_events
+                    if item.get("processing_state") in {"received", "failed"}
+                ]),
                 "stripeWebhookInvoiceFailureCount": stripe_webhook_event_type_counts.get("invoice.payment_failed", 0),
                 "stripeWebhookRecoveryCount": stripe_webhook_event_type_counts.get("invoice.paid", 0) + stripe_webhook_event_type_counts.get("invoice.payment_succeeded", 0),
                 "billingPortalOpenCount": len([

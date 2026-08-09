@@ -4179,7 +4179,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           <div class="admin-metric">
             <div class="admin-metric-label">Billing Webhook Attention</div>
             <div class="admin-metric-value">${metrics.stripeWebhookAttentionCount || 0}</div>
-            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.stripeWebhookProcessedCount || 0} processed of ${metrics.stripeWebhookEventCount || 0} recent deliveries.</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.stripeWebhookProcessedCount || 0} processed of ${metrics.stripeWebhookEventCount || 0} recent deliveries · ${metrics.stripeWebhookRetryableCount || 0} retryable.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.stripeWebhookInvoiceFailureCount || 0} payment failures · ${metrics.stripeWebhookRecoveryCount || 0} paid/recovery events · ${Number(metrics.stripeWebhookEventTypeCounts?.['customer.subscription.deleted'] || 0)} cancellations.</div>
           </div>
 
