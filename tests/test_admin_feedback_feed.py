@@ -22,6 +22,7 @@ class AdminFeedbackFeedTests(unittest.TestCase):
     def test_platform_feedback_query_is_privacy_minimized_and_calibration_counted(self):
         source = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
         self.assertIn("hof_feedback?select=id,issue_type,calibration_scenario,message,status,role,created_at", source)
+        self.assertIn('hof_offer_events?select=*&order=created_at.desc&limit=2000', source)
         self.assertIn('"feedbackCount": len(feedback)', source)
         self.assertIn('"missingFormRequestCount": missing_form_request_count', source)
         self.assertIn('"missingFormRequestCodeCounts": missing_form_request_code_counts', source)

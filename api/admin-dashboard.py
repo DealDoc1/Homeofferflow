@@ -2779,7 +2779,9 @@ class handler(BaseHTTPRequestHandler):
             agent_lifecycle_offers = asyncio.run(_get_optional(
                 "hof_offers?role=eq.agent&deleted_at=is.null&select=user_id,status,signwell_status,created_at,updated_at&limit=2000"
             ))
-            events = asyncio.run(_get("hof_offer_events?select=*&order=created_at.desc&limit=50"))
+            # Keep funnel/cohort metrics representative beyond the most recent
+            # page while bounding the admin payload for predictable latency.
+            events = asyncio.run(_get("hof_offer_events?select=*&order=created_at.desc&limit=2000"))
             subs = asyncio.run(_get("hof_subscriptions?select=*&order=created_at.desc&limit=50")) if True else []
             brokerages = asyncio.run(_get("hof_brokerages?select=*&order=created_at.desc&limit=50"))
             brokerage_invites = asyncio.run(_get_optional(
