@@ -16,7 +16,10 @@ class BillingPortalIntentMetricsTests(unittest.TestCase):
         self.assertIn("renewal_urgency", frontend)
         self.assertIn('Billing Portal Opens', frontend)
         self.assertIn('subscriptionUsageNearLimitViewCount', backend)
-        self.assertIn('Usage awareness', frontend)
+        self.assertIn('usageNearLimitBillingPortalOpenRate', backend)
+        self.assertIn('usageExhaustedBillingPortalOpenRate', backend)
+        self.assertIn('usageNearLimitBillingPortalOpenRate', frontend)
+        self.assertIn('Usage recovery', frontend)
 
 
 if __name__ == "__main__":

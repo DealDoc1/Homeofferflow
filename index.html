@@ -4218,7 +4218,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <div class="admin-metric-label">Billing Portal Opens</div>
             <div class="admin-metric-value">${metrics.billingPortalOpenCount || 0}</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Authenticated billing intent signals · ${Number(metrics.billingPortalOpenBySource?.trial_renewal_urgency || 0)} from trial urgency · ${Number(metrics.billingPortalOpenBySource?.renewal_urgency || 0)} from paid-renewal urgency.</div>
-            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Usage awareness: ${metrics.subscriptionUsageNearLimitViewCount || 0} near-limit · ${metrics.subscriptionUsageExhaustedViewCount || 0} exhausted.</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Usage recovery: ${metrics.subscriptionUsageNearLimitViewCount || 0} near-limit views · ${Number(metrics.usageNearLimitBillingPortalOpenRate || 0).toFixed(1)}% opened Billing; ${metrics.subscriptionUsageExhaustedViewCount || 0} exhausted views · ${Number(metrics.usageExhaustedBillingPortalOpenRate || 0).toFixed(1)}% opened Billing.</div>
           </div>
 
           <div class="admin-metric">

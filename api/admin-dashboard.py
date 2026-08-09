@@ -3323,6 +3323,14 @@ class handler(BaseHTTPRequestHandler):
                 ) if brokerage_invite_total_count else 0,
                 "legalAcceptanceCount": legal_acceptance_count,
                 "billingPortalOpenBySource": billing_portal_open_by_source,
+                "usageNearLimitBillingPortalOpenCount": billing_portal_open_by_source.get("usage_near_limit", 0),
+                "usageExhaustedBillingPortalOpenCount": billing_portal_open_by_source.get("usage_exhausted", 0),
+                "usageNearLimitBillingPortalOpenRate": round(
+                    (billing_portal_open_by_source.get("usage_near_limit", 0) / usage_near_limit_view_count) * 100, 1
+                ) if usage_near_limit_view_count else 0,
+                "usageExhaustedBillingPortalOpenRate": round(
+                    (billing_portal_open_by_source.get("usage_exhausted", 0) / usage_exhausted_view_count) * 100, 1
+                ) if usage_exhausted_view_count else 0,
                 "activationDashboardViewCount": activation_dashboard_view_count,
                 "activationActionCount": activation_action_count,
                 "activationActionRate": round((activation_action_count / activation_dashboard_view_count) * 100)
