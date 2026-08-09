@@ -12,6 +12,9 @@ class SubscriptionNearLimitNoticeTests(unittest.TestCase):
         self.assertIn("review billing options before access pauses", HTML)
         self.assertIn("subscription_usage_near_limit_viewed", HTML)
         self.assertIn("usage_near_limit", HTML)
+        self.assertIn("Review Manage Billing", HTML)
+        self.assertIn("usage_exhausted", HTML)
+        self.assertIn("Monthly packet allowance used", HTML)
 
 
 if __name__ == "__main__":

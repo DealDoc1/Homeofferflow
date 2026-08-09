@@ -4653,7 +4653,8 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         ${good ? 'You can generate and send new packets.' : 'Generation is blocked until billing/access is updated.'}
       </div>
 
-      ${nearLimit ? '<div class="notice gold" style="margin-top:.7rem;font-size:.76rem;line-height:1.45;"><strong>Almost at this month’s packet limit.</strong> You have ' + remaining + ' packet' + (remaining === 1 ? '' : 's') + ' left. Finish urgent client work, then review billing options before access pauses.</div>' : ''}
+      ${nearLimit ? '<div class="notice gold" style="margin-top:.7rem;font-size:.76rem;line-height:1.45;"><strong>Almost at this month’s packet limit.</strong> You have ' + remaining + ' packet' + (remaining === 1 ? '' : 's') + ' left. Finish urgent client work, then review billing options before access pauses. <button class="btn-secondary" type="button" style="margin-top:.45rem" onclick="openBillingPortal(\'usage_near_limit\')">Review Manage Billing</button></div>' : ''}
+      ${usageExhausted ? '<div class="notice gold" style="margin-top:.7rem;font-size:.76rem;line-height:1.45;"><strong>Monthly packet allowance used.</strong> Manage billing to review access options, then return here to continue the workflow. <button class="btn-secondary" type="button" style="margin-top:.45rem" onclick="openBillingPortal(\'usage_exhausted\')">Manage Billing</button></div>' : ''}
 
       ${actionHtml}
     `;
