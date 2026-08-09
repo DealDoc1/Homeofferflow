@@ -14,6 +14,7 @@ class AdminSellerFollowUpTests(unittest.TestCase):
         self.assertIn("Partner interests: ${partners}.", INDEX)
         self.assertIn("seller_follow_up_email_started", INDEX)
         self.assertIn("sellerFollowUpEmailStartCount", INDEX)
+        self.assertIn("sellerFollowUpEmailStartRate", INDEX)
         self.assertIn("function adminEventMetadata", INDEX)
         self.assertIn('>Follow up</a>', INDEX)
 

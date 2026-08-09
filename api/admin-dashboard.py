@@ -3167,6 +3167,8 @@ class handler(BaseHTTPRequestHandler):
                 "sellerLeadCount": len(seller_leads),
                 "qualifiedSellerLeadCount": len([lead for lead in seller_leads if lead.get("status") in {"qualified", "converted"}]),
                 "sellerFollowUpEmailStartCount": seller_follow_up_email_start_count,
+                "sellerFollowUpEmailStartRate": round((seller_follow_up_email_start_count / len(seller_leads)) * 100, 1)
+                if seller_leads else 0,
                 "sellerReviewRequestCount": seller_review_request_count,
                 "sellerReviewFollowUpCount": seller_review_follow_up_count,
                 "sellerReviewFollowUpRate": round((seller_review_follow_up_count / seller_review_request_count) * 100, 1)
