@@ -7706,16 +7706,21 @@ function routeAfterMagicLinkIfNeeded() {
     const target = index + direction;
     if (target < 0 || target >= docs.length) return;
     [docs[index], docs[target]] = [docs[target], docs[index]];
+    resetUploadedDisclosureAcknowledgement();
     renderUploadedDocsList();
     try { renderReview(); } catch (e) {}
+  }
+
+  function resetUploadedDisclosureAcknowledgement() {
+    const ack = document.getElementById('uploadedDisclosureAck');
+    if (ack) ack.checked = false;
   }
 
   function removeUploadedDisclosure(index) {
     const docs = window.hofUploadedDisclosureDocs || [];
     if (index < 0 || index >= docs.length) return;
     docs.splice(index, 1);
-    const ack = document.getElementById('uploadedDisclosureAck');
-    if (ack) ack.checked = false;
+    resetUploadedDisclosureAcknowledgement();
     state.data.uploadedDocNames = docs.map(d => d.name);
     renderUploadedDocsList();
     try { renderReview(); } catch (e) {}
@@ -7762,6 +7767,7 @@ function routeAfterMagicLinkIfNeeded() {
       const index = Number(row.dataset.uploadedIndex);
       row.querySelector('.uploaded-doc-type')?.addEventListener('change', event => {
         docs[index].type = event.target.value;
+        resetUploadedDisclosureAcknowledgement();
         try { renderReview(); } catch (e) {}
       });
       row.querySelector('.uploaded-doc-up')?.addEventListener('click', () => moveUploadedDisclosure(index, -1));
@@ -7826,8 +7832,7 @@ function routeAfterMagicLinkIfNeeded() {
       }
     }
     window.hofUploadedDisclosureDocs = docs;
-    const ack = document.getElementById('uploadedDisclosureAck');
-    if (ack) ack.checked = false;
+    resetUploadedDisclosureAcknowledgement();
     state.data.uploadedDocNames = docs.map(d => d.name);
     renderUploadedDocsList();
     try { renderReview(); } catch (e) {}
