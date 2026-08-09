@@ -13119,6 +13119,10 @@ function routeAfterMagicLinkIfNeeded() {
       if (result) result.textContent = 'Logo files must be 2 MB or smaller.';
       return;
     }
+    root.logOfferEvent?.(null, 'brokerage_branding_save_started', 'started', 'Brokerage branding save started.', {
+      hasLogo: Boolean(logo),
+      surface: 'brokerage'
+    });
     if (result) result.textContent = logo ? 'Uploading logo…' : 'Saving brand color…';
     try {
       const payload = { action: 'update_brokerage_branding', brand_color: color };
@@ -13145,8 +13149,16 @@ function routeAfterMagicLinkIfNeeded() {
         logo_url: data.branding.logoUrl || null
       });
       if (result) result.textContent = 'Brokerage branding saved.';
+      root.logOfferEvent?.(null, 'brokerage_branding_saved', 'saved', 'Brokerage branding saved.', {
+        hasLogo: Boolean(payload.logo_url),
+        surface: 'brokerage'
+      });
       await root.renderBrokerageFoundationPanel();
     } catch (error) {
+      root.logOfferEvent?.(null, 'brokerage_branding_save_failed', 'failed', 'Brokerage branding save failed.', {
+        hasLogo: Boolean(logo),
+        surface: 'brokerage'
+      });
       if (result) result.textContent = error.message || 'Could not save brokerage branding.';
     }
   };
@@ -13350,6 +13362,12 @@ function routeAfterMagicLinkIfNeeded() {
   root.renderBrokerageBrandPreview = function renderBrokerageBrandPreview() {
     const body = document.getElementById('brokerageBrandPreviewBody');
     if (!body) return;
+    if (!root._hofBrandingPreviewLogged) {
+      root._hofBrandingPreviewLogged = true;
+      root.logOfferEvent?.(null, 'brokerage_branding_preview_viewed', 'viewed', 'Brokerage branding preview viewed.', {
+        surface: 'brokerage'
+      });
+    }
     const brokerage = root.hofPlatform?.brokerage || {};
     const colorInput = document.getElementById('brokerageBrandColor');
     const color = /^#[0-9a-f]{6}$/i.test(String(colorInput?.value || brokerage.brand_color || ''))
