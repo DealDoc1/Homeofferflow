@@ -24,9 +24,12 @@ class AdminFeedbackFeedTests(unittest.TestCase):
         self.assertIn("hof_feedback?select=id,issue_type,calibration_scenario,message,status,role,created_at", source)
         self.assertIn('"feedbackCount": len(feedback)', source)
         self.assertIn('"missingFormRequestCount": missing_form_request_count', source)
+        self.assertIn('"missingFormRequestCodeCounts": missing_form_request_code_counts', source)
+        self.assertIn('"missingFormTopCodes": list(missing_form_request_code_counts)[:5]', source)
         frontend = (ROOT / "index.html").read_text(encoding="utf-8")
         self.assertIn("Missing Form Demand", frontend)
         self.assertIn("missingFormRequestCount", frontend)
+        self.assertIn("missingFormTopCodes", frontend)
         self.assertIn('hof_ai_offer_reviews?select=id,created_at', source)
         self.assertIn('"aiReviewOutputCount": len(ai_review_outputs)', source)
         self.assertIn('"aiCalibrationFeedbackCount"', source)
@@ -34,6 +37,14 @@ class AdminFeedbackFeedTests(unittest.TestCase):
         self.assertIn('"aiCalibrationReady"', source)
         self.assertIn("_is_ai_calibration_evidence(item)", source)
         self.assertNotIn("select=*", source[source.index("hof_feedback?"):source.index("hof_feedback?") + 180])
+
+    def test_missing_form_code_counts_normalize_without_exposing_notes(self):
+        counts = MODULE._missing_form_request_code_counts([
+            {"issue_type": "missing_addendum", "message": "Need TXR-1507 and txr-1507."},
+            {"issue_type": "missing_addendum", "message": "Request TREC-55-1."},
+            {"issue_type": "bug", "message": "TXR-1507 should not count here."},
+        ])
+        self.assertEqual(counts, {"TXR-1507": 2, "TREC-55-1": 1})
 
 
 if __name__ == "__main__":

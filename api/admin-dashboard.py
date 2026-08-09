@@ -126,6 +126,18 @@ def _ai_calibration_scenario_ids(items):
     })
 
 
+def _missing_form_request_code_counts(items):
+    """Return only normalized form-code demand counts, never feedback text."""
+    counts = {}
+    for item in (items or []):
+        if str((item or {}).get("issue_type") or "").lower() != "missing_addendum":
+            continue
+        message = str((item or {}).get("message") or "")
+        for code in re.findall(r"\b(?:TXR-\d{4}|TREC-\d{2}-\d)\b", message.upper()):
+            counts[code] = counts.get(code, 0) + 1
+    return dict(sorted(counts.items(), key=lambda entry: (-entry[1], entry[0])))
+
+
 async def _get(path):
     async with httpx.AsyncClient(timeout=12) as client:
         r = await client.get(f"{SUPABASE_URL}/rest/v1/{path}", headers=_headers())
@@ -2829,6 +2841,7 @@ class handler(BaseHTTPRequestHandler):
             missing_form_request_count = len([
                 item for item in feedback if str(item.get("issue_type") or "").lower() == "missing_addendum"
             ])
+            missing_form_request_code_counts = _missing_form_request_code_counts(feedback)
             ai_review_outputs = asyncio.run(_get_optional(
                 "hof_ai_offer_reviews?select=id,created_at&order=created_at.desc&limit=100"
             ))
@@ -3130,6 +3143,8 @@ class handler(BaseHTTPRequestHandler):
                 ) * 100, 1) if activation_milestone_counts["first_offer"] else 0,
                 "feedbackCount": len(feedback),
                 "missingFormRequestCount": missing_form_request_count,
+                "missingFormRequestCodeCounts": missing_form_request_code_counts,
+                "missingFormTopCodes": list(missing_form_request_code_counts)[:5],
                 # Generated AI outputs are useful context, but do not count as
                 # human calibration evidence for the five-scenario release gate.
                 "aiReviewOutputCount": len(ai_review_outputs),
