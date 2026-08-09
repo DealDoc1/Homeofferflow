@@ -23,6 +23,12 @@ class FsboRequestConfirmationTests(unittest.TestCase):
         self.assertIn("sessionStorage.setItem(submissionKey", HTML)
         self.assertIn("Change the package selection or property details", HTML)
 
+    def test_fsbo_intake_draft_is_preserved_until_submission(self):
+        self.assertIn("hof_fsbo_intake_draft_v1", HTML)
+        self.assertIn("function saveFsboDraft()", HTML)
+        self.assertIn("window.restoreFsboDraft", HTML)
+        self.assertIn("clearFsboDraft();", HTML)
+
 
 if __name__ == "__main__":
     unittest.main()

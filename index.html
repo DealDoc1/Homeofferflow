@@ -10719,7 +10719,7 @@ function routeAfterMagicLinkIfNeeded() {
       m.style.display = 'flex';
       m.setAttribute('aria-hidden','false');
       setTimeout(() => {
-        try { window.renderFsboNeedDetails?.(); } catch(_) {}
+        try { window.restoreFsboDraft?.(); } catch(_) { try { window.renderFsboNeedDetails?.(); } catch(__) {} }
         try { wireAddressInput?.(); } catch(_) {}
         try { window._hofPlacesSetup?.(); } catch(_) {}
       }, 0);
@@ -10730,6 +10730,24 @@ function routeAfterMagicLinkIfNeeded() {
     if (m) { m.style.display = 'none'; m.setAttribute('aria-hidden','true'); }
   };
   function fsboVal(id){ return (document.getElementById(id)?.value || '').trim(); }
+  const fsboDraftStorageKey = 'hof_fsbo_intake_draft_v1';
+  const fsboDraftFields = ['fsboPropertyAddress', 'fsboPropertyCity', 'fsboPropertyCounty', 'fsboPropertyState', 'fsboPropertyZip', 'fsboSellerName', 'fsboSellerEmail', 'fsboSellerPhone', 'fsboAskingPrice', 'fsboTimeline', 'fsboNeed', 'fsboPackagePrice', 'fsboNotes'];
+  function saveFsboDraft(){
+    try {
+      const fields = Object.fromEntries(fsboDraftFields.map(id => [id, document.getElementById(id)?.value || '']));
+      fields.partners = getFsboPartners();
+      sessionStorage.setItem(fsboDraftStorageKey, JSON.stringify(fields));
+    } catch (_) {}
+  }
+  window.restoreFsboDraft = function restoreFsboDraft(){
+    try {
+      const draft = JSON.parse(sessionStorage.getItem(fsboDraftStorageKey) || '{}');
+      fsboDraftFields.forEach(id => { if (draft[id] && document.getElementById(id)) document.getElementById(id).value = draft[id]; });
+      document.querySelectorAll('input[name="fsboPartner"]').forEach(input => { input.checked = Array.isArray(draft.partners) && draft.partners.includes(input.value); });
+      if (draft.fsboNeed) window.selectFsboNeed?.(draft.fsboNeed); else window.renderFsboNeedDetails?.();
+    } catch (_) { window.renderFsboNeedDetails?.(); }
+  };
+  function clearFsboDraft(){ try { sessionStorage.removeItem(fsboDraftStorageKey); } catch (_) {} }
   function fsboSubmissionKey(payload){
     return 'hof_fsbo_request_' + [payload.seller_email, payload.property_address, payload.service_level]
       .map(value => String(value || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '-'))
@@ -10789,6 +10807,7 @@ function routeAfterMagicLinkIfNeeded() {
     if (priceInput) priceInput.value = fsboNeedCopy[selected]?.price || '';
     document.querySelectorAll('.fsbo-package-card').forEach(card => card.classList.toggle('selected', card.dataset.fsboNeed === selected));
     window.renderFsboNeedDetails?.();
+    saveFsboDraft();
   };
 
   window.renderFsboNeedDetails = function(){
@@ -10870,6 +10889,7 @@ function routeAfterMagicLinkIfNeeded() {
       const data = await res.json().catch(()=>({}));
       if (!res.ok) throw new Error(data.error || 'Could not save seller request.');
       try { sessionStorage.setItem(submissionKey, data.seller_lead_id || 'saved'); } catch (_) {}
+      clearFsboDraft();
       const selected = fsboNeedCopy[fsboVal('fsboNeed')] || fsboNeedCopy.free_intake;
       const steps = fsboNextSteps[fsboVal('fsboNeed')] || fsboNextSteps.free_intake;
       if (status) {
@@ -10886,6 +10906,8 @@ function routeAfterMagicLinkIfNeeded() {
       if (submitButton) { submitButton.disabled = false; submitButton.textContent = 'Save Seller Request'; }
     }
   };
+  fsboDraftFields.forEach(id => document.getElementById(id)?.addEventListener('input', saveFsboDraft));
+  document.querySelectorAll('input[name="fsboPartner"]').forEach(input => input.addEventListener('change', saveFsboDraft));
   const __oldOpenAccountDashboardFsbo = window.openAccountDashboard;
   if (typeof __oldOpenAccountDashboardFsbo === 'function') {
     window.openAccountDashboard = async function(opts = {}) {
