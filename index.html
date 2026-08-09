@@ -3990,6 +3990,17 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           <div>${adminDate(row.created_at)}${canUpdate ? `<div class="partner-lead-admin-actions"><select id="partnerLeadStatus-${leadId}" aria-label="Review status for ${adminSafe(row.company_name || 'partner lead')}">${partnerLeadStatusOptions(status)}</select><select id="partnerOnboardingStatus-${leadId}" aria-label="Onboarding status for ${adminSafe(row.company_name || 'partner lead')}">${partnerOnboardingStatusOptions(onboardingStatus)}</select><button id="partnerLeadSave-${leadId}" type="button" onclick="updatePartnerLeadStatus('${leadId}')">Save</button></div>` : ''}</div>
         </div>`;
       }
+      if (type === 'paid-partner-activation') {
+        const email = String(row.contact_email || '').trim();
+        const age = sellerLeadAgeLabel(row);
+        const followUp = email ? `<a class="admin-contact-action" href="mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent('HomeOfferFlow partner activation follow-up')}">Email partner</a>` : '';
+        return `<div class="admin-row">
+          <div><strong>${adminSafe(row.company_name || 'Paid partner')}</strong><div class="admin-muted">${adminSafe(row.contact_name || '')} · ${adminSafe(email)}</div>${followUp ? `<div class="partner-lead-admin-actions">${followUp}</div>` : ''}</div>
+          <div>${adminSafe(row.partner_type || 'partner')}<div class="admin-muted">${adminSafe(row.market_area || '')}</div></div>
+          <div><span class="admin-pill warn">Paid · activation needed</span><div class="admin-muted">${adminSafe(age)}</div></div>
+          <div>${adminDate(row.created_at)}</div>
+        </div>`;
+      }
       if (type === 'seller-leads') {
         const leadId = String(row.id || '');
         const status = String(row.status || 'new');
@@ -4290,6 +4301,12 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         <div class="admin-section">
           <h4>Founding Partner Leads</h4>
           ${renderAdminRows(partnerLeads.slice(0, 12), 'partner-leads')}
+        </div>
+
+        <div class="admin-section">
+          <h4>Paid Partner Activation Queue</h4>
+          <div class="admin-muted" style="margin-bottom:.55rem;">Oldest paid applications appear first. Contact the partner to confirm agreement, creative, and market details before activating a public placement.</div>
+          ${renderAdminRows(paidPartnerActivationQueue.slice(0, 12), 'paid-partner-activation')}
         </div>
 
         <div class="admin-section">

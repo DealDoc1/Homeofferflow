@@ -2805,6 +2805,12 @@ class handler(BaseHTTPRequestHandler):
                 and str(lead.get("status") or "").lower() not in {"declined", "waitlist"}
                 and str(lead.get("id") or "") not in active_partner_source_lead_ids
             ]
+            # Put the oldest paid applications first so admin follow-up starts
+            # with the revenue most at risk of going stale.
+            paid_partner_activation_queue.sort(
+                key=lambda lead: _parse_timestamp(lead.get("created_at"))
+                or datetime.max.replace(tzinfo=timezone.utc)
+            )
             paid_partner_lead_count = len([
                 lead for lead in partner_leads
                 if str(lead.get("payment_status") or "").lower() == "paid"

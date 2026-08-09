@@ -13,6 +13,13 @@ class PartnerActivationQueueMetricTests(unittest.TestCase):
         source = Path('index.html').read_text()
         self.assertIn('Paid Partner Activation Queue', source)
         self.assertIn('paidPartnerActivationQueueCount', source)
+        self.assertIn("paid-partner-activation", source)
+        self.assertIn("Email partner", source)
+
+    def test_paid_partner_queue_prioritizes_oldest_paid_applications(self):
+        source = Path('api/admin-dashboard.py').read_text()
+        self.assertIn("paid_partner_activation_queue.sort", source)
+        self.assertIn("_parse_timestamp(lead.get(\"created_at\"))", source)
 
 
 if __name__ == '__main__':
