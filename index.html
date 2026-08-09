@@ -10078,6 +10078,25 @@ function routeAfterMagicLinkIfNeeded() {
     return clean;
   }
 
+  function getReviewConfidence(payload, result = {}) {
+    const p = payload || {};
+    const marketSignals = [p.daysOnMarket, p.priceReductionCount, p.listPrice, p.listingStatus, p.listingNotes]
+      .filter(value => String(value ?? '').trim() !== '').length;
+    const termSignals = [p.offerPrice, p.financing, p.earnestMoney, p.optionFee, p.optionDays, p.closingDate]
+      .filter(value => String(value ?? '').trim() !== '').length;
+    if (marketSignals >= 3 && termSignals >= 4) {
+      return { level: 'high', label: 'Higher confidence', rationale: 'Multiple listing-context signals and core offer terms were available.' };
+    }
+    if (marketSignals >= 1 && termSignals >= 3) {
+      return { level: 'moderate', label: 'Moderate confidence', rationale: 'Some market context and several core offer terms were available.' };
+    }
+    return {
+      level: 'limited',
+      label: 'Limited confidence',
+      rationale: 'Market context or core offer terms are incomplete; use this as an educational prompt, not a decision.'
+    };
+  }
+
   function normalizeAiReviewResult(result) {
     const fallback = getInlineAiOfferAnalysis();
     const approvedEducationalDisclaimer = 'This is a software-generated educational competitiveness review, not legal advice, broker advice, a valuation opinion, or a guarantee of acceptance.';
@@ -10094,6 +10113,7 @@ function routeAfterMagicLinkIfNeeded() {
         marketMode: 'unknown'
       };
       base.components = normalizeScoreComponents(null, base.score, base);
+      base.confidence = getReviewConfidence(buildAiOfferReviewPayload(), base);
       return base;
     }
     const base = {
@@ -10111,6 +10131,10 @@ function routeAfterMagicLinkIfNeeded() {
       marketMode: result.marketMode || 'unknown'
     };
     base.components = normalizeScoreComponents(result.components, base.score, base);
+    const derivedConfidence = getReviewConfidence(buildAiOfferReviewPayload(), base);
+    base.confidence = result.confidence && typeof result.confidence === 'object'
+      ? { ...derivedConfidence, ...result.confidence, level: derivedConfidence.level }
+      : derivedConfidence;
     return base;
   }
 
@@ -10165,6 +10189,7 @@ function routeAfterMagicLinkIfNeeded() {
       '',
       `Score shown: ${review.score}/100`,
       `Market mode: ${review.marketMode || 'unknown'}`,
+      `Confidence: ${review.confidence?.label || 'Limited confidence'} — ${review.confidence?.rationale || ''}`,
       `Summary: ${review.summary || 'Review completed.'}`,
       `Score drivers: ${Object.entries(review.components || {}).map(([key, value]) => `${key} ${value}`).join('; ') || 'Not listed.'}`,
       `Strengths: ${(review.strengths || []).slice(0, 6).join('; ') || 'None listed.'}`,
@@ -10251,6 +10276,7 @@ function routeAfterMagicLinkIfNeeded() {
     const concernsTitle = isHomebuyer ? 'Watch Before Signing' : isInvestor ? 'Deal Risks' : 'Items to Review';
 
     const marketModeText = escapeAttr(r.marketMode || 'unknown/general Texas resale norms');
+    const confidence = r.confidence || { label: 'Limited confidence', rationale: 'Market context or core offer terms are incomplete.' };
     const topStrengths = (r.strengths && r.strengths.length ? r.strengths : ['No major strengths detected from entered terms yet.']).slice(0, 3);
     const topRisks = (r.risks && r.risks.length ? r.risks : ['No major concerns detected from entered terms yet.']).slice(0, 3);
     const improveHtml = suggestions.map(x => `<div class="ai-clean-item"><span class="ai-clean-icon">→</span><span>${escapeAttr(x)}</span></div>`).join('');
@@ -10277,6 +10303,7 @@ function routeAfterMagicLinkIfNeeded() {
         </div>
 
         <div class="ai-review-summary ai-review-summary-v5"><strong>${escapeAttr(sourceLabel)}.</strong> ${escapeAttr(r.summary || '')}</div>
+        <div class="notice gold" role="status"><strong>${escapeAttr(confidence.label || 'Limited confidence')}.</strong> ${escapeAttr(confidence.rationale || '')} Confidence describes input completeness, not accuracy or acceptance odds.</div>
         <div class="ai-disclaimer-v5"><strong>Important:</strong> ${escapeAttr(r.disclaimer)} It does not change your contract automatically. Public listing/search context may be included when available and is not MLS-verified unless sourced from an authorized MLS connection.</div>
 
         <div class="review-section-title">${componentsTitle}</div>

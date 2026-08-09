@@ -36,6 +36,12 @@ class AiOfferReviewDashboardCopyTests(unittest.TestCase):
         self.assertIn("Best ${bestScore}/100", INDEX_HTML)
         self.assertIn("Run another review", INDEX_HTML)
 
+    def test_review_exposes_input_completeness_confidence_without_changing_score(self):
+        self.assertIn("getReviewConfidence", INDEX_HTML)
+        self.assertIn("Higher confidence", INDEX_HTML)
+        self.assertIn("Confidence describes input completeness, not accuracy", INDEX_HTML)
+        self.assertIn("Confidence:", INDEX_HTML)
+
     def test_admin_dashboard_surfaces_calibration_notes(self):
         self.assertIn("AI Calibration Notes", INDEX_HTML)
         self.assertIn("Feedback and AI Calibration", INDEX_HTML)
