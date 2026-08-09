@@ -642,6 +642,44 @@ async def _brokerage_dashboard_payload(context):
             }
         )
 
+    # Team labels are organization-only. The cohort view intentionally keeps
+    # buyer, property, offer-term, and document details out of broker reports.
+    team_cohorts_by_name = {}
+    for agent in safe_agents:
+        if (agent.get("role") or "agent") != "agent":
+            continue
+        team_name = str(agent.get("teamName") or "").strip() or "Unassigned"
+        cohort = team_cohorts_by_name.setdefault(
+            team_name,
+            {
+                "teamName": team_name,
+                "unassigned": team_name == "Unassigned",
+                "agentCount": 0,
+                "activeAgentCount": 0,
+                "activeAccessCount": 0,
+                "needsActivationCount": 0,
+                "needsBillingCount": 0,
+                "offerCount": 0,
+                "signedCount": 0,
+            },
+        )
+        cohort["agentCount"] += 1
+        is_active_member = agent.get("membershipStatus") == "active"
+        if is_active_member:
+            cohort["activeAgentCount"] += 1
+        if is_active_member and str(agent.get("subscriptionStatus") or "").lower() in {"active", "trialing", "free_admin"}:
+            cohort["activeAccessCount"] += 1
+        if agent.get("engagement") in {"needs_activation", "needs_subscription"}:
+            cohort["needsActivationCount"] += 1
+        if agent.get("engagement") == "needs_billing":
+            cohort["needsBillingCount"] += 1
+        cohort["offerCount"] += int(agent.get("activity", {}).get("offerCount") or 0)
+        cohort["signedCount"] += int(agent.get("activity", {}).get("signedCount") or 0)
+    team_cohorts = sorted(
+        team_cohorts_by_name.values(),
+        key=lambda cohort: (cohort["unassigned"], cohort["teamName"].lower()),
+    )
+
     return {
         "brokerage": brokerage,
         "sourceReadiness": source_readiness,
@@ -709,6 +747,7 @@ async def _brokerage_dashboard_payload(context):
             ),
         },
         "agents": safe_agents,
+        "teamCohorts": team_cohorts,
         "listingWorkspaceSummary": listing_workspace_summary,
         "pendingInvites": [
             {

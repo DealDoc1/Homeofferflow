@@ -181,6 +181,17 @@ class AdminTrackerSecurityTests(IsolatedAsyncioTestCase):
         self.assertEqual(agent["activity"]["offerCount"], 1)
         self.assertEqual(agent["teamName"], "North Dallas")
         self.assertEqual(payload["metrics"]["teamCount"], 1)
+        self.assertEqual(payload["teamCohorts"], [{
+            "teamName": "North Dallas",
+            "unassigned": False,
+            "agentCount": 1,
+            "activeAgentCount": 1,
+            "activeAccessCount": 1,
+            "needsActivationCount": 0,
+            "needsBillingCount": 0,
+            "offerCount": 1,
+            "signedCount": 0,
+        }])
         self.assertEqual(agent["engagement"], "active")
         self.assertEqual(agent["nextAction"], "Keep building client offers")
         self.assertEqual(payload["metrics"]["agentsNeedingActivation"], 0)
