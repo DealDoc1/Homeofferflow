@@ -10704,7 +10704,7 @@ function routeAfterMagicLinkIfNeeded() {
     <div class="field" style="margin-top:.8rem;"><label>Tell us about your situation</label><textarea id="fsboNotes" rows="3" placeholder="Anything we should know? Property condition, pricing concerns, whether you already have photos, whether offers are already coming in, partner needs, etc."></textarea></div>
     <div class="notice gold" style="margin-top:.8rem;">Package pricing shown here is for planning/intake and may be finalized separately before any paid service begins. This is not checkout and not a confirmed service order. HomeOfferFlow is not a law firm and does not provide legal advice. Some FSBO, flat-fee MLS, offer-review, brokerage, title, or closing-support services may be provided through a licensed Texas real estate broker, affiliated license holder, attorney, title company, or other licensed provider where required. Pricing may vary by property, location, service level, and broker/provider approval.</div>
     <div class="account-actions-row" style="margin-top:1rem;">
-      <button class="btn-primary" type="button" onclick="submitFsboSellerLead()">Save Seller Request</button>
+      <button class="btn-primary" type="button" id="fsboSellerSubmit" onclick="submitFsboSellerLead()">Save Seller Request</button>
       <button class="btn-secondary" type="button" onclick="closeFsboSellerModal()">Cancel</button>
     </div>
     <div id="fsboSellerStatus" class="platform-status"></div>
@@ -10730,6 +10730,11 @@ function routeAfterMagicLinkIfNeeded() {
     if (m) { m.style.display = 'none'; m.setAttribute('aria-hidden','true'); }
   };
   function fsboVal(id){ return (document.getElementById(id)?.value || '').trim(); }
+  function fsboSubmissionKey(payload){
+    return 'hof_fsbo_request_' + [payload.seller_email, payload.property_address, payload.service_level]
+      .map(value => String(value || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '-'))
+      .join('_');
+  }
   const fsboNeedCopy = {
     free_intake: {
       title: 'Free Seller Intake',
@@ -10808,6 +10813,7 @@ function routeAfterMagicLinkIfNeeded() {
   };
   window.submitFsboSellerLead = async function(){
     const status = document.getElementById('fsboSellerStatus');
+    const submitButton = document.getElementById('fsboSellerSubmit');
     const payload = {
       seller_type: 'fsbo',
       property_address: fsboVal('fsboPropertyAddress'),
@@ -10836,11 +10842,21 @@ function routeAfterMagicLinkIfNeeded() {
       if (status) { status.textContent = 'Property address and email are required.'; status.className = 'platform-status err'; }
       return;
     }
+    const submissionKey = fsboSubmissionKey(payload);
+    try {
+      if (sessionStorage.getItem(submissionKey)) {
+        if (status) { status.textContent = 'This seller request is already saved on this device. Change the package selection or property details before submitting another request.'; status.className = 'platform-status ok'; }
+        return;
+      }
+    } catch (_) {}
+    if (submitButton?.disabled) return;
+    if (submitButton) { submitButton.disabled = true; submitButton.textContent = 'Saving…'; }
     if (status) { status.textContent = 'Saving seller request...'; status.className = 'platform-status'; }
     try {
       const res = await fetch('/api/fsbo-lead', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
       const data = await res.json().catch(()=>({}));
       if (!res.ok) throw new Error(data.error || 'Could not save seller request.');
+      try { sessionStorage.setItem(submissionKey, data.seller_lead_id || 'saved'); } catch (_) {}
       const selected = fsboNeedCopy[fsboVal('fsboNeed')] || fsboNeedCopy.free_intake;
       if (status) {
         status.className = 'platform-status ok';
@@ -10852,6 +10868,7 @@ function routeAfterMagicLinkIfNeeded() {
       }
     } catch (err) {
       if (status) { status.textContent = err.message || String(err); status.className = 'platform-status err'; }
+      if (submitButton) { submitButton.disabled = false; submitButton.textContent = 'Save Seller Request'; }
     }
   };
   const __oldOpenAccountDashboardFsbo = window.openAccountDashboard;
