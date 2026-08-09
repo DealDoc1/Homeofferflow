@@ -64,6 +64,12 @@ class PartnerTierUiTests(unittest.TestCase):
         self.assertIn("if (!partnerLeadId)", self.html)
         self.assertIn("partner_lead_id: partnerLeadId", self.html)
 
+    def test_partner_lead_retry_state_survives_refresh_and_clears_after_checkout(self):
+        self.assertIn("hof_founding_partner_lead_id", self.html)
+        self.assertIn("sessionStorage.setItem", self.html)
+        self.assertIn("sessionStorage.removeItem", self.html)
+        self.assertIn("partner_checkout') === 'success'", self.html)
+
     def test_admin_partner_leads_have_privacy_limited_follow_up_action(self):
         self.assertIn("partnerLeadFollowUpAction", self.html)
         self.assertIn("Email partner", self.html)

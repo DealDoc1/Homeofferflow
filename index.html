@@ -10882,9 +10882,20 @@ function routeAfterMagicLinkIfNeeded() {
     try { return new URLSearchParams(window.location.search || ''); }
     catch (_) { return new URLSearchParams(); }
   }
+  function loadSavedPartnerLeadId(){
+    try { return sessionStorage.getItem('hof_founding_partner_lead_id') || ''; }
+    catch (_) { return ''; }
+  }
+  function savePartnerLeadId(value){
+    try {
+      if (value) sessionStorage.setItem('hof_founding_partner_lead_id', value);
+      else sessionStorage.removeItem('hof_founding_partner_lead_id');
+    } catch (_) {}
+  }
   window.openFoundingPartnerModal = function(){
     const modal = document.getElementById('foundingPartnerModal');
     if (!modal) return;
+    window.__hofFoundingPartnerLeadId = window.__hofFoundingPartnerLeadId || loadSavedPartnerLeadId();
     modal.style.display = 'flex';
     modal.setAttribute('aria-hidden', 'false');
     const confirmation = document.getElementById('foundingPartnerCheckoutConfirmation');
@@ -10963,6 +10974,7 @@ function routeAfterMagicLinkIfNeeded() {
         if (!response.ok || !result.partner_lead_id) throw new Error(result.error || 'Could not submit partner interest.');
         partnerLeadId = result.partner_lead_id;
         window.__hofFoundingPartnerLeadId = partnerLeadId;
+        savePartnerLeadId(partnerLeadId);
       }
       if (status) { status.textContent = 'Opening secure Stripe Checkout...'; status.className = 'platform-status'; }
       const checkoutResponse = await fetch('/api/fsbo-lead', {
@@ -10980,6 +10992,10 @@ function routeAfterMagicLinkIfNeeded() {
   };
   document.addEventListener('DOMContentLoaded', function(){
     window.selectFoundingPartnerTier('monthly_placement');
+    if (params().get('partner_checkout') === 'success') {
+      window.__hofFoundingPartnerLeadId = '';
+      savePartnerLeadId('');
+    }
     if (params().get('partner') === '1') setTimeout(window.openFoundingPartnerModal, 80);
   });
 })();
