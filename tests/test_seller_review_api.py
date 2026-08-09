@@ -84,6 +84,13 @@ class SellerReviewApiTests(unittest.TestCase):
         self.assertIn("sellerReviewLinks", ui)
         self.assertIn("hofSeller2Email", ui)
 
+    def test_draft_list_distinguishes_expired_and_incomplete_review_states(self):
+        ui = (ROOT / "index.html").read_text()
+        self.assertIn("const sellerReviewStatus = draft =>", ui)
+        self.assertIn("Review link expired — resend required", ui)
+        self.assertIn("awaiting attestation", ui)
+        self.assertIn("Review opened — awaiting completion", ui)
+
 
 if __name__ == "__main__":
     unittest.main()

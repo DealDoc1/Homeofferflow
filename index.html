@@ -15330,6 +15330,19 @@ function routeAfterMagicLinkIfNeeded() {
     const summary = document.getElementById('hofSellerDraftSummary');
     if (summary) summary.textContent = query ? `${visible} matching draft${visible === 1 ? '' : 's'}.` : `${visible} draft${visible === 1 ? '' : 's'} shown.`;
   };
+  const sellerReviewStatus = draft => {
+    const progress = draft?.sellerReviewProgress || {};
+    const links = Array.isArray(draft?.sellerReviewLinks) ? draft.sellerReviewLinks : [];
+    if (draft?.seller_review_attested) return 'All seller reviews complete';
+    if (!progress.requested) return 'No seller review request sent';
+    const activeLinks = links.filter(link => !link?.revokedAt && (!link?.expiresAt || new Date(link.expiresAt).getTime() > Date.now()));
+    const verified = Number(progress.verified || 0);
+    const attested = Number(progress.attested || 0);
+    if (!activeLinks.length) return 'Review link expired — resend required';
+    if (verified > attested) return verified + ' seller review' + (verified === 1 ? ' verified — awaiting attestation' : 's verified — awaiting attestation');
+    if (links.some(link => link?.viewedAt)) return 'Review opened — awaiting completion';
+    return Number(progress.requested || 0) + ' review request' + (Number(progress.requested || 0) === 1 ? ' sent — awaiting review' : 's sent — awaiting review');
+  };
   async function refreshDrafts() {
     const list = document.getElementById('hofSellerDraftList');
     if (!list) return;
@@ -15338,11 +15351,7 @@ function routeAfterMagicLinkIfNeeded() {
       draftCache.clear(); drafts.forEach(d => draftCache.set(String(d.id), d));
       list.innerHTML = drafts.length ? drafts.map(d => {
         const progress = d.sellerReviewProgress || {};
-        const reviewStatus = d.seller_review_attested
-          ? 'All seller reviews complete'
-          : progress.requested
-            ? (progress.attested ? progress.attested + ' seller review' + (progress.attested === 1 ? '' : 's') + ' complete' : progress.requested + ' review request' + (progress.requested === 1 ? '' : 's') + ' sent')
-            : 'No seller review request sent';
+        const reviewStatus = sellerReviewStatus(d);
         const followUp = progress.requested && !d.seller_review_attested ? '<button type="button" class="btn-secondary hof-seller-followup" data-id="' + escape(d.id) + '">Follow up</button>' : '';
         return '<li data-seller-draft-row data-search="' + escape([d.property_address, ...(d.seller_names || []), d.status, d.disclosure_source_revision, d.water_source_revision, reviewStatus].filter(Boolean).join(' ')) + '"><span><strong>' + escape(d.property_address) + '</strong><br><small>' + escape((d.seller_names || []).join(', ')) + ' · ' + escape(d.disclosure_source_revision || '') + (d.water_source_revision ? ' + TREC-61-0' : '') + ' · ' + escape(reviewStatus) + '</small></span><button type="button" class="btn-secondary hof-seller-load" data-id="' + escape(d.id) + '">Load draft</button>' + followUp + '<button type="button" class="btn-secondary hof-seller-preview" data-id="' + escape(d.id) + '">Preview PDF</button></li>';
       }).join('') : '<li>No seller disclosure drafts saved yet.</li>';
