@@ -2991,6 +2991,12 @@ class handler(BaseHTTPRequestHandler):
                 "aiReviewOutputCount": len(ai_review_outputs),
                 "aiCalibrationFeedbackCount": len(_ai_calibration_scenario_ids(feedback)),
                 "aiCalibrationScenarioIds": _ai_calibration_scenario_ids(feedback),
+                "aiCalibrationReviewStartCount": len([
+                    item for item in events if item.get("event_type") == "ai_calibration_review_started"
+                ]),
+                "aiCalibrationPacketDownloadCount": len([
+                    item for item in events if item.get("event_type") == "ai_calibration_reviewer_packet_downloaded"
+                ]),
             }
             ai_calibration_dispositions = {"keep": 0, "revise": 0, "remove": 0}
             ai_calibration_scenario_dispositions = {

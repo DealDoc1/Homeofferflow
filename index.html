@@ -4169,6 +4169,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <div class="admin-metric-label">AI Calibration Notes</div>
             <div class="admin-metric-value">${metrics.aiCalibrationFeedbackCount || 0} / ${metrics.aiCalibrationTarget || 5}</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.aiReviewOutputCount || 0} generated review outputs (not calibration evidence)</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.aiCalibrationReviewStartCount || 0} reviewer starts · ${metrics.aiCalibrationPacketDownloadCount || 0} packet downloads.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Disposition: keep <strong>${calibrationDispositions.keep || 0}</strong> · revise <strong>${calibrationDispositions.revise || 0}</strong> · remove <strong>${calibrationDispositions.remove || 0}</strong></div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Scenarios: ${adminSafe(calibrationScenarioSummary)}</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:${metrics.aiCalibrationReady ? 'var(--sage-light)' : 'var(--gold-light)'}">${metrics.aiCalibrationReady ? 'Ready for expert review gate' : 'Needs anonymized scenarios'}</div>
@@ -5015,6 +5016,9 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 
   function startAiCalibrationReview(scenarioId) {
     openBetaFeedback();
+    logOfferEvent(null, 'ai_calibration_review_started', 'started', 'AI calibration review started.', {
+      calibrationScenario: /^AI-CAL-0[1-5]$/.test(String(scenarioId || '')) ? String(scenarioId) : null
+    });
     const type = document.getElementById('feedbackIssueType');
     const scenario = document.getElementById('aiFeedbackScenario');
     if (type) type.value = 'ai_review';
@@ -5024,6 +5028,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   }
 
   function downloadAiCalibrationReviewerPacket() {
+    logOfferEvent(null, 'ai_calibration_reviewer_packet_downloaded', 'downloaded', 'AI calibration reviewer packet downloaded.', {});
     const packet = [
       'HomeOfferFlow AI offer-review calibration reviewer packet',
       'Review each anonymized scenario as a qualified broker or agent. Do not include names, exact addresses, MLS numbers, phone numbers, email addresses, or other identifying details.',
