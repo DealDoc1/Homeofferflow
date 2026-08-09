@@ -107,6 +107,12 @@ class ListingWorkspaceFoundationTests(unittest.TestCase):
         self.assertIn("listingWorkspaceStatusOptions", INDEX)
         self.assertIn("It is not a recommendation or contract decision.", INDEX)
 
+    def test_private_offer_comparison_can_copy_a_non_recommendatory_review_summary(self):
+        self.assertIn("copyListingWorkspaceOfferSummary", INDEX)
+        self.assertIn("Copy Seller Review Summary", INDEX)
+        self.assertIn("private seller offer-comparison worksheet", INDEX)
+        self.assertIn("It does not rank, recommend, accept, reject, or create a contract.", INDEX)
+
 
 if __name__ == "__main__":
     unittest.main()

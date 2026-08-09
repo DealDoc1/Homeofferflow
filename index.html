@@ -9460,7 +9460,7 @@ function routeAfterMagicLinkIfNeeded() {
         </div>
         <div class="field" style="margin-top:.8rem;"><label for="listingOfferContingencies">Contingencies / terms to verify</label><textarea id="listingOfferContingencies" rows="2" maxlength="2000" placeholder="Appraisal, sale-of-other-property, inspection, financing, or other terms to verify with the proper professional."></textarea></div>
         <div class="field" style="margin-top:.8rem;"><label for="listingOfferNotes">Private comparison notes</label><textarea id="listingOfferNotes" rows="2" maxlength="4000" placeholder="Net-impact questions, missing documents, follow-up items, or seller discussion notes."></textarea></div>
-        <div class="platform-actions"><button type="button" onclick="saveListingWorkspaceOffer()">Save Offer Comparison</button><button type="button" onclick="loadListingWorkspaceOffersFoundation()">Refresh Comparisons</button></div>
+        <div class="platform-actions"><button type="button" onclick="saveListingWorkspaceOffer()">Save Offer Comparison</button><button type="button" onclick="loadListingWorkspaceOffersFoundation()">Refresh Comparisons</button><button type="button" onclick="copyListingWorkspaceOfferSummary()">Copy Seller Review Summary</button></div>
         <div id="listingOfferStatusMessage" class="platform-status"></div>
         <div id="listingWorkspaceOfferList" class="platform-list" style="margin-top:.8rem;"><div class="platform-list-item">Select a workspace to load comparison notes.</div></div>
       </div>
@@ -9682,6 +9682,7 @@ function routeAfterMagicLinkIfNeeded() {
     if (!client || !user || !select || !list) return;
     const workspaceId = String(select.value || '');
     if (!workspaceId) {
+      hofPlatform.listingWorkspaceOffers = [];
       list.innerHTML = '<div class="platform-list-item">Select a workspace to load comparison notes.</div>';
       return;
     }
@@ -9690,12 +9691,46 @@ function routeAfterMagicLinkIfNeeded() {
         .select('id,workspace_id,offer_label,offer_price,financing_type,seller_concessions,closing_date,option_days,contingency_notes,status,private_notes,created_at,updated_at')
         .eq('workspace_id', workspaceId).order('updated_at', { ascending:false }).limit(20);
       if (error) throw error;
-      renderListingWorkspaceOfferRows(data || []);
+      hofPlatform.listingWorkspaceOffers = data || [];
+      renderListingWorkspaceOfferRows(hofPlatform.listingWorkspaceOffers);
     } catch (err) {
       console.warn('Listing workspace offer comparison load failed:', err);
       list.innerHTML = '<div class="platform-list-item">Offer comparisons could not load: ' + escapeAttr(err?.message || err) + '</div>';
     }
   }
+
+  window.copyListingWorkspaceOfferSummary = async function copyListingWorkspaceOfferSummary() {
+    const select = document.getElementById('listingOfferWorkspace');
+    const status = document.getElementById('listingOfferStatusMessage');
+    const workspaceId = String(select?.value || '');
+    const rows = Array.isArray(hofPlatform.listingWorkspaceOffers) ? hofPlatform.listingWorkspaceOffers : [];
+    if (!workspaceId) return platformStatus('listingOfferStatusMessage', 'Choose a listing workspace before copying a review summary.', 'err');
+    if (!rows.length) return platformStatus('listingOfferStatusMessage', 'Add or refresh offer comparisons before copying a review summary.', 'err');
+    const workspaceLabel = String(select?.selectedOptions?.[0]?.textContent || 'Listing workspace').trim();
+    const summary = [
+      'HomeOfferFlow private seller offer-comparison worksheet',
+      `Listing workspace: ${workspaceLabel}`,
+      '',
+      ...rows.slice(0, 20).map((row, index) => [
+        `Offer ${index + 1}: ${row.offer_label || 'Unlabeled offer'}`,
+        `Status: ${listingWorkspaceLabel(row.status || 'received')}`,
+        `Price: ${listingOfferMoney(row.offer_price)}`,
+        `Financing: ${row.financing_type || 'Not entered'}`,
+        `Seller concessions: ${row.seller_concessions != null ? listingOfferMoney(row.seller_concessions) : 'Not entered'}`,
+        `Closing date: ${row.closing_date || 'Not entered'}`,
+        `Option period: ${row.option_days != null ? `${row.option_days} days` : 'Not entered'}`,
+        `Terms to verify: ${row.contingency_notes || 'None entered'}`
+      ].join('\n')).flat(),
+      '',
+      'This is a private educational worksheet. It does not rank, recommend, accept, reject, or create a contract. Review complete offer documents and consult the appropriate licensed professional before acting.'
+    ].join('\n\n');
+    try {
+      await navigator.clipboard.writeText(summary);
+      if (status) { status.className = 'platform-status ok'; status.textContent = 'Seller review summary copied. Confirm the complete offer documents before sharing or acting.'; }
+    } catch (_) {
+      window.prompt('Copy this private seller review summary:', summary);
+    }
+  };
 
   async function saveListingWorkspaceOffer() {
     const client = getSupabaseClient();
