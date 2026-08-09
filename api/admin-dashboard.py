@@ -129,12 +129,18 @@ def _ai_calibration_scenario_ids(items):
 def _missing_form_request_code_counts(items):
     """Return only normalized form-code demand counts, never feedback text."""
     counts = {}
+    code_patterns = (
+        (re.compile(r"\bTXR\s*-?\s*(\d{4})\b", re.IGNORECASE), lambda match: f"TXR-{match.group(1)}"),
+        (re.compile(r"\bTREC\s*-?\s*(\d{2})\s*-?\s*(\d)\b", re.IGNORECASE), lambda match: f"TREC-{match.group(1)}-{match.group(2)}"),
+    )
     for item in (items or []):
         if str((item or {}).get("issue_type") or "").lower() != "missing_addendum":
             continue
         message = str((item or {}).get("message") or "")
-        for code in re.findall(r"\b(?:TXR-\d{4}|TREC-\d{2}-\d)\b", message.upper()):
-            counts[code] = counts.get(code, 0) + 1
+        for pattern, normalize in code_patterns:
+            for match in pattern.finditer(message):
+                code = normalize(match)
+                counts[code] = counts.get(code, 0) + 1
     return dict(sorted(counts.items(), key=lambda entry: (-entry[1], entry[0])))
 
 

@@ -4209,6 +4209,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <div class="admin-metric-value">${metrics.missingFormRequestCount || 0}</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Privacy-safe requests for missing forms or addenda. Use this signal to rank the next source-intake workflow.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Top requested codes: ${adminSafe((metrics.missingFormTopCodes || []).join(' · '), 'No form code identified')}</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Demand counts: ${adminSafe(Object.entries(metrics.missingFormRequestCodeCounts || {}).slice(0, 5).map(([code, count]) => `${code} (${count})`).join(' · '), 'No normalized code requests')}</div>
           </div>
 
           <div class="admin-metric">

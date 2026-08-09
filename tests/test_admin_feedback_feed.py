@@ -41,11 +41,16 @@ class AdminFeedbackFeedTests(unittest.TestCase):
 
     def test_missing_form_code_counts_normalize_without_exposing_notes(self):
         counts = MODULE._missing_form_request_code_counts([
-            {"issue_type": "missing_addendum", "message": "Need TXR-1507 and txr-1507."},
-            {"issue_type": "missing_addendum", "message": "Request TREC-55-1."},
+            {"issue_type": "missing_addendum", "message": "Need TXR-1507 and txr 1507."},
+            {"issue_type": "missing_addendum", "message": "Request TREC-55-1 and trec 55 1."},
             {"issue_type": "bug", "message": "TXR-1507 should not count here."},
         ])
-        self.assertEqual(counts, {"TXR-1507": 2, "TREC-55-1": 1})
+        self.assertEqual(counts, {"TXR-1507": 2, "TREC-55-1": 2})
+
+    def test_missing_form_demand_counts_are_rendered_without_feedback_text(self):
+        frontend = (ROOT / "index.html").read_text(encoding="utf-8")
+        self.assertIn("missingFormRequestCodeCounts", frontend)
+        self.assertIn("Demand counts:", frontend)
 
 
 if __name__ == "__main__":
