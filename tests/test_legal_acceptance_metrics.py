@@ -16,8 +16,10 @@ class LegalAcceptanceMetricTests(unittest.TestCase):
         backend = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
         frontend = (ROOT / "index.html").read_text(encoding="utf-8")
         self.assertIn('"legalAcceptanceCount"', backend)
+        self.assertIn('legalAcceptanceToFirstOfferRate', backend)
         self.assertIn("Legal Acceptance Events", frontend)
         self.assertIn("legalAcceptanceCount", frontend)
+        self.assertIn("Legal acceptance → first offer", frontend)
 
 
 if __name__ == "__main__":

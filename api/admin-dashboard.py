@@ -3088,6 +3088,9 @@ class handler(BaseHTTPRequestHandler):
                 and (created_at := _parse_timestamp(invite.get("created_at")))
                 and created_at <= now - timedelta(days=7)
             ])
+            legal_acceptance_count = len([
+                item for item in events if item.get("event_type") == "legal_terms_accepted"
+            ])
             metrics = {
                 "offerCount": len(offers),
                 "homebuyerOfferCount": len([o for o in offers if o.get("role") == "homebuyer"]),
@@ -3189,9 +3192,7 @@ class handler(BaseHTTPRequestHandler):
                 "brokerageInviteAcceptanceRate": round(
                     (brokerage_invite_accepted_count / brokerage_invite_total_count) * 100, 1
                 ) if brokerage_invite_total_count else 0,
-                "legalAcceptanceCount": len([
-                    item for item in events if item.get("event_type") == "legal_terms_accepted"
-                ]),
+                "legalAcceptanceCount": legal_acceptance_count,
                 "billingPortalOpenBySource": billing_portal_open_by_source,
                 "activationDashboardViewCount": activation_dashboard_view_count,
                 "activationActionCount": activation_action_count,
@@ -3223,6 +3224,9 @@ class handler(BaseHTTPRequestHandler):
                     item for item in events if item.get("event_type") == "ai_calibration_review_completed"
                 ]),
             }
+            metrics["legalAcceptanceToFirstOfferRate"] = round((
+                activation_milestone_counts["first_offer"] / legal_acceptance_count
+            ) * 100, 1) if legal_acceptance_count else 0
             metrics["aiCalibrationReviewCompletionRate"] = round((
                 metrics["aiCalibrationReviewCompletionCount"] / metrics["aiCalibrationReviewStartCount"]
             ) * 100, 1) if metrics["aiCalibrationReviewStartCount"] else 0
