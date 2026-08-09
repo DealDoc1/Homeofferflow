@@ -4194,6 +4194,12 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           </div>
 
           <div class="admin-metric">
+            <div class="admin-metric-label">Missing Form Demand</div>
+            <div class="admin-metric-value">${metrics.missingFormRequestCount || 0}</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Privacy-safe requests for missing forms or addenda. Use this signal to rank the next source-intake workflow.</div>
+          </div>
+
+          <div class="admin-metric">
             <div class="admin-metric-label">Partner Leads</div>
             <div class="admin-metric-value">${metrics.partnerLeadCount || partnerLeads.length || 0}</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.paidPartnerLeadCount || 0} paid · ${metrics.partnerOnboardingReadyCount || 0} onboarding-ready · ${metrics.partnerActivationRate || 0}% activated.</div>

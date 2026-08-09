@@ -2826,6 +2826,9 @@ class handler(BaseHTTPRequestHandler):
             feedback = asyncio.run(_get_optional(
                 "hof_feedback?select=id,issue_type,calibration_scenario,message,status,role,created_at&order=created_at.desc&limit=100"
             ))
+            missing_form_request_count = len([
+                item for item in feedback if str(item.get("issue_type") or "").lower() == "missing_addendum"
+            ])
             ai_review_outputs = asyncio.run(_get_optional(
                 "hof_ai_offer_reviews?select=id,created_at&order=created_at.desc&limit=100"
             ))
@@ -3126,6 +3129,7 @@ class handler(BaseHTTPRequestHandler):
                     activation_milestone_counts["subscription"] / activation_milestone_counts["first_offer"]
                 ) * 100, 1) if activation_milestone_counts["first_offer"] else 0,
                 "feedbackCount": len(feedback),
+                "missingFormRequestCount": missing_form_request_count,
                 # Generated AI outputs are useful context, but do not count as
                 # human calibration evidence for the five-scenario release gate.
                 "aiReviewOutputCount": len(ai_review_outputs),
