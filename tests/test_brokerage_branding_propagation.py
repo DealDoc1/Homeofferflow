@@ -19,6 +19,12 @@ class BrokerageBrandingPropagationTests(unittest.TestCase):
             self.assertIn(value, INDEX)
         self.assertIn("/^#[0-9a-f]{6}$/i", INDEX)
 
+    def test_brokerage_disclaimer_is_labeled_and_propagated_without_replacing_legal_copy(self):
+        self.assertIn("brokerageDisclaimer", INDEX)
+        self.assertIn("Brokerage note:", INDEX)
+        self.assertIn(".slice(0, 500)", INDEX)
+        self.assertIn("approvedEducationalDisclaimer", INDEX)
+
     def test_production_and_staging_signing_messages_identify_brokerage(self):
         for source in (PRODUCTION, STAGING):
             self.assertIn("brokerage_name", source)

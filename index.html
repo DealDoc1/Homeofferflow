@@ -7537,6 +7537,7 @@ function routeAfterMagicLinkIfNeeded() {
     const brand = document.getElementById('successBrokerageBrand');
     const brandName = String(brokerage.dba_name || brokerage.name || state.data.brokerageName || '').trim();
     const brandLogo = String(brokerage.logo_url || state.data.brokerageLogoUrl || '').trim();
+    const brandDisclaimer = String(brokerage.disclaimer || state.data.brokerageDisclaimer || '').trim().slice(0, 500);
     const brandColor = /^#[0-9a-f]{6}$/i.test(String(brokerage.brand_color || state.data.brokerageBrandColor || ''))
       ? String(brokerage.brand_color || state.data.brokerageBrandColor)
       : '#c8973f';
@@ -7544,7 +7545,7 @@ function routeAfterMagicLinkIfNeeded() {
       brand.style.display = 'flex';
       brand.style.borderColor = brandColor;
       brand.innerHTML = (brandLogo ? '<img src="' + escapeAttr(brandLogo) + '" alt="" style="width:42px;height:42px;object-fit:contain;border-radius:8px;background:rgba(255,255,255,.08);">' : '') +
-        '<div><strong style="color:' + brandColor + ';">' + escapeAttr(brandName) + '</strong><br><span style="font-size:.8rem;color:var(--gray-light);">Offer packet prepared with your brokerage workspace.</span></div>';
+        '<div><strong style="color:' + brandColor + ';">' + escapeAttr(brandName) + '</strong><br><span style="font-size:.8rem;color:var(--gray-light);">Offer packet prepared with your brokerage workspace.</span>' + (brandDisclaimer ? '<br><small style="font-size:.72rem;color:var(--gray-light);">Brokerage note: ' + escapeAttr(brandDisclaimer) + '</small>' : '') + '</div>';
     }
 
     if ((state.data.userType || '') !== 'homebuyer' && !window.__hofSubscriptionPacketGenerated) {
@@ -8028,6 +8029,7 @@ function routeAfterMagicLinkIfNeeded() {
         brokerageLogoUrl: activeBrokerage?.logo_url || state.data.brokerageLogoUrl || '',
         brokerageBrandColor: activeBrokerage?.brand_color || state.data.brokerageBrandColor || '',
         brokerageContactEmail: activeBrokerage?.contact_email || state.data.brokerageContactEmail || '',
+        brokerageDisclaimer: activeBrokerage?.disclaimer || state.data.brokerageDisclaimer || '',
         uploadedDisclosureDocs: [
           ...(window.hofUploadedDisclosureDocs || []).map(d => ({
           name: d.name,
