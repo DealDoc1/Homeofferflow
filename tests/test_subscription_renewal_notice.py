@@ -17,6 +17,13 @@ class SubscriptionRenewalNoticeTests(unittest.TestCase):
         self.assertIn("renewal_urgency", source)
         self.assertIn("Renewal is in", source)
 
+    def test_scheduled_cancellation_has_a_recovery_path(self):
+        source = Path('index.html').read_text()
+        self.assertIn("subscription.cancel_at_period_end", source)
+        self.assertIn("Cancellation scheduled.", source)
+        self.assertIn("Keep my subscription", source)
+        self.assertIn("cancellation_recovery", source)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -12968,7 +12968,7 @@ function routeAfterMagicLinkIfNeeded() {
     if (subscription.cancel_at_period_end && cancellationEnds && !card.querySelector('.subscription-cancel-notice')) {
       card.insertAdjacentHTML('beforeend',
         '<div class="subscription-cancel-notice" style="margin-top:0.75rem; font-size:0.78rem; line-height:1.45; color:var(--warn);">' +
-        '<strong>Cancellation scheduled.</strong> Access remains available through ' + safe(cancellationEnds) + '.' +
+        '<strong>Cancellation scheduled.</strong> Access remains available through ' + safe(cancellationEnds) + '. <button type="button" class="btn-secondary" style="margin-top:.45rem" onclick="openBillingPortal(\'cancellation_recovery\')">Keep my subscription</button>' +
         '</div>');
     }
     if (['active','free_admin'].includes(status) && !subscription.cancel_at_period_end && renewalDate && !card.querySelector('.subscription-renewal-notice')) {
