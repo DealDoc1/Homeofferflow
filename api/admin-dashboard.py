@@ -3063,6 +3063,14 @@ class handler(BaseHTTPRequestHandler):
             activation_action_count = len([
                 item for item in events if item.get("event_type") == "agent_activation_action"
             ])
+            activation_follow_up_email_start_count = len([
+                item for item in events if item.get("event_type") == "activation_follow_up_email_started"
+            ])
+            brokerage_activation_follow_up_email_start_count = len([
+                item for item in events
+                if item.get("event_type") == "activation_follow_up_email_started"
+                and (item.get("metadata") or {}).get("surface") == "brokerage"
+            ])
             activation_milestone_counts = {"profile": 0, "first_offer": 0, "subscription": 0}
             for item in events:
                 if item.get("event_type") != "agent_activation_milestone_reached":
@@ -3216,6 +3224,8 @@ class handler(BaseHTTPRequestHandler):
                 "activationActionCount": activation_action_count,
                 "activationActionRate": round((activation_action_count / activation_dashboard_view_count) * 100)
                 if activation_dashboard_view_count else 0,
+                "activationFollowUpEmailStartCount": activation_follow_up_email_start_count,
+                "brokerageActivationFollowUpEmailStartCount": brokerage_activation_follow_up_email_start_count,
                 "activationMilestoneCounts": activation_milestone_counts,
                 "activationFirstOfferRate": round((
                     activation_milestone_counts["first_offer"] / activation_milestone_counts["profile"]

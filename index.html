@@ -3907,7 +3907,8 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       : retention
         ? `Hi ${name}, I’m checking in on your HomeOfferFlow workspace before your next client offer. Sign in here if you want help keeping the workflow moving: https://homeofferflow.com`
       : `Hi ${name}, your HomeOfferFlow next step is to ${reason.toLowerCase()}. Sign in here to continue: https://homeofferflow.com`;
-    return `<a class="admin-contact-action" href="mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}">${agedRetention ? 'Reactivate' : 'Email agent'}</a>`;
+    const eventMetadata = JSON.stringify({ category: row?.category || 'activation', surface: 'admin' });
+    return `<a class="admin-contact-action" href="mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}" onclick='logOfferEvent(null, "activation_follow_up_email_started", "started", "Activation follow-up email opened.", ${eventMetadata})'>${agedRetention ? 'Reactivate' : 'Email agent'}</a>`;
   }
 
   function sellerLeadAgeLabel(row) {
@@ -4152,6 +4153,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <div class="admin-metric-label">Activation Follow-up Queue</div>
             <div class="admin-metric-value">${metrics.activationFollowUpCount || activationFollowUpQueue.length || 0}</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Prioritized outreach: ${metrics.retentionFollowUpCount || 0} retention · ${metrics.retentionFollowUpAgedCount || 0} inactive 60+ days · ${metrics.activationFollowUpCount || activationFollowUpQueue.length || 0} total.</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.activationFollowUpEmailStartCount || 0} follow-up emails opened · ${metrics.brokerageActivationFollowUpEmailStartCount || 0} from brokerage roster.</div>
           </div>
 
           <div class="admin-metric">
@@ -13212,10 +13214,11 @@ function routeAfterMagicLinkIfNeeded() {
         ? 'I noticed you have a saved HomeOfferFlow offer but no active access for the next client workflow. Sign in to review subscription options before creating the next packet: https://homeofferflow.com'
         : engagement === 'needs_activation'
         ? 'I noticed you have HomeOfferFlow access but no saved offer yet. Let’s set up your first offer together: https://homeofferflow.com'
-        : engagement === 'needs_follow_up'
+      : engagement === 'needs_follow_up'
           ? 'Checking in on your HomeOfferFlow workspace. Let me know if you want help moving the next client offer forward: https://homeofferflow.com'
           : 'Let’s review your HomeOfferFlow trial and next client offer before renewal: https://homeofferflow.com';
-    return `<a class="brokerage-follow-up-action" href="mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}">Email agent</a>`;
+    const eventMetadata = JSON.stringify({ engagement, surface: 'brokerage' });
+    return `<a class="brokerage-follow-up-action" href="mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}" onclick='logOfferEvent(null, "activation_follow_up_email_started", "started", "Activation follow-up email opened.", ${eventMetadata})'>Email agent</a>`;
   }
 
   function brokerageAgentDate(value) {
