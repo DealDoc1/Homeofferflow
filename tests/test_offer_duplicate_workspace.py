@@ -39,6 +39,20 @@ class OfferDuplicateWorkspaceTests(unittest.TestCase):
         body = HTML[start:end]
         self.assertIn(".eq('user_id', user.id).eq('id', id).is('deleted_at', null)", body)
 
+    def test_repeat_use_actions_offer_one_retry_for_transient_failures(self):
+        resume_start = HTML.index("async function resumeOffer(id")
+        resume_end = HTML.index("\n  async function duplicateOffer", resume_start)
+        duplicate_start = HTML.index("async function duplicateOffer(id")
+        duplicate_end = HTML.index("\n  async function deleteOffer", duplicate_start)
+        resume = HTML[resume_start:resume_end]
+        duplicate = HTML[duplicate_start:duplicate_end]
+        self.assertIn("isRetry = false", resume)
+        self.assertIn("resume_retry_clicked", resume)
+        self.assertIn("return resumeOffer(id, true)", resume)
+        self.assertIn("arguments[1] === true", duplicate)
+        self.assertIn("duplicate_retry_clicked", duplicate)
+        self.assertIn("return duplicateOffer(id, true)", duplicate)
+
 
 if __name__ == "__main__":
     unittest.main()

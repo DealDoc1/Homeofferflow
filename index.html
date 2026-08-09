@@ -6128,7 +6128,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     updateSurveyExistingDetails(data.survey || getRadio('survey'));
   }
 
-  async function resumeOffer(id) {
+  async function resumeOffer(id, isRetry = false) {
     try {
       const offer = await getOfferById(id);
       if (!offer) return alert('Offer not found.');
@@ -6143,14 +6143,19 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       closeAccountDashboard();
       openWizard(true);
       setTimeout(() => { applyOfferDataToFields(state.data); applyProfileDefaultsToWizard(false); }, 150);
-      await logOfferEvent(offer.id, 'resume_clicked', offer.status || 'Draft', 'Offer resumed from dashboard.');
+      await logOfferEvent(offer.id, isRetry ? 'resume_retry_succeeded' : 'resume_clicked', offer.status || 'Draft', isRetry ? 'Offer resumed after a dashboard retry.' : 'Offer resumed from dashboard.');
     } catch (err) {
       console.error('Resume failed:', err);
+      if (!isRetry && window.confirm('Could not resume this offer because of a temporary error. Retry now?')) {
+        await logOfferEvent(id, 'resume_retry_clicked', 'Draft', 'Agent requested a retry after resume failed.').catch(() => {});
+        return resumeOffer(id, true);
+      }
       alert('Could not resume offer: ' + err.message);
     }
   }
 
   async function duplicateOffer(id) {
+    const isRetry = arguments[1] === true;
     const client = getSupabaseClient();
     const user = hofAuth.session?.user;
     if (!client || !user) return;
@@ -6179,10 +6184,14 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         last_updated: new Date().toISOString()
       }).select('id').single();
       if (insertResult.error) throw insertResult.error;
-      await logOfferEvent(insertResult.data?.id || id, 'duplicated', 'Draft', 'Offer duplicated from dashboard.', { copied_from_offer_id: id });
+      await logOfferEvent(insertResult.data?.id || id, isRetry ? 'duplicate_retry_succeeded' : 'duplicated', 'Draft', isRetry ? 'Offer duplicated after a dashboard retry.' : 'Offer duplicated from dashboard.', { copied_from_offer_id: id });
       await loadMyOffers();
     } catch (err) {
       console.error('Duplicate failed:', err);
+      if (!isRetry && window.confirm('Could not duplicate this offer because of a temporary error. Retry now?')) {
+        await logOfferEvent(id, 'duplicate_retry_clicked', 'Draft', 'Agent requested a retry after duplicate failed.').catch(() => {});
+        return duplicateOffer(id, true);
+      }
       alert('Could not duplicate offer: ' + err.message);
     }
   }
