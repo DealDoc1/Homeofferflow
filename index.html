@@ -4813,9 +4813,18 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     if (result === 'success') {
       setTimeout(async () => {
         await logOfferEvent(null, 'subscription_checkout_returned', 'success', 'Returned from Stripe subscription checkout.', { plan, billing });
-        await loadOrCreateSubscription();
+        let subscription = await loadOrCreateSubscription();
+        for (let attempt = 0; attempt < 4 && subscription && subscription.status === 'beta'; attempt += 1) {
+          await new Promise(resolve => setTimeout(resolve, 750));
+          subscription = await loadOrCreateSubscription();
+        }
         await loadCurrentUsage();
-        if (hofAuth.session) openAccountDashboard({ tab: 'dashboard' });
+        if (hofAuth.session) {
+          await openAccountDashboard({ tab: 'dashboard' });
+          setAccountStatus(subscription?.status === 'active' || subscription?.status === 'trialing'
+            ? 'Subscription active. Your packet allowance is ready.'
+            : 'Checkout returned successfully. Billing is still syncing; refresh Account shortly if access has not updated.', 'ok');
+        }
       }, 500);
     }
     if (result === 'cancelled') {

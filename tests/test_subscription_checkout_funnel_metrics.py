@@ -34,6 +34,13 @@ class SubscriptionCheckoutFunnelMetricTests(unittest.TestCase):
         self.assertIn("window.__hofSubscriptionCheckoutInFlight = true;", source)
         self.assertGreaterEqual(source.count("window.__hofSubscriptionCheckoutInFlight = false;"), 2)
 
+    def test_successful_checkout_reconciles_webhook_before_resuming_account(self):
+        source = (ROOT / "index.html").read_text(encoding="utf-8")
+        self.assertIn("subscription.status === 'beta'", source)
+        self.assertIn("attempt < 4", source)
+        self.assertIn("setTimeout(resolve, 750)", source)
+        self.assertIn("Subscription active. Your packet allowance is ready.", source)
+
 
 if __name__ == "__main__":
     unittest.main()
