@@ -18,12 +18,15 @@ class AiCalibrationFunnelMetricTests(unittest.TestCase):
         frontend = (ROOT / "index.html").read_text(encoding="utf-8")
         self.assertIn('"aiCalibrationReviewStartCount"', backend)
         self.assertIn('"aiCalibrationPacketDownloadCount"', backend)
+        self.assertIn('"aiCalibrationReviewerInviteCopyCount"', backend)
         self.assertIn('"aiCalibrationReviewCompletionCount"', backend)
         self.assertIn('aiCalibrationReviewCompletionRate', backend)
         self.assertIn('aiCalibrationScenarioFunnel', backend)
         self.assertIn("reviewer starts", frontend)
         self.assertIn("packet downloads", frontend)
         self.assertIn("completed", frontend)
+        self.assertIn("copyAiCalibrationReviewerInvite", frontend)
+        self.assertIn("reviewer outreach templates copied", frontend)
         self.assertIn("Scenario funnel", frontend)
 
 

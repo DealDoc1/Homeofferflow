@@ -3228,6 +3228,9 @@ class handler(BaseHTTPRequestHandler):
                 "aiCalibrationPacketDownloadCount": len([
                     item for item in events if item.get("event_type") == "ai_calibration_reviewer_packet_downloaded"
                 ]),
+                "aiCalibrationReviewerInviteCopyCount": len([
+                    item for item in events if item.get("event_type") == "ai_calibration_reviewer_invite_copied"
+                ]),
                 "aiCalibrationReviewCompletionCount": len([
                     item for item in events if item.get("event_type") == "ai_calibration_review_completed"
                 ]),

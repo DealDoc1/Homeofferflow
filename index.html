@@ -4205,11 +4205,12 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <div class="admin-metric-value">${metrics.aiCalibrationFeedbackCount || 0} / ${metrics.aiCalibrationTarget || 5}</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.aiReviewOutputCount || 0} generated review outputs (not calibration evidence)</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.aiCalibrationReviewStartCount || 0} reviewer starts · ${metrics.aiCalibrationPacketDownloadCount || 0} packet downloads · ${metrics.aiCalibrationReviewCompletionCount || 0} completed (${Number(metrics.aiCalibrationReviewCompletionRate || 0).toFixed(1)}% of starts).</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.aiCalibrationReviewerInviteCopyCount || 0} reviewer outreach templates copied.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Disposition: keep <strong>${calibrationDispositions.keep || 0}</strong> · revise <strong>${calibrationDispositions.revise || 0}</strong> · remove <strong>${calibrationDispositions.remove || 0}</strong></div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Scenarios: ${adminSafe(calibrationScenarioSummary)}</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Scenario funnel (starts / packets / completed): ${adminSafe(calibrationFunnelSummary)}</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:${metrics.aiCalibrationReady ? 'var(--sage-light)' : 'var(--gold-light)'}">${metrics.aiCalibrationReady ? 'Ready for expert review gate' : 'Needs anonymized scenarios'}</div>
-            ${metrics.aiCalibrationReady ? '' : `<div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Missing: ${missingCalibrationIds.join(', ')}</div><div style="margin-top:.35rem">${calibrationReviewActions} <button type="button" class="admin-contact-action" onclick='downloadAiCalibrationReviewerPacket(${JSON.stringify(missingCalibrationIds)})'>Download reviewer packet</button></div>`}
+            ${metrics.aiCalibrationReady ? '' : `<div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Missing: ${missingCalibrationIds.join(', ')}</div><div style="margin-top:.35rem">${calibrationReviewActions} <button type="button" class="admin-contact-action" onclick='downloadAiCalibrationReviewerPacket(${JSON.stringify(missingCalibrationIds)})'>Download reviewer packet</button> <button type="button" class="admin-contact-action" onclick='copyAiCalibrationReviewerInvite(${JSON.stringify(missingCalibrationIds)})'>Copy reviewer outreach</button></div>`}
           </div>
 
           <div class="admin-metric">
@@ -5125,6 +5126,36 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     link.download = 'homeofferflow-ai-calibration-reviewer-packet.txt';
     link.click();
     setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+  }
+
+  async function copyAiCalibrationReviewerInvite(scenarioIds = []) {
+    const requestedScenarios = Array.isArray(scenarioIds)
+      ? scenarioIds.filter(id => /^AI-CAL-0[1-5]$/.test(String(id))).slice(0, 5)
+      : [];
+    const invite = [
+      'Subject: HomeOfferFlow anonymized AI offer-review calibration request',
+      '',
+      'I am collecting qualified broker/agent feedback on HomeOfferFlow\'s educational offer-competitiveness review.',
+      `Please review these anonymized scenario${requestedScenarios.length === 1 ? '' : 's'}: ${requestedScenarios.join(', ') || 'AI-CAL-01 through AI-CAL-05'}.`,
+      'The reviewer packet contains no names, exact addresses, MLS numbers, phone numbers, or email addresses. Please submit one in-app calibration note per scenario and choose keep, revise, or remove.',
+      'Generated AI output is not calibration evidence; the notes are used only to evaluate wording and scoring before any change.',
+      'HomeOfferFlow: https://homeofferflow.com'
+    ].join('\n');
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(invite);
+      } else {
+        const textarea = document.createElement('textarea');
+        textarea.value = invite; textarea.setAttribute('readonly', ''); textarea.style.position = 'fixed'; textarea.style.opacity = '0';
+        document.body.appendChild(textarea); textarea.select(); document.execCommand('copy'); textarea.remove();
+      }
+      logOfferEvent(null, 'ai_calibration_reviewer_invite_copied', 'copied', 'AI calibration reviewer outreach template copied.', {
+        missingScenarios: requestedScenarios
+      });
+      alert('Reviewer outreach template copied. Send it to a qualified broker or agent, then use the matching scenario ID in the feedback form.');
+    } catch (error) {
+      alert('Could not copy the reviewer outreach template. Download the reviewer packet and copy its scenario list instead.');
+    }
   }
 
   function syncAiFeedbackPrivacyGuard() {
