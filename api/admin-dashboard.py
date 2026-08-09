@@ -2800,6 +2800,19 @@ class handler(BaseHTTPRequestHandler):
                 if str(lead.get("payment_status") or "").lower() == "paid"
                 and str(lead.get("onboarding_status") or "").lower() in {"ready", "complete", "completed"}
             ])
+            paid_partner_agreement_confirmed_count = len([
+                lead for lead in partner_leads
+                if str(lead.get("payment_status") or "").lower() == "paid"
+                and (
+                    lead.get("agreement_confirmed_at")
+                    or str(lead.get("agreement_status") or "").lower() in {"confirmed", "signed", "complete", "completed"}
+                )
+            ])
+            paid_partner_activation_queue_aged_count = len([
+                lead for lead in paid_partner_activation_queue
+                if (created_at := _parse_timestamp(lead.get("created_at")))
+                and created_at <= datetime.now(timezone.utc) - timedelta(days=7)
+            ])
             roadmap = asyncio.run(_get("hof_roadmap_items?select=*&order=priority.asc&limit=100"))
             qa_scenarios = asyncio.run(_get("hof_qa_scenarios?select=*&active=eq.true&order=priority.asc&limit=100"))
             qa_runs = asyncio.run(_get("hof_qa_runs?select=*&order=created_at.desc&limit=50"))
@@ -3048,6 +3061,11 @@ class handler(BaseHTTPRequestHandler):
                 "paidPartnerActivationQueueCount": len(paid_partner_activation_queue),
                 "paidPartnerLeadCount": paid_partner_lead_count,
                 "partnerOnboardingReadyCount": partner_onboarding_ready_count,
+                "paidPartnerAgreementConfirmedCount": paid_partner_agreement_confirmed_count,
+                "paidPartnerAgreementConfirmationRate": round(
+                    (paid_partner_agreement_confirmed_count / paid_partner_lead_count) * 100, 1
+                ) if paid_partner_lead_count else 0,
+                "paidPartnerActivationQueueAgedCount": paid_partner_activation_queue_aged_count,
                 "partnerActivationRate": round((len(active_partner_source_lead_ids) / paid_partner_lead_count) * 100)
                 if paid_partner_lead_count else 0,
                 "eventCount": len(events),

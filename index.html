@@ -4194,12 +4194,14 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <div class="admin-metric-label">Partner Leads</div>
             <div class="admin-metric-value">${metrics.partnerLeadCount || partnerLeads.length || 0}</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.paidPartnerLeadCount || 0} paid · ${metrics.partnerOnboardingReadyCount || 0} onboarding-ready · ${metrics.partnerActivationRate || 0}% activated.</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.paidPartnerAgreementConfirmedCount || 0} agreements confirmed (${Number(metrics.paidPartnerAgreementConfirmationRate || 0).toFixed(1)}%).</div>
           </div>
 
           <div class="admin-metric">
             <div class="admin-metric-label">Paid Partner Activation Queue</div>
             <div class="admin-metric-value">${metrics.paidPartnerActivationQueueCount || paidPartnerActivationQueue.length || 0}</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Paid applications awaiting written-agreement activation.</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.paidPartnerActivationQueueAgedCount || 0} queue items are more than 7 days old.</div>
           </div>
 
           <div class="admin-metric">

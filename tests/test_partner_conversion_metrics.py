@@ -11,12 +11,17 @@ class PartnerConversionMetricTests(unittest.TestCase):
         self.assertIn('"paidPartnerLeadCount"', source)
         self.assertIn('"partnerOnboardingReadyCount"', source)
         self.assertIn('"partnerActivationRate"', source)
+        self.assertIn('"paidPartnerAgreementConfirmedCount"', source)
+        self.assertIn('"paidPartnerAgreementConfirmationRate"', source)
+        self.assertIn('"paidPartnerActivationQueueAgedCount"', source)
 
     def test_admin_dashboard_surfaces_paid_partner_funnel(self):
         source = (ROOT / "index.html").read_text(encoding="utf-8")
         self.assertIn('paidPartnerLeadCount', source)
         self.assertIn('onboarding-ready', source)
         self.assertIn('Partner Leads', source)
+        self.assertIn('paidPartnerAgreementConfirmationRate', source)
+        self.assertIn('paidPartnerActivationQueueAgedCount', source)
 
 
 if __name__ == "__main__":
