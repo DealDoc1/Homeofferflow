@@ -10,6 +10,7 @@ class SellerReviewFunnelMetricTests(unittest.TestCase):
         source = (ROOT / "index.html").read_text(encoding="utf-8")
         self.assertIn("seller_review_request_sent", source)
         self.assertIn("sellerCount", source)
+        self.assertIn("seller_review_follow_up_started", source)
 
     def test_admin_payload_and_card_surface_review_request_count(self):
         backend = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
@@ -17,6 +18,8 @@ class SellerReviewFunnelMetricTests(unittest.TestCase):
         self.assertIn('"sellerReviewRequestCount"', backend)
         self.assertIn("sellerReviewRequestCount", frontend)
         self.assertIn("seller disclosure review requests initiated", frontend)
+        self.assertIn('"sellerReviewFollowUpCount"', backend)
+        self.assertIn("sellerReviewFollowUpRate", frontend)
 
 
 if __name__ == "__main__":

@@ -3063,6 +3063,9 @@ class handler(BaseHTTPRequestHandler):
             seller_review_request_count = len([
                 item for item in events if item.get("event_type") == "seller_review_request_sent"
             ])
+            seller_review_follow_up_count = len([
+                item for item in events if item.get("event_type") == "seller_review_follow_up_started"
+            ])
             seller_review_viewed_count = len([
                 item for item in events if item.get("event_type") == "seller_review_viewed"
             ])
@@ -3127,6 +3130,9 @@ class handler(BaseHTTPRequestHandler):
                 "sellerLeadCount": len(seller_leads),
                 "qualifiedSellerLeadCount": len([lead for lead in seller_leads if lead.get("status") in {"qualified", "converted"}]),
                 "sellerReviewRequestCount": seller_review_request_count,
+                "sellerReviewFollowUpCount": seller_review_follow_up_count,
+                "sellerReviewFollowUpRate": round((seller_review_follow_up_count / seller_review_request_count) * 100, 1)
+                if seller_review_request_count else 0,
                 "sellerReviewViewedCount": seller_review_viewed_count,
                 "sellerReviewVerifiedCount": seller_review_verified_count,
                 "sellerReviewAttestationCount": seller_review_attestation_count,
