@@ -326,6 +326,8 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     #saveStatus.cloud-save-warning { color: var(--gold-light); }
     #saveStatus .save-retry-btn { border: 1px solid rgba(232,184,109,.55); border-radius: 999px; background: rgba(200,151,63,.12); color: var(--gold-light); cursor: pointer; font: 700 .68rem 'DM Sans', sans-serif; margin-left: .35rem; padding: .18rem .45rem; }
     #saveStatus .save-retry-btn:hover { background: rgba(200,151,63,.22); }
+    #connectionStatus { color:var(--gold-light); font-weight:700; white-space:nowrap; }
+    #connectionStatus[hidden] { display:none; }
     .draft-clear-btn { background: transparent; border: 1px solid rgba(255,255,255,0.12); color: var(--gray-light); padding: 0.28rem 0.55rem; border-radius: 6px; font-family: 'DM Sans', sans-serif; font-size: 0.7rem; font-weight: 600; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
     .draft-clear-btn:hover { border-color: rgba(200,151,63,0.45); color: var(--gold-light); background: rgba(200,151,63,0.06); }
     .wizard-body { flex: 1; padding: 1.75rem 1.5rem 1rem; max-width: 600px; margin: 0 auto; width: 100%; }
@@ -2824,7 +2826,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 
   <div class="wizard-progress">
     <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:10%"></div></div>
-    <div class="progress-meta"><span class="step-name" id="stepName">Disclaimer</span><span id="saveStatus">All Changes Saved</span><span id="stepCount">Step 1 of 11</span><button type="button" class="draft-clear-btn" onclick="startNewOffer()" title="Clear this draft and start a new offer">New Offer</button></div>
+    <div class="progress-meta"><span class="step-name" id="stepName">Disclaimer</span><span id="saveStatus">All Changes Saved</span><span id="connectionStatus" role="status" aria-live="polite" hidden></span><span id="stepCount">Step 1 of 11</span><button type="button" class="draft-clear-btn" onclick="startNewOffer()" title="Clear this draft and start a new offer">New Offer</button></div>
   </div>
 
   <div class="wizard-body">
@@ -9057,7 +9059,7 @@ function routeAfterMagicLinkIfNeeded() {
     try {
       localStorage.setItem(HOF_STORAGE_KEY, JSON.stringify(getDraftSnapshot()));
       updateSaveStatus('✓ Draft Saved');
-      if ((state?.data?.userType || '') !== 'homebuyer' && hofAuth?.session) {
+      if ((state?.data?.userType || '') !== 'homebuyer' && hofAuth?.session && navigator.onLine !== false) {
         saveOfferDraftToSupabase('Draft').then(saved => {
           if (saved) {
             clearTimeout(__hofSaveTimer);
@@ -9078,6 +9080,24 @@ function routeAfterMagicLinkIfNeeded() {
     clearTimeout(__hofSaveDebounce);
     __hofSaveDebounce = setTimeout(saveDraftNow, 250);
   }
+
+  function updateConnectionStatus() {
+    const el = document.getElementById('connectionStatus');
+    if (!el) return;
+    const offline = navigator.onLine === false;
+    el.hidden = !offline;
+    if (!offline) {
+      el.textContent = '';
+      return;
+    }
+    el.textContent = 'Offline — draft stays on this device';
+    el.title = 'Reconnect before previewing PDFs, sending signature requests, checkout, or cloud sync.';
+    try { saveDraftNow(); } catch (e) {}
+  }
+
+  window.addEventListener('offline', updateConnectionStatus);
+  window.addEventListener('online', updateConnectionStatus);
+  window.addEventListener('load', updateConnectionStatus);
 
   function restoreDraft() {
     const raw = localStorage.getItem(HOF_STORAGE_KEY);
