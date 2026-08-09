@@ -4191,6 +4191,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           <div class="admin-metric">
             <div class="admin-metric-label">Seller / FSBO Leads</div>
             <div class="admin-metric-value">${metrics.sellerLeadCount || sellerLeads.length || 0}</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.sellerReviewRequestCount || 0} seller disclosure review requests initiated.</div>
           </div>
 
           <div class="admin-metric">
@@ -14766,6 +14767,9 @@ function routeAfterMagicLinkIfNeeded() {
         const result = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(result.error || 'Could not send seller review email.');
         status.textContent = 'Secure review email sent. The seller must verify the one-time code; signing is not active.';
+        root.logOfferEvent?.(null, 'seller_review_request_sent', 'sent', 'Seller disclosure review request sent.', {
+          sellerCount: sellerReviews.length
+        });
       } catch (error) {
         status.textContent = error.message || 'Could not send seller review email.';
         button.disabled = false;

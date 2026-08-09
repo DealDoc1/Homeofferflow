@@ -2956,6 +2956,9 @@ class handler(BaseHTTPRequestHandler):
                 "qualifiedPartnerLeadCount": len([lead for lead in partner_leads if lead.get("status") in {"qualified", "converted"}]),
                 "sellerLeadCount": len(seller_leads),
                 "qualifiedSellerLeadCount": len([lead for lead in seller_leads if lead.get("status") in {"qualified", "converted"}]),
+                "sellerReviewRequestCount": len([
+                    item for item in events if item.get("event_type") == "seller_review_request_sent"
+                ]),
                 "activePartnerPlacementCount": len([placement for placement in partner_placements if placement.get("is_active")]),
                 "paidPartnerActivationQueueCount": len(paid_partner_activation_queue),
                 "paidPartnerLeadCount": paid_partner_lead_count,
