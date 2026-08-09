@@ -4140,6 +4140,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <div class="admin-metric-value">${metrics.activationActionRate || 0}%</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.activationActionCount || 0} actions from ${metrics.activationDashboardViewCount || 0} dashboard views.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Milestones: profile ${Number(metrics.activationMilestoneCounts?.profile || 0)} · first offer ${Number(metrics.activationMilestoneCounts?.first_offer || 0)} · subscription ${Number(metrics.activationMilestoneCounts?.subscription || 0)}.</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Milestone conversion: ${Number(metrics.activationFirstOfferRate || 0).toFixed(1)}% profile → first offer · ${Number(metrics.activationSubscriptionRate || 0).toFixed(1)}% first offer → subscription.</div>
           </div>
 
           <div class="admin-metric">

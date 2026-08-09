@@ -3071,6 +3071,12 @@ class handler(BaseHTTPRequestHandler):
                 "activationActionRate": round((activation_action_count / activation_dashboard_view_count) * 100)
                 if activation_dashboard_view_count else 0,
                 "activationMilestoneCounts": activation_milestone_counts,
+                "activationFirstOfferRate": round((
+                    activation_milestone_counts["first_offer"] / activation_milestone_counts["profile"]
+                ) * 100, 1) if activation_milestone_counts["profile"] else 0,
+                "activationSubscriptionRate": round((
+                    activation_milestone_counts["subscription"] / activation_milestone_counts["first_offer"]
+                ) * 100, 1) if activation_milestone_counts["first_offer"] else 0,
                 "feedbackCount": len(feedback),
                 # Generated AI outputs are useful context, but do not count as
                 # human calibration evidence for the five-scenario release gate.
