@@ -107,7 +107,8 @@ class BrokerageRosterClient:
 
     async def patch(self, url, **kwargs):
         self.__class__.last_patch = (url, kwargs)
-        return Response(200, [{"status": "suspended"}])
+        payload = kwargs.get("json") or {}
+        return Response(200, [{"status": "suspended", "team_name": payload.get("team_name")}])
 
 
 class BrokerageInviteClient:
@@ -423,6 +424,46 @@ class BrokerageAuthorizationTests(unittest.TestCase):
         self.assertNotIn("hof_subscriptions?", segment)
         self.assertNotIn("hof_offers?", segment)
 
+    def test_broker_can_set_private_agent_team_without_changing_access_or_billing(self):
+        actor = {"id": "11111111-1111-1111-1111-111111111111", "email": "tyler@ondemanddfw.com"}
+        context = {"brokerage": {"id": "22222222-2222-2222-2222-222222222222"}}
+
+        async def broker_context(_actor):
+            return context
+
+        async def agent_members(_path):
+            return [{"id": "membership-1", "user_id": "33333333-3333-3333-3333-333333333333", "role": "agent", "status": "active"}]
+
+        with patch.object(admin, "_brokerage_admin_context", broker_context), \
+             patch.object(admin, "_get", agent_members), \
+             patch.object(admin.httpx, "AsyncClient", BrokerageRosterClient):
+            result = asyncio.run(admin._set_brokerage_member_team(actor, {
+                "user_id": "33333333-3333-3333-3333-333333333333",
+                "team_name": "  North   Dallas  ",
+            }))
+        self.assertEqual(result["teamName"], "North Dallas")
+        saved = BrokerageRosterClient.last_patch[1]["json"]
+        self.assertEqual(saved["team_name"], "North Dallas")
+        self.assertEqual(set(saved) - {"updated_at"}, {"team_name"})
+
+        with self.assertRaisesRegex(ValueError, "80 characters"):
+            admin._normalized_brokerage_team_name("x" * 81)
+
+    def test_brokerage_team_labels_are_private_organization_only(self):
+        source = ADMIN_PATH.read_text(encoding="utf-8")
+        self.assertIn('data.get("action") == "set_brokerage_member_team"', source)
+        start = source.index("async def _set_brokerage_member_team")
+        end = source.index("def _parse_partner_lead_update", start)
+        segment = source[start:end]
+        self.assertIn('members[0].get("role") or "agent") != "agent"', segment)
+        self.assertNotIn("hof_subscriptions?", segment)
+        self.assertNotIn("hof_offers?", segment)
+
+        final_script = INDEX_HTML[INDEX_HTML.index('id="hof-ondemand-brokerage-launch-v1"'):]
+        self.assertIn("setBrokerageMemberTeam", final_script)
+        self.assertIn("Private team labels organize this roster only", final_script)
+        self.assertIn("Download roster CSV", final_script)
+
     def test_brokerage_roster_ui_discloses_membership_scope(self):
         marker = INDEX_HTML.index('id="hof-ondemand-brokerage-launch-v1"')
         final_script = INDEX_HTML[marker:]
@@ -458,7 +499,7 @@ class BrokerageAuthorizationTests(unittest.TestCase):
             "brokerageAgentFilter",
             "data-brokerage-agent-row",
             "brokerageAgentFilterSummary",
-            "Name, email, status, or next action",
+            "Name, email, team, status, or next action",
         ):
             self.assertIn(expected, final_script)
 

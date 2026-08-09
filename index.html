@@ -13402,6 +13402,31 @@ function routeAfterMagicLinkIfNeeded() {
     }
   };
 
+  root.setBrokerageMemberTeam = async function setBrokerageMemberTeam(userId) {
+    const session = root.hofAuth?.session;
+    const result = document.getElementById('brokerageTeamResult');
+    const input = document.getElementById('brokerageTeam-' + userId);
+    if (!session?.access_token) {
+      if (result) result.textContent = 'Sign in again before organizing the roster.';
+      return;
+    }
+    if (!input) return;
+    if (result) result.textContent = 'Saving private team label…';
+    try {
+      const response = await fetch('/api/admin-dashboard', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + session.access_token },
+        body: JSON.stringify({ action: 'set_brokerage_member_team', user_id: userId, team_name: input.value })
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || 'Could not save the private team label.');
+      if (result) result.textContent = 'Private team label saved. Access, billing, roles, offers, and documents were not changed.';
+      await root.renderBrokerageFoundationPanel();
+    } catch (error) {
+      if (result) result.textContent = error.message || 'Could not save the private team label.';
+    }
+  };
+
   root.createBrokerageInvite = async function createBrokerageInvite(isResend = false) {
     if (root.__hofBrokerageInviteInFlight) return;
     root.__hofBrokerageInviteInFlight = true;
@@ -13722,11 +13747,12 @@ function routeAfterMagicLinkIfNeeded() {
 
   root.exportBrokerageRoster = function exportBrokerageRoster() {
     const agents = Array.isArray(root.hofPlatform?.brokerageAgents) ? root.hofPlatform.brokerageAgents : [];
-    const headers = ['Agent', 'Email', 'Membership', 'Plan / renewal', 'Billing status', 'Usage month', 'Packets used', 'Packet limit', 'Packets remaining', 'Last activity', 'Offers', 'Signed', 'Next action', 'Engagement'];
+    const headers = ['Agent', 'Email', 'Membership', 'Team', 'Plan / renewal', 'Billing status', 'Usage month', 'Packets used', 'Packet limit', 'Packets remaining', 'Last activity', 'Offers', 'Signed', 'Next action', 'Engagement'];
     const values = agents.map(agent => [
       agent.name || agent.email || 'Agent',
       agent.email || '',
       agent.membershipStatus || 'pending',
+      agent.teamName || '',
       brokerageAgentBillingWindow(agent),
       agent.subscriptionStatus || 'No active plan',
       agent.usage?.billingMonth || '',
@@ -13908,6 +13934,7 @@ function routeAfterMagicLinkIfNeeded() {
           '<div class="brokerage-safe-kpi"><span>Members</span><strong>' + Number(m.memberCount || 0) + '</strong></div>' +
           '<div class="brokerage-safe-kpi"><span>Active members</span><strong>' + Number(m.activeMemberCount || 0) + '</strong></div>' +
           '<div class="brokerage-safe-kpi"><span>Agent seats</span><strong>' + Number(m.agentSeatCount || 0) + ' / ' + (m.agentSeatCap == null ? '—' : Number(m.agentSeatCap)) + '</strong></div>' +
+          '<div class="brokerage-safe-kpi"><span>Private teams</span><strong>' + Number(m.teamCount || 0) + '</strong><small>' + Number(m.unassignedAgentCount || 0) + ' active agent' + (Number(m.unassignedAgentCount || 0) === 1 ? '' : 's') + ' unassigned</small></div>' +
           '<div class="brokerage-safe-kpi"><span>Offers</span><strong>' + Number(m.offerCount || 0) + '</strong></div>' +
           '<div class="brokerage-safe-kpi"><span>Signed</span><strong>' + Number(m.signedCount || 0) + '</strong></div>' +
           '<div class="brokerage-safe-kpi"><span>Team packets this month</span><strong>' + teamPacketUsage + (teamPacketLimit ? ' / ' + teamPacketLimit : '') + '</strong><small>' + (m.usageBillingMonth ? safe(m.usageBillingMonth) : 'Current billing month') + '</small></div>' +
@@ -13923,11 +13950,13 @@ function routeAfterMagicLinkIfNeeded() {
           '<div class="brokerage-safe-kpi"><span>Accepted → subscribed</span><strong>' + Number(m.acceptedInviteSubscriptionRate || 0) + '%</strong><small>' + Number(m.acceptedInviteSubscribedCount || 0) + ' with active access</small></div>' +
         '</div>' +
         '<div class="brokerage-seat-momentum"><strong>' + (seatPercent == null ? 'Team growth' : 'Seat utilization: ' + seatPercent + '%') + '</strong><span>' + safe(seatMomentum) + (teamUsagePercent == null ? '' : ' Team packet usage: ' + teamUsagePercent + '% this month.') + '</span><button type="button" class="brokerage-access-button" onclick="document.getElementById(\'brokerageInviteEmail\')?.focus()">Invite an agent</button></div>' +
-        '<div class="brokerage-invite-form" style="margin-top:1rem"><label for="brokerageAgentFilter">Find an agent</label><input id="brokerageAgentFilter" type="search" placeholder="Name, email, status, or next action" aria-label="Find an agent" oninput="filterBrokerageAgents(this.value)"><button type="button" class="brokerage-access-button" onclick="exportBrokerageRoster()">Download roster CSV</button><span id="brokerageAgentFilterSummary" class="brokerage-invite-result">' + Number(agents.length) + ' agent' + (agents.length === 1 ? '' : 's') + ' shown.</span></div>' +
-        '<table class="brokerage-safe-table"><thead><tr><th>Agent</th><th>Membership</th><th>TXR/NAR attestation</th><th>Plan / renewal</th><th>Usage</th><th>Last activity</th><th>Offers</th><th>Signed</th><th>Next action</th><th>Follow up</th><th>Brokerage access</th></tr></thead><tbody>' +
+        '<div class="brokerage-invite-form" style="margin-top:1rem"><label for="brokerageAgentFilter">Find an agent</label><input id="brokerageAgentFilter" type="search" placeholder="Name, email, team, status, or next action" aria-label="Find an agent" oninput="filterBrokerageAgents(this.value)"><button type="button" class="brokerage-access-button" onclick="exportBrokerageRoster()">Download roster CSV</button><span id="brokerageAgentFilterSummary" class="brokerage-invite-result">' + Number(agents.length) + ' agent' + (agents.length === 1 ? '' : 's') + ' shown.</span></div>' +
+        '<p id="brokerageTeamResult" class="brokerage-invite-result">Private team labels organize this roster only; they do not grant permissions or change billing, roles, offers, or documents.</p>' +
+        '<table class="brokerage-safe-table"><thead><tr><th>Agent</th><th>Membership</th><th>Team</th><th>TXR/NAR attestation</th><th>Plan / renewal</th><th>Usage</th><th>Last activity</th><th>Offers</th><th>Signed</th><th>Next action</th><th>Follow up</th><th>Brokerage access</th></tr></thead><tbody>' +
         (agents.length ? agents.map(agent =>
-          '<tr data-brokerage-agent-row data-search="' + safe([agent.name, agent.email, agent.membershipStatus, agent.subscriptionStatus, agent.nextAction, agent.engagement].filter(Boolean).join(' ')) + '"><td><strong>' + safe(agent.name || agent.email || 'Agent') + '</strong><br><span>' + safe(agent.email || '') + '</span></td>' +
+          '<tr data-brokerage-agent-row data-search="' + safe([agent.name, agent.email, agent.teamName, agent.membershipStatus, agent.subscriptionStatus, agent.nextAction, agent.engagement].filter(Boolean).join(' ')) + '"><td><strong>' + safe(agent.name || agent.email || 'Agent') + '</strong><br><span>' + safe(agent.email || '') + '</span></td>' +
           '<td>' + safe(agent.membershipStatus || 'pending') + (agent.inviteAccepted ? '<br><small>Invite accepted</small>' : '') + '</td>' +
+          '<td>' + (agent.role === 'agent' ? '<input id="brokerageTeam-' + safe(agent.userId) + '" type="text" maxlength="80" value="' + safe(agent.teamName || '') + '" placeholder="Optional team" aria-label="Private team for ' + safe(agent.name || agent.email || 'agent') + '"><button type="button" class="brokerage-access-button" onclick="setBrokerageMemberTeam(\'' + safe(agent.userId) + '\')">Save</button>' : '<span>Support-managed</span>') + '</td>' +
           '<td>' + (agent.txrAgentAuthorized ? '<span title="Attested ' + safe(agent.txrAgentAttestedAt || '') + '">Attested</span>' : 'Not yet attested') + '</td>' +
           '<td>' + safe(brokerageAgentBillingWindow(agent)) + '</td>' +
           '<td>' + Number(agent.usage?.used || 0) + (agent.usage?.limit ? ' / ' + Number(agent.usage.limit) : '') + '<br><small>' + safe(agent.usage?.billingMonth || '') + '</small></td>' +
@@ -13941,7 +13970,7 @@ function routeAfterMagicLinkIfNeeded() {
               ? '<button type="button" class="brokerage-access-button" onclick="setBrokerageMemberStatus(\'' + safe(agent.userId) + '\',\'suspended\')">Suspend</button>'
               : '<button type="button" class="brokerage-access-button" onclick="setBrokerageMemberStatus(\'' + safe(agent.userId) + '\',\'active\')">Restore</button>')
             : '<span>Support-managed</span>') + '</td></tr>'
-        ).join('') : '<tr><td colspan="11">No agents have enrolled yet.</td></tr>') +
+        ).join('') : '<tr><td colspan="12">No agents have enrolled yet.</td></tr>') +
         '</tbody></table>';
       root.renderBrokerageBrandPreview();
     } catch(error) {

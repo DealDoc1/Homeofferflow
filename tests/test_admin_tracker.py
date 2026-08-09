@@ -158,6 +158,7 @@ class AdminTrackerSecurityTests(IsolatedAsyncioTestCase):
         }
         members = [{"user_id": "agent-123", "email": "agent@example.com", "role": "agent", "status": "active"}]
         agent_profiles = [{"user_id": "agent-123", "agent_name": "Agent Example", "agent_email": "agent@example.com", "license_number": "123"}]
+        brokerage_profiles = [{"id": "agent-123", "team_name": "North Dallas"}]
         subscriptions = [{"user_id": "agent-123", "status": "trialing", "plan": "agent_starter_monthly", "trial_ends_at": "2026-09-01", "current_period_end": None}]
         # These sensitive keys simulate an upstream mistake. The dashboard
         # payload must ignore them rather than forwarding them to a broker.
@@ -172,12 +173,14 @@ class AdminTrackerSecurityTests(IsolatedAsyncioTestCase):
         with patch.object(admin_dashboard, "_get", new=AsyncMock(return_value=members)), patch.object(
             admin_dashboard,
             "_get_optional",
-            new=AsyncMock(side_effect=[[], [], [], listing_workspaces, agent_profiles, subscriptions, offers]),
+            new=AsyncMock(side_effect=[[], [], [], listing_workspaces, agent_profiles, brokerage_profiles, subscriptions, offers]),
         ):
             payload = await admin_dashboard._brokerage_dashboard_payload(context)
 
         agent = payload["agents"][0]
         self.assertEqual(agent["activity"]["offerCount"], 1)
+        self.assertEqual(agent["teamName"], "North Dallas")
+        self.assertEqual(payload["metrics"]["teamCount"], 1)
         self.assertEqual(agent["engagement"], "active")
         self.assertEqual(agent["nextAction"], "Keep building client offers")
         self.assertEqual(payload["metrics"]["agentsNeedingActivation"], 0)

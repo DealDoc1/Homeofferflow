@@ -37,6 +37,7 @@ ALLOWED_PARTNER_LEAD_STATUSES = {"new", "contacted", "qualified", "waitlist", "c
 ALLOWED_PARTNER_ONBOARDING_STATUSES = {"not_started", "ready", "in_progress", "complete"}
 ALLOWED_SELLER_LEAD_STATUSES = {"new", "contacted", "qualified", "converted", "archived"}
 ALLOWED_BROKERAGE_MEMBER_STATUSES = {"active", "suspended"}
+MAX_BROKERAGE_TEAM_NAME_LENGTH = 80
 ALLOWED_PARTNER_PLACEMENT_TIERS = {"founding", "premier", "exclusive_market"}
 ALLOWED_PARTNER_TYPES = {
     "title", "lender", "inspection", "surveyor", "home_warranty", "insurance",
@@ -419,6 +420,7 @@ async def _brokerage_dashboard_payload(context):
     )
     user_ids = [str(row.get("user_id")) for row in members if row.get("user_id")]
     agent_profiles = []
+    brokerage_profiles = []
     subscriptions = []
     offers = []
     usage_events = []
@@ -429,6 +431,14 @@ async def _brokerage_dashboard_payload(context):
             "hof_agent_profiles?"
             f"user_id=in.({encoded_ids})"
             "&select=user_id,agent_name,agent_email,license_number"
+        )
+        # Team labels live on the account profile. They are an organizational
+        # convenience only; membership roles remain support-managed.
+        brokerage_profiles = await _get_optional(
+            "hof_profiles?"
+            f"brokerage_id=eq.{urllib.parse.quote(brokerage_id)}"
+            f"&id=in.({encoded_ids})"
+            "&select=id,team_name"
         )
         subscriptions = await _get_optional(
             "hof_subscriptions?"
@@ -455,6 +465,11 @@ async def _brokerage_dashboard_payload(context):
             usage_events = []
 
     profile_by_user = {str(row.get("user_id")): row for row in agent_profiles}
+    team_by_user = {
+        str(row.get("id")): row.get("team_name")
+        for row in brokerage_profiles
+        if str(row.get("id") or "")
+    }
     subscription_by_user = {str(row.get("user_id")): row for row in subscriptions}
     usage_by_user = {}
     for event in usage_events:
@@ -606,6 +621,7 @@ async def _brokerage_dashboard_payload(context):
                 "email": profile.get("agent_email") or member.get("email"),
                 "licenseNumber": profile.get("license_number"),
                 "role": member.get("role") or "agent",
+                "teamName": team_by_user.get(user_id),
                 "membershipStatus": member.get("status") or "pending",
                 "inviteAccepted": invite_accepted,
                 "txrAgentAuthorized": member.get("txr_agent_authorized") is True,
@@ -637,6 +653,17 @@ async def _brokerage_dashboard_payload(context):
                 if row.get("status") == "active" and (row.get("role") or "agent") == "agent"
             ]),
             "agentSeatCap": brokerage.get("user_cap"),
+            "teamCount": len({
+                str(agent.get("teamName")).strip()
+                for agent in safe_agents
+                if agent.get("membershipStatus") == "active" and str(agent.get("teamName") or "").strip()
+            }),
+            "unassignedAgentCount": len([
+                agent for agent in safe_agents
+                if agent.get("membershipStatus") == "active"
+                and (agent.get("role") or "agent") == "agent"
+                and not str(agent.get("teamName") or "").strip()
+            ]),
             "trialingCount": len([row for row in subscriptions if row.get("status") == "trialing"]),
             "activeSubscriptionCount": len(
                 [row for row in subscriptions if row.get("status") in {"active", "trialing"}]
@@ -708,6 +735,14 @@ def _normalized_invite_email(value):
     if not BROKERAGE_INVITE_EMAIL_RE.fullmatch(email):
         raise ValueError("Enter a valid agent email address.")
     return email
+
+
+def _normalized_brokerage_team_name(value):
+    """Return a compact private roster label, or None when cleared."""
+    team_name = " ".join(str(value or "").strip().split())
+    if len(team_name) > MAX_BROKERAGE_TEAM_NAME_LENGTH:
+        raise ValueError("Keep the team name to 80 characters or fewer.")
+    return team_name or None
 
 
 def _brokerage_agent_seat_cap(brokerage):
@@ -1371,6 +1406,46 @@ async def _set_brokerage_member_status(actor, data):
     if not isinstance(rows, list) or not rows:
         raise RuntimeError("Brokerage membership was not found after updating.")
     return {"userId": target_user_id, "membershipStatus": rows[0].get("status") or desired_status, "changed": True}
+
+
+async def _set_brokerage_member_team(actor, data):
+    """Set a private roster label without changing access or account state."""
+    context = await _brokerage_admin_context(actor)
+    if not context:
+        raise PermissionError("Brokerage admin access is not enabled for this account.")
+
+    target_user_id = str(data.get("user_id") or "").strip()
+    try:
+        target_user_id = str(uuid.UUID(target_user_id))
+    except (TypeError, ValueError, AttributeError):
+        raise ValueError("Choose a valid brokerage member.")
+    team_name = _normalized_brokerage_team_name(data.get("team_name"))
+    brokerage_id = str(context["brokerage"]["id"])
+    members = await _get(
+        "hof_brokerage_members?"
+        f"brokerage_id=eq.{urllib.parse.quote(brokerage_id)}"
+        f"&user_id=eq.{urllib.parse.quote(target_user_id)}"
+        "&select=id,user_id,role,status&limit=1"
+    )
+    if not members:
+        raise ValueError("That agent is not a member of this brokerage.")
+    if str(members[0].get("role") or "agent") != "agent":
+        raise PermissionError("Broker and owner team assignments must be managed by HomeOfferFlow support.")
+
+    async with httpx.AsyncClient(timeout=12) as client:
+        response = await client.patch(
+            f"{SUPABASE_URL}/rest/v1/hof_profiles?"
+            f"id=eq.{urllib.parse.quote(target_user_id)}"
+            f"&brokerage_id=eq.{urllib.parse.quote(brokerage_id)}",
+            headers={**_headers(), "Prefer": "return=representation"},
+            json={"team_name": team_name, "updated_at": datetime.now(timezone.utc).isoformat()},
+        )
+    if response.status_code >= 300:
+        raise RuntimeError("Could not update this private team label.")
+    rows = response.json()
+    if not isinstance(rows, list) or not rows:
+        raise ValueError("That agent profile is not connected to this brokerage.")
+    return {"userId": target_user_id, "teamName": rows[0].get("team_name"), "changed": True}
 
 
 def _parse_partner_lead_update(data):
@@ -3563,6 +3638,10 @@ class handler(BaseHTTPRequestHandler):
                 return
             if data.get("action") == "set_brokerage_member_status":
                 result = asyncio.run(_set_brokerage_member_status(user, data))
+                _json(self, 200, {"ok": True, "membership": result})
+                return
+            if data.get("action") == "set_brokerage_member_team":
+                result = asyncio.run(_set_brokerage_member_team(user, data))
                 _json(self, 200, {"ok": True, "membership": result})
                 return
             if data.get("action") == "create_seller_disclosure_draft":
