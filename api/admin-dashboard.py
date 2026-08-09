@@ -144,6 +144,28 @@ def _missing_form_request_code_counts(items):
     return dict(sorted(counts.items(), key=lambda entry: (-entry[1], entry[0])))
 
 
+def _missing_form_request_recent_code_counts(items, days=30):
+    """Return recent normalized demand counts without exposing feedback text."""
+    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+    counts = {}
+    code_patterns = (
+        (re.compile(r"\bTXR\s*-?\s*(\d{4})\b", re.IGNORECASE), lambda match: f"TXR-{match.group(1)}"),
+        (re.compile(r"\bTREC\s*-?\s*(\d{2})\s*-?\s*(\d)\b", re.IGNORECASE), lambda match: f"TREC-{match.group(1)}-{match.group(2)}"),
+    )
+    for item in (items or []):
+        if str((item or {}).get("issue_type") or "").lower() != "missing_addendum":
+            continue
+        created_at = _parse_timestamp((item or {}).get("created_at"))
+        if not created_at or created_at < cutoff:
+            continue
+        message = str((item or {}).get("message") or "")
+        for pattern, normalize in code_patterns:
+            for match in pattern.finditer(message):
+                code = normalize(match)
+                counts[code] = counts.get(code, 0) + 1
+    return dict(sorted(counts.items(), key=lambda entry: (-entry[1], entry[0])))
+
+
 async def _get(path):
     async with httpx.AsyncClient(timeout=12) as client:
         r = await client.get(f"{SUPABASE_URL}/rest/v1/{path}", headers=_headers())
@@ -2929,6 +2951,7 @@ class handler(BaseHTTPRequestHandler):
                 item for item in feedback if str(item.get("issue_type") or "").lower() == "missing_addendum"
             ])
             missing_form_request_code_counts = _missing_form_request_code_counts(feedback)
+            missing_form_recent_code_counts = _missing_form_request_recent_code_counts(feedback)
             missing_form_intake_brief_copy_count = len([
                 item for item in events if item.get("event_type") == "missing_form_intake_brief_copied"
             ])
@@ -3280,6 +3303,7 @@ class handler(BaseHTTPRequestHandler):
                 "feedbackCount": len(feedback),
                 "missingFormRequestCount": missing_form_request_count,
                 "missingFormRequestCodeCounts": missing_form_request_code_counts,
+                "missingFormRecentCodeCounts": missing_form_recent_code_counts,
                 "missingFormTopCodes": list(missing_form_request_code_counts)[:5],
                 "missingFormIntakeBriefCopyCount": missing_form_intake_brief_copy_count,
                 # Generated AI outputs are useful context, but do not count as
