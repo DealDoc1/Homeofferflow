@@ -11,7 +11,7 @@ class PartnerActivationFollowupCopyTests(unittest.TestCase):
         self.assertIn("const activationStage = paid && onboarding === 'not_started'", source)
         self.assertIn("complete the partner onboarding details and confirm the launch window", source)
         self.assertIn("finish the remaining onboarding details so the placement can go live", source)
-        self.assertIn("partner activation:", source)
+        self.assertIn("partner onboarding next step:", source)
         self.assertIn("activationStage", source)
 
 
