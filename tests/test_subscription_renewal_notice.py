@@ -10,6 +10,13 @@ class SubscriptionRenewalNoticeTests(unittest.TestCase):
         self.assertIn("Next renewal:", source)
         self.assertIn("Manage Billing anytime to review or change your plan.", source)
 
+    def test_renewal_urgency_surfaces_billing_cta_with_distinct_telemetry_source(self):
+        source = Path('index.html').read_text()
+        self.assertIn("const renewalDaysRemaining", source)
+        self.assertIn("const renewalUrgent", source)
+        self.assertIn("renewal_urgency", source)
+        self.assertIn("Renewal is in", source)
+
 
 if __name__ == '__main__':
     unittest.main()

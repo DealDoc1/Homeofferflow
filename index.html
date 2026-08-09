@@ -12767,6 +12767,14 @@ function routeAfterMagicLinkIfNeeded() {
       : 'Free trial active through ' + safe(trialEnds);
     const cancellationEnds = formatBillingDate(subscription.cancel_at || subscription.current_period_end);
     const renewalDate = formatBillingDate(subscription.current_period_end);
+    const renewalTimestamp = subscription.current_period_end ? new Date(subscription.current_period_end).getTime() : NaN;
+    const renewalDaysRemaining = Number.isFinite(renewalTimestamp)
+      ? Math.max(0, Math.ceil((renewalTimestamp - Date.now()) / 86400000))
+      : null;
+    const renewalUrgent = ['active', 'free_admin'].includes(status)
+      && !subscription.cancel_at_period_end
+      && renewalDaysRemaining !== null
+      && renewalDaysRemaining <= 7;
     if (status === 'trialing' && trialEnds && !card.querySelector('.subscription-trial-notice')) {
       card.insertAdjacentHTML('beforeend',
         '<div class="subscription-trial-notice" style="margin-top:0.75rem; font-size:0.78rem; line-height:1.45; color:' + (trialDaysRemaining !== null && trialDaysRemaining <= 3 ? 'var(--gold-light)' : 'var(--gray)') + ';">' +
@@ -12783,7 +12791,8 @@ function routeAfterMagicLinkIfNeeded() {
     if (['active','free_admin'].includes(status) && !subscription.cancel_at_period_end && renewalDate && !card.querySelector('.subscription-renewal-notice')) {
       card.insertAdjacentHTML('beforeend',
         '<div class="subscription-renewal-notice" style="margin-top:0.75rem; font-size:0.78rem; line-height:1.45; color:var(--gray);">' +
-        '<strong>Next renewal: ' + safe(renewalDate) + '.</strong> Manage Billing anytime to review or change your plan.' +
+        '<strong>' + (renewalUrgent ? 'Renewal is in ' + renewalDaysRemaining + ' day' + (renewalDaysRemaining === 1 ? '' : 's') + ': ' : 'Next renewal: ') + safe(renewalDate) + '.</strong> Manage Billing anytime to review or change your plan.' +
+        (renewalUrgent ? ' <button type="button" class="btn-secondary" style="margin-top:.45rem" onclick="openBillingPortal(\'renewal_urgency\')">Review Manage Billing</button>' : '') +
         '</div>');
     }
     if (!['active','trialing','free_admin'].includes(status) && !card.querySelector('.ondemand-trial-link')) {
