@@ -3886,7 +3886,12 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       partners ? `Partner interests: ${partners}.` : '',
       'We can review the next step and confirm availability, pricing, and any licensed-provider requirements: https://homeofferflow.com'
     ].filter(Boolean).join(' ');
-    return `<a class="admin-contact-action" href="mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}">Follow up</a>`;
+    const eventMetadata = JSON.stringify({
+      package: packageName.slice(0, 80),
+      status: String(row?.status || 'new').slice(0, 40),
+      surface: 'admin'
+    });
+    return `<a class="admin-contact-action" href="mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}" onclick='logOfferEvent(null, "seller_follow_up_email_started", "started", "Seller lead follow-up email opened.", ${eventMetadata})'>Follow up</a>`;
   }
 
   function adminActivationFollowUpAction(row) {
@@ -4247,6 +4252,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           <div class="admin-metric">
             <div class="admin-metric-label">Seller / FSBO Leads</div>
             <div class="admin-metric-value">${metrics.sellerLeadCount || sellerLeads.length || 0}</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.sellerFollowUpEmailStartCount || 0} seller follow-up emails opened.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.sellerReviewRequestCount || 0} seller disclosure review requests initiated · ${metrics.sellerReviewViewedCount || 0} opened · ${metrics.sellerReviewVerifiedCount || 0} verified · ${metrics.sellerReviewAttestationCount || 0} attested.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Stage conversion: ${Number(metrics.sellerReviewViewRate || 0).toFixed(1)}% opened · ${Number(metrics.sellerReviewVerificationRate || 0).toFixed(1)}% verified after opening · ${Number(metrics.sellerReviewAttestationRate || 0).toFixed(1)}% attested after verification.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.sellerReviewFollowUpCount || 0} follow-up actions started · ${Number(metrics.sellerReviewFollowUpRate || 0).toFixed(1)}% of requests.</div>

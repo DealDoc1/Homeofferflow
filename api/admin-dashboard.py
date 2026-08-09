@@ -2915,6 +2915,9 @@ class handler(BaseHTTPRequestHandler):
             partner_follow_up_email_start_count = len([
                 item for item in events if item.get("event_type") == "partner_follow_up_email_started"
             ])
+            seller_follow_up_email_start_count = len([
+                item for item in events if item.get("event_type") == "seller_follow_up_email_started"
+            ])
             ai_review_outputs = asyncio.run(_get_optional(
                 "hof_ai_offer_reviews?select=id,created_at&order=created_at.desc&limit=100"
             ))
@@ -3163,6 +3166,7 @@ class handler(BaseHTTPRequestHandler):
                 "qualifiedPartnerLeadCount": len([lead for lead in partner_leads if lead.get("status") in {"qualified", "converted"}]),
                 "sellerLeadCount": len(seller_leads),
                 "qualifiedSellerLeadCount": len([lead for lead in seller_leads if lead.get("status") in {"qualified", "converted"}]),
+                "sellerFollowUpEmailStartCount": seller_follow_up_email_start_count,
                 "sellerReviewRequestCount": seller_review_request_count,
                 "sellerReviewFollowUpCount": seller_review_follow_up_count,
                 "sellerReviewFollowUpRate": round((seller_review_follow_up_count / seller_review_request_count) * 100, 1)

@@ -12,6 +12,8 @@ class AdminSellerFollowUpTests(unittest.TestCase):
         self.assertIn("HomeOfferFlow seller follow-up", INDEX)
         self.assertIn("Package interest: ${packageName}.", INDEX)
         self.assertIn("Partner interests: ${partners}.", INDEX)
+        self.assertIn("seller_follow_up_email_started", INDEX)
+        self.assertIn("sellerFollowUpEmailStartCount", INDEX)
         self.assertIn('>Follow up</a>', INDEX)
 
 
