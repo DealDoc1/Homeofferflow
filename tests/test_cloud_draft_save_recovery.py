@@ -1,0 +1,29 @@
+from pathlib import Path
+import unittest
+
+
+HTML = (Path(__file__).resolve().parents[1] / "index.html").read_text(encoding="utf-8")
+
+
+class CloudDraftSaveRecoveryTests(unittest.TestCase):
+    def test_cloud_save_failure_is_not_reported_as_success(self):
+        start = HTML.index("function saveDraftNow()")
+        end = HTML.index("function scheduleDraftSave()", start)
+        saver = HTML[start:end]
+        self.assertIn("if (saved)", saver)
+        self.assertIn("showCloudSaveFailure()", saver)
+        success_branch, failure_branch = saver.split("if (saved)", 1)[1].split("} else", 1)
+        self.assertIn("Cloud Saved", success_branch)
+        self.assertIn("showCloudSaveFailure()", failure_branch)
+
+    def test_cloud_sync_failure_has_an_explicit_retry_action(self):
+        start = HTML.index("function showCloudSaveFailure()")
+        end = HTML.index("function getDraftSnapshot()", start)
+        recovery = HTML[start:end]
+        self.assertIn("Local draft saved; cloud sync needs retry.", recovery)
+        self.assertIn("retryCloudDraftSave", recovery)
+        self.assertIn("cloud_draft_save_retried", recovery)
+
+
+if __name__ == "__main__":
+    unittest.main()

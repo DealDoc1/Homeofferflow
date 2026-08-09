@@ -323,6 +323,9 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     .progress-meta { display: flex; justify-content: space-between; margin-top: 0.45rem; font-size: 0.73rem; color: var(--gray); }
     .progress-meta .step-name { color: var(--gold-light); font-weight: 600; }
     #saveStatus { color: var(--sage-light); font-weight: 600; margin: 0 0.75rem; white-space: nowrap; }
+    #saveStatus.cloud-save-warning { color: var(--gold-light); }
+    #saveStatus .save-retry-btn { border: 1px solid rgba(232,184,109,.55); border-radius: 999px; background: rgba(200,151,63,.12); color: var(--gold-light); cursor: pointer; font: 700 .68rem 'DM Sans', sans-serif; margin-left: .35rem; padding: .18rem .45rem; }
+    #saveStatus .save-retry-btn:hover { background: rgba(200,151,63,.22); }
     .draft-clear-btn { background: transparent; border: 1px solid rgba(255,255,255,0.12); color: var(--gray-light); padding: 0.28rem 0.55rem; border-radius: 6px; font-family: 'DM Sans', sans-serif; font-size: 0.7rem; font-weight: 600; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
     .draft-clear-btn:hover { border-color: rgba(200,151,63,0.45); color: var(--gold-light); background: rgba(200,151,63,0.06); }
     .wizard-body { flex: 1; padding: 1.75rem 1.5rem 1rem; max-width: 600px; margin: 0 auto; width: 100%; }
@@ -8900,6 +8903,7 @@ function routeAfterMagicLinkIfNeeded() {
   function updateSaveStatus(text) {
     const el = document.getElementById('saveStatus');
     if (!el) return;
+    el.classList.remove('cloud-save-warning');
     el.textContent = text;
     clearTimeout(__hofSaveTimer);
     if (text !== 'Saving...') {
@@ -8908,6 +8912,27 @@ function routeAfterMagicLinkIfNeeded() {
       }, 2200);
     }
   }
+
+  function showCloudSaveFailure() {
+    const el = document.getElementById('saveStatus');
+    if (!el) return;
+    clearTimeout(__hofSaveTimer);
+    el.classList.add('cloud-save-warning');
+    el.innerHTML = 'Local draft saved; cloud sync needs retry. <button type="button" class="save-retry-btn" onclick="retryCloudDraftSave()">Retry cloud save</button>';
+  }
+
+  window.retryCloudDraftSave = async function retryCloudDraftSave() {
+    updateSaveStatus('Retrying cloud save...');
+    const saved = await saveOfferDraftToSupabase('Draft');
+    if (saved) {
+      updateSaveStatus('Cloud Saved');
+      try { logOfferEvent(saved.id || null, 'cloud_draft_save_retried', 'success', 'Cloud draft save recovered from the retry action.'); } catch (e) {}
+      return saved;
+    }
+    showCloudSaveFailure();
+    try { logOfferEvent(null, 'cloud_draft_save_retried', 'failed', 'Cloud draft save retry still failed.'); } catch (e) {}
+    return null;
+  };
 
   function getDraftSnapshot() {
     const fields = {};
@@ -8944,10 +8969,14 @@ function routeAfterMagicLinkIfNeeded() {
       localStorage.setItem(HOF_STORAGE_KEY, JSON.stringify(getDraftSnapshot()));
       updateSaveStatus('✓ Draft Saved');
       if ((state?.data?.userType || '') !== 'homebuyer' && hofAuth?.session) {
-        saveOfferDraftToSupabase('Draft').then(() => {
-          clearTimeout(__hofSaveTimer);
-          __hofSaveTimer = setTimeout(() => updateSaveStatus('Cloud Saved'), 1200);
-        }).catch(() => {});
+        saveOfferDraftToSupabase('Draft').then(saved => {
+          if (saved) {
+            clearTimeout(__hofSaveTimer);
+            __hofSaveTimer = setTimeout(() => updateSaveStatus('Cloud Saved'), 1200);
+          } else {
+            showCloudSaveFailure();
+          }
+        }).catch(() => showCloudSaveFailure());
       }
     } catch (err) {
       console.error('Draft save failed:', err);
