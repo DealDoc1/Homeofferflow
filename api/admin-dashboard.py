@@ -3073,7 +3073,13 @@ class handler(BaseHTTPRequestHandler):
                 "aiCalibrationPacketDownloadCount": len([
                     item for item in events if item.get("event_type") == "ai_calibration_reviewer_packet_downloaded"
                 ]),
+                "aiCalibrationReviewCompletionCount": len([
+                    item for item in events if item.get("event_type") == "ai_calibration_review_completed"
+                ]),
             }
+            metrics["aiCalibrationReviewCompletionRate"] = round((
+                metrics["aiCalibrationReviewCompletionCount"] / metrics["aiCalibrationReviewStartCount"]
+            ) * 100, 1) if metrics["aiCalibrationReviewStartCount"] else 0
             ai_calibration_dispositions = {"keep": 0, "revise": 0, "remove": 0}
             ai_calibration_scenario_dispositions = {
                 scenario: {"keep": 0, "revise": 0, "remove": 0}

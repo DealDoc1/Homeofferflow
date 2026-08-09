@@ -10,6 +10,7 @@ class AiCalibrationFunnelMetricTests(unittest.TestCase):
         source = (ROOT / "index.html").read_text(encoding="utf-8")
         self.assertIn("ai_calibration_review_started", source)
         self.assertIn("ai_calibration_reviewer_packet_downloaded", source)
+        self.assertIn("ai_calibration_review_completed", source)
         self.assertIn("calibrationScenario", source)
 
     def test_admin_payload_and_card_surface_reviewer_funnel(self):
@@ -17,8 +18,11 @@ class AiCalibrationFunnelMetricTests(unittest.TestCase):
         frontend = (ROOT / "index.html").read_text(encoding="utf-8")
         self.assertIn('"aiCalibrationReviewStartCount"', backend)
         self.assertIn('"aiCalibrationPacketDownloadCount"', backend)
+        self.assertIn('"aiCalibrationReviewCompletionCount"', backend)
+        self.assertIn('aiCalibrationReviewCompletionRate', backend)
         self.assertIn("reviewer starts", frontend)
         self.assertIn("packet downloads", frontend)
+        self.assertIn("completed", frontend)
 
 
 if __name__ == "__main__":

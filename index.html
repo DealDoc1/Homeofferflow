@@ -4181,7 +4181,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <div class="admin-metric-label">AI Calibration Notes</div>
             <div class="admin-metric-value">${metrics.aiCalibrationFeedbackCount || 0} / ${metrics.aiCalibrationTarget || 5}</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.aiReviewOutputCount || 0} generated review outputs (not calibration evidence)</div>
-            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.aiCalibrationReviewStartCount || 0} reviewer starts · ${metrics.aiCalibrationPacketDownloadCount || 0} packet downloads.</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.aiCalibrationReviewStartCount || 0} reviewer starts · ${metrics.aiCalibrationPacketDownloadCount || 0} packet downloads · ${metrics.aiCalibrationReviewCompletionCount || 0} completed (${Number(metrics.aiCalibrationReviewCompletionRate || 0).toFixed(1)}% of starts).</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Disposition: keep <strong>${calibrationDispositions.keep || 0}</strong> · revise <strong>${calibrationDispositions.revise || 0}</strong> · remove <strong>${calibrationDispositions.remove || 0}</strong></div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Scenarios: ${adminSafe(calibrationScenarioSummary)}</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:${metrics.aiCalibrationReady ? 'var(--sage-light)' : 'var(--gold-light)'}">${metrics.aiCalibrationReady ? 'Ready for expert review gate' : 'Needs anonymized scenarios'}</div>
@@ -5171,6 +5171,12 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       const feedbackResult = await feedbackResponse.json().catch(() => ({}));
       if (!feedbackResponse.ok || !feedbackResult.feedback) throw new Error(feedbackResult.error || 'Feedback could not be saved.');
       const savedFeedback = feedbackResult.feedback;
+      if (issueType === 'ai_review') {
+        await logOfferEvent(null, 'ai_calibration_review_completed', 'completed', 'AI calibration review completed.', {
+          calibrationScenario: /^AI-CAL-0[1-5]$/.test(String(calibrationScenario || '')) ? calibrationScenario : null,
+          disposition: aiReviewFields.disposition
+        });
+      }
 
       let alertOk = false;
       try {
