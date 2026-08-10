@@ -2,6 +2,8 @@ import os
 import json
 import uuid
 import re
+import hashlib
+import secrets
 import html
 import base64
 import urllib.parse
@@ -1548,6 +1550,40 @@ async def _update_partner_lead(lead_id, status, onboarding_status=None):
     return rows[0]
 
 
+async def _create_partner_onboarding_link(data):
+    lead_id = str(data.get("lead_id") or "").strip()
+    try:
+        lead_id = str(uuid.UUID(lead_id))
+    except (TypeError, ValueError, AttributeError):
+        raise ValueError("A valid partner lead ID is required.")
+    rows = await _get(
+        "hof_partner_leads?"
+        f"id=eq.{urllib.parse.quote(lead_id)}&select=id,payment_status,status&limit=1"
+    )
+    if not rows or str(rows[0].get("payment_status") or "") != "paid" or str(rows[0].get("status") or "") in {"declined", "waitlist"}:
+        raise PermissionError("Only an eligible paid partner application can receive onboarding access.")
+    token = secrets.token_urlsafe(32)
+    now = datetime.now(timezone.utc)
+    payload = {
+        "onboarding_token_hash": hashlib.sha256(token.encode("utf-8")).hexdigest(),
+        "onboarding_token_expires_at": (now + timedelta(days=14)).isoformat(),
+        "onboarding_status": "in_progress",
+        "updated_at": now.isoformat(),
+    }
+    async with httpx.AsyncClient(timeout=12) as client:
+        response = await client.patch(
+            f"{SUPABASE_URL}/rest/v1/hof_partner_leads?id=eq.{urllib.parse.quote(lead_id)}",
+            headers={**_headers(), "Prefer": "return=representation"},
+            json=payload,
+        )
+    if response.status_code >= 300:
+        raise RuntimeError("Could not create partner onboarding access.")
+    saved = response.json()
+    if not isinstance(saved, list) or not saved:
+        raise ValueError("Partner lead was not found.")
+    return {"onboardingUrl": f"{PUBLIC_APP_ORIGIN}/?partner_onboarding={urllib.parse.quote(token, safe='')}", "expiresAt": payload["onboarding_token_expires_at"]}
+
+
 def _clean_text(value, maximum):
     value = " ".join(str(value or "").strip().split())
     return value[:maximum] if value else None
@@ -1582,7 +1618,7 @@ async def _paid_partner_lead_for_placement(lead_id):
     rows = await _get(
         "hof_partner_leads?"
         f"id=eq.{urllib.parse.quote(lead_id)}&"
-        "select=id,company_name,contact_name,contact_email,contact_phone,website_url,partner_type,market_area,status,payment_status,onboarding_status&limit=1"
+        "select=id,company_name,contact_name,contact_email,contact_phone,website_url,partner_type,market_area,status,payment_status,onboarding_status,onboarding_website_url,onboarding_logo_url,onboarding_market_area&limit=1"
     )
     if not rows:
         raise ValueError("The selected partner application was not found.")
@@ -1617,8 +1653,9 @@ async def _create_platform_partner_placement(payload):
         "contact_name": _clean_text(lead.get("contact_name"), 250),
         "contact_email": _clean_text(lead.get("contact_email"), 254),
         "contact_phone": _clean_text(lead.get("contact_phone"), 80),
-        "website_url": _clean_text(lead.get("website_url"), 500),
-        "market_area": _clean_text(lead.get("market_area"), 300),
+        "website_url": _clean_text(lead.get("onboarding_website_url") or lead.get("website_url"), 500),
+        "logo_url": _clean_text(lead.get("onboarding_logo_url"), 500),
+        "market_area": _clean_text(lead.get("onboarding_market_area") or lead.get("market_area"), 300),
         "placement_tier": payload["placement_tier"],
         "monthly_fee": payload["monthly_fee"],
         "agreement_confirmed_at": now,
@@ -3722,6 +3759,10 @@ class handler(BaseHTTPRequestHandler):
                 payload = _parse_partner_placement(data)
                 row = asyncio.run(_create_platform_partner_placement(payload))
                 _json(self, 200, {"ok": True, "partnerPlacement": row})
+                return
+            if data.get("action") == "create_partner_onboarding_link":
+                link = asyncio.run(_create_partner_onboarding_link(data))
+                _json(self, 201, {"ok": True, "onboarding": link})
                 return
             if data.get("action") == "update_seller_lead":
                 lead_id, status = _parse_seller_lead_update(data)
