@@ -8,6 +8,9 @@ HTML = (Path(__file__).resolve().parents[1] / "index.html").read_text(encoding="
 class AiCalibrationPacketCopyTests(unittest.TestCase):
     def test_review_ui_exposes_privacy_safe_calibration_packet_copy(self):
         self.assertIn("copyAiCalibrationPacket", HTML)
+        self.assertIn("window.copyAiReviewSummary = async function", HTML)
+        self.assertIn("window.copyAiCalibrationPacket = async function", HTML)
+        self.assertIn("window.downloadAiCalibrationPacket = function", HTML)
         self.assertIn("Copy Calibration Packet", HTML)
         self.assertIn("Do not add names, exact addresses, MLS numbers", HTML)
         self.assertIn("Reviewer assessment:", HTML)
