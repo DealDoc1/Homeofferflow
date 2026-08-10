@@ -6,6 +6,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 INDEX = (ROOT / "index.html").read_text(encoding="utf-8")
 PRODUCTION = (ROOT / "api" / "fill-pdf.py").read_text(encoding="utf-8")
 STAGING = (ROOT / "api" / "fill_pdf_20_19_staging.py").read_text(encoding="utf-8")
+VERIFIED = (ROOT / "lib" / "verified_20_19.py").read_text(encoding="utf-8")
 
 
 class BrokerageBrandingPropagationTests(unittest.TestCase):
@@ -31,6 +32,11 @@ class BrokerageBrandingPropagationTests(unittest.TestCase):
             self.assertIn("brokerageName", source)
             self.assertIn("prepared_by_line", source)
             self.assertIn("HomeOfferFlow", source)
+
+    def test_signer_requester_identity_preserves_brokerage_and_platform(self):
+        for source in (PRODUCTION, VERIFIED):
+            self.assertIn('f"{str(brokerage_name)[:180]} via HomeOfferFlow"', source)
+            self.assertIn('"custom_requester_name": (', source)
 
 
 if __name__ == "__main__":
