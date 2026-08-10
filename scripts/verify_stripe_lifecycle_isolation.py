@@ -54,7 +54,7 @@ def check_environment(expected_supabase_url: str = "") -> dict:
         # even though every database write would fail closed.
         "service_role_key_present": (
             bool(os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "").strip())
-            and not os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "").strip().startswith("__")
+            and not os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "").strip().startswith(("__", "$"))
         ),
         "stripe_test_key_present": os.environ.get("STRIPE_SECRET_KEY", "").strip().startswith("sk_test_"),
         "stripe_test_webhook_secret_present": os.environ.get(
