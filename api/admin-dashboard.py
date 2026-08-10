@@ -3142,6 +3142,16 @@ class handler(BaseHTTPRequestHandler):
                 if str(lead.get("payment_status") or "").lower() == "paid"
                 and str(lead.get("onboarding_status") or "").lower() in {"ready", "complete", "completed"}
             ])
+            partner_onboarding_in_progress_count = len([
+                lead for lead in partner_leads
+                if str(lead.get("payment_status") or "").lower() == "paid"
+                and str(lead.get("onboarding_status") or "").lower() == "in_progress"
+            ])
+            partner_onboarding_completed_count = len([
+                lead for lead in partner_leads
+                if str(lead.get("payment_status") or "").lower() == "paid"
+                and (lead.get("onboarding_completed_at") or str(lead.get("onboarding_status") or "").lower() in {"complete", "completed"})
+            ])
             paid_partner_agreement_confirmed_count = len([
                 lead for lead in partner_leads
                 if str(lead.get("payment_status") or "").lower() == "paid"
@@ -3458,6 +3468,11 @@ class handler(BaseHTTPRequestHandler):
                 "paidPartnerActivationQueueCount": len(paid_partner_activation_queue),
                 "paidPartnerLeadCount": paid_partner_lead_count,
                 "partnerOnboardingReadyCount": partner_onboarding_ready_count,
+                "partnerOnboardingInProgressCount": partner_onboarding_in_progress_count,
+                "partnerOnboardingCompletedCount": partner_onboarding_completed_count,
+                "partnerOnboardingCompletionRate": round(
+                    (partner_onboarding_completed_count / paid_partner_lead_count) * 100, 1
+                ) if paid_partner_lead_count else 0,
                 "paidPartnerAgreementConfirmedCount": paid_partner_agreement_confirmed_count,
                 "paidPartnerAgreementConfirmationRate": round(
                     (paid_partner_agreement_confirmed_count / paid_partner_lead_count) * 100, 1
