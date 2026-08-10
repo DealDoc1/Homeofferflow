@@ -7,8 +7,8 @@ HTML = (Path(__file__).resolve().parents[1] / "index.html").read_text(encoding="
 
 class CloudDraftSaveRecoveryTests(unittest.TestCase):
     def test_cloud_save_failure_is_not_reported_as_success(self):
-        start = HTML.index("function saveDraftNow()")
-        end = HTML.index("function scheduleDraftSave()", start)
+        start = HTML.index("async function syncCloudDraftSave()")
+        end = HTML.index("function getDraftSnapshot()", start)
         saver = HTML[start:end]
         self.assertIn("if (saved)", saver)
         self.assertIn("showCloudSaveFailure()", saver)
@@ -23,6 +23,22 @@ class CloudDraftSaveRecoveryTests(unittest.TestCase):
         self.assertIn("Local draft saved; cloud sync needs retry.", recovery)
         self.assertIn("retryCloudDraftSave", recovery)
         self.assertIn("cloud_draft_save_retried", recovery)
+
+    def test_cloud_saves_are_serialized_and_empty_drafts_stay_local(self):
+        self.assertIn("let __hofCloudDraftSaveInFlight = false;", HTML)
+        self.assertIn("let __hofCloudDraftSaveQueued = false;", HTML)
+        start = HTML.index("async function syncCloudDraftSave()")
+        end = HTML.index("function getDraftSnapshot()", start)
+        sync = HTML[start:end]
+        self.assertIn("if (__hofCloudDraftSaveInFlight)", sync)
+        self.assertIn("__hofCloudDraftSaveQueued = true", sync)
+        self.assertIn("if (__hofCloudDraftSaveQueued)", sync)
+        saver_start = HTML.index("function saveDraftNow()")
+        saver_end = HTML.index("function scheduleDraftSave()", saver_start)
+        saver = HTML[saver_start:saver_end]
+        self.assertIn("hasMeaningfulCloudDraft()", saver)
+        self.assertIn("syncCloudDraftSave()", saver)
+        self.assertNotIn("saveOfferDraftToSupabase('Draft').then", saver)
 
 
 if __name__ == "__main__":
