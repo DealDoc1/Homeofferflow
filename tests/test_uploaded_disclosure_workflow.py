@@ -34,6 +34,20 @@ class UploadedDisclosureWorkflowTests(unittest.TestCase):
         self.assertIn("signature !== '%PDF'", INDEX_HTML)
         self.assertIn("This file is not a readable PDF", INDEX_HTML)
 
+    def test_uploads_append_safely_and_fit_the_function_payload_budget(self):
+        start = INDEX_HTML.index("async function handleUploadedDisclosureDocs(fileList)")
+        end = INDEX_HTML.index("function controlledLaunchUnsupportedPaths", start)
+        handler = INDEX_HTML[start:end]
+        self.assertIn("const maxFileBytes = 2 * 1024 * 1024;", handler)
+        self.assertIn("const maxTotalBytes = Math.floor(2.5 * 1024 * 1024);", handler)
+        self.assertIn("const docs = [...existingDocs];", handler)
+        self.assertIn("existingDocs.length + files.length > maxFiles", handler)
+        self.assertIn("existingBytes + selectedBytes > maxTotalBytes", handler)
+        self.assertIn("duplicateName", handler)
+        self.assertIn("window.hofUploadedDisclosureDocs = docs;", handler)
+        self.assertIn("if (input) input.value = '';", handler)
+        self.assertIn("Add up to 5 files, 2MB each and 2.5MB combined.", INDEX_HTML)
+
     def test_upload_list_can_remove_one_document_without_clearing_the_packet(self):
         self.assertIn("function removeUploadedDisclosure(index)", INDEX_HTML)
         self.assertIn("docs.splice(index, 1)", INDEX_HTML)
