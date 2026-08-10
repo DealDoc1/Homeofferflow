@@ -3245,7 +3245,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           <div class="field">
             <label>Upload PDF attachments</label>
             <input type="file" id="uploadedDisclosureDocs" accept="application/pdf,.pdf" multiple onchange="handleUploadedDisclosureDocs(this.files)"/>
-            <small style="display:block; margin-top:0.35rem; color:var(--muted);">PDF only. Up to 5 files, 15MB each. You will label and order them before the packet is generated. Examples: seller disclosure, survey, T-47/T-47.1, HOA docs, PID/MUD notices.</small>
+            <small style="display:block; margin-top:0.35rem; color:var(--muted);">PDF only. Add up to 5 files, 2MB each and 2.5MB combined. You can add files in more than one selection, then label and order them before the packet is generated. Examples: seller disclosure, survey, T-47/T-47.1, HOA docs, PID/MUD notices.</small>
           </div>
           <div id="uploadedDocsList" class="notice gold" style="display:none;"></div>
           <div id="uploadedDocsResumeNotice" class="notice warn" style="display:none; margin-top:.75rem;" role="status"></div>
@@ -7844,22 +7844,38 @@ function routeAfterMagicLinkIfNeeded() {
   async function handleUploadedDisclosureDocs(fileList) {
     const files = Array.from(fileList || []);
     const maxFiles = 5;
-    const maxBytes = 15 * 1024 * 1024;
-    if (files.length > maxFiles) {
-      alert(`Please upload ${maxFiles} PDFs or fewer for this beta version.`);
-      const input = document.getElementById('uploadedDisclosureDocs');
+    const maxFileBytes = 2 * 1024 * 1024;
+    const maxTotalBytes = Math.floor(2.5 * 1024 * 1024);
+    const input = document.getElementById('uploadedDisclosureDocs');
+    const existingDocs = Array.isArray(window.hofUploadedDisclosureDocs) ? window.hofUploadedDisclosureDocs : [];
+    const existingBytes = existingDocs.reduce((total, doc) => total + Number(doc?.size || 0), 0);
+    const selectedBytes = files.reduce((total, file) => total + Number(file?.size || 0), 0);
+    if (existingDocs.length + files.length > maxFiles) {
+      const remaining = Math.max(0, maxFiles - existingDocs.length);
+      alert(`You can keep up to ${maxFiles} PDFs. This packet can add ${remaining} more file${remaining === 1 ? '' : 's'}.`);
       if (input) input.value = '';
       return;
     }
-    const docs = [];
+    if (existingBytes + selectedBytes > maxTotalBytes) {
+      alert('Uploaded PDFs must stay under 2.5MB combined so the packet can be sent reliably. Remove a file or use a smaller PDF.');
+      if (input) input.value = '';
+      return;
+    }
+    if (!files.length) return;
+    const docs = [...existingDocs];
     for (const file of files) {
+      const duplicateName = docs.some(doc => String(doc?.name || '').toLowerCase() === String(file?.name || '').toLowerCase());
+      if (duplicateName) {
+        alert('This packet already includes a file named ' + file.name + '. Rename the new file before adding it.');
+        continue;
+      }
       const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
       if (!isPdf) {
         alert('Only PDF files can be uploaded right now: ' + file.name);
         continue;
       }
-      if (file.size > maxBytes) {
-        alert('This PDF is too large for beta upload: ' + file.name + '. Please keep each file under 15MB.');
+      if (file.size > maxFileBytes) {
+        alert('This PDF is too large for packet upload: ' + file.name + '. Please keep each file under 2MB.');
         continue;
       }
       try {
@@ -7883,6 +7899,7 @@ function routeAfterMagicLinkIfNeeded() {
         alert('Could not read uploaded PDF: ' + file.name);
       }
     }
+    if (input) input.value = '';
     window.hofUploadedDisclosureDocs = docs;
     resetUploadedDisclosureAcknowledgement();
     state.data.uploadedDocNames = docs.map(d => d.name);
