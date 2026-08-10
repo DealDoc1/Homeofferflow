@@ -25,7 +25,16 @@ class PwaBaselineTests(unittest.TestCase):
         self.assertEqual(MANIFEST["start_url"], "/")
         self.assertEqual(MANIFEST["scope"], "/")
         self.assertEqual(MANIFEST["theme_color"], "#173f35")
-        self.assertEqual(MANIFEST["icons"][0]["src"], "/assets/homeofferflow-app-icon.svg")
+        self.assertTrue(any(icon["src"] == "/assets/homeofferflow-app-icon.svg" for icon in MANIFEST["icons"]))
+        self.assertTrue(any(icon["src"] == "/assets/homeofferflow-app-icon-192.png" and icon["sizes"] == "192x192" for icon in MANIFEST["icons"]))
+        self.assertTrue(any(icon["src"] == "/assets/homeofferflow-app-icon-512.png" and icon["sizes"] == "512x512" for icon in MANIFEST["icons"]))
+        self.assertIn('rel="apple-touch-icon" href="/assets/homeofferflow-apple-touch-icon.png" sizes="180x180"', INDEX)
+        for filename in (
+            "homeofferflow-app-icon-192.png",
+            "homeofferflow-app-icon-512.png",
+            "homeofferflow-apple-touch-icon.png",
+        ):
+            self.assertTrue((ROOT / "assets" / filename).is_file(), filename)
 
     def test_worker_does_not_cache_apis_or_authenticated_data(self):
         self.assertIn("requestUrl.pathname.startsWith('/api/')", WORKER)

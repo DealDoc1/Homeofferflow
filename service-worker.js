@@ -1,9 +1,12 @@
-const SHELL_CACHE = 'homeofferflow-shell-v4';
+const SHELL_CACHE = 'homeofferflow-shell-v5';
 const SHELL_ASSETS = [
   '/',
   '/index.html',
   '/manifest.webmanifest',
-  '/assets/homeofferflow-app-icon.svg'
+  '/assets/homeofferflow-app-icon.svg',
+  '/assets/homeofferflow-app-icon-192.png',
+  '/assets/homeofferflow-app-icon-512.png',
+  '/assets/homeofferflow-apple-touch-icon.png'
 ];
 
 self.addEventListener('install', event => {
