@@ -3869,7 +3869,26 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       ? `Thanks for partnering with HomeOfferFlow. Let’s ${activationStage}: https://homeofferflow.com/?partner=1`
       : `Following up on your HomeOfferFlow partner application. We can ${activationStage}: https://homeofferflow.com/?partner=1`;
     const eventMetadata = adminEventMetadata({ paid, onboarding, activationStage, surface: 'admin' });
-    return `<a class="admin-contact-action" href="mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}" onclick='logOfferEvent(null, "partner_follow_up_email_started", "started", "Partner follow-up email opened.", ${eventMetadata})'>Email partner</a>`;
+    const onboardingButton = paid ? ` <button type="button" class="admin-contact-action" onclick="copyPartnerOnboardingLink('${adminSafe(row.id, '')}')">Copy setup link</button>` : '';
+    return `<a class="admin-contact-action" href="mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}" onclick='logOfferEvent(null, "partner_follow_up_email_started", "started", "Partner follow-up email opened.", ${eventMetadata})'>Email partner</a>${onboardingButton}`;
+  }
+
+  async function copyPartnerOnboardingLink(leadId) {
+    if (!leadId || !hofAuth?.session?.access_token) return;
+    try {
+      const response = await fetch('/api/admin-dashboard', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${hofAuth.session.access_token}`},
+        body: JSON.stringify({action: 'create_partner_onboarding_link', lead_id: leadId})
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || !result?.onboarding?.onboardingUrl) throw new Error(result.error || 'Could not create onboarding access.');
+      await navigator.clipboard.writeText(result.onboarding.onboardingUrl);
+      alert('Single-use partner setup link copied. It expires in 14 days and does not activate public placement.');
+      await loadAdminDashboard(true);
+    } catch (err) {
+      alert(err?.message || 'Could not copy partner setup link.');
+    }
   }
 
   async function updatePartnerLeadStatus(leadId) {
@@ -11305,6 +11324,31 @@ function routeAfterMagicLinkIfNeeded() {
       if (submit) submit.disabled = false;
     }
   };
+  function setupPartnerOnboardingModal(){
+    if (document.getElementById('partnerOnboardingModal')) return;
+    const modal = document.createElement('div');
+    modal.id = 'partnerOnboardingModal';
+    modal.className = 'wizard-overlay';
+    modal.style.display = 'none';
+    modal.innerHTML = `<div class="wizard-panel" style="max-width:680px"><button type="button" class="close-btn" aria-label="Close" onclick="closePartnerOnboarding()">×</button><div class="wizard-body"><h2>Partner setup</h2><p class="step-desc">Complete your public-facing creative details. This prepares review only; it does not activate advertising or replace the required written agreement.</p><div id="partnerOnboardingStatus" class="platform-status"></div><div id="partnerOnboardingFields" style="display:none"><div class="platform-grid"><div class="field"><label>Company</label><input id="partnerSetupCompany" disabled></div><div class="field"><label>Category</label><input id="partnerSetupCategory" disabled></div><div class="field"><label>Primary market area</label><input id="partnerSetupMarket" placeholder="Market area"></div><div class="field"><label>Website (https)</label><input id="partnerSetupWebsite" placeholder="https://example.com"></div><div class="field"><label>Logo image URL (https, optional)</label><input id="partnerSetupLogo" placeholder="https://example.com/logo.png"></div><div class="field"><label>Directory CTA (optional)</label><input id="partnerSetupCta" maxlength="80" placeholder="Visit our website"></div></div><div class="account-actions-row" style="margin-top:1rem"><button type="button" class="btn-primary" onclick="submitPartnerOnboarding()">Save setup details</button></div></div></div></div>`;
+    document.body.appendChild(modal);
+  }
+  function onboardingToken(){ return params().get('partner_onboarding') || ''; }
+  window.closePartnerOnboarding = function(){ const modal = document.getElementById('partnerOnboardingModal'); if (modal) modal.style.display = 'none'; };
+  window.openPartnerOnboarding = async function(){
+    setupPartnerOnboardingModal();
+    const modal = document.getElementById('partnerOnboardingModal'); const status = document.getElementById('partnerOnboardingStatus');
+    if (!modal || !status) return; modal.style.display = 'flex'; status.textContent = 'Loading secure setup…'; status.className = 'platform-status';
+    try {
+      const response = await fetch('/api/fsbo-lead', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({request_type:'partner_onboarding_get', onboarding_token:onboardingToken()})});
+      const result = await response.json().catch(() => ({})); if (!response.ok || !result.partner) throw new Error(result.error || 'This setup link is unavailable.');
+      const partner = result.partner; document.getElementById('partnerSetupCompany').value = partner.company_name || ''; document.getElementById('partnerSetupCategory').value = String(partner.partner_type || '').replace(/_/g, ' '); document.getElementById('partnerSetupMarket').value = partner.onboarding_market_area || partner.market_area || ''; document.getElementById('partnerSetupWebsite').value = partner.onboarding_website_url || ''; document.getElementById('partnerSetupLogo').value = partner.onboarding_logo_url || ''; document.getElementById('partnerSetupCta').value = partner.onboarding_cta_label || ''; document.getElementById('partnerOnboardingFields').style.display = 'block'; status.textContent = '';
+    } catch (error) { status.textContent = error?.message || 'This setup link is unavailable.'; status.className = 'platform-status err'; }
+  };
+  window.submitPartnerOnboarding = async function(){
+    const status = document.getElementById('partnerOnboardingStatus');
+    try { const response = await fetch('/api/fsbo-lead', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({request_type:'partner_onboarding_submit', onboarding_token:onboardingToken(), market_area:value('partnerSetupMarket'), website_url:value('partnerSetupWebsite'), logo_url:value('partnerSetupLogo'), cta_label:value('partnerSetupCta')})}); const result = await response.json().catch(() => ({})); if (!response.ok) throw new Error(result.error || 'Could not save setup details.'); document.getElementById('partnerOnboardingFields').style.display = 'none'; status.textContent = 'Setup details saved. HomeOfferFlow will review them with the written placement agreement before anything becomes public.'; status.className = 'platform-status ok'; } catch (error) { status.textContent = error?.message || 'Could not save setup details.'; status.className = 'platform-status err'; }
+  };
   document.addEventListener('DOMContentLoaded', function(){
     window.selectFoundingPartnerTier('monthly_placement');
     if (params().get('partner_checkout') === 'cancelled') {
@@ -11325,6 +11369,7 @@ function routeAfterMagicLinkIfNeeded() {
       window.__hofFoundingPartnerLeadId = '';
       savePartnerLeadId('');
     }
+    if (params().get('partner_onboarding')) setTimeout(window.openPartnerOnboarding, 80);
     if (params().get('partner') === '1') setTimeout(window.openFoundingPartnerModal, 80);
   });
 })();

@@ -2,6 +2,7 @@ import os
 import json
 import re
 import uuid
+import hashlib
 from http.server import BaseHTTPRequestHandler
 from datetime import datetime, timezone
 from urllib.parse import parse_qs, urlencode, urlparse
@@ -18,6 +19,7 @@ SUPABASE_SERVICE_ROLE_KEY = (
 MAX_BODY_BYTES = 60_000
 EMAIL_RE = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
 LEAD_ID_RE = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$", re.I)
+ONBOARDING_TOKEN_RE = re.compile(r"^[A-Za-z0-9_-]{24,128}$")
 ALLOWED_PARTNER_TYPES = {
     "title",
     "lender",
@@ -224,6 +226,64 @@ def _mark_partner_checkout_returned(lead_id, resume_token):
         raise RuntimeError("Could not record the checkout return.")
 
 
+def _onboarding_token_hash(token):
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+
+def _secure_url(value, field):
+    value = _text(value, 500)
+    if not value:
+        return None
+    parsed = urlparse(value)
+    if parsed.scheme != "https" or not parsed.netloc:
+        raise ValueError(f"{field} must be a secure https URL.")
+    return value
+
+
+def _get_partner_onboarding(token):
+    if not ONBOARDING_TOKEN_RE.match(token or ""):
+        raise ValueError("This onboarding link is invalid.")
+    query = urlencode({"onboarding_token_hash": f"eq.{_onboarding_token_hash(token)}", "select": "id,company_name,partner_type,market_area,preferred_model,payment_status,status,onboarding_token_expires_at,onboarding_website_url,onboarding_logo_url,onboarding_cta_label,onboarding_market_area", "limit": "1"})
+    headers = {"apikey": SUPABASE_SERVICE_ROLE_KEY, "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}"}
+    with httpx.Client(timeout=12) as client:
+        response = client.get(f"{SUPABASE_URL}/rest/v1/hof_partner_leads?{query}", headers=headers)
+    if response.status_code >= 300:
+        raise RuntimeError("Could not load partner onboarding.")
+    rows = response.json() if response.text else []
+    lead = rows[0] if isinstance(rows, list) and rows else None
+    if not lead or str(lead.get("payment_status") or "") != "paid" or str(lead.get("status") or "") in {"declined", "waitlist"}:
+        raise LookupError("This onboarding link is unavailable.")
+    try:
+        expires_at = datetime.fromisoformat(str(lead["onboarding_token_expires_at"]).replace("Z", "+00:00"))
+    except (KeyError, TypeError, ValueError):
+        raise LookupError("This onboarding link has expired.")
+    if expires_at <= datetime.now(timezone.utc):
+        raise LookupError("This onboarding link has expired.")
+    return lead
+
+
+def _public_partner_onboarding(lead):
+    return {key: lead.get(key) for key in ("company_name", "partner_type", "preferred_model", "onboarding_website_url", "onboarding_logo_url", "onboarding_cta_label", "onboarding_market_area", "market_area")}
+
+
+def _complete_partner_onboarding(token, data):
+    lead = _get_partner_onboarding(token)
+    market = _text(data.get("market_area"), 300)
+    if not market:
+        raise ValueError("Primary market area is required.")
+    now = datetime.now(timezone.utc).isoformat()
+    payload = {"onboarding_website_url": _secure_url(data.get("website_url"), "Website"), "onboarding_logo_url": _secure_url(data.get("logo_url"), "Logo URL"), "onboarding_cta_label": _text(data.get("cta_label"), 80), "onboarding_market_area": market, "onboarding_status": "complete", "onboarding_completed_at": now, "onboarding_token_hash": None, "onboarding_token_expires_at": None, "updated_at": now}
+    headers = {"apikey": SUPABASE_SERVICE_ROLE_KEY, "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}", "Content-Type": "application/json", "Prefer": "return=representation"}
+    with httpx.Client(timeout=12) as client:
+        response = client.patch(f"{SUPABASE_URL}/rest/v1/hof_partner_leads?id=eq.{lead['id']}&onboarding_token_hash=eq.{_onboarding_token_hash(token)}", headers=headers, json=payload)
+    if response.status_code >= 300:
+        raise RuntimeError("Could not save partner onboarding.")
+    rows = response.json() if response.text else []
+    if not isinstance(rows, list) or not rows:
+        raise LookupError("This onboarding link is no longer available.")
+    return _public_partner_onboarding(rows[0])
+
+
 def _create_partner_checkout(lead_id, headers):
     stripe_secret_key = os.environ.get("STRIPE_SECRET_KEY", "")
     if not stripe_secret_key:
@@ -346,6 +406,22 @@ class handler(BaseHTTPRequestHandler):
                     return _send(self, 200, {'ok': True})
                 except ValueError as exc:
                     return _send(self, 400, {'error': str(exc)})
+
+            if _text(data.get('request_type'), 80) == 'partner_onboarding_get':
+                try:
+                    return _send(self, 200, {'ok': True, 'partner': _public_partner_onboarding(_get_partner_onboarding(_text(data.get('onboarding_token'), 160) or ''))})
+                except ValueError as exc:
+                    return _send(self, 400, {'error': str(exc)})
+                except LookupError as exc:
+                    return _send(self, 404, {'error': str(exc)})
+
+            if _text(data.get('request_type'), 80) == 'partner_onboarding_submit':
+                try:
+                    return _send(self, 200, {'ok': True, 'partner': _complete_partner_onboarding(_text(data.get('onboarding_token'), 160) or '', data)})
+                except ValueError as exc:
+                    return _send(self, 400, {'error': str(exc)})
+                except LookupError as exc:
+                    return _send(self, 409, {'error': str(exc)})
 
             if _text(data.get('request_type'), 80) == 'founding_partner':
                 # Quietly accept bots that fill the hidden field without polluting the CRM.
