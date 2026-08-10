@@ -102,7 +102,7 @@ class PartnerCheckoutTests(unittest.TestCase):
             "preferred_model": "monthly_placement",
             "contact_email": "partner@example.com",
             "status": "approved",
-        }), patch.object(partner_checkout, "_mark_partner_checkout_started"), patch.object(partner_checkout.httpx, "Client", Client):
+        }), patch.object(partner_checkout, "_mark_partner_checkout_started") as mark_started, patch.object(partner_checkout.httpx, "Client", Client):
             result = partner_checkout._create_partner_checkout(
                 "e35eace9-2760-4b11-a01a-07ee65f2744e",
                 {"host": "www.homeofferflow.com", "x-forwarded-proto": "https"},
@@ -116,6 +116,20 @@ class PartnerCheckoutTests(unittest.TestCase):
         self.assertEqual(form["subscription_data[trial_period_days]"], "90")
         self.assertEqual(form["payment_method_collection"], "always")
         self.assertNotIn("cancel_at", form)
+        self.assertIn("partner_resume_token=", form["cancel_url"])
+        mark_started.assert_called_once()
+
+    def test_checkout_return_requires_matching_lead_and_nonce(self):
+        Client.requests = []
+        with patch.object(partner_checkout.httpx, "Client", Client):
+            partner_checkout._mark_partner_checkout_returned(
+                "e35eace9-2760-4b11-a01a-07ee65f2744e",
+                "e35eace9-2760-4b11-a01a-07ee65f2744e",
+            )
+        request = Client.requests[0]
+        self.assertEqual(request[0], "patch")
+        self.assertIn("checkout_resume_token", request[1])
+        self.assertIn("payment_status=eq.checkout_started", request[1])
 
 
 if __name__ == "__main__":

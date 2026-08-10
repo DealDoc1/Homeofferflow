@@ -1,6 +1,7 @@
 import os
 import json
 import re
+import uuid
 from http.server import BaseHTTPRequestHandler
 from datetime import datetime, timezone
 from urllib.parse import parse_qs, urlencode, urlparse
@@ -182,7 +183,7 @@ def _get_partner_lead_for_checkout(lead_id):
     return rows[0] if isinstance(rows, list) and rows else None
 
 
-def _mark_partner_checkout_started(lead_id):
+def _mark_partner_checkout_started(lead_id, resume_token):
     headers = {
         "apikey": SUPABASE_SERVICE_ROLE_KEY,
         "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}",
@@ -193,10 +194,34 @@ def _mark_partner_checkout_started(lead_id):
         response = client.patch(
             f"{SUPABASE_URL}/rest/v1/hof_partner_leads?id=eq.{lead_id}",
             headers=headers,
-            json={"payment_status": "checkout_started"},
+            json={"payment_status": "checkout_started", "checkout_resume_token": resume_token},
         )
     if response.status_code >= 300:
         raise RuntimeError("Could not save the checkout state.")
+
+
+def _mark_partner_checkout_returned(lead_id, resume_token):
+    if not LEAD_ID_RE.match(lead_id) or not LEAD_ID_RE.match(resume_token):
+        raise ValueError("A valid checkout return is required.")
+    headers = {
+        "apikey": SUPABASE_SERVICE_ROLE_KEY,
+        "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}",
+        "Content-Type": "application/json",
+        "Prefer": "return=minimal",
+    }
+    query = urlencode({
+        "id": f"eq.{lead_id}",
+        "checkout_resume_token": f"eq.{resume_token}",
+        "payment_status": "eq.checkout_started",
+    })
+    with httpx.Client(timeout=15) as client:
+        response = client.patch(
+            f"{SUPABASE_URL}/rest/v1/hof_partner_leads?{query}",
+            headers=headers,
+            json={"checkout_returned_at": datetime.now(timezone.utc).isoformat()},
+        )
+    if response.status_code >= 300:
+        raise RuntimeError("Could not record the checkout return.")
 
 
 def _create_partner_checkout(lead_id, headers):
@@ -220,6 +245,7 @@ def _create_partner_checkout(lead_id, headers):
         raise RuntimeError("This founding-partner tier is not configured for checkout.")
 
     origin = _partner_checkout_origin(headers)
+    resume_token = str(uuid.uuid4())
     form = {
         "mode": "subscription",
         "customer_email": lead["contact_email"],
@@ -231,7 +257,7 @@ def _create_partner_checkout(lead_id, headers):
         "allow_promotion_codes": "true",
         "payment_method_collection": "always",
         "success_url": f"{origin}/?partner=1&partner_checkout=success&session_id={{CHECKOUT_SESSION_ID}}",
-        "cancel_url": f"{origin}/?partner=1&partner_checkout=cancelled",
+        "cancel_url": f"{origin}/?partner=1&partner_checkout=cancelled&partner_lead_id={lead_id}&partner_resume_token={resume_token}",
         "metadata[source]": "homeofferflow_founding_partner",
         "metadata[partner_lead_id]": lead_id,
         "metadata[partner_tier]": tier,
@@ -253,7 +279,7 @@ def _create_partner_checkout(lead_id, headers):
     if response.status_code >= 400 or not result.get("url"):
         message = result.get("error", {}).get("message") if isinstance(result.get("error"), dict) else None
         raise RuntimeError(message or "Could not create Stripe Checkout.")
-    _mark_partner_checkout_started(lead_id)
+    _mark_partner_checkout_started(lead_id, resume_token)
     return result["url"]
 
 
@@ -310,6 +336,16 @@ class handler(BaseHTTPRequestHandler):
                     return _send(self, 404, {'error': str(exc)})
                 except PermissionError as exc:
                     return _send(self, 409, {'error': str(exc)})
+
+            if _text(data.get('request_type'), 80) == 'founding_partner_checkout_returned':
+                try:
+                    _mark_partner_checkout_returned(
+                        _text(data.get('partner_lead_id'), 80) or '',
+                        _text(data.get('partner_resume_token'), 80) or '',
+                    )
+                    return _send(self, 200, {'ok': True})
+                except ValueError as exc:
+                    return _send(self, 400, {'error': str(exc)})
 
             if _text(data.get('request_type'), 80) == 'founding_partner':
                 # Quietly accept bots that fill the hidden field without polluting the CRM.
