@@ -13,7 +13,11 @@ class ProductionPwaCheckTests(unittest.TestCase):
             "lang": "en-US",
             "dir": "ltr",
             "prefer_related_applications": False,
-            "icons": [{"src": "/assets/homeofferflow-app-icon.svg"}],
+            "icons": [
+                {"src": "/assets/homeofferflow-app-icon-192.png", "sizes": "192x192", "type": "image/png"},
+                {"src": "/assets/homeofferflow-app-icon-512.png", "sizes": "512x512", "type": "image/png"},
+                {"src": "/assets/homeofferflow-app-icon.svg"},
+            ],
         }
         self.assertEqual(validate_manifest(payload), [])
 

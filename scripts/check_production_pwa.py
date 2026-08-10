@@ -19,6 +19,10 @@ REQUIRED_MANIFEST = {
     "dir": "ltr",
     "prefer_related_applications": False,
 }
+REQUIRED_PNG_ICONS = {
+    ("/assets/homeofferflow-app-icon-192.png", "192x192"),
+    ("/assets/homeofferflow-app-icon-512.png", "512x512"),
+}
 
 
 @dataclass(frozen=True)
@@ -49,6 +53,10 @@ def validate_manifest(payload: dict) -> list[str]:
     icons = payload.get("icons") or []
     if not any(icon.get("src") == "/assets/homeofferflow-app-icon.svg" for icon in icons):
         failures.append("manifest is missing the HomeOfferFlow app icon")
+    present_png_icons = {(icon.get("src"), icon.get("sizes")) for icon in icons if icon.get("type") == "image/png"}
+    for required_icon in REQUIRED_PNG_ICONS:
+        if required_icon not in present_png_icons:
+            failures.append(f"manifest is missing required PNG icon {required_icon[0]} ({required_icon[1]})")
     return failures
 
 
@@ -85,6 +93,11 @@ def main() -> int:
         failures.append(f"manifest returned HTTP {manifest.status}")
     if worker.status != 200:
         failures.append(f"service worker returned HTTP {worker.status}")
+
+    for icon_path in ("/assets/homeofferflow-app-icon-192.png", "/assets/homeofferflow-app-icon-512.png", "/assets/homeofferflow-apple-touch-icon.png"):
+        icon = fetch(args.origin, icon_path)
+        if icon.status != 200 or "image/png" not in icon.content_type:
+            failures.append(f"icon {icon_path} did not return a PNG response")
 
     failures.extend(validate_shell(home.body.decode("utf-8", errors="replace")))
     failures.extend(validate_worker(worker.body.decode("utf-8", errors="replace")))
