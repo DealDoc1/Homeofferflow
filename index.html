@@ -11265,7 +11265,16 @@ function routeAfterMagicLinkIfNeeded() {
   document.addEventListener('DOMContentLoaded', function(){
     window.selectFoundingPartnerTier('monthly_placement');
     if (params().get('partner_checkout') === 'cancelled') {
-      window.__hofFoundingPartnerLeadId = loadSavedPartnerLeadId();
+      const query = params();
+      const cancelledLeadId = query.get('partner_lead_id') || '';
+      const resumeToken = query.get('partner_resume_token') || '';
+      window.__hofFoundingPartnerLeadId = cancelledLeadId || loadSavedPartnerLeadId();
+      if (cancelledLeadId && resumeToken) {
+        fetch('/api/fsbo-lead', {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({request_type: 'founding_partner_checkout_returned', partner_lead_id: cancelledLeadId, partner_resume_token: resumeToken})
+        }).catch(() => {});
+      }
       const submit = document.getElementById('foundingPartnerSubmit');
       if (window.__hofFoundingPartnerLeadId && submit) submit.textContent = 'Resume Secure Checkout';
     }
