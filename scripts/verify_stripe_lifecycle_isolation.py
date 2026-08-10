@@ -48,7 +48,14 @@ def check_environment(expected_supabase_url: str = "") -> dict:
         "expected_isolated_database": (
             not expected_url or (bool(runtime_url) and runtime_url == expected_url)
         ),
-        "service_role_key_present": bool(os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "").strip()),
+        # The QA Vercel branch is deliberately configured with an invalid
+        # placeholder until its own service-role key is supplied.  Treating
+        # that placeholder as "present" would let a preflight turn green
+        # even though every database write would fail closed.
+        "service_role_key_present": (
+            bool(os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "").strip())
+            and not os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "").strip().startswith("__")
+        ),
         "stripe_test_key_present": os.environ.get("STRIPE_SECRET_KEY", "").strip().startswith("sk_test_"),
         "stripe_test_webhook_secret_present": os.environ.get(
             "STRIPE_SUBSCRIPTION_WEBHOOK_SECRET", ""
