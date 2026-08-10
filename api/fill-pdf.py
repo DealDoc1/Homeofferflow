@@ -1416,7 +1416,10 @@ def create_signwell_signature_request(offer, pdf_bytes):
         "apply_signing_order": bool(seller_lease_parties),
         "embedded_signing": False,
         "with_signature_page": False,
-        "custom_requester_name": "HomeOfferFlow",
+        "custom_requester_name": (
+            f"{str(brokerage_name)[:180]} via HomeOfferFlow"
+            if brokerage_name else "HomeOfferFlow"
+        ),
         "name": f"HomeOfferFlow Offer — {addr}",
         "subject": f"HomeOfferFlow Offer — {addr}",
         "message": signwell_message,
