@@ -70,6 +70,12 @@ class PartnerTierUiTests(unittest.TestCase):
         self.assertIn("sessionStorage.removeItem", self.html)
         self.assertIn("partner_checkout') === 'success'", self.html)
 
+    def test_cancelled_checkout_has_a_saved_application_resume_state(self):
+        self.assertIn('id="foundingPartnerCheckoutResume"', self.html)
+        self.assertIn("partner_checkout') === 'cancelled'", self.html)
+        self.assertIn('Resume Secure Checkout', self.html)
+        self.assertIn('No second application is created on this device.', self.html)
+
     def test_admin_partner_leads_have_privacy_limited_follow_up_action(self):
         self.assertIn("partnerLeadFollowUpAction", self.html)
         self.assertIn("Email partner", self.html)

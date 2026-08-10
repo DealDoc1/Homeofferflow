@@ -11042,6 +11042,7 @@ function routeAfterMagicLinkIfNeeded() {
 
     <div class="notice gold" style="margin-bottom:.9rem;"><strong>Get the first 90 days for the price of one standard month.</strong><br>The launch offer is available to the first 10 approved partners. It includes onboarding, has no setup fee, then renews monthly at the standard rate after 90 days unless cancelled. Each placement covers one category and market.</div>
     <div class="notice sage" id="foundingPartnerCheckoutConfirmation" style="display:none;margin-bottom:.9rem;"><strong>Checkout complete — welcome to onboarding.</strong><br>We will confirm payment, category and market availability, collect your logo and placement details, then activate the agreed platform-wide placement. After the 90-day launch period, your plan renews monthly unless cancelled.</div>
+    <div class="notice gold" id="foundingPartnerCheckoutResume" style="display:none;margin-bottom:.9rem;"><strong>Your application is saved.</strong><br>You can review the selected tier and resume secure checkout whenever you are ready. No second application is created on this device.</div>
 
     <div class="partner-tier-grid" role="radiogroup" aria-label="Partner advertising tier">
       <button type="button" class="partner-tier-card" data-partner-tier="founding_pilot" role="radio" aria-checked="false" onclick="selectFoundingPartnerTier('founding_pilot')">
@@ -11167,7 +11168,10 @@ function routeAfterMagicLinkIfNeeded() {
     modal.style.display = 'flex';
     modal.setAttribute('aria-hidden', 'false');
     const confirmation = document.getElementById('foundingPartnerCheckoutConfirmation');
-    if (confirmation) confirmation.style.display = params().get('partner_checkout') === 'success' ? 'block' : 'none';
+    const checkoutState = params().get('partner_checkout');
+    if (confirmation) confirmation.style.display = checkoutState === 'success' ? 'block' : 'none';
+    const resume = document.getElementById('foundingPartnerCheckoutResume');
+    if (resume) resume.style.display = checkoutState === 'cancelled' && window.__hofFoundingPartnerLeadId ? 'block' : 'none';
     setTimeout(() => document.querySelector('.partner-tier-card.is-selected')?.focus(), 0);
   };
   window.selectFoundingPartnerTier = function(model){
@@ -11260,6 +11264,11 @@ function routeAfterMagicLinkIfNeeded() {
   };
   document.addEventListener('DOMContentLoaded', function(){
     window.selectFoundingPartnerTier('monthly_placement');
+    if (params().get('partner_checkout') === 'cancelled') {
+      window.__hofFoundingPartnerLeadId = loadSavedPartnerLeadId();
+      const submit = document.getElementById('foundingPartnerSubmit');
+      if (window.__hofFoundingPartnerLeadId && submit) submit.textContent = 'Resume Secure Checkout';
+    }
     if (params().get('partner_checkout') === 'success') {
       window.__hofFoundingPartnerLeadId = '';
       savePartnerLeadId('');
