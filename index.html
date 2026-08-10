@@ -5701,8 +5701,6 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       };
     }
 
-    console.log('Saving account profile', { table, payload });
-
     try {
       // Avoid silent hangs from upsert by checking for an existing row, then insert/update explicitly.
       const existingResult = await withTimeout(
@@ -5734,7 +5732,6 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       renderAccountDashboard();
       updateAuthUI();
       setAccountStatus('Profile saved. Your future offers will start with these defaults.', 'ok');
-      console.log('Profile saved successfully', saveResult.data || payload);
       return saveResult.data || payload;
     } catch (err) {
       console.error('Profile save failed', err);
