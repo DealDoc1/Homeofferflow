@@ -51,6 +51,13 @@ class PartnerSelfServiceOnboardingTests(unittest.TestCase):
         self.assertIn("create_partner_onboarding_link", admin)
         self.assertIn("written placement agreement", html)
 
+    def test_admin_exposes_paid_partner_setup_completion_funnel(self):
+        admin = (ROOT / "api/admin-dashboard.py").read_text()
+        html = (ROOT / "index.html").read_text()
+        self.assertIn("partnerOnboardingInProgressCount", admin)
+        self.assertIn("partnerOnboardingCompletedCount", admin)
+        self.assertIn("partnerOnboardingCompletionRate", html)
+
 
 if __name__ == "__main__":
     unittest.main()
