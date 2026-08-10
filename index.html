@@ -10303,7 +10303,7 @@ function routeAfterMagicLinkIfNeeded() {
     box.classList.toggle('show');
   }
 
-  root.copyAiReviewSummary = async function copyAiReviewSummary() {
+  window.copyAiReviewSummary = async function copyAiReviewSummary() {
     const review = normalizeAiReviewResult(state.data?._lastAiReview || null);
     const summary = [
       'HomeOfferFlow educational offer review',
@@ -10350,7 +10350,7 @@ function routeAfterMagicLinkIfNeeded() {
     ].join('\n');
   }
 
-  root.copyAiCalibrationPacket = async function copyAiCalibrationPacket() {
+  window.copyAiCalibrationPacket = async function copyAiCalibrationPacket() {
     const packet = buildAiCalibrationPacket();
     try {
       await navigator.clipboard.writeText(packet);
@@ -10361,7 +10361,7 @@ function routeAfterMagicLinkIfNeeded() {
     }
   };
 
-  root.downloadAiCalibrationPacket = function downloadAiCalibrationPacket() {
+  window.downloadAiCalibrationPacket = function downloadAiCalibrationPacket() {
     const packet = buildAiCalibrationPacket();
     const blobUrl = URL.createObjectURL(new Blob([packet], { type: 'text/plain;charset=utf-8' }));
     const link = document.createElement('a');
