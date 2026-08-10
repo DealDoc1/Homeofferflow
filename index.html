@@ -9048,6 +9048,8 @@ function routeAfterMagicLinkIfNeeded() {
   let __hofRestoringDraft = false;
   let __hofSaveTimer = null;
   let __hofSaveDebounce = null;
+  let __hofCloudDraftSaveInFlight = false;
+  let __hofCloudDraftSaveQueued = false;
 
   function updateSaveStatus(text) {
     const el = document.getElementById('saveStatus');
@@ -9083,6 +9085,40 @@ function routeAfterMagicLinkIfNeeded() {
     return null;
   };
 
+  function hasMeaningfulCloudDraft() {
+    const propertyAddress = state?.data?.address || getVal('propAddress') || '';
+    const buyerName = state?.data?.buyer1 || `${getVal('buyer1First')} ${getVal('buyer1Last')}`.trim();
+    const offerPrice = moneyNumber(state?.data?.price || getVal('offerPrice')) || null;
+    return !!(String(propertyAddress).trim() || String(buyerName).trim() || offerPrice);
+  }
+
+  async function syncCloudDraftSave() {
+    if (__hofCloudDraftSaveInFlight) {
+      __hofCloudDraftSaveQueued = true;
+      return;
+    }
+    if (!hasMeaningfulCloudDraft()) return;
+
+    __hofCloudDraftSaveInFlight = true;
+    try {
+      const saved = await saveOfferDraftToSupabase('Draft');
+      if (saved) {
+        clearTimeout(__hofSaveTimer);
+        __hofSaveTimer = setTimeout(() => updateSaveStatus('Cloud Saved'), 1200);
+      } else {
+        showCloudSaveFailure();
+      }
+    } catch (_) {
+      showCloudSaveFailure();
+    } finally {
+      __hofCloudDraftSaveInFlight = false;
+      if (__hofCloudDraftSaveQueued) {
+        __hofCloudDraftSaveQueued = false;
+        syncCloudDraftSave();
+      }
+    }
+  }
+
   function getDraftSnapshot() {
     const fields = {};
     const radios = {};
@@ -9117,15 +9153,8 @@ function routeAfterMagicLinkIfNeeded() {
     try {
       localStorage.setItem(HOF_STORAGE_KEY, JSON.stringify(getDraftSnapshot()));
       updateSaveStatus('✓ Draft Saved');
-      if ((state?.data?.userType || '') !== 'homebuyer' && hofAuth?.session && navigator.onLine !== false) {
-        saveOfferDraftToSupabase('Draft').then(saved => {
-          if (saved) {
-            clearTimeout(__hofSaveTimer);
-            __hofSaveTimer = setTimeout(() => updateSaveStatus('Cloud Saved'), 1200);
-          } else {
-            showCloudSaveFailure();
-          }
-        }).catch(() => showCloudSaveFailure());
+      if ((state?.data?.userType || '') !== 'homebuyer' && hofAuth?.session && navigator.onLine !== false && hasMeaningfulCloudDraft()) {
+        syncCloudDraftSave();
       }
     } catch (err) {
       console.error('Draft save failed:', err);
