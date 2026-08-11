@@ -76,6 +76,13 @@ class AiReviewServerEndpointTests(unittest.TestCase):
         self.assertNotIn("user_id", rows[0])
         self.assertIn("user_id=eq.user-1", get.call_args.args[0])
         self.assertIn("limit=25", get.call_args.args[0])
+        self.assertIn("review_mode", get.call_args.args[0])
+
+    def test_snapshot_review_mode_is_normalized_to_live_or_rules_fallback(self):
+        parsed = MODULE._parse_snapshot(b'{"reviewMode":"unexpected"}')
+        self.assertEqual(parsed["review_mode"], "rules_fallback")
+        parsed = MODULE._parse_snapshot(b'{"reviewMode":"live_ai"}')
+        self.assertEqual(parsed["review_mode"], "live_ai")
 
 
 if __name__ == "__main__":

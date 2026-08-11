@@ -3289,8 +3289,14 @@ class handler(BaseHTTPRequestHandler):
                 item for item in events if item.get("event_type") == "seller_follow_up_email_started"
             ])
             ai_review_outputs = asyncio.run(_get_optional(
-                "hof_ai_offer_reviews?select=id,created_at&order=created_at.desc&limit=100"
+                "hof_ai_offer_reviews?select=id,created_at,review_mode&order=created_at.desc&limit=100"
             ))
+            ai_review_output_mode_counts = {"live_ai": 0, "rules_fallback": 0}
+            for output in ai_review_outputs:
+                review_mode = str(output.get("review_mode") or "rules_fallback").strip().lower()
+                if review_mode not in ai_review_output_mode_counts:
+                    review_mode = "rules_fallback"
+                ai_review_output_mode_counts[review_mode] += 1
             total_volume = sum(float(o.get("offer_price") or 0) for o in offers)
             def bucket(s):
                 s = str(s or "").lower()
@@ -3713,6 +3719,7 @@ class handler(BaseHTTPRequestHandler):
                 # Generated AI outputs are useful context, but do not count as
                 # human calibration evidence for the five-scenario release gate.
                 "aiReviewOutputCount": len(ai_review_outputs),
+                "aiReviewOutputModeCounts": ai_review_output_mode_counts,
                 "aiCalibrationFeedbackCount": len(_ai_calibration_scenario_ids(feedback)),
                 "aiCalibrationScenarioIds": _ai_calibration_scenario_ids(feedback),
                 "aiCalibrationReviewStartCount": len([
