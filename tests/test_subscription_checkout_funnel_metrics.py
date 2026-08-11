@@ -9,7 +9,9 @@ class SubscriptionCheckoutFunnelMetricTests(unittest.TestCase):
     def test_admin_payload_counts_subscription_checkout_events(self):
         source = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
         self.assertIn('"subscriptionCheckoutStartCount"', source)
+        self.assertIn('"subscriptionCheckoutRedirectCount"', source)
         self.assertIn('"subscriptionCheckoutReturnCount"', source)
+        self.assertIn('"subscriptionCheckoutFailureCount"', source)
         self.assertIn('"subscriptionCheckoutReturnRate"', source)
         self.assertIn("subscription_checkout_started", source)
         self.assertIn("subscription_checkout_returned", source)
@@ -20,7 +22,9 @@ class SubscriptionCheckoutFunnelMetricTests(unittest.TestCase):
         source = (ROOT / "index.html").read_text(encoding="utf-8")
         self.assertIn("Subscription Checkout Funnel", source)
         self.assertIn("subscriptionCheckoutStartCount", source)
+        self.assertIn("subscriptionCheckoutRedirectCount", source)
         self.assertIn("subscriptionCheckoutReturnCount", source)
+        self.assertIn("subscriptionCheckoutFailureCount", source)
         self.assertIn("subscriptionCheckoutReturnRate", source)
         self.assertIn("onDemandCheckoutStartCount", source)
         self.assertIn("onDemandCheckoutReturnRate", source)
@@ -35,7 +39,8 @@ class SubscriptionCheckoutFunnelMetricTests(unittest.TestCase):
     def test_cancelled_checkout_returns_to_account_with_recovery_copy(self):
         source = (ROOT / "index.html").read_text(encoding="utf-8")
         self.assertIn("if (result === 'cancelled')", source)
-        self.assertIn("subscription_checkout_returned', 'cancelled'", source)
+        self.assertIn("pending.result === 'success'", source)
+        self.assertIn("without completing payment.", source)
         self.assertIn("hof_subscription_checkout_cancelled", source)
         self.assertIn("Checkout was canceled.", source)
 
@@ -51,6 +56,15 @@ class SubscriptionCheckoutFunnelMetricTests(unittest.TestCase):
         self.assertIn("attempt < 4", source)
         self.assertIn("setTimeout(resolve, 750)", source)
         self.assertIn("Subscription active. Your packet allowance is ready.", source)
+
+    def test_checkout_funnel_distinguishes_redirect_failures_and_delayed_session_returns(self):
+        source = (ROOT / "index.html").read_text(encoding="utf-8")
+        self.assertIn("subscription_checkout_redirected", source)
+        self.assertIn("subscription_checkout_failed", source)
+        self.assertIn("queueSubscriptionCheckoutReturn(result, plan, billing)", source)
+        self.assertIn("flushSubscriptionCheckoutReturnEvent", source)
+        self.assertIn("SUBSCRIPTION_CHECKOUT_RETURN_KEY", source)
+        self.assertIn("if (logged) sessionStorage.removeItem", source)
 
 
 if __name__ == "__main__":

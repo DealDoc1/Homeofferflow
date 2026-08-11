@@ -3442,6 +3442,12 @@ class handler(BaseHTTPRequestHandler):
             subscription_checkout_return_count = len([
                 item for item in events if item.get("event_type") == "subscription_checkout_returned"
             ])
+            subscription_checkout_redirect_count = len([
+                item for item in events if item.get("event_type") == "subscription_checkout_redirected"
+            ])
+            subscription_checkout_failure_count = len([
+                item for item in events if item.get("event_type") == "subscription_checkout_failed"
+            ])
             subscription_checkout_start_by_source = {}
             subscription_checkout_return_by_source = {}
             for item in events:
@@ -3595,7 +3601,9 @@ class handler(BaseHTTPRequestHandler):
                 "subscriptionUsageNearLimitViewCount": usage_near_limit_view_count,
                 "subscriptionUsageExhaustedViewCount": usage_exhausted_view_count,
                 "subscriptionCheckoutStartCount": subscription_checkout_start_count,
+                "subscriptionCheckoutRedirectCount": subscription_checkout_redirect_count,
                 "subscriptionCheckoutReturnCount": subscription_checkout_return_count,
+                "subscriptionCheckoutFailureCount": subscription_checkout_failure_count,
                 "subscriptionCheckoutReturnRate": round(
                     (subscription_checkout_return_count / subscription_checkout_start_count) * 100,
                     1,
