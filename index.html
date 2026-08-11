@@ -3888,8 +3888,21 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       });
       const result = await response.json().catch(() => ({}));
       if (!response.ok || !result?.onboarding?.onboardingUrl) throw new Error(result.error || 'Could not create onboarding access.');
-      await navigator.clipboard.writeText(result.onboarding.onboardingUrl);
-      alert('Single-use partner setup link copied. It expires in 14 days and does not activate public placement.');
+      const setupUrl = result.onboarding.onboardingUrl;
+      let copied = false;
+      try {
+        if (!navigator.clipboard?.writeText) throw new Error('Clipboard access is unavailable.');
+        await navigator.clipboard.writeText(setupUrl);
+        copied = true;
+      } catch (_) {
+        // A secure link has already been issued at this point. Preserve it for
+        // the authenticated admin instead of forcing a second token issuance.
+        window.prompt('Copy this secure partner setup link. It expires in 14 days:', setupUrl);
+      }
+      logOfferEvent(null, 'partner_onboarding_link_created', 'created', 'Partner setup link created by a platform admin.', { surface: 'admin', copied });
+      alert(copied
+        ? 'Secure partner setup link copied. It expires in 14 days and does not activate public placement.'
+        : 'Secure partner setup link is ready to copy. It expires in 14 days and does not activate public placement.');
       await loadAdminDashboard(true);
     } catch (err) {
       alert(err?.message || 'Could not copy partner setup link.');
@@ -4328,7 +4341,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.partnerOnboardingInProgressCount || 0} setup links in progress · ${metrics.partnerOnboardingCompletedCount || 0} completed (${Number(metrics.partnerOnboardingCompletionRate || 0).toFixed(1)}% of paid).</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.paidPartnerAgreementConfirmedCount || 0} agreements confirmed (${Number(metrics.paidPartnerAgreementConfirmationRate || 0).toFixed(1)}%).</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Average paid-partner time to activation: ${Number(metrics.partnerActivationAvgDays || 0).toFixed(1)} days.</div>
-            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.partnerOnboardingEmailSentCount || 0} secure setup emails sent · ${metrics.partnerFollowUpEmailStartCount || 0} partner follow-up emails opened.</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.partnerOnboardingLinkCreatedCount || 0} secure setup links created · ${metrics.partnerOnboardingEmailSentCount || 0} secure setup emails sent · ${metrics.partnerFollowUpEmailStartCount || 0} partner follow-up emails opened.</div>
           </div>
 
           <div class="admin-metric">
