@@ -127,7 +127,19 @@ class AgentActivationDashboardTests(unittest.TestCase):
         self.assertIn("primary: 'Choose Monthly'", script)
         self.assertIn("secondary: 'Choose Annual'", script)
         self.assertIn("billing === 'annual' ? 'annual' : 'monthly'", script)
-        self.assertIn("startSubscriptionCheckout?.(plan, normalizedBilling, 'agent_activation')", script)
+        self.assertIn("activationKey === 'reactivate' ? 'subscription_reactivation' : 'agent_activation'", script)
+        self.assertIn("startSubscriptionCheckout?.(plan, normalizedBilling, source)", script)
+
+    def test_canceled_or_payment_attention_accounts_use_reactivation_attribution(self):
+        script_start = HTML.index('id="hof-agent-activation-v16-js"')
+        script_end = HTML.index("</script>", script_start)
+        script = HTML[script_start:script_end]
+
+        self.assertIn("function subscriptionRecoveryNeeded()", script)
+        self.assertIn("key: 'reactivate'", script)
+        self.assertIn("primary: 'Restore Monthly'", script)
+        self.assertIn("secondary: 'Restore Annual'", script)
+        self.assertIn("activationKey === 'reactivate' ? 'subscription_reactivation' : 'agent_activation'", script)
 
     def test_active_subscription_keeps_next_offer_action_visible(self):
         subscription_start = HTML.index("function renderSubscriptionCard()")
