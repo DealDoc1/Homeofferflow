@@ -4291,7 +4291,8 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           <div class="admin-metric">
             <div class="admin-metric-label">Subscription Checkout Funnel</div>
             <div class="admin-metric-value">${metrics.subscriptionCheckoutStartCount || 0} started</div>
-              <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.subscriptionCheckoutReturnCount || 0} returned from Stripe checkout · ${Number(metrics.subscriptionCheckoutReturnRate || 0).toFixed(1)}% return rate.</div>
+              <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.subscriptionCheckoutRedirectCount || 0} redirected to Stripe · ${metrics.subscriptionCheckoutReturnCount || 0} returned · ${Number(metrics.subscriptionCheckoutReturnRate || 0).toFixed(1)}% return rate.</div>
+              <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.subscriptionCheckoutFailureCount || 0} request failures before Stripe redirect.</div>
               <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">OnDemand: ${metrics.onDemandCheckoutStartCount || 0} started · ${metrics.onDemandCheckoutReturnCount || 0} returned · ${Number(metrics.onDemandCheckoutReturnRate || 0).toFixed(1)}% return rate.</div>
           </div>
 
@@ -4506,6 +4507,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       cleanSupabaseAuthUrlNoise();
       if (hofAuth.session) {
         await ensureProfileShell(hofAuth.session);
+        await flushSubscriptionCheckoutReturnEvent();
         routeAfterMagicLinkIfNeeded();
       }
 
@@ -4518,6 +4520,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         updateAuthUI();
         if (session) {
           await ensureProfileShell(session);
+          await flushSubscriptionCheckoutReturnEvent();
           if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || localStorage.getItem('hof_auth_pending')) routeAfterMagicLinkIfNeeded();
         }
       });
@@ -4855,7 +4858,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     }
 
     try {
-      await logOfferEvent(null, 'subscription_checkout_started', '', 'Stripe subscription checkout started.', { plan: normalizedPlan, billing: normalizedBilling });
+      await logOfferEvent(null, 'subscription_checkout_started', '', 'Stripe subscription checkout started.', { source: 'homeofferflow', plan: normalizedPlan, billing: normalizedBilling });
 
       const response = await fetch('/api/create-subscription-checkout', {
         method: 'POST',
@@ -4875,9 +4878,11 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       const result = await response.json();
       if (!response.ok || result.error) throw new Error(result.error || 'Could not start subscription checkout.');
       if (!result.url) throw new Error('Stripe did not return a checkout URL.');
+      await logOfferEvent(null, 'subscription_checkout_redirected', 'redirected', 'Redirected to Stripe subscription checkout.', { source: 'homeofferflow', plan: normalizedPlan, billing: normalizedBilling });
       window.location.href = result.url;
     } catch (err) {
       window.__hofSubscriptionCheckoutInFlight = false;
+      await logOfferEvent(null, 'subscription_checkout_failed', 'failed', 'Subscription checkout request failed before redirect.', { source: 'homeofferflow', plan: normalizedPlan, billing: normalizedBilling });
       console.error('Subscription checkout failed:', err);
       alert('Subscription checkout failed: ' + (err?.message || err));
     }
@@ -4890,10 +4895,11 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 
     const plan = params.get('plan') || hofAuth.role || 'agent';
     const billing = params.get('billing') || 'monthly';
+    queueSubscriptionCheckoutReturn(result, plan, billing);
 
     if (result === 'success') {
       setTimeout(async () => {
-        await logOfferEvent(null, 'subscription_checkout_returned', 'success', 'Returned from Stripe subscription checkout.', { plan, billing });
+        await flushSubscriptionCheckoutReturnEvent();
         let subscription = await loadOrCreateSubscription();
         for (let attempt = 0; attempt < 4 && subscription && subscription.status === 'beta'; attempt += 1) {
           await new Promise(resolve => setTimeout(resolve, 750));
@@ -4910,7 +4916,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     }
     if (result === 'cancelled') {
       setTimeout(async () => {
-        await logOfferEvent(null, 'subscription_checkout_returned', 'cancelled', 'Returned from Stripe subscription checkout without completing payment.', { plan, billing });
+        await flushSubscriptionCheckoutReturnEvent();
         try { sessionStorage.setItem('hof_subscription_checkout_cancelled', '1'); } catch (e) {}
         if (hofAuth.session) await openAccountDashboard({ tab: 'dashboard' });
       }, 250);
@@ -4919,6 +4925,45 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     try {
       window.history.replaceState({}, document.title, window.location.origin + window.location.pathname);
     } catch(e) {}
+  }
+
+  const SUBSCRIPTION_CHECKOUT_RETURN_KEY = 'hof_subscription_checkout_return_event';
+
+  function queueSubscriptionCheckoutReturn(result, plan, billing) {
+    if (!['success', 'cancelled'].includes(result)) return;
+    try {
+      sessionStorage.setItem(SUBSCRIPTION_CHECKOUT_RETURN_KEY, JSON.stringify({
+        result,
+        plan: plan === 'investor' ? 'investor' : 'agent',
+        billing: billing === 'annual' ? 'annual' : 'monthly',
+        queuedAt: Date.now()
+      }));
+    } catch (error) {
+      console.warn('Subscription return could not be queued for analytics:', error);
+    }
+  }
+
+  async function flushSubscriptionCheckoutReturnEvent() {
+    if (!hofAuth?.session?.user) return false;
+    try {
+      const raw = sessionStorage.getItem(SUBSCRIPTION_CHECKOUT_RETURN_KEY);
+      const pending = raw ? JSON.parse(raw) : null;
+      if (!pending || !['success', 'cancelled'].includes(pending.result)) return false;
+      const logged = await logOfferEvent(
+        null,
+        'subscription_checkout_returned',
+        pending.result,
+        pending.result === 'success'
+          ? 'Returned from Stripe subscription checkout.'
+          : 'Returned from Stripe subscription checkout without completing payment.',
+        { source: 'homeofferflow', plan: pending.plan, billing: pending.billing }
+      );
+      if (logged) sessionStorage.removeItem(SUBSCRIPTION_CHECKOUT_RETURN_KEY);
+      return logged;
+    } catch (error) {
+      console.warn('Subscription return analytics could not be saved:', error);
+      return false;
+    }
   }
 
   async function checkBillingReturn() {
@@ -4984,9 +5029,9 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   async function logOfferEvent(offerId, eventType, status = '', message = '', metadata = {}) {
     const client = getSupabaseClient();
     const user = hofAuth.session?.user;
-    if (!client || !user) return;
+    if (!client || !user) return false;
     try {
-      await client.from('hof_offer_events').insert({
+      const { error } = await client.from('hof_offer_events').insert({
         offer_id: offerId || state.data?._hofOfferId || null,
         user_id: user.id,
         event_type: eventType,
@@ -4995,8 +5040,11 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         metadata: metadata || {},
         created_at: new Date().toISOString()
       });
+      if (error) throw error;
+      return true;
     } catch (err) {
       console.warn('Offer event log failed:', err);
+      return false;
     }
   }
 
