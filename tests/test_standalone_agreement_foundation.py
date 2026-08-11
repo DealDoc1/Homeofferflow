@@ -274,6 +274,9 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
     def test_agent_ui_requires_an_approved_private_source_and_saves_draft_only(self):
         self.assertIn("Start TXR-1507 draft", HTML)
         self.assertIn("approved-form check", HTML)
+        self.assertIn("hofApprovedSourceStatusCopy", HTML)
+        self.assertIn("Request brokerage activation", HTML)
+        self.assertEqual(HTML.count("root.hofApprovedSourceStatusCopy(error)"), 4)
         self.assertIn("Source revision", HTML)
         self.assertIn("This saves a private draft only", HTML)
         self.assertIn("create_txr_1507_draft", HTML)
