@@ -3442,6 +3442,20 @@ class handler(BaseHTTPRequestHandler):
             subscription_checkout_return_count = len([
                 item for item in events if item.get("event_type") == "subscription_checkout_returned"
             ])
+            subscription_checkout_start_by_source = {}
+            subscription_checkout_return_by_source = {}
+            for item in events:
+                event_type = item.get("event_type")
+                if event_type not in {"subscription_checkout_started", "subscription_checkout_returned"}:
+                    continue
+                metadata = item.get("metadata") or {}
+                source = str(metadata.get("source") or "homeofferflow").strip().lower()[:80] or "homeofferflow"
+                target = (
+                    subscription_checkout_start_by_source
+                    if event_type == "subscription_checkout_started"
+                    else subscription_checkout_return_by_source
+                )
+                target[source] = target.get(source, 0) + 1
             seller_review_request_count = len([
                 item for item in events if item.get("event_type") == "seller_review_request_sent"
             ])
@@ -3586,6 +3600,15 @@ class handler(BaseHTTPRequestHandler):
                     (subscription_checkout_return_count / subscription_checkout_start_count) * 100,
                     1,
                 ) if subscription_checkout_start_count else 0,
+                "subscriptionCheckoutStartBySource": subscription_checkout_start_by_source,
+                "subscriptionCheckoutReturnBySource": subscription_checkout_return_by_source,
+                "onDemandCheckoutStartCount": subscription_checkout_start_by_source.get("ondemand", 0),
+                "onDemandCheckoutReturnCount": subscription_checkout_return_by_source.get("ondemand", 0),
+                "onDemandCheckoutReturnRate": round(
+                    (subscription_checkout_return_by_source.get("ondemand", 0)
+                    / subscription_checkout_start_by_source.get("ondemand", 0)) * 100,
+                    1,
+                ) if subscription_checkout_start_by_source.get("ondemand", 0) else 0,
                 "brokerageInviteSentCount": len([
                     item for item in events if item.get("event_type") == "brokerage_invite_sent"
                 ]),

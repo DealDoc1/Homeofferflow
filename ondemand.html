@@ -279,6 +279,41 @@
         button.textContent = busy ? busyText : idleText;
       }
 
+      // Keep the brokerage launch in the same privacy-safe checkout funnel as
+      // the main product.  The launch page is intentionally standalone, so it
+      // cannot reuse index.html's event helper.
+      async function recordCheckoutFunnelEvent(eventType, result = "") {
+        const user = state.session?.user;
+        if (!user?.id) return;
+
+        // A Stripe return can be refreshed or restored by the browser. Count
+        // that return once per Checkout session, while retaining every actual
+        // attempt to open Checkout as its own start signal.
+        const checkoutSessionId = initialParams.get("session_id") || "return";
+        const storageKey = result
+          ? `hof_ondemand_checkout_${eventType}_${result}_${checkoutSessionId}`
+          : "";
+        try {
+          if (storageKey && sessionStorage.getItem(storageKey) === "1") return;
+          const { error } = await client.from("hof_offer_events").insert({
+            offer_id: null,
+            user_id: user.id,
+            event_type: eventType,
+            status: result || null,
+            message: result
+              ? `Returned from OnDemand Stripe checkout: ${result}.`
+              : "OnDemand Stripe checkout started.",
+            metadata: { source: "ondemand", plan: "agent", billing: "monthly" },
+            created_at: new Date().toISOString()
+          });
+          if (error) throw error;
+          if (storageKey) sessionStorage.setItem(storageKey, "1");
+        } catch (error) {
+          // Telemetry must never interrupt a signed-in agent's enrollment.
+          console.warn("OnDemand checkout funnel event could not be recorded:", error);
+        }
+      }
+
       async function recordLegalAcceptance() {
         const user = state.session?.user;
         if (!user) throw new Error("Sign in before acknowledging the enrollment terms.");
@@ -399,6 +434,7 @@
         showStatus("");
         try {
           await recordLegalAcceptance();
+          await recordCheckoutFunnelEvent("subscription_checkout_started");
           const response = await fetch("/api/create-subscription-checkout", {
             method: "POST",
             headers: {
@@ -426,6 +462,10 @@
         }
         const { data } = await client.auth.getSession();
         renderSession(data.session);
+        const checkoutResult = params.get("checkout");
+        if (checkoutResult === "success" || checkoutResult === "cancelled") {
+          await recordCheckoutFunnelEvent("subscription_checkout_returned", checkoutResult);
+        }
         await acceptBrokerageInvite(data.session);
         client.auth.onAuthStateChange((_event, session) => {
           renderSession(session);
