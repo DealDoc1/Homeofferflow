@@ -13128,7 +13128,10 @@ function routeAfterMagicLinkIfNeeded() {
     const rawRole = user?.user_metadata?.role || root.hofAuth?.role || localStorage.getItem('hof_auth_role') || 'agent';
     const normalized = normalizeAccountRole(rawRole);
     if (root.hofAuth) root.hofAuth.role = normalized;
-    if (root.state?.data) root.state.data.userType = offerUserTypeForRole(normalized);
+    // The account role should control an authenticated workspace, not the
+    // anonymous public landing route.  Keeping the selected Homebuyer path
+    // intact here avoids converting a first visit into an agent-login flow.
+    if (root.state?.data && session) root.state.data.userType = offerUserTypeForRole(normalized);
     const isMobile = window.innerWidth <= 640;
     const label = roleLabel(normalized);
 
@@ -13352,7 +13355,13 @@ function routeAfterMagicLinkIfNeeded() {
   try {
     const savedRole = normalizeAccountRole(localStorage.getItem('hof_auth_role') || root.hofAuth?.role || 'agent');
     if (root.hofAuth) root.hofAuth.role = savedRole;
-    if (root.state?.data) root.state.data.userType = offerUserTypeForRole(savedRole);
+    // A remembered account role is useful after authentication, but it must
+    // not silently replace the public $99 Homebuyer path for an anonymous
+    // first visit.  Auth restoration assigns the authoritative account role
+    // once a real session is available.
+    if (root.state?.data) root.state.data.userType = root.hofAuth?.session
+      ? offerUserTypeForRole(savedRole)
+      : 'homebuyer';
     document.querySelectorAll('[data-auth-role]').forEach(btn => btn.classList.toggle('active', btn.dataset.authRole === savedRole));
     root.updateAuthUI?.();
   } catch(e) { console.warn('Broker role init skipped:', e); }
