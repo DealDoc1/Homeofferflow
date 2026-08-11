@@ -121,18 +121,37 @@ def _status_for(payload):
     return "Sent for Signature", "Pending"
 
 
+def _telemetry_metadata(payload, event_type, mapped_status, mapped_signwell_status):
+    """Return aggregate-only webhook telemetry.
+
+    SignWell event bodies can include signer names, email addresses, and
+    document details. Those belong in SignWell's controlled audit trail, not
+    in HomeOfferFlow's general operational-event table. Keep only the minimum
+    lifecycle facts needed to monitor the integration.
+    """
+    recipient_count, signed_recipient_count, viewed_recipient_count = _recipient_stats(payload)
+    return {
+        "source": "signwell-webhook",
+        "event_type": str(event_type or "signwell_event")[:120],
+        "status": mapped_status,
+        "signwell_status": mapped_signwell_status,
+        "recipient_count": recipient_count,
+        "signed_recipient_count": signed_recipient_count,
+        "viewed_recipient_count": viewed_recipient_count,
+        "payload_parse_error": payload.get("_parse_error") is True if isinstance(payload, dict) else True,
+    }
+
+
 async def _insert_event(document_id, event_type, payload, mapped_status, mapped_signwell_status):
     if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
         return None
     event_payload = {
+        "offer_id": None,
+        "user_id": None,
         "event_type": event_type,
-        "signwell_document_id": document_id,
-        "metadata": {
-            "source": "signwell-webhook",
-            "status": mapped_status,
-            "signwell_status": mapped_signwell_status,
-            "payload": payload,
-        },
+        "status": mapped_status,
+        "message": "SignWell webhook lifecycle event recorded.",
+        "metadata": _telemetry_metadata(payload, event_type, mapped_status, mapped_signwell_status),
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
     async with httpx.AsyncClient(timeout=12) as client:
@@ -214,7 +233,9 @@ class handler(BaseHTTPRequestHandler):
             try:
                 payload = json.loads(raw.decode("utf-8") or "{}")
             except Exception:
-                payload = {"raw": raw.decode("utf-8", errors="replace")}
+                # Do not persist undecodable provider input: it may contain
+                # signer PII and is not needed to keep the endpoint healthy.
+                payload = {"_parse_error": True}
 
             event_type = _event_type(payload)
             document_id = _document_id(payload)
