@@ -3552,6 +3552,9 @@ class handler(BaseHTTPRequestHandler):
             seller_review_attestation_count = len([
                 item for item in events if item.get("event_type") == "seller_review_attested"
             ])
+            buyer_signing_reminder_copied_count = len([
+                item for item in events if item.get("event_type") == "buyer_signing_reminder_copied"
+            ])
             brokerage_invite_total_count = len(brokerage_invites)
             brokerage_invite_accepted_count = len([
                 invite for invite in brokerage_invites if str(invite.get("status") or "").lower() == "accepted"
@@ -3602,6 +3605,7 @@ class handler(BaseHTTPRequestHandler):
                 "investorOfferCount": len([o for o in offers if o.get("role") == "investor"]),
                 "signedCount": len([o for o in offers if bucket(o.get("signwell_status") or o.get("status")) == "signed"]),
                 "awaitingCount": len([o for o in offers if bucket(o.get("signwell_status") or o.get("status")) == "awaiting"]),
+                "buyerSigningReminderCopiedCount": buyer_signing_reminder_copied_count,
                 "offerVolume": total_volume,
                 "subscriptionCount": len(subs),
                 "brokerageCount": len(brokerages),

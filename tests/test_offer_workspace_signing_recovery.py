@@ -30,6 +30,13 @@ class OfferWorkspaceSigningRecoveryTests(unittest.TestCase):
             bucket.index("if (status.includes('generated') || status.includes('created') || hasDoc) return 'generated';"),
         )
 
+    def test_admin_dashboard_surfaces_only_an_aggregate_reminder_adoption_signal(self):
+        backend = (Path(__file__).resolve().parents[1] / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
+        self.assertIn("buyer_signing_reminder_copied_count", backend)
+        self.assertIn('"buyerSigningReminderCopiedCount"', backend)
+        self.assertIn("buyerSigningReminderCopiedCount", HTML)
+        self.assertIn("agent reminder copies from stale signing workspaces", HTML)
+
 
 if __name__ == "__main__":
     unittest.main()
