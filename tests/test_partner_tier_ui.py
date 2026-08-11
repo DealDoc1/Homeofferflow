@@ -78,6 +78,12 @@ class PartnerTierUiTests(unittest.TestCase):
         self.assertIn("founding_partner_checkout_returned", self.html)
         self.assertIn("partner_resume_token", self.html)
 
+    def test_checkout_return_identifiers_are_removed_from_browser_history_after_capture(self):
+        self.assertIn("__hofFoundingPartnerCheckoutState", self.html)
+        self.assertIn("cleanUrl.searchParams.delete(key)", self.html)
+        self.assertIn("['partner_checkout', 'partner_lead_id', 'partner_resume_token']", self.html)
+        self.assertIn("['partner_checkout', 'session_id']", self.html)
+
     def test_admin_partner_leads_have_privacy_limited_follow_up_action(self):
         self.assertIn("partnerLeadFollowUpAction", self.html)
         self.assertIn("Email partner", self.html)
