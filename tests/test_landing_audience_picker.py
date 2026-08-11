@@ -49,6 +49,15 @@ class LandingAudiencePickerTests(unittest.TestCase):
         self.assertIn("audience_grid_card", audience)
         self.assertIn(".audience-card-action", HTML)
 
+    def test_anonymous_first_visit_keeps_the_homebuyer_path_after_account_enhancements_load(self):
+        enhancement_start = HTML.index('id="hof-broker-role-v14-js"')
+        enhancement_end = HTML.index("</script>", enhancement_start)
+        enhancement = HTML[enhancement_start:enhancement_end]
+        self.assertIn("root.hofAuth?.session", enhancement)
+        self.assertIn("? offerUserTypeForRole(savedRole)", enhancement)
+        self.assertIn(": 'homebuyer';", enhancement)
+        self.assertIn("if (root.state?.data && session) root.state.data.userType = offerUserTypeForRole(normalized);", enhancement)
+
 
 if __name__ == "__main__":
     unittest.main()
