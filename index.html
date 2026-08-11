@@ -15190,6 +15190,19 @@ function routeAfterMagicLinkIfNeeded() {
     return (payload.sources || []).find(source => source.form_code === formCode) || null;
   };
 
+  // Keep an access-control response actionable without exposing a source form
+  // or implying that a pending seat can use a restricted workflow.
+  root.hofApprovedSourceStatusCopy = function (error) {
+    const message = String(error?.message || '').toLowerCase();
+    if (message.includes('brokerage membership is not active') || message.includes('active brokerage membership is required')) {
+      return 'This restricted draft is unavailable until your brokerage membership is activated. Open Agent Account and select Request brokerage activation. Your saved offers remain available.';
+    }
+    if (message.includes('membership is suspended')) {
+      return 'This restricted draft is unavailable while your brokerage membership is suspended. Contact your broker for access help.';
+    }
+    return 'The approved-form check is temporarily unavailable. Try again shortly; no draft or source form was opened.';
+  };
+
   function renderBrokerageFormSources() {
     const panel = document.getElementById('accountPanelDashboard');
     if (!panel || !isBrokerageAdmin() || document.getElementById('brokerageFormSourceCard')) return;
@@ -15368,7 +15381,7 @@ function routeAfterMagicLinkIfNeeded() {
       card.appendChild(button);
     } catch (error) {
       console.error('TXR-1507 source check failed:', error);
-      card.querySelector('#txr1507AgreementCopy').textContent = 'The approved-form check is temporarily unavailable.';
+      card.querySelector('#txr1507AgreementCopy').textContent = root.hofApprovedSourceStatusCopy(error);
     }
   }
 
@@ -15491,7 +15504,7 @@ function routeAfterMagicLinkIfNeeded() {
       card.appendChild(button);
     } catch (error) {
       console.error('TXR-1501 source check failed:', error);
-      card.querySelector('#txr1501AgreementCopy').textContent = 'The approved-form check is temporarily unavailable.';
+      card.querySelector('#txr1501AgreementCopy').textContent = root.hofApprovedSourceStatusCopy(error);
     }
   }
 
@@ -15621,7 +15634,7 @@ function routeAfterMagicLinkIfNeeded() {
       card.appendChild(button);
     } catch (error) {
       console.error('TXR-1508 source check failed:', error);
-      card.querySelector('#txr1508AgreementCopy').textContent = 'The approved-form check is temporarily unavailable.';
+      card.querySelector('#txr1508AgreementCopy').textContent = root.hofApprovedSourceStatusCopy(error);
     }
   }
 
@@ -15730,7 +15743,7 @@ function routeAfterMagicLinkIfNeeded() {
       copy.innerHTML = `Start a private TXR-1506 notice draft using your brokerage-approved ${escape(source.source_revision)} source. This is a consumer notice, not a representation agreement. A draft is not sent or signed.`;
       const button = document.createElement('button'); button.type = 'button'; button.className = 'btn-secondary'; button.textContent = 'Start TXR-1506 draft';
       button.addEventListener('click', () => openNoticeDraft(source)); card.appendChild(button);
-    } catch (error) { console.error('TXR-1506 source check failed:', error); card.querySelector('#txr1506AgreementCopy').textContent = 'The approved-form check is temporarily unavailable.'; }
+    } catch (error) { console.error('TXR-1506 source check failed:', error); card.querySelector('#txr1506AgreementCopy').textContent = root.hofApprovedSourceStatusCopy(error); }
   }
   function openNoticeDraft(source) {
     document.getElementById('txr1506AgreementDialog')?.remove();
