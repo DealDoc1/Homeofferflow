@@ -296,6 +296,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     .audience-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 1.25rem; margin-top: 3rem; }
     .audience-card { background: linear-gradient(135deg, rgba(200,151,63,0.07), rgba(200,151,63,0.02)); border: 1px solid rgba(200,151,63,0.14); border-radius: 14px; padding: 2.25rem 1.75rem; }
     .audience-card-link { display: block; color: inherit; text-decoration: none; transition: transform 0.25s ease, border-color 0.25s ease, background 0.25s ease, box-shadow 0.25s ease; }
+    .audience-card-action { width: 100%; font: inherit; text-align: left; cursor: pointer; }
     .audience-card-link:hover, .audience-card-link:focus-visible { transform: translateY(-3px); border-color: rgba(200,151,63,0.42); background: linear-gradient(135deg, rgba(200,151,63,0.12), rgba(200,151,63,0.035)); box-shadow: 0 14px 32px rgba(0,0,0,0.18); outline: none; }
     .audience-card-link:focus-visible { box-shadow: 0 0 0 3px rgba(200,151,63,0.22), 0 14px 32px rgba(0,0,0,0.18); }
     .audience-icon { font-size: 2.2rem; margin-bottom: 1.1rem; }
@@ -2532,9 +2533,15 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   <div class="section-label">Who It's For</div>
   <h2>Built for every side of the Texas transaction.</h2>
   <div class="audience-grid">
-    <div class="audience-card"><div class="audience-icon">🏠</div><h3>Homebuyers</h3><p>Build a Texas resale offer packet with plain-English guidance, AI competitiveness review, and buyer-side signing when the packet is ready.</p><span class="audience-price">$99 per completed offer packet</span></div>
-    <div class="audience-card"><div class="audience-icon">🏢</div><h3>Agents & Brokers</h3><p>Create supported Texas buyer-offer packets from the field, track buyer-side signature status, duplicate prior offers, and collect broker-reviewed feedback.</p><span class="audience-price">Agent / broker workspace</span></div>
-    <div class="audience-card"><div class="audience-icon">📈</div><h3>Investors</h3><p>Use saved defaults and repeat-offer workflows to move faster while still keeping financing, option, title, and addenda terms organized.</p><span class="audience-price">Investor repeat-offer workflow</span></div>
+    <button type="button" class="audience-card audience-card-link audience-card-action" onclick="setAudience('homebuyer'); trackEvent('Landing Audience Selected', { audience: 'homebuyer', surface: 'audience_grid_card' }); startPrimaryOffer();" aria-label="Start a $99 HomeOfferFlow homebuyer offer">
+      <div class="audience-icon">🏠</div><h3>Homebuyers</h3><p>Build a Texas resale offer packet with plain-English guidance, AI competitiveness review, and buyer-side signing when the packet is ready.</p><span class="audience-price">Start a $99 offer packet</span>
+    </button>
+    <button type="button" class="audience-card audience-card-link audience-card-action" onclick="setAudience('agent'); trackEvent('Landing Audience Selected', { audience: 'agent', surface: 'audience_grid_card' }); startPrimaryOffer();" aria-label="Open the HomeOfferFlow agent and broker workspace">
+      <div class="audience-icon">🏢</div><h3>Agents & Brokers</h3><p>Create supported Texas buyer-offer packets from the field, track buyer-side signature status, duplicate prior offers, and collect broker-reviewed feedback.</p><span class="audience-price">Open agent / broker workspace</span>
+    </button>
+    <button type="button" class="audience-card audience-card-link audience-card-action" onclick="setAudience('investor'); trackEvent('Landing Audience Selected', { audience: 'investor', surface: 'audience_grid_card' }); startPrimaryOffer();" aria-label="Open the HomeOfferFlow investor workspace">
+      <div class="audience-icon">📈</div><h3>Investors</h3><p>Use saved defaults and repeat-offer workflows to move faster while still keeping financing, option, title, and addenda terms organized.</p><span class="audience-price">Open investor workspace</span>
+    </button>
     <a class="audience-card audience-card-link" href="?seller=1" onclick="event.preventDefault(); setAudience('fsbo'); trackEvent('FSBO Seller Card CTA Selected', { surface: 'audience_grid' }); openFsboSellerModal();" aria-label="Start a HomeOfferFlow FSBO seller package request">
       <div class="audience-icon">🏷️</div>
       <h3>FSBO Sellers</h3>

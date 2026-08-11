@@ -33,6 +33,22 @@ class LandingAudiencePickerTests(unittest.TestCase):
         self.assertIn("Landing Path Selections", HTML)
         self.assertIn("Aggregate routing interest only", HTML)
 
+    def test_primary_audience_cards_are_direct_keyboard_accessible_entry_points(self):
+        audience_start = HTML.index('<div class="audience-grid">')
+        audience_end = HTML.index('</div>\n</section>', audience_start)
+        audience = HTML[audience_start:audience_end]
+        for audience_key, label in (
+            ("homebuyer", "Start a $99 HomeOfferFlow homebuyer offer"),
+            ("agent", "Open the HomeOfferFlow agent and broker workspace"),
+            ("investor", "Open the HomeOfferFlow investor workspace"),
+        ):
+            with self.subTest(audience=audience_key):
+                self.assertIn(f"audience: '{audience_key}'", audience)
+                self.assertIn(label, audience)
+        self.assertEqual(audience.count("startPrimaryOffer();"), 3)
+        self.assertIn("audience_grid_card", audience)
+        self.assertIn(".audience-card-action", HTML)
+
 
 if __name__ == "__main__":
     unittest.main()
