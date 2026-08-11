@@ -4098,10 +4098,15 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         const email = String(row.contact_email || '').trim();
         const age = sellerLeadAgeLabel(row);
         const followUp = email ? partnerLeadFollowUpAction(row) : '';
+        const onboarding = String(row.onboarding_status || 'not_started').toLowerCase();
+        const setupComplete = ['complete', 'completed'].includes(onboarding);
+        const nextStep = !setupComplete
+          ? 'Next: issue a secure setup link, then wait for the partner to save creative and market details.'
+          : 'Next: confirm the written advertising agreement, then activate the placement from the Partner Marketplace.';
         return `<div class="admin-row">
           <div><strong>${adminSafe(row.company_name || 'Paid partner')}</strong><div class="admin-muted">${adminSafe(row.contact_name || '')} · ${adminSafe(email)}</div>${followUp ? `<div class="partner-lead-admin-actions">${followUp}</div>` : ''}</div>
           <div>${adminSafe(row.partner_type || 'partner')}<div class="admin-muted">${adminSafe(row.market_area || '')}</div></div>
-          <div><span class="admin-pill warn">Paid · activation needed</span><div class="admin-muted">${adminSafe(age)}</div></div>
+          <div><span class="admin-pill ${setupComplete ? 'good' : 'warn'}">${setupComplete ? 'Setup complete' : 'Setup needed'}</span><div class="admin-muted">${adminSafe(nextStep)}<br>${adminSafe(age)}</div></div>
           <div>${adminDate(row.created_at)}</div>
         </div>`;
       }
@@ -10332,7 +10337,7 @@ function routeAfterMagicLinkIfNeeded() {
           <div class="field"><label>Pilot / monthly fee</label><input id="partnerMonthlyFee" type="number" placeholder="149"></div>
         </div>
         <label style="display:flex;align-items:flex-start;gap:.55rem;margin-top:.85rem;color:var(--gray-light);font-size:.84rem;line-height:1.45;"><input id="partnerAgreementConfirmed" type="checkbox" style="margin-top:.2rem;"> <span>I confirm the required written advertising agreement is on file and authorize this paid partner application to become a public placement. This does not change Stripe billing.</span></label>
-        <div class="notice gold" style="margin-top:.7rem;">Public placement details are derived from the paid application so company, category, and market cannot be mismatched. Paid placements remain separate from neutral provider selection.</div>
+        <div class="notice gold" style="margin-top:.7rem;">Only paid partners with completed secure onboarding appear here. Public placement details are derived from the paid application so company, category, and market cannot be mismatched. Paid placements remain separate from neutral provider selection.</div>
         <div class="platform-actions"><button type="button" onclick="savePartnerPlacementFoundation()">Save Partner Placement</button><button type="button" onclick="loadPartnerPlacementsFoundation()">Refresh Partners</button></div>
         <div id="partnerFoundationStatus" class="platform-status"></div>
       </div>
@@ -10408,11 +10413,15 @@ function routeAfterMagicLinkIfNeeded() {
   function populatePaidPartnerPlacementLeads(leads) {
     const select = document.getElementById('partnerLeadId');
     if (!select) return;
-    const paid = (leads || []).filter(lead => String(lead?.payment_status || '') === 'paid' && !['declined', 'waitlist'].includes(String(lead?.status || '')));
+    const paid = (leads || []).filter(lead =>
+      String(lead?.payment_status || '') === 'paid'
+      && ['complete', 'completed'].includes(String(lead?.onboarding_status || '').toLowerCase())
+      && !['declined', 'waitlist'].includes(String(lead?.status || ''))
+    );
     select.disabled = !paid.length;
     select.innerHTML = paid.length
       ? '<option value="">Choose a paid application…</option>' + paid.map(lead => '<option value="' + escapeAttr(lead.id || '') + '">' + escapeAttr(lead.company_name || 'Partner') + ' · ' + escapeAttr(lead.partner_type || 'other') + ' · ' + escapeAttr(lead.market_area || 'market') + '</option>').join('')
-      : '<option value="">No eligible paid applications</option>';
+      : '<option value="">No fully onboarded paid applications</option>';
   }
 
   function estimateOfferScoreFromCurrentState() {

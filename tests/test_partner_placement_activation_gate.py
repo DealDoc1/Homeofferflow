@@ -17,6 +17,7 @@ class PartnerPlacementActivationGateTests(unittest.TestCase):
 
     def test_server_derives_public_placement_from_paid_application(self):
         self.assertIn("Only a paid partner application can activate a public placement.", ADMIN)
+        self.assertIn("Complete the secure partner onboarding before activating a public placement.", ADMIN)
         self.assertIn("This paid partner application already has an active placement.", ADMIN)
         self.assertIn('"source_lead_id": payload["source_lead_id"]', ADMIN)
         self.assertIn('"agreement_confirmed_at": now', ADMIN)
@@ -25,6 +26,8 @@ class PartnerPlacementActivationGateTests(unittest.TestCase):
         self.assertIn('id="partnerLeadId"', HTML)
         self.assertIn('id="partnerAgreementConfirmed"', HTML)
         self.assertIn("populatePaidPartnerPlacementLeads", HTML)
+        self.assertIn("No fully onboarded paid applications", HTML)
+        self.assertIn("Setup complete", HTML)
 
     def test_public_directory_hides_partner_contact_and_agreement_records(self):
         self.assertIn("revoke all on table public.hof_partner_placements from anon, authenticated", PUBLIC_VIEW_MIGRATION)
