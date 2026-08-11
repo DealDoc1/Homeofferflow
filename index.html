@@ -11464,6 +11464,13 @@ function routeAfterMagicLinkIfNeeded() {
       window.__hofFoundingPartnerLeadId = '';
       savePartnerLeadId('');
     }
+    // Keep the public seller CTA shareable. A campaign or a new-tab visit to
+    // ?seller=1 should land in the same minimum-field intake as an in-page
+    // audience-card click, without requiring any account or identity data.
+    if (params().get('seller') === '1') setTimeout(() => {
+      window.setAudience?.('fsbo');
+      window.openFsboSellerModal?.();
+    }, 80);
     if (params().get('partner_onboarding')) setTimeout(window.openPartnerOnboarding, 80);
     if (params().get('partner') === '1') setTimeout(window.openFoundingPartnerModal, 80);
   });
