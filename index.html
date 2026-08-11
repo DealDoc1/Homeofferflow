@@ -13412,6 +13412,14 @@ function routeAfterMagicLinkIfNeeded() {
     }) || null;
   }
 
+  function mostRecentOffer() {
+    return offers().slice().sort((a, b) => {
+      const aUpdated = new Date(a?.last_updated || a?.updated_at || a?.created_at || 0).getTime() || 0;
+      const bUpdated = new Date(b?.last_updated || b?.updated_at || b?.created_at || 0).getTime() || 0;
+      return bUpdated - aUpdated;
+    })[0] || null;
+  }
+
   function activationState() {
     const hasProfile = profileComplete();
     const hasOffer = offers().length > 0;
@@ -13419,6 +13427,7 @@ function routeAfterMagicLinkIfNeeded() {
     const recoveryNeeded = subscriptionRecoveryNeeded();
     const subscriptionStatus = String(root.hofAuth?.subscription?.status || '').toLowerCase();
     const draft = draftOffer();
+    const latestOffer = mostRecentOffer();
     const complete = [hasProfile, hasOffer, hasPlan].filter(Boolean).length;
 
     // Let a new agent experience the core offer workflow before asking for a
@@ -13483,10 +13492,11 @@ function routeAfterMagicLinkIfNeeded() {
     }
     return {
       key: 'repeat',
-      title: 'Start your next offer',
-      body: 'Your profile, workspace, and access are ready. Create another packet or review prior buyer-signing activity.',
-      primary: 'Create New Offer',
-      secondary: 'Open Offer Workspace',
+      title: 'Start your next offer faster',
+      body: 'Reuse your most recent deal terms to start faster. Client and property details are cleared before the next offer opens.',
+      primary: 'Reuse Last Terms',
+      secondary: 'Create Fresh Offer',
+      sourceOfferId: latestOffer?.id || '',
       complete, hasProfile, hasOffer, hasPlan
     };
   }
@@ -13515,6 +13525,7 @@ function routeAfterMagicLinkIfNeeded() {
     });
     if (action === 'profile') return root.showAccountTab?.('profile');
     if (action === 'new_offer') return root.startAccountOffer?.();
+    if (action === 'reuse_terms' && offerId) return root.reuseOfferTerms?.(offerId);
     if (action === 'offers') return root.showAccountTab?.('offers');
     if (action === 'resume' && offerId) return root.resumeOffer?.(offerId);
     if (action === 'subscribe') {
@@ -13541,16 +13552,18 @@ function routeAfterMagicLinkIfNeeded() {
       { done: state.hasProfile, label: 'Profile and defaults' },
       { done: state.hasPlan, label: 'Active subscription' }
     ];
-    const id = String(state.draftId || '').replace(/[^a-zA-Z0-9-]/g, '');
+    const id = String(state.draftId || state.sourceOfferId || '').replace(/[^a-zA-Z0-9-]/g, '');
 
     const primaryAction =
       state.key === 'profile' ? 'profile' :
-      state.key === 'first_offer' || state.key === 'repeat' ? 'new_offer' :
+      state.key === 'first_offer' ? 'new_offer' :
+      state.key === 'repeat' ? 'reuse_terms' :
       state.key === 'subscribe' || state.key === 'reactivate' ? 'subscribe' :
       'resume';
     const secondaryAction =
       state.key === 'profile' ? 'new_offer' :
       state.key === 'first_offer' ? 'profile' :
+      state.key === 'repeat' ? 'new_offer' :
       state.key === 'subscribe' || state.key === 'reactivate' ? 'subscribe' :
       'offers';
     const secondaryBilling = state.key === 'subscribe' || state.key === 'reactivate' ? 'annual' : 'monthly';
