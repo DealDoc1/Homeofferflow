@@ -13398,6 +13398,11 @@ function routeAfterMagicLinkIfNeeded() {
     return ['active', 'trialing', 'free_admin'].includes(status);
   }
 
+  function subscriptionRecoveryNeeded() {
+    const status = String(root.hofAuth?.subscription?.status || '').toLowerCase();
+    return ['past_due', 'canceled', 'incomplete', 'incomplete_expired', 'unpaid', 'paused'].includes(status);
+  }
+
   function draftOffer() {
     return offers().find(offer => {
       const status = String(
@@ -13411,6 +13416,8 @@ function routeAfterMagicLinkIfNeeded() {
     const hasProfile = profileComplete();
     const hasOffer = offers().length > 0;
     const hasPlan = subscriptionActive();
+    const recoveryNeeded = subscriptionRecoveryNeeded();
+    const subscriptionStatus = String(root.hofAuth?.subscription?.status || '').toLowerCase();
     const draft = draftOffer();
     const complete = [hasProfile, hasOffer, hasPlan].filter(Boolean).length;
 
@@ -13436,6 +13443,19 @@ function routeAfterMagicLinkIfNeeded() {
         body: 'Your first offer is in the workspace. Save your license, brokerage, contact, title, escrow, and common terms now so the next one starts faster.',
         primary: 'Save My Defaults',
         secondary: 'Open Offer Workspace',
+        complete, hasProfile, hasOffer, hasPlan
+      };
+    }
+    if (recoveryNeeded) {
+      return {
+        key: 'reactivate',
+        title: subscriptionStatus === 'canceled' ? 'Restore your subscription access' : 'Resolve your subscription access',
+        body: subscriptionStatus === 'canceled'
+          ? 'Your prior subscription has ended. Choose monthly or annual access in secure Stripe checkout to restore packet generation and keep your workflow moving.'
+          : 'Your subscription needs attention. Choose an access option in secure Stripe checkout, or use Manage Billing below if you need to update a saved payment method.',
+        primary: 'Restore Monthly',
+        secondary: 'Restore Annual',
+        draftId: draft?.id || '',
         complete, hasProfile, hasOffer, hasPlan
       };
     }
@@ -13499,7 +13519,8 @@ function routeAfterMagicLinkIfNeeded() {
     if (action === 'resume' && offerId) return root.resumeOffer?.(offerId);
     if (action === 'subscribe') {
       const plan = String(root.hofAuth?.role || 'agent').toLowerCase() === 'investor' ? 'investor' : 'agent';
-      return root.startSubscriptionCheckout?.(plan, normalizedBilling, 'agent_activation');
+      const source = activationKey === 'reactivate' ? 'subscription_reactivation' : 'agent_activation';
+      return root.startSubscriptionCheckout?.(plan, normalizedBilling, source);
     }
   };
 
@@ -13525,14 +13546,14 @@ function routeAfterMagicLinkIfNeeded() {
     const primaryAction =
       state.key === 'profile' ? 'profile' :
       state.key === 'first_offer' || state.key === 'repeat' ? 'new_offer' :
-      state.key === 'subscribe' ? 'subscribe' :
+      state.key === 'subscribe' || state.key === 'reactivate' ? 'subscribe' :
       'resume';
     const secondaryAction =
       state.key === 'profile' ? 'new_offer' :
       state.key === 'first_offer' ? 'profile' :
-      state.key === 'subscribe' ? 'subscribe' :
+      state.key === 'subscribe' || state.key === 'reactivate' ? 'subscribe' :
       'offers';
-    const secondaryBilling = state.key === 'subscribe' ? 'annual' : 'monthly';
+    const secondaryBilling = state.key === 'subscribe' || state.key === 'reactivate' ? 'annual' : 'monthly';
 
     card.innerHTML = `
       <div class="agent-activation-top">
