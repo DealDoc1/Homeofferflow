@@ -40,6 +40,16 @@ class CloudDraftSaveRecoveryTests(unittest.TestCase):
         self.assertIn("syncCloudDraftSave()", saver)
         self.assertNotIn("saveOfferDraftToSupabase('Draft').then", saver)
 
+    def test_autosave_preserves_a_previously_generated_packet_state(self):
+        start = HTML.index("async function saveOfferDraftToSupabase(status = 'Draft')")
+        end = HTML.index("function setFeedbackStatus", start)
+        saver = HTML[start:end]
+        self.assertIn("const existingGeneratedAt", saver)
+        self.assertIn("const hasGeneratedPacket", saver)
+        self.assertIn("status === 'Draft' && hasGeneratedPacket ? 'Generated' : status", saver)
+        self.assertIn("status: persistedStatus", saver)
+        self.assertIn("generated_at: persistedGeneratedAt", saver)
+
 
 if __name__ == "__main__":
     unittest.main()
