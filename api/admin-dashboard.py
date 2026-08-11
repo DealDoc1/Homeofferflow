@@ -1687,6 +1687,8 @@ async def _paid_partner_lead_for_placement(lead_id):
         raise PermissionError("Only a paid partner application can activate a public placement.")
     if str(lead.get("status") or "") in {"declined", "waitlist"}:
         raise PermissionError("This partner application is not eligible for a public placement.")
+    if str(lead.get("onboarding_status") or "").lower() not in {"complete", "completed"}:
+        raise PermissionError("Complete the secure partner onboarding before activating a public placement.")
     partner_type = str(lead.get("partner_type") or "").strip()
     if partner_type not in ALLOWED_PARTNER_TYPES:
         raise ValueError("The selected partner application has an unsupported category.")

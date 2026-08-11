@@ -331,7 +331,7 @@ class AdminTrackerSecurityTests(IsolatedAsyncioTestCase):
             "market_area": "DFW",
             "status": "qualified",
             "payment_status": "paid",
-            "onboarding_status": "ready",
+            "onboarding_status": "complete",
         }
         with patch.object(admin_dashboard, "_get", new=AsyncMock(side_effect=[[lead], []])), \
              patch.object(admin_dashboard.httpx, "AsyncClient", return_value=FakeClient(response)):
@@ -349,6 +349,24 @@ class AdminTrackerSecurityTests(IsolatedAsyncioTestCase):
         }
         with patch.object(admin_dashboard, "_get", new=AsyncMock(return_value=[lead])):
             with self.assertRaisesRegex(PermissionError, "paid partner application"):
+                await admin_dashboard._create_platform_partner_placement({
+                    "source_lead_id": lead["id"],
+                    "placement_tier": "founding",
+                    "monthly_fee": 149.0,
+                })
+
+    async def test_paid_partner_requires_completed_secure_onboarding_before_activation(self):
+        lead = {
+            "id": "e35eace9-2760-4b11-a01a-07ee65f2744e",
+            "company_name": "North Texas Movers",
+            "partner_type": "moving_storage",
+            "market_area": "DFW",
+            "payment_status": "paid",
+            "onboarding_status": "ready",
+            "status": "qualified",
+        }
+        with patch.object(admin_dashboard, "_get", new=AsyncMock(return_value=[lead])):
+            with self.assertRaisesRegex(PermissionError, "secure partner onboarding"):
                 await admin_dashboard._create_platform_partner_placement({
                     "source_lead_id": lead["id"],
                     "placement_tier": "founding",
