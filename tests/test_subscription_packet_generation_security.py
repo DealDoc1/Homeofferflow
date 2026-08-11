@@ -23,7 +23,7 @@ class SubscriptionPacketGenerationSecurityTests(unittest.TestCase):
         self.assertIn("self._verified_user()", post)
         self.assertIn("self._has_generation_entitlement(user_id)", post)
         self.assertGreaterEqual(post.count("Sign in again before generating a packet."), 2)
-        self.assertIn("status\": \"in.(active,trialing,free_admin)\"", API)
+        self.assertIn("status\": \"in.(beta,active,trialing,free_admin)\"", API)
         self.assertIn("billing_month", API)
         self.assertIn("event_type\": \"eq.signed_packet\"", API)
 

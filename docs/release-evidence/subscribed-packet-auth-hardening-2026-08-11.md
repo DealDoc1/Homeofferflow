@@ -23,7 +23,7 @@
 
 - Each recipient and role: unchanged from the verified production signing plan.
 - Signing order: unchanged.
-- Broker oversight / visibility: unchanged; only a verified active, trialing, or free-admin subscription with remaining monthly packet allowance can initiate subscribed packet generation.
+- Broker oversight / visibility: unchanged; only a verified beta, active, trialing, or free-admin subscription with remaining monthly packet allowance can initiate subscribed packet generation.
 
 ## Rendered signed-PDF QA
 

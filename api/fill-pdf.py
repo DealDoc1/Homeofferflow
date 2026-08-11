@@ -1948,7 +1948,7 @@ class handler(BaseHTTPRequestHandler):
             f"{SUPABASE_URL}/rest/v1/hof_subscriptions",
             params={
                 "user_id": f"eq.{user_id}",
-                "status": "in.(active,trialing,free_admin)",
+                "status": "in.(beta,active,trialing,free_admin)",
                 "select": "packet_limit",
                 "limit": "1",
             },
