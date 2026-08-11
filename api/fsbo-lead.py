@@ -455,6 +455,11 @@ class handler(BaseHTTPRequestHandler):
                     'message': 'Partner interest received.',
                 })
 
+            # Quietly accept bots that fill the hidden seller field without
+            # polluting the public FSBO follow-up queue.
+            if _text(data.get('fsbo_website_confirm'), 250):
+                return _send(self, 200, {'ok': True})
+
             property_address = _text(data.get('property_address') or data.get('address'), 500)
             seller_email = _text(data.get('seller_email') or data.get('email'), 250)
             if not property_address or not seller_email:
