@@ -47,6 +47,15 @@ ALLOWED_PARTNER_TYPES = {
 }
 ALLOWED_MODELS = {"founding_pilot", "monthly_placement", "market_exclusive", "discuss"}
 ALLOWED_BUDGETS = {"under_250", "250_499", "500_999", "1000_plus", "discuss"}
+FSBO_PACKAGE_CATALOG = {
+    "free_intake": ("Free Seller Intake", "$0"),
+    "seller_prep": ("Seller Prep Plan", "$299"),
+    "launch_kit": ("FSBO Launch Kit", "$499"),
+    "flat_fee_mls": ("Flat-Fee MLS Listing", "from $1,299"),
+    "offer_review": ("Seller Offer Review", "from $599"),
+    "contract_help": ("Contract-to-Close Support", "from $1,999"),
+    "premium_bundle": ("Premium FSBO Bundle", "from $2,999"),
+}
 PUBLIC_PARTNER_FIELDS = "id,partner_type,partner_name,website_url,logo_url,market_area,placement_tier"
 PRICE_ENV_BY_TIER = {
     "founding_pilot": "STRIPE_FOUNDING_PARTNER_LISTING_PRICE_ID",
@@ -491,8 +500,12 @@ class handler(BaseHTTPRequestHandler):
 
             partner_categories = _partner_category_list(data.get('partner_categories'))
             service_level = _text(data.get('service_level'), 80) or 'free_intake'
-            package_name = _text(data.get('package_name'), 180) or 'Free Seller Intake'
-            package_price = _text(data.get('package_price'), 80) or '$0'
+            if service_level not in FSBO_PACKAGE_CATALOG:
+                return _send(self, 400, {'error': 'Choose a supported seller package.'})
+            # Package labels and price guidance are commercial records, not
+            # browser authority. Canonicalize them server-side for reliable
+            # lead routing and honest follow-up.
+            package_name, package_price = FSBO_PACKAGE_CATALOG[service_level]
             timeline = _text(data.get('timeline'), 80) or 'not_sure'
             campaign = _seller_campaign_payload(data)
 
