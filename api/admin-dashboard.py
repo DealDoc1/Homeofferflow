@@ -3118,7 +3118,7 @@ class handler(BaseHTTPRequestHandler):
                 rows = asyncio.run(_get_optional(
                     "hof_seller_leads?select=id,property_address,property_city,property_county,property_state,property_zip,"
                     "seller_name,seller_email,seller_phone,asking_price,service_level,package_name,package_price,"
-                    "timeline,partner_categories,notes,status,created_at,updated_at&order=created_at.desc&limit=200"
+                    "timeline,partner_categories,source,utm_source,utm_medium,utm_campaign,utm_content,notes,status,created_at,updated_at&order=created_at.desc&limit=200"
                 ))
                 _json(self, 200, {"sellerLeads": rows})
                 return
@@ -3156,7 +3156,7 @@ class handler(BaseHTTPRequestHandler):
             seller_leads = asyncio.run(_get_optional(
                 "hof_seller_leads?select=id,property_address,property_city,property_county,property_state,property_zip,"
                 "seller_name,seller_email,seller_phone,asking_price,service_level,package_name,package_price,"
-                "timeline,partner_categories,notes,status,created_at,updated_at&order=created_at.desc&limit=200"
+                "timeline,partner_categories,source,utm_source,utm_medium,utm_campaign,utm_content,notes,status,created_at,updated_at&order=created_at.desc&limit=200"
             ))
             partner_placements = asyncio.run(_get_optional("hof_partner_placements?select=id,source_lead_id,partner_type,partner_name,website_url,logo_url,market_area,placement_tier,monthly_fee,is_active,created_at,activated_at,agreement_confirmed_at&brokerage_id=is.null&order=created_at.desc&limit=100"))
             active_partner_source_lead_ids = {
