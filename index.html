@@ -4705,7 +4705,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     const limit = Number(hofAuth.subscription?.packet_limit || (hofAuth.role === 'investor' ? 15 : 10));
 
     if (!user || !hofAuth.session?.access_token) {
-      hofAuth.usage = { used: 0, limit, billingMonth };
+      hofAuth.usage = { used: 0, limit, billingMonth, available: false };
       renderSubscriptionCard();
       return hofAuth.usage;
     }
@@ -4721,12 +4721,15 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || 'Usage could not be loaded.');
-      hofAuth.usage = { used: Number(data.used) || 0, limit, billingMonth: data.billingMonth || billingMonth };
+      hofAuth.usage = { used: Number(data.used) || 0, limit, billingMonth: data.billingMonth || billingMonth, available: true };
       renderSubscriptionCard();
       return hofAuth.usage;
     } catch (err) {
       console.warn('Usage load failed:', err);
-      hofAuth.usage = { used: 0, limit, billingMonth };
+      // Do not present a failed authoritative read as zero usage. The server
+      // still checks access and allowance before packet generation, but the
+      // dashboard should make the temporary uncertainty visible to the agent.
+      hofAuth.usage = { used: 0, limit, billingMonth, available: false };
       renderSubscriptionCard();
       return hofAuth.usage;
     }
@@ -4745,9 +4748,11 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     const usage = hofAuth.usage || {
       used: 0,
       limit: sub.packet_limit || 10,
-      billingMonth: getBillingMonth()
+      billingMonth: getBillingMonth(),
+      available: false
     };
 
+    const usageAvailable = usage.available !== false;
     const used = Number(usage.used || 0);
     const limit = Number(usage.limit || sub.packet_limit || 10);
     const pct = limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0;
@@ -4759,10 +4764,10 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     const isPaid = ['active', 'trialing', 'free_admin'].includes(status);
     const isBlocked = ['past_due', 'canceled', 'incomplete', 'incomplete_expired', 'unpaid', 'paused'].includes(status);
     const billingRecoveryNeeded = status === 'past_due' || status === 'incomplete' || status === 'incomplete_expired' || status === 'unpaid' || status === 'paused';
-    const good = subscriptionAllowsGeneration(sub) && used < limit;
+    const good = subscriptionAllowsGeneration(sub) && (!usageAvailable || used < limit);
     const remaining = Math.max(0, limit - used);
-    const nearLimit = isPaid && good && pct >= 80;
-    const usageExhausted = isPaid && !good && used >= limit;
+    const nearLimit = usageAvailable && isPaid && good && pct >= 80;
+    const usageExhausted = usageAvailable && isPaid && !good && used >= limit;
     try {
       const awarenessKey = `hof_usage_awareness_${usage.billingMonth || getBillingMonth()}_${nearLimit ? 'near_limit' : usageExhausted ? 'exhausted' : 'normal'}`;
       if ((nearLimit || usageExhausted) && !sessionStorage.getItem(awarenessKey)) {
@@ -4786,7 +4791,9 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         '</div>' +
         '<div style="margin-top:0.55rem; color:var(--gray); font-size:0.74rem; line-height:1.45;">' +
           (good
-            ? ('Your subscription is active. ' + remaining + ' packet' + (remaining === 1 ? '' : 's') + ' remain this month; keep your client workflow moving from this dashboard.')
+            ? (usageAvailable
+              ? ('Your subscription is active. ' + remaining + ' packet' + (remaining === 1 ? '' : 's') + ' remain this month; keep your client workflow moving from this dashboard.')
+              : 'Your subscription is active, but current packet usage could not be loaded. Refresh usage before relying on the meter; the server will verify access again before packet generation.')
             : 'Your subscription is active, but this month\'s packet allowance is used. Manage billing to review access options.') +
         '</div>';
     } else if (isBlocked) {
@@ -4828,8 +4835,9 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       </div>
 
       <div class="usage-copy">
-        <strong>${used} / ${limit}</strong> signed offer packets used for ${escapeAttr(usage.billingMonth || getBillingMonth())}.
-        ${good ? 'You can generate and send new packets.' : 'Generation is blocked until billing/access is updated.'}
+        ${usageAvailable
+          ? `<strong>${used} / ${limit}</strong> signed offer packets used for ${escapeAttr(usage.billingMonth || getBillingMonth())}. ${good ? 'You can generate and send new packets.' : 'Generation is blocked until billing/access is updated.'}`
+          : `Usage is temporarily unavailable for ${escapeAttr(usage.billingMonth || getBillingMonth())}. <button class="btn-secondary" type="button" style="margin-left:.35rem" onclick="loadCurrentUsage()">Refresh usage</button> The server will verify your current allowance before packet generation.`}
       </div>
 
       ${nearLimit ? '<div class="notice gold" style="margin-top:.7rem;font-size:.76rem;line-height:1.45;"><strong>Almost at this month’s packet limit.</strong> You have ' + remaining + ' packet' + (remaining === 1 ? '' : 's') + ' left. Finish urgent client work, then review billing options before access pauses. <button class="btn-secondary" type="button" style="margin-top:.45rem" onclick="openBillingPortal(\'usage_near_limit\')">Review Manage Billing</button></div>' : ''}
@@ -5074,7 +5082,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       if (showAlert && window.confirm(message + ' Open Manage Billing now?')) await openBillingPortal('generation_blocked');
       return false;
     }
-    if (Number(usage.used || 0) >= Number(usage.limit || 10)) {
+    if (usage.available !== false && Number(usage.used || 0) >= Number(usage.limit || 10)) {
       const message = `You have reached your ${usage.limit}-packet monthly beta limit. Upgrade/contact support before generating another signed packet.`;
       if (showAlert && window.confirm(message + ' Open Manage Billing now?')) await openBillingPortal('generation_limit');
       return false;
@@ -5247,7 +5255,8 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     hofAuth.usage = {
       used: Number(data.used) || 0,
       limit: Number(data.limit) || hofAuth.subscription?.packet_limit || 10,
-      billingMonth: data.billingMonth || billingMonth
+      billingMonth: data.billingMonth || billingMonth,
+      available: true
     };
     renderSubscriptionCard();
     return true;
