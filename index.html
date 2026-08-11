@@ -241,7 +241,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   <script src="https://js.stripe.com/v3/"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCs554orYvNAmKnIehn7bwAvADCfx71_Oc&callback=initAutocomplete&loading=async" async defer></script>
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCs554orYvNAmKnIehn7bwAvADCfx71_Oc&libraries=places&callback=initAutocomplete&loading=async" async defer></script>
 
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -8749,15 +8749,33 @@ function routeAfterMagicLinkIfNeeded() {
   };
 
   async function setupPlacesServices() {
+    if (!window.google || !window.google.maps) return;
     try {
+      if (typeof google.maps.importLibrary !== 'function') {
+        if (google.maps.places && typeof google.maps.places.Autocomplete === 'function') {
+          _autocompleteService = 'legacy';
+          wireLegacyGoogleAddressInputs();
+          return;
+        }
+        // Address fields remain usable as normal text inputs when the optional
+        // Google library is unavailable. Avoid turning an optional enhancement
+        // into a seller-intake runtime error.
+        console.warn('Google Places autocomplete is unavailable; manual address entry remains available.');
+        return;
+      }
       const { AutocompleteSuggestion, AutocompleteSessionToken } = await google.maps.importLibrary('places');
       window._AutocompleteSuggestion = AutocompleteSuggestion;
       window._AutocompleteSessionToken = AutocompleteSessionToken;
       _sessionToken = new AutocompleteSessionToken();
-      _autocompleteService = true;
-      if (['step1','step2','step05'].includes(getCurrentSteps()[state.step])) wireAddressInput();
+      _autocompleteService = 'new';
+      wireAddressInput();
     } catch(e) {
-      console.error('Places setup error:', e);
+      if (google.maps.places && typeof google.maps.places.Autocomplete === 'function') {
+        _autocompleteService = 'legacy';
+        wireLegacyGoogleAddressInputs();
+        return;
+      }
+      console.warn('Google Places autocomplete could not initialize; manual address entry remains available.');
     }
   }
 
@@ -8772,6 +8790,10 @@ function routeAfterMagicLinkIfNeeded() {
   }
 
   function wireAddressInput() {
+    if (_autocompleteService === 'legacy') {
+      wireLegacyGoogleAddressInputs();
+      return;
+    }
     if (!window._AutocompleteSuggestion) {
       if (window.google && window.google.maps && !_autocompleteService) setupPlacesServices();
       return;
@@ -8784,6 +8806,36 @@ function routeAfterMagicLinkIfNeeded() {
     _wireGoogleAutocomplete('salePropertyAddr', null);
     _wireGoogleAutocomplete('saleAddress', null);
     _wireGoogleAutocomplete('fsboPropertyAddress', fillFsboAddressFields);
+  }
+
+  function wireLegacyGoogleAddressInputs() {
+    if (!window.google?.maps?.places?.Autocomplete) return;
+    [
+      ['propAddress', fillAddressFields],
+      ['buyerMailAddr', fillBuyerMailAddressField],
+      ['propertyToSell', null],
+      ['propertyToSellAddress', null],
+      ['salePropertyAddress', null],
+      ['salePropertyAddr', null],
+      ['saleAddress', null],
+      ['fsboPropertyAddress', fillFsboAddressFields]
+    ].forEach(([inputId, onSelectCallback]) => {
+      const input = document.getElementById(inputId);
+      if (!input || input._hofLegacyWired) return;
+      input._hofLegacyWired = true;
+      const autocomplete = new google.maps.places.Autocomplete(input, {
+        componentRestrictions: { country: 'us' },
+        fields: ['address_components', 'formatted_address'],
+        types: ['address']
+      });
+      autocomplete.addListener('place_changed', () => {
+        const place = autocomplete.getPlace();
+        if (place?.formatted_address) input.value = place.formatted_address;
+        if (place?.address_components && onSelectCallback) onSelectCallback(place.address_components);
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+      });
+    });
   }
 
   function _wireGoogleAutocomplete(inputId, onSelectCallback) {

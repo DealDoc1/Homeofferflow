@@ -68,6 +68,14 @@ class FsboIntakeConversionTests(unittest.TestCase):
         self.assertNotIn("seller_email", routing)
         self.assertNotIn("property_address", routing)
 
+    def test_seller_address_autocomplete_fails_softly_and_has_a_google_compatibility_path(self):
+        self.assertIn("libraries=places", HTML)
+        self.assertIn("typeof google.maps.importLibrary !== 'function'", HTML)
+        self.assertIn("wireLegacyGoogleAddressInputs", HTML)
+        self.assertIn("google.maps.places.Autocomplete", HTML)
+        self.assertIn("Google Places autocomplete is unavailable; manual address entry remains available.", HTML)
+        self.assertIn("['fsboPropertyAddress', fillFsboAddressFields]", HTML)
+
 
 if __name__ == "__main__":
     unittest.main()
