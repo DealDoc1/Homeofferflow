@@ -26,6 +26,11 @@ class FsboIntakeSpamGuardTests(unittest.TestCase):
         self.assertIn("Choose a supported seller package.", API)
         self.assertIn("package_name, package_price = FSBO_PACKAGE_CATALOG[service_level]", API)
 
+    def test_public_intake_cannot_set_its_own_crm_status(self):
+        self.assertIn("Public seller intake is never allowed to choose its CRM", API)
+        self.assertIn("'status': 'new'", API)
+        self.assertNotIn("'status': _text(data.get('status')", API)
+
 
 if __name__ == "__main__":
     unittest.main()

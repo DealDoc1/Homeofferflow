@@ -533,7 +533,10 @@ class handler(BaseHTTPRequestHandler):
                 'partner_categories': partner_categories,
                 **campaign,
                 'notes': _text(data.get('notes'), 1500),
-                'status': _text(data.get('status'), 80) or 'new',
+                # Public seller intake is never allowed to choose its CRM
+                # state.  Qualification and any later activation happen only
+                # through an authorized operations workflow.
+                'status': 'new',
                 'created_at': datetime.now(timezone.utc).isoformat(),
                 'updated_at': datetime.now(timezone.utc).isoformat(),
             }
