@@ -4379,6 +4379,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           <div class="admin-metric">
             <div class="admin-metric-label">Awaiting Buyer Signature</div>
             <div class="admin-metric-value">${awaitingCount}</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.buyerSigningReminderCopiedCount || 0} agent reminder copies from stale signing workspaces.</div>
           </div>
 
           <div class="admin-metric">
