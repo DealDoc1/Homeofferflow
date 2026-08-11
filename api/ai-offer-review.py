@@ -62,6 +62,9 @@ def _parse_snapshot(raw):
     offer_id = str(payload.get("offerId") or payload.get("offer_id") or "").strip()[:80]
     if offer_id and not SNAPSHOT_UUID_RE.match(offer_id):
         raise ValueError("AI review offer id is invalid.")
+    review_mode = str(payload.get("reviewMode") or payload.get("review_mode") or "rules_fallback").strip().lower()
+    if review_mode not in {"live_ai", "rules_fallback"}:
+        review_mode = "rules_fallback"
     def obj(value):
         if not isinstance(value, dict):
             return {}
@@ -74,6 +77,7 @@ def _parse_snapshot(raw):
         "summary": str(payload.get("summary") or "").strip()[:4_000],
         "risks": obj(payload.get("risks")),
         "suggestions": obj(payload.get("suggestions")),
+        "review_mode": review_mode,
     }
 
 
@@ -106,7 +110,7 @@ def _list_snapshots(user, limit=12):
     limit = max(1, min(limit, 25))
     response = httpx.get(
         f"{SUPABASE_URL}/rest/v1/hof_ai_offer_reviews"
-        f"?user_id=eq.{user['id']}&select=id,offer_id,created_at,score,summary,risks,suggestions"
+        f"?user_id=eq.{user['id']}&select=id,offer_id,created_at,score,summary,risks,suggestions,review_mode"
         f"&order=created_at.desc&limit={limit}",
         headers=_service_headers(),
         timeout=12,
@@ -125,6 +129,7 @@ def _list_snapshots(user, limit=12):
             "summary": _safe_text(row.get("summary"), 240),
             "risks": row.get("risks") if isinstance(row.get("risks"), dict) else {},
             "suggestions": row.get("suggestions") if isinstance(row.get("suggestions"), dict) else {},
+            "review_mode": row.get("review_mode") or "rules_fallback",
         }
         for row in rows
         if isinstance(row, dict)
