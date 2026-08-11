@@ -411,6 +411,8 @@ class SubscriptionLifecycleSecurityTests(unittest.TestCase):
     def test_platform_admin_can_monitor_webhook_delivery_without_customer_or_payment_data(self):
         admin_source = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
         self.assertIn("stripeWebhookEvents", admin_source)
+        self.assertIn('"signwellWebhookVerificationConfigured": SIGNWELL_WEBHOOK_VERIFICATION_CONFIGURED', admin_source)
+        self.assertIn("SIGNWELL_WEBHOOK_VERIFICATION_CONFIGURED", admin_source)
         self.assertIn('"stripeWebhookEventTypeCounts": stripe_webhook_event_type_counts', admin_source)
         self.assertIn('"stripeWebhookRecoveryCount"', admin_source)
         self.assertIn('"stripeWebhookRetryableCount"', admin_source)
@@ -422,6 +424,8 @@ class SubscriptionLifecycleSecurityTests(unittest.TestCase):
         for sensitive in ("customer_email", "payment_method", "card_last4", "event_payload"):
             self.assertNotIn(sensitive, admin_source)
         self.assertIn("Billing Webhook Activity", INDEX_HTML)
+        self.assertIn("Signing Webhook Verification", INDEX_HTML)
+        self.assertIn("signwellWebhookVerificationConfigured", INDEX_HTML)
 
     def test_webhook_failure_does_not_expose_internal_error_text(self):
         event = {"type": "checkout.session.completed", "data": {"object": {}}}

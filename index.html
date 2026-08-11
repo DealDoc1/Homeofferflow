@@ -4450,6 +4450,13 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         </div>
 
         <div class="admin-section">
+          <h4>Signing Webhook Verification</h4>
+          ${metrics.signwellWebhookVerificationConfigured
+            ? '<div class="admin-empty">SignWell webhook verification configuration is present. This status does not expose the verification value.</div>'
+            : '<div class="notice gold"><strong>Configuration required:</strong> SignWell webhook verification is not configured. Add the provider webhook identifier or verification key in the production environment before treating incoming signing events as authenticated. This does not expose or change any secret.</div>'}
+        </div>
+
+        <div class="admin-section">
           <h4>Feedback and AI Calibration</h4>
           ${renderAdminRows(feedback.slice(0, 8), 'feedback')}
         </div>
