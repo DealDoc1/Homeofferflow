@@ -2357,8 +2357,34 @@ async def _create_seller_disclosure_review_link(user, data):
         seen_indexes.add(seller_index)
         seen_emails.add(email)
         normalized_reviews.append({"email": email, "seller_name": seller_name, "seller_index": seller_index})
+    # A follow-up must create a fresh credential, but must never leave an
+    # earlier incomplete credential usable.  The partial unique index applied
+    # with this behavior also prevents two active links for the same seller if
+    # a request is retried.  Completed attestations are intentionally left as
+    # the durable review record.
+    outstanding = await _get(
+        "hof_seller_disclosure_review_links?"
+        f"draft_id=eq.{urllib.parse.quote(draft_id)}"
+        "&revoked_at=is.null&seller_attested_at=is.null"
+        "&select=id,seller_index&limit=10"
+    )
+    requested_indexes = {review["seller_index"] for review in normalized_reviews}
     created = []
     async with httpx.AsyncClient(timeout=12) as client:
+        for existing in outstanding:
+            existing_index = existing.get("seller_index")
+            is_legacy_single_seller_link = len(seller_names) == 1 and existing_index is None
+            if existing_index not in requested_indexes and not is_legacy_single_seller_link:
+                continue
+            response = await client.patch(
+                f"{SUPABASE_URL}/rest/v1/hof_seller_disclosure_review_links?"
+                f"id=eq.{urllib.parse.quote(str(existing['id']))}"
+                "&revoked_at=is.null&seller_attested_at=is.null",
+                headers={**_headers(), "Prefer": "return=minimal"},
+                json={"revoked_at": datetime.now(timezone.utc).isoformat()},
+            )
+            if response.status_code >= 300:
+                raise RuntimeError("Could not retire the prior seller review request.")
         for review in normalized_reviews:
             issued = seller_review_access.issue_credentials()
             review_url = f"{PUBLIC_APP_ORIGIN}/seller-review.html?token={urllib.parse.quote(issued['token'], safe='')}"
