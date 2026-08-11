@@ -40,7 +40,15 @@ class PwaBaselineTests(unittest.TestCase):
         self.assertIn("requestUrl.pathname.startsWith('/api/')", WORKER)
         self.assertIn("event.request.mode === 'navigate'", WORKER)
         self.assertIn("caches.match('/index.html')", WORKER)
+        self.assertIn("contentType.includes('text/html')", WORKER)
+        self.assertIn("cache.put('/index.html', response.clone())", WORKER)
         self.assertNotIn("caches.match(event.request)", WORKER)
+
+    def test_worker_refreshes_only_the_public_html_offline_shell(self):
+        self.assertIn("if (!response.ok || !contentType.includes('text/html')) return;", WORKER)
+        self.assertIn("event.waitUntil", WORKER)
+        self.assertIn("cache.put('/index.html', response.clone())", WORKER)
+        self.assertNotIn("cache.put(event.request", WORKER)
 
     def test_csp_allows_same_origin_service_worker_registration(self):
         csp = next(
