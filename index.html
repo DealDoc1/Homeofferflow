@@ -8431,6 +8431,7 @@ function routeAfterMagicLinkIfNeeded() {
             customer_details: { email },
             metadata: {
               plan: (state.data.userType || hofAuth.role || 'agent') + '-subscription',
+              subscription_generation: 'true',
               offer_data: JSON.stringify(packetOfferData)
             }
           }
@@ -8439,7 +8440,10 @@ function routeAfterMagicLinkIfNeeded() {
 
       const response = await fetch('/api/fill-pdf', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${hofAuth.session?.access_token || ''}`
+        },
         body: JSON.stringify(fakeCheckoutEvent)
       });
 
