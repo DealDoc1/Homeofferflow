@@ -13,6 +13,8 @@ class SubscriptionCheckoutFunnelMetricTests(unittest.TestCase):
         self.assertIn('"subscriptionCheckoutReturnRate"', source)
         self.assertIn("subscription_checkout_started", source)
         self.assertIn("subscription_checkout_returned", source)
+        self.assertIn('"onDemandCheckoutStartCount"', source)
+        self.assertIn('"onDemandCheckoutReturnRate"', source)
 
     def test_admin_dashboard_surfaces_subscription_checkout_funnel(self):
         source = (ROOT / "index.html").read_text(encoding="utf-8")
@@ -20,6 +22,15 @@ class SubscriptionCheckoutFunnelMetricTests(unittest.TestCase):
         self.assertIn("subscriptionCheckoutStartCount", source)
         self.assertIn("subscriptionCheckoutReturnCount", source)
         self.assertIn("subscriptionCheckoutReturnRate", source)
+        self.assertIn("onDemandCheckoutStartCount", source)
+        self.assertIn("onDemandCheckoutReturnRate", source)
+
+    def test_ondemand_checkout_uses_the_shared_privacy_safe_funnel_events(self):
+        source = (ROOT / "ondemand.html").read_text(encoding="utf-8")
+        self.assertIn('recordCheckoutFunnelEvent("subscription_checkout_started")', source)
+        self.assertIn('recordCheckoutFunnelEvent("subscription_checkout_returned", checkoutResult)', source)
+        self.assertIn('metadata: { source: "ondemand", plan: "agent", billing: "monthly" }', source)
+        self.assertIn('hof_ondemand_checkout_${eventType}_${result}_${checkoutSessionId}', source)
 
     def test_cancelled_checkout_returns_to_account_with_recovery_copy(self):
         source = (ROOT / "index.html").read_text(encoding="utf-8")
