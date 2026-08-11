@@ -1,4 +1,5 @@
 import json, os, base64, hashlib, hmac, httpx, re
+from datetime import datetime, timezone
 from io import BytesIO
 from http.server import BaseHTTPRequestHandler
 
@@ -1942,13 +1943,13 @@ class handler(BaseHTTPRequestHandler):
         user = response.json()
         return str(user.get("id") or "") or None
 
-    def _has_active_subscription(self, user_id):
+    def _has_generation_entitlement(self, user_id):
         response = httpx.get(
             f"{SUPABASE_URL}/rest/v1/hof_subscriptions",
             params={
                 "user_id": f"eq.{user_id}",
                 "status": "in.(active,trialing,free_admin)",
-                "select": "id",
+                "select": "packet_limit",
                 "limit": "1",
             },
             headers={
@@ -1957,7 +1958,34 @@ class handler(BaseHTTPRequestHandler):
             },
             timeout=12,
         )
-        return response.status_code == 200 and bool(response.json())
+        if response.status_code != 200:
+            return False
+        subscriptions = response.json()
+        if not subscriptions:
+            return False
+        try:
+            packet_limit = max(0, min(int(subscriptions[0].get("packet_limit") or 10), 10000))
+        except (TypeError, ValueError):
+            packet_limit = 10
+        billing_month = datetime.now(timezone.utc).strftime("%Y-%m")
+        usage_response = httpx.get(
+            f"{SUPABASE_URL}/rest/v1/hof_usage_events",
+            params={
+                "user_id": f"eq.{user_id}",
+                "billing_month": f"eq.{billing_month}",
+                "event_type": "eq.signed_packet",
+                "select": "quantity",
+            },
+            headers={
+                "apikey": SUPABASE_SERVICE_ROLE_KEY,
+                "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}",
+            },
+            timeout=12,
+        )
+        if usage_response.status_code != 200:
+            return False
+        used = sum(max(0, int(item.get("quantity") or 0)) for item in usage_response.json())
+        return used < packet_limit
 
     def do_GET(self):
         try:
@@ -2008,8 +2036,8 @@ class handler(BaseHTTPRequestHandler):
                     if not user_id:
                         self._json(401, {"error": "Sign in again before generating a packet."})
                         return
-                    if not self._has_active_subscription(user_id):
-                        self._json(403, {"error": "An active HomeOfferFlow subscription is required to generate a packet."})
+                    if not self._has_generation_entitlement(user_id):
+                        self._json(403, {"error": "Your HomeOfferFlow access is not active or this month's packet limit has been reached."})
                         return
                 else:
                     self._json(401, {"error": "A verified Stripe webhook or active subscription is required."})
@@ -2031,8 +2059,8 @@ class handler(BaseHTTPRequestHandler):
                 if not user_id:
                     self._json(401, {"error": "Sign in again before generating a packet."})
                     return
-                if not self._has_active_subscription(user_id):
-                    self._json(403, {"error": "An active HomeOfferFlow subscription is required to generate a packet."})
+                if not self._has_generation_entitlement(user_id):
+                    self._json(403, {"error": "Your HomeOfferFlow access is not active or this month's packet limit has been reached."})
                     return
                 validate_supported_offer(offer)
                 pdf_bytes = fill_and_merge(offer)

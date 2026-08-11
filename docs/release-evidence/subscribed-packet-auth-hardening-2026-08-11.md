@@ -23,7 +23,7 @@
 
 - Each recipient and role: unchanged from the verified production signing plan.
 - Signing order: unchanged.
-- Broker oversight / visibility: unchanged; only a verified active, trialing, or free-admin subscription can initiate subscribed packet generation.
+- Broker oversight / visibility: unchanged; only a verified active, trialing, or free-admin subscription with remaining monthly packet allowance can initiate subscribed packet generation.
 
 ## Rendered signed-PDF QA
 
@@ -34,7 +34,7 @@
 
 ## Regression
 
-- Dedicated golden scenario added: subscribed packet generation rejects unsigned checkout-shaped requests and requires verified subscription authorization.
+- Dedicated golden scenario added: subscribed packet generation rejects unsigned checkout-shaped requests and requires verified subscription authorization plus remaining monthly allowance.
 - Existing buyer-offer regression scenarios run: full suite.
 - Test result / evidence: 785 tests passed locally on 2026-08-11, including the new packet-generation security tests.
 
