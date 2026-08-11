@@ -91,6 +91,16 @@ class SellerReviewApiTests(unittest.TestCase):
         self.assertIn("awaiting attestation", ui)
         self.assertIn("Review opened — awaiting completion", ui)
 
+    def test_resend_retires_an_incomplete_link_before_issuing_a_fresh_one(self):
+        api = (ROOT / "api" / "admin-dashboard.py").read_text()
+        migration = (ROOT / "supabase" / "migrations" / "20260811150000_seller_review_link_resend_safety.sql").read_text()
+        self.assertIn("outstanding = await _get", api)
+        self.assertIn("Could not retire the prior seller review request.", api)
+        self.assertIn("seller_attested_at=is.null", api)
+        self.assertIn("seller_review_links_draft_seller_active_idx", migration)
+        self.assertIn("revoked_at is null", migration)
+        self.assertIn("seller_attested_at is null", migration)
+
 
 if __name__ == "__main__":
     unittest.main()
