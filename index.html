@@ -13762,7 +13762,7 @@ function routeAfterMagicLinkIfNeeded() {
     if (status === 'trialing' && trialEnds && !card.querySelector('.subscription-trial-notice')) {
       card.insertAdjacentHTML('beforeend',
         '<div class="subscription-trial-notice" style="margin-top:0.75rem; font-size:0.78rem; line-height:1.45; color:' + (trialDaysRemaining !== null && trialDaysRemaining <= 3 ? 'var(--gold-light)' : 'var(--gray)') + ';">' +
-        '<strong>' + trialNoticeLead + '.</strong> Your plan renews at $29/month on that date unless you cancel in Manage Billing.' +
+        '<strong>' + trialNoticeLead + '.</strong> Your plan renews at the plan and interval shown in secure Stripe checkout unless you cancel in Manage Billing.' +
         (trialDaysRemaining !== null && trialDaysRemaining <= 3 ? ' <button type="button" class="btn-secondary" style="margin-top:.45rem" onclick="openBillingPortal(\'trial_renewal_urgency\')">Review Manage Billing</button>' : '') +
         '</div>');
     }

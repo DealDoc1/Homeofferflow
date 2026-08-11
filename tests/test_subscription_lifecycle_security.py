@@ -806,7 +806,8 @@ class SubscriptionLifecycleSecurityTests(unittest.TestCase):
 
     def test_account_ui_discloses_trial_renewal_and_scheduled_cancellation(self):
         self.assertIn("Free trial active through", INDEX_HTML)
-        self.assertIn("renews at $29/month", INDEX_HTML)
+        self.assertIn("renews at the plan and interval shown in secure Stripe checkout", INDEX_HTML)
+        self.assertNotIn("Your plan renews at $29/month", INDEX_HTML)
         self.assertIn("Cancellation scheduled.", INDEX_HTML)
 
 
