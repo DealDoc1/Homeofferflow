@@ -11778,21 +11778,48 @@ function routeAfterMagicLinkIfNeeded() {
     modal.innerHTML = `<div class="wizard-panel" style="max-width:680px"><button type="button" class="close-btn" aria-label="Close" onclick="closePartnerOnboarding()">×</button><div class="wizard-body"><h2>Partner setup</h2><p class="step-desc">Complete your public-facing creative details. This prepares review only; it does not activate advertising or replace the required written agreement.</p><div id="partnerOnboardingStatus" class="platform-status"></div><div id="partnerOnboardingFields" style="display:none"><div class="platform-grid"><div class="field"><label>Company</label><input id="partnerSetupCompany" disabled></div><div class="field"><label>Category</label><input id="partnerSetupCategory" disabled></div><div class="field"><label>Primary market area</label><input id="partnerSetupMarket" placeholder="Market area"></div><div class="field"><label>Website (https)</label><input id="partnerSetupWebsite" placeholder="https://example.com"></div><div class="field"><label>Logo image URL (https, optional)</label><input id="partnerSetupLogo" placeholder="https://example.com/logo.png"></div><div class="field"><label>Directory CTA (optional)</label><input id="partnerSetupCta" maxlength="80" placeholder="Visit our website"></div></div><div class="account-actions-row" style="margin-top:1rem"><button type="button" class="btn-primary" onclick="submitPartnerOnboarding()">Save setup details</button></div></div></div></div>`;
     document.body.appendChild(modal);
   }
-  function onboardingToken(){ return params().get('partner_onboarding') || ''; }
+  // A partner setup token is an expiring, single-use bearer credential. Keep
+  // it only for the active browser tab once the flow begins, then remove it
+  // from the address bar so it is not retained in bookmarks or copied URLs.
+  const partnerOnboardingTokenKey = 'hof_partner_onboarding_token';
+  let activePartnerOnboardingToken = '';
+  function onboardingToken(){
+    if (activePartnerOnboardingToken) return activePartnerOnboardingToken;
+    try { activePartnerOnboardingToken = sessionStorage.getItem(partnerOnboardingTokenKey) || ''; } catch (_) {}
+    return activePartnerOnboardingToken || params().get('partner_onboarding') || '';
+  }
+  function retainPartnerOnboardingToken(token){
+    const value = String(token || '');
+    if (!value) return '';
+    activePartnerOnboardingToken = value;
+    try { sessionStorage.setItem(partnerOnboardingTokenKey, value); } catch (_) {}
+    try {
+      const cleanUrl = new URL(window.location.href);
+      cleanUrl.searchParams.delete('partner_onboarding');
+      window.history.replaceState({}, document.title, cleanUrl.pathname + cleanUrl.search + cleanUrl.hash);
+    } catch (_) {}
+    return value;
+  }
+  function clearPartnerOnboardingToken(){
+    activePartnerOnboardingToken = '';
+    try { sessionStorage.removeItem(partnerOnboardingTokenKey); } catch (_) {}
+  }
   window.closePartnerOnboarding = function(){ const modal = document.getElementById('partnerOnboardingModal'); if (modal) modal.style.display = 'none'; };
   window.openPartnerOnboarding = async function(){
     setupPartnerOnboardingModal();
     const modal = document.getElementById('partnerOnboardingModal'); const status = document.getElementById('partnerOnboardingStatus');
     if (!modal || !status) return; modal.style.display = 'flex'; status.textContent = 'Loading secure setup…'; status.className = 'platform-status';
+    const token = retainPartnerOnboardingToken(onboardingToken());
+    if (!token) { status.textContent = 'This setup link is unavailable.'; status.className = 'platform-status err'; return; }
     try {
-      const response = await fetch('/api/fsbo-lead', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({request_type:'partner_onboarding_get', onboarding_token:onboardingToken()})});
+      const response = await fetch('/api/fsbo-lead', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({request_type:'partner_onboarding_get', onboarding_token:token})});
       const result = await response.json().catch(() => ({})); if (!response.ok || !result.partner) throw new Error(result.error || 'This setup link is unavailable.');
       const partner = result.partner; document.getElementById('partnerSetupCompany').value = partner.company_name || ''; document.getElementById('partnerSetupCategory').value = String(partner.partner_type || '').replace(/_/g, ' '); document.getElementById('partnerSetupMarket').value = partner.onboarding_market_area || partner.market_area || ''; document.getElementById('partnerSetupWebsite').value = partner.onboarding_website_url || ''; document.getElementById('partnerSetupLogo').value = partner.onboarding_logo_url || ''; document.getElementById('partnerSetupCta').value = partner.onboarding_cta_label || ''; document.getElementById('partnerOnboardingFields').style.display = 'block'; status.textContent = '';
     } catch (error) { status.textContent = error?.message || 'This setup link is unavailable.'; status.className = 'platform-status err'; }
   };
   window.submitPartnerOnboarding = async function(){
     const status = document.getElementById('partnerOnboardingStatus');
-    try { const response = await fetch('/api/fsbo-lead', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({request_type:'partner_onboarding_submit', onboarding_token:onboardingToken(), market_area:value('partnerSetupMarket'), website_url:value('partnerSetupWebsite'), logo_url:value('partnerSetupLogo'), cta_label:value('partnerSetupCta')})}); const result = await response.json().catch(() => ({})); if (!response.ok) throw new Error(result.error || 'Could not save setup details.'); document.getElementById('partnerOnboardingFields').style.display = 'none'; status.textContent = 'Setup details saved. HomeOfferFlow will review them with the written placement agreement before anything becomes public.'; status.className = 'platform-status ok'; } catch (error) { status.textContent = error?.message || 'Could not save setup details.'; status.className = 'platform-status err'; }
+    try { const response = await fetch('/api/fsbo-lead', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({request_type:'partner_onboarding_submit', onboarding_token:onboardingToken(), market_area:value('partnerSetupMarket'), website_url:value('partnerSetupWebsite'), logo_url:value('partnerSetupLogo'), cta_label:value('partnerSetupCta')})}); const result = await response.json().catch(() => ({})); if (!response.ok) throw new Error(result.error || 'Could not save setup details.'); clearPartnerOnboardingToken(); document.getElementById('partnerOnboardingFields').style.display = 'none'; status.textContent = 'Setup details saved. HomeOfferFlow will review them with the written placement agreement before anything becomes public.'; status.className = 'platform-status ok'; } catch (error) { status.textContent = error?.message || 'Could not save setup details.'; status.className = 'platform-status err'; }
   };
   document.addEventListener('DOMContentLoaded', function(){
     window.selectFoundingPartnerTier('monthly_placement');
