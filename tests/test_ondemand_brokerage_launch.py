@@ -276,6 +276,7 @@ class OnDemandCheckoutTests(unittest.TestCase):
             "slug": "ondemand",
         }
         request._has_current_subscription = lambda _user_id: False
+        request._has_current_legal_acceptance = lambda _user_id: True
         with patch.object(checkout.httpx, "Client", StripeClient):
             request.do_POST()
 
@@ -335,6 +336,7 @@ class OnDemandCheckoutTests(unittest.TestCase):
             "slug": "ondemand",
         }
         request._has_current_subscription = lambda _user_id: True
+        request._has_current_legal_acceptance = lambda _user_id: True
 
         with patch.object(checkout.httpx, "Client", StripeClient):
             request.do_POST()

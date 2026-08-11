@@ -22,6 +22,7 @@ SUPABASE_SERVICE_ROLE_KEY = (
 ONDEMAND_BROKER_EMAIL = os.environ.get("ONDEMAND_BROKER_EMAIL", "").strip().lower()
 ONDEMAND_SLUG = "ondemand"
 ONDEMAND_TRIAL_DAYS = 60
+LEGAL_POLICY_VERSION = "2026-07-30"
 MAX_BODY_BYTES = 12_000
 
 
@@ -143,6 +144,21 @@ class handler(BaseHTTPRequestHandler):
 
             if not email or "@" not in email:
                 self._json(400, {"error": "Valid email is required."})
+                return
+
+            # The browser prompt is useful UX, but it is not an authorization
+            # boundary. Enforce the current versioned acceptance here too so a
+            # direct request cannot start a recurring subscription without it.
+            if not self._has_current_legal_acceptance(user_id):
+                self._json(
+                    403,
+                    {
+                        "error": (
+                            "Accept the current Terms, Privacy Policy, Disclaimer, and "
+                            "Electronic Communications and E-Sign Consent before checkout."
+                        )
+                    },
+                )
                 return
 
             price_key = f"{plan}_{billing}"
@@ -295,6 +311,23 @@ class handler(BaseHTTPRequestHandler):
             )
         if response.status_code >= 300:
             raise RuntimeError("Could not verify the current subscription.")
+        return bool(response.json())
+
+    def _has_current_legal_acceptance(self, user_id):
+        self._require_supabase()
+        with httpx.Client(timeout=12) as client:
+            response = client.get(
+                f"{SUPABASE_URL}/rest/v1/hof_legal_acceptances",
+                params={
+                    "user_id": f"eq.{user_id}",
+                    "policy_version": f"eq.{LEGAL_POLICY_VERSION}",
+                    "select": "id",
+                    "limit": "1",
+                },
+                headers=_service_headers(),
+            )
+        if response.status_code >= 300:
+            raise RuntimeError("Could not verify the current legal acceptance.")
         return bool(response.json())
 
     def _public_brokerage(self, brokerage):
