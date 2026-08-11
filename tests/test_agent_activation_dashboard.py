@@ -106,7 +106,7 @@ class AgentActivationDashboardTests(unittest.TestCase):
         script_end = HTML.index("</script>", script_start)
         script = HTML[script_start:script_end]
 
-        for action in ("profile", "new_offer", "offers", "resume", "subscribe", "reuse_terms"):
+        for action in ("profile", "new_offer", "offers", "resume", "subscribe", "reuse_terms", "billing"):
             self.assertRegex(script, rf"action === ['\"]{action}['\"]")
 
     def test_activation_actions_record_stage_and_primary_or_secondary_choice(self):
@@ -130,16 +130,31 @@ class AgentActivationDashboardTests(unittest.TestCase):
         self.assertIn("activationKey === 'reactivate' ? 'subscription_reactivation' : 'agent_activation'", script)
         self.assertIn("startSubscriptionCheckout?.(plan, normalizedBilling, source)", script)
 
-    def test_canceled_or_payment_attention_accounts_use_reactivation_attribution(self):
+    def test_canceled_accounts_use_reactivation_attribution(self):
         script_start = HTML.index('id="hof-agent-activation-v16-js"')
         script_end = HTML.index("</script>", script_start)
         script = HTML[script_start:script_end]
 
         self.assertIn("function subscriptionRecoveryNeeded()", script)
+        self.assertIn("function subscriptionReplacementCheckoutNeeded()", script)
         self.assertIn("key: 'reactivate'", script)
         self.assertIn("primary: 'Restore Monthly'", script)
         self.assertIn("secondary: 'Restore Annual'", script)
         self.assertIn("activationKey === 'reactivate' ? 'subscription_reactivation' : 'agent_activation'", script)
+
+    def test_payment_attention_accounts_use_billing_recovery_not_new_checkout(self):
+        script_start = HTML.index('id="hof-agent-activation-v16-js"')
+        script_end = HTML.index("</script>", script_start)
+        script = HTML[script_start:script_end]
+
+        self.assertIn("function subscriptionBillingRecoveryNeeded()", script)
+        self.assertIn("return ['past_due', 'incomplete', 'unpaid', 'paused'].includes(status);", script)
+        self.assertIn("return ['canceled', 'incomplete_expired'].includes(status);", script)
+        self.assertIn("key: 'recover_billing'", script)
+        self.assertIn("primary: 'Fix Billing'", script)
+        self.assertIn("action === 'billing'", script)
+        self.assertIn("openBillingPortal?.('activation_billing_recovery')", script)
+        self.assertIn("state.key === 'recover_billing' ? 'billing'", script)
 
     def test_active_subscription_keeps_next_offer_action_visible(self):
         subscription_start = HTML.index("function renderSubscriptionCard()")

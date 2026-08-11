@@ -13418,6 +13418,16 @@ function routeAfterMagicLinkIfNeeded() {
     return ['past_due', 'canceled', 'incomplete', 'incomplete_expired', 'unpaid', 'paused'].includes(status);
   }
 
+  function subscriptionBillingRecoveryNeeded() {
+    const status = String(root.hofAuth?.subscription?.status || '').toLowerCase();
+    return ['past_due', 'incomplete', 'unpaid', 'paused'].includes(status);
+  }
+
+  function subscriptionReplacementCheckoutNeeded() {
+    const status = String(root.hofAuth?.subscription?.status || '').toLowerCase();
+    return ['canceled', 'incomplete_expired'].includes(status);
+  }
+
   function draftOffer() {
     return offers().filter(offer => {
       const status = String(
@@ -13444,6 +13454,8 @@ function routeAfterMagicLinkIfNeeded() {
     const hasOffer = offers().length > 0;
     const hasPlan = subscriptionActive();
     const recoveryNeeded = subscriptionRecoveryNeeded();
+    const billingRecoveryNeeded = subscriptionBillingRecoveryNeeded();
+    const replacementCheckoutNeeded = subscriptionReplacementCheckoutNeeded();
     const subscriptionStatus = String(root.hofAuth?.subscription?.status || '').toLowerCase();
     const draft = draftOffer();
     const latestOffer = mostRecentOffer();
@@ -13474,7 +13486,18 @@ function routeAfterMagicLinkIfNeeded() {
         complete, hasProfile, hasOffer, hasPlan
       };
     }
-    if (recoveryNeeded) {
+    if (billingRecoveryNeeded) {
+      return {
+        key: 'recover_billing',
+        title: 'Update billing to restore access',
+        body: 'Your subscription needs attention. Use secure Stripe Billing to update your saved payment method or resolve the current subscription, then return here to continue generating packets.',
+        primary: 'Fix Billing',
+        secondary: 'Open Offer Workspace',
+        draftId: draft?.id || '',
+        complete, hasProfile, hasOffer, hasPlan
+      };
+    }
+    if (recoveryNeeded && replacementCheckoutNeeded) {
       return {
         key: 'reactivate',
         title: subscriptionStatus === 'canceled' ? 'Restore your subscription access' : 'Resolve your subscription access',
@@ -13547,6 +13570,7 @@ function routeAfterMagicLinkIfNeeded() {
     if (action === 'reuse_terms' && offerId) return root.reuseOfferTerms?.(offerId);
     if (action === 'offers') return root.showAccountTab?.('offers');
     if (action === 'resume' && offerId) return root.resumeOffer?.(offerId);
+    if (action === 'billing') return root.openBillingPortal?.('activation_billing_recovery');
     if (action === 'subscribe') {
       const plan = String(root.hofAuth?.role || 'agent').toLowerCase() === 'investor' ? 'investor' : 'agent';
       const source = activationKey === 'reactivate' ? 'subscription_reactivation' : 'agent_activation';
@@ -13577,12 +13601,14 @@ function routeAfterMagicLinkIfNeeded() {
       state.key === 'profile' ? 'profile' :
       state.key === 'first_offer' ? 'new_offer' :
       state.key === 'repeat' ? 'reuse_terms' :
+      state.key === 'recover_billing' ? 'billing' :
       state.key === 'subscribe' || state.key === 'reactivate' ? 'subscribe' :
       'resume';
     const secondaryAction =
       state.key === 'profile' ? 'new_offer' :
       state.key === 'first_offer' ? 'profile' :
       state.key === 'repeat' ? 'new_offer' :
+      state.key === 'recover_billing' ? 'offers' :
       state.key === 'subscribe' || state.key === 'reactivate' ? 'subscribe' :
       'offers';
     const secondaryBilling = state.key === 'subscribe' || state.key === 'reactivate' ? 'annual' : 'monthly';
