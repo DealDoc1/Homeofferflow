@@ -4759,8 +4759,8 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       actionHtml =
         '<div class="account-actions-row" style="margin-top:0.85rem;">' +
           (billingRecoveryNeeded ? '<button class="btn-primary" type="button" onclick="' + (status === 'past_due' ? 'openBillingPortal()' : 'openBillingPortal(\'billing_recovery\')') + '">Fix Billing</button>' : '') +
-          '<button class="btn-secondary" type="button" onclick="startSubscriptionCheckout(\'' + role + '\',\'monthly\')">Reactivate Monthly</button>' +
-          '<button class="btn-secondary" type="button" onclick="startSubscriptionCheckout(\'' + role + '\',\'annual\')">Reactivate Annual</button>' +
+          '<button class="btn-secondary" type="button" onclick="startSubscriptionCheckout(\'' + role + '\',\'monthly\',\'subscription_reactivation\')">Reactivate Monthly</button>' +
+          '<button class="btn-secondary" type="button" onclick="startSubscriptionCheckout(\'' + role + '\',\'annual\',\'subscription_reactivation\')">Reactivate Annual</button>' +
         '</div>' +
         '<div style="margin-top:0.55rem; color:var(--warn); font-size:0.74rem; line-height:1.45;">' +
           (status === 'canceled'
@@ -4770,8 +4770,8 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     } else {
       actionHtml =
         '<div class="account-actions-row" style="margin-top:0.85rem;">' +
-          '<button class="btn-secondary" type="button" onclick="startSubscriptionCheckout(\'' + role + '\',\'monthly\')">Subscribe Monthly</button>' +
-          '<button class="btn-secondary" type="button" onclick="startSubscriptionCheckout(\'' + role + '\',\'annual\')">Subscribe Annual</button>' +
+          '<button class="btn-secondary" type="button" onclick="startSubscriptionCheckout(\'' + role + '\',\'monthly\',\'subscription_card\')">Subscribe Monthly</button>' +
+          '<button class="btn-secondary" type="button" onclick="startSubscriptionCheckout(\'' + role + '\',\'annual\',\'subscription_card\')">Subscribe Annual</button>' +
         '</div>' +
         '<div style="margin-top:0.55rem; color:var(--gray); font-size:0.74rem; line-height:1.45;">' +
           'Promo codes can be entered at Stripe checkout. Beta users can keep testing until you switch them to paid access.' +
@@ -4843,13 +4843,22 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     }
   }
 
-  async function startSubscriptionCheckout(plan = 'agent', billing = 'monthly') {
+  const SUBSCRIPTION_CHECKOUT_SOURCE_KEY = 'hof_subscription_checkout_source';
+
+  function subscriptionCheckoutSource(value) {
+    const allowed = new Set(['homeofferflow', 'subscription_card', 'subscription_reactivation', 'agent_activation']);
+    const source = String(value || 'homeofferflow').trim().toLowerCase();
+    return allowed.has(source) ? source : 'homeofferflow';
+  }
+
+  async function startSubscriptionCheckout(plan = 'agent', billing = 'monthly', source = 'homeofferflow') {
     if (window.__hofSubscriptionCheckoutInFlight) return;
     window.__hofSubscriptionCheckoutInFlight = true;
     const user = hofAuth?.session?.user;
     const accessToken = hofAuth?.session?.access_token || '';
     const normalizedPlan = plan === 'investor' ? 'investor' : 'agent';
     const normalizedBilling = billing === 'annual' ? 'annual' : 'monthly';
+    const normalizedSource = subscriptionCheckoutSource(source);
     const email = user?.email || document.getElementById('authEmail')?.value?.trim() || document.getElementById('paymentEmail')?.value?.trim() || '';
 
     if (!email || !email.includes('@') || !accessToken) {
@@ -4865,7 +4874,8 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     }
 
     try {
-      await logOfferEvent(null, 'subscription_checkout_started', '', 'Stripe subscription checkout started.', { source: 'homeofferflow', plan: normalizedPlan, billing: normalizedBilling });
+      try { sessionStorage.setItem(SUBSCRIPTION_CHECKOUT_SOURCE_KEY, normalizedSource); } catch (e) {}
+      await logOfferEvent(null, 'subscription_checkout_started', '', 'Stripe subscription checkout started.', { source: normalizedSource, plan: normalizedPlan, billing: normalizedBilling });
 
       const response = await fetch('/api/create-subscription-checkout', {
         method: 'POST',
@@ -4885,11 +4895,12 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       const result = await response.json();
       if (!response.ok || result.error) throw new Error(result.error || 'Could not start subscription checkout.');
       if (!result.url) throw new Error('Stripe did not return a checkout URL.');
-      await logOfferEvent(null, 'subscription_checkout_redirected', 'redirected', 'Redirected to Stripe subscription checkout.', { source: 'homeofferflow', plan: normalizedPlan, billing: normalizedBilling });
+      await logOfferEvent(null, 'subscription_checkout_redirected', 'redirected', 'Redirected to Stripe subscription checkout.', { source: normalizedSource, plan: normalizedPlan, billing: normalizedBilling });
       window.location.href = result.url;
     } catch (err) {
       window.__hofSubscriptionCheckoutInFlight = false;
-      await logOfferEvent(null, 'subscription_checkout_failed', 'failed', 'Subscription checkout request failed before redirect.', { source: 'homeofferflow', plan: normalizedPlan, billing: normalizedBilling });
+      try { sessionStorage.removeItem(SUBSCRIPTION_CHECKOUT_SOURCE_KEY); } catch (e) {}
+      await logOfferEvent(null, 'subscription_checkout_failed', 'failed', 'Subscription checkout request failed before redirect.', { source: normalizedSource, plan: normalizedPlan, billing: normalizedBilling });
       console.error('Subscription checkout failed:', err);
       alert('Subscription checkout failed: ' + (err?.message || err));
     }
@@ -4943,6 +4954,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         result,
         plan: plan === 'investor' ? 'investor' : 'agent',
         billing: billing === 'annual' ? 'annual' : 'monthly',
+        source: subscriptionCheckoutSource(sessionStorage.getItem(SUBSCRIPTION_CHECKOUT_SOURCE_KEY)),
         queuedAt: Date.now()
       }));
     } catch (error) {
@@ -4963,9 +4975,12 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         pending.result === 'success'
           ? 'Returned from Stripe subscription checkout.'
           : 'Returned from Stripe subscription checkout without completing payment.',
-        { source: 'homeofferflow', plan: pending.plan, billing: pending.billing }
+        { source: subscriptionCheckoutSource(pending.source), plan: pending.plan, billing: pending.billing }
       );
-      if (logged) sessionStorage.removeItem(SUBSCRIPTION_CHECKOUT_RETURN_KEY);
+      if (logged) {
+        sessionStorage.removeItem(SUBSCRIPTION_CHECKOUT_RETURN_KEY);
+        sessionStorage.removeItem(SUBSCRIPTION_CHECKOUT_SOURCE_KEY);
+      }
       return logged;
     } catch (error) {
       console.warn('Subscription return analytics could not be saved:', error);
@@ -13473,7 +13488,7 @@ function routeAfterMagicLinkIfNeeded() {
     if (action === 'resume' && offerId) return root.resumeOffer?.(offerId);
     if (action === 'subscribe') {
       const plan = String(root.hofAuth?.role || 'agent').toLowerCase() === 'investor' ? 'investor' : 'agent';
-      return root.startSubscriptionCheckout?.(plan, 'monthly');
+      return root.startSubscriptionCheckout?.(plan, 'monthly', 'agent_activation');
     }
   };
 
