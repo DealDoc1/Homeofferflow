@@ -1,11 +1,6 @@
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const SIGNWELL_API_KEY = process.env.SIGNWELL_API_KEY || '';
-const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || process.env.ADMIN_ORDER_EMAIL || 'andrewchri@gmail.com,support@homeofferflow.com,andrew@ondemanddfw.com')
-  .split(',')
-  .map((e) => e.trim().toLowerCase())
-  .filter(Boolean);
-
 function json(res, status, payload) {
   res.status(status).json(payload);
 }
@@ -32,12 +27,9 @@ async function verifyUser(req) {
     throw new Error('Could not verify signed-in user.');
   }
 
-  const email = String(user.email || '').toLowerCase();
-
   return {
     id: user.id,
-    email,
-    isAdmin: ADMIN_EMAILS.includes(email)
+    email: String(user.email || '').toLowerCase()
   };
 }
 
@@ -181,14 +173,15 @@ function deriveStatus(document = {}) {
 async function getOfferForUser(offerId, user) {
   if (!offerId) throw new Error('Missing offerId.');
 
+  // Signing-status refresh is an agent workspace operation, never an admin
+  // override. Restrict both the lookup and the later write to the verified
+  // offer owner so an administrator cannot probe or update another account's
+  // packet from a guessed ID.
   const filters = [
     `id=eq.${encodeURIComponent(offerId)}`,
-    'select=*'
+    `user_id=eq.${encodeURIComponent(user.id)}`,
+    'select=id,user_id,signwell_document_id,offer_data'
   ];
-
-  if (!user.isAdmin) {
-    filters.push(`user_id=eq.${encodeURIComponent(user.id)}`);
-  }
 
   const rows = await supabaseRequest(`hof_offers?${filters.join('&')}`, {
     method: 'GET'
@@ -241,7 +234,7 @@ async function updateOfferStatus(offer, status, documentId, document, user) {
   };
 
   const updateRows = await supabaseRequest(
-    `hof_offers?id=eq.${encodeURIComponent(offer.id)}&select=id,user_id,signwell_document_id,signwell_status,status,last_updated`,
+    `hof_offers?id=eq.${encodeURIComponent(offer.id)}&user_id=eq.${encodeURIComponent(user.id)}&select=id,user_id,signwell_document_id,signwell_status,status,last_updated`,
     {
       method: 'PATCH',
       headers: { Prefer: 'return=representation' },
