@@ -264,8 +264,9 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     .hero-badge { display: inline-flex; align-items: center; gap: 0.5rem; background: rgba(200,151,63,0.1); border: 1px solid rgba(200,151,63,0.25); color: var(--gold-light); padding: 0.4rem 1rem; border-radius: 100px; font-size: 0.78rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 1.75rem; animation: fadeUp 0.5s ease both; }
     .hero-badge .dot, .trust-item .dot { width: 6px; height: 6px; background: var(--sage-light); border-radius: 50%; }
     .user-pills { display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap; margin-bottom: 1.75rem; animation: fadeUp 0.5s 0.05s ease both; }
-    .pill { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: var(--gray-light); padding: 0.4rem 1rem; border-radius: 100px; font-size: 0.83rem; cursor: pointer; transition: all 0.2s; }
+    .pill { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: var(--gray-light); padding: 0.4rem 1rem; border-radius: 100px; font-family: inherit; font-size: 0.83rem; line-height: 1.2; cursor: pointer; transition: all 0.2s; }
     .pill.active, .pill:hover { background: rgba(200,151,63,0.12); border-color: var(--gold); color: var(--gold-light); }
+    .pill:focus-visible { outline: 3px solid rgba(232,184,109,0.72); outline-offset: 3px; }
     .hero h1 { font-family: 'Playfair Display', serif; font-size: clamp(2.8rem, 7vw, 5.2rem); font-weight: 900; line-height: 1.06; letter-spacing: -0.03em; max-width: 800px; animation: fadeUp 0.5s 0.1s ease both; }
     .hero h1 em { font-style: normal; color: var(--gold); }
     .hero-sub { margin-top: 1.4rem; font-size: clamp(0.95rem, 2.2vw, 1.15rem); color: var(--gray); max-width: 520px; line-height: 1.65; font-weight: 300; animation: fadeUp 0.5s 0.15s ease both; }
@@ -2486,11 +2487,11 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 
 <section class="hero">
   <div class="hero-badge"><span class="dot"></span>TREC 20-19 · Effective July 2026 · Official Texas Forms</div>
-  <div class="user-pills">
-    <div class="pill active" data-audience="homebuyer" onclick="setAudience('homebuyer')">Homebuyer</div>
-    <div class="pill" data-audience="agent" onclick="setAudience('agent')">Agent / Broker</div>
-    <div class="pill" data-audience="investor" onclick="setAudience('investor')">Investor</div>
-    <div class="pill" data-audience="fsbo" onclick="setAudience('fsbo')">FSBO Seller</div>
+  <div class="user-pills" role="group" aria-label="Choose your HomeOfferFlow path">
+    <button type="button" class="pill active" data-audience="homebuyer" aria-pressed="true" onclick="setAudience('homebuyer'); trackEvent('Landing Audience Selected', { audience: 'homebuyer', surface: 'hero_path_picker' });">Homebuyer</button>
+    <button type="button" class="pill" data-audience="agent" aria-pressed="false" onclick="setAudience('agent'); trackEvent('Landing Audience Selected', { audience: 'agent', surface: 'hero_path_picker' });">Agent / Broker</button>
+    <button type="button" class="pill" data-audience="investor" aria-pressed="false" onclick="setAudience('investor'); trackEvent('Landing Audience Selected', { audience: 'investor', surface: 'hero_path_picker' });">Investor</button>
+    <button type="button" class="pill" data-audience="fsbo" aria-pressed="false" onclick="setAudience('fsbo'); trackEvent('Landing Audience Selected', { audience: 'fsbo', surface: 'hero_path_picker' });">FSBO Seller</button>
   </div>
   <h1 id="heroHeadline">Write a Real Estate Offer<br/><em>Without the Confusion.</em></h1>
   <p class="hero-sub" id="heroSub">HomeOfferFlow guides you through a supported Texas buyer-offer packet in plain English, then lets you review every term before signing or sending.</p>
@@ -9376,7 +9377,9 @@ function routeAfterMagicLinkIfNeeded() {
     state.data.userType = type;
 
     document.querySelectorAll('.pill').forEach(p => {
-      p.classList.toggle('active', p.dataset.audience === type);
+      const selected = p.dataset.audience === type;
+      p.classList.toggle('active', selected);
+      p.setAttribute('aria-pressed', selected ? 'true' : 'false');
     });
 
     const heroHeadline = document.getElementById('heroHeadline');
