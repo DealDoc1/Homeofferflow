@@ -121,6 +121,22 @@ class handler(BaseHTTPRequestHandler):
                 email = verified_user["email"]
                 user_id = verified_user["id"]
                 brokerage = self._get_brokerage(ONDEMAND_SLUG)
+                # An invite link is a convenient way to activate this
+                # membership, but the server must be the authorization
+                # boundary. Without this check, a direct POST could start the
+                # brokerage-only 60-day trial for any signed-in account.
+                if not self._has_active_brokerage_membership(user_id, brokerage["id"]):
+                    self._json(
+                        403,
+                        {
+                            "error": (
+                                "This OnDemand launch is available to active invited agents. "
+                                "Use the invitation link from your broker, then sign in with "
+                                "the invited email before checkout."
+                            )
+                        },
+                    )
+                    return
 
             if self._has_current_subscription(user_id):
                 self._json(
@@ -311,6 +327,25 @@ class handler(BaseHTTPRequestHandler):
             )
         if response.status_code >= 300:
             raise RuntimeError("Could not verify the current subscription.")
+        return bool(response.json())
+
+    def _has_active_brokerage_membership(self, user_id, brokerage_id):
+        self._require_supabase()
+        with httpx.Client(timeout=12) as client:
+            response = client.get(
+                f"{SUPABASE_URL}/rest/v1/hof_brokerage_members",
+                params={
+                    "brokerage_id": f"eq.{brokerage_id}",
+                    "user_id": f"eq.{user_id}",
+                    "role": "eq.agent",
+                    "status": "eq.active",
+                    "select": "id",
+                    "limit": "1",
+                },
+                headers=_service_headers(),
+            )
+        if response.status_code >= 300:
+            raise RuntimeError("Could not verify the OnDemand brokerage membership.")
         return bool(response.json())
 
     def _has_current_legal_acceptance(self, user_id):
