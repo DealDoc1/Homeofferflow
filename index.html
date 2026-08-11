@@ -6891,6 +6891,55 @@ function routeAfterMagicLinkIfNeeded() {
     }, 100);
   }
 
+  function resumableLocalOfferDraft() {
+    try {
+      const raw = localStorage.getItem(typeof HOF_STORAGE_KEY !== 'undefined' ? HOF_STORAGE_KEY : 'hof_offer_draft_v2');
+      if (!raw || window.__hofPaymentReturn) return null;
+      const ownerUserId = localStorage.getItem(typeof HOF_STORAGE_OWNER_KEY !== 'undefined' ? HOF_STORAGE_OWNER_KEY : 'hof_offer_draft_owner') || '';
+      const currentUserId = hofAuth?.session?.user?.id || '';
+      // Never offer one account's local draft to a different signed-in account.
+      if (ownerUserId && ownerUserId !== currentUserId) return null;
+      const draft = JSON.parse(raw);
+      const step = Number(draft?.step || 0);
+      const fields = draft?.fields && typeof draft.fields === 'object' ? draft.fields : {};
+      const hasSavedValues = Object.values(fields).some(value => String(value || '').trim());
+      return step > 0 && hasSavedValues ? draft : null;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function refreshResumeOfferCtas() {
+    const draft = resumableLocalOfferDraft();
+    const isHomebuyer = (state?.data?.userType || 'homebuyer') === 'homebuyer';
+    if (!draft || !isHomebuyer) return false;
+    ['heroCta', 'bottomCta'].forEach(id => {
+      const button = document.getElementById(id);
+      if (button) button.textContent = 'Resume Your Saved Offer →';
+    });
+    const nav = document.getElementById('navCta');
+    if (nav) nav.textContent = 'Resume Offer →';
+    const note = document.getElementById('heroPriceNote');
+    if (note) note.innerHTML = 'Your draft is saved on this device. <strong>Resume where you left off before paying.</strong>';
+    return true;
+  }
+
+  function resumeLocalOfferDraft(surface = 'landing_resume_cta') {
+    const draft = resumableLocalOfferDraft();
+    if (!draft || !restoreDraft()) {
+      startHomebuyerOffer();
+      return;
+    }
+    state.data.userType = 'homebuyer';
+    closeAccountDashboard?.();
+    closeAuthModal?.();
+    openWizard(true, true);
+    trackEvent('Resumed Local Offer Draft', {
+      surface,
+      step: Math.max(1, Math.min(10, Number(draft.step || 0)))
+    });
+  }
+
   function startPrimaryOffer() {
     const selectedType = state?.data?.userType || 'homebuyer';
     if (selectedType === 'fsbo') {
@@ -6901,11 +6950,15 @@ function routeAfterMagicLinkIfNeeded() {
       openWizard(false);
       return;
     }
+    if (resumableLocalOfferDraft()) {
+      resumeLocalOfferDraft();
+      return;
+    }
     startHomebuyerOffer();
   }
 
 
-  function openWizard(skipAuthGate = false) {
+  function openWizard(skipAuthGate = false, resumeDraft = false) {
     const currentType = state.data.userType || 'homebuyer';
     if (!skipAuthGate && currentType !== 'homebuyer' && !hofAuth.session) {
       openAuthModal(currentType);
@@ -6924,9 +6977,14 @@ function routeAfterMagicLinkIfNeeded() {
       if (row) row.classList.toggle('accepted', state.termsOK);
     }
 
-    // Ensure only the current audience's first step is active.
+    // New offers start at the first step. A returning homebuyer can explicitly
+    // resume a local draft at the exact saved step without losing progress.
     document.querySelectorAll('.wizard-step').forEach(step => step.classList.remove('active'));
-    state.step = 0;
+    if (resumeDraft) {
+      state.step = Math.max(0, Math.min(Number(state.step || 0), getCurrentSteps().length - 1));
+    } else {
+      state.step = 0;
+    }
     const firstStep = getCurrentSteps()[state.step];
     const firstStepEl = document.getElementById(firstStep);
     if (firstStepEl) firstStepEl.classList.add('active');
@@ -6965,6 +7023,9 @@ function routeAfterMagicLinkIfNeeded() {
     if (overlay) overlay.classList.remove('active');
     document.body.style.overflow = '';
     window.scrollTo({ top: 0, behavior: 'smooth' });
+    // scheduleDraftSave captures the now-closed overlay; wait for that local
+    // write before changing the landing CTA into the resume path.
+    setTimeout(refreshResumeOfferCtas, 300);
   }
 
   function startNewOffer() {
@@ -9817,7 +9878,10 @@ function routeAfterMagicLinkIfNeeded() {
     if (window.__hofPaymentReturn) return;
 
     setTimeout(() => {
-      if (!window.__hofPaymentReturn) restoreDraft();
+      if (!window.__hofPaymentReturn) {
+        restoreDraft();
+        refreshResumeOfferCtas();
+      }
     }, 350);
   });
 
