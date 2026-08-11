@@ -58,7 +58,7 @@ class AgentActivationDashboardTests(unittest.TestCase):
         self.assertLess(body.index("await loadMyOffers();"), body.index("renderAccountDashboard();"))
 
     def test_offer_loader_persists_offer_state_for_activation_card(self):
-        self.assertIn("hofAuth.myOffers = data || [];", HTML)
+        self.assertIn("hofAuth.myOffers = loadedOffers;", HTML)
         self.assertIn("renderAgentActivationCard();", HTML)
 
     def test_activation_funnel_has_profile_offer_and_subscription_steps(self):
