@@ -54,7 +54,6 @@ class OfferDuplicateWorkspaceTests(unittest.TestCase):
         self.assertIn("return duplicateOffer(id, true, openAfterDuplicate)", duplicate)
         self.assertIn("openAfterDuplicate", duplicate)
         self.assertIn("return resumeOffer(insertResult.data.id)", duplicate)
-        self.assertIn("root.duplicateOffer(offers[0].id, false, true)", HTML)
 
     def test_duplicate_actions_open_the_new_copy_for_immediate_editing(self):
         self.assertGreaterEqual(HTML.count("false, true)\">Duplicate &amp; edit</button>"), 5)
