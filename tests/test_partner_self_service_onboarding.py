@@ -63,7 +63,14 @@ class PartnerSelfServiceOnboardingTests(unittest.TestCase):
         html = (ROOT / "index.html").read_text()
         self.assertIn('"partnerOnboardingEmailSentCount": partner_onboarding_email_sent_count', admin)
         self.assertIn('item.get("event_type") == "partner_onboarding_email_sent"', admin)
-        self.assertIn("secure setup emails sent", html)
+        self.assertIn("manual setup emails sent", html)
+
+    def test_admin_exposes_automatic_checkout_setup_invitation_metric(self):
+        admin = (ROOT / "api" / "admin-dashboard.py").read_text()
+        html = (ROOT / "index.html").read_text()
+        self.assertIn('"partnerOnboardingSetupIssuedCount": partner_onboarding_setup_issued_count', admin)
+        self.assertIn('item.get("event_type") == "partner_onboarding_setup_issued"', admin)
+        self.assertIn("checkout setup invitations issued", html)
 
     def test_admin_tracks_manual_setup_link_creation_and_preserves_a_link_when_copying_fails(self):
         admin = (ROOT / "api/admin-dashboard.py").read_text()

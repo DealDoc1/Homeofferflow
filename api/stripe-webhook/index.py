@@ -763,13 +763,45 @@ class handler(BaseHTTPRequestHandler):
             response = client.patch(url, headers=headers, json=payload)
             if response.status_code >= 300:
                 raise Exception(f"Partner lead payment update failed: {response.status_code} {response.text}")
-        self._deliver_partner_onboarding_email(session, onboarding_token, onboarding_expires_at)
+        delivery = self._deliver_partner_onboarding_email(session, onboarding_token, onboarding_expires_at)
+        # Keep analytics aggregate-only: no recipient, token, or payment data.
+        self._record_partner_onboarding_event(
+            "partner_onboarding_setup_issued",
+            "sent" if delivery == "sent" else "ready",
+            "Partner secure setup access issued after paid checkout.",
+            {"surface": "stripe_webhook", "delivery": delivery},
+        )
+
+    def _record_partner_onboarding_event(self, event_type, status, message, metadata=None):
+        """Best-effort aggregate telemetry for automatic partner setup access."""
+        if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY or not event_type:
+            return
+        payload = {
+            "offer_id": None,
+            "user_id": None,
+            "event_type": str(event_type)[:120],
+            "status": str(status or "")[:80] or None,
+            "message": str(message or "")[:240],
+            "metadata": metadata if isinstance(metadata, dict) else {},
+            "created_at": self._iso_now(),
+        }
+        try:
+            with httpx.Client(timeout=12) as client:
+                response = client.post(
+                    f"{SUPABASE_URL}/rest/v1/hof_offer_events",
+                    headers={**self._supabase_headers(), "Prefer": "return=minimal"},
+                    json=payload,
+                )
+            if response.status_code >= 300:
+                print(f"Partner onboarding telemetry failed: {response.status_code}")
+        except Exception as exc:
+            print(f"Partner onboarding telemetry failed: {str(exc)[:200]}")
 
     def _deliver_partner_onboarding_email(self, session, onboarding_token, expires_at):
         """Best-effort setup invitation; payment state never depends on email delivery."""
         email = str((session.get("customer_details") or {}).get("email") or session.get("customer_email") or "").strip()
         if not RESEND_API_KEY or not email:
-            return
+            return "not_configured" if not RESEND_API_KEY else "missing_email"
         url = f"{PUBLIC_APP_ORIGIN}/?partner_onboarding={urllib.parse.quote(onboarding_token, safe='')}"
         payload = {
             "from": PARTNER_ONBOARDING_FROM_EMAIL,
@@ -782,8 +814,11 @@ class handler(BaseHTTPRequestHandler):
                 response = client.post("https://api.resend.com/emails", headers={"Authorization": f"Bearer {RESEND_API_KEY}", "Content-Type": "application/json"}, json=payload)
             if response.status_code >= 300:
                 print(f"Partner onboarding email failed: {response.status_code}")
+                return "failed"
+            return "sent"
         except Exception as exc:
             print(f"Partner onboarding email failed: {str(exc)[:200]}")
+            return "failed"
 
     def _sync_partner_subscription(self, subscription, event_type):
         metadata = subscription.get("metadata", {}) or {}

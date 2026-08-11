@@ -4348,7 +4348,8 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.partnerOnboardingInProgressCount || 0} setup links in progress · ${metrics.partnerOnboardingCompletedCount || 0} completed (${Number(metrics.partnerOnboardingCompletionRate || 0).toFixed(1)}% of paid).</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.paidPartnerAgreementConfirmedCount || 0} agreements confirmed (${Number(metrics.paidPartnerAgreementConfirmationRate || 0).toFixed(1)}%).</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Average paid-partner time to activation: ${Number(metrics.partnerActivationAvgDays || 0).toFixed(1)} days.</div>
-            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.partnerOnboardingLinkCreatedCount || 0} secure setup links created · ${metrics.partnerOnboardingEmailSentCount || 0} secure setup emails sent · ${metrics.partnerFollowUpEmailStartCount || 0} partner follow-up emails opened.</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.partnerOnboardingSetupIssuedCount || 0} checkout setup invitations issued · ${metrics.partnerOnboardingLinkCreatedCount || 0} secure setup links created · ${metrics.partnerOnboardingEmailSentCount || 0} manual setup emails sent.</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.partnerFollowUpEmailStartCount || 0} partner follow-up emails opened.</div>
           </div>
 
           <div class="admin-metric">

@@ -97,6 +97,23 @@ class PartnerCheckoutTests(unittest.TestCase):
         self.assertTrue(calls[0][2]["json"]["onboarding_token_hash"])
         self.assertTrue(calls[0][2]["json"]["onboarding_token_expires_at"])
 
+    def test_paid_checkout_records_privacy_safe_setup_invitation_telemetry(self):
+        webhook = stripe_webhook.handler.__new__(stripe_webhook.handler)
+        with patch.object(webhook, "_require_supabase"), \
+             patch.object(webhook, "_deliver_partner_onboarding_email", return_value="sent"), \
+             patch.object(webhook, "_record_partner_onboarding_event") as record, \
+             patch.object(stripe_webhook.httpx, "Client", Client):
+            webhook._mark_partner_lead_paid(
+                "e35eace9-2760-4b11-a01a-07ee65f2744e",
+                {"id": "cs_test", "payment_intent": "pi_test", "customer": "cus_test"},
+            )
+        record.assert_called_once_with(
+            "partner_onboarding_setup_issued",
+            "sent",
+            "Partner secure setup access issued after paid checkout.",
+            {"surface": "stripe_webhook", "delivery": "sent"},
+        )
+
     def test_paid_checkout_sends_setup_link_only_when_email_delivery_is_configured(self):
         webhook = stripe_webhook.handler.__new__(stripe_webhook.handler)
         with patch.object(stripe_webhook, "RESEND_API_KEY", "re_test"), patch.object(stripe_webhook.httpx, "Client", Client):
@@ -107,6 +124,14 @@ class PartnerCheckoutTests(unittest.TestCase):
         self.assertEqual(email[2]["json"]["to"], ["partner@example.com"])
         self.assertIn("partner_onboarding=", email[2]["json"]["text"])
         self.assertIn("does not activate advertising", email[2]["json"]["text"])
+
+    def test_setup_email_reports_when_delivery_is_not_configured(self):
+        webhook = stripe_webhook.handler.__new__(stripe_webhook.handler)
+        with patch.object(stripe_webhook, "RESEND_API_KEY", ""):
+            outcome = webhook._deliver_partner_onboarding_email(
+                {"customer_email": "partner@example.com"}, "A" * 32, "2026-08-20T00:00:00+00:00"
+            )
+        self.assertEqual(outcome, "not_configured")
 
     def test_partner_checkout_collects_launch_charge_and_defers_recurring_plan_for_90_days(self):
         Client.requests = []
