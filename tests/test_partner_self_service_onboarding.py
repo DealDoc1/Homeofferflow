@@ -58,6 +58,15 @@ class PartnerSelfServiceOnboardingTests(unittest.TestCase):
         self.assertIn("partnerOnboardingCompletedCount", admin)
         self.assertIn("partnerOnboardingCompletionRate", html)
 
+    def test_admin_can_send_setup_link_only_from_an_explicit_paid_partner_action(self):
+        admin = (ROOT / "api/admin-dashboard.py").read_text()
+        html = (ROOT / "index.html").read_text()
+        self.assertIn("email_partner_onboarding_link", admin)
+        self.assertIn("_email_partner_onboarding_link", admin)
+        self.assertIn("Email setup link", html)
+        self.assertIn("emailPartnerOnboardingLink", html)
+        self.assertIn("does not activate advertising", admin)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -258,6 +258,45 @@ class AdminTrackerSecurityTests(IsolatedAsyncioTestCase):
             with self.assertRaisesRegex(ValueError, "not found"):
                 await admin_dashboard._update_partner_lead("e35eace9-2760-4b11-a01a-07ee65f2744e", "contacted")
 
+    async def test_admin_can_explicitly_email_a_fresh_setup_link_to_an_eligible_paid_partner(self):
+        lead_id = "e35eace9-2760-4b11-a01a-07ee65f2744e"
+        response = FakeResponse(200, {"id": "email_123"})
+
+        class CapturingClient(FakeClient):
+            async def post(self, *args, **kwargs):
+                self.request = (args, kwargs)
+                return self.response
+
+        client = CapturingClient(response)
+        lead = {
+            "id": lead_id,
+            "company_name": "North Texas Title",
+            "contact_email": "partner@example.com",
+            "payment_status": "paid",
+            "status": "approved",
+        }
+        with patch.object(admin_dashboard, "RESEND_API_KEY", "re_test"), \
+             patch.object(admin_dashboard, "_get", new=AsyncMock(return_value=[lead])), \
+             patch.object(admin_dashboard, "_create_partner_onboarding_link", new=AsyncMock(return_value={
+                 "onboardingUrl": "https://www.homeofferflow.com/?partner_onboarding=secret",
+                 "expiresAt": "2026-08-25T00:00:00+00:00",
+             })), \
+             patch.object(admin_dashboard.httpx, "AsyncClient", return_value=client):
+            result = await admin_dashboard._email_partner_onboarding_link({"lead_id": lead_id})
+
+        self.assertEqual(result, {"expiresAt": "2026-08-25T00:00:00+00:00", "delivery": "sent"})
+        self.assertEqual(client.request[0][0], "https://api.resend.com/emails")
+        self.assertEqual(client.request[1]["json"]["to"], ["partner@example.com"])
+        self.assertIn("partner_onboarding=secret", client.request[1]["json"]["text"])
+        self.assertIn("does not activate advertising", client.request[1]["json"]["text"])
+
+    async def test_admin_email_action_does_not_replace_setup_access_when_email_is_unconfigured(self):
+        with patch.object(admin_dashboard, "RESEND_API_KEY", ""), \
+             patch.object(admin_dashboard, "_create_partner_onboarding_link", new=AsyncMock()) as create_link:
+            with self.assertRaisesRegex(RuntimeError, "not configured"):
+                await admin_dashboard._email_partner_onboarding_link({"lead_id": "e35eace9-2760-4b11-a01a-07ee65f2744e"})
+        create_link.assert_not_awaited()
+
     async def test_platform_partner_placement_is_validated_and_not_brokerage_owned(self):
         payload = admin_dashboard._parse_partner_placement({
             "partner_lead_id": "e35eace9-2760-4b11-a01a-07ee65f2744e",

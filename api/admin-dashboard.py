@@ -19,6 +19,7 @@ from lib import seller_review_access
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "").rstrip("/")
 SUPABASE_SERVICE_ROLE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or os.environ.get("SUPABASE_SERVICE_ROLE") or os.environ.get("SUPABASE_SERVICE_KEY") or ""
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
+PARTNER_ONBOARDING_FROM_EMAIL = os.environ.get("PARTNER_ONBOARDING_FROM_EMAIL", "offers@homeofferflow.com")
 SIGNWELL_API_KEY = os.environ.get("SIGNWELL_API_KEY", "")
 SIGNWELL_ENABLED = str(os.environ.get("SIGNWELL_ENABLED", "false")).lower() in {"1", "true", "yes", "on"}
 SIGNWELL_TEST_MODE = str(os.environ.get("SIGNWELL_TEST_MODE", "true")).lower() in {"1", "true", "yes", "on"}
@@ -1582,6 +1583,65 @@ async def _create_partner_onboarding_link(data):
     if not isinstance(saved, list) or not saved:
         raise ValueError("Partner lead was not found.")
     return {"onboardingUrl": f"{PUBLIC_APP_ORIGIN}/?partner_onboarding={urllib.parse.quote(token, safe='')}", "expiresAt": payload["onboarding_token_expires_at"]}
+
+
+async def _email_partner_onboarding_link(data):
+    """Create a fresh setup link only when a platform admin explicitly sends it."""
+    lead_id = str(data.get("lead_id") or "").strip()
+    try:
+        lead_id = str(uuid.UUID(lead_id))
+    except (TypeError, ValueError, AttributeError):
+        raise ValueError("A valid partner lead ID is required.")
+    if not RESEND_API_KEY:
+        raise RuntimeError("Partner setup email is not configured.")
+
+    rows = await _get(
+        "hof_partner_leads?"
+        f"id=eq.{urllib.parse.quote(lead_id)}&select=id,company_name,contact_email,payment_status,status&limit=1"
+    )
+    if not rows or str(rows[0].get("payment_status") or "") != "paid" or str(rows[0].get("status") or "") in {"declined", "waitlist"}:
+        raise PermissionError("Only an eligible paid partner application can receive onboarding access.")
+    lead = rows[0]
+    email = str(lead.get("contact_email") or "").strip()
+    if not BROKERAGE_INVITE_EMAIL_RE.fullmatch(email):
+        raise ValueError("This paid partner application has no valid contact email.")
+
+    onboarding = await _create_partner_onboarding_link({"lead_id": lead_id})
+    company_name = str(lead.get("company_name") or "your company").strip()
+    safe_company = _invite_html_escape(company_name)
+    safe_url = _invite_html_escape(onboarding["onboardingUrl"])
+    payload = {
+        "from": PARTNER_ONBOARDING_FROM_EMAIL,
+        "to": [email],
+        "subject": "Complete your HomeOfferFlow partner setup",
+        "text": (
+            f"Thanks for partnering with HomeOfferFlow. Complete your secure setup within 14 days: {onboarding['onboardingUrl']}\n\n"
+            "This prepares your creative for review only. It does not activate advertising or replace the required written placement agreement."
+        ),
+        "html": (
+            '<div style="font-family:Arial,sans-serif;line-height:1.5;color:#172033;">'
+            f"<h2>Complete {safe_company}'s HomeOfferFlow setup</h2>"
+            "<p>Use this secure setup link to provide your market, website, logo, and call to action.</p>"
+            f'<p><a href="{safe_url}" style="display:inline-block;padding:12px 18px;border-radius:8px;background:#123047;color:#ffffff;text-decoration:none;font-weight:700;">Complete partner setup</a></p>'
+            "<p style=\"font-size:13px;color:#5f6b7a;\">This link expires in 14 days. Setup prepares creative for review only; it does not activate advertising or replace the required written placement agreement.</p>"
+            "</div>"
+        ),
+    }
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            response = await client.post(
+                "https://api.resend.com/emails",
+                headers={"Authorization": f"Bearer {RESEND_API_KEY}", "Content-Type": "application/json"},
+                json=payload,
+            )
+        if response.status_code >= 300:
+            raise RuntimeError("Partner setup email could not be delivered.")
+    except RuntimeError:
+        raise
+    except Exception as exc:
+        print(f"Partner setup email failed: {str(exc)[:300]}")
+        raise RuntimeError("Partner setup email could not be delivered.")
+    return {"expiresAt": onboarding["expiresAt"], "delivery": "sent"}
 
 
 def _clean_text(value, maximum):
@@ -3778,6 +3838,10 @@ class handler(BaseHTTPRequestHandler):
             if data.get("action") == "create_partner_onboarding_link":
                 link = asyncio.run(_create_partner_onboarding_link(data))
                 _json(self, 201, {"ok": True, "onboarding": link})
+                return
+            if data.get("action") == "email_partner_onboarding_link":
+                result = asyncio.run(_email_partner_onboarding_link(data))
+                _json(self, 200, {"ok": True, "onboarding": result})
                 return
             if data.get("action") == "update_seller_lead":
                 lead_id, status = _parse_seller_lead_update(data)
