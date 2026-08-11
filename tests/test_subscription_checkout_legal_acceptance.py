@@ -80,6 +80,21 @@ class SubscriptionCheckoutLegalAcceptanceTests(unittest.TestCase):
         self.assertEqual(captured["code"], 200)
         self.assertIsNotNone(StripeClient.last_post)
 
+    def test_checkout_uses_the_validated_plan_role_not_a_browser_supplied_role(self):
+        raw = json.dumps({"plan": "agent", "billing": "monthly", "role": "homebuyer"}).encode()
+        request, captured = self.request()
+        request.headers["Content-Length"] = str(len(raw))
+        request.rfile = io.BytesIO(raw)
+        request._has_current_legal_acceptance = lambda _user_id: True
+
+        with patch.object(checkout.httpx, "Client", StripeClient):
+            request.do_POST()
+
+        self.assertEqual(captured["code"], 200)
+        form = StripeClient.last_post[1]["data"]
+        self.assertEqual("agent", form["metadata[role]"])
+        self.assertEqual("agent", form["subscription_data[metadata][role]"])
+
     def test_browser_prompts_then_persists_before_standard_subscription_checkout(self):
         self.assertIn("ensureCurrentLegalAcceptanceForSubscription", INDEX)
         self.assertIn("subscriptionLegalConsentModal", INDEX)

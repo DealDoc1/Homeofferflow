@@ -109,7 +109,10 @@ class handler(BaseHTTPRequestHandler):
             is_ondemand = launch == ONDEMAND_SLUG
             plan = (body.get("plan") or "agent").strip().lower()
             billing = (body.get("billing") or "monthly").strip().lower()
-            role = (body.get("role") or plan).strip().lower()
+            # Subscription role follows the server-validated plan. The browser
+            # may choose agent vs investor, but must not attach an arbitrary
+            # role that later becomes webhook state.
+            role = plan
             email = verified_user["email"]
             user_id = verified_user["id"]
             brokerage = None

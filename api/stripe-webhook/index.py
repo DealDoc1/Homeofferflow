@@ -356,7 +356,9 @@ class handler(BaseHTTPRequestHandler):
 
         user_id = metadata.get("user_id") or metadata.get("userId") or ""
         email = metadata.get("email") or ""
-        role = metadata.get("role") or role
+        # The Stripe price is the authority for role and packet allowance.
+        # Checkout metadata is useful for attribution, but must not be able to
+        # turn an agent subscription into another workspace role.
         plan = metadata.get("plan_full") or metadata.get("plan") or plan
         brokerage_id = metadata.get("brokerage_id") or ""
         launch_source = metadata.get("launch_source") or ""
