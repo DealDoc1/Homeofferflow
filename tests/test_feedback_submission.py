@@ -35,6 +35,12 @@ class FeedbackSubmissionTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "valid feedback issue type"):
             MODULE._parse_payload(b'{"issueType":"nope","message":"x"}')
 
+    def test_brokerage_access_request_is_an_allowed_authenticated_feedback_type(self):
+        parsed = MODULE._parse_payload(
+            b'{"issueType":"brokerage_access","message":"Please activate my membership.","role":"agent"}'
+        )
+        self.assertEqual(parsed["issue_type"], "brokerage_access")
+
     def test_ui_uses_authenticated_feedback_endpoint(self):
         html = (ROOT / "index.html").read_text(encoding="utf-8")
         self.assertIn("/api/submit-feedback", html)
