@@ -4546,7 +4546,16 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     const panel = document.getElementById('accountPanel' + tab.charAt(0).toUpperCase() + tab.slice(1));
     if (panel) panel.classList.add('active');
     if (tab === 'profile') renderAccountProfileForm();
-    if (tab === 'offers') loadMyOffers();
+    if (tab === 'offers') {
+      // Keep the signing queue current when an agent returns to the workspace.
+      // The workspace applies a short cooldown, so tab changes cannot create a
+      // burst of SignWell status requests.
+      if (typeof window.hofRefreshOfferWorkspace === 'function') {
+        void window.hofRefreshOfferWorkspace({ automatic: true });
+      } else {
+        void loadMyOffers();
+      }
+    }
     if (tab === 'brokerage') renderBrokerageFoundationPanel();
     if (tab === 'seller') renderSellerFoundationPanel();
     if (tab === 'partners') renderPartnerFoundationPanel();
@@ -6290,6 +6299,10 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       }
     }
   }
+  // Make the function explicit for later enhancement scripts.  Classic-script
+  // function declarations are globally reachable today, but this avoids a
+  // fragile dependency on that browser behavior for workspace batch refreshes.
+  window.refreshSignWellStatus = refreshSignWellStatus;
 
   async function getOfferById(id) {
     const client = getSupabaseClient();
@@ -12405,8 +12418,16 @@ function routeAfterMagicLinkIfNeeded() {
   root.hofSetOfferWorkspaceFilter = function(filter){ state.filter = filter || 'all'; persistWorkspaceState(); rerender(); };
   root.hofSetOfferWorkspaceSearch = function(query){ state.query = query || ''; persistWorkspaceState(); rerender(); };
   root.hofSetOfferWorkspaceSort = function(sort){ state.sort = sort || 'updated_desc'; persistWorkspaceState(); rerender(); };
-  root.hofRefreshOfferWorkspace = async function(){
+  let lastAutomaticSigningSyncAt = 0;
+  root.hofRefreshOfferWorkspace = async function({ automatic = false } = {}){
     if (typeof root.loadMyOffers !== 'function') return rerender();
+    if (automatic) {
+      const now = Date.now();
+      // A tab can be selected repeatedly as an account modal opens or rerenders.
+      // Keep live status useful without needlessly querying SignWell each time.
+      if (now - lastAutomaticSigningSyncAt < 120000) return;
+      lastAutomaticSigningSyncAt = now;
+    }
     const offers = Array.isArray(root.hofAuth?.myOffers) ? root.hofAuth.myOffers : await root.loadMyOffers();
     // SignWell documents can remain in Created until a recipient opens the
     // request. They still need a live refresh; omitting that state made the

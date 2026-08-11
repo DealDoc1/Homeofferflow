@@ -15,13 +15,19 @@ class OfferWorkspaceRetryTests(unittest.TestCase):
         self.assertIn("Retry offers", loader)
 
     def test_workspace_refresh_syncs_active_signwell_documents_before_reload(self):
-        self.assertIn("root.hofRefreshOfferWorkspace = async function()", HTML)
+        self.assertIn("root.hofRefreshOfferWorkspace = async function({ automatic = false } = {})", HTML)
         self.assertIn("new Set(['created', 'sent', 'viewed', 'partially_signed', 'awaiting_signature', 'in_progress'])", HTML)
         self.assertIn("Promise.allSettled(active.map(offer => root.refreshSignWellStatus", HTML)
         self.assertIn("return aUpdated - bUpdated;", HTML)
         self.assertIn("slice(0, 10)", HTML)
         self.assertIn("skipReload = false, suppressAlert = false", HTML)
         self.assertIn("Sync signing status", HTML)
+
+    def test_opening_offers_automatically_syncs_with_a_short_cooldown(self):
+        self.assertIn("window.hofRefreshOfferWorkspace({ automatic: true })", HTML)
+        self.assertIn("let lastAutomaticSigningSyncAt = 0;", HTML)
+        self.assertIn("now - lastAutomaticSigningSyncAt < 120000", HTML)
+        self.assertIn("window.refreshSignWellStatus = refreshSignWellStatus;", HTML)
 
     def test_workspace_has_a_stale_draft_and_signing_attention_queue(self):
         self.assertIn("function needsAttention(o)", HTML)
