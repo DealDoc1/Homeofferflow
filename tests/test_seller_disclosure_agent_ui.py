@@ -66,6 +66,17 @@ class SellerDisclosureAgentUiTests(unittest.TestCase):
         ):
             self.assertIn(expected, html)
 
+    def test_private_seller_disclosure_card_requires_active_brokerage_membership(self):
+        html = (ROOT / "index.html").read_text()
+        start = html.index('<script id="hof-seller-disclosure-draft-ui-v1">')
+        end = html.index('</script>', start)
+        script = html[start:end]
+        self.assertIn("membership?.status === 'active'", script)
+        self.assertIn("root.hofPlatform?.brokerage?.id || profile().brokerage_id", script)
+        self.assertIn("if (active()) refreshDrafts();", script)
+        self.assertIn("loadBrokerageFoundationWithSellerDisclosureDrafts", script)
+        self.assertIn("await renderCard();", script)
+
 
 if __name__ == "__main__":
     unittest.main()

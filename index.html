@@ -15406,7 +15406,14 @@ function routeAfterMagicLinkIfNeeded() {
   const root = window;
   const escape = value => String(value ?? '').replace(/[&<>"]/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[char]));
   const profile = () => root.hofAuth?.authoritativeProfile || {};
-  const active = () => !!root.hofAuth?.session?.user && String(profile().role || '').toLowerCase() !== 'investor';
+  const active = () => {
+    const role = String(root.hofAuth?.role || profile().role || '').toLowerCase();
+    const membership = root.hofPlatform?.brokerageMembership;
+    return !!root.hofAuth?.session?.user &&
+      !!(root.hofPlatform?.brokerage?.id || profile().brokerage_id) &&
+      membership?.status === 'active' &&
+      ['agent', 'broker', 'brokerage_admin', 'broker_admin', 'owner', 'team_lead'].includes(role);
+  };
   const responseGroups = [
     ['Property items', [
       ['range','Range'],['oven','Oven'],['microwave','Microwave'],['dishwasher','Dishwasher'],['trash_compactor','Trash Compactor'],['disposal','Disposal'],
@@ -15677,10 +15684,22 @@ function routeAfterMagicLinkIfNeeded() {
         button.disabled = false;
       }
     });
-    refreshDrafts();
+    if (active()) refreshDrafts();
   }
   const previous = root.renderAccountDashboard;
   root.renderAccountDashboard = function renderAccountDashboardWithSellerDisclosureDrafts() { if (typeof previous === 'function') previous.apply(this, arguments); renderCard(); };
+  // Brokerage context is loaded after the first account-dashboard render. Run
+  // the eligibility check again once that context is authoritative so active
+  // members see the private card, while inactive members never trigger its
+  // protected draft request.
+  const previousLoadBrokerageFoundation = root.loadBrokerageFoundation;
+  if (typeof previousLoadBrokerageFoundation === 'function') {
+    root.loadBrokerageFoundation = async function loadBrokerageFoundationWithSellerDisclosureDrafts() {
+      const result = await previousLoadBrokerageFoundation.apply(this, arguments);
+      await renderCard();
+      return result;
+    };
+  }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', renderCard, {once:true}); else renderCard();
 })();
 </script>
