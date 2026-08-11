@@ -2761,6 +2761,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         <option value="signwell">SignWell / signature issue</option>
         <option value="missing_addendum">Missing addendum or form</option>
         <option value="billing">Billing / subscription issue</option>
+        <option value="brokerage_access">Brokerage membership / access</option>
         <option value="crm_data">CRM / saved data issue</option>
         <option value="ai_review">AI offer review calibration</option>
         <option value="suggestion">Suggestion / improvement</option>
@@ -14677,10 +14678,17 @@ function routeAfterMagicLinkIfNeeded() {
         '</p><button type="button" class="brokerage-access-button" onclick="applyBrokerageSharedDefaults()">Use these in my profile</button>' +
         '<p id="brokerageDefaultsResult" class="brokerage-invite-result">This copies suggestions into your profile; it does not change an existing offer.</p></div>'
       : '';
+    const membershipRecoveryCard = membership?.status === 'active'
+      ? ''
+      : '<div class="platform-card"><h4>Brokerage access needs activation</h4>' +
+        '<p>Your individual HomeOfferFlow workspace and saved offers remain available. Brokerage-managed features and private source-gated drafts stay unavailable until your brokerage membership is activated.</p>' +
+        '<button type="button" class="brokerage-access-button" onclick="openBrokerageMembershipRequest()">Request brokerage activation</button>' +
+        '<p class="brokerage-invite-result">This sends a support request from your signed-in account. It does not change billing, roles, offers, or documents.</p></div>';
     el.innerHTML = '<div class="platform-card"><div class="ondemand-account-banner">' +
       '<h4>' + safe(name) + '</h4><p>Your HomeOfferFlow account is connected to this brokerage. ' +
       'Membership: <strong>' + safe(membership?.status || 'pending') + '</strong>.</p></div>' +
       '<p>Brokerage identity and permissions are managed by HomeOfferFlow—not editable from the browser.</p></div>' +
+      membershipRecoveryCard +
       agentDefaultsCard +
       (isBroker ? '<div class="platform-card" id="brokerSafeDashboard"><h4>Brokerage activity</h4><p>Loading privacy-limited agent activity…</p></div>' : '');
     if (!isBroker) return;
@@ -14835,6 +14843,24 @@ function routeAfterMagicLinkIfNeeded() {
       document.getElementById('brokerSafeDashboard').innerHTML =
         '<h4>Brokerage activity</h4><div class="platform-status err">' + safe(error.message) + '</div>';
     }
+  };
+
+  root.openBrokerageMembershipRequest = function openBrokerageMembershipRequest() {
+    if (typeof root.openBetaFeedback !== 'function') return;
+    root.openBetaFeedback();
+    setTimeout(() => {
+      const issue = document.getElementById('feedbackIssueType');
+      const title = document.getElementById('feedbackTitle');
+      const intro = document.querySelector('#feedbackModal .feedback-head p');
+      const message = document.getElementById('feedbackMessage');
+      if (issue) issue.value = 'brokerage_access';
+      if (title) title.textContent = 'Request Brokerage Activation';
+      if (intro) intro.textContent = 'Request activation for your existing brokerage connection. Do not include client, property, offer, or document details.';
+      if (message && !message.value) {
+        message.value = 'Please review and activate my brokerage membership. I understand this request does not change my billing, role, offers, or documents.';
+      }
+      message?.focus();
+    }, 0);
   };
 
   root.saveBrokerageFoundation = function saveBrokerageFoundation() {

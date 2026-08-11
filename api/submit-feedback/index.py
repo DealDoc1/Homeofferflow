@@ -22,6 +22,7 @@ ALLOWED_ISSUE_TYPES = {
     "signwell",
     "missing_addendum",
     "billing",
+    "brokerage_access",
     "crm_data",
     "ai_review",
     "suggestion",
