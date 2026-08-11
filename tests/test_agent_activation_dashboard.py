@@ -106,7 +106,7 @@ class AgentActivationDashboardTests(unittest.TestCase):
         script_end = HTML.index("</script>", script_start)
         script = HTML[script_start:script_end]
 
-        for action in ("profile", "new_offer", "offers", "resume", "subscribe"):
+        for action in ("profile", "new_offer", "offers", "resume", "subscribe", "reuse_terms"):
             self.assertRegex(script, rf"action === ['\"]{action}['\"]")
 
     def test_activation_actions_record_stage_and_primary_or_secondary_choice(self):
@@ -150,6 +150,17 @@ class AgentActivationDashboardTests(unittest.TestCase):
         self.assertIn('Create Next Offer', subscription)
         self.assertIn("remaining + ' packet'", subscription)
         self.assertIn("startAccountOffer()", subscription)
+
+    def test_repeat_activation_reuses_terms_without_reusing_client_or_property(self):
+        script_start = HTML.index('id="hof-agent-activation-v16-js"')
+        script_end = HTML.index("</script>", script_start)
+        script = HTML[script_start:script_end]
+
+        self.assertIn("function mostRecentOffer()", script)
+        self.assertIn("primary: 'Reuse Last Terms'", script)
+        self.assertIn("secondary: 'Create Fresh Offer'", script)
+        self.assertIn("state.key === 'repeat' ? 'reuse_terms'", script)
+        self.assertIn("root.reuseOfferTerms?.(offerId)", script)
 
     def test_legacy_demo_card_is_removed_by_final_dashboard_renderer(self):
         script_start = HTML.index('id="hof-agent-activation-v16-js"')
