@@ -224,7 +224,7 @@ def _partner_checkout_origin(headers):
 def _get_partner_lead_for_checkout(lead_id):
     query = urlencode({
         "id": f"eq.{lead_id}",
-        "select": "id,contact_email,partner_type,market_area,preferred_model,status,payment_status",
+        "select": "id,contact_email,partner_type,market_area,preferred_model,status,payment_status,stripe_checkout_session_id",
         "limit": "1",
     })
     headers = {"apikey": SUPABASE_SERVICE_ROLE_KEY, "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}"}
@@ -236,21 +236,52 @@ def _get_partner_lead_for_checkout(lead_id):
     return rows[0] if isinstance(rows, list) and rows else None
 
 
-def _mark_partner_checkout_started(lead_id, resume_token):
+def _open_stripe_checkout_url(session_id, stripe_secret_key):
+    """Return the URL only while Stripe still considers this Checkout open."""
+    if not session_id:
+        return None
+    with httpx.Client(timeout=15) as client:
+        response = client.get(
+            f"https://api.stripe.com/v1/checkout/sessions/{session_id}",
+            headers={"Authorization": f"Bearer {stripe_secret_key}"},
+        )
+    if response.status_code >= 300:
+        return None
+    session = response.json() if response.text else {}
+    if session.get("status") != "open":
+        return None
+    return session.get("url") or None
+
+
+def _claim_partner_checkout_session(lead_id, expected_session_id, resume_token, session_id):
+    """Atomically retain one active Checkout session per unpaid application."""
     headers = {
         "apikey": SUPABASE_SERVICE_ROLE_KEY,
         "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}",
         "Content-Type": "application/json",
-        "Prefer": "return=minimal",
+        "Prefer": "return=representation",
+    }
+    query = {
+        "id": f"eq.{lead_id}",
+        "payment_status": "neq.paid",
+        "stripe_checkout_session_id": (
+            f"eq.{expected_session_id}" if expected_session_id else "is.null"
+        ),
     }
     with httpx.Client(timeout=15) as client:
         response = client.patch(
-            f"{SUPABASE_URL}/rest/v1/hof_partner_leads?id=eq.{lead_id}",
+            f"{SUPABASE_URL}/rest/v1/hof_partner_leads?{urlencode(query)}",
             headers=headers,
-            json={"payment_status": "checkout_started", "checkout_resume_token": resume_token},
+            json={
+                "payment_status": "checkout_started",
+                "checkout_resume_token": resume_token,
+                "stripe_checkout_session_id": session_id,
+            },
         )
     if response.status_code >= 300:
         raise RuntimeError("Could not save the checkout state.")
+    rows = response.json() if response.text else []
+    return rows[0] if isinstance(rows, list) and rows else None
 
 
 def _mark_partner_checkout_returned(lead_id, resume_token):
@@ -349,6 +380,11 @@ def _create_partner_checkout(lead_id, headers):
     if lead.get("payment_status") == "paid":
         raise PermissionError("This partner application has already been paid.")
 
+    existing_session_id = lead.get("stripe_checkout_session_id") or ""
+    existing_url = _open_stripe_checkout_url(existing_session_id, stripe_secret_key)
+    if existing_url:
+        return existing_url
+
     tier = lead.get("preferred_model") or ""
     launch_price_id = os.environ.get(PRICE_ENV_BY_TIER.get(tier, ""), "")
     monthly_price_id = os.environ.get(MONTHLY_PRICE_ENV_BY_TIER.get(tier, ""), "")
@@ -390,7 +426,25 @@ def _create_partner_checkout(lead_id, headers):
     if response.status_code >= 400 or not result.get("url"):
         message = result.get("error", {}).get("message") if isinstance(result.get("error"), dict) else None
         raise RuntimeError(message or "Could not create Stripe Checkout.")
-    _mark_partner_checkout_started(lead_id, resume_token)
+    claimed = _claim_partner_checkout_session(
+        lead_id,
+        existing_session_id,
+        resume_token,
+        result.get("id") or "",
+    )
+    if not claimed:
+        # Another tab/device claimed the application first. Reuse that open
+        # session rather than exposing the partner to parallel subscriptions.
+        refreshed_lead = _get_partner_lead_for_checkout(lead_id)
+        if refreshed_lead and refreshed_lead.get("payment_status") == "paid":
+            raise PermissionError("This partner application has already been paid.")
+        replacement_url = _open_stripe_checkout_url(
+            (refreshed_lead or {}).get("stripe_checkout_session_id") or "",
+            stripe_secret_key,
+        )
+        if replacement_url:
+            return replacement_url
+        raise RuntimeError("Secure checkout was refreshed. Please try again.")
     return result["url"]
 
 

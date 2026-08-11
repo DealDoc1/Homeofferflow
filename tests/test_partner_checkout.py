@@ -140,7 +140,7 @@ class PartnerCheckoutTests(unittest.TestCase):
             "preferred_model": "monthly_placement",
             "contact_email": "partner@example.com",
             "status": "approved",
-        }), patch.object(partner_checkout, "_mark_partner_checkout_started") as mark_started, patch.object(partner_checkout.httpx, "Client", Client):
+        }), patch.object(partner_checkout, "_claim_partner_checkout_session", return_value={"id": "e35eace9-2760-4b11-a01a-07ee65f2744e"}) as claim_session, patch.object(partner_checkout.httpx, "Client", Client):
             result = partner_checkout._create_partner_checkout(
                 "e35eace9-2760-4b11-a01a-07ee65f2744e",
                 {"host": "www.homeofferflow.com", "x-forwarded-proto": "https"},
@@ -155,7 +155,37 @@ class PartnerCheckoutTests(unittest.TestCase):
         self.assertEqual(form["payment_method_collection"], "always")
         self.assertNotIn("cancel_at", form)
         self.assertIn("partner_resume_token=", form["cancel_url"])
-        mark_started.assert_called_once()
+        claim_session.assert_called_once()
+
+    def test_checkout_reuses_a_still_open_stripe_session_before_creating_another(self):
+        lead = {
+            "id": "e35eace9-2760-4b11-a01a-07ee65f2744e",
+            "preferred_model": "monthly_placement",
+            "contact_email": "partner@example.com",
+            "status": "approved",
+            "payment_status": "checkout_started",
+            "stripe_checkout_session_id": "cs_open",
+        }
+        with patch.object(partner_checkout, "_get_partner_lead_for_checkout", return_value=lead), \
+             patch.object(partner_checkout, "_open_stripe_checkout_url", return_value="https://checkout.stripe.test/open"), \
+             patch.object(partner_checkout, "_claim_partner_checkout_session") as claim_session:
+            result = partner_checkout._create_partner_checkout(lead["id"], {"host": "www.homeofferflow.com"})
+        self.assertEqual(result, "https://checkout.stripe.test/open")
+        claim_session.assert_not_called()
+
+    def test_checkout_session_claim_requires_same_unpaid_row_and_returns_claimed_row(self):
+        Client.requests = []
+        with patch.object(partner_checkout.httpx, "Client", Client):
+            claimed = partner_checkout._claim_partner_checkout_session(
+                "e35eace9-2760-4b11-a01a-07ee65f2744e", None,
+                "e35eace9-2760-4b11-a01a-07ee65f2744e", "cs_new",
+            )
+        request = Client.requests[0]
+        self.assertEqual(request[0], "patch")
+        self.assertIn("payment_status=neq.paid", request[1])
+        self.assertIn("stripe_checkout_session_id=is.null", request[1])
+        self.assertEqual(request[2]["json"]["stripe_checkout_session_id"], "cs_new")
+        self.assertIsNone(claimed)
 
     def test_checkout_return_requires_matching_lead_and_nonce(self):
         Client.requests = []
