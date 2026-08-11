@@ -5291,9 +5291,21 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     const signwellStatus =
       state.data.signwell?.response?.status ||
       state.data.signwell?.status ||
+      state.data.signwellStatus ||
       '';
 
     const nowIso = new Date().toISOString();
+    // Autosave is a draft-editing convenience, not a packet-state transition.
+    // A resumed generated offer retains its buyer-side signing history until a
+    // deliberate generation attempt changes that state.
+    const existingGeneratedAt = state.data.generatedAt || state.data.generated_at || null;
+    const hasGeneratedPacket = Boolean(
+      existingGeneratedAt || signwellDocumentId || state.data.signwell_document_id
+    );
+    const persistedStatus = status === 'Draft' && hasGeneratedPacket ? 'Generated' : status;
+    const persistedGeneratedAt = persistedStatus === 'Generated'
+      ? (existingGeneratedAt || nowIso)
+      : null;
 
     const payload = {
       user_id: user.id,
@@ -5327,8 +5339,8 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       escrow_agent: escrowAgent || null,
       signwell_document_id: signwellDocumentId || null,
       signwell_status: signwellStatus || null,
-      generated_at: status === 'Generated' ? (state.data.generatedAt || nowIso) : null,
-      status,
+      generated_at: persistedGeneratedAt,
+      status: persistedStatus,
       offer_data: {
         ...(state.data || {}),
         buyerEmail,
@@ -5349,7 +5361,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         financingType,
         signwellDocumentId,
         signwellStatus,
-        generatedAt: status === 'Generated' ? (state.data.generatedAt || nowIso) : (state.data.generatedAt || null),
+        generatedAt: persistedGeneratedAt || existingGeneratedAt,
         _hofOfferId: state.data._hofOfferId || null,
         _savedFromDashboard: true
       },
