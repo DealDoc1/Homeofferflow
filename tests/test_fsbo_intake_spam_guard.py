@@ -21,6 +21,11 @@ class FsboIntakeSpamGuardTests(unittest.TestCase):
         self.assertIn("timedelta(hours=24)", API)
         self.assertIn('"duplicate": True', API)
 
+    def test_server_canonicalizes_the_supported_seller_package_catalog(self):
+        self.assertIn("FSBO_PACKAGE_CATALOG", API)
+        self.assertIn("Choose a supported seller package.", API)
+        self.assertIn("package_name, package_price = FSBO_PACKAGE_CATALOG[service_level]", API)
+
 
 if __name__ == "__main__":
     unittest.main()
