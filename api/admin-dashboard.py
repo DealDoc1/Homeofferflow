@@ -3443,6 +3443,20 @@ class handler(BaseHTTPRequestHandler):
             activation_action_count = len([
                 item for item in events if item.get("event_type") == "agent_activation_action"
             ])
+            activation_primary_action_count = 0
+            activation_secondary_action_count = 0
+            activation_actions_by_stage = {}
+            for item in events:
+                if item.get("event_type") != "agent_activation_action":
+                    continue
+                metadata = item.get("metadata") or {}
+                control = str(metadata.get("control") or "unknown").strip().lower()
+                if control == "primary":
+                    activation_primary_action_count += 1
+                elif control == "secondary":
+                    activation_secondary_action_count += 1
+                stage = str(metadata.get("activationKey") or "unattributed").strip().lower()[:40] or "unattributed"
+                activation_actions_by_stage[stage] = activation_actions_by_stage.get(stage, 0) + 1
             activation_follow_up_email_start_count = len([
                 item for item in events if item.get("event_type") == "activation_follow_up_email_started"
             ])
@@ -3669,6 +3683,9 @@ class handler(BaseHTTPRequestHandler):
                 "activationActionCount": activation_action_count,
                 "activationActionRate": round((activation_action_count / activation_dashboard_view_count) * 100)
                 if activation_dashboard_view_count else 0,
+                "activationPrimaryActionCount": activation_primary_action_count,
+                "activationSecondaryActionCount": activation_secondary_action_count,
+                "activationActionsByStage": activation_actions_by_stage,
                 "activationFollowUpEmailStartCount": activation_follow_up_email_start_count,
                 "brokerageActivationFollowUpEmailStartCount": brokerage_activation_follow_up_email_start_count,
                 "activationMilestoneCounts": activation_milestone_counts,

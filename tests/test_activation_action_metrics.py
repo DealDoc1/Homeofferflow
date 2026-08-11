@@ -11,12 +11,17 @@ class ActivationActionMetricTests(unittest.TestCase):
         self.assertIn('"activationDashboardViewCount"', source)
         self.assertIn('"activationActionCount"', source)
         self.assertIn('"activationActionRate"', source)
+        self.assertIn('"activationPrimaryActionCount"', source)
+        self.assertIn('"activationSecondaryActionCount"', source)
+        self.assertIn('"activationActionsByStage"', source)
 
     def test_admin_dashboard_surfaces_activation_action_rate(self):
         source = (ROOT / "index.html").read_text(encoding="utf-8")
         self.assertIn('Activation Action Rate', source)
         self.assertIn('activationActionCount', source)
         self.assertIn('activationDashboardViewCount', source)
+        self.assertIn('activationPrimaryActionCount', source)
+        self.assertIn('activationActionsByStage', source)
 
 
 if __name__ == "__main__":
