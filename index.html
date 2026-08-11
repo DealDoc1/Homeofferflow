@@ -12439,6 +12439,10 @@ function routeAfterMagicLinkIfNeeded() {
     const hasDoc = !!(o.signwell_document_id || d.signwellDocumentId || d.signwell?.document_id || d.signwell?.response?.id);
     if (status.includes('buyer signed') || status.includes('signed') || status.includes('complete')) return 'signed';
     if (status.includes('awaiting') || status.includes('sent') || status.includes('viewed') || status.includes('partial')) return 'signing';
+    // A SignWell document in Created is already a recipient-facing signing
+    // request. Treating it as merely generated hid real follow-up work until
+    // a later manual refresh changed the provider label.
+    if (status.includes('created') && hasDoc) return 'signing';
     if (status.includes('generated') || status.includes('created') || hasDoc) return 'generated';
     if (status.includes('delete') || status.includes('expired') || status.includes('declined')) return 'inactive';
     return 'draft';
