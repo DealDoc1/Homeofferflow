@@ -4786,13 +4786,15 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     const statusLabel = status.replace('_', ' ');
     const role = hofAuth.role === 'investor' ? 'investor' : 'agent';
 
-    const isPaid = ['active', 'trialing', 'free_admin'].includes(status);
+    const isInternalAdminAccess = status === 'free_admin';
+    const isPaid = ['active', 'trialing'].includes(status);
+    const hasActiveAccess = isPaid || isInternalAdminAccess;
     const isBlocked = ['past_due', 'canceled', 'incomplete', 'incomplete_expired', 'unpaid', 'paused'].includes(status);
     const billingRecoveryNeeded = status === 'past_due' || status === 'incomplete' || status === 'incomplete_expired' || status === 'unpaid' || status === 'paused';
     const good = subscriptionAllowsGeneration(sub) && (!usageAvailable || used < limit);
     const remaining = Math.max(0, limit - used);
-    const nearLimit = usageAvailable && isPaid && good && pct >= 80;
-    const usageExhausted = usageAvailable && isPaid && !good && used >= limit;
+    const nearLimit = usageAvailable && hasActiveAccess && good && pct >= 80;
+    const usageExhausted = usageAvailable && hasActiveAccess && !good && used >= limit;
     try {
       const awarenessKey = `hof_usage_awareness_${usage.billingMonth || getBillingMonth()}_${nearLimit ? 'near_limit' : usageExhausted ? 'exhausted' : 'normal'}`;
       if ((nearLimit || usageExhausted) && !sessionStorage.getItem(awarenessKey)) {
@@ -4808,7 +4810,19 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 
     let actionHtml = '';
 
-    if (isPaid) {
+    if (isInternalAdminAccess) {
+      actionHtml =
+        '<div class="account-actions-row" style="margin-top:0.85rem;">' +
+          (good ? '<button class="btn-primary" type="button" onclick="startAccountOffer()">Create Next Offer</button>' : '') +
+        '</div>' +
+        '<div style="margin-top:0.55rem; color:var(--gray); font-size:0.74rem; line-height:1.45;">' +
+          (good
+            ? (usageAvailable
+              ? ('Your internal platform access is active. ' + remaining + ' packet' + (remaining === 1 ? '' : 's') + ' remain this month.')
+              : 'Your internal platform access is active, but current packet usage could not be loaded. Refresh usage before relying on the meter; the server will verify access again before packet generation.')
+            : 'This internal access allowance is used for the month. Contact platform support before generating another packet.') +
+        '</div>';
+    } else if (isPaid) {
       actionHtml =
         '<div class="account-actions-row" style="margin-top:0.85rem;">' +
           (good ? '<button class="btn-primary" type="button" onclick="startAccountOffer()">Create Next Offer</button>' : '') +
@@ -4848,7 +4862,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       <div class="subscription-top">
         <div>
           <div style="font-size:0.72rem; color:var(--gold-light); font-weight:900; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:0.25rem;">
-            ${isPaid ? 'Subscription' : isBlocked ? 'Subscription Attention Needed' : 'Beta Subscription'}
+            ${isInternalAdminAccess ? 'Platform Access' : isPaid ? 'Subscription' : isBlocked ? 'Subscription Attention Needed' : 'Beta Subscription'}
           </div>
           <div class="subscription-plan">${escapeAttr(getPlanLabel(sub.plan, sub.status))}</div>
         </div>
@@ -4865,8 +4879,8 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           : `Usage is temporarily unavailable for ${escapeAttr(usage.billingMonth || getBillingMonth())}. <button class="btn-secondary" type="button" style="margin-left:.35rem" onclick="loadCurrentUsage()">Refresh usage</button> The server will verify your current allowance before packet generation.`}
       </div>
 
-      ${nearLimit ? '<div class="notice gold" style="margin-top:.7rem;font-size:.76rem;line-height:1.45;"><strong>Almost at this month’s packet limit.</strong> You have ' + remaining + ' packet' + (remaining === 1 ? '' : 's') + ' left. Finish urgent client work, then review billing options before access pauses. <button class="btn-secondary" type="button" style="margin-top:.45rem" onclick="openBillingPortal(\'usage_near_limit\')">Review Manage Billing</button></div>' : ''}
-      ${usageExhausted ? '<div class="notice gold" style="margin-top:.7rem;font-size:.76rem;line-height:1.45;"><strong>Monthly packet allowance used.</strong> Manage billing to review access options, then return here to continue the workflow. <button class="btn-secondary" type="button" style="margin-top:.45rem" onclick="openBillingPortal(\'usage_exhausted\')">Manage Billing</button></div>' : ''}
+      ${nearLimit ? '<div class="notice gold" style="margin-top:.7rem;font-size:.76rem;line-height:1.45;"><strong>Almost at this month’s packet limit.</strong> You have ' + remaining + ' packet' + (remaining === 1 ? '' : 's') + ' left. ' + (isInternalAdminAccess ? 'Finish urgent work, then contact platform support before access pauses.' : 'Finish urgent client work, then review billing options before access pauses. <button class="btn-secondary" type="button" style="margin-top:.45rem" onclick="openBillingPortal(\'usage_near_limit\')">Review Manage Billing</button>') + '</div>' : ''}
+      ${usageExhausted ? '<div class="notice gold" style="margin-top:.7rem;font-size:.76rem;line-height:1.45;"><strong>Monthly packet allowance used.</strong> ' + (isInternalAdminAccess ? 'Contact platform support before generating another packet.' : 'Manage billing to review access options, then return here to continue the workflow. <button class="btn-secondary" type="button" style="margin-top:.45rem" onclick="openBillingPortal(\'usage_exhausted\')">Manage Billing</button>') + '</div>' : ''}
 
       ${actionHtml}
     `;
