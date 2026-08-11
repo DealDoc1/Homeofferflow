@@ -30,6 +30,13 @@ class OfferWorkspaceSigningRecoveryTests(unittest.TestCase):
             bucket.index("if (status.includes('generated') || status.includes('created') || hasDoc) return 'generated';"),
         )
 
+    def test_pending_signwell_documents_are_treated_as_awaiting_signatures(self):
+        status = HTML[HTML.index("function getOfferBestStatus"):HTML.index("function getOfferSigningBucket")]
+        self.assertIn("compact.includes('pending')", status)
+        self.assertIn("if (compact.includes('pending')) return 'Awaiting Buyer Signature';", HTML)
+        api = (Path(__file__).resolve().parents[1] / "api" / "signwell-status.js").read_text(encoding="utf-8")
+        self.assertIn("if (compact.includes('pending')) return 'Awaiting Buyer Signature';", api)
+
     def test_admin_dashboard_surfaces_only_an_aggregate_reminder_adoption_signal(self):
         backend = (Path(__file__).resolve().parents[1] / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
         self.assertIn("buyer_signing_reminder_copied_count", backend)
