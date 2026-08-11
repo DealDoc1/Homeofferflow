@@ -20,6 +20,16 @@ class OfferWorkspaceSigningRecoveryTests(unittest.TestCase):
         self.assertNotIn("fetch('/api/", reminder)
         self.assertNotIn("mailto:", reminder)
 
+    def test_created_signwell_documents_are_immediately_treated_as_signing_work(self):
+        start = HTML.index("function bucketForOffer(o)")
+        end = HTML.index("function signingLabel(o)", start)
+        bucket = HTML[start:end]
+        self.assertIn("if (status.includes('created') && hasDoc) return 'signing';", bucket)
+        self.assertLess(
+            bucket.index("if (status.includes('created') && hasDoc) return 'signing';"),
+            bucket.index("if (status.includes('generated') || status.includes('created') || hasDoc) return 'generated';"),
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
