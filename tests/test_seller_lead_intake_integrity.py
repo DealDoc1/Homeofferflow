@@ -9,6 +9,9 @@ MIGRATION = (
 PACKAGE_MIGRATION = (
     ROOT / "supabase/migrations/20260808190000_seller_lead_package_context.sql"
 ).read_text(encoding="utf-8")
+ATTRIBUTION_MIGRATION = (
+    ROOT / "supabase/migrations/20260811141327_seller_lead_campaign_attribution.sql"
+).read_text(encoding="utf-8")
 INDEX = (ROOT / "index.html").read_text(encoding="utf-8")
 API = (ROOT / "api/fsbo-lead.py").read_text(encoding="utf-8")
 ADMIN_API = (ROOT / "api/admin-dashboard.py").read_text(encoding="utf-8")
@@ -66,6 +69,23 @@ class SellerLeadIntakeIntegrityTests(unittest.TestCase):
         self.assertIn("admin-contact-action", INDEX)
         self.assertIn("mailto:${encodeURIComponent(email)}", INDEX)
         self.assertIn("tel:${encodeURIComponent(phone)}", INDEX)
+
+    def test_campaign_attribution_is_limited_to_standard_utm_fields(self):
+        for marker in (
+            "source",
+            "utm_source",
+            "utm_medium",
+            "utm_campaign",
+            "utm_content",
+        ):
+            self.assertIn(marker, ATTRIBUTION_MIGRATION)
+            self.assertIn(marker, API)
+            self.assertIn(marker, ADMIN_API)
+        self.assertIn("hof_seller_leads_source_allowed", ATTRIBUTION_MIGRATION)
+        self.assertIn("hof_seller_leads_source_created_at_idx", ATTRIBUTION_MIGRATION)
+        self.assertIn("new URLSearchParams(window.location.search)", INDEX)
+        self.assertNotIn("add column if not exists landing_page", ATTRIBUTION_MIGRATION)
+        self.assertNotIn("add column if not exists referrer", ATTRIBUTION_MIGRATION)
 
 
 if __name__ == "__main__":

@@ -4098,6 +4098,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         const canUpdate = /^[0-9a-f-]{36}$/i.test(leadId);
         const location = [row.property_city, row.property_state, row.property_zip].filter(Boolean).join(', ');
         const partners = Array.isArray(row.partner_categories) ? row.partner_categories.join(', ') : '';
+        const campaign = [row.utm_source, row.utm_medium, row.utm_campaign, row.utm_content].filter(Boolean).join(' · ');
         const email = String(row.seller_email || '').trim();
         const phone = String(row.seller_phone || '').trim();
         const contactActions = [
@@ -4108,7 +4109,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         return `<div class="admin-row">
           <div><strong>${adminSafe(row.seller_name || 'Seller lead')}</strong><div class="admin-muted">${adminSafe(email)} · ${adminSafe(phone)}</div>${contactActions ? `<div class="partner-lead-admin-actions">${contactActions}</div>` : ''}</div>
           <div><strong>${adminSafe(row.package_name || row.service_level || 'Seller intake')}</strong><div class="admin-muted">${adminSafe(location || row.property_address || '')}</div></div>
-          <div><span class="admin-pill ${status === 'converted' ? 'good' : status === 'archived' ? '' : 'warn'}">${adminSafe(sellerLeadUrgency(row))}</span><div class="admin-muted">${adminSafe(sellerLeadAgeLabel(row))} · ${adminSafe(row.timeline || 'timeline not set')}${partners ? ` · ${adminSafe(partners)}` : ''}</div></div>
+          <div><span class="admin-pill ${status === 'converted' ? 'good' : status === 'archived' ? '' : 'warn'}">${adminSafe(sellerLeadUrgency(row))}</span><div class="admin-muted">${adminSafe(sellerLeadAgeLabel(row))} · ${adminSafe(row.timeline || 'timeline not set')}${partners ? ` · ${adminSafe(partners)}` : ''}${campaign ? ` · Campaign: ${adminSafe(campaign)}` : ''}</div></div>
           <div>${adminDate(row.created_at)}${canUpdate ? `<div class="partner-lead-admin-actions"><select id="sellerLeadStatus-${leadId}" aria-label="Review status for ${adminSafe(row.seller_name || 'seller lead')}">${sellerLeadStatusOptions(status)}</select><button id="sellerLeadSave-${leadId}" type="button" onclick="updateSellerLeadStatus('${leadId}')">Save</button></div>` : ''}</div>
         </div>`;
       }
@@ -11098,6 +11099,7 @@ function routeAfterMagicLinkIfNeeded() {
   window.submitFsboSellerLead = async function(){
     const status = document.getElementById('fsboSellerStatus');
     const submitButton = document.getElementById('fsboSellerSubmit');
+    const campaignQuery = new URLSearchParams(window.location.search);
     const payload = {
       seller_type: 'fsbo',
       property_address: fsboVal('fsboPropertyAddress'),
@@ -11113,6 +11115,10 @@ function routeAfterMagicLinkIfNeeded() {
       seller_name: fsboVal('fsboSellerName'),
       seller_email: fsboVal('fsboSellerEmail'),
       seller_phone: fsboVal('fsboSellerPhone'),
+      utm_source: campaignQuery.get('utm_source') || '',
+      utm_medium: campaignQuery.get('utm_medium') || '',
+      utm_campaign: campaignQuery.get('utm_campaign') || '',
+      utm_content: campaignQuery.get('utm_content') || '',
       asking_price: fsboVal('fsboAskingPrice') ? Number(fsboVal('fsboAskingPrice')) : null,
       notes: [
         (fsboNeedCopy[fsboVal('fsboNeed')]?.title || fsboVal('fsboNeed')) + ' (' + (fsboVal('fsboPackagePrice') || fsboNeedCopy[fsboVal('fsboNeed')]?.price || '$0') + ')',

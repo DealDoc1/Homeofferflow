@@ -79,6 +79,26 @@ def _text(value, max_len=500):
     return value[:max_len] if value else None
 
 
+def _campaign_text(value, max_len):
+    """Normalize standard UTM values without retaining arbitrary URL content."""
+    value = _text(value, max_len)
+    if not value:
+        return None
+    value = re.sub(r"[^A-Za-z0-9._ -]", "", value)
+    return _text(value, max_len)
+
+
+def _seller_campaign_payload(data):
+    campaign = {
+        "utm_source": _campaign_text(data.get("utm_source"), 120),
+        "utm_medium": _campaign_text(data.get("utm_medium"), 120),
+        "utm_campaign": _campaign_text(data.get("utm_campaign"), 160),
+        "utm_content": _campaign_text(data.get("utm_content"), 160),
+    }
+    campaign["source"] = "tracked_seller_landing" if any(campaign.values()) else "website_fsbo_intake"
+    return campaign
+
+
 def _money(value):
     try:
         if value is None or value == '':
@@ -447,6 +467,7 @@ class handler(BaseHTTPRequestHandler):
             package_name = _text(data.get('package_name'), 180) or 'Free Seller Intake'
             package_price = _text(data.get('package_price'), 80) or '$0'
             timeline = _text(data.get('timeline'), 80) or 'not_sure'
+            campaign = _seller_campaign_payload(data)
 
             payload = {
                 'seller_type': 'fsbo',
@@ -466,6 +487,7 @@ class handler(BaseHTTPRequestHandler):
                 'package_price': package_price,
                 'timeline': timeline,
                 'partner_categories': partner_categories,
+                **campaign,
                 'notes': _text(data.get('notes'), 1500),
                 'status': _text(data.get('status'), 80) or 'new',
                 'created_at': datetime.now(timezone.utc).isoformat(),
