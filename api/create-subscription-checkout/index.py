@@ -143,7 +143,7 @@ class handler(BaseHTTPRequestHandler):
                     409,
                     {
                         "error": (
-                            "This account already has an active or trialing subscription. "
+                            "This account already has a subscription that can be recovered. "
                             "Open HomeOfferFlow billing instead of starting a duplicate plan."
                         )
                     },
@@ -319,7 +319,12 @@ class handler(BaseHTTPRequestHandler):
                 f"{SUPABASE_URL}/rest/v1/hof_subscriptions",
                 params={
                     "user_id": f"eq.{user_id}",
-                    "status": "in.(active,trialing,free_admin)",
+                    # A past-due or otherwise payable subscription belongs in
+                    # Stripe's billing portal. Starting a second Checkout
+                    # subscription here can create duplicate billing state.
+                    # Canceled and expired subscriptions are deliberately not
+                    # included so a former customer can choose a new plan.
+                    "status": "in.(active,trialing,free_admin,past_due,incomplete,unpaid,paused)",
                     "select": "id",
                     "limit": "1",
                 },

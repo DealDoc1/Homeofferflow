@@ -155,6 +155,12 @@ class SubscriptionLifecycleSecurityTests(unittest.TestCase):
         self.assertEqual(captured["code"], 401)
         self.assertIsNone(CheckoutStripeClient.last_post)
 
+    def test_checkout_blocks_payable_existing_subscription_statuses(self):
+        source = CHECKOUT_PATH.read_text(encoding="utf-8")
+        self.assertIn("in.(active,trialing,free_admin,past_due,incomplete,unpaid,paused)", source)
+        self.assertNotIn("in.(active,trialing,free_admin,past_due,incomplete,unpaid,paused,canceled)", source)
+        self.assertIn("subscription that can be recovered", source)
+
     def test_standard_checkout_uses_identity_from_verified_session(self):
         request, captured = self._checkout_request(
             {"plan": "agent", "billing": "monthly", "email": "attacker@example.com", "userId": "attacker-id"}
