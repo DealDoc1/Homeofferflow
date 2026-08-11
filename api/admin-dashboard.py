@@ -3240,6 +3240,20 @@ class handler(BaseHTTPRequestHandler):
                 if str(lead.get("payment_status") or "").lower() == "paid"
                 and (lead.get("onboarding_completed_at") or str(lead.get("onboarding_status") or "").lower() in {"complete", "completed"})
             ])
+            # A paid partner cannot complete setup without a current hashed
+            # setup token. Count only this operational gap; never return the
+            # token, its hash, expiry timestamp, or partner contact details.
+            now = datetime.now(timezone.utc)
+            partner_onboarding_access_missing_count = len([
+                lead for lead in partner_leads
+                if str(lead.get("payment_status") or "").lower() == "paid"
+                and str(lead.get("onboarding_status") or "").lower() in {"ready", "in_progress"}
+                and (
+                    not lead.get("onboarding_token_hash")
+                    or not (expires_at := _parse_timestamp(lead.get("onboarding_token_expires_at")))
+                    or expires_at <= now
+                )
+            ])
             paid_partner_agreement_confirmed_count = len([
                 lead for lead in partner_leads
                 if str(lead.get("payment_status") or "").lower() == "paid"
@@ -3657,6 +3671,7 @@ class handler(BaseHTTPRequestHandler):
                 "partnerOnboardingReadyCount": partner_onboarding_ready_count,
                 "partnerOnboardingInProgressCount": partner_onboarding_in_progress_count,
                 "partnerOnboardingCompletedCount": partner_onboarding_completed_count,
+                "partnerOnboardingAccessMissingCount": partner_onboarding_access_missing_count,
                 "partnerOnboardingCompletionRate": round(
                     (partner_onboarding_completed_count / paid_partner_lead_count) * 100, 1
                 ) if paid_partner_lead_count else 0,
