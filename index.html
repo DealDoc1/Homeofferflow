@@ -12537,6 +12537,7 @@ function routeAfterMagicLinkIfNeeded() {
     const sub = subtitle(o) || [o.property_city || d.propCity, o.property_state || d.propState].filter(Boolean).join(', ');
     const role = o.role || d.userType || root.hofAuth?.role || 'agent';
     const hasDoc = !!(o.signwell_document_id || d.signwellDocumentId || d.signwell?.document_id || d.signwell?.response?.id);
+    const needsBuyerReminder = hasDoc && bucketForOffer(o) === 'signing' && needsAttention(o);
     const tags = addendaTags(d).map(([t,c]) => `<span class="${c}">${esc(t)}</span>`).join('');
     const meta = root.getOfferPacketMeta ? root.getOfferPacketMeta(o) : [];
     return `<article class="offer-workspace-card" data-offer-status="${esc(bucketForOffer(o))}">
@@ -12564,6 +12565,7 @@ function routeAfterMagicLinkIfNeeded() {
         <button class="offer-action-btn" type="button" onclick="reuseOfferTerms('${esc(o.id)}')">Reuse terms</button>
         <button class="offer-action-btn" type="button" onclick="duplicateOffer('${esc(o.id)}', false, true)">Duplicate &amp; edit</button>
         ${hasDoc ? `<button class="offer-action-btn" type="button" onclick="refreshSignWellStatus('${esc(o.id)}', this)">Refresh</button>` : `<button class="offer-action-btn" type="button" onclick="viewOfferDetails('${esc(o.id)}')">Status</button>`}
+        ${needsBuyerReminder ? `<button class="offer-action-btn" type="button" onclick="copyBuyerSigningReminder('${esc(o.id)}')">Copy buyer reminder</button>` : ''}
         <button class="offer-action-btn danger" type="button" onclick="deleteOffer('${esc(o.id)}')">Delete</button>
       </div>
     </article>`;
@@ -12677,6 +12679,25 @@ function routeAfterMagicLinkIfNeeded() {
     if (!offers.length) { alert('No saved offers to reuse yet.'); return; }
     if (typeof root.reuseOfferTerms === 'function') root.reuseOfferTerms(offers[0].id);
   };
+  root.copyBuyerSigningReminder = async function(offerId){
+    const offer = (state.offers || []).find(item => String(item?.id) === String(offerId));
+    if (!offer) { alert('This offer is no longer available in your workspace. Refresh offers and try again.'); return; }
+    const d = offer.offer_data || {};
+    const buyer = offer.buyer_name || d.buyerName || [d.buyer1First, d.buyer1Last].filter(Boolean).join(' ') || 'there';
+    const property = offer.property_address || d.propertyAddress || d.propAddress || 'your offer';
+    const reminder = `Hi ${buyer}, this is a reminder that your HomeOfferFlow buyer-side signing request for ${property} is still awaiting completion. Please check your inbox and spam folder for the SignWell email, review the packet carefully, and complete only if the terms are still correct. If you cannot find the email or need a change, reply before signing.`;
+    try {
+      if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(reminder);
+      else window.prompt('Copy this buyer signing reminder:', reminder);
+      await root.logOfferEvent?.(offer.id, 'buyer_signing_reminder_copied', 'copied', 'Buyer signing reminder copied from the offer workspace.', {
+        source: 'offer_workspace',
+        signingStatus: cleanStatus(offer)
+      });
+      alert('Buyer signing reminder copied. Review it before sending through your approved communication channel.');
+    } catch (error) {
+      window.prompt('Copy this buyer signing reminder:', reminder);
+    }
+  };
 
   root.hofRenderOfferWorkspaceV10 = renderWorkspace;
   root.renderMyOffers = renderWorkspace;
@@ -12748,6 +12769,7 @@ function routeAfterMagicLinkIfNeeded() {
           <button class="offer-action-btn" type="button" onclick="reuseOfferTerms('${esc(offer.id)}')">Reuse terms</button>
           <button class="offer-action-btn" type="button" onclick="duplicateOffer('${esc(offer.id)}', false, true)">Duplicate &amp; edit</button>
           ${offer.signwell_document_id ? `<button class="offer-action-btn" type="button" onclick="refreshSignWellStatus('${esc(offer.id)}', this)">Refresh SignWell</button>` : ''}
+          ${b === 'signing' ? `<button class="offer-action-btn" type="button" onclick="copyBuyerSigningReminder('${esc(offer.id)}')">Copy buyer reminder</button>` : ''}
           <button class="offer-action-btn danger" type="button" onclick="closeOfferDetail()">Close</button>
         </div>`;
     } catch (err) {
