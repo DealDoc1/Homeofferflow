@@ -3869,7 +3869,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       ? `Thanks for partnering with HomeOfferFlow. Let’s ${activationStage}: https://homeofferflow.com/?partner=1`
       : `Following up on your HomeOfferFlow partner application. We can ${activationStage}: https://homeofferflow.com/?partner=1`;
     const eventMetadata = adminEventMetadata({ paid, onboarding, activationStage, surface: 'admin' });
-    const onboardingButton = paid ? ` <button type="button" class="admin-contact-action" onclick="copyPartnerOnboardingLink('${adminSafe(row.id, '')}')">Copy setup link</button>` : '';
+    const onboardingButton = paid ? ` <button type="button" class="admin-contact-action" onclick="copyPartnerOnboardingLink('${adminSafe(row.id, '')}')">Copy setup link</button><button type="button" class="admin-contact-action" onclick="emailPartnerOnboardingLink('${adminSafe(row.id, '')}')">Email setup link</button>` : '';
     return `<a class="admin-contact-action" href="mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}" onclick='logOfferEvent(null, "partner_follow_up_email_started", "started", "Partner follow-up email opened.", ${eventMetadata})'>Email partner</a>${onboardingButton}`;
   }
 
@@ -3888,6 +3888,24 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       await loadAdminDashboard(true);
     } catch (err) {
       alert(err?.message || 'Could not copy partner setup link.');
+    }
+  }
+
+  async function emailPartnerOnboardingLink(leadId) {
+    if (!leadId || !hofAuth?.session?.access_token) return;
+    try {
+      const response = await fetch('/api/admin-dashboard', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${hofAuth.session.access_token}`},
+        body: JSON.stringify({action: 'email_partner_onboarding_link', lead_id: leadId})
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || result?.onboarding?.delivery !== 'sent') throw new Error(result.error || 'Could not email onboarding access.');
+      logOfferEvent(null, 'partner_onboarding_email_sent', 'sent', 'Partner setup email sent by a platform admin.', { surface: 'admin' });
+      alert('A fresh secure partner setup link was emailed. It expires in 14 days and does not activate public placement.');
+      await loadAdminDashboard(true);
+    } catch (err) {
+      alert(err?.message || 'Could not email onboarding access.');
     }
   }
 
