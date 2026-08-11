@@ -162,6 +162,16 @@ class AgentActivationDashboardTests(unittest.TestCase):
         self.assertIn("state.key === 'repeat' ? 'reuse_terms'", script)
         self.assertIn("root.reuseOfferTerms?.(offerId)", script)
 
+    def test_resume_activation_chooses_the_most_recent_draft(self):
+        script_start = HTML.index('id="hof-agent-activation-v16-js"')
+        script_end = HTML.index("</script>", script_start)
+        script = HTML[script_start:script_end]
+        draft_start = script.index("function draftOffer()")
+        draft_end = script.index("function mostRecentOffer()", draft_start)
+        draft = script[draft_start:draft_end]
+        self.assertIn("offers().filter", draft)
+        self.assertIn("return bUpdated - aUpdated", draft)
+
     def test_legacy_demo_card_is_removed_by_final_dashboard_renderer(self):
         script_start = HTML.index('id="hof-agent-activation-v16-js"')
         script_end = HTML.index("</script>", script_start)
