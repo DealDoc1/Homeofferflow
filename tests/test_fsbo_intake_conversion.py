@@ -58,6 +58,16 @@ class FsboIntakeConversionTests(unittest.TestCase):
         self.assertNotIn("seller_email", card)
         self.assertNotIn("property_address", card)
 
+    def test_shared_seller_url_opens_the_same_intake_without_identity_in_the_url(self):
+        self.assertIn("params().get('seller') === '1'", HTML)
+        self.assertIn("window.setAudience?.('fsbo');", HTML)
+        self.assertIn("window.openFsboSellerModal?.();", HTML)
+        routing_start = HTML.index("params().get('seller') === '1'")
+        routing_end = HTML.index("if (params().get('partner_onboarding'))", routing_start)
+        routing = HTML[routing_start:routing_end]
+        self.assertNotIn("seller_email", routing)
+        self.assertNotIn("property_address", routing)
+
 
 if __name__ == "__main__":
     unittest.main()
