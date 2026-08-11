@@ -45,6 +45,19 @@ class FsboIntakeConversionTests(unittest.TestCase):
         self.assertIn("function(key, shouldTrack = true)", HTML)
         self.assertIn("if (shouldTrack) trackFsboFunnel", HTML)
 
+    def test_audience_card_routes_sellers_directly_to_the_minimum_field_intake(self):
+        self.assertIn('href="?seller=1"', HTML)
+        self.assertIn("FSBO Seller Card CTA Selected", HTML)
+        self.assertIn("surface: 'audience_grid'", HTML)
+        self.assertIn("setAudience('fsbo'); trackEvent('FSBO Seller Card CTA Selected'", HTML)
+        self.assertIn("openFsboSellerModal();", HTML)
+        self.assertIn("Start free — address + email", HTML)
+        card_start = HTML.index("FSBO Seller Card CTA Selected")
+        card_end = HTML.index("</a>", card_start)
+        card = HTML[card_start:card_end]
+        self.assertNotIn("seller_email", card)
+        self.assertNotIn("property_address", card)
+
 
 if __name__ == "__main__":
     unittest.main()
