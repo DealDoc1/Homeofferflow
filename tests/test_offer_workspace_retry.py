@@ -18,7 +18,8 @@ class OfferWorkspaceRetryTests(unittest.TestCase):
         self.assertIn("root.hofRefreshOfferWorkspace = async function()", HTML)
         self.assertIn("new Set(['created', 'sent', 'viewed', 'partially_signed', 'awaiting_signature', 'in_progress'])", HTML)
         self.assertIn("Promise.allSettled(active.map(offer => root.refreshSignWellStatus", HTML)
-        self.assertIn("slice(0, 5)", HTML)
+        self.assertIn("return aUpdated - bUpdated;", HTML)
+        self.assertIn("slice(0, 10)", HTML)
         self.assertIn("skipReload = false, suppressAlert = false", HTML)
         self.assertIn("Sync signing status", HTML)
 
