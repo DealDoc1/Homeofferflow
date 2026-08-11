@@ -13147,6 +13147,14 @@ function routeAfterMagicLinkIfNeeded() {
 
   const oldIsProfileMeaningful = root.isProfileMeaningful;
   root.isProfileMeaningful = function isProfileMeaningful(profile = root.hofAuth?.accountProfile){
+    // The dashboard, beta checklist, and post-login route must agree with the
+    // activation card. A single saved field is useful, but it is not a
+    // repeat-offer-ready profile: agents still need their contact, license,
+    // and brokerage defaults before the product can honestly call this step
+    // complete. Keep offer creation available either way.
+    if (typeof root.isProfileReadyForDefaults === 'function') {
+      return root.isProfileReadyForDefaults(profile);
+    }
     if (!profile) return false;
     const role = normalizeAccountRole(root.hofAuth?.role);
     if (role === 'investor') return !!(profile.investor_entity_name || profile.signer_name || profile.investor_email);
@@ -13576,8 +13584,7 @@ function routeAfterMagicLinkIfNeeded() {
     return Array.isArray(root.hofAuth?.myOffers) ? root.hofAuth.myOffers : [];
   }
 
-  function profileComplete() {
-    const profile = root.hofAuth?.accountProfile || {};
+  function profileComplete(profile = root.hofAuth?.accountProfile || {}) {
     const role = String(root.hofAuth?.role || 'agent').toLowerCase();
     if (role === 'investor') {
       return !!(
@@ -13594,6 +13601,11 @@ function routeAfterMagicLinkIfNeeded() {
       profile.brokerage_name
     ].every(value => String(value || '').trim());
   }
+
+  // Reuse the same definition across the activation card, account dashboard,
+  // beta checklist, and post-login routing. This remains guidance only; it
+  // never prevents an agent or investor from starting an offer.
+  root.isProfileReadyForDefaults = profileComplete;
 
   function subscriptionActive() {
     const status = String(root.hofAuth?.subscription?.status || 'beta').toLowerCase();

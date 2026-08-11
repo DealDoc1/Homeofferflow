@@ -101,6 +101,18 @@ class AgentActivationDashboardTests(unittest.TestCase):
         ):
             self.assertIn(field, script)
 
+    def test_profile_completion_signal_matches_activation_requirements(self):
+        readiness_start = HTML.index('id="hof-agent-activation-v16-js"')
+        readiness_end = HTML.index("</script>", readiness_start)
+        readiness = HTML[readiness_start:readiness_end]
+        self.assertIn("root.isProfileReadyForDefaults = profileComplete;", readiness)
+
+        broker_start = HTML.index('id="hof-broker-role-v14-js"')
+        broker_end = HTML.index("</script>", broker_start)
+        broker = HTML[broker_start:broker_end]
+        self.assertIn("root.isProfileReadyForDefaults(profile)", broker)
+        self.assertIn("it is not a", broker)
+
     def test_activation_actions_cover_primary_account_paths(self):
         script_start = HTML.index('id="hof-agent-activation-v16-js"')
         script_end = HTML.index("</script>", script_start)
