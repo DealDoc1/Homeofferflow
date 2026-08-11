@@ -12332,7 +12332,10 @@ function routeAfterMagicLinkIfNeeded() {
   root.hofRefreshOfferWorkspace = async function(){
     if (typeof root.loadMyOffers !== 'function') return rerender();
     const offers = Array.isArray(root.hofAuth?.myOffers) ? root.hofAuth.myOffers : await root.loadMyOffers();
-    const activeStatuses = new Set(['sent', 'viewed', 'partially_signed', 'awaiting_signature', 'in_progress']);
+    // SignWell documents can remain in Created until a recipient opens the
+    // request. They still need a live refresh; omitting that state made the
+    // workspace skip a meaningful share of outstanding signing packets.
+    const activeStatuses = new Set(['created', 'sent', 'viewed', 'partially_signed', 'awaiting_signature', 'in_progress']);
     const active = (offers || []).filter(offer => {
       const data = offer?.offer_data || {};
       const documentId = offer?.signwell_document_id || data.signwellDocumentId || data.signwell?.document_id || data.signwell?.response?.id;
