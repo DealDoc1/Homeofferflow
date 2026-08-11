@@ -4,6 +4,8 @@ import time
 import hmac
 import hashlib
 import urllib.parse
+import secrets
+from datetime import datetime, timedelta, timezone
 from http.server import BaseHTTPRequestHandler
 
 import httpx
@@ -13,6 +15,9 @@ STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "")
 STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_SUBSCRIPTION_WEBHOOK_SECRET", "")
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
 SUPABASE_SERVICE_ROLE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
+RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
+PARTNER_ONBOARDING_FROM_EMAIL = os.environ.get("PARTNER_ONBOARDING_FROM_EMAIL", "offers@homeofferflow.com")
+PUBLIC_APP_ORIGIN = (os.environ.get("PUBLIC_APP_ORIGIN") or "https://www.homeofferflow.com").rstrip("/")
 
 
 def _test_events_allowed():
@@ -736,6 +741,8 @@ class handler(BaseHTTPRequestHandler):
         intact so the admin review and placement-approval workflow is preserved.
         """
         self._require_supabase()
+        onboarding_token = secrets.token_urlsafe(32)
+        onboarding_expires_at = (datetime.now(timezone.utc) + timedelta(days=14)).isoformat()
         payload = {
             "payment_status": "paid",
             "onboarding_status": "ready",
@@ -745,6 +752,8 @@ class handler(BaseHTTPRequestHandler):
             "stripe_subscription_id": session.get("subscription") or None,
             "subscription_status": "trialing" if session.get("subscription") else None,
             "paid_at": self._iso_now(),
+            "onboarding_token_hash": hashlib.sha256(onboarding_token.encode("utf-8")).hexdigest(),
+            "onboarding_token_expires_at": onboarding_expires_at,
             "updated_at": self._iso_now(),
         }
         url = f"{SUPABASE_URL}/rest/v1/hof_partner_leads?id=eq.{lead_id}"
@@ -754,6 +763,27 @@ class handler(BaseHTTPRequestHandler):
             response = client.patch(url, headers=headers, json=payload)
             if response.status_code >= 300:
                 raise Exception(f"Partner lead payment update failed: {response.status_code} {response.text}")
+        self._deliver_partner_onboarding_email(session, onboarding_token, onboarding_expires_at)
+
+    def _deliver_partner_onboarding_email(self, session, onboarding_token, expires_at):
+        """Best-effort setup invitation; payment state never depends on email delivery."""
+        email = str((session.get("customer_details") or {}).get("email") or session.get("customer_email") or "").strip()
+        if not RESEND_API_KEY or not email:
+            return
+        url = f"{PUBLIC_APP_ORIGIN}/?partner_onboarding={urllib.parse.quote(onboarding_token, safe='')}"
+        payload = {
+            "from": PARTNER_ONBOARDING_FROM_EMAIL,
+            "to": [email],
+            "subject": "Complete your HomeOfferFlow partner setup",
+            "text": f"Thanks for partnering with HomeOfferFlow. Complete your secure setup within 14 days: {url}\n\nThis prepares your creative for review only. It does not activate advertising or replace the required written placement agreement.",
+        }
+        try:
+            with httpx.Client(timeout=12) as client:
+                response = client.post("https://api.resend.com/emails", headers={"Authorization": f"Bearer {RESEND_API_KEY}", "Content-Type": "application/json"}, json=payload)
+            if response.status_code >= 300:
+                print(f"Partner onboarding email failed: {response.status_code}")
+        except Exception as exc:
+            print(f"Partner onboarding email failed: {str(exc)[:200]}")
 
     def _sync_partner_subscription(self, subscription, event_type):
         metadata = subscription.get("metadata", {}) or {}

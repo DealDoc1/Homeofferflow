@@ -94,6 +94,19 @@ class PartnerCheckoutTests(unittest.TestCase):
         self.assertIn("hof_partner_leads", calls[0][1])
         self.assertEqual(calls[0][2]["json"]["payment_status"], "paid")
         self.assertEqual(calls[0][2]["json"]["onboarding_status"], "ready")
+        self.assertTrue(calls[0][2]["json"]["onboarding_token_hash"])
+        self.assertTrue(calls[0][2]["json"]["onboarding_token_expires_at"])
+
+    def test_paid_checkout_sends_setup_link_only_when_email_delivery_is_configured(self):
+        webhook = stripe_webhook.handler.__new__(stripe_webhook.handler)
+        with patch.object(stripe_webhook, "RESEND_API_KEY", "re_test"), patch.object(stripe_webhook.httpx, "Client", Client):
+            Client.requests = []
+            webhook._deliver_partner_onboarding_email({"customer_email": "partner@example.com"}, "A" * 32, "2026-08-20T00:00:00+00:00")
+        email = next(request for request in Client.requests if request[0] == "post")
+        self.assertEqual(email[1], "https://api.resend.com/emails")
+        self.assertEqual(email[2]["json"]["to"], ["partner@example.com"])
+        self.assertIn("partner_onboarding=", email[2]["json"]["text"])
+        self.assertIn("does not activate advertising", email[2]["json"]["text"])
 
     def test_partner_checkout_collects_launch_charge_and_defers_recurring_plan_for_90_days(self):
         Client.requests = []
