@@ -50,6 +50,14 @@ class CloudDraftSaveRecoveryTests(unittest.TestCase):
         self.assertIn("status: persistedStatus", saver)
         self.assertIn("generated_at: persistedGeneratedAt", saver)
 
+    def test_resume_hydrates_packet_state_from_persisted_offer_columns(self):
+        start = HTML.index("async function resumeOffer(id, isRetry = false)")
+        end = HTML.index("async function duplicateOffer", start)
+        resume = HTML[start:end]
+        self.assertIn("generatedAt: offer.offer_data?.generatedAt || offer.generated_at", resume)
+        self.assertIn("signwellDocumentId: offer.offer_data?.signwellDocumentId || offer.signwell_document_id", resume)
+        self.assertIn("signwellStatus: offer.offer_data?.signwellStatus || offer.signwell_status", resume)
+
 
 if __name__ == "__main__":
     unittest.main()
