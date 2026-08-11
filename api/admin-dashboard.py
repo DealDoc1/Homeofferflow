@@ -3262,6 +3262,26 @@ class handler(BaseHTTPRequestHandler):
             partner_onboarding_email_sent_count = len([
                 item for item in events if item.get("event_type") == "partner_onboarding_email_sent"
             ])
+            # Automatic setup access is issued by the verified Stripe webhook.
+            # Keep it separate from deliberate admin re-sends; counting only
+            # the latter made a healthy checkout handoff look like zero.
+            partner_onboarding_setup_issued_count = len([
+                item for item in events if item.get("event_type") == "partner_onboarding_setup_issued"
+            ])
+            # Legacy paid rows predate this telemetry event. A setup token or
+            # completion record is durable evidence that secure access issued.
+            partner_onboarding_setup_issued_count = max(
+                partner_onboarding_setup_issued_count,
+                len([
+                    lead for lead in partner_leads
+                    if str(lead.get("payment_status") or "").lower() == "paid"
+                    and (
+                        lead.get("onboarding_token_hash")
+                        or lead.get("onboarding_completed_at")
+                        or str(lead.get("onboarding_status") or "").lower() in {"complete", "completed"}
+                    )
+                ]),
+            )
             partner_onboarding_link_created_count = len([
                 item for item in events if item.get("event_type") == "partner_onboarding_link_created"
             ])
@@ -3576,6 +3596,7 @@ class handler(BaseHTTPRequestHandler):
                 "partnerFollowUpEmailStartCount": partner_follow_up_email_start_count,
                 "partnerOnboardingLinkCreatedCount": partner_onboarding_link_created_count,
                 "partnerOnboardingEmailSentCount": partner_onboarding_email_sent_count,
+                "partnerOnboardingSetupIssuedCount": partner_onboarding_setup_issued_count,
                 "eventCount": len(events),
                 "roadmapCount": len(roadmap),
                 "roadmapBlockedCount": len([item for item in roadmap if item.get("status") == "blocked"]),
