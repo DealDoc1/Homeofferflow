@@ -20,6 +20,9 @@ class PwaInstallExperienceTests(unittest.TestCase):
         self.assertIn("hof_pwa_install_dismissed_until", INDEX)
         self.assertIn("1000 * 60 * 60 * 24 * 30", INDEX)
         self.assertIn("appinstalled", INDEX)
+        self.assertIn("pwa_install_", INDEX)
+        self.assertIn("pwa_install_prompt_shown", INDEX)
+        self.assertIn("choice?.outcome === 'accepted' ? 'accepted' : 'dismissed'", INDEX)
 
     def test_offline_shell_cache_is_versioned_for_the_new_install_surface(self):
         self.assertIn("homeofferflow-shell-v5", WORKER)

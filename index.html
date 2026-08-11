@@ -16124,7 +16124,14 @@ function routeAfterMagicLinkIfNeeded() {
 (function(){
   const root = window;
   const dismissKey = 'hof_pwa_install_dismissed_until';
+  const shownKey = 'hof_pwa_install_prompt_shown';
   let deferredInstallPrompt = null;
+
+  function trackInstall(event, metadata = {}) {
+    try {
+      root.logOfferEvent?.(null, 'pwa_install_' + event, event, 'PWA install funnel event.', metadata);
+    } catch (_) {}
+  }
 
   function isStandalone(){
     return window.matchMedia?.('(display-mode: standalone)').matches || navigator.standalone === true;
@@ -16142,6 +16149,7 @@ function routeAfterMagicLinkIfNeeded() {
   function dismissInstallCard(){
     try { localStorage.setItem(dismissKey, String(Date.now() + 1000 * 60 * 60 * 24 * 30)); }
     catch (_) {}
+    trackInstall('dismissed');
     document.getElementById('hofPwaInstallCard')?.remove();
   }
 
@@ -16167,18 +16175,26 @@ function routeAfterMagicLinkIfNeeded() {
       </div>
       <div id="hofPwaInstallNote" class="pwa-install-note" style="margin-top:.65rem;display:none"></div>`;
     panel.appendChild(card);
+    try {
+      if (!sessionStorage.getItem(shownKey)) {
+        sessionStorage.setItem(shownKey, '1');
+        trackInstall('shown', { platform: ios ? 'ios' : 'web' });
+      }
+    } catch (_) {}
     card.querySelector('#hofPwaInstallDismiss')?.addEventListener('click', dismissInstallCard);
     card.querySelector('#hofPwaInstallHelp')?.addEventListener('click', () => {
       const note = card.querySelector('#hofPwaInstallNote');
-      if (note) { note.textContent = 'In Safari, tap Share, then choose “Add to Home Screen.”'; note.style.display = 'block'; }
+      if (note) { note.textContent = 'In Safari, tap Share, then choose “Add to Home Screen.”'; note.style.display = 'block'; trackInstall('instructions_opened', { platform: 'ios' }); }
     });
     card.querySelector('#hofPwaInstallButton')?.addEventListener('click', async () => {
       if (!deferredInstallPrompt) return;
       const button = card.querySelector('#hofPwaInstallButton');
       if (button) { button.disabled = true; button.textContent = 'Opening install…'; }
       try {
+        trackInstall('prompt_opened', { platform: 'web' });
         deferredInstallPrompt.prompt();
-        await deferredInstallPrompt.userChoice;
+        const choice = await deferredInstallPrompt.userChoice;
+        trackInstall(choice?.outcome === 'accepted' ? 'accepted' : 'dismissed', { platform: 'web' });
       } catch (error) {
         console.warn('PWA install prompt was unavailable:', error);
       } finally {
@@ -16193,7 +16209,7 @@ function routeAfterMagicLinkIfNeeded() {
     deferredInstallPrompt = event;
     renderInstallCard();
   });
-  window.addEventListener('appinstalled', () => document.getElementById('hofPwaInstallCard')?.remove());
+  window.addEventListener('appinstalled', () => { trackInstall('installed'); document.getElementById('hofPwaInstallCard')?.remove(); });
   const previous = root.renderAccountDashboard;
   root.renderAccountDashboard = function renderAccountDashboardWithPwaInstall(){
     if (typeof previous === 'function') previous.apply(this, arguments);
