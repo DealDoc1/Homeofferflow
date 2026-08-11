@@ -65,6 +65,15 @@ class PartnerSelfServiceOnboardingTests(unittest.TestCase):
         self.assertIn('item.get("event_type") == "partner_onboarding_email_sent"', admin)
         self.assertIn("secure setup emails sent", html)
 
+    def test_admin_tracks_manual_setup_link_creation_and_preserves_a_link_when_copying_fails(self):
+        admin = (ROOT / "api/admin-dashboard.py").read_text()
+        html = (ROOT / "index.html").read_text()
+        self.assertIn('"partnerOnboardingLinkCreatedCount": partner_onboarding_link_created_count', admin)
+        self.assertIn('item.get("event_type") == "partner_onboarding_link_created"', admin)
+        self.assertIn("partner_onboarding_link_created", html)
+        self.assertIn("window.prompt('Copy this secure partner setup link", html)
+        self.assertIn("secure setup links created", html)
+
     def test_admin_can_send_setup_link_only_from_an_explicit_paid_partner_action(self):
         admin = (ROOT / "api/admin-dashboard.py").read_text()
         html = (ROOT / "index.html").read_text()

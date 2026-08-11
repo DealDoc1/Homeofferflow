@@ -3260,6 +3260,9 @@ class handler(BaseHTTPRequestHandler):
             partner_onboarding_email_sent_count = len([
                 item for item in events if item.get("event_type") == "partner_onboarding_email_sent"
             ])
+            partner_onboarding_link_created_count = len([
+                item for item in events if item.get("event_type") == "partner_onboarding_link_created"
+            ])
             seller_follow_up_email_start_count = len([
                 item for item in events if item.get("event_type") == "seller_follow_up_email_started"
             ])
@@ -3549,6 +3552,7 @@ class handler(BaseHTTPRequestHandler):
                 if paid_partner_lead_count else 0,
                 "partnerActivationAvgDays": partner_activation_avg_days,
                 "partnerFollowUpEmailStartCount": partner_follow_up_email_start_count,
+                "partnerOnboardingLinkCreatedCount": partner_onboarding_link_created_count,
                 "partnerOnboardingEmailSentCount": partner_onboarding_email_sent_count,
                 "eventCount": len(events),
                 "roadmapCount": len(roadmap),
