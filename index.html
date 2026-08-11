@@ -2534,7 +2534,12 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     <div class="audience-card"><div class="audience-icon">🏠</div><h3>Homebuyers</h3><p>Build a Texas resale offer packet with plain-English guidance, AI competitiveness review, and buyer-side signing when the packet is ready.</p><span class="audience-price">$99 per completed offer packet</span></div>
     <div class="audience-card"><div class="audience-icon">🏢</div><h3>Agents & Brokers</h3><p>Create supported Texas buyer-offer packets from the field, track buyer-side signature status, duplicate prior offers, and collect broker-reviewed feedback.</p><span class="audience-price">Agent / broker workspace</span></div>
     <div class="audience-card"><div class="audience-icon">📈</div><h3>Investors</h3><p>Use saved defaults and repeat-offer workflows to move faster while still keeping financing, option, title, and addenda terms organized.</p><span class="audience-price">Investor repeat-offer workflow</span></div>
-    <div class="audience-card"><div class="audience-icon">🏷️</div><h3>FSBO Sellers</h3><p>Request seller packages, flat-fee MLS interest, offer review, contract-to-close support, and local partner suggestions without checkout yet.</p><span class="audience-price">Packages from $0 to $2,999+ · intake only</span></div>
+    <a class="audience-card audience-card-link" href="?seller=1" onclick="event.preventDefault(); setAudience('fsbo'); trackEvent('FSBO Seller Card CTA Selected', { surface: 'audience_grid' }); openFsboSellerModal();" aria-label="Start a HomeOfferFlow FSBO seller package request">
+      <div class="audience-icon">🏷️</div>
+      <h3>FSBO Sellers</h3>
+      <p>Request seller packages, flat-fee MLS interest, offer review, contract-to-close support, and local partner suggestions without checkout yet.</p>
+      <span class="audience-price">Start free — address + email</span>
+    </a>
     <a class="audience-card audience-card-link" href="?partner=1" onclick="event.preventDefault(); openFoundingPartnerModal();" aria-label="Explore HomeOfferFlow founding partner opportunities">
       <div class="audience-icon">🤝</div>
       <h3>Service Partners</h3>
