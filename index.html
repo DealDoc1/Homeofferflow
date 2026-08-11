@@ -6287,6 +6287,50 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     }
   }
 
+  async function reuseOfferTerms(id) {
+    try {
+      const offer = await getOfferById(id);
+      if (!offer) return alert('Offer not found.');
+
+      // A terms-only start is intentionally a restrictive allow-list, not a
+      // duplicate with a few fields removed. It carries reusable deal choices
+      // while excluding every prior party, property, amount, date, document,
+      // and signing artifact from the next client workflow.
+      const source = offer.offer_data || {};
+      const reusableTermKeys = [
+        'financing', 'loanYears', 'interestRateCap', 'interestFirstYears',
+        'originationCap', 'buyerApprovalDays', 'appraisalAddendum',
+        'hoa', 'saleContingency', 'backupOffer', 'titlePayer',
+        'titleAmendment', 'survey', 'sellerDisclosure', 'leadBuiltBefore1978',
+        'leadDisclosureStatus', 'asIs', 'homeWarranty'
+      ];
+      const termData = reusableTermKeys.reduce((next, key) => {
+        if (source[key] !== undefined && source[key] !== null && source[key] !== '') next[key] = source[key];
+        return next;
+      }, {});
+
+      state.data = {
+        ...termData,
+        _hofOfferId: null,
+        userType: offer.role || hofAuth.role || 'agent'
+      };
+      resetUploadedDisclosureDraftForOffer({});
+      setAudience(state.data.userType || 'agent');
+      closeAccountDashboard();
+      openWizard(true);
+      setTimeout(() => {
+        applyOfferDataToFields(state.data);
+        applyProfileDefaultsToWizard(true);
+        restoreConditionalSections();
+        updateSaveStatus('Terms-only start — client and property details cleared');
+      }, 150);
+      await logOfferEvent(offer.id, 'terms_reuse_clicked', 'Draft', 'Started a terms-only offer from a prior workspace offer.', { reuse_mode: 'terms_only' });
+    } catch (err) {
+      console.error('Terms-only offer start failed:', err);
+      alert('Could not start from these terms: ' + err.message);
+    }
+  }
+
   async function deleteOffer(id) {
     if (!confirm('Delete this draft from your dashboard?')) return;
     const client = getSupabaseClient();
@@ -10756,12 +10800,12 @@ function routeAfterMagicLinkIfNeeded() {
       <button type="button" onclick="closeFsboSellerModal()" style="border:none;background:transparent;color:var(--gray-light);font-size:1.5rem;cursor:pointer;">×</button>
     </div>
 
-    <div class="notice sage" style="margin-bottom:.9rem;">📍 Start typing the property address and choose a Google result. City, county, state, and ZIP will be captured automatically for routing and future local partner/service matching.</div>
+    <div class="notice sage" style="margin-bottom:.9rem;"><strong>Start in under a minute.</strong> Property address and email are all we need to save your request. Name, phone, asking price, package details, and partner interests can be added now or confirmed later. 📍 Start typing the property address and choose a Google result when available; city, county, state, and ZIP will then be captured for routing and future local matching.</div>
 
     <div class="platform-grid">
       <div class="field">
         <label>Property Address</label>
-        <input id="fsboPropertyAddress" placeholder="Start typing the property address..." autocomplete="off" autocorrect="off" autocapitalize="words" spellcheck="false">
+        <input id="fsboPropertyAddress" placeholder="Start typing the property address..." autocomplete="off" autocorrect="off" autocapitalize="words" spellcheck="false" required aria-required="true">
         <div id="fsboAddressAutofillBadge" style="display:none; margin-top:.4rem; align-items:center; width:max-content; background:rgba(74,140,111,0.15); border:1px solid rgba(74,140,111,0.3); color:var(--sage-light); padding:0.25rem 0.6rem; border-radius:6px; font-size:0.75rem; font-weight:800;">✓ Address selected from Google</div>
         <div id="fsboAddressMeta" style="display:none; margin-top:.35rem; color:var(--gray-light); font-size:.78rem; line-height:1.35;"></div>
         <input type="hidden" id="fsboPropertyCity">
@@ -10769,11 +10813,11 @@ function routeAfterMagicLinkIfNeeded() {
         <input type="hidden" id="fsboPropertyState" value="TX">
         <input type="hidden" id="fsboPropertyZip">
       </div>
-      <div class="field"><label>Seller Name</label><input id="fsboSellerName" placeholder="Your name"></div>
-      <div class="field"><label>Email</label><input id="fsboSellerEmail" type="email" placeholder="you@email.com"></div>
-      <div class="field"><label>Phone</label><input id="fsboSellerPhone" placeholder="(214) 555-0000"></div>
-      <div class="field"><label>Target Asking Price</label><input id="fsboAskingPrice" type="number" placeholder="500000"></div>
-      <div class="field"><label>Timeline</label><select id="fsboTimeline"><option value="not_sure">Not sure yet</option><option value="asap">ASAP / already ready</option><option value="30_days">Within 30 days</option><option value="60_90_days">60–90 days</option><option value="future">Future planning</option></select></div>
+      <div class="field"><label>Seller Name <span style="color:var(--gray);font-weight:500;">(optional)</span></label><input id="fsboSellerName" placeholder="Your name"></div>
+      <div class="field"><label>Email</label><input id="fsboSellerEmail" type="email" placeholder="you@email.com" required aria-required="true"></div>
+      <div class="field"><label>Phone <span style="color:var(--gray);font-weight:500;">(optional)</span></label><input id="fsboSellerPhone" placeholder="(214) 555-0000"></div>
+      <div class="field"><label>Target Asking Price <span style="color:var(--gray);font-weight:500;">(optional)</span></label><input id="fsboAskingPrice" type="number" placeholder="500000"></div>
+      <div class="field"><label>Timeline <span style="color:var(--gray);font-weight:500;">(optional)</span></label><select id="fsboTimeline"><option value="not_sure">Not sure yet</option><option value="asap">ASAP / already ready</option><option value="30_days">Within 30 days</option><option value="60_90_days">60–90 days</option><option value="future">Future planning</option></select></div>
     </div>
 
     <div style="margin-top:1rem; padding-top:.9rem; border-top:1px solid rgba(255,255,255,.08);">
@@ -10822,10 +10866,10 @@ function routeAfterMagicLinkIfNeeded() {
     </div>
 
     <div id="fsboNeedDetails" class="notice sage" style="margin-top:.8rem;"></div>
-    <div class="field" style="margin-top:.8rem;"><label>Tell us about your situation</label><textarea id="fsboNotes" rows="3" placeholder="Anything we should know? Property condition, pricing concerns, whether you already have photos, whether offers are already coming in, partner needs, etc."></textarea></div>
+    <div class="field" style="margin-top:.8rem;"><label>Tell us about your situation <span style="color:var(--gray);font-weight:500;">(optional)</span></label><textarea id="fsboNotes" rows="3" placeholder="Anything we should know? Property condition, pricing concerns, whether you already have photos, whether offers are already coming in, partner needs, etc."></textarea></div>
     <div class="notice gold" style="margin-top:.8rem;">Package pricing shown here is for planning/intake and may be finalized separately before any paid service begins. This is not checkout and not a confirmed service order. HomeOfferFlow is not a law firm and does not provide legal advice. Some FSBO, flat-fee MLS, offer-review, brokerage, title, or closing-support services may be provided through a licensed Texas real estate broker, affiliated license holder, attorney, title company, or other licensed provider where required. Pricing may vary by property, location, service level, and broker/provider approval.</div>
     <div class="account-actions-row" style="margin-top:1rem;">
-      <button class="btn-primary" type="button" id="fsboSellerSubmit" onclick="submitFsboSellerLead()">Save Seller Request</button>
+      <button class="btn-primary" type="button" id="fsboSellerSubmit" onclick="submitFsboSellerLead()">Save My Seller Request</button>
       <button class="btn-secondary" type="button" onclick="closeFsboSellerModal()">Cancel</button>
     </div>
     <div id="fsboSellerStatus" class="platform-status"></div>
@@ -10834,11 +10878,17 @@ function routeAfterMagicLinkIfNeeded() {
 
 <script>
 (function(){
+  const fsboFunnel = { requiredReady: false };
+  function trackFsboFunnel(name, data = {}) {
+    try { trackEvent(name, data); } catch (_) {}
+  }
   window.openFsboSellerModal = function(){
     const m = document.getElementById('fsboSellerModal');
     if (m) {
+      fsboFunnel.requiredReady = false;
       m.style.display = 'flex';
       m.setAttribute('aria-hidden','false');
+      trackFsboFunnel('FSBO Seller Intake Opened');
       setTimeout(() => {
         try { window.restoreFsboDraft?.(); } catch(_) { try { window.renderFsboNeedDetails?.(); } catch(__) {} }
         try { wireAddressInput?.(); } catch(_) {}
@@ -10851,6 +10901,11 @@ function routeAfterMagicLinkIfNeeded() {
     if (m) { m.style.display = 'none'; m.setAttribute('aria-hidden','true'); }
   };
   function fsboVal(id){ return (document.getElementById(id)?.value || '').trim(); }
+  function trackFsboRequiredFieldsReady(){
+    if (fsboFunnel.requiredReady || !fsboVal('fsboPropertyAddress') || !fsboVal('fsboSellerEmail')) return;
+    fsboFunnel.requiredReady = true;
+    trackFsboFunnel('FSBO Seller Intake Required Fields Ready');
+  }
   const fsboDraftStorageKey = 'hof_fsbo_intake_draft_v1';
   const fsboDraftFields = ['fsboPropertyAddress', 'fsboPropertyCity', 'fsboPropertyCounty', 'fsboPropertyState', 'fsboPropertyZip', 'fsboSellerName', 'fsboSellerEmail', 'fsboSellerPhone', 'fsboAskingPrice', 'fsboTimeline', 'fsboNeed', 'fsboPackagePrice', 'fsboNotes'];
   function saveFsboDraft(){
@@ -10865,7 +10920,7 @@ function routeAfterMagicLinkIfNeeded() {
       const draft = JSON.parse(sessionStorage.getItem(fsboDraftStorageKey) || '{}');
       fsboDraftFields.forEach(id => { if (draft[id] && document.getElementById(id)) document.getElementById(id).value = draft[id]; });
       document.querySelectorAll('input[name="fsboPartner"]').forEach(input => { input.checked = Array.isArray(draft.partners) && draft.partners.includes(input.value); });
-      if (draft.fsboNeed) window.selectFsboNeed?.(draft.fsboNeed); else window.renderFsboNeedDetails?.();
+      if (draft.fsboNeed) window.selectFsboNeed?.(draft.fsboNeed, false); else window.renderFsboNeedDetails?.();
     } catch (_) { window.renderFsboNeedDetails?.(); }
   };
   function clearFsboDraft(){ try { sessionStorage.removeItem(fsboDraftStorageKey); } catch (_) {} }
@@ -10920,13 +10975,14 @@ function routeAfterMagicLinkIfNeeded() {
     contract_help: ['Organize your accepted contract, title contact, and lender contact.', 'Write down upcoming deadlines and unanswered transaction questions.', 'Use the appropriate licensed party for legal, brokerage, title, and amendment decisions.'],
     premium_bundle: ['Collect property facts, photos, and your target timeline.', 'List prep, marketing, MLS, offer-review, and closing-support priorities.', 'Wait for the confirmed scope and provider plan before any paid service begins.']
   };
-  window.selectFsboNeed = function(key) {
+  window.selectFsboNeed = function(key, shouldTrack = true) {
     const selected = fsboNeedCopy[key] ? key : 'free_intake';
     const input = document.getElementById('fsboNeed');
     const priceInput = document.getElementById('fsboPackagePrice');
     if (input) input.value = selected;
     if (priceInput) priceInput.value = fsboNeedCopy[selected]?.price || '';
     document.querySelectorAll('.fsbo-package-card').forEach(card => card.classList.toggle('selected', card.dataset.fsboNeed === selected));
+    if (shouldTrack) trackFsboFunnel('FSBO Seller Package Selected', { package: selected });
     window.renderFsboNeedDetails?.();
     saveFsboDraft();
   };
@@ -10992,6 +11048,7 @@ function routeAfterMagicLinkIfNeeded() {
       status: 'new'
     };
     if (!payload.property_address || !payload.seller_email) {
+      trackFsboFunnel('FSBO Seller Intake Required Fields Missing', { propertyProvided: !!payload.property_address, emailProvided: !!payload.seller_email });
       if (status) { status.textContent = 'Property address and email are required.'; status.className = 'platform-status err'; }
       return;
     }
@@ -11003,12 +11060,20 @@ function routeAfterMagicLinkIfNeeded() {
       }
     } catch (_) {}
     if (submitButton?.disabled) return;
+    trackFsboFunnel('FSBO Seller Request Submission Started', {
+      package: payload.service_level,
+      timeline: payload.timeline,
+      hasPhone: !!payload.seller_phone,
+      hasAskingPrice: payload.asking_price !== null,
+      partnerCategoryCount: payload.partner_categories.length
+    });
     if (submitButton) { submitButton.disabled = true; submitButton.textContent = 'Saving…'; }
     if (status) { status.textContent = 'Saving seller request...'; status.className = 'platform-status'; }
     try {
       const res = await fetch('/api/fsbo-lead', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
       const data = await res.json().catch(()=>({}));
       if (!res.ok) throw new Error(data.error || 'Could not save seller request.');
+      trackFsboFunnel('FSBO Seller Request Saved', { package: payload.service_level, timeline: payload.timeline });
       try { sessionStorage.setItem(submissionKey, data.seller_lead_id || 'saved'); } catch (_) {}
       clearFsboDraft();
       const selected = fsboNeedCopy[fsboVal('fsboNeed')] || fsboNeedCopy.free_intake;
@@ -11023,6 +11088,7 @@ function routeAfterMagicLinkIfNeeded() {
           '<button class="btn-secondary" type="button" onclick="closeFsboSellerModal()">Done</button></div>';
       }
     } catch (err) {
+      trackFsboFunnel('FSBO Seller Request Save Failed', { package: payload.service_level });
       if (status) { status.textContent = err.message || String(err); status.className = 'platform-status err'; }
       if (submitButton) { submitButton.disabled = false; submitButton.textContent = 'Save Seller Request'; }
     }
@@ -11031,6 +11097,11 @@ function routeAfterMagicLinkIfNeeded() {
     const field = document.getElementById(id);
     field?.addEventListener('input', saveFsboDraft);
     field?.addEventListener('change', saveFsboDraft);
+  });
+  ['fsboPropertyAddress', 'fsboSellerEmail'].forEach(id => {
+    const field = document.getElementById(id);
+    field?.addEventListener('input', trackFsboRequiredFieldsReady);
+    field?.addEventListener('change', trackFsboRequiredFieldsReady);
   });
   document.querySelectorAll('input[name="fsboPartner"]').forEach(input => input.addEventListener('change', saveFsboDraft));
   const __oldOpenAccountDashboardFsbo = window.openAccountDashboard;
@@ -12083,6 +12154,7 @@ function routeAfterMagicLinkIfNeeded() {
       <div class="offer-workspace-actions">
         <button class="offer-action-btn" type="button" onclick="viewOfferDetails('${esc(o.id)}')">View</button>
         <button class="offer-action-btn" type="button" onclick="resumeOffer('${esc(o.id)}')">Resume</button>
+        <button class="offer-action-btn" type="button" onclick="reuseOfferTerms('${esc(o.id)}')">Reuse terms</button>
         <button class="offer-action-btn" type="button" onclick="duplicateOffer('${esc(o.id)}', false, true)">Duplicate &amp; edit</button>
         ${hasDoc ? `<button class="offer-action-btn" type="button" onclick="refreshSignWellStatus('${esc(o.id)}', this)">Refresh</button>` : `<button class="offer-action-btn" type="button" onclick="viewOfferDetails('${esc(o.id)}')">Status</button>`}
         <button class="offer-action-btn danger" type="button" onclick="deleteOffer('${esc(o.id)}')">Delete</button>
@@ -12110,7 +12182,7 @@ function routeAfterMagicLinkIfNeeded() {
 
       <div class="offer-launch-grid">
         <button class="offer-launch-card" type="button" onclick="startAccountOffer()"><strong>New Buyer Offer</strong><span>Start with your saved agent defaults.</span></button>
-        <button class="offer-launch-card" type="button" onclick="hofDuplicateMostRecentOffer()"><strong>Duplicate Last</strong><span>Fastest path for repeat terms.</span></button>
+        <button class="offer-launch-card" type="button" onclick="hofReuseTermsFromMostRecentOffer()"><strong>Reuse Last Terms</strong><span>Keep deal choices; clear client and property details.</span></button>
         <button class="offer-launch-card" type="button" onclick="showAccountTab && showAccountTab('profile')"><strong>Profile Defaults</strong><span>Update agent, brokerage, title, and terms.</span></button>
         <button class="offer-launch-card" type="button" onclick="hofRefreshOfferWorkspace()"><strong>Sync signing status</strong><span>Ask SignWell for active updates, then reload offers.</span></button>
       </div>
@@ -12169,10 +12241,10 @@ function routeAfterMagicLinkIfNeeded() {
     }
     await root.loadMyOffers();
   };
-  root.hofDuplicateMostRecentOffer = function(){
+  root.hofReuseTermsFromMostRecentOffer = function(){
     const offers = sortedOffers(state.offers || []);
-    if (!offers.length) { alert('No saved offers to duplicate yet.'); return; }
-    if (typeof root.duplicateOffer === 'function') root.duplicateOffer(offers[0].id, false, true);
+    if (!offers.length) { alert('No saved offers to reuse yet.'); return; }
+    if (typeof root.reuseOfferTerms === 'function') root.reuseOfferTerms(offers[0].id);
   };
 
   root.hofRenderOfferWorkspaceV10 = renderWorkspace;
@@ -12242,6 +12314,7 @@ function routeAfterMagicLinkIfNeeded() {
         ${timeline}
         <div class="offer-detail-actions">
           <button class="offer-action-btn" type="button" onclick="resumeOffer('${esc(offer.id)}')">Resume</button>
+          <button class="offer-action-btn" type="button" onclick="reuseOfferTerms('${esc(offer.id)}')">Reuse terms</button>
           <button class="offer-action-btn" type="button" onclick="duplicateOffer('${esc(offer.id)}', false, true)">Duplicate &amp; edit</button>
           ${offer.signwell_document_id ? `<button class="offer-action-btn" type="button" onclick="refreshSignWellStatus('${esc(offer.id)}', this)">Refresh SignWell</button>` : ''}
           <button class="offer-action-btn danger" type="button" onclick="closeOfferDetail()">Close</button>
