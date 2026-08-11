@@ -569,6 +569,7 @@ async def _brokerage_dashboard_payload(context):
     safe_agents = []
     now = datetime.now(timezone.utc)
     activation_count = 0
+    active_access_membership_pending_count = 0
     trials_ending_soon = 0
     for member in members:
         user_id = str(member.get("user_id") or "")
@@ -588,7 +589,17 @@ async def _brokerage_dashboard_payload(context):
             monthly_limit = 0
         has_active_access = subscription_status in {"active", "trialing", "free_admin"}
         billing_attention = subscription_status in {"past_due", "canceled", "incomplete", "incomplete_expired"}
-        if invite_accepted and str(member.get("status") or "pending").lower() != "active":
+        membership_status = str(member.get("status") or "pending").lower()
+        # A user can have valid platform access while their brokerage seat was
+        # never activated (for example, an admin-granted account or a legacy
+        # seat). Surface this separately so an administrator can resolve the
+        # mismatch deliberately without changing billing.
+        if membership_status != "active" and has_active_access:
+            engagement = "needs_activation"
+            next_action = "Activate brokerage membership"
+            activation_count += 1
+            active_access_membership_pending_count += 1
+        elif invite_accepted and membership_status != "active":
             engagement = "needs_activation"
             next_action = "Finish account activation"
             activation_count += 1
@@ -600,7 +611,7 @@ async def _brokerage_dashboard_payload(context):
             engagement = "needs_subscription"
             next_action = "Review access before the next offer"
             activation_count += 1
-        elif activity["offerCount"] == 0 and (member.get("status") or "pending") == "active":
+        elif activity["offerCount"] == 0 and membership_status == "active":
             engagement = "needs_activation"
             next_action = "Create the first offer"
             activation_count += 1
@@ -625,7 +636,7 @@ async def _brokerage_dashboard_payload(context):
                 "licenseNumber": profile.get("license_number"),
                 "role": member.get("role") or "agent",
                 "teamName": team_by_user.get(user_id),
-                "membershipStatus": member.get("status") or "pending",
+                "membershipStatus": membership_status,
                 "inviteAccepted": invite_accepted,
                 "txrAgentAuthorized": member.get("txr_agent_authorized") is True,
                 "txrAgentAttestedAt": member.get("txr_agent_attested_at"),
@@ -724,6 +735,7 @@ async def _brokerage_dashboard_payload(context):
                 ]
             ),
             "agentsNeedingActivation": activation_count,
+            "membersAwaitingActivationWithActiveAccess": active_access_membership_pending_count,
             "agentsNeedingFollowUp": len([
                 agent for agent in safe_agents if agent.get("engagement") == "needs_follow_up"
             ]),
