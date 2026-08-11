@@ -6105,16 +6105,22 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     }, 100);
   }
 
-  async function loadMyOffers() {
+  const HOF_OFFER_WORKSPACE_PAGE_SIZE = 25;
+
+  async function loadMyOffers({ append = false } = {}) {
     const client = getSupabaseClient();
     const user = hofAuth.session?.user;
     const list = document.getElementById('myOffersList');
     if (!list) return;
     if (!client || !user) {
       hofAuth.myOffers = [];
+      hofAuth.myOffersHasMore = false;
+      hofAuth.myOffersLoadMoreError = false;
       list.textContent = 'Sign in to view offers.';
       return [];
     }
+    const existingOffers = append && Array.isArray(hofAuth.myOffers) ? hofAuth.myOffers : [];
+    const offset = existingOffers.length;
     try {
       const { data, error } = await client
         .from('hof_offers')
@@ -6122,21 +6128,38 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         .eq('user_id', user.id)
         .is('deleted_at', null)
         .order('last_updated', { ascending:false })
-        .limit(25);
+        .range(offset, offset + HOF_OFFER_WORKSPACE_PAGE_SIZE - 1);
       if (error) throw error;
-      hofAuth.myOffers = data || [];
-      if (!data || !data.length) {
+      const page = data || [];
+      const byId = new Map(existingOffers.map(offer => [offer.id, offer]));
+      page.forEach(offer => byId.set(offer.id, offer));
+      const loadedOffers = Array.from(byId.values());
+      hofAuth.myOffers = loadedOffers;
+      hofAuth.myOffersHasMore = page.length === HOF_OFFER_WORKSPACE_PAGE_SIZE;
+      hofAuth.myOffersLoadMoreError = false;
+      if (!loadedOffers.length) {
         list.className = 'offer-empty';
         list.textContent = 'No saved offers yet. Create your first offer and future drafts will show here.';
         try { renderAgentActivationCard(); } catch (e) {}
         return [];
       }
       list.className = '';
-      list.innerHTML = renderMyOffers(data);
+      list.innerHTML = renderMyOffers(loadedOffers);
       try { renderAgentActivationCard(); } catch (e) {}
-      return data;
+      return loadedOffers;
     } catch (err) {
+      if (append && existingOffers.length) {
+        hofAuth.myOffers = existingOffers;
+        hofAuth.myOffersHasMore = true;
+        hofAuth.myOffersLoadMoreError = true;
+        list.className = '';
+        list.innerHTML = renderMyOffers(existingOffers);
+        console.warn('Older offers load failed:', err);
+        return existingOffers;
+      }
       hofAuth.myOffers = [];
+      hofAuth.myOffersHasMore = false;
+      hofAuth.myOffersLoadMoreError = false;
       list.className = 'offer-empty';
       list.innerHTML = 'Could not load offers yet. <button type="button" class="btn-secondary" style="margin-top:.65rem" onclick="loadMyOffers()">Retry offers</button>';
       console.warn('Offers load failed:', err);
@@ -6144,6 +6167,10 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       return [];
     }
   }
+
+  window.loadOlderOffers = async function loadOlderOffers() {
+    return loadMyOffers({ append: true });
+  };
 
   function formatOfferDate(value) {
     if (!value) return '—';
@@ -12508,6 +12535,13 @@ function routeAfterMagicLinkIfNeeded() {
     const volume = safe.reduce((sum,o) => sum + Number(o.offer_price || o.offer_data?.offerPrice || 0), 0);
     const tab = (key,label) => `<button type="button" class="offer-filter-tab ${state.filter===key?'active':''}" onclick="hofSetOfferWorkspaceFilter('${key}')">${label} <span>${c[key] || 0}</span></button>`;
     const cards = shown.length ? shown.map(renderCard).join('') : `<div class="offer-workspace-empty"><strong>No offers match this view.</strong><br/>Try another status tab, clear the search, or create a new buyer offer.</div>`;
+    const canLoadMore = !!root.hofAuth?.myOffersHasMore;
+    const loadMoreFailed = !!root.hofAuth?.myOffersLoadMoreError;
+    const historyControl = canLoadMore
+      ? `<div style="display:flex;justify-content:center;margin-top:1rem;"><button type="button" class="btn-secondary" onclick="loadOlderOffers()">${loadMoreFailed ? 'Retry loading older offers' : 'Load 25 older offers'}</button></div>`
+      : safe.length >= 25
+        ? '<div class="offer-workspace-note" style="text-align:center;margin-top:1rem;">All saved offers currently loaded.</div>'
+        : '';
     return `<div class="offer-workspace-v10">
       <div class="offer-workspace-top">
         <div>
@@ -12553,6 +12587,7 @@ function routeAfterMagicLinkIfNeeded() {
       </div>
 
       <div class="offer-workspace-list">${cards}</div>
+      ${historyControl}
     </div>`;
   }
 
@@ -12564,6 +12599,7 @@ function routeAfterMagicLinkIfNeeded() {
   root.hofSetOfferWorkspaceFilter = function(filter){ state.filter = filter || 'all'; persistWorkspaceState(); rerender(); };
   root.hofSetOfferWorkspaceSearch = function(query){ state.query = query || ''; persistWorkspaceState(); rerender(); };
   root.hofSetOfferWorkspaceSort = function(sort){ state.sort = sort || 'updated_desc'; persistWorkspaceState(); rerender(); };
+  root.loadOlderOffers = root.loadOlderOffers || window.loadOlderOffers;
   let lastAutomaticSigningSyncAt = 0;
   root.hofRefreshOfferWorkspace = async function({ automatic = false } = {}){
     if (typeof root.loadMyOffers !== 'function') return rerender();
