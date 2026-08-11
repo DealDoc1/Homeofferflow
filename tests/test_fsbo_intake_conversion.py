@@ -81,6 +81,10 @@ class FsboIntakeConversionTests(unittest.TestCase):
         self.assertIn('fsbo_website_confirm: fsboVal(\'fsboWebsiteConfirm\')', HTML)
         self.assertIn('aria-hidden="true"', HTML)
 
+    def test_title_company_interest_uses_the_api_canonical_category(self):
+        self.assertIn('name="fsboPartner" value="title"> Title company', HTML)
+        self.assertNotIn('name="fsboPartner" value="title_company"', HTML)
+
 
 if __name__ == "__main__":
     unittest.main()
