@@ -4491,9 +4491,32 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   async function signOutAccount() {
     const client = getSupabaseClient();
     if (!client) return;
-    await client.auth.signOut();
+    const signedOutUserId = hofAuth.session?.user?.id || '';
+    const { error } = await client.auth.signOut();
+    if (error) {
+      setAuthStatus(error.message || 'Could not sign out. Please try again.', 'err');
+      return;
+    }
+
+    // A sign-out is a local privacy boundary. Keep an unsynced draft intact,
+    // but mark it for the account that created it so another signed-in account
+    // cannot restore it on this device.
+    try {
+      if (signedOutUserId) localStorage.setItem('hof_offer_draft_owner', signedOutUserId);
+      localStorage.removeItem('hof_auth_pending');
+    } catch (e) {}
     hofAuth.session = null;
     hofAuth.accountProfile = null;
+    hofAuth.myOffers = [];
+    hofAuth.subscription = null;
+    hofAuth.usage = null;
+    hofAuth.authoritativeProfile = null;
+    hofAuth.authoritativeRole = null;
+    hofAuth.profileReady = false;
+    hofAuth.profileLoadError = '';
+    window.__hofSubscriptionPacketGenerated = false;
+    closeAccountDashboard();
+    try { closeOfferDetail(); } catch (e) {}
     updateAuthUI();
     setAuthStatus('Signed out.', 'ok');
   }
@@ -4502,6 +4525,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     const client = getSupabaseClient();
     if (!client) {
       console.warn('Supabase client unavailable. Auth disabled.');
+      window.__hofDraftRestoreAuthReady = true;
       return;
     }
     try {
@@ -4534,6 +4558,15 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       });
     } catch (err) {
       console.warn('Auth init failed:', err);
+    } finally {
+      // An account-owned local draft must wait until Supabase has resolved the
+      // browser session; otherwise a normal page reload can look like another
+      // user and hide the owner's own draft.
+      window.__hofDraftRestoreAuthReady = true;
+      const ownerUserId = localStorage.getItem('hof_offer_draft_owner') || '';
+      if (ownerUserId && ownerUserId === (hofAuth.session?.user?.id || '')) {
+        try { restoreDraft(); } catch (e) {}
+      }
     }
   }
 
@@ -9391,6 +9424,7 @@ function routeAfterMagicLinkIfNeeded() {
      HOMEOFFERFLOW AUTO SAVE + RESTORE SYSTEM
      ========================================= */
   const HOF_STORAGE_KEY = 'hof_offer_draft_v2';
+  const HOF_STORAGE_OWNER_KEY = 'hof_offer_draft_owner';
   let __hofRestoringDraft = false;
   let __hofSaveTimer = null;
   let __hofSaveDebounce = null;
@@ -9498,6 +9532,9 @@ function routeAfterMagicLinkIfNeeded() {
 
     try {
       localStorage.setItem(HOF_STORAGE_KEY, JSON.stringify(getDraftSnapshot()));
+      const ownerUserId = hofAuth?.session?.user?.id || '';
+      if (ownerUserId) localStorage.setItem(HOF_STORAGE_OWNER_KEY, ownerUserId);
+      else localStorage.removeItem(HOF_STORAGE_OWNER_KEY);
       updateSaveStatus('✓ Draft Saved');
       if ((state?.data?.userType || '') !== 'homebuyer' && hofAuth?.session && navigator.onLine !== false && hasMeaningfulCloudDraft()) {
         syncCloudDraftSave();
@@ -9535,6 +9572,13 @@ function routeAfterMagicLinkIfNeeded() {
   function restoreDraft() {
     const raw = localStorage.getItem(HOF_STORAGE_KEY);
     if (!raw) return false;
+    const ownerUserId = localStorage.getItem(HOF_STORAGE_OWNER_KEY) || '';
+    const currentUserId = hofAuth?.session?.user?.id || '';
+    if (ownerUserId && ownerUserId !== currentUserId) {
+      if (!window.__hofDraftRestoreAuthReady) return false;
+      updateSaveStatus('A local draft is saved for a different signed-in account. Sign in to that account to restore it.');
+      return false;
+    }
 
     let draft;
     try {
