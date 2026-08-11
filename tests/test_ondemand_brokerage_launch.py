@@ -275,6 +275,7 @@ class OnDemandCheckoutTests(unittest.TestCase):
             "dba_name": "OnDemand Realty",
             "slug": "ondemand",
         }
+        request._has_active_brokerage_membership = lambda _user_id, _brokerage_id: True
         request._has_current_subscription = lambda _user_id: False
         request._has_current_legal_acceptance = lambda _user_id: True
         with patch.object(checkout.httpx, "Client", StripeClient):
@@ -335,6 +336,7 @@ class OnDemandCheckoutTests(unittest.TestCase):
             "dba_name": "OnDemand Realty",
             "slug": "ondemand",
         }
+        request._has_active_brokerage_membership = lambda _user_id, _brokerage_id: True
         request._has_current_subscription = lambda _user_id: True
         request._has_current_legal_acceptance = lambda _user_id: True
 
@@ -343,6 +345,42 @@ class OnDemandCheckoutTests(unittest.TestCase):
 
         self.assertEqual(captured["code"], 409)
         self.assertIsNone(StripeClient.last_request)
+
+    def test_ondemand_checkout_requires_active_invited_agent_membership_before_stripe(self):
+        body = json.dumps({"launch": "ondemand"}).encode()
+        request = checkout.handler.__new__(checkout.handler)
+        request.headers = {
+            "Content-Length": str(len(body)),
+            "origin": "https://www.homeofferflow.com",
+            "authorization": "Bearer verified-token",
+        }
+        request.rfile = io.BytesIO(body)
+        captured = {}
+        request._json = lambda code, data: captured.update(code=code, data=data)
+        request._require_supabase = lambda: None
+        request._verified_user = lambda _header: {"id": "user-1", "email": "agent@ondemand.test"}
+        request._get_brokerage = lambda _slug: {"id": "brokerage-1", "slug": "ondemand"}
+        request._has_active_brokerage_membership = lambda _user_id, _brokerage_id: False
+
+        with patch.object(checkout.httpx, "Client", StripeClient):
+            request.do_POST()
+
+        self.assertEqual(captured["code"], 403)
+        self.assertIn("active invited agents", captured["data"]["error"])
+        self.assertIsNone(StripeClient.last_request)
+
+    def test_ondemand_membership_check_is_scoped_to_active_agent_seat(self):
+        request = checkout.handler.__new__(checkout.handler)
+        MembershipClient.requests = []
+        with patch.object(checkout.httpx, "Client", MembershipClient):
+            self.assertTrue(request._has_active_brokerage_membership("user-1", "brokerage-1"))
+
+        _, url, kwargs = MembershipClient.requests[0]
+        self.assertTrue(url.endswith("/rest/v1/hof_brokerage_members"))
+        self.assertEqual(kwargs["params"]["brokerage_id"], "eq.brokerage-1")
+        self.assertEqual(kwargs["params"]["user_id"], "eq.user-1")
+        self.assertEqual(kwargs["params"]["role"], "eq.agent")
+        self.assertEqual(kwargs["params"]["status"], "eq.active")
 
     def test_ondemand_checkout_defers_brokerage_membership_until_stripe_confirms(self):
         source = CHECKOUT_PATH.read_text(encoding="utf-8")
