@@ -32,6 +32,11 @@ class LegalAcceptanceRecordTests(unittest.TestCase):
         self.assertIn('source: "ondemand_checkout"', ONDEMAND)
         self.assertIn("LEGAL_POLICY_VERSION", ONDEMAND)
 
+    def test_receipt_labels_each_current_legal_acceptance_path_accurately(self):
+        self.assertIn("subscription_checkout: 'Subscription enrollment'", INDEX)
+        self.assertIn("ondemand_checkout: 'OnDemand enrollment'", INDEX)
+        self.assertIn("offer_wizard: 'Offer workspace'", INDEX)
+
 
 if __name__ == "__main__":
     unittest.main()
