@@ -64,7 +64,14 @@ class SubscriptionCheckoutFunnelMetricTests(unittest.TestCase):
         self.assertIn("queueSubscriptionCheckoutReturn(result, plan, billing)", source)
         self.assertIn("flushSubscriptionCheckoutReturnEvent", source)
         self.assertIn("SUBSCRIPTION_CHECKOUT_RETURN_KEY", source)
-        self.assertIn("if (logged) sessionStorage.removeItem", source)
+        self.assertIn("SUBSCRIPTION_CHECKOUT_SOURCE_KEY", source)
+        self.assertIn("subscription_reactivation", source)
+        self.assertIn("subscription_card", source)
+        self.assertIn("agent_activation", source)
+        self.assertIn("source: subscriptionCheckoutSource(pending.source)", source)
+        self.assertIn("if (logged) {", source)
+        self.assertIn("sessionStorage.removeItem(SUBSCRIPTION_CHECKOUT_RETURN_KEY)", source)
+        self.assertIn("sessionStorage.removeItem(SUBSCRIPTION_CHECKOUT_SOURCE_KEY)", source)
 
 
 if __name__ == "__main__":
