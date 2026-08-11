@@ -109,6 +109,16 @@ class AgentActivationDashboardTests(unittest.TestCase):
         for action in ("profile", "new_offer", "offers", "resume", "subscribe"):
             self.assertRegex(script, rf"action === ['\"]{action}['\"]")
 
+    def test_activation_actions_record_stage_and_primary_or_secondary_choice(self):
+        script_start = HTML.index('id="hof-agent-activation-v16-js"')
+        script_end = HTML.index("</script>", script_start)
+        script = HTML[script_start:script_end]
+
+        self.assertIn("activationKey", script)
+        self.assertIn("control === 'primary' || control === 'secondary'", script)
+        self.assertIn("'primary','${safe(state.key)}'", script)
+        self.assertIn("'secondary','${safe(state.key)}'", script)
+
     def test_active_subscription_keeps_next_offer_action_visible(self):
         subscription_start = HTML.index("function renderSubscriptionCard()")
         subscription_end = HTML.index("async function openBillingPortal", subscription_start)
