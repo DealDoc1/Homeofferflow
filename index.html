@@ -6241,7 +6241,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     const baseStatus = signwellStatus || offer.status || 'Draft';
     const compact = String(baseStatus || '').toLowerCase().replace(/[_\s-]+/g, ' ');
 
-    if (signwellDocumentId && (compact.includes('created') || compact.includes('generated') || compact.includes('sent'))) {
+    if (signwellDocumentId && (compact.includes('created') || compact.includes('generated') || compact.includes('sent') || compact.includes('pending'))) {
       return 'Awaiting Buyer Signature';
     }
 
@@ -6268,6 +6268,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     if (compact.includes('awaiting')) return 'Awaiting Buyer Signature';
     if (compact.includes('buyer signature')) return 'Awaiting Buyer Signature';
     if (compact.includes('sent')) return 'Awaiting Buyer Signature';
+    if (compact.includes('pending')) return 'Awaiting Buyer Signature';
     if (compact.includes('viewed')) return 'Viewed';
     if (compact.includes('in progress')) return 'Partially Signed';
     if (compact.includes('partial')) return 'Partially Signed';

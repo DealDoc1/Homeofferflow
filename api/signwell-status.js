@@ -75,6 +75,7 @@ function cleanStatusLabel(status) {
 
   if (compact.includes('buyer signatures complete')) return 'Buyer Signatures Complete';
   if (compact.includes('awaiting')) return 'Awaiting Buyer Signature';
+  if (compact.includes('pending')) return 'Awaiting Buyer Signature';
   if (compact.includes('buyer signature')) return 'Awaiting Buyer Signature';
   if (compact.includes('viewed')) return 'Viewed';
   if (compact.includes('in progress')) return 'Partially Signed';
