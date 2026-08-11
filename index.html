@@ -4840,6 +4840,11 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       return;
     }
 
+    if (!await ensureCurrentLegalAcceptanceForSubscription()) {
+      window.__hofSubscriptionCheckoutInFlight = false;
+      return;
+    }
+
     try {
       await logOfferEvent(null, 'subscription_checkout_started', '', 'Stripe subscription checkout started.', { plan: normalizedPlan, billing: normalizedBilling });
 
@@ -5007,6 +5012,76 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       console.warn('Legal acceptance record could not be saved:', err);
       return false;
     }
+  }
+
+  function subscriptionLegalConsentModal() {
+    const existing = document.getElementById('subscriptionLegalConsentModal');
+    if (existing) existing.remove();
+    const modal = document.createElement('div');
+    modal.id = 'subscriptionLegalConsentModal';
+    modal.className = 'terms-modal open';
+    modal.innerHTML = `
+      <div class="terms-modal-box" role="dialog" aria-modal="true" aria-labelledby="subscriptionLegalConsentTitle">
+        <h3 id="subscriptionLegalConsentTitle">Review before secure checkout</h3>
+        <p>Your subscription can renew automatically at the plan and interval shown in checkout unless you cancel. Please review and accept the current legal policies before continuing.</p>
+        <label class="terms-check" style="display:flex;align-items:flex-start;cursor:pointer;">
+          <input id="subscriptionLegalConsentCheckbox" type="checkbox" />
+          <span>I have read and agree to the <a href="/terms.html" target="_blank" rel="noopener">Terms of Service</a>, <a href="/privacy.html" target="_blank" rel="noopener">Privacy Policy</a>, <a href="/disclaimer.html" target="_blank" rel="noopener">Disclaimer</a>, and <a href="/esign-consent.html" target="_blank" rel="noopener">Electronic Communications and E-Sign Consent</a>.</span>
+        </label>
+        <div class="account-actions-row" style="margin-top:1rem;">
+          <button id="subscriptionLegalConsentAccept" class="btn-primary" type="button" disabled>Accept and continue</button>
+          <button id="subscriptionLegalConsentCancel" class="btn-secondary" type="button">Not now</button>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+
+    return new Promise(resolve => {
+      const checkbox = modal.querySelector('#subscriptionLegalConsentCheckbox');
+      const accept = modal.querySelector('#subscriptionLegalConsentAccept');
+      const finish = accepted => {
+        modal.remove();
+        resolve(accepted);
+      };
+      checkbox?.addEventListener('change', () => { if (accept) accept.disabled = !checkbox.checked; });
+      accept?.addEventListener('click', () => finish(true));
+      modal.querySelector('#subscriptionLegalConsentCancel')?.addEventListener('click', () => finish(false));
+      modal.addEventListener('click', event => { if (event.target === modal) finish(false); });
+    });
+  }
+
+  async function ensureCurrentLegalAcceptanceForSubscription() {
+    const client = getSupabaseClient();
+    const user = hofAuth.session?.user;
+    if (!client || !user) return false;
+    const recordedKey = `hof_legal_acceptance_recorded_${LEGAL_POLICY_VERSION}`;
+    try {
+      if (sessionStorage.getItem(recordedKey) === '1') return true;
+      const { data, error } = await client
+        .from('hof_legal_acceptances')
+        .select('policy_version')
+        .eq('policy_version', LEGAL_POLICY_VERSION)
+        .limit(1);
+      if (!error && Array.isArray(data) && data.length) {
+        sessionStorage.setItem(recordedKey, '1');
+        return true;
+      }
+    } catch (error) {
+      console.warn('Current legal acceptance lookup failed:', error);
+    }
+
+    if (!await subscriptionLegalConsentModal()) return false;
+    const recorded = await recordCurrentLegalAcceptance('subscription_checkout');
+    if (!recorded) {
+      alert('We could not save your legal acceptance. Please try again before checkout.');
+      return false;
+    }
+    try {
+      logOfferEvent(null, 'legal_terms_accepted', 'accepted', 'Legal policy accepted before subscription checkout.', {
+        policyVersion: LEGAL_POLICY_VERSION,
+        source: 'subscription_checkout'
+      });
+    } catch (error) {}
+    return true;
   }
 
   async function recordUsageEvent(offerId, eventType = 'signed_packet', quantity = 1, metadata = {}) {

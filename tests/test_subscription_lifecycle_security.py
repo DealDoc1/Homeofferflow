@@ -161,6 +161,7 @@ class SubscriptionLifecycleSecurityTests(unittest.TestCase):
         )
         request._verified_user = lambda _header: {"id": "real-user", "email": "real@example.com"}
         request._has_current_subscription = lambda _user_id: False
+        request._has_current_legal_acceptance = lambda _user_id: True
         with patch.object(checkout.httpx, "Client", CheckoutStripeClient):
             request.do_POST()
         self.assertEqual(captured["code"], 200)
