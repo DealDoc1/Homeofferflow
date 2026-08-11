@@ -195,39 +195,55 @@ def validate_supported_offer(offer):
     return True
 
 
+MAX_UPLOADED_DISCLOSURE_DOCS = 5
+MAX_UPLOADED_DISCLOSURE_DOC_BYTES = 2 * 1024 * 1024
+MAX_UPLOADED_DISCLOSURE_TOTAL_BYTES = int(2.5 * 1024 * 1024)
+
+
 def _uploaded_docs(offer):
-    """Decode valid uploaded PDF disclosures using the existing production limits."""
+    """Decode every uploaded PDF or fail before a packet can omit one silently."""
     docs = (offer or {}).get("uploadedDisclosureDocs") or (offer or {}).get("uploadedDocs") or []
     if not isinstance(docs, list):
-        return []
+        raise ValueError("Uploaded disclosure documents must be a list of PDFs.")
+    if len(docs) > MAX_UPLOADED_DISCLOSURE_DOCS:
+        raise ValueError(f"A packet can include at most {MAX_UPLOADED_DISCLOSURE_DOCS} uploaded PDFs.")
 
     decoded = []
-    max_docs = 5
-    max_bytes = 15 * 1024 * 1024
+    total_bytes = 0
 
-    for index, doc in enumerate(docs[:max_docs]):
+    for index, doc in enumerate(docs):
         if not isinstance(doc, dict):
-            continue
+            raise ValueError(f"Uploaded PDF #{index + 1} is not a valid document.")
         name = str(doc.get("name") or f"uploaded_doc_{index + 1}.pdf")
         encoded = doc.get("base64") or doc.get("file_base64") or doc.get("data") or ""
         if not encoded:
-            continue
+            raise ValueError(f"Uploaded PDF {name} is missing its file data.")
         try:
             if isinstance(encoded, str) and encoded.strip().lower().startswith("data:") and "," in encoded:
                 encoded = encoded.split(",", 1)[1]
-            raw = base64.b64decode(str(encoded), validate=False)
-            if not raw.startswith(b"%PDF") or len(raw) > max_bytes:
-                continue
+            raw = base64.b64decode(str(encoded), validate=True)
+        except Exception as exc:
+            raise ValueError(f"Uploaded PDF {name} could not be decoded.") from exc
+        if not raw.startswith(b"%PDF"):
+            raise ValueError(f"Uploaded document {name} is not a readable PDF.")
+        if len(raw) > MAX_UPLOADED_DISCLOSURE_DOC_BYTES:
+            raise ValueError(f"Uploaded PDF {name} exceeds the 2 MB per-file limit.")
+        total_bytes += len(raw)
+        if total_bytes > MAX_UPLOADED_DISCLOSURE_TOTAL_BYTES:
+            raise ValueError("Uploaded PDFs exceed the 2.5 MB combined limit.")
+        try:
             reader = PdfReader(BytesIO(raw))
             if not reader.pages:
-                continue
+                raise ValueError(f"Uploaded PDF {name} has no readable pages.")
             copied = dict(doc)
             copied["name"] = name
             copied["raw"] = raw
             copied["page_count"] = len(reader.pages)
             decoded.append(copied)
         except Exception as exc:
-            print("UPLOAD DOC SKIP:", name, str(exc))
+            if isinstance(exc, ValueError):
+                raise
+            raise ValueError(f"Uploaded PDF {name} could not be read.") from exc
 
     return decoded
 
@@ -235,8 +251,8 @@ def _uploaded_docs(offer):
 def fill_and_merge_20_19(offer):
     """Generate the verified 20-19 packet, then preserve uploaded disclosures."""
     validate_supported_offer(offer)
-    packet = verified.fill_and_merge(offer)
     docs = _uploaded_docs(offer)
+    packet = verified.fill_and_merge(offer)
     if not docs:
         return packet
 

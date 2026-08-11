@@ -184,6 +184,24 @@ class ControlledLaunchTests(unittest.TestCase):
         packet = adapter.fill_and_merge_20_19(offer)
         self.assertEqual(len(PdfReader(BytesIO(packet)).pages), 14)
 
+    def test_uploaded_disclosures_fail_closed_instead_of_silently_omitting_a_file(self):
+        offer = minimal_offer(uploadedDisclosureDocs=[{
+            "name": "not-a-pdf.pdf",
+            "base64": base64.b64encode(b"not a PDF").decode("ascii"),
+        }])
+
+        with self.assertRaisesRegex(ValueError, "not a readable PDF"):
+            adapter.fill_and_merge_20_19(offer)
+
+    def test_uploaded_disclosures_enforce_the_same_payload_limits_as_the_browser(self):
+        six_documents = [{"name": f"document-{index}.pdf", "base64": one_page_pdf_base64()} for index in range(6)]
+        with self.assertRaisesRegex(ValueError, "at most 5"):
+            adapter._uploaded_docs({"uploadedDisclosureDocs": six_documents})
+
+        oversized = base64.b64encode(b"%PDF" + (b"x" * (2 * 1024 * 1024))).decode("ascii")
+        with self.assertRaisesRegex(ValueError, "2 MB per-file"):
+            adapter._uploaded_docs({"uploadedDisclosureDocs": [{"name": "oversized.pdf", "base64": oversized}]})
+
     def test_ten_golden_packet_scenarios_keep_supported_packet_shape_and_signers(self):
         conventional = {
             "financing": "conventional", "thirdPartyFinancing": "yes",
@@ -274,4 +292,3 @@ class ControlledLaunchTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-
