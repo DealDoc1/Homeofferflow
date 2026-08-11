@@ -1925,6 +1925,40 @@ def handle_checkout(event):
 
 class handler(BaseHTTPRequestHandler):
 
+    def _verified_user(self):
+        auth_header = self.headers.get("Authorization", "")
+        if not auth_header.lower().startswith("bearer "):
+            return None
+        token = auth_header.split(" ", 1)[1].strip()
+        if not token or not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
+            return None
+        response = httpx.get(
+            f"{SUPABASE_URL}/auth/v1/user",
+            headers={"apikey": SUPABASE_SERVICE_ROLE_KEY, "Authorization": f"Bearer {token}"},
+            timeout=12,
+        )
+        if response.status_code != 200:
+            return None
+        user = response.json()
+        return str(user.get("id") or "") or None
+
+    def _has_active_subscription(self, user_id):
+        response = httpx.get(
+            f"{SUPABASE_URL}/rest/v1/hof_subscriptions",
+            params={
+                "user_id": f"eq.{user_id}",
+                "status": "in.(active,trialing,free_admin)",
+                "select": "id",
+                "limit": "1",
+            },
+            headers={
+                "apikey": SUPABASE_SERVICE_ROLE_KEY,
+                "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}",
+            },
+            timeout=12,
+        )
+        return response.status_code == 200 and bool(response.json())
+
     def do_GET(self):
         try:
             contents = os.listdir(BASE_DIR) if os.path.exists(BASE_DIR) else []
@@ -1958,16 +1992,28 @@ class handler(BaseHTTPRequestHandler):
             length = int(self.headers.get("Content-Length", 0))
             body = self.rfile.read(length)
 
-            sig = self.headers.get("stripe-signature", "")
-
-            if sig and not verify_stripe_signature(body, sig, STRIPE_WHSEC):
-                self._json(401, {"error": "Invalid Stripe signature"})
-                return
-
             payload = json.loads(body.decode("utf-8") or "{}")
 
             # Stripe webhook path: paid checkout sends a checkout.session.completed event.
             if isinstance(payload, dict) and payload.get("type") == "checkout.session.completed":
+                sig = self.headers.get("stripe-signature", "")
+                metadata = ((payload.get("data") or {}).get("object") or {}).get("metadata") or {}
+                is_subscription_generation = str(metadata.get("subscription_generation") or "").lower() == "true"
+                if sig:
+                    if not verify_stripe_signature(body, sig, STRIPE_WHSEC):
+                        self._json(401, {"error": "Invalid Stripe signature"})
+                        return
+                elif is_subscription_generation:
+                    user_id = self._verified_user()
+                    if not user_id:
+                        self._json(401, {"error": "Sign in again before generating a packet."})
+                        return
+                    if not self._has_active_subscription(user_id):
+                        self._json(403, {"error": "An active HomeOfferFlow subscription is required to generate a packet."})
+                        return
+                else:
+                    self._json(401, {"error": "A verified Stripe webhook or active subscription is required."})
+                    return
                 result = handle_checkout(payload)
                 self._json(200, result)
                 return
@@ -1981,6 +2027,13 @@ class handler(BaseHTTPRequestHandler):
                 offer = payload
 
             if offer:
+                user_id = self._verified_user()
+                if not user_id:
+                    self._json(401, {"error": "Sign in again before generating a packet."})
+                    return
+                if not self._has_active_subscription(user_id):
+                    self._json(403, {"error": "An active HomeOfferFlow subscription is required to generate a packet."})
+                    return
                 validate_supported_offer(offer)
                 pdf_bytes = fill_and_merge(offer)
                 filename_addr = re.sub(r"[^A-Za-z0-9]+", "_", str(offer.get("address", "offer")).strip()).strip("_") or "offer"
