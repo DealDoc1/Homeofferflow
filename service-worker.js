@@ -1,4 +1,4 @@
-const SHELL_CACHE = 'homeofferflow-shell-v5';
+const SHELL_CACHE = 'homeofferflow-shell-v6';
 const SHELL_ASSETS = [
   '/',
   '/index.html',
@@ -38,8 +38,19 @@ self.addEventListener('fetch', event => {
   if (requestUrl.origin !== self.location.origin || requestUrl.pathname.startsWith('/api/')) return;
 
   // The shell stays network-first, so a completed deploy is visible immediately.
+  // Refresh the cached *public* HTML shell after a successful navigation. That
+  // lets a recently used installed app open the current interface when it goes
+  // offline, without ever caching API, document, or account-specific responses.
   // Only a navigation request can fall back to the cached shell while offline.
   if (event.request.mode === 'navigate') {
-    event.respondWith(fetch(event.request).catch(() => caches.match('/index.html')));
+    const networkResponse = fetch(event.request);
+    event.respondWith(networkResponse.catch(() => caches.match('/index.html')));
+    event.waitUntil(
+      networkResponse.then(response => {
+        const contentType = response.headers.get('content-type') || '';
+        if (!response.ok || !contentType.includes('text/html')) return;
+        return caches.open(SHELL_CACHE).then(cache => cache.put('/index.html', response.clone()));
+      }).catch(() => undefined)
+    );
   }
 });
