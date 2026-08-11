@@ -3253,6 +3253,13 @@ class handler(BaseHTTPRequestHandler):
             partner_follow_up_email_start_count = len([
                 item for item in events if item.get("event_type") == "partner_follow_up_email_started"
             ])
+            # A setup-link email is a deliberate platform-admin action. Keep this
+            # aggregate separate from mailto follow-ups so the paid-partner
+            # onboarding funnel shows whether secure access is actually being
+            # delivered, without returning recipient or token details.
+            partner_onboarding_email_sent_count = len([
+                item for item in events if item.get("event_type") == "partner_onboarding_email_sent"
+            ])
             seller_follow_up_email_start_count = len([
                 item for item in events if item.get("event_type") == "seller_follow_up_email_started"
             ])
@@ -3542,6 +3549,7 @@ class handler(BaseHTTPRequestHandler):
                 if paid_partner_lead_count else 0,
                 "partnerActivationAvgDays": partner_activation_avg_days,
                 "partnerFollowUpEmailStartCount": partner_follow_up_email_start_count,
+                "partnerOnboardingEmailSentCount": partner_onboarding_email_sent_count,
                 "eventCount": len(events),
                 "roadmapCount": len(roadmap),
                 "roadmapBlockedCount": len([item for item in roadmap if item.get("status") == "blocked"]),

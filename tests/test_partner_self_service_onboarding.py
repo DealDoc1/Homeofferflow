@@ -58,6 +58,13 @@ class PartnerSelfServiceOnboardingTests(unittest.TestCase):
         self.assertIn("partnerOnboardingCompletedCount", admin)
         self.assertIn("partnerOnboardingCompletionRate", html)
 
+    def test_admin_exposes_aggregate_secure_setup_email_delivery_metric(self):
+        admin = (ROOT / "api/admin-dashboard.py").read_text()
+        html = (ROOT / "index.html").read_text()
+        self.assertIn('"partnerOnboardingEmailSentCount": partner_onboarding_email_sent_count', admin)
+        self.assertIn('item.get("event_type") == "partner_onboarding_email_sent"', admin)
+        self.assertIn("secure setup emails sent", html)
+
     def test_admin_can_send_setup_link_only_from_an_explicit_paid_partner_action(self):
         admin = (ROOT / "api/admin-dashboard.py").read_text()
         html = (ROOT / "index.html").read_text()
