@@ -13379,23 +13379,28 @@ function routeAfterMagicLinkIfNeeded() {
     const draft = draftOffer();
     const complete = [hasProfile, hasOffer, hasPlan].filter(Boolean).length;
 
-    if (!hasProfile) {
-      return {
-        key: 'profile',
-        title: 'Complete your profile once',
-        body: 'Save your license, brokerage, contact, title, escrow, and common offer defaults so future packets start ready.',
-        primary: 'Complete Profile',
-        secondary: 'Create Offer Without Defaults',
-        complete, hasProfile, hasOffer, hasPlan
-      };
-    }
+    // Let a new agent experience the core offer workflow before asking for a
+    // full account setup. They can enter deal-specific details in the wizard,
+    // then save reusable defaults once the value is tangible.
     if (!hasOffer) {
       return {
         key: 'first_offer',
-        title: 'Create your first client-ready offer',
-        body: 'Your saved defaults are ready. Start a Texas offer, review every term, and save it to your workspace.',
-        primary: 'Create First Offer',
-        secondary: 'Review Saved Profile',
+        title: hasProfile ? 'Create your first client-ready offer' : 'Start your first client offer',
+        body: hasProfile
+          ? 'Your saved defaults are ready. Start a Texas offer, review every term, and save it to your workspace.'
+          : 'Start with the client and property in front of you. You can save your license, brokerage, and reusable defaults after this first offer.',
+        primary: hasProfile ? 'Create First Offer' : 'Start First Offer',
+        secondary: hasProfile ? 'Review Saved Profile' : 'Set Up My Defaults',
+        complete, hasProfile, hasOffer, hasPlan
+      };
+    }
+    if (!hasProfile) {
+      return {
+        key: 'profile',
+        title: 'Save your defaults for the next offer',
+        body: 'Your first offer is in the workspace. Save your license, brokerage, contact, title, escrow, and common terms now so the next one starts faster.',
+        primary: 'Save My Defaults',
+        secondary: 'Open Offer Workspace',
         complete, hasProfile, hasOffer, hasPlan
       };
     }
@@ -13469,8 +13474,8 @@ function routeAfterMagicLinkIfNeeded() {
     if (!card || !root.hofAuth?.session) return;
     const state = activationState();
     const steps = [
-      { done: state.hasProfile, label: 'Profile and defaults' },
       { done: state.hasOffer, label: 'First saved offer' },
+      { done: state.hasProfile, label: 'Profile and defaults' },
       { done: state.hasPlan, label: 'Active subscription' }
     ];
     const id = String(state.draftId || '').replace(/[^a-zA-Z0-9-]/g, '');

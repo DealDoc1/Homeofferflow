@@ -75,6 +75,18 @@ class AgentActivationDashboardTests(unittest.TestCase):
         ):
             self.assertIn(expected, script)
 
+    def test_first_offer_is_the_primary_value_step_before_profile_defaults(self):
+        script_start = HTML.index('id="hof-agent-activation-v16-js"')
+        script_end = HTML.index("</script>", script_start)
+        script = HTML[script_start:script_end]
+
+        first_offer = script.index("if (!hasOffer) {")
+        profile_after_offer = script.index("if (!hasProfile) {", first_offer + 1)
+        self.assertLess(first_offer, profile_after_offer)
+        self.assertIn("Start your first client offer", script)
+        self.assertIn("Start First Offer", script)
+        self.assertIn("Set Up My Defaults", script)
+
     def test_profile_activation_requires_agent_contact_and_license_fields(self):
         script_start = HTML.index('id="hof-agent-activation-v16-js"')
         script_end = HTML.index("</script>", script_start)
