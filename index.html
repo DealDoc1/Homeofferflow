@@ -14208,11 +14208,13 @@ function routeAfterMagicLinkIfNeeded() {
     return data;
   }
 
-  root.setBrokerageMemberStatus = async function setBrokerageMemberStatus(userId, membershipStatus) {
+  root.setBrokerageMemberStatus = async function setBrokerageMemberStatus(userId, membershipStatus, currentMembershipStatus) {
     const session = root.hofAuth?.session;
     if (!session?.access_token) return alert('Sign in again before changing brokerage access.');
     const nextStatus = String(membershipStatus || '').toLowerCase();
-    const actionLabel = nextStatus === 'suspended' ? 'suspend' : 'restore';
+    const actionLabel = nextStatus === 'suspended'
+      ? 'suspend'
+      : (String(currentMembershipStatus || '').toLowerCase() === 'pending' ? 'activate' : 'restore');
     if (!window.confirm('This will ' + actionLabel + ' this agent\'s brokerage access. It does not cancel their HomeOfferFlow billing or delete their offers. Continue?')) return;
     try {
       const response = await fetch('/api/admin-dashboard', {
@@ -14695,6 +14697,10 @@ function routeAfterMagicLinkIfNeeded() {
       const teamPacketUsage = Number(m.teamPacketUsage || 0);
       const teamPacketLimit = Number(m.teamPacketLimit || 0);
       const teamUsagePercent = teamPacketLimit > 0 ? Math.min(100, Math.round((teamPacketUsage / teamPacketLimit) * 100)) : null;
+      const activeAccessMembershipPendingCount = Number(m.membersAwaitingActivationWithActiveAccess || 0);
+      const activeAccessMembershipNotice = activeAccessMembershipPendingCount
+        ? '<div class="notice gold" style="margin-top:1rem"><strong>Membership activation needed:</strong> ' + activeAccessMembershipPendingCount + ' agent' + (activeAccessMembershipPendingCount === 1 ? ' has' : 's have') + ' active platform access but a pending brokerage seat. Use the Activate action in the roster to align access. This does not change billing, roles, offers, or documents.</div>'
+        : '';
       const seatMomentum = seatCap == null
         ? 'Invite agents as your brokerage workflow grows.'
         : openSeats > 0
@@ -14763,6 +14769,7 @@ function routeAfterMagicLinkIfNeeded() {
         '<button type="button" class="brokerage-access-button" onclick="createBrokerageInvite()">Create invite link</button></div>' +
         '<p id="brokerageInviteResult" class="brokerage-invite-result">The link works only for the invited email, expires in 14 days, and does not start billing until the agent completes Stripe checkout.</p>' +
         ((pendingInvitesExpiringSoon || pendingInvitesExpired || pendingInvitesAged) ? '<div class="notice gold" style="margin-top:1rem"><strong>Invitation attention:</strong> ' + (pendingInvitesExpired ? pendingInvitesExpired + ' expired' + (pendingInvitesExpired === 1 ? ' invite' : ' invites') + '. ' : '') + (pendingInvitesExpiringSoon ? pendingInvitesExpiringSoon + ' pending invite' + (pendingInvitesExpiringSoon === 1 ? ' expires' : 's expire') + ' within 3 days. ' : '') + (pendingInvitesAged ? pendingInvitesAged + ' pending invite' + (pendingInvitesAged === 1 ? ' is' : 's are') + ' more than 7 days old. ' : '') + 'Resend the invite to protect your next seat.</div>' : '') +
+        activeAccessMembershipNotice +
         inviteAcceptanceNotice +
         (pendingInvites.length ? '<div class="brokerage-pending-invites"><strong>Pending invites (oldest first):</strong>' + pendingInvites.map(invite => { const inviteExpiry = invite.expiresAt || invite.expires_at; return '<div style="display:flex;align-items:center;gap:.55rem;margin-top:.35rem;flex-wrap:wrap"><span>' + safe(invite.email || 'Agent') + ' ' + brokerageInviteAttention(invite) + (inviteExpiry ? ' <small>(expires ' + safe(formatBillingDate(inviteExpiry)) + ')</small>' : '') + '</span><button type="button" class="brokerage-access-button" onclick="resendBrokerageInvite(\'' + safe(invite.email || '') + '\')">Resend</button><button type="button" class="brokerage-access-button" onclick="revokeBrokerageInvite(\'' + safe(invite.id) + '\',\'' + safe(invite.email || '') + '\')">Revoke</button></div>'; }).join('') + '</div>' : '') +
         '<div class="brokerage-safe-kpis">' +
@@ -14803,7 +14810,7 @@ function routeAfterMagicLinkIfNeeded() {
           '<td>' + (agent.role === 'agent'
             ? (agent.membershipStatus === 'active'
               ? '<button type="button" class="brokerage-access-button" onclick="setBrokerageMemberStatus(\'' + safe(agent.userId) + '\',\'suspended\')">Suspend</button>'
-              : '<button type="button" class="brokerage-access-button" onclick="setBrokerageMemberStatus(\'' + safe(agent.userId) + '\',\'active\')">Restore</button>')
+              : '<button type="button" class="brokerage-access-button" onclick="setBrokerageMemberStatus(\'' + safe(agent.userId) + '\',\'active\',\'' + safe(agent.membershipStatus || 'pending') + '\')">' + (agent.membershipStatus === 'pending' ? 'Activate' : 'Restore') + '</button>')
             : '<span>Support-managed</span>') + '</td></tr>'
         ).join('') : '<tr><td colspan="12">No agents have enrolled yet.</td></tr>') +
         '</tbody></table>';

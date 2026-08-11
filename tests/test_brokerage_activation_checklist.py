@@ -16,6 +16,14 @@ class BrokerageActivationChecklistTests(unittest.TestCase):
         self.assertIn("activationComplete", HTML)
         self.assertIn("Continue launch", HTML)
 
+    def test_brokerage_admin_flags_active_access_with_pending_seat_as_activation_work(self):
+        api = (Path(__file__).resolve().parents[1] / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
+        self.assertIn('"membersAwaitingActivationWithActiveAccess"', api)
+        self.assertIn('next_action = "Activate brokerage membership"', api)
+        self.assertIn("membersAwaitingActivationWithActiveAccess", HTML)
+        self.assertIn("Membership activation needed:", HTML)
+        self.assertIn("? 'Activate' : 'Restore'", HTML)
+
 
 if __name__ == "__main__":
     unittest.main()
