@@ -4,7 +4,7 @@
 
 - Release name: Subscribed packet authorization hardening
 - Git commit / pull request: pending release branch
-- Production scope: `api/fill-pdf.py` production offer contract packet service authorization only. No PDF source, field mapping, recipient order, or signing payload was changed.
+- Production scope: `api/fill-pdf.py` production offer contract packet service authorization and subscribed-dashboard record ownership. No PDF source, field mapping, recipient order, or signing payload was changed.
 - Changed packet/form target marker: production offer contract packet service.
 
 ## Approved source
@@ -34,7 +34,7 @@
 
 ## Regression
 
-- Dedicated golden scenario added: subscribed packet generation rejects unsigned checkout-shaped requests and requires verified subscription authorization plus remaining monthly allowance.
+- Dedicated golden scenarios: subscribed packet generation rejects unsigned checkout-shaped requests, requires verified subscription authorization plus remaining monthly allowance, and updates the authenticated subscriber's saved draft instead of inserting an orphaned duplicate record.
 - Existing buyer-offer regression scenarios run: full suite.
 - Test result / evidence: 785 tests passed locally on 2026-08-11, including the new packet-generation security tests.
 

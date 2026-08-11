@@ -1497,12 +1497,13 @@ def extract_signwell_document_id(signwell_info):
     )
 
 
-def save_generated_offer_to_supabase(offer, customer_email="", signwell_info=None):
+def save_generated_offer_to_supabase(offer, customer_email="", signwell_info=None, subscription_user_id=None):
     """
     Persist every paid/generated packet to hof_offers, including self-serve homebuyer checkouts.
 
-    Agent/investor dashboard drafts may already be saved by the frontend. This backend insert is the
-    source of truth for checkout-generated packets so homebuyer orders are visible in Supabase/admin.
+    Agent/investor dashboard drafts may already be saved by the frontend. A verified subscribed
+    generation updates that exact draft (or creates an owned record if the draft save failed), while
+    checkout-generated homebuyer packets remain visible in Supabase/admin.
     Supabase failures are logged but never block PDF delivery or SignWell sending.
     """
     if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
@@ -1510,6 +1511,13 @@ def save_generated_offer_to_supabase(offer, customer_email="", signwell_info=Non
         return None
 
     try:
+        trusted_user_id = str(subscription_user_id or "").strip()
+        existing_offer_id = str(offer.get("_hofOfferId") or "").strip()
+        persisted_offer_data = dict(offer or {})
+        # This value comes from the authenticated request path only. Do not store the
+        # internal trust marker in customer-visible offer data.
+        persisted_offer_data.pop("_subscription_user_id", None)
+
         role = first_present(offer.get("userType"), offer.get("role"), "homebuyer")
         if role not in ["homebuyer", "agent", "investor"]:
             role = "homebuyer"
@@ -1571,7 +1579,7 @@ def save_generated_offer_to_supabase(offer, customer_email="", signwell_info=Non
             "generated_at": __import__("datetime").datetime.utcnow().isoformat() + "Z",
             "status": status,
             "offer_data": {
-                **(offer or {}),
+                **persisted_offer_data,
                 "checkout_customer_email": customer_email,
                 "signwell": signwell_info or {},
                 "backend_saved": True,
@@ -1581,20 +1589,35 @@ def save_generated_offer_to_supabase(offer, customer_email="", signwell_info=Non
 
         # Remove None values only for columns that are optional; keep important status/role fields.
         payload = {k: v for k, v in payload.items() if v is not None}
+        if trusted_user_id:
+            payload["user_id"] = trusted_user_id
 
-        r = httpx.post(
-            f"{SUPABASE_URL}/rest/v1/hof_offers",
-            headers={
-                "apikey": SUPABASE_SERVICE_ROLE_KEY,
-                "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}",
-                "Content-Type": "application/json",
-                "Prefer": "return=representation",
-            },
-            json=payload,
-            timeout=20,
-        )
-        print("SUPABASE hof_offers INSERT STATUS:", r.status_code)
-        print("SUPABASE hof_offers INSERT BODY:", r.text[:1000])
+        headers = {
+            "apikey": SUPABASE_SERVICE_ROLE_KEY,
+            "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}",
+            "Content-Type": "application/json",
+            "Prefer": "return=representation",
+        }
+
+        if trusted_user_id and existing_offer_id:
+            r = httpx.patch(
+                f"{SUPABASE_URL}/rest/v1/hof_offers",
+                params={"id": f"eq.{existing_offer_id}", "user_id": f"eq.{trusted_user_id}"},
+                headers=headers,
+                json=payload,
+                timeout=20,
+            )
+            print("SUPABASE hof_offers UPDATE STATUS:", r.status_code)
+            print("SUPABASE hof_offers UPDATE BODY:", r.text[:1000])
+        else:
+            r = httpx.post(
+                f"{SUPABASE_URL}/rest/v1/hof_offers",
+                headers=headers,
+                json=payload,
+                timeout=20,
+            )
+            print("SUPABASE hof_offers INSERT STATUS:", r.status_code)
+            print("SUPABASE hof_offers INSERT BODY:", r.text[:1000])
         if r.status_code not in [200, 201]:
             return None
         try:
@@ -1854,7 +1877,7 @@ Please comment or message me if you are available to help coordinate/show this p
         send_basic_email(buyer_email, "HomeOfferFlow Showing Request Received", customer_html)
 
 
-def handle_checkout(event):
+def handle_checkout(event, subscription_user_id=None):
     session = event.get("data", {}).get("object", {})
 
     customer_email = (
@@ -1897,7 +1920,12 @@ def handle_checkout(event):
     signwell_info = create_signwell_signature_request(offer, pdf_bytes)
 
     # Persist checkout-generated packets, including self-serve homebuyer orders, so Supabase/admin dashboards can see them.
-    save_generated_offer_to_supabase(offer, customer_email, signwell_info)
+    save_generated_offer_to_supabase(
+        offer,
+        customer_email,
+        signwell_info,
+        subscription_user_id=subscription_user_id,
+    )
 
     send_email(
         offer.get("buyerEmail") or customer_email,
@@ -2027,6 +2055,7 @@ class handler(BaseHTTPRequestHandler):
                 sig = self.headers.get("stripe-signature", "")
                 metadata = ((payload.get("data") or {}).get("object") or {}).get("metadata") or {}
                 is_subscription_generation = str(metadata.get("subscription_generation") or "").lower() == "true"
+                subscription_user_id = None
                 if sig:
                     if not verify_stripe_signature(body, sig, STRIPE_WHSEC):
                         self._json(401, {"error": "Invalid Stripe signature"})
@@ -2039,10 +2068,11 @@ class handler(BaseHTTPRequestHandler):
                     if not self._has_generation_entitlement(user_id):
                         self._json(403, {"error": "Your HomeOfferFlow access is not active or this month's packet limit has been reached."})
                         return
+                    subscription_user_id = user_id
                 else:
                     self._json(401, {"error": "A verified Stripe webhook or active subscription is required."})
                     return
-                result = handle_checkout(payload)
+                result = handle_checkout(payload, subscription_user_id=subscription_user_id)
                 self._json(200, result)
                 return
 
