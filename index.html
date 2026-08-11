@@ -4305,6 +4305,13 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           </div>
 
           <div class="admin-metric">
+            <div class="admin-metric-label">Landing Path Selections</div>
+            <div class="admin-metric-value">${metrics.landingAudienceSelectionCount || 0}</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Homebuyer ${Number(metrics.landingAudienceSelectionCounts?.homebuyer || 0)} · Agent / broker ${Number(metrics.landingAudienceSelectionCounts?.agent || 0)} · Investor ${Number(metrics.landingAudienceSelectionCounts?.investor || 0)} · FSBO ${Number(metrics.landingAudienceSelectionCounts?.fsbo || 0)}.</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Aggregate routing interest only; no visitor identity, email, or property data is included.</div>
+          </div>
+
+          <div class="admin-metric">
             <div class="admin-metric-label">Brokerage Invites Sent</div>
             <div class="admin-metric-value">${metrics.brokerageInviteSentCount || 0}</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.brokerageInviteResendCount || 0} resends · ${metrics.brokerageInviteAcceptedCount || 0} accepted of ${metrics.brokerageInviteTotalCount || 0} (${Number(metrics.brokerageInviteAcceptanceRate || 0).toFixed(1)}%).</div>
