@@ -3314,6 +3314,22 @@ class handler(BaseHTTPRequestHandler):
             seller_follow_up_email_start_count = len([
                 item for item in events if item.get("event_type") == "seller_follow_up_email_started"
             ])
+            # Landing path choices are aggregate product-routing signals only.
+            # Accept a fixed audience vocabulary so event metadata can never
+            # introduce free-form visitor data into the platform dashboard.
+            landing_audience_selection_counts = {
+                "homebuyer": 0,
+                "agent": 0,
+                "investor": 0,
+                "fsbo": 0,
+            }
+            for item in events:
+                if item.get("event_type") != "landing_audience_selected":
+                    continue
+                metadata = item.get("metadata") or {}
+                audience = str(metadata.get("audience") or "").strip().lower()
+                if audience in landing_audience_selection_counts:
+                    landing_audience_selection_counts[audience] += 1
             ai_review_outputs = asyncio.run(_get_optional(
                 "hof_ai_offer_reviews?select=id,created_at,review_mode&order=created_at.desc&limit=100"
             ))
@@ -3612,6 +3628,8 @@ class handler(BaseHTTPRequestHandler):
                 "partnerLeadCount": len(partner_leads),
                 "qualifiedPartnerLeadCount": len([lead for lead in partner_leads if lead.get("status") in {"qualified", "converted"}]),
                 "sellerLeadCount": len(seller_leads),
+                "landingAudienceSelectionCount": sum(landing_audience_selection_counts.values()),
+                "landingAudienceSelectionCounts": landing_audience_selection_counts,
                 "qualifiedSellerLeadCount": len([lead for lead in seller_leads if lead.get("status") in {"qualified", "converted"}]),
                 "sellerFollowUpEmailStartCount": seller_follow_up_email_start_count,
                 "sellerFollowUpEmailStartRate": round((seller_follow_up_email_start_count / len(seller_leads)) * 100, 1)

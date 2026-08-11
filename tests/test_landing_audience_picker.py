@@ -24,6 +24,15 @@ class LandingAudiencePickerTests(unittest.TestCase):
         self.assertNotIn("email", hero.lower())
         self.assertNotIn("address", hero.lower())
 
+    def test_platform_admin_receives_only_fixed_audience_selection_aggregates(self):
+        backend = (Path(__file__).resolve().parents[1] / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
+        self.assertIn('"landingAudienceSelectionCount"', backend)
+        self.assertIn('"landingAudienceSelectionCounts"', backend)
+        self.assertIn('landing_audience_selection_counts', backend)
+        self.assertIn('if audience in landing_audience_selection_counts:', backend)
+        self.assertIn("Landing Path Selections", HTML)
+        self.assertIn("Aggregate routing interest only", HTML)
+
 
 if __name__ == "__main__":
     unittest.main()
