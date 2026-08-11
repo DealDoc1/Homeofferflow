@@ -6116,11 +6116,15 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       hofAuth.myOffers = [];
       hofAuth.myOffersHasMore = false;
       hofAuth.myOffersLoadMoreError = false;
+      hofAuth.myOffersNextOffset = 0;
       list.textContent = 'Sign in to view offers.';
       return [];
     }
     const existingOffers = append && Array.isArray(hofAuth.myOffers) ? hofAuth.myOffers : [];
-    const offset = existingOffers.length;
+    // Keep the database cursor independent from unique rendered cards. An
+    // offer can move between pages when a concurrent update changes its
+    // last_updated value; using the card count would then repeat a page.
+    const offset = append ? Number(hofAuth.myOffersNextOffset || existingOffers.length) : 0;
     try {
       const { data, error } = await client
         .from('hof_offers')
@@ -6137,6 +6141,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       hofAuth.myOffers = loadedOffers;
       hofAuth.myOffersHasMore = page.length === HOF_OFFER_WORKSPACE_PAGE_SIZE;
       hofAuth.myOffersLoadMoreError = false;
+      hofAuth.myOffersNextOffset = offset + page.length;
       if (!loadedOffers.length) {
         list.className = 'offer-empty';
         list.textContent = 'No saved offers yet. Create your first offer and future drafts will show here.';
@@ -6160,6 +6165,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       hofAuth.myOffers = [];
       hofAuth.myOffersHasMore = false;
       hofAuth.myOffersLoadMoreError = false;
+      hofAuth.myOffersNextOffset = 0;
       list.className = 'offer-empty';
       list.innerHTML = 'Could not load offers yet. <button type="button" class="btn-secondary" style="margin-top:.65rem" onclick="loadMyOffers()">Retry offers</button>';
       console.warn('Offers load failed:', err);
