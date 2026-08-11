@@ -16016,7 +16016,12 @@ function routeAfterMagicLinkIfNeeded() {
       }
       body.innerHTML = records.map(record => {
         const date = record.accepted_at ? new Date(record.accepted_at).toLocaleString() : 'Date unavailable';
-        const source = record.source === 'ondemand_checkout' ? 'OnDemand enrollment' : 'Offer workspace';
+        const sourceLabels = {
+          ondemand_checkout: 'OnDemand enrollment',
+          subscription_checkout: 'Subscription enrollment',
+          offer_wizard: 'Offer workspace'
+        };
+        const source = sourceLabels[record.source] || 'HomeOfferFlow';
         return `<div style="padding:.55rem 0;border-bottom:1px solid rgba(255,255,255,.08);"><strong style="color:var(--white);font-size:.82rem;">Policy version ${escapeAttr(record.policy_version || 'current')}</strong><div style="color:var(--gray-light);font-size:.76rem;margin-top:.2rem;">Accepted ${escapeAttr(date)} · ${escapeAttr(source)}</div></div>`;
       }).join('');
     } catch (error) {
