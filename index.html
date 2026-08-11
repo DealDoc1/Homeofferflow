@@ -14142,7 +14142,9 @@ function routeAfterMagicLinkIfNeeded() {
     const renewalDaysRemaining = Number.isFinite(renewalTimestamp)
       ? Math.max(0, Math.ceil((renewalTimestamp - Date.now()) / 86400000))
       : null;
-    const renewalUrgent = ['active', 'free_admin'].includes(status)
+    // Internal free-admin access is not a billable subscription. Never show a
+    // stale Stripe renewal date to an admin who does not have a customer plan.
+    const renewalUrgent = status === 'active'
       && !subscription.cancel_at_period_end
       && renewalDaysRemaining !== null
       && renewalDaysRemaining <= 7;
@@ -14159,7 +14161,7 @@ function routeAfterMagicLinkIfNeeded() {
         '<strong>Cancellation scheduled.</strong> Access remains available through ' + safe(cancellationEnds) + '. <button type="button" class="btn-secondary" style="margin-top:.45rem" onclick="openBillingPortal(\'cancellation_recovery\')">Keep my subscription</button>' +
         '</div>');
     }
-    if (['active','free_admin'].includes(status) && !subscription.cancel_at_period_end && renewalDate && !card.querySelector('.subscription-renewal-notice')) {
+    if (status === 'active' && !subscription.cancel_at_period_end && renewalDate && !card.querySelector('.subscription-renewal-notice')) {
       card.insertAdjacentHTML('beforeend',
         '<div class="subscription-renewal-notice" style="margin-top:0.75rem; font-size:0.78rem; line-height:1.45; color:var(--gray);">' +
         '<strong>' + (renewalUrgent ? 'Renewal is in ' + renewalDaysRemaining + ' day' + (renewalDaysRemaining === 1 ? '' : 's') + ': ' : 'Next renewal: ') + safe(renewalDate) + '.</strong> Manage Billing anytime to review or change your plan.' +

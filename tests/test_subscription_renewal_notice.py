@@ -17,6 +17,11 @@ class SubscriptionRenewalNoticeTests(unittest.TestCase):
         self.assertIn("renewal_urgency", source)
         self.assertIn("Renewal is in", source)
 
+    def test_free_admin_access_never_shows_a_customer_renewal_date(self):
+        source = Path('index.html').read_text()
+        self.assertIn("const renewalUrgent = status === 'active'", source)
+        self.assertIn("if (status === 'active' && !subscription.cancel_at_period_end && renewalDate", source)
+
     def test_scheduled_cancellation_has_a_recovery_path(self):
         source = Path('index.html').read_text()
         self.assertIn("subscription.cancel_at_period_end", source)
