@@ -11677,7 +11677,7 @@ function routeAfterMagicLinkIfNeeded() {
     modal.style.display = 'flex';
     modal.setAttribute('aria-hidden', 'false');
     const confirmation = document.getElementById('foundingPartnerCheckoutConfirmation');
-    const checkoutState = params().get('partner_checkout');
+    const checkoutState = window.__hofFoundingPartnerCheckoutState || params().get('partner_checkout');
     if (confirmation) confirmation.style.display = checkoutState === 'success' ? 'block' : 'none';
     const resume = document.getElementById('foundingPartnerCheckoutResume');
     if (resume) resume.style.display = checkoutState === 'cancelled' && window.__hofFoundingPartnerLeadId ? 'block' : 'none';
@@ -11829,6 +11829,7 @@ function routeAfterMagicLinkIfNeeded() {
       const query = params();
       const cancelledLeadId = query.get('partner_lead_id') || '';
       const resumeToken = query.get('partner_resume_token') || '';
+      window.__hofFoundingPartnerCheckoutState = 'cancelled';
       window.__hofFoundingPartnerLeadId = cancelledLeadId || loadSavedPartnerLeadId();
       if (cancelledLeadId && resumeToken) {
         fetch('/api/fsbo-lead', {
@@ -11836,12 +11837,27 @@ function routeAfterMagicLinkIfNeeded() {
           body: JSON.stringify({request_type: 'founding_partner_checkout_returned', partner_lead_id: cancelledLeadId, partner_resume_token: resumeToken})
         }).catch(() => {});
       }
+      // The cancellation URL carries a short-lived return nonce. Retain the
+      // resumable state in this tab, then remove identifiers from history.
+      try {
+        const cleanUrl = new URL(window.location.href);
+        ['partner_checkout', 'partner_lead_id', 'partner_resume_token'].forEach(key => cleanUrl.searchParams.delete(key));
+        window.history.replaceState({}, document.title, cleanUrl.pathname + cleanUrl.search + cleanUrl.hash);
+      } catch (_) {}
       const submit = document.getElementById('foundingPartnerSubmit');
       if (window.__hofFoundingPartnerLeadId && submit) submit.textContent = 'Resume Secure Checkout';
     }
     if (params().get('partner_checkout') === 'success') {
+      window.__hofFoundingPartnerCheckoutState = 'success';
       window.__hofFoundingPartnerLeadId = '';
       savePartnerLeadId('');
+      // Stripe appends a session identifier to the success return. The UI has
+      // already captured its non-sensitive success state, so do not retain it.
+      try {
+        const cleanUrl = new URL(window.location.href);
+        ['partner_checkout', 'session_id'].forEach(key => cleanUrl.searchParams.delete(key));
+        window.history.replaceState({}, document.title, cleanUrl.pathname + cleanUrl.search + cleanUrl.hash);
+      } catch (_) {}
     }
     // Keep the public seller CTA shareable. A campaign or a new-tab visit to
     // ?seller=1 should land in the same minimum-field intake as an in-page
