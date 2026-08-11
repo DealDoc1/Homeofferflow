@@ -3522,6 +3522,24 @@ class handler(BaseHTTPRequestHandler):
             activation_action_count = len([
                 item for item in events if item.get("event_type") == "agent_activation_action"
             ])
+            # A dashboard view is recorded once per browser session and stage,
+            # so raw views measure activity, not conversion. Use each valid
+            # account id once for the action-rate denominator and numerator;
+            # retain the raw totals separately for operational volume.
+            activation_dashboard_viewer_ids = {
+                str(item.get("user_id") or "").strip()
+                for item in events
+                if item.get("event_type") == "agent_activation_dashboard_viewed"
+                and str(item.get("user_id") or "").strip()
+            }
+            activation_action_user_ids = {
+                str(item.get("user_id") or "").strip()
+                for item in events
+                if item.get("event_type") == "agent_activation_action"
+                and str(item.get("user_id") or "").strip()
+            }
+            activation_dashboard_viewer_count = len(activation_dashboard_viewer_ids)
+            activation_action_user_count = len(activation_action_user_ids)
             activation_primary_action_count = 0
             activation_secondary_action_count = 0
             activation_actions_by_stage = {}
@@ -3774,9 +3792,11 @@ class handler(BaseHTTPRequestHandler):
                     (billing_portal_open_by_source.get("usage_exhausted", 0) / usage_exhausted_view_count) * 100, 1
                 ) if usage_exhausted_view_count else 0,
                 "activationDashboardViewCount": activation_dashboard_view_count,
+                "activationDashboardViewerCount": activation_dashboard_viewer_count,
                 "activationActionCount": activation_action_count,
-                "activationActionRate": round((activation_action_count / activation_dashboard_view_count) * 100)
-                if activation_dashboard_view_count else 0,
+                "activationActionUserCount": activation_action_user_count,
+                "activationActionRate": round((activation_action_user_count / activation_dashboard_viewer_count) * 100)
+                if activation_dashboard_viewer_count else 0,
                 "activationPrimaryActionCount": activation_primary_action_count,
                 "activationSecondaryActionCount": activation_secondary_action_count,
                 "activationActionsByStage": activation_actions_by_stage,
