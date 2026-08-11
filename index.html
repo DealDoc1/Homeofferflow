@@ -4270,6 +4270,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <div class="admin-metric-value">${metrics.activationActionRate || 0}%</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.activationActionCount || 0} actions from ${metrics.activationDashboardViewCount || 0} dashboard views.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.activationPrimaryActionCount || 0} primary actions · ${metrics.activationSecondaryActionCount || 0} secondary actions · ${Object.entries(metrics.activationActionsByStage || {}).map(([stage, count]) => `${stage.replace(/_/g, ' ')} ${count}`).join(' · ') || 'stage attribution begins with the next action.'}</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Activation subscription selections: monthly ${Number(metrics.activationSubscriptionActionsByBilling?.monthly || 0)} · annual ${Number(metrics.activationSubscriptionActionsByBilling?.annual || 0)}.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Milestones: profile ${Number(metrics.activationMilestoneCounts?.profile || 0)} · first offer ${Number(metrics.activationMilestoneCounts?.first_offer || 0)} · subscription ${Number(metrics.activationMilestoneCounts?.subscription || 0)}.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Milestone conversion: ${Number(metrics.activationFirstOfferRate || 0).toFixed(1)}% profile → first offer · ${Number(metrics.activationSubscriptionRate || 0).toFixed(1)}% first offer → subscription.</div>
           </div>
@@ -13434,9 +13435,9 @@ function routeAfterMagicLinkIfNeeded() {
       return {
         key: 'subscribe',
         title: 'Activate recurring access',
-        body: 'You have an offer in your workspace. Choose a plan to keep generating and sending offer packets without interrupting your workflow.',
-        primary: 'View Monthly Plan',
-        secondary: draft ? 'Resume Current Offer' : 'Open Offer Workspace',
+        body: 'You have an offer in your workspace. Choose monthly or annual access in secure Stripe checkout to keep generating and sending packets without interrupting your workflow.',
+        primary: 'Choose Monthly',
+        secondary: 'Choose Annual',
         draftId: draft?.id || '',
         complete, hasProfile, hasOffer, hasPlan
       };
@@ -13475,12 +13476,14 @@ function routeAfterMagicLinkIfNeeded() {
     } catch (e) {}
   }
 
-  root.handleAgentActivationAction = function handleAgentActivationAction(action, offerId = '', control = 'unknown', activationKey = 'unknown') {
+  root.handleAgentActivationAction = function handleAgentActivationAction(action, offerId = '', control = 'unknown', activationKey = 'unknown', billing = 'monthly') {
+    const normalizedBilling = billing === 'annual' ? 'annual' : 'monthly';
     logActivationEvent('Agent Activation Action', {
       action,
       offerId: offerId || null,
       control: control === 'primary' || control === 'secondary' ? control : 'unknown',
-      activationKey: String(activationKey || 'unknown').slice(0, 40)
+      activationKey: String(activationKey || 'unknown').slice(0, 40),
+      billing: action === 'subscribe' ? normalizedBilling : null
     });
     if (action === 'profile') return root.showAccountTab?.('profile');
     if (action === 'new_offer') return root.startAccountOffer?.();
@@ -13488,7 +13491,7 @@ function routeAfterMagicLinkIfNeeded() {
     if (action === 'resume' && offerId) return root.resumeOffer?.(offerId);
     if (action === 'subscribe') {
       const plan = String(root.hofAuth?.role || 'agent').toLowerCase() === 'investor' ? 'investor' : 'agent';
-      return root.startSubscriptionCheckout?.(plan, 'monthly', 'agent_activation');
+      return root.startSubscriptionCheckout?.(plan, normalizedBilling, 'agent_activation');
     }
   };
 
@@ -13519,8 +13522,9 @@ function routeAfterMagicLinkIfNeeded() {
     const secondaryAction =
       state.key === 'profile' ? 'new_offer' :
       state.key === 'first_offer' ? 'profile' :
-      state.key === 'subscribe' && id ? 'resume' :
+      state.key === 'subscribe' ? 'subscribe' :
       'offers';
+    const secondaryBilling = state.key === 'subscribe' ? 'annual' : 'monthly';
 
     card.innerHTML = `
       <div class="agent-activation-top">
@@ -13538,8 +13542,8 @@ function routeAfterMagicLinkIfNeeded() {
           </div>`).join('')}
       </div>
       <div class="agent-activation-actions">
-        <button class="agent-activation-primary" type="button" onclick="handleAgentActivationAction('${primaryAction}','${id}','primary','${safe(state.key)}')">${safe(state.primary)}</button>
-        <button class="agent-activation-secondary" type="button" onclick="handleAgentActivationAction('${secondaryAction}','${id}','secondary','${safe(state.key)}')">${safe(state.secondary)}</button>
+        <button class="agent-activation-primary" type="button" onclick="handleAgentActivationAction('${primaryAction}','${id}','primary','${safe(state.key)}','monthly')">${safe(state.primary)}</button>
+        <button class="agent-activation-secondary" type="button" onclick="handleAgentActivationAction('${secondaryAction}','${id}','secondary','${safe(state.key)}','${secondaryBilling}')">${safe(state.secondary)}</button>
         <button class="agent-activation-secondary" type="button" onclick="toggleAgentReadinessChecklist()">Beta Readiness Checklist</button>
       </div>`;
     card.classList.add('show');

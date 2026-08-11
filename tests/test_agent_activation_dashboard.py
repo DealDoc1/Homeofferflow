@@ -119,6 +119,16 @@ class AgentActivationDashboardTests(unittest.TestCase):
         self.assertIn("'primary','${safe(state.key)}'", script)
         self.assertIn("'secondary','${safe(state.key)}'", script)
 
+    def test_subscription_activation_offers_monthly_and_annual_checkout_choices(self):
+        script_start = HTML.index('id="hof-agent-activation-v16-js"')
+        script_end = HTML.index("</script>", script_start)
+        script = HTML[script_start:script_end]
+
+        self.assertIn("primary: 'Choose Monthly'", script)
+        self.assertIn("secondary: 'Choose Annual'", script)
+        self.assertIn("billing === 'annual' ? 'annual' : 'monthly'", script)
+        self.assertIn("startSubscriptionCheckout?.(plan, normalizedBilling, 'agent_activation')", script)
+
     def test_active_subscription_keeps_next_offer_action_visible(self):
         subscription_start = HTML.index("function renderSubscriptionCard()")
         subscription_end = HTML.index("async function openBillingPortal", subscription_start)
