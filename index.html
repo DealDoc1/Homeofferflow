@@ -6425,6 +6425,9 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         ...(state.data || {}),
         ...(offer.offer_data || {}),
         buyerEmail: offer.offer_data?.buyerEmail || offer.buyer_email || offer.offer_data?.buyer_email || '',
+        generatedAt: offer.offer_data?.generatedAt || offer.generated_at || offer.offer_data?.generated_at || null,
+        signwellDocumentId: offer.offer_data?.signwellDocumentId || offer.signwell_document_id || offer.offer_data?.signwell_document_id || '',
+        signwellStatus: offer.offer_data?.signwellStatus || offer.signwell_status || offer.offer_data?.signwell_status || '',
         _hofOfferId: offer.id,
         userType: offer.role || hofAuth.role || 'agent'
       };
