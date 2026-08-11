@@ -24,6 +24,15 @@ class PlatformAdminSubscriptionFallbackTests(unittest.TestCase):
         self.assertIn("const HOF_ADMIN_EMAILS", allowlist)
         self.assertNotIn("brokerage_admin", allowlist)
 
+    def test_free_admin_dashboard_access_is_not_presented_as_customer_billing(self):
+        card_start = INDEX.index("function renderSubscriptionCard()")
+        card_end = INDEX.index("function renderMyOffers", card_start)
+        card = INDEX[card_start:card_end]
+        self.assertIn("const isInternalAdminAccess = status === 'free_admin';", card)
+        self.assertIn("Your internal platform access is active.", card)
+        self.assertIn("Platform Access", card)
+        self.assertNotIn("isPaid = ['active', 'trialing', 'free_admin']", card)
+
     def test_brokerage_admin_identity_is_not_a_platform_admin_bypass(self):
         allowlist_start = INDEX.index("const HOF_ADMIN_EMAILS")
         allowlist_end = INDEX.index("];", allowlist_start) + 2
