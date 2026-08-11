@@ -14,6 +14,13 @@ class FsboIntakeSpamGuardTests(unittest.TestCase):
         insert_start = API.index("url = f'{SUPABASE_URL}/rest/v1/hof_seller_leads'")
         self.assertLess(guard_start, insert_start)
 
+    def test_server_deduplicates_recent_same_package_seller_requests(self):
+        self.assertIn("def _recent_matching_fsbo_lead", API)
+        self.assertIn('"seller_email": f"ilike.{email}"', API)
+        self.assertIn('"service_level": f"eq.{service_level}"', API)
+        self.assertIn("timedelta(hours=24)", API)
+        self.assertIn('"duplicate": True', API)
+
 
 if __name__ == "__main__":
     unittest.main()

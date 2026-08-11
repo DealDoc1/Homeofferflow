@@ -4,7 +4,7 @@ import re
 import uuid
 import hashlib
 from http.server import BaseHTTPRequestHandler
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from urllib.parse import parse_qs, urlencode, urlparse
 
 import httpx
@@ -97,6 +97,28 @@ def _seller_campaign_payload(data):
     }
     campaign["source"] = "tracked_seller_landing" if any(campaign.values()) else "website_fsbo_intake"
     return campaign
+
+
+def _recent_matching_fsbo_lead(email, property_address, service_level):
+    """Return a same-package seller request from the last 24 hours, if any."""
+    since = (datetime.now(timezone.utc) - timedelta(hours=24)).isoformat()
+    params = {
+        "seller_type": "eq.fsbo",
+        "seller_email": f"ilike.{email}",
+        "property_address": f"eq.{property_address}",
+        "service_level": f"eq.{service_level}",
+        "created_at": f"gte.{since}",
+        "select": "id",
+        "order": "created_at.desc",
+        "limit": "1",
+    }
+    headers = {"apikey": SUPABASE_SERVICE_ROLE_KEY, "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}"}
+    with httpx.Client(timeout=12.0) as client:
+        response = client.get(f"{SUPABASE_URL}/rest/v1/hof_seller_leads", params=params, headers=headers)
+    if response.status_code >= 300:
+        raise RuntimeError("Could not check the seller request status.")
+    rows = response.json() if response.text else []
+    return rows[0] if isinstance(rows, list) and rows else None
 
 
 def _money(value):
@@ -474,6 +496,10 @@ class handler(BaseHTTPRequestHandler):
             timeline = _text(data.get('timeline'), 80) or 'not_sure'
             campaign = _seller_campaign_payload(data)
 
+            existing = _recent_matching_fsbo_lead(seller_email.lower(), property_address, service_level)
+            if existing:
+                return _send(self, 200, {"ok": True, "seller_lead_id": existing.get("id"), "duplicate": True})
+
             payload = {
                 'seller_type': 'fsbo',
                 'property_address': property_address,
@@ -482,7 +508,7 @@ class handler(BaseHTTPRequestHandler):
                 'property_state': _text(data.get('property_state'), 20) or 'TX',
                 'property_zip': _text(data.get('property_zip'), 20),
                 'seller_name': _text(data.get('seller_name') or data.get('name'), 250),
-                'seller_email': seller_email,
+                'seller_email': seller_email.lower(),
                 'seller_phone': _text(data.get('seller_phone') or data.get('phone'), 80),
                 'asking_price': _money(data.get('asking_price')),
                 'mortgage_balance': _money(data.get('mortgage_balance')),
