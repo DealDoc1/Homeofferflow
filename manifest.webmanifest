@@ -7,6 +7,20 @@
   "id": "/",
   "start_url": "/",
   "scope": "/",
+  "shortcuts": [
+    {
+      "name": "My Workspace",
+      "short_name": "Workspace",
+      "description": "Open your HomeOfferFlow agent workspace.",
+      "url": "/?pwa_action=workspace"
+    },
+    {
+      "name": "New Agent Offer",
+      "short_name": "New Offer",
+      "description": "Start or resume a saved agent offer.",
+      "url": "/?pwa_action=new_offer"
+    }
+  ],
   "display": "standalone",
   "orientation": "portrait-primary",
   "prefer_related_applications": false,

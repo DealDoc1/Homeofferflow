@@ -17126,5 +17126,26 @@ function routeAfterMagicLinkIfNeeded() {
     });
   }
 </script>
+<script id="hof-pwa-shortcuts-v1">
+(function(){
+  function consumeAction(){
+    const params = new URLSearchParams(window.location.search || '');
+    const action = params.get('pwa_action');
+    if (action !== 'workspace' && action !== 'new_offer') return;
+    try { window.history.replaceState({}, document.title, window.location.pathname); } catch (_) {}
+    window.setTimeout(async () => {
+      const role = window.hofAuth?.role === 'investor' ? 'investor' : 'agent';
+      if (!window.hofAuth?.session) {
+        window.openAuthModal?.(role);
+        return;
+      }
+      if (action === 'workspace') await window.openAccountDashboard?.({ tab: 'dashboard' });
+      else window.startAccountOffer?.();
+      try { window.trackEvent?.('PWA Shortcut Used', { action, role }); } catch (_) {}
+    }, 350);
+  }
+  document.addEventListener('DOMContentLoaded', consumeAction);
+})();
+</script>
 </body>
 </html>
