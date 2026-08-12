@@ -87,6 +87,15 @@ class AgentActivationDashboardTests(unittest.TestCase):
         self.assertIn("Start First Offer", script)
         self.assertIn("Set Up My Defaults", script)
 
+    def test_first_offer_state_explains_the_safe_draft_boundary_before_the_cta(self):
+        script_start = HTML.index('id="hof-agent-activation-v16-js"')
+        script_end = HTML.index("</script>", script_start)
+        script = HTML[script_start:script_end]
+
+        self.assertIn("confidence: true", script)
+        self.assertIn("First offer workflow overview", script)
+        self.assertIn("Saving a draft does not send a packet or request a signature.", script)
+
     def test_profile_activation_requires_agent_contact_and_license_fields(self):
         script_start = HTML.index('id="hof-agent-activation-v16-js"')
         script_end = HTML.index("</script>", script_start)
