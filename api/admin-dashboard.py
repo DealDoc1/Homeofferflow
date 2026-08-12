@@ -43,6 +43,7 @@ ADMIN_EMAILS = {e.strip().lower() for e in (os.environ.get("ADMIN_EMAILS") or os
 DEFAULT_ADMIN_EMAILS = {"andrew@ondemanddfw.com", "andrewchri@gmail.com", "support@homeofferflow.com"}
 ALLOWED_PARTNER_LEAD_STATUSES = {"new", "contacted", "qualified", "waitlist", "converted", "declined"}
 ALLOWED_PARTNER_ONBOARDING_STATUSES = {"not_started", "ready", "in_progress", "complete"}
+SANDBOX_PARTNER_LEAD_SOURCES = {"sandbox_checkout_test", "sandbox_webhook_end_to_end"}
 ALLOWED_SELLER_LEAD_STATUSES = {"new", "contacted", "qualified", "converted", "archived"}
 ALLOWED_BROKERAGE_MEMBER_STATUSES = {"active", "suspended"}
 MAX_BROKERAGE_TEAM_NAME_LENGTH = 80
@@ -84,6 +85,17 @@ BROKERAGE_TXR_FORM_CODES = (
     "TXR-1406",
     "TXR-1418",
 )
+
+
+def _is_sandbox_partner_lead(lead):
+    """Keep Stripe sandbox artifacts out of live partner revenue reporting."""
+    source = str((lead or {}).get("source") or "").strip().lower()
+    if source in SANDBOX_PARTNER_LEAD_SOURCES:
+        return True
+    # Older sandbox rows may lack the source marker, but Stripe test-mode
+    # Checkout identifiers remain a provider-authored, unambiguous signal.
+    session_id = str((lead or {}).get("stripe_checkout_session_id") or "").strip().lower()
+    return session_id.startswith("cs_test_")
 
 
 def _pdf_response(handler, pdf_bytes, filename):
@@ -3197,7 +3209,16 @@ class handler(BaseHTTPRequestHandler):
             brokerage_invites = asyncio.run(_get_optional(
                 "hof_brokerage_invites?select=status,created_at,accepted_at,expires_at&order=created_at.desc&limit=2000"
             ))
-            partner_leads = asyncio.run(_get_optional("hof_partner_leads?select=*&order=created_at.desc&limit=100"))
+            all_partner_leads = asyncio.run(_get_optional("hof_partner_leads?select=*&order=created_at.desc&limit=100"))
+            # Test-mode Stripe records are useful QA evidence but must never
+            # appear as paid partners, onboarding gaps, or follow-up work in
+            # the live operations dashboard.
+            sandbox_partner_lead_count = len([
+                lead for lead in all_partner_leads if _is_sandbox_partner_lead(lead)
+            ])
+            partner_leads = [
+                lead for lead in all_partner_leads if not _is_sandbox_partner_lead(lead)
+            ]
             seller_leads = asyncio.run(_get_optional(
                 "hof_seller_leads?select=id,property_address,property_city,property_county,property_state,property_zip,"
                 "seller_name,seller_email,seller_phone,asking_price,service_level,package_name,package_price,"
@@ -3676,6 +3697,7 @@ class handler(BaseHTTPRequestHandler):
                 "subscriptionCount": len(subs),
                 "brokerageCount": len(brokerages),
                 "partnerLeadCount": len(partner_leads),
+                "sandboxPartnerLeadCount": sandbox_partner_lead_count,
                 "qualifiedPartnerLeadCount": len([lead for lead in partner_leads if lead.get("status") in {"qualified", "converted"}]),
                 "sellerLeadCount": len(seller_leads),
                 "landingAudienceSelectionCount": sum(landing_audience_selection_counts.values()),
