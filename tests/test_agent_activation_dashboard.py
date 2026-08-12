@@ -133,6 +133,17 @@ class AgentActivationDashboardTests(unittest.TestCase):
         ):
             self.assertIn(field, script)
 
+    def test_profile_form_makes_the_five_activation_essentials_clear_before_optional_defaults(self):
+        profile_start = HTML.index('function renderAccountProfileForm()')
+        profile_end = HTML.index('function escapeAttr(', profile_start)
+        profile = HTML[profile_start:profile_end]
+
+        self.assertIn('Save these five essentials first.', profile)
+        self.assertIn('Title, escrow, and offer preferences below are optional', profile)
+        self.assertEqual(profile.count('account-profile-required'), 5)
+        for field in ('profAgentName', 'profAgentLicense', 'profAgentEmail', 'profAgentPhone', 'profBrokerageName'):
+            self.assertIn(field, profile)
+
     def test_profile_completion_signal_matches_activation_requirements(self):
         readiness_start = HTML.index('id="hof-agent-activation-v16-js"')
         readiness_end = HTML.index("</script>", readiness_start)
