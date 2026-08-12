@@ -4368,7 +4368,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <div class="admin-metric-value">${metrics.subscriptionCheckoutStartCount || 0} started</div>
               <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.subscriptionCheckoutRedirectCount || 0} redirected to Stripe · ${metrics.subscriptionCheckoutReturnCount || 0} returned · ${Number(metrics.subscriptionCheckoutReturnRate || 0).toFixed(1)}% return rate.</div>
               <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.subscriptionCheckoutFailureCount || 0} request failures before Stripe redirect.</div>
-              <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">OnDemand: ${metrics.onDemandCheckoutStartCount || 0} started · ${metrics.onDemandCheckoutReturnCount || 0} returned · ${Number(metrics.onDemandCheckoutReturnRate || 0).toFixed(1)}% return rate.</div>
+              <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">OnDemand: ${metrics.onDemandCheckoutStartCount || 0} started · ${metrics.onDemandCheckoutReturnCount || 0} returned · ${Number(metrics.onDemandCheckoutReturnRate || 0).toFixed(1)}% return rate · ${metrics.onDemandFirstOfferStartCount || 0} first-offer starts (${Number(metrics.onDemandFirstOfferStartRate || 0).toFixed(1)}% of returns).</div>
           </div>
 
           <div class="admin-metric">
