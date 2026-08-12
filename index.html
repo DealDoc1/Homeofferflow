@@ -17133,6 +17133,7 @@ function routeAfterMagicLinkIfNeeded() {
 <script id="hof-pwa-shortcuts-v1">
 (function(){
   const pendingActionKey = 'hof_pwa_shortcut_pending_action';
+  const ondemandFirstOfferAttributionKey = 'hof_ondemand_first_offer_attribution';
   const validActions = new Set(['workspace', 'new_offer']);
 
   function pendingAction(){
@@ -17150,6 +17151,26 @@ function routeAfterMagicLinkIfNeeded() {
     try { window.trackEvent?.('PWA Shortcut Used', { action, role, resumed_after_sign_in: Boolean(resumedAfterSignIn) }); } catch (_) {}
   }
 
+  function recordOndemandFirstOfferActivation(){
+    let attributed = false;
+    try {
+      attributed = sessionStorage.getItem(ondemandFirstOfferAttributionKey) === '1';
+      if (attributed) sessionStorage.removeItem(ondemandFirstOfferAttributionKey);
+    } catch (_) {}
+    if (!attributed) return;
+    // This runs after the destination is loaded, so the post-checkout button
+    // stays responsive even if event delivery is slow or unavailable.
+    try {
+      root.logOfferEvent?.(
+        null,
+        'ondemand_first_offer_started',
+        '',
+        'OnDemand agent started the first saved-offer handoff after checkout.',
+        { source: 'ondemand', surface: 'post_checkout', action: 'new_offer' }
+      );
+    } catch (_) {}
+  }
+
   async function runAction(action, { resumedAfterSignIn = false } = {}){
     if (!validActions.has(action)) return;
     const role = window.hofAuth?.role === 'investor' ? 'investor' : 'agent';
@@ -17160,7 +17181,10 @@ function routeAfterMagicLinkIfNeeded() {
     }
     clearPendingAction();
     if (action === 'workspace') await window.openAccountDashboard?.({ tab: 'dashboard' });
-    else window.startAccountOffer?.();
+    else {
+      recordOndemandFirstOfferActivation();
+      window.startAccountOffer?.();
+    }
     trackShortcut(action, role, resumedAfterSignIn);
   }
 
@@ -17170,7 +17194,10 @@ function routeAfterMagicLinkIfNeeded() {
     // Remove it before routing so a dashboard redraw or a second auth event
     // cannot start duplicate offers.
     clearPendingAction();
-    if (action === 'new_offer') window.startAccountOffer?.();
+    if (action === 'new_offer') {
+      recordOndemandFirstOfferActivation();
+      window.startAccountOffer?.();
+    }
     trackShortcut(action, window.hofAuth?.role === 'investor' ? 'investor' : 'agent', true);
   }
 

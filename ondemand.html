@@ -316,27 +316,12 @@
         }
       }
 
-      async function recordFirstOfferActivation() {
-        const user = state.session?.user;
-        if (!user?.id) return;
-        const checkoutSessionId = initialParams.get("session_id") || "return";
-        const storageKey = `hof_ondemand_first_offer_started_${checkoutSessionId}`;
-        try {
-          if (sessionStorage.getItem(storageKey) === "1") return;
-          const { error } = await client.from("hof_offer_events").insert({
-            offer_id: null,
-            user_id: user.id,
-            event_type: "ondemand_first_offer_started",
-            message: "OnDemand agent started the first saved-offer handoff after checkout.",
-            metadata: { source: "ondemand", surface: "post_checkout", action: "new_offer" },
-            created_at: new Date().toISOString()
-          });
-          if (error) throw error;
-          sessionStorage.setItem(storageKey, "1");
-        } catch (error) {
-          // Measurement must never delay an agent's first-offer workflow.
-          console.warn("OnDemand first-offer activation event could not be recorded:", error);
-        }
+      function markFirstOfferAttribution() {
+        // The destination owns event delivery. This page marks only a
+        // same-origin, session-scoped attribution hint so navigation remains
+        // instant even when telemetry is unavailable.
+        try { sessionStorage.setItem("hof_ondemand_first_offer_attribution", "1"); }
+        catch (_) {}
       }
 
       async function recordLegalAcceptance() {
@@ -512,8 +497,8 @@
       $("workspaceButton").addEventListener("click", () => {
         window.location.assign("/?pwa_action=workspace");
       });
-      $("firstOfferButton").addEventListener("click", async () => {
-        await recordFirstOfferActivation();
+      $("firstOfferButton").addEventListener("click", () => {
+        markFirstOfferAttribution();
         window.location.assign("/?pwa_action=new_offer");
       });
       $("signOutButton").addEventListener("click", async () => {
