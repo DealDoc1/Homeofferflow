@@ -4431,6 +4431,8 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.partnerFollowUpEmailStartCount || 0} partner follow-up emails opened.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Public checkout: ${metrics.partnerCheckoutStartCount || 0} started · ${metrics.partnerCheckoutStripeOpenCount || 0} opened Stripe (${Number(metrics.partnerCheckoutStripeOpenRate || 0).toFixed(1)}%) · ${metrics.partnerCheckoutCompletionCount || 0} completed (${Number(metrics.partnerCheckoutCompletionRate || 0).toFixed(1)}% of Stripe opens).</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:${Number(metrics.partnerCheckoutCancellationCount || 0) || Number(metrics.partnerCheckoutFailureCount || 0) ? 'var(--gold-light)' : 'var(--gray-light)'}">${metrics.partnerCheckoutCancellationCount || 0} checkout returns · ${metrics.partnerCheckoutFailureCount || 0} checkout failures.</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Campaign category opens: ${adminSafe(Object.entries(metrics.partnerCampaignCategoryCounts || {}).map(([category, count]) => `${category.replace(/_/g, ' ')} (${count})`).join(' · '), 'No categorized campaign opens yet')}</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Campaign tier opens: ${adminSafe(Object.entries(metrics.partnerCampaignTierCounts || {}).map(([tier, count]) => `${tier.replace(/_/g, ' ')} (${count})`).join(' · '), 'No tier-targeted campaign opens yet')}</div>
           </div>
 
           <div class="admin-metric">
