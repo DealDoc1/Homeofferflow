@@ -22,6 +22,11 @@ class PwaInstallExperienceTests(unittest.TestCase):
         self.assertIn("(root.state?.data?.userType || 'homebuyer') === 'homebuyer'", INDEX)
         self.assertIn("root.hofAuth?.session", INDEX)
 
+    def test_completed_buyer_checkout_can_offer_install_from_the_success_screen(self):
+        self.assertIn("surface: 'buyer_success'", INDEX)
+        self.assertIn("const isBuyerSuccess = success?.classList.contains('active')", INDEX)
+        self.assertIn("window.setTimeout(() => window.renderPwaInstallCard?.(), 0);", INDEX)
+
     def test_ios_uses_home_screen_guidance_and_install_prompt_can_be_dismissed(self):
         self.assertIn("Add to Home Screen", INDEX)
         self.assertIn("hof_pwa_install_dismissed_until", INDEX)
