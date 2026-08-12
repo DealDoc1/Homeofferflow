@@ -59,6 +59,16 @@ class PartnerTierUiTests(unittest.TestCase):
         self.assertIn("fetch('/api/fsbo-lead'", self.html)
         self.assertIn("request_type: 'founding_partner'", self.html)
 
+    def test_checkout_intake_keeps_required_details_short_and_defers_preferences(self):
+        self.assertIn("Start with the essentials.", self.html)
+        self.assertIn("Everything else can be added during onboarding.", self.html)
+        self.assertIn("Add optional placement preferences now", self.html)
+        required_end = self.html.index('<div aria-hidden="true"', self.html.index('Start with the essentials.'))
+        required_start = self.html.index('Start with the essentials.')
+        required_area = self.html[required_start:required_end]
+        self.assertLess(required_area.index('foundingPartnerMarket'), required_area.index('partner-optional-details'))
+        self.assertGreater(required_area.index('foundingPartnerPhone'), required_area.index('partner-optional-details'))
+
     def test_checkout_retry_reuses_saved_partner_lead(self):
         self.assertIn("window.__hofFoundingPartnerLeadId", self.html)
         self.assertIn("if (!partnerLeadId)", self.html)
