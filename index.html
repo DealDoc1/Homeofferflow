@@ -11864,6 +11864,7 @@ function routeAfterMagicLinkIfNeeded() {
   // Public outreach can preselect only an existing server-approved category.
   // Never copy arbitrary query text into the intake, analytics, or lead data.
   const partnerCampaignCategories = new Set(['title','lender','inspection','surveyor','home_warranty','insurance','roofing','hvac','plumbing','electrical','foundation_structural','general_contractor','pest_termite','septic_well','restoration','repairs_handyman','photography_video','staging','cleaning','moving_storage','lawn_pool','security_smart_home','other']);
+  const partnerCampaignTiers = new Set(['founding_pilot','monthly_placement','market_exclusive']);
   function value(id){ return (document.getElementById(id)?.value || '').trim(); }
   function trackPartnerFunnel(name, data = {}) {
     try { trackEvent(name, data); } catch (_) {}
@@ -11886,20 +11887,26 @@ function routeAfterMagicLinkIfNeeded() {
     const category = String(params().get('partner_category') || '').trim().toLowerCase();
     return partnerCampaignCategories.has(category) ? category : '';
   }
-  function applyCampaignPartnerCategory(){
+  function campaignPartnerTier(){
+    const tier = String(params().get('partner_tier') || '').trim().toLowerCase();
+    return partnerCampaignTiers.has(tier) ? tier : '';
+  }
+  function applyCampaignPartnerChoices(){
     // A saved application is the source of truth on a checkout return. Do not
     // overwrite its category from a campaign URL while offering a safe resume.
-    if (window.__hofFoundingPartnerLeadId) return '';
+    if (window.__hofFoundingPartnerLeadId) return { category:'', tier:'' };
     const category = campaignPartnerCategory();
+    const tier = campaignPartnerTier();
     const select = document.getElementById('foundingPartnerType');
     if (category && select) select.value = category;
-    return category;
+    if (tier) window.selectFoundingPartnerTier?.(tier, false);
+    return { category, tier };
   }
   window.openFoundingPartnerModal = function(){
     const modal = document.getElementById('foundingPartnerModal');
     if (!modal) return;
     window.__hofFoundingPartnerLeadId = window.__hofFoundingPartnerLeadId || loadSavedPartnerLeadId();
-    const campaignCategory = applyCampaignPartnerCategory();
+    const campaign = applyCampaignPartnerChoices();
     modal.style.display = 'flex';
     modal.setAttribute('aria-hidden', 'false');
     const confirmation = document.getElementById('foundingPartnerCheckoutConfirmation');
@@ -11907,7 +11914,7 @@ function routeAfterMagicLinkIfNeeded() {
     if (confirmation) confirmation.style.display = checkoutState === 'success' ? 'block' : 'none';
     const resume = document.getElementById('foundingPartnerCheckoutResume');
     if (resume) resume.style.display = checkoutState === 'cancelled' && window.__hofFoundingPartnerLeadId ? 'block' : 'none';
-    trackPartnerFunnel('Founding Partner Intake Opened', { checkoutState: checkoutState === 'success' ? 'success' : checkoutState === 'cancelled' ? 'cancelled' : 'new', campaignCategory: campaignCategory || null });
+    trackPartnerFunnel('Founding Partner Intake Opened', { checkoutState: checkoutState === 'success' ? 'success' : checkoutState === 'cancelled' ? 'cancelled' : 'new', campaignCategory: campaign.category || null, campaignTier: campaign.tier || null });
     setTimeout(() => document.querySelector('.partner-tier-card.is-selected')?.focus(), 0);
   };
   window.selectFoundingPartnerTier = function(model, shouldTrack = true){
