@@ -96,6 +96,11 @@ class AgentActivationDashboardTests(unittest.TestCase):
         self.assertIn("First offer workflow overview", script)
         self.assertIn("Saving a draft does not send a packet or request a signature.", script)
 
+    def test_onboarding_uses_a_real_saved_draft_path_not_demo_only_language(self):
+        self.assertIn("Start your first saved offer", HTML)
+        self.assertIn("Start First Saved Offer", HTML)
+        self.assertIn("Saving a draft does not generate a packet or request a signature.", HTML)
+
     def test_account_dashboard_resumes_same_role_local_drafts_before_clearing_them(self):
         self.assertIn("if (resumeLocalAccountOfferDraft(role)) return;", HTML)
         self.assertIn("function resumableAccountOfferDraft(role)", HTML)
