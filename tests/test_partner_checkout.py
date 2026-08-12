@@ -90,6 +90,25 @@ class PartnerCheckoutTests(unittest.TestCase):
         self.assertEqual(lead["contact_email"], "partner@example.com")
         self.assertIn("hof_partner_leads", Client.requests[0][1])
 
+    def test_partner_checkout_telemetry_is_aggregate_only(self):
+        Client.requests = []
+        with patch.object(partner_checkout.httpx, "Client", Client):
+            partner_checkout._record_partner_checkout_event(
+                "founding_partner_stripe_checkout_opened",
+                "opened",
+                "Partner secure checkout opened.",
+                {"tier": "monthly_placement"},
+            )
+        request = Client.requests[0]
+        self.assertEqual(request[0], "post")
+        self.assertIn("hof_offer_events", request[1])
+        telemetry = request[2]["json"]
+        self.assertEqual(telemetry["offer_id"], None)
+        self.assertEqual(telemetry["user_id"], None)
+        self.assertEqual(telemetry["metadata"], {"tier": "monthly_placement"})
+        self.assertNotIn("partner_lead_id", telemetry["metadata"])
+        self.assertNotIn("contact_email", telemetry["metadata"])
+
     def test_paid_checkout_moves_existing_lead_to_ready_onboarding(self):
         calls = []
         webhook = stripe_webhook.handler.__new__(stripe_webhook.handler)
@@ -114,7 +133,14 @@ class PartnerCheckoutTests(unittest.TestCase):
                 "e35eace9-2760-4b11-a01a-07ee65f2744e",
                 {"id": "cs_test", "payment_intent": "pi_test", "customer": "cus_test"},
             )
-        record.assert_called_once_with(
+        self.assertEqual(record.call_count, 2)
+        record.assert_any_call(
+            "founding_partner_checkout_completed",
+            "completed",
+            "Partner secure checkout completed.",
+            {"surface": "stripe_webhook"},
+        )
+        record.assert_any_call(
             "partner_onboarding_setup_issued",
             "sent",
             "Partner secure setup access issued after paid checkout.",
@@ -147,7 +173,7 @@ class PartnerCheckoutTests(unittest.TestCase):
             "preferred_model": "monthly_placement",
             "contact_email": "partner@example.com",
             "status": "approved",
-        }), patch.object(partner_checkout, "_claim_partner_checkout_session", return_value={"id": "e35eace9-2760-4b11-a01a-07ee65f2744e"}) as claim_session, patch.object(partner_checkout.httpx, "Client", Client):
+        }), patch.object(partner_checkout, "_claim_partner_checkout_session", return_value={"id": "e35eace9-2760-4b11-a01a-07ee65f2744e"}) as claim_session, patch.object(partner_checkout, "_record_partner_checkout_event") as record, patch.object(partner_checkout.httpx, "Client", Client):
             result = partner_checkout._create_partner_checkout(
                 "e35eace9-2760-4b11-a01a-07ee65f2744e",
                 {"host": "www.homeofferflow.com", "x-forwarded-proto": "https"},
@@ -163,6 +189,12 @@ class PartnerCheckoutTests(unittest.TestCase):
         self.assertNotIn("cancel_at", form)
         self.assertIn("partner_resume_token=", form["cancel_url"])
         claim_session.assert_called_once()
+        record.assert_called_once_with(
+            "founding_partner_stripe_checkout_opened",
+            "opened",
+            "Partner secure checkout opened.",
+            {"tier": "monthly_placement"},
+        )
 
     def test_checkout_reuses_a_still_open_stripe_session_before_creating_another(self):
         lead = {
@@ -175,10 +207,17 @@ class PartnerCheckoutTests(unittest.TestCase):
         }
         with patch.object(partner_checkout, "_get_partner_lead_for_checkout", return_value=lead), \
              patch.object(partner_checkout, "_open_stripe_checkout_url", return_value="https://checkout.stripe.test/open"), \
+             patch.object(partner_checkout, "_record_partner_checkout_event") as record, \
              patch.object(partner_checkout, "_claim_partner_checkout_session") as claim_session:
             result = partner_checkout._create_partner_checkout(lead["id"], {"host": "www.homeofferflow.com"})
         self.assertEqual(result, "https://checkout.stripe.test/open")
         claim_session.assert_not_called()
+        record.assert_called_once_with(
+            "founding_partner_stripe_checkout_opened",
+            "opened",
+            "Partner returned to an existing secure checkout.",
+            {"tier": "monthly_placement"},
+        )
 
     def test_checkout_session_claim_requires_same_unpaid_row_and_returns_claimed_row(self):
         Client.requests = []
