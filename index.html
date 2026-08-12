@@ -12592,6 +12592,12 @@ function routeAfterMagicLinkIfNeeded() {
   .offer-workspace-stat span { display:block; color:var(--gray-light); font-size:.66rem; font-weight:900; letter-spacing:.07em; text-transform:uppercase; }
   .offer-workspace-stat strong { display:block; color:var(--gold-light); font-family:'Playfair Display',serif; font-size:1.45rem; line-height:1; margin:.25rem 0 .12rem; }
   .offer-workspace-stat small { display:block; color:var(--gray); font-size:.72rem; line-height:1.25; }
+  .offer-focus-card { display:flex; justify-content:space-between; align-items:center; gap:1rem; border:1px solid rgba(200,151,63,.32); background:linear-gradient(135deg,rgba(200,151,63,.11),rgba(74,140,111,.065)); border-radius:17px; padding:.9rem; }
+  .offer-focus-kicker { color:var(--gold-light); font-size:.66rem; font-weight:900; letter-spacing:.08em; text-transform:uppercase; margin-bottom:.18rem; }
+  .offer-focus-card strong { display:block; color:var(--white); font-size:.92rem; line-height:1.3; }
+  .offer-focus-card p { color:var(--gray-light); font-size:.77rem; line-height:1.4; margin:.25rem 0 0; }
+  .offer-focus-actions { display:flex; gap:.45rem; flex-wrap:wrap; justify-content:flex-end; }
+  .offer-focus-actions .offer-action-btn { white-space:nowrap; }
   .offer-workspace-controls { border:1px solid rgba(255,255,255,.10); background:rgba(255,255,255,.025); border-radius:17px; padding:.8rem; display:flex; flex-direction:column; gap:.7rem; }
   .offer-workspace-filter-row { display:flex; gap:.55rem; flex-wrap:wrap; align-items:center; }
   .offer-search-wrap { flex:1 1 260px; position:relative; }
@@ -12630,6 +12636,8 @@ function routeAfterMagicLinkIfNeeded() {
     .offer-workspace-top { display:block; }
     .offer-workspace-top .btn-primary { width:100%; margin-top:.8rem; }
     .offer-launch-grid, .offer-workspace-stats { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    .offer-focus-card { display:block; }
+    .offer-focus-actions { justify-content:flex-start; margin-top:.7rem; }
     .offer-workspace-filter-row { display:block; }
     .offer-search-wrap, .offer-sort-select { width:100%; margin-bottom:.55rem; }
     .offer-filter-tabs { overflow:auto; flex-wrap:nowrap; padding-bottom:.1rem; -webkit-overflow-scrolling:touch; }
@@ -12764,6 +12772,15 @@ function routeAfterMagicLinkIfNeeded() {
     return c;
   }
 
+  function priorityOffer(offers){
+    const urgency = { signing: 0, generated: 1, draft: 2 };
+    return (offers || []).filter(needsAttention).slice().sort((a, b) => {
+      const bucketDifference = (urgency[bucketForOffer(a)] ?? 9) - (urgency[bucketForOffer(b)] ?? 9);
+      if (bucketDifference) return bucketDifference;
+      return new Date(a.last_updated || a.created_at || 0) - new Date(b.last_updated || b.created_at || 0);
+    })[0] || null;
+  }
+
   function renderCard(o){
     const d = o.offer_data || {};
     const st = cleanStatus(o);
@@ -12814,6 +12831,12 @@ function routeAfterMagicLinkIfNeeded() {
     state.offers = safe;
     const c = counts(safe);
     const shown = sortedOffers(safe);
+    const priority = priorityOffer(safe);
+    const priorityProperty = priority && (priority.property_address || priority.offer_data?.propertyAddress || priority.offer_data?.propAddress || 'Untitled offer');
+    const focusCard = priority ? `<section class="offer-focus-card" aria-label="Priority offer follow-up">
+      <div><div class="offer-focus-kicker">Today’s priority</div><strong>${esc(priorityProperty)}</strong><p>${esc(nextAction(priority))}. This is the oldest active item that needs attention.</p></div>
+      <div class="offer-focus-actions"><button class="offer-action-btn" type="button" onclick="hofOpenPriorityOffer('${esc(priority.id)}')">Open priority offer</button><button class="offer-action-btn" type="button" onclick="hofSetOfferWorkspaceFilter('attention')">Review all ${c.attention} needing attention</button></div>
+    </section>` : '';
     const volume = safe.reduce((sum,o) => sum + Number(o.offer_price || o.offer_data?.offerPrice || 0), 0);
     const tab = (key,label) => `<button type="button" class="offer-filter-tab ${state.filter===key?'active':''}" onclick="hofSetOfferWorkspaceFilter('${key}')">${label} <span>${c[key] || 0}</span></button>`;
     const cards = shown.length ? shown.map(renderCard).join('') : `<div class="offer-workspace-empty"><strong>No offers match this view.</strong><br/>Try another status tab, clear the search, or create a new buyer offer.</div>`;
@@ -12848,6 +12871,8 @@ function routeAfterMagicLinkIfNeeded() {
         <div class="offer-workspace-stat"><span>Offer volume</span><strong>${esc(money(volume))}</strong><small>loaded offers only</small></div>
       </div>
 
+      ${focusCard}
+
       <div class="offer-workspace-controls">
         <div class="offer-workspace-filter-row">
           <div class="offer-search-wrap"><input id="offerWorkspaceSearch" type="search" placeholder="Search buyer, property, email, status..." value="${esc(state.query)}" oninput="hofSetOfferWorkspaceSearch(this.value)" /></div>
@@ -12881,6 +12906,14 @@ function routeAfterMagicLinkIfNeeded() {
   root.hofSetOfferWorkspaceFilter = function(filter){ state.filter = filter || 'all'; persistWorkspaceState(); rerender(); };
   root.hofSetOfferWorkspaceSearch = function(query){ state.query = query || ''; persistWorkspaceState(); rerender(); };
   root.hofSetOfferWorkspaceSort = function(sort){ state.sort = sort || 'updated_desc'; persistWorkspaceState(); rerender(); };
+  root.hofOpenPriorityOffer = function(offerId){
+    if (!offerId) return;
+    state.filter = 'all';
+    state.query = '';
+    persistWorkspaceState();
+    rerender();
+    root.viewOfferDetails?.(offerId);
+  };
   root.loadOlderOffers = root.loadOlderOffers || window.loadOlderOffers;
   let lastAutomaticSigningSyncAt = 0;
   root.hofRefreshOfferWorkspace = async function({ automatic = false } = {}){
