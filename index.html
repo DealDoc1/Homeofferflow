@@ -17102,12 +17102,13 @@ function routeAfterMagicLinkIfNeeded() {
     const ios = isIos();
     card.innerHTML = `<h4>Keep HomeOfferFlow one tap away</h4>
       <p>${ios
-        ? 'Install this workspace on your iPhone or iPad for a full-screen, app-like launch from your Home Screen.'
-        : 'Install HomeOfferFlow for a faster app-like launch and an offline-safe shell when you are between showings.'}</p>
+        ? 'Add this workspace to your iPhone or iPad Home Screen for a full-screen, app-like launch. No App Store download or separate account is needed.'
+        : 'Add HomeOfferFlow to your Home Screen for a faster app-like launch and an offline-safe shell when you are between showings. No App Store download or separate account is needed.'}</p>
+      <p class="pwa-install-note">Your offers and client details stay protected online; installation only gives this existing workspace a faster, dedicated launch.</p>
       <div class="pwa-install-actions">
         ${ios
           ? '<button class="btn-primary" type="button" id="hofPwaInstallHelp">How to add it</button>'
-          : '<button class="btn-primary" type="button" id="hofPwaInstallButton">Install HomeOfferFlow</button>'}
+          : '<button class="btn-primary" type="button" id="hofPwaInstallButton">Add to Home Screen</button>'}
         <button class="btn-secondary" type="button" id="hofPwaInstallDismiss">Not now</button>
       </div>
       <div id="hofPwaInstallNote" class="pwa-install-note" style="margin-top:.65rem;display:none"></div>`;
