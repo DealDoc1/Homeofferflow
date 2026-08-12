@@ -56,7 +56,8 @@ class PwaBaselineTests(unittest.TestCase):
 
     def test_installed_app_shortcuts_use_existing_authenticated_workflows(self):
         self.assertIn('id="hof-pwa-shortcuts-v1"', INDEX)
-        self.assertIn("action !== 'workspace' && action !== 'new_offer'", INDEX)
+        self.assertIn("const validActions = new Set(['workspace', 'new_offer']);", INDEX)
+        self.assertIn("if (!validActions.has(action)) return;", INDEX)
         self.assertIn("window.openAuthModal?.(role)", INDEX)
         self.assertIn("window.openAccountDashboard?.({ tab: 'dashboard' })", INDEX)
         self.assertIn("window.startAccountOffer?.()", INDEX)
