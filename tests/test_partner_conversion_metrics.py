@@ -18,6 +18,10 @@ class PartnerConversionMetricTests(unittest.TestCase):
         self.assertIn('"paidPartnerAgreementConfirmationRate"', source)
         self.assertIn('"paidPartnerActivationQueueAgedCount"', source)
         self.assertIn('"partnerActivationAvgDays"', source)
+        self.assertIn('"partnerCheckoutEventCounts"', source)
+        self.assertIn('"partnerCheckoutStripeOpenRate"', source)
+        self.assertIn('"partnerCheckoutCompletionRate"', source)
+        self.assertIn('founding_partner_stripe_checkout_opened', source)
 
     def test_admin_dashboard_surfaces_paid_partner_funnel(self):
         source = (ROOT / "index.html").read_text(encoding="utf-8")
@@ -30,6 +34,8 @@ class PartnerConversionMetricTests(unittest.TestCase):
         self.assertIn('paidPartnerAgreementConfirmationRate', source)
         self.assertIn('paidPartnerActivationQueueAgedCount', source)
         self.assertIn('time to activation', source)
+        self.assertIn('partnerCheckoutStripeOpenRate', source)
+        self.assertIn('Public checkout:', source)
 
 
 if __name__ == "__main__":

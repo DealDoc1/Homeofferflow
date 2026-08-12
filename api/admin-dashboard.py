@@ -3333,6 +3333,34 @@ class handler(BaseHTTPRequestHandler):
             partner_follow_up_email_start_count = len([
                 item for item in events if item.get("event_type") == "partner_follow_up_email_started"
             ])
+            # Public partner checkout telemetry deliberately contains only
+            # funnel state and the selected tier. Surface aggregate counts so
+            # commercial conversion can be improved without exposing applicant
+            # contact, company, market, or payment data in the dashboard.
+            partner_checkout_event_counts = {
+                "intake_opened": 0,
+                "tier_selected": 0,
+                "checkout_started": 0,
+                "application_saved": 0,
+                "stripe_opened": 0,
+                "cancelled": 0,
+                "completed": 0,
+                "failed": 0,
+            }
+            partner_checkout_event_keys = {
+                "founding_partner_intake_opened": "intake_opened",
+                "founding_partner_tier_selected": "tier_selected",
+                "founding_partner_checkout_started": "checkout_started",
+                "founding_partner_application_saved": "application_saved",
+                "founding_partner_stripe_checkout_opened": "stripe_opened",
+                "founding_partner_checkout_cancelled": "cancelled",
+                "founding_partner_checkout_completed": "completed",
+                "founding_partner_checkout_failed": "failed",
+            }
+            for item in events:
+                event_key = partner_checkout_event_keys.get(str(item.get("event_type") or "").strip().lower())
+                if event_key:
+                    partner_checkout_event_counts[event_key] += 1
             # A setup-link email is a deliberate platform-admin action. Keep this
             # aggregate separate from mailto follow-ups so the paid-partner
             # onboarding funnel shows whether secure access is actually being
@@ -3742,6 +3770,18 @@ class handler(BaseHTTPRequestHandler):
                 if paid_partner_lead_count else 0,
                 "partnerActivationAvgDays": partner_activation_avg_days,
                 "partnerFollowUpEmailStartCount": partner_follow_up_email_start_count,
+                "partnerCheckoutEventCounts": partner_checkout_event_counts,
+                "partnerCheckoutStartCount": partner_checkout_event_counts["checkout_started"],
+                "partnerCheckoutStripeOpenCount": partner_checkout_event_counts["stripe_opened"],
+                "partnerCheckoutCancellationCount": partner_checkout_event_counts["cancelled"],
+                "partnerCheckoutCompletionCount": partner_checkout_event_counts["completed"],
+                "partnerCheckoutFailureCount": partner_checkout_event_counts["failed"],
+                "partnerCheckoutStripeOpenRate": round(
+                    (partner_checkout_event_counts["stripe_opened"] / partner_checkout_event_counts["checkout_started"]) * 100, 1
+                ) if partner_checkout_event_counts["checkout_started"] else 0,
+                "partnerCheckoutCompletionRate": round(
+                    (partner_checkout_event_counts["completed"] / partner_checkout_event_counts["stripe_opened"]) * 100, 1
+                ) if partner_checkout_event_counts["stripe_opened"] else 0,
                 "partnerOnboardingLinkCreatedCount": partner_onboarding_link_created_count,
                 "partnerOnboardingEmailSentCount": partner_onboarding_email_sent_count,
                 "partnerOnboardingSetupIssuedCount": partner_onboarding_setup_issued_count,
