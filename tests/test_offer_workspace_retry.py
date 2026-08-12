@@ -54,6 +54,13 @@ class OfferWorkspaceRetryTests(unittest.TestCase):
         self.assertIn("Resume this stale draft", HTML)
         self.assertIn("Refresh signing status and follow up", HTML)
 
+    def test_workspace_surfaces_one_priority_follow_up_without_hiding_the_queue(self):
+        self.assertIn("function priorityOffer(offers)", HTML)
+        self.assertIn("Today’s priority", HTML)
+        self.assertIn("Open priority offer", HTML)
+        self.assertIn("Review all ${c.attention} needing attention", HTML)
+        self.assertIn("root.hofOpenPriorityOffer = function(offerId)", HTML)
+
 
 if __name__ == "__main__":
     unittest.main()
