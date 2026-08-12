@@ -208,6 +208,7 @@
             </span>
           </label>
           <button id="checkoutButton" type="button" disabled>Continue to secure checkout</button>
+          <button id="workspaceButton" class="secondary" type="button" style="display:none">Open my agent workspace</button>
           <button id="signOutButton" class="secondary" type="button">Use a different account</button>
           <p class="fine">
             Stripe securely collects your payment method. Cancel anytime before renewal from
@@ -363,6 +364,7 @@
         $("signedInEmail").textContent = session?.user?.email || "";
         $("terms").checked = false;
         $("checkoutButton").disabled = true;
+        $("workspaceButton").style.display = signedIn && new URLSearchParams(window.location.search).get("checkout") === "success" ? "block" : "none";
       }
 
       async function acceptBrokerageInvite(session) {
@@ -481,6 +483,9 @@
         $("checkoutButton").disabled = !$("terms").checked;
       });
       $("checkoutButton").addEventListener("click", startCheckout);
+      $("workspaceButton").addEventListener("click", () => {
+        window.location.assign("/?pwa_action=workspace");
+      });
       $("signOutButton").addEventListener("click", async () => {
         await client.auth.signOut();
         showStatus("Signed out.", "ok");

@@ -36,6 +36,12 @@ class SubscriptionCheckoutFunnelMetricTests(unittest.TestCase):
         self.assertIn('metadata: { source: "ondemand", plan: "agent", billing: "monthly" }', source)
         self.assertIn('hof_ondemand_checkout_${eventType}_${result}_${checkoutSessionId}', source)
 
+    def test_ondemand_success_return_offers_authenticated_workspace_handoff(self):
+        source = (ROOT / "ondemand.html").read_text(encoding="utf-8")
+        self.assertIn('id="workspaceButton"', source)
+        self.assertIn('get("checkout") === "success"', source)
+        self.assertIn('window.location.assign("/?pwa_action=workspace")', source)
+
     def test_cancelled_checkout_returns_to_account_with_recovery_copy(self):
         source = (ROOT / "index.html").read_text(encoding="utf-8")
         self.assertIn("if (result === 'cancelled')", source)
