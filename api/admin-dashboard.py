@@ -3697,6 +3697,21 @@ class handler(BaseHTTPRequestHandler):
             seller_review_attestation_count = len([
                 item for item in events if item.get("event_type") == "seller_review_attested"
             ])
+            # Seller package choices are an allowlisted product catalog. Surface
+            # only aggregate submitted-request demand; do not expose seller,
+            # property, campaign, or contact data just to measure revenue fit.
+            seller_package_catalog = {
+                "free_intake", "seller_prep", "launch_kit", "flat_fee_mls",
+                "offer_review", "contract_help", "premium_bundle",
+            }
+            seller_package_request_counts = {}
+            for lead in seller_leads:
+                package_key = str(lead.get("service_level") or "").strip().lower()
+                if package_key in seller_package_catalog:
+                    seller_package_request_counts[package_key] = seller_package_request_counts.get(package_key, 0) + 1
+            seller_package_request_counts = dict(sorted(
+                seller_package_request_counts.items(), key=lambda item: (-item[1], item[0])
+            ))
             buyer_signing_reminder_copied_count = len([
                 item for item in events if item.get("event_type") == "buyer_signing_reminder_copied"
             ])
@@ -3759,6 +3774,7 @@ class handler(BaseHTTPRequestHandler):
                 "sandboxPartnerLeadCount": sandbox_partner_lead_count,
                 "qualifiedPartnerLeadCount": len([lead for lead in partner_leads if lead.get("status") in {"qualified", "converted"}]),
                 "sellerLeadCount": len(seller_leads),
+                "sellerPackageRequestCounts": seller_package_request_counts,
                 "landingAudienceSelectionCount": sum(landing_audience_selection_counts.values()),
                 "landingAudienceSelectionCounts": landing_audience_selection_counts,
                 "qualifiedSellerLeadCount": len([lead for lead in seller_leads if lead.get("status") in {"qualified", "converted"}]),

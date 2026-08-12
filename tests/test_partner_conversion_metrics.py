@@ -27,6 +27,13 @@ class PartnerConversionMetricTests(unittest.TestCase):
         self.assertIn('partner_campaign_tiers', source)
         self.assertIn('founding_partner_stripe_checkout_opened', source)
 
+    def test_admin_payload_counts_only_allowlisted_seller_package_requests(self):
+        source = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
+        self.assertIn('"sellerPackageRequestCounts"', source)
+        self.assertIn('seller_package_catalog', source)
+        self.assertIn('package_key in seller_package_catalog', source)
+        self.assertIn('lead.get("service_level")', source)
+
     def test_admin_dashboard_surfaces_paid_partner_funnel(self):
         source = (ROOT / "index.html").read_text(encoding="utf-8")
         self.assertIn('paidPartnerLeadCount', source)
@@ -42,6 +49,8 @@ class PartnerConversionMetricTests(unittest.TestCase):
         self.assertIn('Public checkout:', source)
         self.assertIn('Campaign category opens:', source)
         self.assertIn('Campaign tier opens:', source)
+        self.assertIn('Submitted package demand:', source)
+        self.assertIn('sellerPackageRequestCounts', source)
 
 
 if __name__ == "__main__":
