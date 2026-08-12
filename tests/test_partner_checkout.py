@@ -64,6 +64,13 @@ class Client:
 
 
 class PartnerCheckoutTests(unittest.TestCase):
+    def test_success_return_explains_secure_setup_timeline_and_activation_boundary(self):
+        html = (ROOT / "index.html").read_text(encoding="utf-8")
+        self.assertIn("your next step is partner setup", html)
+        self.assertIn("it expires in 14 days", html)
+        self.assertIn("Setup does not activate advertising by itself.", html)
+        self.assertIn("issue a fresh secure link", html)
+
     def test_tiers_use_server_only_price_env_names(self):
         self.assertEqual(partner_checkout.PRICE_ENV_BY_TIER["founding_pilot"], "STRIPE_FOUNDING_PARTNER_LISTING_PRICE_ID")
         self.assertEqual(partner_checkout.PRICE_ENV_BY_TIER["monthly_placement"], "STRIPE_FOUNDING_PARTNER_FEATURED_PRICE_ID")
