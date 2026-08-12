@@ -30,6 +30,14 @@ class FsboRequestConfirmationTests(unittest.TestCase):
         self.assertIn("clearFsboDraft();", HTML)
         self.assertIn("field?.addEventListener('change', saveFsboDraft)", HTML)
 
+    def test_fsbo_confirmation_keeps_a_privacy_minimized_same_device_receipt(self):
+        self.assertIn("hof_fsbo_request_receipt_v1", HTML)
+        self.assertIn("function saveFsboRequestReceipt(selected)", HTML)
+        self.assertIn("function renderFsboRequestReceipt()", HTML)
+        self.assertIn("Seller request saved on this device.", HTML)
+        self.assertIn("fsboReceiptMaxAgeMs", HTML)
+        self.assertIn("localStorage.removeItem(fsboReceiptStorageKey)", HTML)
+
 
 if __name__ == "__main__":
     unittest.main()

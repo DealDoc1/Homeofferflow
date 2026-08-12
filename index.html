@@ -11395,6 +11395,7 @@ function routeAfterMagicLinkIfNeeded() {
       trackFsboFunnel('FSBO Seller Intake Opened');
       setTimeout(() => {
         try { window.restoreFsboDraft?.(); } catch(_) { try { window.renderFsboNeedDetails?.(); } catch(__) {} }
+        try { renderFsboRequestReceipt(); } catch(_) {}
         try { wireAddressInput?.(); } catch(_) {}
         try { window._hofPlacesSetup?.(); } catch(_) {}
       }, 0);
@@ -11428,6 +11429,38 @@ function routeAfterMagicLinkIfNeeded() {
     } catch (_) { window.renderFsboNeedDetails?.(); }
   };
   function clearFsboDraft(){ try { sessionStorage.removeItem(fsboDraftStorageKey); } catch (_) {} }
+  const fsboReceiptStorageKey = 'hof_fsbo_request_receipt_v1';
+  const fsboReceiptMaxAgeMs = 1000 * 60 * 60 * 24 * 30;
+  function saveFsboRequestReceipt(selected){
+    try {
+      localStorage.setItem(fsboReceiptStorageKey, JSON.stringify({
+        packageName: String(selected?.title || 'Seller request').slice(0, 120),
+        submittedAt: new Date().toISOString()
+      }));
+    } catch (_) {}
+  }
+  function renderFsboRequestReceipt(){
+    const oldNotice = document.getElementById('fsboRequestReceipt');
+    if (oldNotice) oldNotice.remove();
+    try {
+      const receipt = JSON.parse(localStorage.getItem(fsboReceiptStorageKey) || 'null');
+      const submittedAt = new Date(receipt?.submittedAt || '');
+      if (!receipt?.packageName || Number.isNaN(submittedAt.getTime()) || Date.now() - submittedAt.getTime() > fsboReceiptMaxAgeMs) {
+        localStorage.removeItem(fsboReceiptStorageKey);
+        return;
+      }
+      const notice = document.createElement('div');
+      notice.id = 'fsboRequestReceipt';
+      notice.className = 'notice sage';
+      notice.style.marginTop = '.8rem';
+      notice.innerHTML = '<strong>Seller request saved on this device.</strong> ' + escapeAttr(receipt.packageName) + ' was recorded ' + escapeAttr(submittedAt.toLocaleDateString()) + '. You can start a different request below, or wait for follow-up. <button class="btn-secondary" type="button" style="margin-left:.45rem;padding:.35rem .55rem;" id="clearFsboRequestReceipt">Clear notice</button>';
+      document.getElementById('fsboNeedDetails')?.insertAdjacentElement('beforebegin', notice);
+      document.getElementById('clearFsboRequestReceipt')?.addEventListener('click', () => {
+        try { localStorage.removeItem(fsboReceiptStorageKey); } catch (_) {}
+        notice.remove();
+      });
+    } catch (_) {}
+  }
   function fsboSubmissionKey(payload){
     return 'hof_fsbo_request_' + [payload.seller_email, payload.property_address, payload.service_level]
       .map(value => String(value || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '-'))
@@ -11587,6 +11620,7 @@ function routeAfterMagicLinkIfNeeded() {
       try { sessionStorage.setItem(submissionKey, data.seller_lead_id || 'saved'); } catch (_) {}
       clearFsboDraft();
       const selected = fsboNeedCopy[fsboVal('fsboNeed')] || fsboNeedCopy.free_intake;
+      saveFsboRequestReceipt(selected);
       const steps = fsboNextSteps[fsboVal('fsboNeed')] || fsboNextSteps.free_intake;
       if (status) {
         status.className = 'platform-status ok';
