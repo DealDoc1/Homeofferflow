@@ -3,6 +3,7 @@ import io
 import json
 import os
 import asyncio
+import subprocess
 import unittest
 from pathlib import Path
 from unittest.mock import AsyncMock, patch
@@ -1034,6 +1035,26 @@ class OnDemandLaunchPageTests(unittest.TestCase):
         self.assertIn('emailRedirectTo: `${window.location.origin}/ondemand${state.inviteToken', LAUNCH_HTML)
         self.assertIn('action: "accept_brokerage_invite"', LAUNCH_HTML)
         self.assertIn("Sign in with the email address that received this brokerage invite", ADMIN_PATH.read_text(encoding="utf-8"))
+
+    def test_ondemand_inline_enrollment_script_parses_before_release(self):
+        # The standalone enrollment page owns sign-in, invite acceptance, and
+        # Stripe trial launch. Parse its actual inline script in the same Node
+        # runtime used by the Vercel application so a syntax error cannot turn
+        # the entire agent enrollment card inert at runtime.
+        parser = """
+const fs = require('fs');
+const html = fs.readFileSync(process.argv[1], 'utf8');
+const match = html.match(/<script>\\s*\\(\\(\\) => \\{([\\s\\S]*?)\\n\\s*\\}\\)\\(\\);\\s*<\\/script>/);
+if (!match) throw new Error('OnDemand inline enrollment script not found');
+new Function(match[1]);
+"""
+        result = subprocess.run(
+            ["node", "-e", parser, str(ROOT / "ondemand.html")],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
 
     def test_browser_no_longer_creates_beta_subscription_or_sets_authorization_fields(self):
         marker = INDEX_HTML.index('id="hof-ondemand-brokerage-launch-v1"')
