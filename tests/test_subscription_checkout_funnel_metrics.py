@@ -40,10 +40,18 @@ class SubscriptionCheckoutFunnelMetricTests(unittest.TestCase):
         self.assertIn('recordCheckoutFunnelEvent("subscription_checkout_returned", checkoutResult)', source)
         self.assertIn('metadata: { source: "ondemand", plan: "agent", billing: "monthly" }', source)
         self.assertIn('hof_ondemand_checkout_${eventType}_${result}_${checkoutSessionId}', source)
-        self.assertIn("async function recordFirstOfferActivation()", source)
-        self.assertIn('event_type: "ondemand_first_offer_started"', source)
-        self.assertIn('metadata: { source: "ondemand", surface: "post_checkout", action: "new_offer" }', source)
-        self.assertIn('await recordFirstOfferActivation();', source)
+        self.assertIn("function markFirstOfferAttribution()", source)
+        self.assertIn('sessionStorage.setItem("hof_ondemand_first_offer_attribution", "1")', source)
+        self.assertIn("markFirstOfferAttribution();", source)
+        self.assertNotIn("await recordFirstOfferActivation();", source)
+
+    def test_first_offer_metric_is_delivered_from_the_destination_without_delaying_navigation(self):
+        source = (ROOT / "index.html").read_text(encoding="utf-8")
+        self.assertIn("const ondemandFirstOfferAttributionKey = 'hof_ondemand_first_offer_attribution';", source)
+        self.assertIn("function recordOndemandFirstOfferActivation()", source)
+        self.assertIn("'ondemand_first_offer_started'", source)
+        self.assertIn("recordOndemandFirstOfferActivation();", source)
+        self.assertIn("sessionStorage.removeItem(ondemandFirstOfferAttributionKey)", source)
 
     def test_ondemand_success_return_offers_authenticated_workspace_handoff(self):
         source = (ROOT / "ondemand.html").read_text(encoding="utf-8")
