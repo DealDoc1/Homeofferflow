@@ -8160,6 +8160,7 @@ function routeAfterMagicLinkIfNeeded() {
     const successIndex = getCurrentSteps().indexOf('stepSuccess');
     if (successIndex >= 0) showStep(successIndex);
     renderNowWhatPartnerJourney();
+    window.setTimeout(() => window.renderPwaInstallCard?.(), 0);
   }
 
   function backToHomeAfterPayment() {
@@ -17008,6 +17009,9 @@ function routeAfterMagicLinkIfNeeded() {
     const review = document.getElementById('step8');
     const isBuyerReview = review?.classList.contains('active') && (root.state?.data?.userType || 'homebuyer') === 'homebuyer';
     if (isBuyerReview) return { panel: review, surface: 'buyer_review' };
+    const success = document.getElementById('stepSuccess');
+    const isBuyerSuccess = success?.classList.contains('active') && (root.state?.data?.userType || 'homebuyer') === 'homebuyer';
+    if (isBuyerSuccess) return { panel: success, surface: 'buyer_success' };
     const dashboard = document.getElementById('accountPanelDashboard');
     if (dashboard && root.hofAuth?.session) return { panel: dashboard, surface: 'account_dashboard' };
     return null;
