@@ -73,6 +73,30 @@
 
   if (params.get('subscription')) return;
 
+  if (params.get('payment') === 'cancelled') {
+    try {
+      const saved = sessionStorage.getItem('hofOfferData');
+      if (saved) {
+        const offerData = JSON.parse(saved);
+        state.data = { ...state.data, ...offerData };
+        state.selectedPlan = offerData.selectedPlan || state.selectedPlan;
+        state.selectedPrice = Number(offerData.selectedPrice || state.selectedPrice || 0);
+      }
+    } catch (e) {}
+
+    openWizard(true);
+    const paymentStep = getCurrentSteps().indexOf('step9');
+    if (paymentStep >= 0) showStep(paymentStep);
+    if (state.selectedPlan && state.selectedPrice) selectPlan(state.selectedPlan, state.selectedPrice);
+    const notice = document.getElementById('paymentCheckoutReturnNotice');
+    if (notice) notice.style.display = 'block';
+    try { trackEvent('Payment Checkout Cancelled Returned', { plan: state.selectedPlan || 'self' }); } catch (e) {}
+
+    const cleanUrl = window.location.origin + window.location.pathname;
+    window.history.replaceState({}, document.title, cleanUrl);
+    return;
+  }
+
   const paid =
     params.get('payment') === 'success' ||
     params.get('success') === 'true' ||
@@ -3582,6 +3606,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       </div>
       <h2>Review your packet</h2>
       <p class="step-desc">Your self-service Texas buyer-offer packet is ready to purchase for $99.</p>
+      <div id="paymentCheckoutReturnNotice" class="notice sage" style="display:none; margin-bottom:1rem;"><strong>Your offer is still saved.</strong> Checkout was not completed, and no charge was made. Review the packet or resume secure checkout when you are ready.</div>
       <div style="display:grid; grid-template-columns:1fr; gap:0.6rem; margin-bottom:1.5rem;">
         <div class="pricing-card popular" id="plan-self" onclick="selectPlan('self', 99)"><div class="popular-badge">Current packet</div><div class="plan-name">Self-Serve Buyer Offer Packet</div><div class="plan-price">$99</div><div class="plan-features"><div class="plan-feature">✓ Guided buyer-offer workflow</div><div class="plan-feature">✓ Supported purchase addenda</div><div class="plan-feature">✓ Buyer-side signing delivery</div></div></div>
       </div>
