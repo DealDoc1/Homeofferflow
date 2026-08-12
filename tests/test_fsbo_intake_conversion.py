@@ -30,6 +30,8 @@ class FsboIntakeConversionTests(unittest.TestCase):
             "FSBO Seller Request Submission Started",
             "FSBO Seller Request Saved",
             "FSBO Seller Request Save Failed",
+            "FSBO Seller Request Receipt Viewed",
+            "FSBO Seller Request Receipt Cleared",
         ):
             self.assertIn(event, script)
 

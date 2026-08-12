@@ -37,6 +37,8 @@ class FsboRequestConfirmationTests(unittest.TestCase):
         self.assertIn("Seller request saved on this device.", HTML)
         self.assertIn("fsboReceiptMaxAgeMs", HTML)
         self.assertIn("localStorage.removeItem(fsboReceiptStorageKey)", HTML)
+        self.assertIn("FSBO Seller Request Receipt Viewed", HTML)
+        self.assertIn("FSBO Seller Request Receipt Cleared", HTML)
 
 
 if __name__ == "__main__":
