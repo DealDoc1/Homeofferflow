@@ -70,6 +70,14 @@ class FsboIntakeConversionTests(unittest.TestCase):
         self.assertNotIn("seller_email", routing)
         self.assertNotIn("property_address", routing)
 
+    def test_campaign_links_can_preselect_only_existing_seller_packages_without_overwriting_a_draft(self):
+        self.assertIn("const fsboCampaignPackages = new Set", HTML)
+        self.assertIn("get('seller_package')", HTML)
+        self.assertIn("return fsboCampaignPackages.has(packageKey) ? packageKey : '';", HTML)
+        self.assertIn("const campaignPackage = fsboDraftExists() ? '' : campaignFsboPackage();", HTML)
+        self.assertIn("if (campaignPackage) window.selectFsboNeed?.(campaignPackage, false);", HTML)
+        self.assertIn("campaignPackage: campaignPackage || null", HTML)
+
     def test_seller_address_autocomplete_fails_softly_and_has_a_google_compatibility_path(self):
         self.assertIn("libraries=places", HTML)
         self.assertIn("typeof google.maps.importLibrary !== 'function'", HTML)
