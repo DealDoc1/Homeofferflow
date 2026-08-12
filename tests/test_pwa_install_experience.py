@@ -40,6 +40,19 @@ class PwaInstallExperienceTests(unittest.TestCase):
         self.assertIn("homeofferflow-shell-v7", WORKER)
         self.assertIn("caches.delete", WORKER)
 
+    def test_signed_out_shortcuts_resume_the_requested_agent_action_after_authentication(self):
+        self.assertIn('hof_pwa_shortcut_pending_action', INDEX)
+        self.assertIn("sessionStorage.setItem(pendingActionKey, action)", INDEX)
+        self.assertIn("async function resumePendingShortcutAfterSignIn()", INDEX)
+        self.assertIn("window.startAccountOffer?.();", INDEX)
+        self.assertIn("resumed_after_sign_in: Boolean(resumedAfterSignIn)", INDEX)
+        self.assertIn("window.openAccountDashboard = async function openAccountDashboardWithPendingPwaShortcut()", INDEX)
+
+    def test_only_safe_declared_shortcuts_can_be_saved_or_routed_after_authentication(self):
+        self.assertIn("const validActions = new Set(['workspace', 'new_offer']);", INDEX)
+        self.assertIn("if (!validActions.has(action)) return;", INDEX)
+        self.assertIn("sessionStorage.removeItem(pendingActionKey)", INDEX)
+
 
 if __name__ == "__main__":
     unittest.main()

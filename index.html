@@ -17132,21 +17132,63 @@ function routeAfterMagicLinkIfNeeded() {
 </script>
 <script id="hof-pwa-shortcuts-v1">
 (function(){
+  const pendingActionKey = 'hof_pwa_shortcut_pending_action';
+  const validActions = new Set(['workspace', 'new_offer']);
+
+  function pendingAction(){
+    try {
+      const action = sessionStorage.getItem(pendingActionKey);
+      return validActions.has(action) ? action : '';
+    } catch (_) { return ''; }
+  }
+
+  function clearPendingAction(){
+    try { sessionStorage.removeItem(pendingActionKey); } catch (_) {}
+  }
+
+  function trackShortcut(action, role, resumedAfterSignIn){
+    try { window.trackEvent?.('PWA Shortcut Used', { action, role, resumed_after_sign_in: Boolean(resumedAfterSignIn) }); } catch (_) {}
+  }
+
+  async function runAction(action, { resumedAfterSignIn = false } = {}){
+    if (!validActions.has(action)) return;
+    const role = window.hofAuth?.role === 'investor' ? 'investor' : 'agent';
+    if (!window.hofAuth?.session) {
+      try { sessionStorage.setItem(pendingActionKey, action); } catch (_) {}
+      window.openAuthModal?.(role);
+      return;
+    }
+    clearPendingAction();
+    if (action === 'workspace') await window.openAccountDashboard?.({ tab: 'dashboard' });
+    else window.startAccountOffer?.();
+    trackShortcut(action, role, resumedAfterSignIn);
+  }
+
+  async function resumePendingShortcutAfterSignIn(){
+    const action = pendingAction();
+    if (!action || !window.hofAuth?.session) return;
+    // Remove it before routing so a dashboard redraw or a second auth event
+    // cannot start duplicate offers.
+    clearPendingAction();
+    if (action === 'new_offer') window.startAccountOffer?.();
+    trackShortcut(action, window.hofAuth?.role === 'investor' ? 'investor' : 'agent', true);
+  }
+
+  const previousOpenAccountDashboard = window.openAccountDashboard;
+  window.openAccountDashboard = async function openAccountDashboardWithPendingPwaShortcut(){
+    const result = typeof previousOpenAccountDashboard === 'function'
+      ? await previousOpenAccountDashboard.apply(this, arguments)
+      : undefined;
+    window.setTimeout(() => { resumePendingShortcutAfterSignIn(); }, 0);
+    return result;
+  };
+
   function consumeAction(){
     const params = new URLSearchParams(window.location.search || '');
     const action = params.get('pwa_action');
-    if (action !== 'workspace' && action !== 'new_offer') return;
+    if (!validActions.has(action)) return;
     try { window.history.replaceState({}, document.title, window.location.pathname); } catch (_) {}
-    window.setTimeout(async () => {
-      const role = window.hofAuth?.role === 'investor' ? 'investor' : 'agent';
-      if (!window.hofAuth?.session) {
-        window.openAuthModal?.(role);
-        return;
-      }
-      if (action === 'workspace') await window.openAccountDashboard?.({ tab: 'dashboard' });
-      else window.startAccountOffer?.();
-      try { window.trackEvent?.('PWA Shortcut Used', { action, role }); } catch (_) {}
-    }, 350);
+    window.setTimeout(() => { runAction(action); }, 350);
   }
   document.addEventListener('DOMContentLoaded', consumeAction);
 })();
