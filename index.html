@@ -6206,6 +6206,10 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 
   function startAccountOffer() {
     const role = hofAuth.role === 'investor' ? 'investor' : 'agent';
+    // A signed-in agent can safely resume only their own same-role local
+    // draft. Starting from the dashboard must not silently discard the work
+    // that brought them back to the product.
+    if (resumeLocalAccountOfferDraft(role)) return;
     resetWizardForFreshOffer(role);
     setAudience(role);
     closeAccountDashboard();
@@ -6996,6 +7000,32 @@ function routeAfterMagicLinkIfNeeded() {
       return null;
     }
   }
+
+  function resumableAccountOfferDraft(role) {
+    const draft = resumableLocalOfferDraft();
+    const normalizedRole = role === 'investor' ? 'investor' : 'agent';
+    return draft && String(draft.userType || '').toLowerCase() === normalizedRole ? draft : null;
+  }
+
+  function resumeLocalAccountOfferDraft(role) {
+    const normalizedRole = role === 'investor' ? 'investor' : 'agent';
+    const draft = resumableAccountOfferDraft(normalizedRole);
+    if (!draft) return false;
+    try { state.data.userType = normalizedRole; } catch (_) {}
+    if (!restoreDraft()) return false;
+    closeAccountDashboard?.();
+    closeAuthModal?.();
+    openWizard(true, true);
+    try { trackEvent('Resumed Local Offer Draft', { surface: 'account_dashboard', step: Math.max(1, Math.min(10, Number(draft.step || 0))), role: normalizedRole }); } catch (_) {}
+    try { logOfferEvent(null, 'agent_local_draft_resumed', 'resumed', 'Agent resumed a local offer draft from the account dashboard.', { role: normalizedRole, surface: 'account_dashboard', step: Math.max(1, Math.min(10, Number(draft.step || 0))) }); } catch (_) {}
+    return true;
+  }
+
+  window.resumableAccountOfferDraft = resumableAccountOfferDraft;
+  window.resumeLocalAccountOfferDraft = function() {
+    const role = hofAuth?.role === 'investor' ? 'investor' : 'agent';
+    return resumeLocalAccountOfferDraft(role);
+  };
 
   function refreshResumeOfferCtas() {
     const draft = resumableLocalOfferDraft();
@@ -9729,6 +9759,7 @@ function routeAfterMagicLinkIfNeeded() {
     return {
       savedAt: new Date().toISOString(),
       wizardOpen: document.getElementById('wizardOverlay')?.classList.contains('active') || false,
+      userType: typeof state !== 'undefined' ? state.data?.userType || 'homebuyer' : 'homebuyer',
       step: typeof state !== 'undefined' ? state.step : 0,
       termsOK: typeof state !== 'undefined' ? state.termsOK : false,
       selectedPlan: typeof state !== 'undefined' ? state.selectedPlan : null,
@@ -14025,7 +14056,21 @@ function routeAfterMagicLinkIfNeeded() {
     const subscriptionStatus = String(root.hofAuth?.subscription?.status || '').toLowerCase();
     const draft = draftOffer();
     const latestOffer = mostRecentOffer();
+    const role = String(root.hofAuth?.role || 'agent').toLowerCase() === 'investor' ? 'investor' : 'agent';
+    const localDraft = root.resumableAccountOfferDraft?.(role) || null;
     const complete = [hasProfile, hasOffer, hasPlan].filter(Boolean).length;
+
+    if (!hasOffer && localDraft) {
+      return {
+        key: 'resume_local_draft',
+        title: 'Resume your saved first offer',
+        body: 'Your in-progress offer is saved on this device. Resume at the exact step you left, or explicitly start fresh if this is a different client.',
+        primary: 'Resume Saved Offer',
+        secondary: 'Start Fresh Offer',
+        confidence: true,
+        complete, hasProfile, hasOffer, hasPlan
+      };
+    }
 
     // Let a new agent experience the core offer workflow before asking for a
     // full account setup. They can enter deal-specific details in the wizard,
@@ -14134,6 +14179,8 @@ function routeAfterMagicLinkIfNeeded() {
     });
     if (action === 'profile') return root.showAccountTab?.('profile');
     if (action === 'new_offer') return root.startAccountOffer?.();
+    if (action === 'resume_local') return root.resumeLocalAccountOfferDraft?.();
+    if (action === 'start_fresh') return root.startNewOffer?.();
     if (action === 'reuse_terms' && offerId) return root.reuseOfferTerms?.(offerId);
     if (action === 'offers') return root.showAccountTab?.('offers');
     if (action === 'resume' && offerId) return root.resumeOffer?.(offerId);
@@ -14167,6 +14214,7 @@ function routeAfterMagicLinkIfNeeded() {
     const primaryAction =
       state.key === 'profile' ? 'profile' :
       state.key === 'first_offer' ? 'new_offer' :
+      state.key === 'resume_local_draft' ? 'resume_local' :
       state.key === 'repeat' ? 'reuse_terms' :
       state.key === 'recover_billing' ? 'billing' :
       state.key === 'subscribe' || state.key === 'reactivate' ? 'subscribe' :
@@ -14174,6 +14222,7 @@ function routeAfterMagicLinkIfNeeded() {
     const secondaryAction =
       state.key === 'profile' ? 'new_offer' :
       state.key === 'first_offer' ? 'profile' :
+      state.key === 'resume_local_draft' ? 'start_fresh' :
       state.key === 'repeat' ? 'new_offer' :
       state.key === 'recover_billing' ? 'offers' :
       state.key === 'subscribe' || state.key === 'reactivate' ? 'subscribe' :
