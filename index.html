@@ -5978,12 +5978,12 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     }
 
     container.innerHTML = `
-      <div class="account-card"><h4>Agent / Brokerage Info</h4><div class="account-grid">
-        <div class="field"><label>Agent Name</label><input id="profAgentName" value="${escapeAttr(profileValue('agent_name'))}" placeholder="Jane Doe"></div>
-        <div class="field"><label>License Number</label><input id="profAgentLicense" value="${escapeAttr(profileValue('license_number'))}" placeholder="TX license #"></div>
-        <div class="field"><label>Agent Email</label><input id="profAgentEmail" type="email" value="${escapeAttr(profileValue('agent_email', hofAuth.session?.user?.email || ''))}" placeholder="agent@brokerage.com"></div>
-        <div class="field"><label>Agent Phone</label><input id="profAgentPhone" value="${escapeAttr(profileValue('agent_phone'))}" placeholder="(214) 555-0000"></div>
-        <div class="field"><label>Brokerage Name</label><input id="profBrokerageName" value="${escapeAttr(profileValue('brokerage_name'))}" placeholder="Brokerage firm"></div>
+      <div class="account-card"><h4>Agent / Brokerage Info</h4><p class="account-profile-essentials"><strong>Save these five essentials first.</strong> They make your agent profile ready for repeat offers. Title, escrow, and offer preferences below are optional and can be added later.</p><div class="account-grid">
+        <div class="field"><label>Agent Name <span class="account-profile-required">Required</span></label><input id="profAgentName" autocomplete="name" value="${escapeAttr(profileValue('agent_name'))}" placeholder="Jane Doe"></div>
+        <div class="field"><label>License Number <span class="account-profile-required">Required</span></label><input id="profAgentLicense" value="${escapeAttr(profileValue('license_number'))}" placeholder="TX license #"></div>
+        <div class="field"><label>Agent Email <span class="account-profile-required">Required</span></label><input id="profAgentEmail" type="email" autocomplete="email" value="${escapeAttr(profileValue('agent_email', hofAuth.session?.user?.email || ''))}" placeholder="agent@brokerage.com"></div>
+        <div class="field"><label>Agent Phone <span class="account-profile-required">Required</span></label><input id="profAgentPhone" type="tel" autocomplete="tel" value="${escapeAttr(profileValue('agent_phone'))}" placeholder="(214) 555-0000"></div>
+        <div class="field"><label>Brokerage Name <span class="account-profile-required">Required</span></label><input id="profBrokerageName" autocomplete="organization" value="${escapeAttr(profileValue('brokerage_name'))}" placeholder="Brokerage firm"></div>
         <div class="field"><label>Brokerage License</label><input id="profBrokerageLicense" value="${escapeAttr(profileValue('brokerage_license'))}" placeholder="Brokerage license #"></div>
       </div></div>
       <div class="account-card"><h4>Title, Escrow & Offer Defaults</h4><div class="account-grid">
@@ -13960,6 +13960,9 @@ function routeAfterMagicLinkIfNeeded() {
 </script>
 
 <style id="hof-agent-activation-v16-css">
+  .account-profile-essentials { margin:.2rem 0 .9rem; color:var(--gray-light); font-size:.8rem; line-height:1.5; }
+  .account-profile-essentials strong { color:var(--sage-light); }
+  .account-profile-required { display:inline-block; margin-left:.25rem; color:var(--gold-light); font-size:.63rem; font-weight:800; letter-spacing:.04em; text-transform:uppercase; }
   .agent-activation-card {
     display: none;
     margin: 0 0 1rem;
