@@ -11827,6 +11827,9 @@ function routeAfterMagicLinkIfNeeded() {
     discuss: { label:'Custom / multi-market plan', price:'Pricing discussed after market review', budget:'discuss' }
   };
   function value(id){ return (document.getElementById(id)?.value || '').trim(); }
+  function trackPartnerFunnel(name, data = {}) {
+    try { trackEvent(name, data); } catch (_) {}
+  }
   function params(){
     try { return new URLSearchParams(window.location.search || ''); }
     catch (_) { return new URLSearchParams(); }
@@ -11852,9 +11855,10 @@ function routeAfterMagicLinkIfNeeded() {
     if (confirmation) confirmation.style.display = checkoutState === 'success' ? 'block' : 'none';
     const resume = document.getElementById('foundingPartnerCheckoutResume');
     if (resume) resume.style.display = checkoutState === 'cancelled' && window.__hofFoundingPartnerLeadId ? 'block' : 'none';
+    trackPartnerFunnel('Founding Partner Intake Opened', { checkoutState: checkoutState === 'success' ? 'success' : checkoutState === 'cancelled' ? 'cancelled' : 'new' });
     setTimeout(() => document.querySelector('.partner-tier-card.is-selected')?.focus(), 0);
   };
-  window.selectFoundingPartnerTier = function(model){
+  window.selectFoundingPartnerTier = function(model, shouldTrack = true){
     const detail = partnerTierDetails[model] || partnerTierDetails.monthly_placement;
     const select = document.getElementById('foundingPartnerModel');
     const budget = document.getElementById('foundingPartnerBudget');
@@ -11872,6 +11876,7 @@ function routeAfterMagicLinkIfNeeded() {
       if (copy) copy.textContent = selected ? 'Selected' : (cardModel === 'market_exclusive' ? 'Select Premier' : 'Select ' + (partnerTierDetails[cardModel]?.label || 'tier'));
     });
     if (submit) submit.textContent = 'Apply for ' + detail.label;
+    if (shouldTrack) trackPartnerFunnel('Founding Partner Tier Selected', { tier: model });
   };
   window.closeFoundingPartnerModal = function(){
     const modal = document.getElementById('foundingPartnerModal');
@@ -11905,13 +11910,16 @@ function routeAfterMagicLinkIfNeeded() {
       landing_page: window.location.href
     };
     if (!payload.company_name || !payload.contact_name || !payload.contact_email || !payload.market_area) {
+      trackPartnerFunnel('Founding Partner Required Fields Missing', { companyProvided: !!payload.company_name, contactProvided: !!payload.contact_name, emailProvided: !!payload.contact_email, marketProvided: !!payload.market_area });
       if (status) { status.textContent = 'Company, contact name, email, and market area are required.'; status.className = 'platform-status err'; }
       return;
     }
     if (!document.getElementById('foundingPartnerConsent')?.checked) {
+      trackPartnerFunnel('Founding Partner Consent Required', { tier: payload.preferred_model });
       if (status) { status.textContent = 'Please acknowledge the founding-pilot terms before submitting.'; status.className = 'platform-status err'; }
       return;
     }
+    trackPartnerFunnel('Founding Partner Checkout Started', { tier: payload.preferred_model, source: payload.source });
     if (submit) submit.disabled = true;
     if (status) { status.textContent = 'Saving your application...'; status.className = 'platform-status'; }
     try {
@@ -11927,6 +11935,7 @@ function routeAfterMagicLinkIfNeeded() {
         partnerLeadId = result.partner_lead_id;
         window.__hofFoundingPartnerLeadId = partnerLeadId;
         savePartnerLeadId(partnerLeadId);
+        trackPartnerFunnel('Founding Partner Application Saved', { tier: payload.preferred_model, source: payload.source });
       }
       if (status) { status.textContent = 'Opening secure Stripe Checkout...'; status.className = 'platform-status'; }
       const checkoutResponse = await fetch('/api/fsbo-lead', {
@@ -11936,8 +11945,10 @@ function routeAfterMagicLinkIfNeeded() {
       });
       const checkout = await checkoutResponse.json().catch(() => ({}));
       if (!checkoutResponse.ok || !checkout.url) throw new Error(checkout.error || 'Could not start secure checkout.');
+      trackPartnerFunnel('Founding Partner Stripe Checkout Opened', { tier: payload.preferred_model });
       window.location.assign(checkout.url);
     } catch (error) {
+      trackPartnerFunnel('Founding Partner Checkout Failed', { tier: payload.preferred_model });
       if (status) { status.textContent = error?.message || String(error); status.className = 'platform-status err'; }
       if (submit) submit.disabled = false;
     }
@@ -11995,7 +12006,7 @@ function routeAfterMagicLinkIfNeeded() {
     try { const response = await fetch('/api/fsbo-lead', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({request_type:'partner_onboarding_submit', onboarding_token:onboardingToken(), market_area:value('partnerSetupMarket'), website_url:value('partnerSetupWebsite'), logo_url:value('partnerSetupLogo'), cta_label:value('partnerSetupCta')})}); const result = await response.json().catch(() => ({})); if (!response.ok) throw new Error(result.error || 'Could not save setup details.'); clearPartnerOnboardingToken(); document.getElementById('partnerOnboardingFields').style.display = 'none'; status.textContent = 'Setup details saved. HomeOfferFlow will review them with the written placement agreement before anything becomes public.'; status.className = 'platform-status ok'; } catch (error) { status.textContent = error?.message || 'Could not save setup details.'; status.className = 'platform-status err'; }
   };
   document.addEventListener('DOMContentLoaded', function(){
-    window.selectFoundingPartnerTier('monthly_placement');
+    window.selectFoundingPartnerTier('monthly_placement', false);
     if (params().get('partner_checkout') === 'cancelled') {
       const query = params();
       const cancelledLeadId = query.get('partner_lead_id') || '';
@@ -12017,11 +12028,13 @@ function routeAfterMagicLinkIfNeeded() {
       } catch (_) {}
       const submit = document.getElementById('foundingPartnerSubmit');
       if (window.__hofFoundingPartnerLeadId && submit) submit.textContent = 'Resume Secure Checkout';
+      trackPartnerFunnel('Founding Partner Checkout Cancelled');
     }
     if (params().get('partner_checkout') === 'success') {
       window.__hofFoundingPartnerCheckoutState = 'success';
       window.__hofFoundingPartnerLeadId = '';
       savePartnerLeadId('');
+      trackPartnerFunnel('Founding Partner Checkout Completed');
       // Stripe appends a session identifier to the success return. The UI has
       // already captured its non-sensitive success state, so do not retain it.
       try {

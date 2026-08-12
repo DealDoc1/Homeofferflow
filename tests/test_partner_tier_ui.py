@@ -84,6 +84,21 @@ class PartnerTierUiTests(unittest.TestCase):
         self.assertIn("['partner_checkout', 'partner_lead_id', 'partner_resume_token']", self.html)
         self.assertIn("['partner_checkout', 'session_id']", self.html)
 
+    def test_partner_checkout_funnel_is_measured_without_contact_data(self):
+        self.assertIn("function trackPartnerFunnel(name, data = {})", self.html)
+        for event in (
+            "Founding Partner Intake Opened",
+            "Founding Partner Tier Selected",
+            "Founding Partner Checkout Started",
+            "Founding Partner Application Saved",
+            "Founding Partner Stripe Checkout Opened",
+            "Founding Partner Checkout Cancelled",
+            "Founding Partner Checkout Completed",
+            "Founding Partner Checkout Failed",
+        ):
+            self.assertIn(event, self.html)
+        self.assertIn("window.selectFoundingPartnerTier('monthly_placement', false)", self.html)
+
     def test_admin_partner_leads_have_privacy_limited_follow_up_action(self):
         self.assertIn("partnerLeadFollowUpAction", self.html)
         self.assertIn("Email partner", self.html)
