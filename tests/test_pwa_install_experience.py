@@ -13,6 +13,13 @@ class PwaInstallExperienceTests(unittest.TestCase):
         self.assertIn("beforeinstallprompt", INDEX)
         self.assertIn("deferredInstallPrompt.prompt()", INDEX)
         self.assertIn("Install HomeOfferFlow", INDEX)
+
+    def test_completed_homebuyer_review_can_offer_install_without_account_login(self):
+        self.assertIn("function installTarget()", INDEX)
+        self.assertIn("surface: 'buyer_review'", INDEX)
+        self.assertIn("setTimeout(() => window.renderPwaInstallCard?.(), 0);", INDEX)
+        self.assertIn("root.renderPwaInstallCard = renderInstallCard;", INDEX)
+        self.assertIn("(root.state?.data?.userType || 'homebuyer') === 'homebuyer'", INDEX)
         self.assertIn("root.hofAuth?.session", INDEX)
 
     def test_ios_uses_home_screen_guidance_and_install_prompt_can_be_dismissed(self):
