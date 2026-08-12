@@ -212,6 +212,38 @@ def _insert_partner_lead(payload):
     return rows[0] if isinstance(rows, list) and rows else {}
 
 
+def _record_partner_checkout_event(event_type, status, message, metadata=None):
+    """Store aggregate partner checkout telemetry without applicant data."""
+    if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY or not event_type:
+        return
+    payload = {
+        "offer_id": None,
+        "user_id": None,
+        "event_type": _text(event_type, 120),
+        "status": _text(status, 80) or None,
+        "message": _text(message, 240),
+        "metadata": metadata if isinstance(metadata, dict) else {},
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    try:
+        headers = {
+            "apikey": SUPABASE_SERVICE_ROLE_KEY,
+            "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}",
+            "Content-Type": "application/json",
+            "Prefer": "return=minimal",
+        }
+        with httpx.Client(timeout=12.0) as client:
+            response = client.post(
+                f"{SUPABASE_URL}/rest/v1/hof_offer_events",
+                headers=headers,
+                json=payload,
+            )
+        if response.status_code >= 300:
+            print(f"Partner checkout telemetry failed: {response.status_code}")
+    except Exception as exc:
+        print(f"Partner checkout telemetry failed: {str(exc)[:200]}")
+
+
 def _partner_checkout_origin(headers):
     # Derive the return target from the deployed request host, not a caller-supplied URL.
     host = (headers.get("host") or "www.homeofferflow.com").split(",", 1)[0].strip()
@@ -380,12 +412,18 @@ def _create_partner_checkout(lead_id, headers):
     if lead.get("payment_status") == "paid":
         raise PermissionError("This partner application has already been paid.")
 
+    tier = lead.get("preferred_model") or ""
     existing_session_id = lead.get("stripe_checkout_session_id") or ""
     existing_url = _open_stripe_checkout_url(existing_session_id, stripe_secret_key)
     if existing_url:
+        _record_partner_checkout_event(
+            "founding_partner_stripe_checkout_opened",
+            "opened",
+            "Partner returned to an existing secure checkout.",
+            {"tier": tier},
+        )
         return existing_url
 
-    tier = lead.get("preferred_model") or ""
     launch_price_id = os.environ.get(PRICE_ENV_BY_TIER.get(tier, ""), "")
     monthly_price_id = os.environ.get(MONTHLY_PRICE_ENV_BY_TIER.get(tier, ""), "")
     if not launch_price_id or not monthly_price_id:
@@ -443,8 +481,20 @@ def _create_partner_checkout(lead_id, headers):
             stripe_secret_key,
         )
         if replacement_url:
+            _record_partner_checkout_event(
+                "founding_partner_stripe_checkout_opened",
+                "opened",
+                "Partner resumed the active secure checkout.",
+                {"tier": tier},
+            )
             return replacement_url
         raise RuntimeError("Secure checkout was refreshed. Please try again.")
+    _record_partner_checkout_event(
+        "founding_partner_stripe_checkout_opened",
+        "opened",
+        "Partner secure checkout opened.",
+        {"tier": tier},
+    )
     return result["url"]
 
 
@@ -508,6 +558,11 @@ class handler(BaseHTTPRequestHandler):
                         _text(data.get('partner_lead_id'), 80) or '',
                         _text(data.get('partner_resume_token'), 80) or '',
                     )
+                    _record_partner_checkout_event(
+                        'founding_partner_checkout_cancelled',
+                        'cancelled',
+                        'Partner returned from secure checkout without completing payment.',
+                    )
                     return _send(self, 200, {'ok': True})
                 except ValueError as exc:
                     return _send(self, 400, {'error': str(exc)})
@@ -534,6 +589,21 @@ class handler(BaseHTTPRequestHandler):
                     return _send(self, 200, {'ok': True})
                 payload = _build_partner_payload(data)
                 row = _insert_partner_lead(payload)
+                # Browser analytics cannot populate the private Admin
+                # Dashboard for an unauthenticated applicant. Record only the
+                # aggregate lifecycle and selected tier on the server.
+                _record_partner_checkout_event(
+                    'founding_partner_checkout_started',
+                    'started',
+                    'Partner checkout intent recorded after required details and consent.',
+                    {'tier': payload['preferred_model']},
+                )
+                _record_partner_checkout_event(
+                    'founding_partner_application_saved',
+                    'saved',
+                    'Partner application saved before secure checkout.',
+                    {'tier': payload['preferred_model']},
+                )
                 return _send(self, 200, {
                     'ok': True,
                     'partner_lead_id': row.get('id'),

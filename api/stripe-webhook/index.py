@@ -768,6 +768,12 @@ class handler(BaseHTTPRequestHandler):
         delivery = self._deliver_partner_onboarding_email(session, onboarding_token, onboarding_expires_at)
         # Keep analytics aggregate-only: no recipient, token, or payment data.
         self._record_partner_onboarding_event(
+            "founding_partner_checkout_completed",
+            "completed",
+            "Partner secure checkout completed.",
+            {"surface": "stripe_webhook"},
+        )
+        self._record_partner_onboarding_event(
             "partner_onboarding_setup_issued",
             "sent" if delivery == "sent" else "ready",
             "Partner secure setup access issued after paid checkout.",
