@@ -3641,6 +3641,24 @@ class handler(BaseHTTPRequestHandler):
                     activation_subscription_actions_by_billing[billing] = (
                         activation_subscription_actions_by_billing.get(billing, 0) + 1
                     )
+            # The installed PWA is the low-cost mobile-app bridge. Keep this
+            # aggregate-only so product decisions can use the real install
+            # funnel without returning device details or user-level activity.
+            pwa_install_event_counts = {
+                "shown": 0,
+                "prompt_opened": 0,
+                "accepted": 0,
+                "dismissed": 0,
+                "installed": 0,
+                "instructions_opened": 0,
+            }
+            for item in events:
+                event_type = str(item.get("event_type") or "").strip().lower()
+                if not event_type.startswith("pwa_install_"):
+                    continue
+                event_key = event_type.removeprefix("pwa_install_")
+                if event_key in pwa_install_event_counts:
+                    pwa_install_event_counts[event_key] += 1
             activation_follow_up_email_start_count = len([
                 item for item in events if item.get("event_type") == "activation_follow_up_email_started"
             ])
@@ -3923,6 +3941,18 @@ class handler(BaseHTTPRequestHandler):
                 "activationSecondaryActionCount": activation_secondary_action_count,
                 "activationActionsByStage": activation_actions_by_stage,
                 "activationSubscriptionActionsByBilling": activation_subscription_actions_by_billing,
+                "pwaInstallEventCounts": pwa_install_event_counts,
+                "pwaInstallShownCount": pwa_install_event_counts["shown"],
+                "pwaInstallPromptOpenCount": pwa_install_event_counts["prompt_opened"],
+                "pwaInstallAcceptedCount": pwa_install_event_counts["accepted"],
+                "pwaInstallDismissedCount": pwa_install_event_counts["dismissed"],
+                "pwaInstalledCount": pwa_install_event_counts["installed"],
+                "pwaInstallPromptOpenRate": round(
+                    (pwa_install_event_counts["prompt_opened"] / pwa_install_event_counts["shown"]) * 100, 1
+                ) if pwa_install_event_counts["shown"] else 0,
+                "pwaInstallCompletionRate": round(
+                    (pwa_install_event_counts["installed"] / pwa_install_event_counts["prompt_opened"]) * 100, 1
+                ) if pwa_install_event_counts["prompt_opened"] else 0,
                 "activationFollowUpEmailStartCount": activation_follow_up_email_start_count,
                 "brokerageActivationFollowUpEmailStartCount": brokerage_activation_follow_up_email_start_count,
                 "activationMilestoneCounts": activation_milestone_counts,
