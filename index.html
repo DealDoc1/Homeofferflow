@@ -9671,6 +9671,7 @@ function routeAfterMagicLinkIfNeeded() {
   let __hofSaveDebounce = null;
   let __hofCloudDraftSaveInFlight = false;
   let __hofCloudDraftSaveQueued = false;
+  let __hofWasOffline = navigator.onLine === false;
 
   function updateSaveStatus(text) {
     const el = document.getElementById('saveStatus');
@@ -9797,14 +9798,35 @@ function routeAfterMagicLinkIfNeeded() {
     const el = document.getElementById('connectionStatus');
     if (!el) return;
     const offline = navigator.onLine === false;
-    el.hidden = !offline;
+    if (offline) {
+      __hofWasOffline = true;
+      el.hidden = false;
+      el.textContent = 'Offline — draft stays on this device';
+      el.title = 'Reconnect before previewing PDFs, sending signature requests, checkout, or cloud sync.';
+      try { saveDraftNow(); } catch (e) {}
+      return;
+    }
+
+    if (__hofWasOffline) {
+      __hofWasOffline = false;
+      const isAccountDraft = (state?.data?.userType || '') !== 'homebuyer' && hofAuth?.session && hasMeaningfulCloudDraft();
+      if (isAccountDraft) {
+        el.hidden = false;
+        el.textContent = 'Back online — syncing your saved draft…';
+        el.title = 'Your account draft is being saved to the dashboard.';
+        syncCloudDraftSave();
+        window.setTimeout(() => {
+          if (navigator.onLine !== false) el.hidden = true;
+        }, 2600);
+        return;
+      }
+    }
+
+    el.hidden = true;
     if (!offline) {
       el.textContent = '';
       return;
     }
-    el.textContent = 'Offline — draft stays on this device';
-    el.title = 'Reconnect before previewing PDFs, sending signature requests, checkout, or cloud sync.';
-    try { saveDraftNow(); } catch (e) {}
   }
 
   window.addEventListener('offline', updateConnectionStatus);
