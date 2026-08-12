@@ -107,6 +107,16 @@ class FsboIntakeConversionTests(unittest.TestCase):
         self.assertIn('name="fsboPartner" value="title"> Title company', HTML)
         self.assertNotIn('name="fsboPartner" value="title_company"', HTML)
 
+    def test_seller_intake_modal_has_dialog_keyboard_and_focus_support(self):
+        self.assertIn('role="dialog" aria-modal="true" aria-labelledby="fsboSellerTitle"', HTML)
+        self.assertIn('id="fsboSellerClose"', HTML)
+        self.assertIn('aria-label="Close seller package request"', HTML)
+        self.assertIn("fsboFunnel.returnFocus = document.activeElement", HTML)
+        self.assertIn("document.getElementById('fsboPropertyAddress')?.focus();", HTML)
+        self.assertIn("if (event.key === 'Escape')", HTML)
+        self.assertIn("if (event.key !== 'Tab') return;", HTML)
+        self.assertIn("if (returnFocus?.isConnected) returnFocus.focus();", HTML)
+
 
 if __name__ == "__main__":
     unittest.main()

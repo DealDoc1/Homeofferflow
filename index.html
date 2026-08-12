@@ -11522,13 +11522,13 @@ function routeAfterMagicLinkIfNeeded() {
 
 
 <div class="modal-backdrop" id="fsboSellerModal" aria-hidden="true" style="display:none; position:fixed; inset:0; z-index:10070; background:rgba(0,0,0,.72); backdrop-filter:blur(8px); align-items:center; justify-content:center; padding:1rem;">
-  <div class="modal-card fsbo-modal-card" style="width:min(760px,100%); max-height:88vh; overflow:auto; background:linear-gradient(180deg,#0b1828,#07111d); border:1px solid rgba(255,255,255,.14); border-radius:18px; box-shadow:0 24px 80px rgba(0,0,0,.45); padding:1.15rem;">
+  <div class="modal-card fsbo-modal-card" role="dialog" aria-modal="true" aria-labelledby="fsboSellerTitle" tabindex="-1" style="width:min(760px,100%); max-height:88vh; overflow:auto; background:linear-gradient(180deg,#0b1828,#07111d); border:1px solid rgba(255,255,255,.14); border-radius:18px; box-shadow:0 24px 80px rgba(0,0,0,.45); padding:1.15rem;">
     <div style="display:flex; justify-content:space-between; gap:1rem; align-items:flex-start; margin-bottom:.9rem;">
       <div>
-        <h3 style="font-family:'Playfair Display',serif; color:var(--white); margin:0 0 .25rem; font-size:1.45rem;">FSBO Seller Packages</h3>
+        <h3 id="fsboSellerTitle" style="font-family:'Playfair Display',serif; color:var(--white); margin:0 0 .25rem; font-size:1.45rem;">FSBO Seller Packages</h3>
         <p style="color:var(--gray-light); line-height:1.55; margin:0;">Choose the seller package you are interested in and any partner recommendations you may need. Higher-touch or brokerage-connected services are priced to leave room for broker, provider, compliance, and transaction costs. This remains lead capture for now — not checkout or a confirmed service order.</p>
       </div>
-      <button type="button" onclick="closeFsboSellerModal()" style="border:none;background:transparent;color:var(--gray-light);font-size:1.5rem;cursor:pointer;">×</button>
+      <button id="fsboSellerClose" type="button" aria-label="Close seller package request" onclick="closeFsboSellerModal()" style="border:none;background:transparent;color:var(--gray-light);font-size:1.5rem;cursor:pointer;">×</button>
     </div>
 
     <div class="notice sage" style="margin-bottom:.9rem;"><strong>Start in under a minute.</strong> Property address and email are all we need to save your request. Name, phone, asking price, package details, and partner interests can be added now or confirmed later. 📍 Start typing the property address and choose a Google result when available; city, county, state, and ZIP will then be captured for routing and future local matching.</div>
@@ -11610,7 +11610,7 @@ function routeAfterMagicLinkIfNeeded() {
 
 <script>
 (function(){
-  const fsboFunnel = { requiredReady: false };
+  const fsboFunnel = { requiredReady: false, returnFocus: null };
   const fsboCampaignPackages = new Set(['free_intake','seller_prep','launch_kit','flat_fee_mls','offer_review','contract_help','premium_bundle']);
   function trackFsboFunnel(name, data = {}) {
     try { trackEvent(name, data); } catch (_) {}
@@ -11618,6 +11618,7 @@ function routeAfterMagicLinkIfNeeded() {
   window.openFsboSellerModal = function(){
     const m = document.getElementById('fsboSellerModal');
     if (m) {
+      fsboFunnel.returnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
       const campaignPackage = fsboDraftExists() ? '' : campaignFsboPackage();
       fsboFunnel.requiredReady = false;
       m.style.display = 'flex';
@@ -11629,13 +11630,39 @@ function routeAfterMagicLinkIfNeeded() {
         try { renderFsboRequestReceipt(); } catch(_) {}
         try { wireAddressInput?.(); } catch(_) {}
         try { window._hofPlacesSetup?.(); } catch(_) {}
+        document.getElementById('fsboPropertyAddress')?.focus();
       }, 0);
     }
   };
   window.closeFsboSellerModal = function(){
     const m = document.getElementById('fsboSellerModal');
     if (m) { m.style.display = 'none'; m.setAttribute('aria-hidden','true'); }
+    const returnFocus = fsboFunnel.returnFocus;
+    fsboFunnel.returnFocus = null;
+    if (returnFocus?.isConnected) returnFocus.focus();
   };
+  document.addEventListener('keydown', event => {
+    const modal = document.getElementById('fsboSellerModal');
+    if (!modal || modal.getAttribute('aria-hidden') === 'true') return;
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      window.closeFsboSellerModal?.();
+      return;
+    }
+    if (event.key !== 'Tab') return;
+    const focusable = [...modal.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])')]
+      .filter(element => element.offsetParent !== null);
+    if (!focusable.length) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  });
   function fsboVal(id){ return (document.getElementById(id)?.value || '').trim(); }
   function trackFsboRequiredFieldsReady(){
     if (fsboFunnel.requiredReady || !fsboVal('fsboPropertyAddress') || !fsboVal('fsboSellerEmail')) return;
