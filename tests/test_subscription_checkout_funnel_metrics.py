@@ -39,8 +39,11 @@ class SubscriptionCheckoutFunnelMetricTests(unittest.TestCase):
     def test_ondemand_success_return_offers_authenticated_workspace_handoff(self):
         source = (ROOT / "ondemand.html").read_text(encoding="utf-8")
         self.assertIn('id="workspaceButton"', source)
+        self.assertIn('id="firstOfferButton"', source)
         self.assertIn('get("checkout") === "success"', source)
         self.assertIn('window.location.assign("/?pwa_action=workspace")', source)
+        self.assertIn('window.location.assign("/?pwa_action=new_offer")', source)
+        self.assertIn('$("firstOfferButton").style.display = checkoutComplete ? "block" : "none"', source)
 
     def test_cancelled_checkout_returns_to_account_with_recovery_copy(self):
         source = (ROOT / "index.html").read_text(encoding="utf-8")

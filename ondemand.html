@@ -209,6 +209,7 @@
           </label>
           <button id="checkoutButton" type="button" disabled>Continue to secure checkout</button>
           <button id="workspaceButton" class="secondary" type="button" style="display:none">Open my agent workspace</button>
+          <button id="firstOfferButton" type="button" style="display:none">Start my first saved offer</button>
           <button id="signOutButton" class="secondary" type="button">Use a different account</button>
           <p class="fine">
             Stripe securely collects your payment method. Cancel anytime before renewal from
@@ -364,7 +365,9 @@
         $("signedInEmail").textContent = session?.user?.email || "";
         $("terms").checked = false;
         $("checkoutButton").disabled = true;
-        $("workspaceButton").style.display = signedIn && new URLSearchParams(window.location.search).get("checkout") === "success" ? "block" : "none";
+        const checkoutComplete = signedIn && new URLSearchParams(window.location.search).get("checkout") === "success";
+        $("workspaceButton").style.display = checkoutComplete ? "block" : "none";
+        $("firstOfferButton").style.display = checkoutComplete ? "block" : "none";
       }
 
       async function acceptBrokerageInvite(session) {
@@ -458,7 +461,7 @@
         await loadConfig();
         const params = new URLSearchParams(window.location.search);
         if (params.get("checkout") === "success") {
-          showStatus("Your 60-day OnDemand trial is active. Your agent account is being finalized.", "ok");
+          showStatus("Your secure checkout is complete. Open your workspace or start your first saved offer while agent access finishes activating.", "ok");
         } else if (params.get("checkout") === "cancelled") {
           showStatus("Checkout was canceled. Your card was not saved and your trial did not start.", "err");
         }
@@ -485,6 +488,9 @@
       $("checkoutButton").addEventListener("click", startCheckout);
       $("workspaceButton").addEventListener("click", () => {
         window.location.assign("/?pwa_action=workspace");
+      });
+      $("firstOfferButton").addEventListener("click", () => {
+        window.location.assign("/?pwa_action=new_offer");
       });
       $("signOutButton").addEventListener("click", async () => {
         await client.auth.signOut();
