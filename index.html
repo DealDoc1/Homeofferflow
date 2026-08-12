@@ -11455,8 +11455,10 @@ function routeAfterMagicLinkIfNeeded() {
       notice.style.marginTop = '.8rem';
       notice.innerHTML = '<strong>Seller request saved on this device.</strong> ' + escapeAttr(receipt.packageName) + ' was recorded ' + escapeAttr(submittedAt.toLocaleDateString()) + '. You can start a different request below, or wait for follow-up. <button class="btn-secondary" type="button" style="margin-left:.45rem;padding:.35rem .55rem;" id="clearFsboRequestReceipt">Clear notice</button>';
       document.getElementById('fsboNeedDetails')?.insertAdjacentElement('beforebegin', notice);
+      trackFsboFunnel('FSBO Seller Request Receipt Viewed', { package: receipt.packageName });
       document.getElementById('clearFsboRequestReceipt')?.addEventListener('click', () => {
         try { localStorage.removeItem(fsboReceiptStorageKey); } catch (_) {}
+        trackFsboFunnel('FSBO Seller Request Receipt Cleared', { package: receipt.packageName });
         notice.remove();
       });
     } catch (_) {}
