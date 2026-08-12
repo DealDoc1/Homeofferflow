@@ -17,6 +17,9 @@ class SubscriptionCheckoutFunnelMetricTests(unittest.TestCase):
         self.assertIn("subscription_checkout_returned", source)
         self.assertIn('"onDemandCheckoutStartCount"', source)
         self.assertIn('"onDemandCheckoutReturnRate"', source)
+        self.assertIn('"onDemandFirstOfferStartCount"', source)
+        self.assertIn('"onDemandFirstOfferStartRate"', source)
+        self.assertIn("ondemand_first_offer_started", source)
 
     def test_admin_dashboard_surfaces_subscription_checkout_funnel(self):
         source = (ROOT / "index.html").read_text(encoding="utf-8")
@@ -28,6 +31,8 @@ class SubscriptionCheckoutFunnelMetricTests(unittest.TestCase):
         self.assertIn("subscriptionCheckoutReturnRate", source)
         self.assertIn("onDemandCheckoutStartCount", source)
         self.assertIn("onDemandCheckoutReturnRate", source)
+        self.assertIn("onDemandFirstOfferStartCount", source)
+        self.assertIn("onDemandFirstOfferStartRate", source)
 
     def test_ondemand_checkout_uses_the_shared_privacy_safe_funnel_events(self):
         source = (ROOT / "ondemand.html").read_text(encoding="utf-8")
@@ -35,6 +40,10 @@ class SubscriptionCheckoutFunnelMetricTests(unittest.TestCase):
         self.assertIn('recordCheckoutFunnelEvent("subscription_checkout_returned", checkoutResult)', source)
         self.assertIn('metadata: { source: "ondemand", plan: "agent", billing: "monthly" }', source)
         self.assertIn('hof_ondemand_checkout_${eventType}_${result}_${checkoutSessionId}', source)
+        self.assertIn("async function recordFirstOfferActivation()", source)
+        self.assertIn('event_type: "ondemand_first_offer_started"', source)
+        self.assertIn('metadata: { source: "ondemand", surface: "post_checkout", action: "new_offer" }', source)
+        self.assertIn('await recordFirstOfferActivation();', source)
 
     def test_ondemand_success_return_offers_authenticated_workspace_handoff(self):
         source = (ROOT / "ondemand.html").read_text(encoding="utf-8")

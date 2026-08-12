@@ -316,6 +316,29 @@
         }
       }
 
+      async function recordFirstOfferActivation() {
+        const user = state.session?.user;
+        if (!user?.id) return;
+        const checkoutSessionId = initialParams.get("session_id") || "return";
+        const storageKey = `hof_ondemand_first_offer_started_${checkoutSessionId}`;
+        try {
+          if (sessionStorage.getItem(storageKey) === "1") return;
+          const { error } = await client.from("hof_offer_events").insert({
+            offer_id: null,
+            user_id: user.id,
+            event_type: "ondemand_first_offer_started",
+            message: "OnDemand agent started the first saved-offer handoff after checkout.",
+            metadata: { source: "ondemand", surface: "post_checkout", action: "new_offer" },
+            created_at: new Date().toISOString()
+          });
+          if (error) throw error;
+          sessionStorage.setItem(storageKey, "1");
+        } catch (error) {
+          // Measurement must never delay an agent's first-offer workflow.
+          console.warn("OnDemand first-offer activation event could not be recorded:", error);
+        }
+      }
+
       async function recordLegalAcceptance() {
         const user = state.session?.user;
         if (!user) throw new Error("Sign in before acknowledging the enrollment terms.");
@@ -489,7 +512,8 @@
       $("workspaceButton").addEventListener("click", () => {
         window.location.assign("/?pwa_action=workspace");
       });
-      $("firstOfferButton").addEventListener("click", () => {
+      $("firstOfferButton").addEventListener("click", async () => {
+        await recordFirstOfferActivation();
         window.location.assign("/?pwa_action=new_offer");
       });
       $("signOutButton").addEventListener("click", async () => {

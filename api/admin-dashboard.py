@@ -3668,6 +3668,11 @@ class handler(BaseHTTPRequestHandler):
             subscription_checkout_failure_count = len([
                 item for item in events if item.get("event_type") == "subscription_checkout_failed"
             ])
+            ondemand_first_offer_start_count = len([
+                item for item in events
+                if item.get("event_type") == "ondemand_first_offer_started"
+                and (item.get("metadata") or {}).get("source") == "ondemand"
+            ])
             subscription_checkout_start_by_source = {}
             subscription_checkout_return_by_source = {}
             for item in events:
@@ -3877,6 +3882,12 @@ class handler(BaseHTTPRequestHandler):
                     / subscription_checkout_start_by_source.get("ondemand", 0)) * 100,
                     1,
                 ) if subscription_checkout_start_by_source.get("ondemand", 0) else 0,
+                "onDemandFirstOfferStartCount": ondemand_first_offer_start_count,
+                "onDemandFirstOfferStartRate": round(
+                    (ondemand_first_offer_start_count
+                    / subscription_checkout_return_by_source.get("ondemand", 0)) * 100,
+                    1,
+                ) if subscription_checkout_return_by_source.get("ondemand", 0) else 0,
                 "brokerageInviteSentCount": len([
                     item for item in events if item.get("event_type") == "brokerage_invite_sent"
                 ]),
