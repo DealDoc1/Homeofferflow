@@ -36,6 +36,20 @@ class PwaInstallExperienceTests(unittest.TestCase):
         self.assertIn("pwa_install_prompt_shown", INDEX)
         self.assertIn("choice?.outcome === 'accepted' ? 'accepted' : 'dismissed'", INDEX)
 
+    def test_admin_dashboard_can_measure_the_privacy_safe_install_funnel(self):
+        api = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
+        for expected in (
+            '"pwaInstallEventCounts"',
+            '"pwaInstallShownCount"',
+            '"pwaInstallPromptOpenCount"',
+            '"pwaInstallCompletionRate"',
+            "pwa_install_event_counts",
+        ):
+            self.assertIn(expected, api)
+        self.assertIn("Mobile App Install Funnel", INDEX)
+        self.assertIn("pwaInstallPromptOpenRate", INDEX)
+        self.assertIn("PWA only: app-like mobile access", INDEX)
+
     def test_offline_shell_cache_is_versioned_for_the_new_install_surface(self):
         self.assertIn("homeofferflow-shell-v7", WORKER)
         self.assertIn("caches.delete", WORKER)

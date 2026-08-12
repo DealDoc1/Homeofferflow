@@ -4344,6 +4344,14 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           </div>
 
           <div class="admin-metric">
+            <div class="admin-metric-label">Mobile App Install Funnel</div>
+            <div class="admin-metric-value">${metrics.pwaInstalledCount || 0} installed</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.pwaInstallShownCount || 0} install prompts shown · ${metrics.pwaInstallPromptOpenCount || 0} opened (${Number(metrics.pwaInstallPromptOpenRate || 0).toFixed(1)}%).</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.pwaInstallAcceptedCount || 0} accepted · ${metrics.pwaInstallDismissedCount || 0} dismissed · ${Number(metrics.pwaInstallCompletionRate || 0).toFixed(1)}% installed after an install prompt opened.</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">PWA only: app-like mobile access without a separate native-app build or store overhead.</div>
+          </div>
+
+          <div class="admin-metric">
             <div class="admin-metric-label">Trials Ending Soon</div>
             <div class="admin-metric-value">${metrics.trialEndingSoonCount || trialEndingSoonQueue.length || 0}</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.trialEndingWithin3DaysCount || 0} within 3 days · ${metrics.trialEndingSoonCount || trialEndingSoonQueue.length || 0} within 14 days.</div>
