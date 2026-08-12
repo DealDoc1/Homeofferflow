@@ -12867,6 +12867,9 @@ function routeAfterMagicLinkIfNeeded() {
   .offer-filter-tabs { display:flex; gap:.45rem; flex-wrap:wrap; }
   .offer-filter-tab { border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.035); color:var(--gray-light); border-radius:999px; padding:.48rem .72rem; font-family:'DM Sans',sans-serif; font-size:.74rem; font-weight:900; cursor:pointer; }
   .offer-filter-tab.active { border-color:rgba(200,151,63,.62); color:var(--gold-light); background:rgba(200,151,63,.10); box-shadow:0 0 0 4px rgba(200,151,63,.055); }
+  .offer-workspace-result-summary { display:flex; align-items:center; justify-content:space-between; gap:.65rem; flex-wrap:wrap; color:var(--gray); font-size:.74rem; line-height:1.35; }
+  .offer-workspace-result-summary strong { color:var(--gray-light); }
+  .offer-workspace-clear-filters { border:0; background:transparent; color:var(--gold-light); cursor:pointer; font:800 .74rem 'DM Sans',sans-serif; padding:.18rem 0; text-decoration:underline; text-underline-offset:2px; }
   .offer-workspace-list { display:flex; flex-direction:column; gap:.75rem; }
   .offer-workspace-empty { border:1px dashed rgba(255,255,255,.16); background:rgba(255,255,255,.025); border-radius:16px; padding:1rem; color:var(--gray-light); line-height:1.55; }
   .offer-workspace-card { border:1px solid rgba(255,255,255,.10); background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.022)); border-radius:18px; overflow:hidden; box-shadow:0 14px 40px rgba(0,0,0,.18); }
@@ -13098,8 +13101,10 @@ function routeAfterMagicLinkIfNeeded() {
       <div class="offer-focus-actions"><button class="offer-action-btn" type="button" onclick="hofOpenPriorityOffer('${esc(priority.id)}')">Open priority offer</button><button class="offer-action-btn" type="button" onclick="hofSetOfferWorkspaceFilter('attention')">Review all ${c.attention} needing attention</button></div>
     </section>` : '';
     const volume = safe.reduce((sum,o) => sum + Number(o.offer_price || o.offer_data?.offerPrice || 0), 0);
-    const tab = (key,label) => `<button type="button" class="offer-filter-tab ${state.filter===key?'active':''}" onclick="hofSetOfferWorkspaceFilter('${key}')">${label} <span>${c[key] || 0}</span></button>`;
+    const tab = (key,label) => `<button type="button" class="offer-filter-tab ${state.filter===key?'active':''}" aria-pressed="${state.filter===key ? 'true' : 'false'}" onclick="hofSetOfferWorkspaceFilter('${key}')">${label} <span>${c[key] || 0}</span></button>`;
     const cards = shown.length ? shown.map(renderCard).join('') : `<div class="offer-workspace-empty"><strong>No offers match this view.</strong><br/>Try another status tab, clear the search, or create a new buyer offer.</div>`;
+    const hasActiveFilters = state.filter !== 'all' || String(state.query || '').trim() || state.sort !== 'updated_desc';
+    const resultSummary = `<div class="offer-workspace-result-summary" aria-live="polite"><span><strong>${shown.length}</strong> of ${safe.length} loaded offer${safe.length === 1 ? '' : 's'} shown${hasActiveFilters ? ' in this view' : ''}.</span>${hasActiveFilters ? '<button type="button" class="offer-workspace-clear-filters" onclick="hofClearOfferWorkspaceFilters()">Reset view</button>' : ''}</div>`;
     const canLoadMore = !!root.hofAuth?.myOffersHasMore;
     const loadMoreFailed = !!root.hofAuth?.myOffersLoadMoreError;
     const historyControl = canLoadMore
@@ -13135,15 +13140,15 @@ function routeAfterMagicLinkIfNeeded() {
 
       <div class="offer-workspace-controls">
         <div class="offer-workspace-filter-row">
-          <div class="offer-search-wrap"><input id="offerWorkspaceSearch" type="search" placeholder="Search buyer, property, email, status..." value="${esc(state.query)}" oninput="hofSetOfferWorkspaceSearch(this.value)" /></div>
-          <select id="offerWorkspaceSort" class="offer-sort-select" onchange="hofSetOfferWorkspaceSort(this.value)">
+          <div class="offer-search-wrap"><input id="offerWorkspaceSearch" type="search" aria-label="Search saved offers" placeholder="Search buyer, property, email, status..." value="${esc(state.query)}" oninput="hofSetOfferWorkspaceSearch(this.value)" /></div>
+          <select id="offerWorkspaceSort" class="offer-sort-select" aria-label="Sort saved offers" onchange="hofSetOfferWorkspaceSort(this.value)">
             <option value="updated_desc" ${state.sort==='updated_desc'?'selected':''}>Sort: Recently updated</option>
             <option value="created_desc" ${state.sort==='created_desc'?'selected':''}>Sort: Newest created</option>
             <option value="price_desc" ${state.sort==='price_desc'?'selected':''}>Sort: Highest offer</option>
             <option value="price_asc" ${state.sort==='price_asc'?'selected':''}>Sort: Lowest offer</option>
           </select>
         </div>
-        <div class="offer-filter-tabs">
+        <div class="offer-filter-tabs" aria-label="Filter saved offers">
           ${tab('all','All')}
           ${tab('attention','Needs attention')}
           ${tab('draft','Drafts')}
@@ -13151,6 +13156,7 @@ function routeAfterMagicLinkIfNeeded() {
           ${tab('signing','Signing')}
           ${tab('signed','Buyer Signed')}
         </div>
+        ${resultSummary}
       </div>
 
       <div class="offer-workspace-list">${cards}</div>
@@ -13166,6 +13172,13 @@ function routeAfterMagicLinkIfNeeded() {
   root.hofSetOfferWorkspaceFilter = function(filter){ state.filter = filter || 'all'; persistWorkspaceState(); rerender(); };
   root.hofSetOfferWorkspaceSearch = function(query){ state.query = query || ''; persistWorkspaceState(); rerender(); };
   root.hofSetOfferWorkspaceSort = function(sort){ state.sort = sort || 'updated_desc'; persistWorkspaceState(); rerender(); };
+  root.hofClearOfferWorkspaceFilters = function(){
+    state.filter = 'all';
+    state.query = '';
+    state.sort = 'updated_desc';
+    persistWorkspaceState();
+    rerender();
+  };
   root.hofOpenPriorityOffer = function(offerId){
     if (!offerId) return;
     state.filter = 'all';
