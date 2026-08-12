@@ -96,6 +96,24 @@ class AgentActivationDashboardTests(unittest.TestCase):
         self.assertIn("First offer workflow overview", script)
         self.assertIn("Saving a draft does not send a packet or request a signature.", script)
 
+    def test_account_dashboard_resumes_same_role_local_drafts_before_clearing_them(self):
+        self.assertIn("if (resumeLocalAccountOfferDraft(role)) return;", HTML)
+        self.assertIn("function resumableAccountOfferDraft(role)", HTML)
+        self.assertIn("String(draft.userType || '').toLowerCase() === normalizedRole", HTML)
+        self.assertIn("surface: 'account_dashboard'", HTML)
+        self.assertIn("agent_local_draft_resumed", HTML)
+        self.assertIn("userType: typeof state !== 'undefined' ? state.data?.userType || 'homebuyer' : 'homebuyer'", HTML)
+
+    def test_activation_card_offers_saved_draft_resume_or_explicit_fresh_start(self):
+        script_start = HTML.index('id="hof-agent-activation-v16-js"')
+        script_end = HTML.index("</script>", script_start)
+        script = HTML[script_start:script_end]
+        self.assertIn("key: 'resume_local_draft'", script)
+        self.assertIn("Resume Saved Offer", script)
+        self.assertIn("Start Fresh Offer", script)
+        self.assertIn("action === 'resume_local'", script)
+        self.assertIn("action === 'start_fresh'", script)
+
     def test_profile_activation_requires_agent_contact_and_license_fields(self):
         script_start = HTML.index('id="hof-agent-activation-v16-js"')
         script_end = HTML.index("</script>", script_start)
