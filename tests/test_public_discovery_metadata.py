@@ -12,8 +12,14 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
     def test_landing_page_has_canonical_share_and_structured_metadata(self):
         self.assertIn('<link rel="canonical" href="https://www.homeofferflow.com/"', INDEX)
         self.assertIn('property="og:url" content="https://www.homeofferflow.com/"', INDEX)
-        self.assertIn('property="og:image"', INDEX)
-        self.assertIn('name="twitter:card" content="summary"', INDEX)
+        preview_path = ROOT / "assets" / "homeofferflow-social-preview-v1.png"
+        preview_url = "https://www.homeofferflow.com/assets/homeofferflow-social-preview-v1.png"
+        self.assertTrue(preview_path.is_file())
+        self.assertIn(f'property="og:image" content="{preview_url}"', INDEX)
+        self.assertIn('property="og:image:width" content="1200"', INDEX)
+        self.assertIn('property="og:image:height" content="630"', INDEX)
+        self.assertIn('name="twitter:card" content="summary_large_image"', INDEX)
+        self.assertIn(f'name="twitter:image" content="{preview_url}"', INDEX)
         self.assertIn('"@type": "SoftwareApplication"', INDEX)
         self.assertIn('"priceCurrency": "USD"', INDEX)
 
