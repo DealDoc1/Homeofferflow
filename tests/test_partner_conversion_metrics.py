@@ -52,6 +52,18 @@ class PartnerConversionMetricTests(unittest.TestCase):
         self.assertIn('Submitted package demand:', source)
         self.assertIn('sellerPackageRequestCounts', source)
 
+    def test_partner_workspace_can_create_allowlisted_campaign_links(self):
+        source = (ROOT / "index.html").read_text(encoding="utf-8")
+        self.assertIn('Partner Campaign Link Toolkit', source)
+        self.assertIn('copyPartnerCampaignLink()', source)
+        self.assertIn('previewPartnerCampaignLink()', source)
+        self.assertIn("const partnerCampaignCategories = new Set", source)
+        self.assertIn("const partnerCampaignTiers = new Set", source)
+        self.assertIn("https://www.homeofferflow.com/?partner=1&partner_category=", source)
+        self.assertIn("partnerCampaignCategories.has(category)", source)
+        self.assertIn("partnerCampaignTiers.has(tier)", source)
+        self.assertIn("Partner Campaign Link Copied", source)
+
 
 if __name__ == "__main__":
     unittest.main()
