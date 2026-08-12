@@ -10613,6 +10613,17 @@ function routeAfterMagicLinkIfNeeded() {
     const el = document.getElementById('partnerFoundationPanel');
     if (!el) return;
     el.className = '';
+    const campaignToolkit = isCurrentAdmin() ? `
+      <div class="platform-card" id="partnerCampaignToolkit">
+        <h4>Partner Campaign Link Toolkit</h4>
+        <p>Create a shareable, preselected partner application link for one category and one commercial tier. The link contains no contact, market, application, payment, or onboarding data.</p>
+        <div class="platform-grid">
+          <div class="field"><label for="partnerCampaignCategory">Partner category</label><select id="partnerCampaignCategory"><option value="title">Title company / fee attorney</option><option value="lender">Mortgage lender</option><option value="inspection">Home inspection</option><option value="surveyor">Property surveyor</option><option value="home_warranty">Home warranty</option><option value="insurance">Home insurance</option><option value="roofing">Roofing contractor</option><option value="hvac">HVAC / heating and air</option><option value="plumbing">Plumbing</option><option value="electrical">Electrical</option><option value="foundation_structural">Foundation / structural repair</option><option value="general_contractor">General contractor / remodeling</option><option value="pest_termite">Pest control / termite</option><option value="septic_well">Septic / well service</option><option value="restoration">Water / fire restoration</option><option value="repairs_handyman">Repairs / handyman</option><option value="photography_video">Photography / video</option><option value="staging">Home staging</option><option value="cleaning">Cleaning</option><option value="moving_storage">Moving / storage</option><option value="lawn_pool">Lawn / pool</option><option value="security_smart_home">Security / smart home</option><option value="other">Other real-estate service</option></select></div>
+          <div class="field"><label for="partnerCampaignTier">Commercial tier</label><select id="partnerCampaignTier"><option value="founding_pilot">Core Partner · $149</option><option value="monthly_placement" selected>Featured Partner · $399</option><option value="market_exclusive">Premier Partner · $799</option></select></div>
+        </div>
+        <div class="platform-actions"><button type="button" onclick="copyPartnerCampaignLink()">Copy Campaign Link</button><button type="button" class="btn-secondary" onclick="previewPartnerCampaignLink()">Preview Intake</button></div>
+        <div id="partnerCampaignLinkPreview" class="platform-status" aria-live="polite"></div>
+      </div>` : '';
     el.innerHTML = `
       <div class="platform-card">
         <h4>HomeOfferFlow Partner Marketplace</h4>
@@ -10624,6 +10635,7 @@ function routeAfterMagicLinkIfNeeded() {
         </div>
         <div class="notice gold">Pilot rates are per category and market. Premier Partner is limited to one active paid placement position per category and market, but it never creates required selection or referral rights.</div>
       </div>
+      ${campaignToolkit}
       <div class="partner-create-card">
         <h4 style="color:var(--gold-light); font-size:0.86rem; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:0.75rem;">Create Partner Placement</h4>
         <div class="platform-grid">
@@ -10639,6 +10651,37 @@ function routeAfterMagicLinkIfNeeded() {
       <div class="platform-card"><h4>Active Partner Placements</h4><div id="partnerPlacementList" class="platform-list"><div class="platform-list-item">No partners loaded yet.</div></div></div>`;
     loadPartnerPlacementsFoundation();
   }
+
+  const partnerCampaignCategories = new Set(['title','lender','inspection','surveyor','home_warranty','insurance','roofing','hvac','plumbing','electrical','foundation_structural','general_contractor','pest_termite','septic_well','restoration','repairs_handyman','photography_video','staging','cleaning','moving_storage','lawn_pool','security_smart_home','other']);
+  const partnerCampaignTiers = new Set(['founding_pilot','monthly_placement','market_exclusive']);
+
+  function partnerCampaignLink() {
+    const category = String(getVal('partnerCampaignCategory') || '').trim().toLowerCase();
+    const tier = String(getVal('partnerCampaignTier') || '').trim().toLowerCase();
+    if (!partnerCampaignCategories.has(category) || !partnerCampaignTiers.has(tier)) return '';
+    return `https://www.homeofferflow.com/?partner=1&partner_category=${encodeURIComponent(category)}&partner_tier=${encodeURIComponent(tier)}`;
+  }
+
+  window.copyPartnerCampaignLink = async function copyPartnerCampaignLink() {
+    if (!isCurrentAdmin()) return platformStatus('partnerCampaignLinkPreview', 'HomeOfferFlow admin access is required to create a campaign link.', 'err');
+    const link = partnerCampaignLink();
+    if (!link) return platformStatus('partnerCampaignLinkPreview', 'Choose a supported partner category and tier.', 'err');
+    try {
+      if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(link);
+      else window.prompt('Copy this partner campaign link:', link);
+      try { trackEvent('Partner Campaign Link Copied', { category: getVal('partnerCampaignCategory'), tier: getVal('partnerCampaignTier'), surface: 'partner_admin_toolkit' }); } catch (_) {}
+      platformStatus('partnerCampaignLinkPreview', 'Campaign link copied. It opens the public partner intake with the approved category and tier preselected.', 'ok');
+    } catch (err) {
+      platformStatus('partnerCampaignLinkPreview', 'Could not copy automatically. Copy this link: ' + link, 'err');
+    }
+  };
+
+  window.previewPartnerCampaignLink = function previewPartnerCampaignLink() {
+    if (!isCurrentAdmin()) return platformStatus('partnerCampaignLinkPreview', 'HomeOfferFlow admin access is required to preview a campaign link.', 'err');
+    const link = partnerCampaignLink();
+    if (!link) return platformStatus('partnerCampaignLinkPreview', 'Choose a supported partner category and tier.', 'err');
+    window.open(link, '_blank', 'noopener,noreferrer');
+  };
 
   function partnerPlacementLifecycle(row) {
     if (!row?.is_active) return { label: 'Inactive', tone: 'warn', action: 'Confirm whether this placement should be reactivated.' };
