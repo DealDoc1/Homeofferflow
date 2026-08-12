@@ -7286,6 +7286,7 @@ function routeAfterMagicLinkIfNeeded() {
       collectAllData();
       buildReview();
       renderInlineAiOfferReview();
+      setTimeout(() => window.renderPwaInstallCard?.(), 0);
       const backupWarn = document.getElementById('backupReviewWarning');
       if (backupWarn) backupWarn.style.display = state.data.backupOffer === 'yes' ? 'block' : 'none';
       trackEvent('Reached Review', { userType: state.data.userType || 'homebuyer', financing: state.data.financing || '' });
@@ -16697,9 +16698,18 @@ function routeAfterMagicLinkIfNeeded() {
     document.getElementById('hofPwaInstallCard')?.remove();
   }
 
+  function installTarget(){
+    const review = document.getElementById('step8');
+    const isBuyerReview = review?.classList.contains('active') && (root.state?.data?.userType || 'homebuyer') === 'homebuyer';
+    if (isBuyerReview) return { panel: review, surface: 'buyer_review' };
+    const dashboard = document.getElementById('accountPanelDashboard');
+    if (dashboard && root.hofAuth?.session) return { panel: dashboard, surface: 'account_dashboard' };
+    return null;
+  }
+
   function renderInstallCard(){
-    const panel = document.getElementById('accountPanelDashboard');
-    if (!panel || !root.hofAuth?.session || isStandalone() || isDismissed()) return;
+    const target = installTarget();
+    if (!target || isStandalone() || isDismissed()) return;
     const existing = document.getElementById('hofPwaInstallCard');
     if (existing) existing.remove();
     if (!deferredInstallPrompt && !isIos()) return;
@@ -16718,11 +16728,11 @@ function routeAfterMagicLinkIfNeeded() {
         <button class="btn-secondary" type="button" id="hofPwaInstallDismiss">Not now</button>
       </div>
       <div id="hofPwaInstallNote" class="pwa-install-note" style="margin-top:.65rem;display:none"></div>`;
-    panel.appendChild(card);
+    target.panel.appendChild(card);
     try {
       if (!sessionStorage.getItem(shownKey)) {
         sessionStorage.setItem(shownKey, '1');
-        trackInstall('shown', { platform: ios ? 'ios' : 'web' });
+        trackInstall('shown', { platform: ios ? 'ios' : 'web', surface: target.surface });
       }
     } catch (_) {}
     card.querySelector('#hofPwaInstallDismiss')?.addEventListener('click', dismissInstallCard);
@@ -16754,6 +16764,7 @@ function routeAfterMagicLinkIfNeeded() {
     renderInstallCard();
   });
   window.addEventListener('appinstalled', () => { trackInstall('installed'); document.getElementById('hofPwaInstallCard')?.remove(); });
+  root.renderPwaInstallCard = renderInstallCard;
   const previous = root.renderAccountDashboard;
   root.renderAccountDashboard = function renderAccountDashboardWithPwaInstall(){
     if (typeof previous === 'function') previous.apply(this, arguments);
