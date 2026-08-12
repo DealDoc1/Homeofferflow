@@ -11861,6 +11861,9 @@ function routeAfterMagicLinkIfNeeded() {
     market_exclusive: { label:'Premier Partner', price:'$799 for the first 90 days, then $799/month', budget:'500_999' },
     discuss: { label:'Custom / multi-market plan', price:'Pricing discussed after market review', budget:'discuss' }
   };
+  // Public outreach can preselect only an existing server-approved category.
+  // Never copy arbitrary query text into the intake, analytics, or lead data.
+  const partnerCampaignCategories = new Set(['title','lender','inspection','surveyor','home_warranty','insurance','roofing','hvac','plumbing','electrical','foundation_structural','general_contractor','pest_termite','septic_well','restoration','repairs_handyman','photography_video','staging','cleaning','moving_storage','lawn_pool','security_smart_home','other']);
   function value(id){ return (document.getElementById(id)?.value || '').trim(); }
   function trackPartnerFunnel(name, data = {}) {
     try { trackEvent(name, data); } catch (_) {}
@@ -11879,10 +11882,24 @@ function routeAfterMagicLinkIfNeeded() {
       else sessionStorage.removeItem('hof_founding_partner_lead_id');
     } catch (_) {}
   }
+  function campaignPartnerCategory(){
+    const category = String(params().get('partner_category') || '').trim().toLowerCase();
+    return partnerCampaignCategories.has(category) ? category : '';
+  }
+  function applyCampaignPartnerCategory(){
+    // A saved application is the source of truth on a checkout return. Do not
+    // overwrite its category from a campaign URL while offering a safe resume.
+    if (window.__hofFoundingPartnerLeadId) return '';
+    const category = campaignPartnerCategory();
+    const select = document.getElementById('foundingPartnerType');
+    if (category && select) select.value = category;
+    return category;
+  }
   window.openFoundingPartnerModal = function(){
     const modal = document.getElementById('foundingPartnerModal');
     if (!modal) return;
     window.__hofFoundingPartnerLeadId = window.__hofFoundingPartnerLeadId || loadSavedPartnerLeadId();
+    const campaignCategory = applyCampaignPartnerCategory();
     modal.style.display = 'flex';
     modal.setAttribute('aria-hidden', 'false');
     const confirmation = document.getElementById('foundingPartnerCheckoutConfirmation');
@@ -11890,7 +11907,7 @@ function routeAfterMagicLinkIfNeeded() {
     if (confirmation) confirmation.style.display = checkoutState === 'success' ? 'block' : 'none';
     const resume = document.getElementById('foundingPartnerCheckoutResume');
     if (resume) resume.style.display = checkoutState === 'cancelled' && window.__hofFoundingPartnerLeadId ? 'block' : 'none';
-    trackPartnerFunnel('Founding Partner Intake Opened', { checkoutState: checkoutState === 'success' ? 'success' : checkoutState === 'cancelled' ? 'cancelled' : 'new' });
+    trackPartnerFunnel('Founding Partner Intake Opened', { checkoutState: checkoutState === 'success' ? 'success' : checkoutState === 'cancelled' ? 'cancelled' : 'new', campaignCategory: campaignCategory || null });
     setTimeout(() => document.querySelector('.partner-tier-card.is-selected')?.focus(), 0);
   };
   window.selectFoundingPartnerTier = function(model, shouldTrack = true){

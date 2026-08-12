@@ -145,6 +145,14 @@ class PartnerTierUiTests(unittest.TestCase):
                     self.html,
                 )
 
+    def test_campaign_links_can_preselect_only_existing_partner_categories(self):
+        self.assertIn("const partnerCampaignCategories = new Set", self.html)
+        self.assertIn("params().get('partner_category')", self.html)
+        self.assertIn("return partnerCampaignCategories.has(category) ? category : '';", self.html)
+        self.assertIn("function applyCampaignPartnerCategory()", self.html)
+        self.assertIn("if (window.__hofFoundingPartnerLeadId) return '';", self.html)
+        self.assertIn("campaignCategory: campaignCategory || null", self.html)
+
 
 if __name__ == "__main__":
     unittest.main()
