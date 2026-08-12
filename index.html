@@ -13738,6 +13738,22 @@ function routeAfterMagicLinkIfNeeded() {
     gap: .55rem;
     margin: .75rem 0;
   }
+  .agent-activation-confidence {
+    display: grid;
+    grid-template-columns: repeat(3,minmax(0,1fr));
+    gap: .5rem;
+    margin: .75rem 0 0;
+  }
+  .agent-activation-confidence div {
+    color: var(--gray-light);
+    border: 1px solid rgba(74,140,111,.22);
+    background: rgba(74,140,111,.055);
+    border-radius: 11px;
+    padding: .56rem;
+    font-size: .72rem;
+    line-height: 1.35;
+  }
+  .agent-activation-confidence strong { color: var(--sage-light); display:block; font-size:.67rem; letter-spacing:.04em; text-transform:uppercase; margin-bottom:.14rem; }
   .agent-activation-step {
     display: flex;
     gap: .48rem;
@@ -13805,6 +13821,7 @@ function routeAfterMagicLinkIfNeeded() {
     .agent-activation-top { display: block; }
     .agent-activation-progress { display: inline-flex; margin-top: .65rem; }
     .agent-activation-steps { grid-template-columns: 1fr; }
+    .agent-activation-confidence { grid-template-columns: 1fr; }
     .agent-activation-actions { display: grid; grid-template-columns: 1fr; }
     .agent-activation-actions button { width: 100%; }
   }
@@ -13913,6 +13930,7 @@ function routeAfterMagicLinkIfNeeded() {
           : 'Start with the client and property in front of you. You can save your license, brokerage, and reusable defaults after this first offer.',
         primary: hasProfile ? 'Create First Offer' : 'Start First Offer',
         secondary: hasProfile ? 'Review Saved Profile' : 'Set Up My Defaults',
+        confidence: true,
         complete, hasProfile, hasOffer, hasPlan
       };
     }
@@ -14068,6 +14086,11 @@ function routeAfterMagicLinkIfNeeded() {
             <span>${step.done ? '✓' : '•'}</span>${safe(step.label)}
           </div>`).join('')}
       </div>
+      ${state.confidence ? `<div class="agent-activation-confidence" aria-label="First offer workflow overview">
+        <div><strong>1. Start</strong>Enter the client and property details you have now.</div>
+        <div><strong>2. Review</strong>Check the guided packet and every deal term before generation.</div>
+        <div><strong>3. Stay in control</strong>Saving a draft does not send a packet or request a signature.</div>
+      </div>` : ''}
       <div class="agent-activation-actions">
         <button class="agent-activation-primary" type="button" onclick="handleAgentActivationAction('${primaryAction}','${id}','primary','${safe(state.key)}','monthly')">${safe(state.primary)}</button>
         <button class="agent-activation-secondary" type="button" onclick="handleAgentActivationAction('${secondaryAction}','${id}','secondary','${safe(state.key)}','${secondaryBilling}')">${safe(state.secondary)}</button>
