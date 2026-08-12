@@ -4361,8 +4361,9 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           </div>
 
           <div class="admin-metric">
-            <div class="admin-metric-label">Partner Leads</div>
+            <div class="admin-metric-label">Live Partner Leads</div>
             <div class="admin-metric-value">${metrics.partnerLeadCount || partnerLeads.length || 0}</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.sandboxPartnerLeadCount || 0} Stripe sandbox record${Number(metrics.sandboxPartnerLeadCount || 0) === 1 ? '' : 's'} excluded from live partner reporting.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.paidPartnerLeadCount || 0} paid · ${metrics.partnerOnboardingReadyCount || 0} onboarding-ready · ${metrics.partnerActivationRate || 0}% activated.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.partnerOnboardingInProgressCount || 0} setup links in progress · ${metrics.partnerOnboardingCompletedCount || 0} completed (${Number(metrics.partnerOnboardingCompletionRate || 0).toFixed(1)}% of paid).</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:${Number(metrics.partnerOnboardingAccessMissingCount || 0) ? 'var(--gold-light)' : 'var(--gray-light)'}">${metrics.partnerOnboardingAccessMissingCount || 0} paid partner${Number(metrics.partnerOnboardingAccessMissingCount || 0) === 1 ? '' : 's'} need a fresh secure setup link. Use the existing Copy setup link or Email setup link action; this does not activate placement.</div>

@@ -9,6 +9,8 @@ class PartnerConversionMetricTests(unittest.TestCase):
     def test_admin_payload_counts_paid_partner_funnel(self):
         source = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
         self.assertIn('"paidPartnerLeadCount"', source)
+        self.assertIn('"sandboxPartnerLeadCount"', source)
+        self.assertIn('_is_sandbox_partner_lead', source)
         self.assertIn('"partnerOnboardingReadyCount"', source)
         self.assertIn('"partnerOnboardingAccessMissingCount"', source)
         self.assertIn('"partnerActivationRate"', source)
@@ -23,7 +25,8 @@ class PartnerConversionMetricTests(unittest.TestCase):
         self.assertIn('onboarding-ready', source)
         self.assertIn('partnerOnboardingAccessMissingCount', source)
         self.assertIn('need a fresh secure setup link', source)
-        self.assertIn('Partner Leads', source)
+        self.assertIn('Live Partner Leads', source)
+        self.assertIn('sandboxPartnerLeadCount', source)
         self.assertIn('paidPartnerAgreementConfirmationRate', source)
         self.assertIn('paidPartnerActivationQueueAgedCount', source)
         self.assertIn('time to activation', source)
