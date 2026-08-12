@@ -10621,7 +10621,7 @@ function routeAfterMagicLinkIfNeeded() {
           <div class="field"><label for="partnerCampaignCategory">Partner category</label><select id="partnerCampaignCategory"><option value="title">Title company / fee attorney</option><option value="lender">Mortgage lender</option><option value="inspection">Home inspection</option><option value="surveyor">Property surveyor</option><option value="home_warranty">Home warranty</option><option value="insurance">Home insurance</option><option value="roofing">Roofing contractor</option><option value="hvac">HVAC / heating and air</option><option value="plumbing">Plumbing</option><option value="electrical">Electrical</option><option value="foundation_structural">Foundation / structural repair</option><option value="general_contractor">General contractor / remodeling</option><option value="pest_termite">Pest control / termite</option><option value="septic_well">Septic / well service</option><option value="restoration">Water / fire restoration</option><option value="repairs_handyman">Repairs / handyman</option><option value="photography_video">Photography / video</option><option value="staging">Home staging</option><option value="cleaning">Cleaning</option><option value="moving_storage">Moving / storage</option><option value="lawn_pool">Lawn / pool</option><option value="security_smart_home">Security / smart home</option><option value="other">Other real-estate service</option></select></div>
           <div class="field"><label for="partnerCampaignTier">Commercial tier</label><select id="partnerCampaignTier"><option value="founding_pilot">Core Partner · $149</option><option value="monthly_placement" selected>Featured Partner · $399</option><option value="market_exclusive">Premier Partner · $799</option></select></div>
         </div>
-        <div class="platform-actions"><button type="button" onclick="copyPartnerCampaignLink()">Copy Campaign Link</button><button type="button" class="btn-secondary" onclick="previewPartnerCampaignLink()">Preview Intake</button></div>
+        <div class="platform-actions"><button type="button" onclick="copyPartnerCampaignLink()">Copy Campaign Link</button><button type="button" class="btn-secondary" onclick="copyPartnerCampaignInvitation()">Copy Invitation</button><button type="button" class="btn-secondary" onclick="previewPartnerCampaignLink()">Preview Intake</button></div>
         <div id="partnerCampaignLinkPreview" class="platform-status" aria-live="polite"></div>
       </div>` : '';
     el.innerHTML = `
@@ -10662,6 +10662,18 @@ function routeAfterMagicLinkIfNeeded() {
     return `https://www.homeofferflow.com/?partner=1&partner_category=${encodeURIComponent(category)}&partner_tier=${encodeURIComponent(tier)}`;
   }
 
+  function partnerCampaignInvitation() {
+    const link = partnerCampaignLink();
+    if (!link) return '';
+    const category = String(getVal('partnerCampaignCategory') || '').trim().replace(/_/g, ' ');
+    const tier = {
+      founding_pilot: 'Core Partner',
+      monthly_placement: 'Featured Partner',
+      market_exclusive: 'Premier Partner'
+    }[String(getVal('partnerCampaignTier') || '').trim()] || 'Partner';
+    return `Hi [First name],\n\nHomeOfferFlow is opening a limited ${tier} pilot for ${category} businesses serving Texas homebuyers, agents, and FSBO sellers. The placement is disclosed advertising inventory—not referrals, required provider selection, transactions, or closings.\n\nYou can review the exact placement scope, 90-day pilot terms, and secure application here:\n${link}\n\nIf it looks like a fit, complete the application and checkout. We will confirm category/market availability and written placement terms before any public placement is activated.\n\nBest,\nHomeOfferFlow`;
+  }
+
   window.copyPartnerCampaignLink = async function copyPartnerCampaignLink() {
     if (!isCurrentAdmin()) return platformStatus('partnerCampaignLinkPreview', 'HomeOfferFlow admin access is required to create a campaign link.', 'err');
     const link = partnerCampaignLink();
@@ -10673,6 +10685,20 @@ function routeAfterMagicLinkIfNeeded() {
       platformStatus('partnerCampaignLinkPreview', 'Campaign link copied. It opens the public partner intake with the approved category and tier preselected.', 'ok');
     } catch (err) {
       platformStatus('partnerCampaignLinkPreview', 'Could not copy automatically. Copy this link: ' + link, 'err');
+    }
+  };
+
+  window.copyPartnerCampaignInvitation = async function copyPartnerCampaignInvitation() {
+    if (!isCurrentAdmin()) return platformStatus('partnerCampaignLinkPreview', 'HomeOfferFlow admin access is required to create an invitation.', 'err');
+    const invitation = partnerCampaignInvitation();
+    if (!invitation) return platformStatus('partnerCampaignLinkPreview', 'Choose a supported partner category and tier.', 'err');
+    try {
+      if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(invitation);
+      else window.prompt('Copy this partner invitation:', invitation);
+      try { trackEvent('Partner Campaign Invitation Copied', { category: getVal('partnerCampaignCategory'), tier: getVal('partnerCampaignTier'), surface: 'partner_admin_toolkit' }); } catch (_) {}
+      platformStatus('partnerCampaignLinkPreview', 'Invitation copy and its approved campaign link are ready to paste into your own outreach.', 'ok');
+    } catch (err) {
+      platformStatus('partnerCampaignLinkPreview', 'Could not copy automatically. Use Copy Campaign Link instead.', 'err');
     }
   };
 

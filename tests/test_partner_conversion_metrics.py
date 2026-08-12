@@ -56,6 +56,7 @@ class PartnerConversionMetricTests(unittest.TestCase):
         source = (ROOT / "index.html").read_text(encoding="utf-8")
         self.assertIn('Partner Campaign Link Toolkit', source)
         self.assertIn('copyPartnerCampaignLink()', source)
+        self.assertIn('copyPartnerCampaignInvitation()', source)
         self.assertIn('previewPartnerCampaignLink()', source)
         self.assertIn("const partnerCampaignCategories = new Set", source)
         self.assertIn("const partnerCampaignTiers = new Set", source)
@@ -63,6 +64,8 @@ class PartnerConversionMetricTests(unittest.TestCase):
         self.assertIn("partnerCampaignCategories.has(category)", source)
         self.assertIn("partnerCampaignTiers.has(tier)", source)
         self.assertIn("Partner Campaign Link Copied", source)
+        self.assertIn("Partner Campaign Invitation Copied", source)
+        self.assertIn("not referrals, required provider selection, transactions, or closings", source)
 
 
 if __name__ == "__main__":
