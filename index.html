@@ -4400,6 +4400,8 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Average paid-partner time to activation: ${Number(metrics.partnerActivationAvgDays || 0).toFixed(1)} days.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.partnerOnboardingSetupIssuedCount || 0} checkout setup invitations issued · ${metrics.partnerOnboardingLinkCreatedCount || 0} secure setup links created · ${metrics.partnerOnboardingEmailSentCount || 0} manual setup emails sent.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.partnerFollowUpEmailStartCount || 0} partner follow-up emails opened.</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Public checkout: ${metrics.partnerCheckoutStartCount || 0} started · ${metrics.partnerCheckoutStripeOpenCount || 0} opened Stripe (${Number(metrics.partnerCheckoutStripeOpenRate || 0).toFixed(1)}%) · ${metrics.partnerCheckoutCompletionCount || 0} completed (${Number(metrics.partnerCheckoutCompletionRate || 0).toFixed(1)}% of Stripe opens).</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:${Number(metrics.partnerCheckoutCancellationCount || 0) || Number(metrics.partnerCheckoutFailureCount || 0) ? 'var(--gold-light)' : 'var(--gray-light)'}">${metrics.partnerCheckoutCancellationCount || 0} checkout returns · ${metrics.partnerCheckoutFailureCount || 0} checkout failures.</div>
           </div>
 
           <div class="admin-metric">
