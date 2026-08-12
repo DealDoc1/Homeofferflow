@@ -5870,10 +5870,10 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       },
       {
         done: hasGeneratedPacket,
-        title: 'Create your first test offer',
+        title: 'Start your first saved offer',
         body: hasGeneratedPacket
           ? generatedLabel + ' this billing month.'
-          : 'Generate one safe test packet before using the workflow with real clients.'
+          : 'Start with the client and property you have now. Saving a draft does not generate a packet or request a signature.'
       },
       {
         done: hasGeneratedPacket,
@@ -5917,7 +5917,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       </div>
       <div class="beta-checklist-actions">
         <button type="button" onclick="showAccountTab('profile')">Profile</button>
-        <button type="button" onclick="startAccountOffer()">Create Test Offer</button>
+        <button type="button" onclick="startAccountOffer()">Start First Saved Offer</button>
         <button type="button" onclick="showAccountTab('offers')">My Offers</button>
         <button type="button" onclick="openBetaFeedback()">Send Feedback</button>
       </div>`;
@@ -13375,7 +13375,7 @@ function routeAfterMagicLinkIfNeeded() {
       </div>
       <div class="beta-checklist-actions">
         <button type="button" onclick="showAccountTab('profile')">Profile & Defaults</button>
-        <button type="button" onclick="startAccountOffer()">Create Test Offer</button>
+        <button type="button" onclick="startAccountOffer()">Start First Saved Offer</button>
         <button type="button" onclick="showAccountTab('offers')">Offer Workspace</button>
         <button type="button" onclick="openBetaFeedback()">Report Issue</button>
       </div>`;
@@ -13835,7 +13835,7 @@ function routeAfterMagicLinkIfNeeded() {
         </div>
         <div class="beta-safe-banner"><strong>Broker-safe positioning:</strong> HomeOfferFlow prepares offer packets and buyer-side signature requests. It is not transaction management, legal advice, seller acceptance, or broker compliance approval.</div>
         <div class="release15-actions">
-          <button class="primary" type="button" onclick="startAccountOffer()">Create Test Offer</button>
+          <button class="primary" type="button" onclick="startAccountOffer()">Start First Saved Offer</button>
           <button type="button" onclick="showAccountTab('offers')">Open Offer Workspace</button>
           <button type="button" onclick="openBetaFeedback()">Report Issue / Request Form</button>
         </div>
