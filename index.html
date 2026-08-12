@@ -15139,6 +15139,24 @@ function routeAfterMagicLinkIfNeeded() {
     }
   };
 
+  // The checklist must advance the earliest unfinished team-launch task, not
+  // always send a broker to invitations. This keeps the workspace useful for
+  // a new brokerage before it has a roster, without changing data or roles.
+  root.continueBrokerageLaunch = function continueBrokerageLaunch(target, step) {
+    const normalizedTarget = String(target || '').trim();
+    const normalizedStep = String(step || 'unknown').trim().slice(0, 80);
+    root.logOfferEvent?.(null, 'brokerage_launch_next_step_selected', 'selected', 'Brokerage launch next step selected.', {
+      step: normalizedStep,
+      surface: 'brokerage'
+    });
+    if (normalizedTarget === 'start_offer') return root.startAccountOffer?.();
+    if (normalizedTarget === 'offers') return root.showAccountTab?.('offers');
+    const field = document.getElementById(normalizedTarget);
+    if (!field) return;
+    field.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setTimeout(() => field.focus(), 250);
+  };
+
   root.renderBrokerageFoundationPanel = async function renderBrokerageFoundationPanel() {
     const el = document.getElementById('brokerageFoundationPanel');
     if (!el) return;
@@ -15217,19 +15235,23 @@ function routeAfterMagicLinkIfNeeded() {
           ? `${openSeats} seat${openSeats === 1 ? '' : 's'} available for your next agent${openSeats === 1 ? '' : 's'}.`
             : 'All available agent seats are assigned. Contact support if you need more capacity.';
       const activationSteps = [
-        { label: 'Set brokerage branding', done: Boolean(b.brand_color || b.logo_url) },
-        { label: 'Add shared title defaults', done: Boolean(b.default_title_company || b.default_title_contact) },
-        { label: 'Invite or connect an agent', done: agents.length > 0 || pendingInvites.length > 0 },
-        { label: 'Create the first offer', done: Number(m.offerCount || 0) > 0 },
-        { label: 'Send the first packet for signing', done: Number(m.signedCount || 0) > 0 }
+        { label: 'Set brokerage branding', done: Boolean(b.brand_color || b.logo_url), target: 'brokerageBrandColor' },
+        { label: 'Add shared title defaults', done: Boolean(b.default_title_company || b.default_title_contact), target: 'brokerageDefaultTitleCompany' },
+        { label: 'Invite or connect an agent', done: agents.length > 0 || pendingInvites.length > 0, target: 'brokerageInviteEmail' },
+        { label: 'Create the first offer', done: Number(m.offerCount || 0) > 0, target: 'start_offer' },
+        { label: 'Send the first packet for signing', done: Number(m.signedCount || 0) > 0, target: 'offers' }
       ];
       const activationComplete = activationSteps.filter(step => step.done).length;
+      const nextActivationStep = activationSteps.find(step => !step.done) || null;
+      const launchAction = nextActivationStep
+        ? '<button type="button" class="brokerage-access-button" style="margin-top:.7rem" onclick="continueBrokerageLaunch(\'' + safe(nextActivationStep.target) + '\',\'' + safe(nextActivationStep.label) + '\')">Continue: ' + safe(nextActivationStep.label) + '</button>'
+        : '<p class="brokerage-invite-result">Your core team workflow is active. Keep using the workspace to build repeat usage.</p>';
       const activationCard = '<div class="brokerage-activation-card"><h4>Team launch checklist</h4>' +
         '<p class="brokerage-activation-summary">' + activationComplete + ' of ' + activationSteps.length + ' launch steps complete. Use this as the fastest path to a repeatable team workflow.</p>' +
         '<ul class="brokerage-activation-list">' + activationSteps.map(step =>
           '<li class="' + (step.done ? 'is-complete' : '') + '"><span class="activation-mark">' + (step.done ? '✓' : '○') + '</span><span>' + safe(step.label) + '</span></li>'
         ).join('') + '</ul>' +
-        (activationComplete < activationSteps.length ? '<button type="button" class="brokerage-access-button" style="margin-top:.7rem" onclick="document.getElementById(&quot;brokerageInviteEmail&quot;)?.focus()">Continue launch</button>' : '<p class="brokerage-invite-result">Your core team workflow is active. Keep using the workspace to build repeat usage.</p>') +
+        launchAction +
         '</div>';
       const teamCohortCard = teamCohorts.length
         ? '<div class="platform-card" style="margin:1rem 0 0;padding:.8rem"><h4>Team activation cohorts</h4>' +

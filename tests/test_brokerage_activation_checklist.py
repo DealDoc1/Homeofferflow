@@ -14,7 +14,22 @@ class BrokerageActivationChecklistTests(unittest.TestCase):
         self.assertIn("Create the first offer", HTML)
         self.assertIn("Send the first packet for signing", HTML)
         self.assertIn("activationComplete", HTML)
-        self.assertIn("Continue launch", HTML)
+        self.assertIn("continueBrokerageLaunch", HTML)
+        self.assertIn("Continue: ", HTML)
+
+    def test_launch_checklist_routes_to_the_earliest_unfinished_step(self):
+        for target in (
+            "brokerageBrandColor",
+            "brokerageDefaultTitleCompany",
+            "brokerageInviteEmail",
+            "start_offer",
+            "offers",
+        ):
+            with self.subTest(target=target):
+                self.assertIn(f"target: '{target}'", HTML)
+        self.assertIn("const nextActivationStep = activationSteps.find(step => !step.done)", HTML)
+        self.assertIn('onclick="continueBrokerageLaunch(', HTML)
+        self.assertIn("field.scrollIntoView({ behavior: 'smooth', block: 'center' })", HTML)
 
     def test_brokerage_admin_flags_active_access_with_pending_seat_as_activation_work(self):
         api = (Path(__file__).resolve().parents[1] / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
