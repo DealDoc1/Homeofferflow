@@ -32,7 +32,7 @@ class PwaInstallExperienceTests(unittest.TestCase):
         self.assertIn("choice?.outcome === 'accepted' ? 'accepted' : 'dismissed'", INDEX)
 
     def test_offline_shell_cache_is_versioned_for_the_new_install_surface(self):
-        self.assertIn("homeofferflow-shell-v6", WORKER)
+        self.assertIn("homeofferflow-shell-v7", WORKER)
         self.assertIn("caches.delete", WORKER)
 
 
