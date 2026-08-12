@@ -8,7 +8,7 @@ INDEX = (ROOT / "index.html").read_text(encoding="utf-8")
 
 class PublicOnDemandTrialDiscoveryTests(unittest.TestCase):
     def test_agent_landing_path_links_only_ondemand_agents_to_the_dedicated_trial(self):
-        audience_copy_start = INDEX.index("const copy = {")
+        audience_copy_start = INDEX.index("const oldSetAudience = root.setAudience")
         agent_start = INDEX.index("agent: {", audience_copy_start)
         investor_start = INDEX.index("investor: {", agent_start)
         agent_copy = INDEX[agent_start:investor_start]
