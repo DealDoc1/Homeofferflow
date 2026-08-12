@@ -19,6 +19,13 @@ class BuyerCheckoutCancelReturnTests(unittest.TestCase):
         self.assertIn("Payment Checkout Cancelled Returned", HTML)
         self.assertIn("window.history.replaceState({}, document.title, cleanUrl);", HTML)
 
+    def test_partner_checkout_return_is_not_routed_to_buyer_payment_success(self):
+        self.assertIn("if (params.get('partner_checkout')) return;", HTML)
+        self.assertLess(
+            HTML.index("if (params.get('partner_checkout')) return;"),
+            HTML.index("params.get('payment') === 'cancelled'"),
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

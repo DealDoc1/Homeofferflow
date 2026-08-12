@@ -72,6 +72,10 @@
   const params = new URLSearchParams(window.location.search);
 
   if (params.get('subscription')) return;
+  // Founding-partner Checkout returns also carry Stripe's session_id. That
+  // return is handled by the partner intake below and must never open the
+  // buyer offer-packet success screen.
+  if (params.get('partner_checkout')) return;
 
   if (params.get('payment') === 'cancelled') {
     try {
