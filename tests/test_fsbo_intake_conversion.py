@@ -78,6 +78,18 @@ class FsboIntakeConversionTests(unittest.TestCase):
         self.assertIn("if (campaignPackage) window.selectFsboNeed?.(campaignPackage, false);", HTML)
         self.assertIn("campaignPackage: campaignPackage || null", HTML)
 
+    def test_admin_seller_workspace_can_create_allowlisted_fsbo_campaign_links_and_copy(self):
+        self.assertIn("FSBO Campaign Toolkit", HTML)
+        self.assertIn("copySellerCampaignLink()", HTML)
+        self.assertIn("copySellerCampaignInvitation()", HTML)
+        self.assertIn("previewSellerCampaignLink()", HTML)
+        self.assertIn("const sellerCampaignPackages = new Set", HTML)
+        self.assertIn("sellerCampaignPackages.has(packageKey)", HTML)
+        self.assertIn("https://www.homeofferflow.com/?seller=1&seller_package=", HTML)
+        self.assertIn("Seller Campaign Link Copied", HTML)
+        self.assertIn("Seller Campaign Invitation Copied", HTML)
+        self.assertIn("This is an intake—not checkout or a confirmed service order.", HTML)
+
     def test_seller_address_autocomplete_fails_softly_and_has_a_google_compatibility_path(self):
         self.assertIn("libraries=places", HTML)
         self.assertIn("typeof google.maps.importLibrary !== 'function'", HTML)

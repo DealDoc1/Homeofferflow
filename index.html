@@ -10182,6 +10182,16 @@ function routeAfterMagicLinkIfNeeded() {
     const el = document.getElementById('sellerFoundationPanel');
     if (!el) return;
     el.className = '';
+    const campaignToolkit = isCurrentAdmin() ? `
+      <div class="platform-card" id="sellerCampaignToolkit">
+        <h4>FSBO Campaign Toolkit</h4>
+        <p>Create a shareable seller-package intake link or transparent invitation copy. Links preselect one supported package only and never contain a seller’s identity, property, price, or internal notes.</p>
+        <div class="platform-grid">
+          <div class="field"><label for="sellerCampaignPackage">Seller package</label><select id="sellerCampaignPackage"><option value="free_intake">Free Seller Intake · $0</option><option value="seller_prep">Seller Prep Plan · $299</option><option value="launch_kit">FSBO Launch Kit · $499</option><option value="flat_fee_mls" selected>Flat-Fee MLS Listing · from $1,299</option><option value="offer_review">Seller Offer Review · from $599</option><option value="contract_help">Contract-to-Close Support · from $1,999</option><option value="premium_bundle">Premium FSBO Bundle · from $2,999</option></select></div>
+        </div>
+        <div class="platform-actions"><button type="button" onclick="copySellerCampaignLink()">Copy Campaign Link</button><button type="button" class="btn-secondary" onclick="copySellerCampaignInvitation()">Copy Invitation</button><button type="button" class="btn-secondary" onclick="previewSellerCampaignLink()">Preview Intake</button></div>
+        <div id="sellerCampaignLinkStatus" class="platform-status" aria-live="polite"></div>
+      </div>` : '';
     el.innerHTML = `
       <div class="platform-card">
         <h4>Listing Tools Foundation</h4>
@@ -10201,6 +10211,7 @@ function routeAfterMagicLinkIfNeeded() {
         <div class="platform-actions"><button type="button" onclick="saveSellerLeadFoundation()">Save Seller Lead</button><button type="button" onclick="loadSellerLeadsFoundation()">Refresh Leads</button></div>
         <div id="sellerFoundationStatus" class="platform-status"></div>
       </div>
+      ${campaignToolkit}
       <div class="platform-card"><h4>Recent Seller Leads</h4><div id="sellerLeadList" class="platform-list"><div class="platform-list-item">No seller leads loaded yet.</div></div></div>
       <div class="platform-card">
         <h4>Private Listing Workspace</h4>
@@ -10240,6 +10251,65 @@ function routeAfterMagicLinkIfNeeded() {
     loadListingWorkspacesFoundation();
     loadListingWorkspaceSourceReadiness();
   }
+
+  const sellerCampaignPackages = new Set(['free_intake','seller_prep','launch_kit','flat_fee_mls','offer_review','contract_help','premium_bundle']);
+
+  function sellerCampaignLink() {
+    const packageKey = String(getVal('sellerCampaignPackage') || '').trim().toLowerCase();
+    if (!sellerCampaignPackages.has(packageKey)) return '';
+    return `https://www.homeofferflow.com/?seller=1&seller_package=${encodeURIComponent(packageKey)}`;
+  }
+
+  function sellerCampaignInvitation() {
+    const link = sellerCampaignLink();
+    if (!link) return '';
+    const packageDetails = {
+      free_intake: ['Free Seller Intake', '$0'],
+      seller_prep: ['Seller Prep Plan', '$299'],
+      launch_kit: ['FSBO Launch Kit', '$499'],
+      flat_fee_mls: ['Flat-Fee MLS Listing', 'from $1,299'],
+      offer_review: ['Seller Offer Review', 'from $599'],
+      contract_help: ['Contract-to-Close Support', 'from $1,999'],
+      premium_bundle: ['Premium FSBO Bundle', 'from $2,999']
+    };
+    const [packageName, startingPrice] = packageDetails[String(getVal('sellerCampaignPackage') || '').trim()] || ['Seller package', ''];
+    return `Hi [First name],\n\nHomeOfferFlow offers a ${packageName} for Texas FSBO sellers${startingPrice ? ` (starting ${startingPrice})` : ''}. You can review the package and submit a no-obligation seller request here:\n${link}\n\nThis is an intake—not checkout or a confirmed service order. Package scope, pricing, provider availability, and any broker/attorney/title involvement are confirmed separately where required.\n\nBest,\nHomeOfferFlow`;
+  }
+
+  window.copySellerCampaignLink = async function copySellerCampaignLink() {
+    if (!isCurrentAdmin()) return platformStatus('sellerCampaignLinkStatus', 'HomeOfferFlow admin access is required to create a seller campaign link.', 'err');
+    const link = sellerCampaignLink();
+    if (!link) return platformStatus('sellerCampaignLinkStatus', 'Choose a supported seller package.', 'err');
+    try {
+      if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(link);
+      else window.prompt('Copy this seller campaign link:', link);
+      try { trackEvent('Seller Campaign Link Copied', { package: getVal('sellerCampaignPackage'), surface: 'seller_admin_toolkit' }); } catch (_) {}
+      platformStatus('sellerCampaignLinkStatus', 'Campaign link copied. It opens the public seller intake with the selected package prefilled.', 'ok');
+    } catch (_) {
+      platformStatus('sellerCampaignLinkStatus', 'Could not copy automatically. Copy this link: ' + link, 'err');
+    }
+  };
+
+  window.copySellerCampaignInvitation = async function copySellerCampaignInvitation() {
+    if (!isCurrentAdmin()) return platformStatus('sellerCampaignLinkStatus', 'HomeOfferFlow admin access is required to create a seller invitation.', 'err');
+    const invitation = sellerCampaignInvitation();
+    if (!invitation) return platformStatus('sellerCampaignLinkStatus', 'Choose a supported seller package.', 'err');
+    try {
+      if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(invitation);
+      else window.prompt('Copy this seller invitation:', invitation);
+      try { trackEvent('Seller Campaign Invitation Copied', { package: getVal('sellerCampaignPackage'), surface: 'seller_admin_toolkit' }); } catch (_) {}
+      platformStatus('sellerCampaignLinkStatus', 'Invitation copy and its seller package link are ready to paste into your own outreach.', 'ok');
+    } catch (_) {
+      platformStatus('sellerCampaignLinkStatus', 'Could not copy automatically. Use Copy Campaign Link instead.', 'err');
+    }
+  };
+
+  window.previewSellerCampaignLink = function previewSellerCampaignLink() {
+    if (!isCurrentAdmin()) return platformStatus('sellerCampaignLinkStatus', 'HomeOfferFlow admin access is required to preview a seller campaign link.', 'err');
+    const link = sellerCampaignLink();
+    if (!link) return platformStatus('sellerCampaignLinkStatus', 'Choose a supported seller package.', 'err');
+    window.open(link, '_blank', 'noopener,noreferrer');
+  };
 
   async function saveSellerLeadFoundation() {
     const client = getSupabaseClient();
