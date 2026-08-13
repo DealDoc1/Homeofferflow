@@ -10396,6 +10396,8 @@ function routeAfterMagicLinkIfNeeded() {
         <p>Create a shareable seller-package intake link or transparent invitation copy. Links preselect one supported package only and never contain a seller’s identity, property, price, or internal notes.</p>
         <div class="platform-grid">
           <div class="field"><label for="sellerCampaignPackage">Seller package</label><select id="sellerCampaignPackage"><option value="free_intake">Free Seller Intake · $0</option><option value="seller_prep">Seller Prep Plan · $299</option><option value="launch_kit">FSBO Launch Kit · $499</option><option value="flat_fee_mls" selected>Flat-Fee MLS Listing · from $1,299</option><option value="offer_review">Seller Offer Review · from $599</option><option value="contract_help">Contract-to-Close Support · from $1,999</option><option value="premium_bundle">Premium FSBO Bundle · from $2,999</option></select></div>
+          <div class="field"><label for="sellerCampaignChannel">Distribution channel</label><select id="sellerCampaignChannel"><option value="direct_outreach" selected>Direct outreach</option><option value="email">Email newsletter</option><option value="social">Social post</option><option value="referral">Referral partner</option><option value="local_event">Local event</option><option value="print">Print / QR code</option></select></div>
+          <div class="field"><label for="sellerCampaignName">Campaign label <span style="color:var(--gray);font-weight:500;">(optional)</span></label><input id="sellerCampaignName" maxlength="80" placeholder="August North Texas FSBO"></div>
         </div>
         <div class="platform-actions"><button type="button" onclick="copySellerCampaignLink()">Copy Campaign Link</button><button type="button" class="btn-secondary" onclick="copySellerCampaignInvitation()">Copy Invitation</button><button type="button" class="btn-secondary" onclick="previewSellerCampaignLink()">Preview Intake</button></div>
         <div id="sellerCampaignLinkStatus" class="platform-status" aria-live="polite"></div>
@@ -10461,11 +10463,21 @@ function routeAfterMagicLinkIfNeeded() {
   }
 
   const sellerCampaignPackages = new Set(['free_intake','seller_prep','launch_kit','flat_fee_mls','offer_review','contract_help','premium_bundle']);
+  const sellerCampaignChannels = new Set(['direct_outreach','email','social','referral','local_event','print']);
+
+  function sellerCampaignLabel(value) {
+    return String(value || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '').slice(0, 80);
+  }
 
   function sellerCampaignLink() {
     const packageKey = String(getVal('sellerCampaignPackage') || '').trim().toLowerCase();
     if (!sellerCampaignPackages.has(packageKey)) return '';
-    return `https://www.homeofferflow.com/?seller=1&seller_package=${encodeURIComponent(packageKey)}`;
+    const channel = String(getVal('sellerCampaignChannel') || '').trim().toLowerCase();
+    const campaign = sellerCampaignLabel(getVal('sellerCampaignName'));
+    const params = new URLSearchParams({ seller: '1', seller_package: packageKey, utm_source: 'homeofferflow_admin' });
+    if (sellerCampaignChannels.has(channel)) params.set('utm_medium', channel);
+    if (campaign) params.set('utm_campaign', campaign);
+    return `https://www.homeofferflow.com/?${params.toString()}`;
   }
 
   function sellerCampaignInvitation() {
@@ -10492,7 +10504,7 @@ function routeAfterMagicLinkIfNeeded() {
       if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(link);
       else window.prompt('Copy this seller campaign link:', link);
       try { trackEvent('Seller Campaign Link Copied', { package: getVal('sellerCampaignPackage'), surface: 'seller_admin_toolkit' }); } catch (_) {}
-      platformStatus('sellerCampaignLinkStatus', 'Campaign link copied. It opens the public seller intake with the selected package prefilled.', 'ok');
+      platformStatus('sellerCampaignLinkStatus', 'Campaign link copied. It preselects the package and records only the channel/campaign attribution—never seller identity—in the intake.', 'ok');
     } catch (_) {
       platformStatus('sellerCampaignLinkStatus', 'Could not copy automatically. Copy this link: ' + link, 'err');
     }
