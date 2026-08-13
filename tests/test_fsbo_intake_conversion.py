@@ -108,7 +108,7 @@ class FsboIntakeConversionTests(unittest.TestCase):
         self.assertIn("previewBuyerCampaignLink()", HTML)
         self.assertIn('id="buyerCampaignChannel"', HTML)
         self.assertIn('id="buyerCampaignName"', HTML)
-        self.assertIn("https://www.homeofferflow.com/buyers.html?", HTML)
+        self.assertIn("https://www.homeofferflow.com/buyers?", HTML)
         self.assertIn("Homebuyer Campaign Link Copied", HTML)
         self.assertIn("Homebuyer Campaign Invitation Copied", HTML)
         self.assertIn("never a buyer’s identity, property, financing, or offer details", HTML)
