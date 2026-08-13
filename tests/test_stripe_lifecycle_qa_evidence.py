@@ -32,7 +32,7 @@ class StripeLifecycleQaEvidenceTests(unittest.TestCase):
             "test_scheduled_cancellation_keeps_access_until_the_saved_end_date",
             "test_recovered_subscription_does_not_undo_manual_broker_suspension",
             "test_webhook_ledger_deduplicates_completed_events_without_storing_event_body",
-            "test_production_never_accepts_sandbox_events_even_if_the_flag_is_set",
+            "test_production_acknowledges_but_never_processes_sandbox_events_even_if_flagged",
         ):
             self.assertIn(expected, AUTOMATED)
         self.assertIn("replace a signed Stripe test delivery", AUTOMATED)

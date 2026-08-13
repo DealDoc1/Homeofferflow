@@ -250,7 +250,7 @@ class SubscriptionLifecycleSecurityTests(unittest.TestCase):
         self.assertEqual(captured["invoice"]["subscription"], "sub_paid")
         self.assertEqual(captured["status"], "active")
 
-    def test_stripe_test_mode_event_cannot_mutate_production_by_default(self):
+    def test_stripe_test_mode_event_is_acknowledged_without_production_mutation(self):
         event = {
             "livemode": False,
             "type": "invoice.paid",
@@ -264,13 +264,16 @@ class SubscriptionLifecycleSecurityTests(unittest.TestCase):
         request._handle_invoice_status = lambda *_args: self.fail(
             "Sandbox events must not update the production subscription."
         )
+        request._claim_webhook_event = lambda *_args: self.fail(
+            "Ignored sandbox events must not create a webhook ledger row."
+        )
         captured = {}
         request._send_json = lambda code, data: captured.update(code=code, data=data)
 
         request.do_POST()
 
-        self.assertEqual(captured["code"], 400)
-        self.assertEqual(captured["data"]["error"], "Stripe test events are not accepted here.")
+        self.assertEqual(captured["code"], 200)
+        self.assertEqual(captured["data"], {"received": True, "ignored": True})
 
     def test_isolated_test_environment_may_explicitly_process_sandbox_events(self):
         event = {
@@ -319,6 +322,9 @@ class SubscriptionLifecycleSecurityTests(unittest.TestCase):
         request._handle_invoice_status = lambda *_args: self.fail(
             "A preview sharing production Supabase must not process Stripe test events."
         )
+        request._claim_webhook_event = lambda *_args: self.fail(
+            "Ignored sandbox events must not create a webhook ledger row."
+        )
         captured = {}
         request._send_json = lambda code, data: captured.update(code=code, data=data)
 
@@ -335,10 +341,10 @@ class SubscriptionLifecycleSecurityTests(unittest.TestCase):
             with patch.object(webhook, "SUPABASE_URL", "https://production.example.supabase.co"):
                 request.do_POST()
 
-        self.assertEqual(captured["code"], 400)
-        self.assertEqual(captured["data"]["error"], "Stripe test events are not accepted here.")
+        self.assertEqual(captured["code"], 200)
+        self.assertEqual(captured["data"], {"received": True, "ignored": True})
 
-    def test_production_never_accepts_sandbox_events_even_if_the_flag_is_set(self):
+    def test_production_acknowledges_but_never_processes_sandbox_events_even_if_flagged(self):
         event = {
             "livemode": False,
             "type": "invoice.paid",
@@ -351,6 +357,9 @@ class SubscriptionLifecycleSecurityTests(unittest.TestCase):
         request._verify_stripe_signature = lambda *_args: True
         request._handle_invoice_status = lambda *_args: self.fail(
             "Production must never process Stripe sandbox events."
+        )
+        request._claim_webhook_event = lambda *_args: self.fail(
+            "Ignored sandbox events must not create a webhook ledger row."
         )
         captured = {}
         request._send_json = lambda code, data: captured.update(code=code, data=data)
@@ -365,8 +374,8 @@ class SubscriptionLifecycleSecurityTests(unittest.TestCase):
         ):
             request.do_POST()
 
-        self.assertEqual(captured["code"], 400)
-        self.assertEqual(captured["data"]["error"], "Stripe test events are not accepted here.")
+        self.assertEqual(captured["code"], 200)
+        self.assertEqual(captured["data"], {"received": True, "ignored": True})
 
     def test_webhook_ledger_deduplicates_completed_events_without_storing_event_body(self):
         request = webhook.handler.__new__(webhook.handler)

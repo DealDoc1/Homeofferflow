@@ -31,7 +31,7 @@ def _test_events_allowed():
     production Supabase credentials with preview deployments. Require an
     explicit, distinct test Supabase URL as well as the preview/test runtime
     acknowledgement. If either URL is absent, or the runtime database is the
-    production database, reject the test event.
+    production database, the caller must acknowledge and ignore the test event.
     """
     explicitly_enabled = os.environ.get("STRIPE_WEBHOOK_ALLOW_TEST_EVENTS", "").strip().lower() in {
         "1",
@@ -126,12 +126,14 @@ class handler(BaseHTTPRequestHandler):
             event_type = event.get("type", "")
             data_object = event.get("data", {}).get("object", {}) or {}
 
-            # Stripe marks sandbox deliveries with livemode=false.  Reject
-            # those by default so the production endpoint can only mutate
-            # billing state from real Stripe events.  A separate nonproduction
-            # deployment may opt in explicitly for lifecycle QA.
+            # Stripe marks sandbox deliveries with livemode=false. Acknowledge
+            # and ignore those by default: returning an error makes Stripe
+            # retry safely ignored deliveries and sends avoidable alerts.
+            # Crucially, this return happens before the event ledger or any
+            # billing mutation. A separate isolated nonproduction deployment
+            # may opt in explicitly for lifecycle QA.
             if event.get("livemode") is False and not _test_events_allowed():
-                self._send_json(400, {"error": "Stripe test events are not accepted here."})
+                self._send_json(200, {"received": True, "ignored": True})
                 return
 
             event_id = str(event.get("id") or "").strip()

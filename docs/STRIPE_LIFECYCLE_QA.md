@@ -20,9 +20,9 @@ Before creating a Stripe test webhook endpoint, confirm all of the following:
   mode** endpoint only.
 
 Do not set these test-event variables on a production Vercel deployment. The
-webhook code rejects `livemode=false` events on production even if a flag is
-mistakenly present; this runbook is the second safety layer, not a replacement
-for that guard.
+webhook code acknowledges but ignores `livemode=false` events on production,
+even if a flag is mistakenly present; this runbook is the second safety layer,
+not a replacement for that guard.
 
 ## Environment preparation
 
@@ -80,7 +80,7 @@ webhook payload data into tickets or the dashboard.
 | 6 | Restore the subscription or create another test subscription, then deliver `invoice.payment_failed` | Subscription becomes `past_due`; an existing agent brokerage membership becomes `suspended`; no unrelated account is affected. |
 | 7 | Deliver `customer.subscription.deleted` | Subscription becomes `canceled`; an existing agent brokerage membership becomes `suspended`; brokerage activation is not re-created. |
 | 8 | Resend a previously processed Stripe event | Endpoint returns success without reapplying the billing mutation; its ledger row remains a single event record. |
-| 9 | Send one Stripe test event to the production endpoint only if Stripe allows a safe manual delivery | Production returns a rejection for `livemode=false`; do not repeat or use a live event. |
+| 9 | Send one Stripe test event to the production endpoint only if Stripe allows a safe manual delivery | Production acknowledges but ignores `livemode=false`; no ledger or billing-state change occurs. Do not use a live event. |
 
 ## Brokerage suspension safety
 
@@ -114,7 +114,7 @@ python scripts/capture_stripe_lifecycle_snapshot.py \
 ```
 
 Repeat this for trialing, cancel-at-period-end, recovery, duplicate delivery,
-removed/manual membership preservation, and production test-event rejection.
+removed/manual membership preservation, and production test-event acknowledgement-without-processing.
 The resulting JSON contains status counts and lifecycle dates only; it is not a
 replacement for the signed Stripe delivery itself.
 
@@ -132,6 +132,6 @@ old `hof_httpx_only` compatibility shim: it intentionally omits
 `httpx.Client`, while the lifecycle tests replace that client with deterministic
 test doubles.
 
-The suite proves that production rejects Stripe test-mode events, a preview
-sharing production Supabase also rejects them, and only an explicitly isolated
-nonproduction runtime can accept them.
+The suite proves that production and previews sharing production Supabase
+acknowledge without processing Stripe test-mode events, and only an explicitly
+isolated nonproduction runtime can accept them.
