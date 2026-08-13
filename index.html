@@ -14403,11 +14403,11 @@ function routeAfterMagicLinkIfNeeded() {
     if (!hasOffer) {
       return {
         key: 'first_offer',
-        title: hasProfile ? 'Create your first client-ready offer' : 'Start your first client offer',
+        title: 'Create a first draft for your client',
         body: hasProfile
-          ? 'Your saved defaults are ready. Start a Texas offer, review every term, and save it to your workspace.'
-          : 'Start with the client and property in front of you. You can save your license, brokerage, and reusable defaults after this first offer.',
-        primary: hasProfile ? 'Create First Offer' : 'Start First Offer',
+          ? 'Your saved defaults are ready. Start a Texas offer and save a private draft before you review, generate, send, or request a signature.'
+          : 'Start with the client and property in front of you. Save a private draft first; you can add your license, brokerage, and reusable defaults afterward.',
+        primary: 'Create First Draft',
         secondary: hasProfile ? 'Review Saved Profile' : 'Set Up My Defaults',
         confidence: true,
         complete, hasProfile, hasOffer, hasPlan
