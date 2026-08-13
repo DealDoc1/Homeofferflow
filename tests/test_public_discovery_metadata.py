@@ -97,9 +97,15 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn('allowedCategories.has(category)', DIRECTORY)
         self.assertIn('No active HomeOfferFlow provider profiles', DIRECTORY)
         self.assertIn('Own a service business? Explore a founding placement', DIRECTORY)
-        self.assertIn('partner_category=${encodeURIComponent(category)}', DIRECTORY)
+        self.assertIn("query.set('partner_category', category)", DIRECTORY)
         self.assertIn('List your ${esc(categoryLabel)} business with HomeOfferFlow', DIRECTORY)
         self.assertIn('href="/partners.html"', DIRECTORY)
+        self.assertIn('"@type":"FAQPage"', DIRECTORY)
+        self.assertIn('Directory questions', DIRECTORY)
+        self.assertIn('provider_directory', DIRECTORY)
+        self.assertIn('partner_acquisition', DIRECTORY)
+        self.assertIn("Provider Directory Partner CTA Selected", DIRECTORY)
+        self.assertIn('bindPartnerCtas', DIRECTORY)
         for category in (
             'title', 'lender', 'inspection', 'surveyor', 'home_warranty',
             'insurance', 'roofing', 'hvac', 'plumbing', 'electrical',
