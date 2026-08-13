@@ -65,6 +65,15 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn('No active HomeOfferFlow provider profiles', DIRECTORY)
         self.assertIn('Own a service business? Explore a founding placement', DIRECTORY)
         self.assertIn('href="/partners.html"', DIRECTORY)
+        for category in (
+            'title', 'lender', 'inspection', 'surveyor', 'home_warranty',
+            'insurance', 'roofing', 'hvac', 'plumbing', 'electrical',
+            'foundation_structural', 'general_contractor', 'pest_termite',
+            'septic_well', 'restoration', 'photography_video', 'staging',
+            'repairs_handyman', 'cleaning', 'moving_storage', 'lawn_pool',
+            'security_smart_home', 'other',
+        ):
+            self.assertIn(f'<option value="{category}">', DIRECTORY)
         self.assertIn('href="/directory.html">Find a Provider</a>', INDEX)
         self.assertIn('href="/directory.html" style="color:var(--gold-light);font-weight:800;">Browse approved provider listings →</a>', INDEX)
 
