@@ -54,6 +54,10 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn('Review secure checkout', PARTNERS)
         self.assertIn('Complete private setup', PARTNERS)
         self.assertIn('before a placement goes live', PARTNERS)
+        self.assertIn('"@type":"FAQPage"', PARTNERS)
+        self.assertIn('Founding partner questions', PARTNERS)
+        self.assertIn('Clear commercial terms before you apply.', PARTNERS)
+        self.assertIn('When does monthly founding partner billing begin?', PARTNERS)
         self.assertIn('href="/partners.html">Become a Founding Partner</a>', INDEX)
 
     def test_seller_acquisition_page_is_indexable_and_routes_to_the_existing_safe_intake(self):
