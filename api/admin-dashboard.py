@@ -1678,6 +1678,11 @@ def _clean_text(value, maximum):
     return value[:maximum] if value else None
 
 
+def _normalized_partner_market(value):
+    """Match the database's Premier-market uniqueness normalization."""
+    return " ".join(str(value or "").strip().split()).casefold()
+
+
 def _parse_partner_placement(data):
     source_lead_id = str(data.get("partner_lead_id") or "").strip()
     try:
@@ -1735,6 +1740,25 @@ async def _create_platform_partner_placement(payload):
     )
     if existing:
         raise ValueError("This paid partner application already has an active placement.")
+    if payload["placement_tier"] == "exclusive_market":
+        # The partial unique index is the authoritative race-safe guard. This
+        # preflight provides an immediate, plain-language admin response before
+        # attempting the insert when another Premier placement has already
+        # reserved the same category and normalized market.
+        active_premier = await _get(
+            "hof_partner_placements?"
+            f"partner_type=eq.{urllib.parse.quote(str(lead['partner_type']))}&"
+            "placement_tier=eq.exclusive_market&is_active=is.true&"
+            "select=id,market_area&limit=100"
+        )
+        requested_market = _normalized_partner_market(
+            lead.get("onboarding_market_area") or lead.get("market_area")
+        )
+        if any(_normalized_partner_market(row.get("market_area")) == requested_market for row in active_premier):
+            raise ValueError(
+                "An active Premier Partner placement already reserves this category and market. "
+                "Choose a different market or tier."
+            )
     now = datetime.now(timezone.utc).isoformat()
     record = {
         "brokerage_id": None,
