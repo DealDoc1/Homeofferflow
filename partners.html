@@ -72,6 +72,12 @@
       const source = new URLSearchParams(window.location.search);
       const allowed = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content'];
       const campaign = new URLSearchParams();
+      const track = (name, data = {}) => { try { window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); }; window.va('event', {name, ...data}); } catch (_) {} };
+      track('Founding Partner Landing Viewed');
+      document.querySelectorAll('[data-partner-apply]').forEach(link => link.addEventListener('click', () => {
+        const tier = new URL(link.href, window.location.origin).searchParams.get('partner_tier') || 'unspecified';
+        track('Founding Partner Landing CTA Selected', {tier});
+      }));
       allowed.forEach(key => { const value = source.get(key); if (value) campaign.set(key, value); });
       if (!campaign.size) return;
       document.querySelectorAll('[data-partner-apply]').forEach(link => {
@@ -81,5 +87,6 @@
       });
     })();
   </script>
+  <script defer src="/_vercel/insights/script.js"></script>
 </body>
 </html>
