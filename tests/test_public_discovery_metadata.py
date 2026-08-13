@@ -66,6 +66,11 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn("FSBO Seller Landing CTA Selected", SELLERS)
         self.assertIn('/_vercel/insights/script.js', SELLERS)
         self.assertIn('This is an intake—not checkout or a service order.', SELLERS)
+        self.assertIn('What happens after a free seller request.', SELLERS)
+        self.assertIn('Your request is saved', SELLERS)
+        self.assertIn('Scope is reviewed', SELLERS)
+        self.assertIn('You confirm before payment', SELLERS)
+        self.assertIn('No payment is collected through this intake.', SELLERS)
         self.assertIn('href="/sellers.html">FSBO Seller Support</a>', INDEX)
 
     def test_public_directory_uses_only_the_existing_safe_directory_endpoint(self):
