@@ -10501,10 +10501,10 @@ function routeAfterMagicLinkIfNeeded() {
     if (!sellerCampaignPackages.has(packageKey)) return '';
     const channel = String(getVal('sellerCampaignChannel') || '').trim().toLowerCase();
     const campaign = sellerCampaignLabel(getVal('sellerCampaignName'));
-    const params = new URLSearchParams({ seller: '1', seller_package: packageKey, utm_source: 'homeofferflow_admin' });
+    const params = new URLSearchParams({ seller_package: packageKey, utm_source: 'homeofferflow_admin' });
     if (sellerCampaignChannels.has(channel)) params.set('utm_medium', channel);
     if (campaign) params.set('utm_campaign', campaign);
-    return `https://www.homeofferflow.com/?${params.toString()}`;
+    return `https://www.homeofferflow.com/sellers?${params.toString()}`;
   }
 
   function sellerCampaignInvitation() {

@@ -78,6 +78,8 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn('seller_package=contract_help', SELLERS)
         self.assertIn('data-seller-apply', SELLERS)
         self.assertIn("const allowed = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content'];", SELLERS)
+        self.assertIn("const sellerPackages = new Set(['free_intake', 'seller_prep', 'contract_help']);", SELLERS)
+        self.assertIn("destination.searchParams.get('seller_package') === 'free_intake'", SELLERS)
         self.assertIn("destination.searchParams.set(key, value)", SELLERS)
         self.assertIn("FSBO Seller Landing Viewed", SELLERS)
         self.assertIn("FSBO Seller Landing CTA Selected", SELLERS)
