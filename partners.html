@@ -29,7 +29,7 @@
     .button { display:inline-block; border-radius:9px; padding:.82rem 1.05rem; font-weight:800; text-decoration:none; background:var(--gold); color:#102033; } .button.secondary { background:transparent; color:var(--white); border:1px solid rgba(255,255,255,.32); }
     .note { max-width:800px; padding:1rem 1.1rem; border-left:3px solid var(--gold); border-radius:8px; background:rgba(200,151,63,.1); color:var(--muted); font-size:.92rem; }
     .grid { display:grid; grid-template-columns:repeat(3,1fr); gap:1rem; margin:2.6rem 0; } .card { padding:1.25rem; background:rgba(255,255,255,.055); border:1px solid rgba(255,255,255,.13); border-radius:14px; } .card h3 { margin:0 0 .35rem; color:var(--gold-light); } .card p { margin:0; color:var(--muted); font-size:.95rem; }
-    .tiers { display:grid; grid-template-columns:repeat(3,1fr); gap:1rem; margin-top:1.2rem; } .tier { padding:1.35rem; border:1px solid rgba(255,255,255,.17); border-radius:14px; background:rgba(7,17,31,.35); } .tier.featured { border-color:var(--gold); background:rgba(200,151,63,.1); } .tier h3,.price { margin:0; } .price { color:var(--gold-light); font-size:2rem; font-weight:800; } .tier small,.tier li { color:var(--muted); } .tier ul { padding-left:1.1rem; min-height:7.6rem; }
+    .tiers { display:grid; grid-template-columns:repeat(3,1fr); gap:1rem; margin-top:1.2rem; } .tier { padding:1.35rem; border:1px solid rgba(255,255,255,.17); border-radius:14px; background:rgba(7,17,31,.35); } .tier.featured { border-color:var(--gold); background:rgba(200,151,63,.1); } .tier h3,.price { margin:0; } .price { color:var(--gold-light); font-size:2rem; font-weight:800; } .tier small,.tier li { color:var(--muted); } .tier ul { padding-left:1.1rem; min-height:7.6rem; } .tier-cta { display:block; width:100%; margin-top:1rem; padding:.7rem .8rem; border:1px solid rgba(200,151,63,.55); border-radius:8px; color:var(--gold-light); font-weight:800; text-align:center; text-decoration:none; } .tier-cta:hover,.tier-cta:focus-visible { background:rgba(200,151,63,.13); color:var(--white); }
     footer { border-top:1px solid rgba(255,255,255,.12); padding:1.5rem 0 2.5rem; color:var(--muted); font-size:.84rem; }
     @media (max-width:760px) { .grid,.tiers { grid-template-columns:1fr; } main { padding-top:2rem; } .tier ul { min-height:0; } }
   </style>
@@ -41,7 +41,7 @@
       <div class="eyebrow">Texas founding partner placements</div>
       <h1>Be present when real-estate decisions are being made.</h1>
       <p class="lead">HomeOfferFlow connects Texas buyers, sellers, agents, and investors to useful services at relevant points in their workflow. Choose one category and one market for a clear, labeled placement—not a referral or a required provider choice.</p>
-      <div class="actions"><a class="button" href="/?partner=1">Apply for a founding placement</a><a class="button secondary" href="#tiers">See launch pricing</a></div>
+      <div class="actions"><a class="button" data-partner-apply href="/?partner=1">Apply for a founding placement</a><a class="button secondary" href="#tiers">See launch pricing</a></div>
       <p class="note"><strong>The founding launch offer:</strong> first 90 days for the price of one standard month, no setup fee, then monthly renewal unless cancelled. Placements are reviewed before anything becomes public.</p>
 
       <section class="grid" aria-label="Partner placement benefits">
@@ -54,11 +54,11 @@
         <div class="eyebrow">Simple launch pricing</div>
         <h2>Choose the level of visibility that fits your market.</h2>
         <div class="tiers">
-          <article class="tier"><h3>Core Partner</h3><p class="price">$149</p><small>First 90 days, then $149/month</small><ul><li>Category directory presence</li><li>Neutral provider-selector listing</li><li>Logo, contact, service area, and website CTA</li><li>Profile-view and outbound-click reporting</li></ul></article>
-          <article class="tier featured"><h3>Featured Partner</h3><p class="price">$399</p><small>First 90 days, then $399/month</small><ul><li>Everything in Core Partner</li><li>Labeled sponsored card near category discovery</li><li>Relevant workflow education or CTA card</li><li>Enhanced profile and scheduling CTA</li></ul></article>
-          <article class="tier"><h3>Premier Partner</h3><p class="price">$799</p><small>First 90 days, then $799/month</small><ul><li>Everything in Featured Partner</li><li>Priority category-and-market positioning</li><li>Expanded campaign placement options</li><li>90-day placement review</li></ul></article>
+          <article class="tier"><h3>Core Partner</h3><p class="price">$149</p><small>First 90 days, then $149/month</small><ul><li>Category directory presence</li><li>Neutral provider-selector listing</li><li>Logo, contact, service area, and website CTA</li><li>Profile-view and outbound-click reporting</li></ul><a class="tier-cta" data-partner-apply href="/?partner=1&amp;partner_tier=founding_pilot">Choose Core Partner</a></article>
+          <article class="tier featured"><h3>Featured Partner</h3><p class="price">$399</p><small>First 90 days, then $399/month</small><ul><li>Everything in Core Partner</li><li>Labeled sponsored card near category discovery</li><li>Relevant workflow education or CTA card</li><li>Enhanced profile and scheduling CTA</li></ul><a class="tier-cta" data-partner-apply href="/?partner=1&amp;partner_tier=monthly_placement">Choose Featured Partner</a></article>
+          <article class="tier"><h3>Premier Partner</h3><p class="price">$799</p><small>First 90 days, then $799/month</small><ul><li>Everything in Featured Partner</li><li>Priority category-and-market positioning</li><li>Expanded campaign placement options</li><li>90-day placement review</li></ul><a class="tier-cta" data-partner-apply href="/?partner=1&amp;partner_tier=market_exclusive">Choose Premier Partner</a></article>
         </div>
-        <div class="actions"><a class="button" href="/?partner=1">Start a founding-partner application</a></div>
+        <div class="actions"><a class="button" data-partner-apply href="/?partner=1">Start a founding-partner application</a></div>
       </section>
     </main>
     <footer>© 2026 HomeOfferFlow · A BrewBQ Investments LLC product · <a href="/terms.html">Terms</a> · <a href="/privacy.html">Privacy</a> · <a href="/disclaimer.html">Disclaimer</a><br><br>HomeOfferFlow does not provide legal, brokerage, lending, inspection, insurance, or home-service advice. Partner placement does not establish a referral relationship, require a provider choice, or guarantee traffic, leads, transactions, or closings.</footer>
@@ -74,8 +74,10 @@
       const campaign = new URLSearchParams();
       allowed.forEach(key => { const value = source.get(key); if (value) campaign.set(key, value); });
       if (!campaign.size) return;
-      document.querySelectorAll('a[href="/?partner=1"]').forEach(link => {
-        link.href = '/?partner=1&' + campaign.toString();
+      document.querySelectorAll('[data-partner-apply]').forEach(link => {
+        const destination = new URL(link.href, window.location.origin);
+        campaign.forEach((value, key) => destination.searchParams.set(key, value));
+        link.href = destination.pathname + '?' + destination.searchParams.toString();
       });
     })();
   </script>
