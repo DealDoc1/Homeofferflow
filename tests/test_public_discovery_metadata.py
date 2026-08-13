@@ -60,6 +60,7 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn("partner_directory:'1'", DIRECTORY)
         self.assertIn('No active HomeOfferFlow provider profiles', DIRECTORY)
         self.assertIn('href="/directory.html">Find a Provider</a>', INDEX)
+        self.assertIn('href="/directory.html" style="color:var(--gold-light);font-weight:800;">Browse approved provider listings →</a>', INDEX)
 
 
 if __name__ == "__main__":
