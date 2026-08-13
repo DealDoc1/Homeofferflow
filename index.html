@@ -10564,7 +10564,7 @@ function routeAfterMagicLinkIfNeeded() {
     const params = new URLSearchParams({ utm_source: 'homeofferflow_admin' });
     if (sellerCampaignChannels.has(channel)) params.set('utm_medium', channel);
     if (campaign) params.set('utm_campaign', campaign);
-    return `https://www.homeofferflow.com/buyers.html?${params.toString()}`;
+    return `https://www.homeofferflow.com/buyers?${params.toString()}`;
   }
 
   function buyerCampaignInvitation() {
