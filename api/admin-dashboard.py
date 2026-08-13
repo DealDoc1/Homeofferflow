@@ -3661,6 +3661,23 @@ class handler(BaseHTTPRequestHandler):
                 if item.get("event_type") == "terms_reuse_clicked"
                 and str(item.get("user_id") or "").strip()
             })
+            # Future packet-generation failures include a small client-side
+            # category. Keep the admin aggregate resilient to historical or
+            # malformed events: only known categories are displayed and every
+            # other event is counted as unclassified.
+            packet_generation_failure_categories = {
+                "session", "network", "timeout", "signature_provider", "validation", "service"
+            }
+            packet_generation_failure_counts = {key: 0 for key in sorted(packet_generation_failure_categories)}
+            packet_generation_failure_counts["unclassified"] = 0
+            for item in events:
+                if item.get("event_type") != "subscription_packet_generation_failed":
+                    continue
+                metadata = item.get("metadata") or {}
+                category = str(metadata.get("errorCategory") or "").strip().lower()
+                category = category if category in packet_generation_failure_categories else "unclassified"
+                packet_generation_failure_counts[category] += 1
+            packet_generation_failure_count = sum(packet_generation_failure_counts.values())
             # The installed PWA is the low-cost mobile-app bridge. Keep this
             # aggregate-only so product decisions can use the real install
             # funnel without returning device details or user-level activity.
@@ -3964,6 +3981,8 @@ class handler(BaseHTTPRequestHandler):
                 "repeatActivationReuseSelectionCount": repeat_activation_reuse_selection_count,
                 "repeatOfferTermsReuseStartCount": repeat_offer_terms_reuse_start_count,
                 "repeatOfferTermsReuseUserCount": repeat_offer_terms_reuse_user_count,
+                "packetGenerationFailureCount": packet_generation_failure_count,
+                "packetGenerationFailureCounts": packet_generation_failure_counts,
                 "pwaInstallEventCounts": pwa_install_event_counts,
                 "pwaInstallShownCount": pwa_install_event_counts["shown"],
                 "pwaInstallPromptOpenCount": pwa_install_event_counts["prompt_opened"],

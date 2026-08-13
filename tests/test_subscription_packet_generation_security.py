@@ -29,6 +29,16 @@ class SubscriptionPacketGenerationSecurityTests(unittest.TestCase):
         self.assertIn("No packet credit was used. ' + failure.nextStep", generation)
         self.assertNotIn("No packet credit was used. Please try again. Error:", generation)
 
+    def test_admin_surfaces_only_aggregate_packet_generation_failure_categories(self):
+        admin = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
+        self.assertIn('"packetGenerationFailureCount"', admin)
+        self.assertIn('"packetGenerationFailureCounts"', admin)
+        self.assertIn("packet_generation_failure_categories", admin)
+        self.assertIn('"unclassified"', admin)
+        self.assertIn("Packet Generation Recovery", HTML)
+        self.assertIn("packetGenerationFailureCounts?.signature_provider", HTML)
+        self.assertIn("no offer, client, or agent details shown", HTML)
+
     def test_checkout_shaped_requests_fail_closed_without_stripe_or_subscription_auth(self):
         start = API.index("def do_POST(self):")
         post = API[start:]
