@@ -17,6 +17,9 @@ class FsboIntakeConversionTests(unittest.TestCase):
         self.assertIn("Phone <span", HTML)
         self.assertIn("Target Asking Price <span", HTML)
         self.assertIn("Save My Seller Request", HTML)
+        self.assertIn('id="fsboSellerQuickSubmit"', HTML)
+        self.assertIn("Get My Free Seller Plan", HTML)
+        self.assertIn("No checkout or service commitment.", HTML)
 
     def test_seller_funnel_events_are_analytics_only_and_never_include_identity(self):
         start = HTML.index("const fsboFunnel =")
@@ -36,6 +39,7 @@ class FsboIntakeConversionTests(unittest.TestCase):
             self.assertIn(event, script)
 
         self.assertIn("trackEvent(name, data)", script)
+        self.assertIn("source: source === 'quick' ? 'quick' : 'full'", script)
         tracked_arguments = "\n".join(re.findall(r"trackFsboFunnel\\(([^;]+)\\);", script))
         self.assertNotIn("sellerEmail", tracked_arguments)
         self.assertNotIn("seller_email", tracked_arguments)
@@ -116,6 +120,17 @@ class FsboIntakeConversionTests(unittest.TestCase):
         self.assertIn("if (event.key === 'Escape')", HTML)
         self.assertIn("if (event.key !== 'Tab') return;", HTML)
         self.assertIn("if (returnFocus?.isConnected) returnFocus.focus();", HTML)
+
+    def test_free_intake_has_a_submit_path_before_optional_package_and_partner_choices(self):
+        quick = HTML.index('id="fsboSellerQuickSubmit"')
+        packages = HTML.index('class="fsbo-package-grid"')
+        partners = HTML.index('Partner suggestions wanted')
+        full = HTML.index('id="fsboSellerSubmit"')
+        self.assertLess(quick, packages)
+        self.assertLess(quick, partners)
+        self.assertLess(quick, full)
+        self.assertIn("document.querySelectorAll('[data-fsbo-submit]')", HTML)
+        self.assertIn("Request ${item.title} Details", HTML)
 
 
 if __name__ == "__main__":
