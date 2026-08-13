@@ -22,6 +22,13 @@ class PartnerDirectoryImpressionTests(unittest.TestCase):
         self.assertIn("data-partner-link", PUBLIC_DIRECTORY)
         self.assertIn('/_vercel/insights/script.js', PUBLIC_DIRECTORY)
 
+    def test_public_directory_records_category_demand_without_market_text(self):
+        self.assertIn('trackSearchDemand', PUBLIC_DIRECTORY)
+        self.assertIn('Provider Directory Search', PUBLIC_DIRECTORY)
+        self.assertIn("category:safeCategory, hasMarket", PUBLIC_DIRECTORY)
+        self.assertIn("hof_public_directory_search_${safeCategory}_${hasMarket ? 'market' : 'all'}", PUBLIC_DIRECTORY)
+        self.assertNotIn("market:market", PUBLIC_DIRECTORY)
+
 
 if __name__ == "__main__":
     unittest.main()
