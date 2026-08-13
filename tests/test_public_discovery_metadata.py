@@ -76,6 +76,10 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn('Scope is reviewed', SELLERS)
         self.assertIn('You confirm before payment', SELLERS)
         self.assertIn('No payment is collected through this intake.', SELLERS)
+        self.assertIn('"@type":"FAQPage"', SELLERS)
+        self.assertIn('Texas FSBO questions', SELLERS)
+        self.assertIn('Immediate timeline-specific seller plan', SELLERS)
+        self.assertIn('Get my free seller plan', SELLERS)
         self.assertIn('href="/sellers.html">FSBO Seller Support</a>', INDEX)
 
     def test_public_directory_uses_only_the_existing_safe_directory_endpoint(self):
