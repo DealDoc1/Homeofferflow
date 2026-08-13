@@ -115,6 +115,16 @@ class PartnerTierUiTests(unittest.TestCase):
         self.assertIn('review the selected Founding Partner price and payment details in secure Stripe Checkout', self.html)
         self.assertIn('placement stays private until onboarding and written-agreement review are complete', self.html)
 
+    def test_selected_tier_can_jump_to_the_short_required_checkout_intake(self):
+        jump = self.html.index('id="foundingPartnerEssentialsJump"')
+        comparison = self.html.index('class="partner-placement-wrap"')
+        essentials = self.html.index('id="foundingPartnerEssentials"')
+        self.assertLess(jump, comparison)
+        self.assertLess(comparison, essentials)
+        self.assertIn("window.jumpToFoundingPartnerEssentials", self.html)
+        self.assertIn("essentials.scrollIntoView({ behavior: 'smooth', block: 'start' })", self.html)
+        self.assertIn("Founding Partner Essentials Jumped", self.html)
+
     def test_admin_partner_leads_have_privacy_limited_follow_up_action(self):
         self.assertIn("partnerLeadFollowUpAction", self.html)
         self.assertIn("Email partner", self.html)
