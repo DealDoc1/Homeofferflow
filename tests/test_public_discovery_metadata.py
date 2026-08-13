@@ -81,6 +81,7 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn("const sellerPackages = new Set(['free_intake', 'seller_prep', 'contract_help']);", SELLERS)
         self.assertIn("const sellerPackageLabels = { free_intake: 'Free Seller Intake'", SELLERS)
         self.assertIn('id="sellerCampaignContext"', SELLERS)
+        self.assertIn("track('FSBO Seller Landing Viewed', selectedCampaignPackage ? { sellerPackage: selectedCampaignPackage } : {});", SELLERS)
         self.assertIn("destination.searchParams.get('seller_package') === 'free_intake'", SELLERS)
         self.assertIn("destination.searchParams.set(key, value)", SELLERS)
         self.assertIn("FSBO Seller Landing Viewed", SELLERS)
