@@ -140,6 +140,15 @@ class FsboIntakeConversionTests(unittest.TestCase):
         self.assertIn("document.querySelectorAll('[data-fsbo-submit]')", HTML)
         self.assertIn("Request ${item.title} Details", HTML)
 
+    def test_selected_seller_path_adapts_only_the_optional_qualification_prompt(self):
+        self.assertIn('const fsboSituationPrompts = {', HTML)
+        self.assertIn("label: 'What would you like to compare about the offer?'", HTML)
+        self.assertIn("label: 'What should we know about your MLS-interest request?'", HTML)
+        self.assertIn('id="fsboNotesLabel" for="fsboNotes"', HTML)
+        self.assertIn('const prompt = fsboSituationPrompts[key] || fsboSituationPrompts.free_intake;', HTML)
+        self.assertIn("notes.placeholder = prompt.placeholder", HTML)
+        self.assertIn('Property address and email are all we need', HTML)
+
 
 if __name__ == "__main__":
     unittest.main()

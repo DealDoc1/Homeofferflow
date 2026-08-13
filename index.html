@@ -11822,7 +11822,7 @@ function routeAfterMagicLinkIfNeeded() {
     </div>
 
     <div id="fsboNeedDetails" class="notice sage" style="margin-top:.8rem;"></div>
-    <div class="field" style="margin-top:.8rem;"><label>Tell us about your situation <span style="color:var(--gray);font-weight:500;">(optional)</span></label><textarea id="fsboNotes" rows="3" placeholder="Anything we should know? Property condition, pricing concerns, whether you already have photos, whether offers are already coming in, partner needs, etc."></textarea></div>
+    <div class="field" style="margin-top:.8rem;"><label id="fsboNotesLabel" for="fsboNotes">Tell us about your situation <span style="color:var(--gray);font-weight:500;">(optional)</span></label><textarea id="fsboNotes" rows="3" placeholder="Anything we should know? Property condition, pricing concerns, whether you already have photos, whether offers are already coming in, partner needs, etc."></textarea></div>
     <div class="notice gold" style="margin-top:.8rem;">Package pricing shown here is for planning/intake and may be finalized separately before any paid service begins. This is not checkout and not a confirmed service order. HomeOfferFlow is not a law firm and does not provide legal advice. Some FSBO, flat-fee MLS, offer-review, brokerage, title, or closing-support services may be provided through a licensed Texas real estate broker, affiliated license holder, attorney, title company, or other licensed provider where required. Pricing may vary by property, location, service level, and broker/provider approval.</div>
     <div class="account-actions-row" style="margin-top:1rem;">
       <button class="btn-primary" type="button" id="fsboSellerSubmit" data-fsbo-submit onclick="submitFsboSellerLead('full')">Save My Seller Request</button>
@@ -12005,6 +12005,36 @@ function routeAfterMagicLinkIfNeeded() {
     contract_help: ['Organize your accepted contract, title contact, and lender contact.', 'Write down upcoming deadlines and unanswered transaction questions.', 'Use the appropriate licensed party for legal, brokerage, title, and amendment decisions.'],
     premium_bundle: ['Collect property facts, photos, and your target timeline.', 'List prep, marketing, MLS, offer-review, and closing-support priorities.', 'Wait for the confirmed scope and provider plan before any paid service begins.']
   };
+  const fsboSituationPrompts = {
+    free_intake: {
+      label: 'Tell us about your situation',
+      placeholder: 'Anything we should know? Property condition, timing, pricing concerns, whether you already have photos, whether offers are already coming in, or partner needs.'
+    },
+    seller_prep: {
+      label: 'What would make the property more ready to launch?',
+      placeholder: 'Optional: repairs, cleaning, staging, exterior, photos, timing, or the one preparation decision you want help organizing.'
+    },
+    launch_kit: {
+      label: 'What do you want ready for launch?',
+      placeholder: 'Optional: property highlights, recent upgrades, photo status, showing constraints, likely launch timing, or pricing questions.'
+    },
+    flat_fee_mls: {
+      label: 'What should we know about your MLS-interest request?',
+      placeholder: 'Optional: desired list timing, photos, HOA or occupancy details, property facts, or limited-service questions. Availability and terms are confirmed separately.'
+    },
+    offer_review: {
+      label: 'What would you like to compare about the offer?',
+      placeholder: 'Optional: whether an offer is in hand, price, financing, concessions, option period, closing date, or the decision you want help organizing.'
+    },
+    contract_help: {
+      label: 'What closing step needs the most organization?',
+      placeholder: 'Optional: accepted-offer timing, title or lender coordination, deadlines, document organization, or questions for the appropriate licensed party.'
+    },
+    premium_bundle: {
+      label: 'What are your highest-priority seller goals?',
+      placeholder: 'Optional: prep, launch, MLS interest, offer review, closing support, timeline, or the outcome you want to prioritize.'
+    }
+  };
   const fsboReadinessPlans = {
     asap: {
       title: 'Your ready-now seller plan',
@@ -12052,6 +12082,11 @@ function routeAfterMagicLinkIfNeeded() {
     if (quickSubmit) quickSubmit.textContent = key === 'free_intake' ? 'Get My Free Seller Plan' : `Request ${item.title} Details`;
     const fullSubmit = document.getElementById('fsboSellerSubmit');
     if (fullSubmit) fullSubmit.textContent = key === 'free_intake' ? 'Save My Free Seller Request' : `Request ${item.title} Details`;
+    const prompt = fsboSituationPrompts[key] || fsboSituationPrompts.free_intake;
+    const notesLabel = document.getElementById('fsboNotesLabel');
+    if (notesLabel) notesLabel.innerHTML = escapeAttr(prompt.label) + ' <span style="color:var(--gray);font-weight:500;">(optional)</span>';
+    const notes = document.getElementById('fsboNotes');
+    if (notes) notes.placeholder = prompt.placeholder;
   };
   window.downloadFsboRequestSummary = function downloadFsboRequestSummary() {
     const key = fsboVal('fsboNeed') || 'free_intake';
