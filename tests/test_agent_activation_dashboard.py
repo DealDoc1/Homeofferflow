@@ -185,6 +185,21 @@ class AgentActivationDashboardTests(unittest.TestCase):
         self.assertIn("activationKey === 'reactivate' ? 'subscription_reactivation' : 'agent_activation'", script)
         self.assertIn("startSubscriptionCheckout?.(plan, normalizedBilling, source)", script)
 
+    def test_beta_agent_with_a_saved_draft_resumes_client_work_before_checkout(self):
+        script_start = HTML.index('id="hof-agent-activation-v16-js"')
+        script_end = HTML.index("</script>", script_start)
+        script = HTML[script_start:script_end]
+
+        beta_resume = script.index("if (subscriptionStatus === 'beta' && draft)")
+        generic_subscription = script.index("if (!hasPlan)", beta_resume + 1)
+        self.assertLess(beta_resume, generic_subscription)
+        self.assertIn("key: 'resume_beta'", script)
+        self.assertIn("primary: 'Resume Offer'", script)
+        self.assertIn("secondary: 'Explore Monthly Access'", script)
+        self.assertIn("state.key === 'resume_beta' ? 'resume'", script)
+        self.assertIn("state.key === 'resume_beta' ? 'subscribe'", script)
+        self.assertIn("Your beta workspace is active", script)
+
     def test_canceled_accounts_use_reactivation_attribution(self):
         script_start = HTML.index('id="hof-agent-activation-v16-js"')
         script_end = HTML.index("</script>", script_start)
