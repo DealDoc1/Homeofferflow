@@ -332,6 +332,13 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     .logo span { color: var(--gold); }
     .nav-cta { background: var(--gold); color: var(--navy); border: none; padding: 0.6rem 1.35rem; border-radius: 6px; font-family: 'DM Sans', sans-serif; font-weight: 600; font-size: 0.88rem; cursor: pointer; transition: background 0.2s; }
     .nav-cta:hover { background: var(--gold-light); }
+    .nav-discovery { position:relative; }
+    .nav-discovery summary { list-style:none; cursor:pointer; color:var(--gray-light); border:1px solid rgba(255,255,255,.13); border-radius:999px; padding:.64rem .85rem; font-size:.82rem; font-weight:800; white-space:nowrap; }
+    .nav-discovery summary::-webkit-details-marker { display:none; }
+    .nav-discovery[open] summary,.nav-discovery summary:hover,.nav-discovery summary:focus-visible { border-color:rgba(200,151,63,.45); color:var(--gold-light); background:rgba(200,151,63,.08); }
+    .nav-discovery-menu { position:absolute; right:0; top:calc(100% + .55rem); width:220px; padding:.45rem; background:var(--navy-mid); border:1px solid rgba(255,255,255,.15); border-radius:12px; box-shadow:0 16px 35px rgba(0,0,0,.3); }
+    .nav-discovery-menu a { display:block; padding:.62rem .7rem; color:var(--white); border-radius:8px; text-decoration:none; font-size:.84rem; }
+    .nav-discovery-menu a:hover,.nav-discovery-menu a:focus-visible { background:rgba(200,151,63,.12); color:var(--gold-light); }
     .hero { position: relative; z-index: 1; min-height: min(100vh, 760px); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 6.5rem 1.5rem 3rem; }
     .hero-badge { display: inline-flex; align-items: center; gap: 0.5rem; background: rgba(200,151,63,0.1); border: 1px solid rgba(200,151,63,0.25); color: var(--gold-light); padding: 0.4rem 1rem; border-radius: 100px; font-size: 0.78rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 1rem; animation: fadeUp 0.5s ease both; }
     .hero-badge .dot, .trust-item .dot { width: 6px; height: 6px; background: var(--sage-light); border-radius: 50%; }
@@ -2543,7 +2550,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   .release15-dashboard-card{position:relative;overflow:hidden;background:radial-gradient(circle at 0 0,rgba(200,151,63,.16),transparent 36%),linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.032));border:1px solid rgba(200,151,63,.22);border-radius:18px;padding:1rem;margin-bottom:1rem}.release15-dashboard-card h4{color:var(--gold-light);font-size:.86rem;text-transform:uppercase;letter-spacing:.07em;margin:0 0 .5rem}.release15-dashboard-card p{color:var(--gray-light);font-size:.86rem;line-height:1.55;margin:.35rem 0}.release15-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.65rem;margin:.8rem 0}.release15-tile{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:14px;padding:.72rem}.release15-tile strong{display:block;color:var(--white);font-size:.82rem;margin-bottom:.18rem}.release15-tile span{display:block;color:var(--gray-light);font-size:.73rem;line-height:1.35}.release15-actions{display:flex;gap:.55rem;flex-wrap:wrap;margin-top:.8rem}.release15-actions button{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.14);color:var(--gray-light);border-radius:999px;padding:.62rem .85rem;font-family:'DM Sans',sans-serif;font-weight:900;font-size:.76rem;cursor:pointer}.release15-actions button.primary{background:var(--gold);color:#07111d;border-color:rgba(255,255,255,.08)}.release15-actions button:hover{border-color:rgba(200,151,63,.45);color:var(--gold-light);background:rgba(200,151,63,.08)}.release15-actions button.primary:hover{color:#07111d;background:var(--gold-light)}
   .beta-safe-banner{background:rgba(74,140,111,.075);border:1px solid rgba(74,140,111,.22);border-radius:14px;padding:.75rem;margin-top:.75rem;color:var(--gray-light);font-size:.8rem;line-height:1.5}.beta-safe-banner strong{color:var(--sage-light)}
   .feedback-fast-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.5rem;margin:.75rem 0}.feedback-fast-row button{border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);border-radius:12px;color:var(--gray-light);padding:.7rem;font-family:'DM Sans',sans-serif;font-weight:900;font-size:.76rem;cursor:pointer;text-align:left}.feedback-fast-row button:hover{border-color:rgba(200,151,63,.4);color:var(--gold-light);background:rgba(200,151,63,.075)}
-  @media(max-width:760px){.hero{padding-top:6.2rem}.beta-launch-strip{grid-template-columns:1fr 1fr;margin-top:1rem}.beta-launch-chip{border-radius:14px;padding:.7rem}.release15-grid{grid-template-columns:1fr}.release15-actions button{flex:1;min-width:135px}.feedback-fast-row{grid-template-columns:1fr}.account-tabs{overflow-x:auto;flex-wrap:nowrap;padding-bottom:.25rem}.account-tab{white-space:nowrap}.audience-grid{grid-template-columns:1fr}.cta-box{padding:2rem 1.1rem}.wizard-body{padding-bottom:1.75rem}}
+  @media(max-width:760px){.hero{padding-top:6.2rem}.beta-launch-strip{grid-template-columns:1fr 1fr;margin-top:1rem}.beta-launch-chip{border-radius:14px;padding:.7rem}.release15-grid{grid-template-columns:1fr}.release15-actions button{flex:1;min-width:135px}.feedback-fast-row{grid-template-columns:1fr}.account-tabs{overflow-x:auto;flex-wrap:nowrap;padding-bottom:.25rem}.account-tab{white-space:nowrap}.audience-grid{grid-template-columns:1fr}.cta-box{padding:2rem 1.1rem}.wizard-body{padding-bottom:1.75rem}.nav-discovery-menu{right:auto;left:0}}
   @media(max-width:430px){.beta-launch-strip{grid-template-columns:1fr}.hero-price-note{font-size:.8rem}.release15-actions{display:grid;grid-template-columns:1fr}.release15-actions button{width:100%}}
 </style>
 
@@ -2553,6 +2560,15 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 <nav>
   <div class="logo" onclick="goHomeFromLanding()">Home<span>Offer</span>Flow</div>
   <div class="nav-actions">
+    <details class="nav-discovery">
+      <summary>Explore</summary>
+      <div class="nav-discovery-menu">
+        <a href="/buyers">Homebuyer offer</a>
+        <a href="/sellers">FSBO seller support</a>
+        <a href="/directory">Find a provider</a>
+        <a href="/partners">Partner placements</a>
+      </div>
+    </details>
     <button class="nav-auth" id="accountCta" onclick="openAuthModal(state?.data?.userType || 'agent')">Agent / Broker Login</button>
     <button class="nav-cta" id="navCta" onclick="beginOfferFrom('landing_nav_cta')">Build Your Offer →</button>
   </div>

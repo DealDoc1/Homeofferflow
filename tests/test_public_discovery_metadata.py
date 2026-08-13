@@ -117,6 +117,17 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         ):
             self.assertIn({"source": route, "destination": destination}, VERCEL.get("rewrites", []))
 
+    def test_homepage_exposes_each_public_path_from_the_primary_navigation(self):
+        self.assertIn('<details class="nav-discovery">', INDEX)
+        self.assertIn('<summary>Explore</summary>', INDEX)
+        for href, label in (
+            ('/buyers', 'Homebuyer offer'),
+            ('/sellers', 'FSBO seller support'),
+            ('/directory', 'Find a provider'),
+            ('/partners', 'Partner placements'),
+        ):
+            self.assertIn(f'<a href="{href}">{label}</a>', INDEX)
+
     def test_public_directory_uses_only_the_existing_safe_directory_endpoint(self):
         self.assertIn('href="https://www.homeofferflow.com/directory"', DIRECTORY)
         self.assertIn("fetch('/api/fsbo-lead?'+query)", DIRECTORY)
