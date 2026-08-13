@@ -156,6 +156,15 @@ class AgentActivationDashboardTests(unittest.TestCase):
         for field in ('profAgentName', 'profAgentLicense', 'profAgentEmail', 'profAgentPhone', 'profBrokerageName'):
             self.assertIn(field, profile)
 
+    def test_profile_save_explains_and_focuses_missing_repeat_offer_essentials(self):
+        start = HTML.index("async function saveAccountProfile()")
+        end = HTML.index("function setInputIfEmpty", start)
+        profile_save = HTML[start:end]
+        self.assertIn("const requiredProfileFields = [", profile_save)
+        self.assertIn("const missingProfileFields", profile_save)
+        self.assertIn("Add ' + missingProfileFields.join(', ') + ' to save your repeat-offer defaults.", profile_save)
+        self.assertIn("?.focus();", profile_save)
+
     def test_profile_completion_signal_matches_activation_requirements(self):
         readiness_start = HTML.index('id="hof-agent-activation-v16-js"')
         readiness_end = HTML.index("</script>", readiness_start)
