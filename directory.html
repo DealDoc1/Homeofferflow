@@ -46,7 +46,12 @@
         } catch (_) {}
         track('Partner Directory Impression', {partnerId, partnerType:String(provider.partner_type || ''), placementTier:String(provider.placement_tier || '')});
       });
-      const empty = 'No active HomeOfferFlow provider profiles are available for this search yet. You may choose any qualified provider independently.<p style="margin:.75rem 0 0"><a href="/partners.html" style="color:var(--gl);font-weight:800">Own a service business? Explore a founding placement →</a></p>';
+      const empty = category => {
+        const categoryLabel = labels[category] || '';
+        const applicationUrl = categoryLabel ? `/?partner=1&partner_category=${encodeURIComponent(category)}` : '/partners.html';
+        const action = categoryLabel ? `List your ${esc(categoryLabel)} business with HomeOfferFlow →` : 'Own a service business? Explore a founding placement →';
+        return `No active HomeOfferFlow provider profiles are available for this search yet. You may choose any qualified provider independently.<p style="margin:.75rem 0 0"><a href="${applicationUrl}" style="color:var(--gl);font-weight:800">${action}</a></p>`;
+      };
       const card = provider => {
         const website = safeUrl(provider.website_url);
         return `<article class="card">${provider.logo_url ? `<img src="${esc(provider.logo_url)}" alt="">` : ''}<h2>${esc(provider.partner_name)}</h2><div class="meta">${esc(labels[provider.partner_type] || 'Local service')} · ${esc(provider.market_area || 'Texas')}</div><p>Sponsored ${esc(provider.placement_tier || 'partner')} profile. Confirm fit, availability, and terms directly with the provider.</p>${website ? `<a href="${esc(website)}" data-partner-link data-partner-id="${esc(provider.id)}" data-partner-type="${esc(provider.partner_type)}" data-placement-tier="${esc(provider.placement_tier)}" target="_blank" rel="noopener noreferrer">Visit site ↗</a>` : ''}</article>`;
@@ -79,7 +84,7 @@
           if (!response.ok) throw Error();
           const rows = Array.isArray(data.partners) ? data.partners : [];
           $('status').textContent = rows.length ? `${rows.length} active provider profile${rows.length === 1 ? '' : 's'} found.` : 'No active profiles match this search.';
-          $('results').innerHTML = rows.length ? rows.map(card).join('') : `<div class="empty">${empty}</div>`;
+          $('results').innerHTML = rows.length ? rows.map(card).join('') : `<div class="empty">${empty(category)}</div>`;
           trackImpressions(rows);
           bindOutboundClicks();
         } catch (_) {
