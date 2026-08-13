@@ -1029,6 +1029,16 @@ class OnDemandLaunchPageTests(unittest.TestCase):
         ):
             self.assertIn(text.lower(), LAUNCH_HTML.lower())
 
+    def test_launch_answers_trial_and_scope_questions_before_enrollment(self):
+        for text in (
+            'Enrollment questions',
+            'Why is a card required if the first 60 days are free?',
+            'Can I cancel before the trial renews?',
+            'What can I use HomeOfferFlow for during this launch?',
+            'prevents the first monthly charge',
+        ):
+            self.assertIn(text.lower(), LAUNCH_HTML.lower())
+
     def test_launch_requires_authenticated_checkout_and_terms_confirmation(self):
         self.assertIn('"Authorization": `Bearer ${state.session.access_token}`', LAUNCH_HTML)
         self.assertIn('id="terms" type="checkbox"', LAUNCH_HTML)

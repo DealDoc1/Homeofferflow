@@ -123,6 +123,13 @@
     .scope-card.included h3 { color:#bce8d0; }
     .scope-card.not-yet h3 { color:var(--gold-2); }
     .scope-note { color:var(--muted); font-size:13px; line-height:1.55; margin:17px 0 0; }
+    .faq { margin:34px 0 0; padding:28px; border:1px solid var(--line); border-radius:20px; background:rgba(7,17,29,.48); }
+    .faq h2 { font-family:"Playfair Display",serif; font-size:clamp(28px,4vw,40px); margin:10px 0 10px; }
+    .faq-intro { color:var(--muted); margin:0 0 15px; line-height:1.55; }
+    .faq details { border-top:1px solid var(--line); padding:15px 0; }
+    .faq details:last-child { padding-bottom:0; }
+    .faq summary { cursor:pointer; color:#dce7ef; font-weight:700; }
+    .faq p { color:var(--muted); line-height:1.55; margin:10px 0 0; }
     .footer { border-top:1px solid var(--line); margin-top:38px; padding-top:22px; color:var(--muted); font-size:13px; display:flex; justify-content:space-between; gap:18px; }
     @media (max-width:820px) {
       .hero { grid-template-columns:1fr; padding-top:50px; gap:35px; }
@@ -237,6 +244,24 @@
         </article>
       </div>
       <p class="scope-note">HomeOfferFlow will add the broader agent form library in stages, with broker-approved source forms, signing roles, visual PDF QA, and transaction-specific safeguards before each form is released. Any restricted Texas REALTORS® / NAR member-form workflow will require brokerage authorization, an individual agent attestation, and an approved private source revision before it can be used.</p>
+    </section>
+
+    <section class="faq" aria-labelledby="launchQuestions">
+      <div class="scope-kicker">Enrollment questions</div>
+      <h2 id="launchQuestions">Clear answers before checkout.</h2>
+      <p class="faq-intro">The trial is intentionally simple: sign in with your OnDemand email, review the terms, and continue to Stripe only when you are ready.</p>
+      <details>
+        <summary>Why is a card required if the first 60 days are free?</summary>
+        <p>Stripe securely saves your payment method to start the subscription. You are not charged today; the Agent plan begins at $29 per month after the 60-day trial unless you cancel first.</p>
+      </details>
+      <details>
+        <summary>Can I cancel before the trial renews?</summary>
+        <p>Yes. You can cancel before renewal through HomeOfferFlow billing. Canceling before the 60-day trial ends prevents the first monthly charge.</p>
+      </details>
+      <details>
+        <summary>What can I use HomeOfferFlow for during this launch?</summary>
+        <p>Use it for the currently supported purchase-offer workflow, including the supported purchase addenda and buyer electronic-signature delivery. Keep using your OnDemand-approved process for forms outside the stated launch scope.</p>
+      </details>
     </section>
 
     <footer class="footer">
