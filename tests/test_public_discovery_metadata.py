@@ -162,6 +162,11 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn('provider_directory', DIRECTORY)
         self.assertIn('partner_acquisition', DIRECTORY)
         self.assertIn("Provider Directory Partner CTA Selected", DIRECTORY)
+        self.assertIn("Provider Directory Consumer CTA Selected", DIRECTORY)
+        self.assertIn("data-directory-consumer-cta", DIRECTORY)
+        self.assertIn("utm_campaign:'consumer_recovery'", DIRECTORY)
+        self.assertIn("Build a Texas buyer offer", DIRECTORY)
+        self.assertIn("Explore FSBO seller support", DIRECTORY)
         self.assertIn('bindPartnerCtas', DIRECTORY)
         for category in (
             'title', 'lender', 'inspection', 'surveyor', 'home_warranty',
