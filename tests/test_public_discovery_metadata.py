@@ -9,6 +9,7 @@ SITEMAP = (ROOT / "sitemap.xml").read_text(encoding="utf-8")
 PARTNERS = (ROOT / "partners.html").read_text(encoding="utf-8")
 SELLERS = (ROOT / "sellers.html").read_text(encoding="utf-8")
 DIRECTORY = (ROOT / "directory.html").read_text(encoding="utf-8")
+BUYERS = (ROOT / "buyers.html").read_text(encoding="utf-8")
 
 
 class PublicDiscoveryMetadataTests(unittest.TestCase):
@@ -32,6 +33,7 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn('https://www.homeofferflow.com/ondemand', SITEMAP)
         self.assertIn('https://www.homeofferflow.com/partners.html', SITEMAP)
         self.assertIn('https://www.homeofferflow.com/sellers.html', SITEMAP)
+        self.assertIn('https://www.homeofferflow.com/buyers.html', SITEMAP)
         self.assertIn('https://www.homeofferflow.com/directory.html', SITEMAP)
 
     def test_partner_acquisition_page_has_share_metadata_and_a_direct_application_path(self):
@@ -85,6 +87,19 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn('Immediate timeline-specific seller plan', SELLERS)
         self.assertIn('Get my free seller plan', SELLERS)
         self.assertIn('href="/sellers.html">FSBO Seller Support</a>', INDEX)
+
+    def test_homebuyer_offer_page_is_indexable_and_routes_to_the_existing_safe_workflow(self):
+        self.assertIn('<link rel="canonical" href="https://www.homeofferflow.com/buyers.html"', BUYERS)
+        self.assertIn('property="og:url" content="https://www.homeofferflow.com/buyers.html"', BUYERS)
+        self.assertIn('"@type":"Service"', BUYERS)
+        self.assertIn('"price":"99"', BUYERS)
+        self.assertIn('data-buyer-start href="/?buyer=1"', BUYERS)
+        self.assertIn("Homebuyer Offer Landing Viewed", BUYERS)
+        self.assertIn("Homebuyer Offer Landing CTA Selected", BUYERS)
+        self.assertIn("const allowed = ['utm_source','utm_medium','utm_campaign','utm_content'];", BUYERS)
+        self.assertIn('There is no payment required to begin.', BUYERS)
+        self.assertIn("params().get('buyer') === '1'", INDEX)
+        self.assertIn("window.startHomebuyerOffer?.();", INDEX)
 
     def test_public_directory_uses_only_the_existing_safe_directory_endpoint(self):
         self.assertIn('href="https://www.homeofferflow.com/directory.html"', DIRECTORY)

@@ -12655,6 +12655,12 @@ function routeAfterMagicLinkIfNeeded() {
       window.setAudience?.('fsbo');
       window.openFsboSellerModal?.();
     }, 80);
+    // The public homebuyer landing page hands into the existing self-serve
+    // workflow. It carries no identity or property data in the URL.
+    if (params().get('buyer') === '1') setTimeout(() => {
+      window.setAudience?.('homebuyer');
+      window.startHomebuyerOffer?.();
+    }, 80);
     if (params().get('partner_onboarding')) setTimeout(window.openPartnerOnboarding, 80);
     if (params().get('partner') === '1') setTimeout(window.openFoundingPartnerModal, 80);
   });
