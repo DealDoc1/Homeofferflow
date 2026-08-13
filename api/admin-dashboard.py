@@ -3230,6 +3230,15 @@ class handler(BaseHTTPRequestHandler):
                 for placement in partner_placements
                 if placement.get("is_active") and placement.get("source_lead_id")
             }
+            # Agreement confirmation is recorded with the public placement at
+            # activation time.  Include that canonical record when reporting
+            # paid-partner agreement coverage, while retaining the legacy
+            # lead-level fields for any earlier records.
+            agreement_confirmed_source_lead_ids = {
+                str(placement.get("source_lead_id") or "")
+                for placement in partner_placements
+                if placement.get("source_lead_id") and placement.get("agreement_confirmed_at")
+            }
             partner_leads_by_id = {
                 str(lead.get("id") or ""): lead
                 for lead in partner_leads
@@ -3296,6 +3305,8 @@ class handler(BaseHTTPRequestHandler):
                 lead for lead in partner_leads
                 if str(lead.get("payment_status") or "").lower() == "paid"
                 and (
+                    str(lead.get("id") or "") in agreement_confirmed_source_lead_ids
+                    or
                     lead.get("agreement_confirmed_at")
                     or str(lead.get("agreement_status") or "").lower() in {"confirmed", "signed", "complete", "completed"}
                 )
