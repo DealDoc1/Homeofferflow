@@ -31,6 +31,11 @@ class PwaInstallExperienceTests(unittest.TestCase):
         self.assertIn("const isBuyerSuccess = success?.classList.contains('active')", INDEX)
         self.assertIn("window.setTimeout(() => window.renderPwaInstallCard?.(), 0);", INDEX)
 
+    def test_completed_seller_request_can_offer_install_for_returning_mobile_work(self):
+        self.assertIn("const sellerStatus = document.getElementById('fsboSellerStatus');", INDEX)
+        self.assertIn("sellerModal?.getAttribute('aria-hidden') === 'false'", INDEX)
+        self.assertIn("surface: 'seller_success'", INDEX)
+
     def test_ios_uses_home_screen_guidance_and_install_prompt_can_be_dismissed(self):
         self.assertIn("Add to Home Screen", INDEX)
         self.assertIn("hof_pwa_install_dismissed_until", INDEX)
