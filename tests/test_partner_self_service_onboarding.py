@@ -59,6 +59,15 @@ class PartnerSelfServiceOnboardingTests(unittest.TestCase):
         self.assertIn("window.history.replaceState({}, document.title, cleanUrl.pathname + cleanUrl.search + cleanUrl.hash);", html)
         self.assertIn("clearPartnerOnboardingToken();", html)
 
+    def test_partner_setup_explains_and_validates_the_only_required_setup_field(self):
+        html = (ROOT / "index.html").read_text()
+        self.assertIn('id="partnerSetupMarket" placeholder="Market area" required aria-required="true"', html)
+        self.assertIn("Your primary market area is the only setup field required.", html)
+        self.assertIn("Enter the primary market area before saving setup details.", html)
+        self.assertIn("const market = value('partnerSetupMarket');", html)
+        self.assertIn("market_area:market", html)
+        self.assertIn("Website (https, optional)", html)
+
     def test_admin_exposes_paid_partner_setup_completion_funnel(self):
         admin = (ROOT / "api/admin-dashboard.py").read_text()
         html = (ROOT / "index.html").read_text()
