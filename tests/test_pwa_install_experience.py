@@ -35,6 +35,8 @@ class PwaInstallExperienceTests(unittest.TestCase):
         self.assertIn("const sellerStatus = document.getElementById('fsboSellerStatus');", INDEX)
         self.assertIn("sellerModal?.getAttribute('aria-hidden') === 'false'", INDEX)
         self.assertIn("surface: 'seller_success'", INDEX)
+        self.assertIn("const sellerReturnCopy = target.surface === 'seller_success'", INDEX)
+        self.assertIn('Save this seller plan to your Home Screen', INDEX)
 
     def test_ios_uses_home_screen_guidance_and_install_prompt_can_be_dismissed(self):
         self.assertIn("Add to Home Screen", INDEX)
