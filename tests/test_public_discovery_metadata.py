@@ -37,6 +37,8 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn('property="og:url" content="https://www.homeofferflow.com/partners.html"', PARTNERS)
         self.assertIn('"@type":"Service"', PARTNERS)
         self.assertIn('href="/?partner=1"', PARTNERS)
+        self.assertIn("const allowed = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content'];", PARTNERS)
+        self.assertIn("link.href = '/?partner=1&' + campaign.toString();", PARTNERS)
         self.assertIn('not a referral or a required provider choice', PARTNERS)
         self.assertIn('href="/partners.html">Become a Founding Partner</a>', INDEX)
 
@@ -45,6 +47,8 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn('property="og:url" content="https://www.homeofferflow.com/sellers.html"', SELLERS)
         self.assertIn('"@type":"Service"', SELLERS)
         self.assertIn('href="/?seller=1"', SELLERS)
+        self.assertIn("const allowed = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content'];", SELLERS)
+        self.assertIn("link.href = '/?seller=1&' + campaign.toString();", SELLERS)
         self.assertIn('This is an intake—not checkout or a service order.', SELLERS)
         self.assertIn('href="/sellers.html">FSBO Seller Support</a>', INDEX)
 

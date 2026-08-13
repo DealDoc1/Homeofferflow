@@ -63,5 +63,21 @@
     </main>
     <footer>© 2026 HomeOfferFlow · A BrewBQ Investments LLC product · <a href="/terms.html">Terms</a> · <a href="/privacy.html">Privacy</a> · <a href="/disclaimer.html">Disclaimer</a><br><br>HomeOfferFlow does not provide legal, brokerage, lending, inspection, insurance, or home-service advice. Partner placement does not establish a referral relationship, require a provider choice, or guarantee traffic, leads, transactions, or closings.</footer>
   </div>
+  <script>
+    // Preserve only the standard, privacy-safe campaign fields when a public
+    // landing-page visitor continues into the existing application modal.
+    // The intake already records these server-side; no third-party tracker or
+    // arbitrary URL data is carried forward.
+    (() => {
+      const source = new URLSearchParams(window.location.search);
+      const allowed = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content'];
+      const campaign = new URLSearchParams();
+      allowed.forEach(key => { const value = source.get(key); if (value) campaign.set(key, value); });
+      if (!campaign.size) return;
+      document.querySelectorAll('a[href="/?partner=1"]').forEach(link => {
+        link.href = '/?partner=1&' + campaign.toString();
+      });
+    })();
+  </script>
 </body>
 </html>
