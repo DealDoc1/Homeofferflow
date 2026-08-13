@@ -47,6 +47,8 @@ class PwaInstallExperienceTests(unittest.TestCase):
         self.assertIn("appinstalled", INDEX)
         self.assertIn("pwa_install_", INDEX)
         self.assertIn("pwa_install_prompt_shown", INDEX)
+        self.assertIn("function isAndroid()", INDEX)
+        self.assertIn('In Chrome, open the ⋮ menu', INDEX)
         self.assertIn("choice?.outcome === 'accepted' ? 'accepted' : 'dismissed'", INDEX)
         self.assertIn("card.dataset.surface = target.surface", INDEX)
         self.assertIn("surface: target.surface", INDEX)

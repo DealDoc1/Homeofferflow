@@ -17530,6 +17530,10 @@ function routeAfterMagicLinkIfNeeded() {
     return /iphone|ipad|ipod/i.test(navigator.userAgent || '') && !window.MSStream;
   }
 
+  function isAndroid(){
+    return /android/i.test(navigator.userAgent || '');
+  }
+
   function isDismissed(){
     try { return Number(localStorage.getItem(dismissKey) || 0) > Date.now(); }
     catch (_) { return false; }
@@ -17564,7 +17568,10 @@ function routeAfterMagicLinkIfNeeded() {
     if (!target || isStandalone() || isDismissed()) return;
     const existing = document.getElementById('hofPwaInstallCard');
     if (existing) existing.remove();
-    if (!deferredInstallPrompt && !isIos()) return;
+    // Android browsers can still use the supported Home Screen path when the
+    // native install prompt is unavailable after a browser-level dismissal.
+    // Keep this fallback mobile-only so desktop workspaces stay focused.
+    if (!deferredInstallPrompt && !isIos() && !isAndroid()) return;
     const card = document.createElement('div');
     card.id = 'hofPwaInstallCard';
     card.className = 'account-card pwa-install-card';
@@ -17579,12 +17586,16 @@ function routeAfterMagicLinkIfNeeded() {
     card.innerHTML = `<h4>Keep HomeOfferFlow one tap away</h4>
       <p>${ios
         ? 'Add this workspace to your iPhone or iPad Home Screen for a full-screen, app-like launch. No App Store download or separate account is needed.'
+        : isAndroid() && !deferredInstallPrompt
+        ? 'Add HomeOfferFlow to your Android Home Screen for a faster app-like launch. No App Store download or separate account is needed.'
         : 'Add HomeOfferFlow to your Home Screen for a faster app-like launch and an offline-safe shell when you are between showings. No App Store download or separate account is needed.'}</p>
       ${sellerReturnCopy ? `<p class="pwa-install-note"><strong>${sellerReturnCopy}</strong></p>` : ''}
       ${workspaceReturnCopy ? `<p class="pwa-install-note"><strong>${workspaceReturnCopy}</strong></p>` : ''}
       <p class="pwa-install-note">Your offers and client details stay protected online; installation only gives this existing workspace a faster, dedicated launch.</p>
       <div class="pwa-install-actions">
         ${ios
+          ? '<button class="btn-primary" type="button" id="hofPwaInstallHelp">How to add it</button>'
+          : isAndroid() && !deferredInstallPrompt
           ? '<button class="btn-primary" type="button" id="hofPwaInstallHelp">How to add it</button>'
           : '<button class="btn-primary" type="button" id="hofPwaInstallButton">Add to Home Screen</button>'}
         <button class="btn-secondary" type="button" id="hofPwaInstallDismiss">Not now</button>
@@ -17608,7 +17619,14 @@ function routeAfterMagicLinkIfNeeded() {
     card.querySelector('#hofPwaInstallDismiss')?.addEventListener('click', dismissInstallCard);
     card.querySelector('#hofPwaInstallHelp')?.addEventListener('click', () => {
       const note = card.querySelector('#hofPwaInstallNote');
-      if (note) { note.textContent = 'In Safari, tap Share, then choose “Add to Home Screen.”'; note.style.display = 'block'; trackInstall('instructions_opened', { platform: 'ios', surface: target.surface }); }
+      if (note) {
+        const platform = isIos() ? 'ios' : 'android';
+        note.textContent = isIos()
+          ? 'In Safari, tap Share, then choose “Add to Home Screen.”'
+          : 'In Chrome, open the ⋮ menu, then choose “Install app” or “Add to Home screen.”';
+        note.style.display = 'block';
+        trackInstall('instructions_opened', { platform, surface: target.surface });
+      }
     });
     card.querySelector('#hofPwaInstallButton')?.addEventListener('click', async () => {
       if (!deferredInstallPrompt) return;
