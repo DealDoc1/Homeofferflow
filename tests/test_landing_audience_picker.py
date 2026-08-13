@@ -45,7 +45,7 @@ class LandingAudiencePickerTests(unittest.TestCase):
             with self.subTest(audience=audience_key):
                 self.assertIn(f"audience: '{audience_key}'", audience)
                 self.assertIn(label, audience)
-        self.assertEqual(audience.count("startPrimaryOffer();"), 3)
+        self.assertEqual(audience.count("beginOfferFrom('landing_audience_card_"), 3)
         self.assertIn("audience_grid_card", audience)
         self.assertIn(".audience-card-action", HTML)
 

@@ -13,6 +13,21 @@ class LandingHeroConversionLayoutTests(unittest.TestCase):
         self.assertIn('id="heroCta"', HTML)
         self.assertIn("Start Your Offer — $99", HTML)
 
+    def test_public_offer_ctas_record_a_non_sensitive_conversion_surface(self):
+        for surface in (
+            "landing_nav_cta",
+            "landing_hero_cta",
+            "landing_bottom_cta",
+            "landing_audience_card_homebuyer",
+            "landing_audience_card_agent",
+            "landing_audience_card_investor",
+        ):
+            self.assertIn(f"beginOfferFrom('{surface}')", HTML)
+        self.assertIn("function beginOfferFrom(surface)", HTML)
+        self.assertIn("Offer Entry CTA Selected", HTML)
+        self.assertIn("window.__hofOfferEntrySurface", HTML)
+        self.assertIn("entrySurface: window.__hofOfferEntrySurface || 'direct'", HTML)
+
 
 if __name__ == "__main__":
     unittest.main()
