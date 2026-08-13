@@ -114,6 +114,14 @@ class PartnerSelfServiceOnboardingTests(unittest.TestCase):
         self.assertIn("partner_onboarding_invitation_copied", html)
         self.assertIn("paste it into your own follow-up when appropriate", html)
 
+    def test_admin_can_copy_a_saved_partner_checkout_invitation_without_sending_or_charging(self):
+        html = (ROOT / "index.html").read_text()
+        self.assertIn("Copy checkout invitation", html)
+        self.assertIn("copyPartnerCheckoutInvitation", html)
+        self.assertIn("request_type: 'founding_partner_checkout'", html)
+        self.assertIn("partner_checkout_invitation_copied", html)
+        self.assertIn("does not email anyone or collect a payment", html)
+
 
 if __name__ == "__main__":
     unittest.main()
