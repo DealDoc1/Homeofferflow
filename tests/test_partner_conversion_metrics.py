@@ -15,6 +15,7 @@ class PartnerConversionMetricTests(unittest.TestCase):
         self.assertIn('"partnerOnboardingAccessMissingCount"', source)
         self.assertIn('"partnerActivationRate"', source)
         self.assertIn('"paidPartnerAgreementConfirmedCount"', source)
+        self.assertIn("agreement_confirmed_source_lead_ids", source)
         self.assertIn('"paidPartnerAgreementConfirmationRate"', source)
         self.assertIn('"paidPartnerActivationQueueAgedCount"', source)
         self.assertIn('"partnerActivationAvgDays"', source)
