@@ -9,6 +9,9 @@ class ActivationMilestoneMetricTests(unittest.TestCase):
     def test_admin_payload_counts_privacy_safe_activation_milestones(self):
         source = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
         self.assertIn('agent_activation_milestone_reached', source)
+        self.assertIn('activation_milestone_users', source)
+        self.assertIn('activation_milestone_users[milestone].add(user_id)', source)
+        self.assertIn('milestone: len(user_ids)', source)
         self.assertIn('activationMilestoneCounts', source)
         self.assertIn('activationFirstOfferRate', source)
         self.assertIn('activationSubscriptionRate', source)

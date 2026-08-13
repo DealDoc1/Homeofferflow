@@ -3726,13 +3726,22 @@ class handler(BaseHTTPRequestHandler):
                 if item.get("event_type") == "activation_follow_up_email_started"
                 and (item.get("metadata") or {}).get("surface") == "brokerage"
             ])
-            activation_milestone_counts = {"profile": 0, "first_offer": 0, "subscription": 0}
+            # The client records a reached milestone once per browser session so
+            # a returning agent can still be attributed. Conversion reporting,
+            # however, must not turn those repeat sessions into additional
+            # agents. Count the privacy-safe user IDs once per milestone.
+            activation_milestone_users = {"profile": set(), "first_offer": set(), "subscription": set()}
             for item in events:
                 if item.get("event_type") != "agent_activation_milestone_reached":
                     continue
                 milestone = str((item.get("metadata") or {}).get("milestone") or "").strip().lower()
-                if milestone in activation_milestone_counts:
-                    activation_milestone_counts[milestone] += 1
+                user_id = str(item.get("user_id") or "").strip()
+                if milestone in activation_milestone_users and user_id:
+                    activation_milestone_users[milestone].add(user_id)
+            activation_milestone_counts = {
+                milestone: len(user_ids)
+                for milestone, user_ids in activation_milestone_users.items()
+            }
             subscription_checkout_start_count = len([
                 item for item in events if item.get("event_type") == "subscription_checkout_started"
             ])
