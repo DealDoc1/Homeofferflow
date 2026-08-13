@@ -2554,7 +2554,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   <div class="logo" onclick="goHomeFromLanding()">Home<span>Offer</span>Flow</div>
   <div class="nav-actions">
     <button class="nav-auth" id="accountCta" onclick="openAuthModal(state?.data?.userType || 'agent')">Agent / Broker Login</button>
-    <button class="nav-cta" id="navCta" onclick="startPrimaryOffer()">Build Your Offer →</button>
+    <button class="nav-cta" id="navCta" onclick="beginOfferFrom('landing_nav_cta')">Build Your Offer →</button>
   </div>
 </nav>
 
@@ -2569,7 +2569,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   <h1 id="heroHeadline">Write a Real Estate Offer<br/><em>Without the Confusion.</em></h1>
   <p class="hero-sub" id="heroSub">HomeOfferFlow guides you through a supported Texas buyer-offer packet in plain English, then lets you review every term before signing or sending.</p>
   <div class="hero-actions">
-    <button class="btn-primary" id="heroCta" onclick="startPrimaryOffer()">Start Your Offer — $99</button>
+    <button class="btn-primary" id="heroCta" onclick="beginOfferFrom('landing_hero_cta')">Start Your Offer — $99</button>
     <button class="btn-secondary" onclick="document.getElementById('how').scrollIntoView()">See How It Works</button>
   </div>
   <div class="hero-price-note" id="heroPriceNote">No payment required to begin. Review the full offer summary before paying. <strong>Homebuyer offer packet: $99.</strong></div>
@@ -2605,13 +2605,13 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   <div class="section-label">Who It's For</div>
   <h2>Built for every side of the Texas transaction.</h2>
   <div class="audience-grid">
-    <button type="button" class="audience-card audience-card-link audience-card-action" onclick="setAudience('homebuyer'); trackEvent('Landing Audience Selected', { audience: 'homebuyer', surface: 'audience_grid_card' }); startPrimaryOffer();" aria-label="Start a $99 HomeOfferFlow homebuyer offer">
+    <button type="button" class="audience-card audience-card-link audience-card-action" onclick="setAudience('homebuyer'); trackEvent('Landing Audience Selected', { audience: 'homebuyer', surface: 'audience_grid_card' }); beginOfferFrom('landing_audience_card_homebuyer');" aria-label="Start a $99 HomeOfferFlow homebuyer offer">
       <div class="audience-icon">🏠</div><h3>Homebuyers</h3><p>Build a Texas resale offer packet with plain-English guidance, AI competitiveness review, and buyer-side signing when the packet is ready.</p><span class="audience-price">Start a $99 offer packet</span>
     </button>
-    <button type="button" class="audience-card audience-card-link audience-card-action" onclick="setAudience('agent'); trackEvent('Landing Audience Selected', { audience: 'agent', surface: 'audience_grid_card' }); startPrimaryOffer();" aria-label="Open the HomeOfferFlow agent and broker workspace">
+    <button type="button" class="audience-card audience-card-link audience-card-action" onclick="setAudience('agent'); trackEvent('Landing Audience Selected', { audience: 'agent', surface: 'audience_grid_card' }); beginOfferFrom('landing_audience_card_agent');" aria-label="Open the HomeOfferFlow agent and broker workspace">
       <div class="audience-icon">🏢</div><h3>Agents & Brokers</h3><p>Create supported Texas buyer-offer packets from the field, track buyer-side signature status, duplicate prior offers, and collect broker-reviewed feedback.</p><span class="audience-price">Open agent / broker workspace</span>
     </button>
-    <button type="button" class="audience-card audience-card-link audience-card-action" onclick="setAudience('investor'); trackEvent('Landing Audience Selected', { audience: 'investor', surface: 'audience_grid_card' }); startPrimaryOffer();" aria-label="Open the HomeOfferFlow investor workspace">
+    <button type="button" class="audience-card audience-card-link audience-card-action" onclick="setAudience('investor'); trackEvent('Landing Audience Selected', { audience: 'investor', surface: 'audience_grid_card' }); beginOfferFrom('landing_audience_card_investor');" aria-label="Open the HomeOfferFlow investor workspace">
       <div class="audience-icon">📈</div><h3>Investors</h3><p>Use saved defaults and repeat-offer workflows to move faster while still keeping financing, option, title, and addenda terms organized.</p><span class="audience-price">Open investor workspace</span>
     </button>
     <a class="audience-card audience-card-link" href="?seller=1" onclick="event.preventDefault(); setAudience('fsbo'); trackEvent('FSBO Seller Card CTA Selected', { surface: 'audience_grid' }); openFsboSellerModal();" aria-label="Start a HomeOfferFlow FSBO seller package request">
@@ -2633,7 +2633,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   <div class="cta-box">
     <h2>Ready to write your offer?</h2>
     <p>Choose the right path: $99 buyer offer packets, agent/broker beta workspace, investor repeat-offer workflow, or FSBO seller package intake.</p>
-    <button class="btn-primary" id="bottomCta" onclick="startPrimaryOffer()">Start Your Offer — $99</button>
+    <button class="btn-primary" id="bottomCta" onclick="beginOfferFrom('landing_bottom_cta')">Start Your Offer — $99</button>
     <div class="hero-price-note" id="bottomPriceNote">Homebuyer offer packet: <strong>$99</strong>. FSBO seller packages are intake-only for now; brokerage-connected services start higher to cover broker/provider requirements.</div>
   </div>
 </section>
@@ -7091,6 +7091,19 @@ function routeAfterMagicLinkIfNeeded() {
     });
   }
 
+  function beginOfferFrom(surface) {
+    // Analytics only: this never enters the offer payload, PDF, or checkout.
+    // It lets us compare public conversion surfaces without adding a paid tool
+    // or collecting any additional buyer information.
+    const entrySurface = String(surface || 'unknown').slice(0, 80);
+    window.__hofOfferEntrySurface = entrySurface;
+    trackEvent('Offer Entry CTA Selected', {
+      surface: entrySurface,
+      userType: state?.data?.userType || 'homebuyer'
+    });
+    startPrimaryOffer();
+  }
+
   function startPrimaryOffer() {
     const selectedType = state?.data?.userType || 'homebuyer';
     if (selectedType === 'fsbo') {
@@ -7115,7 +7128,10 @@ function routeAfterMagicLinkIfNeeded() {
       openAuthModal(currentType);
       return;
     }
-    trackEvent('Started Offer Wizard', { userType: state.data.userType || 'homebuyer' });
+    trackEvent('Started Offer Wizard', {
+      userType: state.data.userType || 'homebuyer',
+      entrySurface: window.__hofOfferEntrySurface || 'direct'
+    });
     document.getElementById('wizardOverlay').classList.add('active');
     document.body.style.overflow = 'hidden';
 
@@ -8659,7 +8675,13 @@ function routeAfterMagicLinkIfNeeded() {
 
       sessionStorage.setItem('hofOfferData', JSON.stringify(offerData));
       try { saveDraft(); } catch (e) {}
-      try { trackEvent('Payment Started', { plan: state.selectedPlan, price: state.selectedPrice }); } catch (e) {}
+      try {
+        trackEvent('Payment Started', {
+          plan: state.selectedPlan,
+          price: state.selectedPrice,
+          entrySurface: window.__hofOfferEntrySurface || 'direct'
+        });
+      } catch (e) {}
 
       if (btn) {
         btn.disabled = true;
