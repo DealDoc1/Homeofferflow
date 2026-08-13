@@ -94,8 +94,8 @@ class AgentActivationDashboardTests(unittest.TestCase):
         first_offer = script.index("if (!hasOffer) {")
         profile_after_offer = script.index("if (!hasProfile) {", first_offer + 1)
         self.assertLess(first_offer, profile_after_offer)
-        self.assertIn("Start your first client offer", script)
-        self.assertIn("Start First Offer", script)
+        self.assertIn("Create a first draft for your client", script)
+        self.assertIn("Create First Draft", script)
         self.assertIn("Set Up My Defaults", script)
 
     def test_first_offer_state_explains_the_safe_draft_boundary_before_the_cta(self):
@@ -105,6 +105,7 @@ class AgentActivationDashboardTests(unittest.TestCase):
 
         self.assertIn("confidence: true", script)
         self.assertIn("First offer workflow overview", script)
+        self.assertIn("Save a private draft first", script)
         self.assertIn("Saving a draft does not send a packet or request a signature.", script)
 
     def test_onboarding_uses_a_real_saved_draft_path_not_demo_only_language(self):
