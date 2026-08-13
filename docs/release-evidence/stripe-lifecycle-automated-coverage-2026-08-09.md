@@ -13,8 +13,8 @@ contract:
 | Runbook behavior | Automated assertion |
 | --- | --- |
 | Trial invoice keeps the subscription in `trialing` | `test_paid_trial_invoice_keeps_current_trialing_status` |
-| Production rejects sandbox events | `test_stripe_test_mode_event_cannot_mutate_production_by_default`, `test_production_never_accepts_sandbox_events_even_if_the_flag_is_set` |
-| Preview sharing the production database also rejects sandbox events | `test_preview_with_production_database_cannot_process_sandbox_events` |
+| Production acknowledges but ignores sandbox events | `test_stripe_test_mode_event_is_acknowledged_without_production_mutation`, `test_production_acknowledges_but_never_processes_sandbox_events_even_if_flagged` |
+| Preview sharing the production database also acknowledges but ignores sandbox events | `test_preview_with_production_database_cannot_process_sandbox_events` |
 | Explicitly isolated preview can process sandbox events | `test_isolated_test_environment_may_explicitly_process_sandbox_events` |
 | Completed delivery is idempotent and does not store the event body | `test_webhook_ledger_deduplicates_completed_events_without_storing_event_body` |
 | Failed deliveries can be retried | `test_webhook_ledger_records_processing_result_and_allows_failed_retry` |
