@@ -9379,8 +9379,8 @@ function routeAfterMagicLinkIfNeeded() {
       if (window.google && window.google.maps && !_autocompleteService) setupPlacesServices();
       return;
     }
-    addressAutocompleteInputs().forEach(([inputId, onSelectCallback]) => {
-      _wireGoogleAutocomplete(inputId, onSelectCallback);
+    addressAutocompleteInputs().forEach(([input, onSelectCallback]) => {
+      _wireGoogleAutocomplete(input, onSelectCallback);
     });
   }
 
@@ -9394,16 +9394,19 @@ function routeAfterMagicLinkIfNeeded() {
       fsboPropertyAddress: fillFsboAddressFields,
       brandOfficeAddress: fillBrandOfficeAddressFields
     };
-    const legacyAddressIds = new Set(['propertyToSell']);
-    return Array.from(document.querySelectorAll('input[id]'))
-      .filter(input => /(?:address|addr)/i.test(input.id) || legacyAddressIds.has(input.id))
-      .map(input => [input.id, callbacks[input.id] || null]);
+    // A small number of long-lived profile controls use a concise ID instead
+    // of an "Address" suffix. Name-only agreement controls are included too:
+    // those dialogs are rendered after sign-in and should receive the same
+    // low-friction address search as the public offer flow.
+    const legacyAddressIds = new Set(['propertyToSell', 'profInvestorMailing']);
+    return Array.from(document.querySelectorAll('input[id], input[name]'))
+      .filter(input => /(?:address|addr)/i.test(`${input.id} ${input.name}`) || legacyAddressIds.has(input.id))
+      .map(input => [input, callbacks[input.id] || null]);
   }
 
   function wireLegacyGoogleAddressInputs() {
     if (!window.google?.maps?.places?.Autocomplete) return;
-    addressAutocompleteInputs().forEach(([inputId, onSelectCallback]) => {
-      const input = document.getElementById(inputId);
+    addressAutocompleteInputs().forEach(([input, onSelectCallback]) => {
       if (!input || input._hofLegacyWired) return;
       input._hofLegacyWired = true;
       const autocomplete = new google.maps.places.Autocomplete(input, {
@@ -9425,14 +9428,13 @@ function routeAfterMagicLinkIfNeeded() {
   // This covers profile and workspace forms created after the initial page load.
   document.addEventListener('focusin', function(e) {
     const input = e.target;
-    if (!(input instanceof HTMLInputElement) || !input.id) return;
-    if (!/(?:address|addr)/i.test(input.id) && input.id !== 'propertyToSell') return;
+    if (!(input instanceof HTMLInputElement)) return;
+    if (!/(?:address|addr)/i.test(`${input.id} ${input.name}`) && !['propertyToSell', 'profInvestorMailing'].includes(input.id)) return;
     window._hofPlacesSetup = wireAddressInput;
     Promise.resolve(window.loadHofPlaces?.()).then(() => wireAddressInput());
   });
 
-  function _wireGoogleAutocomplete(inputId, onSelectCallback) {
-    const input = document.getElementById(inputId);
+  function _wireGoogleAutocomplete(input, onSelectCallback) {
     if (!input || input._hofWired) return;
 
     input._hofWired = true;
@@ -9470,7 +9472,7 @@ function routeAfterMagicLinkIfNeeded() {
     }, 280));
 
     document.addEventListener('click', e => {
-      if (!e.target.closest(`#${inputId}`) && !e.target.closest('#hof-ac-dd')) _hideDropdown();
+      if (e.target !== input && !e.target.closest('#hof-ac-dd')) _hideDropdown();
     });
   }
 
