@@ -21,8 +21,12 @@ class LazyPlacesLoadingTests(unittest.TestCase):
 
     def test_every_address_input_is_wired_including_late_rendered_forms(self):
         self.assertIn("function addressAutocompleteInputs()", HTML)
-        self.assertIn("document.querySelectorAll('input[id]')", HTML)
-        self.assertIn("/(?:address|addr)/i.test(input.id)", HTML)
+        self.assertIn("document.querySelectorAll('input[id], input[name]')", HTML)
+        self.assertIn("/(?:address|addr)/i.test(`${input.id} ${input.name}`)", HTML)
+        self.assertIn("'profInvestorMailing'", HTML)
+        self.assertIn(".map(input => [input, callbacks[input.id] || null])", HTML)
+        self.assertIn('name="clientAddress"', HTML)
+        self.assertIn('name="propertyAddress"', HTML)
         self.assertIn("document.addEventListener('focusin'", HTML)
         self.assertIn("fillBrandOfficeAddressFields", HTML)
         for input_id in (
