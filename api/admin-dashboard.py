@@ -3776,6 +3776,18 @@ class handler(BaseHTTPRequestHandler):
                 "installed": 0,
                 "instructions_opened": 0,
             }
+            # Keep the attribution vocabulary intentionally small. This is
+            # enough to improve the install surface without retaining raw
+            # device or visitor data in the admin response.
+            pwa_install_surfaces = {
+                "seller_success",
+                "buyer_review",
+                "buyer_success",
+                "account_dashboard",
+            }
+            pwa_install_shown_surface_counts = {
+                surface: 0 for surface in sorted(pwa_install_surfaces)
+            }
             for item in events:
                 event_type = str(item.get("event_type") or "").strip().lower()
                 if not event_type.startswith("pwa_install_"):
@@ -3783,6 +3795,10 @@ class handler(BaseHTTPRequestHandler):
                 event_key = event_type.removeprefix("pwa_install_")
                 if event_key in pwa_install_event_counts:
                     pwa_install_event_counts[event_key] += 1
+                if event_key == "shown":
+                    surface = str((item.get("metadata") or {}).get("surface") or "").strip().lower()
+                    if surface in pwa_install_surfaces:
+                        pwa_install_shown_surface_counts[surface] += 1
             activation_follow_up_email_start_count = len([
                 item for item in events if item.get("event_type") == "activation_follow_up_email_started"
             ])
@@ -4098,6 +4114,7 @@ class handler(BaseHTTPRequestHandler):
                     (packet_generation_recovered_count / packet_generation_retry_count) * 100, 1
                 ) if packet_generation_retry_count else 0,
                 "pwaInstallEventCounts": pwa_install_event_counts,
+                "pwaInstallShownSurfaceCounts": pwa_install_shown_surface_counts,
                 "pwaInstallShownCount": pwa_install_event_counts["shown"],
                 "pwaInstallPromptOpenCount": pwa_install_event_counts["prompt_opened"],
                 "pwaInstallInstructionsOpenCount": pwa_install_event_counts["instructions_opened"],
