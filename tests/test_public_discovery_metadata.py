@@ -69,6 +69,9 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn('Founding partner questions', PARTNERS)
         self.assertIn('Clear commercial terms before you apply.', PARTNERS)
         self.assertIn('When does monthly founding partner billing begin?', PARTNERS)
+        self.assertIn('What does Premier category-and-market exclusivity mean?', PARTNERS)
+        self.assertIn('One active Premier sponsor per category and market', PARTNERS)
+        self.assertIn('Premier Partners reserve one active Premier placement', PARTNERS)
         self.assertIn('href="/partners">Become a Founding Partner</a>', INDEX)
 
     def test_seller_acquisition_page_is_indexable_and_routes_to_the_existing_safe_intake(self):
