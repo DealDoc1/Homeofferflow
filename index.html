@@ -17378,8 +17378,16 @@ function routeAfterMagicLinkIfNeeded() {
   if ('serviceWorker' in navigator) {
     let hofPwaRefreshRequested = false;
 
+    // A waiting worker is normal after a deployment for every browser that
+    // visits the site. The explicit update choice is useful in the installed
+    // app, but it competes with buyer, seller, and partner acquisition CTAs
+    // in an ordinary web tab. Keep it to the app-like standalone experience.
+    function isHomeOfferFlowStandalone() {
+      return window.matchMedia?.('(display-mode: standalone)').matches || navigator.standalone === true;
+    }
+
     function showHomeOfferFlowUpdate(registration) {
-      if (!registration?.waiting || document.getElementById('hofPwaUpdateCard')) return;
+      if (!isHomeOfferFlowStandalone() || !registration?.waiting || document.getElementById('hofPwaUpdateCard')) return;
       const card = document.createElement('aside');
       card.id = 'hofPwaUpdateCard';
       card.className = 'hof-pwa-update-card';
