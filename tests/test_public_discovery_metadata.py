@@ -56,9 +56,11 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
 
     def test_public_directory_uses_only_the_existing_safe_directory_endpoint(self):
         self.assertIn('href="https://www.homeofferflow.com/directory.html"', DIRECTORY)
-        self.assertIn("fetch('/api/fsbo-lead?'+q)", DIRECTORY)
+        self.assertIn("fetch('/api/fsbo-lead?'+query)", DIRECTORY)
         self.assertIn("partner_directory:'1'", DIRECTORY)
         self.assertIn('No active HomeOfferFlow provider profiles', DIRECTORY)
+        self.assertIn('Own a service business? Explore a founding placement', DIRECTORY)
+        self.assertIn('href="/partners.html"', DIRECTORY)
         self.assertIn('href="/directory.html">Find a Provider</a>', INDEX)
         self.assertIn('href="/directory.html" style="color:var(--gold-light);font-weight:800;">Browse approved provider listings →</a>', INDEX)
 
