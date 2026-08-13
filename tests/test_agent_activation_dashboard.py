@@ -57,6 +57,17 @@ class AgentActivationDashboardTests(unittest.TestCase):
         self.assertIn("await loadMyOffers();", body)
         self.assertLess(body.index("await loadMyOffers();"), body.index("renderAccountDashboard();"))
 
+    def test_new_agent_post_login_routes_to_the_activation_dashboard_first(self):
+        function_match = re.search(
+            r"async function openAccountDashboard\(opts = \{\}\) \{(?P<body>.*?)\n  \}",
+            HTML,
+            re.DOTALL,
+        )
+        self.assertIsNotNone(function_match)
+        body = function_match.group("body")
+        self.assertIn("showAccountTab(opts.tab || 'dashboard');", body)
+        self.assertNotIn("opts.postLogin && !isProfileMeaningful() ? 'profile'", body)
+
     def test_offer_loader_persists_offer_state_for_activation_card(self):
         self.assertIn("hofAuth.myOffers = loadedOffers;", HTML)
         self.assertIn("renderAgentActivationCard();", HTML)

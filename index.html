@@ -4743,7 +4743,10 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       modal.classList.add('active');
       modal.setAttribute('aria-hidden', 'false');
     }
-    showAccountTab(opts.tab || (opts.postLogin && !isProfileMeaningful() ? 'profile' : 'dashboard'));
+    // New agents should see the first-offer value path immediately. The
+    // activation card makes reusable defaults the clear secondary action, so
+    // profile setup remains available without delaying the core workflow.
+    showAccountTab(opts.tab || 'dashboard');
     try {
       if (sessionStorage.getItem('hof_subscription_checkout_cancelled') === '1') {
         sessionStorage.removeItem('hof_subscription_checkout_cancelled');
