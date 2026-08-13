@@ -64,6 +64,23 @@
       console.log('Google Maps loaded');
       if (window._hofPlacesSetup) window._hofPlacesSetup();
     };
+    window.loadHofPlaces = function() {
+      if (window.google?.maps) return Promise.resolve(true);
+      if (window._hofPlacesLoadPromise) return window._hofPlacesLoadPromise;
+      window._hofPlacesLoadPromise = new Promise(resolve => {
+        const script = document.createElement('script');
+        script.src = 'https://maps.googleapis.com/maps/api/js?key=AIzaSyCs554orYvNAmKnIehn7bwAvADCfx71_Oc&libraries=places&callback=initAutocomplete&loading=async';
+        script.async = true;
+        script.defer = true;
+        script.onload = () => resolve(true);
+        script.onerror = () => {
+          console.warn('Google Places could not load; manual address entry remains available.');
+          resolve(false);
+        };
+        document.head.appendChild(script);
+      });
+      return window._hofPlacesLoadPromise;
+    };
     
   function checkPaymentReturn() {
   // Subscription checkout returns should not trigger the offer-packet success screen.
@@ -298,8 +315,6 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   <script src="https://js.stripe.com/v3/"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCs554orYvNAmKnIehn7bwAvADCfx71_Oc&libraries=places&callback=initAutocomplete&loading=async" async defer></script>
-
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
@@ -7130,7 +7145,9 @@ function routeAfterMagicLinkIfNeeded() {
     applySmartDefaults();
     applyProfileDefaultsToWizard(false);
     applyHomebuyerTitleDefaults(false);
-    setTimeout(tryInitAutocomplete, 300);
+    const placesLoad = window.loadHofPlaces?.();
+    if (placesLoad?.then) placesLoad.then(() => tryInitAutocomplete());
+    else setTimeout(tryInitAutocomplete, 300);
   }
 
   function closeWizard() {
@@ -9320,6 +9337,7 @@ function routeAfterMagicLinkIfNeeded() {
   function initPlacesService() {
     if (!window.google || !window.google.maps) {
       window._hofPlacesSetup = wireAddressInput;
+      window.loadHofPlaces?.();
       return;
     }
 
@@ -9336,28 +9354,30 @@ function routeAfterMagicLinkIfNeeded() {
       if (window.google && window.google.maps && !_autocompleteService) setupPlacesServices();
       return;
     }
-    _wireGoogleAutocomplete('propAddress', fillAddressFields);
-    _wireGoogleAutocomplete('buyerMailAddr', fillBuyerMailAddressField);
-    _wireGoogleAutocomplete('propertyToSell', null);
-    _wireGoogleAutocomplete('propertyToSellAddress', null);
-    _wireGoogleAutocomplete('salePropertyAddress', null);
-    _wireGoogleAutocomplete('salePropertyAddr', null);
-    _wireGoogleAutocomplete('saleAddress', null);
-    _wireGoogleAutocomplete('fsboPropertyAddress', fillFsboAddressFields);
+    addressAutocompleteInputs().forEach(([inputId, onSelectCallback]) => {
+      _wireGoogleAutocomplete(inputId, onSelectCallback);
+    });
+  }
+
+  // Keep this selector broad deliberately: address fields also appear in
+  // account, broker, and seller workspaces after their screens are rendered.
+  // The explicit legacy name is retained because it predates the Address suffix.
+  function addressAutocompleteInputs() {
+    const callbacks = {
+      propAddress: fillAddressFields,
+      buyerMailAddr: fillBuyerMailAddressField,
+      fsboPropertyAddress: fillFsboAddressFields,
+      brandOfficeAddress: fillBrandOfficeAddressFields
+    };
+    const legacyAddressIds = new Set(['propertyToSell']);
+    return Array.from(document.querySelectorAll('input[id]'))
+      .filter(input => /(?:address|addr)/i.test(input.id) || legacyAddressIds.has(input.id))
+      .map(input => [input.id, callbacks[input.id] || null]);
   }
 
   function wireLegacyGoogleAddressInputs() {
     if (!window.google?.maps?.places?.Autocomplete) return;
-    [
-      ['propAddress', fillAddressFields],
-      ['buyerMailAddr', fillBuyerMailAddressField],
-      ['propertyToSell', null],
-      ['propertyToSellAddress', null],
-      ['salePropertyAddress', null],
-      ['salePropertyAddr', null],
-      ['saleAddress', null],
-      ['fsboPropertyAddress', fillFsboAddressFields]
-    ].forEach(([inputId, onSelectCallback]) => {
+    addressAutocompleteInputs().forEach(([inputId, onSelectCallback]) => {
       const input = document.getElementById(inputId);
       if (!input || input._hofLegacyWired) return;
       input._hofLegacyWired = true;
@@ -9375,6 +9395,16 @@ function routeAfterMagicLinkIfNeeded() {
       });
     });
   }
+
+  // Load and attach Places only when a real address input is about to be used.
+  // This covers profile and workspace forms created after the initial page load.
+  document.addEventListener('focusin', function(e) {
+    const input = e.target;
+    if (!(input instanceof HTMLInputElement) || !input.id) return;
+    if (!/(?:address|addr)/i.test(input.id) && input.id !== 'propertyToSell') return;
+    window._hofPlacesSetup = wireAddressInput;
+    Promise.resolve(window.loadHofPlaces?.()).then(() => wireAddressInput());
+  });
 
   function _wireGoogleAutocomplete(inputId, onSelectCallback) {
     const input = document.getElementById(inputId);
@@ -9581,6 +9611,20 @@ function routeAfterMagicLinkIfNeeded() {
 
     const badge = document.getElementById('addressAutofillBadge');
     if (badge) badge.style.display = 'block';
+  }
+
+  function fillBrandOfficeAddressFields(components) {
+    let city = '', state = 'TX';
+    components.forEach(c => {
+      const t = c.types || [];
+      if (t.includes('locality')) city = c.long_name;
+      if (t.includes('sublocality_level_1') && !city) city = c.long_name;
+      if (t.includes('administrative_area_level_1')) state = c.short_name || c.long_name || state;
+    });
+    const cityEl = document.getElementById('brandOfficeCity');
+    const stateEl = document.getElementById('brandOfficeState');
+    if (cityEl && city) cityEl.value = city;
+    if (stateEl && state) stateEl.value = state;
   }
 
   function fillFsboAddressFields(components) {
@@ -11704,8 +11748,10 @@ function routeAfterMagicLinkIfNeeded() {
         try { window.restoreFsboDraft?.(); } catch(_) { try { window.renderFsboNeedDetails?.(); } catch(__) {} }
         if (campaignPackage) window.selectFsboNeed?.(campaignPackage, false);
         try { renderFsboRequestReceipt(); } catch(_) {}
-        try { wireAddressInput?.(); } catch(_) {}
-        try { window._hofPlacesSetup?.(); } catch(_) {}
+        Promise.resolve(window.loadHofPlaces?.()).then(() => {
+          try { wireAddressInput?.(); } catch(_) {}
+          try { window._hofPlacesSetup?.(); } catch(_) {}
+        });
         document.getElementById('fsboPropertyAddress')?.focus();
       }, 0);
     }
