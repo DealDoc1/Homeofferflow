@@ -109,6 +109,12 @@ class PartnerTierUiTests(unittest.TestCase):
             self.assertIn(event, self.html)
         self.assertIn("window.selectFoundingPartnerTier('monthly_placement', false)", self.html)
 
+    def test_selected_tier_makes_the_secure_checkout_handoff_explicit(self):
+        self.assertIn('id="foundingPartnerCheckoutNote"', self.html)
+        self.assertIn('Continue to Secure Checkout — ', self.html)
+        self.assertIn('review the selected Founding Partner price and payment details in secure Stripe Checkout', self.html)
+        self.assertIn('placement stays private until onboarding and written-agreement review are complete', self.html)
+
     def test_admin_partner_leads_have_privacy_limited_follow_up_action(self):
         self.assertIn("partnerLeadFollowUpAction", self.html)
         self.assertIn("Email partner", self.html)
