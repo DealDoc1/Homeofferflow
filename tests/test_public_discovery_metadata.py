@@ -7,6 +7,7 @@ INDEX = (ROOT / "index.html").read_text(encoding="utf-8")
 ROBOTS = (ROOT / "robots.txt").read_text(encoding="utf-8")
 SITEMAP = (ROOT / "sitemap.xml").read_text(encoding="utf-8")
 PARTNERS = (ROOT / "partners.html").read_text(encoding="utf-8")
+SELLERS = (ROOT / "sellers.html").read_text(encoding="utf-8")
 
 
 class PublicDiscoveryMetadataTests(unittest.TestCase):
@@ -29,6 +30,7 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn('https://www.homeofferflow.com/', SITEMAP)
         self.assertIn('https://www.homeofferflow.com/ondemand', SITEMAP)
         self.assertIn('https://www.homeofferflow.com/partners.html', SITEMAP)
+        self.assertIn('https://www.homeofferflow.com/sellers.html', SITEMAP)
 
     def test_partner_acquisition_page_has_share_metadata_and_a_direct_application_path(self):
         self.assertIn('<link rel="canonical" href="https://www.homeofferflow.com/partners.html"', PARTNERS)
@@ -37,6 +39,14 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn('href="/?partner=1"', PARTNERS)
         self.assertIn('not a referral or a required provider choice', PARTNERS)
         self.assertIn('href="/partners.html">Become a Founding Partner</a>', INDEX)
+
+    def test_seller_acquisition_page_is_indexable_and_routes_to_the_existing_safe_intake(self):
+        self.assertIn('<link rel="canonical" href="https://www.homeofferflow.com/sellers.html"', SELLERS)
+        self.assertIn('property="og:url" content="https://www.homeofferflow.com/sellers.html"', SELLERS)
+        self.assertIn('"@type":"Service"', SELLERS)
+        self.assertIn('href="/?seller=1"', SELLERS)
+        self.assertIn('This is an intake—not checkout or a service order.', SELLERS)
+        self.assertIn('href="/sellers.html">FSBO Seller Support</a>', INDEX)
 
 
 if __name__ == "__main__":
