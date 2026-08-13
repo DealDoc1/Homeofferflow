@@ -64,6 +64,12 @@ class Client:
 
 
 class PartnerCheckoutTests(unittest.TestCase):
+
+    def test_success_confirmation_provides_a_direct_safe_support_recovery_link(self):
+        html = (ROOT / "index.html").read_text(encoding="utf-8")
+        self.assertIn('id="foundingPartnerCheckoutConfirmation"', html)
+        self.assertIn('mailto:support@homeofferflow.com?subject=Partner%20setup%20link%20request', html)
+        self.assertIn('ask support to issue a fresh secure link', html)
     def test_success_return_explains_secure_setup_timeline_and_activation_boundary(self):
         html = (ROOT / "index.html").read_text(encoding="utf-8")
         self.assertIn("your next step is partner setup", html)
