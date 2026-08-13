@@ -92,7 +92,13 @@
       if (!campaign.size) return;
       document.querySelectorAll('[data-partner-apply]').forEach(link => {
         const destination = new URL(link.href, window.location.origin);
-        campaign.forEach((value, key) => destination.searchParams.set(key, value));
+        campaign.forEach((value, key) => {
+          // A campaign may suggest a tier for the general CTA, but a visitor
+          // who explicitly clicks a different pricing card must keep that
+          // intentional selection.
+          if (key === 'partner_tier' && destination.searchParams.has(key)) return;
+          destination.searchParams.set(key, value);
+        });
         link.href = destination.pathname + '?' + destination.searchParams.toString();
       });
     })();
