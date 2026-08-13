@@ -3819,6 +3819,14 @@ class handler(BaseHTTPRequestHandler):
             subscription_checkout_failure_count = len([
                 item for item in events if item.get("event_type") == "subscription_checkout_failed"
             ])
+            subscription_checkout_recovery_shown_count = len([
+                item for item in events if item.get("event_type") == "subscription_checkout_recovery_shown"
+            ])
+            subscription_checkout_recovery_start_count = len([
+                item for item in events
+                if item.get("event_type") == "subscription_checkout_started"
+                and str((item.get("metadata") or {}).get("source") or "").strip().lower() == "subscription_cancel_recovery"
+            ])
             ondemand_first_offer_start_count = len([
                 item for item in events
                 if item.get("event_type") == "ondemand_first_offer_started"
@@ -4023,6 +4031,8 @@ class handler(BaseHTTPRequestHandler):
                 "subscriptionCheckoutRedirectCount": subscription_checkout_redirect_count,
                 "subscriptionCheckoutReturnCount": subscription_checkout_return_count,
                 "subscriptionCheckoutFailureCount": subscription_checkout_failure_count,
+                "subscriptionCheckoutRecoveryShownCount": subscription_checkout_recovery_shown_count,
+                "subscriptionCheckoutRecoveryStartCount": subscription_checkout_recovery_start_count,
                 "subscriptionCheckoutReturnRate": round(
                     (subscription_checkout_return_count / subscription_checkout_start_count) * 100,
                     1,
