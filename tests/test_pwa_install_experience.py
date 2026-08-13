@@ -23,6 +23,8 @@ class PwaInstallExperienceTests(unittest.TestCase):
         self.assertIn("root.renderPwaInstallCard = renderInstallCard;", INDEX)
         self.assertIn("(root.state?.data?.userType || 'homebuyer') === 'homebuyer'", INDEX)
         self.assertIn("root.hofAuth?.session", INDEX)
+        self.assertIn("activationCard.insertAdjacentElement('afterend', card)", INDEX)
+        self.assertIn("else target.panel.prepend(card)", INDEX)
 
     def test_completed_buyer_checkout_can_offer_install_from_the_success_screen(self):
         self.assertIn("surface: 'buyer_success'", INDEX)
@@ -37,6 +39,9 @@ class PwaInstallExperienceTests(unittest.TestCase):
         self.assertIn("pwa_install_", INDEX)
         self.assertIn("pwa_install_prompt_shown", INDEX)
         self.assertIn("choice?.outcome === 'accepted' ? 'accepted' : 'dismissed'", INDEX)
+        self.assertIn("card.dataset.surface = target.surface", INDEX)
+        self.assertIn("surface: target.surface", INDEX)
+        self.assertIn("card?.dataset?.surface || 'unknown'", INDEX)
 
     def test_admin_dashboard_can_measure_the_privacy_safe_install_funnel(self):
         api = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
