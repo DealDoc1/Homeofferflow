@@ -165,6 +165,14 @@ class AgentActivationDashboardTests(unittest.TestCase):
         self.assertIn("Add ' + missingProfileFields.join(', ') + ' to save your repeat-offer defaults.", profile_save)
         self.assertIn("?.focus();", profile_save)
 
+    def test_profile_activation_names_the_five_defaults_before_opening_the_form(self):
+        script_start = HTML.index('id="hof-agent-activation-v16-js"')
+        script_end = HTML.index("</script>", script_start)
+        script = HTML[script_start:script_end]
+        self.assertIn("Finish your five repeat-offer defaults", script)
+        self.assertIn("name, license number, business email, phone, and brokerage", script)
+        self.assertIn("title, escrow, and common terms can be added later", script)
+
     def test_profile_completion_signal_matches_activation_requirements(self):
         readiness_start = HTML.index('id="hof-agent-activation-v16-js"')
         readiness_end = HTML.index("</script>", readiness_start)
