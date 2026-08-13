@@ -3624,6 +3624,7 @@ class handler(BaseHTTPRequestHandler):
             activation_secondary_action_count = 0
             activation_actions_by_stage = {}
             activation_subscription_actions_by_billing = {}
+            repeat_activation_reuse_selection_count = 0
             for item in events:
                 if item.get("event_type") != "agent_activation_action":
                     continue
@@ -3635,12 +3636,31 @@ class handler(BaseHTTPRequestHandler):
                     activation_secondary_action_count += 1
                 stage = str(metadata.get("activationKey") or "unattributed").strip().lower()[:40] or "unattributed"
                 activation_actions_by_stage[stage] = activation_actions_by_stage.get(stage, 0) + 1
+                if (
+                    stage == "repeat"
+                    and str(metadata.get("action") or "").strip().lower() == "reuse_terms"
+                ):
+                    repeat_activation_reuse_selection_count += 1
                 if str(metadata.get("action") or "").strip().lower() == "subscribe":
                     billing = str(metadata.get("billing") or "monthly").strip().lower()
                     billing = billing if billing in {"monthly", "annual"} else "monthly"
                     activation_subscription_actions_by_billing[billing] = (
                         activation_subscription_actions_by_billing.get(billing, 0) + 1
                     )
+            # This is the durable conversion point for a repeat-offer flow:
+            # the workspace has opened a new, terms-only start after clearing
+            # client and property data. It stays aggregate-only in the admin
+            # payload so operators can assess repeat usage without seeing an
+            # individual agent's activity.
+            repeat_offer_terms_reuse_start_count = len([
+                item for item in events if item.get("event_type") == "terms_reuse_clicked"
+            ])
+            repeat_offer_terms_reuse_user_count = len({
+                str(item.get("user_id") or "").strip()
+                for item in events
+                if item.get("event_type") == "terms_reuse_clicked"
+                and str(item.get("user_id") or "").strip()
+            })
             # The installed PWA is the low-cost mobile-app bridge. Keep this
             # aggregate-only so product decisions can use the real install
             # funnel without returning device details or user-level activity.
@@ -3941,6 +3961,9 @@ class handler(BaseHTTPRequestHandler):
                 "activationSecondaryActionCount": activation_secondary_action_count,
                 "activationActionsByStage": activation_actions_by_stage,
                 "activationSubscriptionActionsByBilling": activation_subscription_actions_by_billing,
+                "repeatActivationReuseSelectionCount": repeat_activation_reuse_selection_count,
+                "repeatOfferTermsReuseStartCount": repeat_offer_terms_reuse_start_count,
+                "repeatOfferTermsReuseUserCount": repeat_offer_terms_reuse_user_count,
                 "pwaInstallEventCounts": pwa_install_event_counts,
                 "pwaInstallShownCount": pwa_install_event_counts["shown"],
                 "pwaInstallPromptOpenCount": pwa_install_event_counts["prompt_opened"],

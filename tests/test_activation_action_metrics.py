@@ -18,6 +18,11 @@ class ActivationActionMetricTests(unittest.TestCase):
         self.assertIn('"activationActionsByStage"', source)
         self.assertIn('"activationSubscriptionActionsByBilling"', source)
         self.assertIn('activation_subscription_actions_by_billing', source)
+        self.assertIn('"repeatActivationReuseSelectionCount"', source)
+        self.assertIn('"repeatOfferTermsReuseStartCount"', source)
+        self.assertIn('"repeatOfferTermsReuseUserCount"', source)
+        self.assertIn('repeat_activation_reuse_selection_count', source)
+        self.assertIn('repeat_offer_terms_reuse_start_count', source)
 
     def test_admin_dashboard_surfaces_activation_action_rate(self):
         source = (ROOT / "index.html").read_text(encoding="utf-8")
@@ -30,6 +35,9 @@ class ActivationActionMetricTests(unittest.TestCase):
         self.assertIn('activationActionsByStage', source)
         self.assertIn('Activation subscription selections', source)
         self.assertIn('activationSubscriptionActionsByBilling', source)
+        self.assertIn('Repeat-offer starts:', source)
+        self.assertIn('repeatOfferTermsReuseStartCount', source)
+        self.assertIn('repeatActivationReuseSelectionCount', source)
 
 
 if __name__ == "__main__":
