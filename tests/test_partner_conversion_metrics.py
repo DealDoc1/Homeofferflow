@@ -65,7 +65,7 @@ class PartnerConversionMetricTests(unittest.TestCase):
         self.assertIn('previewPartnerCampaignLink()', source)
         self.assertIn("const partnerCampaignCategories = new Set", source)
         self.assertIn("const partnerCampaignTiers = new Set", source)
-        self.assertIn("https://www.homeofferflow.com/?partner=1&partner_category=", source)
+        self.assertIn("https://www.homeofferflow.com/partners?partner_category=", source)
         self.assertIn("partnerCampaignCategories.has(category)", source)
         self.assertIn("partnerCampaignTiers.has(tier)", source)
         self.assertIn("Partner Campaign Link Copied", source)

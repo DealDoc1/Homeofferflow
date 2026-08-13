@@ -11051,7 +11051,7 @@ function routeAfterMagicLinkIfNeeded() {
     const category = String(getVal('partnerCampaignCategory') || '').trim().toLowerCase();
     const tier = String(getVal('partnerCampaignTier') || '').trim().toLowerCase();
     if (!partnerCampaignCategories.has(category) || !partnerCampaignTiers.has(tier)) return '';
-    return `https://www.homeofferflow.com/?partner=1&partner_category=${encodeURIComponent(category)}&partner_tier=${encodeURIComponent(tier)}`;
+    return `https://www.homeofferflow.com/partners?partner_category=${encodeURIComponent(category)}&partner_tier=${encodeURIComponent(tier)}`;
   }
 
   function partnerCampaignInvitation() {

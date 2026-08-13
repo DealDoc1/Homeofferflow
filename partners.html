@@ -75,6 +75,8 @@
     (() => {
       const source = new URLSearchParams(window.location.search);
       const allowed = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content'];
+      const allowedCategories = new Set(['title','lender','inspection','surveyor','home_warranty','insurance','roofing','hvac','plumbing','electrical','foundation_structural','general_contractor','pest_termite','septic_well','restoration','repairs_handyman','photography_video','staging','cleaning','moving_storage','lawn_pool','security_smart_home','other']);
+      const allowedTiers = new Set(['founding_pilot','monthly_placement','market_exclusive']);
       const campaign = new URLSearchParams();
       const track = (name, data = {}) => { try { window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); }; window.va('event', {name, ...data}); } catch (_) {} };
       track('Founding Partner Landing Viewed');
@@ -83,6 +85,10 @@
         track('Founding Partner Landing CTA Selected', {tier});
       }));
       allowed.forEach(key => { const value = source.get(key); if (value) campaign.set(key, value); });
+      const category = String(source.get('partner_category') || '').trim().toLowerCase();
+      const tier = String(source.get('partner_tier') || '').trim().toLowerCase();
+      if (allowedCategories.has(category)) campaign.set('partner_category', category);
+      if (allowedTiers.has(tier)) campaign.set('partner_tier', tier);
       if (!campaign.size) return;
       document.querySelectorAll('[data-partner-apply]').forEach(link => {
         const destination = new URL(link.href, window.location.origin);
