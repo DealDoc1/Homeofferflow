@@ -15,6 +15,8 @@ class PwaInstallExperienceTests(unittest.TestCase):
         self.assertIn("Add to Home Screen", INDEX)
         self.assertIn("No App Store download or separate account is needed.", INDEX)
         self.assertIn("offers and client details stay protected online", INDEX)
+        self.assertIn("const workspaceReturnCopy = target.surface === 'account_dashboard'", INDEX)
+        self.assertIn('shortcuts for My Workspace and New Agent Offer', INDEX)
 
     def test_completed_homebuyer_review_can_offer_install_without_account_login(self):
         self.assertIn("function installTarget()", INDEX)

@@ -17538,11 +17538,15 @@ function routeAfterMagicLinkIfNeeded() {
     const sellerReturnCopy = target.surface === 'seller_success'
       ? 'Save this seller plan to your Home Screen so it is one tap away when you return to photos, repairs, timing, or provider questions.'
       : '';
+    const workspaceReturnCopy = target.surface === 'account_dashboard'
+      ? 'Use the app icon for a focused workspace launch, with shortcuts for My Workspace and New Agent Offer.'
+      : '';
     card.innerHTML = `<h4>Keep HomeOfferFlow one tap away</h4>
       <p>${ios
         ? 'Add this workspace to your iPhone or iPad Home Screen for a full-screen, app-like launch. No App Store download or separate account is needed.'
         : 'Add HomeOfferFlow to your Home Screen for a faster app-like launch and an offline-safe shell when you are between showings. No App Store download or separate account is needed.'}</p>
       ${sellerReturnCopy ? `<p class="pwa-install-note"><strong>${sellerReturnCopy}</strong></p>` : ''}
+      ${workspaceReturnCopy ? `<p class="pwa-install-note"><strong>${workspaceReturnCopy}</strong></p>` : ''}
       <p class="pwa-install-note">Your offers and client details stay protected online; installation only gives this existing workspace a faster, dedicated launch.</p>
       <div class="pwa-install-actions">
         ${ios
