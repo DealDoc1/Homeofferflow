@@ -12265,6 +12265,7 @@ function routeAfterMagicLinkIfNeeded() {
           '<div class="account-actions-row" style="margin-top:.7rem;display:flex;gap:.55rem;flex-wrap:wrap;">' +
           '<button class="btn-secondary" type="button" onclick="downloadFsboRequestSummary()">Download seller plan</button>' +
           '<button class="btn-secondary" type="button" onclick="closeFsboSellerModal()">Done</button></div>';
+        window.setTimeout(() => window.renderPwaInstallCard?.(), 0);
       }
     } catch (err) {
       trackFsboFunnel('FSBO Seller Request Save Failed', { package: payload.service_level, source: source === 'quick' ? 'quick' : 'full' });
@@ -17479,6 +17480,10 @@ function routeAfterMagicLinkIfNeeded() {
   }
 
   function installTarget(){
+    const sellerStatus = document.getElementById('fsboSellerStatus');
+    const sellerModal = document.getElementById('fsboSellerModal');
+    const isSellerSuccess = sellerStatus?.classList.contains('ok') && sellerModal?.getAttribute('aria-hidden') === 'false';
+    if (isSellerSuccess) return { panel: sellerStatus, surface: 'seller_success' };
     const review = document.getElementById('step8');
     const isBuyerReview = review?.classList.contains('active') && (root.state?.data?.userType || 'homebuyer') === 'homebuyer';
     if (isBuyerReview) return { panel: review, surface: 'buyer_review' };
