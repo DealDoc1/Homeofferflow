@@ -4108,9 +4108,33 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 
   function sellerLeadUrgency(row) {
     const status = String(row?.status || 'new').toLowerCase();
+    const timeline = String(row?.timeline || '').toLowerCase();
+    if (status === 'new' && timeline === 'asap') return 'Priority: ASAP';
+    if (status === 'new' && timeline === '30_days') return 'Priority: 30 days';
     const createdAt = Date.parse(row?.created_at || '');
     const ageDays = Number.isFinite(createdAt) ? Math.max(0, Math.floor((Date.now() - createdAt) / 86400000)) : 0;
     return status === 'new' && ageDays >= 1 ? 'Needs contact' : status.replace(/_/g, ' ');
+  }
+
+  function sellerLeadFollowUpPriority(row) {
+    const status = String(row?.status || 'new').toLowerCase();
+    const timeline = String(row?.timeline || '').toLowerCase();
+    const activeStatusPriority = status === 'new' ? 0 : status === 'contacted' ? 1 : status === 'qualified' ? 2 : 3;
+    const timelinePriority = timeline === 'asap' ? 0 : timeline === '30_days' ? 1 : timeline === '60_90_days' ? 2 : timeline === 'future' ? 4 : 3;
+    const createdAt = Date.parse(row?.created_at || '');
+    const createdAtPriority = Number.isFinite(createdAt) ? createdAt : 0;
+    return [activeStatusPriority, timelinePriority, createdAtPriority];
+  }
+
+  function prioritizeSellerFollowUpQueue(rows) {
+    return [...(Array.isArray(rows) ? rows : [])].sort((left, right) => {
+      const leftPriority = sellerLeadFollowUpPriority(left);
+      const rightPriority = sellerLeadFollowUpPriority(right);
+      for (let index = 0; index < leftPriority.length; index += 1) {
+        if (leftPriority[index] !== rightPriority[index]) return leftPriority[index] - rightPriority[index];
+      }
+      return 0;
+    });
   }
 
   async function updateSellerLeadStatus(leadId) {
@@ -4574,7 +4598,8 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 
         <div class="admin-section">
           <h4>Seller / FSBO Follow-up Queue</h4>
-          ${renderAdminRows(sellerLeads.slice(0, 24), 'seller-leads')}
+          <p class="admin-muted">New sellers who selected ASAP or a 30-day timeline appear first. This is an internal follow-up priority, not a response-time promise.</p>
+          ${renderAdminRows(prioritizeSellerFollowUpQueue(sellerLeads).slice(0, 24), 'seller-leads')}
         </div>
       `;
     } catch (err) {
