@@ -42,6 +42,7 @@
       <div class="eyebrow">Texas founding partner placements</div>
       <h1>Be present when real-estate decisions are being made.</h1>
       <p class="lead">HomeOfferFlow connects Texas buyers, sellers, agents, and investors to useful services at relevant points in their workflow. Choose one category and one market for a clear, labeled placement—not a referral or a required provider choice.</p>
+      <p id="partnerCampaignContext" class="note" hidden aria-live="polite"></p>
       <div class="actions"><a class="button" data-partner-apply href="/?partner=1">Apply for a founding placement</a><a class="button secondary" href="#tiers">See launch pricing</a></div>
       <p class="note"><strong>The founding launch offer:</strong> first 90 days for the price of one standard month, no setup fee, then monthly renewal unless cancelled. Placements are reviewed before anything becomes public.</p>
 
@@ -77,18 +78,28 @@
       const allowed = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content'];
       const allowedCategories = new Set(['title','lender','inspection','surveyor','home_warranty','insurance','roofing','hvac','plumbing','electrical','foundation_structural','general_contractor','pest_termite','septic_well','restoration','repairs_handyman','photography_video','staging','cleaning','moving_storage','lawn_pool','security_smart_home','other']);
       const allowedTiers = new Set(['founding_pilot','monthly_placement','market_exclusive']);
+      const tierLabels = { founding_pilot: 'Core Partner', monthly_placement: 'Featured Partner', market_exclusive: 'Premier Partner' };
       const campaign = new URLSearchParams();
       const track = (name, data = {}) => { try { window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); }; window.va('event', {name, ...data}); } catch (_) {} };
-      track('Founding Partner Landing Viewed');
+      const category = String(source.get('partner_category') || '').trim().toLowerCase();
+      const tier = String(source.get('partner_tier') || '').trim().toLowerCase();
+      const selectedCategory = allowedCategories.has(category) ? category : '';
+      const selectedTier = allowedTiers.has(tier) ? tier : '';
+      track('Founding Partner Landing Viewed', selectedTier ? {tier: selectedTier, category: selectedCategory || 'unspecified'} : {});
+      if (selectedTier) {
+        const context = document.getElementById('partnerCampaignContext');
+        if (context) {
+          context.hidden = false;
+          context.innerHTML = '<strong>Your selected placement: ' + tierLabels[selectedTier] + '.</strong> ' + (selectedCategory ? 'This link is tailored for ' + selectedCategory.replace(/_/g, ' ') + ' providers. ' : '') + 'You can review the options below before applying; checkout shows the final terms before payment.';
+        }
+      }
       document.querySelectorAll('[data-partner-apply]').forEach(link => link.addEventListener('click', () => {
         const tier = new URL(link.href, window.location.origin).searchParams.get('partner_tier') || 'unspecified';
         track('Founding Partner Landing CTA Selected', {tier});
       }));
       allowed.forEach(key => { const value = source.get(key); if (value) campaign.set(key, value); });
-      const category = String(source.get('partner_category') || '').trim().toLowerCase();
-      const tier = String(source.get('partner_tier') || '').trim().toLowerCase();
-      if (allowedCategories.has(category)) campaign.set('partner_category', category);
-      if (allowedTiers.has(tier)) campaign.set('partner_tier', tier);
+      if (selectedCategory) campaign.set('partner_category', selectedCategory);
+      if (selectedTier) campaign.set('partner_tier', selectedTier);
       if (!campaign.size) return;
       document.querySelectorAll('[data-partner-apply]').forEach(link => {
         const destination = new URL(link.href, window.location.origin);
