@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#173f35" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -17364,7 +17364,7 @@ function routeAfterMagicLinkIfNeeded() {
 })();
 </script>
 <style id="hof-pwa-update-v1-css">
-  .hof-pwa-update-card { position:fixed; right:1rem; bottom:1rem; z-index:10001; width:min(25rem,calc(100vw - 2rem)); padding:1rem; border:1px solid rgba(200,151,63,.55); border-radius:14px; background:#0b1b2e; box-shadow:0 16px 42px rgba(0,0,0,.35); color:var(--white); }
+  .hof-pwa-update-card { position:fixed; right:max(1rem,env(safe-area-inset-right)); bottom:max(1rem,env(safe-area-inset-bottom)); z-index:10001; width:min(25rem,calc(100vw - 2rem)); padding:1rem; border:1px solid rgba(200,151,63,.55); border-radius:14px; background:#0b1b2e; box-shadow:0 16px 42px rgba(0,0,0,.35); color:var(--white); }
   .hof-pwa-update-card strong { display:block; margin-bottom:.3rem; color:var(--gold-light); }
   .hof-pwa-update-card p { margin:0 0 .8rem; color:var(--gray-light); font-size:.82rem; line-height:1.45; }
   .hof-pwa-update-actions { display:flex; gap:.55rem; flex-wrap:wrap; }
