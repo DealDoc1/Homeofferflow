@@ -11992,6 +11992,31 @@ function routeAfterMagicLinkIfNeeded() {
     contract_help: ['Organize your accepted contract, title contact, and lender contact.', 'Write down upcoming deadlines and unanswered transaction questions.', 'Use the appropriate licensed party for legal, brokerage, title, and amendment decisions.'],
     premium_bundle: ['Collect property facts, photos, and your target timeline.', 'List prep, marketing, MLS, offer-review, and closing-support priorities.', 'Wait for the confirmed scope and provider plan before any paid service begins.']
   };
+  const fsboReadinessPlans = {
+    asap: {
+      title: 'Your ready-now seller plan',
+      steps: ['Put the latest property facts, repair notes, and your best photos in one folder.', 'Write down your target list or decision date, plus any showing or occupancy constraints.', 'Keep offer, provider, title, and licensed-professional questions together for the appropriate follow-up.']
+    },
+    '30_days': {
+      title: 'Your 30-day seller plan',
+      steps: ['Make a short property-prep list: cleaning, repairs, staging, exterior, and photo readiness.', 'Collect improvements, utilities, HOA, and property-condition details you may need to confirm later.', 'Choose the one outcome that matters most: launch planning, exposure, offer comparison, or closing support.']
+    },
+    '60_90_days': {
+      title: 'Your 60–90 day seller plan',
+      steps: ['Start a room-by-room prep list and separate low-cost fixes from larger decisions.', 'Save recent upgrades, service records, and property facts in a single place.', 'Use the time to compare the FSBO, limited-service, and provider-supported paths before committing to a paid service.']
+    },
+    future: {
+      title: 'Your future seller plan',
+      steps: ['Keep a simple running list of improvements, maintenance, and questions about the property.', 'Save a few recent photos and a rough target timeframe for when you may want to sell.', 'Revisit your request when timing changes so the support path can be considered with current details.']
+    },
+    not_sure: {
+      title: 'Your seller starting plan',
+      steps: ['Write down what is making the sale feel urgent, difficult, or uncertain.', 'Gather the property address, a few recent photos, and any repair or timing notes.', 'Start with the next small decision: prepare, launch, compare offers, or get the right provider involved.']
+    }
+  };
+  function fsboReadinessPlan(timeline) {
+    return fsboReadinessPlans[timeline] || fsboReadinessPlans.not_sure;
+  }
   window.selectFsboNeed = function(key, shouldTrack = true) {
     const selected = fsboNeedCopy[key] ? key : 'free_intake';
     const input = document.getElementById('fsboNeed');
@@ -12020,14 +12045,18 @@ function routeAfterMagicLinkIfNeeded() {
     const item = fsboNeedCopy[key] || fsboNeedCopy.free_intake;
     const partners = getFsboPartners();
     const steps = fsboNextSteps[key] || fsboNextSteps.free_intake;
+    const readiness = fsboReadinessPlan(fsboVal('fsboTimeline') || 'not_sure');
     const summary = [
-      'HomeOfferFlow FSBO seller request summary',
+      'HomeOfferFlow FSBO seller readiness plan',
       `Package interest: ${item.title} (${item.price})`,
       `Property: ${fsboVal('fsboPropertyAddress') || 'Not provided'}`,
       `Seller: ${fsboVal('fsboSellerName') || 'Not provided'}`,
       `Email: ${fsboVal('fsboSellerEmail') || 'Not provided'}`,
       `Timeline: ${fsboVal('fsboTimeline') || 'Not sure yet'}`,
       `Partner interests: ${partners.length ? partners.join(', ') : 'None selected'}`,
+      '',
+      readiness.title + ':',
+      ...readiness.steps.map((step, index) => `${index + 1}. ${step}`),
       '',
       'Your next steps:',
       ...steps.map((step, index) => `${index + 1}. ${step}`),
@@ -12037,7 +12066,7 @@ function routeAfterMagicLinkIfNeeded() {
     const url = URL.createObjectURL(new Blob([summary], { type: 'text/plain;charset=utf-8' }));
     const link = document.createElement('a');
     link.href = url;
-    link.download = 'homeofferflow-fsbo-request-summary.txt';
+    link.download = 'homeofferflow-fsbo-seller-plan.txt';
     link.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
@@ -12107,13 +12136,16 @@ function routeAfterMagicLinkIfNeeded() {
       const selected = fsboNeedCopy[fsboVal('fsboNeed')] || fsboNeedCopy.free_intake;
       saveFsboRequestReceipt(selected);
       const steps = fsboNextSteps[fsboVal('fsboNeed')] || fsboNextSteps.free_intake;
+      const readiness = fsboReadinessPlan(payload.timeline);
+      trackFsboFunnel('FSBO Seller Readiness Plan Delivered', { package: payload.service_level, timeline: payload.timeline });
       if (status) {
         status.className = 'platform-status ok';
         status.innerHTML = '<strong>Seller request saved.</strong><br>' +
           escapeAttr(selected.title) + ' is recorded for follow-up. A human review is still required to confirm scope, provider involvement, availability, and final pricing before any paid service begins.' +
+          '<div class="notice sage" style="margin:.8rem 0 .1rem;padding:.75rem .85rem;"><strong>' + escapeAttr(readiness.title) + '</strong><ol style="margin:.5rem 0 .1rem 1.2rem;color:var(--gray-light);line-height:1.45;">' + readiness.steps.map(step => '<li>' + escapeAttr(step) + '</li>').join('') + '</ol></div>' +
           '<ol style="margin:.65rem 0 .1rem 1.2rem;color:var(--gray-light);line-height:1.45;">' + steps.map(step => '<li>' + escapeAttr(step) + '</li>').join('') + '</ol>' +
           '<div class="account-actions-row" style="margin-top:.7rem;display:flex;gap:.55rem;flex-wrap:wrap;">' +
-          '<button class="btn-secondary" type="button" onclick="downloadFsboRequestSummary()">Download request summary</button>' +
+          '<button class="btn-secondary" type="button" onclick="downloadFsboRequestSummary()">Download seller plan</button>' +
           '<button class="btn-secondary" type="button" onclick="closeFsboSellerModal()">Done</button></div>';
       }
     } catch (err) {

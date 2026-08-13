@@ -8,13 +8,21 @@ HTML = (pathlib.Path(__file__).resolve().parents[1] / "index.html").read_text(en
 class FsboRequestConfirmationTests(unittest.TestCase):
     def test_fsbo_submission_keeps_a_durable_intake_handoff(self):
         self.assertIn("downloadFsboRequestSummary", HTML)
-        self.assertIn("homeofferflow-fsbo-request-summary.txt", HTML)
+        self.assertIn("homeofferflow-fsbo-seller-plan.txt", HTML)
         self.assertIn("Seller request saved", HTML)
         self.assertIn("confirm scope, provider involvement, availability, and final pricing", HTML)
         self.assertIn("This is an intake record, not checkout", HTML)
         self.assertIn("const fsboNextSteps", HTML)
         self.assertIn("Your next steps:", HTML)
         self.assertIn("Wait for qualified professional review before choosing a contract path.", HTML)
+
+    def test_fsbo_submission_delivers_a_timeline_specific_readiness_plan(self):
+        self.assertIn("const fsboReadinessPlans", HTML)
+        self.assertIn("function fsboReadinessPlan(timeline)", HTML)
+        self.assertIn("Your ready-now seller plan", HTML)
+        self.assertIn("Your 30-day seller plan", HTML)
+        self.assertIn("FSBO Seller Readiness Plan Delivered", HTML)
+        self.assertIn("Download seller plan", HTML)
 
     def test_fsbo_submission_prevents_same_device_duplicate_lead_retries(self):
         self.assertIn('id="fsboSellerSubmit"', HTML)
