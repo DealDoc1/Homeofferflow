@@ -1,3 +1,4 @@
+import json
 import unittest
 from pathlib import Path
 
@@ -10,6 +11,7 @@ PARTNERS = (ROOT / "partners.html").read_text(encoding="utf-8")
 SELLERS = (ROOT / "sellers.html").read_text(encoding="utf-8")
 DIRECTORY = (ROOT / "directory.html").read_text(encoding="utf-8")
 BUYERS = (ROOT / "buyers.html").read_text(encoding="utf-8")
+VERCEL = json.loads((ROOT / "vercel.json").read_text(encoding="utf-8"))
 
 
 class PublicDiscoveryMetadataTests(unittest.TestCase):
@@ -100,6 +102,12 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn('There is no payment required to begin.', BUYERS)
         self.assertIn("params().get('buyer') === '1'", INDEX)
         self.assertIn("window.startHomebuyerOffer?.();", INDEX)
+
+    def test_clean_homebuyer_route_rewrites_to_the_shareable_offer_page(self):
+        self.assertIn(
+            {"source": "/buyers", "destination": "/buyers.html"},
+            VERCEL.get("rewrites", []),
+        )
 
     def test_public_directory_uses_only_the_existing_safe_directory_endpoint(self):
         self.assertIn('href="https://www.homeofferflow.com/directory.html"', DIRECTORY)
