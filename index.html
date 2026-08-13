@@ -317,17 +317,17 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     .logo span { color: var(--gold); }
     .nav-cta { background: var(--gold); color: var(--navy); border: none; padding: 0.6rem 1.35rem; border-radius: 6px; font-family: 'DM Sans', sans-serif; font-weight: 600; font-size: 0.88rem; cursor: pointer; transition: background 0.2s; }
     .nav-cta:hover { background: var(--gold-light); }
-    .hero { position: relative; z-index: 1; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 8rem 1.5rem 5rem; }
-    .hero-badge { display: inline-flex; align-items: center; gap: 0.5rem; background: rgba(200,151,63,0.1); border: 1px solid rgba(200,151,63,0.25); color: var(--gold-light); padding: 0.4rem 1rem; border-radius: 100px; font-size: 0.78rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 1.75rem; animation: fadeUp 0.5s ease both; }
+    .hero { position: relative; z-index: 1; min-height: min(100vh, 760px); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 6.5rem 1.5rem 3rem; }
+    .hero-badge { display: inline-flex; align-items: center; gap: 0.5rem; background: rgba(200,151,63,0.1); border: 1px solid rgba(200,151,63,0.25); color: var(--gold-light); padding: 0.4rem 1rem; border-radius: 100px; font-size: 0.78rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 1rem; animation: fadeUp 0.5s ease both; }
     .hero-badge .dot, .trust-item .dot { width: 6px; height: 6px; background: var(--sage-light); border-radius: 50%; }
-    .user-pills { display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap; margin-bottom: 1.75rem; animation: fadeUp 0.5s 0.05s ease both; }
+    .user-pills { display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap; margin-bottom: 1rem; animation: fadeUp 0.5s 0.05s ease both; }
     .pill { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: var(--gray-light); padding: 0.4rem 1rem; border-radius: 100px; font-family: inherit; font-size: 0.83rem; line-height: 1.2; cursor: pointer; transition: all 0.2s; }
     .pill.active, .pill:hover { background: rgba(200,151,63,0.12); border-color: var(--gold); color: var(--gold-light); }
     .pill:focus-visible { outline: 3px solid rgba(232,184,109,0.72); outline-offset: 3px; }
-    .hero h1 { font-family: 'Playfair Display', serif; font-size: clamp(2.8rem, 7vw, 5.2rem); font-weight: 900; line-height: 1.06; letter-spacing: -0.03em; max-width: 800px; animation: fadeUp 0.5s 0.1s ease both; }
+    .hero h1 { font-family: 'Playfair Display', serif; font-size: clamp(2.55rem, 6.2vw, 4.6rem); font-weight: 900; line-height: 1.04; letter-spacing: -0.03em; max-width: 760px; animation: fadeUp 0.5s 0.1s ease both; }
     .hero h1 em { font-style: normal; color: var(--gold); }
-    .hero-sub { margin-top: 1.4rem; font-size: clamp(0.95rem, 2.2vw, 1.15rem); color: var(--gray); max-width: 520px; line-height: 1.65; font-weight: 300; animation: fadeUp 0.5s 0.15s ease both; }
-    .hero-actions { display: flex; gap: 1rem; margin-top: 2.5rem; flex-wrap: wrap; justify-content: center; animation: fadeUp 0.5s 0.2s ease both; }
+    .hero-sub { margin-top: 1rem; font-size: clamp(0.95rem, 2.2vw, 1.15rem); color: var(--gray); max-width: 520px; line-height: 1.55; font-weight: 300; animation: fadeUp 0.5s 0.15s ease both; }
+    .hero-actions { display: flex; gap: 1rem; margin-top: 1.5rem; flex-wrap: wrap; justify-content: center; animation: fadeUp 0.5s 0.2s ease both; }
     .btn-primary { background: var(--gold); color: var(--navy); border: none; padding: 0.95rem 2rem; border-radius: 8px; font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 0.98rem; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 20px rgba(200,151,63,0.28); }
     .btn-primary:hover { background: var(--gold-light); transform: translateY(-2px); }
     .btn-secondary { background: transparent; color: var(--white); border: 1px solid rgba(255,255,255,0.18); padding: 0.95rem 2rem; border-radius: 8px; font-family: 'DM Sans', sans-serif; font-weight: 500; font-size: 0.98rem; cursor: pointer; transition: all 0.2s; }
