@@ -2,7 +2,9 @@ from pathlib import Path
 import unittest
 
 
-HTML = (Path(__file__).resolve().parents[1] / "index.html").read_text(encoding="utf-8")
+ROOT = Path(__file__).resolve().parents[1]
+HTML = (ROOT / "index.html").read_text(encoding="utf-8")
+PUBLIC_DIRECTORY = (ROOT / "directory.html").read_text(encoding="utf-8")
 
 
 class PartnerDirectoryImpressionTests(unittest.TestCase):
@@ -12,6 +14,13 @@ class PartnerDirectoryImpressionTests(unittest.TestCase):
         self.assertIn("hof_partner_impression_", HTML)
         self.assertIn("Partner Directory Outbound Click", HTML)
         self.assertIn("sessionStorage", HTML)
+
+    def test_public_directory_uses_the_same_privacy_safe_partner_events(self):
+        self.assertIn("Partner Directory Impression", PUBLIC_DIRECTORY)
+        self.assertIn("Partner Directory Outbound Click", PUBLIC_DIRECTORY)
+        self.assertIn("hof_public_partner_impression_", PUBLIC_DIRECTORY)
+        self.assertIn("data-partner-link", PUBLIC_DIRECTORY)
+        self.assertIn('/_vercel/insights/script.js', PUBLIC_DIRECTORY)
 
 
 if __name__ == "__main__":
