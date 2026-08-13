@@ -3975,7 +3975,10 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       : `Following up on your HomeOfferFlow partner application. We can ${activationStage}: https://homeofferflow.com/?partner=1`;
     const eventMetadata = adminEventMetadata({ paid, onboarding, activationStage, surface: 'admin' });
     const onboardingButton = paid ? ` <button type="button" class="admin-contact-action" onclick="copyPartnerOnboardingLink('${adminSafe(row.id, '')}')">Copy setup link</button><button type="button" class="admin-contact-action" onclick="copyPartnerOnboardingInvitation('${adminSafe(row.id, '')}')">Copy setup invitation</button><button type="button" class="admin-contact-action" onclick="emailPartnerOnboardingLink('${adminSafe(row.id, '')}')">Email setup link</button>` : '';
-    return `<a class="admin-contact-action" href="mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}" onclick='logOfferEvent(null, "partner_follow_up_email_started", "started", "Partner follow-up email opened.", ${eventMetadata})'>Email partner</a>${onboardingButton}`;
+    const checkoutButton = !paid && String(row?.payment_status || '') === 'checkout_started'
+      ? ` <button type="button" class="admin-contact-action" onclick="copyPartnerCheckoutInvitation('${adminSafe(row.id, '')}')">Copy checkout invitation</button>`
+      : '';
+    return `<a class="admin-contact-action" href="mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}" onclick='logOfferEvent(null, "partner_follow_up_email_started", "started", "Partner follow-up email opened.", ${eventMetadata})'>Email partner</a>${checkoutButton}${onboardingButton}`;
   }
 
   async function copyPartnerOnboardingLink(leadId) {
@@ -4035,6 +4038,38 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       await loadAdminDashboard(true);
     } catch (err) {
       alert(err?.message || 'Could not copy partner setup invitation.');
+    }
+  }
+
+  async function copyPartnerCheckoutInvitation(leadId) {
+    if (!leadId || !hofAuth?.session?.access_token) return;
+    try {
+      // The server reuses any existing open Checkout session for this saved
+      // application. The link is copied for an admin's deliberate follow-up;
+      // this does not email anyone or collect a payment.
+      const response = await fetch('/api/fsbo-lead', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({request_type: 'founding_partner_checkout', partner_lead_id: leadId})
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || !result?.url) throw new Error(result.error || 'Could not prepare secure checkout.');
+      const invitation = 'Your HomeOfferFlow founding-partner application is saved. You can review the selected 90-day launch terms and complete secure checkout here when ready:\n\n' + result.url + '\n\nNo second application is created. Checkout shows the final terms before payment, and payment does not activate a public placement by itself.';
+      let copied = false;
+      try {
+        if (!navigator.clipboard?.writeText) throw new Error('Clipboard access is unavailable.');
+        await navigator.clipboard.writeText(invitation);
+        copied = true;
+      } catch (_) {
+        window.prompt('Copy this secure partner checkout invitation:', invitation);
+      }
+      logOfferEvent(null, 'partner_checkout_invitation_copied', 'created', 'Partner checkout invitation copied by a platform admin.', { surface: 'admin', copied });
+      alert(copied
+        ? 'Secure checkout invitation copied. You can paste it into your own follow-up when appropriate.'
+        : 'Secure checkout invitation is ready to copy. It does not charge or activate public placement.');
+      await loadAdminDashboard(true);
+    } catch (err) {
+      alert(err?.message || 'Could not copy partner checkout invitation.');
     }
   }
 
