@@ -14,6 +14,8 @@ class PwaUpdateExperienceTests(unittest.TestCase):
         self.assertIn('your local draft stays on this device', INDEX)
         self.assertIn("registration.addEventListener('updatefound'", INDEX)
         self.assertIn("navigator.serviceWorker.addEventListener('controllerchange'", INDEX)
+        self.assertIn("function isHomeOfferFlowStandalone()", INDEX)
+        self.assertIn("if (!isHomeOfferFlowStandalone() || !registration?.waiting", INDEX)
 
     def test_update_only_activates_after_the_user_confirms(self):
         self.assertIn("HOF_SKIP_WAITING", INDEX)
