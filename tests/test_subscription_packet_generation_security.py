@@ -16,6 +16,7 @@ class SubscriptionPacketGenerationSecurityTests(unittest.TestCase):
         self.assertIn("'Authorization': `Bearer ${hofAuth.session?.access_token || ''}`", generation)
 
     def test_generation_failure_recovery_uses_safe_categories_and_next_steps(self):
+        admin = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
         start = HTML.index("function packetGenerationFailureDetails(err)")
         end = HTML.index("async function generateSubscribedPacket()", start)
         recovery = HTML[start:end]
@@ -34,6 +35,16 @@ class SubscriptionPacketGenerationSecurityTests(unittest.TestCase):
         self.assertIn("'subscription_packet_generation_retry_clicked'", recovery)
         self.assertIn("No packet credit was used. ", recovery)
         self.assertIn("await generateSubscribedPacket();", recovery)
+
+        for expected in (
+            '"packetGenerationRetryCount"',
+            '"packetGenerationRecoveredCount"',
+            '"packetGenerationRetryRecoveryRate"',
+            'subscription_packet_generation_retry_clicked',
+            'subscription_packet_generated',
+        ):
+            self.assertIn(expected, admin)
+        self.assertIn("metrics.packetGenerationRetryRecoveryRate", HTML)
 
     def test_admin_surfaces_only_aggregate_packet_generation_failure_categories(self):
         admin = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")

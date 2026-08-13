@@ -3678,6 +3678,28 @@ class handler(BaseHTTPRequestHandler):
                 category = category if category in packet_generation_failure_categories else "unclassified"
                 packet_generation_failure_counts[category] += 1
             packet_generation_failure_count = sum(packet_generation_failure_counts.values())
+            # A retry is an explicit agent decision after a failed packet
+            # generation. Measure whether that same offer later generates,
+            # without returning an offer id, user id, error body, or any other
+            # identifying activity to the dashboard.
+            packet_generation_retry_count = len([
+                item for item in events
+                if item.get("event_type") == "subscription_packet_generation_retry_clicked"
+            ])
+            packet_generation_retried_offer_ids = set()
+            packet_generation_recovered_offer_ids = set()
+            for item in sorted(events, key=lambda row: _parse_timestamp(row.get("created_at")) or datetime.min.replace(tzinfo=timezone.utc)):
+                offer_id = str(item.get("offer_id") or "").strip()
+                if not offer_id:
+                    continue
+                if item.get("event_type") == "subscription_packet_generation_retry_clicked":
+                    packet_generation_retried_offer_ids.add(offer_id)
+                elif (
+                    item.get("event_type") == "subscription_packet_generated"
+                    and offer_id in packet_generation_retried_offer_ids
+                ):
+                    packet_generation_recovered_offer_ids.add(offer_id)
+            packet_generation_recovered_count = len(packet_generation_recovered_offer_ids)
             # The installed PWA is the low-cost mobile-app bridge. Keep this
             # aggregate-only so product decisions can use the real install
             # funnel without returning device details or user-level activity.
@@ -3983,6 +4005,11 @@ class handler(BaseHTTPRequestHandler):
                 "repeatOfferTermsReuseUserCount": repeat_offer_terms_reuse_user_count,
                 "packetGenerationFailureCount": packet_generation_failure_count,
                 "packetGenerationFailureCounts": packet_generation_failure_counts,
+                "packetGenerationRetryCount": packet_generation_retry_count,
+                "packetGenerationRecoveredCount": packet_generation_recovered_count,
+                "packetGenerationRetryRecoveryRate": round(
+                    (packet_generation_recovered_count / packet_generation_retry_count) * 100, 1
+                ) if packet_generation_retry_count else 0,
                 "pwaInstallEventCounts": pwa_install_event_counts,
                 "pwaInstallShownCount": pwa_install_event_counts["shown"],
                 "pwaInstallPromptOpenCount": pwa_install_event_counts["prompt_opened"],
