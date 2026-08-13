@@ -56,6 +56,8 @@ class PartnerSelfServiceOnboardingTests(unittest.TestCase):
         self.assertIn("const partnerOnboardingTokenKey = 'hof_partner_onboarding_token';", html)
         self.assertIn("function retainPartnerOnboardingToken(token)", html)
         self.assertIn("cleanUrl.searchParams.delete('partner_onboarding');", html)
+        self.assertIn("Setup details saved — you are all set for now.", html)
+        self.assertIn("We will only publish a placement after that review is complete.", html)
         self.assertIn("window.history.replaceState({}, document.title, cleanUrl.pathname + cleanUrl.search + cleanUrl.hash);", html)
         self.assertIn("clearPartnerOnboardingToken();", html)
 
