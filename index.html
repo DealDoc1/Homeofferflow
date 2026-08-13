@@ -8256,6 +8256,26 @@ function routeAfterMagicLinkIfNeeded() {
     });
   }
 
+  function packetGenerationFailureDetails(err) {
+    const message = String(err?.message || err || '').toLowerCase();
+    if (/unauthori[sz]ed|forbidden|access token|session/.test(message)) {
+      return { category: 'session', nextStep: 'Reopen your account dashboard to refresh access, then try again.' };
+    }
+    if (/network|failed to fetch|offline|connection/.test(message)) {
+      return { category: 'network', nextStep: 'Check your connection, then try again.' };
+    }
+    if (/timeout|timed out/.test(message)) {
+      return { category: 'timeout', nextStep: 'Wait a moment, then try again.' };
+    }
+    if (/signwell|signature/.test(message)) {
+      return { category: 'signature_provider', nextStep: 'Try again shortly. If it continues, save your draft and contact support with the offer address.' };
+    }
+    if (/required|validation|invalid/.test(message)) {
+      return { category: 'validation', nextStep: 'Review the required fields on this offer, then try again.' };
+    }
+    return { category: 'service', nextStep: 'Try again shortly. If it continues, save your draft and contact support with the offer address.' };
+  }
+
 
 
   window.hofUploadedDisclosureDocs = window.hofUploadedDisclosureDocs || [];
@@ -8774,17 +8794,19 @@ function routeAfterMagicLinkIfNeeded() {
       showPaymentSuccess(email);
     } catch (err) {
       console.error('Subscribed packet generation failed:', err);
+      const failure = packetGenerationFailureDetails(err);
       await forceOfferGenerationFailedStatus(offerId, err, {
-        role: state.data.userType || hofAuth.role || 'agent'
+        role: state.data.userType || hofAuth.role || 'agent',
+        packetGenerationFailureCategory: failure.category
       });
       await logOfferEvent(
         offerId,
         'subscription_packet_generation_failed',
         'Generation Failed',
         err?.message || String(err || 'Packet generation failed.'),
-        { role: state.data.userType || hofAuth.role || 'agent' }
+        { role: state.data.userType || hofAuth.role || 'agent', errorCategory: failure.category }
       );
-      alert('Could not generate packet. No packet credit was used. Please try again. Error: ' + (err?.message || err));
+      alert('Could not generate packet. No packet credit was used. ' + failure.nextStep);
       if (nextBtn) {
         nextBtn.disabled = false;
         nextBtn.textContent = oldText || 'Generate Packet →';
