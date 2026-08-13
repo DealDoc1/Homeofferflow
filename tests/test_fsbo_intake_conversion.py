@@ -100,7 +100,8 @@ class FsboIntakeConversionTests(unittest.TestCase):
         self.assertIn("wireLegacyGoogleAddressInputs", HTML)
         self.assertIn("google.maps.places.Autocomplete", HTML)
         self.assertIn("Google Places autocomplete is unavailable; manual address entry remains available.", HTML)
-        self.assertIn("['fsboPropertyAddress', fillFsboAddressFields]", HTML)
+        self.assertIn("fsboPropertyAddress: fillFsboAddressFields", HTML)
+        self.assertIn("function addressAutocompleteInputs()", HTML)
 
     def test_seller_intake_has_a_hidden_bot_guard_without_adding_required_fields(self):
         self.assertIn('id="fsboWebsiteConfirm"', HTML)
