@@ -12101,6 +12101,7 @@ function routeAfterMagicLinkIfNeeded() {
       <button class="btn-primary" type="button" id="foundingPartnerSubmit" onclick="submitFoundingPartnerLead()">Continue to Secure Checkout</button>
       <button class="btn-secondary" type="button" onclick="closeFoundingPartnerModal()">Cancel</button>
     </div>
+    <div id="foundingPartnerCheckoutNote" class="admin-muted" style="margin-top:.55rem;line-height:1.45;">Next: review the selected Founding Partner price and payment details in secure Stripe Checkout. Your placement stays private until onboarding and written-agreement review are complete.</div>
     <div id="foundingPartnerStatus" class="platform-status"></div>
   </div>
 </div>
@@ -12175,6 +12176,7 @@ function routeAfterMagicLinkIfNeeded() {
     const budget = document.getElementById('foundingPartnerBudget');
     const summary = document.getElementById('foundingPartnerTierSelection');
     const submit = document.getElementById('foundingPartnerSubmit');
+    const checkoutNote = document.getElementById('foundingPartnerCheckoutNote');
     if (select) select.value = model;
     if (budget) budget.value = detail.budget;
     if (summary) summary.textContent = detail.label + ' · ' + detail.price;
@@ -12186,7 +12188,8 @@ function routeAfterMagicLinkIfNeeded() {
       const cardModel = card.getAttribute('data-partner-tier');
       if (copy) copy.textContent = selected ? 'Selected' : (cardModel === 'market_exclusive' ? 'Select Premier' : 'Select ' + (partnerTierDetails[cardModel]?.label || 'tier'));
     });
-    if (submit) submit.textContent = 'Apply for ' + detail.label;
+    if (submit) submit.textContent = 'Continue to Secure Checkout — ' + detail.label;
+    if (checkoutNote) checkoutNote.textContent = 'Next: review ' + detail.price + ' and payment details in secure Stripe Checkout. Your placement stays private until onboarding and written-agreement review are complete.';
     if (shouldTrack) trackPartnerFunnel('Founding Partner Tier Selected', { tier: model });
   };
   window.closeFoundingPartnerModal = function(){
