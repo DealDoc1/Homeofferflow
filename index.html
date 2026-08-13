@@ -14354,6 +14354,20 @@ function routeAfterMagicLinkIfNeeded() {
         complete, hasProfile, hasOffer, hasPlan
       };
     }
+    // Beta access can already generate packets. Do not interrupt a live
+    // client workflow with a checkout prompt when the agent has a saved draft;
+    // make recurring access an explicit secondary choice after continuity.
+    if (subscriptionStatus === 'beta' && draft) {
+      return {
+        key: 'resume_beta',
+        title: 'Continue your saved offer',
+        body: 'Your beta workspace is active and this offer is ready to continue. Resume the client workflow now; monthly or annual access is available whenever you are ready for recurring use.',
+        primary: 'Resume Offer',
+        secondary: 'Explore Monthly Access',
+        draftId: draft.id || '',
+        complete, hasProfile, hasOffer, hasPlan
+      };
+    }
     if (!hasPlan) {
       return {
         key: 'subscribe',
@@ -14448,6 +14462,7 @@ function routeAfterMagicLinkIfNeeded() {
       state.key === 'first_offer' ? 'new_offer' :
       state.key === 'resume_local_draft' ? 'resume_local' :
       state.key === 'repeat' ? 'reuse_terms' :
+      state.key === 'resume_beta' ? 'resume' :
       state.key === 'recover_billing' ? 'billing' :
       state.key === 'subscribe' || state.key === 'reactivate' ? 'subscribe' :
       'resume';
@@ -14456,6 +14471,7 @@ function routeAfterMagicLinkIfNeeded() {
       state.key === 'first_offer' ? 'profile' :
       state.key === 'resume_local_draft' ? 'start_fresh' :
       state.key === 'repeat' ? 'new_offer' :
+      state.key === 'resume_beta' ? 'subscribe' :
       state.key === 'recover_billing' ? 'offers' :
       state.key === 'subscribe' || state.key === 'reactivate' ? 'subscribe' :
       'offers';
