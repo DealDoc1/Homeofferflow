@@ -49,6 +49,11 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn("Founding Partner Landing CTA Selected", PARTNERS)
         self.assertIn('/_vercel/insights/script.js', PARTNERS)
         self.assertIn('not a referral or a required provider choice', PARTNERS)
+        self.assertIn('What happens after you choose a founding tier.', PARTNERS)
+        self.assertIn('Apply with the essentials', PARTNERS)
+        self.assertIn('Review secure checkout', PARTNERS)
+        self.assertIn('Complete private setup', PARTNERS)
+        self.assertIn('before a placement goes live', PARTNERS)
         self.assertIn('href="/partners.html">Become a Founding Partner</a>', INDEX)
 
     def test_seller_acquisition_page_is_indexable_and_routes_to_the_existing_safe_intake(self):
