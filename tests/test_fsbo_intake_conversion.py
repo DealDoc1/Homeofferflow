@@ -101,6 +101,18 @@ class FsboIntakeConversionTests(unittest.TestCase):
         self.assertIn("Seller Campaign Invitation Copied", HTML)
         self.assertIn("This is an intake—not checkout or a confirmed service order.", HTML)
 
+    def test_admin_can_create_privacy_safe_homebuyer_acquisition_links_and_copy(self):
+        self.assertIn("Homebuyer Campaign Toolkit", HTML)
+        self.assertIn("copyBuyerCampaignLink()", HTML)
+        self.assertIn("copyBuyerCampaignInvitation()", HTML)
+        self.assertIn("previewBuyerCampaignLink()", HTML)
+        self.assertIn('id="buyerCampaignChannel"', HTML)
+        self.assertIn('id="buyerCampaignName"', HTML)
+        self.assertIn("https://www.homeofferflow.com/buyers.html?", HTML)
+        self.assertIn("Homebuyer Campaign Link Copied", HTML)
+        self.assertIn("Homebuyer Campaign Invitation Copied", HTML)
+        self.assertIn("never a buyer’s identity, property, financing, or offer details", HTML)
+
     def test_seller_address_autocomplete_fails_softly_and_has_a_google_compatibility_path(self):
         self.assertIn("libraries=places", HTML)
         self.assertIn("typeof google.maps.importLibrary !== 'function'", HTML)

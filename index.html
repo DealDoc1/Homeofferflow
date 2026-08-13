@@ -10402,6 +10402,16 @@ function routeAfterMagicLinkIfNeeded() {
         </div>
         <div class="platform-actions"><button type="button" onclick="copySellerCampaignLink()">Copy Campaign Link</button><button type="button" class="btn-secondary" onclick="copySellerCampaignInvitation()">Copy Invitation</button><button type="button" class="btn-secondary" onclick="previewSellerCampaignLink()">Preview Intake</button></div>
         <div id="sellerCampaignLinkStatus" class="platform-status" aria-live="polite"></div>
+      </div>
+      <div class="platform-card" id="buyerCampaignToolkit">
+        <h4>Homebuyer Campaign Toolkit</h4>
+        <p>Create a shareable $99 Texas homebuyer-offer link or plain-language invitation copy. Links contain only distribution attribution—never a buyer’s identity, property, financing, or offer details.</p>
+        <div class="platform-grid">
+          <div class="field"><label for="buyerCampaignChannel">Distribution channel</label><select id="buyerCampaignChannel"><option value="direct_outreach" selected>Direct outreach</option><option value="email">Email newsletter</option><option value="social">Social post</option><option value="referral">Referral partner</option><option value="local_event">Local event</option><option value="print">Print / QR code</option></select></div>
+          <div class="field"><label for="buyerCampaignName">Campaign label <span style="color:var(--gray);font-weight:500;">(optional)</span></label><input id="buyerCampaignName" maxlength="80" placeholder="August North Texas buyers"></div>
+        </div>
+        <div class="platform-actions"><button type="button" onclick="copyBuyerCampaignLink()">Copy Campaign Link</button><button type="button" class="btn-secondary" onclick="copyBuyerCampaignInvitation()">Copy Invitation</button><button type="button" class="btn-secondary" onclick="previewBuyerCampaignLink()">Preview Landing Page</button></div>
+        <div id="buyerCampaignLinkStatus" class="platform-status" aria-live="polite"></div>
       </div>` : '';
     el.innerHTML = `
       <div class="platform-card">
@@ -10530,6 +10540,50 @@ function routeAfterMagicLinkIfNeeded() {
     const link = sellerCampaignLink();
     if (!link) return platformStatus('sellerCampaignLinkStatus', 'Choose a supported seller package.', 'err');
     window.open(link, '_blank', 'noopener,noreferrer');
+  };
+
+  function buyerCampaignLink() {
+    const channel = String(getVal('buyerCampaignChannel') || '').trim().toLowerCase();
+    const campaign = sellerCampaignLabel(getVal('buyerCampaignName'));
+    const params = new URLSearchParams({ utm_source: 'homeofferflow_admin' });
+    if (sellerCampaignChannels.has(channel)) params.set('utm_medium', channel);
+    if (campaign) params.set('utm_campaign', campaign);
+    return `https://www.homeofferflow.com/buyers.html?${params.toString()}`;
+  }
+
+  function buyerCampaignInvitation() {
+    const link = buyerCampaignLink();
+    return `Hi [First name],\n\nIf you are preparing a Texas home offer, HomeOfferFlow lets you work through a supported buyer-offer packet in plain English, review it before paying, and use buyer-side signing delivery when it is ready.\n\nYou can start here:\n${link}\n\nThere is no payment required to begin. The $99 one-time charge appears only when the completed packet is ready for review. HomeOfferFlow is a form-completion tool, not legal advice or brokerage representation.\n\nBest,\nHomeOfferFlow`;
+  }
+
+  window.copyBuyerCampaignLink = async function copyBuyerCampaignLink() {
+    if (!isCurrentAdmin()) return platformStatus('buyerCampaignLinkStatus', 'HomeOfferFlow admin access is required to create a buyer campaign link.', 'err');
+    const link = buyerCampaignLink();
+    try {
+      if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(link);
+      else window.prompt('Copy this homebuyer campaign link:', link);
+      try { trackEvent('Homebuyer Campaign Link Copied', { channel: getVal('buyerCampaignChannel'), surface: 'buyer_admin_toolkit' }); } catch (_) {}
+      platformStatus('buyerCampaignLinkStatus', 'Campaign link copied. It opens the public buyer-offer page and carries only channel/campaign attribution.', 'ok');
+    } catch (_) {
+      platformStatus('buyerCampaignLinkStatus', 'Could not copy automatically. Copy this link: ' + link, 'err');
+    }
+  };
+
+  window.copyBuyerCampaignInvitation = async function copyBuyerCampaignInvitation() {
+    if (!isCurrentAdmin()) return platformStatus('buyerCampaignLinkStatus', 'HomeOfferFlow admin access is required to create a buyer invitation.', 'err');
+    try {
+      if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(buyerCampaignInvitation());
+      else window.prompt('Copy this homebuyer invitation:', buyerCampaignInvitation());
+      try { trackEvent('Homebuyer Campaign Invitation Copied', { channel: getVal('buyerCampaignChannel'), surface: 'buyer_admin_toolkit' }); } catch (_) {}
+      platformStatus('buyerCampaignLinkStatus', 'Invitation copy and its tracked buyer-offer link are ready to paste into your own outreach.', 'ok');
+    } catch (_) {
+      platformStatus('buyerCampaignLinkStatus', 'Could not copy automatically. Use Copy Campaign Link instead.', 'err');
+    }
+  };
+
+  window.previewBuyerCampaignLink = function previewBuyerCampaignLink() {
+    if (!isCurrentAdmin()) return platformStatus('buyerCampaignLinkStatus', 'HomeOfferFlow admin access is required to preview a buyer campaign link.', 'err');
+    window.open(buyerCampaignLink(), '_blank', 'noopener,noreferrer');
   };
 
   async function saveSellerLeadFoundation() {
