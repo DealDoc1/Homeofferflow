@@ -6033,11 +6033,11 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 
     container.innerHTML = `
       <div class="account-card"><h4>Agent / Brokerage Info</h4><p class="account-profile-essentials"><strong>Save these five essentials first.</strong> They make your agent profile ready for repeat offers. Title, escrow, and offer preferences below are optional and can be added later.</p><div class="account-grid">
-        <div class="field"><label>Agent Name <span class="account-profile-required">Required</span></label><input id="profAgentName" autocomplete="name" value="${escapeAttr(profileValue('agent_name'))}" placeholder="Jane Doe"></div>
-        <div class="field"><label>License Number <span class="account-profile-required">Required</span></label><input id="profAgentLicense" value="${escapeAttr(profileValue('license_number'))}" placeholder="TX license #"></div>
-        <div class="field"><label>Agent Email <span class="account-profile-required">Required</span></label><input id="profAgentEmail" type="email" autocomplete="email" value="${escapeAttr(profileValue('agent_email', hofAuth.session?.user?.email || ''))}" placeholder="agent@brokerage.com"></div>
-        <div class="field"><label>Agent Phone <span class="account-profile-required">Required</span></label><input id="profAgentPhone" type="tel" autocomplete="tel" value="${escapeAttr(profileValue('agent_phone'))}" placeholder="(214) 555-0000"></div>
-        <div class="field"><label>Brokerage Name <span class="account-profile-required">Required</span></label><input id="profBrokerageName" autocomplete="organization" value="${escapeAttr(profileValue('brokerage_name'))}" placeholder="Brokerage firm"></div>
+        <div class="field"><label>Agent Name <span class="account-profile-required">Required</span></label><input id="profAgentName" autocomplete="name" value="${escapeAttr(profileValue('agent_name'))}" placeholder="Jane Doe" required aria-required="true"></div>
+        <div class="field"><label>License Number <span class="account-profile-required">Required</span></label><input id="profAgentLicense" value="${escapeAttr(profileValue('license_number'))}" placeholder="TX license #" required aria-required="true"></div>
+        <div class="field"><label>Agent Email <span class="account-profile-required">Required</span></label><input id="profAgentEmail" type="email" autocomplete="email" value="${escapeAttr(profileValue('agent_email', hofAuth.session?.user?.email || ''))}" placeholder="agent@brokerage.com" required aria-required="true"></div>
+        <div class="field"><label>Agent Phone <span class="account-profile-required">Required</span></label><input id="profAgentPhone" type="tel" autocomplete="tel" value="${escapeAttr(profileValue('agent_phone'))}" placeholder="(214) 555-0000" required aria-required="true"></div>
+        <div class="field"><label>Brokerage Name <span class="account-profile-required">Required</span></label><input id="profBrokerageName" autocomplete="organization" value="${escapeAttr(profileValue('brokerage_name'))}" placeholder="Brokerage firm" required aria-required="true"></div>
         <div class="field"><label>Brokerage License</label><input id="profBrokerageLicense" value="${escapeAttr(profileValue('brokerage_license'))}" placeholder="Brokerage license #"></div>
       </div></div>
       <div class="account-card"><h4>Title, Escrow & Offer Defaults</h4><div class="account-grid">
@@ -6072,6 +6072,22 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     if (!client) {
       setAccountStatus('Supabase did not load. Refresh and try again.', 'err');
       return;
+    }
+
+    if (hofAuth.role !== 'investor') {
+      const requiredProfileFields = [
+        ['profAgentName', 'Agent Name'],
+        ['profAgentLicense', 'License Number'],
+        ['profAgentEmail', 'Agent Email'],
+        ['profAgentPhone', 'Agent Phone'],
+        ['profBrokerageName', 'Brokerage Name']
+      ];
+      const missingProfileFields = requiredProfileFields.filter(([id]) => !getVal(id)).map(([, label]) => label);
+      if (missingProfileFields.length) {
+        setAccountStatus('Add ' + missingProfileFields.join(', ') + ' to save your repeat-offer defaults.', 'err');
+        document.getElementById(requiredProfileFields.find(([id]) => !getVal(id))?.[0])?.focus();
+        return null;
+      }
     }
 
     let user = hofAuth.session?.user || null;
