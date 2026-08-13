@@ -34,11 +34,23 @@
       const labels = {title:'Title company / fee attorney',lender:'Mortgage lender',inspection:'Home inspection',surveyor:'Property surveyor',home_warranty:'Home warranty',insurance:'Home insurance',roofing:'Roofing',hvac:'HVAC',plumbing:'Plumbing',electrical:'Electrical',foundation_structural:'Foundation / structural',general_contractor:'General contractor / remodeling',pest_termite:'Pest control / termite',septic_well:'Septic / well service',restoration:'Restoration',photography_video:'Photography / video',staging:'Home staging',repairs_handyman:'Repairs / handyman',cleaning:'Cleaning',moving_storage:'Moving / storage',lawn_pool:'Lawn / pool',security_smart_home:'Security / smart home',other:'Real-estate service'};
       const esc = value => String(value || '').replace(/[&<>"']/g, character => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[character]));
       const safeUrl = value => { try { const url = new URL(value); return ['http:','https:'].includes(url.protocol) ? url.href : ''; } catch (_) { return ''; } };
+      const track = (name, data = {}) => { try { window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); }; window.va('event', {name, ...data}); } catch (_) {} };
+      const trackImpressions = rows => (rows || []).forEach(provider => {
+        const partnerId = String(provider?.id || '').trim();
+        if (!partnerId) return;
+        try {
+          const key = 'hof_public_partner_impression_' + partnerId;
+          if (sessionStorage.getItem(key)) return;
+          sessionStorage.setItem(key, '1');
+        } catch (_) {}
+        track('Partner Directory Impression', {partnerId, partnerType:String(provider.partner_type || ''), placementTier:String(provider.placement_tier || '')});
+      });
       const empty = 'No active HomeOfferFlow provider profiles are available for this search yet. You may choose any qualified provider independently.<p style="margin:.75rem 0 0"><a href="/partners.html" style="color:var(--gl);font-weight:800">Own a service business? Explore a founding placement →</a></p>';
       const card = provider => {
         const website = safeUrl(provider.website_url);
-        return `<article class="card">${provider.logo_url ? `<img src="${esc(provider.logo_url)}" alt="">` : ''}<h2>${esc(provider.partner_name)}</h2><div class="meta">${esc(labels[provider.partner_type] || 'Local service')} · ${esc(provider.market_area || 'Texas')}</div><p>Sponsored ${esc(provider.placement_tier || 'partner')} profile. Confirm fit, availability, and terms directly with the provider.</p>${website ? `<a href="${esc(website)}" target="_blank" rel="noopener noreferrer">Visit site ↗</a>` : ''}</article>`;
+        return `<article class="card">${provider.logo_url ? `<img src="${esc(provider.logo_url)}" alt="">` : ''}<h2>${esc(provider.partner_name)}</h2><div class="meta">${esc(labels[provider.partner_type] || 'Local service')} · ${esc(provider.market_area || 'Texas')}</div><p>Sponsored ${esc(provider.placement_tier || 'partner')} profile. Confirm fit, availability, and terms directly with the provider.</p>${website ? `<a href="${esc(website)}" data-partner-link data-partner-id="${esc(provider.id)}" data-partner-type="${esc(provider.partner_type)}" data-placement-tier="${esc(provider.placement_tier)}" target="_blank" rel="noopener noreferrer">Visit site ↗</a>` : ''}</article>`;
       };
+      const bindOutboundClicks = () => document.querySelectorAll('[data-partner-link]').forEach(link => link.addEventListener('click', () => track('Partner Directory Outbound Click', {partnerId:link.dataset.partnerId || '', partnerType:link.dataset.partnerType || '', placementTier:link.dataset.placementTier || ''})));
       async function load(event) {
         event?.preventDefault();
         const query = new URLSearchParams({partner_directory:'1'}), category = $('category').value, market = $('market').value.trim();
@@ -53,6 +65,8 @@
           const rows = Array.isArray(data.partners) ? data.partners : [];
           $('status').textContent = rows.length ? `${rows.length} active provider profile${rows.length === 1 ? '' : 's'} found.` : 'No active profiles match this search.';
           $('results').innerHTML = rows.length ? rows.map(card).join('') : `<div class="empty">${empty}</div>`;
+          trackImpressions(rows);
+          bindOutboundClicks();
         } catch (_) {
           $('status').textContent = 'Provider profiles are temporarily unavailable.';
           $('results').innerHTML = '<div class="empty">Please try again shortly. You may choose any qualified provider independently.</div>';
@@ -62,5 +76,6 @@
       load();
     })();
   </script>
+  <script defer src="/_vercel/insights/script.js"></script>
 </body>
 </html>
