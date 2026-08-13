@@ -4507,6 +4507,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <div class="admin-metric-value">${metrics.subscriptionCheckoutStartCount || 0} started</div>
               <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.subscriptionCheckoutRedirectCount || 0} redirected to Stripe · ${metrics.subscriptionCheckoutReturnCount || 0} returned · ${Number(metrics.subscriptionCheckoutReturnRate || 0).toFixed(1)}% return rate.</div>
               <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.subscriptionCheckoutFailureCount || 0} request failures before Stripe redirect.</div>
+              <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Canceled-checkout recovery: ${metrics.subscriptionCheckoutRecoveryShownCount || 0} shown · ${metrics.subscriptionCheckoutRecoveryStartCount || 0} restarted in Stripe.</div>
               <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">OnDemand: ${metrics.onDemandCheckoutStartCount || 0} started · ${metrics.onDemandCheckoutReturnCount || 0} returned · ${Number(metrics.onDemandCheckoutReturnRate || 0).toFixed(1)}% return rate · ${metrics.onDemandFirstOfferStartCount || 0} first-offer starts (${Number(metrics.onDemandFirstOfferStartRate || 0).toFixed(1)}% of returns).</div>
           </div>
 
@@ -4860,6 +4861,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       if (sessionStorage.getItem('hof_subscription_checkout_cancelled') === '1') {
         sessionStorage.removeItem('hof_subscription_checkout_cancelled');
         setAccountStatus('Checkout was canceled. Your saved offer and account are still here—resume when you are ready.', 'err');
+        renderSubscriptionCheckoutRecovery();
       }
     } catch (e) {}
   }
@@ -5137,7 +5139,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   const SUBSCRIPTION_CHECKOUT_SOURCE_KEY = 'hof_subscription_checkout_source';
 
   function subscriptionCheckoutSource(value) {
-    const allowed = new Set(['homeofferflow', 'subscription_card', 'subscription_reactivation', 'agent_activation']);
+    const allowed = new Set(['homeofferflow', 'subscription_card', 'subscription_reactivation', 'agent_activation', 'subscription_cancel_recovery']);
     const source = String(value || 'homeofferflow').trim().toLowerCase();
     return allowed.has(source) ? source : 'homeofferflow';
   }
@@ -5226,7 +5228,13 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     if (result === 'cancelled') {
       setTimeout(async () => {
         await flushSubscriptionCheckoutReturnEvent();
-        try { sessionStorage.setItem('hof_subscription_checkout_cancelled', '1'); } catch (e) {}
+        try {
+          sessionStorage.setItem('hof_subscription_checkout_cancelled', '1');
+          sessionStorage.setItem('hof_subscription_checkout_cancelled_context', JSON.stringify({
+            plan: plan === 'investor' ? 'investor' : 'agent',
+            billing: billing === 'annual' ? 'annual' : 'monthly'
+          }));
+        } catch (e) {}
         if (hofAuth.session) await openAccountDashboard({ tab: 'dashboard' });
       }, 250);
     }
@@ -5237,6 +5245,58 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   }
 
   const SUBSCRIPTION_CHECKOUT_RETURN_KEY = 'hof_subscription_checkout_return_event';
+
+  function subscriptionCheckoutCancelledContext() {
+    try {
+      const context = JSON.parse(sessionStorage.getItem('hof_subscription_checkout_cancelled_context') || '{}');
+      return {
+        plan: context.plan === 'investor' ? 'investor' : 'agent',
+        billing: context.billing === 'annual' ? 'annual' : 'monthly'
+      };
+    } catch (_) {
+      return { plan: 'agent', billing: 'monthly' };
+    }
+  }
+
+  function renderSubscriptionCheckoutRecovery() {
+    const card = document.getElementById('subscriptionUsageCard');
+    if (!card || card.querySelector('.subscription-checkout-recovery')) return;
+    const context = subscriptionCheckoutCancelledContext();
+    const alternateBilling = context.billing === 'annual' ? 'monthly' : 'annual';
+    const primaryLabel = context.billing === 'annual' ? 'Resume Annual Checkout' : 'Resume Monthly Checkout';
+    const alternateLabel = alternateBilling === 'annual' ? 'Review Annual Access' : 'Review Monthly Access';
+    const notice = document.createElement('div');
+    notice.className = 'subscription-checkout-recovery';
+    notice.style.cssText = 'margin-top:.75rem;padding:.75rem;border:1px solid rgba(200,151,63,.4);border-radius:10px;background:rgba(200,151,63,.08);font-size:.78rem;line-height:1.45;color:var(--gray-light);';
+    const title = document.createElement('strong');
+    title.textContent = 'Your checkout was not completed.';
+    title.style.color = 'var(--gold-light)';
+    const copy = document.createElement('span');
+    copy.textContent = ' Your account and saved offers are unchanged. Resume the option you selected only when you are ready, or compare the other billing interval in secure Stripe checkout.';
+    const actions = document.createElement('div');
+    actions.style.cssText = 'display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.55rem;';
+    const makeAction = (label, billing) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = billing === context.billing ? 'btn-primary' : 'btn-secondary';
+      button.textContent = label;
+      button.addEventListener('click', () => startSubscriptionCheckout(context.plan, billing, 'subscription_cancel_recovery'));
+      return button;
+    };
+    const dismiss = document.createElement('button');
+    dismiss.type = 'button';
+    dismiss.className = 'btn-secondary';
+    dismiss.textContent = 'Not now';
+    dismiss.addEventListener('click', () => {
+      notice.remove();
+      try { sessionStorage.removeItem('hof_subscription_checkout_cancelled_context'); } catch (_) {}
+      logOfferEvent(null, 'subscription_checkout_recovery_dismissed', 'dismissed', 'Canceled subscription checkout recovery was dismissed.', {});
+    });
+    actions.append(makeAction(primaryLabel, context.billing), makeAction(alternateLabel, alternateBilling), dismiss);
+    notice.append(title, copy, actions);
+    card.appendChild(notice);
+    logOfferEvent(null, 'subscription_checkout_recovery_shown', 'shown', 'Canceled subscription checkout recovery was shown.', { plan: context.plan, billing: context.billing });
+  }
 
   function queueSubscriptionCheckoutReturn(result, plan, billing) {
     if (!['success', 'cancelled'].includes(result)) return;
