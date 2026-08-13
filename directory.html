@@ -36,6 +36,16 @@
       const esc = value => String(value || '').replace(/[&<>"']/g, character => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[character]));
       const safeUrl = value => { try { const url = new URL(value); return ['http:','https:'].includes(url.protocol) ? url.href : ''; } catch (_) { return ''; } };
       const track = (name, data = {}) => { try { window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); }; window.va('event', {name, ...data}); } catch (_) {} };
+      const trackSearchDemand = (category, market) => {
+        const safeCategory = allowedCategories.has(category) ? category : 'all';
+        const hasMarket = Boolean(market);
+        try {
+          const key = `hof_public_directory_search_${safeCategory}_${hasMarket ? 'market' : 'all'}`;
+          if (sessionStorage.getItem(key)) return;
+          sessionStorage.setItem(key, '1');
+        } catch (_) {}
+        track('Provider Directory Search', {category:safeCategory, hasMarket});
+      };
       const trackImpressions = rows => (rows || []).forEach(provider => {
         const partnerId = String(provider?.id || '').trim();
         if (!partnerId) return;
@@ -76,6 +86,7 @@
         if (category) query.set('category', category);
         if (market) query.set('market', market);
         syncFiltersToUrl(category, market);
+        trackSearchDemand(category, market);
         $('status').textContent = 'Loading active provider profiles…';
         $('results').innerHTML = '';
         try {
