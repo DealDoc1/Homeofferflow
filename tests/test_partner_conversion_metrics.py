@@ -30,6 +30,10 @@ class PartnerConversionMetricTests(unittest.TestCase):
     def test_admin_payload_counts_only_allowlisted_seller_package_requests(self):
         source = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
         self.assertIn('"sellerPackageRequestCounts"', source)
+        self.assertIn('"sellerCampaignLeadCount"', source)
+        self.assertIn('"sellerCampaignMediumCounts"', source)
+        self.assertIn('seller_campaign_medium_counts', source)
+        self.assertIn('tracked_seller_campaign_leads', source)
         self.assertIn('seller_package_catalog', source)
         self.assertIn('package_key in seller_package_catalog', source)
         self.assertIn('lead.get("service_level")', source)
@@ -50,6 +54,7 @@ class PartnerConversionMetricTests(unittest.TestCase):
         self.assertIn('Campaign category opens:', source)
         self.assertIn('Campaign tier opens:', source)
         self.assertIn('Submitted package demand:', source)
+        self.assertIn('Tracked campaign leads:', source)
         self.assertIn('sellerPackageRequestCounts', source)
 
     def test_partner_workspace_can_create_allowlisted_campaign_links(self):

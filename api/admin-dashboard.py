@@ -3425,6 +3425,28 @@ class handler(BaseHTTPRequestHandler):
             seller_follow_up_email_start_count = len([
                 item for item in events if item.get("event_type") == "seller_follow_up_email_started"
             ])
+            # Seller acquisition links deliberately carry only a fixed channel
+            # and optional campaign label. Roll up channels here instead of
+            # exposing free-form UTM values as dashboard dimensions.
+            seller_campaign_medium_counts = {
+                "direct_outreach": 0,
+                "email": 0,
+                "social": 0,
+                "referral": 0,
+                "local_event": 0,
+                "print": 0,
+                "other_tracked": 0,
+            }
+            tracked_seller_campaign_leads = [
+                lead for lead in seller_leads
+                if str(lead.get("source") or "").lower() == "tracked_seller_landing"
+            ]
+            for lead in tracked_seller_campaign_leads:
+                medium = str(lead.get("utm_medium") or "").strip().lower()
+                if medium in seller_campaign_medium_counts and medium != "other_tracked":
+                    seller_campaign_medium_counts[medium] += 1
+                else:
+                    seller_campaign_medium_counts["other_tracked"] += 1
             # Landing path choices are aggregate product-routing signals only.
             # Accept a fixed audience vocabulary so event metadata can never
             # introduce free-form visitor data into the platform dashboard.
@@ -3866,6 +3888,8 @@ class handler(BaseHTTPRequestHandler):
                 "qualifiedPartnerLeadCount": len([lead for lead in partner_leads if lead.get("status") in {"qualified", "converted"}]),
                 "sellerLeadCount": len(seller_leads),
                 "sellerPackageRequestCounts": seller_package_request_counts,
+                "sellerCampaignLeadCount": len(tracked_seller_campaign_leads),
+                "sellerCampaignMediumCounts": seller_campaign_medium_counts,
                 "landingAudienceSelectionCount": sum(landing_audience_selection_counts.values()),
                 "landingAudienceSelectionCounts": landing_audience_selection_counts,
                 "qualifiedSellerLeadCount": len([lead for lead in seller_leads if lead.get("status") in {"qualified", "converted"}]),
