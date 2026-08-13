@@ -58,17 +58,21 @@ class PwaInstallExperienceTests(unittest.TestCase):
         api = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
         for expected in (
             '"pwaInstallEventCounts"',
+            '"pwaInstallShownSurfaceCounts"',
             '"pwaInstallShownCount"',
             '"pwaInstallPromptOpenCount"',
             '"pwaInstallInstructionsOpenCount"',
             '"pwaInstallGuidanceOpenRate"',
             '"pwaInstallCompletionRate"',
             "pwa_install_event_counts",
+            "pwa_install_surfaces",
         ):
             self.assertIn(expected, api)
         self.assertIn("Mobile App Install Funnel", INDEX)
         self.assertIn("pwaInstallPromptOpenRate", INDEX)
         self.assertIn("pwaInstallInstructionsOpenCount", INDEX)
+        self.assertIn("pwaInstallShownSurfaceCounts", INDEX)
+        self.assertIn("Shown on:", INDEX)
         self.assertIn("PWA only: app-like mobile access", INDEX)
 
     def test_offline_shell_cache_is_versioned_for_the_new_install_surface(self):
