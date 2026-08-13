@@ -107,6 +107,13 @@ class PartnerSelfServiceOnboardingTests(unittest.TestCase):
         self.assertIn("emailPartnerOnboardingLink", html)
         self.assertIn("does not activate advertising", admin)
 
+    def test_admin_can_copy_a_complete_setup_invitation_without_sending_it(self):
+        html = (ROOT / "index.html").read_text()
+        self.assertIn("Copy setup invitation", html)
+        self.assertIn("copyPartnerOnboardingInvitation", html)
+        self.assertIn("partner_onboarding_invitation_copied", html)
+        self.assertIn("paste it into your own follow-up when appropriate", html)
+
 
 if __name__ == "__main__":
     unittest.main()
