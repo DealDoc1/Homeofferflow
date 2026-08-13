@@ -29,6 +29,14 @@ class PartnerPlacementActivationGateTests(unittest.TestCase):
         self.assertIn("No fully onboarded paid applications", HTML)
         self.assertIn("Setup complete", HTML)
 
+    def test_admin_defaults_placement_tier_and_fee_from_paid_selection(self):
+        self.assertIn('onchange="applyPartnerPlacementDefaultsFromLead()"', HTML)
+        self.assertIn("function partnerPlacementDefaults(preferredModel)", HTML)
+        self.assertIn("monthly_placement: { tier: 'premier', fee: 399", HTML)
+        self.assertIn("market_exclusive: { tier: 'exclusive_market', fee: 799", HTML)
+        self.assertIn("function applyPartnerPlacementDefaultsFromLead()", HTML)
+        self.assertIn("data-placement-tier", HTML)
+
     def test_public_directory_hides_partner_contact_and_agreement_records(self):
         self.assertIn("revoke all on table public.hof_partner_placements from anon, authenticated", PUBLIC_VIEW_MIGRATION)
         self.assertIn("create or replace view public.hof_public_partner_placements", PUBLIC_VIEW_MIGRATION)
