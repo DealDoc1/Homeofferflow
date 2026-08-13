@@ -4371,6 +4371,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <div class="admin-metric-value">${Number(metrics.packetGenerationFailureCount || 0)} failures</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Session ${Number(metrics.packetGenerationFailureCounts?.session || 0)} · network ${Number(metrics.packetGenerationFailureCounts?.network || 0)} · timeout ${Number(metrics.packetGenerationFailureCounts?.timeout || 0)} · signature provider ${Number(metrics.packetGenerationFailureCounts?.signature_provider || 0)}.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Validation ${Number(metrics.packetGenerationFailureCounts?.validation || 0)} · service ${Number(metrics.packetGenerationFailureCounts?.service || 0)} · unclassified ${Number(metrics.packetGenerationFailureCounts?.unclassified || 0)}. Aggregate-only: no offer, client, or agent details shown.</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Retry recovery: ${Number(metrics.packetGenerationRetryCount || 0)} retry clicks · ${Number(metrics.packetGenerationRecoveredCount || 0)} recovered packets (${Number(metrics.packetGenerationRetryRecoveryRate || 0).toFixed(1)}%).</div>
           </div>
 
           <div class="admin-metric">
