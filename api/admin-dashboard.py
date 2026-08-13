@@ -4057,11 +4057,15 @@ class handler(BaseHTTPRequestHandler):
                 "pwaInstallEventCounts": pwa_install_event_counts,
                 "pwaInstallShownCount": pwa_install_event_counts["shown"],
                 "pwaInstallPromptOpenCount": pwa_install_event_counts["prompt_opened"],
+                "pwaInstallInstructionsOpenCount": pwa_install_event_counts["instructions_opened"],
                 "pwaInstallAcceptedCount": pwa_install_event_counts["accepted"],
                 "pwaInstallDismissedCount": pwa_install_event_counts["dismissed"],
                 "pwaInstalledCount": pwa_install_event_counts["installed"],
                 "pwaInstallPromptOpenRate": round(
                     (pwa_install_event_counts["prompt_opened"] / pwa_install_event_counts["shown"]) * 100, 1
+                ) if pwa_install_event_counts["shown"] else 0,
+                "pwaInstallGuidanceOpenRate": round(
+                    (pwa_install_event_counts["instructions_opened"] / pwa_install_event_counts["shown"]) * 100, 1
                 ) if pwa_install_event_counts["shown"] else 0,
                 "pwaInstallCompletionRate": round(
                     (pwa_install_event_counts["installed"] / pwa_install_event_counts["prompt_opened"]) * 100, 1
