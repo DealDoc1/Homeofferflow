@@ -54,6 +54,7 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn("const allowedCategories = new Set", PARTNERS)
         self.assertIn("campaign.set('partner_category', category)", PARTNERS)
         self.assertIn("campaign.set('partner_tier', tier)", PARTNERS)
+        self.assertIn("key === 'partner_tier' && destination.searchParams.has(key)", PARTNERS)
         self.assertIn('/_vercel/insights/script.js', PARTNERS)
         self.assertIn('not a referral or a required provider choice', PARTNERS)
         self.assertIn('What happens after you choose a founding tier.', PARTNERS)
