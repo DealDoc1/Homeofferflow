@@ -26,8 +26,14 @@ class SubscriptionPacketGenerationSecurityTests(unittest.TestCase):
         generation = HTML[generation_start:generation_end]
         self.assertIn("packetGenerationFailureCategory: failure.category", generation)
         self.assertIn("errorCategory: failure.category", generation)
-        self.assertIn("No packet credit was used. ' + failure.nextStep", generation)
+        self.assertIn("showPacketGenerationRecoveryNotice(failure)", generation)
         self.assertNotIn("No packet credit was used. Please try again. Error:", generation)
+
+        self.assertIn('id="packetGenerationRecoveryNotice"', HTML)
+        self.assertIn('id="packetGenerationRetryButton"', HTML)
+        self.assertIn("'subscription_packet_generation_retry_clicked'", recovery)
+        self.assertIn("No packet credit was used. ", recovery)
+        self.assertIn("await generateSubscribedPacket();", recovery)
 
     def test_admin_surfaces_only_aggregate_packet_generation_failure_categories(self):
         admin = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")

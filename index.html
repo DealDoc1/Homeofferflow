@@ -3611,6 +3611,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       <h2>Review your packet</h2>
       <p class="step-desc">Your self-service Texas buyer-offer packet is ready to purchase for $99.</p>
       <div id="paymentCheckoutReturnNotice" class="notice sage" style="display:none; margin-bottom:1rem;"><strong>Your offer is still saved.</strong> Checkout was not completed, and no charge was made. Review the packet or resume secure checkout when you are ready.</div>
+      <div id="packetGenerationRecoveryNotice" class="notice gold" style="display:none; margin-bottom:1rem;" role="status" aria-live="polite"><strong>Packet generation needs another try.</strong><span id="packetGenerationRecoveryMessage" style="display:block; margin-top:.35rem;"></span><button id="packetGenerationRetryButton" class="btn-secondary" type="button" style="margin-top:.65rem;">Try generating again</button></div>
       <div style="display:grid; grid-template-columns:1fr; gap:0.6rem; margin-bottom:1.5rem;">
         <div class="pricing-card popular" id="plan-self" onclick="selectPlan('self', 99)"><div class="popular-badge">Current packet</div><div class="plan-name">Self-Serve Buyer Offer Packet</div><div class="plan-price">$99</div><div class="plan-features"><div class="plan-feature">✓ Guided buyer-offer workflow</div><div class="plan-feature">✓ Supported purchase addenda</div><div class="plan-feature">✓ Buyer-side signing delivery</div></div></div>
       </div>
@@ -8283,6 +8284,37 @@ function routeAfterMagicLinkIfNeeded() {
     return { category: 'service', nextStep: 'Try again shortly. If it continues, save your draft and contact support with the offer address.' };
   }
 
+  function clearPacketGenerationRecoveryNotice() {
+    const notice = document.getElementById('packetGenerationRecoveryNotice');
+    if (notice) notice.style.display = 'none';
+  }
+
+  function showPacketGenerationRecoveryNotice(failure) {
+    const notice = document.getElementById('packetGenerationRecoveryNotice');
+    const message = document.getElementById('packetGenerationRecoveryMessage');
+    const retry = document.getElementById('packetGenerationRetryButton');
+    if (!notice || !message || !retry) return;
+    message.textContent = 'No packet credit was used. ' + String(failure?.nextStep || 'Try again shortly.');
+    retry.onclick = async () => {
+      retry.disabled = true;
+      try {
+        await logOfferEvent(
+          state?.data?._hofOfferId || null,
+          'subscription_packet_generation_retry_clicked',
+          'Generation Failed',
+          'Agent chose to retry packet generation.',
+          { role: state?.data?.userType || hofAuth.role || 'agent', errorCategory: failure?.category || 'service' }
+        );
+        clearPacketGenerationRecoveryNotice();
+        await generateSubscribedPacket();
+      } finally {
+        retry.disabled = false;
+      }
+    };
+    notice.style.display = 'block';
+    notice.scrollIntoView?.({ behavior: 'smooth', block: 'nearest' });
+  }
+
 
 
   window.hofUploadedDisclosureDocs = window.hofUploadedDisclosureDocs || [];
@@ -8664,6 +8696,7 @@ function routeAfterMagicLinkIfNeeded() {
   }
 
   async function generateSubscribedPacket() {
+    clearPacketGenerationRecoveryNotice();
     if (!(await canGenerateOffer(true))) return;
 
     collectAllData();
@@ -8813,7 +8846,7 @@ function routeAfterMagicLinkIfNeeded() {
         err?.message || String(err || 'Packet generation failed.'),
         { role: state.data.userType || hofAuth.role || 'agent', errorCategory: failure.category }
       );
-      alert('Could not generate packet. No packet credit was used. ' + failure.nextStep);
+      showPacketGenerationRecoveryNotice(failure);
       if (nextBtn) {
         nextBtn.disabled = false;
         nextBtn.textContent = oldText || 'Generate Packet →';
