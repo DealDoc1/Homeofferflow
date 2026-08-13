@@ -11560,6 +11560,10 @@ function routeAfterMagicLinkIfNeeded() {
       <div class="field"><label>Target Asking Price <span style="color:var(--gray);font-weight:500;">(optional)</span></label><input id="fsboAskingPrice" type="number" placeholder="500000"></div>
       <div class="field"><label>Timeline <span style="color:var(--gray);font-weight:500;">(optional)</span></label><select id="fsboTimeline"><option value="not_sure">Not sure yet</option><option value="asap">ASAP / already ready</option><option value="30_days">Within 30 days</option><option value="60_90_days">60–90 days</option><option value="future">Future planning</option></select></div>
     </div>
+    <div class="notice sage" style="margin-top:.9rem;display:flex;align-items:center;justify-content:space-between;gap:.75rem;flex-wrap:wrap;">
+      <div><strong>Ready when you are.</strong><br><span style="color:var(--gray-light);font-size:.8rem;">Start with the free intake now, or choose a more specific package below. No checkout or service commitment.</span></div>
+      <button class="btn-primary" type="button" id="fsboSellerQuickSubmit" data-fsbo-submit onclick="submitFsboSellerLead('quick')">Get My Free Seller Plan</button>
+    </div>
 
     <div style="margin-top:1rem; padding-top:.9rem; border-top:1px solid rgba(255,255,255,.08);">
       <div class="radio-group-label" style="margin-bottom:.55rem;">Seller package interest</div>
@@ -11610,7 +11614,7 @@ function routeAfterMagicLinkIfNeeded() {
     <div class="field" style="margin-top:.8rem;"><label>Tell us about your situation <span style="color:var(--gray);font-weight:500;">(optional)</span></label><textarea id="fsboNotes" rows="3" placeholder="Anything we should know? Property condition, pricing concerns, whether you already have photos, whether offers are already coming in, partner needs, etc."></textarea></div>
     <div class="notice gold" style="margin-top:.8rem;">Package pricing shown here is for planning/intake and may be finalized separately before any paid service begins. This is not checkout and not a confirmed service order. HomeOfferFlow is not a law firm and does not provide legal advice. Some FSBO, flat-fee MLS, offer-review, brokerage, title, or closing-support services may be provided through a licensed Texas real estate broker, affiliated license holder, attorney, title company, or other licensed provider where required. Pricing may vary by property, location, service level, and broker/provider approval.</div>
     <div class="account-actions-row" style="margin-top:1rem;">
-      <button class="btn-primary" type="button" id="fsboSellerSubmit" onclick="submitFsboSellerLead()">Save My Seller Request</button>
+      <button class="btn-primary" type="button" id="fsboSellerSubmit" data-fsbo-submit onclick="submitFsboSellerLead('full')">Save My Seller Request</button>
       <button class="btn-secondary" type="button" onclick="closeFsboSellerModal()">Cancel</button>
     </div>
     <div id="fsboSellerStatus" class="platform-status"></div>
@@ -11806,6 +11810,10 @@ function routeAfterMagicLinkIfNeeded() {
     const item = fsboNeedCopy[key] || fsboNeedCopy.free_intake;
     const price = item.price ? `<span style="display:inline-flex;margin-left:.4rem;border:1px solid rgba(200,151,63,.35);color:var(--gold-light);border-radius:999px;padding:.12rem .42rem;font-size:.7rem;font-weight:900;">${item.price}</span>` : '';
     if (el) el.innerHTML = `<strong>${item.title}${price}</strong><br>${item.body}`;
+    const quickSubmit = document.getElementById('fsboSellerQuickSubmit');
+    if (quickSubmit) quickSubmit.textContent = key === 'free_intake' ? 'Get My Free Seller Plan' : `Request ${item.title} Details`;
+    const fullSubmit = document.getElementById('fsboSellerSubmit');
+    if (fullSubmit) fullSubmit.textContent = key === 'free_intake' ? 'Save My Free Seller Request' : `Request ${item.title} Details`;
   };
   window.downloadFsboRequestSummary = function downloadFsboRequestSummary() {
     const key = fsboVal('fsboNeed') || 'free_intake';
@@ -11833,9 +11841,9 @@ function routeAfterMagicLinkIfNeeded() {
     link.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
-  window.submitFsboSellerLead = async function(){
+  window.submitFsboSellerLead = async function(source = 'full'){
     const status = document.getElementById('fsboSellerStatus');
-    const submitButton = document.getElementById('fsboSellerSubmit');
+    const submitButtons = [...document.querySelectorAll('[data-fsbo-submit]')];
     const campaignQuery = new URLSearchParams(window.location.search);
     const payload = {
       seller_type: 'fsbo',
@@ -11878,21 +11886,22 @@ function routeAfterMagicLinkIfNeeded() {
         return;
       }
     } catch (_) {}
-    if (submitButton?.disabled) return;
+    if (submitButtons.some(button => button.disabled)) return;
     trackFsboFunnel('FSBO Seller Request Submission Started', {
       package: payload.service_level,
+      source: source === 'quick' ? 'quick' : 'full',
       timeline: payload.timeline,
       hasPhone: !!payload.seller_phone,
       hasAskingPrice: payload.asking_price !== null,
       partnerCategoryCount: payload.partner_categories.length
     });
-    if (submitButton) { submitButton.disabled = true; submitButton.textContent = 'Saving…'; }
+    submitButtons.forEach(button => { button.disabled = true; button.textContent = 'Saving…'; });
     if (status) { status.textContent = 'Saving seller request...'; status.className = 'platform-status'; }
     try {
       const res = await fetch('/api/fsbo-lead', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
       const data = await res.json().catch(()=>({}));
       if (!res.ok) throw new Error(data.error || 'Could not save seller request.');
-      trackFsboFunnel('FSBO Seller Request Saved', { package: payload.service_level, timeline: payload.timeline });
+      trackFsboFunnel('FSBO Seller Request Saved', { package: payload.service_level, source: source === 'quick' ? 'quick' : 'full', timeline: payload.timeline });
       try { sessionStorage.setItem(submissionKey, data.seller_lead_id || 'saved'); } catch (_) {}
       clearFsboDraft();
       const selected = fsboNeedCopy[fsboVal('fsboNeed')] || fsboNeedCopy.free_intake;
@@ -11908,9 +11917,10 @@ function routeAfterMagicLinkIfNeeded() {
           '<button class="btn-secondary" type="button" onclick="closeFsboSellerModal()">Done</button></div>';
       }
     } catch (err) {
-      trackFsboFunnel('FSBO Seller Request Save Failed', { package: payload.service_level });
+      trackFsboFunnel('FSBO Seller Request Save Failed', { package: payload.service_level, source: source === 'quick' ? 'quick' : 'full' });
       if (status) { status.textContent = err.message || String(err); status.className = 'platform-status err'; }
-      if (submitButton) { submitButton.disabled = false; submitButton.textContent = 'Save Seller Request'; }
+      submitButtons.forEach(button => { button.disabled = false; });
+      window.renderFsboNeedDetails?.();
     }
   };
   fsboDraftFields.forEach(id => {
