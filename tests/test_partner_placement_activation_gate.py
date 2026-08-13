@@ -14,6 +14,10 @@ class PartnerPlacementActivationGateTests(unittest.TestCase):
         self.assertIn("source_lead_id uuid", MIGRATION)
         self.assertIn("agreement_confirmed_at timestamptz", MIGRATION)
         self.assertIn("hof_partner_placements_active_source_lead_key", MIGRATION)
+        exclusivity = (ROOT / "supabase" / "migrations" / "20260813232218_partner_exclusive_market_guard.sql").read_text(encoding="utf-8")
+        self.assertIn("hof_partner_placements_active_exclusive_market_key", exclusivity)
+        self.assertIn("placement_tier = 'exclusive_market'", exclusivity)
+        self.assertIn("lower(btrim(market_area))", exclusivity)
 
     def test_server_derives_public_placement_from_paid_application(self):
         self.assertIn("Only a paid partner application can activate a public placement.", ADMIN)
@@ -21,6 +25,8 @@ class PartnerPlacementActivationGateTests(unittest.TestCase):
         self.assertIn("This paid partner application already has an active placement.", ADMIN)
         self.assertIn('"source_lead_id": payload["source_lead_id"]', ADMIN)
         self.assertIn('"agreement_confirmed_at": now', ADMIN)
+        self.assertIn("_normalized_partner_market", ADMIN)
+        self.assertIn("An active Premier Partner placement already reserves this category and market.", ADMIN)
 
     def test_admin_ui_requires_paid_application_and_agreement_confirmation(self):
         self.assertIn('id="partnerLeadId"', HTML)
