@@ -6,6 +6,7 @@ ROOT = Path(__file__).resolve().parents[1]
 INDEX = (ROOT / "index.html").read_text(encoding="utf-8")
 ROBOTS = (ROOT / "robots.txt").read_text(encoding="utf-8")
 SITEMAP = (ROOT / "sitemap.xml").read_text(encoding="utf-8")
+PARTNERS = (ROOT / "partners.html").read_text(encoding="utf-8")
 
 
 class PublicDiscoveryMetadataTests(unittest.TestCase):
@@ -27,6 +28,15 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn('Sitemap: https://www.homeofferflow.com/sitemap.xml', ROBOTS)
         self.assertIn('https://www.homeofferflow.com/', SITEMAP)
         self.assertIn('https://www.homeofferflow.com/ondemand', SITEMAP)
+        self.assertIn('https://www.homeofferflow.com/partners.html', SITEMAP)
+
+    def test_partner_acquisition_page_has_share_metadata_and_a_direct_application_path(self):
+        self.assertIn('<link rel="canonical" href="https://www.homeofferflow.com/partners.html"', PARTNERS)
+        self.assertIn('property="og:url" content="https://www.homeofferflow.com/partners.html"', PARTNERS)
+        self.assertIn('"@type":"Service"', PARTNERS)
+        self.assertIn('href="/?partner=1"', PARTNERS)
+        self.assertIn('not a referral or a required provider choice', PARTNERS)
+        self.assertIn('href="/partners.html">Become a Founding Partner</a>', INDEX)
 
 
 if __name__ == "__main__":
