@@ -3405,8 +3405,10 @@ class handler(BaseHTTPRequestHandler):
                 "lawn_pool", "security_smart_home", "other",
             }
             partner_campaign_tiers = {"founding_pilot", "monthly_placement", "market_exclusive"}
+            partner_campaign_channels = {"direct_outreach", "email", "social", "referral", "local_event", "print"}
             partner_campaign_category_counts = {}
             partner_campaign_tier_counts = {}
+            partner_campaign_channel_counts = {}
             for item in events:
                 event_type = str(item.get("event_type") or "").strip().lower()
                 event_key = partner_checkout_event_keys.get(event_type)
@@ -3417,15 +3419,21 @@ class handler(BaseHTTPRequestHandler):
                 metadata = item.get("metadata") or {}
                 category = str(metadata.get("campaignCategory") or "").strip().lower()
                 tier = str(metadata.get("campaignTier") or "").strip().lower()
+                channel = str(metadata.get("campaignChannel") or "").strip().lower()
                 if category in partner_campaign_categories:
                     partner_campaign_category_counts[category] = partner_campaign_category_counts.get(category, 0) + 1
                 if tier in partner_campaign_tiers:
                     partner_campaign_tier_counts[tier] = partner_campaign_tier_counts.get(tier, 0) + 1
+                if channel in partner_campaign_channels:
+                    partner_campaign_channel_counts[channel] = partner_campaign_channel_counts.get(channel, 0) + 1
             partner_campaign_category_counts = dict(sorted(
                 partner_campaign_category_counts.items(), key=lambda item: (-item[1], item[0])
             ))
             partner_campaign_tier_counts = dict(sorted(
                 partner_campaign_tier_counts.items(), key=lambda item: (-item[1], item[0])
+            ))
+            partner_campaign_channel_counts = dict(sorted(
+                partner_campaign_channel_counts.items(), key=lambda item: (-item[1], item[0])
             ))
             # A setup-link email is a deliberate platform-admin action. Keep this
             # aggregate separate from mailto follow-ups so the paid-partner
@@ -3970,6 +3978,7 @@ class handler(BaseHTTPRequestHandler):
                 "partnerCheckoutEventCounts": partner_checkout_event_counts,
                 "partnerCampaignCategoryCounts": partner_campaign_category_counts,
                 "partnerCampaignTierCounts": partner_campaign_tier_counts,
+                "partnerCampaignChannelCounts": partner_campaign_channel_counts,
                 "partnerCheckoutStartCount": partner_checkout_event_counts["checkout_started"],
                 "partnerCheckoutStripeOpenCount": partner_checkout_event_counts["stripe_opened"],
                 "partnerCheckoutCancellationCount": partner_checkout_event_counts["cancelled"],

@@ -4572,6 +4572,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <div class="admin-metric-label" style="margin-top:.2rem;color:${Number(metrics.partnerCheckoutCancellationCount || 0) || Number(metrics.partnerCheckoutFailureCount || 0) ? 'var(--gold-light)' : 'var(--gray-light)'}">${metrics.partnerCheckoutCancellationCount || 0} checkout returns · ${metrics.partnerCheckoutFailureCount || 0} checkout failures.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Campaign category opens: ${adminSafe(Object.entries(metrics.partnerCampaignCategoryCounts || {}).map(([category, count]) => `${category.replace(/_/g, ' ')} (${count})`).join(' · '), 'No categorized campaign opens yet')}</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Campaign tier opens: ${adminSafe(Object.entries(metrics.partnerCampaignTierCounts || {}).map(([tier, count]) => `${tier.replace(/_/g, ' ')} (${count})`).join(' · '), 'No tier-targeted campaign opens yet')}</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Campaign channel opens: ${adminSafe(Object.entries(metrics.partnerCampaignChannelCounts || {}).map(([channel, count]) => `${channel.replace(/_/g, ' ')} (${count})`).join(' · '), 'No channel-attributed campaign opens yet')}</div>
           </div>
 
           <div class="admin-metric">
@@ -11077,6 +11078,8 @@ function routeAfterMagicLinkIfNeeded() {
         <div class="platform-grid">
           <div class="field"><label for="partnerCampaignCategory">Partner category</label><select id="partnerCampaignCategory"><option value="title">Title company / fee attorney</option><option value="lender">Mortgage lender</option><option value="inspection">Home inspection</option><option value="surveyor">Property surveyor</option><option value="home_warranty">Home warranty</option><option value="insurance">Home insurance</option><option value="roofing">Roofing contractor</option><option value="hvac">HVAC / heating and air</option><option value="plumbing">Plumbing</option><option value="electrical">Electrical</option><option value="foundation_structural">Foundation / structural repair</option><option value="general_contractor">General contractor / remodeling</option><option value="pest_termite">Pest control / termite</option><option value="septic_well">Septic / well service</option><option value="restoration">Water / fire restoration</option><option value="repairs_handyman">Repairs / handyman</option><option value="photography_video">Photography / video</option><option value="staging">Home staging</option><option value="cleaning">Cleaning</option><option value="moving_storage">Moving / storage</option><option value="lawn_pool">Lawn / pool</option><option value="security_smart_home">Security / smart home</option><option value="other">Other real-estate service</option></select></div>
           <div class="field"><label for="partnerCampaignTier">Commercial tier</label><select id="partnerCampaignTier"><option value="founding_pilot">Core Partner · $149</option><option value="monthly_placement" selected>Featured Partner · $399</option><option value="market_exclusive">Premier Partner · $799</option></select></div>
+          <div class="field"><label for="partnerCampaignChannel">Distribution channel</label><select id="partnerCampaignChannel"><option value="direct_outreach" selected>Direct outreach</option><option value="email">Email newsletter</option><option value="social">Social post</option><option value="referral">Referral partner</option><option value="local_event">Local event</option><option value="print">Print / QR code</option></select></div>
+          <div class="field"><label for="partnerCampaignName">Campaign label <span style="color:var(--gray);font-weight:500;">(optional)</span></label><input id="partnerCampaignName" maxlength="80" placeholder="August North Texas title"></div>
         </div>
         <div class="platform-actions"><button type="button" onclick="copyPartnerCampaignLink()">Copy Campaign Link</button><button type="button" class="btn-secondary" onclick="copyPartnerCampaignInvitation()">Copy Invitation</button><button type="button" class="btn-secondary" onclick="previewPartnerCampaignLink()">Preview Intake</button></div>
         <div id="partnerCampaignLinkPreview" class="platform-status" aria-live="polite"></div>
@@ -11111,12 +11114,18 @@ function routeAfterMagicLinkIfNeeded() {
 
   const partnerCampaignCategories = new Set(['title','lender','inspection','surveyor','home_warranty','insurance','roofing','hvac','plumbing','electrical','foundation_structural','general_contractor','pest_termite','septic_well','restoration','repairs_handyman','photography_video','staging','cleaning','moving_storage','lawn_pool','security_smart_home','other']);
   const partnerCampaignTiers = new Set(['founding_pilot','monthly_placement','market_exclusive']);
+  const partnerCampaignChannels = new Set(['direct_outreach','email','social','referral','local_event','print']);
 
   function partnerCampaignLink() {
     const category = String(getVal('partnerCampaignCategory') || '').trim().toLowerCase();
     const tier = String(getVal('partnerCampaignTier') || '').trim().toLowerCase();
     if (!partnerCampaignCategories.has(category) || !partnerCampaignTiers.has(tier)) return '';
-    return `https://www.homeofferflow.com/partners?partner_category=${encodeURIComponent(category)}&partner_tier=${encodeURIComponent(tier)}`;
+    const channel = String(getVal('partnerCampaignChannel') || '').trim().toLowerCase();
+    const campaign = sellerCampaignLabel(getVal('partnerCampaignName'));
+    const params = new URLSearchParams({ partner_category: category, partner_tier: tier, utm_source: 'homeofferflow_admin' });
+    if (partnerCampaignChannels.has(channel)) params.set('utm_medium', channel);
+    if (campaign) params.set('utm_campaign', campaign);
+    return `https://www.homeofferflow.com/partners?${params.toString()}`;
   }
 
   function partnerCampaignInvitation() {
@@ -12538,6 +12547,7 @@ function routeAfterMagicLinkIfNeeded() {
   // Never copy arbitrary query text into the intake, analytics, or lead data.
   const partnerCampaignCategories = new Set(['title','lender','inspection','surveyor','home_warranty','insurance','roofing','hvac','plumbing','electrical','foundation_structural','general_contractor','pest_termite','septic_well','restoration','repairs_handyman','photography_video','staging','cleaning','moving_storage','lawn_pool','security_smart_home','other']);
   const partnerCampaignTiers = new Set(['founding_pilot','monthly_placement','market_exclusive']);
+  const partnerCampaignChannels = new Set(['direct_outreach','email','social','referral','local_event','print']);
   function value(id){ return (document.getElementById(id)?.value || '').trim(); }
   function trackPartnerFunnel(name, data = {}) {
     try { trackEvent(name, data); } catch (_) {}
@@ -12564,16 +12574,21 @@ function routeAfterMagicLinkIfNeeded() {
     const tier = String(params().get('partner_tier') || '').trim().toLowerCase();
     return partnerCampaignTiers.has(tier) ? tier : '';
   }
+  function campaignPartnerChannel(){
+    const channel = String(params().get('utm_medium') || '').trim().toLowerCase();
+    return params().get('utm_source') === 'homeofferflow_admin' && partnerCampaignChannels.has(channel) ? channel : '';
+  }
   function applyCampaignPartnerChoices(){
     // A saved application is the source of truth on a checkout return. Do not
     // overwrite its category from a campaign URL while offering a safe resume.
-    if (window.__hofFoundingPartnerLeadId) return { category:'', tier:'' };
+    if (window.__hofFoundingPartnerLeadId) return { category:'', tier:'', channel:'' };
     const category = campaignPartnerCategory();
     const tier = campaignPartnerTier();
+    const channel = campaignPartnerChannel();
     const select = document.getElementById('foundingPartnerType');
     if (category && select) select.value = category;
     if (tier) window.selectFoundingPartnerTier?.(tier, false);
-    return { category, tier };
+    return { category, tier, channel };
   }
   window.openFoundingPartnerModal = function(){
     const modal = document.getElementById('foundingPartnerModal');
@@ -12587,7 +12602,7 @@ function routeAfterMagicLinkIfNeeded() {
     if (confirmation) confirmation.style.display = checkoutState === 'success' ? 'block' : 'none';
     const resume = document.getElementById('foundingPartnerCheckoutResume');
     if (resume) resume.style.display = checkoutState === 'cancelled' && window.__hofFoundingPartnerLeadId ? 'block' : 'none';
-    trackPartnerFunnel('Founding Partner Intake Opened', { checkoutState: checkoutState === 'success' ? 'success' : checkoutState === 'cancelled' ? 'cancelled' : 'new', campaignCategory: campaign.category || null, campaignTier: campaign.tier || null });
+    trackPartnerFunnel('Founding Partner Intake Opened', { checkoutState: checkoutState === 'success' ? 'success' : checkoutState === 'cancelled' ? 'cancelled' : 'new', campaignCategory: campaign.category || null, campaignTier: campaign.tier || null, campaignChannel: campaign.channel || null });
     setTimeout(() => document.querySelector('.partner-tier-card.is-selected')?.focus(), 0);
   };
   window.selectFoundingPartnerTier = function(model, shouldTrack = true){
