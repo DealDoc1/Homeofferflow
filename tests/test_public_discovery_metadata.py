@@ -33,14 +33,14 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn('Sitemap: https://www.homeofferflow.com/sitemap.xml', ROBOTS)
         self.assertIn('https://www.homeofferflow.com/', SITEMAP)
         self.assertIn('https://www.homeofferflow.com/ondemand', SITEMAP)
-        self.assertIn('https://www.homeofferflow.com/partners.html', SITEMAP)
-        self.assertIn('https://www.homeofferflow.com/sellers.html', SITEMAP)
-        self.assertIn('https://www.homeofferflow.com/buyers.html', SITEMAP)
-        self.assertIn('https://www.homeofferflow.com/directory.html', SITEMAP)
+        self.assertIn('https://www.homeofferflow.com/partners', SITEMAP)
+        self.assertIn('https://www.homeofferflow.com/sellers', SITEMAP)
+        self.assertIn('https://www.homeofferflow.com/buyers', SITEMAP)
+        self.assertIn('https://www.homeofferflow.com/directory', SITEMAP)
 
     def test_partner_acquisition_page_has_share_metadata_and_a_direct_application_path(self):
-        self.assertIn('<link rel="canonical" href="https://www.homeofferflow.com/partners.html"', PARTNERS)
-        self.assertIn('property="og:url" content="https://www.homeofferflow.com/partners.html"', PARTNERS)
+        self.assertIn('<link rel="canonical" href="https://www.homeofferflow.com/partners"', PARTNERS)
+        self.assertIn('property="og:url" content="https://www.homeofferflow.com/partners"', PARTNERS)
         self.assertIn('"@type":"Service"', PARTNERS)
         self.assertIn('href="/?partner=1"', PARTNERS)
         self.assertIn('partner_tier=founding_pilot', PARTNERS)
@@ -62,11 +62,11 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn('Founding partner questions', PARTNERS)
         self.assertIn('Clear commercial terms before you apply.', PARTNERS)
         self.assertIn('When does monthly founding partner billing begin?', PARTNERS)
-        self.assertIn('href="/partners.html">Become a Founding Partner</a>', INDEX)
+        self.assertIn('href="/partners">Become a Founding Partner</a>', INDEX)
 
     def test_seller_acquisition_page_is_indexable_and_routes_to_the_existing_safe_intake(self):
-        self.assertIn('<link rel="canonical" href="https://www.homeofferflow.com/sellers.html"', SELLERS)
-        self.assertIn('property="og:url" content="https://www.homeofferflow.com/sellers.html"', SELLERS)
+        self.assertIn('<link rel="canonical" href="https://www.homeofferflow.com/sellers"', SELLERS)
+        self.assertIn('property="og:url" content="https://www.homeofferflow.com/sellers"', SELLERS)
         self.assertIn('"@type":"Service"', SELLERS)
         self.assertIn('href="/?seller=1&amp;seller_package=free_intake"', SELLERS)
         self.assertIn('seller_package=free_intake', SELLERS)
@@ -88,11 +88,11 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn('Texas FSBO questions', SELLERS)
         self.assertIn('Immediate timeline-specific seller plan', SELLERS)
         self.assertIn('Get my free seller plan', SELLERS)
-        self.assertIn('href="/sellers.html">FSBO Seller Support</a>', INDEX)
+        self.assertIn('href="/sellers">FSBO Seller Support</a>', INDEX)
 
     def test_homebuyer_offer_page_is_indexable_and_routes_to_the_existing_safe_workflow(self):
-        self.assertIn('<link rel="canonical" href="https://www.homeofferflow.com/buyers.html"', BUYERS)
-        self.assertIn('property="og:url" content="https://www.homeofferflow.com/buyers.html"', BUYERS)
+        self.assertIn('<link rel="canonical" href="https://www.homeofferflow.com/buyers"', BUYERS)
+        self.assertIn('property="og:url" content="https://www.homeofferflow.com/buyers"', BUYERS)
         self.assertIn('"@type":"Service"', BUYERS)
         self.assertIn('"price":"99"', BUYERS)
         self.assertIn('data-buyer-start href="/?buyer=1"', BUYERS)
@@ -109,8 +109,16 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
             VERCEL.get("rewrites", []),
         )
 
+    def test_clean_public_marketing_routes_resolve_and_are_canonical(self):
+        for route, destination in (
+            ("/partners", "/partners.html"),
+            ("/sellers", "/sellers.html"),
+            ("/directory", "/directory.html"),
+        ):
+            self.assertIn({"source": route, "destination": destination}, VERCEL.get("rewrites", []))
+
     def test_public_directory_uses_only_the_existing_safe_directory_endpoint(self):
-        self.assertIn('href="https://www.homeofferflow.com/directory.html"', DIRECTORY)
+        self.assertIn('href="https://www.homeofferflow.com/directory"', DIRECTORY)
         self.assertIn("fetch('/api/fsbo-lead?'+query)", DIRECTORY)
         self.assertIn("partner_directory:'1'", DIRECTORY)
         self.assertIn('restoreFiltersFromUrl', DIRECTORY)
@@ -122,7 +130,7 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn('Own a service business? Explore a founding placement', DIRECTORY)
         self.assertIn("query.set('partner_category', category)", DIRECTORY)
         self.assertIn('List your ${esc(categoryLabel)} business with HomeOfferFlow', DIRECTORY)
-        self.assertIn('href="/partners.html"', DIRECTORY)
+        self.assertIn('href="/partners"', DIRECTORY)
         self.assertIn('"@type":"FAQPage"', DIRECTORY)
         self.assertIn('Directory questions', DIRECTORY)
         self.assertIn('provider_directory', DIRECTORY)
@@ -138,8 +146,8 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
             'security_smart_home', 'other',
         ):
             self.assertIn(f'<option value="{category}">', DIRECTORY)
-        self.assertIn('href="/directory.html">Find a Provider</a>', INDEX)
-        self.assertIn('href="/directory.html" style="color:var(--gold-light);font-weight:800;">Browse approved provider listings →</a>', INDEX)
+        self.assertIn('href="/directory">Find a Provider</a>', INDEX)
+        self.assertIn('href="/directory" style="color:var(--gold-light);font-weight:800;">Browse approved provider listings →</a>', INDEX)
 
 
 if __name__ == "__main__":

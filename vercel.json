@@ -16,6 +16,18 @@
     {
       "source": "/ondemand",
       "destination": "/ondemand.html"
+    },
+    {
+      "source": "/partners",
+      "destination": "/partners.html"
+    },
+    {
+      "source": "/sellers",
+      "destination": "/sellers.html"
+    },
+    {
+      "source": "/directory",
+      "destination": "/directory.html"
     }
   ],
   "headers": [
