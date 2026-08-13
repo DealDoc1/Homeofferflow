@@ -10901,7 +10901,7 @@ function routeAfterMagicLinkIfNeeded() {
       <div class="partner-create-card">
         <h4 style="color:var(--gold-light); font-size:0.86rem; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:0.75rem;">Create Partner Placement</h4>
         <div class="platform-grid">
-          <div class="field"><label>Paid partner application</label><select id="partnerLeadId" disabled><option value="">Loading paid applications…</option></select></div>
+          <div class="field"><label>Paid partner application</label><select id="partnerLeadId" disabled onchange="applyPartnerPlacementDefaultsFromLead()"><option value="">Loading paid applications…</option></select></div>
           <div class="field"><label>Placement Tier</label><select id="partnerTier"><option value="founding">Core Partner · $149</option><option value="premier">Featured Partner · $399</option><option value="exclusive_market">Premier Partner · $799</option></select></div>
           <div class="field"><label>Pilot / monthly fee</label><input id="partnerMonthlyFee" type="number" placeholder="149"></div>
         </div>
@@ -11046,8 +11046,30 @@ function routeAfterMagicLinkIfNeeded() {
     );
     select.disabled = !paid.length;
     select.innerHTML = paid.length
-      ? '<option value="">Choose a paid application…</option>' + paid.map(lead => '<option value="' + escapeAttr(lead.id || '') + '">' + escapeAttr(lead.company_name || 'Partner') + ' · ' + escapeAttr(lead.partner_type || 'other') + ' · ' + escapeAttr(lead.market_area || 'market') + '</option>').join('')
+      ? '<option value="">Choose a paid application…</option>' + paid.map(lead => {
+          const defaults = partnerPlacementDefaults(lead?.preferred_model);
+          return '<option value="' + escapeAttr(lead.id || '') + '" data-placement-tier="' + defaults.tier + '" data-monthly-fee="' + defaults.fee + '">' + escapeAttr(lead.company_name || 'Partner') + ' · ' + escapeAttr(lead.partner_type || 'other') + ' · ' + escapeAttr(lead.market_area || 'market') + ' · ' + defaults.label + '</option>';
+        }).join('')
       : '<option value="">No fully onboarded paid applications</option>';
+  }
+
+  function partnerPlacementDefaults(preferredModel) {
+    const defaults = {
+      founding_pilot: { tier: 'founding', fee: 149, label: 'Core · $149/mo' },
+      monthly_placement: { tier: 'premier', fee: 399, label: 'Featured · $399/mo' },
+      market_exclusive: { tier: 'exclusive_market', fee: 799, label: 'Premier · $799/mo' }
+    };
+    return defaults[preferredModel] || defaults.founding_pilot;
+  }
+
+  function applyPartnerPlacementDefaultsFromLead() {
+    const lead = document.getElementById('partnerLeadId');
+    const option = lead?.options?.[lead.selectedIndex];
+    if (!option?.value) return;
+    const tierInput = document.getElementById('partnerTier');
+    const feeInput = document.getElementById('partnerMonthlyFee');
+    if (tierInput && option.dataset.placementTier) tierInput.value = option.dataset.placementTier;
+    if (feeInput && option.dataset.monthlyFee) feeInput.value = option.dataset.monthlyFee;
   }
 
   function estimateOfferScoreFromCurrentState() {
