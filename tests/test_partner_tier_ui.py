@@ -166,11 +166,14 @@ class PartnerTierUiTests(unittest.TestCase):
         self.assertIn("params().get('partner_category')", self.html)
         self.assertIn("return partnerCampaignCategories.has(category) ? category : '';", self.html)
         self.assertIn("function applyCampaignPartnerChoices()", self.html)
-        self.assertIn("if (window.__hofFoundingPartnerLeadId) return { category:'', tier:'' };", self.html)
+        self.assertIn("if (window.__hofFoundingPartnerLeadId) return { category:'', tier:'', channel:'' };", self.html)
         self.assertIn("campaignCategory: campaign.category || null", self.html)
 
     def test_campaign_links_can_preselect_only_paid_existing_tiers(self):
         self.assertIn("const partnerCampaignTiers = new Set(['founding_pilot','monthly_placement','market_exclusive']);", self.html)
+        self.assertIn("const partnerCampaignChannels = new Set(['direct_outreach','email','social','referral','local_event','print']);", self.html)
+        self.assertIn("function campaignPartnerChannel()", self.html)
+        self.assertIn("campaignChannel: campaign.channel || null", self.html)
         self.assertIn("params().get('partner_tier')", self.html)
         self.assertIn("return partnerCampaignTiers.has(tier) ? tier : '';", self.html)
         self.assertIn("window.selectFoundingPartnerTier?.(tier, false);", self.html)
