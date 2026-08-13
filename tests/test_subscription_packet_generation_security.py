@@ -15,6 +15,20 @@ class SubscriptionPacketGenerationSecurityTests(unittest.TestCase):
         self.assertIn("subscription_generation: 'true'", generation)
         self.assertIn("'Authorization': `Bearer ${hofAuth.session?.access_token || ''}`", generation)
 
+    def test_generation_failure_recovery_uses_safe_categories_and_next_steps(self):
+        start = HTML.index("function packetGenerationFailureDetails(err)")
+        end = HTML.index("async function generateSubscribedPacket()", start)
+        recovery = HTML[start:end]
+        for category in ("session", "network", "timeout", "signature_provider", "validation", "service"):
+            self.assertIn("category: '" + category + "'", recovery)
+        generation_start = HTML.index("async function generateSubscribedPacket()")
+        generation_end = HTML.index("function pad2", generation_start)
+        generation = HTML[generation_start:generation_end]
+        self.assertIn("packetGenerationFailureCategory: failure.category", generation)
+        self.assertIn("errorCategory: failure.category", generation)
+        self.assertIn("No packet credit was used. ' + failure.nextStep", generation)
+        self.assertNotIn("No packet credit was used. Please try again. Error:", generation)
+
     def test_checkout_shaped_requests_fail_closed_without_stripe_or_subscription_auth(self):
         start = API.index("def do_POST(self):")
         post = API[start:]
