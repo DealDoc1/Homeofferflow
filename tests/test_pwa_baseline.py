@@ -14,6 +14,7 @@ class PwaBaselineTests(unittest.TestCase):
     def test_html_exposes_install_metadata_and_registers_the_worker(self):
         self.assertIn('rel="manifest" href="/manifest.webmanifest"', INDEX)
         self.assertIn('name="theme-color" content="#173f35"', INDEX)
+        self.assertIn('viewport-fit=cover', INDEX)
         self.assertIn("navigator.serviceWorker.register('/service-worker.js'", INDEX)
 
     def test_manifest_has_a_standalone_secure_app_shell_configuration(self):
