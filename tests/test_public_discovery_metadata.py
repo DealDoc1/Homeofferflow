@@ -45,6 +45,9 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn('data-partner-apply', PARTNERS)
         self.assertIn("const allowed = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content'];", PARTNERS)
         self.assertIn("destination.searchParams.set(key, value)", PARTNERS)
+        self.assertIn("Founding Partner Landing Viewed", PARTNERS)
+        self.assertIn("Founding Partner Landing CTA Selected", PARTNERS)
+        self.assertIn('/_vercel/insights/script.js', PARTNERS)
         self.assertIn('not a referral or a required provider choice', PARTNERS)
         self.assertIn('href="/partners.html">Become a Founding Partner</a>', INDEX)
 
@@ -59,6 +62,9 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn('data-seller-apply', SELLERS)
         self.assertIn("const allowed = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content'];", SELLERS)
         self.assertIn("destination.searchParams.set(key, value)", SELLERS)
+        self.assertIn("FSBO Seller Landing Viewed", SELLERS)
+        self.assertIn("FSBO Seller Landing CTA Selected", SELLERS)
+        self.assertIn('/_vercel/insights/script.js', SELLERS)
         self.assertIn('This is an intake—not checkout or a service order.', SELLERS)
         self.assertIn('href="/sellers.html">FSBO Seller Support</a>', INDEX)
 
