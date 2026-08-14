@@ -4525,6 +4525,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.pwaInstallPromptOpenCount || 0} native prompts opened (${Number(metrics.pwaInstallPromptOpenRate || 0).toFixed(1)}% of install choices).</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Shown on: ${Object.entries(metrics.pwaInstallShownSurfaceCounts || {}).filter(([, count]) => Number(count) > 0).map(([surface, count]) => `${surface.replace(/_/g, ' ')} ${count}`).join(' · ') || 'surface attribution begins with the next install prompt.'}</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.pwaInstallInstructionsOpenCount || 0} Home Screen instruction${Number(metrics.pwaInstallInstructionsOpenCount || 0) === 1 ? '' : 's'} opened (${Number(metrics.pwaInstallGuidanceOpenRate || 0).toFixed(1)}% of prompts shown).</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.pwaInstallAcceptedCount || 0} native prompt acceptance${Number(metrics.pwaInstallAcceptedCount || 0) === 1 ? '' : 's'} (${Number(metrics.pwaInstallAcceptedRate || 0).toFixed(1)}% of native prompts). Accepted on: ${Object.entries(metrics.pwaInstallAcceptedSurfaceCounts || {}).filter(([, count]) => Number(count) > 0).map(([surface, count]) => `${surface.replace(/_/g, ' ')} ${count}`).join(' · ') || 'attribution begins with the next accepted prompt.'}</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.pwaSellerPlanShortcutCount || 0} Seller Plan shortcut return${Number(metrics.pwaSellerPlanShortcutCount || 0) === 1 ? '' : 's'} opened.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.pwaBuyerOfferShortcutCount || 0} Buyer Offer shortcut return${Number(metrics.pwaBuyerOfferShortcutCount || 0) === 1 ? '' : 's'} opened.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.fsboProviderDirectoryOpenCount || 0} post-intake seller directory visit${Number(metrics.fsboProviderDirectoryOpenCount || 0) === 1 ? '' : 's'} opened.</div>
@@ -17896,6 +17897,7 @@ function routeAfterMagicLinkIfNeeded() {
   const root = window;
   const dismissKey = 'hof_pwa_install_dismissed_until';
   const shownKey = 'hof_pwa_install_prompt_shown';
+  const installSurfaceKey = 'hof_pwa_install_surface';
   let deferredInstallPrompt = null;
 
   function trackInstall(event, metadata = {}) {
@@ -17921,11 +17923,18 @@ function routeAfterMagicLinkIfNeeded() {
     catch (_) { return false; }
   }
 
+  function installSurface(card = document.getElementById('hofPwaInstallCard')){
+    const fromCard = String(card?.dataset?.surface || '').trim();
+    if (fromCard) return fromCard;
+    try { return String(sessionStorage.getItem(installSurfaceKey) || '').trim() || 'unknown'; }
+    catch (_) { return 'unknown'; }
+  }
+
   function dismissInstallCard(){
     const card = document.getElementById('hofPwaInstallCard');
     try { localStorage.setItem(dismissKey, String(Date.now() + 1000 * 60 * 60 * 24 * 30)); }
     catch (_) {}
-    trackInstall('dismissed', { platform: isIos() ? 'ios' : 'web', surface: card?.dataset?.surface || 'unknown' });
+    trackInstall('dismissed', { platform: isIos() ? 'ios' : 'web', surface: installSurface(card) });
     card?.remove();
   }
 
@@ -17958,6 +17967,7 @@ function routeAfterMagicLinkIfNeeded() {
     card.id = 'hofPwaInstallCard';
     card.className = 'account-card pwa-install-card';
     card.dataset.surface = target.surface;
+    try { sessionStorage.setItem(installSurfaceKey, target.surface); } catch (_) {}
     const ios = isIos();
     const sellerReturnCopy = target.surface === 'seller_success'
       ? 'Save this seller plan to your Home Screen so it is one tap away when you return to photos, repairs, timing, or provider questions.'
@@ -18025,7 +18035,7 @@ function routeAfterMagicLinkIfNeeded() {
         await deferredInstallPrompt.prompt();
         trackInstall('prompt_opened', { platform: 'web', surface: target.surface });
         const choice = await deferredInstallPrompt.userChoice;
-        trackInstall(choice?.outcome === 'accepted' ? 'accepted' : 'dismissed', { platform: 'web', surface: target.surface });
+        trackInstall(choice?.outcome === 'accepted' ? 'accepted' : 'dismissed', { platform: 'web', surface: installSurface(card) });
       } catch (error) {
         console.warn('PWA install prompt was unavailable:', error);
       } finally {
@@ -18040,7 +18050,10 @@ function routeAfterMagicLinkIfNeeded() {
     deferredInstallPrompt = event;
     renderInstallCard();
   });
-  window.addEventListener('appinstalled', () => { trackInstall('installed'); document.getElementById('hofPwaInstallCard')?.remove(); });
+  window.addEventListener('appinstalled', () => {
+    trackInstall('installed', { platform: isIos() ? 'ios' : 'web', surface: installSurface() });
+    document.getElementById('hofPwaInstallCard')?.remove();
+  });
   root.renderPwaInstallCard = renderInstallCard;
   const previous = root.renderAccountDashboard;
   root.renderAccountDashboard = function renderAccountDashboardWithPwaInstall(){

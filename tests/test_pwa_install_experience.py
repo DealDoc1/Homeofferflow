@@ -52,11 +52,14 @@ class PwaInstallExperienceTests(unittest.TestCase):
         self.assertIn("function isAndroid()", INDEX)
         self.assertIn('In Chrome, open the ⋮ menu', INDEX)
         self.assertIn("choice?.outcome === 'accepted' ? 'accepted' : 'dismissed'", INDEX)
+        self.assertIn("const installSurfaceKey = 'hof_pwa_install_surface';", INDEX)
+        self.assertIn("function installSurface", INDEX)
+        self.assertIn("trackInstall('installed', { platform: isIos() ? 'ios' : 'web', surface: installSurface() })", INDEX)
         self.assertIn("trackInstall('cta_clicked'", INDEX)
         self.assertIn("cta: 'native_prompt'", INDEX)
         self.assertIn("card.dataset.surface = target.surface", INDEX)
         self.assertIn("surface: target.surface", INDEX)
-        self.assertIn("card?.dataset?.surface || 'unknown'", INDEX)
+        self.assertIn("surface: installSurface(card)", INDEX)
 
     def test_admin_dashboard_can_measure_the_privacy_safe_install_funnel(self):
         api = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
@@ -70,6 +73,8 @@ class PwaInstallExperienceTests(unittest.TestCase):
             '"pwaInstallInstructionsOpenCount"',
             '"pwaInstallGuidanceOpenRate"',
             '"pwaInstallCompletionRate"',
+            '"pwaInstallAcceptedRate"',
+            '"pwaInstallAcceptedSurfaceCounts"',
             "pwa_install_event_counts",
             "pwa_install_surfaces",
         ):
@@ -79,6 +84,8 @@ class PwaInstallExperienceTests(unittest.TestCase):
         self.assertIn("pwaInstallCtaClickRate", INDEX)
         self.assertIn("pwaInstallInstructionsOpenCount", INDEX)
         self.assertIn("pwaInstallShownSurfaceCounts", INDEX)
+        self.assertIn("pwaInstallAcceptedSurfaceCounts", INDEX)
+        self.assertIn("pwaInstallAcceptedRate", INDEX)
         self.assertIn("Shown on:", INDEX)
         self.assertIn("PWA only: app-like mobile access", INDEX)
 

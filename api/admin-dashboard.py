@@ -4051,6 +4051,9 @@ class handler(BaseHTTPRequestHandler):
             pwa_install_shown_surface_counts = {
                 surface: 0 for surface in sorted(pwa_install_surfaces)
             }
+            pwa_install_accepted_surface_counts = {
+                surface: 0 for surface in sorted(pwa_install_surfaces)
+            }
             for item in events:
                 event_type = str(item.get("event_type") or "").strip().lower()
                 if not event_type.startswith("pwa_install_"):
@@ -4062,6 +4065,10 @@ class handler(BaseHTTPRequestHandler):
                     surface = str((item.get("metadata") or {}).get("surface") or "").strip().lower()
                     if surface in pwa_install_surfaces:
                         pwa_install_shown_surface_counts[surface] += 1
+                if event_key == "accepted":
+                    surface = str((item.get("metadata") or {}).get("surface") or "").strip().lower()
+                    if surface in pwa_install_surfaces:
+                        pwa_install_accepted_surface_counts[surface] += 1
             # A public seller may use the installed app without an account.
             # Count only the aggregate shortcut event, never a device, email,
             # property, or browser identifier.
@@ -4507,6 +4514,7 @@ class handler(BaseHTTPRequestHandler):
                 ) if packet_generation_retry_count else 0,
                 "pwaInstallEventCounts": pwa_install_event_counts,
                 "pwaInstallShownSurfaceCounts": pwa_install_shown_surface_counts,
+                "pwaInstallAcceptedSurfaceCounts": pwa_install_accepted_surface_counts,
                 "pwaSellerPlanShortcutCount": pwa_seller_plan_shortcut_count,
                 "pwaBuyerOfferShortcutCount": pwa_buyer_offer_shortcut_count,
                 "fsboProviderDirectoryOpenCount": fsbo_provider_directory_open_count,
@@ -4523,6 +4531,9 @@ class handler(BaseHTTPRequestHandler):
                 "pwaInstallPromptOpenRate": round(
                     (pwa_install_event_counts["prompt_opened"] / pwa_install_event_counts["cta_clicked"]) * 100, 1
                 ) if pwa_install_event_counts["cta_clicked"] else 0,
+                "pwaInstallAcceptedRate": round(
+                    (pwa_install_event_counts["accepted"] / pwa_install_event_counts["prompt_opened"]) * 100, 1
+                ) if pwa_install_event_counts["prompt_opened"] else 0,
                 "pwaInstallGuidanceOpenRate": round(
                     (pwa_install_event_counts["instructions_opened"] / pwa_install_event_counts["shown"]) * 100, 1
                 ) if pwa_install_event_counts["shown"] else 0,
