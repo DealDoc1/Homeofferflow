@@ -15555,7 +15555,10 @@ function routeAfterMagicLinkIfNeeded() {
     const email = String(agent?.email || '').trim();
     if (!email) return '<span>—</span>';
     const engagement = String(agent?.engagement || 'needs_follow_up');
-    const subject = engagement === 'needs_billing'
+    const acceptedInviteNeedsActivation = Boolean(agent?.inviteAccepted) && String(agent?.membershipStatus || '').toLowerCase() !== 'active';
+    const subject = acceptedInviteNeedsActivation
+      ? 'Finish activating your HomeOfferFlow brokerage seat'
+      : engagement === 'needs_billing'
       ? 'Action needed to keep your HomeOfferFlow workflow active'
       : engagement === 'needs_subscription'
         ? 'Keep your HomeOfferFlow offer workflow active'
@@ -15564,7 +15567,9 @@ function routeAfterMagicLinkIfNeeded() {
         : engagement === 'needs_follow_up'
           ? 'Quick HomeOfferFlow follow-up'
           : 'Your HomeOfferFlow trial and next offer';
-    const body = engagement === 'needs_billing'
+    const body = acceptedInviteNeedsActivation
+      ? 'Your HomeOfferFlow invite was accepted, and your brokerage seat is ready to finish activating. Sign in to complete your account setup and start your first offer: https://homeofferflow.com'
+      : engagement === 'needs_billing'
       ? 'I noticed your HomeOfferFlow billing needs attention while you still have offer activity. Open Manage Billing to update access before the next client packet: https://homeofferflow.com'
       : engagement === 'needs_subscription'
         ? 'I noticed you have a saved HomeOfferFlow offer but no active access for the next client workflow. Sign in to review subscription options before creating the next packet: https://homeofferflow.com'
@@ -15617,6 +15622,15 @@ function routeAfterMagicLinkIfNeeded() {
     });
     const summary = document.getElementById('brokerageAgentFilterSummary');
     if (summary) summary.textContent = query ? `Showing ${visible} matching agent${visible === 1 ? '' : 's'}.` : `${visible} agent${visible === 1 ? '' : 's'} shown.`;
+  };
+
+  root.focusBrokerageActivationFollowUp = function focusBrokerageActivationFollowUp() {
+    const input = document.getElementById('brokerageAgentFilter');
+    if (!input) return;
+    input.value = 'finish account activation';
+    root.filterBrokerageAgents(input.value);
+    input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    input.focus();
   };
 
   root.exportBrokerageRoster = function exportBrokerageRoster() {
@@ -15758,7 +15772,7 @@ function routeAfterMagicLinkIfNeeded() {
         : (pendingInvites.length && inviteAcceptanceRate < 50
           ? '<div class="notice gold" style="margin-top:1rem"><strong>Invite follow-up:</strong> ' + inviteAcceptanceRate + '% of ' + inviteTotalCount + ' invites have been accepted. Follow up with the pending agents to keep team activation moving.</div>'
           : (acceptedInviteNeedingActivationCount > 0
-            ? '<div class="notice gold" style="margin-top:1rem"><strong>Accepted-seat follow-up:</strong> ' + acceptedInviteNeedingActivationCount + ' accepted invite' + (acceptedInviteNeedingActivationCount === 1 ? ' is' : 's are') + ' not active in the brokerage yet. Help those agents finish account activation before inviting the next seat.</div>'
+            ? '<div class="notice gold" style="margin-top:1rem"><strong>Accepted-seat follow-up:</strong> ' + acceptedInviteNeedingActivationCount + ' accepted invite' + (acceptedInviteNeedingActivationCount === 1 ? ' is' : 's are') + ' not active in the brokerage yet. Help those agents finish account activation before inviting the next seat. <button type="button" class="brokerage-access-button" onclick="focusBrokerageActivationFollowUp()">Review accepted seats</button></div>'
             : ''));
       const sourceReadiness = data.sourceReadiness || [];
       const seatCount = Number(m.agentSeatCount || 0);
