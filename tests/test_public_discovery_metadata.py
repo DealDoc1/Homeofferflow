@@ -170,6 +170,15 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         ):
             self.assertIn({"source": route, "destination": destination}, VERCEL.get("rewrites", []))
 
+    def test_core_public_landing_pages_have_complete_share_cards(self):
+        for page in (BUYERS, SELLERS, AGENTS, INVESTORS, DIRECTORY):
+            self.assertIn('property="og:site_name" content="HomeOfferFlow"', page)
+            self.assertIn('property="og:image" content="https://www.homeofferflow.com/assets/homeofferflow-social-preview-v1.png"', page)
+            self.assertIn('meta name="twitter:card" content="summary_large_image"', page)
+            self.assertIn('meta name="twitter:title"', page)
+            self.assertIn('meta name="twitter:description"', page)
+            self.assertIn('meta name="twitter:image" content="https://www.homeofferflow.com/assets/homeofferflow-social-preview-v1.png"', page)
+
     def test_homepage_exposes_each_public_path_from_the_primary_navigation(self):
         self.assertIn('<details class="nav-discovery">', INDEX)
         self.assertIn('<summary>Explore</summary>', INDEX)
