@@ -40,6 +40,9 @@ class LazyPlacesLoadingTests(unittest.TestCase):
             "listingWorkspaceAddress", "fsboPropertyAddress", "hofSellerAddress",
         ):
             self.assertIn(f'id="{input_id}"', HTML)
+        self.assertIn('aria-describedby="sellerLeadAddressHelp"', HTML)
+        self.assertIn('aria-describedby="listingWorkspaceAddressHelp"', HTML)
+        self.assertEqual(HTML.count('Choose a Google address suggestion when available; manual entry still works.'), 2)
 
     def test_google_address_suggestions_support_keyboard_and_screen_readers(self):
         self.assertIn("input.setAttribute('role', 'combobox')", HTML)
