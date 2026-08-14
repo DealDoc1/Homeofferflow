@@ -12,6 +12,10 @@ class OfferWorkspaceSigningRecoveryTests(unittest.TestCase):
         self.assertIn("root.copyBuyerSigningReminder = async function(offerId)", HTML)
         self.assertIn("buyer_signing_reminder_copied", HTML)
 
+    def test_priority_follow_up_exposes_the_same_copy_only_reminder_without_a_second_navigation_step(self):
+        self.assertIn("const priorityNeedsBuyerReminder = priority && bucketForOffer(priority) === 'signing';", HTML)
+        self.assertIn("onclick=\"copyBuyerSigningReminder('${esc(priority.id)}')\"", HTML)
+
     def test_reminder_requires_agent_review_before_any_external_communication(self):
         start = HTML.index("root.copyBuyerSigningReminder = async function(offerId)")
         end = HTML.index("root.hofRenderOfferWorkspaceV10", start)
