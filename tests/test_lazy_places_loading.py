@@ -29,10 +29,15 @@ class LazyPlacesLoadingTests(unittest.TestCase):
         self.assertIn('name="propertyAddress"', HTML)
         self.assertIn("document.addEventListener('focusin'", HTML)
         self.assertIn("fillBrandOfficeAddressFields", HTML)
+        # This is the product-wide UX contract: all current address-like
+        # inputs, including fields that only render after authentication, are
+        # covered by the generic Google Places selector rather than a fragile
+        # hand-maintained one-off list.
         for input_id in (
-            "escrowAddress", "sellerMailAddr", "profInvestorEscrowAddress",
+            "buyerMailAddr", "propAddress", "escrowAddress",
+            "salePropertyAddr", "sellerMailAddr", "profInvestorEscrowAddress",
             "profEscrowAddress", "brandOfficeAddress", "sellerLeadAddress",
-            "listingWorkspaceAddress", "hofSellerAddress",
+            "listingWorkspaceAddress", "fsboPropertyAddress", "hofSellerAddress",
         ):
             self.assertIn(f'id="{input_id}"', HTML)
 
