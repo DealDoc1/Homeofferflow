@@ -4524,6 +4524,13 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           </div>
 
           <div class="admin-metric">
+            <div class="admin-metric-label">Homebuyer $99 Funnel</div>
+            <div class="admin-metric-value">${metrics.homebuyerLandingViewCount || 0} views</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.homebuyerLandingCtaCount || 0} started the guided offer (${Number(metrics.homebuyerLandingCtaRate || 0).toFixed(1)}%).</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Aggregate landing intent only; no buyer identity, property, financing, or offer details are included.</div>
+          </div>
+
+          <div class="admin-metric">
             <div class="admin-metric-label">Brokerage Invites Sent</div>
             <div class="admin-metric-value">${metrics.brokerageInviteSentCount || 0}</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.brokerageInviteResendCount || 0} resends · ${metrics.brokerageInviteAcceptedCount || 0} accepted of ${metrics.brokerageInviteTotalCount || 0} (${Number(metrics.brokerageInviteAcceptanceRate || 0).toFixed(1)}%).</div>

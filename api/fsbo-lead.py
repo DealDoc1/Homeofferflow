@@ -82,6 +82,13 @@ ONDEMAND_LANDING_EVENT_TYPES = {
     "ondemand_landing_viewed": "viewed",
     "ondemand_trial_terms_accepted": "terms_accepted",
 }
+HOMEBUYER_LANDING_EVENT_TYPES = {
+    "homebuyer_landing_viewed": "viewed",
+    "homebuyer_landing_cta_selected": "selected",
+}
+HOMEBUYER_LANDING_CHANNELS = {
+    "direct_outreach", "email", "social", "referral", "local_event", "print", "unspecified",
+}
 
 
 def _send(handler, status, payload):
@@ -334,6 +341,22 @@ def _record_ondemand_landing_event(data):
         ONDEMAND_LANDING_EVENT_TYPES[event_type],
         "Privacy-safe OnDemand trial landing engagement recorded.",
         {"surface": "ondemand_landing", "plan": "agent", "billing": "monthly"},
+    )
+
+
+def _record_homebuyer_landing_event(data):
+    """Persist aggregate buyer-landing stages without buyer or offer details."""
+    event_type = _text(data.get("event_type"), 80)
+    channel = _text(data.get("channel"), 80) or "unspecified"
+    if event_type not in HOMEBUYER_LANDING_EVENT_TYPES:
+        raise ValueError("Unsupported homebuyer landing event.")
+    if channel not in HOMEBUYER_LANDING_CHANNELS:
+        raise ValueError("Unsupported homebuyer landing channel.")
+    _record_partner_checkout_event(
+        event_type,
+        HOMEBUYER_LANDING_EVENT_TYPES[event_type],
+        "Privacy-safe public homebuyer landing engagement recorded.",
+        {"surface": "homebuyer_landing", "price": "99", "channel": channel},
     )
 
 
@@ -661,6 +684,13 @@ class handler(BaseHTTPRequestHandler):
             if _text(data.get('request_type'), 80) == 'ondemand_landing_event':
                 try:
                     _record_ondemand_landing_event(data)
+                    return _send(self, 200, {'ok': True})
+                except ValueError as exc:
+                    return _send(self, 400, {'error': str(exc)})
+
+            if _text(data.get('request_type'), 80) == 'homebuyer_landing_event':
+                try:
+                    _record_homebuyer_landing_event(data)
                     return _send(self, 200, {'ok': True})
                 except ValueError as exc:
                     return _send(self, 400, {'error': str(exc)})
