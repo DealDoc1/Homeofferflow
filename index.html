@@ -9601,6 +9601,8 @@ function routeAfterMagicLinkIfNeeded() {
   let _autocompleteService = null;
   let _sessionToken = null;
   let _dropdown = null;
+  let _dropdownInput = null;
+  let _activeSuggestionIndex = -1;
   let _placesSetupAttempts = 0;
   let _placesSetupRetryTimer = null;
 
@@ -9736,6 +9738,27 @@ function routeAfterMagicLinkIfNeeded() {
     input.setAttribute('autocorrect', 'off');
     input.setAttribute('autocapitalize', 'off');
     input.setAttribute('spellcheck', 'false');
+    input.setAttribute('role', 'combobox');
+    input.setAttribute('aria-autocomplete', 'list');
+    input.setAttribute('aria-expanded', 'false');
+
+    input.addEventListener('keydown', e => {
+      const options = Array.from(_dropdown?.querySelectorAll('[role="option"]') || []);
+      if (!options.length || _dropdownInput !== input) return;
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        _hideDropdown();
+        return;
+      }
+      if (!['ArrowDown', 'ArrowUp', 'Enter'].includes(e.key)) return;
+      e.preventDefault();
+      if (e.key === 'Enter') {
+        options[_activeSuggestionIndex]?._hofSelect?.();
+        return;
+      }
+      const direction = e.key === 'ArrowDown' ? 1 : -1;
+      _setActiveAddressSuggestion((_activeSuggestionIndex + direction + options.length) % options.length);
+    });
 
     input.addEventListener('input', _debounce(async e => {
       const q = e.target.value.trim();
@@ -9777,24 +9800,36 @@ function routeAfterMagicLinkIfNeeded() {
     const dd = document.createElement('div');
 
     dd.id = 'hof-ac-dd';
+    dd.setAttribute('role', 'listbox');
     dd.style.cssText = `position:fixed; left:${rect.left}px; top:${rect.bottom + 4}px; width:${rect.width}px; background:#152840; border:1px solid rgba(200,151,63,0.35); border-radius:10px; z-index:99999; overflow:hidden; box-shadow:0 8px 32px rgba(0,0,0,0.5); font-family:'DM Sans',sans-serif;`;
 
-    suggestions.slice(0, 5).forEach(suggestion => {
+    suggestions.slice(0, 5).forEach((suggestion, index) => {
       const pred = suggestion.placePrediction;
       if (!pred) return;
 
       const item = document.createElement('div');
+      item.id = `hof-ac-option-${index}`;
+      item.setAttribute('role', 'option');
+      item.setAttribute('aria-selected', 'false');
       item.style.cssText = 'padding:0.85rem 1rem; color:#a8bdd1; cursor:pointer; border-bottom:1px solid rgba(255,255,255,0.06); font-size:0.9rem; transition:background 0.15s;';
 
       const main = pred.mainText?.toString() || pred.text?.toString() || '';
       const secondary = pred.secondaryText?.toString() || '';
 
-      item.innerHTML = `<span style="color:#fff;font-weight:600;">${main}</span>${secondary ? `<span style="color:#7a8fa8;font-size:0.8rem;"> ${secondary}</span>` : ''}`;
-
-      item.addEventListener('mouseover', () => item.style.background = 'rgba(200,151,63,0.1)');
-      item.addEventListener('mouseout', () => item.style.background = '');
+      const mainText = document.createElement('span');
+      mainText.style.cssText = 'color:#fff;font-weight:600;';
+      mainText.textContent = main;
+      item.appendChild(mainText);
+      if (secondary) {
+        const secondaryText = document.createElement('span');
+        secondaryText.style.cssText = 'color:#7a8fa8;font-size:0.8rem;';
+        secondaryText.textContent = ` ${secondary}`;
+        item.appendChild(secondaryText);
+      }
 
       const select = () => _selectPrediction(pred, main, input, onSelectCallback);
+      item._hofSelect = select;
+      item.addEventListener('mouseover', () => _setActiveAddressSuggestion(index));
 
       item.addEventListener('mousedown', e => {
         e.preventDefault();
@@ -9810,7 +9845,23 @@ function routeAfterMagicLinkIfNeeded() {
     });
 
     _dropdown = dd;
+    _dropdownInput = input;
+    _activeSuggestionIndex = -1;
+    input.setAttribute('aria-controls', dd.id);
+    input.setAttribute('aria-expanded', 'true');
     document.body.appendChild(dd);
+  }
+
+  function _setActiveAddressSuggestion(index) {
+    const options = Array.from(_dropdown?.querySelectorAll('[role="option"]') || []);
+    if (!options.length || !_dropdownInput) return;
+    _activeSuggestionIndex = Math.max(0, Math.min(index, options.length - 1));
+    options.forEach((option, optionIndex) => {
+      const selected = optionIndex === _activeSuggestionIndex;
+      option.setAttribute('aria-selected', selected ? 'true' : 'false');
+      option.style.background = selected ? 'rgba(200,151,63,0.1)' : '';
+    });
+    _dropdownInput.setAttribute('aria-activedescendant', options[_activeSuggestionIndex].id);
   }
 
   async function _selectPrediction(pred, streetText, input, onSelectCallback) {
@@ -9856,6 +9907,12 @@ function routeAfterMagicLinkIfNeeded() {
       _dropdown.remove();
       _dropdown = null;
     }
+    if (_dropdownInput) {
+      _dropdownInput.setAttribute('aria-expanded', 'false');
+      _dropdownInput.removeAttribute('aria-activedescendant');
+      _dropdownInput = null;
+    }
+    _activeSuggestionIndex = -1;
   }
 
   function _debounce(fn, ms) {

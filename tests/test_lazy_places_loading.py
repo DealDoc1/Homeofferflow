@@ -41,6 +41,14 @@ class LazyPlacesLoadingTests(unittest.TestCase):
         ):
             self.assertIn(f'id="{input_id}"', HTML)
 
+    def test_google_address_suggestions_support_keyboard_and_screen_readers(self):
+        self.assertIn("input.setAttribute('role', 'combobox')", HTML)
+        self.assertIn("dd.setAttribute('role', 'listbox')", HTML)
+        self.assertIn("item.setAttribute('role', 'option')", HTML)
+        self.assertIn("['ArrowDown', 'ArrowUp', 'Enter']", HTML)
+        self.assertIn("function _setActiveAddressSuggestion(index)", HTML)
+        self.assertIn("input.setAttribute('aria-expanded', 'true')", HTML)
+
 
 if __name__ == "__main__":
     unittest.main()
