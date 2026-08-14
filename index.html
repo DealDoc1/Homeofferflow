@@ -17957,12 +17957,15 @@ function routeAfterMagicLinkIfNeeded() {
   function renderInstallCard(){
     const target = installTarget();
     if (!target || isStandalone() || isDismissed()) return;
+    // This is a field-workflow bridge, not a replacement for the normal
+    // desktop workspace. Avoid interrupting desktop users when Chrome offers
+    // a browser-level install event; they can still install manually.
+    if (!isIos() && !isAndroid()) return;
     const existing = document.getElementById('hofPwaInstallCard');
     if (existing) existing.remove();
     // Android browsers can still use the supported Home Screen path when the
     // native install prompt is unavailable after a browser-level dismissal.
-    // Keep this fallback mobile-only so desktop workspaces stay focused.
-    if (!deferredInstallPrompt && !isIos() && !isAndroid()) return;
+    // Keep this fallback mobile-only so field workflows remain focused.
     const card = document.createElement('div');
     card.id = 'hofPwaInstallCard';
     card.className = 'account-card pwa-install-card';

@@ -19,6 +19,8 @@ class PwaInstallExperienceTests(unittest.TestCase):
         self.assertIn("offers and client details stay protected online", INDEX)
         self.assertIn("const workspaceReturnCopy = target.surface === 'account_dashboard'", INDEX)
         self.assertIn('shortcuts for My Workspace, New Agent Offer, Buyer Offer, Signing Queue, and Seller Plan', INDEX)
+        self.assertIn("if (!isIos() && !isAndroid()) return;", INDEX)
+        self.assertIn("desktop users when Chrome offers", INDEX)
 
     def test_completed_homebuyer_review_can_offer_install_without_account_login(self):
         self.assertIn("function installTarget()", INDEX)
