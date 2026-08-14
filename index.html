@@ -2568,6 +2568,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       <div class="nav-discovery-menu">
         <a href="/buyers">Homebuyer offer</a>
         <a href="/agents">Agent &amp; broker workspace</a>
+        <a href="/investors">Investor workspace</a>
         <a href="/sellers">FSBO seller support</a>
         <a href="/directory">Find a provider</a>
         <a href="/partners">Partner placements</a>
@@ -4536,6 +4537,13 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <div class="admin-metric-value">${metrics.agentLandingViewCount || 0} views</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.agentLandingCtaCount || 0} opened passwordless sign-in (${Number(metrics.agentLandingCtaRate || 0).toFixed(1)}%).</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Aggregate landing intent only; no agent identity, client, property, or offer details are included.</div>
+          </div>
+
+          <div class="admin-metric">
+            <div class="admin-metric-label">Investor Workspace Funnel</div>
+            <div class="admin-metric-value">${metrics.investorLandingViewCount || 0} views</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.investorLandingCtaCount || 0} opened passwordless sign-in (${Number(metrics.investorLandingCtaRate || 0).toFixed(1)}%).</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Aggregate landing intent only; no investor identity, client, property, or offer details are included.</div>
           </div>
 
           <div class="admin-metric">
@@ -12923,6 +12931,17 @@ function routeAfterMagicLinkIfNeeded() {
       } catch (_) {}
       window.setAudience?.('agent');
       window.openAuthModal?.('agent');
+    }, 80);
+    // Investor acquisition reuses the passwordless account workflow. It does
+    // not create an account, activate a subscription, or start an offer.
+    if (params().get('investor') === '1') setTimeout(() => {
+      try {
+        const cleanUrl = new URL(window.location.href);
+        cleanUrl.searchParams.delete('investor');
+        window.history.replaceState({}, document.title, cleanUrl.pathname + cleanUrl.search + cleanUrl.hash);
+      } catch (_) {}
+      window.setAudience?.('investor');
+      window.openAuthModal?.('investor');
     }, 80);
     if (params().get('partner_onboarding')) setTimeout(window.openPartnerOnboarding, 80);
     if (params().get('partner') === '1') setTimeout(window.openFoundingPartnerModal, 80);

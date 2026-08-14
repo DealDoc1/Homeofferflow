@@ -12,6 +12,7 @@ SELLERS = (ROOT / "sellers.html").read_text(encoding="utf-8")
 DIRECTORY = (ROOT / "directory.html").read_text(encoding="utf-8")
 BUYERS = (ROOT / "buyers.html").read_text(encoding="utf-8")
 AGENTS = (ROOT / "agents.html").read_text(encoding="utf-8")
+INVESTORS = (ROOT / "investors.html").read_text(encoding="utf-8")
 VERCEL = json.loads((ROOT / "vercel.json").read_text(encoding="utf-8"))
 
 
@@ -38,6 +39,7 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn('https://www.homeofferflow.com/sellers', SITEMAP)
         self.assertIn('https://www.homeofferflow.com/buyers', SITEMAP)
         self.assertIn('https://www.homeofferflow.com/agents', SITEMAP)
+        self.assertIn('https://www.homeofferflow.com/investors', SITEMAP)
         self.assertIn('https://www.homeofferflow.com/directory', SITEMAP)
 
     def test_partner_acquisition_page_has_share_metadata_and_a_direct_application_path(self):
@@ -136,6 +138,13 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn('No password and no charge to open the workspace.', AGENTS)
         self.assertIn({'source': '/agents', 'destination': '/agents.html'}, VERCEL.get('rewrites', []))
 
+    def test_investor_workspace_page_is_indexable_and_routes_to_passwordless_sign_in(self):
+        self.assertIn('<link rel="canonical" href="https://www.homeofferflow.com/investors"', INVESTORS)
+        self.assertIn('property="og:url" content="https://www.homeofferflow.com/investors"', INVESTORS)
+        self.assertIn('href="/?investor=1"', INVESTORS)
+        self.assertIn('No password and no charge to open the workspace.', INVESTORS)
+        self.assertIn({'source': '/investors', 'destination': '/investors.html'}, VERCEL.get('rewrites', []))
+
     def test_clean_public_marketing_routes_resolve_and_are_canonical(self):
         for route, destination in (
             ("/partners", "/partners.html"),
@@ -149,6 +158,8 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn('<summary>Explore</summary>', INDEX)
         for href, label in (
             ('/buyers', 'Homebuyer offer'),
+            ('/agents', 'Agent &amp; broker workspace'),
+            ('/investors', 'Investor workspace'),
             ('/sellers', 'FSBO seller support'),
             ('/directory', 'Find a provider'),
             ('/partners', 'Partner placements'),
