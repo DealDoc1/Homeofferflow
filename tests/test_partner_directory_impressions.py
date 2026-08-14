@@ -30,7 +30,11 @@ class PartnerDirectoryImpressionTests(unittest.TestCase):
         self.assertIn('"partnerDirectoryImpressionCount"', api)
         self.assertIn('"partnerDirectoryOutboundClickCount"', api)
         self.assertIn('"partnerDirectoryOutboundClickRate"', api)
+        self.assertIn('partner_directory_traffic_by_placement', api)
+        self.assertIn('"directoryTraffic"', api)
         self.assertIn('Directory value:', HTML)
+        self.assertIn('Directory performance:', HTML)
+        self.assertIn('Aggregate placement traffic only.', HTML)
 
     def test_public_directory_event_is_bound_to_an_active_allowlisted_placement(self):
         api = (ROOT / "api" / "fsbo-lead.py").read_text(encoding="utf-8")

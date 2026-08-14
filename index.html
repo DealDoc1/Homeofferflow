@@ -11289,11 +11289,16 @@ function routeAfterMagicLinkIfNeeded() {
       const summary = hofPlatform.partners.length ? `<div class="notice" style="margin-bottom:.75rem;">${launchCount} in launch period · ${renewalCount} ready for renewal review. Billing remains controlled by Stripe; these labels track placement operations only.</div>` : '';
       list.innerHTML = hofPlatform.partners.length ? summary + hofPlatform.partners.map((row, index) => {
         const lifecycle = lifecycleRows[index];
+        const directoryTraffic = row.directoryTraffic || {};
+        const impressions = Number(directoryTraffic.impressions || 0);
+        const outboundClicks = Number(directoryTraffic.outboundClicks || 0);
+        const outboundClickRate = Number(directoryTraffic.outboundClickRate || 0).toFixed(1);
         return `<div class="platform-list-item"><strong>${escapeAttr(row.partner_name || 'Partner')}</strong>
           <span class="platform-pill ${lifecycle.tone}">${escapeAttr(lifecycle.label)}</span>
           <span class="platform-pill good">${escapeAttr(row.partner_type || 'partner')}</span>
           <span class="platform-pill">${escapeAttr(row.placement_tier || 'founding')}</span><br>
           ${escapeAttr(row.market_area || '')} ${row.website_url ? '· ' + escapeAttr(row.website_url) : ''} ${row.monthly_fee ? '· ' + adminMoney(row.monthly_fee) + '/mo' : ''}<br>
+          <small>Directory performance: ${impressions} impressions · ${outboundClicks} outbound clicks (${outboundClickRate}%). Aggregate placement traffic only.</small><br>
           <small>${escapeAttr(lifecycle.action)}</small>
         </div>`;
       }).join('') : '<div class="platform-list-item">No active platform placements yet. Add the first converted founding partner here when onboarding is complete.</div>';
