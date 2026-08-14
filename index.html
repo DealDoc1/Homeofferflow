@@ -7310,25 +7310,6 @@ function routeAfterMagicLinkIfNeeded() {
     startPrimaryOffer();
   }
 
-  // Public buyer landing pages intentionally link to a lightweight URL rather
-  // than duplicating the offer workflow. Consume that URL here so a fresh
-  // visitor reaches the same guided first step as the homepage CTA. Keep any
-  // standard campaign parameters intact, but remove the one-time routing flag
-  // so a refresh cannot reopen the wizard unexpectedly.
-  function consumeHomebuyerLandingEntry() {
-    const params = new URLSearchParams(window.location.search || '');
-    if (params.get('buyer') !== '1') return;
-    params.delete('buyer');
-    const query = params.toString();
-    try {
-      window.history.replaceState({}, document.title, window.location.pathname + (query ? `?${query}` : '') + window.location.hash);
-    } catch (_) {}
-    setAudience('homebuyer');
-    beginOfferFrom('buyer_landing');
-  }
-
-  document.addEventListener('DOMContentLoaded', consumeHomebuyerLandingEntry);
-
   function startPrimaryOffer() {
     const selectedType = state?.data?.userType || 'homebuyer';
     if (selectedType === 'fsbo') {
@@ -12912,10 +12893,17 @@ function routeAfterMagicLinkIfNeeded() {
       window.openFsboSellerModal?.();
     }, 80);
     // The public homebuyer landing page hands into the existing self-serve
-    // workflow. It carries no identity or property data in the URL.
+    // workflow. It carries no identity or property data in the URL. Consume
+    // the one-time routing flag before starting so refresh cannot reopen the
+    // wizard, while leaving normal campaign parameters intact.
     if (params().get('buyer') === '1') setTimeout(() => {
+      try {
+        const cleanUrl = new URL(window.location.href);
+        cleanUrl.searchParams.delete('buyer');
+        window.history.replaceState({}, document.title, cleanUrl.pathname + cleanUrl.search + cleanUrl.hash);
+      } catch (_) {}
       window.setAudience?.('homebuyer');
-      window.startHomebuyerOffer?.();
+      window.beginOfferFrom?.('buyer_landing');
     }, 80);
     if (params().get('partner_onboarding')) setTimeout(window.openPartnerOnboarding, 80);
     if (params().get('partner') === '1') setTimeout(window.openFoundingPartnerModal, 80);
