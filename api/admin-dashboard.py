@@ -3409,14 +3409,20 @@ class handler(BaseHTTPRequestHandler):
             partner_campaign_category_counts = {}
             partner_campaign_tier_counts = {}
             partner_campaign_channel_counts = {}
+            partner_checkout_recovery_stripe_open_count = 0
             for item in events:
                 event_type = str(item.get("event_type") or "").strip().lower()
                 event_key = partner_checkout_event_keys.get(event_type)
                 if event_key:
                     partner_checkout_event_counts[event_key] += 1
+                metadata = item.get("metadata") or {}
+                if (
+                    event_type == "founding_partner_stripe_checkout_opened"
+                    and str(metadata.get("source") or "").strip().lower() == "partner_cancel_recovery"
+                ):
+                    partner_checkout_recovery_stripe_open_count += 1
                 if event_type != "founding_partner_intake_opened":
                     continue
-                metadata = item.get("metadata") or {}
                 category = str(metadata.get("campaignCategory") or "").strip().lower()
                 tier = str(metadata.get("campaignTier") or "").strip().lower()
                 channel = str(metadata.get("campaignChannel") or "").strip().lower()
@@ -4006,6 +4012,11 @@ class handler(BaseHTTPRequestHandler):
                 "partnerCheckoutStartCount": partner_checkout_event_counts["checkout_started"],
                 "partnerCheckoutStripeOpenCount": partner_checkout_event_counts["stripe_opened"],
                 "partnerCheckoutCancellationCount": partner_checkout_event_counts["cancelled"],
+                "partnerCheckoutRecoveryAvailableCount": partner_checkout_event_counts["cancelled"],
+                "partnerCheckoutRecoveryStripeOpenCount": partner_checkout_recovery_stripe_open_count,
+                "partnerCheckoutRecoveryStripeOpenRate": round(
+                    (partner_checkout_recovery_stripe_open_count / partner_checkout_event_counts["cancelled"]) * 100, 1
+                ) if partner_checkout_event_counts["cancelled"] else 0,
                 "partnerCheckoutCompletionCount": partner_checkout_event_counts["completed"],
                 "partnerCheckoutFailureCount": partner_checkout_event_counts["failed"],
                 "partnerCheckoutStripeOpenRate": round(

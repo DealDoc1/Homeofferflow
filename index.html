@@ -4572,6 +4572,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.partnerFollowUpEmailStartCount || 0} partner follow-up emails opened.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Public checkout: ${metrics.partnerCheckoutStartCount || 0} started · ${metrics.partnerCheckoutStripeOpenCount || 0} opened Stripe (${Number(metrics.partnerCheckoutStripeOpenRate || 0).toFixed(1)}%) · ${metrics.partnerCheckoutCompletionCount || 0} completed (${Number(metrics.partnerCheckoutCompletionRate || 0).toFixed(1)}% of Stripe opens).</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:${Number(metrics.partnerCheckoutCancellationCount || 0) || Number(metrics.partnerCheckoutFailureCount || 0) ? 'var(--gold-light)' : 'var(--gray-light)'}">${metrics.partnerCheckoutCancellationCount || 0} checkout returns · ${metrics.partnerCheckoutFailureCount || 0} checkout failures.</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Canceled-checkout recovery: ${metrics.partnerCheckoutRecoveryAvailableCount || 0} eligible · ${metrics.partnerCheckoutRecoveryStripeOpenCount || 0} reopened Stripe (${Number(metrics.partnerCheckoutRecoveryStripeOpenRate || 0).toFixed(1)}%).</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Campaign category opens: ${adminSafe(Object.entries(metrics.partnerCampaignCategoryCounts || {}).map(([category, count]) => `${category.replace(/_/g, ' ')} (${count})`).join(' · '), 'No categorized campaign opens yet')}</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Campaign tier opens: ${adminSafe(Object.entries(metrics.partnerCampaignTierCounts || {}).map(([tier, count]) => `${tier.replace(/_/g, ' ')} (${count})`).join(' · '), 'No tier-targeted campaign opens yet')}</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Campaign channel opens: ${adminSafe(Object.entries(metrics.partnerCampaignChannelCounts || {}).map(([channel, count]) => `${channel.replace(/_/g, ' ')} (${count})`).join(' · '), 'No channel-attributed campaign opens yet')}</div>
@@ -12759,7 +12760,7 @@ function routeAfterMagicLinkIfNeeded() {
       const checkoutResponse = await fetch('/api/fsbo-lead', {
         method: 'POST',
         headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ request_type: 'founding_partner_checkout', partner_lead_id: partnerLeadId })
+        body: JSON.stringify({ request_type: 'founding_partner_checkout', partner_lead_id: partnerLeadId, checkout_source: hasSavedPartnerApplication ? 'partner_cancel_recovery' : '' })
       });
       const checkout = await checkoutResponse.json().catch(() => ({}));
       if (!checkoutResponse.ok || !checkout.url) throw new Error(checkout.error || 'Could not start secure checkout.');

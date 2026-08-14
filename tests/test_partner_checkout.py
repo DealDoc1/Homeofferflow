@@ -71,6 +71,7 @@ class PartnerCheckoutTests(unittest.TestCase):
         self.assertIn("if (!hasSavedPartnerApplication && (!payload.company_name", html)
         self.assertIn("if (!hasSavedPartnerApplication && !document.getElementById('foundingPartnerConsent')?.checked)", html)
         self.assertIn("source: hasSavedPartnerApplication ? 'partner_cancel_recovery' : payload.source", html)
+        self.assertIn("checkout_source: hasSavedPartnerApplication ? 'partner_cancel_recovery' : ''", html)
         self.assertIn("You do not need to re-enter your saved essentials", html)
 
     def test_success_confirmation_provides_a_direct_safe_support_recovery_link(self):
@@ -231,6 +232,26 @@ class PartnerCheckoutTests(unittest.TestCase):
             "opened",
             "Partner returned to an existing secure checkout.",
             {"tier": "monthly_placement"},
+        )
+
+    def test_checkout_recovery_records_only_the_allowlisted_aggregate_source(self):
+        lead = {
+            "id": "e35eace9-2760-4b11-a01a-07ee65f2744e",
+            "preferred_model": "monthly_placement",
+            "contact_email": "partner@example.com",
+            "status": "approved",
+            "payment_status": "checkout_started",
+            "stripe_checkout_session_id": "cs_open",
+        }
+        with patch.object(partner_checkout, "_get_partner_lead_for_checkout", return_value=lead), \
+             patch.object(partner_checkout, "_open_stripe_checkout_url", return_value="https://checkout.stripe.test/open"), \
+             patch.object(partner_checkout, "_record_partner_checkout_event") as record:
+            partner_checkout._create_partner_checkout(lead["id"], {"host": "www.homeofferflow.com"}, "partner_cancel_recovery")
+        record.assert_called_once_with(
+            "founding_partner_stripe_checkout_opened",
+            "opened",
+            "Partner returned to an existing secure checkout.",
+            {"tier": "monthly_placement", "source": "partner_cancel_recovery"},
         )
 
     def test_checkout_session_claim_requires_same_unpaid_row_and_returns_claimed_row(self):
