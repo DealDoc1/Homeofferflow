@@ -3444,12 +3444,41 @@ class handler(BaseHTTPRequestHandler):
             # Directory traffic is recorded server-side only as placement ID,
             # category, and tier. This lets operators evaluate paid-placement
             # value without retaining a visitor, search text, or destination URL.
-            partner_directory_impression_count = len([
-                item for item in events if item.get("event_type") == "partner_directory_impression"
-            ])
-            partner_directory_outbound_click_count = len([
-                item for item in events if item.get("event_type") == "partner_directory_outbound_click"
-            ])
+            partner_directory_impression_count = 0
+            partner_directory_outbound_click_count = 0
+            placement_ids = {str(placement.get("id") or "") for placement in partner_placements}
+            partner_directory_traffic_by_placement = {
+                placement_id: {"impressions": 0, "outboundClicks": 0}
+                for placement_id in placement_ids if placement_id
+            }
+            for item in events:
+                event_type = str(item.get("event_type") or "").strip().lower()
+                if event_type not in {"partner_directory_impression", "partner_directory_outbound_click"}:
+                    continue
+                if event_type == "partner_directory_impression":
+                    partner_directory_impression_count += 1
+                else:
+                    partner_directory_outbound_click_count += 1
+                metadata = item.get("metadata") or {}
+                partner_id = str(metadata.get("partnerId") or "").strip()
+                traffic = partner_directory_traffic_by_placement.get(partner_id)
+                if not traffic:
+                    continue
+                if event_type == "partner_directory_impression":
+                    traffic["impressions"] += 1
+                else:
+                    traffic["outboundClicks"] += 1
+            for placement in partner_placements:
+                traffic = partner_directory_traffic_by_placement.get(
+                    str(placement.get("id") or ""), {"impressions": 0, "outboundClicks": 0}
+                )
+                impressions = int(traffic["impressions"])
+                outbound_clicks = int(traffic["outboundClicks"])
+                placement["directoryTraffic"] = {
+                    "impressions": impressions,
+                    "outboundClicks": outbound_clicks,
+                    "outboundClickRate": round((outbound_clicks / impressions) * 100, 1) if impressions else 0,
+                }
             # A setup-link email is a deliberate platform-admin action. Keep this
             # aggregate separate from mailto follow-ups so the paid-partner
             # onboarding funnel shows whether secure access is actually being
