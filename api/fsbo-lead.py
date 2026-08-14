@@ -83,6 +83,7 @@ PARTNER_LANDING_EVENT_TYPES = {
 }
 ONDEMAND_LANDING_EVENT_TYPES = {
     "ondemand_landing_viewed": "viewed",
+    "ondemand_trial_entry_selected": "entry_selected",
     "ondemand_trial_terms_accepted": "terms_accepted",
 }
 HOMEBUYER_LANDING_EVENT_TYPES = {

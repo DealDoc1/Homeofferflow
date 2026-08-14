@@ -4566,7 +4566,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
               <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.subscriptionCheckoutRedirectCount || 0} redirected to Stripe · ${metrics.subscriptionCheckoutReturnCount || 0} returned · ${Number(metrics.subscriptionCheckoutReturnRate || 0).toFixed(1)}% return rate.</div>
               <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.subscriptionCheckoutFailureCount || 0} request failures before Stripe redirect.</div>
               <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Canceled-checkout recovery: ${metrics.subscriptionCheckoutRecoveryShownCount || 0} shown · ${metrics.subscriptionCheckoutRecoveryStartCount || 0} restarted in Stripe.</div>
-              <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">OnDemand: ${metrics.onDemandLandingViewCount || 0} landing views · ${metrics.onDemandTermsAcceptedCount || 0} trial terms accepted (${Number(metrics.onDemandTermsAcceptedRate || 0).toFixed(1)}%) · ${metrics.onDemandCheckoutStartCount || 0} started · ${metrics.onDemandCheckoutReturnCount || 0} returned · ${Number(metrics.onDemandCheckoutReturnRate || 0).toFixed(1)}% return rate · ${metrics.onDemandFirstOfferStartCount || 0} first-offer starts (${Number(metrics.onDemandFirstOfferStartRate || 0).toFixed(1)}% of returns).</div>
+              <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">OnDemand: ${metrics.onDemandTrialEntryCount || 0} main-site trial entries · ${metrics.onDemandLandingViewCount || 0} landing views · ${metrics.onDemandTermsAcceptedCount || 0} trial terms accepted (${Number(metrics.onDemandTermsAcceptedRate || 0).toFixed(1)}%) · ${metrics.onDemandCheckoutStartCount || 0} started · ${metrics.onDemandCheckoutReturnCount || 0} returned · ${Number(metrics.onDemandCheckoutReturnRate || 0).toFixed(1)}% return rate · ${metrics.onDemandFirstOfferStartCount || 0} first-offer starts (${Number(metrics.onDemandFirstOfferStartRate || 0).toFixed(1)}% of returns).</div>
           </div>
 
           <div class="admin-metric">
@@ -14618,7 +14618,21 @@ function routeAfterMagicLinkIfNeeded() {
     link.href = '/ondemand';
     link.textContent = 'OnDemand agent? Start 60 days free';
     link.setAttribute('aria-label', 'OnDemand Realty agent: start a 60-day free trial; card required');
-    link.addEventListener('click', () => trackEvent('OnDemand Trial Link Selected', { surface: 'agent_hero_secondary_cta' }));
+    link.addEventListener('click', () => {
+      trackEvent('OnDemand Trial Link Selected', { surface: 'agent_hero_secondary_cta' });
+      // This is an aggregate acquisition signal only. It keeps no agent,
+      // device, property, offer, or campaign details and is deduplicated per
+      // browser session before the user leaves for the trial page.
+      try {
+        const key = 'hof_ondemand_trial_entry_selected';
+        if (sessionStorage.getItem(key)) return;
+        sessionStorage.setItem(key, '1');
+        fetch('/api/fsbo-lead', {
+          method: 'POST', headers: {'Content-Type':'application/json'}, keepalive: true,
+          body: JSON.stringify({request_type: 'ondemand_landing_event', event_type: 'ondemand_trial_entry_selected'})
+        }).catch(() => {});
+      } catch (_) {}
+    });
     actions.appendChild(link);
   }
 

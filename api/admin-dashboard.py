@@ -4125,6 +4125,9 @@ class handler(BaseHTTPRequestHandler):
             ondemand_landing_view_count = len([
                 item for item in events if item.get("event_type") == "ondemand_landing_viewed"
             ])
+            ondemand_trial_entry_count = len([
+                item for item in events if item.get("event_type") == "ondemand_trial_entry_selected"
+            ])
             ondemand_terms_accepted_count = len([
                 item for item in events if item.get("event_type") == "ondemand_trial_terms_accepted"
             ])
@@ -4420,6 +4423,7 @@ class handler(BaseHTTPRequestHandler):
                 "subscriptionCheckoutReturnBySource": subscription_checkout_return_by_source,
                 "onDemandCheckoutStartCount": subscription_checkout_start_by_source.get("ondemand", 0),
                 "onDemandLandingViewCount": ondemand_landing_view_count,
+                "onDemandTrialEntryCount": ondemand_trial_entry_count,
                 "onDemandTermsAcceptedCount": ondemand_terms_accepted_count,
                 "onDemandTermsAcceptedRate": round((ondemand_terms_accepted_count / ondemand_landing_view_count) * 100, 1)
                 if ondemand_landing_view_count else 0,

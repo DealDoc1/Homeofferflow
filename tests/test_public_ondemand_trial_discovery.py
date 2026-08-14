@@ -24,6 +24,9 @@ class PublicOnDemandTrialDiscoveryTests(unittest.TestCase):
         self.assertIn("onDemandHeroTrialCta", INDEX)
         self.assertIn("OnDemand agent? Start 60 days free", INDEX)
         self.assertIn("surface: 'agent_hero_secondary_cta'", INDEX)
+        self.assertIn("ondemand_trial_entry_selected", INDEX)
+        self.assertIn("request_type: 'ondemand_landing_event'", INDEX)
+        self.assertIn("hof_ondemand_trial_entry_selected", INDEX)
 
 
 if __name__ == "__main__":

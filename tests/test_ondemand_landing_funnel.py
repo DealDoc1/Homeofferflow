@@ -14,6 +14,7 @@ class OnDemandLandingFunnelTests(unittest.TestCase):
         self.assertIn("ONDEMAND_LANDING_EVENT_TYPES", API)
         self.assertIn("def _record_ondemand_landing_event(data):", API)
         self.assertIn('"ondemand_landing_viewed": "viewed"', API)
+        self.assertIn('"ondemand_trial_entry_selected": "entry_selected"', API)
         self.assertIn('"ondemand_trial_terms_accepted": "terms_accepted"', API)
         self.assertIn("Unsupported OnDemand landing event.", API)
         self.assertIn("'ondemand_landing_event'", API)
@@ -30,6 +31,7 @@ class OnDemandLandingFunnelTests(unittest.TestCase):
     def test_admin_reports_the_trial_conversion_ladder(self):
         for expected in (
             '"onDemandLandingViewCount"',
+            '"onDemandTrialEntryCount"',
             '"onDemandTermsAcceptedCount"',
             '"onDemandTermsAcceptedRate"',
             "ondemand_landing_view_count",
