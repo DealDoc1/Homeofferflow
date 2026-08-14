@@ -2,8 +2,9 @@
 
 **Texas commercial draft — requires final Texas counsel review before use.**
 
-This agreement is between HomeOfferFlow, `[legal entity and address]`, and the
-Partner named in the Order Form. The Order Form/Stripe checkout controls the
+This agreement is between **BrewBQ Investments LLC, a Texas limited liability
+company doing business as HomeOfferFlow**, and the Partner named in the Order
+Form. The Order Form/Stripe checkout controls the
 selected category, market, tier, price, term, billing interval, and any express
 exclusivity. The partner signs this agreement through SignWell after paid
 onboarding; SignWell sends the final completed PDF to the signer and
@@ -69,7 +70,9 @@ onboarding; SignWell sends the final completed PDF to the signer and
    permits.
 
 10. **General.** The parties are independent contractors. Texas law governs;
-    exclusive venue is `[county], Texas`. Notices use the Order Form addresses.
+    for disputes not subject to arbitration or small claims, venue is the Texas
+    county where BrewBQ Investments LLC maintains its principal place of
+    business, unless nonwaivable law requires another venue. Notices use the Order Form addresses.
     This agreement and the Order Form are the entire agreement and may be
     amended only in writing accepted by both parties. Electronic records and
     signatures are intended to be effective to the extent law permits.
@@ -82,7 +85,7 @@ is required before public placement.
 
 ## Required counsel completions
 
-- HomeOfferFlow’s legal entity, address, notice address, and Texas venue county.
+- HomeOfferFlow’s address and notice address.
 - Exact renewal, cancellation, tax, refund, pilot, and exclusivity terms for
   the actual Stripe price configuration and each commercial tier.
 - Category-specific license, advertising, referral-fee, anti-inducement, and
