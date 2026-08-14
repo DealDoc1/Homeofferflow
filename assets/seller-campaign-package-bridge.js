@@ -21,11 +21,24 @@
     context.hidden = false;
     context.textContent = `Your selected path: ${selectedPackage.label}. You can start this intake now or compare the options below—nothing is purchased or committed here.`;
   }
+  // The inline campaign-preservation script may already have changed the
+  // destination package before this deferred bridge runs.  Identify the
+  // primary/free-intake calls by their original copy as well, so their label
+  // always matches the selected campaign path instead of implying that a
+  // paid-path visitor is starting the free package.
+  const primaryCtaLabels = new Set([
+    'Start free seller intake',
+    'Get my free seller plan',
+    'Tell us about your property'
+  ]);
   document.querySelectorAll('[data-seller-apply]').forEach(link => {
+    const isCampaignPrimaryCta = primaryCtaLabels.has(link.textContent.trim());
     const destination = new URL(link.href, window.location.origin);
     if (destination.searchParams.get('seller_package') === 'free_intake') {
       destination.searchParams.set('seller_package', selected);
       link.href = destination.pathname + '?' + destination.searchParams.toString();
+    }
+    if (isCampaignPrimaryCta) {
       link.textContent = selectedPackage.cta;
     }
   });
