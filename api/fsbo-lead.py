@@ -74,6 +74,10 @@ FSBO_LANDING_EVENT_TYPES = {
     "fsbo_landing_viewed": "viewed",
     "fsbo_landing_cta_selected": "selected",
 }
+PARTNER_LANDING_EVENT_TYPES = {
+    "partner_landing_viewed": "viewed",
+    "partner_landing_cta_selected": "selected",
+}
 
 
 def _send(handler, status, payload):
@@ -294,6 +298,25 @@ def _record_fsbo_landing_event(data):
         FSBO_LANDING_EVENT_TYPES[event_type],
         "Privacy-safe public seller landing engagement recorded.",
         {"surface": "seller_landing", "serviceLevel": service_level},
+    )
+
+
+def _record_partner_landing_event(data):
+    """Persist aggregate partner-landing engagement without applicant details."""
+    event_type = _text(data.get("event_type"), 80)
+    tier = _text(data.get("tier"), 80) or "unspecified"
+    category = _text(data.get("category"), 80) or "unspecified"
+    if event_type not in PARTNER_LANDING_EVENT_TYPES:
+        raise ValueError("Unsupported partner landing event.")
+    if tier not in ALLOWED_MODELS | {"unspecified"}:
+        raise ValueError("Unsupported partner tier.")
+    if category not in ALLOWED_PARTNER_TYPES | {"unspecified"}:
+        raise ValueError("Unsupported partner category.")
+    _record_partner_checkout_event(
+        event_type,
+        PARTNER_LANDING_EVENT_TYPES[event_type],
+        "Privacy-safe public partner landing engagement recorded.",
+        {"surface": "partner_landing", "tier": tier, "category": category},
     )
 
 
@@ -607,6 +630,13 @@ class handler(BaseHTTPRequestHandler):
             if _text(data.get('request_type'), 80) == 'fsbo_landing_event':
                 try:
                     _record_fsbo_landing_event(data)
+                    return _send(self, 200, {'ok': True})
+                except ValueError as exc:
+                    return _send(self, 400, {'error': str(exc)})
+
+            if _text(data.get('request_type'), 80) == 'partner_landing_event':
+                try:
+                    _record_partner_landing_event(data)
                     return _send(self, 200, {'ok': True})
                 except ValueError as exc:
                     return _send(self, 400, {'error': str(exc)})

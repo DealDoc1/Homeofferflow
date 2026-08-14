@@ -85,7 +85,21 @@
       const tier = String(source.get('partner_tier') || '').trim().toLowerCase();
       const selectedCategory = allowedCategories.has(category) ? category : '';
       const selectedTier = allowedTiers.has(tier) ? tier : '';
+      const recordAggregateFunnelEvent = (eventType, tierValue, categoryValue) => {
+        const safeTier = allowedTiers.has(tierValue) ? tierValue : 'unspecified';
+        const safeCategory = allowedCategories.has(categoryValue) ? categoryValue : 'unspecified';
+        const key = 'hof_partner_landing_' + eventType + '_' + safeTier + '_' + safeCategory;
+        try {
+          if (sessionStorage.getItem(key)) return;
+          sessionStorage.setItem(key, '1');
+          fetch('/api/fsbo-lead', {
+            method: 'POST', headers: {'Content-Type': 'application/json'}, keepalive: true,
+            body: JSON.stringify({request_type: 'partner_landing_event', event_type: eventType, tier: safeTier, category: safeCategory})
+          }).catch(() => {});
+        } catch (_) {}
+      };
       track('Founding Partner Landing Viewed', selectedTier ? {tier: selectedTier, category: selectedCategory || 'unspecified'} : {});
+      recordAggregateFunnelEvent('partner_landing_viewed', selectedTier, selectedCategory);
       if (selectedTier) {
         const context = document.getElementById('partnerCampaignContext');
         if (context) {
@@ -96,6 +110,7 @@
       document.querySelectorAll('[data-partner-apply]').forEach(link => link.addEventListener('click', () => {
         const tier = new URL(link.href, window.location.origin).searchParams.get('partner_tier') || 'unspecified';
         track('Founding Partner Landing CTA Selected', {tier});
+        recordAggregateFunnelEvent('partner_landing_cta_selected', tier, selectedCategory);
       }));
       allowed.forEach(key => { const value = source.get(key); if (value) campaign.set(key, value); });
       if (selectedCategory) campaign.set('partner_category', selectedCategory);

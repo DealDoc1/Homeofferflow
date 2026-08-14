@@ -3441,6 +3441,30 @@ class handler(BaseHTTPRequestHandler):
             partner_campaign_channel_counts = dict(sorted(
                 partner_campaign_channel_counts.items(), key=lambda item: (-item[1], item[0])
             ))
+            # The public partner page records only an allowlisted stage, tier,
+            # and category. This reveals whether the commercial landing page
+            # earns application starts without returning company, contact,
+            # market, campaign, or visitor details in the Admin response.
+            partner_landing_event_types = {"partner_landing_viewed", "partner_landing_cta_selected"}
+            partner_landing_events = [
+                item for item in events if item.get("event_type") in partner_landing_event_types
+            ]
+            partner_landing_view_count = len([
+                item for item in partner_landing_events if item.get("event_type") == "partner_landing_viewed"
+            ])
+            partner_landing_cta_count = len([
+                item for item in partner_landing_events if item.get("event_type") == "partner_landing_cta_selected"
+            ])
+            partner_landing_tier_cta_counts = {}
+            for item in partner_landing_events:
+                if item.get("event_type") != "partner_landing_cta_selected":
+                    continue
+                tier = str((item.get("metadata") or {}).get("tier") or "").strip().lower()
+                if tier in {"founding_pilot", "monthly_placement", "market_exclusive", "unspecified"}:
+                    partner_landing_tier_cta_counts[tier] = partner_landing_tier_cta_counts.get(tier, 0) + 1
+            partner_landing_tier_cta_counts = dict(sorted(
+                partner_landing_tier_cta_counts.items(), key=lambda item: (-item[1], item[0])
+            ))
             # Directory traffic is recorded server-side only as placement ID,
             # category, and tier. This lets operators evaluate paid-placement
             # value without retaining a visitor, search text, or destination URL.
@@ -4078,6 +4102,11 @@ class handler(BaseHTTPRequestHandler):
                 if paid_partner_lead_count else 0,
                 "partnerActivationAvgDays": partner_activation_avg_days,
                 "partnerFollowUpEmailStartCount": partner_follow_up_email_start_count,
+                "partnerLandingViewCount": partner_landing_view_count,
+                "partnerLandingCtaCount": partner_landing_cta_count,
+                "partnerLandingCtaRate": round((partner_landing_cta_count / partner_landing_view_count) * 100, 1)
+                if partner_landing_view_count else 0,
+                "partnerLandingTierCtaCounts": partner_landing_tier_cta_counts,
                 "partnerCheckoutEventCounts": partner_checkout_event_counts,
                 "partnerCampaignCategoryCounts": partner_campaign_category_counts,
                 "partnerCampaignTierCounts": partner_campaign_tier_counts,
