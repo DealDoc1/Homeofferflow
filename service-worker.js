@@ -1,4 +1,4 @@
-const SHELL_CACHE = 'homeofferflow-shell-v10';
+const SHELL_CACHE = 'homeofferflow-shell-v11';
 const SHELL_ASSETS = [
   '/',
   '/index.html',

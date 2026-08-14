@@ -16,6 +16,7 @@ class HomebuyerLandingFunnelTests(unittest.TestCase):
         self.assertIn("def _record_homebuyer_landing_event(data):", API)
         self.assertIn('"homebuyer_landing_viewed": "viewed"', API)
         self.assertIn('"homebuyer_landing_cta_selected": "selected"', API)
+        self.assertIn('"pwa_buyer_offer_opened": "opened"', API)
         self.assertIn("Unsupported homebuyer landing event.", API)
         self.assertIn("Unsupported homebuyer landing channel.", API)
         self.assertIn("'homebuyer_landing_event'", API)
@@ -49,6 +50,8 @@ class HomebuyerLandingFunnelTests(unittest.TestCase):
             self.assertIn(expected, ADMIN)
         self.assertIn("Homebuyer $99 Funnel", INDEX)
         self.assertIn("homebuyerLandingCtaRate", INDEX)
+        self.assertIn('"pwaBuyerOfferShortcutCount"', ADMIN)
+        self.assertIn("pwaBuyerOfferShortcutCount", INDEX)
 
 
 if __name__ == "__main__":

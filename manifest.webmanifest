@@ -21,6 +21,12 @@
       "url": "/?pwa_action=new_offer"
     },
     {
+      "name": "Buyer Offer",
+      "short_name": "Buyer Offer",
+      "description": "Start a self-serve Texas homebuyer offer before checkout.",
+      "url": "/?pwa_action=buyer_offer"
+    },
+    {
       "name": "Signing Queue",
       "short_name": "Signing",
       "description": "Review buyer packets awaiting signature.",

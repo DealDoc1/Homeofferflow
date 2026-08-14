@@ -4526,6 +4526,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Shown on: ${Object.entries(metrics.pwaInstallShownSurfaceCounts || {}).filter(([, count]) => Number(count) > 0).map(([surface, count]) => `${surface.replace(/_/g, ' ')} ${count}`).join(' · ') || 'surface attribution begins with the next install prompt.'}</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.pwaInstallInstructionsOpenCount || 0} Home Screen instruction${Number(metrics.pwaInstallInstructionsOpenCount || 0) === 1 ? '' : 's'} opened (${Number(metrics.pwaInstallGuidanceOpenRate || 0).toFixed(1)}% of prompts shown).</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.pwaSellerPlanShortcutCount || 0} Seller Plan shortcut return${Number(metrics.pwaSellerPlanShortcutCount || 0) === 1 ? '' : 's'} opened.</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.pwaBuyerOfferShortcutCount || 0} Buyer Offer shortcut return${Number(metrics.pwaBuyerOfferShortcutCount || 0) === 1 ? '' : 's'} opened.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.pwaInstallAcceptedCount || 0} accepted · ${metrics.pwaInstallDismissedCount || 0} dismissed · ${Number(metrics.pwaInstallCompletionRate || 0).toFixed(1)}% installed after an install prompt opened.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">PWA only: app-like mobile access without a separate native-app build or store overhead.</div>
           </div>
@@ -17839,7 +17840,7 @@ function routeAfterMagicLinkIfNeeded() {
       ? 'Save this seller plan to your Home Screen so it is one tap away when you return to photos, repairs, timing, or provider questions.'
       : '';
     const workspaceReturnCopy = target.surface === 'account_dashboard'
-      ? 'Use the app icon for a focused workspace launch, with shortcuts for My Workspace, New Agent Offer, Signing Queue, and Seller Plan.'
+      ? 'Use the app icon for a focused workspace launch, with shortcuts for My Workspace, New Agent Offer, Buyer Offer, Signing Queue, and Seller Plan.'
       : '';
     card.innerHTML = `<h4>Keep HomeOfferFlow one tap away</h4>
       <p>${ios
@@ -17985,7 +17986,7 @@ function routeAfterMagicLinkIfNeeded() {
 (function(){
   const pendingActionKey = 'hof_pwa_shortcut_pending_action';
   const ondemandFirstOfferAttributionKey = 'hof_ondemand_first_offer_attribution';
-  const validActions = new Set(['workspace', 'new_offer', 'signing_queue', 'seller_plan']);
+  const validActions = new Set(['workspace', 'new_offer', 'signing_queue', 'seller_plan', 'buyer_offer']);
 
   function pendingAction(){
     try {
@@ -18011,6 +18012,21 @@ function routeAfterMagicLinkIfNeeded() {
       fetch('/api/fsbo-lead', {
         method: 'POST', headers: {'Content-Type': 'application/json'}, keepalive: true,
         body: JSON.stringify({request_type: 'fsbo_landing_event', event_type: 'pwa_seller_plan_opened', service_level: 'free_intake'})
+      }).catch(() => {});
+    } catch (_) {}
+  }
+
+  function recordBuyerOfferShortcut(){
+    // An installed-app buyer can return directly to the free offer start.
+    // Record only one aggregate signal per browser session: no buyer, offer,
+    // property, campaign, or device data leaves the browser.
+    try {
+      const key = 'hof_pwa_buyer_offer_shortcut_recorded';
+      if (sessionStorage.getItem(key)) return;
+      sessionStorage.setItem(key, '1');
+      fetch('/api/fsbo-lead', {
+        method: 'POST', headers: {'Content-Type': 'application/json'}, keepalive: true,
+        body: JSON.stringify({request_type: 'homebuyer_landing_event', event_type: 'pwa_buyer_offer_opened', channel: 'unspecified'})
       }).catch(() => {});
     } catch (_) {}
   }
@@ -18050,6 +18066,15 @@ function routeAfterMagicLinkIfNeeded() {
       try { window.setAudience?.('fsbo'); } catch (_) {}
       window.openFsboSellerModal?.();
       trackShortcut(action, 'seller', resumedAfterSignIn);
+      return;
+    }
+    if (action === 'buyer_offer') {
+      // Buyer offer building stays public until checkout. Do not send users
+      // through agent authentication or put any deal detail in the shortcut.
+      try { window.setAudience?.('homebuyer'); } catch (_) {}
+      window.beginOfferFrom?.('pwa_buyer_offer');
+      recordBuyerOfferShortcut();
+      trackShortcut(action, 'homebuyer', resumedAfterSignIn);
       return;
     }
     const role = window.hofAuth?.role === 'investor' ? 'investor' : 'agent';

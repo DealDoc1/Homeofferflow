@@ -86,6 +86,7 @@ ONDEMAND_LANDING_EVENT_TYPES = {
 HOMEBUYER_LANDING_EVENT_TYPES = {
     "homebuyer_landing_viewed": "viewed",
     "homebuyer_landing_cta_selected": "selected",
+    "pwa_buyer_offer_opened": "opened",
 }
 HOMEBUYER_LANDING_CHANNELS = {
     "direct_outreach", "email", "social", "referral", "local_event", "print", "unspecified",
@@ -364,11 +365,14 @@ def _record_homebuyer_landing_event(data):
         raise ValueError("Unsupported homebuyer landing event.")
     if channel not in HOMEBUYER_LANDING_CHANNELS:
         raise ValueError("Unsupported homebuyer landing channel.")
+    metadata = {"surface": "homebuyer_landing", "price": "99", "channel": channel}
+    if event_type == "pwa_buyer_offer_opened":
+        metadata["surface"] = "pwa_buyer_offer"
     _record_partner_checkout_event(
         event_type,
         HOMEBUYER_LANDING_EVENT_TYPES[event_type],
         "Privacy-safe public homebuyer landing engagement recorded.",
-        {"surface": "homebuyer_landing", "price": "99", "channel": channel},
+        metadata,
     )
 
 

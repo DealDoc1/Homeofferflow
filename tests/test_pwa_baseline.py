@@ -31,6 +31,7 @@ class PwaBaselineTests(unittest.TestCase):
             [
                 ("My Workspace", "/?pwa_action=workspace"),
                 ("New Agent Offer", "/?pwa_action=new_offer"),
+                ("Buyer Offer", "/?pwa_action=buyer_offer"),
                 ("Signing Queue", "/?pwa_action=signing_queue"),
                 ("Seller Plan", "/?pwa_action=seller_plan"),
             ],
@@ -62,7 +63,7 @@ class PwaBaselineTests(unittest.TestCase):
 
     def test_installed_app_shortcuts_use_existing_authenticated_workflows(self):
         self.assertIn('id="hof-pwa-shortcuts-v1"', INDEX)
-        self.assertIn("const validActions = new Set(['workspace', 'new_offer', 'signing_queue', 'seller_plan']);", INDEX)
+        self.assertIn("const validActions = new Set(['workspace', 'new_offer', 'signing_queue', 'seller_plan', 'buyer_offer']);", INDEX)
         self.assertIn("if (!validActions.has(action)) return;", INDEX)
         self.assertIn("window.openAuthModal?.(role)", INDEX)
         self.assertIn("window.openAccountDashboard?.({ tab: 'dashboard' })", INDEX)
@@ -74,6 +75,8 @@ class PwaBaselineTests(unittest.TestCase):
         self.assertIn("if (action === 'seller_plan') {", INDEX)
         self.assertIn("trackShortcut(action, 'seller', resumedAfterSignIn);", INDEX)
         self.assertIn("pwa_seller_plan_opened", INDEX)
+        self.assertIn("pwa_buyer_offer_opened", INDEX)
+        self.assertIn("if (action === 'buyer_offer') {", INDEX)
         self.assertIn("PWA Shortcut Used", INDEX)
 
     def test_csp_allows_same_origin_service_worker_registration(self):

@@ -4054,6 +4054,10 @@ class handler(BaseHTTPRequestHandler):
                 item for item in events
                 if item.get("event_type") == "pwa_seller_plan_opened"
             ])
+            pwa_buyer_offer_shortcut_count = len([
+                item for item in events
+                if item.get("event_type") == "pwa_buyer_offer_opened"
+            ])
             activation_follow_up_email_start_count = len([
                 item for item in events if item.get("event_type") == "activation_follow_up_email_started"
             ])
@@ -4474,6 +4478,7 @@ class handler(BaseHTTPRequestHandler):
                 "pwaInstallEventCounts": pwa_install_event_counts,
                 "pwaInstallShownSurfaceCounts": pwa_install_shown_surface_counts,
                 "pwaSellerPlanShortcutCount": pwa_seller_plan_shortcut_count,
+                "pwaBuyerOfferShortcutCount": pwa_buyer_offer_shortcut_count,
                 "pwaInstallShownCount": pwa_install_event_counts["shown"],
                 "pwaInstallCtaClickCount": pwa_install_event_counts["cta_clicked"],
                 "pwaInstallPromptOpenCount": pwa_install_event_counts["prompt_opened"],
