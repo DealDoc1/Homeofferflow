@@ -65,6 +65,14 @@ class Client:
 
 class PartnerCheckoutTests(unittest.TestCase):
 
+    def test_cancelled_checkout_can_resume_without_reentering_saved_application(self):
+        html = (ROOT / "index.html").read_text(encoding="utf-8")
+        self.assertIn("const hasSavedPartnerApplication = Boolean(window.__hofFoundingPartnerLeadId);", html)
+        self.assertIn("if (!hasSavedPartnerApplication && (!payload.company_name", html)
+        self.assertIn("if (!hasSavedPartnerApplication && !document.getElementById('foundingPartnerConsent')?.checked)", html)
+        self.assertIn("source: hasSavedPartnerApplication ? 'partner_cancel_recovery' : payload.source", html)
+        self.assertIn("You do not need to re-enter your saved essentials", html)
+
     def test_success_confirmation_provides_a_direct_safe_support_recovery_link(self):
         html = (ROOT / "index.html").read_text(encoding="utf-8")
         self.assertIn('id="foundingPartnerCheckoutConfirmation"', html)

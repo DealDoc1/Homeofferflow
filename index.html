@@ -12498,7 +12498,7 @@ function routeAfterMagicLinkIfNeeded() {
 
     <div class="notice gold" style="margin-bottom:.9rem;"><strong>Get the first 90 days for the price of one standard month.</strong><br>The launch offer is available to the first 10 approved partners. It includes onboarding, has no setup fee, then renews monthly at the standard rate after 90 days unless cancelled. Each placement covers one category and market.</div>
     <div class="notice sage" id="foundingPartnerCheckoutConfirmation" style="display:none;margin-bottom:.9rem;"><strong>Checkout complete — your next step is partner setup.</strong><br><strong>1.</strong> Look for the secure setup link at your business email (it expires in 14 days). <strong>2.</strong> Add your market, website, logo, and call to action. <strong>3.</strong> HomeOfferFlow reviews those details with the written placement agreement before anything becomes public. Setup does not activate advertising by itself. If the email is not visible shortly, <a href="mailto:support@homeofferflow.com?subject=Partner%20setup%20link%20request" style="color:inherit;text-decoration:underline;font-weight:700;">ask support to issue a fresh secure link</a>. After the 90-day launch period, your plan renews monthly unless cancelled.</div>
-    <div class="notice gold" id="foundingPartnerCheckoutResume" style="display:none;margin-bottom:.9rem;"><strong>Your application is saved.</strong><br>You can review the selected tier and resume secure checkout whenever you are ready. No second application is created on this device.</div>
+    <div class="notice gold" id="foundingPartnerCheckoutResume" style="display:none;margin-bottom:.9rem;"><strong>Your application is saved.</strong><br>You can resume the exact secure checkout below whenever you are ready. No second application is created on this device. You do not need to re-enter your saved essentials.</div>
 
     <div class="partner-tier-grid" role="radiogroup" aria-label="Partner advertising tier">
       <button type="button" class="partner-tier-card" data-partner-tier="founding_pilot" role="radio" aria-checked="false" onclick="selectFoundingPartnerTier('founding_pilot')">
@@ -12705,6 +12705,7 @@ function routeAfterMagicLinkIfNeeded() {
     const status = document.getElementById('foundingPartnerStatus');
     const submit = document.getElementById('foundingPartnerSubmit');
     const query = params();
+    const hasSavedPartnerApplication = Boolean(window.__hofFoundingPartnerLeadId);
     const payload = {
       request_type: 'founding_partner',
       partner_type: value('foundingPartnerType'),
@@ -12726,19 +12727,19 @@ function routeAfterMagicLinkIfNeeded() {
       utm_content: query.get('utm_content') || '',
       landing_page: window.location.href
     };
-    if (!payload.company_name || !payload.contact_name || !payload.contact_email || !payload.market_area) {
+    if (!hasSavedPartnerApplication && (!payload.company_name || !payload.contact_name || !payload.contact_email || !payload.market_area)) {
       trackPartnerFunnel('Founding Partner Required Fields Missing', { companyProvided: !!payload.company_name, contactProvided: !!payload.contact_name, emailProvided: !!payload.contact_email, marketProvided: !!payload.market_area });
       if (status) { status.textContent = 'Company, contact name, email, and market area are required.'; status.className = 'platform-status err'; }
       return;
     }
-    if (!document.getElementById('foundingPartnerConsent')?.checked) {
+    if (!hasSavedPartnerApplication && !document.getElementById('foundingPartnerConsent')?.checked) {
       trackPartnerFunnel('Founding Partner Consent Required', { tier: payload.preferred_model });
       if (status) { status.textContent = 'Please acknowledge the founding-pilot terms before submitting.'; status.className = 'platform-status err'; }
       return;
     }
-    trackPartnerFunnel('Founding Partner Checkout Started', { tier: payload.preferred_model, source: payload.source });
+    trackPartnerFunnel('Founding Partner Checkout Started', { tier: payload.preferred_model, source: hasSavedPartnerApplication ? 'partner_cancel_recovery' : payload.source });
     if (submit) submit.disabled = true;
-    if (status) { status.textContent = 'Saving your application...'; status.className = 'platform-status'; }
+    if (status) { status.textContent = hasSavedPartnerApplication ? 'Resuming secure checkout...' : 'Saving your application...'; status.className = 'platform-status'; }
     try {
       let partnerLeadId = window.__hofFoundingPartnerLeadId || '';
       if (!partnerLeadId) {
