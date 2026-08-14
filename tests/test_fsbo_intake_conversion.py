@@ -4,6 +4,8 @@ import unittest
 
 
 HTML = (Path(__file__).resolve().parents[1] / "index.html").read_text(encoding="utf-8")
+SELLERS = (Path(__file__).resolve().parents[1] / "sellers.html").read_text(encoding="utf-8")
+SELLER_BRIDGE = (Path(__file__).resolve().parents[1] / "assets" / "seller-campaign-package-bridge.js").read_text(encoding="utf-8")
 
 
 class FsboIntakeConversionTests(unittest.TestCase):
@@ -84,6 +86,13 @@ class FsboIntakeConversionTests(unittest.TestCase):
     def test_admin_seller_campaigns_land_on_the_explanatory_seller_page_before_intake(self):
         self.assertIn("return `https://www.homeofferflow.com/sellers?${params.toString()}`;", HTML)
         self.assertIn("campaignPackage: campaignPackage || null", HTML)
+
+    def test_public_seller_page_preserves_every_allowlisted_admin_campaign_package(self):
+        self.assertIn('/assets/seller-campaign-package-bridge.js', SELLERS)
+        for package in ('free_intake', 'seller_prep', 'launch_kit', 'flat_fee_mls', 'offer_review', 'contract_help', 'premium_bundle'):
+            self.assertIn(f'{package}:', SELLER_BRIDGE)
+        self.assertIn("destination.searchParams.set('seller_package', selected)", SELLER_BRIDGE)
+        self.assertIn("FSBO Seller Expanded Campaign Landing Viewed", SELLER_BRIDGE)
 
     def test_admin_seller_workspace_can_create_allowlisted_fsbo_campaign_links_and_copy(self):
         self.assertIn("FSBO Campaign Toolkit", HTML)
