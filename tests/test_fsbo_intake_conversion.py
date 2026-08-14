@@ -145,6 +145,12 @@ class FsboIntakeConversionTests(unittest.TestCase):
         self.assertIn('name="fsboPartner" value="title"> Title company', HTML)
         self.assertNotIn('name="fsboPartner" value="title_company"', HTML)
 
+    def test_selected_partner_interests_use_checked_allowlisted_values(self):
+        self.assertIn("const fsboPartnerCategories = new Set", HTML)
+        self.assertIn("function getFsboPartners()", HTML)
+        self.assertIn('input[name="fsboPartner"]:checked', HTML)
+        self.assertIn("fsboPartnerCategories.has(category)", HTML)
+
     def test_seller_intake_modal_has_dialog_keyboard_and_focus_support(self):
         self.assertIn('role="dialog" aria-modal="true" aria-labelledby="fsboSellerTitle"', HTML)
         self.assertIn('id="fsboSellerClose"', HTML)

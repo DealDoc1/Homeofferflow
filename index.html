@@ -12095,6 +12095,14 @@ function routeAfterMagicLinkIfNeeded() {
 (function(){
   const fsboFunnel = { requiredReady: false, returnFocus: null };
   const fsboCampaignPackages = new Set(['free_intake','seller_prep','launch_kit','flat_fee_mls','offer_review','contract_help','premium_bundle']);
+  // Keep seller-side provider interests allowlisted before they are saved in
+  // the draft, submitted to the intake API, or included in the download.
+  const fsboPartnerCategories = new Set(['photography_video','cleaning','repairs_handyman','staging','lawn_pool','moving_storage','title','home_warranty','insurance']);
+  function getFsboPartners(){
+    return [...document.querySelectorAll('input[name="fsboPartner"]:checked')]
+      .map(input => String(input.value || '').trim())
+      .filter(category => fsboPartnerCategories.has(category));
+  }
   function trackFsboFunnel(name, data = {}) {
     try { trackEvent(name, data); } catch (_) {}
   }
