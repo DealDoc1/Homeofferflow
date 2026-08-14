@@ -7310,6 +7310,25 @@ function routeAfterMagicLinkIfNeeded() {
     startPrimaryOffer();
   }
 
+  // Public buyer landing pages intentionally link to a lightweight URL rather
+  // than duplicating the offer workflow. Consume that URL here so a fresh
+  // visitor reaches the same guided first step as the homepage CTA. Keep any
+  // standard campaign parameters intact, but remove the one-time routing flag
+  // so a refresh cannot reopen the wizard unexpectedly.
+  function consumeHomebuyerLandingEntry() {
+    const params = new URLSearchParams(window.location.search || '');
+    if (params.get('buyer') !== '1') return;
+    params.delete('buyer');
+    const query = params.toString();
+    try {
+      window.history.replaceState({}, document.title, window.location.pathname + (query ? `?${query}` : '') + window.location.hash);
+    } catch (_) {}
+    setAudience('homebuyer');
+    beginOfferFrom('buyer_landing');
+  }
+
+  document.addEventListener('DOMContentLoaded', consumeHomebuyerLandingEntry);
+
   function startPrimaryOffer() {
     const selectedType = state?.data?.userType || 'homebuyer';
     if (selectedType === 'fsbo') {
