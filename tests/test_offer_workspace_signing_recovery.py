@@ -47,6 +47,17 @@ class OfferWorkspaceSigningRecoveryTests(unittest.TestCase):
         api = (Path(__file__).resolve().parents[1] / "api" / "signwell-status.js").read_text(encoding="utf-8")
         self.assertIn("if (compact.includes('pending')) return 'Awaiting Buyer Signature';", api)
 
+    def test_completed_provider_status_wins_over_a_stale_awaiting_alias(self):
+        start = HTML.index("function getOfferBestStatus(offer = {})")
+        end = HTML.index("function getOfferSigningBucket", start)
+        status = HTML[start:end]
+        self.assertIn("const signwellStatuses = [", status)
+        self.assertIn("const completedStatus = signwellStatuses.find", status)
+        self.assertIn("!normalized.includes('partial')", status)
+        self.assertIn("normalized.includes('complete')", status)
+        self.assertIn("const signwellStatus = completedStatus || signwellStatuses[0] || '';", status)
+        self.assertIn("const signwellStatus = getOfferBestStatus(offer);", HTML)
+
     def test_admin_dashboard_surfaces_only_an_aggregate_reminder_adoption_signal(self):
         backend = (Path(__file__).resolve().parents[1] / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
         self.assertIn("buyer_signing_reminder_copied_count", backend)
