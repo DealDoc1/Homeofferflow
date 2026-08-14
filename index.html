@@ -4637,7 +4637,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           <div class="admin-metric">
             <div class="admin-metric-label">Awaiting Buyer Signature</div>
             <div class="admin-metric-value">${awaitingCount}</div>
-            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.buyerSigningReminderCopiedCount || 0} agent reminder copies from stale signing workspaces.</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.buyerSigningReminderCopiedCount || 0} agent reminder copies · ${metrics.prioritySigningSyncSelectedCount || 0} priority SignWell syncs from stale signing workspaces.</div>
           </div>
 
           <div class="admin-metric">
@@ -13700,7 +13700,7 @@ function routeAfterMagicLinkIfNeeded() {
     const priorityNeedsBuyerReminder = priority && bucketForOffer(priority) === 'signing';
     const focusCard = priority ? `<section class="offer-focus-card" aria-label="Priority offer follow-up">
       <div><div class="offer-focus-kicker">Today’s priority</div><strong>${esc(priorityProperty)}</strong><p>${esc(nextAction(priority))}. This is the oldest active item that needs attention.</p></div>
-      <div class="offer-focus-actions">${priorityNeedsBuyerReminder ? '<button class="offer-action-btn" type="button" onclick="hofRefreshOfferWorkspace()">Sync SignWell now</button>' : ''}<button class="offer-action-btn" type="button" onclick="hofOpenPriorityOffer('${esc(priority.id)}')">Open priority offer</button>${priorityNeedsBuyerReminder ? `<button class="offer-action-btn" type="button" onclick="copyBuyerSigningReminder('${esc(priority.id)}')">Copy buyer reminder</button>` : ''}<button class="offer-action-btn" type="button" onclick="hofSetOfferWorkspaceFilter('attention')">Review all ${c.attention} needing attention</button></div>
+      <div class="offer-focus-actions">${priorityNeedsBuyerReminder ? '<button class="offer-action-btn" type="button" onclick="hofSyncPrioritySigningStatus(this)">Sync SignWell now</button>' : ''}<button class="offer-action-btn" type="button" onclick="hofOpenPriorityOffer('${esc(priority.id)}')">Open priority offer</button>${priorityNeedsBuyerReminder ? `<button class="offer-action-btn" type="button" onclick="copyBuyerSigningReminder('${esc(priority.id)}')">Copy buyer reminder</button>` : ''}<button class="offer-action-btn" type="button" onclick="hofSetOfferWorkspaceFilter('attention')">Review all ${c.attention} needing attention</button></div>
     </section>` : '';
     const volume = safe.reduce((sum,o) => sum + Number(o.offer_price || o.offer_data?.offerPrice || 0), 0);
     const tab = (key,label) => `<button type="button" class="offer-filter-tab ${state.filter===key?'active':''}" aria-pressed="${state.filter===key ? 'true' : 'false'}" onclick="hofSetOfferWorkspaceFilter('${key}')">${label} <span>${c[key] || 0}</span></button>`;
@@ -13788,6 +13788,24 @@ function routeAfterMagicLinkIfNeeded() {
     persistWorkspaceState();
     rerender();
     root.viewOfferDetails?.(offerId);
+  };
+  root.hofSyncPrioritySigningStatus = async function(button){
+    if (button?.disabled) return;
+    const priority = priorityOffer(state.offers || []);
+    const originalLabel = button?.textContent || 'Sync SignWell now';
+    if (button) { button.disabled = true; button.textContent = 'Syncing SignWell…'; }
+    try {
+      await root.logOfferEvent?.(
+        priority?.id || null,
+        'priority_signing_sync_selected',
+        'selected',
+        'Agent selected a priority SignWell status sync.',
+        { surface: 'offer_workspace' }
+      );
+      await root.hofRefreshOfferWorkspace();
+    } finally {
+      if (button?.isConnected) { button.disabled = false; button.textContent = originalLabel; }
+    }
   };
   root.loadOlderOffers = root.loadOlderOffers || window.loadOlderOffers;
   let lastAutomaticSigningSyncAt = 0;
