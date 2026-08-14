@@ -78,6 +78,10 @@ PARTNER_LANDING_EVENT_TYPES = {
     "partner_landing_viewed": "viewed",
     "partner_landing_cta_selected": "selected",
 }
+ONDEMAND_LANDING_EVENT_TYPES = {
+    "ondemand_landing_viewed": "viewed",
+    "ondemand_trial_terms_accepted": "terms_accepted",
+}
 
 
 def _send(handler, status, payload):
@@ -317,6 +321,19 @@ def _record_partner_landing_event(data):
         PARTNER_LANDING_EVENT_TYPES[event_type],
         "Privacy-safe public partner landing engagement recorded.",
         {"surface": "partner_landing", "tier": tier, "category": category},
+    )
+
+
+def _record_ondemand_landing_event(data):
+    """Persist aggregate OnDemand trial funnel stages without agent details."""
+    event_type = _text(data.get("event_type"), 80)
+    if event_type not in ONDEMAND_LANDING_EVENT_TYPES:
+        raise ValueError("Unsupported OnDemand landing event.")
+    _record_partner_checkout_event(
+        event_type,
+        ONDEMAND_LANDING_EVENT_TYPES[event_type],
+        "Privacy-safe OnDemand trial landing engagement recorded.",
+        {"surface": "ondemand_landing", "plan": "agent", "billing": "monthly"},
     )
 
 
@@ -637,6 +654,13 @@ class handler(BaseHTTPRequestHandler):
             if _text(data.get('request_type'), 80) == 'partner_landing_event':
                 try:
                     _record_partner_landing_event(data)
+                    return _send(self, 200, {'ok': True})
+                except ValueError as exc:
+                    return _send(self, 400, {'error': str(exc)})
+
+            if _text(data.get('request_type'), 80) == 'ondemand_landing_event':
+                try:
+                    _record_ondemand_landing_event(data)
                     return _send(self, 200, {'ok': True})
                 except ValueError as exc:
                     return _send(self, 400, {'error': str(exc)})

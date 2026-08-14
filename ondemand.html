@@ -306,6 +306,18 @@
         button.textContent = busy ? busyText : idleText;
       }
 
+      function recordAggregateLandingEvent(eventType) {
+        const key = `hof_ondemand_landing_${eventType}`;
+        try {
+          if (sessionStorage.getItem(key) === "1") return;
+          sessionStorage.setItem(key, "1");
+          fetch("/api/fsbo-lead", {
+            method: "POST", headers: {"Content-Type": "application/json"}, keepalive: true,
+            body: JSON.stringify({request_type: "ondemand_landing_event", event_type: eventType})
+          }).catch(() => {});
+        } catch (_) {}
+      }
+
       // Keep the brokerage launch in the same privacy-safe checkout funnel as
       // the main product.  The launch page is intentionally standalone, so it
       // cannot reuse index.html's event helper.
@@ -491,6 +503,7 @@
       }
 
       async function init() {
+        recordAggregateLandingEvent("ondemand_landing_viewed");
         await loadConfig();
         const params = new URLSearchParams(window.location.search);
         if (params.get("checkout") === "success") {
@@ -517,6 +530,7 @@
       });
       $("terms").addEventListener("change", () => {
         $("checkoutButton").disabled = !$("terms").checked;
+        if ($("terms").checked) recordAggregateLandingEvent("ondemand_trial_terms_accepted");
       });
       $("checkoutButton").addEventListener("click", startCheckout);
       $("workspaceButton").addEventListener("click", () => {
