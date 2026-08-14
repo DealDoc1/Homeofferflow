@@ -4495,6 +4495,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.pwaInstallPromptOpenCount || 0} native prompts opened (${Number(metrics.pwaInstallPromptOpenRate || 0).toFixed(1)}% of install choices).</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Shown on: ${Object.entries(metrics.pwaInstallShownSurfaceCounts || {}).filter(([, count]) => Number(count) > 0).map(([surface, count]) => `${surface.replace(/_/g, ' ')} ${count}`).join(' · ') || 'surface attribution begins with the next install prompt.'}</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.pwaInstallInstructionsOpenCount || 0} Home Screen instruction${Number(metrics.pwaInstallInstructionsOpenCount || 0) === 1 ? '' : 's'} opened (${Number(metrics.pwaInstallGuidanceOpenRate || 0).toFixed(1)}% of prompts shown).</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.pwaSellerPlanShortcutCount || 0} Seller Plan shortcut return${Number(metrics.pwaSellerPlanShortcutCount || 0) === 1 ? '' : 's'} opened.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.pwaInstallAcceptedCount || 0} accepted · ${metrics.pwaInstallDismissedCount || 0} dismissed · ${Number(metrics.pwaInstallCompletionRate || 0).toFixed(1)}% installed after an install prompt opened.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">PWA only: app-like mobile access without a separate native-app build or store overhead.</div>
           </div>
@@ -17968,6 +17969,19 @@ function routeAfterMagicLinkIfNeeded() {
 
   function trackShortcut(action, role, resumedAfterSignIn){
     try { window.trackEvent?.('PWA Shortcut Used', { action, role, resumed_after_sign_in: Boolean(resumedAfterSignIn) }); } catch (_) {}
+    if (action !== 'seller_plan') return;
+    // The public seller plan does not require an account. Record one
+    // aggregate return-path signal per browser session without retaining
+    // identity, property, campaign, or device details.
+    try {
+      const key = 'hof_pwa_seller_plan_shortcut_recorded';
+      if (sessionStorage.getItem(key)) return;
+      sessionStorage.setItem(key, '1');
+      fetch('/api/fsbo-lead', {
+        method: 'POST', headers: {'Content-Type': 'application/json'}, keepalive: true,
+        body: JSON.stringify({request_type: 'fsbo_landing_event', event_type: 'pwa_seller_plan_opened', service_level: 'free_intake'})
+      }).catch(() => {});
+    } catch (_) {}
   }
 
   function recordOndemandFirstOfferActivation(){

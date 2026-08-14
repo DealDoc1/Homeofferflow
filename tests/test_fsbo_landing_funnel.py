@@ -15,10 +15,12 @@ class FsboLandingFunnelTests(unittest.TestCase):
         self.assertIn("def _record_fsbo_landing_event(data):", API)
         self.assertIn('"fsbo_landing_viewed": "viewed"', API)
         self.assertIn('"fsbo_landing_cta_selected": "selected"', API)
+        self.assertIn('"pwa_seller_plan_opened": "opened"', API)
         self.assertIn("Unsupported seller landing event.", API)
         self.assertIn("Unsupported seller package.", API)
         self.assertIn("'fsbo_landing_event'", API)
-        self.assertIn('"surface": "seller_landing"', API)
+        self.assertIn('else "seller_landing"', API)
+        self.assertIn('"pwa_seller_plan"', API)
 
     def test_seller_page_records_each_aggregate_stage_once_per_browser_session(self):
         self.assertIn("recordAggregateFunnelEvent", SELLERS)
@@ -42,6 +44,12 @@ class FsboLandingFunnelTests(unittest.TestCase):
         self.assertIn("sellerLandingViewCount", INDEX)
         self.assertIn("sellerLandingCtaRate", INDEX)
         self.assertIn("Landing-path interest:", INDEX)
+
+    def test_seller_pwa_shortcut_is_aggregate_only_and_admin_measurable(self):
+        self.assertIn("hof_pwa_seller_plan_shortcut_recorded", INDEX)
+        self.assertIn("event_type: 'pwa_seller_plan_opened'", INDEX)
+        self.assertIn('"pwaSellerPlanShortcutCount"', ADMIN)
+        self.assertIn("pwa_seller_plan_shortcut_count", ADMIN)
 
 
 if __name__ == "__main__":

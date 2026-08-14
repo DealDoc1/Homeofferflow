@@ -73,6 +73,7 @@ class PwaBaselineTests(unittest.TestCase):
         self.assertIn("window.openFsboSellerModal?.()", INDEX)
         self.assertIn("if (action === 'seller_plan') {", INDEX)
         self.assertIn("trackShortcut(action, 'seller', resumedAfterSignIn);", INDEX)
+        self.assertIn("pwa_seller_plan_opened", INDEX)
         self.assertIn("PWA Shortcut Used", INDEX)
 
     def test_csp_allows_same_origin_service_worker_registration(self):

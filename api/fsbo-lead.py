@@ -73,6 +73,7 @@ PARTNER_DIRECTORY_TIERS = {"core", "featured", "premier", "exclusive_market"}
 FSBO_LANDING_EVENT_TYPES = {
     "fsbo_landing_viewed": "viewed",
     "fsbo_landing_cta_selected": "selected",
+    "pwa_seller_plan_opened": "opened",
 }
 PARTNER_LANDING_EVENT_TYPES = {
     "partner_landing_viewed": "viewed",
@@ -316,7 +317,10 @@ def _record_fsbo_landing_event(data):
         event_type,
         FSBO_LANDING_EVENT_TYPES[event_type],
         "Privacy-safe public seller landing engagement recorded.",
-        {"surface": "seller_landing", "serviceLevel": service_level},
+        {
+            "surface": "pwa_seller_plan" if event_type == "pwa_seller_plan_opened" else "seller_landing",
+            "serviceLevel": service_level,
+        },
     )
 
 

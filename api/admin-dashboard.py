@@ -3873,6 +3873,13 @@ class handler(BaseHTTPRequestHandler):
                     surface = str((item.get("metadata") or {}).get("surface") or "").strip().lower()
                     if surface in pwa_install_surfaces:
                         pwa_install_shown_surface_counts[surface] += 1
+            # A public seller may use the installed app without an account.
+            # Count only the aggregate shortcut event, never a device, email,
+            # property, or browser identifier.
+            pwa_seller_plan_shortcut_count = len([
+                item for item in events
+                if item.get("event_type") == "pwa_seller_plan_opened"
+            ])
             activation_follow_up_email_start_count = len([
                 item for item in events if item.get("event_type") == "activation_follow_up_email_started"
             ])
@@ -4291,6 +4298,7 @@ class handler(BaseHTTPRequestHandler):
                 ) if packet_generation_retry_count else 0,
                 "pwaInstallEventCounts": pwa_install_event_counts,
                 "pwaInstallShownSurfaceCounts": pwa_install_shown_surface_counts,
+                "pwaSellerPlanShortcutCount": pwa_seller_plan_shortcut_count,
                 "pwaInstallShownCount": pwa_install_event_counts["shown"],
                 "pwaInstallCtaClickCount": pwa_install_event_counts["cta_clicked"],
                 "pwaInstallPromptOpenCount": pwa_install_event_counts["prompt_opened"],
