@@ -4588,7 +4588,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           <div class="admin-metric">
             <div class="admin-metric-label">Homebuyer $99 Funnel</div>
             <div class="admin-metric-value">${metrics.homebuyerLandingViewCount || 0} views</div>
-            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.homebuyerLandingCtaCount || 0} started the guided offer (${Number(metrics.homebuyerLandingCtaRate || 0).toFixed(1)}%).</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.homebuyerLandingCtaCount || 0} selected Build my offer (${Number(metrics.homebuyerLandingCtaRate || 0).toFixed(1)}% of views) · ${metrics.homebuyerLandingOfferStartedCount || 0} opened the guided workspace (${Number(metrics.homebuyerLandingOfferStartRate || 0).toFixed(1)}% of selections).</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Aggregate landing intent only; no buyer identity, property, financing, or offer details are included.</div>
           </div>
 
@@ -13100,6 +13100,17 @@ function routeAfterMagicLinkIfNeeded() {
     // the one-time routing flag before starting so refresh cannot reopen the
     // wizard, while leaving normal campaign parameters intact.
     if (params().get('buyer') === '1') setTimeout(() => {
+      const buyerRouteParams = params();
+      const buyerChannel = buyerRouteParams.get('utm_source') === 'homeofferflow_admin' && ['direct_outreach', 'email', 'social', 'referral', 'local_event', 'print'].includes(String(buyerRouteParams.get('utm_medium') || '').trim().toLowerCase())
+        ? String(buyerRouteParams.get('utm_medium') || '').trim().toLowerCase()
+        : 'unspecified';
+      try {
+        const buyerStartKey = 'hof_homebuyer_landing_offer_started_' + buyerChannel;
+        if (!sessionStorage.getItem(buyerStartKey)) {
+          sessionStorage.setItem(buyerStartKey, '1');
+          fetch('/api/fsbo-lead', { method: 'POST', headers: {'Content-Type': 'application/json'}, keepalive: true, body: JSON.stringify({request_type: 'homebuyer_landing_event', event_type: 'homebuyer_landing_offer_started', channel: buyerChannel}) }).catch(() => {});
+        }
+      } catch (_) {}
       try {
         const cleanUrl = new URL(window.location.href);
         cleanUrl.searchParams.delete('buyer');

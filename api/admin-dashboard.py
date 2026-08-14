@@ -4152,6 +4152,9 @@ class handler(BaseHTTPRequestHandler):
             homebuyer_landing_cta_count = len([
                 item for item in events if item.get("event_type") == "homebuyer_landing_cta_selected"
             ])
+            homebuyer_landing_offer_started_count = len([
+                item for item in events if item.get("event_type") == "homebuyer_landing_offer_started"
+            ])
             agent_landing_view_count = len([
                 item for item in events if item.get("event_type") == "agent_landing_viewed"
             ])
@@ -4459,6 +4462,9 @@ class handler(BaseHTTPRequestHandler):
                 "homebuyerLandingCtaCount": homebuyer_landing_cta_count,
                 "homebuyerLandingCtaRate": round((homebuyer_landing_cta_count / homebuyer_landing_view_count) * 100, 1)
                 if homebuyer_landing_view_count else 0,
+                "homebuyerLandingOfferStartedCount": homebuyer_landing_offer_started_count,
+                "homebuyerLandingOfferStartRate": round((homebuyer_landing_offer_started_count / homebuyer_landing_cta_count) * 100, 1)
+                if homebuyer_landing_cta_count else 0,
                 "agentLandingViewCount": agent_landing_view_count,
                 "agentLandingCtaCount": agent_landing_cta_count,
                 "agentLandingCtaRate": round((agent_landing_cta_count / agent_landing_view_count) * 100, 1)

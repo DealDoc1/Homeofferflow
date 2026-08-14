@@ -16,6 +16,7 @@ class HomebuyerLandingFunnelTests(unittest.TestCase):
         self.assertIn("def _record_homebuyer_landing_event(data):", API)
         self.assertIn('"homebuyer_landing_viewed": "viewed"', API)
         self.assertIn('"homebuyer_landing_cta_selected": "selected"', API)
+        self.assertIn('"homebuyer_landing_offer_started": "started"', API)
         self.assertIn('"pwa_buyer_offer_opened": "opened"', API)
         self.assertIn("Unsupported homebuyer landing event.", API)
         self.assertIn("Unsupported homebuyer landing channel.", API)
@@ -42,6 +43,8 @@ class HomebuyerLandingFunnelTests(unittest.TestCase):
         self.assertIn("cleanUrl.searchParams.delete('buyer')", INDEX)
         self.assertIn("setAudience('homebuyer')", INDEX)
         self.assertIn("window.beginOfferFrom?.('buyer_landing')", INDEX)
+        self.assertIn("homebuyer_landing_offer_started", INDEX)
+        self.assertIn("hof_homebuyer_landing_offer_started_", INDEX)
         self.assertNotIn("function consumeHomebuyerLandingEntry()", INDEX)
 
     def test_admin_reports_aggregate_buyer_landing_conversion(self):
@@ -49,12 +52,16 @@ class HomebuyerLandingFunnelTests(unittest.TestCase):
             '"homebuyerLandingViewCount"',
             '"homebuyerLandingCtaCount"',
             '"homebuyerLandingCtaRate"',
+            '"homebuyerLandingOfferStartedCount"',
+            '"homebuyerLandingOfferStartRate"',
             "homebuyer_landing_view_count",
             "homebuyer_landing_cta_count",
+            "homebuyer_landing_offer_started_count",
         ):
             self.assertIn(expected, ADMIN)
         self.assertIn("Homebuyer $99 Funnel", INDEX)
         self.assertIn("homebuyerLandingCtaRate", INDEX)
+        self.assertIn("homebuyerLandingOfferStartRate", INDEX)
         self.assertIn('"pwaBuyerOfferShortcutCount"', ADMIN)
         self.assertIn("pwaBuyerOfferShortcutCount", INDEX)
 

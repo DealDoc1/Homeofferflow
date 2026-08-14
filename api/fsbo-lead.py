@@ -90,6 +90,7 @@ ONDEMAND_LANDING_EVENT_TYPES = {
 HOMEBUYER_LANDING_EVENT_TYPES = {
     "homebuyer_landing_viewed": "viewed",
     "homebuyer_landing_cta_selected": "selected",
+    "homebuyer_landing_offer_started": "started",
     "pwa_buyer_offer_opened": "opened",
 }
 HOMEBUYER_LANDING_CHANNELS = {
