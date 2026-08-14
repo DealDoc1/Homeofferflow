@@ -63,7 +63,7 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn('meta name="twitter:description"', PARTNERS)
         self.assertIn('meta name="twitter:image" content="https://www.homeofferflow.com/assets/homeofferflow-social-preview-v1.png"', PARTNERS)
         self.assertIn('"@type":"Service"', PARTNERS)
-        self.assertIn('href="/?partner=1"', PARTNERS)
+        self.assertIn('href="/?partner=1&amp;partner_quick_start=1"', PARTNERS)
         self.assertIn('Start no-charge application', PARTNERS)
         self.assertIn('Start with a no-charge application:', PARTNERS)
         self.assertIn('partner_tier=founding_pilot', PARTNERS)

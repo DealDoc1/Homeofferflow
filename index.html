@@ -12848,6 +12848,9 @@ function routeAfterMagicLinkIfNeeded() {
     const channel = String(params().get('utm_medium') || '').trim().toLowerCase();
     return params().get('utm_source') === 'homeofferflow_admin' && partnerCampaignChannels.has(channel) ? channel : '';
   }
+  function partnerQuickStartRequested(){
+    return params().get('partner_quick_start') === '1';
+  }
   function applyCampaignPartnerChoices(){
     // A saved application is the source of truth on a checkout return. Do not
     // overwrite its category from a campaign URL while offering a safe resume.
@@ -12873,7 +12876,14 @@ function routeAfterMagicLinkIfNeeded() {
     const resume = document.getElementById('foundingPartnerCheckoutResume');
     if (resume) resume.style.display = checkoutState === 'cancelled' && window.__hofFoundingPartnerLeadId ? 'block' : 'none';
     trackPartnerFunnel('Founding Partner Intake Opened', { checkoutState: checkoutState === 'success' ? 'success' : checkoutState === 'cancelled' ? 'cancelled' : 'new', campaignCategory: campaign.category || null, campaignTier: campaign.tier || null, campaignChannel: campaign.channel || null });
-    setTimeout(() => document.querySelector('.partner-tier-card.is-selected')?.focus(), 0);
+    if (partnerQuickStartRequested() && !window.__hofFoundingPartnerLeadId && checkoutState !== 'success' && checkoutState !== 'cancelled') {
+      // Public partner CTAs already disclose the tiers and simply remove the
+      // duplicate scrolling step. All essentials, consent, and the secure
+      // Stripe review remain required before an application can continue.
+      setTimeout(() => window.jumpToFoundingPartnerEssentials?.(), 0);
+    } else {
+      setTimeout(() => document.querySelector('.partner-tier-card.is-selected')?.focus(), 0);
+    }
   };
   window.selectFoundingPartnerTier = function(model, shouldTrack = true){
     const detail = partnerTierDetails[model] || partnerTierDetails.monthly_placement;

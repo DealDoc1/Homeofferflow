@@ -39,6 +39,14 @@ class PartnerLandingFunnelTests(unittest.TestCase):
         self.assertIn("First 90 days, then $149/month", PARTNERS)
         self.assertIn("not a referral program", PARTNERS)
 
+    def test_partner_page_can_open_the_existing_essential_fields_without_skipping_disclosures(self):
+        self.assertIn("partner_quick_start=1", PARTNERS)
+        self.assertIn("it takes about a minute", PARTNERS)
+        self.assertIn("function partnerQuickStartRequested()", INDEX)
+        self.assertIn("window.jumpToFoundingPartnerEssentials?.()", INDEX)
+        self.assertIn("All essentials, consent, and the secure", INDEX)
+        self.assertIn("Stripe review remain required", INDEX)
+
     def test_admin_returns_aggregate_partner_conversion(self):
         for expected in (
             '"partnerLandingViewCount"',
