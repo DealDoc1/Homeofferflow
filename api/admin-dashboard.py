@@ -3770,21 +3770,26 @@ class handler(BaseHTTPRequestHandler):
                 if item.get("event_type") == "terms_reuse_clicked"
                 and str(item.get("user_id") or "").strip()
             })
-            # Future packet-generation failures include a small client-side
-            # category. Keep the admin aggregate resilient to historical or
-            # malformed events: only known categories are displayed and every
-            # other event is counted as unclassified.
+            # Current packet-generation failures include a small client-side
+            # category. Earlier releases did not, so distinguish missing legacy
+            # telemetry from malformed future metadata. This remains aggregate
+            # only: error text is never returned to the dashboard.
             packet_generation_failure_categories = {
                 "session", "network", "timeout", "signature_provider", "validation", "service"
             }
             packet_generation_failure_counts = {key: 0 for key in sorted(packet_generation_failure_categories)}
+            packet_generation_failure_counts["legacy"] = 0
             packet_generation_failure_counts["unclassified"] = 0
             for item in events:
                 if item.get("event_type") != "subscription_packet_generation_failed":
                     continue
                 metadata = item.get("metadata") or {}
-                category = str(metadata.get("errorCategory") or "").strip().lower()
-                category = category if category in packet_generation_failure_categories else "unclassified"
+                raw_category = str(metadata.get("errorCategory") or "").strip().lower()
+                category = (
+                    raw_category if raw_category in packet_generation_failure_categories
+                    else "legacy" if not raw_category
+                    else "unclassified"
+                )
                 packet_generation_failure_counts[category] += 1
             packet_generation_failure_count = sum(packet_generation_failure_counts.values())
             # A retry is an explicit agent decision after a failed packet

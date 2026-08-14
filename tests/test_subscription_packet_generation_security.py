@@ -51,9 +51,12 @@ class SubscriptionPacketGenerationSecurityTests(unittest.TestCase):
         self.assertIn('"packetGenerationFailureCount"', admin)
         self.assertIn('"packetGenerationFailureCounts"', admin)
         self.assertIn("packet_generation_failure_categories", admin)
+        self.assertIn('packet_generation_failure_counts["legacy"]', admin)
         self.assertIn('"unclassified"', admin)
         self.assertIn("Packet Generation Recovery", HTML)
         self.assertIn("packetGenerationFailureCounts?.signature_provider", HTML)
+        self.assertIn("packetGenerationFailureCounts?.legacy", HTML)
+        self.assertIn("legacy / pre-category", HTML)
         self.assertIn("no offer, client, or agent details shown", HTML)
 
     def test_checkout_shaped_requests_fail_closed_without_stripe_or_subscription_auth(self):
