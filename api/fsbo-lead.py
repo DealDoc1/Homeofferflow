@@ -89,6 +89,10 @@ HOMEBUYER_LANDING_EVENT_TYPES = {
 HOMEBUYER_LANDING_CHANNELS = {
     "direct_outreach", "email", "social", "referral", "local_event", "print", "unspecified",
 }
+AGENT_LANDING_EVENT_TYPES = {
+    "agent_landing_viewed": "viewed",
+    "agent_landing_cta_selected": "selected",
+}
 
 
 def _send(handler, status, payload):
@@ -357,6 +361,19 @@ def _record_homebuyer_landing_event(data):
         HOMEBUYER_LANDING_EVENT_TYPES[event_type],
         "Privacy-safe public homebuyer landing engagement recorded.",
         {"surface": "homebuyer_landing", "price": "99", "channel": channel},
+    )
+
+
+def _record_agent_landing_event(data):
+    """Persist aggregate agent-landing stages without identity or offer data."""
+    event_type = _text(data.get("event_type"), 80)
+    if event_type not in AGENT_LANDING_EVENT_TYPES:
+        raise ValueError("Unsupported agent landing event.")
+    _record_partner_checkout_event(
+        event_type,
+        AGENT_LANDING_EVENT_TYPES[event_type],
+        "Privacy-safe public agent landing engagement recorded.",
+        {"surface": "agent_landing", "role": "agent"},
     )
 
 
@@ -691,6 +708,13 @@ class handler(BaseHTTPRequestHandler):
             if _text(data.get('request_type'), 80) == 'homebuyer_landing_event':
                 try:
                     _record_homebuyer_landing_event(data)
+                    return _send(self, 200, {'ok': True})
+                except ValueError as exc:
+                    return _send(self, 400, {'error': str(exc)})
+
+            if _text(data.get('request_type'), 80) == 'agent_landing_event':
+                try:
+                    _record_agent_landing_event(data)
                     return _send(self, 200, {'ok': True})
                 except ValueError as exc:
                     return _send(self, 400, {'error': str(exc)})

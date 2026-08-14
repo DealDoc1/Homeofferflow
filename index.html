@@ -2567,6 +2567,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       <summary>Explore</summary>
       <div class="nav-discovery-menu">
         <a href="/buyers">Homebuyer offer</a>
+        <a href="/agents">Agent &amp; broker workspace</a>
         <a href="/sellers">FSBO seller support</a>
         <a href="/directory">Find a provider</a>
         <a href="/partners">Partner placements</a>
@@ -4528,6 +4529,13 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <div class="admin-metric-value">${metrics.homebuyerLandingViewCount || 0} views</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.homebuyerLandingCtaCount || 0} started the guided offer (${Number(metrics.homebuyerLandingCtaRate || 0).toFixed(1)}%).</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Aggregate landing intent only; no buyer identity, property, financing, or offer details are included.</div>
+          </div>
+
+          <div class="admin-metric">
+            <div class="admin-metric-label">Agent Workspace Funnel</div>
+            <div class="admin-metric-value">${metrics.agentLandingViewCount || 0} views</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.agentLandingCtaCount || 0} opened passwordless sign-in (${Number(metrics.agentLandingCtaRate || 0).toFixed(1)}%).</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Aggregate landing intent only; no agent identity, client, property, or offer details are included.</div>
           </div>
 
           <div class="admin-metric">
@@ -12904,6 +12912,17 @@ function routeAfterMagicLinkIfNeeded() {
       } catch (_) {}
       window.setAudience?.('homebuyer');
       window.beginOfferFrom?.('buyer_landing');
+    }, 80);
+    // Agent acquisition reuses the passwordless account workflow. It does not
+    // create an account, activate a subscription, or start an offer.
+    if (params().get('agent') === '1') setTimeout(() => {
+      try {
+        const cleanUrl = new URL(window.location.href);
+        cleanUrl.searchParams.delete('agent');
+        window.history.replaceState({}, document.title, cleanUrl.pathname + cleanUrl.search + cleanUrl.hash);
+      } catch (_) {}
+      window.setAudience?.('agent');
+      window.openAuthModal?.('agent');
     }, 80);
     if (params().get('partner_onboarding')) setTimeout(window.openPartnerOnboarding, 80);
     if (params().get('partner') === '1') setTimeout(window.openFoundingPartnerModal, 80);
