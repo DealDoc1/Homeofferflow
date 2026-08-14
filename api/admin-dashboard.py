@@ -3940,6 +3940,12 @@ class handler(BaseHTTPRequestHandler):
             agent_landing_cta_count = len([
                 item for item in events if item.get("event_type") == "agent_landing_cta_selected"
             ])
+            investor_landing_view_count = len([
+                item for item in events if item.get("event_type") == "investor_landing_viewed"
+            ])
+            investor_landing_cta_count = len([
+                item for item in events if item.get("event_type") == "investor_landing_cta_selected"
+            ])
             subscription_checkout_start_by_source = {}
             subscription_checkout_return_by_source = {}
             for item in events:
@@ -4216,6 +4222,10 @@ class handler(BaseHTTPRequestHandler):
                 "agentLandingCtaCount": agent_landing_cta_count,
                 "agentLandingCtaRate": round((agent_landing_cta_count / agent_landing_view_count) * 100, 1)
                 if agent_landing_view_count else 0,
+                "investorLandingViewCount": investor_landing_view_count,
+                "investorLandingCtaCount": investor_landing_cta_count,
+                "investorLandingCtaRate": round((investor_landing_cta_count / investor_landing_view_count) * 100, 1)
+                if investor_landing_view_count else 0,
                 "brokerageInviteSentCount": len([
                     item for item in events if item.get("event_type") == "brokerage_invite_sent"
                 ]),

@@ -10,6 +10,10 @@
   },
   "rewrites": [
     {
+      "source": "/investors",
+      "destination": "/investors.html"
+    },
+    {
       "source": "/agents",
       "destination": "/agents.html"
     },
