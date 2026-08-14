@@ -47,6 +47,7 @@ ALLOWED_PARTNER_TYPES = {
 }
 ALLOWED_MODELS = {"founding_pilot", "monthly_placement", "market_exclusive", "discuss"}
 ALLOWED_BUDGETS = {"under_250", "250_499", "500_999", "1000_plus", "discuss"}
+PARTNER_CHECKOUT_RECOVERY_SOURCE = "partner_cancel_recovery"
 FSBO_PACKAGE_CATALOG = {
     "free_intake": ("Free Seller Intake", "$0"),
     "seller_prep": ("Seller Prep Plan", "$299"),
@@ -398,7 +399,7 @@ def _complete_partner_onboarding(token, data):
     return _public_partner_onboarding(rows[0])
 
 
-def _create_partner_checkout(lead_id, headers):
+def _create_partner_checkout(lead_id, headers, source=None):
     stripe_secret_key = os.environ.get("STRIPE_SECRET_KEY", "")
     if not stripe_secret_key:
         raise RuntimeError("Partner checkout is not configured.")
@@ -413,6 +414,9 @@ def _create_partner_checkout(lead_id, headers):
         raise PermissionError("This partner application has already been paid.")
 
     tier = lead.get("preferred_model") or ""
+    telemetry = {"tier": tier}
+    if source == PARTNER_CHECKOUT_RECOVERY_SOURCE:
+        telemetry["source"] = PARTNER_CHECKOUT_RECOVERY_SOURCE
     existing_session_id = lead.get("stripe_checkout_session_id") or ""
     existing_url = _open_stripe_checkout_url(existing_session_id, stripe_secret_key)
     if existing_url:
@@ -420,7 +424,7 @@ def _create_partner_checkout(lead_id, headers):
             "founding_partner_stripe_checkout_opened",
             "opened",
             "Partner returned to an existing secure checkout.",
-            {"tier": tier},
+            telemetry,
         )
         return existing_url
 
@@ -485,7 +489,7 @@ def _create_partner_checkout(lead_id, headers):
                 "founding_partner_stripe_checkout_opened",
                 "opened",
                 "Partner resumed the active secure checkout.",
-                {"tier": tier},
+                telemetry,
             )
             return replacement_url
         raise RuntimeError("Secure checkout was refreshed. Please try again.")
@@ -493,7 +497,7 @@ def _create_partner_checkout(lead_id, headers):
         "founding_partner_stripe_checkout_opened",
         "opened",
         "Partner secure checkout opened.",
-        {"tier": tier},
+        telemetry,
     )
     return result["url"]
 
@@ -543,8 +547,11 @@ class handler(BaseHTTPRequestHandler):
 
             if _text(data.get('request_type'), 80) == 'founding_partner_checkout':
                 lead_id = _text(data.get('partner_lead_id'), 80) or ''
+                source = _text(data.get('checkout_source'), 80).lower()
+                if source != PARTNER_CHECKOUT_RECOVERY_SOURCE:
+                    source = None
                 try:
-                    return _send(self, 200, {'url': _create_partner_checkout(lead_id, self.headers)})
+                    return _send(self, 200, {'url': _create_partner_checkout(lead_id, self.headers, source)})
                 except ValueError as exc:
                     return _send(self, 400, {'error': str(exc)})
                 except LookupError as exc:
