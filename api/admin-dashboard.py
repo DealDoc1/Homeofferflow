@@ -3928,6 +3928,12 @@ class handler(BaseHTTPRequestHandler):
             ondemand_terms_accepted_count = len([
                 item for item in events if item.get("event_type") == "ondemand_trial_terms_accepted"
             ])
+            homebuyer_landing_view_count = len([
+                item for item in events if item.get("event_type") == "homebuyer_landing_viewed"
+            ])
+            homebuyer_landing_cta_count = len([
+                item for item in events if item.get("event_type") == "homebuyer_landing_cta_selected"
+            ])
             subscription_checkout_start_by_source = {}
             subscription_checkout_return_by_source = {}
             for item in events:
@@ -4196,6 +4202,10 @@ class handler(BaseHTTPRequestHandler):
                     / subscription_checkout_return_by_source.get("ondemand", 0)) * 100,
                     1,
                 ) if subscription_checkout_return_by_source.get("ondemand", 0) else 0,
+                "homebuyerLandingViewCount": homebuyer_landing_view_count,
+                "homebuyerLandingCtaCount": homebuyer_landing_cta_count,
+                "homebuyerLandingCtaRate": round((homebuyer_landing_cta_count / homebuyer_landing_view_count) * 100, 1)
+                if homebuyer_landing_view_count else 0,
                 "brokerageInviteSentCount": len([
                     item for item in events if item.get("event_type") == "brokerage_invite_sent"
                 ]),
