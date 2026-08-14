@@ -185,7 +185,15 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 
   window.getOfferBestStatus = function(offer = {}) {
     const d = offer.offer_data || {};
-    const signwellStatus = offer.signwell_status || offer.display_status || d.signwellStatus || d.signwell_status || d.signwell?.response?.status || d.signwell?.response?.document_status || d.signwell?.status || '';
+    const signwellStatuses = [offer.signwell_status, offer.display_status, d.signwellStatus, d.signwell_status, d.signwell?.response?.status, d.signwell?.response?.document_status, d.signwell?.status].filter(Boolean);
+    // A newer provider result can live inside the saved offer payload while
+    // an older top-level status remains from an earlier refresh. Never let an
+    // awaiting label hide completed buyer signatures in the workspace.
+    const completedStatus = signwellStatuses.find(value => {
+      const normalized = String(value).toLowerCase();
+      return !normalized.includes('partial') && (normalized.includes('complete') || normalized.includes('fully signed') || normalized.includes('buyer signed'));
+    });
+    const signwellStatus = completedStatus || signwellStatuses[0] || '';
     const baseStatus = offer.status || d.status || 'Draft';
     return signwellStatus ? signwellStatus : baseStatus;
   };
@@ -6581,15 +6589,23 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 
   function getOfferBestStatus(offer = {}) {
     const d = offer.offer_data || {};
-    const signwellStatus =
-      offer.signwell_status ||
-      offer.display_status ||
-      d.signwellStatus ||
-      d.signwell_status ||
-      d.signwell?.response?.status ||
-      d.signwell?.response?.document_status ||
-      d.signwell?.status ||
-      '';
+    const signwellStatuses = [
+      offer.signwell_status,
+      offer.display_status,
+      d.signwellStatus,
+      d.signwell_status,
+      d.signwell?.response?.status,
+      d.signwell?.response?.document_status,
+      d.signwell?.status
+    ].filter(Boolean);
+    // Prefer a completed provider status across the persisted aliases. This
+    // prevents stale awaiting rows from staying in the signing queue after a
+    // newer completed status is available in the same owned offer record.
+    const completedStatus = signwellStatuses.find(value => {
+      const normalized = String(value).toLowerCase();
+      return !normalized.includes('partial') && (normalized.includes('complete') || normalized.includes('fully signed') || normalized.includes('buyer signed'));
+    });
+    const signwellStatus = completedStatus || signwellStatuses[0] || '';
 
     const signwellDocumentId =
       offer.signwell_document_id ||
@@ -6670,7 +6686,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   function getOfferPacketMeta(offer) {
     const d = offer.offer_data || {};
     const signwellId = offer.signwell_document_id || d.signwellDocumentId || d.signwell?.document_id || d.signwell?.response?.id || '';
-    const signwellStatus = offer.signwell_status || d.signwellStatus || d.signwell?.response?.status || d.signwell?.status || '';
+    const signwellStatus = getOfferBestStatus(offer);
     const generatedAt = offer.generated_at || d.generatedAt || '';
     const lines = [];
 
@@ -13826,7 +13842,7 @@ function routeAfterMagicLinkIfNeeded() {
     const active = (offers || []).filter(offer => {
       const data = offer?.offer_data || {};
       const documentId = offer?.signwell_document_id || data.signwellDocumentId || data.signwell?.document_id || data.signwell?.response?.id;
-      const status = String(offer?.signwell_status || data.signwellStatus || data.signwell?.response?.status || data.signwell?.status || offer?.status || '').toLowerCase().replace(/\s+/g, '_');
+      const status = String(getOfferBestStatus(offer) || '').toLowerCase().replace(/\s+/g, '_');
       return documentId && (!status || activeStatuses.has(status));
     }).sort((a, b) => {
       const aUpdated = new Date(a?.last_updated || a?.updated_at || a?.created_at || 0).getTime() || 0;
