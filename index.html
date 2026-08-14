@@ -4407,10 +4407,18 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     target.innerHTML = '<div class="admin-empty">Loading admin dashboard...</div>';
     try {
       const token = hofAuth.session.access_token;
-      const response = await fetch('/api/admin-dashboard', {
-        method: 'GET',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const controller = new AbortController();
+      const requestTimeout = window.setTimeout(() => controller.abort(), 15000);
+      let response;
+      try {
+        response = await fetch('/api/admin-dashboard', {
+          method: 'GET',
+          headers: { 'Authorization': `Bearer ${token}` },
+          signal: controller.signal
+        });
+      } finally {
+        window.clearTimeout(requestTimeout);
+      }
       const result = await response.json().catch(() => ({}));
       if (!response.ok || result.error) throw new Error(result.error || 'Admin dashboard failed to load.');
 
@@ -4777,7 +4785,10 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       `;
     } catch (err) {
       console.error('Admin dashboard load failed:', err);
-      target.innerHTML = '<div class="admin-empty">Admin dashboard error: ' + adminSafe(err?.message || err) + '</div>';
+      const message = err?.name === 'AbortError'
+        ? 'Admin dashboard timed out. Refresh to try again; no data was changed.'
+        : err?.message || err;
+      target.innerHTML = '<div class="admin-empty">Admin dashboard error: ' + adminSafe(message) + '</div>';
     }
   }
 
