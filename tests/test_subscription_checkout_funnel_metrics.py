@@ -49,6 +49,15 @@ class SubscriptionCheckoutFunnelMetricTests(unittest.TestCase):
         self.assertIn("markFirstOfferAttribution();", source)
         self.assertNotIn("await recordFirstOfferActivation();", source)
 
+    def test_ondemand_cancelled_checkout_gives_an_authenticated_recovery_path(self):
+        source = (ROOT / "ondemand.html").read_text(encoding="utf-8")
+        self.assertIn('id="checkoutRecovery"', source)
+        self.assertIn("Your enrollment is still ready.", source)
+        self.assertIn("No card was saved and no charge was made.", source)
+        self.assertIn('const checkoutCancelled = signedIn', source)
+        self.assertIn('$("checkoutRecovery").style.display = checkoutCancelled ? "block" : "none"', source)
+        self.assertIn('recordCheckoutFunnelEvent("subscription_checkout_recovery_shown", "shown")', source)
+
     def test_first_offer_metric_is_delivered_from_the_destination_without_delaying_navigation(self):
         source = (ROOT / "index.html").read_text(encoding="utf-8")
         self.assertIn("const ondemandFirstOfferAttributionKey = 'hof_ondemand_first_offer_attribution';", source)

@@ -108,6 +108,8 @@
     .status.show { display:block; }
     .status.ok { background:rgba(109,179,143,.11); border:1px solid rgba(109,179,143,.35); color:#bce8d0; }
     .status.err { background:rgba(224,108,90,.10); border:1px solid rgba(224,108,90,.32); color:#ffc0b7; }
+    .checkout-recovery { display:none; background:rgba(200,151,63,.11); border:1px solid rgba(232,184,109,.42); border-radius:12px; padding:13px; margin:15px 0; color:#f4d39c; font-size:13px; line-height:1.5; }
+    .checkout-recovery strong { color:#ffe1a9; }
     .fine { color:var(--muted); font-size:12px; line-height:1.55; margin:13px 0 0; }
     .scope {
       margin:34px 0 0; padding:28px; border:1px solid var(--line); border-radius:20px;
@@ -201,6 +203,9 @@
           <div class="identity">
             <small>Signed in as</small>
             <strong id="signedInEmail"></strong>
+          </div>
+          <div id="checkoutRecovery" class="checkout-recovery" role="status">
+            <strong>Your enrollment is still ready.</strong> No card was saved and no charge was made. Recheck the acknowledgment below, then select <em>Continue to secure checkout</em> when you are ready to restart your 60-day trial.
           </div>
           <label class="consent" for="terms">
             <input id="terms" type="checkbox" />
@@ -411,8 +416,10 @@
         $("terms").checked = false;
         $("checkoutButton").disabled = true;
         const checkoutComplete = signedIn && new URLSearchParams(window.location.search).get("checkout") === "success";
+        const checkoutCancelled = signedIn && new URLSearchParams(window.location.search).get("checkout") === "cancelled";
         $("workspaceButton").style.display = checkoutComplete ? "block" : "none";
         $("firstOfferButton").style.display = checkoutComplete ? "block" : "none";
+        $("checkoutRecovery").style.display = checkoutCancelled ? "block" : "none";
       }
 
       async function acceptBrokerageInvite(session) {
@@ -516,6 +523,9 @@
         const checkoutResult = params.get("checkout");
         if (checkoutResult === "success" || checkoutResult === "cancelled") {
           await recordCheckoutFunnelEvent("subscription_checkout_returned", checkoutResult);
+        }
+        if (checkoutResult === "cancelled" && data.session?.user?.id) {
+          await recordCheckoutFunnelEvent("subscription_checkout_recovery_shown", "shown");
         }
         await acceptBrokerageInvite(data.session);
         client.auth.onAuthStateChange((_event, session) => {
