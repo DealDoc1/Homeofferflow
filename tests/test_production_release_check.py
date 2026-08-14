@@ -35,7 +35,7 @@ class ProductionReleaseCheckTests(unittest.TestCase):
             result = checker.verify("https://example.test", expected_release="18B-controlled-launch", expected_main_form="20-19 production")
         self.assertFalse(result["ok"])
         self.assertIn("SignWell must be in production mode, not test mode.", result["errors"])
-        self.assertTrue(any("main_pdf_exists" in error for error in result["errors"]))
+        self.assertTrue(any("packet_runtime_ready" in error for error in result["errors"]))
 
 
 if __name__ == "__main__":

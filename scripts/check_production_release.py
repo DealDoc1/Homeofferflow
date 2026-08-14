@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Verify the canonical production runtime without creating a packet.
 
-This is intentionally a read-only health check. It validates the 20-19
-production adapter, supported packet assets, fail-closed unsupported paths,
-SignWell production mode, and the public legal/PWA pages. It never sends a
-SignWell document and never exercises Stripe or Supabase mutations.
+This is intentionally a read-only health check. It validates the aggregate
+20-19 packet runtime, fail-closed unsupported paths, SignWell production mode,
+and the public legal/PWA pages. It never sends a SignWell document and never
+exercises Stripe or Supabase mutations.
 """
 
 from __future__ import annotations
@@ -26,17 +26,9 @@ PUBLIC_PATHS = (
 )
 
 REQUIRED_TRUE_FLAGS = (
-    "main_pdf_exists",
-    "financing_pdf_exists",
-    "hoa_pdf_exists",
-    "sale_pdf_exists",
-    "backup_pdf_exists",
-    "appraisal_pdf_exists",
-    "non_realty_pdf_exists",
-    "uploaded_docs_append_enabled",
+    "packet_runtime_ready",
     "unsupported_paths_rejected",
     "signwell_enabled",
-    "signwell_api_key_present",
 )
 
 

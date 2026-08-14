@@ -2016,31 +2016,26 @@ class handler(BaseHTTPRequestHandler):
         return used < packet_limit
 
     def do_GET(self):
-        try:
-            contents = os.listdir(BASE_DIR) if os.path.exists(BASE_DIR) else []
-        except Exception as e:
-            contents = str(e)
-
+        # This unauthenticated endpoint is a deployment health check, not an
+        # operations inventory. Keep its response limited to aggregate release
+        # readiness so it cannot disclose filesystem layout, bundled asset
+        # names, or whether credentials are present.
         self._json(200, {
             "status": "ok",
-            "debug_grid": DEBUG_GRID,
             "trec_main_form": "20-19 production",
             "release": "18B-controlled-launch",
-            "base_dir": BASE_DIR,
-            "main_pdf_exists": os.path.exists(MAIN_PDF),
-            "financing_pdf_exists": os.path.exists(FINANCING_PDF),
-            "hoa_pdf_exists": os.path.exists(HOA_PDF),
-            "sale_pdf_exists": os.path.exists(SALE_PDF),
-            "backup_pdf_exists": os.path.exists(BACKUP_PDF),
-            "appraisal_pdf_exists": os.path.exists(APPRAISAL_PDF),
-            "non_realty_pdf_exists": os.path.exists(NON_REALTY_PDF),
-            "uploaded_docs_append_enabled": True,
+            "packet_runtime_ready": all((
+                os.path.exists(MAIN_PDF),
+                os.path.exists(FINANCING_PDF),
+                os.path.exists(HOA_PDF),
+                os.path.exists(SALE_PDF),
+                os.path.exists(BACKUP_PDF),
+                os.path.exists(APPRAISAL_PDF),
+                os.path.exists(NON_REALTY_PDF),
+            )),
             "unsupported_paths_rejected": True,
             "signwell_enabled": SIGNWELL_ENABLED,
             "signwell_test_mode": SIGNWELL_TEST_MODE,
-            "signwell_api_key_present": bool(SIGNWELL_API_KEY),
-            "cwd": os.getcwd(),
-            "dir_contents": contents
         })
 
     def do_POST(self):
