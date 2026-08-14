@@ -4033,9 +4033,23 @@ class handler(BaseHTTPRequestHandler):
                 and (created_at := _parse_timestamp(invite.get("created_at")))
                 and created_at <= now - timedelta(days=7)
             ])
-            legal_acceptance_count = len([
+            legal_acceptance_events = [
                 item for item in events if item.get("event_type") == "legal_terms_accepted"
-            ])
+            ]
+            legal_acceptance_count = len(legal_acceptance_events)
+            # Keep this conversion cohort consistent with activation milestones:
+            # the wizard may emit a fresh acceptance signal for a returning
+            # session, but one agent must never become multiple denominator
+            # entries. Anonymous acceptance events remain useful activity
+            # signals above, but cannot be attributed to a first offer.
+            legal_acceptance_user_ids = {
+                str(item.get("user_id") or "").strip()
+                for item in legal_acceptance_events
+                if str(item.get("user_id") or "").strip()
+            }
+            legal_acceptance_to_first_offer_count = len(
+                legal_acceptance_user_ids & activation_milestone_users["first_offer"]
+            )
             metrics = {
                 "offerCount": len(offers),
                 "homebuyerOfferCount": len([o for o in offers if o.get("role") == "homebuyer"]),
@@ -4334,9 +4348,11 @@ class handler(BaseHTTPRequestHandler):
                     item for item in events if item.get("event_type") == "ai_calibration_review_completed"
                 ]),
             }
+            metrics["legalAcceptanceUserCount"] = len(legal_acceptance_user_ids)
+            metrics["legalAcceptanceToFirstOfferCount"] = legal_acceptance_to_first_offer_count
             metrics["legalAcceptanceToFirstOfferRate"] = round((
-                activation_milestone_counts["first_offer"] / legal_acceptance_count
-            ) * 100, 1) if legal_acceptance_count else 0
+                legal_acceptance_to_first_offer_count / len(legal_acceptance_user_ids)
+            ) * 100, 1) if legal_acceptance_user_ids else 0
             metrics["aiCalibrationReviewCompletionRate"] = round((
                 metrics["aiCalibrationReviewCompletionCount"] / metrics["aiCalibrationReviewStartCount"]
             ) * 100, 1) if metrics["aiCalibrationReviewStartCount"] else 0

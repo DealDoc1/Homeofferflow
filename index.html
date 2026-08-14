@@ -4575,7 +4575,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <div class="admin-metric-label">Legal Acceptance Events</div>
             <div class="admin-metric-value">${metrics.legalAcceptanceCount || 0}</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Privacy-safe acceptance signals for the current offer wizard.</div>
-            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Legal acceptance → first offer: ${Number(metrics.legalAcceptanceToFirstOfferRate || 0).toFixed(1)}%.</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Legal acceptance → first offer: ${Number(metrics.legalAcceptanceToFirstOfferRate || 0).toFixed(1)}% of unique signed-in agents.</div>
           </div>
 
           <div class="admin-metric">

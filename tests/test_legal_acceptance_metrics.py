@@ -16,10 +16,15 @@ class LegalAcceptanceMetricTests(unittest.TestCase):
         backend = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
         frontend = (ROOT / "index.html").read_text(encoding="utf-8")
         self.assertIn('"legalAcceptanceCount"', backend)
+        self.assertIn('legal_acceptance_user_ids', backend)
+        self.assertIn('legal_acceptance_user_ids & activation_milestone_users["first_offer"]', backend)
+        self.assertIn('"legalAcceptanceUserCount"', backend)
+        self.assertIn('"legalAcceptanceToFirstOfferCount"', backend)
         self.assertIn('legalAcceptanceToFirstOfferRate', backend)
         self.assertIn("Legal Acceptance Events", frontend)
         self.assertIn("legalAcceptanceCount", frontend)
         self.assertIn("Legal acceptance → first offer", frontend)
+        self.assertIn("unique signed-in agents", frontend)
 
 
 if __name__ == "__main__":
