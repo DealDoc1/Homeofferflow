@@ -12152,17 +12152,23 @@ function routeAfterMagicLinkIfNeeded() {
         <input type="hidden" id="fsboPropertyState" value="TX">
         <input type="hidden" id="fsboPropertyZip">
       </div>
-      <div class="field"><label>Seller Name <span style="color:var(--gray);font-weight:500;">(optional)</span></label><input id="fsboSellerName" placeholder="Your name"></div>
       <div class="field"><label>Email</label><input id="fsboSellerEmail" type="email" placeholder="you@email.com" required aria-required="true"></div>
       <div aria-hidden="true" style="position:absolute;left:-10000px;top:auto;width:1px;height:1px;overflow:hidden;"><label for="fsboWebsiteConfirm">Leave this field blank</label><input id="fsboWebsiteConfirm" tabindex="-1" autocomplete="off"></div>
-      <div class="field"><label>Phone <span style="color:var(--gray);font-weight:500;">(optional)</span></label><input id="fsboSellerPhone" placeholder="(214) 555-0000"></div>
-      <div class="field"><label>Target Asking Price <span style="color:var(--gray);font-weight:500;">(optional)</span></label><input id="fsboAskingPrice" type="number" placeholder="500000"></div>
-      <div class="field"><label>Timeline <span style="color:var(--gray);font-weight:500;">(optional)</span></label><select id="fsboTimeline"><option value="not_sure">Not sure yet</option><option value="asap">ASAP / already ready</option><option value="30_days">Within 30 days</option><option value="60_90_days">60–90 days</option><option value="future">Future planning</option></select></div>
     </div>
     <div class="notice sage" style="margin-top:.9rem;display:flex;align-items:center;justify-content:space-between;gap:.75rem;flex-wrap:wrap;">
       <div><strong>Ready when you are.</strong><br><span style="color:var(--gray-light);font-size:.8rem;">Start with the free intake now, or choose a more specific package below. No checkout or service commitment.</span></div>
       <button class="btn-primary" type="button" id="fsboSellerQuickSubmit" data-fsbo-submit onclick="submitFsboSellerLead('quick')">Get My Free Seller Plan</button>
     </div>
+
+    <details class="partner-optional-details" style="margin-top:.9rem;">
+      <summary>Add timing or contact details <span style="font-weight:500;">(optional)</span></summary>
+      <div class="platform-grid" style="margin-top:.75rem;">
+        <div class="field"><label>Seller Name <span style="color:var(--gray);font-weight:500;">(optional)</span></label><input id="fsboSellerName" placeholder="Your name"></div>
+        <div class="field"><label>Phone <span style="color:var(--gray);font-weight:500;">(optional)</span></label><input id="fsboSellerPhone" placeholder="(214) 555-0000"></div>
+        <div class="field"><label>Target Asking Price <span style="color:var(--gray);font-weight:500;">(optional)</span></label><input id="fsboAskingPrice" type="number" placeholder="500000"></div>
+        <div class="field"><label>Timeline <span style="color:var(--gray);font-weight:500;">(optional)</span></label><select id="fsboTimeline"><option value="not_sure">Not sure yet</option><option value="asap">ASAP / already ready</option><option value="30_days">Within 30 days</option><option value="60_90_days">60–90 days</option><option value="future">Future planning</option></select></div>
+      </div>
+    </details>
 
     <div style="margin-top:1rem; padding-top:.9rem; border-top:1px solid rgba(255,255,255,.08);">
       <div class="radio-group-label" style="margin-bottom:.55rem;">Seller package interest</div>

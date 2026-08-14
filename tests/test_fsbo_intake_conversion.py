@@ -169,12 +169,15 @@ class FsboIntakeConversionTests(unittest.TestCase):
 
     def test_free_intake_has_a_submit_path_before_optional_package_and_partner_choices(self):
         quick = HTML.index('id="fsboSellerQuickSubmit"')
+        optional_details = HTML.index('Add timing or contact details')
         packages = HTML.index('class="fsbo-package-grid"')
         partners = HTML.index('Partner suggestions wanted')
         full = HTML.index('id="fsboSellerSubmit"')
         self.assertLess(quick, packages)
+        self.assertLess(quick, optional_details)
         self.assertLess(quick, partners)
         self.assertLess(quick, full)
+        self.assertIn('<details class="partner-optional-details" style="margin-top:.9rem;">', HTML)
         self.assertIn("document.querySelectorAll('[data-fsbo-submit]')", HTML)
         self.assertIn("Request ${item.title} Details", HTML)
 
