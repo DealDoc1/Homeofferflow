@@ -12,8 +12,10 @@ class PwaInstallExperienceTests(unittest.TestCase):
         self.assertIn('id="hof-pwa-install-v1"', INDEX)
         self.assertIn("beforeinstallprompt", INDEX)
         self.assertIn("deferredInstallPrompt.prompt()", INDEX)
-        self.assertIn("Add to Home Screen", INDEX)
-        self.assertIn("No App Store download or separate account is needed.", INDEX)
+        self.assertIn("Install HomeOfferFlow", INDEX)
+        self.assertIn("Show the 2 steps", INDEX)
+        self.assertIn("no App Store download or separate account is needed.", INDEX)
+        self.assertIn("pwa-install-benefits", INDEX)
         self.assertIn("offers and client details stay protected online", INDEX)
         self.assertIn("const workspaceReturnCopy = target.surface === 'account_dashboard'", INDEX)
         self.assertIn('shortcuts for My Workspace and New Agent Offer', INDEX)
@@ -50,6 +52,8 @@ class PwaInstallExperienceTests(unittest.TestCase):
         self.assertIn("function isAndroid()", INDEX)
         self.assertIn('In Chrome, open the ⋮ menu', INDEX)
         self.assertIn("choice?.outcome === 'accepted' ? 'accepted' : 'dismissed'", INDEX)
+        self.assertIn("trackInstall('cta_clicked'", INDEX)
+        self.assertIn("cta: 'native_prompt'", INDEX)
         self.assertIn("card.dataset.surface = target.surface", INDEX)
         self.assertIn("surface: target.surface", INDEX)
         self.assertIn("card?.dataset?.surface || 'unknown'", INDEX)
@@ -60,6 +64,8 @@ class PwaInstallExperienceTests(unittest.TestCase):
             '"pwaInstallEventCounts"',
             '"pwaInstallShownSurfaceCounts"',
             '"pwaInstallShownCount"',
+            '"pwaInstallCtaClickCount"',
+            '"pwaInstallCtaClickRate"',
             '"pwaInstallPromptOpenCount"',
             '"pwaInstallInstructionsOpenCount"',
             '"pwaInstallGuidanceOpenRate"',
@@ -70,6 +76,7 @@ class PwaInstallExperienceTests(unittest.TestCase):
             self.assertIn(expected, api)
         self.assertIn("Mobile App Install Funnel", INDEX)
         self.assertIn("pwaInstallPromptOpenRate", INDEX)
+        self.assertIn("pwaInstallCtaClickRate", INDEX)
         self.assertIn("pwaInstallInstructionsOpenCount", INDEX)
         self.assertIn("pwaInstallShownSurfaceCounts", INDEX)
         self.assertIn("Shown on:", INDEX)

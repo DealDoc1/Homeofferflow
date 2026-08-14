@@ -3819,6 +3819,7 @@ class handler(BaseHTTPRequestHandler):
             # funnel without returning device details or user-level activity.
             pwa_install_event_counts = {
                 "shown": 0,
+                "cta_clicked": 0,
                 "prompt_opened": 0,
                 "accepted": 0,
                 "dismissed": 0,
@@ -4175,14 +4176,18 @@ class handler(BaseHTTPRequestHandler):
                 "pwaInstallEventCounts": pwa_install_event_counts,
                 "pwaInstallShownSurfaceCounts": pwa_install_shown_surface_counts,
                 "pwaInstallShownCount": pwa_install_event_counts["shown"],
+                "pwaInstallCtaClickCount": pwa_install_event_counts["cta_clicked"],
                 "pwaInstallPromptOpenCount": pwa_install_event_counts["prompt_opened"],
                 "pwaInstallInstructionsOpenCount": pwa_install_event_counts["instructions_opened"],
                 "pwaInstallAcceptedCount": pwa_install_event_counts["accepted"],
                 "pwaInstallDismissedCount": pwa_install_event_counts["dismissed"],
                 "pwaInstalledCount": pwa_install_event_counts["installed"],
-                "pwaInstallPromptOpenRate": round(
-                    (pwa_install_event_counts["prompt_opened"] / pwa_install_event_counts["shown"]) * 100, 1
+                "pwaInstallCtaClickRate": round(
+                    (pwa_install_event_counts["cta_clicked"] / pwa_install_event_counts["shown"]) * 100, 1
                 ) if pwa_install_event_counts["shown"] else 0,
+                "pwaInstallPromptOpenRate": round(
+                    (pwa_install_event_counts["prompt_opened"] / pwa_install_event_counts["cta_clicked"]) * 100, 1
+                ) if pwa_install_event_counts["cta_clicked"] else 0,
                 "pwaInstallGuidanceOpenRate": round(
                     (pwa_install_event_counts["instructions_opened"] / pwa_install_event_counts["shown"]) * 100, 1
                 ) if pwa_install_event_counts["shown"] else 0,
