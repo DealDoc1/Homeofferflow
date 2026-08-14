@@ -16,6 +16,9 @@ class OfferWorkspaceSigningRecoveryTests(unittest.TestCase):
         self.assertIn("const priorityNeedsBuyerReminder = priority && bucketForOffer(priority) === 'signing';", HTML)
         self.assertIn("onclick=\"copyBuyerSigningReminder('${esc(priority.id)}')\"", HTML)
 
+    def test_priority_signing_follow_up_can_refresh_status_before_an_agent_uses_a_reminder(self):
+        self.assertIn("onclick=\"hofRefreshOfferWorkspace()\">Sync SignWell now</button>", HTML)
+
     def test_reminder_requires_agent_review_before_any_external_communication(self):
         start = HTML.index("root.copyBuyerSigningReminder = async function(offerId)")
         end = HTML.index("root.hofRenderOfferWorkspaceV10", start)
