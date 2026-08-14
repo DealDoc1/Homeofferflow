@@ -55,6 +55,13 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
     def test_partner_acquisition_page_has_share_metadata_and_a_direct_application_path(self):
         self.assertIn('<link rel="canonical" href="https://www.homeofferflow.com/partners"', PARTNERS)
         self.assertIn('property="og:url" content="https://www.homeofferflow.com/partners"', PARTNERS)
+        self.assertIn('property="og:site_name" content="HomeOfferFlow"', PARTNERS)
+        self.assertIn('property="og:image" content="https://www.homeofferflow.com/assets/homeofferflow-social-preview-v1.png"', PARTNERS)
+        self.assertIn('property="og:image:alt"', PARTNERS)
+        self.assertIn('name="twitter:card" content="summary_large_image"', PARTNERS)
+        self.assertIn('meta name="twitter:title"', PARTNERS)
+        self.assertIn('meta name="twitter:description"', PARTNERS)
+        self.assertIn('meta name="twitter:image" content="https://www.homeofferflow.com/assets/homeofferflow-social-preview-v1.png"', PARTNERS)
         self.assertIn('"@type":"Service"', PARTNERS)
         self.assertIn('href="/?partner=1"', PARTNERS)
         self.assertIn('partner_tier=founding_pilot', PARTNERS)
