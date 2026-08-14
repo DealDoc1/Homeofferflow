@@ -68,6 +68,8 @@ MONTHLY_PRICE_ENV_BY_TIER = {
     "monthly_placement": "STRIPE_FOUNDING_PARTNER_FEATURED_MONTHLY_PRICE_ID",
     "market_exclusive": "STRIPE_FOUNDING_PARTNER_PREMIER_MONTHLY_PRICE_ID",
 }
+PARTNER_DIRECTORY_EVENT_TYPES = {"partner_directory_impression": "shown", "partner_directory_outbound_click": "clicked"}
+PARTNER_DIRECTORY_TIERS = {"core", "featured", "premier", "exclusive_market"}
 
 
 def _send(handler, status, payload):
@@ -243,6 +245,36 @@ def _record_partner_checkout_event(event_type, status, message, metadata=None):
             print(f"Partner checkout telemetry failed: {response.status_code}")
     except Exception as exc:
         print(f"Partner checkout telemetry failed: {str(exc)[:200]}")
+
+
+def _record_partner_directory_event(data):
+    """Persist aggregate directory traffic without retaining visitor data."""
+    event_type = _text(data.get("event_type"), 80)
+    partner_id = _text(data.get("partner_id"), 80)
+    partner_type = _text(data.get("partner_type"), 80)
+    placement_tier = _text(data.get("placement_tier"), 80)
+    if event_type not in PARTNER_DIRECTORY_EVENT_TYPES:
+        raise ValueError("Unsupported directory event.")
+    try:
+        partner_id = str(uuid.UUID(partner_id or ""))
+    except (TypeError, ValueError, AttributeError):
+        raise ValueError("A valid partner placement is required.")
+    if partner_type not in ALLOWED_PARTNER_TYPES or placement_tier not in PARTNER_DIRECTORY_TIERS:
+        raise ValueError("Unsupported partner placement metadata.")
+    headers = {"apikey": SUPABASE_SERVICE_ROLE_KEY, "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}"}
+    query = urlencode({
+        "id": f"eq.{partner_id}",
+        "partner_type": f"eq.{partner_type}",
+        "placement_tier": f"eq.{placement_tier}",
+        "is_active": "eq.true",
+        "select": "id",
+        "limit": "1",
+    })
+    with httpx.Client(timeout=8.0) as client:
+        response = client.get(f"{SUPABASE_URL}/rest/v1/hof_partner_placements?{query}", headers=headers)
+    if response.status_code >= 300 or not response.json():
+        raise ValueError("That partner placement is unavailable.")
+    _record_partner_checkout_event(event_type, PARTNER_DIRECTORY_EVENT_TYPES[event_type], "Privacy-safe public partner directory engagement recorded.", {"partnerId": partner_id, "partnerType": partner_type, "placementTier": placement_tier})
 
 
 def _partner_checkout_origin(headers):
@@ -544,6 +576,13 @@ class handler(BaseHTTPRequestHandler):
             if length <= 0 or length > MAX_BODY_BYTES:
                 return _send(self, 400, {'error': 'Invalid request size.'})
             data = json.loads(self.rfile.read(length).decode('utf-8'))
+
+            if _text(data.get('request_type'), 80) == 'partner_directory_event':
+                try:
+                    _record_partner_directory_event(data)
+                    return _send(self, 200, {'ok': True})
+                except ValueError as exc:
+                    return _send(self, 400, {'error': str(exc)})
 
             if _text(data.get('request_type'), 80) == 'founding_partner_checkout':
                 lead_id = _text(data.get('partner_lead_id'), 80) or ''
