@@ -11,7 +11,17 @@ class LandingHeroConversionLayoutTests(unittest.TestCase):
         self.assertIn("font-size: clamp(2.55rem, 6.2vw, 4.6rem)", HTML)
         self.assertIn(".hero-actions { display: flex; gap: 1rem; margin-top: 1.5rem", HTML)
         self.assertIn('id="heroCta"', HTML)
-        self.assertIn("Start Your Offer — $99", HTML)
+        self.assertIn("Build Your Offer — No Payment to Start", HTML)
+
+    def test_homebuyer_cta_matches_the_no_payment_before_review_promise(self):
+        self.assertIn(
+            "Build Your Offer — No Payment to Start",
+            HTML[HTML.index('<section class=\"hero\">'):HTML.index('</section>', HTML.index('<section class=\"hero\">'))],
+        )
+        self.assertIn(
+            "cta: 'Build Your Offer — No Payment to Start'",
+            HTML,
+        )
 
     def test_public_offer_ctas_record_a_non_sensitive_conversion_surface(self):
         for surface in (
