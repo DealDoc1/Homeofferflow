@@ -92,6 +92,8 @@ class FsboIntakeConversionTests(unittest.TestCase):
         for package in ('free_intake', 'seller_prep', 'launch_kit', 'flat_fee_mls', 'offer_review', 'contract_help', 'premium_bundle'):
             self.assertIn(f'{package}:', SELLER_BRIDGE)
         self.assertIn("destination.searchParams.set('seller_package', selected)", SELLER_BRIDGE)
+        self.assertIn('link.textContent = selectedPackage.cta', SELLER_BRIDGE)
+        self.assertIn("cta: 'Request flat-fee MLS details'", SELLER_BRIDGE)
         self.assertIn("FSBO Seller Expanded Campaign Landing Viewed", SELLER_BRIDGE)
 
     def test_admin_seller_workspace_can_create_allowlisted_fsbo_campaign_links_and_copy(self):
