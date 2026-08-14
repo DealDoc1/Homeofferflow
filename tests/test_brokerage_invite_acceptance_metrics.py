@@ -26,6 +26,8 @@ class BrokerageInviteAcceptanceMetricsTests(unittest.TestCase):
         self.assertIn('inviteAcceptanceNotice', frontend)
         self.assertIn('Accepted → active', frontend)
         self.assertIn('Invite accepted', frontend)
+        self.assertIn('focusBrokerageActivationFollowUp', frontend)
+        self.assertIn('Finish activating your HomeOfferFlow brokerage seat', frontend)
 
 
 if __name__ == "__main__":
