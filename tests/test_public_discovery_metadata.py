@@ -13,6 +13,7 @@ DIRECTORY = (ROOT / "directory.html").read_text(encoding="utf-8")
 BUYERS = (ROOT / "buyers.html").read_text(encoding="utf-8")
 AGENTS = (ROOT / "agents.html").read_text(encoding="utf-8")
 INVESTORS = (ROOT / "investors.html").read_text(encoding="utf-8")
+ONDEMAND = (ROOT / "ondemand.html").read_text(encoding="utf-8")
 VERCEL = json.loads((ROOT / "vercel.json").read_text(encoding="utf-8"))
 
 
@@ -41,6 +42,15 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn('https://www.homeofferflow.com/agents', SITEMAP)
         self.assertIn('https://www.homeofferflow.com/investors', SITEMAP)
         self.assertIn('https://www.homeofferflow.com/directory', SITEMAP)
+
+    def test_ondemand_trial_page_has_canonical_share_and_structured_metadata(self):
+        self.assertIn('<link rel="canonical" href="https://www.homeofferflow.com/ondemand"', ONDEMAND)
+        self.assertIn('property="og:url" content="https://www.homeofferflow.com/ondemand"', ONDEMAND)
+        self.assertIn('property="og:image" content="https://www.homeofferflow.com/assets/homeofferflow-social-preview-v1.png"', ONDEMAND)
+        self.assertIn('name="twitter:card" content="summary_large_image"', ONDEMAND)
+        self.assertIn('"@type":"SoftwareApplication"', ONDEMAND)
+        self.assertIn('"price":"29"', ONDEMAND)
+        self.assertIn('60 days of HomeOfferFlow free, then $29 per month unless canceled.', ONDEMAND)
 
     def test_partner_acquisition_page_has_share_metadata_and_a_direct_application_path(self):
         self.assertIn('<link rel="canonical" href="https://www.homeofferflow.com/partners"', PARTNERS)
