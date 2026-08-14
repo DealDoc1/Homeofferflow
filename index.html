@@ -667,6 +667,9 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 .pwa-install-card p { color:var(--gray-light); font-size:.84rem; line-height:1.5; margin-bottom:.75rem; }
 .pwa-install-actions { display:flex; flex-wrap:wrap; gap:.55rem; align-items:center; }
 .pwa-install-note { color:var(--gray); font-size:.75rem; line-height:1.45; }
+.pwa-install-benefits { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:.45rem; margin:.1rem 0 .8rem; }
+.pwa-install-benefit { padding:.5rem; border:1px solid rgba(255,255,255,.1); border-radius:9px; color:var(--gray-light); font-size:.72rem; line-height:1.35; background:rgba(255,255,255,.025); }
+@media (max-width:520px) { .pwa-install-benefits { grid-template-columns:1fr; } }
 .usage-meter { height:8px; background:rgba(255,255,255,0.08); border-radius:999px; overflow:hidden; margin-top:0.8rem; }
 .usage-fill { height:100%; background:linear-gradient(90deg, var(--sage), var(--gold)); border-radius:999px; transition:width 0.25s ease; }
 .usage-copy { margin-top:0.55rem; color:var(--gray-light); font-size:0.82rem; line-height:1.5; }
@@ -4468,7 +4471,8 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           <div class="admin-metric">
             <div class="admin-metric-label">Mobile App Install Funnel</div>
             <div class="admin-metric-value">${metrics.pwaInstalledCount || 0} installed</div>
-            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.pwaInstallShownCount || 0} install prompts shown · ${metrics.pwaInstallPromptOpenCount || 0} native prompts opened (${Number(metrics.pwaInstallPromptOpenRate || 0).toFixed(1)}%).</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.pwaInstallShownCount || 0} install prompts shown · ${metrics.pwaInstallCtaClickCount || 0} install choices selected (${Number(metrics.pwaInstallCtaClickRate || 0).toFixed(1)}%).</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.pwaInstallPromptOpenCount || 0} native prompts opened (${Number(metrics.pwaInstallPromptOpenRate || 0).toFixed(1)}% of install choices).</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Shown on: ${Object.entries(metrics.pwaInstallShownSurfaceCounts || {}).filter(([, count]) => Number(count) > 0).map(([surface, count]) => `${surface.replace(/_/g, ' ')} ${count}`).join(' · ') || 'surface attribution begins with the next install prompt.'}</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.pwaInstallInstructionsOpenCount || 0} Home Screen instruction${Number(metrics.pwaInstallInstructionsOpenCount || 0) === 1 ? '' : 's'} opened (${Number(metrics.pwaInstallGuidanceOpenRate || 0).toFixed(1)}% of prompts shown).</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.pwaInstallAcceptedCount || 0} accepted · ${metrics.pwaInstallDismissedCount || 0} dismissed · ${Number(metrics.pwaInstallCompletionRate || 0).toFixed(1)}% installed after an install prompt opened.</div>
@@ -17684,19 +17688,24 @@ function routeAfterMagicLinkIfNeeded() {
       : '';
     card.innerHTML = `<h4>Keep HomeOfferFlow one tap away</h4>
       <p>${ios
-        ? 'Add this workspace to your iPhone or iPad Home Screen for a full-screen, app-like launch. No App Store download or separate account is needed.'
+        ? 'Add this workspace to your iPhone or iPad Home Screen for a full-screen, app-like launch. It takes about a minute—no App Store download or separate account is needed.'
         : isAndroid() && !deferredInstallPrompt
-        ? 'Add HomeOfferFlow to your Android Home Screen for a faster app-like launch. No App Store download or separate account is needed.'
-        : 'Add HomeOfferFlow to your Home Screen for a faster app-like launch and an offline-safe shell when you are between showings. No App Store download or separate account is needed.'}</p>
+        ? 'Add HomeOfferFlow to your Android Home Screen for a faster app-like launch. It takes about a minute—no App Store download or separate account is needed.'
+        : 'Install HomeOfferFlow for a faster app-like launch and an offline-safe shell when you are between showings. It takes about a minute—no App Store download or separate account is needed.'}</p>
+      <div class="pwa-install-benefits" aria-label="What installation does">
+        <div class="pwa-install-benefit"><strong>One-tap return</strong><br>Launch the same workspace from an app icon.</div>
+        <div class="pwa-install-benefit"><strong>No new account</strong><br>Use the sign-in and access you already have.</div>
+        <div class="pwa-install-benefit"><strong>Protected data</strong><br>Offers and client details remain online.</div>
+      </div>
       ${sellerReturnCopy ? `<p class="pwa-install-note"><strong>${sellerReturnCopy}</strong></p>` : ''}
       ${workspaceReturnCopy ? `<p class="pwa-install-note"><strong>${workspaceReturnCopy}</strong></p>` : ''}
       <p class="pwa-install-note">Your offers and client details stay protected online; installation only gives this existing workspace a faster, dedicated launch.</p>
       <div class="pwa-install-actions">
         ${ios
-          ? '<button class="btn-primary" type="button" id="hofPwaInstallHelp">How to add it</button>'
+          ? '<button class="btn-primary" type="button" id="hofPwaInstallHelp">Show the 2 steps</button>'
           : isAndroid() && !deferredInstallPrompt
-          ? '<button class="btn-primary" type="button" id="hofPwaInstallHelp">How to add it</button>'
-          : '<button class="btn-primary" type="button" id="hofPwaInstallButton">Add to Home Screen</button>'}
+          ? '<button class="btn-primary" type="button" id="hofPwaInstallHelp">Show the 2 steps</button>'
+          : '<button class="btn-primary" type="button" id="hofPwaInstallButton">Install HomeOfferFlow</button>'}
         <button class="btn-secondary" type="button" id="hofPwaInstallDismiss">Not now</button>
       </div>
       <div id="hofPwaInstallNote" class="pwa-install-note" style="margin-top:.65rem;display:none"></div>`;
@@ -17720,9 +17729,10 @@ function routeAfterMagicLinkIfNeeded() {
       const note = card.querySelector('#hofPwaInstallNote');
       if (note) {
         const platform = isIos() ? 'ios' : 'android';
+        trackInstall('cta_clicked', { platform, surface: target.surface, cta: 'home_screen_help' });
         note.textContent = isIos()
-          ? 'In Safari, tap Share, then choose “Add to Home Screen.”'
-          : 'In Chrome, open the ⋮ menu, then choose “Install app” or “Add to Home screen.”';
+          ? '1. In Safari, tap Share.  2. Choose “Add to Home Screen,” then tap Add.'
+          : '1. In Chrome, open the ⋮ menu.  2. Choose “Install app” or “Add to Home screen,” then confirm.';
         note.style.display = 'block';
         trackInstall('instructions_opened', { platform, surface: target.surface });
       }
@@ -17732,8 +17742,9 @@ function routeAfterMagicLinkIfNeeded() {
       const button = card.querySelector('#hofPwaInstallButton');
       if (button) { button.disabled = true; button.textContent = 'Opening install…'; }
       try {
+        trackInstall('cta_clicked', { platform: 'web', surface: target.surface, cta: 'native_prompt' });
+        await deferredInstallPrompt.prompt();
         trackInstall('prompt_opened', { platform: 'web', surface: target.surface });
-        deferredInstallPrompt.prompt();
         const choice = await deferredInstallPrompt.userChoice;
         trackInstall(choice?.outcome === 'accepted' ? 'accepted' : 'dismissed', { platform: 'web', surface: target.surface });
       } catch (error) {
