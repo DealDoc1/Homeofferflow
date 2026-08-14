@@ -32,12 +32,11 @@ class HomebuyerLandingFunnelTests(unittest.TestCase):
 
     def test_public_buyer_cta_opens_the_guided_offer_workflow_on_a_fresh_visit(self):
         self.assertIn('href="/?buyer=1"', BUYERS)
-        self.assertIn("function consumeHomebuyerLandingEntry()", INDEX)
-        self.assertIn("params.get('buyer') !== '1'", INDEX)
-        self.assertIn("params.delete('buyer')", INDEX)
+        self.assertIn("if (params().get('buyer') === '1') setTimeout(() =>", INDEX)
+        self.assertIn("cleanUrl.searchParams.delete('buyer')", INDEX)
         self.assertIn("setAudience('homebuyer')", INDEX)
-        self.assertIn("beginOfferFrom('buyer_landing')", INDEX)
-        self.assertIn("DOMContentLoaded', consumeHomebuyerLandingEntry", INDEX)
+        self.assertIn("window.beginOfferFrom?.('buyer_landing')", INDEX)
+        self.assertNotIn("function consumeHomebuyerLandingEntry()", INDEX)
 
     def test_admin_reports_aggregate_buyer_landing_conversion(self):
         for expected in (
