@@ -85,10 +85,13 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn('href="/?seller=1&amp;seller_package=free_intake"', SELLERS)
         self.assertIn('seller_package=free_intake', SELLERS)
         self.assertIn('seller_package=seller_prep', SELLERS)
+        self.assertIn('seller_package=flat_fee_mls', SELLERS)
+        self.assertIn('seller_package=offer_review', SELLERS)
         self.assertIn('seller_package=contract_help', SELLERS)
+        self.assertIn('seller_package=premium_bundle', SELLERS)
         self.assertIn('data-seller-apply', SELLERS)
         self.assertIn("const allowed = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content'];", SELLERS)
-        self.assertIn("const sellerPackages = new Set(['free_intake', 'seller_prep', 'contract_help']);", SELLERS)
+        self.assertIn("const sellerPackages = new Set(['free_intake', 'seller_prep', 'launch_kit', 'flat_fee_mls', 'offer_review', 'contract_help', 'premium_bundle']);", SELLERS)
         self.assertIn("const sellerPackageLabels = { free_intake: 'Free Seller Intake'", SELLERS)
         self.assertIn('id="sellerCampaignContext"', SELLERS)
         self.assertIn("track('FSBO Seller Landing Viewed', selectedCampaignPackage ? { sellerPackage: selectedCampaignPackage } : {});", SELLERS)
@@ -107,6 +110,8 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn('Texas FSBO questions', SELLERS)
         self.assertIn('Immediate timeline-specific seller plan', SELLERS)
         self.assertIn('Get my free seller plan', SELLERS)
+        self.assertIn("'launch_kit'", SELLERS)
+        self.assertIn("'premium_bundle'", SELLERS)
         self.assertIn('href="/sellers">FSBO Seller Support</a>', INDEX)
 
     def test_homebuyer_offer_page_is_indexable_and_routes_to_the_existing_safe_workflow(self):
