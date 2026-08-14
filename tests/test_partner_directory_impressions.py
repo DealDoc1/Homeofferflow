@@ -23,6 +23,9 @@ class PartnerDirectoryImpressionTests(unittest.TestCase):
         self.assertIn("request_type:'partner_directory_event'", PUBLIC_DIRECTORY)
         self.assertIn("recordDirectoryEvent('partner_directory_impression'", PUBLIC_DIRECTORY)
         self.assertIn("recordDirectoryEvent('partner_directory_outbound_click'", PUBLIC_DIRECTORY)
+        self.assertIn("recordPartnerApplicationStart", PUBLIC_DIRECTORY)
+        self.assertIn("partner_directory_application_selected", PUBLIC_DIRECTORY)
+        self.assertIn("request_type:'partner_landing_event'", PUBLIC_DIRECTORY)
         self.assertIn("const directorySurface = new URLSearchParams(window.location.search).get('utm_source') === 'fsbo_intake' ? 'fsbo_seller_plan' : 'public_directory';", PUBLIC_DIRECTORY)
         self.assertIn("directory_surface:directorySurface", PUBLIC_DIRECTORY)
         self.assertIn('/_vercel/insights/script.js', PUBLIC_DIRECTORY)
@@ -37,6 +40,8 @@ class PartnerDirectoryImpressionTests(unittest.TestCase):
         self.assertIn('"partnerDirectoryFsboSellerPlanImpressionCount"', api)
         self.assertIn('"partnerDirectoryFsboSellerPlanOutboundClickCount"', api)
         self.assertIn('Directory value:', HTML)
+        self.assertIn('Directory acquisition:', HTML)
+        self.assertIn('"partnerDirectoryApplicationStartCount"', api)
         self.assertIn('Directory performance:', HTML)
         self.assertIn('Aggregate placement traffic only.', HTML)
 

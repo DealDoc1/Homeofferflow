@@ -3619,7 +3619,11 @@ class handler(BaseHTTPRequestHandler):
             # and category. This reveals whether the commercial landing page
             # earns application starts without returning company, contact,
             # market, campaign, or visitor details in the Admin response.
-            partner_landing_event_types = {"partner_landing_viewed", "partner_landing_cta_selected"}
+            partner_landing_event_types = {
+                "partner_landing_viewed",
+                "partner_landing_cta_selected",
+                "partner_directory_application_selected",
+            }
             partner_landing_events = [
                 item for item in events if item.get("event_type") in partner_landing_event_types
             ]
@@ -3628,6 +3632,10 @@ class handler(BaseHTTPRequestHandler):
             ])
             partner_landing_cta_count = len([
                 item for item in partner_landing_events if item.get("event_type") == "partner_landing_cta_selected"
+            ])
+            partner_directory_application_start_count = len([
+                item for item in partner_landing_events
+                if item.get("event_type") == "partner_directory_application_selected"
             ])
             partner_landing_tier_cta_counts = {}
             for item in partner_landing_events:
@@ -4353,6 +4361,7 @@ class handler(BaseHTTPRequestHandler):
                 "partnerLandingCtaRate": round((partner_landing_cta_count / partner_landing_view_count) * 100, 1)
                 if partner_landing_view_count else 0,
                 "partnerLandingTierCtaCounts": partner_landing_tier_cta_counts,
+                "partnerDirectoryApplicationStartCount": partner_directory_application_start_count,
                 "partnerCheckoutEventCounts": partner_checkout_event_counts,
                 "partnerCampaignCategoryCounts": partner_campaign_category_counts,
                 "partnerCampaignTierCounts": partner_campaign_tier_counts,

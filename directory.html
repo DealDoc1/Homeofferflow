@@ -58,6 +58,15 @@
         } catch (_) {}
         track('Provider Directory Search', {category:safeCategory, hasMarket});
       };
+      const recordPartnerApplicationStart = category => {
+        const safeCategory = allowedCategories.has(category) ? category : 'unspecified';
+        try {
+          const key = `hof_public_directory_partner_application_${safeCategory}`;
+          if (sessionStorage.getItem(key)) return;
+          sessionStorage.setItem(key, '1');
+        } catch (_) {}
+        fetch('/api/fsbo-lead', {method:'POST', headers:{'Content-Type':'application/json'}, keepalive:true, body:JSON.stringify({request_type:'partner_landing_event', event_type:'partner_directory_application_selected', tier:'unspecified', category:safeCategory})}).catch(() => {});
+      };
       const recordDirectoryEvent = (eventType, provider) => {
         const partnerId = String(provider?.id || '').trim(), partnerType = String(provider?.partner_type || '').trim(), placementTier = String(provider?.placement_tier || '').trim();
         if (!partnerId || !partnerType || !placementTier) return;
@@ -99,7 +108,11 @@
       const bindPartnerCtas = () => document.querySelectorAll('[data-directory-partner-cta]').forEach(link => {
         if (link.dataset.trackingBound) return;
         link.dataset.trackingBound = '1';
-        link.addEventListener('click', () => track('Provider Directory Partner CTA Selected', {category:$('category').value || 'all'}));
+        link.addEventListener('click', () => {
+          const category = allowedCategories.has($('category').value) ? $('category').value : 'unspecified';
+          track('Provider Directory Partner CTA Selected', {category});
+          recordPartnerApplicationStart(category);
+        });
       });
       const bindConsumerCtas = () => document.querySelectorAll('[data-directory-consumer-cta]').forEach(link => {
         if (link.dataset.trackingBound) return;

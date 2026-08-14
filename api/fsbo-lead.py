@@ -80,6 +80,7 @@ FSBO_LANDING_EVENT_TYPES = {
 PARTNER_LANDING_EVENT_TYPES = {
     "partner_landing_viewed": "viewed",
     "partner_landing_cta_selected": "selected",
+    "partner_directory_application_selected": "application_selected",
 }
 ONDEMAND_LANDING_EVENT_TYPES = {
     "ondemand_landing_viewed": "viewed",
@@ -352,7 +353,11 @@ def _record_partner_landing_event(data):
         event_type,
         PARTNER_LANDING_EVENT_TYPES[event_type],
         "Privacy-safe public partner landing engagement recorded.",
-        {"surface": "partner_landing", "tier": tier, "category": category},
+        {
+            "surface": "partner_directory" if event_type == "partner_directory_application_selected" else "partner_landing",
+            "tier": tier,
+            "category": category,
+        },
     )
 
 
