@@ -162,6 +162,8 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn('property="og:url" content="https://www.homeofferflow.com/agents"', AGENTS)
         self.assertIn('href="/?agent=1"', AGENTS)
         self.assertIn('No password and no charge to open the workspace.', AGENTS)
+        self.assertIn('href="/ondemand"', AGENTS)
+        self.assertIn('See your 60-day HomeOfferFlow trial', AGENTS)
         self.assertIn({'source': '/agents', 'destination': '/agents.html'}, VERCEL.get('rewrites', []))
 
     def test_investor_workspace_page_is_indexable_and_routes_to_passwordless_sign_in(self):
