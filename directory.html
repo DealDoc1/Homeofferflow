@@ -90,7 +90,7 @@
         track('Partner Directory Impression', {partnerId, partnerType:String(provider.partner_type || ''), placementTier:String(provider.placement_tier || '')}); recordDirectoryEvent('partner_directory_impression', provider);
       });
       const partnerApplicationUrl = category => {
-        const query = new URLSearchParams({partner:'1', utm_source:'provider_directory', utm_medium:'owned_directory', utm_campaign:'partner_acquisition'});
+        const query = new URLSearchParams({partner:'1', partner_quick_start:'1', utm_source:'provider_directory', utm_medium:'owned_directory', utm_campaign:'partner_acquisition'});
         if (category && allowedCategories.has(category)) query.set('partner_category', category);
         return '/?' + query.toString();
       };

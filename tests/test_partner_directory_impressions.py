@@ -24,6 +24,8 @@ class PartnerDirectoryImpressionTests(unittest.TestCase):
         self.assertIn("recordDirectoryEvent('partner_directory_impression'", PUBLIC_DIRECTORY)
         self.assertIn("recordDirectoryEvent('partner_directory_outbound_click'", PUBLIC_DIRECTORY)
         self.assertIn("recordPartnerApplicationStart", PUBLIC_DIRECTORY)
+        self.assertIn("partner_quick_start:'1'", PUBLIC_DIRECTORY)
+        self.assertIn("partner_category", PUBLIC_DIRECTORY)
         self.assertIn("partner_directory_application_selected", PUBLIC_DIRECTORY)
         self.assertIn("request_type:'partner_landing_event'", PUBLIC_DIRECTORY)
         self.assertIn("const directorySurface = new URLSearchParams(window.location.search).get('utm_source') === 'fsbo_intake' ? 'fsbo_seller_plan' : 'public_directory';", PUBLIC_DIRECTORY)
