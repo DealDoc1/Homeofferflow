@@ -4003,7 +4003,8 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     const eventMetadata = adminEventMetadata({ paid, onboarding, activationStage, surface: 'admin' });
     const onboardingButton = paid && !setupComplete ? ` <button type="button" class="admin-contact-action" onclick="copyPartnerOnboardingLink('${adminSafe(row.id, '')}')">Copy setup link</button><button type="button" class="admin-contact-action" onclick="copyPartnerOnboardingInvitation('${adminSafe(row.id, '')}')">Copy setup invitation</button><button type="button" class="admin-contact-action" onclick="emailPartnerOnboardingLink('${adminSafe(row.id, '')}')">Email setup link</button>` : '';
     const agreementStatus = String(row?.partner_agreement_status || 'not_started').toLowerCase();
-    const agreementButton = paid && ['complete', 'completed'].includes(onboarding) && !['signed', 'sent'].includes(agreementStatus)
+    const agreementSendAvailable = String(readiness.code || '') !== 'agreement_review_pending';
+    const agreementButton = paid && agreementSendAvailable && ['complete', 'completed'].includes(onboarding) && !['signed', 'sent'].includes(agreementStatus)
       ? ` <button type="button" class="admin-contact-action" onclick="sendPartnerAgreementForSignature('${adminSafe(row.id, '')}')">Send agreement to SignWell</button>`
       : '';
     const checkoutButton = !paid && String(row?.payment_status || '') === 'checkout_started'

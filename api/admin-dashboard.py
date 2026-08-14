@@ -127,6 +127,8 @@ def _partner_activation_readiness(lead, now=None):
         return {"code": "awaiting_agreement", "label": "Awaiting agreement signature", "tone": "warn", "next_action": "Await completed SignWell agreement.", "partner_message": "review and sign the HomeOfferFlow Partner Marketplace Agreement sent through SignWell"}
     if agreement in {"declined", "expired", "void"}:
         return {"code": "agreement_needs_resolution", "label": "Agreement needs resolution", "tone": "warn", "next_action": "Resolve the agreement before activation.", "partner_message": "contact us about the HomeOfferFlow Partner Marketplace Agreement before placement activation"}
+    if not PARTNER_AGREEMENT_SIGNING_ENABLED:
+        return {"code": "agreement_review_pending", "label": "Agreement review pending", "tone": "warn", "next_action": "Complete agreement approval before sending through SignWell.", "partner_message": "we will send the HomeOfferFlow Partner Marketplace Agreement after its final review"}
     return {"code": "agreement_ready_to_send", "label": "Send agreement", "tone": "warn", "next_action": "Send the agreement through SignWell.", "partner_message": "expect the HomeOfferFlow Partner Marketplace Agreement for signature"}
 
 

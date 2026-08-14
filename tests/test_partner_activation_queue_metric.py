@@ -42,6 +42,19 @@ class PartnerActivationQueueMetricTests(unittest.TestCase):
             "onboarding_token_expires_at": (now + timedelta(days=1)).isoformat(),
         }, now)["code"], "ready_to_activate")
 
+    def test_unsent_agreement_reflects_its_live_signing_configuration(self):
+        spec = importlib.util.spec_from_file_location("partner_activation_admin", Path("api/admin-dashboard.py"))
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        original = module.PARTNER_AGREEMENT_SIGNING_ENABLED
+        try:
+            module.PARTNER_AGREEMENT_SIGNING_ENABLED = False
+            self.assertEqual(module._partner_activation_readiness({"onboarding_status": "complete"})["code"], "agreement_review_pending")
+            module.PARTNER_AGREEMENT_SIGNING_ENABLED = True
+            self.assertEqual(module._partner_activation_readiness({"onboarding_status": "complete"})["code"], "agreement_ready_to_send")
+        finally:
+            module.PARTNER_AGREEMENT_SIGNING_ENABLED = original
+
 
 if __name__ == '__main__':
     unittest.main()
