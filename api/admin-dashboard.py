@@ -3927,6 +3927,30 @@ class handler(BaseHTTPRequestHandler):
             seller_review_attestation_count = len([
                 item for item in events if item.get("event_type") == "seller_review_attested"
             ])
+            # Public seller-page events contain only an allowlisted event name
+            # and package choice.  They let operations distinguish landing-page
+            # traffic from intake friction without retaining visitor, property,
+            # referrer, or campaign-detail data in the Admin response.
+            seller_landing_event_types = {"fsbo_landing_viewed", "fsbo_landing_cta_selected"}
+            seller_landing_events = [
+                item for item in events if item.get("event_type") in seller_landing_event_types
+            ]
+            seller_landing_view_count = len([
+                item for item in seller_landing_events if item.get("event_type") == "fsbo_landing_viewed"
+            ])
+            seller_landing_cta_count = len([
+                item for item in seller_landing_events if item.get("event_type") == "fsbo_landing_cta_selected"
+            ])
+            seller_landing_package_cta_counts = {}
+            for item in seller_landing_events:
+                if item.get("event_type") != "fsbo_landing_cta_selected":
+                    continue
+                service_level = str((item.get("metadata") or {}).get("serviceLevel") or "").strip().lower()
+                if service_level in {"free_intake", "seller_prep", "launch_kit", "flat_fee_mls", "offer_review", "contract_help", "premium_bundle"}:
+                    seller_landing_package_cta_counts[service_level] = seller_landing_package_cta_counts.get(service_level, 0) + 1
+            seller_landing_package_cta_counts = dict(sorted(
+                seller_landing_package_cta_counts.items(), key=lambda item: (-item[1], item[0])
+            ))
             # Seller package choices are an allowlisted product catalog. Surface
             # only aggregate submitted-request demand; do not expose seller,
             # property, campaign, or contact data just to measure revenue fit.
@@ -4004,6 +4028,11 @@ class handler(BaseHTTPRequestHandler):
                 "sandboxPartnerLeadCount": sandbox_partner_lead_count,
                 "qualifiedPartnerLeadCount": len([lead for lead in partner_leads if lead.get("status") in {"qualified", "converted"}]),
                 "sellerLeadCount": len(seller_leads),
+                "sellerLandingViewCount": seller_landing_view_count,
+                "sellerLandingCtaCount": seller_landing_cta_count,
+                "sellerLandingCtaRate": round((seller_landing_cta_count / seller_landing_view_count) * 100, 1)
+                if seller_landing_view_count else 0,
+                "sellerLandingPackageCtaCounts": seller_landing_package_cta_counts,
                 "sellerPackageRequestCounts": seller_package_request_counts,
                 "sellerCampaignLeadCount": len(tracked_seller_campaign_leads),
                 "sellerCampaignMediumCounts": seller_campaign_medium_counts,

@@ -70,6 +70,10 @@ MONTHLY_PRICE_ENV_BY_TIER = {
 }
 PARTNER_DIRECTORY_EVENT_TYPES = {"partner_directory_impression": "shown", "partner_directory_outbound_click": "clicked"}
 PARTNER_DIRECTORY_TIERS = {"core", "featured", "premier", "exclusive_market"}
+FSBO_LANDING_EVENT_TYPES = {
+    "fsbo_landing_viewed": "viewed",
+    "fsbo_landing_cta_selected": "selected",
+}
 
 
 def _send(handler, status, payload):
@@ -275,6 +279,22 @@ def _record_partner_directory_event(data):
     if response.status_code >= 300 or not response.json():
         raise ValueError("That partner placement is unavailable.")
     _record_partner_checkout_event(event_type, PARTNER_DIRECTORY_EVENT_TYPES[event_type], "Privacy-safe public partner directory engagement recorded.", {"partnerId": partner_id, "partnerType": partner_type, "placementTier": placement_tier})
+
+
+def _record_fsbo_landing_event(data):
+    """Persist aggregate seller-landing engagement without visitor or property data."""
+    event_type = _text(data.get("event_type"), 80)
+    service_level = _text(data.get("service_level"), 80) or "free_intake"
+    if event_type not in FSBO_LANDING_EVENT_TYPES:
+        raise ValueError("Unsupported seller landing event.")
+    if service_level not in FSBO_PACKAGE_CATALOG:
+        raise ValueError("Unsupported seller package.")
+    _record_partner_checkout_event(
+        event_type,
+        FSBO_LANDING_EVENT_TYPES[event_type],
+        "Privacy-safe public seller landing engagement recorded.",
+        {"surface": "seller_landing", "serviceLevel": service_level},
+    )
 
 
 def _partner_checkout_origin(headers):
@@ -580,6 +600,13 @@ class handler(BaseHTTPRequestHandler):
             if _text(data.get('request_type'), 80) == 'partner_directory_event':
                 try:
                     _record_partner_directory_event(data)
+                    return _send(self, 200, {'ok': True})
+                except ValueError as exc:
+                    return _send(self, 400, {'error': str(exc)})
+
+            if _text(data.get('request_type'), 80) == 'fsbo_landing_event':
+                try:
+                    _record_fsbo_landing_event(data)
                     return _send(self, 200, {'ok': True})
                 except ValueError as exc:
                     return _send(self, 400, {'error': str(exc)})
