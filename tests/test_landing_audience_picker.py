@@ -38,7 +38,7 @@ class LandingAudiencePickerTests(unittest.TestCase):
         audience_end = HTML.index('</div>\n</section>', audience_start)
         audience = HTML[audience_start:audience_end]
         for audience_key, label in (
-            ("homebuyer", "Start a $99 HomeOfferFlow homebuyer offer"),
+            ("homebuyer", "Build a HomeOfferFlow homebuyer offer with no payment to start"),
             ("agent", "Open the HomeOfferFlow agent and broker workspace"),
             ("investor", "Open the HomeOfferFlow investor workspace"),
         ):
@@ -48,6 +48,7 @@ class LandingAudiencePickerTests(unittest.TestCase):
         self.assertEqual(audience.count("beginOfferFrom('landing_audience_card_"), 3)
         self.assertIn("audience_grid_card", audience)
         self.assertIn(".audience-card-action", HTML)
+        self.assertIn("No payment to start · $99 when ready", audience)
 
     def test_anonymous_first_visit_keeps_the_homebuyer_path_after_account_enhancements_load(self):
         enhancement_start = HTML.index('id="hof-broker-role-v14-js"')

@@ -22,6 +22,11 @@ class LandingHeroConversionLayoutTests(unittest.TestCase):
             "cta: 'Build Your Offer — No Payment to Start'",
             HTML,
         )
+        self.assertIn(
+            'id="bottomCta" onclick="beginOfferFrom(\'landing_bottom_cta\')">Build Your Offer — No Payment to Start</button>',
+            HTML,
+        )
+        self.assertIn("the homebuyer offer packet is $99 only when ready.", HTML)
 
     def test_public_offer_ctas_record_a_non_sensitive_conversion_surface(self):
         for surface in (

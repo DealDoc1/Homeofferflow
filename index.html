@@ -2644,8 +2644,8 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   <div class="section-label">Who It's For</div>
   <h2>Built for every side of the Texas transaction.</h2>
   <div class="audience-grid">
-    <button type="button" class="audience-card audience-card-link audience-card-action" onclick="setAudience('homebuyer'); trackEvent('Landing Audience Selected', { audience: 'homebuyer', surface: 'audience_grid_card' }); beginOfferFrom('landing_audience_card_homebuyer');" aria-label="Start a $99 HomeOfferFlow homebuyer offer">
-      <div class="audience-icon">🏠</div><h3>Homebuyers</h3><p>Build a Texas resale offer packet with plain-English guidance, AI competitiveness review, and buyer-side signing when the packet is ready.</p><span class="audience-price">Start a $99 offer packet</span>
+    <button type="button" class="audience-card audience-card-link audience-card-action" onclick="setAudience('homebuyer'); trackEvent('Landing Audience Selected', { audience: 'homebuyer', surface: 'audience_grid_card' }); beginOfferFrom('landing_audience_card_homebuyer');" aria-label="Build a HomeOfferFlow homebuyer offer with no payment to start">
+      <div class="audience-icon">🏠</div><h3>Homebuyers</h3><p>Build a Texas resale offer packet with plain-English guidance, AI competitiveness review, and buyer-side signing when the packet is ready.</p><span class="audience-price">No payment to start · $99 when ready</span>
     </button>
     <button type="button" class="audience-card audience-card-link audience-card-action" onclick="setAudience('agent'); trackEvent('Landing Audience Selected', { audience: 'agent', surface: 'audience_grid_card' }); beginOfferFrom('landing_audience_card_agent');" aria-label="Open the HomeOfferFlow agent and broker workspace">
       <div class="audience-icon">🏢</div><h3>Agents & Brokers</h3><p>Create supported Texas buyer-offer packets from the field, track buyer-side signature status, duplicate prior offers, and collect broker-reviewed feedback.</p><span class="audience-price">Open agent / broker workspace</span>
@@ -2673,8 +2673,8 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   <div class="cta-box">
     <h2>Ready to write your offer?</h2>
     <p>Choose the right path: $99 buyer offer packets, agent/broker beta workspace, investor repeat-offer workflow, or FSBO seller package intake.</p>
-    <button class="btn-primary" id="bottomCta" onclick="beginOfferFrom('landing_bottom_cta')">Start Your Offer — $99</button>
-    <div class="hero-price-note" id="bottomPriceNote">Homebuyer offer packet: <strong>$99</strong>. FSBO seller packages are intake-only for now; brokerage-connected services start higher to cover broker/provider requirements.</div>
+    <button class="btn-primary" id="bottomCta" onclick="beginOfferFrom('landing_bottom_cta')">Build Your Offer — No Payment to Start</button>
+    <div class="hero-price-note" id="bottomPriceNote">No payment is required to start. Review your completed offer summary before checkout; <strong>the homebuyer offer packet is $99 only when ready.</strong> FSBO seller packages are intake-only for now; brokerage-connected services start higher to cover broker/provider requirements.</div>
   </div>
 </section>
 
