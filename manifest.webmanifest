@@ -19,6 +19,12 @@
       "short_name": "New Offer",
       "description": "Start or resume a saved agent offer.",
       "url": "/?pwa_action=new_offer"
+    },
+    {
+      "name": "Signing Queue",
+      "short_name": "Signing",
+      "description": "Review buyer packets awaiting signature.",
+      "url": "/?pwa_action=signing_queue"
     }
   ],
   "display": "standalone",

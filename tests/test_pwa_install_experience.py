@@ -18,7 +18,7 @@ class PwaInstallExperienceTests(unittest.TestCase):
         self.assertIn("pwa-install-benefits", INDEX)
         self.assertIn("offers and client details stay protected online", INDEX)
         self.assertIn("const workspaceReturnCopy = target.surface === 'account_dashboard'", INDEX)
-        self.assertIn('shortcuts for My Workspace and New Agent Offer', INDEX)
+        self.assertIn('shortcuts for My Workspace, New Agent Offer, and Signing Queue', INDEX)
 
     def test_completed_homebuyer_review_can_offer_install_without_account_login(self):
         self.assertIn("function installTarget()", INDEX)
@@ -95,7 +95,7 @@ class PwaInstallExperienceTests(unittest.TestCase):
         self.assertIn("window.openAccountDashboard = async function openAccountDashboardWithPendingPwaShortcut()", INDEX)
 
     def test_only_safe_declared_shortcuts_can_be_saved_or_routed_after_authentication(self):
-        self.assertIn("const validActions = new Set(['workspace', 'new_offer']);", INDEX)
+        self.assertIn("const validActions = new Set(['workspace', 'new_offer', 'signing_queue']);", INDEX)
         self.assertIn("if (!validActions.has(action)) return;", INDEX)
         self.assertIn("sessionStorage.removeItem(pendingActionKey)", INDEX)
 

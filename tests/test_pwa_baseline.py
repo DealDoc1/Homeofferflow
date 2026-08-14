@@ -28,7 +28,11 @@ class PwaBaselineTests(unittest.TestCase):
         self.assertEqual(MANIFEST["theme_color"], "#173f35")
         self.assertEqual(
             [(item["name"], item["url"]) for item in MANIFEST["shortcuts"]],
-            [("My Workspace", "/?pwa_action=workspace"), ("New Agent Offer", "/?pwa_action=new_offer")],
+            [
+                ("My Workspace", "/?pwa_action=workspace"),
+                ("New Agent Offer", "/?pwa_action=new_offer"),
+                ("Signing Queue", "/?pwa_action=signing_queue"),
+            ],
         )
         self.assertTrue(any(icon["src"] == "/assets/homeofferflow-app-icon.svg" for icon in MANIFEST["icons"]))
         self.assertTrue(any(icon["src"] == "/assets/homeofferflow-app-icon-192.png" and icon["sizes"] == "192x192" for icon in MANIFEST["icons"]))
@@ -57,11 +61,14 @@ class PwaBaselineTests(unittest.TestCase):
 
     def test_installed_app_shortcuts_use_existing_authenticated_workflows(self):
         self.assertIn('id="hof-pwa-shortcuts-v1"', INDEX)
-        self.assertIn("const validActions = new Set(['workspace', 'new_offer']);", INDEX)
+        self.assertIn("const validActions = new Set(['workspace', 'new_offer', 'signing_queue']);", INDEX)
         self.assertIn("if (!validActions.has(action)) return;", INDEX)
         self.assertIn("window.openAuthModal?.(role)", INDEX)
         self.assertIn("window.openAccountDashboard?.({ tab: 'dashboard' })", INDEX)
         self.assertIn("window.startAccountOffer?.()", INDEX)
+        self.assertIn("async function openSigningQueue()", INDEX)
+        self.assertIn("window.openAccountDashboard?.({ tab: 'offers' })", INDEX)
+        self.assertIn("window.hofSetOfferWorkspaceFilter?.('signing')", INDEX)
         self.assertIn("PWA Shortcut Used", INDEX)
 
     def test_csp_allows_same_origin_service_worker_registration(self):
