@@ -31,6 +31,11 @@ class HomebuyerLandingFunnelTests(unittest.TestCase):
         self.assertIn("channel: safeChannel", BUYERS)
         self.assertIn("keepalive: true", BUYERS)
 
+    def test_buyer_ctas_match_the_no_payment_before_review_flow(self):
+        self.assertEqual(BUYERS.count("Build my offer — no payment to start"), 2)
+        self.assertIn("The $99 one-time charge applies only when the packet is ready.", BUYERS)
+        self.assertIn('"price":"99"', BUYERS)
+
     def test_public_buyer_cta_opens_the_guided_offer_workflow_on_a_fresh_visit(self):
         self.assertIn('href="/?buyer=1"', BUYERS)
         self.assertIn("if (params().get('buyer') === '1') setTimeout(() =>", INDEX)
