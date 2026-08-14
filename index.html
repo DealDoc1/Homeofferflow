@@ -17807,7 +17807,7 @@ function routeAfterMagicLinkIfNeeded() {
       ? 'Save this seller plan to your Home Screen so it is one tap away when you return to photos, repairs, timing, or provider questions.'
       : '';
     const workspaceReturnCopy = target.surface === 'account_dashboard'
-      ? 'Use the app icon for a focused workspace launch, with shortcuts for My Workspace, New Agent Offer, and Signing Queue.'
+      ? 'Use the app icon for a focused workspace launch, with shortcuts for My Workspace, New Agent Offer, Signing Queue, and Seller Plan.'
       : '';
     card.innerHTML = `<h4>Keep HomeOfferFlow one tap away</h4>
       <p>${ios
@@ -17953,7 +17953,7 @@ function routeAfterMagicLinkIfNeeded() {
 (function(){
   const pendingActionKey = 'hof_pwa_shortcut_pending_action';
   const ondemandFirstOfferAttributionKey = 'hof_ondemand_first_offer_attribution';
-  const validActions = new Set(['workspace', 'new_offer', 'signing_queue']);
+  const validActions = new Set(['workspace', 'new_offer', 'signing_queue', 'seller_plan']);
 
   function pendingAction(){
     try {
@@ -17999,6 +17999,14 @@ function routeAfterMagicLinkIfNeeded() {
 
   async function runAction(action, { resumedAfterSignIn = false } = {}){
     if (!validActions.has(action)) return;
+    if (action === 'seller_plan') {
+      // Seller intake is intentionally public: this shortcut restores the
+      // FSBO planning path without requiring a new account or native app.
+      try { window.setAudience?.('fsbo'); } catch (_) {}
+      window.openFsboSellerModal?.();
+      trackShortcut(action, 'seller', resumedAfterSignIn);
+      return;
+    }
     const role = window.hofAuth?.role === 'investor' ? 'investor' : 'agent';
     if (!window.hofAuth?.session) {
       try { sessionStorage.setItem(pendingActionKey, action); } catch (_) {}

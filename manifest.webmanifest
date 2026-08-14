@@ -25,6 +25,12 @@
       "short_name": "Signing",
       "description": "Review buyer packets awaiting signature.",
       "url": "/?pwa_action=signing_queue"
+    },
+    {
+      "name": "Seller Plan",
+      "short_name": "Seller Plan",
+      "description": "Return to the FSBO seller plan and package request.",
+      "url": "/?pwa_action=seller_plan"
     }
   ],
   "display": "standalone",
