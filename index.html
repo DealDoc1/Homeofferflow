@@ -14600,6 +14600,28 @@ function routeAfterMagicLinkIfNeeded() {
       </div>`);
   }
 
+  // Keep the brokerage-specific trial visible only when a visitor has chosen
+  // the agent path. It is intentionally separate from the ordinary workspace
+  // CTA so non-OnDemand agents are never steered into the wrong enrollment.
+  function syncOnDemandHeroTrialCta(type){
+    const existing = document.getElementById('onDemandHeroTrialCta');
+    if (type !== 'agent') {
+      existing?.remove();
+      return;
+    }
+    if (existing) return;
+    const actions = document.querySelector('.hero-actions');
+    if (!actions) return;
+    const link = document.createElement('a');
+    link.id = 'onDemandHeroTrialCta';
+    link.className = 'btn-secondary';
+    link.href = '/ondemand';
+    link.textContent = 'OnDemand agent? Start 60 days free';
+    link.setAttribute('aria-label', 'OnDemand Realty agent: start a 60-day free trial; card required');
+    link.addEventListener('click', () => trackEvent('OnDemand Trial Link Selected', { surface: 'agent_hero_secondary_cta' }));
+    actions.appendChild(link);
+  }
+
   const oldSetAudience = root.setAudience;
   root.setAudience = function setAudience(type){
     if (typeof oldSetAudience === 'function') oldSetAudience(type);
@@ -14629,6 +14651,7 @@ function routeAfterMagicLinkIfNeeded() {
     const ids = {heroHeadline:'headline', heroSub:'sub', heroCta:'cta', navCta:'nav', bottomCta:'cta'};
     Object.entries(ids).forEach(([id,key]) => { const el = document.getElementById(id); if(!el) return; if(key==='headline') el.innerHTML = selected[key]; else el.textContent = selected[key]; });
     ['heroPriceNote','bottomPriceNote'].forEach(id => { const el=document.getElementById(id); if(el) el.innerHTML=selected.note; });
+    syncOnDemandHeroTrialCta(type);
     addLandingPathStrip();
   };
 

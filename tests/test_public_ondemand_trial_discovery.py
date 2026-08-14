@@ -18,6 +18,13 @@ class PublicOnDemandTrialDiscoveryTests(unittest.TestCase):
         self.assertIn("card required", agent_copy)
         self.assertIn("OnDemand Trial Link Selected", agent_copy)
 
+    def test_agent_path_surfaces_a_dedicated_trial_cta_without_showing_it_to_other_audiences(self):
+        self.assertIn("function syncOnDemandHeroTrialCta(type)", INDEX)
+        self.assertIn("if (type !== 'agent')", INDEX)
+        self.assertIn("onDemandHeroTrialCta", INDEX)
+        self.assertIn("OnDemand agent? Start 60 days free", INDEX)
+        self.assertIn("surface: 'agent_hero_secondary_cta'", INDEX)
+
 
 if __name__ == "__main__":
     unittest.main()
