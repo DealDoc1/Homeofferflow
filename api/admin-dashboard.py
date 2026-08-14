@@ -4058,6 +4058,14 @@ class handler(BaseHTTPRequestHandler):
                 item for item in events
                 if item.get("event_type") == "pwa_buyer_offer_opened"
             ])
+            # The seller's post-intake directory step is deliberately measured
+            # as an aggregate bridge: operations can see whether seller demand
+            # reaches provider discovery without receiving seller, property,
+            # market-query, or contact details in reporting.
+            fsbo_provider_directory_open_count = len([
+                item for item in events
+                if item.get("event_type") == "fsbo_provider_directory_opened"
+            ])
             activation_follow_up_email_start_count = len([
                 item for item in events if item.get("event_type") == "activation_follow_up_email_started"
             ])
@@ -4479,6 +4487,7 @@ class handler(BaseHTTPRequestHandler):
                 "pwaInstallShownSurfaceCounts": pwa_install_shown_surface_counts,
                 "pwaSellerPlanShortcutCount": pwa_seller_plan_shortcut_count,
                 "pwaBuyerOfferShortcutCount": pwa_buyer_offer_shortcut_count,
+                "fsboProviderDirectoryOpenCount": fsbo_provider_directory_open_count,
                 "pwaInstallShownCount": pwa_install_event_counts["shown"],
                 "pwaInstallCtaClickCount": pwa_install_event_counts["cta_clicked"],
                 "pwaInstallPromptOpenCount": pwa_install_event_counts["prompt_opened"],

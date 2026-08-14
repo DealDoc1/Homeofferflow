@@ -4527,6 +4527,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.pwaInstallInstructionsOpenCount || 0} Home Screen instruction${Number(metrics.pwaInstallInstructionsOpenCount || 0) === 1 ? '' : 's'} opened (${Number(metrics.pwaInstallGuidanceOpenRate || 0).toFixed(1)}% of prompts shown).</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.pwaSellerPlanShortcutCount || 0} Seller Plan shortcut return${Number(metrics.pwaSellerPlanShortcutCount || 0) === 1 ? '' : 's'} opened.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.pwaBuyerOfferShortcutCount || 0} Buyer Offer shortcut return${Number(metrics.pwaBuyerOfferShortcutCount || 0) === 1 ? '' : 's'} opened.</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.fsboProviderDirectoryOpenCount || 0} post-intake seller directory visit${Number(metrics.fsboProviderDirectoryOpenCount || 0) === 1 ? '' : 's'} opened.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.pwaInstallAcceptedCount || 0} accepted · ${metrics.pwaInstallDismissedCount || 0} dismissed · ${Number(metrics.pwaInstallCompletionRate || 0).toFixed(1)}% installed after an install prompt opened.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">PWA only: app-like mobile access without a separate native-app build or store overhead.</div>
           </div>
@@ -12442,6 +12443,23 @@ function routeAfterMagicLinkIfNeeded() {
     link.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
+  window.openFsboProviderDirectory = function openFsboProviderDirectory() {
+    const selectedPartners = getFsboPartners();
+    // Use a category only when the seller made one clear, explicit interest
+    // selection. Do not turn several needs into a guessed provider choice.
+    const category = selectedPartners.length === 1 ? selectedPartners[0] : '';
+    const serviceLevel = fsboVal('fsboNeed') || 'free_intake';
+    trackFsboFunnel('FSBO Provider Directory Opened', { package: serviceLevel, category: category || 'all' });
+    try {
+      fetch('/api/fsbo-lead', {
+        method: 'POST', headers: {'Content-Type':'application/json'}, keepalive: true,
+        body: JSON.stringify({request_type: 'fsbo_landing_event', event_type: 'fsbo_provider_directory_opened', service_level: serviceLevel})
+      }).catch(() => {});
+    } catch (_) {}
+    const query = new URLSearchParams({utm_source: 'fsbo_intake', utm_medium: 'seller_plan', utm_campaign: 'provider_discovery'});
+    if (category) query.set('category', category);
+    window.location.assign('/directory?' + query.toString());
+  };
   window.submitFsboSellerLead = async function(source = 'full'){
     const status = document.getElementById('fsboSellerStatus');
     const submitButtons = [...document.querySelectorAll('[data-fsbo-submit]')];
@@ -12518,6 +12536,7 @@ function routeAfterMagicLinkIfNeeded() {
           '<ol style="margin:.65rem 0 .1rem 1.2rem;color:var(--gray-light);line-height:1.45;">' + steps.map(step => '<li>' + escapeAttr(step) + '</li>').join('') + '</ol>' +
           '<div class="account-actions-row" style="margin-top:.7rem;display:flex;gap:.55rem;flex-wrap:wrap;">' +
           '<button class="btn-secondary" type="button" onclick="downloadFsboRequestSummary()">Download seller plan</button>' +
+          '<button class="btn-secondary" type="button" onclick="openFsboProviderDirectory()">Browse available providers</button>' +
           '<button class="btn-secondary" type="button" onclick="closeFsboSellerModal()">Done</button></div>';
         window.setTimeout(() => window.renderPwaInstallCard?.(), 0);
       }

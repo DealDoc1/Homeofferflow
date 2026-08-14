@@ -16,6 +16,7 @@ class FsboLandingFunnelTests(unittest.TestCase):
         self.assertIn('"fsbo_landing_viewed": "viewed"', API)
         self.assertIn('"fsbo_landing_cta_selected": "selected"', API)
         self.assertIn('"pwa_seller_plan_opened": "opened"', API)
+        self.assertIn('"fsbo_provider_directory_opened": "opened"', API)
         self.assertIn("Unsupported seller landing event.", API)
         self.assertIn("Unsupported seller package.", API)
         self.assertIn("'fsbo_landing_event'", API)
@@ -50,6 +51,13 @@ class FsboLandingFunnelTests(unittest.TestCase):
         self.assertIn("event_type: 'pwa_seller_plan_opened'", INDEX)
         self.assertIn('"pwaSellerPlanShortcutCount"', ADMIN)
         self.assertIn("pwa_seller_plan_shortcut_count", ADMIN)
+
+    def test_saved_seller_plan_can_offer_neutral_provider_discovery_without_tracking_personal_data(self):
+        self.assertIn("window.openFsboProviderDirectory = function openFsboProviderDirectory()", INDEX)
+        self.assertIn("event_type: 'fsbo_provider_directory_opened'", INDEX)
+        self.assertIn("window.location.assign('/directory?' + query.toString())", INDEX)
+        self.assertIn("Browse available providers", INDEX)
+        self.assertIn('"fsboProviderDirectoryOpenCount"', ADMIN)
 
 
 if __name__ == "__main__":
