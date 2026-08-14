@@ -32,7 +32,7 @@ class PartnerLandingFunnelTests(unittest.TestCase):
         self.assertIn("keepalive: true", PARTNERS)
 
     def test_partner_page_reduces_checkout_uncertainty_without_changing_price_or_claims(self):
-        self.assertIn("Apply in under 2 minutes", PARTNERS)
+        self.assertIn("Start no-charge application", PARTNERS)
         self.assertIn("Start with a no-charge application", PARTNERS)
         self.assertIn("before any payment", PARTNERS)
         self.assertIn("Apply for Core — no charge yet", PARTNERS)
