@@ -65,14 +65,24 @@
       if (window._hofPlacesSetup) window._hofPlacesSetup();
     };
     window.loadHofPlaces = function() {
-      if (window.google?.maps) return Promise.resolve(true);
+      if (window.google?.maps?.importLibrary || window.google?.maps?.places?.Autocomplete) return Promise.resolve(true);
       if (window._hofPlacesLoadPromise) return window._hofPlacesLoadPromise;
       window._hofPlacesLoadPromise = new Promise(resolve => {
         const script = document.createElement('script');
-        script.src = 'https://maps.googleapis.com/maps/api/js?key=AIzaSyCs554orYvNAmKnIehn7bwAvADCfx71_Oc&libraries=places&callback=initAutocomplete&loading=async';
+        script.src = 'https://maps.googleapis.com/maps/api/js?key=AIzaSyCs554orYvNAmKnIehn7bwAvADCfx71_Oc&v=weekly&libraries=places&callback=initAutocomplete&loading=async';
         script.async = true;
         script.defer = true;
-        script.onload = () => resolve(true);
+        script.onload = () => {
+          let attempts = 0;
+          const waitForPlaces = () => {
+            if (window.google?.maps?.importLibrary || window.google?.maps?.places?.Autocomplete) return resolve(true);
+            attempts += 1;
+            if (attempts < 30) return window.setTimeout(waitForPlaces, 100);
+            console.warn('Google Places could not initialize after loading; manual address entry remains available.');
+            resolve(false);
+          };
+          waitForPlaces();
+        };
         script.onerror = () => {
           console.warn('Google Places could not load; manual address entry remains available.');
           resolve(false);
@@ -9556,6 +9566,8 @@ function routeAfterMagicLinkIfNeeded() {
   let _autocompleteService = null;
   let _sessionToken = null;
   let _dropdown = null;
+  let _placesSetupAttempts = 0;
+  let _placesSetupRetryTimer = null;
 
   const _headCallback = window.initAutocomplete;
   window.initAutocomplete = function() {
@@ -9568,8 +9580,19 @@ function routeAfterMagicLinkIfNeeded() {
     try {
       if (typeof google.maps.importLibrary !== 'function') {
         if (google.maps.places && typeof google.maps.places.Autocomplete === 'function') {
+          _placesSetupAttempts = 0;
           _autocompleteService = 'legacy';
           wireLegacyGoogleAddressInputs();
+          return;
+        }
+        if (_placesSetupAttempts < 30) {
+          _placesSetupAttempts += 1;
+          if (!_placesSetupRetryTimer) {
+            _placesSetupRetryTimer = window.setTimeout(() => {
+              _placesSetupRetryTimer = null;
+              setupPlacesServices();
+            }, 100);
+          }
           return;
         }
         // Address fields remain usable as normal text inputs when the optional
@@ -9579,6 +9602,7 @@ function routeAfterMagicLinkIfNeeded() {
         return;
       }
       const { AutocompleteSuggestion, AutocompleteSessionToken } = await google.maps.importLibrary('places');
+      _placesSetupAttempts = 0;
       window._AutocompleteSuggestion = AutocompleteSuggestion;
       window._AutocompleteSessionToken = AutocompleteSessionToken;
       _sessionToken = new AutocompleteSessionToken();

@@ -129,6 +129,8 @@ class FsboIntakeConversionTests(unittest.TestCase):
 
     def test_seller_address_autocomplete_fails_softly_and_has_a_google_compatibility_path(self):
         self.assertIn("libraries=places", HTML)
+        self.assertIn("v=weekly", HTML)
+        self.assertIn("const waitForPlaces", HTML)
         self.assertIn("typeof google.maps.importLibrary !== 'function'", HTML)
         self.assertIn("wireLegacyGoogleAddressInputs", HTML)
         self.assertIn("google.maps.places.Autocomplete", HTML)
