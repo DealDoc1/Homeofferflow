@@ -59,7 +59,8 @@ class FsboIntakeConversionTests(unittest.TestCase):
         self.assertIn("surface: 'audience_grid'", HTML)
         self.assertIn("setAudience('fsbo'); trackEvent('FSBO Seller Card CTA Selected'", HTML)
         self.assertIn("openFsboSellerModal();", HTML)
-        self.assertIn("Start free — address + email", HTML)
+        self.assertIn("Start a no-charge seller plan in under a minute", HTML)
+        self.assertIn("Start free — address + email · no checkout", HTML)
         card_start = HTML.index("FSBO Seller Card CTA Selected")
         card_end = HTML.index("</a>", card_start)
         card = HTML[card_start:card_end]
