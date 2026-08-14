@@ -15,14 +15,46 @@ alter table public.hof_seller_leads
   add column if not exists timeline text,
   add column if not exists partner_categories jsonb not null default '[]'::jsonb;
 
-alter table public.hof_seller_leads
-  add constraint hof_seller_leads_service_level_length
-    check (service_level is null or char_length(service_level) <= 80),
-  add constraint hof_seller_leads_package_name_length
-    check (package_name is null or char_length(package_name) <= 180),
-  add constraint hof_seller_leads_timeline_length
-    check (timeline is null or char_length(timeline) <= 80),
-  add constraint hof_seller_leads_partner_categories_array
-    check (jsonb_typeof(partner_categories) = 'array');
+-- The production baseline may already contain these equivalent guardrails.
+-- PostgreSQL has no portable ADD CONSTRAINT IF NOT EXISTS syntax, so keep the
+-- migration replay-safe for Supabase previews without weakening validation.
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint
+    where conrelid = 'public.hof_seller_leads'::regclass
+      and conname = 'hof_seller_leads_service_level_length'
+  ) then
+    alter table public.hof_seller_leads add constraint hof_seller_leads_service_level_length
+      check (service_level is null or char_length(service_level) <= 80);
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint
+    where conrelid = 'public.hof_seller_leads'::regclass
+      and conname = 'hof_seller_leads_package_name_length'
+  ) then
+    alter table public.hof_seller_leads add constraint hof_seller_leads_package_name_length
+      check (package_name is null or char_length(package_name) <= 180);
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint
+    where conrelid = 'public.hof_seller_leads'::regclass
+      and conname = 'hof_seller_leads_timeline_length'
+  ) then
+    alter table public.hof_seller_leads add constraint hof_seller_leads_timeline_length
+      check (timeline is null or char_length(timeline) <= 80);
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint
+    where conrelid = 'public.hof_seller_leads'::regclass
+      and conname = 'hof_seller_leads_partner_categories_array'
+  ) then
+    alter table public.hof_seller_leads add constraint hof_seller_leads_partner_categories_array
+      check (jsonb_typeof(partner_categories) = 'array');
+  end if;
+end $$;
 
 commit;

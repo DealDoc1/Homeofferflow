@@ -70,6 +70,17 @@ class SellerLeadIntakeIntegrityTests(unittest.TestCase):
         self.assertIn("mailto:${encodeURIComponent(email)}", INDEX)
         self.assertIn("tel:${encodeURIComponent(phone)}", INDEX)
 
+    def test_package_context_constraints_are_safe_to_replay_in_a_preview(self):
+        self.assertIn("do $$", PACKAGE_MIGRATION)
+        self.assertIn("pg_constraint", PACKAGE_MIGRATION)
+        for marker in (
+            "hof_seller_leads_service_level_length",
+            "hof_seller_leads_package_name_length",
+            "hof_seller_leads_timeline_length",
+            "hof_seller_leads_partner_categories_array",
+        ):
+            self.assertIn(marker, PACKAGE_MIGRATION)
+
     def test_campaign_attribution_is_limited_to_standard_utm_fields(self):
         for marker in (
             "source",
