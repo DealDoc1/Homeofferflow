@@ -54,6 +54,11 @@
         } catch (_) {}
         track('Provider Directory Search', {category:safeCategory, hasMarket});
       };
+      const recordDirectoryEvent = (eventType, provider) => {
+        const partnerId = String(provider?.id || '').trim(), partnerType = String(provider?.partner_type || '').trim(), placementTier = String(provider?.placement_tier || '').trim();
+        if (!partnerId || !partnerType || !placementTier) return;
+        fetch('/api/fsbo-lead', {method:'POST', headers:{'Content-Type':'application/json'}, keepalive:true, body:JSON.stringify({request_type:'partner_directory_event', event_type:eventType, partner_id:partnerId, partner_type:partnerType, placement_tier:placementTier})}).catch(() => {});
+      };
       const trackImpressions = rows => (rows || []).forEach(provider => {
         const partnerId = String(provider?.id || '').trim();
         if (!partnerId) return;
@@ -62,7 +67,7 @@
           if (sessionStorage.getItem(key)) return;
           sessionStorage.setItem(key, '1');
         } catch (_) {}
-        track('Partner Directory Impression', {partnerId, partnerType:String(provider.partner_type || ''), placementTier:String(provider.placement_tier || '')});
+        track('Partner Directory Impression', {partnerId, partnerType:String(provider.partner_type || ''), placementTier:String(provider.placement_tier || '')}); recordDirectoryEvent('partner_directory_impression', provider);
       });
       const partnerApplicationUrl = category => {
         const query = new URLSearchParams({partner:'1', utm_source:'provider_directory', utm_medium:'owned_directory', utm_campaign:'partner_acquisition'});
@@ -86,7 +91,7 @@
         const website = safeUrl(provider.website_url);
         return `<article class="card">${provider.logo_url ? `<img src="${esc(provider.logo_url)}" alt="">` : ''}<h2>${esc(provider.partner_name)}</h2><div class="meta">${esc(labels[provider.partner_type] || 'Local service')} · ${esc(provider.market_area || 'Texas')}</div><p>Sponsored ${esc(provider.placement_tier || 'partner')} profile. Confirm fit, availability, and terms directly with the provider.</p>${website ? `<a href="${esc(website)}" data-partner-link data-partner-id="${esc(provider.id)}" data-partner-type="${esc(provider.partner_type)}" data-placement-tier="${esc(provider.placement_tier)}" target="_blank" rel="noopener noreferrer">Visit site ↗</a>` : ''}</article>`;
       };
-      const bindOutboundClicks = () => document.querySelectorAll('[data-partner-link]').forEach(link => link.addEventListener('click', () => track('Partner Directory Outbound Click', {partnerId:link.dataset.partnerId || '', partnerType:link.dataset.partnerType || '', placementTier:link.dataset.placementTier || ''})));
+      const bindOutboundClicks = () => document.querySelectorAll('[data-partner-link]').forEach(link => link.addEventListener('click', () => { const provider = {id:link.dataset.partnerId || '', partner_type:link.dataset.partnerType || '', placement_tier:link.dataset.placementTier || ''}; track('Partner Directory Outbound Click', {partnerId:provider.id, partnerType:provider.partner_type, placementTier:provider.placement_tier}); recordDirectoryEvent('partner_directory_outbound_click', provider); }));
       const bindPartnerCtas = () => document.querySelectorAll('[data-directory-partner-cta]').forEach(link => {
         if (link.dataset.trackingBound) return;
         link.dataset.trackingBound = '1';

@@ -20,7 +20,23 @@ class PartnerDirectoryImpressionTests(unittest.TestCase):
         self.assertIn("Partner Directory Outbound Click", PUBLIC_DIRECTORY)
         self.assertIn("hof_public_partner_impression_", PUBLIC_DIRECTORY)
         self.assertIn("data-partner-link", PUBLIC_DIRECTORY)
+        self.assertIn("request_type:'partner_directory_event'", PUBLIC_DIRECTORY)
+        self.assertIn("recordDirectoryEvent('partner_directory_impression'", PUBLIC_DIRECTORY)
+        self.assertIn("recordDirectoryEvent('partner_directory_outbound_click'", PUBLIC_DIRECTORY)
         self.assertIn('/_vercel/insights/script.js', PUBLIC_DIRECTORY)
+
+    def test_admin_metrics_can_report_aggregate_paid_directory_value(self):
+        api = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
+        self.assertIn('"partnerDirectoryImpressionCount"', api)
+        self.assertIn('"partnerDirectoryOutboundClickCount"', api)
+        self.assertIn('"partnerDirectoryOutboundClickRate"', api)
+        self.assertIn('Directory value:', HTML)
+
+    def test_public_directory_event_is_bound_to_an_active_allowlisted_placement(self):
+        api = (ROOT / "api" / "fsbo-lead.py").read_text(encoding="utf-8")
+        self.assertIn('"is_active": "eq.true"', api)
+        self.assertIn('"placement_tier": f"eq.{placement_tier}"', api)
+        self.assertIn('That partner placement is unavailable.', api)
 
     def test_public_directory_records_category_demand_without_market_text(self):
         self.assertIn('trackSearchDemand', PUBLIC_DIRECTORY)

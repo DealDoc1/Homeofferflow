@@ -3441,6 +3441,15 @@ class handler(BaseHTTPRequestHandler):
             partner_campaign_channel_counts = dict(sorted(
                 partner_campaign_channel_counts.items(), key=lambda item: (-item[1], item[0])
             ))
+            # Directory traffic is recorded server-side only as placement ID,
+            # category, and tier. This lets operators evaluate paid-placement
+            # value without retaining a visitor, search text, or destination URL.
+            partner_directory_impression_count = len([
+                item for item in events if item.get("event_type") == "partner_directory_impression"
+            ])
+            partner_directory_outbound_click_count = len([
+                item for item in events if item.get("event_type") == "partner_directory_outbound_click"
+            ])
             # A setup-link email is a deliberate platform-admin action. Keep this
             # aggregate separate from mailto follow-ups so the paid-partner
             # onboarding funnel shows whether secure access is actually being
@@ -4009,6 +4018,11 @@ class handler(BaseHTTPRequestHandler):
                 "partnerCampaignCategoryCounts": partner_campaign_category_counts,
                 "partnerCampaignTierCounts": partner_campaign_tier_counts,
                 "partnerCampaignChannelCounts": partner_campaign_channel_counts,
+                "partnerDirectoryImpressionCount": partner_directory_impression_count,
+                "partnerDirectoryOutboundClickCount": partner_directory_outbound_click_count,
+                "partnerDirectoryOutboundClickRate": round(
+                    (partner_directory_outbound_click_count / partner_directory_impression_count) * 100, 1
+                ) if partner_directory_impression_count else 0,
                 "partnerCheckoutStartCount": partner_checkout_event_counts["checkout_started"],
                 "partnerCheckoutStripeOpenCount": partner_checkout_event_counts["stripe_opened"],
                 "partnerCheckoutCancellationCount": partner_checkout_event_counts["cancelled"],

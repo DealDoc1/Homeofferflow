@@ -4576,6 +4576,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Campaign category opens: ${adminSafe(Object.entries(metrics.partnerCampaignCategoryCounts || {}).map(([category, count]) => `${category.replace(/_/g, ' ')} (${count})`).join(' · '), 'No categorized campaign opens yet')}</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Campaign tier opens: ${adminSafe(Object.entries(metrics.partnerCampaignTierCounts || {}).map(([tier, count]) => `${tier.replace(/_/g, ' ')} (${count})`).join(' · '), 'No tier-targeted campaign opens yet')}</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Campaign channel opens: ${adminSafe(Object.entries(metrics.partnerCampaignChannelCounts || {}).map(([channel, count]) => `${channel.replace(/_/g, ' ')} (${count})`).join(' · '), 'No channel-attributed campaign opens yet')}</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Directory value: ${metrics.partnerDirectoryImpressionCount || 0} sponsored-profile impressions · ${metrics.partnerDirectoryOutboundClickCount || 0} outbound clicks (${Number(metrics.partnerDirectoryOutboundClickRate || 0).toFixed(1)}%). Aggregate placement traffic only—no visitor, search, or destination data.</div>
           </div>
 
           <div class="admin-metric">
