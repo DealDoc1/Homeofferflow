@@ -22,16 +22,19 @@ class PartnerPlacementActivationGateTests(unittest.TestCase):
     def test_server_derives_public_placement_from_paid_application(self):
         self.assertIn("Only a paid partner application can activate a public placement.", ADMIN)
         self.assertIn("Complete the secure partner onboarding before activating a public placement.", ADMIN)
+        self.assertIn("A completed HomeOfferFlow Partner Marketplace Agreement is required", ADMIN)
         self.assertIn("This paid partner application already has an active placement.", ADMIN)
         self.assertIn('"source_lead_id": payload["source_lead_id"]', ADMIN)
         self.assertIn('"agreement_confirmed_at": now', ADMIN)
         self.assertIn("_normalized_partner_market", ADMIN)
         self.assertIn("An active Premier Partner placement already reserves this category and market.", ADMIN)
 
-    def test_admin_ui_requires_paid_application_and_agreement_confirmation(self):
+    def test_admin_ui_requires_paid_application_and_signed_agreement(self):
         self.assertIn('id="partnerLeadId"', HTML)
-        self.assertIn('id="partnerAgreementConfirmed"', HTML)
         self.assertIn("populatePaidPartnerPlacementLeads", HTML)
+        self.assertIn("partner_agreement_status", HTML)
+        self.assertIn("Send agreement to SignWell", HTML)
+        self.assertIn("support@homeofferflow.com", HTML)
         self.assertIn("No fully onboarded paid applications", HTML)
         self.assertIn("Setup complete", HTML)
 

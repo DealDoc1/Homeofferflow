@@ -11,6 +11,7 @@ SUPABASE_SERVICE_ROLE_KEY = (
     or os.environ.get("SUPABASE_SERVICE_KEY")
     or ""
 )
+SIGNWELL_API_KEY = os.environ.get("SIGNWELL_API_KEY", "")
 SIGNWELL_WEBHOOK_SECRET = os.environ.get("SIGNWELL_WEBHOOK_SECRET", "")
 MAX_BODY = 300_000
 
@@ -53,6 +54,7 @@ def _first(*vals):
 
 def _event_type(payload):
     return _first(
+        _deep_get(payload, "event", "type"),
         payload.get("event_type"),
         payload.get("event"),
         payload.get("type"),
@@ -74,6 +76,8 @@ def _document_id(payload):
         data.get("id"),
         document.get("id"),
         document.get("document_id"),
+        _deep_get(payload, "data", "object", "id"),
+        _deep_get(payload, "data", "object", "document_id"),
         _deep_get(payload, "data", "document", "id"),
     )
 
@@ -84,6 +88,7 @@ def _recipient_stats(payload):
         _deep_get(payload, "data", "recipients"),
         _deep_get(payload, "document", "recipients"),
         _deep_get(payload, "data", "document", "recipients"),
+        _deep_get(payload, "data", "object", "recipients"),
     ) or []
     if not isinstance(recipients, list):
         recipients = []
@@ -214,6 +219,61 @@ async def _update_standalone_agreement(document_id, mapped_status, mapped_signwe
         )
 
 
+async def _partner_agreement_completed_in_signwell(document_id):
+    """Confirm completion at SignWell before a commercial placement can unlock.
+
+    Webhook events are useful delivery signals but must not be enough to mark a
+    paid placement contract as signed. The provider API is the authoritative
+    confirmation and its full response (which can include signer PII) is never
+    persisted in HomeOfferFlow telemetry.
+    """
+    if not document_id or not SIGNWELL_API_KEY:
+        return False
+    async with httpx.AsyncClient(timeout=15) as client:
+        response = await client.get(
+            f"https://www.signwell.com/api/v1/documents/{document_id}",
+            headers={"X-Api-Key": SIGNWELL_API_KEY},
+        )
+    if response.status_code != 200:
+        return False
+    try:
+        document = response.json()
+    except Exception:
+        return False
+    status = str(document.get("status") or document.get("document_status") or "").lower()
+    return "complete" in status or "fully signed" in status
+
+
+async def _update_partner_agreement(document_id, event_type):
+    """Persist only verified lifecycle state for a partner commercial agreement."""
+    if not document_id or not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
+        return None
+    event = str(event_type or "").lower().replace("-", "_").replace(" ", "_")
+    status = None
+    if "completed" in event:
+        if not await _partner_agreement_completed_in_signwell(document_id):
+            return None
+        status = "signed"
+    elif any(token in event for token in ("declined", "canceled", "cancelled")):
+        status = "declined"
+    elif "expired" in event:
+        status = "expired"
+    if not status:
+        return None
+    now = datetime.now(timezone.utc).isoformat()
+    update_payload = {"partner_agreement_status": status, "updated_at": now}
+    if status == "signed":
+        update_payload["partner_agreement_signed_at"] = now
+    async with httpx.AsyncClient(timeout=12) as client:
+        return await client.patch(
+            f"{SUPABASE_URL}/rest/v1/hof_partner_leads?"
+            f"partner_agreement_signwell_document_id=eq.{document_id}"
+            "&select=id,partner_agreement_status",
+            headers=_headers(),
+            json=update_payload,
+        )
+
+
 class handler(BaseHTTPRequestHandler):
     def do_OPTIONS(self):
         _json(self, 200, {"status": "ok"})
@@ -245,6 +305,7 @@ class handler(BaseHTTPRequestHandler):
             event_resp = None
             patch_resp = None
             standalone_patch_resp = None
+            partner_agreement_patch_resp = None
             try:
                 event_resp = asyncio.run(_insert_event(document_id, event_type, payload, mapped_status, mapped_signwell_status))
             except Exception as e:
@@ -261,6 +322,12 @@ class handler(BaseHTTPRequestHandler):
                 )
             except Exception as e:
                 print("signwell standalone agreement patch failed", repr(e))
+            try:
+                partner_agreement_patch_resp = asyncio.run(
+                    _update_partner_agreement(document_id, event_type)
+                )
+            except Exception as e:
+                print("signwell partner agreement patch failed", repr(e))
 
             _json(self, 200, {
                 "status": "ok",
@@ -272,6 +339,7 @@ class handler(BaseHTTPRequestHandler):
                 "event_status_code": getattr(event_resp, "status_code", None),
                 "patch_status_code": getattr(patch_resp, "status_code", None),
                 "standalone_patch_status_code": getattr(standalone_patch_resp, "status_code", None),
+                "partner_agreement_patch_status_code": getattr(partner_agreement_patch_resp, "status_code", None),
             })
         except Exception as e:
             print("signwell webhook fatal but acknowledged", repr(e))

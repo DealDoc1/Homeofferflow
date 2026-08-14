@@ -3998,10 +3998,32 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       : `Following up on your HomeOfferFlow partner application. We can ${activationStage}: https://homeofferflow.com/?partner=1`;
     const eventMetadata = adminEventMetadata({ paid, onboarding, activationStage, surface: 'admin' });
     const onboardingButton = paid ? ` <button type="button" class="admin-contact-action" onclick="copyPartnerOnboardingLink('${adminSafe(row.id, '')}')">Copy setup link</button><button type="button" class="admin-contact-action" onclick="copyPartnerOnboardingInvitation('${adminSafe(row.id, '')}')">Copy setup invitation</button><button type="button" class="admin-contact-action" onclick="emailPartnerOnboardingLink('${adminSafe(row.id, '')}')">Email setup link</button>` : '';
+    const agreementStatus = String(row?.partner_agreement_status || 'not_started').toLowerCase();
+    const agreementButton = paid && ['complete', 'completed'].includes(onboarding) && !['signed', 'sent'].includes(agreementStatus)
+      ? ` <button type="button" class="admin-contact-action" onclick="sendPartnerAgreementForSignature('${adminSafe(row.id, '')}')">Send agreement to SignWell</button>`
+      : '';
     const checkoutButton = !paid && String(row?.payment_status || '') === 'checkout_started'
       ? ` <button type="button" class="admin-contact-action" onclick="copyPartnerCheckoutInvitation('${adminSafe(row.id, '')}')">Copy checkout invitation</button>`
       : '';
-    return `<a class="admin-contact-action" href="mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}" onclick='logOfferEvent(null, "partner_follow_up_email_started", "started", "Partner follow-up email opened.", ${eventMetadata})'>Email partner</a>${checkoutButton}${onboardingButton}`;
+    return `<a class="admin-contact-action" href="mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}" onclick='logOfferEvent(null, "partner_follow_up_email_started", "started", "Partner follow-up email opened.", ${eventMetadata})'>Email partner</a>${checkoutButton}${onboardingButton}${agreementButton}`;
+  }
+
+  async function sendPartnerAgreementForSignature(leadId) {
+    if (!leadId || !hofAuth?.session?.access_token) return;
+    try {
+      const response = await fetch('/api/admin-dashboard', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${hofAuth.session.access_token}`},
+        body: JSON.stringify({action: 'send_partner_agreement_for_signature', partner_lead_id: leadId})
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || !result?.partnerAgreement?.documentId) throw new Error(result.error || 'Could not send the partner agreement.');
+      logOfferEvent(null, 'partner_agreement_sent_for_signature', 'sent', 'Partner Marketplace Agreement sent through SignWell.', {surface: 'admin'});
+      alert(`Partner agreement sent through SignWell. The completed agreement will be copied to ${result.partnerAgreement.copiedTo || 'HomeOfferFlow support'} after signing.`);
+      await loadAdminDashboard(true);
+    } catch (err) {
+      alert(err?.message || 'Could not send the partner agreement.');
+    }
   }
 
   async function copyPartnerOnboardingLink(leadId) {
@@ -4301,7 +4323,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         return `<div class="admin-row">
           <div><strong>${adminSafe(row.company_name || 'Partner lead')}</strong><div class="admin-muted">${adminSafe(row.contact_name || '')} · ${adminSafe(row.contact_email || '')}</div>${partnerLeadFollowUpAction(row) ? `<div class="partner-lead-admin-actions">${partnerLeadFollowUpAction(row)}</div>` : ''}</div>
           <div>${adminSafe(row.market_area || '')}<div class="admin-muted">${adminSafe(row.preferred_model || '')}</div></div>
-          <div><span class="admin-pill ${paymentStatus === 'paid' ? 'good' : 'warn'}">${adminSafe(paymentStatus)}</span><div class="admin-muted">${adminSafe(row.partner_type || 'other')} · onboarding: ${adminSafe(onboardingStatus)}</div></div>
+          <div><span class="admin-pill ${paymentStatus === 'paid' ? 'good' : 'warn'}">${adminSafe(paymentStatus)}</span><div class="admin-muted">${adminSafe(row.partner_type || 'other')} · onboarding: ${adminSafe(onboardingStatus)} · agreement: ${adminSafe(row.partner_agreement_status || 'not_started')}</div></div>
           <div>${adminDate(row.created_at)}${canUpdate ? `<div class="partner-lead-admin-actions"><select id="partnerLeadStatus-${leadId}" aria-label="Review status for ${adminSafe(row.company_name || 'partner lead')}">${partnerLeadStatusOptions(status)}</select><select id="partnerOnboardingStatus-${leadId}" aria-label="Onboarding status for ${adminSafe(row.company_name || 'partner lead')}">${partnerOnboardingStatusOptions(onboardingStatus)}</select><button id="partnerLeadSave-${leadId}" type="button" onclick="updatePartnerLeadStatus('${leadId}')">Save</button></div>` : ''}</div>
         </div>`;
       }
@@ -11238,7 +11260,7 @@ function routeAfterMagicLinkIfNeeded() {
           <div class="field"><label>Placement Tier</label><select id="partnerTier"><option value="founding">Core Partner · $149</option><option value="premier">Featured Partner · $399</option><option value="exclusive_market">Premier Partner · $799</option></select></div>
           <div class="field"><label>Pilot / monthly fee</label><input id="partnerMonthlyFee" type="number" placeholder="149"></div>
         </div>
-        <label style="display:flex;align-items:flex-start;gap:.55rem;margin-top:.85rem;color:var(--gray-light);font-size:.84rem;line-height:1.45;"><input id="partnerAgreementConfirmed" type="checkbox" style="margin-top:.2rem;"> <span>I confirm the required written advertising agreement is on file and authorize this paid partner application to become a public placement. This does not change Stripe billing.</span></label>
+        <div class="notice gold" style="margin-top:.85rem;">A completed HomeOfferFlow Partner Marketplace Agreement is required before activation. Send it from the paid-partner activation queue; SignWell copies each completed PDF to support@homeofferflow.com.</div>
         <div class="notice gold" style="margin-top:.7rem;">Only paid partners with completed secure onboarding appear here. Public placement details are derived from the paid application so company, category, and market cannot be mismatched. Paid placements remain separate from neutral provider selection.</div>
         <div class="platform-actions"><button type="button" onclick="savePartnerPlacementFoundation()">Save Partner Placement</button><button type="button" onclick="loadPartnerPlacementsFoundation()">Refresh Partners</button></div>
         <div id="partnerFoundationStatus" class="platform-status"></div>
@@ -11327,8 +11349,7 @@ function routeAfterMagicLinkIfNeeded() {
         action: 'create_platform_partner_placement',
         partner_lead_id: getVal('partnerLeadId'),
         placement_tier: getVal('partnerTier') || 'founding',
-        monthly_fee: moneyNumber(getVal('partnerMonthlyFee')) || null,
-        agreement_confirmed: !!document.getElementById('partnerAgreementConfirmed')?.checked
+        monthly_fee: moneyNumber(getVal('partnerMonthlyFee')) || null
       };
       const response = await fetch('/api/admin-dashboard', {
         method: 'POST',
@@ -11337,7 +11358,7 @@ function routeAfterMagicLinkIfNeeded() {
       });
       const result = await response.json().catch(() => ({}));
       if (!response.ok || result.error) throw new Error(result.error || 'Could not save platform placement.');
-      platformStatus('partnerFoundationStatus', 'Agreement-confirmed placement saved. It can now appear in the central Now What directory when its category is relevant.', 'ok');
+      platformStatus('partnerFoundationStatus', 'Signed-agreement placement saved. It can now appear in the central Now What directory when its category is relevant.', 'ok');
       await loadPartnerPlacementsFoundation();
     } catch (err) {
       console.error('Partner placement save failed:', err);
@@ -11386,6 +11407,7 @@ function routeAfterMagicLinkIfNeeded() {
     const paid = (leads || []).filter(lead =>
       String(lead?.payment_status || '') === 'paid'
       && ['complete', 'completed'].includes(String(lead?.onboarding_status || '').toLowerCase())
+      && String(lead?.partner_agreement_status || '').toLowerCase() === 'signed'
       && !['declined', 'waitlist'].includes(String(lead?.status || ''))
     );
     select.disabled = !paid.length;

@@ -12,6 +12,9 @@ from io import BytesIO
 from http.server import BaseHTTPRequestHandler
 import httpx
 from pypdf import PdfReader, PdfWriter
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfbase.pdfmetrics import stringWidth
+from reportlab.pdfgen.canvas import Canvas
 from lib import platform_form_source_upload as platform_source
 from lib import seller_disclosure_draft
 from lib import seller_review_access
@@ -20,6 +23,9 @@ SUPABASE_URL = os.environ.get("SUPABASE_URL", "").rstrip("/")
 SUPABASE_SERVICE_ROLE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or os.environ.get("SUPABASE_SERVICE_ROLE") or os.environ.get("SUPABASE_SERVICE_KEY") or ""
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
 PARTNER_ONBOARDING_FROM_EMAIL = os.environ.get("PARTNER_ONBOARDING_FROM_EMAIL", "offers@homeofferflow.com")
+PARTNER_AGREEMENT_COPY_EMAIL = os.environ.get("PARTNER_AGREEMENT_COPY_EMAIL", "support@homeofferflow.com").strip().lower()
+PARTNER_AGREEMENT_SIGNING_ENABLED = str(os.environ.get("HOF_PARTNER_AGREEMENT_SIGNING_ENABLED", "false")).lower() in {"1", "true", "yes", "on"}
+PARTNER_AGREEMENT_SIGNWELL_TEST_MODE = str(os.environ.get("HOF_PARTNER_AGREEMENT_SIGNWELL_TEST_MODE", "false")).lower() in {"1", "true", "yes", "on"}
 SIGNWELL_API_KEY = os.environ.get("SIGNWELL_API_KEY", "")
 SIGNWELL_ENABLED = str(os.environ.get("SIGNWELL_ENABLED", "false")).lower() in {"1", "true", "yes", "on"}
 SIGNWELL_TEST_MODE = str(os.environ.get("SIGNWELL_TEST_MODE", "true")).lower() in {"1", "true", "yes", "on"}
@@ -1689,9 +1695,6 @@ def _parse_partner_placement(data):
         source_lead_id = str(uuid.UUID(source_lead_id))
     except (TypeError, ValueError, AttributeError):
         raise ValueError("Choose a valid paid partner application.")
-    agreement_confirmed = data.get("agreement_confirmed") is True
-    if not agreement_confirmed:
-        raise ValueError("Confirm that the required advertising agreement is on file before activating a placement.")
     placement_tier = _clean_text(data.get("placement_tier"), 80)
     if placement_tier not in ALLOWED_PARTNER_PLACEMENT_TIERS:
         raise ValueError("Choose a valid placement tier.")
@@ -1712,7 +1715,7 @@ async def _paid_partner_lead_for_placement(lead_id):
     rows = await _get(
         "hof_partner_leads?"
         f"id=eq.{urllib.parse.quote(lead_id)}&"
-        "select=id,company_name,contact_name,contact_email,contact_phone,website_url,partner_type,market_area,status,payment_status,onboarding_status,onboarding_website_url,onboarding_logo_url,onboarding_market_area&limit=1"
+        "select=id,company_name,contact_name,contact_email,contact_phone,website_url,partner_type,market_area,status,payment_status,onboarding_status,onboarding_website_url,onboarding_logo_url,onboarding_market_area,partner_agreement_status,partner_agreement_signed_at&limit=1"
     )
     if not rows:
         raise ValueError("The selected partner application was not found.")
@@ -1723,6 +1726,8 @@ async def _paid_partner_lead_for_placement(lead_id):
         raise PermissionError("This partner application is not eligible for a public placement.")
     if str(lead.get("onboarding_status") or "").lower() not in {"complete", "completed"}:
         raise PermissionError("Complete the secure partner onboarding before activating a public placement.")
+    if str(lead.get("partner_agreement_status") or "").lower() != "signed" or not lead.get("partner_agreement_signed_at"):
+        raise PermissionError("A completed HomeOfferFlow Partner Marketplace Agreement is required before activating a public placement.")
     partner_type = str(lead.get("partner_type") or "").strip()
     if partner_type not in ALLOWED_PARTNER_TYPES:
         raise ValueError("The selected partner application has an unsupported category.")
@@ -1789,6 +1794,138 @@ async def _create_platform_partner_placement(payload):
     if not isinstance(rows, list) or not rows:
         raise RuntimeError("Partner placement was not returned after saving.")
     return rows[0]
+
+
+def _partner_agreement_pdf(lead):
+    """Render the commercial agreement sent to an eligible paid partner.
+
+    This is intentionally a HomeOfferFlow-authored commercial agreement, not a
+    TREC or Texas REALTORS form. SignWell appends the signer page, avoiding
+    fragile coordinate placement in the agreement body.
+    """
+    company = _clean_text(lead.get("company_name"), 250) or "Partner"
+    contact = _clean_text(lead.get("contact_name"), 250) or "Authorized representative"
+    market = _clean_text(lead.get("onboarding_market_area") or lead.get("market_area"), 300) or "the agreed market"
+    category = (_clean_text(lead.get("partner_type"), 100) or "partner service").replace("_", " ")
+    tier = (_clean_text(lead.get("preferred_model"), 100) or "paid partner").replace("_", " ")
+    paragraphs = [
+        ("HOME OFFER FLOW PARTNER MARKETPLACE AGREEMENT", True),
+        (f"Partner: {company} | Authorized representative: {contact}", False),
+        (f"Category: {category} | Market: {market} | Selected commercial tier: {tier}", False),
+        ("1. PURPOSE AND ORDER FORM. This Agreement governs Partner's paid digital marketplace placement with HomeOfferFlow. The checkout receipt and any signed Order Form identify the applicable fee, initial pilot or term, billing interval, placement tier, market, and any expressly agreed exclusivity. Payment or onboarding alone does not create a right to publication.", False),
+        ("2. PLACEMENT; EDITORIAL CONTROL. HomeOfferFlow may display approved company, category, market, logo, website, and call-to-action information in its marketplace. HomeOfferFlow may format, label, defer, suspend, remove, or decline Content and a Placement to protect users, comply with law, maintain a neutral directory, or enforce this Agreement. No impressions, clicks, leads, transactions, revenue, ranking, availability, referral, recommendation, or exclusivity is guaranteed unless a signed Order Form expressly says otherwise.", False),
+        ("3. SPONSORED DISCLOSURE AND NEUTRAL CHOICE. HomeOfferFlow may label the Placement Sponsored, Paid Partner, Advertisement, or similarly. Partner will not obscure that disclosure or state or imply that HomeOfferFlow has independently selected, endorsed, guaranteed, ranked, or recommended Partner. Users may choose any qualified provider; this Agreement creates no agency, fiduciary, brokerage, referral, or preferred-provider relationship with users.", False),
+        ("4. PARTNER CONTENT AND COMPLIANCE. Partner represents that all submitted Content, licenses, qualifications, testimonials, offers, prices, websites, trademarks, and claims are accurate, current, substantiated, lawful, and non-misleading. Partner is solely responsible for its services, staff, professional licenses, insurance, permits, advertising, communications, privacy practices, taxes, and all legal or professional rules applicable to its business. Partner will promptly report a material change and will not submit unlawful, discriminatory, infringing, deceptive, privacy-invasive, or unsubstantiated Content.", False),
+        ("5. NO PROFESSIONAL SERVICES BY HOMEOFFERFLOW. HomeOfferFlow is not providing real-estate brokerage, lending, title, appraisal, insurance, inspection, construction, legal, tax, or other regulated professional services through this Agreement. Partner may not state or imply otherwise.", False),
+        ("6. CONTENT LICENSE. Partner grants HomeOfferFlow a non-exclusive, worldwide, royalty-free license during the Term to host, reproduce, technically format, make accessible, display, distribute, and link to approved Partner Content solely to operate, promote, measure, and improve the Placement. Partner retains its pre-existing Content rights; HomeOfferFlow retains the platform, marketplace, brands, aggregate analytics, and related intellectual property.", False),
+        ("7. FEES, RENEWAL, AND CANCELLATION. Fees and renewal terms shown in the applicable checkout or signed Order Form control. Stripe's successful payment records control payment processing. HomeOfferFlow may suspend or remove a Placement for failed, reversed, disputed, expired, or overdue payment. Unless the Order Form says otherwise, either Party may cancel a month-to-month Placement on 30 days' written notice; cancellation stops future renewal after the paid period and does not create a pro-rata refund except as required by law or expressly stated in the Order Form.", False),
+        ("8. DATA AND COMMUNICATIONS. Each Party is an independent controller of information it collects. This Agreement gives Partner no right to HomeOfferFlow user, offer, transaction, or account data. HomeOfferFlow may provide aggregate placement metrics. Partner will comply with applicable consent, opt-out, email, text, telemarketing, privacy, and advertising law and will not market to a HomeOfferFlow user merely because the user viewed or clicked a Placement.", False),
+        ("9. INDEMNITY. Partner will defend, indemnify, and hold harmless HomeOfferFlow and its personnel from third-party claims, losses, liabilities, costs, and reasonable attorney fees arising from Partner Content, services, advertising, communications, data practices, licenses, professional conduct, breach of this Agreement, or an allegation that Partner Content is unlawful, deceptive, or infringes rights. HomeOfferFlow will promptly notify Partner of a claim and reasonably cooperate at Partner's expense; no settlement may impose non-monetary obligations on HomeOfferFlow without its consent.", False),
+        ("10. DISCLAIMERS AND LIABILITY. EXCEPT FOR EXPRESS TERMS HERE, THE PLATFORM AND PLACEMENT ARE PROVIDED AS IS. TO THE MAXIMUM EXTENT PERMITTED BY LAW, NEITHER PARTY IS LIABLE FOR INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, EXEMPLARY, OR PUNITIVE DAMAGES OR LOST PROFITS, REVENUE, DATA, OR BUSINESS. EXCEPT FOR PARTNER'S PAYMENT AND INDEMNITY OBLIGATIONS, FRAUD, WILLFUL MISCONDUCT, OR LIABILITY THAT CANNOT BE LIMITED BY LAW, EACH PARTY'S TOTAL LIABILITY WILL NOT EXCEED THE FEES PAID OR PAYABLE UNDER THE APPLICABLE ORDER FORM IN THE TWELVE MONTHS BEFORE THE EVENT.", False),
+        ("11. GENERAL. The Parties are independent contractors. Texas law governs, and the courts serving [COUNTY], TEXAS have exclusive venue; HomeOfferFlow will supply the final county in the Order Form. Notices must be written and sent to the Order Form addresses. This Agreement and the Order Form are the entire agreement on this subject and may be changed only in a writing accepted by both Parties. Electronic records and signatures are intended to be effective to the extent permitted by law.", False),
+        ("By signing electronically, Partner's authorized representative confirms authority to bind Partner and accepts this Agreement. The Agreement becomes effective when HomeOfferFlow accepts it electronically, including by sending this request, recording the completed agreement, or activating an approved Placement. This signed agreement is required before any public Placement can be activated.", False),
+        ("DRAFTING NOTICE: This commercial agreement must receive final Texas counsel approval before its first production use. It is not a Texas REALTORS or TREC form.", True),
+    ]
+    buffer = BytesIO()
+    pdf = Canvas(buffer, pagesize=letter)
+    width, height = letter
+    left, right, top, bottom = 54, 54, height - 54, 54
+    y = top
+    def page_header():
+        nonlocal y
+        pdf.setFont("Helvetica", 8)
+        pdf.setFillColorRGB(0.28, 0.32, 0.39)
+        pdf.drawRightString(width - right, height - 34, "HomeOfferFlow Partner Marketplace Agreement")
+        pdf.setFillColorRGB(0, 0, 0)
+        y = height - 54
+    def wrapped(text, font, size, leading):
+        words = text.split()
+        lines, line = [], ""
+        available = width - left - right
+        for word in words:
+            candidate = f"{line} {word}".strip()
+            if line and stringWidth(candidate, font, size) > available:
+                lines.append(line)
+                line = word
+            else:
+                line = candidate
+        if line:
+            lines.append(line)
+        return lines
+    page_header()
+    for text, emphasized in paragraphs:
+        font = "Helvetica-Bold" if emphasized else "Helvetica"
+        size = 11 if emphasized else 9
+        leading = 14 if emphasized else 12
+        for line in wrapped(text, font, size, leading):
+            if y - leading < bottom:
+                pdf.showPage()
+                page_header()
+            pdf.setFont(font, size)
+            pdf.drawString(left, y, line)
+            y -= leading
+        y -= 7
+    pdf.save()
+    return buffer.getvalue()
+
+
+async def _send_partner_agreement_for_signature(data):
+    if not PARTNER_AGREEMENT_SIGNING_ENABLED:
+        raise PermissionError("Partner agreement signing is not released. Complete Texas counsel review and the final HomeOfferFlow entity and venue details before enabling it.")
+    if not SIGNWELL_ENABLED or not SIGNWELL_API_KEY:
+        raise RuntimeError("SignWell signing is not configured for this environment.")
+    lead_id = str(data.get("partner_lead_id") or "").strip()
+    try:
+        lead_id = str(uuid.UUID(lead_id))
+    except (TypeError, ValueError, AttributeError):
+        raise ValueError("Choose a valid paid partner application.")
+    rows = await _get(
+        "hof_partner_leads?"
+        f"id=eq.{urllib.parse.quote(lead_id)}&"
+        "select=id,company_name,contact_name,contact_email,partner_type,market_area,preferred_model,status,payment_status,onboarding_status,onboarding_market_area,partner_agreement_status,partner_agreement_signwell_document_id&limit=1"
+    )
+    if not rows:
+        raise ValueError("The selected partner application was not found.")
+    lead = rows[0]
+    if str(lead.get("payment_status") or "").lower() != "paid":
+        raise PermissionError("Only a paid partner can receive the commercial agreement.")
+    if str(lead.get("status") or "").lower() in {"declined", "waitlist"}:
+        raise PermissionError("This partner application is not eligible for an agreement.")
+    if str(lead.get("onboarding_status") or "").lower() not in {"complete", "completed"}:
+        raise PermissionError("Complete secure partner onboarding before sending the commercial agreement.")
+    if not _valid_email(str(lead.get("contact_email") or "")):
+        raise ValueError("This partner application has no valid signing email.")
+    if str(lead.get("partner_agreement_status") or "") == "signed":
+        raise ValueError("This partner already has a completed commercial agreement.")
+    if lead.get("partner_agreement_signwell_document_id") and str(lead.get("partner_agreement_status") or "") == "sent":
+        raise ValueError("A commercial agreement is already awaiting this partner's signature.")
+    agreement_pdf = _partner_agreement_pdf(lead)
+    payload = {
+        "test_mode": PARTNER_AGREEMENT_SIGNWELL_TEST_MODE,
+        "draft": False,
+        "reminders": True,
+        "embedded_signing": False,
+        "with_signature_page": True,
+        "custom_requester_name": "HomeOfferFlow",
+        "name": f"HomeOfferFlow Partner Marketplace Agreement — {str(lead['id'])[:8]}",
+        "subject": "HomeOfferFlow Partner Marketplace Agreement for signature",
+        "message": "Please review and sign the HomeOfferFlow Partner Marketplace Agreement. A completed PDF will be sent to you and HomeOfferFlow support. This agreement does not activate a public placement until HomeOfferFlow reviews the completed record.",
+        "recipients": [{"id": "1", "name": str(lead.get("contact_name") or "Partner"), "email": str(lead["contact_email"])}],
+        "copied_contacts": [{"name": "HomeOfferFlow Support", "email": PARTNER_AGREEMENT_COPY_EMAIL}],
+        "files": [{"name": "HomeOfferFlow_Partner_Marketplace_Agreement.pdf", "file_base64": base64.b64encode(agreement_pdf).decode("ascii")}],
+        "metadata": {"source": "HomeOfferFlow", "partner_lead_id": lead_id, "agreement_type": "partner_marketplace"},
+    }
+    async with httpx.AsyncClient(timeout=45) as client:
+        response = await client.post("https://www.signwell.com/api/v1/documents", headers={"X-Api-Key": SIGNWELL_API_KEY, "Content-Type": "application/json"}, json=payload)
+    if response.status_code not in {200, 201, 202}:
+        raise RuntimeError(f"SignWell rejected the commercial agreement: HTTP {response.status_code}.")
+    result = response.json()
+    document_id = str(result.get("id") or result.get("document_id") or "").strip()
+    if not document_id:
+        raise RuntimeError("SignWell did not return a document id.")
+    now = datetime.now(timezone.utc).isoformat()
+    await _patch("hof_partner_leads", f"id=eq.{urllib.parse.quote(lead_id)}", {"partner_agreement_status": "sent", "partner_agreement_signwell_document_id": document_id, "partner_agreement_sent_at": now, "updated_at": now})
+    return {"documentId": document_id, "status": result.get("status") or "sent", "testMode": PARTNER_AGREEMENT_SIGNWELL_TEST_MODE, "copiedTo": PARTNER_AGREEMENT_COPY_EMAIL}
 
 
 def _agreement_text(value, field, maximum=400):
@@ -3329,6 +3466,8 @@ class handler(BaseHTTPRequestHandler):
                 lead for lead in partner_leads
                 if str(lead.get("payment_status") or "").lower() == "paid"
                 and (
+                    str(lead.get("partner_agreement_status") or "").lower() == "signed"
+                    or
                     str(lead.get("id") or "") in agreement_confirmed_source_lead_ids
                     or
                     lead.get("agreement_confirmed_at")
@@ -4552,6 +4691,10 @@ class handler(BaseHTTPRequestHandler):
                 payload = _parse_partner_placement(data)
                 row = asyncio.run(_create_platform_partner_placement(payload))
                 _json(self, 200, {"ok": True, "partnerPlacement": row})
+                return
+            if data.get("action") == "send_partner_agreement_for_signature":
+                result = asyncio.run(_send_partner_agreement_for_signature(data))
+                _json(self, 201, {"ok": True, "partnerAgreement": result})
                 return
             if data.get("action") == "create_partner_onboarding_link":
                 link = asyncio.run(_create_partner_onboarding_link(data))

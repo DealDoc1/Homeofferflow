@@ -300,17 +300,16 @@ class AdminTrackerSecurityTests(IsolatedAsyncioTestCase):
     async def test_platform_partner_placement_is_validated_and_not_brokerage_owned(self):
         payload = admin_dashboard._parse_partner_placement({
             "partner_lead_id": "e35eace9-2760-4b11-a01a-07ee65f2744e",
-            "agreement_confirmed": True,
             "placement_tier": "premier",
             "monthly_fee": "399",
         })
         self.assertEqual(payload["source_lead_id"], "e35eace9-2760-4b11-a01a-07ee65f2744e")
         self.assertEqual(payload["placement_tier"], "premier")
         self.assertEqual(payload["monthly_fee"], 399.0)
-        with self.assertRaisesRegex(ValueError, "agreement"):
+        with self.assertRaisesRegex(ValueError, "placement tier"):
             admin_dashboard._parse_partner_placement({
                 "partner_lead_id": "e35eace9-2760-4b11-a01a-07ee65f2744e",
-                "placement_tier": "founding",
+                "placement_tier": "unapproved",
             })
 
     async def test_platform_partner_placement_returns_saved_row(self):
@@ -332,6 +331,8 @@ class AdminTrackerSecurityTests(IsolatedAsyncioTestCase):
             "status": "qualified",
             "payment_status": "paid",
             "onboarding_status": "complete",
+            "partner_agreement_status": "signed",
+            "partner_agreement_signed_at": "2026-08-14T00:00:00+00:00",
         }
         with patch.object(admin_dashboard, "_get", new=AsyncMock(side_effect=[[lead], []])), \
              patch.object(admin_dashboard.httpx, "AsyncClient", return_value=FakeClient(response)):
