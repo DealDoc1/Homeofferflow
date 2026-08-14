@@ -17759,7 +17759,7 @@ function routeAfterMagicLinkIfNeeded() {
       ? 'Save this seller plan to your Home Screen so it is one tap away when you return to photos, repairs, timing, or provider questions.'
       : '';
     const workspaceReturnCopy = target.surface === 'account_dashboard'
-      ? 'Use the app icon for a focused workspace launch, with shortcuts for My Workspace and New Agent Offer.'
+      ? 'Use the app icon for a focused workspace launch, with shortcuts for My Workspace, New Agent Offer, and Signing Queue.'
       : '';
     card.innerHTML = `<h4>Keep HomeOfferFlow one tap away</h4>
       <p>${ios
@@ -17905,7 +17905,7 @@ function routeAfterMagicLinkIfNeeded() {
 (function(){
   const pendingActionKey = 'hof_pwa_shortcut_pending_action';
   const ondemandFirstOfferAttributionKey = 'hof_ondemand_first_offer_attribution';
-  const validActions = new Set(['workspace', 'new_offer']);
+  const validActions = new Set(['workspace', 'new_offer', 'signing_queue']);
 
   function pendingAction(){
     try {
@@ -17942,6 +17942,13 @@ function routeAfterMagicLinkIfNeeded() {
     } catch (_) {}
   }
 
+  async function openSigningQueue(){
+    await window.openAccountDashboard?.({ tab: 'offers' });
+    // The workspace applies its own safe status filter to the signed-in
+    // account. No offer, client, or signing identifier is carried in the URL.
+    window.hofSetOfferWorkspaceFilter?.('signing');
+  }
+
   async function runAction(action, { resumedAfterSignIn = false } = {}){
     if (!validActions.has(action)) return;
     const role = window.hofAuth?.role === 'investor' ? 'investor' : 'agent';
@@ -17952,6 +17959,7 @@ function routeAfterMagicLinkIfNeeded() {
     }
     clearPendingAction();
     if (action === 'workspace') await window.openAccountDashboard?.({ tab: 'dashboard' });
+    else if (action === 'signing_queue') await openSigningQueue();
     else {
       recordOndemandFirstOfferActivation();
       window.startAccountOffer?.();
@@ -17968,7 +17976,7 @@ function routeAfterMagicLinkIfNeeded() {
     if (action === 'new_offer') {
       recordOndemandFirstOfferActivation();
       window.startAccountOffer?.();
-    }
+    } else if (action === 'signing_queue') await openSigningQueue();
     trackShortcut(action, window.hofAuth?.role === 'investor' ? 'investor' : 'agent', true);
   }
 
