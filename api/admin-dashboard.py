@@ -104,6 +104,32 @@ def _is_sandbox_partner_lead(lead):
     return session_id.startswith("cs_test_")
 
 
+def _partner_activation_readiness(lead, now=None):
+    """Return a non-secret, stage-specific paid-partner activation state."""
+    lead = lead or {}
+    now = now or datetime.now(timezone.utc)
+    onboarding = str(lead.get("onboarding_status") or "not_started").lower()
+    agreement = str(lead.get("partner_agreement_status") or "not_started").lower()
+    setup_complete = onboarding in {"complete", "completed"}
+
+    if not setup_complete:
+        expires_at = _parse_timestamp(lead.get("onboarding_token_expires_at"))
+        setup_link_valid = bool(lead.get("onboarding_token_hash")) and bool(expires_at and expires_at > now)
+        if onboarding == "in_progress":
+            return {"code": "awaiting_setup", "label": "Awaiting partner setup", "tone": "warn", "next_action": "Partner needs to finish setup details.", "partner_message": "finish the remaining onboarding details so we can prepare the written agreement"}
+        if setup_link_valid:
+            return {"code": "setup_link_sent", "label": "Setup link sent", "tone": "warn", "next_action": "Await partner setup completion.", "partner_message": "complete the secure setup details so we can prepare the written agreement"}
+        return {"code": "setup_link_needed", "label": "Fresh setup link needed", "tone": "warn", "next_action": "Issue a new secure setup link.", "partner_message": "complete the secure setup details so we can prepare the written agreement"}
+
+    if agreement == "signed" and lead.get("partner_agreement_signed_at"):
+        return {"code": "ready_to_activate", "label": "Ready to activate", "tone": "good", "next_action": "Create the approved public placement.", "partner_message": "confirm the planned public placement activation"}
+    if agreement == "sent":
+        return {"code": "awaiting_agreement", "label": "Awaiting agreement signature", "tone": "warn", "next_action": "Await completed SignWell agreement.", "partner_message": "review and sign the HomeOfferFlow Partner Marketplace Agreement sent through SignWell"}
+    if agreement in {"declined", "expired", "void"}:
+        return {"code": "agreement_needs_resolution", "label": "Agreement needs resolution", "tone": "warn", "next_action": "Resolve the agreement before activation.", "partner_message": "contact us about the HomeOfferFlow Partner Marketplace Agreement before placement activation"}
+    return {"code": "agreement_ready_to_send", "label": "Send agreement", "tone": "warn", "next_action": "Send the agreement through SignWell.", "partner_message": "expect the HomeOfferFlow Partner Marketplace Agreement for signature"}
+
+
 def _pdf_response(handler, pdf_bytes, filename):
     body = bytes(pdf_bytes or b"")
     handler.send_response(200)
@@ -3430,6 +3456,9 @@ class handler(BaseHTTPRequestHandler):
                 key=lambda lead: _parse_timestamp(lead.get("created_at"))
                 or datetime.max.replace(tzinfo=timezone.utc)
             )
+            now = datetime.now(timezone.utc)
+            for lead in paid_partner_activation_queue:
+                lead["activation_readiness"] = _partner_activation_readiness(lead, now)
             paid_partner_lead_count = len([
                 lead for lead in partner_leads
                 if str(lead.get("payment_status") or "").lower() == "paid"
@@ -3452,7 +3481,6 @@ class handler(BaseHTTPRequestHandler):
             # A paid partner cannot complete setup without a current hashed
             # setup token. Count only this operational gap; never return the
             # token, its hash, expiry timestamp, or partner contact details.
-            now = datetime.now(timezone.utc)
             partner_onboarding_access_missing_count = len([
                 lead for lead in partner_leads
                 if str(lead.get("payment_status") or "").lower() == "paid"
@@ -3480,6 +3508,10 @@ class handler(BaseHTTPRequestHandler):
                 if (created_at := _parse_timestamp(lead.get("created_at")))
                 and created_at <= datetime.now(timezone.utc) - timedelta(days=7)
             ])
+            paid_partner_activation_readiness_counts = {}
+            for lead in paid_partner_activation_queue:
+                code = str((lead.get("activation_readiness") or {}).get("code") or "unknown")
+                paid_partner_activation_readiness_counts[code] = paid_partner_activation_readiness_counts.get(code, 0) + 1
             roadmap = asyncio.run(_get("hof_roadmap_items?select=*&order=priority.asc&limit=100"))
             qa_scenarios = asyncio.run(_get("hof_qa_scenarios?select=*&active=eq.true&order=priority.asc&limit=100"))
             qa_runs = asyncio.run(_get("hof_qa_runs?select=*&order=created_at.desc&limit=50"))
@@ -4287,6 +4319,7 @@ class handler(BaseHTTPRequestHandler):
                     (paid_partner_agreement_confirmed_count / paid_partner_lead_count) * 100, 1
                 ) if paid_partner_lead_count else 0,
                 "paidPartnerActivationQueueAgedCount": paid_partner_activation_queue_aged_count,
+                "paidPartnerActivationReadinessCounts": paid_partner_activation_readiness_counts,
                 "partnerActivationRate": round((len(active_partner_source_lead_ids) / paid_partner_lead_count) * 100)
                 if paid_partner_lead_count else 0,
                 "partnerActivationAvgDays": partner_activation_avg_days,

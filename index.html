@@ -3981,7 +3981,11 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     if (!email) return '';
     const paid = String(row?.payment_status || '') === 'paid';
     const onboarding = String(row?.onboarding_status || 'not_started');
-    const activationStage = paid && onboarding === 'not_started'
+    const readiness = row?.activation_readiness || {};
+    const setupComplete = ['complete', 'completed'].includes(onboarding);
+    const activationStage = paid && readiness.partner_message
+      ? String(readiness.partner_message)
+      : paid && onboarding === 'not_started'
       ? 'confirm category, market, logo, and written placement terms'
       : paid && onboarding === 'ready'
       ? 'complete the partner onboarding details and confirm the launch window'
@@ -3997,7 +4001,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       ? `Thanks for partnering with HomeOfferFlow. Let’s ${activationStage}: https://homeofferflow.com/?partner=1`
       : `Following up on your HomeOfferFlow partner application. We can ${activationStage}: https://homeofferflow.com/?partner=1`;
     const eventMetadata = adminEventMetadata({ paid, onboarding, activationStage, surface: 'admin' });
-    const onboardingButton = paid ? ` <button type="button" class="admin-contact-action" onclick="copyPartnerOnboardingLink('${adminSafe(row.id, '')}')">Copy setup link</button><button type="button" class="admin-contact-action" onclick="copyPartnerOnboardingInvitation('${adminSafe(row.id, '')}')">Copy setup invitation</button><button type="button" class="admin-contact-action" onclick="emailPartnerOnboardingLink('${adminSafe(row.id, '')}')">Email setup link</button>` : '';
+    const onboardingButton = paid && !setupComplete ? ` <button type="button" class="admin-contact-action" onclick="copyPartnerOnboardingLink('${adminSafe(row.id, '')}')">Copy setup link</button><button type="button" class="admin-contact-action" onclick="copyPartnerOnboardingInvitation('${adminSafe(row.id, '')}')">Copy setup invitation</button><button type="button" class="admin-contact-action" onclick="emailPartnerOnboardingLink('${adminSafe(row.id, '')}')">Email setup link</button>` : '';
     const agreementStatus = String(row?.partner_agreement_status || 'not_started').toLowerCase();
     const agreementButton = paid && ['complete', 'completed'].includes(onboarding) && !['signed', 'sent'].includes(agreementStatus)
       ? ` <button type="button" class="admin-contact-action" onclick="sendPartnerAgreementForSignature('${adminSafe(row.id, '')}')">Send agreement to SignWell</button>`
@@ -4333,13 +4337,16 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         const followUp = email ? partnerLeadFollowUpAction(row) : '';
         const onboarding = String(row.onboarding_status || 'not_started').toLowerCase();
         const setupComplete = ['complete', 'completed'].includes(onboarding);
-        const nextStep = !setupComplete
-          ? 'Next: issue a secure setup link, then wait for the partner to save creative and market details.'
-          : 'Next: confirm the written advertising agreement, then activate the placement from the Partner Marketplace.';
+        const readiness = row.activation_readiness || {};
+        const readinessLabel = String(readiness.label || (setupComplete ? 'Send agreement' : 'Setup needed'));
+        const readinessTone = String(readiness.tone || 'warn');
+        const nextStep = String(readiness.next_action || (!setupComplete
+          ? 'Issue a secure setup link, then wait for the partner to save creative and market details.'
+          : 'Send and complete the written advertising agreement, then activate the placement from the Partner Marketplace.'));
         return `<div class="admin-row">
           <div><strong>${adminSafe(row.company_name || 'Paid partner')}</strong><div class="admin-muted">${adminSafe(row.contact_name || '')} · ${adminSafe(email)}</div>${followUp ? `<div class="partner-lead-admin-actions">${followUp}</div>` : ''}</div>
           <div>${adminSafe(row.partner_type || 'partner')}<div class="admin-muted">${adminSafe(row.market_area || '')}</div></div>
-          <div><span class="admin-pill ${setupComplete ? 'good' : 'warn'}">${setupComplete ? 'Setup complete' : 'Setup needed'}</span><div class="admin-muted">${adminSafe(nextStep)}<br>${adminSafe(age)}</div></div>
+          <div><span class="admin-pill ${readinessTone}">${adminSafe(readinessLabel)}</span><div class="admin-muted">Next: ${adminSafe(nextStep)}<br>${adminSafe(age)}</div></div>
           <div>${adminDate(row.created_at)}</div>
         </div>`;
       }
@@ -4654,6 +4661,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <div class="admin-metric-value">${metrics.paidPartnerActivationQueueCount || paidPartnerActivationQueue.length || 0}</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Paid applications awaiting written-agreement activation.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.paidPartnerActivationQueueAgedCount || 0} queue items are more than 7 days old.</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Stage: ${adminSafe(Object.entries(metrics.paidPartnerActivationReadinessCounts || {}).map(([stage, count]) => `${stage.replace(/_/g, ' ')} (${count})`).join(' · '), 'No paid partners waiting')}</div>
           </div>
 
           <div class="admin-metric">

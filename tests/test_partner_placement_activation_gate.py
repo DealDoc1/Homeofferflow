@@ -36,7 +36,7 @@ class PartnerPlacementActivationGateTests(unittest.TestCase):
         self.assertIn("Send agreement to SignWell", HTML)
         self.assertIn("support@homeofferflow.com", HTML)
         self.assertIn("No fully onboarded paid applications", HTML)
-        self.assertIn("Setup complete", HTML)
+        self.assertIn("readinessLabel", HTML)
 
     def test_admin_defaults_placement_tier_and_fee_from_paid_selection(self):
         self.assertIn('onchange="applyPartnerPlacementDefaultsFromLead()"', HTML)
