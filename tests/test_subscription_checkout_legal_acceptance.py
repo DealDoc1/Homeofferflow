@@ -10,7 +10,7 @@ from unittest.mock import patch
 ROOT = Path(__file__).resolve().parents[1]
 CHECKOUT_PATH = ROOT / "api" / "create-subscription-checkout" / "index.py"
 INDEX = (ROOT / "index.html").read_text(encoding="utf-8")
-MIGRATION = (ROOT / "supabase" / "migrations" / "20260811113000_homeofferflow_subscription_checkout_legal_acceptance.sql").read_text(encoding="utf-8")
+MIGRATION = (ROOT / "supabase" / "migrations" / "20260811151117_homeofferflow_subscription_checkout_legal_acceptance.sql").read_text(encoding="utf-8")
 
 os.environ.setdefault("STRIPE_SECRET_KEY", "sk_test_example")
 os.environ.setdefault("STRIPE_AGENT_MONTHLY_PRICE_ID", "price_agent_monthly")

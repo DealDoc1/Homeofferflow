@@ -3,7 +3,7 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[1]
-MIGRATION = (ROOT / "supabase" / "migrations" / "20260809221353_homeofferflow_legal_acceptance_records.sql").read_text(encoding="utf-8")
+MIGRATION = (ROOT / "supabase" / "migrations" / "20260809221515_homeofferflow_legal_acceptance_records.sql").read_text(encoding="utf-8")
 INDEX = (ROOT / "index.html").read_text(encoding="utf-8")
 ONDEMAND = (ROOT / "ondemand.html").read_text(encoding="utf-8")
 

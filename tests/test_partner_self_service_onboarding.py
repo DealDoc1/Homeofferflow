@@ -15,7 +15,7 @@ SPEC.loader.exec_module(fsbo)
 
 class PartnerSelfServiceOnboardingTests(unittest.TestCase):
     def test_migration_hashes_and_expires_single_use_tokens(self):
-        sql = (ROOT / "supabase/migrations/20260810123000_partner_self_service_onboarding.sql").read_text()
+        sql = (ROOT / "supabase/migrations/20260810175019_partner_self_service_onboarding.sql").read_text()
         self.assertIn("onboarding_token_hash", sql)
         self.assertIn("onboarding_token_expires_at", sql)
         self.assertIn("raw tokens are never stored", sql)

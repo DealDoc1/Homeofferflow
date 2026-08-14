@@ -10,7 +10,7 @@ PACKAGE_MIGRATION = (
     ROOT / "supabase/migrations/20260808190000_seller_lead_package_context.sql"
 ).read_text(encoding="utf-8")
 ATTRIBUTION_MIGRATION = (
-    ROOT / "supabase/migrations/20260811141327_seller_lead_campaign_attribution.sql"
+    ROOT / "supabase/migrations/20260811141707_seller_lead_campaign_attribution.sql"
 ).read_text(encoding="utf-8")
 INDEX = (ROOT / "index.html").read_text(encoding="utf-8")
 API = (ROOT / "api/fsbo-lead.py").read_text(encoding="utf-8")
