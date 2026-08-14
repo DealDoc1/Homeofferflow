@@ -59,6 +59,11 @@ class SubscriptionPacketGenerationSecurityTests(unittest.TestCase):
         self.assertIn("legacy / pre-category", HTML)
         self.assertIn("no offer, client, or agent details shown", HTML)
 
+    def test_admin_keeps_priority_signing_sync_adoption_aggregate_only(self):
+        admin = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
+        self.assertIn("priority_signing_sync_selected_count", admin)
+        self.assertIn('"prioritySigningSyncSelectedCount"', admin)
+
     def test_checkout_shaped_requests_fail_closed_without_stripe_or_subscription_auth(self):
         start = API.index("def do_POST(self):")
         post = API[start:]
