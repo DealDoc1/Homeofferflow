@@ -79,6 +79,14 @@ def valid_notice_payload():
 
 
 class StandaloneAgreementFoundationTests(unittest.TestCase):
+    def test_private_txr_source_checks_require_an_active_brokerage_membership(self):
+        # The private source endpoint enforces this server-side too. Matching
+        # it in the UI avoids unnecessary failing requests for pending seats.
+        self.assertGreaterEqual(
+            HTML.count("root.hofPlatform?.brokerageMembership?.status === 'active'"),
+            4,
+        )
+
     def test_platform_admin_without_brokerage_membership_cannot_bypass_agreement_gate(self):
         async def run():
             platform_admin = {"id": "platform-user", "email": "andrewchri@gmail.com"}

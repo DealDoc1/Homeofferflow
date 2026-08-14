@@ -16583,7 +16583,9 @@ function routeAfterMagicLinkIfNeeded() {
   const brokerageTxrAuthorized = () => root.hofPlatform?.brokerage?.txr_all_agents_authorized === true && !!root.hofPlatform?.brokerage?.txr_authorization_attested_at;
   const activeAgent = () => {
     const role = String(root.hofAuth?.role || profile().role || '').toLowerCase();
-    return !!root.hofAuth?.session?.user && !!brokerageId() && ['agent', 'broker', 'brokerage_admin', 'broker_admin', 'owner', 'team_lead'].includes(role);
+    return !!root.hofAuth?.session?.user && !!brokerageId() &&
+      root.hofPlatform?.brokerageMembership?.status === 'active' &&
+      ['agent', 'broker', 'brokerage_admin', 'broker_admin', 'owner', 'team_lead'].includes(role);
   };
 
   async function approvedShortFormSource() {
@@ -16706,7 +16708,9 @@ function routeAfterMagicLinkIfNeeded() {
   const brokerageId = () => root.hofPlatform?.brokerage?.id || profile().brokerage_id || null;
   const activeAgent = () => {
     const role = String(root.hofAuth?.role || profile().role || '').toLowerCase();
-    return !!root.hofAuth?.session?.user && !!brokerageId() && ['agent', 'broker', 'brokerage_admin', 'broker_admin', 'owner', 'team_lead'].includes(role);
+    return !!root.hofAuth?.session?.user && !!brokerageId() &&
+      root.hofPlatform?.brokerageMembership?.status === 'active' &&
+      ['agent', 'broker', 'brokerage_admin', 'broker_admin', 'owner', 'team_lead'].includes(role);
   };
 
   async function approvedLongFormSource() {
@@ -16836,7 +16840,9 @@ function routeAfterMagicLinkIfNeeded() {
   const brokerageId = () => root.hofPlatform?.brokerage?.id || profile().brokerage_id || null;
   const activeAgent = () => {
     const role = String(root.hofAuth?.role || profile().role || '').toLowerCase();
-    return !!root.hofAuth?.session?.user && !!brokerageId() && ['agent', 'broker', 'brokerage_admin', 'broker_admin', 'owner', 'team_lead'].includes(role);
+    return !!root.hofAuth?.session?.user && !!brokerageId() &&
+      root.hofPlatform?.brokerageMembership?.status === 'active' &&
+      ['agent', 'broker', 'brokerage_admin', 'broker_admin', 'owner', 'team_lead'].includes(role);
   };
 
   async function approvedShowingSource() {
@@ -16957,7 +16963,9 @@ function routeAfterMagicLinkIfNeeded() {
   const brokerageId = () => root.hofPlatform?.brokerage?.id || profile().brokerage_id || null;
   const activeAgent = () => {
     const role = String(root.hofAuth?.role || profile().role || '').toLowerCase();
-    return !!root.hofAuth?.session?.user && !!brokerageId() && ['agent', 'broker', 'brokerage_admin', 'broker_admin', 'owner', 'team_lead'].includes(role);
+    return !!root.hofAuth?.session?.user && !!brokerageId() &&
+      root.hofPlatform?.brokerageMembership?.status === 'active' &&
+      ['agent', 'broker', 'brokerage_admin', 'broker_admin', 'owner', 'team_lead'].includes(role);
   };
   async function approvedNoticeSource() {
     return root.hofLoadApprovedBrokerageSource?.(FORM_CODE) || null;
