@@ -1576,7 +1576,7 @@ def save_generated_offer_to_supabase(offer, customer_email="", signwell_info=Non
             "escrow_agent": first_present(offer.get("escrowAgent"), "") or None,
             "signwell_document_id": signwell_document_id or None,
             "signwell_status": signwell_status or None,
-            "generated_at": __import__("datetime").datetime.utcnow().isoformat() + "Z",
+            "generated_at": __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat().replace("+00:00", "Z"),
             "status": status,
             "offer_data": {
                 **persisted_offer_data,
@@ -1584,7 +1584,7 @@ def save_generated_offer_to_supabase(offer, customer_email="", signwell_info=Non
                 "signwell": signwell_info or {},
                 "backend_saved": True,
             },
-            "last_updated": __import__("datetime").datetime.utcnow().isoformat() + "Z",
+            "last_updated": __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat().replace("+00:00", "Z"),
         }
 
         # Remove None values only for columns that are optional; keep important status/role fields.
