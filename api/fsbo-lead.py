@@ -70,6 +70,7 @@ MONTHLY_PRICE_ENV_BY_TIER = {
 }
 PARTNER_DIRECTORY_EVENT_TYPES = {"partner_directory_impression": "shown", "partner_directory_outbound_click": "clicked"}
 PARTNER_DIRECTORY_TIERS = {"core", "featured", "premier", "exclusive_market"}
+PARTNER_DIRECTORY_SURFACES = {"public_directory", "fsbo_seller_plan"}
 FSBO_LANDING_EVENT_TYPES = {
     "fsbo_landing_viewed": "viewed",
     "fsbo_landing_cta_selected": "selected",
@@ -283,13 +284,18 @@ def _record_partner_directory_event(data):
     partner_id = _text(data.get("partner_id"), 80)
     partner_type = _text(data.get("partner_type"), 80)
     placement_tier = _text(data.get("placement_tier"), 80)
+    directory_surface = _text(data.get("directory_surface"), 80) or "public_directory"
     if event_type not in PARTNER_DIRECTORY_EVENT_TYPES:
         raise ValueError("Unsupported directory event.")
     try:
         partner_id = str(uuid.UUID(partner_id or ""))
     except (TypeError, ValueError, AttributeError):
         raise ValueError("A valid partner placement is required.")
-    if partner_type not in ALLOWED_PARTNER_TYPES or placement_tier not in PARTNER_DIRECTORY_TIERS:
+    if (
+        partner_type not in ALLOWED_PARTNER_TYPES
+        or placement_tier not in PARTNER_DIRECTORY_TIERS
+        or directory_surface not in PARTNER_DIRECTORY_SURFACES
+    ):
         raise ValueError("Unsupported partner placement metadata.")
     headers = {"apikey": SUPABASE_SERVICE_ROLE_KEY, "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}"}
     query = urlencode({
@@ -304,7 +310,7 @@ def _record_partner_directory_event(data):
         response = client.get(f"{SUPABASE_URL}/rest/v1/hof_partner_placements?{query}", headers=headers)
     if response.status_code >= 300 or not response.json():
         raise ValueError("That partner placement is unavailable.")
-    _record_partner_checkout_event(event_type, PARTNER_DIRECTORY_EVENT_TYPES[event_type], "Privacy-safe public partner directory engagement recorded.", {"partnerId": partner_id, "partnerType": partner_type, "placementTier": placement_tier})
+    _record_partner_checkout_event(event_type, PARTNER_DIRECTORY_EVENT_TYPES[event_type], "Privacy-safe public partner directory engagement recorded.", {"partnerId": partner_id, "partnerType": partner_type, "placementTier": placement_tier, "directorySurface": directory_surface})
 
 
 def _record_fsbo_landing_event(data):
