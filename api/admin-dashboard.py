@@ -4191,6 +4191,15 @@ class handler(BaseHTTPRequestHandler):
             agent_landing_cta_count = len([
                 item for item in events if item.get("event_type") == "agent_landing_cta_selected"
             ])
+            # The handoff is recorded only after an authenticated visitor
+            # reaches the promised private draft flow. Return an aggregate
+            # distinct-user count so Admin can measure the real acquisition
+            # step without exposing agent identities or draft details.
+            agent_landing_draft_handoff_user_count = len({
+                str(item.get("user_id") or "")
+                for item in events
+                if item.get("event_type") == "agent_landing_draft_handoff" and item.get("user_id")
+            })
             investor_landing_view_count = len([
                 item for item in events if item.get("event_type") == "investor_landing_viewed"
             ])
@@ -4520,6 +4529,9 @@ class handler(BaseHTTPRequestHandler):
                 "agentLandingCtaCount": agent_landing_cta_count,
                 "agentLandingCtaRate": round((agent_landing_cta_count / agent_landing_view_count) * 100, 1)
                 if agent_landing_view_count else 0,
+                "agentLandingDraftHandoffUserCount": agent_landing_draft_handoff_user_count,
+                "agentLandingDraftHandoffRate": round((agent_landing_draft_handoff_user_count / agent_landing_cta_count) * 100, 1)
+                if agent_landing_cta_count else 0,
                 "investorLandingViewCount": investor_landing_view_count,
                 "investorLandingCtaCount": investor_landing_cta_count,
                 "investorLandingCtaRate": round((investor_landing_cta_count / investor_landing_view_count) * 100, 1)

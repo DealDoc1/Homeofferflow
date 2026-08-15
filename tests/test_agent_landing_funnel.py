@@ -46,10 +46,16 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("agent_landing_cta_selected", AGENTS)
 
     def test_admin_reports_agent_workspace_landing_conversion(self):
-        for expected in ('"agentLandingViewCount"', '"agentLandingCtaCount"', '"agentLandingCtaRate"'):
+        for expected in (
+            '"agentLandingViewCount"', '"agentLandingCtaCount"', '"agentLandingCtaRate"',
+            '"agentLandingDraftHandoffUserCount"', '"agentLandingDraftHandoffRate"',
+            'agent_landing_draft_handoff',
+        ):
             self.assertIn(expected, ADMIN)
         self.assertIn("Agent Workspace Funnel", INDEX)
         self.assertIn("agentLandingCtaRate", INDEX)
+        self.assertIn("agentLandingDraftHandoffUserCount", INDEX)
+        self.assertIn("agentLandingDraftHandoffRate", INDEX)
 
 
 if __name__ == "__main__":

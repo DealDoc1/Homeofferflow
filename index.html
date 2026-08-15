@@ -4602,7 +4602,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           <div class="admin-metric">
             <div class="admin-metric-label">Agent Workspace Funnel</div>
             <div class="admin-metric-value">${metrics.agentLandingViewCount || 0} views</div>
-            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.agentLandingCtaCount || 0} opened passwordless sign-in (${Number(metrics.agentLandingCtaRate || 0).toFixed(1)}%).</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.agentLandingCtaCount || 0} opened passwordless sign-in (${Number(metrics.agentLandingCtaRate || 0).toFixed(1)}%) · ${metrics.agentLandingDraftHandoffUserCount || 0} reached the private draft (${Number(metrics.agentLandingDraftHandoffRate || 0).toFixed(1)}% of CTA selections).</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Aggregate landing intent only; no agent identity, client, property, or offer details are included.</div>
           </div>
 
