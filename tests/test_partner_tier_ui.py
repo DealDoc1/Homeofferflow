@@ -64,11 +64,15 @@ class PartnerTierUiTests(unittest.TestCase):
         self.assertIn("Everything else can be added during onboarding.", self.html)
 
     def test_checkout_intake_validates_and_focuses_the_first_invalid_essential(self):
+        self.assertIn('id="foundingPartnerType" required aria-required="true"', self.html)
+        self.assertIn('Choose your service category', self.html)
         self.assertIn('id="foundingPartnerEmail" type="email" inputmode="email" autocomplete="email"', self.html)
         start = self.html.index("window.submitFoundingPartnerLead")
         end = self.html.index("if (!hasSavedPartnerApplication && !document.getElementById('foundingPartnerConsent')", start)
         submit = self.html[start:end]
         self.assertIn("emailInput?.checkValidity()", submit)
+        self.assertIn("typeInput?.checkValidity()", submit)
+        self.assertIn("Choose your service category to continue to secure checkout.", submit)
         self.assertIn("Enter a valid business email to continue to secure checkout.", submit)
         self.assertIn("firstInvalid?.focus();", submit)
         self.assertIn("setAttribute('aria-invalid'", submit)

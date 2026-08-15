@@ -12968,9 +12968,9 @@ function routeAfterMagicLinkIfNeeded() {
     <div class="partner-selected-tier" aria-live="polite"><span>Selected 90-day Founding Partner pilot</span><strong id="foundingPartnerTierSelection">Featured Partner · $399 one time for the first 90 days</strong></div>
     <select id="foundingPartnerModel" class="partner-tier-native-select" aria-label="Selected advertising tier"><option value="founding_pilot">Core Partner</option><option value="monthly_placement" selected>Featured Partner</option><option value="market_exclusive">Premier Partner</option><option value="discuss">Custom / multi-market plan</option></select>
 
-    <div class="partner-checkout-intake-note"><strong>Start with the essentials.</strong><span>Company, contact, business email, and one market area are all that is needed to reserve your selected tier and continue to secure checkout. Everything else can be added during onboarding.</span></div>
+    <div class="partner-checkout-intake-note"><strong>Start with the essentials.</strong><span>Category, company, contact, business email, and one market area are all that is needed to reserve your selected tier and continue to secure checkout. Everything else can be added during onboarding.</span></div>
     <div class="platform-grid" id="foundingPartnerEssentials">
-      <div class="field"><label for="foundingPartnerType">Partner category</label><select id="foundingPartnerType"><option value="title">Title company / fee attorney</option><option value="lender">Mortgage lender</option><option value="inspection">Home inspection</option><option value="surveyor">Property surveyor</option><option value="home_warranty">Home warranty</option><option value="insurance">Home insurance</option><option value="roofing">Roofing contractor</option><option value="hvac">HVAC / heating and air</option><option value="plumbing">Plumbing</option><option value="electrical">Electrical</option><option value="foundation_structural">Foundation / structural repair</option><option value="general_contractor">General contractor / remodeling</option><option value="pest_termite">Pest control / termite</option><option value="septic_well">Septic / well service</option><option value="restoration">Water / fire restoration</option><option value="repairs_handyman">Repairs / handyman</option><option value="photography_video">Photography / video</option><option value="staging">Home staging</option><option value="cleaning">Cleaning</option><option value="moving_storage">Moving / storage</option><option value="lawn_pool">Lawn / pool</option><option value="security_smart_home">Security / smart home</option><option value="other">Other real-estate service</option></select></div>
+      <div class="field"><label for="foundingPartnerType">Partner category</label><select id="foundingPartnerType" required aria-required="true"><option value="" selected disabled>Choose your service category</option><option value="title">Title company / fee attorney</option><option value="lender">Mortgage lender</option><option value="inspection">Home inspection</option><option value="surveyor">Property surveyor</option><option value="home_warranty">Home warranty</option><option value="insurance">Home insurance</option><option value="roofing">Roofing contractor</option><option value="hvac">HVAC / heating and air</option><option value="plumbing">Plumbing</option><option value="electrical">Electrical</option><option value="foundation_structural">Foundation / structural repair</option><option value="general_contractor">General contractor / remodeling</option><option value="pest_termite">Pest control / termite</option><option value="septic_well">Septic / well service</option><option value="restoration">Water / fire restoration</option><option value="repairs_handyman">Repairs / handyman</option><option value="photography_video">Photography / video</option><option value="staging">Home staging</option><option value="cleaning">Cleaning</option><option value="moving_storage">Moving / storage</option><option value="lawn_pool">Lawn / pool</option><option value="security_smart_home">Security / smart home</option><option value="other">Other real-estate service</option></select></div>
       <div class="field"><label for="foundingPartnerCompany">Company name</label><input id="foundingPartnerCompany" autocomplete="organization" placeholder="Company name" required aria-required="true"></div>
       <div class="field"><label for="foundingPartnerContact">Contact name</label><input id="foundingPartnerContact" autocomplete="name" placeholder="Full name" required aria-required="true"></div>
       <div class="field"><label for="foundingPartnerEmail">Business email</label><input id="foundingPartnerEmail" type="email" inputmode="email" autocomplete="email" placeholder="you@company.com" required aria-required="true"></div>
@@ -13131,6 +13131,7 @@ function routeAfterMagicLinkIfNeeded() {
   window.submitFoundingPartnerLead = async function(){
     const status = document.getElementById('foundingPartnerStatus');
     const submit = document.getElementById('foundingPartnerSubmit');
+    const typeInput = document.getElementById('foundingPartnerType');
     const companyInput = document.getElementById('foundingPartnerCompany');
     const contactInput = document.getElementById('foundingPartnerContact');
     const emailInput = document.getElementById('foundingPartnerEmail');
@@ -13158,21 +13159,24 @@ function routeAfterMagicLinkIfNeeded() {
       utm_content: query.get('utm_content') || '',
       landing_page: window.location.href
     };
+    const hasType = !!payload.partner_type && !!typeInput?.checkValidity();
     const hasCompany = !!payload.company_name;
     const hasContact = !!payload.contact_name;
     const hasEmail = !!payload.contact_email;
     const hasValidEmail = !!emailInput?.checkValidity();
     const hasMarket = !!payload.market_area;
-    if (!hasSavedPartnerApplication && (!hasCompany || !hasContact || !hasEmail || !hasValidEmail || !hasMarket)) {
-      trackPartnerFunnel('Founding Partner Required Fields Missing', { companyProvided: !!payload.company_name, contactProvided: !!payload.contact_name, emailProvided: !!payload.contact_email, marketProvided: !!payload.market_area });
-      const firstInvalid = !hasCompany ? companyInput : !hasContact ? contactInput : (!hasEmail || !hasValidEmail) ? emailInput : marketInput;
-      [[companyInput, hasCompany], [contactInput, hasContact], [emailInput, hasValidEmail], [marketInput, hasMarket]].forEach(([input, valid]) => {
+    if (!hasSavedPartnerApplication && (!hasType || !hasCompany || !hasContact || !hasEmail || !hasValidEmail || !hasMarket)) {
+      trackPartnerFunnel('Founding Partner Required Fields Missing', { categoryProvided: hasType, companyProvided: !!payload.company_name, contactProvided: !!payload.contact_name, emailProvided: !!payload.contact_email, marketProvided: !!payload.market_area });
+      const firstInvalid = !hasType ? typeInput : !hasCompany ? companyInput : !hasContact ? contactInput : (!hasEmail || !hasValidEmail) ? emailInput : marketInput;
+      [[typeInput, hasType], [companyInput, hasCompany], [contactInput, hasContact], [emailInput, hasValidEmail], [marketInput, hasMarket]].forEach(([input, valid]) => {
         if (input) input.setAttribute('aria-invalid', valid ? 'false' : 'true');
       });
       if (status) {
-        status.textContent = !hasCompany
-          ? 'Enter your company name to continue to secure checkout.'
-          : !hasContact
+        status.textContent = !hasType
+          ? 'Choose your service category to continue to secure checkout.'
+          : !hasCompany
+            ? 'Enter your company name to continue to secure checkout.'
+            : !hasContact
             ? 'Enter your contact name to continue to secure checkout.'
             : !hasEmail
               ? 'Enter your business email to continue to secure checkout.'
@@ -13184,7 +13188,7 @@ function routeAfterMagicLinkIfNeeded() {
       firstInvalid?.focus();
       return;
     }
-    [companyInput, contactInput, emailInput, marketInput].forEach(input => input?.setAttribute('aria-invalid', 'false'));
+    [typeInput, companyInput, contactInput, emailInput, marketInput].forEach(input => input?.setAttribute('aria-invalid', 'false'));
     if (!hasSavedPartnerApplication && !document.getElementById('foundingPartnerConsent')?.checked) {
       trackPartnerFunnel('Founding Partner Consent Required', { tier: payload.preferred_model });
       if (status) { status.textContent = 'Please acknowledge the founding-pilot terms before submitting.'; status.className = 'platform-status err'; }
