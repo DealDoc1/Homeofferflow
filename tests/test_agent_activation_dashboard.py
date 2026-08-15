@@ -286,6 +286,15 @@ class AgentActivationDashboardTests(unittest.TestCase):
         self.assertIn("offers().filter", draft)
         self.assertIn("return bUpdated - aUpdated", draft)
 
+    def test_returning_agent_can_start_a_clean_offer_without_detouring_to_the_workspace(self):
+        script_start = HTML.index('id="hof-agent-activation-v16-js"')
+        script_end = HTML.index("</script>", script_start)
+        script = HTML[script_start:script_end]
+        self.assertIn("primary: 'Resume My Draft'", script)
+        self.assertIn("secondary: 'Create Fresh Offer'", script)
+        self.assertIn("state.key === 'resume' ? 'start_fresh'", script)
+        self.assertIn("start a clean offer for a different client", script)
+
     def test_legacy_demo_card_is_removed_by_final_dashboard_renderer(self):
         script_start = HTML.index('id="hof-agent-activation-v16-js"')
         script_end = HTML.index("</script>", script_start)

@@ -15216,9 +15216,9 @@ function routeAfterMagicLinkIfNeeded() {
       return {
         key: 'resume',
         title: 'Resume your latest offer',
-        body: `${draft.property_address || 'Your draft'} is ready to continue. Pick up where you stopped without re-entering your saved defaults.`,
-        primary: 'Resume Offer',
-        secondary: 'Open Offer Workspace',
+        body: `${draft.property_address || 'Your draft'} is ready to continue. Resume the same client workflow without re-entering your saved defaults, or start a clean offer for a different client.`,
+        primary: 'Resume My Draft',
+        secondary: 'Create Fresh Offer',
         draftId: draft.id || '',
         complete, hasProfile, hasOffer, hasPlan
       };
@@ -15307,6 +15307,7 @@ function routeAfterMagicLinkIfNeeded() {
       state.key === 'resume_beta' ? 'subscribe' :
       state.key === 'recover_billing' ? 'offers' :
       state.key === 'subscribe' || state.key === 'reactivate' ? 'subscribe' :
+      state.key === 'resume' ? 'start_fresh' :
       'offers';
     const secondaryBilling = state.key === 'subscribe' || state.key === 'reactivate' ? 'annual' : 'monthly';
 
