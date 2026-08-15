@@ -18095,6 +18095,13 @@ function routeAfterMagicLinkIfNeeded() {
     return 'Install HomeOfferFlow';
   }
 
+  function installHelpLabel(surface){
+    if (surface === 'seller_success') return 'Add Seller Plan to Home Screen';
+    if (surface === 'buyer_review' || surface === 'buyer_success') return 'Add Offer Workspace to Home Screen';
+    if (surface === 'account_dashboard') return 'Add Agent Workspace to Home Screen';
+    return 'Show the 2 steps';
+  }
+
   function dismissInstallCard(){
     const card = document.getElementById('hofPwaInstallCard');
     try { localStorage.setItem(dismissKey, String(Date.now() + 1000 * 60 * 60 * 24 * 30)); }
@@ -18159,9 +18166,9 @@ function routeAfterMagicLinkIfNeeded() {
       <p class="pwa-install-note">Your offers and client details stay protected online; installation only gives this existing workspace a faster, dedicated launch.</p>
       <div class="pwa-install-actions">
         ${ios
-          ? '<button class="btn-primary" type="button" id="hofPwaInstallHelp">Show the 2 steps</button>'
+          ? `<button class="btn-primary" type="button" id="hofPwaInstallHelp">${installHelpLabel(target.surface)}</button>`
           : isAndroid() && !deferredInstallPrompt
-          ? '<button class="btn-primary" type="button" id="hofPwaInstallHelp">Show the 2 steps</button>'
+          ? `<button class="btn-primary" type="button" id="hofPwaInstallHelp">${installHelpLabel(target.surface)}</button>`
           : `<button class="btn-primary" type="button" id="hofPwaInstallButton">${installCtaLabel(target.surface)}</button>`}
         <button class="btn-secondary" type="button" id="hofPwaInstallDismiss">Not now</button>
       </div>
