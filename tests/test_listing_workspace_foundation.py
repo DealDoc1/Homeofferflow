@@ -12,6 +12,14 @@ INDEX = (ROOT / "index.html").read_text()
 
 
 class ListingWorkspaceFoundationTests(unittest.TestCase):
+    def test_optional_seller_lead_email_is_validated_before_the_private_record_is_saved(self):
+        self.assertIn('id="sellerLeadEmail" type="email" inputmode="email" autocomplete="email"', INDEX)
+        start = INDEX.index("async function saveSellerLeadFoundation()")
+        end = INDEX.index("async function loadSellerLeadsFoundation()", start)
+        save = INDEX[start:end]
+        self.assertIn("sellerEmailInput?.checkValidity()", save)
+        self.assertIn("sellerEmailInput.focus();", save)
+
     def test_workspace_is_separate_from_buyer_offers_and_form_execution(self):
         self.assertIn("create table if not exists public.hof_listing_workspaces", MIGRATION)
         self.assertIn("does not create, send, or sign", MIGRATION)

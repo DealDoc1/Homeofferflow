@@ -10806,7 +10806,7 @@ function routeAfterMagicLinkIfNeeded() {
           <div class="field"><label>Workflow Type</label><select id="sellerLeadType"><option value="agent_listing">Listing Agent / Seller Rep</option><option value="fsbo">FSBO Referral / Seller Lead</option></select></div>
           <div class="field"><label for="sellerLeadAddress">Property Address</label><input id="sellerLeadAddress" placeholder="Start typing the property address..." autocomplete="off" autocorrect="off" autocapitalize="words" spellcheck="false" aria-describedby="sellerLeadAddressHelp"><small id="sellerLeadAddressHelp" style="display:block;margin-top:.35rem;color:var(--gray-light);">Choose a Google address suggestion when available; manual entry still works.</small></div>
           <div class="field"><label>Seller Name</label><input id="sellerLeadName" placeholder="Seller full name"></div>
-          <div class="field"><label>Seller Email</label><input id="sellerLeadEmail" type="email" placeholder="seller@email.com"></div>
+          <div class="field"><label>Seller Email</label><input id="sellerLeadEmail" type="email" inputmode="email" autocomplete="email" placeholder="seller@email.com"></div>
           <div class="field"><label>Seller Phone</label><input id="sellerLeadPhone" placeholder="(214) 555-0000"></div>
           <div class="field"><label>Asking Price</label><input id="sellerLeadPrice" type="number" placeholder="500000"></div>
           <div class="field"><label>Mortgage Balance</label><input id="sellerLeadMortgage" type="number" placeholder="Optional"></div>
@@ -10973,7 +10973,13 @@ function routeAfterMagicLinkIfNeeded() {
   async function saveSellerLeadFoundation() {
     const client = getSupabaseClient();
     const user = platformUser();
+    const sellerEmailInput = document.getElementById('sellerLeadEmail');
     if (!client || !user) return platformStatus('sellerFoundationStatus', 'Sign in before saving a seller lead.', 'err');
+    if (String(sellerEmailInput?.value || '').trim() && !sellerEmailInput?.checkValidity()) {
+      platformStatus('sellerFoundationStatus', 'Enter a valid seller email address or leave the optional field blank.', 'err');
+      sellerEmailInput.focus();
+      return;
+    }
     try {
       if (!hofPlatform.brokerage) await loadBrokerageFoundation();
       const payload = {
