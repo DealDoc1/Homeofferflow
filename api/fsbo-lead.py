@@ -75,6 +75,11 @@ FSBO_LANDING_EVENT_TYPES = {
     "fsbo_landing_viewed": "viewed",
     "fsbo_landing_cta_selected": "selected",
     "fsbo_provider_directory_opened": "opened",
+    "fsbo_intake_opened": "opened",
+    "fsbo_package_selected": "selected",
+    "fsbo_required_fields_missing": "incomplete",
+    "fsbo_request_submission_started": "started",
+    "fsbo_request_saved": "saved",
     "pwa_seller_plan_opened": "opened",
 }
 PARTNER_LANDING_EVENT_TYPES = {

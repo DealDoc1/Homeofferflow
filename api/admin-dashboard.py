@@ -4238,6 +4238,8 @@ class handler(BaseHTTPRequestHandler):
             seller_landing_package_cta_counts = dict(sorted(
                 seller_landing_package_cta_counts.items(), key=lambda item: (-item[1], item[0])
             ))
+            seller_intake_event_types = {"fsbo_intake_opened", "fsbo_package_selected", "fsbo_required_fields_missing", "fsbo_request_submission_started", "fsbo_request_saved"}
+            seller_intake_event_counts = {event_type: len([item for item in events if item.get("event_type") == event_type]) for event_type in seller_intake_event_types}
             # Seller package choices are an allowlisted product catalog. Surface
             # only aggregate submitted-request demand; do not expose seller,
             # property, campaign, or contact data just to measure revenue fit.
@@ -4338,6 +4340,7 @@ class handler(BaseHTTPRequestHandler):
                 "sellerLandingCtaRate": round((seller_landing_cta_count / seller_landing_view_count) * 100, 1)
                 if seller_landing_view_count else 0,
                 "sellerLandingPackageCtaCounts": seller_landing_package_cta_counts,
+                "sellerIntakeEventCounts": seller_intake_event_counts,
                 "sellerPackageRequestCounts": seller_package_request_counts,
                 "sellerCampaignLeadCount": len(tracked_seller_campaign_leads),
                 "sellerCampaignMediumCounts": seller_campaign_medium_counts,

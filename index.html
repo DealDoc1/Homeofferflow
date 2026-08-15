@@ -4691,6 +4691,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <div class="admin-metric-label">Seller / FSBO Leads</div>
             <div class="admin-metric-value">${metrics.sellerLeadCount || sellerLeads.length || 0}</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.sellerLandingViewCount || 0} seller landing views · ${metrics.sellerLandingCtaCount || 0} intake starts (${Number(metrics.sellerLandingCtaRate || 0).toFixed(1)}%).</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Intake progress: ${Number(metrics.sellerIntakeEventCounts?.fsbo_intake_opened || 0)} opened · ${Number(metrics.sellerIntakeEventCounts?.fsbo_package_selected || 0)} package choices · ${Number(metrics.sellerIntakeEventCounts?.fsbo_required_fields_missing || 0)} incomplete attempts · ${Number(metrics.sellerIntakeEventCounts?.fsbo_request_submission_started || 0)} submissions started · ${Number(metrics.sellerIntakeEventCounts?.fsbo_request_saved || 0)} saved.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Landing-path interest: ${adminSafe(Object.entries(metrics.sellerLandingPackageCtaCounts || {}).map(([packageKey, count]) => `${packageKey.replace(/_/g, ' ')} (${count})`).join(' · '), 'starts will appear after the next seller-page visit')}</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.sellerFollowUpEmailStartCount || 0} seller follow-up emails opened · ${Number(metrics.sellerFollowUpEmailStartRate || 0).toFixed(1)}% of seller leads.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.sellerReviewRequestCount || 0} seller disclosure review requests initiated · ${metrics.sellerReviewViewedCount || 0} opened · ${metrics.sellerReviewVerifiedCount || 0} verified · ${metrics.sellerReviewAttestationCount || 0} attested.</div>
@@ -12273,6 +12274,16 @@ function routeAfterMagicLinkIfNeeded() {
   }
   function trackFsboFunnel(name, data = {}) {
     try { trackEvent(name, data); } catch (_) {}
+    const eventType = {
+      'FSBO Seller Intake Opened': 'fsbo_intake_opened',
+      'FSBO Seller Package Selected': 'fsbo_package_selected',
+      'FSBO Seller Intake Required Fields Missing': 'fsbo_required_fields_missing',
+      'FSBO Seller Request Submission Started': 'fsbo_request_submission_started',
+      'FSBO Seller Request Saved': 'fsbo_request_saved'
+    }[name];
+    if (!eventType) return;
+    const serviceLevel = String(data.package || data.campaignPackage || 'free_intake');
+    fetch('/api/fsbo-lead', {method:'POST', headers:{'Content-Type':'application/json'}, keepalive:true, body:JSON.stringify({request_type:'fsbo_landing_event', event_type:eventType, service_level:serviceLevel})}).catch(() => {});
   }
   window.openFsboSellerModal = function(){
     const m = document.getElementById('fsboSellerModal');

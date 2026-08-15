@@ -10,6 +10,12 @@ SELLERS = (ROOT / "sellers.html").read_text(encoding="utf-8")
 
 
 class FsboLandingFunnelTests(unittest.TestCase):
+    def test_private_fsbo_intake_progress_is_available_as_aggregate_only(self):
+        self.assertIn('"fsbo_intake_opened": "opened"', API)
+        self.assertIn('"fsbo_package_selected": "selected"', API)
+        self.assertIn('"fsbo_request_saved": "saved"', API)
+        self.assertIn("FSBO Seller Request Submission Started", INDEX)
+        self.assertIn("sellerIntakeEventCounts", ADMIN)
     def test_public_endpoint_only_accepts_allowlisted_aggregate_events(self):
         self.assertIn("FSBO_LANDING_EVENT_TYPES", API)
         self.assertIn("def _record_fsbo_landing_event(data):", API)
