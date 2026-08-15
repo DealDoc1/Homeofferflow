@@ -735,7 +735,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 
 
 /* Admin operations dashboard */
-.admin-grid { display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:0.75rem; margin:0.75rem 0 1rem; }
+.admin-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(min(100%, 250px), 1fr)); gap:0.75rem; margin:0.75rem 0 1rem; align-items:start; }
 .admin-metric { background:rgba(255,255,255,0.035); border:1px solid rgba(255,255,255,0.09); border-radius:14px; padding:0.95rem; }
 .admin-metric-label { font-size:0.68rem; color:var(--gray-light); font-weight:900; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:0.35rem; }
 .admin-metric-value { font-family:'Playfair Display',serif; font-size:1.55rem; color:var(--gold-light); font-weight:900; line-height:1; }
