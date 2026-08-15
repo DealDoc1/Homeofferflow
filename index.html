@@ -12256,6 +12256,7 @@ function routeAfterMagicLinkIfNeeded() {
       <button class="btn-primary" type="button" id="fsboSellerSubmit" data-fsbo-submit onclick="submitFsboSellerLead('full')">Save My Seller Request</button>
       <button class="btn-secondary" type="button" onclick="closeFsboSellerModal()">Cancel</button>
     </div>
+    <div id="fsboDraftRecovery" class="platform-status" aria-live="polite"></div>
     <div id="fsboSellerStatus" class="platform-status"></div>
   </div>
 </div>
@@ -12348,10 +12349,35 @@ function routeAfterMagicLinkIfNeeded() {
       const fields = Object.fromEntries(fsboDraftFields.map(id => [id, document.getElementById(id)?.value || '']));
       fields.partners = getFsboPartners();
       sessionStorage.setItem(fsboDraftStorageKey, JSON.stringify(fields));
+      renderFsboDraftRecoveryNotice();
     } catch (_) {}
   }
   function fsboDraftExists(){
     try { return !!sessionStorage.getItem(fsboDraftStorageKey); } catch (_) { return false; }
+  }
+  // The request remains private until the seller explicitly submits it. Make
+  // local recovery visible without showing any saved personal details here.
+  function renderFsboDraftRecoveryNotice(restored = false){
+    const notice = document.getElementById('fsboDraftRecovery');
+    if (!notice) return;
+    if (!fsboDraftExists()) { notice.textContent = ''; notice.className = 'platform-status'; return; }
+    notice.className = 'platform-status ok';
+    notice.innerHTML = (restored
+      ? '<strong>Your saved seller draft was restored on this device.</strong> '
+      : '<strong>Your seller draft is saved on this device.</strong> ') +
+      'It has not been submitted or shared. <button class="btn-secondary" type="button" id="clearFsboDraft" style="margin-left:.45rem;padding:.3rem .5rem;">Clear this device draft</button>';
+    document.getElementById('clearFsboDraft')?.addEventListener('click', () => {
+      document.querySelectorAll('#fsboSellerModal input, #fsboSellerModal textarea, #fsboSellerModal select').forEach(field => {
+        if (field.type === 'checkbox') field.checked = false;
+        else if (field.id !== 'fsboPropertyState') field.value = '';
+      });
+      window.selectFsboNeed?.('free_intake', false);
+      // Selecting the default package persists its current value; remove that
+      // fresh empty save as part of the explicit clear action.
+      clearFsboDraft();
+      window.renderFsboNeedDetails?.();
+      document.getElementById('fsboPropertyAddress')?.focus();
+    }, {once:true});
   }
   function campaignFsboPackage(){
     const packageKey = String(new URLSearchParams(window.location.search).get('seller_package') || '').trim().toLowerCase();
@@ -12364,8 +12390,12 @@ function routeAfterMagicLinkIfNeeded() {
       document.querySelectorAll('input[name="fsboPartner"]').forEach(input => { input.checked = Array.isArray(draft.partners) && draft.partners.includes(input.value); });
       if (draft.fsboNeed) window.selectFsboNeed?.(draft.fsboNeed, false); else window.renderFsboNeedDetails?.();
     } catch (_) { window.renderFsboNeedDetails?.(); }
+    renderFsboDraftRecoveryNotice(fsboDraftExists());
   };
-  function clearFsboDraft(){ try { sessionStorage.removeItem(fsboDraftStorageKey); } catch (_) {} }
+  function clearFsboDraft(){
+    try { sessionStorage.removeItem(fsboDraftStorageKey); } catch (_) {}
+    renderFsboDraftRecoveryNotice();
+  }
   const fsboReceiptStorageKey = 'hof_fsbo_request_receipt_v1';
   const fsboReceiptMaxAgeMs = 1000 * 60 * 60 * 24 * 30;
   function saveFsboRequestReceipt(selected){
