@@ -31,6 +31,15 @@ class OnDemandLandingFunnelTests(unittest.TestCase):
         self.assertIn("open it in this browser to return here", ONDEMAND)
         self.assertIn("keepalive: true", ONDEMAND)
 
+    def test_magic_link_entry_validates_and_focuses_email_before_requesting_auth(self):
+        self.assertIn('id="email" type="email" inputmode="email" autocomplete="email"', ONDEMAND)
+        start = ONDEMAND.index("async function sendMagicLink()")
+        end = ONDEMAND.index("setBusy(button, true", start)
+        entry = ONDEMAND[start:end]
+        self.assertIn("emailInput.checkValidity()", entry)
+        self.assertIn("Enter a valid OnDemand agent email address.", entry)
+        self.assertIn('emailInput.focus();', entry)
+
     def test_all_public_ondemand_trial_links_share_the_same_aggregate_entry_signal(self):
         self.assertIn("function recordOnDemandTrialEntry", INDEX)
         self.assertIn("agent_hero_secondary_cta", INDEX)

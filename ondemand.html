@@ -205,7 +205,7 @@
         <div id="signedOut">
           <hr class="divider" />
           <label for="email">OnDemand agent email</label>
-          <input id="email" type="email" autocomplete="email" placeholder="you@example.com" />
+          <input id="email" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com" required aria-required="true" />
           <button id="signInButton" type="button" style="margin-top:12px">Send secure sign-in link</button>
           <p class="fine"><strong>Card required at checkout.</strong> You will not be charged today; the first charge is $29/month after the 60-day trial unless you cancel.</p>
           <p class="fine">We’ll email a secure link to create or access your HomeOfferFlow account. No password required.</p>
@@ -467,11 +467,17 @@
 
       async function sendMagicLink() {
         const button = $("signInButton");
-        const email = $("email").value.trim().toLowerCase();
-        if (!email || !email.includes("@")) {
-          showStatus("Enter the email you use for your OnDemand agent account.", "err");
+        const emailInput = $("email");
+        const email = emailInput.value.trim().toLowerCase();
+        if (!email || !emailInput.checkValidity()) {
+          emailInput.setAttribute("aria-invalid", "true");
+          emailInput.focus();
+          showStatus(!email
+            ? "Enter the email you use for your OnDemand agent account."
+            : "Enter a valid OnDemand agent email address.", "err");
           return;
         }
+        emailInput.setAttribute("aria-invalid", "false");
         setBusy(button, true, "Sending…", "Send secure sign-in link");
         showStatus("");
         const { error } = await client.auth.signInWithOtp({
