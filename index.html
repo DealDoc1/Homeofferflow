@@ -18303,6 +18303,9 @@ function routeAfterMagicLinkIfNeeded() {
 </script>
 <script id="hof-pwa-shortcuts-v1">
 (function(){
+  // Keep this shortcut module self-contained. Unlike the neighboring modules,
+  // it cannot rely on a locally scoped `root` alias from another script.
+  const root = window;
   const pendingActionKey = 'hof_pwa_shortcut_pending_action';
   const ondemandFirstOfferAttributionKey = 'hof_ondemand_first_offer_attribution';
   const validActions = new Set(['workspace', 'new_offer', 'signing_queue', 'seller_plan', 'buyer_offer']);
