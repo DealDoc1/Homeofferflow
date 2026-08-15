@@ -32,6 +32,13 @@ class PartnerDirectoryImpressionTests(unittest.TestCase):
         self.assertIn("directory_surface:directorySurface", PUBLIC_DIRECTORY)
         self.assertIn('/_vercel/insights/script.js', PUBLIC_DIRECTORY)
 
+    def test_public_directory_gives_non_regulated_paid_placements_visible_order_without_ranking_regulated_services(self):
+        self.assertIn("neutralProviderTypes = new Set(['lender','title','inspection','surveyor'])", PUBLIC_DIRECTORY)
+        self.assertIn("placementRank = {exclusive_market:0,premier:1,founding:2}", PUBLIC_DIRECTORY)
+        self.assertIn('const sortDirectoryRows = rows =>', PUBLIC_DIRECTORY)
+        self.assertIn('const rows = sortDirectoryRows(Array.isArray(data.partners) ? data.partners : []);', PUBLIC_DIRECTORY)
+        self.assertIn('if (!leftNeutral && !rightNeutral)', PUBLIC_DIRECTORY)
+
     def test_admin_metrics_can_report_aggregate_paid_directory_value(self):
         api = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
         self.assertIn('"partnerDirectoryImpressionCount"', api)

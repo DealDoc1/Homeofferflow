@@ -48,6 +48,11 @@
       const $ = id => document.getElementById(id);
       const labels = {title:'Title company / fee attorney',lender:'Mortgage lender',inspection:'Home inspection',surveyor:'Property surveyor',home_warranty:'Home warranty',insurance:'Home insurance',roofing:'Roofing',hvac:'HVAC',plumbing:'Plumbing',electrical:'Electrical',foundation_structural:'Foundation / structural',general_contractor:'General contractor / remodeling',pest_termite:'Pest control / termite',septic_well:'Septic / well service',restoration:'Restoration',photography_video:'Photography / video',staging:'Home staging',repairs_handyman:'Repairs / handyman',cleaning:'Cleaning',moving_storage:'Moving / storage',lawn_pool:'Lawn / pool',security_smart_home:'Security / smart home',other:'Real-estate service'};
       const allowedCategories = new Set(Object.keys(labels));
+      // Regulated provider types stay neutral: neither a paid tier nor a
+      // sponsored label changes their ordering.  Other service categories can
+      // display the transparent placement benefit promised to partners.
+      const neutralProviderTypes = new Set(['lender','title','inspection','surveyor']);
+      const placementRank = {exclusive_market:0,premier:1,founding:2};
       // Only retain one allowlisted surface label for aggregate placement
       // reporting. Query text, market input, identity, and other campaign
       // values are deliberately not sent with directory events.
@@ -124,6 +129,15 @@
         const website = safeUrl(provider.website_url);
         return `<article class="card">${provider.logo_url ? `<img src="${esc(provider.logo_url)}" alt="">` : ''}<h2>${esc(provider.partner_name)}</h2><div class="meta">${esc(labels[provider.partner_type] || 'Local service')} · ${esc(provider.market_area || 'Texas')}</div><p>Sponsored ${esc(provider.placement_tier || 'partner')} profile. Confirm fit, availability, and terms directly with the provider.</p>${website ? `<a href="${esc(website)}" data-partner-link data-partner-id="${esc(provider.id)}" data-partner-type="${esc(provider.partner_type)}" data-placement-tier="${esc(provider.placement_tier)}" target="_blank" rel="noopener noreferrer">Visit site ↗</a>` : ''}</article>`;
       };
+      const sortDirectoryRows = rows => [...rows].sort((left, right) => {
+        const leftNeutral = neutralProviderTypes.has(left?.partner_type);
+        const rightNeutral = neutralProviderTypes.has(right?.partner_type);
+        if (!leftNeutral && !rightNeutral) {
+          const difference = (placementRank[left?.placement_tier] ?? 9) - (placementRank[right?.placement_tier] ?? 9);
+          if (difference) return difference;
+        }
+        return String(left?.partner_name || '').localeCompare(String(right?.partner_name || ''));
+      });
       const bindOutboundClicks = () => document.querySelectorAll('[data-partner-link]').forEach(link => link.addEventListener('click', () => { const provider = {id:link.dataset.partnerId || '', partner_type:link.dataset.partnerType || '', placement_tier:link.dataset.placementTier || ''}; track('Partner Directory Outbound Click', {partnerId:provider.id, partnerType:provider.partner_type, placementTier:provider.placement_tier}); recordDirectoryEvent('partner_directory_outbound_click', provider); }));
       const bindPartnerCtas = () => document.querySelectorAll('[data-directory-partner-cta]').forEach(link => {
         if (link.dataset.trackingBound) return;
@@ -175,7 +189,7 @@
           const response = await fetch('/api/fsbo-lead?'+query);
           const data = await response.json();
           if (!response.ok) throw Error();
-          const rows = Array.isArray(data.partners) ? data.partners : [];
+          const rows = sortDirectoryRows(Array.isArray(data.partners) ? data.partners : []);
           $('status').textContent = rows.length ? `${rows.length} active provider profile${rows.length === 1 ? '' : 's'} found.` : 'No active profiles match this search.';
           $('results').innerHTML = rows.length ? rows.map(card).join('') : `<div class="empty">${empty(category)}</div>`;
           if (!rows.length) recordUnfilledDirectoryDemand(category);
