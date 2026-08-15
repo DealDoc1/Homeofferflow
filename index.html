@@ -12932,10 +12932,10 @@ function routeAfterMagicLinkIfNeeded() {
     <div class="partner-checkout-intake-note"><strong>Start with the essentials.</strong><span>Company, contact, business email, and one market area are all that is needed to reserve your selected tier and continue to secure checkout. Everything else can be added during onboarding.</span></div>
     <div class="platform-grid" id="foundingPartnerEssentials">
       <div class="field"><label for="foundingPartnerType">Partner category</label><select id="foundingPartnerType"><option value="title">Title company / fee attorney</option><option value="lender">Mortgage lender</option><option value="inspection">Home inspection</option><option value="surveyor">Property surveyor</option><option value="home_warranty">Home warranty</option><option value="insurance">Home insurance</option><option value="roofing">Roofing contractor</option><option value="hvac">HVAC / heating and air</option><option value="plumbing">Plumbing</option><option value="electrical">Electrical</option><option value="foundation_structural">Foundation / structural repair</option><option value="general_contractor">General contractor / remodeling</option><option value="pest_termite">Pest control / termite</option><option value="septic_well">Septic / well service</option><option value="restoration">Water / fire restoration</option><option value="repairs_handyman">Repairs / handyman</option><option value="photography_video">Photography / video</option><option value="staging">Home staging</option><option value="cleaning">Cleaning</option><option value="moving_storage">Moving / storage</option><option value="lawn_pool">Lawn / pool</option><option value="security_smart_home">Security / smart home</option><option value="other">Other real-estate service</option></select></div>
-      <div class="field"><label for="foundingPartnerCompany">Company name</label><input id="foundingPartnerCompany" autocomplete="organization" placeholder="Company name"></div>
-      <div class="field"><label for="foundingPartnerContact">Contact name</label><input id="foundingPartnerContact" autocomplete="name" placeholder="Full name"></div>
-      <div class="field"><label for="foundingPartnerEmail">Business email</label><input id="foundingPartnerEmail" type="email" autocomplete="email" placeholder="you@company.com"></div>
-      <div class="field"><label for="foundingPartnerMarket">Primary market area</label><input id="foundingPartnerMarket" placeholder="Collin / Denton / Grayson County"></div>
+      <div class="field"><label for="foundingPartnerCompany">Company name</label><input id="foundingPartnerCompany" autocomplete="organization" placeholder="Company name" required aria-required="true"></div>
+      <div class="field"><label for="foundingPartnerContact">Contact name</label><input id="foundingPartnerContact" autocomplete="name" placeholder="Full name" required aria-required="true"></div>
+      <div class="field"><label for="foundingPartnerEmail">Business email</label><input id="foundingPartnerEmail" type="email" inputmode="email" autocomplete="email" placeholder="you@company.com" required aria-required="true"></div>
+      <div class="field"><label for="foundingPartnerMarket">Primary market area</label><input id="foundingPartnerMarket" placeholder="Collin / Denton / Grayson County" required aria-required="true"></div>
     </div>
 
     <details class="partner-optional-details"><summary>Add optional placement preferences now</summary><div class="platform-grid" style="margin-top:.75rem;"><div class="field"><label for="foundingPartnerPhone">Phone</label><input id="foundingPartnerPhone" autocomplete="tel" placeholder="(214) 555-0000"></div><div class="field"><label for="foundingPartnerWebsite">Website</label><input id="foundingPartnerWebsite" type="url" autocomplete="url" placeholder="https://company.com"></div><div class="field"><label for="foundingPartnerFocus">Customer focus</label><input id="foundingPartnerFocus" placeholder="First-time buyers, agents, FSBO sellers..."></div><div class="field"><label for="foundingPartnerBudget">Expected monthly budget after the pilot</label><select id="foundingPartnerBudget"><option value="discuss">Discuss first</option><option value="under_250">Under $250</option><option value="250_499" selected>$250–$499</option><option value="500_999">$500–$999</option><option value="1000_plus">$1,000+</option></select></div></div><div class="field" style="margin-top:.75rem;"><label for="foundingPartnerMessage">What would make the pilot valuable to you?</label><textarea id="foundingPartnerMessage" rows="3" placeholder="Markets served, ideal customer, category preferences, or questions..."></textarea></div></details>
@@ -13092,6 +13092,10 @@ function routeAfterMagicLinkIfNeeded() {
   window.submitFoundingPartnerLead = async function(){
     const status = document.getElementById('foundingPartnerStatus');
     const submit = document.getElementById('foundingPartnerSubmit');
+    const companyInput = document.getElementById('foundingPartnerCompany');
+    const contactInput = document.getElementById('foundingPartnerContact');
+    const emailInput = document.getElementById('foundingPartnerEmail');
+    const marketInput = document.getElementById('foundingPartnerMarket');
     const query = params();
     const hasSavedPartnerApplication = Boolean(window.__hofFoundingPartnerLeadId);
     const payload = {
@@ -13115,11 +13119,33 @@ function routeAfterMagicLinkIfNeeded() {
       utm_content: query.get('utm_content') || '',
       landing_page: window.location.href
     };
-    if (!hasSavedPartnerApplication && (!payload.company_name || !payload.contact_name || !payload.contact_email || !payload.market_area)) {
+    const hasCompany = !!payload.company_name;
+    const hasContact = !!payload.contact_name;
+    const hasEmail = !!payload.contact_email;
+    const hasValidEmail = !!emailInput?.checkValidity();
+    const hasMarket = !!payload.market_area;
+    if (!hasSavedPartnerApplication && (!hasCompany || !hasContact || !hasEmail || !hasValidEmail || !hasMarket)) {
       trackPartnerFunnel('Founding Partner Required Fields Missing', { companyProvided: !!payload.company_name, contactProvided: !!payload.contact_name, emailProvided: !!payload.contact_email, marketProvided: !!payload.market_area });
-      if (status) { status.textContent = 'Company, contact name, email, and market area are required.'; status.className = 'platform-status err'; }
+      const firstInvalid = !hasCompany ? companyInput : !hasContact ? contactInput : (!hasEmail || !hasValidEmail) ? emailInput : marketInput;
+      [[companyInput, hasCompany], [contactInput, hasContact], [emailInput, hasValidEmail], [marketInput, hasMarket]].forEach(([input, valid]) => {
+        if (input) input.setAttribute('aria-invalid', valid ? 'false' : 'true');
+      });
+      if (status) {
+        status.textContent = !hasCompany
+          ? 'Enter your company name to continue to secure checkout.'
+          : !hasContact
+            ? 'Enter your contact name to continue to secure checkout.'
+            : !hasEmail
+              ? 'Enter your business email to continue to secure checkout.'
+              : !hasValidEmail
+                ? 'Enter a valid business email to continue to secure checkout.'
+                : 'Enter your primary market area to continue to secure checkout.';
+        status.className = 'platform-status err';
+      }
+      firstInvalid?.focus();
       return;
     }
+    [companyInput, contactInput, emailInput, marketInput].forEach(input => input?.setAttribute('aria-invalid', 'false'));
     if (!hasSavedPartnerApplication && !document.getElementById('foundingPartnerConsent')?.checked) {
       trackPartnerFunnel('Founding Partner Consent Required', { tier: payload.preferred_model });
       if (status) { status.textContent = 'Please acknowledge the founding-pilot terms before submitting.'; status.className = 'platform-status err'; }

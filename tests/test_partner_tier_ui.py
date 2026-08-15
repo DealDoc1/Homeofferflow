@@ -62,6 +62,16 @@ class PartnerTierUiTests(unittest.TestCase):
     def test_checkout_intake_keeps_required_details_short_and_defers_preferences(self):
         self.assertIn("Start with the essentials.", self.html)
         self.assertIn("Everything else can be added during onboarding.", self.html)
+
+    def test_checkout_intake_validates_and_focuses_the_first_invalid_essential(self):
+        self.assertIn('id="foundingPartnerEmail" type="email" inputmode="email" autocomplete="email"', self.html)
+        start = self.html.index("window.submitFoundingPartnerLead")
+        end = self.html.index("if (!hasSavedPartnerApplication && !document.getElementById('foundingPartnerConsent')", start)
+        submit = self.html[start:end]
+        self.assertIn("emailInput?.checkValidity()", submit)
+        self.assertIn("Enter a valid business email to continue to secure checkout.", submit)
+        self.assertIn("firstInvalid?.focus();", submit)
+        self.assertIn("setAttribute('aria-invalid'", submit)
         self.assertIn("Add optional placement preferences now", self.html)
         required_end = self.html.index('<div aria-hidden="true"', self.html.index('Start with the essentials.'))
         required_start = self.html.index('Start with the essentials.')
