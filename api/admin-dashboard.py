@@ -4689,6 +4689,12 @@ class handler(BaseHTTPRequestHandler):
                 "trialEndingSoonQueue": trial_ending_soon_queue[:50],
             })
         except Exception as e:
+            # Keep the browser response concise, while preserving enough
+            # server-only context to diagnose an authenticated scope failure.
+            # This is especially important for private agreement drafts: an
+            # empty list is valid, but a hidden 500 otherwise has no trace.
+            failed_scope = locals().get("scope") or "default"
+            print(f"Admin dashboard GET failed (scope={failed_scope}): {type(e).__name__}: {str(e)[:300]}")
             _json(self, 500, {"error": str(e)})
 
     def do_POST(self):
