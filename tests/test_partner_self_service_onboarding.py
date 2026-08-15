@@ -100,10 +100,12 @@ class PartnerSelfServiceOnboardingTests(unittest.TestCase):
 
     def test_checkout_success_recovers_setup_without_retaining_the_stripe_session_id(self):
         html = (ROOT / "index.html").read_text()
-        self.assertIn("async function recoverPartnerCheckoutSetup(sessionId)", html)
+        self.assertIn("async function recoverPartnerCheckoutSetup(sessionId, attempt = 0)", html)
         self.assertIn("request_type:'founding_partner_checkout_setup'", html)
         self.assertIn("['partner_checkout', 'session_id'].forEach", html)
         self.assertIn("retainPartnerOnboardingToken(result.onboarding_token);", html)
+        self.assertIn("attempt < 4", html)
+        self.assertIn("window.setTimeout(() => recoverPartnerCheckoutSetup(sessionId, attempt + 1), 2500);", html)
 
     def test_partner_setup_explains_and_validates_the_only_required_setup_field(self):
         html = (ROOT / "index.html").read_text()
