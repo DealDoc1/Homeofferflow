@@ -70,6 +70,15 @@ class PwaInstallExperienceTests(unittest.TestCase):
         self.assertIn("trackInstall('dismissed', { platform: installPlatform(), surface: installSurface(card) })", INDEX)
         self.assertIn("platform: installPlatform(), surface: target.surface, cta: 'native_prompt'", INDEX)
 
+    def test_install_funnel_measures_native_install_availability_separately_from_manual_guidance(self):
+        self.assertIn("trackInstall('native_available'", INDEX)
+        self.assertIn("surface: installTarget()?.surface || 'unavailable'", INDEX)
+        api = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
+        self.assertIn('"native_available": 0', api)
+        self.assertIn('"pwaInstallNativeAvailableCount"', api)
+        self.assertIn('"pwaInstallNativeAvailableRate"', api)
+        self.assertIn("pwaInstallNativeAvailableCount", INDEX)
+
     def test_admin_dashboard_can_measure_the_privacy_safe_install_funnel(self):
         api = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
         for expected in (

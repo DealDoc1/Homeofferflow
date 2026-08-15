@@ -4032,6 +4032,7 @@ class handler(BaseHTTPRequestHandler):
             # funnel without returning device details or user-level activity.
             pwa_install_event_counts = {
                 "shown": 0,
+                "native_available": 0,
                 "cta_clicked": 0,
                 "prompt_opened": 0,
                 "accepted": 0,
@@ -4525,6 +4526,7 @@ class handler(BaseHTTPRequestHandler):
                 "pwaBuyerOfferShortcutCount": pwa_buyer_offer_shortcut_count,
                 "fsboProviderDirectoryOpenCount": fsbo_provider_directory_open_count,
                 "pwaInstallShownCount": pwa_install_event_counts["shown"],
+                "pwaInstallNativeAvailableCount": pwa_install_event_counts["native_available"],
                 "pwaInstallCtaClickCount": pwa_install_event_counts["cta_clicked"],
                 "pwaInstallPromptOpenCount": pwa_install_event_counts["prompt_opened"],
                 "pwaInstallInstructionsOpenCount": pwa_install_event_counts["instructions_opened"],
@@ -4533,6 +4535,9 @@ class handler(BaseHTTPRequestHandler):
                 "pwaInstalledCount": pwa_install_event_counts["installed"],
                 "pwaInstallCtaClickRate": round(
                     (pwa_install_event_counts["cta_clicked"] / pwa_install_event_counts["shown"]) * 100, 1
+                ) if pwa_install_event_counts["shown"] else 0,
+                "pwaInstallNativeAvailableRate": round(
+                    (pwa_install_event_counts["native_available"] / pwa_install_event_counts["shown"]) * 100, 1
                 ) if pwa_install_event_counts["shown"] else 0,
                 "pwaInstallPromptOpenRate": round(
                     (pwa_install_event_counts["prompt_opened"] / pwa_install_event_counts["cta_clicked"]) * 100, 1

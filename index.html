@@ -4530,6 +4530,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <div class="admin-metric-label">Mobile App Install Funnel</div>
             <div class="admin-metric-value">${metrics.pwaInstalledCount || 0} installed</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.pwaInstallShownCount || 0} install prompts shown · ${metrics.pwaInstallCtaClickCount || 0} install choices selected (${Number(metrics.pwaInstallCtaClickRate || 0).toFixed(1)}%).</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.pwaInstallNativeAvailableCount || 0} native-install option${Number(metrics.pwaInstallNativeAvailableCount || 0) === 1 ? '' : 's'} available (${Number(metrics.pwaInstallNativeAvailableRate || 0).toFixed(1)}% of prompts shown); the remainder received the supported Home Screen guidance.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.pwaInstallPromptOpenCount || 0} native prompts opened (${Number(metrics.pwaInstallPromptOpenRate || 0).toFixed(1)}% of install choices).</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Shown on: ${Object.entries(metrics.pwaInstallShownSurfaceCounts || {}).filter(([, count]) => Number(count) > 0).map(([surface, count]) => `${surface.replace(/_/g, ' ')} ${count}`).join(' · ') || 'surface attribution begins with the next install prompt.'}</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.pwaInstallInstructionsOpenCount || 0} Home Screen instruction${Number(metrics.pwaInstallInstructionsOpenCount || 0) === 1 ? '' : 's'} opened (${Number(metrics.pwaInstallGuidanceOpenRate || 0).toFixed(1)}% of prompts shown).</div>
@@ -18098,6 +18099,14 @@ function routeAfterMagicLinkIfNeeded() {
   window.addEventListener('beforeinstallprompt', event => {
     event.preventDefault();
     deferredInstallPrompt = event;
+    // Availability is distinct from a visible card: it tells us whether a
+    // browser can present the native install UX or whether the user needs the
+    // manual Home Screen path. This stays aggregate-only and carries neither
+    // account nor device identity.
+    trackInstall('native_available', {
+      platform: installPlatform(),
+      surface: installTarget()?.surface || 'unavailable'
+    });
     renderInstallCard();
   });
   window.addEventListener('appinstalled', () => {
