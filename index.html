@@ -2738,7 +2738,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     <div id="signedOutPanel">
       <div class="auth-field">
         <label for="authEmail">Email address</label>
-        <input id="authEmail" type="email" autocomplete="email" placeholder="you@example.com" />
+        <input id="authEmail" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com" required aria-required="true" />
       </div>
       <div class="auth-actions">
         <button class="auth-primary" type="button" onclick="sendMagicLink()">Send Magic Link</button>
@@ -4806,13 +4806,15 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 
   async function sendMagicLink() {
     const client = getSupabaseClient();
-    const email = document.getElementById('authEmail')?.value?.trim();
+    const emailInput = document.getElementById('authEmail');
+    const email = emailInput?.value?.trim();
     if (!client) {
       setAuthStatus('Supabase did not load. Refresh and try again.', 'err');
       return;
     }
-    if (!email || !email.includes('@')) {
+    if (!email || !emailInput?.checkValidity()) {
       setAuthStatus('Enter a valid email address.', 'err');
+      emailInput?.focus();
       return;
     }
     try {

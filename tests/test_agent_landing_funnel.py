@@ -11,6 +11,15 @@ VERCEL = (ROOT / "vercel.json").read_text(encoding="utf-8")
 
 
 class AgentLandingFunnelTests(unittest.TestCase):
+
+    def test_passwordless_workspace_login_validates_and_focuses_email_before_requesting_auth(self):
+        self.assertIn('id="authEmail" type="email" inputmode="email" autocomplete="email"', INDEX)
+        start = INDEX.index("async function sendMagicLink()")
+        end = INDEX.index("try {", start)
+        entry = INDEX[start:end]
+        self.assertIn("emailInput?.checkValidity()", entry)
+        self.assertIn("emailInput?.focus();", entry)
+
     def test_searchable_agent_route_and_passwordless_entry_reuse_existing_workspace(self):
         self.assertIn('"source": "/agents"', VERCEL)
         self.assertIn('"destination": "/agents.html"', VERCEL)
