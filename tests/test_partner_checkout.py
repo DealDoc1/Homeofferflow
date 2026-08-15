@@ -74,6 +74,13 @@ class PartnerCheckoutTests(unittest.TestCase):
         self.assertIn("checkout_source: hasSavedPartnerApplication ? 'partner_cancel_recovery' : ''", html)
         self.assertIn("You do not need to re-enter your saved essentials", html)
 
+    def test_saved_application_state_is_clear_after_a_refresh_not_just_the_cancel_return(self):
+        html = (ROOT / "index.html").read_text(encoding="utf-8")
+        self.assertIn("function applySavedPartnerApplicationState()", html)
+        self.assertIn("Resume Secure Checkout — saved application", html)
+        self.assertIn("hasSavedApplication && window.__hofFoundingPartnerCheckoutState !== 'success'", html)
+        self.assertIn("jump.style.display = hasSavedApplication ? 'none' : ''", html)
+
     def test_success_confirmation_provides_a_direct_safe_support_recovery_link(self):
         html = (ROOT / "index.html").read_text(encoding="utf-8")
         self.assertIn('id="foundingPartnerCheckoutConfirmation"', html)

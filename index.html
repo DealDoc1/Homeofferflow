@@ -12916,6 +12916,15 @@ function routeAfterMagicLinkIfNeeded() {
       else sessionStorage.removeItem('hof_founding_partner_lead_id');
     } catch (_) {}
   }
+  function applySavedPartnerApplicationState(){
+    const hasSavedApplication = Boolean(window.__hofFoundingPartnerLeadId || loadSavedPartnerLeadId());
+    const submit = document.getElementById('foundingPartnerSubmit');
+    const jump = document.getElementById('foundingPartnerEssentialsJump');
+    const resume = document.getElementById('foundingPartnerCheckoutResume');
+    if (resume) resume.style.display = hasSavedApplication && window.__hofFoundingPartnerCheckoutState !== 'success' ? 'block' : 'none';
+    if (submit) submit.textContent = hasSavedApplication ? 'Resume Secure Checkout — saved application' : 'Continue to Secure Checkout';
+    if (jump) jump.style.display = hasSavedApplication ? 'none' : '';
+  }
   function campaignPartnerCategory(){
     const category = String(params().get('partner_category') || '').trim().toLowerCase();
     return partnerCampaignCategories.has(category) ? category : '';
@@ -12953,8 +12962,7 @@ function routeAfterMagicLinkIfNeeded() {
     const confirmation = document.getElementById('foundingPartnerCheckoutConfirmation');
     const checkoutState = window.__hofFoundingPartnerCheckoutState || params().get('partner_checkout');
     if (confirmation) confirmation.style.display = checkoutState === 'success' ? 'block' : 'none';
-    const resume = document.getElementById('foundingPartnerCheckoutResume');
-    if (resume) resume.style.display = checkoutState === 'cancelled' && window.__hofFoundingPartnerLeadId ? 'block' : 'none';
+    applySavedPartnerApplicationState();
     trackPartnerFunnel('Founding Partner Intake Opened', { checkoutState: checkoutState === 'success' ? 'success' : checkoutState === 'cancelled' ? 'cancelled' : 'new', campaignCategory: campaign.category || null, campaignTier: campaign.tier || null, campaignChannel: campaign.channel || null });
     if (partnerQuickStartRequested() && !window.__hofFoundingPartnerLeadId && checkoutState !== 'success' && checkoutState !== 'cancelled') {
       // Public partner CTAs already disclose the tiers and simply remove the
@@ -12983,7 +12991,7 @@ function routeAfterMagicLinkIfNeeded() {
       const cardModel = card.getAttribute('data-partner-tier');
       if (copy) copy.textContent = selected ? 'Selected' : (cardModel === 'market_exclusive' ? 'Select Premier' : 'Select ' + (partnerTierDetails[cardModel]?.label || 'tier'));
     });
-    if (submit) submit.textContent = 'Continue to Secure Checkout — ' + detail.label;
+    if (submit) submit.textContent = (Boolean(window.__hofFoundingPartnerLeadId || loadSavedPartnerLeadId()) ? 'Resume Secure Checkout — ' : 'Continue to Secure Checkout — ') + detail.label;
     if (checkoutNote) checkoutNote.textContent = 'Next: review ' + detail.price + ' and payment details in secure Stripe Checkout. Your placement stays private until onboarding and written-agreement review are complete.';
     if (shouldTrack) trackPartnerFunnel('Founding Partner Tier Selected', { tier: model });
   };
