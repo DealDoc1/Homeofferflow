@@ -486,7 +486,8 @@
           showStatus(error.message, "err");
           return;
         }
-        showStatus(`Check ${email} for your secure sign-in link.`, "ok");
+        recordAggregateLandingEvent("ondemand_magic_link_requested");
+        showStatus(`Check ${email} for your secure sign-in link, then open it in this browser to return here and review the 60-day trial before checkout.`, "ok");
       }
 
       async function startCheckout() {
