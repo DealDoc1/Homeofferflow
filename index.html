@@ -13300,7 +13300,9 @@ function routeAfterMagicLinkIfNeeded() {
         ? String(buyerRouteParams.get('utm_medium') || '').trim().toLowerCase()
         : 'unspecified';
       try {
-        const buyerStartKey = 'hof_homebuyer_landing_offer_started_' + buyerChannel;
+        // Match the public landing page's session key so a navigation-safe
+        // click handoff is counted once rather than again after this route.
+        const buyerStartKey = 'hof_homebuyer_landing_homebuyer_landing_offer_started_' + buyerChannel;
         if (!sessionStorage.getItem(buyerStartKey)) {
           sessionStorage.setItem(buyerStartKey, '1');
           fetch('/api/fsbo-lead', { method: 'POST', headers: {'Content-Type': 'application/json'}, keepalive: true, body: JSON.stringify({request_type: 'homebuyer_landing_event', event_type: 'homebuyer_landing_offer_started', channel: buyerChannel}) }).catch(() => {});

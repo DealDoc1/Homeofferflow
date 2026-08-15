@@ -29,6 +29,7 @@ class HomebuyerLandingFunnelTests(unittest.TestCase):
         self.assertIn("request_type: 'homebuyer_landing_event'", BUYERS)
         self.assertIn("homebuyer_landing_viewed", BUYERS)
         self.assertIn("homebuyer_landing_cta_selected", BUYERS)
+        self.assertIn("recordAggregateFunnelEvent('homebuyer_landing_offer_started')", BUYERS)
         self.assertIn("channel: safeChannel", BUYERS)
         self.assertIn("keepalive: true", BUYERS)
 
@@ -44,7 +45,7 @@ class HomebuyerLandingFunnelTests(unittest.TestCase):
         self.assertIn("setAudience('homebuyer')", INDEX)
         self.assertIn("window.beginOfferFrom?.('buyer_landing')", INDEX)
         self.assertIn("homebuyer_landing_offer_started", INDEX)
-        self.assertIn("hof_homebuyer_landing_offer_started_", INDEX)
+        self.assertIn("hof_homebuyer_landing_homebuyer_landing_offer_started_", INDEX)
         self.assertNotIn("function consumeHomebuyerLandingEntry()", INDEX)
 
     def test_admin_reports_aggregate_buyer_landing_conversion(self):
