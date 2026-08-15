@@ -52,16 +52,23 @@ class PwaInstallExperienceTests(unittest.TestCase):
         self.assertIn("pwa_install_", INDEX)
         self.assertIn("pwa_install_prompt_shown", INDEX)
         self.assertIn("function isAndroid()", INDEX)
+        self.assertIn("function installPlatform()", INDEX)
+        self.assertIn("if (isAndroid()) return 'android';", INDEX)
         self.assertIn('In Chrome, open the ⋮ menu', INDEX)
         self.assertIn("choice?.outcome === 'accepted' ? 'accepted' : 'dismissed'", INDEX)
         self.assertIn("const installSurfaceKey = 'hof_pwa_install_surface';", INDEX)
         self.assertIn("function installSurface", INDEX)
-        self.assertIn("trackInstall('installed', { platform: isIos() ? 'ios' : 'web', surface: installSurface() })", INDEX)
+        self.assertIn("trackInstall('installed', { platform: installPlatform(), surface: installSurface() })", INDEX)
         self.assertIn("trackInstall('cta_clicked'", INDEX)
         self.assertIn("cta: 'native_prompt'", INDEX)
         self.assertIn("card.dataset.surface = target.surface", INDEX)
         self.assertIn("surface: target.surface", INDEX)
         self.assertIn("surface: installSurface(card)", INDEX)
+
+    def test_install_funnel_distinguishes_android_from_generic_web_traffic(self):
+        self.assertIn("trackInstall('shown', { platform: installPlatform(), surface: target.surface })", INDEX)
+        self.assertIn("trackInstall('dismissed', { platform: installPlatform(), surface: installSurface(card) })", INDEX)
+        self.assertIn("platform: installPlatform(), surface: target.surface, cta: 'native_prompt'", INDEX)
 
     def test_admin_dashboard_can_measure_the_privacy_safe_install_funnel(self):
         api = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")

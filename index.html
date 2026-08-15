@@ -17956,6 +17956,15 @@ function routeAfterMagicLinkIfNeeded() {
     return /android/i.test(navigator.userAgent || '');
   }
 
+  // Keep the install funnel useful for the product decision it supports:
+  // iOS and Android have materially different installation paths, while a
+  // generic mobile-web label would make healthy Android interest invisible.
+  function installPlatform(){
+    if (isIos()) return 'ios';
+    if (isAndroid()) return 'android';
+    return 'web';
+  }
+
   function isDismissed(){
     try { return Number(localStorage.getItem(dismissKey) || 0) > Date.now(); }
     catch (_) { return false; }
@@ -17972,7 +17981,7 @@ function routeAfterMagicLinkIfNeeded() {
     const card = document.getElementById('hofPwaInstallCard');
     try { localStorage.setItem(dismissKey, String(Date.now() + 1000 * 60 * 60 * 24 * 30)); }
     catch (_) {}
-    trackInstall('dismissed', { platform: isIos() ? 'ios' : 'web', surface: installSurface(card) });
+    trackInstall('dismissed', { platform: installPlatform(), surface: installSurface(card) });
     card?.remove();
   }
 
@@ -18051,7 +18060,7 @@ function routeAfterMagicLinkIfNeeded() {
     try {
       if (!sessionStorage.getItem(shownKey)) {
         sessionStorage.setItem(shownKey, '1');
-        trackInstall('shown', { platform: ios ? 'ios' : 'web', surface: target.surface });
+        trackInstall('shown', { platform: installPlatform(), surface: target.surface });
       }
     } catch (_) {}
     card.querySelector('#hofPwaInstallDismiss')?.addEventListener('click', dismissInstallCard);
@@ -18072,11 +18081,11 @@ function routeAfterMagicLinkIfNeeded() {
       const button = card.querySelector('#hofPwaInstallButton');
       if (button) { button.disabled = true; button.textContent = 'Opening install…'; }
       try {
-        trackInstall('cta_clicked', { platform: 'web', surface: target.surface, cta: 'native_prompt' });
+        trackInstall('cta_clicked', { platform: installPlatform(), surface: target.surface, cta: 'native_prompt' });
         await deferredInstallPrompt.prompt();
-        trackInstall('prompt_opened', { platform: 'web', surface: target.surface });
+        trackInstall('prompt_opened', { platform: installPlatform(), surface: target.surface });
         const choice = await deferredInstallPrompt.userChoice;
-        trackInstall(choice?.outcome === 'accepted' ? 'accepted' : 'dismissed', { platform: 'web', surface: installSurface(card) });
+        trackInstall(choice?.outcome === 'accepted' ? 'accepted' : 'dismissed', { platform: installPlatform(), surface: installSurface(card) });
       } catch (error) {
         console.warn('PWA install prompt was unavailable:', error);
       } finally {
@@ -18092,7 +18101,7 @@ function routeAfterMagicLinkIfNeeded() {
     renderInstallCard();
   });
   window.addEventListener('appinstalled', () => {
-    trackInstall('installed', { platform: isIos() ? 'ios' : 'web', surface: installSurface() });
+    trackInstall('installed', { platform: installPlatform(), surface: installSurface() });
     document.getElementById('hofPwaInstallCard')?.remove();
   });
   root.renderPwaInstallCard = renderInstallCard;
