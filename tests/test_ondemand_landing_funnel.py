@@ -31,6 +31,12 @@ class OnDemandLandingFunnelTests(unittest.TestCase):
         self.assertIn("open it in this browser to return here", ONDEMAND)
         self.assertIn("keepalive: true", ONDEMAND)
 
+    def test_all_public_ondemand_trial_links_share_the_same_aggregate_entry_signal(self):
+        self.assertIn("function recordOnDemandTrialEntry", INDEX)
+        self.assertIn("agent_hero_secondary_cta", INDEX)
+        self.assertIn("agent_hero_inline", INDEX)
+        self.assertIn("hof_ondemand_trial_entry_selected", INDEX)
+
     def test_admin_reports_the_trial_conversion_ladder(self):
         for expected in (
             '"onDemandLandingViewCount"',

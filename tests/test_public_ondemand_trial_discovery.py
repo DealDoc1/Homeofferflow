@@ -16,14 +16,16 @@ class PublicOnDemandTrialDiscoveryTests(unittest.TestCase):
         self.assertIn('href="/ondemand"', agent_copy)
         self.assertIn("OnDemand Realty agent? Start your 60-day free trial", agent_copy)
         self.assertIn("card required", agent_copy)
-        self.assertIn("OnDemand Trial Link Selected", agent_copy)
+        self.assertIn("recordOnDemandTrialEntry", agent_copy)
 
     def test_agent_path_surfaces_a_dedicated_trial_cta_without_showing_it_to_other_audiences(self):
         self.assertIn("function syncOnDemandHeroTrialCta(type)", INDEX)
         self.assertIn("if (type !== 'agent')", INDEX)
         self.assertIn("onDemandHeroTrialCta", INDEX)
         self.assertIn("OnDemand agent? Start 60 days free", INDEX)
-        self.assertIn("surface: 'agent_hero_secondary_cta'", INDEX)
+        self.assertIn("agent_hero_secondary_cta", INDEX)
+        self.assertIn("agent_hero_inline", INDEX)
+        self.assertIn("function recordOnDemandTrialEntry", INDEX)
         self.assertIn("ondemand_trial_entry_selected", INDEX)
         self.assertIn("request_type: 'ondemand_landing_event'", INDEX)
         self.assertIn("hof_ondemand_trial_entry_selected", INDEX)

@@ -14841,6 +14841,22 @@ function routeAfterMagicLinkIfNeeded() {
   // Keep the brokerage-specific trial visible only when a visitor has chosen
   // the agent path. It is intentionally separate from the ordinary workspace
   // CTA so non-OnDemand agents are never steered into the wrong enrollment.
+  // Both public trial links use this one aggregate event so the acquisition
+  // funnel does not undercount the prominent inline link. No email, account,
+  // offer, property, or device information is sent.
+  root.recordOnDemandTrialEntry = function recordOnDemandTrialEntry(surface){
+    trackEvent('OnDemand Trial Link Selected', { surface: surface || 'agent_hero' });
+    try {
+      const key = 'hof_ondemand_trial_entry_selected';
+      if (sessionStorage.getItem(key)) return;
+      sessionStorage.setItem(key, '1');
+      fetch('/api/fsbo-lead', {
+        method: 'POST', headers: {'Content-Type':'application/json'}, keepalive: true,
+        body: JSON.stringify({request_type: 'ondemand_landing_event', event_type: 'ondemand_trial_entry_selected'})
+      }).catch(() => {});
+    } catch (_) {}
+  };
+
   function syncOnDemandHeroTrialCta(type){
     const existing = document.getElementById('onDemandHeroTrialCta');
     if (type !== 'agent') {
@@ -14857,19 +14873,7 @@ function routeAfterMagicLinkIfNeeded() {
     link.textContent = 'OnDemand agent? Start 60 days free';
     link.setAttribute('aria-label', 'OnDemand Realty agent: start a 60-day free trial; card required');
     link.addEventListener('click', () => {
-      trackEvent('OnDemand Trial Link Selected', { surface: 'agent_hero_secondary_cta' });
-      // This is an aggregate acquisition signal only. It keeps no agent,
-      // device, property, offer, or campaign details and is deduplicated per
-      // browser session before the user leaves for the trial page.
-      try {
-        const key = 'hof_ondemand_trial_entry_selected';
-        if (sessionStorage.getItem(key)) return;
-        sessionStorage.setItem(key, '1');
-        fetch('/api/fsbo-lead', {
-          method: 'POST', headers: {'Content-Type':'application/json'}, keepalive: true,
-          body: JSON.stringify({request_type: 'ondemand_landing_event', event_type: 'ondemand_trial_entry_selected'})
-        }).catch(() => {});
-      } catch (_) {}
+      root.recordOnDemandTrialEntry('agent_hero_secondary_cta');
     });
     actions.appendChild(link);
   }
@@ -14886,7 +14890,7 @@ function routeAfterMagicLinkIfNeeded() {
       agent: {
         headline: 'A clearer Texas buyer-offer workflow for <em>agents & brokers</em>.',
         sub: 'Create supported Texas buyer-offer packets from your phone, send buyer-side signatures, track status, duplicate prior offers, and collect broker-reviewed feedback.',
-        cta: 'Open Agent / Broker Workspace', nav: 'Agent / Broker Login →', note: 'Built for broker-supervised beta testing. <strong>Buyer-side offer packets are live; representation and notice forms are private-preview foundations, while listing and seller-form signing workflows are not live yet.</strong> <a href="/ondemand" onclick="trackEvent(\'OnDemand Trial Link Selected\', { surface: \'agent_hero\' });">OnDemand Realty agent? Start your 60-day free trial (card required) →</a>'
+        cta: 'Open Agent / Broker Workspace', nav: 'Agent / Broker Login →', note: 'Built for broker-supervised beta testing. <strong>Buyer-side offer packets are live; representation and notice forms are private-preview foundations, while listing and seller-form signing workflows are not live yet.</strong> <a href="/ondemand" onclick="window.recordOnDemandTrialEntry?.(\'agent_hero_inline\');">OnDemand Realty agent? Start your 60-day free trial (card required) →</a>'
       },
       investor: {
         headline: 'Make more <em>investment offers</em> with less retyping.',
