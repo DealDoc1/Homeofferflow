@@ -137,6 +137,13 @@ class PartnerSelfServiceOnboardingTests(unittest.TestCase):
         self.assertIn('item.get("event_type") == "partner_onboarding_setup_issued"', admin)
         self.assertIn("checkout setup invitations issued", html)
 
+    def test_admin_separates_self_service_checkout_return_recovery_from_manual_setup_outreach(self):
+        admin = (ROOT / "api" / "admin-dashboard.py").read_text()
+        html = (ROOT / "index.html").read_text()
+        self.assertIn('item.get("event_type") == "partner_checkout_setup_recovered"', admin)
+        self.assertIn('"partnerCheckoutSetupRecoveryCount": partner_checkout_setup_recovery_count', admin)
+        self.assertIn("checkout-return setup recovery opened", html)
+
     def test_admin_tracks_manual_setup_link_creation_and_preserves_a_link_when_copying_fails(self):
         admin = (ROOT / "api/admin-dashboard.py").read_text()
         html = (ROOT / "index.html").read_text()

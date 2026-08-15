@@ -3736,6 +3736,13 @@ class handler(BaseHTTPRequestHandler):
                     )
                 ]),
             )
+            # A Checkout-return recovery is a separate, self-service path:
+            # it replaces an expiring setup credential only after the signed
+            # webhook has recorded the exact paid session. Keep it visible so
+            # operators can compare automatic recovery with manual outreach.
+            partner_checkout_setup_recovery_count = len([
+                item for item in events if item.get("event_type") == "partner_checkout_setup_recovered"
+            ])
             partner_onboarding_link_created_count = len([
                 item for item in events if item.get("event_type") == "partner_onboarding_link_created"
             ])
@@ -4425,6 +4432,7 @@ class handler(BaseHTTPRequestHandler):
                 "partnerOnboardingLinkCreatedCount": partner_onboarding_link_created_count,
                 "partnerOnboardingEmailSentCount": partner_onboarding_email_sent_count,
                 "partnerOnboardingSetupIssuedCount": partner_onboarding_setup_issued_count,
+                "partnerCheckoutSetupRecoveryCount": partner_checkout_setup_recovery_count,
                 "eventCount": len(events),
                 "roadmapCount": len(roadmap),
                 "roadmapBlockedCount": len([item for item in roadmap if item.get("status") == "blocked"]),
