@@ -12031,7 +12031,7 @@ function routeAfterMagicLinkIfNeeded() {
         <div class="ai-score-ring">${score}</div>
         <div class="notice gold">This dashboard snapshot is rules-based. Open the offer review to run the live educational review when available. Neither result is legal advice, broker advice, a valuation opinion, or a guarantee of acceptance.</div>
         <div class="platform-actions"><button type="button" onclick="saveAiReviewPlaceholder()">Save Review Snapshot</button><button type="button" onclick="openWizard(true); showStepById && showStepById('step8')">Open Offer Review</button></div>
-        <div id="aiFoundationStatus" class="platform-status"></div>
+        <div id="aiDashboardStatus" class="platform-status"></div>
       </div>
       <div class="platform-card">
         <h4>Future AI Checklist</h4>
@@ -12046,7 +12046,7 @@ function routeAfterMagicLinkIfNeeded() {
   async function saveAiReviewPlaceholder() {
     const user = platformUser();
     const token = hofAuth?.session?.access_token;
-    if (!user || !token) return platformStatus('aiFoundationStatus', 'Sign in before saving an AI review snapshot.', 'err');
+    if (!user || !token) return platformStatus('aiDashboardStatus', 'Sign in before saving an AI review snapshot.', 'err');
     const result = state.data?._lastAiReview || normalizeAiReviewResult(null);
     try {
       const response = await fetch('/api/ai-offer-review', {
@@ -12062,10 +12062,10 @@ function routeAfterMagicLinkIfNeeded() {
         }})
       });
       if (!response.ok) throw new Error('AI review snapshot could not be saved.');
-      platformStatus('aiFoundationStatus', 'AI offer review snapshot saved to Supabase.', 'ok');
+      platformStatus('aiDashboardStatus', 'AI offer review snapshot saved to Supabase.', 'ok');
     } catch (err) {
       console.error('AI review snapshot save failed:', err);
-      platformStatus('aiFoundationStatus', err?.message || 'Could not save AI review snapshot.', 'err');
+      platformStatus('aiDashboardStatus', err?.message || 'Could not save AI review snapshot.', 'err');
     }
   }
 
