@@ -8,6 +8,11 @@ TEST = (ROOT / "requirements-test.txt").read_text(encoding="utf-8")
 
 
 class RuntimeDependencyScopeTests(unittest.TestCase):
+    def test_runtime_dependencies_are_pinned_for_reproducible_deployments(self):
+        packages = [line.strip() for line in RUNTIME.splitlines() if line.strip() and not line.startswith("#")]
+        self.assertTrue(packages)
+        self.assertTrue(all("==" in package for package in packages), packages)
+
     def test_pdf_geometry_inspector_is_test_only(self):
         self.assertNotIn("pdfplumber", RUNTIME)
         self.assertIn("pdfplumber==0.11.9", TEST)
