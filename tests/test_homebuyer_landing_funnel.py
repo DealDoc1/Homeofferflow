@@ -32,6 +32,8 @@ class HomebuyerLandingFunnelTests(unittest.TestCase):
         self.assertIn("recordAggregateFunnelEvent('homebuyer_landing_offer_started')", BUYERS)
         self.assertIn("channel: safeChannel", BUYERS)
         self.assertIn("keepalive: true", BUYERS)
+        landing_script = BUYERS.split("<script>(() =>", 1)[1].split("</script>", 1)[0]
+        self.assertNotIn("// Record the handoff before navigation", landing_script)
 
     def test_buyer_ctas_match_the_no_payment_before_review_flow(self):
         self.assertEqual(BUYERS.count("Build my offer — no payment to start"), 2)
