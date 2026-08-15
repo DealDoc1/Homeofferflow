@@ -1,5 +1,7 @@
 import os
 import json
+import hashlib
+import hmac
 from http.server import BaseHTTPRequestHandler
 from datetime import datetime, timezone
 import httpx
@@ -12,7 +14,9 @@ SUPABASE_SERVICE_ROLE_KEY = (
     or ""
 )
 SIGNWELL_API_KEY = os.environ.get("SIGNWELL_API_KEY", "")
-SIGNWELL_WEBHOOK_SECRET = os.environ.get("SIGNWELL_WEBHOOK_SECRET", "")
+# SignWell signs webhook events using the webhook ID as the HMAC key.  This is
+# distinct from the API key and must never be inferred from an untrusted body.
+SIGNWELL_WEBHOOK_ID = os.environ.get("SIGNWELL_WEBHOOK_ID", "").strip()
 MAX_BODY = 300_000
 
 
@@ -62,6 +66,31 @@ def _event_type(payload):
         _deep_get(payload, "data", "event_type"),
         _deep_get(payload, "data", "event"),
     ) or "signwell_event"
+
+
+def _is_verified_event(payload):
+    """Verify SignWell's event hash before any lifecycle state is changed.
+
+    SignWell documents the signature as HMAC-SHA256 of
+    ``event.type + '@' + event.time``, keyed with the webhook ID.  A missing
+    configuration deliberately fails closed: the endpoint can acknowledge the
+    delivery without recording telemetry or updating an offer/agreement.
+    """
+    if not SIGNWELL_WEBHOOK_ID or not isinstance(payload, dict):
+        return False
+    event = payload.get("event")
+    if not isinstance(event, dict):
+        return False
+    event_type = event.get("type")
+    event_time = event.get("time")
+    supplied_hash = event.get("hash")
+    if not isinstance(event_type, str) or event_time is None or not isinstance(supplied_hash, str):
+        return False
+    signed_value = f"{event_type}@{event_time}".encode("utf-8")
+    calculated_hash = hmac.new(
+        SIGNWELL_WEBHOOK_ID.encode("utf-8"), signed_value, hashlib.sha256
+    ).hexdigest()
+    return hmac.compare_digest(supplied_hash, calculated_hash)
 
 
 def _document_id(payload):
@@ -296,6 +325,13 @@ class handler(BaseHTTPRequestHandler):
                 # Do not persist undecodable provider input: it may contain
                 # signer PII and is not needed to keep the endpoint healthy.
                 payload = {"_parse_error": True}
+
+            if not _is_verified_event(payload):
+                # Acknowledge invalid or unconfigured deliveries so a sender
+                # cannot amplify retries, but never let them affect workflow
+                # state or operational metrics.
+                _json(self, 200, {"status": "ignored", "reason": "invalid_webhook_signature"})
+                return
 
             event_type = _event_type(payload)
             document_id = _document_id(payload)

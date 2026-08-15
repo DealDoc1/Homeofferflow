@@ -1,4 +1,6 @@
 import asyncio
+import hashlib
+import hmac
 import importlib.util
 import os
 import unittest
@@ -40,6 +42,7 @@ class StandaloneWebhookTests(unittest.TestCase):
         self.env.start()
         MODULE.SUPABASE_URL = "https://example.supabase.co"
         MODULE.SUPABASE_SERVICE_ROLE_KEY = "service-key"
+        MODULE.SIGNWELL_WEBHOOK_ID = "webhook-id-for-test"
 
     def tearDown(self):
         self.env.stop()
@@ -73,6 +76,25 @@ class StandaloneWebhookTests(unittest.TestCase):
     def test_pending_standalone_agreement_remains_sent(self):
         self.assertEqual(MODULE._standalone_status_for("Sent for Signature"), "sent")
         self.assertEqual(MODULE._standalone_status_for("Buyer Viewed"), "sent")
+
+    def test_event_hash_verification_accepts_only_provider_signed_payload(self):
+        payload = {"event": {"type": "document_completed", "time": 1723712400}}
+        signed_value = b"document_completed@1723712400"
+        payload["event"]["hash"] = hmac.new(
+            MODULE.SIGNWELL_WEBHOOK_ID.encode("utf-8"), signed_value, hashlib.sha256
+        ).hexdigest()
+        self.assertTrue(MODULE._is_verified_event(payload))
+
+        payload["event"]["hash"] = "not-a-provider-signature"
+        self.assertFalse(MODULE._is_verified_event(payload))
+
+    def test_event_hash_verification_fails_closed_without_webhook_id(self):
+        previous = MODULE.SIGNWELL_WEBHOOK_ID
+        MODULE.SIGNWELL_WEBHOOK_ID = ""
+        try:
+            self.assertFalse(MODULE._is_verified_event({"event": {"type": "document_signed", "time": 1, "hash": "x"}}))
+        finally:
+            MODULE.SIGNWELL_WEBHOOK_ID = previous
         self.assertEqual(MODULE._standalone_status_for("Partially Buyer Signed"), "sent")
 
 

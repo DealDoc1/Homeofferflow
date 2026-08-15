@@ -31,9 +31,7 @@ SIGNWELL_ENABLED = str(os.environ.get("SIGNWELL_ENABLED", "false")).lower() in {
 SIGNWELL_TEST_MODE = str(os.environ.get("SIGNWELL_TEST_MODE", "true")).lower() in {"1", "true", "yes", "on"}
 # This is deliberately a boolean-only health signal. The dashboard must never
 # receive the webhook identifier or verification key itself.
-SIGNWELL_WEBHOOK_VERIFICATION_CONFIGURED = bool(
-    os.environ.get("SIGNWELL_WEBHOOK_SECRET") or os.environ.get("SIGNWELL_WEBHOOK_ID")
-)
+SIGNWELL_WEBHOOK_VERIFICATION_CONFIGURED = bool(os.environ.get("SIGNWELL_WEBHOOK_ID"))
 # Restricted TXR signing is deliberately opt-in.  A source/authorization gate
 # alone is not enough; the completed signed-PDF release gate must remain in
 # force before this is enabled in production.
