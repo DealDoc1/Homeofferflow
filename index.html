@@ -15154,6 +15154,20 @@ function routeAfterMagicLinkIfNeeded() {
       };
     }
     if (!hasProfile) {
+      // Reusable defaults improve the next offer, but they must not interrupt
+      // a live client draft. Let the agent resume first and keep profile
+      // completion as an explicit secondary action.
+      if (draft) {
+        return {
+          key: 'profile_with_draft',
+          title: 'Resume your saved offer',
+          body: 'Your client draft is ready to continue. You can save your five reusable defaults after the client work is moving, or add them now for faster repeat offers.',
+          primary: 'Resume My Draft',
+          secondary: 'Save My Defaults',
+          draftId: draft.id || '',
+          complete, hasProfile, hasOffer, hasPlan
+        };
+      }
       return {
         key: 'profile',
         title: 'Finish your five repeat-offer defaults',
@@ -15292,6 +15306,7 @@ function routeAfterMagicLinkIfNeeded() {
 
     const primaryAction =
       state.key === 'profile' ? 'profile' :
+      state.key === 'profile_with_draft' ? 'resume' :
       state.key === 'first_offer' ? 'new_offer' :
       state.key === 'resume_local_draft' ? 'resume_local' :
       state.key === 'repeat' ? 'reuse_terms' :
@@ -15301,6 +15316,7 @@ function routeAfterMagicLinkIfNeeded() {
       'resume';
     const secondaryAction =
       state.key === 'profile' ? 'new_offer' :
+      state.key === 'profile_with_draft' ? 'profile' :
       state.key === 'first_offer' ? 'profile' :
       state.key === 'resume_local_draft' ? 'start_fresh' :
       state.key === 'repeat' ? 'new_offer' :

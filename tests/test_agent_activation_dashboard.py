@@ -173,6 +173,20 @@ class AgentActivationDashboardTests(unittest.TestCase):
         self.assertIn("name, license number, business email, phone, and brokerage", script)
         self.assertIn("title, escrow, and common terms can be added later", script)
 
+    def test_saved_client_draft_stays_resumable_before_optional_repeat_offer_defaults(self):
+        script_start = HTML.index('id="hof-agent-activation-v16-js"')
+        script_end = HTML.index("</script>", script_start)
+        script = HTML[script_start:script_end]
+        profile_start = script.index("if (!hasProfile) {")
+        profile_end = script.index("if (billingRecoveryNeeded)", profile_start)
+        profile = script[profile_start:profile_end]
+        self.assertIn("if (draft)", profile)
+        self.assertIn("key: 'profile_with_draft'", profile)
+        self.assertIn("primary: 'Resume My Draft'", profile)
+        self.assertIn("secondary: 'Save My Defaults'", profile)
+        self.assertIn("state.key === 'profile_with_draft' ? 'resume'", script)
+        self.assertIn("state.key === 'profile_with_draft' ? 'profile'", script)
+
     def test_profile_completion_signal_matches_activation_requirements(self):
         readiness_start = HTML.index('id="hof-agent-activation-v16-js"')
         readiness_end = HTML.index("</script>", readiness_start)
