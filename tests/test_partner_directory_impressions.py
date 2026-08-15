@@ -77,6 +77,13 @@ class PartnerDirectoryImpressionTests(unittest.TestCase):
         self.assertIn("never sends email or carries visitor/search/market data", HTML)
         self.assertNotIn("market:market", PUBLIC_DIRECTORY)
 
+    def test_empty_all_category_directory_result_guides_visitors_to_a_private_category_signal(self):
+        self.assertIn("categoryChoices = !category", PUBLIC_DIRECTORY)
+        self.assertIn("data-directory-category", PUBLIC_DIRECTORY)
+        self.assertIn("We record only the category—not your search text or market.", PUBLIC_DIRECTORY)
+        self.assertIn("bindCategoryChoices", PUBLIC_DIRECTORY)
+        self.assertIn("$('category').value = category;", PUBLIC_DIRECTORY)
+
 
 if __name__ == "__main__":
     unittest.main()
