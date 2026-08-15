@@ -81,6 +81,7 @@ PARTNER_LANDING_EVENT_TYPES = {
     "partner_landing_viewed": "viewed",
     "partner_landing_cta_selected": "selected",
     "partner_directory_application_selected": "application_selected",
+    "partner_directory_empty_search": "unfilled_search",
 }
 ONDEMAND_LANDING_EVENT_TYPES = {
     "ondemand_landing_viewed": "viewed",

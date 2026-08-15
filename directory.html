@@ -74,6 +74,18 @@
         } catch (_) {}
         fetch('/api/fsbo-lead', {method:'POST', headers:{'Content-Type':'application/json'}, keepalive:true, body:JSON.stringify({request_type:'partner_landing_event', event_type:'partner_directory_application_selected', tier:'unspecified', category:safeCategory})}).catch(() => {});
       };
+      const recordUnfilledDirectoryDemand = category => {
+        // Keep this useful for partner recruitment without retaining a
+        // visitor, market text, or raw search query. A category is enough to
+        // identify inventory demand, and only an actual empty result records it.
+        if (!allowedCategories.has(category)) return;
+        try {
+          const key = `hof_public_directory_empty_search_${category}`;
+          if (sessionStorage.getItem(key)) return;
+          sessionStorage.setItem(key, '1');
+        } catch (_) {}
+        fetch('/api/fsbo-lead', {method:'POST', headers:{'Content-Type':'application/json'}, keepalive:true, body:JSON.stringify({request_type:'partner_landing_event', event_type:'partner_directory_empty_search', tier:'unspecified', category})}).catch(() => {});
+      };
       const recordDirectoryEvent = (eventType, provider) => {
         const partnerId = String(provider?.id || '').trim(), partnerType = String(provider?.partner_type || '').trim(), placementTier = String(provider?.placement_tier || '').trim();
         if (!partnerId || !partnerType || !placementTier) return;
@@ -155,6 +167,7 @@
           const rows = Array.isArray(data.partners) ? data.partners : [];
           $('status').textContent = rows.length ? `${rows.length} active provider profile${rows.length === 1 ? '' : 's'} found.` : 'No active profiles match this search.';
           $('results').innerHTML = rows.length ? rows.map(card).join('') : `<div class="empty">${empty(category)}</div>`;
+          if (!rows.length) recordUnfilledDirectoryDemand(category);
           trackImpressions(rows);
           bindOutboundClicks();
           bindPartnerCtas();

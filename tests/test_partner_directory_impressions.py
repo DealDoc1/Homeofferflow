@@ -60,6 +60,19 @@ class PartnerDirectoryImpressionTests(unittest.TestCase):
         self.assertIn("hof_public_directory_search_${safeCategory}_${hasMarket ? 'market' : 'all'}", PUBLIC_DIRECTORY)
         self.assertNotIn("market:market", PUBLIC_DIRECTORY)
 
+    def test_empty_selected_category_searches_create_a_privacy_safe_partner_recruitment_signal(self):
+        api = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
+        lead_api = (ROOT / "api" / "fsbo-lead.py").read_text(encoding="utf-8")
+        self.assertIn("recordUnfilledDirectoryDemand", PUBLIC_DIRECTORY)
+        self.assertIn("partner_directory_empty_search", PUBLIC_DIRECTORY)
+        self.assertIn("hof_public_directory_empty_search_${category}", PUBLIC_DIRECTORY)
+        self.assertIn("if (!rows.length) recordUnfilledDirectoryDemand(category);", PUBLIC_DIRECTORY)
+        self.assertIn('"partner_directory_empty_search": "unfilled_search"', lead_api)
+        self.assertIn('"partnerDirectoryEmptySearchCount"', api)
+        self.assertIn('"partnerDirectoryEmptySearchCategoryCounts"', api)
+        self.assertIn("partnerDirectoryEmptySearchCount", HTML)
+        self.assertNotIn("market:market", PUBLIC_DIRECTORY)
+
 
 if __name__ == "__main__":
     unittest.main()

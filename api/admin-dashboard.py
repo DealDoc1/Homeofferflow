@@ -3623,6 +3623,7 @@ class handler(BaseHTTPRequestHandler):
                 "partner_landing_viewed",
                 "partner_landing_cta_selected",
                 "partner_directory_application_selected",
+                "partner_directory_empty_search",
             }
             partner_landing_events = [
                 item for item in events if item.get("event_type") in partner_landing_event_types
@@ -3637,6 +3638,22 @@ class handler(BaseHTTPRequestHandler):
                 item for item in partner_landing_events
                 if item.get("event_type") == "partner_directory_application_selected"
             ])
+            partner_directory_empty_search_count = len([
+                item for item in partner_landing_events
+                if item.get("event_type") == "partner_directory_empty_search"
+            ])
+            partner_directory_empty_search_category_counts = {}
+            for item in partner_landing_events:
+                if item.get("event_type") != "partner_directory_empty_search":
+                    continue
+                category = str((item.get("metadata") or {}).get("category") or "").strip().lower()
+                if category in ALLOWED_PARTNER_TYPES:
+                    partner_directory_empty_search_category_counts[category] = (
+                        partner_directory_empty_search_category_counts.get(category, 0) + 1
+                    )
+            partner_directory_empty_search_category_counts = dict(sorted(
+                partner_directory_empty_search_category_counts.items(), key=lambda item: (-item[1], item[0])
+            ))
             partner_landing_tier_cta_counts = {}
             for item in partner_landing_events:
                 if item.get("event_type") != "partner_landing_cta_selected":
@@ -4373,6 +4390,8 @@ class handler(BaseHTTPRequestHandler):
                 if partner_landing_view_count else 0,
                 "partnerLandingTierCtaCounts": partner_landing_tier_cta_counts,
                 "partnerDirectoryApplicationStartCount": partner_directory_application_start_count,
+                "partnerDirectoryEmptySearchCount": partner_directory_empty_search_count,
+                "partnerDirectoryEmptySearchCategoryCounts": partner_directory_empty_search_category_counts,
                 "partnerCheckoutEventCounts": partner_checkout_event_counts,
                 "partnerCampaignCategoryCounts": partner_campaign_category_counts,
                 "partnerCampaignTierCounts": partner_campaign_tier_counts,
