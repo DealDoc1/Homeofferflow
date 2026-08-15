@@ -2799,7 +2799,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           <div class="usage-meter"><div class="usage-fill" style="width:0%"></div></div>
           <div class="usage-copy">Checking packet usage for this month.</div>
         </div>
-        <div class="account-actions-row">
+        <div class="account-actions-row dashboard-legacy-actions">
           <button class="btn-primary" type="button" onclick="startAccountOffer()">Create New Offer</button>
           <button class="btn-secondary" type="button" onclick="showAccountTab('profile')">Complete Profile</button>
           <button class="auth-secondary" type="button" onclick="signOutAccount(); closeAccountDashboard();">Logout</button>
@@ -14916,6 +14916,10 @@ function routeAfterMagicLinkIfNeeded() {
     box-shadow: 0 18px 48px rgba(0,0,0,.2), inset 0 1px 0 rgba(255,255,255,.05);
   }
   .agent-activation-card.show { display: block; }
+  /* The activation card already provides the context-specific primary and
+     secondary actions. Hide the older generic duplicates only after that card
+     is ready; if the enhancement cannot render, the fallback controls remain. */
+  .agent-activation-card.show ~ .account-actions-row.dashboard-legacy-actions { display: none; }
   .agent-activation-top {
     display: flex;
     justify-content: space-between;

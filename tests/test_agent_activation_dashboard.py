@@ -45,6 +45,13 @@ class AgentActivationDashboardTests(unittest.TestCase):
             dashboard.index('id="betaOnboardingChecklist"'),
         )
 
+    def test_activation_card_suppresses_only_the_redundant_dashboard_actions(self):
+        self.assertIn('dashboard-legacy-actions', HTML)
+        self.assertIn(
+            '.agent-activation-card.show ~ .account-actions-row.dashboard-legacy-actions { display: none; }',
+            HTML,
+        )
+
     def test_dashboard_waits_for_offers_before_rendering_activation_state(self):
         function_match = re.search(
             r"async function openAccountDashboard\(opts = \{\}\) \{(?P<body>.*?)\n  \}",
