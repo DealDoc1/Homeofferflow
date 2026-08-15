@@ -34,6 +34,8 @@ class PartnerPlacementActivationGateTests(unittest.TestCase):
         self.assertIn("populatePaidPartnerPlacementLeads", HTML)
         self.assertIn("partner_agreement_status", HTML)
         self.assertIn("Send agreement to SignWell", HTML)
+        self.assertIn("const agreementSendAvailable = String(readiness.code || '') === 'agreement_ready_to_send';", HTML)
+        self.assertIn("Agreement signing is awaiting final Texas counsel approval.", HTML)
         self.assertIn("support@homeofferflow.com", HTML)
         self.assertIn("No fully onboarded paid applications", HTML)
         self.assertIn("readinessLabel", HTML)
