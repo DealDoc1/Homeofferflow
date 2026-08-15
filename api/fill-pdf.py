@@ -64,6 +64,11 @@ def signwell_debug(label, payload, limit=3000):
         print(label, json.dumps(payload)[:limit])
 
 
+def _is_valid_signwell_email(value):
+    """Keep malformed recipient addresses from reaching the signing provider."""
+    return bool(re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", str(value or "").strip()))
+
+
 def fmt_money(v):
     if v in [None, ""]:
         return ""
@@ -1301,12 +1306,16 @@ def create_signwell_signature_request(offer, pdf_bytes):
 
     if not buyer_email:
         return {"enabled": True, "ok": False, "error": "Missing buyer email for SignWell"}
+    if not _is_valid_signwell_email(buyer_email):
+        return {"enabled": True, "ok": False, "error": "Invalid buyer email for SignWell"}
 
     recipients = [{"id": "1", "name": buyer_name, "email": buyer_email}]
 
     buyer2_email = first_present(offer.get("buyer2Email"), "")
     buyer2_name = first_present(offer.get("buyer2"), "Buyer 2")
     if buyer2_email:
+        if not _is_valid_signwell_email(buyer2_email):
+            return {"enabled": True, "ok": False, "error": "Invalid second buyer email for SignWell"}
         recipients.append({"id": "2", "name": buyer2_name, "email": buyer2_email})
 
     # A TREC 15-7 Seller's Temporary Residential Lease is fully executed only
@@ -1315,6 +1324,8 @@ def create_signwell_signature_request(offer, pdf_bytes):
     # production path was enabled.
     seller_lease_parties = seller_temporary_lease_execution_parties(offer)
     if seller_lease_parties:
+        if any(not _is_valid_signwell_email(party["email"]) for party in seller_lease_parties):
+            return {"enabled": True, "ok": False, "error": "Invalid seller email for SignWell"}
         recipients.extend([
             {"id": party["id"], "name": party["name"], "email": party["email"]}
             for party in seller_lease_parties

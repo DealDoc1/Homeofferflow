@@ -35,6 +35,25 @@ def seller_lease_offer():
 
 
 class SellerTemporaryLeaseProductionSignWellTests(unittest.TestCase):
+    def test_invalid_seller_lease_recipient_email_is_rejected_before_signwell_delivery(self):
+        api = load_offer_api()
+        api.SIGNWELL_ENABLED = True
+        api.SIGNWELL_API_KEY = "test_key"
+        offer = seller_lease_offer()
+        offer["seller1Email"] = "not-an-email"
+        result = api.create_signwell_signature_request(offer, b"%PDF-test")
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["error"], "Invalid seller email for SignWell")
+
+    def test_browser_blocks_invalid_lease_signer_email_before_packet_generation(self):
+        html = (ROOT / "index.html").read_text(encoding="utf-8")
+        start = html.index("function validateSellerTemporaryLeaseInputs(data)")
+        end = html.index("function confirmControlledLaunchSupport", start)
+        validation = html[start:end]
+        self.assertIn("const signerEmails = [", validation)
+        self.assertIn("invalidSigner", validation)
+        self.assertIn("needs a valid email address before HomeOfferFlow can create signature delivery.", validation)
+
     def test_seller_lease_uses_four_recipients_in_party_order(self):
         api = load_offer_api()
         api.SIGNWELL_ENABLED = True

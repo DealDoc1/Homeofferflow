@@ -8943,6 +8943,17 @@ function routeAfterMagicLinkIfNeeded() {
       alert("Enter both the name and email for seller / tenant 2, or leave both blank.");
       return false;
     }
+    const signerEmails = [
+      ['Buyer 1', data.buyerEmail],
+      ...(String(data.buyer2 || '').trim() ? [['Buyer 2', data.buyer2Email]] : []),
+      ['Seller / tenant 1', seller1Email],
+      ...(seller2Name ? [['Seller / tenant 2', seller2Email]] : [])
+    ];
+    const invalidSigner = signerEmails.find(([, email]) => !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email || '').trim()));
+    if (invalidSigner) {
+      alert(invalidSigner[0] + ' needs a valid email address before HomeOfferFlow can create signature delivery.');
+      return false;
+    }
     if (new Set(buyerEmails.concat(sellerEmails)).size !== buyerEmails.length + sellerEmails.length) {
       alert('Each signer needs a different email address.');
       return false;
