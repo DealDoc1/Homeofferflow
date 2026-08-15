@@ -35,7 +35,7 @@ class OfferWorkspaceRetryTests(unittest.TestCase):
 
     def test_workspace_refresh_syncs_active_signwell_documents_before_reload(self):
         self.assertIn("root.hofRefreshOfferWorkspace = async function({ automatic = false } = {})", HTML)
-        self.assertIn("new Set(['created', 'sent', 'viewed', 'partially_signed', 'awaiting_signature', 'in_progress'])", HTML)
+        self.assertIn("'awaiting_buyer_signature'", HTML)
         self.assertIn("Promise.allSettled(active.map(offer => root.refreshSignWellStatus", HTML)
         self.assertIn("return aUpdated - bUpdated;", HTML)
         self.assertIn("slice(0, 10)", HTML)

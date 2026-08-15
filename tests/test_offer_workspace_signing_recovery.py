@@ -47,6 +47,13 @@ class OfferWorkspaceSigningRecoveryTests(unittest.TestCase):
         api = (Path(__file__).resolve().parents[1] / "api" / "signwell-status.js").read_text(encoding="utf-8")
         self.assertIn("if (compact.includes('pending')) return 'Awaiting Buyer Signature';", api)
 
+    def test_automatic_signing_sync_includes_the_normalized_awaiting_buyer_status(self):
+        start = HTML.index("root.hofRefreshOfferWorkspace = async function")
+        end = HTML.index("root.hofReuseTermsFromMostRecentOffer", start)
+        refresh = HTML[start:end]
+        self.assertIn("'awaiting_buyer_signature'", refresh)
+        self.assertIn("activeStatuses.has(status)", refresh)
+
     def test_completed_provider_status_wins_over_a_stale_awaiting_alias(self):
         start = HTML.index("function getOfferBestStatus(offer = {})")
         end = HTML.index("function getOfferSigningBucket", start)
