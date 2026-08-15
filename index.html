@@ -18088,6 +18088,13 @@ function routeAfterMagicLinkIfNeeded() {
     catch (_) { return 'unknown'; }
   }
 
+  function installCtaLabel(surface){
+    if (surface === 'seller_success') return 'Save My Seller Plan';
+    if (surface === 'buyer_review' || surface === 'buyer_success') return 'Save My Offer Workspace';
+    if (surface === 'account_dashboard') return 'Add My Agent Workspace';
+    return 'Install HomeOfferFlow';
+  }
+
   function dismissInstallCard(){
     const card = document.getElementById('hofPwaInstallCard');
     try { localStorage.setItem(dismissKey, String(Date.now() + 1000 * 60 * 60 * 24 * 30)); }
@@ -18155,7 +18162,7 @@ function routeAfterMagicLinkIfNeeded() {
           ? '<button class="btn-primary" type="button" id="hofPwaInstallHelp">Show the 2 steps</button>'
           : isAndroid() && !deferredInstallPrompt
           ? '<button class="btn-primary" type="button" id="hofPwaInstallHelp">Show the 2 steps</button>'
-          : '<button class="btn-primary" type="button" id="hofPwaInstallButton">Install HomeOfferFlow</button>'}
+          : `<button class="btn-primary" type="button" id="hofPwaInstallButton">${installCtaLabel(target.surface)}</button>`}
         <button class="btn-secondary" type="button" id="hofPwaInstallDismiss">Not now</button>
       </div>
       <div id="hofPwaInstallNote" class="pwa-install-note" style="margin-top:.65rem;display:none"></div>`;
