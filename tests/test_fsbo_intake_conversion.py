@@ -84,6 +84,12 @@ class FsboIntakeConversionTests(unittest.TestCase):
         self.assertIn("const campaignPackage = fsboDraftExists() ? '' : campaignFsboPackage();", HTML)
         self.assertIn("if (campaignPackage) window.selectFsboNeed?.(campaignPackage, false);", HTML)
 
+    def test_selected_paid_package_is_explained_before_the_short_required_intake(self):
+        self.assertIn('id="fsboSelectedPackageCallout"', HTML)
+        self.assertIn("window.renderFsboSelectedPackageCallout", HTML)
+        self.assertIn("Selected path: ${item.title} (${item.price})", HTML)
+        self.assertIn("this is not checkout or a service order", HTML)
+
     def test_admin_seller_campaigns_land_on_the_explanatory_seller_page_before_intake(self):
         self.assertIn("return `https://www.homeofferflow.com/sellers?${params.toString()}`;", HTML)
         self.assertIn("campaignPackage: campaignPackage || null", HTML)
