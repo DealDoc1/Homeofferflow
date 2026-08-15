@@ -86,8 +86,14 @@ class ListingWorkspaceFoundationTests(unittest.TestCase):
     def test_saved_seller_lead_can_seed_a_private_workspace(self):
         self.assertIn("startListingWorkspaceFromLead", INDEX)
         self.assertIn("Prepare listing workspace", INDEX)
-        self.assertIn("Seller lead details copied into a private listing workspace draft", INDEX)
+        self.assertIn("Seller lead details copied into a linked private listing workspace draft", INDEX)
         self.assertIn("seller-lead-actions", INDEX)
+
+    def test_seeded_workspace_preserves_only_the_agents_own_seller_lead_link(self):
+        self.assertIn("dataset.sellerLeadId = id", INDEX)
+        self.assertIn("seller_lead_id:", INDEX)
+        self.assertIn("hofPlatform.sellerLeads.some", INDEX)
+        self.assertIn("delete document.getElementById('listingWorkspaceAddress').dataset.sellerLeadId", INDEX)
 
     def test_private_offer_comparison_worksheet_is_owner_scoped(self):
         self.assertIn("create table if not exists public.hof_listing_workspace_offers", OFFER_COMPARISON_MIGRATION)

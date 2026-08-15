@@ -10992,8 +10992,13 @@ function routeAfterMagicLinkIfNeeded() {
     if (address) address.value = lead.property_address || '';
     if (sellerNames) sellerNames.value = lead.seller_name || '';
     if (kind) kind.value = lead.seller_type === 'fsbo' ? 'sale' : 'sale';
+    // Keep the relationship private and owner-scoped: this ID came from the
+    // signed-in agent's own seller-lead list and is persisted only when the
+    // agent explicitly creates the workspace below.
+    const workspaceForm = document.getElementById('listingWorkspaceAddress');
+    if (workspaceForm) workspaceForm.dataset.sellerLeadId = id;
     document.getElementById('listingWorkspaceAddress')?.scrollIntoView({behavior:'smooth', block:'center'});
-    platformStatus('listingWorkspaceStatus', 'Seller lead details copied into a private listing workspace draft. Review and save when ready.', 'ok');
+    platformStatus('listingWorkspaceStatus', 'Seller lead details copied into a linked private listing workspace draft. Review and save when ready.', 'ok');
   };
 
   function listingWorkspaceRequestedWorkflows() {
@@ -11014,6 +11019,7 @@ function routeAfterMagicLinkIfNeeded() {
     if (!client || !user) return platformStatus('listingWorkspaceStatus', 'Sign in before creating a listing workspace.', 'err');
     const propertyAddress = String(getVal('listingWorkspaceAddress') || '').trim();
     const sellerNames = listingWorkspaceSellerNames();
+    const sourceLeadId = String(document.getElementById('listingWorkspaceAddress')?.dataset.sellerLeadId || '');
     if (!propertyAddress) return platformStatus('listingWorkspaceStatus', 'Enter the property address before creating a workspace.', 'err');
     if (!sellerNames.length) return platformStatus('listingWorkspaceStatus', 'Enter at least one seller or landlord name. Use semicolons between multiple names.', 'err');
     try {
@@ -11022,6 +11028,9 @@ function routeAfterMagicLinkIfNeeded() {
       const payload = {
         brokerage_id: hofPlatform.brokerage.id,
         agent_user_id: user.id,
+        // Only accept a lead ID that was loaded from this agent's own private
+        // seller-lead list. RLS also enforces the workspace owner at write time.
+        seller_lead_id: (Array.isArray(hofPlatform.sellerLeads) && hofPlatform.sellerLeads.some(lead => String(lead.id || '') === sourceLeadId)) ? sourceLeadId : null,
         listing_kind: getVal('listingWorkspaceKind') === 'lease' ? 'lease' : 'sale',
         property_address: propertyAddress,
         seller_names: sellerNames,
@@ -11032,6 +11041,7 @@ function routeAfterMagicLinkIfNeeded() {
       const { error } = await client.from('hof_listing_workspaces').insert(payload);
       if (error) throw error;
       document.getElementById('listingWorkspaceAddress').value = '';
+      delete document.getElementById('listingWorkspaceAddress').dataset.sellerLeadId;
       document.getElementById('listingWorkspaceSellerNames').value = '';
       document.getElementById('listingWorkspaceNotes').value = '';
       document.querySelectorAll('input[name="listingWorkflow"]').forEach(input => { input.checked = false; });
