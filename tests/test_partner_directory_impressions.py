@@ -71,6 +71,10 @@ class PartnerDirectoryImpressionTests(unittest.TestCase):
         self.assertIn('"partnerDirectoryEmptySearchCount"', api)
         self.assertIn('"partnerDirectoryEmptySearchCategoryCounts"', api)
         self.assertIn("partnerDirectoryEmptySearchCount", HTML)
+        self.assertIn("topUnfilledPartnerDemand", HTML)
+        self.assertIn("copyPartnerDemandInvitation", HTML)
+        self.assertIn("directory_demand", HTML)
+        self.assertIn("never sends email or carries visitor/search/market data", HTML)
         self.assertNotIn("market:market", PUBLIC_DIRECTORY)
 
 

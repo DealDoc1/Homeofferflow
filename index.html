@@ -4436,6 +4436,9 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       const sellerLeads = result.sellerLeads || [];
       const activationFollowUpQueue = result.activationFollowUpQueue || [];
       const trialEndingSoonQueue = result.trialEndingSoonQueue || [];
+      const topUnfilledPartnerDemand = Object.entries(metrics.partnerDirectoryEmptySearchCategoryCounts || {})
+        .filter(([category, count]) => partnerCampaignCategories.has(category) && Number(count) > 0)
+        .sort((left, right) => Number(right[1]) - Number(left[1]) || left[0].localeCompare(right[0]))[0] || null;
       window.hofAdminTrackerPayload = {
         roadmap: result.roadmap || [],
         qaScenarios: result.qaScenarios || [],
@@ -4656,6 +4659,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.partnerLandingViewCount || 0} partner landing views · ${metrics.partnerLandingCtaCount || 0} application starts (${Number(metrics.partnerLandingCtaRate || 0).toFixed(1)}%).</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Directory acquisition: ${metrics.partnerDirectoryApplicationStartCount || 0} partner application start${Number(metrics.partnerDirectoryApplicationStartCount || 0) === 1 ? '' : 's'} from the public directory.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Unfilled provider demand: ${Number(metrics.partnerDirectoryEmptySearchCount || 0)} category search${Number(metrics.partnerDirectoryEmptySearchCount || 0) === 1 ? '' : 'es'} with no active profile · ${adminSafe(Object.entries(metrics.partnerDirectoryEmptySearchCategoryCounts || {}).map(([category, count]) => `${category.replace(/_/g, ' ')} (${count})`).join(' · '), 'category demand begins with the next selected empty search')}.</div>
+            ${topUnfilledPartnerDemand ? `<div style="margin-top:.35rem"><button type="button" class="admin-contact-action" onclick="copyPartnerDemandInvitation('${topUnfilledPartnerDemand[0]}')">Copy ${adminSafe(topUnfilledPartnerDemand[0].replace(/_/g, ' '))} recruitment invitation</button></div>` : ''}
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Landing-tier interest: ${adminSafe(Object.entries(metrics.partnerLandingTierCtaCounts || {}).map(([tier, count]) => `${tier.replace(/_/g, ' ')} (${count})`).join(' · '), 'starts will appear after the next partner-page visit')}</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.sandboxPartnerLeadCount || 0} Stripe sandbox record${Number(metrics.sandboxPartnerLeadCount || 0) === 1 ? '' : 's'} excluded from live partner reporting.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.paidPartnerLeadCount || 0} paid · ${metrics.partnerOnboardingReadyCount || 0} onboarding-ready · ${metrics.partnerActivationRate || 0}% activated.</div>
@@ -11409,6 +11413,30 @@ function routeAfterMagicLinkIfNeeded() {
       platformStatus('partnerCampaignLinkPreview', 'Invitation copy and its approved campaign link are ready to paste into your own outreach.', 'ok');
     } catch (err) {
       platformStatus('partnerCampaignLinkPreview', 'Could not copy automatically. Use Copy Campaign Link instead.', 'err');
+    }
+  };
+
+  // This converts an aggregate empty-category signal into a human-reviewed
+  // outreach draft. It never sends email or carries visitor/search/market data.
+  window.copyPartnerDemandInvitation = async function copyPartnerDemandInvitation(category) {
+    const safeCategory = String(category || '').trim().toLowerCase();
+    if (!isCurrentAdmin() || !partnerCampaignCategories.has(safeCategory)) return;
+    const params = new URLSearchParams({
+      partner_category: safeCategory,
+      partner_tier: 'monthly_placement',
+      utm_source: 'homeofferflow_admin',
+      utm_medium: 'direct_outreach',
+      utm_campaign: 'directory_demand'
+    });
+    const link = `https://www.homeofferflow.com/partners?${params.toString()}`;
+    const categoryLabel = safeCategory.replace(/_/g, ' ');
+    const invitation = `Hi [First name],\n\nHomeOfferFlow is opening a limited Featured Partner pilot for ${categoryLabel} businesses serving Texas homebuyers, agents, and FSBO sellers. We are building category inventory in response to aggregate directory demand; this does not identify or describe any visitor, search, or market.\n\nThe placement is disclosed advertising inventory—not referrals, required provider selection, transactions, or closings. You can review the 90-day pilot terms and secure application here:\n${link}\n\nIf it looks like a fit, complete the application and checkout. We will confirm category/market availability and written placement terms before any public placement is activated.\n\nBest,\nHomeOfferFlow`;
+    try {
+      if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(invitation);
+      else window.prompt('Copy this partner recruitment invitation:', invitation);
+      try { trackEvent('Partner Demand Recruitment Invitation Copied', { category: safeCategory, surface: 'admin_partner_demand' }); } catch (_) {}
+    } catch (_) {
+      window.prompt('Copy this partner recruitment invitation:', invitation);
     }
   };
 
