@@ -66,6 +66,7 @@ class PwaInstallExperienceTests(unittest.TestCase):
         self.assertIn("function installSurface", INDEX)
         self.assertIn("trackInstall('installed', { platform: installPlatform(), surface: installSurface() })", INDEX)
         self.assertIn("trackInstall('cta_clicked'", INDEX)
+        self.assertIn("copy_version: 'role_specific_v1'", INDEX)
         self.assertIn("cta: 'native_prompt'", INDEX)
         self.assertIn("card.dataset.surface = target.surface", INDEX)
         self.assertIn("surface: target.surface", INDEX)

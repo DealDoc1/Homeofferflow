@@ -18193,7 +18193,7 @@ function routeAfterMagicLinkIfNeeded() {
       const note = card.querySelector('#hofPwaInstallNote');
       if (note) {
         const platform = isIos() ? 'ios' : 'android';
-        trackInstall('cta_clicked', { platform, surface: target.surface, cta: 'home_screen_help' });
+        trackInstall('cta_clicked', { platform, surface: target.surface, cta: 'home_screen_help', copy_version: 'role_specific_v1' });
         note.textContent = isIos()
           ? '1. In Safari, tap Share.  2. Choose “Add to Home Screen,” then tap Add.'
           : '1. In Chrome, open the ⋮ menu.  2. Choose “Install app” or “Add to Home screen,” then confirm.';
@@ -18206,7 +18206,7 @@ function routeAfterMagicLinkIfNeeded() {
       const button = card.querySelector('#hofPwaInstallButton');
       if (button) { button.disabled = true; button.textContent = 'Opening install…'; }
       try {
-        trackInstall('cta_clicked', { platform: installPlatform(), surface: target.surface, cta: 'native_prompt' });
+        trackInstall('cta_clicked', { platform: installPlatform(), surface: target.surface, cta: 'native_prompt', copy_version: 'role_specific_v1' });
         await deferredInstallPrompt.prompt();
         trackInstall('prompt_opened', { platform: installPlatform(), surface: target.surface });
         const choice = await deferredInstallPrompt.userChoice;
