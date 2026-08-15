@@ -161,7 +161,7 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn('<link rel="canonical" href="https://www.homeofferflow.com/agents"', AGENTS)
         self.assertIn('property="og:url" content="https://www.homeofferflow.com/agents"', AGENTS)
         self.assertIn('href="/?agent=1"', AGENTS)
-        self.assertIn('No password and no charge to open the workspace.', AGENTS)
+        self.assertIn('No password and no charge to start a private draft.', AGENTS)
         self.assertIn('href="/ondemand"', AGENTS)
         self.assertIn('See your 60-day HomeOfferFlow trial', AGENTS)
         self.assertIn({'source': '/agents', 'destination': '/agents.html'}, VERCEL.get('rewrites', []))

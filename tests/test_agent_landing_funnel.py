@@ -20,6 +20,11 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("cleanUrl.searchParams.delete('agent')", INDEX)
         self.assertIn("window.openAuthModal?.('agent')", INDEX)
 
+    def test_public_agent_copy_matches_the_draft_first_activation_path(self):
+        self.assertIn('Start a client draft — no payment', AGENTS)
+        self.assertIn('No password and no charge to start a private draft.', AGENTS)
+        self.assertIn('save your agent defaults afterward for faster repeat offers', AGENTS)
+
     def test_public_endpoint_and_page_record_only_aggregate_agent_landing_events(self):
         self.assertIn("AGENT_LANDING_EVENT_TYPES", API)
         self.assertIn("def _record_agent_landing_event(data):", API)
