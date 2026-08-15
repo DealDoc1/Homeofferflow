@@ -14,6 +14,7 @@ class FsboIntakeConversionTests(unittest.TestCase):
         self.assertIn("Property address and email are all we need", HTML)
         self.assertIn('id="fsboPropertyAddress"', HTML)
         self.assertIn('id="fsboSellerEmail"', HTML)
+        self.assertIn('inputmode="email" autocomplete="email"', HTML)
         self.assertGreaterEqual(HTML.count('aria-required="true"'), 2)
         self.assertIn("Seller Name <span", HTML)
         self.assertIn("Phone <span", HTML)
@@ -199,6 +200,15 @@ class FsboIntakeConversionTests(unittest.TestCase):
         self.assertIn('<details class="partner-optional-details" style="margin-top:.9rem;">', HTML)
         self.assertIn("document.querySelectorAll('[data-fsbo-submit]')", HTML)
         self.assertIn("Request ${item.title} Details", HTML)
+
+    def test_quick_submit_validates_and_focuses_the_actual_required_field(self):
+        start = HTML.index("window.submitFsboSellerLead")
+        end = HTML.index("const submissionKey = fsboSubmissionKey(payload);", start)
+        submit = HTML[start:end]
+        self.assertIn("emailInput?.checkValidity()", submit)
+        self.assertIn("Enter a valid email address to save your seller plan.", submit)
+        self.assertIn("setAttribute('aria-invalid'", submit)
+        self.assertIn("(!hasAddress ? addressInput : emailInput)?.focus();", submit)
 
     def test_selected_seller_path_adapts_only_the_optional_qualification_prompt(self):
         self.assertIn('const fsboSituationPrompts = {', HTML)

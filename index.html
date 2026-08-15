@@ -12217,7 +12217,7 @@ function routeAfterMagicLinkIfNeeded() {
         <input type="hidden" id="fsboPropertyState" value="TX">
         <input type="hidden" id="fsboPropertyZip">
       </div>
-      <div class="field"><label>Email</label><input id="fsboSellerEmail" type="email" placeholder="you@email.com" required aria-required="true"></div>
+      <div class="field"><label>Email</label><input id="fsboSellerEmail" type="email" inputmode="email" autocomplete="email" placeholder="you@email.com" required aria-required="true"></div>
       <div aria-hidden="true" style="position:absolute;left:-10000px;top:auto;width:1px;height:1px;overflow:hidden;"><label for="fsboWebsiteConfirm">Leave this field blank</label><input id="fsboWebsiteConfirm" tabindex="-1" autocomplete="off"></div>
     </div>
     <div id="fsboRequiredReadyCue" class="notice sage" role="status" hidden style="margin-top:.75rem;"><strong>You’re ready.</strong> Your address and email are complete—save your free seller plan now, or choose a package first. No checkout or service commitment.</div>
@@ -12664,6 +12664,8 @@ function routeAfterMagicLinkIfNeeded() {
   window.submitFsboSellerLead = async function(source = 'full'){
     const status = document.getElementById('fsboSellerStatus');
     const submitButtons = [...document.querySelectorAll('[data-fsbo-submit]')];
+    const addressInput = document.getElementById('fsboPropertyAddress');
+    const emailInput = document.getElementById('fsboSellerEmail');
     const campaignQuery = new URLSearchParams(window.location.search);
     const payload = {
       seller_type: 'fsbo',
@@ -12694,11 +12696,26 @@ function routeAfterMagicLinkIfNeeded() {
       ].filter(Boolean).join(' — '),
       status: 'new'
     };
-    if (!payload.property_address || !payload.seller_email) {
+    const hasAddress = !!payload.property_address;
+    const hasEmail = !!payload.seller_email;
+    const hasValidEmail = !!emailInput?.checkValidity();
+    if (!hasAddress || !hasEmail || !hasValidEmail) {
       trackFsboFunnel('FSBO Seller Intake Required Fields Missing', { propertyProvided: !!payload.property_address, emailProvided: !!payload.seller_email });
-      if (status) { status.textContent = 'Property address and email are required.'; status.className = 'platform-status err'; }
+      if (addressInput) addressInput.setAttribute('aria-invalid', hasAddress ? 'false' : 'true');
+      if (emailInput) emailInput.setAttribute('aria-invalid', hasValidEmail ? 'false' : 'true');
+      if (status) {
+        status.textContent = !hasAddress
+          ? 'Enter the property address to save your seller plan.'
+          : !hasEmail
+            ? 'Enter your email to save your seller plan.'
+            : 'Enter a valid email address to save your seller plan.';
+        status.className = 'platform-status err';
+      }
+      (!hasAddress ? addressInput : emailInput)?.focus();
       return;
     }
+    if (addressInput) addressInput.setAttribute('aria-invalid', 'false');
+    if (emailInput) emailInput.setAttribute('aria-invalid', 'false');
     const submissionKey = fsboSubmissionKey(payload);
     try {
       if (sessionStorage.getItem(submissionKey)) {
