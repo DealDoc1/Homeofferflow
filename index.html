@@ -6272,7 +6272,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           <div class="field"><label>Investor / Entity Name</label><input id="profInvestorEntity" value="${escapeAttr(profileValue('investor_entity_name'))}" placeholder="ABC Homes LLC"></div>
           <div class="field"><label>Signer Name</label><input id="profSignerName" value="${escapeAttr(profileValue('signer_name'))}" placeholder="Andrew Christian"></div>
           <div class="field"><label>Signer Title</label><input id="profSignerTitle" value="${escapeAttr(profileValue('signer_title'))}" placeholder="Manager"></div>
-          <div class="field"><label>Email</label><input id="profInvestorEmail" type="email" value="${escapeAttr(profileValue('investor_email', hofAuth.session?.user?.email || ''))}" placeholder="you@company.com"></div>
+          <div class="field"><label>Email</label><input id="profInvestorEmail" type="email" inputmode="email" autocomplete="email" value="${escapeAttr(profileValue('investor_email', hofAuth.session?.user?.email || ''))}" placeholder="you@company.com"></div>
           <div class="field"><label>Phone</label><input id="profInvestorPhone" value="${escapeAttr(profileValue('investor_phone'))}" placeholder="(214) 555-0000"></div>
           <div class="field"><label>Mailing Address</label><input id="profInvestorMailing" value="${escapeAttr(profileValue('mailing_address'))}" placeholder="123 Main St, City, TX"></div>
         </div></div>
@@ -6292,7 +6292,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       <div class="account-card"><h4>Agent / Brokerage Info</h4><p class="account-profile-essentials"><strong>Save these five essentials first.</strong> They make your agent profile ready for repeat offers. Title, escrow, and offer preferences below are optional and can be added later.</p><div class="account-grid">
         <div class="field"><label>Agent Name <span class="account-profile-required">Required</span></label><input id="profAgentName" autocomplete="name" value="${escapeAttr(profileValue('agent_name'))}" placeholder="Jane Doe" required aria-required="true"></div>
         <div class="field"><label>License Number <span class="account-profile-required">Required</span></label><input id="profAgentLicense" value="${escapeAttr(profileValue('license_number'))}" placeholder="TX license #" required aria-required="true"></div>
-        <div class="field"><label>Agent Email <span class="account-profile-required">Required</span></label><input id="profAgentEmail" type="email" autocomplete="email" value="${escapeAttr(profileValue('agent_email', hofAuth.session?.user?.email || ''))}" placeholder="agent@brokerage.com" required aria-required="true"></div>
+        <div class="field"><label>Agent Email <span class="account-profile-required">Required</span></label><input id="profAgentEmail" type="email" inputmode="email" autocomplete="email" value="${escapeAttr(profileValue('agent_email', hofAuth.session?.user?.email || ''))}" placeholder="agent@brokerage.com" required aria-required="true"></div>
         <div class="field"><label>Agent Phone <span class="account-profile-required">Required</span></label><input id="profAgentPhone" type="tel" autocomplete="tel" value="${escapeAttr(profileValue('agent_phone'))}" placeholder="(214) 555-0000" required aria-required="true"></div>
         <div class="field"><label>Brokerage Name <span class="account-profile-required">Required</span></label><input id="profBrokerageName" autocomplete="organization" value="${escapeAttr(profileValue('brokerage_name'))}" placeholder="Brokerage firm" required aria-required="true"></div>
         <div class="field"><label>Brokerage License</label><input id="profBrokerageLicense" value="${escapeAttr(profileValue('brokerage_license'))}" placeholder="Brokerage license #"></div>
@@ -6345,6 +6345,13 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         document.getElementById(requiredProfileFields.find(([id]) => !getVal(id))?.[0])?.focus();
         return null;
       }
+    }
+
+    const profileEmailInput = document.getElementById(hofAuth.role === 'investor' ? 'profInvestorEmail' : 'profAgentEmail');
+    if (String(profileEmailInput?.value || '').trim() && !profileEmailInput?.checkValidity()) {
+      setAccountStatus('Enter a valid email address before saving your profile.', 'err');
+      profileEmailInput.focus();
+      return null;
     }
 
     let user = hofAuth.session?.user || null;
