@@ -12809,7 +12809,7 @@ function routeAfterMagicLinkIfNeeded() {
     </div>
 
     <div class="notice gold" style="margin-bottom:.9rem;"><strong>Get the first 90 days for the price of one standard month.</strong><br>The launch offer is available to the first 10 approved partners. It includes onboarding, has no setup fee, then renews monthly at the standard rate after 90 days unless cancelled. Each placement covers one category and market.</div>
-    <div class="notice sage" id="foundingPartnerCheckoutConfirmation" style="display:none;margin-bottom:.9rem;"><strong>Checkout complete — your next step is partner setup.</strong><br><strong>1.</strong> Look for the secure setup link at your business email (it expires in 14 days). <strong>2.</strong> Add your market, website, logo, and call to action. <strong>3.</strong> HomeOfferFlow reviews those details with the written placement agreement before anything becomes public. Setup does not activate advertising by itself. If the email is not visible shortly, <a href="mailto:support@homeofferflow.com?subject=Partner%20setup%20link%20request" style="color:inherit;text-decoration:underline;font-weight:700;">ask support to issue a fresh secure link</a>. After the 90-day launch period, your plan renews monthly unless cancelled.</div>
+    <div class="notice sage" id="foundingPartnerCheckoutConfirmation" style="display:none;margin-bottom:.9rem;"><strong>Checkout complete — your next step is partner setup.</strong><br><span id="foundingPartnerCheckoutSetupMessage"><strong>1.</strong> Preparing your secure setup now. <strong>2.</strong> Add your market, website, logo, and call to action. <strong>3.</strong> HomeOfferFlow reviews those details with the written placement agreement before anything becomes public. Setup does not activate advertising by itself. If setup is still preparing, a secure link will also be sent to your business email (it expires in 14 days). If you still need help, <a href="mailto:support@homeofferflow.com?subject=Partner%20setup%20link%20request" style="color:inherit;text-decoration:underline;font-weight:700;">ask support to issue a fresh secure link</a>. After the 90-day launch period, your plan renews monthly unless cancelled.</span></div>
     <div class="notice gold" id="foundingPartnerCheckoutResume" style="display:none;margin-bottom:.9rem;"><strong>Your application is saved.</strong><br>You can resume the exact secure checkout below whenever you are ready. No second application is created on this device. You do not need to re-enter your saved essentials.</div>
 
     <div class="partner-tier-grid" role="radiogroup" aria-label="Partner advertising tier">
@@ -13155,6 +13155,31 @@ function routeAfterMagicLinkIfNeeded() {
     if (!market) { status.textContent = 'Enter the primary market area before saving setup details.'; status.className = 'platform-status err'; document.getElementById('partnerSetupMarket')?.focus(); return; }
     try { const response = await fetch('/api/fsbo-lead', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({request_type:'partner_onboarding_submit', onboarding_token:onboardingToken(), market_area:market, website_url:value('partnerSetupWebsite'), logo_url:value('partnerSetupLogo'), cta_label:value('partnerSetupCta')})}); const result = await response.json().catch(() => ({})); if (!response.ok) throw new Error(result.error || 'Could not save setup details.'); clearPartnerOnboardingToken(); document.getElementById('partnerOnboardingFields').style.display = 'none'; status.innerHTML = '<strong>Setup details saved — you are all set for now.</strong><br>Next, HomeOfferFlow reviews your details with the written placement agreement. We will only publish a placement after that review is complete.'; status.className = 'platform-status ok'; } catch (error) { status.textContent = error?.message || 'Could not save setup details.'; status.className = 'platform-status err'; }
   };
+  async function recoverPartnerCheckoutSetup(sessionId){
+    const confirmation = document.getElementById('foundingPartnerCheckoutConfirmation');
+    const message = document.getElementById('foundingPartnerCheckoutSetupMessage');
+    if (confirmation) confirmation.style.display = 'block';
+    if (message) message.textContent = 'Preparing your secure setup…';
+    try {
+      const response = await fetch('/api/fsbo-lead', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({request_type:'founding_partner_checkout_setup', session_id:sessionId})});
+      const result = await response.json().catch(() => ({}));
+      if (response.status === 202 || result.state === 'processing') {
+        if (message) message.textContent = 'Your payment is being confirmed securely. Setup will open here as soon as it is ready; a secure email link is also on its way.';
+        return;
+      }
+      if (!response.ok) throw new Error(result.error || 'Partner setup is unavailable.');
+      if (result.state === 'complete') {
+        if (message) message.textContent = 'Your partner setup was already saved. HomeOfferFlow will review it before anything becomes public.';
+        return;
+      }
+      if (!result.onboarding_token) throw new Error('Partner setup is unavailable.');
+      retainPartnerOnboardingToken(result.onboarding_token);
+      if (message) message.textContent = 'Your secure setup is ready.';
+      window.openPartnerOnboarding();
+    } catch (error) {
+      if (message) message.textContent = `${error?.message || 'Partner setup is unavailable.'} Please use the secure setup email or contact support for a fresh link.`;
+    }
+  }
   document.addEventListener('DOMContentLoaded', function(){
     window.selectFoundingPartnerTier('monthly_placement', false);
     if (params().get('partner_checkout') === 'cancelled') {
@@ -13181,6 +13206,7 @@ function routeAfterMagicLinkIfNeeded() {
       trackPartnerFunnel('Founding Partner Checkout Cancelled');
     }
     if (params().get('partner_checkout') === 'success') {
+      const checkoutSessionId = params().get('session_id') || '';
       window.__hofFoundingPartnerCheckoutState = 'success';
       window.__hofFoundingPartnerLeadId = '';
       savePartnerLeadId('');
@@ -13192,6 +13218,7 @@ function routeAfterMagicLinkIfNeeded() {
         ['partner_checkout', 'session_id'].forEach(key => cleanUrl.searchParams.delete(key));
         window.history.replaceState({}, document.title, cleanUrl.pathname + cleanUrl.search + cleanUrl.hash);
       } catch (_) {}
+      if (checkoutSessionId) setTimeout(() => recoverPartnerCheckoutSetup(checkoutSessionId), 80);
     }
     // Keep the public seller CTA shareable. A campaign or a new-tab visit to
     // ?seller=1 should land in the same minimum-field intake as an in-page

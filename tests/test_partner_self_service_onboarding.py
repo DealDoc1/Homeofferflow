@@ -44,6 +44,43 @@ class PartnerSelfServiceOnboardingTests(unittest.TestCase):
         self.assertEqual(client.payload["onboarding_status"], "complete")
         self.assertNotIn("is_active", client.payload)
 
+    def test_completed_checkout_recovery_rotates_a_setup_token_only_for_the_matching_paid_row(self):
+        lead_id = "e35eace9-2760-4b11-a01a-07ee65f2744e"
+        response = type("Response", (), {"status_code": 200, "text": '[{}]', "json": lambda self: [{"id": lead_id}]})()
+        class Client:
+            def __enter__(self): return self
+            def __exit__(self, *args): return False
+            def patch(self, *args, **kwargs): self.url, self.payload = args[0], kwargs["json"]; return response
+        client = Client()
+        session = {"status": "complete", "metadata": {"partner_lead_id": lead_id}}
+        with patch.object(fsbo, "_retrieve_partner_checkout_session", return_value=session), \
+             patch.object(fsbo, "_get_paid_partner_for_checkout_recovery", return_value={"id": lead_id, "status": "approved", "onboarding_status": "ready"}), \
+             patch.object(fsbo, "_record_partner_checkout_event") as record, \
+             patch.object(fsbo.httpx, "Client", return_value=client):
+            result = fsbo._recover_partner_onboarding_from_checkout("cs_test_12345678")
+        self.assertEqual(result["state"], "ready")
+        self.assertTrue(result["onboarding_token"])
+        self.assertNotEqual(client.payload["onboarding_token_hash"], result["onboarding_token"])
+        self.assertIn("payment_status=eq.paid", client.url)
+        self.assertIn("stripe_checkout_session_id=eq.cs_test_12345678", client.url)
+        record.assert_called_once_with(
+            "partner_checkout_setup_recovered", "ready",
+            "Partner resumed secure setup from a completed checkout.",
+            {"surface": "checkout_success_return"},
+        )
+
+    def test_checkout_recovery_waits_for_the_signed_webhook_to_mark_payment(self):
+        lead_id = "e35eace9-2760-4b11-a01a-07ee65f2744e"
+        session = {"status": "complete", "metadata": {"partner_lead_id": lead_id}}
+        with patch.object(fsbo, "_retrieve_partner_checkout_session", return_value=session), \
+             patch.object(fsbo, "_get_paid_partner_for_checkout_recovery", return_value=None):
+            result = fsbo._recover_partner_onboarding_from_checkout("cs_test_12345678")
+        self.assertEqual(result, {"state": "processing"})
+
+    def test_checkout_recovery_rejects_invalid_session_ids_before_any_stripe_request(self):
+        with self.assertRaisesRegex(ValueError, "valid checkout confirmation"):
+            fsbo._retrieve_partner_checkout_session("https://stripe.example/anything")
+
     def test_public_and_admin_surfaces_keep_activation_separate(self):
         html = (ROOT / "index.html").read_text()
         admin = (ROOT / "api/admin-dashboard.py").read_text()
@@ -60,6 +97,13 @@ class PartnerSelfServiceOnboardingTests(unittest.TestCase):
         self.assertIn("We will only publish a placement after that review is complete.", html)
         self.assertIn("window.history.replaceState({}, document.title, cleanUrl.pathname + cleanUrl.search + cleanUrl.hash);", html)
         self.assertIn("clearPartnerOnboardingToken();", html)
+
+    def test_checkout_success_recovers_setup_without_retaining_the_stripe_session_id(self):
+        html = (ROOT / "index.html").read_text()
+        self.assertIn("async function recoverPartnerCheckoutSetup(sessionId)", html)
+        self.assertIn("request_type:'founding_partner_checkout_setup'", html)
+        self.assertIn("['partner_checkout', 'session_id'].forEach", html)
+        self.assertIn("retainPartnerOnboardingToken(result.onboarding_token);", html)
 
     def test_partner_setup_explains_and_validates_the_only_required_setup_field(self):
         html = (ROOT / "index.html").read_text()

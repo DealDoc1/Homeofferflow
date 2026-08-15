@@ -3,6 +3,7 @@ import json
 import re
 import uuid
 import hashlib
+import secrets
 from http.server import BaseHTTPRequestHandler
 from datetime import datetime, timedelta, timezone
 from urllib.parse import parse_qs, urlencode, urlparse
@@ -20,6 +21,8 @@ MAX_BODY_BYTES = 60_000
 EMAIL_RE = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
 LEAD_ID_RE = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$", re.I)
 ONBOARDING_TOKEN_RE = re.compile(r"^[A-Za-z0-9_-]{24,128}$")
+STRIPE_CHECKOUT_SESSION_RE = re.compile(r"^cs_(?:test|live)_[A-Za-z0-9_]{8,250}$")
+STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "")
 ALLOWED_PARTNER_TYPES = {
     "title",
     "lender",
@@ -580,8 +583,105 @@ def _complete_partner_onboarding(token, data):
     return _public_partner_onboarding(rows[0])
 
 
+def _retrieve_partner_checkout_session(session_id):
+    """Load one Stripe Checkout session after validating its opaque identifier."""
+    if not STRIPE_CHECKOUT_SESSION_RE.match(session_id or ""):
+        raise ValueError("A valid checkout confirmation is required.")
+    if not STRIPE_SECRET_KEY:
+        raise RuntimeError("Partner checkout is not configured.")
+    with httpx.Client(timeout=12) as client:
+        response = client.get(
+            f"https://api.stripe.com/v1/checkout/sessions/{session_id}",
+            headers={"Authorization": f"Bearer {STRIPE_SECRET_KEY}"},
+        )
+    if response.status_code >= 300:
+        raise LookupError("That checkout confirmation is unavailable.")
+    session = response.json() if response.text else {}
+    return session if isinstance(session, dict) else {}
+
+
+def _get_paid_partner_for_checkout_recovery(lead_id, session_id):
+    """Return a paid row only when it owns the completed Stripe session."""
+    query = urlencode({
+        "id": f"eq.{lead_id}",
+        "stripe_checkout_session_id": f"eq.{session_id}",
+        "payment_status": "eq.paid",
+        "select": "id,status,onboarding_status",
+        "limit": "1",
+    })
+    headers = {"apikey": SUPABASE_SERVICE_ROLE_KEY, "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}"}
+    with httpx.Client(timeout=12) as client:
+        response = client.get(f"{SUPABASE_URL}/rest/v1/hof_partner_leads?{query}", headers=headers)
+    if response.status_code >= 300:
+        raise RuntimeError("Could not confirm partner setup access.")
+    rows = response.json() if response.text else []
+    return rows[0] if isinstance(rows, list) and rows else None
+
+
+def _recover_partner_onboarding_from_checkout(session_id):
+    """Issue a fresh, single-use setup token for the exact paid Checkout return.
+
+    Stripe and the saved server-side session id must agree before a token can be
+    issued. The response deliberately contains no partner, contact, or billing
+    data; the browser receives only the short-lived setup credential it needs.
+    """
+    session = _retrieve_partner_checkout_session(session_id)
+    metadata = session.get("metadata") if isinstance(session.get("metadata"), dict) else {}
+    lead_id = str(metadata.get("partner_lead_id") or "")
+    if session.get("status") != "complete" or not LEAD_ID_RE.match(lead_id):
+        raise LookupError("That checkout confirmation is unavailable.")
+    lead = _get_paid_partner_for_checkout_recovery(lead_id, session_id)
+    if not lead:
+        # The signed webhook remains authoritative for recording payment. A
+        # completed return can arrive before it has stored the paid row.
+        return {"state": "processing"}
+    if str(lead.get("status") or "") in {"declined", "waitlist"}:
+        raise LookupError("Partner setup is unavailable.")
+    if str(lead.get("onboarding_status") or "") == "complete":
+        return {"state": "complete"}
+
+    token = secrets.token_urlsafe(32)
+    expires_at = (datetime.now(timezone.utc) + timedelta(days=14)).isoformat()
+    headers = {
+        "apikey": SUPABASE_SERVICE_ROLE_KEY,
+        "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}",
+        "Content-Type": "application/json",
+        "Prefer": "return=representation",
+    }
+    query = urlencode({
+        "id": f"eq.{lead_id}",
+        "stripe_checkout_session_id": f"eq.{session_id}",
+        "payment_status": "eq.paid",
+        "onboarding_status": "neq.complete",
+    })
+    payload = {
+        "onboarding_token_hash": _onboarding_token_hash(token),
+        "onboarding_token_expires_at": expires_at,
+        "onboarding_status": "ready",
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }
+    with httpx.Client(timeout=12) as client:
+        response = client.patch(
+            f"{SUPABASE_URL}/rest/v1/hof_partner_leads?{query}",
+            headers=headers,
+            json=payload,
+        )
+    if response.status_code >= 300:
+        raise RuntimeError("Could not prepare partner setup access.")
+    rows = response.json() if response.text else []
+    if not isinstance(rows, list) or not rows:
+        return {"state": "processing"}
+    _record_partner_checkout_event(
+        "partner_checkout_setup_recovered",
+        "ready",
+        "Partner resumed secure setup from a completed checkout.",
+        {"surface": "checkout_success_return"},
+    )
+    return {"state": "ready", "onboarding_token": token, "expires_at": expires_at}
+
+
 def _create_partner_checkout(lead_id, headers, source=None):
-    stripe_secret_key = os.environ.get("STRIPE_SECRET_KEY", "")
+    stripe_secret_key = STRIPE_SECRET_KEY
     if not stripe_secret_key:
         raise RuntimeError("Partner checkout is not configured.")
     if not LEAD_ID_RE.match(lead_id):
@@ -803,6 +903,21 @@ class handler(BaseHTTPRequestHandler):
                     return _send(self, 200, {'ok': True})
                 except ValueError as exc:
                     return _send(self, 400, {'error': str(exc)})
+
+            if _text(data.get('request_type'), 80) == 'founding_partner_checkout_setup':
+                try:
+                    result = _recover_partner_onboarding_from_checkout(
+                        _text(data.get('session_id'), 300) or ''
+                    )
+                    if result.get('state') == 'processing':
+                        return _send(self, 202, {'ok': True, 'state': 'processing'})
+                    if result.get('state') == 'complete':
+                        return _send(self, 200, {'ok': True, 'state': 'complete'})
+                    return _send(self, 200, {'ok': True, **result})
+                except ValueError as exc:
+                    return _send(self, 400, {'error': str(exc)})
+                except LookupError as exc:
+                    return _send(self, 404, {'error': str(exc)})
 
             if _text(data.get('request_type'), 80) == 'partner_onboarding_get':
                 try:
