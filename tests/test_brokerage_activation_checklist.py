@@ -6,6 +6,15 @@ HTML = (Path(__file__).resolve().parents[1] / "index.html").read_text(encoding="
 
 
 class BrokerageActivationChecklistTests(unittest.TestCase):
+
+    def test_agent_invite_validates_and_focuses_email_before_creating_a_secure_link(self):
+        self.assertIn('id="brokerageInviteEmail" type="email" inputmode="email" autocomplete="email"', HTML)
+        start = HTML.index("root.createBrokerageInvite = async function createBrokerageInvite")
+        end = HTML.index("if (result) result.textContent = 'Creating secure invite link…';", start)
+        invite = HTML[start:end]
+        self.assertIn("input?.checkValidity()", invite)
+        self.assertIn("input?.focus();", invite)
+
     def test_brokerage_admin_surface_exposes_metric_driven_launch_checklist(self):
         self.assertIn("Team launch checklist", HTML)
         self.assertIn("Set brokerage branding", HTML)

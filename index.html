@@ -15912,9 +15912,10 @@ function routeAfterMagicLinkIfNeeded() {
       root.__hofBrokerageInviteInFlight = false;
       return alert('Sign in again before inviting an agent.');
     }
-    if (!email || !email.includes('@')) {
+    if (!email || !input?.checkValidity()) {
       root.__hofBrokerageInviteInFlight = false;
       if (result) result.textContent = 'Enter the agent’s email address first.';
+      input?.focus();
       return;
     }
     if (result) result.textContent = 'Creating secure invite link…';
@@ -16454,7 +16455,7 @@ function routeAfterMagicLinkIfNeeded() {
         '<input id="brokerageDefaultTitleContact" type="text" value="' + safe(b.default_title_contact || '') + '" placeholder="Suggested escrow contact" aria-label="Suggested escrow contact">' +
         '<button type="button" class="brokerage-access-button" onclick="saveBrokerageSharedDefaults()">Save shared defaults</button></div>' +
         '<p id="brokerageDefaultsResult" class="brokerage-invite-result">These are optional suggestions. Agents must choose to copy them into their own profile; no offer is changed automatically.</p>' +
-        '<div class="brokerage-invite-form"><input id="brokerageInviteEmail" type="email" inputmode="email" autocomplete="email" placeholder="Agent email address" aria-label="Agent email address">' +
+        '<div class="brokerage-invite-form"><input id="brokerageInviteEmail" type="email" inputmode="email" autocomplete="email" placeholder="Agent email address" aria-label="Agent email address" required aria-required="true">' +
         '<button type="button" class="brokerage-access-button" onclick="createBrokerageInvite()">Create invite link</button></div>' +
         '<p id="brokerageInviteResult" class="brokerage-invite-result">The link works only for the invited email, expires in 14 days, and does not start billing until the agent completes Stripe checkout.</p>' +
         ((pendingInvitesExpiringSoon || pendingInvitesExpired || pendingInvitesAged) ? '<div class="notice gold" style="margin-top:1rem"><strong>Invitation attention:</strong> ' + (pendingInvitesExpired ? pendingInvitesExpired + ' expired' + (pendingInvitesExpired === 1 ? ' invite' : ' invites') + '. ' : '') + (pendingInvitesExpiringSoon ? pendingInvitesExpiringSoon + ' pending invite' + (pendingInvitesExpiringSoon === 1 ? ' expires' : 's expire') + ' within 3 days. ' : '') + (pendingInvitesAged ? pendingInvitesAged + ' pending invite' + (pendingInvitesAged === 1 ? ' is' : 's are') + ' more than 7 days old. ' : '') + 'Resend the invite to protect your next seat.</div>' : '') +
