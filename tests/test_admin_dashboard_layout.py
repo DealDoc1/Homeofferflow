@@ -7,6 +7,10 @@ INDEX = (ROOT / "index.html").read_text(encoding="utf-8")
 
 
 class AdminDashboardLayoutTests(unittest.TestCase):
+    def test_desktop_account_workspace_has_room_for_operational_views(self):
+        self.assertIn(".account-shell { width:min(1120px, 100%);", INDEX)
+        self.assertNotIn(".account-shell { width:min(860px, 100%);", INDEX)
+
     def test_metric_grid_gives_operational_cards_a_readable_minimum_width(self):
         self.assertIn(
             ".admin-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(min(100%, 250px), 1fr));",
