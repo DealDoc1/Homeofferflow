@@ -24,7 +24,7 @@ class PwaInstallExperienceTests(unittest.TestCase):
         self.assertIn("pwa-install-benefits", INDEX)
         self.assertIn("offers and client details stay protected online", INDEX)
         self.assertIn("const workspaceReturnCopy = target.surface === 'account_dashboard'", INDEX)
-        self.assertIn('shortcuts for My Workspace, New Agent Offer, Buyer Offer, Signing Queue, and Seller Plan', INDEX)
+        self.assertIn('shortcuts for My Workspace, New Offer, Buyer Offer, Signing Queue, and Seller Plan', INDEX)
         self.assertIn("if (!isIos() && !isAndroid()) return;", INDEX)
         self.assertIn("desktop users when Chrome offers", INDEX)
 

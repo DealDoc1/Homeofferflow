@@ -30,7 +30,7 @@ class PwaBaselineTests(unittest.TestCase):
             [(item["name"], item["url"]) for item in MANIFEST["shortcuts"]],
             [
                 ("My Workspace", "/?pwa_action=workspace"),
-                ("New Agent Offer", "/?pwa_action=new_offer"),
+                ("New Offer", "/?pwa_action=new_offer"),
                 ("Buyer Offer", "/?pwa_action=buyer_offer"),
                 ("Signing Queue", "/?pwa_action=signing_queue"),
                 ("Seller Plan", "/?pwa_action=seller_plan"),

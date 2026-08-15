@@ -15,9 +15,9 @@
       "url": "/?pwa_action=workspace"
     },
     {
-      "name": "New Agent Offer",
+      "name": "New Offer",
       "short_name": "New Offer",
-      "description": "Start or resume a saved agent offer.",
+      "description": "Start or resume a saved offer in your workspace.",
       "url": "/?pwa_action=new_offer"
     },
     {
