@@ -28,6 +28,15 @@ class ConsumerCheckoutScopeTests(unittest.TestCase):
         self.assertNotIn("Legal risk assessment", INDEX)
         self.assertNotIn("Full legal coverage", INDEX)
 
+    def test_receipt_email_is_validated_and_focused_before_checkout(self):
+        self.assertIn('id="paymentEmail" name="paymentEmail" inputmode="email" autocomplete="email"', INDEX)
+        start = INDEX.index("async function handlePayment()")
+        end = INDEX.index("sessionStorage.setItem('hofOfferData'", start)
+        checkout = INDEX[start:end]
+        self.assertIn("paymentEmailInput?.checkValidity()", checkout)
+        self.assertIn("paymentEmailInput.focus();", checkout)
+        self.assertIn("paymentEmailInput.value = email", checkout)
+
 
 if __name__ == "__main__":
     unittest.main()

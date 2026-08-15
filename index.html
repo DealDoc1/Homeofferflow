@@ -3695,7 +3695,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         </label>
       </div>
 
-      <div class="field-group"><div class="field"><label>Email Address (receipt + download)</label><input type="email" id="paymentEmail" name="paymentEmail" autocomplete="email" placeholder="you@example.com"/></div></div>
+      <div class="field-group"><div class="field"><label>Email Address (receipt + download)</label><input type="email" id="paymentEmail" name="paymentEmail" inputmode="email" autocomplete="email" placeholder="you@example.com" required aria-required="true"/></div></div>
       <button class="btn-primary" id="payBtn" style="width:100%; font-size:1rem; padding:1.1rem; opacity:0.5; cursor:not-allowed;" onclick="handlePayment()" disabled>Select a plan to continue →</button>
       <p style="text-align:center; margin-top:0.85rem; font-size:0.78rem; color:var(--gray);">🔒 Secure checkout powered by Stripe · One-time packet purchase · All sales final</p>
     </div>
@@ -8967,17 +8967,27 @@ function routeAfterMagicLinkIfNeeded() {
       if (!validateSellerTemporaryLeaseInputs(state.data)) return;
       if (!validateUploadedDisclosureDocs()) return;
 
+      const paymentEmailInput = document.getElementById('paymentEmail');
       const email = (
-        document.getElementById('paymentEmail')?.value ||
+        paymentEmailInput?.value ||
         state.data.buyerEmail ||
         document.getElementById('buyerEmail')?.value ||
         ''
       ).trim();
 
-      if (!email || !email.includes('@')) {
+      // Rehydrate the checkout field from an earlier buyer-email step before
+      // using native validation, so a buyer sees and can correct the exact
+      // address that would receive the receipt and packet delivery.
+      if (paymentEmailInput && !paymentEmailInput.value.trim() && email) paymentEmailInput.value = email;
+      if (!email || !paymentEmailInput?.checkValidity()) {
+        if (paymentEmailInput) {
+          paymentEmailInput.setAttribute('aria-invalid', 'true');
+          paymentEmailInput.focus();
+        }
         alert('Please enter a valid email address for your receipt and packet delivery.');
         return;
       }
+      if (paymentEmailInput) paymentEmailInput.setAttribute('aria-invalid', 'false');
 
       state.data.buyerEmail = state.data.buyerEmail || email;
       state.data._paymentEmail = email;
