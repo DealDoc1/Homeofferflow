@@ -95,7 +95,7 @@ class AgentActivationDashboardTests(unittest.TestCase):
         profile_after_offer = script.index("if (!hasProfile) {", first_offer + 1)
         self.assertLess(first_offer, profile_after_offer)
         self.assertIn("Create a first draft for your client", script)
-        self.assertIn("Create First Draft", script)
+        self.assertIn("Start Client Draft — No Payment", script)
         self.assertIn("Set Up My Defaults", script)
 
     def test_first_offer_state_explains_the_safe_draft_boundary_before_the_cta(self):
