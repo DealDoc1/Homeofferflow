@@ -4692,6 +4692,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <div class="admin-metric-value">${metrics.sellerLeadCount || sellerLeads.length || 0}</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.sellerLandingViewCount || 0} seller landing views · ${metrics.sellerLandingCtaCount || 0} intake starts (${Number(metrics.sellerLandingCtaRate || 0).toFixed(1)}%).</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Intake progress: ${Number(metrics.sellerIntakeEventCounts?.fsbo_intake_opened || 0)} opened · ${Number(metrics.sellerIntakeEventCounts?.fsbo_package_selected || 0)} package choices · ${Number(metrics.sellerIntakeEventCounts?.fsbo_required_fields_missing || 0)} incomplete attempts · ${Number(metrics.sellerIntakeEventCounts?.fsbo_request_submission_started || 0)} submissions started · ${Number(metrics.sellerIntakeEventCounts?.fsbo_request_saved || 0)} saved.</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Address + email ready: ${Number(metrics.sellerRequiredReadyCount || 0)} · ready-to-save conversion: ${Number(metrics.sellerReadyToSaveRate || 0).toFixed(1)}%.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Landing-path interest: ${adminSafe(Object.entries(metrics.sellerLandingPackageCtaCounts || {}).map(([packageKey, count]) => `${packageKey.replace(/_/g, ' ')} (${count})`).join(' · '), 'starts will appear after the next seller-page visit')}</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.sellerFollowUpEmailStartCount || 0} seller follow-up emails opened · ${Number(metrics.sellerFollowUpEmailStartRate || 0).toFixed(1)}% of seller leads.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.sellerReviewRequestCount || 0} seller disclosure review requests initiated · ${metrics.sellerReviewViewedCount || 0} opened · ${metrics.sellerReviewVerifiedCount || 0} verified · ${metrics.sellerReviewAttestationCount || 0} attested.</div>
@@ -12201,6 +12202,7 @@ function routeAfterMagicLinkIfNeeded() {
       <div class="field"><label>Email</label><input id="fsboSellerEmail" type="email" placeholder="you@email.com" required aria-required="true"></div>
       <div aria-hidden="true" style="position:absolute;left:-10000px;top:auto;width:1px;height:1px;overflow:hidden;"><label for="fsboWebsiteConfirm">Leave this field blank</label><input id="fsboWebsiteConfirm" tabindex="-1" autocomplete="off"></div>
     </div>
+    <div id="fsboRequiredReadyCue" class="notice sage" role="status" hidden style="margin-top:.75rem;"><strong>You’re ready.</strong> Your address and email are complete—save your free seller plan now, or choose a package first. No checkout or service commitment.</div>
     <div class="notice sage" style="margin-top:.9rem;display:flex;align-items:center;justify-content:space-between;gap:.75rem;flex-wrap:wrap;">
       <div><strong>Ready when you are.</strong><br><span style="color:var(--gray-light);font-size:.8rem;">Start with the free intake now, or choose a more specific package below. No checkout or service commitment.</span></div>
       <button class="btn-primary" type="button" id="fsboSellerQuickSubmit" data-fsbo-submit onclick="submitFsboSellerLead('quick')">Get My Free Seller Plan</button>
@@ -12289,6 +12291,7 @@ function routeAfterMagicLinkIfNeeded() {
     try { trackEvent(name, data); } catch (_) {}
     const eventType = {
       'FSBO Seller Intake Opened': 'fsbo_intake_opened',
+      'FSBO Seller Intake Required Fields Ready': 'fsbo_required_fields_ready',
       'FSBO Seller Package Selected': 'fsbo_package_selected',
       'FSBO Seller Intake Required Fields Missing': 'fsbo_required_fields_missing',
       'FSBO Seller Request Submission Started': 'fsbo_request_submission_started',
@@ -12349,7 +12352,12 @@ function routeAfterMagicLinkIfNeeded() {
     }
   });
   function fsboVal(id){ return (document.getElementById(id)?.value || '').trim(); }
+  function renderFsboRequiredReadyCue(){
+    const cue = document.getElementById('fsboRequiredReadyCue');
+    if (cue) cue.hidden = !(fsboVal('fsboPropertyAddress') && fsboVal('fsboSellerEmail'));
+  }
   function trackFsboRequiredFieldsReady(){
+    renderFsboRequiredReadyCue();
     if (fsboFunnel.requiredReady || !fsboVal('fsboPropertyAddress') || !fsboVal('fsboSellerEmail')) return;
     fsboFunnel.requiredReady = true;
     trackFsboFunnel('FSBO Seller Intake Required Fields Ready');
@@ -12402,6 +12410,7 @@ function routeAfterMagicLinkIfNeeded() {
       document.querySelectorAll('input[name="fsboPartner"]').forEach(input => { input.checked = Array.isArray(draft.partners) && draft.partners.includes(input.value); });
       if (draft.fsboNeed) window.selectFsboNeed?.(draft.fsboNeed, false); else window.renderFsboNeedDetails?.();
     } catch (_) { window.renderFsboNeedDetails?.(); }
+    renderFsboRequiredReadyCue();
     renderFsboDraftRecoveryNotice(fsboDraftExists());
   };
   function clearFsboDraft(){

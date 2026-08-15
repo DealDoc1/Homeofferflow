@@ -22,6 +22,9 @@ class FsboIntakeConversionTests(unittest.TestCase):
         self.assertIn('id="fsboSellerQuickSubmit"', HTML)
         self.assertIn("Get My Free Seller Plan", HTML)
         self.assertIn("No checkout or service commitment.", HTML)
+        self.assertIn('id="fsboRequiredReadyCue"', HTML)
+        self.assertIn("function renderFsboRequiredReadyCue", HTML)
+        self.assertIn("Your address and email are complete", HTML)
 
     def test_seller_funnel_events_are_analytics_only_and_never_include_identity(self):
         start = HTML.index("const fsboFunnel =")
@@ -47,6 +50,16 @@ class FsboIntakeConversionTests(unittest.TestCase):
         self.assertNotIn("seller_email", tracked_arguments)
         self.assertNotIn("propertyAddress", tracked_arguments)
         self.assertNotIn("property_address", tracked_arguments)
+
+    def test_required_details_ready_is_persisted_as_aggregate_funnel_evidence(self):
+        api = (Path(__file__).resolve().parents[1] / "api" / "fsbo-lead.py").read_text(encoding="utf-8")
+        admin = (Path(__file__).resolve().parents[1] / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
+        self.assertIn("'FSBO Seller Intake Required Fields Ready': 'fsbo_required_fields_ready'", HTML)
+        self.assertIn('"fsbo_required_fields_ready": "ready"', api)
+        self.assertIn('"fsbo_required_fields_ready"', admin)
+        self.assertIn('"sellerRequiredReadyCount"', admin)
+        self.assertIn('"sellerReadyToSaveRate"', admin)
+        self.assertIn("ready-to-save conversion", HTML)
 
     def test_restoring_a_draft_does_not_inflate_package_selection_analytics(self):
         self.assertIn("window.selectFsboNeed?.(draft.fsboNeed, false)", HTML)
