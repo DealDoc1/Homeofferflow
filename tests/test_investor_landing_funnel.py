@@ -19,6 +19,10 @@ class InvestorLandingFunnelTests(unittest.TestCase):
         self.assertIn("if (params().get('investor') === '1')", INDEX)
         self.assertIn("cleanUrl.searchParams.delete('investor')", INDEX)
         self.assertIn("window.openAuthModal?.('investor')", INDEX)
+        self.assertIn("if (window.hofAuth?.session)", INDEX)
+        self.assertIn("window.openAccountDashboard?.({ tab: 'dashboard' })", INDEX)
+        self.assertIn("hof_investor_landing_workspace", INDEX)
+        self.assertIn("investor_landing_workspace_handoff", INDEX)
 
     def test_public_endpoint_and_page_record_only_aggregate_investor_landing_events(self):
         self.assertIn("INVESTOR_LANDING_EVENT_TYPES", API)
@@ -34,10 +38,16 @@ class InvestorLandingFunnelTests(unittest.TestCase):
         self.assertIn("investor_landing_cta_selected", INVESTORS)
 
     def test_admin_reports_investor_workspace_landing_conversion(self):
-        for expected in ('"investorLandingViewCount"', '"investorLandingCtaCount"', '"investorLandingCtaRate"'):
+        for expected in (
+            '"investorLandingViewCount"', '"investorLandingCtaCount"', '"investorLandingCtaRate"',
+            '"investorLandingWorkspaceHandoffUserCount"', '"investorLandingWorkspaceHandoffRate"',
+            'investor_landing_workspace_handoff',
+        ):
             self.assertIn(expected, ADMIN)
         self.assertIn("Investor Workspace Funnel", INDEX)
         self.assertIn("investorLandingCtaRate", INDEX)
+        self.assertIn("investorLandingWorkspaceHandoffUserCount", INDEX)
+        self.assertIn("investorLandingWorkspaceHandoffRate", INDEX)
 
 
 if __name__ == "__main__":

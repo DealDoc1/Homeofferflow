@@ -4609,7 +4609,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           <div class="admin-metric">
             <div class="admin-metric-label">Investor Workspace Funnel</div>
             <div class="admin-metric-value">${metrics.investorLandingViewCount || 0} views</div>
-            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.investorLandingCtaCount || 0} opened passwordless sign-in (${Number(metrics.investorLandingCtaRate || 0).toFixed(1)}%).</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.investorLandingCtaCount || 0} opened passwordless sign-in (${Number(metrics.investorLandingCtaRate || 0).toFixed(1)}%) · ${metrics.investorLandingWorkspaceHandoffUserCount || 0} reached the investor workspace (${Number(metrics.investorLandingWorkspaceHandoffRate || 0).toFixed(1)}% of CTA selections).</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Aggregate landing intent only; no investor identity, client, property, or offer details are included.</div>
           </div>
 
@@ -7105,6 +7105,8 @@ function routeAfterMagicLinkIfNeeded() {
     localStorage.removeItem('hof_auth_pending');
     const startAgentLandingDraft = localStorage.getItem('hof_agent_landing_start_draft') === '1';
     localStorage.removeItem('hof_agent_landing_start_draft');
+    const openInvestorLandingWorkspace = localStorage.getItem('hof_investor_landing_workspace') === '1';
+    localStorage.removeItem('hof_investor_landing_workspace');
     state.data.userType = role;
     setAudience(role);
     closeAuthModal();
@@ -7117,6 +7119,11 @@ function routeAfterMagicLinkIfNeeded() {
       setTimeout(() => {
         window.startAccountOffer?.();
         window.logOfferEvent?.(null, 'agent_landing_draft_handoff', 'started', 'Agent landing visitor continued to the draft workflow after sign-in.', { source: 'agent_landing' });
+      }, 450);
+    }
+    if (openInvestorLandingWorkspace && role === 'investor') {
+      setTimeout(() => {
+        window.logOfferEvent?.(null, 'investor_landing_workspace_handoff', 'opened', 'Investor landing visitor continued to the workspace after sign-in.', { source: 'investor_landing' });
       }, 450);
     }
   }
@@ -13309,8 +13316,11 @@ function routeAfterMagicLinkIfNeeded() {
         window.openAuthModal?.('agent');
       }
     }, 80);
-    // Investor acquisition reuses the passwordless account workflow. It does
-    // not create an account, activate a subscription, or start an offer.
+    // Investor acquisition reuses the passwordless account workflow. A
+    // signed-in investor should go straight to their workspace—not be asked
+    // to sign in again. A signed-out visitor resumes that same workspace
+    // handoff after the secure-link return. Neither path starts an offer,
+    // activates a subscription, or carries any deal data.
     if (params().get('investor') === '1') setTimeout(() => {
       try {
         const cleanUrl = new URL(window.location.href);
@@ -13318,7 +13328,13 @@ function routeAfterMagicLinkIfNeeded() {
         window.history.replaceState({}, document.title, cleanUrl.pathname + cleanUrl.search + cleanUrl.hash);
       } catch (_) {}
       window.setAudience?.('investor');
-      window.openAuthModal?.('investor');
+      if (window.hofAuth?.session) {
+        window.openAccountDashboard?.({ tab: 'dashboard' });
+        window.logOfferEvent?.(null, 'investor_landing_workspace_handoff', 'opened', 'Signed-in investor opened the workspace from the public landing page.', { source: 'investor_landing' });
+      } else {
+        try { localStorage.setItem('hof_investor_landing_workspace', '1'); } catch (_) {}
+        window.openAuthModal?.('investor');
+      }
     }, 80);
     if (params().get('partner_onboarding')) setTimeout(window.openPartnerOnboarding, 80);
     if (params().get('partner') === '1') setTimeout(window.openFoundingPartnerModal, 80);
