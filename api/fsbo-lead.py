@@ -89,6 +89,7 @@ FSBO_LANDING_EVENT_TYPES = {
 PARTNER_LANDING_EVENT_TYPES = {
     "partner_landing_viewed": "viewed",
     "partner_landing_cta_selected": "selected",
+    "partner_application_opened": "application_opened",
     "partner_directory_application_selected": "application_selected",
     "partner_directory_empty_search": "unfilled_search",
 }

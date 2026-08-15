@@ -4656,7 +4656,8 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           <div class="admin-metric">
             <div class="admin-metric-label">Live Partner Leads</div>
             <div class="admin-metric-value">${metrics.partnerLeadCount || partnerLeads.length || 0}</div>
-            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.partnerLandingViewCount || 0} partner landing views · ${metrics.partnerLandingCtaCount || 0} application starts (${Number(metrics.partnerLandingCtaRate || 0).toFixed(1)}%).</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.partnerLandingViewCount || 0} partner landing views · ${metrics.partnerLandingCtaCount || 0} CTA selections (${Number(metrics.partnerLandingCtaRate || 0).toFixed(1)}%).</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.partnerApplicationOpenCount || 0} new application modal open${Number(metrics.partnerApplicationOpenCount || 0) === 1 ? '' : 's'} (${Number(metrics.partnerApplicationOpenRate || 0).toFixed(1)}% of landing CTA selections).</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Directory acquisition: ${metrics.partnerDirectoryApplicationStartCount || 0} partner application start${Number(metrics.partnerDirectoryApplicationStartCount || 0) === 1 ? '' : 's'} from the public directory.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Unfilled provider demand: ${Number(metrics.partnerDirectoryEmptySearchCount || 0)} category search${Number(metrics.partnerDirectoryEmptySearchCount || 0) === 1 ? '' : 'es'} with no active profile · ${adminSafe(Object.entries(metrics.partnerDirectoryEmptySearchCategoryCounts || {}).map(([category, count]) => `${category.replace(/_/g, ' ')} (${count})`).join(' · '), 'category demand begins with the next selected empty search')}.</div>
             ${topUnfilledPartnerDemand ? `<div style="margin-top:.35rem"><button type="button" class="admin-contact-action" onclick="copyPartnerDemandInvitation('${topUnfilledPartnerDemand[0]}')">Copy ${adminSafe(topUnfilledPartnerDemand[0].replace(/_/g, ' '))} recruitment invitation</button></div>` : ''}
@@ -12984,6 +12985,19 @@ function routeAfterMagicLinkIfNeeded() {
     if (tier) window.selectFoundingPartnerTier?.(tier, false);
     return { category, tier, channel };
   }
+  function recordPartnerApplicationOpened(campaign){
+    const tier = value('foundingPartnerModel') || 'monthly_placement';
+    const category = campaign?.category || 'unspecified';
+    const key = 'hof_partner_application_opened_' + tier + '_' + category;
+    try {
+      if (sessionStorage.getItem(key)) return;
+      sessionStorage.setItem(key, '1');
+      fetch('/api/fsbo-lead', {
+        method: 'POST', headers: {'Content-Type':'application/json'}, keepalive: true,
+        body: JSON.stringify({request_type:'partner_landing_event', event_type:'partner_application_opened', tier, category})
+      }).catch(() => {});
+    } catch (_) {}
+  }
   window.openFoundingPartnerModal = function(){
     const modal = document.getElementById('foundingPartnerModal');
     if (!modal) return;
@@ -12995,6 +13009,7 @@ function routeAfterMagicLinkIfNeeded() {
     const checkoutState = window.__hofFoundingPartnerCheckoutState || params().get('partner_checkout');
     if (confirmation) confirmation.style.display = checkoutState === 'success' ? 'block' : 'none';
     applySavedPartnerApplicationState();
+    if (!window.__hofFoundingPartnerLeadId && checkoutState !== 'success' && checkoutState !== 'cancelled') recordPartnerApplicationOpened(campaign);
     trackPartnerFunnel('Founding Partner Intake Opened', { checkoutState: checkoutState === 'success' ? 'success' : checkoutState === 'cancelled' ? 'cancelled' : 'new', campaignCategory: campaign.category || null, campaignTier: campaign.tier || null, campaignChannel: campaign.channel || null });
     if (partnerQuickStartRequested() && !window.__hofFoundingPartnerLeadId && checkoutState !== 'success' && checkoutState !== 'cancelled') {
       // Public partner CTAs already disclose the tiers and simply remove the
