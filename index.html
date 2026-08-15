@@ -3031,7 +3031,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           <div class="field"><div class="field-label-row"><label id="buyer1LastLabel">Buyer 1 Last Name</label></div><input type="text" id="buyer1Last" placeholder="Smith"/></div>
         </div>
         <div class="field"><div class="field-label-row"><label id="buyer2Label">Second Buyer (optional)</label><button class="helper-btn" onclick="toggleHelper('h-b2')">?</button></div><div class="helper-box" id="h-b2"><strong>💡 Co-Buyer / Spouse</strong>If buying with a spouse, partner, or co-investor, enter their full legal name here. Leave blank if buying alone.</div><input type="text" id="buyer2" placeholder="Full legal name of co-buyer, if any" oninput="toggleBuyer2Email()"/></div>
-        <div class="field" id="buyer2EmailField" style="display:none;"><div class="field-label-row"><label>Co-Buyer Email</label><button class="helper-btn" onclick="toggleHelper('h-b2email')">?</button></div><div class="helper-box" id="h-b2email"><strong>💡 Co-Buyer Signing Link</strong>The co-buyer will receive their own signing link via email after you sign.</div><input type="email" id="buyer2Email" placeholder="cobuyer@email.com"/></div>
+        <div class="field" id="buyer2EmailField" style="display:none;"><div class="field-label-row"><label>Co-Buyer Email</label><button class="helper-btn" onclick="toggleHelper('h-b2email')">?</button></div><div class="helper-box" id="h-b2email"><strong>💡 Co-Buyer Signing Link</strong>The co-buyer will receive their own signing link via email after you sign.</div><input type="email" id="buyer2Email" inputmode="email" autocomplete="email" placeholder="cobuyer@email.com" required aria-required="true"/></div>
         <div class="field"><div class="field-label-row"><label>Seller Name(s)</label><button class="helper-btn" onclick="toggleHelper('h-sel')">?</button></div><div class="helper-box" id="h-sel"><strong>💡 Where to Find the Seller's Name</strong>Check the MLS listing, county appraisal district tax records, or ask the listing agent.</div><input type="text" id="seller1" placeholder="As listed on tax records or MLS"/></div>
 
         <div style="margin-top:0.5rem; padding-top:0.75rem; border-top:1px solid rgba(255,255,255,0.07);">
@@ -3041,7 +3041,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <div class="field"><label>Buyer Current Mailing Street Address</label><input type="text" id="buyerMailAddr" name="buyerMailAddr" autocomplete="street-address" autocorrect="off" autocapitalize="words" spellcheck="false" inputmode="text" placeholder="123 Main St, City, TX 75001"/></div>
             <div class="field-row">
               <div class="field"><label>Buyer Phone</label><input type="tel" id="buyerPhone" placeholder="(214) 555-0000"/></div>
-              <div class="field"><label>Buyer Email</label><input type="email" id="buyerEmail" name="buyerEmail" autocomplete="email" placeholder="you@email.com"/></div>
+              <div class="field"><label>Buyer Email</label><input type="email" id="buyerEmail" name="buyerEmail" inputmode="email" autocomplete="email" placeholder="you@email.com" required aria-required="true"/></div>
             </div>
           </div>
         </div>
@@ -3056,7 +3056,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <div class="field"><label>TX License No.</label><input type="text" id="agentLicenseQuick" placeholder="License #" oninput="syncAgentQuickFields()"/></div>
           </div>
           <div class="field-row">
-            <div class="field"><label>Agent Email</label><input type="email" id="agentEmailQuick" placeholder="agent@brokerage.com" oninput="syncAgentQuickFields()"/></div>
+            <div class="field"><label>Agent Email</label><input type="email" id="agentEmailQuick" inputmode="email" autocomplete="email" placeholder="agent@brokerage.com" required aria-required="true" oninput="syncAgentQuickFields()"/></div>
             <div class="field"><label>Agent Phone</label><input type="tel" id="agentPhoneQuick" placeholder="(214) 555-0000" oninput="syncAgentQuickFields()"/></div>
           </div>
           <div class="field-row">
@@ -7254,6 +7254,17 @@ function routeAfterMagicLinkIfNeeded() {
     }
   }
 
+  function requireValidEmail(id, label, missing) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (!String(el.value || '').trim() || !el.checkValidity()) {
+      missing.push(label);
+      el.style.borderColor = 'var(--warn)';
+    } else {
+      el.style.borderColor = '';
+    }
+  }
+
   function validateCurrentStep() {
     const stepId = getCurrentSteps()[state.step];
     const userType = state.data.userType || 'homebuyer';
@@ -7265,12 +7276,15 @@ function routeAfterMagicLinkIfNeeded() {
       requireField('seller1', 'seller name', missing);
       requireField('buyerMailAddr', 'buyer mailing address', missing);
       requireField('buyerPhone', 'buyer phone', missing);
-      requireField('buyerEmail', 'buyer email', missing);
+      requireValidEmail('buyerEmail', 'valid buyer email', missing);
+      if (String(document.getElementById('buyer2')?.value || '').trim()) {
+        requireValidEmail('buyer2Email', 'valid co-buyer email', missing);
+      }
 
       if (userType === 'agent') {
         requireField('agentNameQuick', 'agent name', missing);
         requireField('agentLicenseQuick', 'agent license number', missing);
-        requireField('agentEmailQuick', 'agent email', missing);
+        requireValidEmail('agentEmailQuick', 'valid agent email', missing);
         requireField('agentPhoneQuick', 'agent phone', missing);
         requireField('agentBrokerageQuick', 'brokerage name', missing);
 
