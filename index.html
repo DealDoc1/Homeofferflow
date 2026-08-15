@@ -7101,11 +7101,22 @@ function routeAfterMagicLinkIfNeeded() {
     hofAuth.role = role;
     localStorage.setItem('hof_auth_role', role);
     localStorage.removeItem('hof_auth_pending');
+    const startAgentLandingDraft = localStorage.getItem('hof_agent_landing_start_draft') === '1';
+    localStorage.removeItem('hof_agent_landing_start_draft');
     state.data.userType = role;
     setAudience(role);
     closeAuthModal();
     try { history.replaceState({}, document.title, window.location.origin + window.location.pathname); } catch(e) {}
     setTimeout(() => openAccountDashboard({ postLogin: true }), 250);
+    // A public agent CTA promises a no-payment draft, not merely a dashboard
+    // visit. Resume the requested action after authentication. startAccountOffer
+    // already protects an existing same-role local draft from being replaced.
+    if (startAgentLandingDraft && role !== 'investor') {
+      setTimeout(() => {
+        window.startAccountOffer?.();
+        window.logOfferEvent?.(null, 'agent_landing_draft_handoff', 'started', 'Agent landing visitor continued to the draft workflow after sign-in.', { source: 'agent_landing' });
+      }, 450);
+    }
   }
 
 
@@ -13213,8 +13224,10 @@ function routeAfterMagicLinkIfNeeded() {
       window.setAudience?.('homebuyer');
       window.beginOfferFrom?.('buyer_landing');
     }, 80);
-    // Agent acquisition reuses the passwordless account workflow. It does not
-    // create an account, activate a subscription, or start an offer.
+    // Agent acquisition reuses the passwordless account workflow. The public
+    // CTA requests a private no-payment draft, so preserve only that safe
+    // action through the magic-link return; no account or subscription is
+    // created until the agent elects to continue.
     if (params().get('agent') === '1') setTimeout(() => {
       try {
         const cleanUrl = new URL(window.location.href);
@@ -13222,7 +13235,13 @@ function routeAfterMagicLinkIfNeeded() {
         window.history.replaceState({}, document.title, cleanUrl.pathname + cleanUrl.search + cleanUrl.hash);
       } catch (_) {}
       window.setAudience?.('agent');
-      window.openAuthModal?.('agent');
+      if (window.hofAuth?.session) {
+        window.startAccountOffer?.();
+        window.logOfferEvent?.(null, 'agent_landing_draft_handoff', 'started', 'Signed-in agent continued to the draft workflow from the public landing page.', { source: 'agent_landing' });
+      } else {
+        try { localStorage.setItem('hof_agent_landing_start_draft', '1'); } catch (_) {}
+        window.openAuthModal?.('agent');
+      }
     }, 80);
     // Investor acquisition reuses the passwordless account workflow. It does
     // not create an account, activate a subscription, or start an offer.

@@ -25,6 +25,13 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn('No password and no charge to start a private draft.', AGENTS)
         self.assertIn('save your agent defaults afterward for faster repeat offers', AGENTS)
 
+    def test_agent_landing_preserves_the_safe_draft_request_through_sign_in(self):
+        self.assertIn("hof_agent_landing_start_draft", INDEX)
+        self.assertIn("const startAgentLandingDraft = localStorage.getItem('hof_agent_landing_start_draft') === '1';", INDEX)
+        self.assertIn("localStorage.setItem('hof_agent_landing_start_draft', '1')", INDEX)
+        self.assertIn("window.startAccountOffer?.();", INDEX)
+        self.assertIn("agent_landing_draft_handoff", INDEX)
+
     def test_public_endpoint_and_page_record_only_aggregate_agent_landing_events(self):
         self.assertIn("AGENT_LANDING_EVENT_TYPES", API)
         self.assertIn("def _record_agent_landing_event(data):", API)
