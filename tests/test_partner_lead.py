@@ -191,6 +191,12 @@ class PartnerLeadTests(unittest.TestCase):
         self.assertIn("partner_type=eq.moving_storage", request_url)
         self.assertIn("select=id%2Cpartner_type%2Cpartner_name", request_url)
         self.assertNotIn("contact_email", request_url)
+        self.assertNotIn("source_lead_id", rows[0])
+
+    def test_directory_cta_lookup_is_server_side_and_never_returns_the_source_lead_id(self):
+        self.assertIn('_DIRECTORY_LOOKUP_FIELDS = f"{PUBLIC_PARTNER_FIELDS},source_lead_id"', MODULE_PATH.read_text())
+        self.assertIn('row.pop("source_lead_id", "")', MODULE_PATH.read_text())
+        self.assertIn('row["cta_label"] = ctas[source_lead_id]', MODULE_PATH.read_text())
 
 
 if __name__ == "__main__":

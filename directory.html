@@ -127,7 +127,8 @@
       };
       const card = provider => {
         const website = safeUrl(provider.website_url);
-        return `<article class="card">${provider.logo_url ? `<img src="${esc(provider.logo_url)}" alt="">` : ''}<h2>${esc(provider.partner_name)}</h2><div class="meta">${esc(labels[provider.partner_type] || 'Local service')} · ${esc(provider.market_area || 'Texas')}</div><p>Sponsored ${esc(provider.placement_tier || 'partner')} profile. Confirm fit, availability, and terms directly with the provider.</p>${website ? `<a href="${esc(website)}" data-partner-link data-partner-id="${esc(provider.id)}" data-partner-type="${esc(provider.partner_type)}" data-placement-tier="${esc(provider.placement_tier)}" target="_blank" rel="noopener noreferrer">Visit site ↗</a>` : ''}</article>`;
+        const cta = String(provider.cta_label || '').trim().slice(0, 80) || 'Visit site';
+        return `<article class="card">${provider.logo_url ? `<img src="${esc(provider.logo_url)}" alt="">` : ''}<h2>${esc(provider.partner_name)}</h2><div class="meta">${esc(labels[provider.partner_type] || 'Local service')} · ${esc(provider.market_area || 'Texas')}</div><p>Sponsored ${esc(provider.placement_tier || 'partner')} profile. Confirm fit, availability, and terms directly with the provider.</p>${website ? `<a href="${esc(website)}" data-partner-link data-partner-id="${esc(provider.id)}" data-partner-type="${esc(provider.partner_type)}" data-placement-tier="${esc(provider.placement_tier)}" target="_blank" rel="noopener noreferrer">${esc(cta)} ↗</a>` : ''}</article>`;
       };
       const sortDirectoryRows = rows => [...rows].sort((left, right) => {
         const leftNeutral = neutralProviderTypes.has(left?.partner_type);

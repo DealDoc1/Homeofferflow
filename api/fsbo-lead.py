@@ -61,6 +61,7 @@ FSBO_PACKAGE_CATALOG = {
     "premium_bundle": ("Premium FSBO Bundle", "from $2,999"),
 }
 PUBLIC_PARTNER_FIELDS = "id,partner_type,partner_name,website_url,logo_url,market_area,placement_tier"
+_DIRECTORY_LOOKUP_FIELDS = f"{PUBLIC_PARTNER_FIELDS},source_lead_id"
 PRICE_ENV_BY_TIER = {
     "founding_pilot": "STRIPE_FOUNDING_PARTNER_LISTING_PRICE_ID",
     "monthly_placement": "STRIPE_FOUNDING_PARTNER_FEATURED_PRICE_ID",
@@ -787,9 +788,12 @@ def _create_partner_checkout(lead_id, headers, source=None):
 
 
 def _list_public_partner_placements(category=None, market=None):
-    """Return only public, platform-wide placement fields for the directory."""
+    """Return public placement fields plus an approved public CTA, never lead data."""
     params = {
-        "select": PUBLIC_PARTNER_FIELDS,
+        # source_lead_id is used only in this server-side request to recover a
+        # partner's approved onboarding CTA. It is stripped before the public
+        # response, together with every contact and agreement field.
+        "select": _DIRECTORY_LOOKUP_FIELDS,
         "is_active": "eq.true",
         "brokerage_id": "is.null",
         "order": "partner_name.asc",
@@ -813,7 +817,41 @@ def _list_public_partner_placements(category=None, market=None):
     if response.status_code >= 300:
         raise RuntimeError(f"Supabase directory read failed with status {response.status_code}.")
     rows = response.json() if response.text else []
-    return rows if isinstance(rows, list) else []
+    if not isinstance(rows, list):
+        return []
+    lead_ids = {
+        str(row.get("source_lead_id") or "").strip()
+        for row in rows
+        if isinstance(row, dict) and LEAD_ID_RE.fullmatch(str(row.get("source_lead_id") or "").strip())
+    }
+    ctas = {}
+    if lead_ids:
+        lead_params = {
+            "select": "id,onboarding_cta_label",
+            "id": f"in.({','.join(sorted(lead_ids))})",
+        }
+        with httpx.Client(timeout=12.0) as client:
+            lead_response = client.get(
+                f"{SUPABASE_URL}/rest/v1/hof_partner_leads?{urlencode(lead_params)}",
+                headers=headers,
+            )
+        if lead_response.status_code < 300:
+            for lead in lead_response.json() if lead_response.text else []:
+                if not isinstance(lead, dict):
+                    continue
+                lead_id = str(lead.get("id") or "").strip()
+                label = _text(lead.get("onboarding_cta_label"), 80)
+                if LEAD_ID_RE.fullmatch(lead_id) and label:
+                    ctas[lead_id] = label
+    public_rows = []
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        source_lead_id = str(row.pop("source_lead_id", "") or "").strip()
+        if source_lead_id in ctas:
+            row["cta_label"] = ctas[source_lead_id]
+        public_rows.append(row)
+    return public_rows
 
 
 class handler(BaseHTTPRequestHandler):
