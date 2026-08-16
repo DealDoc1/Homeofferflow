@@ -102,6 +102,20 @@ def _plan_from_price(price_id):
 
 
 class handler(BaseHTTPRequestHandler):
+    def _log_webhook(self, level, message, **fields):
+        """Emit a compact, non-sensitive runtime log for delivery diagnosis.
+
+        Stripe payloads, signatures, customer identifiers, and error strings
+        are deliberately excluded. The event ledger remains the authoritative
+        processing record; these logs only make a failed delivery actionable.
+        """
+        payload = {"level": level, "route": "/api/stripe-webhook", "message": message}
+        payload.update({
+            key: value for key, value in fields.items()
+            if key in {"bodyBytes", "signaturePresent", "eventType", "liveMode", "signatureSource", "outcome", "durationMs", "errorType"}
+        })
+        print(json.dumps(payload, separators=(",", ":"), sort_keys=True))
+
     def _send_json(self, status_code, payload):
         body = json.dumps(payload).encode("utf-8")
         self.send_response(status_code)
@@ -114,27 +128,36 @@ class handler(BaseHTTPRequestHandler):
         self._send_json(200, {"ok": True, "route": "stripe-webhook"})
 
     def do_POST(self):
+        started_at = time.monotonic()
         try:
             raw_body = self.rfile.read(int(self.headers.get("Content-Length", 0)))
             sig_header = self.headers.get("Stripe-Signature", "")
+            self._log_webhook("info", "delivery_received", bodyBytes=len(raw_body), signaturePresent=bool(sig_header))
 
             if not STRIPE_WEBHOOK_SECRET and not STRIPE_TEST_WEBHOOK_SECRET:
+                self._log_webhook("error", "delivery_rejected", outcome="missing_webhook_secret")
                 self._send_json(500, {"error": "Missing STRIPE_WEBHOOK_SECRET"})
                 return
 
             if not self._verify_stripe_signature(raw_body, sig_header):
+                self._log_webhook("warn", "delivery_rejected", outcome="invalid_signature")
                 self._send_json(400, {"error": "Invalid Stripe signature"})
                 return
 
             event = json.loads(raw_body.decode("utf-8"))
             event_type = event.get("type", "")
             data_object = event.get("data", {}).get("object", {}) or {}
+            self._log_webhook(
+                "info", "delivery_verified", eventType=event_type[:120], liveMode=bool(event.get("livemode")),
+                signatureSource=getattr(self, "_stripe_signature_source", "unknown") or "unknown",
+            )
 
             # The legacy test secret can only acknowledge a Stripe sandbox
             # delivery. Never let a payload signed with it claim to be live.
             # This resolves harmless Stripe test retries without allowing a
             # test credential to change production subscription state.
             if getattr(self, "_stripe_signature_source", "live") == "test" and event.get("livemode") is not False:
+                self._log_webhook("warn", "delivery_rejected", eventType=event_type[:120], outcome="test_secret_live_event")
                 self._send_json(400, {"error": "Invalid Stripe signature"})
                 return
 
@@ -145,11 +168,13 @@ class handler(BaseHTTPRequestHandler):
             # billing mutation. A separate isolated nonproduction deployment
             # may opt in explicitly for lifecycle QA.
             if event.get("livemode") is False and not _test_events_allowed():
+                self._log_webhook("info", "delivery_acknowledged", eventType=event_type[:120], liveMode=False, outcome="test_ignored")
                 self._send_json(200, {"received": True, "ignored": True})
                 return
 
             event_id = str(event.get("id") or "").strip()
             if not self._claim_webhook_event(event_id, event_type, event, data_object):
+                self._log_webhook("info", "delivery_acknowledged", eventType=event_type[:120], liveMode=bool(event.get("livemode")), outcome="duplicate")
                 self._send_json(200, {
                     "received": True,
                     "event_type": event_type,
@@ -186,10 +211,15 @@ class handler(BaseHTTPRequestHandler):
 
             self._record_webhook_event(event_id, processing_state)
 
+            self._log_webhook(
+                "info", "delivery_completed", eventType=event_type[:120], liveMode=bool(event.get("livemode")),
+                outcome=processing_state, durationMs=round((time.monotonic() - started_at) * 1000),
+            )
+
             self._send_json(200, {"received": True, "event_type": event_type})
 
         except Exception as e:
-            print("Stripe webhook error:", str(e))
+            self._log_webhook("error", "delivery_failed", errorType=type(e).__name__, durationMs=round((time.monotonic() - started_at) * 1000))
             try:
                 self._record_webhook_event(
                     locals().get("event_id", ""),

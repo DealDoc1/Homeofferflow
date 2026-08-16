@@ -115,6 +115,18 @@ class WebhookLedgerClient:
 
 
 class SubscriptionLifecycleSecurityTests(unittest.TestCase):
+    def test_webhook_logs_delivery_outcomes_without_payload_or_secret_content(self):
+        source = WEBHOOK_PATH.read_text(encoding="utf-8")
+        self.assertIn("def _log_webhook(self, level, message, **fields):", source)
+        self.assertIn('"route": "/api/stripe-webhook"', source)
+        self.assertIn('"delivery_received"', source)
+        self.assertIn('"delivery_verified"', source)
+        self.assertIn('"delivery_completed"', source)
+        self.assertIn('"delivery_failed"', source)
+        self.assertIn('"bodyBytes", "signaturePresent", "eventType", "liveMode", "signatureSource", "outcome", "durationMs", "errorType"', source)
+        self.assertNotIn('"rawBody"', source)
+        self.assertNotIn('"Stripe-Signature": sig_header', source)
+
     def setUp(self):
         checkout.STRIPE_SECRET_KEY = "sk_test_example"
         checkout.AGENT_MONTHLY_PRICE_ID = "price_agent_monthly"
