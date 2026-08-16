@@ -42,7 +42,8 @@
       "name": "Find a Provider",
       "short_name": "Providers",
       "description": "Browse active Texas home-service provider profiles by category and market.",
-      "url": "/directory?utm_source=pwa_shortcut&utm_medium=installed_app&utm_campaign=provider_directory"
+      "url": "/directory?utm_source=pwa_shortcut&utm_medium=installed_app&utm_campaign=provider_directory",
+      "icons": [{"src":"/assets/homeofferflow-app-icon-192.png","sizes":"192x192","type":"image/png"}]
     }
   ],
   "display": "standalone",

@@ -39,6 +39,8 @@ class PwaBaselineTests(unittest.TestCase):
         )
         self.assertTrue(any(icon["src"] == "/assets/homeofferflow-app-icon.svg" for icon in MANIFEST["icons"]))
         self.assertTrue(any(icon["src"] == "/assets/homeofferflow-app-icon-192.png" and icon["sizes"] == "192x192" for icon in MANIFEST["icons"]))
+        provider_shortcut = next(item for item in MANIFEST["shortcuts"] if item["name"] == "Find a Provider")
+        self.assertEqual(provider_shortcut["icons"][0]["src"], "/assets/homeofferflow-app-icon-192.png")
         self.assertTrue(any(icon["src"] == "/assets/homeofferflow-app-icon-512.png" and icon["sizes"] == "512x512" for icon in MANIFEST["icons"]))
         self.assertIn('rel="apple-touch-icon" href="/assets/homeofferflow-apple-touch-icon.png" sizes="180x180"', INDEX)
         for filename in (
