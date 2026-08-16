@@ -127,6 +127,15 @@ class ListingWorkspaceFoundationTests(unittest.TestCase):
         self.assertIn("private seller offer-comparison worksheet", INDEX)
         self.assertIn("It does not rank, recommend, accept, reject, or create a contract.", INDEX)
 
+    def test_listing_workspace_can_generate_a_non_executable_seller_launch_checklist(self):
+        self.assertIn("Seller Listing Launch Checklist", INDEX)
+        self.assertIn("copyListingLaunchChecklist", INDEX)
+        self.assertIn("printListingLaunchChecklist", INDEX)
+        self.assertIn("listingLaunchChecklistText", INDEX)
+        self.assertIn("It is a planning aid only", INDEX)
+        self.assertIn("not legal advice, a pricing opinion, a listing agreement, disclosure, contract, or instruction to sign", INDEX)
+        self.assertIn("hofPlatform.listingWorkspaces = workspaces", INDEX)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -10918,6 +10918,13 @@ function routeAfterMagicLinkIfNeeded() {
         <div id="listingWorkspaceStatus" class="platform-status"></div>
       </div>
       <div class="platform-card"><h4>My Listing Workspaces</h4><div id="listingWorkspaceList" class="platform-list"><div class="platform-list-item">No listing workspaces loaded yet.</div></div><div id="listingWorkspaceBrokerSummary" class="platform-status" style="margin-top:.75rem;"></div></div>
+      <div class="platform-card" id="listingLaunchChecklistCard">
+        <h4>Seller Listing Launch Checklist</h4>
+        <p>Generate a practical kickoff checklist from a private workspace for the agent, broker, and seller conversation. It is a planning aid only—not a listing agreement, disclosure, pricing opinion, or instruction to act.</p>
+        <div class="platform-grid"><div class="field"><label for="listingLaunchWorkspace">Listing workspace</label><select id="listingLaunchWorkspace"><option value="">Load a workspace first</option></select></div></div>
+        <div class="platform-actions"><button type="button" onclick="copyListingLaunchChecklist()">Copy Seller Launch Checklist</button><button type="button" class="btn-secondary" onclick="printListingLaunchChecklist()">Print Checklist</button></div>
+        <div id="listingLaunchChecklistStatus" class="platform-status"></div>
+      </div>
       <div class="platform-card" id="listingWorkspaceOfferComparisonCard">
         <h4>Seller Offer Comparison Worksheet</h4>
         <p>Keep a private, educational comparison of offers connected to a listing workspace. This does not rank, recommend, accept, reject, or create a contract.</p>
@@ -11226,6 +11233,72 @@ function routeAfterMagicLinkIfNeeded() {
     return String(value || '').replace(/_/g, ' ').replace(/\b\w/g, letter => letter.toUpperCase());
   }
 
+  function listingLaunchChecklistText(workspace) {
+    const kind = String(workspace?.listing_kind || 'sale') === 'lease' ? 'lease listing' : 'sale listing';
+    const workflows = Array.isArray(workspace?.requested_workflows) ? workspace.requested_workflows : [];
+    const workflowItems = workflows.length
+      ? workflows.map(item => `- ${listingWorkspaceLabel(item)}: confirm authorized source, required roles, and completed review before any execution.`)
+      : ['- Confirm which seller-side workflows are needed before requesting documents.'];
+    return [
+      'HomeOfferFlow Seller Listing Launch Checklist',
+      `Property: ${workspace?.property_address || 'Not entered'}`,
+      `Listing type: ${listingWorkspaceLabel(kind)}`,
+      `Workspace status: ${listingWorkspaceLabel(workspace?.status || 'intake')}`,
+      `Seller / landlord: ${(workspace?.seller_names || []).join('; ') || 'Not entered'}`,
+      '',
+      '1. Representation and scope',
+      '- Confirm the authorized brokerage, responsible agent, seller decision-makers, desired scope, and communication preferences.',
+      '- Do not represent a listing agreement, disclosure, or lease packet as ready until the approved source and required review are complete.',
+      '',
+      '2. Property and market preparation',
+      '- Confirm property address, ownership names, occupancy, access/showing logistics, pricing strategy discussion, and desired timing.',
+      '- Gather only the property, condition, HOA, survey, improvement, utility, and marketing information needed for the authorized workflow.',
+      '',
+      '3. Listing presentation and launch',
+      '- Confirm photo/video plan, listing description, MLS or marketing path, fair-housing review, showing instructions, and seller communication cadence.',
+      '- Verify that public marketing statements, square footage, features, and pricing have been reviewed by the appropriate responsible professional.',
+      '',
+      '4. Seller documents and review',
+      ...workflowItems,
+      '- Use the private seller-disclosure review workflow only where the brokerage has supplied and authorized the source; secure review is not signing.',
+      '',
+      '5. Offer handling',
+      '- Log received offers and key terms in the private offer-comparison worksheet.',
+      '- Review the complete offer documents, deadlines, financing, contingencies, concessions, and seller questions with the appropriate licensed professional before a decision.',
+      '',
+      'This planning checklist is not legal advice, a pricing opinion, a listing agreement, disclosure, contract, or instruction to sign.'
+    ].join('\n');
+  }
+
+  function selectedListingLaunchWorkspace() {
+    const id = String(getVal('listingLaunchWorkspace') || '');
+    return (Array.isArray(hofPlatform.listingWorkspaces) ? hofPlatform.listingWorkspaces : []).find(workspace => String(workspace.id || '') === id);
+  }
+
+  window.copyListingLaunchChecklist = async function copyListingLaunchChecklist() {
+    const workspace = selectedListingLaunchWorkspace();
+    if (!workspace) return platformStatus('listingLaunchChecklistStatus', 'Choose a private listing workspace first.', 'err');
+    const checklist = listingLaunchChecklistText(workspace);
+    try {
+      if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(checklist);
+      else window.prompt('Copy this seller listing launch checklist:', checklist);
+      platformStatus('listingLaunchChecklistStatus', 'Seller listing launch checklist copied. Review the complete documents and authorized workflow before acting.', 'ok');
+    } catch (_) {
+      platformStatus('listingLaunchChecklistStatus', 'Could not copy automatically. Use the print option or copy the checklist from the prompt.', 'err');
+    }
+  };
+
+  window.printListingLaunchChecklist = function printListingLaunchChecklist() {
+    const workspace = selectedListingLaunchWorkspace();
+    if (!workspace) return platformStatus('listingLaunchChecklistStatus', 'Choose a private listing workspace first.', 'err');
+    const printable = window.open('', '_blank', 'noopener,noreferrer');
+    if (!printable) return platformStatus('listingLaunchChecklistStatus', 'Allow pop-ups to print the seller listing launch checklist.', 'err');
+    const safe = value => String(value || '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+    printable.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Seller Listing Launch Checklist</title><style>@page{size:letter;margin:.65in}body{font-family:Arial,sans-serif;color:#102438;line-height:1.45}h1{font-family:Georgia,serif;font-size:27px;margin:0 0 8px}.note{font-size:11px;color:#526271;border-left:4px solid #c8973f;padding-left:12px;white-space:pre-wrap}.checklist{white-space:pre-wrap;font-size:13px;margin-top:22px}</style></head><body><h1>Seller Listing Launch Checklist</h1><div class="note">Private planning aid generated from a HomeOfferFlow listing workspace. It is not a contract, listing agreement, disclosure, or instruction to sign.</div><div class="checklist">${safe(listingLaunchChecklistText(workspace))}</div><script>window.onload=()=>window.print();<\/script></body></html>`);
+    printable.document.close();
+    platformStatus('listingLaunchChecklistStatus', 'Printable seller listing launch checklist opened.', 'ok');
+  };
+
   function listingWorkspaceStatusOptions(currentStatus) {
     return ['intake', 'source_pending', 'draft', 'ready_for_review', 'archived'].map(status => `<option value="${status}" ${status === currentStatus ? 'selected' : ''}>${listingWorkspaceLabel(status)}</option>`).join('');
   }
@@ -11420,6 +11493,7 @@ function routeAfterMagicLinkIfNeeded() {
         .order('updated_at', { ascending:false }).limit(20);
       if (error) throw error;
       const workspaces = data || [];
+      hofPlatform.listingWorkspaces = workspaces;
       const workspaceSelect = document.getElementById('listingOfferWorkspace');
       if (workspaceSelect) {
         const currentWorkspaceId = workspaceSelect.value;
@@ -11428,6 +11502,14 @@ function routeAfterMagicLinkIfNeeded() {
           : '<option value="">Load a workspace first</option>';
         if (currentWorkspaceId && workspaces.some(workspace => String(workspace.id) === currentWorkspaceId)) workspaceSelect.value = currentWorkspaceId;
         workspaceSelect.onchange = loadListingWorkspaceOffersFoundation;
+      }
+      const launchSelect = document.getElementById('listingLaunchWorkspace');
+      if (launchSelect) {
+        const currentWorkspaceId = launchSelect.value;
+        launchSelect.innerHTML = workspaces.length
+          ? '<option value="">Choose a workspace</option>' + workspaces.map(workspace => `<option value="${escapeAttr(workspace.id)}">${escapeAttr(workspace.property_address || 'Listing workspace')} · ${escapeAttr(listingWorkspaceLabel(workspace.listing_kind))}</option>`).join('')
+          : '<option value="">Load a workspace first</option>';
+        if (currentWorkspaceId && workspaces.some(workspace => String(workspace.id) === currentWorkspaceId)) launchSelect.value = currentWorkspaceId;
       }
       list.innerHTML = workspaces.length ? workspaces.map(workspace => {
         const workflows = Array.isArray(workspace.requested_workflows) && workspace.requested_workflows.length
