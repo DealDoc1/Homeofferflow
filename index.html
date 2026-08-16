@@ -11449,7 +11449,7 @@ function routeAfterMagicLinkIfNeeded() {
           <div class="field"><label for="partnerCampaignChannel">Distribution channel</label><select id="partnerCampaignChannel"><option value="direct_outreach" selected>Direct outreach</option><option value="email">Email newsletter</option><option value="social">Social post</option><option value="referral">Referral partner</option><option value="local_event">Local event</option><option value="print">Print / QR code</option></select></div>
           <div class="field"><label for="partnerCampaignName">Campaign label <span style="color:var(--gray);font-weight:500;">(optional)</span></label><input id="partnerCampaignName" maxlength="80" placeholder="August North Texas title"></div>
         </div>
-        <div class="platform-actions"><button type="button" onclick="copyPartnerCampaignLink()">Copy Campaign Link</button><button type="button" class="btn-secondary" onclick="copyPartnerCampaignInvitation()">Copy Invitation</button><button type="button" class="btn-secondary" onclick="previewPartnerCampaignLink()">Preview Intake</button></div>
+        <div class="platform-actions"><button type="button" onclick="copyPartnerCampaignLink()">Copy Campaign Link</button><button type="button" class="btn-secondary" onclick="copyPartnerCampaignInvitation()">Copy Invitation</button><button type="button" class="btn-secondary" onclick="printPartnerCampaignFlyer()">Print Partner Flyer</button><button type="button" class="btn-secondary" onclick="previewPartnerCampaignLink()">Preview Intake</button></div>
         <div id="partnerCampaignLinkPreview" class="platform-status" aria-live="polite"></div>
       </div>` : '';
     el.innerHTML = `
@@ -11534,6 +11534,27 @@ function routeAfterMagicLinkIfNeeded() {
     } catch (err) {
       platformStatus('partnerCampaignLinkPreview', 'Could not copy automatically. Use Copy Campaign Link instead.', 'err');
     }
+  };
+
+  window.printPartnerCampaignFlyer = function printPartnerCampaignFlyer() {
+    if (!isCurrentAdmin()) return platformStatus('partnerCampaignLinkPreview', 'HomeOfferFlow admin access is required to print a partner flyer.', 'err');
+    const link = partnerCampaignLink();
+    if (!link) return platformStatus('partnerCampaignLinkPreview', 'Choose a supported partner category and tier.', 'err');
+    const category = String(getVal('partnerCampaignCategory') || '').trim().replace(/_/g, ' ') || 'real-estate service';
+    const tierDetails = {
+      founding_pilot: ['Core Partner', '$149', 'Disclosed advertising presence for a 90-day pilot.'],
+      monthly_placement: ['Featured Partner', '$399', 'Prominent disclosed advertising inventory for a 90-day pilot.'],
+      market_exclusive: ['Premier Partner', '$799', 'Limited category-and-market advertising inventory for a 90-day pilot.']
+    };
+    const [tier, price, description] = tierDetails[String(getVal('partnerCampaignTier') || '').trim()] || tierDetails.monthly_placement;
+    const campaign = sellerCampaignLabel(getVal('partnerCampaignName')) || 'HomeOfferFlow Partner Marketplace';
+    const safe = value => String(value || '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+    const flyer = window.open('', '_blank', 'noopener,noreferrer');
+    if (!flyer) return platformStatus('partnerCampaignLinkPreview', 'Allow pop-ups to open the printable partner flyer.', 'err');
+    flyer.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${safe(tier)} | HomeOfferFlow</title><style>@page{size:letter;margin:.5in}body{font-family:Arial,sans-serif;color:#102438;margin:0}.sheet{border:3px solid #c8973f;border-radius:18px;padding:32px;min-height:8.5in;box-sizing:border-box}h1{font-family:Georgia,serif;font-size:34px;line-height:1.08;margin:0 0 12px}.eyebrow{color:#8d641e;font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}.price{display:inline-block;background:#102f46;color:#fff;border-radius:999px;padding:8px 14px;font-weight:800;margin:10px 0 18px}.box{background:#f5f8fa;border-left:5px solid #c8973f;padding:16px 18px;margin:22px 0;font-size:17px;line-height:1.45}.link{word-break:break-all;font-size:13px;line-height:1.4;padding:12px;background:#edf2f5;border-radius:8px}.fine{font-size:10px;color:#566676;line-height:1.45;margin-top:28px}@media print{body{print-color-adjust:exact;-webkit-print-color-adjust:exact}}</style></head><body><main class="sheet"><div class="eyebrow">${safe(campaign)}</div><h1>Reach active Texas real-estate customers.</h1><p style="font-size:19px;line-height:1.45;margin:0">A transparent advertising opportunity for <strong>${safe(category)}</strong> businesses serving homebuyers, agents, and FSBO sellers.</p><div class="box"><strong>${safe(tier)}</strong><br>${safe(description)}</div><div class="price">${safe(price)}</div><p><strong>Review the pilot and apply securely:</strong></p><div class="link">${safe(link)}</div><p class="fine">This is disclosed advertising inventory, not a referral, required-provider choice, transaction, or closing service. Availability, category/market scope, and a written placement agreement are confirmed before any public placement is activated.</p></main><script>window.onload=()=>window.print();<\/script></body></html>`);
+    flyer.document.close();
+    try { trackEvent('Partner Campaign Flyer Printed', { category: getVal('partnerCampaignCategory'), tier: getVal('partnerCampaignTier'), surface: 'partner_admin_toolkit' }); } catch (_) {}
+    platformStatus('partnerCampaignLinkPreview', 'Printable partner flyer opened. It contains only public campaign details and the advertising-inventory disclosure.', 'ok');
   };
 
   // This converts an aggregate empty-category signal into a human-reviewed

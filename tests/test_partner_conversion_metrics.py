@@ -71,6 +71,7 @@ class PartnerConversionMetricTests(unittest.TestCase):
         self.assertIn('Partner Campaign Link Toolkit', source)
         self.assertIn('copyPartnerCampaignLink()', source)
         self.assertIn('copyPartnerCampaignInvitation()', source)
+        self.assertIn('printPartnerCampaignFlyer()', source)
         self.assertIn('previewPartnerCampaignLink()', source)
         self.assertIn("const partnerCampaignCategories = new Set", source)
         self.assertIn("const partnerCampaignTiers = new Set", source)
@@ -84,6 +85,14 @@ class PartnerConversionMetricTests(unittest.TestCase):
         self.assertIn('id="partnerCampaignName"', source)
         self.assertIn("params.set('utm_medium', channel)", source)
         self.assertIn("Partner Campaign Link Copied", source)
+
+    def test_admin_can_print_a_self_contained_partner_campaign_flyer(self):
+        source = (ROOT / "index.html").read_text(encoding="utf-8")
+        self.assertIn("Print Partner Flyer", source)
+        self.assertIn("window.printPartnerCampaignFlyer", source)
+        self.assertIn("Partner Campaign Flyer Printed", source)
+        self.assertIn("Printable partner flyer opened.", source)
+        self.assertIn("This is disclosed advertising inventory, not a referral", source)
         self.assertIn("Partner Campaign Invitation Copied", source)
         self.assertIn("not referrals, required provider selection, transactions, or closings", source)
 
