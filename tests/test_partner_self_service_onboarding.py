@@ -38,11 +38,14 @@ class PartnerSelfServiceOnboardingTests(unittest.TestCase):
             def __exit__(self, *args): return False
             def patch(self, *args, **kwargs): self.payload = kwargs["json"]; return response
         client = Client()
-        with patch.object(fsbo, "_get_partner_onboarding", return_value=lead), patch.object(fsbo.httpx, "Client", return_value=client):
+        with patch.object(fsbo, "_get_partner_onboarding", return_value=lead), \
+             patch.object(fsbo, "_record_partner_onboarding_event") as record, \
+             patch.object(fsbo.httpx, "Client", return_value=client):
             fsbo._complete_partner_onboarding("A" * 32, {"market_area": "DFW", "website_url": "https://example.com"})
         self.assertIsNone(client.payload["onboarding_token_hash"])
         self.assertEqual(client.payload["onboarding_status"], "complete")
         self.assertNotIn("is_active", client.payload)
+        record.assert_called_once_with("partner_onboarding_completed")
 
     def test_completed_checkout_recovery_rotates_a_setup_token_only_for_the_matching_paid_row(self):
         lead_id = "e35eace9-2760-4b11-a01a-07ee65f2744e"
@@ -122,6 +125,17 @@ class PartnerSelfServiceOnboardingTests(unittest.TestCase):
         self.assertIn("partnerOnboardingInProgressCount", admin)
         self.assertIn("partnerOnboardingCompletedCount", admin)
         self.assertIn("partnerOnboardingCompletionRate", html)
+
+    def test_onboarding_progress_events_are_aggregate_only_and_visible_to_admin(self):
+        admin = (ROOT / "api/admin-dashboard.py").read_text()
+        html = (ROOT / "index.html").read_text()
+        source = (ROOT / "api/fsbo-lead.py").read_text()
+        self.assertIn('"partner_onboarding_opened": "opened"', source)
+        self.assertIn('"partner_onboarding_completed": "completed"', source)
+        self.assertIn('"surface": "partner_onboarding"', source)
+        self.assertIn('"partnerOnboardingOpenedEventCount": partner_onboarding_opened_event_count', admin)
+        self.assertIn('"partnerOnboardingCompletedEventCount": partner_onboarding_completed_event_count', admin)
+        self.assertIn("Setup engagement:", html)
 
     def test_admin_exposes_aggregate_secure_setup_email_delivery_metric(self):
         admin = (ROOT / "api/admin-dashboard.py").read_text()

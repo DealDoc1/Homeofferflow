@@ -122,6 +122,10 @@ PARTNER_LANDING_EVENT_TYPES = {
     "partner_directory_pricing_selected": "pricing_selected",
     "partner_directory_empty_search": "unfilled_search",
 }
+PARTNER_ONBOARDING_EVENT_TYPES = {
+    "partner_onboarding_opened": "opened",
+    "partner_onboarding_completed": "completed",
+}
 ONDEMAND_LANDING_EVENT_TYPES = {
     "ondemand_landing_viewed": "viewed",
     "ondemand_trial_entry_selected": "entry_selected",
@@ -557,6 +561,18 @@ def _record_partner_landing_event(data):
     )
 
 
+def _record_partner_onboarding_event(event_type):
+    """Persist aggregate setup progress without partner or visitor identity."""
+    if event_type not in PARTNER_ONBOARDING_EVENT_TYPES:
+        raise ValueError("Unsupported partner onboarding event.")
+    _record_partner_checkout_event(
+        event_type,
+        PARTNER_ONBOARDING_EVENT_TYPES[event_type],
+        "Privacy-safe paid-partner setup progress recorded.",
+        {"surface": "partner_onboarding"},
+    )
+
+
 def _record_ondemand_landing_event(data):
     """Persist aggregate OnDemand trial funnel stages without agent details."""
     event_type = _text(data.get("event_type"), 80)
@@ -744,6 +760,7 @@ def _get_partner_onboarding(token):
         raise LookupError("This onboarding link has expired.")
     if expires_at <= datetime.now(timezone.utc):
         raise LookupError("This onboarding link has expired.")
+    _record_partner_onboarding_event("partner_onboarding_opened")
     return lead
 
 
@@ -766,6 +783,7 @@ def _complete_partner_onboarding(token, data):
     rows = response.json() if response.text else []
     if not isinstance(rows, list) or not rows:
         raise LookupError("This onboarding link is no longer available.")
+    _record_partner_onboarding_event("partner_onboarding_completed")
     return _public_partner_onboarding(rows[0])
 
 

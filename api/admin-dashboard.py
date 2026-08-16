@@ -3650,6 +3650,12 @@ class handler(BaseHTTPRequestHandler):
             partner_application_essentials_open_count = len([
                 item for item in partner_landing_events if item.get("event_type") == "partner_application_essentials_opened"
             ])
+            partner_onboarding_opened_event_count = len([
+                item for item in events if item.get("event_type") == "partner_onboarding_opened"
+            ])
+            partner_onboarding_completed_event_count = len([
+                item for item in events if item.get("event_type") == "partner_onboarding_completed"
+            ])
             partner_directory_application_start_count = len([
                 item for item in partner_landing_events
                 if item.get("event_type") == "partner_directory_application_selected"
@@ -4452,6 +4458,8 @@ class handler(BaseHTTPRequestHandler):
                 "partnerOnboardingReadyCount": partner_onboarding_ready_count,
                 "partnerOnboardingInProgressCount": partner_onboarding_in_progress_count,
                 "partnerOnboardingCompletedCount": partner_onboarding_completed_count,
+                "partnerOnboardingOpenedEventCount": partner_onboarding_opened_event_count,
+                "partnerOnboardingCompletedEventCount": partner_onboarding_completed_event_count,
                 "partnerOnboardingAccessMissingCount": partner_onboarding_access_missing_count,
                 "partnerOnboardingCompletionRate": round(
                     (partner_onboarding_completed_count / paid_partner_lead_count) * 100, 1
