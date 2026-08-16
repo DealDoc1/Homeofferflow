@@ -1,8 +1,11 @@
 import pathlib
+import importlib.util
 import unittest
+from unittest.mock import patch
 
 
 HTML = (pathlib.Path(__file__).resolve().parents[1] / "index.html").read_text(encoding="utf-8")
+API_PATH = pathlib.Path(__file__).resolve().parents[1] / "api" / "fsbo-lead.py"
 
 
 class FsboRequestConfirmationTests(unittest.TestCase):
@@ -64,6 +67,57 @@ class FsboRequestConfirmationTests(unittest.TestCase):
         self.assertIn("fsbo_seller_plan_downloaded", api)
         self.assertIn('"sellerPlanDownloadCount"', admin)
         self.assertIn("sellerPlanDownloadCount", HTML)
+
+    def test_saved_seller_request_can_offer_an_email_receipt(self):
+        api = API_PATH.read_text(encoding="utf-8")
+        self.assertIn("def _send_seller_plan_confirmation(payload):", api)
+        self.assertIn("Best-effort transactional receipt", api)
+        self.assertIn("Idempotency-Key", api)
+        self.assertIn("seller_plan_email", api)
+        self.assertIn("A copy of this request was also emailed to you.", HTML)
+
+    def test_seller_plan_receipt_escapes_seller_content_and_is_idempotent(self):
+        spec = importlib.util.spec_from_file_location("fsbo_plan_receipt", API_PATH)
+        api = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(api)
+        captured = {}
+
+        class Response:
+            status_code = 200
+
+        class Client:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return False
+
+            def post(self, *args, **kwargs):
+                captured["args"] = args
+                captured["kwargs"] = kwargs
+                return Response()
+
+        payload = {
+            "seller_email": "seller@example.com",
+            "property_address": "<script>bad</script>",
+            "package_name": "Seller Prep Plan",
+            "package_price": "$299",
+            "timeline": "30_days",
+        }
+        with patch.object(api, "RESEND_API_KEY", "re_test"), patch.object(api.httpx, "Client", return_value=Client()):
+            self.assertEqual(api._send_seller_plan_confirmation(payload), "sent")
+        self.assertEqual(captured["args"][0], "https://api.resend.com/emails")
+        self.assertEqual(captured["kwargs"]["json"]["to"], ["seller@example.com"])
+        self.assertNotIn("<script>", captured["kwargs"]["json"]["html"])
+        self.assertIn("not checkout", captured["kwargs"]["json"]["text"])
+        self.assertTrue(captured["kwargs"]["headers"]["Idempotency-Key"].startswith("fsbo-seller-plan-"))
+
+    def test_seller_plan_receipt_does_not_attempt_delivery_without_config(self):
+        spec = importlib.util.spec_from_file_location("fsbo_plan_receipt_unconfigured", API_PATH)
+        api = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(api)
+        with patch.object(api, "RESEND_API_KEY", ""):
+            self.assertEqual(api._send_seller_plan_confirmation({"seller_email": "seller@example.com"}), "not_configured")
 
 
 if __name__ == "__main__":

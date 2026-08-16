@@ -4,6 +4,7 @@ import re
 import uuid
 import hashlib
 import secrets
+import html
 from http.server import BaseHTTPRequestHandler
 from datetime import datetime, timedelta, timezone
 from urllib.parse import parse_qs, urlencode, urlparse
@@ -23,6 +24,13 @@ LEAD_ID_RE = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-
 ONBOARDING_TOKEN_RE = re.compile(r"^[A-Za-z0-9_-]{24,128}$")
 STRIPE_CHECKOUT_SESSION_RE = re.compile(r"^cs_(?:test|live)_[A-Za-z0-9_]{8,250}$")
 STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "")
+RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
+SELLER_PLAN_FROM_EMAIL = (
+    os.environ.get("SELLER_PLAN_FROM_EMAIL")
+    or os.environ.get("FEEDBACK_FROM_EMAIL")
+    or os.environ.get("FROM_EMAIL")
+    or "offers@homeofferflow.com"
+)
 ALLOWED_PARTNER_TYPES = {
     "title",
     "lender",
@@ -179,6 +187,62 @@ def _recent_matching_fsbo_lead(email, property_address, service_level):
         raise RuntimeError("Could not check the seller request status.")
     rows = response.json() if response.text else []
     return rows[0] if isinstance(rows, list) and rows else None
+
+
+def _send_seller_plan_confirmation(payload):
+    """Best-effort transactional receipt; a valid seller request is never discarded for email failure."""
+    if not RESEND_API_KEY:
+        return "not_configured"
+    recipient = str((payload or {}).get("seller_email") or "").strip()
+    if not EMAIL_RE.match(recipient):
+        return "missing_email"
+
+    address = str(payload.get("property_address") or "your property")
+    package_name = str(payload.get("package_name") or "Seller plan")
+    package_price = str(payload.get("package_price") or "")
+    timeline = str(payload.get("timeline") or "not sure").replace("_", " ")
+    plain_text = (
+        "We received your HomeOfferFlow seller plan request.\n\n"
+        f"Property: {address}\n"
+        f"Selected plan: {package_name}{(' (' + package_price + ')') if package_price else ''}\n"
+        f"Timeline: {timeline}\n\n"
+        "A qualified human review is required to confirm scope, provider involvement, availability, and final pricing before any paid service begins. "
+        "This receipt is not checkout, representation, a confirmed service order, or legal advice."
+    )
+    safe_address = html.escape(address)
+    safe_package = html.escape(package_name)
+    safe_price = html.escape(package_price)
+    safe_timeline = html.escape(timeline)
+    email_payload = {
+        "from": f"HomeOfferFlow <{SELLER_PLAN_FROM_EMAIL}>",
+        "to": [recipient],
+        "subject": "Your HomeOfferFlow seller plan request",
+        "text": plain_text,
+        "html": (
+            "<h2>We received your seller plan request</h2>"
+            f"<p><strong>Property:</strong> {safe_address}<br>"
+            f"<strong>Selected plan:</strong> {safe_package}{(' (' + safe_price + ')') if safe_price else ''}<br>"
+            f"<strong>Timeline:</strong> {safe_timeline}</p>"
+            "<p>A qualified human review is required to confirm scope, provider involvement, availability, and final pricing before any paid service begins.</p>"
+            "<p>This receipt is not checkout, representation, a confirmed service order, or legal advice.</p>"
+        ),
+    }
+    try:
+        with httpx.Client(timeout=12.0) as client:
+            response = client.post(
+                "https://api.resend.com/emails",
+                headers={
+                    "Authorization": f"Bearer {RESEND_API_KEY}",
+                    "Content-Type": "application/json",
+                    "Idempotency-Key": "fsbo-seller-plan-" + hashlib.sha256(
+                        f"{recipient.lower()}|{address}|{package_name}".encode("utf-8")
+                    ).hexdigest(),
+                },
+                json=email_payload,
+            )
+        return "sent" if response.status_code < 300 else "failed"
+    except Exception:
+        return "failed"
 
 
 def _money(value):
@@ -1071,7 +1135,12 @@ class handler(BaseHTTPRequestHandler):
             if resp.status_code >= 300:
                 return _send(self, 500, {'error': 'Could not save seller lead.', 'detail': resp.text[:500]})
             row = resp.json()[0] if resp.text and resp.text.strip().startswith('[') else {}
-            return _send(self, 200, {'ok': True, 'seller_lead_id': row.get('id')})
+            email_delivery = _send_seller_plan_confirmation(payload)
+            return _send(self, 200, {
+                'ok': True,
+                'seller_lead_id': row.get('id'),
+                'seller_plan_email': email_delivery,
+            })
         except ValueError as exc:
             return _send(self, 400, {'error': str(exc)[:300]})
         except json.JSONDecodeError:
