@@ -40,6 +40,8 @@ class PartnerDirectoryImpressionTests(unittest.TestCase):
         self.assertIn('const sortDirectoryRows = rows =>', PUBLIC_DIRECTORY)
         self.assertIn('const rows = sortDirectoryRows(Array.isArray(data.partners) ? data.partners : []);', PUBLIC_DIRECTORY)
         self.assertIn('if (!leftNeutral && !rightNeutral)', PUBLIC_DIRECTORY)
+        self.assertIn("placementLabels = {exclusive_market:'Premier Partner',premier:'Featured Partner',founding:'Core Partner'}", PUBLIC_DIRECTORY)
+        self.assertIn("const placement = neutral ? 'Sponsored profile' : `Sponsored · ${placementLabels[provider.placement_tier] || 'Partner'}`;", PUBLIC_DIRECTORY)
 
     def test_admin_metrics_can_report_aggregate_paid_directory_value(self):
         api = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
