@@ -17,11 +17,12 @@ class PartnerLandingFunnelTests(unittest.TestCase):
         self.assertIn('"partner_landing_cta_selected": "selected"', API)
         self.assertIn('"partner_application_opened": "application_opened"', API)
         self.assertIn('"partner_directory_application_selected": "application_selected"', API)
+        self.assertIn('"partner_directory_pricing_selected": "pricing_selected"', API)
         self.assertIn("Unsupported partner landing event.", API)
         self.assertIn("Unsupported partner tier.", API)
         self.assertIn("Unsupported partner category.", API)
         self.assertIn("'partner_landing_event'", API)
-        self.assertIn('"partner_directory" if event_type == "partner_directory_application_selected" else "partner_landing"', API)
+        self.assertIn('event_type in {"partner_directory_application_selected", "partner_directory_pricing_selected"}', API)
 
     def test_partner_page_records_one_aggregate_stage_per_session_and_selection(self):
         self.assertIn("recordAggregateFunnelEvent", PARTNERS)
@@ -57,6 +58,7 @@ class PartnerLandingFunnelTests(unittest.TestCase):
             '"partnerApplicationOpenRate"',
             '"partnerLandingTierCtaCounts"',
             '"partnerDirectoryApplicationStartCount"',
+            '"partnerDirectoryPricingSelectionCount"',
             "partner_landing_event_types",
             "partner_landing_tier_cta_counts",
         ):

@@ -112,6 +112,11 @@
         if (category && allowedCategories.has(category)) query.set('partner_category', category);
         return '/?' + query.toString();
       };
+      const partnerDetailsUrl = category => {
+        const query = new URLSearchParams({utm_source:'provider_directory', utm_medium:'empty_result', utm_campaign:'partner_acquisition'});
+        if (category && allowedCategories.has(category)) query.set('partner_category', category);
+        return '/partners?' + query.toString();
+      };
       const consumerPathUrl = (path, category) => {
         const query = new URLSearchParams({utm_source:'provider_directory', utm_medium:'empty_result', utm_campaign:'consumer_recovery'});
         if (category && allowedCategories.has(category)) query.set('utm_content', category);
@@ -120,11 +125,13 @@
       const empty = category => {
         const categoryLabel = labels[category] || '';
         const applicationUrl = partnerApplicationUrl(category);
+        const detailsUrl = partnerDetailsUrl(category);
         const buyerUrl = consumerPathUrl('/buyers', category);
         const sellerUrl = consumerPathUrl('/sellers', category);
         const action = categoryLabel ? `List your ${esc(categoryLabel)} business with HomeOfferFlow →` : 'Own a service business? Explore a founding placement →';
         const categoryChoices = !category ? `<p style="margin:.75rem 0 0">Choose the service you need so we can prioritize adding that category. We record only the category—not your search text or market.</p><div class="category-chips">${['title','lender','inspection','insurance','roofing','general_contractor'].map(key => `<button type="button" data-directory-category="${key}">${esc(labels[key])}</button>`).join('')}</div>` : '';
-        return `No active HomeOfferFlow provider profiles are available for this search yet. You may choose any qualified provider independently.${categoryChoices}<p style="margin:.75rem 0 0"><strong style="color:var(--w)">Need help with your own next step?</strong><br><a data-directory-consumer-cta data-consumer-path="buyer" href="${buyerUrl}" style="color:var(--gl);font-weight:800">Build a Texas buyer offer →</a> <span aria-hidden="true">·</span> <a data-directory-consumer-cta data-consumer-path="seller" href="${sellerUrl}" style="color:var(--gl);font-weight:800">Explore FSBO seller support →</a></p><p style="margin:.75rem 0 0"><a data-directory-partner-cta href="${applicationUrl}" style="color:var(--gl);font-weight:800">${action}</a></p>`;
+        const detailsAction = categoryLabel ? `See ${esc(categoryLabel)} placement options and launch pricing →` : 'See founding partner placement options and launch pricing →';
+        return `No active HomeOfferFlow provider profiles are available for this search yet. You may choose any qualified provider independently.${categoryChoices}<p style="margin:.75rem 0 0"><strong style="color:var(--w)">Need help with your own next step?</strong><br><a data-directory-consumer-cta data-consumer-path="buyer" href="${buyerUrl}" style="color:var(--gl);font-weight:800">Build a Texas buyer offer →</a> <span aria-hidden="true">·</span> <a data-directory-consumer-cta data-consumer-path="seller" href="${sellerUrl}" style="color:var(--gl);font-weight:800">Explore FSBO seller support →</a></p><p style="margin:.75rem 0 0"><a data-directory-partner-details href="${detailsUrl}" style="color:var(--gl);font-weight:800">${detailsAction}</a><br><a data-directory-partner-cta href="${applicationUrl}" style="color:var(--m);font-weight:700">${action}</a></p>`;
       };
       const card = provider => {
         const website = safeUrl(provider.website_url);
@@ -150,6 +157,17 @@
           const category = allowedCategories.has($('category').value) ? $('category').value : 'unspecified';
           track('Provider Directory Partner CTA Selected', {category});
           recordPartnerApplicationStart(category);
+        });
+      });
+      const bindPartnerDetails = () => document.querySelectorAll('[data-directory-partner-details]').forEach(link => {
+        if (link.dataset.trackingBound) return;
+        link.dataset.trackingBound = '1';
+        link.addEventListener('click', () => {
+          const category = allowedCategories.has($('category').value) ? $('category').value : 'unspecified';
+          const key = `hof_public_directory_partner_pricing_${category}`;
+          try { if (sessionStorage.getItem(key)) return; sessionStorage.setItem(key, '1'); } catch (_) {}
+          track('Provider Directory Placement Pricing Selected', {category});
+          fetch('/api/fsbo-lead', {method:'POST', headers:{'Content-Type':'application/json'}, keepalive:true, body:JSON.stringify({request_type:'partner_landing_event', event_type:'partner_directory_pricing_selected', tier:'unspecified', category})}).catch(() => {});
         });
       });
       const bindConsumerCtas = () => document.querySelectorAll('[data-directory-consumer-cta]').forEach(link => {
@@ -200,6 +218,7 @@
           trackImpressions(rows);
           bindOutboundClicks();
           bindPartnerCtas();
+          bindPartnerDetails();
           bindConsumerCtas();
           bindCategoryChoices();
         } catch (_) {

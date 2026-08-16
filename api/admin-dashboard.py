@@ -3627,6 +3627,7 @@ class handler(BaseHTTPRequestHandler):
                 "partner_landing_cta_selected",
                 "partner_application_opened",
                 "partner_directory_application_selected",
+                "partner_directory_pricing_selected",
                 "partner_directory_empty_search",
             }
             partner_landing_events = [
@@ -3644,6 +3645,10 @@ class handler(BaseHTTPRequestHandler):
             partner_directory_application_start_count = len([
                 item for item in partner_landing_events
                 if item.get("event_type") == "partner_directory_application_selected"
+            ])
+            partner_directory_pricing_selection_count = len([
+                item for item in partner_landing_events
+                if item.get("event_type") == "partner_directory_pricing_selected"
             ])
             partner_directory_empty_search_count = len([
                 item for item in partner_landing_events
@@ -4455,6 +4460,7 @@ class handler(BaseHTTPRequestHandler):
                 if partner_landing_cta_count else 0,
                 "partnerLandingTierCtaCounts": partner_landing_tier_cta_counts,
                 "partnerDirectoryApplicationStartCount": partner_directory_application_start_count,
+                "partnerDirectoryPricingSelectionCount": partner_directory_pricing_selection_count,
                 "partnerDirectoryEmptySearchCount": partner_directory_empty_search_count,
                 "partnerDirectoryEmptySearchCategoryCounts": partner_directory_empty_search_category_counts,
                 "partnerCheckoutEventCounts": partner_checkout_event_counts,

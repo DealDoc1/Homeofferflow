@@ -117,6 +117,7 @@ PARTNER_LANDING_EVENT_TYPES = {
     "partner_landing_cta_selected": "selected",
     "partner_application_opened": "application_opened",
     "partner_directory_application_selected": "application_selected",
+    "partner_directory_pricing_selected": "pricing_selected",
     "partner_directory_empty_search": "unfilled_search",
 }
 ONDEMAND_LANDING_EVENT_TYPES = {
@@ -547,7 +548,7 @@ def _record_partner_landing_event(data):
         PARTNER_LANDING_EVENT_TYPES[event_type],
         "Privacy-safe public partner landing engagement recorded.",
         {
-            "surface": "partner_directory" if event_type == "partner_directory_application_selected" else "partner_landing",
+            "surface": "partner_directory" if event_type in {"partner_directory_application_selected", "partner_directory_pricing_selected"} else "partner_landing",
             "tier": tier,
             "category": category,
         },

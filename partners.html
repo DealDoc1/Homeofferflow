@@ -81,6 +81,7 @@
       const allowedCategories = new Set(['title','lender','inspection','surveyor','home_warranty','insurance','roofing','hvac','plumbing','electrical','foundation_structural','general_contractor','pest_termite','septic_well','restoration','repairs_handyman','photography_video','staging','cleaning','moving_storage','lawn_pool','security_smart_home','other']);
       const allowedTiers = new Set(['founding_pilot','monthly_placement','market_exclusive']);
       const tierLabels = { founding_pilot: 'Core Partner', monthly_placement: 'Featured Partner', market_exclusive: 'Premier Partner' };
+      const categoryLabels = {title:'title-company or fee-attorney',lender:'mortgage-lender',inspection:'home-inspection',surveyor:'property-surveying',home_warranty:'home-warranty',insurance:'home-insurance',roofing:'roofing',hvac:'HVAC',plumbing:'plumbing',electrical:'electrical',foundation_structural:'foundation or structural',general_contractor:'general-contractor or remodeling',pest_termite:'pest-control or termite',septic_well:'septic or well-service',restoration:'restoration',repairs_handyman:'repairs or handyman',photography_video:'photography or video',staging:'home-staging',cleaning:'cleaning',moving_storage:'moving or storage',lawn_pool:'lawn or pool',security_smart_home:'security or smart-home',other:'real-estate-service'};
       const campaign = new URLSearchParams();
       const track = (name, data = {}) => { try { window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); }; window.va('event', {name, ...data}); } catch (_) {} };
       const category = String(source.get('partner_category') || '').trim().toLowerCase();
@@ -102,11 +103,12 @@
       };
       track('Founding Partner Landing Viewed', selectedTier ? {tier: selectedTier, category: selectedCategory || 'unspecified'} : {});
       recordAggregateFunnelEvent('partner_landing_viewed', selectedTier, selectedCategory);
-      if (selectedTier) {
+      if (selectedTier || selectedCategory) {
         const context = document.getElementById('partnerCampaignContext');
         if (context) {
           context.hidden = false;
-          context.innerHTML = '<strong>Your selected placement: ' + tierLabels[selectedTier] + '.</strong> ' + (selectedCategory ? 'This link is tailored for ' + selectedCategory.replace(/_/g, ' ') + ' providers. ' : '') + 'You can review the options below before applying; checkout shows the final terms before payment.';
+          const selection = selectedTier ? 'Your selected placement: ' + tierLabels[selectedTier] + '.' : 'Placement options for ' + (categoryLabels[selectedCategory] || selectedCategory.replace(/_/g, ' ')) + ' providers.';
+          context.innerHTML = '<strong>' + selection + '</strong> ' + (selectedCategory ? 'This link is tailored for ' + (categoryLabels[selectedCategory] || selectedCategory.replace(/_/g, ' ')) + ' providers. ' : '') + 'You can review the options below before applying; checkout shows the final terms before payment.';
         }
       }
       document.querySelectorAll('[data-partner-apply]').forEach(link => link.addEventListener('click', () => {
