@@ -57,7 +57,8 @@
       // Only retain one allowlisted surface label for aggregate placement
       // reporting. Query text, market input, identity, and other campaign
       // values are deliberately not sent with directory events.
-      const directorySurface = new URLSearchParams(window.location.search).get('utm_source') === 'fsbo_intake' ? 'fsbo_seller_plan' : 'public_directory';
+      const directorySource = new URLSearchParams(window.location.search).get('utm_source');
+      const directorySurface = directorySource === 'fsbo_intake' ? 'fsbo_seller_plan' : directorySource === 'pwa_shortcut' ? 'pwa_provider_directory' : 'public_directory';
       const esc = value => String(value || '').replace(/[&<>"']/g, character => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[character]));
       const safeUrl = value => { try { const url = new URL(value); return ['http:','https:'].includes(url.protocol) ? url.href : ''; } catch (_) { return ''; } };
       const track = (name, data = {}) => { try { window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); }; window.va('event', {name, ...data}); } catch (_) {} };
