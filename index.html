@@ -10797,7 +10797,7 @@ function routeAfterMagicLinkIfNeeded() {
           <div class="field"><label for="sellerCampaignChannel">Distribution channel</label><select id="sellerCampaignChannel"><option value="direct_outreach" selected>Direct outreach</option><option value="email">Email newsletter</option><option value="social">Social post</option><option value="referral">Referral partner</option><option value="local_event">Local event</option><option value="print">Print / QR code</option></select></div>
           <div class="field"><label for="sellerCampaignName">Campaign label <span style="color:var(--gray);font-weight:500;">(optional)</span></label><input id="sellerCampaignName" maxlength="80" placeholder="August North Texas FSBO"></div>
         </div>
-        <div class="platform-actions"><button type="button" onclick="copySellerCampaignLink()">Copy Campaign Link</button><button type="button" class="btn-secondary" onclick="copySellerCampaignInvitation()">Copy Invitation</button><button type="button" class="btn-secondary" onclick="previewSellerCampaignLink()">Preview Intake</button></div>
+        <div class="platform-actions"><button type="button" onclick="copySellerCampaignLink()">Copy Campaign Link</button><button type="button" class="btn-secondary" onclick="copySellerCampaignInvitation()">Copy Invitation</button><button type="button" class="btn-secondary" onclick="printSellerCampaignFlyer()">Print Seller Flyer</button><button type="button" class="btn-secondary" onclick="previewSellerCampaignLink()">Preview Intake</button></div>
         <div id="sellerCampaignLinkStatus" class="platform-status" aria-live="polite"></div>
       </div>
       <div class="platform-card" id="buyerCampaignToolkit">
@@ -10930,6 +10930,30 @@ function routeAfterMagicLinkIfNeeded() {
     } catch (_) {
       platformStatus('sellerCampaignLinkStatus', 'Could not copy automatically. Use Copy Campaign Link instead.', 'err');
     }
+  };
+
+  window.printSellerCampaignFlyer = function printSellerCampaignFlyer() {
+    if (!isCurrentAdmin()) return platformStatus('sellerCampaignLinkStatus', 'HomeOfferFlow admin access is required to print a seller flyer.', 'err');
+    const link = sellerCampaignLink();
+    if (!link) return platformStatus('sellerCampaignLinkStatus', 'Choose a supported seller package.', 'err');
+    const details = {
+      free_intake: ['Free Seller Intake', '$0', 'Start with a clear seller plan, timeline, and next steps.'],
+      seller_prep: ['Seller Prep Plan', '$299', 'Prepare your property, photos, and pricing questions before you list.'],
+      launch_kit: ['FSBO Launch Kit', '$499', 'Launch with practical seller-prep, showing, and offer-comparison tools.'],
+      flat_fee_mls: ['Flat-Fee MLS Listing', 'from $1,299', 'Request limited-service MLS details and required licensed-provider coordination.'],
+      offer_review: ['Seller Offer Review', 'from $599', 'Organize offer terms, timelines, and questions for the appropriate professional.'],
+      contract_help: ['Contract-to-Close Support', 'from $1,999', 'Organize transaction next steps after an accepted offer.'],
+      premium_bundle: ['Premium FSBO Bundle', 'from $2,999', 'Explore a structured FSBO path with launch, MLS-interest, and support options.']
+    };
+    const [packageName, packagePrice, packageDescription] = details[String(getVal('sellerCampaignPackage') || '').trim()] || details.free_intake;
+    const campaign = sellerCampaignLabel(getVal('sellerCampaignName')) || 'HomeOfferFlow Seller Plan';
+    const safe = value => String(value || '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+    const flyer = window.open('', '_blank', 'noopener,noreferrer');
+    if (!flyer) return platformStatus('sellerCampaignLinkStatus', 'Allow pop-ups to open the printable seller flyer.', 'err');
+    flyer.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${safe(packageName)} | HomeOfferFlow</title><style>@page{size:letter;margin:.5in}body{font-family:Arial,sans-serif;color:#102438;margin:0}.sheet{border:3px solid #c8973f;border-radius:18px;padding:32px;min-height:8.5in;box-sizing:border-box}h1{font-family:Georgia,serif;font-size:34px;line-height:1.08;margin:0 0 12px}.eyebrow{color:#8d641e;font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}.price{display:inline-block;background:#102f46;color:#fff;border-radius:999px;padding:8px 14px;font-weight:800;margin:10px 0 18px}.box{background:#f5f8fa;border-left:5px solid #c8973f;padding:16px 18px;margin:22px 0;font-size:17px;line-height:1.45}.link{word-break:break-all;font-size:13px;line-height:1.4;padding:12px;background:#edf2f5;border-radius:8px}.fine{font-size:10px;color:#566676;line-height:1.45;margin-top:28px}@media print{body{print-color-adjust:exact;-webkit-print-color-adjust:exact}}</style></head><body><main class="sheet"><div class="eyebrow">${safe(campaign)}</div><h1>Sell with a clearer plan.</h1><p style="font-size:19px;line-height:1.45;margin:0">HomeOfferFlow helps Texas owners explore a practical FSBO path before committing to a paid service.</p><div class="box"><strong>${safe(packageName)}</strong><br>${safe(packageDescription)}</div><div class="price">${safe(packagePrice)}</div><p><strong>Start your no-obligation seller request:</strong></p><div class="link">${safe(link)}</div><p class="fine">This is an intake, not checkout, representation, a confirmed service order, or legal advice. Scope, availability, provider involvement, and final pricing are confirmed separately where required.</p></main><script>window.onload=()=>window.print();<\/script></body></html>`);
+    flyer.document.close();
+    try { trackEvent('Seller Campaign Flyer Printed', { package: getVal('sellerCampaignPackage'), surface: 'seller_admin_toolkit' }); } catch (_) {}
+    platformStatus('sellerCampaignLinkStatus', 'Printable seller flyer opened. It contains only the selected package, public campaign link, and required intake disclosure.', 'ok');
   };
 
   window.previewSellerCampaignLink = function previewSellerCampaignLink() {

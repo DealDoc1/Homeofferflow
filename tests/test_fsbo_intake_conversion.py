@@ -124,6 +124,7 @@ class FsboIntakeConversionTests(unittest.TestCase):
         self.assertIn("FSBO Campaign Toolkit", HTML)
         self.assertIn("copySellerCampaignLink()", HTML)
         self.assertIn("copySellerCampaignInvitation()", HTML)
+        self.assertIn("printSellerCampaignFlyer()", HTML)
         self.assertIn("previewSellerCampaignLink()", HTML)
         self.assertIn("const sellerCampaignPackages = new Set", HTML)
         self.assertIn("const sellerCampaignChannels = new Set", HTML)
@@ -138,6 +139,13 @@ class FsboIntakeConversionTests(unittest.TestCase):
         self.assertIn("Seller Campaign Link Copied", HTML)
         self.assertIn("Seller Campaign Invitation Copied", HTML)
         self.assertIn("This is an intake—not checkout or a confirmed service order.", HTML)
+
+    def test_admin_can_print_a_self_contained_seller_campaign_flyer(self):
+        self.assertIn("Print Seller Flyer", HTML)
+        self.assertIn("window.printSellerCampaignFlyer", HTML)
+        self.assertIn("Printable seller flyer opened.", HTML)
+        self.assertIn("Seller Campaign Flyer Printed", HTML)
+        self.assertIn("This is an intake, not checkout, representation", HTML)
 
     def test_admin_can_create_privacy_safe_homebuyer_acquisition_links_and_copy(self):
         self.assertIn("Homebuyer Campaign Toolkit", HTML)
