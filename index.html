@@ -10949,6 +10949,15 @@ function routeAfterMagicLinkIfNeeded() {
         <div class="platform-actions"><button type="button" onclick="saveListingWorkspaceOffer()">Save Offer Comparison</button><button type="button" onclick="loadListingWorkspaceOffersFoundation()">Refresh Comparisons</button><button type="button" onclick="copyListingWorkspaceOfferSummary()">Copy Seller Review Summary</button></div>
         <div id="listingOfferStatusMessage" class="platform-status"></div>
         <div id="listingWorkspaceOfferList" class="platform-list" style="margin-top:.8rem;"><div class="platform-list-item">Select a workspace to load comparison notes.</div></div>
+        <div class="notice gold" style="margin-top:1rem;"><strong>Estimated seller proceeds comparison:</strong> optional, private math using your own payoff and cost estimates. It does not calculate a closing statement, determine commissions, account for every obligation, rank offers, or recommend a decision.</div>
+        <div class="platform-grid" style="margin-top:.8rem;">
+          <div class="field"><label for="listingOfferEstimatedPayoff">Estimated payoff / liens</label><input id="listingOfferEstimatedPayoff" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0"></div>
+          <div class="field"><label for="listingOfferEstimatedBrokerage">Estimated brokerage / marketing cost</label><input id="listingOfferEstimatedBrokerage" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0"></div>
+          <div class="field"><label for="listingOfferEstimatedOtherCosts">Other estimated seller costs</label><input id="listingOfferEstimatedOtherCosts" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0"></div>
+        </div>
+        <div class="platform-actions"><button type="button" class="btn-secondary" onclick="calculateListingOfferNetComparison()">Compare Estimated Proceeds</button><button type="button" class="btn-secondary" onclick="copyListingOfferNetComparison()">Copy Estimated Proceeds</button><button type="button" class="btn-secondary" onclick="printListingOfferNetComparison()">Print Estimated Proceeds</button></div>
+        <div id="listingOfferNetStatus" class="platform-status" aria-live="polite"></div>
+        <div id="listingOfferNetResult" class="platform-list" style="margin-top:.8rem;"></div>
       </div>
       <div class="platform-card"><h4>Listing Form Readiness</h4><p>These are private brokerage source-approval indicators only. An approved source does not make a listing agreement or seller disclosure executable, sendable, or signable in HomeOfferFlow.</p><div id="listingWorkspaceSourceReadiness" class="platform-list"><div class="platform-list-item">Checking brokerage source readiness…</div></div><div class="notice" style="margin-top:.75rem;"><strong>Next seller-side release sequence:</strong> (1) authorize the exact listing/lease and seller-disclosure PDFs, (2) map fields and signer roles, (3) run authenticated one-client/two-client preview QA, (4) complete signed visual QA, then (5) activate sending. Until then, the workspace remains the safe place to collect the listing request and keep it private.</div></div>`;
     loadSellerLeadsFoundation();
@@ -11514,6 +11523,88 @@ function routeAfterMagicLinkIfNeeded() {
     } catch (_) {
       window.prompt('Copy this private seller review summary:', summary);
     }
+  };
+
+  function listingOfferEstimatedCost(id) {
+    const raw = String(getVal(id) || '').trim();
+    if (!raw) return 0;
+    const value = Number(raw);
+    return Number.isFinite(value) && value >= 0 ? value : null;
+  }
+
+  function listingOfferNetRows() {
+    const payoff = listingOfferEstimatedCost('listingOfferEstimatedPayoff');
+    const brokerage = listingOfferEstimatedCost('listingOfferEstimatedBrokerage');
+    const otherCosts = listingOfferEstimatedCost('listingOfferEstimatedOtherCosts');
+    if ([payoff, brokerage, otherCosts].some(value => value === null)) return { error: 'Use zero or a positive number for every estimated cost.' };
+    const rows = (Array.isArray(hofPlatform.listingWorkspaceOffers) ? hofPlatform.listingWorkspaceOffers : [])
+      .filter(row => Number.isFinite(Number(row.offer_price)) && Number(row.offer_price) >= 0)
+      .map(row => ({
+        label: String(row.offer_label || 'Unlabeled offer'),
+        price: Number(row.offer_price),
+        concessions: Math.max(0, Number(row.seller_concessions) || 0),
+        estimatedProceeds: Number(row.offer_price) - Math.max(0, Number(row.seller_concessions) || 0) - payoff - brokerage - otherCosts
+      }));
+    if (!rows.length) return { error: 'Add or refresh at least one offer with a price before comparing estimated proceeds.' };
+    return { rows, payoff, brokerage, otherCosts };
+  }
+
+  function listingOfferNetComparisonText() {
+    const result = listingOfferNetRows();
+    if (result.error) return { error: result.error };
+    const workspaceLabel = String(document.getElementById('listingOfferWorkspace')?.selectedOptions?.[0]?.textContent || 'Listing workspace').trim();
+    return { text: [
+      'HomeOfferFlow private estimated seller proceeds worksheet',
+      `Listing workspace: ${workspaceLabel}`,
+      '',
+      `Estimated payoff / liens: ${listingOfferMoney(result.payoff)}`,
+      `Estimated brokerage / marketing cost: ${listingOfferMoney(result.brokerage)}`,
+      `Other estimated seller costs: ${listingOfferMoney(result.otherCosts)}`,
+      '',
+      ...result.rows.map((row, index) => [
+        `Offer ${index + 1}: ${row.label}`,
+        `Offer price: ${listingOfferMoney(row.price)}`,
+        `Seller concessions: ${listingOfferMoney(row.concessions)}`,
+        `Estimated proceeds before unentered items: ${listingOfferMoney(row.estimatedProceeds)}`
+      ].join('\n')),
+      '',
+      'Private estimate only. Values are supplied by the user and may exclude taxes, prorations, title/escrow charges, credits, repairs, payoff adjustments, broker compensation, or other obligations. This is not a closing statement, valuation, legal or tax advice, offer ranking, recommendation, acceptance, rejection, or contract decision. Confirm complete documents and actual figures with the appropriate licensed professional, title/escrow provider, lender, attorney, or tax advisor before acting.'
+    ].join('\n\n') };
+  }
+
+  window.calculateListingOfferNetComparison = function calculateListingOfferNetComparison() {
+    const target = document.getElementById('listingOfferNetResult');
+    const status = document.getElementById('listingOfferNetStatus');
+    const result = listingOfferNetRows();
+    if (result.error) {
+      if (target) target.innerHTML = '';
+      return platformStatus('listingOfferNetStatus', result.error, 'err');
+    }
+    if (target) target.innerHTML = result.rows.map(row => `<div class="platform-list-item"><strong>${escapeAttr(row.label)}</strong><br><small>Offer price ${escapeAttr(listingOfferMoney(row.price))} · seller concessions ${escapeAttr(listingOfferMoney(row.concessions))}</small><br><strong>Estimated proceeds before unentered items: ${escapeAttr(listingOfferMoney(row.estimatedProceeds))}</strong></div>`).join('');
+    if (status) { status.className = 'platform-status ok'; status.textContent = 'Estimated proceeds comparison calculated from your private inputs. Confirm actual figures with the appropriate professionals before acting.'; }
+  };
+
+  window.copyListingOfferNetComparison = async function copyListingOfferNetComparison() {
+    const result = listingOfferNetComparisonText();
+    if (result.error) return platformStatus('listingOfferNetStatus', result.error, 'err');
+    try {
+      if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(result.text);
+      else window.prompt('Copy this private estimated seller proceeds worksheet:', result.text);
+      platformStatus('listingOfferNetStatus', 'Estimated proceeds worksheet copied. Confirm actual figures before sharing or acting.', 'ok');
+    } catch (_) {
+      platformStatus('listingOfferNetStatus', 'Could not copy automatically. Use the print option or copy the worksheet from the prompt.', 'err');
+    }
+  };
+
+  window.printListingOfferNetComparison = function printListingOfferNetComparison() {
+    const result = listingOfferNetComparisonText();
+    if (result.error) return platformStatus('listingOfferNetStatus', result.error, 'err');
+    const printable = window.open('', '_blank', 'noopener,noreferrer');
+    if (!printable) return platformStatus('listingOfferNetStatus', 'Allow pop-ups to print the estimated proceeds worksheet.', 'err');
+    const safe = value => String(value || '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+    printable.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Estimated Seller Proceeds Worksheet</title><style>@page{size:letter;margin:.65in}body{font-family:Arial,sans-serif;color:#102438;line-height:1.45}h1{font-family:Georgia,serif;font-size:27px;margin:0 0 8px}.note{font-size:11px;color:#526271;border-left:4px solid #c8973f;padding-left:12px;white-space:pre-wrap}.worksheet{white-space:pre-wrap;font-size:13px;margin-top:22px}</style></head><body><h1>Estimated Seller Proceeds Worksheet</h1><div class="note">Private estimate only. It is not a closing statement, valuation, legal or tax advice, offer recommendation, or instruction to act.</div><div class="worksheet">${safe(result.text)}</div><script>window.onload=()=>window.print();<\/script></body></html>`);
+    printable.document.close();
+    platformStatus('listingOfferNetStatus', 'Printable estimated proceeds worksheet opened.', 'ok');
   };
 
   async function saveListingWorkspaceOffer() {

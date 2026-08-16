@@ -127,6 +127,16 @@ class ListingWorkspaceFoundationTests(unittest.TestCase):
         self.assertIn("private seller offer-comparison worksheet", INDEX)
         self.assertIn("It does not rank, recommend, accept, reject, or create a contract.", INDEX)
 
+    def test_private_offer_comparison_can_prepare_an_estimated_proceeds_worksheet_without_ranking_offers(self):
+        self.assertIn("Estimated seller proceeds comparison", INDEX)
+        self.assertIn("calculateListingOfferNetComparison", INDEX)
+        self.assertIn("copyListingOfferNetComparison", INDEX)
+        self.assertIn("printListingOfferNetComparison", INDEX)
+        self.assertIn("listingOfferNetRows", INDEX)
+        self.assertIn("Estimated proceeds before unentered items", INDEX)
+        self.assertIn("It does not calculate a closing statement, determine commissions, account for every obligation, rank offers, or recommend a decision.", INDEX)
+        self.assertIn("This is not a closing statement, valuation, legal or tax advice, offer ranking, recommendation, acceptance, rejection, or contract decision.", INDEX)
+
     def test_listing_workspace_can_generate_a_non_executable_seller_launch_checklist(self):
         self.assertIn("Seller Listing Launch Checklist", INDEX)
         self.assertIn("copyListingLaunchChecklist", INDEX)

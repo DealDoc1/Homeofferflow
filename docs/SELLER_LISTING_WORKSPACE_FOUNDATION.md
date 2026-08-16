@@ -8,6 +8,12 @@ Seller Consultation Brief from the selected workspace. Both are practical
 conversation/planning aids; neither creates representation, determines price,
 or causes a document or signing event.
 
+The private offer-comparison workspace also has an optional Estimated Seller
+Proceeds Worksheet. It uses only the agent's own payoff and cost estimates plus
+saved offer price/concession values. It intentionally labels the result as an
+estimate before unentered items: it is never a closing statement, valuation,
+offer ranking, or recommendation, and it is not persisted separately.
+
 ## Privacy model
 
 - Agents can read and update only their own workspaces.
