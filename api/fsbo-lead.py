@@ -31,6 +31,11 @@ SELLER_PLAN_FROM_EMAIL = (
     or os.environ.get("FROM_EMAIL")
     or "offers@homeofferflow.com"
 )
+SELLER_PLAN_REPLY_TO = (
+    os.environ.get("SELLER_PLAN_REPLY_TO")
+    or os.environ.get("SUPPORT_EMAIL")
+    or "support@homeofferflow.com"
+)
 ALLOWED_PARTNER_TYPES = {
     "title",
     "lender",
@@ -207,7 +212,8 @@ def _send_seller_plan_confirmation(payload):
         f"Selected plan: {package_name}{(' (' + package_price + ')') if package_price else ''}\n"
         f"Timeline: {timeline}\n\n"
         "A qualified human review is required to confirm scope, provider involvement, availability, and final pricing before any paid service begins. "
-        "This receipt is not checkout, representation, a confirmed service order, or legal advice."
+        "This receipt is not checkout, representation, a confirmed service order, or legal advice.\n\n"
+        "Have a question or want to discuss the next step sooner? Reply directly to this email."
     )
     safe_address = html.escape(address)
     safe_package = html.escape(package_name)
@@ -216,6 +222,7 @@ def _send_seller_plan_confirmation(payload):
     email_payload = {
         "from": f"HomeOfferFlow <{SELLER_PLAN_FROM_EMAIL}>",
         "to": [recipient],
+        "reply_to": SELLER_PLAN_REPLY_TO,
         "subject": "Your HomeOfferFlow seller plan request",
         "text": plain_text,
         "html": (
@@ -225,6 +232,7 @@ def _send_seller_plan_confirmation(payload):
             f"<strong>Timeline:</strong> {safe_timeline}</p>"
             "<p>A qualified human review is required to confirm scope, provider involvement, availability, and final pricing before any paid service begins.</p>"
             "<p>This receipt is not checkout, representation, a confirmed service order, or legal advice.</p>"
+            "<p>Have a question or want to discuss the next step sooner? Reply directly to this email.</p>"
         ),
     }
     try:

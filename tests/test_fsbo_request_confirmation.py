@@ -74,6 +74,8 @@ class FsboRequestConfirmationTests(unittest.TestCase):
         self.assertIn("Best-effort transactional receipt", api)
         self.assertIn("Idempotency-Key", api)
         self.assertIn("seller_plan_email", api)
+        self.assertIn("SELLER_PLAN_REPLY_TO", api)
+        self.assertIn("Reply directly to this email", api)
         self.assertIn("A copy of this request was also emailed to you.", HTML)
 
     def test_seller_plan_receipt_escapes_seller_content_and_is_idempotent(self):
@@ -108,8 +110,10 @@ class FsboRequestConfirmationTests(unittest.TestCase):
             self.assertEqual(api._send_seller_plan_confirmation(payload), "sent")
         self.assertEqual(captured["args"][0], "https://api.resend.com/emails")
         self.assertEqual(captured["kwargs"]["json"]["to"], ["seller@example.com"])
+        self.assertEqual(captured["kwargs"]["json"]["reply_to"], "support@homeofferflow.com")
         self.assertNotIn("<script>", captured["kwargs"]["json"]["html"])
         self.assertIn("not checkout", captured["kwargs"]["json"]["text"])
+        self.assertIn("Reply directly to this email", captured["kwargs"]["json"]["text"])
         self.assertTrue(captured["kwargs"]["headers"]["Idempotency-Key"].startswith("fsbo-seller-plan-"))
 
     def test_seller_plan_receipt_does_not_attempt_delivery_without_config(self):
