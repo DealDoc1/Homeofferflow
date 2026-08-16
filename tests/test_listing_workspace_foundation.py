@@ -136,6 +136,15 @@ class ListingWorkspaceFoundationTests(unittest.TestCase):
         self.assertIn("not legal advice, a pricing opinion, a listing agreement, disclosure, contract, or instruction to sign", INDEX)
         self.assertIn("hofPlatform.listingWorkspaces = workspaces", INDEX)
 
+    def test_listing_workspace_can_generate_a_private_non_executable_seller_consultation_brief(self):
+        self.assertIn("Seller Consultation Brief", INDEX)
+        self.assertIn("copySellerConsultationBrief", INDEX)
+        self.assertIn("printSellerConsultationBrief", INDEX)
+        self.assertIn("sellerConsultationBriefText", INDEX)
+        self.assertIn("Choose a private listing workspace above first.", INDEX)
+        self.assertIn("It is a private planning document—not a listing agreement, disclosure, pricing opinion, contract, or instruction to sign.", INDEX)
+        self.assertIn("Do not create, send, sign, or describe a listing agreement, disclosure, or lease packet as executable", INDEX)
+
 
 if __name__ == "__main__":
     unittest.main()

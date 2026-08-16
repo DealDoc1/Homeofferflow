@@ -3,7 +3,10 @@
 This foundation separates agent-owned seller/listing intake from buyer offers
 and from legal-form drafts. It supports a sale or lease workspace, property
 address, one-to-four seller names, requested workflow labels, and confidential
-agent notes.
+agent notes. Agents can produce a private Seller Listing Launch Checklist and
+Seller Consultation Brief from the selected workspace. Both are practical
+conversation/planning aids; neither creates representation, determines price,
+or causes a document or signing event.
 
 ## Privacy model
 

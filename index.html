@@ -10925,6 +10925,12 @@ function routeAfterMagicLinkIfNeeded() {
         <div class="platform-actions"><button type="button" onclick="copyListingLaunchChecklist()">Copy Seller Launch Checklist</button><button type="button" class="btn-secondary" onclick="printListingLaunchChecklist()">Print Checklist</button></div>
         <div id="listingLaunchChecklistStatus" class="platform-status"></div>
       </div>
+      <div class="platform-card" id="sellerConsultationBriefCard">
+        <h4>Seller Consultation Brief</h4>
+        <p>Use the selected private workspace to prepare a structured seller conversation, including scope, property facts, launch choices, and next-step questions. It is a private planning document—not a listing agreement, disclosure, pricing opinion, contract, or instruction to sign.</p>
+        <div class="platform-actions"><button type="button" onclick="copySellerConsultationBrief()">Copy Consultation Brief</button><button type="button" class="btn-secondary" onclick="printSellerConsultationBrief()">Print Brief</button></div>
+        <div id="sellerConsultationBriefStatus" class="platform-status"></div>
+      </div>
       <div class="platform-card" id="listingWorkspaceOfferComparisonCard">
         <h4>Seller Offer Comparison Worksheet</h4>
         <p>Keep a private, educational comparison of offers connected to a listing workspace. This does not rank, recommend, accept, reject, or create a contract.</p>
@@ -11297,6 +11303,72 @@ function routeAfterMagicLinkIfNeeded() {
     printable.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Seller Listing Launch Checklist</title><style>@page{size:letter;margin:.65in}body{font-family:Arial,sans-serif;color:#102438;line-height:1.45}h1{font-family:Georgia,serif;font-size:27px;margin:0 0 8px}.note{font-size:11px;color:#526271;border-left:4px solid #c8973f;padding-left:12px;white-space:pre-wrap}.checklist{white-space:pre-wrap;font-size:13px;margin-top:22px}</style></head><body><h1>Seller Listing Launch Checklist</h1><div class="note">Private planning aid generated from a HomeOfferFlow listing workspace. It is not a contract, listing agreement, disclosure, or instruction to sign.</div><div class="checklist">${safe(listingLaunchChecklistText(workspace))}</div><script>window.onload=()=>window.print();<\/script></body></html>`);
     printable.document.close();
     platformStatus('listingLaunchChecklistStatus', 'Printable seller listing launch checklist opened.', 'ok');
+  };
+
+  function sellerConsultationBriefText(workspace) {
+    const kind = String(workspace?.listing_kind || 'sale') === 'lease' ? 'lease listing' : 'sale listing';
+    const workflows = Array.isArray(workspace?.requested_workflows) ? workspace.requested_workflows : [];
+    const requestedServices = workflows.length
+      ? workflows.map(item => `- ${listingWorkspaceLabel(item)}: identify the approved source and responsible professional before any document action.`)
+      : ['- Confirm which seller-side services or documents, if any, the seller wants to discuss.'];
+    return [
+      'HomeOfferFlow Seller Consultation Brief',
+      `Property: ${workspace?.property_address || 'Not entered'}`,
+      `Listing type: ${listingWorkspaceLabel(kind)}`,
+      `Seller / landlord: ${(workspace?.seller_names || []).join('; ') || 'Not entered'}`,
+      `Workspace status: ${listingWorkspaceLabel(workspace?.status || 'intake')}`,
+      '',
+      '1. Seller goals and representation scope',
+      '- What outcome, timing, communication cadence, and decision-makers matter most to the seller?',
+      '- Confirm the responsible brokerage and agent, services being discussed, and which questions need a licensed professional, attorney, title company, lender, or other specialist.',
+      '- Discuss service scope and final pricing only after the appropriate provider confirms availability and terms.',
+      '',
+      '2. Property facts and launch readiness',
+      '- Confirm ownership names, occupancy, access/showing constraints, condition items, HOA or utility information, survey/title questions, and available photos or improvements.',
+      '- Identify facts or marketing claims that need source verification before public use.',
+      '',
+      '3. Marketing and showing plan',
+      '- Discuss photo/video timing, listing-description inputs, MLS or marketing path, fair-housing review, showing instructions, feedback process, and seller update cadence.',
+      '- Record open questions for the responsible professional; do not treat this brief as a pricing opinion or marketing approval.',
+      '',
+      '4. Document and workflow readiness',
+      ...requestedServices,
+      '- Do not create, send, sign, or describe a listing agreement, disclosure, or lease packet as executable until the authorized source and required review are complete.',
+      '',
+      '5. Offer-to-close preparation',
+      '- Explain the private offer-comparison worksheet and the importance of reviewing complete offer documents, deadlines, financing, contingencies, concessions, and seller questions before acting.',
+      '- Identify anticipated title, lender, inspection, possession, and closing communication needs for the appropriate party.',
+      '',
+      '6. Close the conversation',
+      '- Confirm the seller’s next question, owner, due date, and the agreed follow-up channel.',
+      '- Keep sensitive documents and notes in the authorized private workflow.',
+      '',
+      'This private consultation brief is not legal advice, a pricing opinion, a listing agreement, disclosure, contract, or instruction to sign.'
+    ].join('\n');
+  }
+
+  window.copySellerConsultationBrief = async function copySellerConsultationBrief() {
+    const workspace = selectedListingLaunchWorkspace();
+    if (!workspace) return platformStatus('sellerConsultationBriefStatus', 'Choose a private listing workspace above first.', 'err');
+    const brief = sellerConsultationBriefText(workspace);
+    try {
+      if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(brief);
+      else window.prompt('Copy this private seller consultation brief:', brief);
+      platformStatus('sellerConsultationBriefStatus', 'Seller consultation brief copied. Confirm complete documents and authorized workflows before acting.', 'ok');
+    } catch (_) {
+      platformStatus('sellerConsultationBriefStatus', 'Could not copy automatically. Use the print option or copy the brief from the prompt.', 'err');
+    }
+  };
+
+  window.printSellerConsultationBrief = function printSellerConsultationBrief() {
+    const workspace = selectedListingLaunchWorkspace();
+    if (!workspace) return platformStatus('sellerConsultationBriefStatus', 'Choose a private listing workspace above first.', 'err');
+    const printable = window.open('', '_blank', 'noopener,noreferrer');
+    if (!printable) return platformStatus('sellerConsultationBriefStatus', 'Allow pop-ups to print the seller consultation brief.', 'err');
+    const safe = value => String(value || '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+    printable.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Seller Consultation Brief</title><style>@page{size:letter;margin:.65in}body{font-family:Arial,sans-serif;color:#102438;line-height:1.45}h1{font-family:Georgia,serif;font-size:27px;margin:0 0 8px}.note{font-size:11px;color:#526271;border-left:4px solid #c8973f;padding-left:12px;white-space:pre-wrap}.brief{white-space:pre-wrap;font-size:13px;margin-top:22px}</style></head><body><h1>Seller Consultation Brief</h1><div class="note">Private planning aid generated from a HomeOfferFlow listing workspace. It is not a contract, listing agreement, disclosure, pricing opinion, or instruction to sign.</div><div class="brief">${safe(sellerConsultationBriefText(workspace))}</div><script>window.onload=()=>window.print();<\/script></body></html>`);
+    printable.document.close();
+    platformStatus('sellerConsultationBriefStatus', 'Printable seller consultation brief opened.', 'ok');
   };
 
   function listingWorkspaceStatusOptions(currentStatus) {
