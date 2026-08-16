@@ -4271,6 +4271,43 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     return `${days} day${days === 1 ? '' : 's'} old`;
   }
 
+  // Partner applications need a separate, non-transactional follow-up view:
+  // newer paid work is handled by the activation queue, while this queue keeps
+  // no-charge applicants from being buried simply because a newer lead arrived.
+  function partnerLeadFollowUpPriority(row) {
+    const status = String(row?.status || 'new').toLowerCase();
+    const payment = String(row?.payment_status || 'not_started').toLowerCase();
+    const createdAt = Date.parse(row?.created_at || '');
+    const ageDays = Number.isFinite(createdAt) ? Math.max(0, Math.floor((Date.now() - createdAt) / 86400000)) : 0;
+    const statusPriority = status === 'new' ? 0 : status === 'contacted' ? 1 : status === 'qualified' ? 2 : 3;
+    const paymentPriority = payment === 'paid' ? 0 : payment === 'checkout_started' ? 1 : 2;
+    // Older eligible leads win within each operational state.  This is a
+    // private admin ordering aid, never a promise of response time.
+    return [paymentPriority, statusPriority, -ageDays, -(Number.isFinite(createdAt) ? createdAt : 0)];
+  }
+
+  function prioritizePartnerLeadFollowUpQueue(rows) {
+    return [...(rows || [])].sort((left, right) => {
+      const leftPriority = partnerLeadFollowUpPriority(left);
+      const rightPriority = partnerLeadFollowUpPriority(right);
+      for (let index = 0; index < leftPriority.length; index += 1) {
+        if (leftPriority[index] !== rightPriority[index]) return leftPriority[index] - rightPriority[index];
+      }
+      return 0;
+    });
+  }
+
+  function partnerLeadAttentionLabel(row) {
+    const status = String(row?.status || 'new').toLowerCase();
+    const payment = String(row?.payment_status || 'not_started').toLowerCase();
+    const createdAt = Date.parse(row?.created_at || '');
+    const ageDays = Number.isFinite(createdAt) ? Math.max(0, Math.floor((Date.now() - createdAt) / 86400000)) : 0;
+    if (payment === 'checkout_started') return 'Checkout follow-up';
+    if (payment === 'paid') return 'Paid — activation queue';
+    if (status === 'new' && ageDays >= 1) return 'Needs contact';
+    return status.replace(/_/g, ' ');
+  }
+
   function sellerLeadUrgency(row) {
     const status = String(row?.status || 'new').toLowerCase();
     const timeline = String(row?.timeline || '').toLowerCase();
@@ -4359,11 +4396,13 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         const status = String(row.status || 'new');
         const paymentStatus = String(row.payment_status || 'not_started');
         const onboardingStatus = String(row.onboarding_status || 'not_started');
+        const age = sellerLeadAgeLabel(row);
+        const attention = partnerLeadAttentionLabel(row);
         const canUpdate = /^[0-9a-f-]{36}$/i.test(leadId);
         return `<div class="admin-row">
           <div><strong>${adminSafe(row.company_name || 'Partner lead')}</strong><div class="admin-muted">${adminSafe(row.contact_name || '')} · ${adminSafe(row.contact_email || '')}</div>${partnerLeadFollowUpAction(row) ? `<div class="partner-lead-admin-actions">${partnerLeadFollowUpAction(row)}</div>` : ''}</div>
           <div>${adminSafe(row.market_area || '')}<div class="admin-muted">${adminSafe(row.preferred_model || '')}</div></div>
-          <div><span class="admin-pill ${paymentStatus === 'paid' ? 'good' : 'warn'}">${adminSafe(paymentStatus)}</span><div class="admin-muted">${adminSafe(row.partner_type || 'other')} · onboarding: ${adminSafe(onboardingStatus)} · agreement: ${adminSafe(row.partner_agreement_status || 'not_started')}</div></div>
+          <div><span class="admin-pill ${paymentStatus === 'paid' ? 'good' : 'warn'}">${adminSafe(attention)}</span><div class="admin-muted">${adminSafe(age)} · ${adminSafe(row.partner_type || 'other')} · payment: ${adminSafe(paymentStatus)} · onboarding: ${adminSafe(onboardingStatus)} · agreement: ${adminSafe(row.partner_agreement_status || 'not_started')}</div></div>
           <div>${adminDate(row.created_at)}${canUpdate ? `<div class="partner-lead-admin-actions"><select id="partnerLeadStatus-${leadId}" aria-label="Review status for ${adminSafe(row.company_name || 'partner lead')}">${partnerLeadStatusOptions(status)}</select><select id="partnerOnboardingStatus-${leadId}" aria-label="Onboarding status for ${adminSafe(row.company_name || 'partner lead')}">${partnerOnboardingStatusOptions(onboardingStatus)}</select><button id="partnerLeadSave-${leadId}" type="button" onclick="updatePartnerLeadStatus('${leadId}')">Save</button></div>` : ''}</div>
         </div>`;
       }
@@ -4815,7 +4854,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 
         <div class="admin-section">
           <h4>Founding Partner Leads</h4>
-          ${renderAdminRows(partnerLeads.slice(0, 12), 'partner-leads')}
+          ${renderAdminRows(prioritizePartnerLeadFollowUpQueue(partnerLeads).slice(0, 12), 'partner-leads')}
         </div>
 
         <div class="admin-section">
