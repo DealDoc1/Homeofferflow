@@ -85,6 +85,7 @@ FSBO_LANDING_EVENT_TYPES = {
     "fsbo_required_fields_missing": "incomplete",
     "fsbo_request_submission_started": "started",
     "fsbo_request_saved": "saved",
+    "fsbo_seller_plan_downloaded": "downloaded",
     "pwa_seller_plan_opened": "opened",
 }
 PARTNER_LANDING_EVENT_TYPES = {

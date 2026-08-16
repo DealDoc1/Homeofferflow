@@ -57,6 +57,14 @@ class FsboRequestConfirmationTests(unittest.TestCase):
         self.assertIn("FSBO Seller Request Receipt Viewed", HTML)
         self.assertIn("FSBO Seller Request Receipt Cleared", HTML)
 
+    def test_fsbo_plan_download_is_anonymous_conversion_evidence(self):
+        api = (pathlib.Path(__file__).resolve().parents[1] / "api" / "fsbo-lead.py").read_text(encoding="utf-8")
+        admin = (pathlib.Path(__file__).resolve().parents[1] / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
+        self.assertIn("FSBO Seller Plan Downloaded", HTML)
+        self.assertIn("fsbo_seller_plan_downloaded", api)
+        self.assertIn('"sellerPlanDownloadCount"', admin)
+        self.assertIn("sellerPlanDownloadCount", HTML)
+
 
 if __name__ == "__main__":
     unittest.main()

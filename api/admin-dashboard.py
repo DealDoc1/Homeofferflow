@@ -4273,6 +4273,7 @@ class handler(BaseHTTPRequestHandler):
                 "fsbo_intake_opened", "fsbo_required_fields_ready",
                 "fsbo_package_selected", "fsbo_required_fields_missing",
                 "fsbo_request_submission_started", "fsbo_request_saved",
+                "fsbo_seller_plan_downloaded",
             }
             seller_intake_event_counts = {event_type: len([item for item in events if item.get("event_type") == event_type]) for event_type in seller_intake_event_types}
             seller_required_ready_count = seller_intake_event_counts["fsbo_required_fields_ready"]
@@ -4381,6 +4382,7 @@ class handler(BaseHTTPRequestHandler):
                 "sellerIntakeEventCounts": seller_intake_event_counts,
                 "sellerRequiredReadyCount": seller_required_ready_count,
                 "sellerReadyToSaveRate": seller_ready_to_save_rate,
+                "sellerPlanDownloadCount": seller_intake_event_counts["fsbo_seller_plan_downloaded"],
                 "sellerPackageRequestCounts": seller_package_request_counts,
                 "sellerCampaignLeadCount": len(tracked_seller_campaign_leads),
                 "sellerCampaignMediumCounts": seller_campaign_medium_counts,

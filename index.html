@@ -4694,7 +4694,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <div class="admin-metric-label">Seller / FSBO Leads</div>
             <div class="admin-metric-value">${metrics.sellerLeadCount || sellerLeads.length || 0}</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.sellerLandingViewCount || 0} seller landing views · ${metrics.sellerLandingCtaCount || 0} intake starts (${Number(metrics.sellerLandingCtaRate || 0).toFixed(1)}%).</div>
-            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Intake progress: ${Number(metrics.sellerIntakeEventCounts?.fsbo_intake_opened || 0)} opened · ${Number(metrics.sellerIntakeEventCounts?.fsbo_package_selected || 0)} package choices · ${Number(metrics.sellerIntakeEventCounts?.fsbo_required_fields_missing || 0)} incomplete attempts · ${Number(metrics.sellerIntakeEventCounts?.fsbo_request_submission_started || 0)} submissions started · ${Number(metrics.sellerIntakeEventCounts?.fsbo_request_saved || 0)} saved.</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Intake progress: ${Number(metrics.sellerIntakeEventCounts?.fsbo_intake_opened || 0)} opened · ${Number(metrics.sellerIntakeEventCounts?.fsbo_package_selected || 0)} package choices · ${Number(metrics.sellerIntakeEventCounts?.fsbo_required_fields_missing || 0)} incomplete attempts · ${Number(metrics.sellerIntakeEventCounts?.fsbo_request_submission_started || 0)} submissions started · ${Number(metrics.sellerIntakeEventCounts?.fsbo_request_saved || 0)} saved · ${Number(metrics.sellerPlanDownloadCount || 0)} plans downloaded.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Address + email ready: ${Number(metrics.sellerRequiredReadyCount || 0)} · ready-to-save conversion: ${Number(metrics.sellerReadyToSaveRate || 0).toFixed(1)}%.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Landing-path interest: ${adminSafe(Object.entries(metrics.sellerLandingPackageCtaCounts || {}).map(([packageKey, count]) => `${packageKey.replace(/_/g, ' ')} (${count})`).join(' · '), 'starts will appear after the next seller-page visit')}</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.sellerFollowUpEmailStartCount || 0} seller follow-up emails opened · ${Number(metrics.sellerFollowUpEmailStartRate || 0).toFixed(1)}% of seller leads.</div>
@@ -12365,7 +12365,8 @@ function routeAfterMagicLinkIfNeeded() {
       'FSBO Seller Package Selected': 'fsbo_package_selected',
       'FSBO Seller Intake Required Fields Missing': 'fsbo_required_fields_missing',
       'FSBO Seller Request Submission Started': 'fsbo_request_submission_started',
-      'FSBO Seller Request Saved': 'fsbo_request_saved'
+      'FSBO Seller Request Saved': 'fsbo_request_saved',
+      'FSBO Seller Plan Downloaded': 'fsbo_seller_plan_downloaded'
     }[name];
     if (!eventType) return;
     const serviceLevel = String(data.package || data.campaignPackage || 'free_intake');
@@ -12694,6 +12695,7 @@ function routeAfterMagicLinkIfNeeded() {
     link.href = url;
     link.download = 'homeofferflow-fsbo-seller-plan.txt';
     link.click();
+    trackFsboFunnel('FSBO Seller Plan Downloaded', { package: key });
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
   window.openFsboProviderDirectory = function openFsboProviderDirectory() {
