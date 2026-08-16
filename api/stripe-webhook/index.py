@@ -13,6 +13,10 @@ import httpx
 
 STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "")
 STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_SUBSCRIPTION_WEBHOOK_SECRET", "")
+# The older webhook setting is retained only for Stripe test-mode deliveries.
+# It may acknowledge a correctly signed sandbox event, but it can never
+# authorize a live billing mutation.
+STRIPE_TEST_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
 SUPABASE_SERVICE_ROLE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
@@ -114,7 +118,7 @@ class handler(BaseHTTPRequestHandler):
             raw_body = self.rfile.read(int(self.headers.get("Content-Length", 0)))
             sig_header = self.headers.get("Stripe-Signature", "")
 
-            if not STRIPE_WEBHOOK_SECRET:
+            if not STRIPE_WEBHOOK_SECRET and not STRIPE_TEST_WEBHOOK_SECRET:
                 self._send_json(500, {"error": "Missing STRIPE_WEBHOOK_SECRET"})
                 return
 
@@ -125,6 +129,14 @@ class handler(BaseHTTPRequestHandler):
             event = json.loads(raw_body.decode("utf-8"))
             event_type = event.get("type", "")
             data_object = event.get("data", {}).get("object", {}) or {}
+
+            # The legacy test secret can only acknowledge a Stripe sandbox
+            # delivery. Never let a payload signed with it claim to be live.
+            # This resolves harmless Stripe test retries without allowing a
+            # test credential to change production subscription state.
+            if getattr(self, "_stripe_signature_source", "live") == "test" and event.get("livemode") is not False:
+                self._send_json(400, {"error": "Invalid Stripe signature"})
+                return
 
             # Stripe marks sandbox deliveries with livemode=false. Acknowledge
             # and ignore those by default: returning an error makes Stripe
@@ -192,6 +204,7 @@ class handler(BaseHTTPRequestHandler):
 
     def _verify_stripe_signature(self, raw_body, sig_header):
         try:
+            self._stripe_signature_source = None
             parts = {}
             for item in sig_header.split(","):
                 if "=" in item:
@@ -215,13 +228,21 @@ class handler(BaseHTTPRequestHandler):
 
             signed_payload = timestamp.encode("utf-8") + b"." + raw_body
 
-            expected_sig = hmac.new(
-                STRIPE_WEBHOOK_SECRET.encode("utf-8"),
-                signed_payload,
-                hashlib.sha256,
-            ).hexdigest()
-
-            return any(hmac.compare_digest(expected_sig, sig) for sig in signatures)
+            candidate_secrets = (("live", STRIPE_WEBHOOK_SECRET), ("test", STRIPE_TEST_WEBHOOK_SECRET))
+            for source, secret in candidate_secrets:
+                # Avoid accepting the same configured value twice and keep an
+                # empty optional test secret from acting as a valid HMAC key.
+                if not secret or (source == "test" and secret == STRIPE_WEBHOOK_SECRET):
+                    continue
+                expected_sig = hmac.new(
+                    secret.encode("utf-8"),
+                    signed_payload,
+                    hashlib.sha256,
+                ).hexdigest()
+                if any(hmac.compare_digest(expected_sig, sig) for sig in signatures):
+                    self._stripe_signature_source = source
+                    return True
+            return False
 
         except Exception:
             return False

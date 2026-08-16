@@ -1,7 +1,10 @@
 import importlib.util
+import hashlib
+import hmac
 import io
 import json
 import os
+import time
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -122,6 +125,7 @@ class SubscriptionLifecycleSecurityTests(unittest.TestCase):
         portal.SUPABASE_URL = "https://example.supabase.co"
         portal.SUPABASE_SERVICE_ROLE_KEY = "service-test-key"
         webhook.STRIPE_WEBHOOK_SECRET = "whsec_test_example"
+        webhook.STRIPE_TEST_WEBHOOK_SECRET = ""
         os.environ.pop("STRIPE_WEBHOOK_ALLOW_TEST_EVENTS", None)
         os.environ.pop("STRIPE_WEBHOOK_TEST_ENVIRONMENT", None)
         os.environ.pop("VERCEL_ENV", None)
@@ -274,6 +278,44 @@ class SubscriptionLifecycleSecurityTests(unittest.TestCase):
 
         self.assertEqual(captured["code"], 200)
         self.assertEqual(captured["data"], {"received": True, "ignored": True})
+
+    def test_distinct_test_secret_can_only_acknowledge_a_sandbox_event(self):
+        webhook.STRIPE_WEBHOOK_SECRET = "whsec_live_example"
+        webhook.STRIPE_TEST_WEBHOOK_SECRET = "whsec_sandbox_example"
+        event = {"livemode": False, "type": "invoice.paid", "data": {"object": {"subscription": "sub_sandbox"}}}
+        raw = json.dumps(event).encode()
+        timestamp = str(int(time.time()))
+        signature = hmac.new(b"whsec_sandbox_example", timestamp.encode() + b"." + raw, hashlib.sha256).hexdigest()
+        request = webhook.handler.__new__(webhook.handler)
+        request.headers = {"Content-Length": str(len(raw)), "Stripe-Signature": f"t={timestamp},v1={signature}"}
+        request.rfile = io.BytesIO(raw)
+        request._handle_invoice_status = lambda *_args: self.fail("Test-mode events cannot mutate production subscriptions.")
+        request._claim_webhook_event = lambda *_args: self.fail("Ignored sandbox events must not create a ledger row.")
+        captured = {}
+        request._send_json = lambda code, data: captured.update(code=code, data=data)
+
+        request.do_POST()
+
+        self.assertEqual(captured["code"], 200)
+        self.assertEqual(captured["data"], {"received": True, "ignored": True})
+
+    def test_test_secret_cannot_authorize_a_livemode_payload(self):
+        webhook.STRIPE_WEBHOOK_SECRET = "whsec_live_example"
+        webhook.STRIPE_TEST_WEBHOOK_SECRET = "whsec_sandbox_example"
+        event = {"livemode": True, "type": "invoice.paid", "data": {"object": {"subscription": "sub_live"}}}
+        raw = json.dumps(event).encode()
+        timestamp = str(int(time.time()))
+        signature = hmac.new(b"whsec_sandbox_example", timestamp.encode() + b"." + raw, hashlib.sha256).hexdigest()
+        request = webhook.handler.__new__(webhook.handler)
+        request.headers = {"Content-Length": str(len(raw)), "Stripe-Signature": f"t={timestamp},v1={signature}"}
+        request.rfile = io.BytesIO(raw)
+        request._handle_invoice_status = lambda *_args: self.fail("Test secret must never mutate live subscriptions.")
+        captured = {}
+        request._send_json = lambda code, data: captured.update(code=code, data=data)
+
+        request.do_POST()
+
+        self.assertEqual(captured["code"], 400)
 
     def test_isolated_test_environment_may_explicitly_process_sandbox_events(self):
         event = {
