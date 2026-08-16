@@ -101,6 +101,7 @@ FSBO_LANDING_EVENT_TYPES = {
     "fsbo_seller_plan_downloaded": "downloaded",
     "pwa_seller_plan_opened": "opened",
 }
+FSBO_RECEIPT_DELIVERY_STATUSES = {"sent", "failed", "not_configured", "missing_email"}
 PARTNER_LANDING_EVENT_TYPES = {
     "partner_landing_viewed": "viewed",
     "partner_landing_cta_selected": "selected",
@@ -251,6 +252,22 @@ def _send_seller_plan_confirmation(payload):
         return "sent" if response.status_code < 300 else "failed"
     except Exception:
         return "failed"
+
+
+def _record_seller_plan_receipt_event(payload, delivery_status):
+    """Store delivery-provider acceptance only; never store seller or property data in telemetry."""
+    status = _text(delivery_status, 80)
+    if status not in FSBO_RECEIPT_DELIVERY_STATUSES:
+        return
+    service_level = _text((payload or {}).get("service_level"), 80) or "free_intake"
+    if service_level not in FSBO_PACKAGE_CATALOG:
+        service_level = "free_intake"
+    _record_partner_checkout_event(
+        "fsbo_seller_plan_receipt_" + status,
+        status,
+        "Privacy-safe seller plan receipt delivery status recorded.",
+        {"surface": "seller_plan_receipt", "serviceLevel": service_level},
+    )
 
 
 def _money(value):
@@ -1144,6 +1161,7 @@ class handler(BaseHTTPRequestHandler):
                 return _send(self, 500, {'error': 'Could not save seller lead.', 'detail': resp.text[:500]})
             row = resp.json()[0] if resp.text and resp.text.strip().startswith('[') else {}
             email_delivery = _send_seller_plan_confirmation(payload)
+            _record_seller_plan_receipt_event(payload, email_delivery)
             return _send(self, 200, {
                 'ok': True,
                 'seller_lead_id': row.get('id'),

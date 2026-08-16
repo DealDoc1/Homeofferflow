@@ -62,6 +62,16 @@ class FsboIntakeConversionTests(unittest.TestCase):
         self.assertIn('"sellerReadyToSaveRate"', admin)
         self.assertIn("ready-to-save conversion", HTML)
 
+    def test_seller_plan_receipt_delivery_is_visible_as_aggregate_operations_evidence(self):
+        api = (Path(__file__).resolve().parents[1] / "api" / "fsbo-lead.py").read_text(encoding="utf-8")
+        admin = (Path(__file__).resolve().parents[1] / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
+        self.assertIn("def _record_seller_plan_receipt_event", api)
+        self.assertIn("FSBO_RECEIPT_DELIVERY_STATUSES", api)
+        self.assertIn("fsbo_seller_plan_receipt_", api)
+        self.assertIn('"sellerPlanReceiptSentCount"', admin)
+        self.assertIn('"sellerPlanReceiptFailureCount"', admin)
+        self.assertIn("Seller-plan receipts:", HTML)
+
     def test_restoring_a_draft_does_not_inflate_package_selection_analytics(self):
         self.assertIn("window.selectFsboNeed?.(draft.fsboNeed, false)", HTML)
         self.assertIn("function(key, shouldTrack = true)", HTML)

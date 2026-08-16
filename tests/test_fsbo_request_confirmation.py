@@ -123,6 +123,24 @@ class FsboRequestConfirmationTests(unittest.TestCase):
         with patch.object(api, "RESEND_API_KEY", ""):
             self.assertEqual(api._send_seller_plan_confirmation({"seller_email": "seller@example.com"}), "not_configured")
 
+    def test_receipt_delivery_telemetry_is_aggregate_and_allowlisted(self):
+        spec = importlib.util.spec_from_file_location("fsbo_plan_receipt_telemetry", API_PATH)
+        api = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(api)
+        captured = []
+        with patch.object(api, "_record_partner_checkout_event", side_effect=lambda *args: captured.append(args)):
+            api._record_seller_plan_receipt_event({
+                "seller_email": "seller@example.com",
+                "property_address": "1438 Whitaker Road",
+                "service_level": "seller_prep",
+            }, "sent")
+            api._record_seller_plan_receipt_event({"service_level": "seller_prep"}, "unexpected")
+        self.assertEqual(len(captured), 1)
+        event_type, status, _, metadata = captured[0]
+        self.assertEqual(event_type, "fsbo_seller_plan_receipt_sent")
+        self.assertEqual(status, "sent")
+        self.assertEqual(metadata, {"surface": "seller_plan_receipt", "serviceLevel": "seller_prep"})
+
 
 if __name__ == "__main__":
     unittest.main()

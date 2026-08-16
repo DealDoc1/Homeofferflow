@@ -4276,6 +4276,11 @@ class handler(BaseHTTPRequestHandler):
                 "fsbo_seller_plan_downloaded",
             }
             seller_intake_event_counts = {event_type: len([item for item in events if item.get("event_type") == event_type]) for event_type in seller_intake_event_types}
+            seller_receipt_delivery_statuses = {"sent", "failed", "not_configured", "missing_email"}
+            seller_plan_receipt_counts = {status: len([
+                item for item in events
+                if item.get("event_type") == f"fsbo_seller_plan_receipt_{status}"
+            ]) for status in seller_receipt_delivery_statuses}
             seller_required_ready_count = seller_intake_event_counts["fsbo_required_fields_ready"]
             seller_request_saved_count = seller_intake_event_counts["fsbo_request_saved"]
             seller_ready_to_save_rate = round((seller_request_saved_count / seller_required_ready_count) * 100, 1) if seller_required_ready_count else 0
@@ -4383,6 +4388,13 @@ class handler(BaseHTTPRequestHandler):
                 "sellerRequiredReadyCount": seller_required_ready_count,
                 "sellerReadyToSaveRate": seller_ready_to_save_rate,
                 "sellerPlanDownloadCount": seller_intake_event_counts["fsbo_seller_plan_downloaded"],
+                "sellerPlanReceiptCounts": seller_plan_receipt_counts,
+                "sellerPlanReceiptSentCount": seller_plan_receipt_counts["sent"],
+                "sellerPlanReceiptFailureCount": (
+                    seller_plan_receipt_counts["failed"]
+                    + seller_plan_receipt_counts["not_configured"]
+                    + seller_plan_receipt_counts["missing_email"]
+                ),
                 "sellerPackageRequestCounts": seller_package_request_counts,
                 "sellerCampaignLeadCount": len(tracked_seller_campaign_leads),
                 "sellerCampaignMediumCounts": seller_campaign_medium_counts,
