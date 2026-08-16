@@ -13084,7 +13084,7 @@ function routeAfterMagicLinkIfNeeded() {
     <div class="notice gold" id="foundingPartnerCheckoutResume" style="display:none;margin-bottom:.9rem;"><strong>Your application is saved.</strong><br>You can resume the exact secure checkout below whenever you are ready. No second application is created on this device. You do not need to re-enter your saved essentials.</div>
 
     <div class="partner-tier-grid" role="radiogroup" aria-label="Partner advertising tier">
-      <button type="button" class="partner-tier-card" data-partner-tier="founding_pilot" role="radio" aria-checked="false" onclick="selectFoundingPartnerTier('founding_pilot')">
+      <button type="button" class="partner-tier-card is-selected" data-partner-tier="founding_pilot" role="radio" aria-checked="true" onclick="selectFoundingPartnerTier('founding_pilot')">
         <span class="partner-tier-badge subtle">Build visibility</span>
         <h4>Core Partner</h4>
         <div class="partner-tier-price"><strong>$149</strong><span>one time<br>first 90 days</span></div>
@@ -13100,7 +13100,7 @@ function routeAfterMagicLinkIfNeeded() {
         <span class="partner-tier-select-copy">Select Core Partner</span>
       </button>
 
-      <button type="button" class="partner-tier-card is-selected" data-partner-tier="monthly_placement" role="radio" aria-checked="true" onclick="selectFoundingPartnerTier('monthly_placement')">
+      <button type="button" class="partner-tier-card" data-partner-tier="monthly_placement" role="radio" aria-checked="false" onclick="selectFoundingPartnerTier('monthly_placement')">
         <span class="partner-tier-badge">Recommended</span>
         <h4>Featured Partner</h4>
         <div class="partner-tier-price"><strong>$399</strong><span>one time<br>first 90 days</span></div>
@@ -13153,8 +13153,8 @@ function routeAfterMagicLinkIfNeeded() {
 
     <div class="partner-safety-note"><span aria-hidden="true">✓</span><div><strong>Consumer choice stays protected.</strong> Partner fees pay for disclosed advertising inventory—not referrals, closings, or required selection. HomeOfferFlow never preselects a paid provider, and users may choose any provider or none.</div></div>
 
-    <div class="partner-selected-tier" aria-live="polite"><span>Selected 90-day Founding Partner pilot</span><strong id="foundingPartnerTierSelection">Featured Partner · $399 one time for the first 90 days</strong></div>
-    <select id="foundingPartnerModel" class="partner-tier-native-select" aria-label="Selected advertising tier"><option value="founding_pilot">Core Partner</option><option value="monthly_placement" selected>Featured Partner</option><option value="market_exclusive">Premier Partner</option><option value="discuss">Custom / multi-market plan</option></select>
+    <div class="partner-selected-tier" aria-live="polite"><span>Selected 90-day Founding Partner pilot</span><strong id="foundingPartnerTierSelection">Core Partner · $149 one time for the first 90 days</strong></div>
+    <select id="foundingPartnerModel" class="partner-tier-native-select" aria-label="Selected advertising tier"><option value="founding_pilot" selected>Core Partner</option><option value="monthly_placement">Featured Partner</option><option value="market_exclusive">Premier Partner</option><option value="discuss">Custom / multi-market plan</option></select>
 
     <div class="partner-checkout-intake-note"><strong>Start with the essentials.</strong><span>Category, company, contact, business email, and one market area are all that is needed to reserve your selected tier and continue to secure checkout. Everything else can be added during onboarding.</span></div>
     <div class="platform-grid" id="foundingPartnerEssentials">
@@ -13247,7 +13247,7 @@ function routeAfterMagicLinkIfNeeded() {
     return { category, tier, channel };
   }
   function recordPartnerApplicationOpened(campaign){
-    const tier = value('foundingPartnerModel') || 'monthly_placement';
+    const tier = value('foundingPartnerModel') || 'founding_pilot';
     const category = campaign?.category || 'unspecified';
     const key = 'hof_partner_application_opened_' + tier + '_' + category;
     try {
@@ -13282,7 +13282,7 @@ function routeAfterMagicLinkIfNeeded() {
     }
   };
   window.selectFoundingPartnerTier = function(model, shouldTrack = true){
-    const detail = partnerTierDetails[model] || partnerTierDetails.monthly_placement;
+    const detail = partnerTierDetails[model] || partnerTierDetails.founding_pilot;
     const select = document.getElementById('foundingPartnerModel');
     const budget = document.getElementById('foundingPartnerBudget');
     const summary = document.getElementById('foundingPartnerTierSelection');
@@ -13306,7 +13306,7 @@ function routeAfterMagicLinkIfNeeded() {
   window.jumpToFoundingPartnerEssentials = function(){
     const essentials = document.getElementById('foundingPartnerEssentials');
     if (!essentials) return;
-    trackPartnerFunnel('Founding Partner Essentials Jumped', { tier: value('foundingPartnerModel') || 'monthly_placement' });
+    trackPartnerFunnel('Founding Partner Essentials Jumped', { tier: value('foundingPartnerModel') || 'founding_pilot' });
     essentials.scrollIntoView({ behavior: 'smooth', block: 'start' });
     setTimeout(() => document.getElementById('foundingPartnerCompany')?.focus(), 250);
   };
@@ -13501,7 +13501,7 @@ function routeAfterMagicLinkIfNeeded() {
     }
   }
   document.addEventListener('DOMContentLoaded', function(){
-    window.selectFoundingPartnerTier('monthly_placement', false);
+    window.selectFoundingPartnerTier('founding_pilot', false);
     if (params().get('partner_checkout') === 'cancelled') {
       const query = params();
       const cancelledLeadId = query.get('partner_lead_id') || '';

@@ -121,7 +121,7 @@ class PartnerTierUiTests(unittest.TestCase):
             "Founding Partner Checkout Failed",
         ):
             self.assertIn(event, self.html)
-        self.assertIn("window.selectFoundingPartnerTier('monthly_placement', false)", self.html)
+        self.assertIn("window.selectFoundingPartnerTier('founding_pilot', false)", self.html)
 
     def test_selected_tier_makes_the_secure_checkout_handoff_explicit(self):
         self.assertIn('id="foundingPartnerCheckoutNote"', self.html)
