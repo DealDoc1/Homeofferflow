@@ -31,6 +31,11 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn(f'name="twitter:image" content="{preview_url}"', INDEX)
         self.assertIn('"@type": "SoftwareApplication"', INDEX)
         self.assertIn('"priceCurrency": "USD"', INDEX)
+        self.assertIn('"@type": "FAQPage"', INDEX)
+        self.assertIn('Can I start a HomeOfferFlow buyer offer without paying?', INDEX)
+        self.assertIn('Does HomeOfferFlow provide legal advice or represent me as an agent?', INDEX)
+        self.assertIn('Clear answers before you begin a Texas offer.', INDEX)
+        self.assertIn('Does HomeOfferFlow replace my agent or attorney?', INDEX)
 
     def test_crawlers_can_discover_the_public_marketing_routes(self):
         self.assertIn('Sitemap: https://www.homeofferflow.com/sitemap.xml', ROBOTS)

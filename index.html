@@ -41,6 +41,18 @@
     }
   }
   </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {"@type":"Question","name":"Can I start a HomeOfferFlow buyer offer without paying?","acceptedAnswer":{"@type":"Answer","text":"Yes. You can start the guided Texas buyer-offer workflow without payment, review the completed offer summary, and only see the one-time $99 checkout when the supported packet is ready."}},
+      {"@type":"Question","name":"Does HomeOfferFlow provide legal advice or represent me as an agent?","acceptedAnswer":{"@type":"Answer","text":"No. HomeOfferFlow is a Texas form-completion tool. It does not provide legal advice or create an attorney, brokerage, or agency relationship. You can have your own licensed Texas agent or attorney review the packet before you submit it."}},
+      {"@type":"Question","name":"Who is HomeOfferFlow for?","acceptedAnswer":{"@type":"Answer","text":"HomeOfferFlow has guided paths for Texas homebuyers, agents and brokers, investors, FSBO sellers, and service partners. Each path has its own workflow, scope, and payment terms."}},
+      {"@type":"Question","name":"What happens after I complete a buyer offer?","acceptedAnswer":{"@type":"Answer","text":"You review the plain-English offer summary before checkout. When the supported packet is ready and payment is completed, HomeOfferFlow provides the buyer-side packet and signing workflow for your review and next steps."}}
+    ]
+  }
+  </script>
   <link rel="manifest" href="/manifest.webmanifest" />
   <link rel="icon" href="/assets/homeofferflow-app-icon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="/assets/homeofferflow-apple-touch-icon.png" sizes="180x180" />
@@ -378,6 +390,10 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     .trust-mini-row { display:flex; gap:0.5rem; justify-content:center; flex-wrap:wrap; margin-top:1rem; }
     .trust-chip { display:inline-flex; align-items:center; gap:0.35rem; background:rgba(255,255,255,0.035); border:1px solid rgba(255,255,255,0.08); color:var(--gray-light); padding:0.35rem 0.65rem; border-radius:999px; font-size:0.74rem; font-weight:600; }
     .trust-chip strong { color:var(--gold-light); font-weight:800; }
+    .home-faq { max-width:800px; margin:0 auto; }
+    .home-faq details { border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.035); border-radius:12px; padding:.85rem 1rem; margin:.6rem 0; }
+    .home-faq summary { cursor:pointer; color:var(--white); font-weight:800; }
+    .home-faq p { color:var(--gray-light); line-height:1.6; margin:.7rem 0 .1rem; }
     .section { position: relative; z-index: 1; padding: 5.5rem 1.5rem; max-width: 1080px; margin: 0 auto; }
     .section-label { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--gold); margin-bottom: 0.9rem; }
     .section h2 { font-family: 'Playfair Display', serif; font-size: clamp(1.9rem, 3.8vw, 2.9rem); font-weight: 700; line-height: 1.15; max-width: 540px; }
@@ -2636,6 +2652,17 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     <div class="step-card"><div class="step-num">03</div><h3>Review your offer</h3><p>See a plain-English summary of every field before you pay. Go back and fix anything.</p></div>
     <div class="step-card"><div class="step-num">04</div><h3>Download & send</h3><p>Pay once, receive your packet, and review it with your own licensed agent or attorney before submitting.</p></div>
   </div>
+</section>
+
+<hr class="divider"/>
+
+<section class="section home-faq" aria-labelledby="home-faq-title">
+  <div class="section-label">Before You Start</div>
+  <h2 id="home-faq-title">Clear answers before you begin a Texas offer.</h2>
+  <details><summary>Can I start without paying?</summary><p>Yes. You can begin the guided buyer-offer workflow without payment, review the completed offer summary, and only see the one-time $99 checkout when the supported packet is ready.</p></details>
+  <details><summary>Does HomeOfferFlow replace my agent or attorney?</summary><p>No. HomeOfferFlow is a Texas form-completion tool, not legal advice or brokerage representation. You can have your own licensed Texas agent or attorney review the packet before you submit it.</p></details>
+  <details><summary>Is this only for homebuyers?</summary><p>No. HomeOfferFlow also has separate paths for <a href="/agents" style="color:var(--gold-light);font-weight:800;">agents and brokers</a>, <a href="/investors" style="color:var(--gold-light);font-weight:800;">investors</a>, <a href="/sellers" style="color:var(--gold-light);font-weight:800;">FSBO sellers</a>, and service partners. Each has its own workflow, scope, and payment terms.</p></details>
+  <details><summary>What happens after I complete a buyer offer?</summary><p>You review the plain-English summary before checkout. When the supported packet is ready and payment is completed, HomeOfferFlow provides the buyer-side packet and signing workflow for your review and next steps.</p></details>
 </section>
 
 <hr class="divider"/>
