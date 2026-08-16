@@ -138,6 +138,8 @@ class PartnerTierUiTests(unittest.TestCase):
         self.assertIn("window.jumpToFoundingPartnerEssentials", self.html)
         self.assertIn("essentials.scrollIntoView({ behavior: 'smooth', block: 'start' })", self.html)
         self.assertIn("Founding Partner Essentials Jumped", self.html)
+        self.assertIn("partner_application_tier_selected", self.html)
+        self.assertIn("partner_application_essentials_opened", self.html)
 
     def test_admin_partner_leads_have_privacy_limited_follow_up_action(self):
         self.assertIn("partnerLeadFollowUpAction", self.html)

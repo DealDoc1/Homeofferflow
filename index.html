@@ -13259,6 +13259,20 @@ function routeAfterMagicLinkIfNeeded() {
       }).catch(() => {});
     } catch (_) {}
   }
+  function recordPartnerApplicationProgress(eventType){
+    const tier = value('foundingPartnerModel') || 'founding_pilot';
+    if (!partnerCampaignTiers.has(tier)) return;
+    const category = campaignPartnerCategory() || 'unspecified';
+    const key = 'hof_partner_' + eventType + '_' + tier + '_' + category;
+    try {
+      if (sessionStorage.getItem(key)) return;
+      sessionStorage.setItem(key, '1');
+      fetch('/api/fsbo-lead', {
+        method:'POST', headers:{'Content-Type':'application/json'}, keepalive:true,
+        body: JSON.stringify({request_type:'partner_landing_event', event_type:eventType, tier, category})
+      }).catch(() => {});
+    } catch (_) {}
+  }
   window.openFoundingPartnerModal = function(){
     const modal = document.getElementById('foundingPartnerModal');
     if (!modal) return;
@@ -13301,12 +13315,16 @@ function routeAfterMagicLinkIfNeeded() {
     });
     if (submit) submit.textContent = (Boolean(window.__hofFoundingPartnerLeadId || loadSavedPartnerLeadId()) ? 'Resume Secure Checkout — ' : 'Continue to Secure Checkout — ') + detail.label;
     if (checkoutNote) checkoutNote.textContent = 'Next: review ' + detail.price + ' and payment details in secure Stripe Checkout. Your placement stays private until onboarding and written-agreement review are complete.';
-    if (shouldTrack) trackPartnerFunnel('Founding Partner Tier Selected', { tier: model });
+    if (shouldTrack) {
+      trackPartnerFunnel('Founding Partner Tier Selected', { tier: model });
+      recordPartnerApplicationProgress('partner_application_tier_selected');
+    }
   };
   window.jumpToFoundingPartnerEssentials = function(){
     const essentials = document.getElementById('foundingPartnerEssentials');
     if (!essentials) return;
     trackPartnerFunnel('Founding Partner Essentials Jumped', { tier: value('foundingPartnerModel') || 'founding_pilot' });
+    recordPartnerApplicationProgress('partner_application_essentials_opened');
     essentials.scrollIntoView({ behavior: 'smooth', block: 'start' });
     setTimeout(() => document.getElementById('foundingPartnerCompany')?.focus(), 250);
   };

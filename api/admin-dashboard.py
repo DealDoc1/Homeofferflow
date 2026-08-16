@@ -3626,6 +3626,8 @@ class handler(BaseHTTPRequestHandler):
                 "partner_landing_viewed",
                 "partner_landing_cta_selected",
                 "partner_application_opened",
+                "partner_application_tier_selected",
+                "partner_application_essentials_opened",
                 "partner_directory_application_selected",
                 "partner_directory_pricing_selected",
                 "partner_directory_empty_search",
@@ -3641,6 +3643,12 @@ class handler(BaseHTTPRequestHandler):
             ])
             partner_application_open_count = len([
                 item for item in partner_landing_events if item.get("event_type") == "partner_application_opened"
+            ])
+            partner_application_tier_selected_count = len([
+                item for item in partner_landing_events if item.get("event_type") == "partner_application_tier_selected"
+            ])
+            partner_application_essentials_open_count = len([
+                item for item in partner_landing_events if item.get("event_type") == "partner_application_essentials_opened"
             ])
             partner_directory_application_start_count = len([
                 item for item in partner_landing_events
@@ -4465,6 +4473,8 @@ class handler(BaseHTTPRequestHandler):
                 "partnerApplicationOpenCount": partner_application_open_count,
                 "partnerApplicationOpenRate": round((partner_application_open_count / partner_landing_cta_count) * 100, 1)
                 if partner_landing_cta_count else 0,
+                "partnerApplicationTierSelectedCount": partner_application_tier_selected_count,
+                "partnerApplicationEssentialsOpenCount": partner_application_essentials_open_count,
                 "partnerLandingTierCtaCounts": partner_landing_tier_cta_counts,
                 "partnerDirectoryApplicationStartCount": partner_directory_application_start_count,
                 "partnerDirectoryPricingSelectionCount": partner_directory_pricing_selection_count,
