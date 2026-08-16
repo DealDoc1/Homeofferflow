@@ -10807,7 +10807,7 @@ function routeAfterMagicLinkIfNeeded() {
           <div class="field"><label for="buyerCampaignChannel">Distribution channel</label><select id="buyerCampaignChannel"><option value="direct_outreach" selected>Direct outreach</option><option value="email">Email newsletter</option><option value="social">Social post</option><option value="referral">Referral partner</option><option value="local_event">Local event</option><option value="print">Print / QR code</option></select></div>
           <div class="field"><label for="buyerCampaignName">Campaign label <span style="color:var(--gray);font-weight:500;">(optional)</span></label><input id="buyerCampaignName" maxlength="80" placeholder="August North Texas buyers"></div>
         </div>
-        <div class="platform-actions"><button type="button" onclick="copyBuyerCampaignLink()">Copy Campaign Link</button><button type="button" class="btn-secondary" onclick="copyBuyerCampaignInvitation()">Copy Invitation</button><button type="button" class="btn-secondary" onclick="previewBuyerCampaignLink()">Preview Landing Page</button></div>
+        <div class="platform-actions"><button type="button" onclick="copyBuyerCampaignLink()">Copy Campaign Link</button><button type="button" class="btn-secondary" onclick="copyBuyerCampaignInvitation()">Copy Invitation</button><button type="button" class="btn-secondary" onclick="printBuyerCampaignFlyer()">Print Buyer Flyer</button><button type="button" class="btn-secondary" onclick="previewBuyerCampaignLink()">Preview Landing Page</button></div>
         <div id="buyerCampaignLinkStatus" class="platform-status" aria-live="polite"></div>
       </div>` : '';
     el.innerHTML = `
@@ -11000,6 +11000,19 @@ function routeAfterMagicLinkIfNeeded() {
     } catch (_) {
       platformStatus('buyerCampaignLinkStatus', 'Could not copy automatically. Use Copy Campaign Link instead.', 'err');
     }
+  };
+
+  window.printBuyerCampaignFlyer = function printBuyerCampaignFlyer() {
+    if (!isCurrentAdmin()) return platformStatus('buyerCampaignLinkStatus', 'HomeOfferFlow admin access is required to print a buyer flyer.', 'err');
+    const link = buyerCampaignLink();
+    const campaign = sellerCampaignLabel(getVal('buyerCampaignName')) || 'HomeOfferFlow Buyer Offer';
+    const safe = value => String(value || '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+    const flyer = window.open('', '_blank', 'noopener,noreferrer');
+    if (!flyer) return platformStatus('buyerCampaignLinkStatus', 'Allow pop-ups to open the printable buyer flyer.', 'err');
+    flyer.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Texas buyer offer | HomeOfferFlow</title><style>@page{size:letter;margin:.5in}body{font-family:Arial,sans-serif;color:#102438;margin:0}.sheet{border:3px solid #c8973f;border-radius:18px;padding:32px;min-height:8.5in;box-sizing:border-box}h1{font-family:Georgia,serif;font-size:34px;line-height:1.08;margin:0 0 12px}.eyebrow{color:#8d641e;font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}.price{display:inline-block;background:#102f46;color:#fff;border-radius:999px;padding:8px 14px;font-weight:800;margin:10px 0 18px}.box{background:#f5f8fa;border-left:5px solid #c8973f;padding:16px 18px;margin:22px 0;font-size:17px;line-height:1.45}.link{word-break:break-all;font-size:13px;line-height:1.4;padding:12px;background:#edf2f5;border-radius:8px}.fine{font-size:10px;color:#566676;line-height:1.45;margin-top:28px}@media print{body{print-color-adjust:exact;-webkit-print-color-adjust:exact}}</style></head><body><main class="sheet"><div class="eyebrow">${safe(campaign)}</div><h1>Build your Texas offer with a clearer starting point.</h1><p style="font-size:19px;line-height:1.45;margin:0">Work through a guided buyer-offer packet, review your terms, and decide whether to purchase only when it is ready.</p><div class="box"><strong>Texas Homebuyer Offer Packet</strong><br>Plain-language guidance for preparing a buyer-side offer packet before sharing it with the proper real-estate professional.</div><div class="price">$99 only when your completed packet is ready</div><p><strong>Start with no payment required:</strong></p><div class="link">${safe(link)}</div><p class="fine">HomeOfferFlow is a form-completion tool, not legal advice or brokerage representation. You are responsible for verifying information and should consider review by a licensed Texas real estate professional or attorney before submission.</p></main><script>window.onload=()=>window.print();<\/script></body></html>`);
+    flyer.document.close();
+    try { trackEvent('Homebuyer Campaign Flyer Printed', { channel: getVal('buyerCampaignChannel'), surface: 'buyer_admin_toolkit' }); } catch (_) {}
+    platformStatus('buyerCampaignLinkStatus', 'Printable buyer flyer opened. It contains only the public campaign link, $99 timing, and required form-completion disclosure.', 'ok');
   };
 
   window.previewBuyerCampaignLink = function previewBuyerCampaignLink() {

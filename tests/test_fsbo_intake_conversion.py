@@ -151,6 +151,7 @@ class FsboIntakeConversionTests(unittest.TestCase):
         self.assertIn("Homebuyer Campaign Toolkit", HTML)
         self.assertIn("copyBuyerCampaignLink()", HTML)
         self.assertIn("copyBuyerCampaignInvitation()", HTML)
+        self.assertIn("printBuyerCampaignFlyer()", HTML)
         self.assertIn("previewBuyerCampaignLink()", HTML)
         self.assertIn('id="buyerCampaignChannel"', HTML)
         self.assertIn('id="buyerCampaignName"', HTML)
@@ -158,6 +159,13 @@ class FsboIntakeConversionTests(unittest.TestCase):
         self.assertIn("Homebuyer Campaign Link Copied", HTML)
         self.assertIn("Homebuyer Campaign Invitation Copied", HTML)
         self.assertIn("never a buyer’s identity, property, financing, or offer details", HTML)
+
+    def test_admin_can_print_a_self_contained_buyer_campaign_flyer(self):
+        self.assertIn("Print Buyer Flyer", HTML)
+        self.assertIn("window.printBuyerCampaignFlyer", HTML)
+        self.assertIn("Homebuyer Campaign Flyer Printed", HTML)
+        self.assertIn("Printable buyer flyer opened.", HTML)
+        self.assertIn("$99 only when your completed packet is ready", HTML)
 
     def test_seller_address_autocomplete_fails_softly_and_has_a_google_compatibility_path(self):
         self.assertIn("libraries=places", HTML)
