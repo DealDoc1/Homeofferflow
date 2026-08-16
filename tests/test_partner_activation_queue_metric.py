@@ -32,7 +32,10 @@ class PartnerActivationQueueMetricTests(unittest.TestCase):
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
         now = datetime.now(timezone.utc)
-        self.assertEqual(module._partner_activation_readiness({}, now)["code"], "setup_link_needed")
+        self.assertEqual(module._partner_activation_readiness({}, now)["code"], "setup_access_missing")
+        self.assertEqual(module._partner_activation_readiness({
+            "onboarding_token_hash": "not-a-secret", "onboarding_token_expires_at": (now - timedelta(days=1)).isoformat(),
+        }, now)["code"], "setup_link_expired")
         self.assertEqual(module._partner_activation_readiness({
             "onboarding_status": "complete", "partner_agreement_status": "sent"
         }, now)["code"], "awaiting_agreement")

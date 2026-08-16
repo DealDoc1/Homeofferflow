@@ -112,11 +112,16 @@ def _partner_activation_readiness(lead, now=None):
 
     if not setup_complete:
         expires_at = _parse_timestamp(lead.get("onboarding_token_expires_at"))
-        setup_link_valid = bool(lead.get("onboarding_token_hash")) and bool(expires_at and expires_at > now)
+        has_setup_token = bool(lead.get("onboarding_token_hash"))
+        setup_link_valid = has_setup_token and bool(expires_at and expires_at > now)
         if onboarding == "in_progress":
             return {"code": "awaiting_setup", "label": "Awaiting partner setup", "tone": "warn", "next_action": "Partner needs to finish setup details.", "partner_message": "finish the remaining onboarding details so we can prepare the written agreement"}
         if setup_link_valid:
             return {"code": "setup_link_sent", "label": "Setup link sent", "tone": "warn", "next_action": "Await partner setup completion.", "partner_message": "complete the secure setup details so we can prepare the written agreement"}
+        if not has_setup_token:
+            return {"code": "setup_access_missing", "label": "Setup access missing", "tone": "warn", "next_action": "Restore secure setup access and email the partner.", "partner_message": "complete the secure setup details so we can prepare the written agreement"}
+        if not expires_at or expires_at <= now:
+            return {"code": "setup_link_expired", "label": "Setup link expired", "tone": "warn", "next_action": "Email a fresh secure setup link.", "partner_message": "complete the secure setup details so we can prepare the written agreement"}
         return {"code": "setup_link_needed", "label": "Fresh setup link needed", "tone": "warn", "next_action": "Issue a new secure setup link.", "partner_message": "complete the secure setup details so we can prepare the written agreement"}
 
     if agreement == "signed" and lead.get("partner_agreement_signed_at"):
