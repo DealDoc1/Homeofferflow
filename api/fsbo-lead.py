@@ -36,6 +36,14 @@ SELLER_PLAN_REPLY_TO = (
     or os.environ.get("SUPPORT_EMAIL")
     or "support@homeofferflow.com"
 )
+PARTNER_APPLICATION_FROM_EMAIL = (
+    os.environ.get("PARTNER_APPLICATION_FROM_EMAIL")
+    or SELLER_PLAN_FROM_EMAIL
+)
+PARTNER_APPLICATION_REPLY_TO = (
+    os.environ.get("PARTNER_APPLICATION_REPLY_TO")
+    or SELLER_PLAN_REPLY_TO
+)
 ALLOWED_PARTNER_TYPES = {
     "title",
     "lender",
@@ -102,6 +110,7 @@ FSBO_LANDING_EVENT_TYPES = {
     "pwa_seller_plan_opened": "opened",
 }
 FSBO_RECEIPT_DELIVERY_STATUSES = {"sent", "failed", "not_configured", "missing_email"}
+PARTNER_APPLICATION_RECEIPT_DELIVERY_STATUSES = {"sent", "failed", "not_configured", "missing_email"}
 PARTNER_LANDING_EVENT_TYPES = {
     "partner_landing_viewed": "viewed",
     "partner_landing_cta_selected": "selected",
@@ -267,6 +276,85 @@ def _record_seller_plan_receipt_event(payload, delivery_status):
         status,
         "Privacy-safe seller plan receipt delivery status recorded.",
         {"surface": "seller_plan_receipt", "serviceLevel": service_level},
+    )
+
+
+def _send_partner_application_confirmation(payload):
+    """Best-effort replyable application receipt; checkout remains a separate step."""
+    if not RESEND_API_KEY:
+        return "not_configured"
+    recipient = str((payload or {}).get("contact_email") or "").strip()
+    if not EMAIL_RE.match(recipient):
+        return "missing_email"
+
+    company = str(payload.get("company_name") or "your company")
+    contact = str(payload.get("contact_name") or "there")
+    market = str(payload.get("market_area") or "your market")
+    tier_labels = {
+        "founding_pilot": "Core Partner",
+        "monthly_placement": "Featured Partner",
+        "market_exclusive": "Premier Partner",
+    }
+    tier = tier_labels.get(str(payload.get("preferred_model") or ""), "Partner placement")
+    plain_text = (
+        f"Hi {contact},\n\n"
+        "We received your HomeOfferFlow partner application.\n\n"
+        f"Company: {company}\nSelected tier: {tier}\nMarket: {market}\n\n"
+        "Your application is saved. Secure Stripe Checkout is a separate next step and shows the final terms before any payment. "
+        "Submitting this application does not collect payment, activate advertising, reserve exclusivity, create a referral relationship, or create a service agreement. "
+        "Any public placement remains subject to onboarding and written-agreement review.\n\n"
+        "Have a question before checkout? Reply directly to this email."
+    )
+    safe_company = html.escape(company)
+    safe_contact = html.escape(contact)
+    safe_market = html.escape(market)
+    safe_tier = html.escape(tier)
+    try:
+        with httpx.Client(timeout=12.0) as client:
+            response = client.post(
+                "https://api.resend.com/emails",
+                headers={
+                    "Authorization": f"Bearer {RESEND_API_KEY}",
+                    "Content-Type": "application/json",
+                    "Idempotency-Key": "partner-application-" + hashlib.sha256(
+                        f"{recipient.lower()}|{company}|{tier}|{market}".encode("utf-8")
+                    ).hexdigest(),
+                },
+                json={
+                    "from": f"HomeOfferFlow <{PARTNER_APPLICATION_FROM_EMAIL}>",
+                    "to": [recipient],
+                    "reply_to": PARTNER_APPLICATION_REPLY_TO,
+                    "subject": "Your HomeOfferFlow partner application",
+                    "text": plain_text,
+                    "html": (
+                        f"<h2>Thanks, {safe_contact} — your partner application is saved</h2>"
+                        f"<p><strong>Company:</strong> {safe_company}<br>"
+                        f"<strong>Selected tier:</strong> {safe_tier}<br>"
+                        f"<strong>Market:</strong> {safe_market}</p>"
+                        "<p>Secure Stripe Checkout is a separate next step and shows the final terms before any payment.</p>"
+                        "<p>This application does not collect payment, activate advertising, reserve exclusivity, create a referral relationship, or create a service agreement. Any public placement remains subject to onboarding and written-agreement review.</p>"
+                        "<p>Have a question before checkout? Reply directly to this email.</p>"
+                    ),
+                },
+            )
+        return "sent" if response.status_code < 300 else "failed"
+    except Exception:
+        return "failed"
+
+
+def _record_partner_application_receipt_event(payload, delivery_status):
+    """Record provider acceptance in aggregate without partner contact data."""
+    status = _text(delivery_status, 80)
+    if status not in PARTNER_APPLICATION_RECEIPT_DELIVERY_STATUSES:
+        return
+    tier = _text((payload or {}).get("preferred_model"), 80) or "founding_pilot"
+    if tier not in ALLOWED_MODELS:
+        tier = "founding_pilot"
+    _record_partner_checkout_event(
+        "partner_application_receipt_" + status,
+        status,
+        "Privacy-safe partner application receipt delivery status recorded.",
+        {"surface": "partner_application_receipt", "tier": tier},
     )
 
 
@@ -1072,6 +1160,8 @@ class handler(BaseHTTPRequestHandler):
                     return _send(self, 200, {'ok': True})
                 payload = _build_partner_payload(data)
                 row = _insert_partner_lead(payload)
+                application_receipt = _send_partner_application_confirmation(payload)
+                _record_partner_application_receipt_event(payload, application_receipt)
                 # Browser analytics cannot populate the private Admin
                 # Dashboard for an unauthenticated applicant. Record only the
                 # aggregate lifecycle and selected tier on the server.
@@ -1090,6 +1180,7 @@ class handler(BaseHTTPRequestHandler):
                 return _send(self, 200, {
                     'ok': True,
                     'partner_lead_id': row.get('id'),
+                    'partner_application_email': application_receipt,
                     'message': 'Partner interest received.',
                 })
 

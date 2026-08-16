@@ -182,6 +182,41 @@ class PartnerLeadTests(unittest.TestCase):
             row = fsbo_lead._insert_partner_lead(payload)
         self.assertEqual(row["id"], "partner-lead-123")
 
+    def test_partner_application_receipt_is_replyable_escaped_and_idempotent(self):
+        captured = {}
+
+        class Response:
+            status_code = 200
+
+        class Client:
+            def __enter__(self): return self
+            def __exit__(self, *args): return False
+            def post(self, *args, **kwargs):
+                captured["args"] = args
+                captured["kwargs"] = kwargs
+                return Response()
+
+        payload = {"company_name": "<script>bad</script>", "contact_name": "Pat Partner", "contact_email": "partner@example.com", "market_area": "North Texas", "preferred_model": "monthly_placement"}
+        with patch.object(fsbo_lead, "RESEND_API_KEY", "re_test"), patch.object(fsbo_lead.httpx, "Client", return_value=Client()):
+            self.assertEqual(fsbo_lead._send_partner_application_confirmation(payload), "sent")
+        self.assertEqual(captured["args"][0], "https://api.resend.com/emails")
+        self.assertEqual(captured["kwargs"]["json"]["to"], ["partner@example.com"])
+        self.assertEqual(captured["kwargs"]["json"]["reply_to"], "support@homeofferflow.com")
+        self.assertNotIn("<script>", captured["kwargs"]["json"]["html"])
+        self.assertIn("separate next step", captured["kwargs"]["json"]["text"])
+        self.assertTrue(captured["kwargs"]["headers"]["Idempotency-Key"].startswith("partner-application-"))
+
+    def test_partner_application_receipt_telemetry_is_aggregate_and_allowlisted(self):
+        captured = []
+        with patch.object(fsbo_lead, "_record_partner_checkout_event", side_effect=lambda *args: captured.append(args)):
+            fsbo_lead._record_partner_application_receipt_event({"preferred_model": "monthly_placement", "contact_email": "partner@example.com"}, "sent")
+            fsbo_lead._record_partner_application_receipt_event({}, "unexpected")
+        self.assertEqual(len(captured), 1)
+        event_type, status, _, metadata = captured[0]
+        self.assertEqual(event_type, "partner_application_receipt_sent")
+        self.assertEqual(status, "sent")
+        self.assertEqual(metadata, {"surface": "partner_application_receipt", "tier": "monthly_placement"})
+
     def test_public_directory_only_requests_platform_wide_safe_fields(self):
         with patch.object(fsbo_lead.httpx, "Client", FakeClient):
             rows = fsbo_lead._list_public_partner_placements("moving_storage", "DFW")

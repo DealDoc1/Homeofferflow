@@ -4281,6 +4281,10 @@ class handler(BaseHTTPRequestHandler):
                 item for item in events
                 if item.get("event_type") == f"fsbo_seller_plan_receipt_{status}"
             ]) for status in seller_receipt_delivery_statuses}
+            partner_application_receipt_counts = {status: len([
+                item for item in events
+                if item.get("event_type") == f"partner_application_receipt_{status}"
+            ]) for status in seller_receipt_delivery_statuses}
             seller_required_ready_count = seller_intake_event_counts["fsbo_required_fields_ready"]
             seller_request_saved_count = seller_intake_event_counts["fsbo_request_saved"]
             seller_ready_to_save_rate = round((seller_request_saved_count / seller_required_ready_count) * 100, 1) if seller_required_ready_count else 0
@@ -4453,6 +4457,13 @@ class handler(BaseHTTPRequestHandler):
                 "partnerDirectoryEmptySearchCount": partner_directory_empty_search_count,
                 "partnerDirectoryEmptySearchCategoryCounts": partner_directory_empty_search_category_counts,
                 "partnerCheckoutEventCounts": partner_checkout_event_counts,
+                "partnerApplicationReceiptCounts": partner_application_receipt_counts,
+                "partnerApplicationReceiptSentCount": partner_application_receipt_counts["sent"],
+                "partnerApplicationReceiptFailureCount": (
+                    partner_application_receipt_counts["failed"]
+                    + partner_application_receipt_counts["not_configured"]
+                    + partner_application_receipt_counts["missing_email"]
+                ),
                 "partnerCampaignCategoryCounts": partner_campaign_category_counts,
                 "partnerCampaignTierCounts": partner_campaign_tier_counts,
                 "partnerCampaignChannelCounts": partner_campaign_channel_counts,

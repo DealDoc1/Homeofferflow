@@ -32,6 +32,9 @@ class PartnerConversionMetricTests(unittest.TestCase):
         self.assertIn('partner_campaign_tiers', source)
         self.assertIn('partner_campaign_channels', source)
         self.assertIn('founding_partner_stripe_checkout_opened', source)
+        self.assertIn('"partnerApplicationReceiptSentCount"', source)
+        self.assertIn('"partnerApplicationReceiptFailureCount"', source)
+        self.assertIn('partner_application_receipt_{status}', source)
 
     def test_admin_payload_counts_only_allowlisted_seller_package_requests(self):
         source = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
@@ -65,6 +68,8 @@ class PartnerConversionMetricTests(unittest.TestCase):
         self.assertIn('Submitted package demand:', source)
         self.assertIn('Tracked campaign leads:', source)
         self.assertIn('sellerPackageRequestCounts', source)
+        self.assertIn('Partner-application receipts:', source)
+        self.assertIn('partnerApplicationReceiptSentCount', source)
 
     def test_partner_workspace_can_create_allowlisted_campaign_links(self):
         source = (ROOT / "index.html").read_text(encoding="utf-8")
