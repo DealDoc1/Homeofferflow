@@ -34,6 +34,7 @@ class PwaBaselineTests(unittest.TestCase):
                 ("Buyer Offer", "/?pwa_action=buyer_offer"),
                 ("Signing Queue", "/?pwa_action=signing_queue"),
                 ("Seller Plan", "/?pwa_action=seller_plan"),
+                ("Find a Provider", "/directory?utm_source=pwa_shortcut&utm_medium=installed_app&utm_campaign=provider_directory"),
             ],
         )
         self.assertTrue(any(icon["src"] == "/assets/homeofferflow-app-icon.svg" for icon in MANIFEST["icons"]))

@@ -37,6 +37,12 @@
       "short_name": "Seller Plan",
       "description": "Return to the FSBO seller plan and package request.",
       "url": "/?pwa_action=seller_plan"
+    },
+    {
+      "name": "Find a Provider",
+      "short_name": "Providers",
+      "description": "Browse active Texas home-service provider profiles by category and market.",
+      "url": "/directory?utm_source=pwa_shortcut&utm_medium=installed_app&utm_campaign=provider_directory"
     }
   ],
   "display": "standalone",
