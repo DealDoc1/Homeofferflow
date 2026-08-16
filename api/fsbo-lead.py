@@ -107,6 +107,7 @@ FSBO_LANDING_EVENT_TYPES = {
     "fsbo_request_submission_started": "started",
     "fsbo_request_saved": "saved",
     "fsbo_seller_plan_downloaded": "downloaded",
+    "fsbo_seller_plan_copied": "copied",
     "pwa_seller_plan_opened": "opened",
 }
 FSBO_RECEIPT_DELIVERY_STATUSES = {"sent", "failed", "not_configured", "missing_email"}

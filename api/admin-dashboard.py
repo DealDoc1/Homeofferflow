@@ -4273,7 +4273,7 @@ class handler(BaseHTTPRequestHandler):
                 "fsbo_intake_opened", "fsbo_required_fields_ready",
                 "fsbo_package_selected", "fsbo_required_fields_missing",
                 "fsbo_request_submission_started", "fsbo_request_saved",
-                "fsbo_seller_plan_downloaded",
+                "fsbo_seller_plan_downloaded", "fsbo_seller_plan_copied",
             }
             seller_intake_event_counts = {event_type: len([item for item in events if item.get("event_type") == event_type]) for event_type in seller_intake_event_types}
             seller_receipt_delivery_statuses = {"sent", "failed", "not_configured", "missing_email"}
@@ -4392,6 +4392,7 @@ class handler(BaseHTTPRequestHandler):
                 "sellerRequiredReadyCount": seller_required_ready_count,
                 "sellerReadyToSaveRate": seller_ready_to_save_rate,
                 "sellerPlanDownloadCount": seller_intake_event_counts["fsbo_seller_plan_downloaded"],
+                "sellerPlanCopiedCount": seller_intake_event_counts["fsbo_seller_plan_copied"],
                 "sellerPlanReceiptCounts": seller_plan_receipt_counts,
                 "sellerPlanReceiptSentCount": seller_plan_receipt_counts["sent"],
                 "sellerPlanReceiptFailureCount": (

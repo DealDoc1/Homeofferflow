@@ -68,6 +68,16 @@ class FsboRequestConfirmationTests(unittest.TestCase):
         self.assertIn('"sellerPlanDownloadCount"', admin)
         self.assertIn("sellerPlanDownloadCount", HTML)
 
+    def test_seller_plan_can_be_copied_for_mobile_sharing_with_aggregate_measurement(self):
+        api = (pathlib.Path(__file__).resolve().parents[1] / "api" / "fsbo-lead.py").read_text(encoding="utf-8")
+        admin = (pathlib.Path(__file__).resolve().parents[1] / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
+        self.assertIn("window.copyFsboRequestSummary", HTML)
+        self.assertIn("navigator.clipboard?.writeText", HTML)
+        self.assertIn("Copy seller plan", HTML)
+        self.assertIn("FSBO Seller Plan Copied", HTML)
+        self.assertIn('"fsbo_seller_plan_copied": "copied"', api)
+        self.assertIn('"sellerPlanCopiedCount"', admin)
+
     def test_saved_seller_request_can_offer_an_email_receipt(self):
         api = API_PATH.read_text(encoding="utf-8")
         self.assertIn("def _send_seller_plan_confirmation(payload):", api)

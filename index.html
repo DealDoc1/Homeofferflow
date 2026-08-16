@@ -4722,7 +4722,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <div class="admin-metric-label">Seller / FSBO Leads</div>
             <div class="admin-metric-value">${metrics.sellerLeadCount || sellerLeads.length || 0}</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.sellerLandingViewCount || 0} seller landing views · ${metrics.sellerLandingCtaCount || 0} intake starts (${Number(metrics.sellerLandingCtaRate || 0).toFixed(1)}%).</div>
-            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Intake progress: ${Number(metrics.sellerIntakeEventCounts?.fsbo_intake_opened || 0)} opened · ${Number(metrics.sellerIntakeEventCounts?.fsbo_package_selected || 0)} package choices · ${Number(metrics.sellerIntakeEventCounts?.fsbo_required_fields_missing || 0)} incomplete attempts · ${Number(metrics.sellerIntakeEventCounts?.fsbo_request_submission_started || 0)} submissions started · ${Number(metrics.sellerIntakeEventCounts?.fsbo_request_saved || 0)} saved · ${Number(metrics.sellerPlanDownloadCount || 0)} plans downloaded.</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Intake progress: ${Number(metrics.sellerIntakeEventCounts?.fsbo_intake_opened || 0)} opened · ${Number(metrics.sellerIntakeEventCounts?.fsbo_package_selected || 0)} package choices · ${Number(metrics.sellerIntakeEventCounts?.fsbo_required_fields_missing || 0)} incomplete attempts · ${Number(metrics.sellerIntakeEventCounts?.fsbo_request_submission_started || 0)} submissions started · ${Number(metrics.sellerIntakeEventCounts?.fsbo_request_saved || 0)} saved · ${Number(metrics.sellerPlanDownloadCount || 0)} plans downloaded · ${Number(metrics.sellerPlanCopiedCount || 0)} plans copied.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:${Number(metrics.sellerPlanReceiptFailureCount || 0) ? 'var(--gold-light)' : 'var(--gray-light)'}">Seller-plan receipts: ${Number(metrics.sellerPlanReceiptSentCount || 0)} accepted by the delivery provider · ${Number(metrics.sellerPlanReceiptFailureCount || 0)} unavailable or failed.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Address + email ready: ${Number(metrics.sellerRequiredReadyCount || 0)} · ready-to-save conversion: ${Number(metrics.sellerReadyToSaveRate || 0).toFixed(1)}%.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Landing-path interest: ${adminSafe(Object.entries(metrics.sellerLandingPackageCtaCounts || {}).map(([packageKey, count]) => `${packageKey.replace(/_/g, ' ')} (${count})`).join(' · '), 'starts will appear after the next seller-page visit')}</div>
@@ -12453,7 +12453,8 @@ function routeAfterMagicLinkIfNeeded() {
       'FSBO Seller Intake Required Fields Missing': 'fsbo_required_fields_missing',
       'FSBO Seller Request Submission Started': 'fsbo_request_submission_started',
       'FSBO Seller Request Saved': 'fsbo_request_saved',
-      'FSBO Seller Plan Downloaded': 'fsbo_seller_plan_downloaded'
+      'FSBO Seller Plan Downloaded': 'fsbo_seller_plan_downloaded',
+      'FSBO Seller Plan Copied': 'fsbo_seller_plan_copied'
     }[name];
     if (!eventType) return;
     const serviceLevel = String(data.package || data.campaignPackage || 'free_intake');
@@ -12754,13 +12755,13 @@ function routeAfterMagicLinkIfNeeded() {
     const notes = document.getElementById('fsboNotes');
     if (notes) notes.placeholder = prompt.placeholder;
   };
-  window.downloadFsboRequestSummary = function downloadFsboRequestSummary() {
+  function fsboRequestSummaryText() {
     const key = fsboVal('fsboNeed') || 'free_intake';
     const item = fsboNeedCopy[key] || fsboNeedCopy.free_intake;
     const partners = getFsboPartners();
     const steps = fsboNextSteps[key] || fsboNextSteps.free_intake;
     const readiness = fsboReadinessPlan(fsboVal('fsboTimeline') || 'not_sure');
-    const summary = [
+    return [
       'HomeOfferFlow FSBO seller readiness plan',
       `Package interest: ${item.title} (${item.price})`,
       `Property: ${fsboVal('fsboPropertyAddress') || 'Not provided'}`,
@@ -12777,6 +12778,10 @@ function routeAfterMagicLinkIfNeeded() {
       '',
       'This is an intake record, not checkout, representation, a confirmed service order, or legal advice. Scope, availability, provider involvement, and final pricing must be confirmed separately.'
     ].join('\n');
+  }
+  window.downloadFsboRequestSummary = function downloadFsboRequestSummary() {
+    const key = fsboVal('fsboNeed') || 'free_intake';
+    const summary = fsboRequestSummaryText();
     const url = URL.createObjectURL(new Blob([summary], { type: 'text/plain;charset=utf-8' }));
     const link = document.createElement('a');
     link.href = url;
@@ -12784,6 +12789,39 @@ function routeAfterMagicLinkIfNeeded() {
     link.click();
     trackFsboFunnel('FSBO Seller Plan Downloaded', { package: key });
     setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+  window.copyFsboRequestSummary = async function copyFsboRequestSummary(button) {
+    const summary = fsboRequestSummaryText();
+    let copied = false;
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(summary);
+        copied = true;
+      }
+    } catch (_) {}
+    if (!copied) {
+      try {
+        const field = document.createElement('textarea');
+        field.value = summary;
+        field.setAttribute('readonly', '');
+        field.style.cssText = 'position:fixed;opacity:0;pointer-events:none;';
+        document.body.appendChild(field);
+        field.select();
+        copied = document.execCommand('copy');
+        field.remove();
+      } catch (_) {}
+    }
+    if (!copied) {
+      if (button) button.textContent = 'Copy unavailable';
+      return;
+    }
+    trackFsboFunnel('FSBO Seller Plan Copied', { package: fsboVal('fsboNeed') || 'free_intake' });
+    if (button) {
+      const original = button.dataset.label || button.textContent;
+      button.dataset.label = original;
+      button.textContent = 'Copied seller plan';
+      window.setTimeout(() => { if (button.isConnected) button.textContent = original; }, 1800);
+    }
   };
   window.openFsboProviderDirectory = function openFsboProviderDirectory() {
     const selectedPartners = getFsboPartners();
@@ -12899,6 +12937,7 @@ function routeAfterMagicLinkIfNeeded() {
           '<ol style="margin:.65rem 0 .1rem 1.2rem;color:var(--gray-light);line-height:1.45;">' + steps.map(step => '<li>' + escapeAttr(step) + '</li>').join('') + '</ol>' +
           '<div class="account-actions-row" style="margin-top:.7rem;display:flex;gap:.55rem;flex-wrap:wrap;">' +
           '<button class="btn-secondary" type="button" onclick="downloadFsboRequestSummary()">Download seller plan</button>' +
+          '<button class="btn-secondary" type="button" onclick="copyFsboRequestSummary(this)">Copy seller plan</button>' +
           '<button class="btn-secondary" type="button" onclick="openFsboProviderDirectory()">Browse available providers</button>' +
           '<button class="btn-secondary" type="button" onclick="closeFsboSellerModal()">Done</button></div>';
         window.setTimeout(() => window.renderPwaInstallCard?.(), 0);
