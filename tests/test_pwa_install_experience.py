@@ -15,7 +15,7 @@ class PwaInstallExperienceTests(unittest.TestCase):
         self.assertIn("Install HomeOfferFlow", INDEX)
         self.assertIn("function installCtaLabel(surface)", INDEX)
         self.assertIn("function installHelpLabel(surface)", INDEX)
-        self.assertIn("Add My Agent Workspace", INDEX)
+        self.assertIn("Install Agent Workspace", INDEX)
         self.assertIn("Add Agent Workspace to Home Screen", INDEX)
         self.assertIn("Save My Offer Workspace", INDEX)
         self.assertIn("Save My Seller Plan", INDEX)
@@ -25,8 +25,9 @@ class PwaInstallExperienceTests(unittest.TestCase):
         self.assertIn("offers and client details stay protected online", INDEX)
         self.assertIn("const workspaceReturnCopy = target.surface === 'account_dashboard'", INDEX)
         self.assertIn('shortcuts for My Workspace, New Offer, Buyer Offer, Signing Queue, and Seller Plan', INDEX)
-        self.assertIn("if (!isIos() && !isAndroid()) return;", INDEX)
-        self.assertIn("desktop users when Chrome offers", INDEX)
+        self.assertIn("const desktopNativeInstall = !isIos() && !isAndroid() && !!deferredInstallPrompt", INDEX)
+        self.assertIn("if (!isIos() && !isAndroid() && !desktopNativeInstall) return;", INDEX)
+        self.assertIn("Install HomeOfferFlow as a focused desktop app", INDEX)
 
     def test_completed_homebuyer_review_can_offer_install_without_account_login(self):
         self.assertIn("function installTarget()", INDEX)

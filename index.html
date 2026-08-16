@@ -18480,7 +18480,7 @@ function routeAfterMagicLinkIfNeeded() {
   function installCtaLabel(surface){
     if (surface === 'seller_success') return 'Save My Seller Plan';
     if (surface === 'buyer_review' || surface === 'buyer_success') return 'Save My Offer Workspace';
-    if (surface === 'account_dashboard') return 'Add My Agent Workspace';
+    if (surface === 'account_dashboard') return 'Install Agent Workspace';
     return 'Install HomeOfferFlow';
   }
 
@@ -18518,10 +18518,11 @@ function routeAfterMagicLinkIfNeeded() {
   function renderInstallCard(){
     const target = installTarget();
     if (!target || isStandalone() || isDismissed()) return;
+    const desktopNativeInstall = !isIos() && !isAndroid() && !!deferredInstallPrompt && target.surface === 'account_dashboard';
     // This is a field-workflow bridge, not a replacement for the normal
-    // desktop workspace. Avoid interrupting desktop users when Chrome offers
-    // a browser-level install event; they can still install manually.
-    if (!isIos() && !isAndroid()) return;
+    // desktop workspace. Desktop users see it only when their browser has
+    // already exposed a native install prompt for the signed-in workspace.
+    if (!isIos() && !isAndroid() && !desktopNativeInstall) return;
     const existing = document.getElementById('hofPwaInstallCard');
     if (existing) existing.remove();
     // Android browsers can still use the supported Home Screen path when the
@@ -18544,6 +18545,8 @@ function routeAfterMagicLinkIfNeeded() {
         ? 'Add this workspace to your iPhone or iPad Home Screen for a full-screen, app-like launch. It takes about a minute—no App Store download or separate account is needed.'
         : isAndroid() && !deferredInstallPrompt
         ? 'Add HomeOfferFlow to your Android Home Screen for a faster app-like launch. It takes about a minute—no App Store download or separate account is needed.'
+        : desktopNativeInstall
+        ? 'Install HomeOfferFlow as a focused desktop app for your agent workspace. Your browser already supports this install—no app store, separate account, or native build is needed.'
         : 'Install HomeOfferFlow for a faster app-like launch and an offline-safe shell when you are between showings. It takes about a minute—no App Store download or separate account is needed.'}</p>
       <div class="pwa-install-benefits" aria-label="What installation does">
         <div class="pwa-install-benefit"><strong>One-tap return</strong><br>Launch the same workspace from an app icon.</div>
