@@ -200,6 +200,8 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
     def test_homepage_exposes_each_public_path_from_the_primary_navigation(self):
         self.assertIn('<details class="nav-discovery">', INDEX)
         self.assertIn('<summary>Explore</summary>', INDEX)
+        self.assertIn('class="nav-directory" href="/directory"', INDEX)
+        self.assertIn("Provider Directory Navigation Selected", INDEX)
         for href, label in (
             ('/buyers', 'Homebuyer offer'),
             ('/agents', 'Agent &amp; broker workspace'),
