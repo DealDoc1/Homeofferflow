@@ -1,4 +1,4 @@
-const SHELL_CACHE = 'homeofferflow-shell-v13';
+const SHELL_CACHE = 'homeofferflow-shell-v14';
 const SHELL_ASSETS = [
   '/',
   '/index.html',
@@ -14,7 +14,8 @@ const SHELL_ASSETS = [
 // API, documents, authentication, or account-specific routes.
 const PUBLIC_PAGE_PATHS = new Set([
   '/', '/index.html', '/buyers', '/agents', '/investors', '/sellers',
-  '/partners', '/directory', '/ondemand'
+  '/partners', '/directory', '/ondemand', '/texas-fsbo-guide',
+  '/texas-agent-offer-workflow'
 ]);
 
 self.addEventListener('install', event => {
