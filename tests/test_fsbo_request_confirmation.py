@@ -114,6 +114,7 @@ class FsboRequestConfirmationTests(unittest.TestCase):
             "property_address": "<script>bad</script>",
             "package_name": "Seller Prep Plan",
             "package_price": "$299",
+            "service_level": "seller_prep",
             "timeline": "30_days",
         }
         with patch.object(api, "RESEND_API_KEY", "re_test"), patch.object(api.httpx, "Client", return_value=Client()):
@@ -123,8 +124,24 @@ class FsboRequestConfirmationTests(unittest.TestCase):
         self.assertEqual(captured["kwargs"]["json"]["reply_to"], "support@homeofferflow.com")
         self.assertNotIn("<script>", captured["kwargs"]["json"]["html"])
         self.assertIn("not checkout", captured["kwargs"]["json"]["text"])
+        self.assertIn("Your next steps", captured["kwargs"]["json"]["text"])
+        self.assertIn("List repairs, cleaning, staging", captured["kwargs"]["json"]["text"])
+        self.assertIn("<h3>Your next steps</h3>", captured["kwargs"]["json"]["html"])
         self.assertIn("Reply directly to this email", captured["kwargs"]["json"]["text"])
         self.assertTrue(captured["kwargs"]["headers"]["Idempotency-Key"].startswith("fsbo-seller-plan-"))
+
+    def test_seller_plan_receipt_steps_are_allowlisted_and_fall_back_safely(self):
+        spec = importlib.util.spec_from_file_location("fsbo_plan_receipt_steps", API_PATH)
+        api = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(api)
+        self.assertEqual(
+            api._seller_plan_receipt_steps({"service_level": "offer_review"})[0],
+            "Keep every buyer offer and addendum together.",
+        )
+        self.assertEqual(
+            api._seller_plan_receipt_steps({"service_level": "not-a-package"}),
+            api.FSBO_RECEIPT_NEXT_STEPS["free_intake"],
+        )
 
     def test_seller_plan_receipt_does_not_attempt_delivery_without_config(self):
         spec = importlib.util.spec_from_file_location("fsbo_plan_receipt_unconfigured", API_PATH)

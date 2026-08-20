@@ -81,6 +81,43 @@ FSBO_PACKAGE_CATALOG = {
     "contract_help": ("Contract-to-Close Support", "from $1,999"),
     "premium_bundle": ("Premium FSBO Bundle", "from $2,999"),
 }
+FSBO_RECEIPT_NEXT_STEPS = {
+    "free_intake": (
+        "Confirm your property facts and target timeline.",
+        "Gather recent photos, repair notes, and any prior listing information.",
+        "Watch for a HomeOfferFlow follow-up about the path that fits your goals.",
+    ),
+    "seller_prep": (
+        "List repairs, cleaning, staging, and photo-readiness needs.",
+        "Gather recent utility, improvement, and property-condition records.",
+        "Keep your target timing handy for scope and provider review.",
+    ),
+    "launch_kit": (
+        "Collect your best property photos and key upgrades.",
+        "Write down showing constraints and preferred launch timing.",
+        "Keep comparable homes or pricing questions ready for the planning conversation.",
+    ),
+    "flat_fee_mls": (
+        "Collect property facts, photos, and your preferred list timing.",
+        "Flag HOA, occupancy, and disclosure questions for licensed-provider review.",
+        "Wait for availability, scope, and final pricing confirmation before taking payment action.",
+    ),
+    "offer_review": (
+        "Keep every buyer offer and addendum together.",
+        "Note financing, concession, option-period, and closing-date differences.",
+        "Wait for qualified professional review before choosing a contract path.",
+    ),
+    "contract_help": (
+        "Organize your accepted contract, title contact, and lender contact.",
+        "Write down upcoming deadlines and unanswered transaction questions.",
+        "Use the appropriate licensed party for legal, brokerage, title, and amendment decisions.",
+    ),
+    "premium_bundle": (
+        "Collect property facts, photos, and your target timeline.",
+        "List prep, marketing, MLS, offer-review, and closing-support priorities.",
+        "Wait for the confirmed scope and provider plan before any paid service begins.",
+    ),
+}
 PUBLIC_PARTNER_FIELDS = "id,partner_type,partner_name,website_url,logo_url,market_area,placement_tier"
 _DIRECTORY_LOOKUP_FIELDS = f"{PUBLIC_PARTNER_FIELDS},source_lead_id"
 PRICE_ENV_BY_TIER = {
@@ -212,6 +249,12 @@ def _recent_matching_fsbo_lead(email, property_address, service_level):
     return rows[0] if isinstance(rows, list) and rows else None
 
 
+def _seller_plan_receipt_steps(payload):
+    """Return controlled, useful next steps without putting seller data in content."""
+    service_level = _text((payload or {}).get("service_level"), 80) or "free_intake"
+    return FSBO_RECEIPT_NEXT_STEPS.get(service_level, FSBO_RECEIPT_NEXT_STEPS["free_intake"])
+
+
 def _send_seller_plan_confirmation(payload):
     """Best-effort transactional receipt; a valid seller request is never discarded for email failure."""
     if not RESEND_API_KEY:
@@ -224,11 +267,16 @@ def _send_seller_plan_confirmation(payload):
     package_name = str(payload.get("package_name") or "Seller plan")
     package_price = str(payload.get("package_price") or "")
     timeline = str(payload.get("timeline") or "not sure").replace("_", " ")
+    next_steps = _seller_plan_receipt_steps(payload)
+    plain_steps = "\n".join(f"{index}. {step}" for index, step in enumerate(next_steps, start=1))
+    html_steps = "".join(f"<li>{html.escape(step)}</li>" for step in next_steps)
     plain_text = (
         "We received your HomeOfferFlow seller plan request.\n\n"
         f"Property: {address}\n"
         f"Selected plan: {package_name}{(' (' + package_price + ')') if package_price else ''}\n"
         f"Timeline: {timeline}\n\n"
+        "Your next steps:\n"
+        f"{plain_steps}\n\n"
         "A qualified human review is required to confirm scope, provider involvement, availability, and final pricing before any paid service begins. "
         "This receipt is not checkout, representation, a confirmed service order, or legal advice.\n\n"
         "Have a question or want to discuss the next step sooner? Reply directly to this email."
@@ -248,6 +296,8 @@ def _send_seller_plan_confirmation(payload):
             f"<p><strong>Property:</strong> {safe_address}<br>"
             f"<strong>Selected plan:</strong> {safe_package}{(' (' + safe_price + ')') if safe_price else ''}<br>"
             f"<strong>Timeline:</strong> {safe_timeline}</p>"
+            "<h3>Your next steps</h3>"
+            f"<ol>{html_steps}</ol>"
             "<p>A qualified human review is required to confirm scope, provider involvement, availability, and final pricing before any paid service begins.</p>"
             "<p>This receipt is not checkout, representation, a confirmed service order, or legal advice.</p>"
             "<p>Have a question or want to discuss the next step sooner? Reply directly to this email.</p>"
