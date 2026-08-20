@@ -14,6 +14,7 @@ BUYERS = (ROOT / "buyers.html").read_text(encoding="utf-8")
 AGENTS = (ROOT / "agents.html").read_text(encoding="utf-8")
 INVESTORS = (ROOT / "investors.html").read_text(encoding="utf-8")
 ONDEMAND = (ROOT / "ondemand.html").read_text(encoding="utf-8")
+FSBO_GUIDE = (ROOT / "texas-fsbo-guide.html").read_text(encoding="utf-8")
 VERCEL = json.loads((ROOT / "vercel.json").read_text(encoding="utf-8"))
 
 
@@ -47,6 +48,7 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn('https://www.homeofferflow.com/agents', SITEMAP)
         self.assertIn('https://www.homeofferflow.com/investors', SITEMAP)
         self.assertIn('https://www.homeofferflow.com/directory', SITEMAP)
+        self.assertIn('https://www.homeofferflow.com/texas-fsbo-guide', SITEMAP)
 
     def test_ondemand_trial_page_has_canonical_share_and_structured_metadata(self):
         self.assertIn('<link rel="canonical" href="https://www.homeofferflow.com/ondemand"', ONDEMAND)
@@ -113,6 +115,15 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn('aria-label="Popular Texas home-service categories"', DIRECTORY)
         for category in ('title', 'lender', 'inspection', 'insurance', 'roofing', 'general_contractor'):
             self.assertIn(f'href="/directory?category={category}"', DIRECTORY)
+
+    def test_fsbo_guide_is_a_crawlable_people_first_path_to_the_free_seller_plan(self):
+        self.assertIn('<link rel="canonical" href="https://www.homeofferflow.com/texas-fsbo-guide">', FSBO_GUIDE)
+        self.assertIn('"@type":"Article"', FSBO_GUIDE)
+        self.assertIn('"@type":"FAQPage"', FSBO_GUIDE)
+        self.assertIn('Get my free seller plan', FSBO_GUIDE)
+        self.assertIn('not legal, tax, lending, inspection, title, or brokerage advice', FSBO_GUIDE)
+        self.assertIn('/texas-fsbo-guide', (ROOT / 'vercel.json').read_text(encoding='utf-8'))
+        self.assertIn('href="/texas-fsbo-guide"', SELLERS)
 
     def test_seller_acquisition_page_is_indexable_and_routes_to_the_existing_safe_intake(self):
         self.assertIn('<link rel="canonical" href="https://www.homeofferflow.com/sellers"', SELLERS)

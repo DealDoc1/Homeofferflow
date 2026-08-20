@@ -34,6 +34,10 @@
       "destination": "/sellers.html"
     },
     {
+      "source": "/texas-fsbo-guide",
+      "destination": "/texas-fsbo-guide.html"
+    },
+    {
       "source": "/directory",
       "destination": "/directory.html"
     }
