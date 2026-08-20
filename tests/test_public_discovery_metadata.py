@@ -167,6 +167,11 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
     def test_agent_workspace_page_is_indexable_and_routes_to_passwordless_sign_in(self):
         self.assertIn('<link rel="canonical" href="https://www.homeofferflow.com/agents"', AGENTS)
         self.assertIn('property="og:url" content="https://www.homeofferflow.com/agents"', AGENTS)
+        self.assertIn('"@type":"SoftwareApplication"', AGENTS)
+        self.assertIn('"@type":"FAQPage"', AGENTS)
+        self.assertIn('"name":"Do I need a password?"', AGENTS)
+        self.assertIn('"name":"Can I use saved defaults for the next offer?"', AGENTS)
+        self.assertIn('"name":"Does this replace broker supervision?"', AGENTS)
         self.assertIn('href="/?agent=1"', AGENTS)
         self.assertIn('No password and no charge to start a private draft.', AGENTS)
         self.assertIn('href="/ondemand"', AGENTS)
