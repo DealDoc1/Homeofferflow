@@ -159,7 +159,11 @@ class AdminTrackerSecurityTests(IsolatedAsyncioTestCase):
         members = [{"user_id": "agent-123", "email": "agent@example.com", "role": "agent", "status": "active"}]
         agent_profiles = [{"user_id": "agent-123", "agent_name": "Agent Example", "agent_email": "agent@example.com", "license_number": "123"}]
         brokerage_profiles = [{"id": "agent-123", "team_name": "North Dallas"}]
-        subscriptions = [{"user_id": "agent-123", "status": "trialing", "plan": "agent_starter_monthly", "trial_ends_at": "2026-09-01", "current_period_end": None}]
+        trial_ends_at = (
+            admin_dashboard.datetime.now(admin_dashboard.timezone.utc)
+            + admin_dashboard.timedelta(days=7)
+        ).isoformat()
+        subscriptions = [{"user_id": "agent-123", "status": "trialing", "plan": "agent_starter_monthly", "trial_ends_at": trial_ends_at, "current_period_end": None}]
         # These sensitive keys simulate an upstream mistake. The dashboard
         # payload must ignore them rather than forwarding them to a broker.
         offers = [{
@@ -193,10 +197,12 @@ class AdminTrackerSecurityTests(IsolatedAsyncioTestCase):
             "signedCount": 0,
         }])
         self.assertEqual(agent["engagement"], "active")
-        self.assertEqual(agent["nextAction"], "Keep building client offers")
+        # Trial renewal is the highest priority action within the 14-day window,
+        # even when the agent otherwise has current offer activity.
+        self.assertEqual(agent["nextAction"], "Review trial before renewal")
         self.assertEqual(payload["metrics"]["agentsNeedingActivation"], 0)
         self.assertEqual(payload["metrics"]["agentsNeedingFollowUp"], 0)
-        self.assertEqual(payload["metrics"]["trialsEndingSoon"], 0)
+        self.assertEqual(payload["metrics"]["trialsEndingSoon"], 1)
         self.assertEqual(payload["listingWorkspaceSummary"], [{"listingKind": "sale", "status": "intake", "workspaceCount": 1}])
         self.assertEqual(len(payload["sourceReadiness"]), 8)
         self.assertEqual(payload["privacy"], {
