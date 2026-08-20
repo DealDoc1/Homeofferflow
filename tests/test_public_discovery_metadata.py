@@ -164,6 +164,7 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn("'launch_kit'", SELLERS)
         self.assertIn("'premium_bundle'", SELLERS)
         self.assertIn('href="/sellers">FSBO Seller Support</a>', INDEX)
+        self.assertIn('href="/texas-fsbo-guide"', INDEX)
 
     def test_homebuyer_offer_page_is_indexable_and_routes_to_the_existing_safe_workflow(self):
         self.assertIn('<link rel="canonical" href="https://www.homeofferflow.com/buyers"', BUYERS)
