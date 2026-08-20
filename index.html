@@ -5232,6 +5232,10 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     const hasActiveAccess = isPaid || isInternalAdminAccess;
     const isBlocked = ['past_due', 'canceled', 'incomplete', 'incomplete_expired', 'unpaid', 'paused'].includes(status);
     const billingRecoveryNeeded = status === 'past_due' || status === 'incomplete' || status === 'incomplete_expired' || status === 'unpaid' || status === 'paused';
+    // Only subscriptions that have ended can start a replacement Checkout.
+    // Payable Stripe states stay in Billing Portal so we never create a
+    // duplicate subscription while the existing one can still be recovered.
+    const subscriptionReplacementNeeded = status === 'canceled' || status === 'incomplete_expired';
     const good = subscriptionAllowsGeneration(sub) && (!usageAvailable || used < limit);
     const remaining = Math.max(0, limit - used);
     const nearLimit = usageAvailable && hasActiveAccess && good && pct >= 80;
@@ -5280,8 +5284,8 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       actionHtml =
         '<div class="account-actions-row" style="margin-top:0.85rem;">' +
           (billingRecoveryNeeded ? '<button class="btn-primary" type="button" onclick="' + (status === 'past_due' ? 'openBillingPortal()' : 'openBillingPortal(\'billing_recovery\')') + '">Fix Billing</button>' : '') +
-          '<button class="btn-secondary" type="button" onclick="startSubscriptionCheckout(\'' + role + '\',\'monthly\',\'subscription_reactivation\')">Reactivate Monthly</button>' +
-          '<button class="btn-secondary" type="button" onclick="startSubscriptionCheckout(\'' + role + '\',\'annual\',\'subscription_reactivation\')">Reactivate Annual</button>' +
+          (subscriptionReplacementNeeded ? '<button class="btn-secondary" type="button" onclick="startSubscriptionCheckout(\'' + role + '\',\'monthly\',\'subscription_reactivation\')">Reactivate Monthly</button>' +
+          '<button class="btn-secondary" type="button" onclick="startSubscriptionCheckout(\'' + role + '\',\'annual\',\'subscription_reactivation\')">Reactivate Annual</button>' : '') +
         '</div>' +
         '<div style="margin-top:0.55rem; color:var(--warn); font-size:0.74rem; line-height:1.45;">' +
           (status === 'canceled'
