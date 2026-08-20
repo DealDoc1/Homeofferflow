@@ -53,16 +53,24 @@ class PwaBaselineTests(unittest.TestCase):
     def test_worker_does_not_cache_apis_or_authenticated_data(self):
         self.assertIn("requestUrl.pathname.startsWith('/api/')", WORKER)
         self.assertIn("event.request.mode === 'navigate'", WORKER)
-        self.assertIn("caches.match('/index.html')", WORKER)
+        self.assertIn("const PUBLIC_PAGE_PATHS = new Set", WORKER)
+        self.assertIn("requestUrl.pathname.startsWith('/api/')", WORKER)
         self.assertIn("contentType.includes('text/html')", WORKER)
-        self.assertIn("cache.put('/index.html', response.clone())", WORKER)
+        self.assertIn("cache.put(cacheKey, response.clone())", WORKER)
         self.assertNotIn("caches.match(event.request)", WORKER)
 
     def test_worker_refreshes_only_the_public_html_offline_shell(self):
-        self.assertIn("if (!response.ok || !contentType.includes('text/html')) return;", WORKER)
+        self.assertIn("if (!cacheKey || !response.ok || !contentType.includes('text/html')) return;", WORKER)
         self.assertIn("event.waitUntil", WORKER)
-        self.assertIn("cache.put('/index.html', response.clone())", WORKER)
+        self.assertIn("? caches.match(cacheKey).then(response => response || caches.match('/index.html'))", WORKER)
+        self.assertIn("cache.put(cacheKey, response.clone())", WORKER)
         self.assertNotIn("cache.put(event.request", WORKER)
+
+    def test_worker_keeps_public_pages_separate_in_the_offline_cache(self):
+        for path in ("'/buyers'", "'/agents'", "'/investors'", "'/sellers'", "'/partners'", "'/directory'", "'/ondemand'"):
+            self.assertIn(path, WORKER)
+        self.assertIn("const cacheKey = PUBLIC_PAGE_PATHS.has(requestUrl.pathname) ? requestUrl.pathname : '';", WORKER)
+        self.assertIn("caches.match(cacheKey).then(response => response || caches.match('/index.html'))", WORKER)
 
     def test_installed_app_shortcuts_use_existing_authenticated_workflows(self):
         self.assertIn('id="hof-pwa-shortcuts-v1"', INDEX)
