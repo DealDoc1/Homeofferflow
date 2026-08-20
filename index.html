@@ -730,6 +730,11 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 .subscription-status { display:inline-flex; align-items:center; gap:0.35rem; border-radius:999px; padding:0.3rem 0.65rem; font-size:0.72rem; font-weight:900; text-transform:uppercase; letter-spacing:0.04em; background:rgba(74,140,111,0.16); color:var(--sage-light); border:1px solid rgba(74,140,111,0.35); }
 .subscription-status.warn { background:rgba(232,147,90,0.10); color:var(--warn); border-color:rgba(232,147,90,0.35); }
 .pwa-install-card { border-color:rgba(74,140,111,.34); background:rgba(74,140,111,.07); }
+.pwa-install-card-desktop { padding:.82rem 1rem; display:flex; align-items:center; justify-content:space-between; gap:.8rem; }
+.pwa-install-card-desktop h4 { margin:0; font-size:.9rem; }
+.pwa-install-card-desktop p { margin:.18rem 0 0; max-width:43rem; }
+.pwa-install-card-desktop .pwa-install-actions { flex-shrink:0; }
+@media (max-width:760px) { .pwa-install-card-desktop { display:block; } .pwa-install-card-desktop .pwa-install-actions { margin-top:.7rem; } }
 .pwa-install-card h4 { margin-bottom:.35rem; }
 .pwa-install-card p { color:var(--gray-light); font-size:.84rem; line-height:1.5; margin-bottom:.75rem; }
 .pwa-install-actions { display:flex; flex-wrap:wrap; gap:.55rem; align-items:center; }
@@ -18935,7 +18940,8 @@ function routeAfterMagicLinkIfNeeded() {
     // Keep this fallback mobile-only so field workflows remain focused.
     const card = document.createElement('div');
     card.id = 'hofPwaInstallCard';
-    card.className = 'account-card pwa-install-card';
+    const desktopCompact = desktopNativeInstall;
+    card.className = 'account-card pwa-install-card' + (desktopCompact ? ' pwa-install-card-desktop' : '');
     card.dataset.surface = target.surface;
     try { sessionStorage.setItem(installSurfaceKey, target.surface); } catch (_) {}
     const ios = isIos();
@@ -18945,7 +18951,7 @@ function routeAfterMagicLinkIfNeeded() {
     const workspaceReturnCopy = target.surface === 'account_dashboard'
       ? 'Use the app icon for a focused workspace launch, with shortcuts for My Workspace, New Offer, Buyer Offer, Signing Queue, and Seller Plan.'
       : '';
-    card.innerHTML = `<h4>Keep HomeOfferFlow one tap away</h4>
+    card.innerHTML = desktopCompact ? `<div><h4>Optional: install the focused desktop workspace</h4><p>Open HomeOfferFlow in its own window from your desktop or taskbar. Your browser already supports it; no App Store, separate account, or native build is needed.</p></div><div class="pwa-install-actions"><button class="btn-secondary" type="button" id="hofPwaInstallButton">Install desktop app</button><button class="btn-secondary" type="button" id="hofPwaInstallDismiss">Not now</button></div>` : `<h4>Keep HomeOfferFlow one tap away</h4>
       <p>${ios
         ? 'Add this workspace to your iPhone or iPad Home Screen for a full-screen, app-like launch. It takes about a minute—no App Store download or separate account is needed.'
         : isAndroid() && !deferredInstallPrompt
@@ -19003,7 +19009,12 @@ function routeAfterMagicLinkIfNeeded() {
       const button = card.querySelector('#hofPwaInstallButton');
       if (button) { button.disabled = true; button.textContent = 'Opening install…'; }
       try {
-        trackInstall('cta_clicked', { platform: installPlatform(), surface: target.surface, cta: 'native_prompt', copy_version: 'install_explicit_v2' });
+        const nativePromptMetadata = { platform: installPlatform(), surface: target.surface, cta: 'native_prompt', copy_version: 'install_explicit_v2' };
+        if (desktopCompact) {
+          nativePromptMetadata.cta = 'native_prompt_desktop_compact';
+          nativePromptMetadata.copy_version = 'desktop_compact_v3';
+        }
+        trackInstall('cta_clicked', nativePromptMetadata);
         await deferredInstallPrompt.prompt();
         trackInstall('prompt_opened', { platform: installPlatform(), surface: target.surface });
         const choice = await deferredInstallPrompt.userChoice;

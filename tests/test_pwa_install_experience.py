@@ -28,6 +28,10 @@ class PwaInstallExperienceTests(unittest.TestCase):
         self.assertIn("const desktopNativeInstall = !isIos() && !isAndroid() && !!deferredInstallPrompt", INDEX)
         self.assertIn("if (!isIos() && !isAndroid() && !desktopNativeInstall) return;", INDEX)
         self.assertIn("Install HomeOfferFlow as a focused desktop app", INDEX)
+        self.assertIn("Optional: install the focused desktop workspace", INDEX)
+        self.assertIn("pwa-install-card-desktop", INDEX)
+        self.assertIn("native_prompt_desktop_compact", INDEX)
+        self.assertIn("desktop_compact_v3", INDEX)
 
     def test_completed_homebuyer_review_can_offer_install_without_account_login(self):
         self.assertIn("function installTarget()", INDEX)
