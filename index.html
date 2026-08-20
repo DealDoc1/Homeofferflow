@@ -13486,6 +13486,7 @@ function routeAfterMagicLinkIfNeeded() {
       <div class="field"><label for="foundingPartnerEmail">Business email</label><input id="foundingPartnerEmail" type="email" inputmode="email" autocomplete="email" placeholder="you@company.com" required aria-required="true"></div>
       <div class="field"><label for="foundingPartnerMarket">Primary market area</label><input id="foundingPartnerMarket" placeholder="Collin / Denton / Grayson County" required aria-required="true"></div>
     </div>
+    <div id="foundingPartnerRequiredCue" class="notice sage" role="status" aria-live="polite" style="margin-top:.75rem;"><strong>Step 1 of 2:</strong> Complete the five essentials to prepare secure checkout. Your placement remains private until onboarding and agreement review are complete.</div>
 
     <details class="partner-optional-details"><summary>Add optional placement preferences now</summary><div class="platform-grid" style="margin-top:.75rem;"><div class="field"><label for="foundingPartnerPhone">Phone</label><input id="foundingPartnerPhone" autocomplete="tel" placeholder="(214) 555-0000"></div><div class="field"><label for="foundingPartnerWebsite">Website</label><input id="foundingPartnerWebsite" type="url" autocomplete="url" placeholder="https://company.com"></div><div class="field"><label for="foundingPartnerFocus">Customer focus</label><input id="foundingPartnerFocus" placeholder="First-time buyers, agents, FSBO sellers..."></div><div class="field"><label for="foundingPartnerBudget">Expected monthly budget after the pilot</label><select id="foundingPartnerBudget"><option value="discuss">Discuss first</option><option value="under_250">Under $250</option><option value="250_499" selected>$250–$499</option><option value="500_999">$500–$999</option><option value="1000_plus">$1,000+</option></select></div></div><div class="field" style="margin-top:.75rem;"><label for="foundingPartnerMessage">What would make the pilot valuable to you?</label><textarea id="foundingPartnerMessage" rows="3" placeholder="Markets served, ideal customer, category preferences, or questions..."></textarea></div></details>
     <div aria-hidden="true" style="position:absolute;left:-10000px;top:auto;width:1px;height:1px;overflow:hidden;"><label for="foundingPartnerConfirm">Leave this field blank</label><input id="foundingPartnerConfirm" tabindex="-1" autocomplete="off"></div>
@@ -13493,7 +13494,7 @@ function routeAfterMagicLinkIfNeeded() {
     <label class="terms-check" style="margin-top:.8rem;"><input type="checkbox" id="foundingPartnerConsent"><span>I understand the discounted 90-day launch period begins at checkout and my plan then renews monthly at the standard rate unless I cancel. Placement does not promise referrals, leads, exclusivity, transactions, or closings, and final terms require a written agreement.</span></label>
 
     <div class="account-actions-row" style="margin-top:1rem;">
-      <button class="btn-primary" type="button" id="foundingPartnerSubmit" onclick="submitFoundingPartnerLead()">Continue to Secure Checkout</button>
+      <button class="btn-primary" type="button" id="foundingPartnerSubmit" onclick="submitFoundingPartnerLead()" disabled aria-disabled="true" aria-label="Continue to Secure Checkout — complete the required details and acknowledge the terms to unlock">Complete required details to unlock</button>
       <button class="btn-secondary" type="button" onclick="closeFoundingPartnerModal()">Cancel</button>
     </div>
     <div id="foundingPartnerCheckoutNote" class="admin-muted" style="margin-top:.55rem;line-height:1.45;">Next: review the selected Founding Partner price and payment details in secure Stripe Checkout. Your placement stays private until onboarding and written-agreement review are complete.</div>
@@ -13538,8 +13539,54 @@ function routeAfterMagicLinkIfNeeded() {
     const jump = document.getElementById('foundingPartnerEssentialsJump');
     const resume = document.getElementById('foundingPartnerCheckoutResume');
     if (resume) resume.style.display = hasSavedApplication && window.__hofFoundingPartnerCheckoutState !== 'success' ? 'block' : 'none';
-    if (submit) submit.textContent = hasSavedApplication ? 'Resume Secure Checkout — saved application' : 'Continue to Secure Checkout';
+    if (submit && hasSavedApplication) {
+      submit.disabled = false;
+      submit.setAttribute('aria-disabled', 'false');
+      submit.setAttribute('aria-label', 'Resume Secure Checkout — saved application');
+      submit.textContent = 'Resume Secure Checkout — saved application';
+    }
     if (jump) jump.style.display = hasSavedApplication ? 'none' : '';
+    renderFoundingPartnerCheckoutAvailability();
+  }
+  function partnerEssentialProgress(){
+    const type = document.getElementById('foundingPartnerType');
+    const company = document.getElementById('foundingPartnerCompany');
+    const contact = document.getElementById('foundingPartnerContact');
+    const email = document.getElementById('foundingPartnerEmail');
+    const market = document.getElementById('foundingPartnerMarket');
+    const valid = [
+      !!type?.value && !!type?.checkValidity(),
+      !!company?.value.trim(),
+      !!contact?.value.trim(),
+      !!email?.value.trim() && !!email?.checkValidity(),
+      !!market?.value.trim()
+    ];
+    return { complete: valid.filter(Boolean).length, ready: valid.every(Boolean) };
+  }
+  function renderFoundingPartnerCheckoutAvailability(){
+    const hasSavedApplication = Boolean(window.__hofFoundingPartnerLeadId || loadSavedPartnerLeadId());
+    const progress = partnerEssentialProgress();
+    const consent = !!document.getElementById('foundingPartnerConsent')?.checked;
+    const ready = hasSavedApplication || (progress.ready && consent);
+    const tier = value('foundingPartnerModel') || 'founding_pilot';
+    const detail = partnerTierDetails[tier] || partnerTierDetails.founding_pilot;
+    const submit = document.getElementById('foundingPartnerSubmit');
+    const cue = document.getElementById('foundingPartnerRequiredCue');
+    if (cue) {
+      cue.innerHTML = hasSavedApplication
+        ? '<strong>Your application is saved.</strong> Resume the exact secure checkout when you are ready. No second application is created on this device.'
+        : !progress.ready
+          ? `<strong>Step 1 of 2:</strong> Complete the five essentials (${progress.complete} of 5 complete) to prepare secure checkout. Your placement remains private until onboarding and agreement review are complete.`
+          : !consent
+            ? '<strong>Step 2 of 2:</strong> Review and acknowledge the founding-partner terms below to unlock secure checkout.'
+            : '<strong>You’re ready.</strong> Review the selected tier and payment details in secure Stripe Checkout. Your placement remains private until onboarding and agreement review are complete.';
+    }
+    if (!submit) return;
+    submit.disabled = !ready;
+    submit.setAttribute('aria-disabled', ready ? 'false' : 'true');
+    const enabledLabel = hasSavedApplication ? 'Resume Secure Checkout — saved application' : `Continue to Secure Checkout — ${detail.label}`;
+    submit.setAttribute('aria-label', ready ? enabledLabel : 'Continue to Secure Checkout — complete the required details and acknowledge the terms to unlock');
+    submit.textContent = ready ? enabledLabel : 'Complete required details to unlock';
   }
   function campaignPartnerCategory(){
     const category = String(params().get('partner_category') || '').trim().toLowerCase();
@@ -13608,6 +13655,7 @@ function routeAfterMagicLinkIfNeeded() {
     applySavedPartnerApplicationState();
     if (!window.__hofFoundingPartnerLeadId && checkoutState !== 'success' && checkoutState !== 'cancelled') recordPartnerApplicationOpened(campaign);
     trackPartnerFunnel('Founding Partner Intake Opened', { checkoutState: checkoutState === 'success' ? 'success' : checkoutState === 'cancelled' ? 'cancelled' : 'new', campaignCategory: campaign.category || null, campaignTier: campaign.tier || null, campaignChannel: campaign.channel || null });
+    renderFoundingPartnerCheckoutAvailability();
     if (partnerQuickStartRequested() && !window.__hofFoundingPartnerLeadId && checkoutState !== 'success' && checkoutState !== 'cancelled') {
       // Public partner CTAs already disclose the tiers and simply remove the
       // duplicate scrolling step. All essentials, consent, and the secure
@@ -13641,6 +13689,7 @@ function routeAfterMagicLinkIfNeeded() {
       trackPartnerFunnel('Founding Partner Tier Selected', { tier: model });
       recordPartnerApplicationProgress('partner_application_tier_selected');
     }
+    renderFoundingPartnerCheckoutAvailability();
   };
   window.jumpToFoundingPartnerEssentials = function(){
     const essentials = document.getElementById('foundingPartnerEssentials');
@@ -13842,6 +13891,13 @@ function routeAfterMagicLinkIfNeeded() {
   }
   document.addEventListener('DOMContentLoaded', function(){
     window.selectFoundingPartnerTier('founding_pilot', false);
+    ['foundingPartnerType', 'foundingPartnerCompany', 'foundingPartnerContact', 'foundingPartnerEmail', 'foundingPartnerMarket'].forEach(id => {
+      const field = document.getElementById(id);
+      field?.addEventListener('input', renderFoundingPartnerCheckoutAvailability);
+      field?.addEventListener('change', renderFoundingPartnerCheckoutAvailability);
+    });
+    document.getElementById('foundingPartnerConsent')?.addEventListener('change', renderFoundingPartnerCheckoutAvailability);
+    renderFoundingPartnerCheckoutAvailability();
     if (params().get('partner_checkout') === 'cancelled') {
       const query = params();
       const cancelledLeadId = query.get('partner_lead_id') || '';
