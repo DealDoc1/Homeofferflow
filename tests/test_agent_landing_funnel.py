@@ -1,9 +1,12 @@
 from pathlib import Path
+import importlib.util
 import unittest
+from unittest.mock import patch
 
 
 ROOT = Path(__file__).resolve().parents[1]
 API = (ROOT / "api" / "fsbo-lead.py").read_text(encoding="utf-8")
+API_PATH = ROOT / "api" / "fsbo-lead.py"
 ADMIN = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
 INDEX = (ROOT / "index.html").read_text(encoding="utf-8")
 AGENTS = (ROOT / "agents.html").read_text(encoding="utf-8")
@@ -41,11 +44,14 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("window.startAccountOffer?.();", INDEX)
         self.assertIn("agent_landing_draft_handoff", INDEX)
 
-    def test_public_endpoint_and_page_record_only_aggregate_agent_landing_events(self):
+    def test_public_endpoint_and_page_record_only_allowlisted_aggregate_agent_landing_events(self):
         self.assertIn("AGENT_LANDING_EVENT_TYPES", API)
         self.assertIn("def _record_agent_landing_event(data):", API)
         self.assertIn('"agent_landing_viewed": "viewed"', API)
         self.assertIn('"agent_landing_cta_selected": "selected"', API)
+        self.assertIn("AGENT_LANDING_CHANNELS", API)
+        self.assertIn("Unsupported agent landing channel.", API)
+        self.assertIn('"channel": channel', API)
         self.assertIn("Unsupported agent landing event.", API)
         self.assertIn("'agent_landing_event'", API)
         self.assertIn('"surface": "agent_landing"', API)
@@ -53,16 +59,35 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("request_type:'agent_landing_event'", AGENTS)
         self.assertIn("agent_landing_viewed", AGENTS)
         self.assertIn("agent_landing_cta_selected", AGENTS)
+        self.assertIn("new URLSearchParams(window.location.search).get('utm_source')", AGENTS)
+        self.assertIn("'direct_outreach','email','social','referral','local_event','print'", AGENTS)
+        self.assertIn("channel})", AGENTS)
+
+    def test_agent_landing_channel_is_allowlisted_without_visitor_identity(self):
+        spec = importlib.util.spec_from_file_location("agent_landing_channel", API_PATH)
+        api = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(api)
+        captured = []
+        with patch.object(api, "_record_partner_checkout_event", side_effect=lambda *args: captured.append(args)):
+            api._record_agent_landing_event({"event_type": "agent_landing_cta_selected", "channel": "referral"})
+            with self.assertRaisesRegex(ValueError, "Unsupported agent landing channel"):
+                api._record_agent_landing_event({"event_type": "agent_landing_viewed", "channel": "untrusted"})
+        self.assertEqual(len(captured), 1)
+        self.assertEqual(captured[0][0], "agent_landing_cta_selected")
+        self.assertEqual(captured[0][3], {"surface": "agent_landing", "role": "agent", "channel": "referral"})
 
     def test_admin_reports_agent_workspace_landing_conversion(self):
         for expected in (
             '"agentLandingViewCount"', '"agentLandingCtaCount"', '"agentLandingCtaRate"',
+            '"agentLandingViewCountsByChannel"', '"agentLandingCtaCountsByChannel"',
             '"agentLandingDraftHandoffUserCount"', '"agentLandingDraftHandoffRate"',
             'agent_landing_draft_handoff',
         ):
             self.assertIn(expected, ADMIN)
         self.assertIn("Agent Workspace Funnel", INDEX)
         self.assertIn("agentLandingCtaRate", INDEX)
+        self.assertIn("Channel views / sign-ins", INDEX)
+        self.assertIn("agentLandingViewCountsByChannel?.referral", INDEX)
         self.assertIn("agentLandingDraftHandoffUserCount", INDEX)
         self.assertIn("agentLandingDraftHandoffRate", INDEX)
 

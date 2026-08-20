@@ -4222,6 +4222,25 @@ class handler(BaseHTTPRequestHandler):
             agent_landing_cta_count = len([
                 item for item in events if item.get("event_type") == "agent_landing_cta_selected"
             ])
+            agent_landing_channels = (
+                "direct_outreach", "email", "social", "referral", "local_event", "print", "unspecified",
+            )
+            agent_landing_view_counts_by_channel = {
+                channel: len([
+                    item for item in events
+                    if item.get("event_type") == "agent_landing_viewed"
+                    and str((item.get("metadata") or {}).get("channel") or "unspecified") == channel
+                ])
+                for channel in agent_landing_channels
+            }
+            agent_landing_cta_counts_by_channel = {
+                channel: len([
+                    item for item in events
+                    if item.get("event_type") == "agent_landing_cta_selected"
+                    and str((item.get("metadata") or {}).get("channel") or "unspecified") == channel
+                ])
+                for channel in agent_landing_channels
+            }
             # The handoff is recorded only after an authenticated visitor
             # reaches the promised private draft flow. Return an aggregate
             # distinct-user count so Admin can measure the real acquisition
@@ -4598,6 +4617,8 @@ class handler(BaseHTTPRequestHandler):
                 "agentLandingCtaCount": agent_landing_cta_count,
                 "agentLandingCtaRate": round((agent_landing_cta_count / agent_landing_view_count) * 100, 1)
                 if agent_landing_view_count else 0,
+                "agentLandingViewCountsByChannel": agent_landing_view_counts_by_channel,
+                "agentLandingCtaCountsByChannel": agent_landing_cta_counts_by_channel,
                 "agentLandingDraftHandoffUserCount": agent_landing_draft_handoff_user_count,
                 "agentLandingDraftHandoffRate": round((agent_landing_draft_handoff_user_count / agent_landing_cta_count) * 100, 1)
                 if agent_landing_cta_count else 0,
