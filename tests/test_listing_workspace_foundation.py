@@ -90,6 +90,8 @@ class ListingWorkspaceFoundationTests(unittest.TestCase):
         self.assertIn("Seller-side launch status:", INDEX)
         self.assertIn("executable listing agreements, seller disclosures, and lease-listing packets", INDEX.lower())
         self.assertIn("completed-signature visual QA", INDEX)
+        self.assertIn("Agent-side seller planning tools:", INDEX)
+        self.assertNotIn("Agent-side seller-representation tools: listing packet", INDEX)
 
     def test_saved_seller_lead_can_seed_a_private_workspace(self):
         self.assertIn("startListingWorkspaceFromLead", INDEX)
