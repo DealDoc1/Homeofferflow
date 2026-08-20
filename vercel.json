@@ -38,6 +38,10 @@
       "destination": "/texas-fsbo-guide.html"
     },
     {
+      "source": "/texas-agent-offer-workflow",
+      "destination": "/texas-agent-offer-workflow.html"
+    },
+    {
       "source": "/directory",
       "destination": "/directory.html"
     }

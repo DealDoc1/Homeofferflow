@@ -15,6 +15,7 @@ AGENTS = (ROOT / "agents.html").read_text(encoding="utf-8")
 INVESTORS = (ROOT / "investors.html").read_text(encoding="utf-8")
 ONDEMAND = (ROOT / "ondemand.html").read_text(encoding="utf-8")
 FSBO_GUIDE = (ROOT / "texas-fsbo-guide.html").read_text(encoding="utf-8")
+AGENT_GUIDE = (ROOT / "texas-agent-offer-workflow.html").read_text(encoding="utf-8")
 VERCEL = json.loads((ROOT / "vercel.json").read_text(encoding="utf-8"))
 
 
@@ -49,6 +50,7 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn('https://www.homeofferflow.com/investors', SITEMAP)
         self.assertIn('https://www.homeofferflow.com/directory', SITEMAP)
         self.assertIn('https://www.homeofferflow.com/texas-fsbo-guide', SITEMAP)
+        self.assertIn('https://www.homeofferflow.com/texas-agent-offer-workflow', SITEMAP)
 
     def test_ondemand_trial_page_has_canonical_share_and_structured_metadata(self):
         self.assertIn('<link rel="canonical" href="https://www.homeofferflow.com/ondemand"', ONDEMAND)
@@ -124,6 +126,15 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn('not legal, tax, lending, inspection, title, or brokerage advice', FSBO_GUIDE)
         self.assertIn('/texas-fsbo-guide', (ROOT / 'vercel.json').read_text(encoding='utf-8'))
         self.assertIn('href="/texas-fsbo-guide"', SELLERS)
+
+    def test_agent_offer_workflow_guide_is_a_crawlable_people_first_path_to_the_workspace(self):
+        self.assertIn('<link rel="canonical" href="https://www.homeofferflow.com/texas-agent-offer-workflow">', AGENT_GUIDE)
+        self.assertIn('"@type":"Article"', AGENT_GUIDE)
+        self.assertIn('"@type":"FAQPage"', AGENT_GUIDE)
+        self.assertIn('Start a private client draft', AGENT_GUIDE)
+        self.assertIn('not legal, tax, lending, title, or brokerage advice', AGENT_GUIDE)
+        self.assertIn('/texas-agent-offer-workflow', (ROOT / 'vercel.json').read_text(encoding='utf-8'))
+        self.assertIn('href="/texas-agent-offer-workflow"', AGENTS)
 
     def test_seller_acquisition_page_is_indexable_and_routes_to_the_existing_safe_intake(self):
         self.assertIn('<link rel="canonical" href="https://www.homeofferflow.com/sellers"', SELLERS)
