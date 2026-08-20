@@ -24,6 +24,12 @@ class TechnicalSeoTests(unittest.TestCase):
         self.assertEqual(organization["url"], "https://www.homeofferflow.com/")
         self.assertEqual(website["publisher"]["@id"], organization["@id"])
 
+    def test_homepage_keeps_google_search_console_verification_available(self):
+        self.assertIn(
+            '<meta name="google-site-verification" content="ffYNHLPyXQYYPeJLcE-F4KlHlToBu6hMkB23lsYVXSg"',
+            HOME,
+        )
+
     def test_sitemap_keeps_revenue_landing_pages_discoverable(self):
         for path in ("/buyers", "/agents", "/investors", "/sellers", "/partners", "/directory"):
             self.assertIn(f"https://www.homeofferflow.com{path}", SITEMAP)
