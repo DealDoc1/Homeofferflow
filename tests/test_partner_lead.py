@@ -204,7 +204,20 @@ class PartnerLeadTests(unittest.TestCase):
         self.assertEqual(captured["kwargs"]["json"]["reply_to"], "support@homeofferflow.com")
         self.assertNotIn("<script>", captured["kwargs"]["json"]["html"])
         self.assertIn("separate next step", captured["kwargs"]["json"]["text"])
+        self.assertIn("What happens next", captured["kwargs"]["json"]["text"])
+        self.assertIn("final featured-placement terms", captured["kwargs"]["json"]["text"])
+        self.assertIn("<h3>What happens next</h3>", captured["kwargs"]["json"]["html"])
         self.assertTrue(captured["kwargs"]["headers"]["Idempotency-Key"].startswith("partner-application-"))
+
+    def test_partner_application_receipt_steps_are_allowlisted_and_fall_back_safely(self):
+        self.assertIn(
+            "availability is confirmed separately.",
+            fsbo_lead._partner_application_receipt_steps({"preferred_model": "market_exclusive"})[1],
+        )
+        self.assertEqual(
+            fsbo_lead._partner_application_receipt_steps({"preferred_model": "not-a-tier"}),
+            fsbo_lead.PARTNER_APPLICATION_NEXT_STEPS["founding_pilot"],
+        )
 
     def test_partner_application_receipt_telemetry_is_aggregate_and_allowlisted(self):
         captured = []

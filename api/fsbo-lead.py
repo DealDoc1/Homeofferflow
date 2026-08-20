@@ -149,6 +149,23 @@ FSBO_LANDING_EVENT_TYPES = {
 }
 FSBO_RECEIPT_DELIVERY_STATUSES = {"sent", "failed", "not_configured", "missing_email"}
 PARTNER_APPLICATION_RECEIPT_DELIVERY_STATUSES = {"sent", "failed", "not_configured", "missing_email"}
+PARTNER_APPLICATION_NEXT_STEPS = {
+    "founding_pilot": (
+        "Review the selected category and market while your application is being evaluated.",
+        "Use secure Stripe Checkout only when you are ready to review the final launch terms before payment.",
+        "After payment, complete the secure business-profile onboarding; a public placement still waits for written-agreement review.",
+    ),
+    "monthly_placement": (
+        "Review the selected category and market while your application is being evaluated.",
+        "Use secure Stripe Checkout only when you are ready to review the final featured-placement terms before payment.",
+        "After payment, complete the secure business-profile onboarding; a public placement still waits for written-agreement review.",
+    ),
+    "market_exclusive": (
+        "Confirm the category and market are the exact placement you want considered.",
+        "Use secure Stripe Checkout only when you are ready to review the final terms before payment; availability is confirmed separately.",
+        "After payment, complete the secure business-profile onboarding; exclusivity and public placement still wait for written-agreement review.",
+    ),
+}
 PARTNER_LANDING_EVENT_TYPES = {
     "partner_landing_viewed": "viewed",
     "partner_landing_cta_selected": "selected",
@@ -337,6 +354,12 @@ def _record_seller_plan_receipt_event(payload, delivery_status):
     )
 
 
+def _partner_application_receipt_steps(payload):
+    """Return controlled partner next steps without creating checkout or a placement."""
+    tier = _text((payload or {}).get("preferred_model"), 80) or "founding_pilot"
+    return PARTNER_APPLICATION_NEXT_STEPS.get(tier, PARTNER_APPLICATION_NEXT_STEPS["founding_pilot"])
+
+
 def _send_partner_application_confirmation(payload):
     """Best-effort replyable application receipt; checkout remains a separate step."""
     if not RESEND_API_KEY:
@@ -354,10 +377,15 @@ def _send_partner_application_confirmation(payload):
         "market_exclusive": "Premier Partner",
     }
     tier = tier_labels.get(str(payload.get("preferred_model") or ""), "Partner placement")
+    next_steps = _partner_application_receipt_steps(payload)
+    plain_steps = "\n".join(f"{index}. {step}" for index, step in enumerate(next_steps, start=1))
+    html_steps = "".join(f"<li>{html.escape(step)}</li>" for step in next_steps)
     plain_text = (
         f"Hi {contact},\n\n"
         "We received your HomeOfferFlow partner application.\n\n"
         f"Company: {company}\nSelected tier: {tier}\nMarket: {market}\n\n"
+        "What happens next:\n"
+        f"{plain_steps}\n\n"
         "Your application is saved. Secure Stripe Checkout is a separate next step and shows the final terms before any payment. "
         "Submitting this application does not collect payment, activate advertising, reserve exclusivity, create a referral relationship, or create a service agreement. "
         "Any public placement remains subject to onboarding and written-agreement review.\n\n"
@@ -389,6 +417,8 @@ def _send_partner_application_confirmation(payload):
                         f"<p><strong>Company:</strong> {safe_company}<br>"
                         f"<strong>Selected tier:</strong> {safe_tier}<br>"
                         f"<strong>Market:</strong> {safe_market}</p>"
+                        "<h3>What happens next</h3>"
+                        f"<ol>{html_steps}</ol>"
                         "<p>Secure Stripe Checkout is a separate next step and shows the final terms before any payment.</p>"
                         "<p>This application does not collect payment, activate advertising, reserve exclusivity, create a referral relationship, or create a service agreement. Any public placement remains subject to onboarding and written-agreement review.</p>"
                         "<p>Have a question before checkout? Reply directly to this email.</p>"
