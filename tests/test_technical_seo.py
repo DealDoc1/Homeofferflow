@@ -7,6 +7,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 HOME = (ROOT / "index.html").read_text(encoding="utf-8")
 SITEMAP = (ROOT / "sitemap.xml").read_text(encoding="utf-8")
+VERCEL = json.loads((ROOT / "vercel.json").read_text(encoding="utf-8"))
 
 
 class TechnicalSeoTests(unittest.TestCase):
@@ -32,6 +33,13 @@ class TechnicalSeoTests(unittest.TestCase):
         seller_review = (ROOT / "seller-review.html").read_text(encoding="utf-8")
         self.assertIn('<meta name="robots" content="noindex, nofollow, noarchive"', field_mapper)
         self.assertIn('<meta name="robots" content="noindex, nofollow, noarchive, nosnippet"', seller_review)
+
+    def test_api_and_signed_workflow_endpoints_cannot_be_indexed(self):
+        api_headers = next(item for item in VERCEL["headers"] if item["source"] == "/api/(.*)")
+        self.assertIn(
+            {"key": "X-Robots-Tag", "value": "noindex, nofollow, noarchive, nosnippet"},
+            api_headers["headers"],
+        )
 
 
 if __name__ == "__main__":
