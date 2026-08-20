@@ -108,6 +108,12 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn('"url":"https://www.homeofferflow.com/directory"', DIRECTORY)
         self.assertIn('"isPartOf":{"@id":"https://www.homeofferflow.com/#website"}', DIRECTORY)
 
+    def test_provider_directory_exposes_popular_categories_before_javascript_runs(self):
+        self.assertIn('id="directory-categories"', DIRECTORY)
+        self.assertIn('aria-label="Popular Texas home-service categories"', DIRECTORY)
+        for category in ('title', 'lender', 'inspection', 'insurance', 'roofing', 'general_contractor'):
+            self.assertIn(f'href="/directory?category={category}"', DIRECTORY)
+
     def test_seller_acquisition_page_is_indexable_and_routes_to_the_existing_safe_intake(self):
         self.assertIn('<link rel="canonical" href="https://www.homeofferflow.com/sellers"', SELLERS)
         self.assertIn('property="og:url" content="https://www.homeofferflow.com/sellers"', SELLERS)
