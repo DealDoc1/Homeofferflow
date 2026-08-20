@@ -135,6 +135,7 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn('not legal, tax, lending, title, or brokerage advice', AGENT_GUIDE)
         self.assertIn('/texas-agent-offer-workflow', (ROOT / 'vercel.json').read_text(encoding='utf-8'))
         self.assertIn('href="/texas-agent-offer-workflow"', AGENTS)
+        self.assertIn('agent-workflow-guide-metrics.js', AGENT_GUIDE)
 
     def test_seller_acquisition_page_is_indexable_and_routes_to_the_existing_safe_intake(self):
         self.assertIn('<link rel="canonical" href="https://www.homeofferflow.com/sellers"', SELLERS)

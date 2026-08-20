@@ -198,6 +198,8 @@ HOMEBUYER_LANDING_CHANNELS = {
 AGENT_LANDING_EVENT_TYPES = {
     "agent_landing_viewed": "viewed",
     "agent_landing_cta_selected": "selected",
+    "agent_workflow_guide_viewed": "viewed",
+    "agent_workflow_guide_cta_selected": "selected",
 }
 AGENT_LANDING_CHANNELS = {
     "direct_outreach", "email", "social", "referral", "local_event", "print", "unspecified",
@@ -696,11 +698,14 @@ def _record_agent_landing_event(data):
         raise ValueError("Unsupported agent landing event.")
     if channel not in AGENT_LANDING_CHANNELS:
         raise ValueError("Unsupported agent landing channel.")
+    metadata = {"surface": "agent_landing", "role": "agent", "channel": channel}
+    if event_type.startswith("agent_workflow_guide_"):
+        metadata["surface"] = "agent_workflow_guide"
     _record_partner_checkout_event(
         event_type,
         AGENT_LANDING_EVENT_TYPES[event_type],
         "Privacy-safe public agent landing engagement recorded.",
-        {"surface": "agent_landing", "role": "agent", "channel": channel},
+        metadata,
     )
 
 

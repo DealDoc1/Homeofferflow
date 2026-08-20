@@ -4222,6 +4222,12 @@ class handler(BaseHTTPRequestHandler):
             agent_landing_cta_count = len([
                 item for item in events if item.get("event_type") == "agent_landing_cta_selected"
             ])
+            agent_workflow_guide_view_count = len([
+                item for item in events if item.get("event_type") == "agent_workflow_guide_viewed"
+            ])
+            agent_workflow_guide_cta_count = len([
+                item for item in events if item.get("event_type") == "agent_workflow_guide_cta_selected"
+            ])
             agent_landing_channels = (
                 "direct_outreach", "email", "social", "referral", "local_event", "print", "unspecified",
             )
@@ -4617,6 +4623,10 @@ class handler(BaseHTTPRequestHandler):
                 "agentLandingCtaCount": agent_landing_cta_count,
                 "agentLandingCtaRate": round((agent_landing_cta_count / agent_landing_view_count) * 100, 1)
                 if agent_landing_view_count else 0,
+                "agentWorkflowGuideViewCount": agent_workflow_guide_view_count,
+                "agentWorkflowGuideCtaCount": agent_workflow_guide_cta_count,
+                "agentWorkflowGuideCtaRate": round((agent_workflow_guide_cta_count / agent_workflow_guide_view_count) * 100, 1)
+                if agent_workflow_guide_view_count else 0,
                 "agentLandingViewCountsByChannel": agent_landing_view_counts_by_channel,
                 "agentLandingCtaCountsByChannel": agent_landing_cta_counts_by_channel,
                 "agentLandingDraftHandoffUserCount": agent_landing_draft_handoff_user_count,

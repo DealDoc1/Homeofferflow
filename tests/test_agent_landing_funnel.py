@@ -49,6 +49,8 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("def _record_agent_landing_event(data):", API)
         self.assertIn('"agent_landing_viewed": "viewed"', API)
         self.assertIn('"agent_landing_cta_selected": "selected"', API)
+        self.assertIn('"agent_workflow_guide_viewed": "viewed"', API)
+        self.assertIn('"agent_workflow_guide_cta_selected": "selected"', API)
         self.assertIn("AGENT_LANDING_CHANNELS", API)
         self.assertIn("Unsupported agent landing channel.", API)
         self.assertIn('"channel": channel', API)
@@ -82,6 +84,7 @@ class AgentLandingFunnelTests(unittest.TestCase):
             '"agentLandingViewCountsByChannel"', '"agentLandingCtaCountsByChannel"',
             '"agentLandingDraftHandoffUserCount"', '"agentLandingDraftHandoffRate"',
             'agent_landing_draft_handoff',
+            'agentWorkflowGuideViewCount', 'agentWorkflowGuideCtaCount', 'agentWorkflowGuideCtaRate',
         ):
             self.assertIn(expected, ADMIN)
         self.assertIn("Agent Workspace Funnel", INDEX)
@@ -90,6 +93,7 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("agentLandingViewCountsByChannel?.referral", INDEX)
         self.assertIn("agentLandingDraftHandoffUserCount", INDEX)
         self.assertIn("agentLandingDraftHandoffRate", INDEX)
+        self.assertIn("agentWorkflowGuideCtaRate", INDEX)
 
 
 if __name__ == "__main__":
