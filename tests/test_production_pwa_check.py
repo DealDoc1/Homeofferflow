@@ -10,6 +10,7 @@ class ProductionPwaCheckTests(unittest.TestCase):
             "orientation": "portrait-primary",
             "start_url": "/",
             "scope": "/",
+            "launch_handler": {"client_mode": ["navigate-existing", "auto"]},
             "lang": "en-US",
             "dir": "ltr",
             "prefer_related_applications": False,

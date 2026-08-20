@@ -7,6 +7,9 @@
   "id": "/",
   "start_url": "/",
   "scope": "/",
+  "launch_handler": {
+    "client_mode": ["navigate-existing", "auto"]
+  },
   "shortcuts": [
     {
       "name": "My Workspace",
