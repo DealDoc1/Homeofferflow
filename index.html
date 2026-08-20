@@ -63,16 +63,6 @@
 
   
 
-<div class="offer-detail-backdrop" id="offerDetailBackdrop" onclick="if(event.target===this) closeOfferDetail();">
-  <div class="offer-detail-card" id="offerDetailCard">
-    <div class="offer-detail-head">
-      <div><h3>Offer Details</h3><p>Loading offer details...</p></div>
-      <button class="offer-detail-close" type="button" onclick="closeOfferDetail()">×</button>
-    </div>
-    <div id="offerDetailContent"></div>
-  </div>
-</div>
-
 <script>
     window.initAutocomplete = function() {
       window._mapsReady = true;
@@ -2597,6 +2587,15 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 </head>
 
 <body>
+<div class="offer-detail-backdrop" id="offerDetailBackdrop" onclick="if(event.target===this) closeOfferDetail();">
+  <div class="offer-detail-card" id="offerDetailCard">
+    <div class="offer-detail-head">
+      <div><h3>Offer Details</h3><p>Loading offer details...</p></div>
+      <button class="offer-detail-close" type="button" onclick="closeOfferDetail()">×</button>
+    </div>
+    <div id="offerDetailContent"></div>
+  </div>
+</div>
 <nav>
   <div class="logo" onclick="goHomeFromLanding()">Home<span>Offer</span>Flow</div>
   <div class="nav-actions">
