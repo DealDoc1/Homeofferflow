@@ -102,6 +102,12 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn('Premier Partners reserve one active Premier placement', PARTNERS)
         self.assertIn('href="/partners">Become a Founding Partner</a>', INDEX)
 
+    def test_provider_directory_describes_its_searchable_collection(self):
+        self.assertIn('"@type":"CollectionPage"', DIRECTORY)
+        self.assertIn('"name":"HomeOfferFlow Texas Service Provider Directory"', DIRECTORY)
+        self.assertIn('"url":"https://www.homeofferflow.com/directory"', DIRECTORY)
+        self.assertIn('"isPartOf":{"@id":"https://www.homeofferflow.com/#website"}', DIRECTORY)
+
     def test_seller_acquisition_page_is_indexable_and_routes_to_the_existing_safe_intake(self):
         self.assertIn('<link rel="canonical" href="https://www.homeofferflow.com/sellers"', SELLERS)
         self.assertIn('property="og:url" content="https://www.homeofferflow.com/sellers"', SELLERS)
