@@ -1,4 +1,4 @@
-const SHELL_CACHE = 'homeofferflow-shell-v12';
+const SHELL_CACHE = 'homeofferflow-shell-v13';
 const SHELL_ASSETS = [
   '/',
   '/index.html',
@@ -8,6 +8,14 @@ const SHELL_ASSETS = [
   '/assets/homeofferflow-app-icon-512.png',
   '/assets/homeofferflow-apple-touch-icon.png'
 ];
+// These are public, non-account-specific pages. Cache each only after the
+// browser has loaded it successfully, so an installed app can revisit the
+// most recently used public workspace while offline. Never use this list for
+// API, documents, authentication, or account-specific routes.
+const PUBLIC_PAGE_PATHS = new Set([
+  '/', '/index.html', '/buyers', '/agents', '/investors', '/sellers',
+  '/partners', '/directory', '/ondemand'
+]);
 
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(SHELL_CACHE).then(cache => cache.addAll(SHELL_ASSETS)));
@@ -44,12 +52,17 @@ self.addEventListener('fetch', event => {
   // Only a navigation request can fall back to the cached shell while offline.
   if (event.request.mode === 'navigate') {
     const networkResponse = fetch(event.request);
-    event.respondWith(networkResponse.catch(() => caches.match('/index.html')));
+    const cacheKey = PUBLIC_PAGE_PATHS.has(requestUrl.pathname) ? requestUrl.pathname : '';
+    event.respondWith(networkResponse.catch(() => (
+      cacheKey
+        ? caches.match(cacheKey).then(response => response || caches.match('/index.html'))
+        : caches.match('/index.html')
+    )));
     event.waitUntil(
       networkResponse.then(response => {
         const contentType = response.headers.get('content-type') || '';
-        if (!response.ok || !contentType.includes('text/html')) return;
-        return caches.open(SHELL_CACHE).then(cache => cache.put('/index.html', response.clone()));
+        if (!cacheKey || !response.ok || !contentType.includes('text/html')) return;
+        return caches.open(SHELL_CACHE).then(cache => cache.put(cacheKey, response.clone()));
       }).catch(() => undefined)
     );
   }
