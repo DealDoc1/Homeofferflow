@@ -25,6 +25,7 @@ class PwaBaselineTests(unittest.TestCase):
         self.assertFalse(MANIFEST["prefer_related_applications"])
         self.assertEqual(MANIFEST["start_url"], "/")
         self.assertEqual(MANIFEST["scope"], "/")
+        self.assertEqual(MANIFEST["launch_handler"]["client_mode"], ["navigate-existing", "auto"])
         self.assertEqual(MANIFEST["theme_color"], "#173f35")
         self.assertEqual(
             [(item["name"], item["url"]) for item in MANIFEST["shortcuts"]],

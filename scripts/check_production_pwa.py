@@ -19,6 +19,7 @@ REQUIRED_MANIFEST = {
     "dir": "ltr",
     "prefer_related_applications": False,
 }
+REQUIRED_LAUNCH_HANDLER = {"client_mode": ["navigate-existing", "auto"]}
 REQUIRED_PNG_ICONS = {
     ("/assets/homeofferflow-app-icon-192.png", "192x192"),
     ("/assets/homeofferflow-app-icon-512.png", "512x512"),
@@ -50,6 +51,10 @@ def validate_manifest(payload: dict) -> list[str]:
     for key, expected in REQUIRED_MANIFEST.items():
         if payload.get(key) != expected:
             failures.append(f"manifest {key!r} expected {expected!r}, got {payload.get(key)!r}")
+    if payload.get("launch_handler") != REQUIRED_LAUNCH_HANDLER:
+        failures.append(
+            f"manifest launch_handler expected {REQUIRED_LAUNCH_HANDLER!r}, got {payload.get('launch_handler')!r}"
+        )
     icons = payload.get("icons") or []
     if not any(icon.get("src") == "/assets/homeofferflow-app-icon.svg" for icon in icons):
         failures.append("manifest is missing the HomeOfferFlow app icon")
