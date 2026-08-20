@@ -30,6 +30,9 @@ class FsboLandingFunnelTests(unittest.TestCase):
         self.assertIn('"pwa_seller_plan"', API)
 
     def test_seller_page_records_each_aggregate_stage_once_per_browser_session(self):
+        self.assertIn("Get my free seller plan", SELLERS)
+        self.assertIn("Two details to begin: your property address and email.", SELLERS)
+        self.assertIn("You receive the free seller plan immediately after submitting.", SELLERS)
         self.assertIn("recordAggregateFunnelEvent", SELLERS)
         self.assertIn("sessionStorage.getItem(key)", SELLERS)
         self.assertIn("request_type: 'fsbo_landing_event'", SELLERS)
