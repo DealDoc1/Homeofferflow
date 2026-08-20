@@ -12692,10 +12692,10 @@ function routeAfterMagicLinkIfNeeded() {
       <div class="field"><label for="fsboSellerEmail">Email</label><input id="fsboSellerEmail" type="email" inputmode="email" autocomplete="email" placeholder="you@email.com" required aria-required="true"></div>
       <div aria-hidden="true" style="position:absolute;left:-10000px;top:auto;width:1px;height:1px;overflow:hidden;"><label for="fsboWebsiteConfirm">Leave this field blank</label><input id="fsboWebsiteConfirm" tabindex="-1" autocomplete="off"></div>
     </div>
-    <div id="fsboRequiredReadyCue" class="notice sage" role="status" hidden style="margin-top:.75rem;"><strong>You’re ready.</strong> Your address and email are complete—save your free seller plan now, or choose a package first. No checkout or service commitment.</div>
+    <div id="fsboRequiredReadyCue" class="notice sage" role="status" aria-live="polite" style="margin-top:.75rem;"><strong>Step 1 of 2:</strong> Enter the property address, then the email where you want your free seller plan. No checkout or service commitment.</div>
     <div class="notice sage" style="margin-top:.9rem;display:flex;align-items:center;justify-content:space-between;gap:.75rem;flex-wrap:wrap;">
       <div><strong>Ready when you are.</strong><br><span style="color:var(--gray-light);font-size:.8rem;">Start with the free intake now, or choose a more specific package below. No checkout or service commitment.</span></div>
-      <button class="btn-primary" type="button" id="fsboSellerQuickSubmit" data-fsbo-submit onclick="submitFsboSellerLead('quick')">Get My Free Seller Plan</button>
+      <button class="btn-primary" type="button" id="fsboSellerQuickSubmit" data-fsbo-submit onclick="submitFsboSellerLead('quick')" disabled aria-disabled="true" aria-label="Get My Free Seller Plan — enter address and email to unlock">Enter address + email to unlock</button>
     </div>
 
     <details class="partner-optional-details" style="margin-top:.9rem;">
@@ -12757,7 +12757,7 @@ function routeAfterMagicLinkIfNeeded() {
     <div class="field" style="margin-top:.8rem;"><label id="fsboNotesLabel" for="fsboNotes">Tell us about your situation <span style="color:var(--gray);font-weight:500;">(optional)</span></label><textarea id="fsboNotes" rows="3" placeholder="Anything we should know? Property condition, pricing concerns, whether you already have photos, whether offers are already coming in, partner needs, etc."></textarea></div>
     <div class="notice gold" style="margin-top:.8rem;">Package pricing shown here is for planning/intake and may be finalized separately before any paid service begins. This is not checkout and not a confirmed service order. HomeOfferFlow is not a law firm and does not provide legal advice. Some FSBO, flat-fee MLS, offer-review, brokerage, title, or closing-support services may be provided through a licensed Texas real estate broker, affiliated license holder, attorney, title company, or other licensed provider where required. Pricing may vary by property, location, service level, and broker/provider approval.</div>
     <div class="account-actions-row" style="margin-top:1rem;">
-      <button class="btn-primary" type="button" id="fsboSellerSubmit" data-fsbo-submit onclick="submitFsboSellerLead('full')">Save My Seller Request</button>
+      <button class="btn-primary" type="button" id="fsboSellerSubmit" data-fsbo-submit onclick="submitFsboSellerLead('full')" disabled aria-disabled="true" aria-label="Save My Seller Request — enter address and email to unlock">Enter address + email to unlock</button>
       <button class="btn-secondary" type="button" onclick="closeFsboSellerModal()">Cancel</button>
     </div>
     <div id="fsboDraftRecovery" class="platform-status" aria-live="polite"></div>
@@ -12844,13 +12844,44 @@ function routeAfterMagicLinkIfNeeded() {
     }
   });
   function fsboVal(id){ return (document.getElementById(id)?.value || '').trim(); }
+  function fsboRequiredFieldsReady(){
+    const emailInput = document.getElementById('fsboSellerEmail');
+    return !!fsboVal('fsboPropertyAddress') && !!fsboVal('fsboSellerEmail') && !!emailInput?.checkValidity();
+  }
   function renderFsboRequiredReadyCue(){
     const cue = document.getElementById('fsboRequiredReadyCue');
-    if (cue) cue.hidden = !(fsboVal('fsboPropertyAddress') && fsboVal('fsboSellerEmail'));
+    const addressProvided = !!fsboVal('fsboPropertyAddress');
+    const emailProvided = !!fsboVal('fsboSellerEmail');
+    const ready = fsboRequiredFieldsReady();
+    if (cue) {
+      cue.innerHTML = ready
+        ? '<strong>You’re ready.</strong> Your address and email are complete—save your free seller plan now, or choose a package first. No checkout or service commitment.'
+        : addressProvided && !emailProvided
+          ? '<strong>Step 2 of 2:</strong> Add the email where you want your free seller plan. No checkout or service commitment.'
+          : addressProvided
+            ? '<strong>Step 2 of 2:</strong> Enter a valid email to unlock your seller plan. No checkout or service commitment.'
+            : '<strong>Step 1 of 2:</strong> Enter the property address, then the email where you want your free seller plan. No checkout or service commitment.';
+    }
+    const key = fsboVal('fsboNeed') || 'free_intake';
+    const item = fsboNeedCopy[key] || fsboNeedCopy.free_intake;
+    const quickSubmit = document.getElementById('fsboSellerQuickSubmit');
+    const fullSubmit = document.getElementById('fsboSellerSubmit');
+    if (quickSubmit) {
+      quickSubmit.disabled = !ready;
+      quickSubmit.setAttribute('aria-disabled', ready ? 'false' : 'true');
+      quickSubmit.setAttribute('aria-label', ready ? (key === 'free_intake' ? 'Get My Free Seller Plan' : `Request ${item.title} Details`) : 'Get My Free Seller Plan — enter address and email to unlock');
+      quickSubmit.textContent = ready ? (key === 'free_intake' ? 'Get My Free Seller Plan' : `Request ${item.title} Details`) : 'Enter address + email to unlock';
+    }
+    if (fullSubmit) {
+      fullSubmit.disabled = !ready;
+      fullSubmit.setAttribute('aria-disabled', ready ? 'false' : 'true');
+      fullSubmit.setAttribute('aria-label', ready ? (key === 'free_intake' ? 'Save My Free Seller Request' : `Request ${item.title} Details`) : 'Save My Seller Request — enter address and email to unlock');
+      fullSubmit.textContent = ready ? (key === 'free_intake' ? 'Save My Free Seller Request' : `Request ${item.title} Details`) : 'Enter address + email to unlock';
+    }
   }
   function trackFsboRequiredFieldsReady(){
     renderFsboRequiredReadyCue();
-    if (fsboFunnel.requiredReady || !fsboVal('fsboPropertyAddress') || !fsboVal('fsboSellerEmail')) return;
+    if (fsboFunnel.requiredReady || !fsboRequiredFieldsReady()) return;
     fsboFunnel.requiredReady = true;
     trackFsboFunnel('FSBO Seller Intake Required Fields Ready');
   }
@@ -13082,6 +13113,7 @@ function routeAfterMagicLinkIfNeeded() {
     if (quickSubmit) quickSubmit.textContent = key === 'free_intake' ? 'Get My Free Seller Plan' : `Request ${item.title} Details`;
     const fullSubmit = document.getElementById('fsboSellerSubmit');
     if (fullSubmit) fullSubmit.textContent = key === 'free_intake' ? 'Save My Free Seller Request' : `Request ${item.title} Details`;
+    renderFsboRequiredReadyCue();
     const prompt = fsboSituationPrompts[key] || fsboSituationPrompts.free_intake;
     const notesLabel = document.getElementById('fsboNotesLabel');
     if (notesLabel) notesLabel.innerHTML = escapeAttr(prompt.label) + ' <span style="color:var(--gray);font-weight:500;">(optional)</span>';
