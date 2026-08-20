@@ -15,6 +15,14 @@ class LandingPerformanceHintTests(unittest.TestCase):
             INDEX.index('href="https://fonts.googleapis.com/css2?family=Playfair+Display'),
         )
 
+    def test_google_fonts_query_is_valid_html(self):
+        start = INDEX.index('href="https://fonts.googleapis.com/css2?family=Playfair+Display')
+        end = INDEX.index('"', start + len('href="'))
+        font_href = INDEX[start:end]
+        self.assertIn('&amp;family=DM+Sans', font_href)
+        self.assertIn('&amp;display=swap', font_href)
+        self.assertNotIn('&family=', font_href)
+
 
 if __name__ == "__main__":
     unittest.main()
