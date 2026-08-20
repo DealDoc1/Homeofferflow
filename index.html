@@ -225,7 +225,22 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     return 'status-draft';
   };
 
-  window.closeOfferDetail = function(){ document.getElementById('offerDetailBackdrop')?.classList.remove('active'); };
+  window.closeOfferDetail = function(){
+    const backdrop = document.getElementById('offerDetailBackdrop');
+    if (!backdrop) return;
+    backdrop.classList.remove('active');
+    backdrop.setAttribute('aria-hidden', 'true');
+    const returnFocus = window.__hofOfferDetailReturnFocus;
+    window.__hofOfferDetailReturnFocus = null;
+    if (returnFocus && document.contains(returnFocus) && typeof returnFocus.focus === 'function') returnFocus.focus();
+  };
+
+  document.addEventListener('keydown', function(event){
+    if (event.key === 'Escape' && document.getElementById('offerDetailBackdrop')?.classList.contains('active')) {
+      event.preventDefault();
+      window.closeOfferDetail();
+    }
+  });
 
   function offerField(offer, key, fallback='') {
     const d = offer.offer_data || {};
@@ -248,7 +263,10 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     const backdrop = document.getElementById('offerDetailBackdrop');
     const target = document.getElementById('offerDetailContent');
     if (!backdrop || !target) return;
+    window.__hofOfferDetailReturnFocus = document.activeElement;
     backdrop.classList.add('active');
+    backdrop.setAttribute('aria-hidden', 'false');
+    document.getElementById('offerDetailClose')?.focus();
     target.innerHTML = '<div class="offer-empty">Loading offer...</div>';
     if (!client || !user || !offerId) { target.innerHTML = '<div class="offer-empty">Sign in to view offer details.</div>'; return; }
     try {
@@ -2587,11 +2605,11 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 </head>
 
 <body>
-<div class="offer-detail-backdrop" id="offerDetailBackdrop" onclick="if(event.target===this) closeOfferDetail();">
-  <div class="offer-detail-card" id="offerDetailCard">
+<div class="offer-detail-backdrop" id="offerDetailBackdrop" aria-hidden="true" onclick="if(event.target===this) closeOfferDetail();">
+  <div class="offer-detail-card" id="offerDetailCard" role="dialog" aria-modal="true" aria-labelledby="offerDetailTitle">
     <div class="offer-detail-head">
-      <div><h3>Offer Details</h3><p>Loading offer details...</p></div>
-      <button class="offer-detail-close" type="button" onclick="closeOfferDetail()">×</button>
+      <div><h3 id="offerDetailTitle">Offer Details</h3><p>Loading offer details...</p></div>
+      <button class="offer-detail-close" id="offerDetailClose" type="button" aria-label="Close offer details" onclick="closeOfferDetail()">×</button>
     </div>
     <div id="offerDetailContent"></div>
   </div>
@@ -14815,7 +14833,10 @@ function routeAfterMagicLinkIfNeeded() {
       return;
     }
     if (card) card.classList.add('v10-detail');
+    root.__hofOfferDetailReturnFocus = document.activeElement;
     backdrop.classList.add('active');
+    backdrop.setAttribute('aria-hidden', 'false');
+    document.getElementById('offerDetailClose')?.focus();
     target.innerHTML = '<div class="offer-empty">Loading offer workspace detail...</div>';
     if (!client || !user || !offerId) { target.innerHTML = '<div class="offer-empty">Sign in to view offer details.</div>'; return; }
     try {
