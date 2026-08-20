@@ -42,6 +42,10 @@
       "destination": "/texas-agent-offer-workflow.html"
     },
     {
+      "source": "/texas-homebuyer-offer-guide",
+      "destination": "/texas-homebuyer-offer-guide.html"
+    },
+    {
       "source": "/directory",
       "destination": "/directory.html"
     }
