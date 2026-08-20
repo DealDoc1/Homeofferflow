@@ -83,6 +83,15 @@ class PartnerTierUiTests(unittest.TestCase):
         self.assertLess(required_area.index('foundingPartnerMarket'), required_area.index('partner-optional-details'))
         self.assertGreater(required_area.index('foundingPartnerPhone'), required_area.index('partner-optional-details'))
 
+    def test_checkout_handoff_unlocks_only_after_essentials_and_consent(self):
+        self.assertIn('id="foundingPartnerSubmit" onclick="submitFoundingPartnerLead()" disabled aria-disabled="true"', self.html)
+        self.assertIn('id="foundingPartnerRequiredCue"', self.html)
+        self.assertIn("function partnerEssentialProgress()", self.html)
+        self.assertIn("Complete the five essentials (${progress.complete} of 5 complete)", self.html)
+        self.assertIn("Review and acknowledge the founding-partner terms below to unlock secure checkout.", self.html)
+        self.assertIn("document.getElementById('foundingPartnerConsent')?.addEventListener('change', renderFoundingPartnerCheckoutAvailability)", self.html)
+        self.assertIn("Complete required details to unlock", self.html)
+
     def test_checkout_retry_reuses_saved_partner_lead(self):
         self.assertIn("window.__hofFoundingPartnerLeadId", self.html)
         self.assertIn("if (!partnerLeadId)", self.html)
