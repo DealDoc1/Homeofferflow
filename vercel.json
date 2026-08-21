@@ -46,6 +46,10 @@
       "destination": "/texas-homebuyer-offer-guide.html"
     },
     {
+      "source": "/texas-investor-offer-guide",
+      "destination": "/texas-investor-offer-guide.html"
+    },
+    {
       "source": "/directory",
       "destination": "/directory.html"
     }

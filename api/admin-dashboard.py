@@ -4314,6 +4314,12 @@ class handler(BaseHTTPRequestHandler):
             investor_landing_cta_count = len([
                 item for item in events if item.get("event_type") == "investor_landing_cta_selected"
             ])
+            investor_offer_guide_view_count = len([
+                item for item in events if item.get("event_type") == "investor_offer_guide_viewed"
+            ])
+            investor_offer_guide_cta_count = len([
+                item for item in events if item.get("event_type") == "investor_offer_guide_cta_selected"
+            ])
             investor_landing_workspace_handoff_user_count = len({
                 str(item.get("user_id") or "")
                 for item in events
@@ -4710,6 +4716,10 @@ class handler(BaseHTTPRequestHandler):
                 "investorLandingCtaCount": investor_landing_cta_count,
                 "investorLandingCtaRate": round((investor_landing_cta_count / investor_landing_view_count) * 100, 1)
                 if investor_landing_view_count else 0,
+                "investorOfferGuideViewCount": investor_offer_guide_view_count,
+                "investorOfferGuideCtaCount": investor_offer_guide_cta_count,
+                "investorOfferGuideCtaRate": round((investor_offer_guide_cta_count / investor_offer_guide_view_count) * 100, 1)
+                if investor_offer_guide_view_count else 0,
                 "investorLandingWorkspaceHandoffUserCount": investor_landing_workspace_handoff_user_count,
                 "investorLandingWorkspaceHandoffRate": round((investor_landing_workspace_handoff_user_count / investor_landing_cta_count) * 100, 1)
                 if investor_landing_cta_count else 0,

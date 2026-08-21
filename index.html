@@ -4774,6 +4774,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <div class="admin-metric-label">Investor Workspace Funnel</div>
             <div class="admin-metric-value">${metrics.investorLandingViewCount || 0} views</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.investorLandingCtaCount || 0} opened passwordless sign-in (${Number(metrics.investorLandingCtaRate || 0).toFixed(1)}%) · ${metrics.investorLandingWorkspaceHandoffUserCount || 0} reached the investor workspace (${Number(metrics.investorLandingWorkspaceHandoffRate || 0).toFixed(1)}% of CTA selections).</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Investor offer guide: ${metrics.investorOfferGuideViewCount || 0} views · ${metrics.investorOfferGuideCtaCount || 0} opened the workspace (${Number(metrics.investorOfferGuideCtaRate || 0).toFixed(1)}% of guide views).</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Aggregate landing intent only; no investor identity, client, property, or offer details are included.</div>
           </div>
 
@@ -7310,6 +7311,12 @@ function routeAfterMagicLinkIfNeeded() {
     localStorage.removeItem('hof_agent_landing_open_relationship_workspace');
     const openInvestorLandingWorkspace = localStorage.getItem('hof_investor_landing_workspace') === '1';
     localStorage.removeItem('hof_investor_landing_workspace');
+    // Fixed organic-guide source only; never persist investor, client,
+    // property, entity, or arbitrary campaign data through authentication.
+    const investorLandingSource = localStorage.getItem('hof_investor_landing_source') === 'texas_investor_offer_guide'
+      ? 'texas_investor_offer_guide'
+      : 'investor_landing';
+    localStorage.removeItem('hof_investor_landing_source');
     state.data.userType = role;
     setAudience(role);
     closeAuthModal();
@@ -7336,7 +7343,7 @@ function routeAfterMagicLinkIfNeeded() {
     }
     if (openInvestorLandingWorkspace && role === 'investor') {
       setTimeout(() => {
-        window.logOfferEvent?.(null, 'investor_landing_workspace_handoff', 'opened', 'Investor landing visitor continued to the workspace after sign-in.', { source: 'investor_landing' });
+        window.logOfferEvent?.(null, 'investor_landing_workspace_handoff', 'opened', 'Investor landing visitor continued to the workspace after sign-in.', { source: investorLandingSource });
       }, 450);
     }
   }
@@ -14156,6 +14163,10 @@ function routeAfterMagicLinkIfNeeded() {
     // handoff after the secure-link return. Neither path starts an offer,
     // activates a subscription, or carries any deal data.
     if (params().get('investor') === '1') setTimeout(() => {
+      const investorRouteParams = params();
+      const investorLandingSource = investorRouteParams.get('utm_source') === 'texas_investor_offer_guide'
+        ? 'texas_investor_offer_guide'
+        : 'investor_landing';
       try {
         const cleanUrl = new URL(window.location.href);
         cleanUrl.searchParams.delete('investor');
@@ -14164,9 +14175,12 @@ function routeAfterMagicLinkIfNeeded() {
       window.setAudience?.('investor');
       if (window.hofAuth?.session) {
         window.openAccountDashboard?.({ tab: 'dashboard' });
-        window.logOfferEvent?.(null, 'investor_landing_workspace_handoff', 'opened', 'Signed-in investor opened the workspace from the public landing page.', { source: 'investor_landing' });
+        window.logOfferEvent?.(null, 'investor_landing_workspace_handoff', 'opened', 'Signed-in investor opened the workspace from the public landing page.', { source: investorLandingSource });
       } else {
-        try { localStorage.setItem('hof_investor_landing_workspace', '1'); } catch (_) {}
+        try {
+          if (investorLandingSource === 'texas_investor_offer_guide') localStorage.setItem('hof_investor_landing_source', investorLandingSource);
+          localStorage.setItem('hof_investor_landing_workspace', '1');
+        } catch (_) {}
         window.openAuthModal?.('investor');
       }
     }, 80);
