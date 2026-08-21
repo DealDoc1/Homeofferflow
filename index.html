@@ -6117,7 +6117,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       'Requested codes:',
       ...(demandLines.length ? demandLines : ['No normalized code identified; please review the demand signal.']),
       '',
-      'Please provide the current official source PDF/template, exact revision/version, source owner/authorization attestation, signer-role plan, and rendered field/signature QA evidence.',
+      'Please provide the current official source PDF/template, exact revision/version, authorized brokerage attestation, signer-role plan, and rendered field/signature QA evidence.',
       'Demand evidence is not approval and must not activate, generate, send, or sign a legal form.',
       'HomeOfferFlow: https://homeofferflow.com'
     ].join('\n');
@@ -6132,7 +6132,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       logOfferEvent(null, 'missing_form_intake_brief_copied', 'copied', 'Missing-form source intake brief copied.', {
         requestedCodes
       });
-      alert('Source-intake brief copied. Obtain authorized source ownership and QA before activation.');
+      alert('Source-intake brief copied. Confirm authorized brokerage use and QA before activation.');
     } catch (error) {
       alert('Could not copy the source-intake brief. Review the normalized demand codes and source requirements in the admin card.');
     }
@@ -18251,7 +18251,7 @@ function routeAfterMagicLinkIfNeeded() {
     return payload.brokerages || [];
   }
   function renderPlatformSourceIntake() {
-    // Keep private source-owner controls with the platform-admin operations
+    // Keep private brokerage form-source controls with the platform-admin operations
     // surface.  The dashboard is also rendered for ordinary agents, and
     // mounting the card there made it easy for an authorized admin to miss it
     // when they opened the Admin tab.  The dashboard fallback preserves
@@ -18262,7 +18262,7 @@ function routeAfterMagicLinkIfNeeded() {
     const card = document.createElement('div');
     card.id = 'platformFormSourceCard';
     card.className = 'account-card hof-platform-source-card';
-    card.innerHTML = `<h4>Platform source-owner intake</h4><p>Store an exact, authorized brokerage PDF privately. This does not activate, render, send, or sign a form; separate signer and release QA remains required.</p><div class="hof-platform-source-grid"><label>Brokerage<select id="platformSourceBrokerage"><option value="">Loading active brokerages…</option></select></label><label>Form<select id="platformSourceForm">${FORM_CODES.map(code => `<option value="${code}">${code}</option>`).join('')}</select></label><label>Revision shown on form<input id="platformSourceRevision" maxlength="48" placeholder="Example: 06-15-26"></label><label>Authorized source PDF<input id="platformSourceFile" type="file" accept="application/pdf,.pdf"></label></div><label style="display:flex;gap:.55rem;align-items:flex-start;color:var(--gray-light);font-size:.82rem;line-height:1.45"><input id="platformSourceAttestation" type="checkbox" style="margin-top:.2rem;width:18px;height:18px"><span>I am authorized to approve this exact source PDF for the selected brokerage. I understand this records private source approval only and does not release a workflow.</span></label><div class="hof-iabs-actions"><button class="btn-secondary" type="button" id="platformSourceUploadButton">Save private source</button></div><div id="platformSourceStatus" class="hof-iabs-status"></div>`;
+    card.innerHTML = `<h4>Platform brokerage form-source intake</h4><p>Store an exact, brokerage-authorized PDF privately. This does not activate, render, send, or sign a form; separate signer and release QA remains required.</p><div class="hof-platform-source-grid"><label>Brokerage<select id="platformSourceBrokerage"><option value="">Loading active brokerages…</option></select></label><label>Form<select id="platformSourceForm">${FORM_CODES.map(code => `<option value="${code}">${code}</option>`).join('')}</select></label><label>Revision shown on form<input id="platformSourceRevision" maxlength="48" placeholder="Example: 06-15-26"></label><label>Authorized source PDF<input id="platformSourceFile" type="file" accept="application/pdf,.pdf"></label></div><label style="display:flex;gap:.55rem;align-items:flex-start;color:var(--gray-light);font-size:.82rem;line-height:1.45"><input id="platformSourceAttestation" type="checkbox" style="margin-top:.2rem;width:18px;height:18px"><span>I am authorized to approve this exact source PDF for the selected brokerage. I understand this records private source approval only and does not release a workflow.</span></label><div class="hof-iabs-actions"><button class="btn-secondary" type="button" id="platformSourceUploadButton">Save private source</button></div><div id="platformSourceStatus" class="hof-iabs-status"></div>`;
     panel.appendChild(card);
     card.querySelector('#platformSourceUploadButton').addEventListener('click', upload);
     loadBrokerages().then(brokerages => {
