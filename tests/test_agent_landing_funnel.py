@@ -34,7 +34,7 @@ class AgentLandingFunnelTests(unittest.TestCase):
 
     def test_agent_landing_can_hand_off_directly_to_private_listing_tools(self):
         self.assertIn('href="/?agent=1&amp;workspace=seller"', AGENTS)
-        self.assertIn("['seller', 'relationship'].includes(params().get('workspace'))", INDEX)
+        self.assertIn("['seller', 'relationship'].includes(agentRouteParams.get('workspace'))", INDEX)
         self.assertIn("localStorage.setItem('hof_agent_landing_open_seller_workspace', '1')", INDEX)
         self.assertIn("tab: openSellerLandingWorkspace ? 'seller' : (openRelationshipLandingWorkspace ? 'relationships' : 'dashboard')", INDEX)
         self.assertIn("agent_landing_seller_workspace_handoff", INDEX)
@@ -79,6 +79,13 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("localStorage.setItem('hof_agent_landing_start_draft', '1')", INDEX)
         self.assertIn("window.startAccountOffer?.();", INDEX)
         self.assertIn("agent_landing_draft_handoff", INDEX)
+
+    def test_agent_workflow_guide_is_preserved_as_an_allowlisted_handoff_source(self):
+        self.assertIn("const agentLandingSource = agentRouteParams.get('utm_source') === 'texas_agent_offer_workflow'", INDEX)
+        self.assertIn("localStorage.setItem('hof_agent_landing_source', agentLandingSource)", INDEX)
+        self.assertIn("localStorage.getItem('hof_agent_landing_source') === 'texas_agent_offer_workflow'", INDEX)
+        self.assertIn("localStorage.removeItem('hof_agent_landing_source')", INDEX)
+        self.assertIn("{ source: agentLandingSource }", INDEX)
 
     def test_public_endpoint_and_page_record_only_allowlisted_aggregate_agent_landing_events(self):
         self.assertIn("AGENT_LANDING_EVENT_TYPES", API)
