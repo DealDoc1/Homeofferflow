@@ -42,6 +42,9 @@ class LandingHeroConversionLayoutTests(unittest.TestCase):
         self.assertIn("Offer Entry CTA Selected", HTML)
         self.assertIn("window.__hofOfferEntrySurface", HTML)
         self.assertIn("entrySurface: window.__hofOfferEntrySurface || 'direct'", HTML)
+        self.assertIn("const buyerEntrySurface = buyerRouteParams.get('utm_source') === 'texas_homebuyer_offer_guide'", HTML)
+        self.assertIn("? 'texas_homebuyer_offer_guide'", HTML)
+        self.assertIn("window.beginOfferFrom?.(buyerEntrySurface);", HTML)
 
 
 if __name__ == "__main__":

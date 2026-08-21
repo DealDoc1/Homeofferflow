@@ -14070,6 +14070,12 @@ function routeAfterMagicLinkIfNeeded() {
     // wizard, while leaving normal campaign parameters intact.
     if (params().get('buyer') === '1') setTimeout(() => {
       const buyerRouteParams = params();
+      // Keep acquisition attribution deliberately small and allowlisted. This
+      // becomes an aggregate offer/checkout surface only; no visitor, buyer,
+      // property, or arbitrary campaign value enters the offer payload.
+      const buyerEntrySurface = buyerRouteParams.get('utm_source') === 'texas_homebuyer_offer_guide'
+        ? 'texas_homebuyer_offer_guide'
+        : 'buyer_landing';
       const buyerChannel = buyerRouteParams.get('utm_source') === 'homeofferflow_admin' && ['direct_outreach', 'email', 'social', 'referral', 'local_event', 'print'].includes(String(buyerRouteParams.get('utm_medium') || '').trim().toLowerCase())
         ? String(buyerRouteParams.get('utm_medium') || '').trim().toLowerCase()
         : 'unspecified';
@@ -14088,7 +14094,7 @@ function routeAfterMagicLinkIfNeeded() {
         window.history.replaceState({}, document.title, cleanUrl.pathname + cleanUrl.search + cleanUrl.hash);
       } catch (_) {}
       window.setAudience?.('homebuyer');
-      window.beginOfferFrom?.('buyer_landing');
+      window.beginOfferFrom?.(buyerEntrySurface);
     }, 80);
     // Agent acquisition reuses the passwordless account workflow. The public
     // CTA requests a private no-payment draft, so preserve only that safe
