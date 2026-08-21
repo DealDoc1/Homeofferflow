@@ -22,6 +22,10 @@ class TechnicalSeoTests(unittest.TestCase):
         website = next(entry for entry in entries if entry.get("@type") == "WebSite")
         self.assertEqual(organization["name"], "HomeOfferFlow")
         self.assertEqual(organization["url"], "https://www.homeofferflow.com/")
+        self.assertEqual(organization["areaServed"], {"@type": "State", "name": "Texas"})
+        self.assertEqual(organization["email"], "support@homeofferflow.com")
+        self.assertEqual(organization["contactPoint"]["contactType"], "customer support")
+        self.assertEqual(organization["contactPoint"]["email"], "support@homeofferflow.com")
         self.assertEqual(website["publisher"]["@id"], organization["@id"])
 
     def test_homepage_keeps_google_search_console_verification_available(self):
