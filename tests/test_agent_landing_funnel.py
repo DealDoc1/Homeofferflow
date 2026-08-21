@@ -97,7 +97,11 @@ class AgentLandingFunnelTests(unittest.TestCase):
             '"agentLandingViewCount"', '"agentLandingCtaCount"', '"agentLandingCtaRate"',
             '"agentLandingViewCountsByChannel"', '"agentLandingCtaCountsByChannel"',
             '"agentLandingDraftHandoffUserCount"', '"agentLandingDraftHandoffRate"',
+            '"agentLandingSellerWorkspaceHandoffUserCount"',
+            '"agentLandingRelationshipWorkspaceHandoffUserCount"',
             'agent_landing_draft_handoff',
+            'agent_landing_seller_workspace_handoff',
+            'agent_landing_relationship_workspace_handoff',
             'agentWorkflowGuideViewCount', 'agentWorkflowGuideCtaCount', 'agentWorkflowGuideCtaRate',
         ):
             self.assertIn(expected, ADMIN)
@@ -107,6 +111,9 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("agentLandingViewCountsByChannel?.referral", INDEX)
         self.assertIn("agentLandingDraftHandoffUserCount", INDEX)
         self.assertIn("agentLandingDraftHandoffRate", INDEX)
+        self.assertIn("agentLandingSellerWorkspaceHandoffUserCount", INDEX)
+        self.assertIn("agentLandingRelationshipWorkspaceHandoffUserCount", INDEX)
+        self.assertIn("Workspace paths after sign-in", INDEX)
         self.assertIn("agentWorkflowGuideCtaRate", INDEX)
 
 

@@ -4256,6 +4256,16 @@ class handler(BaseHTTPRequestHandler):
                 for item in events
                 if item.get("event_type") == "agent_landing_draft_handoff" and item.get("user_id")
             })
+            agent_landing_seller_workspace_handoff_user_count = len({
+                str(item.get("user_id") or "")
+                for item in events
+                if item.get("event_type") == "agent_landing_seller_workspace_handoff" and item.get("user_id")
+            })
+            agent_landing_relationship_workspace_handoff_user_count = len({
+                str(item.get("user_id") or "")
+                for item in events
+                if item.get("event_type") == "agent_landing_relationship_workspace_handoff" and item.get("user_id")
+            })
             investor_landing_view_count = len([
                 item for item in events if item.get("event_type") == "investor_landing_viewed"
             ])
@@ -4646,6 +4656,8 @@ class handler(BaseHTTPRequestHandler):
                 "agentLandingDraftHandoffUserCount": agent_landing_draft_handoff_user_count,
                 "agentLandingDraftHandoffRate": round((agent_landing_draft_handoff_user_count / agent_landing_cta_count) * 100, 1)
                 if agent_landing_cta_count else 0,
+                "agentLandingSellerWorkspaceHandoffUserCount": agent_landing_seller_workspace_handoff_user_count,
+                "agentLandingRelationshipWorkspaceHandoffUserCount": agent_landing_relationship_workspace_handoff_user_count,
                 "investorLandingViewCount": investor_landing_view_count,
                 "investorLandingCtaCount": investor_landing_cta_count,
                 "investorLandingCtaRate": round((investor_landing_cta_count / investor_landing_view_count) * 100, 1)
