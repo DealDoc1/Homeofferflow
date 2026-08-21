@@ -694,6 +694,11 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     .account-panel.active { display:block; animation:fadeUp 0.2s ease both; }
     .account-card { background:rgba(255,255,255,0.035); border:1px solid rgba(255,255,255,0.09); border-radius:14px; padding:1rem; margin-bottom:1rem; }
     .account-card h4 { color:var(--gold-light); font-size:0.9rem; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:0.75rem; }
+    .relationship-drafts-guide-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.65rem; }
+    .relationship-drafts-guide-item { display:flex; flex-direction:column; gap:.28rem; padding:.78rem; border:1px solid rgba(255,255,255,.1); border-radius:12px; background:rgba(255,255,255,.025); }
+    .relationship-drafts-guide-item strong { color:var(--sage-light); font-size:.79rem; line-height:1.35; }
+    .relationship-drafts-guide-item span { color:var(--gray-light); font-size:.78rem; line-height:1.45; }
+    @media(max-width:640px){ .relationship-drafts-guide-grid { grid-template-columns:1fr; } }
     .account-grid { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:0.8rem; }
     .account-grid .field { margin:0; }
     .account-status { display:none; margin-top:0.85rem; padding:0.75rem; border-radius:10px; font-size:0.84rem; line-height:1.45; }
@@ -2916,6 +2921,17 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       <div class="account-card">
         <h4>Relationship Drafts</h4>
         <p style="color:var(--gray-light); line-height:1.6; margin-bottom:0;">Prepare private, brokerage-approved relationship and consumer-notice drafts. Nothing here is sent or signed from HomeOfferFlow.</p>
+      </div>
+      <div class="account-card" id="relationshipDraftsGuide">
+        <h4>Choose the workflow before you enter client details</h4>
+        <p style="color:var(--gray-light); line-height:1.6; margin-bottom:1rem;">Use your brokerage-approved process and choose deliberately. HomeOfferFlow does not select a form for you or replace broker supervision.</p>
+        <div class="relationship-drafts-guide-grid">
+          <div class="relationship-drafts-guide-item"><strong>TXR-1507 · Short Form</strong><span>Buyer/Tenant Representation Agreement draft.</span></div>
+          <div class="relationship-drafts-guide-item"><strong>TXR-1501 · Long Form</strong><span>Buyer/Tenant Representation Agreement draft; use only when it is the form your brokerage has approved for the matter.</span></div>
+          <div class="relationship-drafts-guide-item"><strong>TXR-1508 · Showing Form</strong><span>Unrepresented Customer Showing Form draft; it is not a buyer representation agreement.</span></div>
+          <div class="relationship-drafts-guide-item"><strong>TXR-1506 · Consumer Notice</strong><span>General Information and Notice to Consumers draft; it does not create representation.</span></div>
+        </div>
+        <p style="color:var(--gray-light); font-size:.84rem; line-height:1.5; margin:1rem 0 0;">Each tool below checks your brokerage authorization and approved source revision before it allows a private draft. Drafts remain private and are not sent or signed from this workspace.</p>
       </div>
     </div>
 

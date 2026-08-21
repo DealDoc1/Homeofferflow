@@ -55,6 +55,19 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("document.getElementById('accountPanelRelationships')", INDEX)
         self.assertIn("Prepare private, brokerage-approved relationship and consumer-notice drafts.", INDEX)
 
+    def test_relationship_workspace_explains_each_private_draft_without_selecting_a_form(self):
+        self.assertIn('id="relationshipDraftsGuide"', INDEX)
+        self.assertIn('Choose the workflow before you enter client details', INDEX)
+        for expected in (
+            'TXR-1507 · Short Form',
+            'TXR-1501 · Long Form',
+            'TXR-1508 · Showing Form',
+            'TXR-1506 · Consumer Notice',
+            'HomeOfferFlow does not select a form for you',
+            'Drafts remain private and are not sent or signed from this workspace.',
+        ):
+            self.assertIn(expected, INDEX)
+
     def test_public_agent_copy_matches_the_draft_first_activation_path(self):
         self.assertIn('Start a client draft — no payment', AGENTS)
         self.assertIn('No password and no charge to start a private draft.', AGENTS)
