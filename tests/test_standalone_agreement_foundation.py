@@ -292,6 +292,11 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
         self.assertIn("current Texas REALTORS® / NAR member", HTML)
         self.assertIn("/api/admin-dashboard", HTML)
         self.assertIn("Draft saved privately. It has not been sent for signature.", HTML)
+        # Browser submit events clear currentTarget after an await. Keep each
+        # draft flow's button reference before the network request so a saved
+        # draft is not incorrectly reported as failed.
+        self.assertGreaterEqual(HTML.count("const submit = event.currentTarget.querySelector('button[type=\"submit\"]');"), 3)
+        self.assertNotIn("event.currentTarget.querySelector('button[type=\"submit\"]').disabled = true", HTML)
         self.assertIn('name="serviceLevel" value="full_services" required', HTML)
         self.assertNotIn('name="serviceLevel" value="full_services" checked', HTML)
         self.assertIn("Start TXR-1501 draft", HTML)

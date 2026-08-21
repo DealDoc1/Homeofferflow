@@ -17710,6 +17710,7 @@ function routeAfterMagicLinkIfNeeded() {
   async function submitDraft(event, source, modal) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
+    const submit = event.currentTarget.querySelector('button[type="submit"]');
     const status = modal.querySelector('#txr1507DraftStatus');
     const clientNames = [form.get('clientOne'), form.get('clientTwo')].map(value => String(value || '').trim()).filter(Boolean);
     const payload = {
@@ -17725,7 +17726,7 @@ function routeAfterMagicLinkIfNeeded() {
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || 'Could not save the agreement draft.');
       status.className = 'hof-iabs-status ready'; status.textContent = 'Draft saved privately. It has not been sent for signature.';
-      event.currentTarget.querySelector('button[type="submit"]').disabled = true;
+      submit.disabled = true;
     } catch (error) {
       console.error('TXR-1507 draft failed:', error);
       status.className = 'hof-iabs-status error'; status.textContent = error.message || 'Could not save the agreement draft.';
@@ -17841,6 +17842,7 @@ function routeAfterMagicLinkIfNeeded() {
   async function submitLongDraft(event, source, modal) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
+    const submit = event.currentTarget.querySelector('button[type="submit"]');
     const status = modal.querySelector('#txr1501DraftStatus');
     const clientNames = [form.get('clientOne'), form.get('clientTwo')].map(value => String(value || '').trim()).filter(Boolean);
     const payload = {
@@ -17857,7 +17859,7 @@ function routeAfterMagicLinkIfNeeded() {
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || 'Could not save the agreement draft.');
       status.className = 'hof-iabs-status ready'; status.textContent = 'Draft saved privately. It has not been sent for signature.';
-      event.currentTarget.querySelector('button[type="submit"]').disabled = true;
+      submit.disabled = true;
     } catch (error) {
       console.error('TXR-1501 draft failed:', error);
       status.className = 'hof-iabs-status error'; status.textContent = error.message || 'Could not save the agreement draft.';
@@ -17965,6 +17967,7 @@ function routeAfterMagicLinkIfNeeded() {
   async function submitShowingDraft(event, source, modal) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
+    const submit = event.currentTarget.querySelector('button[type="submit"]');
     const status = modal.querySelector('#txr1508DraftStatus');
     const customerNames = [form.get('customerOne'), form.get('customerTwo')].map(value => String(value || '').trim()).filter(Boolean);
     const otherBrokerAgreement = [form.get('otherBroker1')];
@@ -17981,7 +17984,7 @@ function routeAfterMagicLinkIfNeeded() {
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || 'Could not save the showing draft.');
       status.className = 'hof-iabs-status ready'; status.textContent = 'Draft saved privately. It has not been sent for signature.';
-      event.currentTarget.querySelector('button[type="submit"]').disabled = true;
+      submit.disabled = true;
     } catch (error) {
       console.error('TXR-1508 draft failed:', error);
       status.className = 'hof-iabs-status error'; status.textContent = error.message || 'Could not save the showing draft.';
@@ -18038,9 +18041,9 @@ function routeAfterMagicLinkIfNeeded() {
     modal.querySelector('#txr1506AgreementForm').addEventListener('submit', event => submitNoticeDraft(event, source, modal));
   }
   async function submitNoticeDraft(event, source, modal) {
-    event.preventDefault(); const form = new FormData(event.currentTarget), status = modal.querySelector('#txr1506DraftStatus');
+    event.preventDefault(); const form = new FormData(event.currentTarget), status = modal.querySelector('#txr1506DraftStatus'), submit = event.currentTarget.querySelector('button[type="submit"]');
     const payload = { action:'create_txr_1506_draft', formCode:FORM_CODE, formSourceId:source.id, clientNames:[form.get('consumerOne'), form.get('consumerTwo')].map(v => String(v || '').trim()).filter(Boolean), consumerRole:form.get('consumerRole'), additionalNotice:form.get('additionalNotice'), noticeAcknowledgment:form.get('noticeAcknowledgment') === 'on', signerPlan:form.get('signerPlan'), formUseAttested:form.get('formUseAttested') === 'on' };
-    try { status.className = 'hof-iabs-status'; status.textContent = 'Saving private notice draft…'; const token = root.hofAuth?.session?.access_token; const response = await fetch('/api/admin-dashboard', { method:'POST', headers:{'Content-Type':'application/json', Authorization:`Bearer ${token}`}, body:JSON.stringify(payload) }); const result = await response.json(); if (!response.ok) throw new Error(result.error || 'Could not save the notice draft.'); status.className = 'hof-iabs-status ready'; status.textContent = 'Draft saved privately. It has not been sent for signature.'; event.currentTarget.querySelector('button[type="submit"]').disabled = true; } catch (error) { console.error('TXR-1506 draft failed:', error); status.className = 'hof-iabs-status error'; status.textContent = error.message || 'Could not save the notice draft.'; }
+    try { status.className = 'hof-iabs-status'; status.textContent = 'Saving private notice draft…'; const token = root.hofAuth?.session?.access_token; const response = await fetch('/api/admin-dashboard', { method:'POST', headers:{'Content-Type':'application/json', Authorization:`Bearer ${token}`}, body:JSON.stringify(payload) }); const result = await response.json(); if (!response.ok) throw new Error(result.error || 'Could not save the notice draft.'); status.className = 'hof-iabs-status ready'; status.textContent = 'Draft saved privately. It has not been sent for signature.'; submit.disabled = true; } catch (error) { console.error('TXR-1506 draft failed:', error); status.className = 'hof-iabs-status error'; status.textContent = error.message || 'Could not save the notice draft.'; }
   }
   const priorDashboard = root.renderAccountDashboard;
   root.renderAccountDashboard = function renderAccountDashboardWithNoticeDrafts() { if (typeof priorDashboard === 'function') priorDashboard.apply(this, arguments); renderNoticeCard(); };
