@@ -3775,7 +3775,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       </div>
       <h2>Review your packet</h2>
       <p class="step-desc">Your self-service Texas buyer-offer packet is ready to purchase for $99.</p>
-      <div id="paymentCheckoutReturnNotice" class="notice sage" style="display:none; margin-bottom:1rem;"><strong>Your offer is still saved.</strong> Checkout was not completed, and no charge was made. Review the packet or resume secure checkout when you are ready.</div>
+      <div id="paymentCheckoutReturnNotice" class="notice sage" style="display:none; margin-bottom:1rem;" role="status" aria-live="polite"><strong>Your offer is still saved.</strong> Checkout was not completed, and no charge was made. Review the packet or resume secure checkout when you are ready.<br><button id="paymentCheckoutResumeButton" class="btn-secondary" type="button" style="margin-top:.65rem;" onclick="resumeCancelledBuyerCheckout()">Resume secure checkout</button></div>
       <div id="packetGenerationRecoveryNotice" class="notice gold" style="display:none; margin-bottom:1rem;" role="status" aria-live="polite"><strong>Packet generation needs another try.</strong><span id="packetGenerationRecoveryMessage" style="display:block; margin-top:.35rem;"></span><button id="packetGenerationRetryButton" class="btn-secondary" type="button" style="margin-top:.65rem;">Try generating again</button></div>
       <div style="display:grid; grid-template-columns:1fr; gap:0.6rem; margin-bottom:1.5rem;">
         <div class="pricing-card popular" id="plan-self" onclick="selectPlan('self', 99)"><div class="popular-badge">Current packet</div><div class="plan-name">Self-Serve Buyer Offer Packet</div><div class="plan-price">$99</div><div class="plan-features"><div class="plan-feature">✓ Guided buyer-offer workflow</div><div class="plan-feature">✓ Supported purchase addenda</div><div class="plan-feature">✓ Buyer-side signing delivery</div></div></div>
@@ -8210,6 +8210,29 @@ function routeAfterMagicLinkIfNeeded() {
     btn.style.opacity = '1';
     btn.style.cursor = 'pointer';
     btn.disabled = false;
+  }
+
+  function resumeCancelledBuyerCheckout() {
+    // A canceled Stripe session never implies consent to restart it. Keep the
+    // buyer on the restored review step until the required acknowledgement and
+    // receipt email are visibly confirmed, then let the normal checkout path
+    // perform every existing validation before any Stripe redirect.
+    const ack = document.getElementById('oneTimePacketAck');
+    if (!ack?.checked) {
+      document.getElementById('oneTimePacketAckRow')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      ack?.focus();
+      try { trackEvent('Payment Checkout Recovery Selected', { state: 'terms_required' }); } catch (_) {}
+      return;
+    }
+    const email = document.getElementById('paymentEmail');
+    if (!email?.value.trim() || !email.checkValidity()) {
+      email?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      email?.focus();
+      try { trackEvent('Payment Checkout Recovery Selected', { state: 'email_required' }); } catch (_) {}
+      return;
+    }
+    try { trackEvent('Payment Checkout Recovery Selected', { state: 'stripe_restart' }); } catch (_) {}
+    handlePayment();
   }
 
 

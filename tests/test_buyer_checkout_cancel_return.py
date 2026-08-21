@@ -16,6 +16,14 @@ class BuyerCheckoutCancelReturnTests(unittest.TestCase):
     def test_cancelled_buyer_checkout_is_clear_and_does_not_auto_charge(self):
         self.assertIn('id="paymentCheckoutReturnNotice"', HTML)
         self.assertIn("Checkout was not completed, and no charge was made.", HTML)
+        self.assertIn('id="paymentCheckoutResumeButton"', HTML)
+        self.assertIn('onclick="resumeCancelledBuyerCheckout()"', HTML)
+        self.assertIn("function resumeCancelledBuyerCheckout()", HTML)
+        self.assertIn("Payment Checkout Recovery Selected", HTML)
+        self.assertIn("state: 'terms_required'", HTML)
+        self.assertIn("state: 'email_required'", HTML)
+        self.assertIn("state: 'stripe_restart'", HTML)
+        self.assertIn("handlePayment();", HTML)
         self.assertIn("Payment Checkout Cancelled Returned", HTML)
         self.assertIn("window.history.replaceState({}, document.title, cleanUrl);", HTML)
 
