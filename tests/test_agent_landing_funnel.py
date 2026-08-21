@@ -32,6 +32,13 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("cleanUrl.searchParams.delete('agent')", INDEX)
         self.assertIn("window.openAuthModal?.('agent')", INDEX)
 
+    def test_agent_landing_can_hand_off_directly_to_private_listing_tools(self):
+        self.assertIn('href="/?agent=1&amp;workspace=seller"', AGENTS)
+        self.assertIn("const agentLandingWorkspace = params().get('workspace') === 'seller' ? 'seller' : '';", INDEX)
+        self.assertIn("localStorage.setItem('hof_agent_landing_open_seller_workspace', '1')", INDEX)
+        self.assertIn("tab: openSellerLandingWorkspace ? 'seller' : 'dashboard'", INDEX)
+        self.assertIn("agent_landing_seller_workspace_handoff", INDEX)
+
     def test_public_agent_copy_matches_the_draft_first_activation_path(self):
         self.assertIn('Start a client draft — no payment', AGENTS)
         self.assertIn('No password and no charge to start a private draft.', AGENTS)
