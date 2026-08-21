@@ -50,7 +50,7 @@ Best for a category leader that wants the highest-visibility sponsored inventory
 ## Founding launch terms
 
 - Available to the first 10 approved partners.
-- The 90-day clock begins when the placement goes live.
+- The 90-day launch period begins when Stripe Checkout is completed. A placement remains private until onboarding and written-agreement review are complete.
 - No setup fee; automatically renews monthly after the 90-day launch period unless cancelled.
 - Renewal requires a separate written agreement at the then-current standard rate.
 - A partner may change or expand its category/market placement only through a written update.

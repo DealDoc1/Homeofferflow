@@ -41,6 +41,11 @@ class PartnerLandingFunnelTests(unittest.TestCase):
         self.assertIn("First 90 days, then $149/month", PARTNERS)
         self.assertIn("not a referral program", PARTNERS)
 
+    def test_partner_page_states_when_the_paid_launch_period_begins(self):
+        self.assertIn("When does the 90-day founding launch period begin?", PARTNERS)
+        self.assertIn("The 90-day launch period begins when secure Stripe Checkout is completed.", PARTNERS)
+        self.assertIn("Payment does not make a placement public", PARTNERS)
+
     def test_partner_page_can_open_the_existing_essential_fields_without_skipping_disclosures(self):
         self.assertIn("partner_quick_start=1", PARTNERS)
         self.assertIn("it takes about a minute", PARTNERS)
