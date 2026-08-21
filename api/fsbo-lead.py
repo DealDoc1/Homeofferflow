@@ -136,6 +136,8 @@ PARTNER_DIRECTORY_SURFACES = {"public_directory", "fsbo_seller_plan", "pwa_provi
 FSBO_LANDING_EVENT_TYPES = {
     "fsbo_landing_viewed": "viewed",
     "fsbo_landing_cta_selected": "selected",
+    "fsbo_guide_viewed": "viewed",
+    "fsbo_guide_cta_selected": "selected",
     "fsbo_provider_directory_opened": "opened",
     "fsbo_intake_opened": "opened",
     "fsbo_package_selected": "selected",
@@ -619,6 +621,7 @@ def _record_fsbo_landing_event(data):
             "surface": (
                 "pwa_seller_plan" if event_type == "pwa_seller_plan_opened"
                 else "fsbo_provider_directory" if event_type == "fsbo_provider_directory_opened"
+                else "fsbo_guide" if event_type.startswith("fsbo_guide_")
                 else "seller_landing"
             ),
             "serviceLevel": service_level,

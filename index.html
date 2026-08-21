@@ -4752,6 +4752,13 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           </div>
 
           <div class="admin-metric">
+            <div class="admin-metric-label">Texas FSBO Guide Funnel</div>
+            <div class="admin-metric-value">${metrics.fsboGuideViewCount || 0} views</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.fsboGuideCtaCount || 0} selected the free seller plan (${Number(metrics.fsboGuideCtaRate || 0).toFixed(1)}% of guide views).</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Aggregate guide intent only; the completed intake keeps its existing campaign fields separately and no address, email, or seller details appear here.</div>
+          </div>
+
+          <div class="admin-metric">
             <div class="admin-metric-label">Agent Workspace Funnel</div>
             <div class="admin-metric-value">${metrics.agentLandingViewCount || 0} views</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.agentLandingCtaCount || 0} opened passwordless sign-in (${Number(metrics.agentLandingCtaRate || 0).toFixed(1)}%) · ${metrics.agentLandingDraftHandoffUserCount || 0} reached the private draft (${Number(metrics.agentLandingDraftHandoffRate || 0).toFixed(1)}% of CTA selections).</div>
