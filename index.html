@@ -5067,6 +5067,9 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       if (ownerUserId && ownerUserId === (hofAuth.session?.user?.id || '')) {
         try { restoreDraft(); } catch (e) {}
       }
+      // Installed-app routing waits for the real auth result rather than
+      // guessing from a cached role. This event carries no account data.
+      try { window.dispatchEvent(new Event('hof-auth-ready')); } catch (_) {}
     }
   }
 
@@ -19192,6 +19195,24 @@ function routeAfterMagicLinkIfNeeded() {
   const pendingActionKey = 'hof_pwa_shortcut_pending_action';
   const ondemandFirstOfferAttributionKey = 'hof_ondemand_first_offer_attribution';
   const validActions = new Set(['workspace', 'listing_tools', 'relationship_drafts', 'new_offer', 'signing_queue', 'seller_plan', 'buyer_offer']);
+  let defaultWorkspaceOpened = false;
+
+  function isStandalonePwa(){
+    try {
+      return window.matchMedia?.('(display-mode: standalone)').matches === true || window.navigator.standalone === true;
+    } catch (_) { return false; }
+  }
+
+  function canOpenDefaultWorkspace(){
+    // Only a clean installed-app home launch can open a private workspace.
+    // Public links, shortcuts, and authentication returns retain their own routing.
+    return isStandalonePwa()
+      && window.location.pathname === '/'
+      && !window.location.search
+      && !window.location.hash
+      && !window.hofAuth?.routedAfterLogin
+      && !!window.hofAuth?.session;
+  }
 
   function pendingAction(){
     try {
@@ -19335,6 +19356,14 @@ function routeAfterMagicLinkIfNeeded() {
     trackShortcut(action, window.hofAuth?.role === 'investor' ? 'investor' : 'agent', true);
   }
 
+  async function openDefaultWorkspaceAfterAuth(){
+    if (defaultWorkspaceOpened || !canOpenDefaultWorkspace()) return;
+    defaultWorkspaceOpened = true;
+    const role = window.hofAuth?.role === 'investor' ? 'investor' : 'agent';
+    await window.openAccountDashboard?.({ tab: 'dashboard' });
+    try { window.trackEvent?.('PWA Default Workspace Opened', { role }); } catch (_) {}
+  }
+
   const previousOpenAccountDashboard = window.openAccountDashboard;
   window.openAccountDashboard = async function openAccountDashboardWithPendingPwaShortcut(){
     const result = typeof previousOpenAccountDashboard === 'function'
@@ -19352,6 +19381,7 @@ function routeAfterMagicLinkIfNeeded() {
     window.setTimeout(() => { runAction(action); }, 350);
   }
   document.addEventListener('DOMContentLoaded', consumeAction);
+  window.addEventListener('hof-auth-ready', () => { window.setTimeout(openDefaultWorkspaceAfterAuth, 0); });
 })();
 </script>
 </body>
