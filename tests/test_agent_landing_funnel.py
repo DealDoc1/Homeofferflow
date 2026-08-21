@@ -34,10 +34,17 @@ class AgentLandingFunnelTests(unittest.TestCase):
 
     def test_agent_landing_can_hand_off_directly_to_private_listing_tools(self):
         self.assertIn('href="/?agent=1&amp;workspace=seller"', AGENTS)
-        self.assertIn("const agentLandingWorkspace = params().get('workspace') === 'seller' ? 'seller' : '';", INDEX)
+        self.assertIn("['seller', 'relationship'].includes(params().get('workspace'))", INDEX)
         self.assertIn("localStorage.setItem('hof_agent_landing_open_seller_workspace', '1')", INDEX)
         self.assertIn("tab: openSellerLandingWorkspace ? 'seller' : 'dashboard'", INDEX)
         self.assertIn("agent_landing_seller_workspace_handoff", INDEX)
+
+    def test_agent_landing_can_hand_off_to_private_relationship_drafts(self):
+        self.assertIn('href="/?agent=1&amp;workspace=relationship"', AGENTS)
+        self.assertIn("hof_agent_landing_open_relationship_workspace", INDEX)
+        self.assertIn("agent_landing_relationship_workspace_handoff", INDEX)
+        self.assertIn("txr1507AgreementCard", INDEX)
+        self.assertIn("preview-only until separate signing QA is complete", AGENTS)
 
     def test_public_agent_copy_matches_the_draft_first_activation_path(self):
         self.assertIn('Start a client draft — no payment', AGENTS)

@@ -7245,6 +7245,8 @@ function routeAfterMagicLinkIfNeeded() {
     localStorage.removeItem('hof_agent_landing_start_draft');
     const openSellerLandingWorkspace = localStorage.getItem('hof_agent_landing_open_seller_workspace') === '1';
     localStorage.removeItem('hof_agent_landing_open_seller_workspace');
+    const openRelationshipLandingWorkspace = localStorage.getItem('hof_agent_landing_open_relationship_workspace') === '1';
+    localStorage.removeItem('hof_agent_landing_open_relationship_workspace');
     const openInvestorLandingWorkspace = localStorage.getItem('hof_investor_landing_workspace') === '1';
     localStorage.removeItem('hof_investor_landing_workspace');
     state.data.userType = role;
@@ -7265,6 +7267,12 @@ function routeAfterMagicLinkIfNeeded() {
       setTimeout(() => {
         window.logOfferEvent?.(null, 'agent_landing_seller_workspace_handoff', 'opened', 'Agent opened Listing Tools from the public landing page after sign-in.', { source: 'agent_landing' });
       }, 450);
+    }
+    if (openRelationshipLandingWorkspace && role !== 'investor') {
+      setTimeout(() => {
+        document.getElementById('txr1507AgreementCard')?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+        window.logOfferEvent?.(null, 'agent_landing_relationship_workspace_handoff', 'opened', 'Agent opened private relationship drafts from the public landing page after sign-in.', { source: 'agent_landing' });
+      }, 650);
     }
     if (openInvestorLandingWorkspace && role === 'investor') {
       setTimeout(() => {
@@ -13991,7 +13999,7 @@ function routeAfterMagicLinkIfNeeded() {
     // action through the magic-link return; no account or subscription is
     // created until the agent elects to continue.
     if (params().get('agent') === '1') setTimeout(() => {
-      const agentLandingWorkspace = params().get('workspace') === 'seller' ? 'seller' : '';
+      const agentLandingWorkspace = ['seller', 'relationship'].includes(params().get('workspace')) ? params().get('workspace') : '';
       try {
         const cleanUrl = new URL(window.location.href);
         cleanUrl.searchParams.delete('agent');
@@ -14003,6 +14011,10 @@ function routeAfterMagicLinkIfNeeded() {
         if (agentLandingWorkspace === 'seller') {
           window.openAccountDashboard?.({ tab: 'seller' });
           window.logOfferEvent?.(null, 'agent_landing_seller_workspace_handoff', 'opened', 'Signed-in agent opened Listing Tools from the public landing page.', { source: 'agent_landing' });
+        } else if (agentLandingWorkspace === 'relationship') {
+          window.openAccountDashboard?.({ tab: 'dashboard' });
+          window.setTimeout(() => document.getElementById('txr1507AgreementCard')?.scrollIntoView({ block: 'start', behavior: 'smooth' }), 500);
+          window.logOfferEvent?.(null, 'agent_landing_relationship_workspace_handoff', 'opened', 'Signed-in agent opened private relationship drafts from the public landing page.', { source: 'agent_landing' });
         } else {
           window.startAccountOffer?.();
           window.logOfferEvent?.(null, 'agent_landing_draft_handoff', 'started', 'Signed-in agent continued to the draft workflow from the public landing page.', { source: 'agent_landing' });
@@ -14010,6 +14022,7 @@ function routeAfterMagicLinkIfNeeded() {
       } else {
         try {
           if (agentLandingWorkspace === 'seller') localStorage.setItem('hof_agent_landing_open_seller_workspace', '1');
+          else if (agentLandingWorkspace === 'relationship') localStorage.setItem('hof_agent_landing_open_relationship_workspace', '1');
           else localStorage.setItem('hof_agent_landing_start_draft', '1');
         } catch (_) {}
         window.openAuthModal?.('agent');
