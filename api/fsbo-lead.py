@@ -204,6 +204,9 @@ AGENT_LANDING_EVENT_TYPES = {
 AGENT_LANDING_CHANNELS = {
     "direct_outreach", "email", "social", "referral", "local_event", "print", "unspecified",
 }
+AGENT_LANDING_CTA_PATHS = {
+    "client_draft", "seller_listing", "relationship_drafts",
+}
 INVESTOR_LANDING_EVENT_TYPES = {
     "investor_landing_viewed": "viewed",
     "investor_landing_cta_selected": "selected",
@@ -694,13 +697,21 @@ def _record_agent_landing_event(data):
     """Persist aggregate agent-landing stages without identity or offer data."""
     event_type = _text(data.get("event_type"), 80)
     channel = _text(data.get("channel"), 80) or "unspecified"
+    cta_path = _text(data.get("cta_path"), 80)
     if event_type not in AGENT_LANDING_EVENT_TYPES:
         raise ValueError("Unsupported agent landing event.")
     if channel not in AGENT_LANDING_CHANNELS:
         raise ValueError("Unsupported agent landing channel.")
+    if event_type.endswith("_cta_selected"):
+        if cta_path not in AGENT_LANDING_CTA_PATHS:
+            raise ValueError("Unsupported agent landing CTA path.")
+    elif cta_path:
+        raise ValueError("CTA path is only allowed for agent CTA events.")
     metadata = {"surface": "agent_landing", "role": "agent", "channel": channel}
     if event_type.startswith("agent_workflow_guide_"):
         metadata["surface"] = "agent_workflow_guide"
+    if cta_path:
+        metadata["ctaPath"] = cta_path
     _record_partner_checkout_event(
         event_type,
         AGENT_LANDING_EVENT_TYPES[event_type],

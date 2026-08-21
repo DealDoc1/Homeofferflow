@@ -4262,6 +4262,27 @@ class handler(BaseHTTPRequestHandler):
                 ])
                 for channel in agent_landing_channels
             }
+            # CTA paths are a fixed product-choice allowlist from public agent
+            # pages. Keep these aggregate-only so operations can optimize the
+            # message and destination without exposing an agent, client, or
+            # property record in the Admin response.
+            agent_landing_cta_paths = ("client_draft", "seller_listing", "relationship_drafts")
+            agent_landing_cta_path_counts = {
+                path: len([
+                    item for item in events
+                    if item.get("event_type") == "agent_landing_cta_selected"
+                    and str((item.get("metadata") or {}).get("ctaPath") or "") == path
+                ])
+                for path in agent_landing_cta_paths
+            }
+            agent_workflow_guide_cta_path_counts = {
+                path: len([
+                    item for item in events
+                    if item.get("event_type") == "agent_workflow_guide_cta_selected"
+                    and str((item.get("metadata") or {}).get("ctaPath") or "") == path
+                ])
+                for path in agent_landing_cta_paths
+            }
             # The handoff is recorded only after an authenticated visitor
             # reaches the promised private draft flow. Return an aggregate
             # distinct-user count so Admin can measure the real acquisition
@@ -4668,6 +4689,8 @@ class handler(BaseHTTPRequestHandler):
                 if agent_workflow_guide_view_count else 0,
                 "agentLandingViewCountsByChannel": agent_landing_view_counts_by_channel,
                 "agentLandingCtaCountsByChannel": agent_landing_cta_counts_by_channel,
+                "agentLandingCtaPathCounts": agent_landing_cta_path_counts,
+                "agentWorkflowGuideCtaPathCounts": agent_workflow_guide_cta_path_counts,
                 "agentLandingDraftHandoffUserCount": agent_landing_draft_handoff_user_count,
                 "agentLandingDraftHandoffRate": round((agent_landing_draft_handoff_user_count / agent_landing_cta_count) * 100, 1)
                 if agent_landing_cta_count else 0,
