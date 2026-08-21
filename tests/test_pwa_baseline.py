@@ -70,7 +70,7 @@ class PwaBaselineTests(unittest.TestCase):
         self.assertNotIn("cache.put(event.request", WORKER)
 
     def test_worker_keeps_public_pages_separate_in_the_offline_cache(self):
-        for path in ("'/buyers'", "'/agents'", "'/investors'", "'/sellers'", "'/partners'", "'/directory'", "'/ondemand'", "'/texas-fsbo-guide'", "'/texas-agent-offer-workflow'", "'/texas-homebuyer-offer-guide'"):
+        for path in ("'/buyers'", "'/agents'", "'/investors'", "'/sellers'", "'/partners'", "'/directory'", "'/ondemand'", "'/texas-fsbo-guide'", "'/texas-agent-offer-workflow'", "'/texas-homebuyer-offer-guide'", "'/texas-investor-offer-guide'"):
             self.assertIn(path, WORKER)
         self.assertIn("const cacheKey = PUBLIC_PAGE_PATHS.has(requestUrl.pathname) ? requestUrl.pathname : '';", WORKER)
         self.assertIn("caches.match(cacheKey).then(response => response || caches.match('/index.html'))", WORKER)
