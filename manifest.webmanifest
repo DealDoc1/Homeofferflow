@@ -24,6 +24,12 @@
       "url": "/?pwa_action=listing_tools"
     },
     {
+      "name": "Relationship Drafts",
+      "short_name": "Relationships",
+      "description": "Open private buyer representation, showing, and consumer-notice drafts.",
+      "url": "/?pwa_action=relationship_drafts"
+    },
+    {
       "name": "New Offer",
       "short_name": "New Offer",
       "description": "Start or resume a saved offer in your workspace.",

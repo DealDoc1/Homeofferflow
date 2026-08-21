@@ -18989,7 +18989,7 @@ function routeAfterMagicLinkIfNeeded() {
       ? 'Save this seller plan to your Home Screen so it is one tap away when you return to photos, repairs, timing, or provider questions.'
       : '';
     const workspaceReturnCopy = target.surface === 'account_dashboard'
-      ? 'Use the app icon for a focused workspace launch, with shortcuts for My Workspace, New Offer, Buyer Offer, Signing Queue, and Seller Plan.'
+      ? 'Use the app icon for a focused workspace launch, with shortcuts for My Workspace, Listing Tools, Relationship Drafts, New Offer, Buyer Offer, Signing Queue, and Seller Plan.'
       : '';
     card.innerHTML = desktopCompact ? `<div><h4>Optional: install the focused desktop workspace</h4><p>Open HomeOfferFlow in its own window from your desktop or taskbar. Your browser already supports it; no App Store, separate account, or native build is needed.</p></div><div class="pwa-install-actions"><button class="btn-secondary" type="button" id="hofPwaInstallButton">Install desktop app</button><button class="btn-secondary" type="button" id="hofPwaInstallDismiss">Not now</button></div>` : `<h4>Keep HomeOfferFlow one tap away</h4>
       <p>${ios
@@ -19156,7 +19156,7 @@ function routeAfterMagicLinkIfNeeded() {
   const root = window;
   const pendingActionKey = 'hof_pwa_shortcut_pending_action';
   const ondemandFirstOfferAttributionKey = 'hof_ondemand_first_offer_attribution';
-  const validActions = new Set(['workspace', 'listing_tools', 'new_offer', 'signing_queue', 'seller_plan', 'buyer_offer']);
+  const validActions = new Set(['workspace', 'listing_tools', 'relationship_drafts', 'new_offer', 'signing_queue', 'seller_plan', 'buyer_offer']);
 
   function pendingAction(){
     try {
@@ -19228,6 +19228,15 @@ function routeAfterMagicLinkIfNeeded() {
     window.hofSetOfferWorkspaceFilter?.('signing');
   }
 
+  async function openRelationshipDrafts(){
+    await window.openAccountDashboard?.({ tab: 'dashboard' });
+    // Relationship drafts are rendered inside the private dashboard. The
+    // shortcut carries no client, property, form, or source identifier.
+    window.setTimeout(() => {
+      document.getElementById('txr1507AgreementCard')?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    }, 450);
+  }
+
   async function runAction(action, { resumedAfterSignIn = false } = {}){
     if (!validActions.has(action)) return;
     if (action === 'seller_plan') {
@@ -19256,6 +19265,7 @@ function routeAfterMagicLinkIfNeeded() {
     clearPendingAction();
     if (action === 'workspace') await window.openAccountDashboard?.({ tab: 'dashboard' });
     else if (action === 'listing_tools') await window.openAccountDashboard?.({ tab: 'seller' });
+    else if (action === 'relationship_drafts') await openRelationshipDrafts();
     else if (action === 'signing_queue') await openSigningQueue();
     else {
       recordOndemandFirstOfferActivation();
@@ -19275,6 +19285,7 @@ function routeAfterMagicLinkIfNeeded() {
       window.startAccountOffer?.();
     } else if (action === 'signing_queue') await openSigningQueue();
     else if (action === 'listing_tools') await window.openAccountDashboard?.({ tab: 'seller' });
+    else if (action === 'relationship_drafts') await openRelationshipDrafts();
     trackShortcut(action, window.hofAuth?.role === 'investor' ? 'investor' : 'agent', true);
   }
 
