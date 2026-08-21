@@ -4327,6 +4327,19 @@ class handler(BaseHTTPRequestHandler):
                 "fsbo_seller_plan_downloaded", "fsbo_seller_plan_copied",
             }
             seller_intake_event_counts = {event_type: len([item for item in events if item.get("event_type") == event_type]) for event_type in seller_intake_event_types}
+            # A package selection is earlier intent than a saved seller lead.
+            # Keep only package-level counts so operations can prioritize the
+            # most requested paid paths without retaining visitor details.
+            seller_package_selection_counts = {}
+            for item in events:
+                if item.get("event_type") != "fsbo_package_selected":
+                    continue
+                service_level = str((item.get("metadata") or {}).get("serviceLevel") or "").strip().lower()
+                if service_level in {"free_intake", "seller_prep", "launch_kit", "flat_fee_mls", "offer_review", "contract_help", "premium_bundle"}:
+                    seller_package_selection_counts[service_level] = seller_package_selection_counts.get(service_level, 0) + 1
+            seller_package_selection_counts = dict(sorted(
+                seller_package_selection_counts.items(), key=lambda item: (-item[1], item[0])
+            ))
             seller_receipt_delivery_statuses = {"sent", "failed", "not_configured", "missing_email"}
             seller_plan_receipt_counts = {status: len([
                 item for item in events
@@ -4440,6 +4453,7 @@ class handler(BaseHTTPRequestHandler):
                 if seller_landing_view_count else 0,
                 "sellerLandingPackageCtaCounts": seller_landing_package_cta_counts,
                 "sellerIntakeEventCounts": seller_intake_event_counts,
+                "sellerPackageSelectionCounts": seller_package_selection_counts,
                 "sellerRequiredReadyCount": seller_required_ready_count,
                 "sellerReadyToSaveRate": seller_ready_to_save_rate,
                 "sellerPlanDownloadCount": seller_intake_event_counts["fsbo_seller_plan_downloaded"],

@@ -16,6 +16,7 @@ class FsboLandingFunnelTests(unittest.TestCase):
         self.assertIn('"fsbo_request_saved": "saved"', API)
         self.assertIn("FSBO Seller Request Submission Started", INDEX)
         self.assertIn("sellerIntakeEventCounts", ADMIN)
+        self.assertIn("sellerPackageSelectionCounts", ADMIN)
     def test_public_endpoint_only_accepts_allowlisted_aggregate_events(self):
         self.assertIn("FSBO_LANDING_EVENT_TYPES", API)
         self.assertIn("def _record_fsbo_landing_event(data):", API)

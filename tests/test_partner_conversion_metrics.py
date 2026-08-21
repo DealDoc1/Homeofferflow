@@ -68,6 +68,7 @@ class PartnerConversionMetricTests(unittest.TestCase):
         self.assertIn('Submitted package demand:', source)
         self.assertIn('Tracked campaign leads:', source)
         self.assertIn('sellerPackageRequestCounts', source)
+        self.assertIn('sellerPackageSelectionCounts', source)
         self.assertIn('Partner-application receipts:', source)
         self.assertIn('partnerApplicationReceiptSentCount', source)
 
