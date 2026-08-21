@@ -75,18 +75,24 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn('"agent_workflow_guide_viewed": "viewed"', API)
         self.assertIn('"agent_workflow_guide_cta_selected": "selected"', API)
         self.assertIn("AGENT_LANDING_CHANNELS", API)
+        self.assertIn("AGENT_LANDING_CTA_PATHS", API)
         self.assertIn("Unsupported agent landing channel.", API)
+        self.assertIn("Unsupported agent landing CTA path.", API)
+        self.assertIn("CTA path is only allowed for agent CTA events.", API)
         self.assertIn('"channel": channel', API)
         self.assertIn("Unsupported agent landing event.", API)
         self.assertIn("'agent_landing_event'", API)
         self.assertIn('"surface": "agent_landing"', API)
-        self.assertIn("sessionStorage.getItem(k)", AGENTS)
+        self.assertIn("data-agent-cta-path=\"client_draft\"", AGENTS)
+        self.assertIn("data-agent-cta-path=\"seller_listing\"", AGENTS)
+        self.assertIn("data-agent-cta-path=\"relationship_drafts\"", AGENTS)
+        self.assertIn("cta_path=ctaPath", AGENTS)
         self.assertIn("request_type:'agent_landing_event'", AGENTS)
         self.assertIn("agent_landing_viewed", AGENTS)
         self.assertIn("agent_landing_cta_selected", AGENTS)
         self.assertIn("new URLSearchParams(window.location.search).get('utm_source')", AGENTS)
         self.assertIn("'direct_outreach','email','social','referral','local_event','print'", AGENTS)
-        self.assertIn("channel})", AGENTS)
+        self.assertIn("[data-agent-cta-path]", AGENTS)
 
     def test_agent_landing_channel_is_allowlisted_without_visitor_identity(self):
         spec = importlib.util.spec_from_file_location("agent_landing_channel", API_PATH)
@@ -94,12 +100,16 @@ class AgentLandingFunnelTests(unittest.TestCase):
         spec.loader.exec_module(api)
         captured = []
         with patch.object(api, "_record_partner_checkout_event", side_effect=lambda *args: captured.append(args)):
-            api._record_agent_landing_event({"event_type": "agent_landing_cta_selected", "channel": "referral"})
+            api._record_agent_landing_event({"event_type": "agent_landing_cta_selected", "channel": "referral", "cta_path": "seller_listing"})
             with self.assertRaisesRegex(ValueError, "Unsupported agent landing channel"):
                 api._record_agent_landing_event({"event_type": "agent_landing_viewed", "channel": "untrusted"})
+            with self.assertRaisesRegex(ValueError, "Unsupported agent landing CTA path"):
+                api._record_agent_landing_event({"event_type": "agent_landing_cta_selected", "channel": "referral", "cta_path": "untrusted"})
+            with self.assertRaisesRegex(ValueError, "CTA path is only allowed"):
+                api._record_agent_landing_event({"event_type": "agent_landing_viewed", "channel": "referral", "cta_path": "client_draft"})
         self.assertEqual(len(captured), 1)
         self.assertEqual(captured[0][0], "agent_landing_cta_selected")
-        self.assertEqual(captured[0][3], {"surface": "agent_landing", "role": "agent", "channel": "referral"})
+        self.assertEqual(captured[0][3], {"surface": "agent_landing", "role": "agent", "channel": "referral", "ctaPath": "seller_listing"})
 
     def test_admin_reports_agent_workspace_landing_conversion(self):
         for expected in (
@@ -112,6 +122,7 @@ class AgentLandingFunnelTests(unittest.TestCase):
             'agent_landing_seller_workspace_handoff',
             'agent_landing_relationship_workspace_handoff',
             'agentWorkflowGuideViewCount', 'agentWorkflowGuideCtaCount', 'agentWorkflowGuideCtaRate',
+            'agentLandingCtaPathCounts', 'agentWorkflowGuideCtaPathCounts',
         ):
             self.assertIn(expected, ADMIN)
         self.assertIn("Agent Workspace Funnel", INDEX)
@@ -123,6 +134,10 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("agentLandingSellerWorkspaceHandoffUserCount", INDEX)
         self.assertIn("agentLandingRelationshipWorkspaceHandoffUserCount", INDEX)
         self.assertIn("Workspace paths after sign-in", INDEX)
+        self.assertIn("Landing CTA choices", INDEX)
+        self.assertIn("Guide CTA choices", INDEX)
+        self.assertIn("agentLandingCtaPathCounts?.seller_listing", INDEX)
+        self.assertIn("agentWorkflowGuideCtaPathCounts?.relationship_drafts", INDEX)
         self.assertIn("agentWorkflowGuideCtaRate", INDEX)
 
 
