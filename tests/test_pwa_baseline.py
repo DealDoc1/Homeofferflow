@@ -86,7 +86,7 @@ class PwaBaselineTests(unittest.TestCase):
         self.assertIn("window.openAccountDashboard?.({ tab: 'dashboard' })", INDEX)
         self.assertIn("window.openAccountDashboard?.({ tab: 'seller' })", INDEX)
         self.assertIn("async function openRelationshipDrafts()", INDEX)
-        self.assertIn("txr1507AgreementCard", INDEX)
+        self.assertIn("window.openAccountDashboard?.({ tab: 'relationships' })", INDEX)
         self.assertIn("window.startAccountOffer?.()", INDEX)
         self.assertIn("async function openSigningQueue()", INDEX)
         self.assertIn("window.openAccountDashboard?.({ tab: 'offers' })", INDEX)

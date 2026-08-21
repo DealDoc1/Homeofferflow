@@ -36,15 +36,24 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn('href="/?agent=1&amp;workspace=seller"', AGENTS)
         self.assertIn("['seller', 'relationship'].includes(params().get('workspace'))", INDEX)
         self.assertIn("localStorage.setItem('hof_agent_landing_open_seller_workspace', '1')", INDEX)
-        self.assertIn("tab: openSellerLandingWorkspace ? 'seller' : 'dashboard'", INDEX)
+        self.assertIn("tab: openSellerLandingWorkspace ? 'seller' : (openRelationshipLandingWorkspace ? 'relationships' : 'dashboard')", INDEX)
         self.assertIn("agent_landing_seller_workspace_handoff", INDEX)
 
     def test_agent_landing_can_hand_off_to_private_relationship_drafts(self):
         self.assertIn('href="/?agent=1&amp;workspace=relationship"', AGENTS)
         self.assertIn("hof_agent_landing_open_relationship_workspace", INDEX)
         self.assertIn("agent_landing_relationship_workspace_handoff", INDEX)
-        self.assertIn("txr1507AgreementCard", INDEX)
+        self.assertIn("tab: 'relationships'", INDEX)
+        self.assertIn('id="accountPanelRelationships"', INDEX)
         self.assertIn("preview-only until separate signing QA is complete", AGENTS)
+
+    def test_relationship_drafts_are_a_persistent_agent_account_workspace(self):
+        self.assertIn('id="relationshipsAccountTab"', INDEX)
+        self.assertIn('data-account-tab="relationships"', INDEX)
+        self.assertIn("onclick=\"showAccountTab('relationships')\"", INDEX)
+        self.assertIn("normalized !== 'investor'", INDEX)
+        self.assertIn("document.getElementById('accountPanelRelationships')", INDEX)
+        self.assertIn("Prepare private, brokerage-approved relationship and consumer-notice drafts.", INDEX)
 
     def test_public_agent_copy_matches_the_draft_first_activation_path(self):
         self.assertIn('Start a client draft — no payment', AGENTS)

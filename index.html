@@ -2854,6 +2854,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       <button type="button" class="account-tab" data-account-tab="offers" onclick="showAccountTab('offers')">My Offers</button>
       <button type="button" class="account-tab" data-account-tab="brokerage" onclick="showAccountTab('brokerage')">Brokerage</button>
       <button type="button" class="account-tab" data-account-tab="seller" onclick="showAccountTab('seller')">Listing Tools</button>
+      <button type="button" class="account-tab" id="relationshipsAccountTab" data-account-tab="relationships" onclick="showAccountTab('relationships')" style="display:none;">Relationship Drafts</button>
       <button type="button" class="account-tab" id="partnersAccountTab" data-account-tab="partners" onclick="showAccountTab('partners')" style="display:none;">Partners</button>
       <button type="button" class="account-tab" id="adminAccountTab" data-account-tab="admin" onclick="showAccountTab('admin')" style="display:none;">Admin</button>
     </div>
@@ -2909,6 +2910,13 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 
     <div class="account-panel" id="accountPanelSeller">
       <div id="sellerFoundationPanel" class="offer-empty">Loading seller-side foundation...</div>
+    </div>
+
+    <div class="account-panel" id="accountPanelRelationships">
+      <div class="account-card">
+        <h4>Relationship Drafts</h4>
+        <p style="color:var(--gray-light); line-height:1.6; margin-bottom:0;">Prepare private, brokerage-approved relationship and consumer-notice drafts. Nothing here is sent or signed from HomeOfferFlow.</p>
+      </div>
     </div>
 
     <div class="account-panel" id="accountPanelPartners">
@@ -5076,9 +5084,16 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     }
     if (tab === 'brokerage') renderBrokerageFoundationPanel();
     if (tab === 'seller') renderSellerFoundationPanel();
+    if (tab === 'relationships') renderRelationshipDraftsPanel();
     if (tab === 'partners') renderPartnerFoundationPanel();
     if (tab === 'ai') renderAiFoundationPanel();
     if (tab === 'admin') loadAdminDashboard();
+  }
+
+  function renderRelationshipDraftsPanel() {
+    // Relationship cards are registered as part of the signed-in dashboard
+    // lifecycle so approved-source checks stay centralized and unchanged.
+    window.renderAccountDashboard?.();
   }
 
   async function openAccountDashboard(opts = {}) {
@@ -7255,7 +7270,7 @@ function routeAfterMagicLinkIfNeeded() {
     setAudience(role);
     closeAuthModal();
     try { history.replaceState({}, document.title, window.location.origin + window.location.pathname); } catch(e) {}
-    setTimeout(() => openAccountDashboard({ postLogin: true, tab: openSellerLandingWorkspace ? 'seller' : 'dashboard' }), 250);
+    setTimeout(() => openAccountDashboard({ postLogin: true, tab: openSellerLandingWorkspace ? 'seller' : (openRelationshipLandingWorkspace ? 'relationships' : 'dashboard') }), 250);
     // A public agent CTA promises a no-payment draft, not merely a dashboard
     // visit. Resume the requested action after authentication. startAccountOffer
     // already protects an existing same-role local draft from being replaced.
@@ -7272,9 +7287,8 @@ function routeAfterMagicLinkIfNeeded() {
     }
     if (openRelationshipLandingWorkspace && role !== 'investor') {
       setTimeout(() => {
-        document.getElementById('txr1507AgreementCard')?.scrollIntoView({ block: 'start', behavior: 'smooth' });
         window.logOfferEvent?.(null, 'agent_landing_relationship_workspace_handoff', 'opened', 'Agent opened private relationship drafts from the public landing page after sign-in.', { source: 'agent_landing' });
-      }, 650);
+      }, 450);
     }
     if (openInvestorLandingWorkspace && role === 'investor') {
       setTimeout(() => {
@@ -14014,8 +14028,7 @@ function routeAfterMagicLinkIfNeeded() {
           window.openAccountDashboard?.({ tab: 'seller' });
           window.logOfferEvent?.(null, 'agent_landing_seller_workspace_handoff', 'opened', 'Signed-in agent opened Listing Tools from the public landing page.', { source: 'agent_landing' });
         } else if (agentLandingWorkspace === 'relationship') {
-          window.openAccountDashboard?.({ tab: 'dashboard' });
-          window.setTimeout(() => document.getElementById('txr1507AgreementCard')?.scrollIntoView({ block: 'start', behavior: 'smooth' }), 500);
+          window.openAccountDashboard?.({ tab: 'relationships' });
           window.logOfferEvent?.(null, 'agent_landing_relationship_workspace_handoff', 'opened', 'Signed-in agent opened private relationship drafts from the public landing page.', { source: 'agent_landing' });
         } else {
           window.startAccountOffer?.();
@@ -15321,6 +15334,9 @@ function routeAfterMagicLinkIfNeeded() {
     if (brokerageTab) {
       brokerageTab.innerHTML = isBroker() ? 'Brokerage <span class="broker-tab-nudge">Broker</span>' : 'Brokerage';
     }
+
+    const relationshipsTab = document.getElementById('relationshipsAccountTab');
+    if (relationshipsTab) relationshipsTab.style.display = user && normalized !== 'investor' ? 'inline-flex' : 'none';
 
     const signedOut = document.getElementById('signedOutPanel');
     const signedIn = document.getElementById('signedInPanel');
@@ -17672,7 +17688,7 @@ function routeAfterMagicLinkIfNeeded() {
   }
 
   async function renderAgreementCard() {
-    const panel = document.getElementById('accountPanelDashboard');
+    const panel = document.getElementById('accountPanelRelationships');
     if (!panel || !activeAgent() || document.getElementById('txr1507AgreementCard')) return;
     const card = document.createElement('div');
     card.id = 'txr1507AgreementCard';
@@ -17798,7 +17814,7 @@ function routeAfterMagicLinkIfNeeded() {
   }
 
   async function renderLongFormCard() {
-    const panel = document.getElementById('accountPanelDashboard');
+    const panel = document.getElementById('accountPanelRelationships');
     if (!panel || !activeAgent() || document.getElementById('txr1501AgreementCard')) return;
     const card = document.createElement('div');
     card.id = 'txr1501AgreementCard';
@@ -17931,7 +17947,7 @@ function routeAfterMagicLinkIfNeeded() {
   }
 
   async function renderShowingCard() {
-    const panel = document.getElementById('accountPanelDashboard');
+    const panel = document.getElementById('accountPanelRelationships');
     if (!panel || !activeAgent() || document.getElementById('txr1508AgreementCard')) return;
     const card = document.createElement('div');
     card.id = 'txr1508AgreementCard';
@@ -18053,7 +18069,7 @@ function routeAfterMagicLinkIfNeeded() {
     return root.hofLoadApprovedBrokerageSource?.(FORM_CODE) || null;
   }
   async function renderNoticeCard() {
-    const panel = document.getElementById('accountPanelDashboard');
+    const panel = document.getElementById('accountPanelRelationships');
     if (!panel || !activeAgent() || document.getElementById('txr1506AgreementCard')) return;
     const card = document.createElement('div'); card.id = 'txr1506AgreementCard'; card.className = 'account-card hof-agreement-card';
     card.innerHTML = '<h4>General Information and Notice to Consumers</h4><p id="txr1506AgreementCopy">Checking whether your brokerage has approved the Texas REALTORS® consumer-notice source…</p>';
@@ -19244,12 +19260,9 @@ function routeAfterMagicLinkIfNeeded() {
   }
 
   async function openRelationshipDrafts(){
-    await window.openAccountDashboard?.({ tab: 'dashboard' });
-    // Relationship drafts are rendered inside the private dashboard. The
+    await window.openAccountDashboard?.({ tab: 'relationships' });
+    // Relationship drafts are rendered inside the private account workspace.
     // shortcut carries no client, property, form, or source identifier.
-    window.setTimeout(() => {
-      document.getElementById('txr1507AgreementCard')?.scrollIntoView({ block: 'start', behavior: 'smooth' });
-    }, 450);
   }
 
   async function runAction(action, { resumedAfterSignIn = false } = {}){
