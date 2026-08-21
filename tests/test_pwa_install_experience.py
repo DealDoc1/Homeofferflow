@@ -8,6 +8,15 @@ WORKER = (ROOT / "service-worker.js").read_text(encoding="utf-8")
 
 
 class PwaInstallExperienceTests(unittest.TestCase):
+    def test_every_live_address_input_uses_the_shared_google_selection_feedback(self):
+        self.assertIn("function addressAutocompleteInputs()", INDEX)
+        self.assertIn("/(?:address|addr)/i.test(`${input.id} ${input.name}`)", INDEX)
+        self.assertIn("function markGoogleAddressSelected(input)", INDEX)
+        self.assertIn("input.classList.add('hof-address-selected');", INDEX)
+        self.assertIn("input.setAttribute('aria-description', 'Address selected from Google. You can edit it if needed.');", INDEX)
+        self.assertIn("markGoogleAddressSelected(input);", INDEX)
+        self.assertIn("input.classList.remove('hof-address-selected');", INDEX)
+
     def test_authenticated_dashboard_offers_the_supported_install_prompt(self):
         self.assertIn('id="hof-pwa-install-v1"', INDEX)
         self.assertIn("beforeinstallprompt", INDEX)

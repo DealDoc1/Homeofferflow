@@ -492,6 +492,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     .field label { font-size: 0.77rem; font-weight: 700; color: var(--gray-light); text-transform: uppercase; letter-spacing: 0.055em; }
     .field input, .field select, .field textarea { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: var(--white); font-family: 'DM Sans', sans-serif; font-size: 1rem; padding: 0.82rem 0.95rem; transition: border-color 0.2s; width: 100%; -webkit-appearance: none; }
     .field input:focus, .field select:focus, .field textarea:focus { outline: none; border-color: var(--gold); background: rgba(200,151,63,0.04); }
+    input.hof-address-selected { border-color: var(--sage-light) !important; background: rgba(74,140,111,0.1) !important; }
     .field select option { background: var(--navy-mid); }
     .field input::placeholder, .field textarea::placeholder { color: rgba(255,255,255,0.2); }
     .helper-btn { width: 18px; height: 18px; border-radius: 50%; background: rgba(107,179,143,0.2); border: 1px solid rgba(107,179,143,0.4); color: var(--sage-light); font-size: 0.68rem; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s; user-select: none; -webkit-user-select: none; }
@@ -9984,6 +9985,7 @@ function routeAfterMagicLinkIfNeeded() {
         if (place?.address_components && onSelectCallback) onSelectCallback(place.address_components);
         input.dispatchEvent(new Event('input', { bubbles: true }));
         input.dispatchEvent(new Event('change', { bubbles: true }));
+        markGoogleAddressSelected(input);
       });
     });
   }
@@ -10009,6 +10011,14 @@ function routeAfterMagicLinkIfNeeded() {
     input.setAttribute('role', 'combobox');
     input.setAttribute('aria-autocomplete', 'list');
     input.setAttribute('aria-expanded', 'false');
+    input.addEventListener('input', () => {
+      // A manual edit should never continue to look like a Google-confirmed
+      // address. The user can freely correct any address after selection.
+      if (input.dataset.hofAddressSelected !== 'true') return;
+      delete input.dataset.hofAddressSelected;
+      input.classList.remove('hof-address-selected');
+      input.removeAttribute('aria-description');
+    });
 
     input.addEventListener('keydown', e => {
       const options = Array.from(_dropdown?.querySelectorAll('[role="option"]') || []);
@@ -10160,6 +10170,7 @@ function routeAfterMagicLinkIfNeeded() {
         onSelectCallback(components);
       }
 
+      markGoogleAddressSelected(input);
       input.blur();
       _sessionToken = new window._AutocompleteSessionToken();
     } catch(e) {
@@ -10181,6 +10192,23 @@ function routeAfterMagicLinkIfNeeded() {
       _dropdownInput = null;
     }
     _activeSuggestionIndex = -1;
+  }
+
+  function markGoogleAddressSelected(input) {
+    if (!input) return;
+    input.dataset.hofAddressSelected = 'true';
+    input.classList.add('hof-address-selected');
+    input.setAttribute('aria-description', 'Address selected from Google. You can edit it if needed.');
+    let status = document.getElementById('hofAddressSelectionStatus');
+    if (!status) {
+      status = document.createElement('div');
+      status.id = 'hofAddressSelectionStatus';
+      status.setAttribute('role', 'status');
+      status.setAttribute('aria-live', 'polite');
+      status.style.cssText = 'position:fixed;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;';
+      document.body.appendChild(status);
+    }
+    status.textContent = 'Address selected from Google. You can edit it if needed.';
   }
 
   function _debounce(fn, ms) {
