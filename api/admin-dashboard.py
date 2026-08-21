@@ -4231,6 +4231,12 @@ class handler(BaseHTTPRequestHandler):
             homebuyer_landing_offer_started_count = len([
                 item for item in events if item.get("event_type") == "homebuyer_landing_offer_started"
             ])
+            fsbo_guide_view_count = len([
+                item for item in events if item.get("event_type") == "fsbo_guide_viewed"
+            ])
+            fsbo_guide_cta_count = len([
+                item for item in events if item.get("event_type") == "fsbo_guide_cta_selected"
+            ])
             agent_landing_view_count = len([
                 item for item in events if item.get("event_type") == "agent_landing_viewed"
             ])
@@ -4679,6 +4685,10 @@ class handler(BaseHTTPRequestHandler):
                 "homebuyerLandingOfferStartedCount": homebuyer_landing_offer_started_count,
                 "homebuyerLandingOfferStartRate": round((homebuyer_landing_offer_started_count / homebuyer_landing_cta_count) * 100, 1)
                 if homebuyer_landing_cta_count else 0,
+                "fsboGuideViewCount": fsbo_guide_view_count,
+                "fsboGuideCtaCount": fsbo_guide_cta_count,
+                "fsboGuideCtaRate": round((fsbo_guide_cta_count / fsbo_guide_view_count) * 100, 1)
+                if fsbo_guide_view_count else 0,
                 "agentLandingViewCount": agent_landing_view_count,
                 "agentLandingCtaCount": agent_landing_cta_count,
                 "agentLandingCtaRate": round((agent_landing_cta_count / agent_landing_view_count) * 100, 1)

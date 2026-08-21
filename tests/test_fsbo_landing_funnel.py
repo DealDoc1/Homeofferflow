@@ -7,6 +7,8 @@ API = (ROOT / "api" / "fsbo-lead.py").read_text(encoding="utf-8")
 ADMIN = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
 INDEX = (ROOT / "index.html").read_text(encoding="utf-8")
 SELLERS = (ROOT / "sellers.html").read_text(encoding="utf-8")
+FSBO_GUIDE = (ROOT / "texas-fsbo-guide.html").read_text(encoding="utf-8")
+FSBO_GUIDE_METRICS = (ROOT / "assets" / "fsbo-guide-metrics.js").read_text(encoding="utf-8")
 
 
 class FsboLandingFunnelTests(unittest.TestCase):
@@ -22,6 +24,8 @@ class FsboLandingFunnelTests(unittest.TestCase):
         self.assertIn("def _record_fsbo_landing_event(data):", API)
         self.assertIn('"fsbo_landing_viewed": "viewed"', API)
         self.assertIn('"fsbo_landing_cta_selected": "selected"', API)
+        self.assertIn('"fsbo_guide_viewed": "viewed"', API)
+        self.assertIn('"fsbo_guide_cta_selected": "selected"', API)
         self.assertIn('"pwa_seller_plan_opened": "opened"', API)
         self.assertIn('"fsbo_provider_directory_opened": "opened"', API)
         self.assertIn("Unsupported seller landing event.", API)
@@ -29,6 +33,17 @@ class FsboLandingFunnelTests(unittest.TestCase):
         self.assertIn("'fsbo_landing_event'", API)
         self.assertIn('else "seller_landing"', API)
         self.assertIn('"pwa_seller_plan"', API)
+        self.assertIn('"fsbo_guide"', API)
+
+    def test_fsbo_guide_records_aggregate_views_and_free_plan_clicks_only(self):
+        self.assertIn('/assets/fsbo-guide-metrics.js', FSBO_GUIDE)
+        self.assertIn("record('fsbo_guide_viewed')", FSBO_GUIDE_METRICS)
+        self.assertIn("record('fsbo_guide_cta_selected')", FSBO_GUIDE_METRICS)
+        self.assertIn("sessionStorage.getItem(key)", FSBO_GUIDE_METRICS)
+        self.assertIn("request_type: 'fsbo_landing_event'", FSBO_GUIDE_METRICS)
+        self.assertIn("service_level: 'free_intake'", FSBO_GUIDE_METRICS)
+        self.assertNotIn("utm_source", FSBO_GUIDE_METRICS)
+        self.assertNotIn("location.href", FSBO_GUIDE_METRICS)
 
     def test_seller_page_records_each_aggregate_stage_once_per_browser_session(self):
         self.assertIn("Get my free seller plan", SELLERS)
@@ -55,6 +70,10 @@ class FsboLandingFunnelTests(unittest.TestCase):
         self.assertIn("sellerLandingViewCount", INDEX)
         self.assertIn("sellerLandingCtaRate", INDEX)
         self.assertIn("Landing-path interest:", INDEX)
+        self.assertIn('"fsboGuideViewCount"', ADMIN)
+        self.assertIn('"fsboGuideCtaCount"', ADMIN)
+        self.assertIn('"fsboGuideCtaRate"', ADMIN)
+        self.assertIn("Texas FSBO Guide Funnel", INDEX)
 
     def test_seller_pwa_shortcut_is_aggregate_only_and_admin_measurable(self):
         self.assertIn("hof_pwa_seller_plan_shortcut_recorded", INDEX)
