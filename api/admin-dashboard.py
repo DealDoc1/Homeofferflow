@@ -4138,6 +4138,21 @@ class handler(BaseHTTPRequestHandler):
                 item for item in events
                 if item.get("event_type") == "pwa_buyer_offer_opened"
             ])
+            # Authenticated installed-app shortcuts retain the action only so
+            # product can improve the mobile workspace. The dashboard returns
+            # aggregate counts, never agent identities or transaction data.
+            pwa_authenticated_shortcut_actions = (
+                "workspace", "listing_tools", "relationship_drafts", "new_offer", "signing_queue",
+            )
+            pwa_authenticated_shortcut_counts = {
+                action: 0 for action in pwa_authenticated_shortcut_actions
+            }
+            for item in events:
+                if item.get("event_type") != "pwa_authenticated_shortcut_opened":
+                    continue
+                action = str((item.get("metadata") or {}).get("action") or "").strip().lower()
+                if action in pwa_authenticated_shortcut_counts:
+                    pwa_authenticated_shortcut_counts[action] += 1
             # The seller's post-intake directory step is deliberately measured
             # as an aggregate bridge: operations can see whether seller demand
             # reaches provider discovery without receiving seller, property,
@@ -4715,6 +4730,7 @@ class handler(BaseHTTPRequestHandler):
                 "pwaInstallAcceptedSurfaceCounts": pwa_install_accepted_surface_counts,
                 "pwaSellerPlanShortcutCount": pwa_seller_plan_shortcut_count,
                 "pwaBuyerOfferShortcutCount": pwa_buyer_offer_shortcut_count,
+                "pwaAuthenticatedShortcutCounts": pwa_authenticated_shortcut_counts,
                 "fsboProviderDirectoryOpenCount": fsbo_provider_directory_open_count,
                 "pwaInstallShownCount": pwa_install_event_counts["shown"],
                 "pwaInstallNativeAvailableCount": pwa_install_event_counts["native_available"],

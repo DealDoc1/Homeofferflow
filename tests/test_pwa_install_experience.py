@@ -105,8 +105,10 @@ class PwaInstallExperienceTests(unittest.TestCase):
             '"pwaInstallCompletionRate"',
             '"pwaInstallAcceptedRate"',
             '"pwaInstallAcceptedSurfaceCounts"',
+            '"pwaAuthenticatedShortcutCounts"',
             "pwa_install_event_counts",
             "pwa_install_surfaces",
+            "pwa_authenticated_shortcut_counts",
         ):
             self.assertIn(expected, api)
         self.assertIn("Mobile App Install Funnel", INDEX)
@@ -117,6 +119,7 @@ class PwaInstallExperienceTests(unittest.TestCase):
         self.assertIn("pwaInstallAcceptedSurfaceCounts", INDEX)
         self.assertIn("pwaInstallAcceptedRate", INDEX)
         self.assertIn("Shown on:", INDEX)
+        self.assertIn("Authenticated workspace shortcuts:", INDEX)
         self.assertIn("PWA only: app-like mobile access", INDEX)
 
     def test_offline_shell_cache_is_versioned_for_the_new_install_surface(self):
@@ -136,6 +139,8 @@ class PwaInstallExperienceTests(unittest.TestCase):
         self.assertIn("if (!validActions.has(action)) return;", INDEX)
         self.assertIn("sessionStorage.removeItem(pendingActionKey)", INDEX)
         self.assertIn("else if (action === 'relationship_drafts') await openRelationshipDrafts();", INDEX)
+        self.assertIn("pwa_authenticated_shortcut_opened", INDEX)
+        self.assertIn("surface: 'pwa_shortcut'", INDEX)
 
 
 if __name__ == "__main__":

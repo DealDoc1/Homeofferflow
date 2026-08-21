@@ -4661,6 +4661,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.pwaInstallAcceptedCount || 0} native prompt acceptance${Number(metrics.pwaInstallAcceptedCount || 0) === 1 ? '' : 's'} (${Number(metrics.pwaInstallAcceptedRate || 0).toFixed(1)}% of native prompts). Accepted on: ${Object.entries(metrics.pwaInstallAcceptedSurfaceCounts || {}).filter(([, count]) => Number(count) > 0).map(([surface, count]) => `${surface.replace(/_/g, ' ')} ${count}`).join(' · ') || 'attribution begins with the next accepted prompt.'}</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.pwaSellerPlanShortcutCount || 0} Seller Plan shortcut return${Number(metrics.pwaSellerPlanShortcutCount || 0) === 1 ? '' : 's'} opened.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.pwaBuyerOfferShortcutCount || 0} Buyer Offer shortcut return${Number(metrics.pwaBuyerOfferShortcutCount || 0) === 1 ? '' : 's'} opened.</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Authenticated workspace shortcuts: workspace ${Number(metrics.pwaAuthenticatedShortcutCounts?.workspace || 0)} · listings ${Number(metrics.pwaAuthenticatedShortcutCounts?.listing_tools || 0)} · relationship drafts ${Number(metrics.pwaAuthenticatedShortcutCounts?.relationship_drafts || 0)} · new offer ${Number(metrics.pwaAuthenticatedShortcutCounts?.new_offer || 0)} · signing ${Number(metrics.pwaAuthenticatedShortcutCounts?.signing_queue || 0)}.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.fsboProviderDirectoryOpenCount || 0} post-intake seller directory visit${Number(metrics.fsboProviderDirectoryOpenCount || 0) === 1 ? '' : 's'} opened.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.pwaInstallAcceptedCount || 0} accepted · ${metrics.pwaInstallDismissedCount || 0} dismissed · ${Number(metrics.pwaInstallCompletionRate || 0).toFixed(1)}% installed after an install prompt opened.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">PWA only: app-like mobile access without a separate native-app build or store overhead.</div>
@@ -19171,6 +19172,20 @@ function routeAfterMagicLinkIfNeeded() {
 
   function trackShortcut(action, role, resumedAfterSignIn){
     try { window.trackEvent?.('PWA Shortcut Used', { action, role, resumed_after_sign_in: Boolean(resumedAfterSignIn) }); } catch (_) {}
+    // Authenticated workspace shortcuts are measured server-side as an
+    // aggregate operational signal. The event stores no client, property,
+    // form, source, device, or URL data; Admin receives counts only.
+    if (window.hofAuth?.session && ['workspace', 'listing_tools', 'relationship_drafts', 'new_offer', 'signing_queue'].includes(action)) {
+      try {
+        window.logOfferEvent?.(
+          null,
+          'pwa_authenticated_shortcut_opened',
+          'opened',
+          'Authenticated HomeOfferFlow PWA shortcut opened.',
+          { action, role, resumed_after_sign_in: Boolean(resumedAfterSignIn), surface: 'pwa_shortcut' }
+        );
+      } catch (_) {}
+    }
     if (action !== 'seller_plan') return;
     // The public seller plan does not require an account. Record one
     // aggregate return-path signal per browser session without retaining
