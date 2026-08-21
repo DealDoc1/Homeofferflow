@@ -142,6 +142,19 @@ class PwaInstallExperienceTests(unittest.TestCase):
         self.assertIn("pwa_authenticated_shortcut_opened", INDEX)
         self.assertIn("surface: 'pwa_shortcut'", INDEX)
 
+    def test_clean_signed_in_standalone_launch_opens_only_the_private_workspace(self):
+        self.assertIn("function isStandalonePwa()", INDEX)
+        self.assertIn("function canOpenDefaultWorkspace()", INDEX)
+        self.assertIn("window.location.pathname === '/'", INDEX)
+        self.assertIn("!window.location.search", INDEX)
+        self.assertIn("!window.location.hash", INDEX)
+        self.assertIn("!window.hofAuth?.routedAfterLogin", INDEX)
+        self.assertIn("async function openDefaultWorkspaceAfterAuth()", INDEX)
+        self.assertIn("window.openAccountDashboard?.({ tab: 'dashboard' })", INDEX)
+        self.assertIn("PWA Default Workspace Opened", INDEX)
+        self.assertIn("window.addEventListener('hof-auth-ready'", INDEX)
+        self.assertIn("window.dispatchEvent(new Event('hof-auth-ready'))", INDEX)
+
 
 if __name__ == "__main__":
     unittest.main()
