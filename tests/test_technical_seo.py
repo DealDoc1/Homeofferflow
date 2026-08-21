@@ -8,6 +8,18 @@ ROOT = Path(__file__).resolve().parents[1]
 HOME = (ROOT / "index.html").read_text(encoding="utf-8")
 SITEMAP = (ROOT / "sitemap.xml").read_text(encoding="utf-8")
 VERCEL = json.loads((ROOT / "vercel.json").read_text(encoding="utf-8"))
+SEO_GUIDES = {
+    "texas-fsbo-guide.html": (
+        "Texas FSBO Support",
+        "Texas FSBO Planning Guide",
+        "https://www.homeofferflow.com/sellers",
+    ),
+    "texas-agent-offer-workflow.html": (
+        "Texas Agent and Broker Workspace",
+        "Texas Agent Offer Workflow Guide",
+        "https://www.homeofferflow.com/agents",
+    ),
+}
 
 
 class TechnicalSeoTests(unittest.TestCase):
@@ -37,6 +49,22 @@ class TechnicalSeoTests(unittest.TestCase):
     def test_sitemap_keeps_revenue_landing_pages_discoverable(self):
         for path in ("/buyers", "/agents", "/investors", "/sellers", "/partners", "/directory"):
             self.assertIn(f"https://www.homeofferflow.com{path}", SITEMAP)
+
+    def test_revenue_guides_show_and_describe_their_real_site_hierarchy(self):
+        for filename, (parent_name, current_name, parent_url) in SEO_GUIDES.items():
+            guide = (ROOT / filename).read_text(encoding="utf-8")
+            self.assertIn('aria-label="Breadcrumb"', guide)
+            self.assertIn(parent_name, guide)
+            self.assertIn(current_name, guide)
+            blocks = re.findall(
+                r'<script type="application/ld\+json">\s*(.*?)\s*</script>', guide, re.DOTALL
+            )
+            breadcrumb = next(json.loads(block) for block in blocks if '"BreadcrumbList"' in block)
+            items = breadcrumb["itemListElement"]
+            self.assertEqual([item["position"] for item in items], [1, 2, 3])
+            self.assertEqual(items[1]["name"], parent_name)
+            self.assertEqual(items[1]["item"], parent_url)
+            self.assertEqual(items[2]["name"], current_name)
 
     def test_operational_and_private_review_pages_are_not_indexable(self):
         field_mapper = (ROOT / "field-mapper.html").read_text(encoding="utf-8")
