@@ -199,6 +199,7 @@ class AgentActivationDashboardTests(unittest.TestCase):
         readiness_end = HTML.index("</script>", readiness_start)
         readiness = HTML[readiness_start:readiness_end]
         self.assertIn("root.isProfileReadyForDefaults = profileComplete;", readiness)
+        self.assertIn("profile = profile || {};", readiness)
 
         broker_start = HTML.index('id="hof-broker-role-v14-js"')
         broker_end = HTML.index("</script>", broker_start)

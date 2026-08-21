@@ -15881,6 +15881,10 @@ function routeAfterMagicLinkIfNeeded() {
   }
 
   function profileComplete(profile = root.hofAuth?.accountProfile || {}) {
+    // A just-authenticated account can briefly have a null profile while the
+    // profile shell is loading. Treat it as incomplete rather than letting the
+    // dashboard render path throw before the agent can continue.
+    profile = profile || {};
     const role = String(root.hofAuth?.role || 'agent').toLowerCase();
     if (role === 'investor') {
       return !!(
