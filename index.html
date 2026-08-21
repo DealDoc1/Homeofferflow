@@ -19142,7 +19142,7 @@ function routeAfterMagicLinkIfNeeded() {
   const root = window;
   const pendingActionKey = 'hof_pwa_shortcut_pending_action';
   const ondemandFirstOfferAttributionKey = 'hof_ondemand_first_offer_attribution';
-  const validActions = new Set(['workspace', 'new_offer', 'signing_queue', 'seller_plan', 'buyer_offer']);
+  const validActions = new Set(['workspace', 'listing_tools', 'new_offer', 'signing_queue', 'seller_plan', 'buyer_offer']);
 
   function pendingAction(){
     try {
@@ -19241,6 +19241,7 @@ function routeAfterMagicLinkIfNeeded() {
     }
     clearPendingAction();
     if (action === 'workspace') await window.openAccountDashboard?.({ tab: 'dashboard' });
+    else if (action === 'listing_tools') await window.openAccountDashboard?.({ tab: 'seller' });
     else if (action === 'signing_queue') await openSigningQueue();
     else {
       recordOndemandFirstOfferActivation();
@@ -19259,6 +19260,7 @@ function routeAfterMagicLinkIfNeeded() {
       recordOndemandFirstOfferActivation();
       window.startAccountOffer?.();
     } else if (action === 'signing_queue') await openSigningQueue();
+    else if (action === 'listing_tools') await window.openAccountDashboard?.({ tab: 'seller' });
     trackShortcut(action, window.hofAuth?.role === 'investor' ? 'investor' : 'agent', true);
   }
 

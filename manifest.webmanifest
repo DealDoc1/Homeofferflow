@@ -18,6 +18,12 @@
       "url": "/?pwa_action=workspace"
     },
     {
+      "name": "Listing Tools",
+      "short_name": "Listings",
+      "description": "Open private seller leads, listing workspaces, launch planning, and offer comparison tools.",
+      "url": "/?pwa_action=listing_tools"
+    },
+    {
       "name": "New Offer",
       "short_name": "New Offer",
       "description": "Start or resume a saved offer in your workspace.",
