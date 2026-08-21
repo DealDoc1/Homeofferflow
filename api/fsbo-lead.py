@@ -212,6 +212,8 @@ AGENT_LANDING_CTA_PATHS = {
 INVESTOR_LANDING_EVENT_TYPES = {
     "investor_landing_viewed": "viewed",
     "investor_landing_cta_selected": "selected",
+    "investor_offer_guide_viewed": "viewed",
+    "investor_offer_guide_cta_selected": "selected",
 }
 
 
@@ -732,7 +734,10 @@ def _record_investor_landing_event(data):
         event_type,
         INVESTOR_LANDING_EVENT_TYPES[event_type],
         "Privacy-safe public investor landing engagement recorded.",
-        {"surface": "investor_landing", "role": "investor"},
+        {
+            "surface": "investor_offer_guide" if event_type.startswith("investor_offer_guide_") else "investor_landing",
+            "role": "investor",
+        },
     )
 
 
