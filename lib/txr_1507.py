@@ -63,7 +63,11 @@ def _overlay(data, brokerage, associate):
     _draw(canvas, data["term_end"], 431, 519, size=8)
 
     if data["service_level"] == "full_services":
-        _draw_check(canvas, 57, 455)
+        # The Full Services box on the 06-15-26 source sits at x=56/y=461
+        # in ReportLab's bottom-origin letter coordinates.  The prior y=455
+        # mark landed below the printed square and made a selected service
+        # level look blank in the rendered preview.
+        _draw_check(canvas, 56, 461)
     else:
         _draw_check(canvas, 57, 425)
         _draw(canvas, data["showing_fee"], 316, 425, size=8)

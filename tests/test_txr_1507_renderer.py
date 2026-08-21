@@ -1,9 +1,11 @@
 import io
 import unittest
+from unittest.mock import patch
 
 from pypdf import PdfReader
 from reportlab.pdfgen.canvas import Canvas
 
+from lib import txr_1507
 from lib.txr_1507 import build_signwell_fields_txr1507, render_txr_1507
 
 
@@ -37,6 +39,16 @@ def sample_data():
 
 
 class Txr1507RendererTests(unittest.TestCase):
+    def test_full_services_mark_uses_the_current_source_checkbox(self):
+        """Keep the 06-15-26 Full Services selection inside its printed box."""
+        with patch.object(txr_1507, "_draw_check") as draw_check:
+            txr_1507._overlay(
+                sample_data(),
+                {"legal_name": "OnDemand Realty", "license_number": "9010832"},
+                {"name": "Andrew Christian", "license_number": "0738821"},
+            )
+        self.assertIn((56, 461), [call.args[1:] for call in draw_check.call_args_list])
+
     def test_renderer_preserves_two_pages_and_overlays_only_supplied_values(self):
         rendered = render_txr_1507(
             blank_two_page_pdf(),
