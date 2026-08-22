@@ -12874,7 +12874,7 @@ function routeAfterMagicLinkIfNeeded() {
         <input type="hidden" id="fsboPropertyState" value="TX">
         <input type="hidden" id="fsboPropertyZip">
       </div>
-      <div class="field"><label for="fsboSellerEmail">Email</label><input id="fsboSellerEmail" type="email" inputmode="email" autocomplete="email" placeholder="you@email.com" required aria-required="true"></div>
+      <div class="field"><label for="fsboSellerEmail">Email</label><input id="fsboSellerEmail" type="email" inputmode="email" enterkeyhint="send" autocomplete="email" placeholder="you@email.com" required aria-required="true" aria-describedby="fsboSellerEmailHelp"><small id="fsboSellerEmailHelp" style="display:block;margin-top:.35rem;color:var(--gray-light);">We use this only to send your seller plan and replyable confirmation. When both fields are complete, press Return/Go or use the button below.</small></div>
       <div aria-hidden="true" style="position:absolute;left:-10000px;top:auto;width:1px;height:1px;overflow:hidden;"><label for="fsboWebsiteConfirm">Leave this field blank</label><input id="fsboWebsiteConfirm" tabindex="-1" autocomplete="off"></div>
     </div>
     <div id="fsboRequiredReadyCue" class="notice sage" role="status" aria-live="polite" style="margin-top:.75rem;"><strong>Step 1 of 2:</strong> Enter the property address, then the email where you want your free seller plan. No checkout or service commitment.</div>
@@ -13040,7 +13040,7 @@ function routeAfterMagicLinkIfNeeded() {
     const ready = fsboRequiredFieldsReady();
     if (cue) {
       cue.innerHTML = ready
-        ? '<strong>You’re ready.</strong> Your address and email are complete—save your free seller plan now, or choose a package first. No checkout or service commitment.'
+        ? '<strong>You’re ready.</strong> Your address and email are complete—press Return/Go or save your free seller plan now. No checkout or service commitment.'
         : addressProvided && !emailProvided
           ? '<strong>Step 2 of 2:</strong> Add the email where you want your free seller plan. No checkout or service commitment.'
           : addressProvided
@@ -13070,6 +13070,16 @@ function routeAfterMagicLinkIfNeeded() {
     fsboFunnel.requiredReady = true;
     trackFsboFunnel('FSBO Seller Intake Required Fields Ready');
   }
+  // The intake is intentionally not wrapped in a form because the address
+  // input must let Google Places consume Enter when selecting a suggestion.
+  // Once the seller reaches the email field, however, Return/Go should finish
+  // the two-detail request just like the visible primary button—especially on
+  // mobile keyboards.  Keep the same validation and idempotency path.
+  document.getElementById('fsboSellerEmail')?.addEventListener('keydown', event => {
+    if (event.key !== 'Enter' || event.isComposing || !fsboRequiredFieldsReady()) return;
+    event.preventDefault();
+    window.submitFsboSellerLead?.('email_enter');
+  });
   const fsboDraftStorageKey = 'hof_fsbo_intake_draft_v1';
   const fsboDraftFields = ['fsboPropertyAddress', 'fsboPropertyCity', 'fsboPropertyCounty', 'fsboPropertyState', 'fsboPropertyZip', 'fsboSellerName', 'fsboSellerEmail', 'fsboSellerPhone', 'fsboAskingPrice', 'fsboTimeline', 'fsboNeed', 'fsboPackagePrice', 'fsboNotes'];
   function saveFsboDraft(){
