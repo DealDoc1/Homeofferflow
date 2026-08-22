@@ -117,6 +117,18 @@ def valid_seller_financing_payload():
     }
 
 
+def valid_loan_assumption_payload():
+    return {
+        "formCode": "TXR-1919", "formSourceId": "00000000-0000-0000-0000-000000000001",
+        "propertyAddress": "1438 Whitaker Road, Van Alstyne, TX", "buyerNames": ["Test Buyer"],
+        "sellerNames": ["Test Seller"], "creditDays": "7", "creditDocuments": ["credit_report"],
+        "firstLoanEnabled": True, "firstLoanLender": "Example Bank", "firstLoanBalance": "240000",
+        "firstLoanPayment": "1750", "firstAssumptionFeeCap": "500", "firstInterestRateCap": "6.5",
+        "secondLoanEnabled": False, "varianceAdjustment": "cash", "varianceTerminationThreshold": "2500",
+        "loanAssumptionReviewAcknowledgment": True,
+    }
+
+
 class StandaloneAgreementFoundationTests(unittest.TestCase):
     def test_txr_library_cards_do_not_require_active_brokerage_membership(self):
         self.assertNotIn("root.hofPlatform?.brokerageMembership?.status === 'active'", HTML)
@@ -318,6 +330,16 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
         self.assertIn("id=\"txr1914OnePayment\"", HTML)
         self.assertIn("id=\"txr1914Installments\"", HTML)
         self.assertIn("id=\"txr1914EscrowDetails\"", HTML)
+
+    def test_loan_assumption_draft_is_review_only_and_requires_an_assumed_loan(self):
+        draft = MODULE._parse_txr_1919_draft(valid_loan_assumption_payload())
+        self.assertEqual(draft["agreement_data"]["loans"]["first"]["lender"], "Example Bank")
+        payload = valid_loan_assumption_payload()
+        payload["firstLoanEnabled"] = False
+        with self.assertRaisesRegex(ValueError, "at least one existing loan"):
+            MODULE._parse_txr_1919_draft(payload)
+        self.assertIn("create_txr_1919_draft", HTML)
+        self.assertIn("not a lender request or signature request", HTML)
         self.assertIn("not a loan document or signature request", HTML)
 
     def test_agent_ui_requires_an_approved_private_source_and_saves_draft_only(self):

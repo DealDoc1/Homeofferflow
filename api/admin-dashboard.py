@@ -80,6 +80,7 @@ TXR_1507_FORM_CODE = "TXR-1507"
 TXR_1508_FORM_CODE = "TXR-1508"
 TXR_1905_FORM_CODE = "TXR-1905"
 TXR_1914_FORM_CODE = "TXR-1914"
+TXR_1919_FORM_CODE = "TXR-1919"
 TREC_55_1_FORM_CODE = "TREC-55-1"
 TREC_61_0_FORM_CODE = "TREC-61-0"
 BROKERAGE_TXR_FORM_CODES = (
@@ -2393,6 +2394,103 @@ def _parse_txr_1914_draft(data):
     }
 
 
+def _parse_txr_1919_draft(data):
+    """Validate a private TXR-1919 loan-assumption review draft.
+
+    This collects only choices printed on the approved addendum. It does not
+    determine creditworthiness, advise on the assumption, contact a lender,
+    create loan documents, or send anything for signature.
+    """
+    if data.get("formCode") != TXR_1919_FORM_CODE:
+        raise ValueError("Only TXR-1919 is available through this action.")
+    form_source_id = _agreement_text(data.get("formSourceId"), "Approved TXR-1919 source", 80)
+    try:
+        form_source_id = str(uuid.UUID(form_source_id))
+    except (TypeError, ValueError, AttributeError):
+        raise ValueError("Choose an available TXR-1919 source from the HomeOfferFlow library.")
+
+    def names(key, label):
+        values = data.get(key)
+        if not isinstance(values, list) or not (1 <= len(values) <= 2):
+            raise ValueError(f"Add one or two {label} names.")
+        return [_agreement_text(value, f"Each {label} name", 180) for value in values]
+
+    def whole_number(value, label):
+        value = str(value or "").strip()
+        if not re.fullmatch(r"\d{1,3}", value) or int(value) < 1:
+            raise ValueError(f"{label} must be a whole number.")
+        return value
+
+    property_address = _agreement_text(data.get("propertyAddress"), "Property address", 400)
+    buyer_names = names("buyerNames", "buyer")
+    seller_names = names("sellerNames", "seller")
+    all_names = buyer_names + seller_names
+    if len({name.casefold() for name in all_names}) != len(all_names):
+        raise ValueError("List each buyer or seller only once.")
+    credit_days = whole_number(data.get("creditDays"), "Credit-documentation delivery time")
+    credit_documents = data.get("creditDocuments")
+    allowed_documents = {"credit_report", "employment", "funds", "financial_statement", "other"}
+    if not isinstance(credit_documents, list) or not credit_documents or not set(credit_documents).issubset(allowed_documents):
+        raise ValueError("Choose at least one credit-documentation item.")
+    credit_documents = list(dict.fromkeys(credit_documents))
+    credit_other = " ".join(str(data.get("creditOther") or "").strip().split())
+    if "other" in credit_documents and not credit_other:
+        raise ValueError("Describe the additional credit-documentation item.")
+    if len(credit_other) > 180:
+        raise ValueError("Additional credit documentation is too long.")
+
+    loans = {}
+    for key, label in (("first", "first-lien"), ("second", "second-lien")):
+        enabled = data.get(f"{key}LoanEnabled") is True
+        if not enabled:
+            loans[key] = {"enabled": False}
+            continue
+        lender = _agreement_text(data.get(f"{key}LoanLender"), f"{label.capitalize()} lender", 180)
+        balance = _agreement_money(data.get(f"{key}LoanBalance"), f"{label.capitalize()} unpaid balance")
+        payment = _agreement_money(data.get(f"{key}LoanPayment"), f"{label.capitalize()} monthly payment")
+        if not balance or not payment:
+            raise ValueError(f"Enter the {label} unpaid balance and current monthly payment.")
+        loans[key] = {"enabled": True, "lender": lender, "balance": balance, "monthly_payment": payment}
+    if not loans["first"]["enabled"] and not loans["second"]["enabled"]:
+        raise ValueError("Choose at least one existing loan to be assumed.")
+    adjustment = str(data.get("varianceAdjustment") or "").strip()
+    if adjustment not in {"cash", "sales_price"}:
+        raise ValueError("Choose how a loan-balance variance adjusts the transaction.")
+    threshold = _agreement_money(data.get("varianceTerminationThreshold"), "Loan-balance variance termination threshold")
+    if not threshold:
+        raise ValueError("Enter the variance amount that permits termination.")
+    terms = {}
+    for key, label in (("first", "first-lien"), ("second", "second-lien")):
+        if not loans[key]["enabled"]:
+            terms[f"{key}_fee_cap"] = ""
+            terms[f"{key}_rate_cap"] = ""
+            continue
+        fee = _agreement_money(data.get(f"{key}AssumptionFeeCap"), f"{label.capitalize()} assumption-fee cap")
+        rate = _agreement_percentage(data.get(f"{key}InterestRateCap"), f"{label.capitalize()} interest-rate cap")
+        if not fee or not rate:
+            raise ValueError(f"Enter the {label} assumption-fee and interest-rate limits.")
+        terms[f"{key}_fee_cap"] = fee
+        terms[f"{key}_rate_cap"] = rate
+    if data.get("loanAssumptionReviewAcknowledgment") is not True:
+        raise ValueError("Confirm that the parties will review loan-assumption terms with appropriate professionals before signing.")
+    return {
+        "form_source_id": form_source_id,
+        "client_names": all_names,
+        "agreement_data": {
+            "property_address": property_address,
+            "buyer_names": buyer_names,
+            "seller_names": seller_names,
+            "credit_days": credit_days,
+            "credit_documents": credit_documents,
+            "credit_other": credit_other,
+            "loans": loans,
+            "variance": {"adjustment": adjustment, "termination_threshold": threshold},
+            "loan_terms": terms,
+            "loan_assumption_review_acknowledgment": True,
+        },
+    }
+
+
 async def _active_brokerage_member(user):
     profiles = await _get(
         "hof_profiles?"
@@ -2665,6 +2763,10 @@ async def _create_txr_1905_draft(user, data):
 
 async def _create_txr_1914_draft(user, data):
     return await _create_representation_draft(user, data, TXR_1914_FORM_CODE, _parse_txr_1914_draft)
+
+
+async def _create_txr_1919_draft(user, data):
+    return await _create_representation_draft(user, data, TXR_1919_FORM_CODE, _parse_txr_1919_draft)
 
 
 async def _deliver_seller_review_email(email, review_url, verification_code, expires_at, property_address):
@@ -3180,6 +3282,9 @@ async def _render_representation_draft_preview(user, agreement_id):
     if agreement.get("form_code") == TXR_1914_FORM_CODE:
         from lib.txr_1914 import render_txr_1914
         return render_txr_1914(response.content, render_data)
+    if agreement.get("form_code") == TXR_1919_FORM_CODE:
+        from lib.txr_1919 import render_txr_1919
+        return render_txr_1919(response.content, render_data)
     raise ValueError("Private preview is not available for this form yet.")
 
 
@@ -5284,6 +5389,10 @@ class handler(BaseHTTPRequestHandler):
                 return
             if data.get("action") == "create_txr_1914_draft":
                 draft = asyncio.run(_create_txr_1914_draft(user, data))
+                _json(self, 201, {"status": "ok", "agreement": draft})
+                return
+            if data.get("action") == "create_txr_1919_draft":
+                draft = asyncio.run(_create_txr_1919_draft(user, data))
                 _json(self, 201, {"status": "ok", "agreement": draft})
                 return
             if data.get("action") == "send_txr_agreement_for_signature":
