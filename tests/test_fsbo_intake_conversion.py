@@ -10,7 +10,8 @@ SELLER_BRIDGE = (Path(__file__).resolve().parents[1] / "assets" / "seller-campai
 
 class FsboIntakeConversionTests(unittest.TestCase):
     def test_minimum_viable_seller_request_is_clear_and_accessible(self):
-        self.assertIn("Start in under a minute.", HTML)
+        self.assertIn("Two details. One free plan.", HTML)
+        self.assertIn("Get Your Free FSBO Seller Plan", HTML)
         self.assertIn("Property address and email are all we need", HTML)
         self.assertIn('id="fsboPropertyAddress"', HTML)
         self.assertIn('id="fsboSellerEmail"', HTML)
@@ -29,6 +30,7 @@ class FsboIntakeConversionTests(unittest.TestCase):
         self.assertIn('id="fsboRequiredReadyCue"', HTML)
         self.assertIn("function renderFsboRequiredReadyCue", HTML)
         self.assertIn("Your address and email are complete", HTML)
+        self.assertIn("Your free seller plan is already selected", HTML)
 
     def test_seller_funnel_events_are_analytics_only_and_never_include_identity(self):
         start = HTML.index("const fsboFunnel =")
