@@ -5162,28 +5162,48 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 
   async function openAccountDashboard(opts = {}) {
     if (!hofAuth.session) return openAuthModal(state?.data?.userType || 'agent');
-    await loadAccountProfile();
-    await loadOrCreateSubscription();
-    await loadCurrentUsage();
-    await loadMyOffers();
-    renderAccountDashboard();
-    renderAccountProfileForm();
     const modal = document.getElementById('accountModal');
     if (modal) {
       modal.classList.add('active');
       modal.setAttribute('aria-hidden', 'false');
     }
-    // New agents should see the first-offer value path immediately. The
-    // activation card makes reusable defaults the clear secondary action, so
-    // profile setup remains available without delaying the core workflow.
-    showAccountTab(opts.tab || 'dashboard');
+    const dashboard = document.getElementById('accountPanelDashboard');
+    if (dashboard) {
+      dashboard.setAttribute('aria-busy', 'true');
+      dashboard.innerHTML = '<div class="account-card"><h4>Opening your workspace…</h4><p style="color:var(--gray-light);line-height:1.6;margin:0;">Loading your saved profile, access, usage, and offers.</p></div>';
+    }
+    // Open the shell before remote account requests. Previously, one failed
+    // request made the account button look unresponsive and hid the recovery
+    // path to brokerage setup and approved form-source tools.
+    showAccountTab('dashboard');
     try {
-      if (sessionStorage.getItem('hof_subscription_checkout_cancelled') === '1') {
-        sessionStorage.removeItem('hof_subscription_checkout_cancelled');
-        setAccountStatus('Checkout was canceled. Your saved offer and account are still here—resume when you are ready.', 'err');
-        renderSubscriptionCheckoutRecovery();
+      await loadAccountProfile();
+      await loadOrCreateSubscription();
+      await loadCurrentUsage();
+      await loadMyOffers();
+      renderAccountDashboard();
+      renderAccountProfileForm();
+      // New agents should see the first-offer value path immediately. The
+      // activation card makes reusable defaults the clear secondary action,
+      // while callers can still take an account directly to another tab.
+      showAccountTab(opts.tab || 'dashboard');
+      try {
+        if (sessionStorage.getItem('hof_subscription_checkout_cancelled') === '1') {
+          sessionStorage.removeItem('hof_subscription_checkout_cancelled');
+          setAccountStatus('Checkout was canceled. Your saved offer and account are still here—resume when you are ready.', 'err');
+          renderSubscriptionCheckoutRecovery();
+        }
+      } catch (e) {}
+    } catch (err) {
+      console.error('Account workspace load failed:', err);
+      const message = err?.message || 'We could not load every workspace detail. Refresh to retry; no account data was changed.';
+      const safeMessage = String(message).replace(/[&<>\"]/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[char]));
+      if (dashboard) {
+        dashboard.innerHTML = '<div class="account-card"><h4>Workspace needs a refresh</h4><p style="color:var(--gray-light);line-height:1.6;">' + safeMessage + '</p><div class="account-actions-row"><button class="btn-primary" type="button" onclick="openAccountDashboard({tab:\'dashboard\'})">Try again</button><button class="btn-secondary" type="button" onclick="showAccountTab(\'brokerage\')">Open Brokerage Setup</button></div></div>';
       }
-    } catch (e) {}
+    } finally {
+      if (dashboard) dashboard.setAttribute('aria-busy', 'false');
+    }
   }
 
   function closeAccountDashboard() {
