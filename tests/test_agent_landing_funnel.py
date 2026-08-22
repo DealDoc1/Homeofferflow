@@ -80,6 +80,7 @@ class AgentLandingFunnelTests(unittest.TestCase):
 
     def test_relationship_drafts_are_a_persistent_agent_account_workspace(self):
         self.assertIn('id="relationshipsAccountTab"', INDEX)
+        self.assertIn('Agent Forms &amp; Drafts', INDEX)
         self.assertIn('data-account-tab="relationships"', INDEX)
         self.assertIn("onclick=\"showAccountTab('relationships')\"", INDEX)
         self.assertIn("normalized !== 'investor'", INDEX)
