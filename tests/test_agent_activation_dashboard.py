@@ -230,6 +230,14 @@ class AgentActivationDashboardTests(unittest.TestCase):
         for label in ('>Buying</button>', '>Listing</button>', '>Lease listing</button>', '>Lease representation</button>'):
             self.assertIn(label, HTML)
 
+    def test_transaction_picker_uses_the_neutral_listing_first_order(self):
+        start = HTML.index('id="agentWorkflowStart"')
+        end = HTML.index('id="agentActivationCard"', start)
+        picker = HTML[start:end]
+        self.assertLess(picker.index(">Listing</button>"), picker.index(">Buying</button>"))
+        self.assertLess(picker.index(">Buying</button>"), picker.index(">Lease listing</button>"))
+        self.assertLess(picker.index(">Lease listing</button>"), picker.index(">Lease representation</button>"))
+
     def test_generic_agent_account_offer_actions_return_to_question_one(self):
         self.assertIn("window.startAccountTransaction = function startAccountTransaction()", HTML)
         self.assertIn("if (hofAuth.role === 'investor') return startAccountOffer();", HTML)
