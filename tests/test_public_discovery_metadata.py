@@ -255,7 +255,7 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn('"name":"Can I prepare a buyer relationship draft?"', AGENTS)
         self.assertIn('"name":"Does this replace broker supervision?"', AGENTS)
         self.assertIn('private buyer relationship drafts', AGENTS)
-        self.assertIn('They remain preview-only until their separate signing QA is complete.', AGENTS)
+        self.assertIn('review and send approved-source TXR-1501, TXR-1506, TXR-1507, and TXR-1508 drafts from the private signing queue', AGENTS)
         self.assertIn('Private seller planning for enrolled brokerage agents', AGENTS)
         self.assertIn('seller listing launch checklist or consultation brief', AGENTS)
         self.assertIn('Seller form generation and signing remain separately source-gated.', AGENTS)
