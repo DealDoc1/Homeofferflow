@@ -192,6 +192,8 @@ HOMEBUYER_LANDING_EVENT_TYPES = {
     "homebuyer_landing_viewed": "viewed",
     "homebuyer_landing_cta_selected": "selected",
     "homebuyer_landing_offer_started": "started",
+    "homebuyer_checkout_cancelled": "cancelled",
+    "homebuyer_checkout_recovery_started": "recovery_started",
     "pwa_buyer_offer_opened": "opened",
 }
 HOMEBUYER_LANDING_CHANNELS = {
@@ -688,6 +690,8 @@ def _record_homebuyer_landing_event(data):
     if channel not in HOMEBUYER_LANDING_CHANNELS:
         raise ValueError("Unsupported homebuyer landing channel.")
     metadata = {"surface": "homebuyer_landing", "price": "99", "channel": channel}
+    if event_type.startswith("homebuyer_checkout_"):
+        metadata["surface"] = "homebuyer_checkout"
     if event_type == "pwa_buyer_offer_opened":
         metadata["surface"] = "pwa_buyer_offer"
     _record_partner_checkout_event(
