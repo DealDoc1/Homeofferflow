@@ -87,6 +87,13 @@ class ListingWorkspaceFoundationTests(unittest.TestCase):
         self.assertIn("address?.scrollIntoView({ behavior: 'smooth', block: 'center' });", tabs)
         self.assertIn("address?.focus({ preventScroll: true });", tabs)
 
+    def test_transaction_first_listing_workspace_starts_with_a_property_question(self):
+        self.assertIn("<div class=\"eyebrow\" style=\"margin-bottom:.35rem;\">Question 2</div>", INDEX)
+        self.assertIn("Which property is this listing for?", INDEX)
+        self.assertIn("Which property is this lease listing for?", INDEX)
+        self.assertIn("Seller name(s)", INDEX)
+        self.assertIn("Landlord name(s)", INDEX)
+
     def test_workspace_hardening_allowlists_requested_workflows_and_refreshes_timestamp(self):
         self.assertIn("hof_listing_workspaces_requested_workflows_allowed", HARDENING_MIGRATION)
         self.assertIn("hof_listing_workflows_allowed(value jsonb)", HARDENING_MIGRATION)

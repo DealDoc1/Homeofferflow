@@ -3015,7 +3015,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           <p style="color:var(--gray-light);line-height:1.55;margin:0 0 .9rem;">Choose one. HomeOfferFlow will take you to the next question for that transaction.</p>
           <div class="account-actions-row" style="margin-top:0;">
             <button class="btn-primary" type="button" onclick="startAgentWorkflow('purchase')">Buying</button>
-            <button class="btn-secondary" type="button" onclick="startAgentWorkflow('sale_listing')">Sale listing</button>
+            <button class="btn-secondary" type="button" onclick="startAgentWorkflow('sale_listing')">Listing</button>
             <button class="btn-secondary" type="button" onclick="startAgentWorkflow('lease_listing')">Lease listing</button>
             <button class="btn-secondary" type="button" onclick="startAgentWorkflow('lease_representation')">Lease representation</button>
           </div>
@@ -11341,7 +11341,7 @@ function routeAfterMagicLinkIfNeeded() {
     el.className = '';
     const isLeaseListing = window.hofAgentWorkflowContext === 'lease_listing';
     const workspaceKind = isLeaseListing ? 'lease' : 'sale';
-    const workspaceTitle = isLeaseListing ? 'Lease Listing Workspace' : 'Sale Listing Workspace';
+    const workspaceTitle = isLeaseListing ? 'Lease Listing Workspace' : 'Listing Workspace';
     const workspaceDescription = isLeaseListing
       ? 'Agent-side seller planning tools: you are starting a lease listing. Add the landlord and property first, then keep requested lease-listing steps in one private workspace.'
       : 'Agent-side seller planning tools: you are starting a sale listing. Add the seller and property first, then keep launch, disclosure, and offer-review planning in one private workspace.';
@@ -11392,12 +11392,13 @@ function routeAfterMagicLinkIfNeeded() {
       ${campaignToolkit}
       <div class="platform-card"><h4>Recent Seller Leads</h4><div id="sellerLeadList" class="platform-list"><div class="platform-list-item">No seller leads loaded yet.</div></div></div>
       <div class="platform-card">
-        <h4>${workspaceTitle}</h4>
-        <p>${workspaceDescription} This organizes intake and requested workflows only; it does not create a legal form, send a packet, or collect signatures.</p>
+        <div class="eyebrow" style="margin-bottom:.35rem;">Question 2</div>
+        <h4>${isLeaseListing ? 'Which property is this lease listing for?' : 'Which property is this listing for?'}</h4>
+        <p>${isLeaseListing ? 'Add the property and landlord first. Then HomeOfferFlow keeps the requested lease-listing planning in one private workspace.' : 'Add the property and seller first. Then HomeOfferFlow keeps the requested listing planning in one private workspace.'}</p>
         <div class="platform-grid">
           <div class="field"><label>Listing Type</label><select id="listingWorkspaceKind"><option value="sale"${workspaceKind === 'sale' ? ' selected' : ''}>For Sale</option><option value="lease"${workspaceKind === 'lease' ? ' selected' : ''}>For Lease</option></select></div>
           <div class="field"><label for="listingWorkspaceAddress">Property Address</label><input id="listingWorkspaceAddress" maxlength="400" placeholder="Start typing the property address..." autocomplete="off" autocorrect="off" autocapitalize="words" spellcheck="false" aria-describedby="listingWorkspaceAddressHelp" required><small id="listingWorkspaceAddressHelp" style="display:block;margin-top:.35rem;color:var(--gray-light);">Choose a Google address suggestion when available; manual entry still works.</small></div>
-          <div class="field" style="grid-column:1 / -1;"><label>Seller / landlord names</label><input id="listingWorkspaceSellerNames" maxlength="720" placeholder="Separate multiple names with a semicolon" required></div>
+          <div class="field" style="grid-column:1 / -1;"><label>${isLeaseListing ? 'Landlord name(s)' : 'Seller name(s)'}</label><input id="listingWorkspaceSellerNames" maxlength="720" placeholder="Separate multiple names with a semicolon" required></div>
         </div>
         <div class="field" style="margin-top:0.8rem;"><label>Requested workflow planning</label><div style="display:flex; gap:.75rem; flex-wrap:wrap; margin-top:.4rem;">${workflowPrompt}</div></div>
         <div class="field" style="margin-top:0.8rem;"><label>Private notes</label><textarea id="listingWorkspaceNotes" rows="3" maxlength="4000" placeholder="Internal planning notes. Do not enter unnecessary sensitive information."></textarea></div>
