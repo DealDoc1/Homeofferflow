@@ -268,6 +268,10 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
     def test_investor_workspace_page_is_indexable_and_routes_to_passwordless_sign_in(self):
         self.assertIn('<link rel="canonical" href="https://www.homeofferflow.com/investors"', INVESTORS)
         self.assertIn('property="og:url" content="https://www.homeofferflow.com/investors"', INVESTORS)
+        self.assertIn('aria-label="Breadcrumb"', INVESTORS)
+        self.assertIn('"@type":"BreadcrumbList"', INVESTORS)
+        self.assertIn('"@type":"FAQPage"', INVESTORS)
+        self.assertIn('"name":"Do I need a password for the investor workspace?"', INVESTORS)
         self.assertIn('href="/?investor=1"', INVESTORS)
         self.assertIn('No password and no charge to open the workspace.', INVESTORS)
         self.assertIn({'source': '/investors', 'destination': '/investors.html'}, VERCEL.get('rewrites', []))

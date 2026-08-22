@@ -34,6 +34,11 @@ SEO_GUIDES = {
         "Founding Partner Placements",
         "https://www.homeofferflow.com/",
     ),
+    "investors.html": (
+        "HomeOfferFlow",
+        "Texas Investor Offer Workspace",
+        "https://www.homeofferflow.com/",
+    ),
 }
 
 
