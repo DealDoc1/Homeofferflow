@@ -4540,6 +4540,11 @@ class handler(BaseHTTPRequestHandler):
                 if item.get("event_type") == "ondemand_first_offer_started"
                 and (item.get("metadata") or {}).get("source") == "ondemand"
             ])
+            ondemand_transaction_picker_opened_count = len([
+                item for item in events
+                if item.get("event_type") == "ondemand_transaction_picker_opened"
+                and (item.get("metadata") or {}).get("source") == "ondemand"
+            ])
             ondemand_landing_view_count = len([
                 item for item in events if item.get("event_type") == "ondemand_landing_viewed"
             ])
@@ -5063,6 +5068,12 @@ class handler(BaseHTTPRequestHandler):
                 "onDemandFirstOfferStartCount": ondemand_first_offer_start_count,
                 "onDemandFirstOfferStartRate": round(
                     (ondemand_first_offer_start_count
+                    / subscription_checkout_return_by_source.get("ondemand", 0)) * 100,
+                    1,
+                ) if subscription_checkout_return_by_source.get("ondemand", 0) else 0,
+                "onDemandTransactionPickerOpenedCount": ondemand_transaction_picker_opened_count,
+                "onDemandTransactionPickerOpenedRate": round(
+                    (ondemand_transaction_picker_opened_count
                     / subscription_checkout_return_by_source.get("ondemand", 0)) * 100,
                     1,
                 ) if subscription_checkout_return_by_source.get("ondemand", 0) else 0,

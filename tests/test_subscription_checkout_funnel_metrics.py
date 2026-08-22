@@ -21,7 +21,10 @@ class SubscriptionCheckoutFunnelMetricTests(unittest.TestCase):
         self.assertIn('"onDemandCheckoutReturnRate"', source)
         self.assertIn('"onDemandFirstOfferStartCount"', source)
         self.assertIn('"onDemandFirstOfferStartRate"', source)
+        self.assertIn('"onDemandTransactionPickerOpenedCount"', source)
+        self.assertIn('"onDemandTransactionPickerOpenedRate"', source)
         self.assertIn("ondemand_first_offer_started", source)
+        self.assertIn("ondemand_transaction_picker_opened", source)
 
     def test_admin_dashboard_surfaces_subscription_checkout_funnel(self):
         source = (ROOT / "index.html").read_text(encoding="utf-8")
@@ -37,6 +40,8 @@ class SubscriptionCheckoutFunnelMetricTests(unittest.TestCase):
         self.assertIn("onDemandCheckoutReturnRate", source)
         self.assertIn("onDemandFirstOfferStartCount", source)
         self.assertIn("onDemandFirstOfferStartRate", source)
+        self.assertIn("onDemandTransactionPickerOpenedCount", source)
+        self.assertIn("onDemandTransactionPickerOpenedRate", source)
 
     def test_ondemand_checkout_uses_the_shared_privacy_safe_funnel_events(self):
         source = (ROOT / "ondemand.html").read_text(encoding="utf-8")
@@ -65,6 +70,14 @@ class SubscriptionCheckoutFunnelMetricTests(unittest.TestCase):
         self.assertIn("'ondemand_first_offer_started'", source)
         self.assertIn("recordOndemandFirstOfferActivation();", source)
         self.assertIn("sessionStorage.removeItem(ondemandFirstOfferAttributionKey)", source)
+
+    def test_ondemand_new_offer_returns_to_the_transaction_picker_before_a_draft(self):
+        source = (ROOT / "index.html").read_text(encoding="utf-8")
+        self.assertIn("function recordOndemandTransactionPickerOpened()", source)
+        self.assertIn("'ondemand_transaction_picker_opened'", source)
+        self.assertIn("async function openNewOfferShortcut(role)", source)
+        self.assertIn("await window.openAccountDashboard?.({ tab: 'dashboard' });", source)
+        self.assertIn("window.openAgentTransactionPicker?.();", source)
 
     def test_ondemand_success_return_offers_authenticated_workspace_handoff(self):
         source = (ROOT / "ondemand.html").read_text(encoding="utf-8")
