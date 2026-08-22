@@ -12854,13 +12854,13 @@ function routeAfterMagicLinkIfNeeded() {
   <div class="modal-card fsbo-modal-card" role="dialog" aria-modal="true" aria-labelledby="fsboSellerTitle" tabindex="-1" style="width:min(760px,100%); max-height:88vh; overflow:auto; background:linear-gradient(180deg,#0b1828,#07111d); border:1px solid rgba(255,255,255,.14); border-radius:18px; box-shadow:0 24px 80px rgba(0,0,0,.45); padding:1.15rem;">
     <div style="display:flex; justify-content:space-between; gap:1rem; align-items:flex-start; margin-bottom:.9rem;">
       <div>
-        <h3 id="fsboSellerTitle" style="font-family:'Playfair Display',serif; color:var(--white); margin:0 0 .25rem; font-size:1.45rem;">FSBO Seller Packages</h3>
-        <p style="color:var(--gray-light); line-height:1.55; margin:0;">Choose the seller package you are interested in and any partner recommendations you may need. Higher-touch or brokerage-connected services are priced to leave room for broker, provider, compliance, and transaction costs. This remains lead capture for now — not checkout or a confirmed service order.</p>
+        <h3 id="fsboSellerTitle" style="font-family:'Playfair Display',serif; color:var(--white); margin:0 0 .25rem; font-size:1.45rem;">Get Your Free FSBO Seller Plan</h3>
+        <p style="color:var(--gray-light); line-height:1.55; margin:0;">Start with just your property address and email—no checkout or commitment. You can optionally tell us what help you may want after your plan is saved.</p>
       </div>
       <button id="fsboSellerClose" type="button" aria-label="Close seller package request" onclick="closeFsboSellerModal()" style="border:none;background:transparent;color:var(--gray-light);font-size:1.5rem;cursor:pointer;">×</button>
     </div>
 
-    <div class="notice sage" style="margin-bottom:.9rem;"><strong>Start in under a minute.</strong> Property address and email are all we need to save your request. Name, phone, asking price, package details, and partner interests can be added now or confirmed later. 📍 Start typing the property address and choose a Google result when available; city, county, state, and ZIP will then be captured for routing and future local matching.</div>
+    <div class="notice sage" style="margin-bottom:.9rem;"><strong>Two details. One free plan.</strong> Property address and email are all we need. Name, phone, asking price, service details, and partner interests can be added now or confirmed later. 📍 Start typing the property address and choose a Google result when available; city, county, state, and ZIP will then be captured for routing and future local matching.</div>
     <div class="notice gold" id="fsboSelectedPackageCallout" hidden aria-live="polite" style="margin-bottom:.9rem;"></div>
 
     <div class="platform-grid">
@@ -12894,7 +12894,8 @@ function routeAfterMagicLinkIfNeeded() {
     </details>
 
     <div style="margin-top:1rem; padding-top:.9rem; border-top:1px solid rgba(255,255,255,.08);">
-      <div class="radio-group-label" style="margin-bottom:.55rem;">Seller package interest</div>
+      <div class="radio-group-label" style="margin-bottom:.25rem;">Optional: tell us what help you may want later</div>
+      <div style="color:var(--gray-light); font-size:.8rem; line-height:1.45; margin-bottom:.55rem;">Your free seller plan is already selected. Choosing an option below only helps us tailor future recommendations; it does not start checkout or a paid service.</div>
       <input type="hidden" id="fsboNeed" value="free_intake">
       <input type="hidden" id="fsboPackagePrice" value="$0">
       <div class="fsbo-package-grid">
