@@ -2856,6 +2856,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       <p id="authSignedInRole">Role: Agent</p>
       <div class="auth-actions">
         <button class="auth-primary" type="button" onclick="closeAuthModal(); openWizard(true);">Continue to Offer</button>
+        <button class="auth-secondary" type="button" onclick="closeAuthModal(); openAccountDashboard({tab:'profile'});">Set Up My Defaults</button>
         <button class="auth-secondary" type="button" onclick="signOutAccount()">Sign Out</button>
       </div>
       <div class="auth-note">Complete your profile in My Workspace to save reusable license, brokerage, title, escrow, option, and earnest-money defaults for faster future offers.</div>
