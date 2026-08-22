@@ -2057,13 +2057,11 @@ def _parse_txr_1507_draft(data):
     signer_plan = str(data.get("signerPlan") or "").strip()
     if signer_plan not in {"clients_and_associate", "clients_and_broker"}:
         raise ValueError("Choose an authorized broker or broker-associate signer for the TXR-1507 agreement.")
-    if data.get("formUseAttested") is not True:
-        raise ValueError("Confirm that you are a current Texas REALTORS® / NAR member (or otherwise individually authorized) and are currently authorized to use this TXR form for your brokerage.")
     form_source_id = _agreement_text(data.get("formSourceId"), "Approved TXR-1507 source", 80)
     try:
         form_source_id = str(uuid.UUID(form_source_id))
     except (TypeError, ValueError, AttributeError):
-        raise ValueError("Choose an approved TXR-1507 source from your brokerage.")
+        raise ValueError("Choose an available TXR-1507 source from the HomeOfferFlow library.")
     compensation = _agreement_compensation(data.get("compensation") or {})
     return {
         "form_source_id": form_source_id,
@@ -2077,7 +2075,6 @@ def _parse_txr_1507_draft(data):
             **compensation,
             "intermediary": intermediary,
             "signer_plan": signer_plan,
-            "form_use_attested": True,
         },
     }
 
@@ -2090,7 +2087,7 @@ def _parse_txr_1501_draft(data):
     try:
         form_source_id = str(uuid.UUID(form_source_id))
     except (TypeError, ValueError, AttributeError):
-        raise ValueError("Choose an approved TXR-1501 source from your brokerage.")
+        raise ValueError("Choose an available TXR-1501 source from the HomeOfferFlow library.")
     market_area = _agreement_text(data.get("marketArea"), "Market area", 800)
     term_start, term_end = _agreement_date_range(data)
     client_address = _agreement_text(data.get("clientAddress"), "Client address", 300)
@@ -2117,8 +2114,6 @@ def _parse_txr_1501_draft(data):
     signer_plan = str(data.get("signerPlan") or "").strip()
     if signer_plan not in {"clients_and_associate", "clients_and_broker"}:
         raise ValueError("Choose an authorized broker or broker-associate signer for the TXR-1501 agreement.")
-    if data.get("formUseAttested") is not True:
-        raise ValueError("Confirm that you are a current Texas REALTORS® / NAR member (or otherwise individually authorized) and are currently authorized to use this TXR form for your brokerage.")
     return {
         "form_source_id": form_source_id,
         "client_names": client_names,
@@ -2137,7 +2132,6 @@ def _parse_txr_1501_draft(data):
             "payment_county": payment_county,
             "intermediary": intermediary,
             "signer_plan": signer_plan,
-            "form_use_attested": True,
         },
     }
 
@@ -2156,7 +2150,7 @@ def _parse_txr_1508_draft(data):
     try:
         form_source_id = str(uuid.UUID(form_source_id))
     except (TypeError, ValueError, AttributeError):
-        raise ValueError("Choose an approved TXR-1508 source from your brokerage.")
+        raise ValueError("Choose an available TXR-1508 source from the HomeOfferFlow library.")
     property_address = _agreement_text(data.get("propertyAddress"), "Property address and city", 400)
     other_broker_values = data.get("otherBrokerAgreement")
     if not isinstance(other_broker_values, list) or len(other_broker_values) != len(client_names):
@@ -2171,8 +2165,6 @@ def _parse_txr_1508_draft(data):
     signer_plan = str(data.get("signerPlan") or "").strip()
     if signer_plan not in {"associate_and_clients", "broker_and_clients"}:
         raise ValueError("Choose whether the broker or associate will acknowledge TXR-1508.")
-    if data.get("formUseAttested") is not True:
-        raise ValueError("Confirm that you are a current Texas REALTORS® / NAR member (or otherwise individually authorized) and are currently authorized to use this TXR form for your brokerage.")
     return {
         "form_source_id": form_source_id,
         "client_names": client_names,
@@ -2181,7 +2173,6 @@ def _parse_txr_1508_draft(data):
             "other_broker_agreement": other_broker_agreement,
             "unrepresented_acknowledgment": True,
             "signer_plan": signer_plan,
-            "form_use_attested": True,
         },
     }
 
@@ -2200,7 +2191,7 @@ def _parse_txr_1506_draft(data):
     try:
         form_source_id = str(uuid.UUID(form_source_id))
     except (TypeError, ValueError, AttributeError):
-        raise ValueError("Choose an approved TXR-1506 source from your brokerage.")
+        raise ValueError("Choose an available TXR-1506 source from the HomeOfferFlow library.")
     consumer_role = str(data.get("consumerRole") or "").strip()
     if consumer_role not in {"buyer", "tenant", "seller", "landlord", "other"}:
         raise ValueError("Choose the consumer's transaction role.")
@@ -2212,8 +2203,6 @@ def _parse_txr_1506_draft(data):
     signer_plan = str(data.get("signerPlan") or "").strip()
     if signer_plan not in {"consumers_and_associate", "consumers_and_broker"}:
         raise ValueError("Choose an authorized broker or broker-associate signer for the TXR-1506 notice.")
-    if data.get("formUseAttested") is not True:
-        raise ValueError("Confirm that you are a current Texas REALTORS® / NAR member (or otherwise individually authorized) and are currently authorized to use this TXR form for your brokerage.")
     return {
         "form_source_id": form_source_id,
         "client_names": client_names,
@@ -2222,7 +2211,6 @@ def _parse_txr_1506_draft(data):
             "additional_notice": additional_notice,
             "notice_acknowledgment": True,
             "signer_plan": signer_plan,
-            "form_use_attested": True,
         },
     }
 
@@ -2256,12 +2244,13 @@ async def _brokerage_form_sources_payload(user, approved_only=False):
     dashboard. Neither response ever exposes a PDF URL or storage path.
     """
     if approved_only:
-        brokerage_id = await _active_brokerage_member(user)
+        # HomeOfferFlow's released TXR library is platform-wide: every
+        # authenticated agent can select an active source.  The source PDF
+        # remains private and its upload audit stays server-only.
         rows = await _get_optional(
             "hof_brokerage_form_sources?"
-            f"brokerage_id=eq.{urllib.parse.quote(str(brokerage_id))}"
-            "&status=eq.approved&authorization_attested=is.true"
-            "&select=id,form_code,source_revision,status,authorization_attested,updated_at"
+            "status=eq.approved&authorization_attested=is.true"
+            "&select=id,brokerage_id,form_code,source_revision,status,authorization_attested,updated_at"
             "&order=updated_at.desc&limit=500"
         )
         return {"sources": rows}
@@ -2439,32 +2428,21 @@ async def _record_agent_txr_attestation(user, brokerage_id):
 
 async def _create_representation_draft(user, data, form_code, parser):
     draft = parser(data)
-    brokerage_id = await _active_brokerage_member(user)
-    await _require_brokerage_txr_authorization(brokerage_id)
     sources = await _get(
         "hof_brokerage_form_sources?"
         f"id=eq.{urllib.parse.quote(draft['form_source_id'])}"
-        f"&brokerage_id=eq.{urllib.parse.quote(brokerage_id)}"
         f"&form_code=eq.{urllib.parse.quote(form_code)}&status=eq.approved"
-        "&authorization_attested=is.true&select=id,source_revision&limit=1"
+        "&authorization_attested=is.true&select=id,brokerage_id,source_revision&limit=1"
     )
     if not sources:
-        raise ValueError(f"Choose an approved {form_code} source from your brokerage.")
+        raise ValueError(f"Choose an available {form_code} source from the HomeOfferFlow library.")
     source = sources[0]
-    agent_attested_at = await _record_agent_txr_attestation(user, brokerage_id)
-    # Preserve the agent's point-of-use attestation as server-authored audit
-    # metadata. The browser checkbox is required by each parser, but the
-    # identity and timestamp must come from the authenticated request rather
-    # than client-supplied fields. This does not infer membership from a
-    # license number or replace the brokerage/source authorization gates.
     agreement_data = dict(draft["agreement_data"] or {})
-    agreement_data["form_use_attested_by"] = user["id"]
-    # Keep the agreement metadata server-authored as before; the membership
-    # timestamp is the canonical audit value for this request.
-    agreement_data["form_use_attested_at"] = datetime.now(timezone.utc).isoformat()
-    agreement_data["form_use_attested_at"] = agent_attested_at
     record = {
-        "brokerage_id": brokerage_id,
+        # The existing non-null column retains the library source's host
+        # organization for audit and rendering; it is not an agent-access
+        # requirement.
+        "brokerage_id": source["brokerage_id"],
         "agent_user_id": user["id"],
         "form_source_id": source["id"],
         "form_code": form_code,
@@ -2937,22 +2915,19 @@ async def _render_representation_draft_preview(user, agreement_id):
 
     This endpoint intentionally stops at a PDF preview. It does not mutate the
     agreement, create a SignWell document, or expose the private source URL.
-    Every request revalidates the agent's active membership, brokerage TXR
-    authorization, approved source, and draft ownership.
+    Every request revalidates the signed-in agent's draft ownership and the
+    active library source revision.
     """
     try:
         agreement_uuid = str(uuid.UUID(str(agreement_id)))
     except (TypeError, ValueError, AttributeError):
         raise ValueError("Choose a valid private agreement draft.")
-    brokerage_id = await _active_brokerage_member(user)
-    await _require_brokerage_txr_authorization(brokerage_id)
     agreements = await _get(
         "hof_standalone_agreements?"
         f"id=eq.{urllib.parse.quote(agreement_uuid)}"
         f"&agent_user_id=eq.{urllib.parse.quote(user['id'])}"
-        f"&brokerage_id=eq.{urllib.parse.quote(brokerage_id)}"
         "&status=eq.draft"
-        "&select=id,form_code,form_source_id,source_revision,client_names,agreement_data&limit=1"
+        "&select=id,brokerage_id,form_code,form_source_id,source_revision,client_names,agreement_data&limit=1"
     )
     if not agreements:
         raise PermissionError("That private agreement draft is unavailable.")
@@ -2960,7 +2935,6 @@ async def _render_representation_draft_preview(user, agreement_id):
     sources = await _get(
         "hof_brokerage_form_sources?"
         f"id=eq.{urllib.parse.quote(str(agreement['form_source_id']))}"
-        f"&brokerage_id=eq.{urllib.parse.quote(brokerage_id)}"
         f"&form_code=eq.{urllib.parse.quote(str(agreement.get('form_code') or ''))}&status=eq.approved&authorization_attested=is.true"
         "&select=id,source_revision,storage_bucket,storage_path,original_filename&limit=1"
     )
@@ -2982,7 +2956,7 @@ async def _render_representation_draft_preview(user, agreement_id):
         )
     brokerage_rows = await _get(
         "hof_brokerages?"
-        f"id=eq.{urllib.parse.quote(brokerage_id)}"
+        f"id=eq.{urllib.parse.quote(str(agreement['brokerage_id']))}"
         "&select=id,name,dba_name,license_number&limit=1"
     )
     profile_rows = await _get(
@@ -3346,11 +3320,9 @@ class handler(BaseHTTPRequestHandler):
                 _json(self, 200, {"drafts": rows})
                 return
             if scope == "standalone_agreements":
-                brokerage_id = asyncio.run(_active_brokerage_member(user))
                 rows = asyncio.run(_get(
                     "hof_standalone_agreements?"
                     f"agent_user_id=eq.{urllib.parse.quote(user['id'])}"
-                    f"&brokerage_id=eq.{urllib.parse.quote(str(brokerage_id))}"
                     "&select=id,form_code,source_revision,client_names,status,signwell_status,signwell_document_id,created_at,updated_at,sent_at,signed_at"
                     "&order=updated_at.desc&limit=100"
                 ))

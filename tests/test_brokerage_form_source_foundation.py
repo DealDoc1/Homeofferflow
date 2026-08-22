@@ -69,17 +69,15 @@ class BrokerageFormSourceFoundationTests(unittest.TestCase):
         self.assertIn("office_state: getVal('brandOfficeState')", HTML)
         self.assertIn("office_zip: getVal('brandOfficeZip')", HTML)
 
-    def test_every_restricted_txr_workflow_requires_individual_nar_texas_realtors_attestation(self):
-        """Keep the point-of-use membership/authority gate on every TXR workflow."""
-        attestation = "I attest that I am a current Texas REALTORS® / NAR member"
-        self.assertEqual(HTML.count(attestation), 4)
+    def test_every_released_txr_workflow_uses_the_shared_library_without_agent_attestation(self):
+        self.assertNotIn('name="formUseAttested"', HTML)
         for form_code in ("TXR-1501", "TXR-1506", "TXR-1507", "TXR-1508"):
             marker = f"id=\"hof-{form_code.lower().replace('-', '')}-drafts-v1\""
             self.assertIn(marker, HTML)
         dashboard = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
-        self.assertGreaterEqual(dashboard.count("formUseAttested"), 4)
-        self.assertIn("form_use_attested_by", dashboard)
-        self.assertIn("form_use_attested_at", dashboard)
+        create_start = dashboard.index("async def _create_representation_draft")
+        create_end = dashboard.index("async def _create_txr_1507_draft", create_start)
+        self.assertNotIn("_require_brokerage_txr_authorization", dashboard[create_start:create_end])
 
     def test_brokerage_rollout_foreign_keys_have_targeted_indexes(self):
         for index_name in (
@@ -151,4 +149,3 @@ class BrokerageFormSourceFoundationTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-
