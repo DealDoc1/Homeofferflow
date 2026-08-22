@@ -10267,6 +10267,29 @@ function routeAfterMagicLinkIfNeeded() {
     input.dataset.hofAddressSelected = 'true';
     input.classList.add('hof-address-selected');
     input.setAttribute('aria-description', 'Address selected from Google. You can edit it if needed.');
+    // Measure address-search adoption without transmitting an address, place
+    // ID, city, or any other transaction detail to analytics. This lets us
+    // compare address-entry friction across public and signed-in workflows.
+    const inputId = String(input.id || input.name || 'unlabeled_address');
+    const field = {
+      propAddress: 'offer_property',
+      fsboPropertyAddress: 'fsbo_property',
+      sellerLeadAddress: 'seller_lead_property',
+      listingWorkspaceAddress: 'listing_workspace_property',
+      hofSellerAddress: 'seller_disclosure_property',
+      buyerMailAddr: 'buyer_mailing',
+      sellerMailAddr: 'seller_mailing',
+      escrowAddress: 'escrow',
+      profEscrowAddress: 'agent_profile_escrow',
+      profInvestorEscrowAddress: 'investor_profile_escrow',
+      brandOfficeAddress: 'brokerage_office',
+      salePropertyAddr: 'buyer_sale_property',
+      clientAddress: 'relationship_client_mailing',
+      propertyAddress: 'showing_property',
+      profInvestorMailing: 'investor_mailing',
+      propertyToSell: 'property_to_sell'
+    }[inputId] || 'other_address';
+    try { trackEvent('Google Address Selected', { field, service: _autocompleteService || 'unknown' }); } catch (_) {}
     let status = document.getElementById('hofAddressSelectionStatus');
     if (!status) {
       status = document.createElement('div');
