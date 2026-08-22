@@ -76,7 +76,8 @@ class TechnicalSeoTests(unittest.TestCase):
             SITEMAP,
         )
         self.assertEqual(len(entries), 12)
-        self.assertEqual(dict(entries)["https://www.homeofferflow.com/"], "2026-08-21")
+        self.assertEqual(dict(entries)["https://www.homeofferflow.com/"], "2026-08-22")
+        self.assertEqual(dict(entries)["https://www.homeofferflow.com/agents"], "2026-08-22")
         self.assertEqual(dict(entries)["https://www.homeofferflow.com/sellers"], "2026-08-20")
 
     def test_revenue_guides_show_and_describe_their_real_site_hierarchy(self):
