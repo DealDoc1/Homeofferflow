@@ -90,6 +90,20 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn('meta name="twitter:description"', PARTNERS)
         self.assertIn('meta name="twitter:image" content="https://www.homeofferflow.com/assets/homeofferflow-social-preview-v1.png"', PARTNERS)
         self.assertIn('"@type":"Service"', PARTNERS)
+        self.assertIn('"@type":"OfferCatalog"', PARTNERS)
+        self.assertIn('"name":"HomeOfferFlow Founding Partner Launch Pricing"', PARTNERS)
+        self.assertIn('"name":"Core Partner founding placement"', PARTNERS)
+        self.assertIn('"name":"Featured Partner founding placement"', PARTNERS)
+        self.assertIn('"name":"Premier Partner founding placement"', PARTNERS)
+        for tier, price in (
+            ('founding_pilot', '149'),
+            ('monthly_placement', '399'),
+            ('market_exclusive', '799'),
+        ):
+            self.assertIn(f'partner_tier={tier}', PARTNERS)
+            self.assertIn(f'"price":"{price}"', PARTNERS)
+        self.assertIn('One active Premier placement per category and market while active.', PARTNERS)
+        self.assertNotIn('guaranteed traffic', PARTNERS.lower())
         self.assertIn('href="/?partner=1&amp;partner_quick_start=1"', PARTNERS)
         self.assertIn('Start no-charge application', PARTNERS)
         self.assertIn('Start with a no-charge application:', PARTNERS)
