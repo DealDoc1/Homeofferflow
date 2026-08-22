@@ -2996,6 +2996,18 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       <div class="account-card">
         <h4 id="dashboardRoleLabel">Agent Dashboard</h4>
         <p id="dashboardWelcome" style="color:var(--gray-light); line-height:1.6; margin-bottom:1rem;">Welcome back.</p>
+        <div class="account-card" id="agentWorkflowStart" style="margin:0 0 1rem;" tabindex="-1">
+          <div class="eyebrow" style="margin-bottom:.35rem;">Question 1</div>
+          <h4>What type of transaction are you starting?</h4>
+          <p style="color:var(--gray-light);line-height:1.55;margin:0 0 .9rem;">Start with one choice. Next, HomeOfferFlow asks only the questions for that transaction.</p>
+          <div class="account-actions-row" style="margin-top:0;">
+            <button class="btn-primary" type="button" onclick="startAgentWorkflow('purchase')">Buying</button>
+            <button class="btn-secondary" type="button" onclick="startAgentWorkflow('sale_listing')">Listing</button>
+            <button class="btn-secondary" type="button" onclick="startAgentWorkflow('lease_listing')">Lease listing</button>
+            <button class="btn-secondary" type="button" onclick="startAgentWorkflow('lease_representation')">Lease representation</button>
+          </div>
+          <p id="agentWorkflowStartStatus" style="color:var(--gray-light);font-size:.84rem;line-height:1.5;margin:.8rem 0 0;">Choose a transaction to begin. You can change paths at any time.</p>
+        </div>
         <div id="agentActivationCard" class="agent-activation-card" aria-live="polite"></div>
         <div id="profileCompletionNotice" class="notice gold" style="margin-bottom:1rem;">Complete your profile once to prefill your offer packets and defaults.</div>
         <div id="betaOnboardingChecklist" class="beta-checklist-card"></div>
@@ -3009,18 +3021,6 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           </div>
           <div class="usage-meter"><div class="usage-fill" style="width:0%"></div></div>
           <div class="usage-copy">Checking packet usage for this month.</div>
-        </div>
-        <div class="account-card" id="agentWorkflowStart" style="margin-top:1rem;" tabindex="-1">
-          <div class="eyebrow" style="margin-bottom:.35rem;">Question 1</div>
-          <h4>What kind of transaction are you starting?</h4>
-          <p style="color:var(--gray-light);line-height:1.55;margin:0 0 .9rem;">Choose one. HomeOfferFlow will take you to the next question for that transaction.</p>
-          <div class="account-actions-row" style="margin-top:0;">
-            <button class="btn-primary" type="button" onclick="startAgentWorkflow('purchase')">Buying</button>
-            <button class="btn-secondary" type="button" onclick="startAgentWorkflow('sale_listing')">Listing</button>
-            <button class="btn-secondary" type="button" onclick="startAgentWorkflow('lease_listing')">Lease listing</button>
-            <button class="btn-secondary" type="button" onclick="startAgentWorkflow('lease_representation')">Lease representation</button>
-          </div>
-          <p id="agentWorkflowStartStatus" style="color:var(--gray-light);font-size:.84rem;line-height:1.5;margin:.8rem 0 0;">You can change paths at any time. HomeOfferFlow does not choose legal forms, terms, or recipients for you.</p>
         </div>
         <div class="account-actions-row dashboard-legacy-actions">
           <button class="btn-primary" type="button" onclick="startAccountOffer()">Create New Offer</button>
@@ -6987,22 +6987,22 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     const choices = {
       purchase: {
         event: 'agent_workflow_purchase_selected',
-        message: 'Next: the buyer and property questions for this offer.',
+        message: 'Next question: buyer and property details for this offer.',
         action: () => startAccountOffer()
       },
       sale_listing: {
         event: 'agent_workflow_sale_listing_selected',
-        message: 'Next: the seller and property questions for this sale listing.',
+        message: 'Next question: seller and property details for this sale listing.',
         action: () => showAccountTab('seller')
       },
       lease_listing: {
         event: 'agent_workflow_lease_listing_selected',
-        message: 'Next: the landlord and property questions for this lease listing.',
+        message: 'Next question: landlord and property details for this lease listing.',
         action: () => showAccountTab('seller')
       },
       lease_representation: {
         event: 'agent_workflow_lease_representation_selected',
-        message: 'Next: the representation step for this tenant transaction.',
+        message: 'Next question: the representation step for this tenant transaction.',
         action: () => showAccountTab('relationships')
       }
     };
