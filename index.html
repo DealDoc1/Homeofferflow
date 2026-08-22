@@ -2856,7 +2856,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       <div class="audience-icon">🏠</div><h3>Homebuyers</h3><p>Build a Texas resale offer packet with plain-English guidance, AI competitiveness review, and buyer-side signing when the packet is ready.</p><span class="audience-price">No payment to start · $99 when ready</span>
     </button>
     <button type="button" class="audience-card audience-card-link audience-card-action" onclick="trackEvent('Landing Audience Selected', { audience: 'agent', surface: 'audience_grid_card' }); window.location.assign('/agents');" aria-label="Choose an agent or broker transaction workflow">
-      <div class="audience-icon">🏢</div><h3>Agents & Brokers</h3><p>Choose buying, sale listing, lease listing, or lease representation first—then open the guided workspace for that transaction.</p><span class="audience-price">Choose a transaction</span>
+      <div class="audience-icon">🏢</div><h3>Agents & Brokers</h3><p>Choose buying, listing, lease listing, or lease representation first—then open the guided workspace for that transaction.</p><span class="audience-price">Choose a transaction</span>
     </button>
     <button type="button" class="audience-card audience-card-link audience-card-action" onclick="setAudience('investor'); trackEvent('Landing Audience Selected', { audience: 'investor', surface: 'audience_grid_card' }); beginOfferFrom('landing_audience_card_investor');" aria-label="Open the HomeOfferFlow investor workspace">
       <div class="audience-icon">📈</div><h3>Investors</h3><p>Use saved defaults and repeat-offer workflows to move faster while still keeping financing, option, title, and addenda terms organized.</p><span class="audience-price">Open investor workspace</span>
@@ -16558,7 +16558,7 @@ function routeAfterMagicLinkIfNeeded() {
         key: 'first_offer',
         title: 'Choose the transaction in front of you',
         body: hasProfile
-          ? 'Your saved defaults are ready. Choose buying, sale listing, lease listing, or lease representation; then HomeOfferFlow will show only the relevant next steps.'
+          ? 'Your saved defaults are ready. Choose buying, listing, lease listing, or lease representation; then HomeOfferFlow will show only the relevant next steps.'
           : 'Choose the transaction first. Then start with the client and property in front of you, saving a private draft before any review, generation, delivery, or signature step.',
         primary: 'Choose Transaction',
         secondary: hasProfile ? 'Review Saved Profile' : 'Set Up My Defaults',

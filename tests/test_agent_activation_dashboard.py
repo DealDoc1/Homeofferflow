@@ -103,7 +103,7 @@ class AgentActivationDashboardTests(unittest.TestCase):
         self.assertLess(first_offer, profile_after_offer)
         self.assertIn("Choose the transaction in front of you", script)
         self.assertIn("Choose Transaction", script)
-        self.assertIn("Choose buying, sale listing, lease listing, or lease representation", script)
+        self.assertIn("Choose buying, listing, lease listing, or lease representation", script)
         self.assertIn("Set Up My Defaults", script)
 
     def test_first_offer_state_explains_the_transaction_choice_and_safe_draft_boundary(self):
