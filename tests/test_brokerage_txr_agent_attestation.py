@@ -18,16 +18,15 @@ class BrokerageTxrAgentAttestationTests(unittest.TestCase):
         ):
             self.assertIn(expected, sql)
 
-    def test_restricted_draft_records_authenticated_agent_attestation(self):
+    def test_shared_library_draft_does_not_require_authenticated_agent_attestation(self):
         api = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
-        self.assertIn("async def _record_agent_txr_attestation(user, brokerage_id):", api)
-        self.assertIn("agent_attested_at = await _record_agent_txr_attestation(user, brokerage_id)", api)
-        self.assertIn('agreement_data["form_use_attested_by"] = user["id"]', api)
-        self.assertIn('agreement_data["form_use_attested_at"] = agent_attested_at', api)
+        start = api.index("async def _create_representation_draft")
+        end = api.index("async def _create_txr_1507_draft", start)
+        self.assertNotIn("_record_agent_txr_attestation", api[start:end])
 
-    def test_each_restricted_form_ui_discloses_recorded_attestation(self):
+    def test_each_restricted_form_ui_uses_the_shared_library_without_attestation(self):
         html = (ROOT / "index.html").read_text(encoding="utf-8")
-        self.assertGreaterEqual(html.count("HomeOfferFlow records this attestation with my active brokerage membership."), 4)
+        self.assertNotIn("HomeOfferFlow records this attestation with my active brokerage membership.", html)
 
     def test_broker_dashboard_shows_attestation_status_without_buyer_details(self):
         api = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")

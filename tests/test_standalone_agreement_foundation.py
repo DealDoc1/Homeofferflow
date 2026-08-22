@@ -79,59 +79,17 @@ def valid_notice_payload():
 
 
 class StandaloneAgreementFoundationTests(unittest.TestCase):
-    def test_private_txr_source_checks_require_an_active_brokerage_membership(self):
-        # The private source endpoint enforces this server-side too. Matching
-        # it in the UI avoids unnecessary failing requests for pending seats.
-        self.assertGreaterEqual(
-            HTML.count("root.hofPlatform?.brokerageMembership?.status === 'active'"),
-            4,
-        )
+    def test_txr_library_cards_do_not_require_active_brokerage_membership(self):
+        self.assertNotIn("root.hofPlatform?.brokerageMembership?.status === 'active'", HTML)
 
-    def test_platform_admin_without_brokerage_membership_cannot_bypass_agreement_gate(self):
-        async def run():
-            platform_admin = {"id": "platform-user", "email": "andrewchri@gmail.com"}
-            with patch.object(
-                MODULE,
-                "_get",
-                new=AsyncMock(return_value=[{"id": platform_admin["id"], "brokerage_id": None}]),
-            ):
-                with self.assertRaisesRegex(PermissionError, "active brokerage membership"):
-                    await MODULE._active_brokerage_member(platform_admin)
-
-            responses = [
-                [{"id": platform_admin["id"], "brokerage_id": "brokerage-1"}],
-                [],
-            ]
-            with patch.object(MODULE, "_get", new=AsyncMock(side_effect=responses)):
-                with self.assertRaisesRegex(PermissionError, "membership is not active"):
-                    await MODULE._active_brokerage_member(platform_admin)
-
-        asyncio = importlib.import_module("asyncio")
-        asyncio.run(run())
-
-    def test_server_gate_requires_active_attested_brokerage_authorization(self):
-        async def run():
-            with patch.object(MODULE, "_get", new=AsyncMock(return_value=[{"id": "brokerage-1"}])) as get_rows:
-                result = await MODULE._require_brokerage_txr_authorization("brokerage-1")
-                self.assertIsNone(result)
-                request_url = get_rows.await_args.args[0]
-                self.assertIn("is_active=eq.true", request_url)
-                self.assertIn("txr_all_agents_authorized=is.true", request_url)
-                self.assertIn("txr_authorization_attested_by=not.is.null", request_url)
-                self.assertIn("txr_authorization_attested_at=not.is.null", request_url)
-
-            with patch.object(MODULE, "_get", new=AsyncMock(return_value=[])):
-                with self.assertRaisesRegex(PermissionError, "Texas REALTORS.*NAR"):
-                    await MODULE._require_brokerage_txr_authorization("brokerage-1")
-
-        asyncio = importlib.import_module("asyncio")
-        asyncio.run(run())
-
-    def test_server_authors_agent_form_use_attestation_metadata(self):
+    def test_server_uses_the_shared_library_without_agent_authorization_gate(self):
         backend = (ROOT / "api" / "admin-dashboard.py").read_text()
-        self.assertIn('agreement_data["form_use_attested_by"] = user["id"]', backend)
-        self.assertIn('agreement_data["form_use_attested_at"] = datetime.now(timezone.utc).isoformat()', backend)
-        self.assertIn("does not infer membership from a", backend)
+        create_start = backend.index("async def _create_representation_draft")
+        create_end = backend.index("async def _create_txr_1507_draft", create_start)
+        create = backend[create_start:create_end]
+        self.assertNotIn("_active_brokerage_member", create)
+        self.assertNotIn("_require_brokerage_txr_authorization", create)
+        self.assertIn('"brokerage_id": source["brokerage_id"]', create)
 
     def test_private_standalone_records_are_separate_from_offers(self):
         self.assertIn("create table if not exists public.hof_standalone_agreements", MIGRATION)
@@ -155,11 +113,10 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Choose an authorized broker"):
             MODULE._parse_txr_1507_draft(payload)
 
-    def test_restricted_form_cards_support_brokerage_roles_without_bypassing_attestation(self):
+    def test_form_cards_are_available_to_signed_in_agent_roles_without_attestation(self):
         role_guard = "['agent', 'broker', 'brokerage_admin', 'broker_admin', 'owner', 'team_lead'].includes(role)"
         self.assertGreaterEqual(HTML.count(role_guard), 4)
-        self.assertIn("Each agent still confirms their own current authorization", HTML)
-        self.assertIn("await _require_brokerage_txr_authorization(brokerage_id)", BACKEND)
+        self.assertNotIn('name="formUseAttested"', HTML)
 
     def test_showing_services_requires_its_execution_fee(self):
         payload = valid_payload()
@@ -167,11 +124,10 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "requires the execution fee"):
             MODULE._parse_txr_1507_draft(payload)
 
-    def test_short_form_requires_agent_authority_attestation(self):
+    def test_short_form_does_not_require_agent_authority_attestation(self):
         payload = valid_payload()
         payload["formUseAttested"] = False
-        with self.assertRaisesRegex(ValueError, "authorized to use this TXR form"):
-            MODULE._parse_txr_1507_draft(payload)
+        self.assertEqual(MODULE._parse_txr_1507_draft(payload)["client_names"], ["Test Buyer"])
 
     def test_draft_rejects_invalid_term_or_unselected_compensation(self):
         payload = valid_payload()
@@ -210,15 +166,14 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
         self.assertEqual(draft["agreement_data"]["purchase_percentage"], "3")
         self.assertEqual(draft["agreement_data"]["signer_plan"], "clients_and_associate")
 
-    def test_long_form_requires_explicit_signer_plan_and_authority_attestation(self):
+    def test_long_form_requires_explicit_signer_plan_without_authority_attestation(self):
         payload = valid_long_payload()
         payload.pop("signerPlan")
         with self.assertRaisesRegex(ValueError, "Choose an authorized broker"):
             MODULE._parse_txr_1501_draft(payload)
         payload = valid_long_payload()
         payload["formUseAttested"] = False
-        with self.assertRaisesRegex(ValueError, "authorized to use this TXR form"):
-            MODULE._parse_txr_1501_draft(payload)
+        self.assertEqual(MODULE._parse_txr_1501_draft(payload)["client_names"], ["Test Buyer"])
 
     def test_long_form_rejects_invalid_contact_retainer_or_protection_terms(self):
         payload = valid_long_payload()
@@ -250,15 +205,14 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "no-representation"):
             MODULE._parse_txr_1508_draft(payload)
 
-    def test_showing_draft_requires_explicit_acknowledger_and_attestation(self):
+    def test_showing_draft_requires_explicit_acknowledger_without_attestation(self):
         payload = valid_showing_payload()
         payload.pop("signerPlan")
         with self.assertRaisesRegex(ValueError, "broker or associate"):
             MODULE._parse_txr_1508_draft(payload)
         payload = valid_showing_payload()
         payload["formUseAttested"] = False
-        with self.assertRaisesRegex(ValueError, "authorized to use this TXR form"):
-            MODULE._parse_txr_1508_draft(payload)
+        self.assertEqual(MODULE._parse_txr_1508_draft(payload)["client_names"], ["Test Customer"])
 
     def test_notice_draft_requires_role_and_consumer_acknowledgment(self):
         draft = MODULE._parse_txr_1506_draft(valid_notice_payload())
@@ -269,15 +223,14 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "review and acknowledge"):
             MODULE._parse_txr_1506_draft(payload)
 
-    def test_notice_draft_requires_explicit_signer_plan_and_attestation(self):
+    def test_notice_draft_requires_explicit_signer_plan_without_attestation(self):
         payload = valid_notice_payload()
         payload.pop("signerPlan")
         with self.assertRaisesRegex(ValueError, "Choose an authorized broker"):
             MODULE._parse_txr_1506_draft(payload)
         payload = valid_notice_payload()
         payload["formUseAttested"] = False
-        with self.assertRaisesRegex(ValueError, "authorized to use this TXR form"):
-            MODULE._parse_txr_1506_draft(payload)
+        self.assertEqual(MODULE._parse_txr_1506_draft(payload)["client_names"], ["Test Consumer"])
 
     def test_agent_ui_requires_an_approved_private_source_and_saves_draft_only(self):
         self.assertIn("Start TXR-1507 draft", HTML)
@@ -288,8 +241,7 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
         self.assertIn("Source revision", HTML)
         self.assertIn("This saves a private draft only", HTML)
         self.assertIn("create_txr_1507_draft", HTML)
-        self.assertIn("currently authorized to use this Texas REALTORS", HTML)
-        self.assertIn("current Texas REALTORS® / NAR member", HTML)
+        self.assertIn("HomeOfferFlow library source", HTML)
         self.assertIn("/api/admin-dashboard", HTML)
         self.assertIn("Draft saved privately. It has not been sent for signature.", HTML)
         # Browser submit events clear currentTarget after an await. Keep each
@@ -300,18 +252,18 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
         self.assertIn('name="serviceLevel" value="full_services" required', HTML)
         self.assertNotIn('name="serviceLevel" value="full_services" checked', HTML)
         self.assertIn("Start TXR-1501 draft", HTML)
-        self.assertIn("TXR-1501 is not yet enabled for your organization", HTML)
+        self.assertIn("TXR-1501 is temporarily unavailable in the HomeOfferFlow form library", HTML)
         self.assertIn("create_txr_1501_draft", HTML)
         self.assertIn("Start TXR-1508 draft", HTML)
-        self.assertIn("TXR-1508 is not yet enabled for your organization", HTML)
+        self.assertIn("TXR-1508 is temporarily unavailable in the HomeOfferFlow form library", HTML)
         self.assertIn("create_txr_1508_draft", HTML)
         self.assertIn("no representation, no compensation, no advice", HTML)
         self.assertIn('name="signerPlan"', HTML[HTML.index('id="hof-txr1508-drafts-v1"'):])
         self.assertIn('value="associate_and_clients"', HTML[HTML.index('id="hof-txr1508-drafts-v1"'):])
         self.assertIn('value="broker_and_clients"', HTML[HTML.index('id="hof-txr1508-drafts-v1"'):])
-        self.assertIn('name="formUseAttested"', HTML[HTML.index('id="hof-txr1508-drafts-v1"'):])
+        self.assertNotIn('name="formUseAttested"', HTML[HTML.index('id="hof-txr1508-drafts-v1"'):])
         self.assertIn("Start TXR-1506 draft", HTML)
-        self.assertIn("TXR-1506 is not yet enabled for your organization", HTML)
+        self.assertIn("TXR-1506 is temporarily unavailable in the HomeOfferFlow form library", HTML)
         self.assertIn("create_txr_1506_draft", HTML)
 
     def test_agents_can_only_view_their_own_private_draft_summaries(self):

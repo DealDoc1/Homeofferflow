@@ -15,11 +15,8 @@ SPEC.loader.exec_module(admin)
 
 
 class BrokerageSourceEndpointContractTests(unittest.TestCase):
-    def test_agent_payload_is_approved_attested_and_sanitized(self):
+    def test_agent_payload_is_platform_wide_and_sanitized(self):
         captured = {}
-
-        async def member(_user):
-            return "brokerage-1"
 
         async def optional(path):
             captured["path"] = path
@@ -32,11 +29,12 @@ class BrokerageSourceEndpointContractTests(unittest.TestCase):
                 "updated_at": "2026-07-31T00:00:00Z",
             }]
 
-        with patch.object(admin, "_active_brokerage_member", member), patch.object(admin, "_get_optional", optional):
+        with patch.object(admin, "_get_optional", optional):
             payload = asyncio.run(admin._brokerage_form_sources_payload({"id": "agent-1"}, approved_only=True))
 
         self.assertIn("status=eq.approved", captured["path"])
         self.assertIn("authorization_attested=is.true", captured["path"])
+        self.assertNotIn("brokerage_id=eq.", captured["path"])
         self.assertEqual(payload["sources"][0]["form_code"], "TXR-1507")
         self.assertNotIn("storage_path", payload["sources"][0])
         self.assertNotIn("source_sha256", payload["sources"][0])
