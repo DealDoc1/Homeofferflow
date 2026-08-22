@@ -96,6 +96,13 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
     def test_txr_library_cards_do_not_require_active_brokerage_membership(self):
         self.assertNotIn("root.hofPlatform?.brokerageMembership?.status === 'active'", HTML)
 
+    def test_shared_source_lookup_does_not_require_a_local_brokerage_object(self):
+        lookup_start = HTML.index("root.hofLoadApprovedBrokerageSource = async function")
+        lookup_end = HTML.index("root.hofApprovedSourceStatusCopy", lookup_start)
+        lookup = HTML[lookup_start:lookup_end]
+        self.assertNotIn("brokerage()?.id", lookup)
+        self.assertIn("if (!token || !formCode) return null", lookup)
+
     def test_server_uses_the_shared_library_without_agent_authorization_gate(self):
         backend = (ROOT / "api" / "admin-dashboard.py").read_text()
         create_start = backend.index("async def _create_representation_draft")

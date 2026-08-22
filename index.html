@@ -17848,8 +17848,10 @@ function routeAfterMagicLinkIfNeeded() {
 
   root.hofLoadApprovedBrokerageSource = async function (formCode) {
     const token = root.hofAuth?.session?.access_token;
-    const brokerageId = brokerage()?.id;
-    if (!token || !brokerageId || !formCode) return null;
+    // The active approved-source catalog is platform-wide for signed-in
+    // agents. A local brokerage object is needed for administration only;
+    // requiring one here made valid shared-library forms look unavailable.
+    if (!token || !formCode) return null;
     const response = await fetch('/api/admin-dashboard?scope=approved_brokerage_sources', {
       headers: { Authorization: `Bearer ${token}` }
     });
