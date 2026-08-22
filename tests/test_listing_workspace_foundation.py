@@ -111,6 +111,21 @@ class ListingWorkspaceFoundationTests(unittest.TestCase):
         self.assertIn("loadListingWorkspaceOffersFoundation()", save)
         self.assertIn("default to an older property", save)
 
+    def test_missing_brokerage_uses_self_service_setup_without_losing_listing_question_answers(self):
+        render_start = INDEX.index("function renderSellerFoundationPanel()")
+        render_end = INDEX.index("const sellerCampaignPackages", render_start)
+        render = INDEX[render_start:render_end]
+        self.assertIn("window.__hofListingWorkspaceSetupDraft", render)
+        self.assertIn("Your listing details are ready.", render)
+        save_start = INDEX.index("async function saveListingWorkspaceFoundation()")
+        save_end = INDEX.index("function listingWorkspaceLabel", save_start)
+        save = INDEX[save_start:save_end]
+        self.assertIn("showAccountTab('brokerage');", save)
+        self.assertIn("Save your brokerage foundation to finish this private listing workspace.", save)
+        self.assertIn("Your entered property and seller details stay in this browser session.", save)
+        self.assertIn("delete window.__hofListingWorkspaceSetupDraft;", save)
+        self.assertNotIn("Contact support before creating a listing workspace.", save)
+
     def test_workspace_hardening_allowlists_requested_workflows_and_refreshes_timestamp(self):
         self.assertIn("hof_listing_workspaces_requested_workflows_allowed", HARDENING_MIGRATION)
         self.assertIn("hof_listing_workflows_allowed(value jsonb)", HARDENING_MIGRATION)

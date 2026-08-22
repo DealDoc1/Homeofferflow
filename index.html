@@ -11511,6 +11511,25 @@ function routeAfterMagicLinkIfNeeded() {
     if (workspaceStartCard && firstWorkspaceCard && workspaceStartCard !== firstWorkspaceCard) {
       el.insertBefore(workspaceStartCard, firstWorkspaceCard);
     }
+    // A new individual agent may need to save their brokerage foundation
+    // before the private workspace can be owner-and-brokerage scoped. Keep
+    // their in-page Question 2 answers ready for them after that setup; this
+    // is intentionally transient and never writes client/property data until
+    // the agent explicitly creates the workspace.
+    const pendingWorkspace = window.__hofListingWorkspaceSetupDraft;
+    if (pendingWorkspace) {
+      const kind = document.getElementById('listingWorkspaceKind');
+      const address = document.getElementById('listingWorkspaceAddress');
+      const sellerNames = document.getElementById('listingWorkspaceSellerNames');
+      const notes = document.getElementById('listingWorkspaceNotes');
+      if (kind) kind.value = pendingWorkspace.kind === 'lease' ? 'lease' : 'sale';
+      if (address) address.value = pendingWorkspace.address || '';
+      if (sellerNames) sellerNames.value = pendingWorkspace.sellerNames || '';
+      if (notes) notes.value = pendingWorkspace.notes || '';
+      const selected = new Set(Array.isArray(pendingWorkspace.workflows) ? pendingWorkspace.workflows : []);
+      document.querySelectorAll('input[name="listingWorkflow"]').forEach(input => { input.checked = selected.has(input.value); });
+      platformStatus('listingWorkspaceStatus', 'Your listing details are ready. Save the brokerage foundation, then create this private workspace when ready.', 'ok');
+    }
     loadSellerLeadsFoundation();
     loadListingWorkspacesFoundation();
     loadListingWorkspaceSourceReadiness();
@@ -11766,7 +11785,23 @@ function routeAfterMagicLinkIfNeeded() {
     if (!sellerNames.length) return platformStatus('listingWorkspaceStatus', 'Enter at least one seller or landlord name. Use semicolons between multiple names.', 'err');
     try {
       if (!hofPlatform.brokerage) await loadBrokerageFoundation();
-      if (!hofPlatform.brokerage?.id) throw new Error('Your account is not yet associated with a brokerage. Contact support before creating a listing workspace.');
+      if (!hofPlatform.brokerage?.id) {
+        window.__hofListingWorkspaceSetupDraft = {
+          kind: getVal('listingWorkspaceKind') === 'lease' ? 'lease' : 'sale',
+          address: propertyAddress,
+          sellerNames: String(getVal('listingWorkspaceSellerNames') || '').trim(),
+          notes: String(getVal('listingWorkspaceNotes') || '').trim(),
+          workflows: listingWorkspaceRequestedWorkflows()
+        };
+        // A workspace must retain brokerage ownership, but a missing record is
+        // a setup task—not a support dead end. The existing Brokerage tab
+        // creates that foundation without exposing this private listing to
+        // other accounts, and the transient draft is restored on return.
+        showAccountTab('brokerage');
+        setAccountStatus('Save your brokerage foundation to finish this private listing workspace. Your entered property and seller details stay in this browser session.');
+        window.setTimeout(() => document.getElementById('brandBrokerageName')?.focus(), 0);
+        return;
+      }
       const payload = {
         brokerage_id: hofPlatform.brokerage.id,
         agent_user_id: user.id,
@@ -11806,6 +11841,7 @@ function routeAfterMagicLinkIfNeeded() {
         kickoff?.scrollIntoView({ behavior: 'smooth', block: 'center' });
         kickoff?.querySelector('button')?.focus({ preventScroll: true });
       }
+      delete window.__hofListingWorkspaceSetupDraft;
     } catch (err) {
       console.error('Listing workspace save failed:', err);
       platformStatus('listingWorkspaceStatus', err?.message || 'Could not create the listing workspace.', 'err');
