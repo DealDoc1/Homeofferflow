@@ -106,6 +106,13 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn('No password and no charge to start a private workspace.', AGENTS)
         self.assertIn('save your agent defaults afterward for faster repeat work', AGENTS)
 
+    def test_agent_faq_explains_the_next_workspace_for_each_transaction_without_selecting_a_form(self):
+        self.assertIn('What happens after I choose a transaction?', AGENTS)
+        self.assertIn('<strong>Buying</strong> opens the guided buyer-offer interview.', AGENTS)
+        self.assertIn('<strong>Listing</strong> and <strong>lease listing</strong> begin with the property and seller or landlord workspace.', AGENTS)
+        self.assertIn('<strong>Lease representation</strong> opens the private relationship workspace', AGENTS)
+        self.assertIn('HomeOfferFlow does not automatically select a legal form.', AGENTS)
+
     def test_agent_landing_preserves_the_safe_draft_request_through_sign_in(self):
         self.assertIn("hof_agent_landing_start_draft", INDEX)
         self.assertIn("const startAgentLandingDraft = localStorage.getItem('hof_agent_landing_start_draft') === '1';", INDEX)
