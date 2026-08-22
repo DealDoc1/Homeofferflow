@@ -4902,7 +4902,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <div class="admin-metric-value">${metrics.agentLandingViewCount || 0} views</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.agentLandingCtaCount || 0} opened passwordless sign-in (${Number(metrics.agentLandingCtaRate || 0).toFixed(1)}%) · ${metrics.agentLandingDraftHandoffUserCount || 0} reached the private draft (${Number(metrics.agentLandingDraftHandoffRate || 0).toFixed(1)}% of CTA selections).</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Workspace paths after sign-in: ${metrics.agentLandingSellerWorkspaceHandoffUserCount || 0} listing tools · ${metrics.agentLandingRelationshipWorkspaceHandoffUserCount || 0} relationship drafts.</div>
-            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Landing CTA choices: ${Number(metrics.agentLandingCtaPathCounts?.client_draft || 0)} client draft · ${Number(metrics.agentLandingCtaPathCounts?.seller_listing || 0)} listing tools · ${Number(metrics.agentLandingCtaPathCounts?.relationship_drafts || 0)} relationship drafts.</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Landing CTA choices: ${Number(metrics.agentLandingCtaPathCounts?.client_draft || 0)} buyer offers · ${Number(metrics.agentLandingCtaPathCounts?.seller_listing || 0)} sale listings · ${Number(metrics.agentLandingCtaPathCounts?.lease_listing || 0)} lease listings · ${Number(metrics.agentLandingCtaPathCounts?.lease_representation || 0)} tenant representation · ${Number(metrics.agentLandingCtaPathCounts?.relationship_drafts || 0)} relationship drafts.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Agent workflow guide: ${metrics.agentWorkflowGuideViewCount || 0} views · ${metrics.agentWorkflowGuideCtaCount || 0} started a private draft (${Number(metrics.agentWorkflowGuideCtaRate || 0).toFixed(1)}% of guide views).</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Guide CTA choices: ${Number(metrics.agentWorkflowGuideCtaPathCounts?.client_draft || 0)} client draft · ${Number(metrics.agentWorkflowGuideCtaPathCounts?.seller_listing || 0)} listing tools · ${Number(metrics.agentWorkflowGuideCtaPathCounts?.relationship_drafts || 0)} relationship drafts.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Channel views / sign-ins: referral ${Number(metrics.agentLandingViewCountsByChannel?.referral || 0)} / ${Number(metrics.agentLandingCtaCountsByChannel?.referral || 0)} · email ${Number(metrics.agentLandingViewCountsByChannel?.email || 0)} / ${Number(metrics.agentLandingCtaCountsByChannel?.email || 0)} · social ${Number(metrics.agentLandingViewCountsByChannel?.social || 0)} / ${Number(metrics.agentLandingCtaCountsByChannel?.social || 0)} · outreach ${Number(metrics.agentLandingViewCountsByChannel?.direct_outreach || 0)} / ${Number(metrics.agentLandingCtaCountsByChannel?.direct_outreach || 0)} · local ${Number(metrics.agentLandingViewCountsByChannel?.local_event || 0)} / ${Number(metrics.agentLandingCtaCountsByChannel?.local_event || 0)} · print ${Number(metrics.agentLandingViewCountsByChannel?.print || 0)} / ${Number(metrics.agentLandingCtaCountsByChannel?.print || 0)}.</div>
@@ -7528,6 +7528,10 @@ function routeAfterMagicLinkIfNeeded() {
     localStorage.removeItem('hof_agent_landing_open_seller_workspace');
     const openRelationshipLandingWorkspace = localStorage.getItem('hof_agent_landing_open_relationship_workspace') === '1';
     localStorage.removeItem('hof_agent_landing_open_relationship_workspace');
+    const agentLandingWorkflow = ['sale_listing', 'lease_listing', 'lease_representation'].includes(localStorage.getItem('hof_agent_landing_workflow'))
+      ? localStorage.getItem('hof_agent_landing_workflow')
+      : '';
+    localStorage.removeItem('hof_agent_landing_workflow');
     const openInvestorLandingWorkspace = localStorage.getItem('hof_investor_landing_workspace') === '1';
     localStorage.removeItem('hof_investor_landing_workspace');
     // Fixed organic-guide source only; never persist investor, client,
@@ -7538,6 +7542,7 @@ function routeAfterMagicLinkIfNeeded() {
     localStorage.removeItem('hof_investor_landing_source');
     state.data.userType = role;
     setAudience(role);
+    if (agentLandingWorkflow) window.hofAgentWorkflowContext = agentLandingWorkflow;
     closeAuthModal();
     try { history.replaceState({}, document.title, window.location.origin + window.location.pathname); } catch(e) {}
     setTimeout(() => openAccountDashboard({ postLogin: true, tab: openSellerLandingWorkspace ? 'seller' : (openRelationshipLandingWorkspace ? 'relationships' : 'dashboard') }), 250);
@@ -7552,12 +7557,12 @@ function routeAfterMagicLinkIfNeeded() {
     }
     if (openSellerLandingWorkspace && role !== 'investor') {
       setTimeout(() => {
-        window.logOfferEvent?.(null, 'agent_landing_seller_workspace_handoff', 'opened', 'Agent opened Listing Tools from the public landing page after sign-in.', { source: agentLandingSource });
+        window.logOfferEvent?.(null, 'agent_landing_seller_workspace_handoff', 'opened', 'Agent opened Listing Tools from the public landing page after sign-in.', { source: agentLandingSource, workflow: agentLandingWorkflow || 'sale_listing' });
       }, 450);
     }
     if (openRelationshipLandingWorkspace && role !== 'investor') {
       setTimeout(() => {
-        window.logOfferEvent?.(null, 'agent_landing_relationship_workspace_handoff', 'opened', 'Agent opened private relationship drafts from the public landing page after sign-in.', { source: agentLandingSource });
+        window.logOfferEvent?.(null, 'agent_landing_relationship_workspace_handoff', 'opened', 'Agent opened private relationship drafts from the public landing page after sign-in.', { source: agentLandingSource, workflow: agentLandingWorkflow || 'relationship_drafts' });
       }, 450);
     }
     if (openInvestorLandingWorkspace && role === 'investor') {
@@ -14458,7 +14463,12 @@ function routeAfterMagicLinkIfNeeded() {
     // created until the agent elects to continue.
     if (params().get('agent') === '1') setTimeout(() => {
       const agentRouteParams = params();
-      const agentLandingWorkspace = ['seller', 'relationship'].includes(agentRouteParams.get('workspace')) ? agentRouteParams.get('workspace') : '';
+      const agentLandingWorkflow = ['purchase', 'sale_listing', 'lease_listing', 'lease_representation'].includes(agentRouteParams.get('workflow')) ? agentRouteParams.get('workflow') : '';
+      const agentLandingWorkspace = agentLandingWorkflow === 'sale_listing' || agentLandingWorkflow === 'lease_listing'
+        ? 'seller'
+        : agentLandingWorkflow === 'lease_representation'
+          ? 'relationship'
+          : ['seller', 'relationship'].includes(agentRouteParams.get('workspace')) ? agentRouteParams.get('workspace') : '';
       // Retain only this known organic guide identifier as an aggregate
       // conversion source. All arbitrary UTM values remain excluded.
       const agentLandingSource = agentRouteParams.get('utm_source') === 'texas_agent_offer_workflow'
@@ -14468,16 +14478,18 @@ function routeAfterMagicLinkIfNeeded() {
         const cleanUrl = new URL(window.location.href);
         cleanUrl.searchParams.delete('agent');
         cleanUrl.searchParams.delete('workspace');
+        cleanUrl.searchParams.delete('workflow');
         window.history.replaceState({}, document.title, cleanUrl.pathname + cleanUrl.search + cleanUrl.hash);
       } catch (_) {}
       window.setAudience?.('agent');
       if (window.hofAuth?.session) {
+        if (agentLandingWorkflow) window.hofAgentWorkflowContext = agentLandingWorkflow;
         if (agentLandingWorkspace === 'seller') {
           window.openAccountDashboard?.({ tab: 'seller' });
-          window.logOfferEvent?.(null, 'agent_landing_seller_workspace_handoff', 'opened', 'Signed-in agent opened Listing Tools from the public landing page.', { source: agentLandingSource });
+          window.logOfferEvent?.(null, 'agent_landing_seller_workspace_handoff', 'opened', 'Signed-in agent opened Listing Tools from the public landing page.', { source: agentLandingSource, workflow: agentLandingWorkflow || 'sale_listing' });
         } else if (agentLandingWorkspace === 'relationship') {
           window.openAccountDashboard?.({ tab: 'relationships' });
-          window.logOfferEvent?.(null, 'agent_landing_relationship_workspace_handoff', 'opened', 'Signed-in agent opened private relationship drafts from the public landing page.', { source: agentLandingSource });
+          window.logOfferEvent?.(null, 'agent_landing_relationship_workspace_handoff', 'opened', 'Signed-in agent opened private relationship drafts from the public landing page.', { source: agentLandingSource, workflow: agentLandingWorkflow || 'relationship_drafts' });
         } else {
           window.startAccountOffer?.();
           window.logOfferEvent?.(null, 'agent_landing_draft_handoff', 'started', 'Signed-in agent continued to the draft workflow from the public landing page.', { source: agentLandingSource });
@@ -14485,6 +14497,7 @@ function routeAfterMagicLinkIfNeeded() {
       } else {
         try {
           if (agentLandingSource === 'texas_agent_offer_workflow') localStorage.setItem('hof_agent_landing_source', agentLandingSource);
+          if (agentLandingWorkflow) localStorage.setItem('hof_agent_landing_workflow', agentLandingWorkflow);
           if (agentLandingWorkspace === 'seller') localStorage.setItem('hof_agent_landing_open_seller_workspace', '1');
           else if (agentLandingWorkspace === 'relationship') localStorage.setItem('hof_agent_landing_open_relationship_workspace', '1');
           else localStorage.setItem('hof_agent_landing_start_draft', '1');

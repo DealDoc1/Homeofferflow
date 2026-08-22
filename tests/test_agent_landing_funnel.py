@@ -26,7 +26,7 @@ class AgentLandingFunnelTests(unittest.TestCase):
     def test_searchable_agent_route_and_passwordless_entry_reuse_existing_workspace(self):
         self.assertIn('"source": "/agents"', VERCEL)
         self.assertIn('"destination": "/agents.html"', VERCEL)
-        self.assertIn('href="/?agent=1"', AGENTS)
+        self.assertIn('href="/?agent=1&amp;workflow=purchase"', AGENTS)
         self.assertIn('href="/agents"', INDEX)
         self.assertIn("if (params().get('agent') === '1')", INDEX)
         self.assertIn("cleanUrl.searchParams.delete('agent')", INDEX)
@@ -38,6 +38,20 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("localStorage.setItem('hof_agent_landing_open_seller_workspace', '1')", INDEX)
         self.assertIn("tab: openSellerLandingWorkspace ? 'seller' : (openRelationshipLandingWorkspace ? 'relationships' : 'dashboard')", INDEX)
         self.assertIn("agent_landing_seller_workspace_handoff", INDEX)
+
+    def test_agent_landing_can_start_each_transaction_in_its_relevant_workspace(self):
+        for workflow, cta_path in (
+            ("purchase", "client_draft"),
+            ("sale_listing", "seller_listing"),
+            ("lease_listing", "lease_listing"),
+            ("lease_representation", "lease_representation"),
+        ):
+            self.assertIn(f'workflow={workflow}', AGENTS)
+            self.assertIn(f'data-agent-cta-path="{cta_path}"', AGENTS)
+        self.assertIn("const agentLandingWorkflow = ['purchase', 'sale_listing', 'lease_listing', 'lease_representation']", INDEX)
+        self.assertIn("localStorage.setItem('hof_agent_landing_workflow', agentLandingWorkflow)", INDEX)
+        self.assertIn("window.hofAgentWorkflowContext = agentLandingWorkflow", INDEX)
+        self.assertIn("cleanUrl.searchParams.delete('workflow')", INDEX)
 
     def test_agent_landing_can_hand_off_to_private_relationship_drafts(self):
         self.assertIn('href="/?agent=1&amp;workspace=relationship"', AGENTS)
@@ -68,10 +82,11 @@ class AgentLandingFunnelTests(unittest.TestCase):
         ):
             self.assertIn(expected, INDEX)
 
-    def test_public_agent_copy_matches_the_draft_first_activation_path(self):
-        self.assertIn('Start a client draft — no payment', AGENTS)
-        self.assertIn('No password and no charge to start a private draft.', AGENTS)
-        self.assertIn('save your agent defaults afterward for faster repeat offers', AGENTS)
+    def test_public_agent_copy_matches_the_transaction_first_activation_path(self):
+        self.assertIn('Start with the transaction—not a form catalog.', AGENTS)
+        self.assertIn('Start a buyer offer — no payment', AGENTS)
+        self.assertIn('No password and no charge to start a private workspace.', AGENTS)
+        self.assertIn('save your agent defaults afterward for faster repeat work', AGENTS)
 
     def test_agent_landing_preserves_the_safe_draft_request_through_sign_in(self):
         self.assertIn("hof_agent_landing_start_draft", INDEX)
@@ -106,6 +121,8 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("data-agent-cta-path=\"client_draft\"", AGENTS)
         self.assertIn("data-agent-cta-path=\"seller_listing\"", AGENTS)
         self.assertIn("data-agent-cta-path=\"relationship_drafts\"", AGENTS)
+        self.assertIn("data-agent-cta-path=\"lease_listing\"", AGENTS)
+        self.assertIn("data-agent-cta-path=\"lease_representation\"", AGENTS)
         self.assertIn("cta_path=ctaPath", AGENTS)
         self.assertIn("request_type:'agent_landing_event'", AGENTS)
         self.assertIn("agent_landing_viewed", AGENTS)
@@ -157,6 +174,8 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("Landing CTA choices", INDEX)
         self.assertIn("Guide CTA choices", INDEX)
         self.assertIn("agentLandingCtaPathCounts?.seller_listing", INDEX)
+        self.assertIn("agentLandingCtaPathCounts?.lease_listing", INDEX)
+        self.assertIn("agentLandingCtaPathCounts?.lease_representation", INDEX)
         self.assertIn("agentWorkflowGuideCtaPathCounts?.relationship_drafts", INDEX)
         self.assertIn("agentWorkflowGuideCtaRate", INDEX)
 
