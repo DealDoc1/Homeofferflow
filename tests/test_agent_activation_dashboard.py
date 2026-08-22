@@ -222,6 +222,10 @@ class AgentActivationDashboardTests(unittest.TestCase):
         self.assertIn("picker.focus({ preventScroll: true });", HTML)
         self.assertIn("Choose the transaction you are working on to continue.", HTML)
         self.assertIn('id="agentWorkflowStart" style="margin-top:1rem;" tabindex="-1"', HTML)
+        self.assertIn('Question 1', HTML)
+        self.assertIn('What kind of transaction are you starting?', HTML)
+        for label in ('>Buying</button>', '>Sale listing</button>', '>Lease listing</button>', '>Lease representation</button>'):
+            self.assertIn(label, HTML)
 
     def test_activation_actions_record_stage_and_primary_or_secondary_choice(self):
         script_start = HTML.index('id="hof-agent-activation-v16-js"')
