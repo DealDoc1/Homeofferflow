@@ -92,6 +92,11 @@ class PartnerTierUiTests(unittest.TestCase):
         self.assertIn("document.getElementById('foundingPartnerConsent')?.addEventListener('change', renderFoundingPartnerCheckoutAvailability)", self.html)
         self.assertIn("Complete required details to unlock", self.html)
 
+    def test_missing_consent_returns_focus_to_the_required_acknowledgement(self):
+        start = self.html.index("if (!hasSavedPartnerApplication && !document.getElementById('foundingPartnerConsent')?.checked)")
+        end = self.html.index("trackPartnerFunnel('Founding Partner Checkout Started'", start)
+        self.assertIn("document.getElementById('foundingPartnerConsent')?.focus();", self.html[start:end])
+
     def test_checkout_retry_reuses_saved_partner_lead(self):
         self.assertIn("window.__hofFoundingPartnerLeadId", self.html)
         self.assertIn("if (!partnerLeadId)", self.html)
