@@ -4250,6 +4250,25 @@ class handler(BaseHTTPRequestHandler):
             homebuyer_landing_offer_started_count = len([
                 item for item in events if item.get("event_type") == "homebuyer_landing_offer_started"
             ])
+            homebuyer_landing_channels = (
+                "direct_outreach", "email", "social", "referral", "local_event", "print", "unspecified",
+            )
+            homebuyer_landing_view_counts_by_channel = {
+                channel: len([
+                    item for item in events
+                    if item.get("event_type") == "homebuyer_landing_viewed"
+                    and str((item.get("metadata") or {}).get("channel") or "unspecified") == channel
+                ])
+                for channel in homebuyer_landing_channels
+            }
+            homebuyer_landing_offer_started_counts_by_channel = {
+                channel: len([
+                    item for item in events
+                    if item.get("event_type") == "homebuyer_landing_offer_started"
+                    and str((item.get("metadata") or {}).get("channel") or "unspecified") == channel
+                ])
+                for channel in homebuyer_landing_channels
+            }
             homebuyer_checkout_cancelled_count = len([
                 item for item in events if item.get("event_type") == "homebuyer_checkout_cancelled"
             ])
@@ -4744,6 +4763,8 @@ class handler(BaseHTTPRequestHandler):
                 "homebuyerLandingOfferStartedCount": homebuyer_landing_offer_started_count,
                 "homebuyerLandingOfferStartRate": round((homebuyer_landing_offer_started_count / homebuyer_landing_cta_count) * 100, 1)
                 if homebuyer_landing_cta_count else 0,
+                "homebuyerLandingViewCountsByChannel": homebuyer_landing_view_counts_by_channel,
+                "homebuyerLandingOfferStartedCountsByChannel": homebuyer_landing_offer_started_counts_by_channel,
                 "homebuyerCheckoutCancelledCount": homebuyer_checkout_cancelled_count,
                 "homebuyerCheckoutRecoveryStartCount": homebuyer_checkout_recovery_start_count,
                 "homebuyerCheckoutRecoveryStartRate": round(

@@ -35,6 +35,7 @@ class HomebuyerLandingFunnelTests(unittest.TestCase):
         self.assertIn("homebuyer_landing_cta_selected", BUYERS)
         self.assertIn("recordAggregateFunnelEvent('homebuyer_landing_offer_started')", BUYERS)
         self.assertIn("channel: safeChannel", BUYERS)
+        self.assertIn("allowedChannels.has(rawSource)", BUYERS)
         self.assertIn("keepalive: true", BUYERS)
         landing_script = BUYERS.split("<script>(() =>", 1)[1].split("</script>", 1)[0]
         self.assertNotIn("// Record the handoff before navigation", landing_script)
@@ -70,12 +71,15 @@ class HomebuyerLandingFunnelTests(unittest.TestCase):
             '"homebuyerLandingCtaRate"',
             '"homebuyerLandingOfferStartedCount"',
             '"homebuyerLandingOfferStartRate"',
+            '"homebuyerLandingViewCountsByChannel"',
+            '"homebuyerLandingOfferStartedCountsByChannel"',
             '"homebuyerCheckoutCancelledCount"',
             '"homebuyerCheckoutRecoveryStartCount"',
             '"homebuyerCheckoutRecoveryStartRate"',
             "homebuyer_landing_view_count",
             "homebuyer_landing_cta_count",
             "homebuyer_landing_offer_started_count",
+            "homebuyer_landing_view_counts_by_channel",
         ):
             self.assertIn(expected, ADMIN)
         self.assertIn("Homebuyer $99 Funnel", INDEX)
