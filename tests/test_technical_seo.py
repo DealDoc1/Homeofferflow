@@ -19,6 +19,11 @@ SEO_GUIDES = {
         "Texas Agent Offer Workflow Guide",
         "https://www.homeofferflow.com/agents",
     ),
+    "texas-homebuyer-offer-guide.html": (
+        "Texas Homebuyer Offer",
+        "Texas Homebuyer Offer Planning Guide",
+        "https://www.homeofferflow.com/buyers",
+    ),
 }
 
 
