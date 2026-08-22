@@ -20,7 +20,7 @@ class SeoHeroUpdateTests(unittest.TestCase):
     def test_agent_copy_does_not_overstate_current_form_coverage(self):
         self.assertIn("Write supported Texas <em>offers faster</em>.", INDEX)
         self.assertIn(
-            "eligible enrolled brokerages can also review and send approved TXR-1507 and TXR-1508 drafts from the private signing queue.",
+            "eligible enrolled brokerages can also review and send approved TXR-1501, TXR-1506, TXR-1507, and TXR-1508 drafts from the private signing queue.",
             INDEX,
         )
 
