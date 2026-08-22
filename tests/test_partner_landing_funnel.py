@@ -16,6 +16,7 @@ class PartnerLandingFunnelTests(unittest.TestCase):
         self.assertIn('"partner_landing_viewed": "viewed"', API)
         self.assertIn('"partner_landing_cta_selected": "selected"', API)
         self.assertIn('"partner_application_opened": "application_opened"', API)
+        self.assertIn('"partner_application_essentials_focused": "essentials_focused"', API)
         self.assertIn('"partner_directory_application_selected": "application_selected"', API)
         self.assertIn('"partner_directory_pricing_selected": "pricing_selected"', API)
         self.assertIn("Unsupported partner landing event.", API)
@@ -53,6 +54,17 @@ class PartnerLandingFunnelTests(unittest.TestCase):
         self.assertIn("window.jumpToFoundingPartnerEssentials?.()", INDEX)
         self.assertIn("All essentials, consent, and the secure", INDEX)
         self.assertIn("Stripe review remain required", INDEX)
+        self.assertIn('id="foundingPartnerEssentialsJump"', INDEX)
+        self.assertIn("Continue to the 5 essentials", INDEX)
+        self.assertIn("document.getElementById('foundingPartnerEssentialsJump')?.focus()", INDEX)
+
+    def test_partner_funnel_measures_required_field_reach_without_collecting_applicant_data(self):
+        self.assertIn("function recordPartnerEssentialsFocused()", INDEX)
+        self.assertIn("partner_application_essentials_focused", INDEX)
+        self.assertIn("#foundingPartnerEssentials input, #foundingPartnerEssentials select", INDEX)
+        self.assertIn('"partnerApplicationEssentialsFocusCount"', ADMIN)
+        self.assertIn('"partnerApplicationEssentialsFocusRate"', ADMIN)
+        self.assertIn("partnerApplicationEssentialsFocusRate", INDEX)
 
     def test_admin_returns_aggregate_partner_conversion(self):
         for expected in (
@@ -61,6 +73,8 @@ class PartnerLandingFunnelTests(unittest.TestCase):
             '"partnerLandingCtaRate"',
             '"partnerApplicationOpenCount"',
             '"partnerApplicationOpenRate"',
+            '"partnerApplicationEssentialsFocusCount"',
+            '"partnerApplicationEssentialsFocusRate"',
             '"partnerLandingTierCtaCounts"',
             '"partnerLandingCategoryCtaCounts"',
             '"partnerDirectoryApplicationStartCount"',
