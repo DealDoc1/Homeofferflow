@@ -14357,6 +14357,7 @@ function routeAfterMagicLinkIfNeeded() {
     if (!hasSavedPartnerApplication && !document.getElementById('foundingPartnerConsent')?.checked) {
       trackPartnerFunnel('Founding Partner Consent Required', { tier: payload.preferred_model });
       if (status) { status.textContent = 'Please acknowledge the founding-pilot terms before submitting.'; status.className = 'platform-status err'; }
+      document.getElementById('foundingPartnerConsent')?.focus();
       return;
     }
     trackPartnerFunnel('Founding Partner Checkout Started', { tier: payload.preferred_model, source: hasSavedPartnerApplication ? 'partner_cancel_recovery' : payload.source });
