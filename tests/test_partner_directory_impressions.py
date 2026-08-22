@@ -95,6 +95,7 @@ class PartnerDirectoryImpressionTests(unittest.TestCase):
         self.assertIn("topUnfilledPartnerDemand", HTML)
         self.assertIn("copyPartnerDemandInvitation", HTML)
         self.assertIn("directory_demand", HTML)
+        self.assertIn("destination.searchParams.set('partner_category', category)", PUBLIC_DIRECTORY)
         self.assertIn("never sends email or carries visitor/search/market data", HTML)
         self.assertNotIn("market:market", PUBLIC_DIRECTORY)
 
