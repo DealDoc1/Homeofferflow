@@ -24,9 +24,9 @@
       "url": "/?pwa_action=listing_tools"
     },
     {
-      "name": "Relationship Drafts",
-      "short_name": "Relationships",
-      "description": "Open private buyer representation, showing, and consumer-notice drafts.",
+      "name": "Agent Forms & Drafts",
+      "short_name": "Agent Forms",
+      "description": "Open the private agent form library, relationship drafts, and review workflows.",
       "url": "/?pwa_action=relationship_drafts"
     },
     {

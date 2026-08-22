@@ -32,7 +32,7 @@ class PwaBaselineTests(unittest.TestCase):
             [
                 ("My Workspace", "/?pwa_action=workspace"),
                 ("Listing Tools", "/?pwa_action=listing_tools"),
-                ("Relationship Drafts", "/?pwa_action=relationship_drafts"),
+                ("Agent Forms & Drafts", "/?pwa_action=relationship_drafts"),
                 ("Offer Review", "/?pwa_action=offer_review"),
                 ("New Offer", "/?pwa_action=new_offer"),
                 ("Buyer Offer", "/?pwa_action=buyer_offer"),
