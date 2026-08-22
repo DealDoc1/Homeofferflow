@@ -47,7 +47,7 @@ class LandingHeroConversionLayoutTests(unittest.TestCase):
 
     def test_agent_audience_card_routes_to_the_transaction_first_agent_page(self):
         self.assertIn("window.location.assign('/agents')", HTML)
-        self.assertIn('Choose buying, sale listing, lease listing, or lease representation first', HTML)
+        self.assertIn('Choose buying, listing, lease listing, or lease representation first', HTML)
 
 
 if __name__ == "__main__":
