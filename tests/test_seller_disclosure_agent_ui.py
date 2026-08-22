@@ -21,6 +21,12 @@ class SellerDisclosureAgentUiTests(unittest.TestCase):
         self.assertIn('response_data', html)
         self.assertIn("update_seller_disclosure_draft", html)
 
+    def test_advanced_disclosure_questions_stay_collapsed_until_an_agent_starts_or_loads_work(self):
+        html = (ROOT / "index.html").read_text()
+        self.assertIn('id="hofSellerDisclosureWorkspace"', html)
+        self.assertIn('Start or continue a private seller disclosure draft', html)
+        self.assertIn('workspace.open = true;', html)
+
     def test_response_controls_cover_all_mapped_groups(self):
         html = (ROOT / "index.html").read_text()
         for key in (
