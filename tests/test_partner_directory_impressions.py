@@ -105,6 +105,13 @@ class PartnerDirectoryImpressionTests(unittest.TestCase):
         self.assertIn("bindCategoryChoices", PUBLIC_DIRECTORY)
         self.assertIn("$('category').value = category;", PUBLIC_DIRECTORY)
 
+    def test_empty_directory_keeps_consumer_recovery_primary_and_provider_recruitment_available(self):
+        self.assertIn('Need help with your own next step?', PUBLIC_DIRECTORY)
+        self.assertIn('class="provider-join"', PUBLIC_DIRECTORY)
+        self.assertIn('Do you provide ${categoryLabel ? esc(categoryLabel) : \'a Texas home service\'}?', PUBLIC_DIRECTORY)
+        self.assertIn('data-directory-partner-details', PUBLIC_DIRECTORY)
+        self.assertIn('data-directory-partner-cta', PUBLIC_DIRECTORY)
+
 
 if __name__ == "__main__":
     unittest.main()
