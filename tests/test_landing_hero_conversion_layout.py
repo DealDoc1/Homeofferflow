@@ -34,7 +34,6 @@ class LandingHeroConversionLayoutTests(unittest.TestCase):
             "landing_hero_cta",
             "landing_bottom_cta",
             "landing_audience_card_homebuyer",
-            "landing_audience_card_agent",
             "landing_audience_card_investor",
         ):
             self.assertIn(f"beginOfferFrom('{surface}')", HTML)
@@ -45,6 +44,10 @@ class LandingHeroConversionLayoutTests(unittest.TestCase):
         self.assertIn("const buyerEntrySurface = buyerRouteParams.get('utm_source') === 'texas_homebuyer_offer_guide'", HTML)
         self.assertIn("? 'texas_homebuyer_offer_guide'", HTML)
         self.assertIn("window.beginOfferFrom?.(buyerEntrySurface);", HTML)
+
+    def test_agent_audience_card_routes_to_the_transaction_first_agent_page(self):
+        self.assertIn("window.location.assign('/agents')", HTML)
+        self.assertIn('Choose buying, sale listing, lease listing, or lease representation first', HTML)
 
 
 if __name__ == "__main__":
