@@ -20043,6 +20043,11 @@ function routeAfterMagicLinkIfNeeded() {
     clearPendingAction();
     if (action === 'new_offer') {
       await openNewOfferShortcut(window.hofAuth?.role === 'investor' ? 'investor' : 'agent');
+    } else if (action === 'workspace') {
+      // A signed-out installed-app user explicitly chose their private
+      // workspace. Restore that declared destination after the magic-link
+      // return instead of relying on whichever generic post-login route runs.
+      await window.openAccountDashboard?.({ tab: 'dashboard' });
     } else if (action === 'signing_queue') await openSigningQueue();
     else if (action === 'attention_queue') await openAttentionQueue();
     else if (action === 'listing_tools') await openListingTools();

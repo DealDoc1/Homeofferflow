@@ -160,6 +160,13 @@ class PwaInstallExperienceTests(unittest.TestCase):
         self.assertIn("window.hofAgentWorkflowContext = 'sale_listing';", INDEX)
         self.assertEqual(INDEX.count("else if (action === 'listing_tools') await openListingTools();"), 2)
 
+    def test_workspace_shortcut_explicitly_resumes_the_private_dashboard_after_sign_in(self):
+        resume_start = INDEX.index("async function resumePendingShortcutAfterSignIn()")
+        resume_end = INDEX.index("async function openDefaultWorkspaceAfterAuth()", resume_start)
+        resume = INDEX[resume_start:resume_end]
+        self.assertIn("else if (action === 'workspace')", resume)
+        self.assertIn("await window.openAccountDashboard?.({ tab: 'dashboard' });", resume)
+
 
 if __name__ == "__main__":
     unittest.main()
