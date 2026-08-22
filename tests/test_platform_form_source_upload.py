@@ -43,6 +43,19 @@ class PlatformFormSourceUploadTests(unittest.TestCase):
             parsed = module._parse_payload(json.dumps(payload).encode())
             self.assertEqual(parsed["form_code"], form_code)
 
+    def test_parser_accepts_every_new_shared_txr_source_code(self):
+        for form_code in ("TXR-1905", "TXR-1914", "TXR-1917", "TXR-1919", "TXR-1948", "TXR-1953", "TXR-1954"):
+            payload = self._payload()
+            payload["formCode"] = form_code
+            payload["originalFilename"] = f"{form_code.replace('-', '')}.pdf"
+            parsed = module._parse_payload(json.dumps(payload).encode())
+            self.assertEqual(parsed["form_code"], form_code)
+
+    def test_shared_txr_source_migration_matches_the_intake_allowlist(self):
+        migration = (ROOT / "supabase" / "migrations" / "20260822151500_expand_shared_txr_source_codes.sql").read_text()
+        for form_code in ("TXR-1905", "TXR-1914", "TXR-1917", "TXR-1919", "TXR-1948", "TXR-1953", "TXR-1954"):
+            self.assertIn(f"'{form_code}'", migration)
+
     def test_parser_rejects_non_pdf_even_with_valid_base64(self):
         content = b"not a pdf"
         with self.assertRaisesRegex(ValueError, "not a PDF"):
