@@ -18,6 +18,12 @@ FSBO_GUIDE = (ROOT / "texas-fsbo-guide.html").read_text(encoding="utf-8")
 AGENT_GUIDE = (ROOT / "texas-agent-offer-workflow.html").read_text(encoding="utf-8")
 BUYER_GUIDE = (ROOT / "texas-homebuyer-offer-guide.html").read_text(encoding="utf-8")
 INVESTOR_GUIDE = (ROOT / "texas-investor-offer-guide.html").read_text(encoding="utf-8")
+TERMS = (ROOT / "terms.html").read_text(encoding="utf-8")
+PRIVACY = (ROOT / "privacy.html").read_text(encoding="utf-8")
+DISCLAIMER = (ROOT / "disclaimer.html").read_text(encoding="utf-8")
+ESIGN_CONSENT = (ROOT / "esign-consent.html").read_text(encoding="utf-8")
+SELLER_REVIEW = (ROOT / "seller-review.html").read_text(encoding="utf-8")
+FIELD_MAPPER = (ROOT / "field-mapper.html").read_text(encoding="utf-8")
 VERCEL = json.loads((ROOT / "vercel.json").read_text(encoding="utf-8"))
 
 
@@ -55,6 +61,14 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn('https://www.homeofferflow.com/texas-agent-offer-workflow', SITEMAP)
         self.assertIn('https://www.homeofferflow.com/texas-homebuyer-offer-guide', SITEMAP)
         self.assertIn('https://www.homeofferflow.com/texas-investor-offer-guide', SITEMAP)
+
+    def test_policy_urls_are_canonical_and_private_tool_screens_are_not_indexable(self):
+        self.assertIn('<link rel="canonical" href="https://www.homeofferflow.com/terms.html"', TERMS)
+        self.assertIn('<link rel="canonical" href="https://www.homeofferflow.com/privacy.html"', PRIVACY)
+        self.assertIn('<link rel="canonical" href="https://www.homeofferflow.com/disclaimer.html"', DISCLAIMER)
+        self.assertIn('<link rel="canonical" href="https://www.homeofferflow.com/esign-consent.html"', ESIGN_CONSENT)
+        self.assertIn('<meta name="robots" content="noindex, nofollow, noarchive, nosnippet"', SELLER_REVIEW)
+        self.assertIn('<meta name="robots" content="noindex, nofollow, noarchive"', FIELD_MAPPER)
 
     def test_ondemand_trial_page_has_canonical_share_and_structured_metadata(self):
         self.assertIn('<link rel="canonical" href="https://www.homeofferflow.com/ondemand"', ONDEMAND)
