@@ -29,6 +29,11 @@ SEO_GUIDES = {
         "OnDemand Realty Agent Launch",
         "https://www.homeofferflow.com/agents",
     ),
+    "partners.html": (
+        "HomeOfferFlow",
+        "Founding Partner Placements",
+        "https://www.homeofferflow.com/",
+    ),
 }
 
 
@@ -71,10 +76,11 @@ class TechnicalSeoTests(unittest.TestCase):
             )
             breadcrumb = next(json.loads(block) for block in blocks if '"BreadcrumbList"' in block)
             items = breadcrumb["itemListElement"]
-            self.assertEqual([item["position"] for item in items], [1, 2, 3])
-            self.assertEqual(items[1]["name"], parent_name)
-            self.assertEqual(items[1]["item"], parent_url)
-            self.assertEqual(items[2]["name"], current_name)
+            self.assertEqual([item["position"] for item in items], list(range(1, len(items) + 1)))
+            self.assertGreaterEqual(len(items), 2)
+            self.assertEqual(items[-2]["name"], parent_name)
+            self.assertEqual(items[-2]["item"], parent_url)
+            self.assertEqual(items[-1]["name"], current_name)
 
     def test_operational_and_private_review_pages_are_not_indexable(self):
         field_mapper = (ROOT / "field-mapper.html").read_text(encoding="utf-8")
