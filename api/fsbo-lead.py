@@ -5,11 +5,13 @@ import uuid
 import hashlib
 import secrets
 import html
+import base64
 from http.server import BaseHTTPRequestHandler
 from datetime import datetime, timedelta, timezone
 from urllib.parse import parse_qs, urlencode, urlparse
 
 import httpx
+from lib import partner_marketplace_agreement
 
 SUPABASE_URL = os.environ.get('SUPABASE_URL', '').rstrip('/')
 SUPABASE_SERVICE_ROLE_KEY = (
@@ -44,6 +46,11 @@ PARTNER_APPLICATION_REPLY_TO = (
     os.environ.get("PARTNER_APPLICATION_REPLY_TO")
     or SELLER_PLAN_REPLY_TO
 )
+PARTNER_AGREEMENT_COPY_EMAIL = os.environ.get("PARTNER_AGREEMENT_COPY_EMAIL", "support@homeofferflow.com").strip().lower()
+PARTNER_AGREEMENT_SIGNING_ENABLED = str(os.environ.get("HOF_PARTNER_AGREEMENT_SIGNING_ENABLED", "false")).lower() in {"1", "true", "yes", "on"}
+PARTNER_AGREEMENT_SIGNWELL_TEST_MODE = str(os.environ.get("HOF_PARTNER_AGREEMENT_SIGNWELL_TEST_MODE", "false")).lower() in {"1", "true", "yes", "on"}
+SIGNWELL_ENABLED = str(os.environ.get("SIGNWELL_ENABLED", "false")).lower() in {"1", "true", "yes", "on"}
+SIGNWELL_API_KEY = os.environ.get("SIGNWELL_API_KEY", "")
 ALLOWED_PARTNER_TYPES = {
     "title",
     "lender",
@@ -891,6 +898,60 @@ def _public_partner_onboarding(lead):
     return {key: lead.get(key) for key in ("company_name", "partner_type", "preferred_model", "onboarding_website_url", "onboarding_logo_url", "onboarding_cta_label", "onboarding_market_area", "market_area")}
 
 
+def _dispatch_partner_agreement_after_onboarding(lead):
+    """Send exactly one commercial agreement after paid onboarding completes.
+
+    Onboarding is never rolled back if SignWell is temporarily unavailable: the
+    paid partner remains in the existing admin queue for a retry.  A successful
+    dispatch atomically records the provider document id so repeated form
+    submissions cannot create duplicate commercial agreements.
+    """
+    if not PARTNER_AGREEMENT_SIGNING_ENABLED or not SIGNWELL_ENABLED or not SIGNWELL_API_KEY:
+        return {"state": "not_enabled"}
+    if str(lead.get("payment_status") or "").lower() != "paid":
+        return {"state": "not_paid"}
+    if str(lead.get("partner_agreement_status") or "not_started").lower() in {"sent", "signed"}:
+        return {"state": "already_dispatched"}
+    email = str(lead.get("contact_email") or "").strip()
+    if not EMAIL_RE.match(email):
+        return {"state": "invalid_email"}
+    lead_id = str(lead.get("id") or "")
+    if not LEAD_ID_RE.match(lead_id):
+        return {"state": "invalid_lead"}
+    pdf = partner_marketplace_agreement.render(lead)
+    payload = {
+        "test_mode": PARTNER_AGREEMENT_SIGNWELL_TEST_MODE,
+        "draft": False,
+        "reminders": True,
+        "embedded_signing": False,
+        "with_signature_page": True,
+        "custom_requester_name": "HomeOfferFlow",
+        "name": f"HomeOfferFlow Partner Marketplace Agreement — {lead_id[:8]}",
+        "subject": "HomeOfferFlow Partner Marketplace Agreement for signature",
+        "message": "Please review and sign the HomeOfferFlow Partner Marketplace Agreement. A completed PDF will be sent to you and HomeOfferFlow support. This agreement does not activate a public placement until HomeOfferFlow reviews the completed record.",
+        "recipients": [{"id": "1", "name": str(lead.get("contact_name") or "Partner"), "email": email}],
+        "copied_contacts": [{"name": "HomeOfferFlow Support", "email": PARTNER_AGREEMENT_COPY_EMAIL}],
+        "files": [{"name": "HomeOfferFlow_Partner_Marketplace_Agreement.pdf", "file_base64": base64.b64encode(pdf).decode("ascii")}],
+        "metadata": {"source": "HomeOfferFlow", "partner_lead_id": lead_id, "agreement_type": "partner_marketplace"},
+    }
+    with httpx.Client(timeout=45) as client:
+        response = client.post("https://www.signwell.com/api/v1/documents", headers={"X-Api-Key": SIGNWELL_API_KEY, "Content-Type": "application/json"}, json=payload)
+    if response.status_code not in {200, 201, 202}:
+        raise RuntimeError(f"Partner agreement delivery could not start: HTTP {response.status_code}.")
+    result = response.json()
+    document_id = str(result.get("id") or result.get("document_id") or "").strip()
+    if not document_id:
+        raise RuntimeError("Partner agreement delivery did not return a document id.")
+    now = datetime.now(timezone.utc).isoformat()
+    headers = {"apikey": SUPABASE_SERVICE_ROLE_KEY, "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}", "Content-Type": "application/json", "Prefer": "return=representation"}
+    query = urlencode({"id": f"eq.{lead_id}", "partner_agreement_status": "eq.not_started"})
+    with httpx.Client(timeout=12) as client:
+        saved = client.patch(f"{SUPABASE_URL}/rest/v1/hof_partner_leads?{query}", headers=headers, json={"partner_agreement_status": "sent", "partner_agreement_signwell_document_id": document_id, "partner_agreement_sent_at": now, "updated_at": now})
+    if saved.status_code >= 300:
+        raise RuntimeError("Partner agreement was created but its delivery status could not be saved.")
+    return {"state": "sent", "document_id": document_id}
+
+
 def _complete_partner_onboarding(token, data):
     lead = _get_partner_onboarding(token)
     market = _text(data.get("market_area"), 300)
@@ -906,8 +967,16 @@ def _complete_partner_onboarding(token, data):
     rows = response.json() if response.text else []
     if not isinstance(rows, list) or not rows:
         raise LookupError("This onboarding link is no longer available.")
+    completed = rows[0]
+    try:
+        _dispatch_partner_agreement_after_onboarding(completed)
+    except Exception as exc:
+        # Do not make a paid partner repeat onboarding because a third-party
+        # agreement delivery is temporarily unavailable. The admin lifecycle
+        # queue exposes the unsent record for a controlled retry.
+        print("partner agreement auto-dispatch failed", repr(exc))
     _record_partner_onboarding_event("partner_onboarding_completed")
-    return _public_partner_onboarding(rows[0])
+    return _public_partner_onboarding(completed)
 
 
 def _retrieve_partner_checkout_session(session_id):

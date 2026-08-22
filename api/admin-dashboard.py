@@ -16,6 +16,7 @@ from reportlab.lib.pagesizes import letter
 from reportlab.pdfbase.pdfmetrics import stringWidth
 from reportlab.pdfgen.canvas import Canvas
 from lib import platform_form_source_upload as platform_source
+from lib import partner_marketplace_agreement
 from lib import seller_disclosure_draft
 from lib import seller_review_access
 
@@ -1931,7 +1932,9 @@ async def _send_partner_agreement_for_signature(data):
         raise ValueError("This partner already has a completed commercial agreement.")
     if lead.get("partner_agreement_signwell_document_id") and str(lead.get("partner_agreement_status") or "") == "sent":
         raise ValueError("A commercial agreement is already awaiting this partner's signature.")
-    agreement_pdf = _partner_agreement_pdf(lead)
+    # Both manual retries and automatic post-onboarding delivery must send the
+    # same counsel-approved agreement body.
+    agreement_pdf = partner_marketplace_agreement.render(lead)
     payload = {
         "test_mode": PARTNER_AGREEMENT_SIGNWELL_TEST_MODE,
         "draft": False,
