@@ -70,6 +70,15 @@ class TechnicalSeoTests(unittest.TestCase):
         for path in ("/buyers", "/agents", "/investors", "/sellers", "/partners", "/directory"):
             self.assertIn(f"https://www.homeofferflow.com{path}", SITEMAP)
 
+    def test_sitemap_supplies_verified_lastmod_dates_for_indexable_pages(self):
+        entries = re.findall(
+            r"<url>\s*<loc>(https://www\.homeofferflow\.com/[^<]*)</loc>\s*<lastmod>(\d{4}-\d{2}-\d{2})</lastmod>\s*</url>",
+            SITEMAP,
+        )
+        self.assertEqual(len(entries), 12)
+        self.assertEqual(dict(entries)["https://www.homeofferflow.com/"], "2026-08-21")
+        self.assertEqual(dict(entries)["https://www.homeofferflow.com/sellers"], "2026-08-20")
+
     def test_revenue_guides_show_and_describe_their_real_site_hierarchy(self):
         for filename, (parent_name, current_name, parent_url) in SEO_GUIDES.items():
             guide = (ROOT / filename).read_text(encoding="utf-8")
