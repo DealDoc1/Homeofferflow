@@ -103,6 +103,11 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
         self.assertNotIn("brokerage()?.id", lookup)
         self.assertIn("if (!token || !formCode) return null", lookup)
 
+    def test_relationship_workspace_describes_the_shared_mineral_draft_without_an_authorization_gate(self):
+        self.assertIn("TXR-1905 · Mineral Reservation Addendum", HTML)
+        self.assertIn("checks your signed-in session and the approved source revision", HTML)
+        self.assertNotIn("Each tool below checks your brokerage authorization", HTML)
+
     def test_server_uses_the_shared_library_without_agent_authorization_gate(self):
         backend = (ROOT / "api" / "admin-dashboard.py").read_text()
         create_start = backend.index("async def _create_representation_draft")
