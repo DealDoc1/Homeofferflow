@@ -5297,13 +5297,27 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     if (guide) {
       const title = guide.querySelector('h4');
       const copy = guide.querySelector('p');
+      guide.querySelector('#leaseRepresentationQuickChoices')?.remove();
       if (title) title.textContent = isLeaseRepresentation ? 'Start the tenant-representation conversation' : 'Choose the relationship step deliberately';
       if (copy) copy.textContent = isLeaseRepresentation
         ? 'Begin with the representation form your brokerage has approved for this tenant matter. The choices below stay private until you review and explicitly choose any next step.'
         : 'Use this after choosing Buyer or Lease representation above. HomeOfferFlow does not select a form for you, a legal agreement, compensation structure, or business term.';
+      if (isLeaseRepresentation) {
+        guide.insertAdjacentHTML('beforeend', `<div id="leaseRepresentationQuickChoices" style="margin-top:1rem;padding-top:1rem;border-top:1px solid rgba(255,255,255,.12)"><strong>Which brokerage-approved representation agreement are you preparing?</strong><div class="account-actions-row" style="margin-top:.7rem"><button class="btn-primary" type="button" onclick="openTenantRepresentationDraft('short')">Short Form</button><button class="btn-secondary" type="button" onclick="openTenantRepresentationDraft('long')">Long Form</button></div><p id="leaseRepresentationQuickChoiceStatus" style="color:var(--gray-light);font-size:.84rem;line-height:1.5;margin:.7rem 0 0">Choose deliberately. HomeOfferFlow opens a private draft only; it does not select terms, recipients, or a signing path.</p></div>`);
+      }
     }
     window.renderAccountDashboard?.();
   }
+
+  // The tenant-representation quick choices merely open the exact private
+  // draft the agent selected. They do not infer which agreement is proper,
+  // create a record, or bypass the source check performed by each draft card.
+  window.openTenantRepresentationDraft = function openTenantRepresentationDraft(kind) {
+    const opener = kind === 'long' ? window.hofOpenTxr1501Draft : window.hofOpenTxr1507Draft;
+    const status = document.getElementById('leaseRepresentationQuickChoiceStatus');
+    if (typeof opener === 'function') return opener();
+    if (status) status.textContent = 'Loading the approved source for that draft. You can also select it from the private draft card below.';
+  };
 
   async function openAccountDashboard(opts = {}) {
     if (!hofAuth.session) return openAuthModal(state?.data?.userType || 'agent');
@@ -18215,6 +18229,7 @@ function routeAfterMagicLinkIfNeeded() {
       const button = document.createElement('button');
       button.type = 'button'; button.className = 'btn-secondary'; button.textContent = 'Start TXR-1507 draft';
       button.addEventListener('click', () => openDraftDialog(source));
+      root.hofOpenTxr1507Draft = () => openDraftDialog(source);
       card.appendChild(button);
     } catch (error) {
       console.error('TXR-1507 source check failed:', error);
@@ -18334,6 +18349,7 @@ function routeAfterMagicLinkIfNeeded() {
       const button = document.createElement('button');
       button.type = 'button'; button.className = 'btn-secondary'; button.textContent = 'Start TXR-1501 draft';
       button.addEventListener('click', () => openLongDraftDialog(source));
+      root.hofOpenTxr1501Draft = () => openLongDraftDialog(source);
       card.appendChild(button);
     } catch (error) {
       console.error('TXR-1501 source check failed:', error);
