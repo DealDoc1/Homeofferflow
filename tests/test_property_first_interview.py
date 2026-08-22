@@ -30,6 +30,13 @@ class PropertyFirstInterviewTests(unittest.TestCase):
         self.assertIn("if (savedStep === 2) return 1;", HTML)
         self.assertIn("const stepToRestore = restoredWizardStep(draft);", HTML)
 
+    def test_empty_property_first_screen_focuses_the_google_address_input_without_disturbing_a_restore(self):
+        show_step = HTML[HTML.index("function showStep(n)"):HTML.index("function collectAllData()")]
+        self.assertIn("if (sid === 'step2')", show_step)
+        self.assertIn("const propertyAddress = document.getElementById('propAddress');", show_step)
+        self.assertIn("!String(propertyAddress.value || '').trim()", show_step)
+        self.assertIn("propertyAddress.focus({ preventScroll: true });", show_step)
+
 
 if __name__ == "__main__":
     unittest.main()
