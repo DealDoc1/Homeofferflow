@@ -19461,14 +19461,12 @@ function routeAfterMagicLinkIfNeeded() {
     // browser action plainly while retaining the role-specific value.
     if (surface === 'seller_success') return 'Install Seller Plan App';
     if (surface === 'buyer_review' || surface === 'buyer_success') return 'Install Offer Workspace App';
-    if (surface === 'account_dashboard') return 'Install Agent Workspace App';
     return 'Install HomeOfferFlow App';
   }
 
   function installHelpLabel(surface){
     if (surface === 'seller_success') return 'Add Seller Plan to Home Screen';
     if (surface === 'buyer_review' || surface === 'buyer_success') return 'Add Offer Workspace to Home Screen';
-    if (surface === 'account_dashboard') return 'Add Agent Workspace to Home Screen';
     return 'Show the 2 steps';
   }
 
@@ -19491,19 +19489,18 @@ function routeAfterMagicLinkIfNeeded() {
     const success = document.getElementById('stepSuccess');
     const isBuyerSuccess = success?.classList.contains('active') && (root.state?.data?.userType || 'homebuyer') === 'homebuyer';
     if (isBuyerSuccess) return { panel: success, surface: 'buyer_success' };
-    const dashboard = document.getElementById('accountPanelDashboard');
-    if (dashboard && root.hofAuth?.session) return { panel: dashboard, surface: 'account_dashboard' };
+    // Do not interrupt a clean signed-in dashboard with a generic install
+    // pitch. The app shortcut is useful after a buyer review, buyer success,
+    // or seller-plan success—when there is a clear reason to return.
     return null;
   }
 
   function renderInstallCard(){
     const target = installTarget();
     if (!target || isStandalone() || isDismissed()) return;
-    const desktopNativeInstall = !isIos() && !isAndroid() && !!deferredInstallPrompt && target.surface === 'account_dashboard';
-    // This is a field-workflow bridge, not a replacement for the normal
-    // desktop workspace. Desktop users see it only when their browser has
-    // already exposed a native install prompt for the signed-in workspace.
-    if (!isIos() && !isAndroid() && !desktopNativeInstall) return;
+    // Installation is a mobile return-work bridge, not a generic dashboard
+    // promotion. Desktop remains the full browser workspace without a card.
+    if (!isIos() && !isAndroid()) return;
     const existing = document.getElementById('hofPwaInstallCard');
     if (existing) existing.remove();
     // Android browsers can still use the supported Home Screen path when the
@@ -19511,24 +19508,18 @@ function routeAfterMagicLinkIfNeeded() {
     // Keep this fallback mobile-only so field workflows remain focused.
     const card = document.createElement('div');
     card.id = 'hofPwaInstallCard';
-    const desktopCompact = desktopNativeInstall;
-    card.className = 'account-card pwa-install-card' + (desktopCompact ? ' pwa-install-card-desktop' : '');
+    card.className = 'account-card pwa-install-card';
     card.dataset.surface = target.surface;
     try { sessionStorage.setItem(installSurfaceKey, target.surface); } catch (_) {}
     const ios = isIos();
     const sellerReturnCopy = target.surface === 'seller_success'
       ? 'Save this seller plan to your Home Screen so it is one tap away when you return to photos, repairs, timing, or provider questions.'
       : '';
-    const workspaceReturnCopy = target.surface === 'account_dashboard'
-      ? 'Use the app icon for a focused workspace launch, with shortcuts for My Workspace, Listing Tools, Relationship Drafts, New Offer, Buyer Offer, Signing Queue, Needs Attention, and Seller Plan.'
-      : '';
-    card.innerHTML = desktopCompact ? `<div><h4>Optional: install the focused desktop workspace</h4><p>Open HomeOfferFlow in its own window from your desktop or taskbar. Your browser already supports it; no App Store, separate account, or native build is needed.</p></div><div class="pwa-install-actions"><button class="btn-secondary" type="button" id="hofPwaInstallButton">Install desktop app</button><button class="btn-secondary" type="button" id="hofPwaInstallDismiss">Not now</button></div>` : `<h4>Keep HomeOfferFlow one tap away</h4>
+    card.innerHTML = `<h4>Keep HomeOfferFlow one tap away</h4>
       <p>${ios
         ? 'Add this workspace to your iPhone or iPad Home Screen for a full-screen, app-like launch. It takes about a minute—no App Store download or separate account is needed.'
         : isAndroid() && !deferredInstallPrompt
         ? 'Add HomeOfferFlow to your Android Home Screen for a faster app-like launch. It takes about a minute—no App Store download or separate account is needed.'
-        : desktopNativeInstall
-        ? 'Install HomeOfferFlow as a focused desktop app for your agent workspace. Your browser already supports this install—no app store, separate account, or native build is needed.'
         : 'Install HomeOfferFlow for a faster app-like launch and an offline-safe shell when you are between showings. It takes about a minute—no App Store download or separate account is needed.'}</p>
       <div class="pwa-install-benefits" aria-label="What installation does">
         <div class="pwa-install-benefit"><strong>One-tap return</strong><br>Launch the same workspace from an app icon.</div>
@@ -19536,7 +19527,6 @@ function routeAfterMagicLinkIfNeeded() {
         <div class="pwa-install-benefit"><strong>Protected data</strong><br>Offers and client details remain online.</div>
       </div>
       ${sellerReturnCopy ? `<p class="pwa-install-note"><strong>${sellerReturnCopy}</strong></p>` : ''}
-      ${workspaceReturnCopy ? `<p class="pwa-install-note"><strong>${workspaceReturnCopy}</strong></p>` : ''}
       <p class="pwa-install-note">Your offers and client details stay protected online; installation only gives this existing workspace a faster, dedicated launch.</p>
       <div class="pwa-install-actions">
         ${ios
@@ -19547,15 +19537,7 @@ function routeAfterMagicLinkIfNeeded() {
         <button class="btn-secondary" type="button" id="hofPwaInstallDismiss">Not now</button>
       </div>
       <div id="hofPwaInstallNote" class="pwa-install-note" style="margin-top:.65rem;display:none"></div>`;
-    // In the signed-in workspace, put the mobile-app bridge immediately after
-    // the next-best-action card instead of below every dashboard section. It
-    // remains below the activation CTA, while being visible before the user
-    // scrolls through their offers and settings.
-    const activationCard = target.surface === 'account_dashboard'
-      ? target.panel.querySelector('#agentActivationCard')
-      : null;
-    if (activationCard?.parentNode === target.panel) activationCard.insertAdjacentElement('afterend', card);
-    else target.panel.prepend(card);
+    target.panel.prepend(card);
     try {
       if (!sessionStorage.getItem(shownKey)) {
         sessionStorage.setItem(shownKey, '1');
@@ -19581,10 +19563,6 @@ function routeAfterMagicLinkIfNeeded() {
       if (button) { button.disabled = true; button.textContent = 'Opening install…'; }
       try {
         const nativePromptMetadata = { platform: installPlatform(), surface: target.surface, cta: 'native_prompt', copy_version: 'install_explicit_v2' };
-        if (desktopCompact) {
-          nativePromptMetadata.cta = 'native_prompt_desktop_compact';
-          nativePromptMetadata.copy_version = 'desktop_compact_v3';
-        }
         trackInstall('cta_clicked', nativePromptMetadata);
         await deferredInstallPrompt.prompt();
         trackInstall('prompt_opened', { platform: installPlatform(), surface: target.surface });

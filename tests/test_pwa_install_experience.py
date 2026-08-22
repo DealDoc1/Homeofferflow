@@ -17,30 +17,22 @@ class PwaInstallExperienceTests(unittest.TestCase):
         self.assertIn("markGoogleAddressSelected(input);", INDEX)
         self.assertIn("input.classList.remove('hof-address-selected');", INDEX)
 
-    def test_authenticated_dashboard_offers_the_supported_install_prompt(self):
+    def test_install_prompt_is_reserved_for_meaningful_mobile_return_work(self):
         self.assertIn('id="hof-pwa-install-v1"', INDEX)
         self.assertIn("beforeinstallprompt", INDEX)
         self.assertIn("deferredInstallPrompt.prompt()", INDEX)
         self.assertIn("Install HomeOfferFlow", INDEX)
         self.assertIn("function installCtaLabel(surface)", INDEX)
         self.assertIn("function installHelpLabel(surface)", INDEX)
-        self.assertIn("Install Agent Workspace App", INDEX)
-        self.assertIn("Add Agent Workspace to Home Screen", INDEX)
         self.assertIn("Install Offer Workspace App", INDEX)
         self.assertIn("Install Seller Plan App", INDEX)
         self.assertIn("Show the 2 steps", INDEX)
         self.assertIn("no App Store download or separate account is needed.", INDEX)
         self.assertIn("pwa-install-benefits", INDEX)
         self.assertIn("offers and client details stay protected online", INDEX)
-        self.assertIn("const workspaceReturnCopy = target.surface === 'account_dashboard'", INDEX)
-        self.assertIn('shortcuts for My Workspace, Listing Tools, Relationship Drafts, New Offer, Buyer Offer, Signing Queue, Needs Attention, and Seller Plan', INDEX)
-        self.assertIn("const desktopNativeInstall = !isIos() && !isAndroid() && !!deferredInstallPrompt", INDEX)
-        self.assertIn("if (!isIos() && !isAndroid() && !desktopNativeInstall) return;", INDEX)
-        self.assertIn("Install HomeOfferFlow as a focused desktop app", INDEX)
-        self.assertIn("Optional: install the focused desktop workspace", INDEX)
-        self.assertIn("pwa-install-card-desktop", INDEX)
-        self.assertIn("native_prompt_desktop_compact", INDEX)
-        self.assertIn("desktop_compact_v3", INDEX)
+        self.assertIn("if (!isIos() && !isAndroid()) return;", INDEX)
+        self.assertIn("Do not interrupt a clean signed-in dashboard with a generic install", INDEX)
+        self.assertNotIn("surface: 'account_dashboard'", INDEX[INDEX.index('function installTarget()'):INDEX.index('function renderInstallCard()')])
 
     def test_completed_homebuyer_review_can_offer_install_without_account_login(self):
         self.assertIn("function installTarget()", INDEX)
@@ -48,9 +40,7 @@ class PwaInstallExperienceTests(unittest.TestCase):
         self.assertIn("setTimeout(() => window.renderPwaInstallCard?.(), 0);", INDEX)
         self.assertIn("root.renderPwaInstallCard = renderInstallCard;", INDEX)
         self.assertIn("(root.state?.data?.userType || 'homebuyer') === 'homebuyer'", INDEX)
-        self.assertIn("root.hofAuth?.session", INDEX)
-        self.assertIn("activationCard.insertAdjacentElement('afterend', card)", INDEX)
-        self.assertIn("else target.panel.prepend(card)", INDEX)
+        self.assertIn("target.panel.prepend(card)", INDEX)
 
     def test_completed_buyer_checkout_can_offer_install_from_the_success_screen(self):
         self.assertIn("surface: 'buyer_success'", INDEX)
