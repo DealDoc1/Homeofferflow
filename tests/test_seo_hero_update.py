@@ -20,9 +20,10 @@ class SeoHeroUpdateTests(unittest.TestCase):
     def test_agent_copy_does_not_overstate_current_form_coverage(self):
         self.assertIn("Write supported Texas <em>offers faster</em>.", INDEX)
         self.assertIn(
-            "eligible enrolled brokerages can also review and send approved TXR-1501, TXR-1506, TXR-1507, and TXR-1508 drafts from the private signing queue.",
+            "every signed-in agent can start a private TXR-1501, TXR-1506, TXR-1507, or TXR-1508 draft from the HomeOfferFlow library",
             INDEX,
         )
+        self.assertIn("explicit recipient confirmation before sending", INDEX)
 
     def test_supported_trec_offer_scope_is_described_on_the_landing_page(self):
         self.assertIn("We prepare the supported forms", INDEX)
