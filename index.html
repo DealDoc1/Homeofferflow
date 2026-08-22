@@ -13164,7 +13164,10 @@ function routeAfterMagicLinkIfNeeded() {
       </div>
     </details>
 
-    <div id="fsboGuidedGoalCard" style="margin-top:1rem; padding:.9rem; border:1px solid rgba(200,151,63,.24); border-radius:12px; background:rgba(200,151,63,.055);">
+    <details class="partner-optional-details" style="margin-top:1rem;">
+      <summary>Customize your plan or explore services <span style="font-weight:500;">(optional)</span></summary>
+      <div style="margin-top:.75rem;">
+    <div id="fsboGuidedGoalCard" style="margin-top:0; padding:.9rem; border:1px solid rgba(200,151,63,.24); border-radius:12px; background:rgba(200,151,63,.055);">
       <div class="radio-group-label" style="margin-bottom:.25rem;">One quick question: what would help most right now?</div>
       <div style="color:var(--gray-light); font-size:.8rem; line-height:1.45; margin-bottom:.6rem;">Choose a starting point and we will tailor the package details. You can change it or skip it; this is not a commitment.</div>
       <input type="hidden" id="fsboGuidedGoal" value="">
@@ -13230,6 +13233,8 @@ function routeAfterMagicLinkIfNeeded() {
       <button class="btn-primary" type="button" id="fsboSellerSubmit" data-fsbo-submit onclick="submitFsboSellerLead('full')" disabled aria-disabled="true" aria-label="Save My Seller Request — enter address and email to unlock">Enter address + email to unlock</button>
       <button class="btn-secondary" type="button" onclick="closeFsboSellerModal()">Cancel</button>
     </div>
+      </div>
+    </details>
     <div id="fsboDraftRecovery" class="platform-status" aria-live="polite"></div>
     <div id="fsboSellerStatus" class="platform-status"></div>
   </div>
