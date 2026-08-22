@@ -4761,6 +4761,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <div class="admin-metric-label">Homebuyer $99 Funnel</div>
             <div class="admin-metric-value">${metrics.homebuyerLandingViewCount || 0} views</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.homebuyerLandingReadyListOpenCount || 0} opened the ready list (${Number(metrics.homebuyerLandingReadyListOpenRate || 0).toFixed(1)}% of views) · ${metrics.homebuyerLandingCtaCount || 0} selected Build my offer (${Number(metrics.homebuyerLandingCtaRate || 0).toFixed(1)}% of views) · ${metrics.homebuyerLandingOfferStartedCount || 0} opened the guided workspace (${Number(metrics.homebuyerLandingOfferStartRate || 0).toFixed(1)}% of selections).</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Channel views / guided starts: referral ${Number(metrics.homebuyerLandingViewCountsByChannel?.referral || 0)} / ${Number(metrics.homebuyerLandingOfferStartedCountsByChannel?.referral || 0)} · email ${Number(metrics.homebuyerLandingViewCountsByChannel?.email || 0)} / ${Number(metrics.homebuyerLandingOfferStartedCountsByChannel?.email || 0)} · social ${Number(metrics.homebuyerLandingViewCountsByChannel?.social || 0)} / ${Number(metrics.homebuyerLandingOfferStartedCountsByChannel?.social || 0)} · outreach ${Number(metrics.homebuyerLandingViewCountsByChannel?.direct_outreach || 0)} / ${Number(metrics.homebuyerLandingOfferStartedCountsByChannel?.direct_outreach || 0)} · local ${Number(metrics.homebuyerLandingViewCountsByChannel?.local_event || 0)} / ${Number(metrics.homebuyerLandingOfferStartedCountsByChannel?.local_event || 0)} · print ${Number(metrics.homebuyerLandingViewCountsByChannel?.print || 0)} / ${Number(metrics.homebuyerLandingOfferStartedCountsByChannel?.print || 0)}.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Checkout recovery: ${metrics.homebuyerCheckoutCancelledCount || 0} canceled returns · ${metrics.homebuyerCheckoutRecoveryStartCount || 0} restarted checkout (${Number(metrics.homebuyerCheckoutRecoveryStartRate || 0).toFixed(1)}%).</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Aggregate landing intent only; no buyer identity, property, financing, or offer details are included.</div>
           </div>
@@ -14147,9 +14148,12 @@ function routeAfterMagicLinkIfNeeded() {
       const buyerEntrySurface = buyerRouteParams.get('utm_source') === 'texas_homebuyer_offer_guide'
         ? 'texas_homebuyer_offer_guide'
         : 'buyer_landing';
-      const buyerChannel = buyerRouteParams.get('utm_source') === 'homeofferflow_admin' && ['direct_outreach', 'email', 'social', 'referral', 'local_event', 'print'].includes(String(buyerRouteParams.get('utm_medium') || '').trim().toLowerCase())
-        ? String(buyerRouteParams.get('utm_medium') || '').trim().toLowerCase()
-        : 'unspecified';
+      const buyerChannels = ['direct_outreach', 'email', 'social', 'referral', 'local_event', 'print'];
+      const buyerSource = String(buyerRouteParams.get('utm_source') || '').trim().toLowerCase();
+      const buyerMedium = String(buyerRouteParams.get('utm_medium') || '').trim().toLowerCase();
+      const buyerChannel = buyerChannels.includes(buyerSource)
+        ? buyerSource
+        : (buyerSource === 'homeofferflow_admin' && buyerChannels.includes(buyerMedium) ? buyerMedium : 'unspecified');
       try {
         // Match the public landing page's session key so a navigation-safe
         // click handoff is counted once rather than again after this route.
