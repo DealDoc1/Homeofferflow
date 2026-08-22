@@ -2954,7 +2954,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           <div class="relationship-drafts-guide-item"><strong>TXR-1508 · Showing Form</strong><span>Unrepresented Customer Showing Form draft; it is not a buyer representation agreement.</span></div>
           <div class="relationship-drafts-guide-item"><strong>TXR-1506 · Consumer Notice</strong><span>General Information and Notice to Consumers draft; it does not create representation.</span></div>
         </div>
-        <p style="color:var(--gray-light); font-size:.84rem; line-height:1.5; margin:1rem 0 0;">Each tool below checks your brokerage authorization and approved source revision before it allows a private draft. Drafts remain private and are not sent or signed from this workspace.</p>
+        <p style="color:var(--gray-light); font-size:.84rem; line-height:1.5; margin:1rem 0 0;">Each tool below checks your brokerage authorization and approved source revision before it allows a private draft. Drafts remain private until reviewed; where signing is enabled, the saved-drafts queue requires an explicit signer and recipient confirmation before anything is sent.</p>
       </div>
     </div>
 
@@ -10483,7 +10483,7 @@ function routeAfterMagicLinkIfNeeded() {
         sub: 'Prepare client-ready Texas buyer-offer packets from your phone with guided questions, supported purchase addenda, buyer-side e-signature, and saved profiles.',
         cta: 'Start Agent Draft',
         nav: 'Start Agent Draft →',
-        priceNote: 'Built for supported Texas buyer-offer packets, buyer-side e-signature, and repeat-use agent workflows. <strong>Representation and notice forms are in private preview foundations; listing and seller-form signing workflows are not live yet.</strong>'
+        priceNote: 'Built for supported Texas buyer-offer packets, buyer-side e-signature, and repeat-use agent workflows. <strong>For eligible enrolled brokerages, TXR-1507 and TXR-1508 can be reviewed and sent from a private signing queue; other relationship, listing, and seller-form workflows remain limited to their stated scope.</strong>'
       },
       investor: {
         headline: 'Make more <em>offers</em>, faster.',
@@ -15801,7 +15801,7 @@ function routeAfterMagicLinkIfNeeded() {
       agent: {
         headline: 'A clearer Texas buyer-offer workflow for <em>agents & brokers</em>.',
         sub: 'Create supported Texas buyer-offer packets from your phone, send buyer-side signatures, track status, duplicate prior offers, and collect broker-reviewed feedback.',
-        cta: 'Open Agent / Broker Workspace', nav: 'Agent / Broker Login →', note: 'Built for broker-supervised beta testing. <strong>Buyer-side offer packets are live; representation and notice forms are private-preview foundations, while listing and seller-form signing workflows are not live yet.</strong> <a href="/ondemand" onclick="window.recordOnDemandTrialEntry?.(\'agent_hero_inline\');">OnDemand Realty agent? Start your 60-day free trial (card required) →</a>'
+        cta: 'Open Agent / Broker Workspace', nav: 'Agent / Broker Login →', note: 'Built for broker-supervised beta testing. <strong>Buyer-side offer packets are live; eligible enrolled brokerages can also review and send approved TXR-1507 and TXR-1508 drafts from the private signing queue. Listing, seller-form, and other relationship workflows remain limited to their stated scope.</strong> <a href="/ondemand" onclick="window.recordOnDemandTrialEntry?.(\'agent_hero_inline\');">OnDemand Realty agent? Start your 60-day free trial (card required) →</a>'
       },
       investor: {
         headline: 'Make more <em>investment offers</em> with less retyping.',
@@ -17884,7 +17884,7 @@ function routeAfterMagicLinkIfNeeded() {
         copy.textContent = 'TXR-1507 is not yet enabled for your organization. An authorized administrator must privately upload and attest to the current authorized source form first.';
         return;
       }
-      copy.innerHTML = `Start a private TXR-1507 Short Form draft using your brokerage-approved ${escape(source.source_revision)} source. A draft is not sent or signed until the separate review and signing release is complete.`;
+      copy.innerHTML = `Start a private TXR-1507 Short Form draft using your brokerage-approved ${escape(source.source_revision)} source. Review the saved draft, then use the private signing queue to explicitly confirm recipients and send it when appropriate.`;
       const button = document.createElement('button');
       button.type = 'button'; button.className = 'btn-secondary'; button.textContent = 'Start TXR-1507 draft';
       button.addEventListener('click', () => openDraftDialog(source));
@@ -18143,7 +18143,7 @@ function routeAfterMagicLinkIfNeeded() {
         copy.textContent = 'TXR-1508 is not yet enabled for your organization. An authorized administrator must privately upload and attest to the current authorized source form first.';
         return;
       }
-      copy.innerHTML = `Start a private TXR-1508 showing draft using your brokerage-approved ${escape(source.source_revision)} source. This is an unrepresented-customer workflow, not a buyer representation agreement. A draft is not sent or signed.`;
+      copy.innerHTML = `Start a private TXR-1508 showing draft using your brokerage-approved ${escape(source.source_revision)} source. This is an unrepresented-customer workflow, not a buyer representation agreement. Review the saved draft, then use the private signing queue to explicitly confirm recipients and send it when appropriate.`;
       const button = document.createElement('button');
       button.type = 'button'; button.className = 'btn-secondary'; button.textContent = 'Start TXR-1508 draft';
       button.addEventListener('click', () => openShowingDraftDialog(source));
@@ -18424,8 +18424,8 @@ function routeAfterMagicLinkIfNeeded() {
           Texas residential purchase-offer packets, supported purchase addenda, Seller Temporary Residential Lease when seller post-closing possession applies, buyer-side e-signing, saved offer defaults, and an optional profile IABS attachment.
         </div>
         <div class="hof-launch-scope-item not-ready">
-          <strong>Not a live signing workflow yet</strong>
-          Buyer/tenant representation agreements (TXR-1501 and TXR-1507), TXR-1508, and TXR-1506 are private-preview foundations only; listing agreements, seller disclosures, lease-listing and tenant-representation packets, and any form marked draft-only are not live signing workflows.
+          <strong>Restricted signing scope</strong>
+          Eligible enrolled brokerages can review and send approved-source TXR-1507 and TXR-1508 drafts from the private signing queue. TXR-1501, TXR-1506, listing agreements, seller disclosures, lease-listing and tenant-representation packets, and any form marked draft-only are not live signing workflows.
         </div>
       </div>
       <p><strong>Important:</strong> Do not represent a draft-only or unavailable form as generated, sent, or executed through HomeOfferFlow. Use your brokerage-approved process for those documents until HomeOfferFlow releases the separately mapped and signed workflow.</p>

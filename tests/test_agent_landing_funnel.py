@@ -45,7 +45,7 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("agent_landing_relationship_workspace_handoff", INDEX)
         self.assertIn("tab: 'relationships'", INDEX)
         self.assertIn('id="accountPanelRelationships"', INDEX)
-        self.assertIn("preview-only until separate signing QA is complete", AGENTS)
+        self.assertIn("review and send approved-source TXR-1507 and TXR-1508 drafts", AGENTS)
 
     def test_relationship_drafts_are_a_persistent_agent_account_workspace(self):
         self.assertIn('id="relationshipsAccountTab"', INDEX)
@@ -64,7 +64,7 @@ class AgentLandingFunnelTests(unittest.TestCase):
             'TXR-1508 · Showing Form',
             'TXR-1506 · Consumer Notice',
             'HomeOfferFlow does not select a form for you',
-            'Drafts remain private and are not sent or signed from this workspace.',
+            'Drafts remain private until reviewed; where signing is enabled',
         ):
             self.assertIn(expected, INDEX)
 
