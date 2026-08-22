@@ -127,6 +127,18 @@
       return window._hofPlacesLoadPromise;
     };
     
+  function recordHomebuyerCheckoutEvent(eventType) {
+    const key = 'hof_homebuyer_checkout_' + eventType;
+    try {
+      if (sessionStorage.getItem(key)) return;
+      sessionStorage.setItem(key, '1');
+      fetch('/api/fsbo-lead', {
+        method: 'POST', headers: {'Content-Type': 'application/json'}, keepalive: true,
+        body: JSON.stringify({request_type: 'homebuyer_landing_event', event_type: eventType, channel: 'unspecified'})
+      }).catch(() => {});
+    } catch (_) {}
+  }
+
   function checkPaymentReturn() {
   // Subscription checkout returns should not trigger the offer-packet success screen.
   if (window.__hofSubscriptionReturn) return;
@@ -157,6 +169,7 @@
     const notice = document.getElementById('paymentCheckoutReturnNotice');
     if (notice) notice.style.display = 'block';
     try { trackEvent('Payment Checkout Cancelled Returned', { plan: state.selectedPlan || 'self' }); } catch (e) {}
+    recordHomebuyerCheckoutEvent('homebuyer_checkout_cancelled');
 
     const cleanUrl = window.location.origin + window.location.pathname;
     window.history.replaceState({}, document.title, cleanUrl);
@@ -4748,6 +4761,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <div class="admin-metric-label">Homebuyer $99 Funnel</div>
             <div class="admin-metric-value">${metrics.homebuyerLandingViewCount || 0} views</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.homebuyerLandingCtaCount || 0} selected Build my offer (${Number(metrics.homebuyerLandingCtaRate || 0).toFixed(1)}% of views) · ${metrics.homebuyerLandingOfferStartedCount || 0} opened the guided workspace (${Number(metrics.homebuyerLandingOfferStartRate || 0).toFixed(1)}% of selections).</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Checkout recovery: ${metrics.homebuyerCheckoutCancelledCount || 0} canceled returns · ${metrics.homebuyerCheckoutRecoveryStartCount || 0} restarted checkout (${Number(metrics.homebuyerCheckoutRecoveryStartRate || 0).toFixed(1)}%).</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Aggregate landing intent only; no buyer identity, property, financing, or offer details are included.</div>
           </div>
 
@@ -8254,6 +8268,7 @@ function routeAfterMagicLinkIfNeeded() {
       return;
     }
     try { trackEvent('Payment Checkout Recovery Selected', { state: 'stripe_restart' }); } catch (_) {}
+    recordHomebuyerCheckoutEvent('homebuyer_checkout_recovery_started');
     handlePayment();
   }
 
