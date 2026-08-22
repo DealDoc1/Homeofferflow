@@ -15,6 +15,7 @@ class HomebuyerLandingFunnelTests(unittest.TestCase):
         self.assertIn("HOMEBUYER_LANDING_CHANNELS", API)
         self.assertIn("def _record_homebuyer_landing_event(data):", API)
         self.assertIn('"homebuyer_landing_viewed": "viewed"', API)
+        self.assertIn('"homebuyer_landing_ready_list_opened": "ready_list_opened"', API)
         self.assertIn('"homebuyer_landing_cta_selected": "selected"', API)
         self.assertIn('"homebuyer_landing_offer_started": "started"', API)
         self.assertIn('"homebuyer_checkout_cancelled": "cancelled"', API)
@@ -30,6 +31,7 @@ class HomebuyerLandingFunnelTests(unittest.TestCase):
         self.assertIn("sessionStorage.getItem(key)", BUYERS)
         self.assertIn("request_type: 'homebuyer_landing_event'", BUYERS)
         self.assertIn("homebuyer_landing_viewed", BUYERS)
+        self.assertIn("homebuyer_landing_ready_list_opened", BUYERS)
         self.assertIn("homebuyer_landing_cta_selected", BUYERS)
         self.assertIn("recordAggregateFunnelEvent('homebuyer_landing_offer_started')", BUYERS)
         self.assertIn("channel: safeChannel", BUYERS)
@@ -41,6 +43,12 @@ class HomebuyerLandingFunnelTests(unittest.TestCase):
         self.assertEqual(BUYERS.count("Build my offer — no payment to start"), 2)
         self.assertIn("The $99 one-time charge applies only when the packet is ready.", BUYERS)
         self.assertIn('"price":"99"', BUYERS)
+
+    def test_buyer_ready_list_reduces_pre_start_uncertainty_without_collecting_details(self):
+        self.assertIn('id="buyerReadyList"', BUYERS)
+        self.assertIn("Bring what you know. The guided flow handles the rest.", BUYERS)
+        self.assertIn("homebuyer_landing_ready_list_opened", BUYERS)
+        self.assertIn("What should I have ready before starting a Texas homebuyer offer?", BUYERS)
 
     def test_public_buyer_cta_opens_the_guided_offer_workflow_on_a_fresh_visit(self):
         self.assertIn('href="/?buyer=1"', BUYERS)
@@ -56,6 +64,8 @@ class HomebuyerLandingFunnelTests(unittest.TestCase):
     def test_admin_reports_aggregate_buyer_landing_conversion(self):
         for expected in (
             '"homebuyerLandingViewCount"',
+            '"homebuyerLandingReadyListOpenCount"',
+            '"homebuyerLandingReadyListOpenRate"',
             '"homebuyerLandingCtaCount"',
             '"homebuyerLandingCtaRate"',
             '"homebuyerLandingOfferStartedCount"',

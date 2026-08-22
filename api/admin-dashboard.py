@@ -4241,6 +4241,9 @@ class handler(BaseHTTPRequestHandler):
             homebuyer_landing_view_count = len([
                 item for item in events if item.get("event_type") == "homebuyer_landing_viewed"
             ])
+            homebuyer_landing_ready_list_open_count = len([
+                item for item in events if item.get("event_type") == "homebuyer_landing_ready_list_opened"
+            ])
             homebuyer_landing_cta_count = len([
                 item for item in events if item.get("event_type") == "homebuyer_landing_cta_selected"
             ])
@@ -4731,6 +4734,10 @@ class handler(BaseHTTPRequestHandler):
                     1,
                 ) if subscription_checkout_return_by_source.get("ondemand", 0) else 0,
                 "homebuyerLandingViewCount": homebuyer_landing_view_count,
+                "homebuyerLandingReadyListOpenCount": homebuyer_landing_ready_list_open_count,
+                "homebuyerLandingReadyListOpenRate": round(
+                    (homebuyer_landing_ready_list_open_count / homebuyer_landing_view_count) * 100, 1
+                ) if homebuyer_landing_view_count else 0,
                 "homebuyerLandingCtaCount": homebuyer_landing_cta_count,
                 "homebuyerLandingCtaRate": round((homebuyer_landing_cta_count / homebuyer_landing_view_count) * 100, 1)
                 if homebuyer_landing_view_count else 0,

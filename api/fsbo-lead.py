@@ -191,6 +191,7 @@ ONDEMAND_LANDING_EVENT_TYPES = {
 }
 HOMEBUYER_LANDING_EVENT_TYPES = {
     "homebuyer_landing_viewed": "viewed",
+    "homebuyer_landing_ready_list_opened": "ready_list_opened",
     "homebuyer_landing_cta_selected": "selected",
     "homebuyer_landing_offer_started": "started",
     "homebuyer_checkout_cancelled": "cancelled",
