@@ -3877,9 +3877,16 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   }
   const SUPABASE_URL = 'https://acqylchftrjjoablvqyq.supabase.co';
   const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_KNp9ZbXMTNyhgnjcKFF-6A_IoLwyQLU';
-  const SUPABASE_REDIRECT_URL = ['http:', 'https:'].includes(window.location.protocol)
+  // Passwordless sessions created from a transient Vercel deployment used to
+  // return to that deployment. The session then appeared signed out on the
+  // canonical app, which is where agents and administrators actually work.
+  // Keep local development self-contained, but always send hosted users back
+  // to the canonical production origin.
+  const HOF_CANONICAL_ORIGIN = 'https://www.homeofferflow.com';
+  const HOF_IS_LOCAL_ORIGIN = /^(localhost|127\.0\.0\.1)(?::\d+)?$/i.test(window.location.host || '');
+  const SUPABASE_REDIRECT_URL = HOF_IS_LOCAL_ORIGIN && ['http:', 'https:'].includes(window.location.protocol)
     ? `${window.location.origin}${window.location.pathname}`
-    : 'https://www.homeofferflow.com/';
+    : `${HOF_CANONICAL_ORIGIN}${window.location.pathname}`;
   const HOF_ADMIN_EMAILS = ['andrewchri@gmail.com', 'support@homeofferflow.com', 'andrew@ondemanddfw.com'];
 
   const hofAuth = {
