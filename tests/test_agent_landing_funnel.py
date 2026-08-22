@@ -130,6 +130,8 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn('<title>Texas Real Estate Offer Tools for Agents &amp; Brokers | HomeOfferFlow</title>', AGENTS)
         self.assertIn('Texas real estate offer tools for agents and brokers', AGENTS)
         self.assertIn('Texas Real Estate Offer Tools for Agents &amp; Brokers | HomeOfferFlow', AGENTS)
+        self.assertIn('"@type":"BreadcrumbList"', AGENTS)
+        self.assertIn('"name":"Texas Agent and Broker Workspace"', AGENTS)
 
     def test_agent_faq_explains_the_next_workspace_for_each_transaction_without_selecting_a_form(self):
         self.assertIn('What happens after I choose a transaction?', AGENTS)
