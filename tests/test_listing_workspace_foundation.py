@@ -94,6 +94,12 @@ class ListingWorkspaceFoundationTests(unittest.TestCase):
         self.assertIn("Seller name(s)", INDEX)
         self.assertIn("Landlord name(s)", INDEX)
 
+    def test_optional_planning_topics_do_not_compete_with_the_listing_intake(self):
+        self.assertIn("Add optional planning topics", INDEX)
+        self.assertIn("Leave this closed if you only need a private listing workspace now.", INDEX)
+        self.assertIn("they do not select, create, send, or sign a form.", INDEX)
+        self.assertIn("<details class=\"field\" style=\"margin-top:0.8rem;\">", INDEX)
+
     def test_new_workspace_becomes_the_active_next_step_workspace(self):
         start = INDEX.index("async function saveListingWorkspaceFoundation()")
         end = INDEX.index("function listingWorkspaceLabel", start)

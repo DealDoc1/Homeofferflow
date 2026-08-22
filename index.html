@@ -11420,7 +11420,11 @@ function routeAfterMagicLinkIfNeeded() {
           <div class="field"><label for="listingWorkspaceAddress">Property Address</label><input id="listingWorkspaceAddress" maxlength="400" placeholder="Start typing the property address..." autocomplete="off" autocorrect="off" autocapitalize="words" spellcheck="false" aria-describedby="listingWorkspaceAddressHelp" required><small id="listingWorkspaceAddressHelp" style="display:block;margin-top:.35rem;color:var(--gray-light);">Choose a Google address suggestion when available; manual entry still works.</small></div>
           <div class="field" style="grid-column:1 / -1;"><label>${isLeaseListing ? 'Landlord name(s)' : 'Seller name(s)'}</label><input id="listingWorkspaceSellerNames" maxlength="720" placeholder="Separate multiple names with a semicolon" required></div>
         </div>
-        <div class="field" style="margin-top:0.8rem;"><label>Requested workflow planning</label><div style="display:flex; gap:.75rem; flex-wrap:wrap; margin-top:.4rem;">${workflowPrompt}</div></div>
+        <details class="field" style="margin-top:0.8rem;">
+          <summary style="cursor:pointer;font-weight:700;">Add optional planning topics</summary>
+          <p style="color:var(--gray-light);font-size:.84rem;line-height:1.5;margin:.55rem 0;">Leave this closed if you only need a private listing workspace now. These notes help organize a later conversation; they do not select, create, send, or sign a form.</p>
+          <div style="display:flex; gap:.75rem; flex-wrap:wrap;">${workflowPrompt}</div>
+        </details>
         <div class="field" style="margin-top:0.8rem;"><label>Private notes</label><textarea id="listingWorkspaceNotes" rows="3" maxlength="4000" placeholder="Internal planning notes. Do not enter unnecessary sensitive information."></textarea></div>
         <div class="platform-actions"><button type="button" onclick="saveListingWorkspaceFoundation()">Create Private Workspace</button><button type="button" onclick="loadListingWorkspacesFoundation()">Refresh Workspaces</button></div>
         <div id="listingWorkspaceStatus" class="platform-status"></div>
