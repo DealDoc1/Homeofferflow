@@ -234,6 +234,12 @@ class AgentActivationDashboardTests(unittest.TestCase):
         self.assertIn("hofSellerDisclosureCard: 'accountPanelSeller'", HTML)
         self.assertIn("new MutationObserver(routeCards).observe(dashboard, { childList: true });", HTML)
 
+    def test_listing_and_lease_listing_start_with_the_next_property_question(self):
+        self.assertIn('id="listingWorkspaceStartCard"', HTML)
+        self.assertIn("const workspaceStartCard = el.querySelector('#listingWorkspaceStartCard');", HTML)
+        self.assertIn("el.insertBefore(workspaceStartCard, firstWorkspaceCard);", HTML)
+        self.assertIn("const address = document.getElementById('listingWorkspaceAddress');", HTML)
+
     def test_activation_actions_record_stage_and_primary_or_secondary_choice(self):
         script_start = HTML.index('id="hof-agent-activation-v16-js"')
         script_end = HTML.index("</script>", script_start)
