@@ -20,7 +20,7 @@ class SeoHeroUpdateTests(unittest.TestCase):
     def test_agent_copy_does_not_overstate_current_form_coverage(self):
         self.assertIn("Write supported Texas <em>offers faster</em>.", INDEX)
         self.assertIn(
-            "every signed-in agent can start a private TXR-1501, TXR-1506, TXR-1507, or TXR-1508 draft from the HomeOfferFlow library",
+            "every signed-in agent can start private relationship, finance, environmental, and mineral review drafts, including TXR-1501, TXR-1506, TXR-1507, TXR-1508, TXR-1905, TXR-1914, TXR-1917, and TXR-1919",
             INDEX,
         )
         self.assertIn("explicit recipient confirmation before sending", INDEX)
