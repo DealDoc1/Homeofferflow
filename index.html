@@ -5322,8 +5322,16 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   window.openTenantRepresentationDraft = function openTenantRepresentationDraft(kind) {
     const opener = kind === 'long' ? window.hofOpenTxr1501Draft : window.hofOpenTxr1507Draft;
     const status = document.getElementById('leaseRepresentationQuickChoiceStatus');
-    if (typeof opener === 'function') return opener();
-    if (status) status.textContent = 'Loading the approved source for that draft. You can also select it from the private draft card below.';
+    if (typeof opener === 'function') {
+      window.__hofPendingTenantRepresentationDraft = '';
+      return opener();
+    }
+    // The agent has already made an explicit Short/Long choice. Keep only
+    // that non-sensitive selection while the approved-source check finishes,
+    // then open the same private draft automatically. This never creates,
+    // sends, signs, or selects agreement terms.
+    window.__hofPendingTenantRepresentationDraft = kind === 'long' ? 'long' : 'short';
+    if (status) status.textContent = 'Checking the approved source for your selected draft…';
   };
 
   async function openAccountDashboard(opts = {}) {
@@ -18305,6 +18313,12 @@ function routeAfterMagicLinkIfNeeded() {
       button.addEventListener('click', () => openDraftDialog(source));
       root.hofOpenTxr1507Draft = () => openDraftDialog(source);
       card.appendChild(button);
+      if (root.__hofPendingTenantRepresentationDraft === 'short') {
+        root.__hofPendingTenantRepresentationDraft = '';
+        const status = document.getElementById('leaseRepresentationQuickChoiceStatus');
+        if (status) status.textContent = 'Approved source ready. Opening your selected private draft…';
+        root.hofOpenTxr1507Draft();
+      }
     } catch (error) {
       console.error('TXR-1507 source check failed:', error);
       card.querySelector('#txr1507AgreementCopy').textContent = root.hofApprovedSourceStatusCopy(error);
@@ -18425,6 +18439,12 @@ function routeAfterMagicLinkIfNeeded() {
       button.addEventListener('click', () => openLongDraftDialog(source));
       root.hofOpenTxr1501Draft = () => openLongDraftDialog(source);
       card.appendChild(button);
+      if (root.__hofPendingTenantRepresentationDraft === 'long') {
+        root.__hofPendingTenantRepresentationDraft = '';
+        const status = document.getElementById('leaseRepresentationQuickChoiceStatus');
+        if (status) status.textContent = 'Approved source ready. Opening your selected private draft…';
+        root.hofOpenTxr1501Draft();
+      }
     } catch (error) {
       console.error('TXR-1501 source check failed:', error);
       card.querySelector('#txr1501AgreementCopy').textContent = root.hofApprovedSourceStatusCopy(error);
