@@ -2,14 +2,19 @@
 
 ## Launch scope: OnDemand Realty
 
-The OnDemand launch is intentionally scoped to the current **purchase-offer
-packet** and its currently supported purchase addenda, including the Seller
-Temporary Residential Lease when seller post-closing possession applies. It is not represented as
-a complete transaction-form library or a transaction-management platform.
+The OnDemand launch includes the current **purchase-offer packet** and its
+supported purchase addenda, including the Seller Temporary Residential Lease
+when seller post-closing possession applies. Signed-in agents can also start
+private review drafts for the currently approved TXR relationship,
+consumer-notice, seller-financing, mineral-reservation, loan-assumption, and
+environmental-review workflows, plus private seller-planning workspaces. It
+is not represented as a complete transaction-form library or a
+transaction-management platform.
 
-Agents must continue using OnDemand-approved workflows for standalone buyer
-representation agreements, listing agreements, seller disclosure notices, and
-any other documents not expressly available in HomeOfferFlow.
+Each workflow states whether it is private review-only or has a separate
+signature queue. Agents must continue using their brokerage-approved workflow
+for listing agreements, seller disclosure notices, and any other document not
+expressly available for its stated use in HomeOfferFlow.
 
 The authenticated agent dashboard now includes a **Request a missing form**
 action. It routes the request into the existing support/feedback queue with a
@@ -35,6 +40,12 @@ This language appears on `/ondemand` before an agent begins the 60-day trial.
 - Agent accounts, OnDemand attribution, a 60-day card-required trial, and
   broker-level aggregate activity visibility with buyer and property details
   withheld.
+- Private TXR-1501, TXR-1506, TXR-1507, TXR-1508, TXR-1905, TXR-1914,
+  TXR-1917, and TXR-1919 review-draft workflows for signed-in agents, where
+  the approved source is available. These workflows state their own delivery
+  limits and do not imply a send or signature capability where one is absent.
+- Private seller leads and listing workspaces with launch planning, seller
+  consultation briefs, and offer-comparison tools.
 
 ## Priority release order
 
