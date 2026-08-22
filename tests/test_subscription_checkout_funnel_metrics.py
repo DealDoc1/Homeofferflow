@@ -115,7 +115,12 @@ class SubscriptionCheckoutFunnelMetricTests(unittest.TestCase):
 
     def test_checkout_funnel_distinguishes_redirect_failures_and_delayed_session_returns(self):
         source = (ROOT / "index.html").read_text(encoding="utf-8")
-        self.assertIn("subscription_checkout_redirected", source)
+        checkout_source = (ROOT / "api" / "create-subscription-checkout" / "index.py").read_text(encoding="utf-8")
+        self.assertIn("self._record_checkout_redirect(", checkout_source)
+        self.assertIn('"event_type": "subscription_checkout_redirected"', checkout_source)
+        self.assertIn('"Stripe subscription checkout session created."', checkout_source)
+        self.assertIn("Keeping it server-side avoids losing", source)
+        self.assertNotIn("await logOfferEvent(null, 'subscription_checkout_redirected'", source)
         self.assertIn("subscription_checkout_failed", source)
         self.assertIn("queueSubscriptionCheckoutReturn(result, plan, billing)", source)
         self.assertIn("flushSubscriptionCheckoutReturnEvent", source)
