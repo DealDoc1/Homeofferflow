@@ -3009,6 +3009,17 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           <div class="usage-meter"><div class="usage-fill" style="width:0%"></div></div>
           <div class="usage-copy">Checking packet usage for this month.</div>
         </div>
+        <div class="account-card" id="agentWorkflowStart" style="margin-top:1rem;">
+          <h4>What are you working on?</h4>
+          <p style="color:var(--gray-light);line-height:1.55;margin:0 0 .9rem;">Start with the transaction type. We will only show the next steps that fit it.</p>
+          <div class="account-actions-row" style="margin-top:0;">
+            <button class="btn-primary" type="button" onclick="startAgentWorkflow('purchase')">Buying a property</button>
+            <button class="btn-secondary" type="button" onclick="startAgentWorkflow('sale_listing')">Listing a property</button>
+            <button class="btn-secondary" type="button" onclick="startAgentWorkflow('lease_listing')">Listing a lease</button>
+            <button class="btn-secondary" type="button" onclick="startAgentWorkflow('lease_representation')">Lease representation</button>
+          </div>
+          <p id="agentWorkflowStartStatus" style="color:var(--gray-light);font-size:.84rem;line-height:1.5;margin:.8rem 0 0;">You can change paths at any time; HomeOfferFlow will not choose a legal form or business term for you.</p>
+        </div>
         <div class="account-actions-row dashboard-legacy-actions">
           <button class="btn-primary" type="button" onclick="startAccountOffer()">Create New Offer</button>
           <button class="btn-secondary" type="button" onclick="showAccountTab('profile')">Complete Profile</button>
@@ -3050,8 +3061,8 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         <p style="color:var(--gray-light); line-height:1.6; margin-bottom:0;">Prepare private, brokerage-approved relationship and consumer-notice drafts. Review each saved draft, then use the private signing queue to explicitly confirm recipients before anything is sent.</p>
       </div>
       <div class="account-card" id="relationshipDraftsGuide">
-        <h4>Choose the workflow before you enter client details</h4>
-        <p style="color:var(--gray-light); line-height:1.6; margin-bottom:1rem;">Use your brokerage-approved process and choose deliberately. HomeOfferFlow does not select a form for you or replace broker supervision.</p>
+        <h4>Choose the relationship step deliberately</h4>
+        <p style="color:var(--gray-light); line-height:1.6; margin-bottom:1rem;">Use this after choosing Buyer or Lease representation above. HomeOfferFlow does not select a form for you, a legal agreement, compensation structure, or business term.</p>
         <div class="relationship-drafts-guide-grid">
           <div class="relationship-drafts-guide-item"><strong>TXR-1507 · Short Form</strong><span>Buyer/Tenant Representation Agreement draft.</span></div>
           <div class="relationship-drafts-guide-item"><strong>TXR-1501 · Long Form</strong><span>Buyer/Tenant Representation Agreement draft; use only when it is the form your brokerage has approved for the matter.</span></div>
@@ -6897,6 +6908,41 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       applyProfileDefaultsToWizard(true);
       restoreConditionalSections();
     }, 100);
+  }
+
+  // The agent workspace begins with the transaction, not a form catalog.
+  // This preserves a quiet TurboTax-style choice and keeps each downstream
+  // workflow in its proper buyer, listing, or lease context.
+  function startAgentWorkflow(kind) {
+    const choices = {
+      purchase: {
+        event: 'agent_workflow_purchase_selected',
+        message: 'Opening the guided buyer-offer workflow.',
+        action: () => startAccountOffer()
+      },
+      sale_listing: {
+        event: 'agent_workflow_sale_listing_selected',
+        message: 'Opening listing tools for the seller-side workflow.',
+        action: () => showAccountTab('seller')
+      },
+      lease_listing: {
+        event: 'agent_workflow_lease_listing_selected',
+        message: 'Opening listing tools for the landlord / lease-listing workflow.',
+        action: () => showAccountTab('seller')
+      },
+      lease_representation: {
+        event: 'agent_workflow_lease_representation_selected',
+        message: 'Opening relationship drafts for the tenant-representation workflow.',
+        action: () => showAccountTab('relationships')
+      }
+    };
+    const choice = choices[kind];
+    if (!choice) return;
+    window.hofAgentWorkflowContext = kind;
+    window.logOfferEvent?.(null, choice.event, 'selected', 'Agent selected a transaction workflow from the workspace start.', { workflow: kind });
+    const status = document.getElementById('agentWorkflowStartStatus');
+    if (status) status.textContent = choice.message;
+    choice.action();
   }
 
   const HOF_OFFER_WORKSPACE_PAGE_SIZE = 25;

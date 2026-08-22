@@ -57,7 +57,7 @@ class AgentLandingFunnelTests(unittest.TestCase):
 
     def test_relationship_workspace_explains_each_private_draft_without_selecting_a_form(self):
         self.assertIn('id="relationshipDraftsGuide"', INDEX)
-        self.assertIn('Choose the workflow before you enter client details', INDEX)
+        self.assertIn('Choose the relationship step deliberately', INDEX)
         for expected in (
             'TXR-1507 · Short Form',
             'TXR-1501 · Long Form',
