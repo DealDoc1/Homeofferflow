@@ -78,6 +78,8 @@ class TechnicalSeoTests(unittest.TestCase):
         self.assertEqual(len(entries), 12)
         self.assertEqual(dict(entries)["https://www.homeofferflow.com/"], "2026-08-22")
         self.assertEqual(dict(entries)["https://www.homeofferflow.com/agents"], "2026-08-22")
+        self.assertEqual(dict(entries)["https://www.homeofferflow.com/ondemand"], "2026-08-22")
+        self.assertEqual(dict(entries)["https://www.homeofferflow.com/partners"], "2026-08-22")
         self.assertEqual(dict(entries)["https://www.homeofferflow.com/buyers"], "2026-08-22")
         self.assertEqual(dict(entries)["https://www.homeofferflow.com/sellers"], "2026-08-22")
         self.assertEqual(dict(entries)["https://www.homeofferflow.com/texas-agent-offer-workflow"], "2026-08-22")
