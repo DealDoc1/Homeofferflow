@@ -94,6 +94,17 @@ class ListingWorkspaceFoundationTests(unittest.TestCase):
         self.assertIn("Seller name(s)", INDEX)
         self.assertIn("Landlord name(s)", INDEX)
 
+    def test_new_workspace_becomes_the_active_next_step_workspace(self):
+        start = INDEX.index("async function saveListingWorkspaceFoundation()")
+        end = INDEX.index("function listingWorkspaceLabel", start)
+        save = INDEX[start:end]
+        self.assertIn("insert(payload).select('id').single()", save)
+        self.assertIn("listingLaunchWorkspace", save)
+        self.assertIn("listingOfferWorkspace", save)
+        self.assertIn("listingLaunchChecklistCard", save)
+        self.assertIn("loadListingWorkspaceOffersFoundation()", save)
+        self.assertIn("default to an older property", save)
+
     def test_workspace_hardening_allowlists_requested_workflows_and_refreshes_timestamp(self):
         self.assertIn("hof_listing_workspaces_requested_workflows_allowed", HARDENING_MIGRATION)
         self.assertIn("hof_listing_workflows_allowed(value jsonb)", HARDENING_MIGRATION)
