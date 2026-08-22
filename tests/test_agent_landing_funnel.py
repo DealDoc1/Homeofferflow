@@ -111,7 +111,7 @@ class AgentLandingFunnelTests(unittest.TestCase):
     def test_public_agent_copy_matches_the_transaction_first_activation_path(self):
         self.assertIn('Start with the transaction—not a form catalog.', AGENTS)
         self.assertIn('Question 1', AGENTS)
-        self.assertIn('What kind of transaction are you starting?', AGENTS)
+        self.assertIn('Is this a listing, buying, lease listing, or lease representation transaction?', AGENTS)
         self.assertIn('Start question 1', AGENTS)
         self.assertIn('id="agentQuestionOneCta"', AGENTS)
         self.assertNotIn('Start a buyer offer — no payment', AGENTS)
