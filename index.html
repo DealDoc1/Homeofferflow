@@ -5284,7 +5284,21 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         }, 0);
       }
     }
-    if (tab === 'relationships') renderRelationshipDraftsPanel();
+    if (tab === 'relationships') {
+      renderRelationshipDraftsPanel();
+      // Match the buyer and listing paths: after choosing Lease
+      // representation, place the agent at the next deliberate question,
+      // rather than leaving them at the top of a broader form workspace.
+      // This is focus and scroll only; it does not choose an agreement or
+      // create, send, or sign a draft.
+      if (window.hofAgentWorkflowContext === 'lease_representation') {
+        window.setTimeout(() => {
+          const firstChoice = document.querySelector('#leaseRepresentationQuickChoices button');
+          firstChoice?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          firstChoice?.focus({ preventScroll: true });
+        }, 0);
+      }
+    }
     if (tab === 'partners') renderPartnerFoundationPanel();
     if (tab === 'ai') renderAiFoundationPanel();
     if (tab === 'admin') loadAdminDashboard();

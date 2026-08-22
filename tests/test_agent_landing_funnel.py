@@ -108,6 +108,11 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("root.hofOpenTxr1501Draft = () => openLongDraftDialog(source);", INDEX)
         self.assertIn("They do not infer which agreement is proper", INDEX)
 
+    def test_lease_representation_lands_on_its_next_explicit_choice(self):
+        self.assertIn("window.hofAgentWorkflowContext === 'lease_representation'", INDEX)
+        self.assertIn("document.querySelector('#leaseRepresentationQuickChoices button')", INDEX)
+        self.assertIn("firstChoice?.focus({ preventScroll: true });", INDEX)
+
     def test_public_agent_copy_matches_the_transaction_first_activation_path(self):
         self.assertIn('Start with the transaction—not a form catalog.', AGENTS)
         self.assertIn('Question 1', AGENTS)
