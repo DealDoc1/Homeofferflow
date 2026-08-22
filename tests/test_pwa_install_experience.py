@@ -33,7 +33,7 @@ class PwaInstallExperienceTests(unittest.TestCase):
         self.assertIn("pwa-install-benefits", INDEX)
         self.assertIn("offers and client details stay protected online", INDEX)
         self.assertIn("const workspaceReturnCopy = target.surface === 'account_dashboard'", INDEX)
-        self.assertIn('shortcuts for My Workspace, Listing Tools, Relationship Drafts, New Offer, Buyer Offer, Signing Queue, and Seller Plan', INDEX)
+        self.assertIn('shortcuts for My Workspace, Listing Tools, Relationship Drafts, New Offer, Buyer Offer, Signing Queue, Needs Attention, and Seller Plan', INDEX)
         self.assertIn("const desktopNativeInstall = !isIos() && !isAndroid() && !!deferredInstallPrompt", INDEX)
         self.assertIn("if (!isIos() && !isAndroid() && !desktopNativeInstall) return;", INDEX)
         self.assertIn("Install HomeOfferFlow as a focused desktop app", INDEX)
@@ -144,7 +144,7 @@ class PwaInstallExperienceTests(unittest.TestCase):
         self.assertIn("window.openAccountDashboard = async function openAccountDashboardWithPendingPwaShortcut()", INDEX)
 
     def test_only_safe_declared_shortcuts_can_be_saved_or_routed_after_authentication(self):
-        self.assertIn("const validActions = new Set(['workspace', 'listing_tools', 'relationship_drafts', 'new_offer', 'signing_queue', 'seller_plan', 'buyer_offer']);", INDEX)
+        self.assertIn("const validActions = new Set(['workspace', 'listing_tools', 'relationship_drafts', 'new_offer', 'signing_queue', 'attention_queue', 'seller_plan', 'buyer_offer']);", INDEX)
         self.assertIn("if (!validActions.has(action)) return;", INDEX)
         self.assertIn("sessionStorage.removeItem(pendingActionKey)", INDEX)
         self.assertIn("else if (action === 'relationship_drafts') await openRelationshipDrafts();", INDEX)
