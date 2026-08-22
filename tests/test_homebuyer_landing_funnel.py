@@ -90,6 +90,18 @@ class HomebuyerLandingFunnelTests(unittest.TestCase):
         self.assertIn('"pwaBuyerOfferShortcutCount"', ADMIN)
         self.assertIn("pwaBuyerOfferShortcutCount", INDEX)
 
+    def test_cancelled_buyer_checkout_explains_required_confirmations_before_restart(self):
+        self.assertIn('id="paymentCheckoutResumeHelp"', INDEX)
+        self.assertIn("confirm the one-time packet acknowledgement and receipt email below", INDEX)
+        self.assertIn("Review confirmations and resume secure checkout", INDEX)
+        resume_start = INDEX.index("function resumeCancelledBuyerCheckout()")
+        resume_end = INDEX.index("function setRadioValue", resume_start)
+        resume = INDEX[resume_start:resume_end]
+        self.assertIn("First, confirm the one-time packet acknowledgement below.", resume)
+        self.assertIn("Next, enter the email for your receipt and signing delivery.", resume)
+        self.assertIn("Your confirmations are complete. Opening secure checkout", resume)
+        self.assertIn("recordHomebuyerCheckoutEvent('homebuyer_checkout_recovery_started')", resume)
+
 
 if __name__ == "__main__":
     unittest.main()
