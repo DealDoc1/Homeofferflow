@@ -54,9 +54,9 @@ class PartnerLandingFunnelTests(unittest.TestCase):
         self.assertIn("window.jumpToFoundingPartnerEssentials?.()", INDEX)
         self.assertIn("All essentials, consent, and the secure", INDEX)
         self.assertIn("Stripe review remain required", INDEX)
-        self.assertIn('id="foundingPartnerEssentialsJump"', INDEX)
-        self.assertIn("Continue to the 5 essentials", INDEX)
-        self.assertIn("document.getElementById('foundingPartnerEssentialsJump')?.focus()", INDEX)
+        self.assertIn('id="foundingPartnerEssentials"', INDEX)
+        self.assertIn('id="foundingPartnerTierComparison"', INDEX)
+        self.assertIn("document.getElementById('foundingPartnerType')?.focus()", INDEX)
 
     def test_partner_funnel_measures_required_field_reach_without_collecting_applicant_data(self):
         self.assertIn("function recordPartnerEssentialsFocused()", INDEX)
