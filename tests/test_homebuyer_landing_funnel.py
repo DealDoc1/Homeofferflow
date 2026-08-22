@@ -66,6 +66,7 @@ class HomebuyerLandingFunnelTests(unittest.TestCase):
         self.assertIn("setAudience('homebuyer')", INDEX)
         self.assertIn("const buyerEntrySurface = buyerRouteParams.get('utm_source') === 'texas_homebuyer_offer_guide'", INDEX)
         self.assertIn("window.beginOfferFrom?.(buyerEntrySurface)", INDEX)
+        self.assertIn("window.beginOfferFrom = beginOfferFrom;", INDEX)
         self.assertIn("homebuyer_landing_offer_started", INDEX)
         self.assertIn("hof_homebuyer_landing_homebuyer_landing_offer_started_", INDEX)
         self.assertNotIn("function consumeHomebuyerLandingEntry()", INDEX)
