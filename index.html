@@ -14852,13 +14852,16 @@ function routeAfterMagicLinkIfNeeded() {
     const d = o.offer_data || {};
     const hasDoc = !!(o.signwell_document_id || d.signwellDocumentId || d.signwell?.document_id || d.signwell?.response?.id);
     if (status.includes('buyer signed') || status.includes('signed') || status.includes('complete')) return 'signed';
+    // A provider document id remains on an expired or declined request.  It
+    // must not mask the terminal status as a merely generated packet; the
+    // agent needs an intentional new draft before creating another request.
+    if (status.includes('delete') || status.includes('expired') || status.includes('declined')) return 'inactive';
     if (status.includes('awaiting') || status.includes('sent') || status.includes('viewed') || status.includes('partial')) return 'signing';
     // A SignWell document in Created is already a recipient-facing signing
     // request. Treating it as merely generated hid real follow-up work until
     // a later manual refresh changed the provider label.
     if (status.includes('created') && hasDoc) return 'signing';
     if (status.includes('generated') || status.includes('created') || hasDoc) return 'generated';
-    if (status.includes('delete') || status.includes('expired') || status.includes('declined')) return 'inactive';
     return 'draft';
   }
 
@@ -14879,7 +14882,9 @@ function routeAfterMagicLinkIfNeeded() {
 
   function nextAction(o){
     const b = bucketForOffer(o);
+    const status = cleanStatus(o).toLowerCase();
     const ageDays = Math.floor((Date.now() - new Date(o.last_updated || o.created_at || Date.now()).getTime()) / 86400000);
+    if (status.includes('expired')) return 'Signature link expired — duplicate into a new draft to resend';
     if (b === 'draft' && ageDays >= 2) return 'Resume this stale draft';
     if ((b === 'generated' || b === 'signing') && ageDays >= 2) return 'Refresh signing status and follow up';
     if (b === 'draft') return 'Resume and finish packet';
@@ -14911,6 +14916,8 @@ function routeAfterMagicLinkIfNeeded() {
 
   function needsAttention(o){
     const bucket = bucketForOffer(o);
+    const status = cleanStatus(o).toLowerCase();
+    if (status.includes('expired')) return true;
     if (!['draft', 'generated', 'signing'].includes(bucket)) return false;
     const updated = new Date(o.last_updated || o.created_at || 0).getTime();
     if (!Number.isFinite(updated) || updated <= 0) return false;
@@ -14964,6 +14971,7 @@ function routeAfterMagicLinkIfNeeded() {
     const sub = subtitle(o) || [o.property_city || d.propCity, o.property_state || d.propState].filter(Boolean).join(', ');
     const role = o.role || d.userType || root.hofAuth?.role || 'agent';
     const hasDoc = !!(o.signwell_document_id || d.signwellDocumentId || d.signwell?.document_id || d.signwell?.response?.id);
+    const isExpired = cleanStatus(o).toLowerCase().includes('expired');
     const needsBuyerReminder = hasDoc && bucketForOffer(o) === 'signing' && needsAttention(o);
     const tags = addendaTags(d).map(([t,c]) => `<span class="${c}">${esc(t)}</span>`).join('');
     const meta = root.getOfferPacketMeta ? root.getOfferPacketMeta(o) : [];
@@ -14990,7 +14998,7 @@ function routeAfterMagicLinkIfNeeded() {
         <button class="offer-action-btn" type="button" onclick="viewOfferDetails('${esc(o.id)}')">View</button>
         <button class="offer-action-btn" type="button" onclick="resumeOffer('${esc(o.id)}')">Resume</button>
         <button class="offer-action-btn" type="button" onclick="reuseOfferTerms('${esc(o.id)}')">Reuse terms</button>
-        <button class="offer-action-btn" type="button" onclick="duplicateOffer('${esc(o.id)}', false, true)">Duplicate &amp; edit</button>
+        <button class="offer-action-btn" type="button" onclick="duplicateOffer('${esc(o.id)}', false, true)">${isExpired ? 'Duplicate &amp; edit to resend' : 'Duplicate &amp; edit'}</button>
         ${hasDoc ? `<button class="offer-action-btn" type="button" onclick="refreshSignWellStatus('${esc(o.id)}', this)">Refresh</button>` : `<button class="offer-action-btn" type="button" onclick="viewOfferDetails('${esc(o.id)}')">Status</button>`}
         ${needsBuyerReminder ? `<button class="offer-action-btn" type="button" onclick="copyBuyerSigningReminder('${esc(o.id)}')">Copy buyer reminder</button>` : ''}
         <button class="offer-action-btn danger" type="button" onclick="deleteOffer('${esc(o.id)}')">Delete</button>
