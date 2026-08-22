@@ -24,6 +24,11 @@ SEO_GUIDES = {
         "Texas Homebuyer Offer Planning Guide",
         "https://www.homeofferflow.com/buyers",
     ),
+    "ondemand.html": (
+        "Texas Agent and Broker Workspace",
+        "OnDemand Realty Agent Launch",
+        "https://www.homeofferflow.com/agents",
+    ),
 }
 
 
