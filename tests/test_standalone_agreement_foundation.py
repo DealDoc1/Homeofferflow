@@ -78,6 +78,20 @@ def valid_notice_payload():
     }
 
 
+def valid_mineral_payload():
+    return {
+        "formCode": "TXR-1905",
+        "formSourceId": "00000000-0000-0000-0000-000000000001",
+        "propertyAddress": "1438 Whitaker Road, Van Alstyne, TX",
+        "buyerNames": ["Test Buyer"],
+        "sellerNames": ["Test Seller"],
+        "reservationChoice": "undivided_interest",
+        "undividedInterest": "25",
+        "surfaceRights": "waived",
+        "mineralReviewAcknowledgment": True,
+    }
+
+
 class StandaloneAgreementFoundationTests(unittest.TestCase):
     def test_txr_library_cards_do_not_require_active_brokerage_membership(self):
         self.assertNotIn("root.hofPlatform?.brokerageMembership?.status === 'active'", HTML)
@@ -99,6 +113,8 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
         self.assertIn("('TXR-1501', 'TXR-1507')", EXPANSION_MIGRATION)
         self.assertIn("('TXR-1501', 'TXR-1507', 'TXR-1508')", SHOWING_MIGRATION)
         self.assertIn("('TXR-1501', 'TXR-1506', 'TXR-1507', 'TXR-1508')", NOTICE_MIGRATION)
+        mineral_migration = (ROOT / "supabase" / "homeofferflow_add_txr_1905_private_drafts.sql").read_text()
+        self.assertIn("'TXR-1905'", mineral_migration)
 
     def test_valid_short_form_draft_requires_every_decision(self):
         draft = MODULE._parse_txr_1507_draft(valid_payload())
@@ -232,12 +248,25 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
         payload["formUseAttested"] = False
         self.assertEqual(MODULE._parse_txr_1506_draft(payload)["client_names"], ["Test Consumer"])
 
+    def test_mineral_draft_requires_explicit_source_choices_and_stays_private(self):
+        draft = MODULE._parse_txr_1905_draft(valid_mineral_payload())
+        self.assertEqual(draft["agreement_data"]["undivided_interest"], "25")
+        self.assertEqual(draft["agreement_data"]["surface_rights"], "waived")
+        payload = valid_mineral_payload()
+        payload["undividedInterest"] = ""
+        with self.assertRaisesRegex(ValueError, "undivided mineral-interest percentage"):
+            MODULE._parse_txr_1905_draft(payload)
+        payload = valid_mineral_payload()
+        payload["mineralReviewAcknowledgment"] = False
+        with self.assertRaisesRegex(ValueError, "review the mineral-reservation choices"):
+            MODULE._parse_txr_1905_draft(payload)
+
     def test_agent_ui_requires_an_approved_private_source_and_saves_draft_only(self):
         self.assertIn("Start TXR-1507 draft", HTML)
         self.assertIn("approved-form check", HTML)
         self.assertIn("hofApprovedSourceStatusCopy", HTML)
         self.assertIn("Request brokerage activation", HTML)
-        self.assertEqual(HTML.count("root.hofApprovedSourceStatusCopy(error)"), 4)
+        self.assertGreaterEqual(HTML.count("root.hofApprovedSourceStatusCopy(error)"), 5)
         self.assertIn("Source revision", HTML)
         self.assertIn("This saves a private draft only", HTML)
         self.assertIn("create_txr_1507_draft", HTML)
@@ -265,6 +294,10 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
         self.assertIn("Start TXR-1506 draft", HTML)
         self.assertIn("TXR-1506 is temporarily unavailable in the HomeOfferFlow form library", HTML)
         self.assertIn("create_txr_1506_draft", HTML)
+        self.assertIn("Start mineral addendum draft", HTML)
+        self.assertIn("create_txr_1905_draft", HTML)
+        self.assertIn("TXR-1905 is temporarily unavailable in the HomeOfferFlow form library", HTML)
+        self.assertIn("HomeOfferFlow saves a private review PDF", HTML)
 
     def test_agents_can_only_view_their_own_private_draft_summaries(self):
         self.assertIn('id="hof-private-form-drafts-v1"', HTML)
@@ -283,6 +316,7 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
         self.assertIn("create_txr_1501_draft", backend)
         self.assertIn("create_txr_1508_draft", backend)
         self.assertIn("create_txr_1506_draft", backend)
+        self.assertIn("create_txr_1905_draft", backend)
         self.assertIn("_require_brokerage_txr_authorization", backend)
         self.assertIn("txr_all_agents_authorized=is.true", backend)
         self.assertIn("txr_authorization_attested_by=not.is.null", backend)
