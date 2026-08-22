@@ -82,6 +82,11 @@ class PwaBaselineTests(unittest.TestCase):
         shortcut_module = INDEX.split('<script id="hof-pwa-shortcuts-v1">', 1)[1].split('</script>', 1)[0]
         self.assertIn('const root = window;', shortcut_module)
         self.assertIn("root.logOfferEvent?.(", shortcut_module)
+
+    def test_manifest_describes_agent_workspace_and_icons_forms_shortcut(self):
+        self.assertIn("shared agent form drafts", MANIFEST["description"])
+        forms = next(item for item in MANIFEST["shortcuts"] if item["name"] == "Agent Forms & Drafts")
+        self.assertEqual(forms["icons"][0]["src"], "/assets/homeofferflow-app-icon-192.png")
         self.assertIn("const validActions = new Set(['workspace', 'listing_tools', 'relationship_drafts', 'offer_review', 'new_offer', 'signing_queue', 'attention_queue', 'seller_plan', 'buyer_offer']);", INDEX)
         self.assertIn("if (!validActions.has(action)) return;", INDEX)
         self.assertIn("window.openAuthModal?.(role)", INDEX)

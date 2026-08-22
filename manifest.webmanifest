@@ -1,7 +1,7 @@
 {
   "name": "HomeOfferFlow",
   "short_name": "HomeOfferFlow",
-  "description": "Prepare and manage Texas real estate offer workflows.",
+  "description": "Prepare Texas real estate offers, shared agent form drafts, listing tools, and signing follow-up in one lightweight workspace.",
   "lang": "en-US",
   "dir": "ltr",
   "id": "/",
@@ -27,7 +27,8 @@
       "name": "Agent Forms & Drafts",
       "short_name": "Agent Forms",
       "description": "Open the private agent form library, relationship drafts, and review workflows.",
-      "url": "/?pwa_action=relationship_drafts"
+      "url": "/?pwa_action=relationship_drafts",
+      "icons": [{"src":"/assets/homeofferflow-app-icon-192.png","sizes":"192x192","type":"image/png"}]
     },
     {
       "name": "Offer Review",
