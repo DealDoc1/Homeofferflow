@@ -7928,6 +7928,10 @@ function routeAfterMagicLinkIfNeeded() {
     });
     startPrimaryOffer();
   }
+  // Public landing pages and installed-app shortcuts use the explicit window
+  // reference so their deferred route handlers can reliably enter the same
+  // guided offer flow after the base workspace script has initialized.
+  window.beginOfferFrom = beginOfferFrom;
 
   function startPrimaryOffer() {
     const selectedType = state?.data?.userType || 'homebuyer';
