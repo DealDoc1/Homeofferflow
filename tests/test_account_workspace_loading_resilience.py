@@ -13,8 +13,9 @@ class AccountWorkspaceLoadingResilienceTests(unittest.TestCase):
         workspace = HTML[start:end]
 
         self.assertLess(workspace.index("modal.classList.add('active')"), workspace.index("await loadAccountProfile()"))
-        self.assertIn("Opening your workspace…", workspace)
+        self.assertIn("Opening your workspace and loading saved profile, access, usage, and offers.", workspace)
         self.assertIn("dashboard.setAttribute('aria-busy', 'true')", workspace)
+        self.assertNotIn("dashboard.innerHTML = '<div class=\"account-card\"><h4>Opening your workspace", workspace)
 
     def test_remote_workspace_failures_are_visible_and_retryable(self):
         start = HTML.index("async function openAccountDashboard(opts = {})")
