@@ -11745,15 +11745,32 @@ function routeAfterMagicLinkIfNeeded() {
         requested_workflows: listingWorkspaceRequestedWorkflows(),
         confidential_notes: String(getVal('listingWorkspaceNotes') || '').trim() || null
       };
-      const { error } = await client.from('hof_listing_workspaces').insert(payload);
+      // Return the one record the signed-in agent just created so the next
+      // listing steps can continue in that same private workspace. This is
+      // deliberately owner-scoped and does not create a form or signing task.
+      const { data: createdWorkspace, error } = await client.from('hof_listing_workspaces').insert(payload).select('id').single();
       if (error) throw error;
       document.getElementById('listingWorkspaceAddress').value = '';
       delete document.getElementById('listingWorkspaceAddress').dataset.sellerLeadId;
       document.getElementById('listingWorkspaceSellerNames').value = '';
       document.getElementById('listingWorkspaceNotes').value = '';
       document.querySelectorAll('input[name="listingWorkflow"]').forEach(input => { input.checked = false; });
-      platformStatus('listingWorkspaceStatus', 'Private listing workspace created. It has not created a form or signature request.', 'ok');
+      platformStatus('listingWorkspaceStatus', 'Private listing workspace created. Next: use the kickoff checklist or consultation brief for this property. It has not created a form or signature request.', 'ok');
       await loadListingWorkspacesFoundation();
+      const createdWorkspaceId = String(createdWorkspace?.id || '');
+      if (createdWorkspaceId) {
+        // Keep every downstream private planning control on the workspace the
+        // agent just created. Without this, the next screen could silently
+        // default to an older property and introduce avoidable confusion.
+        ['listingLaunchWorkspace', 'listingOfferWorkspace'].forEach(id => {
+          const select = document.getElementById(id);
+          if (select && Array.from(select.options).some(option => option.value === createdWorkspaceId)) select.value = createdWorkspaceId;
+        });
+        await loadListingWorkspaceOffersFoundation();
+        const kickoff = document.getElementById('listingLaunchChecklistCard');
+        kickoff?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        kickoff?.querySelector('button')?.focus({ preventScroll: true });
+      }
     } catch (err) {
       console.error('Listing workspace save failed:', err);
       platformStatus('listingWorkspaceStatus', err?.message || 'Could not create the listing workspace.', 'err');
