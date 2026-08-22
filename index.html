@@ -5302,7 +5302,10 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     const dashboard = document.getElementById('accountPanelDashboard');
     if (dashboard) {
       dashboard.setAttribute('aria-busy', 'true');
-      dashboard.innerHTML = '<div class="account-card"><h4>Opening your workspace…</h4><p style="color:var(--gray-light);line-height:1.6;margin:0;">Loading your saved profile, access, usage, and offers.</p></div>';
+      // Keep the first-question dashboard visible while saved account data
+      // loads. Replacing this panel made the transaction chooser disappear
+      // just as an agent entered the workspace.
+      dashboard.setAttribute('aria-label', 'Opening your workspace and loading saved profile, access, usage, and offers.');
     }
     // Open the shell before remote account requests. Previously, one failed
     // request made the account button look unresponsive and hid the recovery
@@ -5334,7 +5337,10 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         dashboard.innerHTML = '<div class="account-card"><h4>Workspace needs a refresh</h4><p style="color:var(--gray-light);line-height:1.6;">' + safeMessage + '</p><div class="account-actions-row"><button class="btn-primary" type="button" onclick="openAccountDashboard({tab:\'dashboard\'})">Try again</button><button class="btn-secondary" type="button" onclick="showAccountTab(\'brokerage\')">Open Brokerage Setup</button></div></div>';
       }
     } finally {
-      if (dashboard) dashboard.setAttribute('aria-busy', 'false');
+      if (dashboard) {
+        dashboard.setAttribute('aria-busy', 'false');
+        dashboard.removeAttribute('aria-label');
+      }
     }
   }
 
