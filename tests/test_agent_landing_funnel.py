@@ -94,6 +94,9 @@ class AgentLandingFunnelTests(unittest.TestCase):
             'TXR-1501 · Long Form',
             'TXR-1508 · Showing Form',
             'TXR-1506 · Consumer Notice',
+            'TXR-1914 · Seller Financing Addendum',
+            'TXR-1917 · Environmental Assessment Addendum',
+            'TXR-1919 · Loan Assumption Addendum',
             'HomeOfferFlow does not select a form for you',
             'Drafts remain private until reviewed; where signing is enabled',
         ):
