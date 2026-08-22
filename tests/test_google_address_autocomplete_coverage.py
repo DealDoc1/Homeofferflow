@@ -34,3 +34,8 @@ class GoogleAddressAutocompleteCoverageTests(unittest.TestCase):
         self.assertIn("window._hofPlacesSetup = wireAddressInput", INDEX)
         self.assertIn("Promise.resolve(window.loadHofPlaces?.()).then(() => wireAddressInput())", INDEX)
 
+    def test_selection_telemetry_excludes_transaction_addresses(self):
+        self.assertIn("trackEvent('Google Address Selected'", INDEX)
+        self.assertIn("{ field, service: _autocompleteService || 'unknown' }", INDEX)
+        self.assertNotIn("trackEvent('Google Address Selected', { address", INDEX)
+        self.assertNotIn("trackEvent('Google Address Selected', { place", INDEX)
