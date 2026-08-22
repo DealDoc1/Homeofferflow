@@ -122,7 +122,7 @@ class PwaInstallExperienceTests(unittest.TestCase):
         self.assertIn("PWA only: app-like mobile access", INDEX)
 
     def test_offline_shell_cache_is_versioned_for_the_new_install_surface(self):
-        self.assertIn("homeofferflow-shell-v18", WORKER)
+        self.assertIn("homeofferflow-shell-v19", WORKER)
         self.assertIn("caches.delete", WORKER)
 
     def test_signed_out_shortcuts_resume_the_requested_agent_action_after_authentication(self):
@@ -134,10 +134,11 @@ class PwaInstallExperienceTests(unittest.TestCase):
         self.assertIn("window.openAccountDashboard = async function openAccountDashboardWithPendingPwaShortcut()", INDEX)
 
     def test_only_safe_declared_shortcuts_can_be_saved_or_routed_after_authentication(self):
-        self.assertIn("const validActions = new Set(['workspace', 'listing_tools', 'relationship_drafts', 'new_offer', 'signing_queue', 'attention_queue', 'seller_plan', 'buyer_offer']);", INDEX)
+        self.assertIn("const validActions = new Set(['workspace', 'listing_tools', 'relationship_drafts', 'offer_review', 'new_offer', 'signing_queue', 'attention_queue', 'seller_plan', 'buyer_offer']);", INDEX)
         self.assertIn("if (!validActions.has(action)) return;", INDEX)
         self.assertIn("sessionStorage.removeItem(pendingActionKey)", INDEX)
         self.assertIn("else if (action === 'relationship_drafts') await openRelationshipDrafts();", INDEX)
+        self.assertIn("else if (action === 'offer_review') await openOfferReviewShortcut(role);", INDEX)
         self.assertIn("pwa_authenticated_shortcut_opened", INDEX)
         self.assertIn("surface: 'pwa_shortcut'", INDEX)
 

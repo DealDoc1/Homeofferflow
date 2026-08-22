@@ -30,6 +30,12 @@
       "url": "/?pwa_action=relationship_drafts"
     },
     {
+      "name": "Offer Review",
+      "short_name": "Review",
+      "description": "Open the private offer-strength and risk review workspace.",
+      "url": "/?pwa_action=offer_review"
+    },
+    {
       "name": "New Offer",
       "short_name": "New Offer",
       "description": "Start or resume a saved offer in your workspace.",
