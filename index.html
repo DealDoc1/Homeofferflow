@@ -4871,7 +4871,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
               <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.subscriptionCheckoutRedirectCount || 0} redirected to Stripe · ${metrics.subscriptionCheckoutReturnCount || 0} returned · ${Number(metrics.subscriptionCheckoutReturnRate || 0).toFixed(1)}% return rate.</div>
               <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.subscriptionCheckoutFailureCount || 0} request failures before Stripe redirect.</div>
               <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Canceled-checkout recovery: ${metrics.subscriptionCheckoutRecoveryShownCount || 0} shown · ${metrics.subscriptionCheckoutRecoveryStartCount || 0} restarted in Stripe.</div>
-              <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">OnDemand: ${metrics.onDemandTrialEntryCount || 0} main-site trial entries · ${metrics.onDemandLandingViewCount || 0} landing views · ${metrics.onDemandMagicLinkRequestedCount || 0} secure links requested (${Number(metrics.onDemandMagicLinkRequestRate || 0).toFixed(1)}%) · ${metrics.onDemandTermsAcceptedCount || 0} trial terms accepted (${Number(metrics.onDemandTermsAcceptedRate || 0).toFixed(1)}%) · ${metrics.onDemandCheckoutStartCount || 0} started · ${metrics.onDemandCheckoutReturnCount || 0} returned · ${Number(metrics.onDemandCheckoutReturnRate || 0).toFixed(1)}% return rate · ${metrics.onDemandFirstOfferStartCount || 0} first-offer starts (${Number(metrics.onDemandFirstOfferStartRate || 0).toFixed(1)}% of returns).</div>
+              <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">OnDemand: ${metrics.onDemandTrialEntryCount || 0} main-site trial entries · ${metrics.onDemandLandingViewCount || 0} landing views · ${metrics.onDemandMagicLinkRequestedCount || 0} secure links requested (${Number(metrics.onDemandMagicLinkRequestRate || 0).toFixed(1)}%) · ${metrics.onDemandTermsAcceptedCount || 0} trial terms accepted (${Number(metrics.onDemandTermsAcceptedRate || 0).toFixed(1)}%) · ${metrics.onDemandCheckoutStartCount || 0} started · ${metrics.onDemandCheckoutReturnCount || 0} returned · ${Number(metrics.onDemandCheckoutReturnRate || 0).toFixed(1)}% return rate · ${metrics.onDemandTransactionPickerOpenedCount || 0} transaction choices (${Number(metrics.onDemandTransactionPickerOpenedRate || 0).toFixed(1)}% of returns) · ${metrics.onDemandFirstOfferStartCount || 0} first-offer starts (${Number(metrics.onDemandFirstOfferStartRate || 0).toFixed(1)}% of returns).</div>
           </div>
 
           <div class="admin-metric">
@@ -19743,6 +19743,35 @@ function routeAfterMagicLinkIfNeeded() {
     } catch (_) {}
   }
 
+  function recordOndemandTransactionPickerOpened(){
+    let attributed = false;
+    try {
+      attributed = sessionStorage.getItem(ondemandFirstOfferAttributionKey) === '1';
+      if (attributed) sessionStorage.removeItem(ondemandFirstOfferAttributionKey);
+    } catch (_) {}
+    if (!attributed) return;
+    try {
+      root.logOfferEvent?.(
+        null,
+        'ondemand_transaction_picker_opened',
+        '',
+        'OnDemand agent opened the transaction picker after checkout.',
+        { source: 'ondemand', surface: 'post_checkout', action: 'choose_transaction' }
+      );
+    } catch (_) {}
+  }
+
+  async function openNewOfferShortcut(role){
+    if (role === 'agent') {
+      recordOndemandTransactionPickerOpened();
+      await window.openAccountDashboard?.({ tab: 'dashboard' });
+      window.openAgentTransactionPicker?.();
+      return;
+    }
+    recordOndemandFirstOfferActivation();
+    window.startAccountOffer?.();
+  }
+
   async function openSigningQueue(){
     await window.openAccountDashboard?.({ tab: 'offers' });
     // The workspace applies its own safe status filter to the signed-in
@@ -19795,8 +19824,7 @@ function routeAfterMagicLinkIfNeeded() {
     else if (action === 'signing_queue') await openSigningQueue();
     else if (action === 'attention_queue') await openAttentionQueue();
     else {
-      recordOndemandFirstOfferActivation();
-      window.startAccountOffer?.();
+      await openNewOfferShortcut(role);
     }
     trackShortcut(action, role, resumedAfterSignIn);
   }
@@ -19808,8 +19836,7 @@ function routeAfterMagicLinkIfNeeded() {
     // cannot start duplicate offers.
     clearPendingAction();
     if (action === 'new_offer') {
-      recordOndemandFirstOfferActivation();
-      window.startAccountOffer?.();
+      await openNewOfferShortcut(window.hofAuth?.role === 'investor' ? 'investor' : 'agent');
     } else if (action === 'signing_queue') await openSigningQueue();
     else if (action === 'attention_queue') await openAttentionQueue();
     else if (action === 'listing_tools') await window.openAccountDashboard?.({ tab: 'seller' });
