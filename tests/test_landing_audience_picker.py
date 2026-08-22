@@ -39,13 +39,14 @@ class LandingAudiencePickerTests(unittest.TestCase):
         audience = HTML[audience_start:audience_end]
         for audience_key, label in (
             ("homebuyer", "Build a HomeOfferFlow homebuyer offer with no payment to start"),
-            ("agent", "Open the HomeOfferFlow agent and broker workspace"),
+            ("agent", "Choose an agent or broker transaction workflow"),
             ("investor", "Open the HomeOfferFlow investor workspace"),
         ):
             with self.subTest(audience=audience_key):
                 self.assertIn(f"audience: '{audience_key}'", audience)
                 self.assertIn(label, audience)
-        self.assertEqual(audience.count("beginOfferFrom('landing_audience_card_"), 3)
+        self.assertEqual(audience.count("beginOfferFrom('landing_audience_card_"), 2)
+        self.assertIn("window.location.assign('/agents')", audience)
         self.assertIn("audience_grid_card", audience)
         self.assertIn(".audience-card-action", HTML)
         self.assertIn("No payment to start · $99 when ready", audience)
