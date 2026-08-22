@@ -122,6 +122,9 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertNotIn('Start a buyer offer — no payment', AGENTS)
         self.assertIn('No password and no charge to start a private workspace.', AGENTS)
         self.assertIn('save your agent defaults afterward for faster repeat work', AGENTS)
+        self.assertIn('OnDemand Realty agents:', AGENTS)
+        self.assertIn('60 days free, then $29/month unless canceled.', AGENTS)
+        self.assertIn('id="agentTrialOffer"', AGENTS)
 
     def test_agent_landing_metadata_targets_high_intent_real_estate_offer_searches(self):
         self.assertIn('<title>Texas Real Estate Offer Tools for Agents &amp; Brokers | HomeOfferFlow</title>', AGENTS)
