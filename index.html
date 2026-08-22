@@ -13119,6 +13119,19 @@ function routeAfterMagicLinkIfNeeded() {
       </div>
     </details>
 
+    <div id="fsboGuidedGoalCard" style="margin-top:1rem; padding:.9rem; border:1px solid rgba(200,151,63,.24); border-radius:12px; background:rgba(200,151,63,.055);">
+      <div class="radio-group-label" style="margin-bottom:.25rem;">One quick question: what would help most right now?</div>
+      <div style="color:var(--gray-light); font-size:.8rem; line-height:1.45; margin-bottom:.6rem;">Choose a starting point and we will tailor the package details. You can change it or skip it; this is not a commitment.</div>
+      <input type="hidden" id="fsboGuidedGoal" value="">
+      <div class="account-actions-row" style="margin-top:0;gap:.5rem;">
+        <button type="button" class="btn-secondary" data-fsbo-goal="prepare" onclick="selectFsboGuidedGoal('prepare')">Prepare before listing</button>
+        <button type="button" class="btn-secondary" data-fsbo-goal="exposure" onclick="selectFsboGuidedGoal('exposure')">Get MLS exposure</button>
+        <button type="button" class="btn-secondary" data-fsbo-goal="offer" onclick="selectFsboGuidedGoal('offer')">Compare an offer</button>
+        <button type="button" class="btn-secondary" data-fsbo-goal="closing" onclick="selectFsboGuidedGoal('closing')">Organize closing</button>
+        <button type="button" class="btn-secondary" data-fsbo-goal="unsure" onclick="selectFsboGuidedGoal('unsure')">I’m not sure yet</button>
+      </div>
+    </div>
+
     <div style="margin-top:1rem; padding-top:.9rem; border-top:1px solid rgba(255,255,255,.08);">
       <div class="radio-group-label" style="margin-bottom:.25rem;">Optional: tell us what help you may want later</div>
       <div style="color:var(--gray-light); font-size:.8rem; line-height:1.45; margin-bottom:.55rem;">Your free seller plan is already selected. Choosing an option below only helps us tailor future recommendations; it does not start checkout or a paid service.</div>
@@ -13195,6 +13208,7 @@ function routeAfterMagicLinkIfNeeded() {
       'FSBO Seller Intake Opened': 'fsbo_intake_opened',
       'FSBO Seller Intake Required Fields Ready': 'fsbo_required_fields_ready',
       'FSBO Seller Package Selected': 'fsbo_package_selected',
+      'FSBO Seller Goal Selected': 'fsbo_goal_selected',
       'FSBO Seller Intake Required Fields Missing': 'fsbo_required_fields_missing',
       'FSBO Seller Request Submission Started': 'fsbo_request_submission_started',
       'FSBO Seller Request Saved': 'fsbo_request_saved',
@@ -13308,7 +13322,7 @@ function routeAfterMagicLinkIfNeeded() {
     window.submitFsboSellerLead?.('email_enter');
   });
   const fsboDraftStorageKey = 'hof_fsbo_intake_draft_v1';
-  const fsboDraftFields = ['fsboPropertyAddress', 'fsboPropertyCity', 'fsboPropertyCounty', 'fsboPropertyState', 'fsboPropertyZip', 'fsboSellerName', 'fsboSellerEmail', 'fsboSellerPhone', 'fsboAskingPrice', 'fsboTimeline', 'fsboNeed', 'fsboPackagePrice', 'fsboNotes'];
+  const fsboDraftFields = ['fsboPropertyAddress', 'fsboPropertyCity', 'fsboPropertyCounty', 'fsboPropertyState', 'fsboPropertyZip', 'fsboSellerName', 'fsboSellerEmail', 'fsboSellerPhone', 'fsboAskingPrice', 'fsboTimeline', 'fsboGuidedGoal', 'fsboNeed', 'fsboPackagePrice', 'fsboNotes'];
   function saveFsboDraft(){
     try {
       const fields = Object.fromEntries(fsboDraftFields.map(id => [id, document.getElementById(id)?.value || '']));
@@ -13354,6 +13368,7 @@ function routeAfterMagicLinkIfNeeded() {
       fsboDraftFields.forEach(id => { if (draft[id] && document.getElementById(id)) document.getElementById(id).value = draft[id]; });
       document.querySelectorAll('input[name="fsboPartner"]').forEach(input => { input.checked = Array.isArray(draft.partners) && draft.partners.includes(input.value); });
       if (draft.fsboNeed) window.selectFsboNeed?.(draft.fsboNeed, false); else window.renderFsboNeedDetails?.();
+      window.renderFsboGuidedGoal?.();
     } catch (_) { window.renderFsboNeedDetails?.(); }
     renderFsboRequiredReadyCue();
     renderFsboDraftRecoveryNotice(fsboDraftExists());
@@ -13502,6 +13517,31 @@ function routeAfterMagicLinkIfNeeded() {
   function fsboReadinessPlan(timeline) {
     return fsboReadinessPlans[timeline] || fsboReadinessPlans.not_sure;
   }
+  const fsboGuidedGoalPackages = {
+    prepare: 'seller_prep',
+    exposure: 'flat_fee_mls',
+    offer: 'offer_review',
+    closing: 'contract_help',
+    unsure: 'free_intake'
+  };
+  window.renderFsboGuidedGoal = function renderFsboGuidedGoal(){
+    const value = fsboVal('fsboGuidedGoal');
+    document.querySelectorAll('[data-fsbo-goal]').forEach(button => {
+      const selected = button.dataset.fsboGoal === value;
+      button.classList.toggle('btn-primary', selected);
+      button.classList.toggle('btn-secondary', !selected);
+      button.setAttribute('aria-pressed', selected ? 'true' : 'false');
+    });
+  };
+  window.selectFsboGuidedGoal = function selectFsboGuidedGoal(goal){
+    const selectedGoal = Object.prototype.hasOwnProperty.call(fsboGuidedGoalPackages, goal) ? goal : 'unsure';
+    const input = document.getElementById('fsboGuidedGoal');
+    if (input) input.value = selectedGoal;
+    window.renderFsboGuidedGoal?.();
+    const packageKey = fsboGuidedGoalPackages[selectedGoal];
+    trackFsboFunnel('FSBO Seller Goal Selected', { package: packageKey, goal: selectedGoal });
+    window.selectFsboNeed?.(packageKey);
+  };
   window.selectFsboNeed = function(key, shouldTrack = true) {
     const selected = fsboNeedCopy[key] ? key : 'free_intake';
     const input = document.getElementById('fsboNeed');
@@ -13656,6 +13696,7 @@ function routeAfterMagicLinkIfNeeded() {
       asking_price: fsboVal('fsboAskingPrice') ? Number(fsboVal('fsboAskingPrice')) : null,
       notes: [
         (fsboNeedCopy[fsboVal('fsboNeed')]?.title || fsboVal('fsboNeed')) + ' (' + (fsboVal('fsboPackagePrice') || fsboNeedCopy[fsboVal('fsboNeed')]?.price || '$0') + ')',
+        fsboVal('fsboGuidedGoal') ? 'Starting goal: ' + fsboVal('fsboGuidedGoal') : '',
         fsboVal('fsboTimeline') ? 'Timeline: ' + fsboVal('fsboTimeline') : '',
         getFsboPartners().length ? 'Partner interests: ' + getFsboPartners().join(', ') : '',
         fsboVal('fsboNotes')

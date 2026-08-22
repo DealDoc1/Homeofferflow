@@ -31,6 +31,9 @@ class FsboIntakeConversionTests(unittest.TestCase):
         self.assertIn("function renderFsboRequiredReadyCue", HTML)
         self.assertIn("Your address and email are complete", HTML)
         self.assertIn("Your free seller plan is already selected", HTML)
+        self.assertIn("One quick question: what would help most right now?", HTML)
+        self.assertIn("selectFsboGuidedGoal", HTML)
+        self.assertIn("fsboGuidedGoalPackages", HTML)
 
     def test_seller_funnel_events_are_analytics_only_and_never_include_identity(self):
         start = HTML.index("const fsboFunnel =")
@@ -41,6 +44,7 @@ class FsboIntakeConversionTests(unittest.TestCase):
             "FSBO Seller Intake Opened",
             "FSBO Seller Intake Required Fields Ready",
             "FSBO Seller Package Selected",
+            "FSBO Seller Goal Selected",
             "FSBO Seller Request Submission Started",
             "FSBO Seller Request Saved",
             "FSBO Seller Request Save Failed",
@@ -66,6 +70,8 @@ class FsboIntakeConversionTests(unittest.TestCase):
         self.assertIn('"sellerRequiredReadyCount"', admin)
         self.assertIn('"sellerReadyToSaveRate"', admin)
         self.assertIn("ready-to-save conversion", HTML)
+        self.assertIn('"fsbo_goal_selected": "selected"', api)
+        self.assertIn('"fsbo_goal_selected"', admin)
 
     def test_seller_plan_receipt_delivery_is_visible_as_aggregate_operations_evidence(self):
         api = (Path(__file__).resolve().parents[1] / "api" / "fsbo-lead.py").read_text(encoding="utf-8")
