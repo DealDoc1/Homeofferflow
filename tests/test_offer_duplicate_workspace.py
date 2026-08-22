@@ -56,7 +56,9 @@ class OfferDuplicateWorkspaceTests(unittest.TestCase):
         self.assertIn("return resumeOffer(insertResult.data.id)", duplicate)
 
     def test_duplicate_actions_open_the_new_copy_for_immediate_editing(self):
-        self.assertGreaterEqual(HTML.count("false, true)\">Duplicate &amp; edit</button>"), 5)
+        standard = HTML.count("false, true)\">Duplicate &amp; edit</button>")
+        expired_recovery = HTML.count("false, true)\">${isExpired ? 'Duplicate &amp; edit to resend' : 'Duplicate &amp; edit'}</button>")
+        self.assertGreaterEqual(standard + expired_recovery, 5)
 
 
 if __name__ == "__main__":
