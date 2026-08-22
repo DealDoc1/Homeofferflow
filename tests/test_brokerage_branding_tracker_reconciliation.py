@@ -24,6 +24,15 @@ class BrokerageBrandingTrackerReconciliationTests(unittest.TestCase):
         self.assertIn("BROKERAGE_BRANDING_BUCKET", ADMIN)
         self.assertIn("Only active brokerage admins", INDEX)
 
+    def test_legacy_branding_foundation_does_not_offer_a_rejected_external_logo_url(self):
+        foundation_start = INDEX.index("function renderBrokerageFoundationPanel()")
+        foundation_end = INDEX.index("function renderSellerFoundationPanel()", foundation_start)
+        foundation = INDEX[foundation_start:foundation_end]
+        self.assertNotIn('id="brandLogoUrl"', foundation)
+        self.assertNotIn("logo_url: getVal('brandLogoUrl')", foundation)
+        self.assertIn("External logo URLs are intentionally not accepted.", foundation)
+        self.assertIn("secure direct-upload control in Brokerage Administration below", foundation)
+
 
 if __name__ == "__main__":
     unittest.main()
