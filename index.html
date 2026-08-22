@@ -3057,8 +3057,8 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 
     <div class="account-panel" id="accountPanelRelationships">
       <div class="account-card">
-        <h4>Relationship Drafts</h4>
-        <p style="color:var(--gray-light); line-height:1.6; margin-bottom:0;">Prepare private, brokerage-approved relationship and consumer-notice drafts. Review each saved draft, then use the private signing queue to explicitly confirm recipients before anything is sent.</p>
+        <h4 id="relationshipDraftsHeading">Relationship Drafts</h4>
+        <p id="relationshipDraftsIntro" style="color:var(--gray-light); line-height:1.6; margin-bottom:0;">Prepare private, brokerage-approved relationship and consumer-notice drafts. Review each saved draft, then use the private signing queue to explicitly confirm recipients before anything is sent.</p>
       </div>
       <div class="account-card" id="relationshipDraftsGuide">
         <h4>Choose the relationship step deliberately</h4>
@@ -5273,6 +5273,22 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   function renderRelationshipDraftsPanel() {
     // Relationship cards are registered as part of the signed-in dashboard
     // lifecycle so approved-source checks stay centralized and unchanged.
+    const isLeaseRepresentation = window.hofAgentWorkflowContext === 'lease_representation';
+    const heading = document.getElementById('relationshipDraftsHeading');
+    const intro = document.getElementById('relationshipDraftsIntro');
+    const guide = document.getElementById('relationshipDraftsGuide');
+    if (heading) heading.textContent = isLeaseRepresentation ? 'Tenant Representation Workspace' : 'Relationship Drafts';
+    if (intro) intro.textContent = isLeaseRepresentation
+      ? 'You are starting tenant representation. Choose the brokerage-approved relationship step, prepare a private draft, and review it before using the separate signing queue. HomeOfferFlow will not choose a legal form, term, or recipient for you.'
+      : 'Prepare private, brokerage-approved relationship and consumer-notice drafts. Review each saved draft, then use the private signing queue to explicitly confirm recipients before anything is sent.';
+    if (guide) {
+      const title = guide.querySelector('h4');
+      const copy = guide.querySelector('p');
+      if (title) title.textContent = isLeaseRepresentation ? 'Start the tenant-representation conversation' : 'Choose the relationship step deliberately';
+      if (copy) copy.textContent = isLeaseRepresentation
+        ? 'Begin with the representation form your brokerage has approved for this tenant matter. The choices below stay private until you review and explicitly choose any next step.'
+        : 'Use this after choosing Buyer or Lease representation above. HomeOfferFlow does not select a form for you, a legal agreement, compensation structure, or business term.';
+    }
     window.renderAccountDashboard?.();
   }
 
@@ -11271,6 +11287,15 @@ function routeAfterMagicLinkIfNeeded() {
     const el = document.getElementById('sellerFoundationPanel');
     if (!el) return;
     el.className = '';
+    const isLeaseListing = window.hofAgentWorkflowContext === 'lease_listing';
+    const workspaceKind = isLeaseListing ? 'lease' : 'sale';
+    const workspaceTitle = isLeaseListing ? 'Lease Listing Workspace' : 'Sale Listing Workspace';
+    const workspaceDescription = isLeaseListing
+      ? 'Agent-side seller planning tools: you are starting a lease listing. Add the landlord and property first, then keep requested lease-listing steps in one private workspace.'
+      : 'Agent-side seller planning tools: you are starting a sale listing. Add the seller and property first, then keep launch, disclosure, and offer-review planning in one private workspace.';
+    const workflowPrompt = isLeaseListing
+      ? '<label style="display:flex; gap:.35rem; align-items:center;"><input type="checkbox" name="listingWorkflow" value="lease_listing" checked> Lease listing</label><label style="display:flex; gap:.35rem; align-items:center;"><input type="checkbox" name="listingWorkflow" value="listing_agreement"> Listing agreement</label><label style="display:flex; gap:.35rem; align-items:center;"><input type="checkbox" name="listingWorkflow" value="seller_disclosure"> Seller disclosure</label>'
+      : '<label style="display:flex; gap:.35rem; align-items:center;"><input type="checkbox" name="listingWorkflow" value="listing_agreement"> Listing agreement</label><label style="display:flex; gap:.35rem; align-items:center;"><input type="checkbox" name="listingWorkflow" value="seller_disclosure"> Seller disclosure</label><label style="display:flex; gap:.35rem; align-items:center;"><input type="checkbox" name="listingWorkflow" value="lease_listing"> Lease listing</label>';
     const campaignToolkit = isCurrentAdmin() ? `
       <div class="platform-card" id="sellerCampaignToolkit">
         <h4>FSBO Campaign Toolkit</h4>
@@ -11295,9 +11320,9 @@ function routeAfterMagicLinkIfNeeded() {
       </div>` : '';
     el.innerHTML = `
       <div class="platform-card">
-        <h4>Listing Tools Foundation</h4>
-        <p>Agent-side seller planning tools: private seller leads, listing workspaces, launch checklists, consultation briefs, offer comparisons, and estimated-proceeds worksheets. Executable documents remain separately source-gated.</p>
-        <div class="notice gold"><strong>Seller-side launch status:</strong> seller leads and private listing workspaces are live now. Executable listing agreements, seller disclosures, and lease-listing packets remain separately gated until the brokerage source is approved and the completed-signature visual QA is recorded. This keeps the seller workflow useful today without implying that an unapproved form is ready to send.</div>
+        <h4>${workspaceTitle}</h4>
+        <p>${workspaceDescription}</p>
+        <div class="notice gold"><strong>Start here:</strong> seller leads and private listing workspaces are live now. executable listing agreements, seller disclosures, and lease-listing packets appear only after their exact source workflow has been mapped and visually checked, including completed-signature visual QA, so this workspace never suggests an unready document can be sent.</div>
         <div class="platform-grid">
           <div class="field"><label>Workflow Type</label><select id="sellerLeadType"><option value="agent_listing">Listing Agent / Seller Rep</option><option value="fsbo">FSBO Referral / Seller Lead</option></select></div>
           <div class="field"><label for="sellerLeadAddress">Property Address</label><input id="sellerLeadAddress" placeholder="Start typing the property address..." autocomplete="off" autocorrect="off" autocapitalize="words" spellcheck="false" aria-describedby="sellerLeadAddressHelp"><small id="sellerLeadAddressHelp" style="display:block;margin-top:.35rem;color:var(--gray-light);">Choose a Google address suggestion when available; manual entry still works.</small></div>
@@ -11315,14 +11340,14 @@ function routeAfterMagicLinkIfNeeded() {
       ${campaignToolkit}
       <div class="platform-card"><h4>Recent Seller Leads</h4><div id="sellerLeadList" class="platform-list"><div class="platform-list-item">No seller leads loaded yet.</div></div></div>
       <div class="platform-card">
-        <h4>Private Listing Workspace</h4>
-        <p>Create a private workspace for a sale or lease listing. This organizes intake and requested workflows only; it does not create a legal form, send a packet, or collect signatures.</p>
+        <h4>${workspaceTitle}</h4>
+        <p>${workspaceDescription} This organizes intake and requested workflows only; it does not create a legal form, send a packet, or collect signatures.</p>
         <div class="platform-grid">
-          <div class="field"><label>Listing Type</label><select id="listingWorkspaceKind"><option value="sale">For Sale</option><option value="lease">For Lease</option></select></div>
+          <div class="field"><label>Listing Type</label><select id="listingWorkspaceKind"><option value="sale"${workspaceKind === 'sale' ? ' selected' : ''}>For Sale</option><option value="lease"${workspaceKind === 'lease' ? ' selected' : ''}>For Lease</option></select></div>
           <div class="field"><label for="listingWorkspaceAddress">Property Address</label><input id="listingWorkspaceAddress" maxlength="400" placeholder="Start typing the property address..." autocomplete="off" autocorrect="off" autocapitalize="words" spellcheck="false" aria-describedby="listingWorkspaceAddressHelp" required><small id="listingWorkspaceAddressHelp" style="display:block;margin-top:.35rem;color:var(--gray-light);">Choose a Google address suggestion when available; manual entry still works.</small></div>
           <div class="field" style="grid-column:1 / -1;"><label>Seller / landlord names</label><input id="listingWorkspaceSellerNames" maxlength="720" placeholder="Separate multiple names with a semicolon" required></div>
         </div>
-        <div class="field" style="margin-top:0.8rem;"><label>Requested workflow planning</label><div style="display:flex; gap:.75rem; flex-wrap:wrap; margin-top:.4rem;"><label style="display:flex; gap:.35rem; align-items:center;"><input type="checkbox" name="listingWorkflow" value="listing_agreement"> Listing agreement</label><label style="display:flex; gap:.35rem; align-items:center;"><input type="checkbox" name="listingWorkflow" value="seller_disclosure"> Seller disclosure</label><label style="display:flex; gap:.35rem; align-items:center;"><input type="checkbox" name="listingWorkflow" value="lease_listing"> Lease listing</label></div></div>
+        <div class="field" style="margin-top:0.8rem;"><label>Requested workflow planning</label><div style="display:flex; gap:.75rem; flex-wrap:wrap; margin-top:.4rem;">${workflowPrompt}</div></div>
         <div class="field" style="margin-top:0.8rem;"><label>Private notes</label><textarea id="listingWorkspaceNotes" rows="3" maxlength="4000" placeholder="Internal planning notes. Do not enter unnecessary sensitive information."></textarea></div>
         <div class="platform-actions"><button type="button" onclick="saveListingWorkspaceFoundation()">Create Private Workspace</button><button type="button" onclick="loadListingWorkspacesFoundation()">Refresh Workspaces</button></div>
         <div id="listingWorkspaceStatus" class="platform-status"></div>
@@ -12155,7 +12180,7 @@ function routeAfterMagicLinkIfNeeded() {
       const approved = new Map((payload.sources || []).map(row => [row.form_code, row.source_revision]));
       target.innerHTML = required.map(([code, label]) => {
         const revision = approved.get(code);
-        return `<div class="platform-list-item"><strong>${escapeAttr(code)}</strong> · ${escapeAttr(label)}<span class="platform-pill ${revision ? 'good' : ''}">${revision ? 'Source approved' : 'Source not approved'}</span>${revision ? `<br><small>Organization source revision: ${escapeAttr(revision)}. Execution remains gated.</small>` : '<br><small>An authorized organization administrator must privately upload and attest to the current authorized source before implementation can begin.</small>'}</div>`;
+        return `<div class="platform-list-item"><strong>${escapeAttr(code)}</strong> · ${escapeAttr(label)}<span class="platform-pill ${revision ? 'good' : ''}">${revision ? 'Source approved' : 'Source not approved'}</span>${revision ? `<br><small>Organization source revision: ${escapeAttr(revision)}. Execution remains unavailable until its source-specific workflow is ready.</small>` : '<br><small>An authorized organization administrator must privately upload and attest to the current authorized source before implementation can begin.</small>'}</div>`;
       }).join('');
     } catch (err) {
       console.warn('Listing source readiness load failed:', err);
