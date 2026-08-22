@@ -13781,8 +13781,10 @@ function routeAfterMagicLinkIfNeeded() {
     return partnerCampaignTiers.has(tier) ? tier : '';
   }
   function campaignPartnerChannel(){
-    const channel = String(params().get('utm_medium') || '').trim().toLowerCase();
-    return params().get('utm_source') === 'homeofferflow_admin' && partnerCampaignChannels.has(channel) ? channel : '';
+    const source = String(params().get('utm_source') || '').trim().toLowerCase();
+    const medium = String(params().get('utm_medium') || '').trim().toLowerCase();
+    if (partnerCampaignChannels.has(source)) return source;
+    return source === 'homeofferflow_admin' && partnerCampaignChannels.has(medium) ? medium : '';
   }
   function partnerQuickStartRequested(){
     return params().get('partner_quick_start') === '1';

@@ -198,6 +198,8 @@ class PartnerTierUiTests(unittest.TestCase):
         self.assertIn("const partnerCampaignTiers = new Set(['founding_pilot','monthly_placement','market_exclusive']);", self.html)
         self.assertIn("const partnerCampaignChannels = new Set(['direct_outreach','email','social','referral','local_event','print']);", self.html)
         self.assertIn("function campaignPartnerChannel()", self.html)
+        self.assertIn("if (partnerCampaignChannels.has(source)) return source;", self.html)
+        self.assertIn("source === 'homeofferflow_admin' && partnerCampaignChannels.has(medium)", self.html)
         self.assertIn("campaignChannel: campaign.channel || null", self.html)
         self.assertIn("params().get('partner_tier')", self.html)
         self.assertIn("return partnerCampaignTiers.has(tier) ? tier : '';", self.html)
