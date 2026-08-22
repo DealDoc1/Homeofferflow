@@ -32,11 +32,10 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("cleanUrl.searchParams.delete('agent')", INDEX)
         self.assertIn("window.openAuthModal?.('agent')", INDEX)
 
-    def test_agent_landing_can_hand_off_directly_to_private_listing_tools(self):
-        self.assertIn('href="/?agent=1&amp;workspace=seller"', AGENTS)
-        self.assertIn("['seller', 'relationship'].includes(agentRouteParams.get('workspace'))", INDEX)
-        self.assertIn("localStorage.setItem('hof_agent_landing_open_seller_workspace', '1')", INDEX)
-        self.assertIn("tab: openSellerLandingWorkspace ? 'seller' : (openRelationshipLandingWorkspace ? 'relationships' : 'dashboard')", INDEX)
+    def test_agent_landing_uses_transaction_choices_for_listing_handoffs(self):
+        self.assertIn('href="/?agent=1&amp;workflow=sale_listing"', AGENTS)
+        self.assertIn('href="/?agent=1&amp;workflow=lease_listing"', AGENTS)
+        self.assertIn("window.hofAgentWorkflowContext = agentLandingWorkflow", INDEX)
         self.assertIn("agent_landing_seller_workspace_handoff", INDEX)
 
     def test_agent_landing_can_start_each_transaction_in_its_relevant_workspace(self):
@@ -53,8 +52,8 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("window.hofAgentWorkflowContext = agentLandingWorkflow", INDEX)
         self.assertIn("cleanUrl.searchParams.delete('workflow')", INDEX)
 
-    def test_agent_landing_can_hand_off_to_private_relationship_drafts(self):
-        self.assertIn('href="/?agent=1&amp;workspace=relationship"', AGENTS)
+    def test_agent_landing_uses_lease_representation_for_relationship_draft_handoffs(self):
+        self.assertIn('href="/?agent=1&amp;workflow=lease_representation"', AGENTS)
         self.assertIn("hof_agent_landing_open_relationship_workspace", INDEX)
         self.assertIn("agent_landing_relationship_workspace_handoff", INDEX)
         self.assertIn("tab: 'relationships'", INDEX)
@@ -130,7 +129,6 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn('"surface": "agent_landing"', API)
         self.assertIn("data-agent-cta-path=\"client_draft\"", AGENTS)
         self.assertIn("data-agent-cta-path=\"seller_listing\"", AGENTS)
-        self.assertIn("data-agent-cta-path=\"relationship_drafts\"", AGENTS)
         self.assertIn("data-agent-cta-path=\"lease_listing\"", AGENTS)
         self.assertIn("data-agent-cta-path=\"lease_representation\"", AGENTS)
         self.assertIn("cta_path=ctaPath", AGENTS)
