@@ -4671,6 +4671,30 @@ class handler(BaseHTTPRequestHandler):
                 for item in events
                 if item.get("event_type") == "agent_landing_relationship_workspace_handoff" and item.get("user_id")
             })
+            # Transaction choices are aggregate product signals only. They let
+            # operations compare the actual workflow agents select after sign-
+            # in, without returning user, client, property, document, or form
+            # data in the Admin payload.
+            agent_transaction_workflows = ("purchase", "sale_listing", "lease_listing", "lease_representation")
+            agent_transaction_choice_counts = {workflow: 0 for workflow in agent_transaction_workflows}
+            agent_transaction_event_workflows = {
+                "agent_workflow_purchase_selected": "purchase",
+                "agent_workflow_sale_listing_selected": "sale_listing",
+                "agent_workflow_lease_listing_selected": "lease_listing",
+                "agent_workflow_lease_representation_selected": "lease_representation",
+            }
+            for item in events:
+                event_type = str(item.get("event_type") or "")
+                workflow = agent_transaction_event_workflows.get(event_type)
+                if not workflow and event_type in {
+                    "agent_landing_draft_handoff",
+                    "agent_landing_seller_workspace_handoff",
+                    "agent_landing_relationship_workspace_handoff",
+                }:
+                    candidate = str((item.get("metadata") or {}).get("workflow") or "")
+                    workflow = candidate if candidate in agent_transaction_choice_counts else None
+                if workflow in agent_transaction_choice_counts:
+                    agent_transaction_choice_counts[workflow] += 1
             investor_landing_view_count = len([
                 item for item in events if item.get("event_type") == "investor_landing_viewed"
             ])
@@ -5116,6 +5140,7 @@ class handler(BaseHTTPRequestHandler):
                 if agent_landing_cta_count else 0,
                 "agentLandingSellerWorkspaceHandoffUserCount": agent_landing_seller_workspace_handoff_user_count,
                 "agentLandingRelationshipWorkspaceHandoffUserCount": agent_landing_relationship_workspace_handoff_user_count,
+                "agentTransactionChoiceCounts": agent_transaction_choice_counts,
                 "investorLandingViewCount": investor_landing_view_count,
                 "investorLandingCtaCount": investor_landing_cta_count,
                 "investorLandingCtaRate": round((investor_landing_cta_count / investor_landing_view_count) * 100, 1)

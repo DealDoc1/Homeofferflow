@@ -4903,6 +4903,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.agentLandingCtaCount || 0} opened passwordless sign-in (${Number(metrics.agentLandingCtaRate || 0).toFixed(1)}%) · ${metrics.agentLandingDraftHandoffUserCount || 0} reached the private draft (${Number(metrics.agentLandingDraftHandoffRate || 0).toFixed(1)}% of CTA selections).</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Workspace paths after sign-in: ${metrics.agentLandingSellerWorkspaceHandoffUserCount || 0} listing tools · ${metrics.agentLandingRelationshipWorkspaceHandoffUserCount || 0} relationship drafts.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Landing CTA choices: ${Number(metrics.agentLandingCtaPathCounts?.client_draft || 0)} buyer offers · ${Number(metrics.agentLandingCtaPathCounts?.seller_listing || 0)} sale listings · ${Number(metrics.agentLandingCtaPathCounts?.lease_listing || 0)} lease listings · ${Number(metrics.agentLandingCtaPathCounts?.lease_representation || 0)} tenant representation · ${Number(metrics.agentLandingCtaPathCounts?.relationship_drafts || 0)} relationship drafts.</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Authenticated transaction choices: ${Number(metrics.agentTransactionChoiceCounts?.purchase || 0)} buying · ${Number(metrics.agentTransactionChoiceCounts?.sale_listing || 0)} sale listings · ${Number(metrics.agentTransactionChoiceCounts?.lease_listing || 0)} lease listings · ${Number(metrics.agentTransactionChoiceCounts?.lease_representation || 0)} tenant representation.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Agent workflow guide: ${metrics.agentWorkflowGuideViewCount || 0} views · ${metrics.agentWorkflowGuideCtaCount || 0} started a private draft (${Number(metrics.agentWorkflowGuideCtaRate || 0).toFixed(1)}% of guide views).</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Guide CTA choices: ${Number(metrics.agentWorkflowGuideCtaPathCounts?.client_draft || 0)} client draft · ${Number(metrics.agentWorkflowGuideCtaPathCounts?.seller_listing || 0)} listing tools · ${Number(metrics.agentWorkflowGuideCtaPathCounts?.relationship_drafts || 0)} relationship drafts.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Channel views / sign-ins: referral ${Number(metrics.agentLandingViewCountsByChannel?.referral || 0)} / ${Number(metrics.agentLandingCtaCountsByChannel?.referral || 0)} · email ${Number(metrics.agentLandingViewCountsByChannel?.email || 0)} / ${Number(metrics.agentLandingCtaCountsByChannel?.email || 0)} · social ${Number(metrics.agentLandingViewCountsByChannel?.social || 0)} / ${Number(metrics.agentLandingCtaCountsByChannel?.social || 0)} · outreach ${Number(metrics.agentLandingViewCountsByChannel?.direct_outreach || 0)} / ${Number(metrics.agentLandingCtaCountsByChannel?.direct_outreach || 0)} · local ${Number(metrics.agentLandingViewCountsByChannel?.local_event || 0)} / ${Number(metrics.agentLandingCtaCountsByChannel?.local_event || 0)} · print ${Number(metrics.agentLandingViewCountsByChannel?.print || 0)} / ${Number(metrics.agentLandingCtaCountsByChannel?.print || 0)}.</div>
@@ -7591,7 +7592,7 @@ function routeAfterMagicLinkIfNeeded() {
     if (startAgentLandingDraft && role !== 'investor') {
       setTimeout(() => {
         window.startAccountOffer?.();
-        window.logOfferEvent?.(null, 'agent_landing_draft_handoff', 'started', 'Agent landing visitor continued to the draft workflow after sign-in.', { source: agentLandingSource });
+        window.logOfferEvent?.(null, 'agent_landing_draft_handoff', 'started', 'Agent landing visitor continued to the draft workflow after sign-in.', { source: agentLandingSource, workflow: agentLandingWorkflow || 'purchase' });
       }, 450);
     }
     if (openSellerLandingWorkspace && role !== 'investor') {
@@ -14531,7 +14532,7 @@ function routeAfterMagicLinkIfNeeded() {
           window.logOfferEvent?.(null, 'agent_landing_relationship_workspace_handoff', 'opened', 'Signed-in agent opened private relationship drafts from the public landing page.', { source: agentLandingSource, workflow: agentLandingWorkflow || 'relationship_drafts' });
         } else {
           window.startAccountOffer?.();
-          window.logOfferEvent?.(null, 'agent_landing_draft_handoff', 'started', 'Signed-in agent continued to the draft workflow from the public landing page.', { source: agentLandingSource });
+          window.logOfferEvent?.(null, 'agent_landing_draft_handoff', 'started', 'Signed-in agent continued to the draft workflow from the public landing page.', { source: agentLandingSource, workflow: agentLandingWorkflow || 'purchase' });
         }
       } else {
         try {
