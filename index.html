@@ -3023,7 +3023,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           <div class="usage-copy">Checking packet usage for this month.</div>
         </div>
         <div class="account-actions-row dashboard-legacy-actions">
-          <button class="btn-primary" type="button" onclick="startAccountOffer()">Create New Offer</button>
+          <button class="btn-primary" type="button" onclick="startAccountTransaction()">Choose Transaction</button>
           <button class="btn-secondary" type="button" onclick="showAccountTab('profile')">Complete Profile</button>
           <button class="auth-secondary" type="button" onclick="signOutAccount(); closeAccountDashboard();">Logout</button>
         </div>
@@ -3034,7 +3034,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       <div id="accountProfileForm"></div>
       <div class="account-actions-row">
         <button class="btn-primary" type="button" onclick="saveAccountProfile()">Save Profile</button>
-        <button class="btn-secondary" type="button" onclick="startAccountOffer()">Create Offer</button>
+        <button class="btn-secondary" type="button" onclick="startAccountTransaction()">Choose Transaction</button>
       </div>
       <div class="account-status" id="accountStatus"></div>
     </div>
@@ -3044,7 +3044,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         <h4>My Offers</h4>
         <div id="myOffersList" class="offer-empty">No saved offers yet. Create your first offer and future drafts will show here.</div>
         <div class="account-actions-row">
-          <button class="btn-primary" type="button" onclick="startAccountOffer()">Create New Offer</button>
+          <button class="btn-primary" type="button" onclick="startAccountTransaction()">Start Transaction</button>
         </div>
       </div>
     </div>
@@ -6978,6 +6978,15 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     picker.focus({ preventScroll: true });
     const status = document.getElementById('agentWorkflowStartStatus');
     if (status) status.textContent = 'Choose the transaction you are working on to continue.';
+  };
+
+  // Every generic agent-account launch point returns to Question 1. Explicit
+  // "New Buyer Offer" controls inside the offer workspace remain buyer-only;
+  // this prevents a general dashboard action from silently choosing buying.
+  window.startAccountTransaction = function startAccountTransaction() {
+    if (hofAuth.role === 'investor') return startAccountOffer();
+    showAccountTab('dashboard');
+    window.openAgentTransactionPicker?.();
   };
 
   // The agent workspace begins with the transaction, not a form catalog.

@@ -230,6 +230,14 @@ class AgentActivationDashboardTests(unittest.TestCase):
         for label in ('>Buying</button>', '>Listing</button>', '>Lease listing</button>', '>Lease representation</button>'):
             self.assertIn(label, HTML)
 
+    def test_generic_agent_account_offer_actions_return_to_question_one(self):
+        self.assertIn("window.startAccountTransaction = function startAccountTransaction()", HTML)
+        self.assertIn("if (hofAuth.role === 'investor') return startAccountOffer();", HTML)
+        self.assertIn("showAccountTab('dashboard');", HTML)
+        self.assertIn("window.openAgentTransactionPicker?.();", HTML)
+        self.assertIn('onclick="startAccountTransaction()">Choose Transaction</button>', HTML)
+        self.assertIn('onclick="startAccountTransaction()">Start Transaction</button>', HTML)
+
     def test_transaction_first_dashboard_routes_unrelated_drafts_to_their_workspaces(self):
         self.assertIn('id="hof-transaction-first-dashboard-routing-v1"', HTML)
         self.assertIn("hofStandaloneAgreementCard: 'accountPanelRelationships'", HTML)
