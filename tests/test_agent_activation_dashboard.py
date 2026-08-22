@@ -232,6 +232,8 @@ class AgentActivationDashboardTests(unittest.TestCase):
         self.assertIn("hofStandaloneAgreementCard: 'accountPanelRelationships'", HTML)
         self.assertIn("privateFormDraftsCard: 'accountPanelRelationships'", HTML)
         self.assertIn("hofSellerDisclosureCard: 'accountPanelSeller'", HTML)
+        self.assertIn("hofAiReviewHistoryCard: 'accountPanelAi'", HTML)
+        self.assertIn("hofLegalAcceptanceReceipt: 'accountPanelProfile'", HTML)
         self.assertIn("new MutationObserver(routeCards).observe(dashboard, { childList: true });", HTML)
 
     def test_listing_and_lease_listing_start_with_the_next_property_question(self):

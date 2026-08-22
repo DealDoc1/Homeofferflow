@@ -19964,7 +19964,9 @@ function routeAfterMagicLinkIfNeeded() {
   const destinations = {
     hofStandaloneAgreementCard: 'accountPanelRelationships',
     privateFormDraftsCard: 'accountPanelRelationships',
-    hofSellerDisclosureCard: 'accountPanelSeller'
+    hofSellerDisclosureCard: 'accountPanelSeller',
+    hofAiReviewHistoryCard: 'accountPanelAi',
+    hofLegalAcceptanceReceipt: 'accountPanelProfile'
   };
   function routeCards() {
     Object.entries(destinations).forEach(([cardId, panelId]) => {
