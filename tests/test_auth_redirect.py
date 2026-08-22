@@ -7,16 +7,21 @@ HTML = (ROOT / "index.html").read_text(encoding="utf-8")
 
 
 class AuthRedirectTests(unittest.TestCase):
-    def test_magic_link_returns_to_the_current_deployment(self):
+    def test_magic_link_returns_to_localhost_only_during_local_development(self):
         self.assertIn(
             "`${window.location.origin}${window.location.pathname}`",
             HTML,
         )
+        self.assertIn("const HOF_IS_LOCAL_ORIGIN", HTML)
         self.assertIn("emailRedirectTo: SUPABASE_REDIRECT_URL", HTML)
 
-    def test_non_web_context_keeps_the_production_fallback(self):
+    def test_hosted_context_uses_the_canonical_production_return(self):
         self.assertIn(
-            ": 'https://www.homeofferflow.com/';",
+            "const HOF_CANONICAL_ORIGIN = 'https://www.homeofferflow.com';",
+            HTML,
+        )
+        self.assertIn(
+            "`${HOF_CANONICAL_ORIGIN}${window.location.pathname}`",
             HTML,
         )
 
