@@ -42,8 +42,22 @@ FORM_CODES = {
     "TXR-1101", "TXR-1102", "TXR-1406", "TXR-1418",
     "TREC-55-1", "TREC-61-0",
 }
+RESTRICTED_TXR_SIGNING_CODES = {"TXR-1501", "TXR-1506", "TXR-1507", "TXR-1508"}
+TXR_SIGNING_ENABLED = str(os.environ.get("HOF_TXR_SIGNING_ENABLED", "false")).lower() in {"1", "true", "yes", "on"}
 REVISION_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,47}$")
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
+
+
+def _workflow_activation_status(form_code):
+    """Describe whether an approved source immediately unlocks its queue.
+
+    Source intake never sends a document by itself.  When the independently
+    configured TXR signing release is on, though, an approved source for one
+    of the four supported TXR workflows is ready to be selected in the
+    private draft and signing queue.  Returning this truthfully keeps the
+    admin surface from reporting a stale, contradictory "locked" status.
+    """
+    return bool(TXR_SIGNING_ENABLED and form_code in RESTRICTED_TXR_SIGNING_CODES)
 
 
 def _headers(content_type="application/json"):
@@ -261,7 +275,7 @@ async def _upload_source(user, data):
         "originalFilename": parsed["original_filename"],
         "sourceSha256": parsed["source_sha256"],
         "status": "approved",
-        "workflowActivated": False,
+        "workflowActivated": _workflow_activation_status(parsed["form_code"]),
     }
 
 
@@ -317,4 +331,3 @@ class handler(BaseHTTPRequestHandler):
 
     def log_message(self, *_args):
         return
-

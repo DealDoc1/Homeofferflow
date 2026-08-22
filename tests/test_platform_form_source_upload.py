@@ -66,9 +66,17 @@ class PlatformFormSourceUploadTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "supported form source"):
             module._parse_payload(json.dumps(payload).encode())
 
-    def test_response_contract_explicitly_keeps_workflow_inactive(self):
+    def test_response_contract_reports_the_actual_released_workflow_status(self):
         source = (ROOT / "lib" / "platform_form_source_upload.py").read_text()
-        self.assertIn('"workflowActivated": False', source)
+        self.assertIn('"workflowActivated": _workflow_activation_status(parsed["form_code"])', source)
+        self.assertFalse(module._workflow_activation_status("TXR-1507"))
+        previous = module.TXR_SIGNING_ENABLED
+        try:
+            module.TXR_SIGNING_ENABLED = True
+            self.assertTrue(module._workflow_activation_status("TXR-1507"))
+            self.assertFalse(module._workflow_activation_status("TXR-1101"))
+        finally:
+            module.TXR_SIGNING_ENABLED = previous
         self.assertIn("Platform-admin access is required", source)
         self.assertIn("authorization_attested", source)
 
