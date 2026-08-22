@@ -58,6 +58,16 @@ class PartnerLandingFunnelTests(unittest.TestCase):
         self.assertIn('id="foundingPartnerTierComparison"', INDEX)
         self.assertIn("document.getElementById('foundingPartnerType')?.focus()", INDEX)
 
+    def test_quick_start_begins_at_the_first_unfinished_essential(self):
+        start = INDEX.index("window.jumpToFoundingPartnerEssentials = function")
+        end = INDEX.index("window.closeFoundingPartnerModal", start)
+        quick_start = INDEX[start:end]
+        self.assertIn("Always begin at the first unfinished required field", quick_start)
+        self.assertIn("['foundingPartnerType'", quick_start)
+        self.assertIn("['foundingPartnerCompany'", quick_start)
+        self.assertIn("const firstIncomplete", quick_start)
+        self.assertIn("document.getElementById(firstIncomplete)?.focus()", quick_start)
+
     def test_partner_funnel_measures_required_field_reach_without_collecting_applicant_data(self):
         self.assertIn("function recordPartnerEssentialsFocused()", INDEX)
         self.assertIn("partner_application_essentials_focused", INDEX)
