@@ -14222,7 +14222,18 @@ function routeAfterMagicLinkIfNeeded() {
     trackPartnerFunnel('Founding Partner Essentials Jumped', { tier: value('foundingPartnerModel') || 'founding_pilot' });
     recordPartnerApplicationProgress('partner_application_essentials_opened');
     essentials.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    setTimeout(() => document.getElementById('foundingPartnerCompany')?.focus(), 250);
+    // A campaign can preselect the category, but an ordinary partner visit
+    // cannot. Always begin at the first unfinished required field so Quick
+    // Start never skips the category and produces an avoidable error later.
+    const fields = [
+      ['foundingPartnerType', () => Boolean(value('foundingPartnerType'))],
+      ['foundingPartnerCompany', () => Boolean(value('foundingPartnerCompany'))],
+      ['foundingPartnerContact', () => Boolean(value('foundingPartnerContact'))],
+      ['foundingPartnerEmail', () => Boolean(value('foundingPartnerEmail')) && Boolean(document.getElementById('foundingPartnerEmail')?.checkValidity())],
+      ['foundingPartnerMarket', () => Boolean(value('foundingPartnerMarket'))]
+    ];
+    const firstIncomplete = fields.find(([, complete]) => !complete)?.[0] || 'foundingPartnerType';
+    setTimeout(() => document.getElementById(firstIncomplete)?.focus(), 250);
   };
   document.querySelectorAll('#foundingPartnerEssentials input, #foundingPartnerEssentials select').forEach(field => {
     field.addEventListener('focus', recordPartnerEssentialsFocused, { once: true });
