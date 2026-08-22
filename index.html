@@ -11395,7 +11395,7 @@ function routeAfterMagicLinkIfNeeded() {
       </div>
       ${campaignToolkit}
       <div class="platform-card"><h4>Recent Seller Leads</h4><div id="sellerLeadList" class="platform-list"><div class="platform-list-item">No seller leads loaded yet.</div></div></div>
-      <div class="platform-card">
+      <div class="platform-card" id="listingWorkspaceStartCard">
         <div class="eyebrow" style="margin-bottom:.35rem;">Question 2</div>
         <h4>${isLeaseListing ? 'Which property is this lease listing for?' : 'Which property is this listing for?'}</h4>
         <p>${isLeaseListing ? 'Add the property and landlord first. Then HomeOfferFlow keeps the requested lease-listing planning in one private workspace.' : 'Add the property and seller first. Then HomeOfferFlow keeps the requested listing planning in one private workspace.'}</p>
@@ -11452,6 +11452,14 @@ function routeAfterMagicLinkIfNeeded() {
         <div id="listingOfferNetResult" class="platform-list" style="margin-top:.8rem;"></div>
       </div>
       <div class="platform-card"><h4>Listing Form Readiness</h4><p>These are private brokerage source-approval indicators only. An approved source does not make a listing agreement or seller disclosure executable, sendable, or signable in HomeOfferFlow.</p><div id="listingWorkspaceSourceReadiness" class="platform-list"><div class="platform-list-item">Checking brokerage source readiness…</div></div><div class="notice" style="margin-top:.75rem;"><strong>Next seller-side release sequence:</strong> (1) authorize the exact listing/lease and seller-disclosure PDFs, (2) map fields and signer roles, (3) run authenticated one-client/two-client preview QA, (4) complete signed visual QA, then (5) activate sending. Until then, the workspace remains the safe place to collect the listing request and keep it private.</div></div>`;
+    // Question 1 promised a simple transaction-first path. Place the first
+    // real listing question ahead of optional lead capture, campaigns, and
+    // downstream tools so the next action is always property + client.
+    const workspaceStartCard = el.querySelector('#listingWorkspaceStartCard');
+    const firstWorkspaceCard = el.querySelector('.platform-card');
+    if (workspaceStartCard && firstWorkspaceCard && workspaceStartCard !== firstWorkspaceCard) {
+      el.insertBefore(workspaceStartCard, firstWorkspaceCard);
+    }
     loadSellerLeadsFoundation();
     loadListingWorkspacesFoundation();
     loadListingWorkspaceSourceReadiness();
