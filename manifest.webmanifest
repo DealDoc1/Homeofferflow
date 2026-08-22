@@ -48,6 +48,12 @@
       "url": "/?pwa_action=signing_queue"
     },
     {
+      "name": "Needs Attention",
+      "short_name": "Attention",
+      "description": "Open stale drafts, waiting signatures, and expired signing recovery work.",
+      "url": "/?pwa_action=attention_queue"
+    },
+    {
       "name": "Seller Plan",
       "short_name": "Seller Plan",
       "description": "Return to the FSBO seller plan and package request.",

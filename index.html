@@ -19209,7 +19209,7 @@ function routeAfterMagicLinkIfNeeded() {
       ? 'Save this seller plan to your Home Screen so it is one tap away when you return to photos, repairs, timing, or provider questions.'
       : '';
     const workspaceReturnCopy = target.surface === 'account_dashboard'
-      ? 'Use the app icon for a focused workspace launch, with shortcuts for My Workspace, Listing Tools, Relationship Drafts, New Offer, Buyer Offer, Signing Queue, and Seller Plan.'
+      ? 'Use the app icon for a focused workspace launch, with shortcuts for My Workspace, Listing Tools, Relationship Drafts, New Offer, Buyer Offer, Signing Queue, Needs Attention, and Seller Plan.'
       : '';
     card.innerHTML = desktopCompact ? `<div><h4>Optional: install the focused desktop workspace</h4><p>Open HomeOfferFlow in its own window from your desktop or taskbar. Your browser already supports it; no App Store, separate account, or native build is needed.</p></div><div class="pwa-install-actions"><button class="btn-secondary" type="button" id="hofPwaInstallButton">Install desktop app</button><button class="btn-secondary" type="button" id="hofPwaInstallDismiss">Not now</button></div>` : `<h4>Keep HomeOfferFlow one tap away</h4>
       <p>${ios
@@ -19376,7 +19376,7 @@ function routeAfterMagicLinkIfNeeded() {
   const root = window;
   const pendingActionKey = 'hof_pwa_shortcut_pending_action';
   const ondemandFirstOfferAttributionKey = 'hof_ondemand_first_offer_attribution';
-  const validActions = new Set(['workspace', 'listing_tools', 'relationship_drafts', 'new_offer', 'signing_queue', 'seller_plan', 'buyer_offer']);
+  const validActions = new Set(['workspace', 'listing_tools', 'relationship_drafts', 'new_offer', 'signing_queue', 'attention_queue', 'seller_plan', 'buyer_offer']);
   let defaultWorkspaceOpened = false;
 
   function isStandalonePwa(){
@@ -19412,7 +19412,7 @@ function routeAfterMagicLinkIfNeeded() {
     // Authenticated workspace shortcuts are measured server-side as an
     // aggregate operational signal. The event stores no client, property,
     // form, source, device, or URL data; Admin receives counts only.
-    if (window.hofAuth?.session && ['workspace', 'listing_tools', 'relationship_drafts', 'new_offer', 'signing_queue'].includes(action)) {
+    if (window.hofAuth?.session && ['workspace', 'listing_tools', 'relationship_drafts', 'new_offer', 'signing_queue', 'attention_queue'].includes(action)) {
       try {
         window.logOfferEvent?.(
           null,
@@ -19480,6 +19480,13 @@ function routeAfterMagicLinkIfNeeded() {
     window.hofSetOfferWorkspaceFilter?.('signing');
   }
 
+  async function openAttentionQueue(){
+    await window.openAccountDashboard?.({ tab: 'offers' });
+    // This is a private, account-scoped filter. The installed-app shortcut
+    // carries no client, property, offer, or signing identifier in the URL.
+    window.hofSetOfferWorkspaceFilter?.('attention');
+  }
+
   async function openRelationshipDrafts(){
     await window.openAccountDashboard?.({ tab: 'relationships' });
     // Relationship drafts are rendered inside the private account workspace.
@@ -19516,6 +19523,7 @@ function routeAfterMagicLinkIfNeeded() {
     else if (action === 'listing_tools') await window.openAccountDashboard?.({ tab: 'seller' });
     else if (action === 'relationship_drafts') await openRelationshipDrafts();
     else if (action === 'signing_queue') await openSigningQueue();
+    else if (action === 'attention_queue') await openAttentionQueue();
     else {
       recordOndemandFirstOfferActivation();
       window.startAccountOffer?.();
@@ -19533,6 +19541,7 @@ function routeAfterMagicLinkIfNeeded() {
       recordOndemandFirstOfferActivation();
       window.startAccountOffer?.();
     } else if (action === 'signing_queue') await openSigningQueue();
+    else if (action === 'attention_queue') await openAttentionQueue();
     else if (action === 'listing_tools') await window.openAccountDashboard?.({ tab: 'seller' });
     else if (action === 'relationship_drafts') await openRelationshipDrafts();
     trackShortcut(action, window.hofAuth?.role === 'investor' ? 'investor' : 'agent', true);

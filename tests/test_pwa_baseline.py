@@ -36,6 +36,7 @@ class PwaBaselineTests(unittest.TestCase):
                 ("New Offer", "/?pwa_action=new_offer"),
                 ("Buyer Offer", "/?pwa_action=buyer_offer"),
                 ("Signing Queue", "/?pwa_action=signing_queue"),
+                ("Needs Attention", "/?pwa_action=attention_queue"),
                 ("Seller Plan", "/?pwa_action=seller_plan"),
                 ("Find a Provider", "/directory?utm_source=pwa_shortcut&utm_medium=installed_app&utm_campaign=provider_directory"),
             ],
@@ -80,7 +81,7 @@ class PwaBaselineTests(unittest.TestCase):
         shortcut_module = INDEX.split('<script id="hof-pwa-shortcuts-v1">', 1)[1].split('</script>', 1)[0]
         self.assertIn('const root = window;', shortcut_module)
         self.assertIn("root.logOfferEvent?.(", shortcut_module)
-        self.assertIn("const validActions = new Set(['workspace', 'listing_tools', 'relationship_drafts', 'new_offer', 'signing_queue', 'seller_plan', 'buyer_offer']);", INDEX)
+        self.assertIn("const validActions = new Set(['workspace', 'listing_tools', 'relationship_drafts', 'new_offer', 'signing_queue', 'attention_queue', 'seller_plan', 'buyer_offer']);", INDEX)
         self.assertIn("if (!validActions.has(action)) return;", INDEX)
         self.assertIn("window.openAuthModal?.(role)", INDEX)
         self.assertIn("window.openAccountDashboard?.({ tab: 'dashboard' })", INDEX)
