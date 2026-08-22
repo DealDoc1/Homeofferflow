@@ -19628,12 +19628,14 @@ function routeAfterMagicLinkIfNeeded() {
     // browser action plainly while retaining the role-specific value.
     if (surface === 'seller_success') return 'Install Seller Plan App';
     if (surface === 'buyer_review' || surface === 'buyer_success') return 'Install Offer Workspace App';
+    if (surface === 'agent_saved_offer') return 'Install Agent Workspace App';
     return 'Install HomeOfferFlow App';
   }
 
   function installHelpLabel(surface){
     if (surface === 'seller_success') return 'Add Seller Plan to Home Screen';
     if (surface === 'buyer_review' || surface === 'buyer_success') return 'Add Offer Workspace to Home Screen';
+    if (surface === 'agent_saved_offer') return 'Add Agent Workspace to Home Screen';
     return 'Show the 2 steps';
   }
 
@@ -19656,9 +19658,17 @@ function routeAfterMagicLinkIfNeeded() {
     const success = document.getElementById('stepSuccess');
     const isBuyerSuccess = success?.classList.contains('active') && (root.state?.data?.userType || 'homebuyer') === 'homebuyer';
     if (isBuyerSuccess) return { panel: success, surface: 'buyer_success' };
+    const agentActivation = document.getElementById('agentActivationCard');
+    const hasSavedAgentOffer = Boolean(root.hofAuth?.session)
+      && String(root.hofAuth?.role || 'agent').toLowerCase() !== 'investor'
+      && Array.isArray(root.hofAuth?.myOffers)
+      && root.hofAuth.myOffers.length > 0
+      && agentActivation?.classList.contains('show');
+    if (hasSavedAgentOffer) return { panel: agentActivation, surface: 'agent_saved_offer' };
     // Do not interrupt a clean signed-in dashboard with a generic install
     // pitch. The app shortcut is useful after a buyer review, buyer success,
-    // or seller-plan success—when there is a clear reason to return.
+    // seller-plan success, or a saved agent offer—when there is a clear
+    // reason to return.
     return null;
   }
 
@@ -19682,6 +19692,9 @@ function routeAfterMagicLinkIfNeeded() {
     const sellerReturnCopy = target.surface === 'seller_success'
       ? 'Save this seller plan to your Home Screen so it is one tap away when you return to photos, repairs, timing, or provider questions.'
       : '';
+    const agentReturnCopy = target.surface === 'agent_saved_offer'
+      ? 'Save this agent workspace to your Home Screen so your saved offer, transaction choices, and signing status are one tap away between showings.'
+      : '';
     card.innerHTML = `<h4>Keep HomeOfferFlow one tap away</h4>
       <p>${ios
         ? 'Add this workspace to your iPhone or iPad Home Screen for a full-screen, app-like launch. It takes about a minute—no App Store download or separate account is needed.'
@@ -19694,6 +19707,7 @@ function routeAfterMagicLinkIfNeeded() {
         <div class="pwa-install-benefit"><strong>Protected data</strong><br>Offers and client details remain online.</div>
       </div>
       ${sellerReturnCopy ? `<p class="pwa-install-note"><strong>${sellerReturnCopy}</strong></p>` : ''}
+      ${agentReturnCopy ? `<p class="pwa-install-note"><strong>${agentReturnCopy}</strong></p>` : ''}
       <p class="pwa-install-note">Your offers and client details stay protected online; installation only gives this existing workspace a faster, dedicated launch.</p>
       <div class="pwa-install-actions">
         ${ios
