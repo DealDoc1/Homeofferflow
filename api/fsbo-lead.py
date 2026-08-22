@@ -217,6 +217,9 @@ INVESTOR_LANDING_EVENT_TYPES = {
     "investor_offer_guide_viewed": "viewed",
     "investor_offer_guide_cta_selected": "selected",
 }
+INVESTOR_LANDING_CHANNELS = {
+    "direct_outreach", "email", "social", "referral", "local_event", "print", "unspecified",
+}
 
 
 def _send(handler, status, payload):
@@ -732,8 +735,11 @@ def _record_agent_landing_event(data):
 def _record_investor_landing_event(data):
     """Persist aggregate investor-landing stages without identity or offer data."""
     event_type = _text(data.get("event_type"), 80)
+    channel = _text(data.get("channel"), 80) or "unspecified"
     if event_type not in INVESTOR_LANDING_EVENT_TYPES:
         raise ValueError("Unsupported investor landing event.")
+    if channel not in INVESTOR_LANDING_CHANNELS:
+        raise ValueError("Unsupported investor landing channel.")
     _record_partner_checkout_event(
         event_type,
         INVESTOR_LANDING_EVENT_TYPES[event_type],
@@ -741,6 +747,7 @@ def _record_investor_landing_event(data):
         {
             "surface": "investor_offer_guide" if event_type.startswith("investor_offer_guide_") else "investor_landing",
             "role": "investor",
+            "channel": channel,
         },
     )
 
