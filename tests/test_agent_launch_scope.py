@@ -11,11 +11,11 @@ class AgentLaunchScopeTests(unittest.TestCase):
         self.assertIn('id="hof-agent-launch-scope-v1"', HTML)
         self.assertIn("Forms available in HomeOfferFlow", HTML)
         self.assertIn("Available now", HTML)
-        self.assertIn("Not a live signing workflow yet", HTML)
+        self.assertIn("Restricted signing scope", HTML)
 
     def test_scope_does_not_overstate_unreleased_agent_form_workflows(self):
         for form_group in (
-            "Buyer/tenant representation agreements",
+            "TXR-1501, TXR-1506",
             "listing agreements",
             "seller disclosures",
             "lease-listing and tenant-representation packets",

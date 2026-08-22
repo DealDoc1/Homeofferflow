@@ -20,7 +20,7 @@ class SeoHeroUpdateTests(unittest.TestCase):
     def test_agent_copy_does_not_overstate_current_form_coverage(self):
         self.assertIn("Write supported Texas <em>offers faster</em>.", INDEX)
         self.assertIn(
-            "Representation and notice forms are in private preview foundations; listing and seller-form signing workflows are not live yet.",
+            "eligible enrolled brokerages can also review and send approved TXR-1507 and TXR-1508 drafts from the private signing queue.",
             INDEX,
         )
 
