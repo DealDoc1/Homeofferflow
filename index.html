@@ -5263,7 +5263,20 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       }
     }
     if (tab === 'brokerage') renderBrokerageFoundationPanel();
-    if (tab === 'seller') renderSellerFoundationPanel();
+    if (tab === 'seller') {
+      renderSellerFoundationPanel();
+      // A transaction-first sale or lease selection should arrive at the
+      // first real question—property address—not at the broader lead list.
+      // This is focus and scroll only; it does not save a workspace or alter
+      // any listing, seller, or property data.
+      if (['sale_listing', 'lease_listing'].includes(window.hofAgentWorkflowContext)) {
+        window.setTimeout(() => {
+          const address = document.getElementById('listingWorkspaceAddress');
+          address?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          address?.focus({ preventScroll: true });
+        }, 0);
+      }
+    }
     if (tab === 'relationships') renderRelationshipDraftsPanel();
     if (tab === 'partners') renderPartnerFoundationPanel();
     if (tab === 'ai') renderAiFoundationPanel();
