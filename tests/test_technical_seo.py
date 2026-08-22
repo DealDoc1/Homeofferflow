@@ -79,7 +79,9 @@ class TechnicalSeoTests(unittest.TestCase):
         self.assertEqual(dict(entries)["https://www.homeofferflow.com/"], "2026-08-22")
         self.assertEqual(dict(entries)["https://www.homeofferflow.com/agents"], "2026-08-22")
         self.assertEqual(dict(entries)["https://www.homeofferflow.com/buyers"], "2026-08-22")
-        self.assertEqual(dict(entries)["https://www.homeofferflow.com/sellers"], "2026-08-20")
+        self.assertEqual(dict(entries)["https://www.homeofferflow.com/sellers"], "2026-08-22")
+        self.assertEqual(dict(entries)["https://www.homeofferflow.com/texas-agent-offer-workflow"], "2026-08-22")
+        self.assertEqual(dict(entries)["https://www.homeofferflow.com/directory"], "2026-08-22")
 
     def test_revenue_guides_show_and_describe_their_real_site_hierarchy(self):
         for filename, (parent_name, current_name, parent_url) in SEO_GUIDES.items():
