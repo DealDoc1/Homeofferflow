@@ -234,6 +234,10 @@ class AgentActivationDashboardTests(unittest.TestCase):
         self.assertIn("hofSellerDisclosureCard: 'accountPanelSeller'", HTML)
         self.assertIn("hofAiReviewHistoryCard: 'accountPanelAi'", HTML)
         self.assertIn("hofLegalAcceptanceReceipt: 'accountPanelProfile'", HTML)
+        self.assertIn('id="aiAccountTab" data-account-tab="ai"', HTML)
+        self.assertIn('id="accountPanelAi"', HTML)
+        self.assertIn('id="aiFoundationPanel"', HTML)
+        self.assertIn("const aiTab = document.getElementById('aiAccountTab');", HTML)
         self.assertIn("new MutationObserver(routeCards).observe(dashboard, { childList: true });", HTML)
 
     def test_listing_and_lease_listing_start_with_the_next_property_question(self):

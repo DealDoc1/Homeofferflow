@@ -2984,6 +2984,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       <button type="button" class="account-tab active" data-account-tab="dashboard" onclick="showAccountTab('dashboard')">Dashboard</button>
       <button type="button" class="account-tab" data-account-tab="profile" onclick="showAccountTab('profile')">Profile</button>
       <button type="button" class="account-tab" data-account-tab="offers" onclick="showAccountTab('offers')">My Offers</button>
+      <button type="button" class="account-tab" id="aiAccountTab" data-account-tab="ai" onclick="showAccountTab('ai')" style="display:none;">Offer Review</button>
       <button type="button" class="account-tab" data-account-tab="brokerage" onclick="showAccountTab('brokerage')">Brokerage</button>
       <button type="button" class="account-tab" data-account-tab="seller" onclick="showAccountTab('seller')">Listing Tools</button>
       <button type="button" class="account-tab" id="relationshipsAccountTab" data-account-tab="relationships" onclick="showAccountTab('relationships')" style="display:none;">Relationship Drafts</button>
@@ -3046,6 +3047,10 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           <button class="btn-primary" type="button" onclick="startAccountOffer()">Create New Offer</button>
         </div>
       </div>
+    </div>
+
+    <div class="account-panel" id="accountPanelAi">
+      <div id="aiFoundationPanel" class="offer-empty">Loading offer-review tools...</div>
     </div>
 
     <div class="account-panel" id="accountPanelBrokerage">
@@ -15893,6 +15898,9 @@ function routeAfterMagicLinkIfNeeded() {
 
     const relationshipsTab = document.getElementById('relationshipsAccountTab');
     if (relationshipsTab) relationshipsTab.style.display = user && normalized !== 'investor' ? 'inline-flex' : 'none';
+
+    const aiTab = document.getElementById('aiAccountTab');
+    if (aiTab) aiTab.style.display = user && normalized !== 'investor' ? 'inline-flex' : 'none';
 
     const signedOut = document.getElementById('signedOutPanel');
     const signedIn = document.getElementById('signedInPanel');
