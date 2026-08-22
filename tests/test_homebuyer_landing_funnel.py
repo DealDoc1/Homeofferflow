@@ -7,6 +7,7 @@ API = (ROOT / "api" / "fsbo-lead.py").read_text(encoding="utf-8")
 ADMIN = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
 INDEX = (ROOT / "index.html").read_text(encoding="utf-8")
 BUYERS = (ROOT / "buyers.html").read_text(encoding="utf-8")
+BUYERS_COMPACT = " ".join(BUYERS.split())
 
 
 class HomebuyerLandingFunnelTests(unittest.TestCase):
@@ -29,21 +30,22 @@ class HomebuyerLandingFunnelTests(unittest.TestCase):
     def test_buyer_landing_records_each_stage_once_without_buyer_or_offer_details(self):
         self.assertIn("recordAggregateFunnelEvent", BUYERS)
         self.assertIn("sessionStorage.getItem(key)", BUYERS)
-        self.assertIn("request_type: 'homebuyer_landing_event'", BUYERS)
+        self.assertIn('request_type: "homebuyer_landing_event"', BUYERS)
         self.assertIn("homebuyer_landing_viewed", BUYERS)
         self.assertIn("homebuyer_landing_ready_list_opened", BUYERS)
         self.assertIn("homebuyer_landing_cta_selected", BUYERS)
-        self.assertIn("recordAggregateFunnelEvent('homebuyer_landing_offer_started')", BUYERS)
+        self.assertNotIn("homebuyer_landing_offer_started", BUYERS)
+        self.assertIn("The destination records this stage only after the guided", BUYERS)
         self.assertIn("channel: safeChannel", BUYERS)
         self.assertIn("allowedChannels.has(rawSource)", BUYERS)
         self.assertIn("keepalive: true", BUYERS)
-        landing_script = BUYERS.split("<script>(() =>", 1)[1].split("</script>", 1)[0]
-        self.assertNotIn("// Record the handoff before navigation", landing_script)
+        landing_script = BUYERS.rsplit("<script>", 1)[1].split("</script>", 1)[0]
+        self.assertNotIn("Record the handoff before navigation", landing_script)
 
     def test_buyer_ctas_match_the_no_payment_before_review_flow(self):
         self.assertEqual(BUYERS.count("Build my offer — no payment to start"), 2)
-        self.assertIn("The $99 one-time charge applies only when the packet is ready.", BUYERS)
-        self.assertIn('"price":"99"', BUYERS)
+        self.assertIn("The $99 one-time charge applies only when the packet is ready.", BUYERS_COMPACT)
+        self.assertIn('"price": "99"', BUYERS)
 
     def test_buyer_hero_keeps_pricing_and_planning_guidance_in_one_quiet_note(self):
         hero = BUYERS.split('<section class="faq" aria-labelledby="buyer-ready">', 1)[0]
