@@ -110,7 +110,7 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("localStorage.setItem('hof_agent_landing_source', agentLandingSource)", INDEX)
         self.assertIn("localStorage.getItem('hof_agent_landing_source') === 'texas_agent_offer_workflow'", INDEX)
         self.assertIn("localStorage.removeItem('hof_agent_landing_source')", INDEX)
-        self.assertIn("{ source: agentLandingSource }", INDEX)
+        self.assertIn("{ source: agentLandingSource, workflow: agentLandingWorkflow || 'purchase' }", INDEX)
 
     def test_public_endpoint_and_page_record_only_allowlisted_aggregate_agent_landing_events(self):
         self.assertIn("AGENT_LANDING_EVENT_TYPES", API)
@@ -170,6 +170,8 @@ class AgentLandingFunnelTests(unittest.TestCase):
             'agent_landing_relationship_workspace_handoff',
             'agentWorkflowGuideViewCount', 'agentWorkflowGuideCtaCount', 'agentWorkflowGuideCtaRate',
             'agentLandingCtaPathCounts', 'agentWorkflowGuideCtaPathCounts',
+            'agentTransactionChoiceCounts',
+            'agent_workflow_lease_representation_selected',
         ):
             self.assertIn(expected, ADMIN)
         self.assertIn("Agent Workspace Funnel", INDEX)
@@ -182,10 +184,12 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("agentLandingRelationshipWorkspaceHandoffUserCount", INDEX)
         self.assertIn("Workspace paths after sign-in", INDEX)
         self.assertIn("Landing CTA choices", INDEX)
+        self.assertIn("Authenticated transaction choices", INDEX)
         self.assertIn("Guide CTA choices", INDEX)
         self.assertIn("agentLandingCtaPathCounts?.seller_listing", INDEX)
         self.assertIn("agentLandingCtaPathCounts?.lease_listing", INDEX)
         self.assertIn("agentLandingCtaPathCounts?.lease_representation", INDEX)
+        self.assertIn("agentTransactionChoiceCounts?.lease_representation", INDEX)
         self.assertIn("agentWorkflowGuideCtaPathCounts?.relationship_drafts", INDEX)
         self.assertIn("agentWorkflowGuideCtaRate", INDEX)
 
