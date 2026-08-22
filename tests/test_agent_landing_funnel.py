@@ -44,6 +44,14 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("window.hofAgentWorkflowContext = agentLandingWorkflow", INDEX)
         self.assertIn("agent_landing_seller_workspace_handoff", INDEX)
 
+    def test_agent_landing_uses_the_neutral_listing_first_order(self):
+        start = AGENTS.index('id="transaction-start"')
+        end = AGENTS.index('</section>', start)
+        choices = AGENTS[start:end]
+        self.assertLess(choices.index('<h3>Listing</h3>'), choices.index('<h3>Buying</h3>'))
+        self.assertLess(choices.index('<h3>Buying</h3>'), choices.index('<h3>Lease listing</h3>'))
+        self.assertLess(choices.index('<h3>Lease listing</h3>'), choices.index('<h3>Lease representation</h3>'))
+
     def test_agent_landing_can_start_each_transaction_in_its_relevant_workspace(self):
         for workflow, cta_path in (
             ("purchase", "client_draft"),
