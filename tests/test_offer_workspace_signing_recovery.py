@@ -11,6 +11,8 @@ class OfferWorkspaceSigningRecoveryTests(unittest.TestCase):
         self.assertIn("Copy buyer reminder", HTML)
         self.assertIn("root.copyBuyerSigningReminder = async function(offerId)", HTML)
         self.assertIn("buyer_signing_reminder_copied", HTML)
+        self.assertIn("const ageDays = Number.isFinite(updatedAt.getTime())", HTML)
+        self.assertIn("has been awaiting completion for ${ageDays} day", HTML)
 
     def test_priority_follow_up_exposes_the_same_copy_only_reminder_without_a_second_navigation_step(self):
         self.assertIn("const priorityNeedsBuyerReminder = priority && bucketForOffer(priority) === 'signing';", HTML)

@@ -15168,7 +15168,14 @@ function routeAfterMagicLinkIfNeeded() {
     const d = offer.offer_data || {};
     const buyer = offer.buyer_name || d.buyerName || [d.buyer1First, d.buyer1Last].filter(Boolean).join(' ') || 'there';
     const property = offer.property_address || d.propertyAddress || d.propAddress || 'your offer';
-    const reminder = `Hi ${buyer}, this is a reminder that your HomeOfferFlow buyer-side signing request for ${property} is still awaiting completion. Please check your inbox and spam folder for the SignWell email, review the packet carefully, and complete only if the terms are still correct. If you cannot find the email or need a change, reply before signing.`;
+    const updatedAt = new Date(offer.last_updated || offer.updated_at || offer.created_at || '');
+    const ageDays = Number.isFinite(updatedAt.getTime())
+      ? Math.max(0, Math.floor((Date.now() - updatedAt.getTime()) / 86400000))
+      : null;
+    const timing = ageDays === null || ageDays < 1
+      ? 'is still awaiting completion'
+      : `has been awaiting completion for ${ageDays} day${ageDays === 1 ? '' : 's'}`;
+    const reminder = `Hi ${buyer}, this is a reminder that your HomeOfferFlow buyer-side signing request for ${property} ${timing}. Please check your inbox and spam folder for the SignWell email, review the packet carefully, and complete only if the terms are still correct. If you cannot find the email or need a change, reply before signing.`;
     try {
       if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(reminder);
       else window.prompt('Copy this buyer signing reminder:', reminder);
