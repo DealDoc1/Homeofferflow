@@ -123,6 +123,11 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn('No password and no charge to start a private workspace.', AGENTS)
         self.assertIn('save your agent defaults afterward for faster repeat work', AGENTS)
 
+    def test_agent_landing_metadata_targets_high_intent_real_estate_offer_searches(self):
+        self.assertIn('<title>Texas Real Estate Offer Tools for Agents &amp; Brokers | HomeOfferFlow</title>', AGENTS)
+        self.assertIn('Texas real estate offer tools for agents and brokers', AGENTS)
+        self.assertIn('Texas Real Estate Offer Tools for Agents &amp; Brokers | HomeOfferFlow', AGENTS)
+
     def test_agent_faq_explains_the_next_workspace_for_each_transaction_without_selecting_a_form(self):
         self.assertIn('What happens after I choose a transaction?', AGENTS)
         self.assertIn('<strong>Buying</strong> opens the guided buyer-offer interview.', AGENTS)
