@@ -92,6 +92,31 @@ def valid_mineral_payload():
     }
 
 
+def valid_seller_financing_payload():
+    return {
+        "formCode": "TXR-1914",
+        "formSourceId": "00000000-0000-0000-0000-000000000001",
+        "propertyAddress": "1438 Whitaker Road, Van Alstyne, TX",
+        "buyerNames": ["Test Buyer"],
+        "sellerNames": ["Test Seller"],
+        "creditDays": "7",
+        "creditDocuments": ["credit_report", "employment"],
+        "noteAmount": "250000",
+        "interestRate": "6.25",
+        "paymentPlan": "monthly_installments",
+        "installmentAmount": "1800",
+        "installmentInterestStyle": "including_interest",
+        "installmentBeginsAfterMonths": "1",
+        "payoffAfterMonths": "180",
+        "propertyTransfer": "consent_required",
+        "casualtyInsurance": "required",
+        "escrow": "required",
+        "thirdPartyServicer": "will",
+        "escrowCostPaidBy": "buyer",
+        "sellerFinancingReviewAcknowledgment": True,
+    }
+
+
 class StandaloneAgreementFoundationTests(unittest.TestCase):
     def test_txr_library_cards_do_not_require_active_brokerage_membership(self):
         self.assertNotIn("root.hofPlatform?.brokerageMembership?.status === 'active'", HTML)
@@ -272,6 +297,28 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
         payload["mineralReviewAcknowledgment"] = False
         with self.assertRaisesRegex(ValueError, "review the mineral-reservation choices"):
             MODULE._parse_txr_1905_draft(payload)
+
+    def test_seller_financing_draft_requires_each_conditional_source_choice(self):
+        draft = MODULE._parse_txr_1914_draft(valid_seller_financing_payload())
+        self.assertEqual(draft["agreement_data"]["payment"]["payoff_after_months"], "180")
+        self.assertEqual(draft["agreement_data"]["escrow"]["cost_paid_by"], "buyer")
+        payload = valid_seller_financing_payload()
+        payload["creditDocuments"] = []
+        with self.assertRaisesRegex(ValueError, "credit-documentation"):
+            MODULE._parse_txr_1914_draft(payload)
+        payload = valid_seller_financing_payload()
+        payload["thirdPartyServicer"] = ""
+        with self.assertRaisesRegex(ValueError, "third-party escrow"):
+            MODULE._parse_txr_1914_draft(payload)
+
+    def test_seller_financing_ui_is_private_and_shows_only_applicable_questions(self):
+        self.assertIn("Start seller-financing draft", HTML)
+        self.assertIn("create_txr_1914_draft", HTML)
+        self.assertIn("TXR-1914 is temporarily unavailable in the HomeOfferFlow form library", HTML)
+        self.assertIn("id=\"txr1914OnePayment\"", HTML)
+        self.assertIn("id=\"txr1914Installments\"", HTML)
+        self.assertIn("id=\"txr1914EscrowDetails\"", HTML)
+        self.assertIn("not a loan document or signature request", HTML)
 
     def test_agent_ui_requires_an_approved_private_source_and_saves_draft_only(self):
         self.assertIn("Start TXR-1507 draft", HTML)

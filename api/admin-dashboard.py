@@ -79,6 +79,7 @@ TXR_1506_FORM_CODE = "TXR-1506"
 TXR_1507_FORM_CODE = "TXR-1507"
 TXR_1508_FORM_CODE = "TXR-1508"
 TXR_1905_FORM_CODE = "TXR-1905"
+TXR_1914_FORM_CODE = "TXR-1914"
 TREC_55_1_FORM_CODE = "TREC-55-1"
 TREC_61_0_FORM_CODE = "TREC-61-0"
 BROKERAGE_TXR_FORM_CODES = (
@@ -2279,6 +2280,119 @@ def _parse_txr_1905_draft(data):
     }
 
 
+def _parse_txr_1914_draft(data):
+    """Validate a private TXR-1914 seller-financing review draft.
+
+    The source warns that seller financing can be complex. This records only
+    agent-entered source-form choices for a private review PDF; it neither
+    recommends terms nor creates a promissory note, deed of trust, or signing
+    request.
+    """
+    if data.get("formCode") != TXR_1914_FORM_CODE:
+        raise ValueError("Only TXR-1914 is available through this action.")
+    form_source_id = _agreement_text(data.get("formSourceId"), "Approved TXR-1914 source", 80)
+    try:
+        form_source_id = str(uuid.UUID(form_source_id))
+    except (TypeError, ValueError, AttributeError):
+        raise ValueError("Choose an available TXR-1914 source from the HomeOfferFlow library.")
+
+    def names(key, label):
+        values = data.get(key)
+        if not isinstance(values, list) or not (1 <= len(values) <= 2):
+            raise ValueError(f"Add one or two {label} names.")
+        return [_agreement_text(value, f"Each {label} name", 180) for value in values]
+
+    def months(value, label, *, allow_zero=False):
+        value = str(value or "").strip()
+        if not re.fullmatch(r"\d{1,3}", value):
+            raise ValueError(f"{label} must be a whole number of months.")
+        if not allow_zero and int(value) < 1:
+            raise ValueError(f"{label} must be at least one month.")
+        return value
+
+    property_address = _agreement_text(data.get("propertyAddress"), "Property address", 400)
+    buyer_names = names("buyerNames", "buyer")
+    seller_names = names("sellerNames", "seller")
+    all_names = buyer_names + seller_names
+    if len({name.casefold() for name in all_names}) != len(all_names):
+        raise ValueError("List each buyer or seller only once.")
+    credit_days = months(data.get("creditDays"), "Credit-documentation delivery time")
+    credit_documents = data.get("creditDocuments")
+    allowed_documents = {"credit_report", "employment", "funds", "financial_statement", "other"}
+    if not isinstance(credit_documents, list) or not credit_documents or not set(credit_documents).issubset(allowed_documents):
+        raise ValueError("Choose at least one credit-documentation item.")
+    credit_documents = list(dict.fromkeys(credit_documents))
+    credit_other = " ".join(str(data.get("creditOther") or "").strip().split())
+    if "other" in credit_documents and not credit_other:
+        raise ValueError("Describe the additional credit-documentation item.")
+    if len(credit_other) > 180:
+        raise ValueError("Additional credit documentation is too long.")
+    note_amount = _agreement_money(data.get("noteAmount"), "Promissory-note amount")
+    if not note_amount:
+        raise ValueError("Promissory-note amount is required.")
+    interest_rate = _agreement_percentage(data.get("interestRate"), "Interest rate")
+    if not interest_rate:
+        raise ValueError("Interest rate is required.")
+    payment_plan = str(data.get("paymentPlan") or "").strip()
+    if payment_plan not in {"one_payment", "monthly_installments", "interest_only_then_installments"}:
+        raise ValueError("Choose the promissory-note payment plan printed on the addendum.")
+    payment = {"plan": payment_plan}
+    if payment_plan == "one_payment":
+        payment["due_after_months"] = months(data.get("onePaymentDueAfterMonths"), "One-payment due time", allow_zero=True)
+        payment["interest_timing"] = str(data.get("onePaymentInterestTiming") or "").strip()
+        if payment["interest_timing"] not in {"maturity", "monthly", "quarterly"}:
+            raise ValueError("Choose when interest is payable for the one-payment plan.")
+    else:
+        payment["installment_amount"] = _agreement_money(data.get("installmentAmount"), "Installment amount")
+        if not payment["installment_amount"]:
+            raise ValueError("Installment amount is required.")
+        payment["interest_style"] = str(data.get("installmentInterestStyle") or "").strip()
+        if payment["interest_style"] not in {"including_interest", "plus_interest"}:
+            raise ValueError("Choose whether the installment includes or is plus interest.")
+        payment["begins_after_months"] = months(data.get("installmentBeginsAfterMonths"), "Installment start time", allow_zero=True)
+        payment["payoff_after_months"] = months(data.get("payoffAfterMonths"), "Payoff time")
+        if payment_plan == "interest_only_then_installments":
+            payment["interest_only_months"] = months(data.get("interestOnlyMonths"), "Interest-only period")
+    property_transfer = str(data.get("propertyTransfer") or "").strip()
+    if property_transfer not in {"consent_not_required", "consent_required"}:
+        raise ValueError("Choose the property-transfer consent term.")
+    casualty_insurance = str(data.get("casualtyInsurance") or "").strip()
+    if casualty_insurance not in {"required", "not_required"}:
+        raise ValueError("Choose the casualty-insurance term.")
+    escrow = str(data.get("escrow") or "").strip()
+    if escrow not in {"not_required", "required"}:
+        raise ValueError("Choose the tax-and-insurance escrow term.")
+    escrow_data = {"choice": escrow}
+    if escrow == "required":
+        escrow_data["third_party_servicer"] = str(data.get("thirdPartyServicer") or "").strip()
+        escrow_data["cost_paid_by"] = str(data.get("escrowCostPaidBy") or "").strip()
+        if escrow_data["third_party_servicer"] not in {"will", "will_not"}:
+            raise ValueError("Choose whether a third-party escrow servicer will be used.")
+        if escrow_data["cost_paid_by"] not in {"buyer", "seller"}:
+            raise ValueError("Choose who pays the escrow-service cost.")
+    if data.get("sellerFinancingReviewAcknowledgment") is not True:
+        raise ValueError("Confirm that the parties will review seller-financing terms with appropriate professionals before signing.")
+    return {
+        "form_source_id": form_source_id,
+        "client_names": all_names,
+        "agreement_data": {
+            "property_address": property_address,
+            "buyer_names": buyer_names,
+            "seller_names": seller_names,
+            "credit_days": credit_days,
+            "credit_documents": credit_documents,
+            "credit_other": credit_other,
+            "note_amount": note_amount,
+            "interest_rate": interest_rate,
+            "payment": payment,
+            "property_transfer": property_transfer,
+            "casualty_insurance": casualty_insurance,
+            "escrow": escrow_data,
+            "seller_financing_review_acknowledgment": True,
+        },
+    }
+
+
 async def _active_brokerage_member(user):
     profiles = await _get(
         "hof_profiles?"
@@ -2547,6 +2661,10 @@ async def _create_txr_1506_draft(user, data):
 
 async def _create_txr_1905_draft(user, data):
     return await _create_representation_draft(user, data, TXR_1905_FORM_CODE, _parse_txr_1905_draft)
+
+
+async def _create_txr_1914_draft(user, data):
+    return await _create_representation_draft(user, data, TXR_1914_FORM_CODE, _parse_txr_1914_draft)
 
 
 async def _deliver_seller_review_email(email, review_url, verification_code, expires_at, property_address):
@@ -3059,6 +3177,9 @@ async def _render_representation_draft_preview(user, agreement_id):
     if agreement.get("form_code") == TXR_1905_FORM_CODE:
         from lib.txr_1905 import render_txr_1905
         return render_txr_1905(response.content, render_data)
+    if agreement.get("form_code") == TXR_1914_FORM_CODE:
+        from lib.txr_1914 import render_txr_1914
+        return render_txr_1914(response.content, render_data)
     raise ValueError("Private preview is not available for this form yet.")
 
 
@@ -5159,6 +5280,10 @@ class handler(BaseHTTPRequestHandler):
                 return
             if data.get("action") == "create_txr_1905_draft":
                 draft = asyncio.run(_create_txr_1905_draft(user, data))
+                _json(self, 201, {"status": "ok", "agreement": draft})
+                return
+            if data.get("action") == "create_txr_1914_draft":
+                draft = asyncio.run(_create_txr_1914_draft(user, data))
                 _json(self, 201, {"status": "ok", "agreement": draft})
                 return
             if data.get("action") == "send_txr_agreement_for_signature":
