@@ -253,6 +253,13 @@ class AgentActivationDashboardTests(unittest.TestCase):
         self.assertIn("hofSellerDisclosureCard: 'accountPanelSeller'", HTML)
         self.assertIn("hofAiReviewHistoryCard: 'accountPanelAi'", HTML)
         self.assertIn("hofLegalAcceptanceReceipt: 'accountPanelProfile'", HTML)
+
+    def test_lease_representation_choice_waits_for_its_explicit_approved_source_without_a_second_click(self):
+        self.assertIn("window.__hofPendingTenantRepresentationDraft = kind === 'long' ? 'long' : 'short';", HTML)
+        self.assertIn("Checking the approved source for your selected draft…", HTML)
+        self.assertIn("root.__hofPendingTenantRepresentationDraft === 'short'", HTML)
+        self.assertIn("root.__hofPendingTenantRepresentationDraft === 'long'", HTML)
+        self.assertIn("Approved source ready. Opening your selected private draft…", HTML)
         self.assertIn('id="aiAccountTab" data-account-tab="ai"', HTML)
         self.assertIn('id="accountPanelAi"', HTML)
         self.assertIn('id="aiFoundationPanel"', HTML)
