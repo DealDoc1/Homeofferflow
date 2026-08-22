@@ -3009,7 +3009,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           <div class="usage-meter"><div class="usage-fill" style="width:0%"></div></div>
           <div class="usage-copy">Checking packet usage for this month.</div>
         </div>
-        <div class="account-card" id="agentWorkflowStart" style="margin-top:1rem;">
+        <div class="account-card" id="agentWorkflowStart" style="margin-top:1rem;" tabindex="-1">
           <h4>What are you working on?</h4>
           <p style="color:var(--gray-light);line-height:1.55;margin:0 0 .9rem;">Start with the transaction type. We will only show the next steps that fit it.</p>
           <div class="account-actions-row" style="margin-top:0;">
@@ -6931,6 +6931,18 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       restoreConditionalSections();
     }, 100);
   }
+
+  // Keep the first dashboard action aligned with the transaction-first
+  // experience. This only brings the four choices into view; it does not
+  // create a draft, select a legal form, or write any account data.
+  window.openAgentTransactionPicker = function openAgentTransactionPicker() {
+    const picker = document.getElementById('agentWorkflowStart');
+    if (!picker) return;
+    picker.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    picker.focus({ preventScroll: true });
+    const status = document.getElementById('agentWorkflowStartStatus');
+    if (status) status.textContent = 'Choose the transaction you are working on to continue.';
+  };
 
   // The agent workspace begins with the transaction, not a form catalog.
   // This preserves a quiet TurboTax-style choice and keeps each downstream
@@ -16496,11 +16508,11 @@ function routeAfterMagicLinkIfNeeded() {
     if (!hasOffer) {
       return {
         key: 'first_offer',
-        title: 'Create a first draft for your client',
+        title: 'Choose the transaction in front of you',
         body: hasProfile
-          ? 'Your saved defaults are ready. Start a Texas offer and save a private draft before you review, generate, send, or request a signature.'
-          : 'Start with the client and property in front of you. Save a private draft first; you can add your license, brokerage, and reusable defaults afterward.',
-        primary: 'Start Client Draft — No Payment',
+          ? 'Your saved defaults are ready. Choose buying, sale listing, lease listing, or lease representation; then HomeOfferFlow will show only the relevant next steps.'
+          : 'Choose the transaction first. Then start with the client and property in front of you, saving a private draft before any review, generation, delivery, or signature step.',
+        primary: 'Choose Transaction',
         secondary: hasProfile ? 'Review Saved Profile' : 'Set Up My Defaults',
         confidence: true,
         complete, hasProfile, hasOffer, hasPlan
@@ -16625,6 +16637,7 @@ function routeAfterMagicLinkIfNeeded() {
     });
     if (action === 'profile') return root.showAccountTab?.('profile');
     if (action === 'new_offer') return root.startAccountOffer?.();
+    if (action === 'choose_transaction') return root.openAgentTransactionPicker?.();
     if (action === 'resume_local') return root.resumeLocalAccountOfferDraft?.();
     if (action === 'start_fresh') return root.startNewOffer?.();
     if (action === 'reuse_terms' && offerId) return root.reuseOfferTerms?.(offerId);
@@ -16660,7 +16673,7 @@ function routeAfterMagicLinkIfNeeded() {
     const primaryAction =
       state.key === 'profile' ? 'profile' :
       state.key === 'profile_with_draft' ? 'resume' :
-      state.key === 'first_offer' ? 'new_offer' :
+      state.key === 'first_offer' ? 'choose_transaction' :
       state.key === 'resume_local_draft' ? 'resume_local' :
       state.key === 'repeat' ? 'reuse_terms' :
       state.key === 'resume_beta' ? 'resume' :

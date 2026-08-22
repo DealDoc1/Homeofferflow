@@ -93,7 +93,7 @@ class AgentActivationDashboardTests(unittest.TestCase):
         ):
             self.assertIn(expected, script)
 
-    def test_first_offer_is_the_primary_value_step_before_profile_defaults(self):
+    def test_first_offer_starts_with_transaction_choice_before_profile_defaults(self):
         script_start = HTML.index('id="hof-agent-activation-v16-js"')
         script_end = HTML.index("</script>", script_start)
         script = HTML[script_start:script_end]
@@ -101,18 +101,19 @@ class AgentActivationDashboardTests(unittest.TestCase):
         first_offer = script.index("if (!hasOffer) {")
         profile_after_offer = script.index("if (!hasProfile) {", first_offer + 1)
         self.assertLess(first_offer, profile_after_offer)
-        self.assertIn("Create a first draft for your client", script)
-        self.assertIn("Start Client Draft — No Payment", script)
+        self.assertIn("Choose the transaction in front of you", script)
+        self.assertIn("Choose Transaction", script)
+        self.assertIn("Choose buying, sale listing, lease listing, or lease representation", script)
         self.assertIn("Set Up My Defaults", script)
 
-    def test_first_offer_state_explains_the_safe_draft_boundary_before_the_cta(self):
+    def test_first_offer_state_explains_the_transaction_choice_and_safe_draft_boundary(self):
         script_start = HTML.index('id="hof-agent-activation-v16-js"')
         script_end = HTML.index("</script>", script_start)
         script = HTML[script_start:script_end]
 
         self.assertIn("confidence: true", script)
         self.assertIn("First offer workflow overview", script)
-        self.assertIn("Save a private draft first", script)
+        self.assertIn("Choose the transaction first.", script)
         self.assertIn("Saving a draft does not send a packet or request a signature.", script)
 
     def test_onboarding_uses_a_real_saved_draft_path_not_demo_only_language(self):
@@ -212,8 +213,15 @@ class AgentActivationDashboardTests(unittest.TestCase):
         script_end = HTML.index("</script>", script_start)
         script = HTML[script_start:script_end]
 
-        for action in ("profile", "new_offer", "offers", "resume", "subscribe", "reuse_terms", "billing"):
+        for action in ("profile", "new_offer", "choose_transaction", "offers", "resume", "subscribe", "reuse_terms", "billing"):
             self.assertRegex(script, rf"action === ['\"]{action}['\"]")
+
+    def test_first_offer_activation_action_reveals_the_four_transaction_choices_without_creating_a_draft(self):
+        self.assertIn("window.openAgentTransactionPicker = function openAgentTransactionPicker()", HTML)
+        self.assertIn("picker.scrollIntoView({ behavior: 'smooth', block: 'center' });", HTML)
+        self.assertIn("picker.focus({ preventScroll: true });", HTML)
+        self.assertIn("Choose the transaction you are working on to continue.", HTML)
+        self.assertIn('id="agentWorkflowStart" style="margin-top:1rem;" tabindex="-1"', HTML)
 
     def test_activation_actions_record_stage_and_primary_or_secondary_choice(self):
         script_start = HTML.index('id="hof-agent-activation-v16-js"')
