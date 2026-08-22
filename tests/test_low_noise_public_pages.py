@@ -10,7 +10,7 @@ SELLERS = (ROOT / "sellers.html").read_text(encoding="utf-8")
 class LowNoisePublicPageTests(unittest.TestCase):
     def test_agent_hero_has_one_primary_action_and_one_exploration_path(self):
         hero = AGENTS.split('<section class="grid" id="transaction-start"', 1)[0]
-        self.assertIn('>Choose a transaction<', hero)
+        self.assertIn('>Start question 1<', hero)
         self.assertEqual(hero.count('class="button"'), 1)
         self.assertEqual(hero.count('class="button secondary"'), 0)
 

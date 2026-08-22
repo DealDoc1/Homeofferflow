@@ -3010,15 +3010,16 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           <div class="usage-copy">Checking packet usage for this month.</div>
         </div>
         <div class="account-card" id="agentWorkflowStart" style="margin-top:1rem;" tabindex="-1">
-          <h4>What are you working on?</h4>
-          <p style="color:var(--gray-light);line-height:1.55;margin:0 0 .9rem;">Start with the transaction type. We will only show the next steps that fit it.</p>
+          <div class="eyebrow" style="margin-bottom:.35rem;">Question 1</div>
+          <h4>What kind of transaction are you starting?</h4>
+          <p style="color:var(--gray-light);line-height:1.55;margin:0 0 .9rem;">Choose one. HomeOfferFlow will take you to the next question for that transaction.</p>
           <div class="account-actions-row" style="margin-top:0;">
-            <button class="btn-primary" type="button" onclick="startAgentWorkflow('purchase')">Buying a property</button>
-            <button class="btn-secondary" type="button" onclick="startAgentWorkflow('sale_listing')">Listing a property</button>
-            <button class="btn-secondary" type="button" onclick="startAgentWorkflow('lease_listing')">Listing a lease</button>
+            <button class="btn-primary" type="button" onclick="startAgentWorkflow('purchase')">Buying</button>
+            <button class="btn-secondary" type="button" onclick="startAgentWorkflow('sale_listing')">Sale listing</button>
+            <button class="btn-secondary" type="button" onclick="startAgentWorkflow('lease_listing')">Lease listing</button>
             <button class="btn-secondary" type="button" onclick="startAgentWorkflow('lease_representation')">Lease representation</button>
           </div>
-          <p id="agentWorkflowStartStatus" style="color:var(--gray-light);font-size:.84rem;line-height:1.5;margin:.8rem 0 0;">You can change paths at any time; HomeOfferFlow will not choose a legal form or business term for you.</p>
+          <p id="agentWorkflowStartStatus" style="color:var(--gray-light);font-size:.84rem;line-height:1.5;margin:.8rem 0 0;">You can change paths at any time. HomeOfferFlow does not choose legal forms, terms, or recipients for you.</p>
         </div>
         <div class="account-actions-row dashboard-legacy-actions">
           <button class="btn-primary" type="button" onclick="startAccountOffer()">Create New Offer</button>
@@ -6979,22 +6980,22 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     const choices = {
       purchase: {
         event: 'agent_workflow_purchase_selected',
-        message: 'Opening the guided buyer-offer workflow.',
+        message: 'Next: the buyer and property questions for this offer.',
         action: () => startAccountOffer()
       },
       sale_listing: {
         event: 'agent_workflow_sale_listing_selected',
-        message: 'Opening listing tools for the seller-side workflow.',
+        message: 'Next: the seller and property questions for this sale listing.',
         action: () => showAccountTab('seller')
       },
       lease_listing: {
         event: 'agent_workflow_lease_listing_selected',
-        message: 'Opening listing tools for the landlord / lease-listing workflow.',
+        message: 'Next: the landlord and property questions for this lease listing.',
         action: () => showAccountTab('seller')
       },
       lease_representation: {
         event: 'agent_workflow_lease_representation_selected',
-        message: 'Opening relationship drafts for the tenant-representation workflow.',
+        message: 'Next: the representation step for this tenant transaction.',
         action: () => showAccountTab('relationships')
       }
     };
