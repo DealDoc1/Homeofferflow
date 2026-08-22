@@ -204,7 +204,10 @@ class AdminTrackerSecurityTests(IsolatedAsyncioTestCase):
         self.assertEqual(payload["metrics"]["agentsNeedingFollowUp"], 0)
         self.assertEqual(payload["metrics"]["trialsEndingSoon"], 1)
         self.assertEqual(payload["listingWorkspaceSummary"], [{"listingKind": "sale", "status": "intake", "workspaceCount": 1}])
-        self.assertEqual(len(payload["sourceReadiness"]), 8)
+        self.assertEqual(
+            len(payload["sourceReadiness"]),
+            len(admin_dashboard.BROKERAGE_TXR_FORM_CODES),
+        )
         self.assertEqual(payload["privacy"], {
             "buyerDetailsIncluded": False,
             "propertyDetailsIncluded": False,
