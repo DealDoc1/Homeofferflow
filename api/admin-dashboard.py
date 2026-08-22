@@ -78,6 +78,7 @@ TXR_1501_FORM_CODE = "TXR-1501"
 TXR_1506_FORM_CODE = "TXR-1506"
 TXR_1507_FORM_CODE = "TXR-1507"
 TXR_1508_FORM_CODE = "TXR-1508"
+TXR_1905_FORM_CODE = "TXR-1905"
 TREC_55_1_FORM_CODE = "TREC-55-1"
 TREC_61_0_FORM_CODE = "TREC-61-0"
 BROKERAGE_TXR_FORM_CODES = (
@@ -2222,6 +2223,62 @@ def _parse_txr_1506_draft(data):
     }
 
 
+def _parse_txr_1905_draft(data):
+    """Validate a private TXR-1905 mineral-reservation addendum draft.
+
+    The interview intentionally captures only choices printed on the one-page
+    addendum. It does not infer mineral ownership, legal consequences, or a
+    signature plan; the resulting PDF is a private review draft only.
+    """
+    if data.get("formCode") != TXR_1905_FORM_CODE:
+        raise ValueError("Only TXR-1905 is available through this action.")
+    form_source_id = _agreement_text(data.get("formSourceId"), "Approved TXR-1905 source", 80)
+    try:
+        form_source_id = str(uuid.UUID(form_source_id))
+    except (TypeError, ValueError, AttributeError):
+        raise ValueError("Choose an available TXR-1905 source from the HomeOfferFlow library.")
+
+    property_address = _agreement_text(data.get("propertyAddress"), "Property street address and city", 400)
+    buyer_names = data.get("buyerNames")
+    seller_names = data.get("sellerNames")
+    if not isinstance(buyer_names, list) or not (1 <= len(buyer_names) <= 2):
+        raise ValueError("Add one or two buyer names.")
+    if not isinstance(seller_names, list) or not (1 <= len(seller_names) <= 2):
+        raise ValueError("Add one or two seller names.")
+    buyer_names = [_agreement_text(value, "Each buyer name", 180) for value in buyer_names]
+    seller_names = [_agreement_text(value, "Each seller name", 180) for value in seller_names]
+    all_names = buyer_names + seller_names
+    if len({name.casefold() for name in all_names}) != len(all_names):
+        raise ValueError("List each buyer or seller only once.")
+
+    reservation_choice = str(data.get("reservationChoice") or "").strip()
+    if reservation_choice not in {"all", "undivided_interest"}:
+        raise ValueError("Choose whether the seller reserves all or an undivided mineral interest.")
+    undivided_interest = _agreement_percentage(data.get("undividedInterest"), "Undivided mineral interest")
+    if reservation_choice == "undivided_interest" and not undivided_interest:
+        raise ValueError("Enter the undivided mineral-interest percentage.")
+    if reservation_choice == "all":
+        undivided_interest = ""
+    surface_rights = str(data.get("surfaceRights") or "").strip()
+    if surface_rights not in {"waived", "not_waived"}:
+        raise ValueError("Choose whether the seller waives surface rights.")
+    if data.get("mineralReviewAcknowledgment") is not True:
+        raise ValueError("Confirm that the parties will review the mineral-reservation choices before signing.")
+    return {
+        "form_source_id": form_source_id,
+        "client_names": all_names,
+        "agreement_data": {
+            "property_address": property_address,
+            "buyer_names": buyer_names,
+            "seller_names": seller_names,
+            "reservation_choice": reservation_choice,
+            "undivided_interest": undivided_interest,
+            "surface_rights": surface_rights,
+            "mineral_review_acknowledgment": True,
+        },
+    }
+
+
 async def _active_brokerage_member(user):
     profiles = await _get(
         "hof_profiles?"
@@ -2486,6 +2543,10 @@ async def _create_txr_1508_draft(user, data):
 
 async def _create_txr_1506_draft(user, data):
     return await _create_representation_draft(user, data, TXR_1506_FORM_CODE, _parse_txr_1506_draft)
+
+
+async def _create_txr_1905_draft(user, data):
+    return await _create_representation_draft(user, data, TXR_1905_FORM_CODE, _parse_txr_1905_draft)
 
 
 async def _deliver_seller_review_email(email, review_url, verification_code, expires_at, property_address):
@@ -2995,6 +3056,9 @@ async def _render_representation_draft_preview(user, agreement_id):
     if agreement.get("form_code") == TXR_1506_FORM_CODE:
         from lib.txr_1506 import render_txr_1506
         return render_txr_1506(response.content, render_data, brokerage_rows[0])
+    if agreement.get("form_code") == TXR_1905_FORM_CODE:
+        from lib.txr_1905 import render_txr_1905
+        return render_txr_1905(response.content, render_data)
     raise ValueError("Private preview is not available for this form yet.")
 
 
@@ -5091,6 +5155,10 @@ class handler(BaseHTTPRequestHandler):
                 return
             if data.get("action") == "create_txr_1506_draft":
                 draft = asyncio.run(_create_txr_1506_draft(user, data))
+                _json(self, 201, {"status": "ok", "agreement": draft})
+                return
+            if data.get("action") == "create_txr_1905_draft":
+                draft = asyncio.run(_create_txr_1905_draft(user, data))
                 _json(self, 201, {"status": "ok", "agreement": draft})
                 return
             if data.get("action") == "send_txr_agreement_for_signature":
