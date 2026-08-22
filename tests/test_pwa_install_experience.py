@@ -54,6 +54,14 @@ class PwaInstallExperienceTests(unittest.TestCase):
         self.assertIn("const sellerReturnCopy = target.surface === 'seller_success'", INDEX)
         self.assertIn('Save this seller plan to your Home Screen', INDEX)
 
+    def test_saved_agent_offer_can_offer_install_for_meaningful_repeat_work(self):
+        self.assertIn("surface: 'agent_saved_offer'", INDEX)
+        self.assertIn("Array.isArray(root.hofAuth?.myOffers)", INDEX)
+        self.assertIn("root.hofAuth.myOffers.length > 0", INDEX)
+        self.assertIn("Install Agent Workspace App", INDEX)
+        self.assertIn("Add Agent Workspace to Home Screen", INDEX)
+        self.assertIn('Save this agent workspace to your Home Screen', INDEX)
+
     def test_ios_uses_home_screen_guidance_and_install_prompt_can_be_dismissed(self):
         self.assertIn("Add to Home Screen", INDEX)
         self.assertIn("hof_pwa_install_dismissed_until", INDEX)
