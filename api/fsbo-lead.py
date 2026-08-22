@@ -174,6 +174,7 @@ PARTNER_LANDING_EVENT_TYPES = {
     "partner_application_opened": "application_opened",
     "partner_application_tier_selected": "tier_selected",
     "partner_application_essentials_opened": "essentials_opened",
+    "partner_application_essentials_focused": "essentials_focused",
     "partner_directory_application_selected": "application_selected",
     "partner_directory_pricing_selected": "pricing_selected",
     "partner_directory_empty_search": "unfilled_search",

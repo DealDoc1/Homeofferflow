@@ -3628,6 +3628,7 @@ class handler(BaseHTTPRequestHandler):
                 "partner_application_opened",
                 "partner_application_tier_selected",
                 "partner_application_essentials_opened",
+                "partner_application_essentials_focused",
                 "partner_directory_application_selected",
                 "partner_directory_pricing_selected",
                 "partner_directory_empty_search",
@@ -3649,6 +3650,9 @@ class handler(BaseHTTPRequestHandler):
             ])
             partner_application_essentials_open_count = len([
                 item for item in partner_landing_events if item.get("event_type") == "partner_application_essentials_opened"
+            ])
+            partner_application_essentials_focus_count = len([
+                item for item in partner_landing_events if item.get("event_type") == "partner_application_essentials_focused"
             ])
             partner_onboarding_opened_event_count = len([
                 item for item in events if item.get("event_type") == "partner_onboarding_opened"
@@ -4617,6 +4621,10 @@ class handler(BaseHTTPRequestHandler):
                 if partner_landing_cta_count else 0,
                 "partnerApplicationTierSelectedCount": partner_application_tier_selected_count,
                 "partnerApplicationEssentialsOpenCount": partner_application_essentials_open_count,
+                "partnerApplicationEssentialsFocusCount": partner_application_essentials_focus_count,
+                "partnerApplicationEssentialsFocusRate": round(
+                    (partner_application_essentials_focus_count / partner_application_open_count) * 100, 1
+                ) if partner_application_open_count else 0,
                 "partnerLandingTierCtaCounts": partner_landing_tier_cta_counts,
                 "partnerLandingCategoryCtaCounts": partner_landing_category_cta_counts,
                 "partnerDirectoryApplicationStartCount": partner_directory_application_start_count,

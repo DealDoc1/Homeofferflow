@@ -4838,6 +4838,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <div class="admin-metric-value">${metrics.partnerLeadCount || partnerLeads.length || 0}</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.partnerLandingViewCount || 0} partner landing views · ${metrics.partnerLandingCtaCount || 0} CTA selections (${Number(metrics.partnerLandingCtaRate || 0).toFixed(1)}%).</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.partnerApplicationOpenCount || 0} new application modal open${Number(metrics.partnerApplicationOpenCount || 0) === 1 ? '' : 's'} (${Number(metrics.partnerApplicationOpenRate || 0).toFixed(1)}% of landing CTA selections).</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.partnerApplicationEssentialsFocusCount || 0} reached a required field (${Number(metrics.partnerApplicationEssentialsFocusRate || 0).toFixed(1)}% of application opens).</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:${Number(metrics.partnerApplicationReceiptFailureCount || 0) ? 'var(--gold-light)' : 'var(--gray-light)'}">Partner-application receipts: ${Number(metrics.partnerApplicationReceiptSentCount || 0)} accepted by the delivery provider · ${Number(metrics.partnerApplicationReceiptFailureCount || 0)} unavailable or failed.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Directory acquisition: ${metrics.partnerDirectoryPricingSelectionCount || 0} pricing-and-placement view${Number(metrics.partnerDirectoryPricingSelectionCount || 0) === 1 ? '' : 's'} · ${metrics.partnerDirectoryApplicationStartCount || 0} partner application start${Number(metrics.partnerDirectoryApplicationStartCount || 0) === 1 ? '' : 's'} from the public directory.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Unfilled provider demand: ${Number(metrics.partnerDirectoryEmptySearchCount || 0)} category search${Number(metrics.partnerDirectoryEmptySearchCount || 0) === 1 ? '' : 'es'} with no active profile · ${adminSafe(Object.entries(metrics.partnerDirectoryEmptySearchCategoryCounts || {}).map(([category, count]) => `${category.replace(/_/g, ' ')} (${count})`).join(' · '), 'category demand begins with the next selected empty search')}.</div>
@@ -13638,7 +13639,7 @@ function routeAfterMagicLinkIfNeeded() {
     </div>
 
     <div class="account-actions-row" style="margin:.85rem 0 .15rem;">
-      <button class="btn-secondary" type="button" id="foundingPartnerEssentialsJump" onclick="jumpToFoundingPartnerEssentials()">I know my tier — continue to essentials</button>
+      <button class="btn-primary" type="button" id="foundingPartnerEssentialsJump" onclick="jumpToFoundingPartnerEssentials()">Continue to the 5 essentials</button>
     </div>
 
     <div class="partner-placement-wrap" aria-label="Partner tier placement comparison">
@@ -13824,6 +13825,9 @@ function routeAfterMagicLinkIfNeeded() {
       }).catch(() => {});
     } catch (_) {}
   }
+  function recordPartnerEssentialsFocused(){
+    recordPartnerApplicationProgress('partner_application_essentials_focused');
+  }
   window.openFoundingPartnerModal = function(){
     const modal = document.getElementById('foundingPartnerModal');
     if (!modal) return;
@@ -13844,7 +13848,10 @@ function routeAfterMagicLinkIfNeeded() {
       // Stripe review remain required before an application can continue.
       setTimeout(() => window.jumpToFoundingPartnerEssentials?.(), 0);
     } else {
-      setTimeout(() => document.querySelector('.partner-tier-card.is-selected')?.focus(), 0);
+      // The application already has a selected tier. Start keyboard users at
+      // the next concrete action instead of making them tab through the tier
+      // comparison again.
+      setTimeout(() => document.getElementById('foundingPartnerEssentialsJump')?.focus(), 0);
     }
   };
   window.selectFoundingPartnerTier = function(model, shouldTrack = true){
@@ -13881,6 +13888,9 @@ function routeAfterMagicLinkIfNeeded() {
     essentials.scrollIntoView({ behavior: 'smooth', block: 'start' });
     setTimeout(() => document.getElementById('foundingPartnerCompany')?.focus(), 250);
   };
+  document.querySelectorAll('#foundingPartnerEssentials input, #foundingPartnerEssentials select').forEach(field => {
+    field.addEventListener('focus', recordPartnerEssentialsFocused, { once: true });
+  });
   window.closeFoundingPartnerModal = function(){
     const modal = document.getElementById('foundingPartnerModal');
     if (!modal) return;
