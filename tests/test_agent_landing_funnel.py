@@ -14,6 +14,12 @@ VERCEL = (ROOT / "vercel.json").read_text(encoding="utf-8")
 
 
 class AgentLandingFunnelTests(unittest.TestCase):
+    def test_each_public_transaction_choice_is_a_full_card_tap_target(self):
+        self.assertEqual(AGENTS.count('class="card transaction-card" data-agent-cta-path='), 4)
+        self.assertIn('.transaction-card{display:block;', AGENTS)
+        self.assertIn('.transaction-card:focus-visible', AGENTS)
+        self.assertNotIn('<article class="card"><h3>Buying</h3>', AGENTS)
+
 
     def test_passwordless_workspace_login_validates_and_focuses_email_before_requesting_auth(self):
         self.assertIn('id="authEmail" type="email" inputmode="email" autocomplete="email"', INDEX)
