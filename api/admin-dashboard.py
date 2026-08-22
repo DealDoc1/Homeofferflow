@@ -80,6 +80,7 @@ TXR_1507_FORM_CODE = "TXR-1507"
 TXR_1508_FORM_CODE = "TXR-1508"
 TXR_1905_FORM_CODE = "TXR-1905"
 TXR_1914_FORM_CODE = "TXR-1914"
+TXR_1917_FORM_CODE = "TXR-1917"
 TXR_1919_FORM_CODE = "TXR-1919"
 TREC_55_1_FORM_CODE = "TREC-55-1"
 TREC_61_0_FORM_CODE = "TREC-61-0"
@@ -2491,6 +2492,40 @@ def _parse_txr_1919_draft(data):
     }
 
 
+def _parse_txr_1917_draft(data):
+    """Validate the narrow, unsigned environmental-review draft."""
+    if data.get("formCode") != TXR_1917_FORM_CODE:
+        raise ValueError("Only TXR-1917 is available through this action.")
+    try:
+        source_id = str(uuid.UUID(_agreement_text(data.get("formSourceId"), "Approved TXR-1917 source", 80)))
+    except (TypeError, ValueError, AttributeError):
+        raise ValueError("Choose an available TXR-1917 source from the HomeOfferFlow library.")
+
+    def names(key, label):
+        values = data.get(key)
+        if not isinstance(values, list) or not (1 <= len(values) <= 2):
+            raise ValueError(f"Add one or two {label} names.")
+        return [_agreement_text(value, f"Each {label} name", 180) for value in values]
+
+    reviews = data.get("reviewTypes")
+    allowed = {"environmental", "species", "wetlands"}
+    if not isinstance(reviews, list) or not reviews or not set(reviews).issubset(allowed):
+        raise ValueError("Choose at least one source-form review type.")
+    days = str(data.get("terminationDays") or "").strip()
+    if not re.fullmatch(r"\d{1,3}", days) or int(days) < 1:
+        raise ValueError("Termination time must be a whole number of days.")
+    buyers, sellers = names("buyerNames", "buyer"), names("sellerNames", "seller")
+    if len({name.casefold() for name in buyers + sellers}) != len(buyers + sellers):
+        raise ValueError("List each buyer or seller only once.")
+    if data.get("environmentalReviewAcknowledgment") is not True:
+        raise ValueError("Confirm the parties will review environmental terms with the appropriate professionals before signing.")
+    return {"form_source_id": source_id, "client_names": buyers + sellers, "agreement_data": {
+        "property_address": _agreement_text(data.get("propertyAddress"), "Property address", 400),
+        "buyer_names": buyers, "seller_names": sellers, "review_types": list(dict.fromkeys(reviews)),
+        "termination_days": days, "environmental_review_acknowledgment": True,
+    }}
+
+
 async def _active_brokerage_member(user):
     profiles = await _get(
         "hof_profiles?"
@@ -2763,6 +2798,10 @@ async def _create_txr_1905_draft(user, data):
 
 async def _create_txr_1914_draft(user, data):
     return await _create_representation_draft(user, data, TXR_1914_FORM_CODE, _parse_txr_1914_draft)
+
+
+async def _create_txr_1917_draft(user, data):
+    return await _create_representation_draft(user, data, TXR_1917_FORM_CODE, _parse_txr_1917_draft)
 
 
 async def _create_txr_1919_draft(user, data):
@@ -3282,6 +3321,9 @@ async def _render_representation_draft_preview(user, agreement_id):
     if agreement.get("form_code") == TXR_1914_FORM_CODE:
         from lib.txr_1914 import render_txr_1914
         return render_txr_1914(response.content, render_data)
+    if agreement.get("form_code") == TXR_1917_FORM_CODE:
+        from lib.txr_1917 import render_txr_1917
+        return render_txr_1917(response.content, render_data)
     if agreement.get("form_code") == TXR_1919_FORM_CODE:
         from lib.txr_1919 import render_txr_1919
         return render_txr_1919(response.content, render_data)
@@ -5389,6 +5431,10 @@ class handler(BaseHTTPRequestHandler):
                 return
             if data.get("action") == "create_txr_1914_draft":
                 draft = asyncio.run(_create_txr_1914_draft(user, data))
+                _json(self, 201, {"status": "ok", "agreement": draft})
+                return
+            if data.get("action") == "create_txr_1917_draft":
+                draft = asyncio.run(_create_txr_1917_draft(user, data))
                 _json(self, 201, {"status": "ok", "agreement": draft})
                 return
             if data.get("action") == "create_txr_1919_draft":
