@@ -15,10 +15,10 @@ class AgentLaunchScopeTests(unittest.TestCase):
 
     def test_scope_does_not_overstate_unreleased_agent_form_workflows(self):
         for form_group in (
-            "TXR-1501, TXR-1506",
+            "TXR-1501, TXR-1506, TXR-1507, and TXR-1508",
             "listing agreements",
             "seller disclosures",
-            "lease-listing and tenant-representation packets",
+            "lease-listing packets",
         ):
             self.assertIn(form_group, HTML)
         self.assertIn(

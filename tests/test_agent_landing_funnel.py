@@ -45,7 +45,7 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("agent_landing_relationship_workspace_handoff", INDEX)
         self.assertIn("tab: 'relationships'", INDEX)
         self.assertIn('id="accountPanelRelationships"', INDEX)
-        self.assertIn("review and send approved-source TXR-1507 and TXR-1508 drafts", AGENTS)
+        self.assertIn("review and send approved-source TXR-1501, TXR-1506, TXR-1507, and TXR-1508 drafts", AGENTS)
 
     def test_relationship_drafts_are_a_persistent_agent_account_workspace(self):
         self.assertIn('id="relationshipsAccountTab"', INDEX)
