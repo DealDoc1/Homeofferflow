@@ -101,6 +101,7 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn('Question 1', AGENTS)
         self.assertIn('What kind of transaction are you starting?', AGENTS)
         self.assertIn('Start question 1', AGENTS)
+        self.assertIn('id="agentQuestionOneCta"', AGENTS)
         self.assertNotIn('Start a buyer offer — no payment', AGENTS)
         self.assertIn('No password and no charge to start a private workspace.', AGENTS)
         self.assertIn('save your agent defaults afterward for faster repeat work', AGENTS)
@@ -123,6 +124,7 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("AGENT_LANDING_EVENT_TYPES", API)
         self.assertIn("def _record_agent_landing_event(data):", API)
         self.assertIn('"agent_landing_viewed": "viewed"', API)
+        self.assertIn('"agent_landing_question_one_opened": "opened"', API)
         self.assertIn('"agent_landing_cta_selected": "selected"', API)
         self.assertIn('"agent_workflow_guide_viewed": "viewed"', API)
         self.assertIn('"agent_workflow_guide_cta_selected": "selected"', API)
@@ -142,6 +144,8 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("cta_path=ctaPath", AGENTS)
         self.assertIn("request_type:'agent_landing_event'", AGENTS)
         self.assertIn("agent_landing_viewed", AGENTS)
+        self.assertIn("agent_landing_question_one_opened", AGENTS)
+        self.assertIn("agentQuestionOneCta", AGENTS)
         self.assertIn("agent_landing_cta_selected", AGENTS)
         self.assertIn("new URLSearchParams(window.location.search).get('utm_source')", AGENTS)
         self.assertIn("'direct_outreach','email','social','referral','local_event','print'", AGENTS)
@@ -154,19 +158,22 @@ class AgentLandingFunnelTests(unittest.TestCase):
         captured = []
         with patch.object(api, "_record_partner_checkout_event", side_effect=lambda *args: captured.append(args)):
             api._record_agent_landing_event({"event_type": "agent_landing_cta_selected", "channel": "referral", "cta_path": "seller_listing"})
+            api._record_agent_landing_event({"event_type": "agent_landing_question_one_opened", "channel": "referral"})
             with self.assertRaisesRegex(ValueError, "Unsupported agent landing channel"):
                 api._record_agent_landing_event({"event_type": "agent_landing_viewed", "channel": "untrusted"})
             with self.assertRaisesRegex(ValueError, "Unsupported agent landing CTA path"):
                 api._record_agent_landing_event({"event_type": "agent_landing_cta_selected", "channel": "referral", "cta_path": "untrusted"})
             with self.assertRaisesRegex(ValueError, "CTA path is only allowed"):
                 api._record_agent_landing_event({"event_type": "agent_landing_viewed", "channel": "referral", "cta_path": "client_draft"})
-        self.assertEqual(len(captured), 1)
+        self.assertEqual(len(captured), 2)
         self.assertEqual(captured[0][0], "agent_landing_cta_selected")
         self.assertEqual(captured[0][3], {"surface": "agent_landing", "role": "agent", "channel": "referral", "ctaPath": "seller_listing"})
+        self.assertEqual(captured[1][0], "agent_landing_question_one_opened")
+        self.assertEqual(captured[1][3], {"surface": "agent_landing", "role": "agent", "channel": "referral"})
 
     def test_admin_reports_agent_workspace_landing_conversion(self):
         for expected in (
-            '"agentLandingViewCount"', '"agentLandingCtaCount"', '"agentLandingCtaRate"',
+            '"agentLandingViewCount"', '"agentLandingQuestionOneOpenCount"', '"agentLandingQuestionOneOpenRate"', '"agentLandingCtaCount"', '"agentLandingCtaRate"',
             '"agentLandingViewCountsByChannel"', '"agentLandingCtaCountsByChannel"',
             '"agentLandingDraftHandoffUserCount"', '"agentLandingDraftHandoffRate"',
             '"agentLandingSellerWorkspaceHandoffUserCount"',
@@ -182,6 +189,7 @@ class AgentLandingFunnelTests(unittest.TestCase):
             self.assertIn(expected, ADMIN)
         self.assertIn("Agent Workspace Funnel", INDEX)
         self.assertIn("agentLandingCtaRate", INDEX)
+        self.assertIn("agentLandingQuestionOneOpenRate", INDEX)
         self.assertIn("Channel views / sign-ins", INDEX)
         self.assertIn("agentLandingViewCountsByChannel?.referral", INDEX)
         self.assertIn("agentLandingDraftHandoffUserCount", INDEX)

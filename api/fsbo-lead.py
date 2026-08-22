@@ -211,6 +211,7 @@ HOMEBUYER_LANDING_CHANNELS = {
 }
 AGENT_LANDING_EVENT_TYPES = {
     "agent_landing_viewed": "viewed",
+    "agent_landing_question_one_opened": "opened",
     "agent_landing_cta_selected": "selected",
     "agent_workflow_guide_viewed": "viewed",
     "agent_workflow_guide_cta_selected": "selected",
