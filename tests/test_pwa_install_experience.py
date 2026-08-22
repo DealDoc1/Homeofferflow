@@ -155,6 +155,11 @@ class PwaInstallExperienceTests(unittest.TestCase):
         self.assertIn("window.addEventListener('hof-auth-ready'", INDEX)
         self.assertIn("window.dispatchEvent(new Event('hof-auth-ready'))", INDEX)
 
+    def test_listing_tools_shortcut_reuses_the_property_first_listing_interview(self):
+        self.assertIn("async function openListingTools()", INDEX)
+        self.assertIn("window.hofAgentWorkflowContext = 'sale_listing';", INDEX)
+        self.assertEqual(INDEX.count("else if (action === 'listing_tools') await openListingTools();"), 2)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -19978,6 +19978,14 @@ function routeAfterMagicLinkIfNeeded() {
     // shortcut carries no client, property, form, or source identifier.
   }
 
+  async function openListingTools(){
+    // An installed-app listing shortcut starts the same property-first
+    // interview as the explicit Listing choice. It only supplies navigation
+    // context: no seller, property, form, or workspace is created here.
+    window.hofAgentWorkflowContext = 'sale_listing';
+    await window.openAccountDashboard?.({ tab: 'seller' });
+  }
+
   async function openOfferReviewShortcut(role){
     // Offer Review belongs to the agent workspace. An investor who has this
     // installed-app shortcut from a shared device goes to their own private
@@ -20016,7 +20024,7 @@ function routeAfterMagicLinkIfNeeded() {
     }
     clearPendingAction();
     if (action === 'workspace') await window.openAccountDashboard?.({ tab: 'dashboard' });
-    else if (action === 'listing_tools') await window.openAccountDashboard?.({ tab: 'seller' });
+    else if (action === 'listing_tools') await openListingTools();
     else if (action === 'relationship_drafts') await openRelationshipDrafts();
     else if (action === 'offer_review') await openOfferReviewShortcut(role);
     else if (action === 'signing_queue') await openSigningQueue();
@@ -20037,7 +20045,7 @@ function routeAfterMagicLinkIfNeeded() {
       await openNewOfferShortcut(window.hofAuth?.role === 'investor' ? 'investor' : 'agent');
     } else if (action === 'signing_queue') await openSigningQueue();
     else if (action === 'attention_queue') await openAttentionQueue();
-    else if (action === 'listing_tools') await window.openAccountDashboard?.({ tab: 'seller' });
+    else if (action === 'listing_tools') await openListingTools();
     else if (action === 'relationship_drafts') await openRelationshipDrafts();
     else if (action === 'offer_review') await openOfferReviewShortcut(window.hofAuth?.role === 'investor' ? 'investor' : 'agent');
     trackShortcut(action, window.hofAuth?.role === 'investor' ? 'investor' : 'agent', true);
