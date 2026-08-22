@@ -114,7 +114,8 @@ class PlatformFormSourceUploadTests(unittest.TestCase):
         self.assertIn("/api/admin-dashboard?scope=platform_source_brokerages", html)
         self.assertIn("action:'upload_platform_form_source'", html)
         self.assertIn("document.getElementById('accountPanelAdmin') || document.getElementById('accountPanelDashboard')", html)
-        self.assertIn("Platform brokerage form-source intake", html)
+        self.assertIn("Platform form library &amp; revision manager", html)
+        self.assertIn("Agents use the universal released form library", html)
 
 
 if __name__ == "__main__":
