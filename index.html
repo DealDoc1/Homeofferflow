@@ -4837,7 +4837,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.pwaInstallAcceptedCount || 0} native prompt acceptance${Number(metrics.pwaInstallAcceptedCount || 0) === 1 ? '' : 's'} (${Number(metrics.pwaInstallAcceptedRate || 0).toFixed(1)}% of native prompts). Accepted on: ${Object.entries(metrics.pwaInstallAcceptedSurfaceCounts || {}).filter(([, count]) => Number(count) > 0).map(([surface, count]) => `${surface.replace(/_/g, ' ')} ${count}`).join(' · ') || 'attribution begins with the next accepted prompt.'}</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.pwaSellerPlanShortcutCount || 0} Seller Plan shortcut return${Number(metrics.pwaSellerPlanShortcutCount || 0) === 1 ? '' : 's'} opened.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.pwaBuyerOfferShortcutCount || 0} Buyer Offer shortcut return${Number(metrics.pwaBuyerOfferShortcutCount || 0) === 1 ? '' : 's'} opened.</div>
-            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Authenticated workspace shortcuts: workspace ${Number(metrics.pwaAuthenticatedShortcutCounts?.workspace || 0)} · listings ${Number(metrics.pwaAuthenticatedShortcutCounts?.listing_tools || 0)} · relationship drafts ${Number(metrics.pwaAuthenticatedShortcutCounts?.relationship_drafts || 0)} · new offer ${Number(metrics.pwaAuthenticatedShortcutCounts?.new_offer || 0)} · signing ${Number(metrics.pwaAuthenticatedShortcutCounts?.signing_queue || 0)}.</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Authenticated workspace shortcuts: workspace ${Number(metrics.pwaAuthenticatedShortcutCounts?.workspace || 0)} · listings ${Number(metrics.pwaAuthenticatedShortcutCounts?.listing_tools || 0)} · relationship drafts ${Number(metrics.pwaAuthenticatedShortcutCounts?.relationship_drafts || 0)} · offer review ${Number(metrics.pwaAuthenticatedShortcutCounts?.offer_review || 0)} · new offer ${Number(metrics.pwaAuthenticatedShortcutCounts?.new_offer || 0)} · signing ${Number(metrics.pwaAuthenticatedShortcutCounts?.signing_queue || 0)} · attention ${Number(metrics.pwaAuthenticatedShortcutCounts?.attention_queue || 0)}.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.fsboProviderDirectoryOpenCount || 0} post-intake seller directory visit${Number(metrics.fsboProviderDirectoryOpenCount || 0) === 1 ? '' : 's'} opened.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.pwaInstallAcceptedCount || 0} accepted · ${metrics.pwaInstallDismissedCount || 0} dismissed · ${Number(metrics.pwaInstallCompletionRate || 0).toFixed(1)}% installed after an install prompt opened.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">PWA only: app-like mobile access without a separate native-app build or store overhead.</div>
@@ -19698,7 +19698,7 @@ function routeAfterMagicLinkIfNeeded() {
   const root = window;
   const pendingActionKey = 'hof_pwa_shortcut_pending_action';
   const ondemandFirstOfferAttributionKey = 'hof_ondemand_first_offer_attribution';
-  const validActions = new Set(['workspace', 'listing_tools', 'relationship_drafts', 'new_offer', 'signing_queue', 'attention_queue', 'seller_plan', 'buyer_offer']);
+  const validActions = new Set(['workspace', 'listing_tools', 'relationship_drafts', 'offer_review', 'new_offer', 'signing_queue', 'attention_queue', 'seller_plan', 'buyer_offer']);
   let defaultWorkspaceOpened = false;
 
   function isStandalonePwa(){
@@ -19734,7 +19734,7 @@ function routeAfterMagicLinkIfNeeded() {
     // Authenticated workspace shortcuts are measured server-side as an
     // aggregate operational signal. The event stores no client, property,
     // form, source, device, or URL data; Admin receives counts only.
-    if (window.hofAuth?.session && ['workspace', 'listing_tools', 'relationship_drafts', 'new_offer', 'signing_queue', 'attention_queue'].includes(action)) {
+    if (window.hofAuth?.session && ['workspace', 'listing_tools', 'relationship_drafts', 'offer_review', 'new_offer', 'signing_queue', 'attention_queue'].includes(action)) {
       try {
         window.logOfferEvent?.(
           null,
@@ -19844,6 +19844,17 @@ function routeAfterMagicLinkIfNeeded() {
     // shortcut carries no client, property, form, or source identifier.
   }
 
+  async function openOfferReviewShortcut(role){
+    // Offer Review belongs to the agent workspace. An investor who has this
+    // installed-app shortcut from a shared device goes to their own private
+    // offers instead of an empty agent-only tab.
+    if (role === 'investor') {
+      await window.openAccountDashboard?.({ tab: 'offers' });
+      return;
+    }
+    await window.openAccountDashboard?.({ tab: 'ai' });
+  }
+
   async function runAction(action, { resumedAfterSignIn = false } = {}){
     if (!validActions.has(action)) return;
     if (action === 'seller_plan') {
@@ -19873,6 +19884,7 @@ function routeAfterMagicLinkIfNeeded() {
     if (action === 'workspace') await window.openAccountDashboard?.({ tab: 'dashboard' });
     else if (action === 'listing_tools') await window.openAccountDashboard?.({ tab: 'seller' });
     else if (action === 'relationship_drafts') await openRelationshipDrafts();
+    else if (action === 'offer_review') await openOfferReviewShortcut(role);
     else if (action === 'signing_queue') await openSigningQueue();
     else if (action === 'attention_queue') await openAttentionQueue();
     else {
@@ -19893,6 +19905,7 @@ function routeAfterMagicLinkIfNeeded() {
     else if (action === 'attention_queue') await openAttentionQueue();
     else if (action === 'listing_tools') await window.openAccountDashboard?.({ tab: 'seller' });
     else if (action === 'relationship_drafts') await openRelationshipDrafts();
+    else if (action === 'offer_review') await openOfferReviewShortcut(window.hofAuth?.role === 'investor' ? 'investor' : 'agent');
     trackShortcut(action, window.hofAuth?.role === 'investor' ? 'investor' : 'agent', true);
   }
 
