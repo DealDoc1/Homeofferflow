@@ -301,6 +301,11 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn('"@type":"BreadcrumbList"', DIRECTORY)
         self.assertIn('"name":"Texas Service Provider Directory"', DIRECTORY)
 
+    def test_homebuyer_offer_page_exposes_breadcrumb_context(self):
+        self.assertIn('aria-label="Breadcrumb"', BUYERS)
+        self.assertIn('"@type":"BreadcrumbList"', BUYERS)
+        self.assertIn('"name":"Texas Homebuyer Offer Packet"', BUYERS)
+
     def test_clean_public_marketing_routes_resolve_and_are_canonical(self):
         for route, destination in (
             ("/partners", "/partners.html"),
