@@ -139,20 +139,25 @@ class ListingWorkspaceFoundationTests(unittest.TestCase):
         self.assertIn("It does not calculate a closing statement, determine commissions, account for every obligation, rank offers, or recommend a decision.", INDEX)
         self.assertIn("This is not a closing statement, valuation, legal or tax advice, offer ranking, recommendation, acceptance, rejection, or contract decision.", INDEX)
 
-    def test_listing_workspace_can_generate_a_non_executable_seller_launch_checklist(self):
-        self.assertIn("Seller Listing Launch Checklist", INDEX)
+    def test_listing_workspace_can_generate_a_non_executable_listing_kickoff_checklist(self):
+        self.assertIn("Listing Kickoff Checklist", INDEX)
         self.assertIn("copyListingLaunchChecklist", INDEX)
         self.assertIn("printListingLaunchChecklist", INDEX)
         self.assertIn("listingLaunchChecklistText", INDEX)
+        self.assertIn("listingWorkspaceContext", INDEX)
+        self.assertIn("Lease Listing Kickoff Checklist", INDEX)
+        self.assertIn("Application and lease handling", INDEX)
         self.assertIn("It is a planning aid only", INDEX)
         self.assertIn("not legal advice, a pricing opinion, a listing agreement, disclosure, contract, or instruction to sign", INDEX)
         self.assertIn("hofPlatform.listingWorkspaces = workspaces", INDEX)
 
-    def test_listing_workspace_can_generate_a_private_non_executable_seller_consultation_brief(self):
-        self.assertIn("Seller Consultation Brief", INDEX)
+    def test_listing_workspace_can_generate_a_private_non_executable_listing_consultation_brief(self):
+        self.assertIn("Listing Consultation Brief", INDEX)
         self.assertIn("copySellerConsultationBrief", INDEX)
         self.assertIn("printSellerConsultationBrief", INDEX)
         self.assertIn("sellerConsultationBriefText", INDEX)
+        self.assertIn("Lease Listing Consultation Brief", INDEX)
+        self.assertIn("Lease preparation", INDEX)
         self.assertIn("Choose a private listing workspace above first.", INDEX)
         self.assertIn("It is a private planning document—not a listing agreement, disclosure, pricing opinion, contract, or instruction to sign.", INDEX)
         self.assertIn("Do not create, send, sign, or describe a listing agreement, disclosure, or lease packet as executable", INDEX)
