@@ -279,6 +279,7 @@ class OnDemandCheckoutTests(unittest.TestCase):
         request._has_active_brokerage_membership = lambda _user_id, _brokerage_id: True
         request._has_current_subscription = lambda _user_id: False
         request._has_current_legal_acceptance = lambda _user_id: True
+        request._record_checkout_redirect = lambda **_kwargs: True
         with patch.object(checkout.httpx, "Client", StripeClient):
             request.do_POST()
 

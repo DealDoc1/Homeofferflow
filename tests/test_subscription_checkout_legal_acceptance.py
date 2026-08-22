@@ -75,10 +75,27 @@ class SubscriptionCheckoutLegalAcceptanceTests(unittest.TestCase):
     def test_checkout_allows_current_legal_acceptance(self):
         request, captured = self.request()
         request._has_current_legal_acceptance = lambda _user_id: True
+        redirect_events = []
+        request._record_checkout_redirect = lambda **kwargs: redirect_events.append(kwargs) or True
         with patch.object(checkout.httpx, "Client", StripeClient):
             request.do_POST()
         self.assertEqual(captured["code"], 200)
         self.assertIsNotNone(StripeClient.last_post)
+        self.assertEqual(redirect_events, [{
+            "user_id": "user-1",
+            "plan": "agent",
+            "billing": "monthly",
+            "source": "homeofferflow",
+        }])
+
+    def test_checkout_event_is_best_effort_and_does_not_block_the_stripe_response(self):
+        request, captured = self.request()
+        request._has_current_legal_acceptance = lambda _user_id: True
+        request._record_checkout_redirect = lambda **_kwargs: False
+        with patch.object(checkout.httpx, "Client", StripeClient):
+            request.do_POST()
+        self.assertEqual(captured["code"], 200)
+        self.assertEqual(captured["data"]["url"], "https://checkout.stripe.test/session")
 
     def test_checkout_uses_the_validated_plan_role_not_a_browser_supplied_role(self):
         raw = json.dumps({"plan": "agent", "billing": "monthly", "role": "homebuyer"}).encode()
@@ -86,6 +103,7 @@ class SubscriptionCheckoutLegalAcceptanceTests(unittest.TestCase):
         request.headers["Content-Length"] = str(len(raw))
         request.rfile = io.BytesIO(raw)
         request._has_current_legal_acceptance = lambda _user_id: True
+        request._record_checkout_redirect = lambda **_kwargs: True
 
         with patch.object(checkout.httpx, "Client", StripeClient):
             request.do_POST()

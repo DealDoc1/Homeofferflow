@@ -5704,7 +5704,9 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       const result = await response.json();
       if (!response.ok || result.error) throw new Error(result.error || 'Could not start subscription checkout.');
       if (!result.url) throw new Error('Stripe did not return a checkout URL.');
-      await logOfferEvent(null, 'subscription_checkout_redirected', 'redirected', 'Redirected to Stripe subscription checkout.', { source: normalizedSource, plan: normalizedPlan, billing: normalizedBilling });
+      // The checkout endpoint records the redirect milestone only after
+      // Stripe returns a usable session. Keeping it server-side avoids losing
+      // the event during this cross-origin navigation or counting it twice.
       window.location.href = result.url;
     } catch (err) {
       window.__hofSubscriptionCheckoutInFlight = false;

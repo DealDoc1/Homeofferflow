@@ -260,6 +260,18 @@ class handler(BaseHTTPRequestHandler):
                 self._json(response.status_code, {"error": message or "Stripe checkout session failed.", "details": data})
                 return
 
+            # A browser navigation to Stripe can cancel a client-side analytics
+            # request before it reaches Supabase. Record this milestone only
+            # after Stripe has returned a usable Checkout URL, using the
+            # server-held identity already verified above. This measurement
+            # failure must never block a customer from reaching checkout.
+            self._record_checkout_redirect(
+                user_id=user_id,
+                plan=plan,
+                billing=billing,
+                source="ondemand" if is_ondemand else "homeofferflow",
+            )
+
             self._json(
                 200,
                 {
@@ -372,6 +384,38 @@ class handler(BaseHTTPRequestHandler):
         if response.status_code >= 300:
             raise RuntimeError("Could not verify the current legal acceptance.")
         return bool(response.json())
+
+    def _record_checkout_redirect(self, *, user_id, plan, billing, source):
+        """Best-effort server event after Stripe creates a Checkout session.
+
+        No Checkout URL, session identifier, email, or other payment/customer
+        detail is stored in the event. The row only makes the aggregate
+        conversion funnel reliable across a cross-origin browser navigation.
+        """
+        if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
+            return False
+        try:
+            with httpx.Client(timeout=8) as client:
+                response = client.post(
+                    f"{SUPABASE_URL}/rest/v1/hof_offer_events",
+                    headers=_service_headers("return=minimal"),
+                    json={
+                        "offer_id": None,
+                        "user_id": user_id,
+                        "event_type": "subscription_checkout_redirected",
+                        "status": "redirected",
+                        "message": "Stripe subscription checkout session created.",
+                        "metadata": {
+                            "source": source,
+                            "plan": plan,
+                            "billing": billing,
+                        },
+                        "created_at": _iso_now(),
+                    },
+                )
+            return response.status_code < 300
+        except Exception:
+            return False
 
     def _public_brokerage(self, brokerage):
         if not brokerage:
