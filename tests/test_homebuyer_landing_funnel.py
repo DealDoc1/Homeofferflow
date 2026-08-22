@@ -45,6 +45,12 @@ class HomebuyerLandingFunnelTests(unittest.TestCase):
         self.assertIn("The $99 one-time charge applies only when the packet is ready.", BUYERS)
         self.assertIn('"price":"99"', BUYERS)
 
+    def test_buyer_hero_keeps_pricing_and_planning_guidance_in_one_quiet_note(self):
+        hero = BUYERS.split('<section class="faq" aria-labelledby="buyer-ready">', 1)[0]
+        self.assertEqual(hero.count('class="note"'), 1)
+        self.assertIn('Need a checklist first?', hero)
+        self.assertIn('/texas-homebuyer-offer-guide', hero)
+
     def test_buyer_ready_list_reduces_pre_start_uncertainty_without_collecting_details(self):
         self.assertIn('id="buyerReadyList"', BUYERS)
         self.assertIn("Bring what you know. The guided flow handles the rest.", BUYERS)
