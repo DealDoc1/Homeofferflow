@@ -11360,15 +11360,15 @@ function routeAfterMagicLinkIfNeeded() {
       </div>
       <div class="platform-card"><h4>My Listing Workspaces</h4><div id="listingWorkspaceList" class="platform-list"><div class="platform-list-item">No listing workspaces loaded yet.</div></div><div id="listingWorkspaceBrokerSummary" class="platform-status" style="margin-top:.75rem;"></div></div>
       <div class="platform-card" id="listingLaunchChecklistCard">
-        <h4>Seller Listing Launch Checklist</h4>
-        <p>Generate a practical kickoff checklist from a private workspace for the agent, broker, and seller conversation. It is a planning aid only—not a listing agreement, disclosure, pricing opinion, or instruction to act.</p>
+        <h4>Listing Kickoff Checklist</h4>
+        <p>Generate a practical sale-listing or lease-listing kickoff checklist from a private workspace for the agent, broker, and seller or landlord conversation. It is a planning aid only—not a listing agreement, disclosure, pricing opinion, or instruction to act.</p>
         <div class="platform-grid"><div class="field"><label for="listingLaunchWorkspace">Listing workspace</label><select id="listingLaunchWorkspace"><option value="">Load a workspace first</option></select></div></div>
-        <div class="platform-actions"><button type="button" onclick="copyListingLaunchChecklist()">Copy Seller Launch Checklist</button><button type="button" class="btn-secondary" onclick="printListingLaunchChecklist()">Print Checklist</button></div>
+        <div class="platform-actions"><button type="button" onclick="copyListingLaunchChecklist()">Copy Kickoff Checklist</button><button type="button" class="btn-secondary" onclick="printListingLaunchChecklist()">Print Checklist</button></div>
         <div id="listingLaunchChecklistStatus" class="platform-status"></div>
       </div>
       <div class="platform-card" id="sellerConsultationBriefCard">
-        <h4>Seller Consultation Brief</h4>
-        <p>Use the selected private workspace to prepare a structured seller conversation, including scope, property facts, launch choices, and next-step questions. It is a private planning document—not a listing agreement, disclosure, pricing opinion, contract, or instruction to sign.</p>
+        <h4>Listing Consultation Brief</h4>
+        <p>Use the selected private workspace to prepare a structured seller or landlord conversation, including scope, property facts, launch choices, and next-step questions. It is a private planning document—not a listing agreement, disclosure, pricing opinion, contract, or instruction to sign.</p>
         <div class="platform-actions"><button type="button" onclick="copySellerConsultationBrief()">Copy Consultation Brief</button><button type="button" class="btn-secondary" onclick="printSellerConsultationBrief()">Print Brief</button></div>
         <div id="sellerConsultationBriefStatus" class="platform-status"></div>
       </div>
@@ -11689,38 +11689,49 @@ function routeAfterMagicLinkIfNeeded() {
     return String(value || '').replace(/_/g, ' ').replace(/\b\w/g, letter => letter.toUpperCase());
   }
 
+  function listingWorkspaceContext(workspace) {
+    const isLease = String(workspace?.listing_kind || 'sale') === 'lease';
+    return {
+      isLease,
+      kind: isLease ? 'lease listing' : 'sale listing',
+      client: isLease ? 'landlord' : 'seller',
+      title: isLease ? 'Lease Listing Kickoff Checklist' : 'Sale Listing Kickoff Checklist',
+      consultationTitle: isLease ? 'Lease Listing Consultation Brief' : 'Sale Listing Consultation Brief'
+    };
+  }
+
   function listingLaunchChecklistText(workspace) {
-    const kind = String(workspace?.listing_kind || 'sale') === 'lease' ? 'lease listing' : 'sale listing';
+    const context = listingWorkspaceContext(workspace);
     const workflows = Array.isArray(workspace?.requested_workflows) ? workspace.requested_workflows : [];
     const workflowItems = workflows.length
       ? workflows.map(item => `- ${listingWorkspaceLabel(item)}: confirm authorized source, required roles, and completed review before any execution.`)
       : ['- Confirm which seller-side workflows are needed before requesting documents.'];
     return [
-      'HomeOfferFlow Seller Listing Launch Checklist',
+      `HomeOfferFlow ${context.title}`,
       `Property: ${workspace?.property_address || 'Not entered'}`,
-      `Listing type: ${listingWorkspaceLabel(kind)}`,
+      `Listing type: ${listingWorkspaceLabel(context.kind)}`,
       `Workspace status: ${listingWorkspaceLabel(workspace?.status || 'intake')}`,
-      `Seller / landlord: ${(workspace?.seller_names || []).join('; ') || 'Not entered'}`,
+      `${context.client === 'landlord' ? 'Landlord' : 'Seller'}: ${(workspace?.seller_names || []).join('; ') || 'Not entered'}`,
       '',
       '1. Representation and scope',
-      '- Confirm the authorized brokerage, responsible agent, seller decision-makers, desired scope, and communication preferences.',
-      '- Do not represent a listing agreement, disclosure, or lease packet as ready until the approved source and required review are complete.',
+      `- Confirm the authorized brokerage, responsible agent, ${context.client} decision-makers, desired scope, and communication preferences.`,
+      `- Do not represent a ${context.isLease ? 'lease-listing agreement or lease packet' : 'listing agreement or disclosure'} as ready until the approved source and required review are complete.`,
       '',
       '2. Property and market preparation',
-      '- Confirm property address, ownership names, occupancy, access/showing logistics, pricing strategy discussion, and desired timing.',
-      '- Gather only the property, condition, HOA, survey, improvement, utility, and marketing information needed for the authorized workflow.',
+      `- Confirm property address, ownership names, occupancy, access/showing logistics, ${context.isLease ? 'rent, term, and availability discussion' : 'pricing strategy discussion'}, and desired timing.`,
+      `- Gather only the property, condition, HOA, ${context.isLease ? 'pet, utility, amenity, and lease-readiness' : 'survey, improvement, utility, and marketing'} information needed for the authorized workflow.`,
       '',
       '3. Listing presentation and launch',
-      '- Confirm photo/video plan, listing description, MLS or marketing path, fair-housing review, showing instructions, and seller communication cadence.',
-      '- Verify that public marketing statements, square footage, features, and pricing have been reviewed by the appropriate responsible professional.',
+      `- Confirm photo/video plan, listing description, MLS or marketing path, fair-housing review, showing instructions, and ${context.client} communication cadence.`,
+      `- Verify that public marketing statements, square footage, features, and ${context.isLease ? 'rent and availability' : 'pricing'} have been reviewed by the appropriate responsible professional.`,
       '',
-      '4. Seller documents and review',
+      `4. ${context.client === 'landlord' ? 'Landlord' : 'Seller'} documents and review`,
       ...workflowItems,
       '- Use the private seller-disclosure review workflow only where the brokerage has supplied and authorized the source; secure review is not signing.',
       '',
-      '5. Offer handling',
-      '- Log received offers and key terms in the private offer-comparison worksheet.',
-      '- Review the complete offer documents, deadlines, financing, contingencies, concessions, and seller questions with the appropriate licensed professional before a decision.',
+      `5. ${context.isLease ? 'Application and lease handling' : 'Offer handling'}`,
+      context.isLease ? '- Establish the brokerage-approved process for applications, screening, deposits, timing, and lease questions before communicating commitments.' : '- Log received offers and key terms in the private offer-comparison worksheet.',
+      context.isLease ? '- Review lease terms, deadlines, deposits, possession, and landlord questions with the appropriate licensed professional before a decision.' : '- Review the complete offer documents, deadlines, financing, contingencies, concessions, and seller questions with the appropriate licensed professional before a decision.',
       '',
       'This planning checklist is not legal advice, a pricing opinion, a listing agreement, disclosure, contract, or instruction to sign.'
     ].join('\n');
@@ -11735,10 +11746,11 @@ function routeAfterMagicLinkIfNeeded() {
     const workspace = selectedListingLaunchWorkspace();
     if (!workspace) return platformStatus('listingLaunchChecklistStatus', 'Choose a private listing workspace first.', 'err');
     const checklist = listingLaunchChecklistText(workspace);
+    const context = listingWorkspaceContext(workspace);
     try {
       if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(checklist);
-      else window.prompt('Copy this seller listing launch checklist:', checklist);
-      platformStatus('listingLaunchChecklistStatus', 'Seller listing launch checklist copied. Review the complete documents and authorized workflow before acting.', 'ok');
+      else window.prompt(`Copy this ${context.kind} kickoff checklist:`, checklist);
+      platformStatus('listingLaunchChecklistStatus', `${listingWorkspaceLabel(context.kind)} kickoff checklist copied. Review the complete documents and authorized workflow before acting.`, 'ok');
     } catch (_) {
       platformStatus('listingLaunchChecklistStatus', 'Could not copy automatically. Use the print option or copy the checklist from the prompt.', 'err');
     }
@@ -11747,29 +11759,30 @@ function routeAfterMagicLinkIfNeeded() {
   window.printListingLaunchChecklist = function printListingLaunchChecklist() {
     const workspace = selectedListingLaunchWorkspace();
     if (!workspace) return platformStatus('listingLaunchChecklistStatus', 'Choose a private listing workspace first.', 'err');
+    const context = listingWorkspaceContext(workspace);
     const printable = window.open('', '_blank', 'noopener,noreferrer');
-    if (!printable) return platformStatus('listingLaunchChecklistStatus', 'Allow pop-ups to print the seller listing launch checklist.', 'err');
+    if (!printable) return platformStatus('listingLaunchChecklistStatus', 'Allow pop-ups to print the listing kickoff checklist.', 'err');
     const safe = value => String(value || '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
-    printable.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Seller Listing Launch Checklist</title><style>@page{size:letter;margin:.65in}body{font-family:Arial,sans-serif;color:#102438;line-height:1.45}h1{font-family:Georgia,serif;font-size:27px;margin:0 0 8px}.note{font-size:11px;color:#526271;border-left:4px solid #c8973f;padding-left:12px;white-space:pre-wrap}.checklist{white-space:pre-wrap;font-size:13px;margin-top:22px}</style></head><body><h1>Seller Listing Launch Checklist</h1><div class="note">Private planning aid generated from a HomeOfferFlow listing workspace. It is not a contract, listing agreement, disclosure, or instruction to sign.</div><div class="checklist">${safe(listingLaunchChecklistText(workspace))}</div><script>window.onload=()=>window.print();<\/script></body></html>`);
+    printable.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${safe(context.title)}</title><style>@page{size:letter;margin:.65in}body{font-family:Arial,sans-serif;color:#102438;line-height:1.45}h1{font-family:Georgia,serif;font-size:27px;margin:0 0 8px}.note{font-size:11px;color:#526271;border-left:4px solid #c8973f;padding-left:12px;white-space:pre-wrap}.checklist{white-space:pre-wrap;font-size:13px;margin-top:22px}</style></head><body><h1>${safe(context.title)}</h1><div class="note">Private planning aid generated from a HomeOfferFlow listing workspace. It is not a contract, listing agreement, disclosure, or instruction to sign.</div><div class="checklist">${safe(listingLaunchChecklistText(workspace))}</div><script>window.onload=()=>window.print();<\/script></body></html>`);
     printable.document.close();
-    platformStatus('listingLaunchChecklistStatus', 'Printable seller listing launch checklist opened.', 'ok');
+    platformStatus('listingLaunchChecklistStatus', `Printable ${context.kind} kickoff checklist opened.`, 'ok');
   };
 
   function sellerConsultationBriefText(workspace) {
-    const kind = String(workspace?.listing_kind || 'sale') === 'lease' ? 'lease listing' : 'sale listing';
+    const context = listingWorkspaceContext(workspace);
     const workflows = Array.isArray(workspace?.requested_workflows) ? workspace.requested_workflows : [];
     const requestedServices = workflows.length
       ? workflows.map(item => `- ${listingWorkspaceLabel(item)}: identify the approved source and responsible professional before any document action.`)
       : ['- Confirm which seller-side services or documents, if any, the seller wants to discuss.'];
     return [
-      'HomeOfferFlow Seller Consultation Brief',
+      `HomeOfferFlow ${context.consultationTitle}`,
       `Property: ${workspace?.property_address || 'Not entered'}`,
-      `Listing type: ${listingWorkspaceLabel(kind)}`,
-      `Seller / landlord: ${(workspace?.seller_names || []).join('; ') || 'Not entered'}`,
+      `Listing type: ${listingWorkspaceLabel(context.kind)}`,
+      `${context.client === 'landlord' ? 'Landlord' : 'Seller'}: ${(workspace?.seller_names || []).join('; ') || 'Not entered'}`,
       `Workspace status: ${listingWorkspaceLabel(workspace?.status || 'intake')}`,
       '',
-      '1. Seller goals and representation scope',
-      '- What outcome, timing, communication cadence, and decision-makers matter most to the seller?',
+      `1. ${context.client === 'landlord' ? 'Landlord' : 'Seller'} goals and representation scope`,
+      `- What outcome, timing, communication cadence, and decision-makers matter most to the ${context.client}?`,
       '- Confirm the responsible brokerage and agent, services being discussed, and which questions need a licensed professional, attorney, title company, lender, or other specialist.',
       '- Discuss service scope and final pricing only after the appropriate provider confirms availability and terms.',
       '',
@@ -11778,16 +11791,16 @@ function routeAfterMagicLinkIfNeeded() {
       '- Identify facts or marketing claims that need source verification before public use.',
       '',
       '3. Marketing and showing plan',
-      '- Discuss photo/video timing, listing-description inputs, MLS or marketing path, fair-housing review, showing instructions, feedback process, and seller update cadence.',
+      `- Discuss photo/video timing, listing-description inputs, MLS or marketing path, fair-housing review, showing instructions, feedback process, and ${context.client} update cadence.`,
       '- Record open questions for the responsible professional; do not treat this brief as a pricing opinion or marketing approval.',
       '',
       '4. Document and workflow readiness',
       ...requestedServices,
       '- Do not create, send, sign, or describe a listing agreement, disclosure, or lease packet as executable until the authorized source and required review are complete.',
       '',
-      '5. Offer-to-close preparation',
-      '- Explain the private offer-comparison worksheet and the importance of reviewing complete offer documents, deadlines, financing, contingencies, concessions, and seller questions before acting.',
-      '- Identify anticipated title, lender, inspection, possession, and closing communication needs for the appropriate party.',
+      `5. ${context.isLease ? 'Lease preparation' : 'Offer-to-close preparation'}`,
+      context.isLease ? '- Explain the brokerage-approved application, screening, deposit, possession, and lease-term review process before acting.' : '- Explain the private offer-comparison worksheet and the importance of reviewing complete offer documents, deadlines, financing, contingencies, concessions, and seller questions before acting.',
+      context.isLease ? '- Identify anticipated property, tenant, maintenance, possession, and lease communication needs for the appropriate party.' : '- Identify anticipated title, lender, inspection, possession, and closing communication needs for the appropriate party.',
       '',
       '6. Close the conversation',
       '- Confirm the seller’s next question, owner, due date, and the agreed follow-up channel.',
@@ -11813,10 +11826,11 @@ function routeAfterMagicLinkIfNeeded() {
   window.printSellerConsultationBrief = function printSellerConsultationBrief() {
     const workspace = selectedListingLaunchWorkspace();
     if (!workspace) return platformStatus('sellerConsultationBriefStatus', 'Choose a private listing workspace above first.', 'err');
+    const context = listingWorkspaceContext(workspace);
     const printable = window.open('', '_blank', 'noopener,noreferrer');
-    if (!printable) return platformStatus('sellerConsultationBriefStatus', 'Allow pop-ups to print the seller consultation brief.', 'err');
+    if (!printable) return platformStatus('sellerConsultationBriefStatus', 'Allow pop-ups to print the listing consultation brief.', 'err');
     const safe = value => String(value || '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
-    printable.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Seller Consultation Brief</title><style>@page{size:letter;margin:.65in}body{font-family:Arial,sans-serif;color:#102438;line-height:1.45}h1{font-family:Georgia,serif;font-size:27px;margin:0 0 8px}.note{font-size:11px;color:#526271;border-left:4px solid #c8973f;padding-left:12px;white-space:pre-wrap}.brief{white-space:pre-wrap;font-size:13px;margin-top:22px}</style></head><body><h1>Seller Consultation Brief</h1><div class="note">Private planning aid generated from a HomeOfferFlow listing workspace. It is not a contract, listing agreement, disclosure, pricing opinion, or instruction to sign.</div><div class="brief">${safe(sellerConsultationBriefText(workspace))}</div><script>window.onload=()=>window.print();<\/script></body></html>`);
+    printable.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${safe(context.consultationTitle)}</title><style>@page{size:letter;margin:.65in}body{font-family:Arial,sans-serif;color:#102438;line-height:1.45}h1{font-family:Georgia,serif;font-size:27px;margin:0 0 8px}.note{font-size:11px;color:#526271;border-left:4px solid #c8973f;padding-left:12px;white-space:pre-wrap}.brief{white-space:pre-wrap;font-size:13px;margin-top:22px}</style></head><body><h1>${safe(context.consultationTitle)}</h1><div class="note">Private planning aid generated from a HomeOfferFlow listing workspace. It is not a contract, listing agreement, disclosure, pricing opinion, or instruction to sign.</div><div class="brief">${safe(sellerConsultationBriefText(workspace))}</div><script>window.onload=()=>window.print();<\/script></body></html>`);
     printable.document.close();
     platformStatus('sellerConsultationBriefStatus', 'Printable seller consultation brief opened.', 'ok');
   };
