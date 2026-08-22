@@ -227,6 +227,13 @@ class AgentActivationDashboardTests(unittest.TestCase):
         for label in ('>Buying</button>', '>Listing</button>', '>Lease listing</button>', '>Lease representation</button>'):
             self.assertIn(label, HTML)
 
+    def test_transaction_first_dashboard_routes_unrelated_drafts_to_their_workspaces(self):
+        self.assertIn('id="hof-transaction-first-dashboard-routing-v1"', HTML)
+        self.assertIn("hofStandaloneAgreementCard: 'accountPanelRelationships'", HTML)
+        self.assertIn("privateFormDraftsCard: 'accountPanelRelationships'", HTML)
+        self.assertIn("hofSellerDisclosureCard: 'accountPanelSeller'", HTML)
+        self.assertIn("new MutationObserver(routeCards).observe(dashboard, { childList: true });", HTML)
+
     def test_activation_actions_record_stage_and_primary_or_secondary_choice(self):
         script_start = HTML.index('id="hof-agent-activation-v16-js"')
         script_end = HTML.index("</script>", script_start)

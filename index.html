@@ -19947,5 +19947,40 @@ function routeAfterMagicLinkIfNeeded() {
 <script id="hof-txr1917-drafts-v1">
 (function(){const r=window,c='TXR-1917',ok=()=>!!r.hofAuth?.session?.user,esc=v=>String(v??'').replace(/[&<>"']/g,x=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[x]));async function draw(){const p=document.getElementById('accountPanelRelationships');if(!p||!ok()||document.getElementById('txr1917Card'))return;const card=document.createElement('div');card.id='txr1917Card';card.className='account-card hof-agreement-card';card.innerHTML='<h4>Environmental Assessment Addendum</h4><p>Checking the HomeOfferFlow form library…</p>';p.appendChild(card);try{const s=await r.hofLoadApprovedBrokerageSource?.(c);if(!s){card.querySelector('p').textContent='TXR-1917 is temporarily unavailable in the HomeOfferFlow form library.';return}card.querySelector('p').innerHTML=`Use the ${esc(s.source_revision)} TXR-1917 interview to prepare a private review PDF. It does not assess conditions, send, or sign the addendum.`;const b=document.createElement('button');b.className='btn-secondary';b.type='button';b.textContent='Start environmental review draft';b.onclick=()=>open(s);card.appendChild(b)}catch(e){card.querySelector('p').textContent=r.hofApprovedSourceStatusCopy(e)}}function open(s){document.getElementById('txr1917Dialog')?.remove();const m=document.createElement('div');m.id='txr1917Dialog';m.className='hof-agreement-modal';m.innerHTML=`<form class="hof-agreement-dialog"><h3>Environmental Assessment Addendum</h3><p>Choose only the source-form review rights requested. This saves a private review draft only.</p><div class="hof-agreement-grid"><label class="hof-agreement-wide">Property address<input name="address" required maxlength="400"></label><label>Buyer 1 full name<input name="b1" required maxlength="180"></label><label>Buyer 2 full name (optional)<input name="b2" maxlength="180"></label><label>Seller 1 full name<input name="s1" required maxlength="180"></label><label>Seller 2 full name (optional)<input name="s2" maxlength="180"></label><label>Termination time (days)<input name="days" required inputmode="numeric" maxlength="3"></label><div class="hof-agreement-wide hof-agreement-services"><label><input type="checkbox" name="review" value="environmental"> Environmental assessment</label><label><input type="checkbox" name="review" value="species"> Threatened/endangered species</label><label><input type="checkbox" name="review" value="wetlands"> Wetlands</label></div><label class="hof-agreement-wide hof-agreement-services"><input name="ack" type="checkbox" required> I confirm the parties will review environmental terms with the appropriate professionals before signing. This is not an environmental assessment or signature request.</label></div><div class="hof-iabs-status"></div><div class="hof-agreement-footer"><button class="btn-secondary" type="button">Cancel</button><button class="btn-primary" type="submit">Save private review draft</button></div></form>`;document.body.appendChild(m);m.querySelector('button[type="button"]').onclick=()=>m.remove();m.querySelector('form').onsubmit=async e=>{e.preventDefault();const f=new FormData(e.currentTarget),names=(a,b)=>[f.get(a),f.get(b)].map(v=>String(v||'').trim()).filter(Boolean),q={action:'create_txr_1917_draft',formCode:c,formSourceId:s.id,propertyAddress:f.get('address'),buyerNames:names('b1','b2'),sellerNames:names('s1','s2'),terminationDays:f.get('days'),reviewTypes:f.getAll('review'),environmentalReviewAcknowledgment:f.get('ack')==='on'},st=m.querySelector('.hof-iabs-status');try{st.textContent='Saving private environmental-review draft…';const x=await fetch('/api/admin-dashboard',{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${r.hofAuth?.session?.access_token}`},body:JSON.stringify(q)}),j=await x.json();if(!x.ok)throw Error(j.error||'Could not save the private draft.');st.className='hof-iabs-status ready';st.textContent='Private review draft saved. It has not been sent for signature.';e.currentTarget.querySelector('button[type="submit"]').disabled=true}catch(err){st.className='hof-iabs-status error';st.textContent=err.message}}}const prev=r.renderAccountDashboard;r.renderAccountDashboard=function(){if(typeof prev==='function')prev.apply(this,arguments);draw()};if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',draw,{once:true});else draw()})();
 </script>
+<script id="hof-transaction-first-dashboard-routing-v1">
+(function () {
+  // Keep the first dashboard decision quiet. Related work still remains one
+  // tab away, but it no longer competes with Question 1 before an agent picks
+  // a transaction. A small observer also catches cards injected by the
+  // independent private-draft modules after account data finishes loading.
+  const destinations = {
+    hofStandaloneAgreementCard: 'accountPanelRelationships',
+    privateFormDraftsCard: 'accountPanelRelationships',
+    hofSellerDisclosureCard: 'accountPanelSeller'
+  };
+  function routeCards() {
+    Object.entries(destinations).forEach(([cardId, panelId]) => {
+      const card = document.getElementById(cardId);
+      const panel = document.getElementById(panelId);
+      if (card && panel && card.parentElement !== panel) panel.appendChild(card);
+    });
+  }
+  function mount() {
+    const dashboard = document.getElementById('accountPanelDashboard');
+    if (!dashboard || dashboard.dataset.transactionFirstCardRouting === 'true') return;
+    dashboard.dataset.transactionFirstCardRouting = 'true';
+    new MutationObserver(routeCards).observe(dashboard, { childList: true });
+    routeCards();
+  }
+  const previous = window.renderAccountDashboard;
+  window.renderAccountDashboard = function renderAccountDashboardWithTransactionFirstRouting() {
+    if (typeof previous === 'function') previous.apply(this, arguments);
+    mount();
+    window.setTimeout(routeCards, 0);
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount, { once: true });
+  else mount();
+})();
+</script>
 </body>
 </html>
