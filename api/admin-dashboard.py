@@ -4332,6 +4332,25 @@ class handler(BaseHTTPRequestHandler):
             investor_landing_cta_count = len([
                 item for item in events if item.get("event_type") == "investor_landing_cta_selected"
             ])
+            investor_landing_channels = (
+                "direct_outreach", "email", "social", "referral", "local_event", "print", "unspecified",
+            )
+            investor_landing_view_counts_by_channel = {
+                channel: len([
+                    item for item in events
+                    if item.get("event_type") == "investor_landing_viewed"
+                    and str((item.get("metadata") or {}).get("channel") or "unspecified") == channel
+                ])
+                for channel in investor_landing_channels
+            }
+            investor_landing_cta_counts_by_channel = {
+                channel: len([
+                    item for item in events
+                    if item.get("event_type") == "investor_landing_cta_selected"
+                    and str((item.get("metadata") or {}).get("channel") or "unspecified") == channel
+                ])
+                for channel in investor_landing_channels
+            }
             investor_offer_guide_view_count = len([
                 item for item in events if item.get("event_type") == "investor_offer_guide_viewed"
             ])
@@ -4740,6 +4759,8 @@ class handler(BaseHTTPRequestHandler):
                 "investorLandingCtaCount": investor_landing_cta_count,
                 "investorLandingCtaRate": round((investor_landing_cta_count / investor_landing_view_count) * 100, 1)
                 if investor_landing_view_count else 0,
+                "investorLandingViewCountsByChannel": investor_landing_view_counts_by_channel,
+                "investorLandingCtaCountsByChannel": investor_landing_cta_counts_by_channel,
                 "investorOfferGuideViewCount": investor_offer_guide_view_count,
                 "investorOfferGuideCtaCount": investor_offer_guide_cta_count,
                 "investorOfferGuideCtaRate": round((investor_offer_guide_cta_count / investor_offer_guide_view_count) * 100, 1)
