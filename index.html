@@ -8210,6 +8210,16 @@ function routeAfterMagicLinkIfNeeded() {
 
     if (sid === 'step1' || sid === 'step2' || sid === 'step05') { setTimeout(initPlacesService, 150); setTimeout(initPlacesService, 900); }
 
+    // The property is now the first substantive buyer/account question.
+    // Bring an empty address field into focus so an agent or buyer can start
+    // typing immediately, but never steal focus from a saved/restored address.
+    if (sid === 'step2') {
+      window.setTimeout(() => {
+        const propertyAddress = document.getElementById('propAddress');
+        if (propertyAddress && !String(propertyAddress.value || '').trim()) propertyAddress.focus({ preventScroll: true });
+      }, 0);
+    }
+
     if (sid === 'step3') {
       wireSmartCalculations();
       syncFinancingFieldsFromPrice();
