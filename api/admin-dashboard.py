@@ -4757,7 +4757,7 @@ class handler(BaseHTTPRequestHandler):
             ))
             seller_intake_event_types = {
                 "fsbo_intake_opened", "fsbo_required_fields_ready",
-                "fsbo_package_selected", "fsbo_required_fields_missing",
+                "fsbo_package_selected", "fsbo_goal_selected", "fsbo_required_fields_missing",
                 "fsbo_request_submission_started", "fsbo_request_saved",
                 "fsbo_seller_plan_downloaded", "fsbo_seller_plan_copied",
             }

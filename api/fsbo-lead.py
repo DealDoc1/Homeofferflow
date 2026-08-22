@@ -148,6 +148,7 @@ FSBO_LANDING_EVENT_TYPES = {
     "fsbo_provider_directory_opened": "opened",
     "fsbo_intake_opened": "opened",
     "fsbo_package_selected": "selected",
+    "fsbo_goal_selected": "selected",
     "fsbo_required_fields_ready": "ready",
     "fsbo_required_fields_missing": "incomplete",
     "fsbo_request_submission_started": "started",
