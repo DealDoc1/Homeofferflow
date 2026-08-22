@@ -44,7 +44,7 @@ class ListingWorkspaceFoundationTests(unittest.TestCase):
         )
 
     def test_dashboard_workspace_ui_preserves_private_form_boundary(self):
-        self.assertIn("Private Listing Workspace", INDEX)
+        self.assertIn("workspaceTitle", INDEX)
         self.assertIn("saveListingWorkspaceFoundation", INDEX)
         self.assertIn("hof_listing_workspaces", INDEX)
         self.assertIn("/api/admin-dashboard?scope=brokerage", INDEX)
@@ -74,7 +74,7 @@ class ListingWorkspaceFoundationTests(unittest.TestCase):
     def test_dashboard_shows_source_readiness_without_activating_forms(self):
         self.assertIn("Listing Form Readiness", INDEX)
         self.assertIn("loadListingWorkspaceSourceReadiness", INDEX)
-        self.assertIn("Execution remains gated.", INDEX)
+        self.assertIn("Execution remains unavailable until its source-specific workflow is ready.", INDEX)
         self.assertIn("TXR-1101", INDEX)
         self.assertIn("TXR-1406", INDEX)
 
@@ -87,7 +87,7 @@ class ListingWorkspaceFoundationTests(unittest.TestCase):
         self.assertIn("new.updated_at = now()", HARDENING_MIGRATION)
 
     def test_seller_status_notice_explains_live_boundary(self):
-        self.assertIn("Seller-side launch status:", INDEX)
+        self.assertIn("Start here:", INDEX)
         self.assertIn("executable listing agreements, seller disclosures, and lease-listing packets", INDEX.lower())
         self.assertIn("completed-signature visual QA", INDEX)
         self.assertIn("Agent-side seller planning tools:", INDEX)
