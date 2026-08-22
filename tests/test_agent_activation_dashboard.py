@@ -45,6 +45,13 @@ class AgentActivationDashboardTests(unittest.TestCase):
             dashboard.index('id="betaOnboardingChecklist"'),
         )
 
+    def test_dashboard_does_not_repeat_question_one_transaction_button(self):
+        dashboard_start = HTML.index('id="accountPanelDashboard"')
+        dashboard_end = HTML.index('id="accountPanelProfile"')
+        dashboard = HTML[dashboard_start:dashboard_end]
+        self.assertIn('id="agentWorkflowStart"', dashboard)
+        self.assertNotIn('onclick="startAccountTransaction()">Choose Transaction</button>', dashboard)
+
     def test_activation_card_suppresses_only_the_redundant_dashboard_actions(self):
         self.assertIn('dashboard-legacy-actions', HTML)
         self.assertIn(
