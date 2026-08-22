@@ -78,6 +78,15 @@ class ListingWorkspaceFoundationTests(unittest.TestCase):
         self.assertIn("TXR-1101", INDEX)
         self.assertIn("TXR-1406", INDEX)
 
+    def test_transaction_first_listing_selection_moves_to_the_property_address_question(self):
+        tab_start = INDEX.index("function showAccountTab(tab = 'dashboard')")
+        tab_end = INDEX.index("function renderRelationshipDraftsPanel()", tab_start)
+        tabs = INDEX[tab_start:tab_end]
+        self.assertIn("['sale_listing', 'lease_listing'].includes(window.hofAgentWorkflowContext)", tabs)
+        self.assertIn("document.getElementById('listingWorkspaceAddress')", tabs)
+        self.assertIn("address?.scrollIntoView({ behavior: 'smooth', block: 'center' });", tabs)
+        self.assertIn("address?.focus({ preventScroll: true });", tabs)
+
     def test_workspace_hardening_allowlists_requested_workflows_and_refreshes_timestamp(self):
         self.assertIn("hof_listing_workspaces_requested_workflows_allowed", HARDENING_MIGRATION)
         self.assertIn("hof_listing_workflows_allowed(value jsonb)", HARDENING_MIGRATION)
