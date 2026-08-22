@@ -291,6 +291,11 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn('No password and no charge to open the workspace.', INVESTORS)
         self.assertIn({'source': '/investors', 'destination': '/investors.html'}, VERCEL.get('rewrites', []))
 
+    def test_seller_support_page_exposes_breadcrumb_context(self):
+        self.assertIn('aria-label="Breadcrumb"', SELLERS)
+        self.assertIn('"@type":"BreadcrumbList"', SELLERS)
+        self.assertIn('"name":"Texas FSBO Seller Support"', SELLERS)
+
     def test_clean_public_marketing_routes_resolve_and_are_canonical(self):
         for route, destination in (
             ("/partners", "/partners.html"),
