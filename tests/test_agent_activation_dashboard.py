@@ -271,6 +271,8 @@ class AgentActivationDashboardTests(unittest.TestCase):
 
     def test_lease_representation_choice_waits_for_its_explicit_approved_source_without_a_second_click(self):
         self.assertIn("window.__hofPendingTenantRepresentationDraft = kind === 'long' ? 'long' : 'short';", HTML)
+        self.assertIn('aria-label="Representation agreement choice" aria-describedby="leaseRepresentationQuickChoiceStatus"', HTML)
+        self.assertIn('id="leaseRepresentationQuickChoiceStatus" role="status" aria-live="polite"', HTML)
         self.assertIn("Checking the approved source for your selected draft…", HTML)
         self.assertIn("root.__hofPendingTenantRepresentationDraft === 'short'", HTML)
         self.assertIn("root.__hofPendingTenantRepresentationDraft === 'long'", HTML)
