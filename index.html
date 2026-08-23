@@ -17814,9 +17814,23 @@ function routeAfterMagicLinkIfNeeded() {
   root.applyBrokerageSharedDefaults = async function applyBrokerageSharedDefaults() {
     const session = root.hofAuth?.session;
     const result = document.getElementById('brokerageDefaultsResult');
+    const applyButton = document.getElementById('applyBrokerageSharedDefaultsButton');
+    if (applyButton?.disabled) return null;
+    const restoreApplyButton = () => {
+      if (!applyButton) return;
+      applyButton.disabled = false;
+      applyButton.setAttribute('aria-busy', 'false');
+      applyButton.textContent = 'Use these in my profile';
+    };
     if (!session?.access_token) {
+      restoreApplyButton();
       if (result) result.textContent = 'Sign in again before using brokerage defaults.';
       return;
+    }
+    if (applyButton) {
+      applyButton.disabled = true;
+      applyButton.setAttribute('aria-busy', 'true');
+      applyButton.textContent = 'Copying defaults…';
     }
     if (result) result.textContent = 'Copying brokerage title defaults to your profile…';
     try {
@@ -17834,6 +17848,7 @@ function routeAfterMagicLinkIfNeeded() {
       if (typeof root.applyProfileDefaultsToWizard === 'function') root.applyProfileDefaultsToWizard(true);
       if (result) result.textContent = 'Brokerage title defaults are now saved in your profile. You can change them anytime in Profile.';
     } catch (error) {
+      restoreApplyButton();
       if (result) result.textContent = error.message || 'Could not apply brokerage defaults.';
     }
   };
@@ -18023,7 +18038,7 @@ function routeAfterMagicLinkIfNeeded() {
       ? '<div class="platform-card"><h4>Brokerage title defaults</h4><p>' +
         (titleDefault ? 'Suggested title company: <strong>' + safe(titleDefault) + '</strong>.' : '') +
         (contactDefault ? ' Suggested escrow contact: <strong>' + safe(contactDefault) + '</strong>.' : '') +
-        '</p><button type="button" class="brokerage-access-button" onclick="applyBrokerageSharedDefaults()">Use these in my profile</button>' +
+        '</p><button type="button" class="brokerage-access-button" id="applyBrokerageSharedDefaultsButton" onclick="applyBrokerageSharedDefaults()">Use these in my profile</button>' +
         '<p id="brokerageDefaultsResult" class="brokerage-invite-result">This copies suggestions into your profile; it does not change an existing offer.</p></div>'
       : '';
     const membershipRecoveryCard = membership?.status === 'active'
