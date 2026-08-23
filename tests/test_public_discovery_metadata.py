@@ -48,6 +48,8 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn('Does HomeOfferFlow provide legal advice or represent me as an agent?', INDEX)
         self.assertIn('Clear answers before you begin a Texas offer.', INDEX)
         self.assertIn('Does HomeOfferFlow replace my agent or attorney?', INDEX)
+        self.assertIn('How does HomeOfferFlow help Texas FSBO sellers?', INDEX)
+        self.assertIn('Can Texas agents use HomeOfferFlow for different transaction types?', INDEX)
 
     def test_crawlers_can_discover_the_public_marketing_routes(self):
         self.assertIn('Sitemap: https://www.homeofferflow.com/sitemap.xml', ROBOTS)
