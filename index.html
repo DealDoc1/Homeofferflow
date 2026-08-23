@@ -15551,6 +15551,7 @@ function routeAfterMagicLinkIfNeeded() {
             <option value="price_desc" ${state.sort==='price_desc'?'selected':''}>Sort: Highest offer</option>
             <option value="price_asc" ${state.sort==='price_asc'?'selected':''}>Sort: Lowest offer</option>
           </select>
+          <button type="button" class="offer-action-btn" onclick="hofExportVisibleOffers()" aria-label="Download the visible offers as CSV">Download CSV</button>
         </div>
         <div class="offer-filter-tabs" aria-label="Filter saved offers">
           ${tab('all','All')}
@@ -15572,6 +15573,35 @@ function routeAfterMagicLinkIfNeeded() {
     const list = document.getElementById('myOffersList');
     if (list) list.innerHTML = renderWorkspace(state.offers || []);
   }
+
+  root.hofExportVisibleOffers = function(){
+    const offers = sortedOffers(state.offers || []);
+    if (!offers.length) {
+      window.alert?.('There are no offers in the current view to download.');
+      return;
+    }
+    const cell = value => `"${String(value ?? '').replace(/"/g, '""')}"`;
+    const rows = [['Property', 'Buyer', 'Offer amount', 'Status', 'Buyer signing', 'Updated']];
+    offers.forEach(offer => {
+      rows.push([
+        offer.property_address || offer.offer_data?.propertyAddress || offer.offer_data?.propAddress || 'Untitled offer',
+        offer.buyer_name || offer.offer_data?.buyerName || '',
+        offer.offer_price || offer.offer_data?.offerPrice || '',
+        cleanStatus(offer),
+        signingLabel(offer),
+        offer.last_updated || offer.created_at || ''
+      ]);
+    });
+    const blob = new Blob([rows.map(row => row.map(cell).join(',')).join('\n')], { type: 'text/csv;charset=utf-8' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'homeofferflow-offers.csv';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(link.href), 0);
+    try { trackEvent('Agent Offers Exported', { count: offers.length, filter: state.filter || 'all' }); } catch (_) {}
+  };
 
   root.hofSetOfferWorkspaceFilter = function(filter){ state.filter = filter || 'all'; persistWorkspaceState(); rerender(); };
   root.hofSetOfferWorkspaceSearch = function(query){ state.query = query || ''; persistWorkspaceState(); rerender(); };
