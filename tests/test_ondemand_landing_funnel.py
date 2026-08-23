@@ -42,7 +42,10 @@ class OnDemandLandingFunnelTests(unittest.TestCase):
         self.assertIn('"channel": channel', API)
         self.assertIn('onDemandCheckoutStartCountsByChannel', ADMIN)
         self.assertIn('onDemandCheckoutReturnCountsByChannel', ADMIN)
+        self.assertIn('onDemandMagicLinkCountsByChannel', ADMIN)
+        self.assertIn('onDemandTermsAcceptedCountsByChannel', ADMIN)
         self.assertIn('OnDemand paid-funnel sources:', INDEX)
+        self.assertIn('OnDemand activation sources:', INDEX)
 
     def test_magic_link_entry_validates_and_focuses_email_before_requesting_auth(self):
         self.assertIn('id="email" type="email" inputmode="email" autocomplete="email"', ONDEMAND)
