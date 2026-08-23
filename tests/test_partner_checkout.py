@@ -218,6 +218,24 @@ class PartnerCheckoutTests(unittest.TestCase):
             {"tier": "monthly_placement"},
         )
 
+    def test_partner_checkout_rejects_identical_launch_and_renewal_prices(self):
+        Client.requests = []
+        with patch.dict(partner_checkout.os.environ, {
+            "STRIPE_FOUNDING_PARTNER_FEATURED_PRICE_ID": "price_same",
+            "STRIPE_FOUNDING_PARTNER_FEATURED_MONTHLY_PRICE_ID": "price_same",
+        }, clear=False), patch.object(partner_checkout, "_get_partner_lead_for_checkout", return_value={
+            "id": "e35eace9-2760-4b11-a01a-07ee65f2744e",
+            "preferred_model": "monthly_placement",
+            "contact_email": "partner@example.com",
+            "status": "approved",
+        }), patch.object(partner_checkout.httpx, "Client", Client):
+            with self.assertRaisesRegex(RuntimeError, "same launch and renewal price"):
+                partner_checkout._create_partner_checkout(
+                    "e35eace9-2760-4b11-a01a-07ee65f2744e",
+                    {"host": "www.homeofferflow.com", "x-forwarded-proto": "https"},
+                )
+        self.assertFalse(any(request[0] == "post" and "checkout/sessions" in request[1] for request in Client.requests))
+
     def test_checkout_reuses_a_still_open_stripe_session_before_creating_another(self):
         lead = {
             "id": "e35eace9-2760-4b11-a01a-07ee65f2744e",
