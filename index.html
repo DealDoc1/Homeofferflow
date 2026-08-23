@@ -19280,7 +19280,7 @@ function routeAfterMagicLinkIfNeeded() {
     const card = document.createElement('div');
     card.id = 'platformFormSourceCard';
     card.className = 'account-card hof-platform-source-card';
-    card.innerHTML = `<h4>Universal form library maintenance <span style="font-weight:600;color:var(--gray-light);font-size:.78em">(admin only)</span></h4><p>Agents use the universal released form library. This private admin tool only adds or updates an exact source PDF, revision, and audit record; it does not gate agent access, send documents, or sign anything by itself.</p><div class="hof-platform-source-grid"><label>Source brokerage (audit record)<select id="platformSourceBrokerage"><option value="">Loading active brokerages…</option></select></label><label>Form<select id="platformSourceForm">${FORM_CODES.map(code => `<option value="${code}">${code}</option>`).join('')}</select></label><label>Revision shown on form<input id="platformSourceRevision" maxlength="48" placeholder="Example: 06-15-26"></label><label>Authorized source PDF<input id="platformSourceFile" type="file" accept="application/pdf,.pdf"></label></div><label style="display:flex;gap:.55rem;align-items:flex-start;color:var(--gray-light);font-size:.82rem;line-height:1.45"><input id="platformSourceAttestation" type="checkbox" style="margin-top:.2rem;width:18px;height:18px"><span>I confirm this exact PDF may be recorded for the selected source brokerage. This preserves source provenance; released forms remain available through the universal library.</span></label><div class="hof-iabs-actions"><button class="btn-secondary" type="button" id="platformSourceUploadButton">Save library revision</button></div><div id="platformSourceStatus" class="hof-iabs-status"></div>`;
+    card.innerHTML = `<h4>Universal form library maintenance <span style="font-weight:600;color:var(--gray-light);font-size:.78em">(admin only)</span></h4><p>Agents use the universal released form library. This private admin tool only adds or updates an exact source PDF, revision, and audit record; it does not gate agent access, send documents, or sign anything by itself.</p><div class="hof-platform-source-grid"><label>Source brokerage (audit record)<select id="platformSourceBrokerage"><option value="">Loading active brokerages…</option></select></label><label>Form<select id="platformSourceForm">${FORM_CODES.map(code => `<option value="${code}">${code}</option>`).join('')}</select></label><label>Revision shown on form<input id="platformSourceRevision" maxlength="48" placeholder="Example: 06-15-26"></label><label>Authorized source PDF<input id="platformSourceFile" type="file" accept="application/pdf,.pdf"></label></div><label style="display:flex;gap:.55rem;align-items:flex-start;color:var(--gray-light);font-size:.82rem;line-height:1.45"><input id="platformSourceAttestation" type="checkbox" style="margin-top:.2rem;width:18px;height:18px"><span>I confirm this exact PDF may be recorded for the selected source brokerage. This preserves source provenance; released forms remain available through the universal library.</span></label><div class="hof-iabs-actions"><button class="btn-secondary" type="button" id="platformSourceUploadButton">Save library revision</button></div><div id="platformSourceStatus" class="hof-iabs-status" role="status" aria-live="polite" aria-atomic="true"></div>`;
     panel.appendChild(card);
     card.querySelector('#platformSourceUploadButton').addEventListener('click', upload);
     loadBrokerages().then(brokerages => {
@@ -19291,6 +19291,8 @@ function routeAfterMagicLinkIfNeeded() {
   async function upload() {
     const card = document.getElementById('platformFormSourceCard');
     const status = card?.querySelector('#platformSourceStatus');
+    const uploadButton = card?.querySelector('#platformSourceUploadButton');
+    if (uploadButton?.disabled) return;
     const file = card?.querySelector('#platformSourceFile')?.files?.[0];
     const brokerageId = card?.querySelector('#platformSourceBrokerage')?.value;
     const formCode = card?.querySelector('#platformSourceForm')?.value;
@@ -19300,6 +19302,7 @@ function routeAfterMagicLinkIfNeeded() {
     if (!file || !/\.pdf$/i.test(file.name || '') || file.type && file.type !== 'application/pdf') return showError('Choose an authorized PDF source.');
     if (file.size > BUCKET_LIMIT) return showError('Source PDFs must be 10 MB or smaller.');
     if (!brokerageId || !sourceRevision || !authorizationAttested) return showError('Choose a brokerage, enter the printed revision, and confirm authorization.');
+    uploadButton.disabled = true; uploadButton.setAttribute('aria-busy', 'true'); uploadButton.textContent = 'Saving revision…';
     try {
       status.className = 'hof-iabs-status'; status.textContent = 'Fingerprinting and saving the private source…';
       const bytes = new Uint8Array(await file.arrayBuffer());
@@ -19311,7 +19314,7 @@ function routeAfterMagicLinkIfNeeded() {
         ? `${payload.source.formCode} ${payload.source.sourceRevision} saved privately and ready for the draft/signing queue.`
         : `${payload.source.formCode} ${payload.source.sourceRevision} saved privately. Its workflow is not released for signing yet.`;
       card.querySelector('#platformSourceFile').value = ''; card.querySelector('#platformSourceAttestation').checked = false;
-    } catch (error) { status.className = 'hof-iabs-status error'; status.textContent = error.message || 'Could not save the private source.'; }
+    } catch (error) { status.className = 'hof-iabs-status error'; status.textContent = error.message || 'Could not save the private source.'; uploadButton.disabled = false; uploadButton.setAttribute('aria-busy', 'false'); uploadButton.textContent = 'Save library revision'; }
   }
   const priorDashboard = root.renderAccountDashboard;
   root.renderAccountDashboard = function renderAccountDashboardWithPlatformSourceIntake() { if (typeof priorDashboard === 'function') priorDashboard.apply(this, arguments); renderPlatformSourceIntake(); };

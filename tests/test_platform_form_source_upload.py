@@ -99,6 +99,14 @@ class PlatformFormSourceUploadTests(unittest.TestCase):
         self.assertIn('handler.send_header("Vary", "Origin")', source)
         self.assertNotIn('handler.send_header("Access-Control-Allow-Origin", "*")', source)
 
+    def test_admin_source_upload_has_duplicate_submit_protection_and_status_feedback(self):
+        html = (ROOT / "index.html").read_text()
+        self.assertIn('id="platformSourceUploadButton"', html)
+        self.assertIn('id="platformSourceStatus" class="hof-iabs-status" role="status" aria-live="polite" aria-atomic="true"', html)
+        self.assertIn("uploadButton.disabled = true", html)
+        self.assertIn("uploadButton.textContent = 'Saving revision…'", html)
+        self.assertIn("uploadButton.disabled = false", html)
+
     def test_post_route_passes_raw_json_bytes_to_the_fingerprint_parser(self):
         source = (ROOT / "lib" / "platform_form_source_upload.py").read_text()
         self.assertIn("raw_payload = self.rfile.read(length)", source)
