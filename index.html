@@ -7453,7 +7453,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   async function resumeOffer(id, isRetry = false) {
     try {
       const offer = await getOfferById(id);
-      if (!offer) return alert('Offer not found.');
+      if (!offer) { window.announceWorkspaceStatus?.('This offer is no longer available in your workspace. Refresh offers and try again.'); return; }
       state.data = {
         ...(state.data || {}),
         ...(offer.offer_data || {}),
@@ -7480,7 +7480,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         await logOfferEvent(id, 'resume_retry_clicked', 'Draft', 'Agent requested a retry after resume failed.').catch(() => {});
         return resumeOffer(id, true);
       }
-      alert('Could not resume offer: ' + err.message);
+      window.announceWorkspaceStatus?.('Could not resume offer: ' + err.message);
     }
   }
 
@@ -7492,7 +7492,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     if (!client || !user) return;
     try {
       const offer = await getOfferById(id);
-      if (!offer) return alert('Offer not found.');
+      if (!offer) { window.announceWorkspaceStatus?.('This offer is no longer available in your workspace. Refresh offers and try again.'); return; }
       const copyData = { ...(offer.offer_data || {}) };
       // A duplicate is a new, unsent draft. Never carry over identifiers or
       // status from the source packet, or the new card can appear to have an
@@ -7528,14 +7528,14 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         await logOfferEvent(id, 'duplicate_retry_clicked', 'Draft', 'Agent requested a retry after duplicate failed.').catch(() => {});
         return duplicateOffer(id, true, openAfterDuplicate);
       }
-      alert('Could not duplicate offer: ' + err.message);
+      window.announceWorkspaceStatus?.('Could not duplicate offer: ' + err.message);
     }
   }
 
   async function reuseOfferTerms(id) {
     try {
       const offer = await getOfferById(id);
-      if (!offer) return alert('Offer not found.');
+      if (!offer) { window.announceWorkspaceStatus?.('This offer is no longer available in your workspace. Refresh offers and try again.'); return; }
 
       // A terms-only start is intentionally a restrictive allow-list, not a
       // duplicate with a few fields removed. It carries reusable deal choices
@@ -7572,7 +7572,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       await logOfferEvent(offer.id, 'terms_reuse_clicked', 'Draft', 'Started a terms-only offer from a prior workspace offer.', { reuse_mode: 'terms_only' });
     } catch (err) {
       console.error('Terms-only offer start failed:', err);
-      alert('Could not start from these terms: ' + err.message);
+      window.announceWorkspaceStatus?.('Could not start from these terms: ' + err.message);
     }
   }
 
@@ -7588,7 +7588,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       await loadMyOffers();
     } catch (err) {
       console.error('Delete failed:', err);
-      alert('Could not delete offer: ' + err.message);
+      window.announceWorkspaceStatus?.('Could not delete offer: ' + err.message);
     }
   }
 
