@@ -234,10 +234,16 @@
       async function load(event) {
         event?.preventDefault();
         const query = new URLSearchParams({partner_directory:'1'}), category = $('category').value, market = $('market').value.trim();
+        const searchButton = $('filters').querySelector('button');
         if (category) query.set('category', category);
         if (market) query.set('market', market);
         syncFiltersToUrl(category, market);
         trackSearchDemand(category, market);
+        if (searchButton) {
+          searchButton.disabled = true;
+          searchButton.setAttribute('aria-busy', 'true');
+          searchButton.textContent = 'Searching…';
+        }
         $('status').textContent = 'Loading active provider profiles…';
         $('results').setAttribute('aria-busy', 'true');
         $('results').innerHTML = '';
@@ -264,6 +270,11 @@
         }
         finally {
           $('results').setAttribute('aria-busy', 'false');
+          if (searchButton) {
+            searchButton.disabled = false;
+            searchButton.setAttribute('aria-busy', 'false');
+            searchButton.textContent = 'Search providers';
+          }
         }
       }
       $('filters').addEventListener('submit', load);
