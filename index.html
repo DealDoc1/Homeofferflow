@@ -14251,7 +14251,7 @@ function routeAfterMagicLinkIfNeeded() {
       <button class="btn-secondary" type="button" onclick="closeFoundingPartnerModal()">Cancel</button>
     </div>
     <div id="foundingPartnerCheckoutNote" class="admin-muted" style="margin-top:.55rem;line-height:1.45;">Next: review the selected Founding Partner price and payment details in secure Stripe Checkout. Your placement stays private until onboarding and written-agreement review are complete.</div>
-    <div id="foundingPartnerStatus" class="platform-status"></div>
+    <div id="foundingPartnerStatus" class="platform-status" role="status" aria-live="polite" aria-atomic="true"></div>
   </div>
 </div>
 
@@ -14548,7 +14548,12 @@ function routeAfterMagicLinkIfNeeded() {
       return;
     }
     trackPartnerFunnel('Founding Partner Checkout Started', { tier: payload.preferred_model, source: hasSavedPartnerApplication ? 'partner_cancel_recovery' : payload.source });
-    if (submit) submit.disabled = true;
+    if (submit) {
+      submit.disabled = true;
+      submit.setAttribute('aria-disabled', 'true');
+      submit.setAttribute('aria-busy', 'true');
+      submit.textContent = hasSavedPartnerApplication ? 'Opening secure checkout…' : 'Saving application…';
+    }
     if (status) { status.textContent = hasSavedPartnerApplication ? 'Resuming secure checkout...' : 'Saving your application...'; status.className = 'platform-status'; }
     try {
       let partnerLeadId = window.__hofFoundingPartnerLeadId || '';
@@ -14578,7 +14583,12 @@ function routeAfterMagicLinkIfNeeded() {
     } catch (error) {
       trackPartnerFunnel('Founding Partner Checkout Failed', { tier: payload.preferred_model });
       if (status) { status.textContent = error?.message || String(error); status.className = 'platform-status err'; }
-      if (submit) submit.disabled = false;
+      if (submit) {
+        submit.disabled = false;
+        submit.setAttribute('aria-disabled', 'false');
+        submit.setAttribute('aria-busy', 'false');
+      }
+      renderFoundingPartnerCheckoutAvailability();
     }
   };
   function setupPartnerOnboardingModal(){
