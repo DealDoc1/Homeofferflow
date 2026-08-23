@@ -39,6 +39,8 @@ class PublicPwaRegistrationTests(unittest.TestCase):
         self.assertIn("/texas-agent-form-library", SCRIPT)
         self.assertIn("Keep the Texas form library one tap away", SCRIPT)
         self.assertIn("shared form guide and Question 1", SCRIPT)
+        self.assertIn("Keep partner placements one tap away", SCRIPT)
+        self.assertIn("partner pricing, your application, and setup details", SCRIPT)
 
 
 if __name__ == '__main__':
