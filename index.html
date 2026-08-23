@@ -20061,7 +20061,7 @@ function routeAfterMagicLinkIfNeeded() {
     // Authenticated workspace shortcuts are measured server-side as an
     // aggregate operational signal. The event stores no client, property,
     // form, source, device, or URL data; Admin receives counts only.
-    if (window.hofAuth?.session && ['workspace', 'listing_tools', 'relationship_drafts', 'offer_review', 'new_offer', 'signing_queue', 'attention_queue'].includes(action)) {
+    if (window.hofAuth?.session && ['workspace', 'transaction_start', 'listing_tools', 'relationship_drafts', 'offer_review', 'new_offer', 'signing_queue', 'attention_queue'].includes(action)) {
       try {
         window.logOfferEvent?.(
           null,
