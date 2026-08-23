@@ -150,6 +150,7 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn('"@type":"HowTo"', DIRECTORY)
         self.assertIn('Find a Texas home-service provider', DIRECTORY)
         self.assertIn('Review and contact independently', DIRECTORY)
+        self.assertIn('loading="lazy" decoding="async"', DIRECTORY)
 
     def test_provider_directory_exposes_popular_categories_before_javascript_runs(self):
         self.assertIn('id="directory-categories"', DIRECTORY)
