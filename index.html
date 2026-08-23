@@ -20025,7 +20025,7 @@ function routeAfterMagicLinkIfNeeded() {
   const root = window;
   const pendingActionKey = 'hof_pwa_shortcut_pending_action';
   const ondemandFirstOfferAttributionKey = 'hof_ondemand_first_offer_attribution';
-  const validActions = new Set(['workspace', 'listing_tools', 'relationship_drafts', 'offer_review', 'new_offer', 'signing_queue', 'attention_queue', 'seller_plan', 'investor_workspace', 'partner_marketplace', 'buyer_offer']);
+  const validActions = new Set(['workspace', 'transaction_start', 'listing_tools', 'relationship_drafts', 'offer_review', 'new_offer', 'signing_queue', 'attention_queue', 'seller_plan', 'investor_workspace', 'partner_marketplace', 'buyer_offer']);
   let defaultWorkspaceOpened = false;
 
   function isStandalonePwa(){
@@ -20238,6 +20238,16 @@ function routeAfterMagicLinkIfNeeded() {
       return;
     }
     clearPendingAction();
+    if (action === 'transaction_start') {
+      await window.openAccountDashboard?.({ tab: 'dashboard' });
+      window.setTimeout(() => {
+        const start = document.getElementById('agentWorkflowStart');
+        start?.scrollIntoView({ behavior:'smooth', block:'center' });
+        start?.focus();
+      }, 0);
+      trackShortcut(action, role, resumedAfterSignIn);
+      return;
+    }
     if (action === 'workspace') await window.openAccountDashboard?.({ tab: 'dashboard' });
     else if (action === 'listing_tools') await openListingTools();
     else if (action === 'relationship_drafts') await openRelationshipDrafts();
@@ -20258,6 +20268,13 @@ function routeAfterMagicLinkIfNeeded() {
     clearPendingAction();
     if (action === 'new_offer') {
       await openNewOfferShortcut(window.hofAuth?.role === 'investor' ? 'investor' : 'agent');
+    } else if (action === 'transaction_start') {
+      await window.openAccountDashboard?.({ tab: 'dashboard' });
+      window.setTimeout(() => {
+        const start = document.getElementById('agentWorkflowStart');
+        start?.scrollIntoView({ behavior:'smooth', block:'center' });
+        start?.focus();
+      }, 0);
     } else if (action === 'workspace') {
       // A signed-out installed-app user explicitly chose their private
       // workspace. Restore that declared destination after the magic-link
