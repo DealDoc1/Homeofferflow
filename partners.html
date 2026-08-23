@@ -95,6 +95,8 @@
       const tier = String(source.get('partner_tier') || '').trim().toLowerCase();
       const selectedCategory = allowedCategories.has(category) ? category : '';
       const selectedTier = allowedTiers.has(tier) ? tier : '';
+      const medium = String(source.get('utm_medium') || '').trim().toLowerCase();
+      const campaignChannel = medium === 'installed_app' ? 'pwa_shortcut' : medium || 'direct';
       const recordAggregateFunnelEvent = (eventType, tierValue, categoryValue) => {
         const safeTier = allowedTiers.has(tierValue) ? tierValue : 'unspecified';
         const safeCategory = allowedCategories.has(categoryValue) ? categoryValue : 'unspecified';
@@ -108,7 +110,7 @@
           }).catch(() => {});
         } catch (_) {}
       };
-      track('Founding Partner Landing Viewed', selectedTier ? {tier: selectedTier, category: selectedCategory || 'unspecified'} : {});
+      track('Founding Partner Landing Viewed', {tier: selectedTier || 'unspecified', category: selectedCategory || 'unspecified', channel: campaignChannel});
       recordAggregateFunnelEvent('partner_landing_viewed', selectedTier, selectedCategory);
       if (selectedTier || selectedCategory) {
         const context = document.getElementById('partnerCampaignContext');
