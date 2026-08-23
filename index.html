@@ -20522,5 +20522,43 @@ function routeAfterMagicLinkIfNeeded() {
   else mount();
 })();
 </script>
+<script id="hof-private-review-save-feedback-v1">
+(function () {
+  const formIds = new Set(['txr1914AgreementForm', 'txr1917AgreementForm', 'txr1919AgreementForm']);
+  function restore(form, button) {
+    button.disabled = false;
+    button.setAttribute('aria-busy', 'false');
+    button.textContent = 'Save private review draft';
+  }
+  function bind(form) {
+    if (!form || form.dataset.saveFeedbackBound === 'true') return;
+    form.dataset.saveFeedbackBound = 'true';
+    const button = form.querySelector('button[type="submit"]');
+    const status = form.querySelector('.hof-iabs-status');
+    if (!button || !status) return;
+    form.addEventListener('submit', () => {
+      window.setTimeout(() => {
+        if (button.disabled) return;
+        button.disabled = true;
+        button.setAttribute('aria-busy', 'true');
+        button.textContent = 'Saving draft…';
+      }, 0);
+    });
+    new MutationObserver(() => {
+      if (status.classList.contains('error')) restore(form, button);
+      if (status.classList.contains('ready')) {
+        button.disabled = true;
+        button.setAttribute('aria-busy', 'false');
+        button.textContent = 'Draft saved';
+      }
+    }).observe(status, { attributes: true, attributeFilter: ['class'], childList: true, characterData: true, subtree: true });
+  }
+  function scan() {
+    formIds.forEach(id => bind(document.getElementById(id)));
+  }
+  new MutationObserver(scan).observe(document.body, { childList: true, subtree: true });
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', scan, { once: true }); else scan();
+})();
+</script>
 </body>
 </html>
