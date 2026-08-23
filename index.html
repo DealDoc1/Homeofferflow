@@ -15729,11 +15729,26 @@ function routeAfterMagicLinkIfNeeded() {
       if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(summary);
       else window.prompt('Copy this offer summary:', summary);
       await root.logOfferEvent?.(offer.id, 'offer_summary_copied', 'copied', 'Operational offer summary copied from the offer workspace.', { source: 'offer_workspace', status: cleanStatus(offer) });
-      alert('Offer summary copied. Review it before sharing through your approved channel.');
+      announceWorkspaceStatus('Offer summary copied. Review it before sharing through your approved channel.');
     } catch (error) {
       window.prompt('Copy this offer summary:', summary);
     }
   };
+
+  function announceWorkspaceStatus(message){
+    let status = document.getElementById('hofWorkspaceStatus');
+    if (!status) {
+      status = document.createElement('div');
+      status.id = 'hofWorkspaceStatus';
+      status.setAttribute('role', 'status');
+      status.setAttribute('aria-live', 'polite');
+      status.style.cssText = 'position:fixed;right:1rem;bottom:1rem;z-index:10002;max-width:min(28rem,calc(100vw - 2rem));padding:.7rem .85rem;border:1px solid rgba(109,179,143,.5);border-radius:10px;background:#102f2a;color:#d9f5e5;box-shadow:0 10px 28px rgba(0,0,0,.25);font-size:.82rem;line-height:1.4;';
+      document.body.appendChild(status);
+    }
+    status.textContent = message;
+    window.clearTimeout(status._hofDismissTimer);
+    status._hofDismissTimer = window.setTimeout(() => status.remove(), 4200);
+  }
 
   root.hofRenderOfferWorkspaceV10 = renderWorkspace;
   root.renderMyOffers = renderWorkspace;

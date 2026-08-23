@@ -21,6 +21,8 @@ class OfferSummaryCopyTests(unittest.TestCase):
         self.assertNotIn("signwell_document_id", block)
         self.assertIn("root.__hofCurrentOffer", block)
         self.assertIn("offer_summary_copied", block)
+        self.assertIn("announceWorkspaceStatus('Offer summary copied.", block)
+        self.assertIn("role', 'status", block)
 
 
 if __name__ == "__main__":
