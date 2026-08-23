@@ -7,6 +7,7 @@ from unittest.mock import AsyncMock, patch
 
 
 MODULE_PATH = Path(__file__).resolve().parents[1] / "api" / "admin-dashboard.py"
+INDEX = (Path(__file__).resolve().parents[1] / "index.html").read_text(encoding="utf-8")
 SEAT_CAP_MIGRATION = (
     Path(__file__).resolve().parents[1]
     / "supabase"
@@ -52,6 +53,7 @@ class AdminTrackerSecurityTests(IsolatedAsyncioTestCase):
     async def test_missing_bearer_token_is_rejected_without_network_call(self):
         self.assertIsNone(await admin_dashboard._verified_user(""))
         self.assertIsNone(await admin_dashboard._verified_user("Basic no"))
+
 
     async def test_auth_user_endpoint_validates_session_and_returns_verified_identity(self):
         response = FakeResponse(200, {"id": "user-123", "email": "ADMIN@EXAMPLE.COM"})
@@ -382,6 +384,14 @@ class AdminTrackerSecurityTests(IsolatedAsyncioTestCase):
                     "placement_tier": "founding",
                     "monthly_fee": 149.0,
                 })
+
+class AdminTrackerRoadmapFilterTests(unittest.TestCase):
+    def test_authenticated_roadmap_can_be_filtered_to_action_needed_items(self):
+        self.assertIn("filterRoadmapRows", INDEX)
+        self.assertIn('id="roadmapStatusFilter"', INDEX)
+        self.assertIn('value="action"', INDEX)
+        self.assertIn('data-roadmap-row', INDEX)
+        self.assertIn("['in_progress', 'blocked', 'qa', 'partial']", INDEX)
 
 
 if __name__ == "__main__":
