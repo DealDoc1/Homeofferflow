@@ -15,7 +15,8 @@ class HomepageAudienceEntryTests(unittest.TestCase):
         )
         self.assertIn("root.setAudience(landingAudience)", INDEX)
         self.assertIn("const utmAudience = campaignParams.get('utm_content')", INDEX)
-        self.assertIn("const audienceParameter = explicitAudience ? 'audience' : (utmAudience ? 'utm_content' : '')", INDEX)
+        self.assertIn("const audienceParameter = requestedAudience === explicitAudience ? 'audience' : (requestedAudience ? 'utm_content' : '')", INDEX)
+        self.assertIn("[explicitAudience, utmAudience].find(value => allowedAudiences.has(value))", INDEX)
 
     def test_campaign_audience_is_measured_without_opening_a_wizard(self):
         self.assertIn("surface: 'campaign_deep_link'", INDEX)

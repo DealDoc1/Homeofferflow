@@ -16429,10 +16429,10 @@ function routeAfterMagicLinkIfNeeded() {
       const campaignParams = new URLSearchParams(window.location.search);
       const explicitAudience = campaignParams.get('audience');
       const utmAudience = campaignParams.get('utm_content');
-      const requestedAudience = explicitAudience || utmAudience;
-      const audienceParameter = explicitAudience ? 'audience' : (utmAudience ? 'utm_content' : '');
       const campaignValue = (key) => String(campaignParams.get(key) || '').trim().slice(0, 80);
       const allowedAudiences = new Set(['homebuyer', 'agent', 'investor', 'fsbo']);
+      const requestedAudience = [explicitAudience, utmAudience].find(value => allowedAudiences.has(value)) || '';
+      const audienceParameter = requestedAudience === explicitAudience ? 'audience' : (requestedAudience ? 'utm_content' : '');
       const landingAudience = allowedAudiences.has(requestedAudience)
         ? requestedAudience
         : (root.state?.data?.userType || 'homebuyer');
