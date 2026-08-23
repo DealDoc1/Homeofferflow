@@ -38,6 +38,10 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("cleanUrl.searchParams.delete('agent')", INDEX)
         self.assertIn("window.openAuthModal?.('agent')", INDEX)
 
+    def test_agent_landing_links_to_lease_workflow_guide(self):
+        self.assertIn('href="/texas-lease-offer-workflow"', AGENTS)
+        self.assertIn('Read the lease workflow guide', AGENTS)
+
     def test_agent_landing_uses_transaction_choices_for_listing_handoffs(self):
         self.assertIn('href="/?agent=1&amp;workflow=sale_listing"', AGENTS)
         self.assertIn('href="/?agent=1&amp;workflow=lease_listing"', AGENTS)
