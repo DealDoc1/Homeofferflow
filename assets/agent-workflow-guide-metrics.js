@@ -27,11 +27,17 @@
   };
 
   record('agent_workflow_guide_viewed');
-  document.querySelectorAll('a[href^="/?agent=1"]').forEach((link) => {
+  document.querySelectorAll('a[href]').forEach((link) => {
     link.addEventListener('click', () => {
       const target = new URL(link.href, window.location.origin);
+      const startsQuestionOne = target.pathname === '/agents' && target.hash === '#transaction-start';
+      if (!startsQuestionOne && target.searchParams.get('agent') !== '1') return;
       const workflow = target.searchParams.get('workflow');
-      const ctaPath = workflow === 'sale_listing'
+      const ctaPath = startsQuestionOne && guideKind === 'listing'
+        ? 'listing_guide'
+        : startsQuestionOne && guideKind === 'lease'
+        ? 'lease_guide'
+        : workflow === 'sale_listing'
         ? 'listing_guide'
         : workflow === 'lease_listing' || workflow === 'lease_representation'
         ? 'lease_guide'
