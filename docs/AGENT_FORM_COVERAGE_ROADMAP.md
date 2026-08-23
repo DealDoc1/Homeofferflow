@@ -5,16 +5,18 @@
 The OnDemand launch includes the current **purchase-offer packet** and its
 supported purchase addenda, including the Seller Temporary Residential Lease
 when seller post-closing possession applies. Signed-in agents can also start
-private review drafts for the currently approved TXR relationship,
-consumer-notice, seller-financing, mineral-reservation, loan-assumption, and
-environmental-review workflows, plus private seller-planning workspaces. It
-is not represented as a complete transaction-form library or a
-transaction-management platform.
+private review drafts for the currently released TXR relationship,
+consumer-notice, seller-disclosure, seller-financing, mineral-reservation,
+loan-assumption, and environmental-review workflows, plus private
+seller-planning workspaces. TREC-55-1 seller disclosure and the optional
+TREC-61-0 water disclosure are available from the shared library to every
+authenticated agent as review-only drafts. It is not represented as a
+complete transaction-form library or a transaction-management platform.
 
 Each workflow states whether it is private review-only or has a separate
 signature queue. Agents must continue using their brokerage-approved workflow
-for listing agreements, seller disclosure notices, and any other document not
-expressly available for its stated use in HomeOfferFlow.
+for listing agreements, executable seller-signature workflows, and any other
+document not expressly available for its stated use in HomeOfferFlow.
 
 The authenticated agent dashboard now includes a **Request a missing form**
 action. It routes the request into the existing support/feedback queue with a
@@ -120,6 +122,13 @@ uploaded, the broker/associate/client signing plan is confirmed, and a
 completed signed PDF passes visual QA. No TXR-1501 send/sign action is enabled.
 
 ### 2. Seller disclosure workflow
+
+The universal review-only foundation is live for TREC-55-1 and optional
+TREC-61-0 water disclosure drafts. It collects seller responses, preserves the
+seller's review responsibility, and can send a secure review link. It does not
+yet create a seller signature request. A future executable release remains a
+separate workflow with its own source, signer, rendered-PDF, and completed-
+signature QA.
 
 Build this as a seller-side workflow, separate from the buyer offer wizard.
 It must collect seller responses, preserve the seller's review responsibility,
