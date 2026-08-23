@@ -20,6 +20,11 @@ SEO_GUIDES = {
         "Texas Agent Offer Workflow Guide",
         "https://www.homeofferflow.com/agents",
     ),
+    "texas-lease-offer-workflow.html": (
+        "Texas Agent and Broker Workspace",
+        "Texas Lease Workflow Guide",
+        "https://www.homeofferflow.com/agents",
+    ),
     "texas-homebuyer-offer-guide.html": (
         "Texas Homebuyer Offer",
         "Texas Homebuyer Offer Planning Guide",
@@ -73,7 +78,7 @@ class TechnicalSeoTests(unittest.TestCase):
         )
 
     def test_sitemap_keeps_revenue_landing_pages_discoverable(self):
-        for path in ("/buyers", "/agents", "/investors", "/sellers", "/partners", "/directory"):
+        for path in ("/buyers", "/agents", "/investors", "/sellers", "/partners", "/directory", "/texas-lease-offer-workflow"):
             self.assertIn(f"https://www.homeofferflow.com{path}", SITEMAP)
 
     def test_seller_revenue_paths_expose_a_truthful_offer_catalog(self):
@@ -105,9 +110,9 @@ class TechnicalSeoTests(unittest.TestCase):
             r"<url>\s*<loc>(https://www\.homeofferflow\.com/[^<]*)</loc>\s*<lastmod>(\d{4}-\d{2}-\d{2})</lastmod>\s*</url>",
             SITEMAP,
         )
-        self.assertEqual(len(entries), 12)
+        self.assertEqual(len(entries), 13)
         self.assertEqual(dict(entries)["https://www.homeofferflow.com/"], "2026-08-23")
-        for path in ("/agents", "/ondemand", "/partners", "/buyers", "/sellers", "/texas-fsbo-guide", "/texas-agent-offer-workflow", "/texas-homebuyer-offer-guide", "/texas-investor-offer-guide", "/investors", "/directory"):
+        for path in ("/agents", "/ondemand", "/partners", "/buyers", "/sellers", "/texas-fsbo-guide", "/texas-agent-offer-workflow", "/texas-lease-offer-workflow", "/texas-homebuyer-offer-guide", "/texas-investor-offer-guide", "/investors", "/directory"):
             self.assertEqual(dict(entries)[f"https://www.homeofferflow.com{path}"], "2026-08-23")
 
     def test_revenue_guides_show_and_describe_their_real_site_hierarchy(self):
