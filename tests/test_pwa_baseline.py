@@ -34,6 +34,13 @@ class PwaBaselineTests(unittest.TestCase):
             self.assertIn("safe-area-inset-top", html, filename)
             self.assertIn("safe-area-inset-bottom", html, filename)
 
+    def test_public_pages_expose_ios_home_screen_metadata(self):
+        for filename in ("agents.html", "buyers.html", "sellers.html", "partners.html", "directory.html", "ondemand.html", "investors.html", "texas-fsbo-guide.html", "texas-agent-offer-workflow.html", "texas-homebuyer-offer-guide.html", "texas-investor-offer-guide.html", "404.html"):
+            html = (ROOT / filename).read_text(encoding="utf-8")
+            self.assertIn('name="apple-mobile-web-app-capable" content="yes"', html, filename)
+            self.assertIn('name="apple-mobile-web-app-status-bar-style" content="default"', html, filename)
+            self.assertIn('name="apple-mobile-web-app-title" content="HomeOfferFlow"', html, filename)
+
     def test_manifest_has_a_standalone_secure_app_shell_configuration(self):
         self.assertEqual(MANIFEST["lang"], "en-US")
         self.assertEqual(MANIFEST["dir"], "ltr")
