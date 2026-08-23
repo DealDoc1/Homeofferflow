@@ -36,6 +36,11 @@ class PartnerLandingFunnelTests(unittest.TestCase):
         self.assertIn("const campaignChannel = medium === 'installed_app' ? 'pwa_shortcut' : medium || 'direct';", PARTNERS)
         self.assertIn("channel: campaignChannel", PARTNERS)
 
+    def test_partner_page_respects_notched_mobile_safe_areas(self):
+        self.assertIn('viewport-fit=cover', PARTNERS)
+        self.assertIn('env(safe-area-inset-top)', PARTNERS)
+        self.assertIn('env(safe-area-inset-bottom)', PARTNERS)
+
     def test_partner_page_reduces_checkout_uncertainty_without_changing_price_or_claims(self):
         self.assertIn("Start no-charge application", PARTNERS)
         self.assertIn("Start with a no-charge application", PARTNERS)

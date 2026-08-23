@@ -3,7 +3,7 @@
 <head>
   <link rel="manifest" href="/manifest.webmanifest" />
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#173f35" />
   <meta name="description" content="Texas home service provider advertising through clearly labeled category-and-market placements reaching buyers, sellers, agents, and investors in HomeOfferFlow." />
   <link rel="canonical" href="https://www.homeofferflow.com/partners" />
@@ -28,7 +28,7 @@
   <style>
     :root { --navy:#0d1f35; --navy2:#152840; --gold:#c8973f; --gold-light:#e8b86d; --sage:#6db38f; --white:#fff; --muted:#b6c4d5; }
     * { box-sizing:border-box; } body { margin:0; background:linear-gradient(145deg,var(--navy),#07111f); color:var(--white); font-family:Arial,sans-serif; line-height:1.55; }
-    a { color:inherit; } .shell { width:min(1100px,calc(100% - 2rem)); margin:auto; } header { padding:1.2rem 0; display:flex; justify-content:space-between; align-items:center; gap:1rem; }
+    a { color:inherit; } .shell { width:min(1100px,calc(100% - 2rem)); margin:auto; } header { padding:max(1.2rem,env(safe-area-inset-top)) 0 1.2rem; display:flex; justify-content:space-between; align-items:center; gap:1rem; }
     .brand { font-size:1.2rem; font-weight:800; text-decoration:none; } .brand span { color:var(--gold-light); } .back { color:var(--muted); font-size:.9rem; }
     main { padding:3.5rem 0 4.5rem; } .eyebrow { color:var(--gold-light); font-size:.8rem; font-weight:800; letter-spacing:.12em; text-transform:uppercase; }
     h1 { max-width:760px; font-family:Georgia,serif; font-size:clamp(2.3rem,5vw,4.2rem); line-height:1.04; margin:.55rem 0 1rem; } h2 { font-family:Georgia,serif; font-size:clamp(1.65rem,3vw,2.35rem); margin:0 0 .65rem; }
@@ -39,7 +39,7 @@
     .breadcrumb a { color:var(--gold-light); font-weight:700; }
     .grid { display:grid; grid-template-columns:repeat(3,1fr); gap:1rem; margin:2.6rem 0; } .card { padding:1.25rem; background:rgba(255,255,255,.055); border:1px solid rgba(255,255,255,.13); border-radius:14px; } .card h3 { margin:0 0 .35rem; color:var(--gold-light); } .card p { margin:0; color:var(--muted); font-size:.95rem; }
     .tiers { display:grid; grid-template-columns:repeat(3,1fr); gap:1rem; margin-top:1.2rem; } .tier { padding:1.35rem; border:1px solid rgba(255,255,255,.17); border-radius:14px; background:rgba(7,17,31,.35); } .tier.featured { border-color:var(--gold); background:rgba(200,151,63,.1); } .tier h3,.price { margin:0; } .price { color:var(--gold-light); font-size:2rem; font-weight:800; } .tier small,.tier li { color:var(--muted); } .tier ul { padding-left:1.1rem; min-height:7.6rem; } .tier-cta { display:block; width:100%; margin-top:1rem; padding:.7rem .8rem; border:1px solid rgba(200,151,63,.55); border-radius:8px; color:var(--gold-light); font-weight:800; text-align:center; text-decoration:none; } .tier-cta:hover,.tier-cta:focus-visible { background:rgba(200,151,63,.13); color:var(--white); } .faq { margin:2.6rem 0; } .faq details { margin:.7rem 0; padding:.9rem 1rem; border:1px solid rgba(255,255,255,.14); border-radius:11px; background:rgba(255,255,255,.04); } .faq summary { cursor:pointer; color:var(--white); font-weight:800; } .faq p { margin:.7rem 0 0; color:var(--muted); }
-    footer { border-top:1px solid rgba(255,255,255,.12); padding:1.5rem 0 2.5rem; color:var(--muted); font-size:.84rem; }
+    footer { border-top:1px solid rgba(255,255,255,.12); padding:1.5rem 0 max(2.5rem,env(safe-area-inset-bottom)); color:var(--muted); font-size:.84rem; }
     @media (max-width:760px) { .grid,.tiers { grid-template-columns:1fr; } main { padding-top:2rem; } .tier ul { min-height:0; } }
   </style>
 </head>
