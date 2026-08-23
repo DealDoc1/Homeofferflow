@@ -16426,7 +16426,11 @@ function routeAfterMagicLinkIfNeeded() {
     try {
       // Campaign links can land visitors directly in the right audience path
       // without opening a wizard or changing any saved offer data.
-      const requestedAudience = new URLSearchParams(window.location.search).get('audience');
+      const campaignParams = new URLSearchParams(window.location.search);
+      const explicitAudience = campaignParams.get('audience');
+      const utmAudience = campaignParams.get('utm_content');
+      const requestedAudience = explicitAudience || utmAudience;
+      const audienceParameter = explicitAudience ? 'audience' : (utmAudience ? 'utm_content' : '');
       const allowedAudiences = new Set(['homebuyer', 'agent', 'investor', 'fsbo']);
       const landingAudience = allowedAudiences.has(requestedAudience)
         ? requestedAudience
@@ -16435,7 +16439,8 @@ function routeAfterMagicLinkIfNeeded() {
       if (allowedAudiences.has(requestedAudience)) {
         root.trackEvent?.('Landing Audience Selected', {
           audience: requestedAudience,
-          surface: 'campaign_deep_link'
+          surface: 'campaign_deep_link',
+          parameter: audienceParameter
         });
       }
     } catch(e) {}
