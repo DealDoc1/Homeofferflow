@@ -140,6 +140,14 @@ class TechnicalSeoTests(unittest.TestCase):
             api_headers["headers"],
         )
 
+    def test_stable_brand_assets_have_a_safe_revalidation_cache_policy(self):
+        cache_headers = [item for item in VERCEL["headers"] if item["source"].startswith("/assets/homeofferflow-")]
+        self.assertEqual(len(cache_headers), 4)
+        for item in cache_headers:
+            self.assertEqual(item["headers"][0]["key"], "Cache-Control")
+            self.assertIn("max-age=86400", item["headers"][0]["value"])
+            self.assertIn("stale-while-revalidate=604800", item["headers"][0]["value"])
+
 
 if __name__ == "__main__":
     unittest.main()
