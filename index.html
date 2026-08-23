@@ -17638,25 +17638,42 @@ function routeAfterMagicLinkIfNeeded() {
     const brokerage = root.hofPlatform?.brokerage;
     const client = root.getSupabaseClient?.();
     const result = document.getElementById('brokerageBrandingResult');
+    const saveButton = document.getElementById('saveBrokerageBrandingButton');
+    if (saveButton?.disabled) return null;
+    const restoreSaveButton = () => {
+      if (!saveButton) return;
+      saveButton.disabled = false;
+      saveButton.setAttribute('aria-busy', 'false');
+      saveButton.textContent = 'Save branding';
+    };
     const colorInput = document.getElementById('brokerageBrandColor');
     const logoInput = document.getElementById('brokerageLogoFile');
     const color = String(colorInput?.value || '').trim();
     const logo = logoInput?.files?.[0] || null;
     if (!session?.access_token || !brokerage?.id || !client) {
+      restoreSaveButton();
       if (result) result.textContent = 'Sign in again before changing brokerage branding.';
       return;
     }
     if (!/^#[0-9a-fA-F]{6}$/.test(color)) {
+      restoreSaveButton();
       if (result) result.textContent = 'Choose a valid brand color.';
       return;
     }
     if (logo && !['image/png', 'image/jpeg', 'image/webp'].includes(logo.type)) {
+      restoreSaveButton();
       if (result) result.textContent = 'Use a PNG, JPG, or WebP logo.';
       return;
     }
     if (logo && logo.size > 2 * 1024 * 1024) {
+      restoreSaveButton();
       if (result) result.textContent = 'Logo files must be 2 MB or smaller.';
       return;
+    }
+    if (saveButton) {
+      saveButton.disabled = true;
+      saveButton.setAttribute('aria-busy', 'true');
+      saveButton.textContent = logo ? 'Uploading logo…' : 'Saving branding…';
     }
     root.logOfferEvent?.(null, 'brokerage_branding_save_started', 'started', 'Brokerage branding save started.', {
       hasLogo: Boolean(logo),
@@ -17698,6 +17715,7 @@ function routeAfterMagicLinkIfNeeded() {
         hasLogo: Boolean(logo),
         surface: 'brokerage'
       });
+      restoreSaveButton();
       if (result) result.textContent = error.message || 'Could not save brokerage branding.';
     }
   };
@@ -18097,7 +18115,7 @@ function routeAfterMagicLinkIfNeeded() {
         '<div class="brokerage-invite-form" style="margin-top:1rem"><label for="brokerageBrandColor">Brokerage branding</label>' +
         '<input id="brokerageBrandColor" type="color" value="' + safe(b.brand_color || '#2563eb') + '" aria-label="Brokerage brand color" oninput="renderBrokerageBrandPreview()">' +
         '<input id="brokerageLogoFile" type="file" accept="image/png,image/jpeg,image/webp" aria-label="Brokerage logo (PNG, JPG, or WebP)" onchange="renderBrokerageBrandPreview()">' +
-        '<button type="button" class="brokerage-access-button" onclick="saveBrokerageBranding()">Save branding</button></div>' +
+        '<button type="button" class="brokerage-access-button" id="saveBrokerageBrandingButton" onclick="saveBrokerageBranding()">Save branding</button></div>' +
         '<p id="brokerageBrandingResult" class="brokerage-invite-result">Set a public color and optional PNG, JPG, or WebP logo (2 MB max). Only active brokerage admins can update this branding.</p>' +
         '<div id="brokerageBrandPreview" class="brokerage-brand-preview"><div class="brokerage-brand-preview-head"><span>Brand preview</span><strong>Offer packet + email touchpoint</strong></div><div id="brokerageBrandPreviewBody"></div></div>' +
         activationCard +
