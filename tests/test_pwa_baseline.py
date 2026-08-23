@@ -17,6 +17,11 @@ class PwaBaselineTests(unittest.TestCase):
         self.assertIn('viewport-fit=cover', INDEX)
         self.assertIn("navigator.serviceWorker.register('/service-worker.js'", INDEX)
 
+    def test_public_conversion_pages_keep_the_pwa_brand_chrome_color(self):
+        for filename in ("agents.html", "buyers.html", "sellers.html", "partners.html", "directory.html", "ondemand.html"):
+            html = (ROOT / filename).read_text(encoding="utf-8")
+            self.assertIn('<meta name="theme-color" content="#173f35"', html)
+
     def test_manifest_has_a_standalone_secure_app_shell_configuration(self):
         self.assertEqual(MANIFEST["lang"], "en-US")
         self.assertEqual(MANIFEST["dir"], "ltr")
