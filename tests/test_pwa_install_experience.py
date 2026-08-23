@@ -142,11 +142,12 @@ class PwaInstallExperienceTests(unittest.TestCase):
         self.assertIn("window.openAccountDashboard = async function openAccountDashboardWithPendingPwaShortcut()", INDEX)
 
     def test_only_safe_declared_shortcuts_can_be_saved_or_routed_after_authentication(self):
-        self.assertIn("const validActions = new Set(['workspace', 'listing_tools', 'relationship_drafts', 'offer_review', 'new_offer', 'signing_queue', 'attention_queue', 'seller_plan', 'buyer_offer']);", INDEX)
+        self.assertIn("const validActions = new Set(['workspace', 'listing_tools', 'relationship_drafts', 'offer_review', 'new_offer', 'signing_queue', 'attention_queue', 'seller_plan', 'investor_workspace', 'buyer_offer']);", INDEX)
         self.assertIn("if (!validActions.has(action)) return;", INDEX)
         self.assertIn("sessionStorage.removeItem(pendingActionKey)", INDEX)
         self.assertIn("else if (action === 'relationship_drafts') await openRelationshipDrafts();", INDEX)
         self.assertIn("else if (action === 'offer_review') await openOfferReviewShortcut(role);", INDEX)
+        self.assertIn("else if (action === 'investor_workspace') await openInvestorWorkspace();", INDEX)
         self.assertIn("pwa_authenticated_shortcut_opened", INDEX)
         self.assertIn("surface: 'pwa_shortcut'", INDEX)
 
@@ -174,6 +175,11 @@ class PwaInstallExperienceTests(unittest.TestCase):
         resume = INDEX[resume_start:resume_end]
         self.assertIn("else if (action === 'workspace')", resume)
         self.assertIn("await window.openAccountDashboard?.({ tab: 'dashboard' });", resume)
+
+    def test_investor_workspace_shortcut_is_declared_for_repeat_offer_work(self):
+        self.assertIn('"url": "/?pwa_action=investor_workspace"', (ROOT / "manifest.webmanifest").read_text(encoding="utf-8"))
+        self.assertIn('async function openInvestorWorkspace()', INDEX)
+        self.assertIn("window.openAuthModal?.('investor')", INDEX)
 
 
 if __name__ == "__main__":

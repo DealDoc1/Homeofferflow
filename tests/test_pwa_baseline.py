@@ -49,6 +49,7 @@ class PwaBaselineTests(unittest.TestCase):
                 ("Signing Queue", "/?pwa_action=signing_queue"),
                 ("Needs Attention", "/?pwa_action=attention_queue"),
                 ("Seller Plan", "/?pwa_action=seller_plan"),
+                ("Investor Workspace", "/?pwa_action=investor_workspace"),
                 ("Find a Provider", "/directory?utm_source=pwa_shortcut&utm_medium=installed_app&utm_campaign=provider_directory"),
             ],
         )
@@ -97,7 +98,7 @@ class PwaBaselineTests(unittest.TestCase):
         self.assertIn("shared agent form drafts", MANIFEST["description"])
         forms = next(item for item in MANIFEST["shortcuts"] if item["name"] == "Agent Forms & Drafts")
         self.assertEqual(forms["icons"][0]["src"], "/assets/homeofferflow-app-icon-192.png")
-        self.assertIn("const validActions = new Set(['workspace', 'listing_tools', 'relationship_drafts', 'offer_review', 'new_offer', 'signing_queue', 'attention_queue', 'seller_plan', 'buyer_offer']);", INDEX)
+        self.assertIn("const validActions = new Set(['workspace', 'listing_tools', 'relationship_drafts', 'offer_review', 'new_offer', 'signing_queue', 'attention_queue', 'seller_plan', 'investor_workspace', 'buyer_offer']);", INDEX)
         self.assertIn("if (!validActions.has(action)) return;", INDEX)
         self.assertIn("window.openAuthModal?.(role)", INDEX)
         self.assertIn("window.openAccountDashboard?.({ tab: 'dashboard' })", INDEX)
