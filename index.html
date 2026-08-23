@@ -19154,10 +19154,7 @@ function routeAfterMagicLinkIfNeeded() {
   const profile = () => root.hofAuth?.authoritativeProfile || {};
   const active = () => {
     const role = String(root.hofAuth?.role || profile().role || '').toLowerCase();
-    const membership = root.hofPlatform?.brokerageMembership;
     return !!root.hofAuth?.session?.user &&
-      !!(root.hofPlatform?.brokerage?.id || profile().brokerage_id) &&
-      membership?.status === 'active' &&
       ['agent', 'broker', 'brokerage_admin', 'broker_admin', 'owner', 'team_lead'].includes(role);
   };
   const responseGroups = [
@@ -19356,7 +19353,7 @@ function routeAfterMagicLinkIfNeeded() {
     const panel = document.getElementById('accountPanelDashboard');
     if (!panel || !active() || document.getElementById('hofSellerDisclosureCard')) return;
     const card = document.createElement('div'); card.id = 'hofSellerDisclosureCard'; card.className = 'account-card hof-seller-disclosure-card';
-    card.innerHTML = '<h4>Seller disclosure draft</h4><p>Use only an approved source your brokerage is authorized to use. This creates a private draft for seller review; it does not send or sign a document.</p><details id="hofSellerDisclosureWorkspace" class="hof-seller-disclosure-workspace"><summary><strong>Start or continue a private seller disclosure draft</strong><br><small>Open this only when you are ready to enter seller disclosure details.</small></summary><div style="margin-top:1rem">' +
+    card.innerHTML = '<h4>Seller disclosure draft</h4><p>Use an approved form from the universal HomeOfferFlow library. This creates a private draft for seller review; it does not send or sign a document.</p><details id="hofSellerDisclosureWorkspace" class="hof-seller-disclosure-workspace"><summary><strong>Start or continue a private seller disclosure draft</strong><br><small>Open this only when you are ready to enter seller disclosure details.</small></summary><div style="margin-top:1rem">' +
       '<div class="hof-seller-grid"><label>Private listing workspace (optional)<select id="hofSellerWorkspace"><option value="">Do not link to a workspace</option></select></label><label>Property address<input id="hofSellerAddress" maxlength="400" placeholder="Street address, city, state, ZIP"></label><label>TREC-55-1 source<select id="hofSellerSource"></select></label><label>Seller 1 name<input id="hofSeller1" maxlength="180"></label><label>Seller 1 review email<input id="hofSellerEmail" type="email" maxlength="320" autocomplete="email" placeholder="seller1@example.com"></label><label>Seller 2 name (optional)<input id="hofSeller2" maxlength="180"></label><label>Seller 2 review email (optional)<input id="hofSeller2Email" type="email" maxlength="320" autocomplete="email" placeholder="seller2@example.com"></label><label>Buyer 1 name (optional)<input id="hofBuyer1" maxlength="180"></label><label>Buyer 2 name (optional)<input id="hofBuyer2" maxlength="180"></label><label>TREC-61-0 water-rights source (optional)<select id="hofWaterSource"><option value="">Do not include</option></select></label></div>' +
       renderResponses() + renderWaterResponses() +
       '<div class="hof-seller-actions"><button class="btn-primary" type="button" id="hofSaveSellerDraft">Save private draft</button><button class="btn-secondary" type="button" id="hofSendSellerReview" disabled>Send seller review email</button><span id="hofSellerDraftStatus" class="hof-iabs-status"></span></div><h5>My seller disclosure drafts</h5><div class="hof-seller-actions"><input id="hofSellerDraftFilter" type="search" placeholder="Search address, seller, or source" aria-label="Search seller disclosure drafts" oninput="filterSellerDisclosureDrafts(this.value)"><span id="hofSellerDraftSummary" class="hof-iabs-status"></span></div><ul id="hofSellerDraftList" class="hof-private-form-drafts-list"><li>Loading…</li></ul></div></details>';
@@ -19384,7 +19381,7 @@ function routeAfterMagicLinkIfNeeded() {
       card.querySelectorAll('[data-water-response]').forEach(select => { if (select.value) waterRightsData[select.dataset.waterResponse] = select.value; });
       const payload = {action:card.dataset.loadedDraftId ? 'update_seller_disclosure_draft' : 'create_seller_disclosure_draft',draftId:card.dataset.loadedDraftId || '',formCode:'TREC-55-1',disclosureSourceId:document.getElementById('hofSellerSource').value,waterSourceId:document.getElementById('hofWaterSource').value || null,listingWorkspaceId:document.getElementById('hofSellerWorkspace').value || null,propertyAddress:document.getElementById('hofSellerAddress').value,sellerNames,buyerNames,responseData,waterRightsData};
       if (!token) return alert('Sign in before saving a seller disclosure draft.');
-      if (!payload.disclosureSourceId || !payload.propertyAddress.trim() || !sellerNames.length) return alert('Enter the property address, at least one seller, and choose the approved TREC-55-1 source.');
+      if (!payload.disclosureSourceId || !payload.propertyAddress.trim() || !sellerNames.length) return alert('Enter the property address, at least one seller, and choose the released TREC-55-1 source.');
       status.textContent = 'Saving private draft…';
       try {
         const response = await fetch('/api/admin-dashboard',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer ' + token},body:JSON.stringify(payload)});
@@ -19437,9 +19434,8 @@ function routeAfterMagicLinkIfNeeded() {
   const previous = root.renderAccountDashboard;
   root.renderAccountDashboard = function renderAccountDashboardWithSellerDisclosureDrafts() { if (typeof previous === 'function') previous.apply(this, arguments); renderCard(); };
   // Brokerage context is loaded after the first account-dashboard render. Run
-  // the eligibility check again once that context is authoritative so active
-  // members see the private card, while inactive members never trigger its
-  // protected draft request.
+  // the refresh again once the account shell is authoritative so every
+  // authenticated agent sees the universal private-draft library.
   const previousLoadBrokerageFoundation = root.loadBrokerageFoundation;
   if (typeof previousLoadBrokerageFoundation === 'function') {
     root.loadBrokerageFoundation = async function loadBrokerageFoundationWithSellerDisclosureDrafts() {
