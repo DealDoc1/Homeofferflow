@@ -486,6 +486,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     const form = new FormData(event.currentTarget);
     const submit = event.currentTarget.querySelector('button[type="submit"]');
     const status = modal.querySelector('#txr1905DraftStatus');
+    if (submit.disabled) return;
     const names = key => [form.get(`${key}One`), form.get(`${key}Two`)].map(value => String(value || '').trim()).filter(Boolean);
     const payload = {
       action: 'create_txr_1905_draft', formCode: FORM_CODE, formSourceId: source.id,
@@ -493,6 +494,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       reservationChoice: form.get('reservationChoice'), undividedInterest: form.get('undividedInterest'), surfaceRights: form.get('surfaceRights'),
       mineralReviewAcknowledgment: form.get('mineralReviewAcknowledgment') === 'on'
     };
+    submit.disabled = true; submit.setAttribute('aria-busy', 'true'); submit.textContent = 'Saving draft…';
     try {
       status.className = 'hof-iabs-status'; status.textContent = 'Saving private mineral addendum draft…';
       const token = root.hofAuth?.session?.access_token;
@@ -500,10 +502,10 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || 'Could not save the private mineral addendum draft.');
       status.className = 'hof-iabs-status ready'; status.textContent = 'Private review draft saved. It has not been sent for signature.';
-      submit.disabled = true;
     } catch (error) {
       console.error('TXR-1905 draft failed:', error);
       status.className = 'hof-iabs-status error'; status.textContent = error.message || 'Could not save the private mineral addendum draft.';
+      submit.disabled = false; submit.setAttribute('aria-busy', 'false'); submit.textContent = 'Save private review draft';
     }
   }
 

@@ -385,6 +385,8 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
         self.assertIn("Start mineral addendum draft", HTML)
         self.assertIn("create_txr_1905_draft", HTML)
         self.assertIn("TXR-1905 is temporarily unavailable in the HomeOfferFlow form library", HTML)
+        self.assertIn("Could not save the private mineral addendum draft.", HTML)
+        self.assertIn("submit.textContent = 'Save private review draft'", HTML)
         self.assertIn("HomeOfferFlow saves a private review PDF", HTML)
 
     def test_agents_can_only_view_their_own_private_draft_summaries(self):
