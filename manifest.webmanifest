@@ -39,6 +39,13 @@
       "icons": [{"src":"/assets/homeofferflow-app-icon-192.png","sizes":"192x192","type":"image/png"}]
     },
     {
+      "name": "Lease Representation",
+      "short_name": "Lease Rep",
+      "description": "Open the transaction picker with lease representation selected.",
+      "url": "/?pwa_action=transaction_start&workflow=lease_representation",
+      "icons": [{"src":"/assets/homeofferflow-app-icon-192.png","sizes":"192x192","type":"image/png"}]
+    },
+    {
       "name": "Listing Tools",
       "short_name": "Listings",
       "description": "Open private seller leads, listing workspaces, launch planning, and offer comparison tools.",
