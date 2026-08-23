@@ -156,6 +156,8 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
 
     def test_not_found_page_routes_visitors_into_the_simple_workflows(self):
         self.assertIn('<meta name="robots" content="noindex, nofollow, noarchive">', NOT_FOUND)
+        self.assertIn('<meta name="theme-color" content="#173f35">', NOT_FOUND)
+        self.assertIn('rel="manifest" href="/manifest.webmanifest"', NOT_FOUND)
         for path in (
             '/?agent=1&amp;workflow=sale_listing',
             '/?agent=1&amp;workflow=purchase',
