@@ -6,6 +6,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 HOME = (ROOT / "index.html").read_text(encoding="utf-8")
+SELLERS = (ROOT / "sellers.html").read_text(encoding="utf-8")
 SITEMAP = (ROOT / "sitemap.xml").read_text(encoding="utf-8")
 VERCEL = json.loads((ROOT / "vercel.json").read_text(encoding="utf-8"))
 SEO_GUIDES = {
@@ -74,6 +75,21 @@ class TechnicalSeoTests(unittest.TestCase):
     def test_sitemap_keeps_revenue_landing_pages_discoverable(self):
         for path in ("/buyers", "/agents", "/investors", "/sellers", "/partners", "/directory"):
             self.assertIn(f"https://www.homeofferflow.com{path}", SITEMAP)
+
+    def test_seller_revenue_paths_expose_a_truthful_offer_catalog(self):
+        blocks = re.findall(
+            r'<script type="application/ld\+json">\s*(.*?)\s*</script>', SELLERS, re.DOTALL
+        )
+        catalogs = [json.loads(block) for block in blocks if 'OfferCatalog' in block]
+        self.assertEqual(len(catalogs), 1)
+        catalog = catalogs[0]
+        self.assertEqual(catalog["name"], "HomeOfferFlow Texas FSBO Support Paths")
+        offers = {item["name"]: item for item in catalog["itemListElement"]}
+        for name, price in (("Free Seller Intake", "0"), ("Seller Prep Plan", "299"), ("FSBO Launch Kit", "499"), ("Flat-Fee MLS Interest", "1299"), ("Seller Offer Review", "599"), ("Contract-to-Close Support", "1999"), ("Premium FSBO Bundle", "2999")):
+            with self.subTest(name=name):
+                self.assertEqual(offers[name]["price"], price)
+                self.assertEqual(offers[name]["priceCurrency"], "USD")
+                self.assertIn("scope", offers[name]["description"].lower())
 
     def test_sitemap_supplies_verified_lastmod_dates_for_indexable_pages(self):
         entries = re.findall(
