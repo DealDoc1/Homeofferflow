@@ -60,6 +60,11 @@ SEO_GUIDES = {
 
 class TechnicalSeoTests(unittest.TestCase):
 
+    def test_agent_workflow_guide_crosslinks_listing_and_lease_paths(self):
+        guide = (ROOT / "texas-agent-offer-workflow.html").read_text(encoding="utf-8")
+        self.assertIn('href="/texas-listing-workflow"', guide)
+        self.assertIn('href="/texas-lease-offer-workflow"', guide)
+
     def test_homepage_describes_the_brand_and_site_with_valid_structured_data(self):
         blocks = re.findall(
             r'<script type="application/ld\+json">\s*(.*?)\s*</script>', HOME, re.DOTALL
