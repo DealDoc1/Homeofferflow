@@ -52,6 +52,7 @@ class PwaBaselineTests(unittest.TestCase):
         self.assertEqual(MANIFEST["lang"], "en-US")
         self.assertEqual(MANIFEST["dir"], "ltr")
         self.assertEqual(MANIFEST["display"], "standalone")
+        self.assertEqual(MANIFEST["display_override"], ["window-controls-overlay", "standalone", "browser"])
         self.assertEqual(MANIFEST["orientation"], "portrait-primary")
         self.assertFalse(MANIFEST["prefer_related_applications"])
         self.assertEqual(MANIFEST["start_url"], "/")
