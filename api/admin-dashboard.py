@@ -4495,7 +4495,7 @@ class handler(BaseHTTPRequestHandler):
             # product can improve the mobile workspace. The dashboard returns
             # aggregate counts, never agent identities or transaction data.
             pwa_authenticated_shortcut_actions = (
-                "workspace", "listing_tools", "relationship_drafts", "offer_review", "new_offer", "signing_queue", "attention_queue",
+                "workspace", "transaction_start", "listing_tools", "relationship_drafts", "offer_review", "new_offer", "signing_queue", "attention_queue",
             )
             pwa_authenticated_shortcut_counts = {
                 action: 0 for action in pwa_authenticated_shortcut_actions
