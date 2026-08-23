@@ -19741,7 +19741,7 @@ function routeAfterMagicLinkIfNeeded() {
           : `<button class="btn-primary" type="button" id="hofPwaInstallButton">${installCtaLabel(target.surface)}</button>`}
         <button class="btn-secondary" type="button" id="hofPwaInstallDismiss">Not now</button>
       </div>
-      <div id="hofPwaInstallNote" class="pwa-install-note" style="margin-top:.65rem;display:none"></div>`;
+      <div id="hofPwaInstallNote" class="pwa-install-note" role="status" aria-live="polite" style="margin-top:.65rem;display:none"></div>`;
     target.panel.prepend(card);
     try {
       if (!sessionStorage.getItem(shownKey)) {

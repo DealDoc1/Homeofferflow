@@ -78,6 +78,7 @@ class PwaInstallExperienceTests(unittest.TestCase):
         self.assertIn("function installSurface", INDEX)
         self.assertIn("trackInstall('installed', { platform: installPlatform(), surface: installSurface() })", INDEX)
         self.assertIn("trackInstall('cta_clicked'", INDEX)
+        self.assertIn('id="hofPwaInstallNote" class="pwa-install-note" role="status" aria-live="polite"', INDEX)
         self.assertIn("copy_version: 'install_explicit_v2'", INDEX)
         self.assertIn("cta: 'native_prompt'", INDEX)
         self.assertIn("card.dataset.surface = target.surface", INDEX)
