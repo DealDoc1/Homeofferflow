@@ -882,6 +882,14 @@ class BrokerageAuthorizationTests(unittest.TestCase):
         self.assertIn("Texas REALTORS® / NAR form authorization", final_script)
         self.assertIn("This organization-level gate is not inferred from a license number", final_script)
 
+    def test_shared_title_defaults_save_prevents_duplicate_writes_and_restores_state(self):
+        marker = INDEX_HTML.index('id="hof-ondemand-brokerage-launch-v1"')
+        final_script = INDEX_HTML[marker:]
+        self.assertIn('id="saveBrokerageSharedDefaultsButton"', final_script)
+        self.assertIn("if (saveButton?.disabled) return null;", final_script)
+        self.assertIn("saveButton.textContent = 'Saving defaults…';", final_script)
+        self.assertIn("saveButton.setAttribute('aria-busy', 'false');", final_script)
+
     def test_broker_can_save_title_suggestions_but_not_transaction_terms(self):
         actor = {"id": "11111111-1111-1111-1111-111111111111", "email": "tyler@ondemanddfw.com"}
         brokerage_id = "22222222-2222-2222-2222-222222222222"

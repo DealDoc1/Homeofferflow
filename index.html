@@ -17761,15 +17761,30 @@ function routeAfterMagicLinkIfNeeded() {
     const session = root.hofAuth?.session;
     const brokerage = root.hofPlatform?.brokerage;
     const result = document.getElementById('brokerageDefaultsResult');
+    const saveButton = document.getElementById('saveBrokerageSharedDefaultsButton');
+    if (saveButton?.disabled) return null;
+    const restoreSaveButton = () => {
+      if (!saveButton) return;
+      saveButton.disabled = false;
+      saveButton.setAttribute('aria-busy', 'false');
+      saveButton.textContent = 'Save shared defaults';
+    };
     const titleCompany = String(document.getElementById('brokerageDefaultTitleCompany')?.value || '').trim();
     const titleContact = String(document.getElementById('brokerageDefaultTitleContact')?.value || '').trim();
     if (!session?.access_token || !brokerage?.id) {
+      restoreSaveButton();
       if (result) result.textContent = 'Sign in again before changing brokerage defaults.';
       return;
     }
     if (!titleCompany && !titleContact) {
+      restoreSaveButton();
       if (result) result.textContent = 'Enter a title company or escrow contact first.';
       return;
+    }
+    if (saveButton) {
+      saveButton.disabled = true;
+      saveButton.setAttribute('aria-busy', 'true');
+      saveButton.textContent = 'Saving defaults…';
     }
     if (result) result.textContent = 'Saving shared defaults…';
     try {
@@ -17791,6 +17806,7 @@ function routeAfterMagicLinkIfNeeded() {
       if (result) result.textContent = 'Shared title defaults saved. Agents choose whether to copy them into their own profile.';
       await root.renderBrokerageFoundationPanel();
     } catch (error) {
+      restoreSaveButton();
       if (result) result.textContent = error.message || 'Could not save brokerage defaults.';
     }
   };
@@ -18123,7 +18139,7 @@ function routeAfterMagicLinkIfNeeded() {
         '<div class="brokerage-invite-form"><label for="brokerageDefaultTitleCompany">Shared title defaults</label>' +
         '<input id="brokerageDefaultTitleCompany" type="text" value="' + safe(b.default_title_company || '') + '" placeholder="Suggested title company" aria-label="Suggested title company">' +
         '<input id="brokerageDefaultTitleContact" type="text" value="' + safe(b.default_title_contact || '') + '" placeholder="Suggested escrow contact" aria-label="Suggested escrow contact">' +
-        '<button type="button" class="brokerage-access-button" onclick="saveBrokerageSharedDefaults()">Save shared defaults</button></div>' +
+        '<button type="button" class="brokerage-access-button" id="saveBrokerageSharedDefaultsButton" onclick="saveBrokerageSharedDefaults()">Save shared defaults</button></div>' +
         '<p id="brokerageDefaultsResult" class="brokerage-invite-result">These are optional suggestions. Agents must choose to copy them into their own profile; no offer is changed automatically.</p>' +
         '<div class="brokerage-invite-form"><input id="brokerageInviteEmail" type="email" inputmode="email" autocomplete="email" placeholder="Agent email address" aria-label="Agent email address" required aria-required="true">' +
         '<button type="button" class="brokerage-access-button" onclick="createBrokerageInvite()">Create invite link</button></div>' +
