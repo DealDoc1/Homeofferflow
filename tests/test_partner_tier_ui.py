@@ -92,6 +92,18 @@ class PartnerTierUiTests(unittest.TestCase):
         self.assertIn("document.getElementById('foundingPartnerConsent')?.addEventListener('change', renderFoundingPartnerCheckoutAvailability)", self.html)
         self.assertIn("Complete required details to unlock", self.html)
 
+    def test_checkout_submit_exposes_busy_state_and_restores_after_failure(self):
+        start = self.html.index("window.submitFoundingPartnerLead")
+        end = self.html.index("function setupPartnerOnboardingModal", start)
+        submit = self.html[start:end]
+        self.assertIn("submit.setAttribute('aria-busy', 'true')", submit)
+        self.assertIn("submit.textContent = hasSavedPartnerApplication ? 'Opening secure checkout…' : 'Saving application…'", submit)
+        self.assertIn("submit.setAttribute('aria-busy', 'false')", submit)
+        self.assertIn("renderFoundingPartnerCheckoutAvailability();", submit)
+
+    def test_checkout_status_is_announced_atomically(self):
+        self.assertIn('id="foundingPartnerStatus" class="platform-status" role="status" aria-live="polite" aria-atomic="true"', self.html)
+
     def test_missing_consent_returns_focus_to_the_required_acknowledgement(self):
         start = self.html.index("if (!hasSavedPartnerApplication && !document.getElementById('foundingPartnerConsent')?.checked)")
         end = self.html.index("trackPartnerFunnel('Founding Partner Checkout Started'", start)
