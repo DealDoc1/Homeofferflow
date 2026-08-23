@@ -25,6 +25,13 @@
       "icons": [{"src":"/assets/homeofferflow-app-icon-192.png","sizes":"192x192","type":"image/png"}]
     },
     {
+      "name": "Lease Workflow",
+      "short_name": "Lease",
+      "description": "Open the transaction picker with lease listing selected.",
+      "url": "/?pwa_action=transaction_start&workflow=lease_listing",
+      "icons": [{"src":"/assets/homeofferflow-app-icon-192.png","sizes":"192x192","type":"image/png"}]
+    },
+    {
       "name": "Listing Tools",
       "short_name": "Listings",
       "description": "Open private seller leads, listing workspaces, launch planning, and offer comparison tools.",
