@@ -379,6 +379,8 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
         self.assertIn("submit.setAttribute('aria-busy', 'true')", HTML)
         self.assertIn("submit.textContent = 'Saving draft…'", HTML)
         self.assertIn("submit.textContent = 'Save private draft'", HTML)
+        self.assertGreaterEqual(HTML.count("submit.setAttribute('aria-busy', 'true')"), 3)
+        self.assertGreaterEqual(HTML.count("submit.textContent = 'Saving draft…'"), 3)
         self.assertIn("Start mineral addendum draft", HTML)
         self.assertIn("create_txr_1905_draft", HTML)
         self.assertIn("TXR-1905 is temporarily unavailable in the HomeOfferFlow form library", HTML)

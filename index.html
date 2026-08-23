@@ -18733,6 +18733,7 @@ function routeAfterMagicLinkIfNeeded() {
     const form = new FormData(event.currentTarget);
     const submit = event.currentTarget.querySelector('button[type="submit"]');
     const status = modal.querySelector('#txr1507DraftStatus');
+    if (submit.disabled) return;
     const clientNames = [form.get('clientOne'), form.get('clientTwo')].map(value => String(value || '').trim()).filter(Boolean);
     const payload = {
       action: 'create_txr_1507_draft', formCode: FORM_CODE, formSourceId: source.id, clientNames,
@@ -18740,6 +18741,7 @@ function routeAfterMagicLinkIfNeeded() {
       serviceLevel: form.get('serviceLevel'), showingFee: form.get('showingFee'), intermediary: form.get('intermediary'), signerPlan: form.get('signerPlan'),
       compensation: { purchasePercentage: form.get('purchasePercentage'), purchaseFlatFee: form.get('purchaseFlatFee'), leaseOneMonthPercentage: form.get('leaseOneMonthPercentage'), leaseTotalRentsPercentage: form.get('leaseTotalRentsPercentage'), leaseFlatFee: form.get('leaseFlatFee') }
     };
+    submit.disabled = true; submit.setAttribute('aria-busy', 'true'); submit.textContent = 'Saving draft…';
     try {
       status.className = 'hof-iabs-status'; status.textContent = 'Saving private agreement draft…';
       const token = root.hofAuth?.session?.access_token;
@@ -18747,10 +18749,10 @@ function routeAfterMagicLinkIfNeeded() {
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || 'Could not save the agreement draft.');
       status.className = 'hof-iabs-status ready'; status.textContent = 'Draft saved privately. It has not been sent for signature.';
-      submit.disabled = true;
     } catch (error) {
       console.error('TXR-1507 draft failed:', error);
       status.className = 'hof-iabs-status error'; status.textContent = error.message || 'Could not save the agreement draft.';
+      submit.disabled = false; submit.setAttribute('aria-busy', 'false'); submit.textContent = 'Save private draft';
     }
   }
 
@@ -18865,6 +18867,7 @@ function routeAfterMagicLinkIfNeeded() {
     const form = new FormData(event.currentTarget);
     const submit = event.currentTarget.querySelector('button[type="submit"]');
     const status = modal.querySelector('#txr1501DraftStatus');
+    if (submit.disabled) return;
     const clientNames = [form.get('clientOne'), form.get('clientTwo')].map(value => String(value || '').trim()).filter(Boolean);
     const payload = {
       action: 'create_txr_1501_draft', formCode: FORM_CODE, formSourceId: source.id, clientNames,
@@ -18873,6 +18876,7 @@ function routeAfterMagicLinkIfNeeded() {
       retainerAmount: form.get('retainerAmount'), retainerTreatment: form.get('retainerTreatment'), protectionDays: form.get('protectionDays'), paymentCounty: form.get('paymentCounty'), intermediary: form.get('intermediary'), signerPlan: form.get('signerPlan'),
       compensation: { purchasePercentage: form.get('purchasePercentage'), purchaseFlatFee: form.get('purchaseFlatFee'), leaseOneMonthPercentage: form.get('leaseOneMonthPercentage'), leaseTotalRentsPercentage: form.get('leaseTotalRentsPercentage'), leaseFlatFee: form.get('leaseFlatFee') }
     };
+    submit.disabled = true; submit.setAttribute('aria-busy', 'true'); submit.textContent = 'Saving draft…';
     try {
       status.className = 'hof-iabs-status'; status.textContent = 'Saving private agreement draft…';
       const token = root.hofAuth?.session?.access_token;
@@ -18880,10 +18884,10 @@ function routeAfterMagicLinkIfNeeded() {
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || 'Could not save the agreement draft.');
       status.className = 'hof-iabs-status ready'; status.textContent = 'Draft saved privately. It has not been sent for signature.';
-      submit.disabled = true;
     } catch (error) {
       console.error('TXR-1501 draft failed:', error);
       status.className = 'hof-iabs-status error'; status.textContent = error.message || 'Could not save the agreement draft.';
+      submit.disabled = false; submit.setAttribute('aria-busy', 'false'); submit.textContent = 'Save private draft';
     }
   }
 
