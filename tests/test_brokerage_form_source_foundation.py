@@ -153,6 +153,8 @@ class BrokerageFormSourceFoundationTests(unittest.TestCase):
         self.assertIn("agents cannot download them from HomeOfferFlow", HTML)
         self.assertIn("It is not yet an active signing workflow.", HTML)
         self.assertIn("authorization_attested: true", HTML)
+        self.assertIn('id="brokerageFormSourceList" class="hof-form-source-list" aria-live="polite" aria-busy="true"', HTML)
+        self.assertIn("list.setAttribute('aria-busy', 'false')", HTML)
 
     def test_source_metadata_reads_are_server_only(self):
         self.assertIn("revoke select on table public.hof_brokerage_form_sources from authenticated", SERVER_ONLY)
