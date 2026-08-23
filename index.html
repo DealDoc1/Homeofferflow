@@ -19478,7 +19478,11 @@ function routeAfterMagicLinkIfNeeded() {
           const response = await fetch('/api/admin-dashboard?preview_seller_disclosure=' + encodeURIComponent(button.dataset.id), {headers:{Authorization:'Bearer ' + token}});
           if (!response.ok) throw new Error('Private seller preview is unavailable.');
           const url = URL.createObjectURL(await response.blob()); window.open(url,'_blank','noopener'); setTimeout(() => URL.revokeObjectURL(url),60000);
-        } catch (error) { alert(error.message || 'Private seller preview is unavailable.'); }
+        } catch (error) {
+          const status = document.getElementById('hofSellerDraftStatus');
+          if (status) status.textContent = error.message || 'Private seller preview is unavailable.';
+          else window.announceWorkspaceStatus?.(error.message || 'Private seller preview is unavailable.');
+        }
         finally { button.disabled = false; button.textContent = 'Preview PDF'; }
       }));
       list.querySelectorAll('.hof-seller-load').forEach(button => button.addEventListener('click', () => root.loadSellerDisclosureDraft(button.dataset.id)));
@@ -19524,8 +19528,11 @@ function routeAfterMagicLinkIfNeeded() {
       const waterRightsData = {};
       card.querySelectorAll('[data-water-response]').forEach(select => { if (select.value) waterRightsData[select.dataset.waterResponse] = select.value; });
       const payload = {action:card.dataset.loadedDraftId ? 'update_seller_disclosure_draft' : 'create_seller_disclosure_draft',draftId:card.dataset.loadedDraftId || '',formCode:'TREC-55-1',disclosureSourceId:document.getElementById('hofSellerSource').value,waterSourceId:document.getElementById('hofWaterSource').value || null,listingWorkspaceId:document.getElementById('hofSellerWorkspace').value || null,propertyAddress:document.getElementById('hofSellerAddress').value,sellerNames,buyerNames,responseData,waterRightsData};
-      if (!token) return alert('Sign in before saving a seller disclosure draft.');
-      if (!payload.disclosureSourceId || !payload.propertyAddress.trim() || !sellerNames.length) return alert('Enter the property address, at least one seller, and choose the released TREC-55-1 source.');
+      if (!token) { status.textContent = 'Sign in before saving a seller disclosure draft.'; return; }
+      if (!payload.disclosureSourceId || !payload.propertyAddress.trim() || !sellerNames.length) {
+        status.textContent = 'Enter the property address, at least one seller, and choose the released TREC-55-1 source.';
+        return;
+      }
       status.textContent = 'Saving private draft…';
       try {
         const response = await fetch('/api/admin-dashboard',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer ' + token},body:JSON.stringify(payload)});
@@ -19551,10 +19558,10 @@ function routeAfterMagicLinkIfNeeded() {
       const seller2Email = document.getElementById('hofSeller2Email').value.trim();
       const seller1Name = document.getElementById('hofSeller1').value.trim();
       const seller2Name = document.getElementById('hofSeller2').value.trim();
-      if (!token) return alert('Sign in before sending a seller review request.');
-      if (!draftId || !seller1Email || !seller1Name) return alert('Save the draft and enter Seller 1 name and review email first.');
-      if (seller2Name && !seller2Email) return alert('Enter Seller 2 review email or remove Seller 2 name.');
-      if (seller2Email && !seller2Name) return alert('Enter Seller 2 name before adding a second review email.');
+      if (!token) { status.textContent = 'Sign in before sending a seller review request.'; return; }
+      if (!draftId || !seller1Email || !seller1Name) { status.textContent = 'Save the draft and enter Seller 1 name and review email first.'; return; }
+      if (seller2Name && !seller2Email) { status.textContent = 'Enter Seller 2 review email or remove Seller 2 name.'; return; }
+      if (seller2Email && !seller2Name) { status.textContent = 'Enter Seller 2 name before adding a second review email.'; return; }
       status.textContent = 'Sending secure seller review email…';
       const button = document.getElementById('hofSendSellerReview');
       button.disabled = true;
