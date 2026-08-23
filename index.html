@@ -16431,6 +16431,7 @@ function routeAfterMagicLinkIfNeeded() {
       const utmAudience = campaignParams.get('utm_content');
       const requestedAudience = explicitAudience || utmAudience;
       const audienceParameter = explicitAudience ? 'audience' : (utmAudience ? 'utm_content' : '');
+      const campaignValue = (key) => String(campaignParams.get(key) || '').trim().slice(0, 80);
       const allowedAudiences = new Set(['homebuyer', 'agent', 'investor', 'fsbo']);
       const landingAudience = allowedAudiences.has(requestedAudience)
         ? requestedAudience
@@ -16440,7 +16441,10 @@ function routeAfterMagicLinkIfNeeded() {
         root.trackEvent?.('Landing Audience Selected', {
           audience: requestedAudience,
           surface: 'campaign_deep_link',
-          parameter: audienceParameter
+          parameter: audienceParameter,
+          campaign_source: campaignValue('utm_source') || 'unspecified',
+          campaign_medium: campaignValue('utm_medium') || 'unspecified',
+          campaign_name: campaignValue('utm_campaign') || 'unspecified'
         });
       }
     } catch(e) {}

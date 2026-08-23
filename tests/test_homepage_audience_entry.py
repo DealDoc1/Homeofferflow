@@ -21,6 +21,10 @@ class HomepageAudienceEntryTests(unittest.TestCase):
         self.assertIn("surface: 'campaign_deep_link'", INDEX)
         self.assertIn("root.trackEvent?.('Landing Audience Selected'", INDEX)
         self.assertIn("parameter: audienceParameter", INDEX)
+        self.assertIn("campaign_source: campaignValue('utm_source') || 'unspecified'", INDEX)
+        self.assertIn("campaign_medium: campaignValue('utm_medium') || 'unspecified'", INDEX)
+        self.assertIn("campaign_name: campaignValue('utm_campaign') || 'unspecified'", INDEX)
+        self.assertIn(".slice(0, 80)", INDEX)
         self.assertNotIn("beginOfferFrom('campaign_deep_link')", INDEX)
 
 
