@@ -91,6 +91,15 @@ class TechnicalSeoTests(unittest.TestCase):
                 self.assertEqual(offers[name]["priceCurrency"], "USD")
                 self.assertIn("scope", offers[name]["description"].lower())
 
+    def test_seller_free_intake_exposes_a_three_step_how_to_path(self):
+        blocks = re.findall(
+            r'<script type="application/ld\+json">\s*(.*?)\s*</script>', SELLERS, re.DOTALL
+        )
+        how_to = next(json.loads(block) for block in blocks if '"HowTo"' in block)
+        self.assertEqual(how_to["name"], "Start a Texas FSBO seller plan")
+        self.assertEqual([step["position"] for step in how_to["step"]], [1, 2, 3])
+        self.assertIn("scope", how_to["step"][-1]["text"].lower())
+
     def test_sitemap_supplies_verified_lastmod_dates_for_indexable_pages(self):
         entries = re.findall(
             r"<url>\s*<loc>(https://www\.homeofferflow\.com/[^<]*)</loc>\s*<lastmod>(\d{4}-\d{2}-\d{2})</lastmod>\s*</url>",
