@@ -59,6 +59,13 @@
       "icons": [{"src":"/assets/homeofferflow-app-icon-192.png","sizes":"192x192","type":"image/png"}]
     },
     {
+      "name": "Texas Form Library",
+      "short_name": "Form Library",
+      "description": "Review the shared Texas agent form library and transaction-first workflow guide.",
+      "url": "/texas-agent-form-library",
+      "icons": [{"src":"/assets/homeofferflow-app-icon-192.png","sizes":"192x192","type":"image/png"}]
+    },
+    {
       "name": "Offer Review",
       "short_name": "Review",
       "description": "Open the private offer-strength and risk review workspace.",
