@@ -7375,7 +7375,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   async function refreshSignWellStatus(offerId, buttonEl, skipReload = false, suppressAlert = false) {
     if (!offerId) return;
     if (!hofAuth.session?.access_token) {
-      alert('Please sign in before refreshing SignWell status.');
+      setAuthStatus('Please sign in before refreshing SignWell status.', 'err');
       return;
     }
 
@@ -7407,7 +7407,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       }
     } catch (err) {
       console.error('SignWell status refresh failed:', err);
-      if (!suppressAlert) alert('Could not refresh SignWell status: ' + (err?.message || err));
+      if (!suppressAlert) window.announceWorkspaceStatus?.('Could not refresh SignWell status: ' + (err?.message || err));
     } finally {
       if (buttonEl) {
         buttonEl.disabled = false;
@@ -15779,6 +15779,8 @@ function routeAfterMagicLinkIfNeeded() {
     window.clearTimeout(status._hofDismissTimer);
     status._hofDismissTimer = window.setTimeout(() => status.remove(), 4200);
   }
+
+  root.announceWorkspaceStatus = announceWorkspaceStatus;
 
   root.hofRenderOfferWorkspaceV10 = renderWorkspace;
   root.renderMyOffers = renderWorkspace;
