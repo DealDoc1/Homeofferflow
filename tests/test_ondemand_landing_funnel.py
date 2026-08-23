@@ -38,6 +38,7 @@ class OnDemandLandingFunnelTests(unittest.TestCase):
         self.assertIn("ONDEMAND_LANDING_CHANNELS", API)
         self.assertIn('"organic_listing_workflow"', API)
         self.assertIn('"organic_lease_workflow"', API)
+        self.assertIn('"agent_workspace"', API)
         self.assertIn('Unsupported OnDemand landing channel.', API)
         self.assertIn('"channel": channel', API)
         self.assertIn('onDemandCheckoutStartCountsByChannel', ADMIN)

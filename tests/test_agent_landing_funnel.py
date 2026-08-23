@@ -206,6 +206,7 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("agent_landing_question_one_opened", AGENTS)
         self.assertIn("agentQuestionOneCta", AGENTS)
         self.assertIn("agent_landing_cta_selected", AGENTS)
+        self.assertIn("utm_source=agent_workspace", INDEX)
         self.assertIn("new URLSearchParams(window.location.search).get('utm_source')", AGENTS)
         self.assertIn("'direct_outreach','email','social','referral','local_event','print'", AGENTS)
         self.assertIn("[data-agent-cta-path]", AGENTS)
