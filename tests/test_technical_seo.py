@@ -84,6 +84,8 @@ class TechnicalSeoTests(unittest.TestCase):
         self.assertIn("id = 'hofGuideTrialCta'", loader)
         self.assertIn("See the OnDemand 60-day plan", loader)
         self.assertIn("utm_campaign=agent_acquisition", loader)
+        self.assertIn("guideKind === 'form_library'", loader)
+        self.assertIn("agent_form_library", loader)
         metrics = (ROOT / "assets" / "agent-workflow-guide-metrics.js").read_text(encoding="utf-8")
         self.assertIn("target.pathname === '/agents' && target.hash === '#transaction-start'", metrics)
         self.assertIn("startsQuestionOne && guideKind === 'listing'", metrics)
