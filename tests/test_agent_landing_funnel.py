@@ -185,6 +185,8 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn('"agent_workflow_guide_cta_selected": "selected"', API)
         self.assertIn("AGENT_LANDING_CHANNELS", API)
         self.assertIn("AGENT_LANDING_CTA_PATHS", API)
+        self.assertIn('"listing_guide"', API)
+        self.assertIn('"lease_guide"', API)
         self.assertIn("Unsupported agent landing channel.", API)
         self.assertIn("Unsupported agent landing CTA path.", API)
         self.assertIn("CTA path is only allowed for agent CTA events.", API)
@@ -213,6 +215,8 @@ class AgentLandingFunnelTests(unittest.TestCase):
         captured = []
         with patch.object(api, "_record_partner_checkout_event", side_effect=lambda *args: captured.append(args)):
             api._record_agent_landing_event({"event_type": "agent_landing_cta_selected", "channel": "referral", "cta_path": "seller_listing"})
+            api._record_agent_landing_event({"event_type": "agent_landing_cta_selected", "channel": "referral", "cta_path": "listing_guide"})
+            api._record_agent_landing_event({"event_type": "agent_landing_cta_selected", "channel": "referral", "cta_path": "lease_guide"})
             api._record_agent_landing_event({"event_type": "agent_landing_question_one_opened", "channel": "referral"})
             with self.assertRaisesRegex(ValueError, "Unsupported agent landing channel"):
                 api._record_agent_landing_event({"event_type": "agent_landing_viewed", "channel": "untrusted"})
@@ -220,11 +224,13 @@ class AgentLandingFunnelTests(unittest.TestCase):
                 api._record_agent_landing_event({"event_type": "agent_landing_cta_selected", "channel": "referral", "cta_path": "untrusted"})
             with self.assertRaisesRegex(ValueError, "CTA path is only allowed"):
                 api._record_agent_landing_event({"event_type": "agent_landing_viewed", "channel": "referral", "cta_path": "client_draft"})
-        self.assertEqual(len(captured), 2)
+        self.assertEqual(len(captured), 4)
         self.assertEqual(captured[0][0], "agent_landing_cta_selected")
         self.assertEqual(captured[0][3], {"surface": "agent_landing", "role": "agent", "channel": "referral", "ctaPath": "seller_listing"})
-        self.assertEqual(captured[1][0], "agent_landing_question_one_opened")
-        self.assertEqual(captured[1][3], {"surface": "agent_landing", "role": "agent", "channel": "referral"})
+        self.assertEqual(captured[1][3]["ctaPath"], "listing_guide")
+        self.assertEqual(captured[2][3]["ctaPath"], "lease_guide")
+        self.assertEqual(captured[3][0], "agent_landing_question_one_opened")
+        self.assertEqual(captured[3][3], {"surface": "agent_landing", "role": "agent", "channel": "referral"})
 
     def test_admin_reports_agent_workspace_landing_conversion(self):
         for expected in (
