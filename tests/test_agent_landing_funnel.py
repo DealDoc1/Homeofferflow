@@ -43,6 +43,11 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn('Read the lease workflow guide', AGENTS)
         self.assertIn('data-agent-cta-path="lease_guide"', AGENTS)
 
+    def test_agent_landing_links_to_listing_workflow_guide(self):
+        self.assertIn('href="/texas-listing-workflow"', AGENTS)
+        self.assertIn('Read the listing workflow guide', AGENTS)
+        self.assertIn('data-agent-cta-path="listing_guide"', AGENTS)
+
     def test_agent_landing_uses_transaction_choices_for_listing_handoffs(self):
         self.assertIn('href="/?agent=1&amp;workflow=sale_listing"', AGENTS)
         self.assertIn('href="/?agent=1&amp;workflow=lease_listing"', AGENTS)
