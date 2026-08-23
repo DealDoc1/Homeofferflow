@@ -207,6 +207,20 @@ class ListingWorkspaceFoundationTests(unittest.TestCase):
         self.assertIn("private seller offer-comparison worksheet", INDEX)
         self.assertIn("It does not rank, recommend, accept, reject, or create a contract.", INDEX)
 
+    def test_offer_comparison_save_prevents_duplicate_submissions_and_announces_progress(self):
+        self.assertIn('id="saveListingWorkspaceOfferButton"', INDEX)
+        self.assertIn('id="listingOfferStatusMessage" class="platform-status" role="status" aria-live="polite" aria-atomic="true"', INDEX)
+        start = INDEX.index("async function saveListingWorkspaceOffer()")
+        end = INDEX.index("async function loadListingWorkspacesFoundation()", start)
+        save = INDEX[start:end]
+        self.assertIn("const saveButton = document.getElementById('saveListingWorkspaceOfferButton');", save)
+        self.assertIn("if (saveButton?.disabled) return;", save)
+        self.assertIn("saveButton.disabled = true", save)
+        self.assertIn("saveButton.setAttribute('aria-busy', 'true')", save)
+        self.assertIn("saveButton.textContent = 'Saving comparison…'", save)
+        self.assertIn("saveButton.disabled = false", save)
+        self.assertIn("saveButton.textContent = 'Save Offer Comparison'", save)
+
     def test_private_offer_comparison_can_prepare_an_estimated_proceeds_worksheet_without_ranking_offers(self):
         self.assertIn("Estimated seller proceeds comparison", INDEX)
         self.assertIn("calculateListingOfferNetComparison", INDEX)
