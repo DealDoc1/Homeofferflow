@@ -32,6 +32,13 @@
       "icons": [{"src":"/assets/homeofferflow-app-icon-192.png","sizes":"192x192","type":"image/png"}]
     },
     {
+      "name": "Listing Workflow",
+      "short_name": "Listing",
+      "description": "Open the transaction picker with listing selected.",
+      "url": "/?pwa_action=transaction_start&workflow=sale_listing",
+      "icons": [{"src":"/assets/homeofferflow-app-icon-192.png","sizes":"192x192","type":"image/png"}]
+    },
+    {
       "name": "Listing Tools",
       "short_name": "Listings",
       "description": "Open private seller leads, listing workspaces, launch planning, and offer comparison tools.",
