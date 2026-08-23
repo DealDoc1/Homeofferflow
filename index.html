@@ -17370,7 +17370,7 @@ function routeAfterMagicLinkIfNeeded() {
 
   root.setBrokerageMemberStatus = async function setBrokerageMemberStatus(userId, membershipStatus, currentMembershipStatus) {
     const session = root.hofAuth?.session;
-    if (!session?.access_token) return alert('Sign in again before changing brokerage access.');
+    if (!session?.access_token) { window.announceWorkspaceStatus?.('Sign in again before changing brokerage access.'); return; }
     const nextStatus = String(membershipStatus || '').toLowerCase();
     const actionLabel = nextStatus === 'suspended'
       ? 'suspend'
@@ -17386,7 +17386,7 @@ function routeAfterMagicLinkIfNeeded() {
       if (!response.ok) throw new Error(data.error || 'Could not update brokerage access.');
       await root.renderBrokerageFoundationPanel();
     } catch (error) {
-      alert(error.message || 'Could not update brokerage access.');
+      window.announceWorkspaceStatus?.(error.message || 'Could not update brokerage access.');
     }
   };
 
@@ -17424,7 +17424,8 @@ function routeAfterMagicLinkIfNeeded() {
     const email = String(input?.value || '').trim().toLowerCase();
     if (!session?.access_token) {
       root.__hofBrokerageInviteInFlight = false;
-      return alert('Sign in again before inviting an agent.');
+      window.announceWorkspaceStatus?.('Sign in again before inviting an agent.');
+      return;
     }
     if (!email || !input?.checkValidity()) {
       root.__hofBrokerageInviteInFlight = false;
@@ -17479,7 +17480,7 @@ function routeAfterMagicLinkIfNeeded() {
 
   root.revokeBrokerageInvite = async function revokeBrokerageInvite(inviteId, email) {
     const session = root.hofAuth?.session;
-    if (!session?.access_token) return alert('Sign in again before revoking an invitation.');
+    if (!session?.access_token) { window.announceWorkspaceStatus?.('Sign in again before revoking an invitation.'); return; }
     if (!window.confirm('Revoke the pending invitation for ' + String(email || 'this agent') + '? The link will stop working immediately.')) return;
     try {
       const response = await fetch('/api/admin-dashboard', {
@@ -17491,7 +17492,7 @@ function routeAfterMagicLinkIfNeeded() {
       if (!response.ok) throw new Error(data.error || 'Could not revoke the invitation.');
       await root.renderBrokerageFoundationPanel();
     } catch (error) {
-      alert(error.message || 'Could not revoke the invitation.');
+      window.announceWorkspaceStatus?.(error.message || 'Could not revoke the invitation.');
     }
   };
 
