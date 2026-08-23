@@ -3019,7 +3019,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           <div class="eyebrow" style="margin-bottom:.35rem;">Question 1</div>
           <h4>Is this a listing, buying, lease listing, or lease representation transaction?</h4>
           <p style="color:var(--gray-light);line-height:1.55;margin:0 0 .9rem;">Start with one choice. Next, HomeOfferFlow asks only the questions for that transaction.</p>
-          <div class="account-actions-row" style="margin-top:0;">
+          <div class="account-actions-row" role="group" aria-label="Transaction type" style="margin-top:0;">
             <button class="btn-secondary" type="button" onclick="startAgentWorkflow('sale_listing')">Listing</button>
             <button class="btn-secondary" type="button" onclick="startAgentWorkflow('purchase')">Buying</button>
             <button class="btn-secondary" type="button" onclick="startAgentWorkflow('lease_listing')">Lease listing</button>

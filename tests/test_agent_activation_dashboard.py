@@ -234,6 +234,7 @@ class AgentActivationDashboardTests(unittest.TestCase):
         self.assertIn('Start with one choice. Next, HomeOfferFlow asks only the questions for that transaction.', HTML)
         self.assertIn('Choose a transaction to begin. You can change paths at any time.', HTML)
         self.assertIn('id="agentWorkflowStartStatus" role="status" aria-live="polite"', HTML)
+        self.assertIn('class="account-actions-row" role="group" aria-label="Transaction type"', HTML)
         self.assertLess(HTML.index('id="agentWorkflowStart"'), HTML.index('id="agentActivationCard"'))
         for label in ('>Buying</button>', '>Listing</button>', '>Lease listing</button>', '>Lease representation</button>'):
             self.assertIn(label, HTML)
