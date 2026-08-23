@@ -2,6 +2,17 @@
 // third-party dependency. The main workspace owns update prompts; public
 // pages only need to register the same lightweight shell service worker.
 (() => {
+  const guideKind = {
+    '/texas-agent-offer-workflow': 'offer',
+    '/texas-listing-workflow': 'listing',
+    '/texas-lease-offer-workflow': 'lease',
+  }[window.location.pathname];
+  if (guideKind) {
+    const metrics = document.createElement('script');
+    metrics.defer = true;
+    metrics.src = '/assets/agent-workflow-guide-metrics.js';
+    document.head.appendChild(metrics);
+  }
   if (!('serviceWorker' in navigator)) return;
   let deferredInstallPrompt = null;
   const dismissKey = 'hof_public_pwa_install_dismissed_v1';
