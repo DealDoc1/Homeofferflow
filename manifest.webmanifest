@@ -18,6 +18,13 @@
       "url": "/?pwa_action=workspace"
     },
     {
+      "name": "Start a Transaction",
+      "short_name": "Start",
+      "description": "Choose listing, buying, lease listing, or lease representation.",
+      "url": "/agents#transaction-start",
+      "icons": [{"src":"/assets/homeofferflow-app-icon-192.png","sizes":"192x192","type":"image/png"}]
+    },
+    {
       "name": "Listing Tools",
       "short_name": "Listings",
       "description": "Open private seller leads, listing workspaces, launch planning, and offer comparison tools.",
