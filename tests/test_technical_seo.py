@@ -65,6 +65,18 @@ class TechnicalSeoTests(unittest.TestCase):
         self.assertIn('href="/texas-listing-workflow"', guide)
         self.assertIn('href="/texas-lease-offer-workflow"', guide)
 
+    def test_listing_and_lease_guides_measure_guide_specific_agent_ctas(self):
+        listing = (ROOT / "texas-listing-workflow.html").read_text(encoding="utf-8")
+        lease = (ROOT / "texas-lease-offer-workflow.html").read_text(encoding="utf-8")
+        loader = (ROOT / "assets" / "pwa-register.js").read_text(encoding="utf-8")
+        for guide, path, kind in (
+            (listing, "/texas-listing-workflow", "listing"),
+            (lease, "/texas-lease-offer-workflow", "lease"),
+        ):
+            self.assertIn('src="/assets/pwa-register.js"', guide)
+            self.assertIn(f"'{path}': '{kind}'", loader)
+        self.assertIn("metrics.src = '/assets/agent-workflow-guide-metrics.js'", loader)
+
     def test_homepage_describes_the_brand_and_site_with_valid_structured_data(self):
         blocks = re.findall(
             r'<script type="application/ld\+json">\s*(.*?)\s*</script>', HOME, re.DOTALL
