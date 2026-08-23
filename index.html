@@ -19645,7 +19645,7 @@ function routeAfterMagicLinkIfNeeded() {
     card.innerHTML = '<h4>Seller disclosure draft</h4><p>Use an approved form from the universal HomeOfferFlow library. This creates a private draft for seller review; it does not send or sign a document.</p><details id="hofSellerDisclosureWorkspace" class="hof-seller-disclosure-workspace"><summary><strong>Start or continue a private seller disclosure draft</strong><br><small>Open this only when you are ready to enter seller disclosure details.</small></summary><div style="margin-top:1rem">' +
       '<div class="hof-seller-grid"><label>Private listing workspace (optional)<select id="hofSellerWorkspace"><option value="">Do not link to a workspace</option></select></label><label>Property address<input id="hofSellerAddress" maxlength="400" placeholder="Street address, city, state, ZIP"></label><label>TREC-55-1 source<select id="hofSellerSource"></select></label><label>Seller 1 name<input id="hofSeller1" maxlength="180"></label><label>Seller 1 review email<input id="hofSellerEmail" type="email" maxlength="320" autocomplete="email" placeholder="seller1@example.com"></label><label>Seller 2 name (optional)<input id="hofSeller2" maxlength="180"></label><label>Seller 2 review email (optional)<input id="hofSeller2Email" type="email" maxlength="320" autocomplete="email" placeholder="seller2@example.com"></label><label>Buyer 1 name (optional)<input id="hofBuyer1" maxlength="180"></label><label>Buyer 2 name (optional)<input id="hofBuyer2" maxlength="180"></label><label>TREC-61-0 water-rights source (optional)<select id="hofWaterSource"><option value="">Do not include</option></select></label></div>' +
       renderResponses() + renderWaterResponses() +
-      '<div class="hof-seller-actions"><button class="btn-primary" type="button" id="hofSaveSellerDraft">Save private draft</button><button class="btn-secondary" type="button" id="hofSendSellerReview" disabled>Send seller review email</button><span id="hofSellerDraftStatus" class="hof-iabs-status"></span></div><h5>My seller disclosure drafts</h5><div class="hof-seller-actions"><input id="hofSellerDraftFilter" type="search" placeholder="Search address, seller, or source" aria-label="Search seller disclosure drafts" oninput="filterSellerDisclosureDrafts(this.value)"><span id="hofSellerDraftSummary" class="hof-iabs-status"></span></div><ul id="hofSellerDraftList" class="hof-private-form-drafts-list"><li>Loading…</li></ul></div></details>';
+      '<div class="hof-seller-actions"><button class="btn-primary" type="button" id="hofSaveSellerDraft">Save private draft</button><button class="btn-secondary" type="button" id="hofSendSellerReview" disabled>Send seller review email</button><span id="hofSellerDraftStatus" class="hof-iabs-status" role="status" aria-live="polite" aria-atomic="true"></span></div><h5>My seller disclosure drafts</h5><div class="hof-seller-actions"><input id="hofSellerDraftFilter" type="search" placeholder="Search address, seller, or source" aria-label="Search seller disclosure drafts" oninput="filterSellerDisclosureDrafts(this.value)"><span id="hofSellerDraftSummary" class="hof-iabs-status"></span></div><ul id="hofSellerDraftList" class="hof-private-form-drafts-list"><li>Loading…</li></ul></div></details>';
     panel.appendChild(card);
     try {
       const sources = await approvedSources();
@@ -19661,6 +19661,8 @@ function routeAfterMagicLinkIfNeeded() {
     } catch (error) { document.getElementById('hofSellerDraftStatus').textContent = error.message || 'Approved sources unavailable.'; }
     document.getElementById('hofSaveSellerDraft').addEventListener('click', async () => {
       const status = document.getElementById('hofSellerDraftStatus');
+      const saveButton = document.getElementById('hofSaveSellerDraft');
+      if (saveButton?.disabled) return;
       const token = root.hofAuth?.session?.access_token;
       const sellerNames = [document.getElementById('hofSeller1').value, document.getElementById('hofSeller2').value].map(v => v.trim()).filter(Boolean);
       const buyerNames = [document.getElementById('hofBuyer1').value, document.getElementById('hofBuyer2').value].map(v => v.trim()).filter(Boolean);
@@ -19674,6 +19676,9 @@ function routeAfterMagicLinkIfNeeded() {
         status.textContent = 'Enter the property address, at least one seller, and choose the released TREC-55-1 source.';
         return;
       }
+      saveButton.disabled = true;
+      saveButton.setAttribute('aria-busy', 'true');
+      saveButton.textContent = 'Saving draft…';
       status.textContent = 'Saving private draft…';
       try {
         const response = await fetch('/api/admin-dashboard',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer ' + token},body:JSON.stringify(payload)});
@@ -19686,6 +19691,7 @@ function routeAfterMagicLinkIfNeeded() {
         if (sendButton) sendButton.disabled = !(card.dataset.sellerDraftId && document.getElementById('hofSellerEmail').value.trim());
         await refreshDrafts();
       } catch (error) { status.textContent = error.message || 'Could not save seller disclosure draft.'; }
+      finally { saveButton.disabled = false; saveButton.setAttribute('aria-busy', 'false'); saveButton.textContent = 'Save private draft'; }
     });
     document.getElementById('hofSellerEmail').addEventListener('input', () => {
       const button = document.getElementById('hofSendSellerReview');
