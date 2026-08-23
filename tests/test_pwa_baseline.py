@@ -23,9 +23,16 @@ class PwaBaselineTests(unittest.TestCase):
             self.assertIn('<meta name="theme-color" content="#173f35"', html)
 
     def test_public_acquisition_pages_expose_the_installable_manifest(self):
-        for filename in ("agents.html", "buyers.html", "sellers.html", "partners.html", "directory.html", "ondemand.html", "investors.html", "texas-fsbo-guide.html", "texas-agent-offer-workflow.html", "texas-homebuyer-offer-guide.html"):
+        for filename in ("agents.html", "buyers.html", "sellers.html", "partners.html", "directory.html", "ondemand.html", "investors.html", "texas-fsbo-guide.html", "texas-agent-offer-workflow.html", "texas-homebuyer-offer-guide.html", "texas-investor-offer-guide.html"):
             html = (ROOT / filename).read_text(encoding="utf-8")
             self.assertIn('rel="manifest" href="/manifest.webmanifest"', html)
+
+    def test_public_acquisition_pages_opt_into_notched_device_safe_areas(self):
+        for filename in ("agents.html", "buyers.html", "sellers.html", "partners.html", "directory.html", "ondemand.html", "investors.html", "texas-fsbo-guide.html", "texas-agent-offer-workflow.html", "texas-homebuyer-offer-guide.html", "texas-investor-offer-guide.html"):
+            html = (ROOT / filename).read_text(encoding="utf-8")
+            self.assertIn("viewport-fit=cover", html, filename)
+            self.assertIn("safe-area-inset-top", html, filename)
+            self.assertIn("safe-area-inset-bottom", html, filename)
 
     def test_manifest_has_a_standalone_secure_app_shell_configuration(self):
         self.assertEqual(MANIFEST["lang"], "en-US")
