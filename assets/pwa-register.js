@@ -8,6 +8,20 @@
   const isMobileInstallSurface = () => /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '')
     || (navigator.maxTouchPoints > 1 && /Macintosh/i.test(navigator.userAgent || ''));
   const removeInstallCard = () => document.getElementById('hofPublicPwaInstallCard')?.remove();
+  const showUpdateNotice = registration => {
+    if (!isMobileInstallSurface() || !registration?.waiting || document.getElementById('hofPublicPwaUpdateNotice')) return;
+    const notice = document.createElement('aside');
+    notice.id = 'hofPublicPwaUpdateNotice';
+    notice.setAttribute('role', 'status');
+    notice.setAttribute('aria-live', 'polite');
+    notice.style.cssText = 'position:fixed;right:1rem;bottom:1rem;z-index:20;max-width:min(23rem,calc(100% - 2rem));padding:.8rem .9rem;border:1px solid rgba(109,179,143,.45);border-radius:12px;background:#10243a;color:#fff;box-shadow:0 12px 30px rgba(0,0,0,.28);font:14px/1.4 Arial,sans-serif;';
+    notice.innerHTML = '<strong style="display:block;color:#bce8d0;margin-bottom:.2rem">A newer HomeOfferFlow version is ready</strong><span style="display:block;color:#b6c4d5;margin-bottom:.55rem">Refresh when you are finished with this page to use the latest app shell.</span><button type="button" id="hofPublicPwaUpdateButton" style="padding:.45rem .65rem;border:0;border-radius:7px;background:#6db38f;color:#102033;font-weight:800;cursor:pointer">Refresh for latest version</button>';
+    document.body.appendChild(notice);
+    notice.querySelector('#hofPublicPwaUpdateButton')?.addEventListener('click', () => {
+      registration.waiting?.postMessage({ type: 'HOF_SKIP_WAITING' });
+      window.location.reload();
+    });
+  };
   const renderInstallCard = () => {
     if (!isMobileInstallSurface() || !deferredInstallPrompt || document.getElementById('hofPublicPwaInstallCard')) return;
     try { if (sessionStorage.getItem(dismissKey) === '1') return; } catch (_) {}
@@ -38,6 +52,14 @@
   });
   window.addEventListener('appinstalled', () => { deferredInstallPrompt = null; removeInstallCard(); });
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/service-worker.js', { scope: '/' }).catch(() => {});
+    navigator.serviceWorker.register('/service-worker.js', { scope: '/' }).then(registration => {
+      showUpdateNotice(registration);
+      registration.addEventListener('updatefound', () => {
+        const installing = registration.installing;
+        installing?.addEventListener('statechange', () => {
+          if (installing.state === 'installed' && navigator.serviceWorker.controller) showUpdateNotice(registration);
+        });
+      });
+    }).catch(() => {});
   }, { once: true });
 })();
