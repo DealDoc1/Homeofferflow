@@ -20,6 +20,9 @@ class PublicPwaRegistrationTests(unittest.TestCase):
     def test_registration_uses_root_scope_without_third_party_dependencies(self):
         script = (ROOT / 'assets' / 'pwa-register.js').read_text(encoding='utf-8')
         self.assertIn("navigator.serviceWorker.register('/service-worker.js', { scope: '/' })", script)
+        self.assertIn("beforeinstallprompt", script)
+        self.assertIn("Install app", script)
+        self.assertIn("sessionStorage", script)
         self.assertNotIn('http', script)
 
     def test_shell_caches_the_registration_helper(self):
