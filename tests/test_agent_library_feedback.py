@@ -31,6 +31,11 @@ class AgentLibraryFeedbackTests(unittest.TestCase):
         ):
             self.assertIn(expected, INDEX)
 
+    def test_empty_private_drafts_offer_a_return_to_transaction_router(self):
+        self.assertIn('No private form drafts saved yet.<br><button', INDEX)
+        self.assertIn('data-start-agent-transaction', INDEX)
+        self.assertIn("document.getElementById('agentWorkflowStart')", INDEX)
+
 
 if __name__ == "__main__":
     unittest.main()
