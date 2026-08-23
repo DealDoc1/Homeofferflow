@@ -26,6 +26,8 @@ class OnDemandLandingFunnelTests(unittest.TestCase):
         self.assertIn("sessionStorage.getItem(key)", ONDEMAND)
         self.assertIn('request_type: "ondemand_landing_event"', ONDEMAND)
         self.assertIn('recordAggregateLandingEvent("ondemand_landing_viewed", channel)', ONDEMAND)
+        self.assertIn('sessionStorage.getItem("hof_ondemand_landing_channel")', ONDEMAND)
+        self.assertIn('sessionStorage.setItem("hof_ondemand_landing_channel", channel)', ONDEMAND)
         self.assertIn('recordAggregateLandingEvent("ondemand_magic_link_requested")', ONDEMAND)
         self.assertIn('recordAggregateLandingEvent("ondemand_trial_terms_accepted")', ONDEMAND)
         self.assertIn("open it in this browser to return here", ONDEMAND)

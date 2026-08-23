@@ -336,14 +336,16 @@
         button.textContent = busy ? busyText : idleText;
       }
 
-      function recordAggregateLandingEvent(eventType, channel = "unspecified") {
+      function recordAggregateLandingEvent(eventType, channel = "") {
         const key = `hof_ondemand_landing_${eventType}`;
         try {
           if (sessionStorage.getItem(key) === "1") return;
           sessionStorage.setItem(key, "1");
+          const attributionChannel = channel || sessionStorage.getItem("hof_ondemand_landing_channel") || "unspecified";
+          if (channel) sessionStorage.setItem("hof_ondemand_landing_channel", channel);
           fetch("/api/fsbo-lead", {
             method: "POST", headers: {"Content-Type": "application/json"}, keepalive: true,
-            body: JSON.stringify({request_type: "ondemand_landing_event", event_type: eventType, channel})
+            body: JSON.stringify({request_type: "ondemand_landing_event", event_type: eventType, channel: attributionChannel})
           }).catch(() => {});
         } catch (_) {}
       }
