@@ -5,9 +5,11 @@
   if (!('serviceWorker' in navigator)) return;
   let deferredInstallPrompt = null;
   const dismissKey = 'hof_public_pwa_install_dismissed_v1';
+  const isMobileInstallSurface = () => /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '')
+    || (navigator.maxTouchPoints > 1 && /Macintosh/i.test(navigator.userAgent || ''));
   const removeInstallCard = () => document.getElementById('hofPublicPwaInstallCard')?.remove();
   const renderInstallCard = () => {
-    if (!deferredInstallPrompt || document.getElementById('hofPublicPwaInstallCard')) return;
+    if (!isMobileInstallSurface() || !deferredInstallPrompt || document.getElementById('hofPublicPwaInstallCard')) return;
     try { if (sessionStorage.getItem(dismissKey) === '1') return; } catch (_) {}
     const card = document.createElement('aside');
     card.id = 'hofPublicPwaInstallCard';
@@ -29,6 +31,7 @@
     });
   };
   window.addEventListener('beforeinstallprompt', event => {
+    if (!isMobileInstallSurface()) return;
     event.preventDefault();
     deferredInstallPrompt = event;
     renderInstallCard();
