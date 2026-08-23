@@ -29,7 +29,16 @@ class BillingRecoveryUiTests(unittest.TestCase):
         subscription = HTML[start:end]
         self.assertIn("const subscriptionReplacementNeeded = status === 'canceled' || status === 'incomplete_expired';", subscription)
         self.assertIn("(subscriptionReplacementNeeded ? '<button class=\"btn-secondary\"", subscription)
-        self.assertIn("const billingRecoveryNeeded = status === 'past_due' || status === 'incomplete' || status === 'incomplete_expired' || status === 'unpaid' || status === 'paused';", subscription)
+        self.assertIn("const billingRecoveryNeeded = status === 'past_due' || status === 'incomplete' || status === 'unpaid' || status === 'paused';", subscription)
+
+    def test_expired_checkout_uses_reactivation_copy_without_billing_portal_recovery(self):
+        start = HTML.index("} else if (isBlocked) {")
+        end = HTML.index("} else {", start)
+        blocked = HTML[start:end]
+        self.assertIn("status === 'incomplete_expired'", blocked)
+        self.assertIn('Your earlier subscription checkout expired before activation.', blocked)
+        self.assertIn("status === 'past_due' ? 'openBillingPortal()'", blocked)
+        self.assertIn("openBillingPortal(\\'billing_recovery\\')", blocked)
 
     def test_generation_guard_offers_billing_recovery_at_point_of_failure(self):
         start = HTML.index("async function canGenerateOffer(showAlert = true)")

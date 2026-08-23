@@ -5565,7 +5565,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     const isPaid = ['active', 'trialing'].includes(status);
     const hasActiveAccess = isPaid || isInternalAdminAccess;
     const isBlocked = ['past_due', 'canceled', 'incomplete', 'incomplete_expired', 'unpaid', 'paused'].includes(status);
-    const billingRecoveryNeeded = status === 'past_due' || status === 'incomplete' || status === 'incomplete_expired' || status === 'unpaid' || status === 'paused';
+    const billingRecoveryNeeded = status === 'past_due' || status === 'incomplete' || status === 'unpaid' || status === 'paused';
     // Only subscriptions that have ended can start a replacement Checkout.
     // Payable Stripe states stay in Billing Portal so we never create a
     // duplicate subscription while the existing one can still be recovered.
@@ -5624,7 +5624,9 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         '<div style="margin-top:0.55rem; color:var(--warn); font-size:0.74rem; line-height:1.45;">' +
           (status === 'canceled'
             ? 'Your subscription is canceled. Choose a plan below to restore paid packet access.'
-            : 'Your latest payment needs attention. Update the saved payment method in Stripe Billing, then return here to refresh access.') +
+            : status === 'incomplete_expired'
+              ? 'Your earlier subscription checkout expired before activation. Choose a plan below to start paid packet access.'
+              : 'Your latest payment needs attention. Update the saved payment method in Stripe Billing, then return here to refresh access.') +
         '</div>';
     } else {
       actionHtml =
