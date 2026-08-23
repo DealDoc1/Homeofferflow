@@ -3945,6 +3945,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       </div>
 
       <div class="field-group"><div class="field"><label>Email Address (receipt + download)</label><input type="email" id="paymentEmail" name="paymentEmail" inputmode="email" autocomplete="email" placeholder="you@example.com" required aria-required="true"/></div></div>
+      <div id="paymentActionStatus" class="platform-status" role="status" aria-live="polite"></div>
       <button class="btn-primary" id="payBtn" style="width:100%; font-size:1rem; padding:1.1rem; opacity:0.5; cursor:not-allowed;" onclick="handlePayment()" disabled>Select a plan to continue →</button>
       <p style="text-align:center; margin-top:0.85rem; font-size:0.78rem; color:var(--gray);">🔒 Secure checkout powered by Stripe · One-time packet purchase · All sales final</p>
     </div>
@@ -9517,11 +9518,11 @@ function routeAfterMagicLinkIfNeeded() {
     const buyerEmails = [data.buyerEmail, data.buyer2Email].filter(Boolean).map(value => String(value).trim().toLowerCase());
     const sellerEmails = [seller1Email, seller2Email].filter(Boolean).map(value => value.toLowerCase());
     if (!seller1Name || !seller1Email) {
-      alert("Seller's Temporary Residential Lease requires the current seller / tenant 1 name and email for signature routing.");
+      setPaymentStatus("Seller's Temporary Residential Lease requires the current seller / tenant 1 name and email for signature routing.");
       return false;
     }
     if ((seller2Name && !seller2Email) || (!seller2Name && seller2Email)) {
-      alert("Enter both the name and email for seller / tenant 2, or leave both blank.");
+      setPaymentStatus("Enter both the name and email for seller / tenant 2, or leave both blank.");
       return false;
     }
     const signerEmails = [
@@ -9532,21 +9533,29 @@ function routeAfterMagicLinkIfNeeded() {
     ];
     const invalidSigner = signerEmails.find(([, email]) => !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email || '').trim()));
     if (invalidSigner) {
-      alert(invalidSigner[0] + ' needs a valid email address before HomeOfferFlow can create signature delivery.');
+      setPaymentStatus(invalidSigner[0] + ' needs a valid email address before HomeOfferFlow can create signature delivery.');
       return false;
     }
     if (new Set(buyerEmails.concat(sellerEmails)).size !== buyerEmails.length + sellerEmails.length) {
-      alert('Each signer needs a different email address.');
+      setPaymentStatus('Each signer needs a different email address.');
       return false;
     }
+    setPaymentStatus('');
     return true;
+  }
+
+  function setPaymentStatus(message, type = 'err') {
+    const el = document.getElementById('paymentActionStatus');
+    if (!el) return;
+    el.textContent = message || '';
+    el.className = message ? 'platform-status show ' + (type === 'err' ? 'err' : 'ok') : 'platform-status';
   }
 
 
   function confirmControlledLaunchSupport(offerData) {
     const blocked = controlledLaunchUnsupportedPaths(offerData);
     if (!blocked.length) return true;
-    alert(
+    setPaymentStatus(
       'This packet includes an option that HomeOfferFlow is still testing: ' +
       blocked.join(', ') +
       '. Please contact support before purchasing or generating this packet.'
@@ -9568,12 +9577,12 @@ function routeAfterMagicLinkIfNeeded() {
       }
 
       if (!state.selectedPlan) {
-        alert('Please select a plan before continuing.');
+        setPaymentStatus('Please select a plan before continuing.');
         return;
       }
 
       if (!document.getElementById('oneTimePacketAck')?.checked) {
-        alert('Please acknowledge the one-time packet terms before continuing.');
+        setPaymentStatus('Please acknowledge the one-time packet terms before continuing.');
         return;
       }
 
@@ -9599,7 +9608,7 @@ function routeAfterMagicLinkIfNeeded() {
           paymentEmailInput.setAttribute('aria-invalid', 'true');
           paymentEmailInput.focus();
         }
-        alert('Please enter a valid email address for your receipt and packet delivery.');
+        setPaymentStatus('Please enter a valid email address for your receipt and packet delivery.');
         return;
       }
       if (paymentEmailInput) paymentEmailInput.setAttribute('aria-invalid', 'false');
@@ -9676,7 +9685,7 @@ function routeAfterMagicLinkIfNeeded() {
       throw new Error('Stripe did not return a checkout URL.');
     } catch (err) {
       console.error('Payment error:', err);
-      alert('Payment error: ' + (err?.message || err));
+      setPaymentStatus('Payment error: ' + (err?.message || err));
       if (btn) {
         btn.disabled = false;
         btn.textContent = oldText || ('Pay $' + (state.selectedPrice || 99) + ' & Continue →');
@@ -9702,7 +9711,7 @@ function routeAfterMagicLinkIfNeeded() {
       '';
 
     if (!email || !email.includes('@')) {
-      alert('Please enter a buyer email before generating the packet.');
+      setPaymentStatus('Please enter a buyer email before generating the packet.');
       return;
     }
 
