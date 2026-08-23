@@ -356,6 +356,8 @@
       async function recordCheckoutFunnelEvent(eventType, result = "") {
         const user = state.session?.user;
         if (!user?.id) return;
+        let channel = "unspecified";
+        try { channel = sessionStorage.getItem("hof_ondemand_landing_channel") || channel; } catch (_) {}
 
         // A Stripe return can be refreshed or restored by the browser. Count
         // that return once per Checkout session, while retaining every actual
@@ -374,7 +376,7 @@
             message: result
               ? `Returned from OnDemand Stripe checkout: ${result}.`
               : "OnDemand Stripe checkout started.",
-            metadata: { source: "ondemand", plan: "agent", billing: "monthly" },
+            metadata: { source: "ondemand", plan: "agent", billing: "monthly", channel },
             created_at: new Date().toISOString()
           });
           if (error) throw error;

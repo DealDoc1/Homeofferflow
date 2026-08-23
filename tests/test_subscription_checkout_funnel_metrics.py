@@ -47,7 +47,7 @@ class SubscriptionCheckoutFunnelMetricTests(unittest.TestCase):
         source = (ROOT / "ondemand.html").read_text(encoding="utf-8")
         self.assertIn('recordCheckoutFunnelEvent("subscription_checkout_started")', source)
         self.assertIn('recordCheckoutFunnelEvent("subscription_checkout_returned", checkoutResult)', source)
-        self.assertIn('metadata: { source: "ondemand", plan: "agent", billing: "monthly" }', source)
+        self.assertIn('metadata: { source: "ondemand", plan: "agent", billing: "monthly", channel }', source)
         self.assertIn('hof_ondemand_checkout_${eventType}_${result}_${checkoutSessionId}', source)
         self.assertIn("function markFirstOfferAttribution()", source)
         self.assertIn('sessionStorage.setItem("hof_ondemand_first_offer_attribution", "1")', source)
