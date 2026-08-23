@@ -336,14 +336,14 @@
         button.textContent = busy ? busyText : idleText;
       }
 
-      function recordAggregateLandingEvent(eventType) {
+      function recordAggregateLandingEvent(eventType, channel = "unspecified") {
         const key = `hof_ondemand_landing_${eventType}`;
         try {
           if (sessionStorage.getItem(key) === "1") return;
           sessionStorage.setItem(key, "1");
           fetch("/api/fsbo-lead", {
             method: "POST", headers: {"Content-Type": "application/json"}, keepalive: true,
-            body: JSON.stringify({request_type: "ondemand_landing_event", event_type: eventType})
+            body: JSON.stringify({request_type: "ondemand_landing_event", event_type: eventType, channel})
           }).catch(() => {});
         } catch (_) {}
       }
@@ -542,9 +542,10 @@
       }
 
       async function init() {
-        recordAggregateLandingEvent("ondemand_landing_viewed");
         await loadConfig();
         const params = new URLSearchParams(window.location.search);
+        const channel = new Set(["organic_listing_workflow", "organic_lease_workflow", "direct", "email", "social", "referral", "local_event", "print"]).has(params.get("utm_source")) ? params.get("utm_source") : "unspecified";
+        recordAggregateLandingEvent("ondemand_landing_viewed", channel);
         if (params.get("checkout") === "success") {
           showStatus("Your secure checkout is complete. Open your workspace or start your first saved offer while agent access finishes activating.", "ok");
         } else if (params.get("checkout") === "cancelled") {

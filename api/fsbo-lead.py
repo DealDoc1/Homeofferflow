@@ -199,6 +199,10 @@ ONDEMAND_LANDING_EVENT_TYPES = {
     "ondemand_magic_link_requested": "magic_link_requested",
     "ondemand_trial_terms_accepted": "terms_accepted",
 }
+ONDEMAND_LANDING_CHANNELS = {
+    "direct", "email", "social", "referral", "local_event", "print",
+    "organic_listing_workflow", "organic_lease_workflow", "unspecified",
+}
 HOMEBUYER_LANDING_EVENT_TYPES = {
     "homebuyer_landing_viewed": "viewed",
     "homebuyer_landing_ready_list_opened": "ready_list_opened",
@@ -691,13 +695,16 @@ def _record_partner_onboarding_event(event_type):
 def _record_ondemand_landing_event(data):
     """Persist aggregate OnDemand trial funnel stages without agent details."""
     event_type = _text(data.get("event_type"), 80)
+    channel = _text(data.get("channel"), 80) or "unspecified"
     if event_type not in ONDEMAND_LANDING_EVENT_TYPES:
         raise ValueError("Unsupported OnDemand landing event.")
+    if channel not in ONDEMAND_LANDING_CHANNELS:
+        raise ValueError("Unsupported OnDemand landing channel.")
     _record_partner_checkout_event(
         event_type,
         ONDEMAND_LANDING_EVENT_TYPES[event_type],
         "Privacy-safe OnDemand trial landing engagement recorded.",
-        {"surface": "ondemand_landing", "plan": "agent", "billing": "monthly"},
+        {"surface": "ondemand_landing", "plan": "agent", "billing": "monthly", "channel": channel},
     )
 
 

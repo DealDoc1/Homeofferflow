@@ -25,11 +25,18 @@ class OnDemandLandingFunnelTests(unittest.TestCase):
         self.assertIn("recordAggregateLandingEvent", ONDEMAND)
         self.assertIn("sessionStorage.getItem(key)", ONDEMAND)
         self.assertIn('request_type: "ondemand_landing_event"', ONDEMAND)
-        self.assertIn('recordAggregateLandingEvent("ondemand_landing_viewed")', ONDEMAND)
+        self.assertIn('recordAggregateLandingEvent("ondemand_landing_viewed", channel)', ONDEMAND)
         self.assertIn('recordAggregateLandingEvent("ondemand_magic_link_requested")', ONDEMAND)
         self.assertIn('recordAggregateLandingEvent("ondemand_trial_terms_accepted")', ONDEMAND)
         self.assertIn("open it in this browser to return here", ONDEMAND)
         self.assertIn("keepalive: true", ONDEMAND)
+
+    def test_organic_guide_sources_are_allowlisted_for_ondemand_attribution(self):
+        self.assertIn("ONDEMAND_LANDING_CHANNELS", API)
+        self.assertIn('"organic_listing_workflow"', API)
+        self.assertIn('"organic_lease_workflow"', API)
+        self.assertIn('Unsupported OnDemand landing channel.', API)
+        self.assertIn('"channel": channel', API)
 
     def test_magic_link_entry_validates_and_focuses_email_before_requesting_auth(self):
         self.assertIn('id="email" type="email" inputmode="email" autocomplete="email"', ONDEMAND)

@@ -4571,6 +4571,18 @@ class handler(BaseHTTPRequestHandler):
             ondemand_landing_view_count = len([
                 item for item in events if item.get("event_type") == "ondemand_landing_viewed"
             ])
+            ondemand_landing_channels = (
+                "direct", "email", "social", "referral", "local_event", "print",
+                "organic_listing_workflow", "organic_lease_workflow", "unspecified",
+            )
+            ondemand_landing_view_counts_by_channel = {
+                channel: len([
+                    item for item in events
+                    if item.get("event_type") == "ondemand_landing_viewed"
+                    and str((item.get("metadata") or {}).get("channel") or "unspecified") == channel
+                ])
+                for channel in ondemand_landing_channels
+            }
             ondemand_trial_entry_count = len([
                 item for item in events if item.get("event_type") == "ondemand_trial_entry_selected"
             ])
@@ -5107,6 +5119,7 @@ class handler(BaseHTTPRequestHandler):
                 "subscriptionCheckoutReturnBySource": subscription_checkout_return_by_source,
                 "onDemandCheckoutStartCount": subscription_checkout_start_by_source.get("ondemand", 0),
                 "onDemandLandingViewCount": ondemand_landing_view_count,
+                "onDemandLandingViewCountsByChannel": ondemand_landing_view_counts_by_channel,
                 "onDemandTrialEntryCount": ondemand_trial_entry_count,
                 "onDemandMagicLinkRequestedCount": ondemand_magic_link_requested_count,
                 "onDemandMagicLinkRequestRate": round((ondemand_magic_link_requested_count / ondemand_landing_view_count) * 100, 1)
