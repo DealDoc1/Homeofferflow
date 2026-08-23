@@ -14,6 +14,11 @@ class SellerDisclosureFeedbackTests(unittest.TestCase):
     def test_preview_and_actions_use_accessible_status_feedback(self):
         script = self._script()
         self.assertIn('id="hofSellerDraftStatus"', script)
+        self.assertIn('role="status" aria-live="polite" aria-atomic="true"', script)
+        self.assertIn("saveButton.disabled = true", script)
+        self.assertIn("saveButton.textContent = 'Saving draft…'", script)
+        self.assertIn("saveButton.disabled = false", script)
+        self.assertIn("saveButton.textContent = 'Save private draft'", script)
         self.assertIn("document.getElementById('hofSellerDraftStatus')", script)
         self.assertIn("Sign in before saving a seller disclosure draft.", script)
         self.assertIn("Sign in before sending a seller review request.", script)
