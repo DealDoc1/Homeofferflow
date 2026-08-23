@@ -10339,9 +10339,9 @@ function routeAfterMagicLinkIfNeeded() {
     // of an "Address" suffix. Name-only agreement controls are included too:
     // those dialogs are rendered after sign-in and should receive the same
     // low-friction address search as the public offer flow.
-    const legacyAddressIds = new Set(['propertyToSell', 'profInvestorMailing', 'clientCityStateZip']);
+    const legacyAddressKeys = new Set(['propertyToSell', 'profInvestorMailing', 'clientCityStateZip']);
     return Array.from(document.querySelectorAll('input[id], input[name]'))
-      .filter(input => /(?:address|addr)/i.test(`${input.id} ${input.name}`) || legacyAddressIds.has(input.id))
+      .filter(input => /(?:address|addr)/i.test(`${input.id} ${input.name}`) || legacyAddressKeys.has(input.id) || legacyAddressKeys.has(input.name))
       .map(input => [input, callbacks[input.id] || null]);
   }
 
@@ -10371,7 +10371,7 @@ function routeAfterMagicLinkIfNeeded() {
   document.addEventListener('focusin', function(e) {
     const input = e.target;
     if (!(input instanceof HTMLInputElement)) return;
-    if (!/(?:address|addr)/i.test(`${input.id} ${input.name}`) && !['propertyToSell', 'profInvestorMailing', 'clientCityStateZip'].includes(input.id)) return;
+    if (!/(?:address|addr)/i.test(`${input.id} ${input.name}`) && !['propertyToSell', 'profInvestorMailing', 'clientCityStateZip'].some(key => key === input.id || key === input.name)) return;
     window._hofPlacesSetup = wireAddressInput;
     Promise.resolve(window.loadHofPlaces?.()).then(() => wireAddressInput());
   });
