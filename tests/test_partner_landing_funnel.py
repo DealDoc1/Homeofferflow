@@ -35,6 +35,8 @@ class PartnerLandingFunnelTests(unittest.TestCase):
         self.assertIn("keepalive: true", PARTNERS)
         self.assertIn("const campaignChannel = medium === 'installed_app' ? 'pwa_shortcut' : medium || 'direct';", PARTNERS)
         self.assertIn("channel: campaignChannel", PARTNERS)
+        self.assertIn("channel: channelValue", PARTNERS)
+        self.assertIn("PARTNER_LANDING_CHANNELS", API)
 
     def test_partner_page_respects_notched_mobile_safe_areas(self):
         self.assertIn('viewport-fit=cover', PARTNERS)
@@ -106,6 +108,7 @@ class PartnerLandingFunnelTests(unittest.TestCase):
         self.assertIn("partnerDirectoryApplicationStartCount", INDEX)
         self.assertIn("Landing-tier interest:", INDEX)
         self.assertIn("Landing-category interest:", INDEX)
+        self.assertIn("partnerLandingChannelCounts", INDEX)
 
     def test_modal_open_is_a_distinct_privacy_safe_partner_funnel_stage(self):
         self.assertIn("function recordPartnerApplicationOpened", INDEX)

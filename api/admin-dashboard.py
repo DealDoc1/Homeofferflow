@@ -4033,6 +4033,16 @@ class handler(BaseHTTPRequestHandler):
             partner_landing_category_cta_counts = dict(sorted(
                 partner_landing_category_cta_counts.items(), key=lambda item: (-item[1], item[0])
             ))
+            partner_landing_channel_counts = {}
+            for item in partner_landing_events:
+                if item.get("event_type") not in {"partner_landing_viewed", "partner_landing_cta_selected"}:
+                    continue
+                channel = str((item.get("metadata") or {}).get("channel") or "direct").strip().lower()
+                if channel in {"direct", "organic", "pwa_shortcut", "email", "social", "referral", "other"}:
+                    partner_landing_channel_counts[channel] = partner_landing_channel_counts.get(channel, 0) + 1
+            partner_landing_channel_counts = dict(sorted(
+                partner_landing_channel_counts.items(), key=lambda item: (-item[1], item[0])
+            ))
             # Directory traffic is recorded server-side only as placement ID,
             # category, and tier. This lets operators evaluate paid-placement
             # value without retaining a visitor, search text, or destination URL.
@@ -5008,6 +5018,7 @@ class handler(BaseHTTPRequestHandler):
                 ) if partner_application_open_count else 0,
                 "partnerLandingTierCtaCounts": partner_landing_tier_cta_counts,
                 "partnerLandingCategoryCtaCounts": partner_landing_category_cta_counts,
+                "partnerLandingChannelCounts": partner_landing_channel_counts,
                 "partnerDirectoryApplicationStartCount": partner_directory_application_start_count,
                 "partnerDirectoryPricingSelectionCount": partner_directory_pricing_selection_count,
                 "partnerDirectoryEmptySearchCount": partner_directory_empty_search_count,
