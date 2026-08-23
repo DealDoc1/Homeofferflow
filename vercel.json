@@ -65,6 +65,22 @@
       ]
     },
     {
+      "source": "/assets/homeofferflow-app-icon-192.png",
+      "headers": [{"key": "Cache-Control", "value": "public, max-age=86400, stale-while-revalidate=604800"}]
+    },
+    {
+      "source": "/assets/homeofferflow-app-icon-512.png",
+      "headers": [{"key": "Cache-Control", "value": "public, max-age=86400, stale-while-revalidate=604800"}]
+    },
+    {
+      "source": "/assets/homeofferflow-apple-touch-icon.png",
+      "headers": [{"key": "Cache-Control", "value": "public, max-age=86400, stale-while-revalidate=604800"}]
+    },
+    {
+      "source": "/assets/homeofferflow-social-preview-v1.png",
+      "headers": [{"key": "Cache-Control", "value": "public, max-age=86400, stale-while-revalidate=604800"}]
+    },
+    {
       "source": "/(.*)",
       "headers": [
         {
