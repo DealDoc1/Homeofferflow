@@ -14,14 +14,15 @@
     metrics.src = '/assets/agent-workflow-guide-metrics.js';
     document.head.appendChild(metrics);
   }
-  if (guideKind === 'listing' || guideKind === 'lease') {
+  if (guideKind === 'listing' || guideKind === 'lease' || guideKind === 'form_library') {
     const addTrialPath = () => {
       const actions = document.querySelector('main .actions');
       if (!actions || document.getElementById('hofGuideTrialCta')) return;
       const link = document.createElement('a');
       link.id = 'hofGuideTrialCta';
       link.className = 'button secondary';
-      link.href = `/ondemand?utm_source=organic_${guideKind}_workflow&utm_medium=guide&utm_campaign=agent_acquisition`;
+      const source = guideKind === 'form_library' ? 'agent_form_library' : `organic_${guideKind}_workflow`;
+      link.href = `/ondemand?utm_source=${source}&utm_medium=guide&utm_campaign=agent_acquisition`;
       link.textContent = 'See the OnDemand 60-day plan';
       actions.appendChild(link);
     };
