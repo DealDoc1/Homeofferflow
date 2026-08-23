@@ -9,6 +9,7 @@ class OfferSummaryCopyTests(unittest.TestCase):
     def test_detail_view_exposes_copy_summary_action(self):
         self.assertIn('onclick="copyOfferSummary(\'${esc(offer.id)}\')"', HTML)
         self.assertIn("root.copyOfferSummary = async function(offerId)", HTML)
+        self.assertGreaterEqual(HTML.count("copyOfferSummary('${esc(o.id)}')"), 1)
 
     def test_summary_uses_operational_fields_and_excludes_private_identifiers(self):
         start = HTML.index("root.copyOfferSummary = async function(offerId)")
