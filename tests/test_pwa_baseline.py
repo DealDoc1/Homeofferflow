@@ -63,7 +63,7 @@ class PwaBaselineTests(unittest.TestCase):
             [(item["name"], item["url"]) for item in MANIFEST["shortcuts"]],
             [
                 ("My Workspace", "/?pwa_action=workspace"),
-                ("Start a Transaction", "/agents#transaction-start"),
+                ("Start a Transaction", "/?pwa_action=transaction_start"),
                 ("Listing Tools", "/?pwa_action=listing_tools"),
                 ("Agent Forms & Drafts", "/?pwa_action=relationship_drafts"),
                 ("Offer Review", "/?pwa_action=offer_review"),
@@ -122,7 +122,8 @@ class PwaBaselineTests(unittest.TestCase):
         self.assertIn("shared agent form drafts", MANIFEST["description"])
         forms = next(item for item in MANIFEST["shortcuts"] if item["name"] == "Agent Forms & Drafts")
         self.assertEqual(forms["icons"][0]["src"], "/assets/homeofferflow-app-icon-192.png")
-        self.assertIn("const validActions = new Set(['workspace', 'listing_tools', 'relationship_drafts', 'offer_review', 'new_offer', 'signing_queue', 'attention_queue', 'seller_plan', 'investor_workspace', 'partner_marketplace', 'buyer_offer']);", INDEX)
+        self.assertIn("const validActions = new Set(['workspace', 'transaction_start', 'listing_tools', 'relationship_drafts', 'offer_review', 'new_offer', 'signing_queue', 'attention_queue', 'seller_plan', 'investor_workspace', 'partner_marketplace', 'buyer_offer']);", INDEX)
+        self.assertIn("if (action === 'transaction_start')", INDEX)
         self.assertIn("if (!validActions.has(action)) return;", INDEX)
         self.assertIn("window.openAuthModal?.(role)", INDEX)
         self.assertIn("window.openAccountDashboard?.({ tab: 'dashboard' })", INDEX)

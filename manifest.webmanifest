@@ -21,7 +21,7 @@
       "name": "Start a Transaction",
       "short_name": "Start",
       "description": "Choose listing, buying, lease listing, or lease representation.",
-      "url": "/agents#transaction-start",
+      "url": "/?pwa_action=transaction_start",
       "icons": [{"src":"/assets/homeofferflow-app-icon-192.png","sizes":"192x192","type":"image/png"}]
     },
     {

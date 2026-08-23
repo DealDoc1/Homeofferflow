@@ -10,12 +10,12 @@ SERVICE_WORKER = (Path(__file__).resolve().parents[1] / "service-worker.js").rea
 class PwaTransactionShortcutTests(unittest.TestCase):
     def test_installed_app_has_direct_transaction_start_shortcut(self):
         shortcut = next(item for item in MANIFEST["shortcuts"] if item["short_name"] == "Start")
-        self.assertEqual(shortcut["url"], "/agents#transaction-start")
+        self.assertEqual(shortcut["url"], "/?pwa_action=transaction_start")
         self.assertIn("listing", shortcut["description"])
         self.assertIn("buying", shortcut["description"])
 
     def test_shell_cache_bumps_for_shortcut_metadata(self):
-        self.assertIn("homeofferflow-shell-v25", SERVICE_WORKER)
+        self.assertIn("homeofferflow-shell-v26", SERVICE_WORKER)
 
 
 if __name__ == "__main__":
