@@ -58,6 +58,10 @@
       "destination": "/texas-investor-offer-guide.html"
     },
     {
+      "source": "/texas-agent-form-library",
+      "destination": "/texas-agent-form-library.html"
+    },
+    {
       "source": "/directory",
       "destination": "/directory.html"
     }
