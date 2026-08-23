@@ -4790,7 +4790,7 @@ class handler(BaseHTTPRequestHandler):
             # and package choice.  They let operations distinguish landing-page
             # traffic from intake friction without retaining visitor, property,
             # referrer, or campaign-detail data in the Admin response.
-            seller_landing_event_types = {"fsbo_landing_viewed", "fsbo_landing_cta_selected"}
+            seller_landing_event_types = {"fsbo_landing_viewed", "fsbo_landing_cta_selected", "fsbo_support_paths_expanded"}
             seller_landing_events = [
                 item for item in events if item.get("event_type") in seller_landing_event_types
             ]
@@ -4799,6 +4799,9 @@ class handler(BaseHTTPRequestHandler):
             ])
             seller_landing_cta_count = len([
                 item for item in seller_landing_events if item.get("event_type") == "fsbo_landing_cta_selected"
+            ])
+            seller_landing_support_paths_expanded_count = len([
+                item for item in seller_landing_events if item.get("event_type") == "fsbo_support_paths_expanded"
             ])
             seller_landing_package_cta_counts = {}
             for item in seller_landing_events:
@@ -4941,6 +4944,7 @@ class handler(BaseHTTPRequestHandler):
                 "sellerLandingCtaCount": seller_landing_cta_count,
                 "sellerLandingCtaRate": round((seller_landing_cta_count / seller_landing_view_count) * 100, 1)
                 if seller_landing_view_count else 0,
+                "sellerLandingSupportPathsExpandedCount": seller_landing_support_paths_expanded_count,
                 "sellerLandingPackageCtaCounts": seller_landing_package_cta_counts,
                 "sellerIntakeEventCounts": seller_intake_event_counts,
                 "sellerPackageSelectionCounts": seller_package_selection_counts,

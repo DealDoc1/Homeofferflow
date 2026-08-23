@@ -143,6 +143,7 @@ PARTNER_DIRECTORY_SURFACES = {"public_directory", "fsbo_seller_plan", "pwa_provi
 FSBO_LANDING_EVENT_TYPES = {
     "fsbo_landing_viewed": "viewed",
     "fsbo_landing_cta_selected": "selected",
+    "fsbo_support_paths_expanded": "expanded",
     "fsbo_guide_viewed": "viewed",
     "fsbo_guide_cta_selected": "selected",
     "fsbo_provider_directory_opened": "opened",
