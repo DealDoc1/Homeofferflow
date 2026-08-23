@@ -15679,7 +15679,8 @@ function routeAfterMagicLinkIfNeeded() {
     if (typeof root.reuseOfferTerms === 'function') root.reuseOfferTerms(offers[0].id);
   };
   root.copyBuyerSigningReminder = async function(offerId){
-    const offer = (state.offers || []).find(item => String(item?.id) === String(offerId));
+    const offer = (state.offers || []).find(item => String(item?.id) === String(offerId))
+      || (String(root.__hofCurrentOffer?.id) === String(offerId) ? root.__hofCurrentOffer : null);
     if (!offer) { alert('This offer is no longer available in your workspace. Refresh offers and try again.'); return; }
     const d = offer.offer_data || {};
     const buyer = offer.buyer_name || d.buyerName || [d.buyer1First, d.buyer1Last].filter(Boolean).join(' ') || 'there';
@@ -15706,7 +15707,8 @@ function routeAfterMagicLinkIfNeeded() {
   };
 
   root.copyOfferSummary = async function(offerId){
-    const offer = (state.offers || []).find(item => String(item?.id) === String(offerId));
+    const offer = (state.offers || []).find(item => String(item?.id) === String(offerId))
+      || (String(root.__hofCurrentOffer?.id) === String(offerId) ? root.__hofCurrentOffer : null);
     if (!offer) { alert('This offer is no longer available in your workspace. Refresh offers and try again.'); return; }
     const d = offer.offer_data || {};
     const property = offer.property_address || d.propertyAddress || d.propAddress || 'Untitled offer';
@@ -15758,6 +15760,7 @@ function routeAfterMagicLinkIfNeeded() {
       const { data: offer, error } = await client.from('hof_offers').select('*').eq('user_id', user.id).eq('id', offerId).is('deleted_at', null).maybeSingle();
       if (error) throw error;
       if (!offer) throw new Error('Offer not found.');
+      root.__hofCurrentOffer = offer;
       let events = [];
       try {
         const res = await client.from('hof_offer_events').select('*').or(`offer_id.eq.${offerId},signwell_document_id.eq.${offer.signwell_document_id || 'none'}`).order('created_at', { ascending:false }).limit(20);
