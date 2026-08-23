@@ -32,7 +32,7 @@ workflows that matter for an agent launch:
 | Priority family | Confirmed forms | Product implication |
 | --- | --- | --- |
 | Listing-side representation | TXR-1101 Residential Listing Agreement - Exclusive Right to Sell; TXR-1102 Residential Listing Agreement - Exclusive Right to Lease | Separate sale-listing and lease-listing workflows; neither is an offer addendum. Exact source PDFs and signer plans remain required before activation. |
-| Seller disclosures | TXR-1406 Seller's Disclosure Notice; TXR-1418 Update to Seller's Disclosure Notice; TREC-55-1; TREC-61-0 | Keep seller disclosure preparation separate from the buyer offer question. The current TREC-55-1/TREC-61-0 foundation is the first seller-side implementation; TXR-1406/TXR-1418 remain separately source-gated. |
+| Seller disclosures | TXR-1406 Seller's Disclosure Notice; TXR-1418 Update to Seller's Disclosure Notice; TREC-55-1; TREC-61-0 | Keep seller disclosure preparation separate from the buyer offer question. Universal review-only TREC-55-1/TREC-61-0 drafts are live for every authenticated agent; TXR-1406/TXR-1418 remain separately source-gated. |
 | Buyer relationship | TXR-1501, TXR-1507, TXR-1508, TXR-1506 | These supplied exact PDFs are already source-vaulted and have private preview foundations; signing remains gated by authenticated and completed-PDF QA. |
 | Leasing | TXR-2001 Residential Lease; TXR-2003 Residential Lease Application; TXR-2011 Multi-Family Lease; TXR-1910 Seller's Temporary Residential Lease; TXR-1911 Buyer's Temporary Residential Lease | The temporary-lease execution path is live for the supported purchase scenario. Full landlord/tenant leasing needs its own workflow and signer plan. |
 | Agent disclosures and notices | TXR-2501 IABS 1-2; TXR-1409 Intermediary Relationship Notice; TXR-1417 Representation Disclosure; TXR-1504 Notice from Buyer's Agent to Seller | IABS remains an agent-owned profile document with optional packet inclusion. The other notices require separate source, role, and delivery rules. |
@@ -79,7 +79,7 @@ release approval.
 | Buyer temporary possession | TREC 16-7 Buyer Temporary Residential Lease |
 | Seller temporary possession | Production: TREC 15-7 Seller Temporary Residential Lease, with buyer/landlord and seller/tenant execution routing and completed-signature visual QA |
 | IABS | Agent-owned, private profile PDF; optional per-packet attachment, never automatic |
-| Seller/listing documents | Existing PDF uploads may be appended when appropriate; HomeOfferFlow does not generate or send standalone seller-side forms yet |
+| Seller/listing documents | Universal TREC-55-1/TREC-61-0 review-only drafts are available; listing agreements and seller signature requests remain outside the live scope |
 
 ## Recommended release order
 
