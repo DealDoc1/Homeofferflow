@@ -866,6 +866,14 @@ class BrokerageAuthorizationTests(unittest.TestCase):
         self.assertIn("2 * 1024 * 1024", final_script)
         self.assertIn("Only active brokerage admins can update", final_script)
 
+    def test_brokerage_branding_save_prevents_duplicate_uploads_and_restores_state(self):
+        marker = INDEX_HTML.index('id="hof-ondemand-brokerage-launch-v1"')
+        final_script = INDEX_HTML[marker:]
+        self.assertIn('id="saveBrokerageBrandingButton"', final_script)
+        self.assertIn("if (saveButton?.disabled) return null;", final_script)
+        self.assertIn("saveButton.textContent = logo ? 'Uploading logo…' : 'Saving branding…';", final_script)
+        self.assertIn("saveButton.setAttribute('aria-busy', 'false');", final_script)
+
     def test_brokerage_ui_exposes_the_live_txr_authorization_gate(self):
         marker = INDEX_HTML.index('id="hof-ondemand-brokerage-launch-v1"')
         final_script = INDEX_HTML[marker:]
