@@ -99,6 +99,10 @@ class PwaBaselineTests(unittest.TestCase):
         self.assertIn("cache.put(cacheKey, response.clone())", WORKER)
         self.assertNotIn("caches.match(event.request)", WORKER)
 
+    def test_agent_landing_shell_is_pre_cached_for_agent_first_pwa_resume(self):
+        self.assertIn("const SHELL_CACHE = 'homeofferflow-shell-v27';", WORKER)
+        self.assertIn("'/agents',", WORKER)
+
     def test_worker_refreshes_only_the_public_html_offline_shell(self):
         self.assertIn("if (!cacheKey || !response.ok || !contentType.includes('text/html')) return;", WORKER)
         self.assertIn("event.waitUntil", WORKER)
