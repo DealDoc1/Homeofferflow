@@ -106,7 +106,7 @@ class TechnicalSeoTests(unittest.TestCase):
             SITEMAP,
         )
         self.assertEqual(len(entries), 12)
-        self.assertEqual(dict(entries)["https://www.homeofferflow.com/"], "2026-08-22")
+        self.assertEqual(dict(entries)["https://www.homeofferflow.com/"], "2026-08-23")
         for path in ("/agents", "/ondemand", "/partners", "/buyers", "/sellers", "/texas-fsbo-guide", "/texas-agent-offer-workflow", "/texas-homebuyer-offer-guide", "/texas-investor-offer-guide", "/investors", "/directory"):
             self.assertEqual(dict(entries)[f"https://www.homeofferflow.com{path}"], "2026-08-23")
 
