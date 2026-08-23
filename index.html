@@ -4432,7 +4432,11 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     const button = document.getElementById(`partnerLeadSave-${leadId}`);
     if (!select || !hofAuth?.session?.access_token) return;
     const status = select.value;
-    if (button) { button.disabled = true; button.textContent = 'Saving…'; }
+    if (button) {
+      button.disabled = true;
+      button.setAttribute('aria-busy', 'true');
+      button.textContent = 'Saving…';
+    }
     try {
       const response = await fetch('/api/admin-dashboard', {
         method: 'POST',
@@ -4447,7 +4451,11 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       await loadAdminDashboard(true);
     } catch (err) {
       console.error('Partner lead update failed:', err);
-      if (button) { button.disabled = false; button.textContent = 'Save'; }
+      if (button) {
+        button.disabled = false;
+        button.setAttribute('aria-busy', 'false');
+        button.textContent = 'Save';
+      }
       window.announceWorkspaceStatus?.(err?.message || 'Could not update partner lead.');
     }
   }
@@ -4593,7 +4601,11 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     const select = document.getElementById(`sellerLeadStatus-${leadId}`);
     const button = document.getElementById(`sellerLeadSave-${leadId}`);
     if (!select || !hofAuth?.session?.access_token) return;
-    if (button) { button.disabled = true; button.textContent = 'Saving…'; }
+    if (button) {
+      button.disabled = true;
+      button.setAttribute('aria-busy', 'true');
+      button.textContent = 'Saving…';
+    }
     try {
       const response = await fetch('/api/admin-dashboard', {
         method: 'POST',
@@ -4608,7 +4620,11 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       await loadAdminDashboard(true);
     } catch (err) {
       console.error('Seller lead update failed:', err);
-      if (button) { button.disabled = false; button.textContent = 'Save'; }
+      if (button) {
+        button.disabled = false;
+        button.setAttribute('aria-busy', 'false');
+        button.textContent = 'Save';
+      }
       window.announceWorkspaceStatus?.(err?.message || 'Could not update seller lead.');
     }
   }
