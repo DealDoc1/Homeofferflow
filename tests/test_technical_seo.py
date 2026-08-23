@@ -76,6 +76,10 @@ class TechnicalSeoTests(unittest.TestCase):
             self.assertIn('src="/assets/pwa-register.js"', guide)
             self.assertIn(f"'{path}': '{kind}'", loader)
         self.assertIn("metrics.src = '/assets/agent-workflow-guide-metrics.js'", loader)
+        metrics = (ROOT / "assets" / "agent-workflow-guide-metrics.js").read_text(encoding="utf-8")
+        self.assertIn("target.pathname === '/agents' && target.hash === '#transaction-start'", metrics)
+        self.assertIn("startsQuestionOne && guideKind === 'listing'", metrics)
+        self.assertIn("startsQuestionOne && guideKind === 'lease'", metrics)
 
     def test_homepage_describes_the_brand_and_site_with_valid_structured_data(self):
         blocks = re.findall(
