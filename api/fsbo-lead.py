@@ -1111,6 +1111,8 @@ def _create_partner_checkout(lead_id, headers, source=None):
     monthly_price_id = os.environ.get(MONTHLY_PRICE_ENV_BY_TIER.get(tier, ""), "")
     if not launch_price_id or not monthly_price_id:
         raise RuntimeError("This founding-partner tier is not configured for checkout.")
+    if launch_price_id == monthly_price_id:
+        raise RuntimeError("This founding-partner tier has the same launch and renewal price configured; checkout is disabled until billing is corrected.")
 
     origin = _partner_checkout_origin(headers)
     resume_token = str(uuid.uuid4())
