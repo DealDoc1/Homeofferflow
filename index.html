@@ -11585,8 +11585,8 @@ function routeAfterMagicLinkIfNeeded() {
           <div style="display:flex; gap:.75rem; flex-wrap:wrap;">${workflowPrompt}</div>
         </details>
         <div class="field" style="margin-top:0.8rem;"><label>Private notes</label><textarea id="listingWorkspaceNotes" rows="3" maxlength="4000" placeholder="Internal planning notes. Do not enter unnecessary sensitive information."></textarea></div>
-        <div class="platform-actions"><button type="button" onclick="saveListingWorkspaceFoundation()">Create Private Workspace</button><button type="button" onclick="loadListingWorkspacesFoundation()">Refresh Workspaces</button></div>
-        <div id="listingWorkspaceStatus" class="platform-status"></div>
+        <div class="platform-actions"><button type="button" id="createListingWorkspaceButton" onclick="saveListingWorkspaceFoundation()">Create Private Workspace</button><button type="button" onclick="loadListingWorkspacesFoundation()">Refresh Workspaces</button></div>
+        <div id="listingWorkspaceStatus" class="platform-status" role="status" aria-live="polite" aria-atomic="true"></div>
       </div>
       <div class="platform-card"><h4>My Listing Workspaces</h4><div id="listingWorkspaceList" class="platform-list"><div class="platform-list-item">No listing workspaces loaded yet.</div></div><div id="listingWorkspaceBrokerSummary" class="platform-status" style="margin-top:.75rem;"></div></div>
       <div class="platform-card" id="listingLaunchChecklistCard">
@@ -11905,12 +11905,16 @@ function routeAfterMagicLinkIfNeeded() {
   async function saveListingWorkspaceFoundation() {
     const client = getSupabaseClient();
     const user = platformUser();
+    const createButton = document.getElementById('createListingWorkspaceButton');
+    if (createButton?.disabled) return;
     if (!client || !user) return platformStatus('listingWorkspaceStatus', 'Sign in before creating a listing workspace.', 'err');
     const propertyAddress = String(getVal('listingWorkspaceAddress') || '').trim();
     const sellerNames = listingWorkspaceSellerNames();
     const sourceLeadId = String(document.getElementById('listingWorkspaceAddress')?.dataset.sellerLeadId || '');
     if (!propertyAddress) return platformStatus('listingWorkspaceStatus', 'Enter the property address before creating a workspace.', 'err');
     if (!sellerNames.length) return platformStatus('listingWorkspaceStatus', 'Enter at least one seller or landlord name. Use semicolons between multiple names.', 'err');
+    if (createButton) { createButton.disabled = true; createButton.setAttribute('aria-busy', 'true'); createButton.textContent = 'Creating workspace…'; }
+    platformStatus('listingWorkspaceStatus', 'Creating your private listing workspace…');
     try {
       if (!hofPlatform.brokerage) await loadBrokerageFoundation();
       if (!hofPlatform.brokerage?.id) {
@@ -11973,6 +11977,8 @@ function routeAfterMagicLinkIfNeeded() {
     } catch (err) {
       console.error('Listing workspace save failed:', err);
       platformStatus('listingWorkspaceStatus', err?.message || 'Could not create the listing workspace.', 'err');
+    } finally {
+      if (createButton) { createButton.disabled = false; createButton.setAttribute('aria-busy', 'false'); createButton.textContent = 'Create Private Workspace'; }
     }
   }
 

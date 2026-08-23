@@ -111,6 +111,21 @@ class ListingWorkspaceFoundationTests(unittest.TestCase):
         self.assertIn("loadListingWorkspaceOffersFoundation()", save)
         self.assertIn("default to an older property", save)
 
+    def test_workspace_creation_prevents_duplicate_submissions_and_announces_progress(self):
+        start = INDEX.index("async function saveListingWorkspaceFoundation()")
+        end = INDEX.index("function listingWorkspaceLabel", start)
+        save = INDEX[start:end]
+        self.assertIn('id="createListingWorkspaceButton"', INDEX)
+        self.assertIn('id="listingWorkspaceStatus" class="platform-status" role="status" aria-live="polite" aria-atomic="true"', INDEX)
+        self.assertIn("const createButton = document.getElementById('createListingWorkspaceButton');", save)
+        self.assertIn("if (createButton?.disabled) return;", save)
+        self.assertIn("createButton.disabled = true", save)
+        self.assertIn("createButton.setAttribute('aria-busy', 'true')", save)
+        self.assertIn("createButton.textContent = 'Creating workspace…'", save)
+        self.assertIn("Creating your private listing workspace…", save)
+        self.assertIn("createButton.disabled = false", save)
+        self.assertIn("createButton.textContent = 'Create Private Workspace'", save)
+
     def test_missing_brokerage_uses_self_service_setup_without_losing_listing_question_answers(self):
         render_start = INDEX.index("function renderSellerFoundationPanel()")
         render_end = INDEX.index("const sellerCampaignPackages", render_start)
