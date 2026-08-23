@@ -16,7 +16,7 @@ class GoogleAddressAutocompleteCoverageTests(unittest.TestCase):
             "buyerMailAddr", "propAddress", "escrowAddress", "salePropertyAddr",
             "sellerMailAddr", "profInvestorEscrowAddress", "profEscrowAddress",
             "brandOfficeAddress", "sellerLeadAddress", "listingWorkspaceAddress",
-            "fsboPropertyAddress", "clientAddress", "propertyAddress", "hofSellerAddress",
+            "fsboPropertyAddress", "clientAddress", "propertyAddress", "hofSellerAddress", "clientCityStateZip",
         }
         for control in required_controls:
             self.assertRegex(
@@ -27,7 +27,7 @@ class GoogleAddressAutocompleteCoverageTests(unittest.TestCase):
 
         self.assertIn("document.querySelectorAll('input[id], input[name]')", INDEX)
         self.assertIn("/(?:address|addr)/i.test(`${input.id} ${input.name}`)", INDEX)
-        self.assertIn("['propertyToSell', 'profInvestorMailing']", INDEX)
+        self.assertIn("['propertyToSell', 'profInvestorMailing', 'clientCityStateZip']", INDEX)
 
     def test_late_rendered_address_inputs_are_wired_on_focus(self):
         self.assertIn("document.addEventListener('focusin'", INDEX)
