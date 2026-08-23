@@ -19226,7 +19226,12 @@ function routeAfterMagicLinkIfNeeded() {
     try {
       const drafts = await loadPrivateDrafts();
       if (!drafts.length) {
-        list.innerHTML = '<li>No private form drafts saved yet.</li>';
+        list.innerHTML = '<li>No private form drafts saved yet.<br><button type="button" class="btn-secondary" style="margin-top:.55rem" data-start-agent-transaction>Start a transaction</button></li>';
+        list.querySelector('[data-start-agent-transaction]')?.addEventListener('click', () => {
+          const start = document.getElementById('agentWorkflowStart');
+          start?.scrollIntoView({ behavior:'smooth', block:'center' });
+          start?.focus();
+        });
         return;
       }
       list.innerHTML = drafts.map(draft => {
