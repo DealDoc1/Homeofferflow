@@ -13352,6 +13352,22 @@ function routeAfterMagicLinkIfNeeded() {
     return '';
   }
 
+  window.filterRoadmapRows = function filterRoadmapRows(filter = 'all') {
+    const normalized = String(filter || 'all').toLowerCase();
+    const rows = document.querySelectorAll('[data-roadmap-row]');
+    let visible = 0;
+    rows.forEach(row => {
+      const status = String(row.dataset.roadmapStatus || '').toLowerCase();
+      const show = normalized === 'all'
+        || (normalized === 'action' && ['in_progress', 'blocked', 'qa', 'partial'].includes(status))
+        || status === normalized;
+      row.hidden = !show;
+      if (show) visible += 1;
+    });
+    const summary = document.getElementById('roadmapFilterSummary');
+    if (summary) summary.textContent = `${visible} roadmap item${visible === 1 ? '' : 's'} shown.`;
+  };
+
   async function renderRoadmapFoundationBlock() {
     try {
       const tracker = window.hofAdminTrackerPayload;
@@ -13370,8 +13386,8 @@ function routeAfterMagicLinkIfNeeded() {
         <div class="platform-kpi"><span>Blocked Paths</span><strong>${blockedCount}</strong></div>
       </div>`;
 
-      const roadmapHtml = `<div class="admin-section"><h4>Revenue-Led Product Roadmap — Supabase Source of Truth</h4><p style="margin:.25rem 0 .9rem;color:var(--gray-light);font-size:.78rem;">Ordered by market adoption, ease of entry, and revenue proximity. Product price has zero weight.</p>${summary}${hofPlatform.roadmap.map(item => `
-        <div class="roadmap-row">
+      const roadmapHtml = `<div class="admin-section"><h4>Revenue-Led Product Roadmap — Supabase Source of Truth</h4><p style="margin:.25rem 0 .9rem;color:var(--gray-light);font-size:.78rem;">Ordered by market adoption, ease of entry, and revenue proximity. Product price has zero weight.</p><div class="admin-toolbar" style="margin:.4rem 0 .75rem"><label for="roadmapStatusFilter" style="margin:0;color:var(--gray-light);font-size:.78rem;">Show</label><select id="roadmapStatusFilter" aria-label="Filter roadmap items by status" onchange="filterRoadmapRows(this.value)"><option value="all">All roadmap items</option><option value="action">Action needed</option><option value="in_progress">In progress</option><option value="blocked">Blocked</option><option value="production">Production</option></select><span id="roadmapFilterSummary" class="admin-muted">${hofPlatform.roadmap.length} roadmap items shown.</span></div>${summary}${hofPlatform.roadmap.map(item => `
+        <div class="roadmap-row" data-roadmap-row data-roadmap-status="${escapeAttr(item.status || 'planned')}" data-roadmap-category="${escapeAttr(item.category || '')}">
           <div><span class="platform-pill">#${escapeAttr(item.priority || '—')} · ${escapeAttr(item.category || 'Roadmap')}</span></div>
           <div><strong>${escapeAttr(item.title || '')}</strong><span>${escapeAttr(item.description || '')}</span>
             ${item.metadata?.priority_tier ? `<small style="display:block;margin-top:.35rem;color:var(--gold-light);">${escapeAttr(item.metadata.priority_tier.replaceAll('_', ' '))} · Market ${escapeAttr(item.metadata.market_adoption_score ?? '—')}/5 · Ease ${escapeAttr(item.metadata.ease_of_entry_score ?? '—')}/5</small>` : ''}
