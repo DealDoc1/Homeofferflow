@@ -12145,10 +12145,13 @@ function routeAfterMagicLinkIfNeeded() {
   window.updateListingWorkspaceStatus = async function updateListingWorkspaceStatus(workspaceId) {
     const id = String(workspaceId || '');
     const select = document.getElementById(`listingWorkspaceStatus-${id}`);
+    const saveButton = document.getElementById(`listingWorkspaceStatusButton-${id}`);
     const client = getSupabaseClient();
     const user = platformUser();
+    if (saveButton?.disabled) return;
     if (!client || !user || !select) return platformStatus('listingWorkspaceStatus', 'Sign in before updating a listing workspace.', 'err');
     if (!/^[0-9a-f-]{20,80}$/i.test(id)) return platformStatus('listingWorkspaceStatus', 'Listing workspace identifier is invalid.', 'err');
+    if (saveButton) { saveButton.disabled = true; saveButton.setAttribute('aria-busy', 'true'); saveButton.textContent = 'Saving status…'; }
     platformStatus('listingWorkspaceStatus', 'Updating private workspace status…');
     try {
       const { error } = await client.from('hof_listing_workspaces').update({ status: select.value, updated_at: new Date().toISOString() }).eq('id', id).eq('agent_user_id', user.id);
@@ -12158,6 +12161,8 @@ function routeAfterMagicLinkIfNeeded() {
     } catch (err) {
       console.error('Listing workspace status update failed:', err);
       platformStatus('listingWorkspaceStatus', err?.message || 'Could not update listing workspace status.', 'err');
+    } finally {
+      if (saveButton) { saveButton.disabled = false; saveButton.setAttribute('aria-busy', 'false'); saveButton.textContent = 'Save status'; }
     }
   };
 
@@ -12442,7 +12447,7 @@ function routeAfterMagicLinkIfNeeded() {
           ? workspace.requested_workflows.map(listingWorkspaceLabel).join(' · ') : 'No workflow selected yet';
         const workspaceId = String(workspace.id || '');
         const statusControls = /^[0-9a-f-]{20,80}$/i.test(workspaceId)
-          ? `<div class="seller-lead-actions"><select id="listingWorkspaceStatus-${escapeAttr(workspaceId)}" aria-label="Listing workspace status">${listingWorkspaceStatusOptions(workspace.status || 'intake')}</select><button type="button" class="brokerage-access-button" onclick="updateListingWorkspaceStatus('${escapeAttr(workspaceId)}')">Save status</button></div>`
+          ? `<div class="seller-lead-actions"><select id="listingWorkspaceStatus-${escapeAttr(workspaceId)}" aria-label="Listing workspace status">${listingWorkspaceStatusOptions(workspace.status || 'intake')}</select><button type="button" class="brokerage-access-button" id="listingWorkspaceStatusButton-${escapeAttr(workspaceId)}" onclick="updateListingWorkspaceStatus('${escapeAttr(workspaceId)}')">Save status</button></div>`
           : '';
         return `<div class="platform-list-item"><strong>${escapeAttr(workspace.property_address || 'Listing workspace')}</strong><span class="platform-pill">${escapeAttr(listingWorkspaceLabel(workspace.listing_kind))}</span><span class="platform-pill">${escapeAttr(listingWorkspaceLabel(workspace.status))}</span><br>${escapeAttr((workspace.seller_names || []).join(' · '))}<br><small>${escapeAttr(workflows)}</small>${statusControls}</div>`;
       }).join('') : '<div class="platform-list-item">No private listing workspaces yet.</div>';
