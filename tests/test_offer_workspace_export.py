@@ -10,6 +10,7 @@ class OfferWorkspaceExportTests(unittest.TestCase):
         self.assertIn("onclick=\"hofExportVisibleOffers()\"", HTML)
         self.assertIn("Download the visible offers as CSV", HTML)
         self.assertIn("const offers = sortedOffers(state.offers || []);", HTML)
+        self.assertIn('onclick="startAccountOffer()">Start a new buyer offer</button>', HTML)
 
     def test_export_contains_operational_fields_without_client_email_or_ids(self):
         self.assertIn("['Property', 'Buyer', 'Offer amount', 'Status', 'Buyer signing', 'Updated']", HTML)

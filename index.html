@@ -15507,7 +15507,7 @@ function routeAfterMagicLinkIfNeeded() {
     </section>` : '';
     const volume = safe.reduce((sum,o) => sum + Number(o.offer_price || o.offer_data?.offerPrice || 0), 0);
     const tab = (key,label) => `<button type="button" class="offer-filter-tab ${state.filter===key?'active':''}" aria-pressed="${state.filter===key ? 'true' : 'false'}" onclick="hofSetOfferWorkspaceFilter('${key}')">${label} <span>${c[key] || 0}</span></button>`;
-    const cards = shown.length ? shown.map(renderCard).join('') : `<div class="offer-workspace-empty"><strong>No offers match this view.</strong><br/>Try another status tab, clear the search, or create a new buyer offer.</div>`;
+    const cards = shown.length ? shown.map(renderCard).join('') : `<div class="offer-workspace-empty"><strong>No offers match this view.</strong><br/>Try another status tab, clear the search, or create a new buyer offer.<br/><button type="button" class="btn-primary" style="margin-top:.75rem" onclick="startAccountOffer()">Start a new buyer offer</button></div>`;
     const hasActiveFilters = state.filter !== 'all' || String(state.query || '').trim() || state.sort !== 'updated_desc';
     const resultSummary = `<div class="offer-workspace-result-summary" aria-live="polite"><span><strong>${shown.length}</strong> of ${safe.length} loaded offer${safe.length === 1 ? '' : 's'} shown${hasActiveFilters ? ' in this view' : ''}.</span>${hasActiveFilters ? '<button type="button" class="offer-workspace-clear-filters" onclick="hofClearOfferWorkspaceFilters()">Reset view</button>' : ''}</div>`;
     const canLoadMore = !!root.hofAuth?.myOffersHasMore;
