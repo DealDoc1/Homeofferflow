@@ -3200,7 +3200,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 
   <div class="wizard-progress">
     <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:10%"></div></div>
-    <div class="progress-meta"><span class="step-name" id="stepName">Disclaimer</span><span id="saveStatus">All Changes Saved</span><span id="connectionStatus" role="status" aria-live="polite" hidden></span><span id="stepCount">Step 1 of 11</span><button type="button" class="draft-clear-btn" onclick="startNewOffer()" title="Clear this draft and start a new offer">New Offer</button></div>
+    <div class="progress-meta"><span class="step-name" id="stepName">Disclaimer</span><span id="saveStatus">All Changes Saved</span><span id="connectionStatus" role="status" aria-live="polite" hidden></span><span id="validationStatus" role="status" aria-live="polite" hidden></span><span id="stepCount">Step 1 of 11</span><button type="button" class="draft-clear-btn" onclick="startNewOffer()" title="Clear this draft and start a new offer">New Offer</button></div>
   </div>
 
   <div class="wizard-body">
@@ -7803,10 +7803,18 @@ function routeAfterMagicLinkIfNeeded() {
     }
   }
 
+  function setValidationStatus(message) {
+    const el = document.getElementById('validationStatus');
+    if (!el) return;
+    el.textContent = message || '';
+    el.hidden = !message;
+  }
+
   function validateCurrentStep() {
     const stepId = getCurrentSteps()[state.step];
     const userType = state.data.userType || 'homebuyer';
     const missing = [];
+    setValidationStatus('');
 
     if (stepId === 'step1') {
       requireField('buyer1First', userType === 'agent' ? 'buyer/client first name' : 'buyer first name', missing);
@@ -7872,7 +7880,7 @@ function routeAfterMagicLinkIfNeeded() {
     }
 
     if (missing.length) {
-      alert('Please complete: ' + missing.slice(0, 6).join(', ') + (missing.length > 6 ? ', and more' : '') + '.');
+      setValidationStatus('Please complete: ' + missing.slice(0, 6).join(', ') + (missing.length > 6 ? ', and more' : '') + '.');
       return false;
     }
 
