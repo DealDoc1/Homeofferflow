@@ -18,6 +18,7 @@ class OfferSummaryCopyTests(unittest.TestCase):
             self.assertIn(field, block)
         self.assertNotIn("buyer_email", block)
         self.assertNotIn("signwell_document_id", block)
+        self.assertIn("root.__hofCurrentOffer", block)
         self.assertIn("offer_summary_copied", block)
 
 
