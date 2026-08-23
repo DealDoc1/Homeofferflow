@@ -4286,10 +4286,10 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       const result = await response.json().catch(() => ({}));
       if (!response.ok || !result?.partnerAgreement?.documentId) throw new Error(result.error || 'Could not send the partner agreement.');
       logOfferEvent(null, 'partner_agreement_sent_for_signature', 'sent', 'Partner Marketplace Agreement sent through SignWell.', {surface: 'admin'});
-      alert(`Partner agreement sent through SignWell. The completed agreement will be copied to ${result.partnerAgreement.copiedTo || 'HomeOfferFlow support'} after signing.`);
+      window.announceWorkspaceStatus?.(`Partner agreement sent through SignWell. The completed agreement will be copied to ${result.partnerAgreement.copiedTo || 'HomeOfferFlow support'} after signing.`);
       await loadAdminDashboard(true);
     } catch (err) {
-      alert(err?.message || 'Could not send the partner agreement.');
+      window.announceWorkspaceStatus?.(err?.message || 'Could not send the partner agreement.');
     }
   }
 
@@ -4315,12 +4315,12 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         window.prompt('Copy this secure partner setup link. It expires in 14 days:', setupUrl);
       }
       logOfferEvent(null, 'partner_onboarding_link_created', 'created', 'Partner setup link created by a platform admin.', { surface: 'admin', copied });
-      alert(copied
+      window.announceWorkspaceStatus?.(copied
         ? 'Secure partner setup link copied. It expires in 14 days and does not activate public placement.'
         : 'Secure partner setup link is ready to copy. It expires in 14 days and does not activate public placement.');
       await loadAdminDashboard(true);
     } catch (err) {
-      alert(err?.message || 'Could not copy partner setup link.');
+      window.announceWorkspaceStatus?.(err?.message || 'Could not copy partner setup link.');
     }
   }
 
@@ -4344,12 +4344,12 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         window.prompt('Copy this secure partner setup invitation. It expires in 14 days:', invitation);
       }
       logOfferEvent(null, 'partner_onboarding_invitation_copied', 'created', 'Partner setup invitation copied by a platform admin.', { surface: 'admin', copied });
-      alert(copied
+      window.announceWorkspaceStatus?.(copied
         ? 'Secure setup invitation copied. You can paste it into your own follow-up when appropriate.'
         : 'Secure setup invitation is ready to copy. It does not activate public placement.');
       await loadAdminDashboard(true);
     } catch (err) {
-      alert(err?.message || 'Could not copy partner setup invitation.');
+      window.announceWorkspaceStatus?.(err?.message || 'Could not copy partner setup invitation.');
     }
   }
 
@@ -4376,12 +4376,12 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         window.prompt('Copy this secure partner checkout invitation:', invitation);
       }
       logOfferEvent(null, 'partner_checkout_invitation_copied', 'created', 'Partner checkout invitation copied by a platform admin.', { surface: 'admin', copied });
-      alert(copied
+      window.announceWorkspaceStatus?.(copied
         ? 'Secure checkout invitation copied. You can paste it into your own follow-up when appropriate.'
         : 'Secure checkout invitation is ready to copy. It does not charge or activate public placement.');
       await loadAdminDashboard(true);
     } catch (err) {
-      alert(err?.message || 'Could not copy partner checkout invitation.');
+      window.announceWorkspaceStatus?.(err?.message || 'Could not copy partner checkout invitation.');
     }
   }
 
@@ -4396,10 +4396,10 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       const result = await response.json().catch(() => ({}));
       if (!response.ok || result?.onboarding?.delivery !== 'sent') throw new Error(result.error || 'Could not email onboarding access.');
       logOfferEvent(null, 'partner_onboarding_email_sent', 'sent', 'Partner setup email sent by a platform admin.', { surface: 'admin' });
-      alert('A fresh secure partner setup link was emailed. It expires in 14 days and does not activate public placement.');
+      window.announceWorkspaceStatus?.('A fresh secure partner setup link was emailed. It expires in 14 days and does not activate public placement.');
       await loadAdminDashboard(true);
     } catch (err) {
-      alert(err?.message || 'Could not email onboarding access.');
+      window.announceWorkspaceStatus?.(err?.message || 'Could not email onboarding access.');
     }
   }
 
@@ -4425,7 +4425,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     } catch (err) {
       console.error('Partner lead update failed:', err);
       if (button) { button.disabled = false; button.textContent = 'Save'; }
-      alert(err?.message || 'Could not update partner lead.');
+      window.announceWorkspaceStatus?.(err?.message || 'Could not update partner lead.');
     }
   }
 
@@ -4586,7 +4586,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     } catch (err) {
       console.error('Seller lead update failed:', err);
       if (button) { button.disabled = false; button.textContent = 'Save'; }
-      alert(err?.message || 'Could not update seller lead.');
+      window.announceWorkspaceStatus?.(err?.message || 'Could not update seller lead.');
     }
   }
 
