@@ -4661,7 +4661,7 @@ class handler(BaseHTTPRequestHandler):
             # pages. Keep these aggregate-only so operations can optimize the
             # message and destination without exposing an agent, client, or
             # property record in the Admin response.
-            agent_landing_cta_paths = ("client_draft", "seller_listing", "lease_listing", "relationship_drafts", "lease_representation")
+            agent_landing_cta_paths = ("client_draft", "seller_listing", "lease_listing", "relationship_drafts", "lease_representation", "listing_guide", "lease_guide")
             agent_landing_cta_path_counts = {
                 path: len([
                     item for item in events
