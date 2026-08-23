@@ -77,6 +77,7 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("tab: 'relationships'", INDEX)
         self.assertIn('id="accountPanelRelationships"', INDEX)
         self.assertIn("private TXR-1501, TXR-1506, TXR-1507, TXR-1508, TXR-1905, TXR-1914, TXR-1917, and TXR-1919 review-draft creation for every signed-in agent", AGENTS)
+        self.assertIn("universal TREC-55-1 seller-disclosure and optional TREC-61-0 water-disclosure review drafts", AGENTS)
 
     def test_relationship_drafts_are_a_persistent_agent_account_workspace(self):
         self.assertIn('id="relationshipsAccountTab"', INDEX)

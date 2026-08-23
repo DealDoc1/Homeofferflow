@@ -1023,7 +1023,7 @@ class OnDemandLaunchPageTests(unittest.TestCase):
             "private review drafts",
             "currently approved relationship",
             "listing agreements",
-            "seller disclosure notices",
+            "seller-disclosure",
             "brokerage-approved workflow",
             "restricted Texas REALTORS",
             "individual agent attestation",
