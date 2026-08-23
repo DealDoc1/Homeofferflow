@@ -201,6 +201,10 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn('/texas-agent-offer-workflow', (ROOT / 'vercel.json').read_text(encoding='utf-8'))
         self.assertIn('href="/texas-agent-offer-workflow"', AGENTS)
         self.assertIn('agent-workflow-guide-metrics.js', AGENT_GUIDE)
+
+    def test_homepage_exposes_the_shared_agent_form_library_path(self):
+        self.assertIn('href="/texas-agent-form-library"', INDEX)
+        self.assertIn('Texas agent form library', INDEX)
         self.assertIn('workspace=relationship', AGENT_GUIDE)
         self.assertIn('private relationship drafts', AGENT_GUIDE)
         self.assertIn('preview-only until their separate signing QA is complete', AGENT_GUIDE)
