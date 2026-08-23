@@ -4601,6 +4601,22 @@ class handler(BaseHTTPRequestHandler):
                 ])
                 for channel in ondemand_landing_channels
             }
+            ondemand_magic_link_counts_by_channel = {
+                channel: len([
+                    item for item in events
+                    if item.get("event_type") == "ondemand_magic_link_requested"
+                    and str((item.get("metadata") or {}).get("channel") or "unspecified") == channel
+                ])
+                for channel in ondemand_landing_channels
+            }
+            ondemand_terms_accepted_counts_by_channel = {
+                channel: len([
+                    item for item in events
+                    if item.get("event_type") == "ondemand_trial_terms_accepted"
+                    and str((item.get("metadata") or {}).get("channel") or "unspecified") == channel
+                ])
+                for channel in ondemand_landing_channels
+            }
             ondemand_trial_entry_count = len([
                 item for item in events if item.get("event_type") == "ondemand_trial_entry_selected"
             ])
@@ -5140,6 +5156,8 @@ class handler(BaseHTTPRequestHandler):
                 "onDemandLandingViewCountsByChannel": ondemand_landing_view_counts_by_channel,
                 "onDemandCheckoutStartCountsByChannel": ondemand_checkout_start_counts_by_channel,
                 "onDemandCheckoutReturnCountsByChannel": ondemand_checkout_return_counts_by_channel,
+                "onDemandMagicLinkCountsByChannel": ondemand_magic_link_counts_by_channel,
+                "onDemandTermsAcceptedCountsByChannel": ondemand_terms_accepted_counts_by_channel,
                 "onDemandTrialEntryCount": ondemand_trial_entry_count,
                 "onDemandMagicLinkRequestedCount": ondemand_magic_link_requested_count,
                 "onDemandMagicLinkRequestRate": round((ondemand_magic_link_requested_count / ondemand_landing_view_count) * 100, 1)
