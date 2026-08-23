@@ -119,6 +119,17 @@ class PartnerSelfServiceOnboardingTests(unittest.TestCase):
         self.assertIn("market_area:market", html)
         self.assertIn("Website (https, optional)", html)
 
+    def test_partner_setup_save_announces_progress_and_prevents_duplicate_submissions(self):
+        html = (ROOT / "index.html").read_text()
+        self.assertIn('id="partnerOnboardingStatus" class="platform-status" role="status" aria-live="polite" aria-atomic="true"', html)
+        self.assertIn('const saveButton = document.querySelector(\'#partnerOnboardingFields button[onclick="submitPartnerOnboarding()"]\');', html)
+        self.assertIn("saveButton.disabled = true", html)
+        self.assertIn("saveButton.setAttribute('aria-busy', 'true')", html)
+        self.assertIn("saveButton.textContent = 'Saving setup…'", html)
+        self.assertIn("status.textContent = 'Saving setup details…'", html)
+        self.assertIn("saveButton.disabled = false", html)
+        self.assertIn("saveButton.textContent = 'Save setup details'", html)
+
     def test_admin_exposes_paid_partner_setup_completion_funnel(self):
         admin = (ROOT / "api/admin-dashboard.py").read_text()
         html = (ROOT / "index.html").read_text()
