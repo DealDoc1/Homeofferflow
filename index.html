@@ -15485,6 +15485,7 @@ function routeAfterMagicLinkIfNeeded() {
         <button class="offer-action-btn" type="button" onclick="resumeOffer('${esc(o.id)}')">Resume</button>
         <button class="offer-action-btn" type="button" onclick="reuseOfferTerms('${esc(o.id)}')">Reuse terms</button>
         <button class="offer-action-btn" type="button" onclick="duplicateOffer('${esc(o.id)}', false, true)">${isExpired ? 'Duplicate &amp; edit to resend' : 'Duplicate &amp; edit'}</button>
+        <button class="offer-action-btn" type="button" onclick="copyOfferSummary('${esc(o.id)}')">Copy summary</button>
         ${hasDoc ? `<button class="offer-action-btn" type="button" onclick="refreshSignWellStatus('${esc(o.id)}', this)">Refresh</button>` : `<button class="offer-action-btn" type="button" onclick="viewOfferDetails('${esc(o.id)}')">Status</button>`}
         ${needsBuyerReminder ? `<button class="offer-action-btn" type="button" onclick="copyBuyerSigningReminder('${esc(o.id)}')">Copy buyer reminder</button>` : ''}
         <button class="offer-action-btn danger" type="button" onclick="deleteOffer('${esc(o.id)}')">Delete</button>
