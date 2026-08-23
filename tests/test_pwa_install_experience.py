@@ -142,12 +142,13 @@ class PwaInstallExperienceTests(unittest.TestCase):
         self.assertIn("window.openAccountDashboard = async function openAccountDashboardWithPendingPwaShortcut()", INDEX)
 
     def test_only_safe_declared_shortcuts_can_be_saved_or_routed_after_authentication(self):
-        self.assertIn("const validActions = new Set(['workspace', 'listing_tools', 'relationship_drafts', 'offer_review', 'new_offer', 'signing_queue', 'attention_queue', 'seller_plan', 'investor_workspace', 'buyer_offer']);", INDEX)
+        self.assertIn("const validActions = new Set(['workspace', 'listing_tools', 'relationship_drafts', 'offer_review', 'new_offer', 'signing_queue', 'attention_queue', 'seller_plan', 'investor_workspace', 'partner_marketplace', 'buyer_offer']);", INDEX)
         self.assertIn("if (!validActions.has(action)) return;", INDEX)
         self.assertIn("sessionStorage.removeItem(pendingActionKey)", INDEX)
         self.assertIn("else if (action === 'relationship_drafts') await openRelationshipDrafts();", INDEX)
         self.assertIn("else if (action === 'offer_review') await openOfferReviewShortcut(role);", INDEX)
         self.assertIn("else if (action === 'investor_workspace') await openInvestorWorkspace();", INDEX)
+        self.assertIn("window.location.assign('/partners?utm_source=pwa_shortcut&utm_medium=installed_app&utm_campaign=partner_marketplace')", INDEX)
         self.assertIn("pwa_authenticated_shortcut_opened", INDEX)
         self.assertIn("surface: 'pwa_shortcut'", INDEX)
 
