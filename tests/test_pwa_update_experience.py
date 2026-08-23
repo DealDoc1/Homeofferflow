@@ -23,7 +23,7 @@ class PwaUpdateExperienceTests(unittest.TestCase):
         self.assertNotIn("self.skipWaiting();", WORKER.split("self.addEventListener('message'", 1)[0])
 
     def test_shell_cache_changes_for_the_update_notification(self):
-        self.assertIn("homeofferflow-shell-v33", WORKER)
+        self.assertIn("homeofferflow-shell-v34", WORKER)
         self.assertIn("safe-area-inset-bottom", INDEX)
 
 
