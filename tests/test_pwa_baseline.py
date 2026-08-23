@@ -41,6 +41,13 @@ class PwaBaselineTests(unittest.TestCase):
             self.assertIn('name="apple-mobile-web-app-status-bar-style" content="default"', html, filename)
             self.assertIn('name="apple-mobile-web-app-title" content="HomeOfferFlow"', html, filename)
 
+    def test_public_pages_expose_the_branded_ios_touch_icon(self):
+        icon = ROOT / "assets" / "homeofferflow-apple-touch-icon.png"
+        self.assertTrue(icon.is_file())
+        for filename in ("agents.html", "buyers.html", "sellers.html", "partners.html", "directory.html", "ondemand.html", "investors.html", "texas-fsbo-guide.html", "texas-agent-offer-workflow.html", "texas-homebuyer-offer-guide.html", "texas-investor-offer-guide.html", "404.html"):
+            html = (ROOT / filename).read_text(encoding="utf-8")
+            self.assertIn('rel="apple-touch-icon" href="/assets/homeofferflow-apple-touch-icon.png"', html, filename)
+
     def test_manifest_has_a_standalone_secure_app_shell_configuration(self):
         self.assertEqual(MANIFEST["lang"], "en-US")
         self.assertEqual(MANIFEST["dir"], "ltr")
