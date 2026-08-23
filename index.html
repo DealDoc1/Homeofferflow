@@ -19844,7 +19844,7 @@ function routeAfterMagicLinkIfNeeded() {
   const root = window;
   const pendingActionKey = 'hof_pwa_shortcut_pending_action';
   const ondemandFirstOfferAttributionKey = 'hof_ondemand_first_offer_attribution';
-  const validActions = new Set(['workspace', 'listing_tools', 'relationship_drafts', 'offer_review', 'new_offer', 'signing_queue', 'attention_queue', 'seller_plan', 'buyer_offer']);
+  const validActions = new Set(['workspace', 'listing_tools', 'relationship_drafts', 'offer_review', 'new_offer', 'signing_queue', 'attention_queue', 'seller_plan', 'investor_workspace', 'buyer_offer']);
   let defaultWorkspaceOpened = false;
 
   function isStandalonePwa(){
@@ -19998,6 +19998,12 @@ function routeAfterMagicLinkIfNeeded() {
     await window.openAccountDashboard?.({ tab: 'seller' });
   }
 
+  async function openInvestorWorkspace(){
+    // The installed-app shortcut carries navigation only. The account
+    // dashboard remains the authority for the signed-in investor's data.
+    await window.openAccountDashboard?.({ tab: 'dashboard' });
+  }
+
   async function openOfferReviewShortcut(role){
     // Offer Review belongs to the agent workspace. An investor who has this
     // installed-app shortcut from a shared device goes to their own private
@@ -20017,6 +20023,17 @@ function routeAfterMagicLinkIfNeeded() {
       try { window.setAudience?.('fsbo'); } catch (_) {}
       window.openFsboSellerModal?.();
       trackShortcut(action, 'seller', resumedAfterSignIn);
+      return;
+    }
+    if (action === 'investor_workspace') {
+      if (!window.hofAuth?.session) {
+        try { sessionStorage.setItem(pendingActionKey, action); } catch (_) {}
+        window.openAuthModal?.('investor');
+        return;
+      }
+      clearPendingAction();
+      await openInvestorWorkspace();
+      trackShortcut(action, 'investor', resumedAfterSignIn);
       return;
     }
     if (action === 'buyer_offer') {
@@ -20065,6 +20082,7 @@ function routeAfterMagicLinkIfNeeded() {
     else if (action === 'listing_tools') await openListingTools();
     else if (action === 'relationship_drafts') await openRelationshipDrafts();
     else if (action === 'offer_review') await openOfferReviewShortcut(window.hofAuth?.role === 'investor' ? 'investor' : 'agent');
+    else if (action === 'investor_workspace') await openInvestorWorkspace();
     trackShortcut(action, window.hofAuth?.role === 'investor' ? 'investor' : 'agent', true);
   }
 

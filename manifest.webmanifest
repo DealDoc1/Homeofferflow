@@ -67,6 +67,12 @@
       "url": "/?pwa_action=seller_plan"
     },
     {
+      "name": "Investor Workspace",
+      "short_name": "Investor",
+      "description": "Open your private investor workspace for repeat-offer work.",
+      "url": "/?pwa_action=investor_workspace"
+    },
+    {
       "name": "Find a Provider",
       "short_name": "Providers",
       "description": "Browse active Texas home-service provider profiles by category and market.",
