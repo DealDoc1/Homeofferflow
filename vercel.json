@@ -46,6 +46,10 @@
       "destination": "/texas-lease-offer-workflow.html"
     },
     {
+      "source": "/texas-listing-workflow",
+      "destination": "/texas-listing-workflow.html"
+    },
+    {
       "source": "/texas-homebuyer-offer-guide",
       "destination": "/texas-homebuyer-offer-guide.html"
     },
