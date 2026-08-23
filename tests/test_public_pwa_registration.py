@@ -21,6 +21,8 @@ class PublicPwaRegistrationTests(unittest.TestCase):
         script = (ROOT / 'assets' / 'pwa-register.js').read_text(encoding='utf-8')
         self.assertIn("navigator.serviceWorker.register('/service-worker.js', { scope: '/' })", script)
         self.assertIn("beforeinstallprompt", script)
+        self.assertIn("isMobileInstallSurface", script)
+        self.assertIn("if (!isMobileInstallSurface()) return;", script)
         self.assertIn("Install app", script)
         self.assertIn("sessionStorage", script)
         self.assertNotIn('http', script)
