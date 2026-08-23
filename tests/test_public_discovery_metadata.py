@@ -147,6 +147,9 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn('"isPartOf":{"@id":"https://www.homeofferflow.com/#website"}', DIRECTORY)
         self.assertIn('Texas home service providers by category and market.', DIRECTORY)
         self.assertIn('Texas Home Service Provider Directory by Category and Market | HomeOfferFlow', DIRECTORY)
+        self.assertIn('"@type":"HowTo"', DIRECTORY)
+        self.assertIn('Find a Texas home-service provider', DIRECTORY)
+        self.assertIn('Review and contact independently', DIRECTORY)
 
     def test_provider_directory_exposes_popular_categories_before_javascript_runs(self):
         self.assertIn('id="directory-categories"', DIRECTORY)
