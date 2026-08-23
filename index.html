@@ -17739,15 +17739,30 @@ function routeAfterMagicLinkIfNeeded() {
   root.saveBrokerageTxrAuthorization = async function saveBrokerageTxrAuthorization() {
     const session = root.hofAuth?.session;
     const result = document.getElementById('brokerageTxrAuthorizationResult');
+    const saveButton = document.getElementById('saveBrokerageTxrAuthorizationButton');
+    if (saveButton?.disabled) return null;
+    const restoreSaveButton = () => {
+      if (!saveButton) return;
+      saveButton.disabled = false;
+      saveButton.setAttribute('aria-busy', 'false');
+      saveButton.textContent = 'Save authorization status';
+    };
     const status = String(document.getElementById('brokerageTxrAuthorization')?.value || 'unknown');
     const attestation = document.getElementById('brokerageTxrAttestation')?.checked === true;
     if (!session?.access_token) {
+      restoreSaveButton();
       if (result) result.textContent = 'Sign in again before saving the brokerage authorization status.';
       return;
     }
     if (status !== 'unknown' && !attestation) {
+      restoreSaveButton();
       if (result) result.textContent = 'Check the administrator attestation before saving this status.';
       return;
+    }
+    if (saveButton) {
+      saveButton.disabled = true;
+      saveButton.setAttribute('aria-busy', 'true');
+      saveButton.textContent = 'Saving authorization…';
     }
     if (result) result.textContent = 'Saving Texas REALTORS® / NAR authorization status…';
     try {
@@ -17769,6 +17784,7 @@ function routeAfterMagicLinkIfNeeded() {
         : 'Saved. Restricted Texas REALTORS® / NAR source workflows remain locked for this brokerage.';
       await root.renderBrokerageFoundationPanel();
     } catch (error) {
+      restoreSaveButton();
       if (result) result.textContent = error.message || 'Could not save the brokerage authorization status.';
     }
   };
@@ -18152,7 +18168,7 @@ function routeAfterMagicLinkIfNeeded() {
           '<option value="unknown"' + (!b.txr_authorization_attested_at ? ' selected' : '') + '>Not confirmed yet</option>' +
           '<option value="all_agents_authorized"' + (b.txr_all_agents_authorized === true ? ' selected' : '') + '>Yes — all participating agents are authorized Texas REALTORS® / NAR users</option>' +
           '<option value="not_all"' + (b.txr_all_agents_authorized === false && b.txr_authorization_attested_at ? ' selected' : '') + '>No / not all participating agents are authorized</option>' +
-        '</select><label class="brokerage-txr-attestation"><input id="brokerageTxrAttestation" type="checkbox"> I attest that this status is accurate for the brokerage.</label><button type="button" class="brokerage-access-button" onclick="saveBrokerageTxrAuthorization()">Save authorization status</button></div>' +
+        '</select><label class="brokerage-txr-attestation"><input id="brokerageTxrAttestation" type="checkbox"> I attest that this status is accurate for the brokerage.</label><button type="button" class="brokerage-access-button" id="saveBrokerageTxrAuthorizationButton" onclick="saveBrokerageTxrAuthorization()">Save authorization status</button></div>' +
         '<p id="brokerageTxrAuthorizationResult" class="brokerage-invite-result">' + (b.txr_all_agents_authorized === true && b.txr_authorization_attested_at ? 'Authorized status saved. Agents still attest individually.' : 'Restricted Texas REALTORS® / NAR source workflows are locked until this is confirmed.') + '</p></div>' +
         '<div class="platform-card" style="margin:1rem 0 0;padding:.8rem"><h4>Restricted form readiness</h4>' +
         '<p class="brokerage-membership-note">Status only — this does not activate sending or signing. A restricted form is ready for the private-draft foundation only when the brokerage gate and its exact approved source revision are both present.</p>' +

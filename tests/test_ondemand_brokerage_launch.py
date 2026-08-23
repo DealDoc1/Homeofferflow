@@ -898,6 +898,14 @@ class BrokerageAuthorizationTests(unittest.TestCase):
         self.assertIn("applyButton.textContent = 'Copying defaults…';", final_script)
         self.assertIn("applyButton.setAttribute('aria-busy', 'false');", final_script)
 
+    def test_brokerage_authorization_save_prevents_duplicate_status_writes(self):
+        marker = INDEX_HTML.index('id="hof-ondemand-brokerage-launch-v1"')
+        final_script = INDEX_HTML[marker:]
+        self.assertIn('id="saveBrokerageTxrAuthorizationButton"', final_script)
+        self.assertIn("if (saveButton?.disabled) return null;", final_script)
+        self.assertIn("saveButton.textContent = 'Saving authorization…';", final_script)
+        self.assertIn("saveButton.setAttribute('aria-busy', 'false');", final_script)
+
     def test_broker_can_save_title_suggestions_but_not_transaction_terms(self):
         actor = {"id": "11111111-1111-1111-1111-111111111111", "email": "tyler@ondemanddfw.com"}
         brokerage_id = "22222222-2222-2222-2222-222222222222"
