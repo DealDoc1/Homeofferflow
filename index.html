@@ -3622,6 +3622,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <small style="display:block; margin-top:0.35rem; color:var(--muted);">PDF only. Add up to 5 files, 2MB each and 2.5MB combined. You can add files in more than one selection, then label and order them before the packet is generated. Examples: seller disclosure, survey, T-47/T-47.1, HOA docs, PID/MUD notices.</small>
           </div>
           <div id="uploadedDocsList" class="notice gold" style="display:none;"></div>
+          <div id="uploadedDocsStatus" class="platform-status" role="status" aria-live="polite"></div>
           <div id="uploadedDocsResumeNotice" class="notice warn" style="display:none; margin-top:.75rem;" role="status"></div>
           <label id="uploadedDisclosureAckRow" class="terms-check" style="display:none; margin-top:.75rem;">
             <input type="checkbox" id="uploadedDisclosureAck"/>
@@ -9297,6 +9298,13 @@ function routeAfterMagicLinkIfNeeded() {
     if (ack) ack.checked = false;
   }
 
+  function setUploadedDisclosureStatus(message, type = 'err') {
+    const el = document.getElementById('uploadedDocsStatus');
+    if (!el) return;
+    el.textContent = message || '';
+    el.className = message ? 'platform-status show ' + (type === 'err' ? 'err' : 'ok') : 'platform-status';
+  }
+
   function uploadedDisclosureDraftNames() {
     const names = state?.data?.uploadedDocNames || state?.data?.uploadedDisclosureDocs || [];
     return [...new Set((Array.isArray(names) ? names : []).map(doc =>
@@ -9349,13 +9357,14 @@ function routeAfterMagicLinkIfNeeded() {
     if (!docs.length) return true;
     const ack = document.getElementById('uploadedDisclosureAck');
     if (!ack?.checked) {
-      alert('Review the uploaded PDF labels and order, then confirm that you have authority to include them.');
+      setUploadedDisclosureStatus('Review the uploaded PDF labels and order, then confirm that you have authority to include them.');
       return false;
     }
     if (docs.some(doc => !uploadedDisclosureTypes.some(([code]) => code === doc.type))) {
-      alert('Choose a document type for every uploaded PDF before continuing.');
+      setUploadedDisclosureStatus('Choose a document type for every uploaded PDF before continuing.');
       return false;
     }
+    setUploadedDisclosureStatus('');
     return true;
   }
 
@@ -9418,14 +9427,15 @@ function routeAfterMagicLinkIfNeeded() {
     const existingDocs = Array.isArray(window.hofUploadedDisclosureDocs) ? window.hofUploadedDisclosureDocs : [];
     const existingBytes = existingDocs.reduce((total, doc) => total + Number(doc?.size || 0), 0);
     const selectedBytes = files.reduce((total, file) => total + Number(file?.size || 0), 0);
+    setUploadedDisclosureStatus('');
     if (existingDocs.length + files.length > maxFiles) {
       const remaining = Math.max(0, maxFiles - existingDocs.length);
-      alert(`You can keep up to ${maxFiles} PDFs. This packet can add ${remaining} more file${remaining === 1 ? '' : 's'}.`);
+      setUploadedDisclosureStatus(`You can keep up to ${maxFiles} PDFs. This packet can add ${remaining} more file${remaining === 1 ? '' : 's'}.`);
       if (input) input.value = '';
       return;
     }
     if (existingBytes + selectedBytes > maxTotalBytes) {
-      alert('Uploaded PDFs must stay under 2.5MB combined so the packet can be sent reliably. Remove a file or use a smaller PDF.');
+      setUploadedDisclosureStatus('Uploaded PDFs must stay under 2.5MB combined so the packet can be sent reliably. Remove a file or use a smaller PDF.');
       if (input) input.value = '';
       return;
     }
@@ -9434,23 +9444,23 @@ function routeAfterMagicLinkIfNeeded() {
     for (const file of files) {
       const duplicateName = docs.some(doc => String(doc?.name || '').toLowerCase() === String(file?.name || '').toLowerCase());
       if (duplicateName) {
-        alert('This packet already includes a file named ' + file.name + '. Rename the new file before adding it.');
+        setUploadedDisclosureStatus('This packet already includes a file named ' + file.name + '. Rename the new file before adding it.');
         continue;
       }
       const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
       if (!isPdf) {
-        alert('Only PDF files can be uploaded right now: ' + file.name);
+        setUploadedDisclosureStatus('Only PDF files can be uploaded right now: ' + file.name);
         continue;
       }
       if (file.size > maxFileBytes) {
-        alert('This PDF is too large for packet upload: ' + file.name + '. Please keep each file under 2MB.');
+        setUploadedDisclosureStatus('This PDF is too large for packet upload: ' + file.name + '. Please keep each file under 2MB.');
         continue;
       }
       try {
         const signatureBytes = new Uint8Array(await file.slice(0, 4).arrayBuffer());
         const signature = String.fromCharCode(...signatureBytes);
         if (signature !== '%PDF') {
-          alert('This file is not a readable PDF: ' + file.name);
+          setUploadedDisclosureStatus('This file is not a readable PDF: ' + file.name);
           continue;
         }
         docs.push({
@@ -9464,7 +9474,7 @@ function routeAfterMagicLinkIfNeeded() {
         });
       } catch (err) {
         console.error('Upload read failed:', err);
-        alert('Could not read uploaded PDF: ' + file.name);
+        setUploadedDisclosureStatus('Could not read uploaded PDF: ' + file.name);
       }
     }
     if (input) input.value = '';
