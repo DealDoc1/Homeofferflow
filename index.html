@@ -3055,7 +3055,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     <div class="account-panel" id="accountPanelProfile">
       <div id="accountProfileForm"></div>
       <div class="account-actions-row">
-        <button class="btn-primary" type="button" onclick="saveAccountProfile()">Save Profile</button>
+        <button class="btn-primary" type="button" id="saveAccountProfileButton" onclick="saveAccountProfile()">Save Profile</button>
         <button class="btn-secondary" type="button" onclick="startAccountTransaction()">Choose Transaction</button>
       </div>
       <div class="account-status" id="accountStatus"></div>
@@ -6803,9 +6803,23 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 
   async function saveAccountProfile() {
     const client = getSupabaseClient();
+    const saveButton = document.getElementById('saveAccountProfileButton');
+    if (saveButton?.disabled) return null;
+    const restoreSaveButton = () => {
+      if (!saveButton) return;
+      saveButton.disabled = false;
+      saveButton.setAttribute('aria-busy', 'false');
+      saveButton.textContent = 'Save Profile';
+    };
+    if (saveButton) {
+      saveButton.disabled = true;
+      saveButton.setAttribute('aria-busy', 'true');
+      saveButton.textContent = 'Saving profile…';
+    }
     setAccountStatus('Saving profile...', 'ok');
 
     if (!client) {
+      restoreSaveButton();
       setAccountStatus('Supabase did not load. Refresh and try again.', 'err');
       return;
     }
@@ -6820,6 +6834,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       ];
       const missingProfileFields = requiredProfileFields.filter(([id]) => !getVal(id)).map(([, label]) => label);
       if (missingProfileFields.length) {
+        restoreSaveButton();
         setAccountStatus('Add ' + missingProfileFields.join(', ') + ' to save your repeat-offer defaults.', 'err');
         document.getElementById(requiredProfileFields.find(([id]) => !getVal(id))?.[0])?.focus();
         return null;
@@ -6828,6 +6843,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 
     const profileEmailInput = document.getElementById(hofAuth.role === 'investor' ? 'profInvestorEmail' : 'profAgentEmail');
     if (String(profileEmailInput?.value || '').trim() && !profileEmailInput?.checkValidity()) {
+      restoreSaveButton();
       setAccountStatus('Enter a valid email address before saving your profile.', 'err');
       profileEmailInput.focus();
       return null;
@@ -6844,6 +6860,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     }
 
     if (!user?.id) {
+      restoreSaveButton();
       setAccountStatus('Please sign in again before saving.', 'err');
       return;
     }
@@ -6923,9 +6940,11 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       applyProfileDefaultsToWizard(true);
       renderAccountDashboard();
       updateAuthUI();
+      restoreSaveButton();
       setAccountStatus('Profile saved. Your future offers will start with these defaults.', 'ok');
       return saveResult.data || payload;
     } catch (err) {
+      restoreSaveButton();
       console.error('Profile save failed', err);
       const msg = err?.message || JSON.stringify(err) || 'Could not save profile.';
       setAccountStatus(msg, 'err');

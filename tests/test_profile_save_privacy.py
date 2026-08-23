@@ -24,6 +24,16 @@ class ProfileSavePrivacyTests(unittest.TestCase):
         self.assertNotIn("console.log('Profile saved successfully'", profile_save)
         self.assertIn("setAccountStatus('Profile saved. Your future offers will start with these defaults.'", profile_save)
 
+    def test_profile_save_prevents_duplicate_submissions_and_restores_button_state(self):
+        start = HTML.index("async function saveAccountProfile()")
+        end = HTML.index("function setInputIfEmpty", start)
+        profile_save = HTML[start:end]
+        self.assertIn('id="saveAccountProfileButton"', HTML)
+        self.assertIn("if (saveButton?.disabled) return null;", profile_save)
+        self.assertIn("saveButton.textContent = 'Saving profile…';", profile_save)
+        self.assertIn("saveButton.setAttribute('aria-busy', 'false');", profile_save)
+        self.assertIn("saveButton.textContent = 'Save Profile';", profile_save)
+
 
 if __name__ == "__main__":
     unittest.main()
