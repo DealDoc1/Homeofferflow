@@ -6397,9 +6397,9 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       logOfferEvent(null, 'ai_calibration_reviewer_invite_copied', 'copied', 'AI calibration reviewer outreach template copied.', {
         missingScenarios: requestedScenarios
       });
-      alert('Reviewer outreach template copied. Send it to a qualified broker or agent, then use the matching scenario ID in the feedback form.');
+      window.announceWorkspaceStatus?.('Reviewer outreach template copied. Send it to a qualified broker or agent, then use the matching scenario ID in the feedback form.');
     } catch (error) {
-      alert('Could not copy the reviewer outreach template. Download the reviewer packet and copy its scenario list instead.');
+      window.announceWorkspaceStatus?.('Could not copy the reviewer outreach template. Download the reviewer packet and copy its scenario list instead.');
     }
   }
 
@@ -6447,9 +6447,9 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       logOfferEvent(null, 'missing_form_intake_brief_copied', 'copied', 'Missing-form source intake brief copied.', {
         requestedCodes
       });
-      alert('Source-intake brief copied. Confirm authorized brokerage use and QA before activation.');
+      window.announceWorkspaceStatus?.('Source-intake brief copied. Confirm authorized brokerage use and QA before activation.');
     } catch (error) {
-      alert('Could not copy the source-intake brief. Review the normalized demand codes and source requirements in the admin card.');
+      window.announceWorkspaceStatus?.('Could not copy the source-intake brief. Review the normalized demand codes and source requirements in the admin card.');
     }
   }
 
@@ -18160,11 +18160,12 @@ function routeAfterMagicLinkIfNeeded() {
     const input = document.getElementById('agentIabsFile');
     const status = document.getElementById('agentIabsStatus');
     const file = input?.files?.[0];
-    if (!client || !user) return alert('Please sign in again before uploading your IABS PDF.');
-    if (!file) return alert('Choose your IABS PDF first.');
+    const showError = message => { if (status) { status.className = 'hof-iabs-status error'; status.textContent = message; } else window.announceWorkspaceStatus?.(message); };
+    if (!client || !user) return showError('Please sign in again before uploading your IABS PDF.');
+    if (!file) return showError('Choose your IABS PDF first.');
     const isPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name || '');
-    if (!isPdf) return alert('Only PDF files can be used for your IABS.');
-    if (!file.size || file.size > MAX_BYTES) return alert('Your IABS PDF must be 10 MB or smaller.');
+    if (!isPdf) return showError('Only PDF files can be used for your IABS.');
+    if (!file.size || file.size > MAX_BYTES) return showError('Your IABS PDF must be 10 MB or smaller.');
     if (status) { status.className = 'hof-iabs-status'; status.textContent = 'Uploading your private IABS PDF…'; }
     const path = filePath(user.id);
     try {
@@ -18429,12 +18430,13 @@ function routeAfterMagicLinkIfNeeded() {
     const revision = document.getElementById('brokerageFormRevision')?.value?.trim();
     const file = document.getElementById('brokerageFormFile')?.files?.[0];
     const attested = !!document.getElementById('brokerageFormAttestation')?.checked;
-    if (!client || !user || !currentBrokerage || !isBrokerageAdmin()) return alert('Your brokerage-admin session is required.');
-    if (!FORM_CODES.includes(code)) return alert('Choose a supported form source.');
-    if (!safeRevision(revision)) return alert('Enter the revision printed on the source form.');
-    if (!file || !(file.type === 'application/pdf' || /\.pdf$/i.test(file.name || ''))) return alert('Choose a PDF source form.');
-    if (!file.size || file.size > MAX_BYTES) return alert('Source PDFs must be 10 MB or smaller.');
-    if (!attested) return alert('Confirm that you are authorized to approve this exact source PDF.');
+    const showError = message => { if (status) { status.className = 'hof-iabs-status error'; status.textContent = message; } else window.announceWorkspaceStatus?.(message); };
+    if (!client || !user || !currentBrokerage || !isBrokerageAdmin()) return showError('Your brokerage-admin session is required.');
+    if (!FORM_CODES.includes(code)) return showError('Choose a supported form source.');
+    if (!safeRevision(revision)) return showError('Enter the revision printed on the source form.');
+    if (!file || !(file.type === 'application/pdf' || /\.pdf$/i.test(file.name || ''))) return showError('Choose a PDF source form.');
+    if (!file.size || file.size > MAX_BYTES) return showError('Source PDFs must be 10 MB or smaller.');
+    if (!attested) return showError('Confirm that you are authorized to approve this exact source PDF.');
     if (status) { status.className = 'hof-iabs-status'; status.textContent = 'Saving private brokerage form source…'; }
     const revisionKey = safeRevision(revision);
     const path = `${currentBrokerage.id}/${code}-${revisionKey}-${Date.now()}.pdf`;
@@ -19004,7 +19006,7 @@ function routeAfterMagicLinkIfNeeded() {
             const response = await fetch('/api/admin-dashboard?preview_agreement=' + encodeURIComponent(button.dataset.preview), { headers:{ Authorization:`Bearer ${token()}` } });
             if (!response.ok) throw new Error('Private preview unavailable.');
             const url = URL.createObjectURL(await response.blob()); window.open(url, '_blank', 'noopener'); setTimeout(() => URL.revokeObjectURL(url), 60000);
-          } catch (error) { alert(error.message || 'Private preview unavailable.'); } finally { button.disabled = false; }
+          } catch (error) { window.announceWorkspaceStatus?.(error.message || 'Private preview unavailable.'); } finally { button.disabled = false; }
         }));
         list.querySelectorAll('[data-send]').forEach(button => button.addEventListener('click', () => {
           const agreement = agreements.find(item => item.id === button.dataset.send);
@@ -19154,9 +19156,10 @@ function routeAfterMagicLinkIfNeeded() {
     const formCode = card?.querySelector('#platformSourceForm')?.value;
     const sourceRevision = card?.querySelector('#platformSourceRevision')?.value?.trim();
     const authorizationAttested = card?.querySelector('#platformSourceAttestation')?.checked === true;
-    if (!file || !/\.pdf$/i.test(file.name || '') || file.type && file.type !== 'application/pdf') return alert('Choose an authorized PDF source.');
-    if (file.size > BUCKET_LIMIT) return alert('Source PDFs must be 10 MB or smaller.');
-    if (!brokerageId || !sourceRevision || !authorizationAttested) return alert('Choose a brokerage, enter the printed revision, and confirm authorization.');
+    const showError = message => { if (status) { status.className = 'hof-iabs-status error'; status.textContent = message; } else window.announceWorkspaceStatus?.(message); };
+    if (!file || !/\.pdf$/i.test(file.name || '') || file.type && file.type !== 'application/pdf') return showError('Choose an authorized PDF source.');
+    if (file.size > BUCKET_LIMIT) return showError('Source PDFs must be 10 MB or smaller.');
+    if (!brokerageId || !sourceRevision || !authorizationAttested) return showError('Choose a brokerage, enter the printed revision, and confirm authorization.');
     try {
       status.className = 'hof-iabs-status'; status.textContent = 'Fingerprinting and saving the private source…';
       const bytes = new Uint8Array(await file.arrayBuffer());
@@ -19243,7 +19246,9 @@ function routeAfterMagicLinkIfNeeded() {
             setTimeout(() => URL.revokeObjectURL(url), 60000);
           } catch (error) {
             console.error('Private draft preview failed:', error);
-            alert(error.message || 'Preview is unavailable.');
+            const status = document.getElementById('privateFormDraftsStatus');
+            if (status) status.textContent = error.message || 'Preview is unavailable.';
+            else window.announceWorkspaceStatus?.(error.message || 'Preview is unavailable.');
           } finally {
             button.disabled = false; button.textContent = original;
           }
@@ -19264,6 +19269,7 @@ function routeAfterMagicLinkIfNeeded() {
     card.innerHTML = `
       <h4>Private form drafts</h4>
       <p>These are your saved source-gated form intakes. They are private to you and remain drafts only—HomeOfferFlow does not download, send, or sign them from this list.</p>
+      <div id="privateFormDraftsStatus" class="hof-iabs-status" role="status" aria-live="polite"></div>
       <ul id="privateFormDraftsList" class="hof-private-form-drafts-list"><li>Loading private form drafts…</li></ul>`;
     panel.appendChild(card);
     refreshPrivateDrafts();
