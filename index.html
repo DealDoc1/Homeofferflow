@@ -17970,6 +17970,30 @@ function routeAfterMagicLinkIfNeeded() {
     return '<span class="admin-pill">New</span>';
   }
 
+  function brokerageInviteAttentionBucket(invite) {
+    const created = Date.parse(invite?.createdAt || invite?.created_at || '');
+    const expires = Date.parse(invite?.expiresAt || invite?.expires_at || '');
+    const now = Date.now();
+    const ageDays = Number.isFinite(created) ? Math.max(0, Math.floor((now - created) / 86400000)) : 0;
+    if (Number.isFinite(expires) && expires < now) return 'expired';
+    if (Number.isFinite(expires) && expires <= now + (3 * 86400000)) return 'expiring';
+    if (ageDays >= 7) return 'aged';
+    return 'new';
+  }
+
+  root.filterBrokerageInvites = function filterBrokerageInvites(value) {
+    const filter = String(value || 'all').toLowerCase();
+    const rows = Array.from(document.querySelectorAll('[data-brokerage-invite-row]'));
+    let visible = 0;
+    rows.forEach(row => {
+      const matches = filter === 'all' || row.dataset.inviteAttention === filter;
+      row.hidden = !matches;
+      if (matches) visible += 1;
+    });
+    const summary = document.getElementById('brokerageInviteFilterSummary');
+    if (summary) summary.textContent = `${visible} invite${visible === 1 ? '' : 's'} shown.`;
+  };
+
   function brokerageAgentBillingWindow(agent) {
     const status = String(agent?.subscriptionStatus || '').toLowerCase();
     if (status === 'trialing' && agent?.trialEndsAt) return 'Trial ends ' + brokerageAgentDate(agent.trialEndsAt);
@@ -18234,7 +18258,7 @@ function routeAfterMagicLinkIfNeeded() {
         ((pendingInvitesExpiringSoon || pendingInvitesExpired || pendingInvitesAged) ? '<div class="notice gold" style="margin-top:1rem"><strong>Invitation attention:</strong> ' + (pendingInvitesExpired ? pendingInvitesExpired + ' expired' + (pendingInvitesExpired === 1 ? ' invite' : ' invites') + '. ' : '') + (pendingInvitesExpiringSoon ? pendingInvitesExpiringSoon + ' pending invite' + (pendingInvitesExpiringSoon === 1 ? ' expires' : 's expire') + ' within 3 days. ' : '') + (pendingInvitesAged ? pendingInvitesAged + ' pending invite' + (pendingInvitesAged === 1 ? ' is' : 's are') + ' more than 7 days old. ' : '') + 'Resend the invite to protect your next seat.</div>' : '') +
         activeAccessMembershipNotice +
         inviteAcceptanceNotice +
-        (pendingInvites.length ? '<div class="brokerage-pending-invites"><strong>Pending invites (oldest first):</strong>' + pendingInvites.map(invite => { const inviteExpiry = invite.expiresAt || invite.expires_at; return '<div style="display:flex;align-items:center;gap:.55rem;margin-top:.35rem;flex-wrap:wrap"><span>' + safe(invite.email || 'Agent') + ' ' + brokerageInviteAttention(invite) + (inviteExpiry ? ' <small>(expires ' + safe(formatBillingDate(inviteExpiry)) + ')</small>' : '') + '</span><button type="button" class="brokerage-access-button" onclick="resendBrokerageInvite(\'' + safe(invite.email || '') + '\')">Resend</button><button type="button" class="brokerage-access-button" onclick="revokeBrokerageInvite(\'' + safe(invite.id) + '\',\'' + safe(invite.email || '') + '\')">Revoke</button></div>'; }).join('') + '</div>' : '') +
+        (pendingInvites.length ? '<div class="brokerage-pending-invites"><div style="display:flex;align-items:center;gap:.55rem;flex-wrap:wrap"><strong>Pending invites (oldest first):</strong><label for="brokerageInviteAttentionFilter" style="color:var(--gray-light);font-size:.78rem">Show</label><select id="brokerageInviteAttentionFilter" aria-label="Filter pending invites" onchange="filterBrokerageInvites(this.value)"><option value="all">All invites</option><option value="expired">Expired</option><option value="expiring">Expires soon</option><option value="aged">Aged</option><option value="new">New</option></select><span id="brokerageInviteFilterSummary" class="brokerage-invite-result">' + pendingInvites.length + ' invite' + (pendingInvites.length === 1 ? '' : 's') + ' shown.</span></div>' + pendingInvites.map(invite => { const inviteExpiry = invite.expiresAt || invite.expires_at; return '<div data-brokerage-invite-row data-invite-attention="' + brokerageInviteAttentionBucket(invite) + '" style="display:flex;align-items:center;gap:.55rem;margin-top:.35rem;flex-wrap:wrap"><span>' + safe(invite.email || 'Agent') + ' ' + brokerageInviteAttention(invite) + (inviteExpiry ? ' <small>(expires ' + safe(formatBillingDate(inviteExpiry)) + ')</small>' : '') + '</span><button type="button" class="brokerage-access-button" onclick="resendBrokerageInvite(\'' + safe(invite.email || '') + '\')">Resend</button><button type="button" class="brokerage-access-button" onclick="revokeBrokerageInvite(\'' + safe(invite.id) + '\',\'' + safe(invite.email || '') + '\')">Revoke</button></div>'; }).join('') + '</div>' : '') +
         '<div class="brokerage-safe-kpis">' +
           '<div class="brokerage-safe-kpi"><span>Members</span><strong>' + Number(m.memberCount || 0) + '</strong></div>' +
           '<div class="brokerage-safe-kpi"><span>Active members</span><strong>' + Number(m.activeMemberCount || 0) + '</strong></div>' +

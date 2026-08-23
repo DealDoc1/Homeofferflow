@@ -1133,6 +1133,17 @@ new Function(match[1]);
         ):
             self.assertIn(marker, INDEX_HTML)
 
+    def test_pending_brokerage_invites_have_attention_filters(self):
+        for marker in (
+            'id="brokerageInviteAttentionFilter"',
+            'value="expired"',
+            'value="expiring"',
+            'value="aged"',
+            'data-brokerage-invite-row',
+            'filterBrokerageInvites',
+        ):
+            self.assertIn(marker, INDEX_HTML)
+
 
 if __name__ == "__main__":
     unittest.main()
