@@ -238,6 +238,7 @@
         syncFiltersToUrl(category, market);
         trackSearchDemand(category, market);
         $('status').textContent = 'Loading active provider profiles…';
+        $('results').setAttribute('aria-busy', 'true');
         $('results').innerHTML = '';
         try {
           const response = await fetch('/api/fsbo-lead?'+query);
@@ -259,6 +260,9 @@
           $('results').querySelector('[data-directory-retry]')?.addEventListener('click', () => load());
           bindPartnerDetails();
           bindConsumerCtas();
+        }
+        finally {
+          $('results').setAttribute('aria-busy', 'false');
         }
       }
       $('filters').addEventListener('submit', load);
