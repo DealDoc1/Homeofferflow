@@ -5660,7 +5660,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       ${usageExhausted ? '<div class="notice gold" style="margin-top:.7rem;font-size:.76rem;line-height:1.45;"><strong>Monthly packet allowance used.</strong> ' + (isInternalAdminAccess ? 'Contact platform support before generating another packet.' : 'Manage billing to review access options, then return here to continue the workflow. <button class="btn-secondary" type="button" style="margin-top:.45rem" onclick="openBillingPortal(\'usage_exhausted\')">Manage Billing</button>') + '</div>' : ''}
 
       ${actionHtml}
-      <div id="subscriptionActionStatus" class="platform-status" role="status" aria-live="polite"></div>
+      <div id="subscriptionActionStatus" class="platform-status" role="status" aria-live="polite" aria-atomic="true"></div>
     `;
   }
 
@@ -5668,10 +5668,19 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     const el = document.getElementById('subscriptionActionStatus');
     if (el) {
       el.textContent = message;
+      el.setAttribute('aria-busy', 'false');
       el.className = 'platform-status show ' + (type === 'err' ? 'err' : 'ok');
       return;
     }
     setAccountStatus(message, type);
+  }
+
+  function setSubscriptionActionBusy(message) {
+    const el = document.getElementById('subscriptionActionStatus');
+    if (!el) return;
+    el.textContent = message;
+    el.setAttribute('aria-busy', 'true');
+    el.className = 'platform-status show';
   }
 
 
@@ -5743,6 +5752,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     }
 
     try {
+      setSubscriptionActionBusy('Opening secure Stripe Checkout…');
       try { sessionStorage.setItem(SUBSCRIPTION_CHECKOUT_SOURCE_KEY, normalizedSource); } catch (e) {}
       await logOfferEvent(null, 'subscription_checkout_started', '', 'Stripe subscription checkout started.', { source: normalizedSource, plan: normalizedPlan, billing: normalizedBilling });
 
