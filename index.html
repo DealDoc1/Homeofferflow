@@ -16423,7 +16423,22 @@ function routeAfterMagicLinkIfNeeded() {
   document.addEventListener('DOMContentLoaded', function(){
     addLandingPathStrip();
     enhanceFeedbackModal();
-    try { root.setAudience(root.state?.data?.userType || 'homebuyer'); } catch(e) {}
+    try {
+      // Campaign links can land visitors directly in the right audience path
+      // without opening a wizard or changing any saved offer data.
+      const requestedAudience = new URLSearchParams(window.location.search).get('audience');
+      const allowedAudiences = new Set(['homebuyer', 'agent', 'investor', 'fsbo']);
+      const landingAudience = allowedAudiences.has(requestedAudience)
+        ? requestedAudience
+        : (root.state?.data?.userType || 'homebuyer');
+      root.setAudience(landingAudience);
+      if (allowedAudiences.has(requestedAudience)) {
+        root.trackEvent?.('Landing Audience Selected', {
+          audience: requestedAudience,
+          surface: 'campaign_deep_link'
+        });
+      }
+    } catch(e) {}
     try { root.updateAuthUI?.(); } catch(e) {}
   });
   if (document.readyState !== 'loading') {
