@@ -14020,7 +14020,11 @@ function routeAfterMagicLinkIfNeeded() {
       hasAskingPrice: payload.asking_price !== null,
       partnerCategoryCount: payload.partner_categories.length
     });
-    submitButtons.forEach(button => { button.disabled = true; button.textContent = 'Saving…'; });
+    submitButtons.forEach(button => {
+      button.disabled = true;
+      button.setAttribute('aria-busy', 'true');
+      button.textContent = 'Saving…';
+    });
     if (status) { status.textContent = 'Saving seller request...'; status.className = 'platform-status'; }
     try {
       const res = await fetch('/api/fsbo-lead', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
@@ -14054,7 +14058,10 @@ function routeAfterMagicLinkIfNeeded() {
     } catch (err) {
       trackFsboFunnel('FSBO Seller Request Save Failed', { package: payload.service_level, source: source === 'quick' ? 'quick' : 'full' });
       if (status) { status.textContent = err.message || String(err); status.className = 'platform-status err'; }
-      submitButtons.forEach(button => { button.disabled = false; });
+      submitButtons.forEach(button => {
+        button.disabled = false;
+        button.setAttribute('aria-busy', 'false');
+      });
       window.renderFsboNeedDetails?.();
     }
   };

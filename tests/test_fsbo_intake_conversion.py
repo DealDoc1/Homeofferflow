@@ -246,6 +246,14 @@ class FsboIntakeConversionTests(unittest.TestCase):
         self.assertIn("document.querySelectorAll('[data-fsbo-submit]')", HTML)
         self.assertIn("Request ${item.title} Details", HTML)
 
+    def test_fsbo_submit_buttons_expose_busy_state_while_saving(self):
+        start = HTML.index("window.submitFsboSellerLead = async function")
+        end = HTML.index("fsboDraftFields.forEach", start)
+        submit = HTML[start:end]
+        self.assertIn("button.setAttribute('aria-busy', 'true')", submit)
+        self.assertIn("button.setAttribute('aria-busy', 'false')", submit)
+        self.assertIn("button.textContent = 'Saving…'", submit)
+
     def test_quick_submit_validates_and_focuses_the_actual_required_field(self):
         start = HTML.index("window.submitFsboSellerLead")
         end = HTML.index("const submissionKey = fsboSubmissionKey(payload);", start)
