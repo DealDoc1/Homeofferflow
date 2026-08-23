@@ -15578,7 +15578,7 @@ function routeAfterMagicLinkIfNeeded() {
   root.hofExportVisibleOffers = function(){
     const offers = sortedOffers(state.offers || []);
     if (!offers.length) {
-      window.alert?.('There are no offers in the current view to download.');
+      announceWorkspaceStatus('There are no offers in the current view to download.');
       return;
     }
     const cell = value => `"${String(value ?? '').replace(/"/g, '""')}"`;
@@ -15701,7 +15701,7 @@ function routeAfterMagicLinkIfNeeded() {
         source: 'offer_workspace',
         signingStatus: cleanStatus(offer)
       });
-      alert('Buyer signing reminder copied. Review it before sending through your approved communication channel.');
+      announceWorkspaceStatus('Buyer signing reminder copied. Review it before sending through your approved communication channel.');
     } catch (error) {
       window.prompt('Copy this buyer signing reminder:', reminder);
     }

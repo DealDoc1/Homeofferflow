@@ -24,6 +24,10 @@ class OfferSummaryCopyTests(unittest.TestCase):
         self.assertIn("announceWorkspaceStatus('Offer summary copied.", block)
         self.assertIn("role', 'status", block)
 
+    def test_workspace_feedback_is_nonblocking_for_other_actions(self):
+        self.assertIn("announceWorkspaceStatus('Buyer signing reminder copied.", HTML)
+        self.assertIn("announceWorkspaceStatus('There are no offers in the current view to download.", HTML)
+
 
 if __name__ == "__main__":
     unittest.main()
