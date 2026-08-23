@@ -86,7 +86,7 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("onclick=\"showAccountTab('relationships')\"", INDEX)
         self.assertIn("normalized !== 'investor'", INDEX)
         self.assertIn("document.getElementById('accountPanelRelationships')", INDEX)
-        self.assertIn("Prepare private, brokerage-approved relationship and consumer-notice drafts.", INDEX)
+        self.assertIn("Prepare private relationship and consumer-notice drafts from the released shared library.", INDEX)
 
     def test_relationship_workspace_explains_each_private_draft_without_selecting_a_form(self):
         self.assertIn('id="relationshipDraftsGuide"', INDEX)
