@@ -10,6 +10,7 @@ SITEMAP = (ROOT / "sitemap.xml").read_text(encoding="utf-8")
 PARTNERS = (ROOT / "partners.html").read_text(encoding="utf-8")
 SELLERS = (ROOT / "sellers.html").read_text(encoding="utf-8")
 DIRECTORY = (ROOT / "directory.html").read_text(encoding="utf-8")
+NOT_FOUND = (ROOT / "404.html").read_text(encoding="utf-8")
 BUYERS = (ROOT / "buyers.html").read_text(encoding="utf-8")
 BUYERS_COMPACT = " ".join(BUYERS.split())
 AGENTS = (ROOT / "agents.html").read_text(encoding="utf-8")
@@ -152,6 +153,18 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn('aria-label="Popular Texas home-service categories"', DIRECTORY)
         for category in ('title', 'lender', 'inspection', 'insurance', 'roofing', 'general_contractor'):
             self.assertIn(f'href="/directory?category={category}"', DIRECTORY)
+
+    def test_not_found_page_routes_visitors_into_the_simple_workflows(self):
+        self.assertIn('<meta name="robots" content="noindex, nofollow, noarchive">', NOT_FOUND)
+        for path in (
+            '/?agent=1&amp;workflow=sale_listing',
+            '/?agent=1&amp;workflow=purchase',
+            '/?agent=1&amp;workflow=lease_listing',
+            '/?agent=1&amp;workflow=lease_representation',
+            'href="/directory"',
+            'href="/partners"',
+        ):
+            self.assertIn(path, NOT_FOUND)
 
     def test_fsbo_guide_is_a_crawlable_people_first_path_to_the_free_seller_plan(self):
         self.assertIn('<link rel="canonical" href="https://www.homeofferflow.com/texas-fsbo-guide">', FSBO_GUIDE)
