@@ -5935,7 +5935,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   async function canGenerateOffer(showAlert = true) {
     if ((state.data.userType || 'homebuyer') === 'homebuyer') return true;
     if (!hofAuth.session) {
-      if (showAlert) alert('Please log in before generating an agent or investor packet.');
+      if (showAlert) setAuthStatus('Please log in before generating an agent or investor packet.', 'err');
       openAuthModal(state.data.userType || hofAuth.role || 'agent');
       return false;
     }
@@ -6059,7 +6059,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     if (!await subscriptionLegalConsentModal()) return false;
     const recorded = await recordCurrentLegalAcceptance('subscription_checkout');
     if (!recorded) {
-      alert('We could not save your legal acceptance. Please try again before checkout.');
+      setSubscriptionActionStatus('We could not save your legal acceptance. Please try again before checkout.');
       return false;
     }
     try {
@@ -6115,7 +6115,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       const message = data.status && !['beta', 'trialing', 'active', 'free_admin'].includes(data.status)
         ? 'Your HomeOfferFlow access is not active. Update billing or contact support before generating a new packet.'
         : `You have reached your ${data.limit || hofAuth.usage?.limit || 10}-packet monthly limit. Upgrade/contact support before generating another signed packet.`;
-      alert(data.error || message);
+      setSubscriptionActionStatus(data.error || message);
       return false;
     }
     hofAuth.usage = {
