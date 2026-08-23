@@ -1119,6 +1119,20 @@ new Function(match[1]);
         self.assertIn("'broker_admin'", BROKER_SEED)
         self.assertIn("'active'", BROKER_SEED)
 
+    def test_brokerage_roster_has_attention_filters(self):
+        for marker in (
+            'id="brokerageAgentAttentionFilter"',
+            'value="activation"',
+            'value="billing"',
+            'value="follow_up"',
+            'data-membership=',
+            'data-engagement=',
+            'attention === \'activation\'',
+            'attention === \'billing\'',
+            'attention === \'follow_up\'',
+        ):
+            self.assertIn(marker, INDEX_HTML)
+
 
 if __name__ == "__main__":
     unittest.main()
