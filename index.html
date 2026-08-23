@@ -18447,7 +18447,7 @@ function routeAfterMagicLinkIfNeeded() {
         <button class="btn-secondary" type="button" id="brokerageFormUploadButton">Save approved source</button>
       </div>
       <div id="brokerageFormSourceStatus" class="hof-iabs-status"></div>
-      <ul id="brokerageFormSourceList" class="hof-form-source-list"><li>Loading approved source records…</li></ul>`;
+      <ul id="brokerageFormSourceList" class="hof-form-source-list" aria-live="polite" aria-busy="true"><li>Loading approved source records…</li></ul>`;
     panel.appendChild(card);
     card.querySelector('#brokerageFormUploadButton')?.addEventListener('click', uploadSource);
     refreshList();
@@ -18462,9 +18462,11 @@ function routeAfterMagicLinkIfNeeded() {
         const fingerprint = source.source_sha256 ? `<br><small>SHA-256: ${escape(source.source_sha256.slice(0, 12))}…</small>` : '';
         return `<li><span><strong>${escape(source.form_code)}</strong> · ${escape(source.source_revision)}<br><small>${escape(source.original_filename)}</small>${fingerprint}</span><span>${escape(source.status)}</span></li>`;
       }).join('') : '<li>No brokerage form sources saved yet.</li>';
+      list.setAttribute('aria-busy', 'false');
     } catch (error) {
       console.error('Brokerage form-source list failed:', error);
       list.innerHTML = '<li>Could not load form-source records.</li>';
+      list.setAttribute('aria-busy', 'false');
     }
   }
 
