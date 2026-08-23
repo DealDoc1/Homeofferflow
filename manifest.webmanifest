@@ -73,6 +73,12 @@
       "url": "/?pwa_action=investor_workspace"
     },
     {
+      "name": "Partner Marketplace",
+      "short_name": "Partners",
+      "description": "Browse partner services and partner onboarding options.",
+      "url": "/?pwa_action=partner_marketplace"
+    },
+    {
       "name": "Find a Provider",
       "short_name": "Providers",
       "description": "Browse active Texas home-service provider profiles by category and market.",

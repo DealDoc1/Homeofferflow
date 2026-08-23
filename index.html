@@ -19844,7 +19844,7 @@ function routeAfterMagicLinkIfNeeded() {
   const root = window;
   const pendingActionKey = 'hof_pwa_shortcut_pending_action';
   const ondemandFirstOfferAttributionKey = 'hof_ondemand_first_offer_attribution';
-  const validActions = new Set(['workspace', 'listing_tools', 'relationship_drafts', 'offer_review', 'new_offer', 'signing_queue', 'attention_queue', 'seller_plan', 'investor_workspace', 'buyer_offer']);
+  const validActions = new Set(['workspace', 'listing_tools', 'relationship_drafts', 'offer_review', 'new_offer', 'signing_queue', 'attention_queue', 'seller_plan', 'investor_workspace', 'partner_marketplace', 'buyer_offer']);
   let defaultWorkspaceOpened = false;
 
   function isStandalonePwa(){
@@ -20034,6 +20034,11 @@ function routeAfterMagicLinkIfNeeded() {
       clearPendingAction();
       await openInvestorWorkspace();
       trackShortcut(action, 'investor', resumedAfterSignIn);
+      return;
+    }
+    if (action === 'partner_marketplace') {
+      try { window.trackEvent?.('Partner Marketplace PWA Opened', { surface: 'pwa_shortcut' }); } catch (_) {}
+      window.location.assign('/partners?utm_source=pwa_shortcut&utm_medium=installed_app&utm_campaign=partner_marketplace');
       return;
     }
     if (action === 'buyer_offer') {
