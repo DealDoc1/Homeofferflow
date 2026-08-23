@@ -141,6 +141,18 @@ class ListingWorkspaceFoundationTests(unittest.TestCase):
         self.assertIn("createButton.disabled = false", save)
         self.assertIn("createButton.textContent = 'Create Private Workspace'", save)
 
+    def test_workspace_status_update_prevents_duplicate_saves_and_restores_action(self):
+        self.assertIn('id="listingWorkspaceStatusButton-${escapeAttr(workspaceId)}"', INDEX)
+        start = INDEX.index("window.updateListingWorkspaceStatus")
+        end = INDEX.index("function listingOfferMoney", start)
+        update = INDEX[start:end]
+        self.assertIn("const saveButton = document.getElementById(`listingWorkspaceStatusButton-${id}`);", update)
+        self.assertIn("if (saveButton?.disabled) return;", update)
+        self.assertIn("saveButton.disabled = true", update)
+        self.assertIn("saveButton.textContent = 'Saving status…'", update)
+        self.assertIn("saveButton.disabled = false", update)
+        self.assertIn("saveButton.textContent = 'Save status'", update)
+
     def test_missing_brokerage_uses_self_service_setup_without_losing_listing_question_answers(self):
         render_start = INDEX.index("function renderSellerFoundationPanel()")
         render_end = INDEX.index("const sellerCampaignPackages", render_start)
