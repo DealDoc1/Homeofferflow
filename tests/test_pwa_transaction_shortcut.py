@@ -19,7 +19,7 @@ class PwaTransactionShortcutTests(unittest.TestCase):
         self.assertEqual(listing["url"], "/?pwa_action=transaction_start&workflow=sale_listing")
         lease_rep = next(item for item in MANIFEST["shortcuts"] if item["short_name"] == "Lease Rep")
         self.assertEqual(lease_rep["url"], "/?pwa_action=transaction_start&workflow=lease_representation")
-        self.assertIn("homeofferflow-shell-v34", SERVICE_WORKER)
+        self.assertIn("homeofferflow-shell-v35", SERVICE_WORKER)
 
 
 if __name__ == "__main__":
