@@ -15,7 +15,7 @@ class PwaTransactionShortcutTests(unittest.TestCase):
         self.assertIn("buying", shortcut["description"])
 
     def test_shell_cache_bumps_for_shortcut_metadata(self):
-        self.assertIn("homeofferflow-shell-v28", SERVICE_WORKER)
+        self.assertIn("homeofferflow-shell-v29", SERVICE_WORKER)
 
 
 if __name__ == "__main__":

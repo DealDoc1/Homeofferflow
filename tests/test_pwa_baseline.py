@@ -100,11 +100,14 @@ class PwaBaselineTests(unittest.TestCase):
         self.assertNotIn("caches.match(event.request)", WORKER)
 
     def test_agent_landing_shell_is_pre_cached_for_agent_first_pwa_resume(self):
-        self.assertIn("const SHELL_CACHE = 'homeofferflow-shell-v28';", WORKER)
+        self.assertIn("const SHELL_CACHE = 'homeofferflow-shell-v29';", WORKER)
         self.assertIn("'/agents',", WORKER)
         self.assertIn("'/sellers',", WORKER)
         self.assertIn("'/partners',", WORKER)
         self.assertIn("'/ondemand',", WORKER)
+        for path in ("'/buyers',", "'/investors',", "'/directory',", "'/texas-fsbo-guide',", "'/texas-agent-offer-workflow',", "'/texas-homebuyer-offer-guide',", "'/texas-investor-offer-guide',"):
+            with self.subTest(path=path):
+                self.assertIn(path, WORKER)
 
     def test_worker_refreshes_only_the_public_html_offline_shell(self):
         self.assertIn("if (!cacheKey || !response.ok || !contentType.includes('text/html')) return;", WORKER)
