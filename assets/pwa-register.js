@@ -14,7 +14,7 @@
     metrics.src = '/assets/agent-workflow-guide-metrics.js';
     document.head.appendChild(metrics);
   }
-  if (guideKind === 'listing' || guideKind === 'lease' || guideKind === 'form_library') {
+  if (guideKind === 'offer' || guideKind === 'listing' || guideKind === 'lease' || guideKind === 'form_library') {
     const addTrialPath = () => {
       const actions = document.querySelector('main .actions');
       if (!actions || document.getElementById('hofGuideTrialCta')) return;

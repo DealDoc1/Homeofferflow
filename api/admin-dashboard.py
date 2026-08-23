@@ -4573,7 +4573,7 @@ class handler(BaseHTTPRequestHandler):
             ])
             ondemand_landing_channels = (
                 "direct", "email", "social", "referral", "local_event", "print",
-                "organic_listing_workflow", "organic_lease_workflow", "agent_workspace", "agent_form_library", "unspecified",
+                "organic_offer_workflow", "organic_listing_workflow", "organic_lease_workflow", "agent_workspace", "agent_form_library", "unspecified",
             )
             ondemand_landing_view_counts_by_channel = {
                 channel: len([

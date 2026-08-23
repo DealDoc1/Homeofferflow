@@ -86,6 +86,7 @@ class TechnicalSeoTests(unittest.TestCase):
         self.assertIn("utm_campaign=agent_acquisition", loader)
         self.assertIn("guideKind === 'form_library'", loader)
         self.assertIn("agent_form_library", loader)
+        self.assertIn("organic_${guideKind}_workflow", loader)
         self.assertIn("hofGuideLibraryCta", loader)
         self.assertIn("Open the shared form library", loader)
         metrics = (ROOT / "assets" / "agent-workflow-guide-metrics.js").read_text(encoding="utf-8")
