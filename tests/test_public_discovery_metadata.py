@@ -118,7 +118,7 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn("Founding Partner Landing Viewed", PARTNERS)
         self.assertIn("const tierLabels = { founding_pilot: 'Core Partner'", PARTNERS)
         self.assertIn('id="partnerCampaignContext"', PARTNERS)
-        self.assertIn("track('Founding Partner Landing Viewed', selectedTier ? {tier: selectedTier, category: selectedCategory || 'unspecified'} : {});", PARTNERS)
+        self.assertIn("track('Founding Partner Landing Viewed', {tier: selectedTier || 'unspecified', category: selectedCategory || 'unspecified', channel: campaignChannel});", PARTNERS)
         self.assertIn("Founding Partner Landing CTA Selected", PARTNERS)
         self.assertIn("const allowedCategories = new Set", PARTNERS)
         self.assertIn("campaign.set('partner_category', selectedCategory)", PARTNERS)

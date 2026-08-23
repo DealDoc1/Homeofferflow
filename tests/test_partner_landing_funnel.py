@@ -33,6 +33,8 @@ class PartnerLandingFunnelTests(unittest.TestCase):
         self.assertIn("partner_landing_viewed", PARTNERS)
         self.assertIn("partner_landing_cta_selected", PARTNERS)
         self.assertIn("keepalive: true", PARTNERS)
+        self.assertIn("const campaignChannel = medium === 'installed_app' ? 'pwa_shortcut' : medium || 'direct';", PARTNERS)
+        self.assertIn("channel: campaignChannel", PARTNERS)
 
     def test_partner_page_reduces_checkout_uncertainty_without_changing_price_or_claims(self):
         self.assertIn("Start no-charge application", PARTNERS)
