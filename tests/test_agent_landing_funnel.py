@@ -139,6 +139,7 @@ class AgentLandingFunnelTests(unittest.TestCase):
     def test_agent_landing_metadata_targets_high_intent_real_estate_offer_searches(self):
         self.assertIn('<title>Texas Real Estate Offer Tools for Agents &amp; Brokers | HomeOfferFlow</title>', AGENTS)
         self.assertIn('Texas real estate offer tools for agents and brokers', AGENTS)
+        self.assertIn('Texas real estate offer workflow software for agents and brokers', AGENTS)
         self.assertIn('Texas Real Estate Offer Tools for Agents &amp; Brokers | HomeOfferFlow', AGENTS)
         self.assertIn('"@type":"BreadcrumbList"', AGENTS)
         self.assertIn('"name":"Texas Agent and Broker Workspace"', AGENTS)
