@@ -39,6 +39,11 @@ SEO_GUIDES = {
         "Texas Investor Offer Workspace",
         "https://www.homeofferflow.com/",
     ),
+    "texas-investor-offer-guide.html": (
+        "Texas Investor Workspace",
+        "Texas Investor Offer Checklist",
+        "https://www.homeofferflow.com/investors",
+    ),
 }
 
 
