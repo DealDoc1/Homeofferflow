@@ -16,6 +16,7 @@ const SHELL_ASSETS = [
   '/texas-homebuyer-offer-guide',
   '/texas-investor-offer-guide',
   '/manifest.webmanifest',
+  '/assets/pwa-register.js',
   '/assets/homeofferflow-app-icon.svg',
   '/assets/homeofferflow-app-icon-192.png',
   '/assets/homeofferflow-app-icon-512.png',
