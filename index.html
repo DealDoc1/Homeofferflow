@@ -20536,6 +20536,9 @@ function routeAfterMagicLinkIfNeeded() {
     const button = form.querySelector('button[type="submit"]');
     const status = form.querySelector('.hof-iabs-status');
     if (!button || !status) return;
+    status.setAttribute('role', 'status');
+    status.setAttribute('aria-live', 'polite');
+    status.setAttribute('aria-atomic', 'true');
     form.addEventListener('submit', () => {
       window.setTimeout(() => {
         if (button.disabled) return;
