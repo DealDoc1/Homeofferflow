@@ -11565,8 +11565,8 @@ function routeAfterMagicLinkIfNeeded() {
           <div class="field"><label>Desired Close Date</label><input id="sellerLeadCloseDate" type="date"></div>
         </div>
         <div class="field" style="margin-top:0.8rem;"><label>Notes</label><textarea id="sellerLeadNotes" rows="3" placeholder="Seller goals, offer review request, FSBO notes, listing-agent notes..."></textarea></div>
-        <div class="platform-actions"><button type="button" onclick="saveSellerLeadFoundation()">Save Seller Lead</button><button type="button" onclick="loadSellerLeadsFoundation()">Refresh Leads</button></div>
-        <div id="sellerFoundationStatus" class="platform-status"></div>
+        <div class="platform-actions"><button type="button" id="saveSellerLeadButton" onclick="saveSellerLeadFoundation()">Save Seller Lead</button><button type="button" onclick="loadSellerLeadsFoundation()">Refresh Leads</button></div>
+        <div id="sellerFoundationStatus" class="platform-status" role="status" aria-live="polite" aria-atomic="true"></div>
       </div>
       ${campaignToolkit}
       <div class="platform-card"><h4>Recent Seller Leads</h4><div id="sellerLeadList" class="platform-list"><div class="platform-list-item">No seller leads loaded yet.</div></div></div>
@@ -11817,12 +11817,16 @@ function routeAfterMagicLinkIfNeeded() {
     const client = getSupabaseClient();
     const user = platformUser();
     const sellerEmailInput = document.getElementById('sellerLeadEmail');
+    const saveButton = document.getElementById('saveSellerLeadButton');
+    if (saveButton?.disabled) return;
     if (!client || !user) return platformStatus('sellerFoundationStatus', 'Sign in before saving a seller lead.', 'err');
     if (String(sellerEmailInput?.value || '').trim() && !sellerEmailInput?.checkValidity()) {
       platformStatus('sellerFoundationStatus', 'Enter a valid seller email address or leave the optional field blank.', 'err');
       sellerEmailInput.focus();
       return;
     }
+    if (saveButton) { saveButton.disabled = true; saveButton.setAttribute('aria-busy', 'true'); saveButton.textContent = 'Saving seller lead…'; }
+    platformStatus('sellerFoundationStatus', 'Saving seller lead details…');
     try {
       if (!hofPlatform.brokerage) await loadBrokerageFoundation();
       const payload = {
@@ -11846,6 +11850,8 @@ function routeAfterMagicLinkIfNeeded() {
     } catch (err) {
       console.error('Save seller lead failed:', err);
       platformStatus('sellerFoundationStatus', err?.message || 'Could not save seller lead.', 'err');
+    } finally {
+      if (saveButton) { saveButton.disabled = false; saveButton.setAttribute('aria-busy', 'false'); saveButton.textContent = 'Save Seller Lead'; }
     }
   }
 
