@@ -28,6 +28,7 @@ class GoogleAddressAutocompleteCoverageTests(unittest.TestCase):
         self.assertIn("document.querySelectorAll('input[id], input[name]')", INDEX)
         self.assertIn("/(?:address|addr)/i.test(`${input.id} ${input.name}`)", INDEX)
         self.assertIn("['propertyToSell', 'profInvestorMailing', 'clientCityStateZip']", INDEX)
+        self.assertIn("legacyAddressKeys.has(input.name)", INDEX)
 
     def test_late_rendered_address_inputs_are_wired_on_focus(self):
         self.assertIn("document.addEventListener('focusin'", INDEX)
