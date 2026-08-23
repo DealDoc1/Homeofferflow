@@ -155,6 +155,9 @@ class BrokerageFormSourceFoundationTests(unittest.TestCase):
         self.assertIn("authorization_attested: true", HTML)
         self.assertIn('id="brokerageFormSourceList" class="hof-form-source-list" aria-live="polite" aria-busy="true"', HTML)
         self.assertIn("list.setAttribute('aria-busy', 'false')", HTML)
+        self.assertIn("uploadButton.setAttribute('aria-busy', 'true')", HTML)
+        self.assertIn("uploadButton.textContent = 'Saving source…'", HTML)
+        self.assertIn("uploadButton.disabled = false", HTML)
 
     def test_source_metadata_reads_are_server_only(self):
         self.assertIn("revoke select on table public.hof_brokerage_form_sources from authenticated", SERVER_ONLY)

@@ -18486,6 +18486,18 @@ function routeAfterMagicLinkIfNeeded() {
     if (!file || !(file.type === 'application/pdf' || /\.pdf$/i.test(file.name || ''))) return showError('Choose a PDF source form.');
     if (!file.size || file.size > MAX_BYTES) return showError('Source PDFs must be 10 MB or smaller.');
     if (!attested) return showError('Confirm that you are authorized to approve this exact source PDF.');
+    const uploadButton = document.getElementById('brokerageFormUploadButton');
+    const restoreUploadButton = () => {
+      if (!uploadButton) return;
+      uploadButton.disabled = false;
+      uploadButton.removeAttribute('aria-busy');
+      uploadButton.textContent = 'Save approved source';
+    };
+    if (uploadButton) {
+      uploadButton.disabled = true;
+      uploadButton.setAttribute('aria-busy', 'true');
+      uploadButton.textContent = 'Saving source…';
+    }
     if (status) { status.className = 'hof-iabs-status'; status.textContent = 'Saving private brokerage form source…'; }
     const revisionKey = safeRevision(revision);
     const path = `${currentBrokerage.id}/${code}-${revisionKey}-${Date.now()}.pdf`;
@@ -18525,6 +18537,8 @@ function routeAfterMagicLinkIfNeeded() {
     } catch (error) {
       console.error('Brokerage form source upload failed:', error);
       if (status) { status.className = 'hof-iabs-status error'; status.textContent = error.message || 'Could not save the private form source.'; }
+    } finally {
+      restoreUploadButton();
     }
   }
 
