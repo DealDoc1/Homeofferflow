@@ -233,6 +233,23 @@ class ListingWorkspaceFoundationTests(unittest.TestCase):
         self.assertIn("saveButton.disabled = false", save)
         self.assertIn("saveButton.textContent = 'Save Offer Comparison'", save)
 
+    def test_offer_comparison_status_and_remove_actions_prevent_duplicate_requests(self):
+        self.assertIn('id="listingOfferStatusButton-${escapeAttr(row.id)}"', INDEX)
+        self.assertIn('id="deleteListingWorkspaceOfferButton-${escapeAttr(row.id)}"', INDEX)
+        status_start = INDEX.index("window.updateListingWorkspaceOfferStatus")
+        status_end = INDEX.index("window.deleteListingWorkspaceOffer", status_start)
+        status = INDEX[status_start:status_end]
+        self.assertIn("const saveButton = document.getElementById(`listingOfferStatusButton-${id}`);", status)
+        self.assertIn("if (saveButton?.disabled) return;", status)
+        self.assertIn("saveButton.textContent = 'Saving status…'", status)
+        self.assertIn("saveButton.textContent = 'Save status'", status)
+        remove_start = INDEX.index("window.deleteListingWorkspaceOffer")
+        remove_end = INDEX.index("async function loadListingWorkspaceOffersFoundation", remove_start)
+        remove = INDEX[remove_start:remove_end]
+        self.assertIn("const removeButton = document.getElementById(`deleteListingWorkspaceOfferButton-${id}`);", remove)
+        self.assertIn("removeButton.textContent = 'Removing…'", remove)
+        self.assertIn("removeButton.textContent = 'Remove'", remove)
+
     def test_private_offer_comparison_can_prepare_an_estimated_proceeds_worksheet_without_ranking_offers(self):
         self.assertIn("Estimated seller proceeds comparison", INDEX)
         self.assertIn("calculateListingOfferNetComparison", INDEX)
