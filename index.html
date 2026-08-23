@@ -18987,6 +18987,7 @@ function routeAfterMagicLinkIfNeeded() {
     const form = new FormData(event.currentTarget);
     const submit = event.currentTarget.querySelector('button[type="submit"]');
     const status = modal.querySelector('#txr1508DraftStatus');
+    if (submit.disabled) return;
     const customerNames = [form.get('customerOne'), form.get('customerTwo')].map(value => String(value || '').trim()).filter(Boolean);
     const otherBrokerAgreement = [form.get('otherBroker1')];
     if (customerNames.length === 2) otherBrokerAgreement.push(form.get('otherBroker2'));
@@ -18995,6 +18996,7 @@ function routeAfterMagicLinkIfNeeded() {
       clientNames: customerNames, propertyAddress: form.get('propertyAddress'), otherBrokerAgreement,
       unrepresentedAcknowledgment: form.get('unrepresentedAcknowledgment') === 'on', signerPlan: form.get('signerPlan')
     };
+    submit.disabled = true; submit.setAttribute('aria-busy', 'true'); submit.textContent = 'Saving draft…';
     try {
       status.className = 'hof-iabs-status'; status.textContent = 'Saving private showing draft…';
       const token = root.hofAuth?.session?.access_token;
@@ -19002,10 +19004,10 @@ function routeAfterMagicLinkIfNeeded() {
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || 'Could not save the showing draft.');
       status.className = 'hof-iabs-status ready'; status.textContent = 'Draft saved privately. It has not been sent for signature.';
-      submit.disabled = true;
     } catch (error) {
       console.error('TXR-1508 draft failed:', error);
       status.className = 'hof-iabs-status error'; status.textContent = error.message || 'Could not save the showing draft.';
+      submit.disabled = false; submit.setAttribute('aria-busy', 'false'); submit.textContent = 'Save private draft';
     }
   }
 
