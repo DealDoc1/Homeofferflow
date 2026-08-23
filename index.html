@@ -15705,6 +15705,33 @@ function routeAfterMagicLinkIfNeeded() {
     }
   };
 
+  root.copyOfferSummary = async function(offerId){
+    const offer = (state.offers || []).find(item => String(item?.id) === String(offerId));
+    if (!offer) { alert('This offer is no longer available in your workspace. Refresh offers and try again.'); return; }
+    const d = offer.offer_data || {};
+    const property = offer.property_address || d.propertyAddress || d.propAddress || 'Untitled offer';
+    const buyer = offer.buyer_name || d.buyerName || [d.buyer1First, d.buyer1Last].filter(Boolean).join(' ') || 'Not provided';
+    const summary = [
+      `HomeOfferFlow offer summary`,
+      `Property: ${property}`,
+      `Buyer: ${buyer}`,
+      `Offer amount: ${money(offer.offer_price || d.offerPrice)}`,
+      `Financing: ${d.financing || 'Not provided'}`,
+      `Status: ${cleanStatus(offer)}`,
+      `Buyer signing: ${signingLabel(offer)}`,
+      `Updated: ${dateLong(offer.last_updated || offer.created_at)}`,
+      `Seller acceptance and seller signatures are handled outside HomeOfferFlow.`
+    ].join('\n');
+    try {
+      if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(summary);
+      else window.prompt('Copy this offer summary:', summary);
+      await root.logOfferEvent?.(offer.id, 'offer_summary_copied', 'copied', 'Operational offer summary copied from the offer workspace.', { source: 'offer_workspace', status: cleanStatus(offer) });
+      alert('Offer summary copied. Review it before sharing through your approved channel.');
+    } catch (error) {
+      window.prompt('Copy this offer summary:', summary);
+    }
+  };
+
   root.hofRenderOfferWorkspaceV10 = renderWorkspace;
   root.renderMyOffers = renderWorkspace;
   try { renderMyOffers = renderWorkspace; } catch(e) {}
@@ -15777,6 +15804,7 @@ function routeAfterMagicLinkIfNeeded() {
           <button class="offer-action-btn" type="button" onclick="resumeOffer('${esc(offer.id)}')">Resume</button>
           <button class="offer-action-btn" type="button" onclick="reuseOfferTerms('${esc(offer.id)}')">Reuse terms</button>
           <button class="offer-action-btn" type="button" onclick="duplicateOffer('${esc(offer.id)}', false, true)">Duplicate &amp; edit</button>
+          <button class="offer-action-btn" type="button" onclick="copyOfferSummary('${esc(offer.id)}')">Copy summary</button>
           ${offer.signwell_document_id ? `<button class="offer-action-btn" type="button" onclick="refreshSignWellStatus('${esc(offer.id)}', this)">Refresh SignWell</button>` : ''}
           ${b === 'signing' ? `<button class="offer-action-btn" type="button" onclick="copyBuyerSigningReminder('${esc(offer.id)}')">Copy buyer reminder</button>` : ''}
           <button class="offer-action-btn danger" type="button" onclick="closeOfferDetail()">Close</button>
