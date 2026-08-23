@@ -3063,7 +3063,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     <div class="account-panel" id="accountPanelRelationships">
       <div class="account-card">
         <h4 id="relationshipDraftsHeading">Relationship Drafts</h4>
-        <p id="relationshipDraftsIntro" style="color:var(--gray-light); line-height:1.6; margin-bottom:0;">Prepare private, brokerage-approved relationship and consumer-notice drafts. Every released form in the shared library is available to every signed-in agent; review each saved draft, then use the private signing queue to explicitly confirm recipients before anything is sent.</p>
+        <p id="relationshipDraftsIntro" style="color:var(--gray-light); line-height:1.6; margin-bottom:0;">Prepare private relationship and consumer-notice drafts from the released shared library. Every released form is available to every signed-in agent; review each saved draft, then use the private signing queue to explicitly confirm recipients before anything is sent.</p>
       </div>
       <div class="account-card" id="relationshipDraftsGuide">
         <h4>Choose the relationship step deliberately</h4>
@@ -5315,8 +5315,8 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     const guide = document.getElementById('relationshipDraftsGuide');
     if (heading) heading.textContent = isLeaseRepresentation ? 'Tenant Representation Workspace' : 'Relationship Drafts';
     if (intro) intro.textContent = isLeaseRepresentation
-      ? 'You are starting tenant representation. Choose the brokerage-approved relationship step, prepare a private draft, and review it before using the separate signing queue. HomeOfferFlow will not choose a legal form, term, or recipient for you.'
-      : 'Prepare private, brokerage-approved relationship and consumer-notice drafts. Review each saved draft, then use the private signing queue to explicitly confirm recipients before anything is sent.';
+      ? 'You are starting tenant representation. Choose the relationship step, prepare a private draft, and review it before using the separate signing queue. HomeOfferFlow will not choose a legal form, term, or recipient for you.'
+      : 'Prepare private relationship and consumer-notice drafts from the released shared library. Review each saved draft, then use the private signing queue to explicitly confirm recipients before anything is sent.';
     if (guide) {
       const title = guide.querySelector('h4');
       const copy = guide.querySelector('p');
