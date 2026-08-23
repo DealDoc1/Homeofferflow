@@ -3,6 +3,7 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[1]
+SCRIPT = (ROOT / 'assets' / 'pwa-register.js').read_text(encoding='utf-8')
 PUBLIC_PAGES = (
     'directory.html', 'buyers.html', 'partners.html', 'sellers.html',
     'agents.html', 'investors.html', 'texas-fsbo-guide.html',
@@ -33,6 +34,11 @@ class PublicPwaRegistrationTests(unittest.TestCase):
     def test_shell_caches_the_registration_helper(self):
         worker = (ROOT / 'service-worker.js').read_text(encoding='utf-8')
         self.assertIn("'/assets/pwa-register.js'", worker)
+
+    def test_form_library_install_prompt_explains_its_app_value(self):
+        self.assertIn("/texas-agent-form-library", SCRIPT)
+        self.assertIn("Keep the Texas form library one tap away", SCRIPT)
+        self.assertIn("shared form guide and Question 1", SCRIPT)
 
 
 if __name__ == '__main__':
