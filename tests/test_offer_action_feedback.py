@@ -19,6 +19,8 @@ class OfferActionFeedbackTests(unittest.TestCase):
     def test_missing_offer_uses_workspace_status(self):
         self.assertIn("This offer is no longer available in your workspace.", INDEX)
         self.assertNotIn("return alert('Offer not found.')", INDEX)
+        self.assertIn("No saved offers to reuse yet. Create an offer first", INDEX)
+        self.assertNotIn("alert('No saved offers to reuse yet.')", INDEX)
 
 
 if __name__ == "__main__":

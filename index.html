@@ -15706,13 +15706,13 @@ function routeAfterMagicLinkIfNeeded() {
   };
   root.hofReuseTermsFromMostRecentOffer = function(){
     const offers = sortedOffers(state.offers || []);
-    if (!offers.length) { alert('No saved offers to reuse yet.'); return; }
+    if (!offers.length) { window.announceWorkspaceStatus?.('No saved offers to reuse yet. Create an offer first, then reusable terms will appear here.'); return; }
     if (typeof root.reuseOfferTerms === 'function') root.reuseOfferTerms(offers[0].id);
   };
   root.copyBuyerSigningReminder = async function(offerId){
     const offer = (state.offers || []).find(item => String(item?.id) === String(offerId))
       || (String(root.__hofCurrentOffer?.id) === String(offerId) ? root.__hofCurrentOffer : null);
-    if (!offer) { alert('This offer is no longer available in your workspace. Refresh offers and try again.'); return; }
+    if (!offer) { window.announceWorkspaceStatus?.('This offer is no longer available in your workspace. Refresh offers and try again.'); return; }
     const d = offer.offer_data || {};
     const buyer = offer.buyer_name || d.buyerName || [d.buyer1First, d.buyer1Last].filter(Boolean).join(' ') || 'there';
     const property = offer.property_address || d.propertyAddress || d.propAddress || 'your offer';
@@ -15740,7 +15740,7 @@ function routeAfterMagicLinkIfNeeded() {
   root.copyOfferSummary = async function(offerId){
     const offer = (state.offers || []).find(item => String(item?.id) === String(offerId))
       || (String(root.__hofCurrentOffer?.id) === String(offerId) ? root.__hofCurrentOffer : null);
-    if (!offer) { alert('This offer is no longer available in your workspace. Refresh offers and try again.'); return; }
+    if (!offer) { window.announceWorkspaceStatus?.('This offer is no longer available in your workspace. Refresh offers and try again.'); return; }
     const d = offer.offer_data || {};
     const property = offer.property_address || d.propertyAddress || d.propAddress || 'Untitled offer';
     const buyer = offer.buyer_name || d.buyerName || [d.buyer1First, d.buyer1Last].filter(Boolean).join(' ') || 'Not provided';
