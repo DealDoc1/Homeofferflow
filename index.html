@@ -7035,7 +7035,22 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     picker.scrollIntoView({ behavior: 'smooth', block: 'center' });
     picker.focus({ preventScroll: true });
     const status = document.getElementById('agentWorkflowStartStatus');
-    if (status) status.textContent = 'Choose the transaction you are working on to continue.';
+    let savedChoice = '';
+    try { savedChoice = sessionStorage.getItem('hof_agent_workflow_choice') || ''; } catch (_) {}
+    const labels = {
+      purchase: 'Buying',
+      sale_listing: 'Listing',
+      lease_listing: 'Lease listing',
+      lease_representation: 'Lease representation'
+    };
+    if (labels[savedChoice]) {
+      document.querySelectorAll('[data-agent-workflow-choice]').forEach((button) => {
+        button.setAttribute('aria-pressed', button.dataset.agentWorkflowChoice === savedChoice ? 'true' : 'false');
+      });
+      if (status) status.textContent = `Current path: ${labels[savedChoice]}. Choose another transaction to change it.`;
+    } else if (status) {
+      status.textContent = 'Choose the transaction you are working on to continue.';
+    }
   };
 
   // Every generic agent-account launch point returns to Question 1. Explicit
@@ -7076,6 +7091,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     const choice = choices[kind];
     if (!choice) return;
     window.hofAgentWorkflowContext = kind;
+    try { sessionStorage.setItem('hof_agent_workflow_choice', kind); } catch (_) {}
     document.querySelectorAll('[data-agent-workflow-choice]').forEach((button) => {
       button.setAttribute('aria-pressed', button.dataset.agentWorkflowChoice === kind ? 'true' : 'false');
     });

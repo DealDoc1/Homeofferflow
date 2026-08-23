@@ -237,6 +237,9 @@ class AgentActivationDashboardTests(unittest.TestCase):
         self.assertIn('class="account-actions-row" role="group" aria-label="Transaction type"', HTML)
         self.assertIn('aria-pressed="false" data-agent-workflow-choice="sale_listing"', HTML)
         self.assertIn("button.dataset.agentWorkflowChoice === kind ? 'true' : 'false'", HTML)
+        self.assertIn("sessionStorage.getItem('hof_agent_workflow_choice')", HTML)
+        self.assertIn("sessionStorage.setItem('hof_agent_workflow_choice', kind)", HTML)
+        self.assertIn('Current path: ${labels[savedChoice]}. Choose another transaction to change it.', HTML)
         self.assertLess(HTML.index('id="agentWorkflowStart"'), HTML.index('id="agentActivationCard"'))
         for label in ('>Buying</button>', '>Listing</button>', '>Lease listing</button>', '>Lease representation</button>'):
             self.assertIn(label, HTML)
