@@ -20,6 +20,21 @@ class ListingWorkspaceFoundationTests(unittest.TestCase):
         self.assertIn("sellerEmailInput?.checkValidity()", save)
         self.assertIn("sellerEmailInput.focus();", save)
 
+    def test_seller_lead_save_prevents_duplicate_submissions_and_announces_progress(self):
+        self.assertIn('id="saveSellerLeadButton"', INDEX)
+        self.assertIn('id="sellerFoundationStatus" class="platform-status" role="status" aria-live="polite" aria-atomic="true"', INDEX)
+        start = INDEX.index("async function saveSellerLeadFoundation()")
+        end = INDEX.index("async function loadSellerLeadsFoundation()", start)
+        save = INDEX[start:end]
+        self.assertIn("const saveButton = document.getElementById('saveSellerLeadButton');", save)
+        self.assertIn("if (saveButton?.disabled) return;", save)
+        self.assertIn("saveButton.disabled = true", save)
+        self.assertIn("saveButton.setAttribute('aria-busy', 'true')", save)
+        self.assertIn("saveButton.textContent = 'Saving seller lead…'", save)
+        self.assertIn("Saving seller lead details…", save)
+        self.assertIn("saveButton.disabled = false", save)
+        self.assertIn("saveButton.textContent = 'Save Seller Lead'", save)
+
     def test_workspace_is_separate_from_buyer_offers_and_form_execution(self):
         self.assertIn("create table if not exists public.hof_listing_workspaces", MIGRATION)
         self.assertIn("does not create, send, or sign", MIGRATION)
