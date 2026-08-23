@@ -10,6 +10,8 @@ WORKER = (ROOT / "service-worker.js").read_text(encoding="utf-8")
 class OfflineDraftGuidanceTests(unittest.TestCase):
     def test_wizard_explains_offline_local_draft_safety(self):
         self.assertIn('id="connectionStatus"', INDEX)
+        self.assertIn('id="appConnectivityNotice"', INDEX)
+        self.assertIn('Local drafts remain available', INDEX)
         self.assertIn('Offline — draft stays on this device', INDEX)
         self.assertIn('Reconnect before previewing PDFs, sending signature requests, checkout, or cloud sync.', INDEX)
         self.assertIn("window.addEventListener('offline', updateConnectionStatus)", INDEX)

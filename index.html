@@ -519,6 +519,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 
   <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
+    .app-connectivity-notice{position:fixed;left:50%;top:max(.75rem,env(safe-area-inset-top));z-index:20000;transform:translateX(-50%);width:min(34rem,calc(100vw - 2rem));padding:.65rem .85rem;border:1px solid rgba(232,184,109,.55);border-radius:10px;background:#0b1b2e;color:var(--white);box-shadow:0 10px 26px rgba(0,0,0,.25);font-size:.82rem;line-height:1.35;text-align:center}.app-connectivity-notice[hidden]{display:none}
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
       --navy: #0d1f35; --navy-mid: #152840; --navy-light: #1e3a57;
@@ -2780,6 +2781,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 </head>
 
 <body>
+<div id="appConnectivityNotice" class="app-connectivity-notice" role="status" aria-live="polite" hidden></div>
 <div class="offer-detail-backdrop" id="offerDetailBackdrop" aria-hidden="true" onclick="if(event.target===this) closeOfferDetail();">
   <div class="offer-detail-card" id="offerDetailCard" role="dialog" aria-modal="true" aria-labelledby="offerDetailTitle">
     <div class="offer-detail-head">
@@ -11069,8 +11071,15 @@ function routeAfterMagicLinkIfNeeded() {
 
   function updateConnectionStatus() {
     const el = document.getElementById('connectionStatus');
-    if (!el) return;
+    const globalNotice = document.getElementById('appConnectivityNotice');
     const offline = navigator.onLine === false;
+    if (globalNotice) {
+      globalNotice.hidden = !offline;
+      globalNotice.textContent = offline
+        ? 'You are offline. Local drafts remain available; preview, signing, checkout, and cloud sync resume when you reconnect.'
+        : '';
+    }
+    if (!el) return;
     if (offline) {
       __hofWasOffline = true;
       el.hidden = false;
