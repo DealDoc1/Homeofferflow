@@ -127,6 +127,26 @@ class BrokerageFormSourceFoundationTests(unittest.TestCase):
             self.assertIn(form_code, HTML)
         self.assertIn("supplied source", HTML)
 
+    def test_seller_disclosure_drafts_use_the_universal_released_library(self):
+        dashboard = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
+        start = dashboard.index("async def _prepare_seller_disclosure_draft_record")
+        end = dashboard.index("async def _create_seller_disclosure_draft", start)
+        segment = dashboard[start:end]
+        self.assertNotIn("_active_brokerage_member", segment)
+        self.assertIn("HomeOfferFlow library", segment)
+        self.assertIn("status=eq.approved", segment)
+        self.assertIn("authorization_attested=is.true", segment)
+        self.assertIn('"brokerage_id": brokerage_id', segment)
+
+    def test_seller_disclosure_preview_and_list_are_agent_owned_not_membership_gated(self):
+        dashboard = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
+        preview_start = dashboard.index("async def _render_seller_disclosure_draft_preview")
+        preview_end = dashboard.index("async def _render_representation_draft_preview", preview_start)
+        self.assertNotIn("_active_brokerage_member", dashboard[preview_start:preview_end])
+        scope_start = dashboard.index('if scope == "seller_disclosure_drafts":')
+        scope_end = dashboard.index('if scope == "', scope_start + 10)
+        self.assertNotIn("_active_brokerage_member", dashboard[scope_start:scope_end])
+
     def test_broker_admin_can_upload_attested_private_source_but_cannot_activate_a_workflow(self):
         self.assertIn("Brokerage-approved form sources", HTML)
         self.assertIn("I am authorized to upload and approve this exact source PDF", HTML)

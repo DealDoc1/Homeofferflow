@@ -2546,6 +2546,25 @@ async def _active_brokerage_member(user):
     return brokerage_id
 
 
+async def _optional_brokerage_id(user):
+    """Return the user's active brokerage when present, without gating library use."""
+    profiles = await _get_optional(
+        "hof_profiles?"
+        f"id=eq.{urllib.parse.quote(user['id'])}"
+        "&select=brokerage_id&limit=1"
+    )
+    brokerage_id = (profiles[0].get("brokerage_id") if profiles else None)
+    if not brokerage_id:
+        return None
+    memberships = await _get_optional(
+        "hof_brokerage_members?"
+        f"user_id=eq.{urllib.parse.quote(user['id'])}"
+        f"&brokerage_id=eq.{urllib.parse.quote(str(brokerage_id))}"
+        "&status=eq.active&select=id&limit=1"
+    )
+    return str(brokerage_id) if memberships else None
+
+
 async def _brokerage_form_sources_payload(user, approved_only=False):
     """Return sanitized source metadata through the server, never raw table access.
 
@@ -2606,13 +2625,14 @@ async def _require_brokerage_txr_authorization(brokerage_id):
 async def _prepare_seller_disclosure_draft_record(user, data):
     """Validate an agent-owned seller disclosure draft, never a sendable packet."""
     draft = seller_disclosure_draft.parse_seller_disclosure_draft(data)
-    brokerage_id = await _active_brokerage_member(user)
+    # Released seller-disclosure sources are part of the universal agent
+    # library.  A brokerage is retained on the draft for source provenance,
+    # but membership is not an access requirement for creating a private draft.
     if draft.get("listing_workspace_id"):
         workspace_rows = await _get(
             "hof_listing_workspaces?"
             f"id=eq.{urllib.parse.quote(str(draft['listing_workspace_id']))}"
             f"&agent_user_id=eq.{urllib.parse.quote(user['id'])}"
-            f"&brokerage_id=eq.{urllib.parse.quote(str(brokerage_id))}"
             "&select=id&limit=1"
         )
         if not workspace_rows:
@@ -2620,25 +2640,24 @@ async def _prepare_seller_disclosure_draft_record(user, data):
     source_rows = await _get(
         "hof_brokerage_form_sources?"
         f"id=eq.{urllib.parse.quote(draft['disclosure_source_id'])}"
-        f"&brokerage_id=eq.{urllib.parse.quote(str(brokerage_id))}"
         f"&form_code=eq.{TREC_55_1_FORM_CODE}"
         "&status=eq.approved&authorization_attested=is.true"
-        "&select=id,source_revision&limit=1"
+        "&select=id,brokerage_id,source_revision&limit=1"
     )
     if not source_rows:
-        raise ValueError("Choose an approved TREC-55-1 source from your brokerage.")
+        raise ValueError("Choose an approved TREC-55-1 source from the HomeOfferFlow library.")
+    brokerage_id = source_rows[0]["brokerage_id"]
     water_rows = []
     if draft.get("water_source_id"):
         water_rows = await _get(
             "hof_brokerage_form_sources?"
             f"id=eq.{urllib.parse.quote(draft['water_source_id'])}"
-            f"&brokerage_id=eq.{urllib.parse.quote(str(brokerage_id))}"
             f"&form_code=eq.{TREC_61_0_FORM_CODE}"
             "&status=eq.approved&authorization_attested=is.true"
-            "&select=id,source_revision&limit=1"
+            "&select=id,brokerage_id,source_revision&limit=1"
         )
         if not water_rows:
-            raise ValueError("Choose an approved TREC-61-0 source from your brokerage.")
+            raise ValueError("Choose an approved TREC-61-0 source from the HomeOfferFlow library.")
     record = {
         "brokerage_id": brokerage_id,
         "agent_user_id": user["id"],
@@ -2841,17 +2860,16 @@ async def _create_seller_disclosure_review_link(user, data):
         draft_id = str(uuid.UUID(str(data.get("draftId") or "")))
     except (TypeError, ValueError, AttributeError):
         raise ValueError("Choose a valid seller disclosure draft.")
-    brokerage_id = await _active_brokerage_member(user)
     drafts = await _get(
         "hof_seller_disclosure_drafts?"
         f"id=eq.{urllib.parse.quote(draft_id)}"
         f"&agent_user_id=eq.{urllib.parse.quote(user['id'])}"
-        f"&brokerage_id=eq.{urllib.parse.quote(str(brokerage_id))}"
         "&status=eq.draft"
-        "&select=id,property_address,seller_names&limit=1"
+        "&select=id,brokerage_id,property_address,seller_names&limit=1"
     )
     if not drafts:
         raise PermissionError("That private seller disclosure draft is unavailable.")
+    brokerage_id = drafts[0].get("brokerage_id")
     seller_names = [" ".join(str(name).strip().split()) for name in (drafts[0].get("seller_names") or data.get("sellerNames") or []) if str(name).strip()]
     if not seller_names:
         # Preserve the original one-seller API contract for existing clients.
@@ -3148,23 +3166,22 @@ async def _render_seller_disclosure_draft_preview(user, draft_id, review_context
             "&status=eq.draft"
         )
     else:
-        brokerage_id = await _active_brokerage_member(user)
         draft_query = (
             "hof_seller_disclosure_drafts?"
             f"id=eq.{urllib.parse.quote(draft_uuid)}"
             f"&agent_user_id=eq.{urllib.parse.quote(user['id'])}"
-            f"&brokerage_id=eq.{urllib.parse.quote(str(brokerage_id))}"
             "&status=eq.draft"
         )
     drafts = await _get(
         draft_query +
-        "&select=id,property_address,response_data,water_rights_data,"
+        "&select=id,brokerage_id,property_address,response_data,water_rights_data,"
         "disclosure_source_id,water_source_id,disclosure_source_revision,water_source_revision"
         "&limit=1"
     )
     if not drafts:
         raise PermissionError("That private seller disclosure draft is unavailable.")
     draft = drafts[0]
+    brokerage_id = draft.get("brokerage_id")
 
     async def _approved_source(source_id, form_code, expected_revision):
         if not source_id:
@@ -3172,7 +3189,6 @@ async def _render_seller_disclosure_draft_preview(user, draft_id, review_context
         rows = await _get(
             "hof_brokerage_form_sources?"
             f"id=eq.{urllib.parse.quote(str(source_id))}"
-            f"&brokerage_id=eq.{urllib.parse.quote(str(brokerage_id))}"
             f"&form_code=eq.{urllib.parse.quote(form_code)}"
             "&status=eq.approved&authorization_attested=is.true"
             "&select=id,source_revision,storage_bucket,storage_path&limit=1"
@@ -3620,18 +3636,15 @@ class handler(BaseHTTPRequestHandler):
                 _json(self, 200, payload)
                 return
             if scope == "seller_disclosure_drafts":
-                brokerage_id = asyncio.run(_active_brokerage_member(user))
                 rows = asyncio.run(_get(
                     "hof_seller_disclosure_drafts?"
                     f"agent_user_id=eq.{urllib.parse.quote(user['id'])}"
-                    f"&brokerage_id=eq.{urllib.parse.quote(str(brokerage_id))}"
                     "&select=id,listing_workspace_id,disclosure_source_id,water_source_id,property_address,seller_names,buyer_names,response_data,water_rights_data,status,disclosure_source_revision,water_source_revision,seller_review_attested,created_at,updated_at"
                     "&order=updated_at.desc&limit=100"
                 ))
                 review_links = asyncio.run(_get_optional(
                     "hof_seller_disclosure_review_links?"
                     f"agent_user_id=eq.{urllib.parse.quote(user['id'])}"
-                    f"&brokerage_id=eq.{urllib.parse.quote(str(brokerage_id))}"
                     "&select=draft_id,seller_email,seller_name,seller_index,expires_at,revoked_at,viewed_at,verified_at,seller_attested_at,created_at"
                     "&order=created_at.desc&limit=300"
                 ))
