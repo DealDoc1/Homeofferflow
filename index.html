@@ -5637,14 +5637,25 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       ${usageExhausted ? '<div class="notice gold" style="margin-top:.7rem;font-size:.76rem;line-height:1.45;"><strong>Monthly packet allowance used.</strong> ' + (isInternalAdminAccess ? 'Contact platform support before generating another packet.' : 'Manage billing to review access options, then return here to continue the workflow. <button class="btn-secondary" type="button" style="margin-top:.45rem" onclick="openBillingPortal(\'usage_exhausted\')">Manage Billing</button>') + '</div>' : ''}
 
       ${actionHtml}
+      <div id="subscriptionActionStatus" class="platform-status" role="status" aria-live="polite"></div>
     `;
+  }
+
+  function setSubscriptionActionStatus(message, type = 'err') {
+    const el = document.getElementById('subscriptionActionStatus');
+    if (el) {
+      el.textContent = message;
+      el.className = 'platform-status show ' + (type === 'err' ? 'err' : 'ok');
+      return;
+    }
+    setAccountStatus(message, type);
   }
 
 
   async function openBillingPortal(source = 'subscription_card') {
     const accessToken = hofAuth?.session?.access_token || '';
     if (!accessToken) {
-      alert('Please sign in again before opening billing.');
+      setAuthStatus('Please sign in again before opening billing.', 'err');
       return;
     }
 
@@ -5674,7 +5685,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       window.location.href = result.url;
     } catch (err) {
       console.error('Billing portal failed:', err);
-      alert('Could not open billing portal: ' + (err?.message || err));
+      setSubscriptionActionStatus('Could not open billing portal: ' + (err?.message || err));
     }
   }
 
@@ -5698,7 +5709,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 
     if (!email || !email.includes('@') || !accessToken) {
       window.__hofSubscriptionCheckoutInFlight = false;
-      alert('Please log in before starting a subscription.');
+      setAuthStatus('Please log in before starting a subscription.', 'err');
       openAuthModal(normalizedPlan);
       return;
     }
@@ -5739,7 +5750,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       try { sessionStorage.removeItem(SUBSCRIPTION_CHECKOUT_SOURCE_KEY); } catch (e) {}
       await logOfferEvent(null, 'subscription_checkout_failed', 'failed', 'Subscription checkout request failed before redirect.', { source: normalizedSource, plan: normalizedPlan, billing: normalizedBilling });
       console.error('Subscription checkout failed:', err);
-      alert('Subscription checkout failed: ' + (err?.message || err));
+      setSubscriptionActionStatus('Subscription checkout failed: ' + (err?.message || err));
     }
   }
 
