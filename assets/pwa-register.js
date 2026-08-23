@@ -18,6 +18,14 @@
     const addTrialPath = () => {
       const actions = document.querySelector('main .actions');
       if (!actions || document.getElementById('hofGuideTrialCta')) return;
+      if (guideKind !== 'form_library' && !document.getElementById('hofGuideLibraryCta')) {
+        const libraryLink = document.createElement('a');
+        libraryLink.id = 'hofGuideLibraryCta';
+        libraryLink.className = 'button secondary';
+        libraryLink.href = '/texas-agent-form-library';
+        libraryLink.textContent = 'Open the shared form library';
+        actions.appendChild(libraryLink);
+      }
       const link = document.createElement('a');
       link.id = 'hofGuideTrialCta';
       link.className = 'button secondary';
