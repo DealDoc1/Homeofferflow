@@ -190,6 +190,7 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn('"listing_guide"', API)
         self.assertIn('"lease_guide"', API)
         self.assertIn('"form_library_guide"', API)
+        self.assertIn('form_library_guide', ADMIN)
         self.assertIn("Unsupported agent landing channel.", API)
         self.assertIn("Unsupported agent landing CTA path.", API)
         self.assertIn("CTA path is only allowed for agent CTA events.", API)
