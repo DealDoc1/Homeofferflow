@@ -11617,8 +11617,8 @@ function routeAfterMagicLinkIfNeeded() {
         </div>
         <div class="field" style="margin-top:.8rem;"><label for="listingOfferContingencies">Contingencies / terms to verify</label><textarea id="listingOfferContingencies" rows="2" maxlength="2000" placeholder="Appraisal, sale-of-other-property, inspection, financing, or other terms to verify with the proper professional."></textarea></div>
         <div class="field" style="margin-top:.8rem;"><label for="listingOfferNotes">Private comparison notes</label><textarea id="listingOfferNotes" rows="2" maxlength="4000" placeholder="Net-impact questions, missing documents, follow-up items, or seller discussion notes."></textarea></div>
-        <div class="platform-actions"><button type="button" onclick="saveListingWorkspaceOffer()">Save Offer Comparison</button><button type="button" onclick="loadListingWorkspaceOffersFoundation()">Refresh Comparisons</button><button type="button" onclick="copyListingWorkspaceOfferSummary()">Copy Seller Review Summary</button></div>
-        <div id="listingOfferStatusMessage" class="platform-status"></div>
+        <div class="platform-actions"><button type="button" id="saveListingWorkspaceOfferButton" onclick="saveListingWorkspaceOffer()">Save Offer Comparison</button><button type="button" onclick="loadListingWorkspaceOffersFoundation()">Refresh Comparisons</button><button type="button" onclick="copyListingWorkspaceOfferSummary()">Copy Seller Review Summary</button></div>
+        <div id="listingOfferStatusMessage" class="platform-status" role="status" aria-live="polite" aria-atomic="true"></div>
         <div id="listingWorkspaceOfferList" class="platform-list" style="margin-top:.8rem;"><div class="platform-list-item">Select a workspace to load comparison notes.</div></div>
         <div class="notice gold" style="margin-top:1rem;"><strong>Estimated seller proceeds comparison:</strong> optional, private math using your own payoff and cost estimates. It does not calculate a closing statement, determine commissions, account for every obligation, rank offers, or recommend a decision.</div>
         <div class="platform-grid" style="margin-top:.8rem;">
@@ -12369,6 +12369,8 @@ function routeAfterMagicLinkIfNeeded() {
     const client = getSupabaseClient();
     const user = platformUser();
     const status = document.getElementById('listingOfferStatusMessage');
+    const saveButton = document.getElementById('saveListingWorkspaceOfferButton');
+    if (saveButton?.disabled) return;
     const workspaceId = String(getVal('listingOfferWorkspace') || '');
     const label = String(getVal('listingOfferLabel') || '').trim();
     if (!client || !user) return platformStatus('listingOfferStatusMessage', 'Sign in before saving an offer comparison.', 'err');
@@ -12388,7 +12390,8 @@ function routeAfterMagicLinkIfNeeded() {
       status: getVal('listingOfferStatus') || 'received',
       private_notes: String(getVal('listingOfferNotes') || '').trim() || null
     };
-    if (status) status.textContent = 'Saving private offer comparison…';
+    if (saveButton) { saveButton.disabled = true; saveButton.setAttribute('aria-busy', 'true'); saveButton.textContent = 'Saving comparison…'; }
+    if (status) { status.className = 'platform-status'; status.textContent = 'Saving private offer comparison…'; }
     try {
       const { error } = await client.from('hof_listing_workspace_offers').insert(payload);
       if (error) throw error;
@@ -12399,6 +12402,8 @@ function routeAfterMagicLinkIfNeeded() {
     } catch (err) {
       console.error('Listing workspace offer comparison save failed:', err);
       if (status) { status.className = 'platform-status err'; status.textContent = err?.message || 'Could not save offer comparison.'; }
+    } finally {
+      if (saveButton) { saveButton.disabled = false; saveButton.setAttribute('aria-busy', 'false'); saveButton.textContent = 'Save Offer Comparison'; }
     }
   }
 
