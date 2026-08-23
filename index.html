@@ -17979,15 +17979,23 @@ function routeAfterMagicLinkIfNeeded() {
 
   root.filterBrokerageAgents = function filterBrokerageAgents(value) {
     const query = String(value || '').trim().toLowerCase();
+    const attention = String(document.getElementById('brokerageAgentAttentionFilter')?.value || 'all').toLowerCase();
     const rows = Array.from(document.querySelectorAll('[data-brokerage-agent-row]'));
     let visible = 0;
     rows.forEach(row => {
-      const matches = !query || String(row.dataset.search || '').includes(query);
+      const membership = String(row.dataset.membership || '').toLowerCase();
+      const engagement = String(row.dataset.engagement || '').toLowerCase();
+      const attentionMatch = attention === 'all'
+        || (attention === 'activation' && (membership !== 'active' || engagement === 'needs_activation'))
+        || (attention === 'billing' && engagement === 'needs_billing')
+        || (attention === 'follow_up' && engagement === 'needs_follow_up');
+      const matches = attentionMatch && (!query || String(row.dataset.search || '').includes(query));
       row.hidden = !matches;
       if (matches) visible += 1;
     });
     const summary = document.getElementById('brokerageAgentFilterSummary');
-    if (summary) summary.textContent = query ? `Showing ${visible} matching agent${visible === 1 ? '' : 's'}.` : `${visible} agent${visible === 1 ? '' : 's'} shown.`;
+    const label = attention === 'activation' ? ' needing activation' : attention === 'billing' ? ' needing billing attention' : attention === 'follow_up' ? ' needing follow-up' : '';
+    if (summary) summary.textContent = (query || attention !== 'all') ? `Showing ${visible} matching agent${visible === 1 ? '' : 's'}${label}.` : `${visible} agent${visible === 1 ? '' : 's'} shown.`;
   };
 
   root.focusBrokerageActivationFollowUp = function focusBrokerageActivationFollowUp() {
@@ -18247,11 +18255,11 @@ function routeAfterMagicLinkIfNeeded() {
           '<div class="brokerage-safe-kpi"><span>Accepted → subscribed</span><strong>' + Number(m.acceptedInviteSubscriptionRate || 0) + '%</strong><small>' + Number(m.acceptedInviteSubscribedCount || 0) + ' with active access</small></div>' +
         '</div>' +
         '<div class="brokerage-seat-momentum"><strong>' + (seatPercent == null ? 'Team growth' : 'Seat utilization: ' + seatPercent + '%') + '</strong><span>' + safe(seatMomentum) + (teamUsagePercent == null ? '' : ' Team packet usage: ' + teamUsagePercent + '% this month.') + '</span><button type="button" class="brokerage-access-button" onclick="document.getElementById(\'brokerageInviteEmail\')?.focus()">Invite an agent</button></div>' +
-        '<div class="brokerage-invite-form" style="margin-top:1rem"><label for="brokerageAgentFilter">Find an agent</label><input id="brokerageAgentFilter" type="search" placeholder="Name, email, team, status, or next action" aria-label="Find an agent" oninput="filterBrokerageAgents(this.value)"><button type="button" class="brokerage-access-button" onclick="exportBrokerageRoster()">Download roster CSV</button><span id="brokerageAgentFilterSummary" class="brokerage-invite-result">' + Number(agents.length) + ' agent' + (agents.length === 1 ? '' : 's') + ' shown.</span></div>' +
+        '<div class="brokerage-invite-form" style="margin-top:1rem"><label for="brokerageAgentFilter">Find an agent</label><input id="brokerageAgentFilter" type="search" placeholder="Name, email, team, status, or next action" aria-label="Find an agent" oninput="filterBrokerageAgents(this.value)"><label for="brokerageAgentAttentionFilter">Show</label><select id="brokerageAgentAttentionFilter" aria-label="Filter agents by attention" onchange="filterBrokerageAgents(document.getElementById(\'brokerageAgentFilter\')?.value || \'\')"><option value="all">All agents</option><option value="activation">Needs activation</option><option value="billing">Billing attention</option><option value="follow_up">Follow-up</option></select><button type="button" class="brokerage-access-button" onclick="exportBrokerageRoster()">Download roster CSV</button><span id="brokerageAgentFilterSummary" class="brokerage-invite-result">' + Number(agents.length) + ' agent' + (agents.length === 1 ? '' : 's') + ' shown.</span></div>' +
         '<p id="brokerageTeamResult" class="brokerage-invite-result">Private team labels organize this roster only; they do not grant permissions or change billing, roles, offers, or documents.</p>' +
         '<table class="brokerage-safe-table"><thead><tr><th>Agent</th><th>Membership</th><th>Team</th><th>TXR/NAR attestation</th><th>Plan / renewal</th><th>Usage</th><th>Last activity</th><th>Offers</th><th>Signed</th><th>Next action</th><th>Follow up</th><th>Brokerage access</th></tr></thead><tbody>' +
         (agents.length ? agents.map(agent =>
-          '<tr data-brokerage-agent-row data-search="' + safe([agent.name, agent.email, agent.teamName, agent.membershipStatus, agent.subscriptionStatus, agent.nextAction, agent.engagement].filter(Boolean).join(' ')) + '"><td><strong>' + safe(agent.name || agent.email || 'Agent') + '</strong><br><span>' + safe(agent.email || '') + '</span></td>' +
+          '<tr data-brokerage-agent-row data-membership="' + safe(agent.membershipStatus || 'pending') + '" data-subscription="' + safe(agent.subscriptionStatus || '') + '" data-engagement="' + safe(agent.engagement || '') + '" data-search="' + safe([agent.name, agent.email, agent.teamName, agent.membershipStatus, agent.subscriptionStatus, agent.nextAction, agent.engagement].filter(Boolean).join(' ')) + '"><td><strong>' + safe(agent.name || agent.email || 'Agent') + '</strong><br><span>' + safe(agent.email || '') + '</span></td>' +
           '<td>' + safe(agent.membershipStatus || 'pending') + (agent.inviteAccepted ? '<br><small>Invite accepted</small>' : '') + '</td>' +
           '<td>' + (agent.role === 'agent' ? '<input id="brokerageTeam-' + safe(agent.userId) + '" type="text" maxlength="80" value="' + safe(agent.teamName || '') + '" placeholder="Optional team" aria-label="Private team for ' + safe(agent.name || agent.email || 'agent') + '"><button type="button" class="brokerage-access-button" onclick="setBrokerageMemberTeam(\'' + safe(agent.userId) + '\')">Save</button>' : '<span>Support-managed</span>') + '</td>' +
           '<td>' + (agent.txrAgentAuthorized ? '<span title="Attested ' + safe(agent.txrAgentAttestedAt || '') + '">Attested</span>' : 'Not yet attested') + '</td>' +
