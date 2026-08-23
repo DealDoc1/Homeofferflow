@@ -13,6 +13,7 @@ class SubscriptionFeedbackTests(unittest.TestCase):
         self.assertIn("function setSubscriptionActionStatus(message, type = 'err')", INDEX)
         self.assertIn("function setSubscriptionActionBusy(message)", INDEX)
         self.assertIn("setSubscriptionActionBusy('Opening secure Stripe Checkout…')", INDEX)
+        self.assertIn("setSubscriptionActionBusy('Opening secure Stripe Billing…')", INDEX)
         self.assertIn("el.setAttribute('aria-busy', 'true')", INDEX)
 
     def test_billing_and_checkout_failures_use_inline_status(self):
