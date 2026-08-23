@@ -109,6 +109,13 @@ class ListingWorkspaceFoundationTests(unittest.TestCase):
         self.assertIn("Seller name(s)", INDEX)
         self.assertIn("Landlord name(s)", INDEX)
 
+    def test_listing_workspace_surfaces_private_seller_disclosure_review_action(self):
+        self.assertIn('id="sellerDisclosureQuickStart"', INDEX)
+        self.assertIn('onclick="openSellerDisclosureDraftWorkspace()"', INDEX)
+        self.assertIn('root.openSellerDisclosureDraftWorkspace = function openSellerDisclosureDraftWorkspace()', INDEX)
+        self.assertIn('document.getElementById(\'hofSellerAddress\')?.focus({ preventScroll: true })', INDEX)
+        self.assertIn('does not send or sign anything.', INDEX)
+
     def test_optional_planning_topics_do_not_compete_with_the_listing_intake(self):
         self.assertIn("Add optional planning topics", INDEX)
         self.assertIn("Leave this closed if you only need a private listing workspace now.", INDEX)

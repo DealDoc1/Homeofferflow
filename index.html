@@ -11596,6 +11596,8 @@ function routeAfterMagicLinkIfNeeded() {
       <div class="platform-card">
         <h4>${workspaceTitle}</h4>
         <p>${workspaceDescription}</p>
+        <div class="notice" id="sellerDisclosureQuickStart" style="margin-bottom:1rem;"><strong>Need the seller disclosure next?</strong> Open the private TREC-55-1 review workspace from here after you have the property and seller details. It stays separate from the listing workspace and does not send or sign anything.</div>
+        <div class="platform-actions" style="margin-top:-.35rem;margin-bottom:1rem;"><button type="button" class="btn-secondary" onclick="openSellerDisclosureDraftWorkspace()">Open seller disclosure review</button></div>
         <div class="notice gold"><strong>Start here:</strong> seller leads and private listing workspaces are live now. executable listing agreements, seller disclosures, and lease-listing packets appear only after their exact source workflow has been mapped and visually checked, including completed-signature visual QA, so this workspace never suggests an unready document can be sent.</div>
         <div class="platform-grid">
           <div class="field"><label>Workflow Type</label><select id="sellerLeadType"><option value="agent_listing">Listing Agent / Seller Rep</option><option value="fsbo">FSBO Referral / Seller Lead</option></select></div>
@@ -19755,6 +19757,20 @@ function routeAfterMagicLinkIfNeeded() {
         : 'Draft loaded. Save creates a new private revision; seller review and signing remain inactive.';
       card.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
+  };
+  root.openSellerDisclosureDraftWorkspace = function openSellerDisclosureDraftWorkspace() {
+    const open = () => {
+      const card = document.getElementById('hofSellerDisclosureCard');
+      if (!card) return false;
+      const workspace = document.getElementById('hofSellerDisclosureWorkspace');
+      if (workspace) workspace.open = true;
+      card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      window.setTimeout(() => document.getElementById('hofSellerAddress')?.focus({ preventScroll: true }), 150);
+      return true;
+    };
+    if (open()) return;
+    window.setTimeout(open, 250);
+    window.setTimeout(open, 900);
   };
   root.filterSellerDisclosureDrafts = function filterSellerDisclosureDrafts(value) {
     const query = String(value || '').trim().toLowerCase();
