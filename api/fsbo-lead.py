@@ -187,6 +187,7 @@ PARTNER_LANDING_EVENT_TYPES = {
     "partner_directory_pricing_selected": "pricing_selected",
     "partner_directory_empty_search": "unfilled_search",
 }
+PARTNER_LANDING_CHANNELS = {"direct", "organic", "pwa_shortcut", "email", "social", "referral", "other"}
 PARTNER_ONBOARDING_EVENT_TYPES = {
     "partner_onboarding_opened": "opened",
     "partner_onboarding_completed": "completed",
@@ -652,12 +653,15 @@ def _record_partner_landing_event(data):
     event_type = _text(data.get("event_type"), 80)
     tier = _text(data.get("tier"), 80) or "unspecified"
     category = _text(data.get("category"), 80) or "unspecified"
+    channel = _text(data.get("channel"), 80) or "direct"
     if event_type not in PARTNER_LANDING_EVENT_TYPES:
         raise ValueError("Unsupported partner landing event.")
     if tier not in ALLOWED_MODELS | {"unspecified"}:
         raise ValueError("Unsupported partner tier.")
     if category not in ALLOWED_PARTNER_TYPES | {"unspecified"}:
         raise ValueError("Unsupported partner category.")
+    if channel not in PARTNER_LANDING_CHANNELS:
+        raise ValueError("Unsupported partner landing channel.")
     _record_partner_checkout_event(
         event_type,
         PARTNER_LANDING_EVENT_TYPES[event_type],
@@ -666,6 +670,7 @@ def _record_partner_landing_event(data):
             "surface": "partner_directory" if event_type in {"partner_directory_application_selected", "partner_directory_pricing_selected"} else "partner_landing",
             "tier": tier,
             "category": category,
+            "channel": channel,
         },
     )
 
