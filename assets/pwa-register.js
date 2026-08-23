@@ -27,6 +27,15 @@
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', addTrialPath, {once: true});
     else addTrialPath();
   }
+  if (window.location.pathname === '/agents') {
+    const tagAgentTrialLinks = () => {
+      document.querySelectorAll('a[href="/ondemand"]').forEach(link => {
+        link.href = '/ondemand?utm_source=agent_workspace&utm_medium=agent_page&utm_campaign=agent_acquisition';
+      });
+    };
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', tagAgentTrialLinks, {once: true});
+    else tagAgentTrialLinks();
+  }
   if (!('serviceWorker' in navigator)) return;
   let deferredInstallPrompt = null;
   const dismissKey = 'hof_public_pwa_install_dismissed_v1';
