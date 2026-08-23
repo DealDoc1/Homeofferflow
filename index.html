@@ -3966,7 +3966,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       </div>
 
       <div class="field-group"><div class="field"><label>Email Address (receipt + download)</label><input type="email" id="paymentEmail" name="paymentEmail" inputmode="email" autocomplete="email" placeholder="you@example.com" required aria-required="true"/></div></div>
-      <div id="paymentActionStatus" class="platform-status" role="status" aria-live="polite"></div>
+      <div id="paymentActionStatus" class="platform-status" role="status" aria-live="polite" aria-atomic="true"></div>
       <button class="btn-primary" id="payBtn" style="width:100%; font-size:1rem; padding:1.1rem; opacity:0.5; cursor:not-allowed;" onclick="handlePayment()" disabled>Select a plan to continue →</button>
       <p style="text-align:center; margin-top:0.85rem; font-size:0.78rem; color:var(--gray);">🔒 Secure checkout powered by Stripe · One-time packet purchase · All sales final</p>
     </div>
@@ -9693,6 +9693,8 @@ function routeAfterMagicLinkIfNeeded() {
 
       if (btn) {
         btn.disabled = true;
+        btn.setAttribute('aria-disabled', 'true');
+        btn.setAttribute('aria-busy', 'true');
         btn.textContent = 'Opening secure checkout...';
         btn.style.opacity = '0.7';
         btn.style.cursor = 'wait';
@@ -9736,6 +9738,8 @@ function routeAfterMagicLinkIfNeeded() {
       setPaymentStatus('Payment error: ' + (err?.message || err));
       if (btn) {
         btn.disabled = false;
+        btn.setAttribute('aria-disabled', 'false');
+        btn.setAttribute('aria-busy', 'false');
         btn.textContent = oldText || ('Pay $' + (state.selectedPrice || 99) + ' & Continue →');
         btn.style.opacity = '1';
         btn.style.cursor = 'pointer';
