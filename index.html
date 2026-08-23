@@ -5692,6 +5692,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     }
 
     try {
+      setSubscriptionActionBusy('Opening secure Stripe Billing…');
       await logOfferEvent(null, 'billing_portal_opened', hofAuth?.subscription?.status || '', 'Opened Stripe Billing portal.', { source });
       const response = await fetch('/api/create-billing-portal', {
         method: 'POST',
