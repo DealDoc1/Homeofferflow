@@ -13368,6 +13368,22 @@ function routeAfterMagicLinkIfNeeded() {
     if (summary) summary.textContent = `${visible} roadmap item${visible === 1 ? '' : 's'} shown.`;
   };
 
+  window.filterQaRows = function filterQaRows(filter = 'all') {
+    const normalized = String(filter || 'all').toLowerCase();
+    const rows = document.querySelectorAll('[data-qa-row]');
+    let visible = 0;
+    rows.forEach(row => {
+      const status = String(row.dataset.qaStatus || '').toLowerCase();
+      const show = normalized === 'all'
+        || (normalized === 'attention' && ['failed', 'blocked', 'partial', 'not_tested'].includes(status))
+        || status === normalized;
+      row.hidden = !show;
+      if (show) visible += 1;
+    });
+    const summary = document.getElementById('qaFilterSummary');
+    if (summary) summary.textContent = `${visible} QA scenario${visible === 1 ? '' : 's'} shown.`;
+  };
+
   async function renderRoadmapFoundationBlock() {
     try {
       const tracker = window.hofAdminTrackerPayload;
@@ -13402,8 +13418,8 @@ function routeAfterMagicLinkIfNeeded() {
           </div>
         </div>`).join('') || '<div class="admin-empty">No roadmap items found.</div>'}</div>`;
 
-      const qaHtml = `<div class="admin-section"><h4>QA Coverage — ${verifiedCount} of ${hofPlatform.qaScenarios.length} Verified</h4>${hofPlatform.qaScenarios.map(item => `
-        <div class="roadmap-row">
+      const qaHtml = `<div class="admin-section"><h4>QA Coverage — ${verifiedCount} of ${hofPlatform.qaScenarios.length} Verified</h4><div class="admin-toolbar" style="margin:.4rem 0 .75rem"><label for="qaStatusFilter" style="margin:0;color:var(--gray-light);font-size:.78rem;">Show</label><select id="qaStatusFilter" aria-label="Filter QA scenarios by status" onchange="filterQaRows(this.value)"><option value="all">All QA scenarios</option><option value="attention">Needs attention</option><option value="passed">Passed</option><option value="blocked">Blocked</option><option value="not_tested">Not tested</option></select><span id="qaFilterSummary" class="admin-muted">${hofPlatform.qaScenarios.length} QA scenarios shown.</span></div>${hofPlatform.qaScenarios.map(item => `
+        <div class="roadmap-row" data-qa-row data-qa-status="${escapeAttr(item.current_status || 'not_tested')}">
           <div><span class="platform-pill">${escapeAttr(item.category || 'QA')}</span></div>
           <div><strong>${escapeAttr(item.title || '')}</strong><span>${escapeAttr(item.description || '')}</span>
             ${item.notes ? `<small style="display:block;margin-top:.3rem;">${escapeAttr(item.notes)}</small>` : ''}

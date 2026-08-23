@@ -393,6 +393,13 @@ class AdminTrackerRoadmapFilterTests(unittest.TestCase):
         self.assertIn('data-roadmap-row', INDEX)
         self.assertIn("['in_progress', 'blocked', 'qa', 'partial']", INDEX)
 
+    def test_authenticated_qa_tracker_can_be_filtered_to_attention_items(self):
+        self.assertIn("filterQaRows", INDEX)
+        self.assertIn('id="qaStatusFilter"', INDEX)
+        self.assertIn('value="attention"', INDEX)
+        self.assertIn('data-qa-row', INDEX)
+        self.assertIn("['failed', 'blocked', 'partial', 'not_tested']", INDEX)
+
 
 if __name__ == "__main__":
     unittest.main()
