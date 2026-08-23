@@ -6,6 +6,7 @@
     '/texas-agent-offer-workflow': 'offer',
     '/texas-listing-workflow': 'listing',
     '/texas-lease-offer-workflow': 'lease',
+    '/texas-agent-form-library': 'form_library',
   }[window.location.pathname];
   if (guideKind) {
     const metrics = document.createElement('script');

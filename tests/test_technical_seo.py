@@ -88,6 +88,7 @@ class TechnicalSeoTests(unittest.TestCase):
         self.assertIn("target.pathname === '/agents' && target.hash === '#transaction-start'", metrics)
         self.assertIn("startsQuestionOne && guideKind === 'listing'", metrics)
         self.assertIn("startsQuestionOne && guideKind === 'lease'", metrics)
+        self.assertIn("startsQuestionOne && guideKind === 'form_library'", metrics)
 
     def test_homepage_describes_the_brand_and_site_with_valid_structured_data(self):
         blocks = re.findall(

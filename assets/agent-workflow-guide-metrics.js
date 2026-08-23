@@ -4,6 +4,7 @@
       '/texas-agent-offer-workflow': 'offer',
       '/texas-listing-workflow': 'listing',
       '/texas-lease-offer-workflow': 'lease',
+      '/texas-agent-form-library': 'form_library',
     }[window.location.pathname] || 'offer');
   const storagePrefix = 'hof_agent_workflow_guide_' + guideKind + '_';
   const record = (eventType, ctaPath = '') => {
@@ -37,6 +38,8 @@
         ? 'listing_guide'
         : startsQuestionOne && guideKind === 'lease'
         ? 'lease_guide'
+        : startsQuestionOne && guideKind === 'form_library'
+        ? 'form_library_guide'
         : workflow === 'sale_listing'
         ? 'listing_guide'
         : workflow === 'lease_listing' || workflow === 'lease_representation'
