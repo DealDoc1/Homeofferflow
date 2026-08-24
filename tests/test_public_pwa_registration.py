@@ -52,6 +52,14 @@ class PublicPwaRegistrationTests(unittest.TestCase):
         self.assertIn("Keep your agent workspace one tap away", SCRIPT)
         self.assertIn("OnDemand agent workspace and first saved offer", SCRIPT)
 
+    def test_core_conversion_pages_have_workflow_specific_install_copy(self):
+        self.assertIn("window.location.pathname === '/buyers'", SCRIPT)
+        self.assertIn("saved offer and review summary", SCRIPT)
+        self.assertIn("window.location.pathname === '/sellers'", SCRIPT)
+        self.assertIn("seller plan and support paths", SCRIPT)
+        self.assertIn("window.location.pathname === '/agents'", SCRIPT)
+        self.assertIn("Question 1, drafts, and your workspace", SCRIPT)
+
 
 if __name__ == '__main__':
     unittest.main()

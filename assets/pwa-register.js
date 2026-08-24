@@ -86,6 +86,9 @@
     const partnerSurface = window.location.pathname === '/partners';
     const sellerOfferReviewSurface = window.location.pathname === '/texas-seller-offer-review';
     const onDemandSurface = window.location.pathname === '/ondemand';
+    const buyerSurface = window.location.pathname === '/buyers';
+    const sellerSurface = window.location.pathname === '/sellers';
+    const agentSurface = window.location.pathname === '/agents';
     const title = formLibrarySurface
       ? 'Keep the Texas form library one tap away'
       : partnerSurface
@@ -93,6 +96,12 @@
       : sellerOfferReviewSurface
       ? 'Keep seller offer review one tap away'
       : onDemandSurface
+      ? 'Keep your agent workspace one tap away'
+      : buyerSurface
+      ? 'Keep your buyer offer one tap away'
+      : sellerSurface
+      ? 'Keep your seller plan one tap away'
+      : agentSurface
       ? 'Keep your agent workspace one tap away'
       : 'Keep HomeOfferFlow one tap away';
     const copy = formLibrarySurface
@@ -103,6 +112,12 @@
       ? 'Install the lightweight app shell to return quickly to your seller offer-review checklist and next conversation.'
       : onDemandSurface
       ? 'Install the lightweight app shell to return quickly to your OnDemand agent workspace and first saved offer.'
+      : buyerSurface
+      ? 'Install the lightweight app shell to return quickly to your saved offer and review summary.'
+      : sellerSurface
+      ? 'Install the lightweight app shell to return quickly to your seller plan and support paths.'
+      : agentSurface
+      ? 'Install the lightweight app shell to return quickly to Question 1, drafts, and your workspace.'
       : 'Install the lightweight app shell for faster returns to your workspace.';
     card.innerHTML = `<strong style="display:block;color:#e8b86d;margin-bottom:.2rem">${title}</strong><span style="display:block;color:#b6c4d5;margin-bottom:.55rem">${copy}</span><div style="display:flex;gap:.45rem;flex-wrap:wrap"><button type="button" id="hofPublicPwaInstallButton" style="padding:.45rem .65rem;border:0;border-radius:7px;background:#c8973f;color:#102033;font-weight:800;cursor:pointer">Install app</button><button type="button" id="hofPublicPwaInstallDismiss" style="padding:.45rem .65rem;border:1px solid rgba(255,255,255,.25);border-radius:7px;background:transparent;color:#fff;cursor:pointer">Not now</button></div>`;
     document.body.appendChild(card);
