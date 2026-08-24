@@ -133,6 +133,11 @@
     .status.err { background:rgba(224,108,90,.10); border:1px solid rgba(224,108,90,.32); color:#ffc0b7; }
     .checkout-recovery { display:none; background:rgba(200,151,63,.11); border:1px solid rgba(232,184,109,.42); border-radius:12px; padding:13px; margin:15px 0; color:#f4d39c; font-size:13px; line-height:1.5; }
     .checkout-recovery strong { color:#ffe1a9; }
+    .install-hint { display:none; background:rgba(109,179,143,.10); border:1px solid rgba(109,179,143,.32); border-radius:12px; padding:13px; margin:15px 0; color:#d6f0df; font-size:13px; line-height:1.5; }
+    .install-hint.show { display:block; }
+    .install-hint strong { display:block; color:#bce8d0; margin-bottom:3px; }
+    .install-hint button { margin-top:10px; padding:10px 12px; font-size:13px; box-shadow:none; }
+    .install-hint button[hidden] { display:none; }
     .fine { color:var(--muted); font-size:12px; line-height:1.55; margin:13px 0 0; }
     .scope {
       margin:34px 0 0; padding:28px; border:1px solid var(--line); border-radius:20px;
@@ -233,6 +238,11 @@
           <div id="checkoutRecovery" class="checkout-recovery" role="status">
             <strong>Your enrollment is still ready.</strong> No card was saved and no charge was made. Recheck the acknowledgment below, then select <em>Continue to secure checkout</em> when you are ready to restart your 60-day trial.
           </div>
+          <div id="installHint" class="install-hint" role="status" aria-live="polite" aria-atomic="true">
+            <strong>Keep your workspace one tap away.</strong>
+            <span id="installHintCopy"></span>
+            <button id="installAppButton" type="button" hidden>Install HomeOfferFlow</button>
+          </div>
           <label class="consent" for="terms">
             <input id="terms" type="checkbox" />
             <span>
@@ -317,6 +327,7 @@
         inviteToken: initialParams.get("invite") || "",
         inviteStatus: initialParams.get("invite") ? "pending" : "none"
       };
+      let deferredInstallPrompt = null;
       const LEGAL_POLICY_VERSION = "2026-07-30";
       function refreshRenewalDate() {
         const renewal = new Date();
@@ -338,6 +349,31 @@
       function setBusy(button, busy, busyText, idleText) {
         button.disabled = busy;
         button.textContent = busy ? busyText : idleText;
+      }
+
+      function isMobileInstallCandidate() {
+        return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || "");
+      }
+
+      function renderInstallHint(checkoutComplete) {
+        const hint = $("installHint");
+        const copy = $("installHintCopy");
+        const button = $("installAppButton");
+        if (!hint || !copy || !button || !checkoutComplete || !isMobileInstallCandidate()) {
+          hint?.classList.remove("show");
+          return;
+        }
+        hint.classList.add("show");
+        if (deferredInstallPrompt) {
+          copy.textContent = "Install the lightweight app shell to reopen your workspace faster.";
+          button.hidden = false;
+        } else if (/iPhone|iPad|iPod/i.test(navigator.userAgent || "")) {
+          copy.textContent = "In Safari, use Share, then Add to Home Screen. No separate app-store download is needed.";
+          button.hidden = true;
+        } else {
+          copy.textContent = "Use your browser menu to add HomeOfferFlow to your Home Screen when available.";
+          button.hidden = true;
+        }
       }
 
       function recordAggregateLandingEvent(eventType, channel = "") {
@@ -456,6 +492,7 @@
         $("workspaceButton").style.display = checkoutComplete ? "block" : "none";
         $("firstOfferButton").style.display = checkoutComplete ? "block" : "none";
         $("checkoutRecovery").style.display = checkoutCancelled ? "block" : "none";
+        renderInstallHint(checkoutComplete);
       }
 
       async function acceptBrokerageInvite(session) {
@@ -595,6 +632,19 @@
       $("firstOfferButton").addEventListener("click", () => {
         markFirstOfferAttribution();
         window.location.assign("/?pwa_action=new_offer");
+      });
+      window.addEventListener("beforeinstallprompt", (event) => {
+        event.preventDefault();
+        deferredInstallPrompt = event;
+        renderInstallHint(new URLSearchParams(window.location.search).get("checkout") === "success" && Boolean(state.session?.user?.email));
+      });
+      $("installAppButton").addEventListener("click", async () => {
+        if (!deferredInstallPrompt) return;
+        const prompt = deferredInstallPrompt;
+        deferredInstallPrompt = null;
+        prompt.prompt();
+        await prompt.userChoice.catch(() => null);
+        renderInstallHint(false);
       });
       $("signOutButton").addEventListener("click", async () => {
         await client.auth.signOut();
