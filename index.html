@@ -19499,6 +19499,16 @@ function routeAfterMagicLinkIfNeeded() {
       const sources = Array.isArray(payload.sources) ? payload.sources : [];
       const list = document.createElement('ul');
       list.style.cssText = 'margin:.7rem 0 0;padding-left:1.1rem;color:var(--gray-light);font-size:.82rem;line-height:1.55';
+      const search = document.createElement('input');
+      search.type = 'search';
+      search.className = 'hof-shared-source-search';
+      search.setAttribute('aria-label', 'Search approved shared forms');
+      search.placeholder = 'Search form code or revision';
+      search.style.cssText = 'display:block;width:100%;max-width:23rem;margin:.7rem 0 0;padding:.55rem .65rem;border:1px solid rgba(255,255,255,.18);border-radius:8px;background:rgba(0,0,0,.12);color:var(--white);font:inherit';
+      search.addEventListener('input', () => {
+        const query = search.value.trim().toLowerCase();
+        list.querySelectorAll('li').forEach(item => { item.hidden = !!query && !item.textContent.toLowerCase().includes(query); });
+      });
       if (!sources.length) {
         const empty = document.createElement('li');
         empty.textContent = 'No approved source revisions are available to this signed-in account yet.';
@@ -19513,6 +19523,7 @@ function routeAfterMagicLinkIfNeeded() {
       const copy = details.querySelector('p');
       if (copy) {
         copy.textContent = 'Every signed-in agent sees the same approved source catalog. This inventory confirms source availability; each workflow still shows its own draft, delivery, and signing behavior.';
+        copy.insertAdjacentElement('afterend', search);
         copy.insertAdjacentElement('afterend', list);
       }
     } catch (error) {
