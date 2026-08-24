@@ -55,6 +55,7 @@ class PartnerLandingFunnelTests(unittest.TestCase):
         self.assertIn("partner_landing_viewed", metrics)
         self.assertIn("partner_landing_cta_selected", metrics)
         self.assertIn("request_type: 'partner_landing_event'", metrics)
+        self.assertIn('"@type":"BreadcrumbList"', guide)
         self.assertIn("before any payment", PARTNERS)
         self.assertIn("Apply for Core — no charge yet", PARTNERS)
         self.assertIn("First 90 days, then $149/month", PARTNERS)
