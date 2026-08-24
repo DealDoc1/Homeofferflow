@@ -4558,6 +4558,7 @@ class handler(BaseHTTPRequestHandler):
             pwa_shared_context_event_counts = {
                 "buyer_offer_opened": 0,
                 "agent_chooser_opened": 0,
+                "agent_transaction_selected": 0,
             }
             for item in events:
                 event_type = str(item.get("event_type") or "").strip().lower()
@@ -4565,6 +4566,8 @@ class handler(BaseHTTPRequestHandler):
                     pwa_shared_context_event_counts["buyer_offer_opened"] += 1
                 elif event_type == "pwa_shared_context_agent_chooser_opened":
                     pwa_shared_context_event_counts["agent_chooser_opened"] += 1
+                elif event_type == "pwa_shared_context_agent_transaction_selected":
+                    pwa_shared_context_event_counts["agent_transaction_selected"] += 1
             # The seller's post-intake directory step is deliberately measured
             # as an aggregate bridge: operations can see whether seller demand
             # reaches provider discovery without receiving seller, property,
