@@ -14,6 +14,7 @@ class PartnerLandingFocusTests(unittest.TestCase):
         self.assertIn('texas-home-service-partner-guide', page)
         self.assertIn('Want the short version first?', script)
         self.assertIn('Read the short partner placement guide', script)
+        self.assertIn('partner_guide_expanded', script)
 
 
 if __name__ == '__main__':
