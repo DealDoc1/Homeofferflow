@@ -48,6 +48,8 @@ class FsboLandingFunnelTests(unittest.TestCase):
         self.assertIn("sessionStorage.getItem(key)", FSBO_GUIDE_METRICS)
         self.assertIn("request_type: 'fsbo_landing_event'", FSBO_GUIDE_METRICS)
         self.assertIn("service_level: 'free_intake'", FSBO_GUIDE_METRICS)
+        self.assertIn("medium === 'organic_content'", FSBO_GUIDE_METRICS)
+        self.assertIn('channel,', FSBO_GUIDE_METRICS)
         self.assertNotIn("utm_source", FSBO_GUIDE_METRICS)
         self.assertNotIn("location.href", FSBO_GUIDE_METRICS)
 
@@ -81,6 +83,7 @@ class FsboLandingFunnelTests(unittest.TestCase):
         self.assertIn('"fsboGuideViewCount"', ADMIN)
         self.assertIn('"fsboGuideCtaCount"', ADMIN)
         self.assertIn('"fsboGuidePackageCtaCounts"', ADMIN)
+        self.assertIn('"fsboGuideViewCountsByChannel"', ADMIN)
         self.assertIn('"fsboGuideCtaRate"', ADMIN)
         self.assertIn("Texas FSBO Guide Funnel", INDEX)
         self.assertIn("fsboGuidePackageCtaCounts", INDEX)

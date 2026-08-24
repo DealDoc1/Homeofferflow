@@ -158,6 +158,9 @@ FSBO_LANDING_EVENT_TYPES = {
     "fsbo_seller_plan_copied": "copied",
     "pwa_seller_plan_opened": "opened",
 }
+FSBO_LANDING_CHANNELS = {
+    "direct", "organic", "pwa_shortcut", "email", "social", "referral", "local_event", "print", "unspecified",
+}
 FSBO_RECEIPT_DELIVERY_STATUSES = {"sent", "failed", "not_configured", "missing_email"}
 PARTNER_APPLICATION_RECEIPT_DELIVERY_STATUSES = {"sent", "failed", "not_configured", "missing_email"}
 PARTNER_APPLICATION_NEXT_STEPS = {
@@ -635,10 +638,13 @@ def _record_fsbo_landing_event(data):
     """Persist aggregate seller-landing engagement without visitor or property data."""
     event_type = _text(data.get("event_type"), 80)
     service_level = _text(data.get("service_level"), 80) or "free_intake"
+    channel = _text(data.get("channel"), 80).lower() or "unspecified"
     if event_type not in FSBO_LANDING_EVENT_TYPES:
         raise ValueError("Unsupported seller landing event.")
     if service_level not in FSBO_PACKAGE_CATALOG:
         raise ValueError("Unsupported seller package.")
+    if channel not in FSBO_LANDING_CHANNELS:
+        raise ValueError("Unsupported seller landing channel.")
     _record_partner_checkout_event(
         event_type,
         FSBO_LANDING_EVENT_TYPES[event_type],
@@ -651,6 +657,7 @@ def _record_fsbo_landing_event(data):
                 else "seller_landing"
             ),
             "serviceLevel": service_level,
+            "channel": channel,
         },
     )
 

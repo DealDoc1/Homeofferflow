@@ -4685,6 +4685,25 @@ class handler(BaseHTTPRequestHandler):
             fsbo_guide_cta_count = len([
                 item for item in events if item.get("event_type") == "fsbo_guide_cta_selected"
             ])
+            fsbo_guide_channels = (
+                "direct", "organic", "pwa_shortcut", "email", "social", "referral", "local_event", "print", "unspecified",
+            )
+            fsbo_guide_view_counts_by_channel = {
+                channel: len([
+                    item for item in events
+                    if item.get("event_type") == "fsbo_guide_viewed"
+                    and str((item.get("metadata") or {}).get("channel") or "unspecified") == channel
+                ])
+                for channel in fsbo_guide_channels
+            }
+            fsbo_guide_cta_counts_by_channel = {
+                channel: len([
+                    item for item in events
+                    if item.get("event_type") == "fsbo_guide_cta_selected"
+                    and str((item.get("metadata") or {}).get("channel") or "unspecified") == channel
+                ])
+                for channel in fsbo_guide_channels
+            }
             fsbo_guide_package_cta_counts = {
                 package: len([
                     item for item in events
@@ -5233,6 +5252,8 @@ class handler(BaseHTTPRequestHandler):
                 "fsboGuideViewCount": fsbo_guide_view_count,
                 "fsboGuideCtaCount": fsbo_guide_cta_count,
                 "fsboGuidePackageCtaCounts": fsbo_guide_package_cta_counts,
+                "fsboGuideViewCountsByChannel": fsbo_guide_view_counts_by_channel,
+                "fsboGuideCtaCountsByChannel": fsbo_guide_cta_counts_by_channel,
                 "fsboGuideCtaRate": round((fsbo_guide_cta_count / fsbo_guide_view_count) * 100, 1)
                 if fsbo_guide_view_count else 0,
                 "agentLandingViewCount": agent_landing_view_count,
