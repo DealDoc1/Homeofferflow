@@ -14,6 +14,12 @@
     metrics.src = '/assets/agent-workflow-guide-metrics.js';
     document.head.appendChild(metrics);
   }
+  if (window.location.pathname === '/texas-fsbo-closing-checklist') {
+    const metrics = document.createElement('script');
+    metrics.defer = true;
+    metrics.src = '/assets/fsbo-closing-checklist-metrics.js';
+    document.head.appendChild(metrics);
+  }
   if (guideKind === 'offer' || guideKind === 'listing' || guideKind === 'lease' || guideKind === 'form_library') {
     const addTrialPath = () => {
       const actions = document.querySelector('main .actions');

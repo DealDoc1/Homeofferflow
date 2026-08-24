@@ -5079,6 +5079,20 @@ class handler(BaseHTTPRequestHandler):
             fsbo_guide_cta_count = len([
                 item for item in events if item.get("event_type") == "fsbo_guide_cta_selected"
             ])
+            fsbo_closing_checklist_view_count = len([
+                item for item in events if item.get("event_type") == "fsbo_closing_checklist_viewed"
+            ])
+            fsbo_closing_checklist_cta_count = len([
+                item for item in events if item.get("event_type") == "fsbo_closing_checklist_cta_selected"
+            ])
+            fsbo_closing_checklist_package_cta_counts = {
+                package: len([
+                    item for item in events
+                    if item.get("event_type") == "fsbo_closing_checklist_cta_selected"
+                    and str((item.get("metadata") or {}).get("serviceLevel") or "free_intake") == package
+                ])
+                for package in ("free_intake", "seller_prep", "launch_kit", "flat_fee_mls", "offer_review", "contract_help", "premium_bundle")
+            }
             fsbo_guide_channels = (
                 "direct", "organic", "pwa_shortcut", "email", "social", "referral", "local_event", "print", "unspecified",
             )
@@ -5814,6 +5828,11 @@ class handler(BaseHTTPRequestHandler):
                 "fsboGuideCtaRatesByChannel": fsbo_guide_cta_rates_by_channel,
                 "fsboGuideCtaRate": round((fsbo_guide_cta_count / fsbo_guide_view_count) * 100, 1)
                 if fsbo_guide_view_count else 0,
+                "fsboClosingChecklistViewCount": fsbo_closing_checklist_view_count,
+                "fsboClosingChecklistCtaCount": fsbo_closing_checklist_cta_count,
+                "fsboClosingChecklistPackageCtaCounts": fsbo_closing_checklist_package_cta_counts,
+                "fsboClosingChecklistCtaRate": round((fsbo_closing_checklist_cta_count / fsbo_closing_checklist_view_count) * 100, 1)
+                if fsbo_closing_checklist_view_count else 0,
                 "agentLandingViewCount": agent_landing_view_count,
                 "agentLandingQuestionOneOpenCount": agent_landing_question_one_open_count,
                 "agentLandingQuestionOneOpenRate": round(

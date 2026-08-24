@@ -152,6 +152,8 @@ FSBO_LANDING_EVENT_TYPES = {
     "fsbo_support_paths_expanded": "expanded",
     "fsbo_guide_viewed": "viewed",
     "fsbo_guide_cta_selected": "selected",
+    "fsbo_closing_checklist_viewed": "viewed",
+    "fsbo_closing_checklist_cta_selected": "selected",
     "fsbo_provider_directory_opened": "opened",
     "fsbo_intake_opened": "opened",
     "fsbo_package_selected": "selected",
@@ -710,10 +712,11 @@ def _record_fsbo_landing_event(data):
     default_surface = (
         "pwa_seller_plan" if event_type == "pwa_seller_plan_opened"
         else "fsbo_provider_directory" if event_type == "fsbo_provider_directory_opened"
+        else "fsbo_closing_checklist" if event_type.startswith("fsbo_closing_checklist_")
         else "fsbo_guide" if event_type.startswith("fsbo_guide_")
         else "seller_landing"
     )
-    allowed_surfaces = {"seller_landing", "seller_receipt", "fsbo_guide", "pwa_seller_plan", "fsbo_provider_directory"}
+    allowed_surfaces = {"seller_landing", "seller_receipt", "fsbo_guide", "fsbo_closing_checklist", "pwa_seller_plan", "fsbo_provider_directory"}
     surface = requested_surface if requested_surface in allowed_surfaces else default_surface
     _record_partner_checkout_event(
         event_type,

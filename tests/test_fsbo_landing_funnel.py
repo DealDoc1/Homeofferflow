@@ -34,7 +34,7 @@ class FsboLandingFunnelTests(unittest.TestCase):
         self.assertIn("Unsupported seller package.", API)
         self.assertIn("'fsbo_landing_event'", API)
         self.assertIn('else "seller_landing"', API)
-        self.assertIn('allowed_surfaces = {"seller_landing", "seller_receipt", "fsbo_guide", "pwa_seller_plan", "fsbo_provider_directory"}', API)
+        self.assertIn('allowed_surfaces = {"seller_landing", "seller_receipt", "fsbo_guide", "fsbo_closing_checklist", "pwa_seller_plan", "fsbo_provider_directory"}', API)
         self.assertIn("body.surface = 'seller_receipt'", RECEIPT_CHANNEL)
         self.assertIn('"pwa_seller_plan"', API)
         self.assertIn('"fsbo_guide"', API)
