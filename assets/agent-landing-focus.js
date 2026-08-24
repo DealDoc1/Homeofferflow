@@ -30,5 +30,17 @@
   list.className = 'agent-resource-list';
   resourceLinks.slice(workflowLink ? 1 : 0).forEach((link) => list.append(link.cloneNode(true)));
   details.append(list);
+  details.addEventListener('toggle', () => {
+    if (!details.open) return;
+    try {
+      const key = 'hof_agent_resource_links_expanded';
+      if (sessionStorage.getItem(key)) return;
+      sessionStorage.setItem(key, '1');
+      fetch('/api/fsbo-lead', {
+        method: 'POST', headers: {'Content-Type': 'application/json'}, keepalive: true,
+        body: JSON.stringify({request_type: 'agent_landing_event', event_type: 'agent_resource_links_expanded', channel: 'direct'})
+      }).catch(() => {});
+    } catch (_) {}
+  });
   start.insertAdjacentElement('afterend', details);
 })();

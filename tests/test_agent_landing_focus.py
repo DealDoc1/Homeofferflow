@@ -14,6 +14,7 @@ class AgentLandingFocusTests(unittest.TestCase):
         for path in ('texas-agent-offer-workflow', 'texas-agent-form-library', 'texas-listing-workflow', 'texas-lease-offer-workflow'):
             self.assertIn(path, script)
         self.assertIn('Explore shared forms and workflow guides', script)
+        self.assertIn('agent_resource_links_expanded', script)
 
 
 if __name__ == '__main__':
