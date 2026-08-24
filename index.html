@@ -10545,7 +10545,14 @@ function routeAfterMagicLinkIfNeeded() {
   // Keep this selector broad deliberately: address fields also appear in
   // account, broker, and seller workspaces after their screens are rendered.
   // The explicit legacy name is retained because it predates the Address suffix.
+  const HOF_LEGACY_ADDRESS_KEYS = new Set(['propertyToSell', 'profInvestorMailing', 'clientCityStateZip']);
+  const isHofAddressInput = input => input instanceof HTMLInputElement
+    && (/(?:address|addr)/i.test(`${input.id} ${input.name}`)
+      || HOF_LEGACY_ADDRESS_KEYS.has(input.id)
+      || HOF_LEGACY_ADDRESS_KEYS.has(input.name));
+
   function addressAutocompleteInputs() {
+    const legacyAddressKeys = HOF_LEGACY_ADDRESS_KEYS;
     const callbacks = {
       propAddress: fillAddressFields,
       buyerMailAddr: fillBuyerMailAddressField,
@@ -10556,9 +10563,8 @@ function routeAfterMagicLinkIfNeeded() {
     // of an "Address" suffix. Name-only agreement controls are included too:
     // those dialogs are rendered after sign-in and should receive the same
     // low-friction address search as the public offer flow.
-    const legacyAddressKeys = new Set(['propertyToSell', 'profInvestorMailing', 'clientCityStateZip']);
     const inputs = Array.from(document.querySelectorAll('input[id], input[name]'))
-      .filter(input => /(?:address|addr)/i.test(`${input.id} ${input.name}`) || legacyAddressKeys.has(input.id) || legacyAddressKeys.has(input.name));
+      .filter(input => isHofAddressInput(input) || legacyAddressKeys.has(input.name));
     // Google remains the primary picker. The semantic hint keeps native
     // address autofill useful when Places is unavailable or still loading.
     inputs.forEach(input => {
@@ -10583,8 +10589,10 @@ function routeAfterMagicLinkIfNeeded() {
     const observer = new MutationObserver(records => {
       const addedAddressControl = records.some(record => [...record.addedNodes].some(node => {
         if (!(node instanceof Element)) return false;
-        return (node.matches('input[id], input[name]') && /(?:address|addr)/i.test(`${node.id} ${node.getAttribute('name') || ''}`))
-          || !!node.querySelector?.('input[id*="address" i], input[name*="address" i], input[id*="addr" i], input[name*="addr" i]');
+        const controls = [];
+        if (node.matches('input[id], input[name]')) controls.push(node);
+        node.querySelectorAll?.('input[id], input[name]').forEach(input => controls.push(input));
+        return controls.some(isHofAddressInput);
       }));
       if (!addedAddressControl) return;
       addressAutocompleteInputs();
