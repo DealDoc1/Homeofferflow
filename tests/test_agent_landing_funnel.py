@@ -246,6 +246,11 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertEqual(captured[3][0], "agent_landing_question_one_opened")
         self.assertEqual(captured[3][3], {"surface": "agent_landing", "role": "agent", "channel": "referral"})
 
+    def test_public_agent_landing_preserves_organic_and_pwa_attribution(self):
+        self.assertIn("medium==='installed_app'||source==='pwa_shortcut'?'pwa_shortcut'", AGENTS)
+        self.assertIn("medium==='organic_content'||source==='organic'?'organic'", AGENTS)
+        self.assertIn("body?.request_type==='agent_landing_event'", AGENTS)
+
     def test_admin_reports_agent_workspace_landing_conversion(self):
         for expected in (
             '"agentLandingViewCount"', '"agentLandingQuestionOneOpenCount"', '"agentLandingQuestionOneOpenRate"', '"agentLandingCtaCount"', '"agentLandingCtaRate"',
