@@ -118,6 +118,7 @@ class PwaInstallExperienceTests(unittest.TestCase):
             '"pwaInstallAcceptedSurfaceCounts"',
             '"pwaAuthenticatedShortcutCounts"',
             '"pwaAuthenticatedShortcutPlatformCounts"',
+            '"pwaAuthenticatedShortcutRepeatUserCount"',
             '"pwaSharedContextEventCounts"',
             "pwa_install_event_counts",
             "pwa_install_surfaces",
@@ -165,6 +166,7 @@ class PwaInstallExperienceTests(unittest.TestCase):
         self.assertIn('pwaAuthenticatedShortcutCounts?.brokerage_setup', INDEX)
         self.assertIn('pwaAuthenticatedShortcutPlatformCounts?.android', INDEX)
         self.assertIn('pwaAuthenticatedShortcutPlatformCounts?.unknown', INDEX)
+        self.assertIn('pwaAuthenticatedShortcutRepeatUserCount', INDEX)
         self.assertIn("surface: 'pwa_shortcut'", INDEX)
 
     def test_clean_signed_in_standalone_launch_opens_only_the_private_workspace(self):

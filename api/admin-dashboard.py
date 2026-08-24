@@ -4542,6 +4542,7 @@ class handler(BaseHTTPRequestHandler):
             pwa_authenticated_shortcut_platform_counts = {
                 platform: 0 for platform in pwa_authenticated_shortcut_platforms
             }
+            pwa_authenticated_shortcut_user_open_counts = {}
             for item in events:
                 if item.get("event_type") != "pwa_authenticated_shortcut_opened":
                     continue
@@ -4552,6 +4553,13 @@ class handler(BaseHTTPRequestHandler):
                 if platform not in pwa_authenticated_shortcut_platform_counts:
                     platform = "unknown"
                 pwa_authenticated_shortcut_platform_counts[platform] += 1
+                user_id = str(item.get("user_id") or "").strip()
+                if user_id:
+                    pwa_authenticated_shortcut_user_open_counts[user_id] = pwa_authenticated_shortcut_user_open_counts.get(user_id, 0) + 1
+            pwa_authenticated_shortcut_repeat_user_count = len([
+                user_id for user_id, count in pwa_authenticated_shortcut_user_open_counts.items()
+                if count >= 2
+            ])
             # Shared-context actions are intentionally reported as aggregate
             # funnel signals. The shared text, property address, client data,
             # and source URL never leave the event payload or enter this view.
@@ -5503,6 +5511,7 @@ class handler(BaseHTTPRequestHandler):
                 "pwaBuyerOfferShortcutCount": pwa_buyer_offer_shortcut_count,
                 "pwaAuthenticatedShortcutCounts": pwa_authenticated_shortcut_counts,
                 "pwaAuthenticatedShortcutPlatformCounts": pwa_authenticated_shortcut_platform_counts,
+                "pwaAuthenticatedShortcutRepeatUserCount": pwa_authenticated_shortcut_repeat_user_count,
                 "pwaSharedContextEventCounts": pwa_shared_context_event_counts,
                 "sharedFormCatalogOpenCount": shared_form_catalog_open_count,
                 "fsboProviderDirectoryOpenCount": fsbo_provider_directory_open_count,
