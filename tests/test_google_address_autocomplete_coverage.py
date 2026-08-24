@@ -40,6 +40,7 @@ class GoogleAddressAutocompleteCoverageTests(unittest.TestCase):
         self.assertIn("input.setAttribute('inputmode', 'text');", INDEX)
         self.assertIn("input.dataset.hofGoogleAddress = 'true';", INDEX)
         self.assertIn("Google remains the primary picker", INDEX)
+        self.assertIn("addressAutocompleteInputs();\n\n  function wireLegacyGoogleAddressInputs", INDEX)
 
     def test_selection_telemetry_excludes_transaction_addresses(self):
         self.assertIn("trackEvent('Google Address Selected'", INDEX)
