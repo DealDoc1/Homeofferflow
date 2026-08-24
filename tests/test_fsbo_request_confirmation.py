@@ -94,6 +94,8 @@ class FsboRequestConfirmationTests(unittest.TestCase):
         self.assertIn("Idempotency-Key", api)
         self.assertIn("seller_plan_email", api)
         self.assertIn("SELLER_PLAN_REPLY_TO", api)
+        self.assertIn("SELLER_LEAD_ALERT_TO", api)
+        self.assertIn('email_payload["bcc"]', api)
         self.assertIn("Reply directly to this email", api)
         self.assertIn("Review your selected path", api)
         self.assertIn("seller_follow_up", api)
@@ -133,6 +135,7 @@ class FsboRequestConfirmationTests(unittest.TestCase):
         self.assertEqual(captured["args"][0], "https://api.resend.com/emails")
         self.assertEqual(captured["kwargs"]["json"]["to"], ["seller@example.com"])
         self.assertEqual(captured["kwargs"]["json"]["reply_to"], "support@homeofferflow.com")
+        self.assertEqual(captured["kwargs"]["json"]["bcc"], ["support@homeofferflow.com"])
         self.assertNotIn("<script>", captured["kwargs"]["json"]["html"])
         self.assertIn("not checkout", captured["kwargs"]["json"]["text"])
         self.assertIn("Your next steps", captured["kwargs"]["json"]["text"])
@@ -142,6 +145,26 @@ class FsboRequestConfirmationTests(unittest.TestCase):
         self.assertIn('href="https://www.homeofferflow.com/sellers?seller_package=seller_prep', captured["kwargs"]["json"]["html"])
         self.assertIn("Reply directly to this email", captured["kwargs"]["json"]["text"])
         self.assertTrue(captured["kwargs"]["headers"]["Idempotency-Key"].startswith("fsbo-seller-plan-"))
+
+    def test_seller_receipt_does_not_bcc_the_seller_to_themselves(self):
+        spec = importlib.util.spec_from_file_location("fsbo_plan_receipt_bcc", API_PATH)
+        api = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(api)
+        captured = {}
+
+        class Response:
+            status_code = 200
+
+        class Client:
+            def __enter__(self): return self
+            def __exit__(self, *args): return False
+            def post(self, *args, **kwargs):
+                captured["payload"] = kwargs["json"]
+                return Response()
+
+        with patch.object(api, "RESEND_API_KEY", "re_test"), patch.object(api, "SELLER_LEAD_ALERT_TO", "seller@example.com"), patch.object(api.httpx, "Client", return_value=Client()):
+            self.assertEqual(api._send_seller_plan_confirmation({"seller_email": "seller@example.com"}), "sent")
+        self.assertNotIn("bcc", captured["payload"])
 
     def test_seller_plan_receipt_steps_are_allowlisted_and_fall_back_safely(self):
         spec = importlib.util.spec_from_file_location("fsbo_plan_receipt_steps", API_PATH)
