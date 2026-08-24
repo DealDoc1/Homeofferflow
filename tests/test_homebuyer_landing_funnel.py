@@ -85,6 +85,7 @@ class HomebuyerLandingFunnelTests(unittest.TestCase):
             '"homebuyerLandingOfferStartRate"',
             '"homebuyerLandingViewCountsByChannel"',
             '"homebuyerLandingOfferStartedCountsByChannel"',
+            '"homebuyerLandingOfferStartRatesByChannel"',
             '"homebuyerCheckoutCancelledCount"',
             '"homebuyerCheckoutRecoveryStartCount"',
             '"homebuyerCheckoutRecoveryStartRate"',
@@ -97,6 +98,7 @@ class HomebuyerLandingFunnelTests(unittest.TestCase):
         self.assertIn("Homebuyer $99 Funnel", INDEX)
         self.assertIn("homebuyerLandingCtaRate", INDEX)
         self.assertIn("homebuyerLandingOfferStartRate", INDEX)
+        self.assertIn("Homebuyer channel conversion:", INDEX)
         self.assertIn("homebuyerCheckoutRecoveryStartRate", INDEX)
         self.assertIn("recordHomebuyerCheckoutEvent", INDEX)
         self.assertIn('"pwaBuyerOfferShortcutCount"', ADMIN)
