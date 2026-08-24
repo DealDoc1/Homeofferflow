@@ -107,6 +107,8 @@ class PartnerLandingFunnelTests(unittest.TestCase):
         self.assertIn('"partnerApplicationEssentialsFocusCount"', ADMIN)
         self.assertIn('"partnerApplicationEssentialsFocusRate"', ADMIN)
         self.assertIn("partnerApplicationEssentialsFocusRate", INDEX)
+        self.assertIn("surface: 'partner_guide'", (ROOT / "assets" / "partner-guide-metrics.js").read_text(encoding="utf-8"))
+        self.assertIn("partnerLandingCtaRatesBySurface", ADMIN)
 
     def test_admin_returns_aggregate_partner_conversion(self):
         for expected in (
@@ -123,6 +125,9 @@ class PartnerLandingFunnelTests(unittest.TestCase):
             '"partnerLandingViewCountsByChannel"',
             '"partnerLandingCtaCountsByChannel"',
             '"partnerLandingCtaRatesByChannel"',
+            '"partnerLandingViewCountsBySurface"',
+            '"partnerLandingCtaCountsBySurface"',
+            '"partnerLandingCtaRatesBySurface"',
             '"partnerDirectoryApplicationStartCount"',
             '"partnerDirectoryPricingSelectionCount"',
             "partner_landing_event_types",
@@ -145,6 +150,10 @@ class PartnerLandingFunnelTests(unittest.TestCase):
         self.assertIn("event_type:'partner_application_opened', tier, category, channel", INDEX)
         self.assertIn("hof_partner_application_opened_", INDEX)
         self.assertIn("new application modal open", INDEX)
+
+    def test_partner_event_surface_is_allowlisted_and_guide_specific(self):
+        self.assertIn('allowed_surfaces = {"partner_landing", "partner_guide", "partner_directory"}', API)
+        self.assertIn('surface = requested_surface if requested_surface in allowed_surfaces', API)
 
     def test_partner_application_progress_preserves_campaign_channel(self):
         self.assertIn("const channel = campaignPartnerChannel() || 'direct';", INDEX)

@@ -20,7 +20,8 @@
           event_type: eventType,
           tier: 'unspecified',
           category: 'other',
-          channel
+          channel,
+          surface: 'partner_guide'
         })
       }).catch(() => {});
     } catch (_) {}
