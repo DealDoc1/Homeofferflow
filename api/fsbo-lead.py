@@ -240,7 +240,7 @@ INVESTOR_LANDING_EVENT_TYPES = {
     "investor_offer_guide_cta_selected": "selected",
 }
 INVESTOR_LANDING_CHANNELS = {
-    "direct_outreach", "email", "social", "referral", "local_event", "print", "organic", "unspecified",
+    "direct_outreach", "email", "social", "referral", "local_event", "print", "organic", "pwa_shortcut", "unspecified",
 }
 
 

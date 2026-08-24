@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <script defer src="/assets/investor-attribution.js"></script>
-<html lang="en"><head>
+<html lang="en"><head><script>(()=>{const p=new URLSearchParams(window.location.search);const source=String(p.get('utm_source')||'').trim().toLowerCase();const medium=String(p.get('utm_medium')||'').trim().toLowerCase();const channel=medium==='installed_app'||source==='pwa_shortcut'?'pwa_shortcut':medium==='organic_content'||source==='organic'?'organic':['direct_outreach','email','social','referral','local_event','print'].includes(source)?source:'unspecified';const originalFetch=window.fetch.bind(window);window.fetch=(input,init={})=>{try{const body=typeof init.body==='string'?JSON.parse(init.body):null;if(body?.request_type==='investor_landing_event'&&body.channel==='unspecified'&&channel!=='unspecified'){body.channel=channel;init={...init,body:JSON.stringify(body)}}}catch(_){ }return originalFetch(input,init)};})();</script>
 <link rel="manifest" href="/manifest.webmanifest">
 <script defer src="/assets/pwa-register.js"></script>
 <link rel="apple-touch-icon" href="/assets/homeofferflow-apple-touch-icon.png">
