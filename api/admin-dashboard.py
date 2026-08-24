@@ -4820,7 +4820,7 @@ class handler(BaseHTTPRequestHandler):
                 item for item in events if item.get("event_type") == "investor_landing_cta_selected"
             ])
             investor_landing_channels = (
-                "direct_outreach", "email", "social", "referral", "local_event", "print", "unspecified",
+                "direct_outreach", "email", "social", "referral", "local_event", "print", "organic", "unspecified",
             )
             investor_landing_view_counts_by_channel = {
                 channel: len([
@@ -4844,6 +4844,22 @@ class handler(BaseHTTPRequestHandler):
             investor_offer_guide_cta_count = len([
                 item for item in events if item.get("event_type") == "investor_offer_guide_cta_selected"
             ])
+            investor_offer_guide_view_counts_by_channel = {
+                channel: len([
+                    item for item in events
+                    if item.get("event_type") == "investor_offer_guide_viewed"
+                    and str((item.get("metadata") or {}).get("channel") or "unspecified") == channel
+                ])
+                for channel in investor_landing_channels
+            }
+            investor_offer_guide_cta_counts_by_channel = {
+                channel: len([
+                    item for item in events
+                    if item.get("event_type") == "investor_offer_guide_cta_selected"
+                    and str((item.get("metadata") or {}).get("channel") or "unspecified") == channel
+                ])
+                for channel in investor_landing_channels
+            }
             investor_landing_workspace_handoff_user_count = len({
                 str(item.get("user_id") or "")
                 for item in events
@@ -5287,6 +5303,8 @@ class handler(BaseHTTPRequestHandler):
                 "investorLandingCtaCountsByChannel": investor_landing_cta_counts_by_channel,
                 "investorOfferGuideViewCount": investor_offer_guide_view_count,
                 "investorOfferGuideCtaCount": investor_offer_guide_cta_count,
+                "investorOfferGuideViewCountsByChannel": investor_offer_guide_view_counts_by_channel,
+                "investorOfferGuideCtaCountsByChannel": investor_offer_guide_cta_counts_by_channel,
                 "investorOfferGuideCtaRate": round((investor_offer_guide_cta_count / investor_offer_guide_view_count) * 100, 1)
                 if investor_offer_guide_view_count else 0,
                 "investorLandingWorkspaceHandoffUserCount": investor_landing_workspace_handoff_user_count,
