@@ -98,6 +98,7 @@ class PwaInstallExperienceTests(unittest.TestCase):
         self.assertIn('"pwaInstallNativeAvailableCount"', api)
         self.assertIn('"pwaInstallNativeAvailableRate"', api)
         self.assertIn("pwaInstallNativeAvailableCount", INDEX)
+        self.assertIn("native-install option availability signal", INDEX)
 
     def test_admin_dashboard_can_measure_the_privacy_safe_install_funnel(self):
         api = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
