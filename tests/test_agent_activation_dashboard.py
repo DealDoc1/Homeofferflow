@@ -241,6 +241,9 @@ class AgentActivationDashboardTests(unittest.TestCase):
         self.assertIn("sessionStorage.getItem('hof_agent_workflow_choice')", HTML)
         self.assertIn("sessionStorage.setItem('hof_agent_workflow_choice', kind)", HTML)
         self.assertIn('Current path: ${labels[savedChoice]}. Choose another transaction to change it.', HTML)
+        self.assertIn('id="agentWorkflowResume"', HTML)
+        self.assertIn('resume.textContent = `Resume ${labels[savedChoice]}`', HTML)
+        self.assertIn('resume.onclick = () => startAgentWorkflow(savedChoice)', HTML)
         self.assertLess(HTML.index('id="agentWorkflowStart"'), HTML.index('id="agentActivationCard"'))
         for label in ('>Buying</button>', '>Listing</button>', '>Lease listing</button>', '>Lease representation</button>'):
             self.assertIn(label, HTML)

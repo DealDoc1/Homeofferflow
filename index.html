@@ -3045,6 +3045,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <button class="btn-secondary" type="button" aria-pressed="false" data-agent-workflow-choice="lease_listing" onclick="startAgentWorkflow('lease_listing')">Lease listing</button>
             <button class="btn-secondary" type="button" aria-pressed="false" data-agent-workflow-choice="lease_representation" onclick="startAgentWorkflow('lease_representation')">Lease representation</button>
           </div>
+          <button id="agentWorkflowResume" class="btn-secondary" type="button" style="display:none;margin-top:.65rem;" aria-label="Resume your last transaction path"></button>
           <p id="agentWorkflowStartStatus" role="status" aria-live="polite" style="color:var(--gray-light);font-size:.84rem;line-height:1.5;margin:.8rem 0 0;">Choose a transaction to begin. You can change paths at any time.</p>
         </div>
         <div id="agentActivationCard" class="agent-activation-card" aria-live="polite"></div>
@@ -7133,12 +7134,19 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       lease_listing: 'Lease listing',
       lease_representation: 'Lease representation'
     };
+    const resume = document.getElementById('agentWorkflowResume');
     if (labels[savedChoice]) {
       document.querySelectorAll('[data-agent-workflow-choice]').forEach((button) => {
         button.setAttribute('aria-pressed', button.dataset.agentWorkflowChoice === savedChoice ? 'true' : 'false');
       });
+      if (resume) {
+        resume.textContent = `Resume ${labels[savedChoice]}`;
+        resume.style.display = 'inline-flex';
+        resume.onclick = () => startAgentWorkflow(savedChoice);
+      }
       if (status) status.textContent = `Current path: ${labels[savedChoice]}. Choose another transaction to change it.`;
     } else if (status) {
+      if (resume) resume.style.display = 'none';
       status.textContent = 'Choose the transaction you are working on to continue.';
     }
   };
