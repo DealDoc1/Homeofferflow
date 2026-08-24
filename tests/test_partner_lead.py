@@ -206,7 +206,9 @@ class PartnerLeadTests(unittest.TestCase):
         self.assertIn("separate next step", captured["kwargs"]["json"]["text"])
         self.assertIn("What happens next", captured["kwargs"]["json"]["text"])
         self.assertIn("final featured-placement terms", captured["kwargs"]["json"]["text"])
+        self.assertIn("Review your selected partner tier: https://www.homeofferflow.com/partners?partner_tier=monthly_placement", captured["kwargs"]["json"]["text"])
         self.assertIn("<h3>What happens next</h3>", captured["kwargs"]["json"]["html"])
+        self.assertIn('href="https://www.homeofferflow.com/partners?partner_tier=monthly_placement', captured["kwargs"]["json"]["html"])
         self.assertTrue(captured["kwargs"]["headers"]["Idempotency-Key"].startswith("partner-application-"))
 
     def test_partner_application_receipt_steps_are_allowlisted_and_fall_back_safely(self):
