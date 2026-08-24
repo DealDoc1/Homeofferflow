@@ -221,6 +221,11 @@ class PartnerLeadTests(unittest.TestCase):
             fsbo_lead.PARTNER_APPLICATION_NEXT_STEPS["founding_pilot"],
         )
 
+    def test_custom_partner_request_receipt_does_not_describe_a_checkout_path(self):
+        steps = fsbo_lead._partner_application_receipt_steps({"preferred_model": "discuss"})
+        self.assertIn("does not open checkout or create a charge.", steps[1])
+        self.assertEqual(fsbo_lead._send_partner_application_confirmation.__name__, "_send_partner_application_confirmation")
+
     def test_partner_application_receipt_telemetry_is_aggregate_and_allowlisted(self):
         captured = []
         with patch.object(fsbo_lead, "_record_partner_checkout_event", side_effect=lambda *args: captured.append(args)):

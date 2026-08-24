@@ -162,6 +162,11 @@ class PartnerTierUiTests(unittest.TestCase):
     def test_selected_tier_makes_the_secure_checkout_handoff_explicit(self):
         self.assertIn('id="foundingPartnerCheckoutNote"', self.html)
         self.assertIn('Continue to Secure Checkout — ', self.html)
+
+    def test_custom_multi_market_request_never_opens_price_based_checkout(self):
+        self.assertIn("if (payload.preferred_model === 'discuss')", self.html)
+        self.assertIn("Custom Request Saved", self.html)
+        self.assertIn("before any checkout or charge", self.html)
         self.assertIn('review the selected Founding Partner price and payment details in secure Stripe Checkout', self.html)
         self.assertIn('placement stays private until onboarding and written-agreement review are complete', self.html)
 
