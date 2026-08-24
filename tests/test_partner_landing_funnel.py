@@ -110,6 +110,9 @@ class PartnerLandingFunnelTests(unittest.TestCase):
             '"partnerGuideExpandedCount"',
             '"partnerLandingTierCtaCounts"',
             '"partnerLandingCategoryCtaCounts"',
+            '"partnerLandingViewCountsByChannel"',
+            '"partnerLandingCtaCountsByChannel"',
+            '"partnerLandingCtaRatesByChannel"',
             '"partnerDirectoryApplicationStartCount"',
             '"partnerDirectoryPricingSelectionCount"',
             "partner_landing_event_types",
@@ -123,6 +126,7 @@ class PartnerLandingFunnelTests(unittest.TestCase):
         self.assertIn("Landing-tier interest:", INDEX)
         self.assertIn("Landing-category interest:", INDEX)
         self.assertIn("partnerLandingChannelCounts", INDEX)
+        self.assertIn("Channel conversion:", INDEX)
         self.assertIn("partnerGuideExpandedCount", INDEX)
 
     def test_modal_open_is_a_distinct_privacy_safe_partner_funnel_stage(self):

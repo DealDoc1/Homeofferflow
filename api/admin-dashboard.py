@@ -4050,6 +4050,28 @@ class handler(BaseHTTPRequestHandler):
                 partner_landing_category_cta_counts.items(), key=lambda item: (-item[1], item[0])
             ))
             partner_landing_channel_counts = {}
+            partner_landing_channels = ("direct", "organic", "pwa_shortcut", "email", "social", "referral", "other")
+            partner_landing_view_counts_by_channel = {
+                channel: len([
+                    item for item in partner_landing_events
+                    if item.get("event_type") == "partner_landing_viewed"
+                    and str((item.get("metadata") or {}).get("channel") or "direct").strip().lower() == channel
+                ])
+                for channel in partner_landing_channels
+            }
+            partner_landing_cta_counts_by_channel = {
+                channel: len([
+                    item for item in partner_landing_events
+                    if item.get("event_type") == "partner_landing_cta_selected"
+                    and str((item.get("metadata") or {}).get("channel") or "direct").strip().lower() == channel
+                ])
+                for channel in partner_landing_channels
+            }
+            partner_landing_cta_rates_by_channel = {
+                channel: round((partner_landing_cta_counts_by_channel[channel] / partner_landing_view_counts_by_channel[channel]) * 100, 1)
+                if partner_landing_view_counts_by_channel[channel] else 0
+                for channel in partner_landing_channels
+            }
             for item in partner_landing_events:
                 if item.get("event_type") not in {"partner_landing_viewed", "partner_landing_cta_selected"}:
                     continue
@@ -5177,6 +5199,9 @@ class handler(BaseHTTPRequestHandler):
                 "partnerLandingTierCtaCounts": partner_landing_tier_cta_counts,
                 "partnerLandingCategoryCtaCounts": partner_landing_category_cta_counts,
                 "partnerLandingChannelCounts": partner_landing_channel_counts,
+                "partnerLandingViewCountsByChannel": partner_landing_view_counts_by_channel,
+                "partnerLandingCtaCountsByChannel": partner_landing_cta_counts_by_channel,
+                "partnerLandingCtaRatesByChannel": partner_landing_cta_rates_by_channel,
                 "partnerDirectoryApplicationStartCount": partner_directory_application_start_count,
                 "partnerDirectoryPricingSelectionCount": partner_directory_pricing_selection_count,
                 "partnerDirectoryEmptySearchCount": partner_directory_empty_search_count,
