@@ -66,6 +66,9 @@ class FsboLandingFunnelTests(unittest.TestCase):
         self.assertIn("fsbo_support_paths_expanded", SELLERS)
         self.assertIn("sellerLandingSupportPathsExpandedCount", ADMIN)
         self.assertIn("keepalive: true", SELLERS)
+        self.assertIn("medium==='installed_app'||source==='pwa_shortcut'?'pwa_shortcut'", SELLERS)
+        self.assertIn("medium==='organic_content'||source==='organic'?'organic'", SELLERS)
+        self.assertIn("body?.request_type==='fsbo_landing_event'", SELLERS)
 
     def test_admin_returns_aggregate_conversion_without_public_details(self):
         for expected in (
