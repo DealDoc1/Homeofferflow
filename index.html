@@ -19507,9 +19507,20 @@ function routeAfterMagicLinkIfNeeded() {
       search.setAttribute('aria-label', 'Search approved shared forms');
       search.placeholder = 'Search form code or revision';
       search.style.cssText = 'display:block;width:100%;max-width:23rem;margin:.7rem 0 0;padding:.55rem .65rem;border:1px solid rgba(255,255,255,.18);border-radius:8px;background:rgba(0,0,0,.12);color:var(--white);font:inherit';
+      const searchStatus = document.createElement('div');
+      searchStatus.className = 'hof-shared-source-search-status';
+      searchStatus.setAttribute('role', 'status');
+      searchStatus.setAttribute('aria-live', 'polite');
+      searchStatus.style.cssText = 'margin-top:.35rem;color:var(--gray);font-size:.76rem;line-height:1.4;min-height:1.05em';
       search.addEventListener('input', () => {
         const query = search.value.trim().toLowerCase();
-        list.querySelectorAll('li').forEach(item => { item.hidden = !!query && !item.textContent.toLowerCase().includes(query); });
+        const items = Array.from(list.querySelectorAll('li'));
+        let visibleCount = 0;
+        items.forEach(item => {
+          item.hidden = !!query && !item.textContent.toLowerCase().includes(query);
+          if (!item.hidden) visibleCount += 1;
+        });
+        searchStatus.textContent = query && !visibleCount ? 'No approved forms match that search.' : '';
       });
       if (!sources.length) {
         const empty = document.createElement('li');
@@ -19526,6 +19537,7 @@ function routeAfterMagicLinkIfNeeded() {
       if (copy) {
         copy.textContent = 'Every signed-in agent sees the same approved source catalog. This inventory confirms source availability; each workflow still shows its own draft, delivery, and signing behavior.';
         copy.insertAdjacentElement('afterend', search);
+        search.insertAdjacentElement('afterend', searchStatus);
         copy.insertAdjacentElement('afterend', list);
       }
     } catch (error) {
