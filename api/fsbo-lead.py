@@ -683,6 +683,7 @@ def _record_partner_landing_event(data):
     tier = _text(data.get("tier"), 80) or "unspecified"
     category = _text(data.get("category"), 80) or "unspecified"
     channel = _text(data.get("channel"), 80) or "direct"
+    requested_surface = _text(data.get("surface"), 40).lower()
     if event_type not in PARTNER_LANDING_EVENT_TYPES:
         raise ValueError("Unsupported partner landing event.")
     if tier not in ALLOWED_MODELS | {"unspecified"}:
@@ -691,12 +692,16 @@ def _record_partner_landing_event(data):
         raise ValueError("Unsupported partner category.")
     if channel not in PARTNER_LANDING_CHANNELS:
         raise ValueError("Unsupported partner landing channel.")
+    allowed_surfaces = {"partner_landing", "partner_guide", "partner_directory"}
+    surface = requested_surface if requested_surface in allowed_surfaces else (
+        "partner_directory" if event_type in {"partner_directory_application_selected", "partner_directory_pricing_selected"} else "partner_landing"
+    )
     _record_partner_checkout_event(
         event_type,
         PARTNER_LANDING_EVENT_TYPES[event_type],
         "Privacy-safe public partner landing engagement recorded.",
         {
-            "surface": "partner_directory" if event_type in {"partner_directory_application_selected", "partner_directory_pricing_selected"} else "partner_landing",
+            "surface": surface,
             "tier": tier,
             "category": category,
             "channel": channel,

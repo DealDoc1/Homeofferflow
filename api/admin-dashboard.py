@@ -4282,6 +4282,28 @@ class handler(BaseHTTPRequestHandler):
                 if partner_landing_view_counts_by_channel[channel] else 0
                 for channel in partner_landing_channels
             }
+            partner_landing_surfaces = ("partner_landing", "partner_guide", "partner_directory")
+            partner_landing_view_counts_by_surface = {
+                surface: len([
+                    item for item in partner_landing_events
+                    if item.get("event_type") == "partner_landing_viewed"
+                    and str((item.get("metadata") or {}).get("surface") or "partner_landing").strip().lower() == surface
+                ])
+                for surface in partner_landing_surfaces
+            }
+            partner_landing_cta_counts_by_surface = {
+                surface: len([
+                    item for item in partner_landing_events
+                    if item.get("event_type") == "partner_landing_cta_selected"
+                    and str((item.get("metadata") or {}).get("surface") or "partner_landing").strip().lower() == surface
+                ])
+                for surface in partner_landing_surfaces
+            }
+            partner_landing_cta_rates_by_surface = {
+                surface: round((partner_landing_cta_counts_by_surface[surface] / partner_landing_view_counts_by_surface[surface]) * 100, 1)
+                if partner_landing_view_counts_by_surface[surface] else 0
+                for surface in partner_landing_surfaces
+            }
             for item in partner_landing_events:
                 if item.get("event_type") not in {"partner_landing_viewed", "partner_landing_cta_selected"}:
                     continue
@@ -5514,6 +5536,9 @@ class handler(BaseHTTPRequestHandler):
                 "partnerLandingViewCountsByChannel": partner_landing_view_counts_by_channel,
                 "partnerLandingCtaCountsByChannel": partner_landing_cta_counts_by_channel,
                 "partnerLandingCtaRatesByChannel": partner_landing_cta_rates_by_channel,
+                "partnerLandingViewCountsBySurface": partner_landing_view_counts_by_surface,
+                "partnerLandingCtaCountsBySurface": partner_landing_cta_counts_by_surface,
+                "partnerLandingCtaRatesBySurface": partner_landing_cta_rates_by_surface,
                 "partnerDirectoryApplicationStartCount": partner_directory_application_start_count,
                 "partnerDirectoryPricingSelectionCount": partner_directory_pricing_selection_count,
                 "partnerDirectoryEmptySearchCount": partner_directory_empty_search_count,
