@@ -93,6 +93,12 @@ class PublicPwaRegistrationTests(unittest.TestCase):
         self.assertIn("trackInstallEvent('Installed')", SCRIPT)
         self.assertIn("surface: window.location.pathname", SCRIPT)
 
+    def test_ios_public_pages_explain_home_screen_install_without_native_prompt(self):
+        self.assertIn("isIosInstallSurface", SCRIPT)
+        self.assertIn("Add to Home Screen", SCRIPT)
+        self.assertIn("trackInstallEvent('InstructionsOpened')", SCRIPT)
+        self.assertIn("window.addEventListener('load', () => { if (isIosInstallSurface()) renderInstallCard(); }", SCRIPT)
+
     def test_public_cached_pages_explain_offline_scope_and_recover_on_reconnect(self):
         self.assertIn("id = 'hofPublicPwaOfflineNotice'", SCRIPT)
         self.assertIn('This saved public page remains available', SCRIPT)
