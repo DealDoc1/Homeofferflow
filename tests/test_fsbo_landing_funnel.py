@@ -93,8 +93,10 @@ class FsboLandingFunnelTests(unittest.TestCase):
         self.assertIn('"fsboGuidePackageCtaCounts"', ADMIN)
         self.assertIn('"fsboGuideViewCountsByChannel"', ADMIN)
         self.assertIn('"fsboGuideCtaCountsByChannel"', ADMIN)
+        self.assertIn('"fsboGuideCtaRatesByChannel"', ADMIN)
         self.assertIn('"fsboGuideCtaRate"', ADMIN)
         self.assertIn("Texas FSBO Guide Funnel", INDEX)
+        self.assertIn("Guide channel conversion:", INDEX)
         self.assertIn("fsboGuidePackageCtaCounts", INDEX)
 
     def test_seller_pwa_shortcut_is_aggregate_only_and_admin_measurable(self):
