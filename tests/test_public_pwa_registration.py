@@ -29,7 +29,10 @@ class PublicPwaRegistrationTests(unittest.TestCase):
         self.assertIn("Refresh for latest version", script)
         self.assertIn("Install app", script)
         self.assertIn("sessionStorage", script)
-        self.assertNotIn('http', script)
+        self.assertNotIn("fetch('http", script)
+        self.assertNotIn('fetch("http', script)
+        self.assertNotIn(".src = 'http", script)
+        self.assertNotIn('.src = "http', script)
 
     def test_shell_caches_the_registration_helper(self):
         worker = (ROOT / 'service-worker.js').read_text(encoding='utf-8')
@@ -57,6 +60,13 @@ class PublicPwaRegistrationTests(unittest.TestCase):
         self.assertIn("hofSellerClosingChecklistCta", SCRIPT)
         self.assertIn("Already under contract?", SCRIPT)
         self.assertIn("/texas-fsbo-closing-checklist?utm_source=seller_question_one", SCRIPT)
+
+    def test_buyer_representation_guide_surfaces_the_current_official_workflow_reminder(self):
+        self.assertIn("window.location.pathname === '/texas-buyer-representation-guide'", SCRIPT)
+        self.assertIn("hofWrittenAgreementReminder", SCRIPT)
+        self.assertIn("written agreement is required before showing residential property", SCRIPT)
+        self.assertIn("Written-Agreement-Explainer.pdf", SCRIPT)
+        self.assertIn("Follow your brokerage-approved process", SCRIPT)
 
     def test_ondemand_install_prompt_explains_its_app_value(self):
         self.assertIn("window.location.pathname === '/ondemand'", SCRIPT)
