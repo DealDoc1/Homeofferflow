@@ -229,6 +229,8 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn('<link rel="canonical" href="https://www.homeofferflow.com/texas-seller-offer-review">', SELLER_OFFER_REVIEW_GUIDE)
         self.assertIn('"@type":"Article"', SELLER_OFFER_REVIEW_GUIDE)
         self.assertIn('"@type":"FAQPage"', SELLER_OFFER_REVIEW_GUIDE)
+        self.assertIn('"@type":"Service"', SELLER_OFFER_REVIEW_GUIDE)
+        self.assertIn('"price":"599"', SELLER_OFFER_REVIEW_GUIDE)
         self.assertIn('Texas Seller Offer Review', SELLER_OFFER_REVIEW_GUIDE)
         self.assertIn('Start seller offer review', SELLER_OFFER_REVIEW_GUIDE)
         self.assertIn('does not recommend, accept, reject, or negotiate', SELLER_OFFER_REVIEW_GUIDE)
