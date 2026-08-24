@@ -5134,6 +5134,10 @@ class handler(BaseHTTPRequestHandler):
                 item for item in events
                 if item.get("event_type") == "agent_private_review_draft_next_step_clicked"
             ])
+            agent_private_review_trial_cta_selected_count = len([
+                item for item in events
+                if item.get("event_type") == "agent_private_review_trial_cta_selected"
+            ])
             for item in events:
                 event_type = str(item.get("event_type") or "")
                 workflow = agent_transaction_event_workflows.get(event_type)
@@ -5683,6 +5687,7 @@ class handler(BaseHTTPRequestHandler):
                 "agentPrivateReviewDraftSavedCount": agent_private_review_draft_saved_count,
                 "agentPrivateReviewDraftSavedByForm": agent_private_review_draft_saved_by_form,
                 "agentPrivateReviewNextStepClickedCount": agent_private_review_next_step_clicked_count,
+                "agentPrivateReviewTrialCtaSelectedCount": agent_private_review_trial_cta_selected_count,
                 "investorLandingViewCount": investor_landing_view_count,
                 "investorLandingCtaCount": investor_landing_cta_count,
                 "investorLandingCtaRate": round((investor_landing_cta_count / investor_landing_view_count) * 100, 1)
