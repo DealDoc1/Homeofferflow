@@ -15,6 +15,11 @@ SEO_GUIDES = {
         "Texas FSBO Planning Guide",
         "https://www.homeofferflow.com/sellers",
     ),
+    "texas-seller-offer-review.html": (
+        "Texas FSBO Support",
+        "Texas Seller Offer Review",
+        "https://www.homeofferflow.com/sellers",
+    ),
     "texas-agent-offer-workflow.html": (
         "Texas Agent and Broker Workspace",
         "Texas Agent Offer Workflow Guide",
@@ -150,10 +155,11 @@ class TechnicalSeoTests(unittest.TestCase):
             r"<url>\s*<loc>(https://www\.homeofferflow\.com/[^<]*)</loc>\s*<lastmod>(\d{4}-\d{2}-\d{2})</lastmod>\s*</url>",
             SITEMAP,
         )
-        self.assertEqual(len(entries), 15)
+        self.assertEqual(len(entries), 16)
         self.assertEqual(dict(entries)["https://www.homeofferflow.com/"], "2026-08-23")
-        for path in ("/agents", "/ondemand", "/partners", "/buyers", "/sellers", "/texas-fsbo-guide", "/texas-agent-offer-workflow", "/texas-lease-offer-workflow", "/texas-listing-workflow", "/texas-agent-form-library", "/texas-homebuyer-offer-guide", "/texas-investor-offer-guide", "/investors", "/directory"):
-            self.assertEqual(dict(entries)[f"https://www.homeofferflow.com{path}"], "2026-08-23")
+        for path in ("/agents", "/ondemand", "/partners", "/buyers", "/sellers", "/texas-fsbo-guide", "/texas-seller-offer-review", "/texas-agent-offer-workflow", "/texas-lease-offer-workflow", "/texas-listing-workflow", "/texas-agent-form-library", "/texas-homebuyer-offer-guide", "/texas-investor-offer-guide", "/investors", "/directory"):
+            expected = "2026-08-24" if path == "/texas-seller-offer-review" else "2026-08-23"
+            self.assertEqual(dict(entries)[f"https://www.homeofferflow.com{path}"], expected)
 
     def test_revenue_guides_show_and_describe_their_real_site_hierarchy(self):
         for filename, (parent_name, current_name, parent_url) in SEO_GUIDES.items():

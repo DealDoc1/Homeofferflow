@@ -12,6 +12,7 @@ const SHELL_ASSETS = [
   '/investors',
   '/directory',
   '/texas-fsbo-guide',
+  '/texas-seller-offer-review',
   '/texas-agent-offer-workflow',
   '/texas-lease-offer-workflow',
   '/texas-listing-workflow',
@@ -32,6 +33,7 @@ const SHELL_ASSETS = [
 const PUBLIC_PAGE_PATHS = new Set([
   '/', '/index.html', '/buyers', '/agents', '/investors', '/sellers',
   '/partners', '/directory', '/ondemand', '/texas-fsbo-guide',
+  '/texas-seller-offer-review',
   '/texas-agent-offer-workflow', '/texas-homebuyer-offer-guide',
   '/texas-lease-offer-workflow',
   '/texas-listing-workflow',

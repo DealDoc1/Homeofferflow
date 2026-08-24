@@ -38,6 +38,10 @@
       "destination": "/texas-fsbo-guide.html"
     },
     {
+      "source": "/texas-seller-offer-review",
+      "destination": "/texas-seller-offer-review.html"
+    },
+    {
       "source": "/texas-agent-offer-workflow",
       "destination": "/texas-agent-offer-workflow.html"
     },
