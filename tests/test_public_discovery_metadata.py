@@ -82,6 +82,19 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
             page = (ROOT / filename).read_text(encoding="utf-8")
             self.assertIn(f'property="og:image:alt" content="{alt}"', page)
 
+    def test_high_intent_acquisition_pages_provide_twitter_image_alt_text(self):
+        expected = {
+            "agents.html": "HomeOfferFlow Texas real estate offer tools for agents and brokers",
+            "sellers.html": "HomeOfferFlow Texas FSBO seller support",
+            "buyers.html": "HomeOfferFlow Texas homebuyer offer workflow",
+            "investors.html": "HomeOfferFlow Texas investor workspace",
+            "partners.html": "HomeOfferFlow founding partner placements for Texas home-service businesses",
+            "ondemand.html": "HomeOfferFlow guided Texas offer workflow",
+        }
+        for filename, alt in expected.items():
+            page = (ROOT / filename).read_text(encoding="utf-8")
+            self.assertIn(f'name="twitter:image:alt" content="{alt}"', page)
+
     def test_policy_urls_are_canonical_and_private_tool_screens_are_not_indexable(self):
         self.assertIn('<link rel="canonical" href="https://www.homeofferflow.com/terms.html"', TERMS)
         self.assertIn('<link rel="canonical" href="https://www.homeofferflow.com/privacy.html"', PRIVACY)
