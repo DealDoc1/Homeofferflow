@@ -233,6 +233,13 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn('/texas-seller-offer-review', (ROOT / 'vercel.json').read_text(encoding='utf-8'))
         self.assertIn('href="/texas-seller-offer-review"', FSBO_GUIDE)
 
+    def test_seller_offer_review_guide_records_privacy_safe_funnel_events(self):
+        self.assertIn("record('fsbo_landing_viewed')", SELLER_OFFER_REVIEW_GUIDE)
+        self.assertIn("record('fsbo_landing_cta_selected')", SELLER_OFFER_REVIEW_GUIDE)
+        self.assertIn("service_level: 'offer_review'", SELLER_OFFER_REVIEW_GUIDE)
+        self.assertIn("sessionStorage.getItem(key)", SELLER_OFFER_REVIEW_GUIDE)
+        self.assertNotIn('location.href', SELLER_OFFER_REVIEW_GUIDE)
+
     def test_investor_offer_guide_is_a_crawlable_people_first_path_to_the_workspace(self):
         self.assertIn('<link rel="canonical" href="https://www.homeofferflow.com/texas-investor-offer-guide">', INVESTOR_GUIDE)
         self.assertIn('"@type":"Article"', INVESTOR_GUIDE)

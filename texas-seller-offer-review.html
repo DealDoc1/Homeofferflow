@@ -26,4 +26,26 @@
   <h2>Start with the next useful conversation.</h2><p>HomeOfferFlow’s <a class="inline" href="/sellers?seller_package=offer_review&amp;utm_source=texas_seller_offer_review&amp;utm_medium=organic_content&amp;utm_campaign=seller_acquisition">seller offer-review intake</a> starts without payment. It helps organize the request and the questions you want to discuss; any paid scope, responsible provider, and final pricing are confirmed separately. If you are still preparing to sell, compare the broader <a class="inline" href="/sellers">Texas FSBO support paths</a>.</p>
   <section class="faq"><div class="eyebrow">Seller offer questions</div><h2>Clear answers before you respond.</h2><details><summary>Can HomeOfferFlow accept or reject an offer for me?</summary><p>No. It organizes information for review and does not recommend, accept, reject, or negotiate an offer.</p></details><details><summary>What should I compare besides price?</summary><p>Financing, earnest money, option period, contingencies, concessions, possession, closing date, and questions for the appropriate professionals.</p></details><details><summary>Can I start without paying?</summary><p>Yes. Start with a no-obligation request. Any paid offer-review scope and final pricing are confirmed separately before payment.</p></details></section>
   <div class="actions"><a class="button" href="/sellers?seller_package=offer_review&amp;utm_source=texas_seller_offer_review&amp;utm_medium=organic_content&amp;utm_campaign=seller_acquisition">Tell us what you need reviewed</a></div>
-  </main><footer>© 2026 HomeOfferFlow · A BrewBQ Investments LLC product · <a href="/terms.html">Terms</a> · <a href="/privacy.html">Privacy</a> · <a href="/disclaimer.html">Disclaimer</a><br><br>HomeOfferFlow is not a law firm and does not provide legal advice or represent a party as a real-estate broker.</footer></div><script defer src="/assets/pwa-register.js"></script><script defer src="/_vercel/insights/script.js"></script></body></html>
+  </main><footer>© 2026 HomeOfferFlow · A BrewBQ Investments LLC product · <a href="/terms.html">Terms</a> · <a href="/privacy.html">Privacy</a> · <a href="/disclaimer.html">Disclaimer</a><br><br>HomeOfferFlow is not a law firm and does not provide legal advice or represent a party as a real-estate broker.</footer></div><script>
+  // Record only aggregate, session-deduplicated funnel events for this
+  // acquisition page. No visitor, property, or URL data is sent.
+  (() => {
+    const record = (eventType) => {
+      const key = 'hof_seller_offer_review_' + eventType;
+      try {
+        if (sessionStorage.getItem(key)) return;
+        sessionStorage.setItem(key, '1');
+        fetch('/api/fsbo-lead', {
+          method: 'POST', headers: {'Content-Type': 'application/json'}, keepalive: true,
+          body: JSON.stringify({request_type: 'fsbo_landing_event', event_type: eventType, service_level: 'offer_review'})
+        }).catch(() => {});
+      } catch (_) {}
+    };
+    try { window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); }; window.va('event', {name: 'Seller Offer Review Guide Viewed'}); } catch (_) {}
+    record('fsbo_landing_viewed');
+    document.querySelectorAll('a[href*="seller_package=offer_review"]').forEach((link) => link.addEventListener('click', () => {
+      try { window.va('event', {name: 'Seller Offer Review CTA Selected'}); } catch (_) {}
+      record('fsbo_landing_cta_selected');
+    }));
+  })();
+  </script><script defer src="/assets/pwa-register.js"></script><script defer src="/_vercel/insights/script.js"></script></body></html>
