@@ -4,6 +4,7 @@
   <link rel="manifest" href="/manifest.webmanifest" />
   <link rel="stylesheet" href="/assets/partner-landing-focus.css" />
   <script defer src="/assets/partner-landing-focus.js"></script>
+  <script src="/assets/receipt-funnel-channel.js"></script>
   <link rel="apple-touch-icon" href="/assets/homeofferflow-apple-touch-icon.png" />
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
@@ -105,7 +106,7 @@
       const selectedTier = allowedTiers.has(tier) ? tier : '';
       const medium = String(source.get('utm_medium') || '').trim().toLowerCase();
       const campaignChannel = medium === 'installed_app' ? 'pwa_shortcut' : medium || 'direct';
-      const campaignChannelForEvents = campaignChannel === 'organic_content' || campaignChannel === 'owned_directory' ? 'organic' : (['direct', 'organic', 'pwa_shortcut', 'email', 'social', 'referral', 'other'].includes(campaignChannel) ? campaignChannel : 'direct');
+      const campaignChannelForEvents = campaignChannel === 'organic_content' || campaignChannel === 'owned_directory' ? 'organic' : (['direct', 'organic', 'pwa_shortcut', 'email', 'partner_receipt', 'social', 'referral', 'other'].includes(campaignChannel) ? campaignChannel : 'direct');
       const recordAggregateFunnelEvent = (eventType, tierValue, categoryValue, channelValue = campaignChannelForEvents) => {
         const safeTier = allowedTiers.has(tierValue) ? tierValue : 'unspecified';
         const safeCategory = allowedCategories.has(categoryValue) ? categoryValue : 'unspecified';

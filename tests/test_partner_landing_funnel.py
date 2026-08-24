@@ -40,6 +40,8 @@ class PartnerLandingFunnelTests(unittest.TestCase):
         self.assertIn("campaignChannel === 'organic_content'", PARTNERS)
         self.assertIn("channel: channelValue", PARTNERS)
         self.assertIn("PARTNER_LANDING_CHANNELS", API)
+        self.assertIn("partner_receipt", API)
+        self.assertIn("/assets/receipt-funnel-channel.js", PARTNERS)
 
     def test_partner_page_respects_notched_mobile_safe_areas(self):
         self.assertIn('viewport-fit=cover', PARTNERS)
