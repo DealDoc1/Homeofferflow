@@ -343,7 +343,7 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn('href="/?agent=1&amp;workflow=purchase"', AGENTS)
         self.assertIn('HomeOfferFlow does not automatically select a legal form.', AGENTS)
         self.assertIn('No password and no charge to start a private workspace.', AGENTS)
-        self.assertIn('href="/ondemand"', AGENTS)
+        self.assertIn('href="/ondemand?utm_source=agent_workspace&amp;utm_medium=agent_page&amp;utm_campaign=ondemand_trial"', AGENTS)
         self.assertIn('See your 60-day HomeOfferFlow trial', AGENTS)
         self.assertIn({'source': '/agents', 'destination': '/agents.html'}, VERCEL.get('rewrites', []))
 

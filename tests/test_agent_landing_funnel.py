@@ -148,6 +148,10 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn('60 days free, then $29/month unless canceled.', AGENTS)
         self.assertIn('id="agentTrialOffer"', AGENTS)
 
+    def test_ondemand_trial_links_preserve_agent_attribution(self):
+        self.assertEqual(AGENTS.count('data-agent-cta-path="ondemand_trial"'), 2)
+        self.assertEqual(AGENTS.count('utm_source=agent_workspace&amp;utm_medium=agent_page&amp;utm_campaign=ondemand_trial'), 2)
+
     def test_agent_landing_metadata_targets_high_intent_real_estate_offer_searches(self):
         self.assertIn('<title>Texas Real Estate Offer Tools for Agents &amp; Brokers | HomeOfferFlow</title>', AGENTS)
         self.assertIn('Texas real estate offer tools for agents and brokers', AGENTS)
