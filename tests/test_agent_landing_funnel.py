@@ -11,10 +11,17 @@ ADMIN = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
 INDEX = (ROOT / "index.html").read_text(encoding="utf-8")
 AGENTS = (ROOT / "agents.html").read_text(encoding="utf-8")
 INVESTORS = (ROOT / "investors.html").read_text(encoding="utf-8")
+FORM_LIBRARY = (ROOT / "texas-agent-form-library.html").read_text(encoding="utf-8")
 VERCEL = (ROOT / "vercel.json").read_text(encoding="utf-8")
 
 
 class AgentLandingFunnelTests(unittest.TestCase):
+    def test_form_library_guide_measures_question_one_handoff_without_personal_data(self):
+        self.assertIn('/assets/agent-workflow-guide-metrics.js', FORM_LIBRARY)
+        self.assertIn('href="/agents#transaction-start"', FORM_LIBRARY)
+        self.assertIn('agent_workflow_guide_viewed', (ROOT / 'assets' / 'agent-workflow-guide-metrics.js').read_text(encoding='utf-8'))
+        self.assertIn('form_library', (ROOT / 'assets' / 'agent-workflow-guide-metrics.js').read_text(encoding='utf-8'))
+
     def test_each_public_transaction_choice_is_a_full_card_tap_target(self):
         self.assertEqual(AGENTS.count('class="card transaction-card" data-agent-cta-path='), 4)
         self.assertIn('.transaction-card{display:block;', AGENTS)
