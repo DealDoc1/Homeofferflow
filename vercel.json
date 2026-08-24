@@ -78,6 +78,10 @@
       "destination": "/texas-buyer-representation-guide.html"
     },
     {
+      "source": "/texas-flat-fee-mls-guide",
+      "destination": "/texas-flat-fee-mls-guide.html"
+    },
+    {
       "source": "/directory",
       "destination": "/directory.html"
     }

@@ -76,6 +76,11 @@ SEO_GUIDES = {
         "Texas Buyer Representation Agreement Workflow Guide",
         "https://www.homeofferflow.com/agents",
     ),
+    "texas-flat-fee-mls-guide.html": (
+        "Texas FSBO Seller Support",
+        "Texas Flat-Fee MLS Listing Guide",
+        "https://www.homeofferflow.com/sellers",
+    ),
 }
 
 
@@ -136,7 +141,7 @@ class TechnicalSeoTests(unittest.TestCase):
         )
 
     def test_sitemap_keeps_revenue_landing_pages_discoverable(self):
-        for path in ("/buyers", "/agents", "/investors", "/sellers", "/partners", "/directory", "/texas-lease-offer-workflow", "/texas-listing-workflow", "/texas-agent-form-library", "/texas-seller-financing-guide", "/texas-buyer-representation-guide"):
+        for path in ("/buyers", "/agents", "/investors", "/sellers", "/partners", "/directory", "/texas-lease-offer-workflow", "/texas-listing-workflow", "/texas-agent-form-library", "/texas-seller-financing-guide", "/texas-buyer-representation-guide", "/texas-flat-fee-mls-guide"):
             self.assertIn(f"https://www.homeofferflow.com{path}", SITEMAP)
 
     def test_seller_revenue_paths_expose_a_truthful_offer_catalog(self):
@@ -195,9 +200,9 @@ class TechnicalSeoTests(unittest.TestCase):
             r"<url>\s*<loc>(https://www\.homeofferflow\.com/[^<]*)</loc>\s*<lastmod>(\d{4}-\d{2}-\d{2})</lastmod>\s*</url>",
             SITEMAP,
         )
-        self.assertEqual(len(entries), 19)
+        self.assertEqual(len(entries), 20)
         self.assertEqual(dict(entries)["https://www.homeofferflow.com/"], "2026-08-24")
-        for path in ("/agents", "/ondemand", "/partners", "/texas-home-service-partner-guide", "/buyers", "/sellers", "/texas-fsbo-guide", "/texas-seller-offer-review", "/texas-agent-offer-workflow", "/texas-lease-offer-workflow", "/texas-listing-workflow", "/texas-agent-form-library", "/texas-seller-financing-guide", "/texas-buyer-representation-guide", "/texas-homebuyer-offer-guide", "/texas-investor-offer-guide", "/investors", "/directory"):
+        for path in ("/agents", "/ondemand", "/partners", "/texas-home-service-partner-guide", "/buyers", "/sellers", "/texas-fsbo-guide", "/texas-seller-offer-review", "/texas-agent-offer-workflow", "/texas-lease-offer-workflow", "/texas-listing-workflow", "/texas-agent-form-library", "/texas-seller-financing-guide", "/texas-buyer-representation-guide", "/texas-flat-fee-mls-guide", "/texas-homebuyer-offer-guide", "/texas-investor-offer-guide", "/investors", "/directory"):
             expected = "2026-08-24"
             self.assertEqual(dict(entries)[f"https://www.homeofferflow.com{path}"], expected)
 
