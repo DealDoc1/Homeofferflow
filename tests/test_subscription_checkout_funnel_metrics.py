@@ -88,6 +88,14 @@ class SubscriptionCheckoutFunnelMetricTests(unittest.TestCase):
         self.assertIn('window.location.assign("/?pwa_action=new_offer")', source)
         self.assertIn('$("firstOfferButton").style.display = checkoutComplete ? "block" : "none"', source)
 
+    def test_success_return_offers_a_mobile_pwa_install_prompt_without_enrollment_noise(self):
+        source = (ROOT / "ondemand.html").read_text(encoding="utf-8")
+        self.assertIn('id="installHint"', source)
+        self.assertIn('id="installAppButton"', source)
+        self.assertIn('!checkoutComplete || !isMobileInstallCandidate()', source)
+        self.assertIn('beforeinstallprompt', source)
+        self.assertIn('Add to Home Screen', source)
+
     def test_cancelled_checkout_returns_to_account_with_recovery_copy(self):
         source = (ROOT / "index.html").read_text(encoding="utf-8")
         self.assertIn("if (result === 'cancelled')", source)
