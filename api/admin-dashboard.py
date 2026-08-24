@@ -83,6 +83,7 @@ TXR_1914_FORM_CODE = "TXR-1914"
 TXR_1917_FORM_CODE = "TXR-1917"
 TXR_1919_FORM_CODE = "TXR-1919"
 TXR_1948_FORM_CODE = "TXR-1948"
+TXR_1953_FORM_CODE = "TXR-1953"
 TREC_55_1_FORM_CODE = "TREC-55-1"
 TREC_61_0_FORM_CODE = "TREC-61-0"
 BROKERAGE_TXR_FORM_CODES = (
@@ -2344,6 +2345,66 @@ def _parse_txr_1948_draft(data):
     }
 
 
+def _parse_txr_1953_draft(data):
+    """Validate a private TXR-1953 residential-lease review draft."""
+    if data.get("formCode") != TXR_1953_FORM_CODE:
+        raise ValueError("Only TXR-1953 is available through this action.")
+    form_source_id = _agreement_text(data.get("formSourceId"), "Approved TXR-1953 source", 80)
+    try:
+        form_source_id = str(uuid.UUID(form_source_id))
+    except (TypeError, ValueError, AttributeError):
+        raise ValueError("Choose an available TXR-1953 source from the HomeOfferFlow library.")
+
+    def names(key, label):
+        values = data.get(key)
+        if not isinstance(values, list) or not (1 <= len(values) <= 2):
+            raise ValueError(f"Add one or two {label} names.")
+        return [_agreement_text(value, f"Each {label} name", 180) for value in values]
+
+    property_address = _agreement_text(data.get("propertyAddress"), "Property address", 400)
+    buyer_names = names("buyerNames", "buyer")
+    seller_names = names("sellerNames", "seller")
+    all_names = buyer_names + seller_names
+    if len({name.casefold() for name in all_names}) != len(all_names):
+        raise ValueError("List each buyer or seller only once.")
+    lease_status = str(data.get("leaseStatus") or "").strip()
+    if lease_status not in {"termination", "assignment"}:
+        raise ValueError("Choose whether residential leases terminate or are assigned at closing.")
+    delivery_choice = ""
+    delivery_days = ""
+    oral_lease_notice = ""
+    if lease_status == "assignment":
+        delivery_choice = str(data.get("deliveryChoice") or "").strip()
+        if delivery_choice not in {"received", "not_received", "oral_notice"}:
+            raise ValueError("Choose the residential-lease delivery option.")
+        if delivery_choice == "not_received":
+            delivery_days = str(data.get("deliveryDays") or "").strip()
+            if not re.fullmatch(r"\d{1,3}", delivery_days) or int(delivery_days) < 1:
+                raise ValueError("Residential-lease delivery time must be a positive whole number of days.")
+        if delivery_choice == "oral_notice":
+            oral_lease_notice = _agreement_text(data.get("oralLeaseNotice"), "Oral residential-lease notice", 500)
+    explanation = " ".join(str(data.get("explanation") or "").strip().split())
+    if len(explanation) > 1200:
+        raise ValueError("Lease-status explanation is too long.")
+    if data.get("residentialLeaseReviewAcknowledgment") is not True:
+        raise ValueError("Confirm that the parties will review residential-lease terms before signing.")
+    return {
+        "form_source_id": form_source_id,
+        "client_names": all_names,
+        "agreement_data": {
+            "property_address": property_address,
+            "buyer_names": buyer_names,
+            "seller_names": seller_names,
+            "lease_status": lease_status,
+            "delivery_choice": delivery_choice,
+            "delivery_days": delivery_days,
+            "oral_lease_notice": oral_lease_notice,
+            "explanation": explanation,
+            "residential_lease_review_acknowledgment": True,
+        },
+    }
+
+
 def _parse_txr_1914_draft(data):
     """Validate a private TXR-1914 seller-financing review draft.
 
@@ -2885,6 +2946,10 @@ async def _create_txr_1948_draft(user, data):
     return await _create_representation_draft(user, data, TXR_1948_FORM_CODE, _parse_txr_1948_draft)
 
 
+async def _create_txr_1953_draft(user, data):
+    return await _create_representation_draft(user, data, TXR_1953_FORM_CODE, _parse_txr_1953_draft)
+
+
 async def _create_txr_1917_draft(user, data):
     return await _create_representation_draft(user, data, TXR_1917_FORM_CODE, _parse_txr_1917_draft)
 
@@ -3412,6 +3477,9 @@ async def _render_representation_draft_preview(user, agreement_id):
     if agreement.get("form_code") == TXR_1948_FORM_CODE:
         from lib.txr_1948 import render_txr_1948
         return render_txr_1948(response.content, render_data)
+    if agreement.get("form_code") == TXR_1953_FORM_CODE:
+        from lib.txr_1953 import render_txr_1953
+        return render_txr_1953(response.content, render_data)
     raise ValueError("Private preview is not available for this form yet.")
 
 
@@ -4975,7 +5043,7 @@ class handler(BaseHTTPRequestHandler):
             # returning client, property, or document details.
             agent_private_review_form_codes = (
                 "TXR-1501", "TXR-1506", "TXR-1507", "TXR-1508",
-                "TXR-1905", "TXR-1914", "TXR-1917", "TXR-1919", "TXR-1948",
+                "TXR-1905", "TXR-1914", "TXR-1917", "TXR-1919", "TXR-1948", "TXR-1953",
             )
             agent_private_review_draft_saved_count = len([
                 item for item in events
@@ -5888,6 +5956,10 @@ class handler(BaseHTTPRequestHandler):
                 return
             if data.get("action") == "create_txr_1948_draft":
                 draft = asyncio.run(_create_txr_1948_draft(user, data))
+                _json(self, 201, {"status": "ok", "agreement": draft})
+                return
+            if data.get("action") == "create_txr_1953_draft":
+                draft = asyncio.run(_create_txr_1953_draft(user, data))
                 _json(self, 201, {"status": "ok", "agreement": draft})
                 return
             if data.get("action") == "send_txr_agreement_for_signature":
