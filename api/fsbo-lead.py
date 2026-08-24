@@ -224,7 +224,7 @@ PUBLIC_PWA_INSTALL_EVENT_TYPES = {
 PUBLIC_PWA_INSTALL_PLATFORMS = {"ios", "android", "web"}
 PUBLIC_PWA_INSTALL_SURFACES = {
     "/", "/agents", "/buyers", "/sellers", "/investors", "/partners", "/directory", "/ondemand",
-    "/texas-fsbo-guide", "/texas-agent-offer-workflow", "/texas-listing-workflow", "/texas-lease-offer-workflow",
+    "/texas-fsbo-guide", "/texas-home-service-partner-guide", "/texas-agent-offer-workflow", "/texas-listing-workflow", "/texas-lease-offer-workflow",
     "/texas-agent-form-library", "/texas-seller-offer-review", "/texas-homebuyer-offer-guide", "/texas-investor-offer-guide",
 }
 HOMEBUYER_LANDING_EVENT_TYPES = {
