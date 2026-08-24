@@ -37,6 +37,18 @@ class TexasSellerNetProceedsCalculatorTests(unittest.TestCase):
         self.assertIn("utm_campaign=seller_planning", SELLERS)
         self.assertIn("utm_campaign=seller_planning", FSBO_GUIDE)
 
+    def test_seller_question_one_routes_by_stage_without_commitment(self):
+        self.assertIn('id="seller-question-one"', SELLERS)
+        for label, package in (
+            ("Still getting ready", "free_intake"),
+            ("Ready to launch", "launch_kit"),
+            ("I need MLS visibility", "flat_fee_mls"),
+            ("I have an offer", "offer_review"),
+        ):
+            self.assertIn(label, SELLERS)
+            self.assertIn(f"seller_package={package}", SELLERS)
+        self.assertIn("no choice creates a listing, service order, or payment", SELLERS)
+
 
 if __name__ == "__main__":
     unittest.main()
