@@ -457,6 +457,14 @@ def _send_partner_application_confirmation(payload):
     return_query = ({"partner_tier": tier_key} if tier_key != "discuss" else {})
     return_query.update({'utm_source': 'email', 'utm_medium': 'partner_receipt', 'utm_campaign': 'partner_follow_up'})
     return_link = f"{PUBLIC_APP_ORIGIN}/partners?{urlencode(return_query)}"
+    custom_request = tier_key == "discuss"
+    return_link_label = "Review partner placement options" if custom_request else "Review your selected partner tier"
+    checkout_copy = (
+        "This custom request does not open checkout or create a charge. If scope and pricing are agreed, you can decide whether to continue."
+        if custom_request
+        else "Secure Stripe Checkout is a separate next step and shows the final terms before any payment."
+    )
+    reply_copy = "Have a question about your request? Reply directly to this email." if custom_request else "Have a question before checkout? Reply directly to this email."
     plain_steps = "\n".join(f"{index}. {step}" for index, step in enumerate(next_steps, start=1))
     html_steps = "".join(f"<li>{html.escape(step)}</li>" for step in next_steps)
     plain_text = (
@@ -465,11 +473,11 @@ def _send_partner_application_confirmation(payload):
         f"Company: {company}\nSelected tier: {tier}\nMarket: {market}\n\n"
         "What happens next:\n"
         f"{plain_steps}\n\n"
-        f"Review your selected partner tier: {return_link}\n\n"
-        "Your application is saved. Secure Stripe Checkout is a separate next step and shows the final terms before any payment. "
+        f"{return_link_label}: {return_link}\n\n"
+        f"Your application is saved. {checkout_copy} "
         "Submitting this application does not collect payment, activate advertising, reserve exclusivity, create a referral relationship, or create a service agreement. "
         "Any public placement remains subject to onboarding and written-agreement review.\n\n"
-        "Have a question before checkout? Reply directly to this email."
+        f"{reply_copy}"
     )
     safe_company = html.escape(company)
     safe_contact = html.escape(contact)
@@ -500,10 +508,10 @@ def _send_partner_application_confirmation(payload):
                         f"<strong>Market:</strong> {safe_market}</p>"
                         "<h3>What happens next</h3>"
                         f"<ol>{html_steps}</ol>"
-                        f'<p><a href="{safe_return_link}">Review your selected partner tier</a></p>'
-                        "<p>Secure Stripe Checkout is a separate next step and shows the final terms before any payment.</p>"
+                        f'<p><a href="{safe_return_link}">{html.escape(return_link_label)}</a></p>'
+                        f"<p>{html.escape(checkout_copy)}</p>"
                         "<p>This application does not collect payment, activate advertising, reserve exclusivity, create a referral relationship, or create a service agreement. Any public placement remains subject to onboarding and written-agreement review.</p>"
-                        "<p>Have a question before checkout? Reply directly to this email.</p>"
+                        f"<p>{html.escape(reply_copy)}</p>"
                     ),
                 },
             )
