@@ -176,7 +176,7 @@ class TechnicalSeoTests(unittest.TestCase):
         self.assertEqual(len(entries), 16)
         self.assertEqual(dict(entries)["https://www.homeofferflow.com/"], "2026-08-23")
         for path in ("/agents", "/ondemand", "/partners", "/buyers", "/sellers", "/texas-fsbo-guide", "/texas-seller-offer-review", "/texas-agent-offer-workflow", "/texas-lease-offer-workflow", "/texas-listing-workflow", "/texas-agent-form-library", "/texas-homebuyer-offer-guide", "/texas-investor-offer-guide", "/investors", "/directory"):
-            expected = "2026-08-24" if path == "/texas-seller-offer-review" else "2026-08-23"
+            expected = "2026-08-23"
             self.assertEqual(dict(entries)[f"https://www.homeofferflow.com{path}"], expected)
 
     def test_revenue_guides_show_and_describe_their_real_site_hierarchy(self):
