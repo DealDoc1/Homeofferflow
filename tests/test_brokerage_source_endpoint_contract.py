@@ -39,6 +39,40 @@ class BrokerageSourceEndpointContractTests(unittest.TestCase):
         self.assertNotIn("storage_path", payload["sources"][0])
         self.assertNotIn("source_sha256", payload["sources"][0])
 
+    def test_agent_payload_uses_only_the_newest_approved_revision_per_form(self):
+        async def optional(_path):
+            return [
+                {
+                    "id": "source-new",
+                    "form_code": "TXR-1507",
+                    "source_revision": "06-15-26",
+                    "status": "approved",
+                    "authorization_attested": True,
+                    "updated_at": "2026-08-01T00:00:00Z",
+                },
+                {
+                    "id": "source-old",
+                    "form_code": "TXR-1507",
+                    "source_revision": "2026-06-15",
+                    "status": "approved",
+                    "authorization_attested": True,
+                    "updated_at": "2026-07-31T00:00:00Z",
+                },
+                {
+                    "id": "other-form",
+                    "form_code": "TXR-1508",
+                    "source_revision": "02-25-26",
+                    "status": "approved",
+                    "authorization_attested": True,
+                    "updated_at": "2026-07-30T00:00:00Z",
+                },
+            ]
+
+        with patch.object(admin, "_get_optional", optional):
+            payload = asyncio.run(admin._brokerage_form_sources_payload({"id": "agent-1"}, approved_only=True))
+
+        self.assertEqual([row["id"] for row in payload["sources"]], ["source-new", "other-form"])
+
     def test_broker_admin_payload_is_scoped_and_does_not_expose_storage_path(self):
         captured = {}
 
