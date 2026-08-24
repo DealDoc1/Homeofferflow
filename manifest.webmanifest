@@ -2,6 +2,7 @@
   "name": "HomeOfferFlow",
   "short_name": "HomeOfferFlow",
   "description": "Prepare Texas real estate offers, shared agent form drafts, listing tools, and signing follow-up in one lightweight workspace.",
+  "categories": ["business", "productivity", "real estate"],
   "lang": "en-US",
   "dir": "ltr",
   "id": "/",
