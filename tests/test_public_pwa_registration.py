@@ -74,6 +74,14 @@ class PublicPwaRegistrationTests(unittest.TestCase):
         self.assertIn("Keep your offer workflow one tap away", SCRIPT)
         self.assertIn("offer workflow and Question 1", SCRIPT)
 
+    def test_consumer_and_provider_surfaces_have_contextual_install_copy(self):
+        self.assertIn("Keep your investor workspace one tap away", SCRIPT)
+        self.assertIn("saved investor defaults and repeat-offer tools", SCRIPT)
+        self.assertIn("Keep the provider directory one tap away", SCRIPT)
+        self.assertIn("provider search and partner placement paths", SCRIPT)
+        self.assertIn("Keep your FSBO plan one tap away", SCRIPT)
+        self.assertIn("seller plan and support paths", SCRIPT)
+
 
 if __name__ == '__main__':
     unittest.main()
