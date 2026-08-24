@@ -36,6 +36,7 @@
       // Keep shared text out of the URL and offer payload. The user reviews
       // the context above, then chooses what to enter in the guided workflow.
       window.trackEvent?.('PWA Shared Context CTA Selected', { surface: 'pwa_share_target' });
+      window.logOfferEvent?.(null, 'pwa_shared_context_buyer_offer_opened', 'opened', 'Installed-app shared context opened the buyer offer handoff.', { surface: 'pwa_share_target' });
       window.setAudience?.('homebuyer');
       if (typeof window.beginOfferFrom === 'function') window.beginOfferFrom('pwa_share_target');
       else window.location.assign('/?buyer=1&utm_source=pwa_shortcut&utm_medium=installed_app&utm_campaign=shared_context');
@@ -49,6 +50,7 @@
       // Shared text remains review-only context. Agents choose the transaction
       // before entering any client, property, or form data.
       window.trackEvent?.('PWA Shared Context Agent CTA Selected', { surface: 'pwa_share_target' });
+      window.logOfferEvent?.(null, 'pwa_shared_context_agent_chooser_opened', 'opened', 'Installed-app shared context opened the agent transaction chooser.', { surface: 'pwa_share_target' });
       window.setAudience?.('agent');
       if (typeof window.openAgentTransactionPicker === 'function') window.openAgentTransactionPicker();
       else window.location.assign('/?pwa_action=transaction_start&utm_source=pwa_shortcut&utm_medium=installed_app&utm_campaign=shared_context_agent');
