@@ -246,6 +246,10 @@ class FsboIntakeConversionTests(unittest.TestCase):
         self.assertIn("document.querySelectorAll('[data-fsbo-submit]')", HTML)
         self.assertIn("Request ${item.title} Details", HTML)
 
+    def test_launch_kit_package_copy_clarifies_ready_to_launch_fit(self):
+        self.assertIn('Best for sellers ready to launch.', HTML)
+        self.assertIn('data-fsbo-need="launch_kit"', HTML)
+
     def test_fsbo_submit_buttons_expose_busy_state_while_saving(self):
         start = HTML.index("window.submitFsboSellerLead = async function")
         end = HTML.index("fsboDraftFields.forEach", start)
