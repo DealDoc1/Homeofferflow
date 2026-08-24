@@ -13,6 +13,9 @@ class FsboIntakeConversionTests(unittest.TestCase):
         self.assertIn("Two details. One free plan.", HTML)
         self.assertIn("Get Your Free FSBO Seller Plan", HTML)
         self.assertIn("Property address and email are all we need", HTML)
+        self.assertIn("Manual entry still works.", HTML)
+        self.assertIn('placeholder="123 Main St, City, TX ZIP"', HTML)
+        self.assertIn('id="fsboAddressHelp"', HTML)
         self.assertIn('id="fsboPropertyAddress"', HTML)
         self.assertIn('id="fsboSellerEmail"', HTML)
         self.assertIn('label for="fsboPropertyAddress">Property Address</label>', HTML)
@@ -198,6 +201,14 @@ class FsboIntakeConversionTests(unittest.TestCase):
         self.assertIn("Google Places autocomplete is unavailable; manual address entry remains available.", HTML)
         self.assertIn("fsboPropertyAddress: fillFsboAddressFields", HTML)
         self.assertIn("function addressAutocompleteInputs()", HTML)
+
+    def test_google_selected_seller_address_updates_progress_and_advances_to_email(self):
+        start = HTML.index("function fillFsboAddressFields(components)")
+        end = HTML.index("function tryInitAutocomplete()", start)
+        fill = HTML[start:end]
+        self.assertIn("addressEl.dispatchEvent(new Event('input', { bubbles: true }))", fill)
+        self.assertIn("const emailEl = document.getElementById('fsboSellerEmail');", fill)
+        self.assertIn("window.setTimeout(() => emailEl.focus(), 0);", fill)
 
     def test_seller_intake_has_a_hidden_bot_guard_without_adding_required_fields(self):
         self.assertIn('id="fsboWebsiteConfirm"', HTML)

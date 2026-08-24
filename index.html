@@ -11001,6 +11001,15 @@ function routeAfterMagicLinkIfNeeded() {
       meta.textContent = bits.length ? bits.join(' · ') : 'Address selected from Google.';
       meta.style.display = 'block';
     }
+    // A Places selection updates the field programmatically, so it does not
+    // naturally emit the input event that keeps the two-question FSBO intake
+    // current. Treat it exactly like a seller typed the address, then move to
+    // the only remaining required answer when it has not already been filled.
+    if (addressEl) addressEl.dispatchEvent(new Event('input', { bubbles: true }));
+    const emailEl = document.getElementById('fsboSellerEmail');
+    if (emailEl && !String(emailEl.value || '').trim()) {
+      window.setTimeout(() => emailEl.focus(), 0);
+    }
   }
 
   function tryInitAutocomplete() {
@@ -13612,13 +13621,14 @@ function routeAfterMagicLinkIfNeeded() {
       <button id="fsboSellerClose" type="button" aria-label="Close seller package request" onclick="closeFsboSellerModal()" style="border:none;background:transparent;color:var(--gray-light);font-size:1.5rem;cursor:pointer;">×</button>
     </div>
 
-    <div class="notice sage" style="margin-bottom:.9rem;"><strong>Two details. One free plan.</strong> Property address and email are all we need. Name, phone, asking price, service details, and partner interests can be added now or confirmed later. 📍 Start typing the property address and choose a Google result when available; city, county, state, and ZIP will then be captured for routing and future local matching.</div>
+    <div class="notice sage" style="margin-bottom:.9rem;"><strong>Two details. One free plan.</strong> Property address and email are all we need. Name, phone, asking price, service details, and partner interests can be added now or confirmed later. 📍 Paste or type your full street address; choose a Google result when available for automatic city, county, state, and ZIP routing. Manual entry still works.</div>
     <div class="notice gold" id="fsboSelectedPackageCallout" hidden aria-live="polite" style="margin-bottom:.9rem;"></div>
 
     <div class="platform-grid">
       <div class="field">
         <label for="fsboPropertyAddress">Property Address</label>
-        <input id="fsboPropertyAddress" placeholder="Start typing the property address..." autocomplete="off" autocorrect="off" autocapitalize="words" spellcheck="false" required aria-required="true">
+        <input id="fsboPropertyAddress" placeholder="123 Main St, City, TX ZIP" autocomplete="off" autocorrect="off" autocapitalize="words" spellcheck="false" required aria-required="true" aria-describedby="fsboAddressHelp fsboAddressMeta">
+        <small id="fsboAddressHelp" style="display:block;margin-top:.35rem;color:var(--gray-light);">Google autocomplete helps when available; you can also paste or type the full address.</small>
         <div id="fsboAddressAutofillBadge" style="display:none; margin-top:.4rem; align-items:center; width:max-content; background:rgba(74,140,111,0.15); border:1px solid rgba(74,140,111,0.3); color:var(--sage-light); padding:0.25rem 0.6rem; border-radius:6px; font-size:0.75rem; font-weight:800;">✓ Address selected from Google</div>
         <div id="fsboAddressMeta" style="display:none; margin-top:.35rem; color:var(--gray-light); font-size:.78rem; line-height:1.35;"></div>
         <input type="hidden" id="fsboPropertyCity">
