@@ -77,6 +77,7 @@ class PwaBaselineTests(unittest.TestCase):
                 ("Needs Attention", "/?pwa_action=attention_queue"),
                 ("Seller Plan", "/?pwa_action=seller_plan"),
                 ("FSBO Support Paths", "/sellers?utm_source=pwa_shortcut&utm_medium=installed_app&utm_campaign=fsbo_support_paths"),
+                ("Seller Offer Review", "/texas-seller-offer-review?utm_source=pwa_shortcut&utm_medium=installed_app&utm_campaign=seller_offer_review"),
                 ("Investor Workspace", "/?pwa_action=investor_workspace"),
                 ("Partner Marketplace", "/?pwa_action=partner_marketplace"),
                 ("Find a Provider", "/directory?utm_source=pwa_shortcut&utm_medium=installed_app&utm_campaign=provider_directory"),
