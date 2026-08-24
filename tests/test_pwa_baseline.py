@@ -66,6 +66,7 @@ class PwaBaselineTests(unittest.TestCase):
                 ("Start a Transaction", "/?pwa_action=transaction_start"),
                 ("Lease Workflow", "/?pwa_action=transaction_start&workflow=lease_listing"),
                 ("Listing Workflow", "/?pwa_action=transaction_start&workflow=sale_listing"),
+                ("Buying Workflow", "/?pwa_action=transaction_start&workflow=purchase"),
                 ("Lease Representation", "/?pwa_action=transaction_start&workflow=lease_representation"),
                 ("Listing Tools", "/?pwa_action=listing_tools"),
                 ("Agent Forms & Drafts", "/?pwa_action=relationship_drafts"),
@@ -107,7 +108,7 @@ class PwaBaselineTests(unittest.TestCase):
         self.assertNotIn("caches.match(event.request)", WORKER)
 
     def test_agent_landing_shell_is_pre_cached_for_agent_first_pwa_resume(self):
-        self.assertIn("const SHELL_CACHE = 'homeofferflow-shell-v37';", WORKER)
+        self.assertIn("const SHELL_CACHE = 'homeofferflow-shell-v38';", WORKER)
         self.assertIn("'/agents',", WORKER)
         self.assertIn("'/sellers',", WORKER)
         self.assertIn("'/partners',", WORKER)
