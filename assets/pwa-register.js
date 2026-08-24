@@ -63,6 +63,20 @@
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', tagAgentTrialLinks, {once: true});
     else tagAgentTrialLinks();
   }
+  if (window.location.pathname === '/sellers') {
+    const addUnderContractPath = () => {
+      const question = document.getElementById('seller-question-one')?.closest('section');
+      if (!question || document.getElementById('hofSellerClosingChecklistCta')) return;
+      const note = document.createElement('p');
+      note.id = 'hofSellerClosingChecklistCta';
+      note.className = 'note';
+      note.style.marginTop = '1rem';
+      note.innerHTML = '<strong>Already under contract?</strong> Keep closing deadlines and open questions organized before your next handoff. <a href="/texas-fsbo-closing-checklist?utm_source=seller_question_one&amp;utm_medium=owned_navigation&amp;utm_campaign=seller_acquisition" style="color:inherit;font-weight:800">Open the FSBO closing checklist →</a>';
+      question.insertAdjacentElement('afterend', note);
+    };
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', addUnderContractPath, {once: true});
+    else addUnderContractPath();
+  }
   if (!('serviceWorker' in navigator)) return;
   let deferredInstallPrompt = null;
   const dismissKey = 'hof_public_pwa_install_dismissed_v1';
