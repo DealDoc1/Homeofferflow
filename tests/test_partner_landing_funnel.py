@@ -46,6 +46,7 @@ class PartnerLandingFunnelTests(unittest.TestCase):
     def test_partner_page_reduces_checkout_uncertainty_without_changing_price_or_claims(self):
         self.assertIn("Start no-charge application", PARTNERS)
         self.assertIn("Start with a no-charge application", PARTNERS)
+        self.assertIn("No need to finish in one sitting", PARTNERS)
         self.assertIn("before any payment", PARTNERS)
         self.assertIn("Apply for Core — no charge yet", PARTNERS)
         self.assertIn("First 90 days, then $149/month", PARTNERS)
