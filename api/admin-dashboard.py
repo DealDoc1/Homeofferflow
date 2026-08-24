@@ -4885,6 +4885,10 @@ class handler(BaseHTTPRequestHandler):
                 "agent_workflow_lease_listing_selected": "lease_listing",
                 "agent_workflow_lease_representation_selected": "lease_representation",
             }
+            agent_workflow_resume_count = len([
+                item for item in events
+                if item.get("event_type") == "agent_workflow_resume_clicked"
+            ])
             for item in events:
                 event_type = str(item.get("event_type") or "")
                 workflow = agent_transaction_event_workflows.get(event_type)
@@ -5430,6 +5434,7 @@ class handler(BaseHTTPRequestHandler):
                 "agentLandingSellerWorkspaceHandoffUserCount": agent_landing_seller_workspace_handoff_user_count,
                 "agentLandingRelationshipWorkspaceHandoffUserCount": agent_landing_relationship_workspace_handoff_user_count,
                 "agentTransactionChoiceCounts": agent_transaction_choice_counts,
+                "agentWorkflowResumeCount": agent_workflow_resume_count,
                 "investorLandingViewCount": investor_landing_view_count,
                 "investorLandingCtaCount": investor_landing_cta_count,
                 "investorLandingCtaRate": round((investor_landing_cta_count / investor_landing_view_count) * 100, 1)

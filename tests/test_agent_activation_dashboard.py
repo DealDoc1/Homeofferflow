@@ -243,7 +243,9 @@ class AgentActivationDashboardTests(unittest.TestCase):
         self.assertIn('Current path: ${labels[savedChoice]}. Choose another transaction to change it.', HTML)
         self.assertIn('id="agentWorkflowResume"', HTML)
         self.assertIn('resume.textContent = `Resume ${labels[savedChoice]}`', HTML)
-        self.assertIn('resume.onclick = () => startAgentWorkflow(savedChoice)', HTML)
+        self.assertIn("agent_workflow_resume_clicked", HTML)
+        self.assertIn("resume.onclick = () => {", HTML)
+        self.assertIn("startAgentWorkflow(savedChoice)", HTML)
         self.assertLess(HTML.index('id="agentWorkflowStart"'), HTML.index('id="agentActivationCard"'))
         for label in ('>Buying</button>', '>Listing</button>', '>Lease listing</button>', '>Lease representation</button>'):
             self.assertIn(label, HTML)
