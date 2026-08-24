@@ -31,10 +31,18 @@ class PwaShareTargetTests(unittest.TestCase):
         self.assertIn('shared text out of the URL and offer payload', SHARE)
         self.assertIn('utm_campaign=shared_context', SHARE)
 
+    def test_shared_context_has_a_neutral_agent_transaction_chooser_handoff(self):
+        self.assertIn('Open the agent transaction chooser', SHARE)
+        self.assertIn("window.trackEvent?.('PWA Shared Context Agent CTA Selected'", SHARE)
+        self.assertIn("window.setAudience?.('agent')", SHARE)
+        self.assertIn('window.openAgentTransactionPicker()', SHARE)
+        self.assertIn('utm_campaign=shared_context_agent', SHARE)
+        self.assertIn('homeofferflow-shell-v42', (ROOT / 'service-worker.js').read_text(encoding='utf-8'))
+
     def test_share_target_script_is_in_the_offline_app_shell(self):
         worker = (ROOT / 'service-worker.js').read_text(encoding='utf-8')
         self.assertIn("'/assets/pwa-share-target.js'", worker)
-        self.assertIn("homeofferflow-shell-v41", worker)
+        self.assertIn("homeofferflow-shell-v42", worker)
 
 
 if __name__ == '__main__':
