@@ -377,16 +377,18 @@
         }
       }
 
-      function recordAggregateLandingEvent(eventType, channel = "") {
+      function recordAggregateLandingEvent(eventType, channel = "", campaign = "") {
         const key = `hof_ondemand_landing_${eventType}`;
         try {
           if (sessionStorage.getItem(key) === "1") return;
           sessionStorage.setItem(key, "1");
           const attributionChannel = channel || sessionStorage.getItem("hof_ondemand_landing_channel") || "unspecified";
           if (channel) sessionStorage.setItem("hof_ondemand_landing_channel", channel);
+          const attributionCampaign = campaign || sessionStorage.getItem("hof_ondemand_landing_campaign") || "";
+          if (campaign) sessionStorage.setItem("hof_ondemand_landing_campaign", campaign);
           fetch("/api/fsbo-lead", {
             method: "POST", headers: {"Content-Type": "application/json"}, keepalive: true,
-            body: JSON.stringify({request_type: "ondemand_landing_event", event_type: eventType, channel: attributionChannel})
+            body: JSON.stringify({request_type: "ondemand_landing_event", event_type: eventType, channel: attributionChannel, ...(attributionCampaign ? {utm_campaign: attributionCampaign} : {})})
           }).catch(() => {});
         } catch (_) {}
       }
@@ -398,7 +400,11 @@
         const user = state.session?.user;
         if (!user?.id) return;
         let channel = "unspecified";
-        try { channel = sessionStorage.getItem("hof_ondemand_landing_channel") || channel; } catch (_) {}
+        let campaign = "";
+        try {
+          channel = sessionStorage.getItem("hof_ondemand_landing_channel") || channel;
+          campaign = sessionStorage.getItem("hof_ondemand_landing_campaign") || campaign;
+        } catch (_) {}
 
         // A Stripe return can be refreshed or restored by the browser. Count
         // that return once per Checkout session, while retaining every actual
@@ -417,7 +423,7 @@
             message: result
               ? `Returned from OnDemand Stripe checkout: ${result}.`
               : "OnDemand Stripe checkout started.",
-            metadata: { source: "ondemand", plan: "agent", billing: "monthly", channel },
+            metadata: { source: "ondemand", plan: "agent", billing: "monthly", channel, ...(campaign ? {utmCampaign: campaign} : {}) },
             created_at: new Date().toISOString()
           });
           if (error) throw error;
@@ -596,7 +602,10 @@
         const source = String(params.get("utm_source") || "").trim().toLowerCase();
         const medium = String(params.get("utm_medium") || "").trim().toLowerCase();
         const channel = medium === "installed_app" || source === "pwa_shortcut" ? "pwa_shortcut" : medium === "organic_content" || source === "organic" ? "organic" : new Set(["organic_offer_workflow", "organic_listing_workflow", "organic_lease_workflow", "agent_workspace", "agent_form_library", "direct", "email", "social", "referral", "local_event", "print"]).has(source) ? source : "unspecified";
-        recordAggregateLandingEvent("ondemand_landing_viewed", channel);
+        const campaign = new Set(["agent_acquisition", "ondemand_trial"]).has(String(params.get("utm_campaign") || "").trim().toLowerCase())
+          ? String(params.get("utm_campaign") || "").trim().toLowerCase()
+          : "";
+        recordAggregateLandingEvent("ondemand_landing_viewed", channel, campaign);
         if (params.get("checkout") === "success") {
           showStatus("Your secure checkout is complete. Open your workspace or choose your first transaction while agent access finishes activating.", "ok");
         } else if (params.get("checkout") === "cancelled") {

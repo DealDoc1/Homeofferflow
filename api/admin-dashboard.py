@@ -4894,6 +4894,7 @@ class handler(BaseHTTPRequestHandler):
                 "direct", "email", "social", "referral", "local_event", "print",
                 "organic", "pwa_shortcut", "organic_offer_workflow", "organic_listing_workflow", "organic_lease_workflow", "agent_workspace", "agent_form_library", "unspecified",
             )
+            ondemand_landing_campaigns = ("agent_acquisition", "ondemand_trial", "unspecified")
             ondemand_landing_view_counts_by_channel = {
                 channel: len([
                     item for item in events
@@ -4945,6 +4946,58 @@ class handler(BaseHTTPRequestHandler):
                     and str((item.get("metadata") or {}).get("channel") or "unspecified") == channel
                 ])
                 for channel in ondemand_landing_channels
+            }
+            ondemand_landing_view_counts_by_campaign = {
+                campaign: len([
+                    item for item in events
+                    if item.get("event_type") == "ondemand_landing_viewed"
+                    and str((item.get("metadata") or {}).get("utmCampaign") or "unspecified") == campaign
+                ])
+                for campaign in ondemand_landing_campaigns
+            }
+            ondemand_checkout_start_counts_by_campaign = {
+                campaign: len([
+                    item for item in events
+                    if item.get("event_type") == "subscription_checkout_started"
+                    and (item.get("metadata") or {}).get("source") == "ondemand"
+                    and str((item.get("metadata") or {}).get("utmCampaign") or "unspecified") == campaign
+                ])
+                for campaign in ondemand_landing_campaigns
+            }
+            ondemand_checkout_return_counts_by_campaign = {
+                campaign: len([
+                    item for item in events
+                    if item.get("event_type") == "subscription_checkout_returned"
+                    and (item.get("metadata") or {}).get("source") == "ondemand"
+                    and str((item.get("metadata") or {}).get("utmCampaign") or "unspecified") == campaign
+                ])
+                for campaign in ondemand_landing_campaigns
+            }
+            ondemand_checkout_start_rates_by_campaign = {
+                campaign: round((ondemand_checkout_start_counts_by_campaign[campaign] / ondemand_landing_view_counts_by_campaign[campaign]) * 100, 1)
+                if ondemand_landing_view_counts_by_campaign[campaign] else 0
+                for campaign in ondemand_landing_campaigns
+            }
+            ondemand_checkout_return_rates_by_campaign = {
+                campaign: round((ondemand_checkout_return_counts_by_campaign[campaign] / ondemand_checkout_start_counts_by_campaign[campaign]) * 100, 1)
+                if ondemand_checkout_start_counts_by_campaign[campaign] else 0
+                for campaign in ondemand_landing_campaigns
+            }
+            ondemand_magic_link_counts_by_campaign = {
+                campaign: len([
+                    item for item in events
+                    if item.get("event_type") == "ondemand_magic_link_requested"
+                    and str((item.get("metadata") or {}).get("utmCampaign") or "unspecified") == campaign
+                ])
+                for campaign in ondemand_landing_campaigns
+            }
+            ondemand_terms_accepted_counts_by_campaign = {
+                campaign: len([
+                    item for item in events
+                    if item.get("event_type") == "ondemand_trial_terms_accepted"
+                    and str((item.get("metadata") or {}).get("utmCampaign") or "unspecified") == campaign
+                ])
+                for campaign in ondemand_landing_campaigns
             }
             ondemand_trial_entry_count = len([
                 item for item in events if item.get("event_type") == "ondemand_trial_entry_selected"
@@ -5672,12 +5725,19 @@ class handler(BaseHTTPRequestHandler):
                 "onDemandCheckoutStartCount": subscription_checkout_start_by_source.get("ondemand", 0),
                 "onDemandLandingViewCount": ondemand_landing_view_count,
                 "onDemandLandingViewCountsByChannel": ondemand_landing_view_counts_by_channel,
+                "onDemandLandingViewCountsByCampaign": ondemand_landing_view_counts_by_campaign,
                 "onDemandCheckoutStartCountsByChannel": ondemand_checkout_start_counts_by_channel,
+                "onDemandCheckoutStartCountsByCampaign": ondemand_checkout_start_counts_by_campaign,
                 "onDemandCheckoutReturnCountsByChannel": ondemand_checkout_return_counts_by_channel,
+                "onDemandCheckoutReturnCountsByCampaign": ondemand_checkout_return_counts_by_campaign,
                 "onDemandCheckoutStartRatesByChannel": ondemand_checkout_start_rates_by_channel,
+                "onDemandCheckoutStartRatesByCampaign": ondemand_checkout_start_rates_by_campaign,
                 "onDemandCheckoutReturnRatesByChannel": ondemand_checkout_return_rates_by_channel,
+                "onDemandCheckoutReturnRatesByCampaign": ondemand_checkout_return_rates_by_campaign,
                 "onDemandMagicLinkCountsByChannel": ondemand_magic_link_counts_by_channel,
+                "onDemandMagicLinkCountsByCampaign": ondemand_magic_link_counts_by_campaign,
                 "onDemandTermsAcceptedCountsByChannel": ondemand_terms_accepted_counts_by_channel,
+                "onDemandTermsAcceptedCountsByCampaign": ondemand_terms_accepted_counts_by_campaign,
                 "onDemandTrialEntryCount": ondemand_trial_entry_count,
                 "onDemandMagicLinkRequestedCount": ondemand_magic_link_requested_count,
                 "onDemandMagicLinkRequestRate": round((ondemand_magic_link_requested_count / ondemand_landing_view_count) * 100, 1)
