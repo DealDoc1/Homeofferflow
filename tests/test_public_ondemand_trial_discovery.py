@@ -31,6 +31,15 @@ class PublicOnDemandTrialDiscoveryTests(unittest.TestCase):
         self.assertIn("request_type: 'ondemand_landing_event'", INDEX)
         self.assertIn("hof_ondemand_trial_entry_selected", INDEX)
 
+    def test_beta_subscription_card_surfaces_trial_only_for_agent_role(self):
+        start = INDEX.index("} else {\n      actionHtml =", INDEX.index("function renderSubscriptionCard"))
+        end = INDEX.index("    card.innerHTML = `", start)
+        beta_branch = INDEX[start:end]
+        self.assertIn("role === 'agent'", beta_branch)
+        self.assertIn("agent_subscription_card", beta_branch)
+        self.assertIn("OnDemand: 60 days free", beta_branch)
+        self.assertIn("card required, then $29/month unless canceled", beta_branch)
+
 
 if __name__ == "__main__":
     unittest.main()
