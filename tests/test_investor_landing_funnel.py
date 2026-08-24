@@ -90,6 +90,7 @@ class InvestorLandingFunnelTests(unittest.TestCase):
             '"investorOfferGuideViewCount"', '"investorOfferGuideCtaCount"', '"investorOfferGuideCtaRate"',
             '"investorOfferGuideViewCountsByChannel"', '"investorOfferGuideCtaCountsByChannel"',
             '"investorLandingViewCountsByChannel"', '"investorLandingCtaCountsByChannel"',
+            '"investorLandingCtaRatesByChannel"',
             'investor_landing_workspace_handoff',
         ):
             self.assertIn(expected, ADMIN)
@@ -100,6 +101,7 @@ class InvestorLandingFunnelTests(unittest.TestCase):
         self.assertIn("Investor offer guide:", INDEX)
         self.assertIn("Channel views / sign-ins", INDEX)
         self.assertIn("investorLandingViewCountsByChannel?.referral", INDEX)
+        self.assertIn("Investor channel conversion:", INDEX)
 
 
 if __name__ == "__main__":

@@ -4713,6 +4713,11 @@ class handler(BaseHTTPRequestHandler):
                 ])
                 for channel in homebuyer_landing_channels
             }
+            homebuyer_landing_offer_start_rates_by_channel = {
+                channel: round((homebuyer_landing_offer_started_counts_by_channel[channel] / homebuyer_landing_view_counts_by_channel[channel]) * 100, 1)
+                if homebuyer_landing_view_counts_by_channel[channel] else 0
+                for channel in homebuyer_landing_channels
+            }
             homebuyer_checkout_cancelled_count = len([
                 item for item in events if item.get("event_type") == "homebuyer_checkout_cancelled"
             ])
@@ -4881,6 +4886,11 @@ class handler(BaseHTTPRequestHandler):
                     if item.get("event_type") == "investor_landing_cta_selected"
                     and str((item.get("metadata") or {}).get("channel") or "unspecified") == channel
                 ])
+                for channel in investor_landing_channels
+            }
+            investor_landing_cta_rates_by_channel = {
+                channel: round((investor_landing_cta_counts_by_channel[channel] / investor_landing_view_counts_by_channel[channel]) * 100, 1)
+                if investor_landing_view_counts_by_channel[channel] else 0
                 for channel in investor_landing_channels
             }
             investor_offer_guide_view_count = len([
@@ -5347,6 +5357,7 @@ class handler(BaseHTTPRequestHandler):
                 if homebuyer_landing_cta_count else 0,
                 "homebuyerLandingViewCountsByChannel": homebuyer_landing_view_counts_by_channel,
                 "homebuyerLandingOfferStartedCountsByChannel": homebuyer_landing_offer_started_counts_by_channel,
+                "homebuyerLandingOfferStartRatesByChannel": homebuyer_landing_offer_start_rates_by_channel,
                 "homebuyerCheckoutCancelledCount": homebuyer_checkout_cancelled_count,
                 "homebuyerCheckoutRecoveryStartCount": homebuyer_checkout_recovery_start_count,
                 "homebuyerCheckoutRecoveryStartRate": round(
@@ -5389,6 +5400,7 @@ class handler(BaseHTTPRequestHandler):
                 if investor_landing_view_count else 0,
                 "investorLandingViewCountsByChannel": investor_landing_view_counts_by_channel,
                 "investorLandingCtaCountsByChannel": investor_landing_cta_counts_by_channel,
+                "investorLandingCtaRatesByChannel": investor_landing_cta_rates_by_channel,
                 "investorOfferGuideViewCount": investor_offer_guide_view_count,
                 "investorOfferGuideCtaCount": investor_offer_guide_cta_count,
                 "investorOfferGuideViewCountsByChannel": investor_offer_guide_view_counts_by_channel,
