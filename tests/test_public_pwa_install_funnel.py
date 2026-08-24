@@ -17,6 +17,7 @@ class PublicPwaInstallFunnelTests(unittest.TestCase):
         self.assertIn("Unsupported public PWA install surface.", API)
         self.assertIn("public_pwa_install_event", API)
         self.assertIn('"public": True', API)
+        self.assertIn('"/texas-home-service-partner-guide"', API)
 
     def test_public_install_script_records_platform_and_surface_without_identity(self):
         self.assertIn("trackPublicInstallEvent", SCRIPT)
@@ -30,6 +31,7 @@ class PublicPwaInstallFunnelTests(unittest.TestCase):
         self.assertIn("pwaInstallPlatformCounts", ADMIN)
         self.assertIn("pwa_install_platform_counts", ADMIN)
         self.assertIn("/texas-agent-form-library", ADMIN)
+        self.assertIn("/texas-home-service-partner-guide", ADMIN)
 
 
 if __name__ == "__main__":

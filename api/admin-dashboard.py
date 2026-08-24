@@ -4729,7 +4729,7 @@ class handler(BaseHTTPRequestHandler):
                 "buyer_success",
                 "account_dashboard",
                 "/", "/agents", "/buyers", "/sellers", "/investors", "/partners", "/directory", "/ondemand",
-                "/texas-fsbo-guide", "/texas-agent-offer-workflow", "/texas-listing-workflow", "/texas-lease-offer-workflow",
+                "/texas-fsbo-guide", "/texas-home-service-partner-guide", "/texas-agent-offer-workflow", "/texas-listing-workflow", "/texas-lease-offer-workflow",
                 "/texas-agent-form-library", "/texas-seller-offer-review", "/texas-homebuyer-offer-guide", "/texas-investor-offer-guide",
             }
             pwa_install_platforms = ("ios", "android", "web")

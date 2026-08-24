@@ -6,7 +6,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = (ROOT / 'assets' / 'pwa-register.js').read_text(encoding='utf-8')
 PUBLIC_PAGES = (
     'directory.html', 'buyers.html', 'partners.html', 'sellers.html',
-    'agents.html', 'investors.html', 'texas-fsbo-guide.html',
+    'agents.html', 'investors.html', 'texas-fsbo-guide.html', 'texas-home-service-partner-guide.html',
     'texas-agent-offer-workflow.html', 'texas-seller-offer-review.html', 'texas-homebuyer-offer-guide.html', 'texas-investor-offer-guide.html', 'ondemand.html'
 )
 
