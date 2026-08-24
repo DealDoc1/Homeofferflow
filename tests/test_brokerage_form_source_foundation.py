@@ -105,6 +105,7 @@ class BrokerageFormSourceFoundationTests(unittest.TestCase):
             ("txr1914AgreementForm", "TXR-1914"),
             ("txr1917AgreementForm", "TXR-1917"),
             ("txr1919AgreementForm", "TXR-1919"),
+            ("txr1948AgreementForm", "TXR-1948"),
         ):
             self.assertIn(f"['{form_id}', '{form_code}']", HTML)
         self.assertIn("agent_private_review_draft_saved", HTML)
