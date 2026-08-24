@@ -1,0 +1,11 @@
+.partner-resource-links {
+  max-width: 800px;
+  margin: 1rem 0 1.6rem;
+  padding: .85rem 1rem;
+  border: 1px solid rgba(255,255,255,.14);
+  border-radius: 9px;
+  background: rgba(255,255,255,.04);
+  color: var(--muted);
+}
+.partner-resource-links summary { cursor: pointer; color: var(--white); font-weight: 800; }
+.partner-resource-links p { margin: .7rem 0 0; }
