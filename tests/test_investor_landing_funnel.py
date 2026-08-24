@@ -80,12 +80,15 @@ class InvestorLandingFunnelTests(unittest.TestCase):
         self.assertIn("request_type: 'investor_landing_event'", INVESTOR_GUIDE_METRICS)
         self.assertNotIn('location.href', INVESTOR_GUIDE_METRICS)
         self.assertNotIn('utm_source', INVESTOR_GUIDE_METRICS)
+        self.assertIn("medium === 'organic_content'", INVESTOR_GUIDE_METRICS)
+        self.assertIn('channel}),', INVESTOR_GUIDE_METRICS)
 
     def test_admin_reports_investor_workspace_landing_conversion(self):
         for expected in (
             '"investorLandingViewCount"', '"investorLandingCtaCount"', '"investorLandingCtaRate"',
             '"investorLandingWorkspaceHandoffUserCount"', '"investorLandingWorkspaceHandoffRate"',
             '"investorOfferGuideViewCount"', '"investorOfferGuideCtaCount"', '"investorOfferGuideCtaRate"',
+            '"investorOfferGuideViewCountsByChannel"', '"investorOfferGuideCtaCountsByChannel"',
             '"investorLandingViewCountsByChannel"', '"investorLandingCtaCountsByChannel"',
             'investor_landing_workspace_handoff',
         ):

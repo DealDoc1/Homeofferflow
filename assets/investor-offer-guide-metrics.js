@@ -1,6 +1,11 @@
 (() => {
   // Aggregate guide conversion only. No investor identity, entity, client,
   // property, URL, or arbitrary campaign value is included in these events.
+  const medium = String(new URLSearchParams(window.location.search).get('utm_medium') || '').trim().toLowerCase();
+  const channel = medium === 'organic_content' ? 'organic'
+    : medium === 'installed_app' ? 'pwa_shortcut'
+    : ['direct_outreach', 'email', 'social', 'referral', 'local_event', 'print'].includes(medium) ? medium
+    : 'unspecified';
   const record = (eventType) => {
     try {
       const key = 'hof_investor_offer_guide_' + eventType;
@@ -8,7 +13,7 @@
       sessionStorage.setItem(key, '1');
       fetch('/api/fsbo-lead', {
         method: 'POST', headers: {'Content-Type': 'application/json'}, keepalive: true,
-        body: JSON.stringify({request_type: 'investor_landing_event', event_type: eventType}),
+        body: JSON.stringify({request_type: 'investor_landing_event', event_type: eventType, channel}),
       }).catch(() => {});
     } catch (_) {}
   };
