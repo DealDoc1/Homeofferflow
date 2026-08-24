@@ -135,7 +135,13 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn('name="twitter:card" content="summary_large_image"', ONDEMAND)
         self.assertIn('"@type":"SoftwareApplication"', ONDEMAND)
         self.assertIn('"price":"29"', ONDEMAND)
-        self.assertIn('60 days of HomeOfferFlow free, then $29 per month unless canceled.', ONDEMAND)
+        self.assertIn('HomeOfferFlow Texas offer workspace free for 60 days, then $29 per month unless canceled.', ONDEMAND)
+
+    def test_ondemand_metadata_states_the_agent_workspace_intent(self):
+        self.assertIn('<title>OnDemand Realty Agent Offer Workspace — 60 Days Free</title>', ONDEMAND)
+        self.assertIn('property="og:title" content="OnDemand Realty Agent Offer Workspace — 60 Days Free"', ONDEMAND)
+        self.assertIn('name="twitter:title" content="OnDemand Realty Agent Offer Workspace — 60 Days Free"', ONDEMAND)
+        self.assertIn('HomeOfferFlow Texas offer workspace free for 60 days', ONDEMAND)
 
     def test_partner_acquisition_page_has_share_metadata_and_a_direct_application_path(self):
         self.assertIn('<link rel="canonical" href="https://www.homeofferflow.com/partners"', PARTNERS)
