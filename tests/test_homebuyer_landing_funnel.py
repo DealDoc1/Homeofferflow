@@ -38,6 +38,8 @@ class HomebuyerLandingFunnelTests(unittest.TestCase):
         self.assertIn("The destination records this stage only after the guided", BUYERS)
         self.assertIn("channel: safeChannel", BUYERS)
         self.assertIn("allowedChannels.has(rawSource)", BUYERS)
+        self.assertIn('medium === "organic_content"', BUYERS)
+        self.assertIn('"organic"', BUYERS)
         self.assertIn("keepalive: true", BUYERS)
         landing_script = BUYERS.rsplit("<script>", 1)[1].split("</script>", 1)[0]
         self.assertNotIn("Record the handoff before navigation", landing_script)

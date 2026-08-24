@@ -392,6 +392,7 @@
           "referral",
           "local_event",
           "print",
+          "organic",
         ]);
         const campaign = new URLSearchParams();
         const track = (name, data = {}) => {
@@ -410,7 +411,9 @@
         const medium = String(source.get("utm_medium") || "")
           .trim()
           .toLowerCase();
-        const campaignChannel = allowedChannels.has(rawSource)
+        const campaignChannel = medium === "organic_content" || rawSource === "organic"
+          ? "organic"
+          : allowedChannels.has(rawSource)
           ? rawSource
           : rawSource === "homeofferflow_admin" && allowedChannels.has(medium)
             ? medium
