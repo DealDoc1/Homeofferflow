@@ -36,6 +36,7 @@
       // Keep shared text out of the URL and offer payload. The user reviews
       // the context above, then chooses what to enter in the guided workflow.
       window.trackEvent?.('PWA Shared Context CTA Selected', { surface: 'pwa_share_target' });
+      window.setAudience?.('homebuyer');
       if (typeof window.beginOfferFrom === 'function') window.beginOfferFrom('pwa_share_target');
       else window.location.assign('/?buyer=1&utm_source=pwa_shortcut&utm_medium=installed_app&utm_campaign=shared_context');
     });

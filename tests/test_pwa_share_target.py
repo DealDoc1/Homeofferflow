@@ -26,6 +26,7 @@ class PwaShareTargetTests(unittest.TestCase):
 
     def test_shared_context_has_a_low_friction_buyer_offer_handoff_without_url_prefill(self):
         self.assertIn('Start a buyer offer with this context', SHARE)
+        self.assertIn("window.setAudience?.('homebuyer')", SHARE)
         self.assertIn("window.beginOfferFrom('pwa_share_target')", SHARE)
         self.assertIn('shared text out of the URL and offer payload', SHARE)
         self.assertIn('utm_campaign=shared_context', SHARE)
