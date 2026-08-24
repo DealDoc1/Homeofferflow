@@ -92,7 +92,9 @@ class PwaInstallExperienceTests(unittest.TestCase):
 
     def test_install_funnel_measures_native_install_availability_separately_from_manual_guidance(self):
         self.assertIn("trackInstall('native_available'", INDEX)
-        self.assertIn("surface: installTarget()?.surface || 'unavailable'", INDEX)
+        self.assertIn("nativeAvailableKeyPrefix = 'hof_pwa_native_available_v2_'", INDEX)
+        self.assertIn("sessionStorage.getItem(key) === '1'", INDEX)
+        self.assertIn("const availabilitySurface = installTarget()?.surface || 'unavailable'", INDEX)
         api = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
         self.assertIn('"native_available": 0', api)
         self.assertIn('"pwaInstallNativeAvailableCount"', api)

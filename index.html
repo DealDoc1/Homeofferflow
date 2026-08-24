@@ -20094,6 +20094,7 @@ function routeAfterMagicLinkIfNeeded() {
   const root = window;
   const dismissKey = 'hof_pwa_install_dismissed_until';
   const shownKey = 'hof_pwa_install_prompt_shown';
+  const nativeAvailableKeyPrefix = 'hof_pwa_native_available_v2_';
   const installSurfaceKey = 'hof_pwa_install_surface';
   let deferredInstallPrompt = null;
 
@@ -20279,10 +20280,13 @@ function routeAfterMagicLinkIfNeeded() {
     // browser can present the native install UX or whether the user needs the
     // manual Home Screen path. This stays aggregate-only and carries neither
     // account nor device identity.
-    trackInstall('native_available', {
-      platform: installPlatform(),
-      surface: installTarget()?.surface || 'unavailable'
-    });
+    const availabilitySurface = installTarget()?.surface || 'unavailable';
+    try {
+      const key = nativeAvailableKeyPrefix + availabilitySurface;
+      if (sessionStorage.getItem(key) === '1') return renderInstallCard();
+      sessionStorage.setItem(key, '1');
+    } catch (_) {}
+    trackInstall('native_available', { platform: installPlatform(), surface: availabilitySurface });
     renderInstallCard();
   });
   window.addEventListener('appinstalled', () => {
