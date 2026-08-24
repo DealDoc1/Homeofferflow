@@ -82,6 +82,13 @@ class PublicPwaRegistrationTests(unittest.TestCase):
         self.assertIn("Keep your FSBO plan one tap away", SCRIPT)
         self.assertIn("seller plan and support paths", SCRIPT)
 
+    def test_public_install_prompt_records_privacy_safe_aggregate_funnel_events(self):
+        self.assertIn("trackInstallEvent('Shown')", SCRIPT)
+        self.assertIn("trackInstallEvent('CtaClicked')", SCRIPT)
+        self.assertIn("choice?.outcome === 'accepted' ? 'Accepted' : 'Dismissed'", SCRIPT)
+        self.assertIn("trackInstallEvent('Installed')", SCRIPT)
+        self.assertIn("surface: window.location.pathname", SCRIPT)
+
 
 if __name__ == '__main__':
     unittest.main()
