@@ -24,6 +24,12 @@ class LandingAudiencePickerTests(unittest.TestCase):
         self.assertNotIn("email", hero.lower())
         self.assertNotIn("address", hero.lower())
 
+    def test_secondary_path_summary_does_not_compete_with_the_primary_interview(self):
+        self.assertIn('id="betaLaunchStripV15"', HTML)
+        self.assertIn('<summary>Explore other HomeOfferFlow paths</summary>', HTML)
+        self.assertIn('class="beta-launch-options"', HTML)
+        self.assertIn('details class="beta-launch-strip"', HTML)
+
     def test_platform_admin_receives_only_fixed_audience_selection_aggregates(self):
         backend = (Path(__file__).resolve().parents[1] / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
         self.assertIn('"landingAudienceSelectionCount"', backend)
