@@ -19,6 +19,7 @@ ONDEMAND = (ROOT / "ondemand.html").read_text(encoding="utf-8")
 FSBO_GUIDE = (ROOT / "texas-fsbo-guide.html").read_text(encoding="utf-8")
 SELLER_OFFER_REVIEW_GUIDE = (ROOT / "texas-seller-offer-review.html").read_text(encoding="utf-8")
 AGENT_GUIDE = (ROOT / "texas-agent-offer-workflow.html").read_text(encoding="utf-8")
+AGENT_FORM_LIBRARY = (ROOT / "texas-agent-form-library.html").read_text(encoding="utf-8")
 BUYER_GUIDE = (ROOT / "texas-homebuyer-offer-guide.html").read_text(encoding="utf-8")
 INVESTOR_GUIDE = (ROOT / "texas-investor-offer-guide.html").read_text(encoding="utf-8")
 TERMS = (ROOT / "terms.html").read_text(encoding="utf-8")
@@ -31,6 +32,12 @@ VERCEL = json.loads((ROOT / "vercel.json").read_text(encoding="utf-8"))
 
 
 class PublicDiscoveryMetadataTests(unittest.TestCase):
+    def test_agent_form_library_exposes_crawlable_shared_workflow_inventory(self):
+        self.assertIn('"@type":"ItemList"', AGENT_FORM_LIBRARY)
+        for form_code in ("TXR-1501", "TXR-1508", "TXR-1948", "TXR-1953", "TXR-1954"):
+            self.assertIn(form_code, AGENT_FORM_LIBRARY)
+        self.assertIn('"url":"https://www.homeofferflow.com/texas-agent-form-library"', AGENT_FORM_LIBRARY)
+
     def test_landing_page_has_canonical_share_and_structured_metadata(self):
         self.assertIn('<link rel="canonical" href="https://www.homeofferflow.com/"', INDEX)
         self.assertIn('property="og:url" content="https://www.homeofferflow.com/"', INDEX)
