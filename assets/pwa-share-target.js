@@ -28,6 +28,18 @@
       link.style.cssText = 'display:inline-block;margin-top:.5rem;color:#173f35;font-weight:800;';
       card.appendChild(link);
     }
+    const action = document.createElement('button');
+    action.type = 'button';
+    action.textContent = 'Start a buyer offer with this context';
+    action.style.cssText = 'display:block;margin-top:.7rem;padding:.6rem .8rem;border:0;border-radius:8px;background:#c8973f;color:#102033;font:700 14px/1.2 Arial,sans-serif;cursor:pointer;';
+    action.addEventListener('click', () => {
+      // Keep shared text out of the URL and offer payload. The user reviews
+      // the context above, then chooses what to enter in the guided workflow.
+      window.trackEvent?.('PWA Shared Context CTA Selected', { surface: 'pwa_share_target' });
+      if (typeof window.beginOfferFrom === 'function') window.beginOfferFrom('pwa_share_target');
+      else window.location.assign('/?buyer=1&utm_source=pwa_shortcut&utm_medium=installed_app&utm_campaign=shared_context');
+    });
+    card.appendChild(action);
     const host = document.querySelector('main') || document.body;
     host.prepend(card);
   };
