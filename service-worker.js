@@ -1,6 +1,6 @@
 // Bump the shell when manifest shortcuts or core install behavior changes so
 // an already-installed agent receives the current app metadata immediately.
-const SHELL_CACHE = 'homeofferflow-shell-v39';
+const SHELL_CACHE = 'homeofferflow-shell-v40';
 const SHELL_ASSETS = [
   '/',
   '/index.html',
@@ -21,6 +21,10 @@ const SHELL_ASSETS = [
   '/texas-investor-offer-guide',
   '/manifest.webmanifest',
   '/assets/pwa-register.js',
+  '/assets/agent-landing-focus.css',
+  '/assets/agent-landing-focus.js',
+  '/assets/partner-landing-focus.css',
+  '/assets/partner-landing-focus.js',
   '/assets/homeofferflow-app-icon.svg',
   '/assets/homeofferflow-app-icon-192.png',
   '/assets/homeofferflow-app-icon-512.png',
