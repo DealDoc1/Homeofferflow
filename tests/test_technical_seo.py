@@ -173,9 +173,9 @@ class TechnicalSeoTests(unittest.TestCase):
             r"<url>\s*<loc>(https://www\.homeofferflow\.com/[^<]*)</loc>\s*<lastmod>(\d{4}-\d{2}-\d{2})</lastmod>\s*</url>",
             SITEMAP,
         )
-        self.assertEqual(len(entries), 16)
+        self.assertEqual(len(entries), 17)
         self.assertEqual(dict(entries)["https://www.homeofferflow.com/"], "2026-08-23")
-        for path in ("/agents", "/ondemand", "/partners", "/buyers", "/sellers", "/texas-fsbo-guide", "/texas-seller-offer-review", "/texas-agent-offer-workflow", "/texas-lease-offer-workflow", "/texas-listing-workflow", "/texas-agent-form-library", "/texas-homebuyer-offer-guide", "/texas-investor-offer-guide", "/investors", "/directory"):
+        for path in ("/agents", "/ondemand", "/partners", "/texas-home-service-partner-guide", "/buyers", "/sellers", "/texas-fsbo-guide", "/texas-seller-offer-review", "/texas-agent-offer-workflow", "/texas-lease-offer-workflow", "/texas-listing-workflow", "/texas-agent-form-library", "/texas-homebuyer-offer-guide", "/texas-investor-offer-guide", "/investors", "/directory"):
             expected = "2026-08-23"
             self.assertEqual(dict(entries)[f"https://www.homeofferflow.com{path}"], expected)
 
