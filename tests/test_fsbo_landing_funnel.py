@@ -120,6 +120,10 @@ class FsboLandingFunnelTests(unittest.TestCase):
         self.assertIn("Browse available providers", INDEX)
         self.assertIn('"fsboProviderDirectoryOpenCount"', ADMIN)
 
+    def test_launch_kit_has_a_quiet_fit_cue_for_ready_to_launch_sellers(self):
+        self.assertIn('Best for sellers ready to launch', SELLERS)
+        self.assertIn('className=\'tier-badge\'', SELLERS)
+
 
 if __name__ == "__main__":
     unittest.main()
