@@ -38,6 +38,10 @@ SELLER_PLAN_REPLY_TO = (
     or os.environ.get("SUPPORT_EMAIL")
     or "support@homeofferflow.com"
 )
+# A seller request is a direct request for HomeOfferFlow follow-up.  Keep the
+# operational copy internal, configurable, and on the same transactional send
+# so a high-intent lead is not stranded in the dashboard queue.
+SELLER_LEAD_ALERT_TO = (os.environ.get("SELLER_LEAD_ALERT_TO") or "support@homeofferflow.com").strip().lower()
 PUBLIC_APP_ORIGIN = (os.environ.get("PUBLIC_APP_ORIGIN") or "https://www.homeofferflow.com").rstrip("/")
 PARTNER_APPLICATION_FROM_EMAIL = (
     os.environ.get("PARTNER_APPLICATION_FROM_EMAIL")
@@ -392,6 +396,8 @@ def _send_seller_plan_confirmation(payload):
             "<p>Have a question or want to discuss the next step sooner? Reply directly to this email.</p>"
         ),
     }
+    if EMAIL_RE.match(SELLER_LEAD_ALERT_TO) and SELLER_LEAD_ALERT_TO != recipient.lower():
+        email_payload["bcc"] = [SELLER_LEAD_ALERT_TO]
     try:
         with httpx.Client(timeout=12.0) as client:
             response = client.post(
