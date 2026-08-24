@@ -7,6 +7,10 @@
       '/texas-agent-form-library': 'form_library',
     }[window.location.pathname] || 'offer');
   const storagePrefix = 'hof_agent_workflow_guide_' + guideKind + '_';
+  const channel = (() => {
+    const source = new URLSearchParams(window.location.search).get('utm_source') || '';
+    return ['pwa_shortcut', 'email', 'social', 'referral', 'organic'].includes(source) ? source : 'unspecified';
+  })();
   const record = (eventType, ctaPath = '') => {
     try {
       const storageKey = storagePrefix + eventType + (ctaPath ? '_' + ctaPath : '');
@@ -15,7 +19,7 @@
       const body = {
         request_type: 'agent_landing_event',
         event_type: eventType,
-        channel: 'unspecified',
+        channel,
       };
       if (ctaPath) body.cta_path = ctaPath;
       fetch('/api/fsbo-lead', {
