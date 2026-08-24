@@ -111,7 +111,7 @@
           if (sessionStorage.getItem(key)) return;
           sessionStorage.setItem(key, '1');
         } catch (_) {}
-        fetch('/api/fsbo-lead', {method:'POST', headers:{'Content-Type':'application/json'}, keepalive:true, body:JSON.stringify({request_type:'partner_landing_event', event_type:'partner_directory_empty_search', tier:'unspecified', category})}).catch(() => {});
+        fetch('/api/fsbo-lead', {method:'POST', headers:{'Content-Type':'application/json'}, keepalive:true, body:JSON.stringify({request_type:'partner_landing_event', event_type:'partner_directory_empty_search', tier:'unspecified', category, channel: directorySource === 'pwa_shortcut' ? 'pwa_shortcut' : 'direct'})}).catch(() => {});
       };
       const recordDirectoryEvent = (eventType, provider) => {
         const partnerId = String(provider?.id || '').trim(), partnerType = String(provider?.partner_type || '').trim(), placementTier = String(provider?.placement_tier || '').trim();
