@@ -146,6 +146,21 @@
       });
     })();
   </script>
+  <script>
+    // Give owned partner traffic a stable aggregate channel while preserving
+    // explicit category, tier, and campaign parameters from outreach links.
+    (() => {
+      document.querySelectorAll('[data-partner-apply]').forEach((link) => {
+        const destination = new URL(link.href, window.location.origin);
+        if (!destination.searchParams.has('utm_source')) {
+          destination.searchParams.set('utm_source', 'organic');
+          destination.searchParams.set('utm_medium', 'organic');
+          destination.searchParams.set('utm_campaign', 'partner_acquisition');
+          link.href = destination.pathname + '?' + destination.searchParams.toString();
+        }
+      });
+    })();
+  </script>
   <script defer src="/assets/pwa-register.js"></script><script defer src="/_vercel/insights/script.js"></script>
 </body>
 </html>
