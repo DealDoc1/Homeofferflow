@@ -41,6 +41,19 @@
       else window.location.assign('/?buyer=1&utm_source=pwa_shortcut&utm_medium=installed_app&utm_campaign=shared_context');
     });
     card.appendChild(action);
+    const agentAction = document.createElement('button');
+    agentAction.type = 'button';
+    agentAction.textContent = 'Open the agent transaction chooser';
+    agentAction.style.cssText = 'display:block;margin-top:.45rem;padding:.55rem .8rem;border:1px solid rgba(23,63,53,.35);border-radius:8px;background:transparent;color:#173f35;font:700 14px/1.2 Arial,sans-serif;cursor:pointer;';
+    agentAction.addEventListener('click', () => {
+      // Shared text remains review-only context. Agents choose the transaction
+      // before entering any client, property, or form data.
+      window.trackEvent?.('PWA Shared Context Agent CTA Selected', { surface: 'pwa_share_target' });
+      window.setAudience?.('agent');
+      if (typeof window.openAgentTransactionPicker === 'function') window.openAgentTransactionPicker();
+      else window.location.assign('/?pwa_action=transaction_start&utm_source=pwa_shortcut&utm_medium=installed_app&utm_campaign=shared_context_agent');
+    });
+    card.appendChild(agentAction);
     const host = document.querySelector('main') || document.body;
     host.prepend(card);
   };
