@@ -105,7 +105,8 @@
       const selectedTier = allowedTiers.has(tier) ? tier : '';
       const medium = String(source.get('utm_medium') || '').trim().toLowerCase();
       const campaignChannel = medium === 'installed_app' ? 'pwa_shortcut' : medium || 'direct';
-      const recordAggregateFunnelEvent = (eventType, tierValue, categoryValue, channelValue = campaignChannel) => {
+      const campaignChannelForEvents = campaignChannel === 'organic_content' || campaignChannel === 'owned_directory' ? 'organic' : (['direct', 'organic', 'pwa_shortcut', 'email', 'social', 'referral', 'other'].includes(campaignChannel) ? campaignChannel : 'direct');
+      const recordAggregateFunnelEvent = (eventType, tierValue, categoryValue, channelValue = campaignChannelForEvents) => {
         const safeTier = allowedTiers.has(tierValue) ? tierValue : 'unspecified';
         const safeCategory = allowedCategories.has(categoryValue) ? categoryValue : 'unspecified';
         const key = 'hof_partner_landing_' + eventType + '_' + safeTier + '_' + safeCategory;
@@ -119,7 +120,7 @@
         } catch (_) {}
       };
       track('Founding Partner Landing Viewed', {tier: selectedTier || 'unspecified', category: selectedCategory || 'unspecified', channel: campaignChannel});
-      recordAggregateFunnelEvent('partner_landing_viewed', selectedTier, selectedCategory, campaignChannel);
+      recordAggregateFunnelEvent('partner_landing_viewed', selectedTier, selectedCategory, campaignChannelForEvents);
       if (selectedTier || selectedCategory) {
         const context = document.getElementById('partnerCampaignContext');
         if (context) {

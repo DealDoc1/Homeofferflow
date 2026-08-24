@@ -36,6 +36,8 @@ class PartnerLandingFunnelTests(unittest.TestCase):
         self.assertIn("keepalive: true", PARTNERS)
         self.assertIn("const campaignChannel = medium === 'installed_app' ? 'pwa_shortcut' : medium || 'direct';", PARTNERS)
         self.assertIn("channel: campaignChannel", PARTNERS)
+        self.assertIn("campaignChannelForEvents", PARTNERS)
+        self.assertIn("campaignChannel === 'organic_content'", PARTNERS)
         self.assertIn("channel: channelValue", PARTNERS)
         self.assertIn("PARTNER_LANDING_CHANNELS", API)
 
