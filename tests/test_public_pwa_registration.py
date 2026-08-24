@@ -7,7 +7,7 @@ SCRIPT = (ROOT / 'assets' / 'pwa-register.js').read_text(encoding='utf-8')
 PUBLIC_PAGES = (
     'directory.html', 'buyers.html', 'partners.html', 'sellers.html',
     'agents.html', 'investors.html', 'texas-fsbo-guide.html', 'texas-home-service-partner-guide.html',
-    'texas-agent-offer-workflow.html', 'texas-seller-offer-review.html', 'texas-homebuyer-offer-guide.html', 'texas-investor-offer-guide.html', 'texas-seller-financing-guide.html', 'ondemand.html'
+    'texas-agent-offer-workflow.html', 'texas-seller-offer-review.html', 'texas-homebuyer-offer-guide.html', 'texas-investor-offer-guide.html', 'texas-seller-financing-guide.html', 'texas-buyer-representation-guide.html', 'ondemand.html'
 )
 
 
