@@ -33,7 +33,7 @@ class AgentLandingFunnelTests(unittest.TestCase):
     def test_searchable_agent_route_and_passwordless_entry_reuse_existing_workspace(self):
         self.assertIn('"source": "/agents"', VERCEL)
         self.assertIn('"destination": "/agents.html"', VERCEL)
-        self.assertIn('href="/?agent=1&amp;workflow=purchase"', AGENTS)
+        self.assertIn('href="/?agent=1&amp;workflow=purchase&amp;utm_source=agent_workspace&amp;utm_medium=agent_page&amp;utm_campaign=transaction_selector"', AGENTS)
         self.assertIn('href="/agents"', INDEX)
         self.assertIn("if (params().get('agent') === '1')", INDEX)
         self.assertIn("cleanUrl.searchParams.delete('agent')", INDEX)
@@ -50,8 +50,8 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn('data-agent-cta-path="listing_guide"', AGENTS)
 
     def test_agent_landing_uses_transaction_choices_for_listing_handoffs(self):
-        self.assertIn('href="/?agent=1&amp;workflow=sale_listing"', AGENTS)
-        self.assertIn('href="/?agent=1&amp;workflow=lease_listing"', AGENTS)
+        self.assertIn('href="/?agent=1&amp;workflow=sale_listing&amp;utm_source=agent_workspace&amp;utm_medium=agent_page&amp;utm_campaign=transaction_selector"', AGENTS)
+        self.assertIn('href="/?agent=1&amp;workflow=lease_listing&amp;utm_source=agent_workspace&amp;utm_medium=agent_page&amp;utm_campaign=transaction_selector"', AGENTS)
         self.assertIn("window.hofAgentWorkflowContext = agentLandingWorkflow", INDEX)
         self.assertIn("agent_landing_seller_workspace_handoff", INDEX)
 
@@ -82,7 +82,7 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("cleanUrl.searchParams.delete('workflow')", INDEX)
 
     def test_agent_landing_uses_lease_representation_for_relationship_draft_handoffs(self):
-        self.assertIn('href="/?agent=1&amp;workflow=lease_representation"', AGENTS)
+        self.assertIn('href="/?agent=1&amp;workflow=lease_representation&amp;utm_source=agent_workspace&amp;utm_medium=agent_page&amp;utm_campaign=transaction_selector"', AGENTS)
         self.assertIn("hof_agent_landing_open_relationship_workspace", INDEX)
         self.assertIn("agent_landing_relationship_workspace_handoff", INDEX)
         self.assertIn("tab: 'relationships'", INDEX)
@@ -251,6 +251,13 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("medium==='installed_app'||source==='pwa_shortcut'?'pwa_shortcut'", AGENTS)
         self.assertIn("medium==='organic_content'||source==='organic'?'organic'", AGENTS)
         self.assertIn("body?.request_type==='agent_landing_event'", AGENTS)
+
+    def test_transaction_choices_carry_a_shared_campaign_into_the_agent_workspace(self):
+        self.assertEqual(AGENTS.count('utm_campaign=transaction_selector'), 4)
+        self.assertIn('workflow=sale_listing&amp;utm_source=agent_workspace&amp;utm_medium=agent_page&amp;utm_campaign=transaction_selector', AGENTS)
+        self.assertIn('workflow=purchase&amp;utm_source=agent_workspace&amp;utm_medium=agent_page&amp;utm_campaign=transaction_selector', AGENTS)
+        self.assertIn('workflow=lease_listing&amp;utm_source=agent_workspace&amp;utm_medium=agent_page&amp;utm_campaign=transaction_selector', AGENTS)
+        self.assertIn('workflow=lease_representation&amp;utm_source=agent_workspace&amp;utm_medium=agent_page&amp;utm_campaign=transaction_selector', AGENTS)
 
     def test_investor_landing_preserves_organic_and_pwa_attribution(self):
         self.assertIn("medium==='installed_app'||source==='pwa_shortcut'?'pwa_shortcut'", INVESTORS)
