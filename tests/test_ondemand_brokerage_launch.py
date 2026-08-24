@@ -1073,6 +1073,12 @@ class OnDemandLaunchPageTests(unittest.TestCase):
         ):
             self.assertIn(text.lower(), LAUNCH_HTML.lower())
 
+    def test_launch_exposes_matching_faq_structured_data(self):
+        self.assertIn('"@type":"FAQPage"', LAUNCH_HTML)
+        self.assertIn('"name":"Why is a card required if the first 60 days are free?"', LAUNCH_HTML)
+        self.assertIn('"name":"Can I cancel before the trial renews?"', LAUNCH_HTML)
+        self.assertIn('"name":"What can I use HomeOfferFlow for during this launch?"', LAUNCH_HTML)
+
     def test_launch_requires_authenticated_checkout_and_terms_confirmation(self):
         self.assertIn('"Authorization": `Bearer ${state.session.access_token}`', LAUNCH_HTML)
         self.assertIn('id="terms" type="checkbox"', LAUNCH_HTML)
