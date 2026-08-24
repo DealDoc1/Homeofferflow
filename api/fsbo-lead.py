@@ -228,7 +228,7 @@ AGENT_LANDING_EVENT_TYPES = {
     "agent_resource_links_expanded": "resource_expanded",
 }
 AGENT_LANDING_CHANNELS = {
-    "direct", "pwa_shortcut", "direct_outreach", "email", "social", "referral", "local_event", "print", "unspecified",
+    "direct", "organic", "pwa_shortcut", "direct_outreach", "email", "social", "referral", "local_event", "print", "unspecified",
 }
 AGENT_LANDING_CTA_PATHS = {
     "client_draft", "seller_listing", "lease_listing", "relationship_drafts", "lease_representation", "listing_guide", "lease_guide", "form_library_guide",

@@ -4739,7 +4739,7 @@ class handler(BaseHTTPRequestHandler):
                 item for item in events if item.get("event_type") == "agent_workflow_guide_cta_selected"
             ])
             agent_landing_channels = (
-                "direct_outreach", "email", "social", "referral", "local_event", "print", "unspecified",
+                "direct", "organic", "pwa_shortcut", "direct_outreach", "email", "social", "referral", "local_event", "print", "unspecified",
             )
             agent_landing_view_counts_by_channel = {
                 channel: len([
