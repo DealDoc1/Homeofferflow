@@ -10522,6 +10522,10 @@ function routeAfterMagicLinkIfNeeded() {
     return inputs.map(input => [input, callbacks[input.id] || null]);
   }
 
+  // Apply the fallback semantics immediately, without loading Google. This
+  // lets browser autofill work before the optional Places script is requested.
+  addressAutocompleteInputs();
+
   function wireLegacyGoogleAddressInputs() {
     if (!window.google?.maps?.places?.Autocomplete) return;
     addressAutocompleteInputs().forEach(([input, onSelectCallback]) => {
