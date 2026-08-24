@@ -4779,6 +4779,11 @@ class handler(BaseHTTPRequestHandler):
                 ])
                 for channel in agent_landing_channels
             }
+            agent_landing_cta_rates_by_channel = {
+                channel: round((agent_landing_cta_counts_by_channel[channel] / agent_landing_view_counts_by_channel[channel]) * 100, 1)
+                if agent_landing_view_counts_by_channel[channel] else 0
+                for channel in agent_landing_channels
+            }
             # CTA paths are a fixed product-choice allowlist from public agent
             # pages. Keep these aggregate-only so operations can optimize the
             # message and destination without exposing an agent, client, or
@@ -5357,6 +5362,7 @@ class handler(BaseHTTPRequestHandler):
                 if agent_workflow_guide_view_count else 0,
                 "agentLandingViewCountsByChannel": agent_landing_view_counts_by_channel,
                 "agentLandingCtaCountsByChannel": agent_landing_cta_counts_by_channel,
+                "agentLandingCtaRatesByChannel": agent_landing_cta_rates_by_channel,
                 "agentLandingCtaPathCounts": agent_landing_cta_path_counts,
                 "agentWorkflowGuideCtaPathCounts": agent_workflow_guide_cta_path_counts,
                 "agentLandingDraftHandoffUserCount": agent_landing_draft_handoff_user_count,

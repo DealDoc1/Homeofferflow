@@ -260,6 +260,7 @@ class AgentLandingFunnelTests(unittest.TestCase):
         for expected in (
             '"agentLandingViewCount"', '"agentLandingQuestionOneOpenCount"', '"agentLandingQuestionOneOpenRate"', '"agentLandingCtaCount"', '"agentLandingCtaRate"',
             '"agentLandingViewCountsByChannel"', '"agentLandingCtaCountsByChannel"',
+            '"agentLandingCtaRatesByChannel"',
             '"agentResourceLinksExpandedCount"',
             '"agentLandingDraftHandoffUserCount"', '"agentLandingDraftHandoffRate"',
             '"agentLandingSellerWorkspaceHandoffUserCount"',
@@ -277,6 +278,7 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("agentLandingCtaRate", INDEX)
         self.assertIn("agentLandingQuestionOneOpenRate", INDEX)
         self.assertIn("Channel views / sign-ins", INDEX)
+        self.assertIn("Agent channel conversion:", INDEX)
         self.assertIn("agentLandingViewCountsByChannel?.referral", INDEX)
         self.assertIn("agentLandingDraftHandoffUserCount", INDEX)
         self.assertIn("agentLandingDraftHandoffRate", INDEX)
