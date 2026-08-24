@@ -80,6 +80,7 @@ class PwaBaselineTests(unittest.TestCase):
                 ("Seller Offer Review", "/texas-seller-offer-review?utm_source=pwa_shortcut&utm_medium=installed_app&utm_campaign=seller_offer_review"),
                 ("Investor Workspace", "/?pwa_action=investor_workspace"),
                 ("Partner Marketplace", "/?pwa_action=partner_marketplace"),
+                ("OnDemand Agent Trial", "/ondemand?utm_source=pwa_shortcut&utm_medium=installed_app&utm_campaign=ondemand_agent_trial"),
                 ("Find a Provider", "/directory?utm_source=pwa_shortcut&utm_medium=installed_app&utm_campaign=provider_directory"),
             ],
         )
