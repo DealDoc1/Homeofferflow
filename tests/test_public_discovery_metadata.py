@@ -38,6 +38,21 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
             self.assertIn(form_code, AGENT_FORM_LIBRARY)
         self.assertIn('"url":"https://www.homeofferflow.com/texas-agent-form-library"', AGENT_FORM_LIBRARY)
 
+    def test_agent_form_library_structured_data_uses_the_correct_form_names(self):
+        expected_names = (
+            "TXR-1501 Buyer/Tenant Representation Agreement - Long Form review draft",
+            "TXR-1506 General Information and Notice to Consumers review draft",
+            "TXR-1507 Residential Buyer/Tenant Representation Agreement - Short Form review draft",
+            "TXR-1905 Addendum for Reservation of Oil, Gas, and Other Minerals review draft",
+            "TXR-1914 Seller Financing Addendum review draft",
+            "TXR-1917 Environmental Assessment Addendum review draft",
+            "TXR-1948 Addendum Concerning Right to Terminate Due to Lender's Appraisal review draft",
+            "TXR-1953 Addendum Regarding Residential Leases review draft",
+            "TXR-1954 Addendum Regarding Fixture Leases review draft",
+        )
+        for name in expected_names:
+            self.assertIn(name, AGENT_FORM_LIBRARY)
+
     def test_landing_page_has_canonical_share_and_structured_metadata(self):
         self.assertIn('<link rel="canonical" href="https://www.homeofferflow.com/"', INDEX)
         self.assertIn('property="og:url" content="https://www.homeofferflow.com/"', INDEX)
