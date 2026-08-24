@@ -5038,6 +5038,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Last 30 days: ${adminSafe(Object.entries(metrics.missingFormRecentCodeCounts || {}).slice(0, 5).map(([code, count]) => `${code} (${count})`).join(' · '), 'No recent coded requests')}</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Intake priority: ${adminSafe((metrics.missingFormPriority || []).slice(0, 5).map(row => `${row.code} (#${row.rank}, score ${row.score})`).join(' · '), 'No ranked form demand')}</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.missingFormIntakeBriefCopyCount || 0} source-intake briefs copied.</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Shared source catalog: ${metrics.sharedFormCatalogOpenCount || 0} agent open${Number(metrics.sharedFormCatalogOpenCount || 0) === 1 ? '' : 's'}.</div>
             <div style="margin-top:.35rem"><button type="button" class="admin-contact-action" onclick='copyMissingFormIntakeBrief(${JSON.stringify(metrics.missingFormTopCodes || [])}, ${JSON.stringify(metrics.missingFormRequestCodeCounts || {})}, ${JSON.stringify(metrics.missingFormPriority || [])})'>Copy source-intake brief</button></div>
           </div>
 
@@ -19464,6 +19465,12 @@ function routeAfterMagicLinkIfNeeded() {
     const details = document.createElement('details');
     details.className = 'hof-shared-source-catalog';
     details.innerHTML = '<summary>See approved shared-source revisions</summary><p style="color:var(--gray-light);font-size:.82rem;line-height:1.45;margin:.7rem 0 0">Loading the current platform-wide source catalog…</p>';
+    let catalogOpenRecorded = false;
+    details.addEventListener('toggle', () => {
+      if (!details.open || catalogOpenRecorded) return;
+      catalogOpenRecorded = true;
+      root.logOfferEvent?.(null, 'shared_form_catalog_opened', 'opened', 'Agent opened the platform-wide approved source catalog.', { surface: 'agent_dashboard' });
+    });
     card.insertBefore(details, card.querySelector('.beta-checklist-actions'));
     try {
       const token = root.hofAuth?.session?.access_token;

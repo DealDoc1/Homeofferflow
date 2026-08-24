@@ -4560,6 +4560,10 @@ class handler(BaseHTTPRequestHandler):
                 "agent_chooser_opened": 0,
                 "agent_transaction_selected": 0,
             }
+            shared_form_catalog_open_count = len([
+                item for item in events
+                if item.get("event_type") == "shared_form_catalog_opened"
+            ])
             for item in events:
                 event_type = str(item.get("event_type") or "").strip().lower()
                 if event_type == "pwa_shared_context_buyer_offer_opened":
@@ -5495,6 +5499,7 @@ class handler(BaseHTTPRequestHandler):
                 "pwaAuthenticatedShortcutCounts": pwa_authenticated_shortcut_counts,
                 "pwaAuthenticatedShortcutPlatformCounts": pwa_authenticated_shortcut_platform_counts,
                 "pwaSharedContextEventCounts": pwa_shared_context_event_counts,
+                "sharedFormCatalogOpenCount": shared_form_catalog_open_count,
                 "fsboProviderDirectoryOpenCount": fsbo_provider_directory_open_count,
                 "pwaInstallShownCount": pwa_install_event_counts["shown"],
                 "pwaInstallNativeAvailableCount": pwa_install_event_counts["native_available"],
