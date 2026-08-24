@@ -7,7 +7,7 @@ SCRIPT = (ROOT / 'assets' / 'pwa-register.js').read_text(encoding='utf-8')
 PUBLIC_PAGES = (
     'directory.html', 'buyers.html', 'partners.html', 'sellers.html',
     'agents.html', 'investors.html', 'texas-fsbo-guide.html',
-    'texas-agent-offer-workflow.html', 'texas-seller-offer-review.html', 'texas-homebuyer-offer-guide.html', 'ondemand.html'
+    'texas-agent-offer-workflow.html', 'texas-seller-offer-review.html', 'texas-homebuyer-offer-guide.html', 'texas-investor-offer-guide.html', 'ondemand.html'
 )
 
 
@@ -62,6 +62,9 @@ class PublicPwaRegistrationTests(unittest.TestCase):
         self.assertIn("window.location.pathname === '/texas-homebuyer-offer-guide'", SCRIPT)
         self.assertIn("Keep your buyer offer plan one tap away", SCRIPT)
         self.assertIn("buyer checklist and offer workflow", SCRIPT)
+        self.assertIn("window.location.pathname === '/texas-investor-offer-guide'", SCRIPT)
+        self.assertIn("Keep your investor offer plan one tap away", SCRIPT)
+        self.assertIn("investor checklist and repeat-offer workflow", SCRIPT)
 
 
 if __name__ == '__main__':
