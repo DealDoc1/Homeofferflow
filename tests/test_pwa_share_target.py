@@ -28,6 +28,7 @@ class PwaShareTargetTests(unittest.TestCase):
         self.assertIn('Start a buyer offer with this context', SHARE)
         self.assertIn("window.setAudience?.('homebuyer')", SHARE)
         self.assertIn("window.beginOfferFrom('pwa_share_target')", SHARE)
+        self.assertIn("pwa_shared_context_buyer_offer_opened", SHARE)
         self.assertIn('shared text out of the URL and offer payload', SHARE)
         self.assertIn('utm_campaign=shared_context', SHARE)
 
@@ -36,6 +37,7 @@ class PwaShareTargetTests(unittest.TestCase):
         self.assertIn("window.trackEvent?.('PWA Shared Context Agent CTA Selected'", SHARE)
         self.assertIn("window.setAudience?.('agent')", SHARE)
         self.assertIn('window.openAgentTransactionPicker()', SHARE)
+        self.assertIn("pwa_shared_context_agent_chooser_opened", SHARE)
         self.assertIn('utm_campaign=shared_context_agent', SHARE)
         self.assertIn('homeofferflow-shell-v42', (ROOT / 'service-worker.js').read_text(encoding='utf-8'))
 
