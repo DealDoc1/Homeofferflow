@@ -120,6 +120,7 @@ class PwaInstallExperienceTests(unittest.TestCase):
             '"pwaAuthenticatedShortcutPlatformCounts"',
             '"pwaAuthenticatedShortcutRepeatUserCount"',
             '"pwaSharedContextEventCounts"',
+            '"pwaOfflineRecoveryCount"',
             "pwa_install_event_counts",
             "pwa_install_surfaces",
             "pwa_authenticated_shortcut_counts",
@@ -134,6 +135,8 @@ class PwaInstallExperienceTests(unittest.TestCase):
         self.assertIn("pwaSharedContextEventCounts?.buyer_offer_opened", INDEX)
         self.assertIn("pwaSharedContextEventCounts?.agent_chooser_opened", INDEX)
         self.assertIn("pwaSharedContextEventCounts?.agent_transaction_selected", INDEX)
+        self.assertIn("pwa_offline_refresh_recovered", INDEX)
+        self.assertIn("pwaOfflineRecoveryCount", INDEX)
         self.assertIn("pwaInstallAcceptedSurfaceCounts", INDEX)
         self.assertIn("pwaInstallAcceptedRate", INDEX)
         self.assertIn("Shown on:", INDEX)
