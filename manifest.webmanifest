@@ -102,6 +102,13 @@
       "url": "/?pwa_action=seller_plan"
     },
     {
+      "name": "FSBO Support Paths",
+      "short_name": "FSBO Paths",
+      "description": "Compare Texas FSBO preparation, launch, MLS, offer-review, and closing-support paths.",
+      "url": "/sellers?utm_source=pwa_shortcut&utm_medium=installed_app&utm_campaign=fsbo_support_paths",
+      "icons": [{"src":"/assets/homeofferflow-app-icon-192.png","sizes":"192x192","type":"image/png"}]
+    },
+    {
       "name": "Investor Workspace",
       "short_name": "Investor",
       "description": "Open your private investor workspace for repeat-offer work.",
