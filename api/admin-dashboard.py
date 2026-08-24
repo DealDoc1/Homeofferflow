@@ -4919,6 +4919,34 @@ class handler(BaseHTTPRequestHandler):
             seller_landing_support_paths_expanded_count = len([
                 item for item in seller_landing_events if item.get("event_type") == "fsbo_support_paths_expanded"
             ])
+            seller_landing_channels = (
+                "direct", "organic", "pwa_shortcut", "email", "social",
+                "referral", "local_event", "print", "unspecified",
+            )
+            seller_landing_view_counts_by_channel = {
+                channel: len([
+                    item for item in seller_landing_events
+                    if item.get("event_type") == "fsbo_landing_viewed"
+                    and str((item.get("metadata") or {}).get("channel") or "unspecified") == channel
+                ])
+                for channel in seller_landing_channels
+            }
+            seller_landing_cta_counts_by_channel = {
+                channel: len([
+                    item for item in seller_landing_events
+                    if item.get("event_type") == "fsbo_landing_cta_selected"
+                    and str((item.get("metadata") or {}).get("channel") or "unspecified") == channel
+                ])
+                for channel in seller_landing_channels
+            }
+            seller_landing_support_paths_counts_by_channel = {
+                channel: len([
+                    item for item in seller_landing_events
+                    if item.get("event_type") == "fsbo_support_paths_expanded"
+                    and str((item.get("metadata") or {}).get("channel") or "unspecified") == channel
+                ])
+                for channel in seller_landing_channels
+            }
             seller_landing_package_cta_counts = {}
             for item in seller_landing_events:
                 if item.get("event_type") != "fsbo_landing_cta_selected":
@@ -5061,6 +5089,9 @@ class handler(BaseHTTPRequestHandler):
                 "sellerLandingCtaRate": round((seller_landing_cta_count / seller_landing_view_count) * 100, 1)
                 if seller_landing_view_count else 0,
                 "sellerLandingSupportPathsExpandedCount": seller_landing_support_paths_expanded_count,
+                "sellerLandingViewCountsByChannel": seller_landing_view_counts_by_channel,
+                "sellerLandingCtaCountsByChannel": seller_landing_cta_counts_by_channel,
+                "sellerLandingSupportPathsExpandedCountsByChannel": seller_landing_support_paths_counts_by_channel,
                 "sellerLandingPackageCtaCounts": seller_landing_package_cta_counts,
                 "sellerIntakeEventCounts": seller_intake_event_counts,
                 "sellerPackageSelectionCounts": seller_package_selection_counts,

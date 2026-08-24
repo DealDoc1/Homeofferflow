@@ -75,6 +75,9 @@ class FsboLandingFunnelTests(unittest.TestCase):
             '"sellerLandingViewCount"',
             '"sellerLandingCtaCount"',
             '"sellerLandingCtaRate"',
+            '"sellerLandingViewCountsByChannel"',
+            '"sellerLandingCtaCountsByChannel"',
+            '"sellerLandingSupportPathsExpandedCountsByChannel"',
             '"sellerLandingPackageCtaCounts"',
             "seller_landing_event_types",
             "seller_landing_package_cta_counts",
@@ -83,6 +86,7 @@ class FsboLandingFunnelTests(unittest.TestCase):
         self.assertIn("sellerLandingViewCount", INDEX)
         self.assertIn("sellerLandingCtaRate", INDEX)
         self.assertIn("Landing-path interest:", INDEX)
+        self.assertIn("Seller channels:", INDEX)
         self.assertIn('"fsboGuideViewCount"', ADMIN)
         self.assertIn('"fsboGuideCtaCount"', ADMIN)
         self.assertIn('"fsboGuidePackageCtaCounts"', ADMIN)
