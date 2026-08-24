@@ -4898,7 +4898,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.pwaSellerPlanShortcutCount || 0} Seller Plan shortcut return${Number(metrics.pwaSellerPlanShortcutCount || 0) === 1 ? '' : 's'} opened.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.pwaBuyerOfferShortcutCount || 0} Buyer Offer shortcut return${Number(metrics.pwaBuyerOfferShortcutCount || 0) === 1 ? '' : 's'} opened.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Authenticated workspace shortcuts: workspace ${Number(metrics.pwaAuthenticatedShortcutCounts?.workspace || 0)} · transaction start ${Number(metrics.pwaAuthenticatedShortcutCounts?.transaction_start || 0)} · listings ${Number(metrics.pwaAuthenticatedShortcutCounts?.listing_tools || 0)} · relationship drafts ${Number(metrics.pwaAuthenticatedShortcutCounts?.relationship_drafts || 0)} · offer review ${Number(metrics.pwaAuthenticatedShortcutCounts?.offer_review || 0)} · new offer ${Number(metrics.pwaAuthenticatedShortcutCounts?.new_offer || 0)} · signing ${Number(metrics.pwaAuthenticatedShortcutCounts?.signing_queue || 0)} · attention ${Number(metrics.pwaAuthenticatedShortcutCounts?.attention_queue || 0)}.</div>
-            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Shared-context returns: buyer offer ${Number(metrics.pwaSharedContextEventCounts?.buyer_offer_opened || 0)} · agent chooser ${Number(metrics.pwaSharedContextEventCounts?.agent_chooser_opened || 0)}.</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Shared-context returns: buyer offer ${Number(metrics.pwaSharedContextEventCounts?.buyer_offer_opened || 0)} · agent chooser ${Number(metrics.pwaSharedContextEventCounts?.agent_chooser_opened || 0)} · transaction selected ${Number(metrics.pwaSharedContextEventCounts?.agent_transaction_selected || 0)}.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Shortcut platforms: iOS ${Number(metrics.pwaAuthenticatedShortcutPlatformCounts?.ios || 0)} · Android ${Number(metrics.pwaAuthenticatedShortcutPlatformCounts?.android || 0)} · web ${Number(metrics.pwaAuthenticatedShortcutPlatformCounts?.web || 0)} · legacy/unknown ${Number(metrics.pwaAuthenticatedShortcutPlatformCounts?.unknown || 0)}.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.fsboProviderDirectoryOpenCount || 0} post-intake seller directory visit${Number(metrics.fsboProviderDirectoryOpenCount || 0) === 1 ? '' : 's'} opened.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.pwaInstallAcceptedCount || 0} accepted · ${metrics.pwaInstallDismissedCount || 0} dismissed · ${Number(metrics.pwaInstallCompletionRate || 0).toFixed(1)}% installed after an install prompt opened.</div>
@@ -7184,6 +7184,14 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       button.setAttribute('aria-pressed', button.dataset.agentWorkflowChoice === kind ? 'true' : 'false');
     });
     window.logOfferEvent?.(null, choice.event, 'selected', 'Agent selected a transaction workflow from the workspace start.', { workflow: kind });
+    let sharedContextAgent = false;
+    try {
+      sharedContextAgent = sessionStorage.getItem('hof_pwa_shared_context_agent_pending') === '1';
+      if (sharedContextAgent) sessionStorage.removeItem('hof_pwa_shared_context_agent_pending');
+    } catch (_) {}
+    if (sharedContextAgent) {
+      window.logOfferEvent?.(null, 'pwa_shared_context_agent_transaction_selected', 'selected', 'Agent selected a transaction workflow after an installed-app shared-context handoff.', { surface: 'pwa_share_target', workflow: kind });
+    }
     const status = document.getElementById('agentWorkflowStartStatus');
     if (status) status.textContent = choice.message;
     choice.action();

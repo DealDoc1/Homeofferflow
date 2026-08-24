@@ -51,6 +51,7 @@
       // before entering any client, property, or form data.
       window.trackEvent?.('PWA Shared Context Agent CTA Selected', { surface: 'pwa_share_target' });
       window.logOfferEvent?.(null, 'pwa_shared_context_agent_chooser_opened', 'opened', 'Installed-app shared context opened the agent transaction chooser.', { surface: 'pwa_share_target' });
+      try { sessionStorage.setItem('hof_pwa_shared_context_agent_pending', '1'); } catch (_) {}
       window.setAudience?.('agent');
       if (typeof window.openAgentTransactionPicker === 'function') window.openAgentTransactionPicker();
       else window.location.assign('/?pwa_action=transaction_start&utm_source=pwa_shortcut&utm_medium=installed_app&utm_campaign=shared_context_agent');
