@@ -63,6 +63,8 @@ class PartnerLandingFunnelTests(unittest.TestCase):
 
         self.assertIn('"@type":"BreadcrumbList"', guide)
         self.assertIn("before any payment", PARTNERS)
+        self.assertIn('Most popular starting point', PARTNERS)
+        self.assertIn('class="tier-badge"', PARTNERS)
         self.assertIn("Apply for Core — no charge yet", PARTNERS)
         self.assertIn("First 90 days, then $149/month", PARTNERS)
         self.assertIn("not a referral program", PARTNERS)
