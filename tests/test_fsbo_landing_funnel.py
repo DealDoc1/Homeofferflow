@@ -84,6 +84,7 @@ class FsboLandingFunnelTests(unittest.TestCase):
         self.assertIn('"fsboGuideCtaCount"', ADMIN)
         self.assertIn('"fsboGuidePackageCtaCounts"', ADMIN)
         self.assertIn('"fsboGuideViewCountsByChannel"', ADMIN)
+        self.assertIn('"fsboGuideCtaCountsByChannel"', ADMIN)
         self.assertIn('"fsboGuideCtaRate"', ADMIN)
         self.assertIn("Texas FSBO Guide Funnel", INDEX)
         self.assertIn("fsboGuidePackageCtaCounts", INDEX)
