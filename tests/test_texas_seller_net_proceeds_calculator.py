@@ -6,6 +6,7 @@ ROOT = Path(__file__).resolve().parents[1]
 PAGE = (ROOT / "texas-seller-net-proceeds-calculator.html").read_text(encoding="utf-8")
 SITEMAP = (ROOT / "sitemap.xml").read_text(encoding="utf-8")
 WORKER = (ROOT / "service-worker.js").read_text(encoding="utf-8")
+VERCEL = (ROOT / "vercel.json").read_text(encoding="utf-8")
 
 
 class TexasSellerNetProceedsCalculatorTests(unittest.TestCase):
@@ -25,6 +26,8 @@ class TexasSellerNetProceedsCalculatorTests(unittest.TestCase):
         self.assertIn(f"https://www.homeofferflow.com{path}", SITEMAP)
         self.assertIn(f"'{path}',", WORKER)
         self.assertIn("homeofferflow-shell-v46", WORKER)
+        self.assertIn('"source": "/texas-seller-net-proceeds-calculator"', VERCEL)
+        self.assertIn('"destination": "/texas-seller-net-proceeds-calculator.html"', VERCEL)
 
 
 if __name__ == "__main__":
