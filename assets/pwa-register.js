@@ -91,6 +91,7 @@
     const investorGuideSurface = window.location.pathname === '/texas-investor-offer-guide';
     const sellerSurface = window.location.pathname === '/sellers';
     const agentSurface = window.location.pathname === '/agents';
+    const agentGuideSurface = Boolean(guideKind);
     const title = formLibrarySurface
       ? 'Keep the Texas form library one tap away'
       : partnerSurface
@@ -109,6 +110,14 @@
       ? 'Keep your seller plan one tap away'
       : agentSurface
       ? 'Keep your agent workspace one tap away'
+      : agentGuideSurface
+      ? guideKind === 'listing'
+        ? 'Keep your listing workflow one tap away'
+        : guideKind === 'lease'
+        ? 'Keep your lease workflow one tap away'
+        : guideKind === 'form_library'
+        ? 'Keep the Texas form library one tap away'
+        : 'Keep your offer workflow one tap away'
       : 'Keep HomeOfferFlow one tap away';
     const copy = formLibrarySurface
       ? 'Install the lightweight app shell to return quickly to the shared form guide and Question 1.'
@@ -128,6 +137,14 @@
       ? 'Install the lightweight app shell to return quickly to your seller plan and support paths.'
       : agentSurface
       ? 'Install the lightweight app shell to return quickly to Question 1, drafts, and your workspace.'
+      : agentGuideSurface
+      ? guideKind === 'listing'
+        ? 'Install the lightweight app shell to return quickly to your listing plan, offer comparison, and next action.'
+        : guideKind === 'lease'
+        ? 'Install the lightweight app shell to return quickly to your lease workflow and next client step.'
+        : guideKind === 'form_library'
+        ? 'Install the lightweight app shell to return quickly to the shared form library and Question 1.'
+        : 'Install the lightweight app shell to return quickly to your offer workflow and Question 1.'
       : 'Install the lightweight app shell for faster returns to your workspace.';
     card.innerHTML = `<strong style="display:block;color:#e8b86d;margin-bottom:.2rem">${title}</strong><span style="display:block;color:#b6c4d5;margin-bottom:.55rem">${copy}</span><div style="display:flex;gap:.45rem;flex-wrap:wrap"><button type="button" id="hofPublicPwaInstallButton" style="padding:.45rem .65rem;border:0;border-radius:7px;background:#c8973f;color:#102033;font-weight:800;cursor:pointer">Install app</button><button type="button" id="hofPublicPwaInstallDismiss" style="padding:.45rem .65rem;border:1px solid rgba(255,255,255,.25);border-radius:7px;background:transparent;color:#fff;cursor:pointer">Not now</button></div>`;
     document.body.appendChild(card);
