@@ -67,6 +67,21 @@
   const isMobileInstallSurface = () => /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '')
     || (navigator.maxTouchPoints > 1 && /Macintosh/i.test(navigator.userAgent || ''));
   const removeInstallCard = () => document.getElementById('hofPublicPwaInstallCard')?.remove();
+  const renderOfflineNotice = () => {
+    let notice = document.getElementById('hofPublicPwaOfflineNotice');
+    if (navigator.onLine !== false) {
+      notice?.remove();
+      return;
+    }
+    if (notice) return;
+    notice = document.createElement('aside');
+    notice.id = 'hofPublicPwaOfflineNotice';
+    notice.setAttribute('role', 'status');
+    notice.setAttribute('aria-live', 'polite');
+    notice.style.cssText = 'position:fixed;left:1rem;right:1rem;bottom:1rem;z-index:19;margin:auto;max-width:32rem;padding:.75rem .9rem;border:1px solid rgba(200,151,63,.55);border-radius:12px;background:#10243a;color:#fff;box-shadow:0 12px 30px rgba(0,0,0,.24);font:14px/1.4 Arial,sans-serif;';
+    notice.textContent = 'You are offline. This saved public page remains available; sign-in, live searches, and submissions resume when you reconnect.';
+    document.body.appendChild(notice);
+  };
   const showUpdateNotice = registration => {
     if (!isMobileInstallSurface() || !registration?.waiting || document.getElementById('hofPublicPwaUpdateNotice')) return;
     const notice = document.createElement('aside');
@@ -192,6 +207,9 @@
     renderInstallCard();
   });
   window.addEventListener('appinstalled', () => { trackInstallEvent('Installed'); deferredInstallPrompt = null; removeInstallCard(); });
+  window.addEventListener('offline', renderOfflineNotice);
+  window.addEventListener('online', renderOfflineNotice);
+  window.addEventListener('load', renderOfflineNotice, { once: true });
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/service-worker.js', { scope: '/' }).then(registration => {
       showUpdateNotice(registration);
