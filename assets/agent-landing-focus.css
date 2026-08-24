@@ -1,0 +1,19 @@
+.agent-resource-links {
+  margin: 1.25rem 0 2rem;
+  padding: .9rem 1rem;
+  border: 1px solid rgba(255,255,255,.14);
+  border-radius: 11px;
+  background: rgba(255,255,255,.04);
+}
+.agent-resource-links summary {
+  cursor: pointer;
+  color: var(--white);
+  font-weight: 800;
+}
+.agent-resource-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem 1rem;
+  margin-top: .75rem;
+}
+.agent-resource-list a { color: var(--white); font-weight: 700; }
