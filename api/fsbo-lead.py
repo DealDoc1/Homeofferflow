@@ -205,7 +205,7 @@ ONDEMAND_LANDING_EVENT_TYPES = {
 }
 ONDEMAND_LANDING_CHANNELS = {
     "direct", "email", "social", "referral", "local_event", "print",
-    "organic_offer_workflow", "organic_listing_workflow", "organic_lease_workflow", "agent_workspace", "agent_form_library", "unspecified",
+    "organic", "pwa_shortcut", "organic_offer_workflow", "organic_listing_workflow", "organic_lease_workflow", "agent_workspace", "agent_form_library", "unspecified",
 }
 HOMEBUYER_LANDING_EVENT_TYPES = {
     "homebuyer_landing_viewed": "viewed",

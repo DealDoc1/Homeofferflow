@@ -549,7 +549,9 @@
       async function init() {
         await loadConfig();
         const params = new URLSearchParams(window.location.search);
-        const channel = new Set(["organic_offer_workflow", "organic_listing_workflow", "organic_lease_workflow", "agent_workspace", "agent_form_library", "direct", "email", "social", "referral", "local_event", "print"]).has(params.get("utm_source")) ? params.get("utm_source") : "unspecified";
+        const source = String(params.get("utm_source") || "").trim().toLowerCase();
+        const medium = String(params.get("utm_medium") || "").trim().toLowerCase();
+        const channel = medium === "installed_app" || source === "pwa_shortcut" ? "pwa_shortcut" : medium === "organic_content" || source === "organic" ? "organic" : new Set(["organic_offer_workflow", "organic_listing_workflow", "organic_lease_workflow", "agent_workspace", "agent_form_library", "direct", "email", "social", "referral", "local_event", "print"]).has(source) ? source : "unspecified";
         recordAggregateLandingEvent("ondemand_landing_viewed", channel);
         if (params.get("checkout") === "success") {
           showStatus("Your secure checkout is complete. Open your workspace or start your first saved offer while agent access finishes activating.", "ok");
