@@ -47,6 +47,12 @@ class GoogleAddressAutocompleteCoverageTests(unittest.TestCase):
         self.assertIn("input.dataset.hofGoogleAddress = 'true';", INDEX)
         self.assertIn("Google remains the primary picker", INDEX)
         self.assertIn("addressAutocompleteInputs();\n\n  // Agreement, profile, and workspace panels", INDEX)
+
+    def test_late_rendered_legacy_address_controls_are_observed(self):
+        self.assertIn("const HOF_LEGACY_ADDRESS_KEYS = new Set(['propertyToSell', 'profInvestorMailing', 'clientCityStateZip']);", INDEX)
+        self.assertIn("const isHofAddressInput = input => input instanceof HTMLInputElement", INDEX)
+        self.assertIn("node.querySelectorAll?.('input[id], input[name]').forEach(input => controls.push(input));", INDEX)
+        self.assertIn("return controls.some(isHofAddressInput);", INDEX)
         self.assertIn("function wireLegacyGoogleAddressInputs", INDEX)
 
     def test_selection_telemetry_excludes_transaction_addresses(self):
