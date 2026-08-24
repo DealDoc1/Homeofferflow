@@ -15,6 +15,7 @@ class AgentLandingFocusTests(unittest.TestCase):
             self.assertIn(path, script)
         self.assertIn('Explore shared forms and workflow guides', script)
         self.assertIn('agent_resource_links_expanded', script)
+        self.assertIn('pwa_shortcut', script)
 
 
 if __name__ == '__main__':
