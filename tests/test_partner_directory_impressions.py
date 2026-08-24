@@ -38,6 +38,7 @@ class PartnerDirectoryImpressionTests(unittest.TestCase):
         self.assertIn('/_vercel/insights/script.js', PUBLIC_DIRECTORY)
         self.assertIn("const cta = String(provider.cta_label || '').trim().slice(0, 80) || 'Visit site';", PUBLIC_DIRECTORY)
         self.assertIn('${esc(cta)} ↗', PUBLIC_DIRECTORY)
+        self.assertIn("/texas-home-service-partner-guide", PUBLIC_DIRECTORY)
 
     def test_public_directory_gives_non_regulated_paid_placements_visible_order_without_ranking_regulated_services(self):
         self.assertIn("neutralProviderTypes = new Set(['lender','title','inspection','surveyor'])", PUBLIC_DIRECTORY)
