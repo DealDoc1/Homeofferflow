@@ -4655,7 +4655,7 @@ class handler(BaseHTTPRequestHandler):
                 item for item in events if item.get("event_type") == "homebuyer_landing_offer_started"
             ])
             homebuyer_landing_channels = (
-                "direct_outreach", "email", "social", "referral", "local_event", "print", "unspecified",
+                "direct", "pwa_shortcut", "direct_outreach", "email", "social", "referral", "local_event", "print", "unspecified",
             )
             homebuyer_landing_view_counts_by_channel = {
                 channel: len([

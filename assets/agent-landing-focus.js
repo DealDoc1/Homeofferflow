@@ -1,4 +1,10 @@
 (() => {
+  const params = new URLSearchParams(window.location.search);
+  const rawSource = String(params.get('utm_source') || '').trim().toLowerCase();
+  const rawMedium = String(params.get('utm_medium') || '').trim().toLowerCase();
+  const channel = rawMedium === 'installed_app' ? 'pwa_shortcut' : rawSource || 'direct';
+  const allowedChannels = new Set(['direct', 'pwa_shortcut', 'direct_outreach', 'email', 'social', 'referral', 'local_event', 'print']);
+  const safeChannel = allowedChannels.has(channel) ? channel : 'direct';
   const note = document.querySelector('.note:not(#agentTrialOffer)');
   const start = document.querySelector('#transaction-start');
   if (!note || !start) return;
@@ -38,7 +44,7 @@
       sessionStorage.setItem(key, '1');
       fetch('/api/fsbo-lead', {
         method: 'POST', headers: {'Content-Type': 'application/json'}, keepalive: true,
-        body: JSON.stringify({request_type: 'agent_landing_event', event_type: 'agent_resource_links_expanded', channel: 'direct'})
+        body: JSON.stringify({request_type: 'agent_landing_event', event_type: 'agent_resource_links_expanded', channel: safeChannel})
       }).catch(() => {});
     } catch (_) {}
   });

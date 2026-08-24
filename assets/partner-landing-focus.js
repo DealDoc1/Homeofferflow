@@ -1,4 +1,9 @@
 (() => {
+  const params = new URLSearchParams(window.location.search);
+  const rawMedium = String(params.get('utm_medium') || '').trim().toLowerCase();
+  const channel = rawMedium === 'installed_app' ? 'pwa_shortcut' : rawMedium || 'direct';
+  const allowedChannels = new Set(['direct', 'organic', 'pwa_shortcut', 'email', 'social', 'referral', 'other']);
+  const safeChannel = allowedChannels.has(channel) ? channel : 'direct';
   const guideNote = Array.from(document.querySelectorAll('p.note')).find((node) =>
     node.textContent.includes('Want the short version first?')
   );
@@ -19,7 +24,7 @@
       sessionStorage.setItem(key, '1');
       fetch('/api/fsbo-lead', {
         method: 'POST', headers: {'Content-Type': 'application/json'}, keepalive: true,
-        body: JSON.stringify({request_type: 'partner_landing_event', event_type: 'partner_guide_expanded', tier: 'unspecified', category: 'unspecified', channel: 'direct'})
+        body: JSON.stringify({request_type: 'partner_landing_event', event_type: 'partner_guide_expanded', tier: 'unspecified', category: 'unspecified', channel: safeChannel})
       }).catch(() => {});
     } catch (_) {}
   });

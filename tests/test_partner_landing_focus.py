@@ -15,6 +15,7 @@ class PartnerLandingFocusTests(unittest.TestCase):
         self.assertIn('Want the short version first?', script)
         self.assertIn('Read the short partner placement guide', script)
         self.assertIn('partner_guide_expanded', script)
+        self.assertIn('pwa_shortcut', script)
 
 
 if __name__ == '__main__':
