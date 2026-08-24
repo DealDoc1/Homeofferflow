@@ -107,6 +107,7 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
             "texas-lease-offer-workflow.html": "HomeOfferFlow Texas lease workflow guide",
             "texas-listing-workflow.html": "HomeOfferFlow Texas listing workflow guide",
             "texas-seller-offer-review.html": "HomeOfferFlow Texas seller offer review guide",
+            "texas-investor-offer-guide.html": "HomeOfferFlow Texas investor offer checklist",
         }
         for filename, alt in expected.items():
             page = (ROOT / filename).read_text(encoding="utf-8")
