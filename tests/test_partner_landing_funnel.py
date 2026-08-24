@@ -60,11 +60,19 @@ class PartnerLandingFunnelTests(unittest.TestCase):
         self.assertIn("partner_landing_viewed", metrics)
         self.assertIn("partner_landing_cta_selected", metrics)
         self.assertIn("request_type: 'partner_landing_event'", metrics)
+
         self.assertIn('"@type":"BreadcrumbList"', guide)
         self.assertIn("before any payment", PARTNERS)
         self.assertIn("Apply for Core — no charge yet", PARTNERS)
         self.assertIn("First 90 days, then $149/month", PARTNERS)
         self.assertIn("not a referral program", PARTNERS)
+
+    def test_partner_guide_exposes_crawlable_tier_inventory(self):
+        guide = (ROOT / "texas-home-service-partner-guide.html").read_text(encoding="utf-8")
+        self.assertIn('"@type":"ItemList"', guide)
+        for tier in ("Core Partner placement", "Featured Partner placement", "Premier Partner placement"):
+            self.assertIn(tier, guide)
+        self.assertIn('https://www.homeofferflow.com/partners#tiers', guide)
 
     def test_partner_page_states_when_the_paid_launch_period_begins(self):
         self.assertIn("When does the 90-day founding launch period begin?", PARTNERS)
