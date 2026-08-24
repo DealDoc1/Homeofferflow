@@ -84,6 +84,10 @@ class BrokerageFormSourceFoundationTests(unittest.TestCase):
         self.assertIn("scope=approved_brokerage_sources", HTML)
         self.assertIn("Every signed-in agent sees the same approved source catalog", HTML)
         self.assertIn("shared source available", HTML)
+        self.assertIn("shared_form_catalog_opened", HTML)
+        self.assertIn("Shared source catalog:", HTML)
+        dashboard = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
+        self.assertIn('"sharedFormCatalogOpenCount": shared_form_catalog_open_count', dashboard)
 
     def test_brokerage_rollout_foreign_keys_have_targeted_indexes(self):
         for index_name in (
