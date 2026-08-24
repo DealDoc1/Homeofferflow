@@ -66,6 +66,14 @@ class PublicPwaRegistrationTests(unittest.TestCase):
         self.assertIn("Keep your investor offer plan one tap away", SCRIPT)
         self.assertIn("investor checklist and repeat-offer workflow", SCRIPT)
 
+    def test_agent_workflow_guides_have_workflow_specific_install_copy(self):
+        self.assertIn("Keep your listing workflow one tap away", SCRIPT)
+        self.assertIn("listing plan, offer comparison, and next action", SCRIPT)
+        self.assertIn("Keep your lease workflow one tap away", SCRIPT)
+        self.assertIn("lease workflow and next client step", SCRIPT)
+        self.assertIn("Keep your offer workflow one tap away", SCRIPT)
+        self.assertIn("offer workflow and Question 1", SCRIPT)
+
 
 if __name__ == '__main__':
     unittest.main()
