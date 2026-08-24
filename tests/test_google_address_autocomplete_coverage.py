@@ -35,6 +35,12 @@ class GoogleAddressAutocompleteCoverageTests(unittest.TestCase):
         self.assertIn("window._hofPlacesSetup = wireAddressInput", INDEX)
         self.assertIn("Promise.resolve(window.loadHofPlaces?.()).then(() => wireAddressInput())", INDEX)
 
+    def test_address_inputs_keep_a_native_fallback_without_replacing_google_places(self):
+        self.assertIn("input.setAttribute('autocomplete', 'street-address');", INDEX)
+        self.assertIn("input.setAttribute('inputmode', 'text');", INDEX)
+        self.assertIn("input.dataset.hofGoogleAddress = 'true';", INDEX)
+        self.assertIn("Google remains the primary picker", INDEX)
+
     def test_selection_telemetry_excludes_transaction_addresses(self):
         self.assertIn("trackEvent('Google Address Selected'", INDEX)
         self.assertIn("{ field, service: _autocompleteService || 'unknown' }", INDEX)
