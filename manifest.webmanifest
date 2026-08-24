@@ -7,6 +7,11 @@
   "id": "/",
   "start_url": "/",
   "scope": "/",
+  "share_target": {
+    "action": "/?pwa_share=1",
+    "method": "GET",
+    "params": {"title": "title", "text": "text", "url": "url"}
+  },
   "launch_handler": {
     "client_mode": ["navigate-existing", "auto"]
   },
