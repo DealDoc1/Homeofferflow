@@ -160,7 +160,7 @@ FSBO_LANDING_EVENT_TYPES = {
     "pwa_seller_plan_opened": "opened",
 }
 FSBO_LANDING_CHANNELS = {
-    "direct", "organic", "pwa_shortcut", "email", "social", "referral", "local_event", "print", "unspecified",
+    "direct", "organic", "pwa_shortcut", "email", "seller_receipt", "social", "referral", "local_event", "print", "unspecified",
 }
 FSBO_RECEIPT_DELIVERY_STATUSES = {"sent", "failed", "not_configured", "missing_email"}
 PARTNER_APPLICATION_RECEIPT_DELIVERY_STATUSES = {"sent", "failed", "not_configured", "missing_email"}
@@ -193,7 +193,7 @@ PARTNER_LANDING_EVENT_TYPES = {
     "partner_directory_pricing_selected": "pricing_selected",
     "partner_directory_empty_search": "unfilled_search",
 }
-PARTNER_LANDING_CHANNELS = {"direct", "organic", "pwa_shortcut", "email", "social", "referral", "other"}
+PARTNER_LANDING_CHANNELS = {"direct", "organic", "pwa_shortcut", "email", "partner_receipt", "social", "referral", "other"}
 PARTNER_ONBOARDING_EVENT_TYPES = {
     "partner_onboarding_opened": "opened",
     "partner_onboarding_completed": "completed",
