@@ -47,6 +47,7 @@ class PartnerLandingFunnelTests(unittest.TestCase):
         self.assertIn("Start no-charge application", PARTNERS)
         self.assertIn("Start with a no-charge application", PARTNERS)
         self.assertIn("No need to finish in one sitting", PARTNERS)
+        self.assertIn("/texas-home-service-partner-guide", PARTNERS)
         guide = (ROOT / "texas-home-service-partner-guide.html").read_text(encoding="utf-8")
         self.assertIn("Texas home-service partner placement guide", guide)
         self.assertIn("/partners?utm_source=texas_home_service_partner_guide", guide)
