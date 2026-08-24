@@ -86,6 +86,10 @@
       "destination": "/texas-seller-net-proceeds-calculator.html"
     },
     {
+      "source": "/texas-fsbo-closing-checklist",
+      "destination": "/texas-fsbo-closing-checklist.html"
+    },
+    {
       "source": "/directory",
       "destination": "/directory.html"
     }
