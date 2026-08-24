@@ -5077,6 +5077,28 @@ class handler(BaseHTTPRequestHandler):
                 if agent_landing_view_counts_by_channel[channel] else 0
                 for channel in agent_landing_channels
             }
+            agent_landing_campaigns = ("transaction_selector",)
+            agent_landing_view_counts_by_campaign = {
+                campaign: len([
+                    item for item in events
+                    if item.get("event_type") == "agent_landing_viewed"
+                    and str((item.get("metadata") or {}).get("utmCampaign") or "") == campaign
+                ])
+                for campaign in agent_landing_campaigns
+            }
+            agent_landing_cta_counts_by_campaign = {
+                campaign: len([
+                    item for item in events
+                    if item.get("event_type") == "agent_landing_cta_selected"
+                    and str((item.get("metadata") or {}).get("utmCampaign") or "") == campaign
+                ])
+                for campaign in agent_landing_campaigns
+            }
+            agent_landing_cta_rates_by_campaign = {
+                campaign: round((agent_landing_cta_counts_by_campaign[campaign] / agent_landing_view_counts_by_campaign[campaign]) * 100, 1)
+                if agent_landing_view_counts_by_campaign[campaign] else 0
+                for campaign in agent_landing_campaigns
+            }
             # CTA paths are a fixed product-choice allowlist from public agent
             # pages. Keep these aggregate-only so operations can optimize the
             # message and destination without exposing an agent, client, or
@@ -5725,6 +5747,9 @@ class handler(BaseHTTPRequestHandler):
                 "agentLandingViewCountsByChannel": agent_landing_view_counts_by_channel,
                 "agentLandingCtaCountsByChannel": agent_landing_cta_counts_by_channel,
                 "agentLandingCtaRatesByChannel": agent_landing_cta_rates_by_channel,
+                "agentLandingViewCountsByCampaign": agent_landing_view_counts_by_campaign,
+                "agentLandingCtaCountsByCampaign": agent_landing_cta_counts_by_campaign,
+                "agentLandingCtaRatesByCampaign": agent_landing_cta_rates_by_campaign,
                 "agentLandingCtaPathCounts": agent_landing_cta_path_counts,
                 "agentWorkflowGuideCtaPathCounts": agent_workflow_guide_cta_path_counts,
                 "agentLandingDraftHandoffUserCount": agent_landing_draft_handoff_user_count,
