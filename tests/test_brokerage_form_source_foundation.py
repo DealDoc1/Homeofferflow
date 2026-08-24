@@ -87,6 +87,8 @@ class BrokerageFormSourceFoundationTests(unittest.TestCase):
         self.assertIn("Search approved shared forms", HTML)
         self.assertIn("hof-shared-source-search", HTML)
         self.assertIn("list.querySelectorAll('li')", HTML)
+        self.assertIn("No approved forms match that search.", HTML)
+        self.assertIn("hof-shared-source-search-status", HTML)
         self.assertIn("shared_form_catalog_opened", HTML)
         self.assertIn("Shared source catalog:", HTML)
         dashboard = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
