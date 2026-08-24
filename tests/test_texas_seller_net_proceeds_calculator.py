@@ -7,6 +7,8 @@ PAGE = (ROOT / "texas-seller-net-proceeds-calculator.html").read_text(encoding="
 SITEMAP = (ROOT / "sitemap.xml").read_text(encoding="utf-8")
 WORKER = (ROOT / "service-worker.js").read_text(encoding="utf-8")
 VERCEL = (ROOT / "vercel.json").read_text(encoding="utf-8")
+SELLERS = (ROOT / "sellers.html").read_text(encoding="utf-8")
+FSBO_GUIDE = (ROOT / "texas-fsbo-guide.html").read_text(encoding="utf-8")
 
 
 class TexasSellerNetProceedsCalculatorTests(unittest.TestCase):
@@ -28,6 +30,12 @@ class TexasSellerNetProceedsCalculatorTests(unittest.TestCase):
         self.assertIn("homeofferflow-shell-v46", WORKER)
         self.assertIn('"source": "/texas-seller-net-proceeds-calculator"', VERCEL)
         self.assertIn('"destination": "/texas-seller-net-proceeds-calculator.html"', VERCEL)
+
+    def test_seller_journey_links_to_the_calculator_without_adding_an_intake_gate(self):
+        self.assertIn("Estimate possible proceeds first", SELLERS)
+        self.assertIn("private seller proceeds worksheet", FSBO_GUIDE)
+        self.assertIn("utm_campaign=seller_planning", SELLERS)
+        self.assertIn("utm_campaign=seller_planning", FSBO_GUIDE)
 
 
 if __name__ == "__main__":
