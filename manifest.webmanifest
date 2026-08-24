@@ -82,7 +82,7 @@
       "name": "Texas Form Library",
       "short_name": "Form Library",
       "description": "Review the shared Texas agent form library and transaction-first workflow guide.",
-      "url": "/texas-agent-form-library",
+      "url": "/texas-agent-form-library?utm_source=pwa_shortcut&utm_medium=installed_app&utm_campaign=agent_form_library",
       "icons": [{"src":"/assets/homeofferflow-app-icon-192.png","sizes":"192x192","type":"image/png"}]
     },
     {

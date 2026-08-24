@@ -71,7 +71,7 @@ class PwaBaselineTests(unittest.TestCase):
                 ("Lease Representation", "/?pwa_action=transaction_start&workflow=lease_representation"),
                 ("Listing Tools", "/?pwa_action=listing_tools"),
                 ("Agent Forms & Drafts", "/?pwa_action=relationship_drafts"),
-                ("Texas Form Library", "/texas-agent-form-library"),
+                ("Texas Form Library", "/texas-agent-form-library?utm_source=pwa_shortcut&utm_medium=installed_app&utm_campaign=agent_form_library"),
                 ("Offer Review", "/?pwa_action=offer_review"),
                 ("New Offer", "/?pwa_action=new_offer"),
                 ("Buyer Offer", "/?pwa_action=buyer_offer"),
