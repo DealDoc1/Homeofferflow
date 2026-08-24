@@ -14889,11 +14889,13 @@ function routeAfterMagicLinkIfNeeded() {
       const buyerEntrySurface = buyerRouteParams.get('utm_source') === 'texas_homebuyer_offer_guide'
         ? 'texas_homebuyer_offer_guide'
         : 'buyer_landing';
-      const buyerChannels = ['direct_outreach', 'email', 'social', 'referral', 'local_event', 'print'];
+      const buyerChannels = ['direct_outreach', 'email', 'social', 'referral', 'local_event', 'print', 'organic'];
       const buyerSource = String(buyerRouteParams.get('utm_source') || '').trim().toLowerCase();
       const buyerMedium = String(buyerRouteParams.get('utm_medium') || '').trim().toLowerCase();
-      const buyerChannel = buyerChannels.includes(buyerSource)
-        ? buyerSource
+      const buyerChannel = buyerMedium === 'organic_content' || buyerSource === 'organic'
+        ? 'organic'
+        : buyerChannels.includes(buyerSource)
+          ? buyerSource
         : (buyerSource === 'homeofferflow_admin' && buyerChannels.includes(buyerMedium) ? buyerMedium : 'unspecified');
       try {
         // Match the public landing page's session key so a navigation-safe
