@@ -10510,9 +10510,16 @@ function routeAfterMagicLinkIfNeeded() {
     // those dialogs are rendered after sign-in and should receive the same
     // low-friction address search as the public offer flow.
     const legacyAddressKeys = new Set(['propertyToSell', 'profInvestorMailing', 'clientCityStateZip']);
-    return Array.from(document.querySelectorAll('input[id], input[name]'))
-      .filter(input => /(?:address|addr)/i.test(`${input.id} ${input.name}`) || legacyAddressKeys.has(input.id) || legacyAddressKeys.has(input.name))
-      .map(input => [input, callbacks[input.id] || null]);
+    const inputs = Array.from(document.querySelectorAll('input[id], input[name]'))
+      .filter(input => /(?:address|addr)/i.test(`${input.id} ${input.name}`) || legacyAddressKeys.has(input.id) || legacyAddressKeys.has(input.name));
+    // Google remains the primary picker. The semantic hint keeps native
+    // address autofill useful when Places is unavailable or still loading.
+    inputs.forEach(input => {
+      input.setAttribute('autocomplete', 'street-address');
+      input.setAttribute('inputmode', 'text');
+      input.dataset.hofGoogleAddress = 'true';
+    });
+    return inputs.map(input => [input, callbacks[input.id] || null]);
   }
 
   function wireLegacyGoogleAddressInputs() {
@@ -10550,7 +10557,9 @@ function routeAfterMagicLinkIfNeeded() {
     if (!input || input._hofWired) return;
 
     input._hofWired = true;
-    input.setAttribute('autocomplete', 'off');
+    // Keep the browser's address hint as a graceful fallback while Google
+    // Places provides the preferred suggestions.
+    input.setAttribute('autocomplete', 'street-address');
     input.setAttribute('autocorrect', 'off');
     input.setAttribute('autocapitalize', 'off');
     input.setAttribute('spellcheck', 'false');
