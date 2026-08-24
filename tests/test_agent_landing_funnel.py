@@ -18,6 +18,7 @@ VERCEL = (ROOT / "vercel.json").read_text(encoding="utf-8")
 class AgentLandingFunnelTests(unittest.TestCase):
     def test_form_library_guide_measures_question_one_handoff_without_personal_data(self):
         self.assertIn('/assets/agent-workflow-guide-metrics.js', FORM_LIBRARY)
+        self.assertLess(FORM_LIBRARY.index('/assets/agent-workflow-guide-metrics.js'), FORM_LIBRARY.index('</head>'))
         self.assertIn('href="/agents#transaction-start"', FORM_LIBRARY)
         self.assertIn('agent_workflow_guide_viewed', (ROOT / 'assets' / 'agent-workflow-guide-metrics.js').read_text(encoding='utf-8'))
         self.assertIn('form_library', (ROOT / 'assets' / 'agent-workflow-guide-metrics.js').read_text(encoding='utf-8'))
