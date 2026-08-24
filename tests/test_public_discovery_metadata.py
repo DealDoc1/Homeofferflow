@@ -131,6 +131,8 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn("campaign.set('partner_category', selectedCategory)", PARTNERS)
         self.assertIn("campaign.set('partner_tier', selectedTier)", PARTNERS)
         self.assertIn("key === 'partner_tier' && destination.searchParams.has(key)", PARTNERS)
+        self.assertIn("destination.searchParams.set('utm_source', 'organic')", PARTNERS)
+        self.assertIn("destination.searchParams.set('utm_campaign', 'partner_acquisition')", PARTNERS)
         self.assertIn('/_vercel/insights/script.js', PARTNERS)
         self.assertIn('not a referral or a required provider choice', PARTNERS)
         self.assertIn('What happens after you choose a founding tier.', PARTNERS)
