@@ -89,7 +89,7 @@ class PartnerTierUiTests(unittest.TestCase):
         self.assertIn("function partnerEssentialProgress()", self.html)
         self.assertIn("Complete the five essentials (${progress.complete} of 5 complete)", self.html)
         self.assertIn("Review and acknowledge the founding-partner terms below to unlock secure checkout.", self.html)
-        self.assertIn("document.getElementById('foundingPartnerConsent')?.addEventListener('change', renderFoundingPartnerCheckoutAvailability)", self.html)
+        self.assertIn("document.getElementById('foundingPartnerConsent')?.addEventListener('change', () => { savePartnerApplicationDraft(); renderFoundingPartnerCheckoutAvailability(); });", self.html)
         self.assertIn("Complete required details to unlock", self.html)
 
     def test_checkout_submit_exposes_busy_state_and_restores_after_failure(self):
@@ -113,6 +113,16 @@ class PartnerTierUiTests(unittest.TestCase):
         self.assertIn("window.__hofFoundingPartnerLeadId", self.html)
         self.assertIn("if (!partnerLeadId)", self.html)
         self.assertIn("partner_lead_id: partnerLeadId", self.html)
+
+    def test_unfinished_partner_application_is_saved_privately_before_submission(self):
+        self.assertIn("const partnerDraftStorageKey = 'hof_founding_partner_application_draft_v1'", self.html)
+        self.assertIn("function savePartnerApplicationDraft()", self.html)
+        self.assertIn("function restorePartnerApplicationDraft()", self.html)
+        self.assertIn("Your application draft was restored in this browser session.", self.html)
+        self.assertIn("It has not been submitted or shared.", self.html)
+        self.assertIn("clearPartnerApplicationDraft();", self.html)
+        self.assertIn("savePartnerApplicationDraft(); renderFoundingPartnerCheckoutAvailability();", self.html)
+        self.assertIn("clearPartnerApplicationDraft();", self.html[self.html.index("partnerLeadId = result.partner_lead_id;"):])
 
     def test_partner_lead_retry_state_survives_refresh_and_clears_after_checkout(self):
         self.assertIn("hof_founding_partner_lead_id", self.html)

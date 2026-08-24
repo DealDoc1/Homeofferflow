@@ -14428,6 +14428,7 @@ function routeAfterMagicLinkIfNeeded() {
       <div class="field"><label for="foundingPartnerMarket">Primary market area</label><input id="foundingPartnerMarket" placeholder="Collin / Denton / Grayson County" required aria-required="true"></div>
     </div>
     <div id="foundingPartnerRequiredCue" class="notice sage" role="status" aria-live="polite" style="margin-top:.75rem;"><strong>Step 1 of 2:</strong> Complete the five essentials to prepare secure checkout. Your placement remains private until onboarding and agreement review are complete.</div>
+    <div id="foundingPartnerDraftRecovery" class="platform-status" aria-live="polite"></div>
 
     <details class="partner-optional-details" style="margin-top:1rem;" id="foundingPartnerTierComparison">
       <summary>Compare or change your placement tier <span style="font-weight:500;">(optional before checkout)</span></summary>
@@ -14545,6 +14546,84 @@ function routeAfterMagicLinkIfNeeded() {
       if (value) sessionStorage.setItem('hof_founding_partner_lead_id', value);
       else sessionStorage.removeItem('hof_founding_partner_lead_id');
     } catch (_) {}
+  }
+  // Keep an unfinished application private to the current browser session.
+  // This reduces re-entry friction without creating a lead or sharing any
+  // business-contact data until the partner explicitly continues to checkout.
+  const partnerDraftStorageKey = 'hof_founding_partner_application_draft_v1';
+  const partnerDraftFields = [
+    'foundingPartnerType', 'foundingPartnerCompany', 'foundingPartnerContact',
+    'foundingPartnerEmail', 'foundingPartnerMarket', 'foundingPartnerPhone',
+    'foundingPartnerWebsite', 'foundingPartnerFocus', 'foundingPartnerBudget',
+    'foundingPartnerMessage', 'foundingPartnerModel'
+  ];
+  function hasPartnerDraftContent(values = {}, consent = false){
+    return partnerDraftFields.some(id => {
+      const value = String(values[id] || '').trim();
+      return value && !(id === 'foundingPartnerModel' && value === 'founding_pilot');
+    }) || consent;
+  }
+  function renderPartnerDraftRecovery(restored = false){
+    const notice = document.getElementById('foundingPartnerDraftRecovery');
+    if (!notice) return;
+    let saved = false;
+    try { saved = !!sessionStorage.getItem(partnerDraftStorageKey); } catch (_) {}
+    if (!saved || window.__hofFoundingPartnerLeadId || loadSavedPartnerLeadId()) {
+      notice.textContent = '';
+      notice.className = 'platform-status';
+      return;
+    }
+    notice.className = 'platform-status ok';
+    notice.innerHTML = (restored
+      ? '<strong>Your application draft was restored in this browser session.</strong> '
+      : '<strong>Your application draft is saved in this browser session.</strong> ') +
+      'It has not been submitted or shared. <button class="btn-secondary" type="button" id="clearPartnerApplicationDraft" style="margin-left:.45rem;padding:.3rem .5rem;">Clear draft</button>';
+    document.getElementById('clearPartnerApplicationDraft')?.addEventListener('click', () => {
+      clearPartnerApplicationDraft();
+      partnerDraftFields.forEach(id => {
+        const field = document.getElementById(id);
+        if (field && id !== 'foundingPartnerModel') field.value = '';
+      });
+      const consent = document.getElementById('foundingPartnerConsent');
+      if (consent) consent.checked = false;
+      window.selectFoundingPartnerTier?.('founding_pilot', false);
+      renderFoundingPartnerCheckoutAvailability();
+      document.getElementById('foundingPartnerType')?.focus();
+    }, { once: true });
+  }
+  function savePartnerApplicationDraft(){
+    if (window.__hofFoundingPartnerLeadId || loadSavedPartnerLeadId()) return;
+    try {
+      const values = Object.fromEntries(partnerDraftFields.map(id => [id, document.getElementById(id)?.value || '']));
+      const consent = !!document.getElementById('foundingPartnerConsent')?.checked;
+      if (!hasPartnerDraftContent(values, consent)) {
+        sessionStorage.removeItem(partnerDraftStorageKey);
+      } else {
+        sessionStorage.setItem(partnerDraftStorageKey, JSON.stringify({ values, consent }));
+      }
+    } catch (_) {}
+    renderPartnerDraftRecovery();
+  }
+  function restorePartnerApplicationDraft(){
+    if (window.__hofFoundingPartnerLeadId || loadSavedPartnerLeadId()) return false;
+    try {
+      const draft = JSON.parse(sessionStorage.getItem(partnerDraftStorageKey) || '{}');
+      const values = draft?.values || {};
+      if (!hasPartnerDraftContent(values, draft?.consent)) return false;
+      partnerDraftFields.forEach(id => {
+        const field = document.getElementById(id);
+        if (field && values[id]) field.value = values[id];
+      });
+      const consent = document.getElementById('foundingPartnerConsent');
+      if (consent) consent.checked = !!draft.consent;
+      if (values.foundingPartnerModel) window.selectFoundingPartnerTier?.(values.foundingPartnerModel, false);
+      renderPartnerDraftRecovery(true);
+      return true;
+    } catch (_) { return false; }
+  }
+  function clearPartnerApplicationDraft(){
+    try { sessionStorage.removeItem(partnerDraftStorageKey); } catch (_) {}
+    renderPartnerDraftRecovery();
   }
   function applySavedPartnerApplicationState(){
     const hasSavedApplication = Boolean(window.__hofFoundingPartnerLeadId || loadSavedPartnerLeadId());
@@ -14667,6 +14746,7 @@ function routeAfterMagicLinkIfNeeded() {
     if (!modal) return;
     window.__hofFoundingPartnerLeadId = window.__hofFoundingPartnerLeadId || loadSavedPartnerLeadId();
     const campaign = applyCampaignPartnerChoices();
+    const restoredDraft = restorePartnerApplicationDraft();
     modal.style.display = 'flex';
     modal.setAttribute('aria-hidden', 'false');
     const confirmation = document.getElementById('foundingPartnerCheckoutConfirmation');
@@ -14685,7 +14765,11 @@ function routeAfterMagicLinkIfNeeded() {
       // The application already has a selected tier. Start keyboard users at
       // the next concrete action instead of making them tab through the tier
       // comparison again.
-      setTimeout(() => document.getElementById('foundingPartnerType')?.focus(), 0);
+      const firstUnfinished = partnerEssentialProgress().ready
+        ? 'foundingPartnerConsent'
+        : ['foundingPartnerType', 'foundingPartnerCompany', 'foundingPartnerContact', 'foundingPartnerEmail', 'foundingPartnerMarket']
+          .find(id => !value(id)) || 'foundingPartnerType';
+      setTimeout(() => document.getElementById(restoredDraft ? firstUnfinished : 'foundingPartnerType')?.focus(), 0);
     }
   };
   window.selectFoundingPartnerTier = function(model, shouldTrack = true){
@@ -14708,6 +14792,7 @@ function routeAfterMagicLinkIfNeeded() {
     });
     if (submit) submit.textContent = (Boolean(window.__hofFoundingPartnerLeadId || loadSavedPartnerLeadId()) ? 'Resume Secure Checkout — ' : 'Continue to Secure Checkout — ') + detail.label;
     if (checkoutNote) checkoutNote.textContent = 'Next: review ' + detail.price + ' and payment details in secure Stripe Checkout. Your placement stays private until onboarding and written-agreement review are complete.';
+    savePartnerApplicationDraft();
     if (shouldTrack) {
       trackPartnerFunnel('Founding Partner Tier Selected', { tier: model });
       recordPartnerApplicationProgress('partner_application_tier_selected');
@@ -14830,6 +14915,7 @@ function routeAfterMagicLinkIfNeeded() {
         partnerLeadId = result.partner_lead_id;
         window.__hofFoundingPartnerLeadId = partnerLeadId;
         savePartnerLeadId(partnerLeadId);
+        clearPartnerApplicationDraft();
         trackPartnerFunnel('Founding Partner Application Saved', { tier: payload.preferred_model, source: payload.source });
       }
       if (status) { status.textContent = 'Opening secure Stripe Checkout...'; status.className = 'platform-status'; }
@@ -14944,10 +15030,15 @@ function routeAfterMagicLinkIfNeeded() {
     window.selectFoundingPartnerTier('founding_pilot', false);
     ['foundingPartnerType', 'foundingPartnerCompany', 'foundingPartnerContact', 'foundingPartnerEmail', 'foundingPartnerMarket'].forEach(id => {
       const field = document.getElementById(id);
-      field?.addEventListener('input', renderFoundingPartnerCheckoutAvailability);
-      field?.addEventListener('change', renderFoundingPartnerCheckoutAvailability);
+      field?.addEventListener('input', () => { savePartnerApplicationDraft(); renderFoundingPartnerCheckoutAvailability(); });
+      field?.addEventListener('change', () => { savePartnerApplicationDraft(); renderFoundingPartnerCheckoutAvailability(); });
     });
-    document.getElementById('foundingPartnerConsent')?.addEventListener('change', renderFoundingPartnerCheckoutAvailability);
+    ['foundingPartnerPhone', 'foundingPartnerWebsite', 'foundingPartnerFocus', 'foundingPartnerBudget', 'foundingPartnerMessage'].forEach(id => {
+      const field = document.getElementById(id);
+      field?.addEventListener('input', savePartnerApplicationDraft);
+      field?.addEventListener('change', savePartnerApplicationDraft);
+    });
+    document.getElementById('foundingPartnerConsent')?.addEventListener('change', () => { savePartnerApplicationDraft(); renderFoundingPartnerCheckoutAvailability(); });
     renderFoundingPartnerCheckoutAvailability();
     if (params().get('partner_checkout') === 'cancelled') {
       const query = params();
