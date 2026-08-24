@@ -189,6 +189,7 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn('"agent_landing_cta_selected": "selected"', API)
         self.assertIn('"agent_workflow_guide_viewed": "viewed"', API)
         self.assertIn('"agent_workflow_guide_cta_selected": "selected"', API)
+        self.assertIn('"agent_resource_links_expanded": "resource_expanded"', API)
         self.assertIn("AGENT_LANDING_CHANNELS", API)
         self.assertIn("AGENT_LANDING_CTA_PATHS", API)
         self.assertIn('"listing_guide"', API)
@@ -249,6 +250,7 @@ class AgentLandingFunnelTests(unittest.TestCase):
         for expected in (
             '"agentLandingViewCount"', '"agentLandingQuestionOneOpenCount"', '"agentLandingQuestionOneOpenRate"', '"agentLandingCtaCount"', '"agentLandingCtaRate"',
             '"agentLandingViewCountsByChannel"', '"agentLandingCtaCountsByChannel"',
+            '"agentResourceLinksExpandedCount"',
             '"agentLandingDraftHandoffUserCount"', '"agentLandingDraftHandoffRate"',
             '"agentLandingSellerWorkspaceHandoffUserCount"',
             '"agentLandingRelationshipWorkspaceHandoffUserCount"',

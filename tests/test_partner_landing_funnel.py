@@ -17,6 +17,7 @@ class PartnerLandingFunnelTests(unittest.TestCase):
         self.assertIn('"partner_landing_cta_selected": "selected"', API)
         self.assertIn('"partner_application_opened": "application_opened"', API)
         self.assertIn('"partner_application_essentials_focused": "essentials_focused"', API)
+        self.assertIn('"partner_guide_expanded": "guide_expanded"', API)
         self.assertIn('"partner_directory_application_selected": "application_selected"', API)
         self.assertIn('"partner_directory_pricing_selected": "pricing_selected"', API)
         self.assertIn("Unsupported partner landing event.", API)
@@ -104,6 +105,7 @@ class PartnerLandingFunnelTests(unittest.TestCase):
             '"partnerApplicationOpenRate"',
             '"partnerApplicationEssentialsFocusCount"',
             '"partnerApplicationEssentialsFocusRate"',
+            '"partnerGuideExpandedCount"',
             '"partnerLandingTierCtaCounts"',
             '"partnerLandingCategoryCtaCounts"',
             '"partnerDirectoryApplicationStartCount"',
@@ -119,6 +121,7 @@ class PartnerLandingFunnelTests(unittest.TestCase):
         self.assertIn("Landing-tier interest:", INDEX)
         self.assertIn("Landing-category interest:", INDEX)
         self.assertIn("partnerLandingChannelCounts", INDEX)
+        self.assertIn("partnerGuideExpandedCount", INDEX)
 
     def test_modal_open_is_a_distinct_privacy_safe_partner_funnel_stage(self):
         self.assertIn("function recordPartnerApplicationOpened", INDEX)

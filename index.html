@@ -4968,6 +4968,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 
           <div class="admin-metric">
             <div class="admin-metric-label">Agent Workspace Funnel</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.agentResourceLinksExpandedCount || 0} shared-form/workflow resource expansions.</div>
             <div class="admin-metric-value">${metrics.agentLandingViewCount || 0} views</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.agentLandingQuestionOneOpenCount || 0} opened Question 1 (${Number(metrics.agentLandingQuestionOneOpenRate || 0).toFixed(1)}% of views) · ${metrics.agentLandingCtaCount || 0} opened passwordless sign-in (${Number(metrics.agentLandingCtaRate || 0).toFixed(1)}%) · ${metrics.agentLandingDraftHandoffUserCount || 0} reached the private draft (${Number(metrics.agentLandingDraftHandoffRate || 0).toFixed(1)}% of CTA selections).</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Workspace paths after sign-in: ${metrics.agentLandingSellerWorkspaceHandoffUserCount || 0} listing tools · ${metrics.agentLandingRelationshipWorkspaceHandoffUserCount || 0} relationship drafts.</div>
@@ -5030,6 +5031,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 
           <div class="admin-metric">
             <div class="admin-metric-label">Live Partner Leads</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.partnerGuideExpandedCount || 0} partner placement guide expansions.</div>
             <div class="admin-metric-value">${metrics.partnerLeadCount || partnerLeads.length || 0}</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.partnerLandingViewCount || 0} partner landing views · ${metrics.partnerLandingCtaCount || 0} CTA selections (${Number(metrics.partnerLandingCtaRate || 0).toFixed(1)}%).</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.partnerApplicationOpenCount || 0} new application modal open${Number(metrics.partnerApplicationOpenCount || 0) === 1 ? '' : 's'} (${Number(metrics.partnerApplicationOpenRate || 0).toFixed(1)}% of landing CTA selections).</div>
