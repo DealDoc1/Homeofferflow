@@ -141,6 +141,24 @@ class TechnicalSeoTests(unittest.TestCase):
                 self.assertEqual(offers[name]["priceCurrency"], "USD")
                 self.assertIn("scope", offers[name]["description"].lower())
 
+    def test_homepage_exposes_truthful_revenue_paths_without_overstating_scope(self):
+        blocks = re.findall(
+            r'<script type="application/ld\+json">\s*(.*?)\s*</script>', HOME, re.DOTALL
+        )
+        catalogs = [json.loads(block) for block in blocks if 'OfferCatalog' in block]
+        self.assertEqual(len(catalogs), 1)
+        offers = {item["name"]: item for item in catalogs[0]["itemListElement"]}
+        expected_terms = {
+            "Texas Homebuyer Offer Packet": ("99", "no payment"),
+            "OnDemand Agent Workspace": ("29", "eligibility"),
+            "Founding Partner Placement": ("149", "scope"),
+        }
+        for name, (price, term) in expected_terms.items():
+            with self.subTest(name=name):
+                self.assertEqual(offers[name]["price"], price)
+                self.assertEqual(offers[name]["priceCurrency"], "USD")
+                self.assertIn(term, offers[name]["description"].lower())
+
     def test_seller_free_intake_exposes_a_three_step_how_to_path(self):
         blocks = re.findall(
             r'<script type="application/ld\+json">\s*(.*?)\s*</script>', SELLERS, re.DOTALL
