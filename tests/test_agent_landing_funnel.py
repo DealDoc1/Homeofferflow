@@ -157,6 +157,11 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn('60 days free, then $29/month unless canceled.', AGENTS)
         self.assertIn('id="agentTrialOffer"', AGENTS)
 
+    def test_buyer_offer_fixture_lease_handoff_points_agents_to_the_released_review_draft(self):
+        self.assertIn('Lease-related purchase contracts use separate forms and are not included in the standard buyer packet.', INDEX)
+        self.assertIn('TXR-1954 private review draft in the shared form library', INDEX)
+        self.assertIn('utm_source=buyer_offer_interview&amp;utm_medium=lease_handoff&amp;utm_campaign=fixture_lease_review', INDEX)
+
     def test_ondemand_trial_links_preserve_agent_attribution(self):
         self.assertEqual(AGENTS.count('data-agent-cta-path="ondemand_trial"'), 2)
         self.assertEqual(AGENTS.count('utm_source=agent_workspace&amp;utm_medium=agent_page&amp;utm_campaign=ondemand_trial'), 2)
