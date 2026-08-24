@@ -4947,6 +4947,11 @@ class handler(BaseHTTPRequestHandler):
                 ])
                 for channel in seller_landing_channels
             }
+            seller_landing_cta_rates_by_channel = {
+                channel: round((seller_landing_cta_counts_by_channel[channel] / seller_landing_view_counts_by_channel[channel]) * 100, 1)
+                if seller_landing_view_counts_by_channel[channel] else 0
+                for channel in seller_landing_channels
+            }
             seller_landing_package_cta_counts = {}
             for item in seller_landing_events:
                 if item.get("event_type") != "fsbo_landing_cta_selected":
@@ -5091,6 +5096,7 @@ class handler(BaseHTTPRequestHandler):
                 "sellerLandingSupportPathsExpandedCount": seller_landing_support_paths_expanded_count,
                 "sellerLandingViewCountsByChannel": seller_landing_view_counts_by_channel,
                 "sellerLandingCtaCountsByChannel": seller_landing_cta_counts_by_channel,
+                "sellerLandingCtaRatesByChannel": seller_landing_cta_rates_by_channel,
                 "sellerLandingSupportPathsExpandedCountsByChannel": seller_landing_support_paths_counts_by_channel,
                 "sellerLandingPackageCtaCounts": seller_landing_package_cta_counts,
                 "sellerIntakeEventCounts": seller_intake_event_counts,

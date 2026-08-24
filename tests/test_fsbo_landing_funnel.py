@@ -77,6 +77,7 @@ class FsboLandingFunnelTests(unittest.TestCase):
             '"sellerLandingCtaRate"',
             '"sellerLandingViewCountsByChannel"',
             '"sellerLandingCtaCountsByChannel"',
+            '"sellerLandingCtaRatesByChannel"',
             '"sellerLandingSupportPathsExpandedCountsByChannel"',
             '"sellerLandingPackageCtaCounts"',
             "seller_landing_event_types",
