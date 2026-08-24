@@ -4669,6 +4669,14 @@ class handler(BaseHTTPRequestHandler):
             fsbo_guide_cta_count = len([
                 item for item in events if item.get("event_type") == "fsbo_guide_cta_selected"
             ])
+            fsbo_guide_package_cta_counts = {
+                package: len([
+                    item for item in events
+                    if item.get("event_type") == "fsbo_guide_cta_selected"
+                    and str((item.get("metadata") or {}).get("serviceLevel") or "free_intake") == package
+                ])
+                for package in ("free_intake", "seller_prep", "launch_kit", "flat_fee_mls", "offer_review", "contract_help", "premium_bundle")
+            }
             agent_landing_view_count = len([
                 item for item in events if item.get("event_type") == "agent_landing_viewed"
             ])
@@ -5203,6 +5211,7 @@ class handler(BaseHTTPRequestHandler):
                 ) if homebuyer_checkout_cancelled_count else 0,
                 "fsboGuideViewCount": fsbo_guide_view_count,
                 "fsboGuideCtaCount": fsbo_guide_cta_count,
+                "fsboGuidePackageCtaCounts": fsbo_guide_package_cta_counts,
                 "fsboGuideCtaRate": round((fsbo_guide_cta_count / fsbo_guide_view_count) * 100, 1)
                 if fsbo_guide_view_count else 0,
                 "agentLandingViewCount": agent_landing_view_count,

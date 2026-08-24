@@ -4947,6 +4947,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <div class="admin-metric-label">Texas FSBO Guide Funnel</div>
             <div class="admin-metric-value">${metrics.fsboGuideViewCount || 0} views</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.fsboGuideCtaCount || 0} selected the free seller plan (${Number(metrics.fsboGuideCtaRate || 0).toFixed(1)}% of guide views).</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Package interest: ${adminSafe(Object.entries(metrics.fsboGuidePackageCtaCounts || {}).filter(([, count]) => Number(count) > 0).map(([packageKey, count]) => `${packageKey.replace(/_/g, ' ')} (${count})`).join(' · '), 'package choices will appear after the next guide visit')}.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Aggregate guide intent only; the completed intake keeps its existing campaign fields separately and no address, email, or seller details appear here.</div>
           </div>
 
