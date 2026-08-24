@@ -2772,7 +2772,18 @@ async def _brokerage_form_sources_payload(user, approved_only=False):
             "&select=id,brokerage_id,form_code,source_revision,status,authorization_attested,updated_at"
             "&order=updated_at.desc&limit=500"
         )
-        return {"sources": rows}
+        # The query is newest-first.  A historical upload can preserve the
+        # same PDF under a differently formatted revision (for example,
+        # 06-15-26 and 2026-06-15).  The form workflow already selects the
+        # first matching approved source; return that same one clear entry to
+        # the shared agent catalog rather than showing duplicate choices.
+        latest_by_form = {}
+        for row in rows:
+            form_code = str(row.get("form_code") or "").strip()
+            key = form_code or str(row.get("id") or "")
+            if key and key not in latest_by_form:
+                latest_by_form[key] = row
+        return {"sources": list(latest_by_form.values())}
 
     context = await _brokerage_admin_context(user)
     if not context:
