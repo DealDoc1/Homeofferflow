@@ -424,7 +424,11 @@ def _send_partner_application_confirmation(payload):
         "market_exclusive": "Premier Partner",
     }
     tier = tier_labels.get(str(payload.get("preferred_model") or ""), "Partner placement")
+    tier_key = str(payload.get("preferred_model") or "founding_pilot")
+    if tier_key not in tier_labels:
+        tier_key = "founding_pilot"
     next_steps = _partner_application_receipt_steps(payload)
+    return_link = f"{PUBLIC_APP_ORIGIN}/partners?{urlencode({'partner_tier': tier_key, 'utm_source': 'email', 'utm_medium': 'partner_receipt', 'utm_campaign': 'partner_follow_up'})}"
     plain_steps = "\n".join(f"{index}. {step}" for index, step in enumerate(next_steps, start=1))
     html_steps = "".join(f"<li>{html.escape(step)}</li>" for step in next_steps)
     plain_text = (
@@ -433,6 +437,7 @@ def _send_partner_application_confirmation(payload):
         f"Company: {company}\nSelected tier: {tier}\nMarket: {market}\n\n"
         "What happens next:\n"
         f"{plain_steps}\n\n"
+        f"Review your selected partner tier: {return_link}\n\n"
         "Your application is saved. Secure Stripe Checkout is a separate next step and shows the final terms before any payment. "
         "Submitting this application does not collect payment, activate advertising, reserve exclusivity, create a referral relationship, or create a service agreement. "
         "Any public placement remains subject to onboarding and written-agreement review.\n\n"
@@ -442,6 +447,7 @@ def _send_partner_application_confirmation(payload):
     safe_contact = html.escape(contact)
     safe_market = html.escape(market)
     safe_tier = html.escape(tier)
+    safe_return_link = html.escape(return_link, quote=True)
     try:
         with httpx.Client(timeout=12.0) as client:
             response = client.post(
@@ -466,6 +472,7 @@ def _send_partner_application_confirmation(payload):
                         f"<strong>Market:</strong> {safe_market}</p>"
                         "<h3>What happens next</h3>"
                         f"<ol>{html_steps}</ol>"
+                        f'<p><a href="{safe_return_link}">Review your selected partner tier</a></p>'
                         "<p>Secure Stripe Checkout is a separate next step and shows the final terms before any payment.</p>"
                         "<p>This application does not collect payment, activate advertising, reserve exclusivity, create a referral relationship, or create a service agreement. Any public placement remains subject to onboarding and written-agreement review.</p>"
                         "<p>Have a question before checkout? Reply directly to this email.</p>"
