@@ -66,6 +66,10 @@ class PublicPwaRegistrationTests(unittest.TestCase):
         self.assertIn("Keep your investor offer plan one tap away", SCRIPT)
         self.assertIn("investor checklist and repeat-offer workflow", SCRIPT)
 
+    def test_agent_trial_link_normalizer_preserves_existing_campaign_attribution(self):
+        self.assertIn("document.querySelectorAll('a[href^=\"/ondemand\"]')", SCRIPT)
+        self.assertIn("if (!link.href.includes('utm_source='))", SCRIPT)
+
     def test_agent_workflow_guides_have_workflow_specific_install_copy(self):
         self.assertIn("Keep your listing workflow one tap away", SCRIPT)
         self.assertIn("listing plan, offer comparison, and next action", SCRIPT)
