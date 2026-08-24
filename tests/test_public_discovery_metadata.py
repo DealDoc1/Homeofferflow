@@ -97,6 +97,7 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn('https://www.homeofferflow.com/texas-agent-offer-workflow', SITEMAP)
         self.assertIn('https://www.homeofferflow.com/texas-homebuyer-offer-guide', SITEMAP)
         self.assertIn('https://www.homeofferflow.com/texas-investor-offer-guide', SITEMAP)
+        self.assertIn('https://www.homeofferflow.com/texas-seller-financing-guide', SITEMAP)
 
     def test_public_workflow_guides_provide_descriptive_social_image_alt_text(self):
         expected = {
