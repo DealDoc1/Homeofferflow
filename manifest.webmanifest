@@ -44,6 +44,13 @@
       "icons": [{"src":"/assets/homeofferflow-app-icon-192.png","sizes":"192x192","type":"image/png"}]
     },
     {
+      "name": "Buying Workflow",
+      "short_name": "Buying",
+      "description": "Open the transaction picker with buying selected.",
+      "url": "/?pwa_action=transaction_start&workflow=purchase",
+      "icons": [{"src":"/assets/homeofferflow-app-icon-192.png","sizes":"192x192","type":"image/png"}]
+    },
+    {
       "name": "Lease Representation",
       "short_name": "Lease Rep",
       "description": "Open the transaction picker with lease representation selected.",
