@@ -23,6 +23,13 @@
       "url": "/?pwa_action=workspace"
     },
     {
+      "name": "Brokerage Setup",
+      "short_name": "Brokerage",
+      "description": "Open secure brokerage branding, team access, and shared defaults.",
+      "url": "/?pwa_action=brokerage_setup",
+      "icons": [{"src":"/assets/homeofferflow-app-icon-192.png","sizes":"192x192","type":"image/png"}]
+    },
+    {
       "name": "Start a Transaction",
       "short_name": "Start",
       "description": "Choose listing, buying, lease listing, or lease representation.",

@@ -63,6 +63,7 @@ class PwaBaselineTests(unittest.TestCase):
             [(item["name"], item["url"]) for item in MANIFEST["shortcuts"]],
             [
                 ("My Workspace", "/?pwa_action=workspace"),
+                ("Brokerage Setup", "/?pwa_action=brokerage_setup"),
                 ("Start a Transaction", "/?pwa_action=transaction_start"),
                 ("Lease Workflow", "/?pwa_action=transaction_start&workflow=lease_listing"),
                 ("Listing Workflow", "/?pwa_action=transaction_start&workflow=sale_listing"),
@@ -108,7 +109,7 @@ class PwaBaselineTests(unittest.TestCase):
         self.assertNotIn("caches.match(event.request)", WORKER)
 
     def test_agent_landing_shell_is_pre_cached_for_agent_first_pwa_resume(self):
-        self.assertIn("const SHELL_CACHE = 'homeofferflow-shell-v38';", WORKER)
+        self.assertIn("const SHELL_CACHE = 'homeofferflow-shell-v39';", WORKER)
         self.assertIn("'/agents',", WORKER)
         self.assertIn("'/sellers',", WORKER)
         self.assertIn("'/partners',", WORKER)
@@ -140,13 +141,17 @@ class PwaBaselineTests(unittest.TestCase):
         self.assertIn("shared agent form drafts", MANIFEST["description"])
         forms = next(item for item in MANIFEST["shortcuts"] if item["name"] == "Agent Forms & Drafts")
         self.assertEqual(forms["icons"][0]["src"], "/assets/homeofferflow-app-icon-192.png")
-        self.assertIn("const validActions = new Set(['workspace', 'transaction_start', 'listing_tools', 'relationship_drafts', 'offer_review', 'new_offer', 'signing_queue', 'attention_queue', 'seller_plan', 'investor_workspace', 'partner_marketplace', 'buyer_offer']);", INDEX)
+        self.assertIn("const validActions = new Set(['workspace', 'brokerage_setup', 'transaction_start', 'listing_tools', 'relationship_drafts', 'offer_review', 'new_offer', 'signing_queue', 'attention_queue', 'seller_plan', 'investor_workspace', 'partner_marketplace', 'buyer_offer']);", INDEX)
         self.assertIn("const validTransactionWorkflows = new Set(['purchase', 'sale_listing', 'lease_listing', 'lease_representation']);", INDEX)
         self.assertIn("sessionStorage.setItem('hof_agent_workflow_choice', workflow)", INDEX)
         self.assertIn("if (action === 'transaction_start')", INDEX)
         self.assertIn("if (!validActions.has(action)) return;", INDEX)
         self.assertIn("window.openAuthModal?.(role)", INDEX)
         self.assertIn("window.openAccountDashboard?.({ tab: 'dashboard' })", INDEX)
+        brokerage = next(item for item in MANIFEST["shortcuts"] if item["name"] == "Brokerage Setup")
+        self.assertEqual(brokerage["url"], "/?pwa_action=brokerage_setup")
+        self.assertIn("else if (action === 'brokerage_setup') await openBrokerageSetup();", INDEX)
+        self.assertIn("window.openAccountDashboard?.({ tab: 'brokerage' })", INDEX)
         self.assertIn("window.openAccountDashboard?.({ tab: 'seller' })", INDEX)
         self.assertIn("async function openRelationshipDrafts()", INDEX)
         self.assertIn("window.openAccountDashboard?.({ tab: 'relationships' })", INDEX)
