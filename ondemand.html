@@ -318,13 +318,16 @@
         inviteStatus: initialParams.get("invite") ? "pending" : "none"
       };
       const LEGAL_POLICY_VERSION = "2026-07-30";
-      const renewal = new Date();
-      renewal.setDate(renewal.getDate() + 60);
-      const renewalText = renewal.toLocaleDateString(undefined, {
-        month: "long", day: "numeric", year: "numeric"
-      });
-      $("renewalDate").textContent = renewalText;
-      $("consentRenewalDate").textContent = renewalText;
+      function refreshRenewalDate() {
+        const renewal = new Date();
+        renewal.setDate(renewal.getDate() + 60);
+        const renewalText = renewal.toLocaleDateString(undefined, {
+          month: "long", day: "numeric", year: "numeric"
+        });
+        $("renewalDate").textContent = renewalText;
+        $("consentRenewalDate").textContent = renewalText;
+      }
+      refreshRenewalDate();
 
       function showStatus(message, type = "") {
         const el = $("status");
@@ -439,6 +442,9 @@
 
       function renderSession(session) {
         state.session = session || null;
+        // Recalculate when the secure sign-in session arrives so a user who
+        // waited on the magic link sees the same 60-day window checkout uses.
+        refreshRenewalDate();
         const signedIn = Boolean(session?.user?.email);
         $("signedOut").style.display = signedIn ? "none" : "block";
         $("signedIn").style.display = signedIn ? "block" : "none";

@@ -66,6 +66,11 @@ class OnDemandLandingFunnelTests(unittest.TestCase):
         self.assertIn("Enter a valid OnDemand agent email address.", entry)
         self.assertIn('emailInput.focus();', entry)
 
+    def test_trial_renewal_date_refreshes_when_authenticated_enrollment_renders(self):
+        self.assertIn("function refreshRenewalDate()", ONDEMAND)
+        self.assertIn("refreshRenewalDate();\n        const signedIn", ONDEMAND)
+        self.assertIn("same 60-day window checkout uses", ONDEMAND)
+
     def test_all_public_ondemand_trial_links_share_the_same_aggregate_entry_signal(self):
         self.assertIn("function recordOnDemandTrialEntry", INDEX)
         self.assertIn("agent_hero_secondary_cta", INDEX)
