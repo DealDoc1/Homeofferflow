@@ -4728,6 +4728,18 @@ class handler(BaseHTTPRequestHandler):
                 "buyer_review",
                 "buyer_success",
                 "account_dashboard",
+                "/", "/agents", "/buyers", "/sellers", "/investors", "/partners", "/directory", "/ondemand",
+                "/texas-fsbo-guide", "/texas-agent-offer-workflow", "/texas-listing-workflow", "/texas-lease-offer-workflow",
+                "/texas-agent-form-library", "/texas-seller-offer-review", "/texas-homebuyer-offer-guide", "/texas-investor-offer-guide",
+            }
+            pwa_install_platforms = ("ios", "android", "web")
+            pwa_install_platform_counts = {
+                platform: len([
+                    item for item in events
+                    if item.get("event_type", "").startswith("pwa_install_")
+                    and str((item.get("metadata") or {}).get("platform") or "") == platform
+                ])
+                for platform in pwa_install_platforms
             }
             pwa_install_shown_surface_counts = {
                 surface: 0 for surface in sorted(pwa_install_surfaces)
@@ -5887,6 +5899,7 @@ class handler(BaseHTTPRequestHandler):
                 "pwaInstallEventCounts": pwa_install_event_counts,
                 "pwaInstallShownSurfaceCounts": pwa_install_shown_surface_counts,
                 "pwaInstallAcceptedSurfaceCounts": pwa_install_accepted_surface_counts,
+                "pwaInstallPlatformCounts": pwa_install_platform_counts,
                 "pwaSellerPlanShortcutCount": pwa_seller_plan_shortcut_count,
                 "pwaBuyerOfferShortcutCount": pwa_buyer_offer_shortcut_count,
                 "pwaOfflineRecoveryCount": pwa_offline_recovery_count,

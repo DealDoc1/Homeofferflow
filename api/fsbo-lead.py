@@ -211,6 +211,22 @@ ONDEMAND_LANDING_CHANNELS = {
 ONDEMAND_LANDING_CAMPAIGNS = {
     "agent_acquisition", "ondemand_trial",
 }
+PUBLIC_PWA_INSTALL_EVENT_TYPES = {
+    "pwa_install_shown": "shown",
+    "pwa_install_native_available": "native_available",
+    "pwa_install_cta_clicked": "cta_clicked",
+    "pwa_install_prompt_opened": "prompt_opened",
+    "pwa_install_accepted": "accepted",
+    "pwa_install_dismissed": "dismissed",
+    "pwa_install_installed": "installed",
+    "pwa_install_instructions_opened": "instructions_opened",
+}
+PUBLIC_PWA_INSTALL_PLATFORMS = {"ios", "android", "web"}
+PUBLIC_PWA_INSTALL_SURFACES = {
+    "/", "/agents", "/buyers", "/sellers", "/investors", "/partners", "/directory", "/ondemand",
+    "/texas-fsbo-guide", "/texas-agent-offer-workflow", "/texas-listing-workflow", "/texas-lease-offer-workflow",
+    "/texas-agent-form-library", "/texas-seller-offer-review", "/texas-homebuyer-offer-guide", "/texas-investor-offer-guide",
+}
 HOMEBUYER_LANDING_EVENT_TYPES = {
     "homebuyer_landing_viewed": "viewed",
     "homebuyer_landing_ready_list_opened": "ready_list_opened",
@@ -748,6 +764,25 @@ def _record_ondemand_landing_event(data):
         ONDEMAND_LANDING_EVENT_TYPES[event_type],
         "Privacy-safe OnDemand trial landing engagement recorded.",
         metadata,
+    )
+
+
+def _record_public_pwa_install_event(data):
+    """Persist aggregate public PWA install progress without visitor identity."""
+    event_type = _text(data.get("event_type"), 120).lower()
+    platform = _text(data.get("platform"), 40).lower()
+    surface = _text(data.get("surface"), 120).lower()
+    if event_type not in PUBLIC_PWA_INSTALL_EVENT_TYPES:
+        raise ValueError("Unsupported public PWA install event.")
+    if platform not in PUBLIC_PWA_INSTALL_PLATFORMS:
+        raise ValueError("Unsupported public PWA install platform.")
+    if surface not in PUBLIC_PWA_INSTALL_SURFACES:
+        raise ValueError("Unsupported public PWA install surface.")
+    _record_partner_checkout_event(
+        event_type,
+        PUBLIC_PWA_INSTALL_EVENT_TYPES[event_type],
+        "Privacy-safe public PWA install progress recorded.",
+        {"surface": surface, "platform": platform, "public": True},
     )
 
 
@@ -1348,6 +1383,13 @@ class handler(BaseHTTPRequestHandler):
             if _text(data.get('request_type'), 80) == 'ondemand_landing_event':
                 try:
                     _record_ondemand_landing_event(data)
+                    return _send(self, 200, {'ok': True})
+                except ValueError as exc:
+                    return _send(self, 400, {'error': str(exc)})
+
+            if _text(data.get('request_type'), 80) == 'public_pwa_install_event':
+                try:
+                    _record_public_pwa_install_event(data)
                     return _send(self, 200, {'ok': True})
                 except ValueError as exc:
                     return _send(self, 400, {'error': str(exc)})
