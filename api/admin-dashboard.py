@@ -84,6 +84,7 @@ TXR_1917_FORM_CODE = "TXR-1917"
 TXR_1919_FORM_CODE = "TXR-1919"
 TXR_1948_FORM_CODE = "TXR-1948"
 TXR_1953_FORM_CODE = "TXR-1953"
+TXR_1954_FORM_CODE = "TXR-1954"
 TREC_55_1_FORM_CODE = "TREC-55-1"
 TREC_61_0_FORM_CODE = "TREC-61-0"
 BROKERAGE_TXR_FORM_CODES = (
@@ -2405,6 +2406,71 @@ def _parse_txr_1953_draft(data):
     }
 
 
+def _parse_txr_1954_draft(data):
+    """Validate a private TXR-1954 fixture-lease review draft."""
+    if data.get("formCode") != TXR_1954_FORM_CODE:
+        raise ValueError("Only TXR-1954 is available through this action.")
+    form_source_id = _agreement_text(data.get("formSourceId"), "Approved TXR-1954 source", 80)
+    try:
+        form_source_id = str(uuid.UUID(form_source_id))
+    except (TypeError, ValueError, AttributeError):
+        raise ValueError("Choose an available TXR-1954 source from the HomeOfferFlow library.")
+
+    def names(key, label):
+        values = data.get(key)
+        if not isinstance(values, list) or not (1 <= len(values) <= 2):
+            raise ValueError(f"Add one or two {label} names.")
+        return [_agreement_text(value, f"Each {label} name", 180) for value in values]
+
+    def choices(key, label, allowed):
+        values = data.get(key)
+        if not isinstance(values, list) or not values or len(values) > len(allowed):
+            raise ValueError(f"Choose at least one {label}.")
+        clean = [_agreement_text(value, label, 40) for value in values]
+        if len(set(clean)) != len(clean) or any(value not in allowed for value in clean):
+            raise ValueError(f"Choose only the printed {label} options.")
+        return clean
+
+    property_address = _agreement_text(data.get("propertyAddress"), "Property address", 400)
+    buyer_names = names("buyerNames", "buyer")
+    seller_names = names("sellerNames", "seller")
+    all_names = buyer_names + seller_names
+    if len({name.casefold() for name in all_names}) != len(all_names):
+        raise ValueError("List each buyer or seller only once.")
+    leased_fixture_types = choices("leasedFixtureTypes", "leased fixture", {"solar_panels", "propane_tanks", "water_softener", "security_system", "other"})
+    assumed_fixture_leases = choices("assumedFixtureLeases", "assumed fixture lease", {"solar_panels", "propane_tanks", "water_softener", "security_system", "other"})
+    leased_other = _agreement_text(data.get("leasedFixturesOther"), "Other leased fixture", 180) if "other" in leased_fixture_types else ""
+    assumed_other = _agreement_text(data.get("assumedFixtureLeasesOther"), "Other assumed fixture lease", 180) if "other" in assumed_fixture_leases else ""
+    buyer_first_cost = _agreement_money(data.get("buyerFirstCost"), "Buyer first fixture-lease cost")
+    removal_choice = str(data.get("removalChoice") or "").strip()
+    if removal_choice not in {"will", "will_not"}:
+        raise ValueError("Choose whether Seller will remove unassumed leased fixtures.")
+    delivery_choice = str(data.get("deliveryChoice") or "").strip()
+    if delivery_choice not in {"received", "not_received", "oral_notice"}:
+        raise ValueError("Choose the fixture-lease delivery option.")
+    oral_notice = _agreement_text(data.get("oralFixtureLeaseNotice"), "Oral fixture-lease notice", 500) if delivery_choice == "oral_notice" else ""
+    if data.get("fixtureLeaseReviewAcknowledgment") is not True:
+        raise ValueError("Confirm that the parties will review fixture leases with the appropriate professionals before signing.")
+    return {
+        "form_source_id": form_source_id,
+        "client_names": all_names,
+        "agreement_data": {
+            "property_address": property_address,
+            "buyer_names": buyer_names,
+            "seller_names": seller_names,
+            "leased_fixture_types": leased_fixture_types,
+            "leased_fixtures_other": leased_other,
+            "assumed_fixture_leases": assumed_fixture_leases,
+            "assumed_fixture_leases_other": assumed_other,
+            "buyer_first_cost": buyer_first_cost,
+            "removal_choice": removal_choice,
+            "delivery_choice": delivery_choice,
+            "oral_fixture_lease_notice": oral_notice,
+            "fixture_lease_review_acknowledgment": True,
+        },
+    }
+
+
 def _parse_txr_1914_draft(data):
     """Validate a private TXR-1914 seller-financing review draft.
 
@@ -2950,6 +3016,10 @@ async def _create_txr_1953_draft(user, data):
     return await _create_representation_draft(user, data, TXR_1953_FORM_CODE, _parse_txr_1953_draft)
 
 
+async def _create_txr_1954_draft(user, data):
+    return await _create_representation_draft(user, data, TXR_1954_FORM_CODE, _parse_txr_1954_draft)
+
+
 async def _create_txr_1917_draft(user, data):
     return await _create_representation_draft(user, data, TXR_1917_FORM_CODE, _parse_txr_1917_draft)
 
@@ -3480,6 +3550,9 @@ async def _render_representation_draft_preview(user, agreement_id):
     if agreement.get("form_code") == TXR_1953_FORM_CODE:
         from lib.txr_1953 import render_txr_1953
         return render_txr_1953(response.content, render_data)
+    if agreement.get("form_code") == TXR_1954_FORM_CODE:
+        from lib.txr_1954 import render_txr_1954
+        return render_txr_1954(response.content, render_data)
     raise ValueError("Private preview is not available for this form yet.")
 
 
@@ -5043,7 +5116,7 @@ class handler(BaseHTTPRequestHandler):
             # returning client, property, or document details.
             agent_private_review_form_codes = (
                 "TXR-1501", "TXR-1506", "TXR-1507", "TXR-1508",
-                "TXR-1905", "TXR-1914", "TXR-1917", "TXR-1919", "TXR-1948", "TXR-1953",
+                "TXR-1905", "TXR-1914", "TXR-1917", "TXR-1919", "TXR-1948", "TXR-1953", "TXR-1954",
             )
             agent_private_review_draft_saved_count = len([
                 item for item in events
@@ -5960,6 +6033,10 @@ class handler(BaseHTTPRequestHandler):
                 return
             if data.get("action") == "create_txr_1953_draft":
                 draft = asyncio.run(_create_txr_1953_draft(user, data))
+                _json(self, 201, {"status": "ok", "agreement": draft})
+                return
+            if data.get("action") == "create_txr_1954_draft":
+                draft = asyncio.run(_create_txr_1954_draft(user, data))
                 _json(self, 201, {"status": "ok", "agreement": draft})
                 return
             if data.get("action") == "send_txr_agreement_for_signature":
