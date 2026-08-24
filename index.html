@@ -8079,10 +8079,12 @@ function routeAfterMagicLinkIfNeeded() {
     // It lets us compare public conversion surfaces without adding a paid tool
     // or collecting any additional buyer information.
     const entrySurface = String(surface || 'unknown').slice(0, 80);
+    const entrySource = String(new URLSearchParams(window.location.search).get('utm_source') || 'homepage').slice(0, 80);
     window.__hofOfferEntrySurface = entrySurface;
     trackEvent('Offer Entry CTA Selected', {
       surface: entrySurface,
-      userType: state?.data?.userType || 'homebuyer'
+      userType: state?.data?.userType || 'homebuyer',
+      source: entrySource
     });
     startPrimaryOffer();
   }
