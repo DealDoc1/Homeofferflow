@@ -7,7 +7,7 @@ SCRIPT = (ROOT / 'assets' / 'pwa-register.js').read_text(encoding='utf-8')
 PUBLIC_PAGES = (
     'directory.html', 'buyers.html', 'partners.html', 'sellers.html',
     'agents.html', 'investors.html', 'texas-fsbo-guide.html',
-    'texas-agent-offer-workflow.html', 'texas-seller-offer-review.html'
+    'texas-agent-offer-workflow.html', 'texas-seller-offer-review.html', 'ondemand.html'
 )
 
 
@@ -46,6 +46,11 @@ class PublicPwaRegistrationTests(unittest.TestCase):
         self.assertIn("window.location.pathname === '/texas-seller-offer-review'", SCRIPT)
         self.assertIn("Keep seller offer review one tap away", SCRIPT)
         self.assertIn("seller offer-review checklist and next conversation", SCRIPT)
+
+    def test_ondemand_install_prompt_explains_its_app_value(self):
+        self.assertIn("window.location.pathname === '/ondemand'", SCRIPT)
+        self.assertIn("Keep your agent workspace one tap away", SCRIPT)
+        self.assertIn("OnDemand agent workspace and first saved offer", SCRIPT)
 
 
 if __name__ == '__main__':
