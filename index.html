@@ -4981,6 +4981,14 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           </div>
 
           <div class="admin-metric">
+            <div class="admin-metric-label">Texas FSBO Closing Checklist Funnel</div>
+            <div class="admin-metric-value">${metrics.fsboClosingChecklistViewCount || 0} views</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.fsboClosingChecklistCtaCount || 0} started contract-to-close support (${Number(metrics.fsboClosingChecklistCtaRate || 0).toFixed(1)}% of checklist views).</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Package interest: ${adminSafe(Object.entries(metrics.fsboClosingChecklistPackageCtaCounts || {}).filter(([, count]) => Number(count) > 0).map(([packageKey, count]) => `${packageKey.replace(/_/g, ' ')} (${count})`).join(' · '), 'package choices will appear after the next checklist visit')}.</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Aggregate checklist intent only; no seller identity, property, campaign value, or page URL is included.</div>
+          </div>
+
+          <div class="admin-metric">
             <div class="admin-metric-label">Agent Workspace Funnel</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.agentResourceLinksExpandedCount || 0} shared-form/workflow resource expansions.</div>
             <div class="admin-metric-value">${metrics.agentLandingViewCount || 0} views</div>
