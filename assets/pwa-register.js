@@ -77,6 +77,19 @@
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', addUnderContractPath, {once: true});
     else addUnderContractPath();
   }
+  if (window.location.pathname === '/texas-buyer-representation-guide') {
+    const addWrittenAgreementReminder = () => {
+      const lead = document.querySelector('main .lead');
+      if (!lead || document.getElementById('hofWrittenAgreementReminder')) return;
+      const note = document.createElement('p');
+      note.id = 'hofWrittenAgreementReminder';
+      note.className = 'note';
+      note.innerHTML = '<strong>2026 Texas workflow reminder:</strong> Texas REALTORS® explains that a written agreement is required before showing residential property to a prospective buyer, or—if there is no showing—before presenting a purchase offer on the buyer’s behalf. Follow your brokerage-approved process and <a href="https://www.texasrealestate.com/wp-content/uploads/Written-Agreement-Explainer.pdf" target="_blank" rel="noopener noreferrer" style="color:inherit;font-weight:800">review the official explainer ↗</a>.';
+      lead.insertAdjacentElement('afterend', note);
+    };
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', addWrittenAgreementReminder, {once: true});
+    else addWrittenAgreementReminder();
+  }
   if (!('serviceWorker' in navigator)) return;
   let deferredInstallPrompt = null;
   const dismissKey = 'hof_public_pwa_install_dismissed_v1';
