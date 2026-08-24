@@ -94,6 +94,23 @@ class BrokerageFormSourceFoundationTests(unittest.TestCase):
         dashboard = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
         self.assertIn('"sharedFormCatalogOpenCount": shared_form_catalog_open_count', dashboard)
 
+    def test_private_review_saves_are_aggregate_and_broken_out_by_form(self):
+        dashboard = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
+        for form_id, form_code in (
+            ("txr1501AgreementForm", "TXR-1501"),
+            ("txr1506AgreementForm", "TXR-1506"),
+            ("txr1507AgreementForm", "TXR-1507"),
+            ("txr1508AgreementForm", "TXR-1508"),
+            ("txr1905AgreementForm", "TXR-1905"),
+            ("txr1914AgreementForm", "TXR-1914"),
+            ("txr1917AgreementForm", "TXR-1917"),
+            ("txr1919AgreementForm", "TXR-1919"),
+        ):
+            self.assertIn(f"['{form_id}', '{form_code}']", HTML)
+        self.assertIn("agent_private_review_draft_saved", HTML)
+        self.assertIn('"agentPrivateReviewDraftSavedCount": agent_private_review_draft_saved_count', dashboard)
+        self.assertIn('"agentPrivateReviewDraftSavedByForm": agent_private_review_draft_saved_by_form', dashboard)
+
     def test_brokerage_rollout_foreign_keys_have_targeted_indexes(self):
         for index_name in (
             "hof_brokerage_form_sources_authorized_by_user_id_idx",

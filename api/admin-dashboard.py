@@ -4901,6 +4901,25 @@ class handler(BaseHTTPRequestHandler):
                 item for item in events
                 if item.get("event_type") == "agent_workflow_resume_clicked"
             ])
+            # Private review saves are aggregate product signals. Keep the
+            # form vocabulary fixed so Admin can compare agent demand without
+            # returning client, property, or document details.
+            agent_private_review_form_codes = (
+                "TXR-1501", "TXR-1506", "TXR-1507", "TXR-1508",
+                "TXR-1905", "TXR-1914", "TXR-1917", "TXR-1919",
+            )
+            agent_private_review_draft_saved_count = len([
+                item for item in events
+                if item.get("event_type") == "agent_private_review_draft_saved"
+            ])
+            agent_private_review_draft_saved_by_form = {
+                form_code: len([
+                    item for item in events
+                    if item.get("event_type") == "agent_private_review_draft_saved"
+                    and str((item.get("metadata") or {}).get("form_code") or "") == form_code
+                ])
+                for form_code in agent_private_review_form_codes
+            }
             for item in events:
                 event_type = str(item.get("event_type") or "")
                 workflow = agent_transaction_event_workflows.get(event_type)
@@ -5447,6 +5466,8 @@ class handler(BaseHTTPRequestHandler):
                 "agentLandingRelationshipWorkspaceHandoffUserCount": agent_landing_relationship_workspace_handoff_user_count,
                 "agentTransactionChoiceCounts": agent_transaction_choice_counts,
                 "agentWorkflowResumeCount": agent_workflow_resume_count,
+                "agentPrivateReviewDraftSavedCount": agent_private_review_draft_saved_count,
+                "agentPrivateReviewDraftSavedByForm": agent_private_review_draft_saved_by_form,
                 "investorLandingViewCount": investor_landing_view_count,
                 "investorLandingCtaCount": investor_landing_cta_count,
                 "investorLandingCtaRate": round((investor_landing_cta_count / investor_landing_view_count) * 100, 1)
