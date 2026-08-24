@@ -4011,6 +4011,18 @@ class handler(BaseHTTPRequestHandler):
             partner_directory_empty_search_category_counts = dict(sorted(
                 partner_directory_empty_search_category_counts.items(), key=lambda item: (-item[1], item[0])
             ))
+            partner_directory_empty_search_channel_counts = {}
+            for item in partner_landing_events:
+                if item.get("event_type") != "partner_directory_empty_search":
+                    continue
+                channel = str((item.get("metadata") or {}).get("channel") or "direct").strip().lower()
+                if channel in {"direct", "pwa_shortcut", "email", "social", "referral", "other"}:
+                    partner_directory_empty_search_channel_counts[channel] = (
+                        partner_directory_empty_search_channel_counts.get(channel, 0) + 1
+                    )
+            partner_directory_empty_search_channel_counts = dict(sorted(
+                partner_directory_empty_search_channel_counts.items(), key=lambda item: (-item[1], item[0])
+            ))
             partner_landing_tier_cta_counts = {}
             for item in partner_landing_events:
                 if item.get("event_type") != "partner_landing_cta_selected":
@@ -5081,6 +5093,7 @@ class handler(BaseHTTPRequestHandler):
                 "partnerDirectoryPricingSelectionCount": partner_directory_pricing_selection_count,
                 "partnerDirectoryEmptySearchCount": partner_directory_empty_search_count,
                 "partnerDirectoryEmptySearchCategoryCounts": partner_directory_empty_search_category_counts,
+                "partnerDirectoryEmptySearchChannelCounts": partner_directory_empty_search_channel_counts,
                 "partnerCheckoutEventCounts": partner_checkout_event_counts,
                 "partnerApplicationReceiptCounts": partner_application_receipt_counts,
                 "partnerApplicationReceiptSentCount": partner_application_receipt_counts["sent"],
