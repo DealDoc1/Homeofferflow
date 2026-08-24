@@ -75,6 +75,8 @@ class SubscriptionCheckoutFunnelMetricTests(unittest.TestCase):
         source = (ROOT / "index.html").read_text(encoding="utf-8")
         self.assertIn("function recordOndemandTransactionPickerOpened()", source)
         self.assertIn("'ondemand_transaction_picker_opened'", source)
+        self.assertIn("ondemand_transaction_workflow_selected", source)
+        self.assertIn("hof_ondemand_workflow_selection_attribution", source)
         self.assertIn("async function openNewOfferShortcut(role)", source)
         self.assertIn("await window.openAccountDashboard?.({ tab: 'dashboard' });", source)
         self.assertIn("window.openAgentTransactionPicker?.();", source)

@@ -4630,6 +4630,15 @@ class handler(BaseHTTPRequestHandler):
                 if item.get("event_type") == "ondemand_transaction_picker_opened"
                 and (item.get("metadata") or {}).get("source") == "ondemand"
             ])
+            ondemand_transaction_workflow_selected_counts = {
+                workflow: len([
+                    item for item in events
+                    if item.get("event_type") == "ondemand_transaction_workflow_selected"
+                    and (item.get("metadata") or {}).get("source") == "ondemand"
+                    and (item.get("metadata") or {}).get("workflow") == workflow
+                ])
+                for workflow in ("purchase", "sale_listing", "lease_listing", "lease_representation")
+            }
             ondemand_landing_view_count = len([
                 item for item in events if item.get("event_type") == "ondemand_landing_viewed"
             ])
@@ -5360,6 +5369,7 @@ class handler(BaseHTTPRequestHandler):
                     1,
                 ) if subscription_checkout_return_by_source.get("ondemand", 0) else 0,
                 "onDemandTransactionPickerOpenedCount": ondemand_transaction_picker_opened_count,
+                "onDemandTransactionWorkflowSelectedCounts": ondemand_transaction_workflow_selected_counts,
                 "onDemandTransactionPickerOpenedRate": round(
                     (ondemand_transaction_picker_opened_count
                     / subscription_checkout_return_by_source.get("ondemand", 0)) * 100,

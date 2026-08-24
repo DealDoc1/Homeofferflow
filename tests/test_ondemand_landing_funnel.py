@@ -85,6 +85,7 @@ class OnDemandLandingFunnelTests(unittest.TestCase):
             '"onDemandMagicLinkRequestRate"',
             '"onDemandTermsAcceptedCount"',
             '"onDemandTermsAcceptedRate"',
+            '"onDemandTransactionWorkflowSelectedCounts"',
             "ondemand_landing_view_count",
             "ondemand_terms_accepted_count",
         ):
@@ -93,6 +94,7 @@ class OnDemandLandingFunnelTests(unittest.TestCase):
         self.assertIn("onDemandMagicLinkRequestedCount", INDEX)
         self.assertIn("onDemandMagicLinkRequestRate", INDEX)
         self.assertIn("onDemandTermsAcceptedRate", INDEX)
+        self.assertIn("onDemandTransactionWorkflowSelectedCounts", INDEX)
 
 
 if __name__ == "__main__":
