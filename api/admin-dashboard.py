@@ -3956,6 +3956,7 @@ class handler(BaseHTTPRequestHandler):
                 "partner_application_tier_selected",
                 "partner_application_essentials_opened",
                 "partner_application_essentials_focused",
+                "partner_guide_expanded",
                 "partner_directory_application_selected",
                 "partner_directory_pricing_selected",
                 "partner_directory_empty_search",
@@ -3980,6 +3981,9 @@ class handler(BaseHTTPRequestHandler):
             ])
             partner_application_essentials_focus_count = len([
                 item for item in partner_landing_events if item.get("event_type") == "partner_application_essentials_focused"
+            ])
+            partner_guide_expanded_count = len([
+                item for item in partner_landing_events if item.get("event_type") == "partner_guide_expanded"
             ])
             partner_onboarding_opened_event_count = len([
                 item for item in events if item.get("event_type") == "partner_onboarding_opened"
@@ -4698,6 +4702,9 @@ class handler(BaseHTTPRequestHandler):
             agent_landing_cta_count = len([
                 item for item in events if item.get("event_type") == "agent_landing_cta_selected"
             ])
+            agent_resource_links_expanded_count = len([
+                item for item in events if item.get("event_type") == "agent_resource_links_expanded"
+            ])
             agent_workflow_guide_view_count = len([
                 item for item in events if item.get("event_type") == "agent_workflow_guide_viewed"
             ])
@@ -5083,6 +5090,7 @@ class handler(BaseHTTPRequestHandler):
                 "partnerApplicationTierSelectedCount": partner_application_tier_selected_count,
                 "partnerApplicationEssentialsOpenCount": partner_application_essentials_open_count,
                 "partnerApplicationEssentialsFocusCount": partner_application_essentials_focus_count,
+                "partnerGuideExpandedCount": partner_guide_expanded_count,
                 "partnerApplicationEssentialsFocusRate": round(
                     (partner_application_essentials_focus_count / partner_application_open_count) * 100, 1
                 ) if partner_application_open_count else 0,
@@ -5233,6 +5241,7 @@ class handler(BaseHTTPRequestHandler):
                     (agent_landing_question_one_open_count / agent_landing_view_count) * 100, 1
                 ) if agent_landing_view_count else 0,
                 "agentLandingCtaCount": agent_landing_cta_count,
+                "agentResourceLinksExpandedCount": agent_resource_links_expanded_count,
                 "agentLandingCtaRate": round((agent_landing_cta_count / agent_landing_view_count) * 100, 1)
                 if agent_landing_view_count else 0,
                 "agentWorkflowGuideViewCount": agent_workflow_guide_view_count,

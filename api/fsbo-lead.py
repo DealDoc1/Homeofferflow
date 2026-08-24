@@ -184,6 +184,7 @@ PARTNER_LANDING_EVENT_TYPES = {
     "partner_application_tier_selected": "tier_selected",
     "partner_application_essentials_opened": "essentials_opened",
     "partner_application_essentials_focused": "essentials_focused",
+    "partner_guide_expanded": "guide_expanded",
     "partner_directory_application_selected": "application_selected",
     "partner_directory_pricing_selected": "pricing_selected",
     "partner_directory_empty_search": "unfilled_search",
@@ -221,9 +222,10 @@ AGENT_LANDING_EVENT_TYPES = {
     "agent_landing_cta_selected": "selected",
     "agent_workflow_guide_viewed": "viewed",
     "agent_workflow_guide_cta_selected": "selected",
+    "agent_resource_links_expanded": "resource_expanded",
 }
 AGENT_LANDING_CHANNELS = {
-    "direct_outreach", "email", "social", "referral", "local_event", "print", "unspecified",
+    "direct", "direct_outreach", "email", "social", "referral", "local_event", "print", "unspecified",
 }
 AGENT_LANDING_CTA_PATHS = {
     "client_draft", "seller_listing", "lease_listing", "relationship_drafts", "lease_representation", "listing_guide", "lease_guide", "form_library_guide",
