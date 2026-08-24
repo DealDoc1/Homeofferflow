@@ -10526,6 +10526,27 @@ function routeAfterMagicLinkIfNeeded() {
   // lets browser autofill work before the optional Places script is requested.
   addressAutocompleteInputs();
 
+  // Agreement, profile, and workspace panels are frequently rendered after
+  // the initial page load. Register newly inserted address controls right
+  // away so they have the same Google Places affordance before first focus.
+  // This observer never loads Google by itself; the existing focus handler
+  // keeps Places lazy and remains the manual-entry fallback.
+  function observeAddedAddressInputs() {
+    if (!window.MutationObserver || !document.body) return;
+    const observer = new MutationObserver(records => {
+      const addedAddressControl = records.some(record => [...record.addedNodes].some(node => {
+        if (!(node instanceof Element)) return false;
+        return (node.matches('input[id], input[name]') && /(?:address|addr)/i.test(`${node.id} ${node.getAttribute('name') || ''}`))
+          || !!node.querySelector?.('input[id*="address" i], input[name*="address" i], input[id*="addr" i], input[name*="addr" i]');
+      }));
+      if (!addedAddressControl) return;
+      addressAutocompleteInputs();
+      if (_autocompleteService) wireAddressInput();
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+  }
+  observeAddedAddressInputs();
+
   function wireLegacyGoogleAddressInputs() {
     if (!window.google?.maps?.places?.Autocomplete) return;
     addressAutocompleteInputs().forEach(([input, onSelectCallback]) => {
