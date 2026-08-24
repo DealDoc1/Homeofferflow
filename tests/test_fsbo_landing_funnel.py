@@ -9,6 +9,7 @@ INDEX = (ROOT / "index.html").read_text(encoding="utf-8")
 SELLERS = (ROOT / "sellers.html").read_text(encoding="utf-8")
 FSBO_GUIDE = (ROOT / "texas-fsbo-guide.html").read_text(encoding="utf-8")
 FSBO_GUIDE_METRICS = (ROOT / "assets" / "fsbo-guide-metrics.js").read_text(encoding="utf-8")
+RECEIPT_CHANNEL = (ROOT / "assets" / "receipt-funnel-channel.js").read_text(encoding="utf-8")
 
 
 class FsboLandingFunnelTests(unittest.TestCase):
@@ -33,6 +34,8 @@ class FsboLandingFunnelTests(unittest.TestCase):
         self.assertIn("Unsupported seller package.", API)
         self.assertIn("'fsbo_landing_event'", API)
         self.assertIn('else "seller_landing"', API)
+        self.assertIn('allowed_surfaces = {"seller_landing", "seller_receipt", "fsbo_guide", "pwa_seller_plan", "fsbo_provider_directory"}', API)
+        self.assertIn("body.surface = 'seller_receipt'", RECEIPT_CHANNEL)
         self.assertIn('"pwa_seller_plan"', API)
         self.assertIn('"fsbo_guide"', API)
 
@@ -80,6 +83,9 @@ class FsboLandingFunnelTests(unittest.TestCase):
             '"sellerLandingViewCountsByChannel"',
             '"sellerLandingCtaCountsByChannel"',
             '"sellerLandingCtaRatesByChannel"',
+            '"sellerLandingViewCountsBySurface"',
+            '"sellerLandingCtaCountsBySurface"',
+            '"sellerLandingCtaRatesBySurface"',
             '"sellerLandingSupportPathsExpandedCountsByChannel"',
             '"sellerLandingPackageCtaCounts"',
             "seller_landing_event_types",

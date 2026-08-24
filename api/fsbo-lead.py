@@ -654,23 +654,27 @@ def _record_fsbo_landing_event(data):
     event_type = _text(data.get("event_type"), 80)
     service_level = _text(data.get("service_level"), 80) or "free_intake"
     channel = _text(data.get("channel"), 80).lower() or "unspecified"
+    requested_surface = _text(data.get("surface"), 40).lower()
     if event_type not in FSBO_LANDING_EVENT_TYPES:
         raise ValueError("Unsupported seller landing event.")
     if service_level not in FSBO_PACKAGE_CATALOG:
         raise ValueError("Unsupported seller package.")
     if channel not in FSBO_LANDING_CHANNELS:
         raise ValueError("Unsupported seller landing channel.")
+    default_surface = (
+        "pwa_seller_plan" if event_type == "pwa_seller_plan_opened"
+        else "fsbo_provider_directory" if event_type == "fsbo_provider_directory_opened"
+        else "fsbo_guide" if event_type.startswith("fsbo_guide_")
+        else "seller_landing"
+    )
+    allowed_surfaces = {"seller_landing", "seller_receipt", "fsbo_guide", "pwa_seller_plan", "fsbo_provider_directory"}
+    surface = requested_surface if requested_surface in allowed_surfaces else default_surface
     _record_partner_checkout_event(
         event_type,
         FSBO_LANDING_EVENT_TYPES[event_type],
         "Privacy-safe public seller landing engagement recorded.",
         {
-            "surface": (
-                "pwa_seller_plan" if event_type == "pwa_seller_plan_opened"
-                else "fsbo_provider_directory" if event_type == "fsbo_provider_directory_opened"
-                else "fsbo_guide" if event_type.startswith("fsbo_guide_")
-                else "seller_landing"
-            ),
+            "surface": surface,
             "serviceLevel": service_level,
             "channel": channel,
         },
