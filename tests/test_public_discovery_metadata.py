@@ -17,6 +17,7 @@ AGENTS = (ROOT / "agents.html").read_text(encoding="utf-8")
 INVESTORS = (ROOT / "investors.html").read_text(encoding="utf-8")
 ONDEMAND = (ROOT / "ondemand.html").read_text(encoding="utf-8")
 FSBO_GUIDE = (ROOT / "texas-fsbo-guide.html").read_text(encoding="utf-8")
+SELLER_OFFER_REVIEW_GUIDE = (ROOT / "texas-seller-offer-review.html").read_text(encoding="utf-8")
 AGENT_GUIDE = (ROOT / "texas-agent-offer-workflow.html").read_text(encoding="utf-8")
 BUYER_GUIDE = (ROOT / "texas-homebuyer-offer-guide.html").read_text(encoding="utf-8")
 INVESTOR_GUIDE = (ROOT / "texas-investor-offer-guide.html").read_text(encoding="utf-8")
@@ -65,6 +66,7 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn('https://www.homeofferflow.com/investors', SITEMAP)
         self.assertIn('https://www.homeofferflow.com/directory', SITEMAP)
         self.assertIn('https://www.homeofferflow.com/texas-fsbo-guide', SITEMAP)
+        self.assertIn('https://www.homeofferflow.com/texas-seller-offer-review', SITEMAP)
         self.assertIn('https://www.homeofferflow.com/texas-agent-offer-workflow', SITEMAP)
         self.assertIn('https://www.homeofferflow.com/texas-homebuyer-offer-guide', SITEMAP)
         self.assertIn('https://www.homeofferflow.com/texas-investor-offer-guide', SITEMAP)
@@ -220,6 +222,16 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn('not legal, lending, title, inspection, tax, or brokerage advice', BUYER_GUIDE)
         self.assertIn('/texas-homebuyer-offer-guide', (ROOT / 'vercel.json').read_text(encoding='utf-8'))
         self.assertIn('href="/texas-homebuyer-offer-guide"', BUYERS)
+
+    def test_seller_offer_review_guide_is_a_crawlable_people_first_path_to_offer_review(self):
+        self.assertIn('<link rel="canonical" href="https://www.homeofferflow.com/texas-seller-offer-review">', SELLER_OFFER_REVIEW_GUIDE)
+        self.assertIn('"@type":"Article"', SELLER_OFFER_REVIEW_GUIDE)
+        self.assertIn('"@type":"FAQPage"', SELLER_OFFER_REVIEW_GUIDE)
+        self.assertIn('Texas Seller Offer Review', SELLER_OFFER_REVIEW_GUIDE)
+        self.assertIn('Start seller offer review', SELLER_OFFER_REVIEW_GUIDE)
+        self.assertIn('does not recommend, accept, reject, or negotiate', SELLER_OFFER_REVIEW_GUIDE)
+        self.assertIn('/texas-seller-offer-review', (ROOT / 'vercel.json').read_text(encoding='utf-8'))
+        self.assertIn('href="/texas-seller-offer-review"', FSBO_GUIDE)
 
     def test_investor_offer_guide_is_a_crawlable_people_first_path_to_the_workspace(self):
         self.assertIn('<link rel="canonical" href="https://www.homeofferflow.com/texas-investor-offer-guide">', INVESTOR_GUIDE)
