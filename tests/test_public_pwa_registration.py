@@ -87,16 +87,20 @@ class PublicPwaRegistrationTests(unittest.TestCase):
         self.assertIn("seller plan and support paths", SCRIPT)
 
     def test_public_install_prompt_records_privacy_safe_aggregate_funnel_events(self):
-        self.assertIn("trackInstallEvent('Shown')", SCRIPT)
-        self.assertIn("trackInstallEvent('CtaClicked')", SCRIPT)
+        self.assertIn("trackPublicInstall('Shown')", SCRIPT)
+        self.assertIn("trackPublicInstall('CtaClicked')", SCRIPT)
         self.assertIn("choice?.outcome === 'accepted' ? 'Accepted' : 'Dismissed'", SCRIPT)
-        self.assertIn("trackInstallEvent('Installed')", SCRIPT)
+        self.assertIn("trackPublicInstall('Installed')", SCRIPT)
         self.assertIn("surface: window.location.pathname", SCRIPT)
+        self.assertIn("public_pwa_install_event", SCRIPT)
+        self.assertIn("NativeAvailable: 'native_available'", SCRIPT)
+        self.assertIn("hof_public_pwa_install_", SCRIPT)
+        self.assertIn("trackPublicInstall('NativeAvailable')", SCRIPT)
 
     def test_ios_public_pages_explain_home_screen_install_without_native_prompt(self):
         self.assertIn("isIosInstallSurface", SCRIPT)
         self.assertIn("Add to Home Screen", SCRIPT)
-        self.assertIn("trackInstallEvent('InstructionsOpened')", SCRIPT)
+        self.assertIn("trackPublicInstall('InstructionsOpened')", SCRIPT)
         self.assertIn("window.addEventListener('load', () => { if (isIosInstallSurface()) renderInstallCard(); }", SCRIPT)
 
     def test_public_cached_pages_explain_offline_scope_and_recover_on_reconnect(self):

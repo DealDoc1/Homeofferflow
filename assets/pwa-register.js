@@ -72,6 +72,28 @@
     || (navigator.maxTouchPoints > 1 && /Macintosh/i.test(navigator.userAgent || ''));
   const isStandaloneSurface = () => window.matchMedia?.('(display-mode: standalone)').matches === true
     || window.navigator.standalone === true;
+  const publicInstallEvents = {
+    Shown: 'shown', NativeAvailable: 'native_available', CtaClicked: 'cta_clicked',
+    PromptOpened: 'prompt_opened', Accepted: 'accepted', Dismissed: 'dismissed',
+    Installed: 'installed', InstructionsOpened: 'instructions_opened',
+  };
+  const publicInstallPlatform = () => /iPhone|iPad|iPod/i.test(navigator.userAgent || '')
+    || (navigator.maxTouchPoints > 1 && /Macintosh/i.test(navigator.userAgent || '')) ? 'ios'
+    : /Android/i.test(navigator.userAgent || '') ? 'android' : 'web';
+  const trackPublicInstallEvent = event => {
+    const eventKey = publicInstallEvents[event];
+    if (!eventKey) return;
+    try {
+      const key = `hof_public_pwa_install_${eventKey}_${window.location.pathname}`;
+      if (sessionStorage.getItem(key) === '1') return;
+      sessionStorage.setItem(key, '1');
+      fetch('/api/fsbo-lead', {
+        method: 'POST', headers: {'Content-Type': 'application/json'}, keepalive: true,
+        body: JSON.stringify({request_type: 'public_pwa_install_event', event_type: `pwa_install_${eventKey}`, platform: publicInstallPlatform(), surface: window.location.pathname}),
+      }).catch(() => {});
+    } catch (_) {}
+  };
+  const trackPublicInstall = event => { trackInstallEvent(event); trackPublicInstallEvent(event); };
   const removeInstallCard = () => document.getElementById('hofPublicPwaInstallCard')?.remove();
   const renderOfflineNotice = () => {
     let notice = document.getElementById('hofPublicPwaOfflineNotice');
@@ -191,10 +213,10 @@
     const iosInstall = isIosInstallSurface() && !deferredInstallPrompt;
     card.innerHTML = `<strong style="display:block;color:#e8b86d;margin-bottom:.2rem">${title}</strong><span style="display:block;color:#b6c4d5;margin-bottom:.55rem">${copy}</span><div style="display:flex;gap:.45rem;flex-wrap:wrap"><button type="button" id="hofPublicPwaInstallButton" style="padding:.45rem .65rem;border:0;border-radius:7px;background:#c8973f;color:#102033;font-weight:800;cursor:pointer">${iosInstall ? 'Show install steps' : 'Install app'}</button><button type="button" id="hofPublicPwaInstallDismiss" style="padding:.45rem .65rem;border:1px solid rgba(255,255,255,.25);border-radius:7px;background:transparent;color:#fff;cursor:pointer">Not now</button></div><div id="hofPublicPwaInstallNote" role="status" aria-live="polite" style="display:none;margin-top:.55rem;color:#b6c4d5;font-size:.8rem;line-height:1.45"></div>`;
     document.body.appendChild(card);
-    trackInstallEvent('Shown');
+    trackPublicInstall('Shown');
     card.querySelector('#hofPublicPwaInstallDismiss')?.addEventListener('click', () => {
       try { sessionStorage.setItem(dismissKey, '1'); } catch (_) {}
-      trackInstallEvent('Dismissed');
+      trackPublicInstall('Dismissed');
       removeInstallCard();
     });
     card.querySelector('#hofPublicPwaInstallButton')?.addEventListener('click', async () => {
@@ -204,24 +226,26 @@
           note.style.display = 'block';
           note.textContent = 'In Safari, tap Share, then choose Add to Home Screen. The lightweight HomeOfferFlow app will open from your new icon.';
         }
-        trackInstallEvent('InstructionsOpened');
+        trackPublicInstall('InstructionsOpened');
         return;
       }
       const prompt = deferredInstallPrompt;
       deferredInstallPrompt = null;
       removeInstallCard();
-      trackInstallEvent('CtaClicked');
+      trackPublicInstall('CtaClicked');
       await prompt.prompt();
-      await prompt.userChoice.then(choice => trackInstallEvent(choice?.outcome === 'accepted' ? 'Accepted' : 'Dismissed')).catch(() => {});
+      trackPublicInstall('PromptOpened');
+      await prompt.userChoice.then(choice => trackPublicInstall(choice?.outcome === 'accepted' ? 'Accepted' : 'Dismissed')).catch(() => {});
     });
   };
   window.addEventListener('beforeinstallprompt', event => {
     if (!isMobileInstallSurface()) return;
     event.preventDefault();
     deferredInstallPrompt = event;
+    trackPublicInstall('NativeAvailable');
     renderInstallCard();
   });
-  window.addEventListener('appinstalled', () => { trackInstallEvent('Installed'); deferredInstallPrompt = null; removeInstallCard(); });
+  window.addEventListener('appinstalled', () => { trackPublicInstall('Installed'); deferredInstallPrompt = null; removeInstallCard(); });
   window.addEventListener('load', () => { if (isIosInstallSurface()) renderInstallCard(); }, { once: true });
   window.addEventListener('offline', renderOfflineNotice);
   window.addEventListener('online', renderOfflineNotice);
