@@ -7,6 +7,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 HOME = (ROOT / "index.html").read_text(encoding="utf-8")
 SELLERS = (ROOT / "sellers.html").read_text(encoding="utf-8")
+SELLER_REVIEW = (ROOT / "texas-seller-offer-review.html").read_text(encoding="utf-8")
 SITEMAP = (ROOT / "sitemap.xml").read_text(encoding="utf-8")
 VERCEL = json.loads((ROOT / "vercel.json").read_text(encoding="utf-8"))
 SEO_GUIDES = {
@@ -169,6 +170,15 @@ class TechnicalSeoTests(unittest.TestCase):
         self.assertEqual(how_to["name"], "Start a Texas FSBO seller plan")
         self.assertEqual([step["position"] for step in how_to["step"]], [1, 2, 3])
         self.assertIn("scope", how_to["step"][-1]["text"].lower())
+
+    def test_seller_offer_review_exposes_a_four_step_how_to_path(self):
+        blocks = re.findall(
+            r'<script type="application/ld\+json">\s*(.*?)\s*</script>', SELLER_REVIEW, re.DOTALL
+        )
+        how_to = next(json.loads(block) for block in blocks if '"HowTo"' in block)
+        self.assertEqual(how_to["name"], "Review a Texas home offer as a seller")
+        self.assertEqual([step["position"] for step in how_to["step"]], [1, 2, 3, 4])
+        self.assertIn("concession", how_to["step"][-1]["text"].lower())
 
     def test_sitemap_supplies_verified_lastmod_dates_for_indexable_pages(self):
         entries = re.findall(
