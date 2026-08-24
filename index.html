@@ -4886,6 +4886,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 
           <div class="admin-metric">
             <div class="admin-metric-label">Mobile App Install Funnel</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Brokerage Setup shortcut opens: ${Number(metrics.pwaAuthenticatedShortcutCounts?.brokerage_setup || 0)}.</div>
             <div class="admin-metric-value">${metrics.pwaInstalledCount || 0} installed</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.pwaInstallShownCount || 0} install prompts shown · ${metrics.pwaInstallCtaClickCount || 0} install choices selected (${Number(metrics.pwaInstallCtaClickRate || 0).toFixed(1)}%).</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.pwaInstallNativeAvailableCount || 0} native-install option${Number(metrics.pwaInstallNativeAvailableCount || 0) === 1 ? '' : 's'} available (${Number(metrics.pwaInstallNativeAvailableRate || 0).toFixed(1)}% of prompts shown); the remainder received the supported Home Screen guidance.</div>
@@ -20413,7 +20414,7 @@ function routeAfterMagicLinkIfNeeded() {
     // Authenticated workspace shortcuts are measured server-side as an
     // aggregate operational signal. The event stores no client, property,
     // form, source, device, or URL data; Admin receives counts only.
-    if (window.hofAuth?.session && ['workspace', 'transaction_start', 'listing_tools', 'relationship_drafts', 'offer_review', 'new_offer', 'signing_queue', 'attention_queue'].includes(action)) {
+    if (window.hofAuth?.session && ['workspace', 'brokerage_setup', 'transaction_start', 'listing_tools', 'relationship_drafts', 'offer_review', 'new_offer', 'signing_queue', 'attention_queue'].includes(action)) {
       try {
         window.logOfferEvent?.(
           null,

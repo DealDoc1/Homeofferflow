@@ -152,6 +152,7 @@ class PwaBaselineTests(unittest.TestCase):
         self.assertEqual(brokerage["url"], "/?pwa_action=brokerage_setup")
         self.assertIn("else if (action === 'brokerage_setup') await openBrokerageSetup();", INDEX)
         self.assertIn("window.openAccountDashboard?.({ tab: 'brokerage' })", INDEX)
+        self.assertIn("'brokerage_setup'", INDEX)
         self.assertIn("window.openAccountDashboard?.({ tab: 'seller' })", INDEX)
         self.assertIn("async function openRelationshipDrafts()", INDEX)
         self.assertIn("window.openAccountDashboard?.({ tab: 'relationships' })", INDEX)
