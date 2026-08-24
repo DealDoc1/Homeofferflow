@@ -85,7 +85,7 @@ class SubscriptionCheckoutFunnelMetricTests(unittest.TestCase):
         self.assertIn('id="firstOfferButton"', source)
         self.assertIn('get("checkout") === "success"', source)
         self.assertIn('window.location.assign("/?pwa_action=workspace")', source)
-        self.assertIn('window.location.assign("/?pwa_action=new_offer")', source)
+        self.assertIn('window.location.assign("/?pwa_action=transaction_start")', source)
         self.assertIn('$("firstOfferButton").style.display = checkoutComplete ? "block" : "none"', source)
 
     def test_success_return_offers_a_mobile_pwa_install_prompt_without_enrollment_noise(self):

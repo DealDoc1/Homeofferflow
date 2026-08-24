@@ -1073,6 +1073,12 @@ class OnDemandLaunchPageTests(unittest.TestCase):
         ):
             self.assertIn(text.lower(), LAUNCH_HTML.lower())
 
+    def test_checkout_success_routes_first_use_to_transaction_question_one(self):
+        self.assertIn('id="firstOfferButton"', LAUNCH_HTML)
+        self.assertIn('Start my first transaction', LAUNCH_HTML)
+        self.assertIn('window.location.assign("/?pwa_action=transaction_start")', LAUNCH_HTML)
+        self.assertNotIn('window.location.assign("/?pwa_action=new_offer")', LAUNCH_HTML)
+
     def test_launch_exposes_matching_faq_structured_data(self):
         self.assertIn('"@type":"FAQPage"', LAUNCH_HTML)
         self.assertIn('"name":"Why is a card required if the first 60 days are free?"', LAUNCH_HTML)

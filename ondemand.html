@@ -258,7 +258,7 @@
           </label>
           <button id="checkoutButton" type="button" disabled>Continue to secure checkout</button>
           <button id="workspaceButton" class="secondary" type="button" style="display:none">Open my agent workspace</button>
-          <button id="firstOfferButton" type="button" style="display:none">Start my first saved offer</button>
+          <button id="firstOfferButton" type="button" style="display:none">Start my first transaction</button>
           <button id="signOutButton" class="secondary" type="button">Use a different account</button>
           <p class="fine">
             Stripe securely collects your payment method. Cancel anytime before renewal from
@@ -598,7 +598,7 @@
         const channel = medium === "installed_app" || source === "pwa_shortcut" ? "pwa_shortcut" : medium === "organic_content" || source === "organic" ? "organic" : new Set(["organic_offer_workflow", "organic_listing_workflow", "organic_lease_workflow", "agent_workspace", "agent_form_library", "direct", "email", "social", "referral", "local_event", "print"]).has(source) ? source : "unspecified";
         recordAggregateLandingEvent("ondemand_landing_viewed", channel);
         if (params.get("checkout") === "success") {
-          showStatus("Your secure checkout is complete. Open your workspace or start your first saved offer while agent access finishes activating.", "ok");
+          showStatus("Your secure checkout is complete. Open your workspace or choose your first transaction while agent access finishes activating.", "ok");
         } else if (params.get("checkout") === "cancelled") {
           showStatus("Checkout was canceled. Your card was not saved and your trial did not start.", "err");
         }
@@ -632,7 +632,7 @@
       });
       $("firstOfferButton").addEventListener("click", () => {
         markFirstOfferAttribution();
-        window.location.assign("/?pwa_action=new_offer");
+        window.location.assign("/?pwa_action=transaction_start");
       });
       window.addEventListener("beforeinstallprompt", (event) => {
         event.preventDefault();
