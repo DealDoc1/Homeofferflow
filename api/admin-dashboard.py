@@ -82,6 +82,7 @@ TXR_1905_FORM_CODE = "TXR-1905"
 TXR_1914_FORM_CODE = "TXR-1914"
 TXR_1917_FORM_CODE = "TXR-1917"
 TXR_1919_FORM_CODE = "TXR-1919"
+TXR_1948_FORM_CODE = "TXR-1948"
 TREC_55_1_FORM_CODE = "TREC-55-1"
 TREC_61_0_FORM_CODE = "TREC-61-0"
 BROKERAGE_TXR_FORM_CODES = (
@@ -2282,6 +2283,67 @@ def _parse_txr_1905_draft(data):
     }
 
 
+def _parse_txr_1948_draft(data):
+    """Validate a private TXR-1948 appraisal-review draft.
+
+    The interview records only the printed choice and agent-entered values. It
+    does not assess value, recommend a waiver, or create a signature request.
+    """
+    if data.get("formCode") != TXR_1948_FORM_CODE:
+        raise ValueError("Only TXR-1948 is available through this action.")
+    form_source_id = _agreement_text(data.get("formSourceId"), "Approved TXR-1948 source", 80)
+    try:
+        form_source_id = str(uuid.UUID(form_source_id))
+    except (TypeError, ValueError, AttributeError):
+        raise ValueError("Choose an available TXR-1948 source from the HomeOfferFlow library.")
+
+    def names(key, label):
+        values = data.get(key)
+        if not isinstance(values, list) or not (1 <= len(values) <= 2):
+            raise ValueError(f"Add one or two {label} names.")
+        return [_agreement_text(value, f"Each {label} name", 180) for value in values]
+
+    property_address = _agreement_text(data.get("propertyAddress"), "Property address", 400)
+    buyer_names = names("buyerNames", "buyer")
+    seller_names = names("sellerNames", "seller")
+    all_names = buyer_names + seller_names
+    if len({name.casefold() for name in all_names}) != len(all_names):
+        raise ValueError("List each buyer or seller only once.")
+    choice = str(data.get("appraisalChoice") or "").strip()
+    if choice not in {"waiver", "partial_waiver", "additional_right"}:
+        raise ValueError("Choose one appraisal-review option printed on TXR-1948.")
+
+    def whole_number(value, label):
+        value = str(value or "").strip()
+        if not re.fullmatch(r"\d{1,3}", value) or int(value) < 1:
+            raise ValueError(f"{label} must be a positive whole number.")
+        return value
+
+    partial_value = _agreement_money(data.get("partialValue"), "Partial-waiver appraisal value")
+    additional_days = whole_number(data.get("additionalDays"), "Additional termination time") if choice == "additional_right" else ""
+    additional_value = _agreement_money(data.get("additionalValue"), "Additional-right appraisal value") if choice == "additional_right" else ""
+    if choice == "partial_waiver" and not partial_value:
+        raise ValueError("Enter the partial-waiver appraisal value.")
+    if choice == "additional_right" and (not additional_days or not additional_value):
+        raise ValueError("Enter the additional termination time and appraisal value.")
+    if data.get("appraisalReviewAcknowledgment") is not True:
+        raise ValueError("Confirm that the parties will review the appraisal choice before signing.")
+    return {
+        "form_source_id": form_source_id,
+        "client_names": all_names,
+        "agreement_data": {
+            "property_address": property_address,
+            "buyer_names": buyer_names,
+            "seller_names": seller_names,
+            "appraisal_choice": choice,
+            "partial_value": partial_value,
+            "additional_days": additional_days,
+            "additional_value": additional_value,
+            "appraisal_review_acknowledgment": True,
+        },
+    }
+
+
 def _parse_txr_1914_draft(data):
     """Validate a private TXR-1914 seller-financing review draft.
 
@@ -2819,6 +2881,10 @@ async def _create_txr_1914_draft(user, data):
     return await _create_representation_draft(user, data, TXR_1914_FORM_CODE, _parse_txr_1914_draft)
 
 
+async def _create_txr_1948_draft(user, data):
+    return await _create_representation_draft(user, data, TXR_1948_FORM_CODE, _parse_txr_1948_draft)
+
+
 async def _create_txr_1917_draft(user, data):
     return await _create_representation_draft(user, data, TXR_1917_FORM_CODE, _parse_txr_1917_draft)
 
@@ -3343,6 +3409,9 @@ async def _render_representation_draft_preview(user, agreement_id):
     if agreement.get("form_code") == TXR_1919_FORM_CODE:
         from lib.txr_1919 import render_txr_1919
         return render_txr_1919(response.content, render_data)
+    if agreement.get("form_code") == TXR_1948_FORM_CODE:
+        from lib.txr_1948 import render_txr_1948
+        return render_txr_1948(response.content, render_data)
     raise ValueError("Private preview is not available for this form yet.")
 
 
@@ -4906,7 +4975,7 @@ class handler(BaseHTTPRequestHandler):
             # returning client, property, or document details.
             agent_private_review_form_codes = (
                 "TXR-1501", "TXR-1506", "TXR-1507", "TXR-1508",
-                "TXR-1905", "TXR-1914", "TXR-1917", "TXR-1919",
+                "TXR-1905", "TXR-1914", "TXR-1917", "TXR-1919", "TXR-1948",
             )
             agent_private_review_draft_saved_count = len([
                 item for item in events
@@ -5815,6 +5884,10 @@ class handler(BaseHTTPRequestHandler):
                 return
             if data.get("action") == "create_txr_1919_draft":
                 draft = asyncio.run(_create_txr_1919_draft(user, data))
+                _json(self, 201, {"status": "ok", "agreement": draft})
+                return
+            if data.get("action") == "create_txr_1948_draft":
+                draft = asyncio.run(_create_txr_1948_draft(user, data))
                 _json(self, 201, {"status": "ok", "agreement": draft})
                 return
             if data.get("action") == "send_txr_agreement_for_signature":

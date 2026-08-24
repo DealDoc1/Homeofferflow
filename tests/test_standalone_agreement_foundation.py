@@ -78,6 +78,20 @@ def valid_notice_payload():
     }
 
 
+def valid_appraisal_payload():
+    return {
+        "formCode": "TXR-1948",
+        "formSourceId": "00000000-0000-0000-0000-000000000001",
+        "propertyAddress": "1438 Whitaker Road, Van Alstyne, TX",
+        "buyerNames": ["Test Buyer"],
+        "sellerNames": ["Test Seller"],
+        "appraisalChoice": "additional_right",
+        "additionalDays": "10",
+        "additionalValue": "350000",
+        "appraisalReviewAcknowledgment": True,
+    }
+
+
 def valid_mineral_payload():
     return {
         "formCode": "TXR-1905",
@@ -341,6 +355,22 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
         self.assertIn("create_txr_1919_draft", HTML)
         self.assertIn("not a lender request or signature request", HTML)
         self.assertIn("not a loan document or signature request", HTML)
+
+    def test_appraisal_draft_requires_one_printed_choice_and_stays_review_only(self):
+        draft = MODULE._parse_txr_1948_draft(valid_appraisal_payload())
+        self.assertEqual(draft["agreement_data"]["additional_days"], "10")
+        payload = valid_appraisal_payload()
+        payload["additionalDays"] = ""
+        with self.assertRaisesRegex(ValueError, "Additional termination time"):
+            MODULE._parse_txr_1948_draft(payload)
+        payload = valid_appraisal_payload()
+        payload["appraisalChoice"] = "waiver"
+        payload["appraisalReviewAcknowledgment"] = False
+        with self.assertRaisesRegex(ValueError, "review the appraisal choice"):
+            MODULE._parse_txr_1948_draft(payload)
+        self.assertIn("Start appraisal-review draft", HTML)
+        self.assertIn("create_txr_1948_draft", HTML)
+        self.assertIn("not a recommendation or signature request", HTML)
 
     def test_agent_ui_requires_an_approved_private_source_and_saves_draft_only(self):
         self.assertIn("Start TXR-1507 draft", HTML)
