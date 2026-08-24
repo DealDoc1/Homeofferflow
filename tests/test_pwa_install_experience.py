@@ -5,6 +5,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 INDEX = (ROOT / "index.html").read_text(encoding="utf-8")
 WORKER = (ROOT / "service-worker.js").read_text(encoding="utf-8")
+PWA_REGISTER = (ROOT / "assets" / "pwa-register.js").read_text(encoding="utf-8")
 
 
 class PwaInstallExperienceTests(unittest.TestCase):
@@ -171,6 +172,10 @@ class PwaInstallExperienceTests(unittest.TestCase):
         self.assertIn('pwaAuthenticatedShortcutPlatformCounts?.unknown', INDEX)
         self.assertIn('pwaAuthenticatedShortcutRepeatUserCount', INDEX)
         self.assertIn("surface: 'pwa_shortcut'", INDEX)
+
+    def test_agent_page_form_library_handoff_preserves_campaign_attribution(self):
+        self.assertIn("libraryLink.href = '/texas-agent-form-library?utm_source=agent_workspace&utm_medium=agent_page&utm_campaign=form_library';", PWA_REGISTER)
+        self.assertIn("libraryLink.id = 'hofAgentFormLibraryCta'", PWA_REGISTER)
 
     def test_clean_signed_in_standalone_launch_opens_only_the_private_workspace(self):
         self.assertIn("function isStandalonePwa()", INDEX)
