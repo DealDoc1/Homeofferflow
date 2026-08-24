@@ -78,6 +78,7 @@ class SubscriptionCheckoutFunnelMetricTests(unittest.TestCase):
         self.assertIn("async function openNewOfferShortcut(role)", source)
         self.assertIn("await window.openAccountDashboard?.({ tab: 'dashboard' });", source)
         self.assertIn("window.openAgentTransactionPicker?.();", source)
+        self.assertIn("if (action === 'transaction_start') {\n      recordOndemandTransactionPickerOpened();", source)
 
     def test_ondemand_success_return_offers_authenticated_workspace_handoff(self):
         source = (ROOT / "ondemand.html").read_text(encoding="utf-8")

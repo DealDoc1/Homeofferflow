@@ -20678,6 +20678,7 @@ function routeAfterMagicLinkIfNeeded() {
     }
     clearPendingAction();
     if (action === 'transaction_start') {
+      recordOndemandTransactionPickerOpened();
       primeTransactionWorkflow();
       await window.openAccountDashboard?.({ tab: 'dashboard' });
       window.setTimeout(() => {
@@ -20710,6 +20711,7 @@ function routeAfterMagicLinkIfNeeded() {
     if (action === 'new_offer') {
       await openNewOfferShortcut(window.hofAuth?.role === 'investor' ? 'investor' : 'agent');
     } else if (action === 'transaction_start') {
+      recordOndemandTransactionPickerOpened();
       primeTransactionWorkflow();
       await window.openAccountDashboard?.({ tab: 'dashboard' });
       window.setTimeout(() => {
