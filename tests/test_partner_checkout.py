@@ -101,6 +101,16 @@ class PartnerCheckoutTests(unittest.TestCase):
         self.assertEqual(partner_checkout.MONTHLY_PRICE_ENV_BY_TIER["monthly_placement"], "STRIPE_FOUNDING_PARTNER_FEATURED_MONTHLY_PRICE_ID")
         self.assertEqual(partner_checkout.MONTHLY_PRICE_ENV_BY_TIER["market_exclusive"], "STRIPE_FOUNDING_PARTNER_PREMIER_MONTHLY_PRICE_ID")
 
+    def test_custom_partner_request_cannot_enter_a_price_based_checkout(self):
+        with patch.object(partner_checkout, "STRIPE_SECRET_KEY", "sk_test_example"), patch.object(partner_checkout, "_get_partner_lead_for_checkout", return_value={
+            "id": "e35eace9-2760-4b11-a01a-07ee65f2744e",
+            "preferred_model": "discuss",
+            "contact_email": "partner@example.com",
+            "status": "new",
+        }):
+            with self.assertRaisesRegex(ValueError, "Custom and multi-market requests"):
+                partner_checkout._create_partner_checkout("e35eace9-2760-4b11-a01a-07ee65f2744e", {})
+
     def test_checkout_origin_uses_request_host_not_a_redirect_parameter(self):
         self.assertEqual(partner_checkout._partner_checkout_origin({"host": "preview-homeofferflow.vercel.app", "x-forwarded-proto": "https"}), "https://preview-homeofferflow.vercel.app")
         self.assertEqual(partner_checkout._partner_checkout_origin({"host": "bad.example/path"}), "https://www.homeofferflow.com")

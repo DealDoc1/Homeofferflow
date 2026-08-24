@@ -180,6 +180,11 @@ PARTNER_APPLICATION_NEXT_STEPS = {
         "Use secure Stripe Checkout only when you are ready to review the final terms before payment; availability is confirmed separately.",
         "After payment, complete the secure business-profile onboarding; exclusivity and public placement still wait for written-agreement review.",
     ),
+    "discuss": (
+        "HomeOfferFlow will review the requested category, markets, and placement scope with you.",
+        "A custom or multi-market request does not open checkout or create a charge.",
+        "After scope and pricing are confirmed, you can decide whether to continue with a written placement agreement and secure payment.",
+    ),
 }
 PARTNER_LANDING_EVENT_TYPES = {
     "partner_landing_viewed": "viewed",
@@ -442,13 +447,16 @@ def _send_partner_application_confirmation(payload):
         "founding_pilot": "Core Partner",
         "monthly_placement": "Featured Partner",
         "market_exclusive": "Premier Partner",
+        "discuss": "Custom / multi-market plan",
     }
     tier = tier_labels.get(str(payload.get("preferred_model") or ""), "Partner placement")
     tier_key = str(payload.get("preferred_model") or "founding_pilot")
     if tier_key not in tier_labels:
         tier_key = "founding_pilot"
     next_steps = _partner_application_receipt_steps(payload)
-    return_link = f"{PUBLIC_APP_ORIGIN}/partners?{urlencode({'partner_tier': tier_key, 'utm_source': 'email', 'utm_medium': 'partner_receipt', 'utm_campaign': 'partner_follow_up'})}"
+    return_query = ({"partner_tier": tier_key} if tier_key != "discuss" else {})
+    return_query.update({'utm_source': 'email', 'utm_medium': 'partner_receipt', 'utm_campaign': 'partner_follow_up'})
+    return_link = f"{PUBLIC_APP_ORIGIN}/partners?{urlencode(return_query)}"
     plain_steps = "\n".join(f"{index}. {step}" for index, step in enumerate(next_steps, start=1))
     html_steps = "".join(f"<li>{html.escape(step)}</li>" for step in next_steps)
     plain_text = (
@@ -1189,6 +1197,8 @@ def _create_partner_checkout(lead_id, headers, source=None):
         raise PermissionError("This partner application has already been paid.")
 
     tier = lead.get("preferred_model") or ""
+    if tier not in PRICE_ENV_BY_TIER or tier not in MONTHLY_PRICE_ENV_BY_TIER:
+        raise ValueError("Custom and multi-market requests are reviewed before secure checkout. Please wait for the tailored placement details.")
     telemetry = {"tier": tier}
     if source == PARTNER_CHECKOUT_RECOVERY_SOURCE:
         telemetry["source"] = PARTNER_CHECKOUT_RECOVERY_SOURCE

@@ -14894,7 +14894,6 @@ function routeAfterMagicLinkIfNeeded() {
       document.getElementById('foundingPartnerConsent')?.focus();
       return;
     }
-    trackPartnerFunnel('Founding Partner Checkout Started', { tier: payload.preferred_model, source: hasSavedPartnerApplication ? 'partner_cancel_recovery' : payload.source });
     if (submit) {
       submit.disabled = true;
       submit.setAttribute('aria-disabled', 'true');
@@ -14914,10 +14913,27 @@ function routeAfterMagicLinkIfNeeded() {
         if (!response.ok || !result.partner_lead_id) throw new Error(result.error || 'Could not submit partner interest.');
         partnerLeadId = result.partner_lead_id;
         window.__hofFoundingPartnerLeadId = partnerLeadId;
-        savePartnerLeadId(partnerLeadId);
         clearPartnerApplicationDraft();
+        if (payload.preferred_model === 'discuss') {
+          savePartnerLeadId('');
+          window.__hofFoundingPartnerLeadId = '';
+          trackPartnerFunnel('Founding Partner Custom Request Saved', { source: payload.source });
+          if (status) {
+            status.textContent = 'Your custom / multi-market request is saved. We will follow up to confirm scope and pricing before any checkout or charge.';
+            status.className = 'platform-status ok';
+          }
+          if (submit) {
+            submit.disabled = true;
+            submit.setAttribute('aria-disabled', 'true');
+            submit.setAttribute('aria-busy', 'false');
+            submit.textContent = 'Custom request saved';
+          }
+          return;
+        }
+        savePartnerLeadId(partnerLeadId);
         trackPartnerFunnel('Founding Partner Application Saved', { tier: payload.preferred_model, source: payload.source });
       }
+      trackPartnerFunnel('Founding Partner Checkout Started', { tier: payload.preferred_model, source: hasSavedPartnerApplication ? 'partner_cancel_recovery' : payload.source });
       if (status) { status.textContent = 'Opening secure Stripe Checkout...'; status.className = 'platform-status'; }
       const checkoutResponse = await fetch('/api/fsbo-lead', {
         method: 'POST',
