@@ -10,6 +10,7 @@ API_PATH = ROOT / "api" / "fsbo-lead.py"
 ADMIN = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
 INDEX = (ROOT / "index.html").read_text(encoding="utf-8")
 AGENTS = (ROOT / "agents.html").read_text(encoding="utf-8")
+INVESTORS = (ROOT / "investors.html").read_text(encoding="utf-8")
 VERCEL = (ROOT / "vercel.json").read_text(encoding="utf-8")
 
 
@@ -250,6 +251,10 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("medium==='installed_app'||source==='pwa_shortcut'?'pwa_shortcut'", AGENTS)
         self.assertIn("medium==='organic_content'||source==='organic'?'organic'", AGENTS)
         self.assertIn("body?.request_type==='agent_landing_event'", AGENTS)
+
+    def test_investor_landing_preserves_organic_and_pwa_attribution(self):
+        self.assertIn("medium==='installed_app'||source==='pwa_shortcut'?'pwa_shortcut'", INVESTORS)
+        self.assertIn("medium==='organic_content'||source==='organic'?'organic'", INVESTORS)
 
     def test_admin_reports_agent_workspace_landing_conversion(self):
         for expected in (

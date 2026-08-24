@@ -4828,7 +4828,7 @@ class handler(BaseHTTPRequestHandler):
                 item for item in events if item.get("event_type") == "investor_landing_cta_selected"
             ])
             investor_landing_channels = (
-                "direct_outreach", "email", "social", "referral", "local_event", "print", "organic", "unspecified",
+                "direct_outreach", "email", "social", "referral", "local_event", "print", "organic", "pwa_shortcut", "unspecified",
             )
             investor_landing_view_counts_by_channel = {
                 channel: len([
