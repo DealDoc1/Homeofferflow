@@ -92,6 +92,21 @@ def valid_appraisal_payload():
     }
 
 
+def valid_residential_lease_payload():
+    return {
+        "formCode": "TXR-1953",
+        "formSourceId": "00000000-0000-0000-0000-000000000001",
+        "propertyAddress": "1438 Whitaker Road, Van Alstyne, TX",
+        "buyerNames": ["Test Buyer"],
+        "sellerNames": ["Test Seller"],
+        "leaseStatus": "assignment",
+        "deliveryChoice": "not_received",
+        "deliveryDays": "3",
+        "explanation": "No tenant disputes reported.",
+        "residentialLeaseReviewAcknowledgment": True,
+    }
+
+
 def valid_mineral_payload():
     return {
         "formCode": "TXR-1905",
@@ -371,6 +386,21 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
         self.assertIn("Start appraisal-review draft", HTML)
         self.assertIn("create_txr_1948_draft", HTML)
         self.assertIn("not a recommendation or signature request", HTML)
+
+    def test_residential_lease_draft_requires_conditional_delivery_choices(self):
+        draft = MODULE._parse_txr_1953_draft(valid_residential_lease_payload())
+        self.assertEqual(draft["agreement_data"]["delivery_days"], "3")
+        payload = valid_residential_lease_payload()
+        payload["deliveryDays"] = ""
+        with self.assertRaisesRegex(ValueError, "delivery time"):
+            MODULE._parse_txr_1953_draft(payload)
+        payload = valid_residential_lease_payload()
+        payload["leaseStatus"] = "termination"
+        payload["deliveryChoice"] = ""
+        self.assertEqual(MODULE._parse_txr_1953_draft(payload)["agreement_data"]["lease_status"], "termination")
+        self.assertIn("Start residential-lease draft", HTML)
+        self.assertIn("create_txr_1953_draft", HTML)
+        self.assertIn("not a lease decision or signature request", HTML)
 
     def test_agent_ui_requires_an_approved_private_source_and_saves_draft_only(self):
         self.assertIn("Start TXR-1507 draft", HTML)
