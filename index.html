@@ -19460,6 +19460,41 @@ function routeAfterMagicLinkIfNeeded() {
     return String(root.hofAuth?.role || '').toLowerCase() !== 'investor';
   }
 
+  async function loadSharedSourceCatalog(card) {
+    const details = document.createElement('details');
+    details.className = 'hof-shared-source-catalog';
+    details.innerHTML = '<summary>See approved shared-source revisions</summary><p style="color:var(--gray-light);font-size:.82rem;line-height:1.45;margin:.7rem 0 0">Loading the current platform-wide source catalog…</p>';
+    card.insertBefore(details, card.querySelector('.beta-checklist-actions'));
+    try {
+      const token = root.hofAuth?.session?.access_token;
+      const response = await fetch('/api/admin-dashboard?scope=approved_brokerage_sources', { headers: { Authorization: `Bearer ${token}` } });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || 'Could not load the shared source catalog.');
+      const sources = Array.isArray(payload.sources) ? payload.sources : [];
+      const list = document.createElement('ul');
+      list.style.cssText = 'margin:.7rem 0 0;padding-left:1.1rem;color:var(--gray-light);font-size:.82rem;line-height:1.55';
+      if (!sources.length) {
+        const empty = document.createElement('li');
+        empty.textContent = 'No approved source revisions are available to this signed-in account yet.';
+        list.appendChild(empty);
+      } else {
+        sources.sort((a, b) => String(a.form_code || '').localeCompare(String(b.form_code || ''))).forEach(source => {
+          const item = document.createElement('li');
+          item.textContent = `${source.form_code || 'TXR'} · revision ${source.source_revision || 'current'} · shared source available`;
+          list.appendChild(item);
+        });
+      }
+      const copy = details.querySelector('p');
+      if (copy) {
+        copy.textContent = 'Every signed-in agent sees the same approved source catalog. This inventory confirms source availability; each workflow still shows its own draft, delivery, and signing behavior.';
+        copy.insertAdjacentElement('afterend', list);
+      }
+    } catch (error) {
+      const copy = details.querySelector('p');
+      if (copy) copy.textContent = 'The shared source catalog is temporarily unavailable. Existing workspace tools remain available.';
+    }
+  }
+
   function renderLaunchScope() {
     const panel = document.getElementById('accountPanelDashboard');
     if (!panel || !isAgentAccount() || document.getElementById('agentLaunchScopeCard')) return;
@@ -19485,6 +19520,7 @@ function routeAfterMagicLinkIfNeeded() {
     const subscription = document.getElementById('subscriptionUsageCard');
     if (subscription?.parentElement) subscription.insertAdjacentElement('afterend', card);
     else panel.appendChild(card);
+    loadSharedSourceCatalog(card);
   }
 
   const priorDashboard = root.renderAccountDashboard;

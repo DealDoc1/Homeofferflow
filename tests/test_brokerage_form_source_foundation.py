@@ -79,6 +79,12 @@ class BrokerageFormSourceFoundationTests(unittest.TestCase):
         create_end = dashboard.index("async def _create_txr_1507_draft", create_start)
         self.assertNotIn("_require_brokerage_txr_authorization", dashboard[create_start:create_end])
 
+    def test_agent_dashboard_exposes_a_collapsed_platform_wide_source_catalog(self):
+        self.assertIn("hof-shared-source-catalog", HTML)
+        self.assertIn("scope=approved_brokerage_sources", HTML)
+        self.assertIn("Every signed-in agent sees the same approved source catalog", HTML)
+        self.assertIn("shared source available", HTML)
+
     def test_brokerage_rollout_foreign_keys_have_targeted_indexes(self):
         for index_name in (
             "hof_brokerage_form_sources_authorized_by_user_id_idx",
