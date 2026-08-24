@@ -21099,8 +21099,12 @@ function routeAfterMagicLinkIfNeeded() {
             trialLink.href = '/ondemand?utm_source=agent_workspace&utm_medium=private_review&utm_campaign=agent_acquisition';
             trialLink.textContent = 'Need a full agent workspace? Start 60 days free →';
             trialLink.addEventListener('click', () => window.logOfferEvent?.(null, 'agent_private_review_trial_cta_selected', 'selected', 'Agent selected the contextual OnDemand trial link after saving a private review draft.', { form_code: formIds.get(form.id), surface: 'agent_forms' }));
-            status.insertAdjacentElement('afterend', trialLink);
+          status.insertAdjacentElement('afterend', trialLink);
           }
+          // A saved private review is a high-intent return point: refresh the
+          // existing low-cost PWA card so agents can make the workspace one tap
+          // away without introducing a separate native-app build.
+          window.renderPwaInstallCard?.();
         }
       }
     }).observe(status, { attributes: true, attributeFilter: ['class'], childList: true, characterData: true, subtree: true });
