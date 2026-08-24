@@ -4516,12 +4516,20 @@ class handler(BaseHTTPRequestHandler):
             pwa_authenticated_shortcut_counts = {
                 action: 0 for action in pwa_authenticated_shortcut_actions
             }
+            pwa_authenticated_shortcut_platforms = ("ios", "android", "web", "unknown")
+            pwa_authenticated_shortcut_platform_counts = {
+                platform: 0 for platform in pwa_authenticated_shortcut_platforms
+            }
             for item in events:
                 if item.get("event_type") != "pwa_authenticated_shortcut_opened":
                     continue
                 action = str((item.get("metadata") or {}).get("action") or "").strip().lower()
                 if action in pwa_authenticated_shortcut_counts:
                     pwa_authenticated_shortcut_counts[action] += 1
+                platform = str((item.get("metadata") or {}).get("platform") or "unknown").strip().lower()
+                if platform not in pwa_authenticated_shortcut_platform_counts:
+                    platform = "unknown"
+                pwa_authenticated_shortcut_platform_counts[platform] += 1
             # The seller's post-intake directory step is deliberately measured
             # as an aggregate bridge: operations can see whether seller demand
             # reaches provider discovery without receiving seller, property,
@@ -5361,6 +5369,7 @@ class handler(BaseHTTPRequestHandler):
                 "pwaSellerPlanShortcutCount": pwa_seller_plan_shortcut_count,
                 "pwaBuyerOfferShortcutCount": pwa_buyer_offer_shortcut_count,
                 "pwaAuthenticatedShortcutCounts": pwa_authenticated_shortcut_counts,
+                "pwaAuthenticatedShortcutPlatformCounts": pwa_authenticated_shortcut_platform_counts,
                 "fsboProviderDirectoryOpenCount": fsbo_provider_directory_open_count,
                 "pwaInstallShownCount": pwa_install_event_counts["shown"],
                 "pwaInstallNativeAvailableCount": pwa_install_event_counts["native_available"],

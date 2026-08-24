@@ -117,6 +117,7 @@ class PwaInstallExperienceTests(unittest.TestCase):
             '"pwaInstallAcceptedRate"',
             '"pwaInstallAcceptedSurfaceCounts"',
             '"pwaAuthenticatedShortcutCounts"',
+            '"pwaAuthenticatedShortcutPlatformCounts"',
             "pwa_install_event_counts",
             "pwa_install_surfaces",
             "pwa_authenticated_shortcut_counts",
@@ -157,6 +158,7 @@ class PwaInstallExperienceTests(unittest.TestCase):
         self.assertIn("['workspace', 'brokerage_setup', 'transaction_start', 'listing_tools'", INDEX)
         self.assertIn('pwaAuthenticatedShortcutCounts?.transaction_start', INDEX)
         self.assertIn('pwaAuthenticatedShortcutCounts?.brokerage_setup', INDEX)
+        self.assertIn('pwaAuthenticatedShortcutPlatformCounts?.android', INDEX)
         self.assertIn("surface: 'pwa_shortcut'", INDEX)
 
     def test_clean_signed_in_standalone_launch_opens_only_the_private_workspace(self):
