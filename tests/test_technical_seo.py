@@ -217,6 +217,13 @@ class TechnicalSeoTests(unittest.TestCase):
             self.assertIn("max-age=86400", item["headers"][0]["value"])
             self.assertIn("stale-while-revalidate=604800", item["headers"][0]["value"])
 
+    def test_service_worker_is_always_revalidated_for_installed_app_updates(self):
+        service_worker = next(item for item in VERCEL["headers"] if item["source"] == "/service-worker.js")
+        self.assertEqual(
+            service_worker["headers"][0],
+            {"key": "Cache-Control", "value": "no-cache, no-store, must-revalidate"},
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
