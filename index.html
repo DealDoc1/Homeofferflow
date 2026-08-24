@@ -4905,7 +4905,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.fsboProviderDirectoryOpenCount || 0} post-intake seller directory visit${Number(metrics.fsboProviderDirectoryOpenCount || 0) === 1 ? '' : 's'} opened.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.pwaInstallAcceptedCount || 0} accepted · ${metrics.pwaInstallDismissedCount || 0} dismissed · ${Number(metrics.pwaInstallCompletionRate || 0).toFixed(1)}% installed after an install prompt opened.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">PWA only: app-like mobile access without a separate native-app build or store overhead.</div>
-            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">\${Number(metrics.pwaOfflineRecoveryCount || 0)} offline-to-online workspace recover\${Number(metrics.pwaOfflineRecoveryCount || 0) === 1 ? 'y' : 'ies'} recorded.</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${Number(metrics.pwaOfflineRecoveryCount || 0)} offline-to-online workspace recover${Number(metrics.pwaOfflineRecoveryCount || 0) === 1 ? 'y' : 'ies'} recorded.</div>
           </div>
 
           <div class="admin-metric">
