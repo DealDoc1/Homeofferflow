@@ -8,8 +8,15 @@
     }[window.location.pathname] || 'offer');
   const storagePrefix = 'hof_agent_workflow_guide_' + guideKind + '_';
   const channel = (() => {
-    const source = new URLSearchParams(window.location.search).get('utm_source') || '';
-    return ['pwa_shortcut', 'email', 'social', 'referral', 'organic'].includes(source) ? source : 'unspecified';
+    const params = new URLSearchParams(window.location.search);
+    const source = String(params.get('utm_source') || '').trim().toLowerCase();
+    const medium = String(params.get('utm_medium') || '').trim().toLowerCase();
+    // Public guide links use a guide-specific source plus organic_content.
+    // Keep that acquisition signal in the allowlisted aggregate channel rather
+    // than collapsing every search visit into "unspecified".
+    if (medium === 'installed_app' || source === 'pwa_shortcut') return 'pwa_shortcut';
+    if (medium === 'organic_content' || source === 'organic') return 'organic';
+    return ['email', 'social', 'referral'].includes(source) ? source : 'unspecified';
   })();
   const record = (eventType, ctaPath = '') => {
     try {
