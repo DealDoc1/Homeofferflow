@@ -14522,13 +14522,14 @@ function routeAfterMagicLinkIfNeeded() {
   function recordPartnerApplicationOpened(campaign){
     const tier = value('foundingPartnerModel') || 'founding_pilot';
     const category = campaign?.category || 'unspecified';
+    const channel = campaign?.channel || 'direct';
     const key = 'hof_partner_application_opened_' + tier + '_' + category;
     try {
       if (sessionStorage.getItem(key)) return;
       sessionStorage.setItem(key, '1');
       fetch('/api/fsbo-lead', {
         method: 'POST', headers: {'Content-Type':'application/json'}, keepalive: true,
-        body: JSON.stringify({request_type:'partner_landing_event', event_type:'partner_application_opened', tier, category})
+        body: JSON.stringify({request_type:'partner_landing_event', event_type:'partner_application_opened', tier, category, channel})
       }).catch(() => {});
     } catch (_) {}
   }
@@ -14536,13 +14537,14 @@ function routeAfterMagicLinkIfNeeded() {
     const tier = value('foundingPartnerModel') || 'founding_pilot';
     if (!partnerCampaignTiers.has(tier)) return;
     const category = campaignPartnerCategory() || 'unspecified';
+    const channel = campaignPartnerChannel() || 'direct';
     const key = 'hof_partner_' + eventType + '_' + tier + '_' + category;
     try {
       if (sessionStorage.getItem(key)) return;
       sessionStorage.setItem(key, '1');
       fetch('/api/fsbo-lead', {
         method:'POST', headers:{'Content-Type':'application/json'}, keepalive:true,
-        body: JSON.stringify({request_type:'partner_landing_event', event_type:eventType, tier, category})
+        body: JSON.stringify({request_type:'partner_landing_event', event_type:eventType, tier, category, channel})
       }).catch(() => {});
     } catch (_) {}
   }
