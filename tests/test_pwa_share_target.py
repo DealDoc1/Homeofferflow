@@ -24,6 +24,17 @@ class PwaShareTargetTests(unittest.TestCase):
         self.assertIn("rel = 'noopener noreferrer'", SHARE)
         self.assertIn('document.body', SHARE)
 
+    def test_shared_context_has_a_low_friction_buyer_offer_handoff_without_url_prefill(self):
+        self.assertIn('Start a buyer offer with this context', SHARE)
+        self.assertIn("window.beginOfferFrom('pwa_share_target')", SHARE)
+        self.assertIn('shared text out of the URL and offer payload', SHARE)
+        self.assertIn('utm_campaign=shared_context', SHARE)
+
+    def test_share_target_script_is_in_the_offline_app_shell(self):
+        worker = (ROOT / 'service-worker.js').read_text(encoding='utf-8')
+        self.assertIn("'/assets/pwa-share-target.js'", worker)
+        self.assertIn("homeofferflow-shell-v41", worker)
+
 
 if __name__ == '__main__':
     unittest.main()
