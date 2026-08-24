@@ -448,6 +448,8 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
         self.assertIn("HomeOfferFlow library source", HTML)
         self.assertIn("/api/admin-dashboard", HTML)
         self.assertIn("Draft saved privately. It has not been sent for signature.", HTML)
+        self.assertIn("agent_private_review_trial_cta_selected", HTML)
+        self.assertIn("private_review&utm_campaign=agent_acquisition", HTML)
         # Browser submit events clear currentTarget after an await. Keep each
         # draft flow's button reference before the network request so a saved
         # draft is not incorrectly reported as failed.
