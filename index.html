@@ -7128,7 +7128,11 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     picker.focus({ preventScroll: true });
     const status = document.getElementById('agentWorkflowStartStatus');
     let savedChoice = '';
+    const installedApp = Boolean(window.navigator?.standalone) || window.matchMedia?.('(display-mode: standalone)').matches;
     try { savedChoice = sessionStorage.getItem('hof_agent_workflow_choice') || ''; } catch (_) {}
+    if (!savedChoice && installedApp) {
+      try { savedChoice = localStorage.getItem('hof_agent_workflow_choice') || ''; } catch (_) {}
+    }
     const labels = {
       purchase: 'Buying',
       sale_listing: 'Listing',
@@ -7194,6 +7198,9 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     if (!choice) return;
     window.hofAgentWorkflowContext = kind;
     try { sessionStorage.setItem('hof_agent_workflow_choice', kind); } catch (_) {}
+    if (Boolean(window.navigator?.standalone) || window.matchMedia?.('(display-mode: standalone)').matches) {
+      try { localStorage.setItem('hof_agent_workflow_choice', kind); } catch (_) {}
+    }
     document.querySelectorAll('[data-agent-workflow-choice]').forEach((button) => {
       button.setAttribute('aria-pressed', button.dataset.agentWorkflowChoice === kind ? 'true' : 'false');
     });
