@@ -71,6 +71,17 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn('https://www.homeofferflow.com/texas-homebuyer-offer-guide', SITEMAP)
         self.assertIn('https://www.homeofferflow.com/texas-investor-offer-guide', SITEMAP)
 
+    def test_public_workflow_guides_provide_descriptive_social_image_alt_text(self):
+        expected = {
+            "texas-lease-offer-workflow.html": "HomeOfferFlow Texas lease workflow guide",
+            "texas-listing-workflow.html": "HomeOfferFlow Texas listing workflow guide",
+            "texas-agent-form-library.html": "HomeOfferFlow Texas agent form library guide",
+            "texas-home-service-partner-guide.html": "HomeOfferFlow Texas home-service partner placement guide",
+        }
+        for filename, alt in expected.items():
+            page = (ROOT / filename).read_text(encoding="utf-8")
+            self.assertIn(f'property="og:image:alt" content="{alt}"', page)
+
     def test_policy_urls_are_canonical_and_private_tool_screens_are_not_indexable(self):
         self.assertIn('<link rel="canonical" href="https://www.homeofferflow.com/terms.html"', TERMS)
         self.assertIn('<link rel="canonical" href="https://www.homeofferflow.com/privacy.html"', PRIVACY)
