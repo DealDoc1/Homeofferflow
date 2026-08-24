@@ -51,6 +51,7 @@ PARTNER_APPLICATION_REPLY_TO = (
     os.environ.get("PARTNER_APPLICATION_REPLY_TO")
     or SELLER_PLAN_REPLY_TO
 )
+PARTNER_APPLICATION_ALERT_TO = (os.environ.get("PARTNER_APPLICATION_ALERT_TO") or "support@homeofferflow.com").strip().lower()
 PARTNER_AGREEMENT_COPY_EMAIL = os.environ.get("PARTNER_AGREEMENT_COPY_EMAIL", "support@homeofferflow.com").strip().lower()
 PARTNER_AGREEMENT_SIGNING_ENABLED = str(os.environ.get("HOF_PARTNER_AGREEMENT_SIGNING_ENABLED", "false")).lower() in {"1", "true", "yes", "on"}
 PARTNER_AGREEMENT_SIGNWELL_TEST_MODE = str(os.environ.get("HOF_PARTNER_AGREEMENT_SIGNWELL_TEST_MODE", "false")).lower() in {"1", "true", "yes", "on"}
@@ -490,6 +491,27 @@ def _send_partner_application_confirmation(payload):
     safe_market = html.escape(market)
     safe_tier = html.escape(tier)
     safe_return_link = html.escape(return_link, quote=True)
+    email_payload = {
+        "from": f"HomeOfferFlow <{PARTNER_APPLICATION_FROM_EMAIL}>",
+        "to": [recipient],
+        "reply_to": PARTNER_APPLICATION_REPLY_TO,
+        "subject": "Your HomeOfferFlow partner application",
+        "text": plain_text,
+        "html": (
+            f"<h2>Thanks, {safe_contact} — your partner application is saved</h2>"
+            f"<p><strong>Company:</strong> {safe_company}<br>"
+            f"<strong>Selected tier:</strong> {safe_tier}<br>"
+            f"<strong>Market:</strong> {safe_market}</p>"
+            "<h3>What happens next</h3>"
+            f"<ol>{html_steps}</ol>"
+            f'<p><a href="{safe_return_link}">{html.escape(return_link_label)}</a></p>'
+            f"<p>{html.escape(checkout_copy)}</p>"
+            "<p>This application does not collect payment, activate advertising, reserve exclusivity, create a referral relationship, or create a service agreement. Any public placement remains subject to onboarding and written-agreement review.</p>"
+            f"<p>{html.escape(reply_copy)}</p>"
+        ),
+    }
+    if EMAIL_RE.match(PARTNER_APPLICATION_ALERT_TO) and PARTNER_APPLICATION_ALERT_TO != recipient.lower():
+        email_payload["bcc"] = [PARTNER_APPLICATION_ALERT_TO]
     try:
         with httpx.Client(timeout=12.0) as client:
             response = client.post(
@@ -501,25 +523,7 @@ def _send_partner_application_confirmation(payload):
                         f"{recipient.lower()}|{company}|{tier}|{market}".encode("utf-8")
                     ).hexdigest(),
                 },
-                json={
-                    "from": f"HomeOfferFlow <{PARTNER_APPLICATION_FROM_EMAIL}>",
-                    "to": [recipient],
-                    "reply_to": PARTNER_APPLICATION_REPLY_TO,
-                    "subject": "Your HomeOfferFlow partner application",
-                    "text": plain_text,
-                    "html": (
-                        f"<h2>Thanks, {safe_contact} — your partner application is saved</h2>"
-                        f"<p><strong>Company:</strong> {safe_company}<br>"
-                        f"<strong>Selected tier:</strong> {safe_tier}<br>"
-                        f"<strong>Market:</strong> {safe_market}</p>"
-                        "<h3>What happens next</h3>"
-                        f"<ol>{html_steps}</ol>"
-                        f'<p><a href="{safe_return_link}">{html.escape(return_link_label)}</a></p>'
-                        f"<p>{html.escape(checkout_copy)}</p>"
-                        "<p>This application does not collect payment, activate advertising, reserve exclusivity, create a referral relationship, or create a service agreement. Any public placement remains subject to onboarding and written-agreement review.</p>"
-                        f"<p>{html.escape(reply_copy)}</p>"
-                    ),
-                },
+                json=email_payload,
             )
         return "sent" if response.status_code < 300 else "failed"
     except Exception:

@@ -202,6 +202,7 @@ class PartnerLeadTests(unittest.TestCase):
         self.assertEqual(captured["args"][0], "https://api.resend.com/emails")
         self.assertEqual(captured["kwargs"]["json"]["to"], ["partner@example.com"])
         self.assertEqual(captured["kwargs"]["json"]["reply_to"], "support@homeofferflow.com")
+        self.assertEqual(captured["kwargs"]["json"]["bcc"], ["support@homeofferflow.com"])
         self.assertNotIn("<script>", captured["kwargs"]["json"]["html"])
         self.assertIn("separate next step", captured["kwargs"]["json"]["text"])
         self.assertIn("What happens next", captured["kwargs"]["json"]["text"])
@@ -210,6 +211,23 @@ class PartnerLeadTests(unittest.TestCase):
         self.assertIn("<h3>What happens next</h3>", captured["kwargs"]["json"]["html"])
         self.assertIn('href="https://www.homeofferflow.com/partners?partner_tier=monthly_placement', captured["kwargs"]["json"]["html"])
         self.assertTrue(captured["kwargs"]["headers"]["Idempotency-Key"].startswith("partner-application-"))
+
+    def test_partner_receipt_does_not_bcc_the_applicant_to_themselves(self):
+        captured = {}
+
+        class Response:
+            status_code = 200
+
+        class Client:
+            def __enter__(self): return self
+            def __exit__(self, *args): return False
+            def post(self, *args, **kwargs):
+                captured["payload"] = kwargs["json"]
+                return Response()
+
+        with patch.object(fsbo_lead, "RESEND_API_KEY", "re_test"), patch.object(fsbo_lead, "PARTNER_APPLICATION_ALERT_TO", "partner@example.com"), patch.object(fsbo_lead.httpx, "Client", return_value=Client()):
+            self.assertEqual(fsbo_lead._send_partner_application_confirmation({"contact_email": "partner@example.com"}), "sent")
+        self.assertNotIn("bcc", captured["payload"])
 
     def test_partner_application_receipt_steps_are_allowlisted_and_fall_back_safely(self):
         self.assertIn(
