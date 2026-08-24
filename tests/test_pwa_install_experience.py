@@ -118,9 +118,11 @@ class PwaInstallExperienceTests(unittest.TestCase):
             '"pwaInstallAcceptedSurfaceCounts"',
             '"pwaAuthenticatedShortcutCounts"',
             '"pwaAuthenticatedShortcutPlatformCounts"',
+            '"pwaSharedContextEventCounts"',
             "pwa_install_event_counts",
             "pwa_install_surfaces",
             "pwa_authenticated_shortcut_counts",
+            "pwa_shared_context_event_counts",
         ):
             self.assertIn(expected, api)
         self.assertIn("Mobile App Install Funnel", INDEX)
@@ -128,6 +130,8 @@ class PwaInstallExperienceTests(unittest.TestCase):
         self.assertIn("pwaInstallCtaClickRate", INDEX)
         self.assertIn("pwaInstallInstructionsOpenCount", INDEX)
         self.assertIn("pwaInstallShownSurfaceCounts", INDEX)
+        self.assertIn("pwaSharedContextEventCounts?.buyer_offer_opened", INDEX)
+        self.assertIn("pwaSharedContextEventCounts?.agent_chooser_opened", INDEX)
         self.assertIn("pwaInstallAcceptedSurfaceCounts", INDEX)
         self.assertIn("pwaInstallAcceptedRate", INDEX)
         self.assertIn("Shown on:", INDEX)
