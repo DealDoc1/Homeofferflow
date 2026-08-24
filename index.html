@@ -4940,6 +4940,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
               <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.subscriptionCheckoutFailureCount || 0} request failures before Stripe redirect.</div>
               <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Canceled-checkout recovery: ${metrics.subscriptionCheckoutRecoveryShownCount || 0} shown · ${metrics.subscriptionCheckoutRecoveryStartCount || 0} restarted in Stripe.</div>
               <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">OnDemand: ${metrics.onDemandTrialEntryCount || 0} main-site trial entries · ${metrics.onDemandLandingViewCount || 0} landing views · ${metrics.onDemandMagicLinkRequestedCount || 0} secure links requested (${Number(metrics.onDemandMagicLinkRequestRate || 0).toFixed(1)}%) · ${metrics.onDemandTermsAcceptedCount || 0} trial terms accepted (${Number(metrics.onDemandTermsAcceptedRate || 0).toFixed(1)}%) · ${metrics.onDemandCheckoutStartCount || 0} started · ${metrics.onDemandCheckoutReturnCount || 0} returned · ${Number(metrics.onDemandCheckoutReturnRate || 0).toFixed(1)}% return rate · ${metrics.onDemandTransactionPickerOpenedCount || 0} transaction choices (${Number(metrics.onDemandTransactionPickerOpenedRate || 0).toFixed(1)}% of returns) · ${metrics.onDemandFirstOfferStartCount || 0} first-offer starts (${Number(metrics.onDemandFirstOfferStartRate || 0).toFixed(1)}% of returns).</div>
+              <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">OnDemand transaction selections: ${Object.entries(metrics.onDemandTransactionWorkflowSelectedCounts || {}).filter(([, count]) => Number(count) > 0).map(([workflow, count]) => `${workflow.replace(/_/g, ' ')} (${count})`).join(' · ') || 'selections will appear after the next paid-agent Question 1 choice'}.</div>
               <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">OnDemand landing sources: ${Object.entries(metrics.onDemandLandingViewCountsByChannel || {}).filter(([, count]) => Number(count) > 0).map(([channel, count]) => `${channel.replace(/_/g, ' ')} (${count})`).join(' · ') || 'source attribution begins with the next landing visit'}.</div>
               <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">OnDemand paid-funnel sources: starts — ${Object.entries(metrics.onDemandCheckoutStartCountsByChannel || {}).filter(([, count]) => Number(count) > 0).map(([channel, count]) => `${channel.replace(/_/g, ' ')} (${count})`).join(' · ') || 'none yet'} · returns — ${Object.entries(metrics.onDemandCheckoutReturnCountsByChannel || {}).filter(([, count]) => Number(count) > 0).map(([channel, count]) => `${channel.replace(/_/g, ' ')} (${count})`).join(' · ') || 'none yet'}.</div>
               <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">OnDemand conversion: landing → checkout — ${adminSafe(Object.entries(metrics.onDemandCheckoutStartRatesByChannel || {}).filter(([channel]) => Number(metrics.onDemandLandingViewCountsByChannel?.[channel] || 0) > 0).map(([channel, rate]) => `${channel.replace(/_/g, ' ')} (${Number(rate).toFixed(1)}%)`).join(' · '), 'conversion appears after the next landing visit')} · checkout → return — ${adminSafe(Object.entries(metrics.onDemandCheckoutReturnRatesByChannel || {}).filter(([channel]) => Number(metrics.onDemandCheckoutStartCountsByChannel?.[channel] || 0) > 0).map(([channel, rate]) => `${channel.replace(/_/g, ' ')} (${Number(rate).toFixed(1)}%)`).join(' · '), 'returns appear after the next checkout start')}.</div>
@@ -7191,6 +7192,14 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     } catch (_) {}
     if (sharedContextAgent) {
       window.logOfferEvent?.(null, 'pwa_shared_context_agent_transaction_selected', 'selected', 'Agent selected a transaction workflow after an installed-app shared-context handoff.', { surface: 'pwa_share_target', workflow: kind });
+    }
+    let ondemandAttributed = false;
+    try {
+      ondemandAttributed = sessionStorage.getItem('hof_ondemand_workflow_selection_attribution') === '1';
+      if (ondemandAttributed) sessionStorage.removeItem('hof_ondemand_workflow_selection_attribution');
+    } catch (_) {}
+    if (ondemandAttributed) {
+      window.logOfferEvent?.(null, 'ondemand_transaction_workflow_selected', 'selected', 'OnDemand agent selected a transaction workflow after checkout.', { source: 'ondemand', surface: 'post_checkout', workflow: kind });
     }
     const status = document.getElementById('agentWorkflowStartStatus');
     if (status) status.textContent = choice.message;
@@ -20429,6 +20438,7 @@ function routeAfterMagicLinkIfNeeded() {
   const pendingActionKey = 'hof_pwa_shortcut_pending_action';
   const pendingWorkflowKey = 'hof_pwa_shortcut_pending_workflow';
   const ondemandFirstOfferAttributionKey = 'hof_ondemand_first_offer_attribution';
+  const ondemandWorkflowSelectionAttributionKey = 'hof_ondemand_workflow_selection_attribution';
   const validActions = new Set(['workspace', 'brokerage_setup', 'transaction_start', 'listing_tools', 'relationship_drafts', 'offer_review', 'new_offer', 'signing_queue', 'attention_queue', 'seller_plan', 'investor_workspace', 'partner_marketplace', 'buyer_offer']);
   const validTransactionWorkflows = new Set(['purchase', 'sale_listing', 'lease_listing', 'lease_representation']);
   let defaultWorkspaceOpened = false;
@@ -20539,6 +20549,7 @@ function routeAfterMagicLinkIfNeeded() {
       if (attributed) sessionStorage.removeItem(ondemandFirstOfferAttributionKey);
     } catch (_) {}
     if (!attributed) return;
+    try { sessionStorage.setItem(ondemandWorkflowSelectionAttributionKey, '1'); } catch (_) {}
     // This runs after the destination is loaded, so the post-checkout button
     // stays responsive even if event delivery is slow or unavailable.
     try {
