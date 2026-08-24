@@ -21,7 +21,8 @@
       "name": "My Workspace",
       "short_name": "Workspace",
       "description": "Open your HomeOfferFlow agent workspace.",
-      "url": "/?pwa_action=workspace"
+      "url": "/?pwa_action=workspace",
+      "icons": [{"src":"/assets/homeofferflow-app-icon-192.png","sizes":"192x192","type":"image/png"}]
     },
     {
       "name": "Brokerage Setup",
@@ -69,7 +70,8 @@
       "name": "Listing Tools",
       "short_name": "Listings",
       "description": "Open private seller leads, listing workspaces, launch planning, and offer comparison tools.",
-      "url": "/?pwa_action=listing_tools"
+      "url": "/?pwa_action=listing_tools",
+      "icons": [{"src":"/assets/homeofferflow-app-icon-192.png","sizes":"192x192","type":"image/png"}]
     },
     {
       "name": "Agent Forms & Drafts",
@@ -89,37 +91,43 @@
       "name": "Offer Review",
       "short_name": "Review",
       "description": "Open the private offer-strength and risk review workspace.",
-      "url": "/?pwa_action=offer_review"
+      "url": "/?pwa_action=offer_review",
+      "icons": [{"src":"/assets/homeofferflow-app-icon-192.png","sizes":"192x192","type":"image/png"}]
     },
     {
       "name": "New Offer",
       "short_name": "New Offer",
       "description": "Start or resume a saved offer in your workspace.",
-      "url": "/?pwa_action=new_offer"
+      "url": "/?pwa_action=new_offer",
+      "icons": [{"src":"/assets/homeofferflow-app-icon-192.png","sizes":"192x192","type":"image/png"}]
     },
     {
       "name": "Buyer Offer",
       "short_name": "Buyer Offer",
       "description": "Start a self-serve Texas homebuyer offer before checkout.",
-      "url": "/?pwa_action=buyer_offer"
+      "url": "/?pwa_action=buyer_offer",
+      "icons": [{"src":"/assets/homeofferflow-app-icon-192.png","sizes":"192x192","type":"image/png"}]
     },
     {
       "name": "Signing Queue",
       "short_name": "Signing",
       "description": "Review buyer packets awaiting signature.",
-      "url": "/?pwa_action=signing_queue"
+      "url": "/?pwa_action=signing_queue",
+      "icons": [{"src":"/assets/homeofferflow-app-icon-192.png","sizes":"192x192","type":"image/png"}]
     },
     {
       "name": "Needs Attention",
       "short_name": "Attention",
       "description": "Open stale drafts, waiting signatures, and expired signing recovery work.",
-      "url": "/?pwa_action=attention_queue"
+      "url": "/?pwa_action=attention_queue",
+      "icons": [{"src":"/assets/homeofferflow-app-icon-192.png","sizes":"192x192","type":"image/png"}]
     },
     {
       "name": "Seller Plan",
       "short_name": "Seller Plan",
       "description": "Return to the FSBO seller plan and package request.",
-      "url": "/?pwa_action=seller_plan"
+      "url": "/?pwa_action=seller_plan",
+      "icons": [{"src":"/assets/homeofferflow-app-icon-192.png","sizes":"192x192","type":"image/png"}]
     },
     {
       "name": "FSBO Support Paths",
@@ -139,13 +147,15 @@
       "name": "Investor Workspace",
       "short_name": "Investor",
       "description": "Open your private investor workspace for repeat-offer work.",
-      "url": "/?pwa_action=investor_workspace"
+      "url": "/?pwa_action=investor_workspace",
+      "icons": [{"src":"/assets/homeofferflow-app-icon-192.png","sizes":"192x192","type":"image/png"}]
     },
     {
       "name": "Partner Marketplace",
       "short_name": "Partners",
       "description": "Browse partner services and partner onboarding options.",
-      "url": "/?pwa_action=partner_marketplace"
+      "url": "/?pwa_action=partner_marketplace",
+      "icons": [{"src":"/assets/homeofferflow-app-icon-192.png","sizes":"192x192","type":"image/png"}]
     },
     {
       "name": "OnDemand Agent Trial",

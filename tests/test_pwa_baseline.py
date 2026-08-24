@@ -152,6 +152,12 @@ class PwaBaselineTests(unittest.TestCase):
         self.assertIn("window.openAccountDashboard?.({ tab: 'dashboard' })", INDEX)
         brokerage = next(item for item in MANIFEST["shortcuts"] if item["name"] == "Brokerage Setup")
         self.assertEqual(brokerage["url"], "/?pwa_action=brokerage_setup")
+
+    def test_shortcuts_use_the_branded_app_icon_for_consistent_mobile_launching(self):
+        for shortcut in MANIFEST["shortcuts"]:
+            with self.subTest(shortcut=shortcut["name"]):
+                self.assertTrue(shortcut.get("icons"))
+                self.assertEqual(shortcut["icons"][0]["src"], "/assets/homeofferflow-app-icon-192.png")
         self.assertIn("else if (action === 'brokerage_setup') await openBrokerageSetup();", INDEX)
         self.assertIn("window.openAccountDashboard?.({ tab: 'brokerage' })", INDEX)
         self.assertIn("'brokerage_setup'", INDEX)
