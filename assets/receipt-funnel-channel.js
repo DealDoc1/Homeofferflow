@@ -11,6 +11,7 @@
       const expectedType = receiptChannel === 'seller_receipt' ? 'fsbo_landing_event' : 'partner_landing_event';
       if (body?.request_type === expectedType && (!body.channel || body.channel === 'unspecified' || body.channel === 'direct')) {
         body.channel = receiptChannel;
+        if (receiptChannel === 'seller_receipt') body.surface = 'seller_receipt';
         init = { ...init, body: JSON.stringify(body) };
       }
     } catch (_) {}

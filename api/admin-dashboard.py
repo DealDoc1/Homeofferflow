@@ -5308,6 +5308,28 @@ class handler(BaseHTTPRequestHandler):
                 if seller_landing_view_counts_by_channel[channel] else 0
                 for channel in seller_landing_channels
             }
+            seller_landing_surfaces = ("seller_landing", "seller_receipt", "fsbo_guide", "pwa_seller_plan", "fsbo_provider_directory")
+            seller_landing_view_counts_by_surface = {
+                surface: len([
+                    item for item in seller_landing_events
+                    if item.get("event_type") == "fsbo_landing_viewed"
+                    and str((item.get("metadata") or {}).get("surface") or "seller_landing").strip().lower() == surface
+                ])
+                for surface in seller_landing_surfaces
+            }
+            seller_landing_cta_counts_by_surface = {
+                surface: len([
+                    item for item in seller_landing_events
+                    if item.get("event_type") == "fsbo_landing_cta_selected"
+                    and str((item.get("metadata") or {}).get("surface") or "seller_landing").strip().lower() == surface
+                ])
+                for surface in seller_landing_surfaces
+            }
+            seller_landing_cta_rates_by_surface = {
+                surface: round((seller_landing_cta_counts_by_surface[surface] / seller_landing_view_counts_by_surface[surface]) * 100, 1)
+                if seller_landing_view_counts_by_surface[surface] else 0
+                for surface in seller_landing_surfaces
+            }
             seller_landing_package_cta_counts = {}
             for item in seller_landing_events:
                 if item.get("event_type") != "fsbo_landing_cta_selected":
@@ -5453,6 +5475,9 @@ class handler(BaseHTTPRequestHandler):
                 "sellerLandingViewCountsByChannel": seller_landing_view_counts_by_channel,
                 "sellerLandingCtaCountsByChannel": seller_landing_cta_counts_by_channel,
                 "sellerLandingCtaRatesByChannel": seller_landing_cta_rates_by_channel,
+                "sellerLandingViewCountsBySurface": seller_landing_view_counts_by_surface,
+                "sellerLandingCtaCountsBySurface": seller_landing_cta_counts_by_surface,
+                "sellerLandingCtaRatesBySurface": seller_landing_cta_rates_by_surface,
                 "sellerLandingSupportPathsExpandedCountsByChannel": seller_landing_support_paths_counts_by_channel,
                 "sellerLandingPackageCtaCounts": seller_landing_package_cta_counts,
                 "sellerIntakeEventCounts": seller_intake_event_counts,
