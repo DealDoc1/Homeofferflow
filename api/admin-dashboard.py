@@ -4529,6 +4529,10 @@ class handler(BaseHTTPRequestHandler):
                 item for item in events
                 if item.get("event_type") == "pwa_buyer_offer_opened"
             ])
+            pwa_offline_recovery_count = len([
+                item for item in events
+                if item.get("event_type") == "pwa_offline_refresh_recovered"
+            ])
             # Authenticated installed-app shortcuts retain the action only so
             # product can improve the mobile workspace. The dashboard returns
             # aggregate counts, never agent identities or transaction data.
@@ -5509,6 +5513,7 @@ class handler(BaseHTTPRequestHandler):
                 "pwaInstallAcceptedSurfaceCounts": pwa_install_accepted_surface_counts,
                 "pwaSellerPlanShortcutCount": pwa_seller_plan_shortcut_count,
                 "pwaBuyerOfferShortcutCount": pwa_buyer_offer_shortcut_count,
+                "pwaOfflineRecoveryCount": pwa_offline_recovery_count,
                 "pwaAuthenticatedShortcutCounts": pwa_authenticated_shortcut_counts,
                 "pwaAuthenticatedShortcutPlatformCounts": pwa_authenticated_shortcut_platform_counts,
                 "pwaAuthenticatedShortcutRepeatUserCount": pwa_authenticated_shortcut_repeat_user_count,
