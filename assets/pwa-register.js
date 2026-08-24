@@ -48,8 +48,10 @@
         libraryLink.textContent = 'See the shared form library';
         actions.appendChild(libraryLink);
       }
-      document.querySelectorAll('a[href="/ondemand"]').forEach(link => {
-        link.href = '/ondemand?utm_source=agent_workspace&utm_medium=agent_page&utm_campaign=agent_acquisition';
+      document.querySelectorAll('a[href^="/ondemand"]').forEach(link => {
+        if (!link.href.includes('utm_source=')) {
+          link.href = '/ondemand?utm_source=agent_workspace&utm_medium=agent_page&utm_campaign=agent_acquisition';
+        }
       });
     };
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', tagAgentTrialLinks, {once: true});
