@@ -89,6 +89,12 @@ class PublicPwaRegistrationTests(unittest.TestCase):
         self.assertIn("trackInstallEvent('Installed')", SCRIPT)
         self.assertIn("surface: window.location.pathname", SCRIPT)
 
+    def test_public_cached_pages_explain_offline_scope_and_recover_on_reconnect(self):
+        self.assertIn("id = 'hofPublicPwaOfflineNotice'", SCRIPT)
+        self.assertIn('This saved public page remains available', SCRIPT)
+        self.assertIn("window.addEventListener('offline', renderOfflineNotice)", SCRIPT)
+        self.assertIn("window.addEventListener('online', renderOfflineNotice)", SCRIPT)
+
 
 if __name__ == '__main__':
     unittest.main()
