@@ -13,7 +13,8 @@ class PublicOnDemandTrialDiscoveryTests(unittest.TestCase):
         investor_start = INDEX.index("investor: {", agent_start)
         agent_copy = INDEX[agent_start:investor_start]
 
-        self.assertIn('href="/ondemand"', agent_copy)
+        self.assertIn('href="/ondemand?utm_source=agent_workspace', agent_copy)
+        self.assertIn('utm_source=agent_workspace&amp;utm_medium=workspace&amp;utm_campaign=agent_acquisition', agent_copy)
         self.assertIn("OnDemand Realty agent? Start your 60-day free trial", agent_copy)
         self.assertIn("card required", agent_copy)
         self.assertIn("recordOnDemandTrialEntry", agent_copy)
