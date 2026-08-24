@@ -16624,7 +16624,7 @@ function routeAfterMagicLinkIfNeeded() {
       agent: {
         headline: 'A clearer Texas buyer-offer workflow for <em>agents & brokers</em>.',
         sub: 'Create supported Texas buyer-offer packets from your phone, send buyer-side signatures, track status, duplicate prior offers, and collect broker-reviewed feedback.',
-        cta: 'Open Agent / Broker Workspace', nav: 'Agent / Broker Login →', note: 'Built for broker-supervised beta testing. <strong>Buyer-side offer packets are live, and every signed-in agent can start private relationship, finance, environmental, mineral, and seller-disclosure review drafts, including TXR-1501, TXR-1506, TXR-1507, TXR-1508, TXR-1905, TXR-1914, TXR-1917, TXR-1919, TREC-55-1, and TREC-61-0. The signing queue identifies the signer and requires explicit recipient confirmation before sending; listing agreements remain outside the stated live scope.</strong> <a href="/ondemand" onclick="window.recordOnDemandTrialEntry?.(\'agent_hero_inline\');">OnDemand Realty agent? Start your 60-day free trial (card required) →</a>'
+        cta: 'Open Agent / Broker Workspace', nav: 'Agent / Broker Login →', note: 'Built for broker-supervised beta testing. <strong>Buyer-side offer packets are live, and every signed-in agent can start private relationship, finance, environmental, mineral, and seller-disclosure review drafts, including TXR-1501, TXR-1506, TXR-1507, TXR-1508, TXR-1905, TXR-1914, TXR-1917, TXR-1919, TREC-55-1, and TREC-61-0. The signing queue identifies the signer and requires explicit recipient confirmation before sending; listing agreements remain outside the stated live scope.</strong> <a href="/ondemand?utm_source=agent_workspace&amp;utm_medium=workspace&amp;utm_campaign=agent_acquisition" onclick="window.recordOnDemandTrialEntry?.(\'agent_hero_inline\');">OnDemand Realty agent? Start your 60-day free trial (card required) →</a>'
       },
       investor: {
         headline: 'Make more <em>investment offers</em> with less retyping.',
@@ -17503,7 +17503,7 @@ function routeAfterMagicLinkIfNeeded() {
     }
     if (!['active','trialing','free_admin'].includes(status) && !card.querySelector('.ondemand-trial-link')) {
       card.insertAdjacentHTML('beforeend',
-        '<a class="ondemand-trial-link" href="/ondemand">' +
+        '<a class="ondemand-trial-link" href="/ondemand?utm_source=agent_workspace&amp;utm_medium=workspace&amp;utm_campaign=agent_acquisition">' +
         (brokerageSlug === 'ondemand' ? 'Start your OnDemand 60-day free trial →' : 'OnDemand Realty agent? Get 60 days free →') +
         '</a>');
     }
@@ -18129,7 +18129,7 @@ function routeAfterMagicLinkIfNeeded() {
     if (!b) {
       el.innerHTML = '<div class="platform-card"><h4>Brokerage connection</h4>' +
         '<p>This account is not connected to a brokerage. OnDemand agents should enroll through the dedicated launch page.</p>' +
-        '<a class="ondemand-trial-link" href="/ondemand">Open the OnDemand launch →</a></div>';
+        '<a class="ondemand-trial-link" href="/ondemand?utm_source=agent_workspace&amp;utm_medium=workspace&amp;utm_campaign=agent_acquisition">Open the OnDemand launch →</a></div>';
       return;
     }
     const name = b.dba_name || b.name || 'Your brokerage';
