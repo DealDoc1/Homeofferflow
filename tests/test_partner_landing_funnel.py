@@ -128,8 +128,13 @@ class PartnerLandingFunnelTests(unittest.TestCase):
     def test_modal_open_is_a_distinct_privacy_safe_partner_funnel_stage(self):
         self.assertIn("function recordPartnerApplicationOpened", INDEX)
         self.assertIn("event_type:'partner_application_opened'", INDEX)
+        self.assertIn("event_type:'partner_application_opened', tier, category, channel", INDEX)
         self.assertIn("hof_partner_application_opened_", INDEX)
         self.assertIn("new application modal open", INDEX)
+
+    def test_partner_application_progress_preserves_campaign_channel(self):
+        self.assertIn("const channel = campaignPartnerChannel() || 'direct';", INDEX)
+        self.assertIn("event_type:eventType, tier, category, channel", INDEX)
 
 
 if __name__ == "__main__":
