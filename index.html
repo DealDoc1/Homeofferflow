@@ -20374,9 +20374,16 @@ function routeAfterMagicLinkIfNeeded() {
   function renderInstallCard(){
     const target = installTarget();
     if (!target || isStandalone() || isDismissed()) return;
-    // Installation is a mobile return-work bridge, not a generic dashboard
-    // promotion. Desktop remains the full browser workspace without a card.
-    if (!isIos() && !isAndroid()) return;
+    // Keep the prompt contextual: mobile users can install after a meaningful
+    // return-work milestone, and desktop users see it only when their browser
+    // has already exposed the native install option for a saved agent offer.
+    // This gives repeat agents a low-cost app-like launch without turning a
+    // clean dashboard into a generic promotion.
+    const mobileInstallSurface = isIos() || isAndroid();
+    const desktopNativeInstall = !mobileInstallSurface
+      && Boolean(deferredInstallPrompt)
+      && target.surface === 'agent_saved_offer';
+    if (!mobileInstallSurface && !desktopNativeInstall) return;
     const existing = document.getElementById('hofPwaInstallCard');
     if (existing) existing.remove();
     // Android browsers can still use the supported Home Screen path when the
@@ -20388,17 +20395,20 @@ function routeAfterMagicLinkIfNeeded() {
     card.dataset.surface = target.surface;
     try { sessionStorage.setItem(installSurfaceKey, target.surface); } catch (_) {}
     const ios = isIos();
+    const desktop = !mobileInstallSurface;
     const sellerReturnCopy = target.surface === 'seller_success'
       ? 'Save this seller plan to your Home Screen so it is one tap away when you return to photos, repairs, timing, or provider questions.'
       : '';
     const agentReturnCopy = target.surface === 'agent_saved_offer'
       ? 'Save this agent workspace to your Home Screen so your saved offer, transaction choices, and signing status are one tap away between showings.'
       : '';
-    card.innerHTML = `<h4>Keep HomeOfferFlow one tap away</h4>
+    card.innerHTML = `<h4>Keep HomeOfferFlow one ${desktop ? 'click' : 'tap'} away</h4>
       <p>${ios
         ? 'Add this workspace to your iPhone or iPad Home Screen for a full-screen, app-like launch. It takes about a minute—no App Store download or separate account is needed.'
         : isAndroid() && !deferredInstallPrompt
         ? 'Add HomeOfferFlow to your Android Home Screen for a faster app-like launch. It takes about a minute—no App Store download or separate account is needed.'
+        : desktop
+        ? 'Install the lightweight desktop app for a dedicated, one-click launch back to your saved offer and workspace. No App Store download or separate account is needed.'
         : 'Install HomeOfferFlow for a faster app-like launch and an offline-safe shell when you are between showings. It takes about a minute—no App Store download or separate account is needed.'}</p>
       <div class="pwa-install-benefits" aria-label="What installation does">
         <div class="pwa-install-benefit"><strong>One-tap return</strong><br>Launch the same workspace from an app icon.</div>

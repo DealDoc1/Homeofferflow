@@ -31,7 +31,9 @@ class PwaInstallExperienceTests(unittest.TestCase):
         self.assertIn("no App Store download or separate account is needed.", INDEX)
         self.assertIn("pwa-install-benefits", INDEX)
         self.assertIn("offers and client details stay protected online", INDEX)
-        self.assertIn("if (!isIos() && !isAndroid()) return;", INDEX)
+        self.assertIn("const desktopNativeInstall = !mobileInstallSurface", INDEX)
+        self.assertIn("target.surface === 'agent_saved_offer'", INDEX)
+        self.assertIn("if (!mobileInstallSurface && !desktopNativeInstall) return;", INDEX)
         self.assertIn("Do not interrupt a clean signed-in dashboard with a generic install", INDEX)
         self.assertNotIn("surface: 'account_dashboard'", INDEX[INDEX.index('function installTarget()'):INDEX.index('function renderInstallCard()')])
 
@@ -62,6 +64,13 @@ class PwaInstallExperienceTests(unittest.TestCase):
         self.assertIn("Install Agent Workspace App", INDEX)
         self.assertIn("Add Agent Workspace to Home Screen", INDEX)
         self.assertIn('Save this agent workspace to your Home Screen', INDEX)
+
+    def test_desktop_install_stays_reserved_for_repeat_agent_work_when_native_install_is_available(self):
+        self.assertIn("const desktopNativeInstall = !mobileInstallSurface", INDEX)
+        self.assertIn("Boolean(deferredInstallPrompt)", INDEX)
+        self.assertIn("target.surface === 'agent_saved_offer'", INDEX)
+        self.assertIn("Keep HomeOfferFlow one ${desktop ? 'click' : 'tap'} away", INDEX)
+        self.assertIn('Install the lightweight desktop app for a dedicated, one-click launch', INDEX)
 
     def test_ios_uses_home_screen_guidance_and_install_prompt_can_be_dismissed(self):
         self.assertIn("Add to Home Screen", INDEX)
