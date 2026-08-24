@@ -15,7 +15,7 @@ class AgentLaunchScopeTests(unittest.TestCase):
 
     def test_scope_does_not_overstate_unreleased_agent_form_workflows(self):
         for form_group in (
-            "TXR-1501, TXR-1506, TXR-1507, and TXR-1508",
+            "TXR-1501, TXR-1506, TXR-1507, TXR-1508, TXR-1948, TXR-1953, or TXR-1954",
             "listing agreements",
             "seller disclosures",
             "lease-listing packets",
@@ -29,6 +29,7 @@ class AgentLaunchScopeTests(unittest.TestCase):
     def test_scope_explains_shared_txr_library_and_deliberate_delivery(self):
         self.assertIn("Shared TXR library", HTML)
         self.assertIn("every signed-in agent", HTML)
+        self.assertIn("TXR-1948, TXR-1953, and TXR-1954", HTML)
         self.assertIn("explicit recipient confirmation before sending", HTML)
 
     def test_scope_provides_a_dedicated_missing_form_request_path(self):
