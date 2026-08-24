@@ -382,6 +382,7 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
     def test_clean_public_marketing_routes_resolve_and_are_canonical(self):
         for route, destination in (
             ("/partners", "/partners.html"),
+            ("/texas-home-service-partner-guide", "/texas-home-service-partner-guide.html"),
             ("/sellers", "/sellers.html"),
             ("/directory", "/directory.html"),
         ):

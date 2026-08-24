@@ -30,6 +30,10 @@
       "destination": "/partners.html"
     },
     {
+      "source": "/texas-home-service-partner-guide",
+      "destination": "/texas-home-service-partner-guide.html"
+    },
+    {
       "source": "/sellers",
       "destination": "/sellers.html"
     },
