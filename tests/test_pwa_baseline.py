@@ -18,7 +18,7 @@ class PwaBaselineTests(unittest.TestCase):
         self.assertIn("navigator.serviceWorker.register('/service-worker.js'", INDEX)
 
     def test_public_conversion_pages_keep_the_pwa_brand_chrome_color(self):
-        for filename in ("agents.html", "buyers.html", "sellers.html", "partners.html", "directory.html", "ondemand.html", "investors.html", "texas-fsbo-guide.html", "texas-agent-offer-workflow.html", "texas-homebuyer-offer-guide.html", "texas-investor-offer-guide.html", "texas-agent-form-library.html", "texas-seller-financing-guide.html"):
+        for filename in ("agents.html", "buyers.html", "sellers.html", "partners.html", "directory.html", "ondemand.html", "investors.html", "texas-fsbo-guide.html", "texas-agent-offer-workflow.html", "texas-homebuyer-offer-guide.html", "texas-investor-offer-guide.html", "texas-agent-form-library.html", "texas-seller-financing-guide.html", "texas-buyer-representation-guide.html"):
             html = (ROOT / filename).read_text(encoding="utf-8")
             self.assertIn('<meta name="theme-color" content="#173f35"', html)
 
@@ -114,7 +114,7 @@ class PwaBaselineTests(unittest.TestCase):
         self.assertIn("'/sellers',", WORKER)
         self.assertIn("'/partners',", WORKER)
         self.assertIn("'/ondemand',", WORKER)
-        for path in ("'/buyers',", "'/investors',", "'/directory',", "'/texas-fsbo-guide',", "'/texas-agent-offer-workflow',", "'/texas-homebuyer-offer-guide',", "'/texas-investor-offer-guide',", "'/texas-agent-form-library',", "'/texas-seller-financing-guide',"):
+        for path in ("'/buyers',", "'/investors',", "'/directory',", "'/texas-fsbo-guide',", "'/texas-agent-offer-workflow',", "'/texas-homebuyer-offer-guide',", "'/texas-investor-offer-guide',", "'/texas-agent-form-library',", "'/texas-seller-financing-guide',", "'/texas-buyer-representation-guide',"):
             with self.subTest(path=path):
                 self.assertIn(path, WORKER)
 
@@ -126,7 +126,7 @@ class PwaBaselineTests(unittest.TestCase):
         self.assertNotIn("cache.put(event.request", WORKER)
 
     def test_worker_keeps_public_pages_separate_in_the_offline_cache(self):
-        for path in ("'/buyers'", "'/agents'", "'/investors'", "'/sellers'", "'/partners'", "'/directory'", "'/ondemand'", "'/texas-fsbo-guide'", "'/texas-agent-offer-workflow'", "'/texas-homebuyer-offer-guide'", "'/texas-investor-offer-guide'", "'/texas-agent-form-library'", "'/texas-seller-financing-guide'"):
+        for path in ("'/buyers'", "'/agents'", "'/investors'", "'/sellers'", "'/partners'", "'/directory'", "'/ondemand'", "'/texas-fsbo-guide'", "'/texas-agent-offer-workflow'", "'/texas-homebuyer-offer-guide'", "'/texas-investor-offer-guide'", "'/texas-agent-form-library'", "'/texas-seller-financing-guide'", "'/texas-buyer-representation-guide'"):
             self.assertIn(path, WORKER)
         self.assertIn("const cacheKey = PUBLIC_PAGE_PATHS.has(requestUrl.pathname) ? requestUrl.pathname : '';", WORKER)
         self.assertIn("caches.match(cacheKey).then(response => response || caches.match('/index.html'))", WORKER)
