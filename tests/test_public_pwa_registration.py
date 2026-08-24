@@ -52,6 +52,12 @@ class PublicPwaRegistrationTests(unittest.TestCase):
         self.assertIn("Keep your seller proceeds worksheet one tap away", SCRIPT)
         self.assertIn("private proceeds worksheet and seller planning paths", SCRIPT)
 
+    def test_seller_question_one_has_a_quiet_under_contract_path(self):
+        self.assertIn("window.location.pathname === '/sellers'", SCRIPT)
+        self.assertIn("hofSellerClosingChecklistCta", SCRIPT)
+        self.assertIn("Already under contract?", SCRIPT)
+        self.assertIn("/texas-fsbo-closing-checklist?utm_source=seller_question_one", SCRIPT)
+
     def test_ondemand_install_prompt_explains_its_app_value(self):
         self.assertIn("window.location.pathname === '/ondemand'", SCRIPT)
         self.assertIn("Keep your agent workspace one tap away", SCRIPT)
