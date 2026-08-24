@@ -95,6 +95,8 @@ class FsboRequestConfirmationTests(unittest.TestCase):
         self.assertIn("seller_plan_email", api)
         self.assertIn("SELLER_PLAN_REPLY_TO", api)
         self.assertIn("Reply directly to this email", api)
+        self.assertIn("Review your selected path", api)
+        self.assertIn("seller_follow_up", api)
         self.assertIn("A copy of this request was also emailed to you.", HTML)
 
     def test_seller_plan_receipt_escapes_seller_content_and_is_idempotent(self):
@@ -134,8 +136,10 @@ class FsboRequestConfirmationTests(unittest.TestCase):
         self.assertNotIn("<script>", captured["kwargs"]["json"]["html"])
         self.assertIn("not checkout", captured["kwargs"]["json"]["text"])
         self.assertIn("Your next steps", captured["kwargs"]["json"]["text"])
+        self.assertIn("Review your selected path: https://www.homeofferflow.com/sellers?seller_package=seller_prep", captured["kwargs"]["json"]["text"])
         self.assertIn("List repairs, cleaning, staging", captured["kwargs"]["json"]["text"])
         self.assertIn("<h3>Your next steps</h3>", captured["kwargs"]["json"]["html"])
+        self.assertIn('href="https://www.homeofferflow.com/sellers?seller_package=seller_prep', captured["kwargs"]["json"]["html"])
         self.assertIn("Reply directly to this email", captured["kwargs"]["json"]["text"])
         self.assertTrue(captured["kwargs"]["headers"]["Idempotency-Key"].startswith("fsbo-seller-plan-"))
 

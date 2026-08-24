@@ -38,6 +38,7 @@ SELLER_PLAN_REPLY_TO = (
     or os.environ.get("SUPPORT_EMAIL")
     or "support@homeofferflow.com"
 )
+PUBLIC_APP_ORIGIN = (os.environ.get("PUBLIC_APP_ORIGIN") or "https://www.homeofferflow.com").rstrip("/")
 PARTNER_APPLICATION_FROM_EMAIL = (
     os.environ.get("PARTNER_APPLICATION_FROM_EMAIL")
     or SELLER_PLAN_FROM_EMAIL
@@ -322,8 +323,12 @@ def _send_seller_plan_confirmation(payload):
     address = str(payload.get("property_address") or "your property")
     package_name = str(payload.get("package_name") or "Seller plan")
     package_price = str(payload.get("package_price") or "")
+    service_level = _text(payload.get("service_level"), 80) or "free_intake"
+    if service_level not in FSBO_PACKAGE_CATALOG:
+        service_level = "free_intake"
     timeline = str(payload.get("timeline") or "not sure").replace("_", " ")
     next_steps = _seller_plan_receipt_steps(payload)
+    return_link = f"{PUBLIC_APP_ORIGIN}/sellers?{urlencode({'seller_package': service_level, 'utm_source': 'email', 'utm_medium': 'seller_receipt', 'utm_campaign': 'seller_follow_up'})}"
     plain_steps = "\n".join(f"{index}. {step}" for index, step in enumerate(next_steps, start=1))
     html_steps = "".join(f"<li>{html.escape(step)}</li>" for step in next_steps)
     plain_text = (
@@ -333,6 +338,7 @@ def _send_seller_plan_confirmation(payload):
         f"Timeline: {timeline}\n\n"
         "Your next steps:\n"
         f"{plain_steps}\n\n"
+        f"Review your selected path: {return_link}\n\n"
         "A qualified human review is required to confirm scope, provider involvement, availability, and final pricing before any paid service begins. "
         "This receipt is not checkout, representation, a confirmed service order, or legal advice.\n\n"
         "Have a question or want to discuss the next step sooner? Reply directly to this email."
@@ -341,6 +347,7 @@ def _send_seller_plan_confirmation(payload):
     safe_package = html.escape(package_name)
     safe_price = html.escape(package_price)
     safe_timeline = html.escape(timeline)
+    safe_return_link = html.escape(return_link, quote=True)
     email_payload = {
         "from": f"HomeOfferFlow <{SELLER_PLAN_FROM_EMAIL}>",
         "to": [recipient],
@@ -354,6 +361,7 @@ def _send_seller_plan_confirmation(payload):
             f"<strong>Timeline:</strong> {safe_timeline}</p>"
             "<h3>Your next steps</h3>"
             f"<ol>{html_steps}</ol>"
+            f'<p><a href="{safe_return_link}">Review your selected path</a></p>'
             "<p>A qualified human review is required to confirm scope, provider involvement, availability, and final pricing before any paid service begins.</p>"
             "<p>This receipt is not checkout, representation, a confirmed service order, or legal advice.</p>"
             "<p>Have a question or want to discuss the next step sooner? Reply directly to this email.</p>"
