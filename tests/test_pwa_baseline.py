@@ -76,6 +76,7 @@ class PwaBaselineTests(unittest.TestCase):
                 ("Signing Queue", "/?pwa_action=signing_queue"),
                 ("Needs Attention", "/?pwa_action=attention_queue"),
                 ("Seller Plan", "/?pwa_action=seller_plan"),
+                ("FSBO Support Paths", "/sellers?utm_source=pwa_shortcut&utm_medium=installed_app&utm_campaign=fsbo_support_paths"),
                 ("Investor Workspace", "/?pwa_action=investor_workspace"),
                 ("Partner Marketplace", "/?pwa_action=partner_marketplace"),
                 ("Find a Provider", "/directory?utm_source=pwa_shortcut&utm_medium=installed_app&utm_campaign=provider_directory"),
@@ -104,7 +105,7 @@ class PwaBaselineTests(unittest.TestCase):
         self.assertNotIn("caches.match(event.request)", WORKER)
 
     def test_agent_landing_shell_is_pre_cached_for_agent_first_pwa_resume(self):
-        self.assertIn("const SHELL_CACHE = 'homeofferflow-shell-v36';", WORKER)
+        self.assertIn("const SHELL_CACHE = 'homeofferflow-shell-v37';", WORKER)
         self.assertIn("'/agents',", WORKER)
         self.assertIn("'/sellers',", WORKER)
         self.assertIn("'/partners',", WORKER)
