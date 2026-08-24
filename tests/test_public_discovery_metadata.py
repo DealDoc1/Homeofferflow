@@ -142,6 +142,7 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn('property="og:title" content="OnDemand Realty Agent Offer Workspace — 60 Days Free"', ONDEMAND)
         self.assertIn('name="twitter:title" content="OnDemand Realty Agent Offer Workspace — 60 Days Free"', ONDEMAND)
         self.assertIn('HomeOfferFlow Texas offer workspace free for 60 days', ONDEMAND)
+        self.assertIn('document.title = `${brokerage.dbaName || brokerage.name} Agent Offer Workspace — 60 Days Free`;', ONDEMAND)
 
     def test_partner_acquisition_page_has_share_metadata_and_a_direct_application_path(self):
         self.assertIn('<link rel="canonical" href="https://www.homeofferflow.com/partners"', PARTNERS)
