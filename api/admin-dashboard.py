@@ -4647,6 +4647,16 @@ class handler(BaseHTTPRequestHandler):
                 ])
                 for channel in ondemand_landing_channels
             }
+            ondemand_checkout_start_rates_by_channel = {
+                channel: round((ondemand_checkout_start_counts_by_channel[channel] / ondemand_landing_view_counts_by_channel[channel]) * 100, 1)
+                if ondemand_landing_view_counts_by_channel[channel] else 0
+                for channel in ondemand_landing_channels
+            }
+            ondemand_checkout_return_rates_by_channel = {
+                channel: round((ondemand_checkout_return_counts_by_channel[channel] / ondemand_checkout_start_counts_by_channel[channel]) * 100, 1)
+                if ondemand_checkout_start_counts_by_channel[channel] else 0
+                for channel in ondemand_landing_channels
+            }
             ondemand_magic_link_counts_by_channel = {
                 channel: len([
                     item for item in events
@@ -5295,6 +5305,8 @@ class handler(BaseHTTPRequestHandler):
                 "onDemandLandingViewCountsByChannel": ondemand_landing_view_counts_by_channel,
                 "onDemandCheckoutStartCountsByChannel": ondemand_checkout_start_counts_by_channel,
                 "onDemandCheckoutReturnCountsByChannel": ondemand_checkout_return_counts_by_channel,
+                "onDemandCheckoutStartRatesByChannel": ondemand_checkout_start_rates_by_channel,
+                "onDemandCheckoutReturnRatesByChannel": ondemand_checkout_return_rates_by_channel,
                 "onDemandMagicLinkCountsByChannel": ondemand_magic_link_counts_by_channel,
                 "onDemandTermsAcceptedCountsByChannel": ondemand_terms_accepted_counts_by_channel,
                 "onDemandTrialEntryCount": ondemand_trial_entry_count,
