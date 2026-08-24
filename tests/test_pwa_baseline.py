@@ -139,6 +139,8 @@ class PwaBaselineTests(unittest.TestCase):
 
     def test_manifest_describes_agent_workspace_and_icons_forms_shortcut(self):
         self.assertIn("shared agent form drafts", MANIFEST["description"])
+        self.assertIn("business", MANIFEST.get("categories", []))
+        self.assertIn("productivity", MANIFEST.get("categories", []))
         forms = next(item for item in MANIFEST["shortcuts"] if item["name"] == "Agent Forms & Drafts")
         self.assertEqual(forms["icons"][0]["src"], "/assets/homeofferflow-app-icon-192.png")
         self.assertIn("const validActions = new Set(['workspace', 'brokerage_setup', 'transaction_start', 'listing_tools', 'relationship_drafts', 'offer_review', 'new_offer', 'signing_queue', 'attention_queue', 'seller_plan', 'investor_workspace', 'partner_marketplace', 'buyer_offer']);", INDEX)
