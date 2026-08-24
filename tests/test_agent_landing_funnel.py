@@ -277,6 +277,10 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("agentWorkflowGuideCtaPathCounts?.relationship_drafts", INDEX)
         self.assertIn("agentWorkflowGuideCtaRate", INDEX)
 
+    def test_homepage_offer_entry_events_keep_anonymous_campaign_source(self):
+        self.assertIn("const entrySource = String(new URLSearchParams(window.location.search).get('utm_source') || 'homepage')", INDEX)
+        self.assertIn("source: entrySource", INDEX)
+
 
 if __name__ == "__main__":
     unittest.main()
