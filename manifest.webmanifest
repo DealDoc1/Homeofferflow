@@ -109,6 +109,13 @@
       "icons": [{"src":"/assets/homeofferflow-app-icon-192.png","sizes":"192x192","type":"image/png"}]
     },
     {
+      "name": "Seller Offer Review",
+      "short_name": "Seller Review",
+      "description": "Compare a Texas seller offer's price, terms, timing, and questions before the next conversation.",
+      "url": "/texas-seller-offer-review?utm_source=pwa_shortcut&utm_medium=installed_app&utm_campaign=seller_offer_review",
+      "icons": [{"src":"/assets/homeofferflow-app-icon-192.png","sizes":"192x192","type":"image/png"}]
+    },
+    {
       "name": "Investor Workspace",
       "short_name": "Investor",
       "description": "Open your private investor workspace for repeat-offer work.",
