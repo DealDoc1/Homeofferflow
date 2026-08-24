@@ -104,6 +104,9 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
             "texas-fsbo-guide.html": "HomeOfferFlow Texas FSBO planning guide",
             "texas-home-service-partner-guide.html": "HomeOfferFlow Texas home-service partner placement guide",
             "texas-homebuyer-offer-guide.html": "HomeOfferFlow Texas homebuyer offer planning guide",
+            "texas-lease-offer-workflow.html": "HomeOfferFlow Texas lease workflow guide",
+            "texas-listing-workflow.html": "HomeOfferFlow Texas listing workflow guide",
+            "texas-seller-offer-review.html": "HomeOfferFlow Texas seller offer review guide",
         }
         for filename, alt in expected.items():
             page = (ROOT / filename).read_text(encoding="utf-8")
