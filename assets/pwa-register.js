@@ -44,7 +44,7 @@
         const libraryLink = document.createElement('a');
         libraryLink.id = 'hofAgentFormLibraryCta';
         libraryLink.className = 'button secondary';
-        libraryLink.href = '/texas-agent-form-library';
+        libraryLink.href = '/texas-agent-form-library?utm_source=agent_workspace&utm_medium=agent_page&utm_campaign=form_library';
         libraryLink.textContent = 'See the shared form library';
         actions.appendChild(libraryLink);
       }
