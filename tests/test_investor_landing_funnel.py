@@ -10,6 +10,7 @@ API_PATH = ROOT / "api" / "fsbo-lead.py"
 ADMIN = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
 INDEX = (ROOT / "index.html").read_text(encoding="utf-8")
 INVESTORS = (ROOT / "investors.html").read_text(encoding="utf-8")
+INVESTOR_ATTRIBUTION = (ROOT / "assets" / "investor-attribution.js").read_text(encoding="utf-8")
 INVESTOR_GUIDE = (ROOT / "texas-investor-offer-guide.html").read_text(encoding="utf-8")
 INVESTOR_GUIDE_METRICS = (ROOT / "assets" / "investor-offer-guide-metrics.js").read_text(encoding="utf-8")
 VERCEL = (ROOT / "vercel.json").read_text(encoding="utf-8")
@@ -37,6 +38,13 @@ class InvestorLandingFunnelTests(unittest.TestCase):
         self.assertIn("def _record_investor_landing_event(data):", API)
         self.assertIn('"investor_landing_viewed": "viewed"', API)
         self.assertIn('"investor_landing_cta_selected": "selected"', API)
+
+    def test_investor_ctas_preserve_or_assign_campaign_attribution(self):
+        self.assertIn('/assets/investor-attribution.js', INVESTORS)
+        self.assertIn('utm_source', INVESTOR_ATTRIBUTION)
+        self.assertIn('investor_workspace', INVESTOR_ATTRIBUTION)
+        self.assertIn('investor_acquisition', INVESTOR_ATTRIBUTION)
+        self.assertIn('data-investor-start', INVESTOR_ATTRIBUTION)
         self.assertIn('"investor_offer_guide_viewed": "viewed"', API)
         self.assertIn('"investor_offer_guide_cta_selected": "selected"', API)
         self.assertIn("INVESTOR_LANDING_CHANNELS", API)
