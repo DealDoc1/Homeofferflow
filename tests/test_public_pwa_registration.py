@@ -7,7 +7,7 @@ SCRIPT = (ROOT / 'assets' / 'pwa-register.js').read_text(encoding='utf-8')
 PUBLIC_PAGES = (
     'directory.html', 'buyers.html', 'partners.html', 'sellers.html',
     'agents.html', 'investors.html', 'texas-fsbo-guide.html',
-    'texas-agent-offer-workflow.html'
+    'texas-agent-offer-workflow.html', 'texas-seller-offer-review.html'
 )
 
 
@@ -41,6 +41,11 @@ class PublicPwaRegistrationTests(unittest.TestCase):
         self.assertIn("shared form guide and Question 1", SCRIPT)
         self.assertIn("Keep partner placements one tap away", SCRIPT)
         self.assertIn("partner pricing, your application, and setup details", SCRIPT)
+
+    def test_seller_offer_review_install_prompt_explains_its_app_value(self):
+        self.assertIn("window.location.pathname === '/texas-seller-offer-review'", SCRIPT)
+        self.assertIn("Keep seller offer review one tap away", SCRIPT)
+        self.assertIn("seller offer-review checklist and next conversation", SCRIPT)
 
 
 if __name__ == '__main__':
