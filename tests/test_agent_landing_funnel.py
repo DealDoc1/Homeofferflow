@@ -95,7 +95,7 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("agent_landing_relationship_workspace_handoff", INDEX)
         self.assertIn("tab: 'relationships'", INDEX)
         self.assertIn('id="accountPanelRelationships"', INDEX)
-        self.assertIn("private TXR-1501, TXR-1506, TXR-1507, TXR-1508, TXR-1905, TXR-1914, TXR-1917, and TXR-1919 review-draft creation for every signed-in agent", AGENTS)
+        self.assertIn("private TXR-1501, TXR-1506, TXR-1507, TXR-1508, TXR-1905, TXR-1914, TXR-1917, TXR-1919, TXR-1948, TXR-1953, and TXR-1954 review-draft creation for every signed-in agent", AGENTS)
 
     def test_transaction_question_one_uses_a_four_choice_responsive_grid(self):
         self.assertIn('class="skip-link" href="#transaction-start"', AGENTS)

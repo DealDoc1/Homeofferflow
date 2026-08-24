@@ -38,6 +38,11 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
             self.assertIn(form_code, AGENT_FORM_LIBRARY)
         self.assertIn('"url":"https://www.homeofferflow.com/texas-agent-form-library"', AGENT_FORM_LIBRARY)
 
+    def test_agent_landing_page_lists_every_live_shared_review_draft_without_client_side_append_noise(self):
+        for form_code in ("TXR-1501", "TXR-1506", "TXR-1507", "TXR-1508", "TXR-1905", "TXR-1914", "TXR-1917", "TXR-1919", "TXR-1948", "TXR-1953", "TXR-1954"):
+            self.assertIn(form_code, AGENTS)
+        self.assertNotIn('hof-live-form-scope-copy-v1', AGENTS)
+
     def test_agent_form_library_structured_data_uses_the_correct_form_names(self):
         expected_names = (
             "TXR-1501 Buyer/Tenant Representation Agreement - Long Form review draft",
@@ -409,7 +414,7 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn('"name":"Can I prepare private form reviews?"', AGENTS)
         self.assertIn('"name":"Does this replace broker supervision?"', AGENTS)
         self.assertIn('private relationship, consumer-notice, seller-disclosure, finance, environmental, and mineral review drafts', AGENTS)
-        self.assertIn('private TXR-1501, TXR-1506, TXR-1507, TXR-1508, TXR-1905, TXR-1914, TXR-1917, and TXR-1919 review-draft creation for every signed-in agent', AGENTS)
+        self.assertIn('private TXR-1501, TXR-1506, TXR-1507, TXR-1508, TXR-1905, TXR-1914, TXR-1917, TXR-1919, TXR-1948, TXR-1953, and TXR-1954 review-draft creation for every signed-in agent', AGENTS)
         self.assertIn('Private seller planning', AGENTS)
         self.assertIn('universal TREC-55-1 seller-disclosure and optional TREC-61-0 water-disclosure review drafts', AGENTS)
         self.assertIn('seller listing launch checklist or consultation brief', AGENTS)
