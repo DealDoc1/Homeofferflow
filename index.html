@@ -5691,9 +5691,14 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         '<div class="account-actions-row" style="margin-top:0.85rem;">' +
           '<button class="btn-secondary" type="button" onclick="startSubscriptionCheckout(\'' + role + '\',\'monthly\',\'subscription_card\')">Subscribe Monthly</button>' +
           '<button class="btn-secondary" type="button" onclick="startSubscriptionCheckout(\'' + role + '\',\'annual\',\'subscription_card\')">Subscribe Annual</button>' +
+          (role === 'agent'
+            ? '<a class="btn-primary" href="/ondemand?utm_source=agent_workspace&amp;utm_medium=subscription_card&amp;utm_campaign=agent_acquisition" onclick="recordOnDemandTrialEntry?.(\'agent_subscription_card\')" aria-label="OnDemand Realty agent: start a 60-day free trial; card required">OnDemand: 60 days free</a>'
+            : '') +
         '</div>' +
         '<div style="margin-top:0.55rem; color:var(--gray); font-size:0.74rem; line-height:1.45;">' +
-          'Promo codes can be entered at Stripe checkout. Beta users can keep testing until you switch them to paid access.' +
+          (role === 'agent'
+            ? 'Promo codes can be entered at Stripe checkout. Prefer a brokerage-focused workspace? Start the OnDemand Realty 60-day trial; card required, then $29/month unless canceled.'
+            : 'Promo codes can be entered at Stripe checkout. Beta users can keep testing until you switch them to paid access.') +
         '</div>';
     }
 
