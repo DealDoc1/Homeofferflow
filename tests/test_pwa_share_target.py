@@ -41,12 +41,12 @@ class PwaShareTargetTests(unittest.TestCase):
         self.assertIn("hof_pwa_shared_context_agent_pending", SHARE)
         self.assertIn("pwa_shared_context_agent_transaction_selected", INDEX)
         self.assertIn('utm_campaign=shared_context_agent', SHARE)
-        self.assertIn('homeofferflow-shell-v45', (ROOT / 'service-worker.js').read_text(encoding='utf-8'))
+        self.assertIn('homeofferflow-shell-v46', (ROOT / 'service-worker.js').read_text(encoding='utf-8'))
 
     def test_share_target_script_is_in_the_offline_app_shell(self):
         worker = (ROOT / 'service-worker.js').read_text(encoding='utf-8')
         self.assertIn("'/assets/pwa-share-target.js'", worker)
-        self.assertIn("homeofferflow-shell-v45", worker)
+        self.assertIn("homeofferflow-shell-v46", worker)
 
 
 if __name__ == '__main__':

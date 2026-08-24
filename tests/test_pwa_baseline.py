@@ -18,17 +18,17 @@ class PwaBaselineTests(unittest.TestCase):
         self.assertIn("navigator.serviceWorker.register('/service-worker.js'", INDEX)
 
     def test_public_conversion_pages_keep_the_pwa_brand_chrome_color(self):
-        for filename in ("agents.html", "buyers.html", "sellers.html", "partners.html", "directory.html", "ondemand.html", "investors.html", "texas-fsbo-guide.html", "texas-agent-offer-workflow.html", "texas-homebuyer-offer-guide.html", "texas-investor-offer-guide.html", "texas-agent-form-library.html", "texas-seller-financing-guide.html", "texas-buyer-representation-guide.html", "texas-flat-fee-mls-guide.html"):
+        for filename in ("agents.html", "buyers.html", "sellers.html", "partners.html", "directory.html", "ondemand.html", "investors.html", "texas-fsbo-guide.html", "texas-agent-offer-workflow.html", "texas-homebuyer-offer-guide.html", "texas-investor-offer-guide.html", "texas-agent-form-library.html", "texas-seller-financing-guide.html", "texas-buyer-representation-guide.html", "texas-flat-fee-mls-guide.html", "texas-seller-net-proceeds-calculator.html"):
             html = (ROOT / filename).read_text(encoding="utf-8")
             self.assertIn('<meta name="theme-color" content="#173f35"', html)
 
     def test_public_acquisition_pages_expose_the_installable_manifest(self):
-        for filename in ("agents.html", "buyers.html", "sellers.html", "partners.html", "directory.html", "ondemand.html", "investors.html", "texas-fsbo-guide.html", "texas-agent-offer-workflow.html", "texas-homebuyer-offer-guide.html", "texas-investor-offer-guide.html", "texas-agent-form-library.html", "texas-buyer-representation-guide.html", "texas-flat-fee-mls-guide.html"):
+        for filename in ("agents.html", "buyers.html", "sellers.html", "partners.html", "directory.html", "ondemand.html", "investors.html", "texas-fsbo-guide.html", "texas-agent-offer-workflow.html", "texas-homebuyer-offer-guide.html", "texas-investor-offer-guide.html", "texas-agent-form-library.html", "texas-buyer-representation-guide.html", "texas-flat-fee-mls-guide.html", "texas-seller-net-proceeds-calculator.html"):
             html = (ROOT / filename).read_text(encoding="utf-8")
             self.assertIn('rel="manifest" href="/manifest.webmanifest"', html)
 
     def test_public_acquisition_pages_opt_into_notched_device_safe_areas(self):
-        for filename in ("agents.html", "buyers.html", "sellers.html", "partners.html", "directory.html", "ondemand.html", "investors.html", "texas-fsbo-guide.html", "texas-agent-offer-workflow.html", "texas-homebuyer-offer-guide.html", "texas-investor-offer-guide.html", "texas-agent-form-library.html", "texas-buyer-representation-guide.html", "texas-flat-fee-mls-guide.html"):
+        for filename in ("agents.html", "buyers.html", "sellers.html", "partners.html", "directory.html", "ondemand.html", "investors.html", "texas-fsbo-guide.html", "texas-agent-offer-workflow.html", "texas-homebuyer-offer-guide.html", "texas-investor-offer-guide.html", "texas-agent-form-library.html", "texas-buyer-representation-guide.html", "texas-flat-fee-mls-guide.html", "texas-seller-net-proceeds-calculator.html"):
             html = (ROOT / filename).read_text(encoding="utf-8")
             self.assertIn("viewport-fit=cover", html, filename)
             self.assertIn("safe-area-inset-top", html, filename)
@@ -109,12 +109,12 @@ class PwaBaselineTests(unittest.TestCase):
         self.assertNotIn("caches.match(event.request)", WORKER)
 
     def test_agent_landing_shell_is_pre_cached_for_agent_first_pwa_resume(self):
-        self.assertIn("const SHELL_CACHE = 'homeofferflow-shell-v45';", WORKER)
+        self.assertIn("const SHELL_CACHE = 'homeofferflow-shell-v46';", WORKER)
         self.assertIn("'/agents',", WORKER)
         self.assertIn("'/sellers',", WORKER)
         self.assertIn("'/partners',", WORKER)
         self.assertIn("'/ondemand',", WORKER)
-        for path in ("'/buyers',", "'/investors',", "'/directory',", "'/texas-fsbo-guide',", "'/texas-agent-offer-workflow',", "'/texas-homebuyer-offer-guide',", "'/texas-investor-offer-guide',", "'/texas-agent-form-library',", "'/texas-seller-financing-guide',", "'/texas-buyer-representation-guide',", "'/texas-flat-fee-mls-guide',"):
+        for path in ("'/buyers',", "'/investors',", "'/directory',", "'/texas-fsbo-guide',", "'/texas-agent-offer-workflow',", "'/texas-homebuyer-offer-guide',", "'/texas-investor-offer-guide',", "'/texas-agent-form-library',", "'/texas-seller-financing-guide',", "'/texas-buyer-representation-guide',", "'/texas-flat-fee-mls-guide',", "'/texas-seller-net-proceeds-calculator',"):
             with self.subTest(path=path):
                 self.assertIn(path, WORKER)
 
@@ -126,7 +126,7 @@ class PwaBaselineTests(unittest.TestCase):
         self.assertNotIn("cache.put(event.request", WORKER)
 
     def test_worker_keeps_public_pages_separate_in_the_offline_cache(self):
-        for path in ("'/buyers'", "'/agents'", "'/investors'", "'/sellers'", "'/partners'", "'/directory'", "'/ondemand'", "'/texas-fsbo-guide'", "'/texas-agent-offer-workflow'", "'/texas-homebuyer-offer-guide'", "'/texas-investor-offer-guide'", "'/texas-agent-form-library'", "'/texas-seller-financing-guide'", "'/texas-buyer-representation-guide'", "'/texas-flat-fee-mls-guide'"):
+        for path in ("'/buyers'", "'/agents'", "'/investors'", "'/sellers'", "'/partners'", "'/directory'", "'/ondemand'", "'/texas-fsbo-guide'", "'/texas-agent-offer-workflow'", "'/texas-homebuyer-offer-guide'", "'/texas-investor-offer-guide'", "'/texas-agent-form-library'", "'/texas-seller-financing-guide'", "'/texas-buyer-representation-guide'", "'/texas-flat-fee-mls-guide'", "'/texas-seller-net-proceeds-calculator'"):
             self.assertIn(path, WORKER)
         self.assertIn("const cacheKey = PUBLIC_PAGE_PATHS.has(requestUrl.pathname) ? requestUrl.pathname : '';", WORKER)
         self.assertIn("caches.match(cacheKey).then(response => response || caches.match('/index.html'))", WORKER)

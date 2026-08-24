@@ -7,7 +7,7 @@ SCRIPT = (ROOT / 'assets' / 'pwa-register.js').read_text(encoding='utf-8')
 PUBLIC_PAGES = (
     'directory.html', 'buyers.html', 'partners.html', 'sellers.html',
     'agents.html', 'investors.html', 'texas-fsbo-guide.html', 'texas-home-service-partner-guide.html',
-    'texas-agent-offer-workflow.html', 'texas-seller-offer-review.html', 'texas-homebuyer-offer-guide.html', 'texas-investor-offer-guide.html', 'texas-seller-financing-guide.html', 'texas-buyer-representation-guide.html', 'texas-flat-fee-mls-guide.html', 'ondemand.html'
+    'texas-agent-offer-workflow.html', 'texas-seller-offer-review.html', 'texas-homebuyer-offer-guide.html', 'texas-investor-offer-guide.html', 'texas-seller-financing-guide.html', 'texas-buyer-representation-guide.html', 'texas-flat-fee-mls-guide.html', 'texas-seller-net-proceeds-calculator.html', 'ondemand.html'
 )
 
 
@@ -46,6 +46,11 @@ class PublicPwaRegistrationTests(unittest.TestCase):
         self.assertIn("window.location.pathname === '/texas-seller-offer-review'", SCRIPT)
         self.assertIn("Keep seller offer review one tap away", SCRIPT)
         self.assertIn("seller offer-review checklist and next conversation", SCRIPT)
+
+    def test_seller_net_proceeds_calculator_has_specific_install_value(self):
+        self.assertIn("window.location.pathname === '/texas-seller-net-proceeds-calculator'", SCRIPT)
+        self.assertIn("Keep your seller proceeds worksheet one tap away", SCRIPT)
+        self.assertIn("private proceeds worksheet and seller planning paths", SCRIPT)
 
     def test_ondemand_install_prompt_explains_its_app_value(self):
         self.assertIn("window.location.pathname === '/ondemand'", SCRIPT)
