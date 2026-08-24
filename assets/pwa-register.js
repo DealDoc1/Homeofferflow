@@ -58,6 +58,12 @@
   if (!('serviceWorker' in navigator)) return;
   let deferredInstallPrompt = null;
   const dismissKey = 'hof_public_pwa_install_dismissed_v1';
+  const trackInstallEvent = (event, extra = {}) => {
+    try {
+      window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+      window.va('event', { name: `Public PWA Install ${event}`, ...extra, surface: window.location.pathname });
+    } catch (_) {}
+  };
   const isMobileInstallSurface = () => /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '')
     || (navigator.maxTouchPoints > 1 && /Macintosh/i.test(navigator.userAgent || ''));
   const removeInstallCard = () => document.getElementById('hofPublicPwaInstallCard')?.remove();
@@ -163,8 +169,10 @@
       : 'Install the lightweight app shell for faster returns to your workspace.';
     card.innerHTML = `<strong style="display:block;color:#e8b86d;margin-bottom:.2rem">${title}</strong><span style="display:block;color:#b6c4d5;margin-bottom:.55rem">${copy}</span><div style="display:flex;gap:.45rem;flex-wrap:wrap"><button type="button" id="hofPublicPwaInstallButton" style="padding:.45rem .65rem;border:0;border-radius:7px;background:#c8973f;color:#102033;font-weight:800;cursor:pointer">Install app</button><button type="button" id="hofPublicPwaInstallDismiss" style="padding:.45rem .65rem;border:1px solid rgba(255,255,255,.25);border-radius:7px;background:transparent;color:#fff;cursor:pointer">Not now</button></div>`;
     document.body.appendChild(card);
+    trackInstallEvent('Shown');
     card.querySelector('#hofPublicPwaInstallDismiss')?.addEventListener('click', () => {
       try { sessionStorage.setItem(dismissKey, '1'); } catch (_) {}
+      trackInstallEvent('Dismissed');
       removeInstallCard();
     });
     card.querySelector('#hofPublicPwaInstallButton')?.addEventListener('click', async () => {
@@ -172,8 +180,9 @@
       const prompt = deferredInstallPrompt;
       deferredInstallPrompt = null;
       removeInstallCard();
+      trackInstallEvent('CtaClicked');
       await prompt.prompt();
-      await prompt.userChoice.catch(() => {});
+      await prompt.userChoice.then(choice => trackInstallEvent(choice?.outcome === 'accepted' ? 'Accepted' : 'Dismissed')).catch(() => {});
     });
   };
   window.addEventListener('beforeinstallprompt', event => {
@@ -182,7 +191,7 @@
     deferredInstallPrompt = event;
     renderInstallCard();
   });
-  window.addEventListener('appinstalled', () => { deferredInstallPrompt = null; removeInstallCard(); });
+  window.addEventListener('appinstalled', () => { trackInstallEvent('Installed'); deferredInstallPrompt = null; removeInstallCard(); });
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/service-worker.js', { scope: '/' }).then(registration => {
       showUpdateNotice(registration);
