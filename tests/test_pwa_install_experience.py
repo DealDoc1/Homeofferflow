@@ -151,8 +151,9 @@ class PwaInstallExperienceTests(unittest.TestCase):
         self.assertIn("else if (action === 'investor_workspace') await openInvestorWorkspace();", INDEX)
         self.assertIn("window.location.assign('/partners?utm_source=pwa_shortcut&utm_medium=installed_app&utm_campaign=partner_marketplace')", INDEX)
         self.assertIn("pwa_authenticated_shortcut_opened", INDEX)
-        self.assertIn("['workspace', 'transaction_start', 'listing_tools'", INDEX)
+        self.assertIn("['workspace', 'brokerage_setup', 'transaction_start', 'listing_tools'", INDEX)
         self.assertIn('pwaAuthenticatedShortcutCounts?.transaction_start', INDEX)
+        self.assertIn('pwaAuthenticatedShortcutCounts?.brokerage_setup', INDEX)
         self.assertIn("surface: 'pwa_shortcut'", INDEX)
 
     def test_clean_signed_in_standalone_launch_opens_only_the_private_workspace(self):
