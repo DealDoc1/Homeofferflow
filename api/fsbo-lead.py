@@ -234,6 +234,7 @@ AGENT_LANDING_CHANNELS = {
 AGENT_LANDING_CTA_PATHS = {
     "client_draft", "seller_listing", "lease_listing", "relationship_drafts", "lease_representation", "listing_guide", "lease_guide", "form_library_guide",
 }
+AGENT_LANDING_CAMPAIGNS = {"transaction_selector"}
 INVESTOR_LANDING_EVENT_TYPES = {
     "investor_landing_viewed": "viewed",
     "investor_landing_cta_selected": "selected",
@@ -767,6 +768,7 @@ def _record_agent_landing_event(data):
     event_type = _text(data.get("event_type"), 80)
     channel = _text(data.get("channel"), 80) or "unspecified"
     cta_path = _text(data.get("cta_path"), 80)
+    campaign = _text(data.get("utm_campaign"), 160)
     if event_type not in AGENT_LANDING_EVENT_TYPES:
         raise ValueError("Unsupported agent landing event.")
     if channel not in AGENT_LANDING_CHANNELS:
@@ -776,11 +778,15 @@ def _record_agent_landing_event(data):
             raise ValueError("Unsupported agent landing CTA path.")
     elif cta_path:
         raise ValueError("CTA path is only allowed for agent CTA events.")
+    if campaign and campaign not in AGENT_LANDING_CAMPAIGNS:
+        raise ValueError("Unsupported agent landing campaign.")
     metadata = {"surface": "agent_landing", "role": "agent", "channel": channel}
     if event_type.startswith("agent_workflow_guide_"):
         metadata["surface"] = "agent_workflow_guide"
     if cta_path:
         metadata["ctaPath"] = cta_path
+    if campaign:
+        metadata["utmCampaign"] = campaign
     _record_partner_checkout_event(
         event_type,
         AGENT_LANDING_EVENT_TYPES[event_type],

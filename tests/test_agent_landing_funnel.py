@@ -219,7 +219,7 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("utm_medium=agent_page", (ROOT / "assets" / "pwa-register.js").read_text(encoding="utf-8"))
         self.assertIn("hofAgentFormLibraryCta", (ROOT / "assets" / "pwa-register.js").read_text(encoding="utf-8"))
         self.assertIn("See the shared form library", (ROOT / "assets" / "pwa-register.js").read_text(encoding="utf-8"))
-        self.assertIn("new URLSearchParams(window.location.search).get('utm_source')", AGENTS)
+        self.assertIn("const params=new URLSearchParams(window.location.search)", AGENTS)
         self.assertIn("'direct_outreach','email','social','referral','local_event','print'", AGENTS)
         self.assertIn("[data-agent-cta-path]", AGENTS)
 
@@ -247,6 +247,33 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertEqual(captured[3][0], "agent_landing_question_one_opened")
         self.assertEqual(captured[3][3], {"surface": "agent_landing", "role": "agent", "channel": "referral"})
 
+    def test_agent_transaction_selector_campaign_is_allowlisted_and_aggregate_only(self):
+        spec = importlib.util.spec_from_file_location("agent_landing_campaign", API_PATH)
+        api = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(api)
+        captured = []
+        with patch.object(api, "_record_partner_checkout_event", side_effect=lambda *args: captured.append(args)):
+            api._record_agent_landing_event({
+                "event_type": "agent_landing_cta_selected",
+                "channel": "unspecified",
+                "cta_path": "client_draft",
+                "utm_campaign": "transaction_selector",
+            })
+            with self.assertRaisesRegex(ValueError, "Unsupported agent landing campaign"):
+                api._record_agent_landing_event({
+                    "event_type": "agent_landing_cta_selected",
+                    "channel": "unspecified",
+                    "cta_path": "client_draft",
+                    "utm_campaign": "untrusted_campaign",
+                })
+        self.assertEqual(captured[0][3], {
+            "surface": "agent_landing",
+            "role": "agent",
+            "channel": "unspecified",
+            "ctaPath": "client_draft",
+            "utmCampaign": "transaction_selector",
+        })
+
     def test_public_agent_landing_preserves_organic_and_pwa_attribution(self):
         self.assertIn("medium==='installed_app'||source==='pwa_shortcut'?'pwa_shortcut'", AGENTS)
         self.assertIn("medium==='organic_content'||source==='organic'?'organic'", AGENTS)
@@ -258,6 +285,10 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn('workflow=purchase&amp;utm_source=agent_workspace&amp;utm_medium=agent_page&amp;utm_campaign=transaction_selector', AGENTS)
         self.assertIn('workflow=lease_listing&amp;utm_source=agent_workspace&amp;utm_medium=agent_page&amp;utm_campaign=transaction_selector', AGENTS)
         self.assertIn('workflow=lease_representation&amp;utm_source=agent_workspace&amp;utm_medium=agent_page&amp;utm_campaign=transaction_selector', AGENTS)
+        self.assertIn("const transactionPaths=new Set(['client_draft','seller_listing','lease_listing','lease_representation'])", AGENTS)
+        self.assertIn("body.utm_campaign=campaign", AGENTS)
+        self.assertIn('"agentLandingCtaRatesByCampaign"', ADMIN)
+        self.assertIn('Agent campaign conversion:', INDEX)
 
     def test_investor_landing_preserves_organic_and_pwa_attribution(self):
         self.assertIn("medium==='installed_app'||source==='pwa_shortcut'?'pwa_shortcut'", INVESTORS)
