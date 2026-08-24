@@ -4986,7 +4986,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Workspace paths after sign-in: ${metrics.agentLandingSellerWorkspaceHandoffUserCount || 0} listing tools · ${metrics.agentLandingRelationshipWorkspaceHandoffUserCount || 0} relationship drafts.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Landing CTA choices: ${Number(metrics.agentLandingCtaPathCounts?.client_draft || 0)} buyer offers · ${Number(metrics.agentLandingCtaPathCounts?.seller_listing || 0)} sale listings · ${Number(metrics.agentLandingCtaPathCounts?.lease_listing || 0)} lease listings · ${Number(metrics.agentLandingCtaPathCounts?.lease_representation || 0)} tenant representation · ${Number(metrics.agentLandingCtaPathCounts?.relationship_drafts || 0)} relationship drafts · ${Number(metrics.agentLandingCtaPathCounts?.listing_guide || 0)} listing guides · ${Number(metrics.agentLandingCtaPathCounts?.lease_guide || 0)} lease guides · ${Number(metrics.agentLandingCtaPathCounts?.form_library_guide || 0)} form-library guides.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Authenticated transaction choices: ${Number(metrics.agentTransactionChoiceCounts?.purchase || 0)} buying · ${Number(metrics.agentTransactionChoiceCounts?.sale_listing || 0)} sale listings · ${Number(metrics.agentTransactionChoiceCounts?.lease_listing || 0)} lease listings · ${Number(metrics.agentTransactionChoiceCounts?.lease_representation || 0)} tenant representation · ${Number(metrics.agentWorkflowResumeCount || 0)} resumes.</div>
-            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Private review drafts saved: ${Number(metrics.agentPrivateReviewDraftSavedCount || 0)} total · TXR-1501 ${Number(metrics.agentPrivateReviewDraftSavedByForm?.['TXR-1501'] || 0)} · TXR-1506 ${Number(metrics.agentPrivateReviewDraftSavedByForm?.['TXR-1506'] || 0)} · TXR-1507 ${Number(metrics.agentPrivateReviewDraftSavedByForm?.['TXR-1507'] || 0)} · TXR-1508 ${Number(metrics.agentPrivateReviewDraftSavedByForm?.['TXR-1508'] || 0)} · TXR-1905 ${Number(metrics.agentPrivateReviewDraftSavedByForm?.['TXR-1905'] || 0)} · TXR-1914 ${Number(metrics.agentPrivateReviewDraftSavedByForm?.['TXR-1914'] || 0)} · TXR-1917 ${Number(metrics.agentPrivateReviewDraftSavedByForm?.['TXR-1917'] || 0)} · TXR-1919 ${Number(metrics.agentPrivateReviewDraftSavedByForm?.['TXR-1919'] || 0)}.</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Private review drafts saved: ${Number(metrics.agentPrivateReviewDraftSavedCount || 0)} total · TXR-1501 ${Number(metrics.agentPrivateReviewDraftSavedByForm?.['TXR-1501'] || 0)} · TXR-1506 ${Number(metrics.agentPrivateReviewDraftSavedByForm?.['TXR-1506'] || 0)} · TXR-1507 ${Number(metrics.agentPrivateReviewDraftSavedByForm?.['TXR-1507'] || 0)} · TXR-1508 ${Number(metrics.agentPrivateReviewDraftSavedByForm?.['TXR-1508'] || 0)} · TXR-1905 ${Number(metrics.agentPrivateReviewDraftSavedByForm?.['TXR-1905'] || 0)} · TXR-1914 ${Number(metrics.agentPrivateReviewDraftSavedByForm?.['TXR-1914'] || 0)} · TXR-1917 ${Number(metrics.agentPrivateReviewDraftSavedByForm?.['TXR-1917'] || 0)} · TXR-1919 ${Number(metrics.agentPrivateReviewDraftSavedByForm?.['TXR-1919'] || 0)} · ${Number(metrics.agentPrivateReviewNextStepClickedCount || 0)} opened saved drafts.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Agent workflow guide: ${metrics.agentWorkflowGuideViewCount || 0} views · ${metrics.agentWorkflowGuideCtaCount || 0} started a private draft (${Number(metrics.agentWorkflowGuideCtaRate || 0).toFixed(1)}% of guide views).</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Guide CTA choices: ${Number(metrics.agentWorkflowGuideCtaPathCounts?.client_draft || 0)} client draft · ${Number(metrics.agentWorkflowGuideCtaPathCounts?.seller_listing || 0)} listing tools · ${Number(metrics.agentWorkflowGuideCtaPathCounts?.relationship_drafts || 0)} relationship drafts · ${Number(metrics.agentWorkflowGuideCtaPathCounts?.form_library_guide || 0)} form-library handoffs.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Channel views / sign-ins: organic ${Number(metrics.agentLandingViewCountsByChannel?.organic || 0)} / ${Number(metrics.agentLandingCtaCountsByChannel?.organic || 0)} · PWA ${Number(metrics.agentLandingViewCountsByChannel?.pwa_shortcut || 0)} / ${Number(metrics.agentLandingCtaCountsByChannel?.pwa_shortcut || 0)} · referral ${Number(metrics.agentLandingViewCountsByChannel?.referral || 0)} / ${Number(metrics.agentLandingCtaCountsByChannel?.referral || 0)} · email ${Number(metrics.agentLandingViewCountsByChannel?.email || 0)} / ${Number(metrics.agentLandingCtaCountsByChannel?.email || 0)} · social ${Number(metrics.agentLandingViewCountsByChannel?.social || 0)} / ${Number(metrics.agentLandingCtaCountsByChannel?.social || 0)} · outreach ${Number(metrics.agentLandingViewCountsByChannel?.direct_outreach || 0)} / ${Number(metrics.agentLandingCtaCountsByChannel?.direct_outreach || 0)} · local ${Number(metrics.agentLandingViewCountsByChannel?.local_event || 0)} / ${Number(metrics.agentLandingCtaCountsByChannel?.local_event || 0)} · print ${Number(metrics.agentLandingViewCountsByChannel?.print || 0)} / ${Number(metrics.agentLandingCtaCountsByChannel?.print || 0)}.</div>
@@ -19759,6 +19759,11 @@ function routeAfterMagicLinkIfNeeded() {
       list.innerHTML = '<li>Could not load private form drafts.</li>';
     }
   }
+  root.hofRefreshPrivateDrafts = refreshPrivateDrafts;
+  root.hofOpenPrivateDraftQueue = function hofOpenPrivateDraftQueue() {
+    root.showAccountTab?.('relationships');
+    root.hofRefreshPrivateDrafts?.();
+  };
 
   function renderPrivateDraftsCard() {
     const panel = document.getElementById('accountPanelDashboard');
@@ -20980,6 +20985,20 @@ function routeAfterMagicLinkIfNeeded() {
             form_code: formIds.get(form.id),
             surface: 'agent_forms',
           });
+        }
+        if (!form.dataset.privateReviewNextStepBound) {
+          form.dataset.privateReviewNextStepBound = 'true';
+          const nextStep = document.createElement('button');
+          nextStep.type = 'button';
+          nextStep.className = 'btn-secondary hof-private-review-next-step';
+          nextStep.textContent = 'View saved drafts';
+          nextStep.style.marginTop = '.55rem';
+          nextStep.addEventListener('click', () => {
+            window.logOfferEvent?.(null, 'agent_private_review_draft_next_step_clicked', 'opened', 'Agent opened the saved private-draft queue after saving a review draft.', { form_code: formIds.get(form.id), surface: 'agent_forms' });
+            form.closest('.hof-agreement-modal')?.remove();
+            window.hofOpenPrivateDraftQueue?.();
+          });
+          status.insertAdjacentElement('afterend', nextStep);
         }
       }
     }).observe(status, { attributes: true, attributeFilter: ['class'], childList: true, characterData: true, subtree: true });

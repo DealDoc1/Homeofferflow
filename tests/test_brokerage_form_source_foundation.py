@@ -108,8 +108,12 @@ class BrokerageFormSourceFoundationTests(unittest.TestCase):
         ):
             self.assertIn(f"['{form_id}', '{form_code}']", HTML)
         self.assertIn("agent_private_review_draft_saved", HTML)
+        self.assertIn("agent_private_review_draft_next_step_clicked", HTML)
+        self.assertIn("View saved drafts", HTML)
+        self.assertIn("hofOpenPrivateDraftQueue", HTML)
         self.assertIn('"agentPrivateReviewDraftSavedCount": agent_private_review_draft_saved_count', dashboard)
         self.assertIn('"agentPrivateReviewDraftSavedByForm": agent_private_review_draft_saved_by_form', dashboard)
+        self.assertIn('"agentPrivateReviewNextStepClickedCount": agent_private_review_next_step_clicked_count', dashboard)
 
     def test_brokerage_rollout_foreign_keys_have_targeted_indexes(self):
         for index_name in (
