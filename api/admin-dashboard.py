@@ -4552,6 +4552,19 @@ class handler(BaseHTTPRequestHandler):
                 if platform not in pwa_authenticated_shortcut_platform_counts:
                     platform = "unknown"
                 pwa_authenticated_shortcut_platform_counts[platform] += 1
+            # Shared-context actions are intentionally reported as aggregate
+            # funnel signals. The shared text, property address, client data,
+            # and source URL never leave the event payload or enter this view.
+            pwa_shared_context_event_counts = {
+                "buyer_offer_opened": 0,
+                "agent_chooser_opened": 0,
+            }
+            for item in events:
+                event_type = str(item.get("event_type") or "").strip().lower()
+                if event_type == "pwa_shared_context_buyer_offer_opened":
+                    pwa_shared_context_event_counts["buyer_offer_opened"] += 1
+                elif event_type == "pwa_shared_context_agent_chooser_opened":
+                    pwa_shared_context_event_counts["agent_chooser_opened"] += 1
             # The seller's post-intake directory step is deliberately measured
             # as an aggregate bridge: operations can see whether seller demand
             # reaches provider discovery without receiving seller, property,
@@ -5468,6 +5481,7 @@ class handler(BaseHTTPRequestHandler):
                 "pwaBuyerOfferShortcutCount": pwa_buyer_offer_shortcut_count,
                 "pwaAuthenticatedShortcutCounts": pwa_authenticated_shortcut_counts,
                 "pwaAuthenticatedShortcutPlatformCounts": pwa_authenticated_shortcut_platform_counts,
+                "pwaSharedContextEventCounts": pwa_shared_context_event_counts,
                 "fsboProviderDirectoryOpenCount": fsbo_provider_directory_open_count,
                 "pwaInstallShownCount": pwa_install_event_counts["shown"],
                 "pwaInstallNativeAvailableCount": pwa_install_event_counts["native_available"],
