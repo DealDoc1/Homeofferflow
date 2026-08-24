@@ -99,7 +99,7 @@
           if (sessionStorage.getItem(key)) return;
           sessionStorage.setItem(key, '1');
         } catch (_) {}
-        fetch('/api/fsbo-lead', {method:'POST', headers:{'Content-Type':'application/json'}, keepalive:true, body:JSON.stringify({request_type:'partner_landing_event', event_type:'partner_directory_application_selected', tier:'unspecified', category:safeCategory})}).catch(() => {});
+        fetch('/api/fsbo-lead', {method:'POST', headers:{'Content-Type':'application/json'}, keepalive:true, body:JSON.stringify({request_type:'partner_landing_event', event_type:'partner_directory_application_selected', tier:'unspecified', category:safeCategory, channel: directorySource === 'pwa_shortcut' ? 'pwa_shortcut' : 'direct'})}).catch(() => {});
       };
       const recordUnfilledDirectoryDemand = category => {
         // Keep this useful for partner recruitment without retaining a
@@ -200,7 +200,7 @@
           const key = `hof_public_directory_partner_pricing_${category}`;
           try { if (sessionStorage.getItem(key)) return; sessionStorage.setItem(key, '1'); } catch (_) {}
           track('Provider Directory Placement Pricing Selected', {category});
-          fetch('/api/fsbo-lead', {method:'POST', headers:{'Content-Type':'application/json'}, keepalive:true, body:JSON.stringify({request_type:'partner_landing_event', event_type:'partner_directory_pricing_selected', tier:'unspecified', category})}).catch(() => {});
+          fetch('/api/fsbo-lead', {method:'POST', headers:{'Content-Type':'application/json'}, keepalive:true, body:JSON.stringify({request_type:'partner_landing_event', event_type:'partner_directory_pricing_selected', tier:'unspecified', category, channel: directorySource === 'pwa_shortcut' ? 'pwa_shortcut' : 'direct'})}).catch(() => {});
         });
       });
       const bindConsumerCtas = () => document.querySelectorAll('[data-directory-consumer-cta]').forEach(link => {
