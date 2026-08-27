@@ -42,6 +42,8 @@ class HomebuyerLandingFunnelTests(unittest.TestCase):
         self.assertIn('"organic"', BUYERS)
         self.assertIn("buyerMedium === 'organic_content'", INDEX)
         self.assertIn("keepalive: true", BUYERS)
+        self.assertIn('navigator.sendBeacon(', BUYERS)
+        self.assertIn('new Blob([payload], { type: "application/json" })', BUYERS)
         landing_script = BUYERS.rsplit("<script>", 1)[1].split("</script>", 1)[0]
         self.assertNotIn("Record the handoff before navigation", landing_script)
 

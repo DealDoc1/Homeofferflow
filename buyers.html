@@ -426,15 +426,27 @@
           try {
             if (sessionStorage.getItem(key)) return;
             sessionStorage.setItem(key, "1");
+            const payload = JSON.stringify({
+              request_type: "homebuyer_landing_event",
+              event_type: eventType,
+              channel: safeChannel,
+            });
+            // A CTA immediately leaves this page for the guided workspace.
+            // Prefer a beacon so the selected stage is not lost to navigation;
+            // retain the keepalive fetch for browsers that decline it.
+            if (
+              navigator.sendBeacon &&
+              navigator.sendBeacon(
+                "/api/fsbo-lead",
+                new Blob([payload], { type: "application/json" }),
+              )
+            )
+              return;
             fetch("/api/fsbo-lead", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               keepalive: true,
-              body: JSON.stringify({
-                request_type: "homebuyer_landing_event",
-                event_type: eventType,
-                channel: safeChannel,
-              }),
+              body: payload,
             }).catch(() => {});
           } catch (_) {}
         };
