@@ -109,12 +109,12 @@ class PwaBaselineTests(unittest.TestCase):
         self.assertNotIn("caches.match(event.request)", WORKER)
 
     def test_agent_landing_shell_is_pre_cached_for_agent_first_pwa_resume(self):
-        self.assertIn("const SHELL_CACHE = 'homeofferflow-shell-v47';", WORKER)
+        self.assertIn("const SHELL_CACHE = 'homeofferflow-shell-v48';", WORKER)
         self.assertIn("'/agents',", WORKER)
         self.assertIn("'/sellers',", WORKER)
         self.assertIn("'/partners',", WORKER)
         self.assertIn("'/ondemand',", WORKER)
-        for path in ("'/buyers',", "'/investors',", "'/directory',", "'/texas-fsbo-guide',", "'/texas-agent-offer-workflow',", "'/texas-homebuyer-offer-guide',", "'/texas-investor-offer-guide',", "'/texas-agent-form-library',", "'/texas-seller-financing-guide',", "'/texas-buyer-representation-guide',", "'/texas-flat-fee-mls-guide',", "'/texas-seller-net-proceeds-calculator',", "'/texas-fsbo-closing-checklist',"):
+        for path in ("'/buyers',", "'/investors',", "'/directory',", "'/texas-fsbo-guide',", "'/texas-agent-offer-workflow',", "'/texas-homebuyer-offer-guide',", "'/texas-investor-offer-guide',", "'/texas-home-service-partner-guide',", "'/texas-agent-form-library',", "'/texas-seller-financing-guide',", "'/texas-buyer-representation-guide',", "'/texas-flat-fee-mls-guide',", "'/texas-seller-net-proceeds-calculator',", "'/texas-fsbo-closing-checklist',"):
             with self.subTest(path=path):
                 self.assertIn(path, WORKER)
 
@@ -126,7 +126,7 @@ class PwaBaselineTests(unittest.TestCase):
         self.assertNotIn("cache.put(event.request", WORKER)
 
     def test_worker_keeps_public_pages_separate_in_the_offline_cache(self):
-        for path in ("'/buyers'", "'/agents'", "'/investors'", "'/sellers'", "'/partners'", "'/directory'", "'/ondemand'", "'/texas-fsbo-guide'", "'/texas-agent-offer-workflow'", "'/texas-homebuyer-offer-guide'", "'/texas-investor-offer-guide'", "'/texas-agent-form-library'", "'/texas-seller-financing-guide'", "'/texas-buyer-representation-guide'", "'/texas-flat-fee-mls-guide'", "'/texas-seller-net-proceeds-calculator'", "'/texas-fsbo-closing-checklist'"):
+        for path in ("'/buyers'", "'/agents'", "'/investors'", "'/sellers'", "'/partners'", "'/directory'", "'/ondemand'", "'/texas-fsbo-guide'", "'/texas-agent-offer-workflow'", "'/texas-homebuyer-offer-guide'", "'/texas-investor-offer-guide'", "'/texas-home-service-partner-guide'", "'/texas-agent-form-library'", "'/texas-seller-financing-guide'", "'/texas-buyer-representation-guide'", "'/texas-flat-fee-mls-guide'", "'/texas-seller-net-proceeds-calculator'", "'/texas-fsbo-closing-checklist'"):
             self.assertIn(path, WORKER)
         self.assertIn("const cacheKey = PUBLIC_PAGE_PATHS.has(requestUrl.pathname) ? requestUrl.pathname : '';", WORKER)
         self.assertIn("caches.match(cacheKey).then(response => response || caches.match('/index.html'))", WORKER)
