@@ -19618,11 +19618,14 @@ function routeAfterMagicLinkIfNeeded() {
         }).join('');
         list.querySelectorAll('[data-preview]').forEach(button => button.addEventListener('click', async () => {
           button.disabled = true;
+          const previewWindow = window.open('', '_blank');
+          if (previewWindow) previewWindow.opener = null;
           try {
+            if (!previewWindow) throw new Error('Your browser blocked the preview window. Allow pop-ups for HomeOfferFlow and try again.');
             const response = await fetch('/api/admin-dashboard?preview_agreement=' + encodeURIComponent(button.dataset.preview), { headers:{ Authorization:`Bearer ${token()}` } });
             if (!response.ok) throw new Error('Private preview unavailable.');
-            const url = URL.createObjectURL(await response.blob()); window.open(url, '_blank', 'noopener'); setTimeout(() => URL.revokeObjectURL(url), 60000);
-          } catch (error) { window.announceWorkspaceStatus?.(error.message || 'Private preview unavailable.'); } finally { button.disabled = false; }
+            const url = URL.createObjectURL(await response.blob()); previewWindow.location.replace(url); setTimeout(() => URL.revokeObjectURL(url), 60000);
+          } catch (error) { previewWindow?.close(); window.announceWorkspaceStatus?.(error.message || 'Private preview unavailable.'); } finally { button.disabled = false; }
         }));
         list.querySelectorAll('[data-send]').forEach(button => button.addEventListener('click', () => {
           const agreement = agreements.find(item => item.id === button.dataset.send);
@@ -19926,14 +19929,18 @@ function routeAfterMagicLinkIfNeeded() {
           if (!token) return;
           const original = button.textContent;
           button.disabled = true; button.textContent = 'Loading…';
+          const previewWindow = window.open('', '_blank');
+          if (previewWindow) previewWindow.opener = null;
           try {
+            if (!previewWindow) throw new Error('Your browser blocked the preview window. Allow pop-ups for HomeOfferFlow and try again.');
             const response = await fetch('/api/admin-dashboard?preview_agreement=' + encodeURIComponent(button.dataset.agreementId), { headers: { Authorization: `Bearer ${token}` } });
             if (!response.ok) throw new Error('Preview is unavailable.');
             const blob = await response.blob();
             const url = URL.createObjectURL(blob);
-            window.open(url, '_blank', 'noopener');
+            previewWindow.location.replace(url);
             setTimeout(() => URL.revokeObjectURL(url), 60000);
           } catch (error) {
+            previewWindow?.close();
             console.error('Private draft preview failed:', error);
             const status = document.getElementById('privateFormDraftsStatus');
             if (status) status.textContent = error.message || 'Preview is unavailable.';
@@ -20188,11 +20195,15 @@ function routeAfterMagicLinkIfNeeded() {
       list.querySelectorAll('.hof-seller-preview').forEach(button => button.addEventListener('click', async () => {
         const token = root.hofAuth?.session?.access_token;
         button.disabled = true; button.textContent = 'Loading…';
+        const previewWindow = window.open('', '_blank');
+        if (previewWindow) previewWindow.opener = null;
         try {
+          if (!previewWindow) throw new Error('Your browser blocked the preview window. Allow pop-ups for HomeOfferFlow and try again.');
           const response = await fetch('/api/admin-dashboard?preview_seller_disclosure=' + encodeURIComponent(button.dataset.id), {headers:{Authorization:'Bearer ' + token}});
           if (!response.ok) throw new Error('Private seller preview is unavailable.');
-          const url = URL.createObjectURL(await response.blob()); window.open(url,'_blank','noopener'); setTimeout(() => URL.revokeObjectURL(url),60000);
+          const url = URL.createObjectURL(await response.blob()); previewWindow.location.replace(url); setTimeout(() => URL.revokeObjectURL(url),60000);
         } catch (error) {
+          previewWindow?.close();
           const status = document.getElementById('hofSellerDraftStatus');
           if (status) status.textContent = error.message || 'Private seller preview is unavailable.';
           else window.announceWorkspaceStatus?.(error.message || 'Private seller preview is unavailable.');
