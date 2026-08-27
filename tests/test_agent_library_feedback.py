@@ -36,6 +36,12 @@ class AgentLibraryFeedbackTests(unittest.TestCase):
         self.assertIn('data-start-agent-transaction', INDEX)
         self.assertIn("document.getElementById('agentWorkflowStart')", INDEX)
 
+    def test_private_pdf_previews_open_synchronously_before_fetching(self):
+        """Avoid browser popup blocking after the async authenticated preview fetch."""
+        self.assertEqual(INDEX.count("const previewWindow = window.open('', '_blank');"), 3)
+        self.assertEqual(INDEX.count('previewWindow.location.replace(url);'), 3)
+        self.assertEqual(INDEX.count('previewWindow?.close();'), 3)
+
 
 if __name__ == "__main__":
     unittest.main()
