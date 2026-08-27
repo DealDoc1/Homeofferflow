@@ -102,6 +102,12 @@ class PartnerLandingFunnelTests(unittest.TestCase):
         self.assertIn("const firstIncomplete", quick_start)
         self.assertIn("document.getElementById(firstIncomplete)?.focus()", quick_start)
 
+    def test_homepage_partner_card_uses_the_same_quick_start_path(self):
+        self.assertIn('href="?partner=1&amp;partner_quick_start=1"', INDEX)
+        self.assertIn("openFoundingPartnerModal({ quickStart: true })", INDEX)
+        self.assertIn("function(options = {})", INDEX[INDEX.index("window.openFoundingPartnerModal"):])
+        self.assertIn("options.quickStart || partnerQuickStartRequested()", INDEX)
+
     def test_partner_funnel_measures_required_field_reach_without_collecting_applicant_data(self):
         self.assertIn("function recordPartnerEssentialsFocused()", INDEX)
         self.assertIn("partner_application_essentials_focused", INDEX)

@@ -194,9 +194,9 @@ class PartnerTierUiTests(unittest.TestCase):
         self.assertIn("Founding partner placements from $149", self.html)
         self.assertRegex(
             self.html,
-            r'class="audience-card audience-card-link"[^>]+href="\?partner=1"',
+            r'class="audience-card audience-card-link"[^>]+href="\?partner=1&amp;partner_quick_start=1"',
         )
-        self.assertIn("openFoundingPartnerModal();", self.html)
+        self.assertIn("openFoundingPartnerModal({ quickStart: true });", self.html)
 
     def test_partner_category_list_includes_roofing_and_home_services(self):
         expected_categories = (
