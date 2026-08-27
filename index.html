@@ -8131,9 +8131,14 @@ function routeAfterMagicLinkIfNeeded() {
   }
 
   window.resumableAccountOfferDraft = resumableAccountOfferDraft;
+  // A top-level function declaration is also a window property in this
+  // classic script. Keep a stable reference before exposing the no-argument
+  // UI wrapper; assigning the wrapper directly to the same property would
+  // otherwise make the wrapper call itself until the dashboard overflows.
+  const resumeLocalAccountOfferDraftForRole = resumeLocalAccountOfferDraft;
   window.resumeLocalAccountOfferDraft = function() {
     const role = hofAuth?.role === 'investor' ? 'investor' : 'agent';
-    return resumeLocalAccountOfferDraft(role);
+    return resumeLocalAccountOfferDraftForRole(role);
   };
 
   function refreshResumeOfferCtas() {
