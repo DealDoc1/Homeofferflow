@@ -47,6 +47,16 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("cleanUrl.searchParams.delete('agent')", INDEX)
         self.assertIn("window.openAuthModal?.('agent')", INDEX)
 
+    def test_public_agent_cta_routes_to_question_one_instead_of_assuming_a_buyer_offer(self):
+        start = INDEX.index('function beginOfferFrom(surface)')
+        end = INDEX.index('// Public landing pages', start)
+        entry = INDEX[start:end]
+        self.assertIn("(state?.data?.userType || 'homebuyer') === 'agent'", entry)
+        target = "window.location.assign('/agents?utm_source=homeofferflow&utm_medium=homepage&utm_campaign=agent_workspace')"
+        self.assertIn(target, entry)
+        self.assertLess(entry.index(target), entry.index('startPrimaryOffer();'))
+        self.assertIn("cta: 'Choose Your Transaction'", INDEX)
+
     def test_agent_landing_links_to_lease_workflow_guide(self):
         self.assertIn('href="/texas-lease-offer-workflow"', AGENTS)
         self.assertIn('Read the lease workflow guide', AGENTS)
