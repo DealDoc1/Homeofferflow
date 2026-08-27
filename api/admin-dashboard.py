@@ -3514,9 +3514,9 @@ async def _render_representation_draft_preview(user, agreement_id):
         f"id=eq.{urllib.parse.quote(str(agreement['brokerage_id']))}"
         "&select=id,name,dba_name,license_number&limit=1"
     )
-    profile_rows = await _get(
-        "hof_profiles?"
-        f"id=eq.{urllib.parse.quote(user['id'])}"
+    profile_rows = await _get_optional(
+        "hof_agent_profiles?"
+        f"user_id=eq.{urllib.parse.quote(user['id'])}"
         "&select=agent_name,license_number&limit=1"
     )
     # Library-source drafts are intentionally available to every signed-in
@@ -3726,10 +3726,10 @@ async def _send_txr_agreement_for_signature(user, data):
         f"id=eq.{urllib.parse.quote(brokerage_id)}"
         "&select=id,name,dba_name,legal_name,license_number,contact_name,contact_email&limit=1"
     )
-    profile_rows = await _get(
-        "hof_profiles?"
-        f"id=eq.{urllib.parse.quote(user['id'])}"
-        "&select=id,agent_name,email,license_number&limit=1"
+    profile_rows = await _get_optional(
+        "hof_agent_profiles?"
+        f"user_id=eq.{urllib.parse.quote(user['id'])}"
+        "&select=user_id,agent_name,agent_email,license_number&limit=1"
     )
     brokerage = brokerage_rows[0] if brokerage_rows else {}
     profile = profile_rows[0] if profile_rows else {}
@@ -3742,7 +3742,7 @@ async def _send_txr_agreement_for_signature(user, data):
         agreement,
         client_emails,
         brokerage,
-        {"email": user.get("email") or profile.get("email"), "name": profile.get("agent_name") or user.get("email")},
+        {"email": user.get("email") or profile.get("agent_email"), "name": profile.get("agent_name") or user.get("email")},
     )
     address_label = form_code.replace("-", " ")
     payload = {

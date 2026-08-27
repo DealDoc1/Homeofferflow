@@ -521,6 +521,12 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
         self.assertIn("The approved {agreement.get('form_code') or 'TXR'} source could not be loaded.", backend)
         self.assertIn("Library-source drafts are intentionally available to every signed-in", backend)
         self.assertNotIn('raise RuntimeError("The brokerage record could not be loaded.")', backend)
+        preview_start = backend.index("async def _render_representation_draft_preview")
+        preview_end = backend.index("async def _render_txr_1507_draft_preview", preview_start)
+        preview = backend[preview_start:preview_end]
+        self.assertIn('"hof_agent_profiles?"', preview)
+        self.assertIn("user_id=eq.", preview)
+        self.assertNotIn('"hof_profiles?"', preview)
         self.assertIn('standalone-agreement-private-draft-preview.pdf', backend)
         self.assertNotIn('TXR-1507-private-draft-preview.pdf', backend)
         self.assertIn("Cache-Control", backend)
