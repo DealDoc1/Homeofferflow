@@ -3519,8 +3519,13 @@ async def _render_representation_draft_preview(user, agreement_id):
         f"id=eq.{urllib.parse.quote(user['id'])}"
         "&select=agent_name,license_number&limit=1"
     )
-    if not brokerage_rows:
-        raise RuntimeError("The brokerage record could not be loaded.")
+    # Library-source drafts are intentionally available to every signed-in
+    # agent.  A source can be hosted by the platform library rather than the
+    # agent's own brokerage, so a missing host-brokerage row must not prevent
+    # that agent from privately rendering the draft they own.  Signing still
+    # independently requires an active authorized brokerage membership in
+    # _send_txr_agreement_for_signature.
+    brokerage = brokerage_rows[0] if brokerage_rows else {}
     agreement_data = agreement.get("agreement_data") or {}
     compensation_keys = (
         "purchase_percentage", "purchase_flat_fee", "lease_one_month_percentage",
@@ -3533,16 +3538,16 @@ async def _render_representation_draft_preview(user, agreement_id):
     }
     if agreement.get("form_code") == TXR_1507_FORM_CODE:
         from lib.txr_1507 import render_txr_1507
-        return render_txr_1507(response.content, render_data, brokerage_rows[0], profile_rows[0] if profile_rows else {})
+        return render_txr_1507(response.content, render_data, brokerage, profile_rows[0] if profile_rows else {})
     if agreement.get("form_code") == TXR_1501_FORM_CODE:
         from lib.txr_1501 import render_txr_1501
-        return render_txr_1501(response.content, render_data, brokerage_rows[0], profile_rows[0] if profile_rows else {})
+        return render_txr_1501(response.content, render_data, brokerage, profile_rows[0] if profile_rows else {})
     if agreement.get("form_code") == TXR_1508_FORM_CODE:
         from lib.txr_1508 import render_txr_1508
-        return render_txr_1508(response.content, render_data, brokerage_rows[0], profile_rows[0] if profile_rows else {})
+        return render_txr_1508(response.content, render_data, brokerage, profile_rows[0] if profile_rows else {})
     if agreement.get("form_code") == TXR_1506_FORM_CODE:
         from lib.txr_1506 import render_txr_1506
-        return render_txr_1506(response.content, render_data, brokerage_rows[0])
+        return render_txr_1506(response.content, render_data, brokerage)
     if agreement.get("form_code") == TXR_1905_FORM_CODE:
         from lib.txr_1905 import render_txr_1905
         return render_txr_1905(response.content, render_data)
