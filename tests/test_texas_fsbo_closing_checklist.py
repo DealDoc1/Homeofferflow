@@ -25,7 +25,7 @@ class TexasFsboClosingChecklistTests(unittest.TestCase):
         path = "/texas-fsbo-closing-checklist"
         self.assertIn(f"https://www.homeofferflow.com{path}", SITEMAP)
         self.assertIn(f"'{path}',", WORKER)
-        self.assertIn("homeofferflow-shell-v50", WORKER)
+        self.assertIn("homeofferflow-shell-v51", WORKER)
         self.assertIn('"source": "/texas-fsbo-closing-checklist"', VERCEL)
         self.assertIn('"destination": "/texas-fsbo-closing-checklist.html"', VERCEL)
 

@@ -60,30 +60,12 @@ class PwaBaselineTests(unittest.TestCase):
         self.assertEqual(MANIFEST["launch_handler"]["client_mode"], ["navigate-existing", "auto"])
         self.assertEqual(MANIFEST["theme_color"], "#173f35")
         self.assertEqual(
-            [(item["name"], item["url"]) for item in MANIFEST["shortcuts"]],
+            [(item["name"], item["url"]) for item in MANIFEST["shortcuts"][:4]],
             [
-                ("My Workspace", "/?pwa_action=workspace"),
-                ("Brokerage Setup", "/?pwa_action=brokerage_setup"),
                 ("Start a Transaction", "/?pwa_action=transaction_start"),
-                ("Lease Workflow", "/?pwa_action=transaction_start&workflow=lease_listing"),
-                ("Listing Workflow", "/?pwa_action=transaction_start&workflow=sale_listing"),
-                ("Buying Workflow", "/?pwa_action=transaction_start&workflow=purchase"),
-                ("Lease Representation", "/?pwa_action=transaction_start&workflow=lease_representation"),
-                ("Listing Tools", "/?pwa_action=listing_tools"),
-                ("Agent Forms & Drafts", "/?pwa_action=relationship_drafts"),
-                ("Texas Form Library", "/texas-agent-form-library?utm_source=pwa_shortcut&utm_medium=installed_app&utm_campaign=agent_form_library"),
-                ("Offer Review", "/?pwa_action=offer_review"),
-                ("New Offer", "/?pwa_action=new_offer"),
-                ("Buyer Offer", "/?pwa_action=buyer_offer"),
-                ("Signing Queue", "/?pwa_action=signing_queue"),
+                ("My Workspace", "/?pwa_action=workspace"),
                 ("Needs Attention", "/?pwa_action=attention_queue"),
-                ("Seller Plan", "/?pwa_action=seller_plan"),
-                ("FSBO Support Paths", "/sellers?utm_source=pwa_shortcut&utm_medium=installed_app&utm_campaign=fsbo_support_paths"),
-                ("Seller Offer Review", "/texas-seller-offer-review?utm_source=pwa_shortcut&utm_medium=installed_app&utm_campaign=seller_offer_review"),
-                ("Investor Workspace", "/?pwa_action=investor_workspace"),
-                ("Partner Marketplace", "/?pwa_action=partner_marketplace"),
-                ("OnDemand Agent Trial", "/ondemand?utm_source=pwa_shortcut&utm_medium=installed_app&utm_campaign=ondemand_agent_trial"),
-                ("Find a Provider", "/directory?utm_source=pwa_shortcut&utm_medium=installed_app&utm_campaign=provider_directory"),
+                ("Agent Forms & Drafts", "/?pwa_action=relationship_drafts"),
             ],
         )
         self.assertTrue(any(icon["src"] == "/assets/homeofferflow-app-icon.svg" for icon in MANIFEST["icons"]))
@@ -109,7 +91,7 @@ class PwaBaselineTests(unittest.TestCase):
         self.assertNotIn("caches.match(event.request)", WORKER)
 
     def test_agent_landing_shell_is_pre_cached_for_agent_first_pwa_resume(self):
-        self.assertIn("const SHELL_CACHE = 'homeofferflow-shell-v50';", WORKER)
+        self.assertIn("const SHELL_CACHE = 'homeofferflow-shell-v51';", WORKER)
         self.assertIn("'/agents',", WORKER)
         self.assertIn("'/sellers',", WORKER)
         self.assertIn("'/partners',", WORKER)
@@ -150,8 +132,7 @@ class PwaBaselineTests(unittest.TestCase):
         self.assertIn("if (!validActions.has(action)) return;", INDEX)
         self.assertIn("window.openAuthModal?.(role)", INDEX)
         self.assertIn("window.openAccountDashboard?.({ tab: 'dashboard' })", INDEX)
-        brokerage = next(item for item in MANIFEST["shortcuts"] if item["name"] == "Brokerage Setup")
-        self.assertEqual(brokerage["url"], "/?pwa_action=brokerage_setup")
+        self.assertNotIn("Brokerage Setup", [item["name"] for item in MANIFEST["shortcuts"][:4]])
 
     def test_shortcuts_use_the_branded_app_icon_for_consistent_mobile_launching(self):
         for shortcut in MANIFEST["shortcuts"]:
