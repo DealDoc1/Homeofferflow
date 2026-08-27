@@ -30,6 +30,7 @@ class FsboIntakeConversionTests(unittest.TestCase):
         self.assertIn('id="fsboSellerQuickSubmit"', HTML)
         self.assertIn("Get My Free Seller Plan", HTML)
         self.assertIn("No checkout or service commitment.", HTML)
+        self.assertIn("No checkout. Optional details can wait.", HTML)
         self.assertIn('id="fsboRequiredReadyCue"', HTML)
         self.assertIn("function renderFsboRequiredReadyCue", HTML)
         self.assertIn("Your address and email are complete", HTML)
@@ -37,6 +38,12 @@ class FsboIntakeConversionTests(unittest.TestCase):
         self.assertIn("One quick question: what would help most right now?", HTML)
         self.assertIn("selectFsboGuidedGoal", HTML)
         self.assertIn("fsboGuidedGoalPackages", HTML)
+
+    def test_primary_seller_action_does_not_repeat_the_intake_explanation(self):
+        action_start = HTML.index('id="fsboSellerQuickSubmit"')
+        action_section = HTML[HTML.rfind('<div class="notice sage"', 0, action_start):action_start]
+        self.assertIn("No checkout. Optional details can wait.", action_section)
+        self.assertNotIn("Ready when you are.", action_section)
 
     def test_seller_funnel_events_are_analytics_only_and_never_include_identity(self):
         start = HTML.index("const fsboFunnel =")
