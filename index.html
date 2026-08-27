@@ -5063,7 +5063,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <div class="admin-metric-value">${metrics.partnerLeadCount || partnerLeads.length || 0}</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.partnerLandingViewCount || 0} partner landing views · ${metrics.partnerLandingCtaCount || 0} CTA selections (${Number(metrics.partnerLandingCtaRate || 0).toFixed(1)}%).</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.partnerApplicationOpenCount || 0} new application modal open${Number(metrics.partnerApplicationOpenCount || 0) === 1 ? '' : 's'} (${Number(metrics.partnerApplicationOpenRate || 0).toFixed(1)}% of landing CTA selections).</div>
-            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.partnerApplicationEssentialsFocusCount || 0} reached a required field (${Number(metrics.partnerApplicationEssentialsFocusRate || 0).toFixed(1)}% of application opens).</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Partner form progress: ${metrics.partnerApplicationEssentialsFocusCount || 0} reached an essential · ${metrics.partnerApplicationEssentialsReadyCount || 0} completed the five essentials · ${metrics.partnerApplicationCheckoutReadyCount || 0} acknowledged terms and unlocked checkout · ${metrics.partnerApplicationSaveFailureCount || 0} application-save failures · ${metrics.partnerCheckoutStartFailureCount || 0} checkout-start failures.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:${Number(metrics.partnerApplicationReceiptFailureCount || 0) ? 'var(--gold-light)' : 'var(--gray-light)'}">Partner-application receipts: ${Number(metrics.partnerApplicationReceiptSentCount || 0)} accepted by the delivery provider · ${Number(metrics.partnerApplicationReceiptFailureCount || 0)} unavailable or failed.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Directory acquisition: ${metrics.partnerDirectoryPricingSelectionCount || 0} pricing-and-placement view${Number(metrics.partnerDirectoryPricingSelectionCount || 0) === 1 ? '' : 's'} · ${metrics.partnerDirectoryApplicationStartCount || 0} partner application start${Number(metrics.partnerDirectoryApplicationStartCount || 0) === 1 ? '' : 's'} from the public directory.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Unfilled provider demand: ${Number(metrics.partnerDirectoryEmptySearchCount || 0)} category search${Number(metrics.partnerDirectoryEmptySearchCount || 0) === 1 ? '' : 'es'} with no active profile · ${adminSafe(Object.entries(metrics.partnerDirectoryEmptySearchCategoryCounts || {}).map(([category, count]) => `${category.replace(/_/g, ' ')} (${count})`).join(' · '), 'category demand begins with the next selected empty search')}.</div>
@@ -14688,6 +14688,15 @@ function routeAfterMagicLinkIfNeeded() {
     const progress = partnerEssentialProgress();
     const consent = !!document.getElementById('foundingPartnerConsent')?.checked;
     const ready = hasSavedApplication || (progress.ready && consent);
+    // Record stages, not applicant values. This identifies whether a partner
+    // stops before completing the five essentials, before consent, or after
+    // the application is sent to the server.
+    if (!hasSavedApplication && progress.ready) {
+      recordPartnerApplicationProgress('partner_application_essentials_ready');
+    }
+    if (!hasSavedApplication && progress.ready && consent) {
+      recordPartnerApplicationProgress('partner_application_checkout_ready');
+    }
     const tier = value('foundingPartnerModel') || 'founding_pilot';
     const detail = partnerTierDetails[tier] || partnerTierDetails.founding_pilot;
     const submit = document.getElementById('foundingPartnerSubmit');
@@ -14929,6 +14938,7 @@ function routeAfterMagicLinkIfNeeded() {
       submit.textContent = hasSavedPartnerApplication ? 'Opening secure checkout…' : 'Saving application…';
     }
     if (status) { status.textContent = hasSavedPartnerApplication ? 'Resuming secure checkout...' : 'Saving your application...'; status.className = 'platform-status'; }
+    let applicationSavedNow = false;
     try {
       let partnerLeadId = window.__hofFoundingPartnerLeadId || '';
       if (!partnerLeadId) {
@@ -14940,6 +14950,7 @@ function routeAfterMagicLinkIfNeeded() {
         const result = await response.json().catch(() => ({}));
         if (!response.ok || !result.partner_lead_id) throw new Error(result.error || 'Could not submit partner interest.');
         partnerLeadId = result.partner_lead_id;
+        applicationSavedNow = true;
         window.__hofFoundingPartnerLeadId = partnerLeadId;
         clearPartnerApplicationDraft();
         if (payload.preferred_model === 'discuss') {
@@ -14974,6 +14985,11 @@ function routeAfterMagicLinkIfNeeded() {
       window.location.assign(checkout.url);
     } catch (error) {
       trackPartnerFunnel('Founding Partner Checkout Failed', { tier: payload.preferred_model });
+      recordPartnerApplicationProgress(
+        !hasSavedPartnerApplication && !applicationSavedNow
+          ? 'partner_application_save_failed'
+          : 'partner_checkout_start_failed'
+      );
       if (status) { status.textContent = error?.message || String(error); status.className = 'platform-status err'; }
       if (submit) {
         submit.disabled = false;

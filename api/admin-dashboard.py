@@ -4177,6 +4177,10 @@ class handler(BaseHTTPRequestHandler):
                 "partner_application_tier_selected",
                 "partner_application_essentials_opened",
                 "partner_application_essentials_focused",
+                "partner_application_essentials_ready",
+                "partner_application_checkout_ready",
+                "partner_application_save_failed",
+                "partner_checkout_start_failed",
                 "partner_guide_expanded",
                 "partner_directory_application_selected",
                 "partner_directory_pricing_selected",
@@ -4202,6 +4206,18 @@ class handler(BaseHTTPRequestHandler):
             ])
             partner_application_essentials_focus_count = len([
                 item for item in partner_landing_events if item.get("event_type") == "partner_application_essentials_focused"
+            ])
+            partner_application_essentials_ready_count = len([
+                item for item in partner_landing_events if item.get("event_type") == "partner_application_essentials_ready"
+            ])
+            partner_application_checkout_ready_count = len([
+                item for item in partner_landing_events if item.get("event_type") == "partner_application_checkout_ready"
+            ])
+            partner_application_save_failure_count = len([
+                item for item in partner_landing_events if item.get("event_type") == "partner_application_save_failed"
+            ])
+            partner_checkout_start_failure_count = len([
+                item for item in partner_landing_events if item.get("event_type") == "partner_checkout_start_failed"
             ])
             partner_guide_expanded_count = len([
                 item for item in partner_landing_events if item.get("event_type") == "partner_guide_expanded"
@@ -5671,6 +5687,10 @@ class handler(BaseHTTPRequestHandler):
                 "partnerApplicationTierSelectedCount": partner_application_tier_selected_count,
                 "partnerApplicationEssentialsOpenCount": partner_application_essentials_open_count,
                 "partnerApplicationEssentialsFocusCount": partner_application_essentials_focus_count,
+                "partnerApplicationEssentialsReadyCount": partner_application_essentials_ready_count,
+                "partnerApplicationCheckoutReadyCount": partner_application_checkout_ready_count,
+                "partnerApplicationSaveFailureCount": partner_application_save_failure_count,
+                "partnerCheckoutStartFailureCount": partner_checkout_start_failure_count,
                 "partnerGuideExpandedCount": partner_guide_expanded_count,
                 "partnerApplicationEssentialsFocusRate": round(
                     (partner_application_essentials_focus_count / partner_application_open_count) * 100, 1

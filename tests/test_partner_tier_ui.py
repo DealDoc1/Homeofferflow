@@ -101,6 +101,15 @@ class PartnerTierUiTests(unittest.TestCase):
         self.assertIn("submit.setAttribute('aria-busy', 'false')", submit)
         self.assertIn("renderFoundingPartnerCheckoutAvailability();", submit)
 
+    def test_checkout_failure_metrics_distinguish_save_from_checkout_handoff(self):
+        start = self.html.index("window.submitFoundingPartnerLead")
+        end = self.html.index("function setupPartnerOnboardingModal", start)
+        submit = self.html[start:end]
+        self.assertIn("let applicationSavedNow = false;", submit)
+        self.assertIn("applicationSavedNow = true;", submit)
+        self.assertIn("partner_application_save_failed", submit)
+        self.assertIn("partner_checkout_start_failed", submit)
+
     def test_checkout_status_is_announced_atomically(self):
         self.assertIn('id="foundingPartnerStatus" class="platform-status" role="status" aria-live="polite" aria-atomic="true"', self.html)
 
@@ -157,6 +166,10 @@ class PartnerTierUiTests(unittest.TestCase):
             "Founding Partner Checkout Failed",
         ):
             self.assertIn(event, self.html)
+        self.assertIn("partner_application_essentials_ready", self.html)
+        self.assertIn("partner_application_checkout_ready", self.html)
+        self.assertIn("partner_application_save_failed", self.html)
+        self.assertIn("partner_checkout_start_failed", self.html)
         self.assertIn("window.selectFoundingPartnerTier('founding_pilot', false)", self.html)
 
     def test_selected_tier_makes_the_secure_checkout_handoff_explicit(self):
