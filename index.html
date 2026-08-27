@@ -14537,7 +14537,7 @@ function routeAfterMagicLinkIfNeeded() {
     <label class="terms-check" style="margin-top:.8rem;"><input type="checkbox" id="foundingPartnerConsent"><span>I understand the discounted 90-day launch period begins at checkout and my plan then renews monthly at the standard rate unless I cancel. Placement does not promise referrals, leads, exclusivity, transactions, or closings, and final terms require a written agreement.</span></label>
 
     <div class="account-actions-row" style="margin-top:1rem;">
-      <button class="btn-primary" type="button" id="foundingPartnerSubmit" onclick="submitFoundingPartnerLead()" disabled aria-disabled="true" aria-label="Continue to Secure Checkout — complete the required details and acknowledge the terms to unlock">Complete required details to unlock</button>
+      <button class="btn-primary" type="button" id="foundingPartnerSubmit" onclick="submitFoundingPartnerLead()" disabled aria-disabled="true" aria-label="Continue to Secure Checkout — complete the essentials and acknowledge the terms">Complete the next step to continue</button>
       <button class="btn-secondary" type="button" onclick="closeFoundingPartnerModal()">Cancel</button>
     </div>
     <div id="foundingPartnerCheckoutNote" class="admin-muted" style="margin-top:.55rem;line-height:1.45;">Next: review the selected Founding Partner price and payment details in secure Stripe Checkout. Your placement stays private until onboarding and written-agreement review are complete.</div>
@@ -14708,15 +14708,15 @@ function routeAfterMagicLinkIfNeeded() {
         : !progress.ready
           ? `<strong>Step 1 of 2:</strong> Complete the five essentials (${progress.complete} of 5 complete) to prepare secure checkout. Your placement remains private until onboarding and agreement review are complete.`
           : !consent
-            ? '<strong>Step 2 of 2:</strong> Review and acknowledge the founding-partner terms below to unlock secure checkout.'
+            ? '<strong>Step 2 of 2:</strong> Review and acknowledge the founding-partner terms below, then continue to secure checkout.'
             : '<strong>You’re ready.</strong> Review the selected tier and payment details in secure Stripe Checkout. Your placement remains private until onboarding and agreement review are complete.';
     }
     if (!submit) return;
     submit.disabled = !ready;
     submit.setAttribute('aria-disabled', ready ? 'false' : 'true');
     const enabledLabel = hasSavedApplication ? 'Resume Secure Checkout — saved application' : `Continue to Secure Checkout — ${detail.label}`;
-    submit.setAttribute('aria-label', ready ? enabledLabel : 'Continue to Secure Checkout — complete the required details and acknowledge the terms to unlock');
-    submit.textContent = ready ? enabledLabel : 'Complete required details to unlock';
+    submit.setAttribute('aria-label', ready ? enabledLabel : 'Continue to Secure Checkout — complete the essentials and acknowledge the terms');
+    submit.textContent = ready ? enabledLabel : 'Complete the next step to continue';
   }
   function campaignPartnerCategory(){
     const category = String(params().get('partner_category') || '').trim().toLowerCase();

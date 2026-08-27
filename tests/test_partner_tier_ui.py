@@ -88,9 +88,9 @@ class PartnerTierUiTests(unittest.TestCase):
         self.assertIn('id="foundingPartnerRequiredCue"', self.html)
         self.assertIn("function partnerEssentialProgress()", self.html)
         self.assertIn("Complete the five essentials (${progress.complete} of 5 complete)", self.html)
-        self.assertIn("Review and acknowledge the founding-partner terms below to unlock secure checkout.", self.html)
+        self.assertIn("Review and acknowledge the founding-partner terms below, then continue to secure checkout.", self.html)
         self.assertIn("document.getElementById('foundingPartnerConsent')?.addEventListener('change', () => { savePartnerApplicationDraft(); renderFoundingPartnerCheckoutAvailability(); });", self.html)
-        self.assertIn("Complete required details to unlock", self.html)
+        self.assertIn("Complete the next step to continue", self.html)
 
     def test_checkout_submit_exposes_busy_state_and_restores_after_failure(self):
         start = self.html.index("window.submitFoundingPartnerLead")
