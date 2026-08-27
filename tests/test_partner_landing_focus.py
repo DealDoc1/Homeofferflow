@@ -17,6 +17,12 @@ class PartnerLandingFocusTests(unittest.TestCase):
         self.assertIn('partner_guide_expanded', script)
         self.assertIn('pwa_shortcut', script)
 
+    def test_partner_landing_combines_application_and_resume_reassurance(self):
+        page = (ROOT / 'partners.html').read_text(encoding='utf-8')
+        self.assertIn('Start free. Decide later.', page)
+        self.assertIn('submitted applications can resume the same checkout later', page)
+        self.assertNotIn('No need to finish in one sitting.', page)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -54,8 +54,8 @@ class PartnerLandingFunnelTests(unittest.TestCase):
 
     def test_partner_page_reduces_checkout_uncertainty_without_changing_price_or_claims(self):
         self.assertIn("Start no-charge application", PARTNERS)
-        self.assertIn("Start with a no-charge application", PARTNERS)
-        self.assertIn("No need to finish in one sitting", PARTNERS)
+        self.assertIn("Start free. Decide later.", PARTNERS)
+        self.assertIn("submitted applications can resume the same checkout later", PARTNERS)
         self.assertIn("/texas-home-service-partner-guide", PARTNERS)
         guide = (ROOT / "texas-home-service-partner-guide.html").read_text(encoding="utf-8")
         self.assertIn("Texas home-service partner placement guide", guide)
@@ -87,7 +87,7 @@ class PartnerLandingFunnelTests(unittest.TestCase):
 
     def test_partner_page_can_open_the_existing_essential_fields_without_skipping_disclosures(self):
         self.assertIn("partner_quick_start=1", PARTNERS)
-        self.assertIn("it takes about a minute", PARTNERS)
+        self.assertIn("in about a minute", PARTNERS)
         self.assertIn("function partnerQuickStartRequested()", INDEX)
         self.assertIn("window.jumpToFoundingPartnerEssentials?.()", INDEX)
         self.assertIn("All essentials, consent, and the secure", INDEX)
