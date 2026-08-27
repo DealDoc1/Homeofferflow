@@ -209,6 +209,7 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("AGENT_LANDING_EVENT_TYPES", API)
         self.assertIn("def _record_agent_landing_event(data):", API)
         self.assertIn('"agent_landing_viewed": "viewed"', API)
+        self.assertIn('"agent_landing_question_one_viewed": "question_one_viewed"', API)
         self.assertIn('"agent_landing_question_one_opened": "opened"', API)
         self.assertIn('"agent_landing_cta_selected": "selected"', API)
         self.assertIn('"agent_workflow_guide_viewed": "viewed"', API)
@@ -234,6 +235,7 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("cta_path=ctaPath", AGENTS)
         self.assertIn("request_type:'agent_landing_event'", AGENTS)
         self.assertIn("agent_landing_viewed", AGENTS)
+        self.assertIn("agent_landing_question_one_viewed", AGENTS)
         self.assertIn("agent_landing_question_one_opened", AGENTS)
         self.assertIn("agentQuestionOneCta", AGENTS)
         self.assertIn("agent_landing_cta_selected", AGENTS)
@@ -256,19 +258,22 @@ class AgentLandingFunnelTests(unittest.TestCase):
             api._record_agent_landing_event({"event_type": "agent_landing_cta_selected", "channel": "referral", "cta_path": "listing_guide"})
             api._record_agent_landing_event({"event_type": "agent_landing_cta_selected", "channel": "referral", "cta_path": "lease_guide"})
             api._record_agent_landing_event({"event_type": "agent_landing_question_one_opened", "channel": "referral"})
+            api._record_agent_landing_event({"event_type": "agent_landing_question_one_viewed", "channel": "referral"})
             with self.assertRaisesRegex(ValueError, "Unsupported agent landing channel"):
                 api._record_agent_landing_event({"event_type": "agent_landing_viewed", "channel": "untrusted"})
             with self.assertRaisesRegex(ValueError, "Unsupported agent landing CTA path"):
                 api._record_agent_landing_event({"event_type": "agent_landing_cta_selected", "channel": "referral", "cta_path": "untrusted"})
             with self.assertRaisesRegex(ValueError, "CTA path is only allowed"):
                 api._record_agent_landing_event({"event_type": "agent_landing_viewed", "channel": "referral", "cta_path": "client_draft"})
-        self.assertEqual(len(captured), 4)
+        self.assertEqual(len(captured), 5)
         self.assertEqual(captured[0][0], "agent_landing_cta_selected")
         self.assertEqual(captured[0][3], {"surface": "agent_landing", "role": "agent", "channel": "referral", "ctaPath": "seller_listing"})
         self.assertEqual(captured[1][3]["ctaPath"], "listing_guide")
         self.assertEqual(captured[2][3]["ctaPath"], "lease_guide")
         self.assertEqual(captured[3][0], "agent_landing_question_one_opened")
         self.assertEqual(captured[3][3], {"surface": "agent_landing", "role": "agent", "channel": "referral"})
+        self.assertEqual(captured[4][0], "agent_landing_question_one_viewed")
+        self.assertEqual(captured[4][3], {"surface": "agent_landing", "role": "agent", "channel": "referral"})
 
     def test_agent_transaction_selector_campaign_is_allowlisted_and_aggregate_only(self):
         spec = importlib.util.spec_from_file_location("agent_landing_campaign", API_PATH)
@@ -323,7 +328,7 @@ class AgentLandingFunnelTests(unittest.TestCase):
 
     def test_admin_reports_agent_workspace_landing_conversion(self):
         for expected in (
-            '"agentLandingViewCount"', '"agentLandingQuestionOneOpenCount"', '"agentLandingQuestionOneOpenRate"', '"agentLandingCtaCount"', '"agentLandingCtaRate"',
+            '"agentLandingViewCount"', '"agentLandingQuestionOneViewCount"', '"agentLandingQuestionOneViewRate"', '"agentLandingQuestionOneOpenCount"', '"agentLandingQuestionOneOpenRate"', '"agentLandingCtaCount"', '"agentLandingCtaRate"',
             '"agentLandingViewCountsByChannel"', '"agentLandingCtaCountsByChannel"',
             '"agentLandingCtaRatesByChannel"',
             '"agentResourceLinksExpandedCount"',
@@ -342,6 +347,7 @@ class AgentLandingFunnelTests(unittest.TestCase):
             self.assertIn(expected, ADMIN)
         self.assertIn("Agent Workspace Funnel", INDEX)
         self.assertIn("agentLandingCtaRate", INDEX)
+        self.assertIn("agentLandingQuestionOneViewRate", INDEX)
         self.assertIn("agentLandingQuestionOneOpenRate", INDEX)
         self.assertIn("Channel views / sign-ins", INDEX)
         self.assertIn("Agent channel conversion:", INDEX)
