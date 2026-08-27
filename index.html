@@ -5112,7 +5112,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Intake progress: ${Number(metrics.sellerIntakeEventCounts?.fsbo_intake_opened || 0)} opened · ${Number(metrics.sellerIntakeEventCounts?.fsbo_package_selected || 0)} package choices · ${Number(metrics.sellerIntakeEventCounts?.fsbo_required_fields_missing || 0)} incomplete attempts · ${Number(metrics.sellerIntakeEventCounts?.fsbo_request_submission_started || 0)} submissions started · ${Number(metrics.sellerIntakeEventCounts?.fsbo_request_saved || 0)} saved · ${Number(metrics.sellerPlanDownloadCount || 0)} plans downloaded · ${Number(metrics.sellerPlanCopiedCount || 0)} plans copied.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Selected package interest: ${adminSafe(Object.entries(metrics.sellerPackageSelectionCounts || {}).map(([packageKey, count]) => `${packageKey.replace(/_/g, ' ')} (${count})`).join(' · '), 'package choices will appear after the next intake visit')}</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:${Number(metrics.sellerPlanReceiptFailureCount || 0) ? 'var(--gold-light)' : 'var(--gray-light)'}">Seller-plan receipts: ${Number(metrics.sellerPlanReceiptSentCount || 0)} accepted by the delivery provider · ${Number(metrics.sellerPlanReceiptFailureCount || 0)} unavailable or failed.</div>
-            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Address + email ready: ${Number(metrics.sellerRequiredReadyCount || 0)} · ready-to-save conversion: ${Number(metrics.sellerReadyToSaveRate || 0).toFixed(1)}%.</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Field progress: ${Number(metrics.sellerAddressStartedCount || 0)} address starts · ${Number(metrics.sellerEmailStartedCount || 0)} email starts · ${Number(metrics.sellerRequiredReadyCount || 0)} address + email ready (${Number(metrics.sellerRequiredReadyRate || 0).toFixed(1)}% of address starts) · ${Number(metrics.sellerReadyToSaveRate || 0).toFixed(1)}% ready-to-save · ${Number(metrics.sellerRequestSaveFailureCount || 0)} save failures.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Landing-path interest: ${adminSafe(Object.entries(metrics.sellerLandingPackageCtaCounts || {}).map(([packageKey, count]) => `${packageKey.replace(/_/g, ' ')} (${count})`).join(' · '), 'starts will appear after the next seller-page visit')}</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.sellerFollowUpEmailStartCount || 0} seller follow-up emails opened · ${Number(metrics.sellerFollowUpEmailStartRate || 0).toFixed(1)}% of seller leads.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.sellerReviewRequestCount || 0} seller disclosure review requests initiated · ${metrics.sellerReviewViewedCount || 0} opened · ${metrics.sellerReviewVerifiedCount || 0} verified · ${metrics.sellerReviewAttestationCount || 0} attested.</div>
@@ -13748,7 +13748,7 @@ function routeAfterMagicLinkIfNeeded() {
 
 <script>
 (function(){
-  const fsboFunnel = { requiredReady: false, returnFocus: null };
+  const fsboFunnel = { addressStarted: false, emailStarted: false, requiredReady: false, returnFocus: null };
   const fsboCampaignPackages = new Set(['free_intake','seller_prep','launch_kit','flat_fee_mls','offer_review','contract_help','premium_bundle']);
   // Keep seller-side provider interests allowlisted before they are saved in
   // the draft, submitted to the intake API, or included in the download.
@@ -13762,12 +13762,15 @@ function routeAfterMagicLinkIfNeeded() {
     try { trackEvent(name, data); } catch (_) {}
     const eventType = {
       'FSBO Seller Intake Opened': 'fsbo_intake_opened',
+      'FSBO Seller Address Started': 'fsbo_address_started',
+      'FSBO Seller Email Started': 'fsbo_email_started',
       'FSBO Seller Intake Required Fields Ready': 'fsbo_required_fields_ready',
       'FSBO Seller Package Selected': 'fsbo_package_selected',
       'FSBO Seller Goal Selected': 'fsbo_goal_selected',
       'FSBO Seller Intake Required Fields Missing': 'fsbo_required_fields_missing',
       'FSBO Seller Request Submission Started': 'fsbo_request_submission_started',
       'FSBO Seller Request Saved': 'fsbo_request_saved',
+      'FSBO Seller Request Save Failed': 'fsbo_request_save_failed',
       'FSBO Seller Plan Downloaded': 'fsbo_seller_plan_downloaded',
       'FSBO Seller Plan Copied': 'fsbo_seller_plan_copied'
     }[name];
@@ -13862,6 +13865,16 @@ function routeAfterMagicLinkIfNeeded() {
     }
   }
   function trackFsboRequiredFieldsReady(){
+    // Measure only the stage reached, never the typed address or email. This
+    // lets the team tell a true field-friction drop-off from a save failure.
+    if (!fsboFunnel.addressStarted && fsboVal('fsboPropertyAddress')) {
+      fsboFunnel.addressStarted = true;
+      trackFsboFunnel('FSBO Seller Address Started');
+    }
+    if (!fsboFunnel.emailStarted && fsboVal('fsboSellerEmail')) {
+      fsboFunnel.emailStarted = true;
+      trackFsboFunnel('FSBO Seller Email Started');
+    }
     renderFsboRequiredReadyCue();
     if (fsboFunnel.requiredReady || !fsboRequiredFieldsReady()) return;
     fsboFunnel.requiredReady = true;
