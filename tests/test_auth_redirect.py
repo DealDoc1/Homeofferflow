@@ -13,6 +13,8 @@ class AuthRedirectTests(unittest.TestCase):
             HTML,
         )
         self.assertIn("const HOF_IS_LOCAL_ORIGIN", HTML)
+        self.assertIn("const HOF_IS_TXR_QA_PREVIEW", HTML)
+        self.assertIn("new URLSearchParams(window.location.search).get('txr_qa') === '1'", HTML)
         self.assertIn("emailRedirectTo: SUPABASE_REDIRECT_URL", HTML)
 
     def test_hosted_context_uses_the_canonical_production_return(self):
@@ -30,7 +32,6 @@ class AuthRedirectTests(unittest.TestCase):
         redirect_end = HTML.index("const HOF_ADMIN_EMAILS", redirect_start)
         redirect_config = HTML[redirect_start:redirect_end]
 
-        self.assertNotIn("window.location.search", redirect_config)
         self.assertNotIn("window.location.hash", redirect_config)
 
 
