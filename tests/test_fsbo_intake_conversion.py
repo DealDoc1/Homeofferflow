@@ -15,6 +15,13 @@ class FsboIntakeConversionTests(unittest.TestCase):
         self.assertIn("Property address and email are all we need", HTML)
         self.assertIn("Manual entry still works.", HTML)
         self.assertIn('placeholder="123 Main St, City, TX ZIP"', HTML)
+
+    def test_seller_entry_uses_consumer_plan_language_not_internal_lead_capture_terms(self):
+        self.assertIn("Build a simple Texas <em>FSBO seller plan</em>.", HTML)
+        self.assertIn("Start Your Free Plan", HTML)
+        self.assertIn("Free Seller Plan →", HTML)
+        self.assertIn("No checkout, commitment, or pressure to choose a service.", HTML)
+        self.assertNotIn("FSBO path is lead capture only", HTML)
         self.assertIn('id="fsboAddressHelp"', HTML)
         self.assertIn('id="fsboPropertyAddress"', HTML)
         self.assertIn('id="fsboSellerEmail"', HTML)
