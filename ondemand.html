@@ -154,6 +154,9 @@
     .scope-card.included h3 { color:#bce8d0; }
     .scope-card.not-yet h3 { color:var(--gold-2); }
     .scope-note { color:var(--muted); font-size:13px; line-height:1.55; margin:17px 0 0; }
+    .scope-details { margin-top:17px; border-top:1px solid var(--line); padding-top:15px; color:var(--muted); font-size:14px; line-height:1.55; }
+    .scope-details summary { cursor:pointer; color:#dce7ef; font-weight:700; }
+    .scope-details p { margin:10px 0 0; }
     .faq { margin:34px 0 0; padding:28px; border:1px solid var(--line); border-radius:20px; background:rgba(7,17,29,.48); }
     .faq h2 { font-family:"Playfair Display",serif; font-size:clamp(28px,4vw,40px); margin:10px 0 10px; }
     .faq-intro { color:var(--muted); margin:0 0 15px; line-height:1.55; }
@@ -270,22 +273,27 @@
     </section>
 
     <section class="scope" id="launch-scope" aria-labelledby="scopeTitle">
-      <div class="scope-kicker">Please read before enrolling</div>
-      <h2 id="scopeTitle">Built for buyer offers, private review drafts, and the shared agent form library.</h2>
+      <div class="scope-kicker">Your plan at a glance</div>
+      <h2 id="scopeTitle">Start an offer today. Keep every next step clear.</h2>
       <p class="scope-intro">
-        The OnDemand launch helps agents prepare the current HomeOfferFlow purchase-offer packet and its supported purchase addenda, including a Seller Temporary Residential Lease when seller post-closing possession applies. Every form released in the universal library is available to every signed-in agent; the account does not assign forms one brokerage or agent at a time. Signed-in agents can also start private review drafts for the currently approved relationship, consumer-notice, seller-disclosure, seller-financing, and mineral-reservation workflows. It is not yet a complete transaction-form library or transaction-management system.
+        Your OnDemand account includes HomeOfferFlow’s guided buyer-offer interview, supported purchase addenda, buyer electronic-signature delivery, and the shared agent form library. Choose the transaction first; HomeOfferFlow keeps the next questions focused on that work.
       </p>
       <div class="scope-grid">
         <article class="scope-card included">
-          <h3>Included in this launch</h3>
-          <p>Guided buyer offer preparation, currently supported purchase addenda, Seller Temporary Residential Lease when applicable, buyer electronic-signature delivery, private review drafts for currently approved agent workflows, and an OnDemand-connected agent account.</p>
+          <h3>Included</h3>
+          <p>Guided buyer offer preparation, supported purchase addenda, seller temporary lease when applicable, buyer e-signature delivery, and private drafts for approved agent workflows.</p>
         </article>
         <article class="scope-card not-yet">
-          <h3>Use the stated workflow for each form</h3>
-          <p>Private review drafts are available for currently approved relationship, consumer-notice, and seller-disclosure work. Only a form that specifically offers a separate signature queue can be sent from HomeOfferFlow. Continue using your brokerage-approved workflow for listing agreements and any document outside its stated live scope.</p>
+          <h3>Private form drafts stay private</h3>
+          <p>Use a signature queue only when that form offers one. For listing agreements or any workflow not marked ready to send, continue with your brokerage-approved process.</p>
         </article>
       </div>
-      <p class="scope-note">HomeOfferFlow expands the agent form library in stages, with source-form accuracy, signing roles, visual PDF QA, and transaction-specific safeguards before each form is released. Once released, the form is shared across the agent library. Any restricted Texas REALTORS® / NAR member-form workflow still requires its applicable authorization, individual agent attestation, and approved private source revision before it can be used.</p>
+      <p class="scope-note">Every signed-in agent can access released shared-library workflows. HomeOfferFlow labels whether a form is a private draft or has a signature queue, so you know the right next action before you begin.</p>
+      <details class="scope-details">
+        <summary>See full release and review scope</summary>
+        <p>The current purchase-offer packet includes supported purchase addenda and a Seller Temporary Residential Lease when seller post-closing possession applies. Private review drafts are available for currently approved relationship, consumer-notice, seller-disclosure, seller-financing, and mineral-reservation workflows. HomeOfferFlow is not yet a complete transaction-form library: use your brokerage-approved workflow for listing agreements and anything outside its stated live scope.</p>
+        <p>For restricted Texas REALTORS® / NAR member-form workflows, use the applicable authorization, individual agent attestation, and approved private source revision before use.</p>
+      </details>
     </section>
 
     <section class="faq" aria-labelledby="launchQuestions">
