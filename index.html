@@ -8174,6 +8174,13 @@ function routeAfterMagicLinkIfNeeded() {
       userType: state?.data?.userType || 'homebuyer',
       source: entrySource
     });
+    // The public agent CTA must start with the transaction decision, never
+    // silently open a buyer-offer wizard. The dedicated page asks Question 1
+    // before any form, profile, or transaction detail is requested.
+    if ((state?.data?.userType || 'homebuyer') === 'agent') {
+      window.location.assign('/agents?utm_source=homeofferflow&utm_medium=homepage&utm_campaign=agent_workspace');
+      return;
+    }
     startPrimaryOffer();
   }
   // Public landing pages and installed-app shortcuts use the explicit window
@@ -11065,8 +11072,8 @@ function routeAfterMagicLinkIfNeeded() {
       agent: {
         headline: 'Write supported Texas <em>offers faster</em>.',
         sub: 'Prepare client-ready Texas buyer-offer packets from your phone with guided questions, supported purchase addenda, buyer-side e-signature, and saved profiles.',
-        cta: 'Start Agent Draft',
-        nav: 'Start Agent Draft →',
+        cta: 'Choose Your Transaction',
+        nav: 'Choose Transaction →',
         priceNote: 'Built for supported Texas buyer-offer packets, buyer-side e-signature, and repeat-use agent workflows. <strong>Every signed-in agent can start private relationship, finance, environmental, mineral, and seller-disclosure review drafts, including TXR-1501, TXR-1506, TXR-1507, TXR-1508, TXR-1905, TXR-1914, TXR-1917, TXR-1919, TREC-55-1, and TREC-61-0. The signing queue identifies the signer and requires explicit recipient confirmation before sending; listing agreements remain outside the stated live scope.</strong>'
       },
       investor: {
@@ -16881,7 +16888,7 @@ function routeAfterMagicLinkIfNeeded() {
       agent: {
         headline: 'A clearer Texas buyer-offer workflow for <em>agents & brokers</em>.',
         sub: 'Create supported Texas buyer-offer packets from your phone, send buyer-side signatures, track status, duplicate prior offers, and collect broker-reviewed feedback.',
-        cta: 'Open Agent / Broker Workspace', nav: 'Agent / Broker Login →', note: 'Built for broker-supervised beta testing. <strong>Buyer-side offer packets are live, and every signed-in agent can start private relationship, finance, environmental, mineral, and seller-disclosure review drafts, including TXR-1501, TXR-1506, TXR-1507, TXR-1508, TXR-1905, TXR-1914, TXR-1917, TXR-1919, TREC-55-1, and TREC-61-0. The signing queue identifies the signer and requires explicit recipient confirmation before sending; listing agreements remain outside the stated live scope.</strong> <a href="/ondemand?utm_source=agent_workspace&amp;utm_medium=workspace&amp;utm_campaign=agent_acquisition" onclick="window.recordOnDemandTrialEntry?.(\'agent_hero_inline\');">OnDemand Realty agent? Start your 60-day free trial (card required) →</a>'
+        cta: 'Choose Your Transaction', nav: 'Choose Transaction →', note: 'Built for broker-supervised beta testing. <strong>Buyer-side offer packets are live, and every signed-in agent can start private relationship, finance, environmental, mineral, and seller-disclosure review drafts, including TXR-1501, TXR-1506, TXR-1507, TXR-1508, TXR-1905, TXR-1914, TXR-1917, TXR-1919, TREC-55-1, and TREC-61-0. The signing queue identifies the signer and requires explicit recipient confirmation before sending; listing agreements remain outside the stated live scope.</strong> <a href="/ondemand?utm_source=agent_workspace&amp;utm_medium=workspace&amp;utm_campaign=agent_acquisition" onclick="window.recordOnDemandTrialEntry?.(\'agent_hero_inline\');">OnDemand Realty agent? Start your 60-day free trial (card required) →</a>'
       },
       investor: {
         headline: 'Make more <em>investment offers</em> with less retyping.',
