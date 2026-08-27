@@ -37,6 +37,13 @@ class TexasSellerNetProceedsCalculatorTests(unittest.TestCase):
         self.assertIn("utm_campaign=seller_planning", SELLERS)
         self.assertIn("utm_campaign=seller_planning", FSBO_GUIDE)
 
+    def test_primary_calculator_cta_preserves_the_free_intake_and_opens_it_directly(self):
+        self.assertIn(
+            '/?seller=1&amp;seller_package=free_intake&amp;utm_source=texas_seller_net_proceeds_calculator',
+            PAGE,
+        )
+        self.assertNotIn("seller_package=free_seller_intake", PAGE)
+
     def test_seller_question_one_routes_by_stage_without_commitment(self):
         self.assertIn('id="seller-question-one"', SELLERS)
         for label, package in (
