@@ -168,6 +168,7 @@ class TechnicalSeoTests(unittest.TestCase):
         offers = {item["name"]: item for item in catalogs[0]["itemListElement"]}
         expected_terms = {
             "Texas Homebuyer Offer Packet": ("99", "no payment"),
+            "Texas FSBO Seller Plan": ("0", "no checkout"),
             "OnDemand Agent Workspace": ("29", "eligibility"),
             "Founding Partner Placement": ("149", "scope"),
         }
