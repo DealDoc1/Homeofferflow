@@ -5453,9 +5453,10 @@ class handler(BaseHTTPRequestHandler):
                 seller_landing_package_cta_counts.items(), key=lambda item: (-item[1], item[0])
             ))
             seller_intake_event_types = {
-                "fsbo_intake_opened", "fsbo_required_fields_ready",
+                "fsbo_intake_opened", "fsbo_address_started", "fsbo_email_started",
+                "fsbo_required_fields_ready",
                 "fsbo_package_selected", "fsbo_goal_selected", "fsbo_required_fields_missing",
-                "fsbo_request_submission_started", "fsbo_request_saved",
+                "fsbo_request_submission_started", "fsbo_request_saved", "fsbo_request_save_failed",
                 "fsbo_seller_plan_downloaded", "fsbo_seller_plan_copied",
             }
             seller_intake_event_counts = {event_type: len([item for item in events if item.get("event_type") == event_type]) for event_type in seller_intake_event_types}
@@ -5481,8 +5482,11 @@ class handler(BaseHTTPRequestHandler):
                 item for item in events
                 if item.get("event_type") == f"partner_application_receipt_{status}"
             ]) for status in seller_receipt_delivery_statuses}
+            seller_address_started_count = seller_intake_event_counts["fsbo_address_started"]
+            seller_email_started_count = seller_intake_event_counts["fsbo_email_started"]
             seller_required_ready_count = seller_intake_event_counts["fsbo_required_fields_ready"]
             seller_request_saved_count = seller_intake_event_counts["fsbo_request_saved"]
+            seller_required_ready_rate = round((seller_required_ready_count / seller_address_started_count) * 100, 1) if seller_address_started_count else 0
             seller_ready_to_save_rate = round((seller_request_saved_count / seller_required_ready_count) * 100, 1) if seller_required_ready_count else 0
             # Seller package choices are an allowlisted product catalog. Surface
             # only aggregate submitted-request demand; do not expose seller,
@@ -5594,8 +5598,12 @@ class handler(BaseHTTPRequestHandler):
                 "sellerLandingPackageCtaCounts": seller_landing_package_cta_counts,
                 "sellerIntakeEventCounts": seller_intake_event_counts,
                 "sellerPackageSelectionCounts": seller_package_selection_counts,
+                "sellerAddressStartedCount": seller_address_started_count,
+                "sellerEmailStartedCount": seller_email_started_count,
                 "sellerRequiredReadyCount": seller_required_ready_count,
+                "sellerRequiredReadyRate": seller_required_ready_rate,
                 "sellerReadyToSaveRate": seller_ready_to_save_rate,
+                "sellerRequestSaveFailureCount": seller_intake_event_counts["fsbo_request_save_failed"],
                 "sellerPlanDownloadCount": seller_intake_event_counts["fsbo_seller_plan_downloaded"],
                 "sellerPlanCopiedCount": seller_intake_event_counts["fsbo_seller_plan_copied"],
                 "sellerPlanReceiptCounts": seller_plan_receipt_counts,
