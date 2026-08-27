@@ -4047,11 +4047,15 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   // Passwordless sessions created from a transient Vercel deployment used to
   // return to that deployment. The session then appeared signed out on the
   // canonical app, which is where agents and administrators actually work.
-  // Keep local development self-contained, but always send hosted users back
-  // to the canonical production origin.
+  // Keep local development self-contained and normal hosted logins canonical.
+  // An isolated, Vercel-protected TXR signing QA preview can opt in with
+  // `txr_qa=1`; its test-only session must return to that same origin so it
+  // never crosses into production before completed-PDF review.
   const HOF_CANONICAL_ORIGIN = 'https://www.homeofferflow.com';
   const HOF_IS_LOCAL_ORIGIN = /^(localhost|127\.0\.0\.1)(?::\d+)?$/i.test(window.location.host || '');
-  const SUPABASE_REDIRECT_URL = HOF_IS_LOCAL_ORIGIN && ['http:', 'https:'].includes(window.location.protocol)
+  const HOF_IS_TXR_QA_PREVIEW = /^homeofferflow-[a-z0-9]+-dealdoc1s-projects\.vercel\.app$/i.test(window.location.hostname || '')
+    && new URLSearchParams(window.location.search).get('txr_qa') === '1';
+  const SUPABASE_REDIRECT_URL = (HOF_IS_LOCAL_ORIGIN || HOF_IS_TXR_QA_PREVIEW) && ['http:', 'https:'].includes(window.location.protocol)
     ? `${window.location.origin}${window.location.pathname}`
     : `${HOF_CANONICAL_ORIGIN}${window.location.pathname}`;
   const HOF_ADMIN_EMAILS = ['andrewchri@gmail.com', 'support@homeofferflow.com', 'andrew@ondemanddfw.com'];
@@ -8127,9 +8131,14 @@ function routeAfterMagicLinkIfNeeded() {
   }
 
   window.resumableAccountOfferDraft = resumableAccountOfferDraft;
+  // A top-level function declaration is also a window property in this
+  // classic script. Keep a stable reference before exposing the no-argument
+  // UI wrapper; assigning the wrapper directly to the same property would
+  // otherwise make the wrapper call itself until the dashboard overflows.
+  const resumeLocalAccountOfferDraftForRole = resumeLocalAccountOfferDraft;
   window.resumeLocalAccountOfferDraft = function() {
     const role = hofAuth?.role === 'investor' ? 'investor' : 'agent';
-    return resumeLocalAccountOfferDraft(role);
+    return resumeLocalAccountOfferDraftForRole(role);
   };
 
   function refreshResumeOfferCtas() {
