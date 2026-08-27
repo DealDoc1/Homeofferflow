@@ -22,6 +22,11 @@ class FsboIntakeConversionTests(unittest.TestCase):
         self.assertIn("Free Seller Plan →", HTML)
         self.assertIn("No checkout, commitment, or pressure to choose a service.", HTML)
         self.assertNotIn("FSBO path is lead capture only", HTML)
+
+    def test_homepage_bottom_cta_uses_the_same_free_plan_promise(self):
+        self.assertIn("or a free FSBO seller plan.", HTML)
+        self.assertIn("FSBO sellers can start with a free plan, then choose paid support only if and when it fits.", HTML)
+        self.assertNotIn("FSBO seller package intake.", HTML)
         self.assertIn('id="fsboAddressHelp"', HTML)
         self.assertIn('id="fsboPropertyAddress"', HTML)
         self.assertIn('id="fsboSellerEmail"', HTML)
