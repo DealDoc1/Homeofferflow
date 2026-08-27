@@ -5152,6 +5152,9 @@ class handler(BaseHTTPRequestHandler):
             agent_landing_question_one_open_count = len([
                 item for item in events if item.get("event_type") == "agent_landing_question_one_opened"
             ])
+            agent_landing_question_one_view_count = len([
+                item for item in events if item.get("event_type") == "agent_landing_question_one_viewed"
+            ])
             agent_landing_cta_count = len([
                 item for item in events if item.get("event_type") == "agent_landing_cta_selected"
             ])
@@ -5867,6 +5870,10 @@ class handler(BaseHTTPRequestHandler):
                 "fsboClosingChecklistCtaRate": round((fsbo_closing_checklist_cta_count / fsbo_closing_checklist_view_count) * 100, 1)
                 if fsbo_closing_checklist_view_count else 0,
                 "agentLandingViewCount": agent_landing_view_count,
+                "agentLandingQuestionOneViewCount": agent_landing_question_one_view_count,
+                "agentLandingQuestionOneViewRate": round(
+                    (agent_landing_question_one_view_count / agent_landing_view_count) * 100, 1
+                ) if agent_landing_view_count else 0,
                 "agentLandingQuestionOneOpenCount": agent_landing_question_one_open_count,
                 "agentLandingQuestionOneOpenRate": round(
                     (agent_landing_question_one_open_count / agent_landing_view_count) * 100, 1
