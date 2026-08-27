@@ -302,6 +302,10 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("medium==='organic_content'||source==='organic'?'organic'", AGENTS)
         self.assertIn("body?.request_type==='agent_landing_event'", AGENTS)
 
+    def test_transaction_selection_uses_beacon_delivery_before_navigation(self):
+        self.assertIn("navigator.sendBeacon('/api/fsbo-lead',new Blob([payload],{type:'application/json'}))", AGENTS)
+        self.assertIn("keepalive:true,body:payload", AGENTS)
+
     def test_transaction_choices_carry_a_shared_campaign_into_the_agent_workspace(self):
         self.assertEqual(AGENTS.count('utm_campaign=transaction_selector'), 4)
         self.assertIn('workflow=sale_listing&amp;utm_source=agent_workspace&amp;utm_medium=agent_page&amp;utm_campaign=transaction_selector', AGENTS)
