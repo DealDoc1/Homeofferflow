@@ -27,7 +27,7 @@ class TexasSellerNetProceedsCalculatorTests(unittest.TestCase):
         path = "/texas-seller-net-proceeds-calculator"
         self.assertIn(f"https://www.homeofferflow.com{path}", SITEMAP)
         self.assertIn(f"'{path}',", WORKER)
-        self.assertIn("homeofferflow-shell-v49", WORKER)
+        self.assertIn("homeofferflow-shell-v50", WORKER)
         self.assertIn('"source": "/texas-seller-net-proceeds-calculator"', VERCEL)
         self.assertIn('"destination": "/texas-seller-net-proceeds-calculator.html"', VERCEL)
 

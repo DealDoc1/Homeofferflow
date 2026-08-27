@@ -25,6 +25,7 @@ class PublicPwaRegistrationTests(unittest.TestCase):
         self.assertIn("isMobileInstallSurface", script)
         self.assertIn("if (!isMobileInstallSurface()) return;", script)
         self.assertIn("showUpdateNotice", script)
+        self.assertIn("if (!registration?.waiting || document.getElementById('hofPublicPwaUpdateNotice')) return;", script)
         self.assertIn("HOF_SKIP_WAITING", script)
         self.assertIn("Refresh for latest version", script)
         self.assertIn("Install app", script)
