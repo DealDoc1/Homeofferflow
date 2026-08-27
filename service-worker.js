@@ -1,6 +1,6 @@
 // Bump the shell when manifest shortcuts or core install behavior changes so
 // an already-installed agent receives the current app metadata immediately.
-const SHELL_CACHE = 'homeofferflow-shell-v48';
+const SHELL_CACHE = 'homeofferflow-shell-v49';
 const SHELL_ASSETS = [
   '/',
   '/index.html',
@@ -86,13 +86,15 @@ self.addEventListener('fetch', event => {
   // Never cache API, authenticated, signed-document, or third-party requests.
   if (requestUrl.origin !== self.location.origin || requestUrl.pathname.startsWith('/api/')) return;
 
-  // The shell stays network-first, so a completed deploy is visible immediately.
+  // The shell stays network-first and bypasses the browser HTTP cache, so a
+  // completed deploy is visible immediately even when the prior public page
+  // was recently opened in an installed app or browser tab.
   // Refresh the cached *public* HTML shell after a successful navigation. That
   // lets a recently used installed app open the current interface when it goes
   // offline, without ever caching API, document, or account-specific responses.
   // Only a navigation request can fall back to the cached shell while offline.
   if (event.request.mode === 'navigate') {
-    const networkResponse = fetch(event.request);
+    const networkResponse = fetch(event.request, { cache: 'no-store' });
     const cacheKey = PUBLIC_PAGE_PATHS.has(requestUrl.pathname) ? requestUrl.pathname : '';
     event.respondWith(networkResponse.catch(() => (
       cacheKey
