@@ -424,7 +424,7 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn('the queue identifies the selected signer and requires an explicit recipient confirmation before a document is sent.', AGENTS)
         self.assertIn('href="/?agent=1&amp;workflow=purchase&amp;utm_source=agent_workspace&amp;utm_medium=agent_page&amp;utm_campaign=transaction_selector"', AGENTS)
         self.assertIn('HomeOfferFlow does not automatically select a legal form.', AGENTS)
-        self.assertIn('No password and no charge to start a private workspace.', AGENTS)
+        self.assertIn('No brokerage seat required.', AGENTS)
         self.assertIn('href="/ondemand?utm_source=agent_workspace&amp;utm_medium=agent_page&amp;utm_campaign=ondemand_trial"', AGENTS)
         self.assertIn('"name":"OnDemand Agent Workspace"', AGENTS)
         self.assertIn('"price":"29"', AGENTS)
