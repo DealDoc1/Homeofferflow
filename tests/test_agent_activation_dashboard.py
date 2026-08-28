@@ -273,6 +273,7 @@ class AgentActivationDashboardTests(unittest.TestCase):
         self.assertIn("agent_form_package_workflow_selected", HTML)
         self.assertIn("hofOpenTxr1507Draft", HTML)
         self.assertIn("hofOpenTxr1508Draft", HTML)
+        self.assertIn("openSellerDisclosureDraftWorkspace", HTML)
 
     def test_generic_agent_account_offer_actions_return_to_question_one(self):
         self.assertIn("window.startAccountTransaction = function startAccountTransaction()", HTML)

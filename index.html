@@ -7246,7 +7246,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         title: 'What do you need for this sale listing?',
         choices: [
           { label: 'Set up the listing', copy: 'Listing package: seller, property, timing, launch, and offer-management questions.', action: () => showAccountTab('seller') },
-          { label: 'Prepare seller disclosures', copy: 'Disclosure package: property and seller answers, then a private source-form review draft.', action: () => showAccountTab('seller') },
+          { label: 'Prepare seller disclosures', copy: 'Disclosure package: property and seller answers, then a private source-form review draft.', action: () => { showAccountTab('seller'); window.setTimeout(() => window.openSellerDisclosureDraftWorkspace?.(), 0); } },
           { label: 'Review a buyer offer', copy: 'Offer-review package: compare price, financing, deadlines, concessions, and possession terms.', action: () => showAccountTab('seller') }
         ]
       },
