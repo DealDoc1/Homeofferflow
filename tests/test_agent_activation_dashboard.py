@@ -110,7 +110,7 @@ class AgentActivationDashboardTests(unittest.TestCase):
         self.assertLess(first_offer, profile_after_offer)
         self.assertIn("Choose the transaction in front of you", script)
         self.assertIn("Choose Transaction", script)
-        self.assertIn("Choose buying, listing, lease listing, or lease representation", script)
+        self.assertIn("Choose property listing, purchase, lease listing, or tenant representation", script)
         self.assertIn("Set Up My Defaults", script)
 
     def test_first_offer_state_explains_the_transaction_choice_and_safe_draft_boundary(self):
@@ -230,9 +230,9 @@ class AgentActivationDashboardTests(unittest.TestCase):
         self.assertIn("Choose what you are working on to continue.", HTML)
         self.assertIn('id="agentWorkflowStart" style="margin:0 0 1rem;" tabindex="-1"', HTML)
         self.assertIn('Start here', HTML)
-        self.assertIn('What are you working on?', HTML)
-        self.assertIn('Choose one. We’ll ask a few simple questions and prepare the documents that fit.', HTML)
-        self.assertIn('Choose one to get started.', HTML)
+        self.assertIn('What type of transaction are you starting?', HTML)
+        self.assertIn('Choose the transaction type. We’ll ask a few simple questions and prepare the documents that fit.', HTML)
+        self.assertIn('Choose a transaction type to get started.', HTML)
         self.assertIn('id="agentWorkflowStartStatus" role="status" aria-live="polite"', HTML)
         self.assertIn('class="account-actions-row" role="group" aria-label="Transaction type"', HTML)
         self.assertIn('aria-describedby="agentWorkflowStartStatus"', HTML)
@@ -249,16 +249,16 @@ class AgentActivationDashboardTests(unittest.TestCase):
         self.assertIn("resume.onclick = () => {", HTML)
         self.assertIn("startAgentWorkflow(savedChoice)", HTML)
         self.assertLess(HTML.index('id="agentWorkflowStart"'), HTML.index('id="agentActivationCard"'))
-        for label in ('>Buying</button>', '>Listing</button>', '>Lease listing</button>', '>Lease representation</button>'):
+        for label in ('>Purchase</button>', '>Property listing</button>', '>Lease listing</button>', '>Tenant representation</button>'):
             self.assertIn(label, HTML)
 
     def test_transaction_picker_uses_the_neutral_listing_first_order(self):
         start = HTML.index('id="agentWorkflowStart"')
         end = HTML.index('id="agentActivationCard"', start)
         picker = HTML[start:end]
-        self.assertLess(picker.index(">Listing</button>"), picker.index(">Buying</button>"))
-        self.assertLess(picker.index(">Buying</button>"), picker.index(">Lease listing</button>"))
-        self.assertLess(picker.index(">Lease listing</button>"), picker.index(">Lease representation</button>"))
+        self.assertLess(picker.index(">Property listing</button>"), picker.index(">Purchase</button>"))
+        self.assertLess(picker.index(">Purchase</button>"), picker.index(">Lease listing</button>"))
+        self.assertLess(picker.index(">Lease listing</button>"), picker.index(">Tenant representation</button>"))
 
     def test_transaction_interview_recommends_a_package_before_opening_a_workspace(self):
         self.assertIn("window.startAgentWorkflow = function startAgentWorkflow(kind)", HTML)

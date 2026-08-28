@@ -55,7 +55,7 @@ class AgentLandingFunnelTests(unittest.TestCase):
         target = "window.location.assign('/agents?utm_source=homeofferflow&utm_medium=homepage&utm_campaign=agent_workspace')"
         self.assertIn(target, entry)
         self.assertLess(entry.index(target), entry.index('startPrimaryOffer();'))
-        self.assertIn("cta: 'Choose Your Transaction'", INDEX)
+        self.assertIn("cta: 'Start a Transaction'", INDEX)
 
     def test_agent_landing_links_to_lease_workflow_guide(self):
         self.assertIn('href="/texas-lease-offer-workflow"', AGENTS)

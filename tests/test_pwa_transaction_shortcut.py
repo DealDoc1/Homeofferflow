@@ -12,7 +12,7 @@ class PwaTransactionShortcutTests(unittest.TestCase):
         shortcut = next(item for item in MANIFEST["shortcuts"] if item["short_name"] == "Start")
         self.assertEqual(shortcut["url"], "/?pwa_action=transaction_start")
         self.assertIn("listing", shortcut["description"])
-        self.assertIn("buying", shortcut["description"])
+        self.assertIn("purchase", shortcut["description"])
 
     def test_shell_cache_bumps_for_shortcut_metadata(self):
         top_shortcuts = MANIFEST["shortcuts"][:4]
