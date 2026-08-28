@@ -5256,14 +5256,43 @@ class handler(BaseHTTPRequestHandler):
             # data in the Admin payload.
             agent_transaction_workflows = ("purchase", "sale_listing", "lease_listing", "lease_representation")
             agent_transaction_choice_counts = {workflow: 0 for workflow in agent_transaction_workflows}
-            agent_form_package_interview_view_count = len([
+            # Question 2 view telemetry was added after package-selection
+            # telemetry. Count a selection only when its same user/workflow
+            # view was recorded first; otherwise historical selections can
+            # make the new conversion rate exceed 100 percent.
+            agent_form_package_interview_events = [
                 item for item in events
                 if item.get("event_type") == "agent_form_package_interview_viewed"
-            ])
-            agent_form_package_selection_count = len([
-                item for item in events
-                if item.get("event_type") == "agent_form_package_selected"
-            ])
+            ]
+            agent_form_package_interview_view_count = len(agent_form_package_interview_events)
+            agent_form_package_interview_started_at = {}
+            for item in agent_form_package_interview_events:
+                user_id = str(item.get("user_id") or "")
+                workflow = str((item.get("metadata") or {}).get("workflow") or "")
+                created_at = str(item.get("created_at") or "")
+                if not user_id or workflow not in agent_transaction_workflows or not created_at:
+                    continue
+                cohort_key = (user_id, workflow)
+                prior_started_at = agent_form_package_interview_started_at.get(cohort_key)
+                if not prior_started_at or created_at < prior_started_at:
+                    agent_form_package_interview_started_at[cohort_key] = created_at
+            agent_form_package_selection_events = []
+            for item in events:
+                if item.get("event_type") != "agent_form_package_selected":
+                    continue
+                user_id = str(item.get("user_id") or "")
+                workflow = str((item.get("metadata") or {}).get("workflow") or "")
+                created_at = str(item.get("created_at") or "")
+                first_view_at = agent_form_package_interview_started_at.get((user_id, workflow))
+                if (
+                    user_id
+                    and created_at
+                    and workflow in agent_transaction_workflows
+                    and first_view_at
+                    and created_at >= first_view_at
+                ):
+                    agent_form_package_selection_events.append(item)
+            agent_form_package_selection_count = len(agent_form_package_selection_events)
             agent_form_package_interview_counts_by_workflow = {
                 workflow: len([
                     item for item in events
@@ -5274,9 +5303,8 @@ class handler(BaseHTTPRequestHandler):
             }
             agent_form_package_selection_counts_by_workflow = {
                 workflow: len([
-                    item for item in events
-                    if item.get("event_type") == "agent_form_package_selected"
-                    and str((item.get("metadata") or {}).get("workflow") or "") == workflow
+                    item for item in agent_form_package_selection_events
+                    if str((item.get("metadata") or {}).get("workflow") or "") == workflow
                 ])
                 for workflow in agent_transaction_workflows
             }

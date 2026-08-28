@@ -382,6 +382,11 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("agentWorkflowGuideCtaPathCounts?.relationship_drafts", INDEX)
         self.assertIn("agentWorkflowGuideCtaRate", INDEX)
 
+    def test_question_two_conversion_excludes_pre_instrumentation_selections(self):
+        self.assertIn("agent_form_package_interview_started_at", ADMIN)
+        self.assertIn("agent_form_package_selection_events", ADMIN)
+        self.assertIn("created_at >= first_view_at", ADMIN)
+
     def test_homepage_offer_entry_events_keep_anonymous_campaign_source(self):
         self.assertIn("const entrySource = String(new URLSearchParams(window.location.search).get('utm_source') || 'homepage')", INDEX)
         self.assertIn("source: entrySource", INDEX)
