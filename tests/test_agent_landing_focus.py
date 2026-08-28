@@ -16,6 +16,8 @@ class AgentLandingFocusTests(unittest.TestCase):
         self.assertIn('Explore shared forms and workflow guides', script)
         self.assertIn('agent_resource_links_expanded', script)
         self.assertIn('pwa_shortcut', script)
+        self.assertIn('No brokerage seat required.', script)
+        self.assertIn("released shared form workflows", script)
 
 
 if __name__ == '__main__':

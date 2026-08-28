@@ -21,8 +21,8 @@
   const workflowLink = resourceLinks.find((link) => link.href.includes('texas-agent-offer-workflow'));
   note.replaceChildren();
   const strong = document.createElement('strong');
-  strong.textContent = 'No password and no charge to start a private workspace.';
-  note.append(strong, ' Start with the client and property details you have, then save your agent defaults afterward for faster repeat work.');
+  strong.textContent = 'No brokerage seat required.';
+  note.append(strong, " Every signed-in agent can use HomeOfferFlow's released shared form workflows. Start with the client and property details you have, then save your agent defaults afterward for faster repeat work.");
   if (workflowLink) {
     note.append(' ', workflowLink.cloneNode(true));
   }
