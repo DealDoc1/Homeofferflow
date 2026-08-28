@@ -64,8 +64,8 @@ class TxrSigningRequestPathTests(unittest.TestCase):
 
     def test_workspace_starts_with_a_transaction_interview(self):
         html = (ROOT / "index.html").read_text(encoding="utf-8")
-        self.assertIn("Question 1", html)
-        self.assertIn("Is this a listing, buying, lease listing, or lease representation transaction?", html)
+        self.assertIn("Start here", html)
+        self.assertIn("What are you working on?", html)
         self.assertIn("data-agent-workflow-choice=\"purchase\"", html)
         self.assertIn("data-agent-workflow-choice=\"sale_listing\"", html)
         self.assertIn("data-agent-workflow-choice=\"lease_listing\"", html)

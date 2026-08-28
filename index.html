@@ -3037,9 +3037,9 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         <h4 id="dashboardRoleLabel">Agent Dashboard</h4>
         <p id="dashboardWelcome" style="color:var(--gray-light); line-height:1.6; margin-bottom:1rem;">Welcome back.</p>
         <div class="account-card" id="agentWorkflowStart" style="margin:0 0 1rem;" tabindex="-1">
-          <div class="eyebrow" style="margin-bottom:.35rem;">Question 1</div>
-          <h4>Is this a listing, buying, lease listing, or lease representation transaction?</h4>
-          <p style="color:var(--gray-light);line-height:1.55;margin:0 0 .9rem;">Start with one choice. Next, HomeOfferFlow asks only the questions for that transaction.</p>
+          <div class="eyebrow" style="margin-bottom:.35rem;">Start here</div>
+          <h4>What are you working on?</h4>
+          <p style="color:var(--gray-light);line-height:1.55;margin:0 0 .9rem;">Choose one. We’ll ask a few simple questions and prepare the documents that fit.</p>
           <div class="account-actions-row" role="group" aria-label="Transaction type" aria-describedby="agentWorkflowStartStatus" style="margin-top:0;">
             <button class="btn-secondary" type="button" aria-pressed="false" data-agent-workflow-choice="sale_listing" onclick="startAgentWorkflow('sale_listing')">Listing</button>
             <button class="btn-secondary" type="button" aria-pressed="false" data-agent-workflow-choice="purchase" onclick="startAgentWorkflow('purchase')">Buying</button>
@@ -3047,7 +3047,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <button class="btn-secondary" type="button" aria-pressed="false" data-agent-workflow-choice="lease_representation" onclick="startAgentWorkflow('lease_representation')">Lease representation</button>
           </div>
           <button id="agentWorkflowResume" class="btn-secondary" type="button" style="display:none;margin-top:.65rem;" aria-label="Resume your last transaction path"></button>
-          <p id="agentWorkflowStartStatus" role="status" aria-live="polite" style="color:var(--gray-light);font-size:.84rem;line-height:1.5;margin:.8rem 0 0;">Choose a transaction to begin. You can change paths at any time.</p>
+          <p id="agentWorkflowStartStatus" role="status" aria-live="polite" style="color:var(--gray-light);font-size:.84rem;line-height:1.5;margin:.8rem 0 0;">Choose one to get started.</p>
         </div>
         <div id="agentActivationCard" class="agent-activation-card" aria-live="polite"></div>
         <div id="profileCompletionNotice" class="notice gold" style="margin-bottom:1rem;">Complete your profile once to prefill your offer packets and defaults.</div>
@@ -7178,10 +7178,10 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           startAgentWorkflow(savedChoice);
         };
       }
-      if (status) status.textContent = `Current path: ${labels[savedChoice]}. Choose another transaction to change it.`;
+      if (status) status.textContent = `You’re working on: ${labels[savedChoice]}.`;
     } else if (status) {
       if (resume) resume.style.display = 'none';
-      status.textContent = 'Choose the transaction you are working on to continue.';
+      status.textContent = 'Choose what you are working on to continue.';
     }
   };
 
@@ -7223,7 +7223,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       const followUp = document.createElement('div');
       followUp.id = 'hofAgentPackageFollowUp'; followUp.className = 'hof-agreement-modal';
       const prompt = type === 'representation' ? 'Which representation agreement are you preparing?' : 'What does this customer need?';
-      followUp.innerHTML = `<div class="hof-agreement-dialog" role="dialog" aria-modal="true" aria-labelledby="hofAgentPackageFollowUpTitle"><h3 id="hofAgentPackageFollowUpTitle">${prompt}</h3><p>Choose the exact workflow to start. You can go back at any time; nothing is sent or signed from this step.</p><div class="hof-agreement-grid">${choices.map((choice, index) => `<button type="button" class="btn-secondary hof-agent-package-choice" data-follow-up-choice="${index}" style="text-align:left;padding:1rem"><strong style="display:block;color:var(--white);margin-bottom:.35rem">${choice.label}</strong><span style="display:block;color:var(--gray-light);font-weight:400;line-height:1.45">${choice.copy}</span></button>`).join('')}</div><div class="hof-agreement-footer"><button type="button" class="btn-secondary" id="hofAgentPackageFollowUpCancel">Back</button></div></div>`;
+      followUp.innerHTML = `<div class="hof-agreement-dialog" role="dialog" aria-modal="true" aria-labelledby="hofAgentPackageFollowUpTitle"><h3 id="hofAgentPackageFollowUpTitle">${prompt}</h3><p>Choose the document that fits. You’ll review it before it is sent.</p><div class="hof-agreement-grid">${choices.map((choice, index) => `<button type="button" class="btn-secondary hof-agent-package-choice" data-follow-up-choice="${index}" style="text-align:left;padding:1rem"><strong style="display:block;color:var(--white);margin-bottom:.35rem">${choice.label}</strong><span style="display:block;color:var(--gray-light);font-weight:400;line-height:1.45">${choice.copy}</span></button>`).join('')}</div><div class="hof-agreement-footer"><button type="button" class="btn-secondary" id="hofAgentPackageFollowUpCancel">Back</button></div></div>`;
       document.body.appendChild(followUp);
       followUp.querySelector('#hofAgentPackageFollowUpCancel').addEventListener('click', () => followUp.remove());
       followUp.addEventListener('click', event => { if (event.target === followUp) followUp.remove(); });
@@ -7238,31 +7238,31 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       purchase: {
         title: 'What do you need for this buyer transaction?',
         choices: [
-          { label: 'Prepare an offer', copy: 'Buyer offer package: property, buyer, financing, timing, and supported addenda.', action: () => startAccountOffer() },
-          { label: 'Start representation', copy: 'Representation package: choose the Short or Long Form, then complete the client interview and notice as needed.', action: () => openRelationshipPackage('representation') },
-          { label: 'A showing or consumer notice', copy: 'Customer package: start the Showing Form for an unrepresented customer or the Consumer Notice for the appropriate party.', action: () => openRelationshipPackage('customer') }
+          { label: 'Prepare an offer', copy: 'Tell us about the buyer, property, financing, and timing. We’ll assemble the available offer documents.', action: () => startAccountOffer() },
+          { label: 'Set up representation', copy: 'Choose the agreement, then answer the client questions that apply.', action: () => openRelationshipPackage('representation') },
+          { label: 'Prepare a showing form or notice', copy: 'Choose the right document for the customer and situation.', action: () => openRelationshipPackage('customer') }
         ]
       },
       sale_listing: {
         title: 'What do you need for this sale listing?',
         choices: [
-          { label: 'Set up the listing', copy: 'Listing package: seller, property, timing, launch, and offer-management questions.', action: () => showAccountTab('seller') },
-          { label: 'Prepare seller disclosures', copy: 'Disclosure package: property and seller answers, then a private source-form review draft.', action: () => { showAccountTab('seller'); window.setTimeout(() => window.openSellerDisclosureDraftWorkspace?.(), 0); } },
-          { label: 'Review a buyer offer', copy: 'Offer-review package: compare price, financing, deadlines, concessions, and possession terms.', action: () => showAccountTab('seller') }
+          { label: 'Set up the listing', copy: 'Tell us about the seller, property, timing, and next steps.', action: () => showAccountTab('seller') },
+          { label: 'Prepare seller disclosures', copy: 'Answer the property and seller questions, then review the completed documents.', action: () => { showAccountTab('seller'); window.setTimeout(() => window.openSellerDisclosureDraftWorkspace?.(), 0); } },
+          { label: 'Review a buyer offer', copy: 'Compare price, financing, deadlines, concessions, and possession.', action: () => showAccountTab('seller') }
         ]
       },
       lease_listing: {
         title: 'What do you need for this lease listing?',
         choices: [
-          { label: 'Set up the lease listing', copy: 'Lease-listing package: landlord, property, availability, and listing questions.', action: () => showAccountTab('seller') },
-          { label: 'Prepare lease details', copy: 'Lease-review package: property, parties, fixtures, and lease-specific source-form interviews.', action: () => showAccountTab('relationships') }
+          { label: 'Set up the lease listing', copy: 'Tell us about the landlord, property, availability, and next steps.', action: () => showAccountTab('seller') },
+          { label: 'Prepare lease details', copy: 'Answer the property, party, fixture, and lease questions that apply.', action: () => showAccountTab('relationships') }
         ]
       },
       lease_representation: {
         title: 'What do you need for this tenant transaction?',
         choices: [
-          { label: 'Start representation', copy: 'Tenant-representation package: choose the Short or Long Form, then answer only the transaction questions.', action: () => openRelationshipPackage('representation') },
-          { label: 'A showing or consumer notice', copy: 'Customer package: start the Showing Form for an unrepresented customer or the Consumer Notice for the appropriate party.', action: () => openRelationshipPackage('customer') }
+          { label: 'Set up representation', copy: 'Choose the agreement, then answer the tenant questions that apply.', action: () => openRelationshipPackage('representation') },
+          { label: 'Prepare a showing form or notice', copy: 'Choose the right document for the customer and situation.', action: () => openRelationshipPackage('customer') }
         ]
       }
     };
@@ -7275,7 +7275,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     document.getElementById('hofAgentPackageInterview')?.remove();
     const modal = document.createElement('div');
     modal.id = 'hofAgentPackageInterview'; modal.className = 'hof-agreement-modal';
-    modal.innerHTML = `<div class="hof-agreement-dialog" role="dialog" aria-modal="true" aria-labelledby="hofAgentPackageTitle"><h3 id="hofAgentPackageTitle">${interview.title}</h3><p>Choose the result you want. HomeOfferFlow will open the matching guided package—no brokerage seat required.</p><div class="hof-agreement-grid">${interview.choices.map((choice, index) => `<button type="button" class="btn-secondary hof-agent-package-choice" data-package-choice="${index}" style="text-align:left;padding:1rem"><strong style="display:block;color:var(--white);margin-bottom:.35rem">${choice.label}</strong><span style="display:block;color:var(--gray-light);font-weight:400;line-height:1.45">${choice.copy}</span></button>`).join('')}</div><div class="hof-agreement-footer"><button type="button" class="btn-secondary" id="hofAgentPackageCancel">Back</button></div></div>`;
+    modal.innerHTML = `<div class="hof-agreement-dialog" role="dialog" aria-modal="true" aria-labelledby="hofAgentPackageTitle"><h3 id="hofAgentPackageTitle">${interview.title}</h3><p>Choose what you need next. We’ll ask only for the details needed to prepare your documents.</p><div class="hof-agreement-grid">${interview.choices.map((choice, index) => `<button type="button" class="btn-secondary hof-agent-package-choice" data-package-choice="${index}" style="text-align:left;padding:1rem"><strong style="display:block;color:var(--white);margin-bottom:.35rem">${choice.label}</strong><span style="display:block;color:var(--gray-light);font-weight:400;line-height:1.45">${choice.copy}</span></button>`).join('')}</div><div class="hof-agreement-footer"><button type="button" class="btn-secondary" id="hofAgentPackageCancel">Back</button></div></div>`;
     document.body.appendChild(modal);
     modal.querySelector('#hofAgentPackageCancel').addEventListener('click', () => modal.remove());
     modal.addEventListener('click', event => { if (event.target === modal) modal.remove(); });
@@ -17036,8 +17036,8 @@ function routeAfterMagicLinkIfNeeded() {
         cta: 'Build Your Offer — No Payment to Start', nav: 'Build Your Offer →', note: 'No payment required to begin. Review your full offer summary before checkout. <strong>Pay $99 only when the completed offer packet is ready.</strong>'
       },
       agent: {
-        headline: 'A clearer Texas buyer-offer workflow for <em>agents & brokers</em>.',
-        sub: 'Create supported Texas buyer-offer packets from your phone, send buyer-side signatures, track status, duplicate prior offers, and collect broker-reviewed feedback.',
+        headline: 'Texas real estate documents, <em>made simpler.</em>',
+        sub: 'Start with the transaction in front of you. Answer a few clear questions, then review one organized document package.',
         cta: 'Choose Your Transaction', nav: 'Choose Transaction →', note: 'Built for broker-supervised beta testing. <strong>Buyer-side offer packets are live, and every signed-in agent can start private relationship, finance, environmental, mineral, and seller-disclosure review drafts, including TXR-1501, TXR-1506, TXR-1507, TXR-1508, TXR-1905, TXR-1914, TXR-1917, TXR-1919, TREC-55-1, and TREC-61-0. The signing queue identifies the signer and requires explicit recipient confirmation before sending; listing agreements remain outside the stated live scope.</strong> <a href="/ondemand?utm_source=agent_workspace&amp;utm_medium=workspace&amp;utm_campaign=agent_acquisition" onclick="window.recordOnDemandTrialEntry?.(\'agent_hero_inline\');">OnDemand Realty agent? Start your 60-day free trial (card required) →</a>'
       },
       investor: {
@@ -17060,6 +17060,7 @@ function routeAfterMagicLinkIfNeeded() {
   };
 
   function addDashboardDemoCard(){
+    return;
     const panel = document.getElementById('accountPanelDashboard');
     const first = panel?.querySelector('.account-card');
     if (!panel || !first || document.getElementById('release15DashboardCard')) return;
@@ -17093,15 +17094,15 @@ function routeAfterMagicLinkIfNeeded() {
     if (typeof oldRenderDashboard === 'function') oldRenderDashboard();
     addDashboardDemoCard();
     const roleLabelEl = document.getElementById('dashboardRoleLabel');
-    if (roleLabelEl) roleLabelEl.textContent = roleLabel(role()) + ' Beta Workspace';
+    if (roleLabelEl) roleLabelEl.textContent = roleLabel(role()) + ' Workspace';
     const welcome = document.getElementById('dashboardWelcome');
     if (welcome && !welcome.dataset.v15) {
       welcome.dataset.v15 = '1';
       const r = role();
       const name = safe(root.getAccountDisplayName?.() || 'there');
       welcome.innerHTML = r === 'broker'
-        ? `Welcome back, <strong style="color:var(--white);">${name}</strong>. This demo workspace is ready for broker-supervised beta testing.`
-        : `Welcome back, <strong style="color:var(--white);">${name}</strong>. Create packets, verify buyer-side signing, and report beta issues fast.`;
+        ? `Welcome back, <strong style="color:var(--white);">${name}</strong>. Start with a transaction and guide your client through the next steps.`
+        : `Welcome back, <strong style="color:var(--white);">${name}</strong>. Start with the transaction in front of you.`;
     }
   };
 
