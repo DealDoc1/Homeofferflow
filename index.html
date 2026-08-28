@@ -2972,14 +2972,14 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     <div class="auth-box-header">
       <div>
         <h3 id="authTitle">Agent / Broker Account</h3>
-        <p id="authSubtitle">Sign in with a magic link to use the agent, broker/team lead, or investor beta workspace.</p>
+        <p id="authSubtitle">Sign in with a magic link to save your work and continue where you left off.</p>
       </div>
       <button class="auth-close" type="button" onclick="closeAuthModal()" aria-label="Close account login">×</button>
     </div>
 
     <div class="auth-role-row broker-role-row" id="authRoleRow">
       <button type="button" class="auth-role-btn active" data-auth-role="agent" onclick="setAuthRole('agent')"><strong>Agent</strong><span>Personal offer workspace</span></button>
-      <button type="button" class="auth-role-btn" data-auth-role="broker" onclick="setAuthRole('broker')"><strong>Broker / Team Lead</strong><span>Beta oversight shell</span></button>
+      <button type="button" class="auth-role-btn" data-auth-role="broker" onclick="setAuthRole('broker')"><strong>Broker / Team Lead</strong><span>Team workspace</span></button>
       <button type="button" class="auth-role-btn" data-auth-role="investor" onclick="setAuthRole('investor')"><strong>Investor</strong><span>Repeat deal workflow</span></button>
     </div>
 
@@ -3055,7 +3055,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         <div id="subscriptionUsageCard" class="subscription-card">
           <div class="subscription-top">
             <div>
-              <div style="font-size:0.72rem; color:var(--gold-light); font-weight:900; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:0.25rem;">Beta Subscription</div>
+              <div style="font-size:0.72rem; color:var(--gold-light); font-weight:900; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:0.25rem;">Subscription</div>
               <div class="subscription-plan">Loading access...</div>
             </div>
             <span class="subscription-status">Checking</span>
@@ -3148,7 +3148,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   <div class="feedback-box" role="dialog" aria-modal="true" aria-labelledby="feedbackTitle">
     <div class="feedback-head">
       <div>
-        <h3 id="feedbackTitle">Send Beta Feedback</h3>
+        <h3 id="feedbackTitle">Send feedback</h3>
         <p>Report a bug, PDF field issue, missing addendum, SignWell issue, billing issue, or general suggestion.</p>
       </div>
       <button class="feedback-close" type="button" onclick="closeBetaFeedback()" aria-label="Close feedback">×</button>
@@ -16979,7 +16979,7 @@ function routeAfterMagicLinkIfNeeded() {
         <summary>Explore other HomeOfferFlow paths</summary>
         <div class="beta-launch-options" aria-label="HomeOfferFlow product paths">
           <div class="beta-launch-chip"><strong>Homebuyer</strong><span><em>$99</em> completed Texas offer packet</span></div>
-          <div class="beta-launch-chip"><strong>Agent / Broker</strong><span>Beta workspace, buyer-side signatures, dashboard</span></div>
+          <div class="beta-launch-chip"><strong>Agent / Broker</strong><span>Guided documents, signatures, and dashboard</span></div>
           <div class="beta-launch-chip"><strong>Investor</strong><span>Repeat-offer workflow with saved defaults</span></div>
           <div class="beta-launch-chip"><strong>FSBO Seller</strong><span>Package intake + partner suggestions</span></div>
         </div>
@@ -17110,12 +17110,12 @@ function routeAfterMagicLinkIfNeeded() {
     const box = document.querySelector('.feedback-box');
     if (!box || document.getElementById('feedbackFastRowV15')) return;
     const title = document.getElementById('feedbackTitle');
-    if (title) title.textContent = 'Report Beta Issue / Request Form';
+    if (title) title.textContent = 'Send feedback or request a form';
     const p = box.querySelector('.feedback-head p');
-    if (p) p.textContent = 'Use this during broker and agent beta testing to flag PDF placement, missing forms, SignWell status, UI friction, billing issues, or compliance wording.';
+    if (p) p.textContent = 'Tell us about a document, signature, billing, or usability issue—or request a form.';
     const issue = document.getElementById('feedbackIssueType');
     if (issue && !issue.querySelector('option[value="broker_demo"]')) {
-      issue.insertAdjacentHTML('beforeend', '<option value="broker_demo">Broker demo / beta readiness</option><option value="partner_request">Partner/package suggestion</option>');
+      issue.insertAdjacentHTML('beforeend', '<option value="broker_demo">Broker or team workspace</option><option value="partner_request">Partner/package suggestion</option>');
     }
     const anchor = document.querySelector('.feedback-field');
     if (anchor) anchor.insertAdjacentHTML('beforebegin', `
@@ -17123,7 +17123,7 @@ function routeAfterMagicLinkIfNeeded() {
         <button type="button" onclick="document.getElementById('feedbackIssueType').value='pdf_field';document.getElementById('feedbackMessage').focus();">PDF field issue</button>
         <button type="button" onclick="document.getElementById('feedbackIssueType').value='missing_addendum';document.getElementById('feedbackMessage').focus();">Request missing form</button>
         <button type="button" onclick="document.getElementById('feedbackIssueType').value='signwell';document.getElementById('feedbackMessage').focus();">SignWell issue</button>
-        <button type="button" onclick="document.getElementById('feedbackIssueType').value='broker_demo';document.getElementById('feedbackMessage').focus();">Broker demo note</button>
+        <button type="button" onclick="document.getElementById('feedbackIssueType').value='broker_demo';document.getElementById('feedbackMessage').focus();">Broker or team workspace</button>
       </div>`);
   }
 
@@ -17141,7 +17141,7 @@ function routeAfterMagicLinkIfNeeded() {
     const authTitle = document.getElementById('authTitle');
     if (authTitle && !root.hofAuth?.session) authTitle.textContent = 'Agent / Broker Account';
     const authSubtitle = document.getElementById('authSubtitle');
-    if (authSubtitle && !root.hofAuth?.session) authSubtitle.textContent = 'Sign in with a magic link to use the agent, broker/team lead, or investor beta workspace.';
+    if (authSubtitle && !root.hofAuth?.session) authSubtitle.textContent = 'Sign in with a magic link to save your work and continue where you left off.';
   };
 
   document.addEventListener('DOMContentLoaded', function(){
