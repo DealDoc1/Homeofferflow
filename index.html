@@ -7197,13 +7197,49 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   // workspace. This keeps the agent experience an interview that assembles a
   // relevant working package rather than a form catalog to search through.
   window.hofOpenAgentPackageInterview = function hofOpenAgentPackageInterview(kind) {
+    const openRelationshipDraft = (openerName) => {
+      showAccountTab('relationships');
+      let attempts = 0;
+      const openWhenReady = () => {
+        const opener = window[openerName];
+        if (typeof opener === 'function') return opener();
+        attempts += 1;
+        if (attempts < 12) window.setTimeout(openWhenReady, 100);
+      };
+      window.setTimeout(openWhenReady, 0);
+    };
+    const openRelationshipPackage = (type) => {
+      const choices = type === 'representation'
+        ? [
+            { label: 'Short Form', copy: 'A streamlined Buyer/Tenant Representation Agreement interview.', opener: 'hofOpenTxr1507Draft' },
+            { label: 'Long Form', copy: 'A complete Buyer/Tenant Representation Agreement interview.', opener: 'hofOpenTxr1501Draft' }
+          ]
+        : [
+            { label: 'Showing Form', copy: 'For an unrepresented customer attending a showing.', opener: 'hofOpenTxr1508Draft' },
+            { label: 'Consumer Notice', copy: 'For a consumer who needs the general information notice.', opener: 'hofOpenTxr1506Draft' }
+          ];
+      document.getElementById('hofAgentPackageFollowUp')?.remove();
+      const followUp = document.createElement('div');
+      followUp.id = 'hofAgentPackageFollowUp'; followUp.className = 'hof-agreement-modal';
+      const prompt = type === 'representation' ? 'Which representation agreement are you preparing?' : 'What does this customer need?';
+      followUp.innerHTML = `<div class="hof-agreement-dialog" role="dialog" aria-modal="true" aria-labelledby="hofAgentPackageFollowUpTitle"><h3 id="hofAgentPackageFollowUpTitle">${prompt}</h3><p>Choose the exact workflow to start. You can go back at any time; nothing is sent or signed from this step.</p><div class="hof-agreement-grid">${choices.map((choice, index) => `<button type="button" class="btn-secondary hof-agent-package-choice" data-follow-up-choice="${index}" style="text-align:left;padding:1rem"><strong style="display:block;color:var(--white);margin-bottom:.35rem">${choice.label}</strong><span style="display:block;color:var(--gray-light);font-weight:400;line-height:1.45">${choice.copy}</span></button>`).join('')}</div><div class="hof-agreement-footer"><button type="button" class="btn-secondary" id="hofAgentPackageFollowUpCancel">Back</button></div></div>`;
+      document.body.appendChild(followUp);
+      followUp.querySelector('#hofAgentPackageFollowUpCancel').addEventListener('click', () => followUp.remove());
+      followUp.addEventListener('click', event => { if (event.target === followUp) followUp.remove(); });
+      followUp.querySelectorAll('[data-follow-up-choice]').forEach(button => button.addEventListener('click', () => {
+        const choice = choices[Number(button.dataset.followUpChoice)];
+        if (!choice) return;
+        window.logOfferEvent?.(null, 'agent_form_package_workflow_selected', 'selected', 'Agent selected the exact form interview after a package recommendation.', { workflow: kind, package_type: type, form_choice: choice.label });
+        followUp.remove(); openRelationshipDraft(choice.opener);
+      }));
+    };
     const packages = {
       purchase: {
         title: 'What do you need for this buyer transaction?',
         choices: [
           { label: 'Prepare an offer', copy: 'Buyer offer package: property, buyer, financing, timing, and supported addenda.', action: () => startAccountOffer() },
-          { label: 'Start representation', copy: 'Representation package: choose the Short or Long Form, then complete the client interview and notice as needed.', action: () => showAccountTab('relationships') },
-          { label: 'A showing or consumer notice', copy: 'Customer package: start the Showing Form for an unrepresented customer or the Consumer Notice for the appropriate party.', action: () => showAccountTab('relationships') }
+          { label: 'Start representation', copy: 'Representation package: choose the Short or Long Form, then complete the client interview and notice as needed.', action: () => openRelationshipPackage('representation') },
+          { label: 'A showing or consumer notice', copy: 'Customer package: start the Showing Form for an unrepresented customer or the Consumer Notice for the appropriate party.', action: () => openRelationshipPackage('customer') }
         ]
       },
       sale_listing: {
@@ -7224,8 +7260,8 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       lease_representation: {
         title: 'What do you need for this tenant transaction?',
         choices: [
-          { label: 'Start representation', copy: 'Tenant-representation package: choose the Short or Long Form, then answer only the transaction questions.', action: () => showAccountTab('relationships') },
-          { label: 'A showing or consumer notice', copy: 'Customer package: start the Showing Form for an unrepresented customer or the Consumer Notice for the appropriate party.', action: () => showAccountTab('relationships') }
+          { label: 'Start representation', copy: 'Tenant-representation package: choose the Short or Long Form, then answer only the transaction questions.', action: () => openRelationshipPackage('representation') },
+          { label: 'A showing or consumer notice', copy: 'Customer package: start the Showing Form for an unrepresented customer or the Consumer Notice for the appropriate party.', action: () => openRelationshipPackage('customer') }
         ]
       }
     };

@@ -268,6 +268,11 @@ class AgentActivationDashboardTests(unittest.TestCase):
         self.assertIn("What do you need for this tenant transaction?", HTML)
         self.assertIn("no brokerage seat required", HTML)
         self.assertIn("agent_form_package_selected", HTML)
+        self.assertIn("Which representation agreement are you preparing?", HTML)
+        self.assertIn("What does this customer need?", HTML)
+        self.assertIn("agent_form_package_workflow_selected", HTML)
+        self.assertIn("hofOpenTxr1507Draft", HTML)
+        self.assertIn("hofOpenTxr1508Draft", HTML)
 
     def test_generic_agent_account_offer_actions_return_to_question_one(self):
         self.assertIn("window.startAccountTransaction = function startAccountTransaction()", HTML)
