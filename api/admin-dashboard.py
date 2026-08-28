@@ -5256,6 +5256,30 @@ class handler(BaseHTTPRequestHandler):
             # data in the Admin payload.
             agent_transaction_workflows = ("purchase", "sale_listing", "lease_listing", "lease_representation")
             agent_transaction_choice_counts = {workflow: 0 for workflow in agent_transaction_workflows}
+            agent_form_package_interview_view_count = len([
+                item for item in events
+                if item.get("event_type") == "agent_form_package_interview_viewed"
+            ])
+            agent_form_package_selection_count = len([
+                item for item in events
+                if item.get("event_type") == "agent_form_package_selected"
+            ])
+            agent_form_package_interview_counts_by_workflow = {
+                workflow: len([
+                    item for item in events
+                    if item.get("event_type") == "agent_form_package_interview_viewed"
+                    and str((item.get("metadata") or {}).get("workflow") or "") == workflow
+                ])
+                for workflow in agent_transaction_workflows
+            }
+            agent_form_package_selection_counts_by_workflow = {
+                workflow: len([
+                    item for item in events
+                    if item.get("event_type") == "agent_form_package_selected"
+                    and str((item.get("metadata") or {}).get("workflow") or "") == workflow
+                ])
+                for workflow in agent_transaction_workflows
+            }
             agent_transaction_event_workflows = {
                 "agent_workflow_purchase_selected": "purchase",
                 "agent_workflow_sale_listing_selected": "sale_listing",
@@ -5898,6 +5922,13 @@ class handler(BaseHTTPRequestHandler):
                 "agentLandingRelationshipWorkspaceHandoffUserCount": agent_landing_relationship_workspace_handoff_user_count,
                 "agentTransactionChoiceCounts": agent_transaction_choice_counts,
                 "agentWorkflowResumeCount": agent_workflow_resume_count,
+                "agentFormPackageInterviewViewCount": agent_form_package_interview_view_count,
+                "agentFormPackageSelectionCount": agent_form_package_selection_count,
+                "agentFormPackageSelectionRate": round(
+                    (agent_form_package_selection_count / agent_form_package_interview_view_count) * 100, 1
+                ) if agent_form_package_interview_view_count else 0,
+                "agentFormPackageInterviewCountsByWorkflow": agent_form_package_interview_counts_by_workflow,
+                "agentFormPackageSelectionCountsByWorkflow": agent_form_package_selection_counts_by_workflow,
                 "agentPrivateReviewDraftSavedCount": agent_private_review_draft_saved_count,
                 "agentPrivateReviewDraftSavedByForm": agent_private_review_draft_saved_by_form,
                 "agentPrivateReviewNextStepClickedCount": agent_private_review_next_step_clicked_count,
