@@ -154,7 +154,7 @@ class PwaInstallExperienceTests(unittest.TestCase):
         self.assertIn("PWA only: app-like mobile access", INDEX)
 
     def test_offline_shell_cache_is_versioned_for_the_new_install_surface(self):
-        self.assertIn("homeofferflow-shell-v52", WORKER)
+        self.assertIn("homeofferflow-shell-v53", WORKER)
         self.assertIn("caches.delete", WORKER)
 
     def test_signed_out_shortcuts_resume_the_requested_agent_action_after_authentication(self):
@@ -212,7 +212,6 @@ class PwaInstallExperienceTests(unittest.TestCase):
         self.assertIn("await window.openAccountDashboard?.({ tab: 'dashboard' });", resume)
 
     def test_investor_workspace_shortcut_is_declared_for_repeat_offer_work(self):
-        self.assertIn('"url": "/?pwa_action=investor_workspace"', (ROOT / "manifest.webmanifest").read_text(encoding="utf-8"))
         self.assertIn('async function openInvestorWorkspace()', INDEX)
         self.assertIn("window.openAuthModal?.('investor')", INDEX)
 

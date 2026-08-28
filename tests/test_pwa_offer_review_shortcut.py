@@ -10,11 +10,9 @@ ADMIN = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
 
 
 class PwaOfferReviewShortcutTests(unittest.TestCase):
-    def test_manifest_exposes_a_private_offer_review_shortcut(self):
-        shortcuts = {item["url"]: item for item in MANIFEST["shortcuts"]}
-        shortcut = shortcuts["/?pwa_action=offer_review"]
-        self.assertEqual(shortcut["name"], "Offer Review")
-        self.assertIn("risk review workspace", shortcut["description"])
+    def test_shortcuts_stay_within_the_four_primary_app_actions(self):
+        self.assertEqual(len(MANIFEST["shortcuts"]), 4)
+        self.assertNotIn("/?pwa_action=offer_review", {item["url"] for item in MANIFEST["shortcuts"]})
 
     def test_shortcut_routes_an_agent_to_offer_review_and_keeps_investors_in_their_own_workspace(self):
         self.assertIn("async function openOfferReviewShortcut(role)", HTML)
