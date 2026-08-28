@@ -32,6 +32,12 @@ VERCEL = json.loads((ROOT / "vercel.json").read_text(encoding="utf-8"))
 
 
 class PublicDiscoveryMetadataTests(unittest.TestCase):
+    def test_not_found_agent_routes_describe_the_same_question_two_package_choices(self):
+        self.assertIn('Choose listing setup, seller disclosures, or offer review.', NOT_FOUND)
+        self.assertIn('Choose an offer, representation, or customer notice.', NOT_FOUND)
+        self.assertIn('Choose lease-listing setup or lease details.', NOT_FOUND)
+        self.assertIn('Choose representation or the right customer notice.', NOT_FOUND)
+
     def test_agent_form_library_exposes_crawlable_shared_workflow_inventory(self):
         self.assertIn('"@type":"ItemList"', AGENT_FORM_LIBRARY)
         for form_code in ("TXR-1501", "TXR-1508", "TXR-1948", "TXR-1953", "TXR-1954"):
