@@ -285,7 +285,7 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn('Start a private client draft', AGENT_GUIDE)
         self.assertIn('id="agentGuideQuestionOne"', AGENT_GUIDE)
         self.assertIn('href="/agents#transaction-start"', AGENT_GUIDE)
-        self.assertIn('choose listing, buying, lease listing, or lease representation', AGENT_GUIDE)
+        self.assertIn('choose property listing, purchase, lease listing, or tenant representation', AGENT_GUIDE)
         self.assertIn('not legal, tax, lending, title, or brokerage advice', AGENT_GUIDE)
         self.assertIn('/texas-agent-offer-workflow', (ROOT / 'vercel.json').read_text(encoding='utf-8'))
         self.assertIn('href="/texas-agent-offer-workflow"', AGENTS)

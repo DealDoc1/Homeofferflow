@@ -79,9 +79,9 @@ class AgentLandingFunnelTests(unittest.TestCase):
         start = AGENTS.index('id="transaction-start"')
         end = AGENTS.index('</section>', start)
         choices = AGENTS[start:end]
-        self.assertLess(choices.index('<h3>Listing</h3>'), choices.index('<h3>Buying</h3>'))
-        self.assertLess(choices.index('<h3>Buying</h3>'), choices.index('<h3>Lease listing</h3>'))
-        self.assertLess(choices.index('<h3>Lease listing</h3>'), choices.index('<h3>Lease representation</h3>'))
+        self.assertLess(choices.index('<h3>Property listing</h3>'), choices.index('<h3>Purchase</h3>'))
+        self.assertLess(choices.index('<h3>Purchase</h3>'), choices.index('<h3>Lease listing</h3>'))
+        self.assertLess(choices.index('<h3>Lease listing</h3>'), choices.index('<h3>Tenant representation</h3>'))
 
     def test_lease_listing_copy_does_not_claim_a_form_or_plan_is_preselected(self):
         self.assertIn("Next, choose lease-listing setup or lease details.", AGENTS)
@@ -160,7 +160,10 @@ class AgentLandingFunnelTests(unittest.TestCase):
     def test_public_agent_copy_matches_the_transaction_first_activation_path(self):
         self.assertIn('Start with the transaction—not a form catalog.', AGENTS)
         self.assertIn('Question 1', AGENTS)
-        self.assertIn('Is this a listing, buying, lease listing, or lease representation transaction?', AGENTS)
+        self.assertIn('What type of transaction are you starting?', AGENTS)
+        self.assertIn('Property listing', AGENTS)
+        self.assertIn('Purchase', AGENTS)
+        self.assertIn('Tenant representation', AGENTS)
         self.assertIn('Start question 1', AGENTS)
         self.assertIn('id="agentQuestionOneCta"', AGENTS)
         self.assertNotIn('Start a buyer offer — no payment', AGENTS)
@@ -191,13 +194,13 @@ class AgentLandingFunnelTests(unittest.TestCase):
     def test_agent_faq_explains_the_question_two_package_interview_without_selecting_a_form(self):
         self.assertIn('What happens after I choose a transaction?', AGENTS)
         self.assertIn('<strong>Every choice</strong> opens one plain-language result question before a workflow is opened.', AGENTS)
-        self.assertIn('<strong>Buying</strong> can lead to an offer, representation, or customer notice.', AGENTS)
-        self.assertIn('<strong>Listing</strong> and <strong>lease listing</strong> can lead to the relevant listing, disclosure, or review work.', AGENTS)
-        self.assertIn('<strong>Lease representation</strong> can lead to representation or customer-notice work.', AGENTS)
+        self.assertIn('<strong>Purchase</strong> can lead to an offer, representation, or a customer notice.', AGENTS)
+        self.assertIn('<strong>Property listing</strong> and <strong>lease listing</strong> can lead to the relevant listing, disclosure, or review work.', AGENTS)
+        self.assertIn('<strong>Tenant representation</strong> can lead to representation or customer-notice work.', AGENTS)
         self.assertIn('HomeOfferFlow does not automatically select a legal form.', AGENTS)
 
     def test_agent_landing_cards_and_structured_data_match_the_question_two_interview(self):
-        self.assertIn('Question 2 asks the result you need, then opens only the matching guided workflow.', AGENTS)
+        self.assertIn('Choose the transaction type. Next, we’ll ask what you need and open the appropriate guided workflow.', AGENTS)
         self.assertIn('Next, choose an offer, representation, or a customer notice.', AGENTS)
         self.assertIn('Every transaction choice opens one plain-language result question before a workflow is opened.', AGENTS)
 
