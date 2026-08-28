@@ -3111,7 +3111,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         <p style="color:var(--gray-light); line-height:1.6; margin-bottom:1rem;">Use this after choosing Buyer or Lease representation above. HomeOfferFlow does not select a form for you, a legal agreement, compensation structure, or business term.</p>
         <div class="relationship-drafts-guide-grid">
           <div class="relationship-drafts-guide-item"><strong>TXR-1507 · Short Form</strong><span>Buyer/Tenant Representation Agreement draft.</span></div>
-          <div class="relationship-drafts-guide-item"><strong>TXR-1501 · Long Form</strong><span>Buyer/Tenant Representation Agreement draft; use only when it is the form your brokerage has approved for the matter.</span></div>
+          <div class="relationship-drafts-guide-item"><strong>TXR-1501 · Long Form</strong><span>Buyer/Tenant Representation Agreement draft; choose it only when it fits the transaction.</span></div>
           <div class="relationship-drafts-guide-item"><strong>TXR-1508 · Showing Form</strong><span>Unrepresented Customer Showing Form draft; it is not a buyer representation agreement.</span></div>
           <div class="relationship-drafts-guide-item"><strong>TXR-1506 · Consumer Notice</strong><span>General Information and Notice to Consumers draft; it does not create representation.</span></div>
           <div class="relationship-drafts-guide-item"><strong>TXR-1905 · Mineral Reservation Addendum</strong><span>Short guided private-review draft for the source-form reservation and surface-rights choices; it does not send or sign the addendum.</span></div>
@@ -5426,10 +5426,10 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       guide.querySelector('#leaseRepresentationQuickChoices')?.remove();
       if (title) title.textContent = isLeaseRepresentation ? 'Start the tenant-representation conversation' : 'Choose the relationship step deliberately';
       if (copy) copy.textContent = isLeaseRepresentation
-        ? 'Begin with the representation form your brokerage has approved for this tenant matter. The choices below stay private until you review and explicitly choose any next step.'
+        ? 'Begin with the representation form that fits this tenant matter. The choices below stay private until you review and explicitly choose any next step.'
         : 'Use this after choosing Buyer or Lease representation above. HomeOfferFlow does not select a form for you, a legal agreement, compensation structure, or business term.';
       if (isLeaseRepresentation) {
-        guide.insertAdjacentHTML('beforeend', `<div id="leaseRepresentationQuickChoices" style="margin-top:1rem;padding-top:1rem;border-top:1px solid rgba(255,255,255,.12)"><strong>Which brokerage-approved representation agreement are you preparing?</strong><div class="account-actions-row" role="group" aria-label="Representation agreement choice" aria-describedby="leaseRepresentationQuickChoiceStatus" style="margin-top:.7rem"><button class="btn-primary" type="button" onclick="openTenantRepresentationDraft('short')">Short Form</button><button class="btn-secondary" type="button" onclick="openTenantRepresentationDraft('long')">Long Form</button></div><p id="leaseRepresentationQuickChoiceStatus" role="status" aria-live="polite" style="color:var(--gray-light);font-size:.84rem;line-height:1.5;margin:.7rem 0 0">Choose deliberately. HomeOfferFlow opens a private draft only; it does not select terms, recipients, or a signing path.</p></div>`);
+        guide.insertAdjacentHTML('beforeend', `<div id="leaseRepresentationQuickChoices" style="margin-top:1rem;padding-top:1rem;border-top:1px solid rgba(255,255,255,.12)"><strong>Which representation agreement are you preparing?</strong><div class="account-actions-row" role="group" aria-label="Representation agreement choice" aria-describedby="leaseRepresentationQuickChoiceStatus" style="margin-top:.7rem"><button class="btn-primary" type="button" onclick="openTenantRepresentationDraft('short')">Short Form</button><button class="btn-secondary" type="button" onclick="openTenantRepresentationDraft('long')">Long Form</button></div><p id="leaseRepresentationQuickChoiceStatus" role="status" aria-live="polite" style="color:var(--gray-light);font-size:.84rem;line-height:1.5;margin:.7rem 0 0">Choose deliberately. HomeOfferFlow opens a private draft only; it does not select terms, recipients, or a signing path.</p></div>`);
       }
     }
     window.renderAccountDashboard?.();
@@ -19566,7 +19566,7 @@ function routeAfterMagicLinkIfNeeded() {
     modal.className = 'hof-agreement-modal';
     modal.innerHTML = `<form class="hof-agreement-dialog" id="hofStandaloneSendForm">
       <h3>Send ${escape(agreement.form_code)} for signature</h3>
-      <p>Confirm one unique email for each listed client. The selected broker or broker-associate signer is added from the authenticated brokerage record.</p>
+      <p>Confirm one unique email for each listed client. The signer you chose for this draft is added from the account or source record.</p>
       <div class="hof-agreement-grid">${names.map((name, index) => `<label>Client ${index + 1}: ${escape(name)}<input name="clientEmail${index + 1}" required type="email" maxlength="254" autocomplete="email"></label>`).join('')}</div>
       <div id="hofStandaloneSendStatus" class="hof-iabs-status"></div>
       <div class="hof-agreement-footer"><button class="btn-secondary" type="button" id="hofStandaloneSendCancel">Cancel</button><button class="btn-primary" type="submit">Send signature request</button></div>

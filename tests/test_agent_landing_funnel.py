@@ -142,7 +142,7 @@ class AgentLandingFunnelTests(unittest.TestCase):
 
     def test_lease_representation_starts_with_an_explicit_agent_selected_agreement_choice(self):
         self.assertIn("window.openTenantRepresentationDraft = function openTenantRepresentationDraft(kind)", INDEX)
-        self.assertIn("Which brokerage-approved representation agreement are you preparing?", INDEX)
+        self.assertIn("Which representation agreement are you preparing?", INDEX)
         self.assertIn("openTenantRepresentationDraft('short')", INDEX)
         self.assertIn("openTenantRepresentationDraft('long')", INDEX)
         self.assertIn("root.hofOpenTxr1507Draft = () => openDraftDialog(source);", INDEX)

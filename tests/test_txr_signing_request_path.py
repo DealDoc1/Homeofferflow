@@ -51,6 +51,26 @@ class TxrSigningRequestPathTests(unittest.TestCase):
         source = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
         self.assertIn('"signingEnabled": TXR_SIGNING_ENABLED', source)
 
+    def test_shared_library_signing_does_not_require_a_brokerage_seat(self):
+        signing_source = MODULE._send_txr_agreement_for_signature.__doc__ or ""
+        route_source = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
+        start = route_source.index("async def _send_txr_agreement_for_signature")
+        end = route_source.index("\n\nclass handler", start)
+        route = route_source[start:end]
+        self.assertIn("without being assigned to a brokerage seat", signing_source)
+        self.assertNotIn("_active_brokerage_member(user)", route)
+        self.assertNotIn("_require_brokerage_txr_authorization", route)
+        self.assertIn("select=id,brokerage_id,form_code,form_source_id", route)
+
+    def test_workspace_starts_with_a_transaction_interview(self):
+        html = (ROOT / "index.html").read_text(encoding="utf-8")
+        self.assertIn("Question 1", html)
+        self.assertIn("Is this a listing, buying, lease listing, or lease representation transaction?", html)
+        self.assertIn("data-agent-workflow-choice=\"purchase\"", html)
+        self.assertIn("data-agent-workflow-choice=\"sale_listing\"", html)
+        self.assertIn("data-agent-workflow-choice=\"lease_listing\"", html)
+        self.assertIn("data-agent-workflow-choice=\"lease_representation\"", html)
+
     def test_signwell_signing_urls_are_extracted_only_from_https_recipient_urls(self):
         self.assertEqual(
             MODULE._signwell_signing_urls({

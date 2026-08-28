@@ -3522,9 +3522,9 @@ async def _render_representation_draft_preview(user, agreement_id):
     # Library-source drafts are intentionally available to every signed-in
     # agent.  A source can be hosted by the platform library rather than the
     # agent's own brokerage, so a missing host-brokerage row must not prevent
-    # that agent from privately rendering the draft they own.  Signing still
-    # independently requires an active authorized brokerage membership in
-    # _send_txr_agreement_for_signature.
+    # that agent from rendering or sending the released draft they own. A
+    # broker signer is still only added when the agent explicitly selected
+    # that signer plan and the source host supplies a valid contact email.
     brokerage = brokerage_rows[0] if brokerage_rows else {}
     agreement_data = agreement.get("agreement_data") or {}
     compensation_keys = (
@@ -3653,11 +3653,12 @@ def _signwell_signing_urls(result):
 
 
 async def _send_txr_agreement_for_signature(user, data):
-    """Create one gated SignWell request for an owned standalone TXR draft.
+    """Create one SignWell request for an owned standalone TXR draft.
 
     This is intentionally separate from purchase-offer signing. It rechecks
-    active membership, brokerage authorization, approved source revision,
-    draft ownership, signer plan, and recipient emails on every send attempt.
+    the released source revision, draft ownership, signer plan, and recipient
+    emails on every send attempt. A signed-in agent can use the shared form
+    library without being assigned to a brokerage seat.
     """
     if not TXR_SIGNING_ENABLED:
         raise PermissionError("Restricted TXR signing is not enabled yet; completed signed-PDF release QA is still required.")
@@ -3668,15 +3669,12 @@ async def _send_txr_agreement_for_signature(user, data):
         agreement_uuid = str(uuid.UUID(agreement_id))
     except (TypeError, ValueError, AttributeError):
         raise ValueError("Choose a valid private agreement draft.")
-    brokerage_id = await _active_brokerage_member(user)
-    await _require_brokerage_txr_authorization(brokerage_id)
     rows = await _get(
         "hof_standalone_agreements?"
         f"id=eq.{urllib.parse.quote(agreement_uuid)}"
         f"&agent_user_id=eq.{urllib.parse.quote(user['id'])}"
-        f"&brokerage_id=eq.{urllib.parse.quote(brokerage_id)}"
         "&status=eq.draft"
-        "&select=id,form_code,form_source_id,source_revision,client_names,agreement_data"
+        "&select=id,brokerage_id,form_code,form_source_id,source_revision,client_names,agreement_data"
         "&limit=1"
     )
     if not rows:
@@ -3704,7 +3702,6 @@ async def _send_txr_agreement_for_signature(user, data):
     sources = await _get(
         "hof_brokerage_form_sources?"
         f"id=eq.{urllib.parse.quote(str(agreement['form_source_id']))}"
-        f"&brokerage_id=eq.{urllib.parse.quote(brokerage_id)}"
         f"&form_code=eq.{urllib.parse.quote(form_code)}"
         "&status=eq.approved&authorization_attested=is.true"
         "&select=id,source_revision,storage_bucket,storage_path&limit=1"
@@ -3723,8 +3720,8 @@ async def _send_txr_agreement_for_signature(user, data):
         raise RuntimeError("The approved standalone source could not be loaded.")
     brokerage_rows = await _get(
         "hof_brokerages?"
-        f"id=eq.{urllib.parse.quote(brokerage_id)}"
-        "&select=id,name,dba_name,legal_name,license_number,contact_name,contact_email&limit=1"
+        f"id=eq.{urllib.parse.quote(str(agreement.get('brokerage_id') or ''))}"
+        "&select=id,name,dba_name,license_number,contact_name,contact_email&limit=1"
     )
     profile_rows = await _get_optional(
         "hof_agent_profiles?"
