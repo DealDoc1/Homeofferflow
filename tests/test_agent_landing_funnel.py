@@ -84,7 +84,7 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertLess(choices.index('<h3>Lease listing</h3>'), choices.index('<h3>Lease representation</h3>'))
 
     def test_lease_listing_copy_does_not_claim_a_form_or_plan_is_preselected(self):
-        self.assertIn("keep private lease-listing planning together.", AGENTS)
+        self.assertIn("Next, choose lease-listing setup or lease details.", AGENTS)
         self.assertNotIn("with lease planning preselected.", AGENTS)
 
     def test_agent_landing_can_start_each_transaction_in_its_relevant_package_interview(self):
@@ -188,12 +188,18 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn('"@type":"BreadcrumbList"', AGENTS)
         self.assertIn('"name":"Texas Agent and Broker Workspace"', AGENTS)
 
-    def test_agent_faq_explains_the_next_workspace_for_each_transaction_without_selecting_a_form(self):
+    def test_agent_faq_explains_the_question_two_package_interview_without_selecting_a_form(self):
         self.assertIn('What happens after I choose a transaction?', AGENTS)
-        self.assertIn('<strong>Buying</strong> opens the guided buyer-offer interview.', AGENTS)
-        self.assertIn('<strong>Listing</strong> and <strong>lease listing</strong> begin with the property and seller or landlord workspace.', AGENTS)
-        self.assertIn('<strong>Lease representation</strong> opens the private relationship workspace', AGENTS)
+        self.assertIn('<strong>Every choice</strong> opens one plain-language result question before a workflow is opened.', AGENTS)
+        self.assertIn('<strong>Buying</strong> can lead to an offer, representation, or customer notice.', AGENTS)
+        self.assertIn('<strong>Listing</strong> and <strong>lease listing</strong> can lead to the relevant listing, disclosure, or review work.', AGENTS)
+        self.assertIn('<strong>Lease representation</strong> can lead to representation or customer-notice work.', AGENTS)
         self.assertIn('HomeOfferFlow does not automatically select a legal form.', AGENTS)
+
+    def test_agent_landing_cards_and_structured_data_match_the_question_two_interview(self):
+        self.assertIn('Question 2 asks the result you need, then opens only the matching guided workflow.', AGENTS)
+        self.assertIn('Next, choose an offer, representation, or a customer notice.', AGENTS)
+        self.assertIn('Every transaction choice opens one plain-language result question before a workflow is opened.', AGENTS)
 
     def test_agent_landing_preserves_the_safe_draft_request_through_sign_in(self):
         self.assertIn("hof_agent_landing_start_draft", INDEX)
