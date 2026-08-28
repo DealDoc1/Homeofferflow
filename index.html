@@ -7193,6 +7193,60 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     window.openAgentTransactionPicker?.();
   };
 
+  // After Question 1, ask one small need-specific question before opening a
+  // workspace. This keeps the agent experience an interview that assembles a
+  // relevant working package rather than a form catalog to search through.
+  window.hofOpenAgentPackageInterview = function hofOpenAgentPackageInterview(kind) {
+    const packages = {
+      purchase: {
+        title: 'What do you need for this buyer transaction?',
+        choices: [
+          { label: 'Prepare an offer', copy: 'Buyer offer package: property, buyer, financing, timing, and supported addenda.', action: () => startAccountOffer() },
+          { label: 'Start representation', copy: 'Representation package: choose the Short or Long Form, then complete the client interview and notice as needed.', action: () => showAccountTab('relationships') },
+          { label: 'A showing or consumer notice', copy: 'Customer package: start the Showing Form for an unrepresented customer or the Consumer Notice for the appropriate party.', action: () => showAccountTab('relationships') }
+        ]
+      },
+      sale_listing: {
+        title: 'What do you need for this sale listing?',
+        choices: [
+          { label: 'Set up the listing', copy: 'Listing package: seller, property, timing, launch, and offer-management questions.', action: () => showAccountTab('seller') },
+          { label: 'Prepare seller disclosures', copy: 'Disclosure package: property and seller answers, then a private source-form review draft.', action: () => showAccountTab('seller') },
+          { label: 'Review a buyer offer', copy: 'Offer-review package: compare price, financing, deadlines, concessions, and possession terms.', action: () => showAccountTab('seller') }
+        ]
+      },
+      lease_listing: {
+        title: 'What do you need for this lease listing?',
+        choices: [
+          { label: 'Set up the lease listing', copy: 'Lease-listing package: landlord, property, availability, and listing questions.', action: () => showAccountTab('seller') },
+          { label: 'Prepare lease details', copy: 'Lease-review package: property, parties, fixtures, and lease-specific source-form interviews.', action: () => showAccountTab('relationships') }
+        ]
+      },
+      lease_representation: {
+        title: 'What do you need for this tenant transaction?',
+        choices: [
+          { label: 'Start representation', copy: 'Tenant-representation package: choose the Short or Long Form, then answer only the transaction questions.', action: () => showAccountTab('relationships') },
+          { label: 'A showing or consumer notice', copy: 'Customer package: start the Showing Form for an unrepresented customer or the Consumer Notice for the appropriate party.', action: () => showAccountTab('relationships') }
+        ]
+      }
+    };
+    const interview = packages[kind];
+    if (!interview) return false;
+    document.getElementById('hofAgentPackageInterview')?.remove();
+    const modal = document.createElement('div');
+    modal.id = 'hofAgentPackageInterview'; modal.className = 'hof-agreement-modal';
+    modal.innerHTML = `<div class="hof-agreement-dialog" role="dialog" aria-modal="true" aria-labelledby="hofAgentPackageTitle"><h3 id="hofAgentPackageTitle">${interview.title}</h3><p>Choose the result you want. HomeOfferFlow will open the matching guided package—no brokerage seat required.</p><div class="hof-agreement-grid">${interview.choices.map((choice, index) => `<button type="button" class="btn-secondary hof-agent-package-choice" data-package-choice="${index}" style="text-align:left;padding:1rem"><strong style="display:block;color:var(--white);margin-bottom:.35rem">${choice.label}</strong><span style="display:block;color:var(--gray-light);font-weight:400;line-height:1.45">${choice.copy}</span></button>`).join('')}</div><div class="hof-agreement-footer"><button type="button" class="btn-secondary" id="hofAgentPackageCancel">Back</button></div></div>`;
+    document.body.appendChild(modal);
+    modal.querySelector('#hofAgentPackageCancel').addEventListener('click', () => modal.remove());
+    modal.addEventListener('click', event => { if (event.target === modal) modal.remove(); });
+    modal.querySelectorAll('[data-package-choice]').forEach(button => button.addEventListener('click', () => {
+      const choice = interview.choices[Number(button.dataset.packageChoice)];
+      if (!choice) return;
+      window.logOfferEvent?.(null, 'agent_form_package_selected', 'selected', 'Agent selected a guided form package after the transaction interview.', { workflow: kind, package: choice.label });
+      modal.remove(); choice.action();
+    }));
+    return true;
+  };
+
   // The agent workspace begins with the transaction, not a form catalog.
   // This preserves a quiet TurboTax-style choice and keeps each downstream
   // workflow in its proper buyer, listing, or lease context.
@@ -7201,22 +7255,22 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       purchase: {
         event: 'agent_workflow_purchase_selected',
         message: 'Next question: buyer and property details for this offer.',
-        action: () => startAccountOffer()
+        action: () => window.hofOpenAgentPackageInterview('purchase') || startAccountOffer()
       },
       sale_listing: {
         event: 'agent_workflow_sale_listing_selected',
         message: 'Next question: seller and property details for this sale listing.',
-        action: () => showAccountTab('seller')
+        action: () => window.hofOpenAgentPackageInterview('sale_listing') || showAccountTab('seller')
       },
       lease_listing: {
         event: 'agent_workflow_lease_listing_selected',
         message: 'Next question: landlord and property details for this lease listing.',
-        action: () => showAccountTab('seller')
+        action: () => window.hofOpenAgentPackageInterview('lease_listing') || showAccountTab('seller')
       },
       lease_representation: {
         event: 'agent_workflow_lease_representation_selected',
         message: 'Next question: the representation step for this tenant transaction.',
-        action: () => showAccountTab('relationships')
+        action: () => window.hofOpenAgentPackageInterview('lease_representation') || showAccountTab('relationships')
       }
     };
     const choice = choices[kind];

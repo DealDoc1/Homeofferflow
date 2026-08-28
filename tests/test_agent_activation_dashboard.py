@@ -260,6 +260,15 @@ class AgentActivationDashboardTests(unittest.TestCase):
         self.assertLess(picker.index(">Buying</button>"), picker.index(">Lease listing</button>"))
         self.assertLess(picker.index(">Lease listing</button>"), picker.index(">Lease representation</button>"))
 
+    def test_transaction_interview_recommends_a_package_before_opening_a_workspace(self):
+        self.assertIn("window.hofOpenAgentPackageInterview = function hofOpenAgentPackageInterview(kind)", HTML)
+        self.assertIn("What do you need for this buyer transaction?", HTML)
+        self.assertIn("What do you need for this sale listing?", HTML)
+        self.assertIn("What do you need for this lease listing?", HTML)
+        self.assertIn("What do you need for this tenant transaction?", HTML)
+        self.assertIn("no brokerage seat required", HTML)
+        self.assertIn("agent_form_package_selected", HTML)
+
     def test_generic_agent_account_offer_actions_return_to_question_one(self):
         self.assertIn("window.startAccountTransaction = function startAccountTransaction()", HTML)
         self.assertIn("if (hofAuth.role === 'investor') return startAccountOffer();", HTML)
