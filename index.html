@@ -7291,7 +7291,10 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   // The agent workspace begins with the transaction, not a form catalog.
   // This preserves a quiet TurboTax-style choice and keeps each downstream
   // workflow in its proper buyer, listing, or lease context.
-  function startAgentWorkflow(kind) {
+  // The dashboard buttons use this as their explicit launch contract. Assign
+  // it to window rather than relying on legacy implicit global-function
+  // behavior, which can differ in embedded and installed-app browser modes.
+  window.startAgentWorkflow = function startAgentWorkflow(kind) {
     const choices = {
       purchase: {
         event: 'agent_workflow_purchase_selected',
