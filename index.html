@@ -7891,6 +7891,10 @@ function routeAfterMagicLinkIfNeeded() {
     localStorage.removeItem('hof_auth_pending');
     const startAgentLandingDraft = localStorage.getItem('hof_agent_landing_start_draft') === '1';
     localStorage.removeItem('hof_agent_landing_start_draft');
+    const agentLandingPackageWorkflow = ['purchase', 'sale_listing', 'lease_listing', 'lease_representation'].includes(localStorage.getItem('hof_agent_landing_package_workflow'))
+      ? localStorage.getItem('hof_agent_landing_package_workflow')
+      : '';
+    localStorage.removeItem('hof_agent_landing_package_workflow');
     // Preserve only the small, allowlisted public acquisition surface through
     // the passwordless return. This never stores a client, property, email,
     // or arbitrary campaign value in local storage or offer events.
@@ -7902,7 +7906,7 @@ function routeAfterMagicLinkIfNeeded() {
     localStorage.removeItem('hof_agent_landing_open_seller_workspace');
     const openRelationshipLandingWorkspace = localStorage.getItem('hof_agent_landing_open_relationship_workspace') === '1';
     localStorage.removeItem('hof_agent_landing_open_relationship_workspace');
-    const agentLandingWorkflow = ['sale_listing', 'lease_listing', 'lease_representation'].includes(localStorage.getItem('hof_agent_landing_workflow'))
+    const agentLandingWorkflow = ['purchase', 'sale_listing', 'lease_listing', 'lease_representation'].includes(localStorage.getItem('hof_agent_landing_workflow'))
       ? localStorage.getItem('hof_agent_landing_workflow')
       : '';
     localStorage.removeItem('hof_agent_landing_workflow');
@@ -7919,11 +7923,18 @@ function routeAfterMagicLinkIfNeeded() {
     if (agentLandingWorkflow) window.hofAgentWorkflowContext = agentLandingWorkflow;
     closeAuthModal();
     try { history.replaceState({}, document.title, window.location.origin + window.location.pathname); } catch(e) {}
-    setTimeout(() => openAccountDashboard({ postLogin: true, tab: openSellerLandingWorkspace ? 'seller' : (openRelationshipLandingWorkspace ? 'relationships' : 'dashboard') }), 250);
+    setTimeout(() => openAccountDashboard({ postLogin: true, tab: agentLandingPackageWorkflow ? 'dashboard' : (openSellerLandingWorkspace ? 'seller' : (openRelationshipLandingWorkspace ? 'relationships' : 'dashboard')) }), 250);
+    if (agentLandingPackageWorkflow && role !== 'investor') {
+      setTimeout(() => {
+        window.hofAgentWorkflowContext = agentLandingPackageWorkflow;
+        window.hofOpenAgentPackageInterview?.(agentLandingPackageWorkflow);
+        window.logOfferEvent?.(null, 'agent_landing_package_handoff', 'opened', 'Agent continued from the public transaction choice into the guided package interview after sign-in.', { source: agentLandingSource, workflow: agentLandingPackageWorkflow });
+      }, 450);
+    }
     // A public agent CTA promises a no-payment draft, not merely a dashboard
     // visit. Resume the requested action after authentication. startAccountOffer
     // already protects an existing same-role local draft from being replaced.
-    if (startAgentLandingDraft && role !== 'investor') {
+    if (startAgentLandingDraft && !agentLandingPackageWorkflow && role !== 'investor') {
       setTimeout(() => {
         window.startAccountOffer?.();
         window.logOfferEvent?.(null, 'agent_landing_draft_handoff', 'started', 'Agent landing visitor continued to the draft workflow after sign-in.', { source: agentLandingSource, workflow: agentLandingWorkflow || 'purchase' });
@@ -15289,11 +15300,7 @@ function routeAfterMagicLinkIfNeeded() {
     if (params().get('agent') === '1') setTimeout(() => {
       const agentRouteParams = params();
       const agentLandingWorkflow = ['purchase', 'sale_listing', 'lease_listing', 'lease_representation'].includes(agentRouteParams.get('workflow')) ? agentRouteParams.get('workflow') : '';
-      const agentLandingWorkspace = agentLandingWorkflow === 'sale_listing' || agentLandingWorkflow === 'lease_listing'
-        ? 'seller'
-        : agentLandingWorkflow === 'lease_representation'
-          ? 'relationship'
-          : ['seller', 'relationship'].includes(agentRouteParams.get('workspace')) ? agentRouteParams.get('workspace') : '';
+      const agentLandingWorkspace = ['seller', 'relationship'].includes(agentRouteParams.get('workspace')) ? agentRouteParams.get('workspace') : '';
       // Retain only this known organic guide identifier as an aggregate
       // conversion source. All arbitrary UTM values remain excluded.
       const agentLandingSource = agentRouteParams.get('utm_source') === 'texas_agent_offer_workflow'
@@ -15308,8 +15315,14 @@ function routeAfterMagicLinkIfNeeded() {
       } catch (_) {}
       window.setAudience?.('agent');
       if (window.hofAuth?.session) {
-        if (agentLandingWorkflow) window.hofAgentWorkflowContext = agentLandingWorkflow;
-        if (agentLandingWorkspace === 'seller') {
+        if (agentLandingWorkflow) {
+          window.openAccountDashboard?.({ tab: 'dashboard' });
+          window.setTimeout(() => {
+            window.hofAgentWorkflowContext = agentLandingWorkflow;
+            window.hofOpenAgentPackageInterview?.(agentLandingWorkflow);
+          }, 120);
+          window.logOfferEvent?.(null, 'agent_landing_package_handoff', 'opened', 'Signed-in agent continued from the public transaction choice into the guided package interview.', { source: agentLandingSource, workflow: agentLandingWorkflow });
+        } else if (agentLandingWorkspace === 'seller') {
           window.openAccountDashboard?.({ tab: 'seller' });
           window.logOfferEvent?.(null, 'agent_landing_seller_workspace_handoff', 'opened', 'Signed-in agent opened Listing Tools from the public landing page.', { source: agentLandingSource, workflow: agentLandingWorkflow || 'sale_listing' });
         } else if (agentLandingWorkspace === 'relationship') {
@@ -15322,7 +15335,7 @@ function routeAfterMagicLinkIfNeeded() {
       } else {
         try {
           if (agentLandingSource === 'texas_agent_offer_workflow') localStorage.setItem('hof_agent_landing_source', agentLandingSource);
-          if (agentLandingWorkflow) localStorage.setItem('hof_agent_landing_workflow', agentLandingWorkflow);
+          if (agentLandingWorkflow) localStorage.setItem('hof_agent_landing_package_workflow', agentLandingWorkflow);
           if (agentLandingWorkspace === 'seller') localStorage.setItem('hof_agent_landing_open_seller_workspace', '1');
           else if (agentLandingWorkspace === 'relationship') localStorage.setItem('hof_agent_landing_open_relationship_workspace', '1');
           else localStorage.setItem('hof_agent_landing_start_draft', '1');

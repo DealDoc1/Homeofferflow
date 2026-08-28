@@ -67,11 +67,13 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn('Read the listing workflow guide', AGENTS)
         self.assertIn('data-agent-cta-path="listing_guide"', AGENTS)
 
-    def test_agent_landing_uses_transaction_choices_for_listing_handoffs(self):
+    def test_agent_landing_uses_transaction_choices_for_guided_package_handoffs(self):
         self.assertIn('href="/?agent=1&amp;workflow=sale_listing&amp;utm_source=agent_workspace&amp;utm_medium=agent_page&amp;utm_campaign=transaction_selector"', AGENTS)
         self.assertIn('href="/?agent=1&amp;workflow=lease_listing&amp;utm_source=agent_workspace&amp;utm_medium=agent_page&amp;utm_campaign=transaction_selector"', AGENTS)
         self.assertIn("window.hofAgentWorkflowContext = agentLandingWorkflow", INDEX)
-        self.assertIn("agent_landing_seller_workspace_handoff", INDEX)
+        self.assertIn("hof_agent_landing_package_workflow", INDEX)
+        self.assertIn("agent_landing_package_handoff", INDEX)
+        self.assertIn("window.hofOpenAgentPackageInterview?.(agentLandingWorkflow)", INDEX)
 
     def test_agent_landing_uses_the_neutral_listing_first_order(self):
         start = AGENTS.index('id="transaction-start"')
@@ -85,7 +87,7 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("keep private lease-listing planning together.", AGENTS)
         self.assertNotIn("with lease planning preselected.", AGENTS)
 
-    def test_agent_landing_can_start_each_transaction_in_its_relevant_workspace(self):
+    def test_agent_landing_can_start_each_transaction_in_its_relevant_package_interview(self):
         for workflow, cta_path in (
             ("purchase", "client_draft"),
             ("sale_listing", "seller_listing"),
@@ -95,8 +97,9 @@ class AgentLandingFunnelTests(unittest.TestCase):
             self.assertIn(f'workflow={workflow}', AGENTS)
             self.assertIn(f'data-agent-cta-path="{cta_path}"', AGENTS)
         self.assertIn("const agentLandingWorkflow = ['purchase', 'sale_listing', 'lease_listing', 'lease_representation']", INDEX)
-        self.assertIn("localStorage.setItem('hof_agent_landing_workflow', agentLandingWorkflow)", INDEX)
+        self.assertIn("localStorage.setItem('hof_agent_landing_package_workflow', agentLandingWorkflow)", INDEX)
         self.assertIn("window.hofAgentWorkflowContext = agentLandingWorkflow", INDEX)
+        self.assertIn("window.hofOpenAgentPackageInterview?.(agentLandingPackageWorkflow)", INDEX)
         self.assertIn("cleanUrl.searchParams.delete('workflow')", INDEX)
 
     def test_agent_landing_uses_lease_representation_for_relationship_draft_handoffs(self):
