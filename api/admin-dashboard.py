@@ -3753,7 +3753,7 @@ async def _send_txr_agreement_for_signature(user, data):
         "name": f"HomeOfferFlow {address_label} — {agreement_uuid[:8]}",
         "subject": f"HomeOfferFlow {address_label} for signature",
         "message": (
-            "Please review and sign this brokerage-approved Texas REALTORS® form. "
+            "Please review and sign this HomeOfferFlow Texas REALTORS® form package. "
             "HomeOfferFlow is a form-completion and signing workflow, not a law firm or brokerage. "
             "Confirm the terms with your authorized real-estate professional before signing."
         ),

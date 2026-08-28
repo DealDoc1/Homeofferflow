@@ -67,7 +67,7 @@
       {"@type":"Question","name":"Who is HomeOfferFlow for?","acceptedAnswer":{"@type":"Answer","text":"HomeOfferFlow has guided paths for Texas homebuyers, agents and brokers, investors, FSBO sellers, and service partners. Each path has its own workflow, scope, and payment terms."}},
       {"@type":"Question","name":"What happens after I complete a buyer offer?","acceptedAnswer":{"@type":"Answer","text":"You review the plain-English offer summary before checkout. When the supported packet is ready and payment is completed, HomeOfferFlow provides the buyer-side packet and signing workflow for your review and next steps."}},
       {"@type":"Question","name":"How does HomeOfferFlow help Texas FSBO sellers?","acceptedAnswer":{"@type":"Answer","text":"HomeOfferFlow starts with a free, no-obligation seller plan for the property, timeline, goals, and preferred support path. Sellers can explore planning, launch, offer-review, flat-fee MLS, and provider-supported options; final scope, availability, and pricing are confirmed separately where required."}},
-      {"@type":"Question","name":"Can Texas agents use HomeOfferFlow for different transaction types?","acceptedAnswer":{"@type":"Answer","text":"Yes. Signed-in agents can choose a buying, listing, lease-listing, or lease-representation path first. HomeOfferFlow then asks only the questions for that transaction and clearly identifies which workflows are supported, review-only, or require the agent's brokerage-approved process."}}
+      {"@type":"Question","name":"Can Texas agents use HomeOfferFlow for different transaction types?","acceptedAnswer":{"@type":"Answer","text":"Yes. Signed-in agents can choose a buying, listing, lease-listing, or lease-representation path first. HomeOfferFlow then asks only the questions for that transaction and assembles the applicable available form workflow."}}
     ]
   }
   </script>
@@ -2883,7 +2883,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   <details><summary>Is this only for homebuyers?</summary><p>No. HomeOfferFlow also has separate paths for <a href="/agents" style="color:var(--gold-light);font-weight:800;">agents and brokers</a>, <a href="/investors" style="color:var(--gold-light);font-weight:800;">investors</a>, <a href="/sellers" style="color:var(--gold-light);font-weight:800;">FSBO sellers</a>, and service partners. Each has its own workflow, scope, and payment terms.</p></details>
   <details><summary>What happens after I complete a buyer offer?</summary><p>You review the plain-English summary before checkout. When the supported packet is ready and payment is completed, HomeOfferFlow provides the buyer-side packet and signing workflow for your review and next steps.</p></details>
   <details><summary>How does HomeOfferFlow help Texas FSBO sellers?</summary><p>Start with a no-obligation seller intake for the property, timeline, goals, and preferred support path. You can explore planning, launch, offer-review, flat-fee MLS, and provider-supported options; final scope, availability, and pricing are confirmed separately where required.</p></details>
-  <details><summary>Can Texas agents use HomeOfferFlow for different transaction types?</summary><p>Yes. Signed-in agents can choose a buying, listing, lease-listing, or lease-representation path first. HomeOfferFlow then asks only the questions for that transaction and clearly identifies which workflows are supported, review-only, or require the agent's brokerage-approved process.</p></details>
+  <details><summary>Can Texas agents use HomeOfferFlow for different transaction types?</summary><p>Yes. Signed-in agents can choose a buying, listing, lease-listing, or lease-representation path first. HomeOfferFlow then asks only the questions for that transaction and assembles the applicable available form workflow.</p></details>
 </section>
 
 <hr class="divider"/>
@@ -18652,9 +18652,9 @@ function routeAfterMagicLinkIfNeeded() {
     const banner = document.createElement('div');
     banner.id = 'ondemandAccountBanner';
     banner.className = 'ondemand-account-banner';
-    banner.innerHTML = '<h4>' + safe(brokerage.dba_name || brokerage.name || 'OnDemand Realty') + '</h4>' +
-      '<p>This agent workspace is connected to your brokerage. Open the Brokerage tab for membership details' +
-      (root.hofAuth?.authoritativeProfile?.is_brokerage_admin ? ' and privacy-limited agent activity.' : '.') + '</p>';
+    banner.innerHTML = '<h4>' + safe(brokerage.dba_name || brokerage.name || 'Agent workspace') + '</h4>' +
+      '<p>Your agent workspace is active. Released HomeOfferFlow forms are available whether or not you are associated with a brokerage' +
+      (root.hofAuth?.authoritativeProfile?.is_brokerage_admin ? '; the Brokerage tab also has privacy-limited team activity.' : '.') + '</p>';
     panel.prepend(banner);
   };
 })();
@@ -19758,7 +19758,7 @@ function routeAfterMagicLinkIfNeeded() {
           Every signed-in agent can start an approved-source TXR-1501, TXR-1506, TXR-1507, TXR-1508, TXR-1948, TXR-1953, or TXR-1954 private review draft from the HomeOfferFlow library. The signing queue identifies the signer and requires explicit recipient confirmation before sending. Listing agreements, seller disclosures, lease-listing packets, and any form marked draft-only remain outside the live signing scope.
         </div>
       </div>
-      <p><strong>Important:</strong> Do not represent a draft-only or unavailable form as generated, sent, or executed through HomeOfferFlow. Use your brokerage-approved process for those documents until HomeOfferFlow releases the separately mapped and signed workflow.</p>
+      <p><strong>Important:</strong> Do not represent a draft-only or unavailable form as generated, sent, or executed through HomeOfferFlow. Those forms remain in the guided private-review workflow until their separately mapped signing workflow is released.</p>
       <p><strong>Shared TXR library:</strong> The released TXR-1501, TXR-1506, TXR-1507, TXR-1508, TXR-1948, TXR-1953, and TXR-1954 sources are available for private review-draft creation by every signed-in agent. HomeOfferFlow identifies the selected signer and keeps every draft private until a recipient is explicitly confirmed for signature delivery.</p>
       <div class="beta-checklist-actions"><button type="button" onclick="openMissingFormRequest()">Request a missing form</button></div>`;
     const subscription = document.getElementById('subscriptionUsageCard');
