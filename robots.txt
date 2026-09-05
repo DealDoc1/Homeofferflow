@@ -1,4 +1,5 @@
 User-agent: *
 Allow: /
+Disallow: /field-mapper.html
 
 Sitemap: https://www.homeofferflow.com/sitemap.xml
