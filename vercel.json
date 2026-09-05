@@ -2,10 +2,10 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "functions": {
     "api/fill-pdf.py": {
-      "includeFiles": "{buyer_temporary_residential_lease_16-7.pdf,seller_financing_addendum_26-8.pdf,loan_assumption_addendum_41-3.pdf,environmental_assessment_addendum_28-2.pdf}"
+      "includeFiles": "{buyer_temporary_residential_lease_16-7.pdf,seller_financing_addendum_26-8.pdf,loan_assumption_addendum_41-3.pdf,environmental_assessment_addendum_28-2.pdf,mineral_reservation_addendum_44-3.pdf}"
     },
     "api/fill_pdf_20_19_staging.py": {
-      "includeFiles": "{buyer_temporary_residential_lease_16-7.pdf,seller_financing_addendum_26-8.pdf,loan_assumption_addendum_41-3.pdf,environmental_assessment_addendum_28-2.pdf}"
+      "includeFiles": "{buyer_temporary_residential_lease_16-7.pdf,seller_financing_addendum_26-8.pdf,loan_assumption_addendum_41-3.pdf,environmental_assessment_addendum_28-2.pdf,mineral_reservation_addendum_44-3.pdf}"
     }
   },
   "rewrites": [

@@ -167,7 +167,6 @@ class ControlledLaunchTests(unittest.TestCase):
             minimal_offer(leases="naturalResource"),
             minimal_offer(leases="naturalResourceLease"),
             minimal_offer(hydrostaticTesting="yes"),
-            minimal_offer(mineralReservation="yes"),
             minimal_offer(leadBasedPaintAttached="yes"),
         ]
         for offer in blocked_offers:
@@ -245,6 +244,22 @@ class ControlledLaunchTests(unittest.TestCase):
         self.assertIn("10", text)
         field_ids = {field["api_id"] for field in adapter.build_signwell_fields_20_19(offer, packet)[0]}
         self.assertIn("buyer1_environmental_assessment_addendum_signature", field_ids)
+
+    def test_mineral_reservation_packet_attaches_its_dedicated_addendum(self):
+        offer = minimal_offer(
+            mineralReservation="yes",
+            mineralReservationType="partial",
+            mineralReservationInterest="1/2",
+            mineralSurfaceRights="waive",
+        )
+        self.assertTrue(adapter.validate_supported_offer(offer))
+        packet = adapter.fill_and_merge_20_19(offer)
+        self.assertEqual(len(PdfReader(BytesIO(packet)).pages), 13)
+        text = PdfReader(BytesIO(packet)).pages[-1].extract_text() or ""
+        self.assertIn("RESERVATION OF OIL, GAS, AND OTHER MINERALS", text)
+        self.assertIn("1/2", text)
+        field_ids = {field["api_id"] for field in adapter.build_signwell_fields_20_19(offer, packet)[0]}
+        self.assertIn("buyer1_mineral_reservation_addendum_signature", field_ids)
 
     def test_guided_special_financing_ui_avoids_third_party_questions(self):
         page = (ROOT / "index.html").read_text(encoding="utf-8")

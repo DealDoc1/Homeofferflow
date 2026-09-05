@@ -42,6 +42,8 @@ LOAN_ASSUMPTION_PDF = os.path.join(BASE_DIR, "loan_assumption_addendum_41-3.pdf"
 LOAN_ASSUMPTION_PDF_ALT = os.path.join(os.path.dirname(__file__), "loan_assumption_addendum_41-3.pdf")
 ENVIRONMENTAL_ASSESSMENT_PDF = os.path.join(BASE_DIR, "environmental_assessment_addendum_28-2.pdf")
 ENVIRONMENTAL_ASSESSMENT_PDF_ALT = os.path.join(os.path.dirname(__file__), "environmental_assessment_addendum_28-2.pdf")
+MINERAL_RESERVATION_PDF = os.path.join(BASE_DIR, "mineral_reservation_addendum_44-3.pdf")
+MINERAL_RESERVATION_PDF_ALT = os.path.join(os.path.dirname(__file__), "mineral_reservation_addendum_44-3.pdf")
 
 FONT      = "Helvetica"
 FONT_SIZE = 9
@@ -147,6 +149,16 @@ def environmental_assessment_pdf_path():
         "trec_28-2.pdf",
         "trec_28_2.pdf",
         "TXR1917.pdf",
+    )
+
+
+def mineral_reservation_pdf_path():
+    return find_existing_pdf(
+        "mineral_reservation_addendum_44-3.pdf",
+        "mineral_reservation_addendum.pdf",
+        "trec_44-3.pdf",
+        "trec_44_3.pdf",
+        "TXR1905.pdf",
     )
 
 
@@ -957,6 +969,7 @@ def fill_and_merge(offer):
     has_seller_financing = normalized_financing_main == "seller_financing"
     has_loan_assumption = normalized_financing_main == "loan_assumption"
     has_environmental_assessment = truthy(s.get("environmentalAssessment"))
+    has_mineral_reservation = truthy(s.get("mineralReservation"))
     has_hoa  = s.get("hoa") in ["yes", "unknown"]
     has_sale = s.get("saleContingency") == "yes"
     has_bkup = s.get("backupOffer") == "yes"
@@ -1183,6 +1196,23 @@ def fill_and_merge(offer):
         }
         environmental_pages = add_debug_grid_to_pages(environmental_pages)
         merger.append(PdfReader(BytesIO(stamp_pdf(environmental_assessment_path, environmental_pages))))
+
+    mineral_reservation_path = mineral_reservation_pdf_path()
+    if has_mineral_reservation and mineral_reservation_path:
+        reservation_type = str(s.get("mineralReservationType") or "all").strip().lower()
+        surface_rights = str(s.get("mineralSurfaceRights") or "waive").strip().lower()
+        mineral_pages = {
+            0: [
+                (263, 684, addr_full, 8),
+                (78, 520, ck(reservation_type == "all"), "check_small"),
+                (78, 497, ck(reservation_type == "partial"), "check_small"),
+                (255, 492, first_present(s.get("mineralReservationInterest")), 8),
+                (110, 456, ck(surface_rights == "waive"), "check_small"),
+                (153, 456, ck(surface_rights == "retain"), "check_small"),
+            ],
+        }
+        mineral_pages = add_debug_grid_to_pages(mineral_pages)
+        merger.append(PdfReader(BytesIO(stamp_pdf(mineral_reservation_path, mineral_pages))))
 
     appraisal_pdf_path = APPRAISAL_PDF if os.path.exists(APPRAISAL_PDF) else APPRAISAL_PDF_ALT
     if has_appraisal and os.path.exists(appraisal_pdf_path):
@@ -1474,6 +1504,7 @@ def build_signwell_fields(offer, pdf_bytes):
     has_seller_financing_addendum = financing == "seller_financing" and bool(seller_financing_pdf_path())
     has_loan_assumption_addendum = financing == "loan_assumption" and bool(loan_assumption_pdf_path())
     has_environmental_assessment_addendum = truthy(offer.get("environmentalAssessment")) and bool(environmental_assessment_pdf_path())
+    has_mineral_reservation_addendum = truthy(offer.get("mineralReservation")) and bool(mineral_reservation_pdf_path())
     has_hoa = str(offer.get("hoa") or "").strip().lower() in {"yes", "unknown"}
     has_sale = str(offer.get("saleContingency") or "").strip().lower() == "yes"
     has_backup = str(offer.get("backupOffer") or "").strip().lower() == "yes"
@@ -1497,6 +1528,7 @@ def build_signwell_fields(offer, pdf_bytes):
     seller_financing_page_1 = seller_financing_signature_page = None
     loan_assumption_page_1 = loan_assumption_signature_page = None
     environmental_assessment_page = None
+    mineral_reservation_page = None
     appraisal_page = None
     non_realty_page = None
     lead_page = None
@@ -1519,6 +1551,9 @@ def build_signwell_fields(offer, pdf_bytes):
         next_page += 2
     if has_environmental_assessment_addendum:
         environmental_assessment_page = next_page
+        next_page += 1
+    if has_mineral_reservation_addendum:
+        mineral_reservation_page = next_page
         next_page += 1
     if has_appraisal:
         appraisal_page = next_page
@@ -1637,6 +1672,11 @@ def build_signwell_fields(offer, pdf_bytes):
         add_sig_date_pair("buyer1_environmental_assessment_addendum", environmental_assessment_page, 76, 720, 246, 720, "1")
         if has_buyer2:
             add_sig_date_pair("buyer2_environmental_assessment_addendum", environmental_assessment_page, 76, 800, 246, 800, "2")
+
+    if mineral_reservation_page:
+        add_sig_date_pair("buyer1_mineral_reservation_addendum", mineral_reservation_page, 76, 830, 246, 830, "1")
+        if has_buyer2:
+            add_sig_date_pair("buyer2_mineral_reservation_addendum", mineral_reservation_page, 76, 905, 246, 905, "2")
 
     # Appraisal Addendum - buyer signatures only. No seller fields.
     # Live QA: signature blocks needed to sit higher on the buyer lines and include buyer dates.

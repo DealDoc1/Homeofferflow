@@ -3281,6 +3281,22 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
           <div id="uploadedDocsList" class="notice gold" style="display:none;"></div>
         </div>
       </div>
+
+      <div style="margin-top:1.5rem; padding-top:1.25rem; border-top:1px solid rgba(255,255,255,0.08);">
+        <div class="radio-group-label">Is the seller reserving mineral rights?</div>
+        <div class="helper-box" style="margin-bottom:0.75rem;"><strong>Mineral reservation.</strong> This addendum addresses a seller's reservation of oil, gas, or other mineral interests. Review the form carefully and follow your transaction team's process.</div>
+        <div class="radio-cards">
+          <label class="radio-card" onclick="selectCard(this,'mineralReservation','no'); document.getElementById('mineralReservationDetails').style.display='none'"><input type="radio" name="mineralReservation" value="no"/><div class="radio-dot"></div><div class="radio-card-text"><strong>No</strong><small>Continue without this addendum</small></div></label>
+          <label class="radio-card" onclick="selectCard(this,'mineralReservation','yes'); document.getElementById('mineralReservationDetails').style.display='block'"><input type="radio" name="mineralReservation" value="yes"/><div class="radio-dot"></div><div class="radio-card-text"><strong>Yes</strong><small>Add the Mineral Reservation Addendum</small></div></label>
+        </div>
+        <div id="mineralReservationDetails" style="display:none; margin-top:1rem;">
+          <div class="field-group">
+            <div class="field"><label>Reservation type</label><select id="mineralReservationType"><option value="all">All mineral interest owned by seller</option><option value="partial">Partial mineral interest</option></select></div>
+            <div class="field"><label>Partial interest, if applicable</label><input type="text" id="mineralReservationInterest" placeholder="Example: 1/2"/></div>
+            <div class="field"><label>Surface rights</label><select id="mineralSurfaceRights"><option value="waive">Seller waives rights of ingress and egress</option><option value="retain">Seller does not waive rights of ingress and egress</option></select></div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div class="wizard-step" id="step6">
@@ -6305,6 +6321,17 @@ function routeAfterMagicLinkIfNeeded() {
         } else {
           s.environmentalTopics = [];
           s.environmentalDays = '';
+        }
+
+        s.mineralReservation = getRadio('mineralReservation') || 'no';
+        if (s.mineralReservation === 'yes') {
+          s.mineralReservationType = getVal('mineralReservationType') || 'all';
+          s.mineralReservationInterest = getVal('mineralReservationInterest');
+          s.mineralSurfaceRights = getVal('mineralSurfaceRights') || 'waive';
+        } else {
+          s.mineralReservationType = '';
+          s.mineralReservationInterest = '';
+          s.mineralSurfaceRights = '';
         }
       },
 
