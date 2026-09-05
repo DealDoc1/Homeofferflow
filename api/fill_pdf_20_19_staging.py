@@ -40,6 +40,8 @@ SELLER_FINANCING_PDF = os.path.join(BASE_DIR, "seller_financing_addendum_26-8.pd
 SELLER_FINANCING_PDF_ALT = os.path.join(os.path.dirname(__file__), "seller_financing_addendum_26-8.pdf")
 LOAN_ASSUMPTION_PDF = os.path.join(BASE_DIR, "loan_assumption_addendum_41-3.pdf")
 LOAN_ASSUMPTION_PDF_ALT = os.path.join(os.path.dirname(__file__), "loan_assumption_addendum_41-3.pdf")
+ENVIRONMENTAL_ASSESSMENT_PDF = os.path.join(BASE_DIR, "environmental_assessment_addendum_28-2.pdf")
+ENVIRONMENTAL_ASSESSMENT_PDF_ALT = os.path.join(os.path.dirname(__file__), "environmental_assessment_addendum_28-2.pdf")
 
 FONT      = "Helvetica"
 FONT_SIZE = 9
@@ -135,6 +137,16 @@ def loan_assumption_pdf_path():
         "trec_41-3.pdf",
         "trec_41_3.pdf",
         "TXR1919.pdf",
+    )
+
+
+def environmental_assessment_pdf_path():
+    return find_existing_pdf(
+        "environmental_assessment_addendum_28-2.pdf",
+        "environmental_assessment_addendum.pdf",
+        "trec_28-2.pdf",
+        "trec_28_2.pdf",
+        "TXR1917.pdf",
     )
 
 
@@ -944,6 +956,7 @@ def fill_and_merge(offer):
     has_loan = normalized_financing_main in ["conventional", "fha", "va", "usda"]
     has_seller_financing = normalized_financing_main == "seller_financing"
     has_loan_assumption = normalized_financing_main == "loan_assumption"
+    has_environmental_assessment = truthy(s.get("environmentalAssessment"))
     has_hoa  = s.get("hoa") in ["yes", "unknown"]
     has_sale = s.get("saleContingency") == "yes"
     has_bkup = s.get("backupOffer") == "yes"
@@ -1152,6 +1165,24 @@ def fill_and_merge(offer):
         }
         assumption_pages = add_debug_grid_to_pages(assumption_pages)
         merger.append(PdfReader(BytesIO(stamp_pdf(loan_assumption_path, assumption_pages))))
+
+    environmental_assessment_path = environmental_assessment_pdf_path()
+    if has_environmental_assessment and environmental_assessment_path:
+        environmental_topics = s.get("environmentalTopics") or []
+        if isinstance(environmental_topics, str):
+            environmental_topics = [part.strip() for part in environmental_topics.split(",") if part.strip()]
+        environmental_topics = {str(topic).strip().lower() for topic in environmental_topics}
+        environmental_pages = {
+            0: [
+                (263, 605, addr_full, 8),
+                (62, 543, ck("assessment" in environmental_topics), "check_small"),
+                (62, 505, ck("species" in environmental_topics), "check_small"),
+                (62, 440, ck("wetlands" in environmental_topics), "check_small"),
+                (117, 380, first_present(s.get("environmentalDays"), "7"), 8),
+            ],
+        }
+        environmental_pages = add_debug_grid_to_pages(environmental_pages)
+        merger.append(PdfReader(BytesIO(stamp_pdf(environmental_assessment_path, environmental_pages))))
 
     appraisal_pdf_path = APPRAISAL_PDF if os.path.exists(APPRAISAL_PDF) else APPRAISAL_PDF_ALT
     if has_appraisal and os.path.exists(appraisal_pdf_path):
@@ -1442,6 +1473,7 @@ def build_signwell_fields(offer, pdf_bytes):
     has_financing_addendum = financing in {"conventional", "fha", "va", "usda"}
     has_seller_financing_addendum = financing == "seller_financing" and bool(seller_financing_pdf_path())
     has_loan_assumption_addendum = financing == "loan_assumption" and bool(loan_assumption_pdf_path())
+    has_environmental_assessment_addendum = truthy(offer.get("environmentalAssessment")) and bool(environmental_assessment_pdf_path())
     has_hoa = str(offer.get("hoa") or "").strip().lower() in {"yes", "unknown"}
     has_sale = str(offer.get("saleContingency") or "").strip().lower() == "yes"
     has_backup = str(offer.get("backupOffer") or "").strip().lower() == "yes"
@@ -1464,6 +1496,7 @@ def build_signwell_fields(offer, pdf_bytes):
     financing_page_1 = financing_signature_page = None
     seller_financing_page_1 = seller_financing_signature_page = None
     loan_assumption_page_1 = loan_assumption_signature_page = None
+    environmental_assessment_page = None
     appraisal_page = None
     non_realty_page = None
     lead_page = None
@@ -1484,6 +1517,9 @@ def build_signwell_fields(offer, pdf_bytes):
         loan_assumption_page_1 = next_page
         loan_assumption_signature_page = next_page + 1
         next_page += 2
+    if has_environmental_assessment_addendum:
+        environmental_assessment_page = next_page
+        next_page += 1
     if has_appraisal:
         appraisal_page = next_page
         next_page += 1
@@ -1594,6 +1630,13 @@ def build_signwell_fields(offer, pdf_bytes):
         add_field("buyer1_signature_loan_assumption", "signature", loan_assumption_signature_page, 74, 749, recipient_id="1", width=145, height=20)
         if has_buyer2:
             add_field("buyer2_signature_loan_assumption", "signature", loan_assumption_signature_page, 74, 855, recipient_id="2", width=145, height=20)
+
+    # TREC 28-2 Environmental Assessment, Threatened or Endangered Species,
+    # and Wetlands Addendum - buyer signatures only.
+    if environmental_assessment_page:
+        add_sig_date_pair("buyer1_environmental_assessment_addendum", environmental_assessment_page, 76, 720, 246, 720, "1")
+        if has_buyer2:
+            add_sig_date_pair("buyer2_environmental_assessment_addendum", environmental_assessment_page, 76, 800, 246, 800, "2")
 
     # Appraisal Addendum - buyer signatures only. No seller fields.
     # Live QA: signature blocks needed to sit higher on the buyer lines and include buyer dates.

@@ -167,7 +167,6 @@ class ControlledLaunchTests(unittest.TestCase):
             minimal_offer(leases="naturalResource"),
             minimal_offer(leases="naturalResourceLease"),
             minimal_offer(hydrostaticTesting="yes"),
-            minimal_offer(environmentalAssessment="yes"),
             minimal_offer(mineralReservation="yes"),
             minimal_offer(leadBasedPaintAttached="yes"),
         ]
@@ -232,6 +231,21 @@ class ControlledLaunchTests(unittest.TestCase):
         self.assertIn("buyer1_initials_loan_assumption_p1", field_ids)
         self.assertIn("buyer1_signature_loan_assumption", field_ids)
 
+    def test_environmental_assessment_packet_attaches_its_dedicated_addendum(self):
+        offer = minimal_offer(
+            environmentalAssessment="yes",
+            environmentalTopics=["assessment", "wetlands"],
+            environmentalDays="10",
+        )
+        self.assertTrue(adapter.validate_supported_offer(offer))
+        packet = adapter.fill_and_merge_20_19(offer)
+        self.assertEqual(len(PdfReader(BytesIO(packet)).pages), 13)
+        text = PdfReader(BytesIO(packet)).pages[-1].extract_text() or ""
+        self.assertIn("ENVIRONMENTAL ASSESSMENT", text)
+        self.assertIn("10", text)
+        field_ids = {field["api_id"] for field in adapter.build_signwell_fields_20_19(offer, packet)[0]}
+        self.assertIn("buyer1_environmental_assessment_addendum_signature", field_ids)
+
     def test_guided_special_financing_ui_avoids_third_party_questions(self):
         page = (ROOT / "index.html").read_text(encoding="utf-8")
         self.assertIn('id="thirdPartyFinancingTerms"', page)
@@ -240,6 +254,16 @@ class ControlledLaunchTests(unittest.TestCase):
         self.assertIn("id=\"assumptionCashPortion\"", page)
         self.assertIn("requireField('assumptionFirstLender', 'first-lien lender', missing);", page)
         self.assertIn("['conventional', 'usda'].includes(financing)", page)
+
+    def test_browser_launch_guard_does_not_block_released_form_paths(self):
+        page = (ROOT / "index.html").read_text(encoding="utf-8")
+        guard = page.split("function controlledLaunchUnsupportedPaths", 1)[1].split(
+            "function confirmControlledLaunchSupport", 1
+        )[0]
+        self.assertNotIn("buyerTemporaryLease", guard)
+        self.assertNotIn("sellerFinancing", guard)
+        self.assertNotIn("loanAssumption", guard)
+        self.assertIn("sellerTemporaryLease", guard)
 
 
 if __name__ == "__main__":

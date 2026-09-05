@@ -20,6 +20,11 @@ class CustomerFacingCopyTests(unittest.TestCase):
         self.assertNotIn("will unlock those paths after their targeted PDF testing is complete", HTML)
         self.assertNotIn("This packet includes an option that HomeOfferFlow is still testing", HTML)
 
+    def test_upload_guidance_does_not_present_the_product_as_an_unfinished_phase(self):
+        self.assertIn("confirm any signing required on an uploaded document", HTML)
+        self.assertNotIn("Phase 1: upload PDF disclosures", HTML)
+        self.assertNotIn("Signature placement on uploaded docs is coming next.", HTML)
+
     def test_agent_onboarding_uses_client_ready_language(self):
         self.assertIn("Generate your first packet", HTML)
         self.assertIn("Review buyer-side signing", HTML)

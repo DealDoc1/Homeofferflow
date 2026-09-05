@@ -90,8 +90,6 @@ def validate_supported_offer(offer):
     unsupported_flags = {
         "hydrostaticTesting": "Hydrostatic Testing Addendum",
         "hydrostaticAddendum": "Hydrostatic Testing Addendum",
-        "environmentalAssessment": "Environmental Assessment Addendum",
-        "environmentalAddendum": "Environmental Assessment Addendum",
         "mineralReservation": "Mineral Reservation Addendum",
         "mineralReservationAddendum": "Mineral Reservation Addendum",
         "leadBasedPaintAttached": "generated Lead-Based Paint Addendum",

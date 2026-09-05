@@ -3253,9 +3253,24 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
       </div>
 
       <div style="margin-top:1.5rem; padding-top:1.25rem; border-top:1px solid rgba(255,255,255,0.08);">
+        <div class="radio-group-label">Include an environmental due-diligence contingency?</div>
+        <div class="helper-box" style="margin-bottom:0.75rem;"><strong>Environmental assessment, species, or wetlands.</strong> Use this only when the buyer wants a defined review period for one or more of these conditions.</div>
+        <div class="radio-cards">
+          <label class="radio-card" onclick="selectCard(this,'environmentalAssessment','no'); document.getElementById('environmentalAssessmentDetails').style.display='none'"><input type="radio" name="environmentalAssessment" value="no"/><div class="radio-dot"></div><div class="radio-card-text"><strong>No</strong><small>Continue without this contingency</small></div></label>
+          <label class="radio-card" onclick="selectCard(this,'environmentalAssessment','yes'); document.getElementById('environmentalAssessmentDetails').style.display='block'"><input type="radio" name="environmentalAssessment" value="yes"/><div class="radio-dot"></div><div class="radio-card-text"><strong>Yes</strong><small>Add the Environmental Assessment Addendum</small></div></label>
+        </div>
+        <div id="environmentalAssessmentDetails" style="display:none; margin-top:1rem;">
+          <div class="field-group">
+            <div class="field"><label>What should the buyer evaluate?</label><div class="checkbox-row"><label><input type="checkbox" name="environmentalTopics" value="assessment"/> Environmental assessment</label><label><input type="checkbox" name="environmentalTopics" value="species"/> Threatened or endangered species</label><label><input type="checkbox" name="environmentalTopics" value="wetlands"/> Wetlands</label></div></div>
+            <div class="field"><label>Review period (days)</label><input type="number" id="environmentalDays" min="1" value="7"/></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:1.5rem; padding-top:1.25rem; border-top:1px solid rgba(255,255,255,0.08);">
         <div class="radio-group-label">Optional uploaded disclosure documents</div>
         <div class="notice sage" style="margin-bottom:0.75rem;">
-          Phase 1: upload PDF disclosures or listing-side documents and HomeOfferFlow will append them to the final offer packet before it is sent to SignWell. Signature placement on uploaded docs is coming next.
+          Add PDF disclosures or listing-side documents to the offer packet. HomeOfferFlow includes them with the generated packet; confirm any signing required on an uploaded document with the appropriate party before sending.
         </div>
         <div class="field-group">
           <div class="field">
@@ -6282,6 +6297,15 @@ function routeAfterMagicLinkIfNeeded() {
           s.nonRealtyAmount = '';
           s.nonRealtyDescription = '';
         }
+
+        s.environmentalAssessment = getRadio('environmentalAssessment') || 'no';
+        if (s.environmentalAssessment === 'yes') {
+          s.environmentalTopics = Array.from(document.querySelectorAll('input[name="environmentalTopics"]:checked')).map(input => input.value);
+          s.environmentalDays = getVal('environmentalDays') || '7';
+        } else {
+          s.environmentalTopics = [];
+          s.environmentalDays = '';
+        }
       },
 
       'step6': () => {
@@ -7164,12 +7188,7 @@ function routeAfterMagicLinkIfNeeded() {
     if (['residential', 'fixture', 'naturalresource', 'natural_resource', 'natural resource'].includes(leases)) {
       blocked.push('Paragraph 4 lease addendum');
     }
-    if (data.buyerTemporaryLease === 'yes' || ['lease', 'temporaryLease'].includes(data.possession)) {
-      blocked.push("Buyer's Temporary Residential Lease");
-    }
     if (data.sellerTemporaryLease === 'yes') blocked.push("Seller's Temporary Residential Lease");
-    if (data.sellerFinancing === 'yes') blocked.push('Seller Financing Addendum');
-    if (data.loanAssumption === 'yes') blocked.push('Loan Assumption Addendum');
     return [...new Set(blocked)];
   }
 
