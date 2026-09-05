@@ -7,6 +7,7 @@ import httpx
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "").rstrip("/")
 SUPABASE_SERVICE_ROLE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or os.environ.get("SUPABASE_SERVICE_ROLE") or os.environ.get("SUPABASE_SERVICE_KEY") or ""
+RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
 ADMIN_EMAILS = {e.strip().lower() for e in (os.environ.get("ADMIN_EMAILS") or os.environ.get("HOF_ADMIN_EMAILS") or "").split(",") if e.strip()}
 DEFAULT_ADMIN_EMAILS = {"andrew@ondemanddfw.com", "andrewchri@gmail.com", "support@homeofferflow.com"}
 ALLOWED_PARTNER_LEAD_STATUSES = {"new", "contacted", "qualified", "waitlist", "converted", "declined"}
@@ -78,6 +79,50 @@ async def _is_platform_admin(user):
         return True
     rows = await _get(f"hof_platform_admins?user_id=eq.{user['id']}&select=user_id&limit=1")
     return bool(rows)
+
+
+def _email_health_summary(payload):
+    """Return only aggregate delivery data; recipient-level email data stays in Resend."""
+    totals = payload.get("totals") if isinstance(payload, dict) else {}
+    totals = totals if isinstance(totals, dict) else {}
+    sent = int(totals.get("sent") or 0)
+    delivered = int(totals.get("delivered") or 0)
+    bounced = int(totals.get("bounced") or 0)
+    complained = int(totals.get("complained") or 0)
+    failed = int(totals.get("failed") or 0)
+    return {
+        "available": True,
+        "periodStart": payload.get("start_date"),
+        "periodEnd": payload.get("end_date"),
+        "sent": sent,
+        "delivered": delivered,
+        "bounced": bounced,
+        "complained": complained,
+        "failed": failed,
+        "deliveryRate": totals.get("delivery_rate"),
+        "bounceRate": totals.get("bounce_rate"),
+        "complaintRate": totals.get("complaint_rate"),
+        "needsAttention": bool(failed or bounced or complained),
+    }
+
+
+async def _get_email_health():
+    if not RESEND_API_KEY:
+        return {"available": False, "reason": "Email monitoring is not configured."}
+    params = {
+        "metrics": "sent,delivered,bounced,complained,failed,delivery_rate,bounce_rate,complaint_rate",
+    }
+    headers = {"Authorization": f"Bearer {RESEND_API_KEY}"}
+    try:
+        async with httpx.AsyncClient(timeout=12) as client:
+            response = await client.get("https://api.resend.com/emails/metrics", params=params, headers=headers)
+        if response.status_code >= 400:
+            print(f"Resend metrics unavailable: {response.status_code}")
+            return {"available": False, "reason": "Email metrics are temporarily unavailable."}
+        return _email_health_summary(response.json())
+    except Exception as exc:
+        print(f"Resend metrics lookup failed: {str(exc)[:200]}")
+        return {"available": False, "reason": "Email metrics are temporarily unavailable."}
 
 
 def _parse_partner_lead_update(data):
@@ -196,6 +241,7 @@ class handler(BaseHTTPRequestHandler):
             qa_scenarios = asyncio.run(_get("hof_qa_scenarios?select=*&active=eq.true&order=priority.asc&limit=100"))
             qa_runs = asyncio.run(_get("hof_qa_runs?select=*&order=created_at.desc&limit=50"))
             releases = asyncio.run(_get("hof_releases?select=*&order=created_at.desc&limit=20"))
+            email_health = asyncio.run(_get_email_health())
             total_volume = sum(float(o.get("offer_price") or 0) for o in offers)
             def bucket(s):
                 s = str(s or "").lower()
@@ -223,6 +269,8 @@ class handler(BaseHTTPRequestHandler):
                 "qaScenarioCount": len(qa_scenarios),
                 "qaVerifiedCount": len([item for item in qa_scenarios if item.get("current_status") in {"passed", "staging_passed", "production"}]),
                 "releaseCount": len(releases),
+                "emailSentCount": email_health.get("sent", 0),
+                "emailDeliveredCount": email_health.get("delivered", 0),
             }
             _json(self, 200, {
                 "metrics": metrics,
@@ -238,6 +286,7 @@ class handler(BaseHTTPRequestHandler):
                 "releases": releases,
                 "showings": [],
                 "feedback": [],
+                "emailHealth": email_health,
             })
         except Exception as e:
             _json(self, 500, {"error": str(e)})

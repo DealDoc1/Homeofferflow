@@ -28,6 +28,15 @@ class AuthRedirectTests(unittest.TestCase):
         self.assertNotIn("window.location.search", redirect_config)
         self.assertNotIn("window.location.hash", redirect_config)
 
+    def test_broker_magic_link_selection_is_preserved(self):
+        route_start = HTML.index("function routeAfterMagicLinkIfNeeded")
+        route_end = HTML.index("function trackEvent", route_start)
+        route_config = HTML[route_start:route_end]
+
+        self.assertIn("pending || hofAuth.session.user?.user_metadata?.role", route_config)
+        self.assertIn("requestedRole === 'broker' ? 'broker' : 'agent'", route_config)
+        self.assertIn("state.data.userType = role === 'investor' ? 'investor' : 'agent'", route_config)
+
 
 if __name__ == "__main__":
     unittest.main()

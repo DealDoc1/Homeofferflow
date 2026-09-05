@@ -19,8 +19,8 @@ class UnsupportedOfferPathError(ValueError):
     def __init__(self, paths):
         self.paths = list(dict.fromkeys(paths))
         super().__init__(
-            "This offer uses options that are not yet available in the production "
-            "TREC 20-19 packet: " + ", ".join(self.paths)
+            "This offer needs a dedicated Texas form packet before it can be "
+            "generated: " + ", ".join(self.paths)
         )
 
 
@@ -40,7 +40,10 @@ def validate_supported_offer(offer):
     financing = verified.normalize_financing(
         offer.get("financing") or offer.get("financingType") or ""
     )
-    if financing not in {"cash", "conventional", "fha", "va", "usda"}:
+    if financing not in {
+        "cash", "conventional", "fha", "va", "usda",
+        "seller_financing", "loan_assumption",
+    }:
         blocked.append("unsupported financing type")
 
     leases = _normalized(offer.get("leases"))
@@ -85,8 +88,6 @@ def validate_supported_offer(offer):
         blocked.append("Seller Temporary Residential Lease")
 
     unsupported_flags = {
-        "sellerFinancing": "Seller Financing Addendum",
-        "loanAssumption": "Loan Assumption Addendum",
         "hydrostaticTesting": "Hydrostatic Testing Addendum",
         "hydrostaticAddendum": "Hydrostatic Testing Addendum",
         "environmentalAssessment": "Environmental Assessment Addendum",

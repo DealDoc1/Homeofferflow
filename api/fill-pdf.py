@@ -14,7 +14,7 @@ from api.fill_pdf_20_19_production_adapter import (
 
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
 STRIPE_WHSEC   = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
-FROM_EMAIL     = "offers@homeofferflow.com"
+FROM_EMAIL     = os.environ.get("RESEND_TRANSACTION_FROM_EMAIL") or "offers@homeofferflow.com"
 SUPPORT_EMAIL  = "support@homeofferflow.com"
 SHOWING_NOTIFY_EMAIL = os.environ.get("SHOWING_NOTIFY_EMAIL", "andrew@ondemandfw.com,support@homeofferflow.com")
 ADMIN_ORDER_EMAIL = os.environ.get("ADMIN_ORDER_EMAIL") or SHOWING_NOTIFY_EMAIL
@@ -393,8 +393,8 @@ def build_pages_data(
         #(350, 45, str(lease_nr_term_days) if lease_natural and val_lower(lease_nr_delivered) == "no" else ""),
     ]
 
-    escrow_agent = s.get("escrowAgent", "Kate Lewis Tucker - Chicago Title DFW")
-    escrow_addr  = s.get("escrowAddress", "2770 Main Street, Suite 114, Frisco, TX 75033")
+    escrow_agent = s.get("escrowAgent") or ""
+    escrow_addr  = s.get("escrowAddress") or ""
     additional_earnest = first_present(s.get("additionalEarnest"), s.get("additionalEarnestMoney"))
 
     pages[1] = [
@@ -413,7 +413,7 @@ def build_pages_data(
 
         (314, 353, ck(title_payer == "seller"), "check_small"),
         (369, 351, ck(title_payer == "buyer"), "check_small"),
-        (285, 342, s.get("titleCompany", "Chicago Title DFW - Forgey Law Group PLLC")),
+        (285, 342, s.get("titleCompany") or ""),
 
         (78,  180, ck(title_amend == "i"), "check_small"),
         (75,  166, ck(title_amend in ["ii_buyer", "ii_seller"]), "check_small"),
@@ -1193,31 +1193,6 @@ def build_signwell_fields(offer, pdf_bytes):
 
     fields = [fields_for_file]
 
-    print("SIGNWELL DEBUG field payload:", json.dumps({
-        "page_count": page_count,
-        "main_signature_page": main_signature_page,
-        "has_buyer2": has_buyer2,
-        "has_financing_addendum": has_financing_addendum,
-        "has_hoa": has_hoa,
-        "has_appraisal": has_appraisal,
-        "uploaded_doc_count": len(get_uploaded_disclosure_docs_with_page_counts(offer)),
-        "has_non_realty": has_non_realty,
-        "has_sale": has_sale,
-        "has_backup": has_backup,
-        "pages": {
-            "financing_page_1": financing_page_1,
-            "financing_signature_page": financing_signature_page,
-            "appraisal_page": appraisal_page,
-            "non_realty_page": non_realty_page,
-            "hoa_page": hoa_page,
-            "sale_page": sale_page,
-            "backup_page_1": backup_page_1,
-            "backup_signature_page": backup_signature_page,
-        },
-        "field_count": len(fields_for_file),
-        "fields": fields
-    })[:5000])
-
     return fields
 
 
@@ -1227,27 +1202,12 @@ fill_and_merge = fill_and_merge_20_19
 build_signwell_fields = build_signwell_fields_20_19
 
 def post_signwell_document(payload):
-    print("SIGNWELL DEBUG request summary:", json.dumps({
-        "test_mode": payload.get("test_mode"),
-        "draft": payload.get("draft"),
-        "with_signature_page": payload.get("with_signature_page"),
-        "recipient_count": len(payload.get("recipients", [])),
-        "recipient_emails": [r.get("email") for r in payload.get("recipients", [])],
-        "file_count": len(payload.get("files", [])),
-        "field_outer_count": len(payload.get("fields", [])) if payload.get("fields") else 0,
-        "field_count_file_1": len(payload.get("fields", [[]])[0]) if payload.get("fields") else 0,
-    })[:3000])
-
     r = httpx.post(
         "https://www.signwell.com/api/v1/documents",
         headers={"X-Api-Key": SIGNWELL_API_KEY, "Content-Type": "application/json"},
         json=payload,
         timeout=45
     )
-
-    # Always log the SignWell response while we are stabilizing the integration.
-    print("SIGNWELL RESPONSE STATUS:", r.status_code)
-    print("SIGNWELL RESPONSE BODY:", r.text[:3000])
 
     if r.status_code not in [200, 201, 202]:
         return False, {"status_code": r.status_code, "error": r.text[:3000]}
@@ -1264,19 +1224,12 @@ def create_signwell_signature_request(offer, pdf_bytes):
     """
     SignWell request for HomeOfferFlow.
 
-    Debug/stabilization behavior:
+    Controlled behavior:
     - OFF unless SIGNWELL_ENABLED=true.
     - Test mode defaults ON unless SIGNWELL_TEST_MODE=false.
     - No generic SignWell signature page.
-    - Minimal Buyer 1 signature field only until SignWell accepts the payload.
-    - Logs SignWell request summary and full response body to Vercel logs.
+    - Request and response payloads are not logged because they can contain signer data.
     """
-    print("SIGNWELL DEBUG env:", json.dumps({
-        "enabled": SIGNWELL_ENABLED,
-        "test_mode": SIGNWELL_TEST_MODE,
-        "api_key_present": bool(SIGNWELL_API_KEY)
-    }))
-
     if not SIGNWELL_ENABLED:
         return {"enabled": False, "skipped": "SIGNWELL_ENABLED is false"}
 
@@ -1555,6 +1508,23 @@ def save_generated_offer_to_supabase(offer, customer_email="", signwell_info=Non
         print("SUPABASE SAVE EXCEPTION:", str(e))
         return None
 
+def _resend_headers(message_type, recipients, subject, content_fingerprint):
+    """Keep retry-safe delivery without exposing recipient data in Resend tags."""
+    fingerprint = hashlib.sha256(
+        json.dumps({
+            "message_type": message_type,
+            "recipients": sorted(str(recipient).strip().lower() for recipient in recipients),
+            "subject": subject,
+            "content": content_fingerprint,
+        }, sort_keys=True).encode("utf-8")
+    ).hexdigest()
+    return {
+        "Authorization": f"Bearer {RESEND_API_KEY}",
+        "Content-Type": "application/json",
+        "Idempotency-Key": f"hof/{message_type}/{fingerprint}",
+    }
+
+
 def send_email(to_email, buyer_name, addr, pdf_bytes, signwell_info=None):
     filename = f"HomeOfferFlow_Offer_{addr.replace(' ','_').replace(',','')}.pdf"
 
@@ -1584,15 +1554,13 @@ def send_email(to_email, buyer_name, addr, pdf_bytes, signwell_info=None):
             "filename": filename,
             "content": base64.b64encode(pdf_bytes).decode(),
             "content_type": "application/pdf"
-        }]
+        }],
+        "tags": [{"name": "message_type", "value": "offer_packet"}]
     }
 
     r = httpx.post(
         "https://api.resend.com/emails",
-        headers={
-            "Authorization": f"Bearer {RESEND_API_KEY}",
-            "Content-Type": "application/json"
-        },
+        headers=_resend_headers("offer_packet", [to_email, SUPPORT_EMAIL], payload["subject"], hashlib.sha256(pdf_bytes).hexdigest()),
         json=payload,
         timeout=30
     )
@@ -1600,7 +1568,7 @@ def send_email(to_email, buyer_name, addr, pdf_bytes, signwell_info=None):
     if r.status_code not in [200, 201, 202]:
         raise Exception(f"Resend error {r.status_code}: {r.text[:200]}")
 
-def send_basic_email(to_email, subject, html_body):
+def send_basic_email(to_email, subject, html_body, message_type="service_notification"):
     if not to_email:
         raise Exception("Missing recipient email")
 
@@ -1616,15 +1584,13 @@ def send_basic_email(to_email, subject, html_body):
         "from": FROM_EMAIL,
         "to": recipients,
         "subject": subject,
-        "html": html_body
+        "html": html_body,
+        "tags": [{"name": "message_type", "value": message_type}]
     }
 
     r = httpx.post(
         "https://api.resend.com/emails",
-        headers={
-            "Authorization": f"Bearer {RESEND_API_KEY}",
-            "Content-Type": "application/json"
-        },
+        headers=_resend_headers(message_type, recipients, subject, hashlib.sha256(html_body.encode("utf-8")).hexdigest()),
         json=payload,
         timeout=30
     )
@@ -1703,7 +1669,7 @@ def send_admin_order_email(offer, customer_email="", signwell_info=None):
       </div>
     """
 
-    send_basic_email(ADMIN_ORDER_EMAIL, f"New HomeOfferFlow Order — {addr}", html)
+    send_basic_email(ADMIN_ORDER_EMAIL, f"New HomeOfferFlow Order — {addr}", html, "order_alert")
 
 
 def send_showing_request_emails(showing, customer_email):
@@ -1793,10 +1759,10 @@ Please comment or message me if you are available to help coordinate/show this p
       </div>
     """
 
-    send_basic_email(SHOWING_NOTIFY_EMAIL, f"New Showing Request — {addr}", admin_html)
+    send_basic_email(SHOWING_NOTIFY_EMAIL, f"New Showing Request — {addr}", admin_html, "showing_request")
 
     if buyer_email:
-        send_basic_email(buyer_email, "HomeOfferFlow Showing Request Received", customer_html)
+        send_basic_email(buyer_email, "HomeOfferFlow Showing Request Received", customer_html, "showing_confirmation")
 
 
 def handle_checkout(event):

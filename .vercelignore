@@ -1,0 +1,5 @@
+# Local interpreter artifacts are never deployment inputs.
+api/__pycache__/
+api/create-subscription-checkout/__pycache__/
+api/stripe-webhook/__pycache__/
+tests/__pycache__/

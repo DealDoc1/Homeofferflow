@@ -168,11 +168,18 @@ class BuyerTemporaryLeaseStagingTests(unittest.TestCase):
 
     def test_vercel_staging_and_production_bundles_include_current_lease_form(self):
         config = json.loads((ROOT / "vercel.json").read_text())
+        expected_forms = {
+            "buyer_temporary_residential_lease_16-7.pdf",
+            "seller_financing_addendum_26-8.pdf",
+            "loan_assumption_addendum_41-3.pdf",
+        }
         for function_path in ["api/fill_pdf_20_19_staging.py", "api/fill-pdf.py"]:
             with self.subTest(function_path=function_path):
+                configured_glob = config["functions"][function_path]["includeFiles"]
+                self.assertIsInstance(configured_glob, str)
                 self.assertEqual(
-                    config["functions"][function_path]["includeFiles"],
-                    "buyer_temporary_residential_lease_16-7.pdf",
+                    set(configured_glob.strip("{}").split(",")),
+                    expected_forms,
                 )
 
 

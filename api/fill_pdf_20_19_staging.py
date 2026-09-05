@@ -8,7 +8,7 @@ from reportlab.pdfbase.pdfmetrics import stringWidth
 
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
 STRIPE_WHSEC   = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
-FROM_EMAIL     = "offers@homeofferflow.com"
+FROM_EMAIL     = os.environ.get("RESEND_TRANSACTION_FROM_EMAIL") or "offers@homeofferflow.com"
 SUPPORT_EMAIL  = "support@homeofferflow.com"
 SHOWING_NOTIFY_EMAIL = os.environ.get("SHOWING_NOTIFY_EMAIL", "andrew@ondemandfw.com,support@homeofferflow.com")
 ADMIN_ORDER_EMAIL = os.environ.get("ADMIN_ORDER_EMAIL") or SHOWING_NOTIFY_EMAIL
@@ -36,6 +36,10 @@ LEAD_PDF = os.path.join(BASE_DIR, "lead_based_paint_56-0.pdf")
 LEAD_PDF_ALT = os.path.join(os.path.dirname(__file__), "lead_based_paint_56-0.pdf")
 BUYER_TEMP_LEASE_PDF = os.path.join(BASE_DIR, "buyer_temporary_residential_lease.pdf")
 BUYER_TEMP_LEASE_PDF_ALT = os.path.join(os.path.dirname(__file__), "buyer_temporary_residential_lease.pdf")
+SELLER_FINANCING_PDF = os.path.join(BASE_DIR, "seller_financing_addendum_26-8.pdf")
+SELLER_FINANCING_PDF_ALT = os.path.join(os.path.dirname(__file__), "seller_financing_addendum_26-8.pdf")
+LOAN_ASSUMPTION_PDF = os.path.join(BASE_DIR, "loan_assumption_addendum_41-3.pdf")
+LOAN_ASSUMPTION_PDF_ALT = os.path.join(os.path.dirname(__file__), "loan_assumption_addendum_41-3.pdf")
 
 FONT      = "Helvetica"
 FONT_SIZE = 9
@@ -111,6 +115,26 @@ def buyer_temp_lease_pdf_path():
         "trec_16_6.pdf",
         "TREC_16-6.pdf",
         "TREC_16_6.pdf",
+    )
+
+
+def seller_financing_pdf_path():
+    return find_existing_pdf(
+        "seller_financing_addendum_26-8.pdf",
+        "seller_financing_addendum.pdf",
+        "trec_26-8.pdf",
+        "trec_26_8.pdf",
+        "TXR1914.pdf",
+    )
+
+
+def loan_assumption_pdf_path():
+    return find_existing_pdf(
+        "loan_assumption_addendum_41-3.pdf",
+        "loan_assumption_addendum.pdf",
+        "trec_41-3.pdf",
+        "trec_41_3.pdf",
+        "TXR1919.pdf",
     )
 
 
@@ -218,6 +242,12 @@ def normalize_financing(v):
         "usda loan": "usda",
         "usda guaranteed": "usda",
         "usda": "usda",
+        "seller financing": "seller_financing",
+        "seller-financing": "seller_financing",
+        "seller": "seller_financing",
+        "loan assumption": "loan_assumption",
+        "loan-assumption": "loan_assumption",
+        "assumption": "loan_assumption",
     }
     return aliases.get(raw, raw)
 
@@ -678,8 +708,8 @@ def build_pages_data(
         (315, 284, ck(has_loan), "check_small"),
     ]
 
-    escrow_agent = s.get("escrowAgent", "Kate Lewis Tucker - Chicago Title DFW")
-    escrow_addr  = s.get("escrowAddress", "2770 Main Street, Suite 114, Frisco, TX 75033")
+    escrow_agent = s.get("escrowAgent") or ""
+    escrow_addr  = s.get("escrowAddress") or ""
     additional_earnest = first_present(s.get("additionalEarnest"), s.get("additionalEarnestMoney"))
 
     pages[1] = [
@@ -700,7 +730,7 @@ def build_pages_data(
         # 17U: user note - Seller title-policy X was a hair too high; nudge down.
         (314, 347, ck(title_payer == "seller"), "check_small"),
         (369, 347, ck(title_payer == "buyer"), "check_small"),
-        (285, 336, s.get("titleCompany", "Chicago Title DFW - Forgey Law Group PLLC")),
+        (285, 336, s.get("titleCompany") or ""),
 
         (78,  180, ck(title_amend == "i"), "check_small"),
         # 17U: user note - 6A(8)(ii) and expense Xs were too low; nudge up.
@@ -912,6 +942,8 @@ def fill_and_merge(offer):
     s["financing"] = normalized_financing_main
 
     has_loan = normalized_financing_main in ["conventional", "fha", "va", "usda"]
+    has_seller_financing = normalized_financing_main == "seller_financing"
+    has_loan_assumption = normalized_financing_main == "loan_assumption"
     has_hoa  = s.get("hoa") in ["yes", "unknown"]
     has_sale = s.get("saleContingency") == "yes"
     has_bkup = s.get("backupOffer") == "yes"
@@ -1049,6 +1081,77 @@ def fill_and_merge(offer):
 
         fin_pages = add_debug_grid_to_pages(fin_pages)
         merger.append(PdfReader(BytesIO(stamp_pdf(FINANCING_PDF, fin_pages))))
+
+    seller_financing_path = seller_financing_pdf_path()
+    if has_seller_financing and seller_financing_path:
+        # TREC 26-8 Seller Financing Addendum. This isolated map intentionally
+        # does not reuse the third-party-financing values: its credit, note,
+        # payment, transfer, insurance, and tax-escrow questions are distinct.
+        credit_docs = {str(item).strip().lower() for item in (s.get("sellerFinanceCreditDocs") or [])}
+        if isinstance(s.get("sellerFinanceCreditDocs"), str):
+            credit_docs = {part.strip().lower() for part in s["sellerFinanceCreditDocs"].split(",") if part.strip()}
+        payment_type = str(s.get("sellerFinancePaymentType") or "monthly").strip().lower()
+        transfer = str(s.get("sellerFinanceTransferConsent") or "required").strip().lower()
+        insurance = str(s.get("sellerFinanceInsurance") or "required").strip().lower()
+        tax_escrow = str(s.get("sellerFinanceTaxEscrow") or "required").strip().lower()
+        seller_financing_pages = {
+            0: [
+                (263, 652, addr_full, 8),
+                (150, 522, first_present(s.get("sellerFinanceCreditDays"), "7"), 8),
+                (406, 526, ck("credit_report" in credit_docs), "check_small"),
+                (488, 526, ck("employment" in credit_docs), "check_small"),
+                (328, 502, ck("funds" in credit_docs), "check_small"),
+                (94, 489, ck("financial_statement" in credit_docs), "check_small"),
+                (365, 489, ck("other" in credit_docs), "check_small"),
+                (395, 489, first_present(s.get("sellerFinanceOtherCreditDocs")), 8),
+                (382, 353, fmt_money(first_present(s.get("sellerFinanceNoteAmount"), s.get("loanAmount"))), 8),
+                (179, 338, first_present(s.get("sellerFinanceInterestRate")), 8),
+                (69, 231, ck(payment_type == "balloon"), "check_small"),
+                (358, 231, first_present(s.get("sellerFinanceBalloonMonths")) if payment_type == "balloon" else "", 8),
+                (70, 219, ck(payment_type == "monthly"), "check_small"),
+                (240, 219, fmt_money(s.get("sellerFinanceMonthlyPayment")) if payment_type == "monthly" else "", 8),
+                (470, 219, ck(str(s.get("sellerFinanceMonthlyIncludesInterest") or "yes").lower() == "yes") if payment_type == "monthly" else "", "check_small"),
+                (69, 151, ck(payment_type == "interest_only"), "check_small"),
+                (310, 151, first_present(s.get("sellerFinanceInterestOnlyMonths")) if payment_type == "interest_only" else "", 8),
+                (70, 55, ck(transfer == "not_required"), "check_small"),
+            ],
+            1: [
+                (264, 748, addr_full, 8),
+                (74, 693, ck(transfer == "required"), "check_small"),
+                (412, 568, ck(insurance == "required"), "check_small"),
+                (463, 568, ck(insurance == "not_required"), "check_small"),
+                (78, 518, ck(tax_escrow == "not_required"), "check_small"),
+                (78, 473, ck(tax_escrow == "required"), "check_small"),
+                (110, 379, ck(str(s.get("sellerFinanceThirdPartyEscrow") or "no").lower() == "yes") if tax_escrow == "required" else "", "check_small"),
+                (155, 379, ck(str(s.get("sellerFinanceThirdPartyEscrow") or "no").lower() != "yes") if tax_escrow == "required" else "", "check_small"),
+                (442, 379, ck(str(s.get("sellerFinanceEscrowPaidBy") or "buyer").lower() == "buyer") if tax_escrow == "required" else "", "check_small"),
+                (488, 379, ck(str(s.get("sellerFinanceEscrowPaidBy") or "buyer").lower() == "seller") if tax_escrow == "required" else "", "check_small"),
+            ],
+        }
+        seller_financing_pages = add_debug_grid_to_pages(seller_financing_pages)
+        merger.append(PdfReader(BytesIO(stamp_pdf(seller_financing_path, seller_financing_pages))))
+
+    loan_assumption_path = loan_assumption_pdf_path()
+    if has_loan_assumption and loan_assumption_path:
+        # TREC 41-3 begins with the shared property/credit structure. The
+        # balance and note-specific interview map is added in the next isolated
+        # QA pass; this base attachment keeps the form source and packet order
+        # deterministic for rendered review.
+        assumption_pages = {
+            0: [
+                (263, 657, addr_full, 8),
+                (148, 578, first_present(s.get("assumptionCreditDays"), "7"), 8),
+                (65, 372, ck(bool(s.get("assumptionFirstLender"))), "check_small"),
+                (450, 372, first_present(s.get("assumptionFirstLender")), 7),
+                (445, 360, fmt_money(s.get("assumptionFirstBalance")), 8),
+                (150, 337, fmt_money(s.get("assumptionFirstPayment")), 8),
+                (315, 163, fmt_money(s.get("assumptionFirstFeeCap")), 8),
+                (376, 139, first_present(s.get("assumptionFirstRateCap")), 8),
+            ],
+            1: [(264, 748, addr_full, 8)],
+        }
+        assumption_pages = add_debug_grid_to_pages(assumption_pages)
+        merger.append(PdfReader(BytesIO(stamp_pdf(loan_assumption_path, assumption_pages))))
 
     appraisal_pdf_path = APPRAISAL_PDF if os.path.exists(APPRAISAL_PDF) else APPRAISAL_PDF_ALT
     if has_appraisal and os.path.exists(appraisal_pdf_path):
@@ -1337,6 +1440,8 @@ def build_signwell_fields(offer, pdf_bytes):
     has_buyer2 = bool(first_present(offer.get("buyer2Email"), ""))
     financing = normalize_financing(offer.get("financing"))
     has_financing_addendum = financing in {"conventional", "fha", "va", "usda"}
+    has_seller_financing_addendum = financing == "seller_financing" and bool(seller_financing_pdf_path())
+    has_loan_assumption_addendum = financing == "loan_assumption" and bool(loan_assumption_pdf_path())
     has_hoa = str(offer.get("hoa") or "").strip().lower() in {"yes", "unknown"}
     has_sale = str(offer.get("saleContingency") or "").strip().lower() == "yes"
     has_backup = str(offer.get("backupOffer") or "").strip().lower() == "yes"
@@ -1357,6 +1462,8 @@ def build_signwell_fields(offer, pdf_bytes):
     # Track appended addendum page numbers in the same order fill_and_merge appends them.
     next_page = 13
     financing_page_1 = financing_signature_page = None
+    seller_financing_page_1 = seller_financing_signature_page = None
+    loan_assumption_page_1 = loan_assumption_signature_page = None
     appraisal_page = None
     non_realty_page = None
     lead_page = None
@@ -1368,6 +1475,14 @@ def build_signwell_fields(offer, pdf_bytes):
     if has_financing_addendum:
         financing_page_1 = next_page
         financing_signature_page = next_page + 1
+        next_page += 2
+    if has_seller_financing_addendum:
+        seller_financing_page_1 = next_page
+        seller_financing_signature_page = next_page + 1
+        next_page += 2
+    if has_loan_assumption_addendum:
+        loan_assumption_page_1 = next_page
+        loan_assumption_signature_page = next_page + 1
         next_page += 2
     if has_appraisal:
         appraisal_page = next_page
@@ -1458,6 +1573,28 @@ def build_signwell_fields(offer, pdf_bytes):
         if has_buyer2:
             add_sig_date_pair("buyer2_financing_addendum", financing_signature_page, 112, 884, 266, 884, "2")
 
+    # TREC 26-8 Seller Financing Addendum. Buyer-only fields mirror the
+    # existing packet convention: initial the identification line on page 1,
+    # then sign the two buyer lines on page 2. Seller execution remains outside
+    # this buyer-side SignWell request.
+    if seller_financing_page_1:
+        add_field("buyer1_initials_seller_financing_p1", "initials", seller_financing_page_1, 278, 1018, recipient_id="1", width=24, height=10)
+        if has_buyer2:
+            add_field("buyer2_initials_seller_financing_p1", "initials", seller_financing_page_1, 350, 1018, recipient_id="2", width=24, height=10)
+    if seller_financing_signature_page:
+        add_field("buyer1_signature_seller_financing", "signature", seller_financing_signature_page, 74, 749, recipient_id="1", width=145, height=20)
+        if has_buyer2:
+            add_field("buyer2_signature_seller_financing", "signature", seller_financing_signature_page, 74, 855, recipient_id="2", width=145, height=20)
+
+    if loan_assumption_page_1:
+        add_field("buyer1_initials_loan_assumption_p1", "initials", loan_assumption_page_1, 278, 998, recipient_id="1", width=24, height=10)
+        if has_buyer2:
+            add_field("buyer2_initials_loan_assumption_p1", "initials", loan_assumption_page_1, 350, 998, recipient_id="2", width=24, height=10)
+    if loan_assumption_signature_page:
+        add_field("buyer1_signature_loan_assumption", "signature", loan_assumption_signature_page, 74, 749, recipient_id="1", width=145, height=20)
+        if has_buyer2:
+            add_field("buyer2_signature_loan_assumption", "signature", loan_assumption_signature_page, 74, 855, recipient_id="2", width=145, height=20)
+
     # Appraisal Addendum - buyer signatures only. No seller fields.
     # Live QA: signature blocks needed to sit higher on the buyer lines and include buyer dates.
     if appraisal_page:
@@ -1521,60 +1658,15 @@ def build_signwell_fields(offer, pdf_bytes):
 
     fields = [fields_for_file]
 
-    print("SIGNWELL DEBUG field payload:", json.dumps({
-        "page_count": page_count,
-        "main_signature_page": main_signature_page,
-        "has_buyer2": has_buyer2,
-        "has_financing_addendum": has_financing_addendum,
-        "has_hoa": has_hoa,
-        "has_appraisal": has_appraisal,
-        "has_non_realty": has_non_realty,
-        "lead_required_warning_only": lead_required,
-        "lead_addendum_attached": lead_addendum_attached,
-        "buyer_temp_lease_attached": buyer_temp_lease_attached,
-        "has_sale": has_sale,
-        "has_backup": has_backup,
-        "pages": {
-            "financing_page_1": financing_page_1,
-            "financing_signature_page": financing_signature_page,
-            "appraisal_page": appraisal_page,
-            "non_realty_page": non_realty_page,
-            "lead_page": lead_page,
-            "buyer_temp_page_1": buyer_temp_page_1,
-            "buyer_temp_signature_page": buyer_temp_signature_page,
-            "hoa_page": hoa_page,
-            "sale_page": sale_page,
-            "backup_page_1": backup_page_1,
-            "backup_signature_page": backup_signature_page,
-        },
-        "field_count": len(fields_for_file),
-        "fields": fields
-    })[:5000])
-
     return fields
 
 def post_signwell_document(payload):
-    print("SIGNWELL DEBUG request summary:", json.dumps({
-        "test_mode": payload.get("test_mode"),
-        "draft": payload.get("draft"),
-        "with_signature_page": payload.get("with_signature_page"),
-        "recipient_count": len(payload.get("recipients", [])),
-        "recipient_emails": [r.get("email") for r in payload.get("recipients", [])],
-        "file_count": len(payload.get("files", [])),
-        "field_outer_count": len(payload.get("fields", [])) if payload.get("fields") else 0,
-        "field_count_file_1": len(payload.get("fields", [[]])[0]) if payload.get("fields") else 0,
-    })[:3000])
-
     r = httpx.post(
         "https://www.signwell.com/api/v1/documents",
         headers={"X-Api-Key": SIGNWELL_API_KEY, "Content-Type": "application/json"},
         json=payload,
         timeout=45
     )
-
-    # Always log the SignWell response while we are stabilizing the integration.
-    print("SIGNWELL RESPONSE STATUS:", r.status_code)
-    print("SIGNWELL RESPONSE BODY:", r.text[:3000])
 
     if r.status_code not in [200, 201, 202]:
         return False, {"status_code": r.status_code, "error": r.text[:3000]}
@@ -1591,19 +1683,12 @@ def create_signwell_signature_request(offer, pdf_bytes):
     """
     SignWell request for HomeOfferFlow.
 
-    Debug/stabilization behavior:
+    Controlled behavior:
     - OFF unless SIGNWELL_ENABLED=true.
     - Test mode defaults ON unless SIGNWELL_TEST_MODE=false.
     - No generic SignWell signature page.
-    - Minimal Buyer 1 signature field only until SignWell accepts the payload.
-    - Logs SignWell request summary and full response body to Vercel logs.
+    - Request and response payloads are not logged because they can contain signer data.
     """
-    print("SIGNWELL DEBUG env:", json.dumps({
-        "enabled": SIGNWELL_ENABLED,
-        "test_mode": SIGNWELL_TEST_MODE,
-        "api_key_present": bool(SIGNWELL_API_KEY)
-    }))
-
     if not SIGNWELL_ENABLED:
         return {"enabled": False, "skipped": "SIGNWELL_ENABLED is false"}
 
@@ -1745,6 +1830,23 @@ def create_signwell_signature_request(offer, pdf_bytes):
         print("SIGNWELL EXCEPTION:", str(e))
         return {"enabled": True, "ok": False, "mode": "exception", "error": str(e)}
 
+def _resend_headers(message_type, recipients, subject, content_fingerprint):
+    """Keep retry-safe delivery without exposing recipient data in Resend tags."""
+    fingerprint = hashlib.sha256(
+        json.dumps({
+            "message_type": message_type,
+            "recipients": sorted(str(recipient).strip().lower() for recipient in recipients),
+            "subject": subject,
+            "content": content_fingerprint,
+        }, sort_keys=True).encode("utf-8")
+    ).hexdigest()
+    return {
+        "Authorization": f"Bearer {RESEND_API_KEY}",
+        "Content-Type": "application/json",
+        "Idempotency-Key": f"hof/{message_type}/{fingerprint}",
+    }
+
+
 def send_email(to_email, buyer_name, addr, pdf_bytes, signwell_info=None):
     filename = f"HomeOfferFlow_Offer_{addr.replace(' ','_').replace(',','')}.pdf"
 
@@ -1774,15 +1876,13 @@ def send_email(to_email, buyer_name, addr, pdf_bytes, signwell_info=None):
             "filename": filename,
             "content": base64.b64encode(pdf_bytes).decode(),
             "content_type": "application/pdf"
-        }]
+        }],
+        "tags": [{"name": "message_type", "value": "offer_packet"}]
     }
 
     r = httpx.post(
         "https://api.resend.com/emails",
-        headers={
-            "Authorization": f"Bearer {RESEND_API_KEY}",
-            "Content-Type": "application/json"
-        },
+        headers=_resend_headers("offer_packet", [to_email, SUPPORT_EMAIL], payload["subject"], hashlib.sha256(pdf_bytes).hexdigest()),
         json=payload,
         timeout=30
     )
@@ -1790,7 +1890,7 @@ def send_email(to_email, buyer_name, addr, pdf_bytes, signwell_info=None):
     if r.status_code not in [200, 201, 202]:
         raise Exception(f"Resend error {r.status_code}: {r.text[:200]}")
 
-def send_basic_email(to_email, subject, html_body):
+def send_basic_email(to_email, subject, html_body, message_type="service_notification"):
     if not to_email:
         raise Exception("Missing recipient email")
 
@@ -1806,15 +1906,13 @@ def send_basic_email(to_email, subject, html_body):
         "from": FROM_EMAIL,
         "to": recipients,
         "subject": subject,
-        "html": html_body
+        "html": html_body,
+        "tags": [{"name": "message_type", "value": message_type}]
     }
 
     r = httpx.post(
         "https://api.resend.com/emails",
-        headers={
-            "Authorization": f"Bearer {RESEND_API_KEY}",
-            "Content-Type": "application/json"
-        },
+        headers=_resend_headers(message_type, recipients, subject, hashlib.sha256(html_body.encode("utf-8")).hexdigest()),
         json=payload,
         timeout=30
     )
@@ -1910,10 +2008,10 @@ Please comment or message me if you are available to help coordinate/show this p
       </div>
     """
 
-    send_basic_email(SHOWING_NOTIFY_EMAIL, f"New Showing Request — {addr}", admin_html)
+    send_basic_email(SHOWING_NOTIFY_EMAIL, f"New Showing Request — {addr}", admin_html, "showing_request")
 
     if buyer_email:
-        send_basic_email(buyer_email, "HomeOfferFlow Showing Request Received", customer_html)
+        send_basic_email(buyer_email, "HomeOfferFlow Showing Request Received", customer_html, "showing_confirmation")
 
 
 def handle_checkout(event):

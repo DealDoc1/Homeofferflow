@@ -59,9 +59,15 @@ class AgentActivationDashboardTests(unittest.TestCase):
             "profile.license_number",
             "profile.agent_email",
             "profile.agent_phone",
-            "profile.brokerage_name",
         ):
             self.assertIn(field, script)
+        self.assertNotIn("profile.brokerage_name\n    ].every", script)
+
+    def test_agent_offer_validation_does_not_require_a_brokerage_name(self):
+        validation_start = HTML.index("function validateCurrentStep()")
+        validation_end = HTML.index("function startHomebuyerOffer()", validation_start)
+        validation = HTML[validation_start:validation_end]
+        self.assertNotIn("requireField('agentBrokerageQuick'", validation)
 
     def test_activation_actions_cover_primary_account_paths(self):
         script_start = HTML.index('id="hof-agent-activation-v16-js"')
@@ -78,6 +84,14 @@ class AgentActivationDashboardTests(unittest.TestCase):
 
         self.assertIn("release15DashboardCard", script)
         self.assertIn("?.remove()", script)
+
+    def test_offer_review_action_uses_the_existing_wizard_step_navigation(self):
+        self.assertIn(
+            "onclick=\"openWizard(true); showStep(getCurrentSteps().indexOf('step8'))\"",
+            HTML,
+        )
+        self.assertNotIn("showStepById", HTML)
+        self.assertNotIn("renderReview();", HTML)
 
 
 if __name__ == "__main__":

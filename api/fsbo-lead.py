@@ -14,6 +14,13 @@ SUPABASE_SERVICE_ROLE_KEY = (
     or os.environ.get('SUPABASE_SERVICE_KEY')
     or ''
 )
+RESEND_API_KEY = os.environ.get('RESEND_API_KEY', '')
+FSBO_LEAD_ALERT_TO = os.environ.get('FSBO_LEAD_ALERT_TO') or os.environ.get('ADMIN_EMAIL') or 'support@homeofferflow.com'
+RESEND_TRANSACTION_FROM_EMAIL = (
+    os.environ.get('RESEND_TRANSACTION_FROM_EMAIL')
+    or os.environ.get('FROM_EMAIL')
+    or 'HomeOfferFlow Offers <offers@offers.homeofferflow.com>'
+)
 MAX_BODY_BYTES = 60_000
 EMAIL_RE = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
 LEAD_ID_RE = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$", re.I)
@@ -44,6 +51,7 @@ ALLOWED_PARTNER_TYPES = {
 }
 ALLOWED_MODELS = {"founding_pilot", "monthly_placement", "market_exclusive", "discuss"}
 ALLOWED_BUDGETS = {"under_250", "250_499", "500_999", "1000_plus", "discuss"}
+ALLOWED_SELLER_TIMELINES = {"not_sure", "asap", "30_days", "60_90_days", "future"}
 PUBLIC_PARTNER_FIELDS = "id,partner_type,partner_name,website_url,logo_url,market_area,placement_tier"
 PRICE_ENV_BY_TIER = {
     "founding_pilot": "STRIPE_FOUNDING_PARTNER_LISTING_PRICE_ID",
@@ -83,6 +91,96 @@ def _money(value):
         return float(str(value).replace('$', '').replace(',', ''))
     except Exception:
         return None
+
+
+def _build_seller_payload(data):
+    property_address = _text(data.get('property_address') or data.get('address'), 500)
+    seller_email = _text(data.get('seller_email') or data.get('email'), 250)
+    if not property_address or not seller_email:
+        raise ValueError('Property address and seller email are required.')
+    if not EMAIL_RE.match(seller_email):
+        raise ValueError('Enter a valid seller email.')
+
+    partner_categories = data.get('partner_categories')
+    if not isinstance(partner_categories, list):
+        partner_categories = []
+    partner_categories = [
+        category for category in (_text(item, 80) for item in partner_categories)
+        if category in ALLOWED_PARTNER_TYPES
+    ][:20]
+
+    service_level = _text(data.get('service_level'), 120)
+    package_name = _text(data.get('package_name'), 250)
+    package_price = _text(data.get('package_price'), 80)
+    timeline = _choice(data.get('timeline'), ALLOWED_SELLER_TIMELINES, 'not_sure')
+    location = ', '.join(filter(None, [
+        _text(data.get('property_city'), 120),
+        _text(data.get('property_county'), 120),
+        _text(data.get('property_state'), 20),
+        _text(data.get('property_zip'), 20),
+    ]))
+    request_details = [
+        f'Package: {package_name or service_level}' + (f' ({package_price})' if package_price else ''),
+        f'Timeline: {timeline}',
+        f'Property location: {location}' if location else '',
+        'Partner interests: ' + ', '.join(partner_categories) if partner_categories else '',
+        _text(data.get('notes'), 1500),
+    ]
+    notes = ' — '.join(item for item in request_details if item)
+    now = datetime.now(timezone.utc).isoformat()
+    return {
+        'seller_type': 'fsbo',
+        'property_address': property_address,
+        'seller_name': _text(data.get('seller_name') or data.get('name'), 250),
+        'seller_email': seller_email.lower(),
+        'seller_phone': _text(data.get('seller_phone') or data.get('phone'), 80),
+        'asking_price': _money(data.get('asking_price')),
+        'mortgage_balance': _money(data.get('mortgage_balance')),
+        'desired_close_date': _text(data.get('desired_close_date'), 40),
+        'notes': _text(notes, 1500),
+        'status': 'new',
+        'created_at': now,
+        'updated_at': now,
+    }
+
+
+def _notify_seller_lead(payload, seller_lead_id):
+    """Send an internal alert after a lead is safely stored; never block the seller on email."""
+    if not RESEND_API_KEY or not seller_lead_id:
+        return False
+
+    lines = [
+        'A new seller request has been saved in HomeOfferFlow.',
+        '',
+        f"Property: {payload.get('property_address') or 'Not provided'}",
+        f"Seller: {payload.get('seller_name') or 'Not provided'}",
+        f"Email: {payload.get('seller_email') or 'Not provided'}",
+        f"Phone: {payload.get('seller_phone') or 'Not provided'}",
+        f"Asking price: {payload.get('asking_price') if payload.get('asking_price') is not None else 'Not provided'}",
+        f"Seller lead ID: {seller_lead_id}",
+    ]
+    if payload.get('notes'):
+        lines.extend(['', 'Request details:', payload['notes']])
+    try:
+        with httpx.Client(timeout=8.0) as client:
+            response = client.post(
+                'https://api.resend.com/emails',
+                headers={
+                    'Authorization': f'Bearer {RESEND_API_KEY}',
+                    'Content-Type': 'application/json',
+                    'Idempotency-Key': f'hof/seller-lead/{seller_lead_id}'[:256],
+                },
+                json={
+                    'from': RESEND_TRANSACTION_FROM_EMAIL,
+                    'to': [FSBO_LEAD_ALERT_TO],
+                    'subject': f"New HomeOfferFlow seller request — {payload.get('property_address') or seller_lead_id}",
+                    'text': '\n'.join(lines),
+                    'tags': [{'name': 'message_type', 'value': 'seller_lead_alert'}],
+                },
+            )
+        return response.status_code < 300
+    except Exception:
+        return False
 
 
 def _choice(value, allowed, default):
@@ -310,25 +408,7 @@ class handler(BaseHTTPRequestHandler):
                     'message': 'Partner interest received.',
                 })
 
-            property_address = _text(data.get('property_address') or data.get('address'), 500)
-            seller_email = _text(data.get('seller_email') or data.get('email'), 250)
-            if not property_address or not seller_email:
-                return _send(self, 400, {'error': 'Property address and seller email are required.'})
-
-            payload = {
-                'seller_type': 'fsbo',
-                'property_address': property_address,
-                'seller_name': _text(data.get('seller_name') or data.get('name'), 250),
-                'seller_email': seller_email,
-                'seller_phone': _text(data.get('seller_phone') or data.get('phone'), 80),
-                'asking_price': _money(data.get('asking_price')),
-                'mortgage_balance': _money(data.get('mortgage_balance')),
-                'desired_close_date': _text(data.get('desired_close_date'), 40),
-                'notes': _text(data.get('notes'), 1500),
-                'status': _text(data.get('status'), 80) or 'new',
-                'created_at': datetime.now(timezone.utc).isoformat(),
-                'updated_at': datetime.now(timezone.utc).isoformat(),
-            }
+            payload = _build_seller_payload(data)
 
             headers = {
                 'apikey': SUPABASE_SERVICE_ROLE_KEY,
@@ -342,6 +422,7 @@ class handler(BaseHTTPRequestHandler):
             if resp.status_code >= 300:
                 return _send(self, 500, {'error': 'Could not save seller lead.', 'detail': resp.text[:500]})
             row = resp.json()[0] if resp.text and resp.text.strip().startswith('[') else {}
+            _notify_seller_lead(payload, row.get('id'))
             return _send(self, 200, {'ok': True, 'seller_lead_id': row.get('id')})
         except ValueError as exc:
             return _send(self, 400, {'error': str(exc)[:300]})

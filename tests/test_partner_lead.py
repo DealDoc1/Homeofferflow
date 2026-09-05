@@ -74,6 +74,66 @@ class PartnerLeadTests(unittest.TestCase):
                 "market_area": "North Texas",
             })
 
+    def test_seller_payload_preserves_follow_up_context_and_forces_new_status(self):
+        payload = fsbo_lead._build_seller_payload({
+            "property_address": "1438 Whitaker Road",
+            "seller_email": "SELLER@EXAMPLE.COM",
+            "status": "converted",
+            "service_level": "flat_fee_mls",
+            "package_name": "Flat-Fee MLS Listing",
+            "package_price": "from $1,299",
+            "timeline": "30_days",
+            "property_city": "Frisco",
+            "property_county": "Collin County",
+            "property_state": "TX",
+            "property_zip": "75034",
+            "partner_categories": ["cleaning", "title", "unsupported"],
+            "notes": "Ready for listing photos.",
+        })
+        self.assertEqual(payload["seller_email"], "seller@example.com")
+        self.assertEqual(payload["status"], "new")
+        self.assertIn("Package: Flat-Fee MLS Listing (from $1,299)", payload["notes"])
+        self.assertIn("Timeline: 30_days", payload["notes"])
+        self.assertIn("Property location: Frisco, Collin County, TX, 75034", payload["notes"])
+        self.assertIn("Partner interests: cleaning, title", payload["notes"])
+        self.assertNotIn("unsupported", payload["notes"])
+        self.assertIn("Ready for listing photos.", payload["notes"])
+
+    def test_seller_payload_requires_a_valid_email(self):
+        with self.assertRaisesRegex(ValueError, "valid seller email"):
+            fsbo_lead._build_seller_payload({
+                "property_address": "1438 Whitaker Road",
+                "seller_email": "not-an-email",
+            })
+
+    def test_saved_seller_lead_alert_uses_resend_and_is_idempotent(self):
+        payload = fsbo_lead._build_seller_payload({
+            "property_address": "1438 Whitaker Road",
+            "seller_name": "Taylor Seller",
+            "seller_email": "seller@example.com",
+            "service_level": "flat_fee_mls",
+        })
+        old_key = fsbo_lead.RESEND_API_KEY
+        try:
+            fsbo_lead.RESEND_API_KEY = "re_test"
+            with patch.object(fsbo_lead.httpx, "Client", FakeClient):
+                self.assertTrue(fsbo_lead._notify_seller_lead(payload, "seller-lead-123"))
+            request = FakeClient.last_request
+            self.assertEqual(request["url"], "https://api.resend.com/emails")
+            self.assertEqual(request["headers"]["Idempotency-Key"], "hof/seller-lead/seller-lead-123")
+            self.assertEqual(request["json"]["to"], [fsbo_lead.FSBO_LEAD_ALERT_TO])
+            self.assertIn("1438 Whitaker Road", request["json"]["subject"])
+        finally:
+            fsbo_lead.RESEND_API_KEY = old_key
+
+    def test_seller_lead_alert_failure_does_not_raise(self):
+        old_key = fsbo_lead.RESEND_API_KEY
+        try:
+            fsbo_lead.RESEND_API_KEY = ""
+            self.assertFalse(fsbo_lead._notify_seller_lead({}, "seller-lead-123"))
+        finally:
+            fsbo_lead.RESEND_API_KEY = old_key
+
     def test_payload_is_normalized_and_choices_are_allowlisted(self):
         payload = fsbo_lead._build_partner_payload({
             "partner_type": "title",

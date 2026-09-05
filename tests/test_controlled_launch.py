@@ -88,6 +88,17 @@ class ControlledLaunchTests(unittest.TestCase):
         packet = adapter.fill_and_merge_20_19(minimal_offer())
         self.assertEqual(len(PdfReader(BytesIO(packet)).pages), 12)
 
+    def test_missing_title_and_escrow_details_do_not_inject_a_provider(self):
+        offer = minimal_offer(
+            escrowAgent="",
+            escrowAddress="",
+            titleCompany="",
+        )
+        packet = adapter.fill_and_merge_20_19(offer)
+        text = "\n".join(page.extract_text() or "" for page in PdfReader(BytesIO(packet)).pages)
+        self.assertNotIn("Kate Lewis Tucker", text)
+        self.assertNotIn("Forgey Law Group", text)
+
     def test_conventional_packet_appends_two_page_financing_addendum(self):
         packet = adapter.fill_and_merge_20_19(
             minimal_offer(financing="conventional", loanAmount="400000")
@@ -155,8 +166,6 @@ class ControlledLaunchTests(unittest.TestCase):
             minimal_offer(leases="fixtureLease"),
             minimal_offer(leases="naturalResource"),
             minimal_offer(leases="naturalResourceLease"),
-            minimal_offer(financing="seller financing"),
-            minimal_offer(financing="loan assumption"),
             minimal_offer(hydrostaticTesting="yes"),
             minimal_offer(environmentalAssessment="yes"),
             minimal_offer(mineralReservation="yes"),
@@ -166,6 +175,71 @@ class ControlledLaunchTests(unittest.TestCase):
             with self.subTest(offer=offer):
                 with self.assertRaises(adapter.UnsupportedOfferPathError):
                     adapter.validate_supported_offer(offer)
+
+    def test_specialized_path_message_is_clear_without_internal_release_language(self):
+        with self.assertRaises(adapter.UnsupportedOfferPathError) as context:
+            adapter.validate_supported_offer(minimal_offer(hydrostaticTesting="yes"))
+        self.assertIn("needs a dedicated Texas form packet", str(context.exception))
+        self.assertNotIn("not yet available", str(context.exception))
+
+    def test_specialized_financing_form_sources_are_discoverable_for_packet_qa(self):
+        verified = adapter.verified
+        self.assertEqual(verified.normalize_financing("seller financing"), "seller_financing")
+        self.assertEqual(verified.normalize_financing("loan assumption"), "loan_assumption")
+        self.assertTrue((ROOT / "seller_financing_addendum_26-8.pdf").is_file())
+        self.assertTrue((ROOT / "loan_assumption_addendum_41-3.pdf").is_file())
+
+    def test_seller_financing_packet_assembly_appends_the_dedicated_addendum(self):
+        offer = minimal_offer(
+            financing="seller financing",
+            loanAmount="400000",
+            sellerFinanceCreditDays="7",
+            sellerFinanceCreditDocs=["credit_report", "employment"],
+            sellerFinanceNoteAmount="400000",
+            sellerFinanceInterestRate="6.5",
+            sellerFinancePaymentType="monthly",
+            sellerFinanceMonthlyPayment="2528",
+            sellerFinanceTransferConsent="required",
+            sellerFinanceInsurance="required",
+            sellerFinanceTaxEscrow="required",
+            sellerFinanceThirdPartyEscrow="no",
+            sellerFinanceEscrowPaidBy="buyer",
+        )
+        self.assertTrue(adapter.validate_supported_offer(offer))
+        packet = adapter.fill_and_merge_20_19(offer)
+        self.assertEqual(len(PdfReader(BytesIO(packet)).pages), 14)
+        field_ids = {field["api_id"] for field in adapter.build_signwell_fields_20_19(offer, packet)[0]}
+        self.assertIn("buyer1_initials_seller_financing_p1", field_ids)
+        self.assertIn("buyer1_signature_seller_financing", field_ids)
+
+    def test_loan_assumption_packet_attaches_its_dedicated_addendum_for_qa(self):
+        offer = minimal_offer(
+            financing="loan assumption",
+            assumptionCreditDays="7",
+            assumptionFirstLender="Example Credit Union",
+            assumptionFirstBalance="400000",
+            assumptionFirstPayment="2800",
+            assumptionFirstFeeCap="1500",
+            assumptionFirstRateCap="5.75",
+        )
+        self.assertTrue(adapter.validate_supported_offer(offer))
+        packet = adapter.fill_and_merge_20_19(offer)
+        self.assertEqual(len(PdfReader(BytesIO(packet)).pages), 14)
+        text = "\n".join(page.extract_text() or "" for page in PdfReader(BytesIO(packet)).pages[-2:])
+        self.assertIn("Example Credit Union", text)
+        self.assertIn("400,000", text)
+        field_ids = {field["api_id"] for field in adapter.verified.build_signwell_fields(offer, packet)[0]}
+        self.assertIn("buyer1_initials_loan_assumption_p1", field_ids)
+        self.assertIn("buyer1_signature_loan_assumption", field_ids)
+
+    def test_guided_special_financing_ui_avoids_third_party_questions(self):
+        page = (ROOT / "index.html").read_text(encoding="utf-8")
+        self.assertIn('id="thirdPartyFinancingTerms"', page)
+        self.assertIn("const isThirdPartyFinancing = ['conventional', 'fha', 'va', 'usda'].includes(financingChoice);", page)
+        self.assertIn("id=\"sellerFinanceCashPortion\"", page)
+        self.assertIn("id=\"assumptionCashPortion\"", page)
+        self.assertIn("requireField('assumptionFirstLender', 'first-lien lender', missing);", page)
+        self.assertIn("['conventional', 'usda'].includes(financing)", page)
 
 
 if __name__ == "__main__":
