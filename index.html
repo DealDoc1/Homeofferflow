@@ -2966,9 +2966,18 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
         <div class="radio-group-label" style="margin-top:0.75rem;">Are you aware of any leases on this property?</div>
         <div class="radio-cards">
           <label class="radio-card" onclick="selectCard(this,'leases','no')"><input type="radio" name="leases" value="no"/><div class="radio-dot"></div><div class="radio-card-text"><strong>No — not aware of any leases</strong><small>Most common for standard resale homes</small></div></label>
-          <label class="radio-card" style="opacity:0.55;cursor:not-allowed;"><input type="radio" name="leases" value="residential" disabled/><div class="radio-dot"></div><div class="radio-card-text"><strong>Yes — residential lease</strong><small>Temporarily unavailable while the required addendum is tested</small></div></label>
+          <label class="radio-card" onclick="selectCard(this,'leases','residential')"><input type="radio" name="leases" value="residential"/><div class="radio-dot"></div><div class="radio-card-text"><strong>Yes — residential lease</strong><small>Add the Residential Leases Addendum</small></div></label>
           <label class="radio-card" style="opacity:0.55;cursor:not-allowed;"><input type="radio" name="leases" value="fixture" disabled/><div class="radio-dot"></div><div class="radio-card-text"><strong>Yes — fixture lease</strong><small>Temporarily unavailable while the required addendum is tested</small></div></label>
           <label class="radio-card" onclick="selectCard(this,'leases','unknown')"><input type="radio" name="leases" value="unknown"/><div class="radio-dot"></div><div class="radio-card-text"><strong>Not sure — I'll ask the listing agent</strong><small>Confirm before generating the packet</small></div></label>
+        </div>
+        <div id="residentialLeaseDetails" style="display:none; margin-top:1rem;">
+          <div class="field"><label>How will the residential lease be handled?</label><select id="residentialLeasePlan" onchange="updateResidentialLeaseDetails()"><option value="terminate">Lease ends before closing</option><option value="assign">Lease transfers to the buyer at closing</option></select></div>
+          <div id="residentialLeaseAssignmentDetails" style="display:none; margin-top:.75rem;">
+            <div class="field"><label>Lease information provided to the buyer</label><select id="residentialLeaseDelivery" onchange="updateResidentialLeaseDetails()"><option value="received">Buyer has received lease copies</option><option value="deliver">Seller will provide lease copies</option><option value="oral">Seller will identify oral lease terms</option></select></div>
+            <div class="field" id="residentialLeaseDaysField" style="display:none;"><label>Buyer review period after lease delivery (days)</label><input type="number" id="residentialLeaseTerminationDays" min="1" value="5"/></div>
+            <div class="field" id="residentialLeaseOralField" style="display:none;"><label>Oral lease terms</label><textarea id="residentialLeaseOralTerms" rows="2" placeholder="Tenant name, rent, and term"></textarea></div>
+          </div>
+          <div class="field" style="margin-top:.75rem;"><label>Any seller statement that is not accurate? (optional)</label><textarea id="residentialLeaseExceptions" rows="2" placeholder="Describe exceptions, if any"></textarea></div>
         </div>
       </div>
     </div>
@@ -6189,6 +6198,19 @@ function routeAfterMagicLinkIfNeeded() {
         s.listingNotes = getVal('listingNotes');
 
         s.leases = getRadio('leases');
+        if (s.leases === 'residential') {
+          s.residentialLeasePlan = getVal('residentialLeasePlan') || 'terminate';
+          s.residentialLeaseDelivery = getVal('residentialLeaseDelivery') || 'received';
+          s.residentialLeaseTerminationDays = getVal('residentialLeaseTerminationDays') || '5';
+          s.residentialLeaseOralTerms = getVal('residentialLeaseOralTerms');
+          s.residentialLeaseExceptions = getVal('residentialLeaseExceptions');
+        } else {
+          s.residentialLeasePlan = '';
+          s.residentialLeaseDelivery = '';
+          s.residentialLeaseTerminationDays = '';
+          s.residentialLeaseOralTerms = '';
+          s.residentialLeaseExceptions = '';
+        }
       },
 
       'step3': () => {
@@ -6767,6 +6789,17 @@ function routeAfterMagicLinkIfNeeded() {
     if (b) b.classList.toggle('open');
   }
 
+  function updateResidentialLeaseDetails() {
+    const plan = getVal('residentialLeasePlan') || 'terminate';
+    const delivery = getVal('residentialLeaseDelivery') || 'received';
+    const assignment = document.getElementById('residentialLeaseAssignmentDetails');
+    const days = document.getElementById('residentialLeaseDaysField');
+    const oral = document.getElementById('residentialLeaseOralField');
+    if (assignment) assignment.style.display = plan === 'assign' ? 'block' : 'none';
+    if (days) days.style.display = plan === 'assign' && delivery === 'deliver' ? 'block' : 'none';
+    if (oral) oral.style.display = plan === 'assign' && delivery === 'oral' ? 'block' : 'none';
+  }
+
   function selectCard(el, group, value) {
     document.querySelectorAll(`input[name="${group}"]`).forEach(r => {
       const card = r.closest('.radio-card');
@@ -6795,6 +6828,12 @@ function routeAfterMagicLinkIfNeeded() {
         wirePaymentCalculator();
         updatePaymentCalculator();
       }, 50);
+    }
+
+    if (group === 'leases') {
+      const details = document.getElementById('residentialLeaseDetails');
+      if (details) details.style.display = value === 'residential' ? 'block' : 'none';
+      if (value === 'residential') updateResidentialLeaseDetails();
     }
 
     if (group === 'hoa') {

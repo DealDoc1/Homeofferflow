@@ -174,6 +174,7 @@ class BuyerTemporaryLeaseStagingTests(unittest.TestCase):
             "loan_assumption_addendum_41-3.pdf",
             "environmental_assessment_addendum_28-2.pdf",
             "mineral_reservation_addendum_44-3.pdf",
+            "residential_lease_addendum_51-1.pdf",
         }
         for function_path in ["api/fill_pdf_20_19_staging.py", "api/fill-pdf.py"]:
             with self.subTest(function_path=function_path):

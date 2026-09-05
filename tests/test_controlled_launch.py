@@ -161,8 +161,6 @@ class ControlledLaunchTests(unittest.TestCase):
 
     def test_unverified_paths_fail_closed(self):
         blocked_offers = [
-            minimal_offer(leases="residential"),
-            minimal_offer(leases="residentialLease"),
             minimal_offer(leases="fixtureLease"),
             minimal_offer(leases="naturalResource"),
             minimal_offer(leases="naturalResourceLease"),
@@ -260,6 +258,23 @@ class ControlledLaunchTests(unittest.TestCase):
         self.assertIn("1/2", text)
         field_ids = {field["api_id"] for field in adapter.build_signwell_fields_20_19(offer, packet)[0]}
         self.assertIn("buyer1_mineral_reservation_addendum_signature", field_ids)
+
+    def test_residential_lease_packet_attaches_the_dedicated_addendum(self):
+        offer = minimal_offer(
+            leases="residential",
+            residentialLeasePlan="assign",
+            residentialLeaseDelivery="deliver",
+            residentialLeaseTerminationDays="5",
+            residentialLeaseExceptions="Tenant has prepaid rent through the end of the month.",
+        )
+        self.assertTrue(adapter.validate_supported_offer(offer))
+        packet = adapter.fill_and_merge_20_19(offer)
+        self.assertEqual(len(PdfReader(BytesIO(packet)).pages), 13)
+        text = PdfReader(BytesIO(packet)).pages[-1].extract_text() or ""
+        self.assertIn("ADDENDUM REGARDING RESIDENTIAL LEASES", text)
+        self.assertIn("prepaid rent", text)
+        field_ids = {field["api_id"] for field in adapter.build_signwell_fields_20_19(offer, packet)[0]}
+        self.assertIn("buyer1_residential_lease_addendum_signature", field_ids)
 
     def test_guided_special_financing_ui_avoids_third_party_questions(self):
         page = (ROOT / "index.html").read_text(encoding="utf-8")

@@ -44,6 +44,8 @@ ENVIRONMENTAL_ASSESSMENT_PDF = os.path.join(BASE_DIR, "environmental_assessment_
 ENVIRONMENTAL_ASSESSMENT_PDF_ALT = os.path.join(os.path.dirname(__file__), "environmental_assessment_addendum_28-2.pdf")
 MINERAL_RESERVATION_PDF = os.path.join(BASE_DIR, "mineral_reservation_addendum_44-3.pdf")
 MINERAL_RESERVATION_PDF_ALT = os.path.join(os.path.dirname(__file__), "mineral_reservation_addendum_44-3.pdf")
+RESIDENTIAL_LEASE_PDF = os.path.join(BASE_DIR, "residential_lease_addendum_51-1.pdf")
+RESIDENTIAL_LEASE_PDF_ALT = os.path.join(os.path.dirname(__file__), "residential_lease_addendum_51-1.pdf")
 
 FONT      = "Helvetica"
 FONT_SIZE = 9
@@ -159,6 +161,16 @@ def mineral_reservation_pdf_path():
         "trec_44-3.pdf",
         "trec_44_3.pdf",
         "TXR1905.pdf",
+    )
+
+
+def residential_lease_pdf_path():
+    return find_existing_pdf(
+        "residential_lease_addendum_51-1.pdf",
+        "residential_lease_addendum.pdf",
+        "trec_51-1.pdf",
+        "trec_51_1.pdf",
+        "TXR1953.pdf",
     )
 
 
@@ -970,6 +982,8 @@ def fill_and_merge(offer):
     has_loan_assumption = normalized_financing_main == "loan_assumption"
     has_environmental_assessment = truthy(s.get("environmentalAssessment"))
     has_mineral_reservation = truthy(s.get("mineralReservation"))
+    leases_raw = val_lower(s.get("leases"))
+    has_residential_lease = leases_raw in ["residential", "residential lease", "residentiallease"]
     has_hoa  = s.get("hoa") in ["yes", "unknown"]
     has_sale = s.get("saleContingency") == "yes"
     has_bkup = s.get("backupOffer") == "yes"
@@ -1213,6 +1227,26 @@ def fill_and_merge(offer):
         }
         mineral_pages = add_debug_grid_to_pages(mineral_pages)
         merger.append(PdfReader(BytesIO(stamp_pdf(mineral_reservation_path, mineral_pages))))
+
+    residential_lease_path = residential_lease_pdf_path()
+    if has_residential_lease and residential_lease_path:
+        lease_plan = str(s.get("residentialLeasePlan") or "terminate").strip().lower()
+        delivery = str(s.get("residentialLeaseDelivery") or "received").strip().lower()
+        residential_lease_pages = {
+            0: [
+                (240, 690, addr_full, 8),
+                (35, 615, ck(lease_plan == "terminate"), "check_small"),
+                (35, 560, ck(lease_plan == "assign"), "check_small"),
+                (74, 526, ck(lease_plan == "assign" and delivery == "received"), "check_small"),
+                (74, 513, ck(lease_plan == "assign" and delivery == "deliver"), "check_small"),
+                (122, 494, first_present(s.get("residentialLeaseTerminationDays"), "5") if lease_plan == "assign" and delivery == "deliver" else "", 8),
+                (74, 475, ck(lease_plan == "assign" and delivery == "oral"), "check_small"),
+                *wrapped_entries(105, 462, first_present(s.get("residentialLeaseOralTerms")), max_chars=95, line_gap=13, fs=7.5, max_lines=2),
+                *wrapped_entries(82, 287, first_present(s.get("residentialLeaseExceptions")), max_chars=118, line_gap=13, fs=7.5, max_lines=3),
+            ],
+        }
+        residential_lease_pages = add_debug_grid_to_pages(residential_lease_pages)
+        merger.append(PdfReader(BytesIO(stamp_pdf(residential_lease_path, residential_lease_pages))))
 
     appraisal_pdf_path = APPRAISAL_PDF if os.path.exists(APPRAISAL_PDF) else APPRAISAL_PDF_ALT
     if has_appraisal and os.path.exists(appraisal_pdf_path):
@@ -1505,6 +1539,7 @@ def build_signwell_fields(offer, pdf_bytes):
     has_loan_assumption_addendum = financing == "loan_assumption" and bool(loan_assumption_pdf_path())
     has_environmental_assessment_addendum = truthy(offer.get("environmentalAssessment")) and bool(environmental_assessment_pdf_path())
     has_mineral_reservation_addendum = truthy(offer.get("mineralReservation")) and bool(mineral_reservation_pdf_path())
+    has_residential_lease_addendum = val_lower(offer.get("leases")) in {"residential", "residential lease", "residentiallease"} and bool(residential_lease_pdf_path())
     has_hoa = str(offer.get("hoa") or "").strip().lower() in {"yes", "unknown"}
     has_sale = str(offer.get("saleContingency") or "").strip().lower() == "yes"
     has_backup = str(offer.get("backupOffer") or "").strip().lower() == "yes"
@@ -1529,6 +1564,7 @@ def build_signwell_fields(offer, pdf_bytes):
     loan_assumption_page_1 = loan_assumption_signature_page = None
     environmental_assessment_page = None
     mineral_reservation_page = None
+    residential_lease_page = None
     appraisal_page = None
     non_realty_page = None
     lead_page = None
@@ -1554,6 +1590,9 @@ def build_signwell_fields(offer, pdf_bytes):
         next_page += 1
     if has_mineral_reservation_addendum:
         mineral_reservation_page = next_page
+        next_page += 1
+    if has_residential_lease_addendum:
+        residential_lease_page = next_page
         next_page += 1
     if has_appraisal:
         appraisal_page = next_page
@@ -1677,6 +1716,11 @@ def build_signwell_fields(offer, pdf_bytes):
         add_sig_date_pair("buyer1_mineral_reservation_addendum", mineral_reservation_page, 76, 830, 246, 830, "1")
         if has_buyer2:
             add_sig_date_pair("buyer2_mineral_reservation_addendum", mineral_reservation_page, 76, 905, 246, 905, "2")
+
+    if residential_lease_page:
+        add_field("buyer1_residential_lease_addendum_signature", "signature", residential_lease_page, 52, 170, recipient_id="1", width=145, height=20)
+        if has_buyer2:
+            add_field("buyer2_residential_lease_addendum_signature", "signature", residential_lease_page, 52, 116, recipient_id="2", width=145, height=20)
 
     # Appraisal Addendum - buyer signatures only. No seller fields.
     # Live QA: signature blocks needed to sit higher on the buyer lines and include buyer dates.
