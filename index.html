@@ -2866,7 +2866,7 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
         <div class="hof-guide-chip-row"><span class="hof-guide-chip"><strong>✓</strong> Legal names</span><span class="hof-guide-chip"><strong>✓</strong> Contact info</span><span class="hof-guide-chip"><strong>✓</strong> Editable later</span></div>
       </div>
       <div class="trec-badge">✓ TREC 20-19 · Section 1 — Parties & §21 Notices</div>
-      <h2 id="partiesStepTitle">Who's buying?</h2>
+      <h2 id="partiesStepTitle">Who is purchasing the property?</h2>
       <p class="step-desc" id="partiesStepDesc">Enter full legal names exactly as they should appear on the contract. We'll also collect your contact info for the Notices section.</p>
       <div class="field-group">
         <div class="field-row">
@@ -5711,7 +5711,7 @@ function routeAfterMagicLinkIfNeeded() {
       if (agentPathInfoHeader) agentPathInfoHeader.style.display = 'none';
       if (agentFields && state.data.hasBuyerAgent !== 'yes') agentFields.style.display = 'none';
     } else {
-      if (title) title.textContent = "Who's buying?";
+      if (title) title.textContent = "Who is purchasing the property?";
       if (desc) desc.textContent = "Enter full legal names exactly as they should appear on the contract. We'll also collect your contact info for the Notices section.";
       if (b1f) b1f.textContent = 'Buyer 1 First Name';
       if (b1l) b1l.textContent = 'Buyer 1 Last Name';
