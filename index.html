@@ -7282,7 +7282,7 @@ function routeAfterMagicLinkIfNeeded() {
     const data = offerData || {};
     const blocked = [];
     const leases = String(data.leases || '').toLowerCase();
-    if (['residential', 'fixture', 'naturalresource', 'natural_resource', 'natural resource'].includes(leases)) {
+    if (['naturalresource', 'natural_resource', 'natural resource'].includes(leases)) {
       blocked.push('Paragraph 4 lease addendum');
     }
     if (data.sellerTemporaryLease === 'yes') blocked.push("Seller's Temporary Residential Lease");
