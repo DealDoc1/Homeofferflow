@@ -48,9 +48,6 @@ def validate_supported_offer(offer):
 
     leases = _normalized(offer.get("leases"))
     if leases in {
-        "fixture",
-        "fixture lease",
-        "fixturelease",
         "natural resource",
         "natural resource lease",
         "naturalresource",

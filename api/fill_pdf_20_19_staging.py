@@ -46,6 +46,8 @@ MINERAL_RESERVATION_PDF = os.path.join(BASE_DIR, "mineral_reservation_addendum_4
 MINERAL_RESERVATION_PDF_ALT = os.path.join(os.path.dirname(__file__), "mineral_reservation_addendum_44-3.pdf")
 RESIDENTIAL_LEASE_PDF = os.path.join(BASE_DIR, "residential_lease_addendum_51-1.pdf")
 RESIDENTIAL_LEASE_PDF_ALT = os.path.join(os.path.dirname(__file__), "residential_lease_addendum_51-1.pdf")
+FIXTURE_LEASE_PDF = os.path.join(BASE_DIR, "fixture_lease_addendum_52-1.pdf")
+FIXTURE_LEASE_PDF_ALT = os.path.join(os.path.dirname(__file__), "fixture_lease_addendum_52-1.pdf")
 
 FONT      = "Helvetica"
 FONT_SIZE = 9
@@ -171,6 +173,16 @@ def residential_lease_pdf_path():
         "trec_51-1.pdf",
         "trec_51_1.pdf",
         "TXR1953.pdf",
+    )
+
+
+def fixture_lease_pdf_path():
+    return find_existing_pdf(
+        "fixture_lease_addendum_52-1.pdf",
+        "fixture_lease_addendum.pdf",
+        "trec_52-1.pdf",
+        "trec_52_1.pdf",
+        "TXR1954.pdf",
     )
 
 
@@ -984,6 +996,7 @@ def fill_and_merge(offer):
     has_mineral_reservation = truthy(s.get("mineralReservation"))
     leases_raw = val_lower(s.get("leases"))
     has_residential_lease = leases_raw in ["residential", "residential lease", "residentiallease"]
+    has_fixture_lease = leases_raw in ["fixture", "fixture lease", "fixturelease"]
     has_hoa  = s.get("hoa") in ["yes", "unknown"]
     has_sale = s.get("saleContingency") == "yes"
     has_bkup = s.get("backupOffer") == "yes"
@@ -1247,6 +1260,38 @@ def fill_and_merge(offer):
         }
         residential_lease_pages = add_debug_grid_to_pages(residential_lease_pages)
         merger.append(PdfReader(BytesIO(stamp_pdf(residential_lease_path, residential_lease_pages))))
+
+    fixture_lease_path = fixture_lease_pdf_path()
+    if has_fixture_lease and fixture_lease_path:
+        fixtures = s.get("fixtureLeaseFixtures") or []
+        if isinstance(fixtures, str):
+            fixtures = [part.strip() for part in fixtures.split(",") if part.strip()]
+        fixtures = {str(item).strip().lower() for item in fixtures}
+        delivery = str(s.get("fixtureLeaseDelivery") or "received").strip().lower()
+        fixture_pages = {
+            0: [
+                (240, 677, addr_full, 8),
+                (81, 597, ck("solar" in fixtures), "check_small"),
+                (165, 597, ck("propane" in fixtures), "check_small"),
+                (263, 597, ck("water" in fixtures), "check_small"),
+                (363, 597, ck("security" in fixtures), "check_small"),
+                (89, 551, ck("solar" in fixtures), "check_small"),
+                (185, 551, ck("propane" in fixtures), "check_small"),
+                (325, 551, ck("water" in fixtures), "check_small"),
+                (456, 551, ck("security" in fixtures), "check_small"),
+                (89, 536, ck(bool(first_present(s.get("fixtureLeaseOther")))), "check_small"),
+                (115, 536, first_present(s.get("fixtureLeaseOther")), 8),
+                (338, 535, fmt_money(first_present(s.get("fixtureLeaseCostCap"), "0")), 8),
+                (211, 478, ck(str(s.get("fixtureLeaseRemoval") or "remove").strip().lower() == "remove"), "check_small"),
+                (256, 478, ck(str(s.get("fixtureLeaseRemoval") or "remove").strip().lower() == "retain"), "check_small"),
+                (53, 411, ck(delivery == "received"), "check_small"),
+                (53, 396, ck(delivery == "deliver"), "check_small"),
+                (53, 350, ck(delivery == "oral"), "check_small"),
+                *wrapped_entries(83, 327, first_present(s.get("fixtureLeaseOralTerms")), max_chars=108, line_gap=13, fs=7.5, max_lines=2),
+            ],
+        }
+        fixture_pages = add_debug_grid_to_pages(fixture_pages)
+        merger.append(PdfReader(BytesIO(stamp_pdf(fixture_lease_path, fixture_pages))))
 
     appraisal_pdf_path = APPRAISAL_PDF if os.path.exists(APPRAISAL_PDF) else APPRAISAL_PDF_ALT
     if has_appraisal and os.path.exists(appraisal_pdf_path):
@@ -1540,6 +1585,7 @@ def build_signwell_fields(offer, pdf_bytes):
     has_environmental_assessment_addendum = truthy(offer.get("environmentalAssessment")) and bool(environmental_assessment_pdf_path())
     has_mineral_reservation_addendum = truthy(offer.get("mineralReservation")) and bool(mineral_reservation_pdf_path())
     has_residential_lease_addendum = val_lower(offer.get("leases")) in {"residential", "residential lease", "residentiallease"} and bool(residential_lease_pdf_path())
+    has_fixture_lease_addendum = val_lower(offer.get("leases")) in {"fixture", "fixture lease", "fixturelease"} and bool(fixture_lease_pdf_path())
     has_hoa = str(offer.get("hoa") or "").strip().lower() in {"yes", "unknown"}
     has_sale = str(offer.get("saleContingency") or "").strip().lower() == "yes"
     has_backup = str(offer.get("backupOffer") or "").strip().lower() == "yes"
@@ -1565,6 +1611,7 @@ def build_signwell_fields(offer, pdf_bytes):
     environmental_assessment_page = None
     mineral_reservation_page = None
     residential_lease_page = None
+    fixture_lease_page = None
     appraisal_page = None
     non_realty_page = None
     lead_page = None
@@ -1593,6 +1640,9 @@ def build_signwell_fields(offer, pdf_bytes):
         next_page += 1
     if has_residential_lease_addendum:
         residential_lease_page = next_page
+        next_page += 1
+    if has_fixture_lease_addendum:
+        fixture_lease_page = next_page
         next_page += 1
     if has_appraisal:
         appraisal_page = next_page
@@ -1721,6 +1771,11 @@ def build_signwell_fields(offer, pdf_bytes):
         add_field("buyer1_residential_lease_addendum_signature", "signature", residential_lease_page, 52, 170, recipient_id="1", width=145, height=20)
         if has_buyer2:
             add_field("buyer2_residential_lease_addendum_signature", "signature", residential_lease_page, 52, 116, recipient_id="2", width=145, height=20)
+
+    if fixture_lease_page:
+        add_field("buyer1_fixture_lease_addendum_signature", "signature", fixture_lease_page, 52, 260, recipient_id="1", width=145, height=20)
+        if has_buyer2:
+            add_field("buyer2_fixture_lease_addendum_signature", "signature", fixture_lease_page, 52, 190, recipient_id="2", width=145, height=20)
 
     # Appraisal Addendum - buyer signatures only. No seller fields.
     # Live QA: signature blocks needed to sit higher on the buyer lines and include buyer dates.
