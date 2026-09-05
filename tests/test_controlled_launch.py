@@ -272,8 +272,11 @@ class ControlledLaunchTests(unittest.TestCase):
         text = PdfReader(BytesIO(packet)).pages[-1].extract_text() or ""
         self.assertIn("ADDENDUM REGARDING RESIDENTIAL LEASES", text)
         self.assertIn("prepaid rent", text)
-        field_ids = {field["api_id"] for field in adapter.build_signwell_fields_20_19(offer, packet)[0]}
+        fields = adapter.build_signwell_fields_20_19(offer, packet)[0]
+        field_ids = {field["api_id"] for field in fields}
         self.assertIn("buyer1_residential_lease_addendum_signature", field_ids)
+        residential_signature = next(field for field in fields if field["api_id"] == "buyer1_residential_lease_addendum_signature")
+        self.assertEqual(residential_signature["y"], 790)
 
     def test_fixture_lease_packet_attaches_the_dedicated_addendum(self):
         offer = minimal_offer(
@@ -290,8 +293,11 @@ class ControlledLaunchTests(unittest.TestCase):
         text = PdfReader(BytesIO(packet)).pages[-1].extract_text() or ""
         self.assertIn("ADDENDUM REGARDING FIXTURE LEASES", text)
         self.assertIn("Solar lease", text)
-        field_ids = {field["api_id"] for field in adapter.build_signwell_fields_20_19(offer, packet)[0]}
+        fields = adapter.build_signwell_fields_20_19(offer, packet)[0]
+        field_ids = {field["api_id"] for field in fields}
         self.assertIn("buyer1_fixture_lease_addendum_signature", field_ids)
+        fixture_signature = next(field for field in fields if field["api_id"] == "buyer1_fixture_lease_addendum_signature")
+        self.assertEqual(fixture_signature["y"], 847)
 
     def test_guided_special_financing_ui_avoids_third_party_questions(self):
         page = (ROOT / "index.html").read_text(encoding="utf-8")

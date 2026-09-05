@@ -1768,14 +1768,14 @@ def build_signwell_fields(offer, pdf_bytes):
             add_sig_date_pair("buyer2_mineral_reservation_addendum", mineral_reservation_page, 76, 905, 246, 905, "2")
 
     if residential_lease_page:
-        add_field("buyer1_residential_lease_addendum_signature", "signature", residential_lease_page, 52, 170, recipient_id="1", width=145, height=20)
+        add_field("buyer1_residential_lease_addendum_signature", "signature", residential_lease_page, 52, 790, recipient_id="1", width=145, height=20)
         if has_buyer2:
-            add_field("buyer2_residential_lease_addendum_signature", "signature", residential_lease_page, 52, 116, recipient_id="2", width=145, height=20)
+            add_field("buyer2_residential_lease_addendum_signature", "signature", residential_lease_page, 52, 862, recipient_id="2", width=145, height=20)
 
     if fixture_lease_page:
-        add_field("buyer1_fixture_lease_addendum_signature", "signature", fixture_lease_page, 52, 260, recipient_id="1", width=145, height=20)
+        add_field("buyer1_fixture_lease_addendum_signature", "signature", fixture_lease_page, 52, 847, recipient_id="1", width=145, height=20)
         if has_buyer2:
-            add_field("buyer2_fixture_lease_addendum_signature", "signature", fixture_lease_page, 52, 190, recipient_id="2", width=145, height=20)
+            add_field("buyer2_fixture_lease_addendum_signature", "signature", fixture_lease_page, 52, 917, recipient_id="2", width=145, height=20)
 
     # Appraisal Addendum - buyer signatures only. No seller fields.
     # Live QA: signature blocks needed to sit higher on the buyer lines and include buyer dates.
