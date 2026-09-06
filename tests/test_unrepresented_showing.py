@@ -61,6 +61,7 @@ class UnrepresentedShowingTests(unittest.TestCase):
             "startAgentTransaction('lease_representation')",
         ):
             self.assertIn(token, source)
+        self.assertIn("Agent Transaction Path Selected", source)
 
     def test_lease_listing_path_collects_lease_specific_details(self):
         source = (Path(__file__).resolve().parents[1] / "index.html").read_text()

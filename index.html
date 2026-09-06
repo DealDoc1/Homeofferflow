@@ -11909,6 +11909,7 @@ function routeAfterMagicLinkIfNeeded() {
   };
 
   root.startAgentTransaction = function startAgentTransaction(path){
+    root.trackEvent?.('Agent Transaction Path Selected', { path });
     if (path === 'purchase') return root.startAccountOffer();
     if (path === 'lease_representation') {
       root.showAccountTab('agreements');
