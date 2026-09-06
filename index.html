@@ -2965,6 +2965,7 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
           <label class="radio-card" onclick="selectCard(this,'leases','no')"><input type="radio" name="leases" value="no"/><div class="radio-dot"></div><div class="radio-card-text"><strong>No — not aware of any leases</strong><small>Most common for standard resale homes</small></div></label>
           <label class="radio-card" onclick="selectCard(this,'leases','residential')"><input type="radio" name="leases" value="residential"/><div class="radio-dot"></div><div class="radio-card-text"><strong>Yes — residential lease</strong><small>Add the Residential Leases Addendum</small></div></label>
           <label class="radio-card" onclick="selectCard(this,'leases','fixture')"><input type="radio" name="leases" value="fixture"/><div class="radio-dot"></div><div class="radio-card-text"><strong>Yes — fixture lease</strong><small>Add the Fixture Leases Addendum</small></div></label>
+          <label class="radio-card" onclick="selectCard(this,'leases','naturalResource')"><input type="radio" name="leases" value="naturalResource"/><div class="radio-dot"></div><div class="radio-card-text"><strong>Yes — natural-resource lease</strong><small>Record the lease details in the main contract</small></div></label>
           <label class="radio-card" onclick="selectCard(this,'leases','unknown')"><input type="radio" name="leases" value="unknown"/><div class="radio-dot"></div><div class="radio-card-text"><strong>Not sure — I'll ask the listing agent</strong><small>Confirm before generating the packet</small></div></label>
         </div>
         <div id="residentialLeaseDetails" style="display:none; margin-top:1rem;">
@@ -2982,6 +2983,10 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
           <div class="field-row"><div class="field"><label>Buyer’s initial assumption cost cap ($)</label><input type="number" id="fixtureLeaseCostCap" min="0" value="0"/></div><div class="field"><label>Fixtures buyer will not assume</label><select id="fixtureLeaseRemoval"><option value="remove">Seller will remove before closing</option><option value="retain">Seller will not remove</option></select></div></div>
           <div class="field"><label>Fixture lease information provided to the buyer</label><select id="fixtureLeaseDelivery" onchange="updateFixtureLeaseDetails()"><option value="received">Buyer has received lease copies</option><option value="deliver">Seller will provide lease copies</option><option value="oral">Seller will identify oral lease terms</option></select></div>
           <div class="field" id="fixtureLeaseOralField" style="display:none;"><label>Oral lease terms</label><textarea id="fixtureLeaseOralTerms" rows="2" placeholder="Lessee name, rent, and term"></textarea></div>
+        </div>
+        <div id="naturalResourceLeaseDetails" style="display:none; margin-top:1rem;">
+          <div class="field"><label>Have all natural-resource lease copies been delivered to the buyer?</label><select id="naturalResourceLeaseDelivered" onchange="updateNaturalResourceLeaseDetails()"><option value="yes">Yes — buyer has all lease copies</option><option value="no">No — seller will provide them</option></select></div>
+          <div class="field-row" id="naturalResourceLeaseTiming" style="display:none;"><div class="field"><label>Days for seller to provide leases</label><input type="number" id="naturalResourceLeaseDays" min="1" value="3"/></div><div class="field"><label>Buyer review period after delivery (days)</label><input type="number" id="naturalResourceTerminationDays" min="1" value="5"/></div></div>
         </div>
       </div>
     </div>
@@ -6230,6 +6235,15 @@ function routeAfterMagicLinkIfNeeded() {
           s.fixtureLeaseDelivery = '';
           s.fixtureLeaseOralTerms = '';
         }
+        if (s.leases === 'naturalResource') {
+          s.naturalResourceLeaseDelivered = getVal('naturalResourceLeaseDelivered') || 'yes';
+          s.naturalResourceLeaseDays = getVal('naturalResourceLeaseDays') || '3';
+          s.naturalResourceTerminationDays = getVal('naturalResourceTerminationDays') || '5';
+        } else {
+          s.naturalResourceLeaseDelivered = '';
+          s.naturalResourceLeaseDays = '';
+          s.naturalResourceTerminationDays = '';
+        }
       },
 
       'step3': () => {
@@ -6825,6 +6839,12 @@ function routeAfterMagicLinkIfNeeded() {
     if (oral) oral.style.display = delivery === 'oral' ? 'block' : 'none';
   }
 
+  function updateNaturalResourceLeaseDetails() {
+    const delivered = getVal('naturalResourceLeaseDelivered') || 'yes';
+    const timing = document.getElementById('naturalResourceLeaseTiming');
+    if (timing) timing.style.display = delivered === 'no' ? 'grid' : 'none';
+  }
+
   function selectCard(el, group, value) {
     document.querySelectorAll(`input[name="${group}"]`).forEach(r => {
       const card = r.closest('.radio-card');
@@ -6862,6 +6882,9 @@ function routeAfterMagicLinkIfNeeded() {
       const fixtureDetails = document.getElementById('fixtureLeaseDetails');
       if (fixtureDetails) fixtureDetails.style.display = value === 'fixture' ? 'block' : 'none';
       if (value === 'fixture') updateFixtureLeaseDetails();
+      const naturalResourceDetails = document.getElementById('naturalResourceLeaseDetails');
+      if (naturalResourceDetails) naturalResourceDetails.style.display = value === 'naturalResource' ? 'block' : 'none';
+      if (value === 'naturalResource') updateNaturalResourceLeaseDetails();
     }
 
     if (group === 'hoa') {

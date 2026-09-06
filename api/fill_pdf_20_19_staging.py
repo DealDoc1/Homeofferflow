@@ -754,6 +754,16 @@ def build_pages_data(
         (457, 257, fmt_money(price)),
 
         (315, 284, ck(has_loan), "check_small"),
+
+        # Paragraph 4 lease checkboxes. Residential and fixture selections append
+        # their matching addenda; natural-resource lease details live on this page.
+        (50, 196, ck(lease_residential), "check_small"),
+        (50, 171, ck(lease_fixture), "check_small"),
+        (50, 135, ck(lease_natural), "check_small"),
+        (63,  99, ck(lease_natural and val_lower(lease_nr_delivered) == "yes"), "check_small"),
+        (63,  85, ck(lease_natural and val_lower(lease_nr_delivered) == "no"), "check_small"),
+        (466, 70, str(lease_nr_days) if lease_natural and val_lower(lease_nr_delivered) == "no" else ""),
+        (350, 45, str(lease_nr_term_days) if lease_natural and val_lower(lease_nr_delivered) == "no" else ""),
     ]
 
     escrow_agent = s.get("escrowAgent") or ""

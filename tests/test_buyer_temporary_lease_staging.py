@@ -181,9 +181,13 @@ class BuyerTemporaryLeaseStagingTests(unittest.TestCase):
             with self.subTest(function_path=function_path):
                 configured_glob = config["functions"][function_path]["includeFiles"]
                 self.assertIsInstance(configured_glob, str)
-                self.assertEqual(
-                    set(configured_glob.strip("{}").split(",")),
-                    expected_forms,
+                # Vercel limits a single includeFiles pattern to 256 characters.
+                # The root-level PDF glob is deliberate: it includes the verified
+                # packet forms above and prevents a new form from silently missing
+                # from the deployed serverless bundle.
+                self.assertEqual(configured_glob, "*.pdf")
+                self.assertTrue(
+                    expected_forms.issubset({path.name for path in ROOT.glob("*.pdf")})
                 )
 
 

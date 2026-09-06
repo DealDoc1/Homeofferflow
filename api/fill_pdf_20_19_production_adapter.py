@@ -47,20 +47,10 @@ def validate_supported_offer(offer):
         blocked.append("unsupported financing type")
 
     leases = _normalized(offer.get("leases"))
-    if leases in {
-        "natural resource",
-        "natural resource lease",
-        "naturalresource",
-        "naturalresourcelease",
-    }:
-        blocked.append("Paragraph 4 lease")
-
     lease_flags = {
         "leaseResidential": "residential lease",
         "leaseFixture": "fixture lease",
         "fixtureLease": "fixture lease",
-        "leaseNaturalResource": "natural-resource lease",
-        "naturalResourceLease": "natural-resource lease",
     }
     for key, label in lease_flags.items():
         if _truthy(offer.get(key)):

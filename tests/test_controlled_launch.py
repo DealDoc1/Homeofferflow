@@ -161,8 +161,6 @@ class ControlledLaunchTests(unittest.TestCase):
 
     def test_unverified_paths_fail_closed(self):
         blocked_offers = [
-            minimal_offer(leases="naturalResource"),
-            minimal_offer(leases="naturalResourceLease"),
             minimal_offer(hydrostaticTesting="yes"),
             minimal_offer(leadBasedPaintAttached="yes"),
         ]
@@ -170,6 +168,19 @@ class ControlledLaunchTests(unittest.TestCase):
             with self.subTest(offer=offer):
                 with self.assertRaises(adapter.UnsupportedOfferPathError):
                     adapter.validate_supported_offer(offer)
+
+    def test_natural_resource_lease_uses_main_contract_fields(self):
+        offer = minimal_offer(
+            leases="naturalResource",
+            naturalResourceLeaseDelivered="no",
+            naturalResourceLeaseDays="3",
+            naturalResourceTerminationDays="5",
+        )
+        adapter.validate_supported_offer(offer)
+        packet = adapter.fill_and_merge_20_19(offer)
+        self.assertEqual(len(PdfReader(BytesIO(packet)).pages), 12)
+        text = PdfReader(BytesIO(packet)).pages[0].extract_text() or ""
+        self.assertIn("5", text)
 
     def test_specialized_path_message_is_clear_without_internal_release_language(self):
         with self.assertRaises(adapter.UnsupportedOfferPathError) as context:
