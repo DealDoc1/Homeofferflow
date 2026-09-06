@@ -1070,7 +1070,7 @@ class OnDemandLaunchPageTests(unittest.TestCase):
             'Enrollment questions',
             'Why is a card required if the first 60 days are free?',
             'Can I cancel before the trial renews?',
-            'What can I use HomeOfferFlow for during this launch?',
+            'What does my OnDemand plan include?',
             'prevents the first monthly charge',
         ):
             self.assertIn(text.lower(), LAUNCH_HTML.lower())
@@ -1085,7 +1085,7 @@ class OnDemandLaunchPageTests(unittest.TestCase):
         self.assertIn('"@type":"FAQPage"', LAUNCH_HTML)
         self.assertIn('"name":"Why is a card required if the first 60 days are free?"', LAUNCH_HTML)
         self.assertIn('"name":"Can I cancel before the trial renews?"', LAUNCH_HTML)
-        self.assertIn('"name":"What can I use HomeOfferFlow for during this launch?"', LAUNCH_HTML)
+        self.assertIn('"name":"What does my OnDemand plan include?"', LAUNCH_HTML)
 
     def test_launch_requires_authenticated_checkout_and_terms_confirmation(self):
         self.assertIn('"Authorization": `Bearer ${state.session.access_token}`', LAUNCH_HTML)
