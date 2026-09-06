@@ -24,6 +24,11 @@ class LowNoisePublicPageTests(unittest.TestCase):
         self.assertNotIn('Start where you are', hero)
         self.assertNotIn('No-surprises next steps', SELLERS)
 
+    def test_homepage_seller_path_does_not_use_unfinished_product_language(self):
+        homepage = (ROOT / "index.html").read_text(encoding="utf-8")
+        self.assertIn('Start with your address and email.', homepage)
+        self.assertNotIn('is being built as a separate seller pathway', homepage)
+
 
 if __name__ == "__main__":
     unittest.main()
