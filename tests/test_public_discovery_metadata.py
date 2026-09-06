@@ -45,6 +45,10 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn('workflow for a property listing, purchase, lease, or Texas home-service provider search.', NOT_FOUND)
         self.assertNotIn('workflow for buying, listing, leasing', NOT_FOUND)
 
+    def test_investor_landing_keeps_attribution_inside_a_valid_html_document(self):
+        self.assertTrue(INVESTORS.startswith('<!DOCTYPE html>\n<html lang="en"><head>'))
+        self.assertIn('<script defer src="/assets/investor-attribution.js"></script>', INVESTORS)
+
     def test_agent_form_library_exposes_crawlable_shared_workflow_inventory(self):
         self.assertIn('"@type":"ItemList"', AGENT_FORM_LIBRARY)
         for form_code in ("TXR-1501", "TXR-1508", "TXR-1948", "TXR-1953", "TXR-1954"):
