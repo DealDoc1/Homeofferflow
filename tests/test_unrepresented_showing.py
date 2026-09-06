@@ -40,6 +40,17 @@ class UnrepresentedShowingTests(unittest.TestCase):
         ):
             self.assertIn(token, source)
 
+    def test_agent_dashboard_starts_with_transaction_routing(self):
+        source = (Path(__file__).resolve().parents[1] / "index.html").read_text()
+        for token in (
+            "What are you working on?",
+            "startAgentTransaction('listing')",
+            "startAgentTransaction('purchase')",
+            "startAgentTransaction('lease_listing')",
+            "startAgentTransaction('lease_representation')",
+        ):
+            self.assertIn(token, source)
+
 
 if __name__ == "__main__":
     unittest.main()

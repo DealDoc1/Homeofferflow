@@ -2670,6 +2670,16 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
           <div class="usage-meter"><div class="usage-fill" style="width:0%"></div></div>
           <div class="usage-copy">Checking packet usage for this month.</div>
         </div>
+        <div class="platform-card" style="margin:1rem 0;">
+          <h4>What are you working on?</h4>
+          <p>Choose the transaction path and we’ll open the right interview.</p>
+          <div class="platform-actions">
+            <button type="button" onclick="startAgentTransaction('listing')">Listing</button>
+            <button type="button" onclick="startAgentTransaction('purchase')">Purchase</button>
+            <button type="button" onclick="startAgentTransaction('lease_listing')">Lease Listing</button>
+            <button type="button" onclick="startAgentTransaction('lease_representation')">Tenant Representation</button>
+          </div>
+        </div>
         <div class="account-actions-row">
           <button class="btn-primary" type="button" onclick="startAccountOffer()">Create New Offer</button>
           <button class="btn-secondary" type="button" onclick="showAccountTab('profile')">Complete Profile</button>
@@ -11882,6 +11892,23 @@ function routeAfterMagicLinkIfNeeded() {
   root.updateAgreementServiceLevel = function updateAgreementServiceLevel(){
     const field = document.getElementById('agreementShowingFeeField');
     if (field) field.style.display = value('agreementServiceLevel') === 'showing' ? 'block' : 'none';
+  };
+
+  root.startAgentTransaction = function startAgentTransaction(path){
+    if (path === 'purchase') return root.startAccountOffer();
+    if (path === 'lease_representation') {
+      root.showAccountTab('agreements');
+      setTimeout(() => document.getElementById('agreementLeaseCompValue')?.focus(), 0);
+      return;
+    }
+    root.showAccountTab('seller');
+    setTimeout(() => {
+      const notes = document.getElementById('sellerLeadNotes');
+      const leadType = document.getElementById('sellerLeadType');
+      if (leadType) leadType.value = 'agent_listing';
+      if (notes && !notes.value && path === 'lease_listing') notes.value = 'Lease listing';
+      document.getElementById('sellerLeadAddress')?.focus();
+    }, 0);
   };
 
   root.prefillAgreementInterview = function prefillAgreementInterview(){
