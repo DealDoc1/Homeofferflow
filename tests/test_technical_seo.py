@@ -91,6 +91,14 @@ class TechnicalSeoTests(unittest.TestCase):
         self.assertIn('href="/texas-listing-workflow"', guide)
         self.assertIn('href="/texas-lease-offer-workflow"', guide)
 
+    def test_public_homepage_uses_a_short_browser_cache_and_longer_edge_cache(self):
+        config = json.loads((ROOT / "vercel.json").read_text(encoding="utf-8"))
+        homepage = next(entry for entry in config["headers"] if entry["source"] == "/")
+        self.assertEqual(homepage["headers"], [{
+            "key": "Cache-Control",
+            "value": "public, max-age=120, s-maxage=86400, stale-while-revalidate=604800",
+        }])
+
     def test_listing_and_lease_guides_measure_guide_specific_agent_ctas(self):
         listing = (ROOT / "texas-listing-workflow.html").read_text(encoding="utf-8")
         lease = (ROOT / "texas-lease-offer-workflow.html").read_text(encoding="utf-8")
