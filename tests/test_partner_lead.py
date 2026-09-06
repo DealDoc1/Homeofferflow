@@ -203,6 +203,10 @@ class PartnerLeadTests(unittest.TestCase):
         self.assertEqual(captured["kwargs"]["json"]["to"], ["partner@example.com"])
         self.assertEqual(captured["kwargs"]["json"]["reply_to"], "support@homeofferflow.com")
         self.assertEqual(captured["kwargs"]["json"]["bcc"], ["support@homeofferflow.com"])
+        self.assertEqual(captured["kwargs"]["json"]["tags"], [
+            {"name": "email_type", "value": "partner_application_receipt"},
+            {"name": "partner_tier", "value": "monthly_placement"},
+        ])
         self.assertNotIn("<script>", captured["kwargs"]["json"]["html"])
         self.assertIn("separate next step", captured["kwargs"]["json"]["text"])
         self.assertIn("What happens next", captured["kwargs"]["json"]["text"])
