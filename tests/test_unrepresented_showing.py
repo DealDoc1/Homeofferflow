@@ -72,6 +72,11 @@ class UnrepresentedShowingTests(unittest.TestCase):
         ):
             self.assertIn(token, source)
 
+    def test_showing_checkout_fallback_is_customer_friendly(self):
+        source = (Path(__file__).resolve().parents[1] / "index.html").read_text()
+        self.assertIn("Showing bookings are temporarily unavailable.", source)
+        self.assertNotIn("Stripe setup needed.", source)
+
 
 if __name__ == "__main__":
     unittest.main()

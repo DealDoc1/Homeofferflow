@@ -5713,8 +5713,7 @@ function routeAfterMagicLinkIfNeeded() {
   }
 
 
-  // TODO: Replace this with your live Stripe Price ID for the $50 showing booking product.
-  // Example format: price_1234567890abcdef
+  // Live Stripe price for the $50 showing booking service.
   const SHOWING_BOOKING_PRICE_ID = 'price_1TbACXAELe66ESXnt409xxjE';
 
 
@@ -6716,7 +6715,7 @@ function routeAfterMagicLinkIfNeeded() {
       if (msg) {
         msg.style.display = 'block';
         msg.className = 'notice warn';
-        msg.innerHTML = '<strong>Stripe setup needed.</strong><br>Create a $50 Showing Booking Price in Stripe, then replace <code>SHOWING_BOOKING_PRICE_ID</code> in index.html.';
+        msg.innerHTML = '<strong>Showing bookings are temporarily unavailable.</strong><br>Please try again shortly or contact support@homeofferflow.com for help.';
       }
       return;
     }
