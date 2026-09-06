@@ -152,6 +152,19 @@ class TechnicalSeoTests(unittest.TestCase):
         for path in ("/buyers", "/agents", "/investors", "/sellers", "/partners", "/directory", "/texas-lease-offer-workflow", "/texas-listing-workflow", "/texas-agent-form-library", "/texas-seller-financing-guide", "/texas-buyer-representation-guide", "/texas-flat-fee-mls-guide", "/texas-fsbo-closing-checklist"):
             self.assertIn(f"https://www.homeofferflow.com{path}", SITEMAP)
 
+    def test_every_public_rewrite_is_discoverable_in_the_sitemap(self):
+        """Keep a new public landing route from silently missing Search Console discovery."""
+        sitemap_urls = set(re.findall(r"<loc>(https://www\.homeofferflow\.com/[^<]+)</loc>", SITEMAP))
+        public_routes = {
+            rewrite["source"]
+            for rewrite in VERCEL["rewrites"]
+            if rewrite["destination"].endswith(".html")
+        }
+        self.assertEqual(
+            {f"https://www.homeofferflow.com{route}" for route in public_routes} - sitemap_urls,
+            set(),
+        )
+
     def test_seller_revenue_paths_expose_a_truthful_offer_catalog(self):
         blocks = re.findall(
             r'<script type="application/ld\+json">\s*(.*?)\s*</script>', SELLERS, re.DOTALL
