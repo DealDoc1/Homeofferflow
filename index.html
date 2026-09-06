@@ -11897,9 +11897,8 @@ function routeAfterMagicLinkIfNeeded() {
       <div class="platform-card">
         <h4>${workspaceTitle}</h4>
         <p>${workspaceDescription}</p>
-        <div class="notice" id="sellerDisclosureQuickStart" style="margin-bottom:1rem;"><strong>Need the seller disclosure next?</strong> Open the private TREC-55-1 review workspace from here after you have the property and seller details. It stays separate from the listing workspace and does not send or sign anything.</div>
+        <div class="notice" id="sellerDisclosureQuickStart" style="margin-bottom:1rem;"><strong>Need a seller disclosure?</strong> Start its guided review after you add the property and seller details below.</div>
         <div class="platform-actions" style="margin-top:-.35rem;margin-bottom:1rem;"><button type="button" class="btn-secondary" onclick="openSellerDisclosureDraftWorkspace()">Open seller disclosure review</button></div>
-        <div class="notice gold"><strong>Start here:</strong> seller leads and private listing workspaces are live now. executable listing agreements, seller disclosures, and lease-listing packets appear only after their exact source workflow has been mapped and visually checked, including completed-signature visual QA, so this workspace never suggests an unready document can be sent.</div>
         <div class="platform-grid">
           <div class="field"><label>Workflow Type</label><select id="sellerLeadType"><option value="agent_listing">Listing Agent / Seller Rep</option><option value="fsbo">FSBO Referral / Seller Lead</option></select></div>
           <div class="field"><label for="sellerLeadAddress">Property Address</label><input id="sellerLeadAddress" placeholder="Start typing the property address..." autocomplete="off" autocorrect="off" autocapitalize="words" spellcheck="false" aria-describedby="sellerLeadAddressHelp"><small id="sellerLeadAddressHelp" style="display:block;margin-top:.35rem;color:var(--gray-light);">Choose a Google address suggestion when available; manual entry still works.</small></div>
@@ -11976,7 +11975,7 @@ function routeAfterMagicLinkIfNeeded() {
         <div id="listingOfferNetStatus" class="platform-status" aria-live="polite"></div>
         <div id="listingOfferNetResult" class="platform-list" style="margin-top:.8rem;"></div>
       </div>
-      <div class="platform-card"><h4>Listing Form Readiness</h4><p>These are private brokerage source-approval indicators only. An approved source does not make a listing agreement or seller disclosure executable, sendable, or signable in HomeOfferFlow.</p><div id="listingWorkspaceSourceReadiness" class="platform-list"><div class="platform-list-item">Checking brokerage source readiness…</div></div><div class="notice" style="margin-top:.75rem;"><strong>Next seller-side release sequence:</strong> (1) authorize the exact listing/lease and seller-disclosure PDFs, (2) map fields and signer roles, (3) run authenticated one-client/two-client preview QA, (4) complete signed visual QA, then (5) activate sending. Until then, the workspace remains the safe place to collect the listing request and keep it private.</div></div>`;
+      `;
     // Question 1 promised a simple transaction-first path. Place the first
     // real listing question ahead of optional lead capture, campaigns, and
     // downstream tools so the next action is always property + client.
@@ -12006,7 +12005,6 @@ function routeAfterMagicLinkIfNeeded() {
     }
     loadSellerLeadsFoundation();
     loadListingWorkspacesFoundation();
-    loadListingWorkspaceSourceReadiness();
   }
 
   const sellerCampaignPackages = new Set(['free_intake','seller_prep','launch_kit','flat_fee_mls','offer_review','contract_help','premium_bundle']);
@@ -12844,37 +12842,6 @@ function routeAfterMagicLinkIfNeeded() {
       if (summary) { summary.textContent = ''; summary.className = 'platform-status'; }
     }
     await loadListingWorkspaceOffersFoundation();
-  }
-
-  async function loadListingWorkspaceSourceReadiness() {
-    const target = document.getElementById('listingWorkspaceSourceReadiness');
-    if (!target) return;
-    const required = [
-      ['TXR-1101', 'Residential listing agreement — sale'],
-      ['TXR-1102', 'Residential listing agreement — lease'],
-      ['TXR-1406', 'Seller’s Disclosure Notice'],
-      ['TXR-1418', 'Seller’s Disclosure Notice update'],
-      ['TREC-55-1', 'TREC Seller’s Disclosure Notice (supplied source)'],
-      ['TREC-61-0', 'TREC Seller Water Disclosure (supplied source)']
-    ];
-    try {
-      if (!hofPlatform.brokerage) await loadBrokerageFoundation();
-      const brokerageId = hofPlatform.brokerage?.id;
-      if (!brokerageId) { target.innerHTML = '<div class="platform-list-item">Join a brokerage before listing form readiness can be checked.</div>'; return; }
-      const token = hofAuth?.session?.access_token;
-      if (!token) throw new Error('A signed-in session is required.');
-      const response = await fetch('/api/admin-dashboard?scope=approved_brokerage_sources', { headers: { Authorization: `Bearer ${token}` } });
-      const payload = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(payload.error || 'Could not load approved brokerage sources.');
-      const approved = new Map((payload.sources || []).map(row => [row.form_code, row.source_revision]));
-      target.innerHTML = required.map(([code, label]) => {
-        const revision = approved.get(code);
-        return `<div class="platform-list-item"><strong>${escapeAttr(code)}</strong> · ${escapeAttr(label)}<span class="platform-pill ${revision ? 'good' : ''}">${revision ? 'Source approved' : 'Source not approved'}</span>${revision ? `<br><small>Organization source revision: ${escapeAttr(revision)}. Execution remains unavailable until its source-specific workflow is ready.</small>` : '<br><small>An authorized organization administrator must privately upload and attest to the current authorized source before implementation can begin.</small>'}</div>`;
-      }).join('');
-    } catch (err) {
-      console.warn('Listing source readiness load failed:', err);
-      target.innerHTML = '<div class="platform-list-item">Listing source readiness could not load. Source PDFs remain private.</div>';
-    }
   }
 
   function renderPartnerFoundationPanel() {

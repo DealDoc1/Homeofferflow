@@ -86,12 +86,11 @@ class ListingWorkspaceFoundationTests(unittest.TestCase):
             SERVER_ONLY_MIGRATION,
         )
 
-    def test_dashboard_shows_source_readiness_without_activating_forms(self):
-        self.assertIn("Listing Form Readiness", INDEX)
-        self.assertIn("loadListingWorkspaceSourceReadiness", INDEX)
-        self.assertIn("Execution remains unavailable until its source-specific workflow is ready.", INDEX)
-        self.assertIn("TXR-1101", INDEX)
-        self.assertIn("TXR-1406", INDEX)
+    def test_dashboard_hides_internal_source_release_process_from_agents(self):
+        self.assertNotIn("Listing Form Readiness", INDEX)
+        self.assertNotIn("loadListingWorkspaceSourceReadiness", INDEX)
+        self.assertNotIn("Execution remains unavailable until its source-specific workflow is ready.", INDEX)
+        self.assertIn("Need a seller disclosure?", INDEX)
 
     def test_transaction_first_listing_selection_moves_to_the_property_address_question(self):
         tab_start = INDEX.index("function showAccountTab(tab = 'dashboard')")
@@ -114,7 +113,7 @@ class ListingWorkspaceFoundationTests(unittest.TestCase):
         self.assertIn('onclick="openSellerDisclosureDraftWorkspace()"', INDEX)
         self.assertIn('root.openSellerDisclosureDraftWorkspace = function openSellerDisclosureDraftWorkspace()', INDEX)
         self.assertIn('document.getElementById(\'hofSellerAddress\')?.focus({ preventScroll: true })', INDEX)
-        self.assertIn('does not send or sign anything.', INDEX)
+        self.assertIn('Start its guided review after you add the property and seller details below.', INDEX)
 
     def test_optional_planning_topics_do_not_compete_with_the_listing_intake(self):
         self.assertIn("Add optional planning topics", INDEX)
@@ -183,10 +182,10 @@ class ListingWorkspaceFoundationTests(unittest.TestCase):
         self.assertIn("hof_listing_workspaces_touch_updated_at", HARDENING_MIGRATION)
         self.assertIn("new.updated_at = now()", HARDENING_MIGRATION)
 
-    def test_seller_status_notice_explains_live_boundary(self):
-        self.assertIn("Start here:", INDEX)
-        self.assertIn("executable listing agreements, seller disclosures, and lease-listing packets", INDEX.lower())
-        self.assertIn("completed-signature visual QA", INDEX)
+    def test_seller_workspace_uses_plain_language_without_internal_release_language(self):
+        self.assertNotIn("completed-signature visual QA", INDEX)
+        self.assertNotIn("Next seller-side release sequence:", INDEX)
+        self.assertNotIn("source-approval indicators", INDEX)
         self.assertIn("Agent-side seller planning tools:", INDEX)
         self.assertNotIn("Agent-side seller-representation tools: listing packet", INDEX)
 
