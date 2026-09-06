@@ -393,6 +393,12 @@ def _send_seller_plan_confirmation(payload):
         "to": [recipient],
         "reply_to": SELLER_PLAN_REPLY_TO,
         "subject": "Your HomeOfferFlow seller plan request",
+        # Keep Resend reporting useful without sending contact or property
+        # data as tags. These values are already allowlisted product paths.
+        "tags": [
+            {"name": "email_type", "value": "seller_plan_receipt"},
+            {"name": "seller_package", "value": service_level},
+        ],
         "text": plain_text,
         "html": (
             "<h2>We received your seller plan request</h2>"
@@ -506,6 +512,12 @@ def _send_partner_application_confirmation(payload):
         "to": [recipient],
         "reply_to": PARTNER_APPLICATION_REPLY_TO,
         "subject": "Your HomeOfferFlow partner application",
+        # Tags support delivery and conversion reporting without exposing a
+        # company, market, contact, or any other application detail.
+        "tags": [
+            {"name": "email_type", "value": "partner_application_receipt"},
+            {"name": "partner_tier", "value": tier_key},
+        ],
         "text": plain_text,
         "html": (
             f"<h2>Thanks, {safe_contact} — your partner application is saved</h2>"

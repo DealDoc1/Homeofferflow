@@ -136,6 +136,10 @@ class FsboRequestConfirmationTests(unittest.TestCase):
         self.assertEqual(captured["kwargs"]["json"]["to"], ["seller@example.com"])
         self.assertEqual(captured["kwargs"]["json"]["reply_to"], "support@homeofferflow.com")
         self.assertEqual(captured["kwargs"]["json"]["bcc"], ["support@homeofferflow.com"])
+        self.assertEqual(captured["kwargs"]["json"]["tags"], [
+            {"name": "email_type", "value": "seller_plan_receipt"},
+            {"name": "seller_package", "value": "seller_prep"},
+        ])
         self.assertNotIn("<script>", captured["kwargs"]["json"]["html"])
         self.assertIn("not checkout", captured["kwargs"]["json"]["text"])
         self.assertIn("Your next steps", captured["kwargs"]["json"]["text"])
