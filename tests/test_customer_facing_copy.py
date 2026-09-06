@@ -53,6 +53,12 @@ class CustomerFacingCopyTests(unittest.TestCase):
         self.assertNotIn("alert('Payment error: ' + (err?.message || err))", HTML)
         self.assertNotIn("alert('Could not refresh SignWell status: ' + (err?.message || err))", HTML)
 
+    def test_client_intake_errors_do_not_expose_provider_configuration(self):
+        self.assertIn("We could not send that sign-in link. Please try again or contact support@homeofferflow.com.", HTML)
+        self.assertIn("customerActionError('prepare the agreement')", HTML)
+        self.assertIn("customerActionError('send the signature request')", HTML)
+        self.assertNotIn("Check Supabase Auth URL settings.", HTML)
+
     def test_fsbo_intake_keeps_optional_partner_choices_out_of_the_initial_path(self):
         self.assertIn("What would you like help with first?", HTML)
         self.assertIn("Would local provider recommendations help?", HTML)

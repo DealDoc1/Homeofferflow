@@ -4190,7 +4190,7 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
       setAuthStatus('Magic link sent. Check your email, then return here after signing in.', 'ok');
     } catch (err) {
       console.error('Magic link failed', err);
-      setAuthStatus(err?.message || 'Could not send magic link. Check Supabase Auth URL settings.', 'err');
+      setAuthStatus('We could not send that sign-in link. Please try again or contact support@homeofferflow.com.', 'err');
     }
   }
 
@@ -9821,7 +9821,7 @@ function routeAfterMagicLinkIfNeeded() {
       if (status) { status.textContent = 'Saved. We will use this package interest and partner request for FSBO seller follow-up.'; status.className = 'platform-status ok'; }
       setTimeout(()=>window.closeFsboSellerModal?.(), 1200);
     } catch (err) {
-      if (status) { status.textContent = err.message || String(err); status.className = 'platform-status err'; }
+      if (status) { status.textContent = customerActionError('save your seller request'); status.className = 'platform-status err'; }
     }
   };
   const __oldOpenAccountDashboardFsbo = window.openAccountDashboard;
@@ -10091,7 +10091,7 @@ function routeAfterMagicLinkIfNeeded() {
       if (!checkoutResponse.ok || !checkout.url) throw new Error(checkout.error || 'Could not start secure checkout.');
       window.location.assign(checkout.url);
     } catch (error) {
-      if (status) { status.textContent = error?.message || String(error); status.className = 'platform-status err'; }
+      if (status) { status.textContent = customerActionError('submit your partner application'); status.className = 'platform-status err'; }
       if (submit) submit.disabled = false;
     }
   };
@@ -12037,7 +12037,7 @@ function routeAfterMagicLinkIfNeeded() {
       URL.revokeObjectURL(download);
       if (status) { status.textContent = 'Showing form ready. Have the parties complete the required initials and dates before the showing.'; status.className = 'platform-status ok'; }
     } catch (error) {
-      if (status) { status.textContent = error?.message || 'Could not prepare the showing form.'; status.className = 'platform-status err'; }
+      if (status) { status.textContent = customerActionError('prepare the showing form'); status.className = 'platform-status err'; }
     }
   };
 
@@ -12094,7 +12094,7 @@ function routeAfterMagicLinkIfNeeded() {
       URL.revokeObjectURL(download);
       if (status) { status.textContent = 'Agreement ready. Review every term before requesting signatures.'; status.className = 'platform-status ok'; }
     } catch (error) {
-      if (status) { status.textContent = error?.message || 'Could not prepare the agreement.'; status.className = 'platform-status err'; }
+      if (status) { status.textContent = customerActionError('prepare the agreement'); status.className = 'platform-status err'; }
     }
   };
 
@@ -12130,7 +12130,7 @@ function routeAfterMagicLinkIfNeeded() {
       if (!response.ok) throw new Error(result.error || 'Could not send the signature request');
       if (status) { status.textContent = result.test_mode ? 'Test signature request sent.' : 'Signature request sent to the client and brokerage.'; status.className = 'platform-status ok'; }
     } catch (error) {
-      if (status) { status.textContent = error?.message || 'Could not send the signature request.'; status.className = 'platform-status err'; }
+      if (status) { status.textContent = customerActionError('send the signature request'); status.className = 'platform-status err'; }
     }
   };
 
