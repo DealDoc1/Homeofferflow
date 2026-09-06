@@ -13,11 +13,9 @@ class PublicOnDemandTrialDiscoveryTests(unittest.TestCase):
         investor_start = INDEX.index("investor: {", agent_start)
         agent_copy = INDEX[agent_start:investor_start]
 
-        self.assertIn('href="/ondemand?utm_source=agent_workspace', agent_copy)
-        self.assertIn('utm_source=agent_workspace&amp;utm_medium=workspace&amp;utm_campaign=agent_acquisition', agent_copy)
-        self.assertIn("OnDemand Realty agent? Start your 60-day free trial", agent_copy)
-        self.assertIn("card required", agent_copy)
-        self.assertIn("recordOnDemandTrialEntry", agent_copy)
+        self.assertIn("Choose the transaction in front of you", agent_copy)
+        self.assertIn("Available to every signed-in agent.", agent_copy)
+        self.assertNotIn("agent_hero_inline", agent_copy)
 
     def test_agent_path_surfaces_a_dedicated_trial_cta_without_showing_it_to_other_audiences(self):
         self.assertIn("function syncOnDemandHeroTrialCta(type)", INDEX)
@@ -25,7 +23,6 @@ class PublicOnDemandTrialDiscoveryTests(unittest.TestCase):
         self.assertIn("onDemandHeroTrialCta", INDEX)
         self.assertIn("OnDemand agent? Start 60 days free", INDEX)
         self.assertIn("agent_hero_secondary_cta", INDEX)
-        self.assertIn("agent_hero_inline", INDEX)
         self.assertIn("function recordOnDemandTrialEntry", INDEX)
         self.assertIn("ondemand_trial_entry_selected", INDEX)
         self.assertIn("request_type: 'ondemand_landing_event'", INDEX)

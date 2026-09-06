@@ -21,10 +21,11 @@ class SeoHeroUpdateTests(unittest.TestCase):
     def test_agent_copy_does_not_overstate_current_form_coverage(self):
         self.assertIn("Write supported Texas <em>offers faster</em>.", INDEX)
         self.assertIn(
-            "every signed-in agent can start private relationship, finance, environmental, mineral, and seller-disclosure review drafts, including TXR-1501, TXR-1506, TXR-1507, TXR-1508, TXR-1905, TXR-1914, TXR-1917, TXR-1919, TREC-55-1, and TREC-61-0",
+            "Choose the transaction in front of you, answer clear questions, and review one organized document package.",
             INDEX,
         )
-        self.assertIn("explicit recipient confirmation before sending", INDEX)
+        self.assertIn("Available to every signed-in agent.", INDEX)
+        self.assertNotIn("listing agreements remain outside the stated live scope", INDEX)
 
     def test_supported_trec_offer_scope_is_described_on_the_landing_page(self):
         self.assertIn("We prepare the supported forms", INDEX)
