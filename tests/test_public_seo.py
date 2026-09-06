@@ -52,6 +52,11 @@ class PublicSeoTests(unittest.TestCase):
         self.assertIn('rel="canonical" href="https://www.homeofferflow.com/texas-real-estate-agents.html"', AGENT_PAGE)
         self.assertIn('href="/?launch=ondemand"', AGENT_PAGE)
         self.assertIn('Texas real estate agents and brokers', AGENT_PAGE)
+
+    def test_agent_landing_page_explains_the_workflow_with_faq_schema(self):
+        self.assertIn('"@type":"FAQPage"', AGENT_PAGE)
+        self.assertIn('listing, purchase, lease listing, or tenant representation', AGENT_PAGE)
+        self.assertIn('<lastmod>2026-09-06</lastmod>', SITEMAP)
         self.assertIn('aria-label="Explore HomeOfferFlow for Texas real estate agents and brokers"', HTML)
 
     def test_partner_landing_page_is_canonical_and_routes_to_the_existing_application(self):
