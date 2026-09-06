@@ -6,6 +6,7 @@ import re
 from http.server import BaseHTTPRequestHandler
 
 from api.representation_agreement import SHORT_FORM, build_short_form, send_short_form_signature_request
+from api.representation_long_form import LONG_FORM, build_long_form, send_long_form_signature_request
 
 
 REQUIRED_FIELDS = ("clientName", "brokerName", "marketArea", "startDate", "endDate")
@@ -26,6 +27,7 @@ class handler(BaseHTTPRequestHandler):
             "status": "ok",
             "form": "TXR 1507 Residential Buyer/Tenant Representation Agreement - Short Form",
             "source_available": SHORT_FORM.is_file(),
+            "detailed_source_available": LONG_FORM.is_file(),
             "signature_requests_enabled": SIGNWELL_ENABLED and bool(SIGNWELL_API_KEY),
             "signwell_test_mode": SIGNWELL_TEST_MODE,
         })
@@ -40,20 +42,21 @@ class handler(BaseHTTPRequestHandler):
             if missing:
                 self._json(400, {"error": "Missing required agreement details", "fields": missing})
                 return
-            packet = build_short_form(data)
+            detailed = data.get("agreementFormat") == "detailed"
+            packet = build_long_form(data) if detailed else build_short_form(data)
             if data.get("action") == "signature_request":
                 if not SIGNWELL_ENABLED:
                     self._json(503, {"error": "Signature requests are not enabled"})
                     return
-                result = send_short_form_signature_request(
-                    data, packet, SIGNWELL_API_KEY, test_mode=SIGNWELL_TEST_MODE
-                )
+                sender = send_long_form_signature_request if detailed else send_short_form_signature_request
+                result = sender(data, packet, SIGNWELL_API_KEY, test_mode=SIGNWELL_TEST_MODE)
                 self._json(200, result)
                 return
             safe_client = re.sub(r"[^A-Za-z0-9]+", "_", str(data["clientName"])).strip("_") or "client"
             self.send_response(200)
             self.send_header("Content-Type", "application/pdf")
-            self.send_header("Content-Disposition", f'attachment; filename="HomeOfferFlow_Representation_Agreement_{safe_client}.pdf"')
+            form_name = "Detailed_Representation_Agreement" if detailed else "Representation_Agreement"
+            self.send_header("Content-Disposition", f'attachment; filename="HomeOfferFlow_{form_name}_{safe_client}.pdf"')
             self.send_header("Content-Length", str(len(packet)))
             self.end_headers()
             self.wfile.write(packet)

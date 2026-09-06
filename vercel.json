@@ -8,7 +8,7 @@
       "includeFiles": "*.pdf"
     },
     "api/representation-agreement.py": {
-      "includeFiles": "buyer_tenant_representation_short_form_1507.pdf"
+      "includeFiles": "buyer_tenant_representation_*.pdf"
     },
     "api/unrepresented-showing.py": {
       "includeFiles": "unrepresented_customer_showing_form_1508.pdf"

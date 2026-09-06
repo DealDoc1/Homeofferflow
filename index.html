@@ -2732,11 +2732,25 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
           <div class="field"><label>Market Area</label><input id="agreementMarketArea" placeholder="Example: Collin and Grayson Counties, Texas"/></div>
           <div class="field"><label>Agreement Starts</label><input id="agreementStartDate" type="date"/></div>
           <div class="field"><label>Agreement Ends</label><input id="agreementEndDate" type="date"/></div>
+          <div class="field"><label>Agreement Format</label><select id="agreementFormat" onchange="updateAgreementFormat()"><option value="standard">Standard agreement</option><option value="detailed">Detailed agreement</option></select></div>
           <div class="field"><label>Service Level</label><select id="agreementServiceLevel" onchange="updateAgreementServiceLevel()"><option value="full">Full representation</option><option value="showing">Showing services only</option></select></div>
           <div class="field"><label>Purchase Compensation</label><div class="field-row"><select id="agreementPurchaseCompType"><option value="percent">Percent of sales price</option><option value="flat">Flat fee</option></select><input id="agreementPurchaseCompValue" inputmode="decimal" placeholder="Amount"/></div></div>
           <div class="field"><label>Lease Compensation</label><div class="field-row"><select id="agreementLeaseCompType"><option value="month_percent">Percent of one month’s rent</option><option value="rent_percent">Percent of all rent</option><option value="flat">Flat fee</option></select><input id="agreementLeaseCompValue" inputmode="decimal" placeholder="Amount"/></div></div>
           <div class="field"><label>Intermediary Authorization</label><select id="agreementIntermediary"><option value="no">Client does not authorize intermediary</option><option value="yes">Client authorizes intermediary</option></select></div>
           <div class="field" id="agreementShowingFeeField" style="display:none;"><label>Showing-services fee</label><input id="agreementShowingFee" inputmode="decimal" placeholder="Amount due on execution"/></div>
+        </div>
+        <div id="agreementDetailedTerms" class="platform-card" style="display:none; margin-top:1rem;">
+          <h4>Detailed Agreement Terms</h4>
+          <p>Complete only the terms that apply to this client relationship.</p>
+          <div class="platform-grid">
+            <div class="field"><label>Retainer (optional)</label><input id="agreementRetainerAmount" inputmode="decimal" placeholder="Amount"/></div>
+            <div class="field"><label>Apply Retainer to Other Fees?</label><select id="agreementRetainerApplied"><option value="no">No</option><option value="yes">Yes</option></select></div>
+            <div class="field"><label>Protection Period (days)</label><input id="agreementProtectionPeriodDays" inputmode="numeric" placeholder="Example: 30"/></div>
+            <div class="field"><label>County for Payment</label><input id="agreementPaymentCounty" placeholder="Example: Collin"/></div>
+            <div class="field"><label>Relocation or Benefit Provider</label><input id="agreementRelocationBenefitProvider" placeholder="Optional"/></div>
+            <div class="field"><label>Include General Consumer Notice?</label><select id="agreementIncludeConsumerNotice"><option value="no">No</option><option value="yes">Yes</option></select></div>
+            <div class="field" style="grid-column:1/-1;"><label>Special Provisions</label><textarea id="agreementSpecialProvisions" rows="3" placeholder="Only include terms approved for this agreement."></textarea></div>
+          </div>
         </div>
         <div class="platform-actions"><button type="button" onclick="downloadRepresentationAgreement()">Prepare Agreement PDF</button><button type="button" onclick="sendRepresentationAgreement()">Send for Signature</button></div>
         <div id="agreementStatus" class="platform-status"></div>
@@ -11942,6 +11956,13 @@ function routeAfterMagicLinkIfNeeded() {
     setIfBlank('showingAgreementAssociateName', profile.agent_name || root.getAccountDisplayName?.());
     setIfBlank('showingAgreementAssociateLicense', profile.license_number || profile.agent_license);
     root.updateAgreementServiceLevel();
+    root.updateAgreementFormat();
+  };
+
+  root.updateAgreementFormat = function updateAgreementFormat(){
+    const detailed = value('agreementFormat') === 'detailed';
+    const terms = document.getElementById('agreementDetailedTerms');
+    if (terms) terms.style.display = detailed ? '' : 'none';
   };
 
   root.downloadUnrepresentedShowingForm = async function downloadUnrepresentedShowingForm(){
@@ -12002,11 +12023,16 @@ function routeAfterMagicLinkIfNeeded() {
       endDate: formatDate(value('agreementEndDate')),
       serviceLevel: value('agreementServiceLevel'),
       showingFee: value('agreementShowingFee'),
+      agreementFormat: value('agreementFormat'),
       purchaseCompType: value('agreementPurchaseCompType'),
       purchaseCompValue: value('agreementPurchaseCompValue'),
       leaseCompType: value('agreementLeaseCompType'),
       leaseCompValue: value('agreementLeaseCompValue'),
-      intermediaryAuthorized: value('agreementIntermediary')
+      intermediaryAuthorized: value('agreementIntermediary'),
+      retainerAmount: value('agreementRetainerAmount'), retainerApplied: value('agreementRetainerApplied'),
+      protectionPeriodDays: value('agreementProtectionPeriodDays'), paymentCounty: value('agreementPaymentCounty'),
+      relocationBenefitProvider: value('agreementRelocationBenefitProvider'), specialProvisions: value('agreementSpecialProvisions'),
+      includeConsumerNotice: value('agreementIncludeConsumerNotice')
     };
     const required = ['clientName', 'brokerName', 'marketArea', 'startDate', 'endDate'];
     const missing = required.filter(key => !String(data[key] || '').trim());
@@ -12048,9 +12074,14 @@ function routeAfterMagicLinkIfNeeded() {
       associateLicense: value('agreementAssociateLicense'), marketArea: value('agreementMarketArea'),
       startDate: formatDate(value('agreementStartDate')), endDate: formatDate(value('agreementEndDate')),
       serviceLevel: value('agreementServiceLevel'), showingFee: value('agreementShowingFee'),
+      agreementFormat: value('agreementFormat'),
       purchaseCompType: value('agreementPurchaseCompType'), purchaseCompValue: value('agreementPurchaseCompValue'),
       leaseCompType: value('agreementLeaseCompType'), leaseCompValue: value('agreementLeaseCompValue'),
-      intermediaryAuthorized: value('agreementIntermediary')
+      intermediaryAuthorized: value('agreementIntermediary'),
+      retainerAmount: value('agreementRetainerAmount'), retainerApplied: value('agreementRetainerApplied'),
+      protectionPeriodDays: value('agreementProtectionPeriodDays'), paymentCounty: value('agreementPaymentCounty'),
+      relocationBenefitProvider: value('agreementRelocationBenefitProvider'), specialProvisions: value('agreementSpecialProvisions'),
+      includeConsumerNotice: value('agreementIncludeConsumerNotice')
     };
     const required = ['clientName', 'clientEmail', 'brokerName', 'brokerEmail', 'marketArea', 'startDate', 'endDate'];
     if (required.some(key => !String(data[key] || '').trim())) {

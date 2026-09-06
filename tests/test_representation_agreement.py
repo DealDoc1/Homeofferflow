@@ -71,7 +71,7 @@ class RepresentationAgreementTests(unittest.TestCase):
         config = json.loads((root / "vercel.json").read_text())
         self.assertEqual(
             config["functions"]["api/representation-agreement.py"]["includeFiles"],
-            "buyer_tenant_representation_short_form_1507.pdf",
+            "buyer_tenant_representation_*.pdf",
         )
         self.assertTrue((root / "buyer_tenant_representation_short_form_1507.pdf").is_file())
 
