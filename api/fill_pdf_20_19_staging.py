@@ -709,8 +709,8 @@ def build_pages_data(
         (315, 284, ck(has_loan), "check_small"),
     ]
 
-    escrow_agent = s.get("escrowAgent", "Kate Lewis Tucker - Chicago Title DFW")
-    escrow_addr  = s.get("escrowAddress", "2770 Main Street, Suite 114, Frisco, TX 75033")
+    escrow_agent = s.get("escrowAgent") or ""
+    escrow_addr  = s.get("escrowAddress") or ""
     additional_earnest = first_present(s.get("additionalEarnest"), s.get("additionalEarnestMoney"))
 
     pages[1] = [
@@ -731,7 +731,7 @@ def build_pages_data(
         # 17U: user note - Seller title-policy X was a hair too high; nudge down.
         (314, 347, ck(title_payer == "seller"), "check_small"),
         (369, 347, ck(title_payer == "buyer"), "check_small"),
-        (285, 336, s.get("titleCompany", "Chicago Title DFW - Forgey Law Group PLLC")),
+        (285, 336, s.get("titleCompany") or ""),
 
         (78,  180, ck(title_amend == "i"), "check_small"),
         # 17U: user note - 6A(8)(ii) and expense Xs were too low; nudge up.

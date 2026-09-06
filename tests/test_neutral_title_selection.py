@@ -4,6 +4,14 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 HTML = (ROOT / "index.html").read_text(encoding="utf-8")
+RENDERERS = tuple(
+    (ROOT / filename).read_text(encoding="utf-8")
+    for filename in (
+        "api/fill-pdf.py",
+        "lib/verified_20_19.py",
+        "api/fill_pdf_20_19_staging.py",
+    )
+)
 
 
 class NeutralTitleSelectionTests(unittest.TestCase):
@@ -25,6 +33,14 @@ class NeutralTitleSelectionTests(unittest.TestCase):
         self.assertIn("p.preferred_title_company", HTML)
         self.assertIn("p.preferred_escrow_agent || p.preferred_title_company", HTML)
         self.assertIn("p.preferred_escrow_address", HTML)
+
+    def test_renderers_leave_missing_provider_details_blank(self):
+        for renderer in RENDERERS:
+            self.assertIn('s.get("escrowAgent") or ""', renderer)
+            self.assertIn('s.get("escrowAddress") or ""', renderer)
+            self.assertIn('s.get("titleCompany") or ""', renderer)
+            self.assertNotIn("Kate Lewis Tucker - Chicago Title DFW", renderer)
+            self.assertNotIn("Chicago Title DFW - Forgey Law Group PLLC", renderer)
 
 
 if __name__ == "__main__":
