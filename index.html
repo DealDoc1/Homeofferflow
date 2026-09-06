@@ -16866,14 +16866,14 @@ function routeAfterMagicLinkIfNeeded() {
     if (roleLabelEl) roleLabelEl.textContent = role === 'broker' ? 'Broker Workspace' : label + ' Workspace';
     if (welcome) {
       welcome.innerHTML = role === 'broker'
-        ? 'Welcome back, <strong style="color:var(--white);">' + safeEscape(root.getAccountDisplayName?.() || 'there') + '</strong>. Test the agent offer workflow, review beta readiness, and prepare the broker/team oversight layer.'
-        : 'Welcome back, <strong style="color:var(--white);">' + safeEscape(root.getAccountDisplayName?.() || 'there') + '</strong>. Build client-ready offer packets, track buyer-side signing, and use feedback to harden the beta before brokerage rollout.';
+        ? 'Welcome back, <strong style="color:var(--white);">' + safeEscape(root.getAccountDisplayName?.() || 'there') + '</strong>. Prepare offers, review workflow readiness, and organize the broker/team oversight layer.'
+        : 'Welcome back, <strong style="color:var(--white);">' + safeEscape(root.getAccountDisplayName?.() || 'there') + '</strong>. Build client-ready offer packets, track buyer-side signing, and use feedback to improve your workflow.';
     }
     if (notice) {
       const done = root.isProfileMeaningful?.();
       notice.style.display = done ? 'none' : 'block';
       notice.innerHTML = role === 'broker'
-        ? '<strong>Complete broker/team defaults.</strong> Add brokerage, license, contact, title, escrow, and default offer settings before inviting agents into beta testing.'
+        ? '<strong>Complete broker/team defaults.</strong> Add brokerage, license, contact, title, escrow, and default offer settings before inviting agents into the workspace.'
         : role === 'investor'
           ? '<strong>Complete your investor defaults.</strong> Entity, signer, title, option, earnest, and closing defaults make repeat offers much faster.'
           : '<strong>Complete your agent defaults.</strong> License, brokerage, contact, title, option, earnest, and broker-fee defaults make repeat client offers much faster.';
@@ -17085,7 +17085,7 @@ function routeAfterMagicLinkIfNeeded() {
         <div class="release15-grid">
           <div class="release15-tile"><strong>Offer prep</strong><span>Guided Texas packet builder with saved defaults.</span></div>
           <div class="release15-tile"><strong>Buyer signing</strong><span>Buyer-side SignWell status tracking only.</span></div>
-          <div class="release15-tile"><strong>Beta feedback</strong><span>Report PDF, form, SignWell, and workflow issues quickly.</span></div>
+          <div class="release15-tile"><strong>Product feedback</strong><span>Report PDF, form, SignWell, and workflow issues quickly.</span></div>
         </div>
         <div class="beta-safe-banner"><strong>Broker-safe positioning:</strong> HomeOfferFlow prepares offer packets and buyer-side signature requests. It is not transaction management, legal advice, seller acceptance, or broker compliance approval.</div>
         <div class="release15-actions">
