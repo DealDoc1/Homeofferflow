@@ -64,6 +64,8 @@ class ExplicitMaterialTermsTests(unittest.TestCase):
             "financing",
             "appraisalAddendum",
             "brokerFeeType",
+            "wantsConcessions",
+            "homeWarranty",
         ):
             self.assertIn(f"requireRadioSelection('{group}'", HTML)
 
@@ -77,8 +79,16 @@ class ExplicitMaterialTermsTests(unittest.TestCase):
             "s.possession = getVal('possession') || 'funding'",
             "s.optionFee = moneyNumber(getVal('optionFee')) || 250",
             "s.optionDays = getVal('optionDays') || '7'",
+            "s.hasBuyerAgent = (s.userType === 'agent') ? 'yes' : (agentRadio || s.hasBuyerAgent || 'no')",
+            "s.homeWarranty = getRadio('homeWarranty') || 'no'",
+            "s.homeWarrantyAmount = s.homeWarranty === 'yes' ? (moneyNumber(getVal('homeWarrantyAmount')) || 650) : ''",
         ):
             self.assertNotIn(fallback, HTML)
+
+    def test_manual_yes_choices_do_not_insert_a_home_warranty_amount(self):
+        home_warranty = HTML[HTML.index("if (group === 'homeWarranty')"):HTML.index("  }\n\n  function nextBusinessDay", HTML.index("if (group === 'homeWarranty')"))]
+        self.assertNotIn("setDefaultValue('homeWarrantyAmount'", home_warranty)
+        self.assertIn("requireField('homeWarrantyAmount', 'home warranty amount', missing)", HTML)
 
     def test_review_does_not_label_a_missing_choice_as_a_substantive_term(self):
         for fallback in (

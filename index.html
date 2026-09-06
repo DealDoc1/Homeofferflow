@@ -3771,7 +3771,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       <h2>Closing details</h2>
       <p class="step-desc">A few final deal terms before review.</p>
       <div class="field-group">
-        <div class="field"><div class="field-label-row"><label>Target Closing Date</label><button class="helper-btn" onclick="toggleHelper('h-closing-date')">?</button></div><div class="helper-box" id="h-closing-date"><strong>💡 Closing Date</strong>HomeOfferFlow defaults to about 30 days from today and rolls forward if that date falls on a weekend or standard banking holiday. Confirm with lender, title company, agent, and the parties before sending.</div><div class="date-field-wrap"><input type="date" id="closingDate"/></div></div>
+        <div class="field"><div class="field-label-row"><label>Target Closing Date</label><button class="helper-btn" onclick="toggleHelper('h-closing-date')">?</button></div><div class="helper-box" id="h-closing-date"><strong>💡 Closing Date</strong>Choose a date that works with the lender, title company, agent, and the parties. If it falls on a weekend or banking holiday, confirm the practical funding timeline before sending.</div><div class="date-field-wrap"><input type="date" id="closingDate"/></div></div>
         <div class="field"><div class="field-label-row"><label>Possession</label><button class="helper-btn" onclick="toggleHelper('h-possession')">?</button></div><div class="helper-box" id="h-possession"><strong>💡 Possession Timing</strong>“Upon Funding” is commonly used because closing and funding are not always the same instant. Possession after closing requires a written lease that both sides sign.</div><select id="possession" onchange="toggleSellerTemporaryLeaseFields()"><option value="">Select...</option><option value="closing">At Closing</option><option value="funding">Upon Funding (recommended)</option><option value="sellerTemporaryLease">Seller remains temporarily after closing</option></select></div>
         <div id="sellerTemporaryLeaseFields" style="display:none; margin-top:0.9rem; padding:1rem; border:1px solid rgba(227,186,86,0.45); border-radius:12px; background:rgba(227,186,86,0.08);">
           <p style="font-size:0.84rem; font-weight:700; color:var(--gold-light); margin:0 0 0.4rem;">Seller's Temporary Residential Lease</p>
@@ -8258,6 +8258,11 @@ function routeAfterMagicLinkIfNeeded() {
     if (stepId === 'step7') {
       requireField('closingDate', 'closing date', missing);
       requireField('possession', 'possession timing', missing);
+      if (userType !== 'agent') requireRadioSelection('hasBuyerAgent', 'buyer’s agent status', missing);
+      requireRadioSelection('wantsConcessions', 'seller concession choice', missing);
+      requireRadioSelection('homeWarranty', 'home warranty choice', missing);
+      if (getRadio('wantsConcessions') === 'yes') requireField('concessionAmount', 'seller concession amount', missing);
+      if (getRadio('homeWarranty') === 'yes') requireField('homeWarrantyAmount', 'home warranty amount', missing);
     }
 
     if (missing.length) {
@@ -8917,7 +8922,7 @@ function routeAfterMagicLinkIfNeeded() {
         s.titleCompany = getVal('titleCompany');
 
         const agentRadio = getRadio('hasBuyerAgent');
-        s.hasBuyerAgent = (s.userType === 'agent') ? 'yes' : (agentRadio || s.hasBuyerAgent || 'no');
+        s.hasBuyerAgent = (s.userType === 'agent') ? 'yes' : (agentRadio || s.hasBuyerAgent || '');
 
         s.agentName = getVal('agentName') || s.agentName || '';
         s.agentLicense = getVal('agentLicense') || s.agentLicense || '';
@@ -8935,10 +8940,10 @@ function routeAfterMagicLinkIfNeeded() {
         if (s.wantsConcessions === 'yes') s.concessionAmount = moneyNumber(getVal('concessionAmount'));
         else s.concessionAmount = '';
 
-        s.homeWarranty = getRadio('homeWarranty') || 'no';
+        s.homeWarranty = getRadio('homeWarranty') || '';
         s.requestResidentialServiceContract = s.homeWarranty === 'yes' ? 'yes' : 'no';
         s.residentialServiceContract = s.homeWarranty === 'yes' ? 'yes' : 'no';
-        s.homeWarrantyAmount = s.homeWarranty === 'yes' ? (moneyNumber(getVal('homeWarrantyAmount')) || 650) : '';
+        s.homeWarrantyAmount = s.homeWarranty === 'yes' ? moneyNumber(getVal('homeWarrantyAmount')) : '';
         s.residentialServiceAmount = s.homeWarrantyAmount;
       }
     };
@@ -9309,7 +9314,6 @@ function routeAfterMagicLinkIfNeeded() {
     if (group === 'homeWarranty') {
       const box = document.getElementById('homeWarrantyField');
       if (box) box.style.display = value === 'yes' ? 'block' : 'none';
-      if (value === 'yes') setDefaultValue('homeWarrantyAmount', '650');
     }
   }
 
