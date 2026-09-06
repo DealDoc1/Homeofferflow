@@ -11,6 +11,14 @@ SPEC.loader.exec_module(MODULE)
 
 
 class FeedbackAlertPrivacyTests(unittest.TestCase):
+    def test_support_alert_uses_professional_workspace_language(self):
+        subject, text, html = MODULE._build_email({"issueType": "bug", "message": "The submit button is not responding."})
+
+        self.assertIn("HomeOfferFlow workspace feedback", subject)
+        self.assertIn("HomeOfferFlow workspace feedback", text)
+        self.assertIn("HomeOfferFlow workspace feedback", html)
+        self.assertNotIn("beta feedback", subject.lower())
+
     def test_ai_calibration_alert_redacts_identity_and_browser_context(self):
         subject, text, html = MODULE._build_email({
             "issueType": "ai_review",

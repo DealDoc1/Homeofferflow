@@ -46,9 +46,9 @@ def _build_email(payload):
         page_url = "redacted for calibration"
         user_agent = "redacted for calibration"
 
-    subject = f"HomeOfferFlow beta feedback: {issue_type}"
+    subject = f"HomeOfferFlow workspace feedback: {issue_type}"
 
-    text = f"""New HomeOfferFlow beta feedback
+    text = f"""New HomeOfferFlow workspace feedback
 
 Issue type: {issue_type}
 Calibration scenario: {calibration_scenario}
@@ -69,7 +69,7 @@ User agent:
 
     html = f"""
     <div style="font-family:Arial,sans-serif;line-height:1.5;color:#111827;">
-      <h2>New HomeOfferFlow beta feedback</h2>
+      <h2>New HomeOfferFlow workspace feedback</h2>
       <p><strong>Issue type:</strong> {_html_escape(issue_type)}<br>
       <strong>Calibration scenario:</strong> {_html_escape(calibration_scenario)}<br>
       <strong>Account:</strong> {_html_escape(account_email)}<br>
