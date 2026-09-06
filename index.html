@@ -7209,6 +7209,23 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   // workspace. This keeps the agent experience an interview that assembles a
   // relevant working package rather than a form catalog to search through.
   window.hofOpenAgentPackageInterview = function hofOpenAgentPackageInterview(kind) {
+    const openListingWorkspace = (focusStart = false) => {
+      showAccountTab('seller');
+      if (!focusStart) return;
+      let attempts = 0;
+      const focusWhenReady = () => {
+        const card = document.getElementById('listingWorkspaceStartCard');
+        const address = document.getElementById('listingWorkspaceAddress');
+        if (!card || !address) {
+          attempts += 1;
+          if (attempts < 12) window.setTimeout(focusWhenReady, 100);
+          return;
+        }
+        card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        address.focus({ preventScroll: true });
+      };
+      window.setTimeout(focusWhenReady, 0);
+    };
     const openRelationshipDraft = (openerName) => {
       showAccountTab('relationships');
       let attempts = 0;
@@ -7267,8 +7284,8 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       lease_listing: {
         title: 'What do you need for this lease listing?',
         choices: [
-          { label: 'Set up the lease listing', copy: 'Tell us about the landlord, property, availability, and next steps.', action: () => showAccountTab('seller') },
-          { label: 'Prepare lease details', copy: 'Answer the property, party, fixture, and lease questions that apply.', action: () => showAccountTab('relationships') }
+          { label: 'Start a lease listing', copy: 'Tell us about the landlord, property, availability, and next steps.', action: () => openListingWorkspace(true) },
+          { label: 'Resume a lease listing', copy: 'Open a saved private workspace to review the plan and continue where you left off.', action: () => openListingWorkspace() }
         ]
       },
       lease_representation: {
