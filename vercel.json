@@ -145,6 +145,15 @@
       ]
     },
     {
+      "source": "/(agents|buyers|investors|ondemand|partners|sellers|directory|texas-home-service-partner-guide|texas-fsbo-guide|texas-seller-offer-review|texas-agent-offer-workflow|texas-lease-offer-workflow|texas-listing-workflow|texas-homebuyer-offer-guide|texas-investor-offer-guide|texas-agent-form-library|texas-seller-financing-guide|texas-buyer-representation-guide|texas-flat-fee-mls-guide|texas-seller-net-proceeds-calculator|texas-fsbo-closing-checklist)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=120, s-maxage=86400, stale-while-revalidate=604800"
+        }
+      ]
+    },
+    {
       "source": "/api/(.*)",
       "headers": [
         {

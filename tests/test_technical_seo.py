@@ -99,6 +99,14 @@ class TechnicalSeoTests(unittest.TestCase):
             "value": "public, max-age=120, s-maxage=86400, stale-while-revalidate=604800",
         }])
 
+    def test_public_landing_pages_share_the_safe_edge_cache_policy(self):
+        cache_value = "public, max-age=120, s-maxage=86400, stale-while-revalidate=604800"
+        public_routes = {rewrite["source"].lstrip("/") for rewrite in VERCEL["rewrites"]}
+        policy = next(entry for entry in VERCEL["headers"] if entry["source"].startswith("/(agents|buyers|"))
+        self.assertEqual(policy["headers"], [{"key": "Cache-Control", "value": cache_value}])
+        cached_routes = set(policy["source"].removeprefix("/(").removesuffix(")").split("|"))
+        self.assertEqual(cached_routes, public_routes)
+
     def test_listing_and_lease_guides_measure_guide_specific_agent_ctas(self):
         listing = (ROOT / "texas-listing-workflow.html").read_text(encoding="utf-8")
         lease = (ROOT / "texas-lease-offer-workflow.html").read_text(encoding="utf-8")
