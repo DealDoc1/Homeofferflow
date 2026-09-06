@@ -3354,9 +3354,9 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           </div>
           <div style="margin-top:0.85rem; padding-top:0.85rem; border-top:1px solid rgba(255,255,255,0.07);">
             <div class="radio-group-label">Page 10 Broker Fee Disclosure</div>
-            <div class="notice gold">This controls the broker fee disclosure at the top of Page 10. Only complete it if there is already a separate written agreement stating the Listing Broker will pay your brokerage. If unknown or handled separately, keep the default option selected.</div>
+            <div class="notice gold">This controls the broker fee disclosure at the top of Page 10. Only complete it if there is already a separate written agreement stating the Listing Broker will pay your brokerage. If it is unknown or handled separately, choose that option.</div>
             <div class="radio-cards" style="margin-bottom:0.75rem;">
-              <label class="radio-card selected" onclick="selectCard(this,'brokerFeeType','none')"><input type="radio" name="brokerFeeType" value="none" checked/><div class="radio-dot"></div><div class="radio-card-text"><strong>No / not known / handled separately</strong><small>Leaves broker fee disclosure blank</small></div></label>
+              <label class="radio-card" onclick="selectCard(this,'brokerFeeType','none')"><input type="radio" name="brokerFeeType" value="none"/><div class="radio-dot"></div><div class="radio-card-text"><strong>No / not known / handled separately</strong><small>Leaves broker fee disclosure blank</small></div></label>
               <label class="radio-card" onclick="selectCard(this,'brokerFeeType','amount')"><input type="radio" name="brokerFeeType" value="amount"/><div class="radio-dot"></div><div class="radio-card-text"><strong>Yes — dollar amount</strong><small>Fill the $ broker-fee disclosure</small></div></label>
               <label class="radio-card" onclick="selectCard(this,'brokerFeeType','percent')"><input type="radio" name="brokerFeeType" value="percent"/><div class="radio-dot"></div><div class="radio-card-text"><strong>Yes — percentage of sales price</strong><small>Fill the % broker-fee disclosure</small></div></label>
             </div>
@@ -3429,7 +3429,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       </div>
       <div class="trec-badge">✓ TREC 20-19 · Section 3 Sales Price · Third Party Financing Addendum</div>
       <h2>Price, financing & deposits</h2>
-      <p class="step-desc">Start with your offer price, then choose how you are paying. We’ll calculate down payment, loan amount, earnest money, option fee, and common financing defaults together.</p>
+      <p class="step-desc">Start with your offer price, then choose how you are paying. We’ll keep the down payment, loan amount, earnest money, and option fee connected as you enter the agreed terms.</p>
       <div class="field-group">
         <div class="field">
           <div class="field-label-row"><label>Offer Price ($)</label><button class="helper-btn" onclick="toggleHelper('h-price')">?</button></div>
@@ -3458,19 +3458,19 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           <div class="field"><label>Lender Name (optional)</label><input type="text" id="lenderName" placeholder="e.g. Rocket Mortgage, Wells Fargo"/></div>
 
           <div style="margin-top:0.75rem; padding-top:0.75rem; border-top:1px solid rgba(255,255,255,0.07);">
-            <p style="font-size:0.8rem; font-weight:700; color:var(--gold-light); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.5rem;">Financing Addendum Defaults</p>
-            <div class="notice gold">💡 These are reasonable starting points for a typical financed offer. You can edit them if your lender or advisor recommends different terms.</div>
+            <p style="font-size:0.8rem; font-weight:700; color:var(--gold-light); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.5rem;">Financing addendum terms</p>
+            <div class="notice gold">💡 Enter the terms from the buyer’s pre-approval or lender guidance. Each maps directly to the financing addendum. Confirm before sending.</div>
 
             <div class="field-row" style="margin-top:0.75rem;">
               <div class="field">
                 <div class="field-label-row"><label>Loan Term Years</label><button class="helper-btn" onclick="toggleHelper('h-loanyears')">?</button></div>
                 <div class="helper-box" id="h-loanyears"><strong>💡 Loan Term</strong>This is how long the mortgage lasts. Most standard home loans are 30 years, but your lender may approve a different term.</div>
-                <input type="number" id="loanYears" value="30" placeholder="30"/>
+                <input type="number" id="loanYears" placeholder="e.g. 30"/>
               </div>
               <div class="field">
                 <div class="field-label-row"><label>Max Interest Rate (%)</label><button class="helper-btn" onclick="toggleHelper('h-ratecap')">?</button></div>
                 <div class="helper-box" id="h-ratecap"><strong>💡 Interest Rate Cap</strong>This is the highest interest rate you are willing to accept under the financing addendum. Confirm with your lender.</div>
-                <input type="number" id="interestRateCap" value="7" placeholder="7" step="0.125"/>
+                <input type="number" id="interestRateCap" placeholder="e.g. 7" step="0.125"/>
               </div>
             </div>
 
@@ -3478,19 +3478,19 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
               <div class="field">
                 <div class="field-label-row"><label>Interest Cap Applies First ___ Years</label><button class="helper-btn" onclick="toggleHelper('h-interestyears')">?</button></div>
                 <div class="helper-box" id="h-interestyears"><strong>💡 First Years of Loan</strong>For a normal fixed-rate 30-year loan, this is usually 30 years. For an adjustable-rate loan, this may be shorter.</div>
-                <input type="number" id="interestFirstYears" value="30" placeholder="30"/>
+                <input type="number" id="interestFirstYears" placeholder="e.g. 30"/>
               </div>
               <div class="field">
                 <div class="field-label-row"><label>Origination Cap (%)</label><button class="helper-btn" onclick="toggleHelper('h-origination')">?</button></div>
                 <div class="helper-box" id="h-origination"><strong>💡 Origination Charges</strong>This caps lender origination charges shown on the Loan Estimate. A common starting point is 1%, but confirm with your lender.</div>
-                <input type="number" id="originationCap" value="1" placeholder="1" step="0.1"/>
+                <input type="number" id="originationCap" placeholder="e.g. 1" step="0.1"/>
               </div>
             </div>
 
             <div class="field">
               <div class="field-label-row"><label>Buyer Approval Deadline Days</label><button class="helper-btn" onclick="toggleHelper('h-buyerapproval')">?</button></div>
               <div class="helper-box" id="h-buyerapproval"><strong>💡 Buyer Approval Deadline</strong>This is the number of days after the effective date for the buyer to obtain lender approval. A common starting point is 21 days. Shorter can make the offer stronger; longer gives the buyer more time.</div>
-              <input type="number" id="buyerApprovalDays" value="21" placeholder="21"/>
+              <input type="number" id="buyerApprovalDays" placeholder="e.g. 21"/>
             </div>
           </div>
         </div>
@@ -3500,7 +3500,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           <div class="notice gold">💡 Use only with the Third Party Financing Addendum when the transaction does not involve FHA or VA financing. This controls whether the buyer waives appraisal-related termination rights, partially waives them above a value, or adds an extra termination right if appraisal comes in low.</div>
           <div class="radio-group-label" style="margin-top:0.75rem;">Include appraisal protection terms?</div>
           <div class="radio-cards" style="margin-bottom:0.75rem;">
-            <label class="radio-card selected" onclick="selectCard(this,'appraisalAddendum','none')"><input type="radio" name="appraisalAddendum" value="none" checked/><div class="radio-dot"></div><div class="radio-card-text"><strong>No appraisal addendum</strong><small>Do not include TREC 49-1</small></div></label>
+            <label class="radio-card" onclick="selectCard(this,'appraisalAddendum','none')"><input type="radio" name="appraisalAddendum" value="none"/><div class="radio-dot"></div><div class="radio-card-text"><strong>No appraisal addendum</strong><small>Do not include TREC 49-1</small></div></label>
             <label class="radio-card" onclick="selectCard(this,'appraisalAddendum','waiver')"><input type="radio" name="appraisalAddendum" value="waiver"/><div class="radio-dot"></div><div class="radio-card-text"><strong>Waiver</strong><small>Buyer waives the appraisal-related termination right</small></div></label>
             <label class="radio-card" onclick="selectCard(this,'appraisalAddendum','partial')"><input type="radio" name="appraisalAddendum" value="partial"/><div class="radio-dot"></div><div class="radio-card-text"><strong>Partial waiver</strong><small>Buyer waives only if appraised value is at least a set amount</small></div></label>
             <label class="radio-card" onclick="selectCard(this,'appraisalAddendum','additional')"><input type="radio" name="appraisalAddendum" value="additional"/><div class="radio-dot"></div><div class="radio-card-text"><strong>Additional right to terminate</strong><small>Buyer may terminate if appraisal is below a set amount</small></div></label>
@@ -3589,11 +3589,11 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         <div class="field-group">
           <div class="field"><div class="field-label-row"><label>HOA / POA Name</label><button class="helper-btn" onclick="toggleHelper('h-hoa-name')">?</button></div><div class="helper-box" id="h-hoa-name"><strong>💡 HOA / POA Name</strong>Enter the subdivision association name if known. If you are unsure, use the MLS listing, seller disclosure, HOA addendum, or ask the listing side to confirm before sending.</div><input type="text" id="hoaName" placeholder="e.g. The Trails HOA"/></div>
           <div class="field-row">
-            <div class="field"><div class="field-label-row"><label>HOA Docs Delivery Days</label><button class="helper-btn" onclick="toggleHelper('h-hoa-days')">?</button></div><div class="helper-box" id="h-hoa-days"><strong>💡 HOA Document Delivery</strong>This is the time period for delivery of subdivision information. Seven days is a common starting point, but confirm what fits the transaction and local timing.</div><input type="number" id="hoaDays" value="7" placeholder="7"/></div>
-            <div class="field"><div class="field-label-row"><label>HOA Reserve/Transfer Cap ($)</label><button class="helper-btn" onclick="toggleHelper('h-hoa-reserves')">?</button></div><div class="helper-box" id="h-hoa-reserves"><strong>💡 HOA Fees / Reserves</strong>This controls the maximum amount the buyer agrees to pay for certain HOA-related reserves or transfer costs. Use zero if the buyer is not agreeing to pay additional reserves, or confirm the amount with the HOA/title company.</div><input type="number" id="hoaReserves" value="0" placeholder="0"/></div>
+            <div class="field"><div class="field-label-row"><label>HOA Docs Delivery Days</label><button class="helper-btn" onclick="toggleHelper('h-hoa-days')">?</button></div><div class="helper-box" id="h-hoa-days"><strong>💡 HOA Document Delivery</strong>This is the time period for delivery of subdivision information. Seven days is a common starting point, but confirm what fits the transaction and local timing.</div><input type="number" id="hoaDays" placeholder="e.g. 7"/></div>
+            <div class="field"><div class="field-label-row"><label>HOA Reserve/Transfer Cap ($)</label><button class="helper-btn" onclick="toggleHelper('h-hoa-reserves')">?</button></div><div class="helper-box" id="h-hoa-reserves"><strong>💡 HOA Fees / Reserves</strong>This controls the maximum amount the buyer agrees to pay for certain HOA-related reserves or transfer costs. Use zero if the buyer is not agreeing to pay additional reserves, or confirm the amount with the HOA/title company.</div><input type="number" id="hoaReserves" placeholder="e.g. 0"/></div>
           </div>
-          <div class="field"><div class="field-label-row"><label>Who provides subdivision information?</label><button class="helper-btn" onclick="toggleHelper('h-hoa-subdivision')">?</button></div><div class="helper-box" id="h-hoa-subdivision"><strong>💡 Subdivision Information</strong>This determines whether seller or buyer obtains the HOA/subdivision information. Seller delivery is common when the buyer has not already received and approved the documents.</div><select id="hoaSubdivisionInfo"><option value="seller" selected>Seller obtains and delivers subdivision information</option><option value="buyer">Buyer obtains subdivision information</option><option value="received">Buyer already received and approved it</option><option value="notRequired">Buyer does not require delivery</option></select></div>
-          <div class="field"><div class="field-label-row"><label>Who pays title company HOA info cost?</label><button class="helper-btn" onclick="toggleHelper('h-hoa-title-cost')">?</button></div><div class="helper-box" id="h-hoa-title-cost"><strong>💡 HOA Info Cost</strong>If the title company charges for subdivision information, this selects who pays that cost. This is negotiable and can affect buyer/seller closing costs.</div><select id="hoaTitleCost"><option value="seller" selected>Seller</option><option value="buyer">Buyer</option></select></div>
+          <div class="field"><div class="field-label-row"><label>Who provides subdivision information?</label><button class="helper-btn" onclick="toggleHelper('h-hoa-subdivision')">?</button></div><div class="helper-box" id="h-hoa-subdivision"><strong>💡 Subdivision Information</strong>This determines whether seller or buyer obtains the HOA/subdivision information. Seller delivery is common when the buyer has not already received and approved the documents.</div><select id="hoaSubdivisionInfo"><option value="">Select...</option><option value="seller">Seller obtains and delivers subdivision information</option><option value="buyer">Buyer obtains subdivision information</option><option value="received">Buyer already received and approved it</option><option value="notRequired">Buyer does not require delivery</option></select></div>
+          <div class="field"><div class="field-label-row"><label>Who pays title company HOA info cost?</label><button class="helper-btn" onclick="toggleHelper('h-hoa-title-cost')">?</button></div><div class="helper-box" id="h-hoa-title-cost"><strong>💡 HOA Info Cost</strong>If the title company charges for subdivision information, this selects who pays that cost. This is negotiable and can affect buyer/seller closing costs.</div><select id="hoaTitleCost"><option value="">Select...</option><option value="seller">Seller</option><option value="buyer">Buyer</option></select></div>
         </div>
       </div>
 
@@ -3609,7 +3609,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           <div class="field"><label>Property You Need to Sell</label><input type="text" id="salePropertyAddr" placeholder="123 Old House Ln, Dallas TX"/></div>
           <div class="field-row">
             <div class="field"><label>Sale Contingency Deadline</label><div class="date-field-wrap"><input type="date" id="saleContingencyDate"/></div></div>
-            <div class="field"><label>Waiver Days After Seller Notice</label><input type="number" id="saleWaiverDays" value="3" placeholder="3"/></div>
+            <div class="field"><label>Waiver Days After Seller Notice</label><input type="number" id="saleWaiverDays" placeholder="e.g. 3"/></div>
           </div>
           <div class="field"><label>Additional Earnest Money if Waived ($)</label><input type="number" id="saleAdditionalEarnest" placeholder="5000"/></div>
         </div>
@@ -3632,7 +3632,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <div class="field"><label>Additional Earnest Money ($)</label><input type="number" id="bkupAdditionalEarnest" placeholder="2500"/></div>
             <div class="field"><label>Additional Option Fee ($)</label><input type="number" id="bkupAdditionalOption" placeholder="100"/></div>
           </div>
-          <div class="field"><label>Days to Deliver Backup Funds</label><input type="number" id="bkupAdditionalDays" value="3" placeholder="3"/></div>
+          <div class="field"><label>Days to Deliver Backup Funds</label><input type="number" id="bkupAdditionalDays" placeholder="e.g. 3"/></div>
         </div>
       </div>
 
@@ -3695,7 +3695,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       <div class="helper-box" id="h-titleamend" style="margin-bottom:0.75rem;"><strong>💡 Title Policy Amendment</strong>The amendment can provide additional title-policy coverage if available. If amended, the contract identifies who pays the amendment cost. Many Texas agents select buyer-paid amendment costs when the buyer chooses to reduce seller-paid expenses, but this is a negotiable term and not legal advice.</div>
       <div class="radio-cards" style="margin-bottom:1.5rem;">
         <label class="radio-card" onclick="selectCard(this,'titleAmendment','i')"><input type="radio" name="titleAmendment" value="i"/><div class="radio-dot"></div><div class="radio-card-text"><strong>(i) Will NOT be amended</strong><small>No title policy amendment cost is added</small></div></label>
-        <label class="radio-card selected" onclick="selectCard(this,'titleAmendment','ii_buyer')"><input type="radio" name="titleAmendment" value="ii_buyer" checked/><div class="radio-dot"></div><div class="radio-card-text"><strong>(ii) Amended — Buyer pays cost</strong><small>Commonly used when buyers choose to reduce seller expenses</small></div></label>
+        <label class="radio-card" onclick="selectCard(this,'titleAmendment','ii_buyer')"><input type="radio" name="titleAmendment" value="ii_buyer"/><div class="radio-dot"></div><div class="radio-card-text"><strong>(ii) Amended — Buyer pays cost</strong><small>Commonly used when buyers choose to reduce seller expenses</small></div></label>
         <label class="radio-card" onclick="selectCard(this,'titleAmendment','ii_seller')"><input type="radio" name="titleAmendment" value="ii_seller"/><div class="radio-dot"></div><div class="radio-card-text"><strong>(ii) Amended — Seller pays cost</strong><small>Requests seller to pay the amendment cost</small></div></label>
       </div>
 
@@ -3709,7 +3709,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 
       <div class="field-row" id="surveyExistingDetails" style="margin-bottom:1.5rem; display:none;">
         <div class="field"><div class="field-label-row"><label>Days for seller to provide existing survey</label><button class="helper-btn" onclick="toggleHelper('h-survey-days')">?</button></div><div class="helper-box" id="h-survey-days"><strong>💡 Existing Survey Delivery Timing</strong>This field applies only when the seller is providing an existing survey and declaration. Seven days is a common starting point, but timing may vary by seller, title company, and transaction needs.</div><input type="number" id="surveyDays" placeholder="7"/></div>
-        <div class="field"><div class="field-label-row"><label>If existing survey rejected, who pays?</label><button class="helper-btn" onclick="toggleHelper('h-survey-reject')">?</button></div><div class="helper-box" id="h-survey-reject"><strong>💡 If Existing Survey Is Not Accepted</strong>This applies to the existing-survey path only. If the title company or lender rejects the seller's existing survey, this controls who pays for a new one.</div><select id="surveyIfRejectedPaidBy"><option value="seller" selected>Seller</option><option value="buyer">Buyer</option></select></div>
+        <div class="field"><div class="field-label-row"><label>If existing survey rejected, who pays?</label><button class="helper-btn" onclick="toggleHelper('h-survey-reject')">?</button></div><div class="helper-box" id="h-survey-reject"><strong>💡 If Existing Survey Is Not Accepted</strong>This applies to the existing-survey path only. If the title company or lender rejects the seller's existing survey, this controls who pays for a new one.</div><select id="surveyIfRejectedPaidBy"><option value="">Select...</option><option value="seller">Seller</option><option value="buyer">Buyer</option></select></div>
       </div>
 
       <div class="field" style="margin-bottom:1.5rem;"><div class="field-label-row"><label>§6D — Intended Use (optional)</label><button class="helper-btn" onclick="toggleHelper('h-intended-use')">?</button></div><div class="helper-box" id="h-intended-use"><strong>💡 Intended Use</strong>For a standard residential purchase, this is often left blank. If the buyer has a special intended use, confirm with the agent, broker, or attorney before adding language.</div><input type="text" id="intendedUse" placeholder="Leave blank if standard residential"/></div>
@@ -3744,7 +3744,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           <label class="radio-card" onclick="selectCard(this,'sellerDisclosure','notReceived'); document.getElementById('discDaysField').style.display='block'"><input type="radio" name="sellerDisclosure" value="notReceived"/><div class="radio-dot"></div><div class="radio-card-text"><strong>No — I have not received it yet</strong></div></label>
           <label class="radio-card" onclick="selectCard(this,'sellerDisclosure','exempt'); document.getElementById('discDaysField').style.display='none'"><input type="radio" name="sellerDisclosure" value="exempt"/><div class="radio-dot"></div><div class="radio-card-text"><strong>Seller is exempt</strong><small>Estate sale, foreclosure, new construction, etc.</small></div></label>
         </div>
-        <div id="discDaysField" style="display:none;"><div class="field"><label>Days for Seller to provide Disclosure</label><input type="number" id="disclosureDays" placeholder="3" value="3" style="max-width:120px;"/></div></div>
+        <div id="discDaysField" style="display:none;"><div class="field"><label>Days for Seller to provide Disclosure</label><input type="number" id="disclosureDays" placeholder="e.g. 3" style="max-width:120px;"/></div></div>
       </div>
 
       <div style="padding-top:0.75rem; border-top:1px solid rgba(255,255,255,0.07);">
@@ -8119,6 +8119,17 @@ function routeAfterMagicLinkIfNeeded() {
     }
   }
 
+  function requireRadioSelection(group, label, missing) {
+    const inputs = Array.from(document.querySelectorAll(`input[name="${group}"]`));
+    if (!inputs.length) return;
+    const selected = inputs.some(input => input.checked);
+    inputs.forEach(input => {
+      const card = input.closest('.radio-card');
+      if (card) card.style.outline = selected ? '' : '2px solid var(--warn)';
+    });
+    if (!selected) missing.push(label);
+  }
+
   function setValidationStatus(message) {
     const el = document.getElementById('validationStatus');
     if (!el) return;
@@ -8150,7 +8161,8 @@ function routeAfterMagicLinkIfNeeded() {
         requireField('agentPhoneQuick', 'agent phone', missing);
         requireField('agentBrokerageQuick', 'brokerage name', missing);
 
-        const feeType = getRadio('brokerFeeType') || state.data.brokerFeeType || 'none';
+        requireRadioSelection('brokerFeeType', 'broker fee disclosure choice', missing);
+        const feeType = getRadio('brokerFeeType') || state.data.brokerFeeType || '';
         if (feeType === 'amount') requireField('brokerFeeAmount', 'broker fee amount', missing);
         if (feeType === 'percent') requireField('brokerFeePercent', 'broker fee percentage', missing);
       }
@@ -8168,8 +8180,10 @@ function routeAfterMagicLinkIfNeeded() {
       requireField('earnestMoney', 'earnest money', missing);
       requireField('optionFee', 'option fee', missing);
       requireField('optionDays', 'option days', missing);
+      requireRadioSelection('financing', 'financing type', missing);
 
-      if (state.data.financing && state.data.financing !== 'cash') {
+      const financingChoice = getRadio('financing') || state.data.financing || '';
+      if (financingChoice && financingChoice !== 'cash') {
         requireField('loanAmount', 'loan amount', missing);
         requireField('loanYears', 'loan term years', missing);
         requireField('interestRateCap', 'max interest rate', missing);
@@ -8178,7 +8192,11 @@ function routeAfterMagicLinkIfNeeded() {
         requireField('buyerApprovalDays', 'buyer approval days', missing);
       }
 
-      const appraisalChoice = getRadio('appraisalAddendum') || state.data.appraisalAddendum || 'none';
+      const appraisalBox = document.getElementById('appraisalAddendumBox');
+      if (appraisalBox && appraisalBox.style.display !== 'none') {
+        requireRadioSelection('appraisalAddendum', 'appraisal protection choice', missing);
+      }
+      const appraisalChoice = getRadio('appraisalAddendum') || state.data.appraisalAddendum || '';
       if (appraisalChoice === 'partial') requireField('appraisalPartialValue', 'partial waiver appraisal value', missing);
       if (appraisalChoice === 'additional') {
         requireField('appraisalTerminateDays', 'appraisal termination days', missing);
@@ -8187,12 +8205,59 @@ function routeAfterMagicLinkIfNeeded() {
     }
 
     if (stepId === 'step5') {
-      const nonRealtyChoice = getRadio('nonRealtyItems') || state.data.nonRealtyItems || 'no';
+      requireRadioSelection('hoa', 'HOA status', missing);
+      requireRadioSelection('saleContingency', 'sale contingency', missing);
+      requireRadioSelection('backupOffer', 'backup offer status', missing);
+      requireRadioSelection('nonRealtyItems', 'personal property', missing);
+      const hoaChoice = getRadio('hoa') || '';
+      if (hoaChoice === 'yes') {
+        requireField('hoaName', 'HOA name', missing);
+        requireField('hoaDays', 'HOA document delivery days', missing);
+        requireField('hoaReserves', 'HOA reserve/transfer cap', missing);
+        requireField('hoaSubdivisionInfo', 'subdivision information delivery', missing);
+        requireField('hoaTitleCost', 'HOA information cost payer', missing);
+      }
+      if (getRadio('saleContingency') === 'yes') {
+        requireField('salePropertyAddr', 'property to sell', missing);
+        requireField('saleContingencyDate', 'sale contingency deadline', missing);
+        requireField('saleWaiverDays', 'sale contingency waiver days', missing);
+        requireField('saleAdditionalEarnest', 'additional earnest money if waived', missing);
+      }
+      if (getRadio('backupOffer') === 'yes') {
+        requireField('bkupFirstContractDate', 'first contract date', missing);
+        requireField('bkupTerminateDate', 'backup termination date', missing);
+        requireField('bkupAdditionalEarnest', 'backup additional earnest money', missing);
+        requireField('bkupAdditionalOption', 'backup additional option fee', missing);
+        requireField('bkupAdditionalDays', 'backup funds delivery days', missing);
+      }
+      const nonRealtyChoice = getRadio('nonRealtyItems') || state.data.nonRealtyItems || '';
       if (nonRealtyChoice === 'yes') requireField('nonRealtyDescription', 'non-realty item description', missing);
+    }
+
+    if (stepId === 'step6') {
+      requireRadioSelection('titlePayer', 'title policy premium', missing);
+      requireRadioSelection('titleAmendment', 'title policy amendment', missing);
+      requireRadioSelection('survey', 'survey arrangement', missing);
+      requireRadioSelection('sellerDisclosure', 'seller disclosure status', missing);
+      requireRadioSelection('asIs', 'property condition election', missing);
+      requireField('mudDistrict', 'MUD / PID assessment district status', missing);
+
+      if (getRadio('survey') === 'sellerExisting') {
+        requireField('surveyDays', 'existing survey delivery days', missing);
+        requireField('surveyIfRejectedPaidBy', 'existing survey replacement cost', missing);
+      }
+      if (getRadio('sellerDisclosure') === 'notReceived') {
+        requireField('disclosureDays', 'seller disclosure delivery days', missing);
+      }
+      if (getRadio('asIs') === 'repairs') requireField('repairsText', 'specific repairs required', missing);
+      if (getRadio('leadBuiltBefore1978') === 'yes') {
+        requireRadioSelection('leadDisclosureStatus', 'lead-based paint disclosure status', missing);
+      }
     }
 
     if (stepId === 'step7') {
       requireField('closingDate', 'closing date', missing);
+      requireField('possession', 'possession timing', missing);
     }
 
     if (missing.length) {
@@ -8682,7 +8747,7 @@ function routeAfterMagicLinkIfNeeded() {
           s.agentPhone = getVal('agentPhoneQuick') || s.agentPhone || '';
           s.agentBrokerage = getVal('agentBrokerageQuick') || s.agentBrokerage || '';
           s.agentBrokerLicense = getVal('agentBrokerLicenseQuick') || s.agentBrokerLicense || '';
-          s.brokerFeeType = getRadio('brokerFeeType') || s.brokerFeeType || 'none';
+          s.brokerFeeType = getRadio('brokerFeeType') || s.brokerFeeType || '';
           s.brokerFeeAmount = moneyNumber(getVal('brokerFeeAmount'));
           s.brokerFeePercent = getVal('brokerFeePercent');
         }
@@ -8738,19 +8803,19 @@ function routeAfterMagicLinkIfNeeded() {
         s.downPayment = downPayment;
         s.loanAmount = loanAmount;
         s.lender = getVal('lenderName');
-        s.loanYears = getVal('loanYears') || '30';
-        s.interestRateCap = getVal('interestRateCap') || '7';
-        s.interestFirstYears = getVal('interestFirstYears') || s.loanYears || '30';
-        s.originationCap = getVal('originationCap') || '1';
-        s.buyerApprovalDays = getVal('buyerApprovalDays') || '21';
-        s.appraisalAddendum = getRadio('appraisalAddendum') || s.appraisalAddendum || 'none';
+        s.loanYears = getVal('loanYears') || '';
+        s.interestRateCap = getVal('interestRateCap') || '';
+        s.interestFirstYears = getVal('interestFirstYears') || '';
+        s.originationCap = getVal('originationCap') || '';
+        s.buyerApprovalDays = getVal('buyerApprovalDays') || '';
+        s.appraisalAddendum = getRadio('appraisalAddendum') || s.appraisalAddendum || '';
         s.appraisalPartialValue = s.appraisalAddendum === 'partial' ? moneyNumber(getVal('appraisalPartialValue')) : '';
-        s.appraisalTerminateDays = s.appraisalAddendum === 'additional' ? (getVal('appraisalTerminateDays') || '7') : '';
+        s.appraisalTerminateDays = s.appraisalAddendum === 'additional' ? getVal('appraisalTerminateDays') : '';
         s.appraisalTerminateValue = s.appraisalAddendum === 'additional' ? moneyNumber(getVal('appraisalTerminateValue')) : '';
 
         s.earnest = moneyNumber(getVal('earnestMoney'));
-        s.optionFee = moneyNumber(getVal('optionFee')) || 250;
-        s.optionDays = getVal('optionDays') || '7';
+        s.optionFee = moneyNumber(getVal('optionFee'));
+        s.optionDays = getVal('optionDays') || '';
         s.escrowAgent = getVal('escrowAgent');
         s.escrowAddress = getVal('escrowAddress');
       },
@@ -8761,11 +8826,11 @@ function routeAfterMagicLinkIfNeeded() {
         s.backupOffer = getRadio('backupOffer');
 
         if (s.hoa === 'yes' || s.hoa === 'unknown') {
-          s.hoaName = getVal('hoaName') || 'HOA / POA Name TBD';
-          s.hoaSubdivisionInfo = getVal('hoaSubdivisionInfo') || 'seller';
-          s.hoaDays = getVal('hoaDays') || '7';
-          s.hoaReserves = moneyNumber(getVal('hoaReserves') || '0');
-          s.hoaTitleCost = getVal('hoaTitleCost') || 'seller';
+          s.hoaName = getVal('hoaName') || '';
+          s.hoaSubdivisionInfo = getVal('hoaSubdivisionInfo') || '';
+          s.hoaDays = getVal('hoaDays') || '';
+          s.hoaReserves = moneyNumber(getVal('hoaReserves'));
+          s.hoaTitleCost = getVal('hoaTitleCost') || '';
         } else {
           s.hoaName = '';
           s.hoaSubdivisionInfo = '';
@@ -8777,7 +8842,7 @@ function routeAfterMagicLinkIfNeeded() {
         if (s.saleContingency === 'yes') {
           s.salePropertyAddr = getVal('salePropertyAddr');
           s.saleContingencyDate = getVal('saleContingencyDate');
-          s.saleWaiverDays = getVal('saleWaiverDays') || '3';
+          s.saleWaiverDays = getVal('saleWaiverDays') || '';
           s.saleAdditionalEarnest = moneyNumber(getVal('saleAdditionalEarnest'));
         } else {
           s.salePropertyAddr = '';
@@ -8791,7 +8856,7 @@ function routeAfterMagicLinkIfNeeded() {
           s.bkupTerminateDate = getVal('bkupTerminateDate');
           s.bkupAdditionalEarnest = moneyNumber(getVal('bkupAdditionalEarnest'));
           s.bkupAdditionalOption = moneyNumber(getVal('bkupAdditionalOption'));
-          s.bkupAdditionalDays = getVal('bkupAdditionalDays') || '3';
+          s.bkupAdditionalDays = getVal('bkupAdditionalDays') || '';
         } else {
           s.bkupFirstContractDate = '';
           s.bkupTerminateDate = '';
@@ -8800,7 +8865,7 @@ function routeAfterMagicLinkIfNeeded() {
           s.bkupAdditionalDays = '';
         }
 
-        s.nonRealtyItems = getRadio('nonRealtyItems') || s.nonRealtyItems || 'no';
+        s.nonRealtyItems = getRadio('nonRealtyItems') || s.nonRealtyItems || '';
         if (s.nonRealtyItems === 'yes') {
           s.nonRealtyAmount = moneyNumber(getVal('nonRealtyAmount') || '');
           s.nonRealtyDescription = getVal('nonRealtyDescription');
@@ -8811,29 +8876,29 @@ function routeAfterMagicLinkIfNeeded() {
       },
 
       'step6': () => {
-        s.titlePayer = getRadio('titlePayer') || 'seller';
-        s.titleAmendment = getRadio('titleAmendment') || 'ii_buyer';
-        s.survey = getRadio('survey') || 'sellerExisting';
+        s.titlePayer = getRadio('titlePayer') || '';
+        s.titleAmendment = getRadio('titleAmendment') || '';
+        s.survey = getRadio('survey') || '';
         if (s.survey === 'sellerExisting') {
-          s.surveyDays = getVal('surveyDays') || '7';
-          s.surveyIfRejectedPaidBy = getVal('surveyIfRejectedPaidBy') || 'seller';
+          s.surveyDays = getVal('surveyDays') || '';
+          s.surveyIfRejectedPaidBy = getVal('surveyIfRejectedPaidBy') || '';
         } else {
           s.surveyDays = '';
           s.surveyIfRejectedPaidBy = '';
         }
         s.intendedUse = getVal('intendedUse');
         s.mud = getVal('mudDistrict');
-        s.sellerDisclosure = getRadio('sellerDisclosure') || 'received';
-        s.disclosureDays = getVal('disclosureDays') || '3';
+        s.sellerDisclosure = getRadio('sellerDisclosure') || '';
+        s.disclosureDays = s.sellerDisclosure === 'notReceived' ? getVal('disclosureDays') : '';
         s.leadBuiltBefore1978 = getRadio('leadBuiltBefore1978') || s.leadBuiltBefore1978 || '';
         s.leadDisclosureStatus = getRadio('leadDisclosureStatus') || s.leadDisclosureStatus || '';
-        s.asIs = getRadio('asIs') || 'yes';
+        s.asIs = getRadio('asIs') || '';
         s.repairsText = getVal('repairsText');
       },
 
       'step7': () => {
         s.closingDate = getVal('closingDate');
-        s.possession = getVal('possession') || 'funding';
+        s.possession = getVal('possession') || '';
         s.sellerTemporaryLease = s.possession === 'sellerTemporaryLease' ? 'yes' : 'no';
         s.seller1Name = getVal('seller1Name');
         s.seller1Email = getVal('seller1Email');
@@ -8861,7 +8926,7 @@ function routeAfterMagicLinkIfNeeded() {
         s.agentBrokerage = getVal('agentBrokerage') || s.agentBrokerage || '';
         s.agentBrokerLicense = getVal('agentBrokerLicense') || s.agentBrokerLicense || '';
 
-        s.brokerFeeType = getRadio('brokerFeeType') || s.brokerFeeType || 'none';
+        s.brokerFeeType = getRadio('brokerFeeType') || s.brokerFeeType || '';
         s.brokerFeeAmount = moneyNumber(getVal('brokerFeeAmount')) || s.brokerFeeAmount || '';
         s.brokerFeePercent = getVal('brokerFeePercent') || s.brokerFeePercent || '';
 
@@ -10259,62 +10324,15 @@ function routeAfterMagicLinkIfNeeded() {
     return localDateKey(date);
   }
 
-  function radioHasSelection(group) {
-    return !!document.querySelector(`input[name="${group}"]:checked`);
-  }
-
-  function setRadioDefault(group, value) {
-    if (!radioHasSelection(group)) setRadioValue(group, value);
-  }
-
   function setDefaultValue(id, value) {
     const el = document.getElementById(id);
     if (el && !el.value) el.value = value;
   }
 
   function applySmartDefaults() {
-    if (document.getElementById('closingDate') && !document.getElementById('closingDate').value) {
-      const t = new Date();
-      t.setDate(t.getDate() + 30);
-      document.getElementById('closingDate').value = toDateInputValue(nextBusinessDay(t));
-    }
-
-    setDefaultValue('optionDays', '7');
-    setDefaultValue('optionFee', '250');
-    setDefaultValue('possession', 'funding');
-    setDefaultValue('surveyDays', '7');
-    setDefaultValue('disclosureDays', '3');
-    setDefaultValue('surveyIfRejectedPaidBy', 'seller');
-
-    setRadioDefault('titlePayer', 'seller');
-    setRadioDefault('titleAmendment', 'ii_buyer');
-    setRadioDefault('survey', 'sellerExisting');
-    updateSurveyExistingDetails(getRadio('survey') || 'sellerExisting');
-    setRadioDefault('sellerDisclosure', 'received');
-    setRadioDefault('asIs', 'yes');
-    setRadioDefault('backupOffer', 'no');
-    setRadioDefault('nonRealtyItems', 'no');
-
-    setDefaultValue('loanYears', '30');
-    setDefaultValue('interestRateCap', '7');
-    setDefaultValue('interestFirstYears', document.getElementById('loanYears')?.value || '30');
-    setDefaultValue('originationCap', '1');
-    setDefaultValue('buyerApprovalDays', '21');
-
-    setDefaultValue('hoaDays', '7');
-    setDefaultValue('hoaReserves', '0');
-    setDefaultValue('hoaSubdivisionInfo', 'seller');
-    setDefaultValue('hoaTitleCost', 'seller');
-
-    setDefaultValue('saleWaiverDays', '3');
-    setDefaultValue('bkupAdditionalDays', '3');
-    setDefaultValue('nonRealtyAmount', '');
-
-    const backupChecked = document.querySelector('input[name="backupOffer"]:checked');
-    if (!backupChecked) setRadioValue('backupOffer', 'no');
-
-    const nonRealtyChecked = document.querySelector('input[name="nonRealtyItems"]:checked');
-    if (!nonRealtyChecked) setRadioValue('nonRealtyItems', 'no');
+    // Keep conditional fields visually in sync without choosing negotiation,
+    // financing, title, survey, disclosure, or property-condition terms.
+    updateSurveyExistingDetails(getRadio('survey') || '');
   }
 
   function numFromEl(el) {
