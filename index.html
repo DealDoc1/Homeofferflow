@@ -7790,7 +7790,9 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         await logOfferEvent(id, 'resume_retry_clicked', 'Draft', 'Agent requested a retry after resume failed.').catch(() => {});
         return resumeOffer(id, true);
       }
-      window.announceWorkspaceStatus?.('Could not resume offer: ' + err.message);
+      window.announceWorkspaceStatus?.(
+        window.hofCustomerActionError(err, 'We couldn’t reopen that offer. Refresh your workspace and try again.')
+      );
     }
   }
 
@@ -7838,7 +7840,9 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         await logOfferEvent(id, 'duplicate_retry_clicked', 'Draft', 'Agent requested a retry after duplicate failed.').catch(() => {});
         return duplicateOffer(id, true, openAfterDuplicate);
       }
-      window.announceWorkspaceStatus?.('Could not duplicate offer: ' + err.message);
+      window.announceWorkspaceStatus?.(
+        window.hofCustomerActionError(err, 'We couldn’t copy that offer. Please try again.')
+      );
     }
   }
 
@@ -7882,7 +7886,9 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       await logOfferEvent(offer.id, 'terms_reuse_clicked', 'Draft', 'Started a terms-only offer from a prior workspace offer.', { reuse_mode: 'terms_only' });
     } catch (err) {
       console.error('Terms-only offer start failed:', err);
-      window.announceWorkspaceStatus?.('Could not start from these terms: ' + err.message);
+      window.announceWorkspaceStatus?.(
+        window.hofCustomerActionError(err, 'We couldn’t start a new offer from those terms. Please try again.')
+      );
     }
   }
 
@@ -7898,7 +7904,9 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       await loadMyOffers();
     } catch (err) {
       console.error('Delete failed:', err);
-      window.announceWorkspaceStatus?.('Could not delete offer: ' + err.message);
+      window.announceWorkspaceStatus?.(
+        window.hofCustomerActionError(err, 'We couldn’t remove that offer. Please try again.')
+      );
     }
   }
 
