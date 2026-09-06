@@ -277,6 +277,10 @@ class AgentActivationDashboardTests(unittest.TestCase):
         self.assertIn("hofOpenTxr1508Draft", HTML)
         self.assertIn("openSellerDisclosureDraftWorkspace", HTML)
 
+    def test_relationship_workspace_uses_question_one_transaction_language(self):
+        self.assertIn("Use this after choosing Purchase or Tenant representation above.", HTML)
+        self.assertNotIn("Use this after choosing Buyer or Lease representation above.", HTML)
+
     def test_generic_agent_account_offer_actions_return_to_question_one(self):
         self.assertIn("window.startAccountTransaction = function startAccountTransaction()", HTML)
         self.assertIn("if (hofAuth.role === 'investor') return startAccountOffer();", HTML)
