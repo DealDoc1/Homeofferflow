@@ -11,8 +11,36 @@
     }
   ],
   "functions": {
+    "api/admin-dashboard.py": {
+      "excludeFiles": "{tests/**,docs/**,assets/**,supabase/**,scripts/**,__pycache__/**,**/__pycache__/**,**/*.pyc}"
+    },
+    "api/ai-offer-review.py": {
+      "excludeFiles": "{tests/**,docs/**,assets/**,supabase/**,scripts/**,__pycache__/**,**/__pycache__/**,**/*.pyc}"
+    },
+    "api/create-billing-portal/index.py": {
+      "excludeFiles": "{tests/**,docs/**,assets/**,supabase/**,scripts/**,__pycache__/**,**/__pycache__/**,**/*.pyc}"
+    },
+    "api/create-subscription-checkout/index.py": {
+      "excludeFiles": "{tests/**,docs/**,assets/**,supabase/**,scripts/**,__pycache__/**,**/__pycache__/**,**/*.pyc}"
+    },
+    "api/feedback-alert/index.py": {
+      "excludeFiles": "{tests/**,docs/**,assets/**,supabase/**,scripts/**,__pycache__/**,**/__pycache__/**,**/*.pyc}"
+    },
+    "api/fsbo-lead.py": {
+      "excludeFiles": "{tests/**,docs/**,assets/**,supabase/**,scripts/**,__pycache__/**,**/__pycache__/**,**/*.pyc}"
+    },
+    "api/signwell-webhook.py": {
+      "excludeFiles": "{tests/**,docs/**,assets/**,supabase/**,scripts/**,__pycache__/**,**/__pycache__/**,**/*.pyc}"
+    },
+    "api/stripe-webhook/index.py": {
+      "excludeFiles": "{tests/**,docs/**,assets/**,supabase/**,scripts/**,__pycache__/**,**/__pycache__/**,**/*.pyc}"
+    },
+    "api/submit-feedback/index.py": {
+      "excludeFiles": "{tests/**,docs/**,assets/**,supabase/**,scripts/**,__pycache__/**,**/__pycache__/**,**/*.pyc}"
+    },
     "api/fill-pdf.py": {
-      "includeFiles": "{buyer_temporary_residential_lease_16-7.pdf,seller_temporary_residential_lease_15-7.pdf}"
+      "includeFiles": "{buyer_temporary_residential_lease_16-7.pdf,seller_temporary_residential_lease_15-7.pdf}",
+      "excludeFiles": "{tests/**,docs/**,assets/**,supabase/**,scripts/**,__pycache__/**,**/__pycache__/**,**/*.pyc}"
     }
   },
   "rewrites": [
