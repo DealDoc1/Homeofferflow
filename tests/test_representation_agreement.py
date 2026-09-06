@@ -44,7 +44,7 @@ class RepresentationAgreementTests(unittest.TestCase):
         source = (Path(__file__).resolve().parents[1] / "api" / "representation-agreement.py").read_text()
         for field in ("clientName", "brokerName", "marketArea", "startDate", "endDate"):
             self.assertIn(field, source)
-        self.assertIn("signature_requests_enabled\": False", source)
+        self.assertIn("signature_requests_enabled\": SIGNWELL_ENABLED and bool(SIGNWELL_API_KEY)", source)
 
     def test_signature_payload_has_client_and_broker_recipients(self):
         payload = agreement.build_short_form_signwell_payload({
@@ -56,6 +56,14 @@ class RepresentationAgreementTests(unittest.TestCase):
         self.assertTrue(payload["test_mode"])
         self.assertEqual([recipient["id"] for recipient in payload["recipients"]], ["1", "2"])
         self.assertEqual(payload["fields"][0][0]["api_id"], "client_signature")
+
+    def test_signature_request_rejects_a_missing_api_key_before_network_access(self):
+        with self.assertRaisesRegex(ValueError, "SignWell is not configured"):
+            agreement.send_short_form_signature_request(
+                {"clientName": "Taylor", "clientEmail": "client@example.com", "brokerName": "Broker", "brokerEmail": "broker@example.com"},
+                b"%PDF-test",
+                "",
+            )
 
 
 if __name__ == "__main__":

@@ -1,13 +1,17 @@
 """Generate the TXR 1507 buyer/tenant representation short-form packet."""
 
 import json
+import os
 import re
 from http.server import BaseHTTPRequestHandler
 
-from api.representation_agreement import SHORT_FORM, build_short_form
+from api.representation_agreement import SHORT_FORM, build_short_form, send_short_form_signature_request
 
 
 REQUIRED_FIELDS = ("clientName", "brokerName", "marketArea", "startDate", "endDate")
+SIGNWELL_API_KEY = os.environ.get("SIGNWELL_API_KEY", "")
+SIGNWELL_ENABLED = os.environ.get("SIGNWELL_ENABLED", "false").strip().lower() in {"1", "true", "yes", "on"}
+SIGNWELL_TEST_MODE = os.environ.get("SIGNWELL_TEST_MODE", "false").strip().lower() not in {"0", "false", "no", "off"}
 
 
 class handler(BaseHTTPRequestHandler):
@@ -22,7 +26,8 @@ class handler(BaseHTTPRequestHandler):
             "status": "ok",
             "form": "TXR 1507 Residential Buyer/Tenant Representation Agreement - Short Form",
             "source_available": SHORT_FORM.is_file(),
-            "signature_requests_enabled": False,
+            "signature_requests_enabled": SIGNWELL_ENABLED and bool(SIGNWELL_API_KEY),
+            "signwell_test_mode": SIGNWELL_TEST_MODE,
         })
 
     def do_POST(self):
@@ -36,6 +41,15 @@ class handler(BaseHTTPRequestHandler):
                 self._json(400, {"error": "Missing required agreement details", "fields": missing})
                 return
             packet = build_short_form(data)
+            if data.get("action") == "signature_request":
+                if not SIGNWELL_ENABLED:
+                    self._json(503, {"error": "Signature requests are not enabled"})
+                    return
+                result = send_short_form_signature_request(
+                    data, packet, SIGNWELL_API_KEY, test_mode=SIGNWELL_TEST_MODE
+                )
+                self._json(200, result)
+                return
             safe_client = re.sub(r"[^A-Za-z0-9]+", "_", str(data["clientName"])).strip("_") or "client"
             self.send_response(200)
             self.send_header("Content-Type", "application/pdf")

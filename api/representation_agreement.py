@@ -9,6 +9,7 @@ import base64
 from io import BytesIO
 from pathlib import Path
 
+import httpx
 from pypdf import PdfReader, PdfWriter
 from reportlab.pdfgen import canvas
 
@@ -164,4 +165,25 @@ def build_short_form_signwell_payload(data, pdf_bytes, test_mode=False):
             "client_email": client_email,
             "test_mode": str(bool(test_mode)).lower(),
         },
+    }
+
+
+def send_short_form_signature_request(data, pdf_bytes, api_key, test_mode=False):
+    """Transmit a reviewed agreement to SignWell and return only safe result data."""
+    if not api_key:
+        raise ValueError("SignWell is not configured")
+    payload = build_short_form_signwell_payload(data, pdf_bytes, test_mode=test_mode)
+    response = httpx.post(
+        "https://www.signwell.com/api/v1/documents",
+        headers={"X-Api-Key": api_key, "Content-Type": "application/json"},
+        json=payload,
+        timeout=45,
+    )
+    if response.status_code not in {200, 201, 202}:
+        raise RuntimeError("SignWell could not create the signature request")
+    data = response.json()
+    return {
+        "ok": True,
+        "document_id": data.get("id") or data.get("document_id"),
+        "test_mode": bool(test_mode),
     }

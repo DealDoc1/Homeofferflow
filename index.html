@@ -2728,7 +2728,7 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
           <div class="field"><label>Intermediary Authorization</label><select id="agreementIntermediary"><option value="no">Client does not authorize intermediary</option><option value="yes">Client authorizes intermediary</option></select></div>
           <div class="field" id="agreementShowingFeeField" style="display:none;"><label>Showing-services fee</label><input id="agreementShowingFee" inputmode="decimal" placeholder="Amount due on execution"/></div>
         </div>
-        <div class="platform-actions"><button type="button" onclick="downloadRepresentationAgreement()">Prepare Agreement PDF</button></div>
+        <div class="platform-actions"><button type="button" onclick="downloadRepresentationAgreement()">Prepare Agreement PDF</button><button type="button" onclick="sendRepresentationAgreement()">Send for Signature</button></div>
         <div id="agreementStatus" class="platform-status"></div>
       </div>
     </div>
@@ -11927,6 +11927,37 @@ function routeAfterMagicLinkIfNeeded() {
       if (status) { status.textContent = 'Agreement ready. Review every term before requesting signatures.'; status.className = 'platform-status ok'; }
     } catch (error) {
       if (status) { status.textContent = error?.message || 'Could not prepare the agreement.'; status.className = 'platform-status err'; }
+    }
+  };
+
+  root.sendRepresentationAgreement = async function sendRepresentationAgreement(){
+    const status = document.getElementById('agreementStatus');
+    const data = {
+      action: 'signature_request',
+      clientName: value('agreementClientName'), clientEmail: value('agreementClientEmail'),
+      clientTwoName: value('agreementClientTwoName'), clientTwoEmail: value('agreementClientTwoEmail'),
+      brokerName: value('agreementBrokerName'), brokerEmail: value('agreementBrokerEmail'),
+      brokerLicense: value('agreementBrokerLicense'), associateName: value('agreementAssociateName'),
+      associateLicense: value('agreementAssociateLicense'), marketArea: value('agreementMarketArea'),
+      startDate: formatDate(value('agreementStartDate')), endDate: formatDate(value('agreementEndDate')),
+      serviceLevel: value('agreementServiceLevel'), showingFee: value('agreementShowingFee'),
+      purchaseCompType: value('agreementPurchaseCompType'), purchaseCompValue: value('agreementPurchaseCompValue'),
+      leaseCompType: value('agreementLeaseCompType'), leaseCompValue: value('agreementLeaseCompValue'),
+      intermediaryAuthorized: value('agreementIntermediary')
+    };
+    const required = ['clientName', 'clientEmail', 'brokerName', 'brokerEmail', 'marketArea', 'startDate', 'endDate'];
+    if (required.some(key => !String(data[key] || '').trim())) {
+      if (status) { status.textContent = 'Please complete the client, brokerage, market area, dates, and both email addresses.'; status.className = 'platform-status err'; }
+      return;
+    }
+    if (status) { status.textContent = 'Sending the agreement for signature…'; status.className = 'platform-status'; }
+    try {
+      const response = await fetch('/api/representation-agreement', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)});
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || 'Could not send the signature request');
+      if (status) { status.textContent = result.test_mode ? 'Test signature request sent.' : 'Signature request sent to the client and brokerage.'; status.className = 'platform-status ok'; }
+    } catch (error) {
+      if (status) { status.textContent = error?.message || 'Could not send the signature request.'; status.className = 'platform-status err'; }
     }
   };
 
