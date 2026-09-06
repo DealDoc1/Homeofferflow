@@ -16847,7 +16847,7 @@ function routeAfterMagicLinkIfNeeded() {
     brokerCard.className = 'broker-role-card';
     brokerCard.innerHTML = `
       <h4>Broker / Team Lead Mode</h4>
-      <p>This account uses the agent offer workflow with brokerage administration layered on top. Available brokerage tools include secure agent invitations, membership access controls, privacy-limited activity, branding, shared defaults, and restricted-form authorization status. Team billing and a full compliance-review workspace remain roadmap items.</p>
+      <p>This account uses the agent offer workflow with brokerage administration layered on top. Available brokerage tools include secure agent invitations, membership access controls, privacy-limited activity, branding, shared defaults, and restricted-form authorization status. Team billing and a full compliance-review workspace are not part of this workspace.</p>
       <div class="broker-role-grid">
         <div class="broker-role-chip"><strong>Account path</strong><span>Agent / Broker login</span></div>
         <div class="broker-role-chip"><strong>Offer path</strong><span>Agent packet builder</span></div>
@@ -16890,9 +16890,9 @@ function routeAfterMagicLinkIfNeeded() {
         <h4>Broker role foundation</h4>
         <p>Broker is an elevated role inside the Agent path. Brokers can manage their brokerage workspace while agents continue using the same packet builder and their own subscriptions.</p>
         <div class="broker-role-grid">
-          <div class="broker-role-chip"><strong>Now</strong><span>Test workflow, defaults, feedback, offer workspace.</span></div>
-          <div class="broker-role-chip"><strong>Next</strong><span>Invite agents, view team offers, compliance review.</span></div>
-          <div class="broker-role-chip"><strong>Later</strong><span>Brokerage billing, permissions, partner defaults.</span></div>
+          <div class="broker-role-chip"><strong>Workspace</strong><span>Offer workflow, defaults, feedback, and an offer workspace.</span></div>
+          <div class="broker-role-chip"><strong>Brokerage process</strong><span>Manage team offers and compliance review through your established brokerage process.</span></div>
+          <div class="broker-role-chip"><strong>Current scope</strong><span>Team billing and partner defaults are not part of this workspace.</span></div>
         </div>
         <div class="broker-mini-banner"><strong>Broker-safe reminder:</strong> HomeOfferFlow prepares offer packets and buyer-side signature requests. The broker/agent remains responsible for review, advice, submission, negotiation, compliance, and final transaction handling.</div>`;
       const firstCard = dashPanel.querySelector('.account-card');
@@ -16919,7 +16919,7 @@ function routeAfterMagicLinkIfNeeded() {
         </div>
         <div class="beta-checklist-item" data-broker-extra="1">
           <div class="beta-checklist-check">•</div>
-          <div class="beta-checklist-copy"><strong>Plan agent permissions</strong><span>Next build will separate agent, broker/team lead, and admin permissions for team rollout.</span></div>
+          <div class="beta-checklist-copy"><strong>Confirm team responsibilities</strong><span>Confirm agent, broker/team lead, and administrator responsibilities before adding anyone to the workspace.</span></div>
         </div>`);
     }
   };

@@ -365,8 +365,11 @@ class AgentActivationDashboardTests(unittest.TestCase):
         self.assertNotIn("review beta readiness", HTML)
         self.assertNotIn("into beta testing", HTML)
         self.assertNotIn("harden the beta", HTML)
+        self.assertNotIn("remain roadmap items", HTML)
+        self.assertNotIn("Next build will separate", HTML)
         self.assertIn("review workflow readiness", HTML)
         self.assertIn("into the workspace", HTML)
+        self.assertIn("not part of this workspace", HTML)
 
     def test_canceled_accounts_use_reactivation_attribution(self):
         script_start = HTML.index('id="hof-agent-activation-v16-js"')
