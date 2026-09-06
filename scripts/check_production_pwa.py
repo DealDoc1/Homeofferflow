@@ -12,7 +12,7 @@ from dataclasses import dataclass
 DEFAULT_ORIGIN = "https://www.homeofferflow.com"
 REQUIRED_MANIFEST = {
     "display": "standalone",
-    "orientation": "portrait-primary",
+    "orientation": "any",
     "start_url": "/",
     "scope": "/",
     "lang": "en-US",

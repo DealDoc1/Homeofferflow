@@ -7,7 +7,7 @@ class ProductionPwaCheckTests(unittest.TestCase):
     def test_manifest_requires_installable_shell_metadata(self):
         payload = {
             "display": "standalone",
-            "orientation": "portrait-primary",
+            "orientation": "any",
             "start_url": "/",
             "scope": "/",
             "launch_handler": {"client_mode": ["navigate-existing", "auto"]},
