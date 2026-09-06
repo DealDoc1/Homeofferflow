@@ -197,7 +197,7 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn('<strong>Purchase</strong> can lead to an offer, representation, or a customer notice.', AGENTS)
         self.assertIn('<strong>Property listing</strong> and <strong>lease listing</strong> can lead to the relevant listing, disclosure, or review work.', AGENTS)
         self.assertIn('<strong>Tenant representation</strong> can lead to representation or customer-notice work.', AGENTS)
-        self.assertIn('HomeOfferFlow does not automatically select a legal form.', AGENTS)
+        self.assertIn('The guided interview narrows to the documents that fit the facts you provide', AGENTS)
 
     def test_agent_landing_cards_and_structured_data_match_the_question_two_interview(self):
         self.assertIn('Choose the transaction type. Next, we’ll ask what you need and open the appropriate guided workflow.', AGENTS)
