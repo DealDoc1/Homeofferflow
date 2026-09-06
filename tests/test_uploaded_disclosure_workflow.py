@@ -29,6 +29,11 @@ class UploadedDisclosureWorkflowTests(unittest.TestCase):
         self.assertIn("type: 'other'", INDEX_HTML)
         self.assertIn("I reviewed the uploaded PDFs, labels, and packet order", INDEX_HTML)
 
+    def test_upload_guidance_describes_the_current_packet_experience(self):
+        self.assertIn("Upload PDF disclosures or listing-side documents to include them with the final offer packet.", INDEX_HTML)
+        self.assertNotIn("Phase 1: upload PDF disclosures", INDEX_HTML)
+        self.assertNotIn("Signature placement on uploaded docs is coming next.", INDEX_HTML)
+
     def test_upload_rejects_files_without_a_pdf_signature_before_packet_generation(self):
         self.assertIn("file.slice(0, 4).arrayBuffer()", INDEX_HTML)
         self.assertIn("signature !== '%PDF'", INDEX_HTML)
