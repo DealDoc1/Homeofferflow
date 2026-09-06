@@ -435,7 +435,7 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn('"name":"OnDemand Agent Workspace"', AGENTS)
         self.assertIn('"price":"29"', AGENTS)
         self.assertIn('60-day free trial followed by $29 monthly unless canceled', AGENTS)
-        self.assertIn('See your 60-day HomeOfferFlow trial', AGENTS)
+        self.assertIn('Start your 60-day trial', AGENTS)
         self.assertIn({'source': '/agents', 'destination': '/agents.html'}, VERCEL.get('rewrites', []))
 
     def test_investor_workspace_page_is_indexable_and_routes_to_passwordless_sign_in(self):

@@ -57,15 +57,12 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertLess(entry.index(target), entry.index('startPrimaryOffer();'))
         self.assertIn("cta: 'Start a Transaction'", INDEX)
 
-    def test_agent_landing_links_to_lease_workflow_guide(self):
-        self.assertIn('href="/texas-lease-offer-workflow"', AGENTS)
-        self.assertIn('Read the lease workflow guide', AGENTS)
-        self.assertIn('data-agent-cta-path="lease_guide"', AGENTS)
-
-    def test_agent_landing_links_to_listing_workflow_guide(self):
-        self.assertIn('href="/texas-listing-workflow"', AGENTS)
-        self.assertIn('Read the listing workflow guide', AGENTS)
-        self.assertIn('data-agent-cta-path="listing_guide"', AGENTS)
+    def test_agent_landing_keeps_reference_guides_out_of_the_first_screen(self):
+        hero = AGENTS.split('<section class="grid" id="transaction-start"', 1)[0]
+        self.assertNotIn('form_library_guide', hero)
+        self.assertNotIn('listing_guide', hero)
+        self.assertNotIn('lease_guide', hero)
+        self.assertIn('Start your 60-day trial', hero)
 
     def test_agent_landing_uses_transaction_choices_for_guided_package_handoffs(self):
         self.assertIn('href="/?agent=1&amp;workflow=sale_listing&amp;utm_source=agent_workspace&amp;utm_medium=agent_page&amp;utm_campaign=transaction_selector"', AGENTS)
@@ -169,7 +166,7 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertNotIn('Start a buyer offer — no payment', AGENTS)
         self.assertIn('No brokerage seat required.', AGENTS)
         self.assertIn("Every signed-in agent can use HomeOfferFlow's released shared form workflows.", AGENTS)
-        self.assertIn('save your agent defaults afterward for faster repeat work', AGENTS)
+        self.assertIn('save your defaults for faster repeat work', AGENTS)
         self.assertIn('OnDemand Realty agents:', AGENTS)
         self.assertIn('60 days free, then $29/month unless canceled.', AGENTS)
         self.assertIn('id="agentTrialOffer"', AGENTS)
@@ -180,8 +177,8 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn('utm_source=buyer_offer_interview&amp;utm_medium=lease_handoff&amp;utm_campaign=fixture_lease_review', INDEX)
 
     def test_ondemand_trial_links_preserve_agent_attribution(self):
-        self.assertEqual(AGENTS.count('data-agent-cta-path="ondemand_trial"'), 2)
-        self.assertEqual(AGENTS.count('utm_source=agent_workspace&amp;utm_medium=agent_page&amp;utm_campaign=ondemand_trial'), 2)
+        self.assertEqual(AGENTS.count('data-agent-cta-path="ondemand_trial"'), 1)
+        self.assertEqual(AGENTS.count('utm_source=agent_workspace&amp;utm_medium=agent_page&amp;utm_campaign=ondemand_trial'), 1)
 
     def test_agent_landing_metadata_targets_high_intent_real_estate_offer_searches(self):
         self.assertIn('<title>Texas Real Estate Offer Tools for Agents &amp; Brokers | HomeOfferFlow</title>', AGENTS)
