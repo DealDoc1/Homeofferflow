@@ -45,6 +45,13 @@ class CustomerFacingCopyTests(unittest.TestCase):
     def test_ai_review_fallback_keeps_technical_errors_out_of_customer_copy(self):
         self.assertIn("Your offer review is ready. We used the built-in review for this packet.", HTML)
         self.assertNotIn("rules-based review is shown instead. ' + (err?.message || '')", HTML)
+        self.assertNotIn("this built-in review is shown. ' + result.error", HTML)
+
+    def test_core_customer_actions_use_clear_recovery_messages(self):
+        self.assertIn("function customerActionError(action)", HTML)
+        self.assertIn("No packet credit was used. Please try again.", HTML)
+        self.assertNotIn("alert('Payment error: ' + (err?.message || err))", HTML)
+        self.assertNotIn("alert('Could not refresh SignWell status: ' + (err?.message || err))", HTML)
 
     def test_fsbo_intake_keeps_optional_partner_choices_out_of_the_initial_path(self):
         self.assertIn("What would you like help with first?", HTML)

@@ -4259,6 +4259,10 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
     el.className = 'account-status show ' + (type === 'err' ? 'err' : 'ok');
   }
 
+  function customerActionError(action) {
+    return `We couldn't ${action}. Please try again. If it continues, contact support@homeofferflow.com.`;
+  }
+
   function showAccountTab(tab = 'dashboard') {
     document.querySelectorAll('[data-account-tab]').forEach(btn => btn.classList.toggle('active', btn.dataset.accountTab === tab));
     document.querySelectorAll('.account-panel').forEach(panel => panel.classList.remove('active'));
@@ -4514,7 +4518,7 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
       window.location.href = result.url;
     } catch (err) {
       console.error('Billing portal failed:', err);
-      alert('Could not open billing portal: ' + (err?.message || err));
+      alert(customerActionError('open your billing portal'));
     }
   }
 
@@ -4552,7 +4556,7 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
       window.location.href = result.url;
     } catch (err) {
       console.error('Subscription checkout failed:', err);
-      alert('Subscription checkout failed: ' + (err?.message || err));
+      alert(customerActionError('start subscription checkout'));
     }
   }
 
@@ -4902,7 +4906,7 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
       setTimeout(closeBetaFeedback, alertOk ? 1200 : 2200);
     } catch (err) {
       console.error('Feedback submit failed:', err);
-      const fallback = 'Could not save feedback in the app. Copy your note and email support@homeofferflow.com. Error: ' + (err?.message || err);
+      const fallback = 'We could not save your feedback. Please copy your note and email support@homeofferflow.com.';
       setFeedbackStatus(fallback, 'err');
       try {
         const text = 'HomeOfferFlow Feedback\n\nAccount: ' + (user.email || '') + '\nIssue type: ' + issueType + '\n\n' + message;
@@ -5172,8 +5176,7 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
       return saveResult.data || payload;
     } catch (err) {
       console.error('Profile save failed', err);
-      const msg = err?.message || JSON.stringify(err) || 'Could not save profile.';
-      setAccountStatus(msg, 'err');
+      setAccountStatus(customerActionError('save your profile'), 'err');
       throw err;
     }
   }
@@ -5583,7 +5586,7 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
       }
     } catch (err) {
       console.error('SignWell status refresh failed:', err);
-      alert('Could not refresh SignWell status: ' + (err?.message || err));
+      alert(customerActionError('refresh signing status'));
     } finally {
       if (buttonEl) {
         buttonEl.disabled = false;
@@ -5640,7 +5643,7 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
       await logOfferEvent(offer.id, 'resume_clicked', offer.status || 'Draft', 'Offer resumed from dashboard.');
     } catch (err) {
       console.error('Resume failed:', err);
-      alert('Could not resume offer: ' + err.message);
+      alert(customerActionError('resume this offer'));
     }
   }
 
@@ -5669,7 +5672,7 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
       await loadMyOffers();
     } catch (err) {
       console.error('Duplicate failed:', err);
-      alert('Could not duplicate offer: ' + err.message);
+      alert(customerActionError('duplicate this offer'));
     }
   }
 
@@ -5685,7 +5688,7 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
       await loadMyOffers();
     } catch (err) {
       console.error('Delete failed:', err);
-      alert('Could not delete offer: ' + err.message);
+      alert(customerActionError('delete this offer'));
     }
   }
 
@@ -6788,7 +6791,7 @@ function routeAfterMagicLinkIfNeeded() {
       if (msg) {
         msg.style.display = 'block';
         msg.className = 'notice warn';
-        msg.innerHTML = 'Showing payment error: ' + e.message;
+        msg.textContent = customerActionError('start showing checkout');
       }
       if (btn) {
         btn.disabled = false;
@@ -7489,7 +7492,7 @@ function routeAfterMagicLinkIfNeeded() {
       throw new Error('Stripe did not return a checkout URL.');
     } catch (err) {
       console.error('Payment error:', err);
-      alert('Payment error: ' + (err?.message || err));
+      alert(customerActionError('start checkout'));
       if (btn) {
         btn.disabled = false;
         btn.textContent = oldText || ('Pay $' + (state.selectedPrice || 99) + ' & Continue →');
@@ -7627,7 +7630,7 @@ function routeAfterMagicLinkIfNeeded() {
         err?.message || String(err || 'Packet generation failed.'),
         { role: state.data.userType || hofAuth.role || 'agent' }
       );
-      alert('Could not generate packet. No packet credit was used. Please try again. Error: ' + (err?.message || err));
+      alert('We could not generate this packet. No packet credit was used. Please try again. If it continues, contact support@homeofferflow.com.');
       if (nextBtn) {
         nextBtn.disabled = false;
         nextBtn.textContent = oldText || 'Generate Packet →';
@@ -9281,7 +9284,7 @@ function routeAfterMagicLinkIfNeeded() {
     if (!result || result.error) {
       const base = {
         score: fallback.score,
-        summary: result?.error ? ('Live AI review could not load, so this built-in review is shown. ' + result.error) : 'Built-in review complete.',
+        summary: result?.error ? 'Your offer review is ready. We used the built-in review for this packet.' : 'Built-in review complete.',
         risks: fallback.issues || [],
         strengths: fallback.strengths || [],
         marketContext: fallback.market || [],
