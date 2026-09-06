@@ -22,6 +22,7 @@ SUPABASE_SERVICE_ROLE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
 PARTNER_ONBOARDING_FROM_EMAIL = os.environ.get("PARTNER_ONBOARDING_FROM_EMAIL", "offers@homeofferflow.com")
 PUBLIC_APP_ORIGIN = (os.environ.get("PUBLIC_APP_ORIGIN") or "https://www.homeofferflow.com").rstrip("/")
+PARTNER_EMAIL_TIERS = frozenset({"founding_pilot", "monthly_placement", "market_exclusive", "discuss"})
 
 
 def _test_events_allowed():
@@ -864,15 +865,32 @@ class handler(BaseHTTPRequestHandler):
         if not RESEND_API_KEY or not email:
             return "not_configured" if not RESEND_API_KEY else "missing_email"
         url = f"{PUBLIC_APP_ORIGIN}/?partner_onboarding={urllib.parse.quote(onboarding_token, safe='')}"
+        metadata = session.get("metadata") if isinstance(session.get("metadata"), dict) else {}
+        tier = str(metadata.get("partner_tier") or "").strip()
+        # Resend receives only controlled lifecycle labels—never a contact,
+        # setup token, property, market, or payment detail.
+        tags = [{"name": "email_type", "value": "partner_onboarding"}]
+        if tier in PARTNER_EMAIL_TIERS:
+            tags.append({"name": "partner_tier", "value": tier})
         payload = {
             "from": PARTNER_ONBOARDING_FROM_EMAIL,
             "to": [email],
             "subject": "Complete your HomeOfferFlow partner setup",
+            "tags": tags,
             "text": f"Thanks for partnering with HomeOfferFlow. Complete your secure setup within 14 days: {url}\n\nThis prepares your creative for review only. It does not activate advertising or replace the required written placement agreement.",
         }
         try:
             with httpx.Client(timeout=12) as client:
-                response = client.post("https://api.resend.com/emails", headers={"Authorization": f"Bearer {RESEND_API_KEY}", "Content-Type": "application/json"}, json=payload)
+                response = client.post(
+                    "https://api.resend.com/emails",
+                    headers={
+                        "Authorization": f"Bearer {RESEND_API_KEY}",
+                        "Content-Type": "application/json",
+                        # A Stripe webhook retry must not issue duplicate setup mail.
+                        "Idempotency-Key": "partner-onboarding-" + hashlib.sha256(onboarding_token.encode("utf-8")).hexdigest(),
+                    },
+                    json=payload,
+                )
             if response.status_code >= 300:
                 print(f"Partner onboarding email failed: {response.status_code}")
                 return "failed"
