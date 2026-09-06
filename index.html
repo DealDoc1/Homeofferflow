@@ -450,7 +450,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     try {
       const source = await root.hofLoadApprovedBrokerageSource?.(FORM_CODE);
       const copy = card.querySelector('#txr1905AgreementCopy');
-      if (!source) { copy.textContent = 'TXR-1905 is temporarily unavailable in the HomeOfferFlow form library.'; return; }
+      if (!source) { copy.textContent = 'TXR-1905 is not currently available in your form library.'; return; }
       copy.innerHTML = `Use a short, guided interview for the ${escape(source.source_revision)} TXR-1905 source. HomeOfferFlow saves a private review PDF; this workflow does not send or sign the addendum.`;
       const button = document.createElement('button');
       button.type = 'button'; button.className = 'btn-secondary'; button.textContent = 'Start mineral addendum draft';
@@ -19284,7 +19284,7 @@ function routeAfterMagicLinkIfNeeded() {
       const source = await approvedShortFormSource();
       const copy = card.querySelector('#txr1507AgreementCopy');
       if (!source) {
-        copy.textContent = 'TXR-1507 is temporarily unavailable in the HomeOfferFlow form library.';
+        copy.textContent = 'TXR-1507 is not currently available in your form library.';
         return;
       }
       copy.innerHTML = `Start a private TXR-1507 Short Form draft using the ${escape(source.source_revision)} HomeOfferFlow library source. Review the saved draft, then use the private signing queue to explicitly confirm recipients and send it when appropriate.`;
@@ -19412,7 +19412,7 @@ function routeAfterMagicLinkIfNeeded() {
       const source = await approvedLongFormSource();
       const copy = card.querySelector('#txr1501AgreementCopy');
       if (!source) {
-        copy.textContent = 'TXR-1501 is temporarily unavailable in the HomeOfferFlow form library.';
+        copy.textContent = 'TXR-1501 is not currently available in your form library.';
         return;
       }
       copy.innerHTML = `Start a private TXR-1501 Long Form draft using the ${escape(source.source_revision)} HomeOfferFlow library source. Choose this form deliberately; it is not a substitute for the Short Form. Review the saved draft, then use the private signing queue to explicitly confirm recipients before sending.`;
@@ -19547,7 +19547,7 @@ function routeAfterMagicLinkIfNeeded() {
       const source = await approvedShowingSource();
       const copy = card.querySelector('#txr1508AgreementCopy');
       if (!source) {
-        copy.textContent = 'TXR-1508 is temporarily unavailable in the HomeOfferFlow form library.';
+        copy.textContent = 'TXR-1508 is not currently available in your form library.';
         return;
       }
       copy.innerHTML = `Start a private TXR-1508 showing draft using the ${escape(source.source_revision)} HomeOfferFlow library source. This is an unrepresented-customer workflow, not a buyer representation agreement. Review the saved draft, then use the private signing queue to explicitly confirm recipients and send it when appropriate.`;
@@ -19660,7 +19660,7 @@ function routeAfterMagicLinkIfNeeded() {
     panel.appendChild(card);
     try {
       const source = await approvedNoticeSource(), copy = card.querySelector('#txr1506AgreementCopy');
-      if (!source) { copy.textContent = 'TXR-1506 is temporarily unavailable in the HomeOfferFlow form library.'; return; }
+      if (!source) { copy.textContent = 'TXR-1506 is not currently available in your form library.'; return; }
       copy.innerHTML = `Start a private TXR-1506 notice draft using the ${escape(source.source_revision)} HomeOfferFlow library source. This is a consumer notice, not a representation agreement. Review the saved draft, then use the private signing queue to explicitly confirm recipients before sending.`;
       const button = document.createElement('button'); button.type = 'button'; button.className = 'btn-secondary'; button.textContent = 'Start TXR-1506 draft';
       button.addEventListener('click', () => openNoticeDraft(source)); card.appendChild(button);
@@ -21237,7 +21237,7 @@ function routeAfterMagicLinkIfNeeded() {
     const panel = document.getElementById('accountPanelRelationships');
     if (!panel || !activeAgent() || document.getElementById('txr1914AgreementCard')) return;
     const card = document.createElement('div'); card.id = 'txr1914AgreementCard'; card.className = 'account-card hof-agreement-card'; card.innerHTML = '<h4>Seller Financing Addendum</h4><p id="txr1914AgreementCopy">Checking the HomeOfferFlow form library…</p>'; panel.appendChild(card);
-    try { const source = await root.hofLoadApprovedBrokerageSource?.(FORM_CODE); const copy = card.querySelector('#txr1914AgreementCopy'); if (!source) { copy.textContent = 'TXR-1914 is temporarily unavailable in the HomeOfferFlow form library.'; return; } copy.innerHTML = `Use the ${escape(source.source_revision)} TXR-1914 interview to prepare a private review PDF. Seller financing can be complex; this workflow does not recommend terms, create loan documents, send, or sign the addendum.`; const button = document.createElement('button'); button.type = 'button'; button.className = 'btn-secondary'; button.textContent = 'Start seller-financing draft'; button.addEventListener('click', () => openDraftDialog(source)); card.appendChild(button); } catch (error) { console.error('TXR-1914 source check failed:', error); card.querySelector('#txr1914AgreementCopy').textContent = root.hofApprovedSourceStatusCopy(error); }
+    try { const source = await root.hofLoadApprovedBrokerageSource?.(FORM_CODE); const copy = card.querySelector('#txr1914AgreementCopy'); if (!source) { copy.textContent = 'TXR-1914 is not currently available in your form library.'; return; } copy.innerHTML = `Use the ${escape(source.source_revision)} TXR-1914 interview to prepare a private review PDF. Seller financing can be complex; this workflow does not recommend terms, create loan documents, send, or sign the addendum.`; const button = document.createElement('button'); button.type = 'button'; button.className = 'btn-secondary'; button.textContent = 'Start seller-financing draft'; button.addEventListener('click', () => openDraftDialog(source)); card.appendChild(button); } catch (error) { console.error('TXR-1914 source check failed:', error); card.querySelector('#txr1914AgreementCopy').textContent = root.hofApprovedSourceStatusCopy(error); }
   }
   root.hofRenderTxr1914Card = renderCard;
   function openDraftDialog(source) {
@@ -21310,7 +21310,7 @@ function routeAfterMagicLinkIfNeeded() {
     try {
       const source = await root.hofLoadApprovedBrokerageSource?.(FORM_CODE);
       const copy = card.querySelector('#txr1948AgreementCopy');
-      if (!source) { copy.textContent = 'TXR-1948 is temporarily unavailable in the HomeOfferFlow form library.'; return; }
+      if (!source) { copy.textContent = 'TXR-1948 is not currently available in your form library.'; return; }
       copy.innerHTML = `Use the ${esc(source.source_revision)} TXR-1948 interview to prepare a private appraisal-review draft. It does not evaluate value, recommend a waiver, send, or sign the addendum.`;
       const button = document.createElement('button'); button.type = 'button'; button.className = 'btn-secondary'; button.textContent = 'Start appraisal-review draft';
       button.addEventListener('click', () => openDraft(source)); card.appendChild(button);
@@ -21341,7 +21341,7 @@ function routeAfterMagicLinkIfNeeded() {
     if (!panel || !activeAgent() || document.getElementById('txr1953AgreementCard')) return;
     const card = document.createElement('div'); card.id = 'txr1953AgreementCard'; card.className = 'account-card hof-agreement-card';
     card.innerHTML = '<h4>Residential Lease Addendum</h4><p id="txr1953AgreementCopy">Checking the HomeOfferFlow form library…</p>'; panel.appendChild(card);
-    try { const source = await root.hofLoadApprovedBrokerageSource?.(FORM_CODE), copy = card.querySelector('#txr1953AgreementCopy'); if (!source) { copy.textContent = 'TXR-1953 is temporarily unavailable in the HomeOfferFlow form library.'; return; } copy.innerHTML = `Use the ${esc(source.source_revision)} TXR-1953 interview to prepare a private residential-lease review draft. It does not advise on leases, send, or sign the addendum.`; const button = document.createElement('button'); button.type = 'button'; button.className = 'btn-secondary'; button.textContent = 'Start residential-lease draft'; button.onclick = () => openDraft(source); card.appendChild(button); } catch (error) { card.querySelector('#txr1953AgreementCopy').textContent = root.hofApprovedSourceStatusCopy(error); }
+    try { const source = await root.hofLoadApprovedBrokerageSource?.(FORM_CODE), copy = card.querySelector('#txr1953AgreementCopy'); if (!source) { copy.textContent = 'TXR-1953 is not currently available in your form library.'; return; } copy.innerHTML = `Use the ${esc(source.source_revision)} TXR-1953 interview to prepare a private residential-lease review draft. It does not advise on leases, send, or sign the addendum.`; const button = document.createElement('button'); button.type = 'button'; button.className = 'btn-secondary'; button.textContent = 'Start residential-lease draft'; button.onclick = () => openDraft(source); card.appendChild(button); } catch (error) { card.querySelector('#txr1953AgreementCopy').textContent = root.hofApprovedSourceStatusCopy(error); }
   }
   function openDraft(source) {
     document.getElementById('txr1953AgreementDialog')?.remove(); const modal = document.createElement('div'); modal.id = 'txr1953AgreementDialog'; modal.className = 'hof-agreement-modal';
@@ -21365,7 +21365,7 @@ function routeAfterMagicLinkIfNeeded() {
     if (!panel || !activeAgent() || document.getElementById('txr1954AgreementCard')) return;
     const card = document.createElement('div'); card.id = 'txr1954AgreementCard'; card.className = 'account-card hof-agreement-card';
     card.innerHTML = '<h4>Fixture Lease Addendum</h4><p id="txr1954AgreementCopy">Checking the HomeOfferFlow form library…</p>'; panel.appendChild(card);
-    try { const source = await root.hofLoadApprovedBrokerageSource?.(FORM_CODE), copy = card.querySelector('#txr1954AgreementCopy'); if (!source) { copy.textContent = 'TXR-1954 is temporarily unavailable in the HomeOfferFlow form library.'; return; } copy.innerHTML = `Use the ${esc(source.source_revision)} TXR-1954 interview to prepare a private fixture-lease review draft. It does not advise on leases, send, or sign the addendum.`; const button = document.createElement('button'); button.type = 'button'; button.className = 'btn-secondary'; button.textContent = 'Start fixture-lease draft'; button.onclick = () => openDraft(source); card.appendChild(button); } catch (error) { card.querySelector('#txr1954AgreementCopy').textContent = root.hofApprovedSourceStatusCopy(error); }
+    try { const source = await root.hofLoadApprovedBrokerageSource?.(FORM_CODE), copy = card.querySelector('#txr1954AgreementCopy'); if (!source) { copy.textContent = 'TXR-1954 is not currently available in your form library.'; return; } copy.innerHTML = `Use the ${esc(source.source_revision)} TXR-1954 interview to prepare a private fixture-lease review draft. It does not advise on leases, send, or sign the addendum.`; const button = document.createElement('button'); button.type = 'button'; button.className = 'btn-secondary'; button.textContent = 'Start fixture-lease draft'; button.onclick = () => openDraft(source); card.appendChild(button); } catch (error) { card.querySelector('#txr1954AgreementCopy').textContent = root.hofApprovedSourceStatusCopy(error); }
   }
   function openDraft(source) {
     document.getElementById('txr1954AgreementDialog')?.remove(); const modal = document.createElement('div'); modal.id = 'txr1954AgreementDialog'; modal.className = 'hof-agreement-modal';
