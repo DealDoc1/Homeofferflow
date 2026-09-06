@@ -54,7 +54,7 @@ class UnrepresentedShowingTests(unittest.TestCase):
     def test_agent_dashboard_starts_with_transaction_routing(self):
         source = (Path(__file__).resolve().parents[1] / "index.html").read_text()
         for token in (
-            "What are you working on?",
+            "Which transaction are you starting?",
             "startAgentTransaction('listing')",
             "startAgentTransaction('purchase')",
             "startAgentTransaction('lease_listing')",
