@@ -168,9 +168,13 @@ class AdminTrackerSecurityTests(IsolatedAsyncioTestCase):
         subscriptions = [{"user_id": "agent-123", "status": "trialing", "plan": "agent_starter_monthly", "trial_ends_at": trial_ends_at, "current_period_end": None}]
         # These sensitive keys simulate an upstream mistake. The dashboard
         # payload must ignore them rather than forwarding them to a broker.
+        recent_offer_at = (
+            admin_dashboard.datetime.now(admin_dashboard.timezone.utc)
+            - admin_dashboard.timedelta(days=7)
+        ).isoformat()
         offers = [{
             "user_id": "agent-123", "status": "sent", "signwell_status": "awaiting_signature",
-            "created_at": "2026-07-29T00:00:00Z", "updated_at": "2026-07-29T00:00:00Z",
+            "created_at": recent_offer_at, "updated_at": recent_offer_at,
             "buyer_name": "Private Buyer", "property_address": "123 Private Lane",
             "offer_terms": {"price": 500000}, "document_contents": "private",
         }]

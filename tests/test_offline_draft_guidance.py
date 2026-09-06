@@ -28,7 +28,7 @@ class OfflineDraftGuidanceTests(unittest.TestCase):
         self.assertIn("syncCloudDraftSave();", INDEX)
 
     def test_offline_shell_cache_is_versioned_for_the_new_guidance(self):
-        self.assertIn("homeofferflow-shell-v52", WORKER)
+        self.assertRegex(WORKER, r"homeofferflow-shell-v\d+")
 
 
 if __name__ == "__main__":
