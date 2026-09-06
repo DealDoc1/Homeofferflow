@@ -13,6 +13,7 @@ class LowNoisePublicPageTests(unittest.TestCase):
         self.assertIn('>Start question 1<', hero)
         self.assertEqual(hero.count('class="button"'), 1)
         self.assertEqual(hero.count('class="button secondary"'), 0)
+        self.assertEqual(hero.count('data-agent-cta-path='), 1)
 
     def test_seller_hero_has_one_primary_action_and_one_comparison_path(self):
         hero = SELLERS.split('<section aria-labelledby="seller-next-steps">', 1)[0]
