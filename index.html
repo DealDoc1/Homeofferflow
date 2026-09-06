@@ -2731,6 +2731,23 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
         <div class="platform-actions"><button type="button" onclick="downloadRepresentationAgreement()">Prepare Agreement PDF</button><button type="button" onclick="sendRepresentationAgreement()">Send for Signature</button></div>
         <div id="agreementStatus" class="platform-status"></div>
       </div>
+      <div class="platform-card" style="margin-top:1rem;">
+        <h4>Prepare a Neutral Showing Form</h4>
+        <p>Use this when you are providing access to one property without representing the customer in the transaction.</p>
+        <div class="platform-grid">
+          <div class="field"><label>Property Address</label><input id="showingAgreementAddress" placeholder="Street address and city"/></div>
+          <div class="field"><label>Customer’s Full Name</label><input id="showingAgreementCustomerName" placeholder="Customer full legal name"/></div>
+          <div class="field"><label>Second Customer (optional)</label><input id="showingAgreementCustomerTwoName" placeholder="Second customer full legal name"/></div>
+          <div class="field"><label>Customer has another representation agreement?</label><select id="showingAgreementHasRepresentation"><option value="no">No</option><option value="yes">Yes</option></select></div>
+          <div class="field"><label>Second customer has another representation agreement?</label><select id="showingAgreementCustomerTwoHasRepresentation"><option value="no">No</option><option value="yes">Yes</option></select></div>
+          <div class="field"><label>Brokerage</label><input id="showingAgreementBrokerName" placeholder="Brokerage legal name"/></div>
+          <div class="field"><label>Brokerage License #</label><input id="showingAgreementBrokerLicense" placeholder="Texas brokerage license"/></div>
+          <div class="field"><label>Associate Name</label><input id="showingAgreementAssociateName" placeholder="Agent full name"/></div>
+          <div class="field"><label>Associate License #</label><input id="showingAgreementAssociateLicense" placeholder="Texas agent license"/></div>
+        </div>
+        <div class="platform-actions"><button type="button" onclick="downloadUnrepresentedShowingForm()">Prepare Showing Form</button></div>
+        <div id="showingAgreementStatus" class="platform-status"></div>
+      </div>
     </div>
 
     <div class="account-panel" id="accountPanelPartners">
@@ -11875,7 +11892,52 @@ function routeAfterMagicLinkIfNeeded() {
     setIfBlank('agreementBrokerLicense', brokerage.license_number || profile.brokerage_license);
     setIfBlank('agreementAssociateName', profile.agent_name || root.getAccountDisplayName?.());
     setIfBlank('agreementAssociateLicense', profile.license_number || profile.agent_license);
+    setIfBlank('showingAgreementBrokerName', brokerage.name || profile.brokerage_name || profile.team_name);
+    setIfBlank('showingAgreementBrokerLicense', brokerage.license_number || profile.brokerage_license);
+    setIfBlank('showingAgreementAssociateName', profile.agent_name || root.getAccountDisplayName?.());
+    setIfBlank('showingAgreementAssociateLicense', profile.license_number || profile.agent_license);
     root.updateAgreementServiceLevel();
+  };
+
+  root.downloadUnrepresentedShowingForm = async function downloadUnrepresentedShowingForm(){
+    const status = document.getElementById('showingAgreementStatus');
+    const data = {
+      propertyAddress: value('showingAgreementAddress'),
+      customerName: value('showingAgreementCustomerName'),
+      customerTwoName: value('showingAgreementCustomerTwoName'),
+      customerHasRepresentation: value('showingAgreementHasRepresentation'),
+      customerTwoHasRepresentation: value('showingAgreementCustomerTwoHasRepresentation'),
+      brokerName: value('showingAgreementBrokerName'),
+      brokerLicense: value('showingAgreementBrokerLicense'),
+      associateName: value('showingAgreementAssociateName'),
+      associateLicense: value('showingAgreementAssociateLicense')
+    };
+    const required = ['propertyAddress', 'customerName', 'brokerName', 'associateName'];
+    if (required.some(key => !String(data[key] || '').trim())) {
+      if (status) { status.textContent = 'Please complete the property, customer, brokerage, and associate details.'; status.className = 'platform-status err'; }
+      return;
+    }
+    if (status) { status.textContent = 'Preparing the showing form…'; status.className = 'platform-status'; }
+    try {
+      const response = await fetch('/api/unrepresented-showing', {
+        method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data)
+      });
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.error || 'Could not prepare the showing form');
+      }
+      const download = URL.createObjectURL(await response.blob());
+      const link = document.createElement('a');
+      link.href = download;
+      link.download = `HomeOfferFlow_Unrepresented_Showing_${data.propertyAddress.replace(/[^A-Za-z0-9]+/g, '_') || 'property'}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(download);
+      if (status) { status.textContent = 'Showing form ready. Have the parties complete the required initials and dates before the showing.'; status.className = 'platform-status ok'; }
+    } catch (error) {
+      if (status) { status.textContent = error?.message || 'Could not prepare the showing form.'; status.className = 'platform-status err'; }
+    }
   };
 
   root.downloadRepresentationAgreement = async function downloadRepresentationAgreement(){

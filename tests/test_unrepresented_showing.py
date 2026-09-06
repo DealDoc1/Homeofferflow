@@ -30,6 +30,16 @@ class UnrepresentedShowingTests(unittest.TestCase):
         for field in ("propertyAddress", "customerName", "brokerName", "associateName"):
             self.assertIn(field, source)
 
+    def test_agent_workspace_has_a_compact_showing_interview(self):
+        source = (Path(__file__).resolve().parents[1] / "index.html").read_text()
+        for token in (
+            "Prepare a Neutral Showing Form",
+            "downloadUnrepresentedShowingForm",
+            "showingAgreementAddress",
+            "/api/unrepresented-showing",
+        ):
+            self.assertIn(token, source)
+
 
 if __name__ == "__main__":
     unittest.main()
