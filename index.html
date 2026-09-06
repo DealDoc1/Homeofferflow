@@ -8173,6 +8173,7 @@ function routeAfterMagicLinkIfNeeded() {
       requireField('propCity', 'city', missing);
       requireField('propCounty', 'county', missing);
       requireField('propZip', 'zip code', missing);
+      requireRadioSelection('leases', 'known lease status', missing);
     }
 
     if (stepId === 'step3') {
@@ -8240,6 +8241,7 @@ function routeAfterMagicLinkIfNeeded() {
       requireRadioSelection('survey', 'survey arrangement', missing);
       requireRadioSelection('sellerDisclosure', 'seller disclosure status', missing);
       requireRadioSelection('asIs', 'property condition election', missing);
+      requireRadioSelection('leadBuiltBefore1978', 'lead-based paint status', missing);
       requireField('mudDistrict', 'MUD / PID assessment district status', missing);
 
       if (getRadio('survey') === 'sellerExisting') {

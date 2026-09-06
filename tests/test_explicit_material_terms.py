@@ -66,6 +66,8 @@ class ExplicitMaterialTermsTests(unittest.TestCase):
             "brokerFeeType",
             "wantsConcessions",
             "homeWarranty",
+            "leadBuiltBefore1978",
+            "leases",
         ):
             self.assertIn(f"requireRadioSelection('{group}'", HTML)
 
