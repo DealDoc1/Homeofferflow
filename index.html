@@ -21349,6 +21349,17 @@ function routeAfterMagicLinkIfNeeded() {
   root.hofRenderTxr1954Card = renderCard; const prior = root.renderAccountDashboard; root.renderAccountDashboard = function () { if (typeof prior === 'function') prior.apply(this, arguments); renderCard(); }; if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', renderCard, { once:true }); else renderCard();
 })();
 </script>
+<script id="hof-customer-action-error-v1">
+(() => {
+  const customerMessage = /^(please|enter|choose|select|add|sign in|your session|this draft|the property|at least|you need|no form source|an active membership|a recipient|that invitation)/i;
+  window.hofCustomerActionError = (error, fallback) => {
+    const message = String(error?.message || error || '').replace(/\s+/g, ' ').trim();
+    return message.length > 0 && message.length <= 220 && customerMessage.test(message)
+      ? message
+      : fallback;
+  };
+})();
+</script>
 <script id="hof-private-review-save-feedback-v1">
 (function () {
   const formIds = new Map([
@@ -21375,6 +21386,7 @@ function routeAfterMagicLinkIfNeeded() {
     status.setAttribute('aria-live', 'polite');
     status.setAttribute('aria-atomic', 'true');
     form.addEventListener('submit', () => {
+      delete status.dataset.customerErrorNormalized;
       window.setTimeout(() => {
         if (button.disabled) return;
         button.disabled = true;
@@ -21383,7 +21395,16 @@ function routeAfterMagicLinkIfNeeded() {
       }, 0);
     });
     new MutationObserver(() => {
-      if (status.classList.contains('error')) restore(form, button);
+      if (status.classList.contains('error')) {
+        if (status.dataset.customerErrorNormalized !== 'true') {
+          status.dataset.customerErrorNormalized = 'true';
+        status.textContent = window.hofCustomerActionError(
+          status.textContent,
+          'We couldn’t save this draft. Check your entries and try again.'
+        );
+        }
+        restore(form, button);
+      }
       if (status.classList.contains('ready')) {
         button.disabled = true;
         button.setAttribute('aria-busy', 'false');
