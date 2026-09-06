@@ -287,6 +287,7 @@ class AdminTrackerSecurityTests(IsolatedAsyncioTestCase):
             "id": lead_id,
             "company_name": "North Texas Title",
             "contact_email": "partner@example.com",
+            "preferred_model": "monthly_placement",
             "payment_status": "paid",
             "status": "approved",
         }
@@ -302,6 +303,10 @@ class AdminTrackerSecurityTests(IsolatedAsyncioTestCase):
         self.assertEqual(result, {"expiresAt": "2026-08-25T00:00:00+00:00", "delivery": "sent"})
         self.assertEqual(client.request[0][0], "https://api.resend.com/emails")
         self.assertEqual(client.request[1]["json"]["to"], ["partner@example.com"])
+        self.assertEqual(client.request[1]["json"]["tags"], [
+            {"name": "email_type", "value": "partner_onboarding"},
+            {"name": "partner_tier", "value": "monthly_placement"},
+        ])
         self.assertIn("partner_onboarding=secret", client.request[1]["json"]["text"])
         self.assertIn("does not activate advertising", client.request[1]["json"]["text"])
 
