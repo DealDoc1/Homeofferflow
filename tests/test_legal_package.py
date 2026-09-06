@@ -24,6 +24,13 @@ class LegalPackageTests(unittest.TestCase):
             content = (ROOT / filename).read_text(encoding="utf-8").lower()
             self.assertNotIn("public records", content, filename)
 
+    def test_legal_pages_use_customer_facing_limited_workflow_language(self):
+        for filename in ("terms.html", "disclaimer.html"):
+            content = (ROOT / filename).read_text(encoding="utf-8").lower()
+            self.assertNotIn("beta", content, filename)
+            self.assertNotIn("staging", content, filename)
+            self.assertIn("under review", content, filename)
+
     def test_policy_package_contains_core_consumer_and_privacy_disclosures(self):
         privacy = (ROOT / "privacy.html").read_text(encoding="utf-8")
         esign = (ROOT / "esign-consent.html").read_text(encoding="utf-8")
