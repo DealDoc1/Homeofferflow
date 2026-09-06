@@ -3404,7 +3404,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           <div class="field" style="margin-top:0.9rem;"><div class="field-label-row"><label>Full Legal Description (optional override)</label><button class="helper-btn" onclick="toggleHelper('h-legal')">?</button></div><div class="helper-box" id="h-legal"><strong>💡 Optional</strong>If the MLS has a full legal description that includes more than Lot/Block/Subdivision, paste it here. Otherwise we will build it automatically.</div><textarea id="legalDescription" rows="2" placeholder="Optional — paste full legal description if available"></textarea></div>
       </div>
 
-      <div class="notice gold">📋 <strong>TREC 20-19 §4:</strong> Lease-related purchase contracts use separate forms and are not included in the standard buyer packet. Agents handling a fixture lease can start the separate <a href="/texas-agent-form-library?utm_source=buyer_offer_interview&amp;utm_medium=lease_handoff&amp;utm_campaign=fixture_lease_review" style="color:var(--gold-light);font-weight:800;">TXR-1954 private review draft in the shared form library →</a></div>
+      <div class="notice gold">📋 <strong>TREC 20-19 §4:</strong> A property with an existing lease needs its own guided form package. Choose the lease type below to continue in the shared form library.</div>
 
       <div style="margin-top:1rem; padding-top:0.75rem; border-top:1px solid rgba(255,255,255,0.07);">
         <p style="font-size:0.8rem; font-weight:700; color:var(--gold-light); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.5rem;">§4 — Leases on the Property</p>
@@ -3412,8 +3412,8 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         <div class="radio-group-label" style="margin-top:0.75rem;">Are you aware of any leases on this property?</div>
         <div class="radio-cards">
           <label class="radio-card" onclick="selectCard(this,'leases','no')"><input type="radio" name="leases" value="no"/><div class="radio-dot"></div><div class="radio-card-text"><strong>No — not aware of any leases</strong><small>Most common for standard resale homes</small></div></label>
-          <label class="radio-card" style="opacity:0.55;cursor:not-allowed;"><input type="radio" name="leases" value="residential" disabled/><div class="radio-dot"></div><div class="radio-card-text"><strong>Yes — residential lease</strong><small>Temporarily unavailable while the required addendum is tested</small></div></label>
-          <label class="radio-card" style="opacity:0.55;cursor:not-allowed;"><input type="radio" name="leases" value="fixture" disabled/><div class="radio-dot"></div><div class="radio-card-text"><strong>Yes — fixture lease</strong><small>Temporarily unavailable while the required addendum is tested</small></div></label>
+          <a class="radio-card" href="/texas-agent-form-library?utm_source=buyer_offer_interview&amp;utm_medium=lease_handoff&amp;utm_campaign=residential_lease_review" style="text-decoration:none;"><div class="radio-dot"></div><div class="radio-card-text"><strong>Yes — residential lease</strong><small>Continue to the guided residential-lease review</small></div></a>
+          <a class="radio-card" href="/texas-agent-form-library?utm_source=buyer_offer_interview&amp;utm_medium=lease_handoff&amp;utm_campaign=fixture_lease_review" style="text-decoration:none;"><div class="radio-dot"></div><div class="radio-card-text"><strong>Yes — fixture lease</strong><small>Continue to the guided fixture-lease review</small></div></a>
           <label class="radio-card" onclick="selectCard(this,'leases','unknown')"><input type="radio" name="leases" value="unknown"/><div class="radio-dot"></div><div class="radio-card-text"><strong>Not sure — I'll ask the listing agent</strong><small>Leave blank for now</small></div></label>
         </div>
       </div>
@@ -9188,14 +9188,14 @@ function routeAfterMagicLinkIfNeeded() {
       </div>
 
       <div class="review-section"><div class="review-section-title">Title & Disclosures</div>
-        <div class="review-row"><span class="rl">Title Pays</span><span class="rv">${s.titlePayer === 'seller' ? 'Seller (standard)' : 'Buyer'}</span></div>
-        <div class="review-row"><span class="rl">Survey</span><span class="rv">${s.survey === 'sellerExisting' ? 'Seller provides existing' : s.survey === 'buyerNew' ? 'Buyer orders new' : 'No survey'}</span></div>
-        <div class="review-row"><span class="rl">Survey Rejection Paid By</span><span class="rv">${s.surveyIfRejectedPaidBy === 'buyer' ? 'Buyer' : 'Seller'}</span></div>
+        <div class="review-row"><span class="rl">Title Pays</span><span class="rv">${s.titlePayer === 'seller' ? 'Seller' : s.titlePayer === 'buyer' ? 'Buyer' : '—'}</span></div>
+        <div class="review-row"><span class="rl">Survey</span><span class="rv">${s.survey === 'sellerExisting' ? 'Seller provides existing' : s.survey === 'buyerNew' ? 'Buyer orders new' : s.survey === 'noSurvey' ? 'No survey' : '—'}</span></div>
+        <div class="review-row"><span class="rl">Survey Rejection Paid By</span><span class="rv">${s.survey === 'sellerExisting' ? (s.surveyIfRejectedPaidBy === 'buyer' ? 'Buyer' : s.surveyIfRejectedPaidBy === 'seller' ? 'Seller' : '—') : '—'}</span></div>
         
         <div class="review-row"><span class="rl">Lead-Based Paint</span><span class="rv">${s.leadBuiltBefore1978 === 'yes' ? 'Built before 1978 — disclosure should be confirmed' : (s.leadBuiltBefore1978 === 'unknown' ? 'Unknown year — verify before signing' : (s.leadBuiltBefore1978 === 'no' ? 'Built 1978 or later' : '—'))}</span></div>
         ${s.leadBuiltBefore1978 === 'yes' || s.leadBuiltBefore1978 === 'unknown' ? `<div class="review-row"><span class="rl">Lead Disclosure Status</span><span class="rv">${s.leadDisclosureStatus === 'received' ? 'Buyer has received it' : (s.leadDisclosureStatus === 'request' ? 'Request from listing agent/seller' : 'Needs confirmation')}</span></div>` : ''}
-        <div class="review-row"><span class="rl">Seller Disclosure</span><span class="rv">${s.sellerDisclosure === 'received' ? 'Received' : s.sellerDisclosure === 'notReceived' ? `Not received — ${s.disclosureDays} days` : 'Seller exempt'}</span></div>
-        <div class="review-row"><span class="rl">Property Condition</span><span class="rv">${s.asIs === 'yes' ? 'As Is' : 'As Is with repairs'}</span></div>
+        <div class="review-row"><span class="rl">Seller Disclosure</span><span class="rv">${s.sellerDisclosure === 'received' ? 'Received' : s.sellerDisclosure === 'notReceived' ? `Not received — ${s.disclosureDays || '—'} days` : s.sellerDisclosure === 'exempt' ? 'Seller exempt' : '—'}</span></div>
+        <div class="review-row"><span class="rl">Property Condition</span><span class="rv">${s.asIs === 'yes' ? 'As Is' : s.asIs === 'repairs' ? 'As Is with repairs' : '—'}</span></div>
       </div>
 
       <div class="review-section"><div class="review-section-title">Closing</div>
@@ -9206,7 +9206,7 @@ function routeAfterMagicLinkIfNeeded() {
         ${s.hasBuyerAgent === 'yes' && s.agentBrokerage ? `<div class="review-row"><span class="rl">Brokerage</span><span class="rv">${s.agentBrokerage}</span></div>` : ''}
         ${s.brokerFeeType && s.brokerFeeType !== 'none' ? `<div class="review-row"><span class="rl">Broker Fee Disclosure</span><span class="rv">${s.brokerFeeType === 'amount' ? '$' + Number(s.brokerFeeAmount || 0).toLocaleString() : (s.brokerFeePercent || '0') + '%'}</span></div>` : ''}
         ${s.wantsConcessions === 'yes' ? `<div class="review-row"><span class="rl">Seller Concessions</span><span class="rv">${fmtM(s.concessionAmount)}</span></div>` : ''}
-        ${s.homeWarranty === 'yes' ? `<div class="review-row"><span class="rl">Home Warranty Request</span><span class="rv">${fmtM(s.homeWarrantyAmount || 650)}</span></div>` : ''}
+        ${s.homeWarranty === 'yes' ? `<div class="review-row"><span class="rl">Home Warranty Request</span><span class="rv">${fmtM(s.homeWarrantyAmount)}</span></div>` : ''}
       </div>
 
       <div class="review-section"><div class="review-section-title">Addenda Included</div>

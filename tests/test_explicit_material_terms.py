@@ -80,6 +80,17 @@ class ExplicitMaterialTermsTests(unittest.TestCase):
         ):
             self.assertNotIn(fallback, HTML)
 
+    def test_review_does_not_label_a_missing_choice_as_a_substantive_term(self):
+        for fallback in (
+            "s.titlePayer === 'seller' ? 'Seller (standard)' : 'Buyer'",
+            "s.survey === 'sellerExisting' ? 'Seller provides existing' : s.survey === 'buyerNew' ? 'Buyer orders new' : 'No survey'",
+            "s.surveyIfRejectedPaidBy === 'buyer' ? 'Buyer' : 'Seller'",
+            "s.sellerDisclosure === 'received' ? 'Received' : s.sellerDisclosure === 'notReceived' ? `Not received — ${s.disclosureDays} days` : 'Seller exempt'",
+            "s.asIs === 'yes' ? 'As Is' : 'As Is with repairs'",
+            "fmtM(s.homeWarrantyAmount || 650)",
+        ):
+            self.assertNotIn(fallback, HTML)
+
 
 if __name__ == "__main__":
     unittest.main()
