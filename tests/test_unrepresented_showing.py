@@ -1,4 +1,5 @@
 from io import BytesIO
+import json
 from pathlib import Path
 import unittest
 
@@ -39,6 +40,15 @@ class UnrepresentedShowingTests(unittest.TestCase):
             "/api/unrepresented-showing",
         ):
             self.assertIn(token, source)
+
+    def test_vercel_bundles_the_showing_form_with_its_endpoint(self):
+        root = Path(__file__).resolve().parents[1]
+        config = json.loads((root / "vercel.json").read_text())
+        self.assertEqual(
+            config["functions"]["api/unrepresented-showing.py"]["includeFiles"],
+            "unrepresented_customer_showing_form_1508.pdf",
+        )
+        self.assertTrue((root / "unrepresented_customer_showing_form_1508.pdf").is_file())
 
     def test_agent_dashboard_starts_with_transaction_routing(self):
         source = (Path(__file__).resolve().parents[1] / "index.html").read_text()
