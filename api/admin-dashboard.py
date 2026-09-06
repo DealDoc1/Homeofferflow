@@ -3046,6 +3046,9 @@ async def _deliver_seller_review_email(email, review_url, verification_code, exp
         "from": BROKERAGE_INVITE_FROM_EMAIL,
         "to": [email],
         "subject": "Review your HomeOfferFlow seller disclosure",
+        # Keep delivery reporting aggregate-only. Recipient, property, review
+        # URL, and verification code are never used as Resend tag values.
+        "tags": [{"name": "email_type", "value": "seller_disclosure_review"}],
         "html": (
             "<p>Your real estate professional prepared a seller disclosure for your review.</p>"
             f"<p><strong>Property:</strong> {html.escape(property_address)}</p>"
@@ -3060,7 +3063,14 @@ async def _deliver_seller_review_email(email, review_url, verification_code, exp
     async with httpx.AsyncClient(timeout=15) as client:
         response = await client.post(
             "https://api.resend.com/emails",
-            headers={"Authorization": f"Bearer {RESEND_API_KEY}", "Content-Type": "application/json"},
+            headers={
+                "Authorization": f"Bearer {RESEND_API_KEY}",
+                "Content-Type": "application/json",
+                # A transport retry must not send the same private link twice.
+                "Idempotency-Key": "seller-disclosure-review-" + hashlib.sha256(
+                    review_url.encode("utf-8")
+                ).hexdigest(),
+            },
             json=payload,
         )
     if response.status_code >= 300:

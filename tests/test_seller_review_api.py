@@ -23,6 +23,12 @@ class SellerReviewApiTests(unittest.TestCase):
             self.assertIn(marker, source)
         self.assertIn("seller-review.html", source)
 
+    def test_seller_review_email_has_private_delivery_telemetry_and_retry_protection(self):
+        source = (ROOT / "api" / "admin-dashboard.py").read_text()
+        self.assertIn('"email_type", "value": "seller_disclosure_review"', source)
+        self.assertIn('"Idempotency-Key": "seller-disclosure-review-"', source)
+        self.assertIn("hashlib.sha256(\n                    review_url.encode", source)
+
     def test_review_link_migration_is_service_role_only(self):
         sql = (ROOT / "supabase" / "homeofferflow_seller_disclosure_review_links.sql").read_text()
         self.assertIn("hof_seller_disclosure_review_links", sql)
