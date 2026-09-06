@@ -27,6 +27,11 @@ class GoogleAddressAutocompleteCoverageTests(unittest.TestCase):
 
         self.assertIn("document.querySelectorAll('input[id], input[name]')", INDEX)
         self.assertIn("/(?:address|addr)/i.test(`${input.id} ${input.name}`)", INDEX)
+        self.assertIn("const addressFieldMetadata = input =>", INDEX)
+        self.assertIn("associatedLabels", INDEX)
+        self.assertIn("input.closest('label')?.textContent", INDEX)
+        self.assertIn("/(?:street|mailing|office|property|escrow)\\s+address/i.test(addressFieldMetadata(input))", INDEX)
+        self.assertIn("!['email', 'hidden', 'checkbox', 'radio', 'submit', 'button'].includes(input.type)", INDEX)
         self.assertIn("['propertyToSell', 'profInvestorMailing', 'clientCityStateZip']", INDEX)
         self.assertIn("legacyAddressKeys.has(input.name)", INDEX)
 

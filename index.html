@@ -10739,8 +10739,15 @@ function routeAfterMagicLinkIfNeeded() {
   // account, broker, and seller workspaces after their screens are rendered.
   // The explicit legacy name is retained because it predates the Address suffix.
   const HOF_LEGACY_ADDRESS_KEYS = new Set(['propertyToSell', 'profInvestorMailing', 'clientCityStateZip']);
+  const addressFieldMetadata = input => {
+    const associatedLabels = Array.from(input.labels || []).map(label => label.textContent || '').join(' ');
+    const wrappingLabel = input.closest('label')?.textContent || '';
+    return `${input.id} ${input.name} ${input.placeholder} ${associatedLabels} ${wrappingLabel}`;
+  };
   const isHofAddressInput = input => input instanceof HTMLInputElement
+    && !['email', 'hidden', 'checkbox', 'radio', 'submit', 'button'].includes(input.type)
     && (/(?:address|addr)/i.test(`${input.id} ${input.name}`)
+      || /(?:street|mailing|office|property|escrow)\s+address/i.test(addressFieldMetadata(input))
       || HOF_LEGACY_ADDRESS_KEYS.has(input.id)
       || HOF_LEGACY_ADDRESS_KEYS.has(input.name));
 
