@@ -190,12 +190,33 @@ class PartnerCheckoutTests(unittest.TestCase):
         webhook = stripe_webhook.handler.__new__(stripe_webhook.handler)
         with patch.object(stripe_webhook, "RESEND_API_KEY", "re_test"), patch.object(stripe_webhook.httpx, "Client", Client):
             Client.requests = []
-            webhook._deliver_partner_onboarding_email({"customer_email": "partner@example.com"}, "A" * 32, "2026-08-20T00:00:00+00:00")
+            webhook._deliver_partner_onboarding_email(
+                {"customer_email": "partner@example.com", "metadata": {"partner_tier": "monthly_placement"}},
+                "A" * 32,
+                "2026-08-20T00:00:00+00:00",
+            )
         email = next(request for request in Client.requests if request[0] == "post")
         self.assertEqual(email[1], "https://api.resend.com/emails")
         self.assertEqual(email[2]["json"]["to"], ["partner@example.com"])
         self.assertIn("partner_onboarding=", email[2]["json"]["text"])
         self.assertIn("does not activate advertising", email[2]["json"]["text"])
+        self.assertEqual(email[2]["json"]["tags"], [
+            {"name": "email_type", "value": "partner_onboarding"},
+            {"name": "partner_tier", "value": "monthly_placement"},
+        ])
+        self.assertTrue(email[2]["headers"]["Idempotency-Key"].startswith("partner-onboarding-"))
+
+    def test_setup_email_tags_reject_uncontrolled_tier_values(self):
+        webhook = stripe_webhook.handler.__new__(stripe_webhook.handler)
+        with patch.object(stripe_webhook, "RESEND_API_KEY", "re_test"), patch.object(stripe_webhook.httpx, "Client", Client):
+            Client.requests = []
+            webhook._deliver_partner_onboarding_email(
+                {"customer_email": "partner@example.com", "metadata": {"partner_tier": "<script>private</script>"}},
+                "A" * 32,
+                "2026-08-20T00:00:00+00:00",
+            )
+        email = next(request for request in Client.requests if request[0] == "post")
+        self.assertEqual(email[2]["json"]["tags"], [{"name": "email_type", "value": "partner_onboarding"}])
 
     def test_setup_email_reports_when_delivery_is_not_configured(self):
         webhook = stripe_webhook.handler.__new__(stripe_webhook.handler)
