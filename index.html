@@ -5527,7 +5527,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       investor_pro: 'Investor Pro'
     };
     const base = labels[plan] || (hofAuth.role === 'investor' ? 'Investor Starter' : 'Agent Starter');
-    return status === 'beta' ? base + ' Beta' : base;
+    return base;
   }
 
   function subscriptionAllowsGeneration(sub = hofAuth.subscription) {
@@ -5635,7 +5635,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     const pct = limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0;
 
     const status = String(sub.status || 'beta');
-    const statusLabel = status.replace('_', ' ');
+    const statusLabel = status === 'beta' ? 'Workspace access' : status.replace('_', ' ');
     const role = hofAuth.role === 'investor' ? 'investor' : 'agent';
 
     const isInternalAdminAccess = status === 'free_admin';
@@ -5717,7 +5717,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         '<div style="margin-top:0.55rem; color:var(--gray); font-size:0.74rem; line-height:1.45;">' +
           (role === 'agent'
             ? 'Promo codes can be entered at Stripe checkout. Prefer a brokerage-focused workspace? Start the OnDemand Realty 60-day trial; card required, then $29/month unless canceled.'
-            : 'Promo codes can be entered at Stripe checkout. Beta users can keep testing until you switch them to paid access.') +
+            : 'Promo codes can be entered at Stripe checkout. Choose paid access whenever you are ready for recurring use.') +
         '</div>';
     }
 
@@ -5725,7 +5725,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       <div class="subscription-top">
         <div>
           <div style="font-size:0.72rem; color:var(--gold-light); font-weight:900; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:0.25rem;">
-            ${isInternalAdminAccess ? 'Platform Access' : isPaid ? 'Subscription' : isBlocked ? 'Subscription Attention Needed' : 'Beta Subscription'}
+            ${isInternalAdminAccess ? 'Platform Access' : isPaid ? 'Subscription' : isBlocked ? 'Subscription Attention Needed' : 'Workspace Access'}
           </div>
           <div class="subscription-plan">${escapeAttr(getPlanLabel(sub.plan, sub.status))}</div>
         </div>
@@ -6067,7 +6067,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       return false;
     }
     if (usage.available !== false && Number(usage.used || 0) >= Number(usage.limit || 10)) {
-      const message = `You have reached your ${usage.limit}-packet monthly beta limit. Upgrade/contact support before generating another signed packet.`;
+      const message = `You have reached your ${usage.limit}-packet monthly limit. Upgrade or contact support before generating another signed packet.`;
       if (showAlert && window.confirm(message + ' Open Manage Billing now?')) await openBillingPortal('generation_limit');
       return false;
     }
@@ -6719,7 +6719,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       const fallback = 'Could not save feedback in the app. Copy your note and email support@homeofferflow.com. Error: ' + (err?.message || err);
       setFeedbackStatus(fallback, 'err');
       try {
-        const text = 'HomeOfferFlow Beta Feedback\n\nAccount: ' + (user.email || '') + '\nIssue type: ' + issueType + '\n\n' + message;
+        const text = 'HomeOfferFlow Support Request\n\nAccount: ' + (user.email || '') + '\nIssue type: ' + issueType + '\n\n' + message;
         navigator.clipboard?.writeText(text).catch(() => {});
       } catch (e) {}
     } finally {
@@ -6764,10 +6764,10 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       },
       {
         done: hasGeneratedPacket,
-        title: 'Complete a full signing test',
+        title: 'Review buyer-side signing',
         body: hasGeneratedPacket
           ? 'Make sure buyer initials, signatures, dates, and final PDF delivery look correct.'
-          : 'Sign as buyer/co-buyer in test mode and inspect the completed PDF.'
+          : 'Confirm initials, signatures, dates, and the completed PDF before delivery.'
       },
       {
         done: localStorage.getItem('hof_beta_feedback_clicked') === '1',
@@ -6782,8 +6782,8 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     el.innerHTML = `
       <div class="beta-checklist-head">
         <div>
-          <h4>${roleName} Beta Checklist</h4>
-          <p>Use this checklist to validate your account before relying on packets with real clients.</p>
+          <h4>${roleName} Workspace Checklist</h4>
+          <p>Use this checklist to set up your account for repeatable client work.</p>
         </div>
         <div class="beta-checklist-progress">${complete}/${items.length} done</div>
       </div>
@@ -16525,13 +16525,13 @@ function routeAfterMagicLinkIfNeeded() {
       },
       {
         done: hasGeneratedPacket,
-        title: 'Generate a clean test packet',
-        body: hasGeneratedPacket ? `${used} packet${used === 1 ? '' : 's'} generated this billing month.` : 'Create one internal test before using the platform with a real client.'
+        title: 'Prepare a first offer packet',
+        body: hasGeneratedPacket ? `${used} packet${used === 1 ? '' : 's'} generated this billing month.` : 'Review your first packet before using the workflow with a client.'
       },
       {
         done: hasGeneratedPacket,
         title: 'Verify buyer-side signing',
-        body: hasGeneratedPacket ? 'Confirm buyer initials, signatures, dates, and the SignWell email look right.' : 'After generation, send a test buyer signing packet and inspect the final PDF.'
+        body: hasGeneratedPacket ? 'Confirm buyer initials, signatures, dates, and the SignWell email look right.' : 'Before sending a packet, inspect the final PDF and confirm the selected buyer recipient.'
       },
       {
         done: false,
@@ -16540,14 +16540,14 @@ function routeAfterMagicLinkIfNeeded() {
       },
       {
         done: hasFeedback,
-        title: 'Report issues quickly',
-        body: hasFeedback ? 'Feedback path has been used. Keep reporting PDF, SignWell, form, or workflow issues.' : 'Use the feedback button for missing forms, PDF field issues, SignWell issues, and UI friction.'
+        title: 'Get help or request a form',
+        body: hasFeedback ? 'Your support path is ready. Use it whenever you need help with a PDF, SignWell, form, or workflow.' : 'Use the support button for missing forms, PDF field issues, SignWell questions, or workflow friction.'
       }
     ];
     const complete = items.filter(item => item.done).length;
     el.innerHTML = `
       <div class="broker-readiness-hero">
-        <div class="broker-readiness-kicker">● Brokerage beta ready</div>
+        <div class="broker-readiness-kicker">● Brokerage workspace ready</div>
         <h4>Offer prep workspace for agents on the go.</h4>
         <p>Use HomeOfferFlow to create cleaner Texas offer packets faster, collect buyer-side signatures, and track packet status. Agents still review, advise, submit, negotiate, and manage compliance under their brokerage process.</p>
         <div class="broker-safe-grid">
@@ -16556,15 +16556,15 @@ function routeAfterMagicLinkIfNeeded() {
           <div class="broker-safe-chip"><strong>Agent controlled</strong><span>Agent remains responsible for review, advice, submission, and compliance.</span></div>
         </div>
         <div class="beta-action-strip">
-          <button class="beta-action-card" type="button" onclick="startAccountOffer()"><strong>Create a test offer</strong><span>Run the full buyer packet flow.</span></button>
-          <button class="beta-action-card" type="button" onclick="openBetaFeedback()"><strong>Report issue / request form</strong><span>PDF fields, missing forms, SignWell, or UI.</span></button>
+          <button class="beta-action-card" type="button" onclick="startAccountOffer()"><strong>Prepare an offer</strong><span>Use the guided buyer packet workflow.</span></button>
+          <button class="beta-action-card" type="button" onclick="openBetaFeedback()"><strong>Get help or request a form</strong><span>PDF, form, SignWell, or workflow support.</span></button>
         </div>
       </div>
-      <div class="broker-disclaimer-card"><strong>Broker-safe beta note:</strong> Generated packets are drafts/prepared offer documents until reviewed, approved, delivered, accepted, and executed through the correct transaction process. HomeOfferFlow does not create seller acceptance, seller signatures, broker approval, or legal advice.</div>
+      <div class="broker-disclaimer-card"><strong>Broker-safe workspace note:</strong> Generated packets are drafts/prepared offer documents until reviewed, approved, delivered, accepted, and executed through the correct transaction process. HomeOfferFlow does not create seller acceptance, seller signatures, broker approval, or legal advice.</div>
       <div class="beta-checklist-head">
         <div>
-          <h4>${roleName} Beta Launch Checklist</h4>
-          <p>Use this checklist before putting real client volume through the workflow.</p>
+          <h4>${roleName} Workspace Checklist</h4>
+          <p>Use this checklist to set up repeatable client work.</p>
         </div>
         <div class="beta-checklist-progress">${complete}/${items.length} done</div>
       </div>
@@ -16580,7 +16580,7 @@ function routeAfterMagicLinkIfNeeded() {
         <button type="button" onclick="showAccountTab('profile')">Profile & Defaults</button>
         <button type="button" onclick="startAccountOffer()">Start First Saved Offer</button>
         <button type="button" onclick="showAccountTab('offers')">Offer Workspace</button>
-        <button type="button" onclick="openBetaFeedback()">Report Issue</button>
+        <button type="button" onclick="openBetaFeedback()">Get Help</button>
       </div>`;
   };
 
@@ -16589,9 +16589,9 @@ function routeAfterMagicLinkIfNeeded() {
     const welcome = document.getElementById('dashboardWelcome');
     const notice = document.getElementById('profileCompletionNotice');
     const roleName = safeRoleName();
-    if (roleLabel) roleLabel.textContent = roleName + ' Beta Workspace';
+    if (roleLabel) roleLabel.textContent = roleName + ' Workspace';
     if (welcome) {
-      welcome.innerHTML = 'Welcome back, <strong style="color:var(--white);">' + safeDisplayName() + '</strong>. Build client-ready offer packets, track buyer-side signing, and use feedback to harden the beta before brokerage rollout.';
+      welcome.innerHTML = 'Welcome back, <strong style="color:var(--white);">' + safeDisplayName() + '</strong>. Build client-ready offer packets, track buyer-side signing, and get help whenever you need it.';
     }
     if (notice) {
       const done = profileDone();
@@ -16694,7 +16694,7 @@ function routeAfterMagicLinkIfNeeded() {
     if (title) title.textContent = roleLabel(normalized) + ' Account';
     if (subtitle) {
       subtitle.textContent = normalized === 'broker'
-        ? 'Sign in to test brokerage workflows, review agent beta activity, and manage broker/team defaults.'
+        ? 'Sign in to review agent activity and manage broker/team defaults.'
         : normalized === 'investor'
           ? 'Sign in to save investor/entity defaults and build repeat Texas offers faster.'
           : 'Sign in to save agent defaults, reuse your profile, and prepare client-ready Texas offers.';
@@ -16772,7 +16772,7 @@ function routeAfterMagicLinkIfNeeded() {
     if (title && user) title.textContent = label + ' Account';
     if (sub && user) {
       sub.textContent = normalized === 'broker'
-        ? (user.email + ' · Broker/team beta shell and agent offer oversight')
+        ? (user.email + ' · Broker/team workspace and agent offer oversight')
         : (user.email + ' · Saved defaults and repeat-offer tools');
     }
   };
@@ -16863,7 +16863,7 @@ function routeAfterMagicLinkIfNeeded() {
     const notice = document.getElementById('profileCompletionNotice');
     const role = normalizeAccountRole(root.hofAuth?.role);
     const label = roleLabel(role);
-    if (roleLabelEl) roleLabelEl.textContent = role === 'broker' ? 'Broker Beta Workspace' : label + ' Beta Workspace';
+    if (roleLabelEl) roleLabelEl.textContent = role === 'broker' ? 'Broker Workspace' : label + ' Workspace';
     if (welcome) {
       welcome.innerHTML = role === 'broker'
         ? 'Welcome back, <strong style="color:var(--white);">' + safeEscape(root.getAccountDisplayName?.() || 'there') + '</strong>. Test the agent offer workflow, review beta readiness, and prepare the broker/team oversight layer.'
@@ -16908,7 +16908,7 @@ function routeAfterMagicLinkIfNeeded() {
     if (!el || !isBroker()) return;
     const h = el.querySelector('.beta-checklist-head h4');
     const p = el.querySelector('.beta-checklist-head p');
-    if (h) h.textContent = 'Broker Beta Checklist';
+    if (h) h.textContent = 'Broker Workspace Checklist';
     if (p) p.textContent = 'Use this checklist to validate the agent workflow before wider broker/team rollout.';
     const list = el.querySelector('.beta-checklist-list');
     if (list && !el.querySelector('[data-broker-extra="1"]')) {
@@ -17072,12 +17072,12 @@ function routeAfterMagicLinkIfNeeded() {
     const first = panel?.querySelector('.account-card');
     if (!panel || !first || document.getElementById('release15DashboardCard')) return;
     const r = role();
-    const title = r === 'broker' ? 'Broker Demo Ready' : r === 'investor' ? 'Investor Beta Ready' : 'Agent Beta Ready';
+    const title = r === 'broker' ? 'Broker Workspace Ready' : r === 'investor' ? 'Investor Workspace Ready' : 'Agent Workspace Ready';
     const desc = r === 'broker'
       ? 'Use this workspace to demonstrate the agent packet workflow, verify buyer-side signatures, collect issues, and plan the broker oversight layer.'
       : r === 'investor'
         ? 'Use saved defaults, duplicate offers, and AI competitiveness checks to validate the repeat-offer workflow before heavier investor tooling.'
-        : 'Use this workspace to create test packets, send buyer-side signatures, track status, and report anything that blocks brokerage beta testing.';
+        : 'Use this workspace to prepare packets, track buyer-side signatures, and request help whenever you need it.';
     first.insertAdjacentHTML('afterbegin', `
       <div class="release15-dashboard-card" id="release15DashboardCard">
         <h4>${safe(title)}</h4>
@@ -17524,7 +17524,7 @@ function routeAfterMagicLinkIfNeeded() {
       return {
         key: 'resume_beta',
         title: 'Continue your saved offer',
-        body: 'Your beta workspace is active and this offer is ready to continue. Resume the client workflow now; monthly or annual access is available whenever you are ready for recurring use.',
+        body: 'Your workspace is active and this offer is ready to continue. Resume the client workflow now; monthly or annual access is available whenever you are ready for recurring use.',
         primary: 'Resume Offer',
         secondary: 'Explore Monthly Access',
         draftId: draft.id || '',
@@ -17667,7 +17667,7 @@ function routeAfterMagicLinkIfNeeded() {
       <div class="agent-activation-actions">
         <button class="agent-activation-primary" type="button" onclick="handleAgentActivationAction('${primaryAction}','${id}','primary','${safe(state.key)}','monthly')">${safe(state.primary)}</button>
         <button class="agent-activation-secondary" type="button" onclick="handleAgentActivationAction('${secondaryAction}','${id}','secondary','${safe(state.key)}','${secondaryBilling}')">${safe(state.secondary)}</button>
-        <button class="agent-activation-secondary" type="button" onclick="toggleAgentReadinessChecklist()">Beta Readiness Checklist</button>
+        <button class="agent-activation-secondary" type="button" onclick="toggleAgentReadinessChecklist()">Workspace Checklist</button>
       </div>`;
     card.classList.add('show');
 

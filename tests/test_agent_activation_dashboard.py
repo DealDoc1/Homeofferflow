@@ -354,7 +354,14 @@ class AgentActivationDashboardTests(unittest.TestCase):
         self.assertIn("secondary: 'Explore Monthly Access'", script)
         self.assertIn("state.key === 'resume_beta' ? 'resume'", script)
         self.assertIn("state.key === 'resume_beta' ? 'subscribe'", script)
-        self.assertIn("Your beta workspace is active", script)
+        self.assertIn("Your workspace is active", script)
+
+    def test_customer_facing_workspace_labels_do_not_expose_internal_beta_language(self):
+        self.assertIn("Workspace Checklist", HTML)
+        self.assertIn("Workspace Access", HTML)
+        self.assertIn("Broker Workspace", HTML)
+        self.assertNotIn("Beta Readiness Checklist", HTML)
+        self.assertNotIn("Broker Beta Workspace", HTML)
 
     def test_canceled_accounts_use_reactivation_attribution(self):
         script_start = HTML.index('id="hof-agent-activation-v16-js"')
