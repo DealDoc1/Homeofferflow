@@ -16,12 +16,13 @@ class LowNoisePublicPageTests(unittest.TestCase):
         self.assertEqual(hero.count('data-agent-cta-path='), 1)
 
     def test_seller_hero_has_one_primary_action_and_one_comparison_path(self):
-        hero = SELLERS.split('<section aria-labelledby="seller-next-steps">', 1)[0]
+        hero = SELLERS.split('<section aria-labelledby="seller-question-one"', 1)[0]
         self.assertIn('>Get my free seller plan<', hero)
         self.assertIn('>Compare support paths<', hero)
         self.assertEqual(hero.count('class="button"'), 1)
         self.assertEqual(hero.count('class="button secondary"'), 1)
         self.assertNotIn('Start where you are', hero)
+        self.assertNotIn('No-surprises next steps', SELLERS)
 
 
 if __name__ == "__main__":
