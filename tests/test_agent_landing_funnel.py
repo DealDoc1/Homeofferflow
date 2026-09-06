@@ -120,16 +120,16 @@ class AgentLandingFunnelTests(unittest.TestCase):
 
     def test_relationship_drafts_are_a_persistent_agent_account_workspace(self):
         self.assertIn('id="relationshipsAccountTab"', INDEX)
-        self.assertIn('Agent Forms &amp; Drafts', INDEX)
+        self.assertIn('Guided Forms', INDEX)
         self.assertIn('data-account-tab="relationships"', INDEX)
         self.assertIn("onclick=\"showAccountTab('relationships')\"", INDEX)
         self.assertIn("normalized !== 'investor'", INDEX)
         self.assertIn("document.getElementById('accountPanelRelationships')", INDEX)
-        self.assertIn("Prepare private relationship and consumer-notice drafts from the released shared library.", INDEX)
+        self.assertIn("Start with what your client needs. We’ll guide you to the available document interview", INDEX)
 
     def test_relationship_workspace_explains_each_private_draft_without_selecting_a_form(self):
         self.assertIn('id="relationshipDraftsGuide"', INDEX)
-        self.assertIn('Choose the relationship step deliberately', INDEX)
+        self.assertIn('Start with the client need', INDEX)
         for expected in (
             'TXR-1507 · Short Form',
             'TXR-1501 · Long Form',
@@ -138,14 +138,14 @@ class AgentLandingFunnelTests(unittest.TestCase):
             'TXR-1914 · Seller Financing Addendum',
             'TXR-1917 · Environmental Assessment Addendum',
             'TXR-1919 · Loan Assumption Addendum',
-            'HomeOfferFlow does not select a form for you',
+            'Start with what your client needs',
             'Drafts remain private until reviewed; where signing is enabled',
         ):
             self.assertIn(expected, INDEX)
 
     def test_lease_representation_starts_with_an_explicit_agent_selected_agreement_choice(self):
         self.assertIn("window.openTenantRepresentationDraft = function openTenantRepresentationDraft(kind)", INDEX)
-        self.assertIn("Which representation agreement are you preparing?", INDEX)
+        self.assertIn("What kind of representation does this client need?", INDEX)
         self.assertIn("openTenantRepresentationDraft('short')", INDEX)
         self.assertIn("openTenantRepresentationDraft('long')", INDEX)
         self.assertIn("root.hofOpenTxr1507Draft = () => openDraftDialog(source);", INDEX)

@@ -274,7 +274,7 @@ class AgentActivationDashboardTests(unittest.TestCase):
         self.assertIn("We’ll ask only for the details needed to prepare your documents.", HTML)
         self.assertIn("agent_form_package_selected", HTML)
         self.assertIn("agent_form_package_interview_viewed", HTML)
-        self.assertIn("Which representation agreement are you preparing?", HTML)
+        self.assertIn("What kind of representation does this client need?", HTML)
         self.assertIn("What does this customer need?", HTML)
         self.assertIn("agent_form_package_workflow_selected", HTML)
         self.assertIn("hofOpenTxr1507Draft", HTML)
@@ -282,7 +282,7 @@ class AgentActivationDashboardTests(unittest.TestCase):
         self.assertIn("openSellerDisclosureDraftWorkspace", HTML)
 
     def test_relationship_workspace_uses_question_one_transaction_language(self):
-        self.assertIn("Use this after choosing Purchase or Tenant representation above.", HTML)
+        self.assertIn("Use this after choosing Purchase or Tenant representation above. Answer the questions that apply", HTML)
         self.assertNotIn("Use this after choosing Buyer or Lease representation above.", HTML)
 
     def test_generic_agent_account_offer_actions_return_to_question_one(self):

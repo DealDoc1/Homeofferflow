@@ -3027,7 +3027,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       <button type="button" class="account-tab" id="aiAccountTab" data-account-tab="ai" onclick="showAccountTab('ai')" style="display:none;">Offer Review</button>
       <button type="button" class="account-tab" data-account-tab="brokerage" onclick="showAccountTab('brokerage')">Brokerage</button>
       <button type="button" class="account-tab" data-account-tab="seller" onclick="showAccountTab('seller')">Listing Tools</button>
-      <button type="button" class="account-tab" id="relationshipsAccountTab" data-account-tab="relationships" onclick="showAccountTab('relationships')" style="display:none;">Agent Forms &amp; Drafts</button>
+      <button type="button" class="account-tab" id="relationshipsAccountTab" data-account-tab="relationships" onclick="showAccountTab('relationships')" style="display:none;">Guided Forms</button>
       <button type="button" class="account-tab" id="partnersAccountTab" data-account-tab="partners" onclick="showAccountTab('partners')" style="display:none;">Partners</button>
       <button type="button" class="account-tab" id="adminAccountTab" data-account-tab="admin" onclick="showAccountTab('admin')" style="display:none;">Admin</button>
     </div>
@@ -3103,12 +3103,12 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 
     <div class="account-panel" id="accountPanelRelationships">
       <div class="account-card">
-        <h4 id="relationshipDraftsHeading">Relationship Drafts</h4>
-        <p id="relationshipDraftsIntro" style="color:var(--gray-light); line-height:1.6; margin-bottom:0;">Prepare private relationship and consumer-notice drafts from the released shared library. Every released form is available to every signed-in agent; review each saved draft, then use the private signing queue to explicitly confirm recipients before anything is sent.</p>
+        <h4 id="relationshipDraftsHeading">Guided Forms</h4>
+        <p id="relationshipDraftsIntro" style="color:var(--gray-light); line-height:1.6; margin-bottom:0;">Start with what your client needs. We’ll guide you to the available document interview, then you review the completed draft before choosing any next step.</p>
       </div>
       <div class="account-card" id="relationshipDraftsGuide">
-        <h4>Choose the relationship step deliberately</h4>
-        <p style="color:var(--gray-light); line-height:1.6; margin-bottom:1rem;">Use this after choosing Purchase or Tenant representation above. HomeOfferFlow does not select a form for you, a legal agreement, compensation structure, or business term.</p>
+        <h4>Start with the client need</h4>
+        <p style="color:var(--gray-light); line-height:1.6; margin-bottom:1rem;">Use this after choosing Purchase or Tenant representation above. Answer the questions that apply, review the document, and decide the terms and next steps with your client.</p>
         <div class="relationship-drafts-guide-grid">
           <div class="relationship-drafts-guide-item"><strong>TXR-1507 · Short Form</strong><span>Buyer/Tenant Representation Agreement draft.</span></div>
           <div class="relationship-drafts-guide-item"><strong>TXR-1501 · Long Form</strong><span>Buyer/Tenant Representation Agreement draft; choose it only when it fits the transaction.</span></div>
@@ -5404,20 +5404,20 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     const heading = document.getElementById('relationshipDraftsHeading');
     const intro = document.getElementById('relationshipDraftsIntro');
     const guide = document.getElementById('relationshipDraftsGuide');
-    if (heading) heading.textContent = isLeaseRepresentation ? 'Tenant Representation Workspace' : 'Relationship Drafts';
+    if (heading) heading.textContent = isLeaseRepresentation ? 'Tenant Representation' : 'Guided Forms';
     if (intro) intro.textContent = isLeaseRepresentation
-      ? 'You are starting tenant representation. Choose the relationship step, prepare a private draft, and review it before using the separate signing queue. HomeOfferFlow will not choose a legal form, term, or recipient for you.'
-      : 'Prepare private relationship and consumer-notice drafts from the released shared library. Review each saved draft, then use the private signing queue to explicitly confirm recipients before anything is sent.';
+      ? 'You are starting tenant representation. Tell us what the client needs, complete the guided draft, and review it before choosing any signing step.'
+      : 'Start with what the client needs. We’ll guide you to the available document interview, then you review the completed draft before choosing any next step.';
     if (guide) {
       const title = guide.querySelector('h4');
       const copy = guide.querySelector('p');
       guide.querySelector('#leaseRepresentationQuickChoices')?.remove();
-      if (title) title.textContent = isLeaseRepresentation ? 'Start the tenant-representation conversation' : 'Choose the relationship step deliberately';
+      if (title) title.textContent = isLeaseRepresentation ? 'Start the tenant-representation conversation' : 'Start with the client need';
       if (copy) copy.textContent = isLeaseRepresentation
-        ? 'Begin with the representation form that fits this tenant matter. The choices below stay private until you review and explicitly choose any next step.'
-        : 'Use this after choosing Purchase or Tenant representation above. HomeOfferFlow does not select a form for you, a legal agreement, compensation structure, or business term.';
+        ? 'Begin with the type of representation the client needs. You’ll review the completed draft before choosing any next step.'
+        : 'Use this after choosing Purchase or Tenant representation above. Answer the questions that apply, review the document, and decide the terms and next steps with your client.';
       if (isLeaseRepresentation) {
-        guide.insertAdjacentHTML('beforeend', `<div id="leaseRepresentationQuickChoices" style="margin-top:1rem;padding-top:1rem;border-top:1px solid rgba(255,255,255,.12)"><strong>Which representation agreement are you preparing?</strong><div class="account-actions-row" role="group" aria-label="Representation agreement choice" aria-describedby="leaseRepresentationQuickChoiceStatus" style="margin-top:.7rem"><button class="btn-primary" type="button" onclick="openTenantRepresentationDraft('short')">Short Form</button><button class="btn-secondary" type="button" onclick="openTenantRepresentationDraft('long')">Long Form</button></div><p id="leaseRepresentationQuickChoiceStatus" role="status" aria-live="polite" style="color:var(--gray-light);font-size:.84rem;line-height:1.5;margin:.7rem 0 0">Choose deliberately. HomeOfferFlow opens a private draft only; it does not select terms, recipients, or a signing path.</p></div>`);
+        guide.insertAdjacentHTML('beforeend', `<div id="leaseRepresentationQuickChoices" style="margin-top:1rem;padding-top:1rem;border-top:1px solid rgba(255,255,255,.12)"><strong>What kind of representation does this client need?</strong><div class="account-actions-row" role="group" aria-label="Representation agreement choice" aria-describedby="leaseRepresentationQuickChoiceStatus" style="margin-top:.7rem"><button class="btn-primary" type="button" onclick="openTenantRepresentationDraft('short')">Straightforward representation</button><button class="btn-secondary" type="button" onclick="openTenantRepresentationDraft('long')">More detailed representation</button></div><p id="leaseRepresentationQuickChoiceStatus" role="status" aria-live="polite" style="color:var(--gray-light);font-size:.84rem;line-height:1.5;margin:.7rem 0 0">Choose the best starting point. You’ll review the completed draft before choosing any next step.</p></div>`);
       }
     }
     window.renderAccountDashboard?.();
@@ -7223,8 +7223,8 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     const openRelationshipPackage = (type) => {
       const choices = type === 'representation'
         ? [
-            { label: 'Short Form', copy: 'A streamlined Buyer/Tenant Representation Agreement interview.', opener: 'hofOpenTxr1507Draft' },
-            { label: 'Long Form', copy: 'A complete Buyer/Tenant Representation Agreement interview.', opener: 'hofOpenTxr1501Draft' }
+            { label: 'Straightforward representation', copy: 'Start the streamlined Buyer/Tenant Representation Agreement interview.', opener: 'hofOpenTxr1507Draft' },
+            { label: 'More detailed representation', copy: 'Start the complete Buyer/Tenant Representation Agreement interview.', opener: 'hofOpenTxr1501Draft' }
           ]
         : [
             { label: 'Showing Form', copy: 'For an unrepresented customer attending a showing.', opener: 'hofOpenTxr1508Draft' },
@@ -7233,8 +7233,8 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       document.getElementById('hofAgentPackageFollowUp')?.remove();
       const followUp = document.createElement('div');
       followUp.id = 'hofAgentPackageFollowUp'; followUp.className = 'hof-agreement-modal';
-      const prompt = type === 'representation' ? 'Which representation agreement are you preparing?' : 'What does this customer need?';
-      followUp.innerHTML = `<div class="hof-agreement-dialog" role="dialog" aria-modal="true" aria-labelledby="hofAgentPackageFollowUpTitle"><h3 id="hofAgentPackageFollowUpTitle">${prompt}</h3><p>Choose the document that fits. You’ll review it before it is sent.</p><div class="hof-agreement-grid">${choices.map((choice, index) => `<button type="button" class="btn-secondary hof-agent-package-choice" data-follow-up-choice="${index}" style="text-align:left;padding:1rem"><strong style="display:block;color:var(--white);margin-bottom:.35rem">${choice.label}</strong><span style="display:block;color:var(--gray-light);font-weight:400;line-height:1.45">${choice.copy}</span></button>`).join('')}</div><div class="hof-agreement-footer"><button type="button" class="btn-secondary" id="hofAgentPackageFollowUpCancel">Back</button></div></div>`;
+      const prompt = type === 'representation' ? 'What kind of representation does this client need?' : 'What does this customer need?';
+      followUp.innerHTML = `<div class="hof-agreement-dialog" role="dialog" aria-modal="true" aria-labelledby="hofAgentPackageFollowUpTitle"><h3 id="hofAgentPackageFollowUpTitle">${prompt}</h3><p>Choose the best starting point. You’ll review the completed document before it is sent.</p><div class="hof-agreement-grid">${choices.map((choice, index) => `<button type="button" class="btn-secondary hof-agent-package-choice" data-follow-up-choice="${index}" style="text-align:left;padding:1rem"><strong style="display:block;color:var(--white);margin-bottom:.35rem">${choice.label}</strong><span style="display:block;color:var(--gray-light);font-weight:400;line-height:1.45">${choice.copy}</span></button>`).join('')}</div><div class="hof-agreement-footer"><button type="button" class="btn-secondary" id="hofAgentPackageFollowUpCancel">Back</button></div></div>`;
       document.body.appendChild(followUp);
       followUp.querySelector('#hofAgentPackageFollowUpCancel').addEventListener('click', () => followUp.remove());
       followUp.addEventListener('click', event => { if (event.target === followUp) followUp.remove(); });

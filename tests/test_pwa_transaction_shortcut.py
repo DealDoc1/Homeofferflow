@@ -16,9 +16,9 @@ class PwaTransactionShortcutTests(unittest.TestCase):
 
     def test_shell_cache_bumps_for_shortcut_metadata(self):
         top_shortcuts = MANIFEST["shortcuts"][:4]
-        self.assertEqual([item["short_name"] for item in top_shortcuts], ["Start", "Workspace", "Attention", "Agent Forms"])
+        self.assertEqual([item["short_name"] for item in top_shortcuts], ["Start", "Workspace", "Attention", "Forms"])
         self.assertEqual(len(MANIFEST["shortcuts"]), 4)
-        self.assertIn("homeofferflow-shell-v54", SERVICE_WORKER)
+        self.assertIn("homeofferflow-shell-v55", SERVICE_WORKER)
 
 
 if __name__ == "__main__":
