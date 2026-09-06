@@ -48,6 +48,7 @@ ADMIN_EMAILS = {e.strip().lower() for e in (os.environ.get("ADMIN_EMAILS") or os
 DEFAULT_ADMIN_EMAILS = {"andrew@ondemanddfw.com", "andrewchri@gmail.com", "support@homeofferflow.com"}
 ALLOWED_PARTNER_LEAD_STATUSES = {"new", "contacted", "qualified", "waitlist", "converted", "declined"}
 ALLOWED_PARTNER_ONBOARDING_STATUSES = {"not_started", "ready", "in_progress", "complete"}
+PARTNER_ONBOARDING_EMAIL_TIERS = {"founding_pilot", "monthly_placement", "market_exclusive", "discuss"}
 SANDBOX_PARTNER_LEAD_SOURCES = {"sandbox_checkout_test", "sandbox_webhook_end_to_end"}
 ALLOWED_SELLER_LEAD_STATUSES = {"new", "contacted", "qualified", "converted", "archived"}
 ALLOWED_BROKERAGE_MEMBER_STATUSES = {"active", "suspended"}
@@ -1678,7 +1679,7 @@ async def _email_partner_onboarding_link(data):
 
     rows = await _get(
         "hof_partner_leads?"
-        f"id=eq.{urllib.parse.quote(lead_id)}&select=id,company_name,contact_email,payment_status,status&limit=1"
+        f"id=eq.{urllib.parse.quote(lead_id)}&select=id,company_name,contact_email,preferred_model,payment_status,status&limit=1"
     )
     if not rows or str(rows[0].get("payment_status") or "") != "paid" or str(rows[0].get("status") or "") in {"declined", "waitlist"}:
         raise PermissionError("Only an eligible paid partner application can receive onboarding access.")
@@ -1689,12 +1690,19 @@ async def _email_partner_onboarding_link(data):
 
     onboarding = await _create_partner_onboarding_link({"lead_id": lead_id})
     company_name = str(lead.get("company_name") or "your company").strip()
+    tier = str(lead.get("preferred_model") or "").strip()
     safe_company = _invite_html_escape(company_name)
     safe_url = _invite_html_escape(onboarding["onboardingUrl"])
+    # Keep reporting aggregate-only; this email never tags a company, contact,
+    # market, secure URL, or any other application detail.
+    tags = [{"name": "email_type", "value": "partner_onboarding"}]
+    if tier in PARTNER_ONBOARDING_EMAIL_TIERS:
+        tags.append({"name": "partner_tier", "value": tier})
     payload = {
         "from": PARTNER_ONBOARDING_FROM_EMAIL,
         "to": [email],
         "subject": "Complete your HomeOfferFlow partner setup",
+        "tags": tags,
         "text": (
             f"Thanks for partnering with HomeOfferFlow. Complete your secure setup within 14 days: {onboarding['onboardingUrl']}\n\n"
             "This prepares your creative for review only. It does not activate advertising or replace the required written placement agreement."
