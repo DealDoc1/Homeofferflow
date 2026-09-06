@@ -37,6 +37,7 @@ class GoogleAddressAutocompleteCoverageTests(unittest.TestCase):
 
     def test_late_rendered_address_inputs_are_wired_on_focus(self):
         self.assertIn("document.addEventListener('focusin'", INDEX)
+        self.assertIn("if (!isHofAddressInput(input)) return;", INDEX)
         self.assertIn("window._hofPlacesSetup = wireAddressInput", INDEX)
         self.assertIn("Promise.resolve(window.loadHofPlaces?.()).then(() => wireAddressInput())", INDEX)
 
