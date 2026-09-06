@@ -125,7 +125,7 @@ class AgentActivationDashboardTests(unittest.TestCase):
 
     def test_onboarding_uses_a_real_saved_draft_path_not_demo_only_language(self):
         self.assertIn("Start your first saved offer", HTML)
-        self.assertIn("Start First Saved Offer", HTML)
+        self.assertIn("Start Transaction", HTML)
         self.assertIn("Saving a draft does not generate a packet or request a signature.", HTML)
 
     def test_account_dashboard_resumes_same_role_local_drafts_before_clearing_them(self):
@@ -407,9 +407,9 @@ class AgentActivationDashboardTests(unittest.TestCase):
         subscription = HTML[subscription_start:subscription_end]
 
         self.assertIn("const remaining = Math.max(0, limit - used);", subscription)
-        self.assertIn('Create Next Offer', subscription)
+        self.assertIn('Start Transaction', subscription)
         self.assertIn("remaining + ' packet'", subscription)
-        self.assertIn("startAccountOffer()", subscription)
+        self.assertIn("startAccountTransaction()", subscription)
 
     def test_repeat_activation_reuses_terms_without_reusing_client_or_property(self):
         script_start = HTML.index('id="hof-agent-activation-v16-js"')
