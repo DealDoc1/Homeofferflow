@@ -42,6 +42,8 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn('Choose an offer, representation, or customer notice.', NOT_FOUND)
         self.assertIn('Choose lease-listing setup or lease details.', NOT_FOUND)
         self.assertIn('Choose representation or the right customer notice.', NOT_FOUND)
+        self.assertIn('workflow for a property listing, purchase, lease, or Texas home-service provider search.', NOT_FOUND)
+        self.assertNotIn('workflow for buying, listing, leasing', NOT_FOUND)
 
     def test_agent_form_library_exposes_crawlable_shared_workflow_inventory(self):
         self.assertIn('"@type":"ItemList"', AGENT_FORM_LIBRARY)
