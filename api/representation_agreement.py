@@ -95,9 +95,13 @@ def build_short_form(data):
     ]
 
     for index, source_page in enumerate(reader.pages):
-        overlay = _overlay(float(source_page.mediabox.width), float(source_page.mediabox.height), page1 if index == 0 else page2)
-        source_page.merge_page(overlay)
+        # Attach the source page before merging.  Recent pypdf releases warn
+        # that replacing page contents before it belongs to a writer is not a
+        # stable operation.
         writer.add_page(source_page)
+        target_page = writer.pages[-1]
+        overlay = _overlay(float(target_page.mediabox.width), float(target_page.mediabox.height), page1 if index == 0 else page2)
+        target_page.merge_page(overlay)
 
     result = BytesIO()
     writer.write(result)

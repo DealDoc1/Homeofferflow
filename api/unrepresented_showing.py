@@ -53,7 +53,9 @@ def build_showing_form(data):
     customer_two_has_representation = str(data.get("customerTwoHasRepresentation") or "").lower() == "yes"
 
     reader = PdfReader(str(SHOWING_FORM))
-    page = reader.pages[0]
+    writer = PdfWriter()
+    writer.add_page(reader.pages[0])
+    page = writer.pages[0]
     entries = [
         (101, 658, property_address, 8),
         (188, 323, broker_name, 8), (490, 323, broker_license, 8),
@@ -65,8 +67,6 @@ def build_showing_form(data):
         (301, 173, CHECK if customer_two_has_representation else "", 10),
     ]
     page.merge_page(_overlay(float(page.mediabox.width), float(page.mediabox.height), entries))
-    writer = PdfWriter()
-    writer.add_page(page)
     result = BytesIO()
     writer.write(result)
     return result.getvalue()
