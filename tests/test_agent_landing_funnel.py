@@ -105,7 +105,8 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("agent_landing_relationship_workspace_handoff", INDEX)
         self.assertIn("tab: 'relationships'", INDEX)
         self.assertIn('id="accountPanelRelationships"', INDEX)
-        self.assertIn("private TXR-1501, TXR-1506, TXR-1507, TXR-1508, TXR-1905, TXR-1914, TXR-1917, TXR-1919, TXR-1948, TXR-1953, and TXR-1954 review-draft creation for every signed-in agent", AGENTS)
+        self.assertIn("Every signed-in agent can use the shared library", AGENTS)
+        self.assertIn("the guided interview keeps the relevant documents together for the transaction", AGENTS)
 
     def test_transaction_question_one_uses_a_four_choice_responsive_grid(self):
         self.assertIn('class="skip-link" href="#transaction-start"', AGENTS)
@@ -113,7 +114,9 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn(".grid{display:grid;grid-template-columns:repeat(4,1fr)", AGENTS)
         self.assertIn("@media(max-width:960px){.grid{grid-template-columns:repeat(2,1fr)}}", AGENTS)
         self.assertIn("@media(max-width:760px){.grid{grid-template-columns:1fr}", AGENTS)
-        self.assertIn("universal TREC-55-1 seller-disclosure and optional TREC-61-0 water-disclosure review drafts", AGENTS)
+        self.assertIn("Start a transaction, then build the document package it needs.", AGENTS)
+        self.assertIn("What you can do here", AGENTS)
+        self.assertNotIn("Current launch scope", AGENTS)
 
     def test_relationship_drafts_are_a_persistent_agent_account_workspace(self):
         self.assertIn('id="relationshipsAccountTab"', INDEX)
