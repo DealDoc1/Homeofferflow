@@ -1,4 +1,5 @@
 from io import BytesIO
+import json
 import unittest
 
 from pypdf import PdfReader
@@ -64,6 +65,15 @@ class RepresentationAgreementTests(unittest.TestCase):
                 b"%PDF-test",
                 "",
             )
+
+    def test_vercel_bundles_the_short_form_with_its_endpoint(self):
+        root = Path(__file__).resolve().parents[1]
+        config = json.loads((root / "vercel.json").read_text())
+        self.assertEqual(
+            config["functions"]["api/representation-agreement.py"]["includeFiles"],
+            "buyer_tenant_representation_short_form_1507.pdf",
+        )
+        self.assertTrue((root / "buyer_tenant_representation_short_form_1507.pdf").is_file())
 
 
 if __name__ == "__main__":

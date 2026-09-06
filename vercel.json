@@ -6,6 +6,9 @@
     },
     "api/fill_pdf_20_19_staging.py": {
       "includeFiles": "*.pdf"
+    },
+    "api/representation-agreement.py": {
+      "includeFiles": "buyer_tenant_representation_short_form_1507.pdf"
     }
   },
   "rewrites": [
