@@ -36,6 +36,7 @@ class RepresentationAgreementTests(unittest.TestCase):
         fields = agreement.build_short_form_signwell_fields({"clientTwoEmail": "two@example.com"})[0]
         by_id = {field["api_id"]: field for field in fields}
         self.assertEqual(by_id["client_signature"]["page"], 2)
+        self.assertEqual(by_id["client_signature"]["y"], 505)
         self.assertEqual(by_id["broker_signature"]["recipient_id"], "2")
         self.assertEqual(by_id["client_two_signature"]["recipient_id"], "3")
 
@@ -44,6 +45,17 @@ class RepresentationAgreementTests(unittest.TestCase):
         for field in ("clientName", "brokerName", "marketArea", "startDate", "endDate"):
             self.assertIn(field, source)
         self.assertIn("signature_requests_enabled\": False", source)
+
+    def test_signature_payload_has_client_and_broker_recipients(self):
+        payload = agreement.build_short_form_signwell_payload({
+            "clientName": "Taylor Client",
+            "clientEmail": "client@example.com",
+            "brokerName": "OnDemand Realty",
+            "brokerEmail": "broker@example.com",
+        }, b"%PDF-test", test_mode=True)
+        self.assertTrue(payload["test_mode"])
+        self.assertEqual([recipient["id"] for recipient in payload["recipients"]], ["1", "2"])
+        self.assertEqual(payload["fields"][0][0]["api_id"], "client_signature")
 
 
 if __name__ == "__main__":

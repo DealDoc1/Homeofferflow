@@ -2715,6 +2715,7 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
           <div class="field"><label>Second Client (optional)</label><input id="agreementClientTwoName" placeholder="Second client full legal name"/></div>
           <div class="field"><label>Second Client Email (optional)</label><input id="agreementClientTwoEmail" type="email" placeholder="secondclient@email.com"/></div>
           <div class="field"><label>Brokerage</label><input id="agreementBrokerName" placeholder="Brokerage legal name"/></div>
+          <div class="field"><label>Brokerage Email</label><input id="agreementBrokerEmail" type="email" placeholder="brokerage@email.com"/></div>
           <div class="field"><label>Brokerage License #</label><input id="agreementBrokerLicense" placeholder="Texas brokerage license"/></div>
           <div class="field"><label>Associate Name (if applicable)</label><input id="agreementAssociateName" placeholder="Agent full name"/></div>
           <div class="field"><label>Associate License #</label><input id="agreementAssociateLicense" placeholder="Texas agent license"/></div>
@@ -11870,6 +11871,7 @@ function routeAfterMagicLinkIfNeeded() {
     const profile = root.hofAuth?.accountProfile || {};
     const brokerage = root.hofPlatform?.brokerage || {};
     setIfBlank('agreementBrokerName', brokerage.name || profile.brokerage_name || profile.team_name);
+    setIfBlank('agreementBrokerEmail', brokerage.contact_email || profile.agent_email || root.hofAuth?.session?.user?.email);
     setIfBlank('agreementBrokerLicense', brokerage.license_number || profile.brokerage_license);
     setIfBlank('agreementAssociateName', profile.agent_name || root.getAccountDisplayName?.());
     setIfBlank('agreementAssociateLicense', profile.license_number || profile.agent_license);
@@ -11884,6 +11886,7 @@ function routeAfterMagicLinkIfNeeded() {
       clientTwoName: value('agreementClientTwoName'),
       clientTwoEmail: value('agreementClientTwoEmail'),
       brokerName: value('agreementBrokerName'),
+      brokerEmail: value('agreementBrokerEmail'),
       brokerLicense: value('agreementBrokerLicense'),
       associateName: value('agreementAssociateName'),
       associateLicense: value('agreementAssociateLicense'),

@@ -5,6 +5,7 @@ Agents provide the commercial terms through a small interview, then may review
 the finished agreement before requesting the client and broker signatures.
 """
 
+import base64
 from io import BytesIO
 from pathlib import Path
 
@@ -70,7 +71,7 @@ def build_short_form(data):
     writer = PdfWriter()
 
     page1 = [
-        (55, 633, client), (300, 633, broker),
+        (55, 633, client), (315, 633, broker),
         (55, 558, market_area[:85], 8),
         (55, 542, market_area[85:170], 8),
         (215, 522, start_date), (430, 522, end_date),
@@ -105,14 +106,62 @@ def build_short_form(data):
 def build_short_form_signwell_fields(data):
     """Return SignWell field definitions for client and broker signatures."""
     fields = [
-        {"api_id": "client_signature", "type": "signature", "page": 2, "x": 325, "y": 235, "width": 180, "height": 24, "recipient_id": "1"},
-        {"api_id": "client_sign_date", "type": "date_signed", "page": 2, "x": 535, "y": 235, "width": 55, "height": 18, "recipient_id": "1", "date_format": "MM/DD/YYYY", "lock_sign_date": True},
-        {"api_id": "broker_signature", "type": "signature", "page": 2, "x": 55, "y": 235, "width": 180, "height": 24, "recipient_id": "2"},
-        {"api_id": "broker_sign_date", "type": "date_signed", "page": 2, "x": 260, "y": 235, "width": 55, "height": 18, "recipient_id": "2", "date_format": "MM/DD/YYYY", "lock_sign_date": True},
+        {"api_id": "client_signature", "type": "signature", "page": 2, "x": 325, "y": 505, "width": 180, "height": 24, "recipient_id": "1"},
+        {"api_id": "client_sign_date", "type": "date_signed", "page": 2, "x": 535, "y": 505, "width": 55, "height": 18, "recipient_id": "1", "date_format": "MM/DD/YYYY", "lock_sign_date": True},
+        {"api_id": "broker_signature", "type": "signature", "page": 2, "x": 55, "y": 505, "width": 180, "height": 24, "recipient_id": "2"},
+        {"api_id": "broker_sign_date", "type": "date_signed", "page": 2, "x": 260, "y": 505, "width": 55, "height": 18, "recipient_id": "2", "date_format": "MM/DD/YYYY", "lock_sign_date": True},
     ]
     if _text(data.get("clientTwoEmail")):
         fields.extend([
-            {"api_id": "client_two_signature", "type": "signature", "page": 2, "x": 325, "y": 158, "width": 180, "height": 24, "recipient_id": "3"},
-            {"api_id": "client_two_sign_date", "type": "date_signed", "page": 2, "x": 535, "y": 158, "width": 55, "height": 18, "recipient_id": "3", "date_format": "MM/DD/YYYY", "lock_sign_date": True},
+            {"api_id": "client_two_signature", "type": "signature", "page": 2, "x": 325, "y": 588, "width": 180, "height": 24, "recipient_id": "3"},
+            {"api_id": "client_two_sign_date", "type": "date_signed", "page": 2, "x": 535, "y": 588, "width": 55, "height": 18, "recipient_id": "3", "date_format": "MM/DD/YYYY", "lock_sign_date": True},
         ])
     return [fields]
+
+
+def build_short_form_signwell_payload(data, pdf_bytes, test_mode=False):
+    """Build, but do not transmit, the SignWell request for this agreement."""
+    client_email = _text(data.get("clientEmail"), 254)
+    broker_email = _text(data.get("brokerEmail"), 254)
+    if not client_email or not broker_email:
+        raise ValueError("Client and broker email are required for a signature request")
+
+    client_name = _text(data.get("clientName"), 120) or "Client"
+    broker_name = _text(data.get("brokerName"), 120) or "Broker"
+    recipients = [
+        {"id": "1", "name": client_name, "email": client_email},
+        {"id": "2", "name": broker_name, "email": broker_email},
+    ]
+    client_two_email = _text(data.get("clientTwoEmail"), 254)
+    if client_two_email:
+        recipients.append({
+            "id": "3",
+            "name": _text(data.get("clientTwoName"), 120) or "Second Client",
+            "email": client_two_email,
+        })
+
+    safe_client = "".join(ch if ch.isalnum() else "_" for ch in client_name).strip("_") or "client"
+    return {
+        "test_mode": bool(test_mode),
+        "draft": False,
+        "reminders": True,
+        "apply_signing_order": False,
+        "embedded_signing": False,
+        "with_signature_page": False,
+        "custom_requester_name": "HomeOfferFlow",
+        "name": f"HomeOfferFlow Representation Agreement — {client_name}",
+        "subject": f"Review and sign your representation agreement — {broker_name}",
+        "message": "Please review the agreement carefully before signing. Contact your broker or agent with questions about the agreement.",
+        "recipients": recipients,
+        "files": [{
+            "name": f"HomeOfferFlow_Representation_Agreement_{safe_client}.pdf",
+            "file_base64": base64.b64encode(pdf_bytes).decode("ascii"),
+        }],
+        "fields": build_short_form_signwell_fields(data),
+        "metadata": {
+            "source": "HomeOfferFlow",
+            "agreement_type": "TXR-1507-short-form",
+            "client_email": client_email,
+            "test_mode": str(bool(test_mode)).lower(),
+        },
+    }
