@@ -3,6 +3,13 @@
   "git": {
     "deploymentEnabled": false
   },
+  "redirects": [
+    {
+      "source": "/field-mapper.html",
+      "destination": "/404.html",
+      "permanent": false
+    }
+  ],
   "functions": {
     "api/fill-pdf.py": {
       "includeFiles": "{buyer_temporary_residential_lease_16-7.pdf,seller_temporary_residential_lease_15-7.pdf}"
