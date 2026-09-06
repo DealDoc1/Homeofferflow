@@ -129,6 +129,10 @@ class FsboLandingFunnelTests(unittest.TestCase):
         self.assertIn('Best for sellers ready to launch', SELLERS)
         self.assertIn('className=\'tier-badge\'', SELLERS)
 
+    def test_seller_question_one_keeps_four_sale_stages_visually_balanced(self):
+        self.assertIn('#seller-question-one + .lead + .grid { grid-template-columns:repeat(4,minmax(0,1fr)); }', SELLERS)
+        self.assertIn('@media(max-width:960px) { #seller-question-one + .lead + .grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }', SELLERS)
+
 
 if __name__ == "__main__":
     unittest.main()
