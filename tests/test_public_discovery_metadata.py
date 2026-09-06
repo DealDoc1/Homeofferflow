@@ -33,6 +33,11 @@ VERCEL = json.loads((ROOT / "vercel.json").read_text(encoding="utf-8"))
 
 class PublicDiscoveryMetadataTests(unittest.TestCase):
     def test_not_found_agent_routes_describe_the_same_question_two_package_choices(self):
+        self.assertIn('That page isn’t available.', NOT_FOUND)
+        self.assertIn('Choose the transaction you are starting.', NOT_FOUND)
+        self.assertIn('Property listing →', NOT_FOUND)
+        self.assertIn('Purchase →', NOT_FOUND)
+        self.assertIn('Tenant representation →', NOT_FOUND)
         self.assertIn('Choose listing setup, seller disclosures, or offer review.', NOT_FOUND)
         self.assertIn('Choose an offer, representation, or customer notice.', NOT_FOUND)
         self.assertIn('Choose lease-listing setup or lease details.', NOT_FOUND)
