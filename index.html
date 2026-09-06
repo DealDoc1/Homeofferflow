@@ -15133,7 +15133,15 @@ function routeAfterMagicLinkIfNeeded() {
           ? 'partner_application_save_failed'
           : 'partner_checkout_start_failed'
       );
-      if (status) { status.textContent = error?.message || String(error); status.className = 'platform-status err'; }
+      if (status) {
+        status.textContent = window.hofCustomerActionError(
+          error,
+          applicationSavedNow || hasSavedPartnerApplication
+            ? 'We couldn’t open secure checkout. Your application is saved—please try again.'
+            : 'We couldn’t save your application. Please try again.'
+        );
+        status.className = 'platform-status err';
+      }
       if (submit) {
         submit.disabled = false;
         submit.setAttribute('aria-disabled', 'false');
@@ -15188,7 +15196,7 @@ function routeAfterMagicLinkIfNeeded() {
       const response = await fetch('/api/fsbo-lead', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({request_type:'partner_onboarding_get', onboarding_token:token})});
       const result = await response.json().catch(() => ({})); if (!response.ok || !result.partner) throw new Error(result.error || 'This setup link is unavailable.');
       const partner = result.partner; document.getElementById('partnerSetupCompany').value = partner.company_name || ''; document.getElementById('partnerSetupCategory').value = String(partner.partner_type || '').replace(/_/g, ' '); document.getElementById('partnerSetupMarket').value = partner.onboarding_market_area || partner.market_area || ''; document.getElementById('partnerSetupWebsite').value = partner.onboarding_website_url || ''; document.getElementById('partnerSetupLogo').value = partner.onboarding_logo_url || ''; document.getElementById('partnerSetupCta').value = partner.onboarding_cta_label || ''; document.getElementById('partnerOnboardingFields').style.display = 'block'; status.textContent = '';
-    } catch (error) { status.textContent = error?.message || 'This setup link is unavailable.'; status.className = 'platform-status err'; }
+    } catch (error) { status.textContent = window.hofCustomerActionError(error, 'This setup link is unavailable. Request a fresh link from support if needed.'); status.className = 'platform-status err'; }
   };
   window.submitPartnerOnboarding = async function(){
     const status = document.getElementById('partnerOnboardingStatus');
@@ -15197,7 +15205,7 @@ function routeAfterMagicLinkIfNeeded() {
     if (!market) { status.textContent = 'Enter the primary market area before saving setup details.'; status.className = 'platform-status err'; document.getElementById('partnerSetupMarket')?.focus(); return; }
     if (saveButton) { saveButton.disabled = true; saveButton.setAttribute('aria-busy', 'true'); saveButton.textContent = 'Saving setup…'; }
     if (status) { status.textContent = 'Saving setup details…'; status.className = 'platform-status'; status.setAttribute('aria-busy', 'true'); }
-    try { const response = await fetch('/api/fsbo-lead', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({request_type:'partner_onboarding_submit', onboarding_token:onboardingToken(), market_area:market, website_url:value('partnerSetupWebsite'), logo_url:value('partnerSetupLogo'), cta_label:value('partnerSetupCta')})}); const result = await response.json().catch(() => ({})); if (!response.ok) throw new Error(result.error || 'Could not save setup details.'); clearPartnerOnboardingToken(); document.getElementById('partnerOnboardingFields').style.display = 'none'; status.innerHTML = '<strong>Setup details saved — you are all set for now.</strong><br>Next, HomeOfferFlow reviews your details with the written placement agreement. We will only publish a placement after that review is complete.'; status.className = 'platform-status ok'; status.setAttribute('aria-busy', 'false'); } catch (error) { status.textContent = error?.message || 'Could not save setup details.'; status.className = 'platform-status err'; status.setAttribute('aria-busy', 'false'); if (saveButton) { saveButton.disabled = false; saveButton.setAttribute('aria-busy', 'false'); saveButton.textContent = 'Save setup details'; } }
+    try { const response = await fetch('/api/fsbo-lead', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({request_type:'partner_onboarding_submit', onboarding_token:onboardingToken(), market_area:market, website_url:value('partnerSetupWebsite'), logo_url:value('partnerSetupLogo'), cta_label:value('partnerSetupCta')})}); const result = await response.json().catch(() => ({})); if (!response.ok) throw new Error(result.error || 'Could not save setup details.'); clearPartnerOnboardingToken(); document.getElementById('partnerOnboardingFields').style.display = 'none'; status.innerHTML = '<strong>Setup details saved — you are all set for now.</strong><br>Next, HomeOfferFlow reviews your details with the written placement agreement. We will only publish a placement after that review is complete.'; status.className = 'platform-status ok'; status.setAttribute('aria-busy', 'false'); } catch (error) { status.textContent = window.hofCustomerActionError(error, 'We couldn’t save your setup details. Please try again.'); status.className = 'platform-status err'; status.setAttribute('aria-busy', 'false'); if (saveButton) { saveButton.disabled = false; saveButton.setAttribute('aria-busy', 'false'); saveButton.textContent = 'Save setup details'; } }
   };
   async function recoverPartnerCheckoutSetup(sessionId, attempt = 0){
     const confirmation = document.getElementById('foundingPartnerCheckoutConfirmation');

@@ -86,6 +86,13 @@ class PartnerCheckoutTests(unittest.TestCase):
         self.assertIn('id="foundingPartnerCheckoutConfirmation"', html)
         self.assertIn('mailto:support@homeofferflow.com?subject=Partner%20setup%20link%20request', html)
         self.assertIn('ask support to issue a fresh secure link', html)
+
+    def test_partner_recovery_messages_do_not_expose_provider_errors(self):
+        html = (ROOT / "index.html").read_text(encoding="utf-8")
+        self.assertIn('window.hofCustomerActionError(', html)
+        self.assertIn('We couldn’t open secure checkout. Your application is saved—please try again.', html)
+        self.assertIn('This setup link is unavailable. Request a fresh link from support if needed.', html)
+        self.assertIn('We couldn’t save your setup details. Please try again.', html)
     def test_success_return_explains_secure_setup_timeline_and_activation_boundary(self):
         html = (ROOT / "index.html").read_text(encoding="utf-8")
         self.assertIn("your next step is partner setup", html)
