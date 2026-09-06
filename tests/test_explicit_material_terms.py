@@ -90,6 +90,22 @@ class ExplicitMaterialTermsTests(unittest.TestCase):
         self.assertNotIn("setDefaultValue('homeWarrantyAmount'", home_warranty)
         self.assertIn("requireField('homeWarrantyAmount', 'home warranty amount', missing)", HTML)
 
+    def test_temporary_seller_lease_requires_the_terms_needed_for_a_complete_packet(self):
+        for required in (
+            "seller1Name",
+            "seller1Email",
+            "sellerMailAddr",
+            "sellerPhone",
+            "sellerTemporaryLeaseTerminationDate",
+            "sellerTemporaryLeaseRentPerDay",
+            "sellerTemporaryLeaseDeposit",
+            "sellerTemporaryLeaseUtilitiesPaidByBuyer",
+            "sellerTemporaryLeasePetsAllowed",
+            "sellerTemporaryLeaseHoldoverPerDay",
+        ):
+            self.assertIn(f"'{required}'", HTML)
+        self.assertIn("document.getElementById('possession')?.value === 'sellerTemporaryLease'", HTML)
+
     def test_review_does_not_label_a_missing_choice_as_a_substantive_term(self):
         for fallback in (
             "s.titlePayer === 'seller' ? 'Seller (standard)' : 'Buyer'",

@@ -8263,6 +8263,21 @@ function routeAfterMagicLinkIfNeeded() {
       requireRadioSelection('homeWarranty', 'home warranty choice', missing);
       if (getRadio('wantsConcessions') === 'yes') requireField('concessionAmount', 'seller concession amount', missing);
       if (getRadio('homeWarranty') === 'yes') requireField('homeWarrantyAmount', 'home warranty amount', missing);
+      if (document.getElementById('possession')?.value === 'sellerTemporaryLease') {
+        requireField('seller1Name', 'seller / tenant 1 full name', missing);
+        requireValidEmail('seller1Email', 'valid seller / tenant 1 email', missing);
+        requireField('sellerMailAddr', 'seller / tenant mailing address', missing);
+        requireField('sellerPhone', 'seller / tenant phone', missing);
+        requireField('sellerTemporaryLeaseTerminationDate', 'temporary lease termination date', missing);
+        requireField('sellerTemporaryLeaseRentPerDay', 'temporary lease daily rent', missing);
+        requireField('sellerTemporaryLeaseDeposit', 'temporary lease security deposit', missing);
+        requireField('sellerTemporaryLeaseUtilitiesPaidByBuyer', 'temporary lease utilities', missing);
+        requireField('sellerTemporaryLeasePetsAllowed', 'temporary lease pet terms', missing);
+        requireField('sellerTemporaryLeaseHoldoverPerDay', 'temporary lease holdover charge', missing);
+        if (String(document.getElementById('seller2Name')?.value || '').trim()) {
+          requireValidEmail('seller2Email', 'valid seller / tenant 2 email', missing);
+        }
+      }
     }
 
     if (missing.length) {
