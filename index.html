@@ -3110,9 +3110,9 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         <h4>Start with the client need</h4>
         <p style="color:var(--gray-light); line-height:1.6; margin-bottom:1rem;">Use this after choosing Purchase or Tenant representation above. Answer the questions that apply, review the document, and decide the terms and next steps with your client.</p>
         <div class="relationship-drafts-guide-grid">
-          <div class="relationship-drafts-guide-item"><strong>TXR-1507 · Short Form</strong><span>Buyer/Tenant Representation Agreement draft.</span></div>
-          <div class="relationship-drafts-guide-item"><strong>TXR-1501 · Long Form</strong><span>Buyer/Tenant Representation Agreement draft; choose it only when it fits the transaction.</span></div>
-          <div class="relationship-drafts-guide-item"><strong>TXR-1508 · Showing Form</strong><span>Unrepresented Customer Showing Form draft; it is not a buyer representation agreement.</span></div>
+          <div class="relationship-drafts-guide-item"><strong>Straightforward representation agreement · TXR-1507</strong><span>Buyer/Tenant Representation Agreement, Short Form.</span></div>
+          <div class="relationship-drafts-guide-item"><strong>Detailed representation agreement · TXR-1501</strong><span>Buyer/Tenant Representation Agreement, Long Form; choose it only when it fits the transaction.</span></div>
+          <div class="relationship-drafts-guide-item"><strong>Unrepresented-customer showing form · TXR-1508</strong><span>Use this only for an unrepresented customer; it is not a buyer representation agreement.</span></div>
           <div class="relationship-drafts-guide-item"><strong>TXR-1506 · Consumer Notice</strong><span>General Information and Notice to Consumers draft; it does not create representation.</span></div>
           <div class="relationship-drafts-guide-item"><strong>TXR-1905 · Mineral Reservation Addendum</strong><span>Short guided private-review draft for the source-form reservation and surface-rights choices; it does not send or sign the addendum.</span></div>
           <div class="relationship-drafts-guide-item"><strong>TXR-1914 · Seller Financing Addendum</strong><span>Private review draft for source-form financing choices; it does not create loan documents or advise on financing.</span></div>
@@ -19309,7 +19309,7 @@ function routeAfterMagicLinkIfNeeded() {
     const card = document.createElement('div');
     card.id = 'txr1507AgreementCard';
     card.className = 'account-card hof-agreement-card';
-    card.innerHTML = '<h4>Buyer/Tenant Representation Agreement</h4><p id="txr1507AgreementCopy">Loading the HomeOfferFlow TXR Short Form library…</p>';
+    card.innerHTML = '<h4>Straightforward representation agreement</h4><p id="txr1507AgreementCopy">Loading the Buyer/Tenant Representation Agreement, Short Form (TXR-1507)…</p>';
     panel.appendChild(card);
     try {
       const source = await approvedShortFormSource();
@@ -19318,9 +19318,9 @@ function routeAfterMagicLinkIfNeeded() {
         copy.textContent = 'TXR-1507 is not currently available in your form library.';
         return;
       }
-      copy.innerHTML = `Start a private TXR-1507 Short Form draft using the ${escape(source.source_revision)} HomeOfferFlow library source. Review the saved draft, then use the private signing queue to explicitly confirm recipients and send it when appropriate.`;
+      copy.innerHTML = `Start a private Buyer/Tenant Representation Agreement, Short Form (TXR-1507), using the ${escape(source.source_revision)} HomeOfferFlow library source. Review the saved draft, then use the private signing queue to explicitly confirm recipients and send it when appropriate.`;
       const button = document.createElement('button');
-      button.type = 'button'; button.className = 'btn-secondary'; button.textContent = 'Start TXR-1507 draft';
+      button.type = 'button'; button.className = 'btn-secondary'; button.textContent = 'Start straightforward representation draft';
       button.addEventListener('click', () => openDraftDialog(source));
       root.hofOpenTxr1507Draft = () => openDraftDialog(source);
       card.appendChild(button);
@@ -19343,7 +19343,7 @@ function routeAfterMagicLinkIfNeeded() {
     modal.className = 'hof-agreement-modal';
     modal.innerHTML = `
       <form class="hof-agreement-dialog" id="txr1507AgreementForm">
-        <h3>TXR-1507 Short Form draft</h3>
+        <h3>Straightforward representation agreement</h3>
         <p>Source revision ${escape(source.source_revision)} is available in the HomeOfferFlow library. Review every term with your client. This saves a private draft only; it does not send or sign an agreement.</p>
         <div class="hof-agreement-grid">
           <label>Client 1 full name<input name="clientOne" required maxlength="180"></label>
@@ -19437,7 +19437,7 @@ function routeAfterMagicLinkIfNeeded() {
     const card = document.createElement('div');
     card.id = 'txr1501AgreementCard';
     card.className = 'account-card hof-agreement-card';
-    card.innerHTML = '<h4>Buyer/Tenant Representation Agreement - Long Form</h4><p id="txr1501AgreementCopy">Loading the HomeOfferFlow TXR Long Form library…</p>';
+    card.innerHTML = '<h4>Detailed representation agreement</h4><p id="txr1501AgreementCopy">Loading the Buyer/Tenant Representation Agreement, Long Form (TXR-1501)…</p>';
     panel.appendChild(card);
     try {
       const source = await approvedLongFormSource();
@@ -19446,9 +19446,9 @@ function routeAfterMagicLinkIfNeeded() {
         copy.textContent = 'TXR-1501 is not currently available in your form library.';
         return;
       }
-      copy.innerHTML = `Start a private TXR-1501 Long Form draft using the ${escape(source.source_revision)} HomeOfferFlow library source. Choose this form deliberately; it is not a substitute for the Short Form. Review the saved draft, then use the private signing queue to explicitly confirm recipients before sending.`;
+      copy.innerHTML = `Start a private Buyer/Tenant Representation Agreement, Long Form (TXR-1501), using the ${escape(source.source_revision)} HomeOfferFlow library source. Choose this form deliberately; it is not a substitute for the Short Form. Review the saved draft, then use the private signing queue to explicitly confirm recipients before sending.`;
       const button = document.createElement('button');
-      button.type = 'button'; button.className = 'btn-secondary'; button.textContent = 'Start TXR-1501 draft';
+      button.type = 'button'; button.className = 'btn-secondary'; button.textContent = 'Start detailed representation draft';
       button.addEventListener('click', () => openLongDraftDialog(source));
       root.hofOpenTxr1501Draft = () => openLongDraftDialog(source);
       card.appendChild(button);
@@ -19470,7 +19470,7 @@ function routeAfterMagicLinkIfNeeded() {
     modal.id = 'txr1501AgreementDialog'; modal.className = 'hof-agreement-modal';
     modal.innerHTML = `
       <form class="hof-agreement-dialog" id="txr1501AgreementForm">
-        <h3>TXR-1501 Long Form draft</h3>
+        <h3>Detailed representation agreement</h3>
         <p>Source revision ${escape(source.source_revision)} is available in the HomeOfferFlow library. Enter only agreed terms after reviewing them with your client. This saves a private draft only; it does not create, send, or sign the source form.</p>
         <div class="hof-agreement-grid">
           <label>Client 1 full name<input name="clientOne" required maxlength="180"></label>
