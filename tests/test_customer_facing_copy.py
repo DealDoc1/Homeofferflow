@@ -42,6 +42,10 @@ class CustomerFacingCopyTests(unittest.TestCase):
         self.assertNotIn("AI Offer Review Foundation", HTML)
         self.assertNotIn("Future AI Checklist", HTML)
 
+    def test_ai_review_fallback_keeps_technical_errors_out_of_customer_copy(self):
+        self.assertIn("Your offer review is ready. We used the built-in review for this packet.", HTML)
+        self.assertNotIn("rules-based review is shown instead. ' + (err?.message || '')", HTML)
+
     def test_fsbo_intake_keeps_optional_partner_choices_out_of_the_initial_path(self):
         self.assertIn("What would you like help with first?", HTML)
         self.assertIn("Would local provider recommendations help?", HTML)

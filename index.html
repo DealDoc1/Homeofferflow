@@ -9439,7 +9439,7 @@ function routeAfterMagicLinkIfNeeded() {
       try { await saveAiReviewResultToSupabase(result); } catch(e) { console.warn('AI review autosave skipped:', e); }
     } catch (err) {
       console.error('Live AI review failed:', err);
-      renderAiOfferReviewResult({ ...fallback, summary: 'Live AI review was unavailable, so the rules-based review is shown instead. ' + (err?.message || '') }, false);
+      renderAiOfferReviewResult({ ...fallback, summary: 'Your offer review is ready. We used the built-in review for this packet.' }, false);
     }
   }
 
