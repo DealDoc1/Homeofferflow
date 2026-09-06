@@ -1047,21 +1047,23 @@ class OnDemandLaunchPageTests(unittest.TestCase):
         self.assertNotIn("coupon", LAUNCH_HTML.lower())
         self.assertNotIn("promo code", LAUNCH_HTML.lower())
 
-    def test_launch_clearly_discloses_current_agent_form_scope(self):
+    def test_launch_clearly_explains_agent_document_options(self):
         for text in (
-            "purchase-offer packet",
+            "buyer-offer package",
             "seller temporary residential lease when seller post-closing possession applies",
-            "not yet a complete transaction-form library",
             "private review drafts",
-            "currently approved relationship",
+            "shared library",
+            "relationship, consumer-notice, seller-disclosure, seller-financing, and mineral-reservation",
             "listing agreements",
-            "seller-disclosure",
-            "brokerage-approved workflow",
+            "brokerage-approved process",
             "restricted Texas REALTORS",
             "individual agent attestation",
             "approved private source revision",
         ):
             self.assertIn(text.lower(), LAUNCH_HTML.lower())
+        self.assertIn("See your document options", LAUNCH_HTML)
+        self.assertNotIn("not yet a complete transaction-form library", LAUNCH_HTML)
+        self.assertNotIn("outside its stated live scope", LAUNCH_HTML)
 
     def test_launch_answers_trial_and_scope_questions_before_enrollment(self):
         for text in (
