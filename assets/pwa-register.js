@@ -45,15 +45,6 @@
   }
   if (window.location.pathname === '/agents') {
     const tagAgentTrialLinks = () => {
-      const actions = document.querySelector('main .actions');
-      if (actions && !document.getElementById('hofAgentFormLibraryCta')) {
-        const libraryLink = document.createElement('a');
-        libraryLink.id = 'hofAgentFormLibraryCta';
-        libraryLink.className = 'button secondary';
-        libraryLink.href = '/texas-agent-form-library?utm_source=agent_workspace&utm_medium=agent_page&utm_campaign=form_library';
-        libraryLink.textContent = 'See the shared form library';
-        actions.appendChild(libraryLink);
-      }
       document.querySelectorAll('a[href^="/ondemand"]').forEach(link => {
         if (!link.href.includes('utm_source=')) {
           link.href = '/ondemand?utm_source=agent_workspace&utm_medium=agent_page&utm_campaign=agent_acquisition';

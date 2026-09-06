@@ -182,9 +182,10 @@ class PwaInstallExperienceTests(unittest.TestCase):
         self.assertIn('pwaAuthenticatedShortcutRepeatUserCount', INDEX)
         self.assertIn("surface: 'pwa_shortcut'", INDEX)
 
-    def test_agent_page_form_library_handoff_preserves_campaign_attribution(self):
-        self.assertIn("libraryLink.href = '/texas-agent-form-library?utm_source=agent_workspace&utm_medium=agent_page&utm_campaign=form_library';", PWA_REGISTER)
-        self.assertIn("libraryLink.id = 'hofAgentFormLibraryCta'", PWA_REGISTER)
+    def test_agent_page_does_not_add_a_second_hero_action_after_load(self):
+        self.assertNotIn("hofAgentFormLibraryCta", PWA_REGISTER)
+        self.assertNotIn("See the shared form library", PWA_REGISTER)
+        self.assertIn("document.querySelectorAll('a[href^=\"/ondemand\"]')", PWA_REGISTER)
 
     def test_clean_signed_in_standalone_launch_opens_only_the_private_workspace(self):
         self.assertIn("function isStandalonePwa()", INDEX)
