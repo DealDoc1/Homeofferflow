@@ -51,6 +51,16 @@ class UnrepresentedShowingTests(unittest.TestCase):
         ):
             self.assertIn(token, source)
 
+    def test_lease_listing_path_collects_lease_specific_details(self):
+        source = (Path(__file__).resolve().parents[1] / "index.html").read_text()
+        for token in (
+            "sellerListingIntent",
+            "sellerLeadMonthlyRent",
+            "updateSellerListingIntent",
+            "Monthly rent:",
+        ):
+            self.assertIn(token, source)
+
 
 if __name__ == "__main__":
     unittest.main()

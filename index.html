@@ -8930,11 +8930,13 @@ function routeAfterMagicLinkIfNeeded() {
         <p>Agent-side seller-representation tools: listing packet, seller disclosure workflow, offer comparison, counteroffer/amendment support, and listing-side document speed tools.</p>
         <div class="platform-grid">
           <div class="field"><label>Workflow Type</label><select id="sellerLeadType"><option value="agent_listing">Listing Agent / Seller Rep</option><option value="fsbo">FSBO Referral / Seller Lead</option></select></div>
+          <div class="field"><label>Listing Type</label><select id="sellerListingIntent" onchange="updateSellerListingIntent()"><option value="sale">Sale Listing</option><option value="lease">Lease Listing</option></select></div>
           <div class="field"><label>Property Address</label><input id="sellerLeadAddress" placeholder="123 Main St, City, TX"></div>
           <div class="field"><label>Seller Name</label><input id="sellerLeadName" placeholder="Seller full name"></div>
           <div class="field"><label>Seller Email</label><input id="sellerLeadEmail" type="email" placeholder="seller@email.com"></div>
           <div class="field"><label>Seller Phone</label><input id="sellerLeadPhone" placeholder="(214) 555-0000"></div>
-          <div class="field"><label>Asking Price</label><input id="sellerLeadPrice" type="number" placeholder="500000"></div>
+          <div class="field"><label id="sellerLeadPriceLabel">Asking Price</label><input id="sellerLeadPrice" type="number" placeholder="500000"></div>
+          <div class="field" id="sellerLeadMonthlyRentField" style="display:none;"><label>Monthly Rent</label><input id="sellerLeadMonthlyRent" type="number" placeholder="2500"></div>
           <div class="field"><label>Mortgage Balance</label><input id="sellerLeadMortgage" type="number" placeholder="Optional"></div>
           <div class="field"><label>Desired Close Date</label><input id="sellerLeadCloseDate" type="date"></div>
         </div>
@@ -8944,6 +8946,14 @@ function routeAfterMagicLinkIfNeeded() {
       </div>
       <div class="platform-card"><h4>Recent Seller Leads</h4><div id="sellerLeadList" class="platform-list"><div class="platform-list-item">No seller leads loaded yet.</div></div></div>`;
     loadSellerLeadsFoundation();
+  }
+
+  function updateSellerListingIntent() {
+    const isLease = getVal('sellerListingIntent') === 'lease';
+    const priceLabel = document.getElementById('sellerLeadPriceLabel');
+    const rentField = document.getElementById('sellerLeadMonthlyRentField');
+    if (priceLabel) priceLabel.textContent = isLease ? 'List Price (optional)' : 'Asking Price';
+    if (rentField) rentField.style.display = isLease ? 'block' : 'none';
   }
 
   async function saveSellerLeadFoundation() {
@@ -8963,7 +8973,11 @@ function routeAfterMagicLinkIfNeeded() {
         asking_price: moneyNumber(getVal('sellerLeadPrice')) || null,
         mortgage_balance: moneyNumber(getVal('sellerLeadMortgage')) || null,
         desired_close_date: getVal('sellerLeadCloseDate') || null,
-        notes: getVal('sellerLeadNotes') || null,
+        notes: [
+          getVal('sellerLeadNotes'),
+          getVal('sellerListingIntent') === 'lease' ? 'Lease listing' : '',
+          getVal('sellerListingIntent') === 'lease' && getVal('sellerLeadMonthlyRent') ? `Monthly rent: $${getVal('sellerLeadMonthlyRent')}` : ''
+        ].filter(Boolean).join(' · ') || null,
         status: 'new'
       };
       const result = await client.from('hof_seller_leads').insert(payload).select('*').single();
@@ -11905,7 +11919,10 @@ function routeAfterMagicLinkIfNeeded() {
     setTimeout(() => {
       const notes = document.getElementById('sellerLeadNotes');
       const leadType = document.getElementById('sellerLeadType');
+      const listingIntent = document.getElementById('sellerListingIntent');
       if (leadType) leadType.value = 'agent_listing';
+      if (listingIntent) listingIntent.value = path === 'lease_listing' ? 'lease' : 'sale';
+      root.updateSellerListingIntent?.();
       if (notes && !notes.value && path === 'lease_listing') notes.value = 'Lease listing';
       document.getElementById('sellerLeadAddress')?.focus();
     }, 0);
