@@ -2645,6 +2645,7 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
       <button type="button" class="account-tab active" data-account-tab="dashboard" onclick="showAccountTab('dashboard')">Dashboard</button>
       <button type="button" class="account-tab" data-account-tab="profile" onclick="showAccountTab('profile')">Profile</button>
       <button type="button" class="account-tab" data-account-tab="offers" onclick="showAccountTab('offers')">My Offers</button>
+      <button type="button" class="account-tab" data-account-tab="agreements" onclick="showAccountTab('agreements')">Client Agreements</button>
       <button type="button" class="account-tab" data-account-tab="brokerage" onclick="showAccountTab('brokerage')">Brokerage</button>
       <button type="button" class="account-tab" data-account-tab="seller" onclick="showAccountTab('seller')">Listing Tools</button>
       <button type="button" class="account-tab" id="partnersAccountTab" data-account-tab="partners" onclick="showAccountTab('partners')" style="display:none;">Partners</button>
@@ -2702,6 +2703,33 @@ window.addEventListener('load', () => { try { if (typeof checkPaymentReturn === 
 
     <div class="account-panel" id="accountPanelSeller">
       <div id="sellerFoundationPanel" class="offer-empty">Loading listing tools...</div>
+    </div>
+
+    <div class="account-panel" id="accountPanelAgreements">
+      <div class="platform-card">
+        <h4>Start a Client Agreement</h4>
+        <p>Answer a few essentials, then review the completed agreement before it is signed.</p>
+        <div class="platform-grid">
+          <div class="field"><label>Client’s Full Name</label><input id="agreementClientName" placeholder="Client full legal name"/></div>
+          <div class="field"><label>Client Email</label><input id="agreementClientEmail" type="email" placeholder="client@email.com"/></div>
+          <div class="field"><label>Second Client (optional)</label><input id="agreementClientTwoName" placeholder="Second client full legal name"/></div>
+          <div class="field"><label>Second Client Email (optional)</label><input id="agreementClientTwoEmail" type="email" placeholder="secondclient@email.com"/></div>
+          <div class="field"><label>Brokerage</label><input id="agreementBrokerName" placeholder="Brokerage legal name"/></div>
+          <div class="field"><label>Brokerage License #</label><input id="agreementBrokerLicense" placeholder="Texas brokerage license"/></div>
+          <div class="field"><label>Associate Name (if applicable)</label><input id="agreementAssociateName" placeholder="Agent full name"/></div>
+          <div class="field"><label>Associate License #</label><input id="agreementAssociateLicense" placeholder="Texas agent license"/></div>
+          <div class="field"><label>Market Area</label><input id="agreementMarketArea" placeholder="Example: Collin and Grayson Counties, Texas"/></div>
+          <div class="field"><label>Agreement Starts</label><input id="agreementStartDate" type="date"/></div>
+          <div class="field"><label>Agreement Ends</label><input id="agreementEndDate" type="date"/></div>
+          <div class="field"><label>Service Level</label><select id="agreementServiceLevel" onchange="updateAgreementServiceLevel()"><option value="full">Full representation</option><option value="showing">Showing services only</option></select></div>
+          <div class="field"><label>Purchase Compensation</label><div class="field-row"><select id="agreementPurchaseCompType"><option value="percent">Percent of sales price</option><option value="flat">Flat fee</option></select><input id="agreementPurchaseCompValue" inputmode="decimal" placeholder="Amount"/></div></div>
+          <div class="field"><label>Lease Compensation</label><div class="field-row"><select id="agreementLeaseCompType"><option value="month_percent">Percent of one month’s rent</option><option value="rent_percent">Percent of all rent</option><option value="flat">Flat fee</option></select><input id="agreementLeaseCompValue" inputmode="decimal" placeholder="Amount"/></div></div>
+          <div class="field"><label>Intermediary Authorization</label><select id="agreementIntermediary"><option value="no">Client does not authorize intermediary</option><option value="yes">Client authorizes intermediary</option></select></div>
+          <div class="field" id="agreementShowingFeeField" style="display:none;"><label>Showing-services fee</label><input id="agreementShowingFee" inputmode="decimal" placeholder="Amount due on execution"/></div>
+        </div>
+        <div class="platform-actions"><button type="button" onclick="downloadRepresentationAgreement()">Prepare Agreement PDF</button></div>
+        <div id="agreementStatus" class="platform-status"></div>
+      </div>
     </div>
 
     <div class="account-panel" id="accountPanelPartners">
@@ -11815,6 +11843,95 @@ function routeAfterMagicLinkIfNeeded() {
     if (typeof previousRenderDashboard === 'function') previousRenderDashboard();
     document.getElementById('release15DashboardCard')?.remove();
     root.renderAgentActivationCard();
+  };
+})();
+</script>
+
+<script id="hof-client-agreements-v1">
+(function(){
+  const root = window;
+  const value = id => root.getVal ? root.getVal(id) : (document.getElementById(id)?.value || '');
+  const setIfBlank = (id, next) => {
+    const input = document.getElementById(id);
+    if (input && !input.value && next) input.value = next;
+  };
+  const formatDate = raw => {
+    if (!raw || !/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw || '';
+    const [year, month, day] = raw.split('-');
+    return `${month}/${day}/${year}`;
+  };
+
+  root.updateAgreementServiceLevel = function updateAgreementServiceLevel(){
+    const field = document.getElementById('agreementShowingFeeField');
+    if (field) field.style.display = value('agreementServiceLevel') === 'showing' ? 'block' : 'none';
+  };
+
+  root.prefillAgreementInterview = function prefillAgreementInterview(){
+    const profile = root.hofAuth?.accountProfile || {};
+    const brokerage = root.hofPlatform?.brokerage || {};
+    setIfBlank('agreementBrokerName', brokerage.name || profile.brokerage_name || profile.team_name);
+    setIfBlank('agreementBrokerLicense', brokerage.license_number || profile.brokerage_license);
+    setIfBlank('agreementAssociateName', profile.agent_name || root.getAccountDisplayName?.());
+    setIfBlank('agreementAssociateLicense', profile.license_number || profile.agent_license);
+    root.updateAgreementServiceLevel();
+  };
+
+  root.downloadRepresentationAgreement = async function downloadRepresentationAgreement(){
+    const status = document.getElementById('agreementStatus');
+    const data = {
+      clientName: value('agreementClientName'),
+      clientEmail: value('agreementClientEmail'),
+      clientTwoName: value('agreementClientTwoName'),
+      clientTwoEmail: value('agreementClientTwoEmail'),
+      brokerName: value('agreementBrokerName'),
+      brokerLicense: value('agreementBrokerLicense'),
+      associateName: value('agreementAssociateName'),
+      associateLicense: value('agreementAssociateLicense'),
+      marketArea: value('agreementMarketArea'),
+      startDate: formatDate(value('agreementStartDate')),
+      endDate: formatDate(value('agreementEndDate')),
+      serviceLevel: value('agreementServiceLevel'),
+      showingFee: value('agreementShowingFee'),
+      purchaseCompType: value('agreementPurchaseCompType'),
+      purchaseCompValue: value('agreementPurchaseCompValue'),
+      leaseCompType: value('agreementLeaseCompType'),
+      leaseCompValue: value('agreementLeaseCompValue'),
+      intermediaryAuthorized: value('agreementIntermediary')
+    };
+    const required = ['clientName', 'brokerName', 'marketArea', 'startDate', 'endDate'];
+    const missing = required.filter(key => !String(data[key] || '').trim());
+    if (missing.length) {
+      if (status) { status.textContent = 'Please complete the client, brokerage, market area, and agreement dates.'; status.className = 'platform-status err'; }
+      return;
+    }
+    if (status) { status.textContent = 'Preparing your agreement…'; status.className = 'platform-status'; }
+    try {
+      const response = await fetch('/api/representation-agreement', {
+        method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data)
+      });
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.error || 'Could not prepare the agreement');
+      }
+      const download = URL.createObjectURL(await response.blob());
+      const link = document.createElement('a');
+      link.href = download;
+      link.download = `HomeOfferFlow_Representation_Agreement_${data.clientName.replace(/[^A-Za-z0-9]+/g, '_') || 'client'}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(download);
+      if (status) { status.textContent = 'Agreement ready. Review every term before requesting signatures.'; status.className = 'platform-status ok'; }
+    } catch (error) {
+      if (status) { status.textContent = error?.message || 'Could not prepare the agreement.'; status.className = 'platform-status err'; }
+    }
+  };
+
+  const priorShowAccountTab = root.showAccountTab;
+  root.showAccountTab = function showAccountTab(tab){
+    const result = typeof priorShowAccountTab === 'function' ? priorShowAccountTab(tab) : undefined;
+    if (tab === 'agreements') root.prefillAgreementInterview();
+    return result;
   };
 })();
 </script>
