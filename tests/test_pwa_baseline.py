@@ -65,7 +65,7 @@ class PwaBaselineTests(unittest.TestCase):
                 ("Start a Transaction", "/?pwa_action=transaction_start"),
                 ("My Workspace", "/?pwa_action=workspace"),
                 ("Needs Attention", "/?pwa_action=attention_queue"),
-                ("Agent Forms & Drafts", "/?pwa_action=relationship_drafts"),
+                ("Guided Forms", "/?pwa_action=relationship_drafts"),
             ],
         )
         self.assertEqual(len(MANIFEST["shortcuts"]), 4)
@@ -90,7 +90,7 @@ class PwaBaselineTests(unittest.TestCase):
         self.assertNotIn("caches.match(event.request)", WORKER)
 
     def test_agent_landing_shell_is_pre_cached_for_agent_first_pwa_resume(self):
-        self.assertIn("const SHELL_CACHE = 'homeofferflow-shell-v54';", WORKER)
+        self.assertIn("const SHELL_CACHE = 'homeofferflow-shell-v55';", WORKER)
         self.assertIn("'/agents',", WORKER)
         self.assertIn("'/sellers',", WORKER)
         self.assertIn("'/partners',", WORKER)
@@ -122,7 +122,7 @@ class PwaBaselineTests(unittest.TestCase):
         self.assertIn("shared agent form drafts", MANIFEST["description"])
         self.assertIn("business", MANIFEST.get("categories", []))
         self.assertIn("productivity", MANIFEST.get("categories", []))
-        forms = next(item for item in MANIFEST["shortcuts"] if item["name"] == "Agent Forms & Drafts")
+        forms = next(item for item in MANIFEST["shortcuts"] if item["name"] == "Guided Forms")
         self.assertEqual(forms["icons"][0]["src"], "/assets/homeofferflow-app-icon-192.png")
         self.assertIn("const validActions = new Set(['workspace', 'brokerage_setup', 'transaction_start', 'listing_tools', 'relationship_drafts', 'offer_review', 'new_offer', 'signing_queue', 'attention_queue', 'seller_plan', 'investor_workspace', 'partner_marketplace', 'buyer_offer']);", INDEX)
         self.assertIn("const validTransactionWorkflows = new Set(['purchase', 'sale_listing', 'lease_listing', 'lease_representation']);", INDEX)
