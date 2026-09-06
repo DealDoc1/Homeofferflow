@@ -21,6 +21,7 @@ SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
 SUPABASE_SERVICE_ROLE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
 PARTNER_ONBOARDING_FROM_EMAIL = os.environ.get("PARTNER_ONBOARDING_FROM_EMAIL", "offers@homeofferflow.com")
+PARTNER_ONBOARDING_REPLY_TO = os.environ.get("PARTNER_ONBOARDING_REPLY_TO") or os.environ.get("SUPPORT_EMAIL") or "support@homeofferflow.com"
 PUBLIC_APP_ORIGIN = (os.environ.get("PUBLIC_APP_ORIGIN") or "https://www.homeofferflow.com").rstrip("/")
 PARTNER_EMAIL_TIERS = frozenset({"founding_pilot", "monthly_placement", "market_exclusive", "discuss"})
 
@@ -875,6 +876,7 @@ class handler(BaseHTTPRequestHandler):
         payload = {
             "from": PARTNER_ONBOARDING_FROM_EMAIL,
             "to": [email],
+            "reply_to": PARTNER_ONBOARDING_REPLY_TO,
             "subject": "Complete your HomeOfferFlow partner setup",
             "tags": tags,
             "text": f"Thanks for partnering with HomeOfferFlow. Complete your secure setup within 14 days: {url}\n\nThis prepares your creative for review only. It does not activate advertising or replace the required written placement agreement.",

@@ -198,6 +198,7 @@ class PartnerCheckoutTests(unittest.TestCase):
         email = next(request for request in Client.requests if request[0] == "post")
         self.assertEqual(email[1], "https://api.resend.com/emails")
         self.assertEqual(email[2]["json"]["to"], ["partner@example.com"])
+        self.assertEqual(email[2]["json"]["reply_to"], "support@homeofferflow.com")
         self.assertIn("partner_onboarding=", email[2]["json"]["text"])
         self.assertIn("does not activate advertising", email[2]["json"]["text"])
         self.assertEqual(email[2]["json"]["tags"], [

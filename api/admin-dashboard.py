@@ -24,6 +24,7 @@ SUPABASE_URL = os.environ.get("SUPABASE_URL", "").rstrip("/")
 SUPABASE_SERVICE_ROLE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or os.environ.get("SUPABASE_SERVICE_ROLE") or os.environ.get("SUPABASE_SERVICE_KEY") or ""
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
 PARTNER_ONBOARDING_FROM_EMAIL = os.environ.get("PARTNER_ONBOARDING_FROM_EMAIL", "offers@homeofferflow.com")
+PARTNER_ONBOARDING_REPLY_TO = os.environ.get("PARTNER_ONBOARDING_REPLY_TO") or os.environ.get("SUPPORT_EMAIL") or "support@homeofferflow.com"
 PARTNER_AGREEMENT_COPY_EMAIL = os.environ.get("PARTNER_AGREEMENT_COPY_EMAIL", "support@homeofferflow.com").strip().lower()
 PARTNER_AGREEMENT_SIGNING_ENABLED = str(os.environ.get("HOF_PARTNER_AGREEMENT_SIGNING_ENABLED", "false")).lower() in {"1", "true", "yes", "on"}
 PARTNER_AGREEMENT_SIGNWELL_TEST_MODE = str(os.environ.get("HOF_PARTNER_AGREEMENT_SIGNWELL_TEST_MODE", "false")).lower() in {"1", "true", "yes", "on"}
@@ -1701,6 +1702,7 @@ async def _email_partner_onboarding_link(data):
     payload = {
         "from": PARTNER_ONBOARDING_FROM_EMAIL,
         "to": [email],
+        "reply_to": PARTNER_ONBOARDING_REPLY_TO,
         "subject": "Complete your HomeOfferFlow partner setup",
         "tags": tags,
         "text": (

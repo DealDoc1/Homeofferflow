@@ -303,6 +303,7 @@ class AdminTrackerSecurityTests(IsolatedAsyncioTestCase):
         self.assertEqual(result, {"expiresAt": "2026-08-25T00:00:00+00:00", "delivery": "sent"})
         self.assertEqual(client.request[0][0], "https://api.resend.com/emails")
         self.assertEqual(client.request[1]["json"]["to"], ["partner@example.com"])
+        self.assertEqual(client.request[1]["json"]["reply_to"], "support@homeofferflow.com")
         self.assertEqual(client.request[1]["json"]["tags"], [
             {"name": "email_type", "value": "partner_onboarding"},
             {"name": "partner_tier", "value": "monthly_placement"},
