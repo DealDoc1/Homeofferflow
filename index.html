@@ -410,7 +410,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     const isHomebuyer = (window.hofAuth?.role || '').toLowerCase() === 'homebuyer';
     return `<div style="display:flex; justify-content:space-between; align-items:flex-start; gap:1rem; flex-wrap:wrap; margin-bottom:1rem;">
       <div><div style="font-weight:900; color:var(--white);">${isHomebuyer ? 'My Offer Packets' : 'Recent offers'}</div><div style="color:var(--gray-light); font-size:0.86rem; margin-top:0.25rem;">View status, activity, and buyer-side signing progress.</div></div>
-      <button class="btn-primary" type="button" onclick="${isHomebuyer ? 'startHomebuyerOffer()' : 'startAccountOffer()'}">New Offer</button>
+      <button class="btn-primary" type="button" onclick="${isHomebuyer ? 'startHomebuyerOffer()' : 'startAccountTransaction()'}">${isHomebuyer ? 'New Offer' : 'Start Transaction'}</button>
     </div>
     <div class="offer-dashboard-table">
       <div class="offer-dashboard-head"><div>Property</div><div>Buyer</div><div>Offer Price</div><div>Status</div><div>Updated</div><div>Actions</div></div>
@@ -5656,7 +5656,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     if (isInternalAdminAccess) {
       actionHtml =
         '<div class="account-actions-row" style="margin-top:0.85rem;">' +
-          (good ? '<button class="btn-primary" type="button" onclick="startAccountOffer()">Create Next Offer</button>' : '') +
+          (good ? '<button class="btn-primary" type="button" onclick="startAccountTransaction()">Start Transaction</button>' : '') +
         '</div>' +
         '<div style="margin-top:0.55rem; color:var(--gray); font-size:0.74rem; line-height:1.45;">' +
           (good
@@ -5668,7 +5668,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     } else if (isPaid) {
       actionHtml =
         '<div class="account-actions-row" style="margin-top:0.85rem;">' +
-          (good ? '<button class="btn-primary" type="button" onclick="startAccountOffer()">Create Next Offer</button>' : '') +
+          (good ? '<button class="btn-primary" type="button" onclick="startAccountTransaction()">Start Transaction</button>' : '') +
           '<button class="btn-secondary" type="button" onclick="openBillingPortal(\'' + (nearLimit ? 'usage_near_limit' : 'subscription_card') + '\')">Manage Billing</button>' +
         '</div>' +
         '<div style="margin-top:0.55rem; color:var(--gray); font-size:0.74rem; line-height:1.45;">' +
@@ -6784,7 +6784,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       </div>
       <div class="beta-checklist-actions">
         <button type="button" onclick="showAccountTab('profile')">Profile</button>
-        <button type="button" onclick="startAccountOffer()">Start First Saved Offer</button>
+        <button type="button" onclick="startAccountTransaction()">Start Transaction</button>
         <button type="button" onclick="showAccountTab('offers')">My Offers</button>
         <button type="button" onclick="openBetaFeedback()">Send Feedback</button>
       </div>`;
@@ -16607,7 +16607,7 @@ function routeAfterMagicLinkIfNeeded() {
       </div>
       <div class="beta-checklist-actions">
         <button type="button" onclick="showAccountTab('profile')">Profile & Defaults</button>
-        <button type="button" onclick="startAccountOffer()">Start First Saved Offer</button>
+        <button type="button" onclick="startAccountTransaction()">Start Transaction</button>
         <button type="button" onclick="showAccountTab('offers')">Offer Workspace</button>
         <button type="button" onclick="openBetaFeedback()">Get Help</button>
       </div>`;
@@ -17118,7 +17118,7 @@ function routeAfterMagicLinkIfNeeded() {
         </div>
         <div class="beta-safe-banner"><strong>Broker-safe positioning:</strong> HomeOfferFlow prepares offer packets and buyer-side signature requests. It is not transaction management, legal advice, seller acceptance, or broker compliance approval.</div>
         <div class="release15-actions">
-          <button class="primary" type="button" onclick="startAccountOffer()">Start First Saved Offer</button>
+          <button class="primary" type="button" onclick="startAccountTransaction()">Start Transaction</button>
           <button type="button" onclick="showAccountTab('offers')">Open Offer Workspace</button>
           <button type="button" onclick="openBetaFeedback()">Report Issue / Request Form</button>
         </div>
