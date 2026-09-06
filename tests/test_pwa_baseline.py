@@ -53,7 +53,7 @@ class PwaBaselineTests(unittest.TestCase):
         self.assertEqual(MANIFEST["dir"], "ltr")
         self.assertEqual(MANIFEST["display"], "standalone")
         self.assertEqual(MANIFEST["display_override"], ["window-controls-overlay", "standalone", "browser"])
-        self.assertEqual(MANIFEST["orientation"], "portrait-primary")
+        self.assertEqual(MANIFEST["orientation"], "any")
         self.assertFalse(MANIFEST["prefer_related_applications"])
         self.assertEqual(MANIFEST["start_url"], "/")
         self.assertEqual(MANIFEST["scope"], "/")
@@ -90,7 +90,7 @@ class PwaBaselineTests(unittest.TestCase):
         self.assertNotIn("caches.match(event.request)", WORKER)
 
     def test_agent_landing_shell_is_pre_cached_for_agent_first_pwa_resume(self):
-        self.assertIn("const SHELL_CACHE = 'homeofferflow-shell-v53';", WORKER)
+        self.assertIn("const SHELL_CACHE = 'homeofferflow-shell-v54';", WORKER)
         self.assertIn("'/agents',", WORKER)
         self.assertIn("'/sellers',", WORKER)
         self.assertIn("'/partners',", WORKER)
