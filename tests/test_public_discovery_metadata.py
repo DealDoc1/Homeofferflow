@@ -49,6 +49,14 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
             self.assertIn(form_code, AGENT_FORM_LIBRARY)
         self.assertIn('"url":"https://www.homeofferflow.com/texas-agent-form-library"', AGENT_FORM_LIBRARY)
 
+    def test_agent_guides_use_the_same_transaction_labels_as_question_one(self):
+        lease_guide = (ROOT / "texas-lease-offer-workflow.html").read_text(encoding="utf-8")
+        expected = "property listing, purchase, lease listing, or tenant representation"
+        self.assertIn(expected, AGENT_FORM_LIBRARY)
+        self.assertNotIn("listing, buying, lease listing, or lease representation", AGENT_FORM_LIBRARY)
+        self.assertIn("tenant representation", lease_guide)
+        self.assertNotIn("lease representation", lease_guide)
+
     def test_agent_landing_page_lists_every_live_shared_review_draft_without_client_side_append_noise(self):
         for form_code in ("TXR-1501", "TXR-1506", "TXR-1507", "TXR-1508", "TXR-1905", "TXR-1914", "TXR-1917", "TXR-1919", "TXR-1948", "TXR-1953", "TXR-1954"):
             self.assertIn(form_code, AGENTS)
