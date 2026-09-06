@@ -167,7 +167,8 @@ class BrokerageFormSourceFoundationTests(unittest.TestCase):
             self.assertIn(f"'{form_code}'", MIGRATION)
             self.assertIn(f'"{form_code}"', (ROOT / "lib" / "platform_form_source_upload.py").read_text())
             self.assertIn(form_code, HTML)
-        self.assertIn("supplied source", HTML)
+        self.assertIn("Need a seller disclosure?", HTML)
+        self.assertNotIn("Listing Form Readiness", HTML)
 
     def test_seller_disclosure_drafts_use_the_universal_released_library(self):
         dashboard = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")

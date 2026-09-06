@@ -16,9 +16,10 @@ class BrokerageAdminScopeTests(unittest.TestCase):
         self.assertIn("HomeOfferFlow CEO or delegated product reviewer", evidence)
         self.assertNotIn("Tyler Demando", evidence)
 
-    def test_form_ui_describes_an_organization_admin_not_ondemand_only(self):
+    def test_agent_listing_ui_does_not_expose_internal_organization_source_process(self):
         index = (ROOT / "index.html").read_text()
-        self.assertIn("An authorized organization administrator must privately upload and attest", index)
+        self.assertNotIn("Listing Form Readiness", index)
+        self.assertNotIn("Source approved", index)
         self.assertNotIn("Tyler Demando", index)
 
 
