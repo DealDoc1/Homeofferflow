@@ -313,6 +313,13 @@ class AgentActivationDashboardTests(unittest.TestCase):
         self.assertIn("el.insertBefore(workspaceStartCard, firstWorkspaceCard);", HTML)
         self.assertIn("const address = document.getElementById('listingWorkspaceAddress');", HTML)
 
+    def test_offer_review_package_opens_the_comparison_worksheet(self):
+        self.assertIn("window.hofOpenListingOfferComparison = function hofOpenListingOfferComparison()", HTML)
+        self.assertIn("document.getElementById('listingWorkspaceOfferComparisonCard')", HTML)
+        self.assertIn("document.getElementById('listingOfferWorkspace')", HTML)
+        self.assertIn("Choose the listing workspace, then add the offer details you want to compare.", HTML)
+        self.assertIn("action: () => window.hofOpenListingOfferComparison?.()", HTML)
+
     def test_activation_actions_record_stage_and_primary_or_secondary_choice(self):
         script_start = HTML.index('id="hof-agent-activation-v16-js"')
         script_end = HTML.index("</script>", script_start)

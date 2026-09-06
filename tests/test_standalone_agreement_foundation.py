@@ -473,6 +473,9 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
         self.assertIn("TXR-1506 is temporarily unavailable in the HomeOfferFlow form library", HTML)
         self.assertIn("create_txr_1506_draft", HTML)
         self.assertIn('hof-private-review-save-feedback-v1', HTML)
+        self.assertIn('hof-customer-action-error-v1', HTML)
+        self.assertIn('window.hofCustomerActionError', HTML)
+        self.assertIn('We couldn’t save this draft. Check your entries and try again.', HTML)
         for form_id in ('txr1914AgreementForm', 'txr1917AgreementForm', 'txr1919AgreementForm'):
             self.assertIn(form_id, HTML)
         self.assertIn("button.textContent = 'Saving draft…'", HTML)
