@@ -239,9 +239,11 @@ class TechnicalSeoTests(unittest.TestCase):
         self.assertIn('<meta name="robots" content="noindex, nofollow, noarchive, nosnippet"', seller_review)
 
     def test_internal_field_mapper_is_not_available_on_the_public_site(self):
-        redirect = next(item for item in VERCEL["redirects"] if item["source"] == "/field-mapper.html")
-        self.assertEqual(redirect["destination"], "/404.html")
-        self.assertFalse(redirect["permanent"])
+        for source in ("/field-mapper.html", "/field-mapper"):
+            with self.subTest(source=source):
+                redirect = next(item for item in VERCEL["redirects"] if item["source"] == source)
+                self.assertEqual(redirect["destination"], "/404.html")
+                self.assertFalse(redirect["permanent"])
 
     def test_api_and_signed_workflow_endpoints_cannot_be_indexed(self):
         api_headers = next(item for item in VERCEL["headers"] if item["source"] == "/api/(.*)")

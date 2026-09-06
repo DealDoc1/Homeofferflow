@@ -8,6 +8,11 @@
       "source": "/field-mapper.html",
       "destination": "/404.html",
       "permanent": false
+    },
+    {
+      "source": "/field-mapper",
+      "destination": "/404.html",
+      "permanent": false
     }
   ],
   "functions": {
