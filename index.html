@@ -3559,8 +3559,8 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           <p style="font-size:0.8rem; font-weight:700; color:var(--gold-light); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.5rem;">§5A — Escrow Agent</p>
           <div class="notice gold">💡 The Escrow Agent holds the earnest money and option fee.</div>
           <div class="field-group" style="margin-bottom:0; margin-top:0.75rem;">
-            <div class="field"><label>Escrow Agent / Title Company Name</label><input type="text" id="escrowAgent" placeholder="e.g. Alamo Title Company" value="Kate Lewis Tucker - Chicago Title DFW"/></div>
-            <div class="field"><label>Escrow Agent Address</label><input type="text" id="escrowAddress" placeholder="Street address of title company" value="2770 Main Street, Suite 114, Frisco, TX 75033"/></div>
+            <div class="field"><label>Escrow Agent / Title Company Name</label><input type="text" id="escrowAgent" placeholder="e.g. Alamo Title Company"/></div>
+            <div class="field"><label>Escrow Agent Address</label><input type="text" id="escrowAddress" placeholder="Street address of title company"/></div>
           </div>
         </div>
       </div>
@@ -3792,7 +3792,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           </div>
           <div class="field" style="margin-top:0.7rem;"><label>Lease special provisions</label><textarea id="sellerTemporaryLeaseSpecialProvisions" rows="3" placeholder="Enter only terms agreed by the parties."></textarea></div>
         </div>
-        <div class="field"><div class="field-label-row"><label>Title Company (optional)</label><button class="helper-btn" onclick="toggleHelper('h-title-company')">?</button></div><div class="helper-box" id="h-title-company"><strong>💡 Title Company</strong>This is the title/escrow company requested for the transaction. Buyer and seller can negotiate title company selection. Agents may also use brokerage-preferred defaults if appropriate.</div><input type="text" id="titleCompany" placeholder="e.g. Alamo Title Company" value="Chicago Title DFW - Forgey Law Group PLLC"/></div>
+        <div class="field"><div class="field-label-row"><label>Title Company (optional)</label><button class="helper-btn" onclick="toggleHelper('h-title-company')">?</button></div><div class="helper-box" id="h-title-company"><strong>💡 Title Company</strong>This is the title/escrow company requested for the transaction. Buyer and seller can negotiate title company selection. Agents may also use brokerage-preferred defaults if appropriate.</div><input type="text" id="titleCompany" placeholder="e.g. Alamo Title Company"/></div>
       </div>
 
       <div style="padding-top:0.75rem; border-top:1px solid rgba(255,255,255,0.07); margin-bottom:1.25rem;">
@@ -4029,19 +4029,6 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   const LEGAL_POLICY_VERSION = '2026-07-30';
   const state = { step: 0, data: {}, termsOK: false, selectedPlan: null, selectedPrice: 0 };
 
-  const HOF_HOMEBUYER_DEFAULTS = {
-    titleCompany: 'Forgey Law Group - Chicago Title Frisco',
-    escrowAgent: 'Kate Lewis Tucker - Chicago Title DFW',
-    escrowAddress: '2770 Main Street, Suite 114, Frisco, TX 75033'
-  };
-
-  function applyHomebuyerTitleDefaults(force = false) {
-    const type = state?.data?.userType || 'homebuyer';
-    if (type !== 'homebuyer') return;
-    setInputIfEmpty('titleCompany', HOF_HOMEBUYER_DEFAULTS.titleCompany, force);
-    setInputIfEmpty('escrowAgent', HOF_HOMEBUYER_DEFAULTS.escrowAgent, force);
-    setInputIfEmpty('escrowAddress', HOF_HOMEBUYER_DEFAULTS.escrowAddress, force);
-  }
   const SUPABASE_URL = 'https://acqylchftrjjoablvqyq.supabase.co';
   const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_KNp9ZbXMTNyhgnjcKFF-6A_IoLwyQLU';
   // Passwordless sessions created from a transient Vercel deployment used to
@@ -8227,7 +8214,6 @@ function routeAfterMagicLinkIfNeeded() {
     openWizard(true);
     setTimeout(() => {
       applySmartDefaults?.();
-      applyHomebuyerTitleDefaults(true);
       restoreConditionalSections?.();
       updateSurveyExistingDetails?.(getRadio('survey') || 'sellerExisting');
     }, 100);
@@ -8395,7 +8381,6 @@ function routeAfterMagicLinkIfNeeded() {
     updateProgress();
     applySmartDefaults();
     applyProfileDefaultsToWizard(false);
-    applyHomebuyerTitleDefaults(false);
     const placesLoad = window.loadHofPlaces?.();
     if (placesLoad?.then) placesLoad.then(() => tryInitAutocomplete());
     else setTimeout(tryInitAutocomplete, 300);
@@ -10300,7 +10285,6 @@ function routeAfterMagicLinkIfNeeded() {
     setDefaultValue('surveyDays', '7');
     setDefaultValue('disclosureDays', '3');
     setDefaultValue('surveyIfRejectedPaidBy', 'seller');
-    applyHomebuyerTitleDefaults(false);
 
     setRadioDefault('titlePayer', 'seller');
     setRadioDefault('titleAmendment', 'ii_buyer');
@@ -11530,7 +11514,6 @@ function routeAfterMagicLinkIfNeeded() {
 
       refreshSelectedRadioCards();
       restoreConditionalSections();
-      applyHomebuyerTitleDefaults(false);
 
       if (typeof state !== 'undefined') {
         state.termsOK = !!document.getElementById('termsAccepted')?.checked || !!draft.termsOK;
