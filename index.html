@@ -7238,6 +7238,8 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       document.body.appendChild(followUp);
       followUp.querySelector('#hofAgentPackageFollowUpCancel').addEventListener('click', () => followUp.remove());
       followUp.addEventListener('click', event => { if (event.target === followUp) followUp.remove(); });
+      followUp.addEventListener('keydown', event => { if (event.key === 'Escape') followUp.remove(); });
+      window.setTimeout(() => followUp.querySelector('[data-follow-up-choice]')?.focus(), 0);
       followUp.querySelectorAll('[data-follow-up-choice]').forEach(button => button.addEventListener('click', () => {
         const choice = choices[Number(button.dataset.followUpChoice)];
         if (!choice) return;
@@ -7290,6 +7292,8 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     document.body.appendChild(modal);
     modal.querySelector('#hofAgentPackageCancel').addEventListener('click', () => modal.remove());
     modal.addEventListener('click', event => { if (event.target === modal) modal.remove(); });
+    modal.addEventListener('keydown', event => { if (event.key === 'Escape') modal.remove(); });
+    window.setTimeout(() => modal.querySelector('[data-package-choice]')?.focus(), 0);
     modal.querySelectorAll('[data-package-choice]').forEach(button => button.addEventListener('click', () => {
       const choice = interview.choices[Number(button.dataset.packageChoice)];
       if (!choice) return;
