@@ -10832,7 +10832,10 @@ function routeAfterMagicLinkIfNeeded() {
   document.addEventListener('focusin', function(e) {
     const input = e.target;
     if (!(input instanceof HTMLInputElement)) return;
-    if (!/(?:address|addr)/i.test(`${input.id} ${input.name}`) && !['propertyToSell', 'profInvestorMailing', 'clientCityStateZip'].some(key => key === input.id || key === input.name)) return;
+    // Use the same semantic matcher as the registration pass. A future
+    // address field may be identified by its visible label rather than an
+    // Address-style id, and its first focus should still load Google Places.
+    if (!isHofAddressInput(input)) return;
     window._hofPlacesSetup = wireAddressInput;
     Promise.resolve(window.loadHofPlaces?.()).then(() => wireAddressInput());
   });
