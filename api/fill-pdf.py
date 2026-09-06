@@ -410,8 +410,8 @@ def build_pages_data(
         #(350, 45, str(lease_nr_term_days) if lease_natural and val_lower(lease_nr_delivered) == "no" else ""),
     ]
 
-    escrow_agent = s.get("escrowAgent", "Kate Lewis Tucker - Chicago Title DFW")
-    escrow_addr  = s.get("escrowAddress", "2770 Main Street, Suite 114, Frisco, TX 75033")
+    escrow_agent = s.get("escrowAgent") or ""
+    escrow_addr  = s.get("escrowAddress") or ""
     additional_earnest = first_present(s.get("additionalEarnest"), s.get("additionalEarnestMoney"))
 
     pages[1] = [
@@ -430,7 +430,7 @@ def build_pages_data(
 
         (314, 353, ck(title_payer == "seller"), "check_small"),
         (369, 351, ck(title_payer == "buyer"), "check_small"),
-        (285, 342, s.get("titleCompany", "Chicago Title DFW - Forgey Law Group PLLC")),
+        (285, 342, s.get("titleCompany") or ""),
 
         (78,  180, ck(title_amend == "i"), "check_small"),
         (75,  166, ck(title_amend in ["ii_buyer", "ii_seller"]), "check_small"),
