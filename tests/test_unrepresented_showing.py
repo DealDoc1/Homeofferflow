@@ -40,6 +40,7 @@ class UnrepresentedShowingTests(unittest.TestCase):
             "/api/unrepresented-showing",
         ):
             self.assertIn(token, source)
+        self.assertIn("['showingAgreementAddress', null]", source)
 
     def test_vercel_bundles_the_showing_form_with_its_endpoint(self):
         root = Path(__file__).resolve().parents[1]
