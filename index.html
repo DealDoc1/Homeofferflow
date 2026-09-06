@@ -8860,7 +8860,8 @@ function routeAfterMagicLinkIfNeeded() {
           <div class="field"><label>DBA / Display Name</label><input id="brandDbaName" value="${escapeAttr(b.dba_name || profileValue('team_name') || '')}" placeholder="The Christian Group"></div>
           <div class="field"><label>Brokerage License #</label><input id="brandLicense" value="${escapeAttr(b.license_number || profileValue('brokerage_license') || '')}" placeholder="TX brokerage license"></div>
           <div class="field"><label>Brand Color</label><input id="brandColor" value="${escapeAttr(b.brand_color || '#2563eb')}" placeholder="#2563eb"></div>
-          <div class="field"><label>Logo URL</label><input id="brandLogoUrl" value="${escapeAttr(b.logo_url || '')}" placeholder="https://..."></div>
+          <div class="field"><label>Logo Image</label><input id="brandLogoFile" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml"></div>
+          <div class="field"><label>Logo Image URL (optional)</label><input id="brandLogoUrl" value="${escapeAttr(b.logo_url || '')}" placeholder="https://..."></div>
           <div class="field"><label>Website URL</label><input id="brandWebsiteUrl" value="${escapeAttr(b.website_url || '')}" placeholder="https://..."></div>
           <div class="field"><label>Office Address</label><input id="brandOfficeAddress" value="${escapeAttr(b.office_address || '')}" placeholder="123 Main St"></div>
           <div class="field"><label>Office City</label><input id="brandOfficeCity" value="${escapeAttr(b.office_city || '')}" placeholder="Frisco"></div>
@@ -8872,8 +8873,9 @@ function routeAfterMagicLinkIfNeeded() {
           <div class="field"><label>Default Title Company</label><input id="brandDefaultTitle" value="${escapeAttr(b.default_title_company || profileValue('default_title_company'))}" placeholder="Preferred title company"></div>
         </div>
         <div class="field" style="margin-top:0.8rem;"><label>Brokerage Disclaimer</label><textarea id="brandDisclaimer" rows="3" placeholder="Optional brokerage/team disclaimer shown in branded experiences.">${escapeAttr(b.disclaimer || '')}</textarea></div>
-        <div class="notice gold" style="margin-top:0.8rem;"><strong>Logo:</strong> Add a secure image URL for use in your branded experience.</div>
-        <div class="platform-actions"><button type="button" onclick="saveBrokerageFoundation()">Save Brokerage Branding</button><button type="button" onclick="loadBrokerageFoundation().then(renderBrokerageFoundationPanel)">Reload</button></div>
+        <div class="notice gold" style="margin-top:0.8rem;"><strong>Logo:</strong> Save your brokerage details, then upload a PNG, JPG, WebP, or SVG logo (up to 2 MB).</div>
+        ${b.logo_url ? `<div class="notice" style="margin-top:0.8rem;"><img src="${escapeAttr(b.logo_url)}" alt="${escapeAttr(b.dba_name || b.name || 'Brokerage')} logo" style="display:block; max-width:180px; max-height:64px; object-fit:contain;"></div>` : ''}
+        <div class="platform-actions"><button type="button" onclick="saveBrokerageFoundation()">Save Brokerage Branding</button><button type="button" onclick="uploadBrokerageLogo()">Upload Logo</button><button type="button" onclick="loadBrokerageFoundation().then(renderBrokerageFoundationPanel)">Reload</button></div>
         <div id="brokerageFoundationStatus" class="platform-status"></div>
       </div>
       <div class="platform-card">
@@ -8931,6 +8933,40 @@ function routeAfterMagicLinkIfNeeded() {
     } catch (err) {
       console.error('Save brokerage failed:', err);
       platformStatus('brokerageFoundationStatus', err?.message || 'Could not save brokerage branding.', 'err');
+    }
+  }
+
+  async function uploadBrokerageLogo() {
+    const client = getSupabaseClient();
+    const user = platformUser();
+    const input = document.getElementById('brandLogoFile');
+    const file = input?.files?.[0];
+    if (!client || !user) return platformStatus('brokerageFoundationStatus', 'Sign in before uploading a logo.', 'err');
+    if (!hofPlatform.brokerage?.id) return platformStatus('brokerageFoundationStatus', 'Save your brokerage details first, then upload its logo.', 'err');
+    if (!file) return platformStatus('brokerageFoundationStatus', 'Choose a logo image first.', 'err');
+    const allowed = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml']);
+    if (!allowed.has(file.type) || file.size > 2 * 1024 * 1024) {
+      return platformStatus('brokerageFoundationStatus', 'Choose a PNG, JPG, WebP, or SVG logo up to 2 MB.', 'err');
+    }
+    const extension = ({'image/png':'png', 'image/jpeg':'jpg', 'image/webp':'webp', 'image/svg+xml':'svg'})[file.type];
+    const path = `${hofPlatform.brokerage.id}/logo.${extension}`;
+    platformStatus('brokerageFoundationStatus', 'Uploading logo…');
+    try {
+      const upload = await client.storage.from('brokerage-branding').upload(path, file, {upsert: true, contentType: file.type, cacheControl: '31536000'});
+      if (upload.error) throw upload.error;
+      const {data: publicUrl} = client.storage.from('brokerage-branding').getPublicUrl(path);
+      const logoUrl = publicUrl?.publicUrl;
+      if (!logoUrl) throw new Error('Could not prepare the logo URL.');
+      const result = await client.from('hof_brokerages').update({logo_url: logoUrl, updated_at: new Date().toISOString()}).eq('id', hofPlatform.brokerage.id).select('*').single();
+      if (result.error) throw result.error;
+      hofPlatform.brokerage = result.data;
+      const urlInput = document.getElementById('brandLogoUrl');
+      if (urlInput) urlInput.value = logoUrl;
+      platformStatus('brokerageFoundationStatus', 'Logo uploaded and saved.', 'ok');
+      renderBrokerageFoundationPanel();
+    } catch (err) {
+      console.error('Brokerage logo upload failed:', err);
+      platformStatus('brokerageFoundationStatus', err?.message || 'Could not upload the logo.', 'err');
     }
   }
 
