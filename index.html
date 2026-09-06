@@ -7370,10 +7370,6 @@ function routeAfterMagicLinkIfNeeded() {
   function controlledLaunchUnsupportedPaths(offerData) {
     const data = offerData || {};
     const blocked = [];
-    const leases = String(data.leases || '').toLowerCase();
-    if (['naturalresource', 'natural_resource', 'natural resource'].includes(leases)) {
-      blocked.push('Paragraph 4 lease addendum');
-    }
     if (data.sellerTemporaryLease === 'yes') blocked.push("Seller's Temporary Residential Lease");
     return [...new Set(blocked)];
   }

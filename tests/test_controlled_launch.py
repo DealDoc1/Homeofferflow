@@ -329,7 +329,7 @@ class ControlledLaunchTests(unittest.TestCase):
         self.assertNotIn("loanAssumption", guard)
         self.assertNotIn("'residential'", guard)
         self.assertNotIn("'fixture'", guard)
-        self.assertIn("'naturalresource'", guard)
+        self.assertNotIn("'naturalresource'", guard)
         self.assertIn("sellerTemporaryLease", guard)
 
 
