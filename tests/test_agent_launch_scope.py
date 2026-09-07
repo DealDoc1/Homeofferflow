@@ -11,24 +11,23 @@ class AgentLaunchScopeTests(unittest.TestCase):
         self.assertIn('id="hof-agent-launch-scope-v1"', HTML)
         self.assertIn("Forms available in HomeOfferFlow", HTML)
         self.assertIn("Available now", HTML)
-        self.assertIn("Restricted signing scope", HTML)
+        self.assertIn("Private review drafts", HTML)
 
     def test_scope_does_not_overstate_unreleased_agent_form_workflows(self):
         for form_group in (
-            "TXR-1501, TXR-1506, TXR-1507, TXR-1508, TXR-1948, TXR-1953, or TXR-1954 private review draft",
+            "TXR-1501, TXR-1506, TXR-1507, TXR-1508, TXR-1948, TXR-1953, and TXR-1954 library",
             "Listing agreements, seller disclosures, lease-listing packets",
         ):
             self.assertIn(form_group, HTML)
         self.assertIn(
-            "Do not represent a draft-only or unavailable form as generated, sent, or executed",
+            "are not sent or signed through HomeOfferFlow",
             HTML,
         )
 
     def test_scope_explains_shared_txr_library_and_deliberate_delivery(self):
-        self.assertIn("Shared TXR library", HTML)
         self.assertIn("every signed-in agent", HTML)
         self.assertIn("TXR-1948, TXR-1953, and TXR-1954", HTML)
-        self.assertIn("explicit recipient confirmation before sending", HTML)
+        self.assertIn("explicitly confirm the signer", HTML)
 
     def test_scope_provides_a_dedicated_missing_form_request_path(self):
         self.assertIn("openMissingFormRequest", HTML)
