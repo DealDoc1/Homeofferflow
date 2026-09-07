@@ -140,6 +140,12 @@ class FsboLandingFunnelTests(unittest.TestCase):
         self.assertIn('Best for sellers ready to launch', SELLERS)
         self.assertIn('className=\'tier-badge\'', SELLERS)
 
+    def test_seller_support_catalog_starts_focused_before_javascript_runs(self):
+        self.assertIn('.tiers .tier:nth-child(n+4){display:none}', SELLERS)
+        self.assertIn('.tiers.show-all .tier:nth-child(n+4){display:block}', SELLERS)
+        self.assertIn('<noscript><style>.tiers .tier:nth-child(n+4){display:block}</style></noscript>', SELLERS)
+        self.assertNotIn('.seller-tier-grid .tier:nth-child(n+4){display:none}', SELLERS)
+
     def test_seller_question_one_keeps_four_sale_stages_visually_balanced(self):
         self.assertIn('#seller-question-one + .lead + .grid { grid-template-columns:repeat(4,minmax(0,1fr)); }', SELLERS)
         self.assertIn('@media(max-width:960px) { #seller-question-one + .lead + .grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }', SELLERS)
