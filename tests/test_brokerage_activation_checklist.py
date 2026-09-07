@@ -38,6 +38,7 @@ class BrokerageActivationChecklistTests(unittest.TestCase):
                 self.assertIn(f"target: '{target}'", HTML)
         self.assertIn("const nextActivationStep = activationSteps.find(step => !step.done)", HTML)
         self.assertIn('onclick="continueBrokerageLaunch(', HTML)
+        self.assertIn("if (normalizedTarget === 'start_offer') return root.startAccountTransaction?.();", HTML)
         self.assertIn("field.scrollIntoView({ behavior: 'smooth', block: 'center' })", HTML)
 
     def test_brokerage_admin_flags_active_access_with_pending_seat_as_activation_work(self):
