@@ -280,7 +280,7 @@ class AgentActivationDashboardTests(unittest.TestCase):
         self.assertIn("{ label: 'Set up the listing', copy: 'Tell us about the seller, property, timing, and next steps.', action: () => openListingWorkspace(true), isWorkspaceOpen: () => Boolean(document.getElementById('listingWorkspaceStartCard')) }", HTML)
         self.assertNotIn("Prepare lease details", HTML)
         self.assertIn("followUp.addEventListener('keydown', event => { if (event.key === 'Escape') followUp.remove(); });", HTML)
-        self.assertIn("modal.addEventListener('keydown', event => { if (event.key === 'Escape') modal.remove(); });", HTML)
+        self.assertIn("modal.addEventListener('keydown', event => { if (event.key === 'Escape') closeInterview(); });", HTML)
         self.assertIn("followUp.querySelector('[data-follow-up-choice]')?.focus()", HTML)
         self.assertIn("modal.querySelector('[data-package-choice]')?.focus()", HTML)
         self.assertIn("What do you need for this tenant transaction?", HTML)

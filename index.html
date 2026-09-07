@@ -7337,6 +7337,10 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       window.setTimeout(openWhenReady, 0);
     };
     const openRelationshipPackage = (type) => {
+      const returnToPackageQuestion = () => {
+        document.getElementById('hofAgentPackageFollowUp')?.remove();
+        window.hofOpenAgentPackageInterview?.(kind);
+      };
       const choices = type === 'representation'
         ? [
             { label: 'Straightforward representation', copy: 'Start the streamlined Buyer/Tenant Representation Agreement interview.', opener: 'hofOpenTxr1507Draft' },
@@ -7352,7 +7356,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       const prompt = type === 'representation' ? 'What kind of representation does this client need?' : 'What does this customer need?';
       followUp.innerHTML = `<div class="hof-agreement-dialog" role="dialog" aria-modal="true" aria-labelledby="hofAgentPackageFollowUpTitle"><h3 id="hofAgentPackageFollowUpTitle">${prompt}</h3><p>Choose the best starting point. You’ll review the completed document before it is sent.</p><div class="hof-agreement-grid">${choices.map((choice, index) => `<button type="button" class="btn-secondary hof-agent-package-choice" data-follow-up-choice="${index}" style="text-align:left;padding:1rem"><strong style="display:block;color:var(--white);margin-bottom:.35rem">${choice.label}</strong><span style="display:block;color:var(--gray-light);font-weight:400;line-height:1.45">${choice.copy}</span></button>`).join('')}</div><div class="hof-agreement-footer"><button type="button" class="btn-secondary" id="hofAgentPackageFollowUpCancel">Back</button></div></div>`;
       document.body.appendChild(followUp);
-      followUp.querySelector('#hofAgentPackageFollowUpCancel').addEventListener('click', () => followUp.remove());
+      followUp.querySelector('#hofAgentPackageFollowUpCancel').addEventListener('click', returnToPackageQuestion);
       followUp.addEventListener('click', event => { if (event.target === followUp) followUp.remove(); });
       followUp.addEventListener('keydown', event => { if (event.key === 'Escape') followUp.remove(); });
       window.setTimeout(() => followUp.querySelector('[data-follow-up-choice]')?.focus(), 0);
@@ -7401,14 +7405,19 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     // whether Question 2 is useful without retaining a client, property, or
     // document record before the agent intentionally starts a package.
     window.logOfferEvent?.(null, 'agent_form_package_interview_viewed', 'viewed', 'Agent opened the guided package interview after choosing a transaction.', { workflow: kind });
+    const returnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const closeInterview = () => {
+      document.getElementById('hofAgentPackageInterview')?.remove();
+      returnFocus?.focus({ preventScroll: true });
+    };
     document.getElementById('hofAgentPackageInterview')?.remove();
     const modal = document.createElement('div');
     modal.id = 'hofAgentPackageInterview'; modal.className = 'hof-agreement-modal';
     modal.innerHTML = `<div class="hof-agreement-dialog" role="dialog" aria-modal="true" aria-labelledby="hofAgentPackageTitle"><h3 id="hofAgentPackageTitle">${interview.title}</h3><p>Choose what you need next. We’ll ask only for the details needed to prepare your documents.</p><div class="hof-agreement-grid">${interview.choices.map((choice, index) => `<button type="button" class="btn-secondary hof-agent-package-choice" data-package-choice="${index}" style="text-align:left;padding:1rem"><strong style="display:block;color:var(--white);margin-bottom:.35rem">${choice.label}</strong><span style="display:block;color:var(--gray-light);font-weight:400;line-height:1.45">${choice.copy}</span></button>`).join('')}</div><div class="hof-agreement-footer"><button type="button" class="btn-secondary" id="hofAgentPackageCancel">Back</button></div></div>`;
     document.body.appendChild(modal);
-    modal.querySelector('#hofAgentPackageCancel').addEventListener('click', () => modal.remove());
-    modal.addEventListener('click', event => { if (event.target === modal) modal.remove(); });
-    modal.addEventListener('keydown', event => { if (event.key === 'Escape') modal.remove(); });
+    modal.querySelector('#hofAgentPackageCancel').addEventListener('click', closeInterview);
+    modal.addEventListener('click', event => { if (event.target === modal) closeInterview(); });
+    modal.addEventListener('keydown', event => { if (event.key === 'Escape') closeInterview(); });
     window.setTimeout(() => modal.querySelector('[data-package-choice]')?.focus(), 0);
     modal.querySelectorAll('[data-package-choice]').forEach(button => button.addEventListener('click', () => {
       const choice = interview.choices[Number(button.dataset.packageChoice)];

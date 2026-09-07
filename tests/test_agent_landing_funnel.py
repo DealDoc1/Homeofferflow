@@ -163,6 +163,23 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("root.hofOpenTxr1501Draft = () => openLongDraftDialog(source);", INDEX)
         self.assertIn("They do not infer which agreement is proper", INDEX)
 
+    def test_nested_relationship_choice_returns_to_the_prior_package_question(self):
+        start = INDEX.index("window.hofOpenAgentPackageInterview = function")
+        end = INDEX.index("window.startAgentWorkflow = function", start)
+        interview = INDEX[start:end]
+        self.assertIn("const returnToPackageQuestion = () =>", interview)
+        self.assertIn("window.hofOpenAgentPackageInterview?.(kind);", interview)
+        self.assertIn("addEventListener('click', returnToPackageQuestion)", interview)
+
+    def test_dismissing_the_package_question_restores_keyboard_focus(self):
+        start = INDEX.index("window.hofOpenAgentPackageInterview = function")
+        end = INDEX.index("window.startAgentWorkflow = function", start)
+        interview = INDEX[start:end]
+        self.assertIn("const returnFocus = document.activeElement instanceof HTMLElement", interview)
+        self.assertIn("const closeInterview = () =>", interview)
+        self.assertIn("returnFocus?.focus({ preventScroll: true });", interview)
+        self.assertIn("addEventListener('click', closeInterview)", interview)
+
     def test_lease_representation_lands_on_its_next_explicit_choice(self):
         self.assertIn("window.hofAgentWorkflowContext === 'lease_representation'", INDEX)
         self.assertIn("document.querySelector('#leaseRepresentationQuickChoices button')", INDEX)
