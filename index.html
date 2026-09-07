@@ -5103,6 +5103,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Seller channels: views — ${adminSafe(Object.entries(metrics.sellerLandingViewCountsByChannel || {}).filter(([, count]) => Number(count) > 0).map(([channel, count]) => `${channel.replace(/_/g, ' ')} (${count})`).join(' · '), 'none yet')}; intake starts — ${adminSafe(Object.entries(metrics.sellerLandingCtaCountsByChannel || {}).filter(([, count]) => Number(count) > 0).map(([channel, count]) => `${channel.replace(/_/g, ' ')} (${count})`).join(' · '), 'none yet')}; conversion — ${adminSafe(Object.entries(metrics.sellerLandingCtaRatesByChannel || {}).filter(([channel]) => Number(metrics.sellerLandingViewCountsByChannel?.[channel] || 0) > 0).map(([channel, rate]) => `${channel.replace(/_/g, ' ')} (${Number(rate).toFixed(1)}%)`).join(' · '), 'none yet')}; support paths — ${adminSafe(Object.entries(metrics.sellerLandingSupportPathsExpandedCountsByChannel || {}).filter(([, count]) => Number(count) > 0).map(([channel, count]) => `${channel.replace(/_/g, ' ')} (${count})`).join(' · '), 'none yet')}.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Seller surface conversion: ${adminSafe(Object.entries(metrics.sellerLandingCtaRatesBySurface || {}).filter(([surface]) => Number(metrics.sellerLandingViewCountsBySurface?.[surface] || 0) > 0).map(([surface, rate]) => `${surface.replace(/_/g, ' ')} (${Number(rate).toFixed(1)}%)`).join(' · '), 'receipt and guide cohorts appear after the next seller visit')}</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Intake progress: ${Number(metrics.sellerIntakeEventCounts?.fsbo_intake_opened || 0)} opened · ${Number(metrics.sellerIntakeEventCounts?.fsbo_package_selected || 0)} package choices · ${Number(metrics.sellerIntakeEventCounts?.fsbo_required_fields_missing || 0)} incomplete attempts · ${Number(metrics.sellerIntakeEventCounts?.fsbo_request_submission_started || 0)} submissions started · ${Number(metrics.sellerIntakeEventCounts?.fsbo_request_saved || 0)} saved · ${Number(metrics.sellerPlanDownloadCount || 0)} plans downloaded · ${Number(metrics.sellerPlanCopiedCount || 0)} plans copied.</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Saved-plan notices: ${Number(metrics.sellerRequestReceiptViewedCount || 0)} reopened · ${Number(metrics.sellerRequestReceiptClearedCount || 0)} dismissed.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Selected package interest: ${adminSafe(Object.entries(metrics.sellerPackageSelectionCounts || {}).map(([packageKey, count]) => `${packageKey.replace(/_/g, ' ')} (${count})`).join(' · '), 'package choices will appear after the next intake visit')}</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:${Number(metrics.sellerPlanReceiptFailureCount || 0) ? 'var(--gold-light)' : 'var(--gray-light)'}">Seller-plan receipts: ${Number(metrics.sellerPlanReceiptSentCount || 0)} accepted by the delivery provider · ${Number(metrics.sellerPlanReceiptFailureCount || 0)} unavailable or failed.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Field progress: ${Number(metrics.sellerAddressStartedCount || 0)} address starts · ${Number(metrics.sellerEmailStartedCount || 0)} email starts · ${Number(metrics.sellerRequiredReadyCount || 0)} address + email ready (${Number(metrics.sellerRequiredReadyRate || 0).toFixed(1)}% of address starts) · ${Number(metrics.sellerReadyToSaveRate || 0).toFixed(1)}% ready-to-save · ${Number(metrics.sellerRequestSaveFailureCount || 0)} save failures.</div>
@@ -13942,6 +13943,8 @@ function routeAfterMagicLinkIfNeeded() {
       'FSBO Seller Request Submission Started': 'fsbo_request_submission_started',
       'FSBO Seller Request Saved': 'fsbo_request_saved',
       'FSBO Seller Request Save Failed': 'fsbo_request_save_failed',
+      'FSBO Seller Request Receipt Viewed': 'fsbo_request_receipt_viewed',
+      'FSBO Seller Request Receipt Cleared': 'fsbo_request_receipt_cleared',
       'FSBO Seller Plan Downloaded': 'fsbo_seller_plan_downloaded',
       'FSBO Seller Plan Copied': 'fsbo_seller_plan_copied'
     }[name];
@@ -14119,10 +14122,11 @@ function routeAfterMagicLinkIfNeeded() {
   }
   const fsboReceiptStorageKey = 'hof_fsbo_request_receipt_v1';
   const fsboReceiptMaxAgeMs = 1000 * 60 * 60 * 24 * 30;
-  function saveFsboRequestReceipt(selected){
+  function saveFsboRequestReceipt(selected, serviceLevel){
     try {
       localStorage.setItem(fsboReceiptStorageKey, JSON.stringify({
         packageName: String(selected?.title || 'Seller request').slice(0, 120),
+        serviceLevel: fsboCampaignPackages.has(serviceLevel) ? serviceLevel : 'free_intake',
         submittedAt: new Date().toISOString()
       }));
     } catch (_) {}
@@ -14143,10 +14147,11 @@ function routeAfterMagicLinkIfNeeded() {
       notice.style.marginTop = '.8rem';
       notice.innerHTML = '<strong>Seller request saved on this device.</strong> ' + escapeAttr(receipt.packageName) + ' was recorded ' + escapeAttr(submittedAt.toLocaleDateString()) + '. You can start a different request below, or wait for follow-up. <button class="btn-secondary" type="button" style="margin-left:.45rem;padding:.35rem .55rem;" id="clearFsboRequestReceipt">Clear notice</button>';
       document.getElementById('fsboNeedDetails')?.insertAdjacentElement('beforebegin', notice);
-      trackFsboFunnel('FSBO Seller Request Receipt Viewed', { package: receipt.packageName });
+      const receiptServiceLevel = fsboCampaignPackages.has(receipt.serviceLevel) ? receipt.serviceLevel : 'free_intake';
+      trackFsboFunnel('FSBO Seller Request Receipt Viewed', { package: receiptServiceLevel });
       document.getElementById('clearFsboRequestReceipt')?.addEventListener('click', () => {
         try { localStorage.removeItem(fsboReceiptStorageKey); } catch (_) {}
-        trackFsboFunnel('FSBO Seller Request Receipt Cleared', { package: receipt.packageName });
+        trackFsboFunnel('FSBO Seller Request Receipt Cleared', { package: receiptServiceLevel });
         notice.remove();
       });
     } catch (_) {}
@@ -14498,7 +14503,7 @@ function routeAfterMagicLinkIfNeeded() {
       try { sessionStorage.setItem(submissionKey, data.seller_lead_id || 'saved'); } catch (_) {}
       clearFsboDraft();
       const selected = fsboNeedCopy[fsboVal('fsboNeed')] || fsboNeedCopy.free_intake;
-      saveFsboRequestReceipt(selected);
+      saveFsboRequestReceipt(selected, payload.service_level);
       const steps = fsboNextSteps[fsboVal('fsboNeed')] || fsboNextSteps.free_intake;
       const readiness = fsboReadinessPlan(payload.timeline);
       trackFsboFunnel('FSBO Seller Readiness Plan Delivered', { package: payload.service_level, timeline: payload.timeline });

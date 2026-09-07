@@ -61,13 +61,22 @@ class FsboRequestConfirmationTests(unittest.TestCase):
 
     def test_fsbo_confirmation_keeps_a_privacy_minimized_same_device_receipt(self):
         self.assertIn("hof_fsbo_request_receipt_v1", HTML)
-        self.assertIn("function saveFsboRequestReceipt(selected)", HTML)
+        self.assertIn("function saveFsboRequestReceipt(selected, serviceLevel)", HTML)
         self.assertIn("function renderFsboRequestReceipt()", HTML)
         self.assertIn("Seller request saved on this device.", HTML)
         self.assertIn("fsboReceiptMaxAgeMs", HTML)
         self.assertIn("localStorage.removeItem(fsboReceiptStorageKey)", HTML)
         self.assertIn("FSBO Seller Request Receipt Viewed", HTML)
         self.assertIn("FSBO Seller Request Receipt Cleared", HTML)
+        self.assertIn("'FSBO Seller Request Receipt Viewed': 'fsbo_request_receipt_viewed'", HTML)
+        self.assertIn("serviceLevel: fsboCampaignPackages.has(serviceLevel) ? serviceLevel : 'free_intake'", HTML)
+        self.assertIn("const receiptServiceLevel = fsboCampaignPackages.has(receipt.serviceLevel) ? receipt.serviceLevel : 'free_intake';", HTML)
+        self.assertIn("sellerRequestReceiptViewedCount", HTML)
+        api = API_PATH.read_text(encoding="utf-8")
+        admin = (pathlib.Path(__file__).resolve().parents[1] / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
+        self.assertIn('"fsbo_request_receipt_viewed": "viewed"', api)
+        self.assertIn('"fsbo_request_receipt_cleared": "cleared"', api)
+        self.assertIn('"sellerRequestReceiptViewedCount"', admin)
 
     def test_fsbo_plan_download_is_anonymous_conversion_evidence(self):
         api = (pathlib.Path(__file__).resolve().parents[1] / "api" / "fsbo-lead.py").read_text(encoding="utf-8")

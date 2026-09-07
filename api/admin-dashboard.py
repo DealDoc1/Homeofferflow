@@ -5550,6 +5550,7 @@ class handler(BaseHTTPRequestHandler):
                 "fsbo_required_fields_ready",
                 "fsbo_package_selected", "fsbo_goal_selected", "fsbo_required_fields_missing",
                 "fsbo_request_submission_started", "fsbo_request_saved", "fsbo_request_save_failed",
+                "fsbo_request_receipt_viewed", "fsbo_request_receipt_cleared",
                 "fsbo_seller_plan_downloaded", "fsbo_seller_plan_copied",
             }
             seller_intake_event_counts = {event_type: len([item for item in events if item.get("event_type") == event_type]) for event_type in seller_intake_event_types}
@@ -5697,6 +5698,8 @@ class handler(BaseHTTPRequestHandler):
                 "sellerRequiredReadyRate": seller_required_ready_rate,
                 "sellerReadyToSaveRate": seller_ready_to_save_rate,
                 "sellerRequestSaveFailureCount": seller_intake_event_counts["fsbo_request_save_failed"],
+                "sellerRequestReceiptViewedCount": seller_intake_event_counts["fsbo_request_receipt_viewed"],
+                "sellerRequestReceiptClearedCount": seller_intake_event_counts["fsbo_request_receipt_cleared"],
                 "sellerPlanDownloadCount": seller_intake_event_counts["fsbo_seller_plan_downloaded"],
                 "sellerPlanCopiedCount": seller_intake_event_counts["fsbo_seller_plan_copied"],
                 "sellerPlanReceiptCounts": seller_plan_receipt_counts,
