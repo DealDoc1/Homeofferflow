@@ -248,7 +248,8 @@ class AgentLandingFunnelTests(unittest.TestCase):
         end = INDEX.index("window.startAgentWorkflow = function", start)
         interview = INDEX[start:end]
         self.assertIn("We’ll prepare a private draft for your review.", interview)
-        self.assertIn("Sending is available only where the workflow supports it.", interview)
+        self.assertIn("These review-only workflows do not send a request.", interview)
+        self.assertNotIn("Sending is available only where the workflow supports it.", interview)
         self.assertNotIn("You’ll review the completed document before it is sent.", interview)
 
     def test_dismissing_the_package_question_restores_keyboard_focus(self):
