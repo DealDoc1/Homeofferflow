@@ -7373,7 +7373,8 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
               { label: 'Environmental review', copy: 'Prepare the environmental-assessment addendum for private review.', opener: 'hofOpenTxr1917Draft' },
               { label: 'Appraisal review', copy: 'Prepare the appraisal right-to-terminate addendum for private review.', opener: 'hofOpenTxr1948Draft' },
               { label: 'Residential lease', copy: 'Prepare the residential-lease addendum for private review.', opener: 'hofOpenTxr1953Draft' },
-              { label: 'Fixture lease', copy: 'Prepare the fixture-lease addendum for private review.', opener: 'hofOpenTxr1954Draft' }
+              { label: 'Fixture lease', copy: 'Prepare the fixture-lease addendum for private review.', opener: 'hofOpenTxr1954Draft' },
+              { label: 'Mineral reservation', copy: 'Prepare the mineral-reservation addendum for private review.', opener: 'hofOpenTxr1905Draft' }
             ]
         : [
             { label: 'Showing Form', copy: 'For an unrepresented customer attending a showing.', opener: 'hofOpenTxr1508Draft' },
@@ -21696,6 +21697,7 @@ function routeAfterMagicLinkIfNeeded() {
   window.hofOpenTxr1948Draft = () => openExistingPrivateDraft('txr1948AgreementCard', 'TXR-1948');
   window.hofOpenTxr1953Draft = () => openExistingPrivateDraft('txr1953AgreementCard', 'TXR-1953');
   window.hofOpenTxr1954Draft = () => openExistingPrivateDraft('txr1954AgreementCard', 'TXR-1954');
+  window.hofOpenTxr1905Draft = () => openExistingPrivateDraft('txr1905AgreementCard', 'TXR-1905');
 })();
 </script>
 <script id="hof-private-review-save-feedback-v1">
