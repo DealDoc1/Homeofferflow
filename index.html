@@ -13295,7 +13295,7 @@ function routeAfterMagicLinkIfNeeded() {
     if (hoa === 'unknown') issues.push('HOA status is unknown; including the HOA addendum is safer but should be verified.');
     if (!closeDate) issues.push('Closing date is missing.');
     if (city || county) market.push(`Property context: ${city ? city + ', ' : ''}${county} County. Market scoring improves when public listing context is available automatically.`);
-    market.push('Current built-in review uses Texas resale-contract norms plus any automatic public listing context returned by the live review.');
+    market.push('This review uses Texas resale-contract norms and any available public listing context.');
 
     score = Math.max(1, Math.min(99, Math.round(score)));
     return { score, issues, strengths, market };
@@ -13402,7 +13402,7 @@ function routeAfterMagicLinkIfNeeded() {
     if (!result || result.error) {
       const base = {
         score: fallback.score,
-        summary: result?.error ? ('Live AI review could not load, so this built-in review is shown. ' + result.error) : 'Built-in review complete.',
+        summary: result?.error ? 'The expanded market review is temporarily unavailable. The summary below focuses on the terms you entered.' : 'Offer review ready.',
         risks: fallback.issues || [],
         strengths: fallback.strengths || [],
         marketContext: fallback.market || [],
@@ -13559,9 +13559,9 @@ function routeAfterMagicLinkIfNeeded() {
       'Verify any missing disclosures or unknown HOA/lead-based-paint items before signing or sending.'
     ]).slice(0, 5);
     const deg = Math.round((r.score / 100) * 180 - 90);
-    const sourceLabel = aiReviewMode(r) === 'live_ai' ? `Live AI review${r.model ? ' · ' + escapeAttr(r.model) : ''}` : 'Built-in review';
+    const sourceLabel = aiReviewMode(r) === 'live_ai' ? 'Expanded market review' : 'Offer review';
 
-    const title = isHomebuyer ? 'AI Offer Competitiveness Review' : isInvestor ? 'Investor Offer Check' : 'Offer Risk & Market Review';
+    const title = isHomebuyer ? 'Offer Competitiveness Review' : isInvestor ? 'Investor Offer Check' : 'Offer Risk & Market Review';
     const intro = isHomebuyer
       ? 'A market-first read on how this offer may compete for this property. Contract terms adjust the score, but market context should drive it when available.'
       : isInvestor
@@ -13653,7 +13653,7 @@ function routeAfterMagicLinkIfNeeded() {
       try { await saveAiReviewResultToSupabase(result); } catch(e) { console.warn('AI review autosave skipped:', e); }
     } catch (err) {
       console.error('Live AI review failed:', err);
-      renderAiOfferReviewResult({ ...fallback, summary: 'Live AI review was unavailable, so the rules-based review is shown instead. ' + (err?.message || '') }, false);
+      renderAiOfferReviewResult({ ...fallback, summary: 'The expanded market review is temporarily unavailable. The summary below focuses on the terms you entered.' }, false);
     }
   }
 
@@ -13713,14 +13713,14 @@ function routeAfterMagicLinkIfNeeded() {
     el.innerHTML = `
       <div class="platform-card">
         <h4>Offer Review</h4>
-        <p>Use the offer review before sending a packet for an educational strength and risk summary. The offer workspace uses the live review when it is available and automatically falls back to the rules-based review when it is not.</p>
+        <p>Review strengths, risk points, and questions to verify before sending a packet.</p>
         <div class="ai-score-ring">${score}</div>
-        <div class="notice gold">This dashboard snapshot is rules-based. Open the offer review to run the live educational review when available. Neither result is legal advice, broker advice, a valuation opinion, or a guarantee of acceptance.</div>
+        <div class="notice gold">This snapshot uses your current offer details. Open Offer Review for a fuller market-and-terms review. Neither result is legal advice, broker advice, a valuation opinion, or a guarantee of acceptance.</div>
         <div class="platform-actions"><button type="button" onclick="saveAiReviewPlaceholder()">Save Review Snapshot</button><button type="button" onclick="openWizard(true); showStepById && showStepById('step8')">Open Offer Review</button></div>
         <div id="aiDashboardStatus" class="platform-status"></div>
       </div>
       <div class="platform-card">
-        <h4>Future AI Checklist</h4>
+        <h4>What this review checks</h4>
         <div class="platform-list">
           <div class="platform-list-item"><strong>Risk scan</strong>Missing dates, unusual option terms, sale contingency, financing gaps, lead-based-paint flags.</div>
           <div class="platform-list-item"><strong>Strategy scan</strong>Offer strength, title/survey norms, closing timeline, concessions, appraisal posture.</div>
