@@ -134,6 +134,8 @@
     .status.err { background:rgba(224,108,90,.10); border:1px solid rgba(224,108,90,.32); color:#ffc0b7; }
     .checkout-recovery { display:none; background:rgba(200,151,63,.11); border:1px solid rgba(232,184,109,.42); border-radius:12px; padding:13px; margin:15px 0; color:#f4d39c; font-size:13px; line-height:1.5; }
     .checkout-recovery strong { color:#ffe1a9; }
+    .activation-note { display:none; background:rgba(109,179,143,.10); border:1px solid rgba(109,179,143,.32); border-radius:12px; padding:13px; margin:15px 0; color:#d6f0df; font-size:13px; line-height:1.5; }
+    .activation-note strong { color:#bce8d0; }
     .install-hint { display:none; background:rgba(109,179,143,.10); border:1px solid rgba(109,179,143,.32); border-radius:12px; padding:13px; margin:15px 0; color:#d6f0df; font-size:13px; line-height:1.5; }
     .install-hint.show { display:block; }
     .install-hint strong { display:block; color:#bce8d0; margin-bottom:3px; }
@@ -241,6 +243,9 @@
           </div>
           <div id="checkoutRecovery" class="checkout-recovery" role="status">
             <strong>Your enrollment is still ready.</strong> No card was saved and no charge was made. Recheck the acknowledgment below, then select <em>Continue to secure checkout</em> when you are ready to restart your 60-day trial.
+          </div>
+          <div id="activationNote" class="activation-note" role="status" aria-live="polite">
+            <strong>Confirming your workspace.</strong> Your checkout is complete. We are confirming your agent access now; this usually takes a moment.
           </div>
           <div id="installHint" class="install-hint" role="status" aria-live="polite" aria-atomic="true">
             <strong>Keep your workspace one tap away.</strong>
@@ -604,6 +609,36 @@
         }
       }
 
+      async function confirmActivatedWorkspace() {
+        if (!state.session?.access_token) return false;
+        const note = $("activationNote");
+        const workspaceButton = $("workspaceButton");
+        const firstOfferButton = $("firstOfferButton");
+        note.style.display = "block";
+        workspaceButton.style.display = "none";
+        firstOfferButton.style.display = "none";
+        for (let attempt = 0; attempt < 6; attempt += 1) {
+          try {
+            const response = await fetch("/api/create-subscription-checkout?launch=ondemand&status=access", {
+              headers: { "Authorization": `Bearer ${state.session.access_token}` }
+            });
+            const data = await response.json().catch(() => ({}));
+            if (response.ok && data.access === true) {
+              note.innerHTML = "<strong>Your workspace is ready.</strong> Start a transaction or open your workspace when you are ready.";
+              workspaceButton.style.display = "block";
+              firstOfferButton.style.display = "block";
+              renderInstallHint(true);
+              return true;
+            }
+          } catch (_) {
+            // A temporary connection issue should not imply activated access.
+          }
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+        }
+        note.innerHTML = "<strong>Your checkout is complete.</strong> Access is taking a little longer than usual. Refresh this page in a moment, or open your workspace after the confirmation email arrives.";
+        return false;
+      }
+
       async function init() {
         await loadConfig();
         const params = new URLSearchParams(window.location.search);
@@ -624,6 +659,9 @@
         const checkoutResult = params.get("checkout");
         if (checkoutResult === "success" || checkoutResult === "cancelled") {
           await recordCheckoutFunnelEvent("subscription_checkout_returned", checkoutResult);
+        }
+        if (checkoutResult === "success" && data.session?.user?.id) {
+          await confirmActivatedWorkspace();
         }
         if (checkoutResult === "cancelled" && data.session?.user?.id) {
           await recordCheckoutFunnelEvent("subscription_checkout_recovery_shown", "shown");

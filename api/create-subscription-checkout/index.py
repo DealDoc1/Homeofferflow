@@ -70,6 +70,28 @@ class handler(BaseHTTPRequestHandler):
             return
         try:
             brokerage = self._get_brokerage(ONDEMAND_SLUG)
+            status = str((query.get("status") or [""])[0]).strip().lower()
+            if status == "access":
+                # This check is only used after a signed-in agent returns
+                # from Stripe. Keep it server-authoritative: browser state or
+                # a Checkout success URL must never imply paid access.
+                verified_user = self._verified_user(self.headers.get("authorization", ""))
+                if not verified_user:
+                    self._json(401, {"error": "Sign in to confirm your OnDemand access."})
+                    return
+                active_membership = self._has_active_brokerage_membership(
+                    verified_user["id"], brokerage["id"]
+                )
+                active_subscription = self._has_current_subscription(verified_user["id"])
+                self._json(
+                    200,
+                    {
+                        "ok": True,
+                        "launch": ONDEMAND_SLUG,
+                        "access": bool(active_membership and active_subscription),
+                    },
+                )
+                return
             self._json(
                 200,
                 {
