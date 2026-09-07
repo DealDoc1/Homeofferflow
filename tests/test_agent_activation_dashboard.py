@@ -123,6 +123,14 @@ class AgentActivationDashboardTests(unittest.TestCase):
         self.assertIn("Choose the transaction first.", script)
         self.assertIn("Saving a draft does not send a packet or request a signature.", script)
 
+    def test_first_transaction_does_not_present_optional_setup_as_a_readiness_gate(self):
+        script_start = HTML.index('id="hof-agent-activation-v16-js"')
+        script_end = HTML.index("</script>", script_start)
+        script = HTML[script_start:script_end]
+        self.assertIn("const isFirstTransaction = state.key === 'first_offer';", script)
+        self.assertIn("const progressLabel = isFirstTransaction ? 'Start here'", script)
+        self.assertIn("${isFirstTransaction ? '' : `<div class=\"agent-activation-steps\"", script)
+
     def test_onboarding_uses_a_real_saved_draft_path_not_demo_only_language(self):
         self.assertIn("Start your first saved offer", HTML)
         self.assertIn("Start Transaction", HTML)

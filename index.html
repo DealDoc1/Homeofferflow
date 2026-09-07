@@ -17796,6 +17796,11 @@ function routeAfterMagicLinkIfNeeded() {
       { done: state.hasProfile, label: 'Profile and defaults' },
       { done: state.hasPlan, label: 'Active subscription' }
     ];
+    // A new agent is allowed to start immediately. Showing an incomplete
+    // account score before the first transaction makes optional repeat-work
+    // defaults and recurring access look like prerequisites.
+    const isFirstTransaction = state.key === 'first_offer';
+    const progressLabel = isFirstTransaction ? 'Start here' : `${state.complete}/3 ready`;
     const id = String(state.draftId || state.sourceOfferId || '').replace(/[^a-zA-Z0-9-]/g, '');
 
     const primaryAction =
@@ -17827,15 +17832,15 @@ function routeAfterMagicLinkIfNeeded() {
           <div class="agent-activation-kicker">Your next best action</div>
           <h4>${safe(state.title)}</h4>
         </div>
-        <div class="agent-activation-progress">${state.complete}/3 ready</div>
+        <div class="agent-activation-progress">${progressLabel}</div>
       </div>
       <p>${safe(state.body)}</p>
-      <div class="agent-activation-steps" aria-label="Account activation progress">
+      ${isFirstTransaction ? '' : `<div class="agent-activation-steps" aria-label="Account activation progress">
         ${steps.map(step => `
           <div class="agent-activation-step ${step.done ? 'done' : ''}">
             <span>${step.done ? '✓' : '•'}</span>${safe(step.label)}
           </div>`).join('')}
-      </div>
+      </div>`}
       ${state.confidence ? `<div class="agent-activation-confidence" aria-label="First offer workflow overview">
         <div><strong>1. Start</strong>Enter the client and property details you have now.</div>
         <div><strong>2. Review</strong>Check the guided packet and every deal term before generation.</div>
