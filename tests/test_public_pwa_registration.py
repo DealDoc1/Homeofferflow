@@ -128,6 +128,14 @@ class PublicPwaRegistrationTests(unittest.TestCase):
         self.assertIn("hof_public_pwa_install_", SCRIPT)
         self.assertIn("trackPublicInstall('NativeAvailable')", SCRIPT)
 
+    def test_install_prompt_waits_for_returning_engagement_and_respects_a_quiet_period(self):
+        self.assertIn("const installEligibleKey = 'hof_public_pwa_install_eligible_v1'", SCRIPT)
+        self.assertIn("const installDismissedUntilKey = 'hof_public_pwa_install_dismissed_until_v1'", SCRIPT)
+        self.assertIn("const installDismissalDays = 14", SCRIPT)
+        self.assertIn("!isInstallEligible() || isInstallDismissed()", SCRIPT)
+        self.assertIn("['pointerdown', 'keydown', 'scroll'].forEach", SCRIPT)
+        self.assertIn("The remembered eligibility makes the install offer", SCRIPT)
+
     def test_ios_public_pages_explain_home_screen_install_without_native_prompt(self):
         self.assertIn("isIosInstallSurface", SCRIPT)
         self.assertIn("Add to Home Screen", SCRIPT)
