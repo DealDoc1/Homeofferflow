@@ -176,6 +176,7 @@ class AgentLandingFunnelTests(unittest.TestCase):
             ("Appraisal review", "hofOpenTxr1948Draft"),
             ("Residential lease", "hofOpenTxr1953Draft"),
             ("Fixture lease", "hofOpenTxr1954Draft"),
+            ("Mineral reservation", "hofOpenTxr1905Draft"),
         ):
             self.assertIn(label, interview)
             self.assertIn(opener, interview)
