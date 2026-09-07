@@ -26,6 +26,11 @@ class VercelFunctionBundlingTests(unittest.TestCase):
             for path in ("tests/**", "docs/**", "assets/**", "supabase/**", "scripts/**", "**/*.pyc"):
                 self.assertIn(path, excluded, function)
 
+    def test_node_functions_exclude_non_runtime_project_content(self):
+        excluded = CONFIG["functions"]["api/*.js"]["excludeFiles"]
+        for path in ("tests/**", "docs/**", "assets/**", "supabase/**", "scripts/**", "**/*.pyc"):
+            self.assertIn(path, excluded)
+
     def test_pdf_packet_function_keeps_required_runtime_sources(self):
         config = CONFIG["functions"]["api/fill-pdf.py"]
         self.assertIn("buyer_temporary_residential_lease_16-7.pdf", config["includeFiles"])
