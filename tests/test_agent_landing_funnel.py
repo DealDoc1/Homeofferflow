@@ -102,7 +102,8 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertLess(choices.index('<h3>Lease listing</h3>'), choices.index('<h3>Tenant representation</h3>'))
 
     def test_lease_listing_copy_does_not_claim_a_form_or_plan_is_preselected(self):
-        self.assertIn("Next, choose lease-listing setup or lease details.", AGENTS)
+        self.assertIn("Next, choose listing setup, a lease addendum, or your saved workspace.", AGENTS)
+        self.assertNotIn("Next, choose lease-listing setup or lease details.", AGENTS)
         self.assertNotIn("with lease planning preselected.", AGENTS)
 
     def test_agent_landing_can_start_each_transaction_in_its_relevant_package_interview(self):
