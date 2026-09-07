@@ -1055,7 +1055,7 @@ class OnDemandLaunchPageTests(unittest.TestCase):
             "shared library",
             "relationship, consumer-notice, seller-disclosure, seller-financing, and mineral-reservation",
             "listing agreements",
-            "brokerage-approved process",
+            "remain separate from this plan",
             "Texas REALTORS® / NAR member-form workflows",
             "own eligibility and use requirements",
             "show the available next step",
