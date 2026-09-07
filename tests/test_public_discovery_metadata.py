@@ -315,7 +315,7 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn('Texas agent form library', INDEX)
         self.assertIn('workspace=relationship', AGENT_GUIDE)
         self.assertIn('private relationship drafts', AGENT_GUIDE)
-        self.assertIn('preview-only until their separate signing QA is complete', AGENT_GUIDE)
+        self.assertIn('use a signature queue when that document offers one', AGENT_GUIDE)
 
     def test_homebuyer_offer_guide_is_a_crawlable_people_first_path_to_the_paid_workflow(self):
         self.assertIn('<link rel="canonical" href="https://www.homeofferflow.com/texas-homebuyer-offer-guide">', BUYER_GUIDE)
