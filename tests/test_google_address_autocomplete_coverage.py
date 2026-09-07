@@ -66,3 +66,8 @@ class GoogleAddressAutocompleteCoverageTests(unittest.TestCase):
         self.assertIn("{ field, service: _autocompleteService || 'unknown' }", INDEX)
         self.assertNotIn("trackEvent('Google Address Selected', { address", INDEX)
         self.assertNotIn("trackEvent('Google Address Selected', { place", INDEX)
+
+    def test_keyboard_navigation_starts_at_the_expected_end_of_the_suggestion_list(self):
+        self.assertIn("const nextIndex = _activeSuggestionIndex < 0", INDEX)
+        self.assertIn("? (direction === 1 ? 0 : options.length - 1)", INDEX)
+        self.assertIn("_setActiveAddressSuggestion(nextIndex);", INDEX)

@@ -11111,7 +11111,13 @@ function routeAfterMagicLinkIfNeeded() {
         return;
       }
       const direction = e.key === 'ArrowDown' ? 1 : -1;
-      _setActiveAddressSuggestion((_activeSuggestionIndex + direction + options.length) % options.length);
+      // When no result is active yet, Down starts at the first result and Up
+      // starts at the last. That is the expected combobox behavior and keeps
+      // every Google suggestion reachable from the keyboard.
+      const nextIndex = _activeSuggestionIndex < 0
+        ? (direction === 1 ? 0 : options.length - 1)
+        : (_activeSuggestionIndex + direction + options.length) % options.length;
+      _setActiveAddressSuggestion(nextIndex);
     });
 
     input.addEventListener('input', _debounce(async e => {
