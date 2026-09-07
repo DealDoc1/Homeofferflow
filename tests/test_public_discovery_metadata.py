@@ -63,6 +63,12 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn("tenant representation", lease_guide)
         self.assertNotIn("lease representation", lease_guide)
 
+    def test_homebuyer_guide_keeps_mobile_metadata_inside_a_valid_document_head(self):
+        self.assertTrue(BUYER_GUIDE.startswith('<!doctype html>\n<html lang="en"><head>'))
+        head = BUYER_GUIDE.split("</head>", 1)[0]
+        self.assertIn('<link rel="apple-touch-icon" href="/assets/homeofferflow-apple-touch-icon.png">', head)
+        self.assertIn('<link rel="manifest" href="/manifest.webmanifest">', head)
+
     def test_agent_landing_page_lists_every_live_shared_review_draft_without_client_side_append_noise(self):
         for form_code in ("TXR-1501", "TXR-1506", "TXR-1507", "TXR-1508", "TXR-1905", "TXR-1914", "TXR-1917", "TXR-1919", "TXR-1948", "TXR-1953", "TXR-1954"):
             self.assertIn(form_code, AGENTS)
