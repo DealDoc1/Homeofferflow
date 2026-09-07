@@ -194,13 +194,17 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("hof-purchase-addendum-interview-openers-v1", INDEX)
         self.assertIn("openExistingPrivateDraft", INDEX)
 
-    def test_guided_private_draft_handoff_explains_unavailable_sources(self):
-        start = INDEX.index("const openRelationshipDraft = (openerName, onOpened)")
+    def test_guided_private_draft_handoff_offers_a_prefilled_missing_form_request(self):
+        start = INDEX.index("const openRelationshipDraft = (openerName, onOpened, request)")
         end = INDEX.index("const openRelationshipPackage = (type)", start)
         handoff = INDEX[start:end]
         self.assertIn("const reportOpenError", handoff)
         self.assertIn("Promise.resolve(opener()).then(() => onOpened?.()).catch(reportOpenError)", handoff)
-        self.assertIn("This form is not available right now.", handoff)
+        self.assertIn("This form is not available in the shared library right now.", handoff)
+        self.assertIn("Request this form", handoff)
+        self.assertIn("window.openMissingFormRequest({", handoff)
+        self.assertIn("formName: request.formCode || request.label", handoff)
+        self.assertIn("transaction: transactionLabels[kind] || 'Other Texas transaction'", handoff)
 
     def test_nested_package_start_waits_for_the_actual_private_draft_dialog(self):
         start = INDEX.index("window.hofOpenAgentPackageInterview = function")
@@ -210,7 +214,15 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("document.querySelector('.hof-agreement-dialog')", interview)
         self.assertIn("deferStartToNestedChoice: true", interview)
         self.assertIn("if (!choice.deferStartToNestedChoice) recordPackageWorkspaceStart(choice);", interview)
-        self.assertIn("openRelationshipDraft(choice.opener, () => recordPrivateDraftWorkspaceStart(choice, type));", interview)
+        self.assertIn("openRelationshipDraft(choice.opener, () => recordPrivateDraftWorkspaceStart(choice, type), choice);", interview)
+
+    def test_missing_form_request_prefills_the_selected_form_and_transaction(self):
+        start = INDEX.index("function openMissingFormRequest(context = {})")
+        end = INDEX.index("function isAgentAccount()", start)
+        request = INDEX[start:end]
+        self.assertIn("if (transaction && context.transaction) transaction.value = context.transaction;", request)
+        self.assertIn("if (formName && context.formName) formName.value = context.formName;", request)
+        self.assertIn("formName?.focus();", request)
 
     def test_nested_relationship_choice_returns_to_the_prior_package_question(self):
         start = INDEX.index("window.hofOpenAgentPackageInterview = function")
