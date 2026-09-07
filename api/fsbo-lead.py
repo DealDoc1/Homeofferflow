@@ -169,6 +169,7 @@ FSBO_LANDING_EVENT_TYPES = {
     "fsbo_request_receipt_cleared": "cleared",
     "fsbo_seller_plan_downloaded": "downloaded",
     "fsbo_seller_plan_copied": "copied",
+    "fsbo_seller_support_contact_opened": "opened",
     "pwa_seller_plan_opened": "opened",
 }
 FSBO_LANDING_CHANNELS = {
