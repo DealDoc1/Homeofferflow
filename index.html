@@ -8656,6 +8656,14 @@ function routeAfterMagicLinkIfNeeded() {
       window.location.assign('/agents?utm_source=homeofferflow&utm_medium=homepage&utm_campaign=agent_workspace');
       return;
     }
+    // The investor promise is a saved-defaults workspace, not an anonymous
+    // buyer-offer wizard. Preserve that choice through the existing
+    // passwordless investor handoff so the next screen either opens the
+    // investor dashboard or asks for the correct investor sign-in link.
+    if ((state?.data?.userType || 'homebuyer') === 'investor') {
+      window.location.assign('/?investor=1&utm_source=homeofferflow&utm_medium=homepage&utm_campaign=investor_workspace');
+      return;
+    }
     if ((state?.data?.userType || 'homebuyer') === 'homebuyer') rememberHomebuyerCheckoutChannel();
     startPrimaryOffer();
   }

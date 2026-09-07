@@ -49,6 +49,14 @@ class LandingHeroConversionLayoutTests(unittest.TestCase):
         self.assertIn("window.location.assign('/agents')", HTML)
         self.assertIn('Start with property listing, purchase, lease listing, or tenant representation', HTML)
 
+    def test_investor_audience_routes_to_the_dedicated_workspace_handoff(self):
+        start = HTML.index("function beginOfferFrom(surface)")
+        end = HTML.index("function startPrimaryOffer()", start)
+        handoff = HTML[start:end]
+        self.assertIn("userType || 'homebuyer') === 'investor'", handoff)
+        self.assertIn("/?investor=1&utm_source=homeofferflow&utm_medium=homepage&utm_campaign=investor_workspace", handoff)
+        self.assertLess(handoff.index("=== 'investor'"), handoff.index("startPrimaryOffer();"))
+
 
 if __name__ == "__main__":
     unittest.main()
