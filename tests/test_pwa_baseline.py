@@ -65,7 +65,7 @@ class PwaBaselineTests(unittest.TestCase):
                 ("Start a Transaction", "/?pwa_action=transaction_start"),
                 ("My Workspace", "/?pwa_action=workspace"),
                 ("Needs Attention", "/?pwa_action=attention_queue"),
-                ("Guided Forms", "/?pwa_action=relationship_drafts"),
+                ("Start Buyer Offer", "/?pwa_action=buyer_offer"),
             ],
         )
         self.assertEqual(len(MANIFEST["shortcuts"]), 4)
@@ -90,7 +90,7 @@ class PwaBaselineTests(unittest.TestCase):
         self.assertNotIn("caches.match(event.request)", WORKER)
 
     def test_agent_landing_shell_is_pre_cached_for_agent_first_pwa_resume(self):
-        self.assertIn("const SHELL_CACHE = 'homeofferflow-shell-v55';", WORKER)
+        self.assertIn("const SHELL_CACHE = 'homeofferflow-shell-v56';", WORKER)
         self.assertIn("'/agents',", WORKER)
         self.assertIn("'/sellers',", WORKER)
         self.assertIn("'/partners',", WORKER)
@@ -118,16 +118,20 @@ class PwaBaselineTests(unittest.TestCase):
         self.assertIn('const root = window;', shortcut_module)
         self.assertIn("root.logOfferEvent?.(", shortcut_module)
 
-    def test_manifest_describes_agent_workspace_and_icons_forms_shortcut(self):
+    def test_manifest_describes_workspace_and_icons_buyer_offer_shortcut(self):
         self.assertIn("shared agent form drafts", MANIFEST["description"])
         self.assertIn("business", MANIFEST.get("categories", []))
         self.assertIn("productivity", MANIFEST.get("categories", []))
-        forms = next(item for item in MANIFEST["shortcuts"] if item["name"] == "Guided Forms")
-        self.assertEqual(forms["icons"][0]["src"], "/assets/homeofferflow-app-icon-192.png")
+        buyer_offer = next(item for item in MANIFEST["shortcuts"] if item["name"] == "Start Buyer Offer")
+        self.assertEqual(buyer_offer["url"], "/?pwa_action=buyer_offer")
+        self.assertIn("No payment to begin", buyer_offer["description"])
+        self.assertEqual(buyer_offer["icons"][0]["src"], "/assets/homeofferflow-app-icon-192.png")
         self.assertIn("const validActions = new Set(['workspace', 'brokerage_setup', 'transaction_start', 'listing_tools', 'relationship_drafts', 'offer_review', 'new_offer', 'signing_queue', 'attention_queue', 'seller_plan', 'investor_workspace', 'partner_marketplace', 'buyer_offer']);", INDEX)
         self.assertIn("const validTransactionWorkflows = new Set(['purchase', 'sale_listing', 'lease_listing', 'lease_representation']);", INDEX)
         self.assertIn("sessionStorage.setItem('hof_agent_workflow_choice', workflow)", INDEX)
         self.assertIn("if (action === 'transaction_start')", INDEX)
+        self.assertIn("if (action === 'buyer_offer')", INDEX)
+        self.assertIn("window.beginOfferFrom?.('pwa_buyer_offer');", INDEX)
         self.assertIn("if (!validActions.has(action)) return;", INDEX)
         self.assertIn("window.openAuthModal?.(role)", INDEX)
         self.assertIn("window.openAccountDashboard?.({ tab: 'dashboard' })", INDEX)
