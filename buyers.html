@@ -119,6 +119,20 @@
         font-family: Arial, sans-serif;
         line-height: 1.55;
       }
+      .skip-link {
+        position: absolute;
+        left: -9999px;
+        top: 0.5rem;
+        z-index: 30;
+        padding: 0.65rem 0.8rem;
+        border-radius: 8px;
+        background: var(--gold);
+        color: #102033;
+        font-weight: 800;
+      }
+      .skip-link:focus {
+        left: 0.75rem;
+      }
       .shell {
         width: min(1080px, calc(100% - 2rem));
         margin: auto;
@@ -252,6 +266,7 @@
     </style>
   </head>
   <body>
+    <a class="skip-link" href="#buyer-ready">Skip to what you need to begin</a>
     <div class="shell">
       <header>
         <a class="brand" href="/">Home<span>Offer</span>Flow</a
