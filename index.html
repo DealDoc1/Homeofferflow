@@ -3182,7 +3182,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 
     <div class="feedback-field">
       <label for="feedbackIssueType">Issue type</label>
-      <select id="feedbackIssueType" onchange="syncAiFeedbackPrivacyGuard()">
+      <select id="feedbackIssueType" onchange="syncFeedbackFields()">
         <option value="bug">Bug / something broken</option>
         <option value="pdf_field">PDF field or placement issue</option>
         <option value="signwell">SignWell / signature issue</option>
@@ -3196,8 +3196,27 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       </select>
     </div>
 
+    <div id="missingFormStructuredFields" style="display:none;">
+      <div class="feedback-field">
+        <label for="missingFormTransaction">What type of transaction is this for?</label>
+        <select id="missingFormTransaction">
+          <option value="">Choose one…</option>
+          <option value="Purchase">Purchase</option>
+          <option value="Property listing">Property listing</option>
+          <option value="Lease listing">Lease listing</option>
+          <option value="Tenant representation">Tenant representation</option>
+          <option value="Other Texas transaction">Other Texas transaction</option>
+        </select>
+      </div>
+      <div class="feedback-field">
+        <label for="missingFormName">Which form or workflow do you need?</label>
+        <input id="missingFormName" maxlength="160" autocomplete="off" placeholder="Form name or code, such as TXR-1101 or TREC-20-8">
+      </div>
+      <p class="feedback-privacy-note" style="margin:-.15rem 0 .75rem;color:var(--gray);font-size:.78rem;line-height:1.45;">Do not include client names, addresses, MLS numbers, or transaction terms.</p>
+    </div>
+
     <div class="feedback-field">
-      <label for="feedbackMessage">What happened?</label>
+      <label id="feedbackMessageLabel" for="feedbackMessage">What happened?</label>
       <textarea id="feedbackMessage" placeholder="Tell us what you were doing, what went wrong, what page/form/field was involved, and what you expected to happen."></textarea>
     </div>
 
@@ -6610,6 +6629,19 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     if (!isCalibration && scenario) scenario.value = '';
   }
 
+  function syncFeedbackFields() {
+    syncAiFeedbackPrivacyGuard();
+    const isMissingForm = document.getElementById('feedbackIssueType')?.value === 'missing_addendum';
+    const structured = document.getElementById('missingFormStructuredFields');
+    const label = document.getElementById('feedbackMessageLabel');
+    const message = document.getElementById('feedbackMessage');
+    if (structured) structured.style.display = isMissingForm ? 'block' : 'none';
+    if (label) label.textContent = isMissingForm ? 'What should this form help you do?' : 'What happened?';
+    if (message) message.placeholder = isMissingForm
+      ? 'Describe the job this form or workflow should help you complete. Do not include confidential client information.'
+      : 'Tell us what you were doing, what went wrong, what page/form/field was involved, and what you expected to happen.';
+  }
+
   function closeBetaFeedback() {
     const modal = document.getElementById('feedbackModal');
     if (modal) {
@@ -6623,6 +6655,8 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     const user = hofAuth?.session?.user || null;
     const issueType = document.getElementById('feedbackIssueType')?.value || 'other';
     const message = document.getElementById('feedbackMessage')?.value?.trim() || '';
+    const missingFormTransaction = document.getElementById('missingFormTransaction')?.value || '';
+    const missingFormName = document.getElementById('missingFormName')?.value?.trim() || '';
     const anonymizedCalibration = document.getElementById('aiFeedbackAnonymized')?.checked === true;
     const calibrationScenario = document.getElementById('aiFeedbackScenario')?.value || '';
     const aiReviewFields = {
@@ -6637,6 +6671,15 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 
     if (!message) {
       setFeedbackStatus('Please enter a short description before submitting.', 'err');
+      return;
+    }
+
+    if (issueType === 'missing_addendum' && !missingFormTransaction) {
+      setFeedbackStatus('Choose the transaction type for this form request.', 'err');
+      return;
+    }
+    if (issueType === 'missing_addendum' && !missingFormName) {
+      setFeedbackStatus('Name the form or workflow you need.', 'err');
       return;
     }
 
@@ -6663,7 +6706,13 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     }
 
     const feedbackToken = hofAuth?.session?.access_token || '';
-    const submittedMessage = issueType === 'ai_review'
+    const submittedMessage = issueType === 'missing_addendum'
+      ? [
+          `Form request: ${missingFormName}`,
+          `Transaction: ${missingFormTransaction}`,
+          `Needed for: ${message}`
+        ].join('\n')
+      : issueType === 'ai_review'
       ? [
           message ? `Reviewer summary: ${message}` : '',
           `Useful: ${aiReviewFields.useful}`,
@@ -6735,6 +6784,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       try { renderBetaOnboardingChecklist(); } catch (e) {}
       setFeedbackStatus(alertOk ? 'Thanks — feedback received and alert sent.' : 'Thanks — feedback received. Email alert did not send, but it is saved in Supabase.', 'ok');
       document.getElementById('feedbackMessage').value = '';
+      ['missingFormTransaction', 'missingFormName'].forEach(id => { const field = document.getElementById(id); if (field) field.value = ''; });
       ['aiFeedbackUseful','aiFeedbackConcern','aiFeedbackMissing'].forEach(id => { const field = document.getElementById(id); if (field) field.value = ''; });
       ['aiFeedbackDisclaimer','aiFeedbackOverclaiming','aiFeedbackDisposition','aiFeedbackScenario'].forEach(id => { const field = document.getElementById(id); if (field) field.value = ''; });
       setTimeout(closeBetaFeedback, alertOk ? 1200 : 2200);
@@ -17306,7 +17356,7 @@ function routeAfterMagicLinkIfNeeded() {
     if (anchor) anchor.insertAdjacentHTML('beforebegin', `
       <div class="feedback-fast-row" id="feedbackFastRowV15">
         <button type="button" onclick="document.getElementById('feedbackIssueType').value='pdf_field';document.getElementById('feedbackMessage').focus();">PDF field issue</button>
-        <button type="button" onclick="document.getElementById('feedbackIssueType').value='missing_addendum';document.getElementById('feedbackMessage').focus();">Request missing form</button>
+        <button type="button" onclick="document.getElementById('feedbackIssueType').value='missing_addendum';syncFeedbackFields();document.getElementById('missingFormTransaction').focus();">Request missing form</button>
         <button type="button" onclick="document.getElementById('feedbackIssueType').value='signwell';document.getElementById('feedbackMessage').focus();">SignWell issue</button>
         <button type="button" onclick="document.getElementById('feedbackIssueType').value='broker_demo';document.getElementById('feedbackMessage').focus();">Broker or team workspace</button>
       </div>`);
@@ -19968,9 +20018,10 @@ function routeAfterMagicLinkIfNeeded() {
       const intro = document.querySelector('#feedbackModal .feedback-head p');
       const message = document.getElementById('feedbackMessage');
       if (issue) issue.value = 'missing_addendum';
+      root.syncFeedbackFields?.();
       if (title) title.textContent = 'Request a Missing Form';
-      if (intro) intro.textContent = 'Tell us the exact Texas form or workflow you need and whether it is for a buyer, seller, landlord, tenant, or listing-side transaction.';
-      if (message) message.placeholder = 'Name the form/workflow, transaction role, and what you need it to do. Do not include confidential client information.';
+      if (intro) intro.textContent = 'Answer three short questions so we can prioritize the right Texas form or workflow.';
+      if (message) message.placeholder = 'Describe the job this form or workflow should help you complete. Do not include confidential client information.';
     }, 0);
   }
   root.openMissingFormRequest = openMissingFormRequest;
