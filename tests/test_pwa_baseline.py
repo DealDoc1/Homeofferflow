@@ -89,15 +89,15 @@ class PwaBaselineTests(unittest.TestCase):
         self.assertIn("cache.put(cacheKey, response.clone())", WORKER)
         self.assertNotIn("caches.match(event.request)", WORKER)
 
-    def test_agent_landing_shell_is_pre_cached_for_agent_first_pwa_resume(self):
-        self.assertIn("const SHELL_CACHE = 'homeofferflow-shell-v58';", WORKER)
-        self.assertIn("'/agents',", WORKER)
-        self.assertIn("'/sellers',", WORKER)
-        self.assertIn("'/partners',", WORKER)
-        self.assertIn("'/ondemand',", WORKER)
-        for path in ("'/buyers',", "'/investors',", "'/directory',", "'/texas-fsbo-guide',", "'/texas-agent-offer-workflow',", "'/texas-homebuyer-offer-guide',", "'/texas-investor-offer-guide',", "'/texas-home-service-partner-guide',", "'/texas-agent-form-library',", "'/texas-seller-financing-guide',", "'/texas-buyer-representation-guide',", "'/texas-flat-fee-mls-guide',", "'/texas-seller-net-proceeds-calculator',", "'/texas-fsbo-closing-checklist',"):
-            with self.subTest(path=path):
-                self.assertIn(path, WORKER)
+    def test_install_precaches_only_low_cost_app_essentials(self):
+        self.assertIn("const SHELL_CACHE = 'homeofferflow-shell-v59';", WORKER)
+        shell_assets = WORKER.split('const SHELL_ASSETS = [', 1)[1].split('];', 1)[0]
+        self.assertIn("'/manifest.webmanifest'", shell_assets)
+        self.assertIn("'/assets/pwa-register.js'", shell_assets)
+        self.assertIn("'/assets/pwa-share-target.js'", shell_assets)
+        self.assertNotIn("'/agents'", shell_assets)
+        self.assertNotIn("'/texas-fsbo-guide'", shell_assets)
+        self.assertIn('Public pages cache after the visitor has', WORKER)
 
     def test_worker_refreshes_only_the_public_html_offline_shell(self):
         self.assertIn("if (!cacheKey || !response.ok || !contentType.includes('text/html')) return;", WORKER)
