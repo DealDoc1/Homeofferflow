@@ -220,6 +220,14 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("window.hofOpenAgentPackageInterview?.(kind);", interview)
         self.assertIn("addEventListener('click', returnToPackageQuestion)", interview)
 
+    def test_private_draft_package_copy_does_not_promise_sending(self):
+        start = INDEX.index("window.hofOpenAgentPackageInterview = function")
+        end = INDEX.index("window.startAgentWorkflow = function", start)
+        interview = INDEX[start:end]
+        self.assertIn("We’ll prepare a private draft for your review.", interview)
+        self.assertIn("Sending is available only where the workflow supports it.", interview)
+        self.assertNotIn("You’ll review the completed document before it is sent.", interview)
+
     def test_dismissing_the_package_question_restores_keyboard_focus(self):
         start = INDEX.index("window.hofOpenAgentPackageInterview = function")
         end = INDEX.index("window.startAgentWorkflow = function", start)
