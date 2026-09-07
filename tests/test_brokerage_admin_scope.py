@@ -22,6 +22,12 @@ class BrokerageAdminScopeTests(unittest.TestCase):
         self.assertNotIn("Source approved", index)
         self.assertNotIn("Tyler Demando", index)
 
+    def test_form_roadmap_matches_the_released_shared_agent_library(self):
+        roadmap = (ROOT / "docs" / "AGENT_FORM_COVERAGE_ROADMAP.md").read_text()
+        self.assertIn("does\nnot require a brokerage seat or a per-agent brokerage attestation", roadmap)
+        self.assertIn("- signed-in agent access to the released review draft without a brokerage-seat", roadmap)
+        self.assertNotIn("an explicit per-agent attestation that the user is currently authorized", roadmap)
+
 
 if __name__ == "__main__":
     unittest.main()
