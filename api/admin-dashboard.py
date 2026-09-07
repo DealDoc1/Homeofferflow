@@ -5834,6 +5834,9 @@ class handler(BaseHTTPRequestHandler):
                 "partnerDirectoryPwaOutboundClickCount": partner_directory_pwa_outbound_click_count,
                 "partnerDirectoryOfferCompletionImpressionCount": partner_directory_offer_completion_impression_count,
                 "partnerDirectoryOfferCompletionOutboundClickCount": partner_directory_offer_completion_outbound_click_count,
+                "partnerDirectoryOfferCompletionOutboundClickRate": round(
+                    (partner_directory_offer_completion_outbound_click_count / partner_directory_offer_completion_impression_count) * 100, 1
+                ) if partner_directory_offer_completion_impression_count else 0,
                 "partnerCheckoutStartCount": partner_checkout_event_counts["checkout_started"],
                 "partnerCheckoutStripeOpenCount": partner_checkout_event_counts["stripe_opened"],
                 "partnerCheckoutCancellationCount": partner_checkout_event_counts["cancelled"],
