@@ -449,6 +449,14 @@ class AgentActivationDashboardTests(unittest.TestCase):
         self.assertIn("secondary: 'Open Offer Workspace'", script)
         self.assertIn("state.key === 'profile' ? 'offers'", script)
 
+    def test_generic_agent_offer_history_starts_with_transaction_choice(self):
+        history_start = HTML.index('class="offer-crm-header"')
+        history_end = HTML.index("async function refreshSignWellStatus", history_start)
+        history = HTML[history_start:history_end]
+
+        self.assertIn('onclick="startAccountTransaction()">Start Transaction', history)
+        self.assertNotIn('onclick="startAccountOffer()">New Offer', history)
+
     def test_resume_activation_chooses_the_most_recent_draft(self):
         script_start = HTML.index('id="hof-agent-activation-v16-js"')
         script_end = HTML.index("</script>", script_start)
