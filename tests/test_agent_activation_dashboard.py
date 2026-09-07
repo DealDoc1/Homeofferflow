@@ -436,9 +436,18 @@ class AgentActivationDashboardTests(unittest.TestCase):
 
         self.assertIn("function mostRecentOffer()", script)
         self.assertIn("primary: 'Reuse Last Terms'", script)
-        self.assertIn("secondary: 'Create Fresh Offer'", script)
+        self.assertIn("secondary: 'Start a different transaction'", script)
         self.assertIn("state.key === 'repeat' ? 'reuse_terms'", script)
+        self.assertIn("state.key === 'repeat' ? 'choose_transaction'", script)
         self.assertIn("root.reuseOfferTerms?.(offerId)", script)
+
+    def test_profile_workspace_action_matches_its_label(self):
+        script_start = HTML.index('id="hof-agent-activation-v16-js"')
+        script_end = HTML.index("</script>", script_start)
+        script = HTML[script_start:script_end]
+
+        self.assertIn("secondary: 'Open Offer Workspace'", script)
+        self.assertIn("state.key === 'profile' ? 'offers'", script)
 
     def test_resume_activation_chooses_the_most_recent_draft(self):
         script_start = HTML.index('id="hof-agent-activation-v16-js"')
