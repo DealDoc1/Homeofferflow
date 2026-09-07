@@ -165,6 +165,8 @@ FSBO_LANDING_EVENT_TYPES = {
     "fsbo_request_submission_started": "started",
     "fsbo_request_saved": "saved",
     "fsbo_request_save_failed": "failed",
+    "fsbo_request_receipt_viewed": "viewed",
+    "fsbo_request_receipt_cleared": "cleared",
     "fsbo_seller_plan_downloaded": "downloaded",
     "fsbo_seller_plan_copied": "copied",
     "pwa_seller_plan_opened": "opened",
