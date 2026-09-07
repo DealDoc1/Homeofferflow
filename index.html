@@ -7382,6 +7382,11 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             { label: 'Straightforward representation', copy: 'Start the streamlined Buyer/Tenant Representation Agreement interview.', opener: 'hofOpenTxr1507Draft' },
             { label: 'More detailed representation', copy: 'Start the complete Buyer/Tenant Representation Agreement interview.', opener: 'hofOpenTxr1501Draft' }
           ]
+        : type === 'lease_addendum'
+          ? [
+              { label: 'Residential lease', copy: 'Prepare the residential-lease addendum for private review.', opener: 'hofOpenTxr1953Draft' },
+              { label: 'Fixture lease', copy: 'Prepare the fixture-lease addendum for private review.', opener: 'hofOpenTxr1954Draft' }
+            ]
         : type === 'purchase_addendum'
           ? [
               { label: 'Seller financing', copy: 'Prepare the seller-financing addendum for private review.', opener: 'hofOpenTxr1914Draft' },
@@ -7401,6 +7406,8 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       followUp.id = 'hofAgentPackageFollowUp'; followUp.className = 'hof-agreement-modal';
       const prompt = type === 'representation'
         ? 'What kind of representation does this client need?'
+        : type === 'lease_addendum'
+          ? 'Which lease addendum does this listing need?'
         : type === 'purchase_addendum'
           ? 'Which purchase addendum does this transaction need?'
           : 'What does this customer need?';
@@ -7439,6 +7446,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         title: 'What do you need for this lease listing?',
         choices: [
           { label: 'Start a lease listing', copy: 'Tell us about the landlord, property, availability, and next steps.', action: () => openListingWorkspace(true), isWorkspaceOpen: () => Boolean(document.getElementById('listingWorkspaceStartCard')) },
+          { label: 'Prepare a lease addendum', copy: 'Choose the addendum the listing needs, then prepare its private review draft.', action: () => openRelationshipPackage('lease_addendum'), deferStartToNestedChoice: true },
           { label: 'Resume a lease listing', copy: 'Open a saved private workspace to review the plan and continue where you left off.', action: () => openListingWorkspace(), isWorkspaceOpen: () => Boolean(document.getElementById('listingWorkspaceStartCard')) }
         ]
       },
