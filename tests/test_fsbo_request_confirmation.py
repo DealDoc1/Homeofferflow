@@ -108,7 +108,8 @@ class FsboRequestConfirmationTests(unittest.TestCase):
         duplicate_branch = api[duplicate_start:payload_start]
         self.assertIn("receipt_payload = {", api[:duplicate_start])
         self.assertIn("_send_seller_plan_confirmation(receipt_payload)", duplicate_branch)
-        self.assertIn("_record_seller_plan_receipt_event(receipt_payload, email_delivery)", duplicate_branch)
+        self.assertNotIn("_record_seller_plan_receipt_event", duplicate_branch)
+        self.assertIn("must not inflate the delivery funnel", duplicate_branch)
         self.assertIn('"seller_plan_email": email_delivery', duplicate_branch)
         self.assertIn('"duplicate": True', duplicate_branch)
 
