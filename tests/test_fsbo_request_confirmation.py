@@ -101,6 +101,17 @@ class FsboRequestConfirmationTests(unittest.TestCase):
         self.assertIn("seller_follow_up", api)
         self.assertIn("A copy of this request was also emailed to you.", HTML)
 
+    def test_duplicate_seller_request_recovers_the_receipt_without_creating_a_second_lead(self):
+        api = API_PATH.read_text(encoding="utf-8")
+        duplicate_start = api.index("if existing:\n")
+        payload_start = api.index("            payload = {", duplicate_start)
+        duplicate_branch = api[duplicate_start:payload_start]
+        self.assertIn("receipt_payload = {", api[:duplicate_start])
+        self.assertIn("_send_seller_plan_confirmation(receipt_payload)", duplicate_branch)
+        self.assertIn("_record_seller_plan_receipt_event(receipt_payload, email_delivery)", duplicate_branch)
+        self.assertIn('"seller_plan_email": email_delivery', duplicate_branch)
+        self.assertIn('"duplicate": True', duplicate_branch)
+
     def test_seller_plan_receipt_escapes_seller_content_and_is_idempotent(self):
         spec = importlib.util.spec_from_file_location("fsbo_plan_receipt", API_PATH)
         api = importlib.util.module_from_spec(spec)
