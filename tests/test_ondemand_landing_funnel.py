@@ -40,6 +40,9 @@ class OnDemandLandingFunnelTests(unittest.TestCase):
         self.assertIn("open it in this browser to return here", ONDEMAND)
         self.assertIn("keepalive: true", ONDEMAND)
 
+    def test_enrollment_script_declares_the_legal_policy_version_once(self):
+        self.assertEqual(ONDEMAND.count('const LEGAL_POLICY_VERSION = "2026-07-30";'), 1)
+
     def test_organic_guide_sources_are_allowlisted_for_ondemand_attribution(self):
         self.assertIn("ONDEMAND_LANDING_CHANNELS", API)
         self.assertIn('"organic_listing_workflow"', API)
