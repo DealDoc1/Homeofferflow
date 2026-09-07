@@ -15643,6 +15643,17 @@ function routeAfterMagicLinkIfNeeded() {
           else localStorage.setItem('hof_agent_landing_start_draft', '1');
         } catch (_) {}
         window.openAuthModal?.('agent');
+        // The public transaction choice is already stored in a small allowlist
+        // for the sign-in return. Say that plainly here so an agent never
+        // wonders whether choosing a listing or lease path was lost.
+        const workflowLabel = {
+          purchase: 'your purchase transaction',
+          sale_listing: 'your property listing',
+          lease_listing: 'your lease listing',
+          lease_representation: 'your tenant-representation transaction'
+        }[agentLandingWorkflow] || 'the transaction chooser';
+        const authSubtitle = document.getElementById('authSubtitle');
+        if (authSubtitle) authSubtitle.textContent = `Enter your email for a secure sign-in link. We’ll continue with ${workflowLabel} after you return.`;
       }
     }, 80);
     // Investor acquisition reuses the passwordless account workflow. A
