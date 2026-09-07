@@ -181,6 +181,7 @@
     const formLibrarySurface = window.location.pathname === '/texas-agent-form-library';
     const partnerSurface = window.location.pathname === '/partners';
     const sellerOfferReviewSurface = window.location.pathname === '/texas-seller-offer-review';
+    const buyerRepresentationGuideSurface = window.location.pathname === '/texas-buyer-representation-guide';
     const onDemandSurface = window.location.pathname === '/ondemand';
     const buyerSurface = window.location.pathname === '/buyers';
     const buyerGuideSurface = window.location.pathname === '/texas-homebuyer-offer-guide';
@@ -198,6 +199,8 @@
       ? 'Keep partner placements one tap away'
       : sellerOfferReviewSurface
       ? 'Keep seller offer review one tap away'
+      : buyerRepresentationGuideSurface
+      ? 'Keep buyer representation planning one tap away'
       : onDemandSurface
       ? 'Keep your agent workspace one tap away'
       : buyerSurface
@@ -233,6 +236,8 @@
       ? 'Install the lightweight app shell to return quickly to partner pricing, your application, and setup details.'
       : sellerOfferReviewSurface
       ? 'Install the lightweight app shell to return quickly to your seller offer-review checklist and next conversation.'
+      : buyerRepresentationGuideSurface
+      ? 'Install the lightweight app shell to return quickly to your buyer-representation workflow and the agent workspace.'
       : onDemandSurface
       ? 'Install the lightweight app shell to return quickly to your OnDemand agent workspace and first saved offer.'
       : buyerSurface
