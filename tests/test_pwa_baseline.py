@@ -112,6 +112,16 @@ class PwaBaselineTests(unittest.TestCase):
         self.assertIn("const cacheKey = PUBLIC_PAGE_PATHS.has(requestUrl.pathname) ? requestUrl.pathname : '';", WORKER)
         self.assertIn("caches.match(cacheKey).then(response => response || caches.match('/index.html'))", WORKER)
 
+    def test_every_installable_rewritten_page_is_available_to_the_offline_shell(self):
+        for rewrite in VERCEL["rewrites"]:
+            source = rewrite["source"]
+            destination = rewrite["destination"].lstrip("/")
+            html = (ROOT / destination).read_text(encoding="utf-8")
+            if "/assets/pwa-register.js" not in html:
+                continue
+            with self.subTest(path=source):
+                self.assertIn(f"'{source}'", WORKER)
+
     def test_installed_app_shortcuts_use_existing_authenticated_workflows(self):
         self.assertIn('id="hof-pwa-shortcuts-v1"', INDEX)
         shortcut_module = INDEX.split('<script id="hof-pwa-shortcuts-v1">', 1)[1].split('</script>', 1)[0]
