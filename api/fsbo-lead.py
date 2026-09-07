@@ -388,11 +388,16 @@ def _send_seller_plan_confirmation(payload):
     safe_price = html.escape(package_price)
     safe_timeline = html.escape(timeline)
     safe_return_link = html.escape(return_link, quote=True)
+    subject = (
+        "Your free HomeOfferFlow seller plan"
+        if service_level == "free_intake"
+        else f"Your HomeOfferFlow {package_name} next steps"
+    )
     email_payload = {
         "from": f"HomeOfferFlow <{SELLER_PLAN_FROM_EMAIL}>",
         "to": [recipient],
         "reply_to": SELLER_PLAN_REPLY_TO,
-        "subject": "Your HomeOfferFlow seller plan request",
+        "subject": subject,
         # Keep Resend reporting useful without sending contact or property
         # data as tags. These values are already allowlisted product paths.
         "tags": [

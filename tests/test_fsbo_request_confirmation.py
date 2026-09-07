@@ -135,6 +135,7 @@ class FsboRequestConfirmationTests(unittest.TestCase):
         self.assertEqual(captured["args"][0], "https://api.resend.com/emails")
         self.assertEqual(captured["kwargs"]["json"]["to"], ["seller@example.com"])
         self.assertEqual(captured["kwargs"]["json"]["reply_to"], "support@homeofferflow.com")
+        self.assertEqual(captured["kwargs"]["json"]["subject"], "Your HomeOfferFlow Seller Prep Plan next steps")
         self.assertEqual(captured["kwargs"]["json"]["bcc"], ["support@homeofferflow.com"])
         self.assertEqual(captured["kwargs"]["json"]["tags"], [
             {"name": "email_type", "value": "seller_plan_receipt"},
@@ -169,6 +170,26 @@ class FsboRequestConfirmationTests(unittest.TestCase):
         with patch.object(api, "RESEND_API_KEY", "re_test"), patch.object(api, "SELLER_LEAD_ALERT_TO", "seller@example.com"), patch.object(api.httpx, "Client", return_value=Client()):
             self.assertEqual(api._send_seller_plan_confirmation({"seller_email": "seller@example.com"}), "sent")
         self.assertNotIn("bcc", captured["payload"])
+
+    def test_free_seller_plan_uses_a_clear_noncommercial_subject(self):
+        spec = importlib.util.spec_from_file_location("fsbo_plan_receipt_subject", API_PATH)
+        api = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(api)
+        captured = {}
+
+        class Response:
+            status_code = 200
+
+        class Client:
+            def __enter__(self): return self
+            def __exit__(self, *args): return False
+            def post(self, *args, **kwargs):
+                captured["payload"] = kwargs["json"]
+                return Response()
+
+        with patch.object(api, "RESEND_API_KEY", "re_test"), patch.object(api.httpx, "Client", return_value=Client()):
+            self.assertEqual(api._send_seller_plan_confirmation({"seller_email": "seller@example.com"}), "sent")
+        self.assertEqual(captured["payload"]["subject"], "Your free HomeOfferFlow seller plan")
 
     def test_seller_plan_receipt_steps_are_allowlisted_and_fall_back_safely(self):
         spec = importlib.util.spec_from_file_location("fsbo_plan_receipt_steps", API_PATH)
