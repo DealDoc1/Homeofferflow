@@ -76,7 +76,7 @@ class PublicPwaRegistrationTests(unittest.TestCase):
         self.assertIn("hofWrittenAgreementReminder", SCRIPT)
         self.assertIn("written agreement is required before showing residential property", SCRIPT)
         self.assertIn("Written-Agreement-Explainer.pdf", SCRIPT)
-        self.assertIn("Follow your brokerage-approved process", SCRIPT)
+        self.assertIn("Follow the required professional process", SCRIPT)
 
     def test_ondemand_install_prompt_explains_its_app_value(self):
         self.assertIn("window.location.pathname === '/ondemand'", SCRIPT)
