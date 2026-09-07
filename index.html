@@ -13938,7 +13938,7 @@ function routeAfterMagicLinkIfNeeded() {
       <div style="margin-top:.75rem;">
     <div id="fsboGuidedGoalCard" style="margin-top:0; padding:.9rem; border:1px solid rgba(200,151,63,.24); border-radius:12px; background:rgba(200,151,63,.055);">
       <div class="radio-group-label" style="margin-bottom:.25rem;">One quick question: what would help most right now?</div>
-      <div style="color:var(--gray-light); font-size:.8rem; line-height:1.45; margin-bottom:.6rem;">Choose a starting point and we will tailor the package details. You can change it or skip it; this is not a commitment.</div>
+      <div style="color:var(--gray-light); font-size:.8rem; line-height:1.45; margin-bottom:.6rem;">Choose a starting point and we will recommend the next step. You can change it or skip it; this is not a commitment.</div>
       <input type="hidden" id="fsboGuidedGoal" value="">
       <div class="account-actions-row" style="margin-top:0;gap:.5rem;">
         <button type="button" class="btn-secondary" data-fsbo-goal="prepare" onclick="selectFsboGuidedGoal('prepare')">Prepare before listing</button>
@@ -13949,11 +13949,13 @@ function routeAfterMagicLinkIfNeeded() {
       </div>
     </div>
 
-    <div style="margin-top:1rem; padding-top:.9rem; border-top:1px solid rgba(255,255,255,.08);">
-      <div class="radio-group-label" style="margin-bottom:.25rem;">Optional: tell us what help you may want later</div>
-      <div style="color:var(--gray-light); font-size:.8rem; line-height:1.45; margin-bottom:.55rem;">Your free seller plan is already selected. Choosing an option below only helps us tailor future recommendations; it does not start checkout or a paid service.</div>
-      <input type="hidden" id="fsboNeed" value="free_intake">
-      <input type="hidden" id="fsboPackagePrice" value="$0">
+    <div id="fsboNeedDetails" class="notice sage" style="margin-top:.8rem;"></div>
+    <input type="hidden" id="fsboNeed" value="free_intake">
+    <input type="hidden" id="fsboPackagePrice" value="$0">
+
+    <details id="fsboSupportOptions" class="partner-optional-details" style="margin-top:1rem; padding-top:.9rem; border-top:1px solid rgba(255,255,255,.08);">
+      <summary>Explore other support paths and pricing <span style="font-weight:500;">(optional)</span></summary>
+      <div style="margin-top:.75rem;color:var(--gray-light); font-size:.8rem; line-height:1.45; margin-bottom:.55rem;">Your free seller plan is already selected. Choosing a different option only helps us tailor future recommendations; it does not start checkout or a paid service.</div>
       <div class="fsbo-package-grid">
         <button type="button" class="fsbo-package-card selected" data-fsbo-need="free_intake" onclick="selectFsboNeed('free_intake')">
           <span class="pkg-kicker">Starting point</span><span class="fsbo-price-pill">$0</span><strong>Free Seller Intake</strong><small>Tell us your situation, timeline, and goals. We route you toward the right FSBO path, service package, or partner suggestion.</small><div class="fsbo-package-note">Best when you are early or unsure.</div>
@@ -13977,7 +13979,7 @@ function routeAfterMagicLinkIfNeeded() {
           <span class="pkg-kicker">Premium</span><span class="fsbo-price-pill">from $2,999</span><strong>Premium FSBO Bundle</strong><small>FSBO launch kit + flat-fee MLS interest + seller offer review + contract-to-close support intake + partner recommendations.</small><div class="fsbo-package-note">Best for serious sellers who want structure while avoiding traditional full-service listing costs.</div>
         </button>
       </div>
-    </div>
+    </details>
 
     <div style="margin-top:1rem; padding-top:.9rem; border-top:1px solid rgba(255,255,255,.08);">
       <div class="radio-group-label" style="margin-bottom:.35rem;">Partner suggestions wanted <span style="color:var(--gray); font-weight:700; text-transform:none; letter-spacing:0;">(optional)</span></div>
@@ -13995,7 +13997,6 @@ function routeAfterMagicLinkIfNeeded() {
       </div>
     </div>
 
-    <div id="fsboNeedDetails" class="notice sage" style="margin-top:.8rem;"></div>
     <div class="field" style="margin-top:.8rem;"><label id="fsboNotesLabel" for="fsboNotes">Tell us about your situation <span style="color:var(--gray);font-weight:500;">(optional)</span></label><textarea id="fsboNotes" rows="3" placeholder="Anything we should know? Property condition, pricing concerns, whether you already have photos, whether offers are already coming in, partner needs, etc."></textarea></div>
     <div class="notice gold" style="margin-top:.8rem;">Package pricing shown here is for planning/intake and may be finalized separately before any paid service begins. This is not checkout and not a confirmed service order. HomeOfferFlow is not a law firm and does not provide legal advice. Some FSBO, flat-fee MLS, offer-review, brokerage, title, or closing-support services may be provided through a licensed Texas real estate broker, affiliated license holder, attorney, title company, or other licensed provider where required. Pricing may vary by property, location, service level, and broker/provider approval.</div>
     <div class="account-actions-row" style="margin-top:1rem;">
