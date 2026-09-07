@@ -13566,6 +13566,9 @@ function routeAfterMagicLinkIfNeeded() {
     const improveTitle = isHomebuyer ? 'Potential ways to strengthen this offer' : isInvestor ? 'Potential deal adjustments or checks' : 'Potential adjustments or verification points';
     const helpsTitle = isHomebuyer ? 'Helps the Offer' : isInvestor ? 'Deal Strengths' : 'Clean / Helpful Terms';
     const concernsTitle = isHomebuyer ? 'Watch Before Signing' : isInvestor ? 'Deal Risks' : 'Items to Review';
+    const calibrationTools = isCurrentAdmin()
+      ? '<details class="ai-details-v5"><summary>Admin calibration tools</summary><div class="ai-review-actions ai-review-actions-v5" style="margin-top:.7rem"><button type="button" onclick="copyAiCalibrationPacket()">Copy calibration packet</button><button type="button" onclick="downloadAiCalibrationPacket()">Download calibration packet</button><button type="button" onclick="openAiCalibrationFeedback()">Review this result for calibration</button></div></details>'
+      : '';
 
     const marketModeText = escapeAttr(r.marketMode || 'unknown/general Texas resale norms');
     const confidence = r.confidence || { label: 'Limited confidence', rationale: 'Market context or core offer terms are incomplete.' };
@@ -13612,12 +13615,10 @@ function routeAfterMagicLinkIfNeeded() {
           <button type="button" onclick="runLiveAiOfferReview()" ${loading ? 'disabled' : ''}>${loading ? loadingText : liveButton}</button>
           <button type="button" onclick="showAiImproveBox()">${improveButton}</button>
           <button type="button" onclick="copyAiReviewSummary()">Copy Review Summary</button>
-          <button type="button" onclick="copyAiCalibrationPacket()">Copy Calibration Packet</button>
-          <button type="button" onclick="downloadAiCalibrationPacket()">Download Calibration Packet</button>
-          <button type="button" onclick="openAiCalibrationFeedback()">Review this result</button>
           <button type="button" onclick="prevStep()">Edit Terms</button>
         </div>
         <div id="aiImproveBox" class="ai-improve-box"><strong>${improveTitle}</strong><div class="ai-clean-list">${improveHtml}</div></div>
+        ${calibrationTools}
         <div id="aiFoundationStatus" class="platform-status"></div>
       </div>
     `;
