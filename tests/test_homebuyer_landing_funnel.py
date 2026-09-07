@@ -123,6 +123,7 @@ class HomebuyerLandingFunnelTests(unittest.TestCase):
     def test_checkout_return_preserves_only_allowlisted_acquisition_channel(self):
         self.assertIn("const homebuyerCheckoutChannels = new Set", INDEX)
         self.assertIn("const homebuyerCheckoutChannelKey = 'hof_homebuyer_checkout_channel';", INDEX)
+        self.assertIn("medium === 'organic_content' || source === 'organic'", INDEX)
         self.assertIn("function rememberHomebuyerCheckoutChannel()", INDEX)
         self.assertIn("source === 'homeofferflow_admin'", INDEX)
         self.assertIn("channel: rememberHomebuyerCheckoutChannel()", INDEX)
