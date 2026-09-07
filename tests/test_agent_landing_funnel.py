@@ -101,9 +101,9 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertLess(choices.index('<h3>Purchase</h3>'), choices.index('<h3>Lease listing</h3>'))
         self.assertLess(choices.index('<h3>Lease listing</h3>'), choices.index('<h3>Tenant representation</h3>'))
 
-    def test_lease_listing_copy_keeps_purchase_addenda_out_of_the_lease_listing_path(self):
-        self.assertIn("Next, choose listing setup, request a lease form, or open your saved workspace.", AGENTS)
-        self.assertNotIn("Next, choose listing setup, a lease addendum, or your saved workspace.", AGENTS)
+    def test_lease_listing_copy_routes_to_a_relevant_lease_addendum_interview(self):
+        self.assertIn("Next, choose listing setup, a lease addendum, or your saved workspace.", AGENTS)
+        self.assertNotIn("Next, choose listing setup, request a lease form, or open your saved workspace.", AGENTS)
         self.assertNotIn("Next, choose lease-listing setup or lease details.", AGENTS)
         self.assertNotIn("with lease planning preselected.", AGENTS)
 
@@ -195,15 +195,14 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("hof-purchase-addendum-interview-openers-v1", INDEX)
         self.assertIn("openExistingPrivateDraft", INDEX)
 
-    def test_lease_listing_interview_does_not_offer_purchase_lease_addenda(self):
+    def test_lease_listing_interview_offers_the_relevant_lease_addendum_package(self):
         start = INDEX.index("lease_listing: {")
         end = INDEX.index("lease_representation: {", start)
         lease_listing = INDEX[start:end]
-        self.assertIn("Request a lease form", lease_listing)
-        self.assertIn("formName: 'Texas residential lease form or workflow'", lease_listing)
-        self.assertIn("transaction: 'Lease listing'", lease_listing)
-        self.assertIn("skipWorkspaceStart: true", lease_listing)
-        self.assertNotIn("openRelationshipPackage('lease_addendum')", lease_listing)
+        self.assertIn("Review a lease addendum", lease_listing)
+        self.assertIn("openRelationshipPackage('lease_addendum')", lease_listing)
+        self.assertIn("deferStartToNestedChoice: true", lease_listing)
+        self.assertNotIn("openRelationshipPackage('purchase_addendum')", lease_listing)
 
     def test_guided_private_draft_handoff_offers_a_prefilled_missing_form_request(self):
         start = INDEX.index("const openRelationshipDraft = (openerName, onOpened, request)")

@@ -7460,7 +7460,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         title: 'What do you need for this lease listing?',
         choices: [
           { label: 'Start a lease listing', copy: 'Tell us about the landlord, property, availability, and next steps.', action: () => openListingWorkspace(true), isWorkspaceOpen: () => Boolean(document.getElementById('listingWorkspaceStartCard')) },
-          { label: 'Request a lease form', copy: 'Tell us which lease form or workflow you need. We’ll keep the request private and use it to prioritize the shared library.', action: () => window.openMissingFormRequest?.({ formName: 'Texas residential lease form or workflow', transaction: 'Lease listing' }), skipWorkspaceStart: true },
+          { label: 'Review a lease addendum', copy: 'Choose the lease addendum the listing needs, then prepare its private review draft.', action: () => openRelationshipPackage('lease_addendum'), deferStartToNestedChoice: true },
           { label: 'Resume a lease listing', copy: 'Open a saved private workspace to review the plan and continue where you left off.', action: () => openListingWorkspace(), isWorkspaceOpen: () => Boolean(document.getElementById('listingWorkspaceStartCard')) }
         ]
       },
