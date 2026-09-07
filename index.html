@@ -16733,7 +16733,7 @@ function routeAfterMagicLinkIfNeeded() {
           <div class="broker-safe-chip"><strong>Agent controlled</strong><span>Agent remains responsible for review, advice, submission, and compliance.</span></div>
         </div>
         <div class="beta-action-strip">
-          <button class="beta-action-card" type="button" onclick="startAccountOffer()"><strong>Prepare an offer</strong><span>Use the guided buyer packet workflow.</span></button>
+          <button class="beta-action-card" type="button" onclick="startAccountTransaction()"><strong>Start a transaction</strong><span>Choose the transaction in front of you, then use the guided workflow.</span></button>
           <button class="beta-action-card" type="button" onclick="openBetaFeedback()"><strong>Get help or request a form</strong><span>PDF, form, SignWell, or workflow support.</span></button>
         </div>
       </div>
@@ -18715,7 +18715,9 @@ function routeAfterMagicLinkIfNeeded() {
       step: normalizedStep,
       surface: 'brokerage'
     });
-    if (normalizedTarget === 'start_offer') return root.startAccountOffer?.();
+    // This is a generic brokerage-launch action. Preserve the agent's
+    // transaction-first choice instead of assuming a buyer-side offer.
+    if (normalizedTarget === 'start_offer') return root.startAccountTransaction?.();
     if (normalizedTarget === 'offers') return root.showAccountTab?.('offers');
     const field = document.getElementById(normalizedTarget);
     if (!field) return;

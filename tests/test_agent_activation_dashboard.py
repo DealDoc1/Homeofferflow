@@ -304,6 +304,8 @@ class AgentActivationDashboardTests(unittest.TestCase):
         self.assertIn("window.openAgentTransactionPicker?.();", HTML)
         self.assertIn('onclick="startAccountTransaction()">Choose Transaction</button>', HTML)
         self.assertIn('onclick="startAccountTransaction()">Start Transaction</button>', HTML)
+        self.assertIn('onclick="startAccountTransaction()"><strong>Start a transaction</strong>', HTML)
+        self.assertNotIn('onclick="startAccountOffer()"><strong>Prepare an offer</strong>', HTML)
 
     def test_transaction_first_dashboard_routes_unrelated_drafts_to_their_workspaces(self):
         self.assertIn('id="hof-transaction-first-dashboard-routing-v1"', HTML)
