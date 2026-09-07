@@ -477,7 +477,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       const source = await root.hofLoadApprovedBrokerageSource?.(FORM_CODE);
       const copy = card.querySelector('#txr1905AgreementCopy');
       if (!source) { copy.textContent = 'TXR-1905 is not currently available in your form library.'; return; }
-      copy.innerHTML = `Use a short, guided interview for the ${escape(source.source_revision)} TXR-1905 source. HomeOfferFlow saves a private review PDF; this workflow does not send or sign the addendum.`;
+      copy.innerHTML = `Use a short, guided interview for the ${escape(source.source_revision)} edition of TXR-1905. HomeOfferFlow saves a private review PDF; this workflow does not send or sign the addendum.`;
       const button = document.createElement('button');
       button.type = 'button'; button.className = 'btn-secondary'; button.textContent = 'Start mineral addendum draft';
       button.addEventListener('click', () => openDraftDialog(source));
@@ -505,7 +505,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         <div class="hof-agreement-wide"><span style="display:block;color:var(--gray-light);font-weight:700;font-size:.82rem;margin-bottom:.4rem">What does the seller reserve?</span><div class="hof-agreement-services"><label><input type="radio" name="reservationChoice" value="all" required> All mineral estate owned by seller</label><label><input type="radio" name="reservationChoice" value="undivided_interest"> An undivided interest</label></div></div>
         <label id="txr1905InterestWrap" style="display:none">Undivided interest percentage<input name="undividedInterest" inputmode="decimal" placeholder="Example: 25"></label>
         <div class="hof-agreement-wide"><span style="display:block;color:var(--gray-light);font-weight:700;font-size:.82rem;margin-bottom:.4rem">Surface rights</span><div class="hof-agreement-services"><label><input type="radio" name="surfaceRights" value="waived" required> Seller waives rights of ingress, egress, and reasonable use</label><label><input type="radio" name="surfaceRights" value="not_waived"> Seller does not waive those rights</label></div></div>
-        <label class="hof-agreement-wide hof-agreement-services"><input name="mineralReviewAcknowledgment" type="checkbox" required> I confirm the parties will review these source-form choices before signing. HomeOfferFlow is saving a private review draft, not sending a signature request.</label>
+        <label class="hof-agreement-wide hof-agreement-services"><input name="mineralReviewAcknowledgment" type="checkbox" required> I confirm the parties will review these choices on the form before signing. HomeOfferFlow is saving a private review draft, not sending a signature request.</label>
       </div>
       <div id="txr1905DraftStatus" class="hof-iabs-status"></div>
       <div class="hof-agreement-footer"><button class="btn-secondary" type="button" id="txr1905Cancel">Cancel</button><button class="btn-primary" type="submit">Save private review draft</button></div>
@@ -3140,12 +3140,12 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           <div class="relationship-drafts-guide-item"><strong>Detailed representation agreement · TXR-1501</strong><span>Buyer/Tenant Representation Agreement, Long Form; choose it only when it fits the transaction.</span></div>
           <div class="relationship-drafts-guide-item"><strong>Unrepresented-customer showing form · TXR-1508</strong><span>Use this only for an unrepresented customer; it is not a buyer representation agreement.</span></div>
           <div class="relationship-drafts-guide-item"><strong>TXR-1506 · Consumer Notice</strong><span>General Information and Notice to Consumers draft; it does not create representation.</span></div>
-          <div class="relationship-drafts-guide-item"><strong>TXR-1905 · Mineral Reservation Addendum</strong><span>Short guided private-review draft for the source-form reservation and surface-rights choices; it does not send or sign the addendum.</span></div>
-          <div class="relationship-drafts-guide-item"><strong>TXR-1914 · Seller Financing Addendum</strong><span>Private review draft for source-form financing choices; it does not create loan documents or advise on financing.</span></div>
-          <div class="relationship-drafts-guide-item"><strong>TXR-1917 · Environmental Assessment Addendum</strong><span>Private review draft for the source-form environmental choices; it is not an environmental assessment.</span></div>
-          <div class="relationship-drafts-guide-item"><strong>TXR-1919 · Loan Assumption Addendum</strong><span>Private review draft for source-form assumption choices; it does not assess credit or contact a lender.</span></div>
+          <div class="relationship-drafts-guide-item"><strong>TXR-1905 · Mineral Reservation Addendum</strong><span>Short guided private-review draft for the reservation and surface-rights choices; it does not send or sign the addendum.</span></div>
+          <div class="relationship-drafts-guide-item"><strong>TXR-1914 · Seller Financing Addendum</strong><span>Private review draft for financing choices; it does not create loan documents or advise on financing.</span></div>
+          <div class="relationship-drafts-guide-item"><strong>TXR-1917 · Environmental Assessment Addendum</strong><span>Private review draft for environmental choices; it is not an environmental assessment.</span></div>
+          <div class="relationship-drafts-guide-item"><strong>TXR-1919 · Loan Assumption Addendum</strong><span>Private review draft for assumption choices; it does not assess credit or contact a lender.</span></div>
         </div>
-        <p style="color:var(--gray-light); font-size:.84rem; line-height:1.5; margin:1rem 0 0;">Each tool below checks your signed-in session and the approved source revision before it saves a private draft. Drafts remain private until reviewed; where signing is enabled, the saved-drafts queue requires an explicit signer and recipient confirmation before anything is sent.</p>
+        <p style="color:var(--gray-light); font-size:.84rem; line-height:1.5; margin:1rem 0 0;">Each tool confirms your sign-in and the current approved form edition before saving a private draft. Drafts remain private until reviewed; where signing is enabled, you confirm the signers and recipients before anything is sent.</p>
       </div>
     </div>
 
