@@ -19,6 +19,18 @@ class LegalPackageTests(unittest.TestCase):
         self.assertIn("LEGAL_POLICY_VERSION = '2026-07-30'", content)
         self.assertIn("policyVersion: LEGAL_POLICY_VERSION", content)
 
+    def test_wizard_opening_keeps_required_acknowledgement_without_repeated_purchase_friction(self):
+        content = (ROOT / "index.html").read_text(encoding="utf-8")
+        start = content.index('<div class="wizard-step active" id="step0">')
+        end = content.index('<div class="wizard-step" id="step05">', start)
+        opening = content[start:end]
+        self.assertIn("One quick acknowledgement", opening)
+        self.assertIn("You can start without payment.", opening)
+        self.assertIn("starting this interview does not create a charge.", opening)
+        self.assertIn("TREC One to Four Family Residential Contract (Resale) No. 20-19", opening)
+        self.assertIn("Electronic Communications and E-Sign Consent", opening)
+        self.assertNotIn("Please review and accept the following disclaimer", opening)
+
     def test_legal_pages_do_not_repeat_removed_public_records_claim(self):
         for filename in ("terms.html", "disclaimer.html"):
             content = (ROOT / filename).read_text(encoding="utf-8").lower()
