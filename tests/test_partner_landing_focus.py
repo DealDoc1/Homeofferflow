@@ -19,6 +19,8 @@ class PartnerLandingFocusTests(unittest.TestCase):
 
     def test_partner_landing_combines_application_and_resume_reassurance(self):
         page = (ROOT / 'partners.html').read_text(encoding='utf-8')
+        self.assertIn('class="skip-link" href="#tiers"', page)
+        self.assertIn('.skip-link:focus', page)
         self.assertIn('Reach Texas home buyers, sellers, agents, and investors when your service matters.', page)
         self.assertIn('Start free. Decide later.', page)
         self.assertIn('submitted applications can resume the same checkout later', page)
