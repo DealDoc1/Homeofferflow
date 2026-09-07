@@ -1584,9 +1584,30 @@ class handler(BaseHTTPRequestHandler):
             timeline = _text(data.get('timeline'), 80) or 'not_sure'
             campaign = _seller_campaign_payload(data)
 
+            # A network retry can arrive after the lead was saved but before
+            # the browser received its response. Keep the receipt promise
+            # durable on that retry without creating a second lead. Resend's
+            # deterministic idempotency key keeps this safe if the original
+            # receipt was already accepted by the provider.
+            receipt_payload = {
+                'seller_email': seller_email.lower(),
+                'property_address': property_address,
+                'service_level': service_level,
+                'package_name': package_name,
+                'package_price': package_price,
+                'timeline': timeline,
+            }
+
             existing = _recent_matching_fsbo_lead(seller_email.lower(), property_address, service_level)
             if existing:
-                return _send(self, 200, {"ok": True, "seller_lead_id": existing.get("id"), "duplicate": True})
+                email_delivery = _send_seller_plan_confirmation(receipt_payload)
+                _record_seller_plan_receipt_event(receipt_payload, email_delivery)
+                return _send(self, 200, {
+                    "ok": True,
+                    "seller_lead_id": existing.get("id"),
+                    "duplicate": True,
+                    "seller_plan_email": email_delivery,
+                })
 
             payload = {
                 'seller_type': 'fsbo',
