@@ -14133,6 +14133,21 @@ function routeAfterMagicLinkIfNeeded() {
 (function(){
   const fsboFunnel = { addressStarted: false, emailStarted: false, requiredReady: false, returnFocus: null };
   const fsboCampaignPackages = new Set(['free_intake','seller_prep','launch_kit','flat_fee_mls','offer_review','contract_help','premium_bundle']);
+  // Preserve the same allowlisted acquisition channel from a public seller
+  // page through the private intake. These events are aggregate-only and
+  // never include the property address, email, or any seller-entered value.
+  const fsboCampaignChannels = new Set(['direct_outreach','email','social','referral','local_event','print']);
+  function fsboCampaignChannel(){
+    const query = new URLSearchParams(window.location.search);
+    const source = String(query.get('utm_source') || '').trim().toLowerCase();
+    const medium = String(query.get('utm_medium') || '').trim().toLowerCase();
+    if (medium === 'seller_receipt') return 'seller_receipt';
+    if (medium === 'installed_app' || source === 'pwa_shortcut') return 'pwa_shortcut';
+    if (source === 'organic' || medium === 'organic_content') return 'organic';
+    if (source === 'homeofferflow_admin' && fsboCampaignChannels.has(medium)) return medium;
+    if (fsboCampaignChannels.has(source)) return source;
+    return 'unspecified';
+  }
   // Keep seller-side provider interests allowlisted before they are saved in
   // the draft, submitted to the intake API, or included in the download.
   const fsboPartnerCategories = new Set(['photography_video','cleaning','repairs_handyman','staging','lawn_pool','moving_storage','title','home_warranty','insurance']);
@@ -14178,7 +14193,7 @@ function routeAfterMagicLinkIfNeeded() {
     }[name];
     if (!eventType) return;
     const serviceLevel = String(data.package || data.campaignPackage || 'free_intake');
-    fetch('/api/fsbo-lead', {method:'POST', headers:{'Content-Type':'application/json'}, keepalive:true, body:JSON.stringify({request_type:'fsbo_landing_event', event_type:eventType, service_level:serviceLevel})}).catch(() => {});
+    fetch('/api/fsbo-lead', {method:'POST', headers:{'Content-Type':'application/json'}, keepalive:true, body:JSON.stringify({request_type:'fsbo_landing_event', event_type:eventType, service_level:serviceLevel, channel:fsboCampaignChannel()})}).catch(() => {});
   }
   window.openFsboSellerModal = function(){
     const m = document.getElementById('fsboSellerModal');
