@@ -31,6 +31,9 @@
     }
   ],
   "functions": {
+    "api/*.js": {
+      "excludeFiles": "{tests/**,docs/**,assets/**,supabase/**,scripts/**,__pycache__/**,**/__pycache__/**,**/*.pyc}"
+    },
     "api/admin-dashboard.py": {
       "excludeFiles": "{tests/**,docs/**,assets/**,supabase/**,scripts/**,__pycache__/**,**/__pycache__/**,**/*.pyc}"
     },
