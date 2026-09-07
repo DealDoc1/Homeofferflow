@@ -21411,7 +21411,7 @@ function routeAfterMagicLinkIfNeeded() {
 </script>
 <script id="hof-customer-action-error-v1">
 (() => {
-  const customerMessage = /^(please|enter|choose|select|add|sign in|your session|this draft|the property|at least|you need|no form source|an active membership|a recipient|that invitation)/i;
+  const customerMessage = /^(please|enter|choose|select|add|sign in|your session|this draft|the property|the shared form library|at least|you need|no form source|an active membership|a recipient|that invitation)/i;
   window.hofCustomerActionError = (error, fallback) => {
     const message = String(error?.message || error || '').replace(/\s+/g, ' ').trim();
     return message.length > 0 && message.length <= 220 && customerMessage.test(message)

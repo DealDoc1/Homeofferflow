@@ -479,6 +479,7 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
         self.assertIn('hof-private-review-save-feedback-v1', HTML)
         self.assertIn('hof-customer-action-error-v1', HTML)
         self.assertIn('window.hofCustomerActionError', HTML)
+        self.assertIn('the shared form library', HTML[HTML.index('const customerMessage'):])
         self.assertIn('We couldn’t save this draft. Check your entries and try again.', HTML)
         for form_id in ('txr1914AgreementForm', 'txr1917AgreementForm', 'txr1919AgreementForm'):
             self.assertIn(form_id, HTML)
