@@ -275,6 +275,7 @@ class AgentActivationDashboardTests(unittest.TestCase):
         self.assertIn("What do you need for this sale listing?", HTML)
         self.assertIn("What do you need for this lease listing?", HTML)
         self.assertIn("Start a lease listing", HTML)
+        self.assertIn("Prepare a lease addendum", HTML)
         self.assertIn("Resume a lease listing", HTML)
         self.assertIn("const openListingWorkspace = (focusStart = false)", HTML)
         self.assertIn("{ label: 'Set up the listing', copy: 'Tell us about the seller, property, timing, and next steps.', action: () => openListingWorkspace(true), isWorkspaceOpen: () => Boolean(document.getElementById('listingWorkspaceStartCard')) }", HTML)
@@ -291,10 +292,13 @@ class AgentActivationDashboardTests(unittest.TestCase):
         self.assertIn("agent_form_package_started", HTML)
         self.assertIn("agent_form_package_interview_viewed", HTML)
         self.assertIn("What kind of representation does this client need?", HTML)
+        self.assertIn("Which lease addendum does this listing need?", HTML)
         self.assertIn("What does this customer need?", HTML)
         self.assertIn("agent_form_package_workflow_selected", HTML)
         self.assertIn("hofOpenTxr1507Draft", HTML)
         self.assertIn("hofOpenTxr1508Draft", HTML)
+        self.assertIn("hofOpenTxr1953Draft", HTML)
+        self.assertIn("hofOpenTxr1954Draft", HTML)
         self.assertIn("openSellerDisclosureDraftWorkspace", HTML)
 
     def test_relationship_workspace_uses_question_one_transaction_language(self):
