@@ -57,6 +57,19 @@
       else window.location.assign('/?pwa_action=transaction_start&utm_source=pwa_shortcut&utm_medium=installed_app&utm_campaign=shared_context_agent');
     });
     card.appendChild(agentAction);
+    const sellerAction = document.createElement('button');
+    sellerAction.type = 'button';
+    sellerAction.textContent = 'Start a seller plan with this context';
+    sellerAction.style.cssText = 'display:block;margin-top:.45rem;padding:.55rem .8rem;border:1px solid rgba(23,63,53,.35);border-radius:8px;background:transparent;color:#173f35;font:700 14px/1.2 Arial,sans-serif;cursor:pointer;';
+    sellerAction.addEventListener('click', () => {
+      // Shared text remains on this device. The seller chooses what to enter
+      // into the private intake rather than inheriting shared details.
+      window.trackEvent?.('PWA Shared Context Seller Plan Selected', { surface: 'pwa_share_target' });
+      window.logOfferEvent?.(null, 'pwa_shared_context_seller_plan_opened', 'opened', 'Installed-app shared context opened the seller plan intake.', { surface: 'pwa_share_target' });
+      if (typeof window.openFsboSellerModal === 'function') window.openFsboSellerModal();
+      else window.location.assign('/?seller=1&utm_source=pwa_shortcut&utm_medium=installed_app&utm_campaign=shared_context_seller');
+    });
+    card.appendChild(sellerAction);
     const host = document.querySelector('main') || document.body;
     host.prepend(card);
   };

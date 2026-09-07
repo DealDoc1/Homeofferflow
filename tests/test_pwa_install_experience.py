@@ -144,6 +144,7 @@ class PwaInstallExperienceTests(unittest.TestCase):
         self.assertIn("pwaInstallShownSurfaceCounts", INDEX)
         self.assertIn("pwaSharedContextEventCounts?.buyer_offer_opened", INDEX)
         self.assertIn("pwaSharedContextEventCounts?.agent_chooser_opened", INDEX)
+        self.assertIn("pwaSharedContextEventCounts?.seller_plan_opened", INDEX)
         self.assertIn("pwaSharedContextEventCounts?.agent_transaction_selected", INDEX)
         self.assertIn("pwa_offline_refresh_recovered", INDEX)
         self.assertIn("pwaOfflineRecoveryCount", INDEX)
@@ -154,7 +155,7 @@ class PwaInstallExperienceTests(unittest.TestCase):
         self.assertIn("PWA only: app-like mobile access", INDEX)
 
     def test_offline_shell_cache_is_versioned_for_the_new_install_surface(self):
-        self.assertIn("homeofferflow-shell-v56", WORKER)
+        self.assertIn("homeofferflow-shell-v57", WORKER)
         self.assertIn("caches.delete", WORKER)
 
     def test_signed_out_shortcuts_resume_the_requested_agent_action_after_authentication(self):

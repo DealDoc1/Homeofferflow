@@ -4871,6 +4871,7 @@ class handler(BaseHTTPRequestHandler):
                 "buyer_offer_opened": 0,
                 "agent_chooser_opened": 0,
                 "agent_transaction_selected": 0,
+                "seller_plan_opened": 0,
             }
             shared_form_catalog_open_count = len([
                 item for item in events
@@ -4884,6 +4885,8 @@ class handler(BaseHTTPRequestHandler):
                     pwa_shared_context_event_counts["agent_chooser_opened"] += 1
                 elif event_type == "pwa_shared_context_agent_transaction_selected":
                     pwa_shared_context_event_counts["agent_transaction_selected"] += 1
+                elif event_type == "pwa_shared_context_seller_plan_opened":
+                    pwa_shared_context_event_counts["seller_plan_opened"] += 1
             # The seller's post-intake directory step is deliberately measured
             # as an aggregate bridge: operations can see whether seller demand
             # reaches provider discovery without receiving seller, property,

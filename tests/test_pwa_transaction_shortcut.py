@@ -18,7 +18,7 @@ class PwaTransactionShortcutTests(unittest.TestCase):
         top_shortcuts = MANIFEST["shortcuts"][:4]
         self.assertEqual([item["short_name"] for item in top_shortcuts], ["Start", "Workspace", "Attention", "Buyer Offer"])
         self.assertEqual(len(MANIFEST["shortcuts"]), 4)
-        self.assertIn("homeofferflow-shell-v56", SERVICE_WORKER)
+        self.assertIn("homeofferflow-shell-v57", SERVICE_WORKER)
 
 
 if __name__ == "__main__":
