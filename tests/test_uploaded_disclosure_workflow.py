@@ -26,8 +26,17 @@ class UploadedDisclosureWorkflowTests(unittest.TestCase):
     def test_generation_paths_validate_uploaded_documents_before_continuing(self):
         validation_call = "if (!validateUploadedDisclosureDocs()) return;"
         self.assertGreaterEqual(INDEX_HTML.count(validation_call), 2)
-        self.assertIn("type: 'other'", INDEX_HTML)
+        self.assertIn("type: suggestedUploadedDisclosureType(file.name)", INDEX_HTML)
         self.assertIn("I reviewed the uploaded PDFs, labels, and packet order", INDEX_HTML)
+
+    def test_uploads_suggest_a_label_from_a_common_filename_without_removing_agent_control(self):
+        self.assertIn("function suggestedUploadedDisclosureType(filename)", INDEX_HTML)
+        for label in ("seller_disclosure", "survey", "hoa_documents", "pid_mud_notice", "lead_based_paint"):
+            with self.subTest(label=label):
+                self.assertIn("return '" + label + "'", INDEX_HTML)
+        self.assertIn("return 'other';", INDEX_HTML)
+        self.assertIn("The agent can change every suggested label", INDEX_HTML)
+        self.assertIn("We suggest a label from each filename", INDEX_HTML)
 
     def test_upload_guidance_describes_the_current_packet_experience(self):
         self.assertIn("Upload PDF disclosures or listing-side documents to include them with the final offer packet.", INDEX_HTML)
