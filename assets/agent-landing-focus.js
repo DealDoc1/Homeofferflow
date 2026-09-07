@@ -2,7 +2,7 @@
   const params = new URLSearchParams(window.location.search);
   const rawSource = String(params.get('utm_source') || '').trim().toLowerCase();
   const rawMedium = String(params.get('utm_medium') || '').trim().toLowerCase();
-  const channel = rawMedium === 'installed_app' ? 'pwa_shortcut' : rawSource || 'direct';
+  const channel = window.hofAgentLandingChannel || (rawMedium === 'installed_app' ? 'pwa_shortcut' : rawSource || 'direct');
   const allowedChannels = new Set(['direct', 'pwa_shortcut', 'direct_outreach', 'email', 'social', 'referral', 'local_event', 'print']);
   const safeChannel = allowedChannels.has(channel) ? channel : 'direct';
   const note = document.querySelector('.note:not(#agentTrialOffer)');

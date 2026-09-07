@@ -338,7 +338,11 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertNotIn("See the shared form library", (ROOT / "assets" / "pwa-register.js").read_text(encoding="utf-8"))
         self.assertIn("const params=new URLSearchParams(window.location.search)", AGENTS)
         self.assertIn("'direct_outreach','email','social','referral','local_event','print'", AGENTS)
+        self.assertIn("source==='homeofferflow_admin'&&outreach.has(medium)?medium", AGENTS)
+        self.assertIn("window.hofAgentLandingChannel=channel", AGENTS)
         self.assertIn("[data-agent-cta-path]", AGENTS)
+        focus = (ROOT / "assets" / "agent-landing-focus.js").read_text(encoding="utf-8")
+        self.assertIn("window.hofAgentLandingChannel ||", focus)
 
     def test_agent_landing_channel_is_allowlisted_without_visitor_identity(self):
         spec = importlib.util.spec_from_file_location("agent_landing_channel", API_PATH)
