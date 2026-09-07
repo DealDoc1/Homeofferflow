@@ -196,6 +196,16 @@ class ListingWorkspaceFoundationTests(unittest.TestCase):
         self.assertIn("Seller lead details copied into a linked private listing workspace draft", INDEX)
         self.assertIn("seller-lead-actions", INDEX)
 
+    def test_listing_checklist_uses_the_shared_disclosure_review_path(self):
+        self.assertIn(
+            "Use the shared seller-disclosure review workflow when it fits the transaction.",
+            INDEX,
+        )
+        self.assertNotIn(
+            "brokerage has supplied and authorized the source; secure review is not signing.",
+            INDEX,
+        )
+
     def test_seeded_workspace_preserves_only_the_agents_own_seller_lead_link(self):
         self.assertIn("dataset.sellerLeadId = id", INDEX)
         self.assertIn("seller_lead_id:", INDEX)
