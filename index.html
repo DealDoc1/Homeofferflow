@@ -5096,6 +5096,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Average paid-partner time to activation: ${Number(metrics.partnerActivationAvgDays || 0).toFixed(1)} days.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Seller-plan directory value: ${Number(metrics.partnerDirectoryFsboSellerPlanImpressionCount || 0)} profile views · ${Number(metrics.partnerDirectoryFsboSellerPlanOutboundClickCount || 0)} provider-site visits.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Installed-app directory value: ${Number(metrics.partnerDirectoryPwaImpressionCount || 0)} profile views · ${Number(metrics.partnerDirectoryPwaOutboundClickCount || 0)} provider-site visits.</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Offer-completion directory value: ${Number(metrics.partnerDirectoryOfferCompletionImpressionCount || 0)} profile views · ${Number(metrics.partnerDirectoryOfferCompletionOutboundClickCount || 0)} provider-site visits.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.partnerOnboardingSetupIssuedCount || 0} checkout setup invitations issued · ${metrics.partnerCheckoutSetupRecoveryCount || 0} checkout-return setup recovery opened · ${metrics.partnerOnboardingLinkCreatedCount || 0} secure setup links created · ${metrics.partnerOnboardingEmailSentCount || 0} manual setup emails sent.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.partnerFollowUpEmailStartCount || 0} partner follow-up emails opened.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Public checkout: ${metrics.partnerCheckoutStartCount || 0} started · ${metrics.partnerCheckoutStripeOpenCount || 0} opened Stripe (${Number(metrics.partnerCheckoutStripeOpenRate || 0).toFixed(1)}%) · ${metrics.partnerCheckoutCompletionCount || 0} completed (${Number(metrics.partnerCheckoutCompletionRate || 0).toFixed(1)}% of Stripe opens).</div>
@@ -8052,6 +8053,45 @@ function routeAfterMagicLinkIfNeeded() {
         partnerType: String(partner?.partner_type || ''),
         placementTier: String(partner?.placement_tier || '')
       });
+      recordOfferCompletionPartnerDirectoryEvent('partner_directory_impression', partner);
+    });
+  }
+
+  function recordOfferCompletionPartnerDirectoryEvent(eventType, partner) {
+    const partnerId = String(partner?.id || '').trim();
+    const partnerType = String(partner?.partner_type || '').trim();
+    const placementTier = String(partner?.placement_tier || '').trim();
+    if (!partnerId || !partnerType || !placementTier) return;
+    fetch('/api/fsbo-lead', {
+      method: 'POST', headers: {'Content-Type': 'application/json'}, keepalive: true,
+      body: JSON.stringify({
+        request_type: 'partner_directory_event',
+        event_type: eventType,
+        partner_id: partnerId,
+        partner_type: partnerType,
+        placement_tier: placementTier,
+        directory_surface: 'offer_completion'
+      })
+    }).catch(() => {});
+  }
+
+  function bindOfferCompletionPartnerClicks(target) {
+    target?.querySelectorAll('[data-offer-completion-partner-link]').forEach(link => {
+      if (link.dataset.trackingBound) return;
+      link.dataset.trackingBound = '1';
+      link.addEventListener('click', () => {
+        const partner = {
+          id: link.dataset.partnerId || '',
+          partner_type: link.dataset.partnerType || '',
+          placement_tier: link.dataset.placementTier || ''
+        };
+        trackEvent('Partner Directory Outbound Click', {
+          partnerId: partner.id,
+          partnerType: partner.partner_type,
+          placementTier: partner.placement_tier
+        });
+        recordOfferCompletionPartnerDirectoryEvent('partner_directory_outbound_click', partner);
+      });
     });
   }
 
@@ -9511,11 +9551,12 @@ function routeAfterMagicLinkIfNeeded() {
         const tierLabel = partner.placement_tier === 'exclusive_market' ? 'Sponsored · Premier Partner' : partner.placement_tier === 'premier' ? 'Sponsored · Featured Partner' : 'Sponsored · Core Partner';
         return `<div class="now-what-partner">
           <div><div class="now-what-partner-name">${nowWhatEscape(partner.partner_name || 'Local provider')}</div><div class="now-what-partner-meta">${nowWhatEscape(NOW_WHAT_PARTNER_LABELS[partner.partner_type] || 'Local service')} · ${nowWhatEscape(partner.market_area || 'Local market')}</div>${regulated ? '' : `<span class="now-what-badge">${tierLabel}</span>`}</div>
-          ${website ? `<a href="${nowWhatEscape(website)}" target="_blank" rel="noopener noreferrer" onclick="try { trackEvent('Partner Directory Outbound Click', { partnerId: '${nowWhatEscape(partner.id || '')}', partnerType: '${nowWhatEscape(partner.partner_type)}', placementTier: '${nowWhatEscape(partner.placement_tier)}' }); } catch (e) {}">${nowWhatEscape(String(partner.cta_label || '').trim().slice(0, 80) || 'Visit site')} ↗</a>` : ''}
+          ${website ? `<a href="${nowWhatEscape(website)}" target="_blank" rel="noopener noreferrer" data-offer-completion-partner-link data-partner-id="${nowWhatEscape(partner.id || '')}" data-partner-type="${nowWhatEscape(partner.partner_type || '')}" data-placement-tier="${nowWhatEscape(partner.placement_tier || '')}">${nowWhatEscape(String(partner.cta_label || '').trim().slice(0, 80) || 'Visit site')} ↗</a>` : ''}
         </div>`;
       }).join('') : `<div class="now-what-empty">No active HomeOfferFlow provider profiles are available here yet. You may choose any qualified provider independently.</div>`;
       return `<section class="now-what-category"><div class="now-what-category-head"><div><h5>${nowWhatEscape(group.title)}</h5><p>${nowWhatEscape(group.detail)}</p></div>${group.neutral ? '<span class="now-what-neutral">Neutral directory</span>' : ''}</div><div class="now-what-partners">${cards}</div></section>`;
     }).join('');
+    bindOfferCompletionPartnerClicks(target);
     trackPartnerDirectoryImpressions(visiblePartners);
   }
 

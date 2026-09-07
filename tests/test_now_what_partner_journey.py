@@ -36,6 +36,8 @@ class NowWhatPartnerJourneyTests(unittest.TestCase):
         self.assertIn('id="nowWhatPartnerCategory"', self.html)
         self.assertIn("window.__hofPartnerDirectoryRows", self.html)
         self.assertIn("partnerId:", self.html)
+        self.assertIn("recordOfferCompletionPartnerDirectoryEvent", self.html)
+        self.assertIn("directory_surface: 'offer_completion'", self.html)
 
 
 if __name__ == "__main__":
