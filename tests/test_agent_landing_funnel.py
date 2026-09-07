@@ -72,6 +72,16 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("agent_landing_package_handoff", INDEX)
         self.assertIn("window.hofOpenAgentPackageInterview?.(agentLandingWorkflow)", INDEX)
 
+    def test_agent_sign_in_confirms_the_selected_transaction_will_continue(self):
+        start = INDEX.index("if (params().get('agent') === '1')")
+        end = INDEX.index("// Investor acquisition", start)
+        entry = INDEX[start:end]
+        self.assertIn("const workflowLabel = {", entry)
+        self.assertIn("sale_listing: 'your property listing'", entry)
+        self.assertIn("lease_listing: 'your lease listing'", entry)
+        self.assertIn("lease_representation: 'your tenant-representation transaction'", entry)
+        self.assertIn("We’ll continue with ${workflowLabel} after you return.", entry)
+
     def test_package_start_telemetry_waits_for_the_destination_workspace(self):
         start = INDEX.index("window.hofOpenAgentPackageInterview = function")
         end = INDEX.index("window.startAgentWorkflow = function", start)
