@@ -88,6 +88,8 @@ class PartnerLandingFunnelTests(unittest.TestCase):
     def test_partner_page_can_open_the_existing_essential_fields_without_skipping_disclosures(self):
         self.assertIn("partner_quick_start=1", PARTNERS)
         self.assertIn("in about a minute", PARTNERS)
+        self.assertIn("five essentials—service category, company, contact, business email, and primary market", PARTNERS)
+        self.assertIn("Those five essentials are enough to begin.", PARTNERS)
         self.assertIn("function partnerQuickStartRequested()", INDEX)
         self.assertIn("window.jumpToFoundingPartnerEssentials?.()", INDEX)
         self.assertIn("All essentials, consent, and the secure", INDEX)
