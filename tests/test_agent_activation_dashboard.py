@@ -272,6 +272,8 @@ class AgentActivationDashboardTests(unittest.TestCase):
         self.assertIn("window.startAgentWorkflow = function startAgentWorkflow(kind)", HTML)
         self.assertIn("window.hofOpenAgentPackageInterview = function hofOpenAgentPackageInterview(kind)", HTML)
         self.assertIn("What do you need for this purchase transaction?", HTML)
+        self.assertIn("Start an offer package", HTML)
+        self.assertIn("We’ll assemble the supported offer documents that fit the selections you make.", HTML)
         self.assertIn("What do you need for this sale listing?", HTML)
         self.assertIn("What do you need for this lease listing?", HTML)
         self.assertIn("Start a lease listing", HTML)
