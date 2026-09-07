@@ -60,8 +60,11 @@ class PartnerDirectoryImpressionTests(unittest.TestCase):
         self.assertIn('"partnerDirectoryFsboSellerPlanOutboundClickCount"', api)
         self.assertIn('"partnerDirectoryPwaImpressionCount"', api)
         self.assertIn('"partnerDirectoryPwaOutboundClickCount"', api)
+        self.assertIn('"partnerDirectoryOfferCompletionImpressionCount"', api)
+        self.assertIn('"partnerDirectoryOfferCompletionOutboundClickCount"', api)
         self.assertIn('Directory value:', HTML)
         self.assertIn('Installed-app directory value:', HTML)
+        self.assertIn('Offer-completion directory value:', HTML)
         self.assertIn('Directory acquisition:', HTML)
         self.assertIn('partnerDirectoryPricingSelectionCount', api)
         self.assertIn('partnerDirectoryPricingSelectionCount', HTML)
@@ -74,6 +77,7 @@ class PartnerDirectoryImpressionTests(unittest.TestCase):
         self.assertIn('"is_active": "eq.true"', api)
         self.assertIn('"placement_tier": f"eq.{placement_tier}"', api)
         self.assertIn('That partner placement is unavailable.', api)
+        self.assertIn('"offer_completion"', api)
 
     def test_public_directory_records_category_demand_without_market_text(self):
         self.assertIn('trackSearchDemand', PUBLIC_DIRECTORY)

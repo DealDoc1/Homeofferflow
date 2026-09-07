@@ -4371,6 +4371,8 @@ class handler(BaseHTTPRequestHandler):
             partner_directory_fsbo_seller_plan_outbound_click_count = 0
             partner_directory_pwa_impression_count = 0
             partner_directory_pwa_outbound_click_count = 0
+            partner_directory_offer_completion_impression_count = 0
+            partner_directory_offer_completion_outbound_click_count = 0
             placement_ids = {str(placement.get("id") or "") for placement in partner_placements}
             partner_directory_traffic_by_placement = {
                 placement_id: {"impressions": 0, "outboundClicks": 0}
@@ -4395,6 +4397,11 @@ class handler(BaseHTTPRequestHandler):
                         partner_directory_pwa_impression_count += 1
                     else:
                         partner_directory_pwa_outbound_click_count += 1
+                if str(metadata.get("directorySurface") or "").strip() == "offer_completion":
+                    if event_type == "partner_directory_impression":
+                        partner_directory_offer_completion_impression_count += 1
+                    else:
+                        partner_directory_offer_completion_outbound_click_count += 1
                 partner_id = str(metadata.get("partnerId") or "").strip()
                 traffic = partner_directory_traffic_by_placement.get(partner_id)
                 if not traffic:
@@ -5825,6 +5832,8 @@ class handler(BaseHTTPRequestHandler):
                 "partnerDirectoryFsboSellerPlanOutboundClickCount": partner_directory_fsbo_seller_plan_outbound_click_count,
                 "partnerDirectoryPwaImpressionCount": partner_directory_pwa_impression_count,
                 "partnerDirectoryPwaOutboundClickCount": partner_directory_pwa_outbound_click_count,
+                "partnerDirectoryOfferCompletionImpressionCount": partner_directory_offer_completion_impression_count,
+                "partnerDirectoryOfferCompletionOutboundClickCount": partner_directory_offer_completion_outbound_click_count,
                 "partnerCheckoutStartCount": partner_checkout_event_counts["checkout_started"],
                 "partnerCheckoutStripeOpenCount": partner_checkout_event_counts["stripe_opened"],
                 "partnerCheckoutCancellationCount": partner_checkout_event_counts["cancelled"],
