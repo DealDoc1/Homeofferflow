@@ -6,21 +6,13 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[1]
-PUBLIC_ACQUISITION_PAGES = (
-    "index.html",
-    "agents.html",
-    "buyers.html",
-    "sellers.html",
-    "investors.html",
-    "ondemand.html",
-    "partners.html",
-)
+PUBLIC_RUNTIME_PAGES = tuple(path.name for path in sorted(ROOT.glob("*.html")))
 SCRIPT_RE = re.compile(r"<script(?P<attrs>[^>]*)>(?P<body>[\s\S]*?)</script>", re.IGNORECASE)
 
 
 class PublicRevenuePageScriptSyntaxTests(unittest.TestCase):
     def test_every_inline_runtime_script_parses(self):
-        for page in PUBLIC_ACQUISITION_PAGES:
+        for page in PUBLIC_RUNTIME_PAGES:
             source = (ROOT / page).read_text(encoding="utf-8")
             for index, match in enumerate(SCRIPT_RE.finditer(source), start=1):
                 attrs = match.group("attrs").lower()
