@@ -100,9 +100,10 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
     def test_landing_page_has_canonical_share_and_structured_metadata(self):
         self.assertIn('<link rel="canonical" href="https://www.homeofferflow.com/"', INDEX)
         self.assertIn('property="og:url" content="https://www.homeofferflow.com/"', INDEX)
-        preview_path = ROOT / "assets" / "homeofferflow-social-preview-v1.png"
-        preview_url = "https://www.homeofferflow.com/assets/homeofferflow-social-preview-v1.png"
+        preview_path = ROOT / "assets" / "homeofferflow-social-preview-v2.jpg"
+        preview_url = "https://www.homeofferflow.com/assets/homeofferflow-social-preview-v2.jpg"
         self.assertTrue(preview_path.is_file())
+        self.assertLess(preview_path.stat().st_size, 150_000)
         self.assertIn(f'property="og:image" content="{preview_url}"', INDEX)
         self.assertIn('property="og:image:width" content="1200"', INDEX)
         self.assertIn('property="og:image:height" content="630"', INDEX)
@@ -193,7 +194,7 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
     def test_ondemand_trial_page_has_canonical_share_and_structured_metadata(self):
         self.assertIn('<link rel="canonical" href="https://www.homeofferflow.com/ondemand"', ONDEMAND)
         self.assertIn('property="og:url" content="https://www.homeofferflow.com/ondemand"', ONDEMAND)
-        self.assertIn('property="og:image" content="https://www.homeofferflow.com/assets/homeofferflow-social-preview-v1.png"', ONDEMAND)
+        self.assertIn('property="og:image" content="https://www.homeofferflow.com/assets/homeofferflow-social-preview-v2.jpg"', ONDEMAND)
         self.assertIn('name="twitter:card" content="summary_large_image"', ONDEMAND)
         self.assertIn('"@type":"SoftwareApplication"', ONDEMAND)
         self.assertIn('"price":"29"', ONDEMAND)
@@ -210,12 +211,12 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn('<link rel="canonical" href="https://www.homeofferflow.com/partners"', PARTNERS)
         self.assertIn('property="og:url" content="https://www.homeofferflow.com/partners"', PARTNERS)
         self.assertIn('property="og:site_name" content="HomeOfferFlow"', PARTNERS)
-        self.assertIn('property="og:image" content="https://www.homeofferflow.com/assets/homeofferflow-social-preview-v1.png"', PARTNERS)
+        self.assertIn('property="og:image" content="https://www.homeofferflow.com/assets/homeofferflow-social-preview-v2.jpg"', PARTNERS)
         self.assertIn('property="og:image:alt"', PARTNERS)
         self.assertIn('name="twitter:card" content="summary_large_image"', PARTNERS)
         self.assertIn('meta name="twitter:title"', PARTNERS)
         self.assertIn('meta name="twitter:description"', PARTNERS)
-        self.assertIn('meta name="twitter:image" content="https://www.homeofferflow.com/assets/homeofferflow-social-preview-v1.png"', PARTNERS)
+        self.assertIn('meta name="twitter:image" content="https://www.homeofferflow.com/assets/homeofferflow-social-preview-v2.jpg"', PARTNERS)
         self.assertIn('"@type":"Service"', PARTNERS)
         self.assertIn('"@type":"OfferCatalog"', PARTNERS)
         self.assertIn('"name":"HomeOfferFlow Founding Partner Launch Pricing"', PARTNERS)
@@ -511,11 +512,11 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         for page in (BUYERS, SELLERS, AGENTS, INVESTORS, DIRECTORY):
             compact = " ".join(page.split())
             self.assertIn('property="og:site_name" content="HomeOfferFlow"', compact)
-            self.assertIn('property="og:image" content="https://www.homeofferflow.com/assets/homeofferflow-social-preview-v1.png"', compact)
+            self.assertIn('property="og:image" content="https://www.homeofferflow.com/assets/homeofferflow-social-preview-v2.jpg"', compact)
             self.assertIn('meta name="twitter:card" content="summary_large_image"', compact)
             self.assertIn('meta name="twitter:title"', compact)
             self.assertIn('meta name="twitter:description"', compact)
-            self.assertIn('meta name="twitter:image" content="https://www.homeofferflow.com/assets/homeofferflow-social-preview-v1.png"', compact)
+            self.assertIn('meta name="twitter:image" content="https://www.homeofferflow.com/assets/homeofferflow-social-preview-v2.jpg"', compact)
 
     def test_homepage_exposes_each_public_path_from_the_primary_navigation(self):
         self.assertIn('<details class="nav-discovery">', INDEX)

@@ -193,7 +193,7 @@
       "headers": [{"key": "Cache-Control", "value": "public, max-age=86400, stale-while-revalidate=604800"}]
     },
     {
-      "source": "/assets/homeofferflow-social-preview-v1.png",
+      "source": "/assets/homeofferflow-social-preview-v2.jpg",
       "headers": [{"key": "Cache-Control", "value": "public, max-age=86400, stale-while-revalidate=604800"}]
     },
     {
