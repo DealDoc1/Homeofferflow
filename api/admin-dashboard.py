@@ -5612,7 +5612,7 @@ class handler(BaseHTTPRequestHandler):
                 "fsbo_package_selected", "fsbo_goal_selected", "fsbo_required_fields_missing",
                 "fsbo_request_submission_started", "fsbo_request_saved", "fsbo_request_save_failed",
                 "fsbo_request_receipt_viewed", "fsbo_request_receipt_cleared",
-                "fsbo_seller_plan_downloaded", "fsbo_seller_plan_copied",
+                "fsbo_seller_plan_downloaded", "fsbo_seller_plan_copied", "fsbo_seller_support_contact_opened",
             }
             seller_intake_event_counts = {event_type: len([item for item in events if item.get("event_type") == event_type]) for event_type in seller_intake_event_types}
             # A package selection is earlier intent than a saved seller lead.
@@ -5763,6 +5763,7 @@ class handler(BaseHTTPRequestHandler):
                 "sellerRequestReceiptClearedCount": seller_intake_event_counts["fsbo_request_receipt_cleared"],
                 "sellerPlanDownloadCount": seller_intake_event_counts["fsbo_seller_plan_downloaded"],
                 "sellerPlanCopiedCount": seller_intake_event_counts["fsbo_seller_plan_copied"],
+                "sellerSupportContactOpenedCount": seller_intake_event_counts["fsbo_seller_support_contact_opened"],
                 "sellerPlanReceiptCounts": seller_plan_receipt_counts,
                 "sellerPlanReceiptSentCount": seller_plan_receipt_counts["sent"],
                 "sellerPlanReceiptFailureCount": (
