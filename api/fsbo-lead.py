@@ -214,7 +214,7 @@ PARTNER_LANDING_EVENT_TYPES = {
     "partner_directory_pricing_selected": "pricing_selected",
     "partner_directory_empty_search": "unfilled_search",
 }
-PARTNER_LANDING_CHANNELS = {"direct", "organic", "pwa_shortcut", "email", "partner_receipt", "social", "referral", "other"}
+PARTNER_LANDING_CHANNELS = {"direct", "organic", "pwa_shortcut", "email", "partner_receipt", "social", "referral", "other", "direct_outreach", "local_event", "print", "owned_directory"}
 PARTNER_ONBOARDING_EVENT_TYPES = {
     "partner_onboarding_opened": "opened",
     "partner_onboarding_completed": "completed",

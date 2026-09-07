@@ -247,7 +247,7 @@ class PartnerTierUiTests(unittest.TestCase):
 
     def test_campaign_links_can_preselect_only_paid_existing_tiers(self):
         self.assertIn("const partnerCampaignTiers = new Set(['founding_pilot','monthly_placement','market_exclusive']);", self.html)
-        self.assertIn("const partnerCampaignChannels = new Set(['direct_outreach','email','social','referral','local_event','print']);", self.html)
+        self.assertIn("const partnerCampaignChannels = new Set(['direct_outreach','email','social','referral','local_event','print','organic','pwa_shortcut','partner_receipt','owned_directory']);", self.html)
         self.assertIn("function campaignPartnerChannel()", self.html)
         self.assertIn("if (partnerCampaignChannels.has(source)) return source;", self.html)
         self.assertIn("source === 'homeofferflow_admin' && partnerCampaignChannels.has(medium)", self.html)
