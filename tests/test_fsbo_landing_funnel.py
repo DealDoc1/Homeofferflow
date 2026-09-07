@@ -118,10 +118,13 @@ class FsboLandingFunnelTests(unittest.TestCase):
         self.assertIn('"pwaSellerPlanShortcutCount"', ADMIN)
         self.assertIn("pwa_seller_plan_shortcut_count", ADMIN)
 
-    def test_saved_seller_plan_can_offer_neutral_provider_discovery_without_tracking_personal_data(self):
+    def test_saved_seller_plan_can_offer_selected_provider_discovery_without_tracking_personal_data(self):
         self.assertIn("window.openFsboProviderDirectory = function openFsboProviderDirectory()", INDEX)
         self.assertIn("event_type: 'fsbo_provider_directory_opened'", INDEX)
         self.assertIn("window.location.assign('/directory?' + query.toString())", INDEX)
+        self.assertIn("function fsboProviderDirectoryButtonLabel()", INDEX)
+        self.assertIn("selectedPartners.length !== 1", INDEX)
+        self.assertIn("Browse ${label} providers", INDEX)
         self.assertIn("Browse available providers", INDEX)
         self.assertIn('"fsboProviderDirectoryOpenCount"', ADMIN)
 

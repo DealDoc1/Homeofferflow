@@ -13994,10 +13994,27 @@ function routeAfterMagicLinkIfNeeded() {
   // Keep seller-side provider interests allowlisted before they are saved in
   // the draft, submitted to the intake API, or included in the download.
   const fsboPartnerCategories = new Set(['photography_video','cleaning','repairs_handyman','staging','lawn_pool','moving_storage','title','home_warranty','insurance']);
+  const fsboPartnerCategoryLabels = Object.freeze({
+    photography_video: 'photography and video',
+    cleaning: 'cleaning',
+    repairs_handyman: 'repair and handyman',
+    staging: 'staging',
+    lawn_pool: 'lawn and pool',
+    moving_storage: 'moving and storage',
+    title: 'title company',
+    home_warranty: 'home warranty',
+    insurance: 'insurance'
+  });
   function getFsboPartners(){
     return [...document.querySelectorAll('input[name="fsboPartner"]:checked')]
       .map(input => String(input.value || '').trim())
       .filter(category => fsboPartnerCategories.has(category));
+  }
+  function fsboProviderDirectoryButtonLabel(){
+    const selectedPartners = getFsboPartners();
+    if (selectedPartners.length !== 1) return 'Browse available providers';
+    const label = fsboPartnerCategoryLabels[selectedPartners[0]];
+    return label ? `Browse ${label} providers` : 'Browse available providers';
   }
   function trackFsboFunnel(name, data = {}) {
     try { trackEvent(name, data); } catch (_) {}
@@ -14591,7 +14608,7 @@ function routeAfterMagicLinkIfNeeded() {
           '<div class="account-actions-row" style="margin-top:.7rem;display:flex;gap:.55rem;flex-wrap:wrap;">' +
           '<button class="btn-secondary" type="button" onclick="downloadFsboRequestSummary()">Download seller plan</button>' +
           '<button class="btn-secondary" type="button" onclick="copyFsboRequestSummary(this)">Copy seller plan</button>' +
-          '<button class="btn-secondary" type="button" onclick="openFsboProviderDirectory()">Browse available providers</button>' +
+          '<button class="btn-secondary" type="button" onclick="openFsboProviderDirectory()">' + escapeAttr(fsboProviderDirectoryButtonLabel()) + '</button>' +
           '<button class="btn-secondary" type="button" onclick="closeFsboSellerModal()">Done</button></div>';
         window.setTimeout(() => window.renderPwaInstallCard?.(), 0);
       }
