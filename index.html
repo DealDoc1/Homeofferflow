@@ -3357,14 +3357,14 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         <div class="hof-guide-chip-row"><span class="hof-guide-chip"><strong>✓</strong> Legal names</span><span class="hof-guide-chip"><strong>✓</strong> Contact info</span><span class="hof-guide-chip"><strong>✓</strong> Editable later</span></div>
       </div>
       <div class="trec-badge">✓ TREC 20-19 · Section 1 — Parties & §21 Notices</div>
-      <h2 id="partiesStepTitle">Who's buying?</h2>
+      <h2 id="partiesStepTitle">Who is making this purchase?</h2>
       <p class="step-desc" id="partiesStepDesc">Enter full legal names exactly as they should appear on the contract. We'll also collect your contact info for the Notices section.</p>
       <div class="field-group">
         <div class="field-row">
           <div class="field"><div class="field-label-row"><label id="buyer1FirstLabel">Buyer 1 First Name</label><button class="helper-btn" onclick="toggleHelper('h-b1f')">?</button></div><div class="helper-box" id="h-b1f"><strong>💡 Legal Name Required</strong>Use your full legal first name as it appears on your government-issued ID.</div><input type="text" id="buyer1First" placeholder="John"/></div>
           <div class="field"><div class="field-label-row"><label id="buyer1LastLabel">Buyer 1 Last Name</label></div><input type="text" id="buyer1Last" placeholder="Smith"/></div>
         </div>
-        <div class="field"><div class="field-label-row"><label id="buyer2Label">Second Buyer (optional)</label><button class="helper-btn" onclick="toggleHelper('h-b2')">?</button></div><div class="helper-box" id="h-b2"><strong>💡 Co-Buyer / Spouse</strong>If buying with a spouse, partner, or co-investor, enter their full legal name here. Leave blank if buying alone.</div><input type="text" id="buyer2" placeholder="Full legal name of co-buyer, if any" oninput="toggleBuyer2Email()"/></div>
+        <div class="field"><div class="field-label-row"><label id="buyer2Label">Second Buyer (optional)</label><button class="helper-btn" onclick="toggleHelper('h-b2')">?</button></div><div class="helper-box" id="h-b2"><strong>💡 Co-Buyer / Spouse</strong>If purchasing with a spouse, partner, or co-investor, enter their full legal name here. Leave blank if purchasing alone.</div><input type="text" id="buyer2" placeholder="Full legal name of co-buyer, if any" oninput="toggleBuyer2Email()"/></div>
         <div class="field" id="buyer2EmailField" style="display:none;"><div class="field-label-row"><label>Co-Buyer Email</label><button class="helper-btn" onclick="toggleHelper('h-b2email')">?</button></div><div class="helper-box" id="h-b2email"><strong>💡 Co-Buyer Signing Link</strong>The co-buyer will receive their own signing link via email after you sign.</div><input type="email" id="buyer2Email" inputmode="email" autocomplete="email" placeholder="cobuyer@email.com" required aria-required="true"/></div>
         <div class="field"><div class="field-label-row"><label>Seller Name(s)</label><button class="helper-btn" onclick="toggleHelper('h-sel')">?</button></div><div class="helper-box" id="h-sel"><strong>💡 Where to Find the Seller's Name</strong>Check the MLS listing, county appraisal district tax records, or ask the listing agent.</div><input type="text" id="seller1" placeholder="As listed on tax records or MLS"/></div>
 
@@ -8218,7 +8218,7 @@ function routeAfterMagicLinkIfNeeded() {
       if (agentPathInfoHeader) agentPathInfoHeader.style.display = 'none';
       if (agentFields && state.data.hasBuyerAgent !== 'yes') agentFields.style.display = 'none';
     } else {
-      if (title) title.textContent = "Who's buying?";
+      if (title) title.textContent = "Who is making this purchase?";
       if (desc) desc.textContent = "Enter full legal names exactly as they should appear on the contract. We'll also collect your contact info for the Notices section.";
       if (b1f) b1f.textContent = 'Buyer 1 First Name';
       if (b1l) b1l.textContent = 'Buyer 1 Last Name';
