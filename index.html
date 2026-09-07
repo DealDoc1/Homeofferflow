@@ -204,6 +204,7 @@
   if (params.get('partner_checkout')) return;
 
   if (params.get('payment') === 'cancelled') {
+    let restoredLocalDraft = false;
     try {
       const saved = sessionStorage.getItem('hofOfferData');
       if (saved) {
@@ -213,8 +214,14 @@
         state.selectedPrice = Number(offerData.selectedPrice || state.selectedPrice || 0);
       }
     } catch (e) {}
+    // Stripe normally returns in the same tab, but a browser can discard that
+    // tab's session storage. Fall back to the existing local draft before
+    // opening payment review so a buyer never has to re-enter completed work.
+    if (!state.selectedPlan || !state.selectedPrice) {
+      try { restoredLocalDraft = !!restoreDraft?.(); } catch (e) {}
+    }
 
-    openWizard(true);
+    openWizard(true, restoredLocalDraft);
     const paymentStep = getCurrentSteps().indexOf('step9');
     if (paymentStep >= 0) showStep(paymentStep);
     if (state.selectedPlan && state.selectedPrice) selectPlan(state.selectedPlan, state.selectedPrice);
