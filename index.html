@@ -7341,16 +7341,34 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       };
       window.setTimeout(focusWhenReady, 0);
     };
-    const openRelationshipDraft = (openerName, onOpened) => {
+    const openRelationshipDraft = (openerName, onOpened, request) => {
       showAccountTab('relationships');
       let attempts = 0;
+      const transactionLabels = {
+        purchase: 'Purchase',
+        sale_listing: 'Property listing',
+        lease_listing: 'Lease listing',
+        lease_representation: 'Tenant representation'
+      };
       const reportOpenError = (error) => {
         const status = document.getElementById('agentWorkflowStartStatus');
         if (!status) return;
-        status.textContent = window.hofCustomerActionError?.(
+        const message = window.hofCustomerActionError?.(
           error,
-          'This form is not available right now. Return to the transaction choices and try another path.'
-        ) || 'This form is not available right now. Return to the transaction choices and try another path.';
+          'This form is not available in the shared library right now.'
+        ) || 'This form is not available in the shared library right now.';
+        status.textContent = message;
+        if (!request || typeof window.openMissingFormRequest !== 'function') return;
+        const requestButton = document.createElement('button');
+        requestButton.type = 'button';
+        requestButton.className = 'btn-secondary';
+        requestButton.style.marginTop = '.65rem';
+        requestButton.textContent = 'Request this form';
+        requestButton.addEventListener('click', () => window.openMissingFormRequest({
+          formName: request.formCode || request.label,
+          transaction: transactionLabels[kind] || 'Other Texas transaction'
+        }));
+        status.appendChild(requestButton);
       };
       const openWhenReady = () => {
         const opener = window[openerName];
@@ -7379,27 +7397,27 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       };
       const choices = type === 'representation'
         ? [
-            { label: 'Straightforward representation', copy: 'Start the streamlined Buyer/Tenant Representation Agreement interview.', opener: 'hofOpenTxr1507Draft' },
-            { label: 'More detailed representation', copy: 'Start the complete Buyer/Tenant Representation Agreement interview.', opener: 'hofOpenTxr1501Draft' }
+            { label: 'Straightforward representation', copy: 'Start the streamlined Buyer/Tenant Representation Agreement interview.', opener: 'hofOpenTxr1507Draft', formCode: 'TXR-1507' },
+            { label: 'More detailed representation', copy: 'Start the complete Buyer/Tenant Representation Agreement interview.', opener: 'hofOpenTxr1501Draft', formCode: 'TXR-1501' }
           ]
         : type === 'lease_addendum'
           ? [
-              { label: 'Residential lease', copy: 'Prepare the residential-lease addendum for private review.', opener: 'hofOpenTxr1953Draft' },
-              { label: 'Fixture lease', copy: 'Prepare the fixture-lease addendum for private review.', opener: 'hofOpenTxr1954Draft' }
+              { label: 'Residential lease', copy: 'Prepare the residential-lease addendum for private review.', opener: 'hofOpenTxr1953Draft', formCode: 'TXR-1953' },
+              { label: 'Fixture lease', copy: 'Prepare the fixture-lease addendum for private review.', opener: 'hofOpenTxr1954Draft', formCode: 'TXR-1954' }
             ]
         : type === 'purchase_addendum'
           ? [
-              { label: 'Seller financing', copy: 'Prepare the seller-financing addendum for private review.', opener: 'hofOpenTxr1914Draft' },
-              { label: 'Loan assumption', copy: 'Prepare the loan-assumption addendum for private review.', opener: 'hofOpenTxr1919Draft' },
-              { label: 'Environmental review', copy: 'Prepare the environmental-assessment addendum for private review.', opener: 'hofOpenTxr1917Draft' },
-              { label: 'Appraisal review', copy: 'Prepare the appraisal right-to-terminate addendum for private review.', opener: 'hofOpenTxr1948Draft' },
-              { label: 'Residential lease', copy: 'Prepare the residential-lease addendum for private review.', opener: 'hofOpenTxr1953Draft' },
-              { label: 'Fixture lease', copy: 'Prepare the fixture-lease addendum for private review.', opener: 'hofOpenTxr1954Draft' },
-              { label: 'Mineral reservation', copy: 'Prepare the mineral-reservation addendum for private review.', opener: 'hofOpenTxr1905Draft' }
+              { label: 'Seller financing', copy: 'Prepare the seller-financing addendum for private review.', opener: 'hofOpenTxr1914Draft', formCode: 'TXR-1914' },
+              { label: 'Loan assumption', copy: 'Prepare the loan-assumption addendum for private review.', opener: 'hofOpenTxr1919Draft', formCode: 'TXR-1919' },
+              { label: 'Environmental review', copy: 'Prepare the environmental-assessment addendum for private review.', opener: 'hofOpenTxr1917Draft', formCode: 'TXR-1917' },
+              { label: 'Appraisal review', copy: 'Prepare the appraisal right-to-terminate addendum for private review.', opener: 'hofOpenTxr1948Draft', formCode: 'TXR-1948' },
+              { label: 'Residential lease', copy: 'Prepare the residential-lease addendum for private review.', opener: 'hofOpenTxr1953Draft', formCode: 'TXR-1953' },
+              { label: 'Fixture lease', copy: 'Prepare the fixture-lease addendum for private review.', opener: 'hofOpenTxr1954Draft', formCode: 'TXR-1954' },
+              { label: 'Mineral reservation', copy: 'Prepare the mineral-reservation addendum for private review.', opener: 'hofOpenTxr1905Draft', formCode: 'TXR-1905' }
             ]
         : [
-            { label: 'Showing Form', copy: 'For an unrepresented customer attending a showing.', opener: 'hofOpenTxr1508Draft' },
-            { label: 'Consumer Notice', copy: 'For a consumer who needs the general information notice.', opener: 'hofOpenTxr1506Draft' }
+            { label: 'Showing Form', copy: 'For an unrepresented customer attending a showing.', opener: 'hofOpenTxr1508Draft', formCode: 'TXR-1508' },
+            { label: 'Consumer Notice', copy: 'For a consumer who needs the general information notice.', opener: 'hofOpenTxr1506Draft', formCode: 'TXR-1506' }
           ];
       document.getElementById('hofAgentPackageFollowUp')?.remove();
       const followUp = document.createElement('div');
@@ -7421,7 +7439,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         const choice = choices[Number(button.dataset.followUpChoice)];
         if (!choice) return;
         window.logOfferEvent?.(null, 'agent_form_package_workflow_selected', 'selected', 'Agent selected the exact form interview after a package recommendation.', { workflow: kind, package_type: type, form_choice: choice.label });
-        followUp.remove(); openRelationshipDraft(choice.opener, () => recordPrivateDraftWorkspaceStart(choice, type));
+        followUp.remove(); openRelationshipDraft(choice.opener, () => recordPrivateDraftWorkspaceStart(choice, type), choice);
       }));
     };
     const packages = {
@@ -20128,18 +20146,23 @@ function routeAfterMagicLinkIfNeeded() {
 (function () {
   const root = window;
 
-  function openMissingFormRequest() {
+  function openMissingFormRequest(context = {}) {
     if (typeof root.openBetaFeedback === 'function') root.openBetaFeedback();
     setTimeout(() => {
       const issue = document.getElementById('feedbackIssueType');
       const title = document.getElementById('feedbackTitle');
       const intro = document.querySelector('#feedbackModal .feedback-head p');
       const message = document.getElementById('feedbackMessage');
+      const transaction = document.getElementById('missingFormTransaction');
+      const formName = document.getElementById('missingFormName');
       if (issue) issue.value = 'missing_addendum';
       root.syncFeedbackFields?.();
       if (title) title.textContent = 'Request a Missing Form';
       if (intro) intro.textContent = 'Answer three short questions so we can prioritize the right Texas form or workflow.';
+      if (transaction && context.transaction) transaction.value = context.transaction;
+      if (formName && context.formName) formName.value = context.formName;
       if (message) message.placeholder = 'Describe the job this form or workflow should help you complete. Do not include confidential client information.';
+      formName?.focus();
     }, 0);
   }
   root.openMissingFormRequest = openMissingFormRequest;
