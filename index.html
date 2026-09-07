@@ -7328,11 +7328,26 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     const openRelationshipDraft = (openerName) => {
       showAccountTab('relationships');
       let attempts = 0;
+      const reportOpenError = (error) => {
+        const status = document.getElementById('agentWorkflowStartStatus');
+        if (!status) return;
+        status.textContent = window.hofCustomerActionError?.(
+          error,
+          'This form is not available right now. Return to the transaction choices and try another path.'
+        ) || 'This form is not available right now. Return to the transaction choices and try another path.';
+      };
       const openWhenReady = () => {
         const opener = window[openerName];
-        if (typeof opener === 'function') return opener();
+        if (typeof opener === 'function') {
+          Promise.resolve(opener()).catch(reportOpenError);
+          return;
+        }
         attempts += 1;
-        if (attempts < 12) window.setTimeout(openWhenReady, 100);
+        if (attempts < 12) {
+          window.setTimeout(openWhenReady, 100);
+          return;
+        }
+        reportOpenError(new Error('This form is not currently available in the HomeOfferFlow form library.'));
       };
       window.setTimeout(openWhenReady, 0);
     };

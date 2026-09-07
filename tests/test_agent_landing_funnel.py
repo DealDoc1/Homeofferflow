@@ -180,6 +180,14 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("hof-purchase-addendum-interview-openers-v1", INDEX)
         self.assertIn("openExistingPrivateDraft", INDEX)
 
+    def test_guided_private_draft_handoff_explains_unavailable_sources(self):
+        start = INDEX.index("const openRelationshipDraft = (openerName)")
+        end = INDEX.index("const openRelationshipPackage = (type)", start)
+        handoff = INDEX[start:end]
+        self.assertIn("const reportOpenError", handoff)
+        self.assertIn("Promise.resolve(opener()).catch(reportOpenError)", handoff)
+        self.assertIn("This form is not available right now.", handoff)
+
     def test_nested_relationship_choice_returns_to_the_prior_package_question(self):
         start = INDEX.index("window.hofOpenAgentPackageInterview = function")
         end = INDEX.index("window.startAgentWorkflow = function", start)
