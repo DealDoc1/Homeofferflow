@@ -59,6 +59,8 @@ class HomebuyerLandingFunnelTests(unittest.TestCase):
         self.assertIn('/texas-homebuyer-offer-guide', hero)
 
     def test_buyer_ready_list_reduces_pre_start_uncertainty_without_collecting_details(self):
+        self.assertIn('class="skip-link" href="#buyer-ready"', BUYERS)
+        self.assertIn(".skip-link:focus", BUYERS)
         self.assertIn('id="buyerReadyList"', BUYERS)
         self.assertIn("Bring what you know. The guided flow handles the rest.", BUYERS)
         self.assertIn("homebuyer_landing_ready_list_opened", BUYERS)
