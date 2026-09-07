@@ -91,6 +91,17 @@ class SubscriptionCheckoutFunnelMetricTests(unittest.TestCase):
         self.assertIn('window.location.assign("/?pwa_action=transaction_start")', source)
         self.assertIn('$("firstOfferButton").style.display = checkoutComplete ? "block" : "none"', source)
 
+    def test_ondemand_success_return_confirms_webhook_access_before_opening_workspace(self):
+        source = (ROOT / "ondemand.html").read_text(encoding="utf-8")
+        checkout_source = (ROOT / "api" / "create-subscription-checkout" / "index.py").read_text(encoding="utf-8")
+        self.assertIn('id="activationNote"', source)
+        self.assertIn("async function confirmActivatedWorkspace()", source)
+        self.assertIn("?launch=ondemand&status=access", source)
+        self.assertIn("for (let attempt = 0; attempt < 6;", source)
+        self.assertIn("await confirmActivatedWorkspace();", source)
+        self.assertIn('if status == "access":', checkout_source)
+        self.assertIn('"access": bool(active_membership and active_subscription)', checkout_source)
+
     def test_success_return_offers_a_mobile_pwa_install_prompt_without_enrollment_noise(self):
         source = (ROOT / "ondemand.html").read_text(encoding="utf-8")
         self.assertIn('id="installHint"', source)

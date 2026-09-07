@@ -371,6 +371,38 @@ class OnDemandCheckoutTests(unittest.TestCase):
         self.assertIn("active invited agents", captured["data"]["error"])
         self.assertIsNone(StripeClient.last_request)
 
+    def test_ondemand_access_status_requires_an_authenticated_active_agent_subscription(self):
+        request = checkout.handler.__new__(checkout.handler)
+        request.path = "/api/create-subscription-checkout?launch=ondemand&status=access"
+        request.headers = {"authorization": "Bearer verified-token"}
+        captured = {}
+        request._json = lambda code, data: captured.update(code=code, data=data)
+        request._get_brokerage = lambda _slug: {"id": "brokerage-1", "slug": "ondemand"}
+        request._verified_user = lambda _header: {"id": "user-1", "email": "agent@ondemand.test"}
+        request._has_active_brokerage_membership = lambda _user_id, _brokerage_id: True
+        request._has_current_subscription = lambda _user_id: True
+
+        request.do_GET()
+
+        self.assertEqual(captured["code"], 200)
+        self.assertTrue(captured["data"]["access"])
+
+    def test_ondemand_access_status_never_treats_checkout_return_as_access(self):
+        request = checkout.handler.__new__(checkout.handler)
+        request.path = "/api/create-subscription-checkout?launch=ondemand&status=access"
+        request.headers = {"authorization": "Bearer verified-token"}
+        captured = {}
+        request._json = lambda code, data: captured.update(code=code, data=data)
+        request._get_brokerage = lambda _slug: {"id": "brokerage-1", "slug": "ondemand"}
+        request._verified_user = lambda _header: {"id": "user-1", "email": "agent@ondemand.test"}
+        request._has_active_brokerage_membership = lambda _user_id, _brokerage_id: True
+        request._has_current_subscription = lambda _user_id: False
+
+        request.do_GET()
+
+        self.assertEqual(captured["code"], 200)
+        self.assertFalse(captured["data"]["access"])
+
     def test_ondemand_membership_check_is_scoped_to_active_agent_seat(self):
         request = checkout.handler.__new__(checkout.handler)
         MembershipClient.requests = []
