@@ -1056,9 +1056,9 @@ class OnDemandLaunchPageTests(unittest.TestCase):
             "relationship, consumer-notice, seller-disclosure, seller-financing, and mineral-reservation",
             "listing agreements",
             "brokerage-approved process",
-            "restricted Texas REALTORS",
-            "individual agent attestation",
-            "approved private source revision",
+            "Texas REALTORS® / NAR member-form workflows",
+            "own eligibility and use requirements",
+            "show the available next step",
         ):
             self.assertIn(text.lower(), LAUNCH_HTML.lower())
         self.assertIn("See your document options", LAUNCH_HTML)
