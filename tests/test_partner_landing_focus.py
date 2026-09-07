@@ -16,6 +16,9 @@ class PartnerLandingFocusTests(unittest.TestCase):
         self.assertIn('Read the short partner placement guide', script)
         self.assertIn('partner_guide_expanded', script)
         self.assertIn('pwa_shortcut', script)
+        self.assertIn("rawMedium === 'organic_content'", script)
+        self.assertIn("'direct_outreach'", script)
+        self.assertIn("'owned_directory'", script)
 
     def test_partner_landing_combines_application_and_resume_reassurance(self):
         page = (ROOT / 'partners.html').read_text(encoding='utf-8')
