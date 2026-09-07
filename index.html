@@ -5535,6 +5535,13 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0');
   }
 
+  function formatBillingMonth(billingMonth) {
+    const match = /^(\d{4})-(0[1-9]|1[0-2])$/.exec(String(billingMonth || ''));
+    if (!match) return 'this month';
+    const date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, 1));
+    return new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(date);
+  }
+
   function getPlanLabel(plan, status) {
     const labels = {
       agent_starter: 'Agent Starter',
@@ -5665,6 +5672,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     const subscriptionReplacementNeeded = status === 'canceled' || status === 'incomplete_expired';
     const good = subscriptionAllowsGeneration(sub) && (!usageAvailable || used < limit);
     const remaining = Math.max(0, limit - used);
+    const billingPeriodLabel = formatBillingMonth(usage.billingMonth || getBillingMonth());
     const nearLimit = usageAvailable && hasActiveAccess && good && pct >= 80;
     const usageExhausted = usageAvailable && hasActiveAccess && !good && used >= limit;
     try {
@@ -5754,8 +5762,8 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 
       <div class="usage-copy">
         ${usageAvailable
-          ? `<strong>${used} / ${limit}</strong> signed offer packets used for ${escapeAttr(usage.billingMonth || getBillingMonth())}. ${good ? 'You can generate and send new packets.' : 'Generation is blocked until billing/access is updated.'}`
-          : `Usage is temporarily unavailable for ${escapeAttr(usage.billingMonth || getBillingMonth())}. <button class="btn-secondary" type="button" style="margin-left:.35rem" onclick="loadCurrentUsage()">Refresh usage</button> The server will verify your current allowance before packet generation.`}
+          ? `<strong>${used} / ${limit}</strong> signed offer packets used in ${escapeAttr(billingPeriodLabel)}. ${good ? 'You can generate and send new packets.' : 'Generation is blocked until billing/access is updated.'}`
+          : `Usage is temporarily unavailable for ${escapeAttr(billingPeriodLabel)}. <button class="btn-secondary" type="button" style="margin-left:.35rem" onclick="loadCurrentUsage()">Refresh usage</button> The server will verify your current allowance before packet generation.`}
       </div>
 
       ${nearLimit ? '<div class="notice gold" style="margin-top:.7rem;font-size:.76rem;line-height:1.45;"><strong>Almost at this month’s packet limit.</strong> You have ' + remaining + ' packet' + (remaining === 1 ? '' : 's') + ' left. ' + (isInternalAdminAccess ? 'Finish urgent work, then contact platform support before access pauses.' : 'Finish urgent client work, then review billing options before access pauses. <button class="btn-secondary" type="button" style="margin-top:.45rem" onclick="openBillingPortal(\'usage_near_limit\')">Review Manage Billing</button>') + '</div>' : ''}
