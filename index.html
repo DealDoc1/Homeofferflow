@@ -7444,7 +7444,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       purchase: {
         title: 'What do you need for this purchase transaction?',
         choices: [
-          { label: 'Prepare an offer', copy: 'Tell us about the buyer, property, financing, and timing. We’ll assemble the available offer documents.', action: () => startAccountOffer(), isWorkspaceOpen: () => document.getElementById('wizardOverlay')?.classList.contains('active') },
+          { label: 'Start an offer package', copy: 'Tell us about the buyer, property, financing, and timing. We’ll assemble the supported offer documents that fit the selections you make.', action: () => startAccountOffer(), isWorkspaceOpen: () => document.getElementById('wizardOverlay')?.classList.contains('active') },
           { label: 'Set up representation', copy: 'Choose the agreement, then answer the client questions that apply.', action: () => openRelationshipPackage('representation'), deferStartToNestedChoice: true },
           { label: 'Review a purchase addendum', copy: 'Choose the addendum the transaction needs, then prepare its private review draft.', action: () => openRelationshipPackage('purchase_addendum'), deferStartToNestedChoice: true },
           { label: 'Prepare a showing form or notice', copy: 'Choose the right document for the customer and situation.', action: () => openRelationshipPackage('customer'), deferStartToNestedChoice: true }
