@@ -2947,8 +2947,8 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 
 <section class="cta-section">
   <div class="cta-box">
-    <h2>Ready to write your offer?</h2>
-    <p>Choose the right path: $99 buyer offer packets, an agent/broker workspace, an investor repeat-offer workflow, or a free FSBO seller plan.</p>
+    <h2 id="bottomCtaTitle">Ready to write your offer?</h2>
+    <p id="bottomCtaCopy">Choose the right path: $99 buyer offer packets, an agent/broker workspace, an investor repeat-offer workflow, or a free FSBO seller plan.</p>
     <button class="btn-primary" id="bottomCta" onclick="beginOfferFrom('landing_bottom_cta')">Build Your Offer — No Payment to Start</button>
     <div class="hero-price-note" id="bottomPriceNote">No payment is required to start. Review your completed offer summary before checkout; <strong>the homebuyer offer packet is $99 only when ready.</strong> FSBO sellers can start with a free plan, then choose paid support only if and when it fits.</div>
   </div>
@@ -17423,6 +17423,106 @@ function routeAfterMagicLinkIfNeeded() {
   }
 
   const oldSetAudience = root.setAudience;
+  function syncLandingPathContext(type) {
+    const contexts = {
+      homebuyer: {
+        howTitle: 'From plain questions to a Texas offer packet.',
+        steps: [
+          ['Answer buyer questions', 'No legal jargon. One section at a time, with help where a contract term needs an explanation.'],
+          ['Build your offer terms', 'Your answers prepare the supported Texas resale offer and the purchase addenda that fit your choices.'],
+          ['Review your offer', 'See a plain-English summary, correct anything, and know exactly what will be included before you pay.'],
+          ['Pay when ready', 'The one-time $99 checkout appears only when your completed buyer-offer packet is ready.']
+        ],
+        faqTitle: 'Clear answers before you begin a Texas offer.',
+        faqs: [
+          ['Can I start without paying?', 'Yes. You can begin the guided buyer-offer workflow without payment, review the completed offer summary, and only see the one-time $99 checkout when the supported packet is ready.'],
+          ['Does HomeOfferFlow replace my agent or attorney?', 'No. HomeOfferFlow is a Texas form-completion tool, not legal advice or brokerage representation. You can have your own licensed Texas agent or attorney review the packet before you submit it.'],
+          ['What happens after I complete a buyer offer?', 'You review the plain-English summary before checkout. When the supported packet is ready and payment is completed, HomeOfferFlow provides the buyer-side packet and signing workflow for your review and next steps.'],
+          ['Is this only for homebuyers?', 'No. HomeOfferFlow also has separate paths for agents and brokers, investors, FSBO sellers, and service partners. Each has its own workflow, scope, and payment terms.']
+        ],
+        closingTitle: 'Ready to write your offer?',
+        closingCopy: 'Build your Texas buyer-offer packet one clear question at a time. Review everything before you pay.',
+      },
+      agent: {
+        howTitle: 'From transaction type to one organized package.',
+        steps: [
+          ['Choose the transaction', 'Start with a property listing, purchase, lease listing, or tenant representation transaction.'],
+          ['Answer only what applies', 'The interview follows the transaction you selected, so you do not sort through unrelated documents.'],
+          ['Review the package', 'Review your details and the available documents together before you continue or share anything with a client.'],
+          ['Save and continue', 'Sign in to keep your workspace, saved details, and transaction progress available when you return.']
+        ],
+        faqTitle: 'Clear answers before you start an agent transaction.',
+        faqs: [
+          ['Do I need a brokerage seat to use this?', 'No. Available to every signed-in agent. A personal workspace does not require a brokerage seat; a brokerage or team workspace is optional when you want to work with a team.'],
+          ['Which transactions can I start?', 'Choose property listing, purchase, lease listing, or tenant representation. The next questions and available documents follow that selection.'],
+          ['What happens with review-only documents?', 'They remain private drafts for your review. They do not send a request or contact anyone on your behalf.'],
+          ['Can I reuse saved details?', 'Yes. Your signed-in workspace keeps your progress and can reuse relevant saved details for later transactions.']
+        ],
+        closingTitle: 'Ready to start a transaction?',
+        closingCopy: 'Choose the transaction in front of you. We will ask only for the details needed to prepare one clean document package.'
+      },
+      investor: {
+        howTitle: 'From repeat deal details to a clean offer packet.',
+        steps: [
+          ['Start with your deal', 'Choose the property and the offer you want to prepare.'],
+          ['Use saved defaults', 'Bring forward the terms you use often, then change only what is different on this deal.'],
+          ['Review every term', 'Check the package in plain English before you move to the next step.'],
+          ['Keep moving', 'Save the transaction and return to it when you are ready to finalize or start the next offer.']
+        ],
+        faqTitle: 'Clear answers for repeat offer work.',
+        faqs: [
+          ['Can I reuse prior deal details?', 'Yes. Your investor workspace is designed to save relevant defaults so you can update the property-specific terms instead of starting from scratch.'],
+          ['Do I still review the documents?', 'Yes. Saved defaults speed up the interview, but you review the terms for each transaction before moving forward.'],
+          ['Can I change a saved default?', 'Yes. Your saved details are starting points, not locked contract terms.'],
+          ['Is this legal or brokerage advice?', 'No. HomeOfferFlow is a form-completion tool. Use your own licensed Texas agent or attorney whenever you want professional advice or representation.']
+        ],
+        closingTitle: 'Ready to start an investment offer?',
+        closingCopy: 'Use your saved deal defaults, update the details that changed, and review one organized Texas offer package.'
+      },
+      fsbo: {
+        howTitle: 'From two details to a clear seller plan.',
+        steps: [
+          ['Start with your property', 'Enter your property address and the email where you want your free seller plan.'],
+          ['Choose help only if you want it', 'Tell us about your timeline or the kind of support you may want—or leave those choices for later.'],
+          ['Review your next steps', 'See a straightforward plan for listing, offer review, closing, and local service options.'],
+          ['Move forward on your terms', 'There is no checkout or commitment to choose a service. You decide what help, if any, fits your sale.']
+        ],
+        faqTitle: 'Clear answers before you start a seller plan.',
+        faqs: [
+          ['Is the seller plan really free?', 'Yes. The first step needs only your property address and email. There is no checkout or service commitment.'],
+          ['Do I need to decide on services now?', 'No. Timing, contact details, listing preferences, and support interests are optional. You can add them later.'],
+          ['What help can I explore?', 'Your plan can point you toward listing, offer review, closing, flat-fee MLS, and relevant local service options. Any paid scope and pricing are confirmed separately.'],
+          ['Will I be pressured to use a provider?', 'No. The plan is designed to give you clear options. You choose whether and when to request additional help.']
+        ],
+        closingTitle: 'Ready to start your free seller plan?',
+        closingCopy: 'Start with your address and email. It takes under a minute, with no checkout or commitment.'
+      }
+    };
+    const context = contexts[type] || contexts.homebuyer;
+    const setText = (id, value) => { const el = document.getElementById(id); if (el) el.textContent = value; };
+    setText('howTitle', context.howTitle);
+    context.steps.forEach((step, index) => {
+      const number = ['One', 'Two', 'Three', 'Four'][index];
+      setText(`howStep${number}Title`, step[0]);
+      setText(`howStep${number}Copy`, step[1]);
+    });
+    setText('home-faq-title', context.faqTitle);
+    const faqHost = document.getElementById('homeFaqItems');
+    if (faqHost) {
+      faqHost.replaceChildren(...context.faqs.map(([question, answer]) => {
+        const details = document.createElement('details');
+        const summary = document.createElement('summary');
+        const paragraph = document.createElement('p');
+        summary.textContent = question;
+        paragraph.textContent = answer;
+        details.append(summary, paragraph);
+        return details;
+      }));
+    }
+    setText('bottomCtaTitle', context.closingTitle);
+    setText('bottomCtaCopy', context.closingCopy);
+  }
+
   root.setAudience = function setAudience(type){
     if (typeof oldSetAudience === 'function') oldSetAudience(type);
     const copy = {
@@ -17452,6 +17552,7 @@ function routeAfterMagicLinkIfNeeded() {
     Object.entries(ids).forEach(([id,key]) => { const el = document.getElementById(id); if(!el) return; if(key==='headline') el.innerHTML = selected[key]; else el.textContent = selected[key]; });
     ['heroPriceNote','bottomPriceNote'].forEach(id => { const el=document.getElementById(id); if(el) el.innerHTML=selected.note; });
     syncOnDemandHeroTrialCta(type);
+    syncLandingPathContext(type);
     addLandingPathStrip();
   };
 
