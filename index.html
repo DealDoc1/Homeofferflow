@@ -20037,7 +20037,7 @@ function routeAfterMagicLinkIfNeeded() {
         list.innerHTML = agreements.map(agreement => {
           const canSend = signingEnabled && agreement.status === 'draft';
           const names = (agreement.client_names || []).join(', ');
-          const gate = !signingEnabled && agreement.status === 'draft' ? '<small style="display:block;color:var(--gold-light)">Preview only — signing QA pending</small>' : '';
+          const gate = !signingEnabled && agreement.status === 'draft' ? '<small style="display:block;color:var(--gold-light)">Private review draft — signature sending will appear here when available.</small>' : '';
           return `<div style="display:flex;justify-content:space-between;align-items:center;gap:.75rem;flex-wrap:wrap;border-top:1px solid rgba(255,255,255,.12);padding:.7rem 0"><span><strong>${escape(agreement.form_code)}</strong><small style="display:block;color:var(--gray-light)">${escape(names)} · ${escape(agreement.status || 'draft')}</small>${gate}</span><span style="display:flex;gap:.4rem;flex-wrap:wrap"><button type="button" class="btn-secondary" data-preview="${escape(agreement.id)}">Preview</button>${canSend ? `<button type="button" class="btn-primary" data-send="${escape(agreement.id)}">Send for signature</button>` : ''}</span></div>`;
         }).join('');
         list.querySelectorAll('[data-preview]').forEach(button => button.addEventListener('click', async () => {
@@ -20393,7 +20393,7 @@ function routeAfterMagicLinkIfNeeded() {
     card.className = 'account-card hof-private-form-drafts-card';
     card.innerHTML = `
       <h4>Private form drafts</h4>
-      <p>These are your saved source-gated form intakes. They are private to you and remain drafts only—HomeOfferFlow does not download, send, or sign them from this list.</p>
+      <p>These are your saved private form drafts. They stay private to you until you choose the next available action.</p>
       <div id="privateFormDraftsStatus" class="hof-iabs-status" role="status" aria-live="polite"></div>
       <ul id="privateFormDraftsList" class="hof-private-form-drafts-list"><li>Loading private form drafts…</li></ul>`;
     panel.appendChild(card);
