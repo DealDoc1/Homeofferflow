@@ -8,12 +8,14 @@ SELLERS = (ROOT / "sellers.html").read_text(encoding="utf-8")
 
 
 class LowNoisePublicPageTests(unittest.TestCase):
-    def test_agent_hero_has_one_primary_action_and_one_exploration_path(self):
+    def test_agent_hero_starts_with_the_single_transaction_decision(self):
         hero = AGENTS.split('<section class="grid" id="transaction-start"', 1)[0]
-        self.assertIn('>Start question 1<', hero)
-        self.assertEqual(hero.count('class="button"'), 1)
-        self.assertEqual(hero.count('class="button secondary"'), 0)
-        self.assertEqual(hero.count('data-agent-cta-path='), 1)
+        self.assertNotIn('class="button"', hero)
+        self.assertNotIn('data-agent-cta-path=', hero)
+        selector_start = AGENTS.index('<section class="grid" id="transaction-start"')
+        selector_end = AGENTS.index('</section>', selector_start)
+        selector = AGENTS[selector_start:selector_end]
+        self.assertEqual(selector.count('data-agent-cta-path='), 4)
 
     def test_seller_hero_has_one_primary_action_and_one_comparison_path(self):
         hero = SELLERS.split('<section aria-labelledby="seller-question-one"', 1)[0]
