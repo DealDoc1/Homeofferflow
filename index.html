@@ -17736,7 +17736,7 @@ function routeAfterMagicLinkIfNeeded() {
       title: 'Start your next offer faster',
       body: 'Reuse your most recent deal terms to start faster. Client and property details are cleared before the next offer opens.',
       primary: 'Reuse Last Terms',
-      secondary: 'Create Fresh Offer',
+      secondary: 'Start a different transaction',
       sourceOfferId: latestOffer?.id || '',
       complete, hasProfile, hasOffer, hasPlan
     };
@@ -17815,11 +17815,11 @@ function routeAfterMagicLinkIfNeeded() {
       state.key === 'subscribe' || state.key === 'reactivate' ? 'subscribe' :
       'resume';
     const secondaryAction =
-      state.key === 'profile' ? 'new_offer' :
+      state.key === 'profile' ? 'offers' :
       state.key === 'profile_with_draft' ? 'profile' :
       state.key === 'first_offer' ? 'profile' :
       state.key === 'resume_local_draft' ? 'start_fresh' :
-      state.key === 'repeat' ? 'new_offer' :
+      state.key === 'repeat' ? 'choose_transaction' :
       state.key === 'resume_beta' ? 'subscribe' :
       state.key === 'recover_billing' ? 'offers' :
       state.key === 'subscribe' || state.key === 'reactivate' ? 'subscribe' :
