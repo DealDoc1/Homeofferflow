@@ -17,12 +17,15 @@ class AiOfferReviewDashboardCopyTests(unittest.TestCase):
         self.assertNotIn("Placeholder score only. This does not call AI yet", INDEX_HTML)
         self.assertIn(">Save Review Snapshot<", INDEX_HTML)
 
-    def test_review_result_has_anonymized_calibration_feedback_path(self):
+    def test_review_result_keeps_anonymized_calibration_tools_admin_only(self):
         self.assertIn('value="ai_review"', INDEX_HTML)
         self.assertIn("openAiCalibrationFeedback()", INDEX_HTML)
         self.assertIn("do not include names, exact addresses, MLS numbers", INDEX_HTML)
         self.assertIn('id="aiFeedbackAnonymized"', INDEX_HTML)
         self.assertIn("AI calibration notes must be anonymized before submission.", INDEX_HTML)
+        self.assertIn("const calibrationTools = isCurrentAdmin()", INDEX_HTML)
+        self.assertIn("Admin calibration tools", INDEX_HTML)
+        self.assertIn("${calibrationTools}", INDEX_HTML)
 
     def test_review_result_can_copy_a_privacy_reminded_summary(self):
         self.assertIn("copyAiReviewSummary", INDEX_HTML)
