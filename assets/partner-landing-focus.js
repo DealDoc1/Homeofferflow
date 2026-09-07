@@ -1,8 +1,17 @@
 (() => {
   const params = new URLSearchParams(window.location.search);
+  const rawSource = String(params.get('utm_source') || '').trim().toLowerCase();
   const rawMedium = String(params.get('utm_medium') || '').trim().toLowerCase();
-  const channel = rawMedium === 'installed_app' ? 'pwa_shortcut' : rawMedium || 'direct';
-  const allowedChannels = new Set(['direct', 'organic', 'pwa_shortcut', 'email', 'social', 'referral', 'other']);
+  const allowedChannels = new Set(['direct', 'organic', 'pwa_shortcut', 'email', 'partner_receipt', 'social', 'referral', 'other', 'direct_outreach', 'local_event', 'print', 'owned_directory']);
+  const channel = rawMedium === 'installed_app'
+    ? 'pwa_shortcut'
+    : rawMedium === 'organic_content' || rawSource === 'organic'
+      ? 'organic'
+      : allowedChannels.has(rawMedium)
+        ? rawMedium
+        : allowedChannels.has(rawSource)
+          ? rawSource
+          : 'direct';
   const safeChannel = allowedChannels.has(channel) ? channel : 'direct';
   const guideNote = Array.from(document.querySelectorAll('p.note')).find((node) =>
     node.textContent.includes('Want the short version first?')
