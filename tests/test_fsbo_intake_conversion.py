@@ -57,6 +57,14 @@ class FsboIntakeConversionTests(unittest.TestCase):
         self.assertIn("No checkout. Optional details can wait.", action_section)
         self.assertNotIn("Ready when you are.", action_section)
 
+    def test_optional_seller_interview_shows_its_recommendation_before_the_full_service_catalog(self):
+        recommendation = HTML.index('id="fsboNeedDetails"')
+        catalog = HTML.index('id="fsboSupportOptions"')
+        self.assertLess(recommendation, catalog)
+        self.assertIn("Choose a starting point and we will recommend the next step.", HTML)
+        self.assertIn("Explore other support paths and pricing", HTML)
+        self.assertIn('id="fsboSupportOptions" class="partner-optional-details"', HTML)
+
     def test_seller_funnel_events_are_analytics_only_and_never_include_identity(self):
         start = HTML.index("const fsboFunnel =")
         end = HTML.index("const __oldOpenAccountDashboardFsbo", start)
@@ -277,7 +285,7 @@ class FsboIntakeConversionTests(unittest.TestCase):
         self.assertLess(quick, full)
         self.assertIn('<details class="partner-optional-details" style="margin-top:.9rem;">', HTML)
         customization_start = HTML.index('<details class="partner-optional-details" style="margin-top:1rem;">')
-        customization_end = HTML.index('</details>', customization_start)
+        customization_end = HTML.index('<div id="fsboDraftRecovery"', customization_start)
         customization_section = HTML[customization_start:customization_end]
         self.assertIn('id="fsboGuidedGoalCard"', customization_section)
         self.assertIn('class="fsbo-package-grid"', customization_section)
