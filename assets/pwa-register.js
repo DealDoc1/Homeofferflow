@@ -144,8 +144,16 @@
     notice.innerHTML = '<strong style="display:block;color:#bce8d0;margin-bottom:.2rem">A newer HomeOfferFlow version is ready</strong><span style="display:block;color:#b6c4d5;margin-bottom:.55rem">Refresh when you are finished with this page to use the latest version.</span><button type="button" id="hofPublicPwaUpdateButton" style="padding:.45rem .65rem;border:0;border-radius:7px;background:#6db38f;color:#102033;font-weight:800;cursor:pointer">Refresh for latest version</button>';
     document.body.appendChild(notice);
     notice.querySelector('#hofPublicPwaUpdateButton')?.addEventListener('click', () => {
-      registration.waiting?.postMessage({ type: 'HOF_SKIP_WAITING' });
-      window.location.reload();
+      const waiting = registration.waiting;
+      if (!waiting) return;
+      let refreshed = false;
+      const reloadAfterActivation = () => {
+        if (refreshed) return;
+        refreshed = true;
+        window.location.reload();
+      };
+      navigator.serviceWorker.addEventListener('controllerchange', reloadAfterActivation, { once: true });
+      waiting.postMessage({ type: 'HOF_SKIP_WAITING' });
     });
   };
   const renderInstallCard = () => {
