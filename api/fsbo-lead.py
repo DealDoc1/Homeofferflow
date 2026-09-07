@@ -24,6 +24,13 @@ MAX_BODY_BYTES = 60_000
 EMAIL_RE = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
 LEAD_ID_RE = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$", re.I)
 ONBOARDING_TOKEN_RE = re.compile(r"^[A-Za-z0-9_-]{24,128}$")
+PARTNER_LOGO_PATH_RE = re.compile(r"^partners/[0-9a-f-]{36}/[0-9a-f]{32}\.(?:png|jpe?g|webp)$", re.I)
+PARTNER_LOGO_TYPES = {
+    "image/png": "png",
+    "image/jpeg": "jpg",
+    "image/webp": "webp",
+}
+PARTNER_LOGO_MAX_BYTES = 2 * 1024 * 1024
 STRIPE_CHECKOUT_SESSION_RE = re.compile(r"^cs_(?:test|live)_[A-Za-z0-9_]{8,250}$")
 STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "")
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
@@ -1041,6 +1048,53 @@ def _secure_url(value, field):
     return value
 
 
+def _partner_branding_logo_url(lead_id, path):
+    """Build the one public branding URL an onboarding upload may save."""
+    if not LEAD_ID_RE.match(str(lead_id or "")) or not PARTNER_LOGO_PATH_RE.match(str(path or "")):
+        raise ValueError("This logo upload is invalid.")
+    expected_prefix = f"partners/{lead_id}/"
+    if not path.startswith(expected_prefix):
+        raise ValueError("This logo upload is unavailable.")
+    return f"{SUPABASE_URL}/storage/v1/object/public/brokerage-branding/{path}"
+
+
+def _create_partner_logo_upload(token, data):
+    """Authorize one short-lived direct image upload without exposing a service key."""
+    lead = _get_partner_onboarding(token)
+    content_type = _text(data.get("content_type"), 80).lower()
+    extension = PARTNER_LOGO_TYPES.get(content_type)
+    try:
+        size_bytes = int(data.get("size_bytes") or 0)
+    except (TypeError, ValueError):
+        size_bytes = 0
+    if not extension:
+        raise ValueError("Choose a PNG, JPEG, or WebP logo image.")
+    if size_bytes < 1 or size_bytes > PARTNER_LOGO_MAX_BYTES:
+        raise ValueError("Choose a logo image smaller than 2 MB.")
+    lead_id = str(lead.get("id") or "")
+    if not LEAD_ID_RE.match(lead_id):
+        raise LookupError("This onboarding link is unavailable.")
+    path = f"partners/{lead_id}/{uuid.uuid4().hex}.{extension}"
+    headers = {
+        "apikey": SUPABASE_SERVICE_ROLE_KEY,
+        "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}",
+        "Content-Type": "application/json",
+    }
+    with httpx.Client(timeout=12) as client:
+        response = client.post(
+            f"{SUPABASE_URL}/storage/v1/object/upload/sign/brokerage-branding/{path}",
+            headers=headers,
+            json={"upsert": False},
+        )
+    if response.status_code >= 300:
+        raise RuntimeError("Could not prepare the logo upload.")
+    result = response.json() if response.text else {}
+    signed_token = _text(result.get("token"), 1000)
+    if not signed_token:
+        raise RuntimeError("Could not prepare the logo upload.")
+    return {"bucket": "brokerage-branding", "path": path, "token": signed_token}
+
+
 def _get_partner_onboarding(token):
     if not ONBOARDING_TOKEN_RE.match(token or ""):
         raise ValueError("This onboarding link is invalid.")
@@ -1128,7 +1182,9 @@ def _complete_partner_onboarding(token, data):
     if not market:
         raise ValueError("Primary market area is required.")
     now = datetime.now(timezone.utc).isoformat()
-    payload = {"onboarding_website_url": _secure_url(data.get("website_url"), "Website"), "onboarding_logo_url": _secure_url(data.get("logo_url"), "Logo URL"), "onboarding_cta_label": _text(data.get("cta_label"), 80), "onboarding_market_area": market, "onboarding_status": "complete", "onboarding_completed_at": now, "onboarding_token_hash": None, "onboarding_token_expires_at": None, "updated_at": now}
+    logo_path = _text(data.get("logo_path"), 300)
+    logo_url = _partner_branding_logo_url(lead.get("id"), logo_path) if logo_path else _secure_url(data.get("logo_url"), "Logo URL")
+    payload = {"onboarding_website_url": _secure_url(data.get("website_url"), "Website"), "onboarding_logo_url": logo_url, "onboarding_cta_label": _text(data.get("cta_label"), 80), "onboarding_market_area": market, "onboarding_status": "complete", "onboarding_completed_at": now, "onboarding_token_hash": None, "onboarding_token_expires_at": None, "updated_at": now}
     headers = {"apikey": SUPABASE_SERVICE_ROLE_KEY, "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}", "Content-Type": "application/json", "Prefer": "return=representation"}
     with httpx.Client(timeout=12) as client:
         response = client.patch(f"{SUPABASE_URL}/rest/v1/hof_partner_leads?id=eq.{lead['id']}&onboarding_token_hash=eq.{_onboarding_token_hash(token)}", headers=headers, json=payload)
@@ -1544,6 +1600,14 @@ class handler(BaseHTTPRequestHandler):
             if _text(data.get('request_type'), 80) == 'partner_onboarding_submit':
                 try:
                     return _send(self, 200, {'ok': True, 'partner': _complete_partner_onboarding(_text(data.get('onboarding_token'), 160) or '', data)})
+                except ValueError as exc:
+                    return _send(self, 400, {'error': str(exc)})
+                except LookupError as exc:
+                    return _send(self, 409, {'error': str(exc)})
+
+            if _text(data.get('request_type'), 80) == 'partner_onboarding_logo_upload':
+                try:
+                    return _send(self, 200, {'ok': True, 'upload': _create_partner_logo_upload(_text(data.get('onboarding_token'), 160) or '', data)})
                 except ValueError as exc:
                     return _send(self, 400, {'error': str(exc)})
                 except LookupError as exc:
