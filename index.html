@@ -7402,7 +7402,13 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       const choice = interview.choices[Number(button.dataset.packageChoice)];
       if (!choice) return;
       window.logOfferEvent?.(null, 'agent_form_package_selected', 'selected', 'Agent selected a guided form package after the transaction interview.', { workflow: kind, package: choice.label });
-      modal.remove(); choice.action();
+      modal.remove();
+      choice.action();
+      // Selection and workflow start are deliberately separate signals. A
+      // choice only becomes useful when its next workspace actually opens,
+      // which lets us identify a real handoff issue without retaining any
+      // client, property, or form data.
+      window.logOfferEvent?.(null, 'agent_form_package_started', 'started', 'Agent opened the selected guided package workspace.', { workflow: kind, package: choice.label });
     }));
     return true;
   };
