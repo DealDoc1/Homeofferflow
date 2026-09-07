@@ -35,6 +35,15 @@ class PublicPwaRegistrationTests(unittest.TestCase):
         self.assertNotIn(".src = 'http", script)
         self.assertNotIn('.src = "http', script)
 
+    def test_update_refresh_waits_for_the_new_worker_to_take_control(self):
+        self.assertIn("const waiting = registration.waiting;", SCRIPT)
+        self.assertIn("navigator.serviceWorker.addEventListener('controllerchange', reloadAfterActivation, { once: true });", SCRIPT)
+        self.assertIn("waiting.postMessage({ type: 'HOF_SKIP_WAITING' });", SCRIPT)
+        update_start = SCRIPT.index("notice.querySelector('#hofPublicPwaUpdateButton')")
+        update_end = SCRIPT.index("  const renderInstallCard", update_start)
+        update_handler = SCRIPT[update_start:update_end]
+        self.assertLess(update_handler.index("controllerchange"), update_handler.index("waiting.postMessage"))
+
     def test_shell_caches_the_registration_helper(self):
         worker = (ROOT / 'service-worker.js').read_text(encoding='utf-8')
         self.assertIn("'/assets/pwa-register.js'", worker)
