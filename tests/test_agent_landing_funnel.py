@@ -163,6 +163,23 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("root.hofOpenTxr1501Draft = () => openLongDraftDialog(source);", INDEX)
         self.assertIn("They do not infer which agreement is proper", INDEX)
 
+    def test_purchase_interview_keeps_common_addenda_in_the_guided_handoff(self):
+        start = INDEX.index("window.hofOpenAgentPackageInterview = function")
+        end = INDEX.index("window.startAgentWorkflow = function", start)
+        interview = INDEX[start:end]
+        self.assertIn("Review a purchase addendum", interview)
+        self.assertIn("Which purchase addendum does this transaction need?", interview)
+        for label, opener in (
+            ("Seller financing", "hofOpenTxr1914Draft"),
+            ("Loan assumption", "hofOpenTxr1919Draft"),
+            ("Environmental review", "hofOpenTxr1917Draft"),
+            ("Appraisal review", "hofOpenTxr1948Draft"),
+        ):
+            self.assertIn(label, interview)
+            self.assertIn(opener, interview)
+        self.assertIn("hof-purchase-addendum-interview-openers-v1", INDEX)
+        self.assertIn("openExistingPrivateDraft", INDEX)
+
     def test_nested_relationship_choice_returns_to_the_prior_package_question(self):
         start = INDEX.index("window.hofOpenAgentPackageInterview = function")
         end = INDEX.index("window.startAgentWorkflow = function", start)

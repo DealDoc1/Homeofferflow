@@ -7351,6 +7351,13 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             { label: 'Straightforward representation', copy: 'Start the streamlined Buyer/Tenant Representation Agreement interview.', opener: 'hofOpenTxr1507Draft' },
             { label: 'More detailed representation', copy: 'Start the complete Buyer/Tenant Representation Agreement interview.', opener: 'hofOpenTxr1501Draft' }
           ]
+        : type === 'purchase_addendum'
+          ? [
+              { label: 'Seller financing', copy: 'Prepare the seller-financing addendum for private review.', opener: 'hofOpenTxr1914Draft' },
+              { label: 'Loan assumption', copy: 'Prepare the loan-assumption addendum for private review.', opener: 'hofOpenTxr1919Draft' },
+              { label: 'Environmental review', copy: 'Prepare the environmental-assessment addendum for private review.', opener: 'hofOpenTxr1917Draft' },
+              { label: 'Appraisal review', copy: 'Prepare the appraisal right-to-terminate addendum for private review.', opener: 'hofOpenTxr1948Draft' }
+            ]
         : [
             { label: 'Showing Form', copy: 'For an unrepresented customer attending a showing.', opener: 'hofOpenTxr1508Draft' },
             { label: 'Consumer Notice', copy: 'For a consumer who needs the general information notice.', opener: 'hofOpenTxr1506Draft' }
@@ -7358,7 +7365,11 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       document.getElementById('hofAgentPackageFollowUp')?.remove();
       const followUp = document.createElement('div');
       followUp.id = 'hofAgentPackageFollowUp'; followUp.className = 'hof-agreement-modal';
-      const prompt = type === 'representation' ? 'What kind of representation does this client need?' : 'What does this customer need?';
+      const prompt = type === 'representation'
+        ? 'What kind of representation does this client need?'
+        : type === 'purchase_addendum'
+          ? 'Which purchase addendum does this transaction need?'
+          : 'What does this customer need?';
       followUp.innerHTML = `<div class="hof-agreement-dialog" role="dialog" aria-modal="true" aria-labelledby="hofAgentPackageFollowUpTitle"><h3 id="hofAgentPackageFollowUpTitle">${prompt}</h3><p>Choose the best starting point. You’ll review the completed document before it is sent.</p><div class="hof-agreement-grid">${choices.map((choice, index) => `<button type="button" class="btn-secondary hof-agent-package-choice" data-follow-up-choice="${index}" style="text-align:left;padding:1rem"><strong style="display:block;color:var(--white);margin-bottom:.35rem">${choice.label}</strong><span style="display:block;color:var(--gray-light);font-weight:400;line-height:1.45">${choice.copy}</span></button>`).join('')}</div><div class="hof-agreement-footer"><button type="button" class="btn-secondary" id="hofAgentPackageFollowUpCancel">Back</button></div></div>`;
       document.body.appendChild(followUp);
       followUp.querySelector('#hofAgentPackageFollowUpCancel').addEventListener('click', returnToPackageQuestion);
@@ -7378,6 +7389,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         choices: [
           { label: 'Prepare an offer', copy: 'Tell us about the buyer, property, financing, and timing. We’ll assemble the available offer documents.', action: () => startAccountOffer(), isWorkspaceOpen: () => document.getElementById('wizardOverlay')?.classList.contains('active') },
           { label: 'Set up representation', copy: 'Choose the agreement, then answer the client questions that apply.', action: () => openRelationshipPackage('representation'), isWorkspaceOpen: () => Boolean(document.getElementById('hofAgentPackageFollowUp')) },
+          { label: 'Review a purchase addendum', copy: 'Choose the addendum the transaction needs, then prepare its private review draft.', action: () => openRelationshipPackage('purchase_addendum'), isWorkspaceOpen: () => Boolean(document.getElementById('hofAgentPackageFollowUp')) },
           { label: 'Prepare a showing form or notice', copy: 'Choose the right document for the customer and situation.', action: () => openRelationshipPackage('customer'), isWorkspaceOpen: () => Boolean(document.getElementById('hofAgentPackageFollowUp')) }
         ]
       },
@@ -21485,6 +21497,11 @@ function routeAfterMagicLinkIfNeeded() {
     try { const source = await root.hofLoadApprovedBrokerageSource?.(FORM_CODE); const copy = card.querySelector('#txr1914AgreementCopy'); if (!source) { copy.textContent = 'TXR-1914 is not currently available in your form library.'; return; } copy.innerHTML = `Use the ${escape(source.source_revision)} TXR-1914 interview to prepare a private review PDF. Seller financing can be complex; this workflow does not recommend terms, create loan documents, send, or sign the addendum.`; const button = document.createElement('button'); button.type = 'button'; button.className = 'btn-secondary'; button.textContent = 'Start seller-financing draft'; button.addEventListener('click', () => openDraftDialog(source)); card.appendChild(button); } catch (error) { console.error('TXR-1914 source check failed:', error); card.querySelector('#txr1914AgreementCopy').textContent = root.hofApprovedSourceStatusCopy(error); }
   }
   root.hofRenderTxr1914Card = renderCard;
+  root.hofOpenTxr1914Draft = async () => {
+    const source = await root.hofLoadApprovedBrokerageSource?.(FORM_CODE);
+    if (!source) throw new Error('TXR-1914 is not currently available in the HomeOfferFlow form library.');
+    openDraftDialog(source);
+  };
   function openDraftDialog(source) {
     document.getElementById('txr1914AgreementDialog')?.remove(); const modal = document.createElement('div'); modal.id = 'txr1914AgreementDialog'; modal.className = 'hof-agreement-modal';
     modal.innerHTML = `<form class="hof-agreement-dialog" id="txr1914AgreementForm"><h3>Seller Financing Addendum</h3><p>Answer only the terms printed on the source. Confirm financing, loan, tax, insurance, and escrow choices with the appropriate attorney and financial professional before anyone signs. This saves a private review draft only.</p><div class="hof-agreement-grid"><label class="hof-agreement-wide">Property address<input name="propertyAddress" required maxlength="400"></label><label>Buyer 1 full name<input name="buyerOne" required maxlength="180"></label><label>Buyer 2 full name (optional)<input name="buyerTwo" maxlength="180"></label><label>Seller 1 full name<input name="sellerOne" required maxlength="180"></label><label>Seller 2 full name (optional)<input name="sellerTwo" maxlength="180"></label><label>Credit documents due after effective date (days)<input name="creditDays" required inputmode="numeric" maxlength="3"></label><div class="hof-agreement-wide"><span style="display:block;color:var(--gray-light);font-weight:700;font-size:.82rem;margin-bottom:.4rem">Credit documentation to deliver</span><div class="hof-agreement-services"><label><input type="checkbox" name="creditDocument" value="credit_report"> Credit report</label><label><input type="checkbox" name="creditDocument" value="employment"> Employment / salary verification</label><label><input type="checkbox" name="creditDocument" value="funds"> Funds on deposit</label><label><input type="checkbox" name="creditDocument" value="financial_statement"> Financial statement</label><label><input type="checkbox" name="creditDocument" value="other"> Other</label></div></div><label id="txr1914OtherCreditWrap" class="hof-agreement-wide" style="display:none">Other credit-documentation item<input name="creditOther" maxlength="180"></label><label>Promissory-note amount<input name="noteAmount" required inputmode="decimal" placeholder="250000"></label><label>Annual interest rate (%)<input name="interestRate" required inputmode="decimal" placeholder="6.25"></label><label class="hof-agreement-wide">Payment plan<select name="paymentPlan" required><option value="">Choose the printed plan…</option><option value="one_payment">One payment</option><option value="monthly_installments">Monthly installments</option><option value="interest_only_then_installments">Interest-only period, then installments</option></select></label><div id="txr1914OnePayment" class="hof-agreement-grid hof-agreement-wide" style="display:none"><label>Payment due after note (months)<input name="onePaymentDueAfterMonths" inputmode="numeric" maxlength="3"></label><label>Interest payable<select name="onePaymentInterestTiming"><option value="">Choose one…</option><option value="maturity">At maturity</option><option value="monthly">Monthly</option><option value="quarterly">Quarterly</option></select></label></div><div id="txr1914Installments" class="hof-agreement-grid hof-agreement-wide" style="display:none"><label id="txr1914InterestOnlyMonths" style="display:none">Interest-only period (months)<input name="interestOnlyMonths" inputmode="numeric" maxlength="3"></label><label>Installment amount<input name="installmentAmount" inputmode="decimal"></label><label>Installment treatment<select name="installmentInterestStyle"><option value="">Choose one…</option><option value="including_interest">Including interest</option><option value="plus_interest">Plus interest</option></select></label><label>Installments begin after note (months)<input name="installmentBeginsAfterMonths" inputmode="numeric" maxlength="3"></label><label>Balance due after note (months)<input name="payoffAfterMonths" inputmode="numeric" maxlength="3"></label></div><label>Property transfer term<select name="propertyTransfer" required><option value="">Choose one…</option><option value="consent_not_required">Seller consent not required</option><option value="consent_required">Seller consent required</option></select></label><label>Casualty insurance<select name="casualtyInsurance" required><option value="">Choose one…</option><option value="required">Buyer shall obtain it</option><option value="not_required">Buyer shall not obtain it</option></select></label><label class="hof-agreement-wide">Tax and insurance escrow<select name="escrow" required><option value="">Choose one…</option><option value="not_required">Escrow not required</option><option value="required">Escrow required</option></select></label><div id="txr1914EscrowDetails" class="hof-agreement-grid hof-agreement-wide" style="display:none"><label>Third-party servicer<select name="thirdPartyServicer"><option value="">Choose one…</option><option value="will">Will service escrow</option><option value="will_not">Will not service escrow</option></select></label><label>Escrow-service cost<select name="escrowCostPaidBy"><option value="">Choose one…</option><option value="buyer">Buyer pays</option><option value="seller">Seller pays</option></select></label></div><label class="hof-agreement-wide hof-agreement-services"><input name="sellerFinancingReviewAcknowledgment" type="checkbox" required> I confirm the parties will review seller-financing terms with appropriate professionals before signing. This is a private review draft, not a loan document or signature request.</label></div><div id="txr1914DraftStatus" class="hof-iabs-status"></div><div class="hof-agreement-footer"><button class="btn-secondary" type="button" id="txr1914Cancel">Cancel</button><button class="btn-primary" type="submit">Save private review draft</button></div></form>`;
@@ -21632,6 +21649,34 @@ function routeAfterMagicLinkIfNeeded() {
       ? message
       : fallback;
   };
+})();
+</script>
+<script id="hof-purchase-addendum-interview-openers-v1">
+(() => {
+  // The purchase interview may route to an already-mounted private review
+  // card. Keeping the form's existing card as the single opener preserves its
+  // source-readiness check and avoids duplicating any form mapping here.
+  const openExistingPrivateDraft = (cardId, formCode) => new Promise((resolve, reject) => {
+    let attempts = 0;
+    const open = () => {
+      const button = document.querySelector(`#${cardId} button`);
+      if (button) {
+        button.click();
+        resolve();
+        return;
+      }
+      attempts += 1;
+      if (attempts < 12) {
+        window.setTimeout(open, 100);
+        return;
+      }
+      reject(new Error(`${formCode} is not currently available in the HomeOfferFlow form library.`));
+    };
+    open();
+  });
+  window.hofOpenTxr1919Draft = () => openExistingPrivateDraft('txr1919AgreementCard', 'TXR-1919');
+  window.hofOpenTxr1917Draft = () => openExistingPrivateDraft('txr1917Card', 'TXR-1917');
+  window.hofOpenTxr1948Draft = () => openExistingPrivateDraft('txr1948AgreementCard', 'TXR-1948');
 })();
 </script>
 <script id="hof-private-review-save-feedback-v1">
