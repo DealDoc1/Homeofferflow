@@ -355,6 +355,20 @@ def _seller_plan_receipt_steps(payload):
     return FSBO_RECEIPT_NEXT_STEPS.get(service_level, FSBO_RECEIPT_NEXT_STEPS["free_intake"])
 
 
+def _seller_plan_scope_note(service_level):
+    """Explain the next decision without making the free plan feel gated."""
+    if service_level == "free_intake":
+        return (
+            "Your free seller plan is ready to use. If you later request paid support, "
+            "a qualified human review will confirm scope, provider involvement, availability, and final pricing "
+            "before any paid service begins."
+        )
+    return (
+        "A qualified human review is required to confirm scope, provider involvement, availability, and final pricing "
+        "before any paid service begins."
+    )
+
+
 def _send_seller_plan_confirmation(payload):
     """Best-effort transactional receipt; a valid seller request is never discarded for email failure."""
     if not RESEND_API_KEY:
@@ -371,6 +385,7 @@ def _send_seller_plan_confirmation(payload):
         service_level = "free_intake"
     timeline = str(payload.get("timeline") or "not sure").replace("_", " ")
     next_steps = _seller_plan_receipt_steps(payload)
+    scope_note = _seller_plan_scope_note(service_level)
     return_link = f"{PUBLIC_APP_ORIGIN}/sellers?{urlencode({'seller_package': service_level, 'utm_source': 'email', 'utm_medium': 'seller_receipt', 'utm_campaign': 'seller_follow_up'})}"
     plain_steps = "\n".join(f"{index}. {step}" for index, step in enumerate(next_steps, start=1))
     html_steps = "".join(f"<li>{html.escape(step)}</li>" for step in next_steps)
@@ -382,7 +397,7 @@ def _send_seller_plan_confirmation(payload):
         "Your next steps:\n"
         f"{plain_steps}\n\n"
         f"Review your selected path: {return_link}\n\n"
-        "A qualified human review is required to confirm scope, provider involvement, availability, and final pricing before any paid service begins. "
+        f"{scope_note} "
         "This receipt is not checkout, representation, a confirmed service order, or legal advice.\n\n"
         "Have a question or want to discuss the next step sooner? Reply directly to this email."
     )
@@ -416,7 +431,7 @@ def _send_seller_plan_confirmation(payload):
             "<h3>Your next steps</h3>"
             f"<ol>{html_steps}</ol>"
             f'<p><a href="{safe_return_link}">Review your selected path</a></p>'
-            "<p>A qualified human review is required to confirm scope, provider involvement, availability, and final pricing before any paid service begins.</p>"
+            f"<p>{html.escape(scope_note)}</p>"
             "<p>This receipt is not checkout, representation, a confirmed service order, or legal advice.</p>"
             "<p>Have a question or want to discuss the next step sooner? Reply directly to this email.</p>"
         ),
