@@ -184,12 +184,22 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("openExistingPrivateDraft", INDEX)
 
     def test_guided_private_draft_handoff_explains_unavailable_sources(self):
-        start = INDEX.index("const openRelationshipDraft = (openerName)")
+        start = INDEX.index("const openRelationshipDraft = (openerName, onOpened)")
         end = INDEX.index("const openRelationshipPackage = (type)", start)
         handoff = INDEX[start:end]
         self.assertIn("const reportOpenError", handoff)
-        self.assertIn("Promise.resolve(opener()).catch(reportOpenError)", handoff)
+        self.assertIn("Promise.resolve(opener()).then(() => onOpened?.()).catch(reportOpenError)", handoff)
         self.assertIn("This form is not available right now.", handoff)
+
+    def test_nested_package_start_waits_for_the_actual_private_draft_dialog(self):
+        start = INDEX.index("window.hofOpenAgentPackageInterview = function")
+        end = INDEX.index("window.startAgentWorkflow = function", start)
+        interview = INDEX[start:end]
+        self.assertIn("const recordPrivateDraftWorkspaceStart = (choice, packageType)", interview)
+        self.assertIn("document.querySelector('.hof-agreement-dialog')", interview)
+        self.assertIn("deferStartToNestedChoice: true", interview)
+        self.assertIn("if (!choice.deferStartToNestedChoice) recordPackageWorkspaceStart(choice);", interview)
+        self.assertIn("openRelationshipDraft(choice.opener, () => recordPrivateDraftWorkspaceStart(choice, type));", interview)
 
     def test_nested_relationship_choice_returns_to_the_prior_package_question(self):
         start = INDEX.index("window.hofOpenAgentPackageInterview = function")

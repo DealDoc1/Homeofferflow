@@ -7308,6 +7308,20 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       };
       window.setTimeout(recordWhenOpen, 0);
     };
+    const recordPrivateDraftWorkspaceStart = (choice, packageType) => {
+      let attempts = 0;
+      const recordWhenOpen = () => {
+        // A nested choice is not a workspace. Count this only after the
+        // selected document's actual interview dialog has opened.
+        if (document.querySelector('.hof-agreement-dialog')) {
+          window.logOfferEvent?.(null, 'agent_form_package_started', 'started', 'Agent opened the selected guided package workspace.', { workflow: kind, package: choice.label, package_type: packageType });
+          return;
+        }
+        attempts += 1;
+        if (attempts < 12) window.setTimeout(recordWhenOpen, 100);
+      };
+      window.setTimeout(recordWhenOpen, 0);
+    };
     const openListingWorkspace = (focusStart = false) => {
       showAccountTab('seller');
       if (!focusStart) return;
@@ -7325,7 +7339,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       };
       window.setTimeout(focusWhenReady, 0);
     };
-    const openRelationshipDraft = (openerName) => {
+    const openRelationshipDraft = (openerName, onOpened) => {
       showAccountTab('relationships');
       let attempts = 0;
       const reportOpenError = (error) => {
@@ -7339,7 +7353,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       const openWhenReady = () => {
         const opener = window[openerName];
         if (typeof opener === 'function') {
-          Promise.resolve(opener()).catch(reportOpenError);
+          Promise.resolve(opener()).then(() => onOpened?.()).catch(reportOpenError);
           return;
         }
         attempts += 1;
@@ -7398,7 +7412,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         const choice = choices[Number(button.dataset.followUpChoice)];
         if (!choice) return;
         window.logOfferEvent?.(null, 'agent_form_package_workflow_selected', 'selected', 'Agent selected the exact form interview after a package recommendation.', { workflow: kind, package_type: type, form_choice: choice.label });
-        followUp.remove(); openRelationshipDraft(choice.opener);
+        followUp.remove(); openRelationshipDraft(choice.opener, () => recordPrivateDraftWorkspaceStart(choice, type));
       }));
     };
     const packages = {
@@ -7406,9 +7420,9 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         title: 'What do you need for this purchase transaction?',
         choices: [
           { label: 'Prepare an offer', copy: 'Tell us about the buyer, property, financing, and timing. We’ll assemble the available offer documents.', action: () => startAccountOffer(), isWorkspaceOpen: () => document.getElementById('wizardOverlay')?.classList.contains('active') },
-          { label: 'Set up representation', copy: 'Choose the agreement, then answer the client questions that apply.', action: () => openRelationshipPackage('representation'), isWorkspaceOpen: () => Boolean(document.getElementById('hofAgentPackageFollowUp')) },
-          { label: 'Review a purchase addendum', copy: 'Choose the addendum the transaction needs, then prepare its private review draft.', action: () => openRelationshipPackage('purchase_addendum'), isWorkspaceOpen: () => Boolean(document.getElementById('hofAgentPackageFollowUp')) },
-          { label: 'Prepare a showing form or notice', copy: 'Choose the right document for the customer and situation.', action: () => openRelationshipPackage('customer'), isWorkspaceOpen: () => Boolean(document.getElementById('hofAgentPackageFollowUp')) }
+          { label: 'Set up representation', copy: 'Choose the agreement, then answer the client questions that apply.', action: () => openRelationshipPackage('representation'), deferStartToNestedChoice: true },
+          { label: 'Review a purchase addendum', copy: 'Choose the addendum the transaction needs, then prepare its private review draft.', action: () => openRelationshipPackage('purchase_addendum'), deferStartToNestedChoice: true },
+          { label: 'Prepare a showing form or notice', copy: 'Choose the right document for the customer and situation.', action: () => openRelationshipPackage('customer'), deferStartToNestedChoice: true }
         ]
       },
       sale_listing: {
@@ -7429,8 +7443,8 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       lease_representation: {
         title: 'What do you need for this tenant transaction?',
         choices: [
-          { label: 'Set up representation', copy: 'Choose the agreement, then answer the tenant questions that apply.', action: () => openRelationshipPackage('representation'), isWorkspaceOpen: () => Boolean(document.getElementById('hofAgentPackageFollowUp')) },
-          { label: 'Prepare a showing form or notice', copy: 'Choose the right document for the customer and situation.', action: () => openRelationshipPackage('customer'), isWorkspaceOpen: () => Boolean(document.getElementById('hofAgentPackageFollowUp')) }
+          { label: 'Set up representation', copy: 'Choose the agreement, then answer the tenant questions that apply.', action: () => openRelationshipPackage('representation'), deferStartToNestedChoice: true },
+          { label: 'Prepare a showing form or notice', copy: 'Choose the right document for the customer and situation.', action: () => openRelationshipPackage('customer'), deferStartToNestedChoice: true }
         ]
       }
     };
@@ -7464,7 +7478,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       // start is recorded only after its destination opens, so conversion
       // reporting identifies real handoff failures without retaining client,
       // property, or form data.
-      recordPackageWorkspaceStart(choice);
+      if (!choice.deferStartToNestedChoice) recordPackageWorkspaceStart(choice);
     }));
     return true;
   };
