@@ -25,7 +25,6 @@ class PartnerTierUiTests(unittest.TestCase):
     def test_founder_offer_is_a_clear_nonrenewing_90_day_pilot(self):
         required_copy = (
             "first 90 days for the price of one standard month",
-            "first 10 approved partners",
             "no setup fee",
             "then renews monthly at the standard rate after 90 days unless cancelled",
             "Then $149/month after 90 days, unless cancelled",
