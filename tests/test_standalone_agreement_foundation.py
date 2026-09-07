@@ -190,7 +190,7 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
 
     def test_relationship_workspace_describes_the_shared_mineral_draft_without_an_authorization_gate(self):
         self.assertIn("TXR-1905 · Mineral Reservation Addendum", HTML)
-        self.assertIn("checks your signed-in session and the approved source revision", HTML)
+        self.assertIn("confirms your sign-in and the current approved form edition", HTML)
         self.assertNotIn("Each tool below checks your brokerage authorization", HTML)
 
     def test_server_uses_the_shared_library_without_agent_authorization_gate(self):
