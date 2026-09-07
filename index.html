@@ -5467,7 +5467,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     // then open the same private draft automatically. This never creates,
     // sends, signs, or selects agreement terms.
     window.__hofPendingTenantRepresentationDraft = kind === 'long' ? 'long' : 'short';
-    if (status) status.textContent = 'Checking the approved source for your selected draft…';
+    if (status) status.textContent = 'Checking the approved form for your selected draft…';
   };
 
   async function openAccountDashboard(opts = {}) {
@@ -19416,7 +19416,7 @@ function routeAfterMagicLinkIfNeeded() {
         copy.textContent = 'TXR-1507 is not currently available in your form library.';
         return;
       }
-      copy.innerHTML = `Start a private Buyer/Tenant Representation Agreement, Short Form (TXR-1507), using the ${escape(source.source_revision)} HomeOfferFlow library source. Review the saved draft, then use the private signing queue to explicitly confirm recipients and send it when appropriate.`;
+      copy.innerHTML = `Start a private Buyer/Tenant Representation Agreement, Short Form (TXR-1507), using the approved ${escape(source.source_revision)} form. Review the draft, then choose recipients and send it when appropriate.`;
       const button = document.createElement('button');
       button.type = 'button'; button.className = 'btn-secondary'; button.textContent = 'Start straightforward representation draft';
       button.addEventListener('click', () => openDraftDialog(source));
@@ -19425,7 +19425,7 @@ function routeAfterMagicLinkIfNeeded() {
       if (root.__hofPendingTenantRepresentationDraft === 'short') {
         root.__hofPendingTenantRepresentationDraft = '';
         const status = document.getElementById('leaseRepresentationQuickChoiceStatus');
-        if (status) status.textContent = 'Approved source ready. Opening your selected private draft…';
+        if (status) status.textContent = 'Approved form ready. Opening your selected private draft…';
         root.hofOpenTxr1507Draft();
       }
     } catch (error) {
@@ -19442,7 +19442,7 @@ function routeAfterMagicLinkIfNeeded() {
     modal.innerHTML = `
       <form class="hof-agreement-dialog" id="txr1507AgreementForm">
         <h3>Straightforward representation agreement</h3>
-        <p>Source revision ${escape(source.source_revision)} is available in the HomeOfferFlow library. Review every term with your client. This saves a private draft only; it does not send or sign an agreement.</p>
+        <p>The approved ${escape(source.source_revision)} form is ready. Review every term with your client. This saves a private draft only; it does not send or sign an agreement.</p>
         <div class="hof-agreement-grid">
           <label>Client 1 full name<input name="clientOne" required maxlength="180"></label>
           <label>Client 2 full name (optional)<input name="clientTwo" maxlength="180"></label>
@@ -19457,7 +19457,7 @@ function routeAfterMagicLinkIfNeeded() {
           <label>Lease: % of all rents<input name="leaseTotalRentsPercentage" inputmode="decimal" placeholder="Enter only if broker-approved"></label>
           <label>Lease flat fee<input name="leaseFlatFee" inputmode="decimal" placeholder="Enter only if broker-approved"></label>
           <label>Intermediary choice<select name="intermediary" required><option value="">Choose one…</option><option value="authorized">Client authorizes intermediary</option><option value="not_authorized">Client does not authorize intermediary</option></select></label>
-          <label>Signer plan<select name="signerPlan" required><option value="">Choose one…</option><option value="clients_and_associate">Clients and broker associate sign</option><option value="clients_and_broker">Clients and broker sign</option></select><small>This source includes a brokerage execution line. Choose the authorized broker or broker associate signer; HomeOfferFlow will not infer it.</small></label>
+          <label>Who will sign?<select name="signerPlan" required><option value="">Choose one…</option><option value="clients_and_associate">Clients and broker associate sign</option><option value="clients_and_broker">Clients and broker sign</option></select><small>This form includes a brokerage execution line. Choose the authorized broker or broker associate signer; HomeOfferFlow will not infer it.</small></label>
         </div>
         <div id="txr1507DraftStatus" class="hof-iabs-status"></div>
         <div class="hof-agreement-footer"><button class="btn-secondary" type="button" id="txr1507Cancel">Cancel</button><button class="btn-primary" type="submit">Save private draft</button></div>
@@ -19544,7 +19544,7 @@ function routeAfterMagicLinkIfNeeded() {
         copy.textContent = 'TXR-1501 is not currently available in your form library.';
         return;
       }
-      copy.innerHTML = `Start a private Buyer/Tenant Representation Agreement, Long Form (TXR-1501), using the ${escape(source.source_revision)} HomeOfferFlow library source. Choose this form deliberately; it is not a substitute for the Short Form. Review the saved draft, then use the private signing queue to explicitly confirm recipients before sending.`;
+      copy.innerHTML = `Start a private Buyer/Tenant Representation Agreement, Long Form (TXR-1501), using the approved ${escape(source.source_revision)} form. Choose this form deliberately; it is not a substitute for the Short Form. Review the draft, then choose recipients before sending.`;
       const button = document.createElement('button');
       button.type = 'button'; button.className = 'btn-secondary'; button.textContent = 'Start detailed representation draft';
       button.addEventListener('click', () => openLongDraftDialog(source));
@@ -19553,7 +19553,7 @@ function routeAfterMagicLinkIfNeeded() {
       if (root.__hofPendingTenantRepresentationDraft === 'long') {
         root.__hofPendingTenantRepresentationDraft = '';
         const status = document.getElementById('leaseRepresentationQuickChoiceStatus');
-        if (status) status.textContent = 'Approved source ready. Opening your selected private draft…';
+        if (status) status.textContent = 'Approved form ready. Opening your selected private draft…';
         root.hofOpenTxr1501Draft();
       }
     } catch (error) {
@@ -19569,7 +19569,7 @@ function routeAfterMagicLinkIfNeeded() {
     modal.innerHTML = `
       <form class="hof-agreement-dialog" id="txr1501AgreementForm">
         <h3>Detailed representation agreement</h3>
-        <p>Source revision ${escape(source.source_revision)} is available in the HomeOfferFlow library. Enter only agreed terms after reviewing them with your client. This saves a private draft only; it does not create, send, or sign the source form.</p>
+        <p>The approved ${escape(source.source_revision)} form is ready. Enter only agreed terms after reviewing them with your client. This saves a private draft only; it does not create, send, or sign the agreement.</p>
         <div class="hof-agreement-grid">
           <label>Client 1 full name<input name="clientOne" required maxlength="180"></label>
           <label>Client 2 full name (optional)<input name="clientTwo" maxlength="180"></label>
@@ -19590,7 +19590,7 @@ function routeAfterMagicLinkIfNeeded() {
           <label>Protection period days (optional)<input name="protectionDays" inputmode="numeric" placeholder="Enter only if broker-approved"></label>
           <label>Payment county<input name="paymentCounty" required maxlength="100" placeholder="Example: Collin"></label>
           <label class="hof-agreement-wide">Intermediary choice<select name="intermediary" required><option value="">Choose one…</option><option value="authorized">Client authorizes intermediary</option><option value="not_authorized">Client does not authorize intermediary</option></select></label>
-          <label>Signer plan<select name="signerPlan" required><option value="">Choose one…</option><option value="clients_and_associate">Clients and broker associate sign</option><option value="clients_and_broker">Clients and broker sign</option></select><small>This source includes a brokerage execution line. Choose the authorized broker or broker associate signer; HomeOfferFlow will not infer it.</small></label>
+          <label>Who will sign?<select name="signerPlan" required><option value="">Choose one…</option><option value="clients_and_associate">Clients and broker associate sign</option><option value="clients_and_broker">Clients and broker sign</option></select><small>This form includes a brokerage execution line. Choose the authorized broker or broker associate signer; HomeOfferFlow will not infer it.</small></label>
         </div>
         <div id="txr1501DraftStatus" class="hof-iabs-status"></div>
         <div class="hof-agreement-footer"><button class="btn-secondary" type="button" id="txr1501Cancel">Cancel</button><button class="btn-primary" type="submit">Save private draft</button></div>
@@ -19679,7 +19679,7 @@ function routeAfterMagicLinkIfNeeded() {
         copy.textContent = 'TXR-1508 is not currently available in your form library.';
         return;
       }
-      copy.innerHTML = `Start a private TXR-1508 showing draft using the ${escape(source.source_revision)} HomeOfferFlow library source. This is an unrepresented-customer workflow, not a buyer representation agreement. Review the saved draft, then use the private signing queue to explicitly confirm recipients and send it when appropriate.`;
+      copy.innerHTML = `Start a private TXR-1508 showing draft using the approved ${escape(source.source_revision)} form. This is an unrepresented-customer workflow, not a buyer representation agreement. Review the draft, then choose recipients and send it when appropriate.`;
       const button = document.createElement('button');
       button.type = 'button'; button.className = 'btn-secondary'; button.textContent = 'Start TXR-1508 draft';
       button.addEventListener('click', () => openShowingDraftDialog(source));
@@ -19701,14 +19701,14 @@ function routeAfterMagicLinkIfNeeded() {
     modal.innerHTML = `
       <form class="hof-agreement-dialog" id="txr1508AgreementForm">
         <h3>TXR-1508 Unrepresented Customer Showing draft</h3>
-        <p>Source revision ${escape(source.source_revision)} is available in the HomeOfferFlow library. Use this only for an unrepresented customer showing. It does not create agency, compensation, advice, or any other brokerage service. This saves a private draft only; it does not create, send, or sign the source form.</p>
+        <p>The approved ${escape(source.source_revision)} form is ready. Use this only for an unrepresented customer showing. It does not create agency, compensation, advice, or any other brokerage service. This saves a private draft only; it does not create, send, or sign the agreement.</p>
         <div class="hof-agreement-grid">
           <label class="hof-agreement-wide">Property street address and city<input name="propertyAddress" required maxlength="400" placeholder="Example: 1438 Whitaker Road, Van Alstyne, TX"></label>
           <label>Customer 1 full name<input name="customerOne" required maxlength="180"></label>
           ${customerStatusField(1)}
           <label>Customer 2 full name (optional)<input name="customerTwo" maxlength="180"></label>
           <div id="txr1508CustomerTwoStatus" style="display:none">${customerStatusField(2)}</div>
-          <label>Signer plan<select name="signerPlan" required><option value="">Choose one…</option><option value="associate_and_clients">Associate and customer(s)</option><option value="broker_and_clients">Broker and customer(s)</option></select><small>Choose deliberately; HomeOfferFlow will not infer whether the associate or broker acknowledges the showing form.</small></label>
+          <label>Who will sign?<select name="signerPlan" required><option value="">Choose one…</option><option value="associate_and_clients">Associate and customer(s)</option><option value="broker_and_clients">Broker and customer(s)</option></select><small>Choose deliberately; HomeOfferFlow will not infer whether the associate or broker acknowledges the showing form.</small></label>
           <label class="hof-agreement-wide hof-agreement-services"><input name="unrepresentedAcknowledgment" type="checkbox" required> I confirm this is an unrepresented-customer showing draft only: no representation, no compensation, no advice or opinions, and no other brokerage services are being promised through this draft.</label>
         </div>
         <div id="txr1508DraftStatus" class="hof-iabs-status"></div>
@@ -19790,7 +19790,7 @@ function routeAfterMagicLinkIfNeeded() {
     try {
       const source = await approvedNoticeSource(), copy = card.querySelector('#txr1506AgreementCopy');
       if (!source) { copy.textContent = 'TXR-1506 is not currently available in your form library.'; return; }
-      copy.innerHTML = `Start a private TXR-1506 notice draft using the ${escape(source.source_revision)} HomeOfferFlow library source. This is a consumer notice, not a representation agreement. Review the saved draft, then use the private signing queue to explicitly confirm recipients before sending.`;
+      copy.innerHTML = `Start a private TXR-1506 notice draft using the approved ${escape(source.source_revision)} form. This is a consumer notice, not a representation agreement. Review the draft, then choose recipients before sending.`;
       const button = document.createElement('button'); button.type = 'button'; button.className = 'btn-secondary'; button.textContent = 'Start TXR-1506 draft';
       button.addEventListener('click', () => openNoticeDraft(source)); card.appendChild(button);
     } catch (error) { console.error('TXR-1506 source check failed:', error); card.querySelector('#txr1506AgreementCopy').textContent = root.hofApprovedSourceStatusCopy(error); }
@@ -19798,7 +19798,7 @@ function routeAfterMagicLinkIfNeeded() {
   function openNoticeDraft(source) {
     document.getElementById('txr1506AgreementDialog')?.remove();
     const modal = document.createElement('div'); modal.id = 'txr1506AgreementDialog'; modal.className = 'hof-agreement-modal';
-    modal.innerHTML = `<form class="hof-agreement-dialog" id="txr1506AgreementForm"><h3>TXR-1506 consumer notice draft</h3><p>Source revision ${escape(source.source_revision)} is available in the HomeOfferFlow library. This saves a private draft only; it does not create, send, or sign the source form.</p><div class="hof-agreement-grid"><label>Consumer 1 full name<input name="consumerOne" required maxlength="180"></label><label>Consumer 2 full name (optional)<input name="consumerTwo" maxlength="180"></label><label>Consumer transaction role<select name="consumerRole" required><option value="">Choose one…</option><option value="buyer">Buyer</option><option value="tenant">Tenant</option><option value="seller">Seller</option><option value="landlord">Landlord</option><option value="other">Other</option></select></label><label class="hof-agreement-wide">Other notice text (optional)<textarea name="additionalNotice" maxlength="1000" placeholder="Enter only agent-confirmed text for the source form's Other area."></textarea></label><label>Signer plan<select name="signerPlan" required><option value="">Choose one…</option><option value="consumers_and_associate">Consumers and broker associate</option><option value="consumers_and_broker">Consumers and broker</option></select><small>Choose deliberately; HomeOfferFlow will not infer the signer.</small></label><label class="hof-agreement-wide hof-agreement-services"><input name="noticeAcknowledgment" type="checkbox" required> I confirm the consumer will receive, read, and acknowledge this general information notice. This draft does not create representation.</label></div><div id="txr1506DraftStatus" class="hof-iabs-status"></div><div class="hof-agreement-footer"><button class="btn-secondary" type="button" id="txr1506Cancel">Cancel</button><button class="btn-primary" type="submit">Save private draft</button></div></form>`;
+    modal.innerHTML = `<form class="hof-agreement-dialog" id="txr1506AgreementForm"><h3>TXR-1506 consumer notice draft</h3><p>The approved ${escape(source.source_revision)} form is ready. This saves a private draft only; it does not create, send, or sign the notice.</p><div class="hof-agreement-grid"><label>Consumer 1 full name<input name="consumerOne" required maxlength="180"></label><label>Consumer 2 full name (optional)<input name="consumerTwo" maxlength="180"></label><label>Consumer transaction role<select name="consumerRole" required><option value="">Choose one…</option><option value="buyer">Buyer</option><option value="tenant">Tenant</option><option value="seller">Seller</option><option value="landlord">Landlord</option><option value="other">Other</option></select></label><label class="hof-agreement-wide">Other notice text (optional)<textarea name="additionalNotice" maxlength="1000" placeholder="Enter only agent-confirmed text for the form's Other area."></textarea></label><label>Who will sign?<select name="signerPlan" required><option value="">Choose one…</option><option value="consumers_and_associate">Consumers and broker associate</option><option value="consumers_and_broker">Consumers and broker</option></select><small>Choose deliberately; HomeOfferFlow will not infer the signer.</small></label><label class="hof-agreement-wide hof-agreement-services"><input name="noticeAcknowledgment" type="checkbox" required> I confirm the consumer will receive, read, and acknowledge this general information notice. This draft does not create representation.</label></div><div id="txr1506DraftStatus" class="hof-iabs-status"></div><div class="hof-agreement-footer"><button class="btn-secondary" type="button" id="txr1506Cancel">Cancel</button><button class="btn-primary" type="submit">Save private draft</button></div></form>`;
     document.body.appendChild(modal); modal.querySelector('#txr1506Cancel').addEventListener('click', () => modal.remove()); modal.addEventListener('click', event => { if (event.target === modal) modal.remove(); });
     modal.querySelector('#txr1506AgreementForm').addEventListener('submit', event => submitNoticeDraft(event, source, modal));
   }
