@@ -23,6 +23,11 @@ class AgentLaunchScopeTests(unittest.TestCase):
             "are not sent or signed through HomeOfferFlow",
             HTML,
         )
+        self.assertIn(
+            "Use your approved workflow for documents outside the current HomeOfferFlow scope.",
+            HTML,
+        )
+        self.assertNotIn("Use your approved brokerage process", HTML)
 
     def test_scope_explains_shared_txr_library_and_deliberate_delivery(self):
         self.assertIn("every signed-in agent", HTML)
