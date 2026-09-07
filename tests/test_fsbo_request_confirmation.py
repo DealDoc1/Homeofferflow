@@ -113,6 +113,12 @@ class FsboRequestConfirmationTests(unittest.TestCase):
         self.assertIn('"seller_plan_email": email_delivery', duplicate_branch)
         self.assertIn('"duplicate": True', duplicate_branch)
 
+    def test_duplicate_seller_request_is_not_counted_as_a_new_browser_acquisition(self):
+        duplicate_guard = "if (!data.duplicate) {\n        trackFsboFunnel('FSBO Seller Request Saved'"
+        self.assertIn(duplicate_guard, HTML)
+        self.assertIn("Your seller request is already saved.", HTML)
+        self.assertIn("remains recorded for follow-up.", HTML)
+
     def test_seller_plan_receipt_escapes_seller_content_and_is_idempotent(self):
         spec = importlib.util.spec_from_file_location("fsbo_plan_receipt", API_PATH)
         api = importlib.util.module_from_spec(spec)

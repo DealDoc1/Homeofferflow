@@ -14489,7 +14489,12 @@ function routeAfterMagicLinkIfNeeded() {
       const res = await fetch('/api/fsbo-lead', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
       const data = await res.json().catch(()=>({}));
       if (!res.ok) throw new Error(data.error || 'Could not save seller request.');
-      trackFsboFunnel('FSBO Seller Request Saved', { package: payload.service_level, source: source === 'quick' ? 'quick' : 'full', timeline: payload.timeline });
+      // A server-side dedupe can safely restore a receipt after a connection
+      // retry. Count the initial request as acquisition, not its confirmation
+      // retry, so the seller funnel remains a reliable lead measure.
+      if (!data.duplicate) {
+        trackFsboFunnel('FSBO Seller Request Saved', { package: payload.service_level, source: source === 'quick' ? 'quick' : 'full', timeline: payload.timeline });
+      }
       try { sessionStorage.setItem(submissionKey, data.seller_lead_id || 'saved'); } catch (_) {}
       clearFsboDraft();
       const selected = fsboNeedCopy[fsboVal('fsboNeed')] || fsboNeedCopy.free_intake;
@@ -14502,8 +14507,10 @@ function routeAfterMagicLinkIfNeeded() {
           ? '<br><span style="color:var(--sage-light);font-size:.86rem;">A copy of this request was also emailed to you.</span>'
           : '';
         status.className = 'platform-status ok';
-        status.innerHTML = '<strong>Seller request saved.</strong><br>' +
-          escapeAttr(selected.title) + ' is recorded for follow-up. A human review is still required to confirm scope, provider involvement, availability, and final pricing before any paid service begins.' +
+        status.innerHTML = (data.duplicate
+          ? '<strong>Your seller request is already saved.</strong><br>'
+          : '<strong>Seller request saved.</strong><br>') +
+          escapeAttr(selected.title) + (data.duplicate ? ' remains recorded for follow-up.' : ' is recorded for follow-up.') + ' A human review is still required to confirm scope, provider involvement, availability, and final pricing before any paid service begins.' +
           emailReceipt +
           '<div class="notice sage" style="margin:.8rem 0 .1rem;padding:.75rem .85rem;"><strong>' + escapeAttr(readiness.title) + '</strong><ol style="margin:.5rem 0 .1rem 1.2rem;color:var(--gray-light);line-height:1.45;">' + readiness.steps.map(step => '<li>' + escapeAttr(step) + '</li>').join('') + '</ol></div>' +
           '<ol style="margin:.65rem 0 .1rem 1.2rem;color:var(--gray-light);line-height:1.45;">' + steps.map(step => '<li>' + escapeAttr(step) + '</li>').join('') + '</ol>' +
