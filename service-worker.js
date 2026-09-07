@@ -1,30 +1,10 @@
 // Bump the shell when manifest shortcuts or core install behavior changes so
 // an already-installed agent receives the current app metadata immediately.
-const SHELL_CACHE = 'homeofferflow-shell-v58';
+const SHELL_CACHE = 'homeofferflow-shell-v59';
 const SHELL_ASSETS = [
-  '/',
-  '/index.html',
-  '/agents',
-  '/sellers',
-  '/partners',
-  '/ondemand',
-  '/buyers',
-  '/investors',
-  '/directory',
-  '/texas-fsbo-guide',
-  '/texas-seller-offer-review',
-  '/texas-agent-offer-workflow',
-  '/texas-lease-offer-workflow',
-  '/texas-listing-workflow',
-  '/texas-agent-form-library',
-  '/texas-seller-financing-guide',
-  '/texas-buyer-representation-guide',
-  '/texas-flat-fee-mls-guide',
-  '/texas-seller-net-proceeds-calculator',
-  '/texas-fsbo-closing-checklist',
-  '/texas-homebuyer-offer-guide',
-  '/texas-investor-offer-guide',
-  '/texas-home-service-partner-guide',
+  // Keep installation lightweight. Public pages cache after the visitor has
+  // actually opened them; preloading every guide would spend bandwidth for
+  // pages most visitors never use.
   '/manifest.webmanifest',
   '/assets/pwa-register.js',
   '/assets/pwa-share-target.js',
