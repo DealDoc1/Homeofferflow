@@ -277,7 +277,7 @@ class AgentActivationDashboardTests(unittest.TestCase):
         self.assertIn("Start a lease listing", HTML)
         self.assertIn("Resume a lease listing", HTML)
         self.assertIn("const openListingWorkspace = (focusStart = false)", HTML)
-        self.assertIn("{ label: 'Set up the listing', copy: 'Tell us about the seller, property, timing, and next steps.', action: () => openListingWorkspace(true) }", HTML)
+        self.assertIn("{ label: 'Set up the listing', copy: 'Tell us about the seller, property, timing, and next steps.', action: () => openListingWorkspace(true), isWorkspaceOpen: () => Boolean(document.getElementById('listingWorkspaceStartCard')) }", HTML)
         self.assertNotIn("Prepare lease details", HTML)
         self.assertIn("followUp.addEventListener('keydown', event => { if (event.key === 'Escape') followUp.remove(); });", HTML)
         self.assertIn("modal.addEventListener('keydown', event => { if (event.key === 'Escape') modal.remove(); });", HTML)

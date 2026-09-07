@@ -7296,6 +7296,18 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   // workspace. This keeps the agent experience an interview that assembles a
   // relevant working package rather than a form catalog to search through.
   window.hofOpenAgentPackageInterview = function hofOpenAgentPackageInterview(kind) {
+    const recordPackageWorkspaceStart = (choice) => {
+      let attempts = 0;
+      const recordWhenOpen = () => {
+        if (choice.isWorkspaceOpen?.()) {
+          window.logOfferEvent?.(null, 'agent_form_package_started', 'started', 'Agent opened the selected guided package workspace.', { workflow: kind, package: choice.label });
+          return;
+        }
+        attempts += 1;
+        if (attempts < 12) window.setTimeout(recordWhenOpen, 100);
+      };
+      window.setTimeout(recordWhenOpen, 0);
+    };
     const openListingWorkspace = (focusStart = false) => {
       showAccountTab('seller');
       if (!focusStart) return;
@@ -7355,31 +7367,31 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       purchase: {
         title: 'What do you need for this purchase transaction?',
         choices: [
-          { label: 'Prepare an offer', copy: 'Tell us about the buyer, property, financing, and timing. We’ll assemble the available offer documents.', action: () => startAccountOffer() },
-          { label: 'Set up representation', copy: 'Choose the agreement, then answer the client questions that apply.', action: () => openRelationshipPackage('representation') },
-          { label: 'Prepare a showing form or notice', copy: 'Choose the right document for the customer and situation.', action: () => openRelationshipPackage('customer') }
+          { label: 'Prepare an offer', copy: 'Tell us about the buyer, property, financing, and timing. We’ll assemble the available offer documents.', action: () => startAccountOffer(), isWorkspaceOpen: () => document.getElementById('wizardOverlay')?.classList.contains('active') },
+          { label: 'Set up representation', copy: 'Choose the agreement, then answer the client questions that apply.', action: () => openRelationshipPackage('representation'), isWorkspaceOpen: () => Boolean(document.getElementById('hofAgentPackageFollowUp')) },
+          { label: 'Prepare a showing form or notice', copy: 'Choose the right document for the customer and situation.', action: () => openRelationshipPackage('customer'), isWorkspaceOpen: () => Boolean(document.getElementById('hofAgentPackageFollowUp')) }
         ]
       },
       sale_listing: {
         title: 'What do you need for this sale listing?',
         choices: [
-          { label: 'Set up the listing', copy: 'Tell us about the seller, property, timing, and next steps.', action: () => openListingWorkspace(true) },
-          { label: 'Prepare seller disclosures', copy: 'Answer the property and seller questions, then review the completed documents.', action: () => { showAccountTab('seller'); window.setTimeout(() => window.openSellerDisclosureDraftWorkspace?.(), 0); } },
-          { label: 'Review a buyer offer', copy: 'Compare price, financing, deadlines, concessions, and possession.', action: () => window.hofOpenListingOfferComparison?.() }
+          { label: 'Set up the listing', copy: 'Tell us about the seller, property, timing, and next steps.', action: () => openListingWorkspace(true), isWorkspaceOpen: () => Boolean(document.getElementById('listingWorkspaceStartCard')) },
+          { label: 'Prepare seller disclosures', copy: 'Answer the property and seller questions, then review the completed documents.', action: () => { showAccountTab('seller'); window.setTimeout(() => window.openSellerDisclosureDraftWorkspace?.(), 0); }, isWorkspaceOpen: () => Boolean(document.getElementById('hofSellerDisclosureCard')) },
+          { label: 'Review a buyer offer', copy: 'Compare price, financing, deadlines, concessions, and possession.', action: () => window.hofOpenListingOfferComparison?.(), isWorkspaceOpen: () => Boolean(document.getElementById('listingWorkspaceOfferComparisonCard')) }
         ]
       },
       lease_listing: {
         title: 'What do you need for this lease listing?',
         choices: [
-          { label: 'Start a lease listing', copy: 'Tell us about the landlord, property, availability, and next steps.', action: () => openListingWorkspace(true) },
-          { label: 'Resume a lease listing', copy: 'Open a saved private workspace to review the plan and continue where you left off.', action: () => openListingWorkspace() }
+          { label: 'Start a lease listing', copy: 'Tell us about the landlord, property, availability, and next steps.', action: () => openListingWorkspace(true), isWorkspaceOpen: () => Boolean(document.getElementById('listingWorkspaceStartCard')) },
+          { label: 'Resume a lease listing', copy: 'Open a saved private workspace to review the plan and continue where you left off.', action: () => openListingWorkspace(), isWorkspaceOpen: () => Boolean(document.getElementById('listingWorkspaceStartCard')) }
         ]
       },
       lease_representation: {
         title: 'What do you need for this tenant transaction?',
         choices: [
-          { label: 'Set up representation', copy: 'Choose the agreement, then answer the tenant questions that apply.', action: () => openRelationshipPackage('representation') },
-          { label: 'Prepare a showing form or notice', copy: 'Choose the right document for the customer and situation.', action: () => openRelationshipPackage('customer') }
+          { label: 'Set up representation', copy: 'Choose the agreement, then answer the tenant questions that apply.', action: () => openRelationshipPackage('representation'), isWorkspaceOpen: () => Boolean(document.getElementById('hofAgentPackageFollowUp')) },
+          { label: 'Prepare a showing form or notice', copy: 'Choose the right document for the customer and situation.', action: () => openRelationshipPackage('customer'), isWorkspaceOpen: () => Boolean(document.getElementById('hofAgentPackageFollowUp')) }
         ]
       }
     };
@@ -7404,11 +7416,11 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       window.logOfferEvent?.(null, 'agent_form_package_selected', 'selected', 'Agent selected a guided form package after the transaction interview.', { workflow: kind, package: choice.label });
       modal.remove();
       choice.action();
-      // Selection and workflow start are deliberately separate signals. A
-      // choice only becomes useful when its next workspace actually opens,
-      // which lets us identify a real handoff issue without retaining any
-      // client, property, or form data.
-      window.logOfferEvent?.(null, 'agent_form_package_started', 'started', 'Agent opened the selected guided package workspace.', { workflow: kind, package: choice.label });
+      // Selection and workspace start are deliberately separate signals. A
+      // start is recorded only after its destination opens, so conversion
+      // reporting identifies real handoff failures without retaining client,
+      // property, or form data.
+      recordPackageWorkspaceStart(choice);
     }));
     return true;
   };

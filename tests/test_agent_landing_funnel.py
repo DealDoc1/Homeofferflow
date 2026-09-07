@@ -72,6 +72,17 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("agent_landing_package_handoff", INDEX)
         self.assertIn("window.hofOpenAgentPackageInterview?.(agentLandingWorkflow)", INDEX)
 
+    def test_package_start_telemetry_waits_for_the_destination_workspace(self):
+        start = INDEX.index("window.hofOpenAgentPackageInterview = function")
+        end = INDEX.index("window.startAgentWorkflow = function", start)
+        interview = INDEX[start:end]
+        self.assertIn("const recordPackageWorkspaceStart = (choice)", interview)
+        self.assertIn("choice.isWorkspaceOpen?.()", interview)
+        self.assertIn("recordPackageWorkspaceStart(choice);", interview)
+        self.assertIn("document.getElementById('wizardOverlay')?.classList.contains('active')", interview)
+        self.assertIn("document.getElementById('listingWorkspaceStartCard')", interview)
+        self.assertIn("document.getElementById('hofAgentPackageFollowUp')", interview)
+
     def test_agent_landing_uses_the_neutral_listing_first_order(self):
         start = AGENTS.index('id="transaction-start"')
         end = AGENTS.index('</section>', start)
