@@ -5,6 +5,21 @@
   },
   "redirects": [
     {
+      "source": "/home-services-partners.html",
+      "destination": "/partners",
+      "permanent": true
+    },
+    {
+      "source": "/sell-your-home.html",
+      "destination": "/sellers",
+      "permanent": true
+    },
+    {
+      "source": "/texas-real-estate-agents.html",
+      "destination": "/agents",
+      "permanent": true
+    },
+    {
       "source": "/field-mapper.html",
       "destination": "/404.html",
       "permanent": false
