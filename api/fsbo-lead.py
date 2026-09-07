@@ -1601,7 +1601,9 @@ class handler(BaseHTTPRequestHandler):
             existing = _recent_matching_fsbo_lead(seller_email.lower(), property_address, service_level)
             if existing:
                 email_delivery = _send_seller_plan_confirmation(receipt_payload)
-                _record_seller_plan_receipt_event(receipt_payload, email_delivery)
+                # The first save owns aggregate receipt telemetry. A retry can
+                # safely recover the customer-facing email through Resend's
+                # idempotency key, but must not inflate the delivery funnel.
                 return _send(self, 200, {
                     "ok": True,
                     "seller_lead_id": existing.get("id"),
