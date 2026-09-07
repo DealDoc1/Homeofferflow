@@ -99,6 +99,17 @@ class TechnicalSeoTests(unittest.TestCase):
             "value": "public, max-age=120, s-maxage=86400, stale-while-revalidate=604800",
         }])
 
+    def test_obsolete_marketing_urls_permanently_preserve_search_equity(self):
+        redirects = {entry["source"]: entry for entry in VERCEL["redirects"]}
+        for source, destination in {
+            "/home-services-partners.html": "/partners",
+            "/sell-your-home.html": "/sellers",
+            "/texas-real-estate-agents.html": "/agents",
+        }.items():
+            with self.subTest(source=source):
+                self.assertEqual(redirects[source]["destination"], destination)
+                self.assertTrue(redirects[source]["permanent"])
+
     def test_public_landing_pages_share_the_safe_edge_cache_policy(self):
         cache_value = "public, max-age=120, s-maxage=86400, stale-while-revalidate=604800"
         public_routes = {rewrite["source"].lstrip("/") for rewrite in VERCEL["rewrites"]}
