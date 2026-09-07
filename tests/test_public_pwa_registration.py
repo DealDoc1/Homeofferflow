@@ -78,6 +78,11 @@ class PublicPwaRegistrationTests(unittest.TestCase):
         self.assertIn("Written-Agreement-Explainer.pdf", SCRIPT)
         self.assertIn("Follow the required professional process", SCRIPT)
 
+    def test_buyer_representation_guide_has_workflow_specific_install_copy(self):
+        self.assertIn("buyerRepresentationGuideSurface", SCRIPT)
+        self.assertIn("Keep buyer representation planning one tap away", SCRIPT)
+        self.assertIn("buyer-representation workflow and the agent workspace", SCRIPT)
+
     def test_ondemand_install_prompt_explains_its_app_value(self):
         self.assertIn("window.location.pathname === '/ondemand'", SCRIPT)
         self.assertIn("Keep your agent workspace one tap away", SCRIPT)
