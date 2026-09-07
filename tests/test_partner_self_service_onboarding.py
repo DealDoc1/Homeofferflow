@@ -47,6 +47,49 @@ class PartnerSelfServiceOnboardingTests(unittest.TestCase):
         self.assertNotIn("is_active", client.payload)
         record.assert_called_once_with("partner_onboarding_completed")
 
+    def test_logo_upload_is_limited_to_the_existing_branding_bucket_and_returns_only_a_signed_token(self):
+        lead_id = "e35eace9-2760-4b11-a01a-07ee65f2744e"
+        response = type("Response", (), {"status_code": 200, "text": '{"token":"short-lived-token"}', "json": lambda self: {"token": "short-lived-token"}})()
+        class Client:
+            def __enter__(self): return self
+            def __exit__(self, *args): return False
+            def post(self, *args, **kwargs): self.url, self.payload = args[0], kwargs["json"]; return response
+        client = Client()
+        with patch.object(fsbo, "_get_partner_onboarding", return_value={"id": lead_id}), \
+             patch.object(fsbo.httpx, "Client", return_value=client):
+            result = fsbo._create_partner_logo_upload("A" * 32, {"content_type": "image/png", "size_bytes": 1024})
+        self.assertEqual(result["bucket"], "brokerage-branding")
+        self.assertEqual(result["token"], "short-lived-token")
+        self.assertRegex(result["path"], rf"^partners/{lead_id}/[0-9a-f]{{32}}\.png$")
+        self.assertIn("/storage/v1/object/upload/sign/brokerage-branding/", client.url)
+        self.assertEqual(client.payload, {"upsert": False})
+
+    def test_logo_upload_rejects_wrong_type_or_size_before_storage_is_called(self):
+        with patch.object(fsbo, "_get_partner_onboarding", return_value={"id": "e35eace9-2760-4b11-a01a-07ee65f2744e"}), \
+             patch.object(fsbo.httpx, "Client") as storage:
+            with self.assertRaisesRegex(ValueError, "PNG, JPEG, or WebP"):
+                fsbo._create_partner_logo_upload("A" * 32, {"content_type": "image/gif", "size_bytes": 1024})
+            with self.assertRaisesRegex(ValueError, "smaller than 2 MB"):
+                fsbo._create_partner_logo_upload("A" * 32, {"content_type": "image/png", "size_bytes": 2 * 1024 * 1024 + 1})
+        storage.assert_not_called()
+
+    def test_completed_setup_accepts_only_a_logo_path_bound_to_this_partner(self):
+        lead_id = "e35eace9-2760-4b11-a01a-07ee65f2744e"
+        path = f"partners/{lead_id}/{'a' * 32}.webp"
+        response = type("Response", (), {"status_code": 200, "text": '[{}]', "json": lambda self: [{"company_name": "North Texas Title"}]})()
+        class Client:
+            def __enter__(self): return self
+            def __exit__(self, *args): return False
+            def patch(self, *args, **kwargs): self.payload = kwargs["json"]; return response
+        client = Client()
+        with patch.object(fsbo, "_get_partner_onboarding", return_value={"id": lead_id}), \
+             patch.object(fsbo, "_record_partner_onboarding_event"), \
+             patch.object(fsbo.httpx, "Client", return_value=client):
+            fsbo._complete_partner_onboarding("A" * 32, {"market_area": "DFW", "logo_path": path})
+        self.assertEqual(client.payload["onboarding_logo_url"], f"https://example.supabase.co/storage/v1/object/public/brokerage-branding/{path}")
+        with self.assertRaisesRegex(ValueError, "unavailable"):
+            fsbo._partner_branding_logo_url(lead_id, f"partners/11111111-1111-4111-8111-111111111111/{'a' * 32}.webp")
+
     def test_completed_checkout_recovery_rotates_a_setup_token_only_for_the_matching_paid_row(self):
         lead_id = "e35eace9-2760-4b11-a01a-07ee65f2744e"
         response = type("Response", (), {"status_code": 200, "text": '[{}]', "json": lambda self: [{"id": lead_id}]})()
@@ -118,6 +161,18 @@ class PartnerSelfServiceOnboardingTests(unittest.TestCase):
         self.assertIn("const market = value('partnerSetupMarket');", html)
         self.assertIn("market_area:market", html)
         self.assertIn("Website (https, optional)", html)
+        self.assertIn('id="partnerSetupLogoFile" type="file" accept="image/png,image/jpeg,image/webp"', html)
+        self.assertIn("PNG, JPEG, or WebP; up to 2 MB.", html)
+
+    def test_partner_setup_uploads_a_selected_logo_with_a_short_lived_storage_token(self):
+        html = (ROOT / "index.html").read_text()
+        source = (ROOT / "api/fsbo-lead.py").read_text()
+        self.assertIn("async function uploadPartnerOnboardingLogo(token)", html)
+        self.assertIn("request_type:'partner_onboarding_logo_upload'", html)
+        self.assertIn("storage.uploadToSignedUrl(upload.upload.path, upload.upload.token, file", html)
+        self.assertIn("PARTNER_LOGO_MAX_BYTES", source)
+        self.assertIn("object/upload/sign/brokerage-branding", source)
+        self.assertIn("PARTNER_LOGO_PATH_RE", source)
 
     def test_partner_setup_save_announces_progress_and_prevents_duplicate_submissions(self):
         html = (ROOT / "index.html").read_text()
