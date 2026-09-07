@@ -204,11 +204,12 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn('Next, choose an offer, representation, or a customer notice.', AGENTS)
         self.assertIn('Every transaction choice opens one plain-language result question before a workflow is opened.', AGENTS)
 
-    def test_agent_landing_preserves_the_safe_draft_request_through_sign_in(self):
+    def test_generic_agent_landing_preserves_the_transaction_choice_through_sign_in(self):
         self.assertIn("hof_agent_landing_start_draft", INDEX)
         self.assertIn("const startAgentLandingDraft = localStorage.getItem('hof_agent_landing_start_draft') === '1';", INDEX)
         self.assertIn("localStorage.setItem('hof_agent_landing_start_draft', '1')", INDEX)
-        self.assertIn("window.startAccountOffer?.();", INDEX)
+        self.assertIn("window.openAgentTransactionPicker?.();", INDEX)
+        self.assertIn("window.openAccountDashboard?.({ tab: 'dashboard' });", INDEX)
         self.assertIn("agent_landing_draft_handoff", INDEX)
 
     def test_agent_workflow_guide_is_preserved_as_an_allowlisted_handoff_source(self):
@@ -216,7 +217,7 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("localStorage.setItem('hof_agent_landing_source', agentLandingSource)", INDEX)
         self.assertIn("localStorage.getItem('hof_agent_landing_source') === 'texas_agent_offer_workflow'", INDEX)
         self.assertIn("localStorage.removeItem('hof_agent_landing_source')", INDEX)
-        self.assertIn("{ source: agentLandingSource, workflow: agentLandingWorkflow || 'purchase' }", INDEX)
+        self.assertIn("{ source: agentLandingSource, workflow: agentLandingWorkflow || 'transaction_picker' }", INDEX)
 
     def test_public_endpoint_and_page_record_only_allowlisted_aggregate_agent_landing_events(self):
         self.assertIn("AGENT_LANDING_EVENT_TYPES", API)
