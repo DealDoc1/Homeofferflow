@@ -3686,7 +3686,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           <div class="field">
             <label>Upload PDF attachments</label>
             <input type="file" id="uploadedDisclosureDocs" accept="application/pdf,.pdf" multiple onchange="handleUploadedDisclosureDocs(this.files)"/>
-            <small style="display:block; margin-top:0.35rem; color:var(--muted);">PDF only. Add up to 5 files, 2MB each and 2.5MB combined. You can add files in more than one selection, then label and order them before the packet is generated. Examples: seller disclosure, survey, T-47/T-47.1, HOA docs, PID/MUD notices.</small>
+            <small style="display:block; margin-top:0.35rem; color:var(--muted);">PDF only. Add up to 5 files, 2MB each and 2.5MB combined. We suggest a label from each filename; confirm the labels and order before the packet is generated. Examples: seller disclosure, survey, T-47/T-47.1, HOA docs, PID/MUD notices.</small>
           </div>
           <div id="uploadedDocsList" class="notice gold" style="display:none;"></div>
           <div id="uploadedDocsStatus" class="platform-status" role="status" aria-live="polite"></div>
@@ -9797,6 +9797,19 @@ function routeAfterMagicLinkIfNeeded() {
     ['other', 'Other uploaded document']
   ];
 
+  // A filename can make the first label less tedious, but it never decides
+  // what a document is. The agent can change every suggested label before the
+  // final packet acknowledgement.
+  function suggestedUploadedDisclosureType(filename) {
+    const name = String(filename || '').toLowerCase().replace(/[_-]+/g, ' ');
+    if (/\b(seller|property)\b.{0,28}\b(disclosure|notice)\b|\b(disclosure|notice)\b.{0,28}\b(seller|property)\b|\btrec\s*55\b/.test(name)) return 'seller_disclosure';
+    if (/\b(survey|t\s*47|t47)\b/.test(name)) return 'survey';
+    if (/\b(hoa|poa|homeowners association|property owners association)\b/.test(name)) return 'hoa_documents';
+    if (/\b(pid|mud)\b/.test(name)) return 'pid_mud_notice';
+    if (/\b(lead|lbp|lead based paint)\b/.test(name)) return 'lead_based_paint';
+    return 'other';
+  }
+
   function moveUploadedDisclosure(index, direction) {
     const docs = window.hofUploadedDisclosureDocs || [];
     const target = index + direction;
@@ -9979,7 +9992,7 @@ function routeAfterMagicLinkIfNeeded() {
         }
         docs.push({
           name: file.name,
-          type: 'other',
+          type: suggestedUploadedDisclosureType(file.name),
           size: file.size,
           mimeType: 'application/pdf',
           needsBuyerSignature: false,
