@@ -28,7 +28,7 @@ class SellerDisclosureFeedbackTests(unittest.TestCase):
 
     def test_source_and_review_rules_remain_intact(self):
         script = self._script()
-        self.assertIn("choose the released TREC-55-1 source.", script)
+        self.assertIn("choose the approved TREC-55-1 form.", script)
         self.assertIn("Enter Seller 2 review email or remove Seller 2 name.", script)
         self.assertIn("Enter Seller 2 name before adding a second review email.", script)
         self.assertIn("create_seller_disclosure_review_link", script)
