@@ -168,9 +168,11 @@
       const query = new URLSearchParams(window.location.search);
       const source = String(query.get('utm_source') || '').trim().toLowerCase();
       const medium = String(query.get('utm_medium') || '').trim().toLowerCase();
-      const channel = homebuyerCheckoutChannels.has(source)
-        ? source
-        : source === 'homeofferflow_admin' && homebuyerCheckoutChannels.has(medium) ? medium : '';
+      const channel = medium === 'organic_content' || source === 'organic'
+        ? 'organic'
+        : homebuyerCheckoutChannels.has(source)
+          ? source
+          : source === 'homeofferflow_admin' && homebuyerCheckoutChannels.has(medium) ? medium : '';
       if (channel) sessionStorage.setItem(homebuyerCheckoutChannelKey, channel);
       const saved = String(sessionStorage.getItem(homebuyerCheckoutChannelKey) || '').trim().toLowerCase();
       return homebuyerCheckoutChannels.has(saved) ? saved : 'unspecified';
