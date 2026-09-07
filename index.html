@@ -3120,7 +3120,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     </div>
 
     <div class="account-panel" id="accountPanelBrokerage">
-      <div id="brokerageFoundationPanel" class="offer-empty">Loading brokerage foundation...</div>
+      <div id="brokerageFoundationPanel" class="offer-empty">Loading brokerage workspace...</div>
     </div>
 
     <div class="account-panel" id="accountPanelSeller">
@@ -3160,7 +3160,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         <p style="color:var(--gray-light); line-height:1.6; margin-bottom:0.85rem;">Orders, showing requests, agent activity, subscriptions, feedback, and recent SignWell status in one place.</p>
         <div class="admin-toolbar">
           <button type="button" onclick="loadAdminDashboard(true)">Refresh Admin Data</button>
-          <button type="button" onclick="openBetaFeedback()">Submit Internal Note</button>
+          <button type="button" onclick="openBetaFeedback()">Send a Note</button>
           <button type="button" onclick="showAccountTab('offers')">My Offers</button>
         </div>
       </div>
@@ -12073,8 +12073,8 @@ function routeAfterMagicLinkIfNeeded() {
     const slug = b.slug || (b.dba_name || b.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
     el.innerHTML = `
       <div class="platform-card">
-        <h4>Brokerage Branding Foundation</h4>
-        <p>This stores brokerage/team branding that can later flow into the wizard, emails, success page, partner defaults, and brokerage admin dashboards.</p>
+        <h4>Brokerage Profile</h4>
+        <p>Save the brokerage or team details that personalize your guided workflow, emails, partner defaults, and brokerage workspace.</p>
         <div class="platform-grid">
           <div class="field"><label>Account Type</label><select id="brandOrgType"><option value="brokerage" ${(b.org_type || 'brokerage') === 'brokerage' ? 'selected' : ''}>Brokerage</option><option value="team" ${b.org_type === 'team' ? 'selected' : ''}>Team</option><option value="individual" ${b.org_type === 'individual' ? 'selected' : ''}>Individual Agent</option></select></div>
           <div class="field"><label>Brokerage Slug</label><input id="brandSlug" value="${escapeAttr(slug)}" placeholder="ondemand or christian-group"></div>
@@ -12095,8 +12095,8 @@ function routeAfterMagicLinkIfNeeded() {
           <div class="field" style="grid-column:1/-1"><label>Are all participating agents current members of both NAR and Texas REALTORS®, or otherwise individually authorized to use the brokerage’s member forms?</label><select id="brandTxrAuthorization"><option value="unknown" ${!b.txr_all_agents_authorized && !b.txr_authorization_attested_at ? 'selected' : ''}>Not confirmed yet</option><option value="all_agents_authorized" ${b.txr_all_agents_authorized ? 'selected' : ''}>Yes — all participating agents are authorized Texas REALTORS® / NAR users</option><option value="not_all" ${b.txr_all_agents_authorized === false && b.txr_authorization_attested_at ? 'selected' : ''}>No / not all participating agents are authorized</option></select><label class="brokerage-txr-attestation"><input id="brandTxrAttestation" type="checkbox"> I attest that this status is accurate for the brokerage. Each agent still confirms their own current authorization before using a restricted Texas REALTORS® / NAR source form.</label><small style="display:block;color:var(--gray-light);margin-top:.3rem;line-height:1.45">This is not inferred from a license number. The attestation does not replace approval of the private source form.</small></div>
         </div>
         <div class="field" style="margin-top:0.8rem;"><label>Brokerage Disclaimer</label><textarea id="brandDisclaimer" rows="3" placeholder="Optional brokerage/team disclaimer shown in branded experiences.">${escapeAttr(b.disclaimer || '')}</textarea></div>
-        <div class="notice gold" style="margin-top:0.8rem;"><strong>Logo upload:</strong> Save the brokerage foundation first, then use the secure direct-upload control in Brokerage Administration below. External logo URLs are intentionally not accepted.</div>
-        <div class="platform-actions"><button type="button" onclick="saveBrokerageFoundation()">Save Brokerage Branding</button><button type="button" onclick="loadBrokerageFoundation().then(renderBrokerageFoundationPanel)">Reload</button></div>
+        <div class="notice gold" style="margin-top:0.8rem;"><strong>Logo upload:</strong> Save the brokerage profile first, then use the secure direct-upload control in Brokerage Administration below. External logo URLs are intentionally not accepted.</div>
+        <div class="platform-actions"><button type="button" onclick="saveBrokerageFoundation()">Save Brokerage Profile</button><button type="button" onclick="loadBrokerageFoundation().then(renderBrokerageFoundationPanel)">Reload</button></div>
         <div id="brokerageFoundationStatus" class="platform-status"></div>
       </div>
       <div class="platform-card">
@@ -12161,7 +12161,7 @@ function routeAfterMagicLinkIfNeeded() {
       if (result.error) throw result.error;
       hofPlatform.brokerage = result.data;
       await client.from('hof_profiles').update({ brokerage_id: result.data.id, is_brokerage_admin: true, team_name: payload.dba_name || payload.name, updated_at: now }).eq('id', user.id);
-      platformStatus('brokerageFoundationStatus', 'Brokerage branding saved. This account is now marked as brokerage admin for the foundation build.', 'ok');
+      platformStatus('brokerageFoundationStatus', 'Brokerage profile saved. This account can now manage the brokerage workspace.', 'ok');
     } catch (err) {
       console.error('Save brokerage failed:', err);
       platformStatus('brokerageFoundationStatus', err?.message || 'Could not save brokerage branding.', 'err');

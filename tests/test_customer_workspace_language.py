@@ -17,6 +17,15 @@ class CustomerWorkspaceLanguageTests(unittest.TestCase):
         self.assertIn("available as a private draft only", HTML)
         self.assertNotIn("private-draft foundation", HTML)
 
+    def test_brokerage_profile_uses_finished_product_language(self):
+        self.assertIn("<h4>Brokerage Profile</h4>", HTML)
+        self.assertIn("Loading brokerage workspace...", HTML)
+        self.assertIn("Save Brokerage Profile", HTML)
+        self.assertIn("This account can now manage the brokerage workspace.", HTML)
+        self.assertNotIn("Brokerage Branding Foundation", HTML)
+        self.assertNotIn("foundation build.", HTML)
+        self.assertNotIn("Submit Internal Note", HTML)
+
 
 if __name__ == "__main__":
     unittest.main()
