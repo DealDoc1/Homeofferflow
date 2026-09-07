@@ -131,9 +131,9 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn('id="relationshipDraftsGuide"', INDEX)
         self.assertIn('Start with the client need', INDEX)
         for expected in (
-            'TXR-1507 · Short Form',
-            'TXR-1501 · Long Form',
-            'TXR-1508 · Showing Form',
+            'Straightforward representation agreement · TXR-1507',
+            'Detailed representation agreement · TXR-1501',
+            'Unrepresented-customer showing form · TXR-1508',
             'TXR-1506 · Consumer Notice',
             'TXR-1914 · Seller Financing Addendum',
             'TXR-1917 · Environmental Assessment Addendum',

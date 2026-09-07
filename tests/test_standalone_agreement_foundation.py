@@ -437,7 +437,7 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
         self.assertIn("not a lease decision or signature request", HTML)
 
     def test_agent_ui_requires_an_approved_private_source_and_saves_draft_only(self):
-        self.assertIn("Start TXR-1507 draft", HTML)
+        self.assertIn("Start straightforward representation draft", HTML)
         self.assertIn("approved-form check", HTML)
         self.assertIn("hofApprovedSourceStatusCopy", HTML)
         self.assertIn("Request brokerage activation", HTML)
@@ -458,7 +458,7 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
         self.assertNotIn("event.currentTarget.querySelector('button[type=\"submit\"]').disabled = true", HTML)
         self.assertIn('name="serviceLevel" value="full_services" required', HTML)
         self.assertNotIn('name="serviceLevel" value="full_services" checked', HTML)
-        self.assertIn("Start TXR-1501 draft", HTML)
+        self.assertIn("Start detailed representation draft", HTML)
         self.assertIn("TXR-1501 is not currently available in your form library", HTML)
         self.assertIn("create_txr_1501_draft", HTML)
         self.assertIn("Start TXR-1508 draft", HTML)
