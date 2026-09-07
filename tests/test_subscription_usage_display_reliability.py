@@ -7,6 +7,12 @@ HTML = (ROOT / "index.html").read_text(encoding="utf-8")
 
 
 class SubscriptionUsageDisplayReliabilityTests(unittest.TestCase):
+    def test_usage_card_formats_the_server_billing_period_for_people(self):
+        self.assertIn("function formatBillingMonth(billingMonth)", HTML)
+        self.assertIn("month: 'long', year: 'numeric'", HTML)
+        self.assertIn("const billingPeriodLabel = formatBillingMonth", HTML)
+        self.assertIn("signed offer packets used in ${escapeAttr(billingPeriodLabel)}", HTML)
+
     def test_failed_usage_read_is_not_presented_as_zero_usage(self):
         self.assertIn("hofAuth.usage = { used: 0, limit, billingMonth, available: false };", HTML)
         self.assertIn("Usage is temporarily unavailable", HTML)
