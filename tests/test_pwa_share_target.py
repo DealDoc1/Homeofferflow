@@ -41,12 +41,19 @@ class PwaShareTargetTests(unittest.TestCase):
         self.assertIn("hof_pwa_shared_context_agent_pending", SHARE)
         self.assertIn("pwa_shared_context_agent_transaction_selected", INDEX)
         self.assertIn('utm_campaign=shared_context_agent', SHARE)
-        self.assertIn('homeofferflow-shell-v56', (ROOT / 'service-worker.js').read_text(encoding='utf-8'))
+        self.assertIn('homeofferflow-shell-v57', (ROOT / 'service-worker.js').read_text(encoding='utf-8'))
+
+    def test_shared_context_can_begin_a_private_seller_plan_without_prefilling_shared_text(self):
+        self.assertIn('Start a seller plan with this context', SHARE)
+        self.assertIn("window.trackEvent?.('PWA Shared Context Seller Plan Selected'", SHARE)
+        self.assertIn("pwa_shared_context_seller_plan_opened", SHARE)
+        self.assertIn("window.openFsboSellerModal()", SHARE)
+        self.assertIn('shared_context_seller', SHARE)
 
     def test_share_target_script_is_in_the_offline_app_shell(self):
         worker = (ROOT / 'service-worker.js').read_text(encoding='utf-8')
         self.assertIn("'/assets/pwa-share-target.js'", worker)
-        self.assertIn("homeofferflow-shell-v56", worker)
+        self.assertIn("homeofferflow-shell-v57", worker)
 
 
 if __name__ == '__main__':
