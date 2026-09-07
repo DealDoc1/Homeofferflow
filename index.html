@@ -14714,7 +14714,7 @@ function routeAfterMagicLinkIfNeeded() {
     <div class="notice sage" id="foundingPartnerCheckoutConfirmation" style="display:none;margin-bottom:.9rem;"><strong>Checkout complete — your next step is partner setup.</strong><br><span id="foundingPartnerCheckoutSetupMessage"><strong>1.</strong> Preparing your secure setup now. <strong>2.</strong> Add your market, website, logo, and call to action. <strong>3.</strong> HomeOfferFlow reviews those details with the written placement agreement before anything becomes public. Setup does not activate advertising by itself. If setup is still preparing, a secure link will also be sent to your business email (it expires in 14 days). If you still need help, <a href="mailto:support@homeofferflow.com?subject=Partner%20setup%20link%20request" style="color:inherit;text-decoration:underline;font-weight:700;">ask support to issue a fresh secure link</a>. After the 90-day launch period, your plan renews monthly unless cancelled.</span></div>
     <div class="notice gold" id="foundingPartnerCheckoutResume" style="display:none;margin-bottom:.9rem;"><strong>Your application is saved.</strong><br>You can resume the exact secure checkout below whenever you are ready. No second application is created on this device. You do not need to re-enter your saved essentials.</div>
 
-    <div class="partner-selected-tier" aria-live="polite"><span>Selected 90-day Founding Partner pilot</span><strong id="foundingPartnerTierSelection">Core Partner · $149 one time for the first 90 days</strong></div>
+    <div class="partner-selected-tier" aria-live="polite"><span id="foundingPartnerTierLabel">Selected 90-day Founding Partner placement</span><strong id="foundingPartnerTierSelection">Core Partner · $149 one time for the first 90 days</strong></div>
     <select id="foundingPartnerModel" class="partner-tier-native-select" aria-label="Selected advertising tier"><option value="founding_pilot" selected>Core Partner</option><option value="monthly_placement">Featured Partner</option><option value="market_exclusive">Premier Partner</option><option value="discuss">Custom / multi-market plan</option></select>
 
     <div class="partner-checkout-intake-note"><strong>Start with the essentials.</strong><span>Category, company, contact, business email, and one market area are all that is needed to reserve your selected tier and continue to secure checkout. You can compare or change the tier below before checkout. Everything else can be added during onboarding.</span></div>
@@ -15084,11 +15084,13 @@ function routeAfterMagicLinkIfNeeded() {
     const select = document.getElementById('foundingPartnerModel');
     const budget = document.getElementById('foundingPartnerBudget');
     const summary = document.getElementById('foundingPartnerTierSelection');
+    const tierLabel = document.getElementById('foundingPartnerTierLabel');
     const submit = document.getElementById('foundingPartnerSubmit');
     const checkoutNote = document.getElementById('foundingPartnerCheckoutNote');
     if (select) select.value = model;
     if (budget) budget.value = detail.budget;
     if (summary) summary.textContent = detail.label + ' · ' + detail.price;
+    if (tierLabel) tierLabel.textContent = 'Selected 90-day ' + detail.label + ' placement';
     document.querySelectorAll('[data-partner-tier]').forEach(function(card){
       const selected = card.getAttribute('data-partner-tier') === model;
       card.classList.toggle('is-selected', selected);
@@ -15197,7 +15199,8 @@ function routeAfterMagicLinkIfNeeded() {
     [typeInput, companyInput, contactInput, emailInput, marketInput].forEach(input => input?.setAttribute('aria-invalid', 'false'));
     if (!hasSavedPartnerApplication && !document.getElementById('foundingPartnerConsent')?.checked) {
       trackPartnerFunnel('Founding Partner Consent Required', { tier: payload.preferred_model });
-      if (status) { status.textContent = 'Please acknowledge the founding-pilot terms before submitting.'; status.className = 'platform-status err'; }
+      const selectedTier = partnerTierDetails[payload.preferred_model] || partnerTierDetails.founding_pilot;
+      if (status) { status.textContent = 'Please acknowledge the ' + selectedTier.label + ' terms before submitting.'; status.className = 'platform-status err'; }
       document.getElementById('foundingPartnerConsent')?.focus();
       return;
     }

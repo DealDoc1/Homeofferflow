@@ -176,6 +176,11 @@ class PartnerTierUiTests(unittest.TestCase):
         self.assertIn('id="foundingPartnerCheckoutNote"', self.html)
         self.assertIn('Continue to Secure Checkout — ', self.html)
 
+    def test_selected_tier_stays_accurately_named_in_the_checkout_handoff(self):
+        self.assertIn('id="foundingPartnerTierLabel"', self.html)
+        self.assertIn("'Selected 90-day ' + detail.label + ' placement'", self.html)
+        self.assertIn("'Please acknowledge the ' + selectedTier.label + ' terms before submitting.'", self.html)
+
     def test_custom_multi_market_request_never_opens_price_based_checkout(self):
         self.assertIn("if (payload.preferred_model === 'discuss')", self.html)
         self.assertIn("Custom Request Saved", self.html)
