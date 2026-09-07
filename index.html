@@ -7337,6 +7337,11 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       window.setTimeout(openWhenReady, 0);
     };
     const openRelationshipPackage = (type) => {
+      const returnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      const closeFollowUp = () => {
+        document.getElementById('hofAgentPackageFollowUp')?.remove();
+        returnFocus?.focus({ preventScroll: true });
+      };
       const returnToPackageQuestion = () => {
         document.getElementById('hofAgentPackageFollowUp')?.remove();
         window.hofOpenAgentPackageInterview?.(kind);
@@ -7357,8 +7362,8 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       followUp.innerHTML = `<div class="hof-agreement-dialog" role="dialog" aria-modal="true" aria-labelledby="hofAgentPackageFollowUpTitle"><h3 id="hofAgentPackageFollowUpTitle">${prompt}</h3><p>Choose the best starting point. You’ll review the completed document before it is sent.</p><div class="hof-agreement-grid">${choices.map((choice, index) => `<button type="button" class="btn-secondary hof-agent-package-choice" data-follow-up-choice="${index}" style="text-align:left;padding:1rem"><strong style="display:block;color:var(--white);margin-bottom:.35rem">${choice.label}</strong><span style="display:block;color:var(--gray-light);font-weight:400;line-height:1.45">${choice.copy}</span></button>`).join('')}</div><div class="hof-agreement-footer"><button type="button" class="btn-secondary" id="hofAgentPackageFollowUpCancel">Back</button></div></div>`;
       document.body.appendChild(followUp);
       followUp.querySelector('#hofAgentPackageFollowUpCancel').addEventListener('click', returnToPackageQuestion);
-      followUp.addEventListener('click', event => { if (event.target === followUp) followUp.remove(); });
-      followUp.addEventListener('keydown', event => { if (event.key === 'Escape') followUp.remove(); });
+      followUp.addEventListener('click', event => { if (event.target === followUp) closeFollowUp(); });
+      followUp.addEventListener('keydown', event => { if (event.key === 'Escape') closeFollowUp(); });
       window.setTimeout(() => followUp.querySelector('[data-follow-up-choice]')?.focus(), 0);
       followUp.querySelectorAll('[data-follow-up-choice]').forEach(button => button.addEventListener('click', () => {
         const choice = choices[Number(button.dataset.followUpChoice)];
