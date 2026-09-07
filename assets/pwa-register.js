@@ -83,7 +83,22 @@
   }
   if (!('serviceWorker' in navigator)) return;
   let deferredInstallPrompt = null;
-  const dismissKey = 'hof_public_pwa_install_dismissed_v1';
+  // The app prompt should support an established workflow, not compete with a
+  // visitor's first attempt to start a transaction.  Mark engagement during a
+  // first visit and offer installation on a later visit instead.
+  const dismissKey = 'hof_public_pwa_install_dismissed_v2';
+  const installEligibleKey = 'hof_public_pwa_install_eligible_v1';
+  const installDismissedUntilKey = 'hof_public_pwa_install_dismissed_until_v1';
+  const installDismissalDays = 14;
+  const isInstallEligible = () => {
+    try { return localStorage.getItem(installEligibleKey) === '1'; } catch (_) { return false; }
+  };
+  const isInstallDismissed = () => {
+    try { return Number(localStorage.getItem(installDismissedUntilKey) || 0) > Date.now(); } catch (_) { return false; }
+  };
+  const recordInstallEngagement = () => {
+    try { localStorage.setItem(installEligibleKey, '1'); } catch (_) {}
+  };
   const trackInstallEvent = (event, extra = {}) => {
     try {
       window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
@@ -157,7 +172,7 @@
     });
   };
   const renderInstallCard = () => {
-    if (!isMobileInstallSurface() || isStandaloneSurface() || (!deferredInstallPrompt && !isIosInstallSurface()) || document.getElementById('hofPublicPwaInstallCard')) return;
+    if (!isMobileInstallSurface() || isStandaloneSurface() || !isInstallEligible() || isInstallDismissed() || (!deferredInstallPrompt && !isIosInstallSurface()) || document.getElementById('hofPublicPwaInstallCard')) return;
     try { if (sessionStorage.getItem(dismissKey) === '1') return; } catch (_) {}
     const card = document.createElement('aside');
     card.id = 'hofPublicPwaInstallCard';
@@ -252,7 +267,10 @@
     document.body.appendChild(card);
     trackPublicInstall('Shown');
     card.querySelector('#hofPublicPwaInstallDismiss')?.addEventListener('click', () => {
-      try { sessionStorage.setItem(dismissKey, '1'); } catch (_) {}
+      try {
+        sessionStorage.setItem(dismissKey, '1');
+        localStorage.setItem(installDismissedUntilKey, String(Date.now() + installDismissalDays * 24 * 60 * 60 * 1000));
+      } catch (_) {}
       trackPublicInstall('Dismissed');
       removeInstallCard();
     });
@@ -283,6 +301,14 @@
     renderInstallCard();
   });
   window.addEventListener('appinstalled', () => { trackPublicInstall('Installed'); deferredInstallPrompt = null; removeInstallCard(); });
+  // A pointer, keyboard, or scroll interaction is enough to distinguish a
+  // visitor who is actually evaluating HomeOfferFlow from a one-page bounce.
+  // Do not render the card in this same visit: the primary next action remains
+  // the transaction flow.  The remembered eligibility makes the install offer
+  // available when the person returns.
+  ['pointerdown', 'keydown', 'scroll'].forEach(eventName => {
+    window.addEventListener(eventName, recordInstallEngagement, { once: true, passive: eventName !== 'keydown' });
+  });
   window.addEventListener('load', () => { if (isIosInstallSurface()) renderInstallCard(); }, { once: true });
   window.addEventListener('offline', renderOfflineNotice);
   window.addEventListener('online', renderOfflineNotice);
