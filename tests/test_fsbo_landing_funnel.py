@@ -77,8 +77,10 @@ class FsboLandingFunnelTests(unittest.TestCase):
         self.assertIn("medium==='installed_app'||source==='pwa_shortcut'?'pwa_shortcut'", SELLERS)
         self.assertIn("medium==='organic_content'||source==='organic'?'organic'", SELLERS)
         self.assertIn("body?.request_type==='fsbo_landing_event'", SELLERS)
+        self.assertIn("source==='homeofferflow_admin'&&outreach.has(medium)?medium", SELLERS)
         self.assertIn("/assets/receipt-funnel-channel.js", SELLERS)
         self.assertIn("seller_receipt", API)
+        self.assertIn("direct_outreach", API)
 
     def test_admin_returns_aggregate_conversion_without_public_details(self):
         for expected in (
@@ -117,6 +119,12 @@ class FsboLandingFunnelTests(unittest.TestCase):
         self.assertIn("event_type: 'pwa_seller_plan_opened'", INDEX)
         self.assertIn('"pwaSellerPlanShortcutCount"', ADMIN)
         self.assertIn("pwa_seller_plan_shortcut_count", ADMIN)
+
+    def test_private_intake_preserves_an_allowlisted_campaign_channel(self):
+        self.assertIn("const fsboCampaignChannels = new Set(['direct_outreach','email','social','referral','local_event','print']);", INDEX)
+        self.assertIn("function fsboCampaignChannel()", INDEX)
+        self.assertIn("source === 'homeofferflow_admin' && fsboCampaignChannels.has(medium)", INDEX)
+        self.assertIn("channel:fsboCampaignChannel()", INDEX)
 
     def test_saved_seller_plan_can_offer_selected_provider_discovery_without_tracking_personal_data(self):
         self.assertIn("window.openFsboProviderDirectory = function openFsboProviderDirectory()", INDEX)
