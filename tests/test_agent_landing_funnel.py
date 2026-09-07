@@ -357,7 +357,8 @@ class AgentLandingFunnelTests(unittest.TestCase):
             'agentTransactionChoiceCounts',
             'agentWorkflowResumeCount',
             'agentFormPackageInterviewViewCount', 'agentFormPackageSelectionCount', 'agentFormPackageSelectionRate',
-            'agentFormPackageInterviewCountsByWorkflow', 'agentFormPackageSelectionCountsByWorkflow',
+            'agentFormPackageStartedCount', 'agentFormPackageStartRate',
+            'agentFormPackageInterviewCountsByWorkflow', 'agentFormPackageSelectionCountsByWorkflow', 'agentFormPackageStartedCountsByWorkflow',
             'agent_workflow_lease_representation_selected',
         ):
             self.assertIn(expected, ADMIN)
@@ -383,13 +384,16 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("agentTransactionChoiceCounts?.lease_representation", INDEX)
         self.assertIn("agentWorkflowResumeCount", INDEX)
         self.assertIn("agentFormPackageSelectionRate", INDEX)
+        self.assertIn("agentFormPackageStartRate", INDEX)
         self.assertIn("agentFormPackageSelectionCountsByWorkflow?.lease_representation", INDEX)
+        self.assertIn("agentFormPackageStartedCountsByWorkflow?.lease_representation", INDEX)
         self.assertIn("agentWorkflowGuideCtaPathCounts?.relationship_drafts", INDEX)
         self.assertIn("agentWorkflowGuideCtaRate", INDEX)
 
     def test_question_two_conversion_excludes_pre_instrumentation_selections(self):
         self.assertIn("agent_form_package_interview_started_at", ADMIN)
         self.assertIn("agent_form_package_selection_events", ADMIN)
+        self.assertIn("agent_form_package_started_events", ADMIN)
         self.assertIn("created_at >= first_view_at", ADMIN)
 
     def test_homepage_offer_entry_events_keep_anonymous_campaign_source(self):

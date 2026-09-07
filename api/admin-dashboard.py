@@ -5339,6 +5339,34 @@ class handler(BaseHTTPRequestHandler):
                 ):
                     agent_form_package_selection_events.append(item)
             agent_form_package_selection_count = len(agent_form_package_selection_events)
+            agent_form_package_selection_started_at = {}
+            for item in agent_form_package_selection_events:
+                user_id = str(item.get("user_id") or "")
+                workflow = str((item.get("metadata") or {}).get("workflow") or "")
+                created_at = str(item.get("created_at") or "")
+                if not user_id or workflow not in agent_transaction_workflows or not created_at:
+                    continue
+                cohort_key = (user_id, workflow)
+                prior_started_at = agent_form_package_selection_started_at.get(cohort_key)
+                if not prior_started_at or created_at < prior_started_at:
+                    agent_form_package_selection_started_at[cohort_key] = created_at
+            agent_form_package_started_events = []
+            for item in events:
+                if item.get("event_type") != "agent_form_package_started":
+                    continue
+                user_id = str(item.get("user_id") or "")
+                workflow = str((item.get("metadata") or {}).get("workflow") or "")
+                created_at = str(item.get("created_at") or "")
+                first_selection_at = agent_form_package_selection_started_at.get((user_id, workflow))
+                if (
+                    user_id
+                    and created_at
+                    and workflow in agent_transaction_workflows
+                    and first_selection_at
+                    and created_at >= first_selection_at
+                ):
+                    agent_form_package_started_events.append(item)
+            agent_form_package_started_count = len(agent_form_package_started_events)
             agent_form_package_interview_counts_by_workflow = {
                 workflow: len([
                     item for item in events
@@ -5350,6 +5378,13 @@ class handler(BaseHTTPRequestHandler):
             agent_form_package_selection_counts_by_workflow = {
                 workflow: len([
                     item for item in agent_form_package_selection_events
+                    if str((item.get("metadata") or {}).get("workflow") or "") == workflow
+                ])
+                for workflow in agent_transaction_workflows
+            }
+            agent_form_package_started_counts_by_workflow = {
+                workflow: len([
+                    item for item in agent_form_package_started_events
                     if str((item.get("metadata") or {}).get("workflow") or "") == workflow
                 ])
                 for workflow in agent_transaction_workflows
@@ -6011,8 +6046,13 @@ class handler(BaseHTTPRequestHandler):
                 "agentFormPackageSelectionRate": round(
                     (agent_form_package_selection_count / agent_form_package_interview_view_count) * 100, 1
                 ) if agent_form_package_interview_view_count else 0,
+                "agentFormPackageStartedCount": agent_form_package_started_count,
+                "agentFormPackageStartRate": round(
+                    (agent_form_package_started_count / agent_form_package_selection_count) * 100, 1
+                ) if agent_form_package_selection_count else 0,
                 "agentFormPackageInterviewCountsByWorkflow": agent_form_package_interview_counts_by_workflow,
                 "agentFormPackageSelectionCountsByWorkflow": agent_form_package_selection_counts_by_workflow,
+                "agentFormPackageStartedCountsByWorkflow": agent_form_package_started_counts_by_workflow,
                 "agentPrivateReviewDraftSavedCount": agent_private_review_draft_saved_count,
                 "agentPrivateReviewDraftSavedByForm": agent_private_review_draft_saved_by_form,
                 "agentPrivateReviewNextStepClickedCount": agent_private_review_next_step_clicked_count,
