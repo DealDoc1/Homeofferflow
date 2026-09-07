@@ -114,6 +114,8 @@ class FsboRequestConfirmationTests(unittest.TestCase):
     def test_saved_seller_request_can_offer_an_email_receipt(self):
         api = API_PATH.read_text(encoding="utf-8")
         self.assertIn("def _send_seller_plan_confirmation(payload):", api)
+        self.assertIn("def _seller_plan_scope_note(service_level):", api)
+        self.assertIn("Your free seller plan is ready to use.", api)
         self.assertIn("Best-effort transactional receipt", api)
         self.assertIn("Idempotency-Key", api)
         self.assertIn("seller_plan_email", api)
@@ -124,6 +126,18 @@ class FsboRequestConfirmationTests(unittest.TestCase):
         self.assertIn("Review your selected path", api)
         self.assertIn("seller_follow_up", api)
         self.assertIn("A copy of this request was also emailed to you.", HTML)
+
+    def test_free_seller_plan_is_immediately_usable_while_paid_paths_still_require_scope_confirmation(self):
+        self.assertIn("const scopeNote = payload.service_level === 'free_intake'", HTML)
+        self.assertIn("Your free seller plan is ready to use.", HTML)
+        self.assertIn("If you later request paid support", HTML)
+        self.assertIn("A qualified human review is required", HTML)
+
+        spec = importlib.util.spec_from_file_location("fsbo_plan_scope_note", API_PATH)
+        api = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(api)
+        self.assertIn("free seller plan is ready to use", api._seller_plan_scope_note("free_intake"))
+        self.assertIn("is required", api._seller_plan_scope_note("flat_fee_mls"))
 
     def test_duplicate_seller_request_recovers_the_receipt_without_creating_a_second_lead(self):
         api = API_PATH.read_text(encoding="utf-8")

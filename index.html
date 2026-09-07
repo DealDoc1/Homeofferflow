@@ -14789,6 +14789,9 @@ function routeAfterMagicLinkIfNeeded() {
       saveFsboRequestReceipt(selected, payload.service_level);
       const steps = fsboNextSteps[fsboVal('fsboNeed')] || fsboNextSteps.free_intake;
       const readiness = fsboReadinessPlan(payload.timeline);
+      const scopeNote = payload.service_level === 'free_intake'
+        ? 'Your free seller plan is ready to use. If you later request paid support, a qualified human review will confirm scope, provider involvement, availability, and final pricing before any paid service begins.'
+        : 'A qualified human review is required to confirm scope, provider involvement, availability, and final pricing before any paid service begins.';
       trackFsboFunnel('FSBO Seller Readiness Plan Delivered', { package: payload.service_level, timeline: payload.timeline });
       if (status) {
         const emailReceipt = data.seller_plan_email === 'sent'
@@ -14798,7 +14801,7 @@ function routeAfterMagicLinkIfNeeded() {
         status.innerHTML = (data.duplicate
           ? '<strong>Your seller request is already saved.</strong><br>'
           : '<strong>Seller request saved.</strong><br>') +
-          escapeAttr(selected.title) + (data.duplicate ? ' remains recorded for follow-up.' : ' is recorded for follow-up.') + ' A human review is still required to confirm scope, provider involvement, availability, and final pricing before any paid service begins.' +
+          escapeAttr(selected.title) + (data.duplicate ? ' remains recorded for follow-up.' : ' is recorded for follow-up.') + ' ' + escapeAttr(scopeNote) +
           emailReceipt +
           '<div class="notice sage" style="margin:.8rem 0 .1rem;padding:.75rem .85rem;"><strong>' + escapeAttr(readiness.title) + '</strong><ol style="margin:.5rem 0 .1rem 1.2rem;color:var(--gray-light);line-height:1.45;">' + readiness.steps.map(step => '<li>' + escapeAttr(step) + '</li>').join('') + '</ol></div>' +
           '<ol style="margin:.65rem 0 .1rem 1.2rem;color:var(--gray-light);line-height:1.45;">' + steps.map(step => '<li>' + escapeAttr(step) + '</li>').join('') + '</ol>' +
