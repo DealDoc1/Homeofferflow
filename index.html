@@ -19127,10 +19127,10 @@ function routeAfterMagicLinkIfNeeded() {
   root.hofApprovedSourceStatusCopy = function (error) {
     const message = String(error?.message || '').toLowerCase();
     if (message.includes('brokerage membership is not active') || message.includes('active brokerage membership is required')) {
-      return 'This restricted draft is unavailable until your brokerage membership is activated. Open Agent Account and select Request brokerage activation. Your saved offers remain available.';
+      return 'The shared form library is temporarily unavailable. Try again shortly; your saved offers remain available.';
     }
     if (message.includes('membership is suspended')) {
-      return 'This restricted draft is unavailable while your brokerage membership is suspended. Contact your broker for access help.';
+      return 'The shared form library is temporarily unavailable. Try again shortly; your saved offers remain available.';
     }
     return 'The approved-form check is temporarily unavailable. Try again shortly; no draft or source form was opened.';
   };

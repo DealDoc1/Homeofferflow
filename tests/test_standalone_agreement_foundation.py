@@ -440,7 +440,11 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
         self.assertIn("Start straightforward representation draft", HTML)
         self.assertIn("approved-form check", HTML)
         self.assertIn("hofApprovedSourceStatusCopy", HTML)
-        self.assertIn("Request brokerage activation", HTML)
+        status_copy_start = HTML.index("root.hofApprovedSourceStatusCopy = function")
+        status_copy_end = HTML.index("function renderBrokerageFormSources", status_copy_start)
+        status_copy = HTML[status_copy_start:status_copy_end]
+        self.assertIn("The shared form library is temporarily unavailable", status_copy)
+        self.assertNotIn("Request brokerage activation", status_copy)
         self.assertGreaterEqual(HTML.count("root.hofApprovedSourceStatusCopy(error)"), 5)
         self.assertIn("Source revision", HTML)
         self.assertIn("This saves a private draft only", HTML)
