@@ -20695,7 +20695,7 @@ function routeAfterMagicLinkIfNeeded() {
           ${detailHtml}${reopen ? `<div style="margin-top:.45rem;">${reopen}</div>` : ''}
         </div>`;
       }).join('');
-      list.innerHTML = `${trendSummary}<div style="margin:.15rem 0 .45rem;color:var(--gray-light);font-size:.76rem;">${escapeAttr(trendLabel)}</div>${reviewItems}<div class="account-actions-row"><button class="btn-secondary" type="button" onclick="startAccountOffer()">Run another review</button></div>`;
+      list.innerHTML = `${trendSummary}<div style="margin:.15rem 0 .45rem;color:var(--gray-light);font-size:.76rem;">${escapeAttr(trendLabel)}</div>${reviewItems}<div class="account-actions-row"><button class="btn-secondary" type="button" onclick="startAccountTransaction()">Start another transaction</button></div>`;
     } catch (err) {
       list.textContent = err?.message || 'Review history could not load.';
     }

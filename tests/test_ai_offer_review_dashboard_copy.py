@@ -38,7 +38,8 @@ class AiOfferReviewDashboardCopyTests(unittest.TestCase):
         self.assertIn("saved review${reviews.length === 1 ? '' : 's'}", INDEX_HTML)
         self.assertIn("Latest ${latestScore}/100", INDEX_HTML)
         self.assertIn("Best ${bestScore}/100", INDEX_HTML)
-        self.assertIn("Run another review", INDEX_HTML)
+        self.assertIn("Start another transaction", INDEX_HTML)
+        self.assertIn('onclick="startAccountTransaction()">Start another transaction', INDEX_HTML)
 
     def test_review_exposes_input_completeness_confidence_without_changing_score(self):
         self.assertIn("getReviewConfidence", INDEX_HTML)
