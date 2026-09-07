@@ -8016,13 +8016,13 @@ function routeAfterMagicLinkIfNeeded() {
         window.logOfferEvent?.(null, 'agent_landing_package_handoff', 'opened', 'Agent continued from the public transaction choice into the guided package interview after sign-in.', { source: agentLandingSource, workflow: agentLandingPackageWorkflow });
       }, 450);
     }
-    // A public agent CTA promises a no-payment draft, not merely a dashboard
-    // visit. Resume the requested action after authentication. startAccountOffer
-    // already protects an existing same-role local draft from being replaced.
+    // A generic public agent CTA returns to the transaction chooser after
+    // authentication. It never assumes that a purchase offer is the work
+    // currently in front of the agent.
     if (startAgentLandingDraft && !agentLandingPackageWorkflow && role !== 'investor') {
       setTimeout(() => {
-        window.startAccountOffer?.();
-        window.logOfferEvent?.(null, 'agent_landing_draft_handoff', 'started', 'Agent landing visitor continued to the draft workflow after sign-in.', { source: agentLandingSource, workflow: agentLandingWorkflow || 'purchase' });
+        window.openAgentTransactionPicker?.();
+        window.logOfferEvent?.(null, 'agent_landing_draft_handoff', 'opened', 'Agent landing visitor returned to the transaction chooser after sign-in.', { source: agentLandingSource, workflow: agentLandingWorkflow || 'transaction_picker' });
       }, 450);
     }
     if (openSellerLandingWorkspace && role !== 'investor') {
@@ -15521,8 +15521,9 @@ function routeAfterMagicLinkIfNeeded() {
           window.openAccountDashboard?.({ tab: 'relationships' });
           window.logOfferEvent?.(null, 'agent_landing_relationship_workspace_handoff', 'opened', 'Signed-in agent opened private relationship drafts from the public landing page.', { source: agentLandingSource, workflow: agentLandingWorkflow || 'relationship_drafts' });
         } else {
-          window.startAccountOffer?.();
-          window.logOfferEvent?.(null, 'agent_landing_draft_handoff', 'started', 'Signed-in agent continued to the draft workflow from the public landing page.', { source: agentLandingSource, workflow: agentLandingWorkflow || 'purchase' });
+          window.openAccountDashboard?.({ tab: 'dashboard' });
+          window.setTimeout(() => window.openAgentTransactionPicker?.(), 120);
+          window.logOfferEvent?.(null, 'agent_landing_draft_handoff', 'opened', 'Signed-in agent returned to the transaction chooser from the public landing page.', { source: agentLandingSource, workflow: agentLandingWorkflow || 'transaction_picker' });
         }
       } else {
         try {
