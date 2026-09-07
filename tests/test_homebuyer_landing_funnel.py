@@ -52,6 +52,12 @@ class HomebuyerLandingFunnelTests(unittest.TestCase):
         self.assertIn("The $99 one-time charge applies only when the packet is ready.", BUYERS_COMPACT)
         self.assertIn('"price": "99"', BUYERS)
 
+    def test_buyer_signing_copy_uses_plain_language_and_keeps_seller_execution_separate(self):
+        self.assertIn("your secure signature when it is ready", BUYERS_COMPACT)
+        self.assertIn("Your secure signature request is separate from any seller signature or acceptance.", BUYERS)
+        self.assertIn("Seller signature and acceptance are separate.", BUYERS_COMPACT)
+        self.assertNotIn("buyer-side signing delivery", BUYERS)
+
     def test_buyer_hero_keeps_pricing_and_planning_guidance_in_one_quiet_note(self):
         hero = BUYERS.split('<section class="faq" aria-labelledby="buyer-ready">', 1)[0]
         self.assertEqual(hero.count('class="note"'), 1)
