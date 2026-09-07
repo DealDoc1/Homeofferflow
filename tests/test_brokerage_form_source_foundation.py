@@ -190,6 +190,10 @@ class BrokerageFormSourceFoundationTests(unittest.TestCase):
         scope_end = dashboard.index('if scope == "', scope_start + 10)
         self.assertNotIn("_active_brokerage_member", dashboard[scope_start:scope_end])
 
+    def test_pending_brokerage_membership_does_not_hide_shared_form_drafts(self):
+        self.assertIn("released shared-form drafts remain available", HTML)
+        self.assertNotIn("private source-gated drafts stay unavailable until your brokerage membership is activated", HTML)
+
     def test_broker_admin_can_upload_attested_private_source_but_cannot_activate_a_workflow(self):
         self.assertIn("Brokerage-approved form sources", HTML)
         self.assertIn("I am authorized to upload and approve this exact source PDF", HTML)

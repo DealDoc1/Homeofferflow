@@ -12627,7 +12627,7 @@ function routeAfterMagicLinkIfNeeded() {
       '',
       `4. ${context.client === 'landlord' ? 'Landlord' : 'Seller'} documents and review`,
       ...workflowItems,
-      '- Use the private seller-disclosure review workflow only where the brokerage has supplied and authorized the source; secure review is not signing.',
+      '- Use the shared seller-disclosure review workflow when it fits the transaction. Secure review is not signing.',
       '',
       `5. ${context.isLease ? 'Application and lease handling' : 'Offer handling'}`,
       context.isLease ? '- Establish the brokerage-approved process for applications, screening, deposits, timing, and lease questions before communicating commitments.' : '- Log received offers and key terms in the private offer-comparison worksheet.',
@@ -18874,7 +18874,7 @@ function routeAfterMagicLinkIfNeeded() {
     const membershipRecoveryCard = membership?.status === 'active'
       ? ''
       : '<div class="platform-card"><h4>Brokerage access needs activation</h4>' +
-        '<p>Your individual HomeOfferFlow workspace and saved offers remain available. Brokerage-managed features and private source-gated drafts stay unavailable until your brokerage membership is activated.</p>' +
+        '<p>Your individual HomeOfferFlow workspace, saved offers, and released shared-form drafts remain available. Brokerage-managed team features stay unavailable until your brokerage membership is activated.</p>' +
         '<button type="button" class="brokerage-access-button" onclick="openBrokerageMembershipRequest()">Request brokerage activation</button>' +
         '<p class="brokerage-invite-result">This sends a support request from your signed-in account. It does not change billing, roles, offers, or documents.</p></div>';
     el.innerHTML = '<div class="platform-card"><div class="ondemand-account-banner">' +
