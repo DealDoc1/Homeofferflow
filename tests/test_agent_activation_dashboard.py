@@ -285,6 +285,7 @@ class AgentActivationDashboardTests(unittest.TestCase):
         self.assertIn("What do you need for this tenant transaction?", HTML)
         self.assertIn("We’ll ask only for the details needed to prepare your documents.", HTML)
         self.assertIn("agent_form_package_selected", HTML)
+        self.assertIn("agent_form_package_started", HTML)
         self.assertIn("agent_form_package_interview_viewed", HTML)
         self.assertIn("What kind of representation does this client need?", HTML)
         self.assertIn("What does this customer need?", HTML)
