@@ -13150,7 +13150,11 @@ function routeAfterMagicLinkIfNeeded() {
 
   const partnerCampaignCategories = new Set(['title','lender','inspection','surveyor','home_warranty','insurance','roofing','hvac','plumbing','electrical','foundation_structural','general_contractor','pest_termite','septic_well','restoration','repairs_handyman','photography_video','staging','cleaning','moving_storage','lawn_pool','security_smart_home','other']);
   const partnerCampaignTiers = new Set(['founding_pilot','monthly_placement','market_exclusive']);
-  const partnerCampaignChannels = new Set(['direct_outreach','email','social','referral','local_event','print']);
+  // These are the deliberate campaign sources created by the partner
+  // workspace, plus the public paths that can continue into this same
+  // private application. Keep them aligned with the aggregate-event
+  // allowlist in api/fsbo-lead.py.
+  const partnerCampaignChannels = new Set(['direct_outreach','email','social','referral','local_event','print','organic','pwa_shortcut','partner_receipt','owned_directory']);
 
   function partnerCampaignLink() {
     const category = String(getVal('partnerCampaignCategory') || '').trim().toLowerCase();

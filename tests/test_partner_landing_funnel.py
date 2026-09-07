@@ -42,9 +42,13 @@ class PartnerLandingFunnelTests(unittest.TestCase):
         self.assertIn("channel: campaignChannel", PARTNERS)
         self.assertIn("campaignChannelForEvents", PARTNERS)
         self.assertIn("campaignChannel === 'organic_content'", PARTNERS)
+        self.assertIn("'owned_directory'", PARTNERS)
+        self.assertIn("'direct_outreach'", PARTNERS)
         self.assertIn("channel: channelValue", PARTNERS)
         self.assertIn("PARTNER_LANDING_CHANNELS", API)
         self.assertIn("partner_receipt", API)
+        self.assertIn("owned_directory", API)
+        self.assertIn("direct_outreach", API)
         self.assertIn("/assets/receipt-funnel-channel.js", PARTNERS)
 
     def test_partner_page_respects_notched_mobile_safe_areas(self):
@@ -174,6 +178,7 @@ class PartnerLandingFunnelTests(unittest.TestCase):
 
     def test_partner_application_progress_preserves_campaign_channel(self):
         self.assertIn("const channel = campaignPartnerChannel() || 'direct';", INDEX)
+        self.assertIn("'organic','pwa_shortcut','partner_receipt','owned_directory'", INDEX)
         self.assertIn("event_type:eventType, tier, category, channel", INDEX)
 
 
