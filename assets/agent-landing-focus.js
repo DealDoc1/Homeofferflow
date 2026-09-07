@@ -3,20 +3,36 @@
   const rawSource = String(params.get('utm_source') || '').trim().toLowerCase();
   const rawMedium = String(params.get('utm_medium') || '').trim().toLowerCase();
   const channel = window.hofAgentLandingChannel || (rawMedium === 'installed_app' ? 'pwa_shortcut' : rawSource || 'direct');
-  const allowedChannels = new Set(['direct', 'pwa_shortcut', 'direct_outreach', 'email', 'social', 'referral', 'local_event', 'print']);
+  const allowedChannels = new Set(['direct', 'organic', 'pwa_shortcut', 'direct_outreach', 'email', 'social', 'referral', 'local_event', 'print']);
   const safeChannel = allowedChannels.has(channel) ? channel : 'direct';
   const note = document.querySelector('.note:not(#agentTrialOffer)');
   const start = document.querySelector('#transaction-start');
   if (!note || !start) return;
 
-  const resourceLinks = Array.from(note.querySelectorAll('a')).filter((link) => {
+  let resourceLinks = Array.from(note.querySelectorAll('a')).filter((link) => {
     const href = link.getAttribute('href') || '';
     return href.includes('texas-agent-offer-workflow')
       || href.includes('texas-agent-form-library')
       || href.includes('texas-listing-workflow')
       || href.includes('texas-lease-offer-workflow');
   });
-  if (!resourceLinks.length) return;
+
+  // The main page keeps Question 1 intentionally clean. Create the optional
+  // reference shelf here so it stays one tap away without putting a catalog
+  // between an agent and the transaction they came to start.
+  if (!resourceLinks.length) {
+    resourceLinks = [
+      ['/texas-agent-offer-workflow', 'Offer workflow guide'],
+      ['/texas-agent-form-library', 'Shared form library'],
+      ['/texas-listing-workflow', 'Listing workflow guide'],
+      ['/texas-lease-offer-workflow', 'Lease workflow guide']
+    ].map(([href, label]) => {
+      const link = document.createElement('a');
+      link.href = href;
+      link.textContent = label;
+      return link;
+    });
+  }
 
   const workflowLink = resourceLinks.find((link) => link.href.includes('texas-agent-offer-workflow'));
   note.replaceChildren();
