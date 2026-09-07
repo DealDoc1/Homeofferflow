@@ -118,6 +118,17 @@ class HomebuyerLandingFunnelTests(unittest.TestCase):
         self.assertIn("Your confirmations are complete. Opening secure checkout", resume)
         self.assertIn("recordHomebuyerCheckoutEvent('homebuyer_checkout_recovery_started')", resume)
 
+    def test_checkout_return_preserves_only_allowlisted_acquisition_channel(self):
+        self.assertIn("const homebuyerCheckoutChannels = new Set", INDEX)
+        self.assertIn("const homebuyerCheckoutChannelKey = 'hof_homebuyer_checkout_channel';", INDEX)
+        self.assertIn("function rememberHomebuyerCheckoutChannel()", INDEX)
+        self.assertIn("source === 'homeofferflow_admin'", INDEX)
+        self.assertIn("channel: rememberHomebuyerCheckoutChannel()", INDEX)
+        self.assertIn("if ((state?.data?.userType || 'homebuyer') === 'homebuyer') rememberHomebuyerCheckoutChannel();", INDEX)
+        self.assertIn('"homebuyerCheckoutCancelledCountsByChannel"', ADMIN)
+        self.assertIn('"homebuyerCheckoutRecoveryStartCountsByChannel"', ADMIN)
+        self.assertIn("Checkout recovery by channel:", INDEX)
+
 
 if __name__ == "__main__":
     unittest.main()

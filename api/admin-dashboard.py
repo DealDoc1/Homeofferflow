@@ -5111,6 +5111,22 @@ class handler(BaseHTTPRequestHandler):
             homebuyer_checkout_recovery_start_count = len([
                 item for item in events if item.get("event_type") == "homebuyer_checkout_recovery_started"
             ])
+            homebuyer_checkout_cancelled_counts_by_channel = {
+                channel: len([
+                    item for item in events
+                    if item.get("event_type") == "homebuyer_checkout_cancelled"
+                    and str((item.get("metadata") or {}).get("channel") or "unspecified") == channel
+                ])
+                for channel in homebuyer_landing_channels
+            }
+            homebuyer_checkout_recovery_start_counts_by_channel = {
+                channel: len([
+                    item for item in events
+                    if item.get("event_type") == "homebuyer_checkout_recovery_started"
+                    and str((item.get("metadata") or {}).get("channel") or "unspecified") == channel
+                ])
+                for channel in homebuyer_landing_channels
+            }
             fsbo_guide_view_count = len([
                 item for item in events if item.get("event_type") == "fsbo_guide_viewed"
             ])
@@ -5925,6 +5941,8 @@ class handler(BaseHTTPRequestHandler):
                 "homebuyerLandingOfferStartRatesByChannel": homebuyer_landing_offer_start_rates_by_channel,
                 "homebuyerCheckoutCancelledCount": homebuyer_checkout_cancelled_count,
                 "homebuyerCheckoutRecoveryStartCount": homebuyer_checkout_recovery_start_count,
+                "homebuyerCheckoutCancelledCountsByChannel": homebuyer_checkout_cancelled_counts_by_channel,
+                "homebuyerCheckoutRecoveryStartCountsByChannel": homebuyer_checkout_recovery_start_counts_by_channel,
                 "homebuyerCheckoutRecoveryStartRate": round(
                     (homebuyer_checkout_recovery_start_count / homebuyer_checkout_cancelled_count) * 100, 1
                 ) if homebuyer_checkout_cancelled_count else 0,

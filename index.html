@@ -160,6 +160,25 @@
       return window._hofPlacesLoadPromise;
     };
     
+  const homebuyerCheckoutChannels = new Set(['direct_outreach', 'email', 'social', 'referral', 'local_event', 'print', 'organic']);
+  const homebuyerCheckoutChannelKey = 'hof_homebuyer_checkout_channel';
+
+  function rememberHomebuyerCheckoutChannel() {
+    try {
+      const query = new URLSearchParams(window.location.search);
+      const source = String(query.get('utm_source') || '').trim().toLowerCase();
+      const medium = String(query.get('utm_medium') || '').trim().toLowerCase();
+      const channel = homebuyerCheckoutChannels.has(source)
+        ? source
+        : source === 'homeofferflow_admin' && homebuyerCheckoutChannels.has(medium) ? medium : '';
+      if (channel) sessionStorage.setItem(homebuyerCheckoutChannelKey, channel);
+      const saved = String(sessionStorage.getItem(homebuyerCheckoutChannelKey) || '').trim().toLowerCase();
+      return homebuyerCheckoutChannels.has(saved) ? saved : 'unspecified';
+    } catch (_) {
+      return 'unspecified';
+    }
+  }
+
   function recordHomebuyerCheckoutEvent(eventType) {
     const key = 'hof_homebuyer_checkout_' + eventType;
     try {
@@ -167,7 +186,7 @@
       sessionStorage.setItem(key, '1');
       fetch('/api/fsbo-lead', {
         method: 'POST', headers: {'Content-Type': 'application/json'}, keepalive: true,
-        body: JSON.stringify({request_type: 'homebuyer_landing_event', event_type: eventType, channel: 'unspecified'})
+        body: JSON.stringify({request_type: 'homebuyer_landing_event', event_type: eventType, channel: rememberHomebuyerCheckoutChannel()})
       }).catch(() => {});
     } catch (_) {}
   }
@@ -4958,6 +4977,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Channel views / guided starts: referral ${Number(metrics.homebuyerLandingViewCountsByChannel?.referral || 0)} / ${Number(metrics.homebuyerLandingOfferStartedCountsByChannel?.referral || 0)} · email ${Number(metrics.homebuyerLandingViewCountsByChannel?.email || 0)} / ${Number(metrics.homebuyerLandingOfferStartedCountsByChannel?.email || 0)} · social ${Number(metrics.homebuyerLandingViewCountsByChannel?.social || 0)} / ${Number(metrics.homebuyerLandingOfferStartedCountsByChannel?.social || 0)} · outreach ${Number(metrics.homebuyerLandingViewCountsByChannel?.direct_outreach || 0)} / ${Number(metrics.homebuyerLandingOfferStartedCountsByChannel?.direct_outreach || 0)} · local ${Number(metrics.homebuyerLandingViewCountsByChannel?.local_event || 0)} / ${Number(metrics.homebuyerLandingOfferStartedCountsByChannel?.local_event || 0)} · print ${Number(metrics.homebuyerLandingViewCountsByChannel?.print || 0)} / ${Number(metrics.homebuyerLandingOfferStartedCountsByChannel?.print || 0)}.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Homebuyer channel conversion: ${adminSafe(Object.entries(metrics.homebuyerLandingOfferStartRatesByChannel || {}).filter(([channel]) => Number(metrics.homebuyerLandingViewCountsByChannel?.[channel] || 0) > 0).map(([channel, rate]) => `${channel.replace(/_/g, ' ')} (${Number(rate).toFixed(1)}%)`).join(' · '), 'conversion appears after the next homebuyer landing visit')}</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Checkout recovery: ${metrics.homebuyerCheckoutCancelledCount || 0} canceled returns · ${metrics.homebuyerCheckoutRecoveryStartCount || 0} restarted checkout (${Number(metrics.homebuyerCheckoutRecoveryStartRate || 0).toFixed(1)}%).</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Checkout recovery by channel: canceled — ${adminSafe(Object.entries(metrics.homebuyerCheckoutCancelledCountsByChannel || {}).filter(([, count]) => Number(count) > 0).map(([channel, count]) => `${channel.replace(/_/g, ' ')} (${count})`).join(' · '), 'appears after the next attributed checkout return')}; restarted — ${adminSafe(Object.entries(metrics.homebuyerCheckoutRecoveryStartCountsByChannel || {}).filter(([, count]) => Number(count) > 0).map(([channel, count]) => `${channel.replace(/_/g, ' ')} (${count})`).join(' · '), 'appears after the next attributed recovery')}.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Aggregate landing intent only; no buyer identity, property, financing, or offer details are included.</div>
           </div>
 
@@ -8427,6 +8447,7 @@ function routeAfterMagicLinkIfNeeded() {
       window.location.assign('/agents?utm_source=homeofferflow&utm_medium=homepage&utm_campaign=agent_workspace');
       return;
     }
+    if ((state?.data?.userType || 'homebuyer') === 'homebuyer') rememberHomebuyerCheckoutChannel();
     startPrimaryOffer();
   }
   // Public landing pages and installed-app shortcuts use the explicit window
