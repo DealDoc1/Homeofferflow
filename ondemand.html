@@ -360,6 +360,13 @@
         el.className = `status${message ? " show" : ""}${type ? ` ${type}` : ""}`;
       }
 
+      function customerErrorMessage(error, fallback) {
+        const message = String(error?.message || error || "").replace(/\s+/g, " ").trim();
+        return /^(sign in|enter|this brokerage invite|your brokerage invite|checkout was canceled)/i.test(message) && message.length <= 180
+          ? message
+          : fallback;
+      }
+
       function setBusy(button, busy, busyText, idleText) {
         button.disabled = busy;
         button.textContent = busy ? busyText : idleText;
@@ -492,7 +499,7 @@
             $("brandMark").appendChild(image);
           }
         } catch (error) {
-          showStatus(error.message, "err");
+          showStatus(customerErrorMessage(error, "We couldn’t load the OnDemand enrollment details. Refresh and try again."), "err");
         }
       }
 
@@ -541,7 +548,7 @@
           showStatus("Your OnDemand brokerage connection is confirmed. Continue to activate your 60-day trial.", "ok");
         } catch (error) {
           state.inviteStatus = "failed";
-          showStatus(error.message || "This brokerage invite could not be accepted.", "err");
+          showStatus(customerErrorMessage(error, "We couldn’t confirm that brokerage invite. Refresh and try again, or request a new invite link."), "err");
         }
       }
 
@@ -569,7 +576,7 @@
         });
         setBusy(button, false, "Sending…", "Send secure sign-in link");
         if (error) {
-          showStatus(error.message, "err");
+          showStatus(customerErrorMessage(error, "We couldn’t send a secure sign-in link right now. Please wait a moment and try again."), "err");
           return;
         }
         recordAggregateLandingEvent("ondemand_magic_link_requested");
@@ -604,7 +611,7 @@
           if (!response.ok || !data.url) throw new Error(data.error || "Could not start checkout.");
           window.location.assign(data.url);
         } catch (error) {
-          showStatus(error.message, "err");
+          showStatus(customerErrorMessage(error, "We couldn’t open secure checkout. Please try again."), "err");
           setBusy(button, false, "Opening Stripe…", "Continue to secure checkout");
         }
       }
