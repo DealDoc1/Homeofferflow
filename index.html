@@ -8464,12 +8464,18 @@ function routeAfterMagicLinkIfNeeded() {
     if (!target || !(target instanceof Element)) return;
 
     if (target.matches('input, select, textarea')) {
-      target.style.borderColor = '';
-      delete target.dataset.validationInvalid;
-      target.removeAttribute('aria-invalid');
+      const hasAnswer = target.matches('input[type="checkbox"], input[type="radio"]')
+        ? target.checked
+        : String(target.value || '').trim().length > 0;
+      const isValidEmail = !target.matches('input[type="email"]') || target.checkValidity();
+      if (hasAnswer && isValidEmail) {
+        target.style.borderColor = '';
+        delete target.dataset.validationInvalid;
+        target.removeAttribute('aria-invalid');
+      }
     }
 
-    if (target.matches('input[type="radio"]') && target.name) {
+    if (target.matches('input[type="radio"]') && target.checked && target.name) {
       document.querySelectorAll('input[type="radio"][name]').forEach(input => {
         if (input.name !== target.name) return;
         const card = input.closest('.radio-card');

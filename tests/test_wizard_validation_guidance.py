@@ -24,6 +24,8 @@ class WizardValidationGuidanceTests(unittest.TestCase):
         self.assertIn('clearValidationFeedbackFor(e.target);', INDEX)
         self.assertIn("delete target.dataset.validationInvalid;", INDEX)
         self.assertIn("target.removeAttribute('aria-invalid');", INDEX)
+        self.assertIn("const isValidEmail = !target.matches('input[type=\"email\"]') || target.checkValidity();", INDEX)
+        self.assertIn("if (hasAnswer && isValidEmail)", INDEX)
         self.assertIn("if (activeStep && !activeStep.querySelector('[data-validation-invalid=\"true\"]'))", INDEX)
 
 
