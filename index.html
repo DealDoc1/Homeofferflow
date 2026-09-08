@@ -17521,6 +17521,40 @@ function routeAfterMagicLinkIfNeeded() {
     setText('bottomCtaCopy', context.closingCopy);
   }
 
+  // The hero's trust strip is visible while an audience-specific handoff is
+  // opening. Keep it as specific as the headline and the four-step explainer
+  // so a seller or agent never sees buyer-offer claims in the background.
+  function syncLandingPathTrust(type) {
+    const contexts = {
+      homebuyer: {
+        bar: ['TREC 1-4 Family Residential (20-19)', 'Verified buyer packet paths', 'Mobile-first', 'Review before checkout'],
+        chips: ['🔒 Secure checkout powered by <strong>Stripe</strong>', '📍 Texas-focused offer packets', '📄 Real TREC form workflow']
+      },
+      agent: {
+        bar: ['Guided agent workflows', 'Available to every signed-in agent', 'Mobile-first', 'Review before delivery'],
+        chips: ['🔒 Secure account access', '📍 Texas transaction workflows', '📄 Start with a transaction, not a form catalog']
+      },
+      investor: {
+        bar: ['Guided investment-offer workflows', 'Saved defaults for repeat work', 'Mobile-first', 'Review every term'],
+        chips: ['🔒 Secure account access', '📍 Texas investment offer workflows', '📄 Reuse relevant saved defaults']
+      },
+      fsbo: {
+        bar: ['Guided seller planning', 'No checkout to start', 'Mobile-first', 'Choose help only when needed'],
+        chips: ['📍 Texas seller planning', '📋 Listing, offer-review, and closing options', '🤝 You choose if and when you want more help']
+      }
+    };
+    const context = contexts[type] || contexts.homebuyer;
+    const barIds = ['trustPrimary', 'trustSecondary', 'trustTertiary', 'trustFinal'];
+    barIds.forEach((id, index) => {
+      const element = document.getElementById(id);
+      if (element) element.innerHTML = '<span class="dot"></span>' + context.bar[index];
+    });
+    ['trustChipOne', 'trustChipTwo', 'trustChipThree'].forEach((id, index) => {
+      const element = document.getElementById(id);
+      if (element) element.innerHTML = context.chips[index];
+    });
+  }
+
   root.setAudience = function setAudience(type){
     if (typeof oldSetAudience === 'function') oldSetAudience(type);
     const copy = {
@@ -17551,6 +17585,7 @@ function routeAfterMagicLinkIfNeeded() {
     ['heroPriceNote','bottomPriceNote'].forEach(id => { const el=document.getElementById(id); if(el) el.innerHTML=selected.note; });
     syncOnDemandHeroTrialCta(type);
     syncLandingPathContext(type);
+    syncLandingPathTrust(type);
     addLandingPathStrip();
   };
 
