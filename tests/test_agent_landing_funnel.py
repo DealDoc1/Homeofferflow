@@ -300,10 +300,13 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn('60 days free, then $29/month unless canceled.', AGENTS)
         self.assertIn('id="agentTrialOffer"', AGENTS)
 
-    def test_buyer_offer_fixture_lease_handoff_points_agents_to_the_released_review_draft(self):
-        self.assertIn('A property with an existing lease needs its own guided form package.', INDEX)
-        self.assertIn('Continue to the guided fixture-lease review', INDEX)
-        self.assertIn('utm_source=buyer_offer_interview&amp;utm_medium=lease_handoff&amp;utm_campaign=fixture_lease_review', INDEX)
+    def test_buyer_offer_fixture_lease_stays_in_the_package_interview(self):
+        self.assertIn('HomeOfferFlow will include the right addendum', INDEX)
+        self.assertIn('id="fixtureLeaseInterview"', INDEX)
+        self.assertIn('The completed lease addendum will be placed in this offer package automatically.', INDEX)
+        step_start = INDEX.index('<div class="wizard-step" id="step2">')
+        step_end = INDEX.index('<div class="wizard-step" id="step3">', step_start)
+        self.assertNotIn('utm_medium=lease_handoff', INDEX[step_start:step_end])
 
     def test_ondemand_trial_links_preserve_agent_attribution(self):
         self.assertEqual(AGENTS.count('data-agent-cta-path="ondemand_trial"'), 1)

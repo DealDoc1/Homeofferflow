@@ -83,6 +83,40 @@ def one_page_pdf_base64():
     return base64.b64encode(output.getvalue()).decode()
 
 
+def one_page_pdf_bytes():
+    return base64.b64decode(one_page_pdf_base64())
+
+
+def residential_lease_offer(**overrides):
+    offer = minimal_offer(
+        leases="yes",
+        leaseResidential="yes",
+        paragraph4Seller1Name="Seller One",
+        paragraph4Seller1Email="seller@example.com",
+        residentialLeaseStatus="assignment",
+        residentialLeaseDelivery="received",
+        _paragraph4_source_pdf_bytes={"TXR-1953": one_page_pdf_bytes()},
+    )
+    offer.update(overrides)
+    return offer
+
+
+def fixture_lease_offer(**overrides):
+    offer = minimal_offer(
+        leases="yes",
+        leaseFixture="yes",
+        paragraph4Seller1Name="Seller One",
+        paragraph4Seller1Email="seller@example.com",
+        leasedFixtureTypes=["solar_panels"],
+        assumedFixtureLeases=["solar_panels"],
+        fixtureRemovalChoice="will_not",
+        fixtureLeaseDelivery="received",
+        _paragraph4_source_pdf_bytes={"TXR-1954": one_page_pdf_bytes()},
+    )
+    offer.update(overrides)
+    return offer
+
+
 class ControlledLaunchTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -183,6 +217,50 @@ class ControlledLaunchTests(unittest.TestCase):
         ])
         packet = adapter.fill_and_merge_20_19(offer)
         self.assertEqual(len(PdfReader(BytesIO(packet)).pages), 14)
+
+    def test_residential_lease_is_built_into_offer_packet_with_seller_signature(self):
+        offer = residential_lease_offer()
+        packet = adapter.fill_and_merge_20_19(offer)
+        self.assertEqual(len(PdfReader(BytesIO(packet)).pages), 13)
+        fields = adapter.build_signwell_fields_20_19(offer, packet)[0]
+        by_id = {field["api_id"]: field for field in fields}
+        self.assertEqual(by_id["txr1953_buyer1_signature_p1"]["page"], 13)
+        self.assertEqual(by_id["txr1953_seller1_signature_p1"]["page"], 13)
+        self.assertEqual(by_id["txr1953_seller1_signature_p1"]["recipient_id"], "3")
+
+    def test_both_paragraph4_lease_addenda_keep_packet_and_field_order(self):
+        source = one_page_pdf_bytes()
+        offer = residential_lease_offer(
+            leaseFixture="yes",
+            leasedFixtureTypes=["solar_panels"],
+            assumedFixtureLeases=["solar_panels"],
+            fixtureRemovalChoice="will_not",
+            fixtureLeaseDelivery="received",
+            _paragraph4_source_pdf_bytes={"TXR-1953": source, "TXR-1954": source},
+        )
+        packet = adapter.fill_and_merge_20_19(offer)
+        self.assertEqual(len(PdfReader(BytesIO(packet)).pages), 14)
+        fields = adapter.build_signwell_fields_20_19(offer, packet)[0]
+        by_id = {field["api_id"]: field for field in fields}
+        self.assertEqual(by_id["txr1953_buyer1_signature_p1"]["page"], 13)
+        self.assertEqual(by_id["txr1954_buyer1_signature_p1"]["page"], 14)
+
+    def test_paragraph4_contract_and_paragraph22_checkboxes_match_attached_forms(self):
+        offer = residential_lease_offer(leaseFixture="yes")
+        pages = adapter.verified.build_pages_data(
+            offer, "1438 Whitaker Road, Van Alstyne, TX 75495", "Controlled Launch Buyer",
+            "August 21", "26", "", "", False, False, False, False, False,
+            False, 500000, 0, 500000, "buyer", "buyer", "buyerNew", "received",
+            "yes", "funding", "1", "A",
+        )
+        self.assertIn((52, 202, "X", "check_small"), pages[0])
+        self.assertIn((52, 176, "X", "check_small"), pages[0])
+        self.assertIn((62, 542, "X", "check_small"), pages[8])
+        self.assertIn((62, 529, "X", "check_small"), pages[8])
+
+    def test_fixture_lease_fails_closed_when_required_terms_are_missing(self):
+        with self.assertRaisesRegex(adapter.UnsupportedOfferPathError, "leased fixture selection"):
+            adapter.validate_supported_offer(fixture_lease_offer(leasedFixtureTypes=[]))
 
     def test_uploaded_disclosures_fail_closed_instead_of_silently_omitting_a_file(self):
         offer = minimal_offer(uploadedDisclosureDocs=[{

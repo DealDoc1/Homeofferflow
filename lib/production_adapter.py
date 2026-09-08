@@ -13,6 +13,9 @@ from pathlib import Path
 
 from pypdf import PdfReader, PdfWriter
 
+from lib.txr_1953 import build_signwell_fields_txr1953, render_txr_1953
+from lib.txr_1954 import build_signwell_fields_txr1954, render_txr_1954
+
 
 
 def _load_verified_staging_module():
@@ -59,6 +62,134 @@ def _truthy(value):
 
 def _normalized(value):
     return str(value or "").strip().lower().replace("_", " ").replace("-", " ")
+
+
+def paragraph4_lease_kinds(offer):
+    """Return the supported Paragraph 4 lease addenda selected by the interview."""
+    offer = offer or {}
+    leases = _normalized(offer.get("leases"))
+    residential = _truthy(offer.get("leaseResidential")) or leases in {
+        "residential", "residential lease", "residentiallease"
+    }
+    fixture = _truthy(offer.get("leaseFixture")) or _truthy(offer.get("fixtureLease")) or leases in {
+        "fixture", "fixture lease", "fixturelease"
+    }
+    selected = []
+    if residential:
+        selected.append("TXR-1953")
+    if fixture:
+        selected.append("TXR-1954")
+    return selected
+
+
+def paragraph4_execution_parties(offer):
+    """Return Seller recipients shared by the released Paragraph 4 addenda."""
+    if not paragraph4_lease_kinds(offer):
+        return []
+    offer = offer or {}
+    candidates = [
+        (
+            verified.first_present(
+                offer.get("paragraph4Seller1Name"), offer.get("seller1Name"),
+                offer.get("seller1"), offer.get("seller"),
+            ),
+            verified.first_present(
+                offer.get("paragraph4Seller1Email"), offer.get("seller1Email"),
+                offer.get("sellerEmail"),
+            ),
+        ),
+        (
+            verified.first_present(offer.get("paragraph4Seller2Name"), offer.get("seller2Name")),
+            verified.first_present(offer.get("paragraph4Seller2Email"), offer.get("seller2Email")),
+        ),
+    ]
+    buyer_emails = {
+        str(value or "").strip().lower()
+        for value in (offer.get("buyerEmail"), offer.get("buyer2Email"))
+        if str(value or "").strip()
+    }
+    parties = []
+    used_emails = set(buyer_emails)
+    for index, (raw_name, raw_email) in enumerate(candidates, start=1):
+        name = str(raw_name or "").strip()
+        email = str(raw_email or "").strip().lower()
+        if not name and not email:
+            continue
+        if not name or not email:
+            raise UnsupportedOfferPathError([
+                f"Paragraph 4 Seller {index} name and email"
+            ])
+        if email in used_emails:
+            raise UnsupportedOfferPathError(["distinct Paragraph 4 signer emails"])
+        used_emails.add(email)
+        # Seller ids stay 3 and 4 even when there is one Buyer. This keeps the
+        # same party id on a Paragraph 4 addendum and a Seller temporary lease.
+        parties.append({"id": str(index + 2), "name": name, "email": email, "seller_index": index})
+    if not parties:
+        raise UnsupportedOfferPathError(["Paragraph 4 Seller signer"])
+    return parties
+
+
+def _paragraph4_render_data(offer, form_code):
+    buyer_names = [str(offer.get("buyer1") or "").strip()]
+    if str(offer.get("buyer2") or "").strip():
+        buyer_names.append(str(offer.get("buyer2")).strip())
+    seller_names = [party["name"] for party in paragraph4_execution_parties(offer)]
+    property_address = ", ".join(
+        part for part in (
+            str(offer.get("address") or "").strip(),
+            str(offer.get("city") or "").strip(),
+            str(offer.get("state") or "TX").strip(),
+            str(offer.get("zip") or "").strip(),
+        ) if part
+    )
+    if form_code == "TXR-1953":
+        return {
+            "property_address": property_address,
+            "buyer_names": buyer_names,
+            "seller_names": seller_names,
+            "lease_status": str(offer.get("residentialLeaseStatus") or "").strip(),
+            "delivery_choice": str(offer.get("residentialLeaseDelivery") or "").strip(),
+            "delivery_days": str(offer.get("residentialLeaseDeliveryDays") or "").strip(),
+            "oral_lease_notice": str(offer.get("residentialLeaseOralNotice") or "").strip(),
+            "explanation": str(offer.get("residentialLeaseExplanation") or "").strip(),
+            "_for_signing": True,
+        }
+    return {
+        "property_address": property_address,
+        "buyer_names": buyer_names,
+        "seller_names": seller_names,
+        "leased_fixture_types": list(offer.get("leasedFixtureTypes") or []),
+        "leased_fixtures_other": str(offer.get("leasedFixturesOther") or "").strip(),
+        "assumed_fixture_leases": list(offer.get("assumedFixtureLeases") or []),
+        "assumed_fixture_leases_other": str(offer.get("assumedFixtureLeasesOther") or "").strip(),
+        "buyer_first_cost": str(offer.get("fixtureBuyerFirstCost") or "").strip(),
+        "removal_choice": str(offer.get("fixtureRemovalChoice") or "").strip(),
+        "delivery_choice": str(offer.get("fixtureLeaseDelivery") or "").strip(),
+        "oral_fixture_lease_notice": str(offer.get("fixtureLeaseOralNotice") or "").strip(),
+        "_for_signing": True,
+    }
+
+
+def _paragraph4_documents(offer):
+    sources = (offer or {}).get("_paragraph4_source_pdf_bytes") or {}
+    documents = []
+    for form_code in paragraph4_lease_kinds(offer):
+        source_bytes = sources.get(form_code) if isinstance(sources, dict) else None
+        if not isinstance(source_bytes, (bytes, bytearray)) or not bytes(source_bytes).startswith(b"%PDF"):
+            raise UnsupportedOfferPathError([f"available {form_code} source"])
+        render_data = _paragraph4_render_data(offer, form_code)
+        if form_code == "TXR-1953":
+            rendered = render_txr_1953(bytes(source_bytes), render_data)
+        else:
+            rendered = render_txr_1954(bytes(source_bytes), render_data)
+        documents.append({
+            "form_code": form_code,
+            "raw": rendered,
+            "page_count": len(PdfReader(BytesIO(rendered)).pages),
+            "render_data": render_data,
+        })
+    return documents
 
 
 def seller_temporary_lease_execution_parties(offer):
@@ -124,30 +255,49 @@ def validate_supported_offer(offer):
         blocked.append("unsupported financing type")
 
     leases = _normalized(offer.get("leases"))
-    if leases in {
-        "residential",
-        "residential lease",
-        "residentiallease",
-        "fixture",
-        "fixture lease",
-        "fixturelease",
-        "natural resource",
-        "natural resource lease",
-        "naturalresource",
-        "naturalresourcelease",
-    }:
-        blocked.append("Paragraph 4 lease")
+    if leases in {"natural resource", "natural resource lease", "naturalresource", "naturalresourcelease"}:
+        blocked.append("natural-resource lease")
+    if _truthy(offer.get("leaseNaturalResource")) or _truthy(offer.get("naturalResourceLease")):
+        blocked.append("natural-resource lease")
 
-    lease_flags = {
-        "leaseResidential": "residential lease",
-        "leaseFixture": "fixture lease",
-        "fixtureLease": "fixture lease",
-        "leaseNaturalResource": "natural-resource lease",
-        "naturalResourceLease": "natural-resource lease",
-    }
-    for key, label in lease_flags.items():
-        if _truthy(offer.get(key)):
-            blocked.append(label)
+    selected_leases = paragraph4_lease_kinds(offer)
+    if leases in {"yes", "existing", "existing leases"} and not selected_leases:
+        blocked.append("Paragraph 4 lease type")
+
+    if "TXR-1953" in selected_leases:
+        status = str(offer.get("residentialLeaseStatus") or "").strip()
+        if status not in {"termination", "assignment"}:
+            blocked.append("residential lease treatment")
+        if status == "assignment":
+            delivery = str(offer.get("residentialLeaseDelivery") or "").strip()
+            if delivery not in {"received", "not_received", "oral_notice"}:
+                blocked.append("residential lease delivery")
+            if delivery == "not_received":
+                days = str(offer.get("residentialLeaseDeliveryDays") or "").strip()
+                if not days.isdigit() or int(days) < 1:
+                    blocked.append("residential lease delivery days")
+            if delivery == "oral_notice" and not str(offer.get("residentialLeaseOralNotice") or "").strip():
+                blocked.append("oral residential lease notice")
+
+    if "TXR-1954" in selected_leases:
+        allowed_fixtures = {"solar_panels", "propane_tanks", "water_softener", "security_system", "other"}
+        leased = offer.get("leasedFixtureTypes") or []
+        assumed = offer.get("assumedFixtureLeases") or []
+        if not isinstance(leased, list) or not leased or any(value not in allowed_fixtures for value in leased):
+            blocked.append("leased fixture selection")
+        if not isinstance(assumed, list) or not assumed or any(value not in allowed_fixtures for value in assumed):
+            blocked.append("assumed fixture lease selection")
+        if "other" in leased and not str(offer.get("leasedFixturesOther") or "").strip():
+            blocked.append("other leased fixture description")
+        if "other" in assumed and not str(offer.get("assumedFixtureLeasesOther") or "").strip():
+            blocked.append("other assumed fixture lease description")
+        if str(offer.get("fixtureRemovalChoice") or "").strip() not in {"will", "will_not"}:
+            blocked.append("fixture removal choice")
+        fixture_delivery = str(offer.get("fixtureLeaseDelivery") or "").strip()
+        if fixture_delivery not in {"received", "not_received", "oral_notice"}:
+            blocked.append("fixture lease delivery")
+        if fixture_delivery == "oral_notice" and not str(offer.get("fixtureLeaseOralNotice") or "").strip():
+            blocked.append("oral fixture lease notice")
 
     possession = _normalized(offer.get("possession") or offer.get("possessionType"))
     buyer_temp_flag = _truthy(offer.get("buyerTemporaryLease"))
@@ -191,6 +341,8 @@ def validate_supported_offer(offer):
 
     if seller_temp_flag:
         seller_temporary_lease_execution_parties(offer)
+    if selected_leases:
+        paragraph4_execution_parties(offer)
 
     return True
 
@@ -249,15 +401,18 @@ def _uploaded_docs(offer):
 
 
 def fill_and_merge_20_19(offer):
-    """Generate the verified 20-19 packet, then preserve uploaded disclosures."""
+    """Generate the verified 20-19 packet, Paragraph 4 forms, then uploads."""
     validate_supported_offer(offer)
     docs = _uploaded_docs(offer)
+    lease_docs = _paragraph4_documents(offer)
     packet = verified.fill_and_merge(offer)
-    if not docs:
+    if not docs and not lease_docs:
         return packet
 
     writer = PdfWriter()
     writer.append(PdfReader(BytesIO(packet)))
+    for doc in lease_docs:
+        writer.append(PdfReader(BytesIO(doc["raw"])))
     for doc in docs:
         writer.append(PdfReader(BytesIO(doc["raw"])))
 
@@ -319,6 +474,34 @@ def build_signwell_fields_20_19(offer, pdf_bytes):
                 append_signature_date("seller2_main_contract", main_signature_page, 420, 568, 591, 568, recipient_id)
                 append_field("seller2_initials_seller_temp_lease_p1", "initials", lease_initial_page, 508, 1004, recipient_id, 24, 10)
                 append_field("seller2_signature_seller_temp_lease", "signature", lease_signature_page, 440, 845, recipient_id, 145, 20)
+
+    lease_docs = _paragraph4_documents(offer)
+    if lease_docs:
+        uploaded_docs = _uploaded_docs(offer)
+        first_lease_page = (
+            len(PdfReader(BytesIO(pdf_bytes)).pages)
+            - sum(doc["page_count"] for doc in uploaded_docs)
+            - sum(doc["page_count"] for doc in lease_docs)
+            + 1
+        )
+        page_cursor = first_lease_page
+        for doc in lease_docs:
+            if doc["form_code"] == "TXR-1953":
+                relative_fields = build_signwell_fields_txr1953(doc["render_data"])[0]
+            else:
+                relative_fields = build_signwell_fields_txr1954(doc["render_data"])[0]
+            for field in relative_fields:
+                copied = dict(field)
+                copied["page"] = page_cursor + int(field["page"]) - 1
+                # Core offer packets reserve ids 1 and 2 for Buyers and 3 and
+                # 4 for Sellers, regardless of whether Buyer 2 is present.
+                recipient_id = str(copied.get("recipient_id") or "")
+                buyer_count = len(doc["render_data"].get("buyer_names") or [])
+                seller_offset = int(recipient_id) - buyer_count
+                if seller_offset >= 1:
+                    copied["recipient_id"] = str(seller_offset + 2)
+                fields_for_file.append(copied)
+            page_cursor += doc["page_count"]
 
     docs = _uploaded_docs(offer)
     if not docs:

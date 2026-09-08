@@ -707,6 +707,11 @@ def build_pages_data(
         (457, 257, fmt_money(price)),
 
         (315, 284, ck(has_loan), "check_small"),
+
+        # Paragraph 4. The production adapter appends the exact corresponding
+        # lease addendum before a checked option can be sent for signature.
+        (52, 202, ck(lease_residential), "check_small"),
+        (52, 176, ck(lease_fixture), "check_small"),
     ]
 
     escrow_agent = s.get("escrowAgent") or ""
@@ -867,6 +872,8 @@ def build_pages_data(
         (62, 642, ck(has_appraisal), "check_small"),
 
         # Leases. Buyer and seller temporary leases are distinct Paragraph 22 rows.
+        (62, 542, ck(lease_residential), "check_small"),
+        (62, 529, ck(lease_fixture), "check_small"),
         (62, 516, ck(buyer_temp_lease_requested(s)), "check_small"),
         (62, 503, ck(seller_temp_lease_requested(s)), "check_small"),
 
