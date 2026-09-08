@@ -23,6 +23,8 @@ class TxrSigningRequestPathTests(unittest.TestCase):
             "TXR-1506": {"signer_plan": "consumers_and_associate"},
             "TXR-1507": {"signer_plan": "clients_and_associate", "compensation": {"purchase_percentage": "3"}, "service_level": "full_services", "intermediary": "authorized"},
             "TXR-1508": {"signer_plan": "associate_and_clients", "other_broker_agreement": ["no"]},
+            "TXR-1953": {"buyer_names": ["Buyer One"], "seller_names": ["Seller One"]},
+            "TXR-1954": {"buyer_names": ["Buyer One"], "seller_names": ["Seller One"]},
         }
         for form_code, data in cases.items():
             fields = MODULE._txr_signwell_fields(form_code, {"client_names": ["Client One"], **data}, 1)
@@ -39,6 +41,28 @@ class TxrSigningRequestPathTests(unittest.TestCase):
         )
         self.assertEqual([row["id"] for row in recipients], ["1", "2", "associate"])
 
+    def test_lease_addenda_use_only_the_named_buyers_and_sellers(self):
+        agreement = {
+            "form_code": "TXR-1953",
+            "client_names": ["Buyer One", "Buyer Two", "Seller One"],
+            "agreement_data": {
+                "buyer_names": ["Buyer One", "Buyer Two"],
+                "seller_names": ["Seller One"],
+            },
+        }
+        recipients = MODULE._txr_signwell_recipients(
+            agreement,
+            ["buyer1@example.com", "buyer2@example.com", "seller1@example.com"],
+            {},
+            {"email": "agent@example.com", "name": "Agent"},
+        )
+        self.assertEqual([row["id"] for row in recipients], ["1", "2", "3"])
+        self.assertEqual(
+            MODULE._standalone_signer_labels(agreement),
+            ["Buyer 1", "Buyer 2", "Seller 1"],
+        )
+        self.assertNotIn("agent@example.com", [row["email"] for row in recipients])
+
     def test_ui_exposes_preview_and_send_only_for_draft_records(self):
         html = (ROOT / "index.html").read_text(encoding="utf-8")
         self.assertIn('hof-standalone-agreement-signing-v1', html)
@@ -50,6 +74,8 @@ class TxrSigningRequestPathTests(unittest.TestCase):
     def test_standalone_scope_reports_the_signing_gate_state(self):
         source = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
         self.assertIn('"signingEnabled": TXR_SIGNING_ENABLED', source)
+        self.assertIn('"signingFormCodes": sorted(TXR_SIGNING_FORM_CODES)', source)
+        self.assertIn('row.pop("agreement_data", None)', source)
 
     def test_shared_library_signing_does_not_require_a_brokerage_seat(self):
         signing_source = MODULE._send_txr_agreement_for_signature.__doc__ or ""
