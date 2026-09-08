@@ -235,6 +235,7 @@ class PwaInstallExperienceTests(unittest.TestCase):
         self.assertIn("!window.location.search", INDEX)
         self.assertIn("!window.location.hash", INDEX)
         self.assertIn("!window.hofAuth?.routedAfterLogin", INDEX)
+        self.assertIn("!preferredStandaloneLaunchAction()", INDEX)
         self.assertIn("async function openDefaultWorkspaceAfterAuth()", INDEX)
         self.assertIn("window.openAccountDashboard?.({ tab: 'dashboard' })", INDEX)
         self.assertIn("PWA Default Workspace Opened", INDEX)

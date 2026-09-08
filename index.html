@@ -21427,12 +21427,15 @@ function routeAfterMagicLinkIfNeeded() {
 
   function canOpenDefaultWorkspace(){
     // Only a clean installed-app home launch can open a private workspace.
-    // Public links, shortcuts, and authentication returns retain their own routing.
+    // Public links, declared public app returns, shortcuts, and authentication
+    // returns retain their own routing. An explicit buyer or seller install
+    // choice must not be replaced by a prior agent session on the same device.
     return isStandalonePwa()
       && window.location.pathname === '/'
       && !window.location.search
       && !window.location.hash
       && !window.hofAuth?.routedAfterLogin
+      && !preferredStandaloneLaunchAction()
       && !!window.hofAuth?.session;
   }
 
