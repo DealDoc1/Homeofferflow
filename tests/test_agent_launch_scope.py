@@ -12,7 +12,7 @@ class AgentLaunchScopeTests(unittest.TestCase):
         self.assertIn("Forms available in HomeOfferFlow", HTML)
         self.assertIn("Available now", HTML)
         self.assertIn("Private review drafts", HTML)
-        self.assertIn("These drafts stay private and are not sent or signed through HomeOfferFlow.", HTML)
+        self.assertIn("Released documents can be sent for signature after review; draft-only documents remain private.", HTML)
 
     def test_scope_does_not_overstate_unreleased_agent_form_workflows(self):
         for form_group in (
@@ -37,7 +37,7 @@ class AgentLaunchScopeTests(unittest.TestCase):
             "TXR-1914", "TXR-1917", "TXR-1919", "TXR-1948", "TXR-1953", "TXR-1954",
         ):
             self.assertIn(form_code, HTML)
-        self.assertIn("These drafts stay private and are not sent or signed through HomeOfferFlow.", HTML)
+        self.assertIn("Released documents can be sent for signature after review; draft-only documents remain private.", HTML)
 
     def test_scope_provides_a_dedicated_missing_form_request_path(self):
         self.assertIn("openMissingFormRequest", HTML)

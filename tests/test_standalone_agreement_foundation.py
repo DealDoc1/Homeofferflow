@@ -419,9 +419,9 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
         self.assertEqual(MODULE._parse_txr_1953_draft(payload)["agreement_data"]["lease_status"], "termination")
         self.assertIn("Start residential-lease draft", HTML)
         self.assertIn("create_txr_1953_draft", HTML)
-        self.assertIn("not a lease decision or signature request", HTML)
+        self.assertIn("before I send it for signature", HTML)
 
-    def test_fixture_lease_draft_requires_printed_choices_and_stays_review_only(self):
+    def test_fixture_lease_draft_requires_printed_choices_and_supports_signature_send(self):
         draft = MODULE._parse_txr_1954_draft(valid_fixture_lease_payload())
         self.assertEqual(draft["agreement_data"]["buyer_first_cost"], "2500")
         payload = valid_fixture_lease_payload()
@@ -434,7 +434,7 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
             MODULE._parse_txr_1954_draft(payload)
         self.assertIn("Start fixture-lease draft", HTML)
         self.assertIn("create_txr_1954_draft", HTML)
-        self.assertIn("not a lease decision or signature request", HTML)
+        self.assertIn("send it to the named Buyers and Sellers for signature", HTML)
 
     def test_agent_ui_requires_an_approved_private_source_and_saves_draft_only(self):
         self.assertIn("Start straightforward representation draft", HTML)
