@@ -14488,11 +14488,18 @@ function routeAfterMagicLinkIfNeeded() {
         if (field.type === 'checkbox') field.checked = false;
         else if (field.id !== 'fsboPropertyState') field.value = '';
       });
+      // Restore the visible defaults as well as the field values. Without
+      // this, an earlier goal could remain styled as selected after the draft
+      // has been cleared, and the timeline select could appear blank.
+      const timeline = document.getElementById('fsboTimeline');
+      if (timeline) timeline.value = 'not_sure';
       window.selectFsboNeed?.('free_intake', false);
       // Selecting the default package persists its current value; remove that
       // fresh empty save as part of the explicit clear action.
       clearFsboDraft();
       window.renderFsboNeedDetails?.();
+      window.renderFsboGuidedGoal?.();
+      renderFsboRequiredReadyCue();
       document.getElementById('fsboPropertyAddress')?.focus();
     }, {once:true});
   }
