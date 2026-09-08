@@ -19,6 +19,13 @@ class WizardValidationGuidanceTests(unittest.TestCase):
         self.assertIn("guideToFirstValidationAnswer(stepId);", INDEX)
         self.assertIn("setValidationStatus('Continue needs: '", INDEX)
 
+    def test_correcting_an_answer_clears_its_stale_validation_feedback(self):
+        self.assertIn('function clearValidationFeedbackFor(target)', INDEX)
+        self.assertIn('clearValidationFeedbackFor(e.target);', INDEX)
+        self.assertIn("delete target.dataset.validationInvalid;", INDEX)
+        self.assertIn("target.removeAttribute('aria-invalid');", INDEX)
+        self.assertIn("if (activeStep && !activeStep.querySelector('[data-validation-invalid=\"true\"]'))", INDEX)
+
 
 if __name__ == "__main__":
     unittest.main()

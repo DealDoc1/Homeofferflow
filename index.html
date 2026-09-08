@@ -8457,6 +8457,34 @@ function routeAfterMagicLinkIfNeeded() {
     el.hidden = !message;
   }
 
+  // Once a person corrects an answer, remove the stale warning immediately.
+  // They should not have to press Continue a second time just to learn that
+  // the answer they entered is now accepted.
+  function clearValidationFeedbackFor(target) {
+    if (!target || !(target instanceof Element)) return;
+
+    if (target.matches('input, select, textarea')) {
+      target.style.borderColor = '';
+      delete target.dataset.validationInvalid;
+      target.removeAttribute('aria-invalid');
+    }
+
+    if (target.matches('input[type="radio"]') && target.name) {
+      document.querySelectorAll('input[type="radio"][name]').forEach(input => {
+        if (input.name !== target.name) return;
+        const card = input.closest('.radio-card');
+        if (!card) return;
+        card.style.outline = '';
+        delete card.dataset.validationInvalid;
+      });
+    }
+
+    const activeStep = document.getElementById(getCurrentSteps()[state.step]);
+    if (activeStep && !activeStep.querySelector('[data-validation-invalid="true"]')) {
+      setValidationStatus('');
+    }
+  }
+
   function validateCurrentStep() {
     const stepId = getCurrentSteps()[state.step];
     const userType = state.data.userType || 'homebuyer';
@@ -12015,10 +12043,12 @@ function routeAfterMagicLinkIfNeeded() {
   }
 
   document.addEventListener('input', function(e) {
+    clearValidationFeedbackFor(e.target);
     if (e.target && e.target.id === 'buyerMailAddr') sanitizeBuyerMailingAddressAutofill();
     scheduleDraftSave();
   });
-  document.addEventListener('change', () => {
+  document.addEventListener('change', event => {
+    clearValidationFeedbackFor(event.target);
     restoreConditionalSections();
     scheduleDraftSave();
   });
