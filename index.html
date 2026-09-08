@@ -10248,7 +10248,7 @@ function routeAfterMagicLinkIfNeeded() {
     const blocked = controlledLaunchUnsupportedPaths(offerData);
     if (!blocked.length) return true;
     setPaymentStatus(
-      'This packet includes an option that HomeOfferFlow is still testing: ' +
+      'This packet includes an option that needs a short support review before purchase or generation: ' +
       blocked.join(', ') +
       '. Please contact support before purchasing or generating this packet.'
     );
