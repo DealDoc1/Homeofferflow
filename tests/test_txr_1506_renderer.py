@@ -42,6 +42,7 @@ class Txr1506RendererTests(unittest.TestCase):
         self.assertEqual(len(two), 16)
         self.assertTrue(all(field["page"] in {1, 2, 3, 4, 5, 6} for field in two))
         self.assertEqual(next(field["y"] for field in two if field["api_id"] == "txr1506_associate_signature_p6"), 800)
+        self.assertEqual(next(field["x"] for field in two if field["api_id"] == "txr1506_associate_date_p6"), 455)
         self.assertEqual(next(field["y"] for field in two if field["api_id"] == "txr1506_client1_signature_p6"), 893)
         self.assertEqual(next(field["y"] for field in two if field["api_id"] == "txr1506_client2_signature_p6"), 939)
         with self.assertRaisesRegex(ValueError, "authorized broker"):

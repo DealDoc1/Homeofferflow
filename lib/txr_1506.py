@@ -90,6 +90,10 @@ def build_signwell_fields_txr1506(data, *, client_count=1):
     role = "associate" if signer_plan == "consumers_and_associate" else "broker"
     fields.extend([
         {"api_id": f"txr1506_{role}_signature_p6", "type": "signature", "page": 6, "x": 60, "y": 800, "recipient_id": role, "required": True, "width": 190, "height": 26},
-        {"api_id": f"txr1506_{role}_date_p6", "type": "date", "page": 6, "x": 330, "y": 800, "recipient_id": role, "required": True, "width": 88, "height": 20, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
+        # The source uses the same right-hand Date column for the provider
+        # acknowledgement and each consumer acknowledgement.  Keeping this
+        # at x=455 seats the SignWell date on that printed rule rather than
+        # over the provider-signature description.
+        {"api_id": f"txr1506_{role}_date_p6", "type": "date", "page": 6, "x": 455, "y": 800, "recipient_id": role, "required": True, "width": 88, "height": 20, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
     ])
     return [fields]
