@@ -18116,6 +18116,16 @@ function routeAfterMagicLinkIfNeeded() {
   root.renderAgentActivationCard = function renderAgentActivationCard() {
     const card = document.getElementById('agentActivationCard');
     if (!card || !root.hofAuth?.session) return;
+    // The investor dashboard has its own focused next-action experience.
+    // Do not inject agent subscription or brokerage activation language after
+    // that role-specific workspace has rendered.
+    if (String(root.hofAuth?.role || '').toLowerCase() === 'investor') {
+      card.hidden = true;
+      card.classList.remove('show');
+      card.innerHTML = '';
+      return;
+    }
+    card.hidden = false;
     const state = activationState();
     const steps = [
       { done: state.hasOffer, label: 'First saved offer' },
