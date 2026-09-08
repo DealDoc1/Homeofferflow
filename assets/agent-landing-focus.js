@@ -3,7 +3,7 @@
   const rawSource = String(params.get('utm_source') || '').trim().toLowerCase();
   const rawMedium = String(params.get('utm_medium') || '').trim().toLowerCase();
   const channel = window.hofAgentLandingChannel || (rawMedium === 'installed_app' ? 'pwa_shortcut' : rawSource || 'direct');
-  const allowedChannels = new Set(['direct', 'organic', 'pwa_shortcut', 'direct_outreach', 'email', 'social', 'referral', 'local_event', 'print']);
+  const allowedChannels = new Set(['direct', 'homepage', 'organic', 'pwa_shortcut', 'direct_outreach', 'email', 'social', 'referral', 'local_event', 'print']);
   const safeChannel = allowedChannels.has(channel) ? channel : 'direct';
   const note = document.querySelector('.note:not(#agentTrialOffer)');
   const start = document.querySelector('#transaction-start');

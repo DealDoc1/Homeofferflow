@@ -57,6 +57,14 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertLess(entry.index(target), entry.index('startPrimaryOffer();'))
         self.assertIn("cta: 'Start a Transaction'", INDEX)
 
+    def test_homepage_agent_entry_has_its_own_privacy_safe_conversion_channel(self):
+        self.assertIn('"homepage"', API)
+        self.assertIn("source==='homeofferflow'||medium==='homepage'?'homepage'", AGENTS)
+        focus = (ROOT / 'assets' / 'agent-landing-focus.js').read_text(encoding='utf-8')
+        self.assertIn("'homepage'", focus)
+        self.assertNotIn("agent_email", AGENTS)
+        self.assertNotIn("client_email", AGENTS)
+
     def test_agent_landing_keeps_reference_guides_out_of_the_first_screen(self):
         hero = AGENTS.split('<section class="grid" id="transaction-start"', 1)[0]
         self.assertNotIn('form_library_guide', hero)
