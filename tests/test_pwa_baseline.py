@@ -63,7 +63,7 @@ class PwaBaselineTests(unittest.TestCase):
             [(item["name"], item["url"]) for item in MANIFEST["shortcuts"][:4]],
             [
                 ("Start a Transaction", "/?pwa_action=transaction_start"),
-                ("My Workspace", "/?pwa_action=workspace"),
+                ("Investor Workspace", "/?pwa_action=investor_workspace"),
                 ("Start Seller Plan", "/?pwa_action=seller_plan"),
                 ("Start Buyer Offer", "/?pwa_action=buyer_offer"),
             ],
@@ -90,7 +90,7 @@ class PwaBaselineTests(unittest.TestCase):
         self.assertNotIn("caches.match(event.request)", WORKER)
 
     def test_install_precaches_only_low_cost_app_essentials(self):
-        self.assertIn("const SHELL_CACHE = 'homeofferflow-shell-v60';", WORKER)
+        self.assertIn("const SHELL_CACHE = 'homeofferflow-shell-v61';", WORKER)
         shell_assets = WORKER.split('const SHELL_ASSETS = [', 1)[1].split('];', 1)[0]
         self.assertIn("'/manifest.webmanifest'", shell_assets)
         self.assertIn("'/assets/pwa-register.js'", shell_assets)
@@ -150,6 +150,10 @@ class PwaBaselineTests(unittest.TestCase):
         seller_plan = next(item for item in MANIFEST["shortcuts"] if item["name"] == "Start Seller Plan")
         self.assertEqual(seller_plan["url"], "/?pwa_action=seller_plan")
         self.assertIn("no checkout required", seller_plan["description"])
+
+        investor_workspace = next(item for item in MANIFEST["shortcuts"] if item["name"] == "Investor Workspace")
+        self.assertEqual(investor_workspace["url"], "/?pwa_action=investor_workspace")
+        self.assertIn("repeat-offer defaults", investor_workspace["description"])
 
     def test_shortcuts_use_the_branded_app_icon_for_consistent_mobile_launching(self):
         for shortcut in MANIFEST["shortcuts"]:

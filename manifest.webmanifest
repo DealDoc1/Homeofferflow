@@ -25,10 +25,10 @@
       "icons": [{"src":"/assets/homeofferflow-app-icon-192.png","sizes":"192x192","type":"image/png"}]
     },
     {
-      "name": "My Workspace",
-      "short_name": "Workspace",
-      "description": "Open your HomeOfferFlow agent workspace.",
-      "url": "/?pwa_action=workspace",
+      "name": "Investor Workspace",
+      "short_name": "Investor",
+      "description": "Open your Texas investor workspace with saved repeat-offer defaults.",
+      "url": "/?pwa_action=investor_workspace",
       "icons": [{"src":"/assets/homeofferflow-app-icon-192.png","sizes":"192x192","type":"image/png"}]
     },
     {
