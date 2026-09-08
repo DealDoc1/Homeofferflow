@@ -293,7 +293,7 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn('No brokerage seat required.', AGENTS)
         self.assertIn("Every signed-in agent can use HomeOfferFlow's released shared form workflows and create an agent-owned private listing workspace.", AGENTS)
         self.assertIn('agent-owned private listing workspace', AGENTS)
-        self.assertIn('You do not need a brokerage seat to create your own private seller or lease-listing workspace.', AGENTS)
+        self.assertIn('You do not need a brokerage seat to create your own seller or lease-listing workspace.', AGENTS)
         self.assertIn('save your defaults for faster repeat work', AGENTS)
         self.assertIn('OnDemand Realty agents:', AGENTS)
         self.assertIn('60 days free, then $29/month unless canceled.', AGENTS)

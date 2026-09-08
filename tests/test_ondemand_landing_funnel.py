@@ -93,7 +93,7 @@ class OnDemandLandingFunnelTests(unittest.TestCase):
     def test_trial_page_summarizes_scope_without_repeating_checkout_friction(self):
         self.assertIn("Your plan at a glance", ONDEMAND)
         self.assertIn("Start an offer today. Keep every next step clear.", ONDEMAND)
-        self.assertIn("Private form drafts stay private", ONDEMAND)
+        self.assertIn("Review before sending", ONDEMAND)
         self.assertNotIn("Please read before enrolling", ONDEMAND)
 
     def test_all_public_ondemand_trial_links_share_the_same_aggregate_entry_signal(self):

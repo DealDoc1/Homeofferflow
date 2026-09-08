@@ -1083,7 +1083,7 @@ class OnDemandLaunchPageTests(unittest.TestCase):
         for text in (
             "buyer-offer package",
             "seller temporary residential lease when seller post-closing possession applies",
-            "private review drafts",
+            "guided document preparation",
             "shared library",
             "relationship, consumer-notice, seller-disclosure, seller-financing, and mineral-reservation",
             "listing agreements",
