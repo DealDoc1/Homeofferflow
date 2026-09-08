@@ -3138,13 +3138,13 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           <div class="relationship-drafts-guide-item"><strong>Straightforward representation agreement · TXR-1507</strong><span>Buyer/Tenant Representation Agreement, Short Form.</span></div>
           <div class="relationship-drafts-guide-item"><strong>Detailed representation agreement · TXR-1501</strong><span>Buyer/Tenant Representation Agreement, Long Form; choose it only when it fits the transaction.</span></div>
           <div class="relationship-drafts-guide-item"><strong>Unrepresented-customer showing form · TXR-1508</strong><span>Use this only for an unrepresented customer; it is not a buyer representation agreement.</span></div>
-          <div class="relationship-drafts-guide-item"><strong>TXR-1506 · Consumer Notice</strong><span>General Information and Notice to Consumers draft; it does not create representation.</span></div>
+          <div class="relationship-drafts-guide-item"><strong>TXR-1506 · Consumer Notice</strong><span>General Information and Notice to Consumers; it does not create representation.</span></div>
           <div class="relationship-drafts-guide-item"><strong>TXR-1905 · Mineral Reservation Addendum</strong><span>Short guided private-review draft for the reservation and surface-rights choices; it does not send or sign the addendum.</span></div>
           <div class="relationship-drafts-guide-item"><strong>TXR-1914 · Seller Financing Addendum</strong><span>Private review draft for financing choices; it does not create loan documents or advise on financing.</span></div>
           <div class="relationship-drafts-guide-item"><strong>TXR-1917 · Environmental Assessment Addendum</strong><span>Private review draft for environmental choices; it is not an environmental assessment.</span></div>
           <div class="relationship-drafts-guide-item"><strong>TXR-1919 · Loan Assumption Addendum</strong><span>Private review draft for assumption choices; it does not assess credit or contact a lender.</span></div>
         </div>
-        <p style="color:var(--gray-light); font-size:.84rem; line-height:1.5; margin:1rem 0 0;">Each tool confirms your sign-in and the current approved form edition before saving a private draft. Drafts remain private until reviewed; where signing is enabled, you confirm the signers and recipients before anything is sent.</p>
+        <p style="color:var(--gray-light); font-size:.84rem; line-height:1.5; margin:1rem 0 0;">Each tool confirms your sign-in and the current form edition before preparing the document. You review it first, then confirm the signers and recipients before anything is sent.</p>
       </div>
     </div>
 
@@ -22412,10 +22412,15 @@ function routeAfterMagicLinkIfNeeded() {
     ['txr1953AgreementForm', 'TXR-1953'],
     ['txr1954AgreementForm', 'TXR-1954'],
   ]);
+  const signingFormIds = new Set([
+    'txr1501AgreementForm', 'txr1506AgreementForm', 'txr1507AgreementForm',
+    'txr1508AgreementForm', 'txr1953AgreementForm', 'txr1954AgreementForm'
+  ]);
+  const hasSignatureQueue = form => signingFormIds.has(form.id);
   function restore(form, button) {
     button.disabled = false;
     button.setAttribute('aria-busy', 'false');
-    button.textContent = 'Save private review draft';
+    button.textContent = hasSignatureQueue(form) ? 'Prepare document' : 'Save review draft';
   }
   function bind(form) {
     if (!form || form.dataset.saveFeedbackBound === 'true') return;
@@ -22432,7 +22437,7 @@ function routeAfterMagicLinkIfNeeded() {
         if (button.disabled) return;
         button.disabled = true;
         button.setAttribute('aria-busy', 'true');
-        button.textContent = 'Saving draft…';
+        button.textContent = hasSignatureQueue(form) ? 'Preparing document…' : 'Saving review draft…';
       }, 0);
     });
     new MutationObserver(() => {
@@ -22449,7 +22454,7 @@ function routeAfterMagicLinkIfNeeded() {
       if (status.classList.contains('ready')) {
         button.disabled = true;
         button.setAttribute('aria-busy', 'false');
-        button.textContent = 'Draft saved';
+        button.textContent = hasSignatureQueue(form) ? 'Ready to review' : 'Review draft saved';
         if (form.dataset.privateReviewSavedEvent !== 'true') {
           form.dataset.privateReviewSavedEvent = 'true';
           window.logOfferEvent?.(null, 'agent_private_review_draft_saved', 'saved', 'Agent saved a private review draft.', {
@@ -22462,7 +22467,7 @@ function routeAfterMagicLinkIfNeeded() {
           const nextStep = document.createElement('button');
           nextStep.type = 'button';
           nextStep.className = 'btn-secondary hof-private-review-next-step';
-          nextStep.textContent = 'View saved drafts';
+          nextStep.textContent = hasSignatureQueue(form) ? 'Review prepared documents' : 'View saved drafts';
           nextStep.style.marginTop = '.55rem';
           nextStep.addEventListener('click', () => {
             window.logOfferEvent?.(null, 'agent_private_review_draft_next_step_clicked', 'opened', 'Agent opened the saved private-draft queue after saving a review draft.', { form_code: formIds.get(form.id), surface: 'agent_forms' });
