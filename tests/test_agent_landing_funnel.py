@@ -90,6 +90,14 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("lease_representation: 'your tenant-representation transaction'", entry)
         self.assertIn("We’ll continue with ${workflowLabel} after you return.", entry)
 
+    def test_agent_deep_link_waits_for_existing_session_resolution(self):
+        start = INDEX.index("const continueAfterAuthResolution = callback =>")
+        end = INDEX.index("// Investor acquisition", start)
+        entry = INDEX[start:end]
+        self.assertIn("window.__hofDraftRestoreAuthReady", entry)
+        self.assertIn("window.addEventListener('hof-auth-ready', callback, { once: true });", entry)
+        self.assertIn("continueAfterAuthResolution(() => {", entry)
+
     def test_package_start_telemetry_waits_for_the_destination_workspace(self):
         start = INDEX.index("window.hofOpenAgentPackageInterview = function")
         end = INDEX.index("window.startAgentWorkflow = function", start)

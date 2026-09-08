@@ -5378,6 +5378,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       }
       if (!client) {
         window.__hofDraftRestoreAuthReady = true;
+        try { window.dispatchEvent(new Event('hof-auth-ready')); } catch (_) {}
         return;
       }
       try {
@@ -15812,11 +15813,21 @@ function routeAfterMagicLinkIfNeeded() {
       window.setAudience?.('homebuyer');
       window.beginOfferFrom?.(buyerEntrySurface);
     }, 80);
+    // A direct workspace link may load before the browser has restored an
+    // existing Supabase session.  Wait for that result instead of showing a
+    // signed-in person an unnecessary second magic-link prompt.
+    const continueAfterAuthResolution = callback => {
+      if (window.__hofDraftRestoreAuthReady) {
+        callback();
+        return;
+      }
+      window.addEventListener('hof-auth-ready', callback, { once: true });
+    };
     // Agent acquisition reuses the passwordless account workflow. The public
     // CTA requests a private no-payment draft, so preserve only that safe
     // action through the magic-link return; no account or subscription is
     // created until the agent elects to continue.
-    if (params().get('agent') === '1') setTimeout(() => {
+    if (params().get('agent') === '1') setTimeout(() => continueAfterAuthResolution(() => {
       const agentRouteParams = params();
       const agentLandingWorkflow = ['purchase', 'sale_listing', 'lease_listing', 'lease_representation'].includes(agentRouteParams.get('workflow')) ? agentRouteParams.get('workflow') : '';
       const agentLandingWorkspace = ['seller', 'relationship'].includes(agentRouteParams.get('workspace')) ? agentRouteParams.get('workspace') : '';
@@ -15873,13 +15884,13 @@ function routeAfterMagicLinkIfNeeded() {
         const authSubtitle = document.getElementById('authSubtitle');
         if (authSubtitle) authSubtitle.textContent = `Enter your email for a secure sign-in link. We’ll continue with ${workflowLabel} after you return.`;
       }
-    }, 80);
+    }), 80);
     // Investor acquisition reuses the passwordless account workflow. A
     // signed-in investor should go straight to their workspace—not be asked
     // to sign in again. A signed-out visitor resumes that same workspace
     // handoff after the secure-link return. Neither path starts an offer,
     // activates a subscription, or carries any deal data.
-    if (params().get('investor') === '1') setTimeout(() => {
+    if (params().get('investor') === '1') setTimeout(() => continueAfterAuthResolution(() => {
       const investorRouteParams = params();
       const investorLandingSource = investorRouteParams.get('utm_source') === 'texas_investor_offer_guide'
         ? 'texas_investor_offer_guide'
@@ -15900,7 +15911,7 @@ function routeAfterMagicLinkIfNeeded() {
         } catch (_) {}
         window.openAuthModal?.('investor');
       }
-    }, 80);
+    }), 80);
     if (params().get('partner_onboarding')) setTimeout(window.openPartnerOnboarding, 80);
     if (params().get('partner') === '1') setTimeout(window.openFoundingPartnerModal, 80);
   });

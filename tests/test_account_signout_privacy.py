@@ -41,6 +41,7 @@ class AccountSignOutPrivacyTests(unittest.TestCase):
         init_end = HTML.index("function isProfileMeaningful", init_start)
         init = HTML[init_start:init_end]
         self.assertIn("window.__hofDraftRestoreAuthReady = true;", init)
+        self.assertIn("window.dispatchEvent(new Event('hof-auth-ready'))", init)
         self.assertIn("ownerUserId === (hofAuth.session?.user?.id || '')", init)
 
     def test_signout_does_not_clear_cached_state_when_supabase_rejects_signout(self):
