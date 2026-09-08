@@ -108,6 +108,27 @@ class TxrSignerGeometryTests(unittest.TestCase):
                 self.assertGreater(date["x"], client["x"] + client["width"])
                 self.assertLessEqual(date["x"] + date["width"], date_label_x)
 
+    def test_txr1506_provider_and_consumer_dates_share_the_printed_date_column(self):
+        """Keep every page-six acknowledgement date on TXR-1506's right rule.
+
+        The broker/associate acknowledgement has the same Date column as the
+        two consumer acknowledgements.  A left-shifted provider date can look
+        superficially valid to SignWell while covering the signature caption.
+        """
+        data = FORM_CASES[1][3]
+        fields = {
+            field["api_id"]: field
+            for field in build_signwell_fields_txr1506(data, client_count=2)[0]
+        }
+        for field_id, row_y in (
+            ("txr1506_associate_date_p6", 800),
+            ("txr1506_client1_date_p6", 893),
+            ("txr1506_client2_date_p6", 939),
+        ):
+            with self.subTest(field_id=field_id):
+                self.assertEqual(fields[field_id]["x"], 455)
+                self.assertEqual(fields[field_id]["y"], row_y)
+
     def test_every_supported_form_has_valid_non_overlapping_signer_widgets(self):
         for form_code, page_count, builder, data in FORM_CASES:
             with self.subTest(form_code=form_code):
