@@ -1,4 +1,4 @@
-import json, os, base64, hashlib, hmac, httpx, re
+import json, os, base64, hashlib, hmac, httpx, re, urllib.parse
 from datetime import datetime, timezone
 from io import BytesIO
 from http.server import BaseHTTPRequestHandler
@@ -10,6 +10,8 @@ from lib.production_adapter import (
     UnsupportedOfferPathError,
     build_signwell_fields_20_19,
     fill_and_merge_20_19,
+    paragraph4_execution_parties,
+    paragraph4_lease_kinds,
     seller_temporary_lease_execution_parties,
     validate_supported_offer,
 )
@@ -56,6 +58,64 @@ CHECK     = "X"
 # Keep False for production/customer PDFs.
 # Set True only temporarily if you want coordinate grid marks on every generated page.
 DEBUG_GRID = False
+
+
+def hydrate_paragraph4_sources(offer):
+    """Load released Paragraph 4 sources privately for this server request.
+
+    Storage locators and PDF bytes never enter checkout metadata or browser
+    responses. The selected public form revision is recorded for the offer's
+    audit trail, while only the server-side working copy receives source bytes.
+    """
+    selected = paragraph4_lease_kinds(offer)
+    if not selected:
+        return offer
+    existing = offer.get("_paragraph4_source_pdf_bytes")
+    if isinstance(existing, dict) and all(existing.get(code) for code in selected):
+        return offer
+    if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
+        raise UnsupportedOfferPathError(["released Paragraph 4 form source"])
+
+    headers = {
+        "apikey": SUPABASE_SERVICE_ROLE_KEY,
+        "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}",
+    }
+    source_bytes = {}
+    revisions = dict(offer.get("paragraph4SourceRevisions") or {})
+    for form_code in selected:
+        response = httpx.get(
+            f"{SUPABASE_URL}/rest/v1/hof_brokerage_form_sources",
+            headers=headers,
+            params={
+                "form_code": f"eq.{form_code}",
+                "status": "eq.approved",
+                "authorization_attested": "is.true",
+                "select": "id,source_revision,storage_bucket,storage_path,updated_at",
+                "order": "updated_at.desc",
+                "limit": "1",
+            },
+            timeout=20,
+        )
+        if response.status_code != 200:
+            raise UnsupportedOfferPathError([f"released {form_code} source"])
+        rows = response.json()
+        if not isinstance(rows, list) or not rows:
+            raise UnsupportedOfferPathError([f"released {form_code} source"])
+        source = rows[0]
+        storage_response = httpx.get(
+            f"{SUPABASE_URL}/storage/v1/object/"
+            f"{urllib.parse.quote(str(source['storage_bucket']), safe='')}/"
+            f"{urllib.parse.quote(str(source['storage_path']), safe='/')}",
+            headers=headers,
+            timeout=20,
+        )
+        if storage_response.status_code != 200 or not storage_response.content.startswith(b"%PDF"):
+            raise UnsupportedOfferPathError([f"available {form_code} source"])
+        source_bytes[form_code] = storage_response.content
+        revisions[form_code] = str(source.get("source_revision") or "")
+    offer["_paragraph4_source_pdf_bytes"] = source_bytes
+    offer["paragraph4SourceRevisions"] = revisions
+    return offer
 
 
 def signwell_debug(label, payload, limit=3000):
@@ -1323,12 +1383,23 @@ def create_signwell_signature_request(offer, pdf_bytes):
     # were verified in the completed four-party staging packet before this
     # production path was enabled.
     seller_lease_parties = seller_temporary_lease_execution_parties(offer)
-    if seller_lease_parties:
-        if any(not _is_valid_signwell_email(party["email"]) for party in seller_lease_parties):
+    paragraph4_parties = paragraph4_execution_parties(offer)
+    if seller_lease_parties and paragraph4_parties:
+        temporary_identity = [(party["name"].casefold(), party["email"].casefold()) for party in seller_lease_parties]
+        paragraph4_identity = [(party["name"].casefold(), party["email"].casefold()) for party in paragraph4_parties]
+        if temporary_identity != paragraph4_identity:
+            return {
+                "enabled": True,
+                "ok": False,
+                "error": "Use the same Seller names and emails for every Seller-signed lease in this packet.",
+            }
+    seller_parties = paragraph4_parties or seller_lease_parties
+    if seller_parties:
+        if any(not _is_valid_signwell_email(party["email"]) for party in seller_parties):
             return {"enabled": True, "ok": False, "error": "Invalid seller email for SignWell"}
         recipients.extend([
             {"id": party["id"], "name": party["name"], "email": party["email"]}
-            for party in seller_lease_parties
+            for party in seller_parties
         ])
 
     filename_safe_addr = re.sub(r"[^A-Za-z0-9_\-]+", "_", str(addr)).strip("_") or "Offer"
@@ -1374,13 +1445,25 @@ def create_signwell_signature_request(offer, pdf_bytes):
     else:
         contact_sentence = f"Questions? Contact {agent_name}."
 
-    signing_scope_message = (
+    paragraph4_forms = paragraph4_lease_kinds(offer)
+    if paragraph4_forms and seller_lease_parties:
+        signing_scope_message = (
+            "Please carefully review and sign in the order requested. This packet includes existing-property lease addenda "
+            "and a Seller's Temporary Residential Lease. Buyers sign first; Sellers sign the lease documents after Buyer signatures are complete.\n\n"
+        )
+    elif paragraph4_forms:
+        signing_scope_message = (
+            "Please carefully review and sign in the order requested. This packet includes existing-property lease addenda. "
+            "Buyers sign first; Sellers sign those addenda after Buyer signatures are complete.\n\n"
+        )
+    else:
+        signing_scope_message = (
         "Please carefully review and sign in the order requested. This packet includes a Seller's Temporary Residential Lease: "
         "the Buyer signs as Landlord first and the Seller signs as Tenant after Buyer signatures are complete.\n\n"
         if seller_lease_parties else
         "Please carefully review and sign the buyer-side offer documents. "
         "Seller signatures, seller initials, counteroffers, amendments, and seller-side changes are handled separately by the seller or listing side.\n\n"
-    )
+        )
 
     brokerage_name = first_present(
         offer.get("brokerageName"),
@@ -1425,7 +1508,7 @@ def create_signwell_signature_request(offer, pdf_bytes):
         "test_mode": SIGNWELL_TEST_MODE,
         "draft": False,
         "reminders": True,
-        "apply_signing_order": bool(seller_lease_parties),
+        "apply_signing_order": bool(seller_parties),
         "embedded_signing": False,
         "with_signature_page": False,
         "custom_requester_name": (
@@ -1447,8 +1530,12 @@ def create_signwell_signature_request(offer, pdf_bytes):
             "property_address": str(addr)[:450],
             "buyer_count": str(1 + (1 if buyer2_email else 0)),
             "seller_temporary_lease_tenant_count": str(len(seller_lease_parties)),
+            "paragraph4_seller_count": str(len(paragraph4_parties)),
+            "paragraph4_forms": ",".join(paragraph4_forms),
             "test_mode": str(SIGNWELL_TEST_MODE).lower(),
             "debug_payload": (
+                "bundle_v14_paragraph4_multisigner"
+                if paragraph4_forms else
                 "bundle_v13_seller_temporary_lease_multisigner"
                 if seller_lease_parties else "bundle_v12_buyer_only_all_addenda"
             )
@@ -1462,6 +1549,8 @@ def create_signwell_signature_request(offer, pdf_bytes):
                 "enabled": True,
                 "ok": True,
                 "mode": (
+                    "bundle_v14_paragraph4_multisigner"
+                    if paragraph4_forms else
                     "bundle_v13_seller_temporary_lease_multisigner"
                     if seller_lease_parties else "bundle_v12_buyer_only_all_addenda"
                 ),
@@ -1475,6 +1564,8 @@ def create_signwell_signature_request(offer, pdf_bytes):
             "enabled": True,
             "ok": False,
             "mode": (
+                "bundle_v14_paragraph4_multisigner_failed"
+                if paragraph4_forms else
                 "bundle_v13_seller_temporary_lease_multisigner_failed"
                 if seller_lease_parties else "bundle_v12_buyer_only_all_addenda_failed"
             ),
@@ -1528,6 +1619,7 @@ def save_generated_offer_to_supabase(offer, customer_email="", signwell_info=Non
         # This value comes from the authenticated request path only. Do not store the
         # internal trust marker in customer-visible offer data.
         persisted_offer_data.pop("_subscription_user_id", None)
+        persisted_offer_data.pop("_paragraph4_source_pdf_bytes", None)
 
         role = first_present(offer.get("userType"), offer.get("role"), "homebuyer")
         if role not in ["homebuyer", "agent", "investor"]:
@@ -1925,6 +2017,7 @@ def handle_checkout(event, subscription_user_id=None):
     if not offer.get("buyerEmail") and customer_email:
         offer["buyerEmail"] = customer_email
 
+    hydrate_paragraph4_sources(offer)
     validate_supported_offer(offer)
     pdf_bytes = fill_and_merge(offer)
 
@@ -2098,6 +2191,7 @@ class handler(BaseHTTPRequestHandler):
                 if not self._has_generation_entitlement(user_id):
                     self._json(403, {"error": "Your HomeOfferFlow access is not active or this month's packet limit has been reached."})
                     return
+                hydrate_paragraph4_sources(offer)
                 validate_supported_offer(offer)
                 pdf_bytes = fill_and_merge(offer)
                 filename_addr = re.sub(r"[^A-Za-z0-9]+", "_", str(offer.get("address", "offer")).strip()).strip("_") or "offer"

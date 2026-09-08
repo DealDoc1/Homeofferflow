@@ -83,6 +83,40 @@ class SellerTemporaryLeaseProductionSignWellTests(unittest.TestCase):
         )
         self.assertEqual(payload["metadata"]["seller_temporary_lease_tenant_count"], "2")
 
+    def test_paragraph4_packet_routes_buyer_then_seller(self):
+        api = load_offer_api()
+        api.SIGNWELL_ENABLED = True
+        api.SIGNWELL_API_KEY = "test_key"
+        api.build_signwell_fields = lambda offer, pdf: [[]]
+        captured = {}
+
+        def fake_post(payload):
+            captured["payload"] = payload
+            return True, {"id": "paragraph4-document"}
+
+        api.post_signwell_document = fake_post
+        offer = {
+            "userType": "agent",
+            "buyer1": "Buyer One",
+            "buyerEmail": "buyer@example.com",
+            "seller": "Seller One",
+            "leases": "yes",
+            "leaseResidential": "yes",
+            "paragraph4Seller1Name": "Seller One",
+            "paragraph4Seller1Email": "seller@example.com",
+            "residentialLeaseStatus": "termination",
+            "address": "1438 Whitaker Road",
+        }
+        result = api.create_signwell_signature_request(offer, b"%PDF-test")
+
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["mode"], "bundle_v14_paragraph4_multisigner")
+        self.assertTrue(captured["payload"]["apply_signing_order"])
+        self.assertEqual(
+            [(recipient["id"], recipient["email"]) for recipient in captured["payload"]["recipients"]],
+            [("1", "buyer@example.com"), ("3", "seller@example.com")],
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

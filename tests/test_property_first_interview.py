@@ -37,12 +37,11 @@ class PropertyFirstInterviewTests(unittest.TestCase):
         self.assertIn("!String(propertyAddress.value || '').trim()", show_step)
         self.assertIn("propertyAddress.focus({ preventScroll: true });", show_step)
 
-    def test_existing_lease_paths_are_clear_handoffs_not_disabled_dead_ends(self):
-        self.assertIn("A property with an existing lease needs its own guided form package.", HTML)
-        self.assertIn("campaign=residential_lease_review", HTML)
-        self.assertIn("campaign=fixture_lease_review", HTML)
-        self.assertIn("Continue to the guided residential-lease review", HTML)
-        self.assertIn("Continue to the guided fixture-lease review", HTML)
+    def test_existing_lease_paths_are_inline_package_questions_not_dead_ends(self):
+        self.assertIn("Which leases apply? Select all that apply.", HTML)
+        self.assertIn('id="residentialLeaseInterview"', HTML)
+        self.assertIn('id="fixtureLeaseInterview"', HTML)
+        self.assertIn("The completed lease addendum will be placed in this offer package automatically.", HTML)
         self.assertNotIn("Temporarily unavailable while the required addendum is tested", HTML)
 
 
