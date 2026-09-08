@@ -8458,6 +8458,32 @@ function routeAfterMagicLinkIfNeeded() {
     el.hidden = !message;
   }
 
+  // The offer interview predates the shared form component and includes a
+  // number of visually adjacent labels without a `for` attribute. Connect
+  // each single-control field at runtime so tapping its label focuses the
+  // answer and assistive technology announces the question with the control.
+  // Wrapped labels, radio groups, and multi-control field rows keep their
+  // native semantics and are intentionally left alone.
+  function associateInterviewLabels() {
+    const selectors = [
+      '#wizardOverlay .field > label:not([for])',
+      '#wizardOverlay .field .field-label-row > label:not([for])',
+      '#wizardOverlay .payment-calc-mini-field > label:not([for])'
+    ].join(',');
+    document.querySelectorAll(selectors).forEach((label, index) => {
+      if (label.querySelector('input, select, textarea')) return;
+      const field = label.closest('.field, .payment-calc-mini-field');
+      if (!field) return;
+      const controls = Array.from(field.querySelectorAll('input, select, textarea'))
+        .filter(control => !['hidden', 'checkbox', 'radio', 'submit', 'button'].includes(control.type));
+      if (controls.length !== 1) return;
+      const control = controls[0];
+      if (!control.id) control.id = `hof-interview-field-${index + 1}`;
+      label.htmlFor = control.id;
+    });
+  }
+  associateInterviewLabels();
+
   // Once a person corrects an answer, remove the stale warning immediately.
   // They should not have to press Continue a second time just to learn that
   // the answer they entered is now accepted.
