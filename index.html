@@ -21524,7 +21524,7 @@ function routeAfterMagicLinkIfNeeded() {
       sessionStorage.setItem(key, '1');
       fetch('/api/fsbo-lead', {
         method: 'POST', headers: {'Content-Type': 'application/json'}, keepalive: true,
-        body: JSON.stringify({request_type: 'homebuyer_landing_event', event_type: 'pwa_buyer_offer_opened', channel: 'unspecified'})
+        body: JSON.stringify({request_type: 'homebuyer_landing_event', event_type: 'pwa_buyer_offer_opened', channel: 'pwa_shortcut'})
       }).catch(() => {});
     } catch (_) {}
   }

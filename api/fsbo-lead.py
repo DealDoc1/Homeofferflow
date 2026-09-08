@@ -266,7 +266,7 @@ HOMEBUYER_LANDING_EVENT_TYPES = {
     "pwa_buyer_offer_opened": "opened",
 }
 HOMEBUYER_LANDING_CHANNELS = {
-    "direct_outreach", "email", "social", "referral", "local_event", "print", "organic", "unspecified",
+    "direct_outreach", "email", "social", "referral", "local_event", "print", "organic", "pwa_shortcut", "unspecified",
 }
 AGENT_LANDING_EVENT_TYPES = {
     "agent_landing_viewed": "viewed",
