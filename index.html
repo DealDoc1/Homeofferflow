@@ -14682,6 +14682,11 @@ function routeAfterMagicLinkIfNeeded() {
     const body = `Hi HomeOfferFlow,\n\nI would like to ask about the ${item.title} path.\n\nThank you.`;
     window.location.href = `mailto:support@homeofferflow.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   };
+  function fsboSupportButtonLabel(serviceLevel) {
+    const key = fsboNeedCopy[serviceLevel] ? serviceLevel : 'free_intake';
+    const item = fsboNeedCopy[key];
+    return key === 'free_intake' ? 'Discuss your seller plan' : `Ask about ${item.title}`;
+  }
   window.openFsboProviderDirectory = function openFsboProviderDirectory() {
     const selectedPartners = getFsboPartners();
     // Use a category only when the seller made one clear, explicit interest
@@ -14812,7 +14817,7 @@ function routeAfterMagicLinkIfNeeded() {
           '<div class="account-actions-row" style="margin-top:.7rem;display:flex;gap:.55rem;flex-wrap:wrap;">' +
           '<button class="btn-secondary" type="button" onclick="downloadFsboRequestSummary()">Download seller plan</button>' +
           '<button class="btn-secondary" type="button" onclick="copyFsboRequestSummary(this)">Copy seller plan</button>' +
-          '<button class="btn-secondary" type="button" onclick="contactFsboSupport()">Ask about this path</button>' +
+          '<button class="btn-secondary" type="button" onclick="contactFsboSupport()">' + escapeAttr(fsboSupportButtonLabel(payload.service_level)) + '</button>' +
           '<button class="btn-secondary" type="button" onclick="openFsboProviderDirectory()">' + escapeAttr(fsboProviderDirectoryButtonLabel()) + '</button>' +
           '<button class="btn-secondary" type="button" onclick="closeFsboSellerModal()">Done</button></div>';
         window.setTimeout(() => window.renderPwaInstallCard?.(), 0);
