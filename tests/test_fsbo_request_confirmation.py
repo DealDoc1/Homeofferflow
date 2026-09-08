@@ -48,6 +48,14 @@ class FsboRequestConfirmationTests(unittest.TestCase):
         self.assertIn("Your seller draft is saved on this device.", HTML)
         self.assertIn("It has not been submitted or shared.", HTML)
 
+    def test_clearing_a_seller_draft_resets_visible_goal_and_timeline_defaults(self):
+        clear_start = HTML.index("document.getElementById('clearFsboDraft')?.addEventListener")
+        clear_end = HTML.index("}, {once:true});", clear_start)
+        clear_action = HTML[clear_start:clear_end]
+        self.assertIn("timeline.value = 'not_sure';", clear_action)
+        self.assertIn("window.renderFsboGuidedGoal?.();", clear_action)
+        self.assertIn("renderFsboRequiredReadyCue();", clear_action)
+
     def test_fsbo_free_plan_action_stays_locked_until_the_two_required_fields_are_valid(self):
         self.assertIn('id="fsboSellerQuickSubmit" data-fsbo-submit onclick="submitFsboSellerLead(\'quick\')" disabled aria-disabled="true"', HTML)
         self.assertIn('aria-label="Save My Seller Request — enter address and email to unlock"', HTML)
