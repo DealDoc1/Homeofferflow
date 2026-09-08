@@ -32,7 +32,11 @@ class AgentLaunchScopeTests(unittest.TestCase):
 
     def test_scope_explains_shared_txr_library_and_private_draft_limit(self):
         self.assertIn("every signed-in agent", HTML)
-        self.assertIn("TXR-1948, TXR-1953, and TXR-1954", HTML)
+        for form_code in (
+            "TXR-1501", "TXR-1506", "TXR-1507", "TXR-1508", "TXR-1905",
+            "TXR-1914", "TXR-1917", "TXR-1919", "TXR-1948", "TXR-1953", "TXR-1954",
+        ):
+            self.assertIn(form_code, HTML)
         self.assertIn("These drafts stay private and are not sent or signed through HomeOfferFlow.", HTML)
 
     def test_scope_provides_a_dedicated_missing_form_request_path(self):
