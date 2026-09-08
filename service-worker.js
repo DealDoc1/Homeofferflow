@@ -1,6 +1,6 @@
 // Bump the shell when manifest shortcuts or core install behavior changes so
 // an already-installed agent receives the current app metadata immediately.
-const SHELL_CACHE = 'homeofferflow-shell-v60';
+const SHELL_CACHE = 'homeofferflow-shell-v61';
 const SHELL_ASSETS = [
   // Keep installation lightweight. Public pages cache after the visitor has
   // actually opened them; preloading every guide would spend bandwidth for
