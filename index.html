@@ -14819,7 +14819,13 @@ function routeAfterMagicLinkIfNeeded() {
       }
     } catch (err) {
       trackFsboFunnel('FSBO Seller Request Save Failed', { package: payload.service_level, source: source === 'quick' ? 'quick' : 'full' });
-      if (status) { status.textContent = err.message || String(err); status.className = 'platform-status err'; }
+      if (status) {
+        status.textContent = window.hofCustomerActionError?.(
+          err,
+          'We couldn’t save your seller request. Check your connection and try again. Your details are still saved on this device.'
+        ) || 'We couldn’t save your seller request. Check your connection and try again. Your details are still saved on this device.';
+        status.className = 'platform-status err';
+      }
       submitButtons.forEach(button => {
         button.disabled = false;
         button.setAttribute('aria-busy', 'false');

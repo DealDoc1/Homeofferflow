@@ -79,6 +79,12 @@ class OnDemandLandingFunnelTests(unittest.TestCase):
         self.assertIn("Enter a valid OnDemand agent email address.", entry)
         self.assertIn('emailInput.focus();', entry)
 
+    def test_public_errors_use_clear_recovery_language_instead_of_raw_service_errors(self):
+        self.assertIn("function customerErrorMessage(error, fallback)", ONDEMAND)
+        self.assertIn("We couldn’t send a secure sign-in link right now.", ONDEMAND)
+        self.assertIn("We couldn’t open secure checkout. Please try again.", ONDEMAND)
+        self.assertNotIn('showStatus(error.message, "err")', ONDEMAND)
+
     def test_trial_renewal_date_refreshes_when_authenticated_enrollment_renders(self):
         self.assertIn("function refreshRenewalDate()", ONDEMAND)
         self.assertIn("refreshRenewalDate();\n        const signedIn", ONDEMAND)
