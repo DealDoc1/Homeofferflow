@@ -25,6 +25,18 @@ class LandingPathContextTests(unittest.TestCase):
         self.assertIn("They remain private drafts for your review.", HTML)
         self.assertIn("Ready to start a transaction?", HTML)
 
+    def test_every_agent_copy_layer_keeps_the_transaction_first_promise(self):
+        # The base audience switcher runs before the later landing enhancer.
+        # Keep both layers aligned so an agent never receives buyer-only copy
+        # during initialization or after future script refactors.
+        base_start = HTML.index("function setAudience(type) {")
+        base_end = HTML.index("document.getElementById('termsModal')", base_start)
+        base = HTML[base_start:base_end]
+        agent = base[base.index("agent: {"):base.index("investor: {")]
+        self.assertIn("Start with the transaction in front of you.", agent)
+        self.assertNotIn("buyer-side e-signature", agent)
+        self.assertNotIn("buyer-offer packets", agent)
+
     def test_seller_path_keeps_the_first_step_short_and_commitment_free(self):
         self.assertIn("From two details to a clear seller plan.", HTML)
         self.assertIn("There is no checkout or commitment to choose a service.", HTML)

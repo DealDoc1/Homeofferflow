@@ -19,7 +19,11 @@ class SeoHeroUpdateTests(unittest.TestCase):
         self.assertIn("Texas real estate offer builder", INDEX)
 
     def test_agent_copy_does_not_overstate_current_form_coverage(self):
-        self.assertIn("Write supported Texas <em>offers faster</em>.", INDEX)
+        self.assertIn("Texas real estate documents, <em>made simpler.</em>", INDEX)
+        self.assertIn(
+            "Start with the transaction in front of you. Answer a few clear questions, then review one organized document package.",
+            INDEX,
+        )
         self.assertIn(
             "Choose the transaction in front of you, answer clear questions, and review one organized document package.",
             INDEX,
