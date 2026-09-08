@@ -97,7 +97,7 @@ class PartnerLandingFunnelTests(unittest.TestCase):
         self.assertIn("function partnerQuickStartRequested()", INDEX)
         self.assertIn("window.jumpToFoundingPartnerEssentials?.()", INDEX)
         self.assertIn("All essentials, consent, and the secure", INDEX)
-        self.assertIn("Stripe review remain required", INDEX)
+        self.assertIn("Stripe review\n      // remain required", INDEX)
         self.assertIn('id="foundingPartnerEssentials"', INDEX)
         self.assertIn('id="foundingPartnerTierComparison"', INDEX)
         self.assertIn("document.getElementById('foundingPartnerType')?.focus()", INDEX)
@@ -117,6 +117,14 @@ class PartnerLandingFunnelTests(unittest.TestCase):
         self.assertIn("openFoundingPartnerModal({ quickStart: true })", INDEX)
         self.assertIn("function(options = {})", INDEX[INDEX.index("window.openFoundingPartnerModal"):])
         self.assertIn("options.quickStart || partnerQuickStartRequested()", INDEX)
+
+    def test_general_partner_application_starts_with_an_explicit_tier_choice(self):
+        start = INDEX.index("window.openFoundingPartnerModal = function")
+        end = INDEX.index("window.selectFoundingPartnerTier", start)
+        modal = INDEX[start:end]
+        self.assertIn("campaign.tier", modal)
+        self.assertIn("'foundingPartnerModel'", modal)
+        self.assertIn("quietly treating the default Core tier", modal)
 
     def test_partner_funnel_measures_required_field_reach_without_collecting_applicant_data(self):
         self.assertIn("function recordPartnerEssentialsFocused()", INDEX)

@@ -15267,20 +15267,22 @@ function routeAfterMagicLinkIfNeeded() {
     if (!window.__hofFoundingPartnerLeadId && checkoutState !== 'success' && checkoutState !== 'cancelled') recordPartnerApplicationOpened(campaign);
     trackPartnerFunnel('Founding Partner Intake Opened', { checkoutState: checkoutState === 'success' ? 'success' : checkoutState === 'cancelled' ? 'cancelled' : 'new', campaignCategory: campaign.category || null, campaignTier: campaign.tier || null, campaignChannel: campaign.channel || null });
     renderFoundingPartnerCheckoutAvailability();
-    if ((options.quickStart || partnerQuickStartRequested()) && !window.__hofFoundingPartnerLeadId && checkoutState !== 'success' && checkoutState !== 'cancelled') {
-      // Public partner CTAs already disclose the tiers and simply remove the
-      // duplicate scrolling step. All essentials, consent, and the secure
-      // Stripe review remain required before an application can continue.
+    if ((options.quickStart || partnerQuickStartRequested()) && campaign.tier && !window.__hofFoundingPartnerLeadId && checkoutState !== 'success' && checkoutState !== 'cancelled') {
+      // A campaign that deliberately names a tier can remove the duplicate
+      // scrolling step. All essentials, consent, and the secure Stripe review
+      // remain required before an application can continue.
       setTimeout(() => window.jumpToFoundingPartnerEssentials?.(), 0);
     } else {
-      // The application already has a selected tier. Start keyboard users at
-      // the next concrete action instead of making them tab through the tier
-      // comparison again.
-      const firstUnfinished = partnerEssentialProgress().ready
-        ? 'foundingPartnerConsent'
-        : ['foundingPartnerType', 'foundingPartnerCompany', 'foundingPartnerContact', 'foundingPartnerEmail', 'foundingPartnerMarket']
-          .find(id => !value(id)) || 'foundingPartnerType';
-      setTimeout(() => document.getElementById(restoredDraft ? firstUnfinished : 'foundingPartnerType')?.focus(), 0);
+      // A general application starts at the tier selector, rather than
+      // quietly treating the default Core tier as the applicant's choice.
+      // Campaigns and saved applications retain their intentional selection.
+      const firstUnfinished = !campaign.tier && !window.__hofFoundingPartnerLeadId && !restoredDraft
+        ? 'foundingPartnerModel'
+        : partnerEssentialProgress().ready
+          ? 'foundingPartnerConsent'
+          : ['foundingPartnerType', 'foundingPartnerCompany', 'foundingPartnerContact', 'foundingPartnerEmail', 'foundingPartnerMarket']
+            .find(id => !value(id)) || 'foundingPartnerType';
+      setTimeout(() => document.getElementById(firstUnfinished)?.focus(), 0);
     }
   };
   window.selectFoundingPartnerTier = function(model, shouldTrack = true){
