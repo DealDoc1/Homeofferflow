@@ -69,7 +69,7 @@ class TxrSigningRequestPathTests(unittest.TestCase):
         self.assertIn("scope=standalone_agreements", html)
         self.assertIn("send_txr_agreement_for_signature", html)
         self.assertIn("agreement.status === 'draft'", html)
-        self.assertIn("Private review draft — signature sending will appear here when available.", html)
+        self.assertIn("Ready to review — signature sending will appear here when available.", html)
 
     def test_standalone_scope_reports_the_signing_gate_state(self):
         source = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
