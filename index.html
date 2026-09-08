@@ -3358,21 +3358,21 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       <p class="step-desc" id="partiesStepDesc">Enter full legal names exactly as they should appear on the contract. We'll also collect your contact info for the Notices section.</p>
       <div class="field-group">
         <div class="field-row">
-          <div class="field"><div class="field-label-row"><label id="buyer1FirstLabel">Buyer 1 First Name</label><button class="helper-btn" onclick="toggleHelper('h-b1f')">?</button></div><div class="helper-box" id="h-b1f"><strong>💡 Legal Name Required</strong>Use your full legal first name as it appears on your government-issued ID.</div><input type="text" id="buyer1First" placeholder="John"/></div>
-          <div class="field"><div class="field-label-row"><label id="buyer1LastLabel">Buyer 1 Last Name</label></div><input type="text" id="buyer1Last" placeholder="Smith"/></div>
+          <div class="field"><div class="field-label-row"><label id="buyer1FirstLabel" for="buyer1First">Buyer 1 First Name</label><button class="helper-btn" onclick="toggleHelper('h-b1f')">?</button></div><div class="helper-box" id="h-b1f"><strong>💡 Legal Name Required</strong>Use your full legal first name as it appears on your government-issued ID.</div><input type="text" id="buyer1First" placeholder="John"/></div>
+          <div class="field"><div class="field-label-row"><label id="buyer1LastLabel" for="buyer1Last">Buyer 1 Last Name</label></div><input type="text" id="buyer1Last" placeholder="Smith"/></div>
         </div>
-        <div class="field"><div class="field-label-row"><label id="buyer2Label">Second Buyer (optional)</label><button class="helper-btn" onclick="toggleHelper('h-b2')">?</button></div><div class="helper-box" id="h-b2"><strong>💡 Co-Buyer / Spouse</strong>If purchasing with a spouse, partner, or co-investor, enter their full legal name here. Leave blank if purchasing alone.</div><input type="text" id="buyer2" placeholder="Full legal name of co-buyer, if any" oninput="toggleBuyer2Email()"/></div>
-        <div class="field" id="buyer2EmailField" style="display:none;"><div class="field-label-row"><label>Co-Buyer Email</label><button class="helper-btn" onclick="toggleHelper('h-b2email')">?</button></div><div class="helper-box" id="h-b2email"><strong>💡 Co-Buyer Signing Link</strong>The co-buyer will receive their own signing link via email after you sign.</div><input type="email" id="buyer2Email" inputmode="email" autocomplete="email" placeholder="cobuyer@email.com" required aria-required="true"/></div>
-        <div class="field"><div class="field-label-row"><label>Seller Name(s)</label><button class="helper-btn" onclick="toggleHelper('h-sel')">?</button></div><div class="helper-box" id="h-sel"><strong>💡 Where to Find the Seller's Name</strong>Check the MLS listing, county appraisal district tax records, or ask the listing agent.</div><input type="text" id="seller1" placeholder="As listed on tax records or MLS"/></div>
+        <div class="field"><div class="field-label-row"><label id="buyer2Label" for="buyer2">Second Buyer (optional)</label><button class="helper-btn" onclick="toggleHelper('h-b2')">?</button></div><div class="helper-box" id="h-b2"><strong>💡 Co-Buyer / Spouse</strong>If purchasing with a spouse, partner, or co-investor, enter their full legal name here. Leave blank if purchasing alone.</div><input type="text" id="buyer2" placeholder="Full legal name of co-buyer, if any" oninput="toggleBuyer2Email()"/></div>
+        <div class="field" id="buyer2EmailField" style="display:none;"><div class="field-label-row"><label for="buyer2Email">Co-Buyer Email</label><button class="helper-btn" onclick="toggleHelper('h-b2email')">?</button></div><div class="helper-box" id="h-b2email"><strong>💡 Co-Buyer Signing Link</strong>The co-buyer will receive their own signing link via email after you sign.</div><input type="email" id="buyer2Email" inputmode="email" autocomplete="email" placeholder="cobuyer@email.com" required aria-required="true"/></div>
+        <div class="field"><div class="field-label-row"><label for="seller1">Seller Name(s)</label><button class="helper-btn" onclick="toggleHelper('h-sel')">?</button></div><div class="helper-box" id="h-sel"><strong>💡 Where to Find the Seller's Name</strong>Check the MLS listing, county appraisal district tax records, or ask the listing agent.</div><input type="text" id="seller1" placeholder="As listed on tax records or MLS"/></div>
 
         <div style="margin-top:0.5rem; padding-top:0.75rem; border-top:1px solid rgba(255,255,255,0.07);">
           <p id="contactInfoTitle" style="font-size:0.8rem; font-weight:700; color:var(--gold-light); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.75rem;">§21 — Your Contact Info</p>
           <div class="notice gold">💡 This information goes in Section 21 so the seller and their agent know where to send official notices. Use your current mailing address.</div>
           <div class="field-group" style="margin-bottom:0; margin-top:0.75rem;">
-            <div class="field"><label>Buyer Current Mailing Street Address</label><input type="text" id="buyerMailAddr" name="buyerMailAddr" autocomplete="street-address" autocorrect="off" autocapitalize="words" spellcheck="false" inputmode="text" placeholder="123 Main St, City, TX 75001"/></div>
+            <div class="field"><label for="buyerMailAddr">Buyer Current Mailing Street Address</label><input type="text" id="buyerMailAddr" name="buyerMailAddr" autocomplete="street-address" autocorrect="off" autocapitalize="words" spellcheck="false" inputmode="text" placeholder="123 Main St, City, TX 75001"/></div>
             <div class="field-row">
-              <div class="field"><label>Buyer Phone</label><input type="tel" id="buyerPhone" placeholder="(214) 555-0000"/></div>
-              <div class="field"><label>Buyer Email</label><input type="email" id="buyerEmail" name="buyerEmail" inputmode="email" autocomplete="email" placeholder="you@email.com" required aria-required="true"/></div>
+              <div class="field"><label for="buyerPhone">Buyer Phone</label><input type="tel" id="buyerPhone" placeholder="(214) 555-0000"/></div>
+              <div class="field"><label for="buyerEmail">Buyer Email</label><input type="email" id="buyerEmail" name="buyerEmail" inputmode="email" autocomplete="email" placeholder="you@email.com" required aria-required="true"/></div>
             </div>
           </div>
         </div>
@@ -3383,16 +3383,16 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         <div class="notice sage">⚡ Save this once and reuse it on future drafts. This info will also flow to the broker information section.</div>
         <div class="field-group" style="margin-bottom:0; margin-top:0.75rem;">
           <div class="field-row">
-            <div class="field"><label>Your Agent Name</label><input type="text" id="agentNameQuick" placeholder="Jane Doe" oninput="syncAgentQuickFields()"/></div>
-            <div class="field"><label>TX License No.</label><input type="text" id="agentLicenseQuick" placeholder="License #" oninput="syncAgentQuickFields()"/></div>
+            <div class="field"><label for="agentNameQuick">Your Agent Name</label><input type="text" id="agentNameQuick" placeholder="Jane Doe" oninput="syncAgentQuickFields()"/></div>
+            <div class="field"><label for="agentLicenseQuick">TX License No.</label><input type="text" id="agentLicenseQuick" placeholder="License #" oninput="syncAgentQuickFields()"/></div>
           </div>
           <div class="field-row">
-            <div class="field"><label>Agent Email</label><input type="email" id="agentEmailQuick" inputmode="email" autocomplete="email" placeholder="agent@brokerage.com" required aria-required="true" oninput="syncAgentQuickFields()"/></div>
-            <div class="field"><label>Agent Phone</label><input type="tel" id="agentPhoneQuick" placeholder="(214) 555-0000" oninput="syncAgentQuickFields()"/></div>
+            <div class="field"><label for="agentEmailQuick">Agent Email</label><input type="email" id="agentEmailQuick" inputmode="email" autocomplete="email" placeholder="agent@brokerage.com" required aria-required="true" oninput="syncAgentQuickFields()"/></div>
+            <div class="field"><label for="agentPhoneQuick">Agent Phone</label><input type="tel" id="agentPhoneQuick" placeholder="(214) 555-0000" oninput="syncAgentQuickFields()"/></div>
           </div>
           <div class="field-row">
-            <div class="field"><label>Brokerage Name</label><input type="text" id="agentBrokerageQuick" placeholder="Brokerage firm name" oninput="syncAgentQuickFields()"/></div>
-            <div class="field"><label>Brokerage License No. <span style="color:var(--gray);font-weight:500;">(optional)</span></label><input type="text" id="agentBrokerLicenseQuick" placeholder="Brokerage license #" oninput="syncAgentQuickFields()"/></div>
+            <div class="field"><label for="agentBrokerageQuick">Brokerage Name</label><input type="text" id="agentBrokerageQuick" placeholder="Brokerage firm name" oninput="syncAgentQuickFields()"/></div>
+            <div class="field"><label for="agentBrokerLicenseQuick">Brokerage License No. <span style="color:var(--gray);font-weight:500;">(optional)</span></label><input type="text" id="agentBrokerLicenseQuick" placeholder="Brokerage license #" oninput="syncAgentQuickFields()"/></div>
           </div>
           <div style="margin-top:0.85rem; padding-top:0.85rem; border-top:1px solid rgba(255,255,255,0.07);">
             <div class="radio-group-label">Page 10 Broker Fee Disclosure</div>
@@ -3402,8 +3402,8 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
               <label class="radio-card" onclick="selectCard(this,'brokerFeeType','amount')"><input type="radio" name="brokerFeeType" value="amount"/><div class="radio-dot"></div><div class="radio-card-text"><strong>Yes — dollar amount</strong><small>Fill the $ broker-fee disclosure</small></div></label>
               <label class="radio-card" onclick="selectCard(this,'brokerFeeType','percent')"><input type="radio" name="brokerFeeType" value="percent"/><div class="radio-dot"></div><div class="radio-card-text"><strong>Yes — percentage of sales price</strong><small>Fill the % broker-fee disclosure</small></div></label>
             </div>
-            <div id="brokerFeeAmountField" style="display:none;"><div class="field"><label>Broker Fee Amount ($)</label><input type="number" id="brokerFeeAmount" placeholder="0"/></div></div>
-            <div id="brokerFeePercentField" style="display:none;"><div class="field"><label>Broker Fee Percentage (%)</label><input type="number" id="brokerFeePercent" placeholder="3" step="0.01"/></div></div>
+            <div id="brokerFeeAmountField" style="display:none;"><div class="field"><label for="brokerFeeAmount">Broker Fee Amount ($)</label><input type="number" id="brokerFeeAmount" placeholder="0"/></div></div>
+            <div id="brokerFeePercentField" style="display:none;"><div class="field"><label for="brokerFeePercent">Broker Fee Percentage (%)</label><input type="number" id="brokerFeePercent" placeholder="3" step="0.01"/></div></div>
           </div>
         </div>
       </div>
