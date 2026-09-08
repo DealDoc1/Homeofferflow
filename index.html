@@ -10845,6 +10845,27 @@ function routeAfterMagicLinkIfNeeded() {
       return;
     }
 
+    // Keep the loan section moving once a buyer chooses financing. These are
+    // editable starting points—not lender quotes—and match the guidance shown
+    // beside the fields. Previously, a buyer could choose a loan, see a
+    // payment estimate, and still be stopped by five empty financing terms.
+    // Giving those terms the same starting-point treatment as earnest money
+    // and the option period makes Continue behave like the interview implies.
+    const financingDefaults = [
+      ['loanYears', 30, '✓ Common starting point: 30-year loan term'],
+      ['interestRateCap', 7, '✓ Starting point only — confirm the rate cap with your lender'],
+      ['interestFirstYears', 30, '✓ Common starting point for a fixed-rate loan'],
+      ['originationCap', 1, '✓ Common starting point — confirm lender charges'],
+      ['buyerApprovalDays', 21, '✓ Common starting point — confirm your approval timeline']
+    ];
+    financingDefaults.forEach(([id, value, recommendation]) => {
+      const field = document.getElementById(id);
+      if (field && !field._userEdited && !String(field.value || '').trim()) {
+        setMoneyVal(field, value);
+        showFieldRecommendation(field, recommendation);
+      }
+    });
+
     if (downEl && !downEl._userEdited) {
       setMoneyVal(downEl, price * downPct);
       showFieldRecommendation(downEl, getDownPaymentLabel(financing));
@@ -10878,7 +10899,12 @@ function routeAfterMagicLinkIfNeeded() {
       });
     }
 
-    [earnestEl, optionEl, optionDaysEl].filter(Boolean).forEach(el => {
+    [earnestEl, optionEl, optionDaysEl,
+      document.getElementById('loanYears'),
+      document.getElementById('interestRateCap'),
+      document.getElementById('interestFirstYears'),
+      document.getElementById('originationCap'),
+      document.getElementById('buyerApprovalDays')].filter(Boolean).forEach(el => {
       if (el._wired) return;
       el._wired = true;
       el.addEventListener('input', () => { el._userEdited = true; });
