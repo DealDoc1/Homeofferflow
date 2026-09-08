@@ -22,6 +22,7 @@ class HomebuyerLandingFunnelTests(unittest.TestCase):
         self.assertIn('"homebuyer_checkout_cancelled": "cancelled"', API)
         self.assertIn('"homebuyer_checkout_recovery_started": "recovery_started"', API)
         self.assertIn('"pwa_buyer_offer_opened": "opened"', API)
+        self.assertIn('"pwa_shortcut"', API)
         self.assertIn("Unsupported homebuyer landing event.", API)
         self.assertIn("Unsupported homebuyer landing channel.", API)
         self.assertIn("'homebuyer_landing_event'", API)
@@ -113,6 +114,7 @@ class HomebuyerLandingFunnelTests(unittest.TestCase):
         self.assertIn("recordHomebuyerCheckoutEvent", INDEX)
         self.assertIn('"pwaBuyerOfferShortcutCount"', ADMIN)
         self.assertIn("pwaBuyerOfferShortcutCount", INDEX)
+        self.assertIn("event_type: 'pwa_buyer_offer_opened', channel: 'pwa_shortcut'", INDEX)
 
     def test_cancelled_buyer_checkout_explains_required_confirmations_before_restart(self):
         self.assertIn('id="paymentCheckoutResumeHelp"', INDEX)
