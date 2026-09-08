@@ -21154,12 +21154,17 @@ function routeAfterMagicLinkIfNeeded() {
     catch (_) { return 'unknown'; }
   }
 
-  // Seller plans are public and frequently revisited while a home is being
-  // prepared. Remember that explicit install choice only on this device; the
-  // shortcut module consumes it solely from a clean standalone app launch.
+  // Public seller and buyer work is frequently revisited while a home is
+  // being prepared. Remember an explicit install choice only on this device;
+  // the shortcut module consumes it solely from a clean standalone app launch.
   function rememberPreferredLaunch(surface){
-    if (surface !== 'seller_success') return;
-    try { localStorage.setItem(preferredLaunchKey, 'seller_plan'); } catch (_) {}
+    const action = {
+      seller_success: 'seller_plan',
+      buyer_review: 'buyer_offer',
+      buyer_success: 'buyer_offer'
+    }[surface];
+    if (!action) return;
+    try { localStorage.setItem(preferredLaunchKey, action); } catch (_) {}
   }
 
   function installCtaLabel(surface){
@@ -21240,6 +21245,9 @@ function routeAfterMagicLinkIfNeeded() {
     const sellerReturnCopy = target.surface === 'seller_success'
       ? 'Save this seller plan to your Home Screen so it is one tap away when you return to photos, repairs, timing, or provider questions.'
       : '';
+    const buyerReturnCopy = target.surface === 'buyer_review' || target.surface === 'buyer_success'
+      ? 'Save this offer workspace to your Home Screen so starting or returning to your guided offer is one tap away.'
+      : '';
     const agentReturnCopy = target.surface === 'agent_saved_offer'
       ? 'Save this agent workspace to your Home Screen so your saved offer, transaction choices, and signing status are one tap away between showings.'
       : '';
@@ -21257,6 +21265,7 @@ function routeAfterMagicLinkIfNeeded() {
         <div class="pwa-install-benefit"><strong>Protected data</strong><br>Offers and client details remain online.</div>
       </div>
       ${sellerReturnCopy ? `<p class="pwa-install-note"><strong>${sellerReturnCopy}</strong></p>` : ''}
+      ${buyerReturnCopy ? `<p class="pwa-install-note"><strong>${buyerReturnCopy}</strong></p>` : ''}
       ${agentReturnCopy ? `<p class="pwa-install-note"><strong>${agentReturnCopy}</strong></p>` : ''}
       <p class="pwa-install-note">Your offers and client details stay protected online; installation only gives this existing workspace a faster, dedicated launch.</p>
       <div class="pwa-install-actions">
@@ -21428,8 +21437,8 @@ function routeAfterMagicLinkIfNeeded() {
 
   function preferredStandaloneLaunchAction(){
     // Never auto-open a public workflow in a normal browser, shared link, or
-    // authenticated return. This applies only to an installed seller app
-    // opened at its clean root after the seller explicitly chose installation.
+    // authenticated return. This applies only to a public seller or buyer app
+    // opened at its clean root after the user explicitly chose installation.
     if (!isStandalonePwa() || window.location.pathname !== '/' || window.location.search || window.location.hash) return '';
     try {
       const action = localStorage.getItem(preferredLaunchKey);
