@@ -80,6 +80,28 @@ def _rectangles_overlap(left, right):
 
 
 class TxrSignerGeometryTests(unittest.TestCase):
+    def test_completed_packet_signature_maps_keep_dates_off_the_printed_date_labels(self):
+        """Guard the source-calibrated 1501/1507 signature rows.
+
+        These maps were calibrated against completed SignWell packets.  The
+        date widget must end before the preprinted Date label, while the
+        signature widget remains on the same ruled row.
+        """
+        cases = (
+            (build_signwell_fields_txr1501, FORM_CASES[0][3], "txr1501", 568, 700),
+            (build_signwell_fields_txr1507, FORM_CASES[2][3], "txr1507", 695, 700),
+        )
+        for builder, data, prefix, first_row_y, date_label_x in cases:
+            with self.subTest(prefix=prefix):
+                fields = {field["api_id"]: field for field in builder(data, client_count=2)[0]}
+                client = fields[f"{prefix}_client1_signature_p{6 if prefix == 'txr1501' else 2}"]
+                date = fields[f"{prefix}_client1_date_p{6 if prefix == 'txr1501' else 2}"]
+                role = fields[f"{prefix}_associate_signature_p{6 if prefix == 'txr1501' else 2}"]
+                self.assertEqual(client["y"], first_row_y)
+                self.assertEqual(role["y"], first_row_y)
+                self.assertGreater(date["x"], client["x"] + client["width"])
+                self.assertLessEqual(date["x"] + date["width"], date_label_x)
+
     def test_every_supported_form_has_valid_non_overlapping_signer_widgets(self):
         for form_code, page_count, builder, data in FORM_CASES:
             with self.subTest(form_code=form_code):
