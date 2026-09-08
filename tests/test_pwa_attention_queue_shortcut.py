@@ -9,11 +9,8 @@ HTML = (ROOT / "index.html").read_text(encoding="utf-8")
 
 
 class PwaAttentionQueueShortcutTests(unittest.TestCase):
-    def test_manifest_exposes_a_private_attention_recovery_shortcut(self):
-        shortcuts = {item["url"]: item for item in MANIFEST["shortcuts"]}
-        shortcut = shortcuts["/?pwa_action=attention_queue"]
-        self.assertEqual(shortcut["name"], "Needs Attention")
-        self.assertIn("expired signing recovery", shortcut["description"])
+    def test_attention_recovery_remains_available_inside_the_private_workspace(self):
+        self.assertNotIn("/?pwa_action=attention_queue", {item["url"] for item in MANIFEST["shortcuts"]})
 
     def test_shortcut_routes_signed_in_agents_to_the_private_attention_filter(self):
         self.assertIn("'attention_queue'", HTML)
