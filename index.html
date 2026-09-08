@@ -17654,10 +17654,6 @@ function routeAfterMagicLinkIfNeeded() {
     if (typeof oldUpdateAuthUI === 'function') oldUpdateAuthUI();
     const account = document.getElementById('accountCta');
     if (account && !root.hofAuth?.session) account.textContent = window.innerWidth <= 640 ? 'Login' : 'Agent / Broker Login';
-    const authTitle = document.getElementById('authTitle');
-    if (authTitle && !root.hofAuth?.session) authTitle.textContent = 'Agent / Broker Account';
-    const authSubtitle = document.getElementById('authSubtitle');
-    if (authSubtitle && !root.hofAuth?.session) authSubtitle.textContent = 'Sign in with a magic link to save your work and continue where you left off.';
   };
 
   document.addEventListener('DOMContentLoaded', function(){

@@ -33,6 +33,13 @@ class InvestorLandingFunnelTests(unittest.TestCase):
         self.assertIn("localStorage.setItem('hof_investor_landing_source', investorLandingSource)", INDEX)
         self.assertIn("localStorage.getItem('hof_investor_landing_source') === 'texas_investor_offer_guide'", INDEX)
 
+    def test_investor_sign_in_keeps_investor_specific_copy(self):
+        self.assertIn("title.textContent = roleLabel(normalized) + ' Account'", INDEX)
+        self.assertIn("Sign in to save investor/entity defaults and build repeat Texas offers faster.", INDEX)
+        # A later UI enhancement must not overwrite the role-specific title
+        # after the investor route has opened the shared account modal.
+        self.assertNotIn("if (authTitle && !root.hofAuth?.session) authTitle.textContent = 'Agent / Broker Account'", INDEX)
+
     def test_public_endpoint_and_page_record_only_aggregate_investor_landing_events(self):
         self.assertIn("INVESTOR_LANDING_EVENT_TYPES", API)
         self.assertIn("def _record_investor_landing_event(data):", API)
