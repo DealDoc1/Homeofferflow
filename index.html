@@ -8400,8 +8400,12 @@ function routeAfterMagicLinkIfNeeded() {
     if (!String(el.value || '').trim()) {
       missing.push(label);
       el.style.borderColor = 'var(--warn)';
+      el.dataset.validationInvalid = 'true';
+      el.setAttribute('aria-invalid', 'true');
     } else {
       el.style.borderColor = '';
+      delete el.dataset.validationInvalid;
+      el.removeAttribute('aria-invalid');
     }
   }
 
@@ -8411,8 +8415,12 @@ function routeAfterMagicLinkIfNeeded() {
     if (!String(el.value || '').trim() || !el.checkValidity()) {
       missing.push(label);
       el.style.borderColor = 'var(--warn)';
+      el.dataset.validationInvalid = 'true';
+      el.setAttribute('aria-invalid', 'true');
     } else {
       el.style.borderColor = '';
+      delete el.dataset.validationInvalid;
+      el.removeAttribute('aria-invalid');
     }
   }
 
@@ -8423,8 +8431,23 @@ function routeAfterMagicLinkIfNeeded() {
     inputs.forEach(input => {
       const card = input.closest('.radio-card');
       if (card) card.style.outline = selected ? '' : '2px solid var(--warn)';
+      if (card && !selected) card.dataset.validationInvalid = 'true';
+      if (card && selected) delete card.dataset.validationInvalid;
     });
     if (!selected) missing.push(label);
+  }
+
+  function guideToFirstValidationAnswer(stepId) {
+    const step = document.getElementById(stepId);
+    if (!step) return;
+    const invalid = step.querySelector('[data-validation-invalid="true"]');
+    if (!invalid) return;
+
+    invalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const focusTarget = invalid.matches('input, select, textarea, button')
+      ? invalid
+      : invalid.querySelector('input, select, textarea, button');
+    window.setTimeout(() => focusTarget?.focus({ preventScroll: true }), 250);
   }
 
   function setValidationStatus(message) {
@@ -8580,7 +8603,8 @@ function routeAfterMagicLinkIfNeeded() {
     }
 
     if (missing.length) {
-      setValidationStatus('Please complete: ' + missing.slice(0, 6).join(', ') + (missing.length > 6 ? ', and more' : '') + '.');
+      setValidationStatus('Continue needs: ' + missing.slice(0, 6).join(', ') + (missing.length > 6 ? ', and more' : '') + '.');
+      guideToFirstValidationAnswer(stepId);
       return false;
     }
 
