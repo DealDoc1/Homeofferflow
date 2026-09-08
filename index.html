@@ -19764,7 +19764,7 @@ function routeAfterMagicLinkIfNeeded() {
         copy.textContent = 'TXR-1507 is not currently available in your form library.';
         return;
       }
-      copy.innerHTML = `Start a private Buyer/Tenant Representation Agreement, Short Form (TXR-1507), using the approved ${escape(source.source_revision)} form. Review the draft, then choose recipients and send it when appropriate.`;
+      copy.innerHTML = `Start a private Buyer/Tenant Representation Agreement, Short Form (TXR-1507), using the approved ${escape(source.source_revision)} form. Review the private draft before deciding on any next step.`;
       const button = document.createElement('button');
       button.type = 'button'; button.className = 'btn-secondary'; button.textContent = 'Start straightforward representation draft';
       button.addEventListener('click', () => openDraftDialog(source));
@@ -19892,7 +19892,7 @@ function routeAfterMagicLinkIfNeeded() {
         copy.textContent = 'TXR-1501 is not currently available in your form library.';
         return;
       }
-      copy.innerHTML = `Start a private Buyer/Tenant Representation Agreement, Long Form (TXR-1501), using the approved ${escape(source.source_revision)} form. Choose this form deliberately; it is not a substitute for the Short Form. Review the draft, then choose recipients before sending.`;
+      copy.innerHTML = `Start a private Buyer/Tenant Representation Agreement, Long Form (TXR-1501), using the approved ${escape(source.source_revision)} form. Choose this form deliberately; it is not a substitute for the Short Form. Review the private draft before deciding on any next step.`;
       const button = document.createElement('button');
       button.type = 'button'; button.className = 'btn-secondary'; button.textContent = 'Start detailed representation draft';
       button.addEventListener('click', () => openLongDraftDialog(source));
@@ -20027,7 +20027,7 @@ function routeAfterMagicLinkIfNeeded() {
         copy.textContent = 'TXR-1508 is not currently available in your form library.';
         return;
       }
-      copy.innerHTML = `Start a private TXR-1508 showing draft using the approved ${escape(source.source_revision)} form. This is an unrepresented-customer workflow, not a buyer representation agreement. Review the draft, then choose recipients and send it when appropriate.`;
+      copy.innerHTML = `Start a private TXR-1508 showing draft using the approved ${escape(source.source_revision)} form. This is an unrepresented-customer workflow, not a buyer representation agreement. Review the private draft before deciding on any next step.`;
       const button = document.createElement('button');
       button.type = 'button'; button.className = 'btn-secondary'; button.textContent = 'Start TXR-1508 draft';
       button.addEventListener('click', () => openShowingDraftDialog(source));
@@ -20138,7 +20138,7 @@ function routeAfterMagicLinkIfNeeded() {
     try {
       const source = await approvedNoticeSource(), copy = card.querySelector('#txr1506AgreementCopy');
       if (!source) { copy.textContent = 'TXR-1506 is not currently available in your form library.'; return; }
-      copy.innerHTML = `Start a private TXR-1506 notice draft using the approved ${escape(source.source_revision)} form. This is a consumer notice, not a representation agreement. Review the draft, then choose recipients before sending.`;
+      copy.innerHTML = `Start a private TXR-1506 notice draft using the approved ${escape(source.source_revision)} form. This is a consumer notice, not a representation agreement. Review the private draft before deciding on any next step.`;
       const button = document.createElement('button'); button.type = 'button'; button.className = 'btn-secondary'; button.textContent = 'Start TXR-1506 draft';
       button.addEventListener('click', () => openNoticeDraft(source)); card.appendChild(button);
     } catch (error) { console.error('TXR-1506 source check failed:', error); card.querySelector('#txr1506AgreementCopy').textContent = root.hofApprovedSourceStatusCopy(error); }

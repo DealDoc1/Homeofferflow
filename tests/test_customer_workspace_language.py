@@ -17,6 +17,11 @@ class CustomerWorkspaceLanguageTests(unittest.TestCase):
         self.assertIn("available as a private draft only", HTML)
         self.assertNotIn("private-draft foundation", HTML)
 
+    def test_private_agent_forms_do_not_imply_a_send_capability(self):
+        self.assertGreaterEqual(HTML.count("Review the private draft before deciding on any next step."), 4)
+        self.assertNotIn("Review the draft, then choose recipients and send it when appropriate.", HTML)
+        self.assertNotIn("Review the draft, then choose recipients before sending.", HTML)
+
     def test_brokerage_profile_uses_finished_product_language(self):
         self.assertIn("<h4>Brokerage Profile</h4>", HTML)
         self.assertIn("Loading brokerage workspace...", HTML)
