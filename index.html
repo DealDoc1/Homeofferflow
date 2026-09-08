@@ -3983,16 +3983,16 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       </div>
       <div style="text-align:center; max-width:640px; margin:0 auto;">
         <div style="width:72px; height:72px; border-radius:999px; background:rgba(74,140,111,0.18); border:1px solid rgba(74,140,111,0.45); display:flex; align-items:center; justify-content:center; font-size:2rem; margin:0 auto 1rem;">✅</div>
-        <h2>Payment successful</h2>
+        <h2 id="successHeading">Payment successful</h2>
         <p class="step-desc" id="successMessage">Check your email — your offer packet is ready. You can safely close this page after saving the email/PDF.</p>
         <div id="successBrokerageBrand" class="notice" style="display:none; text-align:left; margin-top:1rem; align-items:center; gap:.75rem;"></div>
 
         <div class="notice sage" style="text-align:left; margin-top:1.25rem;">
           <strong>Next steps</strong><br/>
           1. Check your email for your HomeOfferFlow offer packet.<br/>
-          2. Watch for a separate SignWell email if buyer-side signatures are enabled.<br/>
+          <span id="successSignatureStep">2. Watch for a separate SignWell email if buyer-side signatures are enabled.</span><br/>
           3. Review the PDF carefully before sending, signing, or relying on it.<br/>
-          4. If the seller or listing agent sends revised documents later, compare them carefully before signing.
+          <span id="successRevisionStep">4. If the seller or listing agent sends revised documents later, compare them carefully before signing.</span>
         </div>
 
         <div id="successEmailBox" style="margin-top:1rem; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.10); border-radius:12px; padding:1rem; text-align:left;">
@@ -10076,9 +10076,30 @@ function routeAfterMagicLinkIfNeeded() {
 
     const successEmail = document.getElementById('successEmail');
     const successMessage = document.getElementById('successMessage');
+    const successHeading = document.getElementById('successHeading');
+    const successSignatureStep = document.getElementById('successSignatureStep');
+    const successRevisionStep = document.getElementById('successRevisionStep');
+    const accountWorkflow = ['agent', 'investor'].includes(state.data.userType || '');
+    const paragraph4Forms = [
+      state.data.leaseResidential === 'yes' ? 'Residential Lease Addendum' : '',
+      state.data.leaseFixture === 'yes' ? 'Fixture Lease Addendum' : ''
+    ].filter(Boolean);
 
     if (successEmail) successEmail.textContent = email || state.data.buyerEmail || 'the email you entered';
-    if (successMessage) successMessage.textContent = 'Check your email — your offer packet is ready.';
+    if (successHeading) successHeading.textContent = accountWorkflow ? 'Packet generated' : 'Payment successful';
+    if (successMessage) successMessage.textContent = accountWorkflow
+      ? 'Your offer package has been generated. Check your email for the documents and signature request.'
+      : 'Check your email — your offer packet is ready.';
+    if (successSignatureStep) {
+      successSignatureStep.textContent = paragraph4Forms.length
+        ? `2. Buyers sign first. Sellers then receive SignWell for the included ${paragraph4Forms.join(' and ')}.`
+        : '2. Watch for a separate SignWell email when buyer signatures are enabled.';
+    }
+    if (successRevisionStep) {
+      successRevisionStep.textContent = accountWorkflow
+        ? '4. If terms change, update the saved transaction and generate a new package before anyone relies on the earlier version.'
+        : '4. If the seller or listing agent sends revised documents later, compare them carefully before signing.';
+    }
 
     const brokerage = window.hofPlatform?.brokerage || {};
     const brand = document.getElementById('successBrokerageBrand');

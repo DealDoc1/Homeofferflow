@@ -31,6 +31,12 @@ class Paragraph4OfferInterviewTests(unittest.TestCase):
         self.assertIn('Seller acceptance and any other seller-side signatures remain with the seller or listing side.', HTML)
         self.assertIn('If the terms change, update the saved transaction and generate a new package', HTML)
 
+    def test_success_copy_explains_seller_signing_for_generated_lease_package(self):
+        self.assertIn('id="successHeading"', HTML)
+        self.assertIn('id="successSignatureStep"', HTML)
+        self.assertIn("Sellers then receive SignWell for the included ${paragraph4Forms.join(' and ')}", HTML)
+        self.assertIn("successHeading.textContent = accountWorkflow ? 'Packet generated' : 'Payment successful'", HTML)
+
 
 if __name__ == "__main__":
     unittest.main()
