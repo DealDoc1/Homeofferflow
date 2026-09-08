@@ -7,6 +7,7 @@ customer data or PDFs.
 """
 
 import argparse
+import base64
 import contextlib
 import hashlib
 import json
@@ -23,6 +24,10 @@ from pypdf import PdfReader
 ROOT = Path(__file__).resolve().parents[1]
 BASELINE_PATH = ROOT / "tests" / "fixtures" / "golden_packet_rendering.json"
 POPPLER = shutil.which("pdftoppm")
+LAYOUT_COLUMNS = 24
+LAYOUT_ROWS = 32
+MAX_LAYOUT_CELL_DELTA = 18
+MAX_LAYOUT_MEAN_DELTA = 2.5
 
 # Running a script by file path places ``scripts/`` on sys.path, not the
 # repository root. Add the root explicitly so the documented command can
@@ -76,7 +81,53 @@ def _image_hash(path):
     with Image.open(path) as image:
         normalized = image.convert("RGB")
         digest = hashlib.sha256(normalized.tobytes()).hexdigest()
-        return {"width": normalized.width, "height": normalized.height, "sha256": digest}
+        # Raw pixel hashes are useful on the same renderer, but Poppler's
+        # anti-aliasing varies slightly between macOS and Linux.  The reduced
+        # grayscale layout grid keeps the regression check visual while
+        # tolerating those harmless renderer differences. A moved field,
+        # missing checkbox, or shifted signature region materially changes
+        # one or more grid cells and still fails the check.
+        grayscale = normalized.convert("L").resize((LAYOUT_COLUMNS, LAYOUT_ROWS), Image.Resampling.LANCZOS)
+        return {
+            "width": normalized.width,
+            "height": normalized.height,
+            "sha256": digest,
+            "layout": base64.b64encode(bytes(grayscale.get_flattened_data())).decode("ascii"),
+        }
+
+
+def _cross_platform_visual_match(actual, expected):
+    if actual.get("version") != expected.get("version"):
+        return False, "manifest version changed"
+    if actual.get("max_width") != expected.get("max_width"):
+        return False, "render width changed"
+    if set(actual.get("scenarios", {})) != set(expected.get("scenarios", {})):
+        return False, "golden scenario set changed"
+
+    for scenario_name, actual_scenario in actual["scenarios"].items():
+        expected_scenario = expected["scenarios"][scenario_name]
+        if actual_scenario["page_count"] != expected_scenario["page_count"]:
+            return False, f"{scenario_name}: page count changed"
+        if actual_scenario["field_ids"] != expected_scenario["field_ids"]:
+            return False, f"{scenario_name}: signing field IDs changed"
+        for page_number, (actual_page, expected_page) in enumerate(zip(actual_scenario["pages"], expected_scenario["pages"]), start=1):
+            if (actual_page["width"], actual_page["height"]) != (expected_page["width"], expected_page["height"]):
+                return False, f"{scenario_name} page {page_number}: rendered dimensions changed"
+            try:
+                actual_layout = base64.b64decode(actual_page.get("layout", ""), validate=True)
+                expected_layout = base64.b64decode(expected_page.get("layout", ""), validate=True)
+            except (ValueError, TypeError):
+                return False, f"{scenario_name} page {page_number}: visual layout baseline is invalid"
+            if len(actual_layout) != LAYOUT_COLUMNS * LAYOUT_ROWS or len(expected_layout) != LAYOUT_COLUMNS * LAYOUT_ROWS:
+                return False, f"{scenario_name} page {page_number}: visual layout baseline is missing"
+            deltas = [abs(current - approved) for current, approved in zip(actual_layout, expected_layout)]
+            mean_delta = sum(deltas) / len(deltas)
+            if mean_delta > MAX_LAYOUT_MEAN_DELTA or max(deltas, default=0) > MAX_LAYOUT_CELL_DELTA:
+                return False, (
+                    f"{scenario_name} page {page_number}: visual layout changed "
+                    f"(mean delta {mean_delta:.2f}, max delta {max(deltas):.0f})"
+                )
+    return True, ""
 
 
 def build_manifest(selected=None):
@@ -122,6 +173,11 @@ def main():
         action="store_true",
         help="Compare rendered page counts and field IDs without platform-specific image hashes (for CI).",
     )
+    parser.add_argument(
+        "--cross-platform",
+        action="store_true",
+        help="Compare approved rendered-page layout grids with cross-platform anti-aliasing tolerance.",
+    )
     args = parser.parse_args()
     actual = build_manifest(args.scenario)
     if args.write_baseline:
@@ -152,6 +208,12 @@ def main():
             }
         actual = structural(actual)
         expected = structural(expected)
+    if args.cross_platform:
+        matches, reason = _cross_platform_visual_match(actual, expected)
+        if not matches:
+            raise SystemExit("Golden packet visual layout changed: " + reason + ". Review rendered PDFs before updating the approved baseline.")
+        print("Golden packet visual layout matches the approved baseline.")
+        return
     if actual != expected:
         raise SystemExit("Golden packet rendering changed. Review rendered PDFs before updating the approved baseline.")
     print("Golden packet rendering matches the approved baseline.")

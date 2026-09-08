@@ -1,8 +1,11 @@
 # Golden packet rendered-PDF regression
 
 `scripts/check_golden_packet_rendering.py` renders the eleven supported golden
-packets at 96 DPI and compares every page's pixel fingerprint, page count, and
-SignWell field IDs to the committed baseline manifest.
+packets at 96 DPI and compares every page's image, page count, and SignWell
+field IDs to the committed baseline manifest. Local review uses an exact pixel
+fingerprint; CI compares a reduced page-layout image grid so harmless Poppler
+anti-aliasing differences across macOS and Linux do not hide real visual
+regressions.
 
 The baseline is an approval artifact. Update it only after visually reviewing
 the rendered pages and confirming that every intended change is correct.
@@ -17,6 +20,12 @@ For an intentional, visually approved change:
 
 ```text
 ... scripts/check_golden_packet_rendering.py --write-baseline
+```
+
+CI uses the cross-platform visual comparison:
+
+```text
+... scripts/check_golden_packet_rendering.py --cross-platform
 ```
 
 This catches unexpected rendering changes. It does not replace completed
