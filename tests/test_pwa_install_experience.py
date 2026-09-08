@@ -63,6 +63,22 @@ class PwaInstallExperienceTests(unittest.TestCase):
         self.assertIn("publicReturnWork ? 'No sign-in required' : 'No new account'", INDEX)
         self.assertIn("Return to the public guided workflow whenever you need it.", INDEX)
 
+    def test_public_page_install_keeps_its_declared_workflow_one_tap_away(self):
+        self.assertIn("const preferredLaunchKey = 'hof_pwa_preferred_launch_action';", PWA_REGISTER)
+        self.assertIn("const publicPreferredLaunchActions = {", PWA_REGISTER)
+        for path, action in (
+            ("'/buyers': 'buyer_offer'", "buyer_offer"),
+            ("'/sellers': 'seller_plan'", "seller_plan"),
+            ("'/agents': 'transaction_start'", "transaction_start"),
+            ("'/ondemand': 'workspace'", "workspace"),
+            ("'/investors': 'investor_workspace'", "investor_workspace"),
+            ("'/partners': 'partner_marketplace'", "partner_marketplace"),
+        ):
+            self.assertIn(path, PWA_REGISTER)
+        self.assertIn("const rememberPreferredPublicLaunch = () =>", PWA_REGISTER)
+        self.assertIn("localStorage.setItem(preferredLaunchKey, action)", PWA_REGISTER)
+        self.assertIn("rememberPreferredPublicLaunch();", PWA_REGISTER)
+
     def test_completed_seller_request_can_offer_install_for_returning_mobile_work(self):
         self.assertIn("const sellerStatus = document.getElementById('fsboSellerStatus');", INDEX)
         self.assertIn("sellerModal?.getAttribute('aria-hidden') === 'false'", INDEX)

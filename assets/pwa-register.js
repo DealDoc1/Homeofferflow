@@ -89,6 +89,27 @@
   const dismissKey = 'hof_public_pwa_install_dismissed_v2';
   const installEligibleKey = 'hof_public_pwa_install_eligible_v1';
   const installDismissedUntilKey = 'hof_public_pwa_install_dismissed_until_v1';
+  const preferredLaunchKey = 'hof_pwa_preferred_launch_action';
+  const publicPreferredLaunchActions = {
+    '/buyers': 'buyer_offer',
+    '/texas-homebuyer-offer-guide': 'buyer_offer',
+    '/sellers': 'seller_plan',
+    '/texas-fsbo-guide': 'seller_plan',
+    '/texas-fsbo-closing-checklist': 'seller_plan',
+    '/texas-seller-net-proceeds-calculator': 'seller_plan',
+    '/texas-seller-offer-review': 'seller_plan',
+    '/agents': 'transaction_start',
+    '/texas-agent-offer-workflow': 'transaction_start',
+    '/texas-listing-workflow': 'transaction_start',
+    '/texas-lease-offer-workflow': 'transaction_start',
+    '/texas-agent-form-library': 'transaction_start',
+    '/texas-buyer-representation-guide': 'transaction_start',
+    '/texas-seller-financing-guide': 'transaction_start',
+    '/ondemand': 'workspace',
+    '/investors': 'investor_workspace',
+    '/texas-investor-offer-guide': 'investor_workspace',
+    '/partners': 'partner_marketplace',
+  };
   const installDismissalDays = 14;
   const isInstallEligible = () => {
     try { return localStorage.getItem(installEligibleKey) === '1'; } catch (_) { return false; }
@@ -98,6 +119,15 @@
   };
   const recordInstallEngagement = () => {
     try { localStorage.setItem(installEligibleKey, '1'); } catch (_) {}
+  };
+  // A public page can be installed before a person ever reaches the main
+  // workspace. Preserve only that declared launch category on this device so
+  // the app icon keeps its one-tap-return promise; no page, account, client,
+  // property, form, or campaign detail is retained.
+  const rememberPreferredPublicLaunch = () => {
+    const action = publicPreferredLaunchActions[window.location.pathname];
+    if (!action) return;
+    try { localStorage.setItem(preferredLaunchKey, action); } catch (_) {}
   };
   const trackInstallEvent = (event, extra = {}) => {
     try {
@@ -280,6 +310,7 @@
       removeInstallCard();
     });
     card.querySelector('#hofPublicPwaInstallButton')?.addEventListener('click', async () => {
+      rememberPreferredPublicLaunch();
       if (!deferredInstallPrompt) {
         const note = card.querySelector('#hofPublicPwaInstallNote');
         if (note) {
@@ -305,7 +336,7 @@
     trackPublicInstall('NativeAvailable');
     renderInstallCard();
   });
-  window.addEventListener('appinstalled', () => { trackPublicInstall('Installed'); deferredInstallPrompt = null; removeInstallCard(); });
+  window.addEventListener('appinstalled', () => { rememberPreferredPublicLaunch(); trackPublicInstall('Installed'); deferredInstallPrompt = null; removeInstallCard(); });
   // A pointer, keyboard, or scroll interaction is enough to distinguish a
   // visitor who is actually evaluating HomeOfferFlow from a one-page bounce.
   // Do not render the card in this same visit: the primary next action remains
