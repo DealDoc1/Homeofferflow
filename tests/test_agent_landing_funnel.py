@@ -178,7 +178,7 @@ class AgentLandingFunnelTests(unittest.TestCase):
             'TXR-1917 · Environmental Assessment Addendum',
             'TXR-1919 · Loan Assumption Addendum',
             'Start with what your client needs',
-            'You review the completed document before sending it for signature.',
+            'then you review the completed document before sending it for signature.',
         ):
             self.assertIn(expected, INDEX)
 
@@ -263,8 +263,8 @@ class AgentLandingFunnelTests(unittest.TestCase):
         end = INDEX.index("window.startAgentWorkflow = function", start)
         interview = INDEX[start:end]
         self.assertIn("We’ll prepare the completed document for your review.", interview)
-        self.assertIn("Signature sending is available only where the workflow supports it.", interview)
-        self.assertIn("You’ll review the completed document before it is sent.", interview)
+        self.assertIn("Signature sending is available only where the workflow supports it,", interview)
+        self.assertIn("and you’ll review the completed document before it is sent.", interview)
 
     def test_dismissing_the_package_question_restores_keyboard_focus(self):
         start = INDEX.index("window.hofOpenAgentPackageInterview = function")

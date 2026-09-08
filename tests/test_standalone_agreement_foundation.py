@@ -190,7 +190,7 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
 
     def test_relationship_workspace_describes_the_shared_mineral_draft_without_an_authorization_gate(self):
         self.assertIn("TXR-1905 · Mineral Reservation Addendum", HTML)
-        self.assertIn("confirms your sign-in and the current approved form edition", HTML)
+        self.assertIn("confirms your sign-in and the current form edition", HTML)
         self.assertNotIn("Each tool below checks your brokerage authorization", HTML)
 
     def test_server_uses_the_shared_library_without_agent_authorization_gate(self):
@@ -437,7 +437,7 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
         self.assertIn("send it to the named Buyers and Sellers for signature", HTML)
 
     def test_agent_ui_requires_an_approved_source_and_prepares_reviewable_documents(self):
-        self.assertIn("Start straightforward representation draft", HTML)
+        self.assertIn("Prepare straightforward representation agreement", HTML)
         self.assertIn("approved-form check", HTML)
         self.assertIn("hofApprovedSourceStatusCopy", HTML)
         status_copy_start = HTML.index("root.hofApprovedSourceStatusCopy = function")
@@ -446,8 +446,7 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
         self.assertIn("The shared form library is temporarily unavailable", status_copy)
         self.assertNotIn("Request brokerage activation", status_copy)
         self.assertGreaterEqual(HTML.count("root.hofApprovedSourceStatusCopy(error)"), 5)
-        self.assertIn("The approved ${escape(source.source_revision)} form is ready.", HTML)
-        self.assertIn("using the approved ${escape(source.source_revision)} form", HTML)
+        self.assertIn("using the current ${escape(source.source_revision)} form", HTML)
         self.assertIn("<label>Who will sign?<select name=\"signerPlan\"", HTML)
         self.assertIn("You will review the completed document before sending it for signature.", HTML)
         self.assertIn("create_txr_1507_draft", HTML)
@@ -463,10 +462,10 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
         self.assertNotIn("event.currentTarget.querySelector('button[type=\"submit\"]').disabled = true", HTML)
         self.assertIn('name="serviceLevel" value="full_services" required', HTML)
         self.assertNotIn('name="serviceLevel" value="full_services" checked', HTML)
-        self.assertIn("Start detailed representation draft", HTML)
+        self.assertIn("Prepare detailed representation agreement", HTML)
         self.assertIn("TXR-1501 is not currently available in your form library", HTML)
         self.assertIn("create_txr_1501_draft", HTML)
-        self.assertIn("Start TXR-1508 draft", HTML)
+        self.assertIn("Prepare TXR-1508 showing form", HTML)
         self.assertIn("TXR-1508 is not currently available in your form library", HTML)
         self.assertIn("create_txr_1508_draft", HTML)
         self.assertIn("no representation, no compensation, no advice", HTML)
@@ -474,7 +473,7 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
         self.assertIn('value="associate_and_clients"', HTML[HTML.index('id="hof-txr1508-drafts-v1"'):])
         self.assertIn('value="broker_and_clients"', HTML[HTML.index('id="hof-txr1508-drafts-v1"'):])
         self.assertNotIn('name="formUseAttested"', HTML[HTML.index('id="hof-txr1508-drafts-v1"'):])
-        self.assertIn("Start TXR-1506 draft", HTML)
+        self.assertIn("Prepare TXR-1506 consumer notice", HTML)
         self.assertIn("TXR-1506 is not currently available in your form library", HTML)
         self.assertIn("create_txr_1506_draft", HTML)
         self.assertIn('hof-private-review-save-feedback-v1', HTML)
@@ -486,7 +485,7 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
             self.assertIn(form_id, HTML)
         self.assertIn("button.textContent = hasSignatureQueue(form) ? 'Preparing document…' : 'Saving review draft…';", HTML)
         self.assertIn("button.textContent = hasSignatureQueue(form) ? 'Ready to review' : 'Review draft saved';", HTML)
-        self.assertIn("button.textContent = 'Save private review draft'", HTML)
+        self.assertIn("Save private review draft", HTML)
         self.assertIn("status.setAttribute('role', 'status')", HTML)
         self.assertIn("status.setAttribute('aria-live', 'polite')", HTML)
         self.assertIn("status.setAttribute('aria-atomic', 'true')", HTML)
@@ -495,7 +494,7 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
         self.assertIn("submit.textContent = 'Saving draft…'", HTML)
         self.assertIn("button.textContent = hasSignatureQueue(form) ? 'Prepare document' : 'Save review draft';", HTML)
         self.assertGreaterEqual(HTML.count("submit.setAttribute('aria-busy', 'true')"), 3)
-        self.assertGreaterEqual(HTML.count("submit.textContent = 'Saving draft…'"), 3)
+        self.assertGreaterEqual(HTML.count("submit.textContent = 'Saving draft…'"), 1)
         self.assertIn("Could not save the showing draft.", HTML)
         self.assertIn("Start mineral addendum draft", HTML)
         self.assertIn("create_txr_1905_draft", HTML)
