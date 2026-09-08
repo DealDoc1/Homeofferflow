@@ -6907,12 +6907,12 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           <div class="field"><label>Signer Title</label><input id="profSignerTitle" value="${escapeAttr(profileValue('signer_title'))}" placeholder="Manager"></div>
           <div class="field"><label>Email</label><input id="profInvestorEmail" type="email" inputmode="email" autocomplete="email" value="${escapeAttr(profileValue('investor_email', hofAuth.session?.user?.email || ''))}" placeholder="you@company.com"></div>
           <div class="field"><label>Phone</label><input id="profInvestorPhone" value="${escapeAttr(profileValue('investor_phone'))}" placeholder="(214) 555-0000"></div>
-          <div class="field"><label>Mailing Address</label><input id="profInvestorMailing" value="${escapeAttr(profileValue('mailing_address'))}" placeholder="123 Main St, City, TX"></div>
+          <div class="field"><label>Mailing Address</label><input id="profInvestorMailing" autocomplete="street-address" inputmode="text" value="${escapeAttr(profileValue('mailing_address'))}" placeholder="123 Main St, City, TX"></div>
         </div></div>
         <div class="account-card"><h4>Preferred Title & Defaults</h4><div class="account-grid">
           <div class="field"><label>Preferred Title Company</label><input id="profInvestorTitleCompany" value="${escapeAttr(profileValue('preferred_title_company'))}" placeholder="Chicago Title DFW"></div>
           <div class="field"><label>Preferred Escrow Contact</label><input id="profInvestorEscrowAgent" value="${escapeAttr(profileValue('preferred_escrow_agent'))}" placeholder="Escrow officer / title contact"></div>
-          <div class="field"><label>Escrow Address</label><input id="profInvestorEscrowAddress" value="${escapeAttr(profileValue('preferred_escrow_address'))}" placeholder="Title company address"></div>
+          <div class="field"><label>Escrow Address</label><input id="profInvestorEscrowAddress" autocomplete="street-address" inputmode="text" value="${escapeAttr(profileValue('preferred_escrow_address'))}" placeholder="Title company address"></div>
           <div class="field"><label>Default Offer Type</label><select id="profInvestorOfferType"><option value="">Select...</option><option value="cash" ${profileValue('default_offer_type')==='cash'?'selected':''}>Cash</option><option value="conventional" ${profileValue('default_offer_type')==='conventional'?'selected':''}>Conventional</option></select></div>
           <div class="field"><label>Default Option Fee</label><input id="profInvestorOptionFee" type="number" value="${escapeAttr(profileValue('default_option_fee', 250))}"></div>
           <div class="field"><label>Default Option Days</label><input id="profInvestorOptionDays" type="number" value="${escapeAttr(profileValue('default_option_days', 7))}"></div>
@@ -6933,7 +6933,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       <div class="account-card"><h4>Title, Escrow & Offer Defaults</h4><div class="account-grid">
         <div class="field"><label>Preferred Title Company</label><input id="profTitleCompany" value="${escapeAttr(profileValue('preferred_title_company'))}" placeholder="Chicago Title DFW"></div>
         <div class="field"><label>Preferred Escrow Contact</label><input id="profEscrowAgent" value="${escapeAttr(profileValue('preferred_escrow_agent'))}" placeholder="Escrow officer / title contact"></div>
-        <div class="field"><label>Escrow Address</label><input id="profEscrowAddress" value="${escapeAttr(profileValue('preferred_escrow_address'))}" placeholder="Title company address"></div>
+        <div class="field"><label>Escrow Address</label><input id="profEscrowAddress" autocomplete="street-address" inputmode="text" value="${escapeAttr(profileValue('preferred_escrow_address'))}" placeholder="Title company address"></div>
         <div class="field"><label>Default Option Fee</label><input id="profOptionFee" type="number" value="${escapeAttr(profileValue('default_option_fee', 250))}"></div>
         <div class="field"><label>Default Option Days</label><input id="profOptionDays" type="number" value="${escapeAttr(profileValue('default_option_days', 7))}"></div>
         <div class="field"><label>Default Earnest Money</label><input id="profEarnestAmount" type="number" value="${escapeAttr(profileValue('default_earnest_amount'))}" placeholder="5000"></div>

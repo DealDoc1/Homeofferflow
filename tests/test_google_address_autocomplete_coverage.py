@@ -16,7 +16,7 @@ class GoogleAddressAutocompleteCoverageTests(unittest.TestCase):
             "buyerMailAddr", "propAddress", "escrowAddress", "salePropertyAddr",
             "sellerMailAddr", "profInvestorEscrowAddress", "profEscrowAddress",
             "brandOfficeAddress", "sellerLeadAddress", "listingWorkspaceAddress",
-            "fsboPropertyAddress", "clientAddress", "propertyAddress", "hofSellerAddress", "clientCityStateZip",
+            "fsboPropertyAddress", "clientAddress", "propertyAddress", "hofSellerAddress", "clientCityStateZip", "profInvestorMailing",
         }
         for control in required_controls:
             self.assertRegex(
@@ -58,7 +58,7 @@ class GoogleAddressAutocompleteCoverageTests(unittest.TestCase):
         # The dynamic detector still wires every late-rendered dialog to Google
         # Places. These static entry points also expose their intent directly
         # to the browser before that code runs.
-        for control in ("clientAddress", "hofSellerAddress"):
+        for control in ("clientAddress", "hofSellerAddress", "profInvestorMailing", "profInvestorEscrowAddress", "profEscrowAddress"):
             self.assertRegex(
                 INDEX,
                 rf'<input[^>]+(?:id|name)="{control}"[^>]+autocomplete="street-address"',
