@@ -58,6 +58,11 @@ class PwaInstallExperienceTests(unittest.TestCase):
         self.assertIn("window.beginOfferFrom?.('pwa_buyer_offer');", INDEX)
         self.assertIn("recordBuyerOfferShortcut();", INDEX)
 
+    def test_public_workflow_install_copy_does_not_imply_that_buyers_or_sellers_have_an_account(self):
+        self.assertIn("const publicReturnWork = ['seller_success', 'buyer_review', 'buyer_success'].includes(target.surface);", INDEX)
+        self.assertIn("publicReturnWork ? 'No sign-in required' : 'No new account'", INDEX)
+        self.assertIn("Return to the public guided workflow whenever you need it.", INDEX)
+
     def test_completed_seller_request_can_offer_install_for_returning_mobile_work(self):
         self.assertIn("const sellerStatus = document.getElementById('fsboSellerStatus');", INDEX)
         self.assertIn("sellerModal?.getAttribute('aria-hidden') === 'false'", INDEX)

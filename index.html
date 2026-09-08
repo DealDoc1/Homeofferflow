@@ -21242,6 +21242,7 @@ function routeAfterMagicLinkIfNeeded() {
     try { sessionStorage.setItem(installSurfaceKey, target.surface); } catch (_) {}
     const ios = isIos();
     const desktop = !mobileInstallSurface;
+    const publicReturnWork = ['seller_success', 'buyer_review', 'buyer_success'].includes(target.surface);
     const sellerReturnCopy = target.surface === 'seller_success'
       ? 'Save this seller plan to your Home Screen so it is one tap away when you return to photos, repairs, timing, or provider questions.'
       : '';
@@ -21261,7 +21262,7 @@ function routeAfterMagicLinkIfNeeded() {
         : 'Install HomeOfferFlow for a faster app-like launch and an offline-safe shell when you are between showings. It takes about a minute—no App Store download or separate account is needed.'}</p>
       <div class="pwa-install-benefits" aria-label="What installation does">
         <div class="pwa-install-benefit"><strong>One-tap return</strong><br>Launch the same workspace from an app icon.</div>
-        <div class="pwa-install-benefit"><strong>No new account</strong><br>Use the sign-in and access you already have.</div>
+        <div class="pwa-install-benefit"><strong>${publicReturnWork ? 'No sign-in required' : 'No new account'}</strong><br>${publicReturnWork ? 'Return to the public guided workflow whenever you need it.' : 'Use the sign-in and access you already have.'}</div>
         <div class="pwa-install-benefit"><strong>Protected data</strong><br>Offers and client details remain online.</div>
       </div>
       ${sellerReturnCopy ? `<p class="pwa-install-note"><strong>${sellerReturnCopy}</strong></p>` : ''}
