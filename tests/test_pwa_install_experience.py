@@ -50,6 +50,14 @@ class PwaInstallExperienceTests(unittest.TestCase):
         self.assertIn("const isBuyerSuccess = success?.classList.contains('active')", INDEX)
         self.assertIn("window.setTimeout(() => window.renderPwaInstallCard?.(), 0);", INDEX)
 
+    def test_buyer_offer_install_returns_to_the_public_offer_from_a_clean_standalone_launch(self):
+        self.assertIn("buyer_review: 'buyer_offer'", INDEX)
+        self.assertIn("buyer_success: 'buyer_offer'", INDEX)
+        self.assertIn("localStorage.setItem(preferredLaunchKey, action)", INDEX)
+        self.assertIn("Save this offer workspace to your Home Screen", INDEX)
+        self.assertIn("window.beginOfferFrom?.('pwa_buyer_offer');", INDEX)
+        self.assertIn("recordBuyerOfferShortcut();", INDEX)
+
     def test_completed_seller_request_can_offer_install_for_returning_mobile_work(self):
         self.assertIn("const sellerStatus = document.getElementById('fsboSellerStatus');", INDEX)
         self.assertIn("sellerModal?.getAttribute('aria-hidden') === 'false'", INDEX)
@@ -60,8 +68,8 @@ class PwaInstallExperienceTests(unittest.TestCase):
     def test_seller_plan_install_returns_to_the_public_plan_from_a_clean_standalone_launch(self):
         self.assertIn("const preferredLaunchKey = 'hof_pwa_preferred_launch_action';", INDEX)
         self.assertIn("function rememberPreferredLaunch(surface)", INDEX)
-        self.assertIn("if (surface !== 'seller_success') return;", INDEX)
-        self.assertIn("localStorage.setItem(preferredLaunchKey, 'seller_plan')", INDEX)
+        self.assertIn("seller_success: 'seller_plan'", INDEX)
+        self.assertIn("localStorage.setItem(preferredLaunchKey, action)", INDEX)
         self.assertIn("rememberPreferredLaunch(target.surface);", INDEX)
         self.assertIn("rememberPreferredLaunch(installSurface());", INDEX)
         self.assertIn("function preferredStandaloneLaunchAction()", INDEX)
