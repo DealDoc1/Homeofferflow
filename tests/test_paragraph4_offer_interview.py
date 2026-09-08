@@ -25,6 +25,12 @@ class Paragraph4OfferInterviewTests(unittest.TestCase):
         self.assertIn("${atag('Residential Lease Addendum', s.leaseResidential === 'yes')}", HTML)
         self.assertIn("${atag('Fixture Lease Addendum', s.leaseFixture === 'yes')}", HTML)
 
+    def test_review_copy_explains_seller_signing_for_included_lease_addenda(self):
+        self.assertIn('id="reviewSigningExpectation"', HTML)
+        self.assertIn("Sellers then sign the included ${paragraph4Forms.join(' and ')}", HTML)
+        self.assertIn('Seller acceptance and any other seller-side signatures remain with the seller or listing side.', HTML)
+        self.assertIn('If the terms change, update the saved transaction and generate a new package', HTML)
+
 
 if __name__ == "__main__":
     unittest.main()

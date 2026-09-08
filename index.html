@@ -3950,20 +3950,20 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         <div class="hof-guide-chip-row"><span class="hof-guide-chip"><strong>✓</strong> Competitiveness</span><span class="hof-guide-chip"><strong>✓</strong> Market leverage</span><span class="hof-guide-chip"><strong>✓</strong> Final check</span></div>
       </div>
       <h2>Review your offer</h2>
-      <p class="step-desc">Check everything carefully. Use Back to correct any field before paying.</p>
-      <div class="notice sage" style="margin-bottom:1rem;">✅ Texas offer packet generated from your answers. You can review everything before paying. Secure checkout is powered by Stripe, and your PDF plus buyer-side signing request will be emailed after payment.</div>
+      <p class="step-desc" id="reviewStepDescription">Check everything carefully. Use Back to correct any field before continuing.</p>
+      <div class="notice sage" id="reviewReadyNotice" style="margin-bottom:1rem;">✅ Your Texas offer package is ready to review. HomeOfferFlow will generate the documents and route the required signatures when you continue.</div>
       <div id="reviewSummary"></div>
       <div id="inlineAiOfferReview" class="ai-review-inline"></div>
       <div id="backupReviewWarning" class="notice warn" style="display:none; margin-top:1rem;"><strong>Back-up offer selected.</strong><br/>Confirm the listing agent has provided the first contract date and backup termination deadline before submitting.</div>
       <div class="review-section" style="margin-top:1rem;">
         <div class="review-section-title">What to expect next</div>
-        <p style="font-size:0.87rem; color:var(--gray-light); line-height:1.6; margin-bottom:0.65rem;">
+        <p id="reviewDeliveryExpectation" style="font-size:0.87rem; color:var(--gray-light); line-height:1.6; margin-bottom:0.65rem;">
           After payment, HomeOfferFlow will generate your Texas offer packet and email it to you. You may also receive a separate SignWell email for buyer-side signatures.
         </p>
-        <p style="font-size:0.87rem; color:var(--gray-light); line-height:1.6; margin-bottom:0.65rem;">
+        <p id="reviewSigningExpectation" style="font-size:0.87rem; color:var(--gray-light); line-height:1.6; margin-bottom:0.65rem;">
           Buyer-side signing only: HomeOfferFlow sends buyer signatures, buyer dates, and buyer initials. Seller signatures and seller initials are handled by the seller/listing side after submission or acceptance.
         </p>
-        <p style="font-size:0.87rem; color:var(--gray-light); line-height:1.6; margin-bottom:0.65rem;">
+        <p id="reviewRevisionExpectation" style="font-size:0.87rem; color:var(--gray-light); line-height:1.6; margin-bottom:0.65rem;">
           This is a one-time generated offer packet. If the seller or listing agent asks for changes, counteroffers, amendments, or a signature request, ask the listing agent or seller side to prepare the revised documents and send them back to you for review/signature.
         </p>
         <p style="font-size:0.87rem; color:var(--gray-light); line-height:1.6;">
@@ -6963,6 +6963,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         <button type="button" onclick="showAccountTab('offers')">My Offers</button>
         <button type="button" onclick="openBetaFeedback()">Send Feedback</button>
       </div>`;
+
   }
 
   function renderAccountDashboard() {
@@ -9734,6 +9735,30 @@ function routeAfterMagicLinkIfNeeded() {
           ${atag('Lead-Based Paint — flag', s.leadBuiltBefore1978 === 'yes' || s.leadBuiltBefore1978 === 'unknown')}
         </div>
       </div>`;
+
+    const accountWorkflow = s.userType === 'agent' || s.userType === 'investor';
+    const paragraph4Forms = [
+      s.leaseResidential === 'yes' ? 'Residential Lease Addendum' : '',
+      s.leaseFixture === 'yes' ? 'Fixture Lease Addendum' : ''
+    ].filter(Boolean);
+    const delivery = document.getElementById('reviewDeliveryExpectation');
+    const signing = document.getElementById('reviewSigningExpectation');
+    const revision = document.getElementById('reviewRevisionExpectation');
+    if (delivery) {
+      delivery.textContent = accountWorkflow
+        ? 'When you generate the package, HomeOfferFlow will email the completed documents and start the SignWell signature request.'
+        : 'After payment, HomeOfferFlow will email the completed package and start the SignWell signature request.';
+    }
+    if (signing) {
+      signing.textContent = paragraph4Forms.length
+        ? `Buyers sign the offer package first. Sellers then sign the included ${paragraph4Forms.join(' and ')}. Seller acceptance and any other seller-side signatures remain with the seller or listing side.`
+        : 'HomeOfferFlow routes buyer signatures, buyer dates, and buyer initials. Seller acceptance and seller-side signatures remain with the seller or listing side.';
+    }
+    if (revision) {
+      revision.textContent = accountWorkflow
+        ? 'If the terms change, update the saved transaction and generate a new package before anyone relies on the earlier version.'
+        : 'This purchase includes one generated offer package. If the terms change, have the seller, listing agent, your agent, or an attorney prepare and review the revised documents before signing.';
+    }
   }
 
   function toggleHelper(id) {
