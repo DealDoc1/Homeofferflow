@@ -13,6 +13,8 @@ from lib.txr_1501 import build_signwell_fields_txr1501
 from lib.txr_1506 import build_signwell_fields_txr1506
 from lib.txr_1507 import build_signwell_fields_txr1507
 from lib.txr_1508 import build_signwell_fields_txr1508
+from lib.txr_1953 import build_signwell_fields_txr1953
+from lib.txr_1954 import build_signwell_fields_txr1954
 
 
 FORM_CASES = (
@@ -54,6 +56,14 @@ FORM_CASES = (
         "client_names": ["Customer One", "Customer Two"],
         "other_broker_agreement": ["no", "yes"],
         "signer_plan": "associate_and_clients",
+    }),
+    ("TXR-1953", 1, build_signwell_fields_txr1953, {
+        "buyer_names": ["Buyer One", "Buyer Two"],
+        "seller_names": ["Seller One", "Seller Two"],
+    }),
+    ("TXR-1954", 1, build_signwell_fields_txr1954, {
+        "buyer_names": ["Buyer One", "Buyer Two"],
+        "seller_names": ["Seller One", "Seller Two"],
     }),
 )
 

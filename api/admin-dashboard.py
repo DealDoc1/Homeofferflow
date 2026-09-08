@@ -106,6 +106,14 @@ BROKERAGE_TXR_FORM_CODES = (
     "TXR-1406",
     "TXR-1418",
 )
+TXR_SIGNING_FORM_CODES = {
+    TXR_1501_FORM_CODE,
+    TXR_1506_FORM_CODE,
+    TXR_1507_FORM_CODE,
+    TXR_1508_FORM_CODE,
+    TXR_1953_FORM_CODE,
+    TXR_1954_FORM_CODE,
+}
 
 
 def _is_sandbox_partner_lead(lead):
@@ -3485,7 +3493,7 @@ async def _render_seller_disclosure_draft_preview(user, draft_id, review_context
     return preview
 
 
-async def _render_representation_draft_preview(user, agreement_id):
+async def _render_representation_draft_preview(user, agreement_id, *, for_signing=False):
     """Render an agent's own approved-source representation draft privately.
 
     This endpoint intentionally stops at a PDF preview. It does not mutate the
@@ -3554,6 +3562,7 @@ async def _render_representation_draft_preview(user, agreement_id):
     render_data = {
         "client_names": agreement.get("client_names") or [],
         **agreement_data,
+        "_for_signing": bool(for_signing),
         "compensation": {key: agreement_data.get(key, "") for key in compensation_keys},
     }
     if agreement.get("form_code") == TXR_1507_FORM_CODE:
@@ -3619,7 +3628,27 @@ def _txr_signwell_fields(form_code, agreement_data, client_count):
     if form_code == TXR_1508_FORM_CODE:
         from lib.txr_1508 import build_signwell_fields_txr1508
         return build_signwell_fields_txr1508(agreement_data, client_count=client_count)
+    if form_code == TXR_1953_FORM_CODE:
+        from lib.txr_1953 import build_signwell_fields_txr1953
+        return build_signwell_fields_txr1953(agreement_data, client_count=client_count)
+    if form_code == TXR_1954_FORM_CODE:
+        from lib.txr_1954 import build_signwell_fields_txr1954
+        return build_signwell_fields_txr1954(agreement_data, client_count=client_count)
     raise ValueError("This standalone form is not available for signing.")
+
+
+def _standalone_signer_labels(agreement):
+    """Return non-sensitive signer labels in stored recipient order."""
+    names = agreement.get("client_names") or []
+    form_code = str(agreement.get("form_code") or "")
+    if form_code not in {TXR_1953_FORM_CODE, TXR_1954_FORM_CODE}:
+        return [f"Client {index}" for index in range(1, len(names) + 1)]
+    agreement_data = agreement.get("agreement_data") or {}
+    buyers = agreement_data.get("buyer_names") or []
+    sellers = agreement_data.get("seller_names") or []
+    labels = [f"Buyer {index}" for index in range(1, len(buyers) + 1)]
+    labels.extend(f"Seller {index}" for index in range(1, len(sellers) + 1))
+    return labels if len(labels) == len(names) else [f"Signer {index}" for index in range(1, len(names) + 1)]
 
 
 def _txr_signwell_recipients(agreement, client_emails, brokerage, agent_user):
@@ -3631,6 +3660,8 @@ def _txr_signwell_recipients(agreement, client_emails, brokerage, agent_user):
         {"id": str(index), "name": client_names[index - 1], "email": client_emails[index - 1]}
         for index in range(1, len(client_names) + 1)
     ]
+    if form_code in {TXR_1953_FORM_CODE, TXR_1954_FORM_CODE}:
+        return recipients
     if form_code == TXR_1508_FORM_CODE:
         role = "associate" if signer_plan == "associate_and_clients" else "broker"
     elif form_code == TXR_1506_FORM_CODE:
@@ -3701,7 +3732,7 @@ async def _send_txr_agreement_for_signature(user, data):
         raise PermissionError("That private agreement draft is unavailable or has already been sent.")
     agreement = rows[0]
     form_code = str(agreement.get("form_code") or "")
-    if form_code not in {TXR_1501_FORM_CODE, TXR_1506_FORM_CODE, TXR_1507_FORM_CODE, TXR_1508_FORM_CODE}:
+    if form_code not in TXR_SIGNING_FORM_CODES:
         raise ValueError("This standalone form is not available for signing.")
     client_names = agreement.get("client_names") or []
     client_emails = data.get("clientEmails")
@@ -3716,9 +3747,9 @@ async def _send_txr_agreement_for_signature(user, data):
         if legacy_email:
             client_emails = [legacy_email]
     if len(client_emails) != len(client_names) or any(not _valid_email(email) for email in client_emails):
-        raise ValueError("Provide one valid, unique signing email for each client.")
+        raise ValueError("Provide one valid signing email for each signer.")
     if len({email.casefold() for email in client_emails}) != len(client_emails):
-        raise ValueError("Each client must use a different signing email.")
+        raise ValueError("Each signer must use a different signing email.")
     sources = await _get(
         "hof_brokerage_form_sources?"
         f"id=eq.{urllib.parse.quote(str(agreement['form_source_id']))}"
@@ -3754,7 +3785,7 @@ async def _send_txr_agreement_for_signature(user, data):
     agreement_data["client_emails"] = client_emails
     client_count = len(client_names)
     fields = _txr_signwell_fields(form_code, {"client_names": client_names, **agreement_data}, client_count)
-    rendered = await _render_representation_draft_preview(user, agreement_uuid)
+    rendered = await _render_representation_draft_preview(user, agreement_uuid, for_signing=True)
     recipients = _txr_signwell_recipients(
         agreement,
         client_emails,
@@ -3918,10 +3949,17 @@ class handler(BaseHTTPRequestHandler):
                 rows = asyncio.run(_get(
                     "hof_standalone_agreements?"
                     f"agent_user_id=eq.{urllib.parse.quote(user['id'])}"
-                    "&select=id,form_code,source_revision,client_names,status,signwell_status,signwell_document_id,created_at,updated_at,sent_at,signed_at"
+                    "&select=id,form_code,source_revision,client_names,agreement_data,status,signwell_status,signwell_document_id,created_at,updated_at,sent_at,signed_at"
                     "&order=updated_at.desc&limit=100"
                 ))
-                _json(self, 200, {"agreements": rows, "signingEnabled": TXR_SIGNING_ENABLED})
+                for row in rows:
+                    row["signer_labels"] = _standalone_signer_labels(row)
+                    row.pop("agreement_data", None)
+                _json(self, 200, {
+                    "agreements": rows,
+                    "signingEnabled": TXR_SIGNING_ENABLED,
+                    "signingFormCodes": sorted(TXR_SIGNING_FORM_CODES),
+                })
                 return
             if scope == "platform_source_brokerages":
                 try:
