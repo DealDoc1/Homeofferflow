@@ -54,6 +54,20 @@ class GoogleAddressAutocompleteCoverageTests(unittest.TestCase):
         self.assertIn("Google remains the primary picker", INDEX)
         self.assertIn("addressAutocompleteInputs();\n\n  // Agreement, profile, and workspace panels", INDEX)
 
+    def test_static_private_address_inputs_declare_street_address_semantics(self):
+        # The dynamic detector still wires every late-rendered dialog to Google
+        # Places. These static entry points also expose their intent directly
+        # to the browser before that code runs.
+        for control in ("clientAddress", "hofSellerAddress"):
+            self.assertRegex(
+                INDEX,
+                rf'<input[^>]+(?:id|name)="{control}"[^>]+autocomplete="street-address"',
+            )
+        self.assertGreaterEqual(
+            INDEX.count('name="propertyAddress" required maxlength="400" autocomplete="street-address"'),
+            2,
+        )
+
     def test_late_rendered_legacy_address_controls_are_observed(self):
         self.assertIn("const HOF_LEGACY_ADDRESS_KEYS = new Set(['propertyToSell', 'profInvestorMailing', 'clientCityStateZip']);", INDEX)
         self.assertIn("const isHofAddressInput = input => input instanceof HTMLInputElement", INDEX)
