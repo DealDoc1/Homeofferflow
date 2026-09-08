@@ -11,6 +11,23 @@ VERCEL = json.loads((ROOT / "vercel.json").read_text(encoding="utf-8"))
 
 
 class PwaBaselineTests(unittest.TestCase):
+    def test_all_installable_guide_pages_have_consistent_ios_and_worker_support(self):
+        for filename in (
+            "texas-home-service-partner-guide.html",
+            "texas-seller-offer-review.html",
+            "texas-lease-offer-workflow.html",
+            "texas-listing-workflow.html",
+        ):
+            with self.subTest(filename=filename):
+                html = (ROOT / filename).read_text(encoding="utf-8")
+                self.assertIn('rel="manifest" href="/manifest.webmanifest"', html)
+                self.assertIn('src="/assets/pwa-register.js"', html)
+                self.assertIn('name="apple-mobile-web-app-capable" content="yes"', html)
+                self.assertIn('name="apple-mobile-web-app-status-bar-style" content="default"', html)
+                self.assertIn('name="apple-mobile-web-app-title" content="HomeOfferFlow"', html)
+                self.assertIn("safe-area-inset-top", html)
+                self.assertIn("safe-area-inset-bottom", html)
+
     def test_html_exposes_install_metadata_and_registers_the_worker(self):
         self.assertIn('rel="manifest" href="/manifest.webmanifest"', INDEX)
         self.assertIn('name="theme-color" content="#173f35"', INDEX)
