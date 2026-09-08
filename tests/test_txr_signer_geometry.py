@@ -67,6 +67,12 @@ FORM_CASES = (
     }),
 )
 
+# SignWell's field API uses a 96-DPI, top-origin US Letter page.  A field
+# outside this canvas may be accepted by the API yet be impossible to see or
+# complete in the signing ceremony.
+SIGNWELL_LETTER_WIDTH = 816
+SIGNWELL_LETTER_HEIGHT = 1056
+
 
 def _rectangles_overlap(left, right):
     if left["page"] != right["page"] or left["recipient_id"] != right["recipient_id"]:
@@ -116,6 +122,14 @@ class TxrSignerGeometryTests(unittest.TestCase):
                     self.assertGreater(field["height"], 0)
                     self.assertGreaterEqual(field["x"], 0)
                     self.assertGreaterEqual(field["y"], 0)
+                    self.assertLessEqual(
+                        field["x"] + field["width"], SIGNWELL_LETTER_WIDTH,
+                        f"{form_code} field falls beyond the right page edge: {field['api_id']}",
+                    )
+                    self.assertLessEqual(
+                        field["y"] + field["height"], SIGNWELL_LETTER_HEIGHT,
+                        f"{form_code} field falls beyond the bottom page edge: {field['api_id']}",
+                    )
                 for index, field in enumerate(fields):
                     for other in fields[index + 1:]:
                         self.assertFalse(
@@ -139,6 +153,11 @@ class TxrSignerGeometryTests(unittest.TestCase):
                     self.assertEqual(field["page"], counterpart["page"])
                     self.assertEqual(field["recipient_id"], counterpart["recipient_id"])
                     self.assertGreater(field["x"], counterpart["x"])
+                    self.assertLessEqual(
+                        abs((field["y"] + field["height"] / 2) - (counterpart["y"] + counterpart["height"] / 2)),
+                        8,
+                        f"{form_code} date is not aligned with its signer row: {field['api_id']}",
+                    )
 
 
 if __name__ == "__main__":
