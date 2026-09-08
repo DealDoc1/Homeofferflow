@@ -164,7 +164,7 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("onclick=\"showAccountTab('relationships')\"", INDEX)
         self.assertIn("normalized !== 'investor'", INDEX)
         self.assertIn("document.getElementById('accountPanelRelationships')", INDEX)
-        self.assertIn("Start with what your client needs. We’ll guide you to the available document interview", INDEX)
+        self.assertIn("Start with what your client needs. We’ll guide you to the right document interview", INDEX)
 
     def test_relationship_workspace_explains_each_private_draft_without_selecting_a_form(self):
         self.assertIn('id="relationshipDraftsGuide"', INDEX)
@@ -178,7 +178,7 @@ class AgentLandingFunnelTests(unittest.TestCase):
             'TXR-1917 · Environmental Assessment Addendum',
             'TXR-1919 · Loan Assumption Addendum',
             'Start with what your client needs',
-            'Drafts remain private until reviewed; where signing is enabled',
+            'You review the completed document before sending it for signature.',
         ):
             self.assertIn(expected, INDEX)
 
@@ -258,14 +258,13 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("window.hofOpenAgentPackageInterview?.(kind);", interview)
         self.assertIn("addEventListener('click', returnToPackageQuestion)", interview)
 
-    def test_private_draft_package_copy_does_not_promise_sending(self):
+    def test_package_copy_explains_review_before_available_signing(self):
         start = INDEX.index("window.hofOpenAgentPackageInterview = function")
         end = INDEX.index("window.startAgentWorkflow = function", start)
         interview = INDEX[start:end]
-        self.assertIn("We’ll prepare a private draft for your review.", interview)
-        self.assertIn("These review-only workflows do not send a request.", interview)
-        self.assertNotIn("Sending is available only where the workflow supports it.", interview)
-        self.assertNotIn("You’ll review the completed document before it is sent.", interview)
+        self.assertIn("We’ll prepare the completed document for your review.", interview)
+        self.assertIn("Signature sending is available only where the workflow supports it.", interview)
+        self.assertIn("You’ll review the completed document before it is sent.", interview)
 
     def test_dismissing_the_package_question_restores_keyboard_focus(self):
         start = INDEX.index("window.hofOpenAgentPackageInterview = function")

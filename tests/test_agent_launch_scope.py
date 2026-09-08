@@ -11,8 +11,8 @@ class AgentLaunchScopeTests(unittest.TestCase):
         self.assertIn('id="hof-agent-launch-scope-v1"', HTML)
         self.assertIn("Forms available in HomeOfferFlow", HTML)
         self.assertIn("Available now", HTML)
-        self.assertIn("Private review drafts", HTML)
-        self.assertIn("Released documents can be sent for signature after review; draft-only documents remain private.", HTML)
+        self.assertIn("Guided forms", HTML)
+        self.assertIn("When signature sending is available, you review the completed document and confirm the recipients first.", HTML)
 
     def test_scope_does_not_overstate_unreleased_agent_form_workflows(self):
         for form_group in (
@@ -21,11 +21,11 @@ class AgentLaunchScopeTests(unittest.TestCase):
         ):
             self.assertIn(form_group, HTML)
         self.assertIn(
-            "are not sent or signed through HomeOfferFlow",
+            "Documents outside the current sending scope remain available to prepare and review.",
             HTML,
         )
         self.assertIn(
-            "Use your approved workflow for documents outside the current HomeOfferFlow scope.",
+            "HomeOfferFlow clearly identifies whether a completed document can be sent for signature.",
             HTML,
         )
         self.assertNotIn("Use your approved brokerage process", HTML)
@@ -37,7 +37,7 @@ class AgentLaunchScopeTests(unittest.TestCase):
             "TXR-1914", "TXR-1917", "TXR-1919", "TXR-1948", "TXR-1953", "TXR-1954",
         ):
             self.assertIn(form_code, HTML)
-        self.assertIn("Released documents can be sent for signature after review; draft-only documents remain private.", HTML)
+        self.assertIn("When signature sending is available, you review the completed document and confirm the recipients first.", HTML)
 
     def test_scope_provides_a_dedicated_missing_form_request_path(self):
         self.assertIn("openMissingFormRequest", HTML)

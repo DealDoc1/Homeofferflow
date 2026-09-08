@@ -14,13 +14,13 @@ class CustomerWorkspaceLanguageTests(unittest.TestCase):
         self.assertNotIn("before wider broker/team rollout", HTML)
 
     def test_restricted_form_status_is_clear_without_internal_foundation_jargon(self):
-        self.assertIn("available as a private draft only", HTML)
+        self.assertIn("Status only — this does not activate sending or signing.", HTML)
         self.assertNotIn("private-draft foundation", HTML)
 
-    def test_private_agent_forms_do_not_imply_a_send_capability(self):
-        self.assertGreaterEqual(HTML.count("Review the private draft before deciding on any next step."), 4)
-        self.assertNotIn("Review the draft, then choose recipients and send it when appropriate.", HTML)
-        self.assertNotIn("Review the draft, then choose recipients before sending.", HTML)
+    def test_agent_forms_explain_review_before_available_sending(self):
+        self.assertIn("Review your prepared documents here.", HTML)
+        self.assertIn("confirm the recipients and signer plan before anything is sent.", HTML)
+        self.assertIn("const canSend = signingEnabled && signingFormCodes.has(agreement.form_code) && agreement.status === 'draft';", HTML)
 
     def test_brokerage_profile_uses_finished_product_language(self):
         self.assertIn("<h4>Brokerage Profile</h4>", HTML)

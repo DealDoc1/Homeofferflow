@@ -436,7 +436,7 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
         self.assertIn("create_txr_1954_draft", HTML)
         self.assertIn("send it to the named Buyers and Sellers for signature", HTML)
 
-    def test_agent_ui_requires_an_approved_private_source_and_saves_draft_only(self):
+    def test_agent_ui_requires_an_approved_source_and_prepares_reviewable_documents(self):
         self.assertIn("Start straightforward representation draft", HTML)
         self.assertIn("approved-form check", HTML)
         self.assertIn("hofApprovedSourceStatusCopy", HTML)
@@ -449,10 +449,10 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
         self.assertIn("The approved ${escape(source.source_revision)} form is ready.", HTML)
         self.assertIn("using the approved ${escape(source.source_revision)} form", HTML)
         self.assertIn("<label>Who will sign?<select name=\"signerPlan\"", HTML)
-        self.assertIn("This saves a private draft only", HTML)
+        self.assertIn("You will review the completed document before sending it for signature.", HTML)
         self.assertIn("create_txr_1507_draft", HTML)
         self.assertIn("/api/admin-dashboard", HTML)
-        self.assertIn("Draft saved privately. It has not been sent for signature.", HTML)
+        self.assertIn("Ready to review — signature sending will appear here when available.", HTML)
         self.assertIn("agent_private_review_trial_cta_selected", HTML)
         self.assertIn("private_review&utm_campaign=agent_acquisition", HTML)
         self.assertIn("window.renderPwaInstallCard?.()", HTML)
@@ -484,8 +484,8 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
         self.assertIn('We couldn’t save this draft. Check your entries and try again.', HTML)
         for form_id in ('txr1914AgreementForm', 'txr1917AgreementForm', 'txr1919AgreementForm'):
             self.assertIn(form_id, HTML)
-        self.assertIn("button.textContent = 'Saving draft…'", HTML)
-        self.assertIn("button.textContent = 'Draft saved'", HTML)
+        self.assertIn("button.textContent = hasSignatureQueue(form) ? 'Preparing document…' : 'Saving review draft…';", HTML)
+        self.assertIn("button.textContent = hasSignatureQueue(form) ? 'Ready to review' : 'Review draft saved';", HTML)
         self.assertIn("button.textContent = 'Save private review draft'", HTML)
         self.assertIn("status.setAttribute('role', 'status')", HTML)
         self.assertIn("status.setAttribute('aria-live', 'polite')", HTML)
@@ -493,7 +493,7 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
         self.assertIn("if (submit.disabled) return;", HTML)
         self.assertIn("submit.setAttribute('aria-busy', 'true')", HTML)
         self.assertIn("submit.textContent = 'Saving draft…'", HTML)
-        self.assertIn("submit.textContent = 'Save private draft'", HTML)
+        self.assertIn("button.textContent = hasSignatureQueue(form) ? 'Prepare document' : 'Save review draft';", HTML)
         self.assertGreaterEqual(HTML.count("submit.setAttribute('aria-busy', 'true')"), 3)
         self.assertGreaterEqual(HTML.count("submit.textContent = 'Saving draft…'"), 3)
         self.assertIn("Could not save the showing draft.", HTML)
@@ -504,12 +504,12 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
         self.assertIn("submit.textContent = 'Save private review draft'", HTML)
         self.assertIn("HomeOfferFlow saves a private review PDF", HTML)
 
-    def test_agents_can_only_view_their_own_private_draft_summaries(self):
+    def test_agents_can_only_view_their_own_saved_draft_summaries(self):
         self.assertIn('id="hof-private-form-drafts-v1"', HTML)
         self.assertIn(".from('hof_standalone_agreements')", HTML)
         self.assertIn(".eq('agent_user_id', user.id)", HTML)
         self.assertIn(".eq('status', 'draft')", HTML)
-        self.assertIn("HomeOfferFlow does not download, send, or sign them from this list.", HTML)
+        self.assertIn("These are your saved form drafts. Review them here before choosing the next step for each document.", HTML)
         self.assertIn("Preview PDF", HTML)
         self.assertIn("preview_agreement=", HTML)
         self.assertNotIn("agreement_data", HTML[HTML.index('id="hof-private-form-drafts-v1"'):])
