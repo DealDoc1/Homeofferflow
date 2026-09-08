@@ -39,6 +39,13 @@ class FinancingInterviewDefaultsTests(unittest.TestCase):
             self.assertIn(f"document.getElementById('{field_id}')", segment)
         self.assertIn("el.addEventListener('input', () => { el._userEdited = true; });", segment)
 
+    def test_step_three_names_the_next_interview_section(self):
+        start = INDEX.index("function updateProgress()")
+        end = INDEX.index("function toggleTermsFromRow", start)
+        segment = INDEX[start:end]
+        self.assertIn("step3: 'Review addenda →'", segment)
+        self.assertIn("step7: 'Review your offer →'", segment)
+
 
 if __name__ == "__main__":
     unittest.main()

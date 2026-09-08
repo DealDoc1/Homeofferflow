@@ -9020,9 +9020,15 @@ function routeAfterMagicLinkIfNeeded() {
     const isPayment = stepId === 'step9';
     nb.style.display = isPayment ? 'none' : 'block';
     const isAccountUser = ['agent', 'investor'].includes(state.data.userType || '');
+    const nextStepLabels = {
+      step3: 'Review addenda →',
+      step5: 'Continue to property details →',
+      step6: 'Continue to closing & possession →',
+      step7: 'Review your offer →'
+    };
     nb.textContent = stepId === 'step8'
       ? (isAccountUser ? 'Generate Packet →' : 'Review Offer →')
-      : 'Continue →';
+      : (nextStepLabels[stepId] || 'Continue →');
     nb.disabled = state.step === 0 && !state.termsOK;
   }
 
