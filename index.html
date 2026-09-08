@@ -16900,6 +16900,7 @@ function routeAfterMagicLinkIfNeeded() {
     const el = document.getElementById('betaOnboardingChecklist');
     if (!el) return;
     const roleName = safeRoleName();
+    const isInvestor = roleName === 'Investor';
     const doneProfile = profileDone();
     const used = usageCount();
     const hasGeneratedPacket = used > 0;
@@ -16908,7 +16909,9 @@ function routeAfterMagicLinkIfNeeded() {
       {
         done: doneProfile,
         title: 'Complete profile and defaults',
-        body: doneProfile ? 'Saved contact, brokerage, title, escrow, and common terms are ready.' : 'Add license, brokerage, contact, title, escrow, and default offer settings.'
+        body: doneProfile
+          ? (isInvestor ? 'Your saved entity, signer, title, escrow, and common terms are ready.' : 'Saved contact, brokerage, title, escrow, and common terms are ready.')
+          : (isInvestor ? 'Add entity, signer, contact, title, escrow, and default offer settings.' : 'Add license, brokerage, contact, title, escrow, and default offer settings.')
       },
       {
         done: hasGeneratedPacket,
@@ -16917,13 +16920,17 @@ function routeAfterMagicLinkIfNeeded() {
       },
       {
         done: hasGeneratedPacket,
-        title: 'Verify buyer-side signing',
-        body: hasGeneratedPacket ? 'Confirm buyer initials, signatures, dates, and the SignWell email look right.' : 'Before sending a packet, inspect the final PDF and confirm the selected buyer recipient.'
+        title: isInvestor ? 'Review your offer packet' : 'Verify buyer-side signing',
+        body: hasGeneratedPacket
+          ? (isInvestor ? 'Confirm the property, entity, financing, title, and timing details are correct before you use the packet.' : 'Confirm buyer initials, signatures, dates, and the SignWell email look right.')
+          : (isInvestor ? 'Before using a packet, inspect the final PDF and confirm every offer term.' : 'Before sending a packet, inspect the final PDF and confirm the selected buyer recipient.')
       },
       {
         done: false,
-        title: 'Broker/compliance review',
-        body: 'Have your broker or team lead confirm how they want agents to review, submit, and store generated packets.'
+        title: isInvestor ? 'Confirm closing details' : 'Broker/compliance review',
+        body: isInvestor
+          ? 'Confirm the title, escrow, due-diligence, and closing details that apply before you proceed outside HomeOfferFlow.'
+          : 'Have your broker or team lead confirm how they want agents to review, submit, and store generated packets.'
       },
       {
         done: hasFeedback,
@@ -16934,20 +16941,20 @@ function routeAfterMagicLinkIfNeeded() {
     const complete = items.filter(item => item.done).length;
     el.innerHTML = `
       <div class="broker-readiness-hero">
-        <div class="broker-readiness-kicker">● Brokerage workspace ready</div>
-        <h4>Offer prep workspace for agents on the go.</h4>
-        <p>Use HomeOfferFlow to create cleaner Texas offer packets faster, collect buyer-side signatures, and track packet status. Agents still review, advise, submit, negotiate, and manage compliance under their brokerage process.</p>
+        <div class="broker-readiness-kicker">● ${isInvestor ? 'Investor workspace ready' : 'Brokerage workspace ready'}</div>
+        <h4>${isInvestor ? 'Offer preparation for repeat property decisions.' : 'Offer prep workspace for agents on the go.'}</h4>
+        <p>${isInvestor ? 'Use HomeOfferFlow to prepare a clear Texas offer packet, keep your repeat defaults together, and return to your saved work without hunting through a form library.' : 'Use HomeOfferFlow to create cleaner Texas offer packets faster, collect buyer-side signatures, and track packet status. Agents still review, advise, submit, negotiate, and manage compliance under their brokerage process.'}</p>
         <div class="broker-safe-grid">
-          <div class="broker-safe-chip"><strong>Offer prep</strong><span>Guided TREC packet creation, not transaction management.</span></div>
-          <div class="broker-safe-chip"><strong>Buyer-side signing</strong><span>Buyer signatures only. Seller execution happens outside HomeOfferFlow.</span></div>
-          <div class="broker-safe-chip"><strong>Agent controlled</strong><span>Agent remains responsible for review, advice, submission, and compliance.</span></div>
+          <div class="broker-safe-chip"><strong>Offer prep</strong><span>Guided Texas packet creation, not transaction management.</span></div>
+          <div class="broker-safe-chip"><strong>${isInvestor ? 'Your defaults' : 'Buyer-side signing'}</strong><span>${isInvestor ? 'Your entity, signer, title, and common offer terms stay ready for your next offer.' : 'Buyer signatures only. Seller execution happens outside HomeOfferFlow.'}</span></div>
+          <div class="broker-safe-chip"><strong>${isInvestor ? 'You stay in control' : 'Agent controlled'}</strong><span>${isInvestor ? 'Review each term and use the correct title, legal, and transaction process outside HomeOfferFlow.' : 'Agent remains responsible for review, advice, submission, and compliance.'}</span></div>
         </div>
         <div class="beta-action-strip">
-          <button class="beta-action-card" type="button" onclick="startAccountTransaction()"><strong>Start a transaction</strong><span>Choose the transaction in front of you, then use the guided workflow.</span></button>
+          <button class="beta-action-card" type="button" onclick="startAccountTransaction()"><strong>${isInvestor ? 'Start an offer' : 'Start a transaction'}</strong><span>${isInvestor ? 'Open a guided offer with the property and terms you have now.' : 'Choose the transaction in front of you, then use the guided workflow.'}</span></button>
           <button class="beta-action-card" type="button" onclick="openBetaFeedback()"><strong>Get help or request a form</strong><span>PDF, form, SignWell, or workflow support.</span></button>
         </div>
       </div>
-      <div class="broker-disclaimer-card"><strong>Broker-safe workspace note:</strong> Generated packets are drafts/prepared offer documents until reviewed, approved, delivered, accepted, and executed through the correct transaction process. HomeOfferFlow does not create seller acceptance, seller signatures, broker approval, or legal advice.</div>
+      <div class="broker-disclaimer-card"><strong>${isInvestor ? 'Offer workspace note:' : 'Broker-safe workspace note:'}</strong> Generated packets are drafts/prepared offer documents until reviewed, approved, delivered, accepted, and executed through the correct transaction process. HomeOfferFlow does not create seller acceptance, seller signatures, broker approval, or legal advice.</div>
       <div class="beta-checklist-head">
         <div>
           <h4>${roleName} Workspace Checklist</h4>
@@ -16978,7 +16985,9 @@ function routeAfterMagicLinkIfNeeded() {
     const roleName = safeRoleName();
     if (roleLabel) roleLabel.textContent = roleName + ' Workspace';
     if (welcome) {
-      welcome.innerHTML = 'Welcome back, <strong style="color:var(--white);">' + safeDisplayName() + '</strong>. Build client-ready offer packets, track buyer-side signing, and get help whenever you need it.';
+      welcome.innerHTML = window.hofAuth?.role === 'investor'
+        ? 'Welcome back, <strong style="color:var(--white);">' + safeDisplayName() + '</strong>. Start a guided offer, return to saved work, and keep your repeat defaults ready.'
+        : 'Welcome back, <strong style="color:var(--white);">' + safeDisplayName() + '</strong>. Build client-ready offer packets, track buyer-side signing, and get help whenever you need it.';
     }
     if (notice) {
       const done = profileDone();
@@ -16989,6 +16998,8 @@ function routeAfterMagicLinkIfNeeded() {
     }
     try { if (typeof renderSubscriptionCard === 'function') renderSubscriptionCard(); } catch(e) { console.warn('Subscription card render skipped:', e); }
     try { window.renderBetaOnboardingChecklist(); } catch(e) { console.warn('Beta checklist render skipped:', e); }
+    const agentPicker = document.getElementById('agentWorkflowStart');
+    if (agentPicker) agentPicker.hidden = window.hofAuth?.role === 'investor';
   };
 
   const oldOpenBetaFeedback = window.openBetaFeedback;
@@ -21615,6 +21626,11 @@ function routeAfterMagicLinkIfNeeded() {
     }
     clearPendingAction();
     if (action === 'transaction_start') {
+      if (role === 'investor') {
+        await openNewOfferShortcut(role);
+        trackShortcut(action, role, resumedAfterSignIn);
+        return;
+      }
       recordOndemandTransactionPickerOpened();
       primeTransactionWorkflow();
       await window.openAccountDashboard?.({ tab: 'dashboard' });
@@ -21648,6 +21664,11 @@ function routeAfterMagicLinkIfNeeded() {
     if (action === 'new_offer') {
       await openNewOfferShortcut(window.hofAuth?.role === 'investor' ? 'investor' : 'agent');
     } else if (action === 'transaction_start') {
+      if (window.hofAuth?.role === 'investor') {
+        await openNewOfferShortcut('investor');
+        trackShortcut(action, 'investor', true);
+        return;
+      }
       recordOndemandTransactionPickerOpened();
       primeTransactionWorkflow();
       await window.openAccountDashboard?.({ tab: 'dashboard' });
