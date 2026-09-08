@@ -57,6 +57,17 @@ class PwaInstallExperienceTests(unittest.TestCase):
         self.assertIn("const sellerReturnCopy = target.surface === 'seller_success'", INDEX)
         self.assertIn('Save this seller plan to your Home Screen', INDEX)
 
+    def test_seller_plan_install_returns_to_the_public_plan_from_a_clean_standalone_launch(self):
+        self.assertIn("const preferredLaunchKey = 'hof_pwa_preferred_launch_action';", INDEX)
+        self.assertIn("function rememberPreferredLaunch(surface)", INDEX)
+        self.assertIn("if (surface !== 'seller_success') return;", INDEX)
+        self.assertIn("localStorage.setItem(preferredLaunchKey, 'seller_plan')", INDEX)
+        self.assertIn("rememberPreferredLaunch(target.surface);", INDEX)
+        self.assertIn("rememberPreferredLaunch(installSurface());", INDEX)
+        self.assertIn("function preferredStandaloneLaunchAction()", INDEX)
+        self.assertIn("if (!isStandalonePwa() || window.location.pathname !== '/' || window.location.search || window.location.hash) return '';", INDEX)
+        self.assertIn("const action = validActions.has(explicitAction) ? explicitAction : preferredStandaloneLaunchAction();", INDEX)
+
     def test_saved_agent_offer_can_offer_install_for_meaningful_repeat_work(self):
         self.assertIn("surface: 'agent_saved_offer'", INDEX)
         self.assertIn("Array.isArray(root.hofAuth?.myOffers)", INDEX)
