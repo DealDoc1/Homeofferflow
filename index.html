@@ -563,7 +563,6 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 })();
 </script>
 
-  <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     .app-connectivity-notice{position:fixed;left:50%;top:max(.75rem,env(safe-area-inset-top));z-index:20000;transform:translateX(-50%);width:min(34rem,calc(100vw - 2rem));padding:.65rem .85rem;border:1px solid rgba(232,184,109,.55);border-radius:10px;background:#0b1b2e;color:var(--white);box-shadow:0 10px 26px rgba(0,0,0,.25);font-size:.82rem;line-height:1.35;text-align:center}.app-connectivity-notice[hidden]{display:none}
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -4074,6 +4073,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 
   const SUPABASE_URL = 'https://acqylchftrjjoablvqyq.supabase.co';
   const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_KNp9ZbXMTNyhgnjcKFF-6A_IoLwyQLU';
+  const SUPABASE_BROWSER_LIBRARY_URL = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
   // Passwordless sessions created from a transient Vercel deployment used to
   // return to that deployment. The session then appeared signed out on the
   // canonical app, which is where agents and administrators actually work.
@@ -4108,6 +4108,9 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   window.hofAuth = hofAuth;
   window.state = state;
 
+  let supabaseLibraryLoad = null;
+  let supabaseAuthInitialization = null;
+
   function getSupabaseClient() {
     if (!hofAuth.client && window.supabase && SUPABASE_URL && SUPABASE_PUBLISHABLE_KEY) {
       hofAuth.client = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
@@ -4122,6 +4125,43 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     return hofAuth.client;
   }
   window.getSupabaseClient = getSupabaseClient;
+
+  function hasSupabaseSessionHint() {
+    try {
+      return Object.keys(window.localStorage).some(key => key.startsWith('sb-acqylchftrjjoablvqyq-auth-token'));
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function hasSupabaseAuthCallback() {
+    const params = new URLSearchParams(window.location.search);
+    const hash = new URLSearchParams(String(window.location.hash || '').replace(/^#/, ''));
+    return ['code', 'access_token', 'refresh_token', 'error', 'error_code'].some(key => params.has(key) || hash.has(key));
+  }
+
+  function ensureSupabaseLibrary() {
+    if (window.supabase) return Promise.resolve(window.supabase);
+    if (supabaseLibraryLoad) return supabaseLibraryLoad;
+    supabaseLibraryLoad = new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = SUPABASE_BROWSER_LIBRARY_URL;
+      script.async = true;
+      script.onload = () => window.supabase ? resolve(window.supabase) : reject(new Error('Secure sign-in did not load.'));
+      script.onerror = () => reject(new Error('Secure sign-in could not load. Check your connection and try again.'));
+      document.head.appendChild(script);
+    }).catch(error => {
+      supabaseLibraryLoad = null;
+      throw error;
+    });
+    return supabaseLibraryLoad;
+  }
+
+  async function ensureSupabaseClient() {
+    await ensureSupabaseLibrary();
+    return getSupabaseClient();
+  }
+  window.ensureSupabaseClient = ensureSupabaseClient;
 
   function setAuthStatus(message, type = 'ok') {
     const el = document.getElementById('authStatus');
@@ -5263,19 +5303,17 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   }
 
   async function sendMagicLink() {
-    const client = getSupabaseClient();
     const emailInput = document.getElementById('authEmail');
     const email = emailInput?.value?.trim();
-    if (!client) {
-      setAuthStatus('Supabase did not load. Refresh and try again.', 'err');
-      return;
-    }
     if (!email || !emailInput?.checkValidity()) {
       setAuthStatus('Enter a valid email address.', 'err');
       emailInput?.focus();
       return;
     }
     try {
+      setAuthStatus('Connecting secure sign-in…');
+      const client = await ensureSupabaseClient();
+      if (!client) throw new Error('Secure sign-in is unavailable.');
       localStorage.setItem('hof_auth_role', hofAuth.role || 'agent');
       localStorage.setItem('hof_auth_pending', hofAuth.role || 'agent');
       const { error } = await client.auth.signInWithOtp({
@@ -5327,13 +5365,22 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   }
 
   async function initSupabaseAuth() {
-    const client = getSupabaseClient();
-    if (!client) {
-      console.warn('Supabase client unavailable. Auth disabled.');
-      window.__hofDraftRestoreAuthReady = true;
-      return;
-    }
-    try {
+    if (supabaseAuthInitialization) return supabaseAuthInitialization;
+    supabaseAuthInitialization = (async () => {
+      let client;
+      try {
+        client = await ensureSupabaseClient();
+      } catch (error) {
+        console.warn('Supabase client unavailable. Auth disabled.', error);
+        window.__hofDraftRestoreAuthReady = true;
+        try { window.dispatchEvent(new Event('hof-auth-ready')); } catch (_) {}
+        return;
+      }
+      if (!client) {
+        window.__hofDraftRestoreAuthReady = true;
+        return;
+      }
+      try {
       const { data } = await client.auth.getSession();
       hofAuth.session = data?.session || null;
       if (hofAuth.session?.user?.user_metadata?.role) {
@@ -5361,9 +5408,9 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || localStorage.getItem('hof_auth_pending')) routeAfterMagicLinkIfNeeded();
         }
       });
-    } catch (err) {
-      console.warn('Auth init failed:', err);
-    } finally {
+      } catch (err) {
+        console.warn('Auth init failed:', err);
+      } finally {
       // An account-owned local draft must wait until Supabase has resolved the
       // browser session; otherwise a normal page reload can look like another
       // user and hide the owner's own draft.
@@ -5374,8 +5421,10 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       }
       // Installed-app routing waits for the real auth result rather than
       // guessing from a cached role. This event carries no account data.
-      try { window.dispatchEvent(new Event('hof-auth-ready')); } catch (_) {}
-    }
+        try { window.dispatchEvent(new Event('hof-auth-ready')); } catch (_) {}
+      }
+    })();
+    return supabaseAuthInitialization;
   }
 
 
@@ -5488,6 +5537,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   };
 
   async function openAccountDashboard(opts = {}) {
+    if (!hofAuth.client) await initSupabaseAuth();
     if (!hofAuth.session) return openAuthModal(state?.data?.userType || 'agent');
     const modal = document.getElementById('accountModal');
     if (modal) {
@@ -11997,7 +12047,14 @@ function routeAfterMagicLinkIfNeeded() {
   document.addEventListener('DOMContentLoaded', () => {
     // Landing CTA defaults to self-serve Homebuyer unless user deliberately selects Agent/Investor.
     if (!state.data.userType) state.data.userType = 'homebuyer';
-    initSupabaseAuth();
+    // Buyer and seller visitors do not need account code to begin their
+    // interview. Restore it only for an existing account session or a secure
+    // magic-link callback; sign-in itself loads it on demand below.
+    if (hasSupabaseSessionHint() || hasSupabaseAuthCallback()) initSupabaseAuth();
+    else {
+      window.__hofDraftRestoreAuthReady = true;
+      try { window.dispatchEvent(new Event('hof-auth-ready')); } catch (_) {}
+    }
     updateAuthUI();
 
     // Release 17B fallback: some enhancement scripts load after the base auth code.
@@ -12005,6 +12062,7 @@ function routeAfterMagicLinkIfNeeded() {
     setTimeout(async () => {
       try {
         const client = getSupabaseClient();
+        if (!client) return;
         const { data } = await client.auth.getSession();
         if (data?.session) {
           hofAuth.session = data.session;
