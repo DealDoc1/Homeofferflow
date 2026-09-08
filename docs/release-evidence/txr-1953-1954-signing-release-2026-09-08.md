@@ -38,7 +38,7 @@
 
 - Dedicated golden scenario added: renderer, conditional-overflow, signer-role, recipient-order, privacy, and geometry coverage in `tests/test_txr_1953_renderer.py`, `tests/test_txr_1954_renderer.py`, `tests/test_txr_signer_geometry.py`, and `tests/test_txr_signing_request_path.py`
 - Existing buyer-offer regression scenarios run: full project unit-test discovery
-- Test result / evidence: 1,480 tests passed on 2026-09-08; `git diff --check` passed; both source PDFs and the TXR-1954 continuation page passed visual inspection
+- Test result / evidence: 1,483 tests passed on 2026-09-08; `git diff --check` passed; both source PDFs and the TXR-1954 continuation page passed visual inspection. Production accepted controlled TXR-1953 and TXR-1954 drafts after the database allowlist repair, exposed the expected Buyer and Seller roles, and accepted both SignWell sends to the supplied QA recipients.
 
 ## Release authority
 
@@ -51,4 +51,4 @@
 
 - Ready for production: yes
 - Rollback path: revert the release commit and redeploy the immediately preceding verified production deployment
-- Post-deploy verification owner: HomeOfferFlow release process; verify the live workspace, send controlled test requests, complete them, and inspect the provider-produced PDFs
+- Post-deploy verification owner: HomeOfferFlow release process; live draft creation and signature-send verification passed for both forms. Complete both controlled signature requests and inspect the provider-produced PDFs when the recipients finish signing.
