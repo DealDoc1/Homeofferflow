@@ -56,3 +56,27 @@ def render_txr_1917(source_pdf_bytes, data):
     output = BytesIO()
     writer.write(output)
     return output.getvalue()
+
+
+def build_signwell_fields_txr1917(data, *, client_count=None):
+    """Return source-aligned TXR-1917 Buyer and Seller signature fields.
+
+    The environmental-assessment addendum has two Buyer/Seller execution rows
+    on its single page. This isolated map uses the HomeOfferFlow SignWell
+    96-DPI, top-origin coordinate space and remains unconnected to a live
+    package until completed-provider PDF verification is recorded.
+    """
+    buyers = data.get("buyer_names") or []
+    sellers = data.get("seller_names") or []
+    if not (1 <= len(buyers) <= 2 and 1 <= len(sellers) <= 2):
+        raise ValueError("TXR-1917 requires one or two Buyers and one or two Sellers.")
+
+    fields = [
+        {"api_id": "txr1917_buyer1_signature_p1", "type": "signature", "page": 1, "x": 70, "y": 689, "recipient_id": "1", "required": True, "width": 313, "height": 24},
+        {"api_id": "txr1917_seller1_signature_p1", "type": "signature", "page": 1, "x": 433, "y": 689, "recipient_id": str(len(buyers) + 1), "required": True, "width": 313, "height": 24},
+    ]
+    if len(buyers) == 2:
+        fields.append({"api_id": "txr1917_buyer2_signature_p1", "type": "signature", "page": 1, "x": 70, "y": 785, "recipient_id": "2", "required": True, "width": 313, "height": 24})
+    if len(sellers) == 2:
+        fields.append({"api_id": "txr1917_seller2_signature_p1", "type": "signature", "page": 1, "x": 433, "y": 785, "recipient_id": str(len(buyers) + 2), "required": True, "width": 313, "height": 24})
+    return [fields]
