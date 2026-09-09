@@ -100,6 +100,10 @@ class TxrSigningRequestPathTests(unittest.TestCase):
         self.assertIn("agreement.status === 'sent' && agreement.signwell_document_id", html)
         self.assertIn("data-refresh-signing", html)
         self.assertIn("body: JSON.stringify({ agreementId: agreement.id })", html)
+        self.assertIn("agreement.status === 'signed' && agreement.signwell_document_id", html)
+        self.assertIn("data-download-completed", html)
+        self.assertIn("action: 'download_completed_pdf'", html)
+        self.assertIn("link.download = `${agreement.form_code || 'HomeOfferFlow'}-completed.pdf`", html)
         self.assertIn("Ready to review — signature sending will appear here when available.", html)
 
     def test_standalone_scope_reports_the_signing_gate_state(self):

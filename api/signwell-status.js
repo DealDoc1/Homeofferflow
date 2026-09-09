@@ -233,6 +233,19 @@ async function getSignWellDocument(documentId) {
   return data;
 }
 
+async function getCompletedSignWellPdf(documentId) {
+  if (!SIGNWELL_API_KEY) throw new Error('Missing SIGNWELL_API_KEY.');
+  const response = await fetch(
+    `https://www.signwell.com/api/v1/documents/${encodeURIComponent(documentId)}/completed_pdf?audit_page=true&file_format=pdf`,
+    { method: 'GET', headers: { 'X-Api-Key': SIGNWELL_API_KEY } }
+  );
+  if (!response.ok) {
+    const text = await response.text().catch(() => '');
+    throw new Error(`Completed PDF is not available yet (${response.status}): ${text.slice(0, 300)}`);
+  }
+  return Buffer.from(await response.arrayBuffer());
+}
+
 async function updateOfferStatus(offer, status, documentId, document, user) {
   const now = new Date().toISOString();
   const offerData = parseJsonObject(offer.offer_data);
@@ -352,6 +365,7 @@ module.exports = async (req, res) => {
 
     const offerId = body.offerId || body.offer_id || '';
     const agreementId = body.agreementId || body.agreement_id || '';
+    const downloadCompletedPdf = body.action === 'download_completed_pdf';
     if (!offerId && !agreementId) throw new Error('Missing offer or agreement ID.');
     if (offerId && agreementId) throw new Error('Choose one packet to refresh.');
 
@@ -376,6 +390,16 @@ module.exports = async (req, res) => {
 
     const document = await getSignWellDocument(documentId);
     const status = deriveStatus(document);
+    if (downloadCompletedPdf) {
+      if (cleanStatusLabel(status) !== 'Buyer Signatures Complete') {
+        throw new Error('The completed PDF is available after every recipient finishes signing.');
+      }
+      const pdf = await getCompletedSignWellPdf(documentId);
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', 'attachment; filename="homeofferflow-completed-signwell-packet.pdf"');
+      res.setHeader('Cache-Control', 'private, no-store');
+      return res.status(200).send(pdf);
+    }
     const updatedPacket = isStandaloneAgreement
       ? await updateStandaloneAgreementStatus(packet, status, documentId, document, user)
       : await updateOfferStatus(packet, status, documentId, document, user);

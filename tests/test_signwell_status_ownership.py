@@ -38,6 +38,13 @@ class SignWellStatusOwnershipTests(unittest.TestCase):
         self.assertIn("&agent_user_id=eq.${encodeURIComponent(user.id)}", update)
         self.assertIn("function safeStandaloneStatus", SOURCE)
 
+    def test_completed_pdf_download_requires_an_owner_scoped_completed_packet(self):
+        self.assertIn("async function getCompletedSignWellPdf", SOURCE)
+        self.assertIn("/completed_pdf?audit_page=true&file_format=pdf", SOURCE)
+        self.assertIn("body.action === 'download_completed_pdf'", SOURCE)
+        self.assertIn("cleanStatusLabel(status) !== 'Buyer Signatures Complete'", SOURCE)
+        self.assertIn("Cache-Control', 'private, no-store'", SOURCE)
+
 
 if __name__ == "__main__":
     unittest.main()
