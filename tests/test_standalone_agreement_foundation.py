@@ -483,16 +483,16 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
         self.assertIn('We couldn’t save this draft. Check your entries and try again.', HTML)
         for form_id in ('txr1914AgreementForm', 'txr1917AgreementForm', 'txr1919AgreementForm'):
             self.assertIn(form_id, HTML)
-        self.assertIn("button.textContent = hasSignatureQueue(form) ? 'Preparing document…' : 'Preparing review copy…';", HTML)
-        self.assertIn("button.textContent = hasSignatureQueue(form) ? 'Ready to review' : 'Review copy ready';", HTML)
-        self.assertIn("Save review copy", HTML)
+        self.assertIn("button.textContent = hasSignatureQueue(form) ? 'Preparing document…' : 'Preparing private draft…';", HTML)
+        self.assertIn("button.textContent = hasSignatureQueue(form) ? 'Ready to review' : 'Private draft ready';", HTML)
+        self.assertIn("Save private draft", HTML)
         self.assertIn("status.setAttribute('role', 'status')", HTML)
         self.assertIn("status.setAttribute('aria-live', 'polite')", HTML)
         self.assertIn("status.setAttribute('aria-atomic', 'true')", HTML)
         self.assertIn("if (submit.disabled) return;", HTML)
         self.assertIn("submit.setAttribute('aria-busy', 'true')", HTML)
         self.assertIn("submit.textContent = 'Saving draft…'", HTML)
-        self.assertIn("button.textContent = hasSignatureQueue(form) ? 'Prepare document' : 'Save review copy';", HTML)
+        self.assertIn("button.textContent = hasSignatureQueue(form) ? 'Prepare document' : 'Save private draft';", HTML)
         self.assertGreaterEqual(HTML.count("submit.setAttribute('aria-busy', 'true')"), 3)
         self.assertGreaterEqual(HTML.count("submit.textContent = 'Saving draft…'"), 1)
         self.assertIn("Could not save the showing draft.", HTML)
@@ -500,8 +500,8 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
         self.assertIn("create_txr_1905_draft", HTML)
         self.assertIn("We couldn’t open that document. Please try again.", HTML)
         self.assertIn("Could not save the private mineral addendum draft.", HTML)
-        self.assertIn("submit.textContent = 'Save review copy'", HTML)
-        self.assertIn("HomeOfferFlow prepares a review copy", HTML)
+        self.assertIn("submit.textContent = 'Save private draft'", HTML)
+        self.assertIn("HomeOfferFlow prepares a private draft", HTML)
 
     def test_agents_can_only_view_their_own_saved_draft_summaries(self):
         preview_scope = HTML[HTML.index('id="hof-private-form-drafts-v1"'):HTML.index('id="hof-seller-disclosure-draft-ui-v1"')]

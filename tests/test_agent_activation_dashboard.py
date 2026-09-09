@@ -277,7 +277,7 @@ class AgentActivationDashboardTests(unittest.TestCase):
         self.assertIn("What do you need for this sale listing?", HTML)
         self.assertIn("What do you need for this lease listing?", HTML)
         self.assertIn("Start a lease listing", HTML)
-        self.assertIn("Review a lease addendum", HTML)
+        self.assertIn("Prepare a lease addendum", HTML)
         self.assertIn("openRelationshipPackage('lease_addendum')", HTML)
         self.assertIn("Resume a lease listing", HTML)
         self.assertIn("const openListingWorkspace = (focusStart = false)", HTML)

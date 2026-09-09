@@ -199,7 +199,7 @@ class AgentLandingFunnelTests(unittest.TestCase):
         start = INDEX.index("window.hofOpenAgentPackageInterview = function")
         end = INDEX.index("window.startAgentWorkflow = function", start)
         interview = INDEX[start:end]
-        self.assertIn("Review a purchase addendum", interview)
+        self.assertIn("Prepare a purchase addendum", interview)
         self.assertIn("Which purchase addendum does this transaction need?", interview)
         for label, opener in (
             ("Seller financing", "hofOpenTxr1914Draft"),
@@ -219,7 +219,7 @@ class AgentLandingFunnelTests(unittest.TestCase):
         start = INDEX.index("lease_listing: {")
         end = INDEX.index("lease_representation: {", start)
         lease_listing = INDEX[start:end]
-        self.assertIn("Review a lease addendum", lease_listing)
+        self.assertIn("Prepare a lease addendum", lease_listing)
         self.assertIn("openRelationshipPackage('lease_addendum')", lease_listing)
         self.assertIn("deferStartToNestedChoice: true", lease_listing)
         self.assertNotIn("openRelationshipPackage('purchase_addendum')", lease_listing)
