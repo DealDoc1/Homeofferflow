@@ -134,7 +134,9 @@ class PublicPwaRegistrationTests(unittest.TestCase):
         self.assertIn("trackPublicInstall('NativeAvailable')", SCRIPT)
 
     def test_install_prompt_waits_for_returning_engagement_and_respects_a_quiet_period(self):
-        self.assertIn("const installEligibleKey = 'hof_public_pwa_install_eligible_v1'", SCRIPT)
+        self.assertIn("const installEligibleKey = 'hof_public_pwa_install_eligible_v2'", SCRIPT)
+        self.assertIn("const installEngagementCountKey = 'hof_public_pwa_install_engagement_count_v1'", SCRIPT)
+        self.assertIn("Only offer it after a second engaged visit", SCRIPT)
         self.assertIn("const installDismissedUntilKey = 'hof_public_pwa_install_dismissed_until_v1'", SCRIPT)
         self.assertIn("const installDismissalDays = 14", SCRIPT)
         self.assertIn("!isInstallEligible() || isInstallDismissed()", SCRIPT)

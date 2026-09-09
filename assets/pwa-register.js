@@ -87,7 +87,8 @@
   // visitor's first attempt to start a transaction.  Mark engagement during a
   // first visit and offer installation on a later visit instead.
   const dismissKey = 'hof_public_pwa_install_dismissed_v2';
-  const installEligibleKey = 'hof_public_pwa_install_eligible_v1';
+  const installEligibleKey = 'hof_public_pwa_install_eligible_v2';
+  const installEngagementCountKey = 'hof_public_pwa_install_engagement_count_v1';
   const installDismissedUntilKey = 'hof_public_pwa_install_dismissed_until_v1';
   const preferredLaunchKey = 'hof_pwa_preferred_launch_action';
   const publicPreferredLaunchActions = {
@@ -118,7 +119,20 @@
     try { return Number(localStorage.getItem(installDismissedUntilKey) || 0) > Date.now(); } catch (_) { return false; }
   };
   const recordInstallEngagement = () => {
-    try { localStorage.setItem(installEligibleKey, '1'); } catch (_) {}
+    try {
+      // A single tap or scroll is not enough evidence that an app shortcut
+      // would help. Only offer it after a second engaged visit, which keeps
+      // the primary transaction action free of install-prompt noise.
+      const visitKey = `hof_public_pwa_install_engaged_${window.location.pathname}`;
+      if (sessionStorage.getItem(visitKey) === '1') return;
+      sessionStorage.setItem(visitKey, '1');
+      const count = Math.min(2, Number(localStorage.getItem(installEngagementCountKey) || 0) + 1);
+      localStorage.setItem(installEngagementCountKey, String(count));
+      if (count >= 2) {
+        localStorage.setItem(installEligibleKey, '1');
+        renderInstallCard();
+      }
+    } catch (_) {}
   };
   // A public page can be installed before a person ever reaches the main
   // workspace. Preserve only that declared launch category on this device so
