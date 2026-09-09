@@ -61,8 +61,10 @@ def render_txr_1506(source_pdf_bytes, data, brokerage):
     overlay = PdfReader(BytesIO(_overlay(data, brokerage)))
     writer = PdfWriter()
     for index, page in enumerate(source.pages):
-        page.merge_page(overlay.pages[index])
+        # Merge only after the page belongs to this writer; this keeps the
+        # overlay stable with current and future pypdf releases.
         writer.add_page(page)
+        writer.pages[index].merge_page(overlay.pages[index])
     output = BytesIO()
     writer.write(output)
     return output.getvalue()

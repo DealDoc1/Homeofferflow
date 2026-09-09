@@ -89,8 +89,8 @@ def render_txr_1919(source_pdf_bytes, data):
     overlays = [PdfReader(BytesIO(_page_one(data))), PdfReader(BytesIO(_page_two(data)))]
     writer = PdfWriter()
     for index, page in enumerate(source.pages):
-        page.merge_page(overlays[index].pages[0])
         writer.add_page(page)
+        writer.pages[index].merge_page(overlays[index].pages[0])
     output = BytesIO()
     writer.write(output)
     return output.getvalue()

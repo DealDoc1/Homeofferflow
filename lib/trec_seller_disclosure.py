@@ -413,9 +413,8 @@ def render_unsigned_preview(source_pdf_bytes: bytes, form_code: str, values: dic
         overlays.append(PdfReader(overlay_stream).pages[0])
     writer = PdfWriter()
     for index, page in enumerate(source.pages):
-        page.merge_page(overlays[index])
         writer.add_page(page)
+        writer.pages[index].merge_page(overlays[index])
     output = BytesIO()
     writer.write(output)
     return output.getvalue()
-

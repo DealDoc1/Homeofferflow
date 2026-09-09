@@ -135,9 +135,9 @@ def render_txr_1954(source_pdf_bytes, data):
     canvas.save()
     packet.seek(0)
     overlay = PdfReader(packet)
-    source.pages[0].merge_page(overlay.pages[0])
     writer = PdfWriter()
     writer.add_page(source.pages[0])
+    writer.pages[0].merge_page(overlay.pages[0])
     if continuation_entries:
         exhibit = PdfReader(BytesIO(_continuation_pdf(data.get("property_address"), continuation_entries)))
         for page in exhibit.pages:

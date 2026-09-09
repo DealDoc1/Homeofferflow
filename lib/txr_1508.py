@@ -67,8 +67,10 @@ def render_txr_1508(source_pdf_bytes, data, brokerage, associate):
         raise ValueError("TXR-1508 source must contain exactly one page.")
     overlay = PdfReader(BytesIO(_overlay(data, brokerage, associate)))
     writer = PdfWriter()
-    source.pages[0].merge_page(overlay.pages[0])
+    # Merge only after the page belongs to this writer; detached-page
+    # content replacement is deprecated in current pypdf releases.
     writer.add_page(source.pages[0])
+    writer.pages[0].merge_page(overlay.pages[0])
     output = BytesIO()
     writer.write(output)
     return output.getvalue()
