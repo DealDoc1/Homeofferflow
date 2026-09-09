@@ -10,10 +10,9 @@ SELLER_BRIDGE = (Path(__file__).resolve().parents[1] / "assets" / "seller-campai
 
 class FsboIntakeConversionTests(unittest.TestCase):
     def test_minimum_viable_seller_request_is_clear_and_accessible(self):
-        self.assertIn("Two details. One free plan.", HTML)
-        self.assertIn("Get Your Free FSBO Seller Plan", HTML)
-        self.assertIn("Property address and email are all we need", HTML)
-        self.assertIn("Manual entry still works.", HTML)
+        self.assertIn("Get Your Free Texas Seller Plan", HTML)
+        self.assertIn("Enter your property address and email.", HTML)
+        self.assertIn("you can also paste or type the full address.", HTML)
         self.assertIn('placeholder="123 Main St, City, TX ZIP"', HTML)
 
     def test_seller_entry_uses_consumer_plan_language_not_internal_lead_capture_terms(self):
@@ -43,21 +42,20 @@ class FsboIntakeConversionTests(unittest.TestCase):
         self.assertIn("Save My Seller Request", HTML)
         self.assertIn('id="fsboSellerQuickSubmit"', HTML)
         self.assertIn("Get My Free Seller Plan", HTML)
-        self.assertIn("No checkout or service commitment.", HTML)
-        self.assertIn("No checkout. Optional details can wait.", HTML)
+        self.assertIn("We’ll send your free seller plan—no checkout or commitment.", HTML)
         self.assertIn('id="fsboRequiredReadyCue"', HTML)
         self.assertIn("function renderFsboRequiredReadyCue", HTML)
-        self.assertIn("Your address and email are complete", HTML)
+        self.assertIn("Press Return/Go or get your free seller plan now.", HTML)
         self.assertIn("Your free seller plan is already selected", HTML)
         self.assertIn("One quick question: what would help most right now?", HTML)
         self.assertIn("selectFsboGuidedGoal", HTML)
         self.assertIn("fsboGuidedGoalPackages", HTML)
 
-    def test_primary_seller_action_does_not_repeat_the_intake_explanation(self):
+    def test_primary_seller_action_keeps_the_two_detail_start_free_of_repeated_reassurance(self):
         action_start = HTML.index('id="fsboSellerQuickSubmit"')
-        action_section = HTML[HTML.rfind('<div class="notice sage"', 0, action_start):action_start]
-        self.assertIn("No checkout. Optional details can wait.", action_section)
-        self.assertNotIn("Ready when you are.", action_section)
+        action_section = HTML[HTML.rfind('<div style="margin-top:.9rem', 0, action_start):action_start]
+        self.assertNotIn("No checkout.", action_section)
+        self.assertNotIn("Optional details", action_section)
 
     def test_optional_seller_interview_shows_its_recommendation_before_the_full_service_catalog(self):
         recommendation = HTML.index('id="fsboNeedDetails"')
@@ -106,6 +104,7 @@ class FsboIntakeConversionTests(unittest.TestCase):
         self.assertIn('"sellerReadyToSaveRate"', admin)
         self.assertIn("'FSBO Seller Address Started': 'fsbo_address_started'", HTML)
         self.assertIn("'FSBO Seller Email Started': 'fsbo_email_started'", HTML)
+        self.assertIn("field?.addEventListener('focusout', trackFsboRequiredFieldsReady);", HTML)
         self.assertIn('"fsbo_address_started": "started"', api)
         self.assertIn('"fsbo_email_started": "started"', api)
         self.assertIn('"fsbo_request_save_failed": "failed"', api)
@@ -329,7 +328,7 @@ class FsboIntakeConversionTests(unittest.TestCase):
         self.assertIn('id="fsboNotesLabel" for="fsboNotes"', HTML)
         self.assertIn('const prompt = fsboSituationPrompts[key] || fsboSituationPrompts.free_intake;', HTML)
         self.assertIn("notes.placeholder = prompt.placeholder", HTML)
-        self.assertIn('Property address and email are all we need', HTML)
+        self.assertIn('Enter your property address and email.', HTML)
 
 
 if __name__ == "__main__":
