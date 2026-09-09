@@ -142,26 +142,25 @@ def build_signwell_fields_txr1507(data, *, client_count=1):
         # blanks. Client initials must begin after the "and Client" label;
         # the prior first-client position used the broker blank instead.
         {"api_id": "txr1507_client1_initials_p1", "type": "initials", "page": 1, "x": 538, "y": 984, "recipient_id": "1", "required": True, "width": 40, "height": 14},
-        # These coordinates come from the completed SignWell packet, not a
-        # blank-PDF estimate.  The signature begins after the printed
-        # "Client's Signature" caption; the date is kept wholly to the left
-        # of the printed Date label.
-        {"api_id": "txr1507_client1_signature_p2", "type": "signature", "page": 2, "x": 533, "y": 697, "recipient_id": "1", "required": True, "width": 80, "height": 24},
-        {"api_id": "txr1507_client1_date_p2", "type": "date", "page": 2, "x": 620, "y": 697, "recipient_id": "1", "required": True, "width": 60, "height": 18, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
+        # Keep widgets on the first execution rule, above the printed
+        # signature and Date captions.  The earlier y-coordinate let the
+        # widget extend into those captions in the signing ceremony.
+        {"api_id": "txr1507_client1_signature_p2", "type": "signature", "page": 2, "x": 533, "y": 686, "recipient_id": "1", "required": True, "width": 80, "height": 24},
+        {"api_id": "txr1507_client1_date_p2", "type": "date", "page": 2, "x": 620, "y": 686, "recipient_id": "1", "required": True, "width": 60, "height": 18, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
     ]
     if client_count == 2:
         fields.extend([
             {"api_id": "txr1507_client2_initials_p1", "type": "initials", "page": 1, "x": 618, "y": 984, "recipient_id": "2", "required": True, "width": 40, "height": 14},
-            {"api_id": "txr1507_client2_signature_p2", "type": "signature", "page": 2, "x": 533, "y": 802, "recipient_id": "2", "required": True, "width": 80, "height": 24},
-            {"api_id": "txr1507_client2_date_p2", "type": "date", "page": 2, "x": 620, "y": 802, "recipient_id": "2", "required": True, "width": 60, "height": 18, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
+            {"api_id": "txr1507_client2_signature_p2", "type": "signature", "page": 2, "x": 533, "y": 785, "recipient_id": "2", "required": True, "width": 80, "height": 24},
+            {"api_id": "txr1507_client2_date_p2", "type": "date", "page": 2, "x": 620, "y": 785, "recipient_id": "2", "required": True, "width": 60, "height": 18, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
         ])
     role = "associate" if signer_plan == "clients_and_associate" else "broker"
     # The source uses checkboxes to identify whether the broker or the
     # broker's associate signs, followed by one shared signature/date rule.
     # The former associate target sat below that rule and covered its printed
     # label in the ceremony. Both approved signer plans therefore use the
-    # shared rule, after the printed Broker's Signature caption.
-    role_y = 697
+    # shared execution rule above the printed Broker's Signature caption.
+    role_y = 686
     role_signature_x = 160
     role_date_x = 260
     fields.extend([

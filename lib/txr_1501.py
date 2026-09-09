@@ -145,25 +145,25 @@ def build_signwell_fields_txr1501(data, *, client_count=1):
     if signer_plan not in {"clients_and_associate", "clients_and_broker"}:
         raise ValueError("Choose an authorized broker or broker-associate signer for the TXR-1501 agreement.")
     fields = [
-        # Completed-packet QA showed that the signature/date widgets sat on
-        # the printed captions.  Move the row up onto its rule and keep the
-        # date entirely in the space before the printed ``Date`` caption.
-        {"api_id": "txr1501_client1_signature_p6", "type": "signature", "page": 6, "x": 430, "y": 550, "recipient_id": "1", "required": True, "width": 120, "height": 24},
-        {"api_id": "txr1501_client1_date_p6", "type": "date", "page": 6, "x": 555, "y": 550, "recipient_id": "1", "required": True, "width": 60, "height": 18, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
+        # The execution row is below the printed-name line.  The previous
+        # map used the name-line y-coordinate, which made completed fields
+        # cover the printed names rather than the signature rule.
+        {"api_id": "txr1501_client1_signature_p6", "type": "signature", "page": 6, "x": 430, "y": 566, "recipient_id": "1", "required": True, "width": 120, "height": 24},
+        {"api_id": "txr1501_client1_date_p6", "type": "date", "page": 6, "x": 555, "y": 566, "recipient_id": "1", "required": True, "width": 60, "height": 18, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
     ]
     if client_count == 2:
         fields.extend([
-            {"api_id": "txr1501_client2_signature_p6", "type": "signature", "page": 6, "x": 430, "y": 660, "recipient_id": "2", "required": True, "width": 120, "height": 24},
-            {"api_id": "txr1501_client2_date_p6", "type": "date", "page": 6, "x": 555, "y": 660, "recipient_id": "2", "required": True, "width": 60, "height": 18, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
+            {"api_id": "txr1501_client2_signature_p6", "type": "signature", "page": 6, "x": 430, "y": 677, "recipient_id": "2", "required": True, "width": 120, "height": 24},
+            {"api_id": "txr1501_client2_date_p6", "type": "date", "page": 6, "x": 555, "y": 677, "recipient_id": "2", "required": True, "width": 60, "height": 18, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
         ])
     if signer_plan == "clients_and_associate":
         fields.extend([
-            {"api_id": "txr1501_associate_signature_p6", "type": "signature", "page": 6, "x": 82, "y": 550, "recipient_id": "associate", "required": True, "width": 120, "height": 24},
-            {"api_id": "txr1501_associate_date_p6", "type": "date", "page": 6, "x": 212, "y": 550, "recipient_id": "associate", "required": True, "width": 58, "height": 18, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
+            {"api_id": "txr1501_associate_signature_p6", "type": "signature", "page": 6, "x": 82, "y": 566, "recipient_id": "associate", "required": True, "width": 120, "height": 24},
+            {"api_id": "txr1501_associate_date_p6", "type": "date", "page": 6, "x": 212, "y": 566, "recipient_id": "associate", "required": True, "width": 58, "height": 18, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
         ])
     if signer_plan == "clients_and_broker":
         fields.extend([
-            {"api_id": "txr1501_broker_signature_p6", "type": "signature", "page": 6, "x": 82, "y": 550, "recipient_id": "broker", "required": True, "width": 120, "height": 24},
-            {"api_id": "txr1501_broker_date_p6", "type": "date", "page": 6, "x": 212, "y": 550, "recipient_id": "broker", "required": True, "width": 58, "height": 18, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
+            {"api_id": "txr1501_broker_signature_p6", "type": "signature", "page": 6, "x": 82, "y": 566, "recipient_id": "broker", "required": True, "width": 120, "height": 24},
+            {"api_id": "txr1501_broker_date_p6", "type": "date", "page": 6, "x": 212, "y": 566, "recipient_id": "broker", "required": True, "width": 58, "height": 18, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
         ])
     return [fields]
