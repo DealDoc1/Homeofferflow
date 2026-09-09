@@ -17,7 +17,7 @@ class FsboRequestConfirmationTests(unittest.TestCase):
         self.assertIn("This is an intake record, not checkout", HTML)
         self.assertIn("const fsboNextSteps", HTML)
         self.assertIn("Your next steps:", HTML)
-        self.assertIn("Wait for qualified professional review before choosing a contract path.", HTML)
+        self.assertIn("Use the offer comparison to identify the questions to review before choosing a contract path.", HTML)
 
     def test_fsbo_submission_delivers_a_timeline_specific_readiness_plan(self):
         self.assertIn("const fsboReadinessPlans", HTML)

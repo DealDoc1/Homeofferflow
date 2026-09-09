@@ -120,12 +120,12 @@ FSBO_RECEIPT_NEXT_STEPS = {
     "flat_fee_mls": (
         "Collect property facts, photos, and your preferred list timing.",
         "Flag HOA, occupancy, and disclosure questions for licensed-provider review.",
-        "Wait for availability, scope, and final pricing confirmation before taking payment action.",
+        "We will confirm availability, scope, and final pricing with you before any payment is requested.",
     ),
     "offer_review": (
         "Keep every buyer offer and addendum together.",
         "Note financing, concession, option-period, and closing-date differences.",
-        "Wait for qualified professional review before choosing a contract path.",
+        "Use the offer comparison to identify the questions to review before choosing a contract path.",
     ),
     "contract_help": (
         "Organize your accepted contract, title contact, and lender contact.",
@@ -135,7 +135,7 @@ FSBO_RECEIPT_NEXT_STEPS = {
     "premium_bundle": (
         "Collect property facts, photos, and your target timeline.",
         "List prep, marketing, MLS, offer-review, and closing-support priorities.",
-        "Wait for the confirmed scope and provider plan before any paid service begins.",
+        "We will confirm the scope and provider plan with you before any payment is requested.",
     ),
 }
 PUBLIC_PARTNER_FIELDS = "id,partner_type,partner_name,website_url,logo_url,market_area,placement_tier"
