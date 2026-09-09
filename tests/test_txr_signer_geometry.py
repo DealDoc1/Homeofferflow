@@ -125,11 +125,38 @@ class TxrSignerGeometryTests(unittest.TestCase):
                 role = fields[f"{prefix}_associate_signature_p{6 if prefix == 'txr1501' else 2}"]
                 self.assertEqual(client["y"], first_row_y)
                 if prefix == "txr1507":
-                    self.assertEqual(role["y"], 735)
+                    self.assertEqual(role["y"], 715)
                 else:
                     self.assertEqual(role["y"], first_row_y)
                 self.assertGreater(date["x"], client["x"] + client["width"])
                 self.assertLessEqual(date["x"] + date["width"], date_label_x)
+
+    def test_txr1501_second_client_and_txr1507_associate_use_their_actual_rules(self):
+        """Keep both source rows clear of captions beneath the signing rules."""
+        txr1501 = {
+            field["api_id"]: field
+            for field in build_signwell_fields_txr1501(FORM_CASES[0][3], client_count=2)[0]
+        }
+        # On the released source the second-client rule is at y=704.  A
+        # 26-unit signature field must finish at that rule, not over the
+        # printed Client's Signature caption below it.
+        self.assertEqual(txr1501["txr1501_client2_signature_p6"]["y"], 678)
+        self.assertEqual(
+            txr1501["txr1501_client2_signature_p6"]["y"]
+            + txr1501["txr1501_client2_signature_p6"]["height"],
+            704,
+        )
+
+        txr1507 = {
+            field["api_id"]: field
+            for field in build_signwell_fields_txr1507(FORM_CASES[2][3], client_count=2)[0]
+        }
+        # Broker and broker-associate are chosen by the printed checkboxes;
+        # both sign on the one shared rule.  There is no second associate
+        # signature rule below the label.
+        self.assertEqual(txr1507["txr1507_associate_signature_p2"]["y"], 715)
+        self.assertEqual(txr1507["txr1507_associate_signature_p2"]["x"], 160)
+        self.assertEqual(txr1507["txr1507_associate_date_p2"]["x"], 260)
 
     def test_txr1506_provider_and_consumer_dates_share_the_printed_date_column(self):
         """Keep every page-six acknowledgement date on TXR-1506's right rule.

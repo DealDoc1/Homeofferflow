@@ -148,8 +148,12 @@ def build_signwell_fields_txr1501(data, *, client_count=1):
     ]
     if client_count == 2:
         fields.extend([
-            {"api_id": "txr1501_client2_signature_p6", "type": "signature", "page": 6, "x": 430, "y": 683, "recipient_id": "2", "required": True, "width": 145, "height": 26},
-            {"api_id": "txr1501_client2_date_p6", "type": "date", "page": 6, "x": 580, "y": 683, "recipient_id": "2", "required": True, "width": 62, "height": 20, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
+            # The second client rule is 110 SignWell units below the first.
+            # Keeping the field four units above that rule mirrors client
+            # one's calibrated placement and keeps its bottom clear of the
+            # printed Client's Signature caption.
+            {"api_id": "txr1501_client2_signature_p6", "type": "signature", "page": 6, "x": 430, "y": 678, "recipient_id": "2", "required": True, "width": 145, "height": 26},
+            {"api_id": "txr1501_client2_date_p6", "type": "date", "page": 6, "x": 580, "y": 678, "recipient_id": "2", "required": True, "width": 62, "height": 20, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
         ])
     if signer_plan == "clients_and_associate":
         fields.extend([
