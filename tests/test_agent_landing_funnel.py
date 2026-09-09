@@ -109,6 +109,8 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("document.getElementById('wizardOverlay')?.classList.contains('active')", interview)
         self.assertIn("document.getElementById('listingWorkspaceStartCard')", interview)
         self.assertIn("document.getElementById('hofAgentPackageFollowUp')", interview)
+        self.assertEqual(interview.count("if (attempts < 100) window.setTimeout(recordWhenOpen, 100);"), 2)
+        self.assertIn("undercounting a real start", interview)
 
     def test_agent_landing_uses_the_neutral_listing_first_order(self):
         start = AGENTS.index('id="transaction-start"')
