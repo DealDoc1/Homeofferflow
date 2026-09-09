@@ -16158,7 +16158,12 @@ function routeAfterMagicLinkIfNeeded() {
     // CTA requests a private no-payment draft, so preserve only that safe
     // action through the magic-link return; no account or subscription is
     // created until the agent elects to continue.
-    if (params().get('agent') === '1') setTimeout(() => continueAfterAuthResolution(() => {
+    if (params().get('agent') === '1') {
+      // Show the agent-specific promise immediately. Session restoration can
+      // take a moment, but a visitor following an agent link should never
+      // briefly see the homebuyer landing page while that happens.
+      window.setAudience?.('agent');
+      setTimeout(() => continueAfterAuthResolution(() => {
       const agentRouteParams = params();
       const agentLandingWorkflow = ['purchase', 'sale_listing', 'lease_listing', 'lease_representation'].includes(agentRouteParams.get('workflow')) ? agentRouteParams.get('workflow') : '';
       const agentLandingWorkspace = ['seller', 'relationship'].includes(agentRouteParams.get('workspace')) ? agentRouteParams.get('workspace') : '';
@@ -16217,7 +16222,8 @@ function routeAfterMagicLinkIfNeeded() {
         if (authTitle) authTitle.textContent = `Continue to your ${workflowLabel}`;
         if (authSubtitle) authSubtitle.textContent = `Enter your email for a secure sign-in link. We’ll open the next questions for this ${workflowLabel} after you return.`;
       }
-    }), 80);
+      }), 80);
+    }
     // Investor acquisition reuses the passwordless account workflow. A
     // signed-in investor should go straight to their workspace—not be asked
     // to sign in again. A signed-out visitor resumes that same workspace

@@ -99,6 +99,13 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("window.addEventListener('hof-auth-ready', callback, { once: true });", entry)
         self.assertIn("continueAfterAuthResolution(() => {", entry)
 
+    def test_agent_deep_link_shows_agent_landing_before_session_restores(self):
+        start = INDEX.index("if (params().get('agent') === '1')")
+        end = INDEX.index("// Investor acquisition", start)
+        entry = INDEX[start:end]
+        self.assertIn("window.setAudience?.('agent');", entry)
+        self.assertLess(entry.index("window.setAudience?.('agent');"), entry.index("setTimeout(() => continueAfterAuthResolution"))
+
     def test_package_start_telemetry_waits_for_the_destination_workspace(self):
         start = INDEX.index("window.hofOpenAgentPackageInterview = function")
         end = INDEX.index("window.startAgentWorkflow = function", start)
