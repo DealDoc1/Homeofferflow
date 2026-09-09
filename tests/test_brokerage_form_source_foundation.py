@@ -194,10 +194,10 @@ class BrokerageFormSourceFoundationTests(unittest.TestCase):
         self.assertIn("released shared-form drafts remain available", HTML)
         self.assertNotIn("private source-gated drafts stay unavailable until your brokerage membership is activated", HTML)
 
-    def test_broker_admin_can_upload_attested_private_source_but_cannot_activate_a_workflow(self):
-        self.assertIn("Brokerage-approved form sources", HTML)
+    def test_form_library_administration_is_hidden_from_daily_brokerage_workflow(self):
+        self.assertIn("Form library administration", HTML)
+        self.assertIn("!root.hofAuth?.showFormLibraryAdministration", HTML)
         self.assertIn("I am authorized to upload and approve this exact source PDF", HTML)
-        self.assertIn("agents cannot download them from HomeOfferFlow", HTML)
         self.assertIn("It is not yet an active signing workflow.", HTML)
         self.assertIn("authorization_attested: true", HTML)
         self.assertIn('id="brokerageFormSourceList" class="hof-form-source-list" aria-live="polite" aria-busy="true"', HTML)
