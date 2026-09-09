@@ -86,6 +86,13 @@ SEO_GUIDES = {
 
 class TechnicalSeoTests(unittest.TestCase):
 
+    def test_public_guides_keep_one_mobile_viewport_declaration(self):
+        """Avoid competing viewport settings on mobile search landing pages."""
+        for filename in SEO_GUIDES:
+            with self.subTest(filename=filename):
+                guide = (ROOT / filename).read_text(encoding="utf-8")
+                self.assertEqual(guide.count('<meta name="viewport"'), 1)
+
     def test_agent_workflow_guide_crosslinks_listing_and_lease_paths(self):
         guide = (ROOT / "texas-agent-offer-workflow.html").read_text(encoding="utf-8")
         self.assertIn('href="/texas-listing-workflow"', guide)
