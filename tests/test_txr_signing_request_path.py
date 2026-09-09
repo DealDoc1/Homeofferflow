@@ -108,6 +108,22 @@ class TxrSigningRequestPathTests(unittest.TestCase):
         self.assertIn("root.hofOpenPreparedAgreement", html)
         self.assertIn("Review and send", html)
 
+    def test_every_live_signing_form_reaches_the_review_and_send_step(self):
+        html = (ROOT / "index.html").read_text(encoding="utf-8")
+        scripts = {
+            "TXR-1501": "hof-txr1501-drafts-v1",
+            "TXR-1506": "hof-txr1506-drafts-v1",
+            "TXR-1507": "hof-txr1507-drafts-v1",
+            "TXR-1508": "hof-txr1508-drafts-v1",
+            "TXR-1953": "hof-txr1953-drafts-v1",
+            "TXR-1954": "hof-txr1954-drafts-v1",
+        }
+        for form_code, script_id in scripts.items():
+            with self.subTest(form_code=form_code):
+                start = html.index(f'id="{script_id}"')
+                end = html.index("</script>", start)
+                self.assertIn("Review and send", html[start:end])
+
     def test_pdf_preview_does_not_sandbox_the_browser_pdf_viewer(self):
         html = (ROOT / "index.html").read_text(encoding="utf-8")
         preview_scope = html[html.index('id="hof-private-form-drafts-v1"'):html.index('id="hof-seller-disclosure-draft-ui-v1"')]
