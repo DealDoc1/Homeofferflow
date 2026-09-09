@@ -136,7 +136,10 @@ def build_signwell_fields_txr1507(data, *, client_count=1):
     if signer_plan not in {"clients_and_associate", "clients_and_broker"}:
         raise ValueError("Choose an authorized broker or broker-associate signer for the TXR-1507 agreement.")
     fields = [
-        {"api_id": "txr1507_client1_initials_p1", "type": "initials", "page": 1, "x": 444, "y": 1003, "recipient_id": "1", "required": True, "width": 32, "height": 14},
+        # The footer prints one Broker/Associate blank followed by two Client
+        # blanks. Client initials must begin after the "and Client" label;
+        # the prior first-client position used the broker blank instead.
+        {"api_id": "txr1507_client1_initials_p1", "type": "initials", "page": 1, "x": 538, "y": 1003, "recipient_id": "1", "required": True, "width": 40, "height": 14},
         # These coordinates come from the completed SignWell packet, not a
         # blank-PDF estimate.  The signature begins after the printed
         # "Client's Signature" caption; the date is kept wholly to the left
@@ -146,7 +149,7 @@ def build_signwell_fields_txr1507(data, *, client_count=1):
     ]
     if client_count == 2:
         fields.extend([
-            {"api_id": "txr1507_client2_initials_p1", "type": "initials", "page": 1, "x": 494, "y": 1003, "recipient_id": "2", "required": True, "width": 32, "height": 14},
+            {"api_id": "txr1507_client2_initials_p1", "type": "initials", "page": 1, "x": 618, "y": 1003, "recipient_id": "2", "required": True, "width": 40, "height": 14},
             {"api_id": "txr1507_client2_signature_p2", "type": "signature", "page": 2, "x": 533, "y": 820, "recipient_id": "2", "required": True, "width": 80, "height": 26},
             {"api_id": "txr1507_client2_date_p2", "type": "date", "page": 2, "x": 620, "y": 820, "recipient_id": "2", "required": True, "width": 84, "height": 20, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
         ])
