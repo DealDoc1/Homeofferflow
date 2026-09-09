@@ -51,6 +51,13 @@ class UploadedDisclosureWorkflowTests(unittest.TestCase):
         self.assertIn("Please contact support before purchasing or generating this packet.", boundary)
         self.assertNotIn("still testing", boundary)
 
+    def test_supported_buyer_temporary_lease_is_not_stopped_before_generation(self):
+        start = INDEX_HTML.index("function controlledLaunchUnsupportedPaths")
+        end = INDEX_HTML.index("function validateParagraph4LeaseInputs", start)
+        boundary = INDEX_HTML[start:end]
+        self.assertNotIn("Buyer's Temporary Residential Lease", boundary)
+        self.assertNotIn("data.buyerTemporaryLease", boundary)
+
     def test_upload_rejects_files_without_a_pdf_signature_before_packet_generation(self):
         self.assertIn("file.slice(0, 4).arrayBuffer()", INDEX_HTML)
         self.assertIn("signature !== '%PDF'", INDEX_HTML)

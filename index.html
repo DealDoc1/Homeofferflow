@@ -10521,9 +10521,6 @@ function routeAfterMagicLinkIfNeeded() {
     const blocked = [];
     const leases = String(data.leases || '').toLowerCase();
     if (['naturalresource', 'natural_resource', 'natural resource', 'natural resource lease'].includes(leases) || data.leaseNaturalResource === 'yes') blocked.push('Natural Resource Lease terms');
-    if (data.buyerTemporaryLease === 'yes' || ['lease', 'temporaryLease'].includes(data.possession)) {
-      blocked.push("Buyer's Temporary Residential Lease");
-    }
     if (data.sellerFinancing === 'yes') blocked.push('Seller Financing Addendum');
     if (data.loanAssumption === 'yes') blocked.push('Loan Assumption Addendum');
     return [...new Set(blocked)];
