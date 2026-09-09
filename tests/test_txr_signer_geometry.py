@@ -129,6 +129,31 @@ class TxrSignerGeometryTests(unittest.TestCase):
                 self.assertEqual(fields[field_id]["x"], 455)
                 self.assertEqual(fields[field_id]["y"], row_y)
 
+    def test_paragraph4_signatures_stay_on_the_source_rules_above_party_labels(self):
+        """Keep the buyer/seller widgets on the calibrated TXR-1953/1954 rules.
+
+        Both one-page Paragraph 4 addenda print the party label immediately
+        below each signature rule.  A harmless-looking downward move can
+        therefore cover ``Buyer`` or ``Seller`` in a completed packet.  These
+        bounds are based on the released source PDFs, not a blank fixture.
+        """
+        cases = (
+            ("TXR-1953", build_signwell_fields_txr1953, FORM_CASES[4][3], 70, 440, 802, 875, 828, 901),
+            ("TXR-1954", build_signwell_fields_txr1954, FORM_CASES[5][3], 64, 418, 774, 845, 800, 871),
+        )
+        for form_code, builder, data, buyer_x, seller_x, first_y, second_y, first_bottom, second_bottom in cases:
+            with self.subTest(form_code=form_code):
+                fields = {field["api_id"]: field for field in builder(data, client_count=2)[0]}
+                for party, x in (("buyer", buyer_x), ("seller", seller_x)):
+                    first = fields[f"{form_code.lower().replace('-', '')}_{party}1_signature_p1"]
+                    second = fields[f"{form_code.lower().replace('-', '')}_{party}2_signature_p1"]
+                    self.assertEqual(first["x"], x)
+                    self.assertEqual(second["x"], x)
+                    self.assertEqual(first["y"], first_y)
+                    self.assertEqual(second["y"], second_y)
+                    self.assertLessEqual(first["y"] + first["height"], first_bottom)
+                    self.assertLessEqual(second["y"] + second["height"], second_bottom)
+
     def test_every_supported_form_has_valid_non_overlapping_signer_widgets(self):
         for form_code, page_count, builder, data in FORM_CASES:
             with self.subTest(form_code=form_code):
