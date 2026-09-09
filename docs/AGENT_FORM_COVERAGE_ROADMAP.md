@@ -7,13 +7,15 @@ supported purchase addenda, including the Seller Temporary Residential Lease
 when seller post-closing possession applies. Signed-in agents can also start
 private review drafts for the currently released TXR relationship,
 consumer-notice, seller-disclosure, seller-financing, mineral-reservation,
-loan-assumption, and environmental-review workflows, plus private
-seller-planning workspaces. TREC-55-1 seller disclosure and the optional
-TREC-61-0 water disclosure are available from the shared library to every
-authenticated agent as review-only drafts. The released shared library does
-not require a brokerage seat or a per-agent brokerage attestation. It is not
-represented as a
-complete transaction-form library or a transaction-management platform.
+loan-assumption, environmental-review, appraisal-review, and lease-addendum
+workflows, plus private seller-planning workspaces. TXR-1501, TXR-1506,
+TXR-1507, TXR-1508, TXR-1953, and TXR-1954 have a separate review-and-send
+path: the agent reviews the completed document and explicitly confirms each
+recipient before SignWell receives it. TREC-55-1 seller disclosure and the
+optional TREC-61-0 water disclosure are available from the shared library to
+every authenticated agent as review-only drafts. The released shared library
+does not require a brokerage seat or a per-agent brokerage attestation. It is
+not represented as a complete transaction-form library or a transaction-management platform.
 
 Each workflow states whether it is private review-only or has a separate
 signature queue. Agents must continue using their brokerage-approved workflow
@@ -44,10 +46,13 @@ This language appears on `/ondemand` before an agent begins the 60-day trial.
 - Agent accounts, OnDemand attribution, a 60-day card-required trial, and
   broker-level aggregate activity visibility with buyer and property details
   withheld.
-- Private TXR-1501, TXR-1506, TXR-1507, TXR-1508, TXR-1905, TXR-1914,
-  TXR-1917, and TXR-1919 review-draft workflows for signed-in agents, where
-  the approved source is available. These workflows state their own delivery
-  limits and do not imply a send or signature capability where one is absent.
+- TXR-1501, TXR-1506, TXR-1507, TXR-1508, TXR-1953, and TXR-1954 review-and-
+  send workflows for signed-in agents, where the approved source is available.
+  Each requires the agent to review the prepared document and confirm the
+  listed recipients before sending a SignWell request.
+- Private TXR-1905, TXR-1914, TXR-1917, TXR-1919, and TXR-1948 review-draft
+  workflows for signed-in agents, where the approved source is available.
+  These workflows do not imply a send or signature capability.
 - Private seller leads and listing workspaces with launch planning, seller
   consultation briefs, and offer-comparison tools.
 
@@ -55,9 +60,10 @@ This language appears on `/ondemand` before an agent begins the 60-day trial.
 
 ### 1. Buyer representation agreement
 
-The private representation-draft foundation is available at the beginning of
-the buyer relationship, before an offer is prepared. Executable signing is a
-separate release path and is not implied by a review draft.
+The buyer representation workflow is available at the beginning of the buyer
+relationship, before an offer is prepared. Draft preparation and signature
+sending remain separate steps: the agent reviews the completed document and
+confirms recipients before a request is sent.
 
 Important source-form rule: TREC does **not** promulgate a buyer representation
 agreement. For the Texas REALTORS® member workflow, the approved source forms
@@ -75,49 +81,46 @@ They are separate releases, not addenda to a purchase offer.
 Release requirements:
 
 - a current, approved source revision in the HomeOfferFlow shared library;
-- signed-in agent access to the released review draft without a brokerage-seat
-  or per-agent-attestation requirement;
+- signed-in agent access to the released workflow without a brokerage-seat or
+  per-agent-attestation requirement;
 - an explicit agent choice between the Long Form and Short Form, with no
   preselected legal agreement;
 - guided data intake limited to the approved agreement fields;
 - correct agent, broker, and buyer signer/recipient roles;
-- an explicit TXR-1507 signer plan (clients only, clients plus associate, or
-  clients plus broker) captured before any future SignWell send action;
+- an explicit TXR-1507 signer plan (clients plus associate or clients plus
+  broker) captured before a SignWell send action;
 - secure association to the signed-in agent; a source-host organization may be
   retained for rendering and audit without becoming an access requirement;
 - rendered-PDF, signature-placement, and single-/multi-buyer QA;
 - HomeOfferFlow release authority approval before production release;
 
 Foundation complete: the approved-source catalog supplies the released
-TXR-1501, TXR-1506, TXR-1507, and TXR-1508 review drafts to every signed-in
-agent. Source PDFs remain server-side and are never exposed as downloadable
-browser URLs. A source-host organization may be retained for audit and
-rendering, but it does not create an agent-access requirement.
+TXR-1501, TXR-1506, TXR-1507, and TXR-1508 review-and-send workflows to every
+signed-in agent. Source PDFs remain server-side and are never exposed as
+downloadable browser URLs. A source-host organization may be retained for
+audit and rendering, but it does not create an agent-access requirement.
 
-The source-specific renderer and signer-map foundation is now staged in
+The source-specific renderer and signer-map foundation is now released in
 `lib/txr_1507.py`. It preserves the supplied two-page source, overlays only
 validated intake values, and keeps the client one- and client two-signer maps
 separate from the purchase-packet coordinates. Because the source includes a
 brokerage execution line, the signer plan now requires clients plus the
 authorized associate or clients plus the authorized broker; a client-only plan
-is rejected. Source-coordinate overlays have been re-rendered against the
-exact private source to seat the brokerage and client fields on the printed
-signature/date lines. This is renderer QA work, not an executable or production
-signing release: the associate/client signing order must pass completed
-SignWell visual QA before a send action is described as verified. Private
-TXR-1507 drafts have an agent-only PDF preview that revalidates ownership and
-the active approved source revision on every request. It does not send or sign
-documents and never returns a source URL.
+is rejected. Source-coordinate overlays are re-rendered against the exact
+private source so brokerage and client fields land on the printed
+signature/date lines. The review-and-send step keeps recipient confirmation
+separate from draft preparation. Private TXR-1507 previews revalidate
+ownership and the active approved source revision on every request, and never
+return a source URL.
 
-The companion TXR-1501 Long Form foundation is now staged in
+The companion TXR-1501 Long Form workflow is now released in
 `lib/txr_1501.py`. The authorized six-page source was visually inspected
 page-by-page, and a sample overlay was rendered and checked for the party and
 contact rows, market area, term dates, compensation, intermediary choice, and
 printed-name areas. TXR-1501 drafts require the same deliberate signer-plan
 choice as TXR-1507, and private previews use the approved source revision
-without exposing its storage URL. Coordinates and signer placement remain
-provisional until the broker/associate/client signing plan is confirmed and a
-completed signed PDF passes visual QA. No TXR-1501 send/sign action is enabled.
+without exposing its storage URL. The agent reviews the completed document and
+confirms recipients before a SignWell request is sent.
 
 ### 2. Seller disclosure workflow
 
