@@ -212,6 +212,7 @@ class TxrSignerGeometryTests(unittest.TestCase):
                 self.assertEqual(fields[field_id]["x"], 432)
                 self.assertEqual(fields[field_id]["width"], 84)
                 self.assertEqual(fields[field_id]["y"], row_y)
+        self.assertEqual(fields["txr1506_associate_signature_p6"]["y"] + fields["txr1506_associate_signature_p6"]["height"], 825)
 
     def test_paragraph4_signatures_stay_on_the_source_rules_above_party_labels(self):
         """Keep the buyer/seller widgets on the calibrated TXR-1953/1954 rules.
@@ -265,8 +266,8 @@ class TxrSignerGeometryTests(unittest.TestCase):
                     self.assertEqual(first["y"] + first["height"], first_bottom)
                     self.assertEqual(second["y"] + second["height"], second_bottom)
 
-    def test_txr1508_agent_initials_use_the_left_acknowledgement_rule(self):
-        """Keep the agent initials off TXR-1508's customer/date area.
+    def test_txr1508_acknowledgements_clear_their_printed_captions(self):
+        """Keep TXR-1508 completion widgets on their acknowledgement rules.
 
         The agent acknowledgement rule is left of the Date label, while the
         customer acknowledgement rules are on the right below it.  They are
@@ -278,13 +279,28 @@ class TxrSignerGeometryTests(unittest.TestCase):
             for field in build_signwell_fields_txr1508(data, client_count=2)[0]
         }
         self.assertEqual(fields["txr1508_agent_initials_p1"]["x"], 347)
-        self.assertEqual(fields["txr1508_agent_initials_p1"]["y"], 672)
+        self.assertEqual(fields["txr1508_agent_initials_p1"]["y"], 659)
         self.assertLess(
             fields["txr1508_agent_initials_p1"]["x"] + fields["txr1508_agent_initials_p1"]["width"],
             430,
             "agent initials must finish before the printed Date label",
         )
         self.assertEqual(fields["txr1508_client1_initials_p1"]["x"], 520)
+        # Captions start at y=678, 734, and 792 in SignWell's 96-DPI
+        # coordinate space.  Fields must finish before those captions rather
+        # than merely passing the generic bounds/overlap checks.
+        expected_caption_tops = {
+            "txr1508_agent_initials_p1": 678,
+            "txr1508_agent_date_p1": 678,
+            "txr1508_client1_initials_p1": 734,
+            "txr1508_client1_date_p1": 734,
+            "txr1508_client2_initials_p1": 792,
+            "txr1508_client2_date_p1": 792,
+        }
+        for field_id, caption_top in expected_caption_tops.items():
+            with self.subTest(field_id=field_id):
+                field = fields[field_id]
+                self.assertLessEqual(field["y"] + field["height"], caption_top)
 
     def test_every_supported_form_has_valid_non_overlapping_signer_widgets(self):
         for form_code, page_count, builder, data in FORM_CASES:
