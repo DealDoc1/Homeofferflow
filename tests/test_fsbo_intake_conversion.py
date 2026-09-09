@@ -47,7 +47,8 @@ class FsboIntakeConversionTests(unittest.TestCase):
         self.assertIn("function renderFsboRequiredReadyCue", HTML)
         self.assertIn("Press Return/Go or get your free seller plan now.", HTML)
         self.assertIn("Your free seller plan is already selected", HTML)
-        self.assertIn("One quick question: what would help most right now?", HTML)
+        self.assertIn("Optional: what would help most right now?", HTML)
+        self.assertIn("You can skip this and still get the free seller plan.", HTML)
         self.assertIn("selectFsboGuidedGoal", HTML)
         self.assertIn("fsboGuidedGoalPackages", HTML)
 
@@ -61,7 +62,7 @@ class FsboIntakeConversionTests(unittest.TestCase):
         recommendation = HTML.index('id="fsboNeedDetails"')
         catalog = HTML.index('id="fsboSupportOptions"')
         self.assertLess(recommendation, catalog)
-        self.assertIn("Choose a starting point and we will recommend the next step.", HTML)
+        self.assertIn("Choose a starting point to tailor your plan.", HTML)
         self.assertIn("Explore other support paths and pricing", HTML)
         self.assertIn('id="fsboSupportOptions" class="partner-optional-details"', HTML)
 
@@ -288,10 +289,13 @@ class FsboIntakeConversionTests(unittest.TestCase):
         self.assertLess(quick, partners)
         self.assertLess(quick, full)
         self.assertIn('<details class="partner-optional-details" style="margin-top:.9rem;">', HTML)
+        guided_goal = HTML.index('id="fsboGuidedGoalCard"')
+        self.assertLess(quick, guided_goal)
+        self.assertLess(guided_goal, optional_details)
         customization_start = HTML.index('<details class="partner-optional-details" style="margin-top:1rem;">')
         customization_end = HTML.index('<div id="fsboDraftRecovery"', customization_start)
         customization_section = HTML[customization_start:customization_end]
-        self.assertIn('id="fsboGuidedGoalCard"', customization_section)
+        self.assertNotIn('id="fsboGuidedGoalCard"', customization_section)
         self.assertIn('class="fsbo-package-grid"', customization_section)
         self.assertIn('Partner suggestions wanted', customization_section)
         self.assertIn("document.querySelectorAll('[data-fsbo-submit]')", HTML)
