@@ -35,6 +35,25 @@ class HomebuyerDraftResumeTests(unittest.TestCase):
         self.assertIn("setTimeout(refreshResumeOfferCtas, 300);", HTML[return_start:return_end])
         self.assertIn("restoreDraft();\n        refreshResumeOfferCtas();", HTML)
 
+    def test_temporary_lease_terms_restore_with_the_saved_offer(self):
+        start = HTML.index("function applyOfferDataToFields(data = {})")
+        end = HTML.index("async function resumeOffer", start)
+        restore = HTML[start:end]
+        for field_id in (
+            "sellerTemporaryLeaseTerminationDate",
+            "sellerTemporaryLeaseRentPerDay",
+            "sellerTemporaryLeaseDeposit",
+            "sellerTemporaryLeaseUtilitiesPaidByBuyer",
+            "sellerTemporaryLeaseHoldoverPerDay",
+            "buyerTemporaryLeaseStartDate",
+            "buyerTemporaryLeaseRentPerDay",
+            "buyerTemporaryLeaseTotalRent",
+            "buyerTemporaryLeaseHoldoverPerDay",
+        ):
+            with self.subTest(field_id=field_id):
+                self.assertIn(field_id + ":'" + field_id + "'", restore)
+        self.assertIn("toggleSellerTemporaryLeaseFields();", restore)
+
 
 if __name__ == "__main__":
     unittest.main()
