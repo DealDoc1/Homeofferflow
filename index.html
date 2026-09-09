@@ -20656,6 +20656,29 @@ function routeAfterMagicLinkIfNeeded() {
     });
   }
 
+  async function refreshAgreementSignWellStatus(agreement, button, refresh) {
+    const originalText = button.textContent;
+    button.disabled = true;
+    button.textContent = 'Checking…';
+    try {
+      const response = await fetch('/api/signwell-status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token()}` },
+        body: JSON.stringify({ agreementId: agreement.id })
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || result.error) throw new Error(result.error || 'Could not refresh the signature status.');
+      await refresh();
+      window.announceWorkspaceStatus?.(result.status === 'Buyer Signatures Complete'
+        ? 'Signatures are complete. Review the completed PDF in SignWell before filing it.'
+        : `SignWell status: ${result.status || 'awaiting signatures'}.`);
+    } catch (error) {
+      window.announceWorkspaceStatus?.(error.message || 'Could not refresh the signature status.');
+      button.disabled = false;
+      button.textContent = originalText;
+    }
+  }
+
   async function renderCard() {
     const panel = document.getElementById('accountPanelDashboard');
     if (!panel || !activeAgent() || document.getElementById('hofStandaloneAgreementCard')) return;
@@ -20676,7 +20699,8 @@ function routeAfterMagicLinkIfNeeded() {
           const canSend = signingEnabled && signingFormCodes.has(agreement.form_code) && agreement.status === 'draft';
           const names = (agreement.client_names || []).join(', ');
           const gate = !signingEnabled && agreement.status === 'draft' ? '<small style="display:block;color:var(--gold-light)">Ready to review — signature sending will appear here when available.</small>' : '';
-          return `<div style="display:flex;justify-content:space-between;align-items:center;gap:.75rem;flex-wrap:wrap;border-top:1px solid rgba(255,255,255,.12);padding:.7rem 0"><span><strong>${escape(agreement.form_code)}</strong><small style="display:block;color:var(--gray-light)">${escape(names)} · ${escape(agreement.status || 'draft')}</small>${gate}</span><span style="display:flex;gap:.4rem;flex-wrap:wrap"><button type="button" class="btn-secondary" data-preview="${escape(agreement.id)}">Preview</button>${canSend ? `<button type="button" class="btn-primary" data-send="${escape(agreement.id)}">Send for signature</button>` : ''}</span></div>`;
+          const canRefresh = agreement.status === 'sent' && agreement.signwell_document_id;
+          return `<div style="display:flex;justify-content:space-between;align-items:center;gap:.75rem;flex-wrap:wrap;border-top:1px solid rgba(255,255,255,.12);padding:.7rem 0"><span><strong>${escape(agreement.form_code)}</strong><small style="display:block;color:var(--gray-light)">${escape(names)} · ${escape(agreement.status || 'draft')}</small>${gate}</span><span style="display:flex;gap:.4rem;flex-wrap:wrap"><button type="button" class="btn-secondary" data-preview="${escape(agreement.id)}">Preview</button>${canRefresh ? `<button type="button" class="btn-secondary" data-refresh-signing="${escape(agreement.id)}">Refresh status</button>` : ''}${canSend ? `<button type="button" class="btn-primary" data-send="${escape(agreement.id)}">Send for signature</button>` : ''}</span></div>`;
         }).join('');
         list.querySelectorAll('[data-preview]').forEach(button => button.addEventListener('click', async () => {
           button.disabled = true;
@@ -20692,6 +20716,10 @@ function routeAfterMagicLinkIfNeeded() {
         list.querySelectorAll('[data-send]').forEach(button => button.addEventListener('click', () => {
           const agreement = agreements.find(item => item.id === button.dataset.send);
           if (agreement) openSendDialog(agreement, refresh);
+        }));
+        list.querySelectorAll('[data-refresh-signing]').forEach(button => button.addEventListener('click', () => {
+          const agreement = agreements.find(item => item.id === button.dataset.refreshSigning);
+          if (agreement) refreshAgreementSignWellStatus(agreement, button, refresh);
         }));
       } catch (error) { list.innerHTML = `<div class="hof-iabs-status error">${escape(error.message || 'Could not load agreement drafts.')}</div>`; }
     };

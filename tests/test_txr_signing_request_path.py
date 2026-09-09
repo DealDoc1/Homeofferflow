@@ -63,12 +63,39 @@ class TxrSigningRequestPathTests(unittest.TestCase):
         )
         self.assertNotIn("agent@example.com", [row["email"] for row in recipients])
 
-    def test_ui_exposes_preview_and_send_only_for_draft_records(self):
+    def test_prepared_purchase_addenda_use_only_named_buyers_and_sellers(self):
+        for form_code in ("TXR-1905", "TXR-1914", "TXR-1917", "TXR-1919"):
+            agreement = {
+                "form_code": form_code,
+                "client_names": ["Buyer One", "Seller One"],
+                "agreement_data": {
+                    "buyer_names": ["Buyer One"],
+                    "seller_names": ["Seller One"],
+                },
+            }
+            recipients = MODULE._txr_signwell_recipients(
+                agreement,
+                ["buyer@example.com", "seller@example.com"],
+                {},
+                {"email": "agent@example.com", "name": "Agent"},
+            )
+            self.assertEqual([row["id"] for row in recipients], ["1", "2"])
+            self.assertEqual(MODULE._standalone_signer_labels(agreement), ["Buyer 1", "Seller 1"])
+            self.assertNotIn("agent@example.com", [row["email"] for row in recipients])
+
+    def test_prepared_maps_do_not_expand_the_public_signing_allowlist(self):
+        for form_code in ("TXR-1905", "TXR-1914", "TXR-1917", "TXR-1919"):
+            self.assertNotIn(form_code, MODULE.TXR_SIGNING_FORM_CODES)
+
+    def test_ui_exposes_preview_send_and_owner_refresh_actions(self):
         html = (ROOT / "index.html").read_text(encoding="utf-8")
         self.assertIn('hof-standalone-agreement-signing-v1', html)
         self.assertIn("scope=standalone_agreements", html)
         self.assertIn("send_txr_agreement_for_signature", html)
         self.assertIn("agreement.status === 'draft'", html)
+        self.assertIn("agreement.status === 'sent' && agreement.signwell_document_id", html)
+        self.assertIn("data-refresh-signing", html)
+        self.assertIn("body: JSON.stringify({ agreementId: agreement.id })", html)
         self.assertIn("Ready to review — signature sending will appear here when available.", html)
 
     def test_standalone_scope_reports_the_signing_gate_state(self):
