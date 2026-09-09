@@ -91,12 +91,15 @@ class TxrSigningRequestPathTests(unittest.TestCase):
         for form_code in ("TXR-1905", "TXR-1914", "TXR-1917", "TXR-1919"):
             self.assertNotIn(form_code, MODULE.TXR_SIGNING_FORM_CODES)
 
-    def test_ui_exposes_preview_and_send_only_for_draft_records(self):
+    def test_ui_exposes_preview_send_and_owner_refresh_actions(self):
         html = (ROOT / "index.html").read_text(encoding="utf-8")
         self.assertIn('hof-standalone-agreement-signing-v1', html)
         self.assertIn("scope=standalone_agreements", html)
         self.assertIn("send_txr_agreement_for_signature", html)
         self.assertIn("agreement.status === 'draft'", html)
+        self.assertIn("agreement.status === 'sent' && agreement.signwell_document_id", html)
+        self.assertIn("data-refresh-signing", html)
+        self.assertIn("body: JSON.stringify({ agreementId: agreement.id })", html)
         self.assertIn("Ready to review — signature sending will appear here when available.", html)
 
     def test_standalone_scope_reports_the_signing_gate_state(self):

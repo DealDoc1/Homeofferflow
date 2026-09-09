@@ -197,6 +197,20 @@ async function getOfferForUser(offerId, user) {
   return offer;
 }
 
+async function getStandaloneAgreementForUser(agreementId, user) {
+  if (!agreementId) throw new Error('Missing agreement ID.');
+
+  // Standalone TXR packets are owned by the preparing agent. Preserve that
+  // boundary for a manual provider refresh just as we do for offer packets.
+  const rows = await supabaseRequest(
+    `hof_standalone_agreements?id=eq.${encodeURIComponent(agreementId)}&agent_user_id=eq.${encodeURIComponent(user.id)}&select=id,agent_user_id,signwell_document_id,agreement_data`,
+    { method: 'GET' }
+  );
+  const agreement = Array.isArray(rows) ? rows[0] : null;
+  if (!agreement) throw new Error('Agreement not found or access denied.');
+  return agreement;
+}
+
 async function getSignWellDocument(documentId) {
   if (!SIGNWELL_API_KEY) throw new Error('Missing SIGNWELL_API_KEY.');
   if (!documentId) throw new Error('Missing SignWell document id.');
@@ -271,6 +285,58 @@ async function updateOfferStatus(offer, status, documentId, document, user) {
   return Array.isArray(updateRows) ? updateRows[0] : updateRows;
 }
 
+function safeStandaloneStatus(signwellStatus) {
+  const clean = cleanStatusLabel(signwellStatus);
+  if (clean === 'Buyer Signatures Complete') return 'signed';
+  if (clean === 'Declined' || clean === 'Expired') return 'void';
+  return 'sent';
+}
+
+async function updateStandaloneAgreementStatus(agreement, status, documentId, document, user) {
+  const now = new Date().toISOString();
+  const cleanSignwellStatus = cleanStatusLabel(status);
+  const agreementStatus = safeStandaloneStatus(cleanSignwellStatus);
+  const agreementData = parseJsonObject(agreement.agreement_data);
+  const updatedAgreementData = {
+    ...agreementData,
+    signwellStatus: cleanSignwellStatus,
+    signwellDocumentId: documentId,
+    signwellLastStatusRefresh: now
+  };
+  const updatePayload = {
+    signwell_status: cleanSignwellStatus,
+    status: agreementStatus,
+    agreement_data: updatedAgreementData,
+    updated_at: now
+  };
+  if (agreementStatus === 'signed') updatePayload.signed_at = now;
+
+  const updateRows = await supabaseRequest(
+    `hof_standalone_agreements?id=eq.${encodeURIComponent(agreement.id)}&agent_user_id=eq.${encodeURIComponent(user.id)}&select=id,agent_user_id,signwell_document_id,signwell_status,status,updated_at,signed_at`,
+    {
+      method: 'PATCH',
+      headers: { Prefer: 'return=representation' },
+      body: JSON.stringify(updatePayload)
+    }
+  );
+
+  await supabaseRequest('hof_offer_events', {
+    method: 'POST',
+    headers: { Prefer: 'return=minimal' },
+    body: JSON.stringify({
+      offer_id: null,
+      user_id: agreement.agent_user_id || user.id,
+      event_type: 'signwell_standalone_status_refresh',
+      status: cleanSignwellStatus,
+      message: 'Standalone agreement SignWell status manually refreshed from API.',
+      metadata: { signwell_document_id: documentId, signwell_status: document.status || document.document_status || null },
+      created_at: now
+    })
+  });
+
+  return Array.isArray(updateRows) ? updateRows[0] : updateRows;
+}
+
 module.exports = async (req, res) => {
   if (req.method !== 'POST') {
     return json(res, 405, { error: 'Method not allowed' });
@@ -285,17 +351,23 @@ module.exports = async (req, res) => {
         : JSON.parse(req.body || '{}');
 
     const offerId = body.offerId || body.offer_id || '';
+    const agreementId = body.agreementId || body.agreement_id || '';
+    if (!offerId && !agreementId) throw new Error('Missing offer or agreement ID.');
+    if (offerId && agreementId) throw new Error('Choose one packet to refresh.');
 
-    const offer = await getOfferForUser(offerId, user);
-    const offerData = parseJsonObject(offer.offer_data);
+    const isStandaloneAgreement = Boolean(agreementId);
+    const packet = isStandaloneAgreement
+      ? await getStandaloneAgreementForUser(agreementId, user)
+      : await getOfferForUser(offerId, user);
+    const packetData = parseJsonObject(isStandaloneAgreement ? packet.agreement_data : packet.offer_data);
 
     const documentId =
-      offer.signwell_document_id ||
-      offerData.signwellDocumentId ||
-      offerData.signwell_document_id ||
-      offerData.signwell?.document_id ||
-      offerData.signwell?.response?.id ||
-      offerData.signwell?.response?.document_id ||
+      packet.signwell_document_id ||
+      packetData.signwellDocumentId ||
+      packetData.signwell_document_id ||
+      packetData.signwell?.document_id ||
+      packetData.signwell?.response?.id ||
+      packetData.signwell?.response?.document_id ||
       '';
 
     if (!documentId) {
@@ -304,14 +376,18 @@ module.exports = async (req, res) => {
 
     const document = await getSignWellDocument(documentId);
     const status = deriveStatus(document);
-    const updatedOffer = await updateOfferStatus(offer, status, documentId, document, user);
+    const updatedPacket = isStandaloneAgreement
+      ? await updateStandaloneAgreementStatus(packet, status, documentId, document, user)
+      : await updateOfferStatus(packet, status, documentId, document, user);
 
     return json(res, 200, {
       ok: true,
-      offerId: offer.id,
+      offerId: isStandaloneAgreement ? null : packet.id,
+      agreementId: isStandaloneAgreement ? packet.id : null,
       documentId,
       status: cleanStatusLabel(status),
-      updatedOffer,
+      updatedOffer: isStandaloneAgreement ? null : updatedPacket,
+      updatedAgreement: isStandaloneAgreement ? updatedPacket : null,
       signwellStatusRaw: document.status || document.document_status || null,
       recipientStatuses: extractRecipientStatuses(document)
     });
