@@ -23,6 +23,10 @@ class TxrSigningRequestPathTests(unittest.TestCase):
             "TXR-1506": {"signer_plan": "consumers_and_associate"},
             "TXR-1507": {"signer_plan": "clients_and_associate", "compensation": {"purchase_percentage": "3"}, "service_level": "full_services", "intermediary": "authorized"},
             "TXR-1508": {"signer_plan": "associate_and_clients", "other_broker_agreement": ["no"]},
+            "TXR-1905": {"buyer_names": ["Buyer One"], "seller_names": ["Seller One"]},
+            "TXR-1914": {"buyer_names": ["Buyer One"], "seller_names": ["Seller One"]},
+            "TXR-1917": {"buyer_names": ["Buyer One"], "seller_names": ["Seller One"]},
+            "TXR-1919": {"buyer_names": ["Buyer One"], "seller_names": ["Seller One"]},
             "TXR-1953": {"buyer_names": ["Buyer One"], "seller_names": ["Seller One"]},
             "TXR-1954": {"buyer_names": ["Buyer One"], "seller_names": ["Seller One"]},
         }
@@ -62,6 +66,30 @@ class TxrSigningRequestPathTests(unittest.TestCase):
             ["Buyer 1", "Buyer 2", "Seller 1"],
         )
         self.assertNotIn("agent@example.com", [row["email"] for row in recipients])
+
+    def test_prepared_purchase_addenda_use_only_named_buyers_and_sellers(self):
+        for form_code in ("TXR-1905", "TXR-1914", "TXR-1917", "TXR-1919"):
+            agreement = {
+                "form_code": form_code,
+                "client_names": ["Buyer One", "Seller One"],
+                "agreement_data": {
+                    "buyer_names": ["Buyer One"],
+                    "seller_names": ["Seller One"],
+                },
+            }
+            recipients = MODULE._txr_signwell_recipients(
+                agreement,
+                ["buyer@example.com", "seller@example.com"],
+                {},
+                {"email": "agent@example.com", "name": "Agent"},
+            )
+            self.assertEqual([row["id"] for row in recipients], ["1", "2"])
+            self.assertEqual(MODULE._standalone_signer_labels(agreement), ["Buyer 1", "Seller 1"])
+            self.assertNotIn("agent@example.com", [row["email"] for row in recipients])
+
+    def test_prepared_maps_do_not_expand_the_public_signing_allowlist(self):
+        for form_code in ("TXR-1905", "TXR-1914", "TXR-1917", "TXR-1919"):
+            self.assertNotIn(form_code, MODULE.TXR_SIGNING_FORM_CODES)
 
     def test_ui_exposes_preview_and_send_only_for_draft_records(self):
         html = (ROOT / "index.html").read_text(encoding="utf-8")

@@ -114,6 +114,18 @@ TXR_SIGNING_FORM_CODES = {
     TXR_1953_FORM_CODE,
     TXR_1954_FORM_CODE,
 }
+# These forms have only Buyer and Seller execution rows. They are intentionally
+# separate from the public signing allowlist above: source-specific maps and
+# recipient logic can be prepared and tested without making a new signature
+# workflow available before its completed-provider-PDF release check.
+TXR_BUYER_SELLER_SIGNING_FORM_CODES = {
+    TXR_1905_FORM_CODE,
+    TXR_1914_FORM_CODE,
+    TXR_1917_FORM_CODE,
+    TXR_1919_FORM_CODE,
+    TXR_1953_FORM_CODE,
+    TXR_1954_FORM_CODE,
+}
 
 
 def _is_sandbox_partner_lead(lead):
@@ -3628,6 +3640,18 @@ def _txr_signwell_fields(form_code, agreement_data, client_count):
     if form_code == TXR_1508_FORM_CODE:
         from lib.txr_1508 import build_signwell_fields_txr1508
         return build_signwell_fields_txr1508(agreement_data, client_count=client_count)
+    if form_code == TXR_1905_FORM_CODE:
+        from lib.txr_1905 import build_signwell_fields_txr1905
+        return build_signwell_fields_txr1905(agreement_data, client_count=client_count)
+    if form_code == TXR_1914_FORM_CODE:
+        from lib.txr_1914 import build_signwell_fields_txr1914
+        return build_signwell_fields_txr1914(agreement_data, client_count=client_count)
+    if form_code == TXR_1917_FORM_CODE:
+        from lib.txr_1917 import build_signwell_fields_txr1917
+        return build_signwell_fields_txr1917(agreement_data, client_count=client_count)
+    if form_code == TXR_1919_FORM_CODE:
+        from lib.txr_1919 import build_signwell_fields_txr1919
+        return build_signwell_fields_txr1919(agreement_data, client_count=client_count)
     if form_code == TXR_1953_FORM_CODE:
         from lib.txr_1953 import build_signwell_fields_txr1953
         return build_signwell_fields_txr1953(agreement_data, client_count=client_count)
@@ -3641,7 +3665,7 @@ def _standalone_signer_labels(agreement):
     """Return non-sensitive signer labels in stored recipient order."""
     names = agreement.get("client_names") or []
     form_code = str(agreement.get("form_code") or "")
-    if form_code not in {TXR_1953_FORM_CODE, TXR_1954_FORM_CODE}:
+    if form_code not in TXR_BUYER_SELLER_SIGNING_FORM_CODES:
         return [f"Client {index}" for index in range(1, len(names) + 1)]
     agreement_data = agreement.get("agreement_data") or {}
     buyers = agreement_data.get("buyer_names") or []
@@ -3660,7 +3684,7 @@ def _txr_signwell_recipients(agreement, client_emails, brokerage, agent_user):
         {"id": str(index), "name": client_names[index - 1], "email": client_emails[index - 1]}
         for index in range(1, len(client_names) + 1)
     ]
-    if form_code in {TXR_1953_FORM_CODE, TXR_1954_FORM_CODE}:
+    if form_code in TXR_BUYER_SELLER_SIGNING_FORM_CODES:
         return recipients
     if form_code == TXR_1508_FORM_CODE:
         role = "associate" if signer_plan == "associate_and_clients" else "broker"
