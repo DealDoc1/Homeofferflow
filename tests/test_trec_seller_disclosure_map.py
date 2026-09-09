@@ -26,11 +26,11 @@ class TrecSellerDisclosureMapTests(unittest.TestCase):
             {"page": 1, "x": 492, "y": 596, "width": 100},
         )
 
-    def test_signature_anchors_match_reviewed_lines(self):
-        self.assertEqual(MODULE.TREC_55_1_MAP["seller_signature_1"]["y"], 205)
-        self.assertEqual(MODULE.TREC_55_1_MAP["purchaser_signature_1"]["y"], 115)
-        self.assertEqual(MODULE.TREC_61_0_MAP["seller_signature_1"]["y"], 178)
-        self.assertEqual(MODULE.TREC_61_0_MAP["buyer_signature_1"]["y"], 122)
+    def test_signature_anchors_clear_the_printed_execution_captions(self):
+        self.assertEqual(MODULE.TREC_55_1_MAP["seller_signature_1"]["y"], 212)
+        self.assertEqual(MODULE.TREC_55_1_MAP["purchaser_signature_1"]["y"], 122)
+        self.assertEqual(MODULE.TREC_61_0_MAP["seller_signature_1"]["y"], 185)
+        self.assertEqual(MODULE.TREC_61_0_MAP["buyer_signature_1"]["y"], 129)
 
     def test_trec_55_repair_awareness_anchors_are_explicit(self):
         self.assertEqual(MODULE.TREC_55_1_MAP["repair_condition_yes"], {"page": 3, "x": 487, "y": 728})

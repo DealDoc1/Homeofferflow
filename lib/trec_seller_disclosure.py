@@ -71,14 +71,16 @@ TREC_55_1_MAP = {
     "fema_yes": {"page": 3, "x": 145, "y": 119},
     "fema_no": {"page": 3, "x": 195, "y": 119},
     "other_disclosures_page_4": {"page": 4, "y_start": 690, "row_height": 28},
-    "seller_signature_1": {"page": 4, "x": 45, "y": 205, "width": 235},
-    "seller_date_1": {"page": 4, "x": 255, "y": 205, "width": 70},
-    "seller_signature_2": {"page": 4, "x": 345, "y": 205, "width": 235},
-    "seller_date_2": {"page": 4, "x": 550, "y": 205, "width": 45},
-    "purchaser_signature_1": {"page": 4, "x": 45, "y": 115, "width": 235},
-    "purchaser_date_1": {"page": 4, "x": 255, "y": 115, "width": 70},
-    "purchaser_signature_2": {"page": 4, "x": 345, "y": 115, "width": 235},
-    "purchaser_date_2": {"page": 4, "x": 550, "y": 115, "width": 45},
+    # Keep typed preview values clear of the printed "Signature" and "Date"
+    # captions below each execution line.
+    "seller_signature_1": {"page": 4, "x": 45, "y": 212, "width": 235},
+    "seller_date_1": {"page": 4, "x": 255, "y": 212, "width": 70},
+    "seller_signature_2": {"page": 4, "x": 345, "y": 212, "width": 235},
+    "seller_date_2": {"page": 4, "x": 550, "y": 212, "width": 45},
+    "purchaser_signature_1": {"page": 4, "x": 45, "y": 122, "width": 235},
+    "purchaser_date_1": {"page": 4, "x": 255, "y": 122, "width": 70},
+    "purchaser_signature_2": {"page": 4, "x": 345, "y": 122, "width": 235},
+    "purchaser_date_2": {"page": 4, "x": 550, "y": 122, "width": 45},
 }
 
 TREC_61_0_MAP = {
@@ -100,14 +102,14 @@ TREC_61_0_MAP = {
     "surface_water_right_no": {"page": 2, "x": 468, "y": 485},
     "pond_lake_tank_yes": {"page": 2, "x": 72, "y": 390},
     "pond_lake_tank_no": {"page": 2, "x": 112, "y": 390},
-    "seller_signature_1": {"page": 2, "x": 42, "y": 178, "width": 235},
-    "seller_date_1": {"page": 2, "x": 255, "y": 178, "width": 70},
-    "seller_signature_2": {"page": 2, "x": 345, "y": 178, "width": 235},
-    "seller_date_2": {"page": 2, "x": 550, "y": 178, "width": 45},
-    "buyer_signature_1": {"page": 2, "x": 42, "y": 122, "width": 235},
-    "buyer_date_1": {"page": 2, "x": 255, "y": 122, "width": 70},
-    "buyer_signature_2": {"page": 2, "x": 345, "y": 122, "width": 235},
-    "buyer_date_2": {"page": 2, "x": 550, "y": 122, "width": 45},
+    "seller_signature_1": {"page": 2, "x": 42, "y": 185, "width": 235},
+    "seller_date_1": {"page": 2, "x": 255, "y": 185, "width": 70},
+    "seller_signature_2": {"page": 2, "x": 345, "y": 185, "width": 235},
+    "seller_date_2": {"page": 2, "x": 550, "y": 185, "width": 45},
+    "buyer_signature_1": {"page": 2, "x": 42, "y": 129, "width": 235},
+    "buyer_date_1": {"page": 2, "x": 255, "y": 129, "width": 70},
+    "buyer_signature_2": {"page": 2, "x": 345, "y": 129, "width": 235},
+    "buyer_date_2": {"page": 2, "x": 550, "y": 129, "width": 45},
 }
 
 TREC_55_1_CONDITION_ROWS = (
