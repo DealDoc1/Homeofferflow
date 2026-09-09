@@ -32,6 +32,7 @@ class FakeResponse:
 class FakeClient:
     def __init__(self, response):
         self.response = response
+        self.get_calls = 0
 
     async def __aenter__(self):
         return self
@@ -40,6 +41,7 @@ class FakeClient:
         return False
 
     async def get(self, *_args, **_kwargs):
+        self.get_calls += 1
         return self.response
 
     async def patch(self, *_args, **_kwargs):
@@ -228,6 +230,17 @@ class AdminTrackerSecurityTests(IsolatedAsyncioTestCase):
         with patch.object(admin_dashboard, "_get", new=AsyncMock(side_effect=RuntimeError("table missing"))):
             rows = await admin_dashboard._get_optional("hof_partner_leads?select=*")
         self.assertEqual(rows, [])
+
+    async def test_dashboard_dataset_loader_batches_independent_reads_with_one_client(self):
+        client = FakeClient(FakeResponse(200, [{"ok": True}]))
+        with patch.object(admin_dashboard.httpx, "AsyncClient", return_value=client):
+            rows = await admin_dashboard._get_dashboard_datasets(
+                ("hof_offers?select=id", False),
+                ("hof_offer_events?select=id", False),
+                ("hof_optional_metric?select=id", True),
+            )
+        self.assertEqual(rows, [[{"ok": True}], [{"ok": True}], [{"ok": True}]])
+        self.assertEqual(client.get_calls, 3)
 
     async def test_partner_lead_update_requires_uuid_and_allowlisted_status(self):
         lead_id = "e35eace9-2760-4b11-a01a-07ee65f2744e"

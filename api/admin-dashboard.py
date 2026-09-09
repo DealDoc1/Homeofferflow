@@ -1,4 +1,5 @@
 import os
+import asyncio
 import json
 import uuid
 import re
@@ -299,6 +300,38 @@ async def _get_optional(path):
     except Exception as exc:
         print(f"Optional admin dataset unavailable ({path}): {str(exc)[:300]}")
         return []
+
+
+async def _get_dashboard_datasets(*requests):
+    """Fetch independent admin datasets concurrently with one HTTP client.
+
+    The platform operations dashboard intentionally reports several bounded,
+    aggregate datasets. Fetching each one serially could exceed the browser's
+    response window on a cold function even when every individual query was
+    healthy. Keeping one client and gathering only independent reads reduces
+    latency without broadening data access or changing the response contract.
+    """
+    async with httpx.AsyncClient(timeout=12) as client:
+        async def fetch(path, optional):
+            try:
+                response = await client.get(
+                    f"{SUPABASE_URL}/rest/v1/{path}", headers=_headers()
+                )
+                if response.status_code >= 400:
+                    raise RuntimeError(
+                        f"Supabase {path} failed: {response.status_code} "
+                        f"{response.text[:300]}"
+                    )
+                return response.json()
+            except Exception as exc:
+                if optional:
+                    print(f"Optional admin dataset unavailable ({path}): {str(exc)[:300]}")
+                    return []
+                raise
+
+        return await asyncio.gather(
+            *(fetch(path, optional) for path, optional in requests)
+        )
 
 
 async def _record_offer_event(user_id, event_type, message, metadata=None):
@@ -4015,26 +4048,28 @@ class handler(BaseHTTPRequestHandler):
             if not asyncio.run(_is_platform_admin(user)):
                 _json(self, 403, {"error": "Admin access is not enabled for this account."})
                 return
-            offers = asyncio.run(_get("hof_offers?select=*&order=created_at.desc&limit=100"))
             # Keep activation reporting aggregate-only. The platform dashboard already
             # has a separate, permission-checked recent-offers view; these rows are
             # intentionally limited to lifecycle fields so the funnel never needs
-            # buyer, property, pricing, or document data.
-            agent_profiles = asyncio.run(_get_optional(
-                "hof_agent_profiles?select=user_id,agent_name,license_number,agent_email,agent_phone,brokerage_name&limit=2000"
+            # buyer, property, pricing, or document data. These reads are
+            # independent, so request them concurrently rather than serially
+            # consuming the browser timeout during a cold function start.
+            (
+                offers, agent_profiles, agent_lifecycle_offers, events, subs,
+                brokerages, brokerage_invites, all_partner_leads, seller_leads,
+                partner_placements,
+            ) = asyncio.run(_get_dashboard_datasets(
+                ("hof_offers?select=*&order=created_at.desc&limit=100", False),
+                ("hof_agent_profiles?select=user_id,agent_name,license_number,agent_email,agent_phone,brokerage_name&limit=2000", True),
+                ("hof_offers?role=eq.agent&deleted_at=is.null&select=user_id,status,signwell_status,created_at,updated_at&limit=2000", True),
+                ("hof_offer_events?select=*&order=created_at.desc&limit=2000", False),
+                ("hof_subscriptions?select=*&order=created_at.desc&limit=50", False),
+                ("hof_brokerages?select=*&order=created_at.desc&limit=50", False),
+                ("hof_brokerage_invites?select=status,created_at,accepted_at,expires_at&order=created_at.desc&limit=2000", True),
+                ("hof_partner_leads?select=*&order=created_at.desc&limit=100", True),
+                ("hof_seller_leads?select=id,property_address,property_city,property_county,property_state,property_zip,seller_name,seller_email,seller_phone,asking_price,service_level,package_name,package_price,timeline,partner_categories,source,utm_source,utm_medium,utm_campaign,utm_content,notes,status,created_at,updated_at&order=created_at.desc&limit=200", True),
+                ("hof_partner_placements?select=id,source_lead_id,partner_type,partner_name,website_url,logo_url,market_area,placement_tier,monthly_fee,is_active,created_at,activated_at,agreement_confirmed_at&brokerage_id=is.null&order=created_at.desc&limit=100", True),
             ))
-            agent_lifecycle_offers = asyncio.run(_get_optional(
-                "hof_offers?role=eq.agent&deleted_at=is.null&select=user_id,status,signwell_status,created_at,updated_at&limit=2000"
-            ))
-            # Keep funnel/cohort metrics representative beyond the most recent
-            # page while bounding the admin payload for predictable latency.
-            events = asyncio.run(_get("hof_offer_events?select=*&order=created_at.desc&limit=2000"))
-            subs = asyncio.run(_get("hof_subscriptions?select=*&order=created_at.desc&limit=50")) if True else []
-            brokerages = asyncio.run(_get("hof_brokerages?select=*&order=created_at.desc&limit=50"))
-            brokerage_invites = asyncio.run(_get_optional(
-                "hof_brokerage_invites?select=status,created_at,accepted_at,expires_at&order=created_at.desc&limit=2000"
-            ))
-            all_partner_leads = asyncio.run(_get_optional("hof_partner_leads?select=*&order=created_at.desc&limit=100"))
             # Test-mode Stripe records are useful QA evidence but must never
             # appear as paid partners, onboarding gaps, or follow-up work in
             # the live operations dashboard.
@@ -4044,12 +4079,6 @@ class handler(BaseHTTPRequestHandler):
             partner_leads = [
                 lead for lead in all_partner_leads if not _is_sandbox_partner_lead(lead)
             ]
-            seller_leads = asyncio.run(_get_optional(
-                "hof_seller_leads?select=id,property_address,property_city,property_county,property_state,property_zip,"
-                "seller_name,seller_email,seller_phone,asking_price,service_level,package_name,package_price,"
-                "timeline,partner_categories,source,utm_source,utm_medium,utm_campaign,utm_content,notes,status,created_at,updated_at&order=created_at.desc&limit=200"
-            ))
-            partner_placements = asyncio.run(_get_optional("hof_partner_placements?select=id,source_lead_id,partner_type,partner_name,website_url,logo_url,market_area,placement_tier,monthly_fee,is_active,created_at,activated_at,agreement_confirmed_at&brokerage_id=is.null&order=created_at.desc&limit=100"))
             active_partner_source_lead_ids = {
                 str(placement.get("source_lead_id") or "")
                 for placement in partner_placements
@@ -4149,23 +4178,24 @@ class handler(BaseHTTPRequestHandler):
             for lead in paid_partner_activation_queue:
                 code = str((lead.get("activation_readiness") or {}).get("code") or "unknown")
                 paid_partner_activation_readiness_counts[code] = paid_partner_activation_readiness_counts.get(code, 0) + 1
-            roadmap = asyncio.run(_get("hof_roadmap_items?select=*&order=priority.asc&limit=100"))
-            qa_scenarios = asyncio.run(_get("hof_qa_scenarios?select=*&active=eq.true&order=priority.asc&limit=100"))
-            qa_runs = asyncio.run(_get("hof_qa_runs?select=*&order=created_at.desc&limit=50"))
-            releases = asyncio.run(_get("hof_releases?select=*&order=created_at.desc&limit=20"))
-            stripe_webhook_events = asyncio.run(_get_optional(
-                "hof_stripe_webhook_events?select=stripe_event_id,event_type,livemode,processing_state,error_code,received_at,processed_at&order=received_at.desc&limit=50"
+            (
+                roadmap, qa_scenarios, qa_runs, releases,
+                stripe_webhook_events, feedback,
+            ) = asyncio.run(_get_dashboard_datasets(
+                ("hof_roadmap_items?select=*&order=priority.asc&limit=100", False),
+                ("hof_qa_scenarios?select=*&active=eq.true&order=priority.asc&limit=100", False),
+                ("hof_qa_runs?select=*&order=created_at.desc&limit=50", False),
+                ("hof_releases?select=*&order=created_at.desc&limit=20", False),
+                ("hof_stripe_webhook_events?select=stripe_event_id,event_type,livemode,processing_state,error_code,received_at,processed_at&order=received_at.desc&limit=50", True),
+                # Keep direct account email, user-agent, and page URL out of
+                # the dashboard response; the existing feedback record stays
+                # available for support workflows.
+                ("hof_feedback?select=id,issue_type,calibration_scenario,message,status,role,created_at&order=created_at.desc&limit=100", True),
             ))
             stripe_webhook_event_type_counts = {}
             for item in stripe_webhook_events:
                 event_type = str(item.get("event_type") or "unknown").strip().lower()[:80] or "unknown"
                 stripe_webhook_event_type_counts[event_type] = stripe_webhook_event_type_counts.get(event_type, 0) + 1
-            # Platform-admin-only calibration feed. Keep direct account email,
-            # user-agent, and page URL out of the dashboard response; the
-            # existing feedback record remains available for support workflows.
-            feedback = asyncio.run(_get_optional(
-                "hof_feedback?select=id,issue_type,calibration_scenario,message,status,role,created_at&order=created_at.desc&limit=100"
-            ))
             missing_form_request_count = len([
                 item for item in feedback if str(item.get("issue_type") or "").lower() == "missing_addendum"
             ])
