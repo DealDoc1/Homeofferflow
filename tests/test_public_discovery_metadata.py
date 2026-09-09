@@ -82,17 +82,17 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
             self.assertIn(form_code, AGENTS)
         self.assertNotIn('hof-live-form-scope-copy-v1', AGENTS)
 
-    def test_agent_form_library_structured_data_uses_the_correct_form_names(self):
+    def test_agent_form_library_structured_data_uses_customer_facing_form_workflow_names(self):
         expected_names = (
-            "TXR-1501 Buyer/Tenant Representation Agreement - Long Form review draft",
-            "TXR-1506 General Information and Notice to Consumers review draft",
-            "TXR-1507 Residential Buyer/Tenant Representation Agreement - Short Form review draft",
-            "TXR-1905 Addendum for Reservation of Oil, Gas, and Other Minerals review draft",
-            "TXR-1914 Seller Financing Addendum review draft",
-            "TXR-1917 Environmental Assessment Addendum review draft",
-            "TXR-1948 Addendum Concerning Right to Terminate Due to Lender's Appraisal review draft",
-            "TXR-1953 Addendum Regarding Residential Leases review draft",
-            "TXR-1954 Addendum Regarding Fixture Leases review draft",
+            "TXR-1501 Buyer/Tenant Representation Agreement - Long Form preparation workflow",
+            "TXR-1506 General Information and Notice to Consumers preparation workflow",
+            "TXR-1507 Residential Buyer/Tenant Representation Agreement - Short Form preparation workflow",
+            "TXR-1905 Addendum for Reservation of Oil, Gas, and Other Minerals preparation workflow",
+            "TXR-1914 Seller Financing Addendum preparation workflow",
+            "TXR-1917 Environmental Assessment Addendum preparation workflow",
+            "TXR-1948 Addendum Concerning Right to Terminate Due to Lender's Appraisal preparation workflow",
+            "TXR-1953 Addendum Regarding Residential Leases preparation workflow",
+            "TXR-1954 Addendum Regarding Fixture Leases preparation workflow",
         )
         for name in expected_names:
             self.assertIn(name, AGENT_FORM_LIBRARY)
