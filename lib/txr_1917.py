@@ -72,11 +72,11 @@ def build_signwell_fields_txr1917(data, *, client_count=None):
         raise ValueError("TXR-1917 requires one or two Buyers and one or two Sellers.")
 
     fields = [
-        {"api_id": "txr1917_buyer1_signature_p1", "type": "signature", "page": 1, "x": 70, "y": 689, "recipient_id": "1", "required": True, "width": 313, "height": 24},
-        {"api_id": "txr1917_seller1_signature_p1", "type": "signature", "page": 1, "x": 433, "y": 689, "recipient_id": str(len(buyers) + 1), "required": True, "width": 313, "height": 24},
+        {"api_id": "txr1917_buyer1_signature_p1", "type": "signature", "page": 1, "x": 70, "y": 686, "recipient_id": "1", "required": True, "width": 313, "height": 24},
+        {"api_id": "txr1917_seller1_signature_p1", "type": "signature", "page": 1, "x": 433, "y": 686, "recipient_id": str(len(buyers) + 1), "required": True, "width": 313, "height": 24},
     ]
     if len(buyers) == 2:
-        fields.append({"api_id": "txr1917_buyer2_signature_p1", "type": "signature", "page": 1, "x": 70, "y": 785, "recipient_id": "2", "required": True, "width": 313, "height": 24})
+        fields.append({"api_id": "txr1917_buyer2_signature_p1", "type": "signature", "page": 1, "x": 70, "y": 780, "recipient_id": "2", "required": True, "width": 313, "height": 24})
     if len(sellers) == 2:
-        fields.append({"api_id": "txr1917_seller2_signature_p1", "type": "signature", "page": 1, "x": 433, "y": 785, "recipient_id": str(len(buyers) + 2), "required": True, "width": 313, "height": 24})
+        fields.append({"api_id": "txr1917_seller2_signature_p1", "type": "signature", "page": 1, "x": 433, "y": 780, "recipient_id": str(len(buyers) + 2), "required": True, "width": 313, "height": 24})
     return [fields]

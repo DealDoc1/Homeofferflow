@@ -54,8 +54,8 @@ class Txr1919RendererTests(unittest.TestCase):
             [(field["api_id"], field["page"], field["x"], field["y"], field["recipient_id"])
              for field in one_each],
             [
-                ("txr1919_buyer1_signature_p2", 2, 60, 656, "1"),
-                ("txr1919_seller1_signature_p2", 2, 432, 656, "2"),
+                ("txr1919_buyer1_signature_p2", 2, 60, 632, "1"),
+                ("txr1919_seller1_signature_p2", 2, 432, 632, "2"),
             ],
         )
 
@@ -67,10 +67,10 @@ class Txr1919RendererTests(unittest.TestCase):
             [(field["api_id"], field["y"], field["recipient_id"])
              for field in two_each],
             [
-                ("txr1919_buyer1_signature_p2", 656, "1"),
-                ("txr1919_seller1_signature_p2", 656, "3"),
-                ("txr1919_buyer2_signature_p2", 739, "2"),
-                ("txr1919_seller2_signature_p2", 739, "4"),
+                ("txr1919_buyer1_signature_p2", 632, "1"),
+                ("txr1919_seller1_signature_p2", 632, "3"),
+                ("txr1919_buyer2_signature_p2", 716, "2"),
+                ("txr1919_seller2_signature_p2", 716, "4"),
             ],
         )
 

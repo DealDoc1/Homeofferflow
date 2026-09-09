@@ -69,8 +69,8 @@ class Txr1914RendererTests(unittest.TestCase):
             [
                 ("txr1914_buyer1_signature_p2", 718, "1"),
                 ("txr1914_seller1_signature_p2", 718, "3"),
-                ("txr1914_buyer2_signature_p2", 810, "2"),
-                ("txr1914_seller2_signature_p2", 810, "4"),
+                ("txr1914_buyer2_signature_p2", 820, "2"),
+                ("txr1914_seller2_signature_p2", 820, "4"),
             ],
         )
 

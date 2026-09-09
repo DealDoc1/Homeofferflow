@@ -133,7 +133,7 @@ def build_signwell_fields_txr1914(data, *, client_count=None):
         {"api_id": "txr1914_seller1_signature_p2", "type": "signature", "page": 2, "x": 415, "y": 718, "recipient_id": str(len(buyers) + 1), "required": True, "width": 340, "height": 24},
     ]
     if len(buyers) == 2:
-        fields.append({"api_id": "txr1914_buyer2_signature_p2", "type": "signature", "page": 2, "x": 55, "y": 810, "recipient_id": "2", "required": True, "width": 340, "height": 24})
+        fields.append({"api_id": "txr1914_buyer2_signature_p2", "type": "signature", "page": 2, "x": 55, "y": 820, "recipient_id": "2", "required": True, "width": 340, "height": 24})
     if len(sellers) == 2:
-        fields.append({"api_id": "txr1914_seller2_signature_p2", "type": "signature", "page": 2, "x": 415, "y": 810, "recipient_id": str(len(buyers) + 2), "required": True, "width": 340, "height": 24})
+        fields.append({"api_id": "txr1914_seller2_signature_p2", "type": "signature", "page": 2, "x": 415, "y": 820, "recipient_id": str(len(buyers) + 2), "required": True, "width": 340, "height": 24})
     return [fields]

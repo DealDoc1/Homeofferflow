@@ -110,11 +110,11 @@ def build_signwell_fields_txr1919(data, *, client_count=None):
         raise ValueError("TXR-1919 requires one or two Buyers and one or two Sellers.")
 
     fields = [
-        {"api_id": "txr1919_buyer1_signature_p2", "type": "signature", "page": 2, "x": 60, "y": 656, "recipient_id": "1", "required": True, "width": 325, "height": 24},
-        {"api_id": "txr1919_seller1_signature_p2", "type": "signature", "page": 2, "x": 432, "y": 656, "recipient_id": str(len(buyers) + 1), "required": True, "width": 325, "height": 24},
+        {"api_id": "txr1919_buyer1_signature_p2", "type": "signature", "page": 2, "x": 60, "y": 632, "recipient_id": "1", "required": True, "width": 325, "height": 24},
+        {"api_id": "txr1919_seller1_signature_p2", "type": "signature", "page": 2, "x": 432, "y": 632, "recipient_id": str(len(buyers) + 1), "required": True, "width": 325, "height": 24},
     ]
     if len(buyers) == 2:
-        fields.append({"api_id": "txr1919_buyer2_signature_p2", "type": "signature", "page": 2, "x": 60, "y": 739, "recipient_id": "2", "required": True, "width": 325, "height": 24})
+        fields.append({"api_id": "txr1919_buyer2_signature_p2", "type": "signature", "page": 2, "x": 60, "y": 716, "recipient_id": "2", "required": True, "width": 325, "height": 24})
     if len(sellers) == 2:
-        fields.append({"api_id": "txr1919_seller2_signature_p2", "type": "signature", "page": 2, "x": 432, "y": 739, "recipient_id": str(len(buyers) + 2), "required": True, "width": 325, "height": 24})
+        fields.append({"api_id": "txr1919_seller2_signature_p2", "type": "signature", "page": 2, "x": 432, "y": 716, "recipient_id": str(len(buyers) + 2), "required": True, "width": 325, "height": 24})
     return [fields]
