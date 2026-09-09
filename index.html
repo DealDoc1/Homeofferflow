@@ -21364,7 +21364,7 @@ function routeAfterMagicLinkIfNeeded() {
       const status = document.getElementById('hofSellerDraftStatus');
       if (status) status.textContent = draft.sellerReviewProgress?.requested && !draft.seller_review_attested
         ? 'Draft loaded. Review recipient details are restored so you can resend the secure seller review request.'
-        : 'Draft loaded. Save creates a new private revision; seller review and signing remain inactive.';
+        : 'Draft loaded. You can update it, preview the disclosure, or send it to the seller for review.';
       card.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   };
@@ -21496,7 +21496,7 @@ function routeAfterMagicLinkIfNeeded() {
         const response = await fetch('/api/admin-dashboard',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer ' + token},body:JSON.stringify(payload)});
         const result = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(result.error || 'Could not save seller disclosure draft.');
-        status.textContent = (payload.action === 'update_seller_disclosure_draft' ? 'Private draft updated.' : 'Saved as a private draft.') + ' Seller review and signing are not active yet.';
+        status.textContent = (payload.action === 'update_seller_disclosure_draft' ? 'Private draft updated.' : 'Saved as a private draft.') + ' Preview it or send it to the seller for review when you are ready.';
         card.dataset.sellerDraftId = result.draft?.id || '';
         card.dataset.loadedDraftId = result.draft?.id || '';
         const sendButton = document.getElementById('hofSendSellerReview');
@@ -21530,7 +21530,7 @@ function routeAfterMagicLinkIfNeeded() {
         const response = await fetch('/api/admin-dashboard',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer ' + token},body:JSON.stringify({action:'create_seller_disclosure_review_link',draftId,sellerNames:[seller1Name,seller2Name].filter(Boolean),sellerReviews})});
         const result = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(result.error || 'Could not send seller review email.');
-        status.textContent = 'Secure review email sent. The seller must verify the one-time code; signing is not active.';
+        status.textContent = 'Secure review email sent. The seller will verify a one-time code before reviewing the draft.';
         root.logOfferEvent?.(null, 'seller_review_request_sent', 'sent', 'Seller disclosure review request sent.', {
           sellerCount: sellerReviews.length
         });
