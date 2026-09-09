@@ -129,7 +129,8 @@ class TxrSignerGeometryTests(unittest.TestCase):
             ("txr1506_client2_date_p6", 939),
         ):
             with self.subTest(field_id=field_id):
-                self.assertEqual(fields[field_id]["x"], 455)
+                self.assertEqual(fields[field_id]["x"], 432)
+                self.assertEqual(fields[field_id]["width"], 84)
                 self.assertEqual(fields[field_id]["y"], row_y)
 
     def test_paragraph4_signatures_stay_on_the_source_rules_above_party_labels(self):

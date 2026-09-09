@@ -42,9 +42,16 @@ class Txr1506RendererTests(unittest.TestCase):
         self.assertEqual(len(two), 16)
         self.assertTrue(all(field["page"] in {1, 2, 3, 4, 5, 6} for field in two))
         self.assertEqual(next(field["y"] for field in two if field["api_id"] == "txr1506_associate_signature_p6"), 800)
-        self.assertEqual(next(field["x"] for field in two if field["api_id"] == "txr1506_associate_date_p6"), 455)
+        self.assertEqual(next(field["x"] for field in two if field["api_id"] == "txr1506_associate_date_p6"), 432)
         self.assertEqual(next(field["y"] for field in two if field["api_id"] == "txr1506_client1_signature_p6"), 893)
         self.assertEqual(next(field["y"] for field in two if field["api_id"] == "txr1506_client2_signature_p6"), 939)
+        first_page = {field["api_id"]: field for field in two if field["page"] == 1}
+        later_page = {field["api_id"]: field for field in two if field["page"] == 2}
+        self.assertEqual((first_page["txr1506_client1_initials_p1"]["x"], first_page["txr1506_client1_initials_p1"]["width"]), (444, 50))
+        self.assertEqual((first_page["txr1506_client2_initials_p1"]["x"], first_page["txr1506_client2_initials_p1"]["width"]), (512, 40))
+        self.assertEqual((later_page["txr1506_client1_initials_p2"]["x"], later_page["txr1506_client1_initials_p2"]["width"]), (480, 55))
+        self.assertEqual((later_page["txr1506_client2_initials_p2"]["x"], later_page["txr1506_client2_initials_p2"]["width"]), (554, 55))
+        self.assertTrue(all(field["y"] == 976 for field in two if field["type"] == "initials"))
         with self.assertRaisesRegex(ValueError, "authorized broker"):
             build_signwell_fields_txr1506({**sample_data(), "signer_plan": ""}, client_count=1)
         with self.assertRaisesRegex(ValueError, "authorized broker"):

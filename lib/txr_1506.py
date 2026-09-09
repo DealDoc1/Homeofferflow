@@ -74,26 +74,37 @@ def build_signwell_fields_txr1506(data, *, client_count=1):
     if signer_plan not in {"consumers_and_associate", "consumers_and_broker"}:
         raise ValueError("Choose an authorized broker or broker-associate signer for the TXR-1506 notice.")
     fields = []
+    # Page 1 uses shorter, left-shifted acknowledgement blanks. Pages 2–5
+    # share a wider pair farther right. One coordinate for all five pages put
+    # the first signer in the wrong blank and the second beyond it.
+    initials_rows = {
+        1: ((444, 50), (512, 40)),
+        2: ((480, 55), (554, 55)),
+        3: ((480, 55), (554, 55)),
+        4: ((480, 55), (554, 55)),
+        5: ((480, 55), (554, 55)),
+    }
     for page in range(1, 6):
-        fields.append({"api_id": f"txr1506_client1_initials_p{page}", "type": "initials", "page": page, "x": 520, "y": 1000, "recipient_id": "1", "required": True, "width": 44, "height": 16})
+        (client1_x, client1_width), (client2_x, client2_width) = initials_rows[page]
+        fields.append({"api_id": f"txr1506_client1_initials_p{page}", "type": "initials", "page": page, "x": client1_x, "y": 976, "recipient_id": "1", "required": True, "width": client1_width, "height": 16})
         if client_count == 2:
-            fields.append({"api_id": f"txr1506_client2_initials_p{page}", "type": "initials", "page": page, "x": 620, "y": 1000, "recipient_id": "2", "required": True, "width": 44, "height": 16})
+            fields.append({"api_id": f"txr1506_client2_initials_p{page}", "type": "initials", "page": page, "x": client2_x, "y": 976, "recipient_id": "2", "required": True, "width": client2_width, "height": 16})
     fields.extend([
         {"api_id": "txr1506_client1_signature_p6", "type": "signature", "page": 6, "x": 60, "y": 893, "recipient_id": "1", "required": True, "width": 190, "height": 26},
-        {"api_id": "txr1506_client1_date_p6", "type": "date", "page": 6, "x": 455, "y": 893, "recipient_id": "1", "required": True, "width": 88, "height": 20, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
+        {"api_id": "txr1506_client1_date_p6", "type": "date", "page": 6, "x": 432, "y": 893, "recipient_id": "1", "required": True, "width": 84, "height": 20, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
     ])
     if client_count == 2:
         fields.extend([
             {"api_id": "txr1506_client2_signature_p6", "type": "signature", "page": 6, "x": 60, "y": 939, "recipient_id": "2", "required": True, "width": 190, "height": 26},
-            {"api_id": "txr1506_client2_date_p6", "type": "date", "page": 6, "x": 455, "y": 939, "recipient_id": "2", "required": True, "width": 88, "height": 20, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
+            {"api_id": "txr1506_client2_date_p6", "type": "date", "page": 6, "x": 432, "y": 939, "recipient_id": "2", "required": True, "width": 84, "height": 20, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
         ])
     role = "associate" if signer_plan == "consumers_and_associate" else "broker"
     fields.extend([
         {"api_id": f"txr1506_{role}_signature_p6", "type": "signature", "page": 6, "x": 60, "y": 800, "recipient_id": role, "required": True, "width": 190, "height": 26},
         # The source uses the same right-hand Date column for the provider
-        # acknowledgement and each consumer acknowledgement.  Keeping this
-        # at x=455 seats the SignWell date on that printed rule rather than
-        # over the provider-signature description.
-        {"api_id": f"txr1506_{role}_date_p6", "type": "date", "page": 6, "x": 455, "y": 800, "recipient_id": role, "required": True, "width": 88, "height": 20, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
+        # acknowledgement and each consumer acknowledgement. Keeping each
+        # widget inside that printed rule prevents it from covering the
+        # caption or extending into the page margin.
+        {"api_id": f"txr1506_{role}_date_p6", "type": "date", "page": 6, "x": 432, "y": 800, "recipient_id": role, "required": True, "width": 84, "height": 20, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
     ])
     return [fields]
