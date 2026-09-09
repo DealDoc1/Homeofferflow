@@ -97,6 +97,22 @@ class BuyerTemporaryLeaseStagingTests(unittest.TestCase):
     def setUpClass(cls):
         configure_local_forms()
 
+    def test_closing_interview_exposes_the_supported_buyer_temporary_lease(self):
+        html = (ROOT / "index.html").read_text(encoding="utf-8")
+        self.assertIn('value="buyerTemporaryLease">Buyer occupies temporarily after closing', html)
+        for field_id in (
+            "buyerTemporaryLeaseStartDate",
+            "buyerTemporaryLeaseRentPerDay",
+            "buyerTemporaryLeaseTotalRent",
+            "buyerTemporaryLeaseDeposit",
+            "buyerTemporaryLeaseUtilitiesPaidBySeller",
+            "buyerTemporaryLeasePetsAllowed",
+            "buyerTemporaryLeaseSpecialProvisions",
+            "buyerTemporaryLeaseHoldoverPerDay",
+        ):
+            with self.subTest(field_id=field_id):
+                self.assertIn(field_id, html)
+
     def test_staging_appends_current_two_page_16_7(self):
         packet = staging.fill_and_merge(buyer_temp_offer())
         reader = PdfReader(BytesIO(packet))
