@@ -166,8 +166,13 @@ class TxrSignerGeometryTests(unittest.TestCase):
             field["api_id"]: field
             for field in build_signwell_fields_txr1508(data, client_count=2)[0]
         }
-        self.assertEqual(fields["txr1508_agent_initials_p1"]["x"], 370)
+        self.assertEqual(fields["txr1508_agent_initials_p1"]["x"], 347)
         self.assertEqual(fields["txr1508_agent_initials_p1"]["y"], 672)
+        self.assertLess(
+            fields["txr1508_agent_initials_p1"]["x"] + fields["txr1508_agent_initials_p1"]["width"],
+            430,
+            "agent initials must finish before the printed Date label",
+        )
         self.assertEqual(fields["txr1508_client1_initials_p1"]["x"], 520)
 
     def test_every_supported_form_has_valid_non_overlapping_signer_widgets(self):
