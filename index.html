@@ -4893,7 +4893,10 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     try {
       const token = hofAuth.session.access_token;
       const controller = new AbortController();
-      const requestTimeout = window.setTimeout(() => controller.abort(), 15000);
+      // A cold serverless start plus the bounded aggregate reads can exceed
+      // 15 seconds. Keep a finite timeout without treating a healthy cold
+      // start as a failed dashboard.
+      const requestTimeout = window.setTimeout(() => controller.abort(), 30000);
       let response;
       try {
         response = await fetch('/api/admin-dashboard', {
