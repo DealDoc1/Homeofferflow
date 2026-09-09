@@ -1083,14 +1083,13 @@ class OnDemandLaunchPageTests(unittest.TestCase):
         for text in (
             "buyer-offer package",
             "seller temporary residential lease when seller post-closing possession applies",
-            "guided document preparation",
             "shared library",
-            "relationship, consumer-notice, seller-disclosure, seller-financing, and mineral-reservation",
+            "guided buyer or tenant representation",
+            "financing, assumption, appraisal, environmental, mineral, and lease-addendum workflows",
             "listing agreements",
             "remain separate from this plan",
-            "Texas REALTORS® / NAR member-form workflows",
-            "own eligibility and use requirements",
-            "show the available next step",
+            "every signed-in agent",
+            "prepare, review, or send",
         ):
             self.assertIn(text.lower(), LAUNCH_HTML.lower())
         self.assertIn("See your document options", LAUNCH_HTML)
