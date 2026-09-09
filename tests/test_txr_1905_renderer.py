@@ -4,7 +4,7 @@ import unittest
 from pypdf import PdfReader
 from reportlab.pdfgen.canvas import Canvas
 
-from lib.txr_1905 import render_txr_1905
+from lib.txr_1905 import build_signwell_fields_txr1905, render_txr_1905
 
 
 def blank_one_page_pdf():
@@ -43,6 +43,39 @@ class Txr1905RendererTests(unittest.TestCase):
     def test_renderer_rejects_a_non_matching_source_length(self):
         with self.assertRaisesRegex(ValueError, "exactly one page"):
             render_txr_1905(blank_two_page_pdf(), {})
+
+    def test_signwell_fields_follow_the_two_source_signature_rows(self):
+        one_each = build_signwell_fields_txr1905({
+            "buyer_names": ["Buyer One"],
+            "seller_names": ["Seller One"],
+        })[0]
+        self.assertEqual(
+            [(field["api_id"], field["page"], field["x"], field["y"], field["recipient_id"])
+             for field in one_each],
+            [
+                ("txr1905_buyer1_signature_p1", 1, 75, 795, "1"),
+                ("txr1905_seller1_signature_p1", 1, 440, 795, "2"),
+            ],
+        )
+
+        two_each = build_signwell_fields_txr1905({
+            "buyer_names": ["Buyer One", "Buyer Two"],
+            "seller_names": ["Seller One", "Seller Two"],
+        })[0]
+        self.assertEqual(
+            [(field["api_id"], field["y"], field["recipient_id"])
+             for field in two_each],
+            [
+                ("txr1905_buyer1_signature_p1", 795, "1"),
+                ("txr1905_seller1_signature_p1", 795, "3"),
+                ("txr1905_buyer2_signature_p1", 886, "2"),
+                ("txr1905_seller2_signature_p1", 886, "4"),
+            ],
+        )
+
+    def test_signwell_fields_require_named_parties(self):
+        with self.assertRaisesRegex(ValueError, "one or two Buyers"):
+            build_signwell_fields_txr1905({"buyer_names": [], "seller_names": ["Seller"]})
 
 
 if __name__ == "__main__":
