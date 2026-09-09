@@ -5011,6 +5011,22 @@ class handler(BaseHTTPRequestHandler):
                 milestone: len(user_ids)
                 for milestone, user_ids in activation_milestone_users.items()
             }
+            # Historical accounts can have an offer or subscription milestone
+            # recorded before the newer profile milestone existed. Keep those
+            # activity totals visible, but calculate funnel conversion only
+            # from users observed at both adjacent stages. A funnel rate must
+            # never exceed 100% because its cohorts were collected at different
+            # times.
+            activation_milestone_conversion_counts = {
+                "profile_to_first_offer": len(
+                    activation_milestone_users["profile"]
+                    & activation_milestone_users["first_offer"]
+                ),
+                "first_offer_to_subscription": len(
+                    activation_milestone_users["first_offer"]
+                    & activation_milestone_users["subscription"]
+                ),
+            }
             subscription_checkout_start_count = len([
                 item for item in events if item.get("event_type") == "subscription_checkout_started"
             ])
@@ -6253,11 +6269,12 @@ class handler(BaseHTTPRequestHandler):
                 "activationFollowUpEmailStartCount": activation_follow_up_email_start_count,
                 "brokerageActivationFollowUpEmailStartCount": brokerage_activation_follow_up_email_start_count,
                 "activationMilestoneCounts": activation_milestone_counts,
+                "activationMilestoneConversionCounts": activation_milestone_conversion_counts,
                 "activationFirstOfferRate": round((
-                    activation_milestone_counts["first_offer"] / activation_milestone_counts["profile"]
+                    activation_milestone_conversion_counts["profile_to_first_offer"] / activation_milestone_counts["profile"]
                 ) * 100, 1) if activation_milestone_counts["profile"] else 0,
                 "activationSubscriptionRate": round((
-                    activation_milestone_counts["subscription"] / activation_milestone_counts["first_offer"]
+                    activation_milestone_conversion_counts["first_offer_to_subscription"] / activation_milestone_counts["first_offer"]
                 ) * 100, 1) if activation_milestone_counts["first_offer"] else 0,
                 "feedbackCount": len(feedback),
                 "missingFormRequestCount": missing_form_request_count,

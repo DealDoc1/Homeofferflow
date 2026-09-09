@@ -13,6 +13,9 @@ class ActivationMilestoneMetricTests(unittest.TestCase):
         self.assertIn('activation_milestone_users[milestone].add(user_id)', source)
         self.assertIn('milestone: len(user_ids)', source)
         self.assertIn('activationMilestoneCounts', source)
+        self.assertIn('activationMilestoneConversionCounts', source)
+        self.assertIn('activation_milestone_users["profile"]\n                    & activation_milestone_users["first_offer"]', source)
+        self.assertIn('activation_milestone_users["first_offer"]\n                    & activation_milestone_users["subscription"]', source)
         self.assertIn('activationFirstOfferRate', source)
         self.assertIn('activationSubscriptionRate', source)
 
@@ -21,7 +24,8 @@ class ActivationMilestoneMetricTests(unittest.TestCase):
         self.assertIn('Agent Activation Milestone Reached', source)
         self.assertIn('hof_activation_milestone_', source)
         self.assertIn('first_offer', source)
-        self.assertIn('Milestone conversion', source)
+        self.assertIn('Cohort conversion', source)
+        self.assertIn('Each rate includes only agents observed at both stages.', source)
         self.assertIn('activationFirstOfferRate', source)
         self.assertIn('activationSubscriptionRate', source)
 
