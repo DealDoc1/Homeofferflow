@@ -31,6 +31,15 @@ class SellerDisclosureAgentUiTests(unittest.TestCase):
         self.assertIn('hof-seller-step-number', html)
         self.assertIn('workspace.open = true;', html)
 
+    def test_customer_status_copy_describes_next_actions_not_internal_release_state(self):
+        html = (ROOT / "index.html").read_text()
+        start = html.index('<script id="hof-seller-disclosure-draft-ui-v1">')
+        end = html.index('</script>', start)
+        script = html[start:end].lower()
+        self.assertNotIn("seller review and signing remain inactive", script)
+        self.assertNotIn("seller review and signing are not active", script)
+        self.assertIn("preview it or send it to the seller for review", script)
+
     def test_response_controls_cover_all_mapped_groups(self):
         html = (ROOT / "index.html").read_text()
         for key in (
