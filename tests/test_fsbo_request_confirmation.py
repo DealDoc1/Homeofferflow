@@ -13,7 +13,7 @@ class FsboRequestConfirmationTests(unittest.TestCase):
         self.assertIn("downloadFsboRequestSummary", HTML)
         self.assertIn("homeofferflow-fsbo-seller-plan.txt", HTML)
         self.assertIn("Seller request saved", HTML)
-        self.assertIn("confirm scope, provider involvement, availability, and final pricing", HTML)
+        self.assertIn("confirm the scope, provider involvement, availability, and final pricing", HTML)
         self.assertIn("This is an intake record, not checkout", HTML)
         self.assertIn("const fsboNextSteps", HTML)
         self.assertIn("Your next steps:", HTML)
@@ -138,17 +138,19 @@ class FsboRequestConfirmationTests(unittest.TestCase):
         self.assertIn("seller_follow_up", api)
         self.assertIn("A copy of this request was also emailed to you.", HTML)
 
-    def test_free_seller_plan_is_immediately_usable_while_paid_paths_still_require_scope_confirmation(self):
+    def test_free_seller_plan_is_immediately_usable_without_gate_like_review_copy(self):
         self.assertIn("const scopeNote = payload.service_level === 'free_intake'", HTML)
         self.assertIn("Your free seller plan is ready to use.", HTML)
         self.assertIn("If you later request paid support", HTML)
-        self.assertIn("A qualified human review is required", HTML)
+        self.assertIn("with you before any payment is requested.", HTML)
+        self.assertNotIn("A qualified human review is required", HTML)
 
         spec = importlib.util.spec_from_file_location("fsbo_plan_scope_note", API_PATH)
         api = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(api)
         self.assertIn("free seller plan is ready to use", api._seller_plan_scope_note("free_intake"))
-        self.assertIn("is required", api._seller_plan_scope_note("flat_fee_mls"))
+        self.assertIn("Your request is recorded", api._seller_plan_scope_note("flat_fee_mls"))
+        self.assertIn("before any payment is requested", api._seller_plan_scope_note("flat_fee_mls"))
 
     def test_duplicate_seller_request_recovers_the_receipt_without_creating_a_second_lead(self):
         api = API_PATH.read_text(encoding="utf-8")

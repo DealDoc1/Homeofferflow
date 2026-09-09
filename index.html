@@ -15242,8 +15242,8 @@ function routeAfterMagicLinkIfNeeded() {
       const steps = fsboNextSteps[fsboVal('fsboNeed')] || fsboNextSteps.free_intake;
       const readiness = fsboReadinessPlan(payload.timeline);
       const scopeNote = payload.service_level === 'free_intake'
-        ? 'Your free seller plan is ready to use. If you later request paid support, a qualified human review will confirm scope, provider involvement, availability, and final pricing before any paid service begins.'
-        : 'A qualified human review is required to confirm scope, provider involvement, availability, and final pricing before any paid service begins.';
+        ? 'Your free seller plan is ready to use. If you later request paid support, we will confirm the scope, provider involvement, availability, and final pricing with you before any payment is requested.'
+        : 'Your request is recorded. We will confirm the scope, provider involvement, availability, and final pricing with you before any payment is requested.';
       trackFsboFunnel('FSBO Seller Readiness Plan Delivered', { package: payload.service_level, timeline: payload.timeline });
       if (status) {
         const emailReceipt = data.seller_plan_email === 'sent'

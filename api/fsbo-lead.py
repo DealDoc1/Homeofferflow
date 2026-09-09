@@ -363,16 +363,16 @@ def _seller_plan_receipt_steps(payload):
 
 
 def _seller_plan_scope_note(service_level):
-    """Explain the next decision without making the free plan feel gated."""
+    """Explain the next decision without making a seller's plan feel gated."""
     if service_level == "free_intake":
         return (
             "Your free seller plan is ready to use. If you later request paid support, "
-            "a qualified human review will confirm scope, provider involvement, availability, and final pricing "
-            "before any paid service begins."
+            "we will confirm the scope, provider involvement, availability, and final pricing with you "
+            "before any payment is requested."
         )
     return (
-        "A qualified human review is required to confirm scope, provider involvement, availability, and final pricing "
-        "before any paid service begins."
+        "Your request is recorded. We will confirm the scope, provider involvement, availability, and final pricing "
+        "with you before any payment is requested."
     )
 
 
