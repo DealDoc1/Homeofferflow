@@ -116,6 +116,17 @@ class HomebuyerLandingFunnelTests(unittest.TestCase):
         self.assertIn("pwaBuyerOfferShortcutCount", INDEX)
         self.assertIn("event_type: 'pwa_buyer_offer_opened', channel: 'pwa_shortcut'", INDEX)
 
+    def test_guided_workspace_rate_uses_landing_views_not_cta_clicks(self):
+        self.assertIn(
+            "(homebuyer_landing_offer_started_count / homebuyer_landing_view_count)",
+            ADMIN,
+        )
+        self.assertNotIn(
+            "(homebuyer_landing_offer_started_count / homebuyer_landing_cta_count)",
+            ADMIN,
+        )
+        self.assertIn("% of landing views", INDEX)
+
     def test_cancelled_buyer_checkout_explains_required_confirmations_before_restart(self):
         self.assertIn('id="paymentCheckoutResumeHelp"', INDEX)
         self.assertIn("confirm the one-time packet acknowledgement and receipt email below", INDEX)

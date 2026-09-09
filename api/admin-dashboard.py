@@ -6106,8 +6106,13 @@ class handler(BaseHTTPRequestHandler):
                 "homebuyerLandingCtaRate": round((homebuyer_landing_cta_count / homebuyer_landing_view_count) * 100, 1)
                 if homebuyer_landing_view_count else 0,
                 "homebuyerLandingOfferStartedCount": homebuyer_landing_offer_started_count,
-                "homebuyerLandingOfferStartRate": round((homebuyer_landing_offer_started_count / homebuyer_landing_cta_count) * 100, 1)
-                if homebuyer_landing_cta_count else 0,
+                # A guided workspace can be opened from a direct, shareable
+                # buyer route as well as from the landing-page CTA.  Those are
+                # intentionally separate aggregate events, so using CTA clicks
+                # as this denominator can produce impossible-looking rates over
+                # 100%.  Landing views are the consistent acquisition surface.
+                "homebuyerLandingOfferStartRate": round((homebuyer_landing_offer_started_count / homebuyer_landing_view_count) * 100, 1)
+                if homebuyer_landing_view_count else 0,
                 "homebuyerLandingViewCountsByChannel": homebuyer_landing_view_counts_by_channel,
                 "homebuyerLandingOfferStartedCountsByChannel": homebuyer_landing_offer_started_counts_by_channel,
                 "homebuyerLandingOfferStartRatesByChannel": homebuyer_landing_offer_start_rates_by_channel,
