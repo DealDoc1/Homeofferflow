@@ -113,3 +113,27 @@ def render_txr_1914(source_pdf_bytes, data):
     output = BytesIO()
     writer.write(output)
     return output.getvalue()
+
+
+def build_signwell_fields_txr1914(data, *, client_count=None):
+    """Return the TXR-1914 Buyer and Seller signature fields.
+
+    The Seller Financing Addendum has two execution rows on its second page:
+    Buyer on the left and Seller on the right. SignWell coordinates use the
+    HomeOfferFlow 96-DPI, top-origin letter-page space. This map remains
+    isolated until a completed provider PDF confirms live widget rendering.
+    """
+    buyers = data.get("buyer_names") or []
+    sellers = data.get("seller_names") or []
+    if not (1 <= len(buyers) <= 2 and 1 <= len(sellers) <= 2):
+        raise ValueError("TXR-1914 requires one or two Buyers and one or two Sellers.")
+
+    fields = [
+        {"api_id": "txr1914_buyer1_signature_p2", "type": "signature", "page": 2, "x": 55, "y": 718, "recipient_id": "1", "required": True, "width": 340, "height": 24},
+        {"api_id": "txr1914_seller1_signature_p2", "type": "signature", "page": 2, "x": 415, "y": 718, "recipient_id": str(len(buyers) + 1), "required": True, "width": 340, "height": 24},
+    ]
+    if len(buyers) == 2:
+        fields.append({"api_id": "txr1914_buyer2_signature_p2", "type": "signature", "page": 2, "x": 55, "y": 810, "recipient_id": "2", "required": True, "width": 340, "height": 24})
+    if len(sellers) == 2:
+        fields.append({"api_id": "txr1914_seller2_signature_p2", "type": "signature", "page": 2, "x": 415, "y": 810, "recipient_id": str(len(buyers) + 2), "required": True, "width": 340, "height": 24})
+    return [fields]
