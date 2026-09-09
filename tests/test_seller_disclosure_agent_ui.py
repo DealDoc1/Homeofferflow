@@ -40,6 +40,14 @@ class SellerDisclosureAgentUiTests(unittest.TestCase):
         self.assertNotIn("seller review and signing are not active", script)
         self.assertIn("preview it or send it to the seller for review", script)
 
+    def test_review_drafts_use_next_step_copy_after_saving(self):
+        html = (ROOT / "index.html").read_text()
+        self.assertNotIn("Your review copy is ready. It has not been sent for signature.", html)
+        self.assertGreaterEqual(
+            html.count("Your review copy is ready. Review the completed details and choose the next transaction step when you are ready."),
+            7,
+        )
+
     def test_response_controls_cover_all_mapped_groups(self):
         html = (ROOT / "index.html").read_text()
         for key in (

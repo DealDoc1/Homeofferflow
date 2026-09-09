@@ -16,7 +16,7 @@ class GoogleAddressAutocompleteCoverageTests(unittest.TestCase):
             "buyerMailAddr", "propAddress", "escrowAddress", "salePropertyAddr",
             "sellerMailAddr", "profInvestorEscrowAddress", "profEscrowAddress",
             "brandOfficeAddress", "sellerLeadAddress", "listingWorkspaceAddress",
-            "fsboPropertyAddress", "clientAddress", "propertyAddress", "hofSellerAddress", "clientCityStateZip", "profInvestorMailing",
+            "fsboPropertyAddress", "clientAddress", "propertyAddress", "address", "hofSellerAddress", "clientCityStateZip", "profInvestorMailing",
         }
         for control in required_controls:
             self.assertRegex(
@@ -63,10 +63,8 @@ class GoogleAddressAutocompleteCoverageTests(unittest.TestCase):
                 INDEX,
                 rf'<input[^>]+(?:id|name)="{control}"[^>]+autocomplete="street-address"',
             )
-        self.assertGreaterEqual(
-            INDEX.count('name="propertyAddress" required maxlength="400" autocomplete="street-address"'),
-            2,
-        )
+        self.assertGreaterEqual(INDEX.count('name="propertyAddress" required maxlength="400" autocomplete="street-address"'), 4)
+        self.assertIn('name="address" required maxlength="400" autocomplete="street-address" inputmode="text"', INDEX)
 
     def test_late_rendered_legacy_address_controls_are_observed(self):
         self.assertIn("const HOF_LEGACY_ADDRESS_KEYS = new Set(['propertyToSell', 'profInvestorMailing', 'clientCityStateZip']);", INDEX)
