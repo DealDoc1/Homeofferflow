@@ -155,8 +155,13 @@ class TxrSignerGeometryTests(unittest.TestCase):
                     self.assertEqual(second["x"], x)
                     self.assertEqual(first["y"], first_y)
                     self.assertEqual(second["y"], second_y)
-                    self.assertLessEqual(first["y"] + first["height"], first_bottom)
-                    self.assertLessEqual(second["y"] + second["height"], second_bottom)
+                    # The source rows are rules immediately above the printed
+                    # Buyer/Seller captions.  Ending short makes a signature
+                    # look detached; extending below the rule covers the
+                    # caption in the completed SignWell PDF.  These values
+                    # were rechecked visually against the approved sources.
+                    self.assertEqual(first["y"] + first["height"], first_bottom)
+                    self.assertEqual(second["y"] + second["height"], second_bottom)
 
     def test_txr1508_agent_initials_use_the_left_acknowledgement_rule(self):
         """Keep the agent initials off TXR-1508's customer/date area.
