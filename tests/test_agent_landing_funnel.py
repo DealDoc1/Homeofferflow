@@ -85,10 +85,11 @@ class AgentLandingFunnelTests(unittest.TestCase):
         end = INDEX.index("// Investor acquisition", start)
         entry = INDEX[start:end]
         self.assertIn("const workflowLabel = {", entry)
-        self.assertIn("sale_listing: 'your property listing'", entry)
-        self.assertIn("lease_listing: 'your lease listing'", entry)
-        self.assertIn("lease_representation: 'your tenant-representation transaction'", entry)
-        self.assertIn("We’ll continue with ${workflowLabel} after you return.", entry)
+        self.assertIn("sale_listing: 'property listing'", entry)
+        self.assertIn("lease_listing: 'lease listing'", entry)
+        self.assertIn("lease_representation: 'tenant-representation transaction'", entry)
+        self.assertIn("Continue to your ${workflowLabel}", entry)
+        self.assertIn("We’ll open the next questions for this ${workflowLabel} after you return.", entry)
 
     def test_agent_deep_link_waits_for_existing_session_resolution(self):
         start = INDEX.index("const continueAfterAuthResolution = callback =>")
@@ -134,6 +135,7 @@ class AgentLandingFunnelTests(unittest.TestCase):
             self.assertIn(f'data-agent-cta-path="{cta_path}"', AGENTS)
         self.assertIn("const agentLandingWorkflow = ['purchase', 'sale_listing', 'lease_listing', 'lease_representation']", INDEX)
         self.assertIn("localStorage.setItem('hof_agent_landing_package_workflow', agentLandingWorkflow)", INDEX)
+        self.assertIn("Continue to your ${workflowLabel}", INDEX)
         self.assertIn("window.hofAgentWorkflowContext = agentLandingWorkflow", INDEX)
         self.assertIn("window.hofOpenAgentPackageInterview?.(agentLandingPackageWorkflow)", INDEX)
         self.assertIn("cleanUrl.searchParams.delete('workflow')", INDEX)

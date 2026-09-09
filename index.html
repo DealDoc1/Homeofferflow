@@ -16165,13 +16165,15 @@ function routeAfterMagicLinkIfNeeded() {
         // for the sign-in return. Say that plainly here so an agent never
         // wonders whether choosing a listing or lease path was lost.
         const workflowLabel = {
-          purchase: 'your purchase transaction',
-          sale_listing: 'your property listing',
-          lease_listing: 'your lease listing',
-          lease_representation: 'your tenant-representation transaction'
-        }[agentLandingWorkflow] || 'the transaction chooser';
+          purchase: 'purchase transaction',
+          sale_listing: 'property listing',
+          lease_listing: 'lease listing',
+          lease_representation: 'tenant-representation transaction'
+        }[agentLandingWorkflow] || 'transaction chooser';
+        const authTitle = document.getElementById('authTitle');
         const authSubtitle = document.getElementById('authSubtitle');
-        if (authSubtitle) authSubtitle.textContent = `Enter your email for a secure sign-in link. We’ll continue with ${workflowLabel} after you return.`;
+        if (authTitle) authTitle.textContent = `Continue to your ${workflowLabel}`;
+        if (authSubtitle) authSubtitle.textContent = `Enter your email for a secure sign-in link. We’ll open the next questions for this ${workflowLabel} after you return.`;
       }
     }), 80);
     // Investor acquisition reuses the passwordless account workflow. A
