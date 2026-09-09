@@ -43,7 +43,7 @@ class PublicIntakeRouteContractTests(unittest.TestCase):
             ("sale_listing", "Property listing"),
             ("purchase", "Purchase"),
             ("lease_listing", "Lease listing"),
-            ("lease_representation", "Tenant representation"),
+            ("lease_representation", "Lease representation"),
         ):
             self.assertIn(f'data-agent-workflow-choice="{workflow}"', INDEX)
             self.assertIn(f"startAgentWorkflow('{workflow}')", INDEX)

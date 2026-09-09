@@ -110,7 +110,7 @@ class AgentActivationDashboardTests(unittest.TestCase):
         self.assertLess(first_offer, profile_after_offer)
         self.assertIn("Choose the transaction in front of you", script)
         self.assertIn("Choose Transaction", script)
-        self.assertIn("Choose property listing, purchase, lease listing, or tenant representation", script)
+        self.assertIn("Choose property listing, purchase, lease listing, or lease representation", script)
         self.assertIn("Set Up My Defaults", script)
 
     def test_first_offer_state_explains_the_transaction_choice_and_safe_draft_boundary(self):
@@ -257,7 +257,7 @@ class AgentActivationDashboardTests(unittest.TestCase):
         self.assertIn("resume.onclick = () => {", HTML)
         self.assertIn("startAgentWorkflow(savedChoice)", HTML)
         self.assertLess(HTML.index('id="agentWorkflowStart"'), HTML.index('id="agentActivationCard"'))
-        for label in ('>Purchase</button>', '>Property listing</button>', '>Lease listing</button>', '>Tenant representation</button>'):
+        for label in ('>Purchase</button>', '>Property listing</button>', '>Lease listing</button>', '>Lease representation</button>'):
             self.assertIn(label, HTML)
 
     def test_transaction_picker_uses_the_neutral_listing_first_order(self):
@@ -266,7 +266,7 @@ class AgentActivationDashboardTests(unittest.TestCase):
         picker = HTML[start:end]
         self.assertLess(picker.index(">Property listing</button>"), picker.index(">Purchase</button>"))
         self.assertLess(picker.index(">Purchase</button>"), picker.index(">Lease listing</button>"))
-        self.assertLess(picker.index(">Lease listing</button>"), picker.index(">Tenant representation</button>"))
+        self.assertLess(picker.index(">Lease listing</button>"), picker.index(">Lease representation</button>"))
 
     def test_transaction_interview_recommends_a_package_before_opening_a_workspace(self):
         self.assertIn("window.startAgentWorkflow = function startAgentWorkflow(kind)", HTML)
@@ -289,7 +289,7 @@ class AgentActivationDashboardTests(unittest.TestCase):
         self.assertIn("modal.addEventListener('keydown', event => { if (event.key === 'Escape') closeInterview(); });", HTML)
         self.assertIn("followUp.querySelector('[data-follow-up-choice]')?.focus()", HTML)
         self.assertIn("modal.querySelector('[data-package-choice]')?.focus()", HTML)
-        self.assertIn("What do you need for this tenant transaction?", HTML)
+        self.assertIn("What do you need for this lease representation transaction?", HTML)
         self.assertIn("We’ll ask only for the details needed for that next step.", HTML)
         self.assertIn("then review the private disclosure draft.", HTML)
         self.assertIn("agent_form_package_selected", HTML)
@@ -306,7 +306,7 @@ class AgentActivationDashboardTests(unittest.TestCase):
         self.assertIn("openSellerDisclosureDraftWorkspace", HTML)
 
     def test_relationship_workspace_uses_question_one_transaction_language(self):
-        self.assertIn("Use this after choosing Purchase or Tenant representation above. Answer the questions that apply", HTML)
+        self.assertIn("Use this after choosing Purchase or Lease representation above. Answer the questions that apply", HTML)
         self.assertNotIn("Use this after choosing Buyer or Lease representation above.", HTML)
 
     def test_generic_agent_account_offer_actions_return_to_question_one(self):

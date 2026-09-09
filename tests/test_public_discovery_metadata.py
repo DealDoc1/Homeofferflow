@@ -37,11 +37,11 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn('Choose the transaction you are starting.', NOT_FOUND)
         self.assertIn('Property listing →', NOT_FOUND)
         self.assertIn('Purchase →', NOT_FOUND)
-        self.assertIn('Tenant representation →', NOT_FOUND)
+        self.assertIn('Lease representation →', NOT_FOUND)
         self.assertIn('Choose listing setup, seller disclosures, or offer review.', NOT_FOUND)
         self.assertIn('Choose an offer, representation, or customer notice.', NOT_FOUND)
         self.assertIn('Choose lease-listing setup or lease details.', NOT_FOUND)
-        self.assertIn('Choose representation or the right customer notice.', NOT_FOUND)
+        self.assertIn('Choose the right representation agreement or customer notice.', NOT_FOUND)
         self.assertIn('workflow for a property listing, purchase, lease, or Texas home-service provider search.', NOT_FOUND)
         self.assertNotIn('workflow for buying, listing, leasing', NOT_FOUND)
 

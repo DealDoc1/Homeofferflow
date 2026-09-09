@@ -87,7 +87,7 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("const workflowLabel = {", entry)
         self.assertIn("sale_listing: 'property listing'", entry)
         self.assertIn("lease_listing: 'lease listing'", entry)
-        self.assertIn("lease_representation: 'tenant-representation transaction'", entry)
+        self.assertIn("lease_representation: 'lease-representation transaction'", entry)
         self.assertIn("Continue to your ${workflowLabel}", entry)
         self.assertIn("We’ll open the next questions for this ${workflowLabel} after you return.", entry)
 
@@ -125,7 +125,7 @@ class AgentLandingFunnelTests(unittest.TestCase):
         choices = AGENTS[start:end]
         self.assertLess(choices.index('<h3>Property listing</h3>'), choices.index('<h3>Purchase</h3>'))
         self.assertLess(choices.index('<h3>Purchase</h3>'), choices.index('<h3>Lease listing</h3>'))
-        self.assertLess(choices.index('<h3>Lease listing</h3>'), choices.index('<h3>Tenant representation</h3>'))
+        self.assertLess(choices.index('<h3>Lease listing</h3>'), choices.index('<h3>Lease representation</h3>'))
 
     def test_lease_listing_copy_routes_to_a_relevant_lease_addendum_interview(self):
         self.assertIn("Next, choose listing setup, a lease addendum, or your saved workspace.", AGENTS)
@@ -297,7 +297,7 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn('What type of transaction are you starting?', AGENTS)
         self.assertIn('Property listing', AGENTS)
         self.assertIn('Purchase', AGENTS)
-        self.assertIn('Tenant representation', AGENTS)
+        self.assertIn('Lease representation', AGENTS)
         self.assertNotIn('Start question 1', AGENTS)
         self.assertNotIn('id="agentQuestionOneCta"', AGENTS)
         self.assertNotIn('Start a buyer offer — no payment', AGENTS)
@@ -335,7 +335,7 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn('<strong>Every choice</strong> opens one plain-language result question before a workflow is opened.', AGENTS)
         self.assertIn('<strong>Purchase</strong> can lead to an offer, representation, or a customer notice.', AGENTS)
         self.assertIn('<strong>Property listing</strong> and <strong>lease listing</strong> can lead to the relevant listing, disclosure, or review work.', AGENTS)
-        self.assertIn('<strong>Tenant representation</strong> can lead to representation or customer-notice work.', AGENTS)
+        self.assertIn('<strong>Lease representation</strong> can lead to representation or customer-notice work.', AGENTS)
         self.assertIn('The guided interview narrows to the documents that fit the facts you provide', AGENTS)
 
     def test_agent_landing_cards_and_structured_data_match_the_question_two_interview(self):
