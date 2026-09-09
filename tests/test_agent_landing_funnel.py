@@ -230,8 +230,8 @@ class AgentLandingFunnelTests(unittest.TestCase):
         handoff = INDEX[start:end]
         self.assertIn("const reportOpenError", handoff)
         self.assertIn("Promise.resolve(opener()).then(() => onOpened?.()).catch(reportOpenError)", handoff)
-        self.assertIn("This form is not available in the shared library right now.", handoff)
-        self.assertIn("Request this form", handoff)
+        self.assertIn("We couldn’t open that document. Please try again.", handoff)
+        self.assertIn("Get help with this document", handoff)
         self.assertIn("window.openMissingFormRequest({", handoff)
         self.assertIn("formName: request.formCode || request.label", handoff)
         self.assertIn("transaction: transactionLabels[kind] || 'Other Texas transaction'", handoff)

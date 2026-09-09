@@ -7461,15 +7461,15 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         if (!status) return;
         const message = window.hofCustomerActionError?.(
           error,
-          'This form is not available in the shared library right now.'
-        ) || 'This form is not available in the shared library right now.';
+          'We couldn’t open that document. Please try again.'
+        ) || 'We couldn’t open that document. Please try again.';
         status.textContent = message;
         if (!request || typeof window.openMissingFormRequest !== 'function') return;
         const requestButton = document.createElement('button');
         requestButton.type = 'button';
         requestButton.className = 'btn-secondary';
         requestButton.style.marginTop = '.65rem';
-        requestButton.textContent = 'Request this form';
+        requestButton.textContent = 'Get help with this document';
         requestButton.addEventListener('click', () => window.openMissingFormRequest({
           formName: request.formCode || request.label,
           transaction: transactionLabels[kind] || 'Other Texas transaction'
@@ -7487,7 +7487,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           window.setTimeout(openWhenReady, 100);
           return;
         }
-        reportOpenError(new Error('This form is not currently available in the HomeOfferFlow form library.'));
+        reportOpenError(new Error('The selected document could not be opened.'));
       };
       window.setTimeout(openWhenReady, 0);
     };
