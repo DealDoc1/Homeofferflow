@@ -1,9 +1,11 @@
 import io
 import unittest
+from unittest.mock import patch
 
 from pypdf import PdfReader
 from reportlab.pdfgen.canvas import Canvas
 
+from lib import txr_1501
 from lib.txr_1501 import build_signwell_fields_txr1501, render_txr_1501
 
 
@@ -37,6 +39,41 @@ def sample_data():
 
 
 class Txr1501RendererTests(unittest.TestCase):
+    def test_completion_values_begin_on_the_released_source_rules(self):
+        """Prevent a completed TXR-1501 from drifting into its labels.
+
+        These coordinates are based on the released private source and the
+        completed-packet review.  A text-presence test alone cannot catch a
+        value that is visibly centered in the wrong blank.
+        """
+        brokerage = {
+            "legal_name": "OnDemand Realty",
+            "license_number": "9010832",
+            "address": "12225 Greenville Ave",
+            "city_state_zip": "Dallas, TX 75243",
+            "phone": "214-766-5833",
+            "email": "broker@example.com",
+        }
+        associate = {"name": "Andrew Christian", "license_number": "0738821"}
+        with patch.object(txr_1501, "_draw") as draw:
+            txr_1501._overlay(sample_data(), brokerage, associate)
+        calls = {(call.args[1], call.args[2], call.args[3]) for call in draw.call_args_list}
+        expected = {
+            ("Test Buyer One, Test Buyer Two", 108, 612),
+            ("721 Broderick Lane", 128, 594),
+            ("Prosper, TX 75078", 158, 578),
+            ("2143649890", 117, 562),
+            ("buyer@example.com", 115, 546),
+            ("OnDemand Realty", 108, 531),
+            ("2026-08-01", 224, 176),
+            ("2027-01-31", 430, 176),
+            ("OnDemand Realty", 36, 400),
+            ("Test Buyer One", 324, 400),
+            ("Andrew Christian", 36, 309),
+            ("Test Buyer Two", 324, 309),
+        }
+        self.assertTrue(expected.issubset(calls))
+
     def test_renderer_preserves_six_pages_and_overlays_supplied_values(self):
         rendered = render_txr_1501(
             blank_six_page_pdf(),
