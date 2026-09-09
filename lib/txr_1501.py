@@ -59,19 +59,22 @@ def _overlay(data, brokerage, associate):
 
     # Page 1: party/contact block, market area, and term. These coordinates are
     # deliberately isolated from purchase-packet and TXR-1507 coordinates.
-    _draw(canvas, ", ".join(clients), 110, 612)
-    _draw(canvas, data.get("client_address"), 145, 594)
-    _draw(canvas, data.get("client_city_state_zip"), 190, 578)
-    _draw(canvas, data.get("client_phone"), 155, 562)
-    _draw(canvas, data.get("client_email"), 155, 546)
-    _draw(canvas, broker_name, 145, 531)
-    _draw(canvas, brokerage.get("address"), 145, 510)
-    _draw(canvas, brokerage.get("city_state_zip"), 220, 494)
-    _draw(canvas, brokerage.get("phone"), 155, 478)
-    _draw(canvas, brokerage.get("email"), 155, 462)
+    # Anchor each value at the beginning of the printed rule.  The previous
+    # positions were measured from the label, leaving completed values visibly
+    # adrift in the middle of the rule on the released TXR-1501 source.
+    _draw(canvas, ", ".join(clients), 108, 612)
+    _draw(canvas, data.get("client_address"), 128, 594)
+    _draw(canvas, data.get("client_city_state_zip"), 158, 578)
+    _draw(canvas, data.get("client_phone"), 117, 562)
+    _draw(canvas, data.get("client_email"), 115, 546)
+    _draw(canvas, broker_name, 108, 531)
+    _draw(canvas, brokerage.get("address"), 125, 510)
+    _draw(canvas, brokerage.get("city_state_zip"), 156, 494)
+    _draw(canvas, brokerage.get("phone"), 117, 478)
+    _draw(canvas, brokerage.get("email"), 112, 462)
     _draw_wrapped(canvas, data.get("market_area"), 145, 302, width_chars=86)
-    _draw(canvas, data.get("term_start"), 320, 176)
-    _draw(canvas, data.get("term_end"), 472, 176)
+    _draw(canvas, data.get("term_start"), 224, 176)
+    _draw(canvas, data.get("term_end"), 430, 176)
     canvas.showPage()
 
     # Page 2: broker/client agreement title and compensation terms.
@@ -107,13 +110,13 @@ def _overlay(data, brokerage, associate):
 
     # Page 6: printed names only. Signature/date widgets are supplied to
     # SignWell after a source-owner signer plan is deliberately selected.
-    _draw(canvas, broker_name, 58, 400, size=7)
+    _draw(canvas, broker_name, 36, 400, size=7)
     _draw(canvas, broker_license, 240, 400, size=7)
-    _draw(canvas, clients[0] if clients else "", 338, 400, size=7)
-    _draw(canvas, associate_name, 58, 309, size=7)
+    _draw(canvas, clients[0] if clients else "", 324, 400, size=7)
+    _draw(canvas, associate_name, 36, 309, size=7)
     _draw(canvas, associate_license, 240, 309, size=7)
     if len(clients) > 1:
-        _draw(canvas, clients[1], 338, 309, size=7)
+        _draw(canvas, clients[1], 324, 309, size=7)
     canvas.save()
     packet.seek(0)
     return packet.read()
@@ -142,29 +145,25 @@ def build_signwell_fields_txr1501(data, *, client_count=1):
     if signer_plan not in {"clients_and_associate", "clients_and_broker"}:
         raise ValueError("Choose an authorized broker or broker-associate signer for the TXR-1501 agreement.")
     fields = [
-        # Completed-packet QA showed that the previous date widgets covered
-        # the printed ``Date`` captions.  Keep the signature and full date on
-        # their rules, ending the date field before the caption.
-        {"api_id": "txr1501_client1_signature_p6", "type": "signature", "page": 6, "x": 430, "y": 568, "recipient_id": "1", "required": True, "width": 145, "height": 26},
-        {"api_id": "txr1501_client1_date_p6", "type": "date", "page": 6, "x": 580, "y": 568, "recipient_id": "1", "required": True, "width": 62, "height": 20, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
+        # Completed-packet QA showed that the signature/date widgets sat on
+        # the printed captions.  Move the row up onto its rule and keep the
+        # date entirely in the space before the printed ``Date`` caption.
+        {"api_id": "txr1501_client1_signature_p6", "type": "signature", "page": 6, "x": 430, "y": 550, "recipient_id": "1", "required": True, "width": 120, "height": 24},
+        {"api_id": "txr1501_client1_date_p6", "type": "date", "page": 6, "x": 555, "y": 550, "recipient_id": "1", "required": True, "width": 60, "height": 18, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
     ]
     if client_count == 2:
         fields.extend([
-            # The second client rule is 110 SignWell units below the first.
-            # Keeping the field four units above that rule mirrors client
-            # one's calibrated placement and keeps its bottom clear of the
-            # printed Client's Signature caption.
-            {"api_id": "txr1501_client2_signature_p6", "type": "signature", "page": 6, "x": 430, "y": 678, "recipient_id": "2", "required": True, "width": 145, "height": 26},
-            {"api_id": "txr1501_client2_date_p6", "type": "date", "page": 6, "x": 580, "y": 678, "recipient_id": "2", "required": True, "width": 62, "height": 20, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
+            {"api_id": "txr1501_client2_signature_p6", "type": "signature", "page": 6, "x": 430, "y": 660, "recipient_id": "2", "required": True, "width": 120, "height": 24},
+            {"api_id": "txr1501_client2_date_p6", "type": "date", "page": 6, "x": 555, "y": 660, "recipient_id": "2", "required": True, "width": 60, "height": 18, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
         ])
     if signer_plan == "clients_and_associate":
         fields.extend([
-            {"api_id": "txr1501_associate_signature_p6", "type": "signature", "page": 6, "x": 108, "y": 568, "recipient_id": "associate", "required": True, "width": 105, "height": 26},
-            {"api_id": "txr1501_associate_date_p6", "type": "date", "page": 6, "x": 220, "y": 568, "recipient_id": "associate", "required": True, "width": 58, "height": 20, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
+            {"api_id": "txr1501_associate_signature_p6", "type": "signature", "page": 6, "x": 82, "y": 550, "recipient_id": "associate", "required": True, "width": 120, "height": 24},
+            {"api_id": "txr1501_associate_date_p6", "type": "date", "page": 6, "x": 212, "y": 550, "recipient_id": "associate", "required": True, "width": 58, "height": 18, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
         ])
     if signer_plan == "clients_and_broker":
         fields.extend([
-            {"api_id": "txr1501_broker_signature_p6", "type": "signature", "page": 6, "x": 108, "y": 568, "recipient_id": "broker", "required": True, "width": 105, "height": 26},
-            {"api_id": "txr1501_broker_date_p6", "type": "date", "page": 6, "x": 220, "y": 568, "recipient_id": "broker", "required": True, "width": 58, "height": 20, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
+            {"api_id": "txr1501_broker_signature_p6", "type": "signature", "page": 6, "x": 82, "y": 550, "recipient_id": "broker", "required": True, "width": 120, "height": 24},
+            {"api_id": "txr1501_broker_date_p6", "type": "date", "page": 6, "x": 212, "y": 550, "recipient_id": "broker", "required": True, "width": 58, "height": 18, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
         ])
     return [fields]

@@ -114,8 +114,8 @@ class TxrSignerGeometryTests(unittest.TestCase):
         signature widget remains on the same ruled row.
         """
         cases = (
-            (build_signwell_fields_txr1501, FORM_CASES[0][3], "txr1501", 568, 645),
-            (build_signwell_fields_txr1507, FORM_CASES[2][3], "txr1507", 715, 704),
+            (build_signwell_fields_txr1501, FORM_CASES[0][3], "txr1501", 550, 645),
+            (build_signwell_fields_txr1507, FORM_CASES[2][3], "txr1507", 697, 704),
         )
         for builder, data, prefix, first_row_y, date_label_x in cases:
             with self.subTest(prefix=prefix):
@@ -125,7 +125,7 @@ class TxrSignerGeometryTests(unittest.TestCase):
                 role = fields[f"{prefix}_associate_signature_p{6 if prefix == 'txr1501' else 2}"]
                 self.assertEqual(client["y"], first_row_y)
                 if prefix == "txr1507":
-                    self.assertEqual(role["y"], 715)
+                    self.assertEqual(role["y"], 697)
                 else:
                     self.assertEqual(role["y"], first_row_y)
                 self.assertGreater(date["x"], client["x"] + client["width"])
@@ -137,14 +137,15 @@ class TxrSignerGeometryTests(unittest.TestCase):
             field["api_id"]: field
             for field in build_signwell_fields_txr1501(FORM_CASES[0][3], client_count=2)[0]
         }
-        # On the released source the second-client rule is at y=704.  A
-        # 26-unit signature field must finish at that rule, not over the
+        # On the released source the second-client rule is above the printed
+        # caption. A 24-unit signature field must finish before the caption,
+        # not over the
         # printed Client's Signature caption below it.
-        self.assertEqual(txr1501["txr1501_client2_signature_p6"]["y"], 678)
+        self.assertEqual(txr1501["txr1501_client2_signature_p6"]["y"], 660)
         self.assertEqual(
             txr1501["txr1501_client2_signature_p6"]["y"]
             + txr1501["txr1501_client2_signature_p6"]["height"],
-            704,
+            684,
         )
 
         txr1507 = {
@@ -154,7 +155,7 @@ class TxrSignerGeometryTests(unittest.TestCase):
         # Broker and broker-associate are chosen by the printed checkboxes;
         # both sign on the one shared rule.  There is no second associate
         # signature rule below the label.
-        self.assertEqual(txr1507["txr1507_associate_signature_p2"]["y"], 715)
+        self.assertEqual(txr1507["txr1507_associate_signature_p2"]["y"], 697)
         self.assertEqual(txr1507["txr1507_associate_signature_p2"]["x"], 160)
         self.assertEqual(txr1507["txr1507_associate_date_p2"]["x"], 260)
 
@@ -244,7 +245,7 @@ class TxrSignerGeometryTests(unittest.TestCase):
             field["api_id"]: field
             for field in build_signwell_fields_txr1508(data, client_count=2)[0]
         }
-        self.assertEqual(fields["txr1508_agent_initials_p1"]["x"], 347)
+        self.assertEqual(fields["txr1508_agent_initials_p1"]["x"], 245)
         self.assertEqual(fields["txr1508_agent_initials_p1"]["y"], 672)
         self.assertLess(
             fields["txr1508_agent_initials_p1"]["x"] + fields["txr1508_agent_initials_p1"]["width"],
