@@ -20342,7 +20342,9 @@ function routeAfterMagicLinkIfNeeded() {
       const response = await fetch('/api/admin-dashboard', { method:'POST', headers:{ 'Content-Type':'application/json', Authorization:`Bearer ${token}` }, body:JSON.stringify(payload) });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || 'Could not save the agreement draft.');
-      status.className = 'hof-iabs-status ready'; status.textContent = 'Agreement ready to review. Send it for signature when you are ready.';
+      status.className = 'hof-iabs-status ready';
+      status.innerHTML = 'Agreement ready. <button type="button" class="btn-secondary">Review and send</button>';
+      status.querySelector('button').addEventListener('click', async () => { modal.remove(); await root.hofOpenPreparedAgreement?.(); });
     } catch (error) {
       console.error('TXR-1507 draft failed:', error);
       status.className = 'hof-iabs-status error'; status.textContent = error.message || 'Could not save the agreement draft.';
@@ -20477,7 +20479,9 @@ function routeAfterMagicLinkIfNeeded() {
       const response = await fetch('/api/admin-dashboard', { method:'POST', headers:{ 'Content-Type':'application/json', Authorization:`Bearer ${token}` }, body:JSON.stringify(payload) });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || 'Could not save the agreement draft.');
-      status.className = 'hof-iabs-status ready'; status.textContent = 'Agreement ready to review. Send it for signature when you are ready.';
+      status.className = 'hof-iabs-status ready';
+      status.innerHTML = 'Agreement ready. <button type="button" class="btn-secondary">Review and send</button>';
+      status.querySelector('button').addEventListener('click', async () => { modal.remove(); await root.hofOpenPreparedAgreement?.(); });
     } catch (error) {
       console.error('TXR-1501 draft failed:', error);
       status.className = 'hof-iabs-status error'; status.textContent = error.message || 'Could not save the agreement draft.';
@@ -20597,7 +20601,9 @@ function routeAfterMagicLinkIfNeeded() {
       const response = await fetch('/api/admin-dashboard', { method:'POST', headers:{ 'Content-Type':'application/json', Authorization:`Bearer ${token}` }, body:JSON.stringify(payload) });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || 'Could not save the showing draft.');
-      status.className = 'hof-iabs-status ready'; status.textContent = 'Showing form ready to review. Send it for signature when you are ready.';
+      status.className = 'hof-iabs-status ready';
+      status.innerHTML = 'Showing form ready. <button type="button" class="btn-secondary">Review and send</button>';
+      status.querySelector('button').addEventListener('click', async () => { modal.remove(); await root.hofOpenPreparedAgreement?.(); });
     } catch (error) {
       console.error('TXR-1508 draft failed:', error);
       status.className = 'hof-iabs-status error'; status.textContent = error.message || 'Could not save the showing draft.';
@@ -20653,7 +20659,7 @@ function routeAfterMagicLinkIfNeeded() {
     if (submit.disabled) return;
     const payload = { action:'create_txr_1506_draft', formCode:FORM_CODE, formSourceId:source.id, clientNames:[form.get('consumerOne'), form.get('consumerTwo')].map(v => String(v || '').trim()).filter(Boolean), consumerRole:form.get('consumerRole'), additionalNotice:form.get('additionalNotice'), noticeAcknowledgment:form.get('noticeAcknowledgment') === 'on', signerPlan:form.get('signerPlan') };
     submit.disabled = true; submit.setAttribute('aria-busy', 'true'); submit.textContent = 'Preparing consumer notice…';
-    try { status.className = 'hof-iabs-status'; status.textContent = 'Preparing consumer notice…'; const token = root.hofAuth?.session?.access_token; const response = await fetch('/api/admin-dashboard', { method:'POST', headers:{'Content-Type':'application/json', Authorization:`Bearer ${token}`}, body:JSON.stringify(payload) }); const result = await response.json(); if (!response.ok) throw new Error(result.error || 'Could not save the notice draft.'); status.className = 'hof-iabs-status ready'; status.textContent = 'Consumer notice ready to review. Send it for signature when you are ready.'; } catch (error) { console.error('TXR-1506 draft failed:', error); status.className = 'hof-iabs-status error'; status.textContent = error.message || 'Could not save the notice draft.'; submit.disabled = false; submit.setAttribute('aria-busy', 'false'); submit.textContent = 'Prepare consumer notice'; }
+    try { status.className = 'hof-iabs-status'; status.textContent = 'Preparing consumer notice…'; const token = root.hofAuth?.session?.access_token; const response = await fetch('/api/admin-dashboard', { method:'POST', headers:{'Content-Type':'application/json', Authorization:`Bearer ${token}`}, body:JSON.stringify(payload) }); const result = await response.json(); if (!response.ok) throw new Error(result.error || 'Could not save the notice draft.'); status.className = 'hof-iabs-status ready'; status.innerHTML = 'Consumer notice ready. <button type="button" class="btn-secondary">Review and send</button>'; status.querySelector('button').addEventListener('click', async () => { modal.remove(); await root.hofOpenPreparedAgreement?.(); }); } catch (error) { console.error('TXR-1506 draft failed:', error); status.className = 'hof-iabs-status error'; status.textContent = error.message || 'Could not save the notice draft.'; submit.disabled = false; submit.setAttribute('aria-busy', 'false'); submit.textContent = 'Prepare consumer notice'; }
   }
   const priorDashboard = root.renderAccountDashboard;
   root.renderAccountDashboard = function renderAccountDashboardWithNoticeDrafts() { if (typeof priorDashboard === 'function') priorDashboard.apply(this, arguments); renderNoticeCard(); };
@@ -20815,6 +20821,11 @@ function routeAfterMagicLinkIfNeeded() {
           if (agreement) downloadCompletedAgreementPdf(agreement, button);
         }));
       } catch (error) { list.innerHTML = `<div class="hof-iabs-status error">${escape(error.message || 'Could not load agreement drafts.')}</div>`; }
+    };
+    root.hofOpenPreparedAgreement = async function hofOpenPreparedAgreement() {
+      await refresh();
+      card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      card.querySelector('[data-send], [data-preview]')?.focus();
     };
     await refresh();
   }
@@ -21115,7 +21126,6 @@ function routeAfterMagicLinkIfNeeded() {
     const frame = document.createElement('iframe');
     frame.className = 'hof-pdf-preview-frame';
     frame.title = `${formCode || 'Form'} PDF preview`;
-    frame.setAttribute('sandbox', 'allow-same-origin allow-downloads');
     frame.src = blobUrl;
     header.append(title, close);
     dialog.append(header, frame);

@@ -105,6 +105,14 @@ class TxrSigningRequestPathTests(unittest.TestCase):
         self.assertIn("action: 'download_completed_pdf'", html)
         self.assertIn("link.download = `${agreement.form_code || 'HomeOfferFlow'}-completed.pdf`", html)
         self.assertIn("Ready to review — signature sending will appear here when available.", html)
+        self.assertIn("root.hofOpenPreparedAgreement", html)
+        self.assertIn("Review and send", html)
+
+    def test_pdf_preview_does_not_sandbox_the_browser_pdf_viewer(self):
+        html = (ROOT / "index.html").read_text(encoding="utf-8")
+        preview_scope = html[html.index('id="hof-private-form-drafts-v1"'):html.index('id="hof-seller-disclosure-draft-ui-v1"')]
+        self.assertIn("frame.src = blobUrl;", preview_scope)
+        self.assertNotIn("frame.setAttribute('sandbox'", preview_scope)
 
     def test_standalone_scope_reports_the_signing_gate_state(self):
         source = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
