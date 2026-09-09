@@ -95,7 +95,7 @@ class TxrSignerGeometryTests(unittest.TestCase):
         """
         cases = (
             (build_signwell_fields_txr1501, FORM_CASES[0][3], "txr1501", 568, 700),
-            (build_signwell_fields_txr1507, FORM_CASES[2][3], "txr1507", 695, 700),
+            (build_signwell_fields_txr1507, FORM_CASES[2][3], "txr1507", 715, 704),
         )
         for builder, data, prefix, first_row_y, date_label_x in cases:
             with self.subTest(prefix=prefix):
@@ -104,7 +104,10 @@ class TxrSignerGeometryTests(unittest.TestCase):
                 date = fields[f"{prefix}_client1_date_p{6 if prefix == 'txr1501' else 2}"]
                 role = fields[f"{prefix}_associate_signature_p{6 if prefix == 'txr1501' else 2}"]
                 self.assertEqual(client["y"], first_row_y)
-                self.assertEqual(role["y"], first_row_y)
+                if prefix == "txr1507":
+                    self.assertEqual(role["y"], 735)
+                else:
+                    self.assertEqual(role["y"], first_row_y)
                 self.assertGreater(date["x"], client["x"] + client["width"])
                 self.assertLessEqual(date["x"] + date["width"], date_label_x)
 
