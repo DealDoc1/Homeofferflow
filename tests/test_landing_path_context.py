@@ -22,7 +22,7 @@ class LandingPathContextTests(unittest.TestCase):
         self.assertIn("Guided agent workflows", HTML)
         self.assertIn("Start with a transaction, not a form catalog", HTML)
         self.assertIn("A personal workspace does not require a brokerage seat", HTML)
-        self.assertIn("They remain private drafts for your review.", HTML)
+        self.assertIn("They are ready for your review. They do not send a request or contact anyone on your behalf.", HTML)
         self.assertIn("Ready to start a transaction?", HTML)
 
     def test_every_agent_copy_layer_keeps_the_transaction_first_promise(self):

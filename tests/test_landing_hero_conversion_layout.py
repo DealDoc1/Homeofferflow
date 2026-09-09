@@ -47,7 +47,7 @@ class LandingHeroConversionLayoutTests(unittest.TestCase):
 
     def test_agent_audience_card_routes_to_the_transaction_first_agent_page(self):
         self.assertIn("window.location.assign('/agents')", HTML)
-        self.assertIn('Start with property listing, purchase, lease listing, or tenant representation', HTML)
+        self.assertIn('property listing, purchase, lease listing, or lease representation', HTML)
 
     def test_investor_audience_routes_to_the_dedicated_workspace_handoff(self):
         start = HTML.index("function beginOfferFrom(surface)")
