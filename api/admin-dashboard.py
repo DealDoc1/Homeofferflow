@@ -3085,7 +3085,7 @@ async def _deliver_seller_review_email(email, review_url, verification_code, exp
             f"<p>Open the private review page: <a href=\"{html.escape(review_url)}\">{html.escape(review_url)}</a></p>"
             f"<p>When prompted, enter this one-time verification code: <strong>{html.escape(verification_code)}</strong></p>"
             f"<p>This link expires {html.escape(expires_at)}. Do not forward the link or code.</p>"
-            "<p>This is a review-only page. It is not an electronic signature request.</p>"
+            "<p>This private page lets you review the completed disclosure. It is not an electronic signature request.</p>"
         ),
     }
     if BROKERAGE_INVITE_REPLY_TO:
