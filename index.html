@@ -21216,6 +21216,11 @@ function routeAfterMagicLinkIfNeeded() {
 .hof-seller-disclosure-card input,.hof-seller-disclosure-card select{padding:9px;border:1px solid #cbd5e1;border-radius:8px}
 .hof-seller-disclosure-card details{margin-top:14px;border-top:1px solid #e2e8f0;padding-top:10px}
 .hof-seller-disclosure-card summary{cursor:pointer;font-weight:700}
+.hof-seller-disclosure-card .hof-seller-step{margin-top:14px;border:1px solid #e2e8f0;border-radius:10px;padding:0 14px 14px;background:#fff}
+.hof-seller-disclosure-card .hof-seller-step summary{display:flex;align-items:center;gap:9px;padding:14px 0 4px}
+.hof-seller-disclosure-card .hof-seller-step summary small{display:block;font-weight:400;color:var(--muted);margin-top:2px}
+.hof-seller-step-number{display:inline-flex;align-items:center;justify-content:center;width:25px;height:25px;border-radius:50%;background:var(--primary);color:#fff;font-size:.82rem;flex:0 0 auto}
+.hof-seller-step-copy{display:flex;flex-direction:column}
 .hof-seller-response-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 16px;margin-top:10px}
 .hof-seller-response-row{display:grid;grid-template-columns:1fr 95px;align-items:center;gap:8px}
 .hof-seller-disclosure-card .hof-seller-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
@@ -21232,7 +21237,7 @@ function routeAfterMagicLinkIfNeeded() {
       ['agent', 'broker', 'brokerage_admin', 'broker_admin', 'owner', 'team_lead'].includes(role);
   };
   const responseGroups = [
-    ['Property items', [
+    ['Systems and features', [
       ['range','Range'],['oven','Oven'],['microwave','Microwave'],['dishwasher','Dishwasher'],['trash_compactor','Trash Compactor'],['disposal','Disposal'],
       ['washer_dryer_hookups','Washer/Dryer Hookups'],['window_screens','Window Screens'],['rain_gutters','Rain Gutters'],['security_system','Security System'],
       ['fire_detection_equipment','Fire Detection Equipment'],['intercom_system','Intercom System'],['smoke_detector','Smoke Detector'],
@@ -21287,12 +21292,13 @@ function routeAfterMagicLinkIfNeeded() {
     ['pond_lake_or_water_tank','Pond/lake/water tank']
   ]]];
   const draftCache = new Map();
+  const responsePrompt = '<p class="hof-seller-step-hint">Use Yes, No, or Unknown only for items the seller can answer now. Leave a category blank when it does not apply.</p>';
   const renderWaterResponses = () => waterGroups.map(([title, fields]) =>
     '<details><summary>' + escape(title) + '</summary><div class="hof-seller-response-grid">' +
     fields.map(([key,label]) => '<label class="hof-seller-response-row"><span>' + escape(label) + '</span><select data-water-response="' + escape(key) + '"><option value="">—</option><option value="Y">Yes (Y)</option><option value="N">No (N)</option><option value="U">Unknown (U)</option></select></label>').join('') +
     '</div></details>'
   ).join('');
-  const renderResponses = () => responseGroups.map(([title, fields]) =>
+  const renderResponses = () => responsePrompt + responseGroups.map(([title, fields]) =>
     '<details><summary>' + escape(title) + '</summary><div class="hof-seller-response-grid">' +
     fields.map(([key,label]) => '<label class="hof-seller-response-row"><span>' + escape(label) + '</span><select data-seller-response="' + escape(key) + '"><option value="">—</option><option value="Y">Yes (Y)</option><option value="N">No (N)</option><option value="U">Unknown (U)</option></select></label>').join('') +
     '</div></details>'
@@ -21447,9 +21453,10 @@ function routeAfterMagicLinkIfNeeded() {
     const panel = document.getElementById('accountPanelDashboard');
     if (!panel || !active() || document.getElementById('hofSellerDisclosureCard')) return;
     const card = document.createElement('div'); card.id = 'hofSellerDisclosureCard'; card.className = 'account-card hof-seller-disclosure-card';
-    card.innerHTML = '<h4>Seller disclosure draft</h4><p>Use an approved form from the universal HomeOfferFlow library. This creates a private draft for seller review; it does not send or sign a document.</p><details id="hofSellerDisclosureWorkspace" class="hof-seller-disclosure-workspace"><summary><strong>Start or continue a private seller disclosure draft</strong><br><small>Open this only when you are ready to enter seller disclosure details.</small></summary><div style="margin-top:1rem">' +
-      '<div class="hof-seller-grid"><label>Private listing workspace (optional)<select id="hofSellerWorkspace"><option value="">Do not link to a workspace</option></select></label><label>Property address<input id="hofSellerAddress" maxlength="400" autocomplete="street-address" inputmode="text" placeholder="Street address, city, state, ZIP"></label><label>TREC-55-1 form edition<select id="hofSellerSource"></select></label><label>Seller 1 name<input id="hofSeller1" maxlength="180"></label><label>Seller 1 review email<input id="hofSellerEmail" type="email" maxlength="320" autocomplete="email" placeholder="seller1@example.com"></label><label>Seller 2 name (optional)<input id="hofSeller2" maxlength="180"></label><label>Seller 2 review email (optional)<input id="hofSeller2Email" type="email" maxlength="320" autocomplete="email" placeholder="seller2@example.com"></label><label>Buyer 1 name (optional)<input id="hofBuyer1" maxlength="180"></label><label>Buyer 2 name (optional)<input id="hofBuyer2" maxlength="180"></label><label>TREC-61-0 water-rights form edition (optional)<select id="hofWaterSource"><option value="">Do not include</option></select></label></div>' +
-      renderResponses() + renderWaterResponses() +
+    card.innerHTML = '<h4>Seller disclosure</h4><p>Build a seller-ready disclosure package from the universal HomeOfferFlow library through a short interview. Start with the property and people, then answer only the sections that apply. Your draft does not send or sign a document until you choose to send a seller review email.</p><details id="hofSellerDisclosureWorkspace" class="hof-seller-disclosure-workspace"><summary><strong>Start or continue a seller disclosure</strong><br><small>Your work stays private until you send it for seller review.</small></summary><div style="margin-top:1rem">' +
+      '<details class="hof-seller-step" open><summary><span class="hof-seller-step-number">1</span><span class="hof-seller-step-copy"><strong>Property and people</strong><small>Who is involved and which approved form should be used?</small></span></summary><div class="hof-seller-grid"><label>Private listing workspace (optional)<select id="hofSellerWorkspace"><option value="">Do not link to a workspace</option></select></label><label>Property address<input id="hofSellerAddress" maxlength="400" autocomplete="street-address" inputmode="text" placeholder="Street address, city, state, ZIP"></label><label>TREC-55-1 form edition<select id="hofSellerSource"></select></label><label>Seller 1 name<input id="hofSeller1" maxlength="180"></label><label>Seller 1 review email<input id="hofSellerEmail" type="email" maxlength="320" autocomplete="email" placeholder="seller1@example.com"></label><label>Seller 2 name (optional)<input id="hofSeller2" maxlength="180"></label><label>Seller 2 review email (optional)<input id="hofSeller2Email" type="email" maxlength="320" autocomplete="email" placeholder="seller2@example.com"></label><label>Buyer 1 name (optional)<input id="hofBuyer1" maxlength="180"></label><label>Buyer 2 name (optional)<input id="hofBuyer2" maxlength="180"></label></div></details>' +
+      '<details class="hof-seller-step"><summary><span class="hof-seller-step-number">2</span><span class="hof-seller-step-copy"><strong>Property details</strong><small>Work through systems, known conditions, repairs, and flood history.</small></span></summary>' + renderResponses() + '</details>' +
+      '<details class="hof-seller-step"><summary><span class="hof-seller-step-number">3</span><span class="hof-seller-step-copy"><strong>Water rights, if they apply</strong><small>Add TREC-61-0 only when the property has a water-rights disclosure.</small></span></summary><label>TREC-61-0 water-rights form edition (optional)<select id="hofWaterSource"><option value="">Do not include</option></select></label>' + renderWaterResponses() + '</details>' +
       '<div class="hof-seller-actions"><button class="btn-primary" type="button" id="hofSaveSellerDraft">Save private draft</button><button class="btn-secondary" type="button" id="hofSendSellerReview" disabled>Send seller review email</button><span id="hofSellerDraftStatus" class="hof-iabs-status" role="status" aria-live="polite" aria-atomic="true"></span></div><h5>My seller disclosure drafts</h5><div class="hof-seller-actions"><input id="hofSellerDraftFilter" type="search" placeholder="Search address, seller, or source" aria-label="Search seller disclosure drafts" oninput="filterSellerDisclosureDrafts(this.value)"><span id="hofSellerDraftSummary" class="hof-iabs-status"></span></div><ul id="hofSellerDraftList" class="hof-private-form-drafts-list"><li>Loading…</li></ul></div></details>';
     panel.appendChild(card);
     try {
