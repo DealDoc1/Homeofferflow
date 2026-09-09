@@ -504,6 +504,7 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
         self.assertIn("HomeOfferFlow prepares a review copy", HTML)
 
     def test_agents_can_only_view_their_own_saved_draft_summaries(self):
+        preview_scope = HTML[HTML.index('id="hof-private-form-drafts-v1"'):HTML.index('id="hof-seller-disclosure-draft-ui-v1"')]
         self.assertIn('id="hof-private-form-drafts-v1"', HTML)
         self.assertIn(".from('hof_standalone_agreements')", HTML)
         self.assertIn(".eq('agent_user_id', user.id)", HTML)
@@ -511,6 +512,10 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
         self.assertIn("These are your saved form drafts. Review them here before choosing the next step for each document.", HTML)
         self.assertIn("Preview PDF", HTML)
         self.assertIn("preview_agreement=", HTML)
+        self.assertIn("root.hofShowPdfPreview(blob, draft?.form_code);", preview_scope)
+        self.assertIn("id = 'hofPdfPreviewModal'", preview_scope)
+        self.assertIn("URL.revokeObjectURL(blobUrl)", preview_scope)
+        self.assertNotIn("window.open('', '_blank')", preview_scope)
         self.assertNotIn("agreement_data", HTML[HTML.index('id="hof-private-form-drafts-v1"'):])
 
     def test_draft_action_reuses_an_existing_authenticated_function(self):

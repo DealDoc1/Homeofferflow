@@ -36,11 +36,13 @@ class AgentLibraryFeedbackTests(unittest.TestCase):
         self.assertIn('data-start-agent-transaction', INDEX)
         self.assertIn("document.getElementById('agentWorkflowStart')", INDEX)
 
-    def test_private_pdf_previews_open_synchronously_before_fetching(self):
-        """Avoid browser popup blocking after the async authenticated preview fetch."""
-        self.assertEqual(INDEX.count("const previewWindow = window.open('', '_blank');"), 3)
-        self.assertEqual(INDEX.count('previewWindow.location.replace(url);'), 3)
-        self.assertEqual(INDEX.count('previewWindow?.close();'), 3)
+    def test_private_pdf_previews_stay_inside_the_workspace(self):
+        """Avoid both popup blocking and a cluttered tab bar for draft review."""
+        self.assertNotIn("window.open('', '_blank')", INDEX)
+        self.assertIn("root.hofShowPdfPreview = function hofShowPdfPreview", INDEX)
+        self.assertEqual(INDEX.count("root.hofShowPdfPreview(await response.blob()"), 2)
+        self.assertIn("root.hofShowPdfPreview(blob, draft?.form_code);", INDEX)
+        self.assertIn("URL.revokeObjectURL(blobUrl)", INDEX)
 
 
 if __name__ == "__main__":

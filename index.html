@@ -20751,14 +20751,13 @@ function routeAfterMagicLinkIfNeeded() {
         }).join('');
         list.querySelectorAll('[data-preview]').forEach(button => button.addEventListener('click', async () => {
           button.disabled = true;
-          const previewWindow = window.open('', '_blank');
-          if (previewWindow) previewWindow.opener = null;
           try {
-            if (!previewWindow) throw new Error('Your browser blocked the preview window. Allow pop-ups for HomeOfferFlow and try again.');
             const response = await fetch('/api/admin-dashboard?preview_agreement=' + encodeURIComponent(button.dataset.preview), { headers:{ Authorization:`Bearer ${token()}` } });
             if (!response.ok) throw new Error('Private preview unavailable.');
-            const url = URL.createObjectURL(await response.blob()); previewWindow.location.replace(url); setTimeout(() => URL.revokeObjectURL(url), 60000);
-          } catch (error) { previewWindow?.close(); window.announceWorkspaceStatus?.(error.message || 'Private preview unavailable.'); } finally { button.disabled = false; }
+            const agreement = agreements.find(item => item.id === button.dataset.preview);
+            if (!root.hofShowPdfPreview) throw new Error('PDF preview is temporarily unavailable.');
+            root.hofShowPdfPreview(await response.blob(), agreement?.form_code);
+          } catch (error) { window.announceWorkspaceStatus?.(error.message || 'Private preview unavailable.'); } finally { button.disabled = false; }
         }));
         list.querySelectorAll('[data-send]').forEach(button => button.addEventListener('click', () => {
           const agreement = agreements.find(item => item.id === button.dataset.send);
@@ -21019,6 +21018,11 @@ function routeAfterMagicLinkIfNeeded() {
   .hof-private-form-drafts-list li { display:flex; justify-content:space-between; align-items:flex-start; gap:.7rem; padding:.65rem 0; border-bottom:1px solid rgba(255,255,255,.08); color:var(--gray-light); font-size:.84rem; line-height:1.4; }
   .hof-private-form-drafts-list strong { color:var(--white); }
   .hof-private-form-drafts-list small { color:var(--gray-light); }
+  .hof-pdf-preview-modal { position:fixed; inset:0; z-index:10120; display:flex; align-items:center; justify-content:center; padding:1rem; background:rgba(0,0,0,.76); backdrop-filter:blur(5px); }
+  .hof-pdf-preview-dialog { width:min(980px,100%); height:min(88vh,920px); display:flex; flex-direction:column; gap:.75rem; padding:1rem; border:1px solid rgba(255,255,255,.18); border-radius:16px; background:#07111d; box-shadow:0 24px 80px rgba(0,0,0,.5); }
+  .hof-pdf-preview-header { display:flex; align-items:center; justify-content:space-between; gap:.75rem; }
+  .hof-pdf-preview-header h4 { margin:0; color:var(--white); }
+  .hof-pdf-preview-frame { width:100%; min-height:0; flex:1; border:1px solid rgba(255,255,255,.14); border-radius:9px; background:#fff; }
   @media (max-width:640px) { .hof-private-form-drafts-list li { display:block; } }
 </style>
 <script id="hof-private-form-drafts-v1">
@@ -21031,7 +21035,51 @@ function routeAfterMagicLinkIfNeeded() {
   };
   const activeAgent = () => {
     const profile = root.hofAuth?.authoritativeProfile || {};
-    return !!root.hofAuth?.session?.user && String(profile.role || '').toLowerCase() !== 'investor';
+      return !!root.hofAuth?.session?.user && String(profile.role || '').toLowerCase() !== 'investor';
+  };
+
+  root.hofClosePdfPreview = function hofClosePdfPreview() {
+    const modal = document.getElementById('hofPdfPreviewModal');
+    if (!modal) return;
+    const blobUrl = modal.dataset.blobUrl;
+    modal.querySelector('iframe')?.setAttribute('src', 'about:blank');
+    modal.remove();
+    if (blobUrl) URL.revokeObjectURL(blobUrl);
+  };
+
+  root.hofShowPdfPreview = function hofShowPdfPreview(blob, formCode) {
+    root.hofClosePdfPreview();
+    const blobUrl = URL.createObjectURL(blob);
+    const modal = document.createElement('div');
+    modal.id = 'hofPdfPreviewModal';
+    modal.className = 'hof-pdf-preview-modal';
+    modal.dataset.blobUrl = blobUrl;
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-labelledby', 'privateDraftPreviewTitle');
+    const dialog = document.createElement('div');
+    dialog.className = 'hof-pdf-preview-dialog';
+    const header = document.createElement('div');
+    header.className = 'hof-pdf-preview-header';
+    const title = document.createElement('h4');
+    title.id = 'privateDraftPreviewTitle';
+    title.textContent = `${formCode || 'Form'} preview`;
+    const close = document.createElement('button');
+    close.type = 'button';
+    close.className = 'btn-secondary';
+    close.textContent = 'Close preview';
+    close.addEventListener('click', root.hofClosePdfPreview);
+    const frame = document.createElement('iframe');
+    frame.className = 'hof-pdf-preview-frame';
+    frame.title = `${formCode || 'Form'} PDF preview`;
+    frame.setAttribute('sandbox', 'allow-same-origin allow-downloads');
+    frame.src = blobUrl;
+    header.append(title, close);
+    dialog.append(header, frame);
+    modal.appendChild(dialog);
+    modal.addEventListener('click', event => { if (event.target === modal) root.hofClosePdfPreview(); });
+    document.body.appendChild(modal);
+    close.focus();
   };
 
   async function loadPrivateDrafts() {
@@ -21075,18 +21123,13 @@ function routeAfterMagicLinkIfNeeded() {
           if (!token) return;
           const original = button.textContent;
           button.disabled = true; button.textContent = 'Loading…';
-          const previewWindow = window.open('', '_blank');
-          if (previewWindow) previewWindow.opener = null;
           try {
-            if (!previewWindow) throw new Error('Your browser blocked the preview window. Allow pop-ups for HomeOfferFlow and try again.');
             const response = await fetch('/api/admin-dashboard?preview_agreement=' + encodeURIComponent(button.dataset.agreementId), { headers: { Authorization: `Bearer ${token}` } });
             if (!response.ok) throw new Error('Preview is unavailable.');
             const blob = await response.blob();
-            const url = URL.createObjectURL(blob);
-            previewWindow.location.replace(url);
-            setTimeout(() => URL.revokeObjectURL(url), 60000);
+            const draft = drafts.find(item => item.id === button.dataset.agreementId);
+            root.hofShowPdfPreview(blob, draft?.form_code);
           } catch (error) {
-            previewWindow?.close();
             console.error('Private draft preview failed:', error);
             const status = document.getElementById('privateFormDraftsStatus');
             if (status) status.textContent = error.message || 'Preview is unavailable.';
@@ -21341,15 +21384,13 @@ function routeAfterMagicLinkIfNeeded() {
       list.querySelectorAll('.hof-seller-preview').forEach(button => button.addEventListener('click', async () => {
         const token = root.hofAuth?.session?.access_token;
         button.disabled = true; button.textContent = 'Loading…';
-        const previewWindow = window.open('', '_blank');
-        if (previewWindow) previewWindow.opener = null;
         try {
-          if (!previewWindow) throw new Error('Your browser blocked the preview window. Allow pop-ups for HomeOfferFlow and try again.');
           const response = await fetch('/api/admin-dashboard?preview_seller_disclosure=' + encodeURIComponent(button.dataset.id), {headers:{Authorization:'Bearer ' + token}});
           if (!response.ok) throw new Error('Private seller preview is unavailable.');
-          const url = URL.createObjectURL(await response.blob()); previewWindow.location.replace(url); setTimeout(() => URL.revokeObjectURL(url),60000);
+          const draft = draftCache.get(String(button.dataset.id));
+          if (!root.hofShowPdfPreview) throw new Error('PDF preview is temporarily unavailable.');
+          root.hofShowPdfPreview(await response.blob(), draft?.property_address ? 'Seller disclosure preview' : 'Seller disclosure');
         } catch (error) {
-          previewWindow?.close();
           const status = document.getElementById('hofSellerDraftStatus');
           if (status) status.textContent = error.message || 'Private seller preview is unavailable.';
           else window.announceWorkspaceStatus?.(error.message || 'Private seller preview is unavailable.');
