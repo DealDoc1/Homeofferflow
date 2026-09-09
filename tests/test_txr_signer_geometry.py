@@ -131,6 +131,38 @@ class TxrSignerGeometryTests(unittest.TestCase):
                 self.assertGreater(date["x"], client["x"] + client["width"])
                 self.assertLessEqual(date["x"] + date["width"], date_label_x)
 
+    def test_corrected_signature_rows_clear_the_caption_baseline(self):
+        """Keep active maps above the printed signature/date captions.
+
+        The completed 8 September QA packets were created before the active
+        maps were moved upward.  This guard keeps a future coordinate change
+        from dropping a signer back onto the labels printed beneath each rule.
+        """
+        cases = (
+            (build_signwell_fields_txr1501, FORM_CASES[0][3], {
+                "txr1501_associate_signature_p6": 574,
+                "txr1501_associate_date_p6": 574,
+                "txr1501_client1_signature_p6": 574,
+                "txr1501_client1_date_p6": 574,
+                "txr1501_client2_signature_p6": 684,
+                "txr1501_client2_date_p6": 684,
+            }),
+            (build_signwell_fields_txr1507, FORM_CASES[2][3], {
+                "txr1507_associate_signature_p2": 721,
+                "txr1507_associate_date_p2": 721,
+                "txr1507_client1_signature_p2": 721,
+                "txr1507_client1_date_p2": 721,
+                "txr1507_client2_signature_p2": 826,
+                "txr1507_client2_date_p2": 826,
+            }),
+        )
+        for builder, data, limits in cases:
+            with self.subTest(builder=builder.__name__):
+                fields = {field["api_id"]: field for field in builder(data, client_count=2)[0]}
+                self.assertEqual(set(fields) & set(limits), set(limits))
+                for api_id, caption_y in limits.items():
+                    self.assertLessEqual(fields[api_id]["y"] + fields[api_id]["height"], caption_y)
+
     def test_txr1501_second_client_and_txr1507_associate_use_their_actual_rules(self):
         """Keep both source rows clear of captions beneath the signing rules."""
         txr1501 = {

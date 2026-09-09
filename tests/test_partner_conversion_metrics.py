@@ -56,6 +56,7 @@ class PartnerConversionMetricTests(unittest.TestCase):
         self.assertIn('Restore setup access', source)
         self.assertIn('Live Partner Leads', source)
         self.assertIn('sandboxPartnerLeadCount', source)
+        self.assertIn('QA record', source)
         self.assertIn('paidPartnerAgreementConfirmationRate', source)
         self.assertIn('paidPartnerActivationQueueAgedCount', source)
         self.assertIn('time to activation', source)

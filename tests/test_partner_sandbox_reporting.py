@@ -25,10 +25,16 @@ class PartnerSandboxReportingTests(unittest.TestCase):
     def test_test_mode_checkout_identifier_is_excluded(self):
         self.assertTrue(ADMIN._is_sandbox_partner_lead({"stripe_checkout_session_id": "cs_test_example"}))
 
+    def test_explicitly_marked_manual_qa_leads_are_excluded(self):
+        self.assertTrue(ADMIN._is_sandbox_partner_lead({"partner_name": "Test partner application"}))
+        self.assertTrue(ADMIN._is_sandbox_partner_lead({"company_name": "QA marketplace lead"}))
+        self.assertTrue(ADMIN._is_sandbox_partner_lead({"contact_name": "Production checkout smoke test"}))
+
     def test_live_partner_record_remains_reportable(self):
         self.assertFalse(ADMIN._is_sandbox_partner_lead({
             "source": "founding_partner_landing",
             "stripe_checkout_session_id": "cs_live_example",
+            "partner_name": "Example Title Company",
         }))
 
 

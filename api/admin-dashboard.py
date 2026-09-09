@@ -52,6 +52,7 @@ ALLOWED_PARTNER_LEAD_STATUSES = {"new", "contacted", "qualified", "waitlist", "c
 ALLOWED_PARTNER_ONBOARDING_STATUSES = {"not_started", "ready", "in_progress", "complete"}
 PARTNER_ONBOARDING_EMAIL_TIERS = {"founding_pilot", "monthly_placement", "market_exclusive", "discuss"}
 SANDBOX_PARTNER_LEAD_SOURCES = {"sandbox_checkout_test", "sandbox_webhook_end_to_end"}
+QA_PARTNER_LEAD_NAME_PREFIXES = ("test ", "qa ", "production checkout smoke")
 ALLOWED_SELLER_LEAD_STATUSES = {"new", "contacted", "qualified", "converted", "archived"}
 ALLOWED_BROKERAGE_MEMBER_STATUSES = {"active", "suspended"}
 MAX_BROKERAGE_TEAM_NAME_LENGTH = 80
@@ -130,14 +131,26 @@ TXR_BUYER_SELLER_SIGNING_FORM_CODES = {
 
 
 def _is_sandbox_partner_lead(lead):
-    """Keep Stripe sandbox artifacts out of live partner revenue reporting."""
+    """Keep provider sandbox and explicitly marked QA artifacts out of revenue reporting."""
     source = str((lead or {}).get("source") or "").strip().lower()
     if source in SANDBOX_PARTNER_LEAD_SOURCES:
         return True
     # Older sandbox rows may lack the source marker, but Stripe test-mode
     # Checkout identifiers remain a provider-authored, unambiguous signal.
     session_id = str((lead or {}).get("stripe_checkout_session_id") or "").strip().lower()
-    return session_id.startswith("cs_test_")
+    if session_id.startswith("cs_test_"):
+        return True
+    # A few early manual QA applications were created before source tags were
+    # added. They must not appear as live partner prospects or distort revenue
+    # metrics, while real leads with ordinary names remain reportable.
+    names = (
+        lead.get("partner_name"), lead.get("company_name"),
+        lead.get("business_name"), lead.get("contact_name"),
+    )
+    return any(
+        str(name or "").strip().lower().startswith(QA_PARTNER_LEAD_NAME_PREFIXES)
+        for name in names
+    )
 
 
 def _partner_activation_readiness(lead, now=None):
