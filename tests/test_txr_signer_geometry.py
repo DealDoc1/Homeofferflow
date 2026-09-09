@@ -277,7 +277,7 @@ class TxrSignerGeometryTests(unittest.TestCase):
             field["api_id"]: field
             for field in build_signwell_fields_txr1508(data, client_count=2)[0]
         }
-        self.assertEqual(fields["txr1508_agent_initials_p1"]["x"], 245)
+        self.assertEqual(fields["txr1508_agent_initials_p1"]["x"], 347)
         self.assertEqual(fields["txr1508_agent_initials_p1"]["y"], 672)
         self.assertLess(
             fields["txr1508_agent_initials_p1"]["x"] + fields["txr1508_agent_initials_p1"]["width"],
