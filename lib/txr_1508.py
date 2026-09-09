@@ -84,7 +84,10 @@ def build_signwell_fields_txr1508(data, *, client_count=1):
     if signer_plan not in {"associate_and_clients", "broker_and_clients"}:
         raise ValueError("Choose whether the broker or associate will acknowledge TXR-1508.")
     fields = [
-        {"api_id": "txr1508_agent_initials_p1", "type": "initials", "page": 1, "x": 520, "y": 672, "recipient_id": "associate" if signer_plan == "associate_and_clients" else "broker", "required": True, "width": 72, "height": 18},
+        # The agent acknowledgement has its own initials rule on the left of
+        # the row.  Customer initials use the right-side rule below; sharing
+        # their x-coordinate places the agent widget in the gap before Date.
+        {"api_id": "txr1508_agent_initials_p1", "type": "initials", "page": 1, "x": 370, "y": 672, "recipient_id": "associate" if signer_plan == "associate_and_clients" else "broker", "required": True, "width": 72, "height": 18},
         {"api_id": "txr1508_agent_date_p1", "type": "date", "page": 1, "x": 625, "y": 672, "recipient_id": "associate" if signer_plan == "associate_and_clients" else "broker", "required": True, "width": 88, "height": 20, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
         {"api_id": "txr1508_client1_initials_p1", "type": "initials", "page": 1, "x": 520, "y": 728, "recipient_id": "1", "required": True, "width": 72, "height": 18},
         {"api_id": "txr1508_client1_date_p1", "type": "date", "page": 1, "x": 625, "y": 728, "recipient_id": "1", "required": True, "width": 88, "height": 20, "date_format": "MM/DD/YYYY", "lock_sign_date": True},

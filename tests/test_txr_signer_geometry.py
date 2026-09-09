@@ -154,6 +154,22 @@ class TxrSignerGeometryTests(unittest.TestCase):
                     self.assertLessEqual(first["y"] + first["height"], first_bottom)
                     self.assertLessEqual(second["y"] + second["height"], second_bottom)
 
+    def test_txr1508_agent_initials_use_the_left_acknowledgement_rule(self):
+        """Keep the agent initials off TXR-1508's customer/date area.
+
+        The agent acknowledgement rule is left of the Date label, while the
+        customer acknowledgement rules are on the right below it.  They are
+        different source locations even though the fields share a row shape.
+        """
+        data = FORM_CASES[3][3]
+        fields = {
+            field["api_id"]: field
+            for field in build_signwell_fields_txr1508(data, client_count=2)[0]
+        }
+        self.assertEqual(fields["txr1508_agent_initials_p1"]["x"], 370)
+        self.assertEqual(fields["txr1508_agent_initials_p1"]["y"], 672)
+        self.assertEqual(fields["txr1508_client1_initials_p1"]["x"], 520)
+
     def test_every_supported_form_has_valid_non_overlapping_signer_widgets(self):
         for form_code, page_count, builder, data in FORM_CASES:
             with self.subTest(form_code=form_code):
