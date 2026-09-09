@@ -94,7 +94,7 @@ class TxrSignerGeometryTests(unittest.TestCase):
         signature widget remains on the same ruled row.
         """
         cases = (
-            (build_signwell_fields_txr1501, FORM_CASES[0][3], "txr1501", 568, 700),
+            (build_signwell_fields_txr1501, FORM_CASES[0][3], "txr1501", 568, 645),
             (build_signwell_fields_txr1507, FORM_CASES[2][3], "txr1507", 715, 704),
         )
         for builder, data, prefix, first_row_y, date_label_x in cases:

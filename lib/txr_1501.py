@@ -140,24 +140,25 @@ def build_signwell_fields_txr1501(data, *, client_count=1):
     if signer_plan not in {"clients_and_associate", "clients_and_broker"}:
         raise ValueError("Choose an authorized broker or broker-associate signer for the TXR-1501 agreement.")
     fields = [
-        # Completed-packet QA places the signature on the printed rule and
-        # keeps the full date immediately before the printed Date label.
-        {"api_id": "txr1501_client1_signature_p6", "type": "signature", "page": 6, "x": 450, "y": 568, "recipient_id": "1", "required": True, "width": 158, "height": 26},
-        {"api_id": "txr1501_client1_date_p6", "type": "date", "page": 6, "x": 615, "y": 568, "recipient_id": "1", "required": True, "width": 84, "height": 20, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
+        # Completed-packet QA showed that the previous date widgets covered
+        # the printed ``Date`` captions.  Keep the signature and full date on
+        # their rules, ending the date field before the caption.
+        {"api_id": "txr1501_client1_signature_p6", "type": "signature", "page": 6, "x": 430, "y": 568, "recipient_id": "1", "required": True, "width": 145, "height": 26},
+        {"api_id": "txr1501_client1_date_p6", "type": "date", "page": 6, "x": 580, "y": 568, "recipient_id": "1", "required": True, "width": 62, "height": 20, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
     ]
     if client_count == 2:
         fields.extend([
-            {"api_id": "txr1501_client2_signature_p6", "type": "signature", "page": 6, "x": 450, "y": 683, "recipient_id": "2", "required": True, "width": 158, "height": 26},
-            {"api_id": "txr1501_client2_date_p6", "type": "date", "page": 6, "x": 615, "y": 683, "recipient_id": "2", "required": True, "width": 84, "height": 20, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
+            {"api_id": "txr1501_client2_signature_p6", "type": "signature", "page": 6, "x": 430, "y": 683, "recipient_id": "2", "required": True, "width": 145, "height": 26},
+            {"api_id": "txr1501_client2_date_p6", "type": "date", "page": 6, "x": 580, "y": 683, "recipient_id": "2", "required": True, "width": 62, "height": 20, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
         ])
     if signer_plan == "clients_and_associate":
         fields.extend([
-            {"api_id": "txr1501_associate_signature_p6", "type": "signature", "page": 6, "x": 108, "y": 568, "recipient_id": "associate", "required": True, "width": 145, "height": 26},
-            {"api_id": "txr1501_associate_date_p6", "type": "date", "page": 6, "x": 258, "y": 568, "recipient_id": "associate", "required": True, "width": 76, "height": 20, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
+            {"api_id": "txr1501_associate_signature_p6", "type": "signature", "page": 6, "x": 108, "y": 568, "recipient_id": "associate", "required": True, "width": 105, "height": 26},
+            {"api_id": "txr1501_associate_date_p6", "type": "date", "page": 6, "x": 220, "y": 568, "recipient_id": "associate", "required": True, "width": 58, "height": 20, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
         ])
     if signer_plan == "clients_and_broker":
         fields.extend([
-            {"api_id": "txr1501_broker_signature_p6", "type": "signature", "page": 6, "x": 108, "y": 568, "recipient_id": "broker", "required": True, "width": 145, "height": 26},
-            {"api_id": "txr1501_broker_date_p6", "type": "date", "page": 6, "x": 258, "y": 568, "recipient_id": "broker", "required": True, "width": 76, "height": 20, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
+            {"api_id": "txr1501_broker_signature_p6", "type": "signature", "page": 6, "x": 108, "y": 568, "recipient_id": "broker", "required": True, "width": 105, "height": 26},
+            {"api_id": "txr1501_broker_date_p6", "type": "date", "page": 6, "x": 220, "y": 568, "recipient_id": "broker", "required": True, "width": 58, "height": 20, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
         ])
     return [fields]
