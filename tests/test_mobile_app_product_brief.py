@@ -18,7 +18,9 @@ class MobileAppProductBriefTests(unittest.TestCase):
             "must never contain a service-role key",
             "existing RLS-protected tables",
             "no new buyer, seller, or broker data access",
-            "TXR/NAR attestation",
+            "no separate form-access system",
+            "without a brokerage seat or per-agent attestation",
+            "existing subscription entitlements, private-record ownership",
         ):
             self.assertIn(phrase, BRIEF)
 

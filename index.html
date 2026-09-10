@@ -7465,6 +7465,49 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   // workspace. This keeps the agent experience an interview that assembles a
   // relevant working package rather than a form catalog to search through.
   window.hofOpenAgentPackageInterview = function hofOpenAgentPackageInterview(kind) {
+    const returnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const restorePackageFocus = () => {
+      if (returnFocus?.isConnected) {
+        returnFocus?.focus({ preventScroll: true });
+        return;
+      }
+      // Account loading can replace the original dashboard button. Return to
+      // the equivalent transaction choice instead of leaving focus on body.
+      const fallback = Array.from(document.querySelectorAll('[data-agent-workflow-choice]'))
+        .find(button => button.dataset.agentWorkflowChoice === kind);
+      fallback?.focus({ preventScroll: true });
+    };
+    const bindPackageQuestionKeys = (modal, close) => {
+      modal.addEventListener('keydown', event => {
+        if (event.key === 'Escape') {
+          event.preventDefault();
+          event.stopPropagation();
+          close();
+          return;
+        }
+        if (event.key !== 'Tab') return;
+        const controls = Array.from(modal.querySelectorAll('button, a[href], input, select, textarea, [tabindex]'))
+          .filter(control => control.tabIndex >= 0 && !control.matches(':disabled')
+            && !control.closest('[hidden], [inert], [aria-hidden="true"]') && control.getClientRects().length > 0);
+        if (!controls.length) {
+          event.preventDefault();
+          const dialog = modal.querySelector('[role="dialog"]');
+          dialog?.setAttribute('tabindex', '-1');
+          dialog?.focus({ preventScroll: true });
+          return;
+        }
+        const first = controls[0];
+        const last = controls[controls.length - 1];
+        if (!controls.includes(document.activeElement)
+          || (event.shiftKey && document.activeElement === first)
+          || (!event.shiftKey && document.activeElement === last)) {
+          event.preventDefault();
+          // Let the browser reveal the selected answer inside a long,
+          // vertically scrolling question on a phone-sized viewport.
+          (event.shiftKey ? last : first).focus();
+        }
+      });
+    };
     const recordPackageWorkspaceStart = (choice) => {
       let attempts = 0;
       const recordWhenOpen = () => {
@@ -7576,13 +7619,13 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       window.setTimeout(openWhenReady, 0);
     };
     const openRelationshipPackage = (type) => {
-      const returnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
       const closeFollowUp = () => {
         document.getElementById('hofAgentPackageFollowUp')?.remove();
-        returnFocus?.focus({ preventScroll: true });
+        restorePackageFocus();
       };
       const returnToPackageQuestion = () => {
         document.getElementById('hofAgentPackageFollowUp')?.remove();
+        restorePackageFocus();
         window.hofOpenAgentPackageInterview?.(kind);
       };
       const choices = type === 'representation'
@@ -7592,13 +7635,13 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           ]
         : type === 'purchase_addendum'
           ? [
-              { label: 'Seller financing', copy: 'Answer the guided questions, review the completed addendum, then send it when ready.', opener: 'hofOpenTxr1914Draft', formCode: 'TXR-1914' },
-              { label: 'Loan assumption', copy: 'Answer the guided questions, review the completed addendum, then send it when ready.', opener: 'hofOpenTxr1919Draft', formCode: 'TXR-1919' },
-              { label: 'Environmental review', copy: 'Answer the guided questions, review the completed addendum, then send it when ready.', opener: 'hofOpenTxr1917Draft', formCode: 'TXR-1917' },
-              { label: 'Appraisal review', copy: 'Answer the guided questions, review the completed addendum, then send it when ready.', opener: 'hofOpenTxr1948Draft', formCode: 'TXR-1948' },
+              { label: 'Seller financing', opener: 'hofOpenTxr1914Draft', formCode: 'TXR-1914' },
+              { label: 'Loan assumption', opener: 'hofOpenTxr1919Draft', formCode: 'TXR-1919' },
+              { label: 'Environmental review', opener: 'hofOpenTxr1917Draft', formCode: 'TXR-1917' },
+              { label: 'Appraisal review', opener: 'hofOpenTxr1948Draft', formCode: 'TXR-1948' },
               { label: 'Residential lease addendum', copy: 'For a purchase involving existing tenant leases. Record whether they will end or transfer to the buyer at closing.', opener: 'hofOpenTxr1953Draft', formCode: 'TXR-1953' },
               { label: 'Fixture lease addendum', copy: 'For a purchase involving leased fixtures, such as solar panels. Record which leases the buyer will assume at closing.', opener: 'hofOpenTxr1954Draft', formCode: 'TXR-1954' },
-              { label: 'Mineral reservation', copy: 'Answer the guided questions, review the completed addendum, then send it when ready.', opener: 'hofOpenTxr1905Draft', formCode: 'TXR-1905' }
+              { label: 'Mineral reservation', opener: 'hofOpenTxr1905Draft', formCode: 'TXR-1905' }
             ]
         : [
             { label: 'Showing Form', copy: 'For an unrepresented customer attending a showing.', opener: 'hofOpenTxr1508Draft', formCode: 'TXR-1508' },
@@ -7612,11 +7655,11 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         : type === 'purchase_addendum'
           ? 'Which purchase addendum does this transaction need?'
           : 'What does this customer need?';
-      followUp.innerHTML = `<div class="hof-agreement-dialog" role="dialog" aria-modal="true" aria-labelledby="hofAgentPackageFollowUpTitle"><h3 id="hofAgentPackageFollowUpTitle">${prompt}</h3><p>Choose the best starting point. Answer a short interview, review the completed document, then send it when the parties are ready.</p><div class="hof-agreement-grid">${choices.map((choice, index) => `<button type="button" class="btn-secondary hof-agent-package-choice" data-follow-up-choice="${index}" style="text-align:left;padding:1rem"><strong style="display:block;color:var(--white);margin-bottom:.35rem">${choice.label}</strong><span style="display:block;color:var(--gray-light);font-weight:400;line-height:1.45">${choice.copy}</span></button>`).join('')}</div><div class="hof-agreement-footer"><button type="button" class="btn-secondary" id="hofAgentPackageFollowUpCancel">Back</button></div></div>`;
+      followUp.innerHTML = `<div class="hof-agreement-dialog" role="dialog" aria-modal="true" aria-labelledby="hofAgentPackageFollowUpTitle"><h3 id="hofAgentPackageFollowUpTitle">${prompt}</h3><p>Choose the best starting point. Answer a short interview, review the completed document, then send it when the parties are ready.</p><div class="hof-agreement-grid">${choices.map((choice, index) => `<button type="button" class="btn-secondary hof-agent-package-choice" data-follow-up-choice="${index}" style="text-align:left;padding:1rem"><strong style="display:block;color:var(--white)${choice.copy ? ';margin-bottom:.35rem' : ''}">${choice.label}</strong>${choice.copy ? `<span style="display:block;color:var(--gray-light);font-weight:400;line-height:1.45">${choice.copy}</span>` : ''}</button>`).join('')}</div><div class="hof-agreement-footer"><button type="button" class="btn-secondary" id="hofAgentPackageFollowUpCancel">Back</button></div></div>`;
       document.body.appendChild(followUp);
       followUp.querySelector('#hofAgentPackageFollowUpCancel').addEventListener('click', returnToPackageQuestion);
       followUp.addEventListener('click', event => { if (event.target === followUp) closeFollowUp(); });
-      followUp.addEventListener('keydown', event => { if (event.key === 'Escape') closeFollowUp(); });
+      bindPackageQuestionKeys(followUp, closeFollowUp);
       window.setTimeout(() => followUp.querySelector('[data-follow-up-choice]')?.focus(), 0);
       followUp.querySelectorAll('[data-follow-up-choice]').forEach(button => button.addEventListener('click', () => {
         const choice = choices[Number(button.dataset.followUpChoice)];
@@ -7664,10 +7707,9 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     // whether Question 2 is useful without retaining a client, property, or
     // document record before the agent intentionally starts a package.
     window.logOfferEvent?.(null, 'agent_form_package_interview_viewed', 'viewed', 'Agent opened the guided package interview after choosing a transaction.', { workflow: kind });
-    const returnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const closeInterview = () => {
       document.getElementById('hofAgentPackageInterview')?.remove();
-      returnFocus?.focus({ preventScroll: true });
+      restorePackageFocus();
     };
     document.getElementById('hofAgentPackageInterview')?.remove();
     const modal = document.createElement('div');
@@ -7676,7 +7718,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     document.body.appendChild(modal);
     modal.querySelector('#hofAgentPackageCancel').addEventListener('click', closeInterview);
     modal.addEventListener('click', event => { if (event.target === modal) closeInterview(); });
-    modal.addEventListener('keydown', event => { if (event.key === 'Escape') closeInterview(); });
+    bindPackageQuestionKeys(modal, closeInterview);
     window.setTimeout(() => modal.querySelector('[data-package-choice]')?.focus(), 0);
     modal.querySelectorAll('[data-package-choice]').forEach(button => button.addEventListener('click', () => {
       const choice = interview.choices[Number(button.dataset.packageChoice)];
