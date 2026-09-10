@@ -88,7 +88,7 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("const workflowLabel = {", entry)
         self.assertIn("sale_listing: 'property listing'", entry)
         self.assertIn("lease_listing: 'lease listing'", entry)
-        self.assertIn("lease_representation: 'lease-representation transaction'", entry)
+        self.assertIn("lease_representation: 'lease representation transaction'", entry)
         self.assertIn("Continue to your ${workflowLabel}", entry)
         self.assertIn("We’ll open the next questions for this ${workflowLabel} after you return.", entry)
 
