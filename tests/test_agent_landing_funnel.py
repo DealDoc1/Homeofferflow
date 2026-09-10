@@ -1,5 +1,7 @@
 from pathlib import Path
 import importlib.util
+import shutil
+import subprocess
 import unittest
 from unittest.mock import patch
 
@@ -16,6 +18,14 @@ VERCEL = (ROOT / "vercel.json").read_text(encoding="utf-8")
 
 
 class AgentLandingFunnelTests(unittest.TestCase):
+    @unittest.skipUnless(shutil.which('node'), 'Node.js is required for lease-listing handoff runtime tests')
+    def test_lease_listing_records_a_real_workspace_start_after_the_address_question_loads(self):
+        result = subprocess.run(
+            ['node', '--test', str(ROOT / 'tests' / 'agent_lease_listing_handoff.runtime.cjs')],
+            capture_output=True, text=True, timeout=20,
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
     def test_form_library_guide_measures_question_one_handoff_without_personal_data(self):
         self.assertIn('/assets/agent-workflow-guide-metrics.js', FORM_LIBRARY)
         self.assertLess(FORM_LIBRARY.index('/assets/agent-workflow-guide-metrics.js'), FORM_LIBRARY.index('</head>'))
