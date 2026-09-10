@@ -52,6 +52,15 @@ class AgentActivationDashboardTests(unittest.TestCase):
         self.assertIn('id="agentWorkflowStart"', dashboard)
         self.assertNotIn('onclick="startAccountTransaction()">Choose Transaction</button>', dashboard)
 
+    def test_dashboard_shows_a_returning_agents_saved_transaction_without_moving_focus(self):
+        start = HTML.index("window.syncAgentTransactionPicker = function")
+        end = HTML.index("window.openAgentTransactionPicker = function", start)
+        sync = HTML[start:end]
+        self.assertIn("if (focus) {", sync)
+        self.assertIn("Resume ${labels[savedChoice]}", sync)
+        self.assertIn("root.syncAgentTransactionPicker?.();", HTML)
+        self.assertIn("window.syncAgentTransactionPicker?.({ focus: true })", HTML)
+
     def test_activation_card_suppresses_only_the_redundant_dashboard_actions(self):
         self.assertIn('dashboard-legacy-actions', HTML)
         self.assertIn(
