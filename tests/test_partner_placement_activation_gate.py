@@ -47,6 +47,9 @@ class PartnerPlacementActivationGateTests(unittest.TestCase):
         self.assertIn("market_exclusive: { tier: 'exclusive_market', fee: 799", HTML)
         self.assertIn("function applyPartnerPlacementDefaultsFromLead()", HTML)
         self.assertIn("data-placement-tier", HTML)
+        self.assertIn("The launch price covers the first 90 days", HTML)
+        self.assertIn("Monthly fee after 90 days", HTML)
+        self.assertIn("Core · $149/month after 90 days", HTML)
 
     def test_public_directory_hides_partner_contact_and_agreement_records(self):
         self.assertIn("revoke all on table public.hof_partner_placements from anon, authenticated", PUBLIC_VIEW_MIGRATION)

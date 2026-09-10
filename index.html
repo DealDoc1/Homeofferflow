@@ -13820,15 +13820,15 @@ function routeAfterMagicLinkIfNeeded() {
           <div class="platform-kpi"><span>Featured Partner</span><strong>$399</strong></div>
           <div class="platform-kpi"><span>Premier Partner</span><strong>$799</strong></div>
         </div>
-        <div class="notice gold">Pilot rates are per category and market. Premier Partner is limited to one active paid placement position per category and market, but it never creates required selection or referral rights.</div>
+        <div class="notice gold">The launch price covers the first 90 days for one category and market; the selected tier then renews at its listed monthly fee. Premier Partner is limited to one active paid placement position per category and market, but it never creates required selection or referral rights.</div>
       </div>
       ${campaignToolkit}
       <div class="partner-create-card">
         <h4 style="color:var(--gold-light); font-size:0.86rem; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:0.75rem;">Create Partner Placement</h4>
         <div class="platform-grid">
           <div class="field"><label>Paid partner application</label><select id="partnerLeadId" disabled onchange="applyPartnerPlacementDefaultsFromLead()"><option value="">Loading paid applications…</option></select></div>
-          <div class="field"><label>Placement Tier</label><select id="partnerTier"><option value="founding">Core Partner · $149</option><option value="premier">Featured Partner · $399</option><option value="exclusive_market">Premier Partner · $799</option></select></div>
-          <div class="field"><label>Pilot / monthly fee</label><input id="partnerMonthlyFee" type="number" placeholder="149"></div>
+          <div class="field"><label>Placement Tier</label><select id="partnerTier"><option value="founding">Core Partner · $149 / first 90 days</option><option value="premier">Featured Partner · $399 / first 90 days</option><option value="exclusive_market">Premier Partner · $799 / first 90 days</option></select></div>
+          <div class="field"><label>Monthly fee after 90 days</label><input id="partnerMonthlyFee" type="number" placeholder="149"></div>
         </div>
         <div class="notice gold" style="margin-top:.85rem;">A completed HomeOfferFlow Partner Marketplace Agreement is required before activation. Send it from the paid-partner activation queue; SignWell copies each completed PDF to support@homeofferflow.com.</div>
         <div class="notice gold" style="margin-top:.7rem;">Only paid partners with completed secure onboarding appear here. Public placement details are derived from the paid application so company, category, and market cannot be mismatched. Paid placements remain separate from neutral provider selection.</div>
@@ -14040,9 +14040,9 @@ function routeAfterMagicLinkIfNeeded() {
 
   function partnerPlacementDefaults(preferredModel) {
     const defaults = {
-      founding_pilot: { tier: 'founding', fee: 149, label: 'Core · $149/mo' },
-      monthly_placement: { tier: 'premier', fee: 399, label: 'Featured · $399/mo' },
-      market_exclusive: { tier: 'exclusive_market', fee: 799, label: 'Premier · $799/mo' }
+      founding_pilot: { tier: 'founding', fee: 149, label: 'Core · $149/month after 90 days' },
+      monthly_placement: { tier: 'premier', fee: 399, label: 'Featured · $399/month after 90 days' },
+      market_exclusive: { tier: 'exclusive_market', fee: 799, label: 'Premier · $799/month after 90 days' }
     };
     return defaults[preferredModel] || defaults.founding_pilot;
   }
