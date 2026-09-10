@@ -9869,6 +9869,14 @@ function routeAfterMagicLinkIfNeeded() {
       const box = document.getElementById('financingDetails');
       if (box) box.style.display = value !== 'cash' ? 'flex' : 'none';
       updateAppraisalAddendumVisibility(value);
+      // A person can choose a financing type and immediately press Continue.
+      // Apply the editable interview starting points now, rather than allowing
+      // the deferred calculator refresh to leave required fields momentarily
+      // empty and make the button appear unresponsive.
+      wireSmartCalculations();
+      syncFinancingFieldsFromPrice();
+      wirePaymentCalculator();
+      updatePaymentCalculator();
       setTimeout(() => {
         wireSmartCalculations();
         syncFinancingFieldsFromPrice();

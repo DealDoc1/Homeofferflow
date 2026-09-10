@@ -46,6 +46,15 @@ class FinancingInterviewDefaultsTests(unittest.TestCase):
         self.assertIn("step3: 'Review addenda →'", segment)
         self.assertIn("step7: 'Review your offer →'", segment)
 
+    def test_financing_choice_applies_defaults_before_deferred_refresh(self):
+        start = INDEX.index("function selectCard(el, group, value)")
+        end = INDEX.index("if (group === 'leases')", start)
+        segment = INDEX[start:end]
+
+        immediate_defaults = segment.index("syncFinancingFieldsFromPrice();")
+        deferred_refresh = segment.index("setTimeout(() =>")
+        self.assertLess(immediate_defaults, deferred_refresh)
+
 
 if __name__ == "__main__":
     unittest.main()
