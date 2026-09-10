@@ -211,6 +211,20 @@ async function getStandaloneAgreementForUser(agreementId, user) {
   return agreement;
 }
 
+async function getSellerDisclosureForUser(draftId, user) {
+  if (!draftId) throw new Error('Missing seller disclosure ID.');
+
+  // A seller disclosure remains private to the agent who prepared it. Keep
+  // status refreshes and signed-PDF downloads scoped to that same owner.
+  const rows = await supabaseRequest(
+    `hof_seller_disclosure_drafts?id=eq.${encodeURIComponent(draftId)}&agent_user_id=eq.${encodeURIComponent(user.id)}&select=id,agent_user_id,signwell_document_id,status,signwell_status,sent_at,signed_at`,
+    { method: 'GET' }
+  );
+  const draft = Array.isArray(rows) ? rows[0] : null;
+  if (!draft) throw new Error('Seller disclosure not found or access denied.');
+  return draft;
+}
+
 async function getSignWellDocument(documentId) {
   if (!SIGNWELL_API_KEY) throw new Error('Missing SIGNWELL_API_KEY.');
   if (!documentId) throw new Error('Missing SignWell document id.');
@@ -350,6 +364,36 @@ async function updateStandaloneAgreementStatus(agreement, status, documentId, do
   return Array.isArray(updateRows) ? updateRows[0] : updateRows;
 }
 
+function safeSellerDisclosureStatus(signwellStatus) {
+  const clean = cleanStatusLabel(signwellStatus);
+  if (clean === 'Buyer Signatures Complete') return 'signed';
+  if (clean === 'Declined' || clean === 'Expired') return 'void';
+  return 'sent';
+}
+
+async function updateSellerDisclosureStatus(draft, status, documentId, user) {
+  const now = new Date().toISOString();
+  const cleanSignwellStatus = cleanStatusLabel(status);
+  const draftStatus = safeSellerDisclosureStatus(cleanSignwellStatus);
+  const updatePayload = {
+    signwell_status: cleanSignwellStatus,
+    status: draftStatus,
+    updated_at: now
+  };
+  if (draftStatus === 'signed') updatePayload.signed_at = now;
+
+  const updateRows = await supabaseRequest(
+    `hof_seller_disclosure_drafts?id=eq.${encodeURIComponent(draft.id)}&agent_user_id=eq.${encodeURIComponent(user.id)}&select=id,agent_user_id,signwell_document_id,status,signwell_status,sent_at,signed_at,updated_at`,
+    {
+      method: 'PATCH',
+      headers: { Prefer: 'return=representation' },
+      body: JSON.stringify(updatePayload)
+    }
+  );
+
+  return Array.isArray(updateRows) ? updateRows[0] : updateRows;
+}
+
 module.exports = async (req, res) => {
   if (req.method !== 'POST') {
     return json(res, 405, { error: 'Method not allowed' });
@@ -365,15 +409,22 @@ module.exports = async (req, res) => {
 
     const offerId = body.offerId || body.offer_id || '';
     const agreementId = body.agreementId || body.agreement_id || '';
+    const sellerDisclosureId = body.sellerDisclosureId || body.seller_disclosure_id || '';
     const downloadCompletedPdf = body.action === 'download_completed_pdf';
-    if (!offerId && !agreementId) throw new Error('Missing offer or agreement ID.');
-    if (offerId && agreementId) throw new Error('Choose one packet to refresh.');
+    const requestedPackets = [offerId, agreementId, sellerDisclosureId].filter(Boolean);
+    if (!requestedPackets.length) throw new Error('Missing packet ID.');
+    if (requestedPackets.length > 1) throw new Error('Choose one packet to refresh.');
 
     const isStandaloneAgreement = Boolean(agreementId);
-    const packet = isStandaloneAgreement
-      ? await getStandaloneAgreementForUser(agreementId, user)
-      : await getOfferForUser(offerId, user);
-    const packetData = parseJsonObject(isStandaloneAgreement ? packet.agreement_data : packet.offer_data);
+    const isSellerDisclosure = Boolean(sellerDisclosureId);
+    const packet = isSellerDisclosure
+      ? await getSellerDisclosureForUser(sellerDisclosureId, user)
+      : isStandaloneAgreement
+        ? await getStandaloneAgreementForUser(agreementId, user)
+        : await getOfferForUser(offerId, user);
+    const packetData = isSellerDisclosure
+      ? {}
+      : parseJsonObject(isStandaloneAgreement ? packet.agreement_data : packet.offer_data);
 
     const documentId =
       packet.signwell_document_id ||
@@ -385,7 +436,7 @@ module.exports = async (req, res) => {
       '';
 
     if (!documentId) {
-      throw new Error('This offer does not have a SignWell document ID.');
+      throw new Error('This packet does not have a SignWell document ID.');
     }
 
     const document = await getSignWellDocument(documentId);
@@ -396,22 +447,26 @@ module.exports = async (req, res) => {
       }
       const pdf = await getCompletedSignWellPdf(documentId);
       res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', 'attachment; filename="homeofferflow-completed-signwell-packet.pdf"');
+      res.setHeader('Content-Disposition', `attachment; filename="${isSellerDisclosure ? 'homeofferflow-signed-seller-disclosure.pdf' : 'homeofferflow-completed-signwell-packet.pdf'}"`);
       res.setHeader('Cache-Control', 'private, no-store');
       return res.status(200).send(pdf);
     }
-    const updatedPacket = isStandaloneAgreement
-      ? await updateStandaloneAgreementStatus(packet, status, documentId, document, user)
-      : await updateOfferStatus(packet, status, documentId, document, user);
+    const updatedPacket = isSellerDisclosure
+      ? await updateSellerDisclosureStatus(packet, status, documentId, user)
+      : isStandaloneAgreement
+        ? await updateStandaloneAgreementStatus(packet, status, documentId, document, user)
+        : await updateOfferStatus(packet, status, documentId, document, user);
 
     return json(res, 200, {
       ok: true,
-      offerId: isStandaloneAgreement ? null : packet.id,
+      offerId: isStandaloneAgreement || isSellerDisclosure ? null : packet.id,
       agreementId: isStandaloneAgreement ? packet.id : null,
+      sellerDisclosureId: isSellerDisclosure ? packet.id : null,
       documentId,
       status: cleanStatusLabel(status),
-      updatedOffer: isStandaloneAgreement ? null : updatedPacket,
+      updatedOffer: isStandaloneAgreement || isSellerDisclosure ? null : updatedPacket,
       updatedAgreement: isStandaloneAgreement ? updatedPacket : null,
+      updatedSellerDisclosure: isSellerDisclosure ? updatedPacket : null,
       signwellStatusRaw: document.status || document.document_status || null,
       recipientStatuses: extractRecipientStatuses(document)
     });

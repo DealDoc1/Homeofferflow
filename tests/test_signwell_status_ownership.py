@@ -38,12 +38,28 @@ class SignWellStatusOwnershipTests(unittest.TestCase):
         self.assertIn("&agent_user_id=eq.${encodeURIComponent(user.id)}", update)
         self.assertIn("function safeStandaloneStatus", SOURCE)
 
+    def test_seller_disclosure_refresh_and_download_are_scoped_to_the_preparing_agent(self):
+        start = SOURCE.index("async function getSellerDisclosureForUser")
+        end = SOURCE.index("async function getSignWellDocument", start)
+        lookup = SOURCE[start:end]
+        self.assertIn("agent_user_id=eq.${encodeURIComponent(user.id)}", lookup)
+        self.assertIn("select=id,agent_user_id,signwell_document_id,status,signwell_status", lookup)
+        self.assertNotIn("select=*", lookup)
+
+        start = SOURCE.index("async function updateSellerDisclosureStatus")
+        end = SOURCE.index("module.exports", start)
+        update = SOURCE[start:end]
+        self.assertIn("&agent_user_id=eq.${encodeURIComponent(user.id)}", update)
+        self.assertIn("function safeSellerDisclosureStatus", SOURCE)
+
     def test_completed_pdf_download_requires_an_owner_scoped_completed_packet(self):
         self.assertIn("async function getCompletedSignWellPdf", SOURCE)
         self.assertIn("/completed_pdf?audit_page=true&file_format=pdf", SOURCE)
         self.assertIn("body.action === 'download_completed_pdf'", SOURCE)
         self.assertIn("cleanStatusLabel(status) !== 'Buyer Signatures Complete'", SOURCE)
         self.assertIn("Cache-Control', 'private, no-store'", SOURCE)
+        self.assertIn("sellerDisclosureId", SOURCE)
+        self.assertIn("homeofferflow-signed-seller-disclosure.pdf", SOURCE)
 
 
 if __name__ == "__main__":

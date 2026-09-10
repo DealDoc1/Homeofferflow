@@ -21477,6 +21477,38 @@ function routeAfterMagicLinkIfNeeded() {
       } catch (error) { message.textContent = error.message || 'Could not send the seller disclosure for signature.'; button.disabled = false; }
     });
   }
+  async function refreshSellerDisclosureSigning(draft, downloadCompleted = false) {
+    const token = root.hofAuth?.session?.access_token;
+    const status = document.getElementById('hofSellerDraftStatus');
+    if (!token || !draft?.id) { if (status) status.textContent = 'Sign in and choose a seller disclosure first.'; return; }
+    try {
+      const response = await fetch('/api/signwell-status', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json', Authorization:'Bearer ' + token},
+        body: JSON.stringify({sellerDisclosureId:draft.id, action:downloadCompleted ? 'download_completed_pdf' : 'refresh_status'})
+      });
+      if (downloadCompleted) {
+        if (!response.ok) {
+          const result = await response.json().catch(() => ({}));
+          throw new Error(result.error || 'The signed seller disclosure is not available yet.');
+        }
+        const url = URL.createObjectURL(await response.blob());
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'HomeOfferFlow-signed-seller-disclosure.pdf';
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+        if (status) status.textContent = 'Signed seller disclosure downloaded.';
+        return;
+      }
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || 'Could not refresh signing status.');
+      if (status) status.textContent = result.status === 'Buyer Signatures Complete' ? 'All signatures are complete. Your signed seller disclosure is ready to download.' : 'Signing status refreshed.';
+      await refreshDrafts();
+    } catch (error) { if (status) status.textContent = error.message || 'Could not refresh signing status.'; }
+  }
   async function refreshDrafts() {
     const list = document.getElementById('hofSellerDraftList');
     if (!list) return;
@@ -21488,7 +21520,9 @@ function routeAfterMagicLinkIfNeeded() {
         const reviewStatus = sellerReviewStatus(d);
         const followUp = progress.requested && !d.seller_review_attested ? '<button type="button" class="btn-secondary hof-seller-followup" data-id="' + escape(d.id) + '">Follow up</button>' : '';
         const sendForSignature = d.status === 'draft' && d.seller_review_attested ? '<button type="button" class="btn-primary hof-seller-send-signing" data-id="' + escape(d.id) + '">Send for signature</button>' : '';
-        return '<li data-seller-draft-row data-search="' + escape([d.property_address, ...(d.seller_names || []), d.status, d.disclosure_source_revision, d.water_source_revision, reviewStatus].filter(Boolean).join(' ')) + '"><span><strong>' + escape(d.property_address) + '</strong><br><small>' + escape((d.seller_names || []).join(', ')) + ' · ' + escape(d.disclosure_source_revision || '') + (d.water_source_revision ? ' + TREC-61-0' : '') + ' · ' + escape(reviewStatus) + '</small></span><button type="button" class="btn-secondary hof-seller-load" data-id="' + escape(d.id) + '">Load draft</button>' + followUp + '<button type="button" class="btn-secondary hof-seller-preview" data-id="' + escape(d.id) + '">Preview PDF</button>' + sendForSignature + '</li>';
+        const refreshSigning = d.signwell_document_id && d.status !== 'signed' ? '<button type="button" class="btn-secondary hof-seller-refresh-signing" data-id="' + escape(d.id) + '">Refresh signing status</button>' : '';
+        const downloadSigned = d.signwell_document_id && d.status === 'signed' ? '<button type="button" class="btn-secondary hof-seller-download-signed" data-id="' + escape(d.id) + '">Download signed PDF</button>' : '';
+        return '<li data-seller-draft-row data-search="' + escape([d.property_address, ...(d.seller_names || []), d.status, d.disclosure_source_revision, d.water_source_revision, reviewStatus].filter(Boolean).join(' ')) + '"><span><strong>' + escape(d.property_address) + '</strong><br><small>' + escape((d.seller_names || []).join(', ')) + ' · ' + escape(d.disclosure_source_revision || '') + (d.water_source_revision ? ' + TREC-61-0' : '') + ' · ' + escape(reviewStatus) + '</small></span><button type="button" class="btn-secondary hof-seller-load" data-id="' + escape(d.id) + '">Load draft</button>' + followUp + '<button type="button" class="btn-secondary hof-seller-preview" data-id="' + escape(d.id) + '">Preview PDF</button>' + refreshSigning + downloadSigned + sendForSignature + '</li>';
       }).join('') : '<li>No seller disclosure drafts saved yet.</li>';
       const summary = document.getElementById('hofSellerDraftSummary');
       if (summary) summary.textContent = `${drafts.length} draft${drafts.length === 1 ? '' : 's'} shown.`;
@@ -21510,6 +21544,8 @@ function routeAfterMagicLinkIfNeeded() {
       }));
       list.querySelectorAll('.hof-seller-load').forEach(button => button.addEventListener('click', () => root.loadSellerDisclosureDraft(button.dataset.id)));
       list.querySelectorAll('.hof-seller-send-signing').forEach(button => button.addEventListener('click', () => openSellerDisclosureSignature(draftCache.get(String(button.dataset.id)))));
+      list.querySelectorAll('.hof-seller-refresh-signing').forEach(button => button.addEventListener('click', () => refreshSellerDisclosureSigning(draftCache.get(String(button.dataset.id)))));
+      list.querySelectorAll('.hof-seller-download-signed').forEach(button => button.addEventListener('click', () => refreshSellerDisclosureSigning(draftCache.get(String(button.dataset.id)), true)));
       list.querySelectorAll('.hof-seller-followup').forEach(button => button.addEventListener('click', () => {
         const draft = draftCache.get(String(button.dataset.id));
         const requested = Number(draft?.sellerReviewProgress?.requested || 0);

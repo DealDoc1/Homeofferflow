@@ -48,6 +48,13 @@ class SellerDisclosureSigningPathTests(unittest.TestCase):
         self.assertIn("signwell_document_id", sql)
         self.assertIn("hof_seller_disclosure_drafts_update_own", sql)
 
+    def test_agent_workspace_can_refresh_and_download_only_its_signed_disclosure(self):
+        source = (ROOT / "index.html").read_text(encoding="utf-8")
+        self.assertIn("sellerDisclosureId:draft.id", source)
+        self.assertIn("hof-seller-refresh-signing", source)
+        self.assertIn("hof-seller-download-signed", source)
+        self.assertIn("HomeOfferFlow-signed-seller-disclosure.pdf", source)
+
 
 if __name__ == "__main__":
     unittest.main()
