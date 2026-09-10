@@ -7825,6 +7825,11 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             }
             card.scrollIntoView({ behavior: 'smooth', block: 'start' });
             address.focus({ preventScroll: true });
+            // Lease listing has no intermediate package question. Record the
+            // start only when its actual landlord/property workspace is ready,
+            // matching the conversion signal used by the other transaction
+            // paths without treating the first click as a completed handoff.
+            window.logOfferEvent?.(null, 'agent_form_package_started', 'started', 'Agent opened the selected guided package workspace.', { workflow: 'lease_listing', package: 'Lease listing workspace' });
           };
           window.setTimeout(focusWhenReady, 0);
         }
