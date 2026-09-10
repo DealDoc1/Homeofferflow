@@ -132,6 +132,13 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertLess(choices.index('<h3>Purchase</h3>'), choices.index('<h3>Lease listing</h3>'))
         self.assertLess(choices.index('<h3>Lease listing</h3>'), choices.index('<h3>Lease representation</h3>'))
 
+    def test_agent_landing_uses_document_review_language_for_customers(self):
+        self.assertIn('"name":"Review your documents"', AGENTS)
+        self.assertIn('document summary, form status, recipients', AGENTS)
+        self.assertIn('saved-work recovery', AGENTS)
+        self.assertNotIn('"name":"Review the draft"', AGENTS)
+        self.assertNotIn('saved defaults, draft recovery, repeat-offer work', AGENTS)
+
     def test_lease_listing_copy_routes_to_a_relevant_lease_addendum_interview(self):
         self.assertIn("Next, choose listing setup, a lease addendum, or your saved workspace.", AGENTS)
         self.assertNotIn("Next, choose listing setup, request a lease form, or open your saved workspace.", AGENTS)
