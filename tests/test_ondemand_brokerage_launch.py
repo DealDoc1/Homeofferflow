@@ -786,7 +786,7 @@ class BrokerageAuthorizationTests(unittest.TestCase):
         self.assertIn("root.__hofBrokerageInviteInFlight = true;", final_script)
         self.assertIn("root.__hofBrokerageInviteInFlight = false;", final_script)
 
-    def test_broker_dashboard_exposes_source_readiness_without_private_source_details(self):
+    def test_broker_dashboard_keeps_shared_form_access_separate_from_optional_private_sources(self):
         source = ADMIN_PATH.read_text(encoding="utf-8")
         start = source.index("async def _brokerage_dashboard_payload")
         end = source.index("def _normalized_invite_email", start)
@@ -798,9 +798,10 @@ class BrokerageAuthorizationTests(unittest.TestCase):
 
         marker = INDEX_HTML.index('id="hof-ondemand-brokerage-launch-v1"')
         final_script = INDEX_HTML[marker:]
-        self.assertIn("Restricted form readiness", final_script)
-        self.assertIn("Awaiting approved source", final_script)
-        self.assertIn("must never omit the TXR/NAR gate", INDEX_HTML)
+        self.assertIn("Shared HomeOfferFlow forms", final_script)
+        self.assertIn("No brokerage seat, team membership, broker action", final_script)
+        self.assertIn("Optional brokerage templates", final_script)
+        self.assertIn("This list is only for separate templates", final_script)
 
     def test_invite_migration_is_private_and_allows_one_pending_agent_invite(self):
         self.assertIn("alter column brokerage_id set not null", INVITE_MIGRATION)
@@ -906,13 +907,14 @@ class BrokerageAuthorizationTests(unittest.TestCase):
         self.assertIn("saveButton.textContent = logo ? 'Uploading logo…' : 'Saving branding…';", final_script)
         self.assertIn("saveButton.setAttribute('aria-busy', 'false');", final_script)
 
-    def test_brokerage_ui_exposes_the_live_txr_authorization_gate(self):
+    def test_brokerage_ui_does_not_present_a_form_access_gate_for_shared_forms(self):
         marker = INDEX_HTML.index('id="hof-ondemand-brokerage-launch-v1"')
         final_script = INDEX_HTML[marker:]
         self.assertIn("saveBrokerageTxrAuthorization", final_script)
         self.assertIn("update_brokerage_txr_authorization", final_script)
-        self.assertIn("Texas REALTORS® / NAR form authorization", final_script)
-        self.assertIn("This organization-level gate is not inferred from a license number", final_script)
+        self.assertIn("Shared HomeOfferFlow forms", final_script)
+        self.assertNotIn("Texas REALTORS® / NAR form authorization", final_script)
+        self.assertNotIn('id="brokerageTxrAuthorization"', final_script)
 
     def test_shared_title_defaults_save_prevents_duplicate_writes_and_restores_state(self):
         marker = INDEX_HTML.index('id="hof-ondemand-brokerage-launch-v1"')
@@ -930,13 +932,12 @@ class BrokerageAuthorizationTests(unittest.TestCase):
         self.assertIn("applyButton.textContent = 'Copying defaults…';", final_script)
         self.assertIn("applyButton.setAttribute('aria-busy', 'false');", final_script)
 
-    def test_brokerage_authorization_save_prevents_duplicate_status_writes(self):
+    def test_brokerage_authorization_action_is_not_presented_as_shared_form_access(self):
         marker = INDEX_HTML.index('id="hof-ondemand-brokerage-launch-v1"')
         final_script = INDEX_HTML[marker:]
-        self.assertIn('id="saveBrokerageTxrAuthorizationButton"', final_script)
-        self.assertIn("if (saveButton?.disabled) return null;", final_script)
-        self.assertIn("saveButton.textContent = 'Saving authorization…';", final_script)
-        self.assertIn("saveButton.setAttribute('aria-busy', 'false');", final_script)
+        self.assertIn("saveBrokerageTxrAuthorization", final_script)
+        self.assertNotIn('id="saveBrokerageTxrAuthorizationButton"', final_script)
+        self.assertIn("Every signed-in agent can use the available HomeOfferFlow shared-form library", final_script)
 
     def test_broker_can_save_title_suggestions_but_not_transaction_terms(self):
         actor = {"id": "11111111-1111-1111-1111-111111111111", "email": "tyler@ondemanddfw.com"}

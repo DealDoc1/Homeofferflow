@@ -12843,7 +12843,7 @@ function routeAfterMagicLinkIfNeeded() {
           <div class="field"><label>Contact Email</label><input id="brandContactEmail" value="${escapeAttr(b.contact_email || profileValue('agent_email', hofAuth.session?.user?.email || ''))}" placeholder="brokerage@email.com"></div>
           <div class="field"><label>Contact Phone</label><input id="brandContactPhone" value="${escapeAttr(b.contact_phone || profileValue('agent_phone'))}" placeholder="(214) 555-0000"></div>
           <div class="field"><label>Default Title Company</label><input id="brandDefaultTitle" value="${escapeAttr(b.default_title_company || profileValue('default_title_company'))}" placeholder="Preferred title company"></div>
-          <div class="field" style="grid-column:1/-1"><label>Are all participating agents current members of both NAR and Texas REALTORS®, or otherwise individually authorized to use the brokerage’s member forms?</label><select id="brandTxrAuthorization"><option value="unknown" ${!b.txr_all_agents_authorized && !b.txr_authorization_attested_at ? 'selected' : ''}>Not confirmed yet</option><option value="all_agents_authorized" ${b.txr_all_agents_authorized ? 'selected' : ''}>Yes — all participating agents are authorized Texas REALTORS® / NAR users</option><option value="not_all" ${b.txr_all_agents_authorized === false && b.txr_authorization_attested_at ? 'selected' : ''}>No / not all participating agents are authorized</option></select><label class="brokerage-txr-attestation"><input id="brandTxrAttestation" type="checkbox"> I attest that this status is accurate for the brokerage. Each agent still confirms their own current authorization before using a restricted Texas REALTORS® / NAR source form.</label><small style="display:block;color:var(--gray-light);margin-top:.3rem;line-height:1.45">This is not inferred from a license number. The attestation does not replace approval of the private source form.</small></div>
+          <div class="notice sage" style="grid-column:1/-1;margin:0;"><strong>Shared form access:</strong> Every signed-in agent can use the currently available HomeOfferFlow shared forms. Brokerage profile settings, team membership, and broker action do not change that access.</div>
         </div>
         <div class="field" style="margin-top:0.8rem;"><label>Brokerage Disclaimer</label><textarea id="brandDisclaimer" rows="3" placeholder="Optional brokerage/team disclaimer shown in branded experiences.">${escapeAttr(b.disclaimer || '')}</textarea></div>
         <div class="notice gold" style="margin-top:0.8rem;"><strong>Logo upload:</strong> Save the brokerage profile first, then use the secure direct-upload control in Brokerage Administration below. External logo URLs are intentionally not accepted.</div>
@@ -12866,11 +12866,6 @@ function routeAfterMagicLinkIfNeeded() {
     const user = platformUser();
     if (!client || !user) return platformStatus('brokerageFoundationStatus', 'Sign in before saving brokerage branding.', 'err');
     const now = new Date().toISOString();
-    const txrStatus = getVal('brandTxrAuthorization');
-    const txrAttested = document.getElementById('brandTxrAttestation')?.checked === true;
-    if (txrStatus !== 'unknown' && !txrAttested) {
-      return platformStatus('brokerageFoundationStatus', 'Check the brokerage Texas REALTORS® / NAR attestation before saving this authorization status.', 'err');
-    }
     const payload = {
       name: getVal('brandBrokerageName') || 'My Brokerage',
       org_type: getVal('brandOrgType') || 'brokerage',
@@ -12888,9 +12883,6 @@ function routeAfterMagicLinkIfNeeded() {
       contact_phone: getVal('brandContactPhone') || null,
       disclaimer: getVal('brandDisclaimer') || null,
       default_title_company: getVal('brandDefaultTitle') || null,
-      txr_all_agents_authorized: txrStatus === 'all_agents_authorized',
-      txr_authorization_attested_by: txrStatus === 'unknown' || !txrAttested ? null : user.id,
-      txr_authorization_attested_at: txrStatus === 'unknown' || !txrAttested ? null : now,
       created_by: user.id,
       updated_at: now
     };
@@ -12902,10 +12894,8 @@ function routeAfterMagicLinkIfNeeded() {
       };
       result = await writeBrokerage(payload);
       if (result.error && String(result.error.message || '').toLowerCase().includes('column')) {
-        // Compatibility fallback may omit older branding-only columns, but it
-        // must never omit the TXR/NAR gate. If those columns are unavailable,
-        // fail closed instead of creating a brokerage with an unrecorded
-        // authorization policy.
+        // Compatibility fallback may omit newer branding-only columns while
+        // preserving the shared form library independently of profile setup.
         const { org_type, slug, office_address, office_city, office_state, office_zip, ...legacyPayload } = payload;
         result = await writeBrokerage(legacyPayload);
       }
@@ -20158,29 +20148,23 @@ function routeAfterMagicLinkIfNeeded() {
           teamCohorts.map(cohort => '<tr><td><strong>' + safe(cohort.teamName || 'Unassigned') + '</strong>' + (cohort.unassigned ? '<br><small>Add a private label in the roster when useful.</small>' : '') + '</td><td>' + Number(cohort.activeAgentCount || 0) + ' / ' + Number(cohort.agentCount || 0) + '</td><td>' + Number(cohort.activeAccessCount || 0) + '</td><td>' + Number(cohort.needsActivationCount || 0) + '</td><td>' + Number(cohort.needsBillingCount || 0) + '</td><td>' + Number(cohort.offerCount || 0) + '</td><td>' + Number(cohort.signedCount || 0) + '</td></tr>').join('') +
           '</tbody></table></div>'
         : '';
-      const sourceStatusLabel = source => source.readyForRestrictedDraft
-        ? '<span style="color:var(--sage-light)">Ready for private draft</span>'
+      const sourceStatusLabel = source => source.status === 'approved' && source.sourceAttested
+        ? '<span style="color:var(--sage-light)">Private source saved</span>'
         : (source.status === 'not_uploaded'
-          ? '<span style="color:var(--gold-light)">Awaiting approved source</span>'
-          : (source.status === 'approved' && !source.sourceAttested
-            ? '<span style="color:var(--gold-light)">Source authorization incomplete</span>'
-            : '<span style="color:var(--gray-light)">Brokerage/source gate incomplete</span>'));
+          ? '<span style="color:var(--gray-light)">Not uploaded</span>'
+          : (source.status === 'approved'
+            ? '<span style="color:var(--gold-light)">Source review incomplete</span>'
+            : '<span style="color:var(--gray-light)">Source review pending</span>'));
       document.getElementById('brokerSafeDashboard').innerHTML =
         '<h4>Brokerage activity</h4>' +
         '<p>Operational visibility only. Buyer names, property addresses, offer terms, and document contents are not included.</p>' +
         '<p class="brokerage-membership-note">Suspending an agent removes brokerage-managed access only. It does not cancel that agent\'s HomeOfferFlow subscription or delete their offers.</p>' +
-        '<div class="platform-card" style="margin:1rem 0 0;padding:.8rem"><h4>Texas REALTORS® / NAR form authorization</h4>' +
-        '<p class="brokerage-membership-note">This organization-level gate is not inferred from a license number. Each agent must still attest at point of use, and each form requires an approved private source revision.</p>' +
-        '<div class="brokerage-invite-form"><select id="brokerageTxrAuthorization" aria-label="Brokerage Texas REALTORS authorization status">' +
-          '<option value="unknown"' + (!b.txr_authorization_attested_at ? ' selected' : '') + '>Not confirmed yet</option>' +
-          '<option value="all_agents_authorized"' + (b.txr_all_agents_authorized === true ? ' selected' : '') + '>Yes — all participating agents are authorized Texas REALTORS® / NAR users</option>' +
-          '<option value="not_all"' + (b.txr_all_agents_authorized === false && b.txr_authorization_attested_at ? ' selected' : '') + '>No / not all participating agents are authorized</option>' +
-        '</select><label class="brokerage-txr-attestation"><input id="brokerageTxrAttestation" type="checkbox"> I attest that this status is accurate for the brokerage.</label><button type="button" class="brokerage-access-button" id="saveBrokerageTxrAuthorizationButton" onclick="saveBrokerageTxrAuthorization()">Save authorization status</button></div>' +
-        '<p id="brokerageTxrAuthorizationResult" class="brokerage-invite-result">' + (b.txr_all_agents_authorized === true && b.txr_authorization_attested_at ? 'Authorized status saved. Agents still attest individually.' : 'Restricted Texas REALTORS® / NAR source workflows remain unavailable until this is confirmed.') + '</p></div>' +
-        '<div class="platform-card" style="margin:1rem 0 0;padding:.8rem"><h4>Restricted form readiness</h4>' +
-        '<p class="brokerage-membership-note">Status only — this does not activate sending or signing. A restricted form is available as a private draft only when the brokerage requirement and its exact approved source revision are both present.</p>' +
+        '<div class="platform-card" style="margin:1rem 0 0;padding:.8rem"><h4>Shared HomeOfferFlow forms</h4>' +
+        '<p class="brokerage-membership-note">Every signed-in agent can use the available HomeOfferFlow shared-form library. No brokerage seat, team membership, broker action, or extra form-access step is required.</p></div>' +
+        '<div class="platform-card" style="margin:1rem 0 0;padding:.8rem"><h4>Optional brokerage templates</h4>' +
+        '<p class="brokerage-membership-note">This list is only for separate templates a brokerage supplies for its own organization. It never controls the shared HomeOfferFlow library or an agent\'s access to it. Status only — this does not activate sending or signing.</p>' +
         '<table class="brokerage-safe-table"><thead><tr><th>Form</th><th>Source</th><th>Status</th></tr></thead><tbody>' +
-        (sourceReadiness.length ? sourceReadiness.map(source => '<tr><td><strong>' + safe(source.formCode) + '</strong></td><td>' + (source.sourceRevision ? safe(source.sourceRevision) : '—') + '</td><td>' + sourceStatusLabel(source) + '</td></tr>').join('') : '<tr><td colspan="3">Source readiness is unavailable until the private source table is installed.</td></tr>') +
+        (sourceReadiness.length ? sourceReadiness.map(source => '<tr><td><strong>' + safe(source.formCode) + '</strong></td><td>' + (source.sourceRevision ? safe(source.sourceRevision) : '—') + '</td><td>' + sourceStatusLabel(source) + '</td></tr>').join('') : '<tr><td colspan="3">No brokerage-specific templates have been added.</td></tr>') +
         '</tbody></table></div>' +
         '<div class="brokerage-invite-form" style="margin-top:1rem"><label for="brokerageBrandColor">Brokerage branding</label>' +
         '<input id="brokerageBrandColor" type="color" value="' + safe(b.brand_color || '#2563eb') + '" aria-label="Brokerage brand color" oninput="renderBrokerageBrandPreview()">' +

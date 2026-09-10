@@ -38,16 +38,17 @@ class BrokerageFormSourceFoundationTests(unittest.TestCase):
         self.assertIn("crypto.subtle.digest('SHA-256'", HTML)
         self.assertIn("source_sha256: sourceSha256", HTML)
 
-    def test_brokerage_setup_records_txr_authorization_policy(self):
+    def test_brokerage_setup_makes_shared_form_access_unambiguous(self):
         authorization_migration = (ROOT / "supabase" / "homeofferflow_brokerage_txr_authorization.sql").read_text(encoding="utf-8")
         self.assertIn("txr_all_agents_authorized", authorization_migration)
         self.assertIn("txr_authorization_attested_by", authorization_migration)
-        self.assertIn("brandTxrAuthorization", HTML)
-        self.assertIn("current members of both NAR and Texas REALTORS", HTML)
-        self.assertIn("Each agent still confirms their own current authorization", HTML)
-        self.assertIn("brandTxrAttestation", HTML)
-        self.assertIn("Check the brokerage Texas REALTORS® / NAR attestation before saving", HTML)
-        self.assertIn("This is not inferred from a license number", HTML)
+        self.assertIn("Every signed-in agent can use the currently available HomeOfferFlow shared forms", HTML)
+        self.assertIn("Brokerage profile settings, team membership, and broker action do not change that access", HTML)
+        self.assertNotIn('id="brandTxrAuthorization"', HTML)
+        self.assertNotIn('id="brandTxrAttestation"', HTML)
+        setup = HTML.split("async function saveBrokerageFoundation()", 1)[1].split("function renderSellerFoundationPanel()", 1)[0]
+        self.assertNotIn("txr_all_agents_authorized:", setup)
+        self.assertNotIn("txr_authorization_attested_by:", setup)
 
     def test_brokerage_setup_persists_all_visible_identity_fields(self):
         """Prevent branding/setup inputs from silently becoming display-only."""
