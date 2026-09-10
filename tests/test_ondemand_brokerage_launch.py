@@ -640,6 +640,7 @@ class BrokerageAuthorizationTests(unittest.TestCase):
         self.assertEqual(resend_payload["to"], ["agent@example.com"])
         self.assertIn("OnDemand Realty", resend_payload["subject"])
         self.assertIn(result["inviteUrl"], resend_payload["text"])
+        self.assertEqual(resend_payload["tags"], [{"name": "email_type", "value": "brokerage_invite"}])
 
     def test_broker_can_revoke_only_a_pending_agent_invite_in_own_brokerage(self):
         actor = {"id": "11111111-1111-1111-1111-111111111111", "email": "tyler@ondemanddfw.com"}
