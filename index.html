@@ -4321,7 +4321,6 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     if (!client || !user) return;
     const role = (user.user_metadata?.role || hofAuth.role || localStorage.getItem('hof_auth_role') || 'agent') === 'investor' ? 'investor' : 'agent';
     hofAuth.role = role;
-    state.data.userType = role;
     try {
       const { error } = await client.from('hof_profiles').upsert({
         id: user.id,
@@ -7282,6 +7281,11 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   function applyProfileDefaultsToWizard(force = false) {
     const p = hofAuth.accountProfile;
     if (!p) return;
+    // Account identity and the selected transaction path are separate. A late
+    // profile refresh must not fill a personal buyer draft with agent/entity
+    // details or change the terms the visitor is currently reviewing.
+    const accountOfferType = hofAuth.role === 'investor' ? 'investor' : 'agent';
+    if ((state.data.userType || 'homebuyer') !== accountOfferType) return;
     if (hofAuth.role === 'agent') {
       setInputIfEmpty('agentNameQuick', p.agent_name, force); setInputIfEmpty('agentName', p.agent_name, force);
       setInputIfEmpty('agentLicenseQuick', p.license_number, force); setInputIfEmpty('agentLicense', p.license_number, force);
@@ -17832,10 +17836,8 @@ function routeAfterMagicLinkIfNeeded() {
     const rawRole = user?.user_metadata?.role || root.hofAuth?.role || localStorage.getItem('hof_auth_role') || 'agent';
     const normalized = normalizeAccountRole(rawRole);
     if (root.hofAuth) root.hofAuth.role = normalized;
-    // The account role should control an authenticated workspace, not the
-    // anonymous public landing route.  Keeping the selected Homebuyer path
-    // intact here avoids converting a first visit into an agent-login flow.
-    if (root.state?.data && session) root.state.data.userType = offerUserTypeForRole(normalized);
+    // Refresh account controls without replacing the visitor's chosen path.
+    // Explicit account actions select their own transaction type separately.
     const isMobile = window.innerWidth <= 640;
     const label = roleLabel(normalized);
 
@@ -17892,7 +17894,6 @@ function routeAfterMagicLinkIfNeeded() {
     if (!client || !user) return;
     const role = normalizeAccountRole(user.user_metadata?.role || root.hofAuth?.role || localStorage.getItem('hof_auth_role') || 'agent');
     if (root.hofAuth) root.hofAuth.role = role;
-    if (root.state?.data) root.state.data.userType = offerUserTypeForRole(role);
     try {
       const { error } = await client.from('hof_profiles').upsert({
         id: user.id,
@@ -18065,13 +18066,9 @@ function routeAfterMagicLinkIfNeeded() {
   try {
     const savedRole = normalizeAccountRole(localStorage.getItem('hof_auth_role') || root.hofAuth?.role || 'agent');
     if (root.hofAuth) root.hofAuth.role = savedRole;
-    // A remembered account role is useful after authentication, but it must
-    // not silently replace the public $99 Homebuyer path for an anonymous
-    // first visit.  Auth restoration assigns the authoritative account role
-    // once a real session is available.
-    if (root.state?.data) root.state.data.userType = root.hofAuth?.session
-      ? offerUserTypeForRole(savedRole)
-      : 'homebuyer';
+    // A saved account role controls account tools, not an already selected
+    // public path or an interview currently in progress.
+    if (root.state?.data && !root.state.data.userType) root.state.data.userType = 'homebuyer';
     document.querySelectorAll('[data-auth-role]').forEach(btn => btn.classList.toggle('active', btn.dataset.authRole === savedRole));
     root.updateAuthUI?.();
   } catch(e) { console.warn('Broker role init skipped:', e); }
@@ -19046,7 +19043,6 @@ function routeAfterMagicLinkIfNeeded() {
       root.hofAuth.authoritativeRole = role;
       root.hofAuth.role = role;
       root.hofAuth.profileReady = true;
-      if (root.state?.data) root.state.data.userType = role === 'investor' ? 'investor' : 'agent';
       try { localStorage.setItem('hof_auth_role', role); } catch(e) {}
       await root.loadAccountProfile?.();
       await root.loadOrCreateSubscription?.();

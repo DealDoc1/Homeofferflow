@@ -59,14 +59,13 @@ class LandingAudiencePickerTests(unittest.TestCase):
         self.assertIn(".audience-card-action", HTML)
         self.assertIn("No payment to start · $99 when ready", audience)
 
-    def test_anonymous_first_visit_keeps_the_homebuyer_path_after_account_enhancements_load(self):
+    def test_account_enhancements_preserve_an_existing_public_path(self):
         enhancement_start = HTML.index('id="hof-broker-role-v14-js"')
         enhancement_end = HTML.index("</script>", enhancement_start)
         enhancement = HTML[enhancement_start:enhancement_end]
-        self.assertIn("root.hofAuth?.session", enhancement)
-        self.assertIn("? offerUserTypeForRole(savedRole)", enhancement)
-        self.assertIn(": 'homebuyer';", enhancement)
-        self.assertIn("if (root.state?.data && session) root.state.data.userType = offerUserTypeForRole(normalized);", enhancement)
+        self.assertIn("if (root.state?.data && !root.state.data.userType) root.state.data.userType = 'homebuyer';", enhancement)
+        passive_update = enhancement.split("root.updateAuthUI = function updateAuthUI(){", 1)[1].split("root.ensureProfileShell", 1)[0]
+        self.assertNotIn("root.state.data.userType =", passive_update)
 
 
 if __name__ == "__main__":

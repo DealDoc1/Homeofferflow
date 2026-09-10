@@ -45,9 +45,21 @@
 
 ## Release boundary
 
-This presentation batch is locally verified and not yet deployed. It does not
-change form editions, PDF coordinates, signers, database schema, checkout,
-permissions, or Google Maps autocomplete. Current production remains
-`088147cdfed2919a1aa02cb3988b2097b66ae7ce` with the verified complete recipient
-preview and successful live TXR-1508 send. The TXR-1508 completed-PDF placement
-check still awaits the user's signatures.
+This presentation batch was deployed from
+`d62fcf3001e4303242a19843889851b4e629c0ad` after
+[PR #1193](https://github.com/DealDoc1/Homeofferflow/pull/1193).
+[Production workflow 34502567461](https://github.com/DealDoc1/Homeofferflow/actions/runs/34502567461)
+passed all 1,625 tests, built on the GitHub runner, uploaded the prebuilt tree,
+and verified the canonical site, PWA, API and packet-runtime checks. The
+deployment reached Ready at 16:32 UTC on September 10.
+
+The live TXR-1506 dialog at `https://www.homeofferflow.com/` was inspected after
+release: opaque `rgb(13, 31, 53)` background, white 16px input text, 48.39px text
+inputs, 49px selects, and matching client/scroll width (758px). The real dialog
+was visually inspected; no form was submitted during this presentation check.
+A bounded error/warning log query for this exact deployment returned no
+matching entries. This is a point-in-time check, not proof of every user flow.
+
+The release does not change form editions, PDF coordinates, signers, database
+schema, checkout, permissions, or Google Maps autocomplete. The TXR-1508
+completed-PDF placement check still awaits the user's signatures.
