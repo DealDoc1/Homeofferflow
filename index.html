@@ -7429,11 +7429,17 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   // Keep the first dashboard action aligned with the transaction-first
   // experience. This only brings the four choices into view; it does not
   // create a draft, select a legal form, or write any account data.
-  window.openAgentTransactionPicker = function openAgentTransactionPicker() {
+  // Keep a returning agent's last selected transaction path visible as soon
+  // as the dashboard opens.  Only an explicit "Choose Transaction" action
+  // scrolls to Question 1 or moves focus; routine dashboard rendering must
+  // never interrupt a resume, billing, or signed-document task.
+  window.syncAgentTransactionPicker = function syncAgentTransactionPicker({ focus = false } = {}) {
     const picker = document.getElementById('agentWorkflowStart');
     if (!picker) return;
-    picker.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    picker.focus({ preventScroll: true });
+    if (focus) {
+      picker.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      picker.focus({ preventScroll: true });
+    }
     const status = document.getElementById('agentWorkflowStartStatus');
     let savedChoice = '';
     const installedApp = Boolean(window.navigator?.standalone) || window.matchMedia?.('(display-mode: standalone)').matches;
@@ -7465,6 +7471,10 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       if (resume) resume.style.display = 'none';
       status.textContent = 'Choose what you are working on to continue.';
     }
+  };
+
+  window.openAgentTransactionPicker = function openAgentTransactionPicker() {
+    return window.syncAgentTransactionPicker?.({ focus: true });
   };
 
   // Every generic agent-account launch point returns to Question 1. Explicit
@@ -19194,6 +19204,7 @@ function routeAfterMagicLinkIfNeeded() {
   root.renderAccountDashboard = function renderAccountDashboard() {
     if (typeof previousRenderDashboard === 'function') previousRenderDashboard();
     document.getElementById('release15DashboardCard')?.remove();
+    root.syncAgentTransactionPicker?.();
     root.renderAgentActivationCard();
   };
 })();
