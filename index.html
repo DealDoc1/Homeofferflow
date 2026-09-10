@@ -4798,9 +4798,20 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       const result = await response.json().catch(() => ({}));
       if (!response.ok || result.error) throw new Error(result.error || 'Could not create a seller payment link.');
       const delivery = result?.sellerCheckout?.delivery;
-      window.announceWorkspaceStatus?.(delivery === 'sent'
-        ? 'Seller payment link sent.'
-        : 'Seller payment link created. Email delivery was unavailable; copy the link from the secure checkout record if needed.');
+      const checkoutUrl = String(result?.sellerCheckout?.checkoutUrl || '');
+      if (delivery === 'sent') {
+        window.announceWorkspaceStatus?.('Seller payment link sent.');
+      } else if (checkoutUrl) {
+        try {
+          await navigator.clipboard.writeText(checkoutUrl);
+          window.announceWorkspaceStatus?.('Email delivery was unavailable. The secure seller payment link was copied so you can send it directly.');
+        } catch (_) {
+          window.prompt('Copy the secure seller payment link:', checkoutUrl);
+          window.announceWorkspaceStatus?.('Email delivery was unavailable. Copy the secure seller payment link shown above to send it directly.');
+        }
+      } else {
+        window.announceWorkspaceStatus?.('Seller payment link was created, but its delivery needs attention.');
+      }
       await loadAdminDashboard(true);
     } catch (err) {
       window.announceWorkspaceStatus?.(err?.message || 'Could not create a seller payment link.');

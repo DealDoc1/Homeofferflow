@@ -9,6 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 MODULE_PATH = ROOT / "lib" / "seller_checkout.py"
 WEBHOOK_PATH = ROOT / "api" / "stripe-webhook" / "index.py"
 INDEX = (ROOT / "index.html").read_text(encoding="utf-8")
+SELLERS = (ROOT / "sellers.html").read_text(encoding="utf-8")
 MIGRATION = (ROOT / "supabase" / "migrations" / "20260910043007_seller_checkout_requests.sql").read_text(encoding="utf-8")
 os.environ.setdefault("SUPABASE_URL", "https://example.supabase.co")
 os.environ.setdefault("SUPABASE_SERVICE_ROLE_KEY", "test-service-key")
@@ -61,6 +62,18 @@ class SellerCheckoutRequestTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("sellerLeadCheckoutAction", INDEX)
         self.assertIn("create_seller_checkout_request", INDEX)
         self.assertIn("Confirm that you reviewed the seller’s scope and fixed price", INDEX)
+
+    def test_checkout_return_explains_success_or_cancel_without_exposing_order_data(self):
+        self.assertIn('id="sellerCheckoutContext"', SELLERS)
+        self.assertIn("paymentState === 'success'", SELLERS)
+        self.assertIn("Payment received.", SELLERS)
+        self.assertIn("No payment was made.", SELLERS)
+        self.assertIn("cleanUrl.searchParams.delete('seller_payment')", SELLERS)
+
+    def test_admin_gets_a_safe_fallback_when_checkout_email_delivery_fails(self):
+        self.assertIn("const checkoutUrl = String(result?.sellerCheckout?.checkoutUrl || '');", INDEX)
+        self.assertIn("await navigator.clipboard.writeText(checkoutUrl)", INDEX)
+        self.assertIn("window.prompt('Copy the secure seller payment link:', checkoutUrl)", INDEX)
 
     def test_scope_confirmation_is_required(self):
         # This validates before database or payment-provider access.
