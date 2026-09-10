@@ -102,9 +102,10 @@ def build_signwell_fields_txr1506(data, *, client_count=1):
         ])
     role = "associate" if signer_plan == "consumers_and_associate" else "broker"
     fields.extend([
-        # End one unit above the source's printed signature caption.  The
-        # previous bottom edge touched its first glyph in SignWell.
-        {"api_id": f"txr1506_{role}_signature_p6", "type": "signature", "page": 6, "x": 60, "y": 799, "recipient_id": role, "required": True, "width": 190, "height": 26},
+        # The source prefixes this rule with a printed "By:". Start after
+        # that prefix, while preserving the same right edge and caption
+        # clearance as the source-calibrated consumer rows below.
+        {"api_id": f"txr1506_{role}_signature_p6", "type": "signature", "page": 6, "x": 80, "y": 799, "recipient_id": role, "required": True, "width": 170, "height": 26},
         # The source uses the same right-hand Date column for the provider
         # acknowledgement and each consumer acknowledgement. Keeping each
         # widget inside that printed rule prevents it from covering the
