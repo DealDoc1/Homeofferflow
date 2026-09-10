@@ -842,6 +842,9 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 
 
     .payment-calc-card { background: rgba(74,140,111,0.075); border: 1px solid rgba(74,140,111,0.22); border-radius: 14px; padding: 1rem; margin: 1rem 0 1.15rem; }
+    .payment-calc-card summary { cursor: pointer; color: var(--sage-light); font-size: 0.9rem; font-weight: 800; }
+    .payment-calc-card summary span { color: var(--gray-light); font-size: 0.76rem; font-weight: 500; margin-left: 0.45rem; }
+    .payment-calc-card summary::marker { color: var(--sage-light); }
     .payment-calc-card h4 { font-size: 0.9rem; font-weight: 800; color: var(--sage-light); margin-bottom: 0.35rem; }
     .payment-calc-card p { font-size: 0.8rem; color: var(--gray-light); line-height: 1.5; margin-bottom: 0.75rem; }
     .calc-disclaimer { margin-top:0.75rem; padding-top:0.65rem; border-top:1px solid rgba(255,255,255,0.07); font-size:0.74rem; line-height:1.55; color:var(--gray); }
@@ -3622,9 +3625,9 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           </div>
         </div>
 
-        <div class="payment-calc-card" id="paymentCalcCard">
-          <h4>Estimated monthly payment</h4>
-          <p>Quick planning estimate only. Update the fields below to see how payment assumptions change.</p>
+        <details class="payment-calc-card" id="paymentCalcCard">
+          <summary>Estimate monthly payment <span>Optional planning tool</span></summary>
+          <p>Open this if you want to compare payment assumptions. It does not change your offer terms.</p>
           <div class="payment-calc-grid">
             <div class="payment-calc-mini-field"><label>Interest Rate (%)</label><input type="number" id="calcInterestRate" value="7" step="0.125" inputmode="decimal"/></div>
             <div class="payment-calc-mini-field"><label>Loan Term (years)</label><input type="number" id="calcLoanYears" value="30" inputmode="numeric"/></div>
@@ -3649,7 +3652,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           <div class="calc-disclaimer">
             <strong>Estimate only.</strong> Monthly payment figures are based on general Texas averages and the information entered above. Actual loan terms, taxes, insurance premiums, HOA dues, PMI, and closing costs may vary significantly. HomeOfferFlow is not a lender, insurance provider, or tax authority. Buyers should obtain official loan estimates from a licensed mortgage professional, insurance quotes from a licensed insurance agent, and verify property taxes directly with the applicable county appraisal district or tax authority.
           </div>
-        </div>
+        </details>
 
         <div style="margin-top:0.75rem; padding-top:0.75rem; border-top:1px solid rgba(255,255,255,0.07);">
           <p style="font-size:0.8rem; font-weight:700; color:var(--gold-light); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.5rem;">Earnest Money & Option Period</p>
