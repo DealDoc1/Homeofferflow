@@ -104,6 +104,16 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("window.addEventListener('hof-auth-ready', callback, { once: true });", entry)
         self.assertIn("continueAfterAuthResolution(() => {", entry)
 
+    def test_signed_in_agent_deep_link_waits_for_the_account_workspace_before_opening_the_transaction(self):
+        start = INDEX.index("if (window.hofAuth?.session) {", INDEX.index("// Agent acquisition reuses"))
+        end = INDEX.index("} else if (agentLandingWorkspace === 'seller')", start)
+        signed_in = INDEX[start:end]
+        self.assertIn("const accountDashboard = window.openAccountDashboard?.({ tab: 'dashboard' });", signed_in)
+        self.assertIn("typeof accountDashboard.then === 'function'", signed_in)
+        self.assertIn("Promise.resolve(accountDashboard).then(continueToSelectedTransaction, continueToSelectedTransaction);", signed_in)
+        self.assertIn("window.startAgentWorkflow?.(agentLandingWorkflow);", signed_in)
+        self.assertNotIn("}, 120);", signed_in)
+
     def test_agent_deep_link_recovers_if_the_ready_event_precedes_the_dom_handler(self):
         self.assertIn('id="hof-agent-route-primer-v1"', INDEX)
         self.assertIn("'hof_agent_route_pending_v1'", INDEX)
@@ -119,6 +129,16 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("['agent', 'workflow', 'workspace']", recovery)
         self.assertIn("sessionStorage.getItem('hof_agent_route_pending_v1')", recovery)
         self.assertIn("localStorage.getItem('hof_agent_route_pending_v1')", recovery)
+
+    def test_agent_route_recovery_waits_for_the_workspace_before_opening_the_transaction(self):
+        start = INDEX.index("if (window.hofAuth?.session) {", INDEX.index('id="hof-agent-landing-route-recovery-v1"'))
+        end = INDEX.index("try {\n      if (source", start)
+        signed_in = INDEX[start:end]
+        self.assertIn("const accountDashboard = window.openAccountDashboard?.({ tab: workspace === 'seller'", signed_in)
+        self.assertIn("typeof accountDashboard.then === 'function'", signed_in)
+        self.assertIn("Promise.resolve(accountDashboard).then(continueToSelectedTransaction, continueToSelectedTransaction);", signed_in)
+        self.assertIn("window.startAgentWorkflow?.(workflow);", signed_in)
+        self.assertNotIn("}, 120);", signed_in)
 
     def test_agent_deep_link_shows_agent_landing_before_session_restores(self):
         start = INDEX.index("if (params().get('agent') === '1')")
