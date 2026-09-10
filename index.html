@@ -14165,7 +14165,13 @@ function routeAfterMagicLinkIfNeeded() {
       disclaimer: approvedEducationalDisclaimer,
       source: result.source || 'gemini',
       model: result.model || '',
-      marketMode: result.marketMode || 'unknown'
+      marketMode: result.marketMode || 'unknown',
+      // The API only returns a deliberately small, permitted listing-context
+      // record. Preserve its provenance so the review can accurately say
+      // whether broker-authorized MLS facts—not public web context—were used.
+      propertyContext: result.propertyContext && typeof result.propertyContext === 'object'
+        ? result.propertyContext
+        : null
     };
     base.components = normalizeScoreComponents(result.components, base.score, base);
     const derivedConfidence = getReviewConfidence(buildAiOfferReviewPayload(), base);
@@ -14323,6 +14329,13 @@ function routeAfterMagicLinkIfNeeded() {
       : '';
 
     const marketModeText = escapeAttr(r.marketMode || 'unknown/general Texas resale norms');
+    const authorizedMlsContext = r.propertyContext
+      && r.propertyContext.found === true
+      && r.propertyContext.mlsVerified === true
+      && r.propertyContext.sourceType === 'broker_authorized_reso_mls';
+    const contextSourceNote = authorizedMlsContext
+      ? '<div class="ai-role-note"><strong>Broker-authorized listing context included.</strong> These facts are used only for this review; confirm the live listing with the listing broker before acting.</div>'
+      : '';
     const confidence = r.confidence || { label: 'Limited confidence', rationale: 'Market context or core offer terms are incomplete.' };
     const topStrengths = (r.strengths && r.strengths.length ? r.strengths : ['No major strengths detected from entered terms yet.']).slice(0, 3);
     const topRisks = (r.risks && r.risks.length ? r.risks : ['No major concerns detected from entered terms yet.']).slice(0, 3);
@@ -14351,6 +14364,7 @@ function routeAfterMagicLinkIfNeeded() {
 
         <div class="ai-review-summary ai-review-summary-v5"><strong>${escapeAttr(sourceLabel)}.</strong> ${escapeAttr(r.summary || '')}</div>
         <div class="notice gold" role="status"><strong>${escapeAttr(confidence.label || 'Limited confidence')}.</strong> ${escapeAttr(confidence.rationale || '')} Confidence describes input completeness, not accuracy or acceptance odds.</div>
+        ${contextSourceNote}
         <div class="ai-disclaimer-v5"><strong>Important:</strong> ${escapeAttr(r.disclaimer)} It does not change your contract automatically. Public listing/search context may be included when available and is not MLS-verified unless sourced from an authorized MLS connection.</div>
 
         <div class="review-section-title">${componentsTitle}</div>

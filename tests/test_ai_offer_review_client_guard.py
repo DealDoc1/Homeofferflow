@@ -15,6 +15,14 @@ class AiOfferReviewClientGuardTests(unittest.TestCase):
         self.assertIn("disclaimer: approvedEducationalDisclaimer", block)
         self.assertNotIn("disclaimer: result.disclaimer ||", block)
 
+    def test_browser_marks_only_authorized_mls_context_as_verified(self):
+        start = INDEX.index("function renderAiOfferReviewResult(r, loading = false)")
+        end = INDEX.index("function runLiveAiOfferReview", start)
+        block = INDEX[start:end]
+        self.assertIn("r.propertyContext.mlsVerified === true", block)
+        self.assertIn("r.propertyContext.sourceType === 'broker_authorized_reso_mls'", block)
+        self.assertIn("Broker-authorized listing context included.", block)
+
 
 if __name__ == "__main__":
     unittest.main()
