@@ -92,6 +92,10 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("Continue to your ${workflowLabel}", entry)
         self.assertIn("We’ll open the next questions for this ${workflowLabel} after you return.", entry)
 
+    def test_agent_sign_in_role_copy_covers_listing_lease_and_purchase_work(self):
+        self.assertIn("<span>Personal transaction workspace</span>", INDEX)
+        self.assertNotIn("<span>Personal offer workspace</span>", INDEX)
+
     def test_agent_deep_link_waits_for_existing_session_resolution(self):
         start = INDEX.index("const continueAfterAuthResolution = callback =>")
         end = INDEX.index("// Investor acquisition", start)
