@@ -2452,6 +2452,20 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     flex-direction:column;
     gap:.8rem;
   }
+  .offer-crm-empty {
+    border:1px dashed rgba(255,255,255,.18);
+    border-radius:18px;
+    padding:1rem;
+    text-align:center;
+    color:var(--gray-light);
+    line-height:1.5;
+  }
+  .offer-crm-empty strong {
+    display:block;
+    color:var(--white);
+    font-size:.92rem;
+    margin-bottom:.2rem;
+  }
   .offer-crm-card {
     display:grid;
     grid-template-columns:minmax(0,1fr) auto;
@@ -8148,6 +8162,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         </div>
       </article>`;
     }).join('');
+    const offerList = rows || `<div class="offer-crm-empty"><strong>Your workspace is ready.</strong>Choose a transaction type above to begin a guided document package.</div>`;
 
     return `<div class="offer-crm-header">
       <div>
@@ -8158,7 +8173,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       <button class="btn-primary" type="button" onclick="startAccountTransaction()">Choose Transaction</button>
     </div>
     ${statCards}
-    <div class="offer-crm-list">${rows}</div>`;
+    <div class="offer-crm-list">${offerList}</div>`;
   }
 
 
