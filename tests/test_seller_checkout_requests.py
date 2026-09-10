@@ -10,7 +10,7 @@ MODULE_PATH = ROOT / "lib" / "seller_checkout.py"
 WEBHOOK_PATH = ROOT / "api" / "stripe-webhook" / "index.py"
 INDEX = (ROOT / "index.html").read_text(encoding="utf-8")
 SELLERS = (ROOT / "sellers.html").read_text(encoding="utf-8")
-MIGRATION = (ROOT / "supabase" / "migrations" / "20260910043007_seller_checkout_requests.sql").read_text(encoding="utf-8")
+MIGRATION = (ROOT / "supabase" / "migrations" / "20260910051231_seller_checkout_requests.sql").read_text(encoding="utf-8")
 os.environ.setdefault("SUPABASE_URL", "https://example.supabase.co")
 os.environ.setdefault("SUPABASE_SERVICE_ROLE_KEY", "test-service-key")
 SPEC = importlib.util.spec_from_file_location("seller_checkout", MODULE_PATH)
