@@ -273,9 +273,9 @@ class AgentLandingFunnelTests(unittest.TestCase):
         start = INDEX.index("window.hofOpenAgentPackageInterview = function")
         end = INDEX.index("window.startAgentWorkflow = function", start)
         interview = INDEX[start:end]
-        self.assertIn("We’ll prepare the completed document for your review.", interview)
-        self.assertIn("Signature sending is available only where the workflow supports it,", interview)
-        self.assertIn("and you’ll review the completed document before it is sent.", interview)
+        self.assertIn("Answer a short interview, review the completed document, then send it when the parties are ready.", interview)
+        self.assertIn("Choose the addendum the transaction needs, answer the guided questions, then review and send it when ready.", interview)
+        self.assertIn("Choose the lease addendum the listing needs, answer the guided questions, then review and send it when ready.", interview)
 
     def test_dismissing_the_package_question_restores_keyboard_focus(self):
         start = INDEX.index("window.hofOpenAgentPackageInterview = function")

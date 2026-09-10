@@ -7513,18 +7513,18 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           ]
         : type === 'lease_addendum'
           ? [
-              { label: 'Residential lease', copy: 'Prepare the residential-lease addendum as a private draft.', opener: 'hofOpenTxr1953Draft', formCode: 'TXR-1953' },
-              { label: 'Fixture lease', copy: 'Prepare the fixture-lease addendum as a private draft.', opener: 'hofOpenTxr1954Draft', formCode: 'TXR-1954' }
+              { label: 'Residential lease', copy: 'Answer the guided questions, review the completed addendum, then send it when ready.', opener: 'hofOpenTxr1953Draft', formCode: 'TXR-1953' },
+              { label: 'Fixture lease', copy: 'Answer the guided questions, review the completed addendum, then send it when ready.', opener: 'hofOpenTxr1954Draft', formCode: 'TXR-1954' }
             ]
         : type === 'purchase_addendum'
           ? [
-              { label: 'Seller financing', copy: 'Prepare the seller-financing addendum as a private draft.', opener: 'hofOpenTxr1914Draft', formCode: 'TXR-1914' },
-              { label: 'Loan assumption', copy: 'Prepare the loan-assumption addendum as a private draft.', opener: 'hofOpenTxr1919Draft', formCode: 'TXR-1919' },
-              { label: 'Environmental review', copy: 'Prepare the environmental-assessment addendum as a private draft.', opener: 'hofOpenTxr1917Draft', formCode: 'TXR-1917' },
-              { label: 'Appraisal review', copy: 'Prepare the appraisal right-to-terminate addendum as a private draft.', opener: 'hofOpenTxr1948Draft', formCode: 'TXR-1948' },
-              { label: 'Residential lease addendum', copy: 'Prepare the residential-lease addendum as a private draft.', opener: 'hofOpenTxr1953Draft', formCode: 'TXR-1953' },
-              { label: 'Fixture lease addendum', copy: 'Prepare the fixture-lease addendum as a private draft.', opener: 'hofOpenTxr1954Draft', formCode: 'TXR-1954' },
-              { label: 'Mineral reservation', copy: 'Prepare the mineral-reservation addendum as a private draft.', opener: 'hofOpenTxr1905Draft', formCode: 'TXR-1905' }
+              { label: 'Seller financing', copy: 'Answer the guided questions, review the completed addendum, then send it when ready.', opener: 'hofOpenTxr1914Draft', formCode: 'TXR-1914' },
+              { label: 'Loan assumption', copy: 'Answer the guided questions, review the completed addendum, then send it when ready.', opener: 'hofOpenTxr1919Draft', formCode: 'TXR-1919' },
+              { label: 'Environmental review', copy: 'Answer the guided questions, review the completed addendum, then send it when ready.', opener: 'hofOpenTxr1917Draft', formCode: 'TXR-1917' },
+              { label: 'Appraisal review', copy: 'Answer the guided questions, review the completed addendum, then send it when ready.', opener: 'hofOpenTxr1948Draft', formCode: 'TXR-1948' },
+              { label: 'Residential lease addendum', copy: 'Answer the guided questions, review the completed addendum, then send it when ready.', opener: 'hofOpenTxr1953Draft', formCode: 'TXR-1953' },
+              { label: 'Fixture lease addendum', copy: 'Answer the guided questions, review the completed addendum, then send it when ready.', opener: 'hofOpenTxr1954Draft', formCode: 'TXR-1954' },
+              { label: 'Mineral reservation', copy: 'Answer the guided questions, review the completed addendum, then send it when ready.', opener: 'hofOpenTxr1905Draft', formCode: 'TXR-1905' }
             ]
         : [
             { label: 'Showing Form', copy: 'For an unrepresented customer attending a showing.', opener: 'hofOpenTxr1508Draft', formCode: 'TXR-1508' },
@@ -7540,7 +7540,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         : type === 'purchase_addendum'
           ? 'Which purchase addendum does this transaction need?'
           : 'What does this customer need?';
-      followUp.innerHTML = `<div class="hof-agreement-dialog" role="dialog" aria-modal="true" aria-labelledby="hofAgentPackageFollowUpTitle"><h3 id="hofAgentPackageFollowUpTitle">${prompt}</h3><p>Choose the best starting point. We’ll prepare the completed document for your review. Signature sending is available only where the workflow supports it, and you’ll review the completed document before it is sent.</p><div class="hof-agreement-grid">${choices.map((choice, index) => `<button type="button" class="btn-secondary hof-agent-package-choice" data-follow-up-choice="${index}" style="text-align:left;padding:1rem"><strong style="display:block;color:var(--white);margin-bottom:.35rem">${choice.label}</strong><span style="display:block;color:var(--gray-light);font-weight:400;line-height:1.45">${choice.copy}</span></button>`).join('')}</div><div class="hof-agreement-footer"><button type="button" class="btn-secondary" id="hofAgentPackageFollowUpCancel">Back</button></div></div>`;
+      followUp.innerHTML = `<div class="hof-agreement-dialog" role="dialog" aria-modal="true" aria-labelledby="hofAgentPackageFollowUpTitle"><h3 id="hofAgentPackageFollowUpTitle">${prompt}</h3><p>Choose the best starting point. Answer a short interview, review the completed document, then send it when the parties are ready.</p><div class="hof-agreement-grid">${choices.map((choice, index) => `<button type="button" class="btn-secondary hof-agent-package-choice" data-follow-up-choice="${index}" style="text-align:left;padding:1rem"><strong style="display:block;color:var(--white);margin-bottom:.35rem">${choice.label}</strong><span style="display:block;color:var(--gray-light);font-weight:400;line-height:1.45">${choice.copy}</span></button>`).join('')}</div><div class="hof-agreement-footer"><button type="button" class="btn-secondary" id="hofAgentPackageFollowUpCancel">Back</button></div></div>`;
       document.body.appendChild(followUp);
       followUp.querySelector('#hofAgentPackageFollowUpCancel').addEventListener('click', returnToPackageQuestion);
       followUp.addEventListener('click', event => { if (event.target === followUp) closeFollowUp(); });
@@ -7559,7 +7559,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         choices: [
           { label: 'Start an offer package', copy: 'Tell us about the buyer, property, financing, and timing. We’ll assemble the supported offer documents that fit the selections you make.', action: () => startAccountOffer(), isWorkspaceOpen: () => document.getElementById('wizardOverlay')?.classList.contains('active') },
           { label: 'Set up representation', copy: 'Choose the agreement, then answer the client questions that apply.', action: () => openRelationshipPackage('representation'), deferStartToNestedChoice: true },
-          { label: 'Prepare a purchase addendum', copy: 'Choose the addendum the transaction needs, then prepare a private draft.', action: () => openRelationshipPackage('purchase_addendum'), deferStartToNestedChoice: true },
+          { label: 'Prepare a purchase addendum', copy: 'Choose the addendum the transaction needs, answer the guided questions, then review and send it when ready.', action: () => openRelationshipPackage('purchase_addendum'), deferStartToNestedChoice: true },
           { label: 'Prepare a showing form or notice', copy: 'Choose the right document for the customer and situation.', action: () => openRelationshipPackage('customer'), deferStartToNestedChoice: true }
         ]
       },
@@ -7575,7 +7575,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         title: 'What do you need for this lease listing?',
         choices: [
           { label: 'Start a lease listing', copy: 'Tell us about the landlord, property, availability, and next steps.', action: () => openListingWorkspace(true), isWorkspaceOpen: () => Boolean(document.getElementById('listingWorkspaceStartCard')) },
-          { label: 'Prepare a lease addendum', copy: 'Choose the lease addendum the listing needs, then prepare a private draft.', action: () => openRelationshipPackage('lease_addendum'), deferStartToNestedChoice: true },
+          { label: 'Prepare a lease addendum', copy: 'Choose the lease addendum the listing needs, answer the guided questions, then review and send it when ready.', action: () => openRelationshipPackage('lease_addendum'), deferStartToNestedChoice: true },
           { label: 'Resume a lease listing', copy: 'Open a saved private workspace to review the plan and continue where you left off.', action: () => openListingWorkspace(), isWorkspaceOpen: () => Boolean(document.getElementById('listingWorkspaceStartCard')) }
         ]
       },
