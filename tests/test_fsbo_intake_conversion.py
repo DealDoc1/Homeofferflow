@@ -170,6 +170,15 @@ class FsboIntakeConversionTests(unittest.TestCase):
         self.assertNotIn("seller_email", routing)
         self.assertNotIn("property_address", routing)
 
+    def test_switching_to_another_audience_closes_the_open_seller_intake(self):
+        self.assertIn("window.closeFsboSellerModal = function(options = {})", HTML)
+        self.assertIn("options.restoreFocus !== false", HTML)
+        audience_start = HTML.index("root.setAudience = function setAudience(type)")
+        audience_end = HTML.index("const oldRenderDashboard", audience_start)
+        audience = HTML[audience_start:audience_end]
+        self.assertIn("type !== 'fsbo'", audience)
+        self.assertIn("root.closeFsboSellerModal?.({ restoreFocus: false });", audience)
+
     def test_campaign_links_can_preselect_only_existing_seller_packages_without_overwriting_a_draft(self):
         self.assertIn("const fsboCampaignPackages = new Set", HTML)
         self.assertIn("get('seller_package')", HTML)
@@ -288,7 +297,7 @@ class FsboIntakeConversionTests(unittest.TestCase):
         self.assertIn("document.getElementById('fsboPropertyAddress')?.focus();", HTML)
         self.assertIn("if (event.key === 'Escape')", HTML)
         self.assertIn("if (event.key !== 'Tab') return;", HTML)
-        self.assertIn("if (returnFocus?.isConnected) returnFocus.focus();", HTML)
+        self.assertIn("options.restoreFocus !== false && returnFocus?.isConnected", HTML)
 
     def test_free_intake_has_a_submit_path_before_optional_package_and_partner_choices(self):
         quick = HTML.index('id="fsboSellerQuickSubmit"')

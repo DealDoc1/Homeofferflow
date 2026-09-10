@@ -14710,12 +14710,12 @@ function routeAfterMagicLinkIfNeeded() {
       }, 0);
     }
   };
-  window.closeFsboSellerModal = function(){
+  window.closeFsboSellerModal = function(options = {}){
     const m = document.getElementById('fsboSellerModal');
     if (m) { m.style.display = 'none'; m.setAttribute('aria-hidden','true'); }
     const returnFocus = fsboFunnel.returnFocus;
     fsboFunnel.returnFocus = null;
-    if (returnFocus?.isConnected) returnFocus.focus();
+    if (options.restoreFocus !== false && returnFocus?.isConnected) returnFocus.focus();
   };
   document.addEventListener('keydown', event => {
     const modal = document.getElementById('fsboSellerModal');
@@ -18070,6 +18070,13 @@ function routeAfterMagicLinkIfNeeded() {
   }
 
   root.setAudience = function setAudience(type){
+    // A visitor can change direction before completing the two-field seller
+    // intake. Close that modal before entering another audience path so an
+    // unrelated seller form never remains layered under a buyer, agent, or
+    // investor workflow.
+    if (type !== 'fsbo' && document.getElementById('fsboSellerModal')?.getAttribute('aria-hidden') !== 'true') {
+      root.closeFsboSellerModal?.({ restoreFocus: false });
+    }
     if (typeof oldSetAudience === 'function') oldSetAudience(type);
     const copy = {
       homebuyer: {
