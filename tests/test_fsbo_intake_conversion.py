@@ -46,6 +46,8 @@ class FsboIntakeConversionTests(unittest.TestCase):
         self.assertIn('id="fsboRequiredReadyCue"', HTML)
         self.assertIn("function renderFsboRequiredReadyCue", HTML)
         self.assertIn("Get your free seller plan now, or tell us what would help most.", HTML)
+        self.assertIn("Request ${item.title} Details — enter address and email to unlock", HTML)
+        self.assertIn("Request ${item.title} details now, or tailor your plan first.", HTML)
         self.assertIn("Your free seller plan is already selected", HTML)
         self.assertIn("Optional: What would help most right now?", HTML)
         self.assertIn("You can skip this and still get the free seller plan.", HTML)

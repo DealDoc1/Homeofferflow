@@ -14749,32 +14749,39 @@ function routeAfterMagicLinkIfNeeded() {
     const addressProvided = !!fsboVal('fsboPropertyAddress');
     const emailProvided = !!fsboVal('fsboSellerEmail');
     const ready = fsboRequiredFieldsReady();
-    if (cue) {
-      cue.innerHTML = ready
-        ? '<strong>You’re ready.</strong> Get your free seller plan now, or tell us what would help most.'
-        : addressProvided && !emailProvided
-          ? '<strong>Step 2 of 2:</strong> Add the email where you want your free seller plan.'
-          : addressProvided
-            ? '<strong>Step 2 of 2:</strong> Enter a valid email to unlock your seller plan.'
-            : '<strong>Step 1 of 2:</strong> Enter the property address, then your email.';
-    }
     const goalCard = document.getElementById('fsboGuidedGoalCard');
     if (goalCard) goalCard.hidden = !ready;
     const key = fsboVal('fsboNeed') || 'free_intake';
     const item = fsboNeedCopy[key] || fsboNeedCopy.free_intake;
+    const isFreePlan = key === 'free_intake';
+    const requestLabel = isFreePlan ? 'Get My Free Seller Plan' : `Request ${item.title} Details`;
+    const lockedRequestLabel = isFreePlan
+      ? 'Get My Free Seller Plan — enter address and email to unlock'
+      : `Request ${item.title} Details — enter address and email to unlock`;
+    if (cue) {
+      cue.innerHTML = ready
+        ? (isFreePlan
+          ? '<strong>You’re ready.</strong> Get your free seller plan now, or tell us what would help most.'
+          : `<strong>You’re ready.</strong> Request ${item.title} details now, or tailor your plan first.`)
+        : addressProvided && !emailProvided
+          ? '<strong>Step 2 of 2:</strong> Add the email where you want your seller plan.'
+          : addressProvided
+            ? '<strong>Step 2 of 2:</strong> Enter a valid email to unlock your seller plan.'
+            : '<strong>Step 1 of 2:</strong> Enter the property address, then your email.';
+    }
     const quickSubmit = document.getElementById('fsboSellerQuickSubmit');
     const fullSubmit = document.getElementById('fsboSellerSubmit');
     if (quickSubmit) {
       quickSubmit.disabled = !ready;
       quickSubmit.setAttribute('aria-disabled', ready ? 'false' : 'true');
-      quickSubmit.setAttribute('aria-label', ready ? (key === 'free_intake' ? 'Get My Free Seller Plan' : `Request ${item.title} Details`) : 'Get My Free Seller Plan — enter address and email to unlock');
-      quickSubmit.textContent = ready ? (key === 'free_intake' ? 'Get My Free Seller Plan' : `Request ${item.title} Details`) : 'Enter address + email to unlock';
+      quickSubmit.setAttribute('aria-label', ready ? requestLabel : lockedRequestLabel);
+      quickSubmit.textContent = ready ? requestLabel : 'Enter address + email to unlock';
     }
     if (fullSubmit) {
       fullSubmit.disabled = !ready;
       fullSubmit.setAttribute('aria-disabled', ready ? 'false' : 'true');
-      fullSubmit.setAttribute('aria-label', ready ? (key === 'free_intake' ? 'Save My Free Seller Request' : `Request ${item.title} Details`) : 'Save My Seller Request — enter address and email to unlock');
-      fullSubmit.textContent = ready ? (key === 'free_intake' ? 'Save My Free Seller Request' : `Request ${item.title} Details`) : 'Enter address + email to unlock';
+      fullSubmit.setAttribute('aria-label', ready ? (isFreePlan ? 'Save My Free Seller Request' : requestLabel) : (isFreePlan ? 'Save My Seller Request — enter address and email to unlock' : lockedRequestLabel));
+      fullSubmit.textContent = ready ? (isFreePlan ? 'Save My Free Seller Request' : requestLabel) : 'Enter address + email to unlock';
     }
   }
   function trackFsboRequiredFieldsReady(){
