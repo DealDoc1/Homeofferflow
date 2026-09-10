@@ -303,11 +303,13 @@ class TxrSignerGeometryTests(unittest.TestCase):
             field["api_id"]: field
             for field in build_signwell_fields_txr1948(FORM_CASES[10][3], client_count=2)[0]
         }
-        for party, x in (("buyer", 64), ("seller", 432)):
+        for party, x, width in (("buyer", 58, 336), ("seller", 424, 318)):
             first = fields[f"txr1948_{party}1_signature_p1"]
             second = fields[f"txr1948_{party}2_signature_p1"]
             self.assertEqual((first["x"], first["y"], first["y"] + first["height"]), (x, 764, 790))
             self.assertEqual((second["x"], second["y"], second["y"] + second["height"]), (x, 852, 878))
+            self.assertEqual(first["width"], width)
+            self.assertEqual(second["width"], width)
 
     def test_txr1508_acknowledgements_clear_their_printed_captions(self):
         """Keep TXR-1508 completion widgets on their acknowledgement rules.
