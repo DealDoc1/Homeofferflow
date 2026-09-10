@@ -35,6 +35,13 @@ class IntakePathClarityAuditTests(unittest.TestCase):
         self.assertIn("Saving (.+?) private draft", HTML)
         self.assertIn("Your draft is ready", HTML)
 
+    def test_saved_agent_preferences_use_plain_language(self):
+        self.assertIn(
+            "these answers only prefill fields in your next offer. You can review and change every detail before you prepare the final documents.",
+            HTML,
+        )
+        self.assertNotIn("these preferences do not change paid checkout, SignWell, Supabase schema, or PDF generation", HTML)
+
 
 if __name__ == "__main__":
     unittest.main()
