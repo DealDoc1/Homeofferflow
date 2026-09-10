@@ -35,6 +35,18 @@ or SignWell placements, also generate and visually inspect the applicable
 rendered packet and completed signed PDF. Keep previously passed coordinates
 locked unless the rendering proves a regression.
 
+For TXR-1501, TXR-1506, TXR-1507, or TXR-1508 signer-map changes, also create
+a local source-form overlay before release:
+
+```text
+python scripts/render_txr_signwell_map_review.py \
+  /path/to/private/txr-sources /private/tmp/txr-signwell-map-review
+```
+
+The review copies outline initials (blue), signatures (red), and dates (green)
+at their exact SignWell locations. They are local QA artifacts only; they do
+not upload forms or create a signing request.
+
 GitHub Actions runs `scripts/check_golden_packet_rendering.py
 --structural-only` after the unit tests. That CI mode still renders every
 approved scenario and verifies page counts and field IDs, but does not compare
