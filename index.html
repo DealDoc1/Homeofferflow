@@ -11631,6 +11631,14 @@ function routeAfterMagicLinkIfNeeded() {
       }
     }, 280));
 
+    // Places is loaded on focus to avoid a site-wide Maps request. If it
+    // becomes ready after the user has already started typing, replay the
+    // focused value once so suggestions appear without asking for another
+    // keystroke.
+    if (document.activeElement === input && input.value.trim().length >= 3) {
+      window.setTimeout(() => input.dispatchEvent(new Event('input', { bubbles: true })), 0);
+    }
+
     document.addEventListener('click', e => {
       if (e.target !== input && !e.target.closest('#hof-ac-dd')) _hideDropdown();
     });

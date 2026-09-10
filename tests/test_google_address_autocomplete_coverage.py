@@ -83,3 +83,8 @@ class GoogleAddressAutocompleteCoverageTests(unittest.TestCase):
         self.assertIn("const nextIndex = _activeSuggestionIndex < 0", INDEX)
         self.assertIn("? (direction === 1 ? 0 : options.length - 1)", INDEX)
         self.assertIn("_setActiveAddressSuggestion(nextIndex);", INDEX)
+
+    def test_places_replays_a_focused_address_typed_while_the_library_loaded(self):
+        self.assertIn("If it\n    // becomes ready after the user has already started typing", INDEX)
+        self.assertIn("document.activeElement === input && input.value.trim().length >= 3", INDEX)
+        self.assertIn("window.setTimeout(() => input.dispatchEvent(new Event('input', { bubbles: true })), 0);", INDEX)
