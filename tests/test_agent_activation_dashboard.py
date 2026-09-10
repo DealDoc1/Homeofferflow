@@ -301,7 +301,7 @@ class AgentActivationDashboardTests(unittest.TestCase):
         self.assertIn("followUp.querySelector('[data-follow-up-choice]')?.focus()", HTML)
         self.assertIn("modal.querySelector('[data-package-choice]')?.focus()", HTML)
         self.assertIn("What do you need to prepare for this lease representation?", HTML)
-        self.assertIn("We’ll ask only for the details needed for that next step.", HTML)
+        self.assertIn("We’ll ask only for the details it needs; nothing is sent until you review the completed document and confirm the recipients.", HTML)
         self.assertIn("then review the disclosure draft.", HTML)
         self.assertIn("agent_form_package_selected", HTML)
         self.assertIn("agent_form_package_started", HTML)

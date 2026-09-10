@@ -177,6 +177,16 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertEqual(interview.count("if (attempts < 100) window.setTimeout(recordWhenOpen, 100);"), 2)
         self.assertIn("undercounting a real start", interview)
 
+    def test_package_interview_makes_the_review_before_send_boundary_plain(self):
+        start = INDEX.index("window.hofOpenAgentPackageInterview = function")
+        end = INDEX.index("window.startAgentWorkflow = function", start)
+        interview = INDEX[start:end]
+        self.assertIn(
+            "nothing is sent until you review the completed document and confirm the recipients",
+            interview,
+        )
+        self.assertNotIn("then send it when the parties are ready", interview)
+
     def test_agent_landing_uses_the_neutral_listing_first_order(self):
         start = AGENTS.index('id="transaction-start"')
         end = AGENTS.index('</section>', start)
@@ -348,8 +358,8 @@ class AgentLandingFunnelTests(unittest.TestCase):
         start = INDEX.index("window.hofOpenAgentPackageInterview = function")
         end = INDEX.index("window.startAgentWorkflow = function", start)
         interview = INDEX[start:end]
-        self.assertIn("Answer a short interview, review the completed document, then send it when the parties are ready.", interview)
-        self.assertIn("Choose the addendum the transaction needs, answer the guided questions, then review and send it when ready.", interview)
+        self.assertIn("nothing is sent until you review the completed document and confirm the recipients", interview)
+        self.assertIn("Choose the addendum the transaction needs, answer the guided questions, then review the completed document and confirm recipients before sending.", interview)
         self.assertIn("For a purchase involving existing tenant leases.", interview)
         self.assertIn("For a purchase involving leased fixtures, such as solar panels.", interview)
 
