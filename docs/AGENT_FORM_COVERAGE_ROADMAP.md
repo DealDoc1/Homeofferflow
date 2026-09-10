@@ -4,23 +4,21 @@
 
 The OnDemand launch includes the current **purchase-offer packet** and its
 supported purchase addenda, including the Seller Temporary Residential Lease
-when seller post-closing possession applies. Signed-in agents can also start
-private review drafts for the currently released TXR relationship,
-consumer-notice, seller-disclosure, seller-financing, mineral-reservation,
-loan-assumption, environmental-review, appraisal-review, and lease-addendum
-workflows, plus private seller-planning workspaces. TXR-1501, TXR-1506,
-TXR-1507, TXR-1508, TXR-1953, and TXR-1954 have a separate review-and-send
-path: the agent reviews the completed document and explicitly confirms each
-recipient before SignWell receives it. TREC-55-1 seller disclosure and the
-optional TREC-61-0 water disclosure are available from the shared library to
-every authenticated agent as review-only drafts. The released shared library
-does not require a brokerage seat or a per-agent brokerage attestation. It is
-not represented as a complete transaction-form library or a transaction-management platform.
+when seller post-closing possession applies. Signed-in agents can start guided
+relationship, consumer-notice, seller-disclosure, seller-financing,
+mineral-reservation, loan-assumption, environmental-review, appraisal-review,
+and lease-addendum workflows, plus private seller-planning workspaces.
+TXR-1501, TXR-1506, TXR-1507, TXR-1508, TXR-1953, and TXR-1954 have a
+separate review-and-send path: the agent reviews the completed document and
+explicitly confirms each recipient before SignWell receives it. TREC-55-1
+seller disclosure and optional TREC-61-0 water disclosure are available from
+the shared library to every authenticated agent; after seller review and agent
+recipient confirmation, the disclosure can be sent for signature and the
+completed PDF is available in that agent's private workspace. The released shared library does not require a brokerage seat or a per-agent brokerage attestation. It is not represented as a complete transaction-form library or a transaction-management platform.
 
 Each workflow states whether it is private review-only or has a separate
-signature queue. Agents must continue using their brokerage-approved workflow
-for listing agreements, executable seller-signature workflows, and any other
-document not expressly available for its stated use in HomeOfferFlow.
+signature queue. Listing agreements and any other document not expressly
+available for its stated use in HomeOfferFlow remain separate workflows.
 
 The authenticated agent dashboard now includes a **Request a missing form**
 action. It routes the request into the existing support/feedback queue with a
@@ -124,12 +122,12 @@ confirms recipients before a SignWell request is sent.
 
 ### 2. Seller disclosure workflow
 
-The universal review-only foundation is live for TREC-55-1 and optional
-TREC-61-0 water disclosure drafts. It collects seller responses, preserves the
-seller's review responsibility, and can send a secure review link. It does not
-yet create a seller signature request. A future executable release remains a
-separate workflow with its own source, signer, rendered-PDF, and completed-
-signature QA.
+The seller disclosure workflow is live for TREC-55-1 and optional TREC-61-0
+water disclosure drafts. It collects seller responses, preserves the seller's
+review responsibility, supports a secure review link, and after review lets
+the agent confirm the named signing recipients before starting the signature
+request. The agent can refresh status and download the completed PDF from the
+same private workspace.
 
 Build this as a seller-side workflow, separate from the buyer offer wizard.
 It must collect seller responses, preserve the seller's review responsibility,
