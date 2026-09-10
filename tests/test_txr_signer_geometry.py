@@ -120,7 +120,7 @@ class TxrSignerGeometryTests(unittest.TestCase):
         same ruled row.
         """
         cases = (
-            (build_signwell_fields_txr1501, FORM_CASES[0][3], "txr1501", 566, 645),
+            (build_signwell_fields_txr1501, FORM_CASES[0][3], "txr1501", 566, 535),
             (build_signwell_fields_txr1507, FORM_CASES[2][3], "txr1507", 668, 704),
         )
         for builder, data, prefix, first_row_y, date_label_x in cases:

@@ -176,12 +176,12 @@ def build_signwell_fields_txr1501(data, *, client_count=1):
         # signature and full date on the execution rule, clear of the printed
         # Date caption, rather than merely keeping an empty widget clear.
         {"api_id": "txr1501_client1_signature_p6", "type": "signature", "page": 6, "x": 310, "y": 566, "recipient_id": "1", "required": True, "width": 120, "height": 24},
-        {"api_id": "txr1501_client1_date_p6", "type": "date", "page": 6, "x": 460, "y": 566, "recipient_id": "1", "required": True, "width": 60, "height": 18, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
+        {"api_id": "txr1501_client1_date_p6", "type": "date", "page": 6, "x": 435, "y": 566, "recipient_id": "1", "required": True, "width": 60, "height": 18, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
     ]
     if client_count == 2:
         fields.extend([
             {"api_id": "txr1501_client2_signature_p6", "type": "signature", "page": 6, "x": 310, "y": 677, "recipient_id": "2", "required": True, "width": 120, "height": 24},
-            {"api_id": "txr1501_client2_date_p6", "type": "date", "page": 6, "x": 460, "y": 677, "recipient_id": "2", "required": True, "width": 60, "height": 18, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
+            {"api_id": "txr1501_client2_date_p6", "type": "date", "page": 6, "x": 435, "y": 677, "recipient_id": "2", "required": True, "width": 60, "height": 18, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
         ])
     if signer_plan == "clients_and_associate":
         fields.extend([
