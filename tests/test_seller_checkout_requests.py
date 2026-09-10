@@ -109,6 +109,36 @@ class SellerCheckoutRequestTests(unittest.IsolatedAsyncioTestCase):
             with self.assertRaisesRegex(PermissionError, "confirmed quote"):
                 await checkout.create_request({"seller_lead_id": self.lead_id, "scope_confirmed": True})
 
+    async def test_existing_seller_payment_request_cannot_create_a_second_checkout_link(self):
+        lead = {
+            "id": self.lead_id,
+            "seller_email": "seller@example.com",
+            "service_level": "seller_prep",
+            "status": "qualified",
+            "seller_checkout_status": "sent",
+            "seller_checkout_session_id": "cs_live_existing",
+        }
+        client = Client(Response(200, [lead]))
+        with patch.object(checkout.httpx, "AsyncClient", return_value=client), patch.object(checkout, "STRIPE_SECRET_KEY", "sk_test_x"):
+            with self.assertRaisesRegex(PermissionError, "already been sent"):
+                await checkout.create_request({"seller_lead_id": self.lead_id, "scope_confirmed": True})
+        self.assertEqual(client.posts, [])
+
+    async def test_stripe_checkout_request_uses_a_stable_seller_idempotency_key(self):
+        lead = {"id": self.lead_id, "seller_email": "seller@example.com", "service_level": "seller_prep", "status": "qualified", "seller_checkout_status": "not_requested"}
+        session = {"id": "cs_live_abc12345", "url": "https://checkout.stripe.com/c/pay/cs_live_abc12345"}
+        client = Client(Response(200, session))
+        with patch.object(checkout, "STRIPE_SECRET_KEY", "sk_test_x"), \
+             patch.object(checkout, "RESEND_API_KEY", ""), \
+             patch.object(checkout.httpx, "AsyncClient", return_value=client):
+            client.lookup_response = Response(200, [lead])
+            async def post(*args, **kwargs):
+                client.posts.append((args, kwargs))
+                return Response(200, session)
+            client.post = post
+            await checkout.create_request({"seller_lead_id": self.lead_id, "scope_confirmed": True})
+        self.assertEqual(client.posts[0][1]["headers"]["Idempotency-Key"], "seller-checkout-" + self.lead_id)
+
     async def test_unqualified_lead_cannot_create_checkout(self):
         lead = {"id": self.lead_id, "seller_email": "seller@example.com", "service_level": "seller_prep", "status": "new", "seller_checkout_status": "not_requested"}
         client = Client(Response(200, [lead]))

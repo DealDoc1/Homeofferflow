@@ -48,7 +48,7 @@ async def create_request(data):
         raise ValueError("Confirm the seller's scope and fixed price before sending payment.")
     async with httpx.AsyncClient(timeout=15) as client:
         lookup = await client.get(
-            f"{SUPABASE_URL}/rest/v1/hof_seller_leads?id=eq.{urllib.parse.quote(lead_id)}&select=id,seller_email,service_level,status,seller_checkout_status&limit=1",
+            f"{SUPABASE_URL}/rest/v1/hof_seller_leads?id=eq.{urllib.parse.quote(lead_id)}&select=id,seller_email,service_level,status,seller_checkout_status,seller_checkout_session_id&limit=1",
             headers=_headers(),
         )
     if lookup.status_code >= 300 or not isinstance(lookup.json(), list) or not lookup.json():
@@ -60,8 +60,14 @@ async def create_request(data):
     package = PACKAGES.get(package_key)
     if not package:
         raise PermissionError("This seller package requires a confirmed quote instead of online checkout.")
-    if str(lead.get("seller_checkout_status") or "").lower() == "paid":
+    checkout_status = str(lead.get("seller_checkout_status") or "").lower()
+    if checkout_status == "paid":
         raise PermissionError("This seller package has already been paid.")
+    # Payment links are personal and a single fixed-price request is enough.
+    # Do not make a second active Checkout session just because an admin
+    # refreshes or double-clicks after the first request was saved.
+    if checkout_status == "sent" or str(lead.get("seller_checkout_session_id") or "").startswith("cs_"):
+        raise PermissionError("A secure payment request has already been sent for this seller.")
     email = str(lead.get("seller_email") or "").strip().lower()
     if not EMAIL_RE.fullmatch(email):
         raise ValueError("This seller lead has no valid email address.")
@@ -76,7 +82,12 @@ async def create_request(data):
         "metadata[seller_package]": package_key, "client_reference_id": lead_id,
     }
     async with httpx.AsyncClient(timeout=20) as client:
-        response = await client.post("https://api.stripe.com/v1/checkout/sessions", auth=(STRIPE_SECRET_KEY, ""), data=form)
+        response = await client.post(
+            "https://api.stripe.com/v1/checkout/sessions",
+            auth=(STRIPE_SECRET_KEY, ""),
+            data=form,
+            headers={"Idempotency-Key": "seller-checkout-" + lead_id},
+        )
     if response.status_code >= 300:
         raise RuntimeError("Could not create the seller payment request.")
     session = response.json()
