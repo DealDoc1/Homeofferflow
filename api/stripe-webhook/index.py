@@ -5,6 +5,7 @@ import hmac
 import hashlib
 import urllib.parse
 import secrets
+import uuid
 from datetime import datetime, timedelta, timezone
 from http.server import BaseHTTPRequestHandler
 
@@ -480,6 +481,10 @@ class handler(BaseHTTPRequestHandler):
         if partner_lead_id:
             self._mark_partner_lead_paid(partner_lead_id, session)
             return
+        seller_lead_id = metadata.get("seller_lead_id") or ""
+        if seller_lead_id:
+            self._mark_seller_lead_paid(seller_lead_id, session)
+            return
 
         subscription_id = session.get("subscription", "")
         customer_id = session.get("customer", "")
@@ -834,6 +839,35 @@ class handler(BaseHTTPRequestHandler):
             "Partner secure setup access issued after paid checkout.",
             {"surface": "stripe_webhook", "delivery": delivery},
         )
+
+    def _mark_seller_lead_paid(self, lead_id, session):
+        """Record a completed fixed-price seller package without changing fulfillment status."""
+        try:
+            lead_id = str(uuid.UUID(str(lead_id)))
+        except (TypeError, ValueError, AttributeError):
+            raise ValueError("Seller checkout is missing a valid lead reference.")
+        metadata = session.get("metadata") or {}
+        package = str(metadata.get("seller_package") or "").strip().lower()
+        if package not in {"seller_prep", "launch_kit"}:
+            raise ValueError("Seller checkout is missing a supported package.")
+        if str(session.get("payment_status") or "").lower() != "paid":
+            raise ValueError("Seller checkout has not completed payment.")
+        self._require_supabase()
+        payload = {
+            "seller_checkout_status": "paid",
+            "seller_checkout_session_id": session.get("id") or None,
+            "seller_checkout_payment_intent_id": session.get("payment_intent") or None,
+            "seller_checkout_paid_at": self._iso_now(),
+            "updated_at": self._iso_now(),
+        }
+        with httpx.Client(timeout=15) as client:
+            response = client.patch(
+                f"{SUPABASE_URL}/rest/v1/hof_seller_leads?id=eq.{urllib.parse.quote(lead_id)}",
+                headers={**self._supabase_headers(), "Prefer": "return=minimal"},
+                json=payload,
+            )
+        if response.status_code >= 300:
+            raise Exception(f"Seller lead payment update failed: {response.status_code} {response.text}")
 
     def _record_partner_onboarding_event(self, event_type, status, message, metadata=None):
         """Best-effort aggregate telemetry for automatic partner setup access."""

@@ -20,10 +20,12 @@ from lib import platform_form_source_upload as platform_source
 from lib import partner_marketplace_agreement
 from lib import seller_disclosure_draft
 from lib import seller_review_access
+from lib import seller_checkout
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "").rstrip("/")
 SUPABASE_SERVICE_ROLE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or os.environ.get("SUPABASE_SERVICE_ROLE") or os.environ.get("SUPABASE_SERVICE_KEY") or ""
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
+STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "")
 PARTNER_ONBOARDING_FROM_EMAIL = os.environ.get("PARTNER_ONBOARDING_FROM_EMAIL", "offers@homeofferflow.com")
 PARTNER_ONBOARDING_REPLY_TO = os.environ.get("PARTNER_ONBOARDING_REPLY_TO") or os.environ.get("SUPPORT_EMAIL") or "support@homeofferflow.com"
 PARTNER_AGREEMENT_COPY_EMAIL = os.environ.get("PARTNER_AGREEMENT_COPY_EMAIL", "support@homeofferflow.com").strip().lower()
@@ -54,6 +56,10 @@ PARTNER_ONBOARDING_EMAIL_TIERS = {"founding_pilot", "monthly_placement", "market
 SANDBOX_PARTNER_LEAD_SOURCES = {"sandbox_checkout_test", "sandbox_webhook_end_to_end"}
 QA_PARTNER_LEAD_NAME_PREFIXES = ("test ", "qa ", "production checkout smoke")
 ALLOWED_SELLER_LEAD_STATUSES = {"new", "contacted", "qualified", "converted", "archived"}
+SELLER_CHECKOUT_PACKAGES = {
+    "seller_prep": {"name": "HomeOfferFlow Seller Prep Plan", "amount": 29900},
+    "launch_kit": {"name": "HomeOfferFlow FSBO Launch Kit", "amount": 49900},
+}
 ALLOWED_BROKERAGE_MEMBER_STATUSES = {"active", "suspended"}
 MAX_BROKERAGE_TEAM_NAME_LENGTH = 80
 ALLOWED_PARTNER_PLACEMENT_TIERS = {"founding", "premier", "exclusive_market"}
@@ -1684,6 +1690,10 @@ async def _update_seller_lead(lead_id, status):
     if not isinstance(rows, list) or not rows:
         raise ValueError("Seller lead was not found.")
     return rows[0]
+
+
+async def _create_seller_checkout_request(data):
+    return await seller_checkout.create_request(data)
 
 
 async def _update_partner_lead(lead_id, status, onboarding_status=None):
@@ -4164,7 +4174,7 @@ class handler(BaseHTTPRequestHandler):
                 rows = asyncio.run(_get_optional(
                     "hof_seller_leads?select=id,property_address,property_city,property_county,property_state,property_zip,"
                     "seller_name,seller_email,seller_phone,asking_price,service_level,package_name,package_price,"
-                    "timeline,partner_categories,source,utm_source,utm_medium,utm_campaign,utm_content,notes,status,created_at,updated_at&order=created_at.desc&limit=200"
+                    "timeline,partner_categories,source,utm_source,utm_medium,utm_campaign,utm_content,notes,status,seller_checkout_status,seller_checkout_requested_at,seller_checkout_paid_at,created_at,updated_at&order=created_at.desc&limit=200"
                 ))
                 _json(self, 200, {"sellerLeads": rows})
                 return
@@ -4198,7 +4208,7 @@ class handler(BaseHTTPRequestHandler):
                 ("hof_brokerages?select=*&order=created_at.desc&limit=50", False),
                 ("hof_brokerage_invites?select=status,created_at,accepted_at,expires_at&order=created_at.desc&limit=2000", True),
                 ("hof_partner_leads?select=*&order=created_at.desc&limit=100", True),
-                ("hof_seller_leads?select=id,property_address,property_city,property_county,property_state,property_zip,seller_name,seller_email,seller_phone,asking_price,service_level,package_name,package_price,timeline,partner_categories,source,utm_source,utm_medium,utm_campaign,utm_content,notes,status,created_at,updated_at&order=created_at.desc&limit=200", True),
+                ("hof_seller_leads?select=id,property_address,property_city,property_county,property_state,property_zip,seller_name,seller_email,seller_phone,asking_price,service_level,package_name,package_price,timeline,partner_categories,source,utm_source,utm_medium,utm_campaign,utm_content,notes,status,seller_checkout_status,seller_checkout_requested_at,seller_checkout_paid_at,created_at,updated_at&order=created_at.desc&limit=200", True),
                 ("hof_partner_placements?select=id,source_lead_id,partner_type,partner_name,website_url,logo_url,market_area,placement_tier,monthly_fee,is_active,created_at,activated_at,agreement_confirmed_at&brokerage_id=is.null&order=created_at.desc&limit=100", True),
             ))
             # Test-mode Stripe records are useful QA evidence but must never
@@ -6700,6 +6710,10 @@ class handler(BaseHTTPRequestHandler):
                 lead_id, status = _parse_seller_lead_update(data)
                 row = asyncio.run(_update_seller_lead(lead_id, status))
                 _json(self, 200, {"ok": True, "sellerLead": row})
+                return
+            if data.get("action") == "create_seller_checkout_request":
+                result = asyncio.run(_create_seller_checkout_request(data))
+                _json(self, 201, {"ok": True, "sellerCheckout": result})
                 return
             lead_id, status, onboarding_status = _parse_partner_lead_update(data)
             row = asyncio.run(_update_partner_lead(lead_id, status, onboarding_status))

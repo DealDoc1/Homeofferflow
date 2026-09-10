@@ -4776,6 +4776,37 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     }
   }
 
+  function sellerLeadCheckoutAction(row) {
+    const leadId = String(row?.id || '');
+    const packageKey = String(row?.service_level || '').toLowerCase();
+    const status = String(row?.status || '').toLowerCase();
+    const paymentStatus = String(row?.seller_checkout_status || 'not_requested').toLowerCase();
+    if (!/^[0-9a-f-]{36}$/i.test(leadId) || status !== 'qualified' || !['seller_prep', 'launch_kit'].includes(packageKey) || paymentStatus === 'paid') return '';
+    const label = paymentStatus === 'sent' ? 'Send a fresh payment link' : 'Send payment link';
+    return `<button type="button" class="admin-contact-action" onclick="sendSellerCheckoutRequest('${leadId}')">${label}</button>`;
+  }
+
+  async function sendSellerCheckoutRequest(leadId) {
+    if (!hofAuth?.session?.access_token) return;
+    if (!window.confirm('Confirm that you reviewed the seller’s scope and fixed price. This will email a private Stripe payment link for the exact Seller Prep Plan or FSBO Launch Kit.')) return;
+    try {
+      const response = await fetch('/api/admin-dashboard', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${hofAuth.session.access_token}`},
+        body: JSON.stringify({action: 'create_seller_checkout_request', seller_lead_id: leadId, scope_confirmed: true})
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || result.error) throw new Error(result.error || 'Could not create a seller payment link.');
+      const delivery = result?.sellerCheckout?.delivery;
+      window.announceWorkspaceStatus?.(delivery === 'sent'
+        ? 'Seller payment link sent.'
+        : 'Seller payment link created. Email delivery was unavailable; copy the link from the secure checkout record if needed.');
+      await loadAdminDashboard(true);
+    } catch (err) {
+      window.announceWorkspaceStatus?.(err?.message || 'Could not create a seller payment link.');
+    }
+  }
+
   function renderAdminRows(rows = [], type = 'offers') {
     if (!rows.length) return '<div class="admin-empty">No records found.</div>';
     return rows.map(row => {
@@ -4850,6 +4881,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         const contactActions = [
           email ? `<a class="admin-contact-action" href="mailto:${encodeURIComponent(email)}">Email</a>` : '',
           sellerLeadFollowUpAction(row),
+          sellerLeadCheckoutAction(row),
           phone ? `<a class="admin-contact-action" href="tel:${encodeURIComponent(phone)}">Call</a>` : ''
         ].filter(Boolean).join(' ');
         return `<div class="admin-row">
