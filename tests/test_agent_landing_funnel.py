@@ -51,10 +51,11 @@ class AgentLandingFunnelTests(unittest.TestCase):
         start = INDEX.index('function beginOfferFrom(surface)')
         end = INDEX.index('// Public landing pages', start)
         entry = INDEX[start:end]
-        self.assertIn("(state?.data?.userType || 'homebuyer') === 'agent'", entry)
+        self.assertIn("const selectedType = selectedLandingAudience();", entry)
+        self.assertIn("selectedType === 'agent'", entry)
         target = "window.location.assign('/agents?utm_source=homeofferflow&utm_medium=homepage&utm_campaign=agent_workspace')"
         self.assertIn(target, entry)
-        self.assertLess(entry.index(target), entry.index('startPrimaryOffer();'))
+        self.assertLess(entry.index(target), entry.index('startHomebuyerOffer();'))
         self.assertIn("cta: 'Start a Transaction'", INDEX)
 
     def test_homepage_agent_entry_has_its_own_privacy_safe_conversion_channel(self):
