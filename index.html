@@ -22700,6 +22700,34 @@ function routeAfterMagicLinkIfNeeded() {
   };
 })();
 </script>
+<script id="hof-agent-document-language-v1">
+(() => {
+  // Keep the form experience focused on the agent's next action. The data
+  // record remains private and draft-backed, but those implementation terms
+  // do not help a person completing a guided document interview.
+  const normalize = root => {
+    if (!(root instanceof Element || root instanceof Document)) return;
+    root.querySelectorAll?.('.hof-agreement-dialog button[type="submit"]').forEach(button => {
+      if (button.textContent?.trim() === 'Save private draft') button.textContent = 'Save for review';
+    });
+    root.querySelectorAll?.('.hof-agreement-dialog .hof-iabs-status').forEach(status => {
+      if (status.children.length) return;
+      const original = status.textContent || '';
+      const revised = original
+        .replace(/Your private draft is ready\./gi, 'Your document is ready for review.')
+        .replace(/Preparing (.+?) private draft/gi, 'Preparing $1 document')
+        .replace(/Could not save the private (.+?) draft\./gi, 'Could not prepare the $1 document.')
+        .replace(/Could not save the private draft\./gi, 'Could not prepare the document.')
+        .replace(/Could not save this draft\./gi, 'Could not prepare this document.');
+      if (revised !== original) status.textContent = revised;
+    });
+  };
+  const run = () => normalize(document);
+  new MutationObserver(run).observe(document.body, { childList: true, subtree: true, characterData: true });
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run, { once: true });
+  else run();
+})();
+</script>
 <script id="hof-purchase-addendum-interview-openers-v1">
 (() => {
   // The purchase interview may route to an already-mounted private review
