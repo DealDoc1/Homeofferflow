@@ -14117,15 +14117,39 @@ function routeAfterMagicLinkIfNeeded() {
 
   function getReviewConfidence(payload, result = {}) {
     const p = payload || {};
-    const marketSignals = [p.daysOnMarket, p.priceReductionCount, p.listPrice, p.listingStatus, p.listingNotes]
+    const brokerMls = result.propertyContext
+      && result.propertyContext.found === true
+      && result.propertyContext.mlsVerified === true
+      && result.propertyContext.sourceType === 'broker_authorized_reso_mls'
+      ? result.propertyContext
+      : null;
+    const enteredMarketSignals = [p.daysOnMarket, p.priceReductionCount, p.listPrice, p.listingStatus, p.listingNotes]
       .filter(value => String(value ?? '').trim() !== '').length;
+    const brokerMarketSignals = brokerMls
+      ? [brokerMls.status, brokerMls.listPrice, brokerMls.daysOnMarket, brokerMls.priceChanges]
+        .filter(value => String(value ?? '').trim() !== '').length
+        .length + (Array.isArray(brokerMls.marketEvidence) && brokerMls.marketEvidence.length ? 1 : 0)
+      : 0;
+    const marketSignals = Math.max(enteredMarketSignals, brokerMarketSignals);
     const termSignals = [p.offerPrice, p.financing, p.earnestMoney, p.optionFee, p.optionDays, p.closingDate]
       .filter(value => String(value ?? '').trim() !== '').length;
     if (marketSignals >= 3 && termSignals >= 4) {
-      return { level: 'high', label: 'Higher confidence', rationale: 'Multiple listing-context signals and core offer terms were available.' };
+      return {
+        level: 'high',
+        label: 'Higher confidence',
+        rationale: brokerMls
+          ? 'Broker-authorized listing facts and core offer terms were available.'
+          : 'Multiple listing-context signals and core offer terms were available.'
+      };
     }
     if (marketSignals >= 1 && termSignals >= 3) {
-      return { level: 'moderate', label: 'Moderate confidence', rationale: 'Some market context and several core offer terms were available.' };
+      return {
+        level: 'moderate',
+        label: 'Moderate confidence',
+        rationale: brokerMls
+          ? 'Some broker-authorized listing facts and several core offer terms were available.'
+          : 'Some market context and several core offer terms were available.'
+      };
     }
     return {
       level: 'limited',

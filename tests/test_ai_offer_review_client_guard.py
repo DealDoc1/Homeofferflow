@@ -23,6 +23,14 @@ class AiOfferReviewClientGuardTests(unittest.TestCase):
         self.assertIn("r.propertyContext.sourceType === 'broker_authorized_reso_mls'", block)
         self.assertIn("Broker-authorized listing context included.", block)
 
+    def test_confidence_credits_verified_broker_listing_facts(self):
+        start = INDEX.index("function getReviewConfidence(payload, result = {})")
+        end = INDEX.index("function normalizeAiReviewResult", start)
+        block = INDEX[start:end]
+        self.assertIn("brokerMls.marketEvidence", block)
+        self.assertIn("Broker-authorized listing facts and core offer terms were available.", block)
+        self.assertIn("Some broker-authorized listing facts and several core offer terms were available.", block)
+
 
 if __name__ == "__main__":
     unittest.main()
