@@ -3156,7 +3156,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     </div>
 
     <div class="account-panel" id="accountPanelSeller">
-      <div id="sellerFoundationPanel" class="offer-empty">Loading seller-side foundation...</div>
+      <div id="sellerFoundationPanel" class="offer-empty">Loading listing workspace...</div>
     </div>
 
     <div class="account-panel" id="accountPanelRelationships">
@@ -12917,8 +12917,8 @@ function routeAfterMagicLinkIfNeeded() {
     const workspaceKind = isLeaseListing ? 'lease' : 'sale';
     const workspaceTitle = isLeaseListing ? 'Lease Listing Workspace' : 'Listing Workspace';
     const workspaceDescription = isLeaseListing
-      ? 'Agent-side seller planning tools: you are starting a lease listing. Add the landlord and property first, then keep requested lease-listing steps in one private workspace.'
-      : 'Agent-side seller planning tools: you are starting a sale listing. Add the seller and property first, then keep launch, disclosure, and offer-review planning in one private workspace.';
+      ? 'Start a lease listing by adding the landlord and property. Then keep your lease-listing planning in one private workspace.'
+      : 'Start a sale listing by adding the seller and property. Then keep your launch, disclosure, and offer-review planning in one private workspace.';
     const workflowPrompt = isLeaseListing
       ? '<label style="display:flex; gap:.35rem; align-items:center;"><input type="checkbox" name="listingWorkflow" value="lease_listing" checked> Lease listing</label><label style="display:flex; gap:.35rem; align-items:center;"><input type="checkbox" name="listingWorkflow" value="listing_agreement"> Listing agreement</label><label style="display:flex; gap:.35rem; align-items:center;"><input type="checkbox" name="listingWorkflow" value="seller_disclosure"> Seller disclosure</label>'
       : '<label style="display:flex; gap:.35rem; align-items:center;"><input type="checkbox" name="listingWorkflow" value="listing_agreement"> Listing agreement</label><label style="display:flex; gap:.35rem; align-items:center;"><input type="checkbox" name="listingWorkflow" value="seller_disclosure"> Seller disclosure</label><label style="display:flex; gap:.35rem; align-items:center;"><input type="checkbox" name="listingWorkflow" value="lease_listing"> Lease listing</label>';
@@ -13237,7 +13237,7 @@ function routeAfterMagicLinkIfNeeded() {
       };
       const result = await client.from('hof_seller_leads').insert(payload).select('*').single();
       if (result.error) throw result.error;
-      platformStatus('sellerFoundationStatus', 'Listing/seller record saved. This proves the listing-tools path without touching the offer generator.', 'ok');
+      platformStatus('sellerFoundationStatus', 'Seller and property details saved. You can create a private listing workspace next.', 'ok');
       await loadSellerLeadsFoundation();
     } catch (err) {
       console.error('Save seller lead failed:', err);
@@ -18231,7 +18231,7 @@ function routeAfterMagicLinkIfNeeded() {
     brokerCard.className = 'broker-role-card';
     brokerCard.innerHTML = `
       <h4>Broker / Team Lead Mode</h4>
-      <p>This account uses the agent offer workflow with brokerage administration layered on top. Available brokerage tools include secure agent invitations, membership access controls, privacy-limited activity, branding, shared defaults, and restricted-form authorization status. Team billing and a full compliance-review workspace are not part of this workspace.</p>
+      <p>Use the guided agent workflow plus tools to invite your team, manage memberships, protect private activity, and apply brokerage branding.</p>
       <div class="broker-role-grid">
         <div class="broker-role-chip"><strong>Account path</strong><span>Agent / Broker login</span></div>
         <div class="broker-role-chip"><strong>Offer path</strong><span>Agent packet builder</span></div>
