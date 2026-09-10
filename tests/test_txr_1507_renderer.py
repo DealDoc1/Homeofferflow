@@ -39,6 +39,31 @@ def sample_data():
 
 
 class Txr1507RendererTests(unittest.TestCase):
+    def test_checkbox_mark_stays_within_the_small_source_cell(self):
+        class RecordingCanvas:
+            def __init__(self):
+                self.line_width = None
+                self.lines = []
+
+            def setLineWidth(self, width):
+                self.line_width = width
+
+            def line(self, x1, y1, x2, y2):
+                self.lines.append((x1, y1, x2, y2))
+
+        canvas = RecordingCanvas()
+        txr_1507._draw_check(canvas, 100, 200)
+
+        self.assertEqual(canvas.line_width, 1.0)
+        self.assertEqual(len(canvas.lines), 2)
+        for x1, y1, x2, y2 in canvas.lines:
+            for x in (x1, x2):
+                self.assertGreaterEqual(x, 100)
+                self.assertLessEqual(x, 108)
+            for y in (y1, y2):
+                self.assertGreaterEqual(y, 200)
+                self.assertLessEqual(y, 207)
+
     def test_full_services_mark_uses_the_current_source_checkbox(self):
         """Keep the 06-15-26 Full Services selection inside its printed box."""
         with patch.object(txr_1507, "_draw_check") as draw_check:

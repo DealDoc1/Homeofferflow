@@ -42,9 +42,15 @@ def _draw_wrapped(c, text, x, y, width_chars, *, line_height=11, size=FONT_SIZE)
 
 
 def _draw_check(c, x, y):
-    c.setLineWidth(1.4)
-    c.line(x, y, x + 7, y + 7)
-    c.line(x + 7, y + 7, x + 15, y - 4)
+    """Draw a compact check inside the source's small printed checkbox.
+
+    The prior 15-point wide mark overran the checkbox and the adjacent label
+    on the completed agreement.  These points stay within a roughly 8 by 7
+    point cell while remaining legible in the signed PDF.
+    """
+    c.setLineWidth(1.0)
+    c.line(x + 1, y + 3, x + 3.5, y + 0.5)
+    c.line(x + 3.5, y + 0.5, x + 7, y + 6)
 
 
 def _draw_signing_role_check(c, x, y):
