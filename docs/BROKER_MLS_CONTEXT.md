@@ -14,6 +14,23 @@ feed, exposed through a small broker-controlled RESO proxy.
 - The integration is provider-neutral: a future MLS change is a proxy/config
   change, not a customer-workflow rewrite.
 
+## Cost decision
+
+Start with one participating local MLS through the broker's existing
+authorization. MLS Grid is the preferred first option where the local MLS
+participates: MLS Grid states that it does not charge a separate Grid license
+fee, although the MLS or broker may have its own access or licensing charge.
+
+| Product need | Lowest-cost approach | Avoid at launch |
+| --- | --- | --- |
+| Confirm a property while preparing or reviewing a packet | One broker-authorized MLS Grid or RESO lookup, requested only for that property | A nationwide data-vendor contract |
+| Let a consumer browse every active listing | Defer until search demand proves it | A public IDX portal with duplicate search features and recurring display fees |
+| Keep infrastructure use low | Return the compact facts below; do not store or repeatedly refresh listing payloads | Full listing payloads, remarks, photos, or background refresh jobs |
+
+This keeps the first release focused on better transaction guidance rather
+than turning HomeOfferFlow into a listing portal. Before activation, confirm
+the local MLS's permitted fields and brokerage data-use terms.
+
 ## Activation contract
 
 Keep all three server-side values unset until the broker has authorized the
