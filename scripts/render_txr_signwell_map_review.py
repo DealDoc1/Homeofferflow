@@ -13,8 +13,8 @@ Example:
     python scripts/render_txr_signwell_map_review.py \
       /path/to/private/forms /private/tmp/txr-map-review
 
-The source directory must contain TXR1501.pdf, TXR1506.pdf, TXR1507.pdf, and
-TXR1508.pdf.  Generated output stays outside the repository by default.
+The source directory must contain each supported TXR source PDF. Generated
+output stays outside the repository by default.
 """
 
 from __future__ import annotations
@@ -37,6 +37,13 @@ from lib.txr_1501 import build_signwell_fields_txr1501
 from lib.txr_1506 import build_signwell_fields_txr1506
 from lib.txr_1507 import build_signwell_fields_txr1507
 from lib.txr_1508 import build_signwell_fields_txr1508
+from lib.txr_1905 import build_signwell_fields_txr1905
+from lib.txr_1914 import build_signwell_fields_txr1914
+from lib.txr_1917 import build_signwell_fields_txr1917
+from lib.txr_1919 import build_signwell_fields_txr1919
+from lib.txr_1948 import build_signwell_fields_txr1948
+from lib.txr_1953 import build_signwell_fields_txr1953
+from lib.txr_1954 import build_signwell_fields_txr1954
 
 
 PDF_WIDTH = 612
@@ -70,6 +77,13 @@ def _sample_data() -> dict[str, dict]:
             "signer_plan": "clients_and_associate",
         },
         "TXR1508": {"signer_plan": "associate_and_clients"},
+        **{
+            code: {
+                "buyer_names": ["Review Buyer One", "Review Buyer Two"],
+                "seller_names": ["Review Seller One", "Review Seller Two"],
+            }
+            for code in ("TXR1905", "TXR1914", "TXR1917", "TXR1919", "TXR1948", "TXR1953", "TXR1954")
+        },
     }
 
 
@@ -81,6 +95,13 @@ def review_field_sets() -> dict[str, list[dict]]:
         "TXR1506": build_signwell_fields_txr1506(data["TXR1506"], client_count=2)[0],
         "TXR1507": build_signwell_fields_txr1507(data["TXR1507"], client_count=2)[0],
         "TXR1508": build_signwell_fields_txr1508(data["TXR1508"], client_count=2)[0],
+        "TXR1905": build_signwell_fields_txr1905(data["TXR1905"])[0],
+        "TXR1914": build_signwell_fields_txr1914(data["TXR1914"])[0],
+        "TXR1917": build_signwell_fields_txr1917(data["TXR1917"])[0],
+        "TXR1919": build_signwell_fields_txr1919(data["TXR1919"])[0],
+        "TXR1948": build_signwell_fields_txr1948(data["TXR1948"])[0],
+        "TXR1953": build_signwell_fields_txr1953(data["TXR1953"])[0],
+        "TXR1954": build_signwell_fields_txr1954(data["TXR1954"])[0],
     }
 
 

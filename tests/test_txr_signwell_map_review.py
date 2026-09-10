@@ -19,7 +19,10 @@ class TxrSignwellMapReviewTests(unittest.TestCase):
 
     def test_review_map_includes_each_supported_form_and_completion_type(self):
         maps = review.review_field_sets()
-        self.assertEqual(set(maps), {"TXR1501", "TXR1506", "TXR1507", "TXR1508"})
+        self.assertEqual(
+            set(maps),
+            {"TXR1501", "TXR1506", "TXR1507", "TXR1508", "TXR1905", "TXR1914", "TXR1917", "TXR1919", "TXR1948", "TXR1953", "TXR1954"},
+        )
         for code, fields in maps.items():
             with self.subTest(code=code):
                 self.assertTrue(fields)
