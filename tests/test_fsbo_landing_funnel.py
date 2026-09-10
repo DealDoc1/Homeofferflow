@@ -81,6 +81,7 @@ class FsboLandingFunnelTests(unittest.TestCase):
         self.assertIn("/assets/receipt-funnel-channel.js", SELLERS)
         self.assertIn("seller_receipt", API)
         self.assertIn("direct_outreach", API)
+        self.assertEqual(SELLERS.count("const originalFetch=window.fetch.bind(window);"), 1)
 
     def test_admin_returns_aggregate_conversion_without_public_details(self):
         for expected in (
