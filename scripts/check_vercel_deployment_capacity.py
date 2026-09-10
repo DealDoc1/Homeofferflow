@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Fail closed before an intentional Vercel production deployment.
 
-Vercel Hobby accounts allow 100 deployments per rolling 24-hour window. The
-release workflow uses this check before building or deploying so an authorized
-release cannot consume another deployment while that window is already full.
+The release process intentionally stops after 100 deployments in a rolling
+24-hour window. This conservative safety threshold remains in place across
+plan changes so a misconfigured release cannot create a burst of deployments.
 """
 
 from __future__ import annotations
@@ -17,8 +17,8 @@ from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
 
-# The separate 12-function project cap is enforced by the bundle tests. It is
-# not the Hobby deployment-per-day limit.
+# The separate public-function bundle guard is enforced by the bundle tests.
+# It is independent of this deployment-frequency threshold.
 DEFAULT_LIMIT = 100
 DEFAULT_WINDOW_SECONDS = 24 * 60 * 60
 
@@ -86,7 +86,7 @@ def main() -> int:
         return 2
 
     print(
-        f"Vercel Hobby deployment window: {count} deployment(s) in the last "
+        f"Vercel deployment safety window: {count} deployment(s) in the last "
         f"{args.window_seconds // 3600} hour(s); limit {args.limit}."
     )
     if count >= args.limit:
