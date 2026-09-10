@@ -1036,6 +1036,9 @@ async def _deliver_brokerage_invite_email(email, brokerage, invite_url):
         "from": f"HomeOfferFlow <{BROKERAGE_INVITE_FROM_EMAIL}>",
         "to": [email],
         "subject": f"You’re invited to join {brokerage_name} on HomeOfferFlow",
+        # Keep provider reporting useful without sending the brokerage, invite
+        # URL, or recipient as a tag.
+        "tags": [{"name": "email_type", "value": "brokerage_invite"}],
         "text": (
             f"Your broker invited you to join {brokerage_name} on HomeOfferFlow.\n\n"
             f"Accept your invitation: {invite_url}\n\n"
@@ -4417,13 +4420,14 @@ class handler(BaseHTTPRequestHandler):
                 "sent": 0, "delivered": 0, "bounced": 0, "complained": 0,
                 "suppressed": 0, "opened": 0, "clicked": 0, "other": 0,
             }
-            resend_delivery_family_counts = {"seller": 0, "partner": 0, "other": 0}
+            resend_delivery_family_counts = {"seller": 0, "partner": 0, "brokerage": 0, "other": 0}
             seller_delivery_email_types = {
                 "seller_plan_receipt", "seller_payment_receipt", "seller_disclosure_review",
             }
             partner_delivery_email_types = {
                 "partner_application_receipt", "partner_onboarding",
             }
+            brokerage_delivery_email_types = {"brokerage_invite"}
             resend_delivery_attention_count = 0
             resend_delivery_retryable_count = 0
             for item in resend_delivery_events:
@@ -4442,6 +4446,8 @@ class handler(BaseHTTPRequestHandler):
                     resend_delivery_family_counts["seller"] += 1
                 elif email_type in partner_delivery_email_types:
                     resend_delivery_family_counts["partner"] += 1
+                elif email_type in brokerage_delivery_email_types:
+                    resend_delivery_family_counts["brokerage"] += 1
                 else:
                     resend_delivery_family_counts["other"] += 1
             missing_form_request_count = len([
