@@ -88,3 +88,7 @@ class GoogleAddressAutocompleteCoverageTests(unittest.TestCase):
         self.assertIn("If it\n    // becomes ready after the user has already started typing", INDEX)
         self.assertIn("document.activeElement === input && input.value.trim().length >= 3", INDEX)
         self.assertIn("window.setTimeout(() => input.dispatchEvent(new Event('input', { bubbles: true })), 0);", INDEX)
+
+    def test_address_suggestions_close_when_the_viewport_moves(self):
+        self.assertIn("window.addEventListener('resize', _hideDropdown, { once: true });", INDEX)
+        self.assertIn("document.addEventListener('scroll', _hideDropdown, { capture: true, once: true });", INDEX)

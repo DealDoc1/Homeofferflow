@@ -11701,6 +11701,11 @@ function routeAfterMagicLinkIfNeeded() {
     input.setAttribute('aria-controls', dd.id);
     input.setAttribute('aria-expanded', 'true');
     document.body.appendChild(dd);
+    // The list is positioned against the active field. Dismiss it as soon as
+    // the viewport moves so a suggestion cannot become visually detached from
+    // the address the customer is editing.
+    window.addEventListener('resize', _hideDropdown, { once: true });
+    document.addEventListener('scroll', _hideDropdown, { capture: true, once: true });
   }
 
   function _setActiveAddressSuggestion(index) {
