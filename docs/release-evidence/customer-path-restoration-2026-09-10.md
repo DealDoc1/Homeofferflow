@@ -44,3 +44,20 @@ production base `d62fcf3001e4303242a19843889851b4e629c0ad`. Build work remains o
 the standard GitHub runner, not on Vercel build infrastructure. Canonical
 browser verification and release identifiers will be recorded after the
 deployment is confirmed.
+
+### Publication authorization
+
+The user explicitly approved publishing the pending HomeOfferFlow UI fixes,
+tests and sanitized release notes to the public `DealDoc1/Homeofferflow`
+repository, followed by one production release. This resolves the earlier
+publication hold; no alternate upload route was used.
+
+The implementation commits are:
+
+- `a736338` — preserve the selected customer path during account restoration;
+- `3acb3bd` — consistent keyboard navigation, visible mobile focus, concise
+  document choices, and independent-agent access in the future app brief.
+
+The combined local regression suite passed 1,630 tests. Source PDFs, completed
+agreements, credentials and private QA contacts are not part of this payload.
+Deployment and canonical-browser results remain to be recorded after release.

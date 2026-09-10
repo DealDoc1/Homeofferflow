@@ -73,10 +73,9 @@ submitted. The temporary tab and local test server were closed afterward.
 
 ## Release status
 
-**Local only.** This batch follows the locally committed customer-path
-restoration fix and can share its pending v67 shell release. No Vercel build
-or deployment was started for this work. Public GitHub publication remains
-paused under the security-review decision recorded in
-`customer-path-restoration-2026-09-10.md`; no alternate upload was attempted.
-Canonical production verification remains required after an authorized
-release. No new customer-facing approval or access requirements were added.
+This batch shares the pending v67 shell release with the customer-path
+restoration fix. The user explicitly approved publication to the public
+`DealDoc1/Homeofferflow` repository and one production release. No Vercel build
+or deployment was used for local development. Canonical production verification
+remains required after release. No new customer-facing approval or access
+requirements were added.
