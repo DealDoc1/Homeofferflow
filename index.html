@@ -1156,6 +1156,11 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 .now-what-milestone { border:1px solid rgba(255,255,255,.09); border-radius:12px; background:rgba(255,255,255,.035); padding:.7rem; }
 .now-what-milestone strong { display:block; color:var(--white); font-size:.78rem; margin-bottom:.22rem; }
 .now-what-milestone span { color:var(--gray-light); font-size:.72rem; line-height:1.35; }
+.now-what-calendar-action { display:flex; align-items:center; justify-content:space-between; gap:.75rem; margin:0 1rem 1rem; padding:.72rem .78rem; border:1px solid rgba(74,140,111,.28); border-radius:12px; background:rgba(74,140,111,.07); }
+.now-what-calendar-action strong { display:block; color:var(--white); font-size:.78rem; }
+.now-what-calendar-action span { display:block; margin-top:.18rem; color:var(--gray-light); font-size:.71rem; line-height:1.4; }
+.now-what-calendar-action button { flex:0 0 auto; border:1px solid rgba(200,151,63,.45); border-radius:8px; background:rgba(200,151,63,.12); color:var(--gold-light); padding:.52rem .62rem; font:800 .7rem 'DM Sans',sans-serif; cursor:pointer; white-space:nowrap; }
+.now-what-calendar-action button:hover { background:rgba(200,151,63,.2); }
 .now-what-directory { padding:0 1rem 1rem; }
 .now-what-directory h4 { margin:0 0 .25rem; color:var(--gold-light); font-size:.75rem; letter-spacing:.06em; text-transform:uppercase; }
 .now-what-category { border-top:1px solid rgba(255,255,255,.08); padding:.8rem 0; }
@@ -1172,7 +1177,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 .now-what-partner a { color:var(--gold-light); font-size:.7rem; font-weight:900; text-decoration:none; white-space:nowrap; }
 .now-what-empty { margin-top:.55rem; padding:.62rem .68rem; color:var(--gray-light); border:1px dashed rgba(255,255,255,.16); border-radius:10px; font-size:.73rem; line-height:1.4; }
 .now-what-note { padding:.85rem 1rem 1rem; border-top:1px solid rgba(255,255,255,.08); }
-@media (max-width:640px) { .now-what-timeline { grid-template-columns:1fr; } .now-what-category-head { display:block; } .now-what-neutral { display:inline-flex; margin-top:.4rem; } }
+@media (max-width:640px) { .now-what-timeline { grid-template-columns:1fr; } .now-what-calendar-action { align-items:flex-start; flex-direction:column; } .now-what-category-head { display:block; } .now-what-neutral { display:inline-flex; margin-top:.4rem; } }
 
 
 
@@ -4049,6 +4054,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <p>Use this as a practical checklist after your offer is sent. Local provider listings are optional resources from HomeOfferFlow—not required selections or transaction advice.</p>
           </div>
           <div class="now-what-timeline" id="nowWhatTimeline"></div>
+          <div class="now-what-calendar-action" id="nowWhatCalendarAction" hidden></div>
           <div class="now-what-directory">
             <h4>Explore local help when you need it</h4>
             <div id="nowWhatPartnerFilters" style="display:flex;flex-wrap:wrap;gap:.5rem;margin:.65rem 0 .85rem;">
@@ -10235,6 +10241,59 @@ function routeAfterMagicLinkIfNeeded() {
     return Number.isNaN(date.getTime()) ? '' : date.toLocaleDateString([], { month:'short', day:'numeric', year:'numeric' });
   }
 
+  function nowWhatCalendarDate(value) {
+    const match = String(value || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!match) return null;
+    const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+    return date.getFullYear() === Number(match[1]) && date.getMonth() === Number(match[2]) - 1 && date.getDate() === Number(match[3])
+      ? date
+      : null;
+  }
+
+  function nowWhatCalendarKey(date) {
+    return `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, '0')}${String(date.getDate()).padStart(2, '0')}`;
+  }
+
+  function nowWhatCalendarEscape(value) {
+    return String(value || '').replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
+  }
+
+  window.downloadClosingCalendarReminder = function downloadClosingCalendarReminder() {
+    const data = state.data || {};
+    const closing = nowWhatCalendarDate(data.closingDate || data.closing_date);
+    if (!closing) return;
+    const end = new Date(closing);
+    end.setDate(end.getDate() + 1);
+    const property = String(data.address || data.propertyAddress || '').trim();
+    const title = property ? `Target closing — ${property}` : 'Target closing';
+    const description = 'Target closing date from your HomeOfferFlow offer. Confirm the final date, time, and location with the signed contract and title company.';
+    const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+    const calendar = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//HomeOfferFlow//Target Closing Reminder//EN',
+      'CALSCALE:GREGORIAN',
+      'BEGIN:VEVENT',
+      `UID:homeofferflow-closing-${nowWhatCalendarKey(closing)}-${Date.now()}@homeofferflow.com`,
+      `DTSTAMP:${stamp}`,
+      `DTSTART;VALUE=DATE:${nowWhatCalendarKey(closing)}`,
+      `DTEND;VALUE=DATE:${nowWhatCalendarKey(end)}`,
+      `SUMMARY:${nowWhatCalendarEscape(title)}`,
+      `DESCRIPTION:${nowWhatCalendarEscape(description)}`,
+      'END:VEVENT',
+      'END:VCALENDAR',
+      ''
+    ].join('\r\n');
+    const url = URL.createObjectURL(new Blob([calendar], { type: 'text/calendar;charset=utf-8' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `homeofferflow-target-closing-${nowWhatCalendarKey(closing)}.ics`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 0);
+  };
+
   function nowWhatPartnerSort(left, right) {
     const rank = { exclusive_market: 0, premier: 1, founding: 2 };
     const leftRegulated = NOW_WHAT_REGULATED_TYPES.has(left.partner_type);
@@ -10266,6 +10325,12 @@ function routeAfterMagicLinkIfNeeded() {
       }
     ];
     target.innerHTML = milestones.map(item => `<div class="now-what-milestone"><strong>${nowWhatEscape(item.title)}</strong><span>${nowWhatEscape(item.body)}</span></div>`).join('');
+    const calendarAction = document.getElementById('nowWhatCalendarAction');
+    if (calendarAction) {
+      calendarAction.hidden = !closing;
+      if (closing) calendarAction.innerHTML = '<div><strong>Put target closing on your calendar</strong><span>An optional reminder only. Confirm the final date, time, and location from the fully signed contract.</span></div><button type="button" onclick="downloadClosingCalendarReminder()">Add to calendar</button>';
+      else calendarAction.innerHTML = '';
+    }
   }
 
   function renderNowWhatDirectory(partners = []) {
