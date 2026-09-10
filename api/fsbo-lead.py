@@ -394,7 +394,7 @@ def _send_seller_plan_confirmation(payload):
     next_steps = _seller_plan_receipt_steps(payload)
     scope_note = _seller_plan_scope_note(service_level)
     return_link = f"{PUBLIC_APP_ORIGIN}/sellers?{urlencode({'seller_package': service_level, 'utm_source': 'email', 'utm_medium': 'seller_receipt', 'utm_campaign': 'seller_follow_up'})}"
-    return_link_label = "Choose your next step" if service_level == "free_intake" else "Review your selected path"
+    return_link_label = "Continue with your seller plan" if service_level == "free_intake" else "Review your selected path"
     plain_steps = "\n".join(f"{index}. {step}" for index, step in enumerate(next_steps, start=1))
     html_steps = "".join(f"<li>{html.escape(step)}</li>" for step in next_steps)
     plain_text = (
