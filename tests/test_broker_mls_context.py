@@ -94,6 +94,17 @@ class BrokerMlsContextTests(unittest.TestCase):
         self.assertEqual(selected["sourceType"], "broker_authorized_reso_mls")
         public.assert_not_called()
 
+    def test_review_provenance_distinguishes_broker_mls_from_public_context(self):
+        self.assertEqual(
+            MODULE._review_source_for_property_context({"found": True, "sourceType": "broker_authorized_reso_mls"}),
+            "gemini_with_broker_authorized_mls_context",
+        )
+        self.assertEqual(
+            MODULE._review_source_for_property_context({"found": True, "sourceType": "public_web_grounding"}),
+            "gemini_with_public_property_context",
+        )
+        self.assertEqual(MODULE._review_source_for_property_context({"found": False}), "gemini")
+
     def test_offer_review_requests_the_broker_lookup_without_exposing_credentials(self):
         html = (ROOT / "index.html").read_text(encoding="utf-8")
         self.assertIn("includeBrokerMlsContext: true", html)

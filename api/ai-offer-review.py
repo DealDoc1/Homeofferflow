@@ -767,6 +767,15 @@ def _select_property_context(offer, *, include_broker_mls_context=False, include
     return _grounded_property_context(offer, include_public_context)
 
 
+def _review_source_for_property_context(property_context):
+    """Keep review provenance accurate for reporting and later calibration."""
+    if not isinstance(property_context, dict) or not property_context.get("found"):
+        return "gemini"
+    if property_context.get("sourceType") == "broker_authorized_reso_mls":
+        return "gemini_with_broker_authorized_mls_context"
+    return "gemini_with_public_property_context"
+
+
 RESPONSE_SCHEMA = {
     "type": "object",
     "properties": {
@@ -909,7 +918,7 @@ class handler(BaseHTTPRequestHandler):
                 review["marketMode"] = fallback.get("marketMode") or review.get("marketMode")
             # _normalize_live_review above already bounds components and applies
             # HomeOfferFlow's approved disclaimer and text limits.
-            review["source"] = "gemini_with_public_property_context" if property_context.get("found") else "gemini"
+            review["source"] = _review_source_for_property_context(property_context)
             review["model"] = GEMINI_MODEL
             review["propertyContext"] = property_context
 
