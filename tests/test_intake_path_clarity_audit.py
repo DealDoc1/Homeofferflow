@@ -19,6 +19,12 @@ class IntakePathClarityAuditTests(unittest.TestCase):
             with self.subTest(identifier=identifier):
                 self.assertIn(identifier, HTML)
 
+    def test_agent_copy_describes_saved_documents_in_customer_language(self):
+        self.assertIn("What happens after I save a document?", HTML)
+        self.assertIn("Your completed document is saved for review before anything is delivered or sent for signature.", HTML)
+        self.assertIn("Save for review", HTML)
+        self.assertIn("Your document is ready.", HTML)
+
 
 if __name__ == "__main__":
     unittest.main()

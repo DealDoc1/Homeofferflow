@@ -479,9 +479,9 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       const source = await root.hofLoadApprovedBrokerageSource?.(FORM_CODE);
       const copy = card.querySelector('#txr1905AgreementCopy');
       if (!source) { copy.textContent = 'We couldn’t open that document. Please try again.'; return; }
-      copy.innerHTML = `Use a short, guided interview for the ${escape(source.source_revision)} edition of TXR-1905. Review the completed draft, then send it for signature when the parties are ready.`;
+      copy.innerHTML = `Use a short, guided interview for the ${escape(source.source_revision)} edition of TXR-1905. Review the completed document, then send it for signature when the parties are ready.`;
       const button = document.createElement('button');
-      button.type = 'button'; button.className = 'btn-secondary'; button.textContent = 'Start mineral addendum draft';
+      button.type = 'button'; button.className = 'btn-secondary'; button.textContent = 'Start mineral addendum';
       button.addEventListener('click', () => openDraftDialog(source));
       card.appendChild(button);
     } catch (error) {
@@ -510,7 +510,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         <label class="hof-agreement-wide hof-agreement-services"><input name="mineralReviewAcknowledgment" type="checkbox" required> I confirm the parties will review these choices on the form before signing.</label>
       </div>
       <div id="txr1905DraftStatus" class="hof-iabs-status"></div>
-      <div class="hof-agreement-footer"><button class="btn-secondary" type="button" id="txr1905Cancel">Cancel</button><button class="btn-primary" type="submit">Save private draft</button></div>
+      <div class="hof-agreement-footer"><button class="btn-secondary" type="button" id="txr1905Cancel">Cancel</button><button class="btn-primary" type="submit">Save for review</button></div>
     </form>`;
     document.body.appendChild(modal);
     modal.querySelector('#txr1905Cancel').addEventListener('click', () => modal.remove());
@@ -540,18 +540,18 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     };
     submit.disabled = true; submit.setAttribute('aria-busy', 'true'); submit.textContent = 'Saving draft…';
     try {
-      status.className = 'hof-iabs-status'; status.textContent = 'Preparing your mineral-addendum draft…';
+      status.className = 'hof-iabs-status'; status.textContent = 'Preparing your mineral addendum…';
       const token = root.hofAuth?.session?.access_token;
       const response = await fetch('/api/admin-dashboard', { method:'POST', headers:{ 'Content-Type':'application/json', Authorization:`Bearer ${token}` }, body:JSON.stringify(payload) });
       const result = await response.json();
-      if (!response.ok) throw new Error(result.error || 'Could not save the private mineral addendum draft.');
+      if (!response.ok) throw new Error(result.error || 'Could not prepare the mineral addendum.');
       status.className = 'hof-iabs-status ready';
-      status.innerHTML = 'Your draft is ready. <button type="button" class="btn-secondary">Review and send</button>';
+      status.innerHTML = 'Your document is ready. <button type="button" class="btn-secondary">Review and send</button>';
       status.querySelector('button').addEventListener('click', async () => { modal.remove(); await root.hofOpenPreparedAgreement?.(); });
     } catch (error) {
       console.error('TXR-1905 draft failed:', error);
-      status.className = 'hof-iabs-status error'; status.textContent = error.message || 'Could not save the private mineral addendum draft.';
-      submit.disabled = false; submit.setAttribute('aria-busy', 'false'); submit.textContent = 'Save private draft';
+      status.className = 'hof-iabs-status error'; status.textContent = error.message || 'Could not prepare the mineral addendum.';
+      submit.disabled = false; submit.setAttribute('aria-busy', 'false'); submit.textContent = 'Save for review';
     }
   }
 
@@ -17967,7 +17967,7 @@ function routeAfterMagicLinkIfNeeded() {
         faqs: [
           ['Do I need a brokerage seat to use this?', 'No. Available to every signed-in agent. A personal workspace does not require a brokerage seat; a brokerage or team workspace is optional when you want to work with a team.'],
           ['Which transactions can I start?', 'Choose property listing, purchase, lease listing, or lease representation. The next questions and available documents follow that selection.'],
-          ['What happens with private drafts?', 'They are ready for your review. They do not send a request or contact anyone on your behalf.'],
+          ['What happens after I save a document?', 'It is ready for your review. Nothing is sent and no one is contacted until you choose the next step.'],
           ['Can I reuse saved details?', 'Yes. Your signed-in workspace keeps your progress and can reuse relevant saved details for later transactions.']
         ],
         closingTitle: 'Ready to start a transaction?',
@@ -18464,7 +18464,7 @@ function routeAfterMagicLinkIfNeeded() {
         title: 'Choose the transaction in front of you',
         body: hasProfile
           ? 'Your saved defaults are ready. Choose property listing, purchase, lease listing, or lease representation; then HomeOfferFlow will show only the relevant next steps.'
-          : 'Choose the transaction first. Then start with the client and property in front of you, saving a private draft before any review, generation, delivery, or signature step.',
+          : 'Choose the transaction first. Then start with the client and property in front of you. Your completed document is saved for review before anything is delivered or sent for signature.',
         primary: 'Choose Transaction',
         secondary: hasProfile ? 'Review Saved Profile' : 'Set Up My Defaults',
         confidence: true,
@@ -20425,7 +20425,7 @@ function routeAfterMagicLinkIfNeeded() {
       if (root.__hofPendingTenantRepresentationDraft === 'long') {
         root.__hofPendingTenantRepresentationDraft = '';
         const status = document.getElementById('leaseRepresentationQuickChoiceStatus');
-        if (status) status.textContent = 'Approved form ready. Opening your selected private draft…';
+        if (status) status.textContent = 'Approved form ready. Opening your selected document…';
         root.hofOpenTxr1501Draft();
       }
     } catch (error) {
