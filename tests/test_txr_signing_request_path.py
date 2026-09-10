@@ -178,6 +178,19 @@ class TxrSigningRequestPathTests(unittest.TestCase):
         self.assertIn("data-agent-workflow-choice=\"lease_listing\"", html)
         self.assertIn("data-agent-workflow-choice=\"lease_representation\"", html)
 
+    def test_review_save_feedback_uses_customer_facing_document_language(self):
+        html = (ROOT / "index.html").read_text(encoding="utf-8")
+        start = html.index('id="hof-private-review-save-feedback-v1"')
+        end = html.index("</script>", start)
+        feedback = html[start:end]
+        self.assertIn("Save for review", feedback)
+        self.assertIn("Saving for review…", feedback)
+        self.assertIn("Saved for review", feedback)
+        self.assertIn("View saved documents", feedback)
+        self.assertIn("We couldn’t prepare this document. Check your entries and try again.", feedback)
+        self.assertNotIn("Preparing private draft…", feedback)
+        self.assertNotIn("Private draft ready", feedback)
+
     def test_signwell_signing_urls_are_extracted_only_from_https_recipient_urls(self):
         self.assertEqual(
             MODULE._signwell_signing_urls({
