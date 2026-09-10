@@ -29,6 +29,8 @@ class IntakePathClarityAuditTests(unittest.TestCase):
         self.assertIn("Could not prepare the document.", HTML)
         self.assertIn("This prepares a document for your review before it is sent for signature.", HTML)
         self.assertIn("prepare a document for review", HTML)
+        self.assertIn("prepare an appraisal document for review", HTML)
+        self.assertIn("Review the completed document, then confirm recipients before sending it for signature.", HTML)
 
 
 if __name__ == "__main__":

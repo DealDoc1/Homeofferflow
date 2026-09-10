@@ -22843,7 +22843,11 @@ function routeAfterMagicLinkIfNeeded() {
         .replace(/This saves a private draft only\./gi, 'This prepares a document for your review before it is sent for signature.')
         .replace(/This is a private draft, not a /gi, 'This is a document for review, not a ')
         .replace(/prepare a private draft/gi, 'prepare a document for review')
-        .replace(/private (seller-financing|residential-lease|fixture-lease|appraisal) draft/gi, '$1 document for review');
+        .replace(/prepare an appraisal private draft/gi, 'prepare an appraisal document for review')
+        .replace(/private (seller-financing|residential-lease|fixture-lease|appraisal) draft/gi, '$1 document for review')
+        .replace(/This workflow does not assess credit, advise on loan terms, contact a lender, send, or sign the addendum\./gi, 'This workflow does not assess credit, advise on loan terms, or contact a lender. Review the completed document, then confirm recipients before sending it for signature.')
+        .replace(/It does not assess conditions, send, or sign the addendum\./gi, 'It does not assess conditions. Review the completed document, then confirm recipients before sending it for signature.')
+        .replace(/It does not evaluate value, recommend a waiver, send, or sign the addendum\./gi, 'It does not evaluate value or recommend a waiver. Review the completed document, then confirm recipients before sending it for signature.');
       if (revised !== original) copy.textContent = revised;
     });
     root.querySelectorAll?.('.hof-agreement-dialog .hof-iabs-status').forEach(status => {
