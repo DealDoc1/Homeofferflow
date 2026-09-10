@@ -41,7 +41,26 @@ rules, or payment behavior.
 
 ## Remaining verification
 
-Production verification follows the intentional prebuilt deployment. The new
-controlled TXR-1508 QA draft has been prepared but is not yet sent. Current
+PR #1191 merged as `6ce62b6f8d7cad85fec0ff239c9424801beedcec`. The intentional
+prebuilt release succeeded in GitHub Actions run `34497368235`; the Linux build
+took seven seconds and the deployment became Ready at
+`https://homeofferflow-aah5yce65-dealdoc1s-projects.vercel.app`. Canonical-domain,
+PWA, API, and packet-runtime checks passed. A read-only early error scan for
+that deployment returned no error logs. Canonical HTML and CSP contain every
+repair marker, and the Showing Form interview opened from the guided choice
+in authenticated live browser QA.
+
+The signed-in account's purchase interview advanced through parties,
+financing, addenda, disclosures, and closing to review. Its $350,000 QA price
+minus $70,000 down payment produced the expected $280,000 loan. No offer packet
+was generated or sent. Google autofilled the selected property, city, state,
+ZIP, and county in Chrome; the in-app browser's earlier Google detail request
+had returned a network error. This is not a completed signed-out consumer
+journey or payment/signature QA claim.
+
+The new controlled TXR-1508 QA draft has been prepared but is not yet sent.
+The send review exposed an omitted account-linked signer in the UI. Delivery
+was stopped before submission while that recipient-preview issue is repaired.
+Current
 completed-signature PDF visual QA remains a separate task and is not implied
 by the synthetic preview test or unit-test results.
