@@ -37,6 +37,19 @@ class WizardValidationGuidanceTests(unittest.TestCase):
         self.assertIn("setAppraisalAddendumRequired(appraisalDecisionRequired);", INDEX)
         self.assertIn("if (group === 'appraisalAddendum') setAppraisalAddendumRequired(false);", INDEX)
 
+    def test_independent_agents_are_not_blocked_by_a_missing_brokerage_name(self):
+        validation_start = INDEX.index("function validateCurrentStep()")
+        validation_end = INDEX.index("if (stepId === 'step2')", validation_start)
+        step_one_validation = INDEX[validation_start:validation_end]
+
+        self.assertIn("requireField('agentNameQuick'", step_one_validation)
+        self.assertIn("requireField('agentLicenseQuick'", step_one_validation)
+        self.assertIn("requireValidEmail('agentEmailQuick'", step_one_validation)
+        self.assertIn("requireField('agentPhoneQuick'", step_one_validation)
+        self.assertNotIn("requireField('agentBrokerageQuick'", step_one_validation)
+        self.assertIn("Brokerage / Team Name", INDEX)
+        self.assertIn("(if applicable)", INDEX)
+
 
 if __name__ == "__main__":
     unittest.main()

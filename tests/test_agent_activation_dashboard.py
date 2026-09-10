@@ -155,7 +155,7 @@ class AgentActivationDashboardTests(unittest.TestCase):
         self.assertIn("action === 'resume_local'", script)
         self.assertIn("action === 'start_fresh'", script)
 
-    def test_profile_activation_requires_agent_contact_and_license_fields(self):
+    def test_profile_activation_requires_agent_contact_and_license_fields_but_not_brokerage_membership(self):
         script_start = HTML.index('id="hof-agent-activation-v16-js"')
         script_end = HTML.index("</script>", script_start)
         script = HTML[script_start:script_end]
@@ -165,20 +165,21 @@ class AgentActivationDashboardTests(unittest.TestCase):
             "profile.license_number",
             "profile.agent_email",
             "profile.agent_phone",
-            "profile.brokerage_name",
         ):
             self.assertIn(field, script)
+        self.assertNotIn("profile.brokerage_name\n    ].every", script)
 
-    def test_profile_form_makes_the_five_activation_essentials_clear_before_optional_defaults(self):
+    def test_profile_form_makes_four_agent_essentials_clear_and_brokerage_optional(self):
         profile_start = HTML.index('function renderAccountProfileForm()')
         profile_end = HTML.index('function escapeAttr(', profile_start)
         profile = HTML[profile_start:profile_end]
 
-        self.assertIn('Save these five essentials first.', profile)
-        self.assertIn('Title, escrow, and offer preferences below are optional', profile)
-        self.assertEqual(profile.count('account-profile-required'), 5)
+        self.assertIn('Save these four essentials first.', profile)
+        self.assertIn('Add brokerage or team details when they apply', profile)
+        self.assertEqual(profile.count('account-profile-required'), 4)
         for field in ('profAgentName', 'profAgentLicense', 'profAgentEmail', 'profAgentPhone', 'profBrokerageName'):
             self.assertIn(field, profile)
+        self.assertNotIn('placeholder="Brokerage firm" required', profile)
 
     def test_profile_save_explains_and_focuses_missing_repeat_offer_essentials(self):
         start = HTML.index("async function saveAccountProfile()")
@@ -188,14 +189,15 @@ class AgentActivationDashboardTests(unittest.TestCase):
         self.assertIn("const missingProfileFields", profile_save)
         self.assertIn("Add ' + missingProfileFields.join(', ') + ' to save your repeat-offer defaults.", profile_save)
         self.assertIn("?.focus();", profile_save)
+        self.assertNotIn("['profBrokerageName', 'Brokerage Name']", profile_save)
 
-    def test_profile_activation_names_the_five_defaults_before_opening_the_form(self):
+    def test_profile_activation_names_the_four_required_defaults_before_opening_the_form(self):
         script_start = HTML.index('id="hof-agent-activation-v16-js"')
         script_end = HTML.index("</script>", script_start)
         script = HTML[script_start:script_end]
-        self.assertIn("Finish your five repeat-offer defaults", script)
-        self.assertIn("name, license number, business email, phone, and brokerage", script)
-        self.assertIn("title, escrow, and common terms can be added later", script)
+        self.assertIn("Save your repeat-offer defaults", script)
+        self.assertIn("name, license number, business email, and phone", script)
+        self.assertIn("Title, escrow, and common terms can be added later", script)
 
     def test_saved_client_draft_stays_resumable_before_optional_repeat_offer_defaults(self):
         script_start = HTML.index('id="hof-agent-activation-v16-js"')

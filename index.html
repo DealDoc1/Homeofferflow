@@ -3395,7 +3395,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <div class="field"><label for="agentPhoneQuick">Agent Phone</label><input type="tel" id="agentPhoneQuick" placeholder="(214) 555-0000" oninput="syncAgentQuickFields()"/></div>
           </div>
           <div class="field-row">
-            <div class="field"><label for="agentBrokerageQuick">Brokerage Name</label><input type="text" id="agentBrokerageQuick" placeholder="Brokerage firm name" oninput="syncAgentQuickFields()"/></div>
+            <div class="field"><label for="agentBrokerageQuick">Brokerage / Team Name <span style="color:var(--gray);font-weight:500;">(if applicable)</span></label><input type="text" id="agentBrokerageQuick" placeholder="Brokerage or team name" oninput="syncAgentQuickFields()"/></div>
             <div class="field"><label for="agentBrokerLicenseQuick">Brokerage License No. <span style="color:var(--gray);font-weight:500;">(optional)</span></label><input type="text" id="agentBrokerLicenseQuick" placeholder="Brokerage license #" oninput="syncAgentQuickFields()"/></div>
           </div>
           <div style="margin-top:0.85rem; padding-top:0.85rem; border-top:1px solid rgba(255,255,255,0.07);">
@@ -3915,7 +3915,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           <div class="field-group" style="margin-bottom:0;">
             <div class="field-row"><div class="field"><label>Agent Name</label><input type="text" id="agentName" placeholder="Jane Doe"/></div><div class="field"><label>TX License No.</label><input type="text" id="agentLicense" placeholder="License #"/></div></div>
             <div class="field-row"><div class="field"><label>Agent Email</label><input type="email" id="agentEmail" placeholder="agent@brokerage.com"/></div><div class="field"><label>Agent Phone</label><input type="tel" id="agentPhone" placeholder="(214) 555-0000"/></div></div>
-            <div class="field-row"><div class="field"><label>Brokerage Name</label><input type="text" id="agentBrokerage" placeholder="Brokerage firm name"/></div><div class="field"><label>Brokerage License No. <span style="color:var(--gray);font-weight:500;">(optional)</span></label><input type="text" id="agentBrokerLicense" placeholder="Brokerage license #"/></div></div>
+            <div class="field-row"><div class="field"><label>Brokerage / Team Name <span style="color:var(--gray);font-weight:500;">(if applicable)</span></label><input type="text" id="agentBrokerage" placeholder="Brokerage or team name"/></div><div class="field"><label>Brokerage License No. <span style="color:var(--gray);font-weight:500;">(if applicable)</span></label><input type="text" id="agentBrokerLicense" placeholder="Brokerage license #"/></div></div>
           </div>
         </div>
       </div>
@@ -5548,7 +5548,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   function isProfileMeaningful(profile = hofAuth.accountProfile) {
     if (!profile) return false;
     if (hofAuth.role === 'investor') return !!(profile.investor_entity_name || profile.signer_name || profile.investor_email);
-    return !!(profile.agent_name || profile.license_number || profile.brokerage_name || profile.agent_email);
+    return !!(profile.agent_name || profile.license_number || profile.agent_email || profile.agent_phone);
   }
 
   function setAccountStatus(message, type = 'ok') {
@@ -7090,13 +7090,13 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     }
 
     container.innerHTML = `
-      <div class="account-card"><h4>Agent / Brokerage Info</h4><p class="account-profile-essentials"><strong>Save these five essentials first.</strong> They make your agent profile ready for repeat offers. Title, escrow, and offer preferences below are optional and can be added later.</p><div class="account-grid">
+      <div class="account-card"><h4>Agent Info</h4><p class="account-profile-essentials"><strong>Save these four essentials first.</strong> They make your agent profile ready for repeat offers. Add brokerage or team details when they apply; title, escrow, and offer preferences can be added later.</p><div class="account-grid">
         <div class="field"><label>Agent Name <span class="account-profile-required">Required</span></label><input id="profAgentName" autocomplete="name" value="${escapeAttr(profileValue('agent_name'))}" placeholder="Jane Doe" required aria-required="true"></div>
         <div class="field"><label>License Number <span class="account-profile-required">Required</span></label><input id="profAgentLicense" value="${escapeAttr(profileValue('license_number'))}" placeholder="TX license #" required aria-required="true"></div>
         <div class="field"><label>Agent Email <span class="account-profile-required">Required</span></label><input id="profAgentEmail" type="email" inputmode="email" autocomplete="email" value="${escapeAttr(profileValue('agent_email', hofAuth.session?.user?.email || ''))}" placeholder="agent@brokerage.com" required aria-required="true"></div>
         <div class="field"><label>Agent Phone <span class="account-profile-required">Required</span></label><input id="profAgentPhone" type="tel" autocomplete="tel" value="${escapeAttr(profileValue('agent_phone'))}" placeholder="(214) 555-0000" required aria-required="true"></div>
-        <div class="field"><label>Brokerage Name <span class="account-profile-required">Required</span></label><input id="profBrokerageName" autocomplete="organization" value="${escapeAttr(profileValue('brokerage_name'))}" placeholder="Brokerage firm" required aria-required="true"></div>
-        <div class="field"><label>Brokerage License</label><input id="profBrokerageLicense" value="${escapeAttr(profileValue('brokerage_license'))}" placeholder="Brokerage license #"></div>
+        <div class="field"><label>Brokerage / Team Name <span style="color:var(--gray);font-weight:500;">(if applicable)</span></label><input id="profBrokerageName" autocomplete="organization" value="${escapeAttr(profileValue('brokerage_name'))}" placeholder="Brokerage or team name"></div>
+        <div class="field"><label>Brokerage License <span style="color:var(--gray);font-weight:500;">(if applicable)</span></label><input id="profBrokerageLicense" value="${escapeAttr(profileValue('brokerage_license'))}" placeholder="Brokerage license #"></div>
       </div></div>
       <div class="account-card"><h4>Title, Escrow & Offer Defaults</h4><div class="account-grid">
         <div class="field"><label>Preferred Title Company</label><input id="profTitleCompany" value="${escapeAttr(profileValue('preferred_title_company'))}" placeholder="Chicago Title DFW"></div>
@@ -7151,8 +7151,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         ['profAgentName', 'Agent Name'],
         ['profAgentLicense', 'License Number'],
         ['profAgentEmail', 'Agent Email'],
-        ['profAgentPhone', 'Agent Phone'],
-        ['profBrokerageName', 'Brokerage Name']
+        ['profAgentPhone', 'Agent Phone']
       ];
       const missingProfileFields = requiredProfileFields.filter(([id]) => !getVal(id)).map(([, label]) => label);
       if (missingProfileFields.length) {
@@ -8681,8 +8680,6 @@ function routeAfterMagicLinkIfNeeded() {
         requireField('agentLicenseQuick', 'agent license number', missing);
         requireValidEmail('agentEmailQuick', 'valid agent email', missing);
         requireField('agentPhoneQuick', 'agent phone', missing);
-        requireField('agentBrokerageQuick', 'brokerage name', missing);
-
         requireRadioSelection('brokerFeeType', 'broker fee disclosure choice', missing);
         const feeType = getRadio('brokerFeeType') || state.data.brokerFeeType || '';
         if (feeType === 'amount') requireField('brokerFeeAmount', 'broker fee amount', missing);
@@ -17913,7 +17910,7 @@ function routeAfterMagicLinkIfNeeded() {
     // The dashboard, beta checklist, and post-login route must agree with the
     // activation card. A single saved field is useful, but it is not a
     // repeat-offer-ready profile: agents still need their contact, license,
-    // and brokerage defaults before the product can honestly call this step
+    // and contact defaults before the product can honestly call this step
     // complete. Keep offer creation available either way.
     if (typeof root.isProfileReadyForDefaults === 'function') {
       return root.isProfileReadyForDefaults(profile);
@@ -17921,7 +17918,7 @@ function routeAfterMagicLinkIfNeeded() {
     if (!profile) return false;
     const role = normalizeAccountRole(root.hofAuth?.role);
     if (role === 'investor') return !!(profile.investor_entity_name || profile.signer_name || profile.investor_email);
-    return !!(profile.agent_name || profile.license_number || profile.brokerage_name || profile.agent_email);
+    return !!(profile.agent_name || profile.license_number || profile.agent_email || profile.agent_phone);
   };
 
   const oldRenderAccountProfileForm = root.renderAccountProfileForm;
@@ -18571,8 +18568,7 @@ function routeAfterMagicLinkIfNeeded() {
       profile.agent_name,
       profile.license_number,
       profile.agent_email,
-      profile.agent_phone,
-      profile.brokerage_name
+      profile.agent_phone
     ].every(value => String(value || '').trim());
   }
 
@@ -18672,7 +18668,7 @@ function routeAfterMagicLinkIfNeeded() {
         return {
           key: 'profile_with_draft',
           title: 'Resume your saved offer',
-          body: 'Your client draft is ready to continue. You can save your five reusable defaults after the client work is moving, or add them now for faster repeat offers.',
+          body: 'Your client draft is ready to continue. You can save your four core defaults after the client work is moving, or add them now for faster repeat offers.',
           primary: 'Resume My Draft',
           secondary: 'Save My Defaults',
           draftId: draft.id || '',
@@ -18681,8 +18677,8 @@ function routeAfterMagicLinkIfNeeded() {
       }
       return {
         key: 'profile',
-        title: 'Finish your five repeat-offer defaults',
-        body: 'Your first offer is in the workspace. Save your name, license number, business email, phone, and brokerage now; title, escrow, and common terms can be added later.',
+        title: 'Save your repeat-offer defaults',
+        body: 'Your first offer is in the workspace. Save your name, license number, business email, and phone now; add brokerage or team details when they apply. Title, escrow, and common terms can be added later.',
         primary: 'Save My Defaults',
         secondary: 'Open Offer Workspace',
         complete, hasProfile, hasOffer, hasPlan
