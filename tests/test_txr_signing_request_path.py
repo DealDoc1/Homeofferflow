@@ -209,6 +209,26 @@ class TxrSigningRequestPathTests(unittest.TestCase):
             ["https://signwell.example/one", "https://signwell.example/two"],
         )
 
+    def test_provider_document_is_checked_before_a_signing_request_is_sent(self):
+        expected_fields = [[
+            {"api_id": "agent_initials", "recipient_id": "associate"},
+            {"api_id": "client_signature", "recipient_id": "1"},
+        ]]
+        recipients = [{"id": "associate"}, {"id": "1"}]
+        complete = {
+            "fields": [[
+                {"api_id": "agent_initials", "recipient_id": "associate"},
+                {"api_id": "client_signature", "recipient_id": "1"},
+            ]],
+            "recipients": recipients,
+        }
+        self.assertTrue(MODULE._signwell_document_matches_signing_request(complete, expected_fields, recipients))
+        complete["fields"][0][0]["recipient_id"] = "1"
+        self.assertFalse(MODULE._signwell_document_matches_signing_request(complete, expected_fields, recipients))
+        complete["fields"][0][0]["recipient_id"] = "associate"
+        complete["fields"][0].pop(0)
+        self.assertFalse(MODULE._signwell_document_matches_signing_request(complete, expected_fields, recipients))
+
 
 if __name__ == "__main__":
     unittest.main()

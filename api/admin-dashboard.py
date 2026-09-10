@@ -3842,6 +3842,36 @@ def _txr_signwell_fields(form_code, agreement_data, client_count):
     raise ValueError("This standalone form is not available for signing.")
 
 
+def _signwell_document_matches_signing_request(document, expected_fields, expected_recipients):
+    """Confirm SignWell retained every requested field and signer before send.
+
+    SignWell accepts a document creation request before it is visible to a
+    signer.  Treat that acceptance as provisional: a field dropped or assigned
+    to the wrong recipient must never result in a live signature email.
+    """
+    expected_field_recipients = {
+        str(field.get("api_id") or "").strip(): str(field.get("recipient_id") or "").strip()
+        for page_fields in expected_fields
+        for field in page_fields
+        if str(field.get("api_id") or "").strip()
+    }
+    returned_field_recipients = {
+        str(field.get("api_id") or "").strip(): str(field.get("recipient_id") or "").strip()
+        for page_fields in (document.get("fields") or [])
+        for field in (page_fields if isinstance(page_fields, list) else [])
+        if str(field.get("api_id") or "").strip()
+    }
+    expected_recipient_ids = {str(recipient.get("id") or "").strip() for recipient in expected_recipients}
+    returned_recipient_ids = {
+        str(recipient.get("id") or "").strip()
+        for recipient in (document.get("recipients") or [])
+    }
+    return (
+        expected_field_recipients == returned_field_recipients
+        and expected_recipient_ids == returned_recipient_ids
+    )
+
+
 def _standalone_signer_labels(agreement):
     """Return non-sensitive signer labels in stored recipient order."""
     names = agreement.get("client_names") or []
@@ -4056,7 +4086,9 @@ async def _send_txr_agreement_for_signature(user, data):
     address_label = form_code.replace("-", " ")
     payload = {
         "test_mode": SIGNWELL_TEST_MODE,
-        "draft": False,
+        # Create privately first so SignWell's persisted field list can be
+        # checked before an irreversible recipient email is sent.
+        "draft": True,
         "reminders": True,
         "apply_signing_order": True,
         "embedded_signing": False,
@@ -4093,6 +4125,39 @@ async def _send_txr_agreement_for_signature(user, data):
     document_id = str(result.get("id") or result.get("document_id") or "").strip()
     if not document_id:
         raise RuntimeError("SignWell did not return a document id.")
+    headers = {"X-Api-Key": SIGNWELL_API_KEY, "Content-Type": "application/json"}
+    async with httpx.AsyncClient(timeout=45) as client:
+        inspection = await client.get(
+            f"https://www.signwell.com/api/v1/documents/{urllib.parse.quote(document_id, safe='')}",
+            headers=headers,
+        )
+        inspected_document = inspection.json() if inspection.status_code == 200 else {}
+        if not _signwell_document_matches_signing_request(inspected_document, fields, recipients):
+            # A failed validation is not a user-facing signing request. Remove
+            # the private provider draft so it cannot be sent by mistake later.
+            await client.delete(
+                f"https://www.signwell.com/api/v1/documents/{urllib.parse.quote(document_id, safe='')}",
+                headers=headers,
+            )
+            await _patch(
+                "hof_standalone_agreements",
+                f"id=eq.{urllib.parse.quote(agreement_uuid)}",
+                {"status": "failed", "updated_at": datetime.now(timezone.utc).isoformat()},
+            )
+            raise RuntimeError("SignWell could not preserve every required signer field. Nothing was sent.")
+        send_payload = {
+            key: value for key, value in payload.items()
+            if key not in {"draft", "files", "fields", "recipients"}
+        }
+        send_response = await client.post(
+            f"https://www.signwell.com/api/v1/documents/{urllib.parse.quote(document_id, safe='')}/send",
+            headers=headers,
+            json=send_payload,
+        )
+    if send_response.status_code not in {200, 201, 202}:
+        await _patch("hof_standalone_agreements", f"id=eq.{urllib.parse.quote(agreement_uuid)}", {"status": "failed", "updated_at": datetime.now(timezone.utc).isoformat()})
+        raise RuntimeError(f"SignWell could not send the verified signing request: HTTP {send_response.status_code}.")
+    result = send_response.json()
     now = datetime.now(timezone.utc).isoformat()
     await _patch(
         "hof_standalone_agreements",
