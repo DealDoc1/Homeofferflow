@@ -29,6 +29,7 @@ class AgentLaunchScopeTests(unittest.TestCase):
             HTML,
         )
         self.assertNotIn("Use your approved brokerage process", HTML)
+        self.assertIn("and any applicable brokerage process.", HTML)
 
     def test_scope_explains_shared_txr_library_and_private_draft_limit(self):
         self.assertIn("every signed-in agent", HTML)
