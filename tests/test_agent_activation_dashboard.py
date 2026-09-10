@@ -134,7 +134,7 @@ class AgentActivationDashboardTests(unittest.TestCase):
 
     def test_onboarding_uses_a_real_saved_draft_path_not_demo_only_language(self):
         self.assertIn("Start your first saved offer", HTML)
-        self.assertIn("Start Transaction", HTML)
+        self.assertIn("Choose Transaction", HTML)
         self.assertIn("Saving a draft does not generate a packet or request a signature.", HTML)
 
     def test_account_dashboard_resumes_same_role_local_drafts_before_clearing_them(self):
@@ -317,7 +317,7 @@ class AgentActivationDashboardTests(unittest.TestCase):
         self.assertIn("showAccountTab('dashboard');", HTML)
         self.assertIn("window.openAgentTransactionPicker?.();", HTML)
         self.assertIn('onclick="startAccountTransaction()">Choose Transaction</button>', HTML)
-        self.assertIn('onclick="startAccountTransaction()">Start Transaction</button>', HTML)
+        self.assertNotIn('onclick="startAccountTransaction()">Start Transaction</button>', HTML)
         self.assertIn("${isInvestor ? 'Start an offer' : 'Start a transaction'}", HTML)
         self.assertNotIn('onclick="startAccountOffer()"><strong>Prepare an offer</strong>', HTML)
 
@@ -439,7 +439,7 @@ class AgentActivationDashboardTests(unittest.TestCase):
         subscription = HTML[subscription_start:subscription_end]
 
         self.assertIn("const remaining = Math.max(0, limit - used);", subscription)
-        self.assertIn('Start Transaction', subscription)
+        self.assertIn('Choose Transaction', subscription)
         self.assertIn("remaining + ' packet'", subscription)
         self.assertIn("startAccountTransaction()", subscription)
 
@@ -468,7 +468,7 @@ class AgentActivationDashboardTests(unittest.TestCase):
         history_end = HTML.index("async function refreshSignWellStatus", history_start)
         history = HTML[history_start:history_end]
 
-        self.assertIn('onclick="startAccountTransaction()">Start Transaction', history)
+        self.assertIn('onclick="startAccountTransaction()">Choose Transaction', history)
         self.assertNotIn('onclick="startAccountOffer()">New Offer', history)
 
     def test_resume_activation_chooses_the_most_recent_draft(self):

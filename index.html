@@ -461,7 +461,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     const isHomebuyer = (window.hofAuth?.role || '').toLowerCase() === 'homebuyer';
     return `<div style="display:flex; justify-content:space-between; align-items:flex-start; gap:1rem; flex-wrap:wrap; margin-bottom:1rem;">
       <div><div style="font-weight:900; color:var(--white);">${isHomebuyer ? 'My Offer Packets' : 'Recent offers'}</div><div style="color:var(--gray-light); font-size:0.86rem; margin-top:0.25rem;">View status, activity, and buyer-side signing progress.</div></div>
-      <button class="btn-primary" type="button" onclick="${isHomebuyer ? 'startHomebuyerOffer()' : 'startAccountTransaction()'}">${isHomebuyer ? 'New Offer' : 'Start Transaction'}</button>
+      <button class="btn-primary" type="button" onclick="${isHomebuyer ? 'startHomebuyerOffer()' : 'startAccountTransaction()'}">${isHomebuyer ? 'New Offer' : 'Choose Transaction'}</button>
     </div>
     <div class="offer-dashboard-table">
       <div class="offer-dashboard-head"><div>Property</div><div>Buyer</div><div>Offer Price</div><div>Status</div><div>Updated</div><div>Actions</div></div>
@@ -3134,7 +3134,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         <h4>My Offers</h4>
         <div id="myOffersList" class="offer-empty">No saved offers yet. Create your first offer and future drafts will show here.</div>
         <div class="account-actions-row">
-          <button class="btn-primary" type="button" onclick="startAccountTransaction()">Start Transaction</button>
+          <button class="btn-primary" type="button" onclick="startAccountTransaction()">Choose Transaction</button>
         </div>
       </div>
     </div>
@@ -5906,7 +5906,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     if (isInternalAdminAccess) {
       actionHtml =
         '<div class="account-actions-row" style="margin-top:0.85rem;">' +
-          (good ? '<button class="btn-primary" type="button" onclick="startAccountTransaction()">Start Transaction</button>' : '') +
+          (good ? '<button class="btn-primary" type="button" onclick="startAccountTransaction()">Choose Transaction</button>' : '') +
         '</div>' +
         '<div style="margin-top:0.55rem; color:var(--gray); font-size:0.74rem; line-height:1.45;">' +
           (good
@@ -5918,7 +5918,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     } else if (isPaid) {
       actionHtml =
         '<div class="account-actions-row" style="margin-top:0.85rem;">' +
-          (good ? '<button class="btn-primary" type="button" onclick="startAccountTransaction()">Start Transaction</button>' : '') +
+          (good ? '<button class="btn-primary" type="button" onclick="startAccountTransaction()">Choose Transaction</button>' : '') +
           '<button class="btn-secondary" type="button" onclick="openBillingPortal(\'' + (nearLimit ? 'usage_near_limit' : 'subscription_card') + '\')">Manage Billing</button>' +
         '</div>' +
         '<div style="margin-top:0.55rem; color:var(--gray); font-size:0.74rem; line-height:1.45;">' +
@@ -7065,7 +7065,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       </div>
       <div class="beta-checklist-actions">
         <button type="button" onclick="showAccountTab('profile')">Profile</button>
-        <button type="button" onclick="startAccountTransaction()">Start Transaction</button>
+        <button type="button" onclick="startAccountTransaction()">Choose Transaction</button>
         <button type="button" onclick="showAccountTab('offers')">My Offers</button>
         <button type="button" onclick="openBetaFeedback()">Send Feedback</button>
       </div>`;
@@ -8128,7 +8128,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         <div class="offer-crm-heading">Recent offers</div>
         <div class="offer-crm-subhead">Track drafts, generated packets, and buyer-side signature progress without digging through email.</div>
       </div>
-      <button class="btn-primary" type="button" onclick="startAccountTransaction()">Start Transaction</button>
+      <button class="btn-primary" type="button" onclick="startAccountTransaction()">Choose Transaction</button>
     </div>
     ${statCards}
     <div class="offer-crm-list">${rows}</div>`;
@@ -17854,7 +17854,7 @@ function routeAfterMagicLinkIfNeeded() {
       </div>
       <div class="beta-checklist-actions">
         <button type="button" onclick="showAccountTab('profile')">Profile & Defaults</button>
-        <button type="button" onclick="startAccountTransaction()">Start Transaction</button>
+        <button type="button" onclick="startAccountTransaction()">Choose Transaction</button>
         <button type="button" onclick="showAccountTab('offers')">Offer Workspace</button>
         <button type="button" onclick="openBetaFeedback()">Get Help</button>
       </div>`;
