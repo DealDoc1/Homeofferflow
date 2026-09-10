@@ -39,6 +39,19 @@ class AiOfferReviewClientGuardTests(unittest.TestCase):
         self.assertIn('Broker listing context when available', block)
         self.assertNotIn('will use public property context for the AI review', block)
 
+    def test_review_copy_does_not_promise_automatic_public_listing_data(self):
+        start = INDEX.index("function getInlineAiOfferAnalysis()")
+        end = INDEX.index("function buildAiOfferReviewPayload()", start)
+        block = INDEX[start:end]
+        self.assertNotIn("public listing context is available automatically", block)
+        self.assertIn("Broker-authorized listing facts are included only when available.", block)
+
+        start = INDEX.index("function renderAiOfferReviewResult(r, loading = false)")
+        end = INDEX.index("function runLiveAiOfferReview", start)
+        block = INDEX[start:end]
+        self.assertNotIn("Public listing/search context may be included when available", block)
+        self.assertIn("Listing facts are included only through an approved broker connection", block)
+
 
 if __name__ == "__main__":
     unittest.main()

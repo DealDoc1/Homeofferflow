@@ -14016,8 +14016,8 @@ function routeAfterMagicLinkIfNeeded() {
     if (lead === 'yes' || lead === 'unknown') issues.push('Lead-based paint disclosure must be confirmed before signing/sending if built before 1978 or unknown.');
     if (hoa === 'unknown') issues.push('HOA status is unknown; including the HOA addendum is safer but should be verified.');
     if (!closeDate) issues.push('Closing date is missing.');
-    if (city || county) market.push(`Property context: ${city ? city + ', ' : ''}${county} County. Market scoring improves when public listing context is available automatically.`);
-    market.push('This review uses Texas resale-contract norms and any available public listing context.');
+    if (city || county) market.push(`Property context: ${city ? city + ', ' : ''}${county} County. Live market factors should be confirmed with the listing side before you act.`);
+    market.push('This review uses Texas resale-contract norms and the offer terms you entered. Broker-authorized listing facts are included only when available.');
 
     score = Math.max(1, Math.min(99, Math.round(score)));
     return { score, issues, strengths, market };
@@ -14321,7 +14321,7 @@ function routeAfterMagicLinkIfNeeded() {
     r = normalizeAiReviewResult(r);
     const position = getCompetitivePosition(r.score);
     const cityCountyLabel = escapeAttr((payload.city || '') + (payload.county ? (payload.city ? ', ' : '') + payload.county + ' County' : 'Texas'));
-    const marketLines = (r.marketContext.length ? r.marketContext : ['No reliable DOM, price-reduction, or listing-motivation data was provided, so market weighting is limited.', 'Public listing context may be included automatically when available.']).slice(0, 4);
+    const marketLines = (r.marketContext.length ? r.marketContext : ['No reliable DOM, price-reduction, or listing-motivation data was provided, so market weighting is limited.', 'Broker-authorized listing facts are included only when an approved connection is available.']).slice(0, 4);
     const suggestions = (r.suggestions && r.suggestions.length ? r.suggestions : [
       'Consider whether earnest money, option period, title costs, concessions, and closing timeline are aligned with the property and market.',
       'Verify any missing disclosures or unknown HOA/lead-based-paint items before signing or sending.'
@@ -14389,7 +14389,7 @@ function routeAfterMagicLinkIfNeeded() {
         <div class="ai-review-summary ai-review-summary-v5"><strong>${escapeAttr(sourceLabel)}.</strong> ${escapeAttr(r.summary || '')}</div>
         <div class="notice gold" role="status"><strong>${escapeAttr(confidence.label || 'Limited confidence')}.</strong> ${escapeAttr(confidence.rationale || '')} Confidence describes input completeness, not accuracy or acceptance odds.</div>
         ${contextSourceNote}
-        <div class="ai-disclaimer-v5"><strong>Important:</strong> ${escapeAttr(r.disclaimer)} It does not change your contract automatically. Public listing/search context may be included when available and is not MLS-verified unless sourced from an authorized MLS connection.</div>
+        <div class="ai-disclaimer-v5"><strong>Important:</strong> ${escapeAttr(r.disclaimer)} It does not change your contract automatically. Listing facts are included only through an approved broker connection; confirm the live listing with the listing broker before acting.</div>
 
         <div class="review-section-title">${componentsTitle}</div>
         ${renderAiComponents(r.components)}
