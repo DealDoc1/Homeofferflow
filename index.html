@@ -237,12 +237,12 @@
     return;
   }
 
-  const paid =
+  const checkoutReturned =
     params.get('payment') === 'success' ||
     params.get('success') === 'true' ||
     params.get('session_id');
 
-  if (!paid) return;
+  if (!checkoutReturned) return;
 
   // Prevent saved-draft restore from overriding the success screen after Stripe returns.
   window.__hofPaymentReturn = true;
@@ -262,7 +262,9 @@
     document.getElementById('paymentEmail')?.value ||
     '';
 
-  showPaymentSuccess(paymentEmail);
+  // A browser return parameter is not proof of payment; the signed Stripe
+  // webhook is the source of truth and emails the packet after confirmation.
+  showPaymentSuccess(paymentEmail, { checkoutConfirmationPending: true });
 
   // Clean the URL so refreshes do not re-trigger the success state forever.
   const cleanUrl = window.location.origin + window.location.pathname;
@@ -10206,15 +10208,23 @@ function routeAfterMagicLinkIfNeeded() {
   }
 
 
-  function showPaymentSuccess(email) {
+  function showPaymentSuccess(email, options = {}) {
+    const checkoutConfirmationPending = options.checkoutConfirmationPending === true;
     window.__hofPaymentReturn = true;
-    trackEvent('Payment Success Returned', { userType: state.data.userType || 'homebuyer' });
+    trackEvent(
+      checkoutConfirmationPending ? 'Payment Checkout Returned' : 'Payment Success Returned',
+      { userType: state.data.userType || 'homebuyer' }
+    );
 
-    // A paid order should not reload the prior draft/payment page.
-    try {
-      localStorage.removeItem(HOF_STORAGE_KEY);
-      sessionStorage.removeItem('hofOfferData');
-    } catch (e) {}
+    // Keep the local draft until the signed webhook confirms fulfillment. A
+    // copied return URL must not erase a buyer's work or masquerade as proof
+    // that payment was received.
+    if (!checkoutConfirmationPending) {
+      try {
+        localStorage.removeItem(HOF_STORAGE_KEY);
+        sessionStorage.removeItem('hofOfferData');
+      } catch (e) {}
+    }
 
     const successEmail = document.getElementById('successEmail');
     const successMessage = document.getElementById('successMessage');
@@ -10228,10 +10238,14 @@ function routeAfterMagicLinkIfNeeded() {
     ].filter(Boolean);
 
     if (successEmail) successEmail.textContent = email || state.data.buyerEmail || 'the email you entered';
-    if (successHeading) successHeading.textContent = accountWorkflow ? 'Packet generated' : 'Payment successful';
+    if (successHeading) successHeading.textContent = accountWorkflow
+      ? 'Packet generated'
+      : checkoutConfirmationPending ? 'We’re confirming your checkout' : 'Payment successful';
     if (successMessage) successMessage.textContent = accountWorkflow
       ? 'Your offer package has been generated. Check your email for the documents and signature request.'
-      : 'Check your email — your offer packet is ready.';
+      : checkoutConfirmationPending
+        ? 'We’ll email a receipt and your offer packet after payment is confirmed.'
+        : 'Check your email — your offer packet is ready.';
     if (successSignatureStep) {
       successSignatureStep.textContent = paragraph4Forms.length
         ? `2. Buyers sign first. Sellers then receive SignWell for the included ${paragraph4Forms.join(' and ')}.`
