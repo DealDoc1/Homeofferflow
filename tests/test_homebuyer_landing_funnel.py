@@ -146,7 +146,7 @@ class HomebuyerLandingFunnelTests(unittest.TestCase):
         self.assertIn("function rememberHomebuyerCheckoutChannel()", INDEX)
         self.assertIn("source === 'homeofferflow_admin'", INDEX)
         self.assertIn("channel: rememberHomebuyerCheckoutChannel()", INDEX)
-        self.assertIn("if ((state?.data?.userType || 'homebuyer') === 'homebuyer') rememberHomebuyerCheckoutChannel();", INDEX)
+        self.assertIn("rememberHomebuyerCheckoutChannel();\n    startHomebuyerOffer();", INDEX)
         self.assertIn('"homebuyerCheckoutCancelledCountsByChannel"', ADMIN)
         self.assertIn('"homebuyerCheckoutRecoveryStartCountsByChannel"', ADMIN)
         self.assertIn("Checkout recovery by channel:", INDEX)

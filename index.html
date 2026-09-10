@@ -8881,6 +8881,13 @@ function routeAfterMagicLinkIfNeeded() {
     });
   }
 
+  function selectedLandingAudience() {
+    const selected = document.querySelector('.pill[aria-pressed="true"]')?.dataset.audience;
+    return ['homebuyer', 'agent', 'investor', 'fsbo'].includes(selected)
+      ? selected
+      : (state?.data?.userType || 'homebuyer');
+  }
+
   function beginOfferFrom(surface) {
     // Analytics only: this never enters the offer payload, PDF, or checkout.
     // It lets us compare public conversion surfaces without adding a paid tool
@@ -8890,13 +8897,14 @@ function routeAfterMagicLinkIfNeeded() {
     window.__hofOfferEntrySurface = entrySurface;
     trackEvent('Offer Entry CTA Selected', {
       surface: entrySurface,
-      userType: state?.data?.userType || 'homebuyer',
+      userType: selectedLandingAudience(),
       source: entrySource
     });
     // The public agent CTA must start with the transaction decision, never
     // silently open a buyer-offer wizard. The dedicated page asks Question 1
     // before any form, profile, or transaction detail is requested.
-    if ((state?.data?.userType || 'homebuyer') === 'agent') {
+    const selectedType = selectedLandingAudience();
+    if (selectedType === 'agent') {
       window.location.assign('/agents?utm_source=homeofferflow&utm_medium=homepage&utm_campaign=agent_workspace');
       return;
     }
@@ -8904,12 +8912,16 @@ function routeAfterMagicLinkIfNeeded() {
     // buyer-offer wizard. Preserve that choice through the existing
     // passwordless investor handoff so the next screen either opens the
     // investor dashboard or asks for the correct investor sign-in link.
-    if ((state?.data?.userType || 'homebuyer') === 'investor') {
+    if (selectedType === 'investor') {
       window.location.assign('/?investor=1&utm_source=homeofferflow&utm_medium=homepage&utm_campaign=investor_workspace');
       return;
     }
-    if ((state?.data?.userType || 'homebuyer') === 'homebuyer') rememberHomebuyerCheckoutChannel();
-    startPrimaryOffer();
+    if (selectedType === 'fsbo') {
+      openFsboSellerModal();
+      return;
+    }
+    rememberHomebuyerCheckoutChannel();
+    startHomebuyerOffer();
   }
   // Public landing pages and installed-app shortcuts use the explicit window
   // reference so their deferred route handlers can reliably enter the same

@@ -34,9 +34,14 @@ class PublicIntakeRouteContractTests(unittest.TestCase):
         start = INDEX.index("function beginOfferFrom(surface)")
         end = INDEX.index("function startPrimaryOffer()", start)
         handoff = INDEX[start:end]
+        self.assertIn("function selectedLandingAudience()", INDEX)
+        self.assertIn("document.querySelector('.pill[aria-pressed=\"true\"]')?.dataset.audience", INDEX)
         self.assertIn("window.location.assign('/agents?", handoff)
         self.assertIn("window.location.assign('/?investor=1", handoff)
+        self.assertIn("if (selectedType === 'fsbo')", handoff)
+        self.assertIn("openFsboSellerModal();", handoff)
         self.assertIn("rememberHomebuyerCheckoutChannel()", handoff)
+        self.assertIn("startHomebuyerOffer();", handoff)
 
     def test_agent_transaction_question_preserves_all_four_supported_paths(self):
         for workflow, label in (

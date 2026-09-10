@@ -53,9 +53,9 @@ class LandingHeroConversionLayoutTests(unittest.TestCase):
         start = HTML.index("function beginOfferFrom(surface)")
         end = HTML.index("function startPrimaryOffer()", start)
         handoff = HTML[start:end]
-        self.assertIn("userType || 'homebuyer') === 'investor'", handoff)
+        self.assertIn("selectedType === 'investor'", handoff)
         self.assertIn("/?investor=1&utm_source=homeofferflow&utm_medium=homepage&utm_campaign=investor_workspace", handoff)
-        self.assertLess(handoff.index("=== 'investor'"), handoff.index("startPrimaryOffer();"))
+        self.assertLess(handoff.index("=== 'investor'"), handoff.index("startHomebuyerOffer();"))
 
 
 if __name__ == "__main__":
