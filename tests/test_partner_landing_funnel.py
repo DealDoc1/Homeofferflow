@@ -183,6 +183,14 @@ class PartnerLandingFunnelTests(unittest.TestCase):
         self.assertIn("hof_partner_application_opened_", INDEX)
         self.assertIn("new application modal open", INDEX)
 
+    def test_every_new_partner_application_records_essentials_exposure(self):
+        start = INDEX.index("window.openFoundingPartnerModal = function")
+        end = INDEX.index("window.selectFoundingPartnerTier", start)
+        modal = INDEX[start:end]
+        self.assertIn("recordPartnerApplicationOpened(campaign);", modal)
+        self.assertIn("recordPartnerApplicationProgress('partner_application_essentials_opened');", modal)
+        self.assertIn("ordinary and quick-start routes alike", modal)
+
     def test_partner_event_surface_is_allowlisted_and_guide_specific(self):
         self.assertIn('allowed_surfaces = {"partner_landing", "partner_guide", "partner_directory"}', API)
         self.assertIn('surface = requested_surface if requested_surface in allowed_surfaces', API)

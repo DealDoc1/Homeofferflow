@@ -15932,7 +15932,14 @@ function routeAfterMagicLinkIfNeeded() {
     const checkoutState = window.__hofFoundingPartnerCheckoutState || params().get('partner_checkout');
     if (confirmation) confirmation.style.display = checkoutState === 'success' ? 'block' : 'none';
     applySavedPartnerApplicationState();
-    if (!window.__hofFoundingPartnerLeadId && checkoutState !== 'success' && checkoutState !== 'cancelled') recordPartnerApplicationOpened(campaign);
+    if (!window.__hofFoundingPartnerLeadId && checkoutState !== 'success' && checkoutState !== 'cancelled') {
+      recordPartnerApplicationOpened(campaign);
+      // The five essentials are visible as soon as every new application
+      // opens. Record that exposure for ordinary and quick-start routes alike;
+      // the session-scoped event key prevents the quick-start scroll helper
+      // from counting this stage twice.
+      recordPartnerApplicationProgress('partner_application_essentials_opened');
+    }
     trackPartnerFunnel('Founding Partner Intake Opened', { checkoutState: checkoutState === 'success' ? 'success' : checkoutState === 'cancelled' ? 'cancelled' : 'new', campaignCategory: campaign.category || null, campaignTier: campaign.tier || null, campaignChannel: campaign.channel || null });
     renderFoundingPartnerCheckoutAvailability();
     if ((options.quickStart || partnerQuickStartRequested()) && campaign.tier && !window.__hofFoundingPartnerLeadId && checkoutState !== 'success' && checkoutState !== 'cancelled') {
