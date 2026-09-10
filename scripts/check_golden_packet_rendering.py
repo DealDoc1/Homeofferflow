@@ -83,6 +83,25 @@ def _offer_scenarios():
             "sellerTemporaryLeaseSpecialProvisions": "Tenant will maintain the yard and return all keys and garage remotes when possession is surrendered.",
             "sellerTemporaryLeaseHoldoverPerDay": "300",
         },
+        # The historic buyer-temporary-lease signing packet lacked the
+        # two-page lease attachment.  Keep the released attachment, its
+        # two-buyer initials, and both execution rows in the visual baseline.
+        "buyer_temporary_lease": {
+            "buyer2": "Second Buyer", "buyer2Email": "second@example.com",
+            "buyerMailAddr": "721 Broderick Lane, Prosper, TX 75078", "buyerPhone": "2143649890",
+            "seller": "Seller One and Seller Two",
+            "sellerMailAddr": "100 Seller Lane, Van Alstyne, TX 75495",
+            "sellerPhone": "9725550134",
+            "possession": "temporaryLease", "buyerTemporaryLease": "yes",
+            "buyerTemporaryLeaseStartDate": "2026-08-01",
+            "buyerTemporaryLeaseRentPerDay": "100",
+            "buyerTemporaryLeaseTotalRent": "1400",
+            "buyerTemporaryLeaseDeposit": "500",
+            "buyerTemporaryLeaseUtilitiesPaidBySeller": "Water and trash",
+            "buyerTemporaryLeasePetsAllowed": "One dog under 40 pounds",
+            "buyerTemporaryLeaseSpecialProvisions": "Tenant will maintain the yard and return all keys and garage remotes at closing.",
+            "buyerTemporaryLeaseHoldoverPerDay": "250",
+        },
         "all_supported_addenda": {**conventional, **backup, "buyer2": "Second Buyer", "buyer2Email": "second@example.com", "hoa": "yes", "hoaDelivery": "seller", "hoaDeliveryDays": "7", "hoaTransferFeeCap": "0", "hoaName": "Example HOA", "appraisalAddendum": "partialWaiver", "appraisalWaiverType": "partialWaiver", "appraisalMinimum": "475000", "saleContingency": "yes", "salePropertyAddress": "1 Sale St", "saleContingencyDate": "2026-08-01", "saleWaiverDays": "3", "saleAdditionalEarnest": "1000", "nonRealtyItems": "yes", "nonRealtyItemsAmount": "750", "nonRealtyItemsText": "Refrigerator"},
         "sparse_optional_fields": {"buyer2": "", "buyer2Email": "", "earnest": "", "optionFee": "", "optionDays": "", "survey": "noSurvey", "surveyDays": "", "objectionDays": "", "escrowAgent": "", "escrowAddress": "", "titleCompany": ""},
     }
