@@ -1,5 +1,24 @@
 # Vercel Hobby release process
 
+## Current production cost policy (September 10, 2026)
+
+The production team is now on Pro. The historical Hobby limits below are not
+the current account's spend allowance. Keep Git deployments disabled and use
+the existing production-release workflow to build on GitHub's standard Linux
+runner, then upload with `--prebuilt`. Do not use a Vercel-hosted build for
+routine releases. The public repository's standard GitHub-hosted runner minutes
+are free; runtime traffic and other Vercel resources can still incur usage.
+
+The workflow requires `VERCEL_TOKEN`, `VERCEL_ORG_ID`, and `VERCEL_PROJECT_ID`
+as repository secrets, and verifies the pulled project matches the configured
+production target before building. Never infer a project from a temporary
+checkout directory's name.
+
+References: [GitHub Actions billing](https://docs.github.com/en/billing/concepts/product-billing/github-actions),
+[Vercel prebuilt deployments](https://vercel.com/docs/cli/deploy#prebuilt).
+
+## Historical limits and release checklist
+
 For the complete cross-system gate (tests, legal-form evidence, the
 confirmation-gated production deployment, and post-deploy verification), use
 [`PRODUCTION_RELEASE_CHECKLIST.md`](PRODUCTION_RELEASE_CHECKLIST.md).

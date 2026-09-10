@@ -7511,6 +7511,15 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     };
     const openRelationshipDraft = (openerName, onOpened, request) => {
       showAccountTab('relationships');
+      const panel = document.getElementById('accountPanelRelationships');
+      document.getElementById('hofAgentDocumentOpenStatus')?.remove();
+      const openStatus = document.createElement('div');
+      openStatus.id = 'hofAgentDocumentOpenStatus';
+      openStatus.className = 'hof-iabs-status';
+      openStatus.setAttribute('role', 'status');
+      openStatus.setAttribute('aria-live', 'polite');
+      openStatus.textContent = 'Opening your document…';
+      panel?.prepend(openStatus);
       let attempts = 0;
       const transactionLabels = {
         purchase: 'Purchase',
@@ -7519,13 +7528,19 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         lease_representation: 'Lease representation'
       };
       const reportOpenError = (error) => {
-        const status = document.getElementById('agentWorkflowStartStatus');
+        const status = document.getElementById('hofAgentDocumentOpenStatus');
         if (!status) return;
         const message = window.hofCustomerActionError?.(
           error,
           'We couldn’t open that document. Please try again.'
         ) || 'We couldn’t open that document. Please try again.';
         status.textContent = message;
+        const retryButton = document.createElement('button');
+        retryButton.type = 'button';
+        retryButton.className = 'btn-secondary';
+        retryButton.textContent = 'Try again';
+        retryButton.addEventListener('click', () => openRelationshipDraft(openerName, onOpened, request));
+        status.appendChild(retryButton);
         if (!request || typeof window.openMissingFormRequest !== 'function') return;
         const requestButton = document.createElement('button');
         requestButton.type = 'button';
@@ -7541,7 +7556,10 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       const openWhenReady = () => {
         const opener = window[openerName];
         if (typeof opener === 'function') {
-          Promise.resolve(opener()).then(() => onOpened?.()).catch(reportOpenError);
+          Promise.resolve().then(() => opener()).then(() => {
+            openStatus.remove();
+            onOpened?.();
+          }).catch(reportOpenError);
           return;
         }
         attempts += 1;
@@ -7568,19 +7586,14 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             { label: 'Straightforward representation', copy: 'Start the streamlined Buyer/Tenant Representation Agreement interview.', opener: 'hofOpenTxr1507Draft', formCode: 'TXR-1507' },
             { label: 'More detailed representation', copy: 'Start the complete Buyer/Tenant Representation Agreement interview.', opener: 'hofOpenTxr1501Draft', formCode: 'TXR-1501' }
           ]
-        : type === 'lease_addendum'
-          ? [
-              { label: 'Residential lease', copy: 'Answer the guided questions, review the completed addendum, then send it when ready.', opener: 'hofOpenTxr1953Draft', formCode: 'TXR-1953' },
-              { label: 'Fixture lease', copy: 'Answer the guided questions, review the completed addendum, then send it when ready.', opener: 'hofOpenTxr1954Draft', formCode: 'TXR-1954' }
-            ]
         : type === 'purchase_addendum'
           ? [
               { label: 'Seller financing', copy: 'Answer the guided questions, review the completed addendum, then send it when ready.', opener: 'hofOpenTxr1914Draft', formCode: 'TXR-1914' },
               { label: 'Loan assumption', copy: 'Answer the guided questions, review the completed addendum, then send it when ready.', opener: 'hofOpenTxr1919Draft', formCode: 'TXR-1919' },
               { label: 'Environmental review', copy: 'Answer the guided questions, review the completed addendum, then send it when ready.', opener: 'hofOpenTxr1917Draft', formCode: 'TXR-1917' },
               { label: 'Appraisal review', copy: 'Answer the guided questions, review the completed addendum, then send it when ready.', opener: 'hofOpenTxr1948Draft', formCode: 'TXR-1948' },
-              { label: 'Residential lease addendum', copy: 'Answer the guided questions, review the completed addendum, then send it when ready.', opener: 'hofOpenTxr1953Draft', formCode: 'TXR-1953' },
-              { label: 'Fixture lease addendum', copy: 'Answer the guided questions, review the completed addendum, then send it when ready.', opener: 'hofOpenTxr1954Draft', formCode: 'TXR-1954' },
+              { label: 'Residential lease addendum', copy: 'For a purchase involving existing tenant leases. Record whether they will end or transfer to the buyer at closing.', opener: 'hofOpenTxr1953Draft', formCode: 'TXR-1953' },
+              { label: 'Fixture lease addendum', copy: 'For a purchase involving leased fixtures, such as solar panels. Record which leases the buyer will assume at closing.', opener: 'hofOpenTxr1954Draft', formCode: 'TXR-1954' },
               { label: 'Mineral reservation', copy: 'Answer the guided questions, review the completed addendum, then send it when ready.', opener: 'hofOpenTxr1905Draft', formCode: 'TXR-1905' }
             ]
         : [
@@ -7592,8 +7605,6 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       followUp.id = 'hofAgentPackageFollowUp'; followUp.className = 'hof-agreement-modal';
       const prompt = type === 'representation'
         ? 'What kind of representation does this client need?'
-        : type === 'lease_addendum'
-          ? 'Which lease addendum does this listing need?'
         : type === 'purchase_addendum'
           ? 'Which purchase addendum does this transaction need?'
           : 'What does this customer need?';
@@ -7632,7 +7643,6 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         title: 'What do you need for this lease listing?',
         choices: [
           { label: 'Start a lease listing', copy: 'Tell us about the landlord, property, availability, and next steps.', action: () => openListingWorkspace(true), isWorkspaceOpen: () => Boolean(document.getElementById('listingWorkspaceStartCard')) },
-          { label: 'Prepare a lease addendum', copy: 'Choose the lease addendum the listing needs, answer the guided questions, then review and send it when ready.', action: () => openRelationshipPackage('lease_addendum'), deferStartToNestedChoice: true },
           { label: 'Resume a lease listing', copy: 'Open a saved private workspace to review the plan and continue where you left off.', action: () => openListingWorkspace(), isWorkspaceOpen: () => Boolean(document.getElementById('listingWorkspaceStartCard')) }
         ]
       },
@@ -21293,6 +21303,7 @@ function routeAfterMagicLinkIfNeeded() {
   .hof-pdf-preview-dialog { width:min(980px,100%); height:min(88vh,920px); display:flex; flex-direction:column; gap:.75rem; padding:1rem; border:1px solid rgba(255,255,255,.18); border-radius:16px; background:#07111d; box-shadow:0 24px 80px rgba(0,0,0,.5); }
   .hof-pdf-preview-header { display:flex; align-items:center; justify-content:space-between; gap:.75rem; }
   .hof-pdf-preview-header h4 { margin:0; color:var(--white); }
+  .hof-pdf-preview-actions { display:flex; flex-wrap:wrap; align-items:center; justify-content:flex-end; gap:.5rem; }
   .hof-pdf-preview-frame { width:100%; min-height:0; flex:1; border:1px solid rgba(255,255,255,.14); border-radius:9px; background:#fff; }
   @media (max-width:640px) { .hof-private-form-drafts-list li { display:block; } }
 </style>
@@ -21340,12 +21351,27 @@ function routeAfterMagicLinkIfNeeded() {
     close.className = 'btn-secondary';
     close.textContent = 'Close preview';
     close.addEventListener('click', root.hofClosePdfPreview);
+    const download = document.createElement('a');
+    download.className = 'btn-secondary';
+    download.textContent = 'Download PDF';
+    download.href = blobUrl;
+    download.download = `HomeOfferFlow-${String(formCode || 'document').replace(/[^a-zA-Z0-9_-]+/g, '-')}.pdf`;
+    const actions = document.createElement('div');
+    actions.className = 'hof-pdf-preview-actions';
+    actions.append(download, close);
     const frame = document.createElement('iframe');
     frame.className = 'hof-pdf-preview-frame';
     frame.title = `${formCode || 'Form'} PDF preview`;
     frame.src = blobUrl;
-    header.append(title, close);
-    dialog.append(header, frame);
+    header.append(title, actions);
+    dialog.appendChild(header);
+    if (navigator.pdfViewerEnabled === false) {
+      const message = document.createElement('p');
+      message.textContent = 'Your browser can’t display this PDF here. Download a copy to review it.';
+      dialog.appendChild(message);
+    } else {
+      dialog.appendChild(frame);
+    }
     modal.appendChild(dialog);
     modal.addEventListener('click', event => { if (event.target === modal) root.hofClosePdfPreview(); });
     document.body.appendChild(modal);
@@ -22940,7 +22966,7 @@ function routeAfterMagicLinkIfNeeded() {
 </script>
 <script id="hof-purchase-addendum-interview-openers-v1">
 (() => {
-  // The purchase interview may route to an already-mounted private review
+  // A guided document choice may route to an already-mounted private review
   // card. Keeping the form's existing card as the single opener preserves its
   // source-readiness check and avoids duplicating any form mapping here.
   const openExistingPrivateDraft = (cardId, formCode) => new Promise((resolve, reject) => {
@@ -22953,7 +22979,7 @@ function routeAfterMagicLinkIfNeeded() {
         return;
       }
       attempts += 1;
-      if (attempts < 12) {
+      if (attempts < 100) {
         window.setTimeout(open, 100);
         return;
       }
@@ -22961,6 +22987,8 @@ function routeAfterMagicLinkIfNeeded() {
     };
     open();
   });
+  window.hofOpenTxr1506Draft = () => openExistingPrivateDraft('txr1506AgreementCard', 'TXR-1506');
+  window.hofOpenTxr1508Draft = () => openExistingPrivateDraft('txr1508AgreementCard', 'TXR-1508');
   window.hofOpenTxr1919Draft = () => openExistingPrivateDraft('txr1919AgreementCard', 'TXR-1919');
   window.hofOpenTxr1917Draft = () => openExistingPrivateDraft('txr1917Card', 'TXR-1917');
   window.hofOpenTxr1948Draft = () => openExistingPrivateDraft('txr1948AgreementCard', 'TXR-1948');

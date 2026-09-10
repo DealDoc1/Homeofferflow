@@ -107,7 +107,7 @@ class PwaBaselineTests(unittest.TestCase):
         self.assertNotIn("caches.match(event.request)", WORKER)
 
     def test_install_precaches_only_low_cost_app_essentials(self):
-        self.assertIn("const SHELL_CACHE = 'homeofferflow-shell-v63';", WORKER)
+        self.assertIn("const SHELL_CACHE = 'homeofferflow-shell-v64';", WORKER)
         shell_assets = WORKER.split('const SHELL_ASSETS = [', 1)[1].split('];', 1)[0]
         self.assertIn("'/manifest.webmanifest'", shell_assets)
         self.assertIn("'/assets/pwa-register.js'", shell_assets)
@@ -206,6 +206,16 @@ class PwaBaselineTests(unittest.TestCase):
             if header["key"] == "Content-Security-Policy"
         )
         self.assertIn("worker-src 'self' blob:", csp)
+
+    def test_csp_allows_private_pdf_previews_without_arbitrary_frames(self):
+        csp = next(
+            header["value"]
+            for entry in VERCEL["headers"]
+            for header in entry["headers"]
+            if header["key"] == "Content-Security-Policy"
+        )
+        directives = {parts[0]: parts[1:] for item in csp.split(";") if (parts := item.split())}
+        self.assertEqual(set(directives["frame-src"]), {"'self'", "blob:", "https://js.stripe.com"})
 
 
 if __name__ == "__main__":

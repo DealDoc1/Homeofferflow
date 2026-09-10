@@ -41,6 +41,20 @@ class ProductionReleaseWorkflowTests(unittest.TestCase):
         self.assertIn("python scripts/check_production_pwa.py --origin https://www.homeofferflow.com", self.text)
         self.assertIn("python scripts/check_production_release.py --origin https://www.homeofferflow.com", self.text)
 
+    def test_prebuilt_release_is_pinned_to_the_existing_project(self):
+        self.assertIn("VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}", self.text)
+        self.assertIn("VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}", self.text)
+        self.assertIn("project['projectId'] == os.environ['VERCEL_PROJECT_ID']", self.text)
+        self.assertIn("project['orgId'] == os.environ['VERCEL_ORG_ID']", self.text)
+        self.assertLess(
+            self.text.index("Require existing production target settings"),
+            self.text.index("Pull production Vercel environment"),
+        )
+        self.assertLess(
+            self.text.index("Verify the existing production project"),
+            self.text.index("Build the exact production artifact"),
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
