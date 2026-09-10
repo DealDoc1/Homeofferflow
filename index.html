@@ -8076,9 +8076,9 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       const status = cleanOfferStatus(getOfferBestStatus(o)).toLowerCase();
       return !status.includes('declined') && !status.includes('expired') && !status.includes('delete');
     }).length;
-    const signatureCount = safeOffers.filter(o => {
+    const pendingSignatureCount = safeOffers.filter(o => {
       const status = cleanOfferStatus(getOfferBestStatus(o)).toLowerCase();
-      return status.includes('awaiting') || status.includes('viewed') || status.includes('partial') || status.includes('signed');
+      return status.includes('awaiting') || status.includes('viewed') || status.includes('partial');
     }).length;
     const draftCount = safeOffers.filter(o => cleanOfferStatus(getOfferBestStatus(o)).toLowerCase().includes('draft')).length;
 
@@ -8086,7 +8086,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       <div class="offer-crm-stats" aria-label="Offer dashboard summary">
         <div class="offer-crm-stat"><span>Total offers</span><strong>${safeOffers.length}</strong><small>latest 25 shown</small></div>
         <div class="offer-crm-stat"><span>Active</span><strong>${activeCount}</strong><small>drafts + live packets</small></div>
-        <div class="offer-crm-stat"><span>Buyer signing</span><strong>${signatureCount}</strong><small>sent, viewed, or signed</small></div>
+        <div class="offer-crm-stat"><span>Signatures pending</span><strong>${pendingSignatureCount}</strong><small>awaiting, viewed, or partially signed</small></div>
         <div class="offer-crm-stat"><span>Offer volume</span><strong>${money(totalVolume)}</strong><small>shown offers only</small></div>
       </div>`;
 
