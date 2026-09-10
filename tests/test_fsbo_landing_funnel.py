@@ -1,5 +1,7 @@
 from pathlib import Path
+import importlib.util
 import unittest
+from unittest.mock import patch
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -43,6 +45,19 @@ class FsboLandingFunnelTests(unittest.TestCase):
         self.assertIn("body.surface = 'seller_receipt'", RECEIPT_CHANNEL)
         self.assertIn('"pwa_seller_plan"', API)
         self.assertIn('"fsbo_guide"', API)
+
+    def test_unattributed_seller_funnel_events_use_safe_defaults(self):
+        spec = importlib.util.spec_from_file_location("fsbo_landing", ROOT / "api" / "fsbo-lead.py")
+        api = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(api)
+        recorded = []
+        with patch.object(api, "_record_partner_checkout_event", side_effect=lambda *args: recorded.append(args)):
+            api._record_fsbo_landing_event({
+                "event_type": "fsbo_landing_viewed",
+                "service_level": "free_intake",
+            })
+        self.assertEqual(recorded[0][3]["channel"], "unspecified")
+        self.assertEqual(recorded[0][3]["surface"], "seller_landing")
 
     def test_fsbo_guide_records_aggregate_views_and_free_plan_clicks_only(self):
         self.assertIn('/assets/fsbo-guide-metrics.js', FSBO_GUIDE)
