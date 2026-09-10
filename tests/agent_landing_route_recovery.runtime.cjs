@@ -25,7 +25,7 @@ function setup({session, workflow = 'purchase', ready = true} = {}) {
     location,
     setAudience: role => calls.push(['audience', role]),
     openAccountDashboard: options => calls.push(['dashboard', options.tab]),
-    hofOpenAgentPackageInterview: choice => calls.push(['interview', choice]),
+    startAgentWorkflow: choice => calls.push(['transaction', choice]),
     openAgentTransactionPicker: () => calls.push(['picker']),
     openAuthModal: role => calls.push(['auth', role]),
     logOfferEvent: (_id, event, status, _message, data) => calls.push(['event', event, status, data.workflow]),
@@ -43,11 +43,11 @@ function setup({session, workflow = 'purchase', ready = true} = {}) {
   return {calls, storage, window, authTitle, authSubtitle};
 }
 
-test('a signed-in agent opens the preserved package interview exactly once', () => {
+test('a signed-in agent opens the preserved transaction exactly once', () => {
   const page = setup({session:true, workflow:'purchase'});
   assert.deepEqual(page.calls, [
     ['audience', 'agent'], ['clean', '/?utm_source=agent_workspace'],
-    ['dashboard', 'dashboard'], ['interview', 'purchase'],
+    ['dashboard', 'dashboard'], ['transaction', 'purchase'],
     ['event', 'agent_landing_package_handoff', 'opened', 'purchase'],
   ]);
   assert.equal(page.window.__hofAgentLandingRouteProcessed, true);

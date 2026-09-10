@@ -8440,9 +8440,8 @@ function routeAfterMagicLinkIfNeeded() {
     setTimeout(() => openAccountDashboard({ postLogin: true, tab: agentLandingPackageWorkflow ? 'dashboard' : (openSellerLandingWorkspace ? 'seller' : (openRelationshipLandingWorkspace ? 'relationships' : 'dashboard')) }), 250);
     if (agentLandingPackageWorkflow && role !== 'investor') {
       setTimeout(() => {
-        window.hofAgentWorkflowContext = agentLandingPackageWorkflow;
-        window.hofOpenAgentPackageInterview?.(agentLandingPackageWorkflow);
-        window.logOfferEvent?.(null, 'agent_landing_package_handoff', 'opened', 'Agent continued from the public transaction choice into the guided package interview after sign-in.', { source: agentLandingSource, workflow: agentLandingPackageWorkflow });
+        window.startAgentWorkflow?.(agentLandingPackageWorkflow);
+        window.logOfferEvent?.(null, 'agent_landing_package_handoff', 'opened', 'Agent continued from the public transaction choice after sign-in.', { source: agentLandingSource, workflow: agentLandingPackageWorkflow });
       }, 450);
     }
     // A generic public agent CTA returns to the transaction chooser after
@@ -16524,8 +16523,7 @@ function routeAfterMagicLinkIfNeeded() {
         if (agentLandingWorkflow) {
           window.openAccountDashboard?.({ tab: 'dashboard' });
           window.setTimeout(() => {
-            window.hofAgentWorkflowContext = agentLandingWorkflow;
-            window.hofOpenAgentPackageInterview?.(agentLandingWorkflow);
+            window.startAgentWorkflow?.(agentLandingWorkflow);
           }, 120);
           window.logOfferEvent?.(null, 'agent_landing_package_handoff', 'opened', 'Signed-in agent continued from the public transaction choice into the guided package interview.', { source: agentLandingSource, workflow: agentLandingWorkflow });
         } else if (agentLandingWorkspace === 'seller') {
@@ -16643,8 +16641,7 @@ function routeAfterMagicLinkIfNeeded() {
       window.openAccountDashboard?.({ tab: workspace === 'seller' ? 'seller' : (workspace === 'relationship' ? 'relationships' : 'dashboard') });
       if (workflow) {
         window.setTimeout(() => {
-          window.hofAgentWorkflowContext = workflow;
-          window.hofOpenAgentPackageInterview?.(workflow);
+          window.startAgentWorkflow?.(workflow);
         }, 120);
       } else if (!workspace) {
         window.setTimeout(() => window.openAgentTransactionPicker?.(), 120);
