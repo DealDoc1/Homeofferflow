@@ -908,7 +908,11 @@ def _record_agent_landing_event(data):
         metadata["surface"] = "agent_workflow_guide"
     if cta_path:
         metadata["ctaPath"] = cta_path
-    if campaign:
+    # A transaction-selection click adds this campaign to the destination
+    # workspace URL. It does not show that the landing page itself was reached
+    # through that campaign, so retain it for destination attribution but not
+    # for the selector CTA event used in the landing-page funnel.
+    if campaign and event_type != "agent_landing_cta_selected":
         metadata["utmCampaign"] = campaign
     _record_partner_checkout_event(
         event_type,

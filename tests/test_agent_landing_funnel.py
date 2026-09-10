@@ -432,7 +432,7 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertEqual(captured[4][0], "agent_landing_question_one_viewed")
         self.assertEqual(captured[4][3], {"surface": "agent_landing", "role": "agent", "channel": "referral"})
 
-    def test_agent_transaction_selector_campaign_is_allowlisted_and_aggregate_only(self):
+    def test_agent_transaction_selector_campaign_is_validated_but_not_attached_to_selector_clicks(self):
         spec = importlib.util.spec_from_file_location("agent_landing_campaign", API_PATH)
         api = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(api)
@@ -456,7 +456,6 @@ class AgentLandingFunnelTests(unittest.TestCase):
             "role": "agent",
             "channel": "unspecified",
             "ctaPath": "client_draft",
-            "utmCampaign": "transaction_selector",
         })
 
     def test_public_agent_landing_preserves_organic_and_pwa_attribution(self):
