@@ -3581,7 +3581,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         <div id="appraisalAddendumBox" style="display:none; margin-top:0.75rem; padding-top:0.75rem; border-top:1px solid rgba(255,255,255,0.07);">
           <p style="font-size:0.8rem; font-weight:700; color:var(--gold-light); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.5rem;">Appraisal Addendum</p>
           <div class="notice gold">💡 Use only with the Third Party Financing Addendum when the transaction does not involve FHA or VA financing. This controls whether the buyer waives appraisal-related termination rights, partially waives them above a value, or adds an extra termination right if appraisal comes in low.</div>
-          <div class="radio-group-label" style="margin-top:0.75rem;">Include appraisal protection terms?</div>
+          <div class="radio-group-label" id="appraisalAddendumLabel" style="margin-top:0.75rem;">Include appraisal protection terms? <span id="appraisalAddendumRequired" role="status" aria-live="polite" hidden style="color:var(--warn);font-weight:800;">Choose one option to continue.</span></div>
           <div class="radio-cards" style="margin-bottom:0.75rem;">
             <label class="radio-card" onclick="selectCard(this,'appraisalAddendum','none')"><input type="radio" name="appraisalAddendum" value="none"/><div class="radio-dot"></div><div class="radio-card-text"><strong>No appraisal addendum</strong><small>Do not include TREC 49-1</small></div></label>
             <label class="radio-card" onclick="selectCard(this,'appraisalAddendum','waiver')"><input type="radio" name="appraisalAddendum" value="waiver"/><div class="radio-dot"></div><div class="radio-card-text"><strong>Waiver</strong><small>Buyer waives the appraisal-related termination right</small></div></label>
@@ -8575,6 +8575,15 @@ function routeAfterMagicLinkIfNeeded() {
     el.hidden = !message;
   }
 
+  // Conventional-financing paths reveal this decision only after the person
+  // chooses a financing type. Keep the required choice beside the cards so a
+  // blocked Continue action is never mistaken for a broken button.
+  function setAppraisalAddendumRequired(visible) {
+    const hint = document.getElementById('appraisalAddendumRequired');
+    if (!hint) return;
+    hint.hidden = !visible;
+  }
+
   // The offer interview predates the shared form component and includes a
   // number of visually adjacent labels without a `for` attribute. Connect
   // each single-control field at runtime so tapping its label focuses the
@@ -8722,6 +8731,8 @@ function routeAfterMagicLinkIfNeeded() {
       }
 
       const appraisalBox = document.getElementById('appraisalAddendumBox');
+      const appraisalDecisionRequired = !!(appraisalBox && appraisalBox.style.display !== 'none' && !getRadio('appraisalAddendum'));
+      setAppraisalAddendumRequired(appraisalDecisionRequired);
       if (appraisalBox && appraisalBox.style.display !== 'none') {
         requireRadioSelection('appraisalAddendum', 'appraisal protection choice', missing);
       }
@@ -9924,6 +9935,8 @@ function routeAfterMagicLinkIfNeeded() {
     const input = el.querySelector(`input[name="${group}"]`);
     if (input) input.checked = true;
 
+    if (group === 'appraisalAddendum') setAppraisalAddendumRequired(false);
+
     if (group === 'financing') {
       const box = document.getElementById('financingDetails');
       if (box) box.style.display = value !== 'cash' ? 'flex' : 'none';
@@ -10018,6 +10031,8 @@ function routeAfterMagicLinkIfNeeded() {
     const box = document.getElementById('appraisalAddendumBox');
     const isEligible = financing && financing !== 'cash' && financing !== 'fha' && financing !== 'va';
     if (box) box.style.display = isEligible ? 'block' : 'none';
+
+    if (!isEligible) setAppraisalAddendumRequired(false);
 
     if (!isEligible) {
       setRadioValue('appraisalAddendum', 'none');

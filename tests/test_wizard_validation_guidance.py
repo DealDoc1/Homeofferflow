@@ -28,6 +28,15 @@ class WizardValidationGuidanceTests(unittest.TestCase):
         self.assertIn("if (hasAnswer && isValidEmail)", INDEX)
         self.assertIn("if (activeStep && !activeStep.querySelector('[data-validation-invalid=\"true\"]'))", INDEX)
 
+    def test_step_three_explains_the_conditional_appraisal_choice_in_place(self):
+        """A newly revealed financing choice must not feel like a dead Continue button."""
+        self.assertIn('id="appraisalAddendumRequired" role="status" aria-live="polite" hidden', INDEX)
+        self.assertIn('Choose one option to continue.', INDEX)
+        self.assertIn('function setAppraisalAddendumRequired(visible)', INDEX)
+        self.assertIn('const appraisalDecisionRequired = !!(', INDEX)
+        self.assertIn("setAppraisalAddendumRequired(appraisalDecisionRequired);", INDEX)
+        self.assertIn("if (group === 'appraisalAddendum') setAppraisalAddendumRequired(false);", INDEX)
+
 
 if __name__ == "__main__":
     unittest.main()
