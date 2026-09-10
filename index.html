@@ -9208,6 +9208,18 @@ function routeAfterMagicLinkIfNeeded() {
   async function nextStep() {
     if (state.step === 0 && !state.termsOK) return;
 
+    const currentStepId = getCurrentSteps()[state.step];
+    // A restored draft, browser autofill, or a quick tap after choosing a
+    // financing type can bypass the input/change event that normally fills
+    // the editable starting values. Synchronize at the moment Continue is
+    // pressed so Step 3 never appears broken because the calculator has not
+    // caught up yet.
+    if (currentStepId === 'step3') {
+      wireSmartCalculations();
+      syncFinancingFieldsFromPrice();
+      updateAppraisalAddendumVisibility();
+      updatePaymentCalculator();
+    }
     collectData();
 
     if (!validateCurrentStep()) return;
@@ -9378,9 +9390,8 @@ function routeAfterMagicLinkIfNeeded() {
         s.legalDescription = buildLegalDescription(s.lotNumber, s.blockNumber, s.subdivision, getVal('legalDescription'));
         s.lot = s.legalDescription;
 
-        // AI competitiveness can use an approved broker-authorized listing
-        // lookup when one is configured. The interview never asks agents to
-        // paste MLS credentials or treats manual entry as MLS verification.
+        // These are optional user-entered market notes. They are not MLS
+        // verification and never require an agent or brokerage connection.
         s.listPrice = moneyNumber(getVal('listPrice'));
         s.originalListPrice = moneyNumber(getVal('originalListPrice'));
         s.daysOnMarket = getVal('daysOnMarket');
