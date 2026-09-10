@@ -112,7 +112,7 @@ class BrokerageFormSourceFoundationTests(unittest.TestCase):
             self.assertIn(f"['{form_id}', '{form_code}']", HTML)
         self.assertIn("agent_private_review_draft_saved", HTML)
         self.assertIn("agent_private_review_draft_next_step_clicked", HTML)
-        self.assertIn("View saved drafts", HTML)
+        self.assertIn("View saved documents", HTML)
         self.assertIn("hofOpenPrivateDraftQueue", HTML)
         self.assertIn('"agentPrivateReviewDraftSavedCount": agent_private_review_draft_saved_count', dashboard)
         self.assertIn('Private drafts saved:', HTML)
