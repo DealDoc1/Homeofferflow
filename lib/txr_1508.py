@@ -94,14 +94,17 @@ def build_signwell_fields_txr1508(data, *, client_count=1):
         # ``Initials:`` label at x=347.  Each widget ends just above its
         # printed caption; the previous y positions reached into “Initials”
         # and “Date” in the signing ceremony.
-        {"api_id": "txr1508_agent_initials_p1", "type": "initials", "page": 1, "x": 347, "y": 659, "recipient_id": "associate" if signer_plan == "associate_and_clients" else "broker", "required": True, "width": 72, "height": 18},
-        {"api_id": "txr1508_agent_date_p1", "type": "date", "page": 1, "x": 625, "y": 657, "recipient_id": "associate" if signer_plan == "associate_and_clients" else "broker", "required": True, "width": 88, "height": 20, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
-        {"api_id": "txr1508_client1_initials_p1", "type": "initials", "page": 1, "x": 520, "y": 716, "recipient_id": "1", "required": True, "width": 72, "height": 18},
-        {"api_id": "txr1508_client1_date_p1", "type": "date", "page": 1, "x": 625, "y": 714, "recipient_id": "1", "required": True, "width": 88, "height": 20, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
+        # The source's acknowledgement blanks are separate horizontal rules.
+        # Keep each widget inside its complete rule instead of leaving the
+        # signed value visibly short of the line.
+        {"api_id": "txr1508_agent_initials_p1", "type": "initials", "page": 1, "x": 347, "y": 659, "recipient_id": "associate" if signer_plan == "associate_and_clients" else "broker", "required": True, "width": 95, "height": 18},
+        {"api_id": "txr1508_agent_date_p1", "type": "date", "page": 1, "x": 625, "y": 657, "recipient_id": "associate" if signer_plan == "associate_and_clients" else "broker", "required": True, "width": 121, "height": 20, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
+        {"api_id": "txr1508_client1_initials_p1", "type": "initials", "page": 1, "x": 518, "y": 716, "recipient_id": "1", "required": True, "width": 61, "height": 18},
+        {"api_id": "txr1508_client1_date_p1", "type": "date", "page": 1, "x": 625, "y": 714, "recipient_id": "1", "required": True, "width": 121, "height": 20, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
     ]
     if client_count == 2:
         fields.extend([
-            {"api_id": "txr1508_client2_initials_p1", "type": "initials", "page": 1, "x": 520, "y": 774, "recipient_id": "2", "required": True, "width": 72, "height": 18},
-            {"api_id": "txr1508_client2_date_p1", "type": "date", "page": 1, "x": 625, "y": 772, "recipient_id": "2", "required": True, "width": 88, "height": 20, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
+            {"api_id": "txr1508_client2_initials_p1", "type": "initials", "page": 1, "x": 518, "y": 774, "recipient_id": "2", "required": True, "width": 61, "height": 18},
+            {"api_id": "txr1508_client2_date_p1", "type": "date", "page": 1, "x": 625, "y": 772, "recipient_id": "2", "required": True, "width": 121, "height": 20, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
         ])
     return [fields]

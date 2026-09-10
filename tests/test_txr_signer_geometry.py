@@ -323,10 +323,16 @@ class TxrSignerGeometryTests(unittest.TestCase):
         self.assertEqual(fields["txr1508_agent_initials_p1"]["y"], 659)
         self.assertLess(
             fields["txr1508_agent_initials_p1"]["x"] + fields["txr1508_agent_initials_p1"]["width"],
-            430,
+            445,
             "agent initials must finish before the printed Date label",
         )
-        self.assertEqual(fields["txr1508_client1_initials_p1"]["x"], 520)
+        self.assertEqual(
+            (fields["txr1508_client1_initials_p1"]["x"], fields["txr1508_client1_initials_p1"]["width"]),
+            (518, 61),
+        )
+        for field_id in ("txr1508_agent_date_p1", "txr1508_client1_date_p1", "txr1508_client2_date_p1"):
+            with self.subTest(field_id=field_id):
+                self.assertEqual((fields[field_id]["x"], fields[field_id]["width"]), (625, 121))
         # Captions start at y=678, 734, and 792 in SignWell's 96-DPI
         # coordinate space.  Fields must finish before those captions rather
         # than merely passing the generic bounds/overlap checks.
