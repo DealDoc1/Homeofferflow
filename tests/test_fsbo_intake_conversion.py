@@ -19,7 +19,7 @@ class FsboIntakeConversionTests(unittest.TestCase):
         self.assertIn("Build a simple Texas <em>FSBO seller plan</em>.", HTML)
         self.assertIn("Start Your Free Plan", HTML)
         self.assertIn("Free Seller Plan →", HTML)
-        self.assertIn("No checkout, commitment, or pressure to choose a service.", HTML)
+        self.assertIn("<strong>Free to start.</strong>", HTML)
         self.assertNotIn("FSBO path is lead capture only", HTML)
         self.assertNotIn("so the lead can be routed", HTML)
         self.assertIn("then use the plan to choose the right FSBO", HTML)
@@ -57,6 +57,20 @@ class FsboIntakeConversionTests(unittest.TestCase):
         action_section = HTML[HTML.rfind('<div style="margin-top:.9rem', 0, action_start):action_start]
         self.assertNotIn("No checkout.", action_section)
         self.assertNotIn("Optional details", action_section)
+
+    def test_seller_landing_keeps_free_start_reassurance_concise(self):
+        landing_start = HTML.index("function syncLandingPathContext(type)")
+        landing_end = HTML.index("function syncLandingPathTrust(type)", landing_start)
+        landing_context = HTML[landing_start:landing_end]
+        trust_start = landing_end
+        trust_end = HTML.index("root.setAudience = function setAudience", trust_start)
+        landing_trust = HTML[trust_start:trust_end]
+        self.assertIn("Choose what helps, when it helps", HTML)
+        self.assertIn("Your plan keeps the next step clear whether you handle the sale yourself or add support later.", HTML)
+        self.assertIn("Start with your address and email. It takes under a minute.", HTML)
+        self.assertIn("bar: ['Guided seller planning', 'Free to start', 'Mobile-first', 'Choose help when needed']", landing_trust)
+        self.assertNotIn("There is no checkout or commitment to choose a service.", landing_context)
+        self.assertNotIn("No checkout to start", landing_trust)
 
     def test_optional_seller_interview_shows_its_recommendation_before_the_full_service_catalog(self):
         recommendation = HTML.index('id="fsboNeedDetails"')

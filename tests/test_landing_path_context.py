@@ -39,9 +39,9 @@ class LandingPathContextTests(unittest.TestCase):
 
     def test_seller_path_keeps_the_first_step_short_and_commitment_free(self):
         self.assertIn("From two details to a clear seller plan.", HTML)
-        self.assertIn("There is no checkout or commitment to choose a service.", HTML)
+        self.assertIn("Choose what helps, when it helps", HTML)
         self.assertIn("Guided seller planning", HTML)
-        self.assertIn("No checkout to start", HTML)
+        self.assertIn("'Free to start'", HTML)
         self.assertIn("Ready to start your free seller plan?", HTML)
         self.assertIn("Start with your address and email. It takes under a minute", HTML)
 
