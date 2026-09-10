@@ -76,7 +76,9 @@ class PartnerLandingFunnelTests(unittest.TestCase):
         self.assertIn("Start Core application", PARTNERS)
         self.assertIn("Start Featured application", PARTNERS)
         self.assertIn("Start Premier application", PARTNERS)
-        self.assertIn("First 90 days, then $149/month", PARTNERS)
+        self.assertIn("For your first 90 days, then $149/month", PARTNERS)
+        self.assertIn("For your first 90 days, then $399/month", PARTNERS)
+        self.assertIn("For your first 90 days, then $799/month", PARTNERS)
         self.assertIn("not a referral program", PARTNERS)
 
     def test_partner_guide_exposes_crawlable_tier_inventory(self):
