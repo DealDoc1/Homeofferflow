@@ -87,7 +87,7 @@ class SellerReviewApiTests(unittest.TestCase):
     def test_incomplete_review_can_restore_recipients_for_follow_up(self):
         ui = (ROOT / "index.html").read_text()
         self.assertIn("hof-seller-followup", ui)
-        self.assertIn("Review recipient details are restored", ui)
+        self.assertIn("review email details are ready", ui)
         self.assertIn("sellerReviewLinks", ui)
         self.assertIn("hofSeller2Email", ui)
 

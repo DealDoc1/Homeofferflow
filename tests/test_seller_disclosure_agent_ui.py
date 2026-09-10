@@ -17,7 +17,7 @@ class SellerDisclosureAgentUiTests(unittest.TestCase):
         self.assertIn('hofSendSellerReview', html)
         self.assertIn('create_seller_disclosure_review_link', html)
         self.assertIn('loadSellerDisclosureDraft', html)
-        self.assertIn('Load draft', html)
+        self.assertIn('>Open</button>', html)
         self.assertIn('response_data', html)
         self.assertIn("update_seller_disclosure_draft", html)
 
@@ -99,7 +99,7 @@ class SellerDisclosureAgentUiTests(unittest.TestCase):
             "hofSellerDraftFilter",
             "data-seller-draft-row",
             "hofSellerDraftSummary",
-            "Search address, seller, or source",
+            "Search address or seller",
         ):
             self.assertIn(expected, html)
 
@@ -110,7 +110,7 @@ class SellerDisclosureAgentUiTests(unittest.TestCase):
         script = html[start:end]
         self.assertNotIn("membership?.status === 'active'", script)
         self.assertNotIn("root.hofPlatform?.brokerage?.id || profile().brokerage_id", script)
-        self.assertIn("universal HomeOfferFlow library", script)
+        self.assertIn("Answer a short set of property questions", script)
         self.assertIn("if (active()) refreshDrafts();", script)
         self.assertIn("loadBrokerageFoundationWithSellerDisclosureDrafts", script)
         self.assertIn("await renderCard();", script)

@@ -21392,8 +21392,8 @@ function routeAfterMagicLinkIfNeeded() {
       if (sendButton) sendButton.disabled = !(draft.id && document.getElementById('hofSellerEmail')?.value.trim());
       const status = document.getElementById('hofSellerDraftStatus');
       if (status) status.textContent = draft.sellerReviewProgress?.requested && !draft.seller_review_attested
-        ? 'Draft loaded. Review recipient details are restored so you can resend the secure seller review request.'
-        : 'Draft loaded. You can update it, preview the disclosure, or send it to the seller for review.';
+        ? 'Saved disclosure opened. The review email details are ready if you need to send the request again.'
+        : 'Saved disclosure opened. You can make changes, preview it, or send it to the seller for review.';
       card.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   };
@@ -21421,7 +21421,7 @@ function routeAfterMagicLinkIfNeeded() {
       if (matches) visible += 1;
     });
     const summary = document.getElementById('hofSellerDraftSummary');
-    if (summary) summary.textContent = query ? `${visible} matching draft${visible === 1 ? '' : 's'}.` : `${visible} draft${visible === 1 ? '' : 's'} shown.`;
+    if (summary) summary.textContent = query ? `${visible} matching disclosure${visible === 1 ? '' : 's'}.` : `${visible} saved disclosure${visible === 1 ? '' : 's'} shown.`;
   };
   const sellerReviewStatus = draft => {
     const progress = draft?.sellerReviewProgress || {};
@@ -21522,10 +21522,10 @@ function routeAfterMagicLinkIfNeeded() {
         const sendForSignature = d.status === 'draft' && d.seller_review_attested ? '<button type="button" class="btn-primary hof-seller-send-signing" data-id="' + escape(d.id) + '">Send for signature</button>' : '';
         const refreshSigning = d.signwell_document_id && d.status !== 'signed' ? '<button type="button" class="btn-secondary hof-seller-refresh-signing" data-id="' + escape(d.id) + '">Refresh signing status</button>' : '';
         const downloadSigned = d.signwell_document_id && d.status === 'signed' ? '<button type="button" class="btn-secondary hof-seller-download-signed" data-id="' + escape(d.id) + '">Download signed PDF</button>' : '';
-        return '<li data-seller-draft-row data-search="' + escape([d.property_address, ...(d.seller_names || []), d.status, d.disclosure_source_revision, d.water_source_revision, reviewStatus].filter(Boolean).join(' ')) + '"><span><strong>' + escape(d.property_address) + '</strong><br><small>' + escape((d.seller_names || []).join(', ')) + ' · ' + escape(d.disclosure_source_revision || '') + (d.water_source_revision ? ' + TREC-61-0' : '') + ' · ' + escape(reviewStatus) + '</small></span><button type="button" class="btn-secondary hof-seller-load" data-id="' + escape(d.id) + '">Load draft</button>' + followUp + '<button type="button" class="btn-secondary hof-seller-preview" data-id="' + escape(d.id) + '">Preview PDF</button>' + refreshSigning + downloadSigned + sendForSignature + '</li>';
-      }).join('') : '<li>No seller disclosure drafts saved yet.</li>';
+        return '<li data-seller-draft-row data-search="' + escape([d.property_address, ...(d.seller_names || []), d.status, d.disclosure_source_revision, d.water_source_revision, reviewStatus].filter(Boolean).join(' ')) + '"><span><strong>' + escape(d.property_address) + '</strong><br><small>' + escape((d.seller_names || []).join(', ')) + ' · ' + escape(d.disclosure_source_revision || '') + (d.water_source_revision ? ' + TREC-61-0' : '') + ' · ' + escape(reviewStatus) + '</small></span><button type="button" class="btn-secondary hof-seller-load" data-id="' + escape(d.id) + '">Open</button>' + followUp + '<button type="button" class="btn-secondary hof-seller-preview" data-id="' + escape(d.id) + '">Preview PDF</button>' + refreshSigning + downloadSigned + sendForSignature + '</li>';
+      }).join('') : '<li>No saved seller disclosures yet.</li>';
       const summary = document.getElementById('hofSellerDraftSummary');
-      if (summary) summary.textContent = `${drafts.length} draft${drafts.length === 1 ? '' : 's'} shown.`;
+      if (summary) summary.textContent = `${drafts.length} saved disclosure${drafts.length === 1 ? '' : 's'} shown.`;
       list.querySelectorAll('.hof-seller-preview').forEach(button => button.addEventListener('click', async () => {
         const token = root.hofAuth?.session?.access_token;
         button.disabled = true; button.textContent = 'Loading…';
@@ -21555,17 +21555,17 @@ function routeAfterMagicLinkIfNeeded() {
         root.loadSellerDisclosureDraft(button.dataset.id);
         setTimeout(() => document.getElementById('hofSendSellerReview')?.focus(), 0);
       }));
-    } catch (error) { console.error(error); list.innerHTML = '<li>Could not load seller disclosure drafts.</li>'; }
+    } catch (error) { console.error(error); list.innerHTML = '<li>Could not load saved seller disclosures.</li>'; }
   }
   async function renderCard() {
     const panel = document.getElementById('accountPanelDashboard');
     if (!panel || !active() || document.getElementById('hofSellerDisclosureCard')) return;
     const card = document.createElement('div'); card.id = 'hofSellerDisclosureCard'; card.className = 'account-card hof-seller-disclosure-card';
-    card.innerHTML = '<h4>Seller disclosure</h4><p>Build a seller-ready disclosure package from the universal HomeOfferFlow library through a short interview. Start with the property and people, answer only what applies, review the completed PDF with the seller, then send it for signature.</p><details id="hofSellerDisclosureWorkspace" class="hof-seller-disclosure-workspace"><summary><strong>Start or continue a seller disclosure</strong><br><small>Your work stays private until you send it for seller review.</small></summary><div style="margin-top:1rem">' +
-      '<details class="hof-seller-step" open><summary><span class="hof-seller-step-number">1</span><span class="hof-seller-step-copy"><strong>Property and people</strong><small>Who is involved and which approved form should be used?</small></span></summary><div class="hof-seller-grid"><label>Private listing workspace (optional)<select id="hofSellerWorkspace"><option value="">Do not link to a workspace</option></select></label><label>Property address<input id="hofSellerAddress" maxlength="400" autocomplete="street-address" inputmode="text" placeholder="Street address, city, state, ZIP"></label><label>TREC-55-1 form edition<select id="hofSellerSource"></select></label><label>Seller 1 name<input id="hofSeller1" maxlength="180"></label><label>Seller 1 review email<input id="hofSellerEmail" type="email" maxlength="320" autocomplete="email" placeholder="seller1@example.com"></label><label>Seller 2 name (optional)<input id="hofSeller2" maxlength="180"></label><label>Seller 2 review email (optional)<input id="hofSeller2Email" type="email" maxlength="320" autocomplete="email" placeholder="seller2@example.com"></label><label>Buyer 1 name (optional)<input id="hofBuyer1" maxlength="180"></label><label>Buyer 2 name (optional)<input id="hofBuyer2" maxlength="180"></label></div></details>' +
+    card.innerHTML = '<h4>Seller disclosure</h4><p>Answer a short set of property questions, review the completed disclosure with the seller, then send it to the people who need to sign.</p><details id="hofSellerDisclosureWorkspace" class="hof-seller-disclosure-workspace"><summary><strong>Start or continue a seller disclosure</strong><br><small>Your information stays private until you send it for seller review.</small></summary><div style="margin-top:1rem">' +
+      '<details class="hof-seller-step" open><summary><span class="hof-seller-step-number">1</span><span class="hof-seller-step-copy"><strong>Property and people</strong><small>Tell us who is involved and select the disclosure form.</small></span></summary><div class="hof-seller-grid"><label>Link to a listing (optional)<select id="hofSellerWorkspace"><option value="">Do not link this disclosure to a listing</option></select></label><label>Property address<input id="hofSellerAddress" maxlength="400" autocomplete="street-address" inputmode="text" placeholder="Street address, city, state, ZIP"></label><label>Disclosure form<select id="hofSellerSource"></select></label><label>Seller 1 name<input id="hofSeller1" maxlength="180"></label><label>Seller 1 review email<input id="hofSellerEmail" type="email" maxlength="320" autocomplete="email" placeholder="seller1@example.com"></label><label>Seller 2 name (optional)<input id="hofSeller2" maxlength="180"></label><label>Seller 2 review email (optional)<input id="hofSeller2Email" type="email" maxlength="320" autocomplete="email" placeholder="seller2@example.com"></label><label>Buyer 1 name (optional)<input id="hofBuyer1" maxlength="180"></label><label>Buyer 2 name (optional)<input id="hofBuyer2" maxlength="180"></label></div></details>' +
       '<details class="hof-seller-step"><summary><span class="hof-seller-step-number">2</span><span class="hof-seller-step-copy"><strong>Property details</strong><small>Work through systems, known conditions, repairs, and flood history.</small></span></summary>' + renderResponses() + '</details>' +
-      '<details class="hof-seller-step"><summary><span class="hof-seller-step-number">3</span><span class="hof-seller-step-copy"><strong>Water rights, if they apply</strong><small>Add TREC-61-0 only when the property has a water-rights disclosure.</small></span></summary><label>TREC-61-0 water-rights form edition (optional)<select id="hofWaterSource"><option value="">Do not include</option></select></label>' + renderWaterResponses() + '</details>' +
-      '<div class="hof-seller-actions"><button class="btn-primary" type="button" id="hofSaveSellerDraft">Save private draft</button><button class="btn-secondary" type="button" id="hofSendSellerReview" disabled>Send seller review email</button><span id="hofSellerDraftStatus" class="hof-iabs-status" role="status" aria-live="polite" aria-atomic="true"></span></div><h5>My seller disclosure drafts</h5><div class="hof-seller-actions"><input id="hofSellerDraftFilter" type="search" placeholder="Search address, seller, or source" aria-label="Search seller disclosure drafts" oninput="filterSellerDisclosureDrafts(this.value)"><span id="hofSellerDraftSummary" class="hof-iabs-status"></span></div><ul id="hofSellerDraftList" class="hof-private-form-drafts-list"><li>Loading…</li></ul></div></details>';
+      '<details class="hof-seller-step"><summary><span class="hof-seller-step-number">3</span><span class="hof-seller-step-copy"><strong>Water rights, if they apply</strong><small>Add this only when the property needs a water-rights disclosure.</small></span></summary><label>Water-rights disclosure (optional)<select id="hofWaterSource"><option value="">Do not include</option></select></label>' + renderWaterResponses() + '</details>' +
+      '<div class="hof-seller-actions"><button class="btn-primary" type="button" id="hofSaveSellerDraft">Save and preview</button><button class="btn-secondary" type="button" id="hofSendSellerReview" disabled>Send seller review email</button><span id="hofSellerDraftStatus" class="hof-iabs-status" role="status" aria-live="polite" aria-atomic="true"></span></div><h5>Saved seller disclosures</h5><div class="hof-seller-actions"><input id="hofSellerDraftFilter" type="search" placeholder="Search address or seller" aria-label="Search saved seller disclosures" oninput="filterSellerDisclosureDrafts(this.value)"><span id="hofSellerDraftSummary" class="hof-iabs-status"></span></div><ul id="hofSellerDraftList" class="hof-private-form-drafts-list"><li>Loading…</li></ul></div></details>';
     panel.appendChild(card);
     try {
       const sources = await approvedSources();
@@ -21591,27 +21591,27 @@ function routeAfterMagicLinkIfNeeded() {
       const waterRightsData = {};
       card.querySelectorAll('[data-water-response]').forEach(select => { if (select.value) waterRightsData[select.dataset.waterResponse] = select.value; });
       const payload = {action:card.dataset.loadedDraftId ? 'update_seller_disclosure_draft' : 'create_seller_disclosure_draft',draftId:card.dataset.loadedDraftId || '',formCode:'TREC-55-1',disclosureSourceId:document.getElementById('hofSellerSource').value,waterSourceId:document.getElementById('hofWaterSource').value || null,listingWorkspaceId:document.getElementById('hofSellerWorkspace').value || null,propertyAddress:document.getElementById('hofSellerAddress').value,sellerNames,buyerNames,responseData,waterRightsData};
-      if (!token) { status.textContent = 'Sign in before saving a seller disclosure draft.'; return; }
+      if (!token) { status.textContent = 'Sign in before saving this seller disclosure.'; return; }
       if (!payload.disclosureSourceId || !payload.propertyAddress.trim() || !sellerNames.length) {
         status.textContent = 'Enter the property address, at least one seller, and choose the approved TREC-55-1 form.';
         return;
       }
       saveButton.disabled = true;
       saveButton.setAttribute('aria-busy', 'true');
-      saveButton.textContent = 'Saving draft…';
-      status.textContent = 'Saving private draft…';
+      saveButton.textContent = 'Saving…';
+      status.textContent = 'Saving your disclosure…';
       try {
         const response = await fetch('/api/admin-dashboard',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer ' + token},body:JSON.stringify(payload)});
         const result = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(result.error || 'Could not save seller disclosure draft.');
-        status.textContent = (payload.action === 'update_seller_disclosure_draft' ? 'Private draft updated.' : 'Saved as a private draft.') + ' Preview it or send it to the seller for review when you are ready.';
+        status.textContent = (payload.action === 'update_seller_disclosure_draft' ? 'Saved disclosure updated.' : 'Disclosure saved.') + ' Preview it or send it to the seller for review when you are ready.';
         card.dataset.sellerDraftId = result.draft?.id || '';
         card.dataset.loadedDraftId = result.draft?.id || '';
         const sendButton = document.getElementById('hofSendSellerReview');
         if (sendButton) sendButton.disabled = !(card.dataset.sellerDraftId && document.getElementById('hofSellerEmail').value.trim());
         await refreshDrafts();
       } catch (error) { status.textContent = error.message || 'Could not save seller disclosure draft.'; }
-      finally { saveButton.disabled = false; saveButton.setAttribute('aria-busy', 'false'); saveButton.textContent = 'Save private draft'; }
+      finally { saveButton.disabled = false; saveButton.setAttribute('aria-busy', 'false'); saveButton.textContent = 'Save and preview'; }
     });
     document.getElementById('hofSellerEmail').addEventListener('input', () => {
       const button = document.getElementById('hofSendSellerReview');
@@ -21625,7 +21625,7 @@ function routeAfterMagicLinkIfNeeded() {
       const seller2Email = document.getElementById('hofSeller2Email').value.trim();
       const seller1Name = document.getElementById('hofSeller1').value.trim();
       const seller2Name = document.getElementById('hofSeller2').value.trim();
-      if (!token) { status.textContent = 'Sign in before sending a seller review request.'; return; }
+      if (!token) { status.textContent = 'Sign in before sending the seller review email.'; return; }
       if (!draftId || !seller1Email || !seller1Name) { status.textContent = 'Save the draft and enter Seller 1 name and review email first.'; return; }
       if (seller2Name && !seller2Email) { status.textContent = 'Enter Seller 2 review email or remove Seller 2 name.'; return; }
       if (seller2Email && !seller2Name) { status.textContent = 'Enter Seller 2 name before adding a second review email.'; return; }
