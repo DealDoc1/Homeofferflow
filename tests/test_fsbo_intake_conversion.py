@@ -190,9 +190,12 @@ class FsboIntakeConversionTests(unittest.TestCase):
 
     def test_selected_paid_package_is_explained_before_the_short_required_intake(self):
         self.assertIn('id="fsboSelectedPackageCallout"', HTML)
+        self.assertIn('id="fsboSellerIntro"', HTML)
         self.assertIn("window.renderFsboSelectedPackageCallout", HTML)
         self.assertIn("Selected path: ${item.title} (${item.price})", HTML)
         self.assertIn("this is not checkout or a service order", HTML)
+        self.assertIn("Tell Us About Your Texas Property", HTML)
+        self.assertIn("prepare your ${item.title} request", HTML)
 
     def test_admin_seller_campaigns_land_on_the_explanatory_seller_page_before_intake(self):
         self.assertIn("return `https://www.homeofferflow.com/sellers?${params.toString()}`;", HTML)
