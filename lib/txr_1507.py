@@ -120,9 +120,11 @@ def _overlay(data, brokerage, associate):
     # The broker/associate signature rule is shared.  Mark the source's
     # matching role checkbox so a completed agreement identifies the signer.
     if data.get("signer_plan") == "clients_and_associate":
-        _draw_signing_role_check(canvas, 33, 242)
+        # The printed squares begin at x=36.  Starting at x=33 put the left
+        # stroke outside the Associate square in completed packets.
+        _draw_signing_role_check(canvas, 37, 242)
     elif data.get("signer_plan") == "clients_and_broker":
-        _draw_signing_role_check(canvas, 33, 254)
+        _draw_signing_role_check(canvas, 37, 254)
     canvas.save()
     packet.seek(0)
     return packet.read()

@@ -81,7 +81,7 @@ class Txr1507RendererTests(unittest.TestCase):
                 {"legal_name": "OnDemand Realty", "license_number": "9010832"},
                 {"name": "Andrew Christian", "license_number": "0738821"},
             )
-        self.assertIn((33, 242), [call.args[1:] for call in draw_check.call_args_list])
+        self.assertIn((37, 242), [call.args[1:] for call in draw_check.call_args_list])
 
         with patch.object(txr_1507, "_draw_signing_role_check") as draw_check:
             txr_1507._overlay(
@@ -89,7 +89,7 @@ class Txr1507RendererTests(unittest.TestCase):
                 {"legal_name": "OnDemand Realty", "license_number": "9010832"},
                 {"name": "Andrew Christian", "license_number": "0738821"},
             )
-        self.assertIn((33, 254), [call.args[1:] for call in draw_check.call_args_list])
+        self.assertIn((37, 254), [call.args[1:] for call in draw_check.call_args_list])
 
     def test_renderer_preserves_two_pages_and_overlays_only_supplied_values(self):
         rendered = render_txr_1507(
