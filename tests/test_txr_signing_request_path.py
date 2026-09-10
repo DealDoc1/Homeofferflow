@@ -145,6 +145,11 @@ class TxrSigningRequestPathTests(unittest.TestCase):
         helper = html[helper_start:helper_end]
         self.assertIn("Review and send", helper)
         self.assertIn("hofOpenPreparedAgreement", helper)
+        self.assertIn("Prepare document for review", helper)
+        self.assertIn("We’ll prepare the document for your review before you choose whether to send it for signature.", helper)
+        self.assertIn("txr1914AgreementDialog", helper)
+        self.assertIn("txr1917Dialog", helper)
+        self.assertIn("txr1919AgreementDialog", helper)
 
     def test_pdf_preview_does_not_sandbox_the_browser_pdf_viewer(self):
         html = (ROOT / "index.html").read_text(encoding="utf-8")
