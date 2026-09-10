@@ -68,6 +68,22 @@ class SellerTemporaryLeaseGeometryTests(unittest.TestCase):
             self.assertEqual((field["x"], field["y"]), (x, y))
             self.assertEqual((field["width"], field["height"]), (145, 20))
 
+    def test_main_execution_dates_stay_beside_the_matching_signature_rows(self):
+        """Keep completion dates out of the signature lines and printed captions."""
+        fields = self._fields()
+        expected = {
+            "buyer1_main_contract_date": ("1", 10, 286, 433),
+            "buyer2_main_contract_date": ("2", 10, 286, 568),
+            "seller1_main_contract_date": ("3", 10, 591, 433),
+            "seller2_main_contract_date": ("4", 10, 591, 568),
+        }
+        for api_id, (recipient_id, page, x, y) in expected.items():
+            field = fields[api_id]
+            self.assertEqual(field["recipient_id"], recipient_id)
+            self.assertEqual(field["page"], page)
+            self.assertEqual((field["x"], field["y"]), (x, y))
+            self.assertEqual((field["width"], field["height"]), (66, 16))
+
     def test_lease_execution_signatures_stay_on_landlord_and_tenant_rows(self):
         fields = self._fields()
         expected = {
