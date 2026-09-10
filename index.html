@@ -23101,6 +23101,12 @@ function routeAfterMagicLinkIfNeeded() {
     txr1919AgreementCard: 'Use the guided TXR-1919 interview to prepare the document. Review the completed draft, then send it for signature when the parties are ready.',
     txr1948AgreementCard: 'Use the guided TXR-1948 interview to prepare the document. Review the completed draft, then send it for signature when the parties are ready.'
   };
+  const dialogIntroCopy = {
+    txr1914AgreementDialog: 'Answer the choices printed on the form. We’ll prepare the document for your review before you choose whether to send it for signature.',
+    txr1917Dialog: 'Choose the review rights requested on the form. We’ll prepare the document for your review before you choose whether to send it for signature.',
+    txr1919AgreementDialog: 'Answer the choices printed on the form. We’ll prepare the document for your review before you choose whether to send it for signature.',
+    txr1948AgreementDialog: 'Answer the choices printed on the form. We’ll prepare the document for your review before you choose whether to send it for signature.'
+  };
   function addReviewAndSendAction() {
     dialogIds.forEach(dialogId => {
       const dialog = document.getElementById(dialogId);
@@ -23120,6 +23126,18 @@ function routeAfterMagicLinkIfNeeded() {
       if (text && !text.dataset.liveSigningCopy) {
         text.dataset.liveSigningCopy = 'true';
         text.textContent = copy;
+      }
+    });
+    Object.entries(dialogIntroCopy).forEach(([dialogId, copy]) => {
+      const intro = document.querySelector(`#${dialogId} form > p`);
+      if (intro && !intro.dataset.liveSigningCopy) {
+        intro.dataset.liveSigningCopy = 'true';
+        intro.textContent = copy;
+      }
+      const submit = document.querySelector(`#${dialogId} button[type="submit"]`);
+      if (submit && !submit.disabled && !submit.dataset.liveSigningCopy) {
+        submit.dataset.liveSigningCopy = 'true';
+        submit.textContent = 'Prepare document for review';
       }
     });
   }
