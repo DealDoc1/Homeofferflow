@@ -15,42 +15,11 @@ class AiOfferReviewClientGuardTests(unittest.TestCase):
         self.assertIn("disclaimer: approvedEducationalDisclaimer", block)
         self.assertNotIn("disclaimer: result.disclaimer ||", block)
 
-    def test_browser_marks_only_authorized_mls_context_as_verified(self):
-        start = INDEX.index("function renderAiOfferReviewResult(r, loading = false)")
-        end = INDEX.index("function runLiveAiOfferReview", start)
-        block = INDEX[start:end]
-        self.assertIn("r.propertyContext.mlsVerified === true", block)
-        self.assertIn("r.propertyContext.sourceType === 'broker_authorized_reso_mls'", block)
-        self.assertIn("Broker-authorized listing context included.", block)
-
-    def test_confidence_credits_verified_broker_listing_facts(self):
-        start = INDEX.index("function getReviewConfidence(payload, result = {})")
-        end = INDEX.index("function normalizeAiReviewResult", start)
-        block = INDEX[start:end]
-        self.assertIn("brokerMls.marketEvidence", block)
-        self.assertIn("Broker-authorized listing facts and core offer terms were available.", block)
-        self.assertIn("Some broker-authorized listing facts and several core offer terms were available.", block)
-
-    def test_property_interview_does_not_promise_unavailable_public_mls_data(self):
-        start = INDEX.index('<div class="wizard-step" id="step2">')
-        end = INDEX.index('<div class="wizard-step" id="step3">', start)
-        block = INDEX[start:end]
-        self.assertIn('approved broker listing connection is available', block)
-        self.assertIn('Broker listing context when available', block)
-        self.assertNotIn('will use public property context for the AI review', block)
-
-    def test_review_copy_does_not_promise_automatic_public_listing_data(self):
-        start = INDEX.index("function getInlineAiOfferAnalysis()")
-        end = INDEX.index("function buildAiOfferReviewPayload()", start)
-        block = INDEX[start:end]
-        self.assertNotIn("public listing context is available automatically", block)
-        self.assertIn("Broker-authorized listing facts are included only when available.", block)
-
-        start = INDEX.index("function renderAiOfferReviewResult(r, loading = false)")
-        end = INDEX.index("function runLiveAiOfferReview", start)
-        block = INDEX[start:end]
-        self.assertNotIn("Public listing/search context may be included when available", block)
-        self.assertIn("Listing facts are included only through an approved broker connection", block)
+    def test_customer_copy_does_not_require_a_broker_or_mls_connection(self):
+        self.assertNotIn("Broker-authorized listing context included.", INDEX)
+        self.assertNotIn("When your broker has enabled an approved MLS connection", INDEX)
+        self.assertNotIn("includeBrokerMlsContext", INDEX)
+        self.assertIn("Confirm live listing facts with the listing side before acting.", INDEX)
 
 
 if __name__ == "__main__":

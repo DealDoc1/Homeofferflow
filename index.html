@@ -3417,8 +3417,8 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       <div class="hof-interview-guide" data-hof-guide="step2">
         <div class="hof-guide-kicker">✨ Property</div>
         <div class="hof-guide-title">Now tell us about the home.</div>
-        <div class="hof-guide-copy">Start with the address and legal description. When an approved broker listing connection is available, HomeOfferFlow can use it for the AI review without asking you to enter MLS details.</div>
-        <div class="hof-guide-chip-row"><span class="hof-guide-chip"><strong>✓</strong> Address first</span><span class="hof-guide-chip"><strong>✓</strong> Legal description</span><span class="hof-guide-chip"><strong>✓</strong> Broker listing context when available</span></div>
+        <div class="hof-guide-copy">Start with the address and legal description. HomeOfferFlow keeps the interview focused on the details needed for your packet—without asking you to find or connect MLS information.</div>
+        <div class="hof-guide-chip-row"><span class="hof-guide-chip"><strong>✓</strong> Address first</span><span class="hof-guide-chip"><strong>✓</strong> Legal description</span><span class="hof-guide-chip"><strong>✓</strong> No MLS setup required</span></div>
       </div>
       <div class="trec-badge">✓ TREC 20-19 · Section 2 — Property & §4 Leases</div>
       <h2>The property</h2>
@@ -14014,7 +14014,7 @@ function routeAfterMagicLinkIfNeeded() {
     if (hoa === 'unknown') issues.push('HOA status is unknown; including the HOA addendum is safer but should be verified.');
     if (!closeDate) issues.push('Closing date is missing.');
     if (city || county) market.push(`Property context: ${city ? city + ', ' : ''}${county} County. Live market factors should be confirmed with the listing side before you act.`);
-    market.push('This review uses Texas resale-contract norms and the offer terms you entered. Broker-authorized listing facts are included only when available.');
+    market.push('This review uses Texas resale-contract norms and the offer terms you entered. Confirm live listing facts before acting.');
 
     score = Math.max(1, Math.min(99, Math.round(score)));
     return { score, issues, strengths, market };
@@ -14350,13 +14350,6 @@ function routeAfterMagicLinkIfNeeded() {
       : '';
 
     const marketModeText = escapeAttr(r.marketMode || 'unknown/general Texas resale norms');
-    const authorizedMlsContext = r.propertyContext
-      && r.propertyContext.found === true
-      && r.propertyContext.mlsVerified === true
-      && r.propertyContext.sourceType === 'broker_authorized_reso_mls';
-    const contextSourceNote = authorizedMlsContext
-      ? '<div class="ai-role-note"><strong>Broker-authorized listing context included.</strong> These facts are used only for this review; confirm the live listing with the listing broker before acting.</div>'
-      : '';
     const confidence = r.confidence || { label: 'Limited confidence', rationale: 'Market context or core offer terms are incomplete.' };
     const topStrengths = (r.strengths && r.strengths.length ? r.strengths : ['No major strengths detected from entered terms yet.']).slice(0, 3);
     const topRisks = (r.risks && r.risks.length ? r.risks : ['No major concerns detected from entered terms yet.']).slice(0, 3);
@@ -14385,8 +14378,7 @@ function routeAfterMagicLinkIfNeeded() {
 
         <div class="ai-review-summary ai-review-summary-v5"><strong>${escapeAttr(sourceLabel)}.</strong> ${escapeAttr(r.summary || '')}</div>
         <div class="notice gold" role="status"><strong>${escapeAttr(confidence.label || 'Limited confidence')}.</strong> ${escapeAttr(confidence.rationale || '')} Confidence describes input completeness, not accuracy or acceptance odds.</div>
-        ${contextSourceNote}
-        <div class="ai-disclaimer-v5"><strong>Important:</strong> ${escapeAttr(r.disclaimer)} It does not change your contract automatically. Listing facts are included only through an approved broker connection; confirm the live listing with the listing broker before acting.</div>
+        <div class="ai-disclaimer-v5"><strong>Important:</strong> ${escapeAttr(r.disclaimer)} It does not change your contract automatically. Confirm live listing facts with the listing side before acting.</div>
 
         <div class="review-section-title">${componentsTitle}</div>
         ${renderAiComponents(r.components)}
@@ -14428,13 +14420,7 @@ function routeAfterMagicLinkIfNeeded() {
       const response = await fetch('/api/ai-offer-review', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          offer,
-          // This is harmless when no broker connection exists. When a broker
-          // has configured its approved RESO proxy, it is the lowest-cost
-          // source for a compact listing-context check.
-          includeBrokerMlsContext: true
-        })
+        body: JSON.stringify({ offer })
       });
       const result = await response.json().catch(() => ({}));
       if (!response.ok || result.error) throw new Error(result.error || 'AI review failed.');
@@ -16484,7 +16470,7 @@ function routeAfterMagicLinkIfNeeded() {
       note.id = 'hofSmartIntelNote';
       note.className = 'notice sage';
       note.style.margin = '0 0 0.9rem';
-      note.innerHTML = '<strong>Smart offer review.</strong><br>HomeOfferFlow combines the property address and the terms you enter to highlight questions worth reviewing. When your broker has enabled an approved MLS connection, relevant listing facts may be included.';
+      note.innerHTML = '<strong>Smart offer review.</strong><br>HomeOfferFlow combines the property address and the terms you enter to highlight questions worth reviewing. Confirm live listing facts before acting.';
       ai.parentNode.insertBefore(note, ai);
     } catch(e) {}
   }

@@ -14,13 +14,6 @@ GEMINI_GROUNDING_MODEL = os.environ.get("GEMINI_GROUNDING_MODEL") or GEMINI_MODE
 # deliberately enabled in the deployment environment so every ordinary offer
 # review stays on the low-cost single-request path.
 ENABLE_PROPERTY_CONTEXT = (os.environ.get("ENABLE_PROPERTY_CONTEXT") or "false").lower() not in {"0", "false", "no"}
-# A broker may expose an approved MLS/RESO lookup through its own small proxy.
-# Keep that integration off by default: it adds no vendor cost until a broker
-# supplies an authorized endpoint and it must never put MLS credentials in a
-# browser bundle.
-ENABLE_BROKER_MLS_CONTEXT = (os.environ.get("ENABLE_BROKER_MLS_CONTEXT") or "false").lower() not in {"0", "false", "no"}
-BROKER_MLS_CONTEXT_URL = (os.environ.get("BROKER_MLS_CONTEXT_URL") or "").strip()
-BROKER_MLS_CONTEXT_TOKEN = os.environ.get("BROKER_MLS_CONTEXT_TOKEN") or ""
 MAX_BODY_BYTES = 120_000
 SNAPSHOT_MAX_BODY_BYTES = 24_000
 SNAPSHOT_UUID_RE = re.compile(r"^[0-9a-fA-F-]{20,80}$")
@@ -692,78 +685,13 @@ Rules:
         return {"found": False, "reason": "grounding_exception", "detail": str(exc)[:300]}
 
 
-def _broker_mls_property_context(offer, include_broker_mls_context=False):
-    """Fetch compact listing context from an approved broker-owned proxy.
+def _select_property_context(offer, *, include_public_context=False):
+    """Use only HomeOfferFlow-controlled, opt-in public context.
 
-    MLS providers differ in how they expose RESO Web API credentials and
-    address search.  HomeOfferFlow therefore talks to a broker-controlled
-    proxy, never directly from the browser and never with an MLS credential in
-    a client request.  The deliberately small request/response contract keeps
-    this integration inexpensive and makes changing MLS providers a server
-    configuration task instead of a product rewrite.
+    An agent or brokerage must never have to connect an MLS account in order
+    to prepare or review a packet. Any future licensed listing-data product
+    will be operated centrally by HomeOfferFlow rather than by a customer.
     """
-    if not (
-        include_broker_mls_context
-        and ENABLE_BROKER_MLS_CONTEXT
-        and BROKER_MLS_CONTEXT_URL.startswith("https://")
-        and BROKER_MLS_CONTEXT_TOKEN
-    ):
-        return {"found": False, "reason": "broker_mls_context_not_configured"}
-
-    address = _safe_text(offer.get("propertyAddress"), 160)
-    city = _safe_text(offer.get("city"), 80)
-    state = _safe_text(offer.get("state") or "TX", 10)
-    zip_code = _safe_text(offer.get("zip"), 20)
-    if not address and not (city and zip_code):
-        return {"found": False, "reason": "missing_address"}
-
-    request_body = {
-        "property": {"address": address, "city": city, "state": state, "zip": zip_code},
-        # Keep the provider response restricted to offer-review signals.  Full
-        # IDX display payloads, private remarks, and agent-only data are not
-        # requested or retained by this integration.
-        "fields": ["listingId", "status", "listPrice", "daysOnMarket", "priceChanges", "marketEvidence", "limitations"],
-    }
-    try:
-        with httpx.Client(timeout=8.0) as client:
-            response = client.post(
-                BROKER_MLS_CONTEXT_URL,
-                headers={"Authorization": f"Bearer {BROKER_MLS_CONTEXT_TOKEN}", "Content-Type": "application/json"},
-                json=request_body,
-            )
-        if response.status_code >= 400:
-            return {"found": False, "reason": "broker_mls_lookup_error"}
-        payload = response.json()
-        listing = payload.get("listing") if isinstance(payload, dict) else None
-        if not isinstance(listing, dict):
-            return {"found": False, "reason": "broker_mls_lookup_empty"}
-
-        market_evidence = listing.get("marketEvidence")
-        limitations = listing.get("limitations")
-        return {
-            "found": True,
-            "sourceType": "broker_authorized_reso_mls",
-            "mlsVerified": True,
-            "listingId": _safe_text(listing.get("listingId"), 80),
-            "status": _safe_text(listing.get("status"), 100),
-            "listPrice": _safe_text(listing.get("listPrice"), 40),
-            "daysOnMarket": _safe_int(listing.get("daysOnMarket")),
-            "priceChanges": _safe_text(listing.get("priceChanges"), 240),
-            "marketEvidence": _safe_review_items(market_evidence, limit=8, item_limit=220),
-            "marketContext": _safe_review_items(market_evidence, limit=8, item_limit=220),
-            "limitations": _safe_review_items(limitations, limit=6, item_limit=220),
-        }
-    except Exception:
-        # Do not expose an MLS provider URL, error body, credential detail, or
-        # address in the client response.
-        return {"found": False, "reason": "broker_mls_lookup_unavailable"}
-
-
-def _select_property_context(offer, *, include_broker_mls_context=False, include_public_context=False):
-    """Prefer one authorized MLS lookup; otherwise use the opted-in public path."""
-    broker_mls_context = _broker_mls_property_context(offer, include_broker_mls_context)
-    if broker_mls_context.get("found"):
-        return broker_mls_context
     return _grounded_property_context(offer, include_public_context)
 
 
@@ -771,8 +699,6 @@ def _review_source_for_property_context(property_context):
     """Keep review provenance accurate for reporting and later calibration."""
     if not isinstance(property_context, dict) or not property_context.get("found"):
         return "gemini"
-    if property_context.get("sourceType") == "broker_authorized_reso_mls":
-        return "gemini_with_broker_authorized_mls_context"
     return "gemini_with_public_property_context"
 
 
@@ -836,15 +762,9 @@ class handler(BaseHTTPRequestHandler):
             # A public-web lookup is intentionally a separate, deployment-
             # controlled capability. It is not MLS data and must never be
             # silently treated as such.
-            include_broker_mls_context = payload.get("includeBrokerMlsContext") is True
             include_public_context = payload.get("includePublicPropertyContext") is True
-            # An approved broker MLS response is more specific and should win
-            # over public web grounding.  Public grounding stays opt-in and is
-            # skipped when MLS data is available, avoiding an unnecessary
-            # second paid model request.
             property_context = _select_property_context(
                 offer,
-                include_broker_mls_context=include_broker_mls_context,
                 include_public_context=include_public_context,
             )
             fallback = _rules_fallback(offer, property_context)
