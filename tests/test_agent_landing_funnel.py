@@ -104,11 +104,29 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("window.addEventListener('hof-auth-ready', callback, { once: true });", entry)
         self.assertIn("continueAfterAuthResolution(() => {", entry)
 
+    def test_agent_deep_link_recovers_if_the_ready_event_precedes_the_dom_handler(self):
+        self.assertIn('id="hof-agent-route-primer-v1"', INDEX)
+        self.assertIn("'hof_agent_route_pending_v1'", INDEX)
+        self.assertIn('id="hof-agent-landing-route-recovery-v1"', INDEX)
+        self.assertIn("window.__hofAgentLandingRouteProcessed = true;", INDEX)
+        start = INDEX.index('id="hof-agent-landing-route-recovery-v1"')
+        end = INDEX.index('</script>', start)
+        recovery = INDEX[start:end]
+        self.assertIn("if (!window.__hofDraftRestoreAuthReady)", recovery)
+        self.assertIn('window.setTimeout(continueAgentLandingRoute, 200);', recovery)
+        self.assertIn("window.openAuthModal?.('agent');", recovery)
+        self.assertIn("window.hofOpenAgentPackageInterview?.(workflow);", recovery)
+        self.assertIn("['agent', 'workflow', 'workspace']", recovery)
+        self.assertIn("sessionStorage.getItem('hof_agent_route_pending_v1')", recovery)
+        self.assertIn("localStorage.getItem('hof_agent_route_pending_v1')", recovery)
+
     def test_agent_deep_link_shows_agent_landing_before_session_restores(self):
         start = INDEX.index("if (params().get('agent') === '1')")
         end = INDEX.index("// Investor acquisition", start)
         entry = INDEX[start:end]
         self.assertIn("window.setAudience?.('agent');", entry)
+        self.assertIn("const initialAgentLandingWorkflow", entry)
+        self.assertLess(entry.index("const initialAgentLandingWorkflow"), entry.index("setTimeout(() => continueAfterAuthResolution"))
         self.assertLess(entry.index("window.setAudience?.('agent');"), entry.index("setTimeout(() => continueAfterAuthResolution"))
 
     def test_package_start_telemetry_waits_for_the_destination_workspace(self):
