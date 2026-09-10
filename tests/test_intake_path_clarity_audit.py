@@ -31,6 +31,9 @@ class IntakePathClarityAuditTests(unittest.TestCase):
         self.assertIn("prepare a document for review", HTML)
         self.assertIn("prepare an appraisal document for review", HTML)
         self.assertIn("Review the completed document, then confirm recipients before sending it for signature.", HTML)
+        self.assertIn("review the completed document", HTML)
+        self.assertIn("Saving (.+?) private draft", HTML)
+        self.assertIn("Your draft is ready", HTML)
 
 
 if __name__ == "__main__":

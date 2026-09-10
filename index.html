@@ -22845,6 +22845,7 @@ function routeAfterMagicLinkIfNeeded() {
         .replace(/prepare a private draft/gi, 'prepare a document for review')
         .replace(/prepare an appraisal private draft/gi, 'prepare an appraisal document for review')
         .replace(/private (seller-financing|residential-lease|fixture-lease|appraisal) draft/gi, '$1 document for review')
+        .replace(/review the completed draft/gi, 'review the completed document')
         .replace(/This workflow does not assess credit, advise on loan terms, contact a lender, send, or sign the addendum\./gi, 'This workflow does not assess credit, advise on loan terms, or contact a lender. Review the completed document, then confirm recipients before sending it for signature.')
         .replace(/It does not assess conditions, send, or sign the addendum\./gi, 'It does not assess conditions. Review the completed document, then confirm recipients before sending it for signature.')
         .replace(/It does not evaluate value, recommend a waiver, send, or sign the addendum\./gi, 'It does not evaluate value or recommend a waiver. Review the completed document, then confirm recipients before sending it for signature.');
@@ -22856,6 +22857,8 @@ function routeAfterMagicLinkIfNeeded() {
       const revised = original
         .replace(/Your private draft is ready\./gi, 'Your document is ready for review.')
         .replace(/Preparing (.+?) private draft/gi, 'Preparing $1 document')
+        .replace(/Saving (.+?) private draft/gi, 'Preparing $1 document')
+        .replace(/Your draft is ready\./gi, 'Your document is ready for review.')
         .replace(/Could not save the private (.+?) draft\./gi, 'Could not prepare the $1 document.')
         .replace(/Could not save the private draft\./gi, 'Could not prepare the document.')
         .replace(/Could not save this draft\./gi, 'Could not prepare this document.');
