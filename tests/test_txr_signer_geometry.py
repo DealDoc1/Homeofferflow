@@ -226,14 +226,17 @@ class TxrSignerGeometryTests(unittest.TestCase):
         ):
             with self.subTest(field_id=field_id):
                 self.assertEqual(fields[field_id]["x"], 432)
-                self.assertEqual(fields[field_id]["width"], 84)
+                self.assertEqual(fields[field_id]["width"], 96)
                 self.assertEqual(fields[field_id]["y"], row_y)
         # Unlike the consumer rows, the provider row is prefixed by the
         # source's printed "By:". Its signer widget must begin after that
         # prefix instead of obscuring it in the SignWell ceremony.
         self.assertEqual(fields["txr1506_associate_signature_p6"]["x"], 80)
-        self.assertEqual(fields["txr1506_associate_signature_p6"]["width"], 170)
+        self.assertEqual(fields["txr1506_associate_signature_p6"]["width"], 304)
         self.assertEqual(fields["txr1506_associate_signature_p6"]["y"] + fields["txr1506_associate_signature_p6"]["height"], 825)
+        for field_id in ("txr1506_client1_signature_p6", "txr1506_client2_signature_p6"):
+            with self.subTest(field_id=field_id):
+                self.assertEqual((fields[field_id]["x"], fields[field_id]["width"]), (48, 336))
 
     def test_paragraph4_signatures_stay_on_the_source_rules_above_party_labels(self):
         """Keep the buyer/seller widgets on the calibrated TXR-1953/1954 rules.

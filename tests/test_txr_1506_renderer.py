@@ -43,7 +43,7 @@ class Txr1506RendererTests(unittest.TestCase):
         self.assertTrue(all(field["page"] in {1, 2, 3, 4, 5, 6} for field in two))
         self.assertEqual(next(field["y"] for field in two if field["api_id"] == "txr1506_associate_signature_p6"), 799)
         self.assertEqual(next(field["x"] for field in two if field["api_id"] == "txr1506_associate_signature_p6"), 80)
-        self.assertEqual(next(field["width"] for field in two if field["api_id"] == "txr1506_associate_signature_p6"), 170)
+        self.assertEqual(next(field["width"] for field in two if field["api_id"] == "txr1506_associate_signature_p6"), 304)
         self.assertEqual(next(field["x"] for field in two if field["api_id"] == "txr1506_associate_date_p6"), 432)
         self.assertEqual(next(field["y"] for field in two if field["api_id"] == "txr1506_client1_signature_p6"), 893)
         self.assertEqual(next(field["y"] for field in two if field["api_id"] == "txr1506_client2_signature_p6"), 939)
@@ -54,6 +54,16 @@ class Txr1506RendererTests(unittest.TestCase):
         self.assertEqual((later_page["txr1506_client1_initials_p2"]["x"], later_page["txr1506_client1_initials_p2"]["width"]), (480, 55))
         self.assertEqual((later_page["txr1506_client2_initials_p2"]["x"], later_page["txr1506_client2_initials_p2"]["width"]), (554, 55))
         self.assertTrue(all(field["y"] == 976 for field in two if field["type"] == "initials"))
+        for field_id in ("txr1506_client1_signature_p6", "txr1506_client2_signature_p6"):
+            field = next(field for field in two if field["api_id"] == field_id)
+            self.assertEqual((field["x"], field["width"]), (48, 336))
+        for field_id in (
+            "txr1506_associate_date_p6",
+            "txr1506_client1_date_p6",
+            "txr1506_client2_date_p6",
+        ):
+            field = next(field for field in two if field["api_id"] == field_id)
+            self.assertEqual((field["x"], field["width"]), (432, 96))
         with self.assertRaisesRegex(ValueError, "authorized broker"):
             build_signwell_fields_txr1506({**sample_data(), "signer_plan": ""}, client_count=1)
         with self.assertRaisesRegex(ValueError, "authorized broker"):

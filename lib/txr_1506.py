@@ -92,24 +92,28 @@ def build_signwell_fields_txr1506(data, *, client_count=1):
         if client_count == 2:
             fields.append({"api_id": f"txr1506_client2_initials_p{page}", "type": "initials", "page": page, "x": client2_x, "y": 976, "recipient_id": "2", "required": True, "width": client2_width, "height": 16})
     fields.extend([
-        {"api_id": "txr1506_client1_signature_p6", "type": "signature", "page": 6, "x": 60, "y": 893, "recipient_id": "1", "required": True, "width": 190, "height": 26},
-        {"api_id": "txr1506_client1_date_p6", "type": "date", "page": 6, "x": 432, "y": 893, "recipient_id": "1", "required": True, "width": 84, "height": 20, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
+        # Page six uses a full-width consumer rule. The widget must reach the
+        # complete printed line; a shorter centered field makes a signed name
+        # look detached from the acknowledgement it completes.
+        {"api_id": "txr1506_client1_signature_p6", "type": "signature", "page": 6, "x": 48, "y": 893, "recipient_id": "1", "required": True, "width": 336, "height": 26},
+        {"api_id": "txr1506_client1_date_p6", "type": "date", "page": 6, "x": 432, "y": 893, "recipient_id": "1", "required": True, "width": 96, "height": 20, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
     ])
     if client_count == 2:
         fields.extend([
-            {"api_id": "txr1506_client2_signature_p6", "type": "signature", "page": 6, "x": 60, "y": 939, "recipient_id": "2", "required": True, "width": 190, "height": 26},
-            {"api_id": "txr1506_client2_date_p6", "type": "date", "page": 6, "x": 432, "y": 939, "recipient_id": "2", "required": True, "width": 84, "height": 20, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
+            {"api_id": "txr1506_client2_signature_p6", "type": "signature", "page": 6, "x": 48, "y": 939, "recipient_id": "2", "required": True, "width": 336, "height": 26},
+            {"api_id": "txr1506_client2_date_p6", "type": "date", "page": 6, "x": 432, "y": 939, "recipient_id": "2", "required": True, "width": 96, "height": 20, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
         ])
     role = "associate" if signer_plan == "consumers_and_associate" else "broker"
     fields.extend([
         # The source prefixes this rule with a printed "By:". Start after
-        # that prefix, while preserving the same right edge and caption
-        # clearance as the source-calibrated consumer rows below.
-        {"api_id": f"txr1506_{role}_signature_p6", "type": "signature", "page": 6, "x": 80, "y": 799, "recipient_id": role, "required": True, "width": 170, "height": 26},
+        # that prefix, while reaching the end of the complete printed rule.
+        # This leaves the "By:" text visible without making a provider's
+        # completed signature look truncated.
+        {"api_id": f"txr1506_{role}_signature_p6", "type": "signature", "page": 6, "x": 80, "y": 799, "recipient_id": role, "required": True, "width": 304, "height": 26},
         # The source uses the same right-hand Date column for the provider
         # acknowledgement and each consumer acknowledgement. Keeping each
         # widget inside that printed rule prevents it from covering the
         # caption or extending into the page margin.
-        {"api_id": f"txr1506_{role}_date_p6", "type": "date", "page": 6, "x": 432, "y": 800, "recipient_id": role, "required": True, "width": 84, "height": 20, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
+        {"api_id": f"txr1506_{role}_date_p6", "type": "date", "page": 6, "x": 432, "y": 800, "recipient_id": role, "required": True, "width": 96, "height": 20, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
     ])
     return [fields]
