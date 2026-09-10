@@ -478,6 +478,8 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("body.utm_campaign=campaign", AGENTS)
         self.assertIn('"agentLandingCtaRatesByCampaign"', ADMIN)
         self.assertIn('Agent campaign conversion:', INDEX)
+        self.assertIn("rate !== null", INDEX)
+        self.assertIn("agent_landing_cta_counts_by_campaign[campaign] <= agent_landing_view_counts_by_campaign[campaign]", ADMIN)
 
     def test_investor_landing_preserves_organic_and_pwa_attribution(self):
         self.assertIn("medium==='installed_app'||source==='pwa_shortcut'?'pwa_shortcut'", INVESTORS)
@@ -515,6 +517,7 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("agentLandingViewCountsByChannel?.referral", INDEX)
         self.assertIn("agentLandingDraftHandoffUserCount", INDEX)
         self.assertIn("agentLandingDraftHandoffRate", INDEX)
+        self.assertIn("% of landing views", INDEX)
         self.assertIn("agentLandingSellerWorkspaceHandoffUserCount", INDEX)
         self.assertIn("agentLandingRelationshipWorkspaceHandoffUserCount", INDEX)
         self.assertIn("Workspace paths after sign-in", INDEX)

@@ -163,6 +163,7 @@ class PartnerLandingFunnelTests(unittest.TestCase):
             "partner_landing_tier_cta_counts",
         ):
             self.assertIn(expected, ADMIN)
+        self.assertIn("partner_application_open_count / partner_landing_view_count", ADMIN)
         self.assertIn("partnerLandingViewCount", INDEX)
         self.assertIn("partnerLandingCtaRate", INDEX)
         self.assertIn("partnerApplicationOpenCount", INDEX)

@@ -105,6 +105,7 @@ class InvestorLandingFunnelTests(unittest.TestCase):
         self.assertIn("investorLandingCtaRate", INDEX)
         self.assertIn("investorLandingWorkspaceHandoffUserCount", INDEX)
         self.assertIn("investorLandingWorkspaceHandoffRate", INDEX)
+        self.assertIn("% of landing views", INDEX)
         self.assertIn("Investor offer guide:", INDEX)
         self.assertIn("Channel views / sign-ins", INDEX)
         self.assertIn("investorLandingViewCountsByChannel?.referral", INDEX)

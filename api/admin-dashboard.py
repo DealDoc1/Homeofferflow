@@ -5374,7 +5374,12 @@ class handler(BaseHTTPRequestHandler):
             }
             agent_landing_cta_rates_by_campaign = {
                 campaign: round((agent_landing_cta_counts_by_campaign[campaign] / agent_landing_view_counts_by_campaign[campaign]) * 100, 1)
-                if agent_landing_view_counts_by_campaign[campaign] else 0
+                # A chooser continuation can arrive straight from an app
+                # shortcut or saved route. It is not a campaign conversion
+                # unless a corresponding campaign landing view was recorded.
+                if agent_landing_view_counts_by_campaign[campaign]
+                and agent_landing_cta_counts_by_campaign[campaign] <= agent_landing_view_counts_by_campaign[campaign]
+                else None
                 for campaign in agent_landing_campaigns
             }
             # CTA paths are a fixed product-choice allowlist from public agent
@@ -5945,8 +5950,11 @@ class handler(BaseHTTPRequestHandler):
                 "partnerLandingCtaRate": round((partner_landing_cta_count / partner_landing_view_count) * 100, 1)
                 if partner_landing_view_count else 0,
                 "partnerApplicationOpenCount": partner_application_open_count,
-                "partnerApplicationOpenRate": round((partner_application_open_count / partner_landing_cta_count) * 100, 1)
-                if partner_landing_cta_count else 0,
+                # Applications can open from saved or direct links without a
+                # preceding landing CTA. Landing views are the comparable
+                # exposure metric for this aggregate signal.
+                "partnerApplicationOpenRate": round((partner_application_open_count / partner_landing_view_count) * 100, 1)
+                if partner_landing_view_count else 0,
                 "partnerApplicationTierSelectedCount": partner_application_tier_selected_count,
                 "partnerApplicationEssentialsOpenCount": partner_application_essentials_open_count,
                 "partnerApplicationEssentialsFocusCount": partner_application_essentials_focus_count,
@@ -6162,8 +6170,8 @@ class handler(BaseHTTPRequestHandler):
                 "agentLandingCtaPathCounts": agent_landing_cta_path_counts,
                 "agentWorkflowGuideCtaPathCounts": agent_workflow_guide_cta_path_counts,
                 "agentLandingDraftHandoffUserCount": agent_landing_draft_handoff_user_count,
-                "agentLandingDraftHandoffRate": round((agent_landing_draft_handoff_user_count / agent_landing_cta_count) * 100, 1)
-                if agent_landing_cta_count else 0,
+                "agentLandingDraftHandoffRate": round((agent_landing_draft_handoff_user_count / agent_landing_view_count) * 100, 1)
+                if agent_landing_view_count else 0,
                 "agentLandingSellerWorkspaceHandoffUserCount": agent_landing_seller_workspace_handoff_user_count,
                 "agentLandingRelationshipWorkspaceHandoffUserCount": agent_landing_relationship_workspace_handoff_user_count,
                 "agentTransactionChoiceCounts": agent_transaction_choice_counts,
@@ -6198,8 +6206,8 @@ class handler(BaseHTTPRequestHandler):
                 "investorOfferGuideCtaRate": round((investor_offer_guide_cta_count / investor_offer_guide_view_count) * 100, 1)
                 if investor_offer_guide_view_count else 0,
                 "investorLandingWorkspaceHandoffUserCount": investor_landing_workspace_handoff_user_count,
-                "investorLandingWorkspaceHandoffRate": round((investor_landing_workspace_handoff_user_count / investor_landing_cta_count) * 100, 1)
-                if investor_landing_cta_count else 0,
+                "investorLandingWorkspaceHandoffRate": round((investor_landing_workspace_handoff_user_count / investor_landing_view_count) * 100, 1)
+                if investor_landing_view_count else 0,
                 "brokerageInviteSentCount": len([
                     item for item in events if item.get("event_type") == "brokerage_invite_sent"
                 ]),
