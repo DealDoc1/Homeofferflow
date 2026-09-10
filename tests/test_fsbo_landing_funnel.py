@@ -146,6 +146,11 @@ class FsboLandingFunnelTests(unittest.TestCase):
         self.assertIn('<noscript><style>.tiers .tier:nth-child(n+4){display:block}</style></noscript>', SELLERS)
         self.assertNotIn('.seller-tier-grid .tier:nth-child(n+4){display:none}', SELLERS)
 
+    def test_selected_paid_seller_path_is_brought_to_the_front_of_the_catalog(self):
+        self.assertIn("flat_fee_mls:'Flat-Fee MLS Interest'", SELLERS)
+        self.assertIn("grid.prepend(card)", SELLERS)
+        self.assertIn("badge.textContent='Your selected path'", SELLERS)
+
     def test_seller_question_one_keeps_four_sale_stages_visually_balanced(self):
         self.assertIn('#seller-question-one + .lead + .grid { grid-template-columns:repeat(4,minmax(0,1fr)); }', SELLERS)
         self.assertIn('@media(max-width:960px) { #seller-question-one + .lead + .grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }', SELLERS)
