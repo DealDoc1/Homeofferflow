@@ -25,8 +25,10 @@ the field:
 - no new buyer, seller, or broker data access;
 - no local caching of complete offer packets or private source PDFs by default;
 - no native legal-form implementation separate from the approved web workflow;
-- no bypass of brokerage membership, TXR/NAR attestation, subscription, or
-  completed-signature QA gates;
+- no separate form-access system: released shared Texas forms remain available
+  to every signed-in agent, without a brokerage seat or per-agent attestation;
+- no bypass of existing subscription entitlements, private-record ownership,
+  or completed-signature quality checks;
 - no platform-admin or broker-wide buyer-sensitive data in an agent app.
 
 ## Architecture direction
@@ -64,7 +66,9 @@ the field:
 
 - add draft creation, resume, duplication, and bounded document review;
 - preserve web/API parity and run the existing rendered-PDF golden suite;
-- test poor connectivity without silently submitting stale terms.
+- test poor connectivity without silently submitting stale terms;
+- preserve the selected transaction path during session restoration, and keep
+  keyboard focus within each interview question with a clear return path.
 
 ### Phase 3 — Notifications and store release
 

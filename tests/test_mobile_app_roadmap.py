@@ -8,6 +8,13 @@ RECONCILIATION = (ROOT / "supabase" / "migrations" / "20260814170000_reconcile_m
 
 
 class MobileAppRoadmapTests(unittest.TestCase):
+    def test_native_brief_preserves_independent_agent_access_and_interview_continuity(self):
+        brief = (ROOT / 'docs' / 'MOBILE_APP_PRODUCT_BRIEF.md').read_text(encoding='utf-8')
+        self.assertIn('every signed-in agent, without a brokerage seat or per-agent attestation', brief)
+        self.assertIn('private-record ownership', brief)
+        self.assertIn('preserve the selected transaction path during session restoration', brief)
+        self.assertIn('keyboard focus within each interview question', brief)
+
     def test_mobile_app_is_a_deferred_cross_platform_initiative(self):
         self.assertIn("'mobile-app'", SQL)
         self.assertIn("'HomeOfferFlow mobile app'", SQL)
