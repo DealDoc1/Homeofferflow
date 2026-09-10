@@ -84,6 +84,16 @@ class AiReviewServerEndpointTests(unittest.TestCase):
         parsed = MODULE._parse_snapshot(b'{"reviewMode":"live_ai"}')
         self.assertEqual(parsed["review_mode"], "live_ai")
 
+    def test_public_property_grounding_is_off_by_default_and_requires_two_explicit_controls(self):
+        self.assertFalse(MODULE.ENABLE_PROPERTY_CONTEXT)
+        self.assertEqual(
+            MODULE._grounded_property_context({"propertyAddress": "1 Main St"}, include_public_context=False)["reason"],
+            "property_context_disabled_or_no_api_key",
+        )
+        source = MODULE_PATH.read_text(encoding="utf-8")
+        self.assertIn('payload.get("includePublicPropertyContext") is True', source)
+        self.assertIn('ENABLE_PROPERTY_CONTEXT") or "false"', source)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -9,7 +9,11 @@ import httpx
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY") or ""
 GEMINI_MODEL = os.environ.get("GEMINI_MODEL") or "gemini-2.5-flash"
 GEMINI_GROUNDING_MODEL = os.environ.get("GEMINI_GROUNDING_MODEL") or GEMINI_MODEL
-ENABLE_PROPERTY_CONTEXT = (os.environ.get("ENABLE_PROPERTY_CONTEXT") or "true").lower() not in {"0", "false", "no"}
+# Public-web grounding is useful when an authorized product tier calls for it,
+# but it is a second model request and it is not MLS data.  Keep it off unless
+# deliberately enabled in the deployment environment so every ordinary offer
+# review stays on the low-cost single-request path.
+ENABLE_PROPERTY_CONTEXT = (os.environ.get("ENABLE_PROPERTY_CONTEXT") or "false").lower() not in {"0", "false", "no"}
 MAX_BODY_BYTES = 120_000
 SNAPSHOT_MAX_BODY_BYTES = 24_000
 SNAPSHOT_UUID_RE = re.compile(r"^[0-9a-fA-F-]{20,80}$")
@@ -603,8 +607,8 @@ def _rules_fallback(offer, property_context=None):
     }
 
 
-def _grounded_property_context(offer):
-    if not (ENABLE_PROPERTY_CONTEXT and GEMINI_API_KEY):
+def _grounded_property_context(offer, include_public_context=False):
+    if not (include_public_context and ENABLE_PROPERTY_CONTEXT and GEMINI_API_KEY):
         return {"found": False, "reason": "property_context_disabled_or_no_api_key"}
 
     address = _safe_text(offer.get("propertyAddress"), 160)
@@ -738,7 +742,11 @@ class handler(BaseHTTPRequestHandler):
             if not isinstance(offer, dict):
                 return _json_response(self, 400, {"error": "Missing offer object."})
 
-            property_context = _grounded_property_context(offer)
+            # A public-web lookup is intentionally a separate, deployment-
+            # controlled capability. It is not MLS data and must never be
+            # silently treated as such.
+            include_public_context = payload.get("includePublicPropertyContext") is True
+            property_context = _grounded_property_context(offer, include_public_context)
             fallback = _rules_fallback(offer, property_context)
 
             if not GEMINI_API_KEY:
