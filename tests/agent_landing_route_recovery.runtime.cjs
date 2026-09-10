@@ -10,7 +10,7 @@ const end = html.indexOf('</script>', start);
 assert.ok(start >= 0 && end > start, 'Agent landing route recovery must be present');
 const source = html.slice(html.indexOf('\n', start) + 1, end);
 
-function setup({session, workflow = 'purchase', ready = true} = {}) {
+function setup({session, workflow = 'purchase', ready = true, openDashboard} = {}) {
   const calls = [];
   const storage = new Map([['hof_agent_route_pending_v1', JSON.stringify({workflow, workspace:''})]]);
   const location = {
@@ -24,7 +24,10 @@ function setup({session, workflow = 'purchase', ready = true} = {}) {
     hofAuth: {session: session ? {user:{id:'agent'}} : null},
     location,
     setAudience: role => calls.push(['audience', role]),
-    openAccountDashboard: options => calls.push(['dashboard', options.tab]),
+    openAccountDashboard: options => {
+      calls.push(['dashboard', options.tab]);
+      return typeof openDashboard === 'function' ? openDashboard(options) : undefined;
+    },
     startAgentWorkflow: choice => calls.push(['transaction', choice]),
     openAgentTransactionPicker: () => calls.push(['picker']),
     openAuthModal: role => calls.push(['auth', role]),
@@ -52,6 +55,27 @@ test('a signed-in agent opens the preserved transaction exactly once', () => {
   ]);
   assert.equal(page.window.__hofAgentLandingRouteProcessed, true);
   assert.equal(page.storage.has('hof_agent_route_pending_v1'), false);
+});
+
+test('a slow authenticated workspace does not open the selected transaction early', async () => {
+  let markWorkspaceReady;
+  const workspaceReady = new Promise(resolve => { markWorkspaceReady = resolve; });
+  const page = setup({session:true, workflow:'lease_listing', openDashboard: () => workspaceReady});
+
+  assert.deepEqual(page.calls, [
+    ['audience', 'agent'], ['clean', '/?utm_source=agent_workspace'],
+    ['dashboard', 'dashboard'], ['event', 'agent_landing_package_handoff', 'opened', 'lease_listing'],
+  ]);
+
+  markWorkspaceReady();
+  await workspaceReady;
+  await Promise.resolve();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.deepEqual(JSON.parse(JSON.stringify(page.calls)), [
+    ['audience', 'agent'], ['clean', '/?utm_source=agent_workspace'],
+    ['dashboard', 'dashboard'], ['event', 'agent_landing_package_handoff', 'opened', 'lease_listing'],
+    ['transaction', 'lease_listing'],
+  ]);
 });
 
 test('a signed-out agent sees the preserved workflow in the secure sign-in handoff', () => {
