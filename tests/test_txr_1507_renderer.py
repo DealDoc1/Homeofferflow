@@ -148,6 +148,22 @@ class Txr1507RendererTests(unittest.TestCase):
         self.assertEqual(next(field["y"] for field in two if field["api_id"] == "txr1507_client2_signature_p2"), 767)
         self.assertEqual(next(field["x"] for field in two if field["api_id"] == "txr1507_client1_signature_p2"), 445)
         initials = {field["api_id"]: field for field in two}
+        # Keep the post-completed-packet calibration intact.  The prior
+        # client fields collided with the printed Date captions and the role
+        # signer field sat below its execution rule in the September 8 QA
+        # packet.  These are SignWell's top-origin, 4/3-scale coordinates.
+        self.assertEqual(
+            (initials["txr1507_client1_signature_p2"]["x"], initials["txr1507_client1_signature_p2"]["y"], initials["txr1507_client1_date_p2"]["x"], initials["txr1507_client1_date_p2"]["y"]),
+            (445, 668, 530, 668),
+        )
+        self.assertEqual(
+            (initials["txr1507_client2_signature_p2"]["x"], initials["txr1507_client2_signature_p2"]["y"], initials["txr1507_client2_date_p2"]["x"], initials["txr1507_client2_date_p2"]["y"]),
+            (445, 767, 530, 767),
+        )
+        self.assertEqual(
+            (initials["txr1507_associate_signature_p2"]["x"], initials["txr1507_associate_signature_p2"]["y"], initials["txr1507_associate_date_p2"]["x"], initials["txr1507_associate_date_p2"]["y"]),
+            (10, 650, 185, 650),
+        )
         # TXR-1507's footer has a separate Broker/Associate initial blank
         # before the two Client blanks. Every party named in that footer must
         # receive its own correctly aligned required field.
