@@ -52,3 +52,29 @@ The ledger contains no failed processing rows and no duplicate event IDs.
    sending any additional test events to production.
 4. Remove the test endpoint and pause/delete the isolated branch after the
    evidence packet is complete.
+
+## Current branch reconciliation — 2026-09-10
+
+The isolated branch was rechecked directly, without reading or changing
+production data. Its compact migration history is expected for a branch based
+on the schema baseline; direct schema inspection confirms the lifecycle tables
+and fields required by the current webhook are present.
+
+- `hof_subscriptions`, `hof_stripe_webhook_events`, and
+  `hof_brokerage_members` exist.
+- The branch has `trial_ends_at`, `cancel_at_period_end`, and
+  `suspension_reason` fields.
+- Unique indexes exist for `hof_subscriptions.user_id` and
+  `hof_stripe_webhook_events.stripe_event_id`.
+- The ledger contains 35 distinct processed sandbox event IDs across Checkout,
+  subscription create/update/delete, paid, successful-payment, and failed-
+  payment event types. It has no non-processed rows.
+- The final aggregate state is one active and one canceled subscription, plus
+  one active and one removed membership. These final states are consistent with
+  recovery and removed-membership preservation, but do **not** replace
+  checkpoint evidence of the intermediate trialing, scheduled-cancellation,
+  past-due, and manual-suspension states.
+
+The local Stripe CLI route in `docs/STRIPE_LIFECYCLE_QA.md` is now the
+preferred way to capture those remaining checkpoints without paying for a
+Vercel preview deployment.
