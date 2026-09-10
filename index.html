@@ -9312,7 +9312,9 @@ function routeAfterMagicLinkIfNeeded() {
         s.legalDescription = buildLegalDescription(s.lotNumber, s.blockNumber, s.subdivision, getVal('legalDescription'));
         s.lot = s.legalDescription;
 
-        // AI competitiveness uses automatic public property context when available; no manual MLS/listing fields are shown.
+        // AI competitiveness can use an approved broker-authorized listing
+        // lookup when one is configured. The interview never asks agents to
+        // paste MLS credentials or treats manual entry as MLS verification.
         s.listPrice = moneyNumber(getVal('listPrice'));
         s.originalListPrice = moneyNumber(getVal('originalListPrice'));
         s.daysOnMarket = getVal('daysOnMarket');
@@ -14279,7 +14281,13 @@ function routeAfterMagicLinkIfNeeded() {
       const response = await fetch('/api/ai-offer-review', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ offer: buildAiOfferReviewPayload() })
+        body: JSON.stringify({
+          offer: buildAiOfferReviewPayload(),
+          // This is harmless when no broker connection exists. When a broker
+          // has configured its approved RESO proxy, it is the lowest-cost
+          // source for a compact listing-context check.
+          includeBrokerMlsContext: true
+        })
       });
       const result = await response.json().catch(() => ({}));
       if (!response.ok || result.error) throw new Error(result.error || 'AI review failed.');

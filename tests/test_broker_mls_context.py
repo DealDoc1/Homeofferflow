@@ -94,6 +94,12 @@ class BrokerMlsContextTests(unittest.TestCase):
         self.assertEqual(selected["sourceType"], "broker_authorized_reso_mls")
         public.assert_not_called()
 
+    def test_offer_review_requests_the_broker_lookup_without_exposing_credentials(self):
+        html = (ROOT / "index.html").read_text(encoding="utf-8")
+        self.assertIn("includeBrokerMlsContext: true", html)
+        self.assertIn("approved RESO proxy", html)
+        self.assertNotIn("BROKER_MLS_CONTEXT_TOKEN", html)
+
 
 if __name__ == "__main__":
     unittest.main()
