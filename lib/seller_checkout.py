@@ -120,3 +120,39 @@ async def create_request(data):
         except Exception:
             delivery = "failed"
     return {"sellerLeadId": lead_id, "package": package_key, "amountCents": package["amount"], "checkoutUrl": checkout_url, "delivery": delivery}
+
+
+async def recover_request(data):
+    """Return an already-sent active Checkout link without creating or emailing another one."""
+    if not STRIPE_SECRET_KEY:
+        raise RuntimeError("Seller payment requests are not configured.")
+    lead_id = str((data or {}).get("seller_lead_id") or "").strip()
+    try:
+        lead_id = str(uuid.UUID(lead_id))
+    except (TypeError, ValueError, AttributeError):
+        raise ValueError("A valid seller lead ID is required.")
+    if (data or {}).get("scope_confirmed") is not True:
+        raise ValueError("Confirm the seller's scope and fixed price before retrieving payment.")
+    async with httpx.AsyncClient(timeout=15) as client:
+        lookup = await client.get(
+            f"{SUPABASE_URL}/rest/v1/hof_seller_leads?id=eq.{urllib.parse.quote(lead_id)}&select=id,service_level,status,seller_checkout_status,seller_checkout_session_id&limit=1",
+            headers=_headers(),
+        )
+    if lookup.status_code >= 300 or not isinstance(lookup.json(), list) or not lookup.json():
+        raise ValueError("Seller lead was not found.")
+    lead = lookup.json()[0]
+    package_key = str(lead.get("service_level") or "").strip().lower()
+    if str(lead.get("status") or "").lower() != "qualified" or package_key not in PACKAGES:
+        raise PermissionError("This seller package is not ready for online payment.")
+    session_id = str(lead.get("seller_checkout_session_id") or "").strip()
+    if str(lead.get("seller_checkout_status") or "").lower() != "sent" or not session_id.startswith("cs_"):
+        raise PermissionError("There is no active seller payment link to retrieve.")
+    async with httpx.AsyncClient(timeout=15) as client:
+        response = await client.get(f"https://api.stripe.com/v1/checkout/sessions/{urllib.parse.quote(session_id, safe='')}", auth=(STRIPE_SECRET_KEY, ""))
+    if response.status_code >= 300:
+        raise RuntimeError("Could not retrieve the seller payment link.")
+    session = response.json()
+    checkout_url = str(session.get("url") or "").strip()
+    if str(session.get("id") or "") != session_id or not checkout_url.startswith("https://"):
+        raise RuntimeError("The seller payment link is no longer available.")
+    return {"sellerLeadId": lead_id, "package": package_key, "checkoutUrl": checkout_url, "delivery": "existing"}

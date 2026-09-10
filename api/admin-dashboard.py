@@ -1696,6 +1696,10 @@ async def _create_seller_checkout_request(data):
     return await seller_checkout.create_request(data)
 
 
+async def _recover_seller_checkout_request(data):
+    return await seller_checkout.recover_request(data)
+
+
 async def _update_partner_lead(lead_id, status, onboarding_status=None):
     payload = {"status": status, "updated_at": datetime.now(timezone.utc).isoformat()}
     if onboarding_status:
@@ -6714,6 +6718,10 @@ class handler(BaseHTTPRequestHandler):
             if data.get("action") == "create_seller_checkout_request":
                 result = asyncio.run(_create_seller_checkout_request(data))
                 _json(self, 201, {"ok": True, "sellerCheckout": result})
+                return
+            if data.get("action") == "recover_seller_checkout_request":
+                result = asyncio.run(_recover_seller_checkout_request(data))
+                _json(self, 200, {"ok": True, "sellerCheckout": result})
                 return
             lead_id, status, onboarding_status = _parse_partner_lead_update(data)
             row = asyncio.run(_update_partner_lead(lead_id, status, onboarding_status))

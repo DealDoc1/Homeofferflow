@@ -76,6 +76,13 @@ class SellerCheckoutRequestTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("await navigator.clipboard.writeText(checkoutUrl)", INDEX)
         self.assertIn("window.prompt('Copy the secure seller payment link:', checkoutUrl)", INDEX)
 
+    def test_admin_recovers_an_existing_link_without_creating_a_second_checkout_or_email(self):
+        self.assertIn("recover_seller_checkout_request", INDEX)
+        self.assertIn("Copy payment link", INDEX)
+        self.assertIn("No new checkout or email was created.", INDEX)
+        self.assertIn("async def recover_request(data):", checkout_source := MODULE_PATH.read_text(encoding="utf-8"))
+        self.assertIn("https://api.stripe.com/v1/checkout/sessions/", checkout_source)
+
     def test_scope_confirmation_is_required(self):
         # This validates before database or payment-provider access.
         import asyncio
@@ -123,6 +130,31 @@ class SellerCheckoutRequestTests(unittest.IsolatedAsyncioTestCase):
         with patch.object(checkout.httpx, "AsyncClient", return_value=client), patch.object(checkout, "STRIPE_SECRET_KEY", "sk_test_x"):
             with self.assertRaisesRegex(PermissionError, "already been sent"):
                 await checkout.create_request({"seller_lead_id": self.lead_id, "scope_confirmed": True})
+        self.assertEqual(client.posts, [])
+
+    async def test_existing_seller_payment_link_can_be_retrieved_without_creating_a_new_session(self):
+        lead = {
+            "id": self.lead_id,
+            "service_level": "seller_prep",
+            "status": "qualified",
+            "seller_checkout_status": "sent",
+            "seller_checkout_session_id": "cs_live_existing",
+        }
+        session = {"id": "cs_live_existing", "url": "https://checkout.stripe.com/c/pay/cs_live_existing"}
+        class RecoveryClient(Client):
+            def __init__(self):
+                super().__init__(Response(200, [lead]))
+                self.calls = 0
+
+            async def get(self, *_args, **_kwargs):
+                self.calls += 1
+                return Response(200, [lead]) if self.calls == 1 else Response(200, session)
+
+        client = RecoveryClient()
+        with patch.object(checkout, "STRIPE_SECRET_KEY", "sk_test_x"), patch.object(checkout.httpx, "AsyncClient", return_value=client):
+            result = await checkout.recover_request({"seller_lead_id": self.lead_id, "scope_confirmed": True})
+        self.assertEqual(result["delivery"], "existing")
+        self.assertEqual(result["checkoutUrl"], session["url"])
         self.assertEqual(client.posts, [])
 
     async def test_stripe_checkout_request_uses_a_stable_seller_idempotency_key(self):

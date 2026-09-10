@@ -4782,18 +4782,23 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     const status = String(row?.status || '').toLowerCase();
     const paymentStatus = String(row?.seller_checkout_status || 'not_requested').toLowerCase();
     if (!/^[0-9a-f-]{36}$/i.test(leadId) || status !== 'qualified' || !['seller_prep', 'launch_kit'].includes(packageKey) || paymentStatus === 'paid') return '';
-    const label = paymentStatus === 'sent' ? 'Send a fresh payment link' : 'Send payment link';
-    return `<button type="button" class="admin-contact-action" onclick="sendSellerCheckoutRequest('${leadId}')">${label}</button>`;
+    const label = paymentStatus === 'sent' ? 'Copy payment link' : 'Send payment link';
+    const action = paymentStatus === 'sent' ? 'recover_seller_checkout_request' : 'create_seller_checkout_request';
+    return `<button type="button" class="admin-contact-action" onclick="sendSellerCheckoutRequest('${leadId}', '${action}')">${label}</button>`;
   }
 
-  async function sendSellerCheckoutRequest(leadId) {
+  async function sendSellerCheckoutRequest(leadId, action = 'create_seller_checkout_request') {
     if (!hofAuth?.session?.access_token) return;
-    if (!window.confirm('Confirm that you reviewed the seller’s scope and fixed price. This will email a private Stripe payment link for the exact Seller Prep Plan or FSBO Launch Kit.')) return;
+    const recovering = action === 'recover_seller_checkout_request';
+    const confirmation = recovering
+      ? 'Confirm that you reviewed the seller’s scope and fixed price. This will copy the existing private Stripe payment link. It will not create a new checkout or send another email.'
+      : 'Confirm that you reviewed the seller’s scope and fixed price. This will email a private Stripe payment link for the exact Seller Prep Plan or FSBO Launch Kit.';
+    if (!window.confirm(confirmation)) return;
     try {
       const response = await fetch('/api/admin-dashboard', {
         method: 'POST',
         headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${hofAuth.session.access_token}`},
-        body: JSON.stringify({action: 'create_seller_checkout_request', seller_lead_id: leadId, scope_confirmed: true})
+        body: JSON.stringify({action, seller_lead_id: leadId, scope_confirmed: true})
       });
       const result = await response.json().catch(() => ({}));
       if (!response.ok || result.error) throw new Error(result.error || 'Could not create a seller payment link.');
@@ -4801,6 +4806,14 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       const checkoutUrl = String(result?.sellerCheckout?.checkoutUrl || '');
       if (delivery === 'sent') {
         window.announceWorkspaceStatus?.('Seller payment link sent.');
+      } else if (delivery === 'existing' && checkoutUrl) {
+        try {
+          await navigator.clipboard.writeText(checkoutUrl);
+          window.announceWorkspaceStatus?.('The existing seller payment link was copied. No new checkout or email was created.');
+        } catch (_) {
+          window.prompt('Copy the existing secure seller payment link:', checkoutUrl);
+          window.announceWorkspaceStatus?.('Copy the existing seller payment link shown above. No new checkout or email was created.');
+        }
       } else if (checkoutUrl) {
         try {
           await navigator.clipboard.writeText(checkoutUrl);
