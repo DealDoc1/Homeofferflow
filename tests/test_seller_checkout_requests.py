@@ -186,6 +186,52 @@ class SellerCheckoutRequestTests(unittest.IsolatedAsyncioTestCase):
         request._handle_checkout_completed({"metadata": {"seller_lead_id": self.lead_id, "seller_package": "seller_prep"}, "payment_status": "paid"})
         self.assertEqual(captured["lead_id"], self.lead_id)
 
+    def test_completed_seller_checkout_sends_one_idempotent_payment_receipt(self):
+        class ReceiptResponse:
+            status_code = 202
+            text = ""
+
+        class ReceiptClient:
+            requests = []
+
+            def __init__(self, *_args, **_kwargs):
+                pass
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_args):
+                return False
+
+            def patch(self, url, **kwargs):
+                ReceiptClient.requests.append(("patch", url, kwargs))
+                return ReceiptResponse()
+
+            def post(self, url, **kwargs):
+                ReceiptClient.requests.append(("post", url, kwargs))
+                return ReceiptResponse()
+
+        request = webhook.handler.__new__(webhook.handler)
+        ReceiptClient.requests = []
+        session = {
+            "id": "cs_live_receipt",
+            "payment_intent": "pi_live_receipt",
+            "payment_status": "paid",
+            "customer_email": "seller@example.com",
+            "metadata": {"seller_package": "seller_prep"},
+        }
+        with patch.object(webhook, "RESEND_API_KEY", "re_test"), patch.object(webhook.httpx, "Client", ReceiptClient):
+            request._mark_seller_lead_paid(self.lead_id, session)
+        email = next(entry for entry in ReceiptClient.requests if entry[0] == "post")
+        self.assertEqual(email[1], "https://api.resend.com/emails")
+        self.assertEqual(email[2]["json"]["to"], ["seller@example.com"])
+        self.assertIn("Payment confirmed", email[2]["json"]["subject"])
+        self.assertEqual(email[2]["json"]["tags"], [
+            {"name": "email_type", "value": "seller_payment_receipt"},
+            {"name": "seller_package", "value": "seller_prep"},
+        ])
+        self.assertEqual(email[2]["headers"]["Idempotency-Key"], "seller-payment-receipt-cs_live_receipt")
+
     def test_unpaid_seller_checkout_cannot_mutate_a_lead(self):
         request = webhook.handler.__new__(webhook.handler)
         with self.assertRaisesRegex(ValueError, "has not completed payment"):

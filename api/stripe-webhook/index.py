@@ -23,6 +23,8 @@ SUPABASE_SERVICE_ROLE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
 PARTNER_ONBOARDING_FROM_EMAIL = os.environ.get("PARTNER_ONBOARDING_FROM_EMAIL", "offers@homeofferflow.com")
 PARTNER_ONBOARDING_REPLY_TO = os.environ.get("PARTNER_ONBOARDING_REPLY_TO") or os.environ.get("SUPPORT_EMAIL") or "support@homeofferflow.com"
+SELLER_PAYMENT_FROM_EMAIL = os.environ.get("SELLER_PAYMENT_FROM_EMAIL") or os.environ.get("SELLER_PLAN_FROM_EMAIL") or "offers@homeofferflow.com"
+SELLER_PAYMENT_REPLY_TO = os.environ.get("SELLER_PAYMENT_REPLY_TO") or os.environ.get("SUPPORT_EMAIL") or "support@homeofferflow.com"
 PUBLIC_APP_ORIGIN = (os.environ.get("PUBLIC_APP_ORIGIN") or "https://www.homeofferflow.com").rstrip("/")
 PARTNER_EMAIL_TIERS = frozenset({"founding_pilot", "monthly_placement", "market_exclusive", "discuss"})
 
@@ -868,6 +870,51 @@ class handler(BaseHTTPRequestHandler):
             )
         if response.status_code >= 300:
             raise Exception(f"Seller lead payment update failed: {response.status_code} {response.text}")
+        self._deliver_seller_checkout_receipt(session, package)
+
+    def _deliver_seller_checkout_receipt(self, session, package):
+        """Send one plain-language receipt after Stripe confirms payment."""
+        email = str((session.get("customer_details") or {}).get("email") or session.get("customer_email") or "").strip()
+        session_id = str(session.get("id") or "").strip()
+        labels = {
+            "seller_prep": "HomeOfferFlow Seller Prep Plan",
+            "launch_kit": "HomeOfferFlow FSBO Launch Kit",
+        }
+        label = labels.get(str(package or "").strip().lower())
+        if not RESEND_API_KEY or not email or not session_id.startswith("cs_") or not label:
+            return "not_configured" if not RESEND_API_KEY else "missing_receipt_details"
+        payload = {
+            "from": SELLER_PAYMENT_FROM_EMAIL,
+            "to": [email],
+            "reply_to": SELLER_PAYMENT_REPLY_TO,
+            "subject": f"Payment confirmed — {label}",
+            "tags": [
+                {"name": "email_type", "value": "seller_payment_receipt"},
+                {"name": "seller_package", "value": str(package).strip().lower()},
+            ],
+            "text": (
+                f"Your payment for {label} is confirmed. HomeOfferFlow will send your next steps shortly. "
+                "Payment confirms the selected package only; it does not create legal or brokerage representation."
+            ),
+        }
+        try:
+            with httpx.Client(timeout=12) as client:
+                response = client.post(
+                    "https://api.resend.com/emails",
+                    headers={
+                        "Authorization": f"Bearer {RESEND_API_KEY}",
+                        "Content-Type": "application/json",
+                        "Idempotency-Key": "seller-payment-receipt-" + session_id,
+                    },
+                    json=payload,
+                )
+            if response.status_code >= 300:
+                print(f"Seller payment receipt failed: {response.status_code}")
+                return "failed"
+            return "sent"
+        except Exception as exc:
+            print(f"Seller payment receipt failed: {str(exc)[:200]}")
+            return "failed"
 
     def _record_partner_onboarding_event(self, event_type, status, message, metadata=None):
         """Best-effort aggregate telemetry for automatic partner setup access."""
