@@ -86,6 +86,13 @@ class SellerDisclosureAgentUiTests(unittest.TestCase):
         self.assertIn("property_needs_repair", renderer)
         self.assertIn("filed_flood_claim", renderer)
 
+    def test_water_rights_questions_stay_out_of_the_way_until_that_disclosure_is_selected(self):
+        html = (ROOT / "index.html").read_text()
+        self.assertIn('id="hofSellerWaterResponses" hidden', html)
+        self.assertIn("function syncWaterRightsVisibility()", html)
+        self.assertIn("responses.hidden = !source.value", html)
+        self.assertIn("addEventListener('change', syncWaterRightsVisibility)", html)
+
     def test_seller_draft_can_link_to_private_listing_workspace(self):
         html = (ROOT / "index.html").read_text()
         self.assertIn('id="hofSellerWorkspace"', html)

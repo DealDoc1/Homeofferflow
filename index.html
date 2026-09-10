@@ -21365,6 +21365,12 @@ function routeAfterMagicLinkIfNeeded() {
     // service-role-only table and made every saved draft look unrequested.
     return payload.drafts || [];
   }
+  function syncWaterRightsVisibility() {
+    const source = document.getElementById('hofWaterSource');
+    const responses = document.getElementById('hofSellerWaterResponses');
+    if (!source || !responses) return;
+    responses.hidden = !source.value;
+  }
   root.loadSellerDisclosureDraft = function loadSellerDisclosureDraft(draftId) {
     const draft = draftCache.get(String(draftId || ''));
     if (!draft) return;
@@ -21373,6 +21379,7 @@ function routeAfterMagicLinkIfNeeded() {
     setValue('hofSellerAddress', draft.property_address);
     setValue('hofSellerSource', draft.disclosure_source_id);
     setValue('hofWaterSource', draft.water_source_id);
+    syncWaterRightsVisibility();
     setValue('hofSeller1', draft.seller_names?.[0]);
     setValue('hofSeller2', draft.seller_names?.[1]);
     const reviewLinks = Array.isArray(draft.sellerReviewLinks) ? draft.sellerReviewLinks : [];
@@ -21564,7 +21571,7 @@ function routeAfterMagicLinkIfNeeded() {
     card.innerHTML = '<h4>Seller disclosure</h4><p>Answer a short set of property questions, review the completed disclosure with the seller, then send it to the people who need to sign.</p><details id="hofSellerDisclosureWorkspace" class="hof-seller-disclosure-workspace"><summary><strong>Start or continue a seller disclosure</strong><br><small>Your information stays private until you send it for seller review.</small></summary><div style="margin-top:1rem">' +
       '<details class="hof-seller-step" open><summary><span class="hof-seller-step-number">1</span><span class="hof-seller-step-copy"><strong>Property and people</strong><small>Tell us who is involved and select the disclosure form.</small></span></summary><div class="hof-seller-grid"><label>Link to a listing (optional)<select id="hofSellerWorkspace"><option value="">Do not link this disclosure to a listing</option></select></label><label>Property address<input id="hofSellerAddress" maxlength="400" autocomplete="street-address" inputmode="text" placeholder="Street address, city, state, ZIP"></label><label>Disclosure form<select id="hofSellerSource"></select></label><label>Seller 1 name<input id="hofSeller1" maxlength="180"></label><label>Seller 1 review email<input id="hofSellerEmail" type="email" maxlength="320" autocomplete="email" placeholder="seller1@example.com"></label><label>Seller 2 name (optional)<input id="hofSeller2" maxlength="180"></label><label>Seller 2 review email (optional)<input id="hofSeller2Email" type="email" maxlength="320" autocomplete="email" placeholder="seller2@example.com"></label><label>Buyer 1 name (optional)<input id="hofBuyer1" maxlength="180"></label><label>Buyer 2 name (optional)<input id="hofBuyer2" maxlength="180"></label></div></details>' +
       '<details class="hof-seller-step"><summary><span class="hof-seller-step-number">2</span><span class="hof-seller-step-copy"><strong>Property details</strong><small>Work through systems, known conditions, repairs, and flood history.</small></span></summary>' + renderResponses() + '</details>' +
-      '<details class="hof-seller-step"><summary><span class="hof-seller-step-number">3</span><span class="hof-seller-step-copy"><strong>Water rights, if they apply</strong><small>Add this only when the property needs a water-rights disclosure.</small></span></summary><label>Water-rights disclosure (optional)<select id="hofWaterSource"><option value="">Do not include</option></select></label>' + renderWaterResponses() + '</details>' +
+      '<details class="hof-seller-step"><summary><span class="hof-seller-step-number">3</span><span class="hof-seller-step-copy"><strong>Water rights, if they apply</strong><small>Add this only when the property needs a water-rights disclosure.</small></span></summary><label>Water-rights disclosure (optional)<select id="hofWaterSource"><option value="">Do not include</option></select></label><div id="hofSellerWaterResponses" hidden>' + renderWaterResponses() + '</div></details>' +
       '<div class="hof-seller-actions"><button class="btn-primary" type="button" id="hofSaveSellerDraft">Save and preview</button><button class="btn-secondary" type="button" id="hofSendSellerReview" disabled>Send seller review email</button><span id="hofSellerDraftStatus" class="hof-iabs-status" role="status" aria-live="polite" aria-atomic="true"></span></div><h5>Saved seller disclosures</h5><div class="hof-seller-actions"><input id="hofSellerDraftFilter" type="search" placeholder="Search address or seller" aria-label="Search saved seller disclosures" oninput="filterSellerDisclosureDrafts(this.value)"><span id="hofSellerDraftSummary" class="hof-iabs-status"></span></div><ul id="hofSellerDraftList" class="hof-private-form-drafts-list"><li>Loading…</li></ul></div></details>';
     panel.appendChild(card);
     try {
@@ -21573,6 +21580,8 @@ function routeAfterMagicLinkIfNeeded() {
       const water = sources.find(s => s.form_code === 'TREC-61-0');
       document.getElementById('hofSellerSource').innerHTML = seller ? '<option value="' + escape(seller.id) + '">' + escape(seller.source_revision) + '</option>' : '<option value="">No approved TREC-55-1 form available</option>';
       if (water) document.getElementById('hofWaterSource').insertAdjacentHTML('beforeend','<option value="' + escape(water.id) + '">' + escape(water.source_revision) + '</option>');
+      document.getElementById('hofWaterSource').addEventListener('change', syncWaterRightsVisibility);
+      syncWaterRightsVisibility();
       const workspaces = await loadListingWorkspaces();
       document.getElementById('hofSellerWorkspace').insertAdjacentHTML('beforeend', workspaces.map(workspace => {
         const label = [workspace.property_address, workspace.listing_kind, (workspace.seller_names || []).join(', ')].filter(Boolean).join(' · ');
