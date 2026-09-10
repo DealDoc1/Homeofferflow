@@ -26,6 +26,10 @@ PARTNER_ONBOARDING_REPLY_TO = os.environ.get("PARTNER_ONBOARDING_REPLY_TO") or o
 SELLER_PAYMENT_FROM_EMAIL = os.environ.get("SELLER_PAYMENT_FROM_EMAIL") or os.environ.get("SELLER_PLAN_FROM_EMAIL") or os.environ.get("RESEND_TRANSACTION_FROM_EMAIL") or os.environ.get("FEEDBACK_FROM_EMAIL") or "offers@homeofferflow.com"
 SELLER_PAYMENT_REPLY_TO = os.environ.get("SELLER_PAYMENT_REPLY_TO") or os.environ.get("SUPPORT_EMAIL") or "support@homeofferflow.com"
 PUBLIC_APP_ORIGIN = (os.environ.get("PUBLIC_APP_ORIGIN") or "https://www.homeofferflow.com").rstrip("/")
+INTERNAL_CHECKOUT_FORWARD_SECRET = (
+    os.environ.get("STRIPE_INTERNAL_CHECKOUT_FORWARD_SECRET", "")
+    or STRIPE_WEBHOOK_SECRET
+)
 PARTNER_EMAIL_TIERS = frozenset({"founding_pilot", "monthly_placement", "market_exclusive", "discuss"})
 
 
@@ -488,6 +492,14 @@ class handler(BaseHTTPRequestHandler):
             self._mark_seller_lead_paid(seller_lead_id, session)
             return
 
+        # One-time buyer offer and showing orders are fulfilled by the mature
+        # packet service. The subscription webhook is still the sole Stripe
+        # verification and idempotency boundary; it makes a signed internal
+        # handoff only after the event has been claimed in its ledger.
+        if self._is_packet_fulfillment_checkout(metadata):
+            self._forward_checkout_fulfillment(session)
+            return
+
         subscription_id = session.get("subscription", "")
         customer_id = session.get("customer", "")
 
@@ -518,6 +530,51 @@ class handler(BaseHTTPRequestHandler):
                 self._activate_brokerage_membership(user_id, email, brokerage_id)
         elif subscription_id:
             self._patch_subscription_by_stripe_subscription_id(subscription_id, payload)
+
+    @staticmethod
+    def _is_packet_fulfillment_checkout(metadata):
+        plan = str(metadata.get("plan") or "").strip().lower()
+        has_offer = bool(metadata.get("offer_data") or metadata.get("offer_parts"))
+        return plan in {"self", "showing-booking"} and has_offer
+
+    @staticmethod
+    def _checkout_fulfillment_origin():
+        # A preview must never relay a test payment into production merely
+        # because PUBLIC_APP_ORIGIN was copied from production. Vercel exposes
+        # its exact preview host through VERCEL_URL.
+        environment = os.environ.get("VERCEL_ENV", "").strip().lower()
+        preview_host = os.environ.get("VERCEL_URL", "").strip().strip("/")
+        if environment and environment != "production" and preview_host:
+            return f"https://{preview_host}"
+        return PUBLIC_APP_ORIGIN
+
+    def _forward_checkout_fulfillment(self, session):
+        if not INTERNAL_CHECKOUT_FORWARD_SECRET:
+            raise RuntimeError("Checkout fulfillment forwarding is not configured")
+
+        event = {"type": "checkout.session.completed", "data": {"object": session}}
+        body = json.dumps(event, separators=(",", ":")).encode("utf-8")
+        timestamp = str(int(time.time()))
+        signature = hmac.new(
+            INTERNAL_CHECKOUT_FORWARD_SECRET.encode("utf-8"),
+            timestamp.encode("utf-8") + b"." + body,
+            hashlib.sha256,
+        ).hexdigest()
+        origin = self._checkout_fulfillment_origin().rstrip("/")
+        if not origin.startswith("https://"):
+            raise RuntimeError("Checkout fulfillment origin must use HTTPS")
+
+        with httpx.Client(timeout=45) as client:
+            response = client.post(
+                f"{origin}/api/fill-pdf.py",
+                content=body,
+                headers={
+                    "Content-Type": "application/json",
+                    "X-HomeOfferFlow-Checkout-Signature": f"t={timestamp},v1={signature}",
+                },
+            )
+        if response.status_code < 200 or response.status_code >= 300:
+            raise RuntimeError("Checkout fulfillment handoff failed")
 
     def _handle_subscription_event(self, sub, event_type):
         payload, user_id, email, brokerage_id = self._extract_subscription_payload(sub)

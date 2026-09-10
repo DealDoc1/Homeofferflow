@@ -1,4 +1,4 @@
-import json, os, base64, hashlib, hmac, httpx, re, urllib.parse
+import json, os, base64, hashlib, hmac, httpx, re, time, urllib.parse
 from datetime import datetime, timezone
 from io import BytesIO
 from http.server import BaseHTTPRequestHandler
@@ -18,6 +18,15 @@ from lib.production_adapter import (
 
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
 STRIPE_WHSEC   = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
+# The subscription webhook forwards eligible one-time buyer orders after it
+# verifies Stripe's signature and claims the event in the delivery ledger.
+# This secret authenticates that server-to-server handoff without exposing a
+# second public generation route. The dedicated value permits future rotation;
+# the subscription webhook secret is the safe compatibility default.
+INTERNAL_CHECKOUT_FORWARD_SECRET = (
+    os.environ.get("STRIPE_INTERNAL_CHECKOUT_FORWARD_SECRET", "")
+    or os.environ.get("STRIPE_SUBSCRIPTION_WEBHOOK_SECRET", "")
+)
 FROM_EMAIL     = "offers@homeofferflow.com"
 SUPPORT_EMAIL  = "support@homeofferflow.com"
 SHOWING_NOTIFY_EMAIL = os.environ.get("SHOWING_NOTIFY_EMAIL", "andrew@ondemanddfw.com,support@homeofferflow.com")
@@ -389,6 +398,35 @@ def verify_stripe_signature(body, sig_header, secret):
 
         return any(hmac.compare_digest(expected, s) for s in signatures)
 
+    except Exception:
+        return False
+
+
+def verify_internal_checkout_forward_signature(body, sig_header, secret):
+    """Verify a short-lived server-to-server checkout fulfillment handoff."""
+    if not secret or not sig_header:
+        return False
+
+    try:
+        parts = {}
+        for item in sig_header.split(","):
+            if "=" not in item:
+                continue
+            key, value = item.split("=", 1)
+            parts.setdefault(key.strip(), []).append(value.strip())
+
+        timestamp = parts.get("t", [""])[0]
+        signatures = parts.get("v1", [])
+        timestamp_int = int(timestamp)
+        if abs(time.time() - timestamp_int) > 300:
+            return False
+
+        expected = hmac.new(
+            secret.encode("utf-8"),
+            f"{timestamp}.".encode("utf-8") + body,
+            hashlib.sha256,
+        ).hexdigest()
+        return any(hmac.compare_digest(expected, value) for value in signatures)
     except Exception:
         return False
 
@@ -2151,13 +2189,20 @@ class handler(BaseHTTPRequestHandler):
 
             # Stripe webhook path: paid checkout sends a checkout.session.completed event.
             if isinstance(payload, dict) and payload.get("type") == "checkout.session.completed":
-                sig = self.headers.get("stripe-signature", "")
+                stripe_sig = self.headers.get("stripe-signature", "")
+                internal_sig = self.headers.get("x-homeofferflow-checkout-signature", "")
                 metadata = ((payload.get("data") or {}).get("object") or {}).get("metadata") or {}
                 is_subscription_generation = str(metadata.get("subscription_generation") or "").lower() == "true"
                 subscription_user_id = None
-                if sig:
-                    if not verify_stripe_signature(body, sig, STRIPE_WHSEC):
+                if stripe_sig:
+                    if not verify_stripe_signature(body, stripe_sig, STRIPE_WHSEC):
                         self._json(401, {"error": "Invalid Stripe signature"})
+                        return
+                elif internal_sig:
+                    if not verify_internal_checkout_forward_signature(
+                        body, internal_sig, INTERNAL_CHECKOUT_FORWARD_SECRET
+                    ):
+                        self._json(401, {"error": "Invalid checkout delivery signature"})
                         return
                 elif is_subscription_generation:
                     user_id = self._verified_user()
