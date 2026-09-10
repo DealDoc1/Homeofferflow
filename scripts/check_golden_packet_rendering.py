@@ -28,6 +28,17 @@ LAYOUT_COLUMNS = 24
 LAYOUT_ROWS = 32
 MAX_LAYOUT_CELL_DELTA = 18
 MAX_LAYOUT_MEAN_DELTA = 2.5
+SIGNING_GEOMETRY_KEYS = (
+    "api_id",
+    "type",
+    "page",
+    "x",
+    "y",
+    "width",
+    "height",
+    "recipient_id",
+    "required",
+)
 
 # Running a script by file path places ``scripts/`` on sys.path, not the
 # repository root. Add the root explicitly so the documented command can
@@ -110,6 +121,8 @@ def _cross_platform_visual_match(actual, expected):
             return False, f"{scenario_name}: page count changed"
         if actual_scenario["field_ids"] != expected_scenario["field_ids"]:
             return False, f"{scenario_name}: signing field IDs changed"
+        if actual_scenario.get("field_geometry") != expected_scenario.get("field_geometry"):
+            return False, f"{scenario_name}: signing field placement changed"
         for page_number, (actual_page, expected_page) in enumerate(zip(actual_scenario["pages"], expected_scenario["pages"]), start=1):
             if (actual_page["width"], actual_page["height"]) != (expected_page["width"], expected_page["height"]):
                 return False, f"{scenario_name} page {page_number}: rendered dimensions changed"
@@ -128,6 +141,21 @@ def _cross_platform_visual_match(actual, expected):
                     f"(mean delta {mean_delta:.2f}, max delta {max(deltas):.0f})"
                 )
     return True, ""
+
+
+def _field_geometry(fields):
+    """Return a stable, privacy-safe signer-placement contract.
+
+    The rendered page grid catches broad visual drift, but a signature or
+    date widget can move within an otherwise identical page.  Store only the
+    field identity, recipient role, required state, page, and rectangle—not
+    names, emails, addresses, or any document data—so the approved golden
+    suite catches those coordinate regressions too.
+    """
+    return [
+        {key: field.get(key) for key in SIGNING_GEOMETRY_KEYS}
+        for field in sorted(fields, key=lambda field: str(field.get("api_id") or ""))
+    ]
 
 
 def build_manifest(selected=None):
@@ -156,6 +184,7 @@ def build_manifest(selected=None):
             manifest["scenarios"][name] = {
                 "page_count": len(PdfReader(BytesIO(packet)).pages),
                 "field_ids": sorted(field["api_id"] for field in fields),
+                "field_geometry": _field_geometry(fields),
                 "pages": [_image_hash(page) for page in pages],
             }
             for page in pages:
@@ -202,6 +231,7 @@ def main():
                     name: {
                         "page_count": scenario["page_count"],
                         "field_ids": scenario["field_ids"],
+                        "field_geometry": scenario["field_geometry"],
                     }
                     for name, scenario in manifest["scenarios"].items()
                 },

@@ -3,6 +3,558 @@
   "renderer": "pdftoppm",
   "scenarios": {
     "all_supported_addenda": {
+      "field_geometry": [
+        {
+          "api_id": "buyer1_appraisal_addendum_date",
+          "height": 16,
+          "page": 15,
+          "recipient_id": "1",
+          "required": true,
+          "type": "date",
+          "width": 66,
+          "x": 260,
+          "y": 780
+        },
+        {
+          "api_id": "buyer1_appraisal_addendum_signature",
+          "height": 20,
+          "page": 15,
+          "recipient_id": "1",
+          "required": true,
+          "type": "signature",
+          "width": 145,
+          "x": 85,
+          "y": 780
+        },
+        {
+          "api_id": "buyer1_backup_addendum_date",
+          "height": 16,
+          "page": 20,
+          "recipient_id": "1",
+          "required": true,
+          "type": "date",
+          "width": 66,
+          "x": 286,
+          "y": 220
+        },
+        {
+          "api_id": "buyer1_backup_addendum_signature",
+          "height": 20,
+          "page": 20,
+          "recipient_id": "1",
+          "required": true,
+          "type": "signature",
+          "width": 145,
+          "x": 122,
+          "y": 220
+        },
+        {
+          "api_id": "buyer1_financing_addendum_date",
+          "height": 16,
+          "page": 14,
+          "recipient_id": "1",
+          "required": true,
+          "type": "date",
+          "width": 66,
+          "x": 266,
+          "y": 808
+        },
+        {
+          "api_id": "buyer1_financing_addendum_signature",
+          "height": 20,
+          "page": 14,
+          "recipient_id": "1",
+          "required": true,
+          "type": "signature",
+          "width": 145,
+          "x": 112,
+          "y": 808
+        },
+        {
+          "api_id": "buyer1_hoa_addendum_date",
+          "height": 16,
+          "page": 17,
+          "recipient_id": "1",
+          "required": true,
+          "type": "date",
+          "width": 66,
+          "x": 286,
+          "y": 842
+        },
+        {
+          "api_id": "buyer1_hoa_addendum_signature",
+          "height": 20,
+          "page": 17,
+          "recipient_id": "1",
+          "required": true,
+          "type": "signature",
+          "width": 145,
+          "x": 112,
+          "y": 842
+        },
+        {
+          "api_id": "buyer1_initials_backup_p1",
+          "height": 10,
+          "page": 19,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 280,
+          "y": 1004
+        },
+        {
+          "api_id": "buyer1_initials_financing_p1",
+          "height": 10,
+          "page": 13,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 280,
+          "y": 1004
+        },
+        {
+          "api_id": "buyer1_initials_main_p1",
+          "height": 10,
+          "page": 1,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p2",
+          "height": 10,
+          "page": 2,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p3",
+          "height": 10,
+          "page": 3,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p4",
+          "height": 10,
+          "page": 4,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p5",
+          "height": 10,
+          "page": 5,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p6",
+          "height": 10,
+          "page": 6,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p7",
+          "height": 10,
+          "page": 7,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p8",
+          "height": 10,
+          "page": 8,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p9",
+          "height": 10,
+          "page": 9,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_main_contract_date",
+          "height": 16,
+          "page": 10,
+          "recipient_id": "1",
+          "required": true,
+          "type": "date",
+          "width": 66,
+          "x": 286,
+          "y": 433
+        },
+        {
+          "api_id": "buyer1_main_contract_signature",
+          "height": 20,
+          "page": 10,
+          "recipient_id": "1",
+          "required": true,
+          "type": "signature",
+          "width": 145,
+          "x": 115,
+          "y": 433
+        },
+        {
+          "api_id": "buyer1_non_realty_items_addendum_date",
+          "height": 16,
+          "page": 16,
+          "recipient_id": "1",
+          "required": true,
+          "type": "date",
+          "width": 66,
+          "x": 246,
+          "y": 703
+        },
+        {
+          "api_id": "buyer1_non_realty_items_addendum_signature",
+          "height": 20,
+          "page": 16,
+          "recipient_id": "1",
+          "required": true,
+          "type": "signature",
+          "width": 145,
+          "x": 76,
+          "y": 703
+        },
+        {
+          "api_id": "buyer1_sale_other_property_addendum_date",
+          "height": 16,
+          "page": 18,
+          "recipient_id": "1",
+          "required": true,
+          "type": "date",
+          "width": 66,
+          "x": 286,
+          "y": 705
+        },
+        {
+          "api_id": "buyer1_sale_other_property_addendum_signature",
+          "height": 20,
+          "page": 18,
+          "recipient_id": "1",
+          "required": true,
+          "type": "signature",
+          "width": 145,
+          "x": 112,
+          "y": 705
+        },
+        {
+          "api_id": "buyer2_appraisal_addendum_date",
+          "height": 16,
+          "page": 15,
+          "recipient_id": "2",
+          "required": true,
+          "type": "date",
+          "width": 66,
+          "x": 260,
+          "y": 868
+        },
+        {
+          "api_id": "buyer2_appraisal_addendum_signature",
+          "height": 20,
+          "page": 15,
+          "recipient_id": "2",
+          "required": true,
+          "type": "signature",
+          "width": 145,
+          "x": 85,
+          "y": 868
+        },
+        {
+          "api_id": "buyer2_backup_addendum_date",
+          "height": 16,
+          "page": 20,
+          "recipient_id": "2",
+          "required": true,
+          "type": "date",
+          "width": 66,
+          "x": 286,
+          "y": 318
+        },
+        {
+          "api_id": "buyer2_backup_addendum_signature",
+          "height": 20,
+          "page": 20,
+          "recipient_id": "2",
+          "required": true,
+          "type": "signature",
+          "width": 145,
+          "x": 122,
+          "y": 318
+        },
+        {
+          "api_id": "buyer2_financing_addendum_date",
+          "height": 16,
+          "page": 14,
+          "recipient_id": "2",
+          "required": true,
+          "type": "date",
+          "width": 66,
+          "x": 266,
+          "y": 884
+        },
+        {
+          "api_id": "buyer2_financing_addendum_signature",
+          "height": 20,
+          "page": 14,
+          "recipient_id": "2",
+          "required": true,
+          "type": "signature",
+          "width": 145,
+          "x": 112,
+          "y": 884
+        },
+        {
+          "api_id": "buyer2_hoa_addendum_date",
+          "height": 16,
+          "page": 17,
+          "recipient_id": "2",
+          "required": true,
+          "type": "date",
+          "width": 66,
+          "x": 286,
+          "y": 914
+        },
+        {
+          "api_id": "buyer2_hoa_addendum_signature",
+          "height": 20,
+          "page": 17,
+          "recipient_id": "2",
+          "required": true,
+          "type": "signature",
+          "width": 145,
+          "x": 112,
+          "y": 914
+        },
+        {
+          "api_id": "buyer2_initials_backup_p1",
+          "height": 10,
+          "page": 19,
+          "recipient_id": "2",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 314,
+          "y": 1004
+        },
+        {
+          "api_id": "buyer2_initials_financing_p1",
+          "height": 10,
+          "page": 13,
+          "recipient_id": "2",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 314,
+          "y": 1014
+        },
+        {
+          "api_id": "buyer2_initials_main_p1",
+          "height": 10,
+          "page": 1,
+          "recipient_id": "2",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 352,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer2_initials_main_p2",
+          "height": 10,
+          "page": 2,
+          "recipient_id": "2",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 352,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer2_initials_main_p3",
+          "height": 10,
+          "page": 3,
+          "recipient_id": "2",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 352,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer2_initials_main_p4",
+          "height": 10,
+          "page": 4,
+          "recipient_id": "2",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 352,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer2_initials_main_p5",
+          "height": 10,
+          "page": 5,
+          "recipient_id": "2",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 352,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer2_initials_main_p6",
+          "height": 10,
+          "page": 6,
+          "recipient_id": "2",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 352,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer2_initials_main_p7",
+          "height": 10,
+          "page": 7,
+          "recipient_id": "2",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 352,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer2_initials_main_p8",
+          "height": 10,
+          "page": 8,
+          "recipient_id": "2",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 352,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer2_initials_main_p9",
+          "height": 10,
+          "page": 9,
+          "recipient_id": "2",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 352,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer2_main_contract_date",
+          "height": 16,
+          "page": 10,
+          "recipient_id": "2",
+          "required": true,
+          "type": "date",
+          "width": 66,
+          "x": 286,
+          "y": 568
+        },
+        {
+          "api_id": "buyer2_main_contract_signature",
+          "height": 20,
+          "page": 10,
+          "recipient_id": "2",
+          "required": true,
+          "type": "signature",
+          "width": 145,
+          "x": 115,
+          "y": 568
+        },
+        {
+          "api_id": "buyer2_non_realty_items_addendum_date",
+          "height": 16,
+          "page": 16,
+          "recipient_id": "2",
+          "required": true,
+          "type": "date",
+          "width": 66,
+          "x": 246,
+          "y": 775
+        },
+        {
+          "api_id": "buyer2_non_realty_items_addendum_signature",
+          "height": 20,
+          "page": 16,
+          "recipient_id": "2",
+          "required": true,
+          "type": "signature",
+          "width": 145,
+          "x": 76,
+          "y": 775
+        },
+        {
+          "api_id": "buyer2_sale_other_property_addendum_date",
+          "height": 16,
+          "page": 18,
+          "recipient_id": "2",
+          "required": true,
+          "type": "date",
+          "width": 66,
+          "x": 286,
+          "y": 785
+        },
+        {
+          "api_id": "buyer2_sale_other_property_addendum_signature",
+          "height": 20,
+          "page": 18,
+          "recipient_id": "2",
+          "required": true,
+          "type": "signature",
+          "width": 145,
+          "x": 112,
+          "y": 785
+        }
+      ],
       "field_ids": [
         "buyer1_appraisal_addendum_date",
         "buyer1_appraisal_addendum_signature",
@@ -180,6 +732,184 @@
       ]
     },
     "appraisal": {
+      "field_geometry": [
+        {
+          "api_id": "buyer1_appraisal_addendum_date",
+          "height": 16,
+          "page": 15,
+          "recipient_id": "1",
+          "required": true,
+          "type": "date",
+          "width": 66,
+          "x": 260,
+          "y": 780
+        },
+        {
+          "api_id": "buyer1_appraisal_addendum_signature",
+          "height": 20,
+          "page": 15,
+          "recipient_id": "1",
+          "required": true,
+          "type": "signature",
+          "width": 145,
+          "x": 85,
+          "y": 780
+        },
+        {
+          "api_id": "buyer1_financing_addendum_date",
+          "height": 16,
+          "page": 14,
+          "recipient_id": "1",
+          "required": true,
+          "type": "date",
+          "width": 66,
+          "x": 266,
+          "y": 808
+        },
+        {
+          "api_id": "buyer1_financing_addendum_signature",
+          "height": 20,
+          "page": 14,
+          "recipient_id": "1",
+          "required": true,
+          "type": "signature",
+          "width": 145,
+          "x": 112,
+          "y": 808
+        },
+        {
+          "api_id": "buyer1_initials_financing_p1",
+          "height": 10,
+          "page": 13,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 280,
+          "y": 1004
+        },
+        {
+          "api_id": "buyer1_initials_main_p1",
+          "height": 10,
+          "page": 1,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p2",
+          "height": 10,
+          "page": 2,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p3",
+          "height": 10,
+          "page": 3,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p4",
+          "height": 10,
+          "page": 4,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p5",
+          "height": 10,
+          "page": 5,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p6",
+          "height": 10,
+          "page": 6,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p7",
+          "height": 10,
+          "page": 7,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p8",
+          "height": 10,
+          "page": 8,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p9",
+          "height": 10,
+          "page": 9,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_main_contract_date",
+          "height": 16,
+          "page": 10,
+          "recipient_id": "1",
+          "required": true,
+          "type": "date",
+          "width": 66,
+          "x": 286,
+          "y": 433
+        },
+        {
+          "api_id": "buyer1_main_contract_signature",
+          "height": 20,
+          "page": 10,
+          "recipient_id": "1",
+          "required": true,
+          "type": "signature",
+          "width": 145,
+          "x": 115,
+          "y": 433
+        }
+      ],
       "field_ids": [
         "buyer1_appraisal_addendum_date",
         "buyer1_appraisal_addendum_signature",
@@ -293,6 +1023,162 @@
       ]
     },
     "backup_contract": {
+      "field_geometry": [
+        {
+          "api_id": "buyer1_backup_addendum_date",
+          "height": 16,
+          "page": 14,
+          "recipient_id": "1",
+          "required": true,
+          "type": "date",
+          "width": 66,
+          "x": 286,
+          "y": 220
+        },
+        {
+          "api_id": "buyer1_backup_addendum_signature",
+          "height": 20,
+          "page": 14,
+          "recipient_id": "1",
+          "required": true,
+          "type": "signature",
+          "width": 145,
+          "x": 122,
+          "y": 220
+        },
+        {
+          "api_id": "buyer1_initials_backup_p1",
+          "height": 10,
+          "page": 13,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 280,
+          "y": 1004
+        },
+        {
+          "api_id": "buyer1_initials_main_p1",
+          "height": 10,
+          "page": 1,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p2",
+          "height": 10,
+          "page": 2,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p3",
+          "height": 10,
+          "page": 3,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p4",
+          "height": 10,
+          "page": 4,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p5",
+          "height": 10,
+          "page": 5,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p6",
+          "height": 10,
+          "page": 6,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p7",
+          "height": 10,
+          "page": 7,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p8",
+          "height": 10,
+          "page": 8,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p9",
+          "height": 10,
+          "page": 9,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_main_contract_date",
+          "height": 16,
+          "page": 10,
+          "recipient_id": "1",
+          "required": true,
+          "type": "date",
+          "width": 66,
+          "x": 286,
+          "y": 433
+        },
+        {
+          "api_id": "buyer1_main_contract_signature",
+          "height": 20,
+          "page": 10,
+          "recipient_id": "1",
+          "required": true,
+          "type": "signature",
+          "width": 145,
+          "x": 115,
+          "y": 433
+        }
+      ],
       "field_ids": [
         "buyer1_backup_addendum_date",
         "buyer1_backup_addendum_signature",
@@ -398,6 +1284,129 @@
       ]
     },
     "cash_single": {
+      "field_geometry": [
+        {
+          "api_id": "buyer1_initials_main_p1",
+          "height": 10,
+          "page": 1,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p2",
+          "height": 10,
+          "page": 2,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p3",
+          "height": 10,
+          "page": 3,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p4",
+          "height": 10,
+          "page": 4,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p5",
+          "height": 10,
+          "page": 5,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p6",
+          "height": 10,
+          "page": 6,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p7",
+          "height": 10,
+          "page": 7,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p8",
+          "height": 10,
+          "page": 8,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p9",
+          "height": 10,
+          "page": 9,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_main_contract_date",
+          "height": 16,
+          "page": 10,
+          "recipient_id": "1",
+          "required": true,
+          "type": "date",
+          "width": 66,
+          "x": 286,
+          "y": 433
+        },
+        {
+          "api_id": "buyer1_main_contract_signature",
+          "height": 20,
+          "page": 10,
+          "recipient_id": "1",
+          "required": true,
+          "type": "signature",
+          "width": 145,
+          "x": 115,
+          "y": 433
+        }
+      ],
       "field_ids": [
         "buyer1_initials_main_p1",
         "buyer1_initials_main_p2",
@@ -488,6 +1497,250 @@
       ]
     },
     "cash_two": {
+      "field_geometry": [
+        {
+          "api_id": "buyer1_initials_main_p1",
+          "height": 10,
+          "page": 1,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p2",
+          "height": 10,
+          "page": 2,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p3",
+          "height": 10,
+          "page": 3,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p4",
+          "height": 10,
+          "page": 4,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p5",
+          "height": 10,
+          "page": 5,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p6",
+          "height": 10,
+          "page": 6,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p7",
+          "height": 10,
+          "page": 7,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p8",
+          "height": 10,
+          "page": 8,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p9",
+          "height": 10,
+          "page": 9,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_main_contract_date",
+          "height": 16,
+          "page": 10,
+          "recipient_id": "1",
+          "required": true,
+          "type": "date",
+          "width": 66,
+          "x": 286,
+          "y": 433
+        },
+        {
+          "api_id": "buyer1_main_contract_signature",
+          "height": 20,
+          "page": 10,
+          "recipient_id": "1",
+          "required": true,
+          "type": "signature",
+          "width": 145,
+          "x": 115,
+          "y": 433
+        },
+        {
+          "api_id": "buyer2_initials_main_p1",
+          "height": 10,
+          "page": 1,
+          "recipient_id": "2",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 352,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer2_initials_main_p2",
+          "height": 10,
+          "page": 2,
+          "recipient_id": "2",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 352,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer2_initials_main_p3",
+          "height": 10,
+          "page": 3,
+          "recipient_id": "2",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 352,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer2_initials_main_p4",
+          "height": 10,
+          "page": 4,
+          "recipient_id": "2",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 352,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer2_initials_main_p5",
+          "height": 10,
+          "page": 5,
+          "recipient_id": "2",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 352,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer2_initials_main_p6",
+          "height": 10,
+          "page": 6,
+          "recipient_id": "2",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 352,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer2_initials_main_p7",
+          "height": 10,
+          "page": 7,
+          "recipient_id": "2",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 352,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer2_initials_main_p8",
+          "height": 10,
+          "page": 8,
+          "recipient_id": "2",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 352,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer2_initials_main_p9",
+          "height": 10,
+          "page": 9,
+          "recipient_id": "2",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 352,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer2_main_contract_date",
+          "height": 16,
+          "page": 10,
+          "recipient_id": "2",
+          "required": true,
+          "type": "date",
+          "width": 66,
+          "x": 286,
+          "y": 568
+        },
+        {
+          "api_id": "buyer2_main_contract_signature",
+          "height": 20,
+          "page": 10,
+          "recipient_id": "2",
+          "required": true,
+          "type": "signature",
+          "width": 145,
+          "x": 115,
+          "y": 568
+        }
+      ],
       "field_ids": [
         "buyer1_initials_main_p1",
         "buyer1_initials_main_p2",
@@ -589,6 +1842,162 @@
       ]
     },
     "conventional_single": {
+      "field_geometry": [
+        {
+          "api_id": "buyer1_financing_addendum_date",
+          "height": 16,
+          "page": 14,
+          "recipient_id": "1",
+          "required": true,
+          "type": "date",
+          "width": 66,
+          "x": 266,
+          "y": 808
+        },
+        {
+          "api_id": "buyer1_financing_addendum_signature",
+          "height": 20,
+          "page": 14,
+          "recipient_id": "1",
+          "required": true,
+          "type": "signature",
+          "width": 145,
+          "x": 112,
+          "y": 808
+        },
+        {
+          "api_id": "buyer1_initials_financing_p1",
+          "height": 10,
+          "page": 13,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 280,
+          "y": 1004
+        },
+        {
+          "api_id": "buyer1_initials_main_p1",
+          "height": 10,
+          "page": 1,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p2",
+          "height": 10,
+          "page": 2,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p3",
+          "height": 10,
+          "page": 3,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p4",
+          "height": 10,
+          "page": 4,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p5",
+          "height": 10,
+          "page": 5,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p6",
+          "height": 10,
+          "page": 6,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p7",
+          "height": 10,
+          "page": 7,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p8",
+          "height": 10,
+          "page": 8,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p9",
+          "height": 10,
+          "page": 9,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_main_contract_date",
+          "height": 16,
+          "page": 10,
+          "recipient_id": "1",
+          "required": true,
+          "type": "date",
+          "width": 66,
+          "x": 286,
+          "y": 433
+        },
+        {
+          "api_id": "buyer1_main_contract_signature",
+          "height": 20,
+          "page": 10,
+          "recipient_id": "1",
+          "required": true,
+          "type": "signature",
+          "width": 145,
+          "x": 115,
+          "y": 433
+        }
+      ],
       "field_ids": [
         "buyer1_financing_addendum_date",
         "buyer1_financing_addendum_signature",
@@ -694,6 +2103,316 @@
       ]
     },
     "conventional_two_buyers": {
+      "field_geometry": [
+        {
+          "api_id": "buyer1_financing_addendum_date",
+          "height": 16,
+          "page": 14,
+          "recipient_id": "1",
+          "required": true,
+          "type": "date",
+          "width": 66,
+          "x": 266,
+          "y": 808
+        },
+        {
+          "api_id": "buyer1_financing_addendum_signature",
+          "height": 20,
+          "page": 14,
+          "recipient_id": "1",
+          "required": true,
+          "type": "signature",
+          "width": 145,
+          "x": 112,
+          "y": 808
+        },
+        {
+          "api_id": "buyer1_initials_financing_p1",
+          "height": 10,
+          "page": 13,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 280,
+          "y": 1004
+        },
+        {
+          "api_id": "buyer1_initials_main_p1",
+          "height": 10,
+          "page": 1,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p2",
+          "height": 10,
+          "page": 2,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p3",
+          "height": 10,
+          "page": 3,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p4",
+          "height": 10,
+          "page": 4,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p5",
+          "height": 10,
+          "page": 5,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p6",
+          "height": 10,
+          "page": 6,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p7",
+          "height": 10,
+          "page": 7,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p8",
+          "height": 10,
+          "page": 8,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p9",
+          "height": 10,
+          "page": 9,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_main_contract_date",
+          "height": 16,
+          "page": 10,
+          "recipient_id": "1",
+          "required": true,
+          "type": "date",
+          "width": 66,
+          "x": 286,
+          "y": 433
+        },
+        {
+          "api_id": "buyer1_main_contract_signature",
+          "height": 20,
+          "page": 10,
+          "recipient_id": "1",
+          "required": true,
+          "type": "signature",
+          "width": 145,
+          "x": 115,
+          "y": 433
+        },
+        {
+          "api_id": "buyer2_financing_addendum_date",
+          "height": 16,
+          "page": 14,
+          "recipient_id": "2",
+          "required": true,
+          "type": "date",
+          "width": 66,
+          "x": 266,
+          "y": 884
+        },
+        {
+          "api_id": "buyer2_financing_addendum_signature",
+          "height": 20,
+          "page": 14,
+          "recipient_id": "2",
+          "required": true,
+          "type": "signature",
+          "width": 145,
+          "x": 112,
+          "y": 884
+        },
+        {
+          "api_id": "buyer2_initials_financing_p1",
+          "height": 10,
+          "page": 13,
+          "recipient_id": "2",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 314,
+          "y": 1014
+        },
+        {
+          "api_id": "buyer2_initials_main_p1",
+          "height": 10,
+          "page": 1,
+          "recipient_id": "2",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 352,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer2_initials_main_p2",
+          "height": 10,
+          "page": 2,
+          "recipient_id": "2",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 352,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer2_initials_main_p3",
+          "height": 10,
+          "page": 3,
+          "recipient_id": "2",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 352,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer2_initials_main_p4",
+          "height": 10,
+          "page": 4,
+          "recipient_id": "2",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 352,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer2_initials_main_p5",
+          "height": 10,
+          "page": 5,
+          "recipient_id": "2",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 352,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer2_initials_main_p6",
+          "height": 10,
+          "page": 6,
+          "recipient_id": "2",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 352,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer2_initials_main_p7",
+          "height": 10,
+          "page": 7,
+          "recipient_id": "2",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 352,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer2_initials_main_p8",
+          "height": 10,
+          "page": 8,
+          "recipient_id": "2",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 352,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer2_initials_main_p9",
+          "height": 10,
+          "page": 9,
+          "recipient_id": "2",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 352,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer2_main_contract_date",
+          "height": 16,
+          "page": 10,
+          "recipient_id": "2",
+          "required": true,
+          "type": "date",
+          "width": 66,
+          "x": 286,
+          "y": 568
+        },
+        {
+          "api_id": "buyer2_main_contract_signature",
+          "height": 20,
+          "page": 10,
+          "recipient_id": "2",
+          "required": true,
+          "type": "signature",
+          "width": 145,
+          "x": 115,
+          "y": 568
+        }
+      ],
       "field_ids": [
         "buyer1_financing_addendum_date",
         "buyer1_financing_addendum_signature",
@@ -813,6 +2532,151 @@
       ]
     },
     "hoa": {
+      "field_geometry": [
+        {
+          "api_id": "buyer1_hoa_addendum_date",
+          "height": 16,
+          "page": 13,
+          "recipient_id": "1",
+          "required": true,
+          "type": "date",
+          "width": 66,
+          "x": 286,
+          "y": 842
+        },
+        {
+          "api_id": "buyer1_hoa_addendum_signature",
+          "height": 20,
+          "page": 13,
+          "recipient_id": "1",
+          "required": true,
+          "type": "signature",
+          "width": 145,
+          "x": 112,
+          "y": 842
+        },
+        {
+          "api_id": "buyer1_initials_main_p1",
+          "height": 10,
+          "page": 1,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p2",
+          "height": 10,
+          "page": 2,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p3",
+          "height": 10,
+          "page": 3,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p4",
+          "height": 10,
+          "page": 4,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p5",
+          "height": 10,
+          "page": 5,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p6",
+          "height": 10,
+          "page": 6,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p7",
+          "height": 10,
+          "page": 7,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p8",
+          "height": 10,
+          "page": 8,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p9",
+          "height": 10,
+          "page": 9,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_main_contract_date",
+          "height": 16,
+          "page": 10,
+          "recipient_id": "1",
+          "required": true,
+          "type": "date",
+          "width": 66,
+          "x": 286,
+          "y": 433
+        },
+        {
+          "api_id": "buyer1_main_contract_signature",
+          "height": 20,
+          "page": 10,
+          "recipient_id": "1",
+          "required": true,
+          "type": "signature",
+          "width": 145,
+          "x": 115,
+          "y": 433
+        }
+      ],
       "field_ids": [
         "buyer1_hoa_addendum_date",
         "buyer1_hoa_addendum_signature",
@@ -911,6 +2775,151 @@
       ]
     },
     "sale_of_other_property": {
+      "field_geometry": [
+        {
+          "api_id": "buyer1_initials_main_p1",
+          "height": 10,
+          "page": 1,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p2",
+          "height": 10,
+          "page": 2,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p3",
+          "height": 10,
+          "page": 3,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p4",
+          "height": 10,
+          "page": 4,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p5",
+          "height": 10,
+          "page": 5,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p6",
+          "height": 10,
+          "page": 6,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p7",
+          "height": 10,
+          "page": 7,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p8",
+          "height": 10,
+          "page": 8,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p9",
+          "height": 10,
+          "page": 9,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_main_contract_date",
+          "height": 16,
+          "page": 10,
+          "recipient_id": "1",
+          "required": true,
+          "type": "date",
+          "width": 66,
+          "x": 286,
+          "y": 433
+        },
+        {
+          "api_id": "buyer1_main_contract_signature",
+          "height": 20,
+          "page": 10,
+          "recipient_id": "1",
+          "required": true,
+          "type": "signature",
+          "width": 145,
+          "x": 115,
+          "y": 433
+        },
+        {
+          "api_id": "buyer1_sale_other_property_addendum_date",
+          "height": 16,
+          "page": 13,
+          "recipient_id": "1",
+          "required": true,
+          "type": "date",
+          "width": 66,
+          "x": 286,
+          "y": 705
+        },
+        {
+          "api_id": "buyer1_sale_other_property_addendum_signature",
+          "height": 20,
+          "page": 13,
+          "recipient_id": "1",
+          "required": true,
+          "type": "signature",
+          "width": 145,
+          "x": 112,
+          "y": 705
+        }
+      ],
       "field_ids": [
         "buyer1_initials_main_p1",
         "buyer1_initials_main_p2",
@@ -1009,6 +3018,382 @@
       ]
     },
     "seller_temporary_lease": {
+      "field_geometry": [
+        {
+          "api_id": "buyer1_initials_main_p1",
+          "height": 10,
+          "page": 1,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p2",
+          "height": 10,
+          "page": 2,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p3",
+          "height": 10,
+          "page": 3,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p4",
+          "height": 10,
+          "page": 4,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p5",
+          "height": 10,
+          "page": 5,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p6",
+          "height": 10,
+          "page": 6,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p7",
+          "height": 10,
+          "page": 7,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p8",
+          "height": 10,
+          "page": 8,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p9",
+          "height": 10,
+          "page": 9,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_seller_temp_lease_p1",
+          "height": 10,
+          "page": 13,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 296,
+          "y": 1004
+        },
+        {
+          "api_id": "buyer1_main_contract_date",
+          "height": 16,
+          "page": 10,
+          "recipient_id": "1",
+          "required": true,
+          "type": "date",
+          "width": 66,
+          "x": 286,
+          "y": 433
+        },
+        {
+          "api_id": "buyer1_main_contract_signature",
+          "height": 20,
+          "page": 10,
+          "recipient_id": "1",
+          "required": true,
+          "type": "signature",
+          "width": 145,
+          "x": 115,
+          "y": 433
+        },
+        {
+          "api_id": "buyer1_signature_seller_temp_lease",
+          "height": 20,
+          "page": 14,
+          "recipient_id": "1",
+          "required": true,
+          "type": "signature",
+          "width": 145,
+          "x": 78,
+          "y": 777
+        },
+        {
+          "api_id": "buyer2_initials_main_p1",
+          "height": 10,
+          "page": 1,
+          "recipient_id": "2",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 352,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer2_initials_main_p2",
+          "height": 10,
+          "page": 2,
+          "recipient_id": "2",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 352,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer2_initials_main_p3",
+          "height": 10,
+          "page": 3,
+          "recipient_id": "2",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 352,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer2_initials_main_p4",
+          "height": 10,
+          "page": 4,
+          "recipient_id": "2",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 352,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer2_initials_main_p5",
+          "height": 10,
+          "page": 5,
+          "recipient_id": "2",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 352,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer2_initials_main_p6",
+          "height": 10,
+          "page": 6,
+          "recipient_id": "2",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 352,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer2_initials_main_p7",
+          "height": 10,
+          "page": 7,
+          "recipient_id": "2",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 352,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer2_initials_main_p8",
+          "height": 10,
+          "page": 8,
+          "recipient_id": "2",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 352,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer2_initials_main_p9",
+          "height": 10,
+          "page": 9,
+          "recipient_id": "2",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 352,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer2_initials_seller_temp_lease_p1",
+          "height": 10,
+          "page": 13,
+          "recipient_id": "2",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 328,
+          "y": 1004
+        },
+        {
+          "api_id": "buyer2_main_contract_date",
+          "height": 16,
+          "page": 10,
+          "recipient_id": "2",
+          "required": true,
+          "type": "date",
+          "width": 66,
+          "x": 286,
+          "y": 568
+        },
+        {
+          "api_id": "buyer2_main_contract_signature",
+          "height": 20,
+          "page": 10,
+          "recipient_id": "2",
+          "required": true,
+          "type": "signature",
+          "width": 145,
+          "x": 115,
+          "y": 568
+        },
+        {
+          "api_id": "buyer2_signature_seller_temp_lease",
+          "height": 20,
+          "page": 14,
+          "recipient_id": "2",
+          "required": true,
+          "type": "signature",
+          "width": 145,
+          "x": 78,
+          "y": 845
+        },
+        {
+          "api_id": "seller1_initials_seller_temp_lease_p1",
+          "height": 10,
+          "page": 13,
+          "recipient_id": "3",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 476,
+          "y": 1004
+        },
+        {
+          "api_id": "seller1_main_contract_date",
+          "height": 16,
+          "page": 10,
+          "recipient_id": "3",
+          "required": true,
+          "type": "date",
+          "width": 66,
+          "x": 591,
+          "y": 433
+        },
+        {
+          "api_id": "seller1_main_contract_signature",
+          "height": 20,
+          "page": 10,
+          "recipient_id": "3",
+          "required": true,
+          "type": "signature",
+          "width": 145,
+          "x": 420,
+          "y": 433
+        },
+        {
+          "api_id": "seller1_signature_seller_temp_lease",
+          "height": 20,
+          "page": 14,
+          "recipient_id": "3",
+          "required": true,
+          "type": "signature",
+          "width": 145,
+          "x": 440,
+          "y": 777
+        },
+        {
+          "api_id": "seller2_initials_seller_temp_lease_p1",
+          "height": 10,
+          "page": 13,
+          "recipient_id": "4",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 508,
+          "y": 1004
+        },
+        {
+          "api_id": "seller2_main_contract_date",
+          "height": 16,
+          "page": 10,
+          "recipient_id": "4",
+          "required": true,
+          "type": "date",
+          "width": 66,
+          "x": 591,
+          "y": 568
+        },
+        {
+          "api_id": "seller2_main_contract_signature",
+          "height": 20,
+          "page": 10,
+          "recipient_id": "4",
+          "required": true,
+          "type": "signature",
+          "width": 145,
+          "x": 420,
+          "y": 568
+        },
+        {
+          "api_id": "seller2_signature_seller_temp_lease",
+          "height": 20,
+          "page": 14,
+          "recipient_id": "4",
+          "required": true,
+          "type": "signature",
+          "width": 145,
+          "x": 440,
+          "y": 845
+        }
+      ],
       "field_ids": [
         "buyer1_initials_main_p1",
         "buyer1_initials_main_p2",
@@ -1134,6 +3519,129 @@
       ]
     },
     "sparse_optional_fields": {
+      "field_geometry": [
+        {
+          "api_id": "buyer1_initials_main_p1",
+          "height": 10,
+          "page": 1,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p2",
+          "height": 10,
+          "page": 2,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p3",
+          "height": 10,
+          "page": 3,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p4",
+          "height": 10,
+          "page": 4,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p5",
+          "height": 10,
+          "page": 5,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p6",
+          "height": 10,
+          "page": 6,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p7",
+          "height": 10,
+          "page": 7,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p8",
+          "height": 10,
+          "page": 8,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_initials_main_p9",
+          "height": 10,
+          "page": 9,
+          "recipient_id": "1",
+          "required": true,
+          "type": "initials",
+          "width": 24,
+          "x": 286,
+          "y": 1018
+        },
+        {
+          "api_id": "buyer1_main_contract_date",
+          "height": 16,
+          "page": 10,
+          "recipient_id": "1",
+          "required": true,
+          "type": "date",
+          "width": 66,
+          "x": 286,
+          "y": 433
+        },
+        {
+          "api_id": "buyer1_main_contract_signature",
+          "height": 20,
+          "page": 10,
+          "recipient_id": "1",
+          "required": true,
+          "type": "signature",
+          "width": 145,
+          "x": 115,
+          "y": 433
+        }
+      ],
       "field_ids": [
         "buyer1_initials_main_p1",
         "buyer1_initials_main_p2",

@@ -2,10 +2,11 @@
 
 `scripts/check_golden_packet_rendering.py` renders the eleven supported golden
 packets at 96 DPI and compares every page's image, page count, and SignWell
-field IDs to the committed baseline manifest. Local review uses an exact pixel
+field IDs and coordinates to the committed baseline manifest. Local review uses an exact pixel
 fingerprint; CI compares a reduced page-layout image grid so harmless Poppler
 anti-aliasing differences across macOS and Linux do not hide real visual
-regressions.
+regressions. The signer geometry contract separately catches a signature,
+initial, or date field moving on an otherwise unchanged page.
 
 The baseline is an approval artifact. Update it only after visually reviewing
 the rendered pages and confirming that every intended change is correct.

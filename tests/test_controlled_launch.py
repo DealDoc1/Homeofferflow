@@ -347,6 +347,12 @@ class ControlledLaunchTests(unittest.TestCase):
         for scenario in manifest["scenarios"].values():
             self.assertEqual(len(scenario["pages"]), scenario["page_count"])
             self.assertTrue(scenario["field_ids"])
+            self.assertEqual(
+                [field["api_id"] for field in scenario["field_geometry"]],
+                sorted(scenario["field_ids"]),
+            )
+            for field in scenario["field_geometry"]:
+                self.assertTrue(all(key in field for key in ("page", "x", "y", "width", "height", "recipient_id")))
 
     def test_unverified_paths_fail_closed(self):
         blocked_offers = [
