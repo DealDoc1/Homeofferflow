@@ -64,6 +64,10 @@ class ProductionReleaseWorkflowTests(unittest.TestCase):
             self.text.index("Build the exact production artifact"),
         )
 
+    def test_release_uses_the_current_setup_uv_action_runtime(self):
+        self.assertIn("uses: astral-sh/setup-uv@v7", self.text)
+        self.assertNotIn("uses: astral-sh/setup-uv@v6", self.text)
+
 
 if __name__ == "__main__":
     unittest.main()
