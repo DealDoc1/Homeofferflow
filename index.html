@@ -14066,6 +14066,22 @@ function routeAfterMagicLinkIfNeeded() {
     };
   }
 
+  const AI_REVIEW_REUSE_WINDOW_MS = 10 * 60 * 1000;
+
+  function aiReviewFingerprint(payload) {
+    return JSON.stringify(payload || {});
+  }
+
+  function hasReusableAiReview(payload) {
+    const prior = state.data?._lastAiReview;
+    const priorFingerprint = state.data?._lastAiReviewFingerprint;
+    const completedAt = Number(state.data?._lastAiReviewCompletedAt || 0);
+    return !!prior
+      && priorFingerprint === aiReviewFingerprint(payload)
+      && completedAt > 0
+      && Date.now() - completedAt < AI_REVIEW_REUSE_WINDOW_MS;
+  }
+
   function getCompetitivePosition(score) {
     const n = Number(score || 0);
     if (n >= 90) return { label: 'Very Competitive', className: 'good' };
@@ -14295,7 +14311,8 @@ function routeAfterMagicLinkIfNeeded() {
         ? '<div class="ai-role-note">Investor focus: closing certainty, contingencies, concessions, and whether terms fit the deal.</div>'
         : '<div class="ai-role-note">Agent focus: quick quality-control and risk review. This does not replace agent market expertise.</div>';
     const componentsTitle = isHomebuyer ? 'Score Drivers' : 'Review Factors';
-    const liveButton = isHomebuyer ? 'Run Market Review' : isInvestor ? 'Run Investor Review' : 'Run Agent Review';
+    const reviewIsCurrent = hasReusableAiReview(payload);
+    const liveButton = reviewIsCurrent ? 'Review is current' : (isHomebuyer ? 'Run Market Review' : isInvestor ? 'Run Investor Review' : 'Run Agent Review');
     const loadingText = isHomebuyer ? 'Running Market Review...' : 'Running Review...';
     const improveButton = isHomebuyer ? 'Show Ways to Improve' : isInvestor ? 'Show Deal Adjustments' : 'Show Possible Adjustments';
     const improveTitle = isHomebuyer ? 'Potential ways to strengthen this offer' : isInvestor ? 'Potential deal adjustments or checks' : 'Potential adjustments or verification points';
@@ -14360,6 +14377,16 @@ function routeAfterMagicLinkIfNeeded() {
   }
 
   async function runLiveAiOfferReview() {
+    const offer = buildAiOfferReviewPayload();
+    if (hasReusableAiReview(offer)) {
+      renderAiOfferReviewResult(state.data._lastAiReview, false);
+      const status = document.getElementById('aiFoundationStatus');
+      if (status) {
+        status.className = 'platform-status ok';
+        status.textContent = 'This review is current for these terms. Change any term to run a new review.';
+      }
+      return;
+    }
     const fallback = normalizeAiReviewResult(null);
     renderAiOfferReviewResult(fallback, true);
     try {
@@ -14367,7 +14394,7 @@ function routeAfterMagicLinkIfNeeded() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          offer: buildAiOfferReviewPayload(),
+          offer,
           // This is harmless when no broker connection exists. When a broker
           // has configured its approved RESO proxy, it is the lowest-cost
           // source for a compact listing-context check.
@@ -14377,6 +14404,8 @@ function routeAfterMagicLinkIfNeeded() {
       const result = await response.json().catch(() => ({}));
       if (!response.ok || result.error) throw new Error(result.error || 'AI review failed.');
       state.data._lastAiReview = result;
+      state.data._lastAiReviewFingerprint = aiReviewFingerprint(offer);
+      state.data._lastAiReviewCompletedAt = Date.now();
       renderAiOfferReviewResult(result, false);
       try { await saveAiReviewResultToSupabase(result); } catch(e) { console.warn('AI review autosave skipped:', e); }
     } catch (err) {
