@@ -6,6 +6,14 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class LegalPackageTests(unittest.TestCase):
+    def test_live_audit_records_current_pages_and_does_not_overclaim_checkout_qa(self):
+        audit = (ROOT / "docs" / "release-evidence" / "legal-policy-live-audit-2026-09-10.md").read_text(encoding="utf-8")
+        for page in ("/terms.html", "/privacy.html", "/esign-consent.html", "/disclaimer.html"):
+            self.assertIn(page, audit)
+        self.assertIn("Version 3.0 · Last updated: July 30, 2026", audit)
+        self.assertIn("2026-07-30", audit)
+        self.assertIn("does **not** claim that a fresh signed-in subscription", audit)
+
     def test_coordinated_legal_pages_are_present_and_current(self):
         for filename in ("terms.html", "privacy.html", "disclaimer.html", "esign-consent.html"):
             content = (ROOT / filename).read_text(encoding="utf-8")
