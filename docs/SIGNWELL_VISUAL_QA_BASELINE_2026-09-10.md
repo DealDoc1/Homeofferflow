@@ -24,3 +24,11 @@ that they cannot validate.
 Historical packets must not be used to justify a coordinate change after a
 newer signer-map commit. Likewise, code/unit checks do not replace a freshly
 completed SignWell visual inspection.
+
+## Source-map check
+
+The current source PDFs were rendered at 150 DPI and compared with the
+top-origin 96-DPI maps. TXR-1953 buyer row one (`y=802`, `height=26`) ends at
+the visible signature rule. TXR-1954 buyer row one (`y=774`, `height=26`) is
+centered on the visible signature rule. This validates the current map
+geometry only; it is not a substitute for a newly completed SignWell packet.
