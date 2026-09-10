@@ -56,7 +56,7 @@ function call(body, origin = 'https://www.homeofferflow.com') {
   if (valid.status !== 200) throw new Error('valid checkout was rejected');
   if (!createdSession) throw new Error('Stripe session was not created');
   if (createdSession.line_items[0].price !== 'price_server_selected') throw new Error('server price was not used');
-  if (createdSession.success_url !== 'https://www.homeofferflow.com/?payment=success&email=buyer%40example.com') throw new Error('success redirect was not anchored');
+  if (createdSession.success_url !== 'https://www.homeofferflow.com/?payment=success') throw new Error('success redirect was not anchored');
   if (createdSession.cancel_url !== 'https://www.homeofferflow.com/?payment=cancelled') throw new Error('cancel redirect was not anchored');
   if (createdSession.metadata.plan !== 'self') throw new Error('metadata plan was not normalized');
 

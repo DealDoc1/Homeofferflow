@@ -20,6 +20,7 @@ class ConsumerCheckoutScopeTests(unittest.TestCase):
         self.assertIn("host === 'www.homeofferflow.com'", CHECKOUT)
         self.assertNotIn("String(successUrl).startsWith('http')", CHECKOUT)
         self.assertIn("const safeSuccessUrl = `${origin}/?payment=success", CHECKOUT)
+        self.assertNotIn("payment=success&email=", CHECKOUT)
 
     def test_consumer_checkout_does_not_advertise_unfulfilled_review_services(self):
         self.assertIn("Self-Serve Buyer Offer Packet", INDEX)

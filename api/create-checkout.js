@@ -52,7 +52,10 @@ module.exports = async (req, res) => {
     const finalPriceId = process.env.STRIPE_BUYER_OFFER_PRICE_ID || 'price_1TYTYqAELe66ESXnhNQmydWn';
 
     const origin = safeOrigin(req);
-    const safeSuccessUrl = `${origin}/?payment=success&email=${encodeURIComponent(email)}`;
+    // The return URL is visible to browser history, analytics, and potential
+    // referrers. The buyer email remains in Stripe's server-side Checkout
+    // session and the saved local payment state; never place it in the URL.
+    const safeSuccessUrl = `${origin}/?payment=success`;
     const safeCancelUrl = `${origin}/?payment=cancelled`;
 
     const offerDataString = JSON.stringify({
