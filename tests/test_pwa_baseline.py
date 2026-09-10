@@ -132,6 +132,8 @@ class PwaBaselineTests(unittest.TestCase):
     def test_every_installable_rewritten_page_is_available_to_the_offline_shell(self):
         for rewrite in VERCEL["rewrites"]:
             source = rewrite["source"]
+            if source.startswith("/api/"):
+                continue
             destination = rewrite["destination"].lstrip("/")
             html = (ROOT / destination).read_text(encoding="utf-8")
             if "/assets/pwa-register.js" not in html:

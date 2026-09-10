@@ -3,9 +3,11 @@ import json
 import re
 import uuid
 import hashlib
+import hmac
 import secrets
 import html
 import base64
+import time
 from http.server import BaseHTTPRequestHandler
 from datetime import datetime, timedelta, timezone
 from urllib.parse import parse_qs, urlencode, urlparse
@@ -34,6 +36,14 @@ PARTNER_LOGO_MAX_BYTES = 2 * 1024 * 1024
 STRIPE_CHECKOUT_SESSION_RE = re.compile(r"^cs_(?:test|live)_[A-Za-z0-9_]{8,250}$")
 STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "")
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
+RESEND_WEBHOOK_SECRET = os.environ.get("RESEND_WEBHOOK_SECRET", "").strip()
+RESEND_WEBHOOK_MAX_BODY_BYTES = 100_000
+RESEND_WEBHOOK_MAX_SIGNATURE_AGE_SECONDS = 300
+RESEND_WEBHOOK_EVENT_TYPES = frozenset({
+    "email.sent", "email.delivered", "email.bounced", "email.complained",
+    "email.suppressed", "email.opened", "email.clicked",
+})
+RESEND_WEBHOOK_SAFE_TAG_NAMES = frozenset({"email_type", "seller_package", "partner_tier"})
 SELLER_PLAN_FROM_EMAIL = (
     os.environ.get("SELLER_PLAN_FROM_EMAIL")
     or os.environ.get("FEEDBACK_FROM_EMAIL")
@@ -1481,12 +1491,142 @@ def _list_public_partner_placements(category=None, market=None):
     return public_rows
 
 
+def _resend_safe_tags(raw_tags):
+    """Keep only controlled campaign tags; never mirror recipient information."""
+    if not isinstance(raw_tags, dict):
+        return {}
+    return {
+        str(name): str(value)[:120]
+        for name, value in raw_tags.items()
+        if str(name) in RESEND_WEBHOOK_SAFE_TAG_NAMES and isinstance(value, (str, int, float, bool))
+    }
+
+
+def _resend_delivery_status(event_type):
+    suffix = str(event_type or "").split(".")[-1].lower()
+    return suffix if suffix in {"sent", "delivered", "bounced", "complained", "suppressed", "opened", "clicked"} else "other"
+
+
+def _verify_resend_svix_signature(raw_body, message_id, timestamp, signature_header, secret, now=None):
+    """Verify Resend's Svix HMAC signature using the untouched request body."""
+    if not all(isinstance(value, str) and value for value in (message_id, timestamp, signature_header, secret)):
+        return False
+    if not secret.startswith("whsec_"):
+        return False
+    try:
+        signed_at = int(timestamp)
+    except (TypeError, ValueError):
+        return False
+    current_time = int(time.time() if now is None else now)
+    if abs(current_time - signed_at) > RESEND_WEBHOOK_MAX_SIGNATURE_AGE_SECONDS:
+        return False
+    try:
+        encoded_secret = secret.removeprefix("whsec_").encode("ascii")
+        webhook_key = base64.urlsafe_b64decode(encoded_secret + b"=" * (-len(encoded_secret) % 4))
+    except (UnicodeEncodeError, ValueError):
+        return False
+    expected = base64.b64encode(
+        hmac.new(webhook_key, f"{message_id}.{timestamp}.".encode("utf-8") + raw_body, hashlib.sha256).digest()
+    ).decode("ascii")
+    for candidate in signature_header.split():
+        version, separator, signature = candidate.partition(",")
+        if version == "v1" and separator and hmac.compare_digest(signature, expected):
+            return True
+    return False
+
+
+def _resend_event_row(event, message_id):
+    data = event.get("data") if isinstance(event.get("data"), dict) else {}
+    event_type = str(event.get("type") or "")[:120]
+    if event_type not in RESEND_WEBHOOK_EVENT_TYPES:
+        event_type = "other"
+    created_at = event.get("created_at")
+    row = {
+        "svix_id": message_id[:180],
+        "event_type": event_type,
+        "delivery_status": _resend_delivery_status(event_type),
+        "resend_email_id": str(data.get("email_id") or "")[:180] or None,
+        "tags": _resend_safe_tags(data.get("tags")),
+        "processing_state": "processed" if event_type != "other" else "ignored",
+        "processed_at": datetime.now(timezone.utc).isoformat(),
+    }
+    if isinstance(created_at, str) and len(created_at) <= 64:
+        try:
+            datetime.fromisoformat(created_at.replace("Z", "+00:00"))
+            row["event_created_at"] = created_at
+        except ValueError:
+            pass
+    return row
+
+
+def _claim_resend_webhook_event(row):
+    """Insert once using Resend's delivery id; return False for a replay."""
+    if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
+        raise RuntimeError("Missing Supabase configuration")
+    with httpx.Client(timeout=12.0) as client:
+        response = client.post(
+            f"{SUPABASE_URL}/rest/v1/hof_resend_webhook_events?on_conflict=svix_id",
+            headers={
+                "apikey": SUPABASE_SERVICE_ROLE_KEY,
+                "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}",
+                "Content-Type": "application/json",
+                "Prefer": "resolution=ignore-duplicates,return=representation",
+            },
+            json=row,
+        )
+    if response.status_code >= 300:
+        raise RuntimeError("Could not record Resend delivery event")
+    rows = response.json() if response.text else []
+    return bool(rows) if isinstance(rows, list) else True
+
+
 class handler(BaseHTTPRequestHandler):
     def do_OPTIONS(self):
         _send(self, 204, {})
 
+    def _log_resend_webhook(self, outcome, **fields):
+        payload = {"route": "/api/resend-webhook", "outcome": outcome}
+        payload.update({key: value for key, value in fields.items() if key in {"bodyBytes", "eventType", "deliveryStatus"}})
+        print(json.dumps(payload, separators=(",", ":"), sort_keys=True))
+
+    def _handle_resend_webhook(self):
+        try:
+            try:
+                content_length = int(self.headers.get("Content-Length", "0"))
+            except ValueError:
+                return _send(self, 400, {"error": "Invalid request"})
+            if content_length < 1 or content_length > RESEND_WEBHOOK_MAX_BODY_BYTES:
+                return _send(self, 413, {"error": "Invalid request"})
+            raw_body = self.rfile.read(content_length)
+            message_id = self.headers.get("svix-id", "")
+            timestamp = self.headers.get("svix-timestamp", "")
+            signature = self.headers.get("svix-signature", "")
+            self._log_resend_webhook("received", bodyBytes=len(raw_body))
+            if not RESEND_WEBHOOK_SECRET:
+                self._log_resend_webhook("missing_secret")
+                return _send(self, 500, {"error": "Webhook unavailable"})
+            if not _verify_resend_svix_signature(raw_body, message_id, timestamp, signature, RESEND_WEBHOOK_SECRET):
+                self._log_resend_webhook("invalid_signature")
+                return _send(self, 400, {"error": "Invalid webhook"})
+            event = json.loads(raw_body.decode("utf-8"))
+            if not isinstance(event, dict):
+                return _send(self, 400, {"error": "Invalid webhook"})
+            row = _resend_event_row(event, message_id)
+            claimed = _claim_resend_webhook_event(row)
+            self._log_resend_webhook("processed" if claimed else "duplicate", eventType=row["event_type"], deliveryStatus=row["delivery_status"])
+            return _send(self, 200, {"received": True, "duplicate": not claimed})
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            self._log_resend_webhook("invalid_payload")
+            return _send(self, 400, {"error": "Invalid webhook"})
+        except Exception as error:
+            self._log_resend_webhook("failed", deliveryStatus=type(error).__name__)
+            return _send(self, 500, {"error": "Webhook unavailable"})
+
     def do_POST(self):
         try:
+            query = parse_qs(urlparse(self.path).query)
+            if query.get('resend_webhook', [''])[0] == '1':
+                return self._handle_resend_webhook()
             if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
                 return _send(self, 500, {'error': 'Supabase service role is not configured.'})
             length = int(self.headers.get('Content-Length', '0') or '0')
