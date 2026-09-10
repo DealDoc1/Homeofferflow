@@ -876,7 +876,10 @@ class handler(BaseHTTPRequestHandler):
                 "generationConfig": {
                     "temperature": 0.22,
                     "topP": 0.9,
-                    "maxOutputTokens": 1500,
+                    # The fixed response schema is intentionally concise. A
+                    # 1,200-token ceiling leaves room for all review sections
+                    # while avoiding needless output cost on every request.
+                    "maxOutputTokens": 1200,
                     "responseMimeType": "application/json",
                     "responseSchema": RESPONSE_SCHEMA
                 }

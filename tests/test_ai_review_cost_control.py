@@ -3,6 +3,7 @@ from pathlib import Path
 
 
 HTML = (Path(__file__).resolve().parents[1] / "index.html").read_text(encoding="utf-8")
+API = (Path(__file__).resolve().parents[1] / "api" / "ai-offer-review.py").read_text(encoding="utf-8")
 
 
 class AiReviewCostControlTests(unittest.TestCase):
@@ -25,6 +26,10 @@ class AiReviewCostControlTests(unittest.TestCase):
 
     def test_current_review_button_uses_clear_customer_language(self):
         self.assertIn("reviewIsCurrent ? 'Review is current'", HTML)
+
+    def test_live_ai_review_has_a_schema_appropriate_output_ceiling(self):
+        self.assertIn('"maxOutputTokens": 1200,', API)
+        self.assertNotIn('"maxOutputTokens": 1500,', API)
 
 
 if __name__ == "__main__":
