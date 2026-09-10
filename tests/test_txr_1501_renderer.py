@@ -39,6 +39,21 @@ def sample_data():
 
 
 class Txr1501RendererTests(unittest.TestCase):
+    def test_selected_signing_role_is_marked_in_the_source_checkbox(self):
+        brokerage = {"legal_name": "OnDemand Realty", "license_number": "9010832"}
+        associate = {"name": "Andrew Christian", "license_number": "0738821"}
+        with patch.object(txr_1501, "_check_signing_role") as draw_check:
+            txr_1501._overlay(sample_data(), brokerage, associate)
+        self.assertIn((33, 329), [call.args[1:] for call in draw_check.call_args_list])
+
+        with patch.object(txr_1501, "_check_signing_role") as draw_check:
+            txr_1501._overlay(
+                {**sample_data(), "signer_plan": "clients_and_broker"},
+                brokerage,
+                associate,
+            )
+        self.assertIn((33, 341), [call.args[1:] for call in draw_check.call_args_list])
+
     def test_completion_values_begin_on_the_released_source_rules(self):
         """Prevent a completed TXR-1501 from drifting into its labels.
 

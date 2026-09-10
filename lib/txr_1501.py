@@ -46,6 +46,18 @@ def _check(canvas, x, y):
     canvas.line(x + 7, y + 7, x + 15, y - 4)
 
 
+def _check_signing_role(canvas, x, y):
+    """Mark one of the compact broker/associate execution boxes.
+
+    The source's execution boxes are appreciably smaller than the service
+    option boxes.  Keep the mark inside the printed square so the selected
+    signer role remains legible in a completed packet.
+    """
+    canvas.setLineWidth(1.1)
+    canvas.line(x, y, x + 3, y - 3)
+    canvas.line(x + 3, y - 3, x + 7, y + 5)
+
+
 def _overlay(data, brokerage, associate):
     clients = data.get("client_names") or []
     packet = BytesIO()
@@ -117,6 +129,13 @@ def _overlay(data, brokerage, associate):
     _draw(canvas, associate_license, 240, 309, size=7)
     if len(clients) > 1:
         _draw(canvas, clients[1], 324, 309, size=7)
+    # The chosen signer must also be visible on the source's broker versus
+    # broker-associate checkbox pair.  A signature alone on the shared rule
+    # leaves the completed agreement ambiguous.
+    if data.get("signer_plan") == "clients_and_associate":
+        _check_signing_role(canvas, 33, 329)
+    elif data.get("signer_plan") == "clients_and_broker":
+        _check_signing_role(canvas, 33, 341)
     canvas.save()
     packet.seek(0)
     return packet.read()

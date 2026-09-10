@@ -47,6 +47,13 @@ def _draw_check(c, x, y):
     c.line(x + 7, y + 7, x + 15, y - 4)
 
 
+def _draw_signing_role_check(c, x, y):
+    """Mark one compact broker/associate execution checkbox cleanly."""
+    c.setLineWidth(1.1)
+    c.line(x, y, x + 3, y - 3)
+    c.line(x + 3, y - 3, x + 7, y + 5)
+
+
 def _overlay(data, brokerage, associate):
     """Return an overlay PDF for the exact two-page TXR-1507 source."""
     clients = data["client_names"]
@@ -102,6 +109,12 @@ def _overlay(data, brokerage, associate):
     _draw(canvas, associate_license, 238, 226, size=8)
     if len(clients) > 1:
         _draw(canvas, clients[1], 338, 226, size=8)
+    # The broker/associate signature rule is shared.  Mark the source's
+    # matching role checkbox so a completed agreement identifies the signer.
+    if data.get("signer_plan") == "clients_and_associate":
+        _draw_signing_role_check(canvas, 33, 242)
+    elif data.get("signer_plan") == "clients_and_broker":
+        _draw_signing_role_check(canvas, 33, 254)
     canvas.save()
     packet.seek(0)
     return packet.read()
