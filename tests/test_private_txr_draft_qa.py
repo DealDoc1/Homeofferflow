@@ -6,13 +6,17 @@ from unittest.mock import patch
 
 from pypdf import PdfWriter
 
-from scripts.run_private_txr_draft_qa import run
+from scripts.run_private_txr_draft_qa import _data, run
 
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
 class PrivateTxrDraftQaTests(unittest.TestCase):
+    def test_txr1501_review_packet_exercises_a_selected_signer_role(self):
+        """The visual packet must cover the source's selected-role checkbox."""
+        self.assertEqual(_data()["TXR1501"]["signer_plan"], "clients_and_associate")
+
     def test_runner_is_local_unsigned_only(self):
         source = (ROOT / "scripts" / "run_private_txr_draft_qa.py").read_text(encoding="utf-8")
         self.assertIn("no source upload or signing will occur", source)
