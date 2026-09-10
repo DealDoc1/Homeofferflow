@@ -26,6 +26,27 @@
   <meta name="twitter:image" content="https://www.homeofferflow.com/assets/homeofferflow-social-preview-v2.jpg" />
   <meta name="twitter:image:alt" content="HomeOfferFlow Texas offer workflow" />
   <title>Texas Real Estate Offer Builder | HomeOfferFlow</title>
+  <script id="hof-agent-route-primer-v1">
+  // Keep only the four declared agent-route labels during this page load.
+  // This contains no customer, property, account, or campaign information.
+  (function () {
+    try {
+      const route = new URLSearchParams(window.location.search || '');
+      if (route.get('agent') !== '1') return;
+      const workflows = new Set(['purchase', 'sale_listing', 'lease_listing', 'lease_representation']);
+      const workspaces = new Set(['seller', 'relationship']);
+      const workflow = workflows.has(route.get('workflow')) ? route.get('workflow') : '';
+      const workspace = workspaces.has(route.get('workspace')) ? route.get('workspace') : '';
+      const pending = JSON.stringify({ workflow, workspace });
+      // The agent secure-link return already uses local storage for these
+      // allowlisted labels. Mirror this one-tab primer there because a few
+      // browser startup sequences clear session storage before auth is ready.
+      window.__hofAgentRoutePendingV1 = { workflow, workspace };
+      sessionStorage.setItem('hof_agent_route_pending_v1', pending);
+      localStorage.setItem('hof_agent_route_pending_v1', pending);
+    } catch (_) {}
+  })();
+  </script>
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -16437,14 +16458,35 @@ function routeAfterMagicLinkIfNeeded() {
     // action through the magic-link return; no account or subscription is
     // created until the agent elects to continue.
     if (params().get('agent') === '1') {
+      // Capture the narrow public route before any other startup handler can
+      // clean the URL. The continuation below may wait on session restore.
+      const directAgentRoute = params();
+      const initialAgentLandingWorkflow = ['purchase', 'sale_listing', 'lease_listing', 'lease_representation'].includes(directAgentRoute.get('workflow'))
+        ? directAgentRoute.get('workflow')
+        : '';
+      const initialAgentLandingWorkspace = ['seller', 'relationship'].includes(directAgentRoute.get('workspace'))
+        ? directAgentRoute.get('workspace')
+        : '';
       // Show the agent-specific promise immediately. Session restoration can
       // take a moment, but a visitor following an agent link should never
       // briefly see the homebuyer landing page while that happens.
       window.setAudience?.('agent');
       setTimeout(() => continueAfterAuthResolution(() => {
       const agentRouteParams = params();
-      const agentLandingWorkflow = ['purchase', 'sale_listing', 'lease_listing', 'lease_representation'].includes(agentRouteParams.get('workflow')) ? agentRouteParams.get('workflow') : '';
-      const agentLandingWorkspace = ['seller', 'relationship'].includes(agentRouteParams.get('workspace')) ? agentRouteParams.get('workspace') : '';
+      let rememberedAgentRoute = window.__hofAgentRoutePendingV1 || {};
+      try { rememberedAgentRoute = JSON.parse(sessionStorage.getItem('hof_agent_route_pending_v1') || localStorage.getItem('hof_agent_route_pending_v1') || '{}') || rememberedAgentRoute; } catch (_) {}
+      const agentLandingWorkflow = ['purchase', 'sale_listing', 'lease_listing', 'lease_representation'].includes(agentRouteParams.get('workflow'))
+        ? agentRouteParams.get('workflow')
+        : (initialAgentLandingWorkflow || (['purchase', 'sale_listing', 'lease_listing', 'lease_representation'].includes(rememberedAgentRoute.workflow) ? rememberedAgentRoute.workflow : ''));
+      const agentLandingWorkspace = ['seller', 'relationship'].includes(agentRouteParams.get('workspace'))
+        ? agentRouteParams.get('workspace')
+        : (initialAgentLandingWorkspace || (['seller', 'relationship'].includes(rememberedAgentRoute.workspace) ? rememberedAgentRoute.workspace : ''));
+      // A later load-level recovery can safely handle a route only if this
+      // normal DOM-ready path did not run. Mark it before opening a dashboard
+      // or auth prompt so neither destination can be opened twice.
+      window.__hofAgentLandingRouteProcessed = true;
+      try { sessionStorage.removeItem('hof_agent_route_pending_v1'); localStorage.removeItem('hof_agent_route_pending_v1'); } catch (_) {}
+      delete window.__hofAgentRoutePendingV1;
       // Retain only this known organic guide identifier as an aggregate
       // conversion source. All arbitrary UTM values remain excluded.
       const agentLandingSource = agentRouteParams.get('utm_source') === 'texas_agent_offer_workflow'
@@ -16536,6 +16578,80 @@ function routeAfterMagicLinkIfNeeded() {
 </script>
 
 <script defer src="/_vercel/insights/script.js"></script>
+
+<script id="hof-agent-landing-route-recovery-v1">
+// A public agent transaction link may arrive after the one-time auth-ready
+// event in a restored browser tab. Recover that narrow timing case on load so
+// the selected transaction never leaves the agent back at Question 1.
+(function () {
+  const workflows = new Set(['purchase', 'sale_listing', 'lease_listing', 'lease_representation']);
+  const workspaces = new Set(['seller', 'relationship']);
+  const labels = {
+    purchase: 'purchase transaction',
+    sale_listing: 'property listing',
+    lease_listing: 'lease listing',
+    lease_representation: 'lease representation transaction'
+  };
+
+  function continueAgentLandingRoute() {
+    if (window.__hofAgentLandingRouteProcessed) return;
+    const route = new URLSearchParams(window.location.search || '');
+    let remembered = window.__hofAgentRoutePendingV1 || {};
+    try { remembered = JSON.parse(sessionStorage.getItem('hof_agent_route_pending_v1') || localStorage.getItem('hof_agent_route_pending_v1') || '{}') || remembered; } catch (_) {}
+    if (route.get('agent') !== '1' && !remembered.workflow && !remembered.workspace) return;
+    if (!window.__hofDraftRestoreAuthReady) {
+      window.setTimeout(continueAgentLandingRoute, 200);
+      return;
+    }
+
+    const workflow = workflows.has(route.get('workflow')) ? route.get('workflow') : (workflows.has(remembered.workflow) ? remembered.workflow : '');
+    const workspace = workspaces.has(route.get('workspace')) ? route.get('workspace') : (workspaces.has(remembered.workspace) ? remembered.workspace : '');
+    const source = route.get('utm_source') === 'texas_agent_offer_workflow'
+      ? 'texas_agent_offer_workflow'
+      : 'agent_landing';
+    window.__hofAgentLandingRouteProcessed = true;
+    try { sessionStorage.removeItem('hof_agent_route_pending_v1'); localStorage.removeItem('hof_agent_route_pending_v1'); } catch (_) {}
+    delete window.__hofAgentRoutePendingV1;
+    window.setAudience?.('agent');
+    try {
+      const cleanUrl = new URL(window.location.href);
+      ['agent', 'workflow', 'workspace'].forEach(key => cleanUrl.searchParams.delete(key));
+      window.history.replaceState({}, document.title, cleanUrl.pathname + cleanUrl.search + cleanUrl.hash);
+    } catch (_) {}
+
+    if (window.hofAuth?.session) {
+      window.openAccountDashboard?.({ tab: workspace === 'seller' ? 'seller' : (workspace === 'relationship' ? 'relationships' : 'dashboard') });
+      if (workflow) {
+        window.setTimeout(() => {
+          window.hofAgentWorkflowContext = workflow;
+          window.hofOpenAgentPackageInterview?.(workflow);
+        }, 120);
+      } else if (!workspace) {
+        window.setTimeout(() => window.openAgentTransactionPicker?.(), 120);
+      }
+      window.logOfferEvent?.(null, 'agent_landing_package_handoff', 'opened', 'Agent continued from the public transaction choice after route recovery.', { source, workflow: workflow || 'transaction_picker' });
+      return;
+    }
+
+    try {
+      if (source === 'texas_agent_offer_workflow') localStorage.setItem('hof_agent_landing_source', source);
+      if (workflow) localStorage.setItem('hof_agent_landing_package_workflow', workflow);
+      if (workspace === 'seller') localStorage.setItem('hof_agent_landing_open_seller_workspace', '1');
+      else if (workspace === 'relationship') localStorage.setItem('hof_agent_landing_open_relationship_workspace', '1');
+      else localStorage.setItem('hof_agent_landing_start_draft', '1');
+    } catch (_) {}
+    window.openAuthModal?.('agent');
+    const authTitle = document.getElementById('authTitle');
+    const authSubtitle = document.getElementById('authSubtitle');
+    const label = labels[workflow] || 'transaction chooser';
+    if (authTitle) authTitle.textContent = `Continue to your ${label}`;
+    if (authSubtitle) authSubtitle.textContent = `Enter your email for a secure sign-in link. We’ll open the next questions for this ${label} after you return.`;
+  }
+
+  if (document.readyState === 'complete') continueAgentLandingRoute();
+  else window.addEventListener('load', continueAgentLandingRoute, { once: true });
+})();
+</script>
 
 <script id="hof-smart-intelligence-note-v1">
 (function(){

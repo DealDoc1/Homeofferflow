@@ -60,4 +60,7 @@ The implementation commits are:
 
 The combined local regression suite passed 1,630 tests. Source PDFs, completed
 agreements, credentials and private QA contacts are not part of this payload.
-Deployment and canonical-browser results remain to be recorded after release.
+Deployed in PR #1194 as `923ea7134848279c94bac9d6a3039b7e743acdb4`.
+The canonical signed-in Homebuyer check passed. Exact release identifiers,
+production checks and the remaining live mobile recheck are recorded in
+`customer-interview-production-2026-09-10.md`.

@@ -73,9 +73,12 @@ submitted. The temporary tab and local test server were closed afterward.
 
 ## Release status
 
-This batch shares the pending v67 shell release with the customer-path
+This batch shares the v67 shell release with the customer-path
 restoration fix. The user explicitly approved publication to the public
 `DealDoc1/Homeofferflow` repository and one production release. No Vercel build
-or deployment was used for local development. Canonical production verification
-remains required after release. No new customer-facing approval or access
-requirements were added.
+or deployment was used for local development. It was deployed in PR #1194 as
+`923ea7134848279c94bac9d6a3039b7e743acdb4`. Production health and exact-file checks
+passed; the final live mobile-navigation recheck was interrupted by the browser
+connection, not an established application failure. See
+`customer-interview-production-2026-09-10.md`. No new customer-facing approval or
+access requirements were added.
