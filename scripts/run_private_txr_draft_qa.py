@@ -36,6 +36,11 @@ def _data():
     return {
         "TXR1501": {
             "client_names": clients,
+            # Exercise the same deliberate signer selection required before a
+            # TXR-1501 packet can be sent.  Without this, the local visual QA
+            # copy leaves both broker-role boxes blank and cannot catch a
+            # regression in the selected-role mark.
+            "signer_plan": "clients_and_associate",
             "client_address": "100 Example Street",
             "client_city_state_zip": "Example, TX 75000",
             "client_phone": "0000000000",
