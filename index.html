@@ -22430,14 +22430,15 @@ function routeAfterMagicLinkIfNeeded() {
 </script>
 <script id="hof-live-addendum-signing-next-step-v1">
 (function () {
-  // These four addenda share the common private-draft review screen. Once a
+  // These addenda share the common private-draft review screen. Once a
   // draft is saved, keep the next decision right where the agent is: review
   // the completed document and send it, rather than making them hunt through
   // the workspace for the draft they just prepared.
-  const dialogIds = ['txr1905AgreementDialog', 'txr1914AgreementDialog', 'txr1917Dialog', 'txr1919AgreementDialog'];
+  const dialogIds = ['txr1905AgreementDialog', 'txr1914AgreementDialog', 'txr1917Dialog', 'txr1919AgreementDialog', 'txr1948AgreementDialog'];
   const liveCardCopy = {
     txr1917Card: 'Use the guided TXR-1917 interview to prepare the document. Review the completed draft, then send it for signature when the parties are ready.',
-    txr1919AgreementCard: 'Use the guided TXR-1919 interview to prepare the document. Review the completed draft, then send it for signature when the parties are ready.'
+    txr1919AgreementCard: 'Use the guided TXR-1919 interview to prepare the document. Review the completed draft, then send it for signature when the parties are ready.',
+    txr1948AgreementCard: 'Use the guided TXR-1948 interview to prepare the document. Review the completed draft, then send it for signature when the parties are ready.'
   };
   function addReviewAndSendAction() {
     dialogIds.forEach(dialogId => {
@@ -22642,7 +22643,7 @@ function routeAfterMagicLinkIfNeeded() {
   const signingFormIds = new Set([
     'txr1501AgreementForm', 'txr1506AgreementForm', 'txr1507AgreementForm',
     'txr1508AgreementForm', 'txr1905AgreementForm', 'txr1914AgreementForm',
-    'txr1917AgreementForm', 'txr1919AgreementForm', 'txr1953AgreementForm',
+    'txr1917AgreementForm', 'txr1919AgreementForm', 'txr1948AgreementForm', 'txr1953AgreementForm',
     'txr1954AgreementForm'
   ]);
   const hasSignatureQueue = form => signingFormIds.has(form.id);

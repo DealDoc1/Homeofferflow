@@ -117,6 +117,7 @@ TXR_SIGNING_FORM_CODES = {
     TXR_1914_FORM_CODE,
     TXR_1917_FORM_CODE,
     TXR_1919_FORM_CODE,
+    TXR_1948_FORM_CODE,
     TXR_1953_FORM_CODE,
     TXR_1954_FORM_CODE,
 }
@@ -127,6 +128,7 @@ TXR_BUYER_SELLER_SIGNING_FORM_CODES = {
     TXR_1914_FORM_CODE,
     TXR_1917_FORM_CODE,
     TXR_1919_FORM_CODE,
+    TXR_1948_FORM_CODE,
     TXR_1953_FORM_CODE,
     TXR_1954_FORM_CODE,
 }
@@ -3700,6 +3702,9 @@ def _txr_signwell_fields(form_code, agreement_data, client_count):
     if form_code == TXR_1919_FORM_CODE:
         from lib.txr_1919 import build_signwell_fields_txr1919
         return build_signwell_fields_txr1919(agreement_data, client_count=client_count)
+    if form_code == TXR_1948_FORM_CODE:
+        from lib.txr_1948 import build_signwell_fields_txr1948
+        return build_signwell_fields_txr1948(agreement_data, client_count=client_count)
     if form_code == TXR_1953_FORM_CODE:
         from lib.txr_1953 import build_signwell_fields_txr1953
         return build_signwell_fields_txr1953(agreement_data, client_count=client_count)

@@ -17,6 +17,7 @@ from lib.txr_1905 import build_signwell_fields_txr1905
 from lib.txr_1914 import build_signwell_fields_txr1914
 from lib.txr_1917 import build_signwell_fields_txr1917
 from lib.txr_1919 import build_signwell_fields_txr1919
+from lib.txr_1948 import build_signwell_fields_txr1948
 from lib.txr_1953 import build_signwell_fields_txr1953
 from lib.txr_1954 import build_signwell_fields_txr1954
 
@@ -82,6 +83,10 @@ FORM_CASES = (
         "seller_names": ["Seller One", "Seller Two"],
     }),
     ("TXR-1919", 2, build_signwell_fields_txr1919, {
+        "buyer_names": ["Buyer One", "Buyer Two"],
+        "seller_names": ["Seller One", "Seller Two"],
+    }),
+    ("TXR-1948", 1, build_signwell_fields_txr1948, {
         "buyer_names": ["Buyer One", "Buyer Two"],
         "seller_names": ["Seller One", "Seller Two"],
     }),
@@ -270,6 +275,23 @@ class TxrSignerGeometryTests(unittest.TestCase):
                     second = fields[f"{prefix}_{party}2_signature_p{1 if prefix in {'txr1905', 'txr1917'} else 2}"]
                     self.assertEqual(first["y"] + first["height"], first_bottom)
                     self.assertEqual(second["y"] + second["height"], second_bottom)
+
+    def test_txr1948_signatures_clear_both_party_captions(self):
+        """Keep the appraisal-addendum signer boxes above their two rules.
+
+        TXR-1948 prints Buyer/Seller captions immediately below each
+        execution rule.  The fields deliberately stop short of the rules so
+        a completed signature cannot cover either the line or its caption.
+        """
+        fields = {
+            field["api_id"]: field
+            for field in build_signwell_fields_txr1948(FORM_CASES[10][3], client_count=2)[0]
+        }
+        for party, x in (("buyer", 64), ("seller", 432)):
+            first = fields[f"txr1948_{party}1_signature_p1"]
+            second = fields[f"txr1948_{party}2_signature_p1"]
+            self.assertEqual((first["x"], first["y"], first["y"] + first["height"]), (x, 764, 790))
+            self.assertEqual((second["x"], second["y"], second["y"] + second["height"]), (x, 852, 878))
 
     def test_txr1508_acknowledgements_clear_their_printed_captions(self):
         """Keep TXR-1508 completion widgets on their acknowledgement rules.

@@ -27,6 +27,7 @@ class TxrSigningRequestPathTests(unittest.TestCase):
             "TXR-1914": {"buyer_names": ["Buyer One"], "seller_names": ["Seller One"]},
             "TXR-1917": {"buyer_names": ["Buyer One"], "seller_names": ["Seller One"]},
             "TXR-1919": {"buyer_names": ["Buyer One"], "seller_names": ["Seller One"]},
+            "TXR-1948": {"buyer_names": ["Buyer One"], "seller_names": ["Seller One"]},
             "TXR-1953": {"buyer_names": ["Buyer One"], "seller_names": ["Seller One"]},
             "TXR-1954": {"buyer_names": ["Buyer One"], "seller_names": ["Seller One"]},
         }
@@ -68,7 +69,7 @@ class TxrSigningRequestPathTests(unittest.TestCase):
         self.assertNotIn("agent@example.com", [row["email"] for row in recipients])
 
     def test_prepared_purchase_addenda_use_only_named_buyers_and_sellers(self):
-        for form_code in ("TXR-1905", "TXR-1914", "TXR-1917", "TXR-1919"):
+        for form_code in ("TXR-1905", "TXR-1914", "TXR-1917", "TXR-1919", "TXR-1948"):
             agreement = {
                 "form_code": form_code,
                 "client_names": ["Buyer One", "Seller One"],
@@ -88,7 +89,7 @@ class TxrSigningRequestPathTests(unittest.TestCase):
             self.assertNotIn("agent@example.com", [row["email"] for row in recipients])
 
     def test_source_aligned_buyer_seller_maps_are_live_signing_workflows(self):
-        for form_code in ("TXR-1905", "TXR-1914", "TXR-1917", "TXR-1919"):
+        for form_code in ("TXR-1905", "TXR-1914", "TXR-1917", "TXR-1919", "TXR-1948"):
             self.assertIn(form_code, MODULE.TXR_SIGNING_FORM_CODES)
 
     def test_ui_exposes_preview_send_and_owner_refresh_actions(self):
@@ -119,6 +120,7 @@ class TxrSigningRequestPathTests(unittest.TestCase):
             "TXR-1914": "hof-txr1914-drafts-v1",
             "TXR-1917": "hof-txr1917-drafts-v1",
             "TXR-1919": "hof-txr1919-drafts-v1",
+            "TXR-1948": "hof-txr1948-drafts-v1",
             "TXR-1953": "hof-txr1953-drafts-v1",
             "TXR-1954": "hof-txr1954-drafts-v1",
         }
@@ -126,7 +128,7 @@ class TxrSigningRequestPathTests(unittest.TestCase):
             with self.subTest(form_code=form_code):
                 start = html.index(f'id="{script_id}"')
                 end = html.index("</script>", start)
-                if form_code in {"TXR-1905", "TXR-1914", "TXR-1917", "TXR-1919"}:
+                if form_code in {"TXR-1905", "TXR-1914", "TXR-1917", "TXR-1919", "TXR-1948"}:
                     self.assertIn('hof-live-addendum-signing-next-step-v1', html)
                 else:
                     self.assertIn("Review and send", html[start:end])

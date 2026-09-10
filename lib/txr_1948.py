@@ -61,3 +61,72 @@ def render_txr_1948(source_pdf_bytes, data):
     output = BytesIO()
     writer.write(output)
     return output.getvalue()
+
+
+def build_signwell_fields_txr1948(data, *, client_count=None):
+    """Return the source-calibrated TXR-1948 execution fields.
+
+    This one-page appraisal addendum is signed by the named Buyers and
+    Sellers only.  SignWell uses a 96-DPI, top-origin letter page, while the
+    source PDF uses a bottom-origin 612 by 792-point page.  The fields below
+    sit *above* the four printed execution rules so completed signatures do
+    not cover the Buyer/Seller captions below each line.
+    """
+    buyers = data.get("buyer_names") or []
+    sellers = data.get("seller_names") or []
+    if not (1 <= len(buyers) <= 2 and 1 <= len(sellers) <= 2):
+        raise ValueError("TXR-1948 requires one or two Buyers and one or two Sellers.")
+
+    fields = [
+        {
+            "api_id": "txr1948_buyer1_signature_p1",
+            "type": "signature",
+            "page": 1,
+            "x": 64,
+            "y": 764,
+            "recipient_id": "1",
+            "required": True,
+            "width": 300,
+            "height": 26,
+        },
+        {
+            "api_id": "txr1948_seller1_signature_p1",
+            "type": "signature",
+            "page": 1,
+            "x": 432,
+            "y": 764,
+            "recipient_id": str(len(buyers) + 1),
+            "required": True,
+            "width": 300,
+            "height": 26,
+        },
+    ]
+    if len(buyers) == 2:
+        fields.append(
+            {
+                "api_id": "txr1948_buyer2_signature_p1",
+                "type": "signature",
+                "page": 1,
+                "x": 64,
+                "y": 852,
+                "recipient_id": "2",
+                "required": True,
+                "width": 300,
+                "height": 26,
+            }
+        )
+    if len(sellers) == 2:
+        fields.append(
+            {
+                "api_id": "txr1948_seller2_signature_p1",
+                "type": "signature",
+                "page": 1,
+                "x": 432,
+                "y": 852,
+                "recipient_id": str(len(buyers) + 2),
+                "required": True,
+                "width": 300,
+                "height": 26,
+            }
+        )
+    return [fields]
