@@ -10970,12 +10970,12 @@ function routeAfterMagicLinkIfNeeded() {
 
 
   function confirmControlledLaunchSupport(offerData) {
-    const blocked = controlledLaunchUnsupportedPaths(offerData);
-    if (!blocked.length) return true;
+    const requiredDocuments = controlledLaunchUnsupportedPaths(offerData);
+    if (!requiredDocuments.length) return true;
     setPaymentStatus(
-      'This packet includes an option that needs a short support review before purchase or generation: ' +
-      blocked.join(', ') +
-      '. Please contact support before purchasing or generating this packet.'
+      'Before sending this packet, prepare the matching document: ' +
+      requiredDocuments.join(', ') +
+      '. Open Forms & Agreements, complete its guided interview, then return here to send the purchase packet.'
     );
     return false;
   }

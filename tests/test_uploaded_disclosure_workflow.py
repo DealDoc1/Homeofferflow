@@ -43,12 +43,14 @@ class UploadedDisclosureWorkflowTests(unittest.TestCase):
         self.assertNotIn("Phase 1: upload PDF disclosures", INDEX_HTML)
         self.assertNotIn("Signature placement on uploaded docs is coming next.", INDEX_HTML)
 
-    def test_supported_packet_boundary_uses_a_clear_next_step_not_internal_testing_language(self):
+    def test_supported_packet_boundary_uses_a_clear_next_step_not_internal_testing_or_support_language(self):
         start = INDEX_HTML.index("function confirmControlledLaunchSupport")
         end = INDEX_HTML.index("async function handlePayment", start)
         boundary = INDEX_HTML[start:end]
-        self.assertIn("needs a short support review before purchase or generation", boundary)
-        self.assertIn("Please contact support before purchasing or generating this packet.", boundary)
+        self.assertIn("Before sending this packet, prepare the matching document:", boundary)
+        self.assertIn("Open Forms & Agreements, complete its guided interview", boundary)
+        self.assertNotIn("support review", boundary)
+        self.assertNotIn("Please contact support", boundary)
         self.assertNotIn("still testing", boundary)
 
     def test_supported_buyer_temporary_lease_is_not_stopped_before_generation(self):
