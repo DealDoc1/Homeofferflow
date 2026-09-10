@@ -31,6 +31,14 @@ class AiOfferReviewClientGuardTests(unittest.TestCase):
         self.assertIn("Broker-authorized listing facts and core offer terms were available.", block)
         self.assertIn("Some broker-authorized listing facts and several core offer terms were available.", block)
 
+    def test_property_interview_does_not_promise_unavailable_public_mls_data(self):
+        start = INDEX.index('<div class="wizard-step" id="step2">')
+        end = INDEX.index('<div class="wizard-step" id="step3">', start)
+        block = INDEX[start:end]
+        self.assertIn('approved broker listing connection is available', block)
+        self.assertIn('Broker listing context when available', block)
+        self.assertNotIn('will use public property context for the AI review', block)
+
 
 if __name__ == "__main__":
     unittest.main()
