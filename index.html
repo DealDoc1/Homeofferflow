@@ -8777,7 +8777,7 @@ function routeAfterMagicLinkIfNeeded() {
     }
 
     if (missing.length) {
-      setValidationStatus('Continue needs: ' + missing.slice(0, 6).join(', ') + (missing.length > 6 ? ', and more' : '') + '.');
+      setValidationStatus('To continue, add: ' + missing.slice(0, 6).join(', ') + (missing.length > 6 ? ', and more' : '') + '.');
       guideToFirstValidationAnswer(stepId);
       return false;
     }

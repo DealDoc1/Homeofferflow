@@ -17,7 +17,7 @@ class WizardValidationGuidanceTests(unittest.TestCase):
         self.assertIn('[data-validation-invalid="true"]', INDEX)
         self.assertIn("invalid.scrollIntoView({ behavior: 'smooth', block: 'center' });", INDEX)
         self.assertIn("guideToFirstValidationAnswer(stepId);", INDEX)
-        self.assertIn("setValidationStatus('Continue needs: '", INDEX)
+        self.assertIn("setValidationStatus('To continue, add: '", INDEX)
 
     def test_correcting_an_answer_clears_its_stale_validation_feedback(self):
         self.assertIn('function clearValidationFeedbackFor(target)', INDEX)

@@ -9,8 +9,8 @@ class InterviewValidationFeedbackTests(unittest.TestCase):
     def test_guided_interview_has_live_validation_status(self):
         self.assertIn('id="validationStatus" role="status" aria-live="polite"', INDEX)
         self.assertIn("function setValidationStatus(message)", INDEX)
-        self.assertIn("setValidationStatus('Continue needs: '", INDEX)
-        self.assertNotIn("alert('Continue needs: '", INDEX)
+        self.assertIn("setValidationStatus('To continue, add: '", INDEX)
+        self.assertNotIn("alert('To continue, add: '", INDEX)
 
 
 if __name__ == "__main__":
