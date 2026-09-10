@@ -3922,7 +3922,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 
       <div style="padding-top:0.75rem; border-top:1px solid rgba(255,255,255,0.07);">
         <p style="font-size:0.8rem; font-weight:700; color:var(--gold-light); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.5rem;">§12A(1)(c) — Seller Concessions</p>
-        <div class="micro-guidance-card" id="unrepresentedConcessionTip">
+        <div class="micro-guidance-card" id="unrepresentedConcessionTip" style="display:none;">
           <h4>Smart negotiation idea</h4>
           <p>Because you are not using a buyer’s agent, some buyers choose to request seller-paid concessions or closing cost help. This is optional and depends on the property, market, and seller.</p>
           <div class="quick-choice-row">
@@ -8453,6 +8453,13 @@ function routeAfterMagicLinkIfNeeded() {
   }
 
 
+  function updateUnrepresentedConcessionTip() {
+    const tip = document.getElementById('unrepresentedConcessionTip');
+    if (!tip) return;
+    const choice = getRadio('hasBuyerAgent') || state.data.hasBuyerAgent || '';
+    tip.style.display = state.data.userType !== 'agent' && choice === 'no' ? 'block' : 'none';
+  }
+
   function applyAudienceWorkflow() {
     const userType = state.data.userType || 'homebuyer';
 
@@ -8515,6 +8522,7 @@ function routeAfterMagicLinkIfNeeded() {
       if (agentPathInfoHeader) agentPathInfoHeader.style.display = 'none';
       if (agentFields && state.data.hasBuyerAgent !== 'yes') agentFields.style.display = 'none';
     }
+    updateUnrepresentedConcessionTip();
   }
 
   function syncAgentQuickFields() {
@@ -10035,6 +10043,7 @@ function routeAfterMagicLinkIfNeeded() {
       if (agentFields) agentFields.style.display = value === 'yes' ? 'block' : 'none';
       const agentSoftNote = document.getElementById('agentSoftNote');
       if (agentSoftNote) agentSoftNote.style.display = value === 'yes' ? 'block' : 'none';
+      updateUnrepresentedConcessionTip();
     }
 
     if (group === 'brokerFeeType') {
@@ -12487,9 +12496,11 @@ function routeAfterMagicLinkIfNeeded() {
     const repairsField = document.getElementById('repairsField');
     if (repairsField) repairsField.style.display = asIs === 'repairs' ? 'block' : 'none';
 
-    const hasBuyerAgent = document.querySelector('input[name="hasBuyerAgent"]:checked')?.value || '';
+    const hasBuyerAgent = state.data.userType === 'agent'
+      ? 'yes' : document.querySelector('input[name="hasBuyerAgent"]:checked')?.value || '';
     const agentFields = document.getElementById('agentFields');
     if (agentFields) agentFields.style.display = hasBuyerAgent === 'yes' ? 'block' : 'none';
+    updateUnrepresentedConcessionTip();
 
     const wantsConcessions = document.querySelector('input[name="wantsConcessions"]:checked')?.value || '';
     const concessionsField = document.getElementById('concessionsField');
@@ -20444,19 +20455,25 @@ function routeAfterMagicLinkIfNeeded() {
   .hof-agreement-card { border:1px solid rgba(74,140,111,.34); background:rgba(74,140,111,.065); margin-top:1rem; }
   .hof-agreement-card h4 { margin-bottom:.35rem; }
   .hof-agreement-card p { color:var(--gray-light); font-size:.86rem; line-height:1.5; }
-  .hof-agreement-modal { position:fixed; z-index:10020; inset:0; display:grid; place-items:center; padding:1rem; background:rgba(0,0,0,.72); }
-  .hof-agreement-dialog { width:min(760px,100%); max-height:92vh; overflow:auto; padding:1.25rem; border:1px solid rgba(200,151,63,.40); border-radius:16px; background:var(--navy-dark); box-shadow:0 22px 80px rgba(0,0,0,.5); }
+  .hof-agreement-modal { position:fixed; z-index:10020; inset:0; display:grid; place-items:center; padding:1rem; background:rgba(0,0,0,.72); overflow:auto; }
+  .hof-agreement-dialog { width:min(760px,100%); min-width:0; max-height:calc(100vh - 2rem); max-height:calc(100dvh - 2rem); overflow:auto; overscroll-behavior:contain; padding:1.25rem; border:1px solid rgba(200,151,63,.40); border-radius:16px; background:var(--navy,#0d1f35); color:var(--white,#fff); box-shadow:0 22px 80px rgba(0,0,0,.5); }
   .hof-agreement-dialog h3 { margin:0 0 .35rem; color:var(--white); }
   .hof-agreement-dialog p { color:var(--gray-light); line-height:1.45; }
-  .hof-agreement-grid { display:grid; grid-template-columns:1fr 1fr; gap:.75rem; margin:1rem 0; }
-  .hof-agreement-grid label { display:grid; gap:.28rem; color:var(--gray-light); font-weight:700; font-size:.82rem; }
-  .hof-agreement-grid input, .hof-agreement-grid select, .hof-agreement-grid textarea { width:100%; }
+  .hof-agreement-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.75rem; margin:1rem 0; }
+  .hof-agreement-grid > *, .hof-agreement-grid label { min-width:0; }
+  .hof-agreement-grid label { display:grid; gap:.28rem; color:var(--gray-light); font-weight:700; font-size:.82rem; overflow-wrap:anywhere; }
+  .hof-agreement-grid input:not([type="checkbox"]):not([type="radio"]), .hof-agreement-grid select, .hof-agreement-grid textarea { width:100%; min-width:0; min-height:44px; padding:.75rem .85rem; color:var(--white,#fff); font:400 1rem/1.4 'DM Sans',sans-serif; }
+  .hof-agreement-grid input::placeholder, .hof-agreement-grid textarea::placeholder { color:var(--gray-light); opacity:.8; }
+  .hof-agreement-grid select option { color:var(--white,#fff); background:var(--navy,#0d1f35); }
+  .hof-agreement-grid input[readonly] { cursor:default; }
+  .hof-agreement-grid input[type="checkbox"], .hof-agreement-grid input[type="radio"] { width:1.1rem; height:1.1rem; flex:0 0 auto; accent-color:var(--gold); }
   .hof-agreement-grid textarea { min-height:76px; resize:vertical; }
   .hof-agreement-wide { grid-column:1/-1; }
   .hof-agreement-services { display:flex; flex-wrap:wrap; gap:.85rem; color:var(--gray-light); font-size:.88rem; }
   .hof-agreement-services label { display:flex; gap:.38rem; align-items:center; }
-  .hof-agreement-footer { display:flex; justify-content:flex-end; gap:.6rem; margin-top:1rem; }
-  @media (max-width:640px) { .hof-agreement-grid { grid-template-columns:1fr; } .hof-agreement-wide { grid-column:auto; } }
+  .hof-agreement-footer { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:.6rem; margin-top:1rem; }
+  .hof-agreement-footer button { max-width:100%; white-space:normal; }
+  @media (max-width:640px) { .hof-agreement-grid { grid-template-columns:minmax(0,1fr); } .hof-agreement-wide { grid-column:auto; } .hof-agreement-footer > button { flex:1 1 100%; } }
 </style>
 <script id="hof-txr1507-drafts-v1">
 (function () {
