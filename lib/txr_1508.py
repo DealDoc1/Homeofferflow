@@ -38,7 +38,10 @@ def _overlay(data, brokerage, associate):
     canvas = Canvas(packet, pagesize=(PAGE_WIDTH, PAGE_HEIGHT))
     broker_name = brokerage.get("legal_name") or brokerage.get("name") or brokerage.get("dba_name") or ""
     broker_license = brokerage.get("license_number") or ""
-    associate_name = associate.get("name") or ""
+    # ``hof_agent_profiles`` provides ``agent_name``.  Use it when the
+    # renderer receives the profile row directly so the signer and printed
+    # Broker's Associate line cannot disagree.
+    associate_name = associate.get("name") or associate.get("agent_name") or ""
     associate_license = associate.get("license_number") or ""
     clients = data.get("client_names") or []
     other_broker = data.get("other_broker_agreement") or []

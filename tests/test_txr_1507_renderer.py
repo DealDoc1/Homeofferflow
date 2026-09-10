@@ -79,6 +79,15 @@ class Txr1507RendererTests(unittest.TestCase):
         for expected in ("Test Buyer One, Test Buyer Two", "OnDemand Realty", "1438 Whitaker Road", "2026-08-01", "2027-01-31", "9010832", "Andrew Christian"):
             self.assertIn(expected, text)
 
+    def test_renderer_uses_authenticated_profile_agent_name(self):
+        rendered = render_txr_1507(
+            blank_two_page_pdf(), sample_data(),
+            {"legal_name": "OnDemand Realty", "license_number": "9010832"},
+            {"agent_name": "Andrew Christian", "license_number": "0738821"},
+        )
+        text = "\n".join(page.extract_text() or "" for page in PdfReader(io.BytesIO(rendered)).pages)
+        self.assertIn("Andrew Christian", text)
+
     def test_renderer_covers_showing_services_and_lease_compensation_path(self):
         data = sample_data()
         data.update({

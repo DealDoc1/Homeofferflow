@@ -102,6 +102,15 @@ class Txr1501RendererTests(unittest.TestCase):
         for expected in ("Test Buyer One, Test Buyer Two", "OnDemand Realty", "Collin and Denton Counties, Texas", "2026-08-01", "2027-01-31", "9010832", "Andrew Christian"):
             self.assertIn(expected, text)
 
+    def test_renderer_uses_authenticated_profile_agent_name(self):
+        rendered = render_txr_1501(
+            blank_six_page_pdf(), sample_data(),
+            {"legal_name": "OnDemand Realty", "license_number": "9010832"},
+            {"agent_name": "Andrew Christian", "license_number": "0738821"},
+        )
+        text = "\n".join(page.extract_text() or "" for page in PdfReader(io.BytesIO(rendered)).pages)
+        self.assertIn("Andrew Christian", text)
+
     def test_signer_map_requires_plan_and_supports_one_or_two_clients(self):
         one = build_signwell_fields_txr1501({**sample_data(), "signer_plan": "clients_and_associate"}, client_count=1)[0]
         two = build_signwell_fields_txr1501({**sample_data(), "signer_plan": "clients_and_associate"}, client_count=2)[0]

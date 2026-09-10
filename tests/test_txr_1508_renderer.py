@@ -37,6 +37,15 @@ class Txr1508RendererTests(unittest.TestCase):
         for expected in ("1438 Whitaker Road, Van Alstyne, TX", "Test Customer One", "Test Customer Two", "OnDemand Realty", "Andrew Christian"):
             self.assertIn(expected, text)
 
+    def test_renderer_uses_authenticated_profile_agent_name(self):
+        rendered = render_txr_1508(
+            blank_one_page_pdf(), sample_data(),
+            {"legal_name": "OnDemand Realty", "license_number": "9010832"},
+            {"agent_name": "Andrew Christian", "license_number": "0738821"},
+        )
+        text = PdfReader(io.BytesIO(rendered)).pages[0].extract_text() or ""
+        self.assertIn("Andrew Christian", text)
+
     def test_signer_map_is_explicit_for_one_or_two_customers(self):
         one = build_signwell_fields_txr1508({**sample_data(), "signer_plan": "broker_and_clients"}, client_count=1)[0]
         two = build_signwell_fields_txr1508(sample_data(), client_count=2)[0]

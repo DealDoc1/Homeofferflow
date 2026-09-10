@@ -100,7 +100,9 @@ def _overlay(data, brokerage, associate):
 
     broker_name = brokerage.get("legal_name") or brokerage.get("name") or brokerage.get("dba_name")
     broker_license = brokerage.get("license_number") or ""
-    associate_name = associate.get("name") or ""
+    # ``hof_agent_profiles`` provides ``agent_name``.  Keep it visible on
+    # the source when the same person is assigned as the signing associate.
+    associate_name = associate.get("name") or associate.get("agent_name") or ""
     associate_license = associate.get("license_number") or ""
     _draw(canvas, broker_name, 56, 296, size=8)
     _draw(canvas, broker_license, 238, 296, size=8)

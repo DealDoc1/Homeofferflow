@@ -66,7 +66,11 @@ def _overlay(data, brokerage, associate):
 
     broker_name = brokerage.get("legal_name") or brokerage.get("name") or brokerage.get("dba_name") or ""
     broker_license = brokerage.get("license_number") or ""
-    associate_name = associate.get("name") or ""
+    # The authenticated profile stores its display name as ``agent_name``;
+    # accept the normalized renderer shape as well.  Without this fallback a
+    # real agent can be the SignWell recipient while their printed name is
+    # blank on the completed agreement.
+    associate_name = associate.get("name") or associate.get("agent_name") or ""
     associate_license = associate.get("license_number") or ""
 
     # Page 1: party/contact block, market area, and term. These coordinates are
