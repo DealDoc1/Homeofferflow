@@ -133,7 +133,7 @@ class TxrSignerGeometryTests(unittest.TestCase):
                 if prefix == "txr1507":
                     self.assertEqual(role["y"], 650)
                 else:
-                    self.assertEqual(role["y"], 535)
+                    self.assertEqual(role["y"], 677)
                 self.assertGreater(date["x"], client["x"] + client["width"])
                 # The provider's completed-packet renderer may let a full
                 # MM/DD/YYYY value extend beyond the nominal widget width.
@@ -150,8 +150,8 @@ class TxrSignerGeometryTests(unittest.TestCase):
         """
         cases = (
             (build_signwell_fields_txr1501, FORM_CASES[0][3], {
-                "txr1501_associate_signature_p6": 559,
-                "txr1501_associate_date_p6": 559,
+                "txr1501_associate_signature_p6": 701,
+                "txr1501_associate_date_p6": 701,
                 "txr1501_client1_signature_p6": 590,
                 "txr1501_client1_date_p6": 590,
                 "txr1501_client2_signature_p6": 701,
@@ -187,6 +187,15 @@ class TxrSignerGeometryTests(unittest.TestCase):
         self.assertEqual(
             txr1501["txr1501_client2_signature_p6"]["y"]
             + txr1501["txr1501_client2_signature_p6"]["height"],
+            701,
+        )
+        # A broker-associate signs the separate lower left row.  It shares
+        # that horizontal line with the second client's right-side row, not
+        # the broker's first execution row.
+        self.assertEqual(txr1501["txr1501_associate_signature_p6"]["y"], 677)
+        self.assertEqual(
+            txr1501["txr1501_associate_signature_p6"]["y"]
+            + txr1501["txr1501_associate_signature_p6"]["height"],
             701,
         )
 

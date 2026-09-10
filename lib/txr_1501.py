@@ -185,8 +185,13 @@ def build_signwell_fields_txr1501(data, *, client_count=1):
         ])
     if signer_plan == "clients_and_associate":
         fields.extend([
-            {"api_id": "txr1501_associate_signature_p6", "type": "signature", "page": 6, "x": 8, "y": 535, "recipient_id": "associate", "required": True, "width": 120, "height": 24},
-            {"api_id": "txr1501_associate_date_p6", "type": "date", "page": 6, "x": 135, "y": 535, "recipient_id": "associate", "required": True, "width": 58, "height": 18, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
+            # TXR-1501 has separate broker and broker-associate execution
+            # rows.  Completed-packet review showed an associate recipient
+            # being placed on the broker row; use the lower associate row,
+            # which shares its horizontal rule with a second client when one
+            # is present.
+            {"api_id": "txr1501_associate_signature_p6", "type": "signature", "page": 6, "x": 8, "y": 677, "recipient_id": "associate", "required": True, "width": 120, "height": 24},
+            {"api_id": "txr1501_associate_date_p6", "type": "date", "page": 6, "x": 135, "y": 677, "recipient_id": "associate", "required": True, "width": 58, "height": 18, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
         ])
     if signer_plan == "clients_and_broker":
         fields.extend([
