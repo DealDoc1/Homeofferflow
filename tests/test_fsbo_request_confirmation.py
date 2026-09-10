@@ -259,6 +259,12 @@ class FsboRequestConfirmationTests(unittest.TestCase):
         with patch.object(api, "RESEND_API_KEY", "re_test"), patch.object(api.httpx, "Client", return_value=Client()):
             self.assertEqual(api._send_seller_plan_confirmation({"seller_email": "seller@example.com"}), "sent")
         self.assertEqual(captured["payload"]["subject"], "Your free HomeOfferFlow seller plan")
+        self.assertIn("Choose your next step: https://www.homeofferflow.com/sellers?seller_package=free_intake", captured["payload"]["text"])
+        self.assertIn(">Choose your next step</a>", captured["payload"]["html"])
+        self.assertIn(
+            "Choose the next support path that fits your goals when you are ready.",
+            captured["payload"]["text"],
+        )
 
     def test_seller_plan_receipt_steps_are_allowlisted_and_fall_back_safely(self):
         spec = importlib.util.spec_from_file_location("fsbo_plan_receipt_steps", API_PATH)

@@ -105,7 +105,7 @@ FSBO_RECEIPT_NEXT_STEPS = {
     "free_intake": (
         "Confirm your property facts and target timeline.",
         "Gather recent photos, repair notes, and any prior listing information.",
-        "Watch for a HomeOfferFlow follow-up about the path that fits your goals.",
+        "Choose the next support path that fits your goals when you are ready.",
     ),
     "seller_prep": (
         "List repairs, cleaning, staging, and photo-readiness needs.",
@@ -394,6 +394,7 @@ def _send_seller_plan_confirmation(payload):
     next_steps = _seller_plan_receipt_steps(payload)
     scope_note = _seller_plan_scope_note(service_level)
     return_link = f"{PUBLIC_APP_ORIGIN}/sellers?{urlencode({'seller_package': service_level, 'utm_source': 'email', 'utm_medium': 'seller_receipt', 'utm_campaign': 'seller_follow_up'})}"
+    return_link_label = "Choose your next step" if service_level == "free_intake" else "Review your selected path"
     plain_steps = "\n".join(f"{index}. {step}" for index, step in enumerate(next_steps, start=1))
     html_steps = "".join(f"<li>{html.escape(step)}</li>" for step in next_steps)
     plain_text = (
@@ -403,7 +404,7 @@ def _send_seller_plan_confirmation(payload):
         f"Timeline: {timeline}\n\n"
         "Your next steps:\n"
         f"{plain_steps}\n\n"
-        f"Review your selected path: {return_link}\n\n"
+        f"{return_link_label}: {return_link}\n\n"
         f"{scope_note} "
         "This receipt is not checkout, representation, a confirmed service order, or legal advice.\n\n"
         "Have a question or want to discuss the next step sooner? Reply directly to this email."
@@ -437,7 +438,7 @@ def _send_seller_plan_confirmation(payload):
             f"<strong>Timeline:</strong> {safe_timeline}</p>"
             "<h3>Your next steps</h3>"
             f"<ol>{html_steps}</ol>"
-            f'<p><a href="{safe_return_link}">Review your selected path</a></p>'
+            f'<p><a href="{safe_return_link}">{return_link_label}</a></p>'
             f"<p>{html.escape(scope_note)}</p>"
             "<p>This receipt is not checkout, representation, a confirmed service order, or legal advice.</p>"
             "<p>Have a question or want to discuss the next step sooner? Reply directly to this email.</p>"
