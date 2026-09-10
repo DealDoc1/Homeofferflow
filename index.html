@@ -7700,34 +7700,27 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     };
     const packages = {
       purchase: {
-        title: 'What do you need for this purchase transaction?',
+        title: 'What do you need to prepare for this purchase?',
         choices: [
-          { label: 'Start an offer package', copy: 'Tell us about the buyer, property, financing, and timing. We’ll assemble the supported offer documents that fit the selections you make.', action: () => startAccountOffer(), isWorkspaceOpen: () => document.getElementById('wizardOverlay')?.classList.contains('active') },
-          { label: 'Set up representation', copy: 'Choose the agreement, then answer the client questions that apply.', action: () => openRelationshipPackage('representation'), deferStartToNestedChoice: true },
-          { label: 'Prepare a purchase addendum', copy: 'Choose the addendum the transaction needs, answer the guided questions, then review and send it when ready.', action: () => openRelationshipPackage('purchase_addendum'), deferStartToNestedChoice: true },
-          { label: 'Prepare a showing form or notice', copy: 'Choose the right document for the customer and situation.', action: () => openRelationshipPackage('customer'), deferStartToNestedChoice: true }
+          { label: 'Purchase offer', copy: 'Tell us about the buyer, property, financing, and timing. We’ll assemble the supported offer documents that fit the selections you make.', action: () => startAccountOffer(), isWorkspaceOpen: () => document.getElementById('wizardOverlay')?.classList.contains('active') },
+          { label: 'Buyer representation agreement', copy: 'Choose the agreement, then answer the client questions that apply.', action: () => openRelationshipPackage('representation'), deferStartToNestedChoice: true },
+          { label: 'Purchase addendum', copy: 'Choose the addendum the transaction needs, answer the guided questions, then review and send it when ready.', action: () => openRelationshipPackage('purchase_addendum'), deferStartToNestedChoice: true },
+          { label: 'Customer showing form or notice', copy: 'Choose the right document for the customer and situation.', action: () => openRelationshipPackage('customer'), deferStartToNestedChoice: true }
         ]
       },
       sale_listing: {
-        title: 'What do you need for this sale listing?',
+        title: 'What do you need to prepare for this listing?',
         choices: [
-          { label: 'Set up the listing', copy: 'Tell us about the seller, property, timing, and next steps.', action: () => openListingWorkspace(true), isWorkspaceOpen: () => Boolean(document.getElementById('listingWorkspaceStartCard')) },
-          { label: 'Prepare seller disclosures', copy: 'Answer the property and seller questions, then review the private disclosure draft.', action: () => { showAccountTab('seller'); window.setTimeout(() => window.openSellerDisclosureDraftWorkspace?.(), 0); }, isWorkspaceOpen: () => Boolean(document.getElementById('hofSellerDisclosureCard')) },
-          { label: 'Review a buyer offer', copy: 'Compare price, financing, deadlines, concessions, and possession.', action: () => window.hofOpenListingOfferComparison?.(), isWorkspaceOpen: () => Boolean(document.getElementById('listingWorkspaceOfferComparisonCard')) }
-        ]
-      },
-      lease_listing: {
-        title: 'What do you need for this lease listing?',
-        choices: [
-          { label: 'Start a lease listing', copy: 'Tell us about the landlord, property, availability, and next steps.', action: () => openListingWorkspace(true), isWorkspaceOpen: () => Boolean(document.getElementById('listingWorkspaceStartCard')) },
-          { label: 'Resume a lease listing', copy: 'Open a saved private workspace to review the plan and continue where you left off.', action: () => openListingWorkspace(), isWorkspaceOpen: () => Boolean(document.getElementById('listingWorkspaceStartCard')) }
+          { label: 'Start the listing', copy: 'Tell us about the seller, property, timing, and next steps.', action: () => openListingWorkspace(true), isWorkspaceOpen: () => Boolean(document.getElementById('listingWorkspaceStartCard')) },
+          { label: 'Seller disclosures', copy: 'Answer the property and seller questions, then review the disclosure draft.', action: () => { showAccountTab('seller'); window.setTimeout(() => window.openSellerDisclosureDraftWorkspace?.(), 0); }, isWorkspaceOpen: () => Boolean(document.getElementById('hofSellerDisclosureCard')) },
+          { label: 'Compare a buyer offer', copy: 'Compare price, financing, deadlines, concessions, and possession.', action: () => window.hofOpenListingOfferComparison?.(), isWorkspaceOpen: () => Boolean(document.getElementById('listingWorkspaceOfferComparisonCard')) }
         ]
       },
       lease_representation: {
-        title: 'What do you need for this lease representation transaction?',
+        title: 'What do you need to prepare for this lease representation?',
         choices: [
-          { label: 'Set up representation', copy: 'Choose the agreement, then answer the tenant questions that apply.', action: () => openRelationshipPackage('representation'), deferStartToNestedChoice: true },
-          { label: 'Prepare a showing form or notice', copy: 'Choose the right document for the customer and situation.', action: () => openRelationshipPackage('customer'), deferStartToNestedChoice: true }
+          { label: 'Tenant representation agreement', copy: 'Choose the agreement, then answer the tenant questions that apply.', action: () => openRelationshipPackage('representation'), deferStartToNestedChoice: true },
+          { label: 'Customer showing form or notice', copy: 'Choose the right document for the customer and situation.', action: () => openRelationshipPackage('customer'), deferStartToNestedChoice: true }
         ]
       }
     };
@@ -7775,22 +7768,37 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     const choices = {
       purchase: {
         event: 'agent_workflow_purchase_selected',
-        message: 'Next question: buyer and property details for this offer.',
+        message: 'Next, choose the purchase document or package you need.',
         action: () => window.hofOpenAgentPackageInterview('purchase') || startAccountOffer()
       },
       sale_listing: {
         event: 'agent_workflow_sale_listing_selected',
-        message: 'Next question: seller and property details for this sale listing.',
+        message: 'Next, choose the listing task you need.',
         action: () => window.hofOpenAgentPackageInterview('sale_listing') || showAccountTab('seller')
       },
       lease_listing: {
         event: 'agent_workflow_lease_listing_selected',
-        message: 'Next question: landlord and property details for this lease listing.',
-        action: () => window.hofOpenAgentPackageInterview('lease_listing') || showAccountTab('seller')
+        message: 'Next, add the landlord and property details for this lease listing.',
+        action: () => {
+          showAccountTab('seller');
+          let attempts = 0;
+          const focusWhenReady = () => {
+            const card = document.getElementById('listingWorkspaceStartCard');
+            const address = document.getElementById('listingWorkspaceAddress');
+            if (!card || !address) {
+              attempts += 1;
+              if (attempts < 12) window.setTimeout(focusWhenReady, 100);
+              return;
+            }
+            card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            address.focus({ preventScroll: true });
+          };
+          window.setTimeout(focusWhenReady, 0);
+        }
       },
       lease_representation: {
         event: 'agent_workflow_lease_representation_selected',
-        message: 'Next question: the representation step for this lease representation transaction.',
+        message: 'Next, choose the representation document you need.',
         action: () => window.hofOpenAgentPackageInterview('lease_representation') || showAccountTab('relationships')
       }
     };
