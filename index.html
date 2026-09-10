@@ -6849,13 +6849,20 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   function syncFeedbackFields() {
     syncAiFeedbackPrivacyGuard();
     const isMissingForm = document.getElementById('feedbackIssueType')?.value === 'missing_addendum';
+    const isCalibration = document.getElementById('feedbackIssueType')?.value === 'ai_review';
     const structured = document.getElementById('missingFormStructuredFields');
     const label = document.getElementById('feedbackMessageLabel');
     const message = document.getElementById('feedbackMessage');
     if (structured) structured.style.display = isMissingForm ? 'block' : 'none';
-    if (label) label.textContent = isMissingForm ? 'What should this form help you do?' : 'What happened?';
+    if (label) label.textContent = isMissingForm
+      ? 'What should this form help you do?'
+      : isCalibration
+      ? 'Reviewer summary'
+      : 'What happened?';
     if (message) message.placeholder = isMissingForm
       ? 'Describe the job this form or workflow should help you complete. Do not include confidential client information.'
+      : isCalibration
+      ? 'Summarize your independent review. Do not include client names, exact addresses, MLS numbers, or other identifying details.'
       : 'Tell us what you were doing, what went wrong, what page/form/field was involved, and what you expected to happen.';
   }
 
@@ -14648,6 +14655,7 @@ function routeAfterMagicLinkIfNeeded() {
       const intro = document.querySelector('#feedbackModal .feedback-head p');
       const message = document.getElementById('feedbackMessage');
       if (issue) issue.value = 'ai_review';
+      syncFeedbackFields();
       if (title) title.textContent = 'Review AI Offer Assessment';
       if (intro) intro.textContent = 'Use anonymized transaction facts only. Tell us what was useful, misleading, insufficient, or missing. This feedback calibrates the educational review and does not change the offer.';
       if (message && !message.value) {
