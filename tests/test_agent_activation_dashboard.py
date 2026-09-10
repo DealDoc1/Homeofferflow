@@ -130,6 +130,7 @@ class AgentActivationDashboardTests(unittest.TestCase):
         self.assertIn("const isFirstTransaction = state.key === 'first_offer';", script)
         self.assertIn("const progressLabel = isFirstTransaction ? 'Start here'", script)
         self.assertIn("${isFirstTransaction ? '' : `<div class=\"agent-activation-steps\"", script)
+        self.assertIn("${isFirstTransaction ? '' : '<button class=\"agent-activation-secondary\" type=\"button\" onclick=\"toggleAgentReadinessChecklist()\">Workspace Checklist</button>'}", script)
 
     def test_onboarding_uses_a_real_saved_draft_path_not_demo_only_language(self):
         self.assertIn("Start your first saved offer", HTML)

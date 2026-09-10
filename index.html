@@ -18704,7 +18704,7 @@ function routeAfterMagicLinkIfNeeded() {
       <div class="agent-activation-actions">
         <button class="agent-activation-primary" type="button" onclick="handleAgentActivationAction('${primaryAction}','${id}','primary','${safe(state.key)}','monthly')">${safe(state.primary)}</button>
         <button class="agent-activation-secondary" type="button" onclick="handleAgentActivationAction('${secondaryAction}','${id}','secondary','${safe(state.key)}','${secondaryBilling}')">${safe(state.secondary)}</button>
-        <button class="agent-activation-secondary" type="button" onclick="toggleAgentReadinessChecklist()">Workspace Checklist</button>
+        ${isFirstTransaction ? '' : '<button class="agent-activation-secondary" type="button" onclick="toggleAgentReadinessChecklist()">Workspace Checklist</button>'}
       </div>`;
     card.classList.add('show');
 
