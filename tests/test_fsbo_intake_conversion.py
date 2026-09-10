@@ -79,6 +79,8 @@ class FsboIntakeConversionTests(unittest.TestCase):
         catalog = HTML.index('id="fsboSupportOptions"')
         self.assertLess(recommendation, catalog)
         self.assertIn("Choose a starting point to tailor your plan.", HTML)
+        self.assertIn(">Explore MLS options</button>", HTML)
+        self.assertNotIn(">Get MLS exposure</button>", HTML)
         self.assertIn("Explore other support paths and pricing", HTML)
         self.assertIn('id="fsboSupportOptions" class="partner-optional-details"', HTML)
 
