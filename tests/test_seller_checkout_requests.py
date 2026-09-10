@@ -66,7 +66,8 @@ class SellerCheckoutRequestTests(unittest.IsolatedAsyncioTestCase):
     def test_checkout_return_explains_success_or_cancel_without_exposing_order_data(self):
         self.assertIn('id="sellerCheckoutContext"', SELLERS)
         self.assertIn("paymentState === 'success'", SELLERS)
-        self.assertIn("Payment received.", SELLERS)
+        self.assertIn("we’re confirming your payment", SELLERS)
+        self.assertIn("once payment confirmation is complete", SELLERS)
         self.assertIn("No payment was made.", SELLERS)
         self.assertIn("cleanUrl.searchParams.delete('seller_payment')", SELLERS)
 
