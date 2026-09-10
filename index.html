@@ -15071,7 +15071,7 @@ function routeAfterMagicLinkIfNeeded() {
       notice.id = 'fsboRequestReceipt';
       notice.className = 'notice sage';
       notice.style.marginTop = '.8rem';
-      notice.innerHTML = '<strong>Seller request saved on this device.</strong> ' + escapeAttr(receipt.packageName) + ' was recorded ' + escapeAttr(submittedAt.toLocaleDateString()) + '. You can start a different request below, or wait for follow-up. <button class="btn-secondary" type="button" style="margin-left:.45rem;padding:.35rem .55rem;" id="clearFsboRequestReceipt">Clear notice</button>';
+      notice.innerHTML = '<strong>Seller request saved on this device.</strong> ' + escapeAttr(receipt.packageName) + ' was recorded ' + escapeAttr(submittedAt.toLocaleDateString()) + '. Your plan is ready below; you can also start a different request. <button class="btn-secondary" type="button" style="margin-left:.45rem;padding:.35rem .55rem;" id="clearFsboRequestReceipt">Clear notice</button>';
       document.getElementById('fsboNeedDetails')?.insertAdjacentElement('beforebegin', notice);
       const receiptServiceLevel = fsboCampaignPackages.has(receipt.serviceLevel) ? receipt.serviceLevel : 'free_intake';
       trackFsboFunnel('FSBO Seller Request Receipt Viewed', { package: receiptServiceLevel });
@@ -15125,7 +15125,7 @@ function routeAfterMagicLinkIfNeeded() {
     }
   };
   const fsboNextSteps = {
-    free_intake: ['Confirm your property facts and target timeline.', 'Gather recent photos, repair notes, and any prior listing information.', 'Watch for a HomeOfferFlow follow-up about the path that fits your goals.'],
+    free_intake: ['Confirm your property facts and target timeline.', 'Gather recent photos, repair notes, and any prior listing information.', 'Use this plan to choose your next step: prepare, launch, explore MLS options, or organize an offer review.'],
     seller_prep: ['List repairs, cleaning, staging, and photo-readiness needs.', 'Gather recent utility, improvement, and property-condition records.', 'Keep your target timing handy for scope and provider review.'],
     launch_kit: ['Collect your best property photos and key upgrades.', 'Write down showing constraints and preferred launch timing.', 'Keep comparable homes or pricing questions ready for the planning conversation.'],
     flat_fee_mls: ['Collect property facts, photos, and your preferred list timing.', 'Flag HOA, occupancy, and disclosure questions for the licensed-provider review.', 'We will confirm availability, scope, and final pricing with you before any payment is requested.'],

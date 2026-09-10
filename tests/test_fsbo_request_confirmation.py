@@ -80,6 +80,8 @@ class FsboRequestConfirmationTests(unittest.TestCase):
         self.assertIn("serviceLevel: fsboCampaignPackages.has(serviceLevel) ? serviceLevel : 'free_intake'", HTML)
         self.assertIn("const receiptServiceLevel = fsboCampaignPackages.has(receipt.serviceLevel) ? receipt.serviceLevel : 'free_intake';", HTML)
         self.assertIn("sellerRequestReceiptViewedCount", HTML)
+        self.assertIn("Your plan is ready below; you can also start a different request.", HTML)
+        self.assertNotIn("or wait for follow-up.", HTML)
         api = API_PATH.read_text(encoding="utf-8")
         admin = (pathlib.Path(__file__).resolve().parents[1] / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
         self.assertIn('"fsbo_request_receipt_viewed": "viewed"', api)
@@ -143,6 +145,8 @@ class FsboRequestConfirmationTests(unittest.TestCase):
         self.assertIn("Your free seller plan is ready to use.", HTML)
         self.assertIn("If you later request paid support", HTML)
         self.assertIn("with you before any payment is requested.", HTML)
+        self.assertIn("Use this plan to choose your next step: prepare, launch, explore MLS options, or organize an offer review.", HTML)
+        self.assertNotIn("Watch for a HomeOfferFlow follow-up about the path that fits your goals.", HTML)
         self.assertNotIn("A qualified human review is required", HTML)
 
         spec = importlib.util.spec_from_file_location("fsbo_plan_scope_note", API_PATH)
