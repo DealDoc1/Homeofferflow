@@ -247,10 +247,10 @@ class TxrSignerGeometryTests(unittest.TestCase):
         bounds are based on the released source PDFs, not a blank fixture.
         """
         cases = (
-            ("TXR-1953", build_signwell_fields_txr1953, FORM_CASES[4][3], 70, 440, 802, 875, 828, 901),
-            ("TXR-1954", build_signwell_fields_txr1954, FORM_CASES[5][3], 64, 418, 774, 876, 800, 902),
+            ("TXR-1953", build_signwell_fields_txr1953, FORM_CASES[4][3], 70, 440, 306, 302, 802, 875, 828, 901),
+            ("TXR-1954", build_signwell_fields_txr1954, FORM_CASES[5][3], 64, 418, 200, 200, 774, 876, 800, 902),
         )
-        for form_code, builder, data, buyer_x, seller_x, first_y, second_y, first_bottom, second_bottom in cases:
+        for form_code, builder, data, buyer_x, seller_x, buyer_width, seller_width, first_y, second_y, first_bottom, second_bottom in cases:
             with self.subTest(form_code=form_code):
                 fields = {field["api_id"]: field for field in builder(data, client_count=2)[0]}
                 for party, x in (("buyer", buyer_x), ("seller", seller_x)):
@@ -258,6 +258,8 @@ class TxrSignerGeometryTests(unittest.TestCase):
                     second = fields[f"{form_code.lower().replace('-', '')}_{party}2_signature_p1"]
                     self.assertEqual(first["x"], x)
                     self.assertEqual(second["x"], x)
+                    self.assertEqual(first["width"], buyer_width if party == "buyer" else seller_width)
+                    self.assertEqual(second["width"], buyer_width if party == "buyer" else seller_width)
                     self.assertEqual(first["y"], first_y)
                     self.assertEqual(second["y"], second_y)
                     # The source rows are rules immediately above the printed
