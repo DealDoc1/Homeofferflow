@@ -200,6 +200,12 @@ class TxrSignerGeometryTests(unittest.TestCase):
         self.assertEqual(txr1507["txr1507_associate_signature_p2"]["y"], 686)
         self.assertEqual(txr1507["txr1507_associate_signature_p2"]["x"], 160)
         self.assertEqual(txr1507["txr1507_associate_date_p2"]["x"], 260)
+        self.assertEqual(
+            (txr1507["txr1507_associate_initials_p1"]["x"], txr1507["txr1507_associate_initials_p1"]["y"]),
+            (435, 984),
+        )
+        self.assertEqual(txr1507["txr1507_client1_initials_p1"]["x"], 542)
+        self.assertEqual(txr1507["txr1507_client2_initials_p1"]["x"], 596)
 
     def test_txr1506_provider_and_consumer_dates_share_the_printed_date_column(self):
         """Keep every page-six acknowledgement date on TXR-1506's right rule.

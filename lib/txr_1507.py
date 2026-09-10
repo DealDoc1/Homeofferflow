@@ -152,11 +152,13 @@ def build_signwell_fields_txr1507(data, *, client_count=1):
     signer_plan = data.get("signer_plan")
     if signer_plan not in {"clients_and_associate", "clients_and_broker"}:
         raise ValueError("Choose an authorized broker or broker-associate signer for the TXR-1507 agreement.")
+    role = "associate" if signer_plan == "clients_and_associate" else "broker"
     fields = [
-        # The footer prints one Broker/Associate blank followed by two Client
-        # blanks. Client initials must begin after the "and Client" label;
-        # the prior first-client position used the broker blank instead.
-        {"api_id": "txr1507_client1_initials_p1", "type": "initials", "page": 1, "x": 538, "y": 984, "recipient_id": "1", "required": True, "width": 40, "height": 14},
+        # The footer requires initials from the selected Broker/Associate and
+        # each Client. These source-calibrated rectangles start on the three
+        # printed underscore blanks, not on the surrounding labels.
+        {"api_id": f"txr1507_{role}_initials_p1", "type": "initials", "page": 1, "x": 435, "y": 984, "recipient_id": role, "required": True, "width": 47, "height": 14},
+        {"api_id": "txr1507_client1_initials_p1", "type": "initials", "page": 1, "x": 542, "y": 984, "recipient_id": "1", "required": True, "width": 47, "height": 14},
         # Keep widgets on the first execution rule, above the printed
         # signature and Date captions.  The earlier y-coordinate let the
         # widget extend into those captions in the signing ceremony.
@@ -168,11 +170,10 @@ def build_signwell_fields_txr1507(data, *, client_count=1):
     ]
     if client_count == 2:
         fields.extend([
-            {"api_id": "txr1507_client2_initials_p1", "type": "initials", "page": 1, "x": 618, "y": 984, "recipient_id": "2", "required": True, "width": 40, "height": 14},
+            {"api_id": "txr1507_client2_initials_p1", "type": "initials", "page": 1, "x": 596, "y": 984, "recipient_id": "2", "required": True, "width": 47, "height": 14},
             {"api_id": "txr1507_client2_signature_p2", "type": "signature", "page": 2, "x": 513, "y": 785, "recipient_id": "2", "required": True, "width": 80, "height": 24},
             {"api_id": "txr1507_client2_date_p2", "type": "date", "page": 2, "x": 600, "y": 785, "recipient_id": "2", "required": True, "width": 60, "height": 18, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
         ])
-    role = "associate" if signer_plan == "clients_and_associate" else "broker"
     # The source uses checkboxes to identify whether the broker or the
     # broker's associate signs, followed by one shared signature/date rule.
     # The former associate target sat below that rule and covered its printed

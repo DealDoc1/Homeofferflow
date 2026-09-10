@@ -115,8 +115,8 @@ class Txr1507RendererTests(unittest.TestCase):
     def test_signer_map_is_separate_for_one_and_two_clients(self):
         one = build_signwell_fields_txr1507(sample_data(), client_count=1)[0]
         two = build_signwell_fields_txr1507(sample_data(), client_count=2)[0]
-        self.assertEqual(len(one), 5)
-        self.assertEqual(len(two), 8)
+        self.assertEqual(len(one), 6)
+        self.assertEqual(len(two), 9)
         self.assertTrue(all(field["page"] in {1, 2} for field in two))
         self.assertTrue(all(field["recipient_id"] in {"1", "2", "associate"} for field in two))
         self.assertEqual(next(field["y"] for field in two if field["api_id"] == "txr1507_associate_signature_p2"), 686)
@@ -124,16 +124,22 @@ class Txr1507RendererTests(unittest.TestCase):
         self.assertEqual(next(field["x"] for field in two if field["api_id"] == "txr1507_client1_signature_p2"), 513)
         initials = {field["api_id"]: field for field in two}
         # TXR-1507's footer has a separate Broker/Associate initial blank
-        # before the two Client blanks. Client fields must not consume it.
+        # before the two Client blanks. Every party named in that footer must
+        # receive its own correctly aligned required field.
+        self.assertEqual(
+            (initials["txr1507_associate_initials_p1"]["x"], initials["txr1507_associate_initials_p1"]["y"], initials["txr1507_associate_initials_p1"]["width"]),
+            (435, 984, 47),
+        )
         self.assertEqual(
             (initials["txr1507_client1_initials_p1"]["x"], initials["txr1507_client1_initials_p1"]["y"], initials["txr1507_client1_initials_p1"]["width"]),
-            (538, 984, 40),
+            (542, 984, 47),
         )
         self.assertEqual(
             (initials["txr1507_client2_initials_p1"]["x"], initials["txr1507_client2_initials_p1"]["y"], initials["txr1507_client2_initials_p1"]["width"]),
-            (618, 984, 40),
+            (596, 984, 47),
         )
         self.assertEqual({field["api_id"] for field in one}, {
+            "txr1507_associate_initials_p1",
             "txr1507_client1_initials_p1",
             "txr1507_client1_signature_p2",
             "txr1507_client1_date_p2",
