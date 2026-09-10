@@ -45,9 +45,9 @@ class FsboIntakeConversionTests(unittest.TestCase):
         self.assertIn("We’ll send your free seller plan—no checkout or commitment.", HTML)
         self.assertIn('id="fsboRequiredReadyCue"', HTML)
         self.assertIn("function renderFsboRequiredReadyCue", HTML)
-        self.assertIn("Press Return/Go or get your free seller plan now.", HTML)
+        self.assertIn("Get your free seller plan now, or tell us what would help most.", HTML)
         self.assertIn("Your free seller plan is already selected", HTML)
-        self.assertIn("Optional: what would help most right now?", HTML)
+        self.assertIn("Optional: What would help most right now?", HTML)
         self.assertIn("You can skip this and still get the free seller plan.", HTML)
         self.assertIn("selectFsboGuidedGoal", HTML)
         self.assertIn("fsboGuidedGoalPackages", HTML)
@@ -300,6 +300,8 @@ class FsboIntakeConversionTests(unittest.TestCase):
         self.assertIn('Partner suggestions wanted', customization_section)
         self.assertIn("document.querySelectorAll('[data-fsbo-submit]')", HTML)
         self.assertIn("Request ${item.title} Details", HTML)
+        self.assertIn('id="fsboGuidedGoalCard" hidden', HTML)
+        self.assertIn("goalCard.hidden = !ready", HTML)
 
     def test_launch_kit_package_copy_clarifies_ready_to_launch_fit(self):
         self.assertIn('Best for sellers ready to launch.', HTML)

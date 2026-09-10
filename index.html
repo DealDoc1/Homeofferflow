@@ -14523,8 +14523,8 @@ function routeAfterMagicLinkIfNeeded() {
       <button class="btn-primary" type="button" id="fsboSellerQuickSubmit" data-fsbo-submit onclick="submitFsboSellerLead('quick')" disabled aria-disabled="true" aria-label="Get My Free Seller Plan — enter address and email to unlock">Enter address + email to unlock</button>
     </div>
 
-    <div id="fsboGuidedGoalCard" style="margin-top:1rem; padding:.9rem; border:1px solid rgba(200,151,63,.24); border-radius:12px; background:rgba(200,151,63,.055);">
-      <div class="radio-group-label" style="margin-bottom:.25rem;">Optional: what would help most right now?</div>
+    <div id="fsboGuidedGoalCard" hidden style="margin-top:1rem; padding:.9rem; border:1px solid rgba(200,151,63,.24); border-radius:12px; background:rgba(200,151,63,.055);">
+      <div class="radio-group-label" style="margin-bottom:.25rem;">Optional: What would help most right now?</div>
       <div style="color:var(--gray-light); font-size:.8rem; line-height:1.45; margin-bottom:.6rem;">Choose a starting point to tailor your plan. You can skip this and still get the free seller plan.</div>
       <input type="hidden" id="fsboGuidedGoal" value="">
       <div class="account-actions-row" style="margin-top:0;gap:.5rem;">
@@ -14739,13 +14739,15 @@ function routeAfterMagicLinkIfNeeded() {
     const ready = fsboRequiredFieldsReady();
     if (cue) {
       cue.innerHTML = ready
-        ? '<strong>You’re ready.</strong> Press Return/Go or get your free seller plan now.'
+        ? '<strong>You’re ready.</strong> Get your free seller plan now, or tell us what would help most.'
         : addressProvided && !emailProvided
           ? '<strong>Step 2 of 2:</strong> Add the email where you want your free seller plan.'
           : addressProvided
             ? '<strong>Step 2 of 2:</strong> Enter a valid email to unlock your seller plan.'
             : '<strong>Step 1 of 2:</strong> Enter the property address, then your email.';
     }
+    const goalCard = document.getElementById('fsboGuidedGoalCard');
+    if (goalCard) goalCard.hidden = !ready;
     const key = fsboVal('fsboNeed') || 'free_intake';
     const item = fsboNeedCopy[key] || fsboNeedCopy.free_intake;
     const quickSubmit = document.getElementById('fsboSellerQuickSubmit');
