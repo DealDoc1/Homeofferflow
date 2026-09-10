@@ -167,28 +167,27 @@ def build_signwell_fields_txr1507(data, *, client_count=1):
         # printed underscore blanks, not on the surrounding labels.
         {"api_id": f"txr1507_{role}_initials_p1", "type": "initials", "page": 1, "x": 435, "y": 984, "recipient_id": role, "required": True, "width": 47, "height": 14},
         {"api_id": "txr1507_client1_initials_p1", "type": "initials", "page": 1, "x": 542, "y": 984, "recipient_id": "1", "required": True, "width": 47, "height": 14},
-        # The completed SignWell packet proved that the provider's visible
-        # signature and date extend materially beyond their nominal widgets.
-        # Start the pair farther left and slightly above the caption baseline
-        # so a real MM/DD/YYYY stamp remains on the rule and clears the
-        # preprinted "Date" caption.
-        {"api_id": "txr1507_client1_signature_p2", "type": "signature", "page": 2, "x": 445, "y": 668, "recipient_id": "1", "required": True, "width": 80, "height": 24},
-        {"api_id": "txr1507_client1_date_p2", "type": "date", "page": 2, "x": 530, "y": 668, "recipient_id": "1", "required": True, "width": 60, "height": 18, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
+        # Completed-PDF QA showed SignWell's visible signature rendering
+        # starts right of its nominal field while the date runs farther right
+        # than its widget.  These coordinates place the rendered signature on
+        # its rule and keep the date clear of the printed "Date" caption.
+        {"api_id": "txr1507_client1_signature_p2", "type": "signature", "page": 2, "x": 350, "y": 654, "recipient_id": "1", "required": True, "width": 80, "height": 24},
+        {"api_id": "txr1507_client1_date_p2", "type": "date", "page": 2, "x": 455, "y": 654, "recipient_id": "1", "required": True, "width": 60, "height": 18, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
     ]
     if client_count == 2:
         fields.extend([
             {"api_id": "txr1507_client2_initials_p1", "type": "initials", "page": 1, "x": 596, "y": 984, "recipient_id": "2", "required": True, "width": 47, "height": 14},
-            {"api_id": "txr1507_client2_signature_p2", "type": "signature", "page": 2, "x": 445, "y": 767, "recipient_id": "2", "required": True, "width": 80, "height": 24},
-            {"api_id": "txr1507_client2_date_p2", "type": "date", "page": 2, "x": 530, "y": 767, "recipient_id": "2", "required": True, "width": 60, "height": 18, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
+            {"api_id": "txr1507_client2_signature_p2", "type": "signature", "page": 2, "x": 350, "y": 753, "recipient_id": "2", "required": True, "width": 80, "height": 24},
+            {"api_id": "txr1507_client2_date_p2", "type": "date", "page": 2, "x": 455, "y": 753, "recipient_id": "2", "required": True, "width": 60, "height": 18, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
         ])
     # The source uses checkboxes to identify whether the broker or the
     # broker's associate signs, followed by one shared signature/date rule.
     # Completed-PDF QA showed the prior widget baseline landing below that
     # rule. Account for the provider's visible-field offset, rather than
     # simply placing an empty widget on the apparent target.
-    role_y = 650
+    role_y = 634
     role_signature_x = 10
-    role_date_x = 185
+    role_date_x = 115
     fields.extend([
         {"api_id": f"txr1507_{role}_signature_p2", "type": "signature", "page": 2, "x": role_signature_x, "y": role_y, "recipient_id": role, "required": True, "width": 100, "height": 24},
         {"api_id": f"txr1507_{role}_date_p2", "type": "date", "page": 2, "x": role_date_x, "y": role_y, "recipient_id": role, "required": True, "width": 82, "height": 18, "date_format": "MM/DD/YYYY", "lock_sign_date": True},

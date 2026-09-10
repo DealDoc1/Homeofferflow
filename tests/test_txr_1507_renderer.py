@@ -144,25 +144,24 @@ class Txr1507RendererTests(unittest.TestCase):
         self.assertEqual(len(two), 9)
         self.assertTrue(all(field["page"] in {1, 2} for field in two))
         self.assertTrue(all(field["recipient_id"] in {"1", "2", "associate"} for field in two))
-        self.assertEqual(next(field["y"] for field in two if field["api_id"] == "txr1507_associate_signature_p2"), 650)
-        self.assertEqual(next(field["y"] for field in two if field["api_id"] == "txr1507_client2_signature_p2"), 767)
-        self.assertEqual(next(field["x"] for field in two if field["api_id"] == "txr1507_client1_signature_p2"), 445)
+        self.assertEqual(next(field["y"] for field in two if field["api_id"] == "txr1507_associate_signature_p2"), 634)
+        self.assertEqual(next(field["y"] for field in two if field["api_id"] == "txr1507_client2_signature_p2"), 753)
+        self.assertEqual(next(field["x"] for field in two if field["api_id"] == "txr1507_client1_signature_p2"), 350)
         initials = {field["api_id"]: field for field in two}
-        # Keep the post-completed-packet calibration intact.  The prior
-        # client fields collided with the printed Date captions and the role
-        # signer field sat below its execution rule in the September 8 QA
-        # packet.  These are SignWell's top-origin, 4/3-scale coordinates.
+        # Keep the completed-packet calibration intact.  SignWell's rendered
+        # values sit right and below the nominal widgets, so these top-origin
+        # coordinates keep every visible value on its source rule.
         self.assertEqual(
             (initials["txr1507_client1_signature_p2"]["x"], initials["txr1507_client1_signature_p2"]["y"], initials["txr1507_client1_date_p2"]["x"], initials["txr1507_client1_date_p2"]["y"]),
-            (445, 668, 530, 668),
+            (350, 654, 455, 654),
         )
         self.assertEqual(
             (initials["txr1507_client2_signature_p2"]["x"], initials["txr1507_client2_signature_p2"]["y"], initials["txr1507_client2_date_p2"]["x"], initials["txr1507_client2_date_p2"]["y"]),
-            (445, 767, 530, 767),
+            (350, 753, 455, 753),
         )
         self.assertEqual(
             (initials["txr1507_associate_signature_p2"]["x"], initials["txr1507_associate_signature_p2"]["y"], initials["txr1507_associate_date_p2"]["x"], initials["txr1507_associate_date_p2"]["y"]),
-            (10, 650, 185, 650),
+            (10, 634, 115, 634),
         )
         # TXR-1507's footer has a separate Broker/Associate initial blank
         # before the two Client blanks. Every party named in that footer must
