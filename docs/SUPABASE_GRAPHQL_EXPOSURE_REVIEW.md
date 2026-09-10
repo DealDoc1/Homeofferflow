@@ -1,6 +1,6 @@
 # Supabase GraphQL exposure review
 
-Updated: 2026-08-07
+Updated: 2026-09-10
 
 ## Decision
 
@@ -18,6 +18,28 @@ The Supabase advisor warning `0027_pg_graphql_authenticated_table_exposed` is
 therefore tracked as a reviewed warning, not an unreviewed vulnerability. RLS
 and table grants remain the actual authorization boundary; GraphQL schema
 visibility is a separate concern.
+
+## Production advisor reconciliation — 2026-09-10
+
+The production Security Advisor was checked again on 2026-09-10. The findings
+do not justify a broad privilege revoke:
+
+- The 13 `RLS Enabled No Policy` legacy/internal tables have **no** table
+  privileges for either `anon` or `authenticated`. They are not readable or
+  writable through the browser Data API; RLS-without-policy is fail-closed in
+  this case.
+- Each of the 15 tables named by the GraphQL schema-visibility advisory has
+  one or more RLS policies, and every current policy has a row predicate or
+  write check. The advisory describes discoverability of an object name to
+  signed-in users, not a bypass of the owner, membership, or server-only RLS
+  rules.
+- The Performance Advisor lists unused indexes. These are informational on a
+  young production database; retain indexes that support production paths and
+  revisit only after sustained real traffic shows a measurable write cost.
+
+This is a live metadata and privilege review, not a substitute for end-to-end
+authorization tests. The table-by-table server migration sequence below
+remains the safe way to reduce browser-visible schema over time.
 
 ## Authentication hardening
 
