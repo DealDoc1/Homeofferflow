@@ -163,15 +163,15 @@ def build_signwell_fields_txr1954(data, *, client_count=None):
         # Keep each party signature on its source rule, above the printed
         # Buyer/Seller caption. The second source row is lower than the old
         # map, which left its signer box visibly detached from the rule.
-        {"api_id": "txr1954_buyer1_signature_p1", "type": "signature", "page": 1, "x": 64, "y": 774, "recipient_id": "1", "required": True, "width": 200, "height": 26},
-        {"api_id": "txr1954_seller1_signature_p1", "type": "signature", "page": 1, "x": 418, "y": 774, "recipient_id": str(len(buyers) + 1), "required": True, "width": 200, "height": 26},
+        {"api_id": "txr1954_buyer1_signature_p1", "type": "signature", "page": 1, "x": 64, "y": 774, "recipient_id": "1", "required": True, "width": 335, "height": 26},
+        {"api_id": "txr1954_seller1_signature_p1", "type": "signature", "page": 1, "x": 418, "y": 774, "recipient_id": str(len(buyers) + 1), "required": True, "width": 324, "height": 26},
     ]
     if len(buyers) == 2:
         fields.append(
-            {"api_id": "txr1954_buyer2_signature_p1", "type": "signature", "page": 1, "x": 64, "y": 876, "recipient_id": "2", "required": True, "width": 200, "height": 26}
+            {"api_id": "txr1954_buyer2_signature_p1", "type": "signature", "page": 1, "x": 64, "y": 876, "recipient_id": "2", "required": True, "width": 335, "height": 26}
         )
     if len(sellers) == 2:
         fields.append(
-            {"api_id": "txr1954_seller2_signature_p1", "type": "signature", "page": 1, "x": 418, "y": 876, "recipient_id": str(len(buyers) + 2), "required": True, "width": 200, "height": 26}
+            {"api_id": "txr1954_seller2_signature_p1", "type": "signature", "page": 1, "x": 418, "y": 876, "recipient_id": str(len(buyers) + 2), "required": True, "width": 324, "height": 26}
         )
     return [fields]

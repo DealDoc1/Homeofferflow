@@ -248,7 +248,7 @@ class TxrSignerGeometryTests(unittest.TestCase):
         """
         cases = (
             ("TXR-1953", build_signwell_fields_txr1953, FORM_CASES[4][3], 70, 440, 306, 302, 802, 875, 828, 901),
-            ("TXR-1954", build_signwell_fields_txr1954, FORM_CASES[5][3], 64, 418, 200, 200, 774, 876, 800, 902),
+            ("TXR-1954", build_signwell_fields_txr1954, FORM_CASES[5][3], 64, 418, 335, 324, 774, 876, 800, 902),
         )
         for form_code, builder, data, buyer_x, seller_x, buyer_width, seller_width, first_y, second_y, first_bottom, second_bottom in cases:
             with self.subTest(form_code=form_code):
