@@ -92,6 +92,13 @@ class TxrSigningRequestPathTests(unittest.TestCase):
         for form_code in ("TXR-1905", "TXR-1914", "TXR-1917", "TXR-1919", "TXR-1948"):
             self.assertIn(form_code, MODULE.TXR_SIGNING_FORM_CODES)
 
+    def test_agent_form_roadmap_matches_the_released_review_and_send_scope(self):
+        roadmap = (ROOT / "docs" / "AGENT_FORM_COVERAGE_ROADMAP.md").read_text(encoding="utf-8")
+        for form_code in sorted(MODULE.TXR_SIGNING_FORM_CODES):
+            with self.subTest(form_code=form_code):
+                self.assertIn(form_code, roadmap)
+        self.assertNotIn("These workflows do not imply a send or signature capability.", roadmap)
+
     def test_ui_exposes_preview_send_and_owner_refresh_actions(self):
         html = (ROOT / "index.html").read_text(encoding="utf-8")
         self.assertIn('hof-standalone-agreement-signing-v1', html)

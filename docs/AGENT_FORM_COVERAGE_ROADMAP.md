@@ -8,17 +8,19 @@ when seller post-closing possession applies. Signed-in agents can start guided
 relationship, consumer-notice, seller-disclosure, seller-financing,
 mineral-reservation, loan-assumption, environmental-review, appraisal-review,
 and lease-addendum workflows, plus private seller-planning workspaces.
-TXR-1501, TXR-1506, TXR-1507, TXR-1508, TXR-1953, and TXR-1954 have a
-separate review-and-send path: the agent reviews the completed document and
-explicitly confirms each recipient before SignWell receives it. TREC-55-1
+All released TXR workflows—TXR-1501, TXR-1506, TXR-1507, TXR-1508,
+TXR-1905, TXR-1914, TXR-1917, TXR-1919, TXR-1948, TXR-1953, and TXR-1954—
+have a separate review-and-send path: the agent reviews the completed document
+and explicitly confirms each recipient before SignWell receives it. TREC-55-1
 seller disclosure and optional TREC-61-0 water disclosure are available from
 the shared library to every authenticated agent; after seller review and agent
 recipient confirmation, the disclosure can be sent for signature and the
 completed PDF is available in that agent's private workspace. The released shared library does not require a brokerage seat or a per-agent brokerage attestation. It is not represented as a complete transaction-form library or a transaction-management platform.
 
-Each workflow states whether it is private review-only or has a separate
-signature queue. Listing agreements and any other document not expressly
-available for its stated use in HomeOfferFlow remain separate workflows.
+Preparation and sending remain intentionally separate: the agent must review
+the completed document and confirm every recipient before a signature request
+is sent. Listing agreements and any other document not expressly available for
+its stated use in HomeOfferFlow remain separate workflows.
 
 The authenticated agent dashboard now includes a **Request a missing form**
 action. It routes the request into the existing support/feedback queue with a
@@ -44,13 +46,11 @@ This language appears on `/ondemand` before an agent begins the 60-day trial.
 - Agent accounts, OnDemand attribution, a 60-day card-required trial, and
   broker-level aggregate activity visibility with buyer and property details
   withheld.
-- TXR-1501, TXR-1506, TXR-1507, TXR-1508, TXR-1953, and TXR-1954 review-and-
-  send workflows for signed-in agents, where the approved source is available.
-  Each requires the agent to review the prepared document and confirm the
-  listed recipients before sending a SignWell request.
-- Private TXR-1905, TXR-1914, TXR-1917, TXR-1919, and TXR-1948 review-draft
-  workflows for signed-in agents, where the approved source is available.
-  These workflows do not imply a send or signature capability.
+- Review-and-send workflows for TXR-1501, TXR-1506, TXR-1507, TXR-1508,
+  TXR-1905, TXR-1914, TXR-1917, TXR-1919, TXR-1948, TXR-1953, and TXR-1954
+  for signed-in agents, where the approved source is available. Each requires
+  the agent to review the prepared document and confirm the listed recipients
+  before sending a SignWell request.
 - Private seller leads and listing workspaces with launch planning, seller
   consultation briefs, and offer-comparison tools.
 
