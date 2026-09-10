@@ -17546,7 +17546,7 @@ function routeAfterMagicLinkIfNeeded() {
     </section>` : '';
     const volume = safe.reduce((sum,o) => sum + Number(o.offer_price || o.offer_data?.offerPrice || 0), 0);
     const tab = (key,label) => `<button type="button" class="offer-filter-tab ${state.filter===key?'active':''}" aria-pressed="${state.filter===key ? 'true' : 'false'}" onclick="hofSetOfferWorkspaceFilter('${key}')">${label} <span>${c[key] || 0}</span></button>`;
-    const cards = shown.length ? shown.map(renderCard).join('') : `<div class="offer-workspace-empty"><strong>No offers match this view.</strong><br/>Try another status tab, clear the search, or create a new buyer offer.<br/><button type="button" class="btn-primary" style="margin-top:.75rem" onclick="startAccountOffer()">Start a new buyer offer</button></div>`;
+    const cards = shown.length ? shown.map(renderCard).join('') : `<div class="offer-workspace-empty"><strong>No saved purchase offers match this view.</strong><br/>Try another status tab, clear the search, or choose a transaction to begin.<br/><button type="button" class="btn-primary" style="margin-top:.75rem" onclick="startAccountTransaction()">Choose Transaction</button></div>`;
     const hasActiveFilters = state.filter !== 'all' || String(state.query || '').trim() || state.sort !== 'updated_desc';
     const resultSummary = `<div class="offer-workspace-result-summary" aria-live="polite"><span><strong>${shown.length}</strong> of ${safe.length} loaded offer${safe.length === 1 ? '' : 's'} shown${hasActiveFilters ? ' in this view' : ''}.</span>${hasActiveFilters ? '<button type="button" class="offer-workspace-clear-filters" onclick="hofClearOfferWorkspaceFilters()">Reset view</button>' : ''}</div>`;
     const canLoadMore = !!root.hofAuth?.myOffersHasMore;
@@ -17560,21 +17560,21 @@ function routeAfterMagicLinkIfNeeded() {
       <div class="offer-workspace-top">
         <div>
           <div class="offer-workspace-eyebrow">Agent workspace</div>
-          <div class="offer-workspace-title">Offer command center</div>
-          <div class="offer-workspace-sub">Track drafts, generated packets, and buyer-side SignWell progress from one mobile-friendly workspace. Seller acceptance and seller signatures still happen outside HomeOfferFlow.</div>
+          <div class="offer-workspace-title">Transaction workspace</div>
+          <div class="offer-workspace-sub">Choose a transaction type to begin. Your saved purchase offers and their buyer-side SignWell progress appear here.</div>
         </div>
-        <button class="btn-primary" type="button" onclick="startAccountOffer()">New Buyer Offer</button>
+        <button class="btn-primary" type="button" onclick="startAccountTransaction()">Choose Transaction</button>
       </div>
 
       <div class="offer-launch-grid">
-        <button class="offer-launch-card" type="button" onclick="startAccountOffer()"><strong>New Buyer Offer</strong><span>Start with your saved agent defaults.</span></button>
+        <button class="offer-launch-card" type="button" onclick="startAccountTransaction()"><strong>Choose Transaction</strong><span>Start with the right guided path.</span></button>
         <button class="offer-launch-card" type="button" onclick="hofReuseTermsFromMostRecentOffer()"><strong>Reuse Last Terms</strong><span>Keep deal choices; clear client and property details.</span></button>
         <button class="offer-launch-card" type="button" onclick="showAccountTab && showAccountTab('profile')"><strong>Profile Defaults</strong><span>Update agent, brokerage, title, and terms.</span></button>
         <button class="offer-launch-card" type="button" onclick="hofRefreshOfferWorkspace()"><strong>Sync signing status</strong><span>Ask SignWell for active updates, then reload offers.</span></button>
       </div>
 
       <div class="offer-workspace-stats">
-        <div class="offer-workspace-stat"><span>Total offers</span><strong>${c.all}</strong><small>latest offers loaded</small></div>
+        <div class="offer-workspace-stat"><span>Purchase offers</span><strong>${c.all}</strong><small>latest offers loaded</small></div>
         <div class="offer-workspace-stat"><span>Drafts</span><strong>${c.draft}</strong><small>resume and finish</small></div>
         <div class="offer-workspace-stat"><span>Buyer signing</span><strong>${c.signing}</strong><small>sent, viewed, partial</small></div>
         <div class="offer-workspace-stat"><span>Offer volume</span><strong>${esc(money(volume))}</strong><small>loaded offers only</small></div>
@@ -17584,7 +17584,7 @@ function routeAfterMagicLinkIfNeeded() {
 
       <div class="offer-workspace-controls">
         <div class="offer-workspace-filter-row">
-          <div class="offer-search-wrap"><input id="offerWorkspaceSearch" type="search" aria-label="Search saved offers" placeholder="Search buyer, property, email, status..." value="${esc(state.query)}" oninput="hofSetOfferWorkspaceSearch(this.value)" /></div>
+          <div class="offer-search-wrap"><input id="offerWorkspaceSearch" type="search" aria-label="Search saved purchase offers" placeholder="Search buyer, property, email, status..." value="${esc(state.query)}" oninput="hofSetOfferWorkspaceSearch(this.value)" /></div>
           <select id="offerWorkspaceSort" class="offer-sort-select" aria-label="Sort saved offers" onchange="hofSetOfferWorkspaceSort(this.value)">
             <option value="updated_desc" ${state.sort==='updated_desc'?'selected':''}>Sort: Recently updated</option>
             <option value="created_desc" ${state.sort==='created_desc'?'selected':''}>Sort: Newest created</option>
