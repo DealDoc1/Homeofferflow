@@ -57,7 +57,7 @@ class PartnerLandingFunnelTests(unittest.TestCase):
         self.assertIn('env(safe-area-inset-bottom)', PARTNERS)
 
     def test_partner_page_reduces_checkout_uncertainty_without_changing_price_or_claims(self):
-        self.assertIn("Start no-charge application", PARTNERS)
+        self.assertIn("Start free application", PARTNERS)
         self.assertIn("Start free. Decide later.", PARTNERS)
         self.assertIn("submitted applications can resume the same checkout later", PARTNERS)
         self.assertIn("/texas-home-service-partner-guide", PARTNERS)
@@ -73,7 +73,9 @@ class PartnerLandingFunnelTests(unittest.TestCase):
         self.assertIn("before any payment", PARTNERS)
         self.assertIn('Most popular starting point', PARTNERS)
         self.assertIn('class="tier-badge"', PARTNERS)
-        self.assertIn("Apply for Core — no charge yet", PARTNERS)
+        self.assertIn("Start Core application", PARTNERS)
+        self.assertIn("Start Featured application", PARTNERS)
+        self.assertIn("Start Premier application", PARTNERS)
         self.assertIn("First 90 days, then $149/month", PARTNERS)
         self.assertIn("not a referral program", PARTNERS)
 

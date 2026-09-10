@@ -233,7 +233,7 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn('One active Premier placement per category and market while active.', PARTNERS)
         self.assertNotIn('guaranteed traffic', PARTNERS.lower())
         self.assertIn('href="/?partner=1&amp;partner_quick_start=1"', PARTNERS)
-        self.assertIn('Start no-charge application', PARTNERS)
+        self.assertIn('Start free application', PARTNERS)
         self.assertIn('Start free. Decide later.', PARTNERS)
         self.assertIn('partner_tier=founding_pilot', PARTNERS)
         self.assertIn('partner_tier=monthly_placement', PARTNERS)
