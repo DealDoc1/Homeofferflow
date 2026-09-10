@@ -22717,6 +22717,16 @@ function routeAfterMagicLinkIfNeeded() {
     root.querySelectorAll?.('.hof-agreement-dialog button[type="submit"]').forEach(button => {
       if (button.textContent?.trim() === 'Save private draft') button.textContent = 'Save for review';
     });
+    root.querySelectorAll?.('.hof-agreement-dialog p, .hof-agreement-card p').forEach(copy => {
+      if (copy.children.length) return;
+      const original = copy.textContent || '';
+      const revised = original
+        .replace(/This saves a private draft only\./gi, 'This prepares a document for your review before it is sent for signature.')
+        .replace(/This is a private draft, not a /gi, 'This is a document for review, not a ')
+        .replace(/prepare a private draft/gi, 'prepare a document for review')
+        .replace(/private (seller-financing|residential-lease|fixture-lease|appraisal) draft/gi, '$1 document for review');
+      if (revised !== original) copy.textContent = revised;
+    });
     root.querySelectorAll?.('.hof-agreement-dialog .hof-iabs-status').forEach(status => {
       if (status.children.length) return;
       const original = status.textContent || '';

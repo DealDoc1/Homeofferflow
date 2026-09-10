@@ -27,6 +27,8 @@ class IntakePathClarityAuditTests(unittest.TestCase):
         self.assertIn('id="hof-agent-document-language-v1"', HTML)
         self.assertIn("Your document is ready for review.", HTML)
         self.assertIn("Could not prepare the document.", HTML)
+        self.assertIn("This prepares a document for your review before it is sent for signature.", HTML)
+        self.assertIn("prepare a document for review", HTML)
 
 
 if __name__ == "__main__":
