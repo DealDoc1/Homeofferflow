@@ -139,8 +139,9 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertNotIn('"name":"Review the draft"', AGENTS)
         self.assertNotIn('saved defaults, draft recovery, repeat-offer work', AGENTS)
 
-    def test_lease_listing_copy_routes_to_a_relevant_lease_addendum_interview(self):
-        self.assertIn("Next, choose listing setup, a lease addendum, or your saved workspace.", AGENTS)
+    def test_lease_listing_copy_routes_to_landlord_work_instead_of_purchase_addenda(self):
+        self.assertIn("Next, add the landlord and property details or continue a saved lease listing.", AGENTS)
+        self.assertNotIn("Next, choose listing setup, a lease addendum, or your saved workspace.", AGENTS)
         self.assertNotIn("Next, choose listing setup, request a lease form, or open your saved workspace.", AGENTS)
         self.assertNotIn("Next, choose lease-listing setup or lease details.", AGENTS)
         self.assertNotIn("with lease planning preselected.", AGENTS)
@@ -234,21 +235,25 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("hof-purchase-addendum-interview-openers-v1", INDEX)
         self.assertIn("openExistingPrivateDraft", INDEX)
 
-    def test_lease_listing_interview_offers_the_relevant_lease_addendum_package(self):
+    def test_lease_listing_does_not_offer_purchase_contract_lease_addenda(self):
         start = INDEX.index("lease_listing: {")
         end = INDEX.index("lease_representation: {", start)
         lease_listing = INDEX[start:end]
-        self.assertIn("Prepare a lease addendum", lease_listing)
-        self.assertIn("openRelationshipPackage('lease_addendum')", lease_listing)
-        self.assertIn("deferStartToNestedChoice: true", lease_listing)
+        self.assertIn("Start a lease listing", lease_listing)
+        self.assertIn("Resume a lease listing", lease_listing)
+        self.assertNotIn("openRelationshipPackage('lease_addendum')", lease_listing)
         self.assertNotIn("openRelationshipPackage('purchase_addendum')", lease_listing)
+        self.assertNotIn("hofOpenTxr1953Draft", lease_listing)
+        self.assertNotIn("hofOpenTxr1954Draft", lease_listing)
 
     def test_guided_private_draft_handoff_offers_a_prefilled_missing_form_request(self):
         start = INDEX.index("const openRelationshipDraft = (openerName, onOpened, request)")
         end = INDEX.index("const openRelationshipPackage = (type)", start)
         handoff = INDEX[start:end]
         self.assertIn("const reportOpenError", handoff)
-        self.assertIn("Promise.resolve(opener()).then(() => onOpened?.()).catch(reportOpenError)", handoff)
+        self.assertIn("Promise.resolve().then(() => opener()).then(() => {", handoff)
+        self.assertIn("document.getElementById('hofAgentDocumentOpenStatus')", handoff)
+        self.assertIn("retryButton.textContent = 'Try again';", handoff)
         self.assertIn("We couldn’t open that document. Please try again.", handoff)
         self.assertIn("Get help with this document", handoff)
         self.assertIn("window.openMissingFormRequest({", handoff)
@@ -287,7 +292,8 @@ class AgentLandingFunnelTests(unittest.TestCase):
         interview = INDEX[start:end]
         self.assertIn("Answer a short interview, review the completed document, then send it when the parties are ready.", interview)
         self.assertIn("Choose the addendum the transaction needs, answer the guided questions, then review and send it when ready.", interview)
-        self.assertIn("Choose the lease addendum the listing needs, answer the guided questions, then review and send it when ready.", interview)
+        self.assertIn("For a purchase involving existing tenant leases.", interview)
+        self.assertIn("For a purchase involving leased fixtures, such as solar panels.", interview)
 
     def test_dismissing_the_package_question_restores_keyboard_focus(self):
         start = INDEX.index("window.hofOpenAgentPackageInterview = function")

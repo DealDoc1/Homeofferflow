@@ -95,6 +95,9 @@ jobs:
     environment:
       name: production
       url: https://www.homeofferflow.com/
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
     steps:
       - name: Check out exact release commit
         uses: actions/checkout@v5
@@ -114,10 +117,30 @@ jobs:
       - name: Install pinned Vercel CLI
         run: npm install --global vercel@57.0.0
 
+      - name: Require existing production target settings
+        run: |
+          test -n "$VERCEL_ORG_ID" || { echo "Production team is not configured"; exit 1; }
+          test -n "$VERCEL_PROJECT_ID" || { echo "Production project is not configured"; exit 1; }
+
       - name: Pull production Vercel environment
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN" --scope=dealdoc1s-projects
+
+      - name: Verify the existing production project
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          project = json.loads(Path('.vercel/project.json').read_text())
+          assert os.environ['VERCEL_PROJECT_ID'], 'Production project is not configured'
+          assert os.environ['VERCEL_ORG_ID'], 'Production team is not configured'
+          assert project['projectId'] == os.environ['VERCEL_PROJECT_ID'], 'Wrong production project'
+          assert project['orgId'] == os.environ['VERCEL_ORG_ID'], 'Wrong production team'
+          print('Existing production project verified.')
+          PY
 
       - name: Check Vercel Hobby deployment capacity
         env:
