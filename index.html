@@ -3032,7 +3032,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         <button class="auth-secondary" type="button" onclick="closeAuthModal(); openAccountDashboard({tab:'profile'});">Set Up My Defaults</button>
         <button class="auth-secondary" type="button" onclick="signOutAccount()">Sign Out</button>
       </div>
-      <div class="auth-note">Complete your profile in My Workspace to save reusable license, brokerage, title, escrow, option, and earnest-money defaults for faster future offers.</div>
+      <div class="auth-note">Complete your profile in My Workspace to save reusable license, contact, title, escrow, option, and earnest-money defaults for faster future offers. Brokerage or team details are optional.</div>
     </div>
 
     <div class="auth-status" id="authStatus"></div>
@@ -3383,7 +3383,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       </div>
 
       <div id="agentQuickSetup" style="display:none; margin-top:0.75rem; padding-top:0.75rem; border-top:1px solid rgba(255,255,255,0.07);">
-        <p style="font-size:0.8rem; font-weight:700; color:var(--gold-light); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.75rem;">Your Agent / Brokerage Info</p>
+        <p style="font-size:0.8rem; font-weight:700; color:var(--gold-light); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.75rem;">Your Agent Details</p>
         <div class="notice sage">⚡ Save this once and reuse it on future drafts. This info will also flow to the broker information section.</div>
         <div class="field-group" style="margin-bottom:0; margin-top:0.75rem;">
           <div class="field-row">
@@ -3906,7 +3906,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         </div>
 
         <div id="agentPathInfoHeader" style="display:none;">
-          <div class="radio-group-label">Your Agent / Brokerage Info</div>
+          <div class="radio-group-label">Your Agent Details</div>
           <div class="notice sage" style="margin-bottom:0.75rem;">This information will be used in the broker information section of the offer packet.</div>
           <div id="brokerFeeReminderOnClosing" class="notice gold" style="margin-bottom:0.75rem;"><strong>Page 10 broker fee disclosure:</strong> If the Listing Broker has already agreed in a separate written agreement to pay your brokerage, enter that amount or percentage in the broker compensation section on the Client & Agent Info screen. Otherwise, leave it as “No / not known / handled separately.”</div>
         </div>
@@ -8459,7 +8459,7 @@ function routeAfterMagicLinkIfNeeded() {
 
     if (userType === 'agent') {
       if (title) title.textContent = 'Client & Agent Info';
-      if (desc) desc.textContent = 'Enter your client’s legal buyer name(s), then confirm your agent and brokerage info for the offer packet.';
+      if (desc) desc.textContent = 'Enter your client’s legal buyer name(s), then confirm your agent details and any applicable brokerage information for the offer packet.';
       if (b1f) b1f.textContent = 'Buyer / Client 1 First Name';
       if (b1l) b1l.textContent = 'Buyer / Client 1 Last Name';
       if (b2) b2.textContent = 'Second Buyer / Client (optional)';
