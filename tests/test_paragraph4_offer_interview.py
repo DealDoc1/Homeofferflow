@@ -35,7 +35,9 @@ class Paragraph4OfferInterviewTests(unittest.TestCase):
         self.assertIn('id="successHeading"', HTML)
         self.assertIn('id="successSignatureStep"', HTML)
         self.assertIn("Sellers then receive SignWell for the included ${paragraph4Forms.join(' and ')}", HTML)
-        self.assertIn("successHeading.textContent = accountWorkflow ? 'Packet generated' : 'Payment successful'", HTML)
+        self.assertIn("? 'Packet generated'", HTML)
+        self.assertIn("We’re confirming your checkout", HTML)
+        self.assertIn("Payment successful", HTML)
 
 
 if __name__ == "__main__":
