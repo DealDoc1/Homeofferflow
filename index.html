@@ -16611,10 +16611,19 @@ function routeAfterMagicLinkIfNeeded() {
       window.setAudience?.('agent');
       if (window.hofAuth?.session) {
         if (agentLandingWorkflow) {
-          window.openAccountDashboard?.({ tab: 'dashboard' });
-          window.setTimeout(() => {
+          const accountDashboard = window.openAccountDashboard?.({ tab: 'dashboard' });
+          const continueToSelectedTransaction = () => window.setTimeout(() => {
             window.startAgentWorkflow?.(agentLandingWorkflow);
-          }, 120);
+          }, 0);
+          // Opening the authenticated workspace can require a profile and
+          // offer refresh. Wait for that real work rather than guessing that
+          // it finishes within a fixed delay, while preserving a synchronous
+          // fallback for embedded or older workspace shells.
+          if (accountDashboard && typeof accountDashboard.then === 'function') {
+            Promise.resolve(accountDashboard).then(continueToSelectedTransaction, continueToSelectedTransaction);
+          } else {
+            continueToSelectedTransaction();
+          }
           window.logOfferEvent?.(null, 'agent_landing_package_handoff', 'opened', 'Signed-in agent continued from the public transaction choice into the guided package interview.', { source: agentLandingSource, workflow: agentLandingWorkflow });
         } else if (agentLandingWorkspace === 'seller') {
           window.openAccountDashboard?.({ tab: 'seller' });
@@ -16730,11 +16739,19 @@ function routeAfterMagicLinkIfNeeded() {
     } catch (_) {}
 
     if (window.hofAuth?.session) {
-      window.openAccountDashboard?.({ tab: workspace === 'seller' ? 'seller' : (workspace === 'relationship' ? 'relationships' : 'dashboard') });
+      const accountDashboard = window.openAccountDashboard?.({ tab: workspace === 'seller' ? 'seller' : (workspace === 'relationship' ? 'relationships' : 'dashboard') });
       if (workflow) {
-        window.setTimeout(() => {
+        const continueToSelectedTransaction = () => window.setTimeout(() => {
           window.startAgentWorkflow?.(workflow);
-        }, 120);
+        }, 0);
+        // The recovery route must honor the same readiness boundary as the
+        // normal direct-link path. Otherwise a delayed authenticated
+        // workspace can lose the agent's selected transaction.
+        if (accountDashboard && typeof accountDashboard.then === 'function') {
+          Promise.resolve(accountDashboard).then(continueToSelectedTransaction, continueToSelectedTransaction);
+        } else {
+          continueToSelectedTransaction();
+        }
       } else if (!workspace) {
         window.setTimeout(() => window.openAgentTransactionPicker?.(), 120);
       }
