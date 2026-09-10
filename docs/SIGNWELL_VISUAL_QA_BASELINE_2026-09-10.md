@@ -7,7 +7,7 @@ that they cannot validate.
 
 | Form | Packet date | Result | Evidence |
 | --- | --- | --- | --- |
-| TXR-1507 short representation | 2026-09-09 | Pass for current one-client signer map | Broker and client signatures and dates render on the intended rows in SignWell packet `d6c614ce`. |
+| TXR-1507 short representation | 2026-09-09 | Historical fail; not current-map evidence | Completed packet `d6c614ce` predates the 2026-09-09/10 recalibration and still shows oversized selection marks plus unacceptable execution-field presentation. It must not be cited as a current-map pass. |
 | TXR-1501 long representation | 2026-09-08 | Historical fail; not current-map evidence | Completed fields render detached from visible form content. Current map was recalibrated 2026-09-09/10. |
 | TXR-1508 unrepresented showing | 2026-09-08 | Historical fail; not current-map evidence | Completed fields render detached from visible form content. Current map was recalibrated 2026-09-09. |
 | TXR-1953 residential lease | 2026-09-05 | Historical fail; not current-map evidence | Buyer signature sits above rather than on its visible signature rule. Current map was recalibrated 2026-09-09. |
