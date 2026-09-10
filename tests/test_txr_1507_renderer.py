@@ -95,7 +95,7 @@ class Txr1507RendererTests(unittest.TestCase):
         self.assertTrue(all(field["recipient_id"] in {"1", "2", "associate"} for field in two))
         self.assertEqual(next(field["y"] for field in two if field["api_id"] == "txr1507_associate_signature_p2"), 686)
         self.assertEqual(next(field["y"] for field in two if field["api_id"] == "txr1507_client2_signature_p2"), 785)
-        self.assertEqual(next(field["x"] for field in two if field["api_id"] == "txr1507_client1_signature_p2"), 533)
+        self.assertEqual(next(field["x"] for field in two if field["api_id"] == "txr1507_client1_signature_p2"), 513)
         initials = {field["api_id"]: field for field in two}
         # TXR-1507's footer has a separate Broker/Associate initial blank
         # before the two Client blanks. Client fields must not consume it.

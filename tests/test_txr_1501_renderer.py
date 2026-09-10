@@ -97,7 +97,7 @@ class Txr1501RendererTests(unittest.TestCase):
         self.assertEqual(next(field["y"] for field in two if field["api_id"] == "txr1501_client1_signature_p6"), 566)
         self.assertEqual(next(field["y"] for field in two if field["api_id"] == "txr1501_client2_signature_p6"), 677)
         self.assertEqual(next(field["y"] for field in two if field["api_id"] == "txr1501_associate_signature_p6"), 566)
-        self.assertEqual(next(field["x"] for field in two if field["api_id"] == "txr1501_client1_date_p6"), 555)
+        self.assertEqual(next(field["x"] for field in two if field["api_id"] == "txr1501_client1_date_p6"), 535)
         self.assertEqual(next(field["width"] for field in two if field["api_id"] == "txr1501_client1_date_p6"), 60)
         self.assertEqual(next(field["x"] for field in two if field["api_id"] == "txr1501_associate_date_p6"), 212)
         self.assertEqual(next(field["width"] for field in two if field["api_id"] == "txr1501_associate_date_p6"), 58)

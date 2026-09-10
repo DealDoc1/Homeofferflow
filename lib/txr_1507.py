@@ -145,14 +145,17 @@ def build_signwell_fields_txr1507(data, *, client_count=1):
         # Keep widgets on the first execution rule, above the printed
         # signature and Date captions.  The earlier y-coordinate let the
         # widget extend into those captions in the signing ceremony.
-        {"api_id": "txr1507_client1_signature_p2", "type": "signature", "page": 2, "x": 533, "y": 686, "recipient_id": "1", "required": True, "width": 80, "height": 24},
-        {"api_id": "txr1507_client1_date_p2", "type": "date", "page": 2, "x": 620, "y": 686, "recipient_id": "1", "required": True, "width": 60, "height": 18, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
+        # A completed SignWell date visually extends beyond its widget. Shift
+        # each client signature/date pair left so the rendered date clears
+        # the preprinted Date caption on the released source.
+        {"api_id": "txr1507_client1_signature_p2", "type": "signature", "page": 2, "x": 513, "y": 686, "recipient_id": "1", "required": True, "width": 80, "height": 24},
+        {"api_id": "txr1507_client1_date_p2", "type": "date", "page": 2, "x": 600, "y": 686, "recipient_id": "1", "required": True, "width": 60, "height": 18, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
     ]
     if client_count == 2:
         fields.extend([
             {"api_id": "txr1507_client2_initials_p1", "type": "initials", "page": 1, "x": 618, "y": 984, "recipient_id": "2", "required": True, "width": 40, "height": 14},
-            {"api_id": "txr1507_client2_signature_p2", "type": "signature", "page": 2, "x": 533, "y": 785, "recipient_id": "2", "required": True, "width": 80, "height": 24},
-            {"api_id": "txr1507_client2_date_p2", "type": "date", "page": 2, "x": 620, "y": 785, "recipient_id": "2", "required": True, "width": 60, "height": 18, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
+            {"api_id": "txr1507_client2_signature_p2", "type": "signature", "page": 2, "x": 513, "y": 785, "recipient_id": "2", "required": True, "width": 80, "height": 24},
+            {"api_id": "txr1507_client2_date_p2", "type": "date", "page": 2, "x": 600, "y": 785, "recipient_id": "2", "required": True, "width": 60, "height": 18, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
         ])
     role = "associate" if signer_plan == "clients_and_associate" else "broker"
     # The source uses checkboxes to identify whether the broker or the

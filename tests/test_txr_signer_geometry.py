@@ -115,8 +115,9 @@ class TxrSignerGeometryTests(unittest.TestCase):
         """Guard the source-calibrated 1501/1507 signature rows.
 
         These maps were calibrated against completed SignWell packets.  The
-        date widget must end before the preprinted Date label, while the
-        signature widget remains on the same ruled row.
+        date widget must leave room for SignWell's visible date stamp before
+        the preprinted Date label, while the signature widget remains on the
+        same ruled row.
         """
         cases = (
             (build_signwell_fields_txr1501, FORM_CASES[0][3], "txr1501", 566, 645),
@@ -134,7 +135,11 @@ class TxrSignerGeometryTests(unittest.TestCase):
                 else:
                     self.assertEqual(role["y"], first_row_y)
                 self.assertGreater(date["x"], client["x"] + client["width"])
-                self.assertLessEqual(date["x"] + date["width"], date_label_x)
+                # The provider's completed-packet renderer may let a full
+                # MM/DD/YYYY value extend beyond the nominal widget width.
+                # Reserve that observed 20-pixel right-side footprint rather
+                # than passing a map that only looks safe while empty.
+                self.assertLessEqual(date["x"] + date["width"] + 20, date_label_x)
 
     def test_corrected_signature_rows_clear_the_caption_baseline(self):
         """Keep active maps above the printed signature/date captions.

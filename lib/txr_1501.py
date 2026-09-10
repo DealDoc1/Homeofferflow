@@ -148,13 +148,16 @@ def build_signwell_fields_txr1501(data, *, client_count=1):
         # The execution row is below the printed-name line.  The previous
         # map used the name-line y-coordinate, which made completed fields
         # cover the printed names rather than the signature rule.
-        {"api_id": "txr1501_client1_signature_p6", "type": "signature", "page": 6, "x": 430, "y": 566, "recipient_id": "1", "required": True, "width": 120, "height": 24},
-        {"api_id": "txr1501_client1_date_p6", "type": "date", "page": 6, "x": 555, "y": 566, "recipient_id": "1", "required": True, "width": 60, "height": 18, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
+        # SignWell renders a full date slightly beyond the visual bounds of
+        # its widget. Keep the entire client pair left of the printed Date
+        # caption, rather than only keeping the empty widget clear of it.
+        {"api_id": "txr1501_client1_signature_p6", "type": "signature", "page": 6, "x": 410, "y": 566, "recipient_id": "1", "required": True, "width": 120, "height": 24},
+        {"api_id": "txr1501_client1_date_p6", "type": "date", "page": 6, "x": 535, "y": 566, "recipient_id": "1", "required": True, "width": 60, "height": 18, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
     ]
     if client_count == 2:
         fields.extend([
-            {"api_id": "txr1501_client2_signature_p6", "type": "signature", "page": 6, "x": 430, "y": 677, "recipient_id": "2", "required": True, "width": 120, "height": 24},
-            {"api_id": "txr1501_client2_date_p6", "type": "date", "page": 6, "x": 555, "y": 677, "recipient_id": "2", "required": True, "width": 60, "height": 18, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
+            {"api_id": "txr1501_client2_signature_p6", "type": "signature", "page": 6, "x": 410, "y": 677, "recipient_id": "2", "required": True, "width": 120, "height": 24},
+            {"api_id": "txr1501_client2_date_p6", "type": "date", "page": 6, "x": 535, "y": 677, "recipient_id": "2", "required": True, "width": 60, "height": 18, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
         ])
     if signer_plan == "clients_and_associate":
         fields.extend([
