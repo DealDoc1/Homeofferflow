@@ -101,7 +101,7 @@ class ResendDeliveryWebhookTests(unittest.TestCase):
         self.assertIn("hof_resend_webhook_events", MIGRATION)
         self.assertIn("svix_id text not null unique", MIGRATION)
         self.assertIn("enable row level security", MIGRATION)
-        self.assertIn("revoke all on table public.hof_resend_webhook_events from anon, authenticated", MIGRATION)
+        self.assertIn("revoke all on table public.hof_resend_webhook_events from public, anon, authenticated", MIGRATION)
         self.assertIn("grant all on table public.hof_resend_webhook_events to service_role", MIGRATION)
         self.assertIn("using (false)", MIGRATION)
 

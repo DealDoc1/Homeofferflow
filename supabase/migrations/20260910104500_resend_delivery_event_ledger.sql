@@ -21,7 +21,10 @@ create index if not exists hof_resend_webhook_events_type_received_idx
 
 alter table public.hof_resend_webhook_events enable row level security;
 
-revoke all on table public.hof_resend_webhook_events from anon, authenticated;
+-- Keep the ledger server-only even if a future default grant is introduced.
+-- The service role bypasses RLS for the webhook handler; browser and broad
+-- database roles receive no table privileges.
+revoke all on table public.hof_resend_webhook_events from public, anon, authenticated;
 grant all on table public.hof_resend_webhook_events to service_role;
 
 drop policy if exists resend_webhook_events_server_only on public.hof_resend_webhook_events;
