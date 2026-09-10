@@ -5,6 +5,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 AGENTS = (ROOT / "agents.html").read_text(encoding="utf-8")
 SELLERS = (ROOT / "sellers.html").read_text(encoding="utf-8")
+INVESTORS = (ROOT / "investors.html").read_text(encoding="utf-8")
 
 
 class LowNoisePublicPageTests(unittest.TestCase):
@@ -30,6 +31,12 @@ class LowNoisePublicPageTests(unittest.TestCase):
         homepage = (ROOT / "index.html").read_text(encoding="utf-8")
         self.assertIn('Start with your address and email.', homepage)
         self.assertNotIn('is being built as a separate seller pathway', homepage)
+
+    def test_investor_landing_uses_saved_work_language(self):
+        self.assertIn('Resume saved work or duplicate prior offer terms', INVESTORS)
+        self.assertIn('saved-work recovery', INVESTORS)
+        self.assertNotIn('Resume a draft or duplicate prior offer terms', INVESTORS)
+        self.assertNotIn('draft recovery', INVESTORS)
 
 
 if __name__ == "__main__":
