@@ -233,6 +233,76 @@ def source_contract(form_code: str) -> dict[str, Any]:
         return {"form_code": form_code, "page_count": TREC_61_0_PAGE_COUNT, "field_map": TREC_61_0_MAP, "source_sha256": TREC_61_0_SOURCE_SHA256, "activation_status": "pending_visual_qa"}
     raise ValueError("Unsupported seller disclosure form.")
 
+
+def build_signwell_fields(form_code: str, data: dict[str, Any]) -> list[list[dict[str, Any]]]:
+    """Return execution widgets calibrated to the supplied disclosure PDFs.
+
+    The seller disclosure is sometimes prepared before a purchaser is known,
+    so one or two Sellers are required while Buyer acknowledgements are added
+    only for the zero-to-two Buyers named in the saved disclosure.  SignWell
+    uses a 96-DPI, top-origin US Letter page; these rectangles were measured
+    against the supplied source rules and stop above the printed captions.
+    """
+    if form_code not in {"TREC-55-1", "TREC-61-0"}:
+        raise ValueError("Unsupported seller disclosure form.")
+    sellers = data.get("seller_names") or []
+    buyers = data.get("buyer_names") or []
+    if not (1 <= len(sellers) <= 2 and 0 <= len(buyers) <= 2):
+        raise ValueError("Seller disclosure signing requires one or two Sellers and up to two Buyers.")
+
+    if form_code == "TREC-55-1":
+        page = 4
+        seller_y, buyer_y = 749, 868
+        left_x, right_x, signature_width = 80, 432, 250
+        left_date_x, right_date_x, date_width = 350, 720, 60
+        prefix = "trec551"
+    else:
+        page = 2
+        # The water-rights source places its execution rules lower than the
+        # older draft map. Keep the widgets immediately above those rules,
+        # clear of the notice text above and the Seller/Buyer captions below.
+        seller_y, buyer_y = 782, 858
+        left_x, right_x, signature_width = 80, 432, 253
+        left_date_x, right_date_x, date_width = 360, 720, 67
+        prefix = "trec610"
+
+    fields: list[dict[str, Any]] = []
+    party_rows = (
+        ("seller", sellers, seller_y, 0),
+        ("buyer", buyers, buyer_y, len(sellers)),
+    )
+    for party, names, row_y, recipient_offset in party_rows:
+        for index, _name in enumerate(names, start=1):
+            is_second = index == 2
+            signature_x = right_x if is_second else left_x
+            date_x = right_date_x if is_second else left_date_x
+            recipient_id = str(recipient_offset + index)
+            fields.extend((
+                {
+                    "api_id": f"{prefix}_{party}{index}_signature_p{page}",
+                    "type": "signature",
+                    "page": page,
+                    "x": signature_x,
+                    "y": row_y,
+                    "recipient_id": recipient_id,
+                    "required": True,
+                    "width": signature_width,
+                    "height": 26,
+                },
+                {
+                    "api_id": f"{prefix}_{party}{index}_date_p{page}",
+                    "type": "date",
+                    "page": page,
+                    "x": date_x,
+                    "y": row_y,
+                    "recipient_id": recipient_id,
+                    "required": True,
+                    "width": date_width,
+                    "height": 26,
+                },
+            ))
+    return [fields]
+
 def validate_source_bytes(form_code: str, source_pdf_bytes: bytes) -> None:
     """Reject a private source unless its fingerprint matches the approved PDF."""
     expected = source_contract(form_code)["source_sha256"]
