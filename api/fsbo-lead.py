@@ -762,8 +762,11 @@ def _record_fsbo_landing_event(data):
     """Persist aggregate seller-landing engagement without visitor or property data."""
     event_type = _text(data.get("event_type"), 80)
     service_level = _text(data.get("service_level"), 80) or "free_intake"
-    channel = _text(data.get("channel"), 80).lower() or "unspecified"
-    requested_surface = _text(data.get("surface"), 40).lower()
+    # Public landing pages can intentionally omit attribution.  Treat that as
+    # the privacy-safe default instead of letting a missing optional field
+    # turn a harmless analytics beacon into a server error.
+    channel = (_text(data.get("channel"), 80) or "unspecified").lower()
+    requested_surface = (_text(data.get("surface"), 40) or "").lower()
     if event_type not in FSBO_LANDING_EVENT_TYPES:
         raise ValueError("Unsupported seller landing event.")
     if service_level not in FSBO_PACKAGE_CATALOG:
