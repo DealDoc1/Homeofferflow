@@ -19,7 +19,7 @@ SUPABASE_SERVICE_ROLE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or os.en
 STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "")
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
 PUBLIC_APP_ORIGIN = (os.environ.get("PUBLIC_APP_URL") or "https://www.homeofferflow.com").rstrip("/")
-FROM_EMAIL = os.environ.get("SELLER_PLAN_FROM_EMAIL") or os.environ.get("FEEDBACK_FROM_EMAIL") or os.environ.get("FROM_EMAIL") or "offers@homeofferflow.com"
+FROM_EMAIL = os.environ.get("SELLER_PLAN_FROM_EMAIL") or os.environ.get("RESEND_TRANSACTION_FROM_EMAIL") or os.environ.get("FEEDBACK_FROM_EMAIL") or os.environ.get("FROM_EMAIL") or "offers@homeofferflow.com"
 REPLY_TO = os.environ.get("SELLER_PLAN_REPLY_TO") or os.environ.get("SUPPORT_EMAIL") or "support@homeofferflow.com"
 EMAIL_RE = re.compile(r"(?=.{3,254}$)[^@\s]+@[^@\s]+\.[^@\s]+$")
 PACKAGES = {

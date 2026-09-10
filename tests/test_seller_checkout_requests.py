@@ -63,6 +63,10 @@ class SellerCheckoutRequestTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("create_seller_checkout_request", INDEX)
         self.assertIn("Confirm that you reviewed the seller’s scope and fixed price", INDEX)
 
+    def test_seller_payment_messages_prefer_the_verified_transactional_sender(self):
+        self.assertIn('os.environ.get("RESEND_TRANSACTION_FROM_EMAIL")', MODULE_PATH.read_text(encoding="utf-8"))
+        self.assertIn('os.environ.get("RESEND_TRANSACTION_FROM_EMAIL")', WEBHOOK_PATH.read_text(encoding="utf-8"))
+
     def test_checkout_return_explains_success_or_cancel_without_exposing_order_data(self):
         self.assertIn('id="sellerCheckoutContext"', SELLERS)
         self.assertIn("paymentState === 'success'", SELLERS)
