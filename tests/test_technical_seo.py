@@ -299,6 +299,13 @@ class TechnicalSeoTests(unittest.TestCase):
             self.assertIn("max-age=86400", item["headers"][0]["value"])
             self.assertIn("stale-while-revalidate=604800", item["headers"][0]["value"])
 
+    def test_reusable_public_assets_use_browser_and_edge_revalidation_caches(self):
+        policy = next(item for item in VERCEL["headers"] if item["source"] == "/assets/(.*)")
+        self.assertEqual(policy["headers"], [{
+            "key": "Cache-Control",
+            "value": "public, max-age=900, s-maxage=86400, stale-while-revalidate=604800",
+        }])
+
     def test_service_worker_is_always_revalidated_for_installed_app_updates(self):
         service_worker = next(item for item in VERCEL["headers"] if item["source"] == "/service-worker.js")
         self.assertEqual(
