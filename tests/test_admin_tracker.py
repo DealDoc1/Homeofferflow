@@ -52,6 +52,15 @@ class FakeClient:
 
 
 class AdminTrackerSecurityTests(IsolatedAsyncioTestCase):
+    def test_resend_delivery_dashboard_contract_stays_aggregate_only(self):
+        source = MODULE_PATH.read_text(encoding="utf-8")
+        self.assertIn("hof_resend_webhook_events?select=event_type,delivery_status,processing_state,tags,received_at", source)
+        self.assertIn('"resendDeliverySuccessRate"', source)
+        self.assertIn('"resendDeliveryFamilyCounts"', source)
+        self.assertNotIn('"resendDeliveryEvents": resend_delivery_events', source)
+        self.assertIn("Email Delivery Health", INDEX)
+        self.assertIn("Aggregate provider data only", INDEX)
+
     async def test_missing_bearer_token_is_rejected_without_network_call(self):
         self.assertIsNone(await admin_dashboard._verified_user(""))
         self.assertIsNone(await admin_dashboard._verified_user("Basic no"))

@@ -28,10 +28,19 @@ class ProductionReleaseWorkflowTests(unittest.TestCase):
         self.assertNotIn("inputs.base_ref || 'HEAD^'", self.text)
         self.assertIn("python -m unittest discover -s tests -q", self.text)
         self.assertIn("vercel pull --yes --environment=production", self.text)
-        self.assertIn("Check Vercel Hobby deployment capacity", self.text)
+        self.assertIn("Check Vercel deployment safety threshold", self.text)
         self.assertIn("python scripts/check_vercel_deployment_capacity.py", self.text)
         self.assertIn("vercel build --prod", self.text)
         self.assertIn("vercel deploy --prebuilt --prod --yes", self.text)
+
+    def test_release_never_uses_a_remote_build_deploy_command(self):
+        deploy_lines = [
+            line.strip()
+            for line in self.text.splitlines()
+            if "vercel deploy" in line and not line.lstrip().startswith("#")
+        ]
+        self.assertEqual(len(deploy_lines), 1)
+        self.assertIn("--prebuilt", deploy_lines[0])
 
     def test_release_uses_secret_and_checks_canonical_site(self):
         self.assertIn("secrets.VERCEL_TOKEN", self.text)

@@ -102,8 +102,8 @@ For any release that touches a restricted Texas REALTORS® / NAR workflow:
 
 ## 4. Production deploy
 
-HomeOfferFlow disables automatic Git deployments to conserve Vercel Hobby
-capacity. Pushes do not deploy by themselves. Bundle verified runtime work,
+HomeOfferFlow disables automatic Git deployments to control Vercel spend.
+Pushes do not deploy by themselves. Bundle verified runtime work,
 then run the confirmation-gated GitHub Actions workflow:
 
 ```text

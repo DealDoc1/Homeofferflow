@@ -1,4 +1,4 @@
-# Vercel Hobby release process
+# Vercel deliberate release process
 
 ## Current production cost policy (September 10, 2026)
 
@@ -26,16 +26,15 @@ confirmation-gated production deployment, and post-deploy verification), use
 HomeOfferFlow disables automatic Git deployments so a branch push or merge does
 not consume a Vercel deployment by itself.
 
-The production bundle must stay at or below Vercel Hobby's 12 Serverless
-Function limit. Internal Python adapters and private TXR renderers live under
-`lib/`, not `api/`, so Vercel does not count them as public functions. The
-20-19 staging route remains in source control for controlled QA but is excluded
-from the production bundle through `.vercelignore`. The regression suite locks
-this function count before a release.
+The production bundle retains a conservative 12-public-function regression
+guard. Internal Python adapters and private TXR renderers live under `lib/`,
+not `api/`, so they are not exposed as public endpoints. The 20-19 staging
+route remains in source control for controlled QA but is excluded from the
+production bundle through `.vercelignore`.
 
-Vercel's separate Hobby deployment limit is 100 deployments per rolling
-24-hour window. The release workflow checks that daily deployment limit before
-building. It must not be confused with the 12-function project cap above.
+The release workflow also applies a conservative 100-deployment safety
+threshold per rolling 24-hour window before building. This internal protection
+is separate from the public-function bundle guard above.
 
 For each completed batch:
 

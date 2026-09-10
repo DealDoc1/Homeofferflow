@@ -68,6 +68,10 @@
   },
   "rewrites": [
     {
+      "source": "/api/resend-webhook",
+      "destination": "/api/fsbo-lead?resend_webhook=1"
+    },
+    {
       "source": "/investors",
       "destination": "/investors.html"
     },

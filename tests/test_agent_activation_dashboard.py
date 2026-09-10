@@ -134,7 +134,7 @@ class AgentActivationDashboardTests(unittest.TestCase):
 
     def test_onboarding_uses_a_real_saved_draft_path_not_demo_only_language(self):
         self.assertIn("Start your first saved offer", HTML)
-        self.assertIn("Start Transaction", HTML)
+        self.assertIn("Choose Transaction", HTML)
         self.assertIn("Saving a draft does not generate a packet or request a signature.", HTML)
 
     def test_account_dashboard_resumes_same_role_local_drafts_before_clearing_them(self):
@@ -274,16 +274,16 @@ class AgentActivationDashboardTests(unittest.TestCase):
     def test_transaction_interview_recommends_a_package_before_opening_a_workspace(self):
         self.assertIn("window.startAgentWorkflow = function startAgentWorkflow(kind)", HTML)
         self.assertIn("window.hofOpenAgentPackageInterview = function hofOpenAgentPackageInterview(kind)", HTML)
-        self.assertIn("What do you need for this purchase transaction?", HTML)
-        self.assertIn("Start an offer package", HTML)
+        self.assertIn("What do you need to prepare for this purchase?", HTML)
+        self.assertIn("Purchase offer", HTML)
         self.assertIn("We’ll assemble the supported offer documents that fit the selections you make.", HTML)
-        self.assertIn("What do you need for this sale listing?", HTML)
-        self.assertIn("What do you need for this lease listing?", HTML)
-        self.assertIn("Start a lease listing", HTML)
+        self.assertIn("Buyer representation agreement", HTML)
+        self.assertIn("What do you need to prepare for this listing?", HTML)
+        self.assertIn("Start the listing", HTML)
+        self.assertIn("Tenant representation agreement", HTML)
         self.assertNotIn("openRelationshipPackage('lease_addendum')", HTML)
-        self.assertIn("Resume a lease listing", HTML)
         self.assertIn("const openListingWorkspace = (focusStart = false)", HTML)
-        self.assertIn("{ label: 'Set up the listing', copy: 'Tell us about the seller, property, timing, and next steps.', action: () => openListingWorkspace(true), isWorkspaceOpen: () => Boolean(document.getElementById('listingWorkspaceStartCard')) }", HTML)
+        self.assertIn("{ label: 'Start the listing', copy: 'Tell us about the seller, property, timing, and next steps.', action: () => openListingWorkspace(true), isWorkspaceOpen: () => Boolean(document.getElementById('listingWorkspaceStartCard')) }", HTML)
         self.assertNotIn("Prepare lease details", HTML)
         self.assertIn("const closeFollowUp = () => {", HTML)
         self.assertIn("returnFocus?.focus({ preventScroll: true });", HTML)
@@ -291,9 +291,9 @@ class AgentActivationDashboardTests(unittest.TestCase):
         self.assertIn("bindPackageQuestionKeys(modal, closeInterview);", HTML)
         self.assertIn("followUp.querySelector('[data-follow-up-choice]')?.focus()", HTML)
         self.assertIn("modal.querySelector('[data-package-choice]')?.focus()", HTML)
-        self.assertIn("What do you need for this lease representation transaction?", HTML)
+        self.assertIn("What do you need to prepare for this lease representation?", HTML)
         self.assertIn("We’ll ask only for the details needed for that next step.", HTML)
-        self.assertIn("then review the private disclosure draft.", HTML)
+        self.assertIn("then review the disclosure draft.", HTML)
         self.assertIn("agent_form_package_selected", HTML)
         self.assertIn("agent_form_package_started", HTML)
         self.assertIn("agent_form_package_interview_viewed", HTML)
@@ -317,7 +317,7 @@ class AgentActivationDashboardTests(unittest.TestCase):
         self.assertIn("showAccountTab('dashboard');", HTML)
         self.assertIn("window.openAgentTransactionPicker?.();", HTML)
         self.assertIn('onclick="startAccountTransaction()">Choose Transaction</button>', HTML)
-        self.assertIn('onclick="startAccountTransaction()">Start Transaction</button>', HTML)
+        self.assertNotIn('onclick="startAccountTransaction()">Start Transaction</button>', HTML)
         self.assertIn("${isInvestor ? 'Start an offer' : 'Start a transaction'}", HTML)
         self.assertNotIn('onclick="startAccountOffer()"><strong>Prepare an offer</strong>', HTML)
 
@@ -439,7 +439,7 @@ class AgentActivationDashboardTests(unittest.TestCase):
         subscription = HTML[subscription_start:subscription_end]
 
         self.assertIn("const remaining = Math.max(0, limit - used);", subscription)
-        self.assertIn('Start Transaction', subscription)
+        self.assertIn('Choose Transaction', subscription)
         self.assertIn("remaining + ' packet'", subscription)
         self.assertIn("startAccountTransaction()", subscription)
 
@@ -468,7 +468,7 @@ class AgentActivationDashboardTests(unittest.TestCase):
         history_end = HTML.index("async function refreshSignWellStatus", history_start)
         history = HTML[history_start:history_end]
 
-        self.assertIn('onclick="startAccountTransaction()">Start Transaction', history)
+        self.assertIn('onclick="startAccountTransaction()">Choose Transaction', history)
         self.assertNotIn('onclick="startAccountOffer()">New Offer', history)
 
     def test_resume_activation_chooses_the_most_recent_draft(self):

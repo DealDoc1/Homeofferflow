@@ -76,10 +76,10 @@ class AgentLandingFunnelTests(unittest.TestCase):
     def test_agent_landing_uses_transaction_choices_for_guided_package_handoffs(self):
         self.assertIn('href="/?agent=1&amp;workflow=sale_listing&amp;utm_source=agent_workspace&amp;utm_medium=agent_page&amp;utm_campaign=transaction_selector"', AGENTS)
         self.assertIn('href="/?agent=1&amp;workflow=lease_listing&amp;utm_source=agent_workspace&amp;utm_medium=agent_page&amp;utm_campaign=transaction_selector"', AGENTS)
-        self.assertIn("window.hofAgentWorkflowContext = agentLandingWorkflow", INDEX)
+        self.assertIn("window.startAgentWorkflow?.(agentLandingWorkflow)", INDEX)
         self.assertIn("hof_agent_landing_package_workflow", INDEX)
         self.assertIn("agent_landing_package_handoff", INDEX)
-        self.assertIn("window.hofOpenAgentPackageInterview?.(agentLandingWorkflow)", INDEX)
+        self.assertIn("window.startAgentWorkflow?.(agentLandingPackageWorkflow)", INDEX)
 
     def test_agent_sign_in_confirms_the_selected_transaction_will_continue(self):
         start = INDEX.index("if (params().get('agent') === '1')")
@@ -115,7 +115,7 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("if (!window.__hofDraftRestoreAuthReady)", recovery)
         self.assertIn('window.setTimeout(continueAgentLandingRoute, 200);', recovery)
         self.assertIn("window.openAuthModal?.('agent');", recovery)
-        self.assertIn("window.hofOpenAgentPackageInterview?.(workflow);", recovery)
+        self.assertIn("window.startAgentWorkflow?.(workflow);", recovery)
         self.assertIn("['agent', 'workflow', 'workspace']", recovery)
         self.assertIn("sessionStorage.getItem('hof_agent_route_pending_v1')", recovery)
         self.assertIn("localStorage.getItem('hof_agent_route_pending_v1')", recovery)
@@ -153,12 +153,12 @@ class AgentLandingFunnelTests(unittest.TestCase):
     def test_agent_landing_uses_document_review_language_for_customers(self):
         self.assertIn('"name":"Review your documents"', AGENTS)
         self.assertIn('document summary, form status, recipients', AGENTS)
-        self.assertIn('saved-work recovery', AGENTS)
+        self.assertIn('Save your agent details once for faster repeat work', AGENTS)
         self.assertNotIn('"name":"Review the draft"', AGENTS)
         self.assertNotIn('saved defaults, draft recovery, repeat-offer work', AGENTS)
 
     def test_lease_listing_copy_routes_to_landlord_work_instead_of_purchase_addenda(self):
-        self.assertIn("Next, add the landlord and property details or continue a saved lease listing.", AGENTS)
+        self.assertIn("Add the landlord and property details to begin.", AGENTS)
         self.assertNotIn("Next, choose listing setup, a lease addendum, or your saved workspace.", AGENTS)
         self.assertNotIn("Next, choose listing setup, request a lease form, or open your saved workspace.", AGENTS)
         self.assertNotIn("Next, choose lease-listing setup or lease details.", AGENTS)
@@ -176,8 +176,8 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("const agentLandingWorkflow = ['purchase', 'sale_listing', 'lease_listing', 'lease_representation']", INDEX)
         self.assertIn("localStorage.setItem('hof_agent_landing_package_workflow', agentLandingWorkflow)", INDEX)
         self.assertIn("Continue to your ${workflowLabel}", INDEX)
-        self.assertIn("window.hofAgentWorkflowContext = agentLandingWorkflow", INDEX)
-        self.assertIn("window.hofOpenAgentPackageInterview?.(agentLandingPackageWorkflow)", INDEX)
+        self.assertIn("window.startAgentWorkflow?.(agentLandingWorkflow)", INDEX)
+        self.assertIn("window.startAgentWorkflow?.(agentLandingPackageWorkflow)", INDEX)
         self.assertIn("cleanUrl.searchParams.delete('workflow')", INDEX)
 
     def test_agent_landing_uses_lease_representation_for_relationship_draft_handoffs(self):
@@ -186,8 +186,8 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("agent_landing_relationship_workspace_handoff", INDEX)
         self.assertIn("tab: 'relationships'", INDEX)
         self.assertIn('id="accountPanelRelationships"', INDEX)
-        self.assertIn("Every signed-in agent can use the shared library", AGENTS)
-        self.assertIn("the guided interview keeps the relevant documents together for the transaction", AGENTS)
+        self.assertIn("Every signed-in agent can use HomeOfferFlow's released shared forms", AGENTS)
+        self.assertIn("the interview keeps the relevant documents together for the transaction", AGENTS)
 
     def test_transaction_question_one_uses_a_four_choice_responsive_grid(self):
         self.assertIn('class="skip-link" href="#transaction-start"', AGENTS)
@@ -195,7 +195,7 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn(".grid{display:grid;grid-template-columns:repeat(4,1fr)", AGENTS)
         self.assertIn("@media(max-width:960px){.grid{grid-template-columns:repeat(2,1fr)}}", AGENTS)
         self.assertIn("@media(max-width:760px){.grid{grid-template-columns:1fr}", AGENTS)
-        self.assertIn("Start a transaction, then build the document package it needs.", AGENTS)
+        self.assertIn("Start a transaction, then prepare only what it needs.", AGENTS)
         self.assertIn("What you can do here", AGENTS)
         self.assertNotIn("Current launch scope", AGENTS)
 
@@ -237,7 +237,7 @@ class AgentLandingFunnelTests(unittest.TestCase):
         start = INDEX.index("window.hofOpenAgentPackageInterview = function")
         end = INDEX.index("window.startAgentWorkflow = function", start)
         interview = INDEX[start:end]
-        self.assertIn("Prepare a purchase addendum", interview)
+        self.assertIn("Purchase addendum", interview)
         self.assertIn("Which purchase addendum does this transaction need?", interview)
         for label, opener in (
             ("Seller financing", "hofOpenTxr1914Draft"),
@@ -257,8 +257,10 @@ class AgentLandingFunnelTests(unittest.TestCase):
         start = INDEX.index("lease_listing: {")
         end = INDEX.index("lease_representation: {", start)
         lease_listing = INDEX[start:end]
-        self.assertIn("Start a lease listing", lease_listing)
-        self.assertIn("Resume a lease listing", lease_listing)
+        self.assertIn("Next, add the landlord and property details for this lease listing.", lease_listing)
+        self.assertIn("showAccountTab('seller');", lease_listing)
+        self.assertIn("document.getElementById('listingWorkspaceAddress')", lease_listing)
+        self.assertNotIn("hofOpenAgentPackageInterview('lease_listing')", lease_listing)
         self.assertNotIn("openRelationshipPackage('lease_addendum')", lease_listing)
         self.assertNotIn("openRelationshipPackage('purchase_addendum')", lease_listing)
         self.assertNotIn("hofOpenTxr1953Draft", lease_listing)
@@ -338,8 +340,8 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertNotIn('id="agentQuestionOneCta"', AGENTS)
         self.assertNotIn('Start a buyer offer — no payment', AGENTS)
         self.assertIn('No brokerage seat required.', AGENTS)
-        self.assertIn("Every signed-in agent can use HomeOfferFlow's released shared form workflows and create an agent-owned private listing workspace.", AGENTS)
-        self.assertIn('agent-owned private listing workspace', AGENTS)
+        self.assertIn("Every signed-in agent can use HomeOfferFlow's released shared forms and create a listing workspace.", AGENTS)
+        self.assertNotIn('agent-owned private listing workspace', AGENTS)
         self.assertIn('You do not need a brokerage seat to create your own seller or lease-listing workspace.', AGENTS)
         self.assertIn('save your defaults for faster repeat work', AGENTS)
         self.assertIn('OnDemand Realty agents:', AGENTS)
@@ -366,18 +368,18 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn('"@type":"BreadcrumbList"', AGENTS)
         self.assertIn('"name":"Texas Agent and Broker Workspace"', AGENTS)
 
-    def test_agent_faq_explains_the_question_two_package_interview_without_selecting_a_form(self):
+    def test_agent_faq_explains_the_transaction_specific_next_step(self):
         self.assertIn('What happens after I choose a transaction?', AGENTS)
-        self.assertIn('<strong>Every choice</strong> opens one plain-language result question before a workflow is opened.', AGENTS)
-        self.assertIn('<strong>Purchase</strong> can lead to an offer, representation, or a customer notice.', AGENTS)
-        self.assertIn('<strong>Property listing</strong> and <strong>lease listing</strong> can lead to the relevant listing, disclosure, or review work.', AGENTS)
-        self.assertIn('<strong>Lease representation</strong> can lead to representation or customer-notice work.', AGENTS)
-        self.assertIn('The guided interview narrows to the documents that fit the facts you provide', AGENTS)
+        self.assertIn('<strong>Purchase</strong> lets you choose a purchase offer, buyer representation agreement, addendum, or customer showing form.', AGENTS)
+        self.assertIn('<strong>Property listing</strong> lets you choose a listing task, seller disclosure, or buyer-offer comparison.', AGENTS)
+        self.assertIn('<strong>Lease listing</strong> goes directly to the landlord and property details.', AGENTS)
+        self.assertIn('<strong>Lease representation</strong> lets you choose a tenant representation agreement or customer showing form.', AGENTS)
+        self.assertIn('The interview then asks only for the details that apply.', AGENTS)
 
     def test_agent_landing_cards_and_structured_data_match_the_question_two_interview(self):
-        self.assertIn('Choose the transaction type. Next, we’ll ask what you need and open the appropriate guided workflow.', AGENTS)
-        self.assertIn('Next, choose an offer, representation, or a customer notice.', AGENTS)
-        self.assertIn('Every transaction choice opens one plain-language result question before a workflow is opened.', AGENTS)
+        self.assertIn('Choose the transaction type. We’ll take you to the next question or detail that applies.', AGENTS)
+        self.assertIn('Choose a purchase offer, buyer representation agreement, addendum, or showing form.', AGENTS)
+        self.assertIn('Lease listing goes directly to the landlord and property details.', AGENTS)
 
     def test_generic_agent_landing_preserves_the_transaction_choice_through_sign_in(self):
         self.assertIn("hof_agent_landing_start_draft", INDEX)

@@ -40,6 +40,12 @@ class SupabaseGraphqlExposureReviewTests(unittest.TestCase):
         self.assertIn("direct browser access is denied", DOC)
         self.assertIn("hof_usage_events", DOC)
 
+    def test_live_advisor_reconciliation_distinguishes_metadata_from_access(self):
+        self.assertIn("Production advisor reconciliation — 2026-09-10", DOC)
+        self.assertIn("**no** table\n  privileges", DOC)
+        self.assertIn("not a bypass of the owner", DOC)
+        self.assertIn("unused indexes", DOC)
+
 
 if __name__ == "__main__":
     unittest.main()

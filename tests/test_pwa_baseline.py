@@ -107,7 +107,7 @@ class PwaBaselineTests(unittest.TestCase):
         self.assertNotIn("caches.match(event.request)", WORKER)
 
     def test_install_precaches_only_low_cost_app_essentials(self):
-        self.assertIn("const SHELL_CACHE = 'homeofferflow-shell-v67';", WORKER)
+        self.assertIn("const SHELL_CACHE = 'homeofferflow-shell-v68';", WORKER)
         shell_assets = WORKER.split('const SHELL_ASSETS = [', 1)[1].split('];', 1)[0]
         self.assertIn("'/manifest.webmanifest'", shell_assets)
         self.assertIn("'/assets/pwa-register.js'", shell_assets)
@@ -132,6 +132,8 @@ class PwaBaselineTests(unittest.TestCase):
     def test_every_installable_rewritten_page_is_available_to_the_offline_shell(self):
         for rewrite in VERCEL["rewrites"]:
             source = rewrite["source"]
+            if source.startswith("/api/"):
+                continue
             destination = rewrite["destination"].lstrip("/")
             html = (ROOT / destination).read_text(encoding="utf-8")
             if "/assets/pwa-register.js" not in html:

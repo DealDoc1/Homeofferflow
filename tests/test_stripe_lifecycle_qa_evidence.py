@@ -24,6 +24,10 @@ class StripeLifecycleQaEvidenceTests(unittest.TestCase):
         self.assertIn("runbook is complete", EVIDENCE)
         self.assertIn("Open items before declaring the runbook complete", EVIDENCE)
         self.assertIn("intermediate snapshot", EVIDENCE)
+        self.assertIn("Current branch reconciliation — 2026-09-10", EVIDENCE)
+        self.assertIn("35 distinct processed sandbox event IDs", EVIDENCE)
+        self.assertIn("do **not** replace", EVIDENCE)
+        self.assertIn("checkpoint evidence", EVIDENCE)
 
     def test_automated_companion_maps_required_lifecycle_assertions(self):
         self.assertIn("657 tests passing", AUTOMATED)

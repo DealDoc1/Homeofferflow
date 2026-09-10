@@ -24,7 +24,54 @@ webhook code acknowledges but ignores `livemode=false` events on production,
 even if a flag is mistakenly present; this runbook is the second safety layer,
 not a replacement for that guard.
 
-## Environment preparation
+## Preferred zero-cost local QA path
+
+Use this path first. It exercises real Stripe **test-mode** deliveries without
+creating a Vercel preview deployment or exposing a public webhook URL. Stripe
+CLI forwards the selected test events to the local HomeOfferFlow endpoint; the
+endpoint writes only to the isolated Supabase branch.
+
+1. Keep the existing `stripe-lifecycle-qa` Supabase branch as the only database
+   for this run. It must not contain production customer data.
+2. Start a Stripe test-mode listener, forwarding only the required events to a
+   local HomeOfferFlow endpoint:
+
+   ```bash
+   stripe listen \
+     --events checkout.session.completed,customer.subscription.created,customer.subscription.updated,customer.subscription.deleted,invoice.paid,invoice.payment_succeeded,invoice.payment_failed \
+     --forward-to http://localhost:3333/api/stripe-webhook
+   ```
+
+   Copy the listener's `whsec_...` value only into the local runtime
+   environment. It is a test listener secret, never a production secret.
+3. Run HomeOfferFlow locally with `VERCEL_ENV=development`, the isolated branch
+   `SUPABASE_URL`, matching `STRIPE_WEBHOOK_TEST_SUPABASE_URL`, the production
+   Supabase URL for the difference check, and:
+
+   ```text
+   STRIPE_WEBHOOK_ALLOW_TEST_EVENTS=true
+   STRIPE_WEBHOOK_TEST_ENVIRONMENT=development
+   ```
+
+   Supply only the isolated branch service-role key, Stripe test-mode keys, and
+   the listener secret. Do not write any of these values into the repository.
+4. Run `scripts/verify_stripe_lifecycle_isolation.py` before opening Checkout.
+   It must report every check as `true`.
+5. Complete the matrix below with a real Stripe test-mode Checkout session and
+   the dedicated test account. `stripe trigger` is useful for malformed-event
+   and idempotency checks, but it does not replace the actual trial, payment
+   failure, cancellation, and recovery lifecycle.
+6. Stop the local server and Stripe listener when the QA evidence is captured.
+   No Vercel preview, public Stripe webhook endpoint, or additional Supabase
+   branch is needed for this path.
+
+Stripe documents this local forwarding pattern and the listener signing secret:
+https://docs.stripe.com/webhooks
+
+## Alternate nonproduction deployment path
+
+Use this only when a browser-only checkout or an environment-specific behavior
+cannot be reproduced locally. It incurs Vercel build/deployment usage.
 
 1. Create an isolated Supabase branch. Its database begins without production
    user data.

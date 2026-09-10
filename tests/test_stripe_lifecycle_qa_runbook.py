@@ -43,6 +43,13 @@ class StripeLifecycleQaRunbookTests(unittest.TestCase):
         self.assertIn("tests.test_subscription_lifecycle_security", RUNBOOK)
         self.assertNotIn("PYTHONPATH=/private/tmp/hof_httpx_only", RUNBOOK)
 
+    def test_runbook_prefers_local_stripe_forwarding_before_a_costly_preview(self):
+        self.assertIn("Preferred zero-cost local QA path", RUNBOOK)
+        self.assertIn("stripe listen", RUNBOOK)
+        self.assertIn("--forward-to http://localhost:3333/api/stripe-webhook", RUNBOOK)
+        self.assertIn("No Vercel preview", RUNBOOK)
+        self.assertIn("does not replace the actual trial", RUNBOOK)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -461,7 +461,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     const isHomebuyer = (window.hofAuth?.role || '').toLowerCase() === 'homebuyer';
     return `<div style="display:flex; justify-content:space-between; align-items:flex-start; gap:1rem; flex-wrap:wrap; margin-bottom:1rem;">
       <div><div style="font-weight:900; color:var(--white);">${isHomebuyer ? 'My Offer Packets' : 'Recent offers'}</div><div style="color:var(--gray-light); font-size:0.86rem; margin-top:0.25rem;">View status, activity, and buyer-side signing progress.</div></div>
-      <button class="btn-primary" type="button" onclick="${isHomebuyer ? 'startHomebuyerOffer()' : 'startAccountTransaction()'}">${isHomebuyer ? 'New Offer' : 'Start Transaction'}</button>
+      <button class="btn-primary" type="button" onclick="${isHomebuyer ? 'startHomebuyerOffer()' : 'startAccountTransaction()'}">${isHomebuyer ? 'New Offer' : 'Choose Transaction'}</button>
     </div>
     <div class="offer-dashboard-table">
       <div class="offer-dashboard-head"><div>Property</div><div>Buyer</div><div>Offer Price</div><div>Status</div><div>Updated</div><div>Actions</div></div>
@@ -842,6 +842,9 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 
 
     .payment-calc-card { background: rgba(74,140,111,0.075); border: 1px solid rgba(74,140,111,0.22); border-radius: 14px; padding: 1rem; margin: 1rem 0 1.15rem; }
+    .payment-calc-card summary { cursor: pointer; color: var(--sage-light); font-size: 0.9rem; font-weight: 800; }
+    .payment-calc-card summary span { color: var(--gray-light); font-size: 0.76rem; font-weight: 500; margin-left: 0.45rem; }
+    .payment-calc-card summary::marker { color: var(--sage-light); }
     .payment-calc-card h4 { font-size: 0.9rem; font-weight: 800; color: var(--sage-light); margin-bottom: 0.35rem; }
     .payment-calc-card p { font-size: 0.8rem; color: var(--gray-light); line-height: 1.5; margin-bottom: 0.75rem; }
     .calc-disclaimer { margin-top:0.75rem; padding-top:0.65rem; border-top:1px solid rgba(255,255,255,0.07); font-size:0.74rem; line-height:1.55; color:var(--gray); }
@@ -1153,6 +1156,11 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 .now-what-milestone { border:1px solid rgba(255,255,255,.09); border-radius:12px; background:rgba(255,255,255,.035); padding:.7rem; }
 .now-what-milestone strong { display:block; color:var(--white); font-size:.78rem; margin-bottom:.22rem; }
 .now-what-milestone span { color:var(--gray-light); font-size:.72rem; line-height:1.35; }
+.now-what-calendar-action { display:flex; align-items:center; justify-content:space-between; gap:.75rem; margin:0 1rem 1rem; padding:.72rem .78rem; border:1px solid rgba(74,140,111,.28); border-radius:12px; background:rgba(74,140,111,.07); }
+.now-what-calendar-action strong { display:block; color:var(--white); font-size:.78rem; }
+.now-what-calendar-action span { display:block; margin-top:.18rem; color:var(--gray-light); font-size:.71rem; line-height:1.4; }
+.now-what-calendar-action button { flex:0 0 auto; border:1px solid rgba(200,151,63,.45); border-radius:8px; background:rgba(200,151,63,.12); color:var(--gold-light); padding:.52rem .62rem; font:800 .7rem 'DM Sans',sans-serif; cursor:pointer; white-space:nowrap; }
+.now-what-calendar-action button:hover { background:rgba(200,151,63,.2); }
 .now-what-directory { padding:0 1rem 1rem; }
 .now-what-directory h4 { margin:0 0 .25rem; color:var(--gold-light); font-size:.75rem; letter-spacing:.06em; text-transform:uppercase; }
 .now-what-category { border-top:1px solid rgba(255,255,255,.08); padding:.8rem 0; }
@@ -1169,7 +1177,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 .now-what-partner a { color:var(--gold-light); font-size:.7rem; font-weight:900; text-decoration:none; white-space:nowrap; }
 .now-what-empty { margin-top:.55rem; padding:.62rem .68rem; color:var(--gray-light); border:1px dashed rgba(255,255,255,.16); border-radius:10px; font-size:.73rem; line-height:1.4; }
 .now-what-note { padding:.85rem 1rem 1rem; border-top:1px solid rgba(255,255,255,.08); }
-@media (max-width:640px) { .now-what-timeline { grid-template-columns:1fr; } .now-what-category-head { display:block; } .now-what-neutral { display:inline-flex; margin-top:.4rem; } }
+@media (max-width:640px) { .now-what-timeline { grid-template-columns:1fr; } .now-what-calendar-action { align-items:flex-start; flex-direction:column; } .now-what-category-head { display:block; } .now-what-neutral { display:inline-flex; margin-top:.4rem; } }
 
 
 
@@ -3134,7 +3142,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         <h4>My Offers</h4>
         <div id="myOffersList" class="offer-empty">No saved offers yet. Create your first offer and future drafts will show here.</div>
         <div class="account-actions-row">
-          <button class="btn-primary" type="button" onclick="startAccountTransaction()">Start Transaction</button>
+          <button class="btn-primary" type="button" onclick="startAccountTransaction()">Choose Transaction</button>
         </div>
       </div>
     </div>
@@ -3622,9 +3630,9 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           </div>
         </div>
 
-        <div class="payment-calc-card" id="paymentCalcCard">
-          <h4>Estimated monthly payment</h4>
-          <p>Quick planning estimate only. Update the fields below to see how payment assumptions change.</p>
+        <details class="payment-calc-card" id="paymentCalcCard">
+          <summary>Estimate monthly payment <span>Optional planning tool</span></summary>
+          <p>Open this if you want to compare payment assumptions. It does not change your offer terms.</p>
           <div class="payment-calc-grid">
             <div class="payment-calc-mini-field"><label>Interest Rate (%)</label><input type="number" id="calcInterestRate" value="7" step="0.125" inputmode="decimal"/></div>
             <div class="payment-calc-mini-field"><label>Loan Term (years)</label><input type="number" id="calcLoanYears" value="30" inputmode="numeric"/></div>
@@ -3649,7 +3657,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           <div class="calc-disclaimer">
             <strong>Estimate only.</strong> Monthly payment figures are based on general Texas averages and the information entered above. Actual loan terms, taxes, insurance premiums, HOA dues, PMI, and closing costs may vary significantly. HomeOfferFlow is not a lender, insurance provider, or tax authority. Buyers should obtain official loan estimates from a licensed mortgage professional, insurance quotes from a licensed insurance agent, and verify property taxes directly with the applicable county appraisal district or tax authority.
           </div>
-        </div>
+        </details>
 
         <div style="margin-top:0.75rem; padding-top:0.75rem; border-top:1px solid rgba(255,255,255,0.07);">
           <p style="font-size:0.8rem; font-weight:700; color:var(--gold-light); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.5rem;">Earnest Money & Option Period</p>
@@ -4046,6 +4054,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <p>Use this as a practical checklist after your offer is sent. Local provider listings are optional resources from HomeOfferFlow—not required selections or transaction advice.</p>
           </div>
           <div class="now-what-timeline" id="nowWhatTimeline"></div>
+          <div class="now-what-calendar-action" id="nowWhatCalendarAction" hidden></div>
           <div class="now-what-directory">
             <h4>Explore local help when you need it</h4>
             <div id="nowWhatPartnerFilters" style="display:flex;flex-wrap:wrap;gap:.5rem;margin:.65rem 0 .85rem;">
@@ -5134,6 +5143,15 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           </div>
 
           <div class="admin-metric">
+            <div class="admin-metric-label">Email Delivery Health</div>
+            <div class="admin-metric-value">${metrics.resendDeliveryAttentionCount || 0} needs attention</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.resendDeliveryProcessedCount || 0} processed of ${metrics.resendDeliveryEventCount || 0} recent provider events · ${metrics.resendDeliveryRetryableCount || 0} retryable.</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${Number(metrics.resendDeliveryStatusCounts?.delivered || 0)} delivered · ${Number(metrics.resendDeliveryStatusCounts?.bounced || 0)} bounced · ${Number(metrics.resendDeliveryStatusCounts?.complained || 0)} complaints · ${Number(metrics.resendDeliveryStatusCounts?.suppressed || 0)} suppressed.</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Confirmed delivery: ${Number(metrics.resendDeliverySuccessRate || 0).toFixed(1)}% of terminal delivery events. Seller ${Number(metrics.resendDeliveryFamilyCounts?.seller || 0)} · partner ${Number(metrics.resendDeliveryFamilyCounts?.partner || 0)} · other ${Number(metrics.resendDeliveryFamilyCounts?.other || 0)}.</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Aggregate provider data only—no recipient, property, subject, message, or provider email identifier appears here.</div>
+          </div>
+
+          <div class="admin-metric">
             <div class="admin-metric-label">Packet Generation Recovery</div>
             <div class="admin-metric-value">${Number(metrics.packetGenerationFailureCount || 0)} failures</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Session ${Number(metrics.packetGenerationFailureCounts?.session || 0)} · network ${Number(metrics.packetGenerationFailureCounts?.network || 0)} · timeout ${Number(metrics.packetGenerationFailureCounts?.timeout || 0)} · signature provider ${Number(metrics.packetGenerationFailureCounts?.signature_provider || 0)}.</div>
@@ -5897,7 +5915,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     if (isInternalAdminAccess) {
       actionHtml =
         '<div class="account-actions-row" style="margin-top:0.85rem;">' +
-          (good ? '<button class="btn-primary" type="button" onclick="startAccountTransaction()">Start Transaction</button>' : '') +
+          (good ? '<button class="btn-primary" type="button" onclick="startAccountTransaction()">Choose Transaction</button>' : '') +
         '</div>' +
         '<div style="margin-top:0.55rem; color:var(--gray); font-size:0.74rem; line-height:1.45;">' +
           (good
@@ -5909,7 +5927,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     } else if (isPaid) {
       actionHtml =
         '<div class="account-actions-row" style="margin-top:0.85rem;">' +
-          (good ? '<button class="btn-primary" type="button" onclick="startAccountTransaction()">Start Transaction</button>' : '') +
+          (good ? '<button class="btn-primary" type="button" onclick="startAccountTransaction()">Choose Transaction</button>' : '') +
           '<button class="btn-secondary" type="button" onclick="openBillingPortal(\'' + (nearLimit ? 'usage_near_limit' : 'subscription_card') + '\')">Manage Billing</button>' +
         '</div>' +
         '<div style="margin-top:0.55rem; color:var(--gray); font-size:0.74rem; line-height:1.45;">' +
@@ -7056,7 +7074,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       </div>
       <div class="beta-checklist-actions">
         <button type="button" onclick="showAccountTab('profile')">Profile</button>
-        <button type="button" onclick="startAccountTransaction()">Start Transaction</button>
+        <button type="button" onclick="startAccountTransaction()">Choose Transaction</button>
         <button type="button" onclick="showAccountTab('offers')">My Offers</button>
         <button type="button" onclick="openBetaFeedback()">Send Feedback</button>
       </div>`;
@@ -7691,34 +7709,27 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     };
     const packages = {
       purchase: {
-        title: 'What do you need for this purchase transaction?',
+        title: 'What do you need to prepare for this purchase?',
         choices: [
-          { label: 'Start an offer package', copy: 'Tell us about the buyer, property, financing, and timing. We’ll assemble the supported offer documents that fit the selections you make.', action: () => startAccountOffer(), isWorkspaceOpen: () => document.getElementById('wizardOverlay')?.classList.contains('active') },
-          { label: 'Set up representation', copy: 'Choose the agreement, then answer the client questions that apply.', action: () => openRelationshipPackage('representation'), deferStartToNestedChoice: true },
-          { label: 'Prepare a purchase addendum', copy: 'Choose the addendum the transaction needs, answer the guided questions, then review and send it when ready.', action: () => openRelationshipPackage('purchase_addendum'), deferStartToNestedChoice: true },
-          { label: 'Prepare a showing form or notice', copy: 'Choose the right document for the customer and situation.', action: () => openRelationshipPackage('customer'), deferStartToNestedChoice: true }
+          { label: 'Purchase offer', copy: 'Tell us about the buyer, property, financing, and timing. We’ll assemble the supported offer documents that fit the selections you make.', action: () => startAccountOffer(), isWorkspaceOpen: () => document.getElementById('wizardOverlay')?.classList.contains('active') },
+          { label: 'Buyer representation agreement', copy: 'Choose the agreement, then answer the client questions that apply.', action: () => openRelationshipPackage('representation'), deferStartToNestedChoice: true },
+          { label: 'Purchase addendum', copy: 'Choose the addendum the transaction needs, answer the guided questions, then review and send it when ready.', action: () => openRelationshipPackage('purchase_addendum'), deferStartToNestedChoice: true },
+          { label: 'Customer showing form or notice', copy: 'Choose the right document for the customer and situation.', action: () => openRelationshipPackage('customer'), deferStartToNestedChoice: true }
         ]
       },
       sale_listing: {
-        title: 'What do you need for this sale listing?',
+        title: 'What do you need to prepare for this listing?',
         choices: [
-          { label: 'Set up the listing', copy: 'Tell us about the seller, property, timing, and next steps.', action: () => openListingWorkspace(true), isWorkspaceOpen: () => Boolean(document.getElementById('listingWorkspaceStartCard')) },
-          { label: 'Prepare seller disclosures', copy: 'Answer the property and seller questions, then review the private disclosure draft.', action: () => { showAccountTab('seller'); window.setTimeout(() => window.openSellerDisclosureDraftWorkspace?.(), 0); }, isWorkspaceOpen: () => Boolean(document.getElementById('hofSellerDisclosureCard')) },
-          { label: 'Review a buyer offer', copy: 'Compare price, financing, deadlines, concessions, and possession.', action: () => window.hofOpenListingOfferComparison?.(), isWorkspaceOpen: () => Boolean(document.getElementById('listingWorkspaceOfferComparisonCard')) }
-        ]
-      },
-      lease_listing: {
-        title: 'What do you need for this lease listing?',
-        choices: [
-          { label: 'Start a lease listing', copy: 'Tell us about the landlord, property, availability, and next steps.', action: () => openListingWorkspace(true), isWorkspaceOpen: () => Boolean(document.getElementById('listingWorkspaceStartCard')) },
-          { label: 'Resume a lease listing', copy: 'Open a saved private workspace to review the plan and continue where you left off.', action: () => openListingWorkspace(), isWorkspaceOpen: () => Boolean(document.getElementById('listingWorkspaceStartCard')) }
+          { label: 'Start the listing', copy: 'Tell us about the seller, property, timing, and next steps.', action: () => openListingWorkspace(true), isWorkspaceOpen: () => Boolean(document.getElementById('listingWorkspaceStartCard')) },
+          { label: 'Seller disclosures', copy: 'Answer the property and seller questions, then review the disclosure draft.', action: () => { showAccountTab('seller'); window.setTimeout(() => window.openSellerDisclosureDraftWorkspace?.(), 0); }, isWorkspaceOpen: () => Boolean(document.getElementById('hofSellerDisclosureCard')) },
+          { label: 'Compare a buyer offer', copy: 'Compare price, financing, deadlines, concessions, and possession.', action: () => window.hofOpenListingOfferComparison?.(), isWorkspaceOpen: () => Boolean(document.getElementById('listingWorkspaceOfferComparisonCard')) }
         ]
       },
       lease_representation: {
-        title: 'What do you need for this lease representation transaction?',
+        title: 'What do you need to prepare for this lease representation?',
         choices: [
-          { label: 'Set up representation', copy: 'Choose the agreement, then answer the tenant questions that apply.', action: () => openRelationshipPackage('representation'), deferStartToNestedChoice: true },
-          { label: 'Prepare a showing form or notice', copy: 'Choose the right document for the customer and situation.', action: () => openRelationshipPackage('customer'), deferStartToNestedChoice: true }
+          { label: 'Tenant representation agreement', copy: 'Choose the agreement, then answer the tenant questions that apply.', action: () => openRelationshipPackage('representation'), deferStartToNestedChoice: true },
+          { label: 'Customer showing form or notice', copy: 'Choose the right document for the customer and situation.', action: () => openRelationshipPackage('customer'), deferStartToNestedChoice: true }
         ]
       }
     };
@@ -7766,22 +7777,37 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     const choices = {
       purchase: {
         event: 'agent_workflow_purchase_selected',
-        message: 'Next question: buyer and property details for this offer.',
+        message: 'Next, choose the purchase document or package you need.',
         action: () => window.hofOpenAgentPackageInterview('purchase') || startAccountOffer()
       },
       sale_listing: {
         event: 'agent_workflow_sale_listing_selected',
-        message: 'Next question: seller and property details for this sale listing.',
+        message: 'Next, choose the listing task you need.',
         action: () => window.hofOpenAgentPackageInterview('sale_listing') || showAccountTab('seller')
       },
       lease_listing: {
         event: 'agent_workflow_lease_listing_selected',
-        message: 'Next question: landlord and property details for this lease listing.',
-        action: () => window.hofOpenAgentPackageInterview('lease_listing') || showAccountTab('seller')
+        message: 'Next, add the landlord and property details for this lease listing.',
+        action: () => {
+          showAccountTab('seller');
+          let attempts = 0;
+          const focusWhenReady = () => {
+            const card = document.getElementById('listingWorkspaceStartCard');
+            const address = document.getElementById('listingWorkspaceAddress');
+            if (!card || !address) {
+              attempts += 1;
+              if (attempts < 12) window.setTimeout(focusWhenReady, 100);
+              return;
+            }
+            card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            address.focus({ preventScroll: true });
+          };
+          window.setTimeout(focusWhenReady, 0);
+        }
       },
       lease_representation: {
         event: 'agent_workflow_lease_representation_selected',
-        message: 'Next question: the representation step for this lease representation transaction.',
+        message: 'Next, choose the representation document you need.',
         action: () => window.hofOpenAgentPackageInterview('lease_representation') || showAccountTab('relationships')
       }
     };
@@ -8119,7 +8145,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         <div class="offer-crm-heading">Recent offers</div>
         <div class="offer-crm-subhead">Track drafts, generated packets, and buyer-side signature progress without digging through email.</div>
       </div>
-      <button class="btn-primary" type="button" onclick="startAccountTransaction()">Start Transaction</button>
+      <button class="btn-primary" type="button" onclick="startAccountTransaction()">Choose Transaction</button>
     </div>
     ${statCards}
     <div class="offer-crm-list">${rows}</div>`;
@@ -8420,9 +8446,8 @@ function routeAfterMagicLinkIfNeeded() {
     setTimeout(() => openAccountDashboard({ postLogin: true, tab: agentLandingPackageWorkflow ? 'dashboard' : (openSellerLandingWorkspace ? 'seller' : (openRelationshipLandingWorkspace ? 'relationships' : 'dashboard')) }), 250);
     if (agentLandingPackageWorkflow && role !== 'investor') {
       setTimeout(() => {
-        window.hofAgentWorkflowContext = agentLandingPackageWorkflow;
-        window.hofOpenAgentPackageInterview?.(agentLandingPackageWorkflow);
-        window.logOfferEvent?.(null, 'agent_landing_package_handoff', 'opened', 'Agent continued from the public transaction choice into the guided package interview after sign-in.', { source: agentLandingSource, workflow: agentLandingPackageWorkflow });
+        window.startAgentWorkflow?.(agentLandingPackageWorkflow);
+        window.logOfferEvent?.(null, 'agent_landing_package_handoff', 'opened', 'Agent continued from the public transaction choice after sign-in.', { source: agentLandingSource, workflow: agentLandingPackageWorkflow });
       }, 450);
     }
     // A generic public agent CTA returns to the transaction chooser after
@@ -10216,6 +10241,59 @@ function routeAfterMagicLinkIfNeeded() {
     return Number.isNaN(date.getTime()) ? '' : date.toLocaleDateString([], { month:'short', day:'numeric', year:'numeric' });
   }
 
+  function nowWhatCalendarDate(value) {
+    const match = String(value || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!match) return null;
+    const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+    return date.getFullYear() === Number(match[1]) && date.getMonth() === Number(match[2]) - 1 && date.getDate() === Number(match[3])
+      ? date
+      : null;
+  }
+
+  function nowWhatCalendarKey(date) {
+    return `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, '0')}${String(date.getDate()).padStart(2, '0')}`;
+  }
+
+  function nowWhatCalendarEscape(value) {
+    return String(value || '').replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
+  }
+
+  window.downloadClosingCalendarReminder = function downloadClosingCalendarReminder() {
+    const data = state.data || {};
+    const closing = nowWhatCalendarDate(data.closingDate || data.closing_date);
+    if (!closing) return;
+    const end = new Date(closing);
+    end.setDate(end.getDate() + 1);
+    const property = String(data.address || data.propertyAddress || '').trim();
+    const title = property ? `Target closing — ${property}` : 'Target closing';
+    const description = 'Target closing date from your HomeOfferFlow offer. Confirm the final date, time, and location with the signed contract and title company.';
+    const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+    const calendar = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//HomeOfferFlow//Target Closing Reminder//EN',
+      'CALSCALE:GREGORIAN',
+      'BEGIN:VEVENT',
+      `UID:homeofferflow-closing-${nowWhatCalendarKey(closing)}-${Date.now()}@homeofferflow.com`,
+      `DTSTAMP:${stamp}`,
+      `DTSTART;VALUE=DATE:${nowWhatCalendarKey(closing)}`,
+      `DTEND;VALUE=DATE:${nowWhatCalendarKey(end)}`,
+      `SUMMARY:${nowWhatCalendarEscape(title)}`,
+      `DESCRIPTION:${nowWhatCalendarEscape(description)}`,
+      'END:VEVENT',
+      'END:VCALENDAR',
+      ''
+    ].join('\r\n');
+    const url = URL.createObjectURL(new Blob([calendar], { type: 'text/calendar;charset=utf-8' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `homeofferflow-target-closing-${nowWhatCalendarKey(closing)}.ics`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 0);
+  };
+
   function nowWhatPartnerSort(left, right) {
     const rank = { exclusive_market: 0, premier: 1, founding: 2 };
     const leftRegulated = NOW_WHAT_REGULATED_TYPES.has(left.partner_type);
@@ -10247,6 +10325,12 @@ function routeAfterMagicLinkIfNeeded() {
       }
     ];
     target.innerHTML = milestones.map(item => `<div class="now-what-milestone"><strong>${nowWhatEscape(item.title)}</strong><span>${nowWhatEscape(item.body)}</span></div>`).join('');
+    const calendarAction = document.getElementById('nowWhatCalendarAction');
+    if (calendarAction) {
+      calendarAction.hidden = !closing;
+      if (closing) calendarAction.innerHTML = '<div><strong>Put target closing on your calendar</strong><span>An optional reminder only. Confirm the final date, time, and location from the fully signed contract.</span></div><button type="button" onclick="downloadClosingCalendarReminder()">Add to calendar</button>';
+      else calendarAction.innerHTML = '';
+    }
   }
 
   function renderNowWhatDirectory(partners = []) {
@@ -13820,15 +13904,15 @@ function routeAfterMagicLinkIfNeeded() {
           <div class="platform-kpi"><span>Featured Partner</span><strong>$399</strong></div>
           <div class="platform-kpi"><span>Premier Partner</span><strong>$799</strong></div>
         </div>
-        <div class="notice gold">Pilot rates are per category and market. Premier Partner is limited to one active paid placement position per category and market, but it never creates required selection or referral rights.</div>
+        <div class="notice gold">The launch price covers the first 90 days for one category and market; the selected tier then renews at its listed monthly fee. Premier Partner is limited to one active paid placement position per category and market, but it never creates required selection or referral rights.</div>
       </div>
       ${campaignToolkit}
       <div class="partner-create-card">
         <h4 style="color:var(--gold-light); font-size:0.86rem; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:0.75rem;">Create Partner Placement</h4>
         <div class="platform-grid">
           <div class="field"><label>Paid partner application</label><select id="partnerLeadId" disabled onchange="applyPartnerPlacementDefaultsFromLead()"><option value="">Loading paid applications…</option></select></div>
-          <div class="field"><label>Placement Tier</label><select id="partnerTier"><option value="founding">Core Partner · $149</option><option value="premier">Featured Partner · $399</option><option value="exclusive_market">Premier Partner · $799</option></select></div>
-          <div class="field"><label>Pilot / monthly fee</label><input id="partnerMonthlyFee" type="number" placeholder="149"></div>
+          <div class="field"><label>Placement Tier</label><select id="partnerTier"><option value="founding">Core Partner · $149 / first 90 days</option><option value="premier">Featured Partner · $399 / first 90 days</option><option value="exclusive_market">Premier Partner · $799 / first 90 days</option></select></div>
+          <div class="field"><label>Monthly fee after 90 days</label><input id="partnerMonthlyFee" type="number" placeholder="149"></div>
         </div>
         <div class="notice gold" style="margin-top:.85rem;">A completed HomeOfferFlow Partner Marketplace Agreement is required before activation. Send it from the paid-partner activation queue; SignWell copies each completed PDF to support@homeofferflow.com.</div>
         <div class="notice gold" style="margin-top:.7rem;">Only paid partners with completed secure onboarding appear here. Public placement details are derived from the paid application so company, category, and market cannot be mismatched. Paid placements remain separate from neutral provider selection.</div>
@@ -14040,9 +14124,9 @@ function routeAfterMagicLinkIfNeeded() {
 
   function partnerPlacementDefaults(preferredModel) {
     const defaults = {
-      founding_pilot: { tier: 'founding', fee: 149, label: 'Core · $149/mo' },
-      monthly_placement: { tier: 'premier', fee: 399, label: 'Featured · $399/mo' },
-      market_exclusive: { tier: 'exclusive_market', fee: 799, label: 'Premier · $799/mo' }
+      founding_pilot: { tier: 'founding', fee: 149, label: 'Core · $149/month after 90 days' },
+      monthly_placement: { tier: 'premier', fee: 399, label: 'Featured · $399/month after 90 days' },
+      market_exclusive: { tier: 'exclusive_market', fee: 799, label: 'Premier · $799/month after 90 days' }
     };
     return defaults[preferredModel] || defaults.founding_pilot;
   }
@@ -16453,6 +16537,21 @@ function routeAfterMagicLinkIfNeeded() {
       }
       window.addEventListener('hof-auth-ready', callback, { once: true });
     };
+    // Investor and agent workspaces keep different saved defaults. A direct
+    // investor link must never replace that choice with the currently signed-
+    // in agent's dashboard. Keep the investor page visible and explain the
+    // one necessary next step without signing anyone out or changing roles.
+    const showInvestorAccountRouteNotice = () => {
+      if (document.getElementById('investorAccountRouteNotice')) return;
+      const anchor = document.getElementById('heroPriceNote');
+      if (!anchor) return;
+      const notice = document.createElement('p');
+      notice.id = 'investorAccountRouteNotice';
+      notice.className = 'hero-price-note';
+      notice.setAttribute('role', 'status');
+      notice.innerHTML = '<strong>Investor workspace:</strong> You’re signed in to an Agent Account. Investor workspaces keep saved deal details separate. Sign out from Agent Account, then use an Investor Account to continue.';
+      anchor.insertAdjacentElement('afterend', notice);
+    };
     // Agent acquisition reuses the passwordless account workflow. The public
     // CTA requests a private no-payment draft, so preserve only that safe
     // action through the magic-link return; no account or subscription is
@@ -16504,8 +16603,7 @@ function routeAfterMagicLinkIfNeeded() {
         if (agentLandingWorkflow) {
           window.openAccountDashboard?.({ tab: 'dashboard' });
           window.setTimeout(() => {
-            window.hofAgentWorkflowContext = agentLandingWorkflow;
-            window.hofOpenAgentPackageInterview?.(agentLandingWorkflow);
+            window.startAgentWorkflow?.(agentLandingWorkflow);
           }, 120);
           window.logOfferEvent?.(null, 'agent_landing_package_handoff', 'opened', 'Signed-in agent continued from the public transaction choice into the guided package interview.', { source: agentLandingSource, workflow: agentLandingWorkflow });
         } else if (agentLandingWorkspace === 'seller') {
@@ -16560,9 +16658,11 @@ function routeAfterMagicLinkIfNeeded() {
         window.history.replaceState({}, document.title, cleanUrl.pathname + cleanUrl.search + cleanUrl.hash);
       } catch (_) {}
       window.setAudience?.('investor');
-      if (window.hofAuth?.session) {
+      if (window.hofAuth?.session && window.hofAuth?.role === 'investor') {
         window.openAccountDashboard?.({ tab: 'dashboard' });
         window.logOfferEvent?.(null, 'investor_landing_workspace_handoff', 'opened', 'Signed-in investor opened the workspace from the public landing page.', { source: investorLandingSource });
+      } else if (window.hofAuth?.session) {
+        showInvestorAccountRouteNotice();
       } else {
         try {
           if (investorLandingSource === 'texas_investor_offer_guide') localStorage.setItem('hof_investor_landing_source', investorLandingSource);
@@ -16623,8 +16723,7 @@ function routeAfterMagicLinkIfNeeded() {
       window.openAccountDashboard?.({ tab: workspace === 'seller' ? 'seller' : (workspace === 'relationship' ? 'relationships' : 'dashboard') });
       if (workflow) {
         window.setTimeout(() => {
-          window.hofAgentWorkflowContext = workflow;
-          window.hofOpenAgentPackageInterview?.(workflow);
+          window.startAgentWorkflow?.(workflow);
         }, 120);
       } else if (!workspace) {
         window.setTimeout(() => window.openAgentTransactionPicker?.(), 120);
@@ -16791,7 +16890,7 @@ function routeAfterMagicLinkIfNeeded() {
           <div class="field"><label>Broker Fee Amount / Percent</label><input id="profDefaultBrokerFeeValue" type="number" step="0.01" value="${escapeHtml(x.default_broker_fee_value || '')}" placeholder="Example: 3 or 7500"></div>
           `}
         </div>
-        <div class="defaults-v8-mini-note"><strong style="color:var(--gold-light);">Safe default behavior:</strong> these preferences do not change paid checkout, SignWell, Supabase schema, or PDF generation. They simply prefill visible offer fields before the user reviews the final packet.</div>
+        <div class="defaults-v8-mini-note"><strong style="color:var(--gold-light);">Saved preferences:</strong> these answers only prefill fields in your next offer. You can review and change every detail before you prepare the final documents.</div>
       </div>`;
   }
 
@@ -17845,7 +17944,7 @@ function routeAfterMagicLinkIfNeeded() {
       </div>
       <div class="beta-checklist-actions">
         <button type="button" onclick="showAccountTab('profile')">Profile & Defaults</button>
-        <button type="button" onclick="startAccountTransaction()">Start Transaction</button>
+        <button type="button" onclick="startAccountTransaction()">Choose Transaction</button>
         <button type="button" onclick="showAccountTab('offers')">Offer Workspace</button>
         <button type="button" onclick="openBetaFeedback()">Get Help</button>
       </div>`;

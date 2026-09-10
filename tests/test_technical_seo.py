@@ -119,7 +119,11 @@ class TechnicalSeoTests(unittest.TestCase):
 
     def test_public_landing_pages_share_the_safe_edge_cache_policy(self):
         cache_value = "public, max-age=120, s-maxage=86400, stale-while-revalidate=604800"
-        public_routes = {rewrite["source"].lstrip("/") for rewrite in VERCEL["rewrites"]}
+        public_routes = {
+            rewrite["source"].lstrip("/")
+            for rewrite in VERCEL["rewrites"]
+            if not rewrite["source"].startswith("/api/")
+        }
         policy = next(entry for entry in VERCEL["headers"] if entry["source"].startswith("/(agents|buyers|"))
         self.assertEqual(policy["headers"], [{"key": "Cache-Control", "value": cache_value}])
         cached_routes = set(policy["source"].removeprefix("/(").removesuffix(")").split("|"))
