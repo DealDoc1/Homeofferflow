@@ -479,7 +479,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       const source = await root.hofLoadApprovedBrokerageSource?.(FORM_CODE);
       const copy = card.querySelector('#txr1905AgreementCopy');
       if (!source) { copy.textContent = 'We couldn’t open that document. Please try again.'; return; }
-      copy.innerHTML = `Use a short, guided interview for the ${escape(source.source_revision)} edition of TXR-1905. HomeOfferFlow prepares a private draft; this workflow does not send or sign the addendum.`;
+      copy.innerHTML = `Use a short, guided interview for the ${escape(source.source_revision)} edition of TXR-1905. Review the completed draft, then send it for signature when the parties are ready.`;
       const button = document.createElement('button');
       button.type = 'button'; button.className = 'btn-secondary'; button.textContent = 'Start mineral addendum draft';
       button.addEventListener('click', () => openDraftDialog(source));
@@ -497,7 +497,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     modal.id = 'txr1905AgreementDialog'; modal.className = 'hof-agreement-modal';
     modal.innerHTML = `<form class="hof-agreement-dialog" id="txr1905AgreementForm">
       <h3>Mineral Reservation Addendum</h3>
-      <p>Answer only the choices printed on the addendum. Review mineral ownership and consequences with the appropriate professionals before anyone signs. This prepares a private draft; it does not send a signature request.</p>
+      <p>Answer only the choices printed on the addendum. Review mineral ownership and consequences with the appropriate professionals before signing.</p>
       <div class="hof-agreement-grid">
         <label class="hof-agreement-wide">Property street address and city<input name="propertyAddress" required maxlength="400" autocomplete="street-address" inputmode="text" placeholder="1438 Whitaker Road, Van Alstyne, TX"></label>
         <label>Buyer 1 full name<input name="buyerOne" required maxlength="180"></label>
@@ -507,7 +507,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         <div class="hof-agreement-wide"><span style="display:block;color:var(--gray-light);font-weight:700;font-size:.82rem;margin-bottom:.4rem">What does the seller reserve?</span><div class="hof-agreement-services"><label><input type="radio" name="reservationChoice" value="all" required> All mineral estate owned by seller</label><label><input type="radio" name="reservationChoice" value="undivided_interest"> An undivided interest</label></div></div>
         <label id="txr1905InterestWrap" style="display:none">Undivided interest percentage<input name="undividedInterest" inputmode="decimal" placeholder="Example: 25"></label>
         <div class="hof-agreement-wide"><span style="display:block;color:var(--gray-light);font-weight:700;font-size:.82rem;margin-bottom:.4rem">Surface rights</span><div class="hof-agreement-services"><label><input type="radio" name="surfaceRights" value="waived" required> Seller waives rights of ingress, egress, and reasonable use</label><label><input type="radio" name="surfaceRights" value="not_waived"> Seller does not waive those rights</label></div></div>
-        <label class="hof-agreement-wide hof-agreement-services"><input name="mineralReviewAcknowledgment" type="checkbox" required> I confirm the parties will review these choices on the form before signing. HomeOfferFlow is saving a private draft, not sending a signature request.</label>
+        <label class="hof-agreement-wide hof-agreement-services"><input name="mineralReviewAcknowledgment" type="checkbox" required> I confirm the parties will review these choices on the form before signing.</label>
       </div>
       <div id="txr1905DraftStatus" class="hof-iabs-status"></div>
       <div class="hof-agreement-footer"><button class="btn-secondary" type="button" id="txr1905Cancel">Cancel</button><button class="btn-primary" type="submit">Save private draft</button></div>
@@ -545,7 +545,9 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       const response = await fetch('/api/admin-dashboard', { method:'POST', headers:{ 'Content-Type':'application/json', Authorization:`Bearer ${token}` }, body:JSON.stringify(payload) });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || 'Could not save the private mineral addendum draft.');
-      status.className = 'hof-iabs-status ready'; status.textContent = 'Your private draft is ready. Review the completed details and choose the next transaction step when you are ready.';
+      status.className = 'hof-iabs-status ready';
+      status.innerHTML = 'Your draft is ready. <button type="button" class="btn-secondary">Review and send</button>';
+      status.querySelector('button').addEventListener('click', async () => { modal.remove(); await root.hofOpenPreparedAgreement?.(); });
     } catch (error) {
       console.error('TXR-1905 draft failed:', error);
       status.className = 'hof-iabs-status error'; status.textContent = error.message || 'Could not save the private mineral addendum draft.';
@@ -3139,7 +3141,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           <div class="relationship-drafts-guide-item"><strong>Detailed representation agreement · TXR-1501</strong><span>Buyer/Tenant Representation Agreement, Long Form; choose it only when it fits the transaction.</span></div>
           <div class="relationship-drafts-guide-item"><strong>Unrepresented-customer showing form · TXR-1508</strong><span>Use this only for an unrepresented customer; it is not a buyer representation agreement.</span></div>
           <div class="relationship-drafts-guide-item"><strong>TXR-1506 · Consumer Notice</strong><span>General Information and Notice to Consumers; it does not create representation.</span></div>
-          <div class="relationship-drafts-guide-item"><strong>TXR-1905 · Mineral Reservation Addendum</strong><span>Short guided draft for the reservation and surface-rights choices; it does not send or sign the addendum.</span></div>
+            <div class="relationship-drafts-guide-item"><strong>TXR-1905 · Mineral Reservation Addendum</strong><span>Short guided interview for the reservation and surface-rights choices, followed by review and signature sending.</span></div>
           <div class="relationship-drafts-guide-item"><strong>TXR-1914 · Seller Financing Addendum</strong><span>Guided form for financing choices; it does not create loan documents or advise on financing.</span></div>
           <div class="relationship-drafts-guide-item"><strong>TXR-1917 · Environmental Assessment Addendum</strong><span>Guided form for environmental choices; it is not an environmental assessment.</span></div>
           <div class="relationship-drafts-guide-item"><strong>TXR-1919 · Loan Assumption Addendum</strong><span>Guided form for assumption choices; it does not assess credit or contact a lender.</span></div>
@@ -22401,7 +22403,7 @@ function routeAfterMagicLinkIfNeeded() {
     const panel = document.getElementById('accountPanelRelationships');
     if (!panel || !activeAgent() || document.getElementById('txr1914AgreementCard')) return;
     const card = document.createElement('div'); card.id = 'txr1914AgreementCard'; card.className = 'account-card hof-agreement-card'; card.innerHTML = '<h4>Seller Financing Addendum</h4><p id="txr1914AgreementCopy">Checking the HomeOfferFlow form library…</p>'; panel.appendChild(card);
-    try { const source = await root.hofLoadApprovedBrokerageSource?.(FORM_CODE); const copy = card.querySelector('#txr1914AgreementCopy'); if (!source) { copy.textContent = 'We couldn’t open that document. Please try again.'; return; } copy.innerHTML = `Use the ${escape(source.source_revision)} TXR-1914 interview to prepare a private draft. Seller financing can be complex; this workflow does not recommend terms, create loan documents, send, or sign the addendum.`; const button = document.createElement('button'); button.type = 'button'; button.className = 'btn-secondary'; button.textContent = 'Start seller-financing draft'; button.addEventListener('click', () => openDraftDialog(source)); card.appendChild(button); } catch (error) { console.error('TXR-1914 source check failed:', error); card.querySelector('#txr1914AgreementCopy').textContent = root.hofApprovedSourceStatusCopy(error); }
+    try { const source = await root.hofLoadApprovedBrokerageSource?.(FORM_CODE); const copy = card.querySelector('#txr1914AgreementCopy'); if (!source) { copy.textContent = 'We couldn’t open that document. Please try again.'; return; } copy.innerHTML = `Use the ${escape(source.source_revision)} TXR-1914 interview to prepare a private draft. Review the completed details, then send it for signature when the parties are ready.`; const button = document.createElement('button'); button.type = 'button'; button.className = 'btn-secondary'; button.textContent = 'Start seller-financing draft'; button.addEventListener('click', () => openDraftDialog(source)); card.appendChild(button); } catch (error) { console.error('TXR-1914 source check failed:', error); card.querySelector('#txr1914AgreementCopy').textContent = root.hofApprovedSourceStatusCopy(error); }
   }
   root.hofRenderTxr1914Card = renderCard;
   root.hofOpenTxr1914Draft = async () => {
@@ -22416,7 +22418,7 @@ function routeAfterMagicLinkIfNeeded() {
     const refresh = () => { const plan = input('paymentPlan').value, escrow = input('escrow').value, installment = ['monthly_installments','interest_only_then_installments'].includes(plan); modal.querySelector('#txr1914OnePayment').style.display = plan === 'one_payment' ? 'grid' : 'none'; modal.querySelector('#txr1914Installments').style.display = installment ? 'grid' : 'none'; modal.querySelector('#txr1914InterestOnlyMonths').style.display = plan === 'interest_only_then_installments' ? 'grid' : 'none'; ['onePaymentDueAfterMonths','onePaymentInterestTiming'].forEach(name => input(name).required = plan === 'one_payment'); ['installmentAmount','installmentInterestStyle','installmentBeginsAfterMonths','payoffAfterMonths'].forEach(name => input(name).required = installment); input('interestOnlyMonths').required = plan === 'interest_only_then_installments'; modal.querySelector('#txr1914EscrowDetails').style.display = escrow === 'required' ? 'grid' : 'none'; input('thirdPartyServicer').required = escrow === 'required'; input('escrowCostPaidBy').required = escrow === 'required'; const other = modal.querySelector('[name="creditDocument"][value="other"]').checked; modal.querySelector('#txr1914OtherCreditWrap').style.display = other ? 'grid' : 'none'; input('creditOther').required = other; };
     ['paymentPlan','escrow'].forEach(name => input(name).addEventListener('change', refresh)); modal.querySelectorAll('[name="creditDocument"]').forEach(element => element.addEventListener('change', refresh)); refresh(); modal.querySelector('#txr1914AgreementForm').addEventListener('submit', event => submitDraft(event, source, modal));
   }
-  async function submitDraft(event, source, modal) { event.preventDefault(); const form = new FormData(event.currentTarget), status = modal.querySelector('#txr1914DraftStatus'), submit = event.currentTarget.querySelector('button[type="submit"]'), names = key => [form.get(`${key}One`),form.get(`${key}Two`)].map(value => String(value || '').trim()).filter(Boolean); const payload = {action:'create_txr_1914_draft',formCode:FORM_CODE,formSourceId:source.id,propertyAddress:form.get('propertyAddress'),buyerNames:names('buyer'),sellerNames:names('seller'),creditDays:form.get('creditDays'),creditDocuments:form.getAll('creditDocument'),creditOther:form.get('creditOther'),noteAmount:form.get('noteAmount'),interestRate:form.get('interestRate'),paymentPlan:form.get('paymentPlan'),onePaymentDueAfterMonths:form.get('onePaymentDueAfterMonths'),onePaymentInterestTiming:form.get('onePaymentInterestTiming'),installmentAmount:form.get('installmentAmount'),installmentInterestStyle:form.get('installmentInterestStyle'),installmentBeginsAfterMonths:form.get('installmentBeginsAfterMonths'),payoffAfterMonths:form.get('payoffAfterMonths'),interestOnlyMonths:form.get('interestOnlyMonths'),propertyTransfer:form.get('propertyTransfer'),casualtyInsurance:form.get('casualtyInsurance'),escrow:form.get('escrow'),thirdPartyServicer:form.get('thirdPartyServicer'),escrowCostPaidBy:form.get('escrowCostPaidBy'),sellerFinancingReviewAcknowledgment:form.get('sellerFinancingReviewAcknowledgment') === 'on'}; try { status.className='hof-iabs-status'; status.textContent='Preparing seller-financing private draft…'; const token=root.hofAuth?.session?.access_token,response=await fetch('/api/admin-dashboard',{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},body:JSON.stringify(payload)}),result=await response.json(); if(!response.ok) throw new Error(result.error || 'Could not save the private seller-financing draft.'); status.className='hof-iabs-status ready'; status.textContent='Your private draft is ready. Review the completed details and choose the next transaction step when you are ready.'; submit.disabled=true; } catch(error) { console.error('TXR-1914 draft failed:',error); status.className='hof-iabs-status error'; status.textContent=error.message || 'Could not save the private seller-financing draft.'; } }
+  async function submitDraft(event, source, modal) { event.preventDefault(); const form = new FormData(event.currentTarget), status = modal.querySelector('#txr1914DraftStatus'), submit = event.currentTarget.querySelector('button[type="submit"]'), names = key => [form.get(`${key}One`),form.get(`${key}Two`)].map(value => String(value || '').trim()).filter(Boolean); const payload = {action:'create_txr_1914_draft',formCode:FORM_CODE,formSourceId:source.id,propertyAddress:form.get('propertyAddress'),buyerNames:names('buyer'),sellerNames:names('seller'),creditDays:form.get('creditDays'),creditDocuments:form.getAll('creditDocument'),creditOther:form.get('creditOther'),noteAmount:form.get('noteAmount'),interestRate:form.get('interestRate'),paymentPlan:form.get('paymentPlan'),onePaymentDueAfterMonths:form.get('onePaymentDueAfterMonths'),onePaymentInterestTiming:form.get('onePaymentInterestTiming'),installmentAmount:form.get('installmentAmount'),installmentInterestStyle:form.get('installmentInterestStyle'),installmentBeginsAfterMonths:form.get('installmentBeginsAfterMonths'),payoffAfterMonths:form.get('payoffAfterMonths'),interestOnlyMonths:form.get('interestOnlyMonths'),propertyTransfer:form.get('propertyTransfer'),casualtyInsurance:form.get('casualtyInsurance'),escrow:form.get('escrow'),thirdPartyServicer:form.get('thirdPartyServicer'),escrowCostPaidBy:form.get('escrowCostPaidBy'),sellerFinancingReviewAcknowledgment:form.get('sellerFinancingReviewAcknowledgment') === 'on'}; try { status.className='hof-iabs-status'; status.textContent='Preparing seller-financing private draft…'; const token=root.hofAuth?.session?.access_token,response=await fetch('/api/admin-dashboard',{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},body:JSON.stringify(payload)}),result=await response.json(); if(!response.ok) throw new Error(result.error || 'Could not save the private seller-financing draft.'); status.className='hof-iabs-status ready'; status.innerHTML='Your draft is ready. <button type="button" class="btn-secondary">Review and send</button>'; status.querySelector('button').addEventListener('click', async () => { modal.remove(); await root.hofOpenPreparedAgreement?.(); }); submit.disabled=true; } catch(error) { console.error('TXR-1914 draft failed:',error); status.className='hof-iabs-status error'; status.textContent=error.message || 'Could not save the private seller-financing draft.'; } }
   const priorDashboard = root.renderAccountDashboard; root.renderAccountDashboard = function renderAccountDashboardWithSellerFinancingDraft() { if(typeof priorDashboard === 'function') priorDashboard.apply(this,arguments); renderCard(); }; if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded',renderCard,{once:true}); else renderCard();
 })();
 </script>
@@ -22425,6 +22427,43 @@ function routeAfterMagicLinkIfNeeded() {
 </script>
 <script id="hof-txr1917-drafts-v1">
 (function(){const r=window,c='TXR-1917',ok=()=>!!r.hofAuth?.session?.user,esc=v=>String(v??'').replace(/[&<>"']/g,x=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[x]));async function draw(){const p=document.getElementById('accountPanelRelationships');if(!p||!ok()||document.getElementById('txr1917Card'))return;const card=document.createElement('div');card.id='txr1917Card';card.className='account-card hof-agreement-card';card.innerHTML='<h4>Environmental Assessment Addendum</h4><p>Checking the HomeOfferFlow form library…</p>';p.appendChild(card);try{const s=await r.hofLoadApprovedBrokerageSource?.(c);if(!s){card.querySelector('p').textContent='TXR-1917 is temporarily unavailable in the HomeOfferFlow form library.';return}card.querySelector('p').innerHTML=`Use the ${esc(s.source_revision)} TXR-1917 interview to prepare a private draft. It does not assess conditions, send, or sign the addendum.`;const b=document.createElement('button');b.className='btn-secondary';b.type='button';b.textContent='Start environmental review draft';b.onclick=()=>open(s);card.appendChild(b)}catch(e){card.querySelector('p').textContent=r.hofApprovedSourceStatusCopy(e)}}function open(s){document.getElementById('txr1917Dialog')?.remove();const m=document.createElement('div');m.id='txr1917Dialog';m.className='hof-agreement-modal';m.innerHTML=`<form class="hof-agreement-dialog"><h3>Environmental Assessment Addendum</h3><p>Choose only the source-form review rights requested. This saves a private draft only.</p><div class="hof-agreement-grid"><label class="hof-agreement-wide">Property address<input name="address" required maxlength="400" autocomplete="street-address" inputmode="text"></label><label>Buyer 1 full name<input name="b1" required maxlength="180"></label><label>Buyer 2 full name (optional)<input name="b2" maxlength="180"></label><label>Seller 1 full name<input name="s1" required maxlength="180"></label><label>Seller 2 full name (optional)<input name="s2" maxlength="180"></label><label>Termination time (days)<input name="days" required inputmode="numeric" maxlength="3"></label><div class="hof-agreement-wide hof-agreement-services"><label><input type="checkbox" name="review" value="environmental"> Environmental assessment</label><label><input type="checkbox" name="review" value="species"> Threatened/endangered species</label><label><input type="checkbox" name="review" value="wetlands"> Wetlands</label></div><label class="hof-agreement-wide hof-agreement-services"><input name="ack" type="checkbox" required> I confirm the parties will review environmental terms with the appropriate professionals before signing. This is not an environmental assessment or signature request.</label></div><div class="hof-iabs-status"></div><div class="hof-agreement-footer"><button class="btn-secondary" type="button">Cancel</button><button class="btn-primary" type="submit">Save private draft</button></div></form>`;document.body.appendChild(m);m.querySelector('button[type="button"]').onclick=()=>m.remove();m.querySelector('form').onsubmit=async e=>{e.preventDefault();const f=new FormData(e.currentTarget),names=(a,b)=>[f.get(a),f.get(b)].map(v=>String(v||'').trim()).filter(Boolean),q={action:'create_txr_1917_draft',formCode:c,formSourceId:s.id,propertyAddress:f.get('address'),buyerNames:names('b1','b2'),sellerNames:names('s1','s2'),terminationDays:f.get('days'),reviewTypes:f.getAll('review'),environmentalReviewAcknowledgment:f.get('ack')==='on'},st=m.querySelector('.hof-iabs-status');try{st.textContent='Preparing environmental private draft…';const x=await fetch('/api/admin-dashboard',{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${r.hofAuth?.session?.access_token}`},body:JSON.stringify(q)}),j=await x.json();if(!x.ok)throw Error(j.error||'Could not save the private draft.');st.className='hof-iabs-status ready';st.textContent='Your private draft is ready. Review the completed details and choose the next transaction step when you are ready.';e.currentTarget.querySelector('button[type="submit"]').disabled=true}catch(err){st.className='hof-iabs-status error';st.textContent=err.message}}}const prev=r.renderAccountDashboard;r.renderAccountDashboard=function(){if(typeof prev==='function')prev.apply(this,arguments);draw()};if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',draw,{once:true});else draw()})();
+</script>
+<script id="hof-live-addendum-signing-next-step-v1">
+(function () {
+  // These four addenda share the common private-draft review screen. Once a
+  // draft is saved, keep the next decision right where the agent is: review
+  // the completed document and send it, rather than making them hunt through
+  // the workspace for the draft they just prepared.
+  const dialogIds = ['txr1905AgreementDialog', 'txr1914AgreementDialog', 'txr1917Dialog', 'txr1919AgreementDialog'];
+  const liveCardCopy = {
+    txr1917Card: 'Use the guided TXR-1917 interview to prepare the document. Review the completed draft, then send it for signature when the parties are ready.',
+    txr1919AgreementCard: 'Use the guided TXR-1919 interview to prepare the document. Review the completed draft, then send it for signature when the parties are ready.'
+  };
+  function addReviewAndSendAction() {
+    dialogIds.forEach(dialogId => {
+      const dialog = document.getElementById(dialogId);
+      const status = dialog?.querySelector('.hof-iabs-status.ready');
+      if (!status || status.querySelector('button')) return;
+      if (!/private draft is ready/i.test(status.textContent || '')) return;
+      dialog.querySelector('.hof-private-review-next-step')?.remove();
+      dialog.querySelector('.hof-private-review-trial-cta')?.remove();
+      status.innerHTML = 'Your draft is ready. <button type="button" class="btn-secondary">Review and send</button>';
+      status.querySelector('button').addEventListener('click', async () => {
+        dialog.remove();
+        await window.hofOpenPreparedAgreement?.();
+      });
+    });
+    Object.entries(liveCardCopy).forEach(([cardId, copy]) => {
+      const text = document.querySelector(`#${cardId} p`);
+      if (text && !text.dataset.liveSigningCopy) {
+        text.dataset.liveSigningCopy = 'true';
+        text.textContent = copy;
+      }
+    });
+  }
+  new MutationObserver(addReviewAndSendAction).observe(document.body, { childList: true, subtree: true, characterData: true });
+  addReviewAndSendAction();
+})();
 </script>
 <script id="hof-transaction-first-dashboard-routing-v1">
 (function () {
@@ -22602,7 +22641,9 @@ function routeAfterMagicLinkIfNeeded() {
   ]);
   const signingFormIds = new Set([
     'txr1501AgreementForm', 'txr1506AgreementForm', 'txr1507AgreementForm',
-    'txr1508AgreementForm', 'txr1953AgreementForm', 'txr1954AgreementForm'
+    'txr1508AgreementForm', 'txr1905AgreementForm', 'txr1914AgreementForm',
+    'txr1917AgreementForm', 'txr1919AgreementForm', 'txr1953AgreementForm',
+    'txr1954AgreementForm'
   ]);
   const hasSignatureQueue = form => signingFormIds.has(form.id);
   function restore(form, button) {

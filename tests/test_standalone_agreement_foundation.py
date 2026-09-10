@@ -501,7 +501,7 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
         self.assertIn("We couldn’t open that document. Please try again.", HTML)
         self.assertIn("Could not save the private mineral addendum draft.", HTML)
         self.assertIn("submit.textContent = 'Save private draft'", HTML)
-        self.assertIn("HomeOfferFlow prepares a private draft", HTML)
+        self.assertIn("Review the completed draft, then send it for signature", HTML)
 
     def test_agents_can_only_view_their_own_saved_draft_summaries(self):
         preview_scope = HTML[HTML.index('id="hof-private-form-drafts-v1"'):HTML.index('id="hof-seller-disclosure-draft-ui-v1"')]

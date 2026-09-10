@@ -113,13 +113,15 @@ TXR_SIGNING_FORM_CODES = {
     TXR_1506_FORM_CODE,
     TXR_1507_FORM_CODE,
     TXR_1508_FORM_CODE,
+    TXR_1905_FORM_CODE,
+    TXR_1914_FORM_CODE,
+    TXR_1917_FORM_CODE,
+    TXR_1919_FORM_CODE,
     TXR_1953_FORM_CODE,
     TXR_1954_FORM_CODE,
 }
-# These forms have only Buyer and Seller execution rows. They are intentionally
-# separate from the public signing allowlist above: source-specific maps and
-# recipient logic can be prepared and tested without making a new signature
-# workflow available before its completed-provider-PDF release check.
+# These forms have only Buyer and Seller execution rows. Their source-specific
+# maps use the same explicit recipient ordering as the released signing forms.
 TXR_BUYER_SELLER_SIGNING_FORM_CODES = {
     TXR_1905_FORM_CODE,
     TXR_1914_FORM_CODE,

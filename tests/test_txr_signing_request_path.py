@@ -87,9 +87,9 @@ class TxrSigningRequestPathTests(unittest.TestCase):
             self.assertEqual(MODULE._standalone_signer_labels(agreement), ["Buyer 1", "Seller 1"])
             self.assertNotIn("agent@example.com", [row["email"] for row in recipients])
 
-    def test_prepared_maps_do_not_expand_the_public_signing_allowlist(self):
+    def test_source_aligned_buyer_seller_maps_are_live_signing_workflows(self):
         for form_code in ("TXR-1905", "TXR-1914", "TXR-1917", "TXR-1919"):
-            self.assertNotIn(form_code, MODULE.TXR_SIGNING_FORM_CODES)
+            self.assertIn(form_code, MODULE.TXR_SIGNING_FORM_CODES)
 
     def test_ui_exposes_preview_send_and_owner_refresh_actions(self):
         html = (ROOT / "index.html").read_text(encoding="utf-8")
@@ -115,6 +115,10 @@ class TxrSigningRequestPathTests(unittest.TestCase):
             "TXR-1506": "hof-txr1506-drafts-v1",
             "TXR-1507": "hof-txr1507-drafts-v1",
             "TXR-1508": "hof-txr1508-drafts-v1",
+            "TXR-1905": "hof-txr1905-drafts-v1",
+            "TXR-1914": "hof-txr1914-drafts-v1",
+            "TXR-1917": "hof-txr1917-drafts-v1",
+            "TXR-1919": "hof-txr1919-drafts-v1",
             "TXR-1953": "hof-txr1953-drafts-v1",
             "TXR-1954": "hof-txr1954-drafts-v1",
         }
@@ -122,7 +126,16 @@ class TxrSigningRequestPathTests(unittest.TestCase):
             with self.subTest(form_code=form_code):
                 start = html.index(f'id="{script_id}"')
                 end = html.index("</script>", start)
-                self.assertIn("Review and send", html[start:end])
+                if form_code in {"TXR-1905", "TXR-1914", "TXR-1917", "TXR-1919"}:
+                    self.assertIn('hof-live-addendum-signing-next-step-v1', html)
+                else:
+                    self.assertIn("Review and send", html[start:end])
+
+        helper_start = html.index('id="hof-live-addendum-signing-next-step-v1"')
+        helper_end = html.index("</script>", helper_start)
+        helper = html[helper_start:helper_end]
+        self.assertIn("Review and send", helper)
+        self.assertIn("hofOpenPreparedAgreement", helper)
 
     def test_pdf_preview_does_not_sandbox_the_browser_pdf_viewer(self):
         html = (ROOT / "index.html").read_text(encoding="utf-8")
