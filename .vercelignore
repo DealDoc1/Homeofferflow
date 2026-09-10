@@ -10,3 +10,16 @@ api/fill_pdf_20_19_staging.py
 # Local Python bytecode is never part of a deployment.
 **/__pycache__/
 *.pyc
+
+# Keep test fixtures, release evidence, migrations, and local-only helpers out
+# of the production upload. Runtime APIs import from `lib/` and use the
+# root-level production PDFs, so those stay included.
+docs/
+tests/
+scripts/
+supabase/
+.github/
+requirements-test.txt
+README.md
+FOUNDING_PARTNER_PILOT_DEPLOY.md
+PARTNER_RATE_CARD.md

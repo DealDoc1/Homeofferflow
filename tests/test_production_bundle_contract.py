@@ -10,6 +10,19 @@ class ProductionBundleContractTests(unittest.TestCase):
         ignore = (ROOT / ".vercelignore").read_text(encoding="utf-8")
         self.assertIn("20-18_0.pdf", ignore)
 
+    def test_local_only_material_is_not_uploaded_to_production(self):
+        ignore = (ROOT / ".vercelignore").read_text(encoding="utf-8")
+        for entry in (
+            "docs/",
+            "tests/",
+            "scripts/",
+            "supabase/",
+            ".github/",
+            "requirements-test.txt",
+        ):
+            with self.subTest(entry=entry):
+                self.assertIn(entry, ignore)
+
     def test_production_route_points_to_20_19(self):
         source = (ROOT / "api" / "fill-pdf.py").read_text(encoding="utf-8")
         self.assertIn('MAIN_PDF      = os.path.join(BASE_DIR, "20-19_0.pdf")', source)
