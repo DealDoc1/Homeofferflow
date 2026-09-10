@@ -1,0 +1,743 @@
+{
+  "coordinate_system": "SignWell 96-DPI top-origin US Letter",
+  "forms": {
+    "TXR1501": [
+      {
+        "api_id": "txr1501_associate_date_p6",
+        "height": 18,
+        "page": 6,
+        "recipient_id": "associate",
+        "required": true,
+        "type": "date",
+        "width": 58,
+        "x": 135,
+        "y": 677
+      },
+      {
+        "api_id": "txr1501_associate_signature_p6",
+        "height": 24,
+        "page": 6,
+        "recipient_id": "associate",
+        "required": true,
+        "type": "signature",
+        "width": 120,
+        "x": 8,
+        "y": 677
+      },
+      {
+        "api_id": "txr1501_client1_date_p6",
+        "height": 18,
+        "page": 6,
+        "recipient_id": "1",
+        "required": true,
+        "type": "date",
+        "width": 60,
+        "x": 435,
+        "y": 566
+      },
+      {
+        "api_id": "txr1501_client1_signature_p6",
+        "height": 24,
+        "page": 6,
+        "recipient_id": "1",
+        "required": true,
+        "type": "signature",
+        "width": 120,
+        "x": 310,
+        "y": 566
+      },
+      {
+        "api_id": "txr1501_client2_date_p6",
+        "height": 18,
+        "page": 6,
+        "recipient_id": "2",
+        "required": true,
+        "type": "date",
+        "width": 60,
+        "x": 435,
+        "y": 677
+      },
+      {
+        "api_id": "txr1501_client2_signature_p6",
+        "height": 24,
+        "page": 6,
+        "recipient_id": "2",
+        "required": true,
+        "type": "signature",
+        "width": 120,
+        "x": 310,
+        "y": 677
+      }
+    ],
+    "TXR1506": [
+      {
+        "api_id": "txr1506_associate_date_p6",
+        "height": 20,
+        "page": 6,
+        "recipient_id": "associate",
+        "required": true,
+        "type": "date",
+        "width": 96,
+        "x": 432,
+        "y": 800
+      },
+      {
+        "api_id": "txr1506_associate_signature_p6",
+        "height": 26,
+        "page": 6,
+        "recipient_id": "associate",
+        "required": true,
+        "type": "signature",
+        "width": 304,
+        "x": 80,
+        "y": 799
+      },
+      {
+        "api_id": "txr1506_client1_date_p6",
+        "height": 20,
+        "page": 6,
+        "recipient_id": "1",
+        "required": true,
+        "type": "date",
+        "width": 96,
+        "x": 432,
+        "y": 893
+      },
+      {
+        "api_id": "txr1506_client1_initials_p1",
+        "height": 16,
+        "page": 1,
+        "recipient_id": "1",
+        "required": true,
+        "type": "initials",
+        "width": 50,
+        "x": 444,
+        "y": 976
+      },
+      {
+        "api_id": "txr1506_client1_initials_p2",
+        "height": 16,
+        "page": 2,
+        "recipient_id": "1",
+        "required": true,
+        "type": "initials",
+        "width": 55,
+        "x": 480,
+        "y": 976
+      },
+      {
+        "api_id": "txr1506_client1_initials_p3",
+        "height": 16,
+        "page": 3,
+        "recipient_id": "1",
+        "required": true,
+        "type": "initials",
+        "width": 55,
+        "x": 480,
+        "y": 976
+      },
+      {
+        "api_id": "txr1506_client1_initials_p4",
+        "height": 16,
+        "page": 4,
+        "recipient_id": "1",
+        "required": true,
+        "type": "initials",
+        "width": 55,
+        "x": 480,
+        "y": 976
+      },
+      {
+        "api_id": "txr1506_client1_initials_p5",
+        "height": 16,
+        "page": 5,
+        "recipient_id": "1",
+        "required": true,
+        "type": "initials",
+        "width": 55,
+        "x": 480,
+        "y": 976
+      },
+      {
+        "api_id": "txr1506_client1_signature_p6",
+        "height": 26,
+        "page": 6,
+        "recipient_id": "1",
+        "required": true,
+        "type": "signature",
+        "width": 336,
+        "x": 48,
+        "y": 893
+      },
+      {
+        "api_id": "txr1506_client2_date_p6",
+        "height": 20,
+        "page": 6,
+        "recipient_id": "2",
+        "required": true,
+        "type": "date",
+        "width": 96,
+        "x": 432,
+        "y": 939
+      },
+      {
+        "api_id": "txr1506_client2_initials_p1",
+        "height": 16,
+        "page": 1,
+        "recipient_id": "2",
+        "required": true,
+        "type": "initials",
+        "width": 40,
+        "x": 512,
+        "y": 976
+      },
+      {
+        "api_id": "txr1506_client2_initials_p2",
+        "height": 16,
+        "page": 2,
+        "recipient_id": "2",
+        "required": true,
+        "type": "initials",
+        "width": 55,
+        "x": 554,
+        "y": 976
+      },
+      {
+        "api_id": "txr1506_client2_initials_p3",
+        "height": 16,
+        "page": 3,
+        "recipient_id": "2",
+        "required": true,
+        "type": "initials",
+        "width": 55,
+        "x": 554,
+        "y": 976
+      },
+      {
+        "api_id": "txr1506_client2_initials_p4",
+        "height": 16,
+        "page": 4,
+        "recipient_id": "2",
+        "required": true,
+        "type": "initials",
+        "width": 55,
+        "x": 554,
+        "y": 976
+      },
+      {
+        "api_id": "txr1506_client2_initials_p5",
+        "height": 16,
+        "page": 5,
+        "recipient_id": "2",
+        "required": true,
+        "type": "initials",
+        "width": 55,
+        "x": 554,
+        "y": 976
+      },
+      {
+        "api_id": "txr1506_client2_signature_p6",
+        "height": 26,
+        "page": 6,
+        "recipient_id": "2",
+        "required": true,
+        "type": "signature",
+        "width": 336,
+        "x": 48,
+        "y": 939
+      }
+    ],
+    "TXR1507": [
+      {
+        "api_id": "txr1507_associate_date_p2",
+        "height": 18,
+        "page": 2,
+        "recipient_id": "associate",
+        "required": true,
+        "type": "date",
+        "width": 82,
+        "x": 185,
+        "y": 650
+      },
+      {
+        "api_id": "txr1507_associate_initials_p1",
+        "height": 14,
+        "page": 1,
+        "recipient_id": "associate",
+        "required": true,
+        "type": "initials",
+        "width": 47,
+        "x": 435,
+        "y": 984
+      },
+      {
+        "api_id": "txr1507_associate_signature_p2",
+        "height": 24,
+        "page": 2,
+        "recipient_id": "associate",
+        "required": true,
+        "type": "signature",
+        "width": 100,
+        "x": 10,
+        "y": 650
+      },
+      {
+        "api_id": "txr1507_client1_date_p2",
+        "height": 18,
+        "page": 2,
+        "recipient_id": "1",
+        "required": true,
+        "type": "date",
+        "width": 60,
+        "x": 530,
+        "y": 668
+      },
+      {
+        "api_id": "txr1507_client1_initials_p1",
+        "height": 14,
+        "page": 1,
+        "recipient_id": "1",
+        "required": true,
+        "type": "initials",
+        "width": 47,
+        "x": 542,
+        "y": 984
+      },
+      {
+        "api_id": "txr1507_client1_signature_p2",
+        "height": 24,
+        "page": 2,
+        "recipient_id": "1",
+        "required": true,
+        "type": "signature",
+        "width": 80,
+        "x": 445,
+        "y": 668
+      },
+      {
+        "api_id": "txr1507_client2_date_p2",
+        "height": 18,
+        "page": 2,
+        "recipient_id": "2",
+        "required": true,
+        "type": "date",
+        "width": 60,
+        "x": 530,
+        "y": 767
+      },
+      {
+        "api_id": "txr1507_client2_initials_p1",
+        "height": 14,
+        "page": 1,
+        "recipient_id": "2",
+        "required": true,
+        "type": "initials",
+        "width": 47,
+        "x": 596,
+        "y": 984
+      },
+      {
+        "api_id": "txr1507_client2_signature_p2",
+        "height": 24,
+        "page": 2,
+        "recipient_id": "2",
+        "required": true,
+        "type": "signature",
+        "width": 80,
+        "x": 445,
+        "y": 767
+      }
+    ],
+    "TXR1508": [
+      {
+        "api_id": "txr1508_agent_date_p1",
+        "height": 20,
+        "page": 1,
+        "recipient_id": "associate",
+        "required": true,
+        "type": "date",
+        "width": 121,
+        "x": 625,
+        "y": 657
+      },
+      {
+        "api_id": "txr1508_agent_initials_p1",
+        "height": 18,
+        "page": 1,
+        "recipient_id": "associate",
+        "required": true,
+        "type": "initials",
+        "width": 95,
+        "x": 347,
+        "y": 659
+      },
+      {
+        "api_id": "txr1508_client1_date_p1",
+        "height": 20,
+        "page": 1,
+        "recipient_id": "1",
+        "required": true,
+        "type": "date",
+        "width": 121,
+        "x": 625,
+        "y": 714
+      },
+      {
+        "api_id": "txr1508_client1_initials_p1",
+        "height": 18,
+        "page": 1,
+        "recipient_id": "1",
+        "required": true,
+        "type": "initials",
+        "width": 61,
+        "x": 518,
+        "y": 716
+      },
+      {
+        "api_id": "txr1508_client2_date_p1",
+        "height": 20,
+        "page": 1,
+        "recipient_id": "2",
+        "required": true,
+        "type": "date",
+        "width": 121,
+        "x": 625,
+        "y": 772
+      },
+      {
+        "api_id": "txr1508_client2_initials_p1",
+        "height": 18,
+        "page": 1,
+        "recipient_id": "2",
+        "required": true,
+        "type": "initials",
+        "width": 61,
+        "x": 518,
+        "y": 774
+      }
+    ],
+    "TXR1905": [
+      {
+        "api_id": "txr1905_buyer1_signature_p1",
+        "height": 24,
+        "page": 1,
+        "recipient_id": "1",
+        "required": true,
+        "type": "signature",
+        "width": 340,
+        "x": 75,
+        "y": 807
+      },
+      {
+        "api_id": "txr1905_buyer2_signature_p1",
+        "height": 24,
+        "page": 1,
+        "recipient_id": "2",
+        "required": true,
+        "type": "signature",
+        "width": 340,
+        "x": 75,
+        "y": 883
+      },
+      {
+        "api_id": "txr1905_seller1_signature_p1",
+        "height": 24,
+        "page": 1,
+        "recipient_id": "3",
+        "required": true,
+        "type": "signature",
+        "width": 310,
+        "x": 440,
+        "y": 807
+      },
+      {
+        "api_id": "txr1905_seller2_signature_p1",
+        "height": 24,
+        "page": 1,
+        "recipient_id": "4",
+        "required": true,
+        "type": "signature",
+        "width": 310,
+        "x": 440,
+        "y": 883
+      }
+    ],
+    "TXR1914": [
+      {
+        "api_id": "txr1914_buyer1_signature_p2",
+        "height": 24,
+        "page": 2,
+        "recipient_id": "1",
+        "required": true,
+        "type": "signature",
+        "width": 340,
+        "x": 55,
+        "y": 718
+      },
+      {
+        "api_id": "txr1914_buyer2_signature_p2",
+        "height": 24,
+        "page": 2,
+        "recipient_id": "2",
+        "required": true,
+        "type": "signature",
+        "width": 340,
+        "x": 55,
+        "y": 820
+      },
+      {
+        "api_id": "txr1914_seller1_signature_p2",
+        "height": 24,
+        "page": 2,
+        "recipient_id": "3",
+        "required": true,
+        "type": "signature",
+        "width": 340,
+        "x": 415,
+        "y": 718
+      },
+      {
+        "api_id": "txr1914_seller2_signature_p2",
+        "height": 24,
+        "page": 2,
+        "recipient_id": "4",
+        "required": true,
+        "type": "signature",
+        "width": 340,
+        "x": 415,
+        "y": 820
+      }
+    ],
+    "TXR1917": [
+      {
+        "api_id": "txr1917_buyer1_signature_p1",
+        "height": 24,
+        "page": 1,
+        "recipient_id": "1",
+        "required": true,
+        "type": "signature",
+        "width": 313,
+        "x": 70,
+        "y": 686
+      },
+      {
+        "api_id": "txr1917_buyer2_signature_p1",
+        "height": 24,
+        "page": 1,
+        "recipient_id": "2",
+        "required": true,
+        "type": "signature",
+        "width": 313,
+        "x": 70,
+        "y": 780
+      },
+      {
+        "api_id": "txr1917_seller1_signature_p1",
+        "height": 24,
+        "page": 1,
+        "recipient_id": "3",
+        "required": true,
+        "type": "signature",
+        "width": 313,
+        "x": 433,
+        "y": 686
+      },
+      {
+        "api_id": "txr1917_seller2_signature_p1",
+        "height": 24,
+        "page": 1,
+        "recipient_id": "4",
+        "required": true,
+        "type": "signature",
+        "width": 313,
+        "x": 433,
+        "y": 780
+      }
+    ],
+    "TXR1919": [
+      {
+        "api_id": "txr1919_buyer1_signature_p2",
+        "height": 24,
+        "page": 2,
+        "recipient_id": "1",
+        "required": true,
+        "type": "signature",
+        "width": 325,
+        "x": 60,
+        "y": 632
+      },
+      {
+        "api_id": "txr1919_buyer2_signature_p2",
+        "height": 24,
+        "page": 2,
+        "recipient_id": "2",
+        "required": true,
+        "type": "signature",
+        "width": 325,
+        "x": 60,
+        "y": 716
+      },
+      {
+        "api_id": "txr1919_seller1_signature_p2",
+        "height": 24,
+        "page": 2,
+        "recipient_id": "3",
+        "required": true,
+        "type": "signature",
+        "width": 325,
+        "x": 432,
+        "y": 632
+      },
+      {
+        "api_id": "txr1919_seller2_signature_p2",
+        "height": 24,
+        "page": 2,
+        "recipient_id": "4",
+        "required": true,
+        "type": "signature",
+        "width": 325,
+        "x": 432,
+        "y": 716
+      }
+    ],
+    "TXR1948": [
+      {
+        "api_id": "txr1948_buyer1_signature_p1",
+        "height": 26,
+        "page": 1,
+        "recipient_id": "1",
+        "required": true,
+        "type": "signature",
+        "width": 336,
+        "x": 58,
+        "y": 764
+      },
+      {
+        "api_id": "txr1948_buyer2_signature_p1",
+        "height": 26,
+        "page": 1,
+        "recipient_id": "2",
+        "required": true,
+        "type": "signature",
+        "width": 336,
+        "x": 58,
+        "y": 852
+      },
+      {
+        "api_id": "txr1948_seller1_signature_p1",
+        "height": 26,
+        "page": 1,
+        "recipient_id": "3",
+        "required": true,
+        "type": "signature",
+        "width": 318,
+        "x": 424,
+        "y": 764
+      },
+      {
+        "api_id": "txr1948_seller2_signature_p1",
+        "height": 26,
+        "page": 1,
+        "recipient_id": "4",
+        "required": true,
+        "type": "signature",
+        "width": 318,
+        "x": 424,
+        "y": 852
+      }
+    ],
+    "TXR1953": [
+      {
+        "api_id": "txr1953_buyer1_signature_p1",
+        "height": 26,
+        "page": 1,
+        "recipient_id": "1",
+        "required": true,
+        "type": "signature",
+        "width": 306,
+        "x": 70,
+        "y": 802
+      },
+      {
+        "api_id": "txr1953_buyer2_signature_p1",
+        "height": 26,
+        "page": 1,
+        "recipient_id": "2",
+        "required": true,
+        "type": "signature",
+        "width": 306,
+        "x": 70,
+        "y": 875
+      },
+      {
+        "api_id": "txr1953_seller1_signature_p1",
+        "height": 26,
+        "page": 1,
+        "recipient_id": "3",
+        "required": true,
+        "type": "signature",
+        "width": 302,
+        "x": 440,
+        "y": 802
+      },
+      {
+        "api_id": "txr1953_seller2_signature_p1",
+        "height": 26,
+        "page": 1,
+        "recipient_id": "4",
+        "required": true,
+        "type": "signature",
+        "width": 302,
+        "x": 440,
+        "y": 875
+      }
+    ],
+    "TXR1954": [
+      {
+        "api_id": "txr1954_buyer1_signature_p1",
+        "height": 26,
+        "page": 1,
+        "recipient_id": "1",
+        "required": true,
+        "type": "signature",
+        "width": 335,
+        "x": 64,
+        "y": 774
+      },
+      {
+        "api_id": "txr1954_buyer2_signature_p1",
+        "height": 26,
+        "page": 1,
+        "recipient_id": "2",
+        "required": true,
+        "type": "signature",
+        "width": 335,
+        "x": 64,
+        "y": 876
+      },
+      {
+        "api_id": "txr1954_seller1_signature_p1",
+        "height": 26,
+        "page": 1,
+        "recipient_id": "3",
+        "required": true,
+        "type": "signature",
+        "width": 324,
+        "x": 418,
+        "y": 774
+      },
+      {
+        "api_id": "txr1954_seller2_signature_p1",
+        "height": 26,
+        "page": 1,
+        "recipient_id": "4",
+        "required": true,
+        "type": "signature",
+        "width": 324,
+        "x": 418,
+        "y": 876
+      }
+    ]
+  },
+  "version": 1
+}

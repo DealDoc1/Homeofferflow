@@ -40,6 +40,11 @@ jobs:
           PYTHONPATH: .
         run: python scripts/check_golden_packet_rendering.py --cross-platform
 
+      - name: Check standalone TXR signer geometry
+        env:
+          PYTHONPATH: .
+        run: python scripts/check_txr_signwell_geometry_baseline.py
+
       - name: Run Supabase branch preflight
         run: python scripts/preflight_supabase_branch.py
 
