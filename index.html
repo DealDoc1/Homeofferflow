@@ -5824,9 +5824,9 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         '<div style="margin-top:0.55rem; color:var(--gray); font-size:0.74rem; line-height:1.45;">' +
           (good
             ? (usageAvailable
-              ? ('Your internal platform access is active. ' + remaining + ' packet' + (remaining === 1 ? '' : 's') + ' remain this month.')
-              : 'Your internal platform access is active, but current packet usage could not be loaded. Refresh usage before relying on the meter; the server will verify access again before packet generation.')
-            : 'This internal access allowance is used for the month. Contact platform support before generating another packet.') +
+              ? ('Your complimentary access is active. ' + remaining + ' packet' + (remaining === 1 ? '' : 's') + ' remain this month.')
+              : 'Your complimentary access is active, but current packet usage could not be loaded. Refresh the page before relying on the meter; access will be checked again before packet generation.')
+            : 'This month\'s complimentary packet allowance has been used. Contact support before generating another packet.') +
         '</div>';
     } else if (isPaid) {
       actionHtml =

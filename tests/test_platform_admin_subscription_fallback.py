@@ -29,7 +29,7 @@ class PlatformAdminSubscriptionFallbackTests(unittest.TestCase):
         card_end = INDEX.index("function renderMyOffers", card_start)
         card = INDEX[card_start:card_end]
         self.assertIn("const isInternalAdminAccess = status === 'free_admin';", card)
-        self.assertIn("Your internal platform access is active.", card)
+        self.assertIn("Your complimentary access is active.", card)
         self.assertIn("Platform Access", card)
         self.assertNotIn("isPaid = ['active', 'trialing', 'free_admin']", card)
 
