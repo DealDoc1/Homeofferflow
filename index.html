@@ -5134,6 +5134,15 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           </div>
 
           <div class="admin-metric">
+            <div class="admin-metric-label">Email Delivery Health</div>
+            <div class="admin-metric-value">${metrics.resendDeliveryAttentionCount || 0} needs attention</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.resendDeliveryProcessedCount || 0} processed of ${metrics.resendDeliveryEventCount || 0} recent provider events · ${metrics.resendDeliveryRetryableCount || 0} retryable.</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${Number(metrics.resendDeliveryStatusCounts?.delivered || 0)} delivered · ${Number(metrics.resendDeliveryStatusCounts?.bounced || 0)} bounced · ${Number(metrics.resendDeliveryStatusCounts?.complained || 0)} complaints · ${Number(metrics.resendDeliveryStatusCounts?.suppressed || 0)} suppressed.</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Confirmed delivery: ${Number(metrics.resendDeliverySuccessRate || 0).toFixed(1)}% of terminal delivery events. Seller ${Number(metrics.resendDeliveryFamilyCounts?.seller || 0)} · partner ${Number(metrics.resendDeliveryFamilyCounts?.partner || 0)} · other ${Number(metrics.resendDeliveryFamilyCounts?.other || 0)}.</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Aggregate provider data only—no recipient, property, subject, message, or provider email identifier appears here.</div>
+          </div>
+
+          <div class="admin-metric">
             <div class="admin-metric-label">Packet Generation Recovery</div>
             <div class="admin-metric-value">${Number(metrics.packetGenerationFailureCount || 0)} failures</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Session ${Number(metrics.packetGenerationFailureCounts?.session || 0)} · network ${Number(metrics.packetGenerationFailureCounts?.network || 0)} · timeout ${Number(metrics.packetGenerationFailureCounts?.timeout || 0)} · signature provider ${Number(metrics.packetGenerationFailureCounts?.signature_provider || 0)}.</div>

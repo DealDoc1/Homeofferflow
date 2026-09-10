@@ -4393,13 +4393,17 @@ class handler(BaseHTTPRequestHandler):
                 paid_partner_activation_readiness_counts[code] = paid_partner_activation_readiness_counts.get(code, 0) + 1
             (
                 roadmap, qa_scenarios, qa_runs, releases,
-                stripe_webhook_events, feedback,
+                stripe_webhook_events, resend_delivery_events, feedback,
             ) = asyncio.run(_get_dashboard_datasets(
                 ("hof_roadmap_items?select=*&order=priority.asc&limit=100", False),
                 ("hof_qa_scenarios?select=*&active=eq.true&order=priority.asc&limit=100", False),
                 ("hof_qa_runs?select=*&order=created_at.desc&limit=50", False),
                 ("hof_releases?select=*&order=created_at.desc&limit=20", False),
                 ("hof_stripe_webhook_events?select=stripe_event_id,event_type,livemode,processing_state,error_code,received_at,processed_at&order=received_at.desc&limit=50", True),
+                # Delivery telemetry is deliberately aggregate-only. The
+                # event ledger never returns recipient, subject, message, or
+                # provider email identifier to the browser.
+                ("hof_resend_webhook_events?select=event_type,delivery_status,processing_state,tags,received_at&order=received_at.desc&limit=100", True),
                 # Keep direct account email, user-agent, and page URL out of
                 # the dashboard response; the existing feedback record stays
                 # available for support workflows.
@@ -4409,6 +4413,37 @@ class handler(BaseHTTPRequestHandler):
             for item in stripe_webhook_events:
                 event_type = str(item.get("event_type") or "unknown").strip().lower()[:80] or "unknown"
                 stripe_webhook_event_type_counts[event_type] = stripe_webhook_event_type_counts.get(event_type, 0) + 1
+            resend_delivery_status_counts = {
+                "sent": 0, "delivered": 0, "bounced": 0, "complained": 0,
+                "suppressed": 0, "opened": 0, "clicked": 0, "other": 0,
+            }
+            resend_delivery_family_counts = {"seller": 0, "partner": 0, "other": 0}
+            seller_delivery_email_types = {
+                "seller_plan_receipt", "seller_payment_receipt", "seller_disclosure_review",
+            }
+            partner_delivery_email_types = {
+                "partner_application_receipt", "partner_onboarding",
+            }
+            resend_delivery_attention_count = 0
+            resend_delivery_retryable_count = 0
+            for item in resend_delivery_events:
+                status = str(item.get("delivery_status") or "other").strip().lower()
+                if status not in resend_delivery_status_counts:
+                    status = "other"
+                resend_delivery_status_counts[status] += 1
+                processing_state = str(item.get("processing_state") or "").strip().lower()
+                if status in {"bounced", "complained", "suppressed"} or processing_state == "failed":
+                    resend_delivery_attention_count += 1
+                if processing_state in {"received", "failed"}:
+                    resend_delivery_retryable_count += 1
+                tags = item.get("tags") if isinstance(item.get("tags"), dict) else {}
+                email_type = str(tags.get("email_type") or "").strip().lower()
+                if email_type in seller_delivery_email_types:
+                    resend_delivery_family_counts["seller"] += 1
+                elif email_type in partner_delivery_email_types:
+                    resend_delivery_family_counts["partner"] += 1
+                else:
+                    resend_delivery_family_counts["other"] += 1
             missing_form_request_count = len([
                 item for item in feedback if str(item.get("issue_type") or "").lower() == "missing_addendum"
             ])
@@ -6274,6 +6309,29 @@ class handler(BaseHTTPRequestHandler):
                 ]),
                 "stripeWebhookInvoiceFailureCount": stripe_webhook_event_type_counts.get("invoice.payment_failed", 0),
                 "stripeWebhookRecoveryCount": stripe_webhook_event_type_counts.get("invoice.paid", 0) + stripe_webhook_event_type_counts.get("invoice.payment_succeeded", 0),
+                "resendDeliveryEventCount": len(resend_delivery_events),
+                "resendDeliveryStatusCounts": resend_delivery_status_counts,
+                "resendDeliveryFamilyCounts": resend_delivery_family_counts,
+                "resendDeliveryAttentionCount": resend_delivery_attention_count,
+                "resendDeliveryRetryableCount": resend_delivery_retryable_count,
+                "resendDeliveryProcessedCount": len([
+                    item for item in resend_delivery_events
+                    if item.get("processing_state") == "processed"
+                ]),
+                "resendDeliveryTerminalCount": sum(
+                    resend_delivery_status_counts[status]
+                    for status in ("delivered", "bounced", "complained", "suppressed")
+                ),
+                "resendDeliverySuccessRate": round(
+                    (resend_delivery_status_counts["delivered"] / sum(
+                        resend_delivery_status_counts[status]
+                        for status in ("delivered", "bounced", "complained", "suppressed")
+                    )) * 100,
+                    1,
+                ) if sum(
+                    resend_delivery_status_counts[status]
+                    for status in ("delivered", "bounced", "complained", "suppressed")
+                ) else 0,
                 "billingPortalOpenCount": len([
                     item for item in events if item.get("event_type") == "billing_portal_opened"
                 ]),
