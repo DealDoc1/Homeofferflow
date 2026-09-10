@@ -20907,34 +20907,42 @@ function routeAfterMagicLinkIfNeeded() {
     return payload;
   }
 
-  function openSendDialog(agreement, refresh) {
+  async function openSendDialog(agreement, refresh) {
     document.getElementById('hofStandaloneSendDialog')?.remove();
-    const names = agreement.client_names || [];
-    const signerLabels = Array.isArray(agreement.signer_labels) && agreement.signer_labels.length === names.length
-      ? agreement.signer_labels
-      : names.map((_, index) => `Signer ${index + 1}`);
+    let signers = [];
     const modal = document.createElement('div');
     modal.id = 'hofStandaloneSendDialog';
     modal.className = 'hof-agreement-modal';
     modal.innerHTML = `<form class="hof-agreement-dialog" id="hofStandaloneSendForm">
       <h3>Send ${escape(agreement.form_code)} for signature</h3>
-      <p>Confirm one unique email for each listed signer. HomeOfferFlow uses only the signer roles shown below and does not infer another recipient.</p>
-      <div class="hof-agreement-grid">${names.map((name, index) => `<label>${escape(signerLabels[index])}: ${escape(name)}<input name="clientEmail${index + 1}" required type="email" maxlength="254" autocomplete="email"></label>`).join('')}</div>
-      <div id="hofStandaloneSendStatus" class="hof-iabs-status"></div>
-      <div class="hof-agreement-footer"><button class="btn-secondary" type="button" id="hofStandaloneSendCancel">Cancel</button><button class="btn-primary" type="submit">Send signature request</button></div>
+      <p>Review everyone who will receive this document. Each signer needs a different email address.</p>
+      <div class="hof-agreement-grid" id="hofStandaloneSigningRecipients"></div>
+      <div id="hofStandaloneSendStatus" class="hof-iabs-status" role="status" aria-live="polite">Loading signing recipients…</div>
+      <div class="hof-agreement-footer"><button class="btn-secondary" type="button" id="hofStandaloneSendCancel">Cancel</button><button class="btn-primary" type="submit" disabled>Send signature request</button></div>
     </form>`;
     document.body.appendChild(modal);
     modal.querySelector('#hofStandaloneSendCancel').addEventListener('click', () => modal.remove());
     modal.addEventListener('click', event => { if (event.target === modal) modal.remove(); });
     modal.querySelector('#hofStandaloneSendForm').addEventListener('submit', async event => {
       event.preventDefault();
+      if (!signers.length) return;
       const status = modal.querySelector('#hofStandaloneSendStatus');
       const form = new FormData(event.currentTarget);
-      const clientEmails = names.map((_, index) => String(form.get(`clientEmail${index + 1}`) || '').trim());
+      const confirmedRecipients = signers.map(signer => ({
+        id: signer.id, name: signer.name,
+        email: signer.emailEditable ? String(form.get(`clientEmail${signer.id}`) || '').trim() : signer.email
+      }));
+      const clientEmails = confirmedRecipients.filter((_, index) => signers[index].emailEditable).map(signer => signer.email);
+      const uniqueEmails = new Set(confirmedRecipients.map(signer => signer.email.toLowerCase()));
+      if (uniqueEmails.size !== confirmedRecipients.length) {
+        status.className = 'hof-iabs-status error';
+        status.textContent = 'Each signer, including the agent or broker, needs a different email address.';
+        return;
+      }
       const submit = event.currentTarget.querySelector('button[type="submit"]');
       submit.disabled = true; status.textContent = 'Sending securely…';
       try {
-        const response = await fetch('/api/admin-dashboard', { method:'POST', headers:{'Content-Type':'application/json', Authorization:`Bearer ${token()}`}, body:JSON.stringify({ action:'send_txr_agreement_for_signature', agreementId:agreement.id, clientEmails }) });
+        const response = await fetch('/api/admin-dashboard', { method:'POST', headers:{'Content-Type':'application/json', Authorization:`Bearer ${token()}`}, body:JSON.stringify({ action:'send_txr_agreement_for_signature', agreementId:agreement.id, clientEmails, confirmedRecipients }) });
         const result = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(result.error || 'Could not send the signature request.');
         status.className = 'hof-iabs-status ready'; status.textContent = 'Signature request sent.';
@@ -20945,6 +20953,28 @@ function routeAfterMagicLinkIfNeeded() {
         submit.disabled = false;
       }
     });
+    try {
+      const response = await fetch(`/api/admin-dashboard?scope=standalone_signing_recipients&agreement_id=${encodeURIComponent(agreement.id)}`, {
+        headers: { Authorization: `Bearer ${token()}` }, cache: 'no-store'
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || 'Could not load the signing recipients.');
+      if (!modal.isConnected) return;
+      if (!Array.isArray(result.recipients) || !result.recipients.length) throw new Error('This document has no signing recipients.');
+      signers = result.recipients;
+      modal.querySelector('#hofStandaloneSigningRecipients').innerHTML = signers.map(signer => `<label>${escape(signer.label)}: ${escape(signer.name)}<input ${signer.emailEditable ? `name="clientEmail${escape(signer.id)}" required autocomplete="email"` : 'readonly'} type="email" maxlength="254" value="${escape(signer.email || '')}"></label>`).join('');
+      modal.querySelector('#hofStandaloneSendStatus').textContent = '';
+      modal.querySelector('button[type="submit"]').disabled = false;
+    } catch (error) {
+      if (!modal.isConnected) return;
+      const status = modal.querySelector('#hofStandaloneSendStatus');
+      status.className = 'hof-iabs-status error';
+      status.textContent = error.message || 'Could not load the signing recipients.';
+      const retry = document.createElement('button');
+      retry.type = 'button'; retry.className = 'btn-secondary'; retry.textContent = 'Try again';
+      retry.addEventListener('click', () => openSendDialog(agreement, refresh));
+      status.appendChild(retry);
+    }
   }
 
   async function refreshAgreementSignWellStatus(agreement, button, refresh) {

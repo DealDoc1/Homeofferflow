@@ -3885,6 +3885,78 @@ def _txr_signwell_recipients(agreement, client_emails, brokerage, agent_user):
     return recipients
 
 
+async def _standalone_signing_recipients(user, agreement, client_emails):
+    """Resolve the same account-linked signers for preview and delivery."""
+    if str(agreement.get("form_code") or "") in TXR_BUYER_SELLER_SIGNING_FORM_CODES:
+        return _txr_signwell_recipients(agreement, client_emails, {}, {})
+    brokerage_rows = await _get(
+        "hof_brokerages?"
+        f"id=eq.{urllib.parse.quote(str(agreement.get('brokerage_id') or ''))}"
+        "&select=id,name,contact_name,contact_email&limit=1"
+    )
+    profile_rows = await _get_optional(
+        "hof_agent_profiles?"
+        f"user_id=eq.{urllib.parse.quote(user['id'])}"
+        "&select=user_id,agent_name,agent_email&limit=1"
+    )
+    profile = profile_rows[0] if profile_rows else {}
+    return _txr_signwell_recipients(
+        agreement, client_emails, brokerage_rows[0] if brokerage_rows else {},
+        {"email": user.get("email") or profile.get("agent_email"),
+         "name": profile.get("agent_name") or user.get("email")},
+    )
+
+
+async def _standalone_signing_recipient_preview(user, agreement_id):
+    """Return only the signing contacts for one owned, unsent draft."""
+    try:
+        agreement_uuid = str(uuid.UUID(str(agreement_id or "")))
+    except (TypeError, ValueError, AttributeError):
+        raise ValueError("Choose a valid document draft.")
+    rows = await _get(
+        "hof_standalone_agreements?"
+        f"id=eq.{urllib.parse.quote(agreement_uuid)}"
+        f"&agent_user_id=eq.{urllib.parse.quote(user['id'])}"
+        "&status=eq.draft"
+        "&select=id,brokerage_id,form_code,client_names,agreement_data&limit=1"
+    )
+    if not rows:
+        raise PermissionError("That document is unavailable or has already been sent.")
+    agreement = rows[0]
+    if str(agreement.get("form_code") or "") not in TXR_SIGNING_FORM_CODES:
+        raise ValueError("This document is not available for signing.")
+    names = agreement.get("client_names") or []
+    if not names:
+        raise ValueError("This document has no signing recipients.")
+    recipients = await _standalone_signing_recipients(user, agreement, [""] * len(names))
+    labels = _standalone_signer_labels(agreement)
+    for index, recipient in enumerate(recipients):
+        editable = index < len(names)
+        recipient["emailEditable"] = editable
+        recipient["label"] = labels[index] if editable else (
+            "Associate signer (your account)" if recipient["id"] == "associate" else "Broker signer"
+        )
+    return {"agreementId": agreement_uuid, "recipients": recipients}
+
+
+def _validate_confirmed_signing_recipients(recipients, confirmed):
+    """Do not deliver to a contact that differs from the displayed send list."""
+    def normalized(rows):
+        if not isinstance(rows, list) or any(not isinstance(row, dict) for row in rows):
+            return None
+        return [
+            (str(row.get("id") or "").strip(), str(row.get("name") or "").strip(),
+             str(row.get("email") or "").strip().casefold())
+            for row in rows
+        ]
+
+    if normalized(confirmed) != normalized(recipients):
+        raise ValueError("The signing contacts have changed. Reopen Send for signature to review the current recipients.")
+    emails = [str(recipient.get("email") or "").strip().casefold() for recipient in recipients]
+    if len(set(emails)) != len(emails):
+        raise ValueError("Each signer, including the agent or broker, must use a different signing email.")
+
+
 def _signwell_signing_urls(result):
     """Extract returned recipient signing URLs without persisting them."""
     recipients = result.get("recipients") if isinstance(result, dict) else None
@@ -3952,6 +4024,8 @@ async def _send_txr_agreement_for_signature(user, data):
         raise ValueError("Provide one valid signing email for each signer.")
     if len({email.casefold() for email in client_emails}) != len(client_emails):
         raise ValueError("Each signer must use a different signing email.")
+    recipients = await _standalone_signing_recipients(user, agreement, client_emails)
+    _validate_confirmed_signing_recipients(recipients, data.get("confirmedRecipients"))
     sources = await _get(
         "hof_brokerage_form_sources?"
         f"id=eq.{urllib.parse.quote(str(agreement['form_source_id']))}"
@@ -3971,29 +4045,11 @@ async def _send_txr_agreement_for_signature(user, data):
         )
     if source_response.status_code != 200 or not source_response.content.startswith(b"%PDF"):
         raise RuntimeError("The approved standalone source could not be loaded.")
-    brokerage_rows = await _get(
-        "hof_brokerages?"
-        f"id=eq.{urllib.parse.quote(str(agreement.get('brokerage_id') or ''))}"
-        "&select=id,name,dba_name,license_number,contact_name,contact_email&limit=1"
-    )
-    profile_rows = await _get_optional(
-        "hof_agent_profiles?"
-        f"user_id=eq.{urllib.parse.quote(user['id'])}"
-        "&select=user_id,agent_name,agent_email,license_number&limit=1"
-    )
-    brokerage = brokerage_rows[0] if brokerage_rows else {}
-    profile = profile_rows[0] if profile_rows else {}
     agreement_data = dict(agreement.get("agreement_data") or {})
     agreement_data["client_emails"] = client_emails
     client_count = len(client_names)
     fields = _txr_signwell_fields(form_code, {"client_names": client_names, **agreement_data}, client_count)
     rendered = await _render_representation_draft_preview(user, agreement_uuid, for_signing=True)
-    recipients = _txr_signwell_recipients(
-        agreement,
-        client_emails,
-        brokerage,
-        {"email": user.get("email") or profile.get("agent_email"), "name": profile.get("agent_name") or user.get("email")},
-    )
     address_label = form_code.replace("-", " ")
     payload = {
         "test_mode": SIGNWELL_TEST_MODE,
@@ -4095,6 +4151,18 @@ class handler(BaseHTTPRequestHandler):
                 _pdf_response(self, pdf, "standalone-agreement-private-draft-preview.pdf")
                 return
             scope = str((query.get("scope") or [""])[0]).strip().lower()
+            if scope == "standalone_signing_recipients":
+                agreement_id = str((query.get("agreement_id") or [""])[0]).strip()
+                try:
+                    payload = asyncio.run(_standalone_signing_recipient_preview(user, agreement_id))
+                except PermissionError as exc:
+                    _json(self, 403, {"error": str(exc)})
+                    return
+                except ValueError as exc:
+                    _json(self, 400, {"error": str(exc)})
+                    return
+                _json(self, 200, payload)
+                return
             if scope == "brokerage_form_sources":
                 try:
                     payload = asyncio.run(_brokerage_form_sources_payload(user, approved_only=False))

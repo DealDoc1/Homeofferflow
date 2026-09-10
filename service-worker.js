@@ -1,7 +1,7 @@
 // Bump the shell whenever a released public workflow changes. That makes an
 // already-installed app fetch the new worker and offer a deliberate refresh,
 // rather than continuing to run a previously cached interview script.
-const SHELL_CACHE = 'homeofferflow-shell-v64';
+const SHELL_CACHE = 'homeofferflow-shell-v65';
 const SHELL_ASSETS = [
   // Keep installation lightweight. Public pages cache after the visitor has
   // actually opened them; preloading every guide would spend bandwidth for
