@@ -9,8 +9,8 @@ feed, exposed through a small broker-controlled RESO proxy.
 - The broker uses its existing MLS authorization rather than HomeOfferFlow
   purchasing nationwide coverage.
 - The browser never receives an MLS credential.
-- HomeOfferFlow asks for one compact property-context lookup only when an
-  eligible agent deliberately requests it.
+- HomeOfferFlow asks for one compact property-context lookup when a review is
+  run and an approved broker connection is configured.
 - The integration is provider-neutral: a future MLS change is a proxy/config
   change, not a customer-workflow rewrite.
 
@@ -30,6 +30,30 @@ fee, although the MLS or broker may have its own access or licensing charge.
 This keeps the first release focused on better transaction guidance rather
 than turning HomeOfferFlow into a listing portal. Before activation, confirm
 the local MLS's permitted fields and brokerage data-use terms.
+
+## First-broker activation checklist
+
+Do this for one brokerage and one MLS before considering a second market. It
+is deliberately a short intake, not a new paid vendor program.
+
+1. Confirm the brokerage's legal name, MLS, MLS participant or broker
+   contact, and the market it wants HomeOfferFlow to support.
+2. Ask the MLS or its data distributor for the broker's existing RESO Web API
+   or MLS Grid vendor-access process. Identify HomeOfferFlow as the software
+   vendor and request only the compact offer-review use described here.
+3. Have the broker sign the required data-use or vendor authorization. Do not
+   request, email, or paste an agent's MLS password into HomeOfferFlow.
+4. Configure the broker-controlled proxy and the three server-only values
+   below. The proxy must enforce that broker's authorized MLS coverage,
+   permitted fields, retention, and rate limits.
+5. Run one non-public test lookup with a known listing and confirm the review
+   shows **Broker-authorized listing context included** only when the compact
+   response is received. Confirm the ordinary review remains usable if the
+   lookup is unavailable.
+
+The result is property-level prefill and market context for that brokerage's
+work—not a public listing search, an agent credential-sharing program, or a
+national data commitment.
 
 ## Activation contract
 
