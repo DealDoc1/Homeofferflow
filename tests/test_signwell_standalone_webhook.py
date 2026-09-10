@@ -77,6 +77,19 @@ class StandaloneWebhookTests(unittest.TestCase):
         self.assertEqual(MODULE._standalone_status_for("Sent for Signature"), "sent")
         self.assertEqual(MODULE._standalone_status_for("Buyer Viewed"), "sent")
 
+    def test_signed_seller_disclosure_is_marked_signed(self):
+        with patch.object(MODULE.httpx, "AsyncClient", return_value=_Client()):
+            response = asyncio.run(
+                MODULE._update_seller_disclosure(
+                    "doc-disclosure", "Buyer Signed", "Buyer Signatures Complete", {"event": "completed"}
+                )
+            )
+        self.assertEqual(response.status_code, 200)
+        request = _Client.requests[0]
+        self.assertIn("hof_seller_disclosure_drafts?", request["url"])
+        self.assertEqual(request["json"]["status"], "signed")
+        self.assertIn("signed_at", request["json"])
+
     def test_event_hash_verification_accepts_only_provider_signed_payload(self):
         payload = {"event": {"type": "document_completed", "time": 1723712400}}
         signed_value = b"document_completed@1723712400"

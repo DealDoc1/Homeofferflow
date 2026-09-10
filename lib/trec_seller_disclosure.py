@@ -234,7 +234,9 @@ def source_contract(form_code: str) -> dict[str, Any]:
     raise ValueError("Unsupported seller disclosure form.")
 
 
-def build_signwell_fields(form_code: str, data: dict[str, Any]) -> list[list[dict[str, Any]]]:
+def build_signwell_fields(
+    form_code: str, data: dict[str, Any], *, page_offset: int = 0
+) -> list[list[dict[str, Any]]]:
     """Return execution widgets calibrated to the supplied disclosure PDFs.
 
     The seller disclosure is sometimes prepared before a purchaser is known,
@@ -245,19 +247,21 @@ def build_signwell_fields(form_code: str, data: dict[str, Any]) -> list[list[dic
     """
     if form_code not in {"TREC-55-1", "TREC-61-0"}:
         raise ValueError("Unsupported seller disclosure form.")
+    if not isinstance(page_offset, int) or page_offset < 0:
+        raise ValueError("Seller disclosure signing page offset must be a non-negative integer.")
     sellers = data.get("seller_names") or []
     buyers = data.get("buyer_names") or []
     if not (1 <= len(sellers) <= 2 and 0 <= len(buyers) <= 2):
         raise ValueError("Seller disclosure signing requires one or two Sellers and up to two Buyers.")
 
     if form_code == "TREC-55-1":
-        page = 4
+        page = 4 + page_offset
         seller_y, buyer_y = 749, 868
         left_x, right_x, signature_width = 80, 432, 250
         left_date_x, right_date_x, date_width = 350, 720, 60
         prefix = "trec551"
     else:
-        page = 2
+        page = 2 + page_offset
         # The water-rights source places its execution rules lower than the
         # older draft map. Keep the widgets immediately above those rules,
         # clear of the notice text above and the Seller/Buyer captions below.

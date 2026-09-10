@@ -248,6 +248,27 @@ async def _update_standalone_agreement(document_id, mapped_status, mapped_signwe
         )
 
 
+async def _update_seller_disclosure(document_id, mapped_status, mapped_signwell_status, payload):
+    """Keep seller-disclosure status separate from offers and standalone forms."""
+    if not document_id or not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
+        return None
+    now = datetime.now(timezone.utc).isoformat()
+    update_payload = {
+        "status": _standalone_status_for(mapped_status),
+        "signwell_status": mapped_signwell_status,
+        "updated_at": now,
+    }
+    if mapped_status == "Buyer Signed":
+        update_payload["signed_at"] = now
+    async with httpx.AsyncClient(timeout=12) as client:
+        return await client.patch(
+            f"{SUPABASE_URL}/rest/v1/hof_seller_disclosure_drafts?"
+            f"signwell_document_id=eq.{document_id}&select=id,status,signwell_status",
+            headers=_headers(),
+            json=update_payload,
+        )
+
+
 async def _partner_agreement_completed_in_signwell(document_id):
     """Confirm completion at SignWell before a commercial placement can unlock.
 
@@ -341,6 +362,7 @@ class handler(BaseHTTPRequestHandler):
             event_resp = None
             patch_resp = None
             standalone_patch_resp = None
+            seller_disclosure_patch_resp = None
             partner_agreement_patch_resp = None
             try:
                 event_resp = asyncio.run(_insert_event(document_id, event_type, payload, mapped_status, mapped_signwell_status))
@@ -358,6 +380,14 @@ class handler(BaseHTTPRequestHandler):
                 )
             except Exception as e:
                 print("signwell standalone agreement patch failed", repr(e))
+            try:
+                seller_disclosure_patch_resp = asyncio.run(
+                    _update_seller_disclosure(
+                        document_id, mapped_status, mapped_signwell_status, payload
+                    )
+                )
+            except Exception as e:
+                print("signwell seller disclosure patch failed", repr(e))
             try:
                 partner_agreement_patch_resp = asyncio.run(
                     _update_partner_agreement(document_id, event_type)

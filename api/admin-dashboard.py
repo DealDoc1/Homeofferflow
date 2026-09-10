@@ -3555,6 +3555,117 @@ async def _render_seller_disclosure_draft_preview(user, draft_id, review_context
     return preview
 
 
+def _seller_disclosure_signing_recipients(draft, signer_emails):
+    """Build SignWell recipients in the exact order used by the PDF widgets."""
+    seller_names = draft.get("seller_names") or []
+    buyer_names = draft.get("buyer_names") or []
+    parties = [("Seller", name) for name in seller_names] + [("Buyer", name) for name in buyer_names]
+    if not isinstance(signer_emails, list):
+        signer_emails = []
+    emails = [str(value or "").strip() for value in signer_emails]
+    if len(emails) != len(parties) or any(not _valid_email(email) for email in emails):
+        raise ValueError("Provide one valid signing email for each named Seller and Buyer.")
+    if len({email.casefold() for email in emails}) != len(emails):
+        raise ValueError("Each signer must use a different signing email.")
+    return [
+        {"id": str(index), "name": str(name).strip(), "email": email}
+        for index, ((_role, name), email) in enumerate(zip(parties, emails), start=1)
+    ]
+
+
+async def _send_seller_disclosure_for_signature(user, data):
+    """Send one reviewed, agent-owned seller disclosure package through SignWell."""
+    if not TXR_SIGNING_ENABLED:
+        raise PermissionError("Texas form signing is not configured for this environment.")
+    if not SIGNWELL_ENABLED or not SIGNWELL_API_KEY:
+        raise RuntimeError("SignWell signing is not configured for this environment.")
+    draft_id = str(data.get("draftId") or "").strip()
+    try:
+        draft_uuid = str(uuid.UUID(draft_id))
+    except (TypeError, ValueError, AttributeError):
+        raise ValueError("Choose a valid seller disclosure draft.")
+    drafts = await _get(
+        "hof_seller_disclosure_drafts?"
+        f"id=eq.{urllib.parse.quote(draft_uuid)}"
+        f"&agent_user_id=eq.{urllib.parse.quote(user['id'])}"
+        "&status=eq.draft"
+        "&seller_review_attested=is.true"
+        "&select=id,property_address,seller_names,buyer_names,water_source_id,disclosure_source_revision,water_source_revision"
+        "&limit=1"
+    )
+    if not drafts:
+        raise PermissionError("That seller disclosure is unavailable, has already been sent, or still needs seller review.")
+    draft = drafts[0]
+    recipients = _seller_disclosure_signing_recipients(draft, data.get("signerEmails"))
+    rendered = await _render_seller_disclosure_draft_preview(user, draft_uuid)
+    from lib.trec_seller_disclosure import build_signwell_fields
+
+    signing_data = {"seller_names": draft.get("seller_names") or [], "buyer_names": draft.get("buyer_names") or []}
+    fields = build_signwell_fields(TREC_55_1_FORM_CODE, signing_data)
+    if draft.get("water_source_id"):
+        fields.extend(build_signwell_fields(TREC_61_0_FORM_CODE, signing_data, page_offset=4))
+    payload = {
+        "test_mode": SIGNWELL_TEST_MODE,
+        "draft": False,
+        "reminders": True,
+        "apply_signing_order": True,
+        "embedded_signing": False,
+        "with_signature_page": False,
+        "custom_requester_name": "HomeOfferFlow",
+        "name": f"HomeOfferFlow Seller Disclosure — {draft_uuid[:8]}",
+        "subject": "HomeOfferFlow seller disclosure for signature",
+        "message": (
+            "Please review and sign this completed HomeOfferFlow seller disclosure package. "
+            "HomeOfferFlow provides document completion and signing workflows, not legal advice. "
+            "Please confirm any questions with your authorized real-estate professional before signing."
+        ),
+        "recipients": recipients,
+        "files": [{"name": "HomeOfferFlow_Seller_Disclosure.pdf", "file_base64": base64.b64encode(rendered).decode("ascii")}],
+        "fields": fields,
+        "metadata": {
+            "source": "HomeOfferFlow",
+            "seller_disclosure_draft_id": draft_uuid,
+            "form_code": TREC_55_1_FORM_CODE,
+            "water_disclosure_included": str(bool(draft.get("water_source_id"))).lower(),
+            "disclosure_source_revision": str(draft.get("disclosure_source_revision") or "")[:80],
+            "water_source_revision": str(draft.get("water_source_revision") or "")[:80],
+            "test_mode": str(SIGNWELL_TEST_MODE).lower(),
+        },
+    }
+    async with httpx.AsyncClient(timeout=45) as client:
+        response = await client.post(
+            "https://www.signwell.com/api/v1/documents",
+            headers={"X-Api-Key": SIGNWELL_API_KEY, "Content-Type": "application/json"},
+            json=payload,
+        )
+    if response.status_code not in {200, 201, 202}:
+        raise RuntimeError(f"SignWell rejected the signing request: HTTP {response.status_code}.")
+    result = response.json()
+    document_id = str(result.get("id") or result.get("document_id") or "").strip()
+    if not document_id:
+        raise RuntimeError("SignWell did not return a document id.")
+    now = datetime.now(timezone.utc).isoformat()
+    await _patch(
+        "hof_seller_disclosure_drafts",
+        f"id=eq.{urllib.parse.quote(draft_uuid)}&agent_user_id=eq.{urllib.parse.quote(user['id'])}&status=eq.draft",
+        {
+            "status": "sent",
+            "signwell_document_id": document_id,
+            "signwell_status": str(result.get("status") or "sent"),
+            "sent_at": now,
+            "updated_at": now,
+        },
+    )
+    return {
+        "ok": True,
+        "documentId": document_id,
+        "status": result.get("status") or "sent",
+        "testMode": SIGNWELL_TEST_MODE,
+        "recipientCount": len(recipients),
+        "signingUrls": _signwell_signing_urls(result),
+    }
+
+
 async def _render_representation_draft_preview(user, agreement_id, *, for_signing=False):
     """Render an agent's own approved-source representation draft privately.
 
@@ -3990,7 +4101,7 @@ class handler(BaseHTTPRequestHandler):
                 rows = asyncio.run(_get(
                     "hof_seller_disclosure_drafts?"
                     f"agent_user_id=eq.{urllib.parse.quote(user['id'])}"
-                    "&select=id,listing_workspace_id,disclosure_source_id,water_source_id,property_address,seller_names,buyer_names,response_data,water_rights_data,status,disclosure_source_revision,water_source_revision,seller_review_attested,created_at,updated_at"
+                    "&select=id,listing_workspace_id,disclosure_source_id,water_source_id,property_address,seller_names,buyer_names,response_data,water_rights_data,status,signwell_status,signwell_document_id,sent_at,signed_at,disclosure_source_revision,water_source_revision,seller_review_attested,created_at,updated_at"
                     "&order=updated_at.desc&limit=100"
                 ))
                 review_links = asyncio.run(_get_optional(
@@ -6512,6 +6623,10 @@ class handler(BaseHTTPRequestHandler):
             if data.get("action") == "create_seller_disclosure_review_link":
                 link = asyncio.run(_create_seller_disclosure_review_link(user, data))
                 _json(self, 201, {"status": "ok", "reviewLink": link, "workflowActivated": False})
+                return
+            if data.get("action") == "send_seller_disclosure_for_signature":
+                result = asyncio.run(_send_seller_disclosure_for_signature(user, data))
+                _json(self, 200, {"status": "ok", "signwell": result})
                 return
             if data.get("action") == "create_txr_1507_draft":
                 draft = asyncio.run(_create_txr_1507_draft(user, data))

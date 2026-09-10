@@ -12,7 +12,7 @@ class SellerDisclosureAgentUiTests(unittest.TestCase):
         self.assertIn("approved_brokerage_sources", html)
         self.assertIn("create_seller_disclosure_draft", html)
         self.assertIn("preview_seller_disclosure", html)
-        self.assertIn("does not send or sign", html)
+        self.assertIn("send it for signature", html)
         self.assertIn('hofSellerEmail', html)
         self.assertIn('hofSendSellerReview', html)
         self.assertIn('create_seller_disclosure_review_link', html)
@@ -49,6 +49,14 @@ class SellerDisclosureAgentUiTests(unittest.TestCase):
             3,
         )
         self.assertIn("Review and send", html)
+
+    def test_reviewed_disclosure_can_collect_signers_and_send_once(self):
+        html = (ROOT / "index.html").read_text()
+        self.assertIn("openSellerDisclosureSignature", html)
+        self.assertIn("send_seller_disclosure_for_signature", html)
+        self.assertIn("Send for signature", html)
+        self.assertIn("draft?.status === 'sent'", html)
+        self.assertIn("draft?.status === 'signed'", html)
 
     def test_response_controls_cover_all_mapped_groups(self):
         html = (ROOT / "index.html").read_text()

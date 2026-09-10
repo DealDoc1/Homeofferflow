@@ -59,7 +59,7 @@ class SellerReviewApiTests(unittest.TestCase):
         review_page = (ROOT / "seller-review.html").read_text()
         self.assertIn('meta name="robots" content="noindex, nofollow, noarchive, nosnippet"', review_page)
         self.assertIn("d.sellerName", review_page)
-        self.assertIn("All listed sellers have reviewed", review_page)
+        self.assertIn("Your agent can now send the completed disclosure for signature", review_page)
 
     def test_draft_creation_revalidates_listing_workspace_ownership(self):
         source = (ROOT / "api" / "admin-dashboard.py").read_text()

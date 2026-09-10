@@ -38,6 +38,17 @@ class TrecSellerDisclosureSignerGeometryTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             build_signwell_fields("TREC-61-0", {"seller_names": ["One"], "buyer_names": ["A", "B", "C"]})
 
+    def test_appended_water_disclosure_uses_packet_page_numbers(self):
+        fields = build_signwell_fields(
+            "TREC-61-0", {"seller_names": ["Seller One"], "buyer_names": []}, page_offset=4
+        )[0]
+        self.assertEqual({field["page"] for field in fields}, {6})
+        self.assertTrue(all(field["api_id"].endswith("_p6") for field in fields))
+
+    def test_rejects_an_invalid_packet_page_offset(self):
+        with self.assertRaises(ValueError):
+            build_signwell_fields("TREC-55-1", {"seller_names": ["Seller One"]}, page_offset=-1)
+
 
 if __name__ == "__main__":
     unittest.main()

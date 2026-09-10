@@ -54,7 +54,7 @@ class SellerDisclosureDraftTests(unittest.TestCase):
 
 
 class SellerDisclosureFoundationContractTests(unittest.TestCase):
-    def test_migration_and_api_remain_draft_only(self):
+    def test_draft_foundation_keeps_private_draft_and_preview_routes(self):
         migration = (ROOT / "supabase" / "homeofferflow_seller_disclosure_drafts.sql").read_text()
         api = (ROOT / "api" / "admin-dashboard.py").read_text()
         self.assertIn("hof_seller_disclosure_drafts", migration)
@@ -68,7 +68,10 @@ class SellerDisclosureFoundationContractTests(unittest.TestCase):
         self.assertIn("_render_seller_disclosure_draft_preview", api)
         self.assertIn("render_unsigned_preview", api)
         self.assertIn("draft_id", api)
-        self.assertNotIn("signwell_document_id", migration)
+        lifecycle = (ROOT / "supabase" / "migrations" / "20260910005240_seller_disclosure_signing_lifecycle.sql").read_text()
+        self.assertIn("signwell_document_id", lifecycle)
+        self.assertIn("'sent'", lifecycle)
+        self.assertIn("hof_seller_disclosure_drafts_update_own", lifecycle)
 
 if __name__ == "__main__":
     unittest.main()
