@@ -3623,7 +3623,9 @@ async def _send_seller_disclosure_for_signature(user, data):
         fields.extend(build_signwell_fields(TREC_61_0_FORM_CODE, signing_data, page_offset=4))
     payload = {
         "test_mode": SIGNWELL_TEST_MODE,
-        "draft": False,
+        # Keep this private until SignWell confirms it retained the exact
+        # disclosure fields and signer assignments requested below.
+        "draft": True,
         "reminders": True,
         "apply_signing_order": True,
         "embedded_signing": False,
@@ -3661,6 +3663,31 @@ async def _send_seller_disclosure_for_signature(user, data):
     document_id = str(result.get("id") or result.get("document_id") or "").strip()
     if not document_id:
         raise RuntimeError("SignWell did not return a document id.")
+    headers = {"X-Api-Key": SIGNWELL_API_KEY, "Content-Type": "application/json"}
+    async with httpx.AsyncClient(timeout=45) as client:
+        inspection = await client.get(
+            f"https://www.signwell.com/api/v1/documents/{urllib.parse.quote(document_id, safe='')}",
+            headers=headers,
+        )
+        inspected_document = inspection.json() if inspection.status_code == 200 else {}
+        if not _signwell_document_matches_signing_request(inspected_document, fields, recipients):
+            await client.delete(
+                f"https://www.signwell.com/api/v1/documents/{urllib.parse.quote(document_id, safe='')}",
+                headers=headers,
+            )
+            raise RuntimeError("SignWell could not preserve every required disclosure field. Nothing was sent.")
+        send_payload = {
+            key: value for key, value in payload.items()
+            if key not in {"draft", "files", "fields", "recipients"}
+        }
+        send_response = await client.post(
+            f"https://www.signwell.com/api/v1/documents/{urllib.parse.quote(document_id, safe='')}/send",
+            headers=headers,
+            json=send_payload,
+        )
+    if send_response.status_code not in {200, 201, 202}:
+        raise RuntimeError(f"SignWell could not send the verified disclosure request: HTTP {send_response.status_code}.")
+    result = send_response.json()
     now = datetime.now(timezone.utc).isoformat()
     await _patch(
         "hof_seller_disclosure_drafts",

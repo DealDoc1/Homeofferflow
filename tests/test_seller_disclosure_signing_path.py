@@ -39,6 +39,10 @@ class SellerDisclosureSigningPathTests(unittest.TestCase):
         self.assertIn("seller_review_attested=is.true", signing)
         self.assertIn("page_offset=4", signing)
         self.assertIn("signwell_document_id", signing)
+        self.assertIn('"draft": True', signing)
+        self.assertIn("_signwell_document_matches_signing_request", signing)
+        self.assertIn("}/send", signing)
+        self.assertIn("Nothing was sent.", signing)
         self.assertIn("send_seller_disclosure_for_signature", source)
 
     def test_lifecycle_migration_allows_server_managed_sent_and_signed_states(self):
