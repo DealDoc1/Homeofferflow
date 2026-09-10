@@ -16537,6 +16537,21 @@ function routeAfterMagicLinkIfNeeded() {
       }
       window.addEventListener('hof-auth-ready', callback, { once: true });
     };
+    // Investor and agent workspaces keep different saved defaults. A direct
+    // investor link must never replace that choice with the currently signed-
+    // in agent's dashboard. Keep the investor page visible and explain the
+    // one necessary next step without signing anyone out or changing roles.
+    const showInvestorAccountRouteNotice = () => {
+      if (document.getElementById('investorAccountRouteNotice')) return;
+      const anchor = document.getElementById('heroPriceNote');
+      if (!anchor) return;
+      const notice = document.createElement('p');
+      notice.id = 'investorAccountRouteNotice';
+      notice.className = 'hero-price-note';
+      notice.setAttribute('role', 'status');
+      notice.innerHTML = '<strong>Investor workspace:</strong> You’re signed in to an Agent Account. Investor workspaces keep saved deal details separate. Sign out from Agent Account, then use an Investor Account to continue.';
+      anchor.insertAdjacentElement('afterend', notice);
+    };
     // Agent acquisition reuses the passwordless account workflow. The public
     // CTA requests a private no-payment draft, so preserve only that safe
     // action through the magic-link return; no account or subscription is
@@ -16643,9 +16658,11 @@ function routeAfterMagicLinkIfNeeded() {
         window.history.replaceState({}, document.title, cleanUrl.pathname + cleanUrl.search + cleanUrl.hash);
       } catch (_) {}
       window.setAudience?.('investor');
-      if (window.hofAuth?.session) {
+      if (window.hofAuth?.session && window.hofAuth?.role === 'investor') {
         window.openAccountDashboard?.({ tab: 'dashboard' });
         window.logOfferEvent?.(null, 'investor_landing_workspace_handoff', 'opened', 'Signed-in investor opened the workspace from the public landing page.', { source: investorLandingSource });
+      } else if (window.hofAuth?.session) {
+        showInvestorAccountRouteNotice();
       } else {
         try {
           if (investorLandingSource === 'texas_investor_offer_guide') localStorage.setItem('hof_investor_landing_source', investorLandingSource);

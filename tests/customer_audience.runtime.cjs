@@ -21,6 +21,10 @@ const authoritativeProfile = between('  root.ensureProfileShell = async function
 const explicitRole = between('  root.setAuthRole = function', '  const oldOpenAuthModal', roleScript);
 const accountOffer = between('  function startAccountOffer() {', '  // Keep the first dashboard action');
 const accountOfferWrapper = between('  const oldStartAccountOffer = root.startAccountOffer;', '  // Refresh UI once', roleScript);
+const investorRoute = between(
+  '    // Investor and agent workspaces keep different saved defaults.',
+  "    if (params().get('partner_onboarding'))"
+);
 
 function setup(audience, accountRole = 'agent') {
   const writes = [];
@@ -144,3 +148,46 @@ for (const role of ['agent', 'broker', 'investor']) {
     ]);
   });
 }
+
+function runInvestorRouteFor(role) {
+  const actions = [];
+  const inserted = [];
+  const heroPriceNote = {insertAdjacentElement: (position, element) => inserted.push([position, element])};
+  const document = {
+    title: 'HomeOfferFlow',
+    getElementById: id => id === 'heroPriceNote' ? heroPriceNote : null,
+    createElement: () => ({setAttribute: () => {}}),
+  };
+  const window = {
+    hofAuth: {session: {user: {id: 'test-user'}}, role},
+    location: {href: 'https://www.homeofferflow.com/?investor=1'},
+    setAudience: audience => actions.push(['audience', audience]),
+    openAccountDashboard: options => actions.push(['dashboard', options]),
+    logOfferEvent: (...args) => actions.push(['event', args]),
+  };
+  const context = vm.createContext({
+    window, document, console, URL,
+    history: {replaceState: () => actions.push(['clean-url'])},
+    params: () => ({get: key => key === 'investor' ? '1' : ''}),
+    continueAfterAuthResolution: callback => callback(),
+    setTimeout: callback => callback(),
+  });
+  vm.runInContext(investorRoute, context);
+  return {actions, inserted};
+}
+
+test('an agent session preserves the investor page instead of opening an agent dashboard', () => {
+  const {actions, inserted} = runInvestorRouteFor('agent');
+  assert.equal(actions.some(([kind]) => kind === 'dashboard'), false);
+  assert.equal(actions.some(([kind, audience]) => kind === 'audience' && audience === 'investor'), true);
+  assert.equal(inserted.length, 1);
+  assert.match(inserted[0][1].innerHTML, /Investor workspaces keep saved deal details separate/);
+});
+
+test('an investor session still opens the investor workspace directly', () => {
+  const {actions, inserted} = runInvestorRouteFor('investor');
+  const dashboards = actions.filter(([kind]) => kind === 'dashboard');
+  assert.equal(dashboards.length, 1);
+  assert.equal(dashboards[0][1].tab, 'dashboard');
+  assert.equal(inserted.length, 0);
+});
