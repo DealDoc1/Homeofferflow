@@ -5625,6 +5625,27 @@ class handler(BaseHTTPRequestHandler):
                 ):
                     agent_form_package_started_events.append(item)
             agent_form_package_started_count = len(agent_form_package_started_events)
+            # A package may ask one final, document-specific question before
+            # its workspace opens. Keep that deliberate interview choice
+            # separate from a confirmed workspace start so conversion reports
+            # distinguish useful guided branching from an abandoned handoff.
+            agent_form_package_nested_choice_events = []
+            for item in events:
+                if item.get("event_type") != "agent_form_package_workflow_selected":
+                    continue
+                user_id = str(item.get("user_id") or "")
+                workflow = str((item.get("metadata") or {}).get("workflow") or "")
+                created_at = str(item.get("created_at") or "")
+                first_selection_at = agent_form_package_selection_started_at.get((user_id, workflow))
+                if (
+                    user_id
+                    and created_at
+                    and workflow in agent_transaction_workflows
+                    and first_selection_at
+                    and created_at >= first_selection_at
+                ):
+                    agent_form_package_nested_choice_events.append(item)
+            agent_form_package_nested_choice_count = len(agent_form_package_nested_choice_events)
             agent_form_package_interview_counts_by_workflow = {
                 workflow: len([
                     item for item in events
@@ -5643,6 +5664,13 @@ class handler(BaseHTTPRequestHandler):
             agent_form_package_started_counts_by_workflow = {
                 workflow: len([
                     item for item in agent_form_package_started_events
+                    if str((item.get("metadata") or {}).get("workflow") or "") == workflow
+                ])
+                for workflow in agent_transaction_workflows
+            }
+            agent_form_package_nested_choice_counts_by_workflow = {
+                workflow: len([
+                    item for item in agent_form_package_nested_choice_events
                     if str((item.get("metadata") or {}).get("workflow") or "") == workflow
                 ])
                 for workflow in agent_transaction_workflows
@@ -6317,9 +6345,14 @@ class handler(BaseHTTPRequestHandler):
                 "agentFormPackageStartRate": round(
                     (agent_form_package_started_count / agent_form_package_selection_count) * 100, 1
                 ) if agent_form_package_selection_count else 0,
+                "agentFormPackageNestedChoiceCount": agent_form_package_nested_choice_count,
+                "agentFormPackageNestedChoiceRate": round(
+                    (agent_form_package_nested_choice_count / agent_form_package_selection_count) * 100, 1
+                ) if agent_form_package_selection_count else 0,
                 "agentFormPackageInterviewCountsByWorkflow": agent_form_package_interview_counts_by_workflow,
                 "agentFormPackageSelectionCountsByWorkflow": agent_form_package_selection_counts_by_workflow,
                 "agentFormPackageStartedCountsByWorkflow": agent_form_package_started_counts_by_workflow,
+                "agentFormPackageNestedChoiceCountsByWorkflow": agent_form_package_nested_choice_counts_by_workflow,
                 "agentPrivateReviewDraftSavedCount": agent_private_review_draft_saved_count,
                 "agentPrivateReviewDraftSavedByForm": agent_private_review_draft_saved_by_form,
                 "agentPrivateReviewNextStepClickedCount": agent_private_review_next_step_clicked_count,

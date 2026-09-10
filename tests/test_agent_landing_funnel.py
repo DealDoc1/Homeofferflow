@@ -514,7 +514,8 @@ class AgentLandingFunnelTests(unittest.TestCase):
             'agentWorkflowResumeCount',
             'agentFormPackageInterviewViewCount', 'agentFormPackageSelectionCount', 'agentFormPackageSelectionRate',
             'agentFormPackageStartedCount', 'agentFormPackageStartRate',
-            'agentFormPackageInterviewCountsByWorkflow', 'agentFormPackageSelectionCountsByWorkflow', 'agentFormPackageStartedCountsByWorkflow',
+            'agentFormPackageNestedChoiceCount', 'agentFormPackageNestedChoiceRate',
+            'agentFormPackageInterviewCountsByWorkflow', 'agentFormPackageSelectionCountsByWorkflow', 'agentFormPackageStartedCountsByWorkflow', 'agentFormPackageNestedChoiceCountsByWorkflow',
             'agent_workflow_lease_representation_selected',
         ):
             self.assertIn(expected, ADMIN)
@@ -542,8 +543,10 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("agentWorkflowResumeCount", INDEX)
         self.assertIn("agentFormPackageSelectionRate", INDEX)
         self.assertIn("agentFormPackageStartRate", INDEX)
+        self.assertIn("agentFormPackageNestedChoiceRate", INDEX)
         self.assertIn("agentFormPackageSelectionCountsByWorkflow?.lease_representation", INDEX)
         self.assertIn("agentFormPackageStartedCountsByWorkflow?.lease_representation", INDEX)
+        self.assertIn("agentFormPackageNestedChoiceCountsByWorkflow?.lease_representation", INDEX)
         self.assertIn("agentWorkflowGuideCtaPathCounts?.relationship_drafts", INDEX)
         self.assertIn("agentWorkflowGuideCtaRate", INDEX)
 
