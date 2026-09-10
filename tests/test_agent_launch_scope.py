@@ -45,6 +45,10 @@ class AgentLaunchScopeTests(unittest.TestCase):
         self.assertIn("issue.value = 'missing_addendum'", HTML)
         self.assertIn("Do not include confidential client information", HTML)
 
+    def test_appraisal_draft_copy_uses_clear_grammatical_language(self):
+        self.assertIn("prepare an appraisal private draft", HTML)
+        self.assertNotIn("prepare a appraisal private draft", HTML)
+
 
 if __name__ == "__main__":
     unittest.main()

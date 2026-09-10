@@ -22748,7 +22748,7 @@ function routeAfterMagicLinkIfNeeded() {
       const source = await root.hofLoadApprovedBrokerageSource?.(FORM_CODE);
       const copy = card.querySelector('#txr1948AgreementCopy');
       if (!source) { copy.textContent = 'We couldn’t open that document. Please try again.'; return; }
-      copy.innerHTML = `Use the ${esc(source.source_revision)} TXR-1948 interview to prepare a appraisal private draft. It does not evaluate value, recommend a waiver, send, or sign the addendum.`;
+      copy.innerHTML = `Use the ${esc(source.source_revision)} TXR-1948 interview to prepare an appraisal private draft. It does not evaluate value, recommend a waiver, send, or sign the addendum.`;
       const button = document.createElement('button'); button.type = 'button'; button.className = 'btn-secondary'; button.textContent = 'Start appraisal-review draft';
       button.addEventListener('click', () => openDraft(source)); card.appendChild(button);
     } catch (error) { card.querySelector('#txr1948AgreementCopy').textContent = root.hofApprovedSourceStatusCopy(error); }
