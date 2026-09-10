@@ -100,6 +100,11 @@ class BrokerMlsContextTests(unittest.TestCase):
         self.assertIn("approved RESO proxy", html)
         self.assertNotIn("BROKER_MLS_CONTEXT_TOKEN", html)
 
+    def test_offer_review_copy_does_not_claim_unconfigured_public_context(self):
+        html = (ROOT / "index.html").read_text(encoding="utf-8")
+        self.assertIn("When your broker has enabled an approved MLS connection", html)
+        self.assertNotIn("uses the property address, public context, and offer terms", html)
+
 
 if __name__ == "__main__":
     unittest.main()
