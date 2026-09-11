@@ -14,8 +14,8 @@ class PwaUpdateExperienceTests(unittest.TestCase):
         self.assertIn('your local draft stays on this device', INDEX)
         self.assertIn("registration.addEventListener('updatefound'", INDEX)
         self.assertIn("navigator.serviceWorker.addEventListener('controllerchange'", INDEX)
-        self.assertIn("function isHomeOfferFlowStandalone()", INDEX)
-        self.assertIn("if (!isHomeOfferFlowStandalone() || !registration?.waiting", INDEX)
+        self.assertIn("if (!registration?.waiting || document.getElementById('hofPwaUpdateCard')) return;", INDEX)
+        self.assertIn("ordinary browser tabs from silently retaining old", INDEX)
 
     def test_update_only_activates_after_the_user_confirms(self):
         self.assertIn("HOF_SKIP_WAITING", INDEX)
@@ -23,7 +23,7 @@ class PwaUpdateExperienceTests(unittest.TestCase):
         self.assertNotIn("self.skipWaiting();", WORKER.split("self.addEventListener('message'", 1)[0])
 
     def test_shell_cache_changes_for_the_update_notification(self):
-        self.assertIn("homeofferflow-shell-v70", WORKER)
+        self.assertIn("homeofferflow-shell-v71", WORKER)
         self.assertIn("fetch(event.request, { cache: 'no-store' })", WORKER)
         self.assertIn("safe-area-inset-bottom", INDEX)
 

@@ -107,7 +107,7 @@ class PwaBaselineTests(unittest.TestCase):
         self.assertNotIn("caches.match(event.request)", WORKER)
 
     def test_install_precaches_only_low_cost_app_essentials(self):
-        self.assertIn("const SHELL_CACHE = 'homeofferflow-shell-v70';", WORKER)
+        self.assertIn("const SHELL_CACHE = 'homeofferflow-shell-v71';", WORKER)
         shell_assets = WORKER.split('const SHELL_ASSETS = [', 1)[1].split('];', 1)[0]
         self.assertIn("'/manifest.webmanifest'", shell_assets)
         self.assertIn("'/assets/pwa-register.js'", shell_assets)
