@@ -7739,7 +7739,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         : type === 'purchase_addendum'
           ? 'Which purchase addendum does this transaction need?'
           : 'What does this customer need?';
-      followUp.innerHTML = `<div class="hof-agreement-dialog" role="dialog" aria-modal="true" aria-labelledby="hofAgentPackageFollowUpTitle"><h3 id="hofAgentPackageFollowUpTitle">${prompt}</h3><p>Choose the best starting point. We’ll open a short interview; nothing is sent until you review the completed document and confirm the recipients.</p><div class="hof-agreement-grid">${choices.map((choice, index) => `<button type="button" class="btn-secondary hof-agent-package-choice" data-follow-up-choice="${index}" style="text-align:left;padding:1rem"><strong style="display:block;color:var(--white)${choice.copy ? ';margin-bottom:.35rem' : ''}">${choice.label}</strong>${choice.copy ? `<span style="display:block;color:var(--gray-light);font-weight:400;line-height:1.45">${choice.copy}</span>` : ''}</button>`).join('')}</div><div class="hof-agreement-footer"><button type="button" class="btn-secondary" id="hofAgentPackageFollowUpCancel">Back</button></div></div>`;
+      followUp.innerHTML = `<div class="hof-agreement-dialog" role="dialog" aria-modal="true" aria-labelledby="hofAgentPackageFollowUpTitle"><p class="hof-agent-question-step">One more question</p><h3 id="hofAgentPackageFollowUpTitle">${prompt}</h3><p>Choose the document that fits. We’ll guide you through only the details it requires.</p><div class="hof-agreement-grid">${choices.map((choice, index) => `<button type="button" class="btn-secondary hof-agent-package-choice" data-follow-up-choice="${index}" style="text-align:left;padding:1rem"><strong style="display:block;color:var(--white)${choice.copy ? ';margin-bottom:.35rem' : ''}">${choice.label}</strong>${choice.copy ? `<span style="display:block;color:var(--gray-light);font-weight:400;line-height:1.45">${choice.copy}</span>` : ''}</button>`).join('')}</div><div class="hof-agreement-footer"><button type="button" class="btn-secondary" id="hofAgentPackageFollowUpCancel">Back</button></div></div>`;
       document.body.appendChild(followUp);
       followUp.querySelector('#hofAgentPackageFollowUpCancel').addEventListener('click', returnToPackageQuestion);
       followUp.addEventListener('click', event => { if (event.target === followUp) closeFollowUp('overlay'); });
@@ -7756,25 +7756,25 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       purchase: {
         title: 'What do you need to prepare for this purchase?',
         choices: [
-          { label: 'Purchase offer', copy: 'Tell us about the buyer, property, financing, and timing. We’ll assemble the supported offer documents that fit the selections you make.', action: () => startAccountOffer(), isWorkspaceOpen: () => document.getElementById('wizardOverlay')?.classList.contains('active') },
-          { label: 'Buyer representation agreement', copy: 'Choose the agreement, then answer the client questions that apply.', action: () => openRelationshipPackage('representation'), deferStartToNestedChoice: true },
-          { label: 'Purchase addendum', copy: 'Choose the addendum the transaction needs, answer the guided questions, then review the completed document and confirm recipients before sending.', action: () => openRelationshipPackage('purchase_addendum'), deferStartToNestedChoice: true },
-          { label: 'Customer showing form or notice', copy: 'Choose the right document for the customer and situation.', action: () => openRelationshipPackage('customer'), deferStartToNestedChoice: true }
+          { label: 'Prepare a purchase offer', copy: 'Start with the buyer, property, financing, and timing. We’ll prepare the supported documents your answers require.', primary: true, action: () => startAccountOffer(), isWorkspaceOpen: () => document.getElementById('wizardOverlay')?.classList.contains('active') },
+          { label: 'Set up buyer representation', copy: 'Choose the representation agreement that fits this client.', action: () => openRelationshipPackage('representation'), deferStartToNestedChoice: true },
+          { label: 'Prepare a purchase addendum', copy: 'Choose the specific term or situation the purchase needs to address. You’ll review the completed document before sending it for signature.', action: () => openRelationshipPackage('purchase_addendum'), deferStartToNestedChoice: true },
+          { label: 'Prepare a showing form or consumer notice', copy: 'Choose the document for an unrepresented customer or general consumer notice.', action: () => openRelationshipPackage('customer'), deferStartToNestedChoice: true }
         ]
       },
       sale_listing: {
         title: 'What do you need to prepare for this listing?',
         choices: [
-          { label: 'Start the listing', copy: 'Tell us about the seller, property, timing, and next steps.', action: () => openListingWorkspace(true), isWorkspaceOpen: () => Boolean(document.getElementById('listingWorkspaceStartCard')) },
-          { label: 'Seller disclosures', copy: 'Answer the property and seller questions, then review the disclosure draft.', action: () => { showAccountTab('seller'); window.setTimeout(() => window.openSellerDisclosureDraftWorkspace?.(), 0); }, isWorkspaceOpen: () => Boolean(document.getElementById('hofSellerDisclosureCard')) },
+          { label: 'Start a property listing', copy: 'Begin with the seller, property, timing, and next steps.', primary: true, action: () => openListingWorkspace(true), isWorkspaceOpen: () => Boolean(document.getElementById('listingWorkspaceStartCard')) },
+          { label: 'Prepare seller disclosures', copy: 'Answer the property and seller questions, then review the disclosure draft.', action: () => { showAccountTab('seller'); window.setTimeout(() => window.openSellerDisclosureDraftWorkspace?.(), 0); }, isWorkspaceOpen: () => Boolean(document.getElementById('hofSellerDisclosureCard')) },
           { label: 'Compare a buyer offer', copy: 'Compare price, financing, deadlines, concessions, and possession.', action: () => window.hofOpenListingOfferComparison?.(), isWorkspaceOpen: () => Boolean(document.getElementById('listingWorkspaceOfferComparisonCard')) }
         ]
       },
       lease_representation: {
         title: 'What do you need to prepare for this lease representation?',
         choices: [
-          { label: 'Tenant representation agreement', copy: 'Choose the agreement, then answer the tenant questions that apply.', action: () => openRelationshipPackage('representation'), deferStartToNestedChoice: true },
-          { label: 'Customer showing form or notice', copy: 'Choose the right document for the customer and situation.', action: () => openRelationshipPackage('customer'), deferStartToNestedChoice: true }
+          { label: 'Set up tenant representation', copy: 'Choose the representation agreement that fits this tenant.', primary: true, action: () => openRelationshipPackage('representation'), deferStartToNestedChoice: true },
+          { label: 'Prepare a showing form or consumer notice', copy: 'Choose the document for an unrepresented customer or general consumer notice.', action: () => openRelationshipPackage('customer'), deferStartToNestedChoice: true }
         ]
       }
     };
@@ -7792,7 +7792,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     document.getElementById('hofAgentPackageInterview')?.remove();
     const modal = document.createElement('div');
     modal.id = 'hofAgentPackageInterview'; modal.className = 'hof-agreement-modal';
-    modal.innerHTML = `<div class="hof-agreement-dialog" role="dialog" aria-modal="true" aria-labelledby="hofAgentPackageTitle"><h3 id="hofAgentPackageTitle">${interview.title}</h3><p>Choose the next step. We’ll ask only for the details it needs; nothing is sent until you review the completed document and confirm the recipients.</p><div class="hof-agreement-grid">${interview.choices.map((choice, index) => `<button type="button" class="btn-secondary hof-agent-package-choice" data-package-choice="${index}" style="text-align:left;padding:1rem"><strong style="display:block;color:var(--white);margin-bottom:.35rem">${choice.label}</strong><span style="display:block;color:var(--gray-light);font-weight:400;line-height:1.45">${choice.copy}</span></button>`).join('')}</div><div class="hof-agreement-footer"><button type="button" class="btn-secondary" id="hofAgentPackageCancel">Back</button></div></div>`;
+    modal.innerHTML = `<div class="hof-agreement-dialog" role="dialog" aria-modal="true" aria-labelledby="hofAgentPackageTitle"><p class="hof-agent-question-step">Question 2 of 2</p><h3 id="hofAgentPackageTitle">${interview.title}</h3><p>Choose one task. We’ll guide you through only the questions and documents it requires.</p><div class="hof-agreement-grid">${interview.choices.map((choice, index) => `<button type="button" class="btn-secondary hof-agent-package-choice${choice.primary ? ' hof-agent-package-choice-primary' : ''}" data-package-choice="${index}" style="text-align:left;padding:1rem"><strong style="display:block;color:var(--white);margin-bottom:.35rem">${choice.label}</strong><span style="display:block;color:var(--gray-light);font-weight:400;line-height:1.45">${choice.copy}</span></button>`).join('')}</div><div class="hof-agreement-footer"><button type="button" class="btn-secondary" id="hofAgentPackageCancel">Back</button></div></div>`;
     document.body.appendChild(modal);
     modal.querySelector('#hofAgentPackageCancel').addEventListener('click', () => closeInterview('back'));
     modal.addEventListener('click', event => { if (event.target === modal) closeInterview('overlay'); });
@@ -20791,6 +20791,9 @@ function routeAfterMagicLinkIfNeeded() {
   .hof-agreement-dialog p { color:var(--gray-light); line-height:1.45; }
   .hof-agreement-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.75rem; margin:1rem 0; }
   .hof-agreement-grid > *, .hof-agreement-grid label { min-width:0; }
+  .hof-agent-question-step { margin:0 0 .25rem; color:var(--gold,#c8973f) !important; font-size:.78rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; }
+  .hof-agent-package-choice-primary { border-color:rgba(200,151,63,.9) !important; background:rgba(200,151,63,.12) !important; box-shadow:0 0 0 1px rgba(200,151,63,.16) inset; }
+  .hof-agent-package-choice-primary::before { content:'Recommended starting point'; display:block; margin:0 0 .45rem; color:var(--gold,#c8973f); font-size:.72rem; font-weight:700; letter-spacing:.04em; text-transform:uppercase; }
   .hof-agreement-grid label { display:grid; gap:.28rem; color:var(--gray-light); font-weight:700; font-size:.82rem; overflow-wrap:anywhere; }
   .hof-agreement-grid input:not([type="checkbox"]):not([type="radio"]), .hof-agreement-grid select, .hof-agreement-grid textarea { width:100%; min-width:0; min-height:44px; padding:.75rem .85rem; color:var(--white,#fff); font:400 1rem/1.4 'DM Sans',sans-serif; }
   .hof-agreement-grid input::placeholder, .hof-agreement-grid textarea::placeholder { color:var(--gray-light); opacity:.8; }

@@ -182,7 +182,7 @@ class AgentLandingFunnelTests(unittest.TestCase):
         end = INDEX.index("window.startAgentWorkflow = function", start)
         interview = INDEX[start:end]
         self.assertIn(
-            "nothing is sent until you review the completed document and confirm the recipients",
+            "Choose one task. We’ll guide you through only the questions and documents it requires.",
             interview,
         )
         self.assertNotIn("then send it when the parties are ready", interview)
@@ -282,7 +282,7 @@ class AgentLandingFunnelTests(unittest.TestCase):
         start = INDEX.index("window.hofOpenAgentPackageInterview = function")
         end = INDEX.index("window.startAgentWorkflow = function", start)
         interview = INDEX[start:end]
-        self.assertIn("Purchase addendum", interview)
+        self.assertIn("Prepare a purchase addendum", interview)
         self.assertIn("Which purchase addendum does this transaction need?", interview)
         for label, opener in (
             ("Seller financing", "hofOpenTxr1914Draft"),
@@ -358,8 +358,8 @@ class AgentLandingFunnelTests(unittest.TestCase):
         start = INDEX.index("window.hofOpenAgentPackageInterview = function")
         end = INDEX.index("window.startAgentWorkflow = function", start)
         interview = INDEX[start:end]
-        self.assertIn("nothing is sent until you review the completed document and confirm the recipients", interview)
-        self.assertIn("Choose the addendum the transaction needs, answer the guided questions, then review the completed document and confirm recipients before sending.", interview)
+        self.assertIn("Choose one task. We’ll guide you through only the questions and documents it requires.", interview)
+        self.assertIn("You’ll review the completed document before sending it for signature.", interview)
         self.assertIn("For a purchase involving existing tenant leases.", interview)
         self.assertIn("For a purchase involving leased fixtures, such as solar panels.", interview)
 
