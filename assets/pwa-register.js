@@ -373,7 +373,10 @@
   window.addEventListener('online', renderOfflineNotice);
   window.addEventListener('load', renderOfflineNotice, { once: true });
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/service-worker.js', { scope: '/' }).then(registration => {
+    // Always revalidate the worker itself. The public shell may intentionally
+    // be cached for offline use, but a browser must still discover a released
+    // workflow update promptly.
+    navigator.serviceWorker.register('/service-worker.js', { scope: '/', updateViaCache: 'none' }).then(registration => {
       showUpdateNotice(registration);
       registration.addEventListener('updatefound', () => {
         const installing = registration.installing;

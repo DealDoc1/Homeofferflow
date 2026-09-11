@@ -22803,7 +22803,10 @@ function routeAfterMagicLinkIfNeeded() {
     }
 
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/service-worker.js', { scope: '/' })
+      // The worker controls an offline public shell. Bypass the HTTP cache
+      // while checking the worker so a released correction is detected even
+      // when the current page was opened from an older shell.
+      navigator.serviceWorker.register('/service-worker.js', { scope: '/', updateViaCache: 'none' })
         .then(registration => {
           showHomeOfferFlowUpdate(registration);
           registration.addEventListener('updatefound', () => {
