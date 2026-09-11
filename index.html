@@ -7779,27 +7779,27 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     };
     const packages = {
       purchase: {
-        title: 'What do you need to prepare for this purchase?',
+        title: 'What do you want to do next?',
         choices: [
-          { label: 'Prepare a purchase offer', copy: 'Start with the buyer, property, financing, and timing. We’ll prepare the supported documents your answers require.', primary: true, action: () => startAccountOffer(), isWorkspaceOpen: () => document.getElementById('wizardOverlay')?.classList.contains('active') },
-          { label: 'Set up buyer representation', copy: 'Choose the representation agreement that fits this client.', action: () => openRelationshipPackage('representation'), deferStartToNestedChoice: true },
-          { label: 'Prepare a purchase addendum', copy: 'Choose the specific term or situation the purchase needs to address. You’ll review the completed document before sending it for signature.', action: () => openRelationshipPackage('purchase_addendum'), deferStartToNestedChoice: true },
-          { label: 'Prepare a showing form or consumer notice', copy: 'Choose the document for an unrepresented customer or general consumer notice.', action: () => openRelationshipPackage('customer'), deferStartToNestedChoice: true }
+          { label: 'Write a purchase offer', copy: 'Start with the buyer, property, financing, and timing. We’ll prepare the supported documents your answers require.', primary: true, action: () => startAccountOffer(), isWorkspaceOpen: () => document.getElementById('wizardOverlay')?.classList.contains('active') },
+          { label: 'Create a buyer representation agreement', copy: 'Choose the agreement that fits this client.', action: () => openRelationshipPackage('representation'), deferStartToNestedChoice: true },
+          { label: 'Add a purchase term or addendum', copy: 'Choose the specific situation the purchase needs to address. You’ll review the completed document before sending it for signature.', action: () => openRelationshipPackage('purchase_addendum'), deferStartToNestedChoice: true },
+          { label: 'Create a showing form or consumer notice', copy: 'Choose the document for an unrepresented customer or general consumer notice.', action: () => openRelationshipPackage('customer'), deferStartToNestedChoice: true }
         ]
       },
       sale_listing: {
-        title: 'What do you need to prepare for this listing?',
+        title: 'What do you want to do next?',
         choices: [
-          { label: 'Start a property listing', copy: 'Begin with the seller, property, timing, and next steps.', primary: true, action: () => openListingWorkspace(true), isWorkspaceOpen: () => Boolean(document.getElementById('listingWorkspaceStartCard')) },
-          { label: 'Prepare seller disclosures', copy: 'Answer the property and seller questions, then review the disclosure draft.', action: () => { showAccountTab('seller'); window.setTimeout(() => window.openSellerDisclosureDraftWorkspace?.(), 0); }, isWorkspaceOpen: () => Boolean(document.getElementById('hofSellerDisclosureCard')) },
+          { label: 'Start a listing workspace', copy: 'Begin with the seller, property, timing, and next steps.', primary: true, action: () => openListingWorkspace(true), isWorkspaceOpen: () => Boolean(document.getElementById('listingWorkspaceStartCard')) },
+          { label: 'Create seller disclosures', copy: 'Answer the property and seller questions, then review the disclosure draft.', action: () => { showAccountTab('seller'); window.setTimeout(() => window.openSellerDisclosureDraftWorkspace?.(), 0); }, isWorkspaceOpen: () => Boolean(document.getElementById('hofSellerDisclosureCard')) },
           { label: 'Compare a buyer offer', copy: 'Compare price, financing, deadlines, concessions, and possession.', action: () => window.hofOpenListingOfferComparison?.(), isWorkspaceOpen: () => Boolean(document.getElementById('listingWorkspaceOfferComparisonCard')) }
         ]
       },
       lease_representation: {
-        title: 'What do you need to prepare for this tenant representation?',
+        title: 'What do you want to do next?',
         choices: [
-          { label: 'Set up tenant representation', copy: 'Choose the representation agreement that fits this tenant.', primary: true, action: () => openRelationshipPackage('representation'), deferStartToNestedChoice: true },
-          { label: 'Prepare a showing form or consumer notice', copy: 'Choose the document for an unrepresented customer or general consumer notice.', action: () => openRelationshipPackage('customer'), deferStartToNestedChoice: true }
+          { label: 'Create a tenant representation agreement', copy: 'Choose the agreement that fits this tenant.', primary: true, action: () => openRelationshipPackage('representation'), deferStartToNestedChoice: true },
+          { label: 'Create a showing form or consumer notice', copy: 'Choose the document for an unrepresented customer or general consumer notice.', action: () => openRelationshipPackage('customer'), deferStartToNestedChoice: true }
         ]
       }
     };
