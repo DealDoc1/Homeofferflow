@@ -37,7 +37,7 @@ class OnDemandLandingFunnelTests(unittest.TestCase):
         self.assertIn('metadata: { source: "ondemand", plan: "agent", billing: "monthly", channel, ...(campaign ? {utmCampaign: campaign} : {}) }', ONDEMAND)
         self.assertIn('recordAggregateLandingEvent("ondemand_magic_link_requested")', ONDEMAND)
         self.assertIn('recordAggregateLandingEvent("ondemand_trial_terms_accepted")', ONDEMAND)
-        self.assertIn("open it in this browser to return here", ONDEMAND)
+        self.assertIn("open it in this browser to finish starting your 60-day trial", ONDEMAND)
         self.assertIn("keepalive: true", ONDEMAND)
 
     def test_enrollment_script_declares_the_legal_policy_version_once(self):
