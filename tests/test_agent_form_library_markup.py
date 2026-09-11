@@ -19,4 +19,3 @@ class AgentFormLibraryMarkupTests(unittest.TestCase):
             "?utm_source=agent_form_library&amp;utm_medium=guide&amp;utm_campaign=agent_acquisition",
             HTML,
         )
-

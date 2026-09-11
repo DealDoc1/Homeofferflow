@@ -18,4 +18,3 @@ class SellerFollowUpPriorityTests(unittest.TestCase):
         self.assertIn("function prioritizeSellerFollowUpQueue(rows)", HTML)
         self.assertIn("prioritizeSellerFollowUpQueue(sellerLeads).slice(0, 24)", HTML)
         self.assertIn("internal follow-up priority, not a response-time promise", HTML)
-
