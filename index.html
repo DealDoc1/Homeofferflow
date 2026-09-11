@@ -11776,7 +11776,7 @@ function routeAfterMagicLinkIfNeeded() {
   // Keep this selector broad deliberately: address fields also appear in
   // account, broker, and seller workspaces after their screens are rendered.
   // The explicit legacy name is retained because it predates the Address suffix.
-  const HOF_LEGACY_ADDRESS_KEYS = new Set(['propertyToSell', 'profInvestorMailing', 'clientCityStateZip']);
+  const HOF_LEGACY_ADDRESS_KEYS = new Set(['propertyToSell', 'profInvestorMailing']);
   const addressFieldMetadata = input => {
     const associatedLabels = Array.from(input.labels || []).map(label => label.textContent || '').join(' ');
     const wrappingLabel = input.closest('label')?.textContent || '';
@@ -11794,6 +11794,7 @@ function routeAfterMagicLinkIfNeeded() {
     const callbacks = {
       propAddress: fillAddressFields,
       buyerMailAddr: fillBuyerMailAddressField,
+      clientAddress: fillClientMailingAddressFields,
       fsboPropertyAddress: fillFsboAddressFields,
       brandOfficeAddress: fillBrandOfficeAddressFields
     };
@@ -12162,6 +12163,24 @@ function routeAfterMagicLinkIfNeeded() {
         el.style.borderColor = '';
         el.style.background = '';
       }, 2500);
+    }
+  }
+
+  function fillClientMailingAddressFields(components) {
+    let city = '', state = 'TX', zip = '';
+    components.forEach(c => {
+      const t = c.types || [];
+      if (t.includes('locality')) city = c.long_name;
+      if (t.includes('sublocality_level_1') && !city) city = c.long_name;
+      if (t.includes('administrative_area_level_1')) state = c.short_name || c.long_name || state;
+      if (t.includes('postal_code')) zip = c.long_name;
+    });
+    const cityStateZip = [city, [state, zip].filter(Boolean).join(' ')].filter(Boolean).join(', ');
+    const companion = document.querySelector('#txr1501AgreementForm [name="clientCityStateZip"]');
+    if (companion && cityStateZip) {
+      companion.value = cityStateZip;
+      companion.dispatchEvent(new Event('input', { bubbles: true }));
+      companion.dispatchEvent(new Event('change', { bubbles: true }));
     }
   }
 

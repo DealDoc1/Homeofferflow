@@ -16,7 +16,7 @@ class GoogleAddressAutocompleteCoverageTests(unittest.TestCase):
             "buyerMailAddr", "propAddress", "escrowAddress", "salePropertyAddr",
             "sellerMailAddr", "profInvestorEscrowAddress", "profEscrowAddress",
             "brandOfficeAddress", "sellerLeadAddress", "listingWorkspaceAddress",
-            "fsboPropertyAddress", "clientAddress", "propertyAddress", "address", "hofSellerAddress", "clientCityStateZip", "profInvestorMailing",
+            "fsboPropertyAddress", "clientAddress", "propertyAddress", "address", "hofSellerAddress", "profInvestorMailing",
         }
         for control in required_controls:
             self.assertRegex(
@@ -32,7 +32,7 @@ class GoogleAddressAutocompleteCoverageTests(unittest.TestCase):
         self.assertIn("input.closest('label')?.textContent", INDEX)
         self.assertIn("/(?:street|mailing|office|property|escrow)\\s+address/i.test(addressFieldMetadata(input))", INDEX)
         self.assertIn("!['email', 'hidden', 'checkbox', 'radio', 'submit', 'button'].includes(input.type)", INDEX)
-        self.assertIn("['propertyToSell', 'profInvestorMailing', 'clientCityStateZip']", INDEX)
+        self.assertIn("['propertyToSell', 'profInvestorMailing']", INDEX)
         self.assertIn("legacyAddressKeys.has(input.name)", INDEX)
 
     def test_late_rendered_address_inputs_are_wired_on_focus(self):
@@ -67,11 +67,17 @@ class GoogleAddressAutocompleteCoverageTests(unittest.TestCase):
         self.assertIn('name="address" required maxlength="400" autocomplete="street-address" inputmode="text"', INDEX)
 
     def test_late_rendered_legacy_address_controls_are_observed(self):
-        self.assertIn("const HOF_LEGACY_ADDRESS_KEYS = new Set(['propertyToSell', 'profInvestorMailing', 'clientCityStateZip']);", INDEX)
+        self.assertIn("const HOF_LEGACY_ADDRESS_KEYS = new Set(['propertyToSell', 'profInvestorMailing']);", INDEX)
         self.assertIn("const isHofAddressInput = input => input instanceof HTMLInputElement", INDEX)
         self.assertIn("node.querySelectorAll?.('input[id], input[name]').forEach(input => controls.push(input));", INDEX)
         self.assertIn("return controls.some(isHofAddressInput);", INDEX)
         self.assertIn("function wireLegacyGoogleAddressInputs", INDEX)
+
+    def test_client_mailing_selection_prefills_city_state_zip_without_treating_it_as_an_address(self):
+        self.assertIn("clientAddress: fillClientMailingAddressFields", INDEX)
+        self.assertIn("function fillClientMailingAddressFields(components)", INDEX)
+        self.assertIn("#txr1501AgreementForm [name=\"clientCityStateZip\"]", INDEX)
+        self.assertNotIn("'clientCityStateZip'", INDEX.split("const HOF_LEGACY_ADDRESS_KEYS", 1)[1].split(";", 1)[0])
 
     def test_selection_telemetry_excludes_transaction_addresses(self):
         self.assertIn("trackEvent('Google Address Selected'", INDEX)
