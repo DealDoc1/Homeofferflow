@@ -85,7 +85,7 @@ class Txr1508RendererTests(unittest.TestCase):
         for field_id in ("txr1508_agent_date_p1", "txr1508_client1_date_p1", "txr1508_client2_date_p1"):
             field = next(field for field in two if field["api_id"] == field_id)
             self.assertEqual((field["x"], field["width"]), (625, 121))
-        self.assertEqual(next(field["y"] for field in two if field["api_id"] == "txr1508_client2_initials_p1"), 774)
+        self.assertEqual(next(field["y"] for field in two if field["api_id"] == "txr1508_client2_initials_p1"), 794)
         with self.assertRaisesRegex(ValueError, "broker or associate"):
             build_signwell_fields_txr1508({**sample_data(), "signer_plan": ""}, client_count=1)
 

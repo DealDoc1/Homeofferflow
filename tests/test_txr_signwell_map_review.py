@@ -33,5 +33,5 @@ class TxrSignwellMapReviewTests(unittest.TestCase):
     def test_txr1508_review_overlay_targets_the_three_acknowledgement_rows(self):
         fields = {field["api_id"]: field for field in review.review_field_sets()["TXR1508"]}
         self.assertEqual(fields["txr1508_agent_initials_p1"]["page"], 1)
-        self.assertEqual(fields["txr1508_client1_initials_p1"]["y"], 716)
-        self.assertEqual(fields["txr1508_client2_initials_p1"]["y"], 774)
+        self.assertEqual(fields["txr1508_client1_initials_p1"]["y"], 736)
+        self.assertEqual(fields["txr1508_client2_initials_p1"]["y"], 794)

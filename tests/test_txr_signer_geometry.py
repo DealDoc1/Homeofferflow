@@ -352,7 +352,7 @@ class TxrSignerGeometryTests(unittest.TestCase):
             for field in build_signwell_fields_txr1508(data, client_count=2)[0]
         }
         self.assertEqual(fields["txr1508_agent_initials_p1"]["x"], 347)
-        self.assertEqual(fields["txr1508_agent_initials_p1"]["y"], 659)
+        self.assertEqual(fields["txr1508_agent_initials_p1"]["y"], 679)
         self.assertLess(
             fields["txr1508_agent_initials_p1"]["x"] + fields["txr1508_agent_initials_p1"]["width"],
             445,
@@ -365,21 +365,21 @@ class TxrSignerGeometryTests(unittest.TestCase):
         for field_id in ("txr1508_agent_date_p1", "txr1508_client1_date_p1", "txr1508_client2_date_p1"):
             with self.subTest(field_id=field_id):
                 self.assertEqual((fields[field_id]["x"], fields[field_id]["width"]), (625, 121))
-        # Captions start at y=678, 734, and 792 in SignWell's 96-DPI
-        # coordinate space.  Fields must finish before those captions rather
-        # than merely passing the generic bounds/overlap checks.
-        expected_caption_tops = {
-            "txr1508_agent_initials_p1": 678,
-            "txr1508_agent_date_p1": 678,
-            "txr1508_client1_initials_p1": 734,
-            "txr1508_client1_date_p1": 734,
-            "txr1508_client2_initials_p1": 792,
-            "txr1508_client2_date_p1": 792,
-        }
-        for field_id, caption_top in expected_caption_tops.items():
-            with self.subTest(field_id=field_id):
-                field = fields[field_id]
-                self.assertLessEqual(field["y"] + field["height"], caption_top)
+        # SignWell paints typed values near the upper edge of each widget.
+        # These calibrated values come from a completed provider PDF in which
+        # the former rows were visibly above their printed rules.  Keep the
+        # completion widgets twenty pixels lower, in source-row order.
+        self.assertEqual(
+            [fields[field_id]["y"] for field_id in (
+                "txr1508_agent_initials_p1",
+                "txr1508_agent_date_p1",
+                "txr1508_client1_initials_p1",
+                "txr1508_client1_date_p1",
+                "txr1508_client2_initials_p1",
+                "txr1508_client2_date_p1",
+            )],
+            [679, 677, 736, 734, 794, 792],
+        )
 
     def test_every_supported_form_has_valid_non_overlapping_signer_widgets(self):
         for form_code, page_count, builder, data in FORM_CASES:
