@@ -17,6 +17,14 @@ class AgentInterviewNavigationTests(unittest.TestCase):
         self.assertNotIn('Answer the guided questions, review the completed addendum', choices)
         self.assertIn('For a purchase involving existing tenant leases.', choices)
         self.assertIn('For a purchase involving leased fixtures, such as solar panels.', choices)
+        for guidance in (
+            'seller will finance all or part of the price',
+            'buyer will assume the seller’s existing loan',
+            'specific environmental review rights',
+            'appraisal-related termination or waiver choice',
+            'seller will reserve mineral interests',
+        ):
+            self.assertIn(guidance, choices)
         for form in ['1914', '1919', '1917', '1948', '1953', '1954', '1905']:
             self.assertIn(f"formCode: 'TXR-{form}'", choices)
 

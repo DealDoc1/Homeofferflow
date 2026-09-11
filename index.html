@@ -7719,13 +7719,13 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           ]
         : type === 'purchase_addendum'
           ? [
-              { label: 'Seller financing', opener: 'hofOpenTxr1914Draft', formCode: 'TXR-1914' },
-              { label: 'Loan assumption', opener: 'hofOpenTxr1919Draft', formCode: 'TXR-1919' },
-              { label: 'Environmental review', opener: 'hofOpenTxr1917Draft', formCode: 'TXR-1917' },
-              { label: 'Appraisal review', opener: 'hofOpenTxr1948Draft', formCode: 'TXR-1948' },
+              { label: 'Seller financing', copy: 'For a purchase where the seller will finance all or part of the price.', opener: 'hofOpenTxr1914Draft', formCode: 'TXR-1914' },
+              { label: 'Loan assumption', copy: 'For a purchase where the buyer will assume the seller’s existing loan.', opener: 'hofOpenTxr1919Draft', formCode: 'TXR-1919' },
+              { label: 'Environmental review', copy: 'For a purchase that needs specific environmental review rights.', opener: 'hofOpenTxr1917Draft', formCode: 'TXR-1917' },
+              { label: 'Appraisal review', copy: 'For a purchase that needs an appraisal-related termination or waiver choice.', opener: 'hofOpenTxr1948Draft', formCode: 'TXR-1948' },
               { label: 'Residential lease addendum', copy: 'For a purchase involving existing tenant leases. Record whether they will end or transfer to the buyer at closing.', opener: 'hofOpenTxr1953Draft', formCode: 'TXR-1953' },
               { label: 'Fixture lease addendum', copy: 'For a purchase involving leased fixtures, such as solar panels. Record which leases the buyer will assume at closing.', opener: 'hofOpenTxr1954Draft', formCode: 'TXR-1954' },
-              { label: 'Mineral reservation', opener: 'hofOpenTxr1905Draft', formCode: 'TXR-1905' }
+              { label: 'Mineral reservation', copy: 'For a purchase where the seller will reserve mineral interests.', opener: 'hofOpenTxr1905Draft', formCode: 'TXR-1905' }
             ]
         : [
             { label: 'Showing Form', copy: 'For an unrepresented customer attending a showing.', opener: 'hofOpenTxr1508Draft', formCode: 'TXR-1508' },
