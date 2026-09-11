@@ -15,6 +15,7 @@ class OnDemandLandingFunnelTests(unittest.TestCase):
         self.assertIn("def _record_ondemand_landing_event(data):", API)
         self.assertIn('"ondemand_landing_viewed": "viewed"', API)
         self.assertIn('"ondemand_trial_entry_selected": "entry_selected"', API)
+        self.assertIn('"ondemand_email_started": "email_started"', API)
         self.assertIn('"ondemand_magic_link_requested": "magic_link_requested"', API)
         self.assertIn('"ondemand_trial_terms_accepted": "terms_accepted"', API)
         self.assertIn("Unsupported OnDemand landing event.", API)
@@ -36,6 +37,7 @@ class OnDemandLandingFunnelTests(unittest.TestCase):
         self.assertIn('sessionStorage.setItem("hof_ondemand_landing_channel", channel)', ONDEMAND)
         self.assertIn('metadata: { source: "ondemand", plan: "agent", billing: "monthly", channel, ...(campaign ? {utmCampaign: campaign} : {}) }', ONDEMAND)
         self.assertIn('recordAggregateLandingEvent("ondemand_magic_link_requested")', ONDEMAND)
+        self.assertIn('recordAggregateLandingEvent("ondemand_email_started")', ONDEMAND)
         self.assertIn('recordAggregateLandingEvent("ondemand_trial_terms_accepted")', ONDEMAND)
         self.assertIn("open it in this browser to finish starting your 60-day trial", ONDEMAND)
         self.assertIn("keepalive: true", ONDEMAND)
@@ -103,7 +105,7 @@ class OnDemandLandingFunnelTests(unittest.TestCase):
             "Open the link in this browser.",
             "Confirm your card at Stripe.",
             "Step 1 of 3:",
-            "Continue — email my secure link",
+            "Start my 60-day free trial",
         ):
             self.assertIn(text, ONDEMAND)
 
@@ -116,6 +118,8 @@ class OnDemandLandingFunnelTests(unittest.TestCase):
         for expected in (
             '"onDemandLandingViewCount"',
             '"onDemandTrialEntryCount"',
+            '"onDemandEmailStartedCount"',
+            '"onDemandEmailStartRate"',
             '"onDemandMagicLinkRequestedCount"',
             '"onDemandMagicLinkRequestRate"',
             '"onDemandTermsAcceptedCount"',
@@ -126,6 +130,8 @@ class OnDemandLandingFunnelTests(unittest.TestCase):
         ):
             self.assertIn(expected, ADMIN)
         self.assertIn("onDemandLandingViewCount", INDEX)
+        self.assertIn("onDemandEmailStartedCount", INDEX)
+        self.assertIn("onDemandEmailStartRate", INDEX)
         self.assertIn("onDemandMagicLinkRequestedCount", INDEX)
         self.assertIn("onDemandMagicLinkRequestRate", INDEX)
         self.assertIn("onDemandTermsAcceptedRate", INDEX)

@@ -239,7 +239,7 @@
           <hr class="divider" />
           <label for="email">Your OnDemand agent email</label>
           <input id="email" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com" required aria-required="true" />
-          <button id="signInButton" type="button" style="margin-top:12px">Continue — email my secure link</button>
+          <button id="signInButton" type="button" style="margin-top:12px">Start my 60-day free trial</button>
           <p class="fine"><strong>Step 1 of 3:</strong> We’ll email a secure link to create or access your workspace. No password and no charge today.</p>
           <p class="fine">At secure checkout, you will add a card to start the 60-day trial. The first $29/month charge is after the trial unless you cancel.</p>
         </div>
@@ -574,7 +574,7 @@
           return;
         }
         emailInput.setAttribute("aria-invalid", "false");
-        setBusy(button, true, "Sending…", "Start free — email my secure link");
+        setBusy(button, true, "Sending…", "Start my 60-day free trial");
         showStatus("");
         const { error } = await client.auth.signInWithOtp({
           email,
@@ -583,7 +583,7 @@
             data: { signup_source: "ondemand" }
           }
         });
-        setBusy(button, false, "Sending…", "Start free — email my secure link");
+        setBusy(button, false, "Sending…", "Start my 60-day free trial");
         if (error) {
           showStatus(customerErrorMessage(error, "We couldn’t send a secure sign-in link right now. Please wait a moment and try again."), "err");
           return;
@@ -690,6 +690,7 @@
       }
 
       $("signInButton").addEventListener("click", sendMagicLink);
+      $("email").addEventListener("input", () => recordAggregateLandingEvent("ondemand_email_started"), { once: true });
       $("email").addEventListener("keydown", (event) => {
         if (event.key === "Enter") sendMagicLink();
       });

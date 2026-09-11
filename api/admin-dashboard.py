@@ -5486,6 +5486,14 @@ class handler(BaseHTTPRequestHandler):
                 ])
                 for channel in ondemand_landing_channels
             }
+            ondemand_email_started_counts_by_channel = {
+                channel: len([
+                    item for item in events
+                    if item.get("event_type") == "ondemand_email_started"
+                    and str((item.get("metadata") or {}).get("channel") or "unspecified") == channel
+                ])
+                for channel in ondemand_landing_channels
+            }
             ondemand_terms_accepted_counts_by_channel = {
                 channel: len([
                     item for item in events
@@ -5538,6 +5546,14 @@ class handler(BaseHTTPRequestHandler):
                 ])
                 for campaign in ondemand_landing_campaigns
             }
+            ondemand_email_started_counts_by_campaign = {
+                campaign: len([
+                    item for item in events
+                    if item.get("event_type") == "ondemand_email_started"
+                    and str((item.get("metadata") or {}).get("utmCampaign") or "unspecified") == campaign
+                ])
+                for campaign in ondemand_landing_campaigns
+            }
             ondemand_terms_accepted_counts_by_campaign = {
                 campaign: len([
                     item for item in events
@@ -5548,6 +5564,9 @@ class handler(BaseHTTPRequestHandler):
             }
             ondemand_trial_entry_count = len([
                 item for item in events if item.get("event_type") == "ondemand_trial_entry_selected"
+            ])
+            ondemand_email_started_count = len([
+                item for item in events if item.get("event_type") == "ondemand_email_started"
             ])
             ondemand_magic_link_requested_count = len([
                 item for item in events if item.get("event_type") == "ondemand_magic_link_requested"
@@ -6534,9 +6553,14 @@ class handler(BaseHTTPRequestHandler):
                 "onDemandCheckoutReturnRatesByCampaign": ondemand_checkout_return_rates_by_campaign,
                 "onDemandMagicLinkCountsByChannel": ondemand_magic_link_counts_by_channel,
                 "onDemandMagicLinkCountsByCampaign": ondemand_magic_link_counts_by_campaign,
+                "onDemandEmailStartedCountsByChannel": ondemand_email_started_counts_by_channel,
+                "onDemandEmailStartedCountsByCampaign": ondemand_email_started_counts_by_campaign,
                 "onDemandTermsAcceptedCountsByChannel": ondemand_terms_accepted_counts_by_channel,
                 "onDemandTermsAcceptedCountsByCampaign": ondemand_terms_accepted_counts_by_campaign,
                 "onDemandTrialEntryCount": ondemand_trial_entry_count,
+                "onDemandEmailStartedCount": ondemand_email_started_count,
+                "onDemandEmailStartRate": round((ondemand_email_started_count / ondemand_landing_view_count) * 100, 1)
+                if ondemand_landing_view_count else 0,
                 "onDemandMagicLinkRequestedCount": ondemand_magic_link_requested_count,
                 "onDemandMagicLinkRequestRate": round((ondemand_magic_link_requested_count / ondemand_landing_view_count) * 100, 1)
                 if ondemand_landing_view_count else 0,
