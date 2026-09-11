@@ -9377,10 +9377,18 @@ function routeAfterMagicLinkIfNeeded() {
     // pressed so Step 3 never appears broken because the calculator has not
     // caught up yet.
     if (currentStepId === 'step3') {
-      wireSmartCalculations();
-      syncFinancingFieldsFromPrice();
-      updateAppraisalAddendumVisibility();
-      updatePaymentCalculator();
+      try {
+        wireSmartCalculations();
+        syncFinancingFieldsFromPrice();
+        updateAppraisalAddendumVisibility();
+        updatePaymentCalculator();
+      } catch (error) {
+        // Calculation suggestions must never strand someone in the offer
+        // interview. Validation below still guides them to any required term
+        // they need to enter themselves.
+        console.error('Could not refresh Step 3 calculations:', error);
+        setValidationStatus('Some suggested financing amounts could not be refreshed. Check the terms below and continue when they are complete.');
+      }
     }
     collectData();
 

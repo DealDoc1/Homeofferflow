@@ -14,6 +14,9 @@ class Step3ContinueResilienceTests(unittest.TestCase):
         self.assertIn("if (currentStepId === 'step3')", block)
         self.assertIn("syncFinancingFieldsFromPrice();", block)
         self.assertIn("updateAppraisalAddendumVisibility();", block)
+        self.assertIn("try {", block)
+        self.assertIn("Could not refresh Step 3 calculations:", block)
+        self.assertIn("Calculation suggestions must never strand someone", block)
         self.assertLess(block.index("syncFinancingFieldsFromPrice();"), block.index("collectData();"))
         self.assertLess(block.index("syncFinancingFieldsFromPrice();"), block.index("validateCurrentStep()"))
 
