@@ -51,3 +51,11 @@
 - Ready for production: yes, as a single intentional corrective release.
 - Rollback path: restore the immediately preceding verified Vercel production deployment if the canonical health check fails.
 - Post-deploy verification owner: HomeOfferFlow product owner; send and complete a new controlled TXR-1507 packet, then inspect every X, initial, signature, and date in the completed PDF.
+
+## Production result
+
+- Deployed commit: `fbf067a757060150d722283da528598b63dd48d3`.
+- Production artifact: `https://homeofferflow-ibbd834k5-dealdoc1s-projects.vercel.app`.
+- Release workflow: `34560418842`.
+- Verification: 1,692 full regression tests passed. The Vercel capacity threshold, prebuilt deployment readiness, canonical-domain response, PWA shell, and packet runtime checks all passed.
+- Remaining proof: create and complete a fresh controlled TXR-1507 packet against this release. The previously completed PDF is retained only as the pre-correction visual finding.
