@@ -124,12 +124,13 @@ def _overlay(data, brokerage, associate):
     # The broker/associate signature rule is shared.  Mark the source's
     # matching role checkbox so a completed agreement identifies the signer.
     if data.get("signer_plan") == "clients_and_associate":
-        # Completed packet 85009975 showed that y=242 put the mark below the
-        # printed execution choices.  The Associate square sits on the lower
-        # of the two rows at this source-specific coordinate.
-        _draw_signing_role_check(canvas, 37, 268)
+        # ReportLab uses a bottom-origin coordinate system.  On the 06-15-26
+        # source, the lower Associate square is at y=242; the earlier y=268
+        # mark appeared above both execution choices in the completed PDF.
+        _draw_signing_role_check(canvas, 37, 242)
     elif data.get("signer_plan") == "clients_and_broker":
-        _draw_signing_role_check(canvas, 37, 280)
+        # The Broker square is the upper of the two execution choices.
+        _draw_signing_role_check(canvas, 37, 255)
     canvas.save()
     packet.seek(0)
     return packet.read()

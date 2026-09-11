@@ -92,7 +92,7 @@ class Txr1507RendererTests(unittest.TestCase):
                 {"legal_name": "OnDemand Realty", "license_number": "9010832"},
                 {"name": "Andrew Christian", "license_number": "0738821"},
             )
-        self.assertIn((37, 268), [call.args[1:] for call in draw_check.call_args_list])
+        self.assertIn((37, 242), [call.args[1:] for call in draw_check.call_args_list])
 
         with patch.object(txr_1507, "_draw_signing_role_check") as draw_check:
             txr_1507._overlay(
@@ -100,7 +100,29 @@ class Txr1507RendererTests(unittest.TestCase):
                 {"legal_name": "OnDemand Realty", "license_number": "9010832"},
                 {"name": "Andrew Christian", "license_number": "0738821"},
             )
-        self.assertIn((37, 280), [call.args[1:] for call in draw_check.call_args_list])
+        self.assertIn((37, 255), [call.args[1:] for call in draw_check.call_args_list])
+
+    def test_signing_role_mark_stays_inside_the_source_checkbox(self):
+        class RecordingCanvas:
+            def __init__(self):
+                self.lines = []
+
+            def setLineWidth(self, _width):
+                pass
+
+            def line(self, x1, y1, x2, y2):
+                self.lines.append((x1, y1, x2, y2))
+
+        canvas = RecordingCanvas()
+        txr_1507._draw_signing_role_check(canvas, 37, 242)
+        self.assertEqual(len(canvas.lines), 2)
+        for x1, y1, x2, y2 in canvas.lines:
+            for x in (x1, x2):
+                self.assertGreaterEqual(x, 37)
+                self.assertLessEqual(x, 44)
+            for y in (y1, y2):
+                self.assertGreaterEqual(y, 239)
+                self.assertLessEqual(y, 247)
 
     def test_renderer_preserves_two_pages_and_overlays_only_supplied_values(self):
         rendered = render_txr_1507(
