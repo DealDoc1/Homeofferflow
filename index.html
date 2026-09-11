@@ -5683,7 +5683,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     const guide = document.getElementById('relationshipDraftsGuide');
     if (heading) heading.textContent = isLeaseRepresentation ? 'Lease Representation' : 'Guided Forms';
     if (intro) intro.textContent = isLeaseRepresentation
-      ? 'You are starting lease representation. Tell us what the client needs, complete the guided draft, and review it before choosing any signing step.'
+      ? 'You are starting lease representation. Tell us what the client needs, complete the guided document, and review it before choosing any signing step.'
       : 'Start with what the client needs. We’ll guide you to the right document interview, then you review the completed document before sending it for signature.';
     if (guide) {
       const title = guide.querySelector('h4');
@@ -5691,10 +5691,10 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       guide.querySelector('#leaseRepresentationQuickChoices')?.remove();
       if (title) title.textContent = isLeaseRepresentation ? 'Start the lease-representation conversation' : 'Start with the client need';
       if (copy) copy.textContent = isLeaseRepresentation
-        ? 'Begin with the type of representation the client needs. You’ll review the completed draft before deciding how to proceed.'
+        ? 'Begin with the type of representation the client needs. You’ll review the completed document before deciding how to proceed.'
         : 'Use this after choosing Purchase or Lease representation above. Answer the questions that apply, review the document, and decide the terms and next steps with your client.';
       if (isLeaseRepresentation) {
-        guide.insertAdjacentHTML('beforeend', `<div id="leaseRepresentationQuickChoices" style="margin-top:1rem;padding-top:1rem;border-top:1px solid rgba(255,255,255,.12)"><strong>What kind of representation does this client need?</strong><div class="account-actions-row" role="group" aria-label="Representation agreement choice" aria-describedby="leaseRepresentationQuickChoiceStatus" style="margin-top:.7rem"><button class="btn-primary" type="button" onclick="openTenantRepresentationDraft('short')">Straightforward representation</button><button class="btn-secondary" type="button" onclick="openTenantRepresentationDraft('long')">More detailed representation</button></div><p id="leaseRepresentationQuickChoiceStatus" role="status" aria-live="polite" style="color:var(--gray-light);font-size:.84rem;line-height:1.5;margin:.7rem 0 0">Choose the best starting point. You’ll review the completed draft before deciding how to proceed.</p></div>`);
+        guide.insertAdjacentHTML('beforeend', `<div id="leaseRepresentationQuickChoices" style="margin-top:1rem;padding-top:1rem;border-top:1px solid rgba(255,255,255,.12)"><strong>What kind of representation does this client need?</strong><div class="account-actions-row" role="group" aria-label="Representation agreement choice" aria-describedby="leaseRepresentationQuickChoiceStatus" style="margin-top:.7rem"><button class="btn-primary" type="button" onclick="openTenantRepresentationDraft('short')">Straightforward representation</button><button class="btn-secondary" type="button" onclick="openTenantRepresentationDraft('long')">More detailed representation</button></div><p id="leaseRepresentationQuickChoiceStatus" role="status" aria-live="polite" style="color:var(--gray-light);font-size:.84rem;line-height:1.5;margin:.7rem 0 0">Choose the best starting point. You’ll review the completed document before deciding how to proceed.</p></div>`);
       }
     }
     window.renderAccountDashboard?.();
@@ -5715,7 +5715,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     // then open the same private draft automatically. This never creates,
     // sends, signs, or selects agreement terms.
     window.__hofPendingTenantRepresentationDraft = kind === 'long' ? 'long' : 'short';
-    if (status) status.textContent = 'Opening your selected draft…';
+    if (status) status.textContent = 'Opening your selected document…';
   };
 
   async function openAccountDashboard(opts = {}) {
