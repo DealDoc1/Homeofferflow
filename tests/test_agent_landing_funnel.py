@@ -384,7 +384,7 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn('What type of transaction are you starting?', AGENTS)
         self.assertIn('Property listing', AGENTS)
         self.assertIn('Purchase', AGENTS)
-        self.assertIn('Lease representation', AGENTS)
+        self.assertIn('Tenant representation', AGENTS)
         self.assertNotIn('Start question 1', AGENTS)
         self.assertNotIn('id="agentQuestionOneCta"', AGENTS)
         self.assertNotIn('Start a buyer offer — no payment', AGENTS)
@@ -422,7 +422,7 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn('<strong>Purchase</strong> lets you choose a purchase offer, buyer representation agreement, addendum, or customer showing form.', AGENTS)
         self.assertIn('<strong>Property listing</strong> lets you choose a listing task, seller disclosure, or buyer-offer comparison.', AGENTS)
         self.assertIn('<strong>Lease listing</strong> goes directly to the landlord and property details.', AGENTS)
-        self.assertIn('<strong>Lease representation</strong> lets you choose a tenant representation agreement or customer showing form.', AGENTS)
+        self.assertIn('<strong>Tenant representation</strong> lets you choose a tenant representation agreement or customer showing form.', AGENTS)
         self.assertIn('The interview then asks only for the details that apply.', AGENTS)
 
     def test_agent_landing_cards_and_structured_data_match_the_question_two_interview(self):
