@@ -301,7 +301,7 @@
       : sellerSurface
       ? 'Install the lightweight app shell to return quickly to your seller plan and support paths.'
       : agentSurface
-      ? 'Install the lightweight app shell to return quickly to Question 1, drafts, and your workspace.'
+      ? 'Install the lightweight app shell to return quickly to Question 1, your saved work, and your workspace.'
       : agentGuideSurface
       ? guideKind === 'listing'
         ? 'Install the lightweight app shell to return quickly to your listing plan, offer comparison, and next action.'

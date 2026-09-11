@@ -94,7 +94,7 @@ class PublicPwaRegistrationTests(unittest.TestCase):
         self.assertIn("window.location.pathname === '/sellers'", SCRIPT)
         self.assertIn("seller plan and support paths", SCRIPT)
         self.assertIn("window.location.pathname === '/agents'", SCRIPT)
-        self.assertIn("Question 1, drafts, and your workspace", SCRIPT)
+        self.assertIn("Question 1, your saved work, and your workspace", SCRIPT)
         self.assertIn("window.location.pathname === '/texas-homebuyer-offer-guide'", SCRIPT)
         self.assertIn("Keep your buyer offer plan one tap away", SCRIPT)
         self.assertIn("buyer checklist and offer workflow", SCRIPT)
