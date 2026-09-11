@@ -280,6 +280,10 @@ class AgentActivationDashboardTests(unittest.TestCase):
         self.assertLess(picker.index(">Purchase</button>"), picker.index(">Lease listing</button>"))
         self.assertLess(picker.index(">Lease listing</button>"), picker.index(">Lease representation</button>"))
 
+    def test_workspace_note_explains_the_next_step_without_internal_document_state_language(self):
+        self.assertIn("Review the completed packet before it is delivered, accepted, and signed", HTML)
+        self.assertNotIn("Generated packets are drafts/prepared offer documents", HTML)
+
     def test_transaction_interview_recommends_a_package_before_opening_a_workspace(self):
         self.assertIn("window.startAgentWorkflow = function startAgentWorkflow(kind)", HTML)
         self.assertIn("window.hofOpenAgentPackageInterview = function hofOpenAgentPackageInterview(kind)", HTML)
