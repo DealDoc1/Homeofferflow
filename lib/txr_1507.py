@@ -99,16 +99,15 @@ def _overlay(data, brokerage, associate):
     # Page 2 - intermediary choice, printed names, and license fields. The
     # signature/date widgets are supplied separately to SignWell.
     if data["intermediary"] == "authorized":
-        # The source's first intermediary square is slightly below its
-        # text-row anchor.  Keeping the compact X at y=637 (rather than the
-        # previous y=643) centers it in the printed box instead of letting
-        # its top stroke rise above the square.
-        _draw_check(canvas, 177, 637)
+        # The 06-15-26 source's first intermediary square centers at y=640
+        # in ReportLab's bottom-origin coordinates.  A completed-source
+        # render showed y=637 below the printed cell and y=645 above it.
+        _draw_check(canvas, 177, 640)
     else:
         # The second printed intermediary cell is separate, immediately
-        # before "does not authorize"; use the same calibrated vertical
-        # center as the first cell.
-        _draw_check(canvas, 233, 637)
+        # before "does not authorize"; it shares the same calibrated
+        # vertical center as the first cell.
+        _draw_check(canvas, 233, 640)
 
     broker_name = brokerage.get("legal_name") or brokerage.get("name") or brokerage.get("dba_name")
     broker_license = brokerage.get("license_number") or ""
