@@ -28,9 +28,15 @@ def _draw(canvas, value, x, y, *, size=8):
 
 
 def _check(canvas, x, y):
+    """Draw a compact check inside the source's small printed checkbox.
+
+    TXR-1508's acknowledgement cells are only about eight points wide.  The
+    former 15-point stroke could visibly run into the following customer text
+    in a completed packet.
+    """
     canvas.setLineWidth(1.3)
-    canvas.line(x, y, x + 7, y + 7)
-    canvas.line(x + 7, y + 7, x + 15, y - 4)
+    canvas.line(x + 1, y + 3, x + 3.5, y + .5)
+    canvas.line(x + 3.5, y + .5, x + 7, y + 6)
 
 
 def _overlay(data, brokerage, associate):

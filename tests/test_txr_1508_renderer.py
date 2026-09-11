@@ -4,6 +4,7 @@ import unittest
 from pypdf import PdfReader
 from reportlab.pdfgen.canvas import Canvas
 
+from lib import txr_1508
 from lib.txr_1508 import build_signwell_fields_txr1508, render_txr_1508
 
 
@@ -25,6 +26,31 @@ def sample_data():
 
 
 class Txr1508RendererTests(unittest.TestCase):
+    def test_checkbox_mark_stays_within_the_small_source_cell(self):
+        class RecordingCanvas:
+            def __init__(self):
+                self.line_width = None
+                self.lines = []
+
+            def setLineWidth(self, width):
+                self.line_width = width
+
+            def line(self, x1, y1, x2, y2):
+                self.lines.append((x1, y1, x2, y2))
+
+        canvas = RecordingCanvas()
+        txr_1508._check(canvas, 100, 200)
+
+        self.assertEqual(canvas.line_width, 1.3)
+        self.assertEqual(len(canvas.lines), 2)
+        for x1, y1, x2, y2 in canvas.lines:
+            for x in (x1, x2):
+                self.assertGreaterEqual(x, 100)
+                self.assertLessEqual(x, 108)
+            for y in (y1, y2):
+                self.assertGreaterEqual(y, 200)
+                self.assertLessEqual(y, 207)
+
     def test_renderer_preserves_one_page_and_overlays_scope_limited_values(self):
         rendered = render_txr_1508(
             blank_one_page_pdf(), sample_data(),
