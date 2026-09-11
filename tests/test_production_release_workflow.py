@@ -24,6 +24,8 @@ class ProductionReleaseWorkflowTests(unittest.TestCase):
         self.assertIn("needs: verify", self.text)
         self.assertIn("python scripts/release_preflight.py", self.text)
         self.assertIn("python scripts/release_base_ref.py", self.text)
+        self.assertIn("Evidence-File:", self.text)
+        self.assertIn("Push-triggered production release requires an Evidence-File", self.text)
         self.assertIn('base_ref="${{ inputs.base_ref }}"', self.text)
         self.assertNotIn("inputs.base_ref || 'HEAD^'", self.text)
         self.assertIn("python -m unittest discover -s tests -q", self.text)
