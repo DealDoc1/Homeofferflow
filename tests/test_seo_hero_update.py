@@ -11,8 +11,9 @@ class SeoHeroUpdateTests(unittest.TestCase):
         self.assertIn(
             "Write a Real Estate Offer<br/><em>Without the Confusion.</em>", INDEX
         )
-        self.assertIn("Texas Real Estate Offer Builder | HomeOfferFlow", INDEX)
+        self.assertIn("Write a Texas Real Estate Offer | HomeOfferFlow", INDEX)
         self.assertIn('name="description"', INDEX)
+        self.assertIn("Write a supported Texas real estate offer through a clear guided interview", INDEX)
         self.assertIn(
             "supported Texas buyer-offer packet in plain English", INDEX
         )
@@ -32,7 +33,7 @@ class SeoHeroUpdateTests(unittest.TestCase):
         self.assertNotIn("listing agreements remain outside the stated live scope", INDEX)
 
     def test_supported_trec_offer_scope_is_described_on_the_landing_page(self):
-        self.assertIn("Build a supported Texas home purchase offer", INDEX)
+        self.assertIn("supported Texas home purchase offer", INDEX)
         self.assertIn("applicable purchase addenda", INDEX)
 
 
