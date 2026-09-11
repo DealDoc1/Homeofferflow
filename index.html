@@ -3116,7 +3116,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <button class="btn-secondary" type="button" aria-pressed="false" data-agent-workflow-choice="sale_listing" onclick="startAgentWorkflow('sale_listing')">Property listing</button>
             <button class="btn-secondary" type="button" aria-pressed="false" data-agent-workflow-choice="purchase" onclick="startAgentWorkflow('purchase')">Purchase</button>
             <button class="btn-secondary" type="button" aria-pressed="false" data-agent-workflow-choice="lease_listing" onclick="startAgentWorkflow('lease_listing')">Lease listing</button>
-            <button class="btn-secondary" type="button" aria-pressed="false" data-agent-workflow-choice="lease_representation" onclick="startAgentWorkflow('lease_representation')">Lease representation</button>
+            <button class="btn-secondary" type="button" aria-pressed="false" data-agent-workflow-choice="lease_representation" onclick="startAgentWorkflow('lease_representation')">Tenant representation</button>
           </div>
           <button id="agentWorkflowResume" class="btn-secondary" type="button" style="display:none;margin-top:.65rem;" aria-label="Resume your last transaction path"></button>
           <p id="agentWorkflowStartStatus" role="status" aria-live="polite" style="color:var(--gray-light);font-size:.84rem;line-height:1.5;margin:.8rem 0 0;">Choose a transaction type to get started.</p>
@@ -3180,7 +3180,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       </div>
       <div class="account-card" id="relationshipDraftsGuide">
         <h4>Start with the client need</h4>
-        <p style="color:var(--gray-light); line-height:1.6; margin-bottom:1rem;">Use this after choosing Purchase or Lease representation above. Answer the questions that apply, review the document, and decide the terms and next steps with your client.</p>
+        <p style="color:var(--gray-light); line-height:1.6; margin-bottom:1rem;">Use this after choosing Purchase or Tenant representation above. Answer the questions that apply, review the document, and decide the terms and next steps with your client.</p>
         <div class="relationship-drafts-guide-grid">
           <div class="relationship-drafts-guide-item"><strong>Straightforward representation agreement · TXR-1507</strong><span>Buyer/Tenant Representation Agreement, Short Form.</span></div>
           <div class="relationship-drafts-guide-item"><strong>Detailed representation agreement · TXR-1501</strong><span>Buyer/Tenant Representation Agreement, Long Form; choose it only when it fits the transaction.</span></div>
@@ -3250,7 +3250,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           <option value="Purchase">Purchase</option>
           <option value="Property listing">Property listing</option>
           <option value="Lease listing">Lease listing</option>
-          <option value="Lease representation">Lease representation</option>
+          <option value="Tenant representation">Tenant representation</option>
           <option value="Other Texas transaction">Other Texas transaction</option>
         </select>
       </div>
@@ -5681,18 +5681,18 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     const heading = document.getElementById('relationshipDraftsHeading');
     const intro = document.getElementById('relationshipDraftsIntro');
     const guide = document.getElementById('relationshipDraftsGuide');
-    if (heading) heading.textContent = isLeaseRepresentation ? 'Lease Representation' : 'Guided Forms';
+    if (heading) heading.textContent = isLeaseRepresentation ? 'Tenant Representation' : 'Guided Forms';
     if (intro) intro.textContent = isLeaseRepresentation
-      ? 'You are starting lease representation. Tell us what the client needs, complete the guided document, and review it before choosing any signing step.'
+      ? 'You are starting tenant representation. Tell us what the client needs, complete the guided document, and review it before choosing any signing step.'
       : 'Start with what the client needs. We’ll guide you to the right document interview, then you review the completed document before sending it for signature.';
     if (guide) {
       const title = guide.querySelector('h4');
       const copy = guide.querySelector('p');
       guide.querySelector('#leaseRepresentationQuickChoices')?.remove();
-      if (title) title.textContent = isLeaseRepresentation ? 'Start the lease-representation conversation' : 'Start with the client need';
+      if (title) title.textContent = isLeaseRepresentation ? 'Start the tenant-representation conversation' : 'Start with the client need';
       if (copy) copy.textContent = isLeaseRepresentation
         ? 'Begin with the type of representation the client needs. You’ll review the completed document before deciding how to proceed.'
-        : 'Use this after choosing Purchase or Lease representation above. Answer the questions that apply, review the document, and decide the terms and next steps with your client.';
+        : 'Use this after choosing Purchase or Tenant representation above. Answer the questions that apply, review the document, and decide the terms and next steps with your client.';
       if (isLeaseRepresentation) {
         guide.insertAdjacentHTML('beforeend', `<div id="leaseRepresentationQuickChoices" style="margin-top:1rem;padding-top:1rem;border-top:1px solid rgba(255,255,255,.12)"><strong>What kind of representation does this client need?</strong><div class="account-actions-row" role="group" aria-label="Representation agreement choice" aria-describedby="leaseRepresentationQuickChoiceStatus" style="margin-top:.7rem"><button class="btn-primary" type="button" onclick="openTenantRepresentationDraft('short')">Straightforward representation</button><button class="btn-secondary" type="button" onclick="openTenantRepresentationDraft('long')">More detailed representation</button></div><p id="leaseRepresentationQuickChoiceStatus" role="status" aria-live="polite" style="color:var(--gray-light);font-size:.84rem;line-height:1.5;margin:.7rem 0 0">Choose the best starting point. You’ll review the completed document before deciding how to proceed.</p></div>`);
       }
@@ -7485,7 +7485,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       purchase: 'Purchase',
       sale_listing: 'Property listing',
       lease_listing: 'Lease listing',
-      lease_representation: 'Lease representation'
+      lease_representation: 'Tenant representation'
     };
     const resume = document.getElementById('agentWorkflowResume');
     if (labels[savedChoice]) {
@@ -7680,7 +7680,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         purchase: 'Purchase',
         sale_listing: 'Property listing',
         lease_listing: 'Lease listing',
-        lease_representation: 'Lease representation'
+        lease_representation: 'Tenant representation'
       };
       const reportOpenError = (error) => {
         const status = document.getElementById('hofAgentDocumentOpenStatus');
@@ -7796,7 +7796,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         ]
       },
       lease_representation: {
-        title: 'What do you need to prepare for this lease representation?',
+        title: 'What do you need to prepare for this tenant representation?',
         choices: [
           { label: 'Set up tenant representation', copy: 'Choose the representation agreement that fits this tenant.', primary: true, action: () => openRelationshipPackage('representation'), deferStartToNestedChoice: true },
           { label: 'Prepare a showing form or consumer notice', copy: 'Choose the document for an unrepresented customer or general consumer notice.', action: () => openRelationshipPackage('customer'), deferStartToNestedChoice: true }
@@ -16757,7 +16757,7 @@ function routeAfterMagicLinkIfNeeded() {
           purchase: 'purchase transaction',
           sale_listing: 'property listing',
           lease_listing: 'lease listing',
-          lease_representation: 'lease representation transaction'
+          lease_representation: 'tenant representation transaction'
         }[agentLandingWorkflow] || 'transaction chooser';
         const authTitle = document.getElementById('authTitle');
         const authSubtitle = document.getElementById('authSubtitle');
@@ -16814,7 +16814,7 @@ function routeAfterMagicLinkIfNeeded() {
     purchase: 'purchase transaction',
     sale_listing: 'property listing',
     lease_listing: 'lease listing',
-    lease_representation: 'lease representation transaction'
+    lease_representation: 'tenant representation transaction'
   };
 
   function continueAgentLandingRoute() {
@@ -18552,7 +18552,7 @@ function routeAfterMagicLinkIfNeeded() {
       agent: {
         howTitle: 'From transaction type to one organized package.',
         steps: [
-          ['Choose the transaction', 'Start with a property listing, purchase, lease listing, or lease representation transaction.'],
+          ['Choose the transaction', 'Start with a property listing, purchase, lease listing, or tenant representation transaction.'],
           ['Answer only what applies', 'The interview follows the transaction you selected, so you do not sort through unrelated documents.'],
           ['Review the package', 'Review your details and the available documents together before you continue or share anything with a client.'],
           ['Save and continue', 'Sign in to keep your workspace, saved details, and transaction progress available when you return.']
@@ -18560,7 +18560,7 @@ function routeAfterMagicLinkIfNeeded() {
         faqTitle: 'Clear answers before you start an agent transaction.',
         faqs: [
           ['Do I need a brokerage seat to use this?', 'No. Available to every signed-in agent. A personal workspace does not require a brokerage seat; a brokerage or team workspace is optional when you want to work with a team.'],
-          ['Which transactions can I start?', 'Choose property listing, purchase, lease listing, or lease representation. The next questions and available documents follow that selection.'],
+          ['Which transactions can I start?', 'Choose property listing, purchase, lease listing, or tenant representation. The next questions and available documents follow that selection.'],
           ['What happens after I save a document?', 'It is ready for your review. Nothing is sent and no one is contacted until you choose the next step.'],
           ['Can I reuse saved details?', 'Yes. Your signed-in workspace keeps your progress and can reuse relevant saved details for later transactions.']
         ],
@@ -19066,7 +19066,7 @@ function routeAfterMagicLinkIfNeeded() {
         key: 'first_offer',
         title: 'Choose the transaction in front of you',
         body: hasProfile
-          ? 'Your saved defaults are ready. Choose property listing, purchase, lease listing, or lease representation; then HomeOfferFlow will show only the relevant next steps.'
+          ? 'Your saved defaults are ready. Choose property listing, purchase, lease listing, or tenant representation; then HomeOfferFlow will show only the relevant next steps.'
           : 'Choose the transaction first. Then start with the client and property in front of you. Your completed document is saved for review before anything is delivered or sent for signature.',
         primary: 'Choose Transaction',
         secondary: hasProfile ? 'Review Saved Profile' : 'Set Up My Defaults',

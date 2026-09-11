@@ -84,7 +84,7 @@ test('a signed-out agent sees the preserved workflow in the secure sign-in hando
     ['audience', 'agent'], ['clean', '/?utm_source=agent_workspace'], ['auth', 'agent'],
   ]);
   assert.equal(page.storage.get('hof_agent_landing_package_workflow'), 'lease_representation');
-  assert.equal(page.authTitle.textContent, 'Continue to your lease representation transaction');
+  assert.equal(page.authTitle.textContent, 'Continue to your tenant representation transaction');
   assert.match(page.authSubtitle.textContent, /open the next questions/i);
 });
 
