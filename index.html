@@ -5688,7 +5688,14 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     if (guide) {
       const title = guide.querySelector('h4');
       const copy = guide.querySelector('p');
+      const guideGrid = guide.querySelector('.relationship-drafts-guide-grid');
       guide.querySelector('#leaseRepresentationQuickChoices')?.remove();
+      if (guideGrid) {
+        if (!guideGrid.dataset.defaultGuide) guideGrid.dataset.defaultGuide = guideGrid.innerHTML;
+        guideGrid.innerHTML = isLeaseRepresentation
+          ? '<div class="relationship-drafts-guide-item"><strong>Straightforward representation agreement</strong><span>Use the short Buyer/Tenant Representation Agreement when it fits the client conversation.</span></div><div class="relationship-drafts-guide-item"><strong>More detailed representation agreement</strong><span>Use the long Buyer/Tenant Representation Agreement when its additional terms fit the representation.</span></div><div class="relationship-drafts-guide-item"><strong>Showing form or consumer notice</strong><span>Use these only when the client’s situation calls for them; neither creates representation.</span></div>'
+          : guideGrid.dataset.defaultGuide;
+      }
       if (title) title.textContent = isLeaseRepresentation ? 'Start the tenant-representation conversation' : 'Start with the client need';
       if (copy) copy.textContent = isLeaseRepresentation
         ? 'Begin with the type of representation the client needs. You’ll review the completed document before deciding how to proceed.'
@@ -5698,7 +5705,51 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       }
     }
     window.renderAccountDashboard?.();
+    // The first transaction question has already supplied useful context.
+    // Keep the relevant documents in view and tuck every other authorized
+    // document behind one quiet disclosure rather than turning this panel
+    // back into a form catalog. Nothing is removed or made unavailable.
+    window.setTimeout(() => window.hofFocusAgentWorkflowForms?.(), 0);
   }
+
+  // All approved documents remain available to every eligible agent. When an
+  // agent has selected a transaction, this merely groups documents that do
+  // not belong to that immediate conversation under a clear, optional
+  // disclosure. It never selects a form, changes a draft, or changes access.
+  window.hofFocusAgentWorkflowForms = function hofFocusAgentWorkflowForms() {
+    const panel = document.getElementById('accountPanelRelationships');
+    if (!panel) return;
+    const otherDocuments = document.getElementById('agentWorkflowOtherDocuments');
+    const allCardIds = [
+      'txr1501AgreementCard', 'txr1507AgreementCard', 'txr1508AgreementCard', 'txr1506AgreementCard',
+      'txr1905AgreementCard', 'txr1914AgreementCard', 'txr1917AgreementCard', 'txr1919AgreementCard',
+      'txr1948AgreementCard', 'txr1953AgreementCard', 'txr1954AgreementCard', 'hofStandaloneAgreementCard'
+    ];
+    // First restore cards from a prior transaction selection. This keeps the
+    // current choice—not a stale saved choice—as the sole presentation rule.
+    if (otherDocuments) {
+      Array.from(otherDocuments.querySelectorAll('.hof-agreement-card, #hofStandaloneAgreementCard')).forEach(card => panel.appendChild(card));
+      otherDocuments.remove();
+    }
+    const workflow = window.hofAgentWorkflowContext;
+    const focusedCardIds = workflow === 'lease_representation'
+      ? new Set(['txr1501AgreementCard', 'txr1507AgreementCard', 'txr1508AgreementCard', 'txr1506AgreementCard'])
+      : workflow === 'purchase'
+        ? new Set(allCardIds)
+        : null;
+    if (!focusedCardIds) return;
+    const deferredCards = allCardIds
+      .filter(cardId => !focusedCardIds.has(cardId))
+      .map(cardId => document.getElementById(cardId))
+      .filter(Boolean);
+    if (!deferredCards.length) return;
+    const details = document.createElement('details');
+    details.id = 'agentWorkflowOtherDocuments';
+    details.className = 'account-card';
+    details.innerHTML = '<summary style="cursor:pointer;font-weight:700;">Other transaction documents</summary><p style="color:var(--gray-light);line-height:1.5;margin:.7rem 0 1rem;">These documents are available when the transaction calls for them. They are not part of the tenant-representation path you selected.</p>';
+    panel.appendChild(details);
+    deferredCards.forEach(card => details.appendChild(card));
+  };
 
   // The tenant-representation quick choices merely open the exact private
   // draft the agent selected. They do not infer which agreement is proper,

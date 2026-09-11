@@ -360,6 +360,15 @@ class AgentActivationDashboardTests(unittest.TestCase):
         self.assertIn("const aiTab = document.getElementById('aiAccountTab');", HTML)
         self.assertIn("new MutationObserver(routeCards).observe(dashboard, { childList: true });", HTML)
 
+    def test_tenant_representation_keeps_purchase_addenda_available_without_mixing_them_into_the_next_step(self):
+        self.assertIn("window.hofFocusAgentWorkflowForms = function hofFocusAgentWorkflowForms()", HTML)
+        self.assertIn("id = 'agentWorkflowOtherDocuments'", HTML)
+        self.assertIn('Other transaction documents', HTML)
+        self.assertIn("workflow === 'lease_representation'", HTML)
+        self.assertIn("new Set(['txr1501AgreementCard', 'txr1507AgreementCard', 'txr1508AgreementCard', 'txr1506AgreementCard'])", HTML)
+        self.assertIn("deferredCards.forEach(card => details.appendChild(card));", HTML)
+        self.assertIn("window.setTimeout(() => window.hofFocusAgentWorkflowForms?.(), 0);", HTML)
+
     def test_listing_and_lease_listing_start_with_the_next_property_question(self):
         self.assertIn('id="listingWorkspaceStartCard"', HTML)
         self.assertIn("const workspaceStartCard = el.querySelector('#listingWorkspaceStartCard');", HTML)
