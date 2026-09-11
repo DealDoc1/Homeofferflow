@@ -103,6 +103,10 @@
     .price span { color:var(--muted); padding-bottom:9px; }
     .today { font-size:18px; font-weight:700; }
     .renewal { color:var(--muted); margin:5px 0 22px; line-height:1.5; }
+    .enrollment-steps { display:grid; gap:9px; margin:0 0 21px; }
+    .enrollment-step { display:flex; gap:10px; align-items:flex-start; color:#dce7ef; font-size:13px; line-height:1.45; }
+    .step-number { flex:0 0 21px; height:21px; display:grid; place-items:center; border-radius:999px; background:rgba(200,151,63,.16); color:var(--gold-2); font-size:12px; font-weight:800; }
+    .enrollment-step strong { color:var(--ink); }
     .divider { border:0; border-top:1px solid var(--line); margin:21px 0; }
     label { display:block; color:#dbe6ef; font-size:14px; font-weight:600; margin-bottom:8px; }
     input[type=email] {
@@ -223,6 +227,11 @@
         <div class="price"><strong>$0</strong><span>today</span></div>
         <div class="today">Your first 60 days are free.</div>
         <p class="renewal">Then $29/month beginning <strong id="renewalDate">after your trial</strong>. Cancel anytime.</p>
+        <div class="enrollment-steps" aria-label="How enrollment works">
+          <div class="enrollment-step"><span class="step-number">1</span><span><strong>Use your OnDemand email.</strong> We will send a secure sign-in link.</span></div>
+          <div class="enrollment-step"><span class="step-number">2</span><span><strong>Open the link in this browser.</strong> Your workspace and trial terms will be ready.</span></div>
+          <div class="enrollment-step"><span class="step-number">3</span><span><strong>Confirm your card at Stripe.</strong> Nothing is charged for 60 days.</span></div>
+        </div>
 
         <div id="status" class="status" role="status" aria-live="polite"></div>
 
@@ -230,8 +239,8 @@
           <hr class="divider" />
           <label for="email">Your OnDemand agent email</label>
           <input id="email" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com" required aria-required="true" />
-          <button id="signInButton" type="button" style="margin-top:12px">Start free — email my secure link</button>
-          <p class="fine"><strong>Step 1 of 2:</strong> We’ll email a secure link to create or access your workspace. No password and no charge today.</p>
+          <button id="signInButton" type="button" style="margin-top:12px">Continue — email my secure link</button>
+          <p class="fine"><strong>Step 1 of 3:</strong> We’ll email a secure link to create or access your workspace. No password and no charge today.</p>
           <p class="fine">At secure checkout, you will add a card to start the 60-day trial. The first $29/month charge is after the trial unless you cancel.</p>
         </div>
 

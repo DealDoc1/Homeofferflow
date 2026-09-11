@@ -96,6 +96,17 @@ class OnDemandLandingFunnelTests(unittest.TestCase):
         self.assertIn("Review before sending", ONDEMAND)
         self.assertNotIn("Please read before enrolling", ONDEMAND)
 
+    def test_trial_page_explains_the_three_enrollment_steps_before_email_entry(self):
+        for text in (
+            'aria-label="How enrollment works"',
+            "Use your OnDemand email.",
+            "Open the link in this browser.",
+            "Confirm your card at Stripe.",
+            "Step 1 of 3:",
+            "Continue — email my secure link",
+        ):
+            self.assertIn(text, ONDEMAND)
+
     def test_all_public_ondemand_trial_links_share_the_same_aggregate_entry_signal(self):
         self.assertIn("function recordOnDemandTrialEntry", INDEX)
         self.assertIn("agent_hero_secondary_cta", INDEX)
