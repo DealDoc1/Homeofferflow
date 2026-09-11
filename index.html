@@ -21314,7 +21314,11 @@ function routeAfterMagicLinkIfNeeded() {
   const root = window;
   const escape = value => String(value ?? '').replace(/[&<>\"]/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[char]));
   const token = () => root.hofAuth?.session?.access_token || '';
-  const activeAgent = () => !!root.hofAuth?.session?.user;
+  const activeAgent = () => {
+    const profile = root.hofAuth?.authoritativeProfile || {};
+    const role = String(root.hofAuth?.role || profile.role || '').toLowerCase();
+    return !!root.hofAuth?.session?.user && ['agent', 'broker', 'brokerage_admin', 'broker_admin', 'owner', 'team_lead'].includes(role);
+  };
 
   async function loadAgreements() {
     const response = await fetch('/api/admin-dashboard?scope=standalone_agreements', { headers: { Authorization: `Bearer ${token()}` } });
@@ -21763,7 +21767,8 @@ function routeAfterMagicLinkIfNeeded() {
   };
   const activeAgent = () => {
     const profile = root.hofAuth?.authoritativeProfile || {};
-      return !!root.hofAuth?.session?.user && String(profile.role || '').toLowerCase() !== 'investor';
+    const role = String(root.hofAuth?.role || profile.role || '').toLowerCase();
+    return !!root.hofAuth?.session?.user && ['agent', 'broker', 'brokerage_admin', 'broker_admin', 'owner', 'team_lead'].includes(role);
   };
 
   root.hofClosePdfPreview = function hofClosePdfPreview() {
@@ -23190,6 +23195,23 @@ function routeAfterMagicLinkIfNeeded() {
 </script>
 <script id="hof-txr1917-drafts-v1">
 (function(){const r=window,c='TXR-1917',ok=()=>!!r.hofAuth?.session?.user,esc=v=>String(v??'').replace(/[&<>"']/g,x=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[x]));async function draw(){const p=document.getElementById('accountPanelRelationships');if(!p||!ok()||document.getElementById('txr1917Card'))return;const card=document.createElement('div');card.id='txr1917Card';card.className='account-card hof-agreement-card';card.innerHTML='<h4>Environmental Assessment Addendum</h4><p>Checking the HomeOfferFlow form library…</p>';p.appendChild(card);try{const s=await r.hofLoadApprovedBrokerageSource?.(c);if(!s){card.querySelector('p').textContent='TXR-1917 is temporarily unavailable in the HomeOfferFlow form library.';return}card.querySelector('p').innerHTML=`Use the ${esc(s.source_revision)} TXR-1917 interview to prepare a private draft. It does not assess conditions, send, or sign the addendum.`;const b=document.createElement('button');b.className='btn-secondary';b.type='button';b.textContent='Start environmental review draft';b.onclick=()=>open(s);card.appendChild(b)}catch(e){card.querySelector('p').textContent=r.hofApprovedSourceStatusCopy(e)}}function open(s){document.getElementById('txr1917Dialog')?.remove();const m=document.createElement('div');m.id='txr1917Dialog';m.className='hof-agreement-modal';m.innerHTML=`<form class="hof-agreement-dialog"><h3>Environmental Assessment Addendum</h3><p>Choose only the source-form review rights requested. This saves a private draft only.</p><div class="hof-agreement-grid"><label class="hof-agreement-wide">Property address<input name="address" required maxlength="400" autocomplete="street-address" inputmode="text"></label><label>Buyer 1 full name<input name="b1" required maxlength="180"></label><label>Buyer 2 full name (optional)<input name="b2" maxlength="180"></label><label>Seller 1 full name<input name="s1" required maxlength="180"></label><label>Seller 2 full name (optional)<input name="s2" maxlength="180"></label><label>Termination time (days)<input name="days" required inputmode="numeric" maxlength="3"></label><div class="hof-agreement-wide hof-agreement-services"><label><input type="checkbox" name="review" value="environmental"> Environmental assessment</label><label><input type="checkbox" name="review" value="species"> Threatened/endangered species</label><label><input type="checkbox" name="review" value="wetlands"> Wetlands</label></div><label class="hof-agreement-wide hof-agreement-services"><input name="ack" type="checkbox" required> I confirm the parties will review environmental terms with the appropriate professionals before signing. This is not an environmental assessment or signature request.</label></div><div class="hof-iabs-status"></div><div class="hof-agreement-footer"><button class="btn-secondary" type="button">Cancel</button><button class="btn-primary" type="submit">Save private draft</button></div></form>`;document.body.appendChild(m);m.querySelector('button[type="button"]').onclick=()=>m.remove();m.querySelector('form').onsubmit=async e=>{e.preventDefault();const f=new FormData(e.currentTarget),names=(a,b)=>[f.get(a),f.get(b)].map(v=>String(v||'').trim()).filter(Boolean),q={action:'create_txr_1917_draft',formCode:c,formSourceId:s.id,propertyAddress:f.get('address'),buyerNames:names('b1','b2'),sellerNames:names('s1','s2'),terminationDays:f.get('days'),reviewTypes:f.getAll('review'),environmentalReviewAcknowledgment:f.get('ack')==='on'},st=m.querySelector('.hof-iabs-status');try{st.textContent='Preparing environmental private draft…';const x=await fetch('/api/admin-dashboard',{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${r.hofAuth?.session?.access_token}`},body:JSON.stringify(q)}),j=await x.json();if(!x.ok)throw Error(j.error||'Could not save the private draft.');st.className='hof-iabs-status ready';st.textContent='Your private draft is ready. Review the completed details and choose the next transaction step when you are ready.';e.currentTarget.querySelector('button[type="submit"]').disabled=true}catch(err){st.className='hof-iabs-status error';st.textContent=err.message}}}const prev=r.renderAccountDashboard;r.renderAccountDashboard=function(){if(typeof prev==='function')prev.apply(this,arguments);draw()};if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',draw,{once:true});else draw()})();
+</script>
+<script id="hof-agent-form-card-visibility-v1">
+(function () {
+  const agentRoles = ['agent', 'broker', 'brokerage_admin', 'broker_admin', 'owner', 'team_lead'];
+  const isAgentWorkspace = () => {
+    const profile = window.hofAuth?.authoritativeProfile || {};
+    const role = String(window.hofAuth?.role || profile.role || '').toLowerCase();
+    return !!window.hofAuth?.session?.user && agentRoles.includes(role);
+  };
+  const keepAgentFormsPrivate = () => {
+    if (isAgentWorkspace()) return;
+    document.getElementById('txr1917Card')?.remove();
+    document.getElementById('txr1917Dialog')?.remove();
+  };
+  new MutationObserver(keepAgentFormsPrivate).observe(document.documentElement, { childList: true, subtree: true });
+  keepAgentFormsPrivate();
+})();
 </script>
 <script id="hof-live-addendum-signing-next-step-v1">
 (function () {

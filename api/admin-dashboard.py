@@ -71,6 +71,7 @@ ALLOWED_PARTNER_TYPES = {
     "moving_storage", "lawn_pool", "security_smart_home", "other",
 }
 AI_CALIBRATION_REVIEWER_ROLES = {"agent", "broker", "brokerage_admin"}
+AGENT_FORM_ROLES = {"agent", "broker", "brokerage_admin", "broker_admin", "owner", "team_lead"}
 AI_CALIBRATION_SCENARIOS = {
     "AI-CAL-01",
     "AI-CAL-02",
@@ -3063,7 +3064,20 @@ async def _record_agent_txr_attestation(user, brokerage_id):
     return now
 
 
+async def _require_agent_form_role(user):
+    """Keep the universal form library available to agents without exposing it to consumer accounts."""
+    profiles = await _get(
+        "hof_profiles?"
+        f"id=eq.{urllib.parse.quote(user['id'])}"
+        "&select=role&limit=1"
+    )
+    role = str((profiles[0] if profiles else {}).get("role") or "").strip().lower()
+    if role not in AGENT_FORM_ROLES:
+        raise PermissionError("Agent or broker access is required to prepare a Texas REALTORS® form.")
+
+
 async def _create_representation_draft(user, data, form_code, parser):
+    await _require_agent_form_role(user)
     draft = parser(data)
     sources = await _get(
         "hof_brokerage_form_sources?"

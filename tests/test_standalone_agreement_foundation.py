@@ -231,6 +231,24 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
         self.assertGreaterEqual(HTML.count(role_guard), 4)
         self.assertNotIn('name="formUseAttested"', HTML)
 
+    def test_agent_form_workspaces_do_not_render_for_consumer_accounts(self):
+        role_guard = "['agent', 'broker', 'brokerage_admin', 'broker_admin', 'owner', 'team_lead'].includes(role)"
+        self.assertGreaterEqual(HTML.count(role_guard), 6)
+        self.assertIn('hof-agent-form-card-visibility-v1', HTML)
+        self.assertIn("document.getElementById('txr1917Card')?.remove()", HTML)
+        self.assertIn("document.getElementById('txr1917Dialog')?.remove()", HTML)
+
+    def test_server_enforces_agent_form_role_before_creating_a_form_draft(self):
+        backend = (ROOT / "api" / "admin-dashboard.py").read_text()
+        guard_start = backend.index("async def _require_agent_form_role")
+        guard_end = backend.index("async def _create_representation_draft", guard_start)
+        guard = backend[guard_start:guard_end]
+        create = backend[guard_end:backend.index("async def _create_txr_1507_draft", guard_end)]
+        self.assertIn('AGENT_FORM_ROLES', guard)
+        self.assertIn('hof_profiles?', guard)
+        self.assertIn('Agent or broker access is required', guard)
+        self.assertIn('await _require_agent_form_role(user)', create)
+
     def test_showing_services_requires_its_execution_fee(self):
         payload = valid_payload()
         payload["serviceLevel"] = "showing_services"
