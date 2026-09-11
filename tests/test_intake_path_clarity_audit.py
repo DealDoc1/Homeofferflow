@@ -38,6 +38,8 @@ class IntakePathClarityAuditTests(unittest.TestCase):
         self.assertIn(".replace(/review the draft/gi, 'review the document')", HTML)
         self.assertIn("Saving (.+?) private draft", HTML)
         self.assertIn("Your draft is ready", HTML)
+        self.assertIn("Do not replace status.textContent when it contains the next-action", HTML)
+        self.assertIn(".hof-agreement-dialog .hof-iabs-status", HTML)
 
     def test_saved_agent_preferences_use_plain_language(self):
         self.assertIn(

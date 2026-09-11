@@ -23480,20 +23480,28 @@ function routeAfterMagicLinkIfNeeded() {
       });
     });
     root.querySelectorAll?.('.hof-agreement-dialog .hof-iabs-status').forEach(status => {
-      if (status.children.length) return;
-      const original = status.textContent || '';
-      const revised = original
-        .replace(/Your private draft is ready\./gi, 'Your document is ready for review.')
-        .replace(/Preparing (.+?) private draft/gi, 'Preparing $1 document')
-        .replace(/Saving (.+?) private draft/gi, 'Preparing $1 document')
-        .replace(/Your draft is ready\./gi, 'Your document is ready for review.')
-        .replace(/Could not save the private (.+?) draft\./gi, 'Could not prepare the $1 document.')
-        .replace(/Could not save the private draft\./gi, 'Could not prepare the document.')
-        .replace(/Could not save this draft\./gi, 'Could not prepare this document.')
-        .replace(/Opening your selected draft…/gi, 'Opening your selected document…')
-        .replace(/Could not save the agreement draft\./gi, 'Could not prepare the agreement document.')
-        .replace(/Could not save the showing draft\./gi, 'Could not prepare the showing document.');
-      if (revised !== original) status.textContent = revised;
+      // Do not replace status.textContent when it contains the next-action
+      // button: that would erase the button just as the document is ready.
+      // Normalize each text node instead, so "Review and send" remains
+      // clickable while the surrounding status stays customer-facing.
+      const walker = document.createTreeWalker(status, NodeFilter.SHOW_TEXT);
+      const nodes = [];
+      while (walker.nextNode()) nodes.push(walker.currentNode);
+      nodes.forEach(node => {
+        const original = node.textContent || '';
+        const revised = original
+          .replace(/Your private draft is ready\./gi, 'Your document is ready for review.')
+          .replace(/Preparing (.+?) private draft/gi, 'Preparing $1 document')
+          .replace(/Saving (.+?) private draft/gi, 'Preparing $1 document')
+          .replace(/Your draft is ready\./gi, 'Your document is ready for review.')
+          .replace(/Could not save the private (.+?) draft\./gi, 'Could not prepare the $1 document.')
+          .replace(/Could not save the private draft\./gi, 'Could not prepare the document.')
+          .replace(/Could not save this draft\./gi, 'Could not prepare this document.')
+          .replace(/Opening your selected draft…/gi, 'Opening your selected document…')
+          .replace(/Could not save the agreement draft\./gi, 'Could not prepare the agreement document.')
+          .replace(/Could not save the showing draft\./gi, 'Could not prepare the showing document.');
+        if (revised !== original) node.textContent = revised;
+      });
     });
   };
   const run = () => normalize(document);
