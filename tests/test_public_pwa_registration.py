@@ -139,7 +139,10 @@ class PublicPwaRegistrationTests(unittest.TestCase):
         self.assertIn("Only offer it after a second engaged visit", SCRIPT)
         self.assertIn("const installDismissedUntilKey = 'hof_public_pwa_install_dismissed_until_v1'", SCRIPT)
         self.assertIn("const installDismissalDays = 14", SCRIPT)
-        self.assertIn("!isInstallEligible() || isInstallDismissed()", SCRIPT)
+        self.assertIn("const installShownUntilKey = 'hof_public_pwa_install_shown_until_v1'", SCRIPT)
+        self.assertIn("const installShownDays = 30", SCRIPT)
+        self.assertIn("!isInstallEligible() || isInstallDismissed() || isInstallRecentlyShown()", SCRIPT)
+        self.assertIn("same promotion on every public guide or landing page", SCRIPT)
         self.assertIn("['pointerdown', 'keydown', 'scroll'].forEach", SCRIPT)
         self.assertIn("The remembered eligibility makes the install offer", SCRIPT)
 

@@ -90,6 +90,7 @@
   const installEligibleKey = 'hof_public_pwa_install_eligible_v2';
   const installEngagementCountKey = 'hof_public_pwa_install_engagement_count_v1';
   const installDismissedUntilKey = 'hof_public_pwa_install_dismissed_until_v1';
+  const installShownUntilKey = 'hof_public_pwa_install_shown_until_v1';
   const preferredLaunchKey = 'hof_pwa_preferred_launch_action';
   const publicPreferredLaunchActions = {
     '/buyers': 'buyer_offer',
@@ -112,11 +113,18 @@
     '/partners': 'partner_marketplace',
   };
   const installDismissalDays = 14;
+  // One invitation is enough to make the option discoverable.  A quiet
+  // period after it is shown prevents a returning visitor from seeing the
+  // same promotion on every public guide or landing page.
+  const installShownDays = 30;
   const isInstallEligible = () => {
     try { return localStorage.getItem(installEligibleKey) === '1'; } catch (_) { return false; }
   };
   const isInstallDismissed = () => {
     try { return Number(localStorage.getItem(installDismissedUntilKey) || 0) > Date.now(); } catch (_) { return false; }
+  };
+  const isInstallRecentlyShown = () => {
+    try { return Number(localStorage.getItem(installShownUntilKey) || 0) > Date.now(); } catch (_) { return false; }
   };
   const recordInstallEngagement = () => {
     try {
@@ -216,7 +224,7 @@
     });
   };
   const renderInstallCard = () => {
-    if (!isMobileInstallSurface() || isStandaloneSurface() || !isInstallEligible() || isInstallDismissed() || (!deferredInstallPrompt && !isIosInstallSurface()) || document.getElementById('hofPublicPwaInstallCard')) return;
+    if (!isMobileInstallSurface() || isStandaloneSurface() || !isInstallEligible() || isInstallDismissed() || isInstallRecentlyShown() || (!deferredInstallPrompt && !isIosInstallSurface()) || document.getElementById('hofPublicPwaInstallCard')) return;
     try { if (sessionStorage.getItem(dismissKey) === '1') return; } catch (_) {}
     const card = document.createElement('aside');
     card.id = 'hofPublicPwaInstallCard';
@@ -314,6 +322,7 @@
     const iosInstall = isIosInstallSurface() && !deferredInstallPrompt;
     card.innerHTML = `<strong style="display:block;color:#e8b86d;margin-bottom:.2rem">${title}</strong><span style="display:block;color:#b6c4d5;margin-bottom:.55rem">${copy}</span><div style="display:flex;gap:.45rem;flex-wrap:wrap"><button type="button" id="hofPublicPwaInstallButton" style="padding:.45rem .65rem;border:0;border-radius:7px;background:#c8973f;color:#102033;font-weight:800;cursor:pointer">${iosInstall ? 'Show install steps' : 'Install app'}</button><button type="button" id="hofPublicPwaInstallDismiss" style="padding:.45rem .65rem;border:1px solid rgba(255,255,255,.25);border-radius:7px;background:transparent;color:#fff;cursor:pointer">Not now</button></div><div id="hofPublicPwaInstallNote" role="status" aria-live="polite" style="display:none;margin-top:.55rem;color:#b6c4d5;font-size:.8rem;line-height:1.45"></div>`;
     document.body.appendChild(card);
+    try { localStorage.setItem(installShownUntilKey, String(Date.now() + installShownDays * 24 * 60 * 60 * 1000)); } catch (_) {}
     trackPublicInstall('Shown');
     card.querySelector('#hofPublicPwaInstallDismiss')?.addEventListener('click', () => {
       try {
