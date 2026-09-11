@@ -193,7 +193,7 @@ class AgentLandingFunnelTests(unittest.TestCase):
         choices = AGENTS[start:end]
         self.assertLess(choices.index('<h3>Property listing</h3>'), choices.index('<h3>Purchase</h3>'))
         self.assertLess(choices.index('<h3>Purchase</h3>'), choices.index('<h3>Lease listing</h3>'))
-        self.assertLess(choices.index('<h3>Lease listing</h3>'), choices.index('<h3>Lease representation</h3>'))
+        self.assertLess(choices.index('<h3>Lease listing</h3>'), choices.index('<h3>Tenant representation</h3>'))
 
     def test_agent_landing_uses_document_review_language_for_customers(self):
         self.assertIn('"name":"Review your documents"', AGENTS)
