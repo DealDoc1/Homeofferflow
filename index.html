@@ -20878,7 +20878,7 @@ function routeAfterMagicLinkIfNeeded() {
       if (root.__hofPendingTenantRepresentationDraft === 'short') {
         root.__hofPendingTenantRepresentationDraft = '';
         const status = document.getElementById('leaseRepresentationQuickChoiceStatus');
-        if (status) status.textContent = 'Opening your selected draft…';
+        if (status) status.textContent = 'Opening your selected document…';
         root.hofOpenTxr1507Draft();
       }
     } catch (error) {
@@ -21166,7 +21166,7 @@ function routeAfterMagicLinkIfNeeded() {
           <label>Customer 2 full name (optional)<input name="customerTwo" maxlength="180"></label>
           <div id="txr1508CustomerTwoStatus" style="display:none">${customerStatusField(2)}</div>
           <label>Who will sign?<select name="signerPlan" required><option value="">Choose one…</option><option value="associate_and_clients">You and the customer(s)</option><option value="broker_and_clients">Broker and customer(s)</option></select><small>Choose whether you or the broker will acknowledge this showing form.</small></label>
-          <label class="hof-agreement-wide hof-agreement-services"><input name="unrepresentedAcknowledgment" type="checkbox" required> I confirm this is an unrepresented-customer showing draft only: no representation, no compensation, no advice or opinions, and no other brokerage services are being promised through this draft.</label>
+          <label class="hof-agreement-wide hof-agreement-services"><input name="unrepresentedAcknowledgment" type="checkbox" required> I confirm this is only for an unrepresented-customer showing: no representation, no compensation, no advice or opinions, and no other brokerage services are being promised through this document.</label>
         </div>
         <div id="txr1508DraftStatus" class="hof-iabs-status"></div>
         <div class="hof-agreement-footer"><button class="btn-secondary" type="button" id="txr1508Cancel">Cancel</button><button class="btn-primary" type="submit">Prepare showing form</button></div>
@@ -21565,7 +21565,7 @@ function routeAfterMagicLinkIfNeeded() {
       }
       const copy = details.querySelector('p');
       if (copy) {
-        copy.textContent = 'Every signed-in agent sees the same approved source catalog. This inventory confirms source availability; each workflow still shows its own draft, delivery, and signing behavior.';
+        copy.textContent = 'Every signed-in agent sees the same approved source catalog. This inventory confirms source availability; each workflow has its own review, delivery, and signing steps.';
         copy.insertAdjacentElement('afterend', search);
         search.insertAdjacentElement('afterend', searchStatus);
         copy.insertAdjacentElement('afterend', list);
@@ -21723,7 +21723,7 @@ function routeAfterMagicLinkIfNeeded() {
   const escape = value => String(value ?? '').replace(/[&<>\"]/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[char]));
   const formatDate = value => {
     const date = new Date(value);
-    return Number.isNaN(date.valueOf()) ? 'Saved draft' : date.toLocaleDateString(undefined, { month:'short', day:'numeric', year:'numeric' });
+    return Number.isNaN(date.valueOf()) ? 'Saved for review' : date.toLocaleDateString(undefined, { month:'short', day:'numeric', year:'numeric' });
   };
   const activeAgent = () => {
     const profile = root.hofAuth?.authoritativeProfile || {};
@@ -21809,7 +21809,7 @@ function routeAfterMagicLinkIfNeeded() {
     try {
       const drafts = await loadPrivateDrafts();
       if (!drafts.length) {
-        list.innerHTML = '<li>No saved form drafts yet.<br><button type="button" class="btn-secondary" style="margin-top:.55rem" data-start-agent-transaction>Start a transaction</button></li>';
+        list.innerHTML = '<li>No saved documents for review yet.<br><button type="button" class="btn-secondary" style="margin-top:.55rem" data-start-agent-transaction>Start a transaction</button></li>';
         list.querySelector('[data-start-agent-transaction]')?.addEventListener('click', () => {
           const start = document.getElementById('agentWorkflowStart');
           start?.scrollIntoView({ behavior:'smooth', block:'center' });
@@ -21847,7 +21847,7 @@ function routeAfterMagicLinkIfNeeded() {
       });
     } catch (error) {
       console.error('Private form draft list failed:', error);
-      list.innerHTML = '<li>Could not load saved form drafts.</li>';
+      list.innerHTML = '<li>Could not load saved documents.</li>';
     }
   }
   root.hofRefreshPrivateDrafts = refreshPrivateDrafts;
@@ -21863,8 +21863,8 @@ function routeAfterMagicLinkIfNeeded() {
     card.id = 'privateFormDraftsCard';
     card.className = 'account-card hof-private-form-drafts-card';
     card.innerHTML = `
-      <h4>Saved form drafts</h4>
-      <p>These are your saved form drafts. Review them here before choosing the next step for each document.</p>
+      <h4>Saved documents for review</h4>
+      <p>Review your saved documents here before choosing the next step for each one.</p>
       <div id="privateFormDraftsStatus" class="hof-iabs-status" role="status" aria-live="polite"></div>
       <ul id="privateFormDraftsList" class="hof-private-form-drafts-list"><li>Loading saved form drafts…</li></ul>`;
     panel.appendChild(card);
@@ -23393,7 +23393,10 @@ function routeAfterMagicLinkIfNeeded() {
         .replace(/Your draft is ready\./gi, 'Your document is ready for review.')
         .replace(/Could not save the private (.+?) draft\./gi, 'Could not prepare the $1 document.')
         .replace(/Could not save the private draft\./gi, 'Could not prepare the document.')
-        .replace(/Could not save this draft\./gi, 'Could not prepare this document.');
+        .replace(/Could not save this draft\./gi, 'Could not prepare this document.')
+        .replace(/Opening your selected draft…/gi, 'Opening your selected document…')
+        .replace(/Could not save the agreement draft\./gi, 'Could not prepare the agreement document.')
+        .replace(/Could not save the showing draft\./gi, 'Could not prepare the showing document.');
       if (revised !== original) status.textContent = revised;
     });
   };
