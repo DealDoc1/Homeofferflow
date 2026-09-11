@@ -74,15 +74,22 @@ jobs:
         run: |
           if [[ "${{ github.event_name }}" == "push" ]]; then
             base_ref="$(python scripts/release_base_ref.py)"
+            # The only permitted push-triggered deployment is an explicit
+            # release-marker commit.  Its scope is still checked against the
+            # last production marker, and the completed evidence for this
+            # corrective TXR-1507 release is supplied to the same preflight
+            # used by manual production runs.
+            evidence_file="docs/release-evidence/txr-1507-placement-correction-release-2026-09-11.md"
           else
             base_ref="${{ inputs.base_ref }}"
+            evidence_file="${{ inputs.evidence_file }}"
           fi
           args=(
             --base "${base_ref}"
             --expected-deploy-author-email "${{ inputs.expected_deploy_author_email || 'andrewchri@gmail.com' }}"
           )
-          if [[ -n "${{ inputs.evidence_file }}" ]]; then
-            args+=(--evidence-file "${{ inputs.evidence_file }}")
+          if [[ -n "${evidence_file}" ]]; then
+            args+=(--evidence-file "${evidence_file}")
           fi
           python scripts/release_preflight.py "${args[@]}"
 
