@@ -173,32 +173,34 @@ def build_signwell_fields_txr1507(data, *, client_count=1):
         # printed underscore blanks, not on the surrounding labels.
         {"api_id": f"txr1507_{role}_initials_p1", "type": "initials", "page": 1, "x": 435, "y": 984, "recipient_id": role, "required": True, "width": 47, "height": 14},
         {"api_id": "txr1507_client1_initials_p1", "type": "initials", "page": 1, "x": 542, "y": 984, "recipient_id": "1", "required": True, "width": 47, "height": 14},
-        # Completed-PDF review showed the prior fields were shifted right:
-        # the signature missed its ruled line and the date ran into the
-        # printed ``Date`` caption.  These coordinates keep both values in
-        # their dedicated client execution blanks.
-        {"api_id": "txr1507_client1_signature_p2", "type": "signature", "page": 2, "x": 360, "y": 640, "recipient_id": "1", "required": True, "width": 80, "height": 24},
-        {"api_id": "txr1507_client1_date_p2", "type": "date", "page": 2, "x": 510, "y": 640, "recipient_id": "1", "required": True, "width": 60, "height": 18, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
+        # Page two's first Client execution line runs from source x=324.1
+        # through 576.1 at top-origin y=534.0.  SignWell uses a 4/3 scale.
+        # Keep the signature left of the printed Date caption and make each
+        # field finish on the actual source rule.  The former map was both
+        # left of and above this row in the completed packet.
+        {"api_id": "txr1507_client1_signature_p2", "type": "signature", "page": 2, "x": 432, "y": 688, "recipient_id": "1", "required": True, "width": 272, "height": 24},
+        {"api_id": "txr1507_client1_date_p2", "type": "date", "page": 2, "x": 720, "y": 694, "recipient_id": "1", "required": True, "width": 48, "height": 18, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
     ]
     if client_count == 2:
         fields.extend([
             {"api_id": "txr1507_client2_initials_p1", "type": "initials", "page": 1, "x": 596, "y": 984, "recipient_id": "2", "required": True, "width": 47, "height": 14},
-            {"api_id": "txr1507_client2_signature_p2", "type": "signature", "page": 2, "x": 360, "y": 735, "recipient_id": "2", "required": True, "width": 80, "height": 24},
-            {"api_id": "txr1507_client2_date_p2", "type": "date", "page": 2, "x": 510, "y": 735, "recipient_id": "2", "required": True, "width": 60, "height": 18, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
+            # The second Client's signature rule is the lower page-two row
+            # (source y=616.8, or SignWell y=822.4), not a second copy of
+            # the first Client's field shifted only a small amount down.
+            {"api_id": "txr1507_client2_signature_p2", "type": "signature", "page": 2, "x": 432, "y": 798, "recipient_id": "2", "required": True, "width": 272, "height": 24},
+            {"api_id": "txr1507_client2_date_p2", "type": "date", "page": 2, "x": 720, "y": 804, "recipient_id": "2", "required": True, "width": 48, "height": 18, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
         ])
     # The source uses checkboxes to identify whether the broker or the
     # broker's associate signs, followed by one shared signature/date rule.
-    # Completed-PDF QA showed the prior widget baseline landing below that
-    # rule. Account for the provider's visible-field offset, rather than
-    # simply placing an empty widget on the apparent target.
-    # The shared broker/associate value appeared below its execution rule in
-    # the completed packet.  Move the provider field up while leaving its
-    # date in the same printed column.
-    role_y = 590
-    role_signature_x = 10
-    role_date_x = 185
+    # The shared Broker/Associate rule is source x=36.0 through 288.1 at
+    # top-origin y=534.0.  It shares the first Client's row.  Use the same
+    # rule-ending placement convention as the Client fields, without covering
+    # the printed role choices, labels, or date caption.
+    role_y = 688
+    role_signature_x = 48
+    role_date_x = 336
     fields.extend([
-        {"api_id": f"txr1507_{role}_signature_p2", "type": "signature", "page": 2, "x": role_signature_x, "y": role_y, "recipient_id": role, "required": True, "width": 100, "height": 24},
-        {"api_id": f"txr1507_{role}_date_p2", "type": "date", "page": 2, "x": role_date_x, "y": role_y, "recipient_id": role, "required": True, "width": 82, "height": 18, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
+        {"api_id": f"txr1507_{role}_signature_p2", "type": "signature", "page": 2, "x": role_signature_x, "y": role_y, "recipient_id": role, "required": True, "width": 240, "height": 24},
+        {"api_id": f"txr1507_{role}_date_p2", "type": "date", "page": 2, "x": role_date_x, "y": 694, "recipient_id": role, "required": True, "width": 48, "height": 18, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
     ])
     return [fields]

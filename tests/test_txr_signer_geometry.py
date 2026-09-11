@@ -114,18 +114,13 @@ class TxrSignerGeometryTests(unittest.TestCase):
     def test_completed_packet_signature_maps_keep_dates_off_the_printed_date_labels(self):
         """Guard the source-calibrated 1501/1507 signature rows.
 
-        These maps were calibrated against completed SignWell packets.  The
-        date widget must leave room for SignWell's visible date stamp before
-        the preprinted Date label, while the signature widget remains on the
-        same ruled row.
+        These maps were calibrated against the exact source execution rules.
+        The date widget must stay in its printed date segment while the
+        signature widget remains on the same ruled row.
         """
         cases = (
             (build_signwell_fields_txr1501, FORM_CASES[0][3], "txr1501", 566, 535),
-            # The completed packet shows the printed client Date caption
-            # farther right than the earlier nominal bound. Keep the date in
-            # that dedicated execution space, rather than beside the
-            # signature field.
-            (build_signwell_fields_txr1507, FORM_CASES[2][3], "txr1507", 640, 630),
+            (build_signwell_fields_txr1507, FORM_CASES[2][3], "txr1507", 688, 768),
         )
         for builder, data, prefix, first_row_y, date_label_x in cases:
             with self.subTest(prefix=prefix):
@@ -135,15 +130,11 @@ class TxrSignerGeometryTests(unittest.TestCase):
                 role = fields[f"{prefix}_associate_signature_p{6 if prefix == 'txr1501' else 2}"]
                 self.assertEqual(client["y"], first_row_y)
                 if prefix == "txr1507":
-                    self.assertEqual(role["y"], 590)
+                    self.assertEqual(role["y"], 688)
                 else:
                     self.assertEqual(role["y"], 677)
                 self.assertGreater(date["x"], client["x"] + client["width"])
-                # The provider's completed-packet renderer may let a full
-                # MM/DD/YYYY value extend beyond the nominal widget width.
-                # Reserve that observed 20-pixel right-side footprint rather
-                # than passing a map that only looks safe while empty.
-                self.assertLessEqual(date["x"] + date["width"] + 20, date_label_x)
+                self.assertLessEqual(date["x"] + date["width"], date_label_x)
 
     def test_corrected_signature_rows_clear_the_caption_baseline(self):
         """Keep active maps above the printed signature/date captions.
@@ -162,12 +153,12 @@ class TxrSignerGeometryTests(unittest.TestCase):
                 "txr1501_client2_date_p6": 701,
             }),
             (build_signwell_fields_txr1507, FORM_CASES[2][3], {
-                "txr1507_associate_signature_p2": 692,
-                "txr1507_associate_date_p2": 692,
-                "txr1507_client1_signature_p2": 692,
-                "txr1507_client1_date_p2": 692,
-                "txr1507_client2_signature_p2": 791,
-                "txr1507_client2_date_p2": 791,
+                "txr1507_associate_signature_p2": 712,
+                "txr1507_associate_date_p2": 712,
+                "txr1507_client1_signature_p2": 712,
+                "txr1507_client1_date_p2": 712,
+                "txr1507_client2_signature_p2": 822,
+                "txr1507_client2_date_p2": 822,
             }),
         )
         for builder, data, limits in cases:
@@ -210,9 +201,26 @@ class TxrSignerGeometryTests(unittest.TestCase):
         # Broker and broker-associate are chosen by the printed checkboxes;
         # both sign on the one shared rule.  There is no second associate
         # signature rule below the label.
-        self.assertEqual(txr1507["txr1507_associate_signature_p2"]["y"], 590)
-        self.assertEqual(txr1507["txr1507_associate_signature_p2"]["x"], 10)
-        self.assertEqual(txr1507["txr1507_associate_date_p2"]["x"], 185)
+        self.assertEqual(
+            (txr1507["txr1507_associate_signature_p2"]["x"], txr1507["txr1507_associate_signature_p2"]["y"], txr1507["txr1507_associate_signature_p2"]["width"], txr1507["txr1507_associate_signature_p2"]["y"] + txr1507["txr1507_associate_signature_p2"]["height"]),
+            (48, 688, 240, 712),
+        )
+        self.assertEqual(
+            (txr1507["txr1507_associate_date_p2"]["x"], txr1507["txr1507_associate_date_p2"]["y"], txr1507["txr1507_associate_date_p2"]["width"], txr1507["txr1507_associate_date_p2"]["y"] + txr1507["txr1507_associate_date_p2"]["height"]),
+            (336, 694, 48, 712),
+        )
+        for field_id, expected in {
+            "txr1507_client1_signature_p2": (432, 688, 272, 712),
+            "txr1507_client1_date_p2": (720, 694, 48, 712),
+            "txr1507_client2_signature_p2": (432, 798, 272, 822),
+            "txr1507_client2_date_p2": (720, 804, 48, 822),
+        }.items():
+            field = txr1507[field_id]
+            self.assertEqual(
+                (field["x"], field["y"], field["width"], field["y"] + field["height"]),
+                expected,
+                f"{field_id} must sit on its printed TXR-1507 execution rule",
+            )
         self.assertEqual(
             (txr1507["txr1507_associate_initials_p1"]["x"], txr1507["txr1507_associate_initials_p1"]["y"]),
             (435, 984),
