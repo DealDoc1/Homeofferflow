@@ -229,6 +229,23 @@ class TxrSigningRequestPathTests(unittest.TestCase):
         complete["fields"][0].pop(0)
         self.assertFalse(MODULE._signwell_document_matches_signing_request(complete, expected_fields, recipients))
 
+    def test_provider_document_must_keep_the_reviewed_field_geometry(self):
+        expected_fields = [[{
+            "api_id": "client_signature", "recipient_id": "1", "type": "signature",
+            "page": 2, "x": 360, "y": 640, "width": 80, "height": 24,
+        }]]
+        recipients = [{"id": "1"}]
+        complete = {
+            "fields": [[{
+                "api_id": "client_signature", "recipient_id": "1", "type": "Signature",
+                "page": 2, "x": 360, "y": 640, "width": "80.0", "height": "24.0",
+            }]],
+            "recipients": recipients,
+        }
+        self.assertTrue(MODULE._signwell_document_matches_signing_request(complete, expected_fields, recipients))
+        complete["fields"][0][0]["y"] = 675
+        self.assertFalse(MODULE._signwell_document_matches_signing_request(complete, expected_fields, recipients))
+
 
 if __name__ == "__main__":
     unittest.main()

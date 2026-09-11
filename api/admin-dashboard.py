@@ -3870,33 +3870,51 @@ def _txr_signwell_fields(form_code, agreement_data, client_count):
 
 
 def _signwell_document_matches_signing_request(document, expected_fields, expected_recipients):
-    """Confirm SignWell retained every requested field and signer before send.
+    """Confirm SignWell retained every requested field, geometry, and signer.
 
     SignWell accepts a document creation request before it is visible to a
-    signer.  Treat that acceptance as provisional: a field dropped or assigned
-    to the wrong recipient must never result in a live signature email.
+    signer.  Treat that acceptance as provisional: a field dropped, moved, or
+    assigned to the wrong recipient must never result in a live signature
+    email. SignWell returns page, position, and dimensions with Get Document,
+    so compare every supplied geometry value before sending the draft.
     """
-    expected_field_recipients = {
-        str(field.get("api_id") or "").strip(): str(field.get("recipient_id") or "").strip()
-        for page_fields in expected_fields
-        for field in page_fields
-        if str(field.get("api_id") or "").strip()
-    }
-    returned_field_recipients = {
-        str(field.get("api_id") or "").strip(): str(field.get("recipient_id") or "").strip()
-        for page_fields in (document.get("fields") or [])
-        for field in (page_fields if isinstance(page_fields, list) else [])
-        if str(field.get("api_id") or "").strip()
-    }
+    def field_map(field_groups):
+        return {
+            str(field.get("api_id") or "").strip(): field
+            for page_fields in (field_groups or [])
+            for field in (page_fields if isinstance(page_fields, list) else [])
+            if str(field.get("api_id") or "").strip()
+        }
+
+    expected_by_id = field_map(expected_fields)
+    returned_by_id = field_map(document.get("fields"))
+    if set(expected_by_id) != set(returned_by_id):
+        return False
+
+    for api_id, expected in expected_by_id.items():
+        returned = returned_by_id[api_id]
+        if str(expected.get("recipient_id") or "").strip() != str(returned.get("recipient_id") or "").strip():
+            return False
+        if str(expected.get("type") or "").strip().casefold() != str(returned.get("type") or "").strip().casefold():
+            return False
+        for key in ("page", "x", "y", "width", "height"):
+            if key not in expected:
+                continue
+            try:
+                # The API serializes dimensions as strings in some responses.
+                # A sub-point serialization difference is harmless; a field
+                # outside this tolerance is not the reviewed signing map.
+                if abs(float(expected[key]) - float(returned[key])) > 0.5:
+                    return False
+            except (TypeError, ValueError, KeyError):
+                return False
+
     expected_recipient_ids = {str(recipient.get("id") or "").strip() for recipient in expected_recipients}
     returned_recipient_ids = {
         str(recipient.get("id") or "").strip()
         for recipient in (document.get("recipients") or [])
     }
-    return (
-        expected_field_recipients == returned_field_recipients
-        and expected_recipient_ids == returned_recipient_ids
-    )
+    return expected_recipient_ids == returned_recipient_ids
 
 
 def _standalone_signer_labels(agreement):
