@@ -5321,7 +5321,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <div class="admin-metric-value">${metrics.partnerLeadCount || partnerLeads.length || 0}</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.partnerLandingViewCount || 0} partner landing views · ${metrics.partnerLandingCtaCount || 0} CTA selections (${Number(metrics.partnerLandingCtaRate || 0).toFixed(1)}%).</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.partnerApplicationOpenCount || 0} new application modal open${Number(metrics.partnerApplicationOpenCount || 0) === 1 ? '' : 's'} (${Number(metrics.partnerApplicationOpenRate || 0).toFixed(1)}% of landing views).</div>
-            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Partner form progress: ${metrics.partnerApplicationEssentialsFocusCount || 0} reached an essential · ${metrics.partnerApplicationEssentialsReadyCount || 0} completed the five essentials · ${metrics.partnerApplicationCheckoutReadyCount || 0} acknowledged terms and unlocked checkout · ${metrics.partnerApplicationSaveFailureCount || 0} application-save failures · ${metrics.partnerCheckoutStartFailureCount || 0} checkout-start failures.</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Partner form progress: ${metrics.partnerApplicationEssentialsFocusCount || 0} reached an essential · ${metrics.partnerApplicationEssentialsReadyCount || 0} completed the five essentials · ${metrics.partnerApplicationCheckoutReadyCount || 0} acknowledged terms and unlocked checkout · ${metrics.partnerApplicationAbandonedCount || 0} dismissed before checkout · ${metrics.partnerApplicationSaveFailureCount || 0} application-save failures · ${metrics.partnerCheckoutStartFailureCount || 0} checkout-start failures.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:${Number(metrics.partnerApplicationReceiptFailureCount || 0) ? 'var(--gold-light)' : 'var(--gray-light)'}">Partner-application receipts: ${Number(metrics.partnerApplicationReceiptSentCount || 0)} accepted by the delivery provider · ${Number(metrics.partnerApplicationReceiptFailureCount || 0)} unavailable or failed.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Directory acquisition: ${metrics.partnerDirectoryPricingSelectionCount || 0} pricing-and-placement view${Number(metrics.partnerDirectoryPricingSelectionCount || 0) === 1 ? '' : 's'} · ${metrics.partnerDirectoryApplicationStartCount || 0} partner application start${Number(metrics.partnerDirectoryApplicationStartCount || 0) === 1 ? '' : 's'} from the public directory.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Unfilled provider demand: ${Number(metrics.partnerDirectoryEmptySearchCount || 0)} category search${Number(metrics.partnerDirectoryEmptySearchCount || 0) === 1 ? '' : 'es'} with no active profile · ${adminSafe(Object.entries(metrics.partnerDirectoryEmptySearchCategoryCounts || {}).map(([category, count]) => `${category.replace(/_/g, ' ')} (${count})`).join(' · '), 'category demand begins with the next selected empty search')}.</div>
@@ -15791,7 +15791,7 @@ function routeAfterMagicLinkIfNeeded() {
         <h3 id="foundingPartnerTitle" style="font-family:'Playfair Display',serif; color:var(--white); margin:0 0 .3rem; font-size:1.55rem;">Choose your category-and-market placement</h3>
         <p style="color:var(--gray-light); line-height:1.55; margin:0;">Start with five essentials. Then review your selected tier, price, and renewal terms in secure Stripe Checkout before deciding whether to pay.</p>
       </div>
-      <button type="button" onclick="closeFoundingPartnerModal()" aria-label="Close partner application" style="border:none;background:transparent;color:var(--gray-light);font-size:1.5rem;cursor:pointer;">×</button>
+      <button type="button" onclick="closeFoundingPartnerModal('close')" aria-label="Close partner application" style="border:none;background:transparent;color:var(--gray-light);font-size:1.5rem;cursor:pointer;">×</button>
     </div>
 
     <div class="notice gold" style="margin-bottom:.9rem;"><strong>Get the first 90 days for the price of one standard month.</strong><br>The launch offer includes onboarding, has no setup fee, then renews monthly at the standard rate after 90 days unless cancelled. Each placement covers one category and market.</div>
@@ -15891,7 +15891,7 @@ function routeAfterMagicLinkIfNeeded() {
 
     <div class="account-actions-row" style="margin-top:1rem;">
       <button class="btn-primary" type="button" id="foundingPartnerSubmit" onclick="submitFoundingPartnerLead()" disabled aria-disabled="true" aria-label="Complete the five essentials to continue to secure checkout">Add the five essentials to continue</button>
-      <button class="btn-secondary" type="button" onclick="closeFoundingPartnerModal()">Cancel</button>
+      <button class="btn-secondary" type="button" onclick="closeFoundingPartnerModal('cancel')">Cancel</button>
     </div>
     <div id="foundingPartnerCheckoutNote" class="admin-muted" style="margin-top:.55rem;line-height:1.45;">Next: review the selected Founding Partner price and payment details in secure Stripe Checkout. Your placement stays private until onboarding and written-agreement review are complete.</div>
     <div id="foundingPartnerStatus" class="platform-status" role="status" aria-live="polite" aria-atomic="true"></div>
@@ -16229,9 +16229,17 @@ function routeAfterMagicLinkIfNeeded() {
   document.querySelectorAll('#foundingPartnerEssentials input, #foundingPartnerEssentials select').forEach(field => {
     field.addEventListener('focus', recordPartnerEssentialsFocused, { once: true });
   });
-  window.closeFoundingPartnerModal = function(){
+  window.closeFoundingPartnerModal = function(reason = 'dismissed'){
     const modal = document.getElementById('foundingPartnerModal');
     if (!modal) return;
+    // Capture only that an unopened checkout was dismissed. The event contains
+    // no field values or identity, and lets us distinguish friction from an
+    // applicant simply leaving the short intake for later.
+    const checkoutState = window.__hofFoundingPartnerCheckoutState || params().get('partner_checkout');
+    if (modal.getAttribute('aria-hidden') !== 'true' && !window.__hofFoundingPartnerLeadId && checkoutState !== 'success') {
+      recordPartnerApplicationProgress('partner_application_abandoned');
+      trackPartnerFunnel('Founding Partner Intake Dismissed', { reason });
+    }
     modal.style.display = 'none';
     modal.setAttribute('aria-hidden', 'true');
   };
@@ -16493,6 +16501,15 @@ function routeAfterMagicLinkIfNeeded() {
       field?.addEventListener('change', savePartnerApplicationDraft);
     });
     document.getElementById('foundingPartnerConsent')?.addEventListener('change', () => { savePartnerApplicationDraft(); renderFoundingPartnerCheckoutAvailability(); });
+    const foundingPartnerModal = document.getElementById('foundingPartnerModal');
+    foundingPartnerModal?.addEventListener('click', event => {
+      if (event.target === foundingPartnerModal) window.closeFoundingPartnerModal?.('backdrop');
+    });
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Escape' && foundingPartnerModal?.getAttribute('aria-hidden') !== 'true') {
+        window.closeFoundingPartnerModal?.('escape');
+      }
+    });
     renderFoundingPartnerCheckoutAvailability();
     if (params().get('partner_checkout') === 'cancelled') {
       const query = params();

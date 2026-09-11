@@ -19,6 +19,7 @@ class PartnerLandingFunnelTests(unittest.TestCase):
         self.assertIn('"partner_application_essentials_focused": "essentials_focused"', API)
         self.assertIn('"partner_application_essentials_ready": "essentials_ready"', API)
         self.assertIn('"partner_application_checkout_ready": "checkout_ready"', API)
+        self.assertIn('"partner_application_abandoned": "abandoned"', API)
         self.assertIn('"partner_application_save_failed": "save_failed"', API)
         self.assertIn('"partner_checkout_start_failed": "checkout_failed"', API)
         self.assertIn('"partner_guide_expanded": "guide_expanded"', API)
@@ -138,6 +139,7 @@ class PartnerLandingFunnelTests(unittest.TestCase):
         self.assertIn('"partnerApplicationEssentialsFocusRate"', ADMIN)
         self.assertIn('"partnerApplicationEssentialsReadyCount"', ADMIN)
         self.assertIn('"partnerApplicationCheckoutReadyCount"', ADMIN)
+        self.assertIn('"partnerApplicationAbandonedCount"', ADMIN)
         self.assertIn('"partnerApplicationSaveFailureCount"', ADMIN)
         self.assertIn('"partnerCheckoutStartFailureCount"', ADMIN)
         self.assertIn("surface: 'partner_guide'", (ROOT / "assets" / "partner-guide-metrics.js").read_text(encoding="utf-8"))
@@ -201,6 +203,13 @@ class PartnerLandingFunnelTests(unittest.TestCase):
         self.assertIn("const channel = campaignPartnerChannel() || 'direct';", INDEX)
         self.assertIn("'organic','pwa_shortcut','partner_receipt','owned_directory'", INDEX)
         self.assertIn("event_type:eventType, tier, category, channel", INDEX)
+
+    def test_partner_modal_records_aggregate_abandonment_without_field_data(self):
+        self.assertIn("window.closeFoundingPartnerModal = function(reason = 'dismissed')", INDEX)
+        self.assertIn("recordPartnerApplicationProgress('partner_application_abandoned');", INDEX)
+        self.assertIn("Founding Partner Intake Dismissed", INDEX)
+        self.assertIn("foundingPartnerModal?.addEventListener('click'", INDEX)
+        self.assertIn("window.closeFoundingPartnerModal?.('escape');", INDEX)
 
 
 if __name__ == "__main__":

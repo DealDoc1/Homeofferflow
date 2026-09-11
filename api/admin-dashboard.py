@@ -4639,6 +4639,7 @@ class handler(BaseHTTPRequestHandler):
                 "partner_application_essentials_focused",
                 "partner_application_essentials_ready",
                 "partner_application_checkout_ready",
+                "partner_application_abandoned",
                 "partner_application_save_failed",
                 "partner_checkout_start_failed",
                 "partner_guide_expanded",
@@ -4672,6 +4673,9 @@ class handler(BaseHTTPRequestHandler):
             ])
             partner_application_checkout_ready_count = len([
                 item for item in partner_landing_events if item.get("event_type") == "partner_application_checkout_ready"
+            ])
+            partner_application_abandoned_count = len([
+                item for item in partner_landing_events if item.get("event_type") == "partner_application_abandoned"
             ])
             partner_application_save_failure_count = len([
                 item for item in partner_landing_events if item.get("event_type") == "partner_application_save_failed"
@@ -6346,6 +6350,7 @@ class handler(BaseHTTPRequestHandler):
                 "partnerApplicationEssentialsFocusCount": partner_application_essentials_focus_count,
                 "partnerApplicationEssentialsReadyCount": partner_application_essentials_ready_count,
                 "partnerApplicationCheckoutReadyCount": partner_application_checkout_ready_count,
+                "partnerApplicationAbandonedCount": partner_application_abandoned_count,
                 "partnerApplicationSaveFailureCount": partner_application_save_failure_count,
                 "partnerCheckoutStartFailureCount": partner_checkout_start_failure_count,
                 "partnerGuideExpandedCount": partner_guide_expanded_count,
