@@ -59,11 +59,11 @@ class PartnerTierUiTests(unittest.TestCase):
         self.assertIn("request_type: 'founding_partner'", self.html)
 
     def test_checkout_intake_keeps_required_details_short_and_defers_preferences(self):
-        self.assertIn("Choose your category-and-market placement", self.html)
+        self.assertIn("Start your free application", self.html)
         self.assertIn("Start with five essentials.", self.html)
-        self.assertIn("review your selected tier, price, and renewal terms in secure Stripe Checkout", self.html)
+        self.assertIn("review the exact price and renewal terms in secure checkout before any payment", self.html)
         self.assertIn("Start with the essentials.", self.html)
-        self.assertIn("Everything else can be added during onboarding.", self.html)
+        self.assertIn("everything else comes during onboarding.", self.html)
 
     def test_checkout_intake_validates_and_focuses_the_first_invalid_essential(self):
         self.assertIn('id="foundingPartnerType" required aria-required="true"', self.html)
