@@ -41,9 +41,10 @@ def _draw_wrapped(canvas, value, x, y, width_chars=84, line_height=10, size=FONT
 
 
 def _check(canvas, x, y):
+    """Draw a compact check inside a small source checkbox."""
     canvas.setLineWidth(1.3)
-    canvas.line(x, y, x + 7, y + 7)
-    canvas.line(x + 7, y + 7, x + 15, y - 4)
+    canvas.line(x + 1, y + 3, x + 3.5, y + .5)
+    canvas.line(x + 3.5, y + .5, x + 7, y + 6)
 
 
 def _check_signing_role(canvas, x, y):
@@ -103,9 +104,14 @@ def _overlay(data, brokerage, associate):
     _draw(canvas, compensation.get("lease_flat_fee"), 470, 442)
     _draw(canvas, data.get("retainer_amount"), 220, 418)
     if data.get("retainer_treatment") == "apply":
-        _check(canvas, 284, 398)
+        # The page-two “will” selection square starts at x=262/y=414.
+        # The older x=284/y=398 map marked the surrounding sentence below
+        # and to the right of the printed cell.
+        _check(canvas, 262, 414)
     elif data.get("retainer_treatment") == "not_apply":
-        _check(canvas, 321, 398)
+        # The “will not” square is the separate cell at x=320 on the same
+        # line, not the beginning of the printed words that follow it.
+        _check(canvas, 320, 414)
     canvas.showPage()
 
     # Page 3: service-provider compensation, protection period, and county.

@@ -39,6 +39,50 @@ def sample_data():
 
 
 class Txr1501RendererTests(unittest.TestCase):
+    def test_retainer_checkbox_marks_use_the_printed_source_cells(self):
+        brokerage = {"legal_name": "OnDemand Realty", "license_number": "9010832"}
+        associate = {"name": "Andrew Christian", "license_number": "0738821"}
+        with patch.object(txr_1501, "_check") as draw_check:
+            txr_1501._overlay(
+                {**sample_data(), "retainer_amount": "100", "retainer_treatment": "apply"},
+                brokerage,
+                associate,
+            )
+        self.assertIn((262, 414), [call.args[1:] for call in draw_check.call_args_list])
+
+        with patch.object(txr_1501, "_check") as draw_check:
+            txr_1501._overlay(
+                {**sample_data(), "retainer_amount": "100", "retainer_treatment": "not_apply"},
+                brokerage,
+                associate,
+            )
+        self.assertIn((320, 414), [call.args[1:] for call in draw_check.call_args_list])
+
+    def test_checkbox_mark_stays_within_the_small_source_cell(self):
+        class RecordingCanvas:
+            def __init__(self):
+                self.line_width = None
+                self.lines = []
+
+            def setLineWidth(self, width):
+                self.line_width = width
+
+            def line(self, x1, y1, x2, y2):
+                self.lines.append((x1, y1, x2, y2))
+
+        canvas = RecordingCanvas()
+        txr_1501._check(canvas, 100, 200)
+
+        self.assertEqual(canvas.line_width, 1.3)
+        self.assertEqual(len(canvas.lines), 2)
+        for x1, y1, x2, y2 in canvas.lines:
+            for x in (x1, x2):
+                self.assertGreaterEqual(x, 100)
+                self.assertLessEqual(x, 108)
+            for y in (y1, y2):
+                self.assertGreaterEqual(y, 200)
+                self.assertLessEqual(y, 207)
+
     def test_selected_signing_role_is_marked_in_the_source_checkbox(self):
         brokerage = {"legal_name": "OnDemand Realty", "license_number": "9010832"}
         associate = {"name": "Andrew Christian", "license_number": "0738821"}
