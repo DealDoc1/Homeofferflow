@@ -121,7 +121,11 @@ class TxrSignerGeometryTests(unittest.TestCase):
         """
         cases = (
             (build_signwell_fields_txr1501, FORM_CASES[0][3], "txr1501", 566, 535),
-            (build_signwell_fields_txr1507, FORM_CASES[2][3], "txr1507", 654, 560),
+            # The completed packet shows the printed client Date caption
+            # farther right than the earlier nominal bound. Keep the date in
+            # that dedicated execution space, rather than beside the
+            # signature field.
+            (build_signwell_fields_txr1507, FORM_CASES[2][3], "txr1507", 654, 630),
         )
         for builder, data, prefix, first_row_y, date_label_x in cases:
             with self.subTest(prefix=prefix):

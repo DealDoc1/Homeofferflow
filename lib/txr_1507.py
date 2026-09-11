@@ -174,15 +174,16 @@ def build_signwell_fields_txr1507(data, *, client_count=1):
         # Completed-PDF QA showed SignWell's visible signature rendering
         # starts right of its nominal field while the date runs farther right
         # than its widget.  These coordinates place the rendered signature on
-        # its rule and keep the date clear of the printed "Date" caption.
+        # its rule and keep the date in its separate printed blank rather
+        # than crowding the signature line or the printed "Date" caption.
         {"api_id": "txr1507_client1_signature_p2", "type": "signature", "page": 2, "x": 350, "y": 654, "recipient_id": "1", "required": True, "width": 80, "height": 24},
-        {"api_id": "txr1507_client1_date_p2", "type": "date", "page": 2, "x": 455, "y": 654, "recipient_id": "1", "required": True, "width": 60, "height": 18, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
+        {"api_id": "txr1507_client1_date_p2", "type": "date", "page": 2, "x": 525, "y": 654, "recipient_id": "1", "required": True, "width": 60, "height": 18, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
     ]
     if client_count == 2:
         fields.extend([
             {"api_id": "txr1507_client2_initials_p1", "type": "initials", "page": 1, "x": 596, "y": 984, "recipient_id": "2", "required": True, "width": 47, "height": 14},
             {"api_id": "txr1507_client2_signature_p2", "type": "signature", "page": 2, "x": 350, "y": 753, "recipient_id": "2", "required": True, "width": 80, "height": 24},
-            {"api_id": "txr1507_client2_date_p2", "type": "date", "page": 2, "x": 455, "y": 753, "recipient_id": "2", "required": True, "width": 60, "height": 18, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
+            {"api_id": "txr1507_client2_date_p2", "type": "date", "page": 2, "x": 525, "y": 753, "recipient_id": "2", "required": True, "width": 60, "height": 18, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
         ])
     # The source uses checkboxes to identify whether the broker or the
     # broker's associate signs, followed by one shared signature/date rule.

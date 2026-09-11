@@ -289,7 +289,7 @@
         "required": true,
         "type": "date",
         "width": 60,
-        "x": 455,
+        "x": 525,
         "y": 654
       },
       {
@@ -322,7 +322,7 @@
         "required": true,
         "type": "date",
         "width": 60,
-        "x": 455,
+        "x": 525,
         "y": 753
       },
       {
