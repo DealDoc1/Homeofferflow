@@ -54,7 +54,7 @@ class TexasSellerNetProceedsCalculatorTests(unittest.TestCase):
         ):
             self.assertIn(label, SELLERS)
             self.assertIn(f"seller_package={package}", SELLERS)
-        self.assertIn("no choice creates a listing, service order, or payment", SELLERS)
+        self.assertIn("You can change direction anytime—no payment or commitment.", SELLERS)
 
     def test_seller_question_one_has_a_keyboard_skip_link(self):
         self.assertIn('class="skip-link" href="#seller-question-one"', SELLERS)

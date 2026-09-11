@@ -399,7 +399,7 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn("FSBO Seller Landing Viewed", SELLERS)
         self.assertIn("FSBO Seller Landing CTA Selected", SELLERS)
         self.assertIn('/_vercel/insights/script.js', SELLERS)
-        self.assertIn('This is an intake—not checkout or a service order.', SELLERS)
+        self.assertIn('Get your free seller plan immediately—no payment or commitment.', SELLERS)
         self.assertIn('What happens after I submit a seller request?', SELLERS)
         self.assertIn('The request is saved, a seller plan is available to download', SELLERS)
         self.assertIn('replyable email receipt', SELLERS)
