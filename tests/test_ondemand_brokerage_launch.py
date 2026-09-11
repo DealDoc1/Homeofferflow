@@ -1083,7 +1083,7 @@ class OnDemandLaunchPageTests(unittest.TestCase):
 
     def test_launch_clearly_explains_agent_document_options(self):
         for text in (
-            "Purchase, Listing, Lease Listing, or Lease Representation",
+            "Purchase, Listing, Lease Listing, or Tenant Representation",
             "supported purchase and lease documents",
             "shared library",
             "buyer or tenant representation",
