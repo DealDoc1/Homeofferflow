@@ -115,7 +115,9 @@ class PwaInstallExperienceTests(unittest.TestCase):
     def test_ios_uses_home_screen_guidance_and_install_prompt_can_be_dismissed(self):
         self.assertIn("Add to Home Screen", INDEX)
         self.assertIn("hof_pwa_install_dismissed_until", INDEX)
+        self.assertIn("hof_pwa_install_shown_until", INDEX)
         self.assertIn("1000 * 60 * 60 * 24 * 30", INDEX)
+        self.assertIn("1000 * 60 * 60 * 24 * 14", INDEX)
         self.assertIn("appinstalled", INDEX)
         self.assertIn("pwa_install_", INDEX)
         self.assertIn("pwa_install_prompt_shown", INDEX)
@@ -134,6 +136,11 @@ class PwaInstallExperienceTests(unittest.TestCase):
         self.assertIn("card.dataset.surface = target.surface", INDEX)
         self.assertIn("surface: target.surface", INDEX)
         self.assertIn("surface: installSurface(card)", INDEX)
+
+    def test_ignored_install_prompt_has_a_quiet_period(self):
+        self.assertIn("function isRecentlyShown()", INDEX)
+        self.assertIn("isDismissed() || isRecentlyShown()", INDEX)
+        self.assertIn("An ignored prompt is useful feedback too.", INDEX)
 
     def test_install_funnel_distinguishes_android_from_generic_web_traffic(self):
         self.assertIn("trackInstall('shown', { platform: installPlatform(), surface: target.surface })", INDEX)

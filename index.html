@@ -22415,6 +22415,7 @@ function routeAfterMagicLinkIfNeeded() {
   const root = window;
   const dismissKey = 'hof_pwa_install_dismissed_until';
   const shownKey = 'hof_pwa_install_prompt_shown';
+  const shownUntilKey = 'hof_pwa_install_shown_until';
   const nativeAvailableKeyPrefix = 'hof_pwa_native_available_v2_';
   const installSurfaceKey = 'hof_pwa_install_surface';
   const preferredLaunchKey = 'hof_pwa_preferred_launch_action';
@@ -22449,6 +22450,14 @@ function routeAfterMagicLinkIfNeeded() {
 
   function isDismissed(){
     try { return Number(localStorage.getItem(dismissKey) || 0) > Date.now(); }
+    catch (_) { return false; }
+  }
+
+  // An ignored prompt is useful feedback too. Do not turn every return to a
+  // saved workspace into the same promotion; revisit the question only after
+  // the agent has had time to establish a repeat-work habit.
+  function isRecentlyShown(){
+    try { return Number(localStorage.getItem(shownUntilKey) || 0) > Date.now(); }
     catch (_) { return false; }
   }
 
@@ -22524,7 +22533,7 @@ function routeAfterMagicLinkIfNeeded() {
 
   function renderInstallCard(){
     const target = installTarget();
-    if (!target || isStandalone() || isDismissed()) return;
+    if (!target || isStandalone() || isDismissed() || isRecentlyShown()) return;
     // Keep the prompt contextual: mobile users can install after a meaningful
     // return-work milestone, and desktop users see it only when their browser
     // has already exposed the native install option for a saved agent offer.
@@ -22571,6 +22580,7 @@ function routeAfterMagicLinkIfNeeded() {
       <div id="hofPwaInstallNote" class="pwa-install-note" role="status" aria-live="polite" style="margin-top:.65rem;display:none"></div>`;
     target.panel.prepend(card);
     try {
+      localStorage.setItem(shownUntilKey, String(Date.now() + 1000 * 60 * 60 * 24 * 14));
       if (!sessionStorage.getItem(shownKey)) {
         sessionStorage.setItem(shownKey, '1');
         trackInstall('shown', { platform: installPlatform(), surface: target.surface });
