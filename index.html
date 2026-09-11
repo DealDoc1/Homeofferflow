@@ -23342,10 +23342,16 @@ function routeAfterMagicLinkIfNeeded() {
     root.querySelectorAll?.('.hof-agreement-dialog button[type="submit"]').forEach(button => {
       if (button.textContent?.trim() === 'Save private draft') button.textContent = 'Save for review';
     });
-    root.querySelectorAll?.('.hof-agreement-dialog p, .hof-agreement-card p').forEach(copy => {
-      if (copy.children.length) return;
-      const original = copy.textContent || '';
-      const revised = original
+    // Some of the older guided forms include the same language in an
+    // acknowledgement label. Replace text nodes instead of assigning
+    // `textContent`, so their checkbox or input remains intact.
+    root.querySelectorAll?.('.hof-agreement-dialog p, .hof-agreement-card p, .hof-agreement-dialog label').forEach(copy => {
+      const walker = document.createTreeWalker(copy, NodeFilter.SHOW_TEXT);
+      const nodes = [];
+      while (walker.nextNode()) nodes.push(walker.currentNode);
+      nodes.forEach(node => {
+        const original = node.textContent || '';
+        const revised = original
         .replace(/This saves a private draft only\./gi, 'This prepares a document for your review before it is sent for signature.')
         .replace(/This is a private draft, not a /gi, 'This is a document for review, not a ')
         .replace(/prepare a private draft/gi, 'prepare a document for review')
@@ -23355,7 +23361,8 @@ function routeAfterMagicLinkIfNeeded() {
         .replace(/This workflow does not assess credit, advise on loan terms, contact a lender, send, or sign the addendum\./gi, 'This workflow does not assess credit, advise on loan terms, or contact a lender. Review the completed document, then confirm recipients before sending it for signature.')
         .replace(/It does not assess conditions, send, or sign the addendum\./gi, 'It does not assess conditions. Review the completed document, then confirm recipients before sending it for signature.')
         .replace(/It does not evaluate value, recommend a waiver, send, or sign the addendum\./gi, 'It does not evaluate value or recommend a waiver. Review the completed document, then confirm recipients before sending it for signature.');
-      if (revised !== original) copy.textContent = revised;
+        if (revised !== original) node.textContent = revised;
+      });
     });
     root.querySelectorAll?.('.hof-agreement-dialog .hof-iabs-status').forEach(status => {
       if (status.children.length) return;
