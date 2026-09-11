@@ -54,8 +54,8 @@
 
 ## Production result
 
-- Deployed commit: `fbf067a757060150d722283da528598b63dd48d3`.
-- Production artifact: `https://homeofferflow-ibbd834k5-dealdoc1s-projects.vercel.app`.
-- Release workflow: `34560418842`.
-- Verification: 1,692 full regression tests passed. The Vercel capacity threshold, prebuilt deployment readiness, canonical-domain response, PWA shell, and packet runtime checks all passed.
+- Initial deployed commit: `fbf067a757060150d722283da528598b63dd48d3`.
+- Corrective production commit: `e531d07f137271fddb78449e56ca18fbeb5e8ff7`.
+- Corrective release workflow: `34562820747`.
+- Verification: 1,692 full regression tests passed in the corrective workflow. The Vercel capacity threshold, prebuilt deployment readiness, canonical-domain response, PWA shell, and packet runtime checks all passed. A separate read-only live check confirmed the canonical site, public legal/PWA pages, production SignWell mode, and 20-19 packet contract.
 - Remaining proof: create and complete a fresh controlled TXR-1507 packet against this release. The previously completed PDF is retained only as the pre-correction visual finding.
