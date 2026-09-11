@@ -61,7 +61,14 @@ class SellerCheckoutRequestTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("hof_seller_leads_checkout_status_allowed", MIGRATION)
         self.assertIn("sellerLeadCheckoutAction", INDEX)
         self.assertIn("create_seller_checkout_request", INDEX)
-        self.assertIn("Confirm that you reviewed the seller’s scope and fixed price", INDEX)
+        self.assertIn("scope and ${packageDetails.price} fixed price", INDEX)
+
+    def test_admin_checkout_action_discloses_the_server_fixed_package_price_before_send(self):
+        self.assertIn("Send ${packageDetails.price} payment link", INDEX)
+        self.assertIn("Copy ${packageDetails.price} payment link", INDEX)
+        self.assertIn("Seller Prep Plan', price: '$299'", INDEX)
+        self.assertIn("FSBO Launch Kit', price: '$499'", INDEX)
+        self.assertIn("scope and ${packageDetails.price} fixed price", INDEX)
 
     def test_seller_payment_messages_prefer_the_verified_transactional_sender(self):
         self.assertIn('os.environ.get("RESEND_TRANSACTION_FROM_EMAIL")', MODULE_PATH.read_text(encoding="utf-8"))
@@ -82,7 +89,7 @@ class SellerCheckoutRequestTests(unittest.IsolatedAsyncioTestCase):
 
     def test_admin_recovers_an_existing_link_without_creating_a_second_checkout_or_email(self):
         self.assertIn("recover_seller_checkout_request", INDEX)
-        self.assertIn("Copy payment link", INDEX)
+        self.assertIn("Copy ${packageDetails.price} payment link", INDEX)
         self.assertIn("No new checkout or email was created.", INDEX)
         self.assertIn("async def recover_request(data):", checkout_source := MODULE_PATH.read_text(encoding="utf-8"))
         self.assertIn("https://api.stripe.com/v1/checkout/sessions/", checkout_source)

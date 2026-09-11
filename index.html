@@ -4827,17 +4827,30 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     const status = String(row?.status || '').toLowerCase();
     const paymentStatus = String(row?.seller_checkout_status || 'not_requested').toLowerCase();
     if (!/^[0-9a-f-]{36}$/i.test(leadId) || status !== 'qualified' || !['seller_prep', 'launch_kit'].includes(packageKey) || paymentStatus === 'paid') return '';
-    const label = paymentStatus === 'sent' ? 'Copy payment link' : 'Send payment link';
+    // The server remains the authority for both package and amount.  This
+    // label only lets the administrator confirm the commercial choice before
+    // a private payment request is created or recovered.
+    const packageDetails = packageKey === 'seller_prep'
+      ? { name: 'Seller Prep Plan', price: '$299' }
+      : { name: 'FSBO Launch Kit', price: '$499' };
+    const label = paymentStatus === 'sent'
+      ? `Copy ${packageDetails.price} payment link`
+      : `Send ${packageDetails.price} payment link`;
     const action = paymentStatus === 'sent' ? 'recover_seller_checkout_request' : 'create_seller_checkout_request';
-    return `<button type="button" class="admin-contact-action" onclick="sendSellerCheckoutRequest('${leadId}', '${action}')">${label}</button>`;
+    return `<button type="button" class="admin-contact-action" onclick="sendSellerCheckoutRequest('${leadId}', '${action}', '${packageKey}')">${label}</button>`;
   }
 
-  async function sendSellerCheckoutRequest(leadId, action = 'create_seller_checkout_request') {
+  async function sendSellerCheckoutRequest(leadId, action = 'create_seller_checkout_request', packageKey = '') {
     if (!hofAuth?.session?.access_token) return;
     const recovering = action === 'recover_seller_checkout_request';
+    const packageDetails = packageKey === 'seller_prep'
+      ? { name: 'Seller Prep Plan', price: '$299' }
+      : packageKey === 'launch_kit'
+        ? { name: 'FSBO Launch Kit', price: '$499' }
+        : { name: 'selected seller package', price: 'the confirmed price' };
     const confirmation = recovering
-      ? 'Confirm that you reviewed the seller’s scope and fixed price. This will copy the existing private Stripe payment link. It will not create a new checkout or send another email.'
-      : 'Confirm that you reviewed the seller’s scope and fixed price. This will email a private Stripe payment link for the exact Seller Prep Plan or FSBO Launch Kit.';
+      ? `Confirm that you reviewed the seller’s scope and ${packageDetails.price} fixed price for the ${packageDetails.name}. This will copy the existing private Stripe payment link. It will not create a new checkout or send another email.`
+      : `Confirm that you reviewed the seller’s scope and ${packageDetails.price} fixed price for the ${packageDetails.name}. This will email a private Stripe payment link for that exact package.`;
     if (!window.confirm(confirmation)) return;
     try {
       const response = await fetch('/api/admin-dashboard', {
