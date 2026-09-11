@@ -42,22 +42,23 @@ def _draw_wrapped(c, text, x, y, width_chars, *, line_height=11, size=FONT_SIZE)
 
 
 def _draw_check(c, x, y):
-    """Draw a compact check inside the source's small printed checkbox.
+    """Draw a compact X inside the source's small printed checkbox.
 
-    The prior 15-point wide mark overran the checkbox and the adjacent label
-    on the completed agreement.  These points stay within a roughly 8 by 7
-    point cell while remaining legible in the signed PDF.
+    Selection marks must stay entirely inside the printed square; a prior
+    wide check visually ran into the adjacent label on completed agreements.
     """
     c.setLineWidth(1.0)
-    c.line(x + 1, y + 3, x + 3.5, y + 0.5)
-    c.line(x + 3.5, y + 0.5, x + 7, y + 6)
+    c.line(x + 1, y + 1, x + 7, y + 7)
+    c.line(x + 1, y + 7, x + 7, y + 1)
 
 
 def _draw_signing_role_check(c, x, y):
-    """Mark one compact broker/associate execution checkbox cleanly."""
+    """Mark one broker/associate execution checkbox with a compact X."""
     c.setLineWidth(1.1)
-    c.line(x, y, x + 3, y - 3)
-    c.line(x + 3, y - 3, x + 7, y + 5)
+    # This source's execution squares sit slightly below the supplied anchor.
+    # Keep the mark within the measured y-3 through y+5 cell.
+    c.line(x + 1, y - 2, x + 7, y + 4)
+    c.line(x + 1, y + 4, x + 7, y - 2)
 
 
 def _overlay(data, brokerage, associate):
