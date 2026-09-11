@@ -101,8 +101,8 @@ class PartnerLandingFunnelTests(unittest.TestCase):
         self.assertIn("Those five essentials are enough to begin.", PARTNERS)
         self.assertIn("function partnerQuickStartRequested()", INDEX)
         self.assertIn("window.jumpToFoundingPartnerEssentials?.()", INDEX)
-        self.assertIn("All essentials, consent, and the secure", INDEX)
-        self.assertIn("Stripe review\n      // remain required", INDEX)
+        self.assertIn("The public \"Start free application\" promise is five essentials first.", INDEX)
+        self.assertIn("checkout. Never send a visitor to the visually hidden native select.", INDEX)
         self.assertIn('id="foundingPartnerEssentials"', INDEX)
         self.assertIn('id="foundingPartnerTierComparison"', INDEX)
         self.assertIn("document.getElementById('foundingPartnerType')?.focus()", INDEX)
@@ -123,13 +123,13 @@ class PartnerLandingFunnelTests(unittest.TestCase):
         self.assertIn("function(options = {})", INDEX[INDEX.index("window.openFoundingPartnerModal"):])
         self.assertIn("options.quickStart || partnerQuickStartRequested()", INDEX)
 
-    def test_general_partner_application_starts_with_an_explicit_tier_choice(self):
+    def test_partner_application_never_focuses_the_visually_hidden_tier_select(self):
         start = INDEX.index("window.openFoundingPartnerModal = function")
         end = INDEX.index("window.selectFoundingPartnerTier", start)
         modal = INDEX[start:end]
-        self.assertIn("campaign.tier", modal)
-        self.assertIn("'foundingPartnerModel'", modal)
-        self.assertIn("quietly treating the default Core tier", modal)
+        self.assertIn("Start at the first visible unanswered field", modal)
+        self.assertIn("window.jumpToFoundingPartnerEssentials?.()", modal)
+        self.assertNotIn("? 'foundingPartnerModel'", modal)
 
     def test_partner_funnel_measures_required_field_reach_without_collecting_applicant_data(self):
         self.assertIn("function recordPartnerEssentialsFocused()", INDEX)

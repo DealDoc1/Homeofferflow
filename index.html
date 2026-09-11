@@ -16143,7 +16143,7 @@ function routeAfterMagicLinkIfNeeded() {
     if (!modal) return;
     window.__hofFoundingPartnerLeadId = window.__hofFoundingPartnerLeadId || loadSavedPartnerLeadId();
     const campaign = applyCampaignPartnerChoices();
-    const restoredDraft = restorePartnerApplicationDraft();
+    restorePartnerApplicationDraft();
     modal.style.display = 'flex';
     modal.setAttribute('aria-hidden', 'false');
     const confirmation = document.getElementById('foundingPartnerCheckoutConfirmation');
@@ -16160,21 +16160,20 @@ function routeAfterMagicLinkIfNeeded() {
     }
     trackPartnerFunnel('Founding Partner Intake Opened', { checkoutState: checkoutState === 'success' ? 'success' : checkoutState === 'cancelled' ? 'cancelled' : 'new', campaignCategory: campaign.category || null, campaignTier: campaign.tier || null, campaignChannel: campaign.channel || null });
     renderFoundingPartnerCheckoutAvailability();
-    if ((options.quickStart || partnerQuickStartRequested()) && campaign.tier && !window.__hofFoundingPartnerLeadId && checkoutState !== 'success' && checkoutState !== 'cancelled') {
-      // A campaign that deliberately names a tier can remove the duplicate
-      // scrolling step. All essentials, consent, and the secure Stripe review
-      // remain required before an application can continue.
+    if ((options.quickStart || partnerQuickStartRequested()) && !window.__hofFoundingPartnerLeadId && checkoutState !== 'success' && checkoutState !== 'cancelled') {
+      // The public "Start free application" promise is five essentials first.
+      // Start at the first visible unanswered field on every quick-start route;
+      // a campaign may still preselect a tier, and it remains changeable before
+      // checkout. Never send a visitor to the visually hidden native select.
       setTimeout(() => window.jumpToFoundingPartnerEssentials?.(), 0);
     } else {
-      // A general application starts at the tier selector, rather than
-      // quietly treating the default Core tier as the applicant's choice.
-      // Campaigns and saved applications retain their intentional selection.
-      const firstUnfinished = !campaign.tier && !window.__hofFoundingPartnerLeadId && !restoredDraft
-        ? 'foundingPartnerModel'
-        : partnerEssentialProgress().ready
-          ? 'foundingPartnerConsent'
-          : ['foundingPartnerType', 'foundingPartnerCompany', 'foundingPartnerContact', 'foundingPartnerEmail', 'foundingPartnerMarket']
-            .find(id => !value(id)) || 'foundingPartnerType';
+      // For a non-quick-start modal, use the same visible-first order. The
+      // selected tier is shown above and can be changed in the optional tier
+      // comparison before checkout; it is not a hidden-focus obstacle.
+      const firstUnfinished = partnerEssentialProgress().ready
+        ? 'foundingPartnerConsent'
+        : ['foundingPartnerType', 'foundingPartnerCompany', 'foundingPartnerContact', 'foundingPartnerEmail', 'foundingPartnerMarket']
+          .find(id => !value(id)) || 'foundingPartnerType';
       setTimeout(() => document.getElementById(firstUnfinished)?.focus(), 0);
     }
   };
