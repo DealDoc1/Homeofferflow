@@ -35,3 +35,12 @@ class TxrSignwellMapReviewTests(unittest.TestCase):
         self.assertEqual(fields["txr1508_agent_initials_p1"]["page"], 1)
         self.assertEqual(fields["txr1508_client1_initials_p1"]["y"], 736)
         self.assertEqual(fields["txr1508_client2_initials_p1"]["y"], 794)
+
+    def test_txr1507_combined_review_uses_non_production_values_and_each_x_choice(self):
+        data, brokerage, associate = review.txr1507_value_overlay_data()
+        self.assertEqual(data["client_names"], ["Review Client One", "Review Client Two"])
+        self.assertEqual(data["service_level"], "full_services")
+        self.assertEqual(data["intermediary"], "authorized")
+        self.assertEqual(data["signer_plan"], "clients_and_associate")
+        self.assertEqual(brokerage["legal_name"], "Review Brokerage")
+        self.assertEqual(associate["name"], "Review Associate")
