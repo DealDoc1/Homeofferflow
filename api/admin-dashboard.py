@@ -4074,7 +4074,11 @@ async def _send_txr_agreement_for_signature(user, data):
     library without being assigned to a brokerage seat.
     """
     if not TXR_SIGNING_ENABLED:
-        raise PermissionError("Restricted TXR signing is not enabled yet; completed signed-PDF release QA is still required.")
+        # This can reach an authenticated agent through a stale page or a
+        # direct request. Keep the implementation detail in server logs, but
+        # give the person a clear, accurate next step: their completed
+        # document remains available for review.
+        raise PermissionError("Signature sending is not available right now. Your document is saved for review.")
     if not SIGNWELL_ENABLED or not SIGNWELL_API_KEY:
         raise RuntimeError("SignWell signing is not configured for this environment.")
     agreement_id = str(data.get("agreementId") or "").strip()

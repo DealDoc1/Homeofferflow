@@ -163,6 +163,15 @@ class TxrSigningRequestPathTests(unittest.TestCase):
         self.assertIn('"signingFormCodes": sorted(TXR_SIGNING_FORM_CODES)', source)
         self.assertIn('row.pop("agreement_data", None)', source)
 
+    def test_unavailable_signature_sending_has_a_clear_customer_next_step(self):
+        source = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
+        html = (ROOT / "index.html").read_text(encoding="utf-8")
+        self.assertIn(
+            "Signature sending is not available right now. Your document is saved for review.",
+            source,
+        )
+        self.assertIn("signature sending is not available", html)
+
     def test_shared_library_signing_does_not_require_a_brokerage_seat(self):
         signing_source = MODULE._send_txr_agreement_for_signature.__doc__ or ""
         route_source = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
