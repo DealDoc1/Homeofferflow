@@ -28,9 +28,9 @@ class PwaInstallExperienceTests(unittest.TestCase):
         self.assertIn("Install Offer Workspace App", INDEX)
         self.assertIn("Install Seller Plan App", INDEX)
         self.assertIn("Show the 2 steps", INDEX)
-        self.assertIn("no App Store download or separate account is needed.", INDEX)
-        self.assertIn("pwa-install-benefits", INDEX)
-        self.assertIn("offers and client details stay protected online", INDEX)
+        self.assertIn("Keep this workspace handy", INDEX)
+        self.assertIn("Your details stay protected online.", INDEX)
+        self.assertNotIn("pwa-install-benefits\" aria-label=\"What installation does", INDEX)
         self.assertIn("const desktopNativeInstall = !mobileInstallSurface", INDEX)
         self.assertIn("target.surface === 'agent_saved_offer'", INDEX)
         self.assertIn("if (!mobileInstallSurface && !desktopNativeInstall) return;", INDEX)
@@ -54,14 +54,15 @@ class PwaInstallExperienceTests(unittest.TestCase):
         self.assertIn("buyer_review: 'buyer_offer'", INDEX)
         self.assertIn("buyer_success: 'buyer_offer'", INDEX)
         self.assertIn("localStorage.setItem(preferredLaunchKey, action)", INDEX)
-        self.assertIn("Save this offer workspace to your Home Screen", INDEX)
+        self.assertIn(": 'offer workspace';", INDEX)
         self.assertIn("window.beginOfferFrom?.('pwa_buyer_offer');", INDEX)
         self.assertIn("recordBuyerOfferShortcut();", INDEX)
 
-    def test_public_workflow_install_copy_does_not_imply_that_buyers_or_sellers_have_an_account(self):
-        self.assertIn("const publicReturnWork = ['seller_success', 'buyer_review', 'buyer_success'].includes(target.surface);", INDEX)
-        self.assertIn("publicReturnWork ? 'No sign-in required' : 'No new account'", INDEX)
-        self.assertIn("Return to the public guided workflow whenever you need it.", INDEX)
+    def test_install_copy_is_compact_and_names_the_relevant_workspace(self):
+        self.assertIn("const workspaceLabel = target.surface === 'seller_success'", INDEX)
+        self.assertIn("? 'seller plan'", INDEX)
+        self.assertIn("? 'agent workspace'", INDEX)
+        self.assertIn("Keep this workspace handy", INDEX)
 
     def test_public_page_install_keeps_its_declared_workflow_one_tap_away(self):
         self.assertIn("const preferredLaunchKey = 'hof_pwa_preferred_launch_action';", PWA_REGISTER)
@@ -83,8 +84,7 @@ class PwaInstallExperienceTests(unittest.TestCase):
         self.assertIn("const sellerStatus = document.getElementById('fsboSellerStatus');", INDEX)
         self.assertIn("sellerModal?.getAttribute('aria-hidden') === 'false'", INDEX)
         self.assertIn("surface: 'seller_success'", INDEX)
-        self.assertIn("const sellerReturnCopy = target.surface === 'seller_success'", INDEX)
-        self.assertIn('Save this seller plan to your Home Screen', INDEX)
+        self.assertIn("? 'seller plan'", INDEX)
 
     def test_seller_plan_install_returns_to_the_public_plan_from_a_clean_standalone_launch(self):
         self.assertIn("const preferredLaunchKey = 'hof_pwa_preferred_launch_action';", INDEX)
@@ -103,14 +103,14 @@ class PwaInstallExperienceTests(unittest.TestCase):
         self.assertIn("root.hofAuth.myOffers.length > 0", INDEX)
         self.assertIn("Install Agent Workspace App", INDEX)
         self.assertIn("Add Agent Workspace to Home Screen", INDEX)
-        self.assertIn('Save this agent workspace to your Home Screen', INDEX)
+        self.assertIn("? 'agent workspace'", INDEX)
 
     def test_desktop_install_stays_reserved_for_repeat_agent_work_when_native_install_is_available(self):
         self.assertIn("const desktopNativeInstall = !mobileInstallSurface", INDEX)
         self.assertIn("Boolean(deferredInstallPrompt)", INDEX)
         self.assertIn("target.surface === 'agent_saved_offer'", INDEX)
-        self.assertIn("Keep HomeOfferFlow one ${desktop ? 'click' : 'tap'} away", INDEX)
-        self.assertIn('Install the lightweight desktop app for a dedicated, one-click launch', INDEX)
+        self.assertIn("Keep this workspace handy", INDEX)
+        self.assertIn('Install the lightweight desktop app for a one-click return to this workspace.', INDEX)
 
     def test_ios_uses_home_screen_guidance_and_install_prompt_can_be_dismissed(self):
         self.assertIn("Add to Home Screen", INDEX)

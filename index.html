@@ -22510,33 +22510,19 @@ function routeAfterMagicLinkIfNeeded() {
     try { sessionStorage.setItem(installSurfaceKey, target.surface); } catch (_) {}
     const ios = isIos();
     const desktop = !mobileInstallSurface;
-    const publicReturnWork = ['seller_success', 'buyer_review', 'buyer_success'].includes(target.surface);
-    const sellerReturnCopy = target.surface === 'seller_success'
-      ? 'Save this seller plan to your Home Screen so it is one tap away when you return to photos, repairs, timing, or provider questions.'
-      : '';
-    const buyerReturnCopy = target.surface === 'buyer_review' || target.surface === 'buyer_success'
-      ? 'Save this offer workspace to your Home Screen so starting or returning to your guided offer is one tap away.'
-      : '';
-    const agentReturnCopy = target.surface === 'agent_saved_offer'
-      ? 'Save this agent workspace to your Home Screen so your saved offer, transaction choices, and signing status are one tap away between showings.'
-      : '';
-    card.innerHTML = `<h4>Keep HomeOfferFlow one ${desktop ? 'click' : 'tap'} away</h4>
+    const workspaceLabel = target.surface === 'seller_success'
+      ? 'seller plan'
+      : target.surface === 'agent_saved_offer'
+      ? 'agent workspace'
+      : 'offer workspace';
+    card.innerHTML = `<h4>Keep this workspace handy</h4>
       <p>${ios
-        ? 'Add this workspace to your iPhone or iPad Home Screen for a full-screen, app-like launch. It takes about a minute—no App Store download or separate account is needed.'
+        ? `Add this ${workspaceLabel} to your Home Screen for a faster return. Your details stay protected online.`
         : isAndroid() && !deferredInstallPrompt
-        ? 'Add HomeOfferFlow to your Android Home Screen for a faster app-like launch. It takes about a minute—no App Store download or separate account is needed.'
+        ? `Add this ${workspaceLabel} to your Android Home Screen for a faster return. Your details stay protected online.`
         : desktop
-        ? 'Install the lightweight desktop app for a dedicated, one-click launch back to your saved offer and workspace. No App Store download or separate account is needed.'
-        : 'Install HomeOfferFlow for a faster app-like launch and an offline-safe shell when you are between showings. It takes about a minute—no App Store download or separate account is needed.'}</p>
-      <div class="pwa-install-benefits" aria-label="What installation does">
-        <div class="pwa-install-benefit"><strong>One-tap return</strong><br>Launch the same workspace from an app icon.</div>
-        <div class="pwa-install-benefit"><strong>${publicReturnWork ? 'No sign-in required' : 'No new account'}</strong><br>${publicReturnWork ? 'Return to the public guided workflow whenever you need it.' : 'Use the sign-in and access you already have.'}</div>
-        <div class="pwa-install-benefit"><strong>Protected data</strong><br>Offers and client details remain online.</div>
-      </div>
-      ${sellerReturnCopy ? `<p class="pwa-install-note"><strong>${sellerReturnCopy}</strong></p>` : ''}
-      ${buyerReturnCopy ? `<p class="pwa-install-note"><strong>${buyerReturnCopy}</strong></p>` : ''}
-      ${agentReturnCopy ? `<p class="pwa-install-note"><strong>${agentReturnCopy}</strong></p>` : ''}
-      <p class="pwa-install-note">Your offers and client details stay protected online; installation only gives this existing workspace a faster, dedicated launch.</p>
+        ? 'Install the lightweight desktop app for a one-click return to this workspace.'
+        : `Install HomeOfferFlow for a faster return to this ${workspaceLabel}.`}</p>
       <div class="pwa-install-actions">
         ${ios
           ? `<button class="btn-primary" type="button" id="hofPwaInstallHelp">${installHelpLabel(target.surface)}</button>`
