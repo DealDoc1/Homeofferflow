@@ -29,6 +29,15 @@ class ConsumerCheckoutScopeTests(unittest.TestCase):
         self.assertNotIn("Legal risk assessment", INDEX)
         self.assertNotIn("Full legal coverage", INDEX)
 
+    def test_offer_review_screen_explains_checkout_before_document_generation(self):
+        self.assertIn('id="reviewReadyNotice"', INDEX)
+        self.assertIn("review the one-time $99 checkout", INDEX)
+        self.assertIn("After payment, HomeOfferFlow generates the documents", INDEX)
+        self.assertNotIn(
+            "HomeOfferFlow will generate the documents and route the required signatures when you continue.",
+            INDEX,
+        )
+
     def test_receipt_email_is_validated_and_focused_before_checkout(self):
         self.assertIn('id="paymentEmail" name="paymentEmail" inputmode="email" autocomplete="email"', INDEX)
         start = INDEX.index("async function handlePayment()")
