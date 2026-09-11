@@ -162,7 +162,8 @@ class FsboLandingFunnelTests(unittest.TestCase):
         self.assertIn('<noscript><style>.tiers .tier:nth-child(n+4){display:block}</style></noscript>', SELLERS)
         self.assertNotIn('.seller-tier-grid .tier:nth-child(n+4){display:none}', SELLERS)
 
-    def test_selected_paid_seller_path_is_brought_to_the_front_of_the_catalog(self):
+    def test_selected_seller_path_is_brought_to_the_front_of_the_catalog_including_the_free_email_return(self):
+        self.assertIn("free_intake:'Free Seller Intake'", SELLERS)
         self.assertIn("flat_fee_mls:'Flat-Fee MLS Interest'", SELLERS)
         self.assertIn("grid.prepend(card)", SELLERS)
         self.assertIn("badge.textContent='Your selected path'", SELLERS)
