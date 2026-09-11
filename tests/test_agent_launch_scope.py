@@ -7,38 +7,23 @@ HTML = (ROOT / "index.html").read_text(encoding="utf-8")
 
 
 class AgentLaunchScopeTests(unittest.TestCase):
-    def test_dashboard_discloses_live_and_non_live_form_scope(self):
+    def test_dashboard_discloses_a_simple_document_path(self):
         self.assertIn('id="hof-agent-launch-scope-v1"', HTML)
         self.assertIn("Forms available in HomeOfferFlow", HTML)
         self.assertIn("Available now", HTML)
-        self.assertIn("Guided forms", HTML)
-        self.assertIn("When signature sending is available, you review the completed document and confirm the recipients first.", HTML)
+        self.assertIn("Guided documents", HTML)
+        self.assertIn("For any document that can be sent for signature, review the completed PDF and confirm every recipient first.", HTML)
 
-    def test_scope_does_not_overstate_unreleased_agent_form_workflows(self):
-        for form_group in (
-            "TXR-1501, TXR-1506, TXR-1507, TXR-1508, TXR-1905, TXR-1914, TXR-1917, TXR-1919, TXR-1948, TXR-1953, and TXR-1954 library",
-            "Documents outside the current sending scope",
-        ):
-            self.assertIn(form_group, HTML)
-        self.assertIn(
-            "Documents outside the current sending scope remain available to prepare and review.",
-            HTML,
-        )
-        self.assertIn(
-            "HomeOfferFlow clearly identifies whether a completed document can be sent for signature.",
-            HTML,
-        )
+    def test_scope_does_not_overstate_signature_availability(self):
+        self.assertIn("Every signed-in agent can prepare documents from the shared library.", HTML)
+        self.assertIn("For any document that can be sent for signature", HTML)
         self.assertNotIn("Use your approved brokerage process", HTML)
         self.assertIn("and any applicable brokerage process.", HTML)
 
-    def test_scope_explains_shared_txr_library_and_private_draft_limit(self):
+    def test_scope_keeps_the_catalog_out_of_the_dashboard_summary(self):
         self.assertIn("every signed-in agent", HTML)
-        for form_code in (
-            "TXR-1501", "TXR-1506", "TXR-1507", "TXR-1508", "TXR-1905",
-            "TXR-1914", "TXR-1917", "TXR-1919", "TXR-1948", "TXR-1953", "TXR-1954",
-        ):
-            self.assertIn(form_code, HTML)
-        self.assertIn("When signature sending is available, you review the completed document and confirm the recipients first.", HTML)
+        self.assertNotIn("Every signed-in agent can prepare a document from the shared TXR-1501", HTML)
+        self.assertIn("See approved shared-source revisions", HTML)
 
     def test_scope_provides_a_dedicated_missing_form_request_path(self):
         self.assertIn("openMissingFormRequest", HTML)

@@ -21557,12 +21557,12 @@ function routeAfterMagicLinkIfNeeded() {
           <strong>Available now</strong>
           Texas residential purchase-offer packets, supported purchase addenda, Seller Temporary Residential Lease when seller post-closing possession applies, buyer-side e-signing, saved offer defaults, and an optional profile IABS attachment.
         </div>
-        <div class="hof-launch-scope-item not-ready">
-          <strong>Guided forms</strong>
-          Every signed-in agent can prepare a document from the shared TXR-1501, TXR-1506, TXR-1507, TXR-1508, TXR-1905, TXR-1914, TXR-1917, TXR-1919, TXR-1948, TXR-1953, and TXR-1954 library. When signature sending is available, you review the completed document and confirm the recipients first.
+        <div class="hof-launch-scope-item ready">
+          <strong>Guided documents</strong>
+          Every signed-in agent can prepare documents from the shared library. Start with the transaction and HomeOfferFlow will show the agreements, notices, and addenda that fit.
         </div>
       </div>
-      <p><strong>Document availability:</strong> HomeOfferFlow clearly identifies whether a completed document can be sent for signature. Documents outside the current sending scope remain available to prepare and review.</p>
+      <p><strong>Before sending:</strong> For any document that can be sent for signature, review the completed PDF and confirm every recipient first.</p>
       <div class="beta-checklist-actions"><button type="button" onclick="openMissingFormRequest()">Request a missing form</button></div>`;
     const subscription = document.getElementById('subscriptionUsageCard');
     if (subscription?.parentElement) subscription.insertAdjacentElement('afterend', card);
