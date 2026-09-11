@@ -23350,6 +23350,13 @@ function routeAfterMagicLinkIfNeeded() {
     root.querySelectorAll?.('.hof-agreement-dialog button[type="submit"]').forEach(button => {
       if (button.textContent?.trim() === 'Save private draft') button.textContent = 'Save for review';
     });
+    root.querySelectorAll?.('.hof-agreement-card button, .hof-agreement-dialog button').forEach(button => {
+      const original = button.textContent || '';
+      const revised = original
+        .replace(/^Start (.+?) draft$/i, 'Start $1 review')
+        .replace(/^Save (.+?) draft$/i, 'Save $1 for review');
+      if (revised !== original) button.textContent = revised;
+    });
     // Some of the older guided forms include the same language in an
     // acknowledgement label. Replace text nodes instead of assigning
     // `textContent`, so their checkbox or input remains intact.
@@ -23365,6 +23372,7 @@ function routeAfterMagicLinkIfNeeded() {
         .replace(/prepare a private draft/gi, 'prepare a document for review')
         .replace(/prepare an appraisal private draft/gi, 'prepare an appraisal document for review')
         .replace(/private (seller-financing|residential-lease|fixture-lease|appraisal) draft/gi, '$1 document for review')
+        .replace(/review the draft/gi, 'review the document')
         .replace(/review the completed draft/gi, 'review the completed document')
         .replace(/This workflow does not assess credit, advise on loan terms, contact a lender, send, or sign the addendum\./gi, 'This workflow does not assess credit, advise on loan terms, or contact a lender. Review the completed document, then confirm recipients before sending it for signature.')
         .replace(/It does not assess conditions, send, or sign the addendum\./gi, 'It does not assess conditions. Review the completed document, then confirm recipients before sending it for signature.')
