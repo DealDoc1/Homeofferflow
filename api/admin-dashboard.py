@@ -3746,6 +3746,7 @@ async def _render_representation_draft_preview(user, agreement_id, *, for_signin
         agreement_uuid = str(uuid.UUID(str(agreement_id)))
     except (TypeError, ValueError, AttributeError):
         raise ValueError("Choose a valid private agreement draft.")
+    await _require_agent_form_role(user)
     agreements = await _get(
         "hof_standalone_agreements?"
         f"id=eq.{urllib.parse.quote(agreement_uuid)}"
@@ -4015,6 +4016,7 @@ async def _standalone_signing_recipient_preview(user, agreement_id):
         agreement_uuid = str(uuid.UUID(str(agreement_id or "")))
     except (TypeError, ValueError, AttributeError):
         raise ValueError("Choose a valid document draft.")
+    await _require_agent_form_role(user)
     rows = await _get(
         "hof_standalone_agreements?"
         f"id=eq.{urllib.parse.quote(agreement_uuid)}"
@@ -4096,6 +4098,7 @@ async def _send_txr_agreement_for_signature(user, data):
         agreement_uuid = str(uuid.UUID(agreement_id))
     except (TypeError, ValueError, AttributeError):
         raise ValueError("Choose a valid private agreement draft.")
+    await _require_agent_form_role(user)
     rows = await _get(
         "hof_standalone_agreements?"
         f"id=eq.{urllib.parse.quote(agreement_uuid)}"
@@ -4353,6 +4356,11 @@ class handler(BaseHTTPRequestHandler):
                 _json(self, 200, {"drafts": rows})
                 return
             if scope == "standalone_agreements":
+                try:
+                    asyncio.run(_require_agent_form_role(user))
+                except PermissionError as exc:
+                    _json(self, 403, {"error": str(exc)})
+                    return
                 rows = asyncio.run(_get(
                     "hof_standalone_agreements?"
                     f"agent_user_id=eq.{urllib.parse.quote(user['id'])}"

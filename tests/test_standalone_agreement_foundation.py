@@ -249,6 +249,21 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
         self.assertIn('Agent or broker access is required', guard)
         self.assertIn('await _require_agent_form_role(user)', create)
 
+    def test_server_enforces_agent_form_role_for_every_existing_draft_action(self):
+        backend = (ROOT / "api" / "admin-dashboard.py").read_text()
+        for function_name in (
+            "_render_representation_draft_preview",
+            "_standalone_signing_recipient_preview",
+            "_send_txr_agreement_for_signature",
+        ):
+            start = backend.index(f"async def {function_name}")
+            next_function = backend.find("\n\nasync def ", start + 1)
+            function = backend[start:next_function if next_function > start else None]
+            self.assertIn("await _require_agent_form_role(user)", function)
+        scope_start = backend.index('if scope == "standalone_agreements":')
+        scope = backend[scope_start:backend.index('if scope == "platform_source_brokerages":', scope_start)]
+        self.assertIn("_require_agent_form_role(user)", scope)
+
     def test_showing_services_requires_its_execution_fee(self):
         payload = valid_payload()
         payload["serviceLevel"] = "showing_services"
