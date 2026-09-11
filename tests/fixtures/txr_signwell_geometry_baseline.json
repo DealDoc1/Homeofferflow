@@ -257,7 +257,7 @@
         "type": "date",
         "width": 82,
         "x": 185,
-        "y": 615
+        "y": 590
       },
       {
         "api_id": "txr1507_associate_initials_p1",
@@ -279,7 +279,7 @@
         "type": "signature",
         "width": 100,
         "x": 10,
-        "y": 615
+        "y": 590
       },
       {
         "api_id": "txr1507_client1_date_p2",
@@ -289,7 +289,7 @@
         "required": true,
         "type": "date",
         "width": 60,
-        "x": 530,
+        "x": 510,
         "y": 640
       },
       {
@@ -311,7 +311,7 @@
         "required": true,
         "type": "signature",
         "width": 80,
-        "x": 445,
+        "x": 360,
         "y": 640
       },
       {
@@ -322,7 +322,7 @@
         "required": true,
         "type": "date",
         "width": 60,
-        "x": 530,
+        "x": 510,
         "y": 735
       },
       {
@@ -344,7 +344,7 @@
         "required": true,
         "type": "signature",
         "width": 80,
-        "x": 445,
+        "x": 360,
         "y": 735
       }
     ],

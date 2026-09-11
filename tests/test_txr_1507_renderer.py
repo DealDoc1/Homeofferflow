@@ -177,24 +177,24 @@ class Txr1507RendererTests(unittest.TestCase):
         self.assertEqual(len(two), 9)
         self.assertTrue(all(field["page"] in {1, 2} for field in two))
         self.assertTrue(all(field["recipient_id"] in {"1", "2", "associate"} for field in two))
-        self.assertEqual(next(field["y"] for field in two if field["api_id"] == "txr1507_associate_signature_p2"), 615)
+        self.assertEqual(next(field["y"] for field in two if field["api_id"] == "txr1507_associate_signature_p2"), 590)
         self.assertEqual(next(field["y"] for field in two if field["api_id"] == "txr1507_client2_signature_p2"), 735)
-        self.assertEqual(next(field["x"] for field in two if field["api_id"] == "txr1507_client1_signature_p2"), 445)
+        self.assertEqual(next(field["x"] for field in two if field["api_id"] == "txr1507_client1_signature_p2"), 360)
         initials = {field["api_id"]: field for field in two}
         # Keep the completed-packet calibration intact.  SignWell's rendered
         # values sit right and below the nominal widgets, so these top-origin
         # coordinates keep every visible value on its source rule.
         self.assertEqual(
             (initials["txr1507_client1_signature_p2"]["x"], initials["txr1507_client1_signature_p2"]["y"], initials["txr1507_client1_date_p2"]["x"], initials["txr1507_client1_date_p2"]["y"]),
-            (445, 640, 530, 640),
+            (360, 640, 510, 640),
         )
         self.assertEqual(
             (initials["txr1507_client2_signature_p2"]["x"], initials["txr1507_client2_signature_p2"]["y"], initials["txr1507_client2_date_p2"]["x"], initials["txr1507_client2_date_p2"]["y"]),
-            (445, 735, 530, 735),
+            (360, 735, 510, 735),
         )
         self.assertEqual(
             (initials["txr1507_associate_signature_p2"]["x"], initials["txr1507_associate_signature_p2"]["y"], initials["txr1507_associate_date_p2"]["x"], initials["txr1507_associate_date_p2"]["y"]),
-            (10, 615, 185, 615),
+            (10, 590, 185, 590),
         )
         # TXR-1507's footer has a separate Broker/Associate initial blank
         # before the two Client blanks. Every party named in that footer must

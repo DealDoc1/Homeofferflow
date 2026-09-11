@@ -135,7 +135,7 @@ class TxrSignerGeometryTests(unittest.TestCase):
                 role = fields[f"{prefix}_associate_signature_p{6 if prefix == 'txr1501' else 2}"]
                 self.assertEqual(client["y"], first_row_y)
                 if prefix == "txr1507":
-                    self.assertEqual(role["y"], 615)
+                    self.assertEqual(role["y"], 590)
                 else:
                     self.assertEqual(role["y"], 677)
                 self.assertGreater(date["x"], client["x"] + client["width"])
@@ -210,7 +210,7 @@ class TxrSignerGeometryTests(unittest.TestCase):
         # Broker and broker-associate are chosen by the printed checkboxes;
         # both sign on the one shared rule.  There is no second associate
         # signature rule below the label.
-        self.assertEqual(txr1507["txr1507_associate_signature_p2"]["y"], 615)
+        self.assertEqual(txr1507["txr1507_associate_signature_p2"]["y"], 590)
         self.assertEqual(txr1507["txr1507_associate_signature_p2"]["x"], 10)
         self.assertEqual(txr1507["txr1507_associate_date_p2"]["x"], 185)
         self.assertEqual(
