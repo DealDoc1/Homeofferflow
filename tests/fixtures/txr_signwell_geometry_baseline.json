@@ -256,8 +256,8 @@
         "required": true,
         "type": "date",
         "width": 82,
-        "x": 115,
-        "y": 634
+        "x": 185,
+        "y": 615
       },
       {
         "api_id": "txr1507_associate_initials_p1",
@@ -279,7 +279,7 @@
         "type": "signature",
         "width": 100,
         "x": 10,
-        "y": 634
+        "y": 615
       },
       {
         "api_id": "txr1507_client1_date_p2",
@@ -289,8 +289,8 @@
         "required": true,
         "type": "date",
         "width": 60,
-        "x": 525,
-        "y": 654
+        "x": 530,
+        "y": 640
       },
       {
         "api_id": "txr1507_client1_initials_p1",
@@ -311,8 +311,8 @@
         "required": true,
         "type": "signature",
         "width": 80,
-        "x": 350,
-        "y": 654
+        "x": 445,
+        "y": 640
       },
       {
         "api_id": "txr1507_client2_date_p2",
@@ -322,8 +322,8 @@
         "required": true,
         "type": "date",
         "width": 60,
-        "x": 525,
-        "y": 753
+        "x": 530,
+        "y": 735
       },
       {
         "api_id": "txr1507_client2_initials_p1",
@@ -344,8 +344,8 @@
         "required": true,
         "type": "signature",
         "width": 80,
-        "x": 350,
-        "y": 753
+        "x": 445,
+        "y": 735
       }
     ],
     "TXR1508": [

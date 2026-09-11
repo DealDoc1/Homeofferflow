@@ -92,7 +92,7 @@ class Txr1507RendererTests(unittest.TestCase):
                 {"legal_name": "OnDemand Realty", "license_number": "9010832"},
                 {"name": "Andrew Christian", "license_number": "0738821"},
             )
-        self.assertIn((37, 242), [call.args[1:] for call in draw_check.call_args_list])
+        self.assertIn((37, 268), [call.args[1:] for call in draw_check.call_args_list])
 
         with patch.object(txr_1507, "_draw_signing_role_check") as draw_check:
             txr_1507._overlay(
@@ -100,7 +100,7 @@ class Txr1507RendererTests(unittest.TestCase):
                 {"legal_name": "OnDemand Realty", "license_number": "9010832"},
                 {"name": "Andrew Christian", "license_number": "0738821"},
             )
-        self.assertIn((37, 254), [call.args[1:] for call in draw_check.call_args_list])
+        self.assertIn((37, 280), [call.args[1:] for call in draw_check.call_args_list])
 
     def test_renderer_preserves_two_pages_and_overlays_only_supplied_values(self):
         rendered = render_txr_1507(
@@ -155,24 +155,24 @@ class Txr1507RendererTests(unittest.TestCase):
         self.assertEqual(len(two), 9)
         self.assertTrue(all(field["page"] in {1, 2} for field in two))
         self.assertTrue(all(field["recipient_id"] in {"1", "2", "associate"} for field in two))
-        self.assertEqual(next(field["y"] for field in two if field["api_id"] == "txr1507_associate_signature_p2"), 634)
-        self.assertEqual(next(field["y"] for field in two if field["api_id"] == "txr1507_client2_signature_p2"), 753)
-        self.assertEqual(next(field["x"] for field in two if field["api_id"] == "txr1507_client1_signature_p2"), 350)
+        self.assertEqual(next(field["y"] for field in two if field["api_id"] == "txr1507_associate_signature_p2"), 615)
+        self.assertEqual(next(field["y"] for field in two if field["api_id"] == "txr1507_client2_signature_p2"), 735)
+        self.assertEqual(next(field["x"] for field in two if field["api_id"] == "txr1507_client1_signature_p2"), 445)
         initials = {field["api_id"]: field for field in two}
         # Keep the completed-packet calibration intact.  SignWell's rendered
         # values sit right and below the nominal widgets, so these top-origin
         # coordinates keep every visible value on its source rule.
         self.assertEqual(
             (initials["txr1507_client1_signature_p2"]["x"], initials["txr1507_client1_signature_p2"]["y"], initials["txr1507_client1_date_p2"]["x"], initials["txr1507_client1_date_p2"]["y"]),
-            (350, 654, 525, 654),
+            (445, 640, 530, 640),
         )
         self.assertEqual(
             (initials["txr1507_client2_signature_p2"]["x"], initials["txr1507_client2_signature_p2"]["y"], initials["txr1507_client2_date_p2"]["x"], initials["txr1507_client2_date_p2"]["y"]),
-            (350, 753, 525, 753),
+            (445, 735, 530, 735),
         )
         self.assertEqual(
             (initials["txr1507_associate_signature_p2"]["x"], initials["txr1507_associate_signature_p2"]["y"], initials["txr1507_associate_date_p2"]["x"], initials["txr1507_associate_date_p2"]["y"]),
-            (10, 634, 115, 634),
+            (10, 615, 185, 615),
         )
         # TXR-1507's footer has a separate Broker/Associate initial blank
         # before the two Client blanks. Every party named in that footer must
