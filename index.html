@@ -14964,7 +14964,7 @@ function routeAfterMagicLinkIfNeeded() {
     </div>
     <div id="fsboRequiredReadyCue" class="notice sage" role="status" aria-live="polite" style="margin-top:.75rem;"><strong>Step 1 of 2:</strong> Enter the property address, then your email.</div>
     <div style="margin-top:.9rem;display:flex;align-items:center;justify-content:flex-end;gap:.75rem;flex-wrap:wrap;">
-      <button class="btn-primary" type="button" id="fsboSellerQuickSubmit" data-fsbo-submit onclick="submitFsboSellerLead('quick')" disabled aria-disabled="true" aria-label="Get My Free Seller Plan — enter address and email to unlock">Enter address + email to unlock</button>
+      <button class="btn-primary" type="button" id="fsboSellerQuickSubmit" data-fsbo-submit onclick="submitFsboSellerLead('quick')" disabled aria-disabled="true" aria-label="Get My Free Seller Plan — enter address and email to continue">Enter address + email to continue</button>
     </div>
 
     <div id="fsboGuidedGoalCard" hidden style="margin-top:1rem; padding:.9rem; border:1px solid rgba(200,151,63,.24); border-radius:12px; background:rgba(200,151,63,.055);">
@@ -15188,8 +15188,8 @@ function routeAfterMagicLinkIfNeeded() {
     const isFreePlan = key === 'free_intake';
     const requestLabel = isFreePlan ? 'Get My Free Seller Plan' : `Request ${item.title} Details`;
     const lockedRequestLabel = isFreePlan
-      ? 'Get My Free Seller Plan — enter address and email to unlock'
-      : `Request ${item.title} Details — enter address and email to unlock`;
+      ? 'Get My Free Seller Plan — enter address and email to continue'
+      : `Request ${item.title} Details — enter address and email to continue`;
     if (cue) {
       cue.innerHTML = ready
         ? (isFreePlan
@@ -15198,7 +15198,7 @@ function routeAfterMagicLinkIfNeeded() {
         : addressProvided && !emailProvided
           ? '<strong>Step 2 of 2:</strong> Add the email where you want your seller plan.'
           : addressProvided
-            ? '<strong>Step 2 of 2:</strong> Enter a valid email to unlock your seller plan.'
+            ? '<strong>Step 2 of 2:</strong> Enter a valid email to continue to your seller plan.'
             : '<strong>Step 1 of 2:</strong> Enter the property address, then your email.';
     }
     const quickSubmit = document.getElementById('fsboSellerQuickSubmit');
@@ -15207,13 +15207,13 @@ function routeAfterMagicLinkIfNeeded() {
       quickSubmit.disabled = !ready;
       quickSubmit.setAttribute('aria-disabled', ready ? 'false' : 'true');
       quickSubmit.setAttribute('aria-label', ready ? requestLabel : lockedRequestLabel);
-      quickSubmit.textContent = ready ? requestLabel : 'Enter address + email to unlock';
+      quickSubmit.textContent = ready ? requestLabel : 'Enter address + email to continue';
     }
     if (fullSubmit) {
       fullSubmit.disabled = !ready;
       fullSubmit.setAttribute('aria-disabled', ready ? 'false' : 'true');
-      fullSubmit.setAttribute('aria-label', ready ? (isFreePlan ? 'Save My Free Seller Request' : requestLabel) : (isFreePlan ? 'Save My Seller Request — enter address and email to unlock' : lockedRequestLabel));
-      fullSubmit.textContent = ready ? (isFreePlan ? 'Save My Free Seller Request' : requestLabel) : 'Enter address + email to unlock';
+      fullSubmit.setAttribute('aria-label', ready ? (isFreePlan ? 'Save My Free Seller Request' : requestLabel) : (isFreePlan ? 'Save My Seller Request — enter address and email to continue' : lockedRequestLabel));
+      fullSubmit.textContent = ready ? (isFreePlan ? 'Save My Free Seller Request' : requestLabel) : 'Enter address + email to continue';
     }
   }
   function trackFsboRequiredFieldsReady(){
