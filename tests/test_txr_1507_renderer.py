@@ -79,11 +79,11 @@ class Txr1507RendererTests(unittest.TestCase):
         associate = {"name": "Andrew Christian", "license_number": "0738821"}
         with patch.object(txr_1507, "_draw_check") as draw_check:
             txr_1507._overlay(sample_data(), brokerage, associate)
-        self.assertIn((177, 643), [call.args[1:] for call in draw_check.call_args_list])
+        self.assertIn((177, 637), [call.args[1:] for call in draw_check.call_args_list])
 
         with patch.object(txr_1507, "_draw_check") as draw_check:
             txr_1507._overlay({**sample_data(), "intermediary": "not_authorized"}, brokerage, associate)
-        self.assertIn((233, 643), [call.args[1:] for call in draw_check.call_args_list])
+        self.assertIn((233, 637), [call.args[1:] for call in draw_check.call_args_list])
 
     def test_selected_signing_role_is_marked_in_the_source_checkbox(self):
         with patch.object(txr_1507, "_draw_signing_role_check") as draw_check:
