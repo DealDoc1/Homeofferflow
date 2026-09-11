@@ -81,8 +81,8 @@ class FsboIntakeConversionTests(unittest.TestCase):
         self.assertIn("Choose a starting point to tailor your plan.", HTML)
         self.assertIn(">Explore MLS options</button>", HTML)
         self.assertNotIn(">Get MLS exposure</button>", HTML)
-        self.assertIn("Explore other support paths and pricing", HTML)
-        self.assertIn('id="fsboSupportOptions" class="partner-optional-details"', HTML)
+        self.assertIn("If you want more help", HTML)
+        self.assertIn('id="fsboSupportOptions" style=', HTML)
 
     def test_seller_funnel_events_are_analytics_only_and_never_include_identity(self):
         start = HTML.index("const fsboFunnel =")

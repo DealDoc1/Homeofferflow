@@ -14947,9 +14947,9 @@ function routeAfterMagicLinkIfNeeded() {
     <input type="hidden" id="fsboNeed" value="free_intake">
     <input type="hidden" id="fsboPackagePrice" value="$0">
 
-    <details id="fsboSupportOptions" class="partner-optional-details" style="margin-top:1rem; padding-top:.9rem; border-top:1px solid rgba(255,255,255,.08);">
-      <summary>Explore other support paths and pricing <span style="font-weight:500;">(optional)</span></summary>
-      <div style="margin-top:.75rem;color:var(--gray-light); font-size:.8rem; line-height:1.45; margin-bottom:.55rem;">Your free seller plan is already selected. Choosing a different option only helps us tailor future recommendations; it does not start checkout or a paid service.</div>
+    <div id="fsboSupportOptions" style="margin-top:1rem; padding-top:.9rem; border-top:1px solid rgba(255,255,255,.08);">
+      <div class="radio-group-label" style="margin-bottom:.35rem;">If you want more help <span style="color:var(--gray); font-weight:500; text-transform:none; letter-spacing:0;">(optional)</span></div>
+      <div style="color:var(--gray-light); font-size:.8rem; line-height:1.45; margin-bottom:.55rem;">Your free seller plan is already selected. Choose another path only if you want us to tailor future recommendations. This does not start checkout or a paid service.</div>
       <div class="fsbo-package-grid">
         <button type="button" class="fsbo-package-card selected" data-fsbo-need="free_intake" onclick="selectFsboNeed('free_intake')">
           <span class="pkg-kicker">Starting point</span><span class="fsbo-price-pill">$0</span><strong>Free Seller Intake</strong><small>Tell us your situation, timeline, and goals. We route you toward the right FSBO path, service package, or partner suggestion.</small><div class="fsbo-package-note">Best when you are early or unsure.</div>
@@ -14973,7 +14973,7 @@ function routeAfterMagicLinkIfNeeded() {
           <span class="pkg-kicker">Premium</span><span class="fsbo-price-pill">from $2,999</span><strong>Premium FSBO Bundle</strong><small>FSBO launch kit + flat-fee MLS interest + seller offer review + contract-to-close support intake + partner recommendations.</small><div class="fsbo-package-note">Best for serious sellers who want structure while avoiding traditional full-service listing costs.</div>
         </button>
       </div>
-    </details>
+    </div>
 
     <div style="margin-top:1rem; padding-top:.9rem; border-top:1px solid rgba(255,255,255,.08);">
       <div class="radio-group-label" style="margin-bottom:.35rem;">Partner suggestions wanted <span style="color:var(--gray); font-weight:700; text-transform:none; letter-spacing:0;">(optional)</span></div>
