@@ -9,9 +9,9 @@
         "recipient_id": "associate",
         "required": true,
         "type": "date",
-        "width": 58,
-        "x": 135,
-        "y": 677
+        "width": 48,
+        "x": 336,
+        "y": 683
       },
       {
         "api_id": "txr1501_associate_signature_p6",
@@ -20,8 +20,8 @@
         "recipient_id": "associate",
         "required": true,
         "type": "signature",
-        "width": 120,
-        "x": 8,
+        "width": 240,
+        "x": 48,
         "y": 677
       },
       {
@@ -31,9 +31,9 @@
         "recipient_id": "1",
         "required": true,
         "type": "date",
-        "width": 60,
-        "x": 435,
-        "y": 566
+        "width": 48,
+        "x": 720,
+        "y": 572
       },
       {
         "api_id": "txr1501_client1_signature_p6",
@@ -42,8 +42,8 @@
         "recipient_id": "1",
         "required": true,
         "type": "signature",
-        "width": 120,
-        "x": 310,
+        "width": 272,
+        "x": 432,
         "y": 566
       },
       {
@@ -53,9 +53,9 @@
         "recipient_id": "2",
         "required": true,
         "type": "date",
-        "width": 60,
-        "x": 435,
-        "y": 677
+        "width": 48,
+        "x": 720,
+        "y": 683
       },
       {
         "api_id": "txr1501_client2_signature_p6",
@@ -64,8 +64,8 @@
         "recipient_id": "2",
         "required": true,
         "type": "signature",
-        "width": 120,
-        "x": 310,
+        "width": 272,
+        "x": 432,
         "y": 677
       }
     ],

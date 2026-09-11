@@ -162,13 +162,14 @@ class Txr1501RendererTests(unittest.TestCase):
         self.assertEqual(len(two), 6)
         self.assertTrue(all(field["page"] == 6 for field in two))
         self.assertEqual({field["api_id"] for field in one}, {"txr1501_client1_signature_p6", "txr1501_client1_date_p6", "txr1501_associate_signature_p6", "txr1501_associate_date_p6"})
+        self.assertEqual(next(field["x"] for field in two if field["api_id"] == "txr1501_client1_signature_p6"), 432)
         self.assertEqual(next(field["y"] for field in two if field["api_id"] == "txr1501_client1_signature_p6"), 566)
         self.assertEqual(next(field["y"] for field in two if field["api_id"] == "txr1501_client2_signature_p6"), 677)
         self.assertEqual(next(field["y"] for field in two if field["api_id"] == "txr1501_associate_signature_p6"), 677)
-        self.assertEqual(next(field["x"] for field in two if field["api_id"] == "txr1501_client1_date_p6"), 435)
-        self.assertEqual(next(field["width"] for field in two if field["api_id"] == "txr1501_client1_date_p6"), 60)
-        self.assertEqual(next(field["x"] for field in two if field["api_id"] == "txr1501_associate_date_p6"), 135)
-        self.assertEqual(next(field["width"] for field in two if field["api_id"] == "txr1501_associate_date_p6"), 58)
+        self.assertEqual(next(field["x"] for field in two if field["api_id"] == "txr1501_client1_date_p6"), 720)
+        self.assertEqual(next(field["width"] for field in two if field["api_id"] == "txr1501_client1_date_p6"), 48)
+        self.assertEqual(next(field["x"] for field in two if field["api_id"] == "txr1501_associate_date_p6"), 336)
+        self.assertEqual(next(field["width"] for field in two if field["api_id"] == "txr1501_associate_date_p6"), 48)
         with self.assertRaisesRegex(ValueError, "broker or associate"):
             build_signwell_fields_txr1501({**sample_data(), "signer_plan": "clients_only"}, client_count=1)
         with self.assertRaisesRegex(ValueError, "broker or associate"):

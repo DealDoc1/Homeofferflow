@@ -177,17 +177,18 @@ def build_signwell_fields_txr1501(data, *, client_count=1):
         # The execution row is below the printed-name line.  The previous
         # map used the name-line y-coordinate, which made completed fields
         # cover the printed names rather than the signature rule.
-        # Completed-PDF QA showed the provider renders both completed values
-        # farther right than their empty widgets imply.  Keep the actual
-        # signature and full date on the execution rule, clear of the printed
-        # Date caption, rather than merely keeping an empty widget clear.
-        {"api_id": "txr1501_client1_signature_p6", "type": "signature", "page": 6, "x": 310, "y": 566, "recipient_id": "1", "required": True, "width": 120, "height": 24},
-        {"api_id": "txr1501_client1_date_p6", "type": "date", "page": 6, "x": 435, "y": 566, "recipient_id": "1", "required": True, "width": 60, "height": 18, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
+        # The Client execution rule begins at source x=324, not beside the
+        # broker column.  SignWell uses 4/3 source coordinates, so the
+        # signature and date rectangles begin at 432 and 720 respectively.
+        # The date starts just above its printed caption rather than replacing
+        # the "Client's Signature" label.
+        {"api_id": "txr1501_client1_signature_p6", "type": "signature", "page": 6, "x": 432, "y": 566, "recipient_id": "1", "required": True, "width": 272, "height": 24},
+        {"api_id": "txr1501_client1_date_p6", "type": "date", "page": 6, "x": 720, "y": 572, "recipient_id": "1", "required": True, "width": 48, "height": 18, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
     ]
     if client_count == 2:
         fields.extend([
-            {"api_id": "txr1501_client2_signature_p6", "type": "signature", "page": 6, "x": 310, "y": 677, "recipient_id": "2", "required": True, "width": 120, "height": 24},
-            {"api_id": "txr1501_client2_date_p6", "type": "date", "page": 6, "x": 435, "y": 677, "recipient_id": "2", "required": True, "width": 60, "height": 18, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
+            {"api_id": "txr1501_client2_signature_p6", "type": "signature", "page": 6, "x": 432, "y": 677, "recipient_id": "2", "required": True, "width": 272, "height": 24},
+            {"api_id": "txr1501_client2_date_p6", "type": "date", "page": 6, "x": 720, "y": 683, "recipient_id": "2", "required": True, "width": 48, "height": 18, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
         ])
     if signer_plan == "clients_and_associate":
         fields.extend([
@@ -196,12 +197,12 @@ def build_signwell_fields_txr1501(data, *, client_count=1):
             # being placed on the broker row; use the lower associate row,
             # which shares its horizontal rule with a second client when one
             # is present.
-            {"api_id": "txr1501_associate_signature_p6", "type": "signature", "page": 6, "x": 8, "y": 677, "recipient_id": "associate", "required": True, "width": 120, "height": 24},
-            {"api_id": "txr1501_associate_date_p6", "type": "date", "page": 6, "x": 135, "y": 677, "recipient_id": "associate", "required": True, "width": 58, "height": 18, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
+            {"api_id": "txr1501_associate_signature_p6", "type": "signature", "page": 6, "x": 48, "y": 677, "recipient_id": "associate", "required": True, "width": 240, "height": 24},
+            {"api_id": "txr1501_associate_date_p6", "type": "date", "page": 6, "x": 336, "y": 683, "recipient_id": "associate", "required": True, "width": 48, "height": 18, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
         ])
     if signer_plan == "clients_and_broker":
         fields.extend([
-            {"api_id": "txr1501_broker_signature_p6", "type": "signature", "page": 6, "x": 8, "y": 535, "recipient_id": "broker", "required": True, "width": 120, "height": 24},
-            {"api_id": "txr1501_broker_date_p6", "type": "date", "page": 6, "x": 135, "y": 535, "recipient_id": "broker", "required": True, "width": 58, "height": 18, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
+            {"api_id": "txr1501_broker_signature_p6", "type": "signature", "page": 6, "x": 48, "y": 566, "recipient_id": "broker", "required": True, "width": 240, "height": 24},
+            {"api_id": "txr1501_broker_date_p6", "type": "date", "page": 6, "x": 336, "y": 572, "recipient_id": "broker", "required": True, "width": 48, "height": 18, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
         ])
     return [fields]

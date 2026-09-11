@@ -119,7 +119,12 @@ class TxrSignerGeometryTests(unittest.TestCase):
         signature widget remains on the same ruled row.
         """
         cases = (
-            (build_signwell_fields_txr1501, FORM_CASES[0][3], "txr1501", 566, 535),
+            # The long-form client row uses the same right-side date segment
+            # as TXR-1507: source x=540 through 576, or SignWell x=720
+            # through 768.  Earlier coverage compared it to a stale
+            # left-column coordinate and allowed widgets to cover the printed
+            # Client's Signature caption.
+            (build_signwell_fields_txr1501, FORM_CASES[0][3], "txr1501", 566, 768),
             (build_signwell_fields_txr1507, FORM_CASES[2][3], "txr1507", 688, 768),
         )
         for builder, data, prefix, first_row_y, date_label_x in cases:
@@ -178,6 +183,8 @@ class TxrSignerGeometryTests(unittest.TestCase):
         # caption. A 24-unit signature field must finish before the caption,
         # not over the
         # printed Client's Signature caption below it.
+        self.assertEqual(txr1501["txr1501_client1_signature_p6"]["x"], 432)
+        self.assertEqual(txr1501["txr1501_client1_date_p6"]["x"], 720)
         self.assertEqual(txr1501["txr1501_client2_signature_p6"]["y"], 677)
         self.assertEqual(
             txr1501["txr1501_client2_signature_p6"]["y"]
