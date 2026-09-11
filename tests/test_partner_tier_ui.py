@@ -96,6 +96,13 @@ class PartnerTierUiTests(unittest.TestCase):
         self.assertIn("Acknowledge the terms to continue", self.html)
         self.assertIn("Complete the five essentials to continue to secure checkout", self.html)
 
+    def test_required_acknowledgement_is_visible_before_optional_preferences(self):
+        essentials = self.html.index('id="foundingPartnerEssentials"')
+        consent = self.html.index('id="foundingPartnerConsent"')
+        optional = self.html.index('id="foundingPartnerTierComparison"')
+        self.assertLess(essentials, consent)
+        self.assertLess(consent, optional)
+
     def test_checkout_submit_exposes_busy_state_and_restores_after_failure(self):
         start = self.html.index("window.submitFoundingPartnerLead")
         end = self.html.index("function setupPartnerOnboardingModal", start)

@@ -15839,6 +15839,8 @@ function routeAfterMagicLinkIfNeeded() {
     <div id="foundingPartnerRequiredCue" class="notice sage" role="status" aria-live="polite" style="margin-top:.75rem;"><strong>Step 1 of 2:</strong> Complete the five essentials to prepare secure checkout. Your placement remains private until onboarding and agreement review are complete.</div>
     <div id="foundingPartnerDraftRecovery" class="platform-status" aria-live="polite"></div>
 
+    <label class="terms-check" style="margin-top:.8rem;"><input type="checkbox" id="foundingPartnerConsent"><span>I understand the discounted 90-day launch period begins at checkout and my plan then renews monthly at the standard rate unless I cancel. Placement does not promise referrals, leads, exclusivity, transactions, or closings, and final terms require a written agreement.</span></label>
+
     <details class="partner-optional-details" style="margin-top:1rem;" id="foundingPartnerTierComparison">
       <summary>Compare or change your placement tier <span style="font-weight:500;">(optional before checkout)</span></summary>
       <div style="margin-top:.8rem;">
@@ -15913,8 +15915,6 @@ function routeAfterMagicLinkIfNeeded() {
 
     <details class="partner-optional-details"><summary>Add optional placement preferences now</summary><div class="platform-grid" style="margin-top:.75rem;"><div class="field"><label for="foundingPartnerPhone">Phone</label><input id="foundingPartnerPhone" autocomplete="tel" placeholder="(214) 555-0000"></div><div class="field"><label for="foundingPartnerWebsite">Website</label><input id="foundingPartnerWebsite" type="url" autocomplete="url" placeholder="https://company.com"></div><div class="field"><label for="foundingPartnerFocus">Customer focus</label><input id="foundingPartnerFocus" placeholder="First-time buyers, agents, FSBO sellers..."></div><div class="field"><label for="foundingPartnerBudget">Expected monthly budget after the pilot</label><select id="foundingPartnerBudget"><option value="discuss">Discuss first</option><option value="under_250">Under $250</option><option value="250_499" selected>$250–$499</option><option value="500_999">$500–$999</option><option value="1000_plus">$1,000+</option></select></div></div><div class="field" style="margin-top:.75rem;"><label for="foundingPartnerMessage">What would make the pilot valuable to you?</label><textarea id="foundingPartnerMessage" rows="3" placeholder="Markets served, ideal customer, category preferences, or questions..."></textarea></div></details>
     <div aria-hidden="true" style="position:absolute;left:-10000px;top:auto;width:1px;height:1px;overflow:hidden;"><label for="foundingPartnerConfirm">Leave this field blank</label><input id="foundingPartnerConfirm" tabindex="-1" autocomplete="off"></div>
-
-    <label class="terms-check" style="margin-top:.8rem;"><input type="checkbox" id="foundingPartnerConsent"><span>I understand the discounted 90-day launch period begins at checkout and my plan then renews monthly at the standard rate unless I cancel. Placement does not promise referrals, leads, exclusivity, transactions, or closings, and final terms require a written agreement.</span></label>
 
     <div class="account-actions-row" style="margin-top:1rem;">
       <button class="btn-primary" type="button" id="foundingPartnerSubmit" onclick="submitFoundingPartnerLead()" disabled aria-disabled="true" aria-label="Complete the five essentials to continue to secure checkout">Add the five essentials to continue</button>
