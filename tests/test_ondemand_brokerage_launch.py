@@ -1083,13 +1083,12 @@ class OnDemandLaunchPageTests(unittest.TestCase):
 
     def test_launch_clearly_explains_agent_document_options(self):
         for text in (
-            "buyer-offer package",
-            "seller temporary residential lease when seller post-closing possession applies",
+            "Purchase, Listing, Lease Listing, or Lease Representation",
+            "supported purchase and lease documents",
             "shared library",
-            "guided buyer or tenant representation",
+            "buyer or tenant representation",
             "financing, assumption, appraisal, environmental, mineral, and lease-addendum workflows",
-            "listing agreements",
-            "remain separate from this plan",
+            "No brokerage seat, separate form request, or extra setup",
             "every signed-in agent",
             "prepare, review, or send",
         ):
@@ -1097,6 +1096,7 @@ class OnDemandLaunchPageTests(unittest.TestCase):
         self.assertIn("See your document options", LAUNCH_HTML)
         self.assertNotIn("not yet a complete transaction-form library", LAUNCH_HTML)
         self.assertNotIn("outside its stated live scope", LAUNCH_HTML)
+        self.assertNotIn("remain separate from this plan", LAUNCH_HTML)
 
     def test_launch_answers_trial_and_scope_questions_before_enrollment(self):
         for text in (

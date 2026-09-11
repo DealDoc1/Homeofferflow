@@ -92,7 +92,7 @@ class OnDemandLandingFunnelTests(unittest.TestCase):
 
     def test_trial_page_summarizes_scope_without_repeating_checkout_friction(self):
         self.assertIn("Your plan at a glance", ONDEMAND)
-        self.assertIn("Start an offer today. Keep every next step clear.", ONDEMAND)
+        self.assertIn("Start a transaction today. Keep every next step clear.", ONDEMAND)
         self.assertIn("Review before sending", ONDEMAND)
         self.assertNotIn("Please read before enrolling", ONDEMAND)
 
