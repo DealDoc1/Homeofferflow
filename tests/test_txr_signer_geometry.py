@@ -121,7 +121,7 @@ class TxrSignerGeometryTests(unittest.TestCase):
         """
         cases = (
             (build_signwell_fields_txr1501, FORM_CASES[0][3], "txr1501", 566, 535),
-            (build_signwell_fields_txr1507, FORM_CASES[2][3], "txr1507", 668, 704),
+            (build_signwell_fields_txr1507, FORM_CASES[2][3], "txr1507", 654, 560),
         )
         for builder, data, prefix, first_row_y, date_label_x in cases:
             with self.subTest(prefix=prefix):
@@ -131,7 +131,7 @@ class TxrSignerGeometryTests(unittest.TestCase):
                 role = fields[f"{prefix}_associate_signature_p{6 if prefix == 'txr1501' else 2}"]
                 self.assertEqual(client["y"], first_row_y)
                 if prefix == "txr1507":
-                    self.assertEqual(role["y"], 650)
+                    self.assertEqual(role["y"], 634)
                 else:
                     self.assertEqual(role["y"], 677)
                 self.assertGreater(date["x"], client["x"] + client["width"])
@@ -206,9 +206,9 @@ class TxrSignerGeometryTests(unittest.TestCase):
         # Broker and broker-associate are chosen by the printed checkboxes;
         # both sign on the one shared rule.  There is no second associate
         # signature rule below the label.
-        self.assertEqual(txr1507["txr1507_associate_signature_p2"]["y"], 650)
+        self.assertEqual(txr1507["txr1507_associate_signature_p2"]["y"], 634)
         self.assertEqual(txr1507["txr1507_associate_signature_p2"]["x"], 10)
-        self.assertEqual(txr1507["txr1507_associate_date_p2"]["x"], 185)
+        self.assertEqual(txr1507["txr1507_associate_date_p2"]["x"], 115)
         self.assertEqual(
             (txr1507["txr1507_associate_initials_p1"]["x"], txr1507["txr1507_associate_initials_p1"]["y"]),
             (435, 984),

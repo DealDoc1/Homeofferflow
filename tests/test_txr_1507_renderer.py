@@ -74,6 +74,17 @@ class Txr1507RendererTests(unittest.TestCase):
             )
         self.assertIn((56, 461), [call.args[1:] for call in draw_check.call_args_list])
 
+    def test_intermediary_mark_uses_the_matching_printed_checkbox(self):
+        brokerage = {"legal_name": "OnDemand Realty", "license_number": "9010832"}
+        associate = {"name": "Andrew Christian", "license_number": "0738821"}
+        with patch.object(txr_1507, "_draw_check") as draw_check:
+            txr_1507._overlay(sample_data(), brokerage, associate)
+        self.assertIn((202, 643), [call.args[1:] for call in draw_check.call_args_list])
+
+        with patch.object(txr_1507, "_draw_check") as draw_check:
+            txr_1507._overlay({**sample_data(), "intermediary": "not_authorized"}, brokerage, associate)
+        self.assertIn((251, 643), [call.args[1:] for call in draw_check.call_args_list])
+
     def test_selected_signing_role_is_marked_in_the_source_checkbox(self):
         with patch.object(txr_1507, "_draw_signing_role_check") as draw_check:
             txr_1507._overlay(

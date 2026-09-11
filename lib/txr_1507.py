@@ -98,11 +98,15 @@ def _overlay(data, brokerage, associate):
     # Page 2 - intermediary choice, printed names, and license fields. The
     # signature/date widgets are supplied separately to SignWell.
     if data["intermediary"] == "authorized":
-        # TXR-1507's first intermediary box is near x=177 on the source page;
-        # x=211 lands between the two printed boxes.
-        _draw_check(canvas, 177, 628)
+        # Completed-PDF QA on the 06-15-26 source placed the first printed
+        # intermediary cell at x=202/y=643 (ReportLab bottom-origin points).
+        # The former x=177 mark sat in the surrounding sentence instead of
+        # inside the selected box.
+        _draw_check(canvas, 202, 643)
     else:
-        _draw_check(canvas, 345, 628)
+        # The second printed intermediary cell is separate, immediately
+        # before "does not authorize"; it is not the far-right prose area.
+        _draw_check(canvas, 251, 643)
 
     broker_name = brokerage.get("legal_name") or brokerage.get("name") or brokerage.get("dba_name")
     broker_license = brokerage.get("license_number") or ""
