@@ -72,3 +72,25 @@ test('lease listing records a real workspace start only after the address questi
   ]);
   assert.equal(page.calls.filter(call => call[1] === 'agent_form_package_started').length, 1);
 });
+
+for (const [workflow, expectedInterview] of [
+  ['purchase', 'purchase'],
+  ['sale_listing', 'sale_listing'],
+  ['lease_representation', 'lease_representation'],
+]) {
+  test(`${workflow} opens Question 2 without also falling through to a workspace`, () => {
+    const page = setup();
+    const opened = [];
+    page.window.hofOpenAgentPackageInterview = kind => {
+      opened.push(kind);
+      return true;
+    };
+
+    page.window.startAgentWorkflow(workflow);
+
+    assert.deepEqual(opened, [expectedInterview]);
+    assert.equal(page.calls.filter(call => call[0] === 'tab').length, 0);
+    assert.equal(page.window.hofAgentWorkflowContext, workflow);
+    assert.equal(page.storage.get('hof_agent_workflow_choice'), workflow);
+  });
+}
