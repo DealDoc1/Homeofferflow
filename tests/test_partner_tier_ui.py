@@ -220,7 +220,7 @@ class PartnerTierUiTests(unittest.TestCase):
 
     def test_homepage_audience_grid_links_to_partner_offer(self):
         self.assertIn("<h3>Service Partners</h3>", self.html)
-        self.assertIn("Founding partner placements from $149", self.html)
+        self.assertIn("Start free in about a minute · placements from $149", self.html)
         self.assertRegex(
             self.html,
             r'class="audience-card audience-card-link"[^>]+href="\?partner=1&amp;partner_quick_start=1"',
