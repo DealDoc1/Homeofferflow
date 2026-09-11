@@ -18663,7 +18663,10 @@ function routeAfterMagicLinkIfNeeded() {
       investor: {
         headline: 'Make more <em>investment offers</em> with less retyping.',
         sub: 'Use saved defaults, repeat-offer workflows, and clean Texas packet generation for fast investment deal flow.',
-        cta: 'Open Investor Workspace', nav: 'Investor Login →', note: 'Investor workflow uses the same packet builder with saved deal defaults. <strong>Review every term before signing or sending.</strong>'
+        // This CTA uses the existing passwordless investor handoff. "Login"
+        // wrongly suggests a separate credential step to a person who is
+        // already signed in, and conflicts with the primary workspace CTA.
+        cta: 'Open Investor Workspace', nav: 'Open Investor Workspace →', note: 'Investor workflow uses the same packet builder with saved deal defaults. <strong>Review every term before signing or sending.</strong>'
       },
       fsbo: {
         headline: 'Build a simple Texas <em>FSBO seller plan</em>.',

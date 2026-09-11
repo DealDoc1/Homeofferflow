@@ -57,6 +57,12 @@ class LandingHeroConversionLayoutTests(unittest.TestCase):
         self.assertIn("/?investor=1&utm_source=homeofferflow&utm_medium=homepage&utm_campaign=investor_workspace", handoff)
         self.assertLess(handoff.index("=== 'investor'"), handoff.index("startHomebuyerOffer();"))
 
+    def test_investor_navigation_matches_the_workspace_action(self):
+        # Signed-in investors should not see a misleading second login CTA
+        # beside an otherwise identical workspace action.
+        self.assertIn("nav: 'Open Investor Workspace →'", HTML)
+        self.assertNotIn("nav: 'Investor Login →'", HTML)
+
 
 if __name__ == "__main__":
     unittest.main()
