@@ -90,7 +90,7 @@ class ListingWorkspaceFoundationTests(unittest.TestCase):
         self.assertNotIn("Listing Form Readiness", INDEX)
         self.assertNotIn("loadListingWorkspaceSourceReadiness", INDEX)
         self.assertNotIn("Execution remains unavailable until its source-specific workflow is ready.", INDEX)
-        self.assertIn("Need a seller disclosure?", INDEX)
+        self.assertIn("Prepare seller disclosures", INDEX)
 
     def test_transaction_first_listing_selection_moves_to_the_property_address_question(self):
         tab_start = INDEX.index("function showAccountTab(tab = 'dashboard')")
@@ -108,12 +108,12 @@ class ListingWorkspaceFoundationTests(unittest.TestCase):
         self.assertIn("Seller name(s)", INDEX)
         self.assertIn("Landlord name(s)", INDEX)
 
-    def test_listing_workspace_surfaces_private_seller_disclosure_review_action(self):
-        self.assertIn('id="sellerDisclosureQuickStart"', INDEX)
-        self.assertIn('onclick="openSellerDisclosureDraftWorkspace()"', INDEX)
+    def test_seller_disclosure_review_remains_available_from_the_relevant_task_choice(self):
+        self.assertNotIn('id="sellerDisclosureQuickStart"', INDEX)
         self.assertIn('root.openSellerDisclosureDraftWorkspace = function openSellerDisclosureDraftWorkspace()', INDEX)
         self.assertIn('document.getElementById(\'hofSellerAddress\')?.focus({ preventScroll: true })', INDEX)
-        self.assertIn('Start its guided review after you add the property and seller details below.', INDEX)
+        self.assertIn("Prepare seller disclosures", INDEX)
+        self.assertIn("Answer the property and seller questions, then review the disclosure draft.", INDEX)
 
     def test_optional_planning_topics_do_not_compete_with_the_listing_intake(self):
         self.assertIn("Add optional planning topics", INDEX)
