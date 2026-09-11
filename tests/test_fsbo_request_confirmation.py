@@ -58,10 +58,10 @@ class FsboRequestConfirmationTests(unittest.TestCase):
 
     def test_fsbo_free_plan_action_stays_locked_until_the_two_required_fields_are_valid(self):
         self.assertIn('id="fsboSellerQuickSubmit" data-fsbo-submit onclick="submitFsboSellerLead(\'quick\')" disabled aria-disabled="true"', HTML)
-        self.assertIn('aria-label="Save My Seller Request — enter address and email to unlock"', HTML)
+        self.assertIn('aria-label="Save My Seller Request — enter address and email to continue"', HTML)
         self.assertIn("function fsboRequiredFieldsReady()", HTML)
         self.assertIn("emailInput?.checkValidity()", HTML)
-        self.assertIn("Enter address + email to unlock", HTML)
+        self.assertIn("Enter address + email to continue", HTML)
         self.assertIn("<strong>Step 1 of 2:</strong>", HTML)
         self.assertIn("<strong>Step 2 of 2:</strong>", HTML)
         self.assertIn("Clear this device draft", HTML)
