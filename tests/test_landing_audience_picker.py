@@ -8,13 +8,15 @@ HTML = (Path(__file__).resolve().parents[1] / "index.html").read_text(encoding="
 class LandingAudiencePickerTests(unittest.TestCase):
     def test_hero_paths_are_keyboard_accessible_buttons_with_selection_state(self):
         hero = HTML[HTML.index('<section class="hero">'):HTML.index('</section>', HTML.index('<section class="hero">'))]
-        self.assertIn('role="group" aria-label="Choose your HomeOfferFlow path"', hero)
+        self.assertIn('role="radiogroup" aria-label="Choose your HomeOfferFlow path"', hero)
         for audience in ("homebuyer", "agent", "investor", "fsbo"):
             with self.subTest(audience=audience):
-                self.assertIn(f'<button type="button" class="pill', hero)
+                self.assertIn(f'<button type="button" role="radio" class="pill', hero)
                 self.assertIn(f'data-audience="{audience}"', hero)
                 self.assertIn(f"audience: '{audience}'", hero)
-        self.assertIn("p.setAttribute('aria-pressed', selected ? 'true' : 'false');", HTML)
+        self.assertIn("p.setAttribute('aria-checked', selected ? 'true' : 'false');", HTML)
+        self.assertIn("window.handleAudiencePickerKey = function handleAudiencePickerKey(event)", HTML)
+        self.assertIn("choices[nextIndex].click();", HTML)
         self.assertIn('.pill:focus-visible', HTML)
 
     def test_path_selection_telemetry_stays_aggregate_only(self):

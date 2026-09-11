@@ -2906,11 +2906,11 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 
 <section class="hero">
   <div class="hero-badge" id="heroBadge"><span class="dot"></span>Texas real estate workflows · Clear next steps</div>
-  <div class="user-pills" role="group" aria-label="Choose your HomeOfferFlow path">
-    <button type="button" class="pill active" data-audience="homebuyer" aria-pressed="true" onclick="setAudience('homebuyer'); trackEvent('Landing Audience Selected', { audience: 'homebuyer', surface: 'hero_path_picker' });">Homebuyer</button>
-    <button type="button" class="pill" data-audience="agent" aria-pressed="false" onclick="setAudience('agent'); trackEvent('Landing Audience Selected', { audience: 'agent', surface: 'hero_path_picker' });">Agent / Broker</button>
-    <button type="button" class="pill" data-audience="investor" aria-pressed="false" onclick="setAudience('investor'); trackEvent('Landing Audience Selected', { audience: 'investor', surface: 'hero_path_picker' });">Investor</button>
-    <button type="button" class="pill" data-audience="fsbo" aria-pressed="false" onclick="setAudience('fsbo'); trackEvent('Landing Audience Selected', { audience: 'fsbo', surface: 'hero_path_picker' });">FSBO Seller</button>
+  <div class="user-pills" role="radiogroup" aria-label="Choose your HomeOfferFlow path">
+    <button type="button" role="radio" class="pill active" data-audience="homebuyer" aria-checked="true" tabindex="0" onkeydown="handleAudiencePickerKey(event)" onclick="setAudience('homebuyer'); trackEvent('Landing Audience Selected', { audience: 'homebuyer', surface: 'hero_path_picker' });">Homebuyer</button>
+    <button type="button" role="radio" class="pill" data-audience="agent" aria-checked="false" tabindex="-1" onkeydown="handleAudiencePickerKey(event)" onclick="setAudience('agent'); trackEvent('Landing Audience Selected', { audience: 'agent', surface: 'hero_path_picker' });">Agent / Broker</button>
+    <button type="button" role="radio" class="pill" data-audience="investor" aria-checked="false" tabindex="-1" onkeydown="handleAudiencePickerKey(event)" onclick="setAudience('investor'); trackEvent('Landing Audience Selected', { audience: 'investor', surface: 'hero_path_picker' });">Investor</button>
+    <button type="button" role="radio" class="pill" data-audience="fsbo" aria-checked="false" tabindex="-1" onkeydown="handleAudiencePickerKey(event)" onclick="setAudience('fsbo'); trackEvent('Landing Audience Selected', { audience: 'fsbo', surface: 'hero_path_picker' });">FSBO Seller</button>
   </div>
   <h1 id="heroHeadline">Write a Real Estate Offer<br/><em>Without the Confusion.</em></h1>
   <p class="hero-sub" id="heroSub">HomeOfferFlow is a Texas real estate offer builder that guides you through a supported Texas buyer-offer packet in plain English, then lets you review every term before signing or sending.</p>
@@ -9135,7 +9135,7 @@ function routeAfterMagicLinkIfNeeded() {
   }
 
   function selectedLandingAudience() {
-    const selected = document.querySelector('.pill[aria-pressed="true"]')?.dataset.audience;
+    const selected = document.querySelector('.pill[role="radio"][aria-checked="true"]')?.dataset.audience;
     return ['homebuyer', 'agent', 'investor', 'fsbo'].includes(selected)
       ? selected
       : (state?.data?.userType || 'homebuyer');
@@ -12343,7 +12343,8 @@ function routeAfterMagicLinkIfNeeded() {
     document.querySelectorAll('.pill').forEach(p => {
       const selected = p.dataset.audience === type;
       p.classList.toggle('active', selected);
-      p.setAttribute('aria-pressed', selected ? 'true' : 'false');
+      p.setAttribute('aria-checked', selected ? 'true' : 'false');
+      p.tabIndex = selected ? 0 : -1;
     });
 
     const heroHeadline = document.getElementById('heroHeadline');
@@ -12407,6 +12408,18 @@ function routeAfterMagicLinkIfNeeded() {
 
     saveDraft();
   }
+
+  window.handleAudiencePickerKey = function handleAudiencePickerKey(event) {
+    const keys = ['ArrowLeft', 'ArrowUp', 'ArrowRight', 'ArrowDown', 'Home', 'End'];
+    if (!keys.includes(event.key)) return;
+    const choices = [...document.querySelectorAll('.pill[role="radio"]')];
+    const index = choices.indexOf(event.currentTarget);
+    if (index < 0 || !choices.length) return;
+    event.preventDefault();
+    const nextIndex = event.key === 'Home' ? 0 : event.key === 'End' ? choices.length - 1 : (index + (event.key === 'ArrowLeft' || event.key === 'ArrowUp' ? -1 : 1) + choices.length) % choices.length;
+    choices[nextIndex].focus();
+    choices[nextIndex].click();
+  };
 
 
   document.getElementById('termsModal').addEventListener('click', function(e) {

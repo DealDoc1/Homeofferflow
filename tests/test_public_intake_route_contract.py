@@ -35,7 +35,7 @@ class PublicIntakeRouteContractTests(unittest.TestCase):
         end = INDEX.index("function startPrimaryOffer()", start)
         handoff = INDEX[start:end]
         self.assertIn("function selectedLandingAudience()", INDEX)
-        self.assertIn("document.querySelector('.pill[aria-pressed=\"true\"]')?.dataset.audience", INDEX)
+        self.assertIn("document.querySelector('.pill[role=\"radio\"][aria-checked=\"true\"]')?.dataset.audience", INDEX)
         self.assertIn("window.location.assign('/agents?", handoff)
         self.assertIn("window.location.assign('/?investor=1", handoff)
         self.assertIn("if (selectedType === 'fsbo')", handoff)
