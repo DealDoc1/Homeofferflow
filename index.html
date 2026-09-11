@@ -23288,7 +23288,10 @@ function routeAfterMagicLinkIfNeeded() {
 (function () {
   const root = window, FORM_CODE = 'TXR-1948';
   const profile = () => root.hofAuth?.authoritativeProfile || {};
-  const activeAgent = () => !!root.hofAuth?.session?.user && String(root.hofAuth?.role || profile().role || '').toLowerCase() !== 'investor';
+  const activeAgent = () => {
+    const role = String(root.hofAuth?.role || profile().role || '').toLowerCase();
+    return !!root.hofAuth?.session?.user && ['agent', 'broker', 'brokerage_admin', 'broker_admin', 'owner', 'team_lead'].includes(role);
+  };
   const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   async function renderCard() {
     const panel = document.getElementById('accountPanelRelationships');
@@ -23324,7 +23327,10 @@ function routeAfterMagicLinkIfNeeded() {
 (function () {
   const root = window, FORM_CODE = 'TXR-1953';
   const profile = () => root.hofAuth?.authoritativeProfile || {};
-  const activeAgent = () => !!root.hofAuth?.session?.user && String(root.hofAuth?.role || profile().role || '').toLowerCase() !== 'investor';
+  const activeAgent = () => {
+    const role = String(root.hofAuth?.role || profile().role || '').toLowerCase();
+    return !!root.hofAuth?.session?.user && ['agent', 'broker', 'brokerage_admin', 'broker_admin', 'owner', 'team_lead'].includes(role);
+  };
   const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   async function renderCard() {
     const panel = document.getElementById('accountPanelRelationships');
@@ -23348,7 +23354,10 @@ function routeAfterMagicLinkIfNeeded() {
 (function () {
   const root = window, FORM_CODE = 'TXR-1954';
   const profile = () => root.hofAuth?.authoritativeProfile || {};
-  const activeAgent = () => !!root.hofAuth?.session?.user && String(root.hofAuth?.role || profile().role || '').toLowerCase() !== 'investor';
+  const activeAgent = () => {
+    const role = String(root.hofAuth?.role || profile().role || '').toLowerCase();
+    return !!root.hofAuth?.session?.user && ['agent', 'broker', 'brokerage_admin', 'broker_admin', 'owner', 'team_lead'].includes(role);
+  };
   const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   async function renderCard() {
     const panel = document.getElementById('accountPanelRelationships');

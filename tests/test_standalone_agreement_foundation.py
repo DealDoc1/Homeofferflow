@@ -548,3 +548,16 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
         self.assertIn('standalone-agreement-private-draft-preview.pdf', backend)
         self.assertNotIn('TXR-1507-private-draft-preview.pdf', backend)
         self.assertIn("Cache-Control", backend)
+
+    def test_agent_only_document_cards_do_not_render_for_non_agent_accounts(self):
+        """Keep agent addenda out of buyer and seller workspaces."""
+        for script_id in (
+            'hof-txr1948-drafts-v1',
+            'hof-txr1953-drafts-v1',
+            'hof-txr1954-drafts-v1',
+        ):
+            start = HTML.index(f'id="{script_id}"')
+            end = HTML.index('</script>', start)
+            script = HTML[start:end]
+            self.assertIn("['agent', 'broker', 'brokerage_admin', 'broker_admin', 'owner', 'team_lead'].includes(role)", script)
+            self.assertNotIn(".toLowerCase() !== 'investor'", script)
