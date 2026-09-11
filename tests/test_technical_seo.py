@@ -178,6 +178,27 @@ class TechnicalSeoTests(unittest.TestCase):
             HOME,
         )
 
+    def test_homepage_excludes_hidden_interviews_and_checkout_from_search_snippets(self):
+        """Keep result snippets focused on the public landing-page promise.
+
+        Google may use rendered page text rather than the meta description.
+        The full buyer interview and private seller/partner checkout modals are
+        useful only after a visitor starts a workflow, so they must not crowd
+        out the public page's buyer, agent, seller, and partner positioning.
+        """
+        for marker in (
+            '<div class="terms-modal" id="termsModal" data-nosnippet>',
+            '<div class="agent-value-modal" id="agentValueModal" data-nosnippet>',
+            '<div class="auth-modal" id="authModal" aria-hidden="true" data-nosnippet>',
+            '<div class="account-modal" id="accountModal" aria-hidden="true" data-nosnippet>',
+            '<div class="feedback-modal" id="feedbackModal" aria-hidden="true" data-nosnippet>',
+            '<div class="wizard-overlay" id="wizardOverlay" data-nosnippet>',
+            '<div class="modal-backdrop" id="fsboSellerModal" aria-hidden="true" data-nosnippet',
+            '<div class="modal-backdrop" id="foundingPartnerModal" aria-hidden="true" data-nosnippet',
+        ):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, HOME)
+
     def test_sitemap_keeps_revenue_landing_pages_discoverable(self):
         for path in ("/buyers", "/agents", "/investors", "/sellers", "/partners", "/directory", "/texas-lease-offer-workflow", "/texas-listing-workflow", "/texas-agent-form-library", "/texas-seller-financing-guide", "/texas-buyer-representation-guide", "/texas-flat-fee-mls-guide", "/texas-fsbo-closing-checklist"):
             self.assertIn(f"https://www.homeofferflow.com{path}", SITEMAP)
