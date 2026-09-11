@@ -26,8 +26,8 @@ class AgentInterviewNavigationTests(unittest.TestCase):
         end = html.index('// The agent workspace begins with the transaction', start)
         interview = html[start:end]
         self.assertEqual(interview.count('const returnFocus ='), 1)
-        self.assertIn('bindPackageQuestionKeys(modal, closeInterview);', interview)
-        self.assertIn('bindPackageQuestionKeys(followUp, closeFollowUp);', interview)
+        self.assertIn("bindPackageQuestionKeys(modal, () => closeInterview('escape'));", interview)
+        self.assertIn("bindPackageQuestionKeys(followUp, () => closeFollowUp('escape'));", interview)
         back = interview.split('const returnToPackageQuestion = () => {', 1)[1].split('};', 1)[0]
         self.assertLess(back.index('restorePackageFocus();'), back.index('window.hofOpenAgentPackageInterview'))
 

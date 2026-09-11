@@ -5809,6 +5809,31 @@ class handler(BaseHTTPRequestHandler):
                 prior_started_at = agent_form_package_selection_started_at.get(cohort_key)
                 if not prior_started_at or created_at < prior_started_at:
                     agent_form_package_selection_started_at[cohort_key] = created_at
+            # A close is useful only when it follows the same authenticated
+            # Question 2 view. Keep this aggregate-only so operations can
+            # distinguish decision friction from a failed workspace handoff.
+            agent_form_package_interview_abandoned_events = []
+            for item in events:
+                if item.get("event_type") != "agent_form_package_interview_abandoned":
+                    continue
+                user_id = str(item.get("user_id") or "")
+                workflow = str((item.get("metadata") or {}).get("workflow") or "")
+                created_at = str(item.get("created_at") or "")
+                first_view_at = agent_form_package_interview_started_at.get((user_id, workflow))
+                if user_id and created_at and workflow in agent_transaction_workflows and first_view_at and created_at >= first_view_at:
+                    agent_form_package_interview_abandoned_events.append(item)
+            agent_form_package_interview_abandoned_count = len(agent_form_package_interview_abandoned_events)
+            agent_form_package_follow_up_abandoned_events = []
+            for item in events:
+                if item.get("event_type") != "agent_form_package_follow_up_abandoned":
+                    continue
+                user_id = str(item.get("user_id") or "")
+                workflow = str((item.get("metadata") or {}).get("workflow") or "")
+                created_at = str(item.get("created_at") or "")
+                first_selection_at = agent_form_package_selection_started_at.get((user_id, workflow))
+                if user_id and created_at and workflow in agent_transaction_workflows and first_selection_at and created_at >= first_selection_at:
+                    agent_form_package_follow_up_abandoned_events.append(item)
+            agent_form_package_follow_up_abandoned_count = len(agent_form_package_follow_up_abandoned_events)
             agent_form_package_started_events = []
             for item in events:
                 if item.get("event_type") != "agent_form_package_started":
@@ -6573,6 +6598,8 @@ class handler(BaseHTTPRequestHandler):
                 "agentFormPackageNestedChoiceRate": round(
                     (agent_form_package_nested_choice_count / agent_form_package_selection_count) * 100, 1
                 ) if agent_form_package_selection_count else 0,
+                "agentFormPackageInterviewAbandonedCount": agent_form_package_interview_abandoned_count,
+                "agentFormPackageFollowUpAbandonedCount": agent_form_package_follow_up_abandoned_count,
                 "agentFormPackageInterviewCountsByWorkflow": agent_form_package_interview_counts_by_workflow,
                 "agentFormPackageSelectionCountsByWorkflow": agent_form_package_selection_counts_by_workflow,
                 "agentFormPackageStartedCountsByWorkflow": agent_form_package_started_counts_by_workflow,

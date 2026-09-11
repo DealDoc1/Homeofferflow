@@ -368,9 +368,10 @@ class AgentLandingFunnelTests(unittest.TestCase):
         end = INDEX.index("window.startAgentWorkflow = function", start)
         interview = INDEX[start:end]
         self.assertIn("const returnFocus = document.activeElement instanceof HTMLElement", interview)
-        self.assertIn("const closeInterview = () =>", interview)
+        self.assertIn("const closeInterview = (reason = 'dismissed') =>", interview)
         self.assertIn("returnFocus?.focus({ preventScroll: true });", interview)
-        self.assertIn("addEventListener('click', closeInterview)", interview)
+        self.assertIn("addEventListener('click', () => closeInterview('back'))", interview)
+        self.assertIn("addEventListener('click', event => { if (event.target === modal) closeInterview('overlay'); });", interview)
 
     def test_lease_representation_lands_on_its_next_explicit_choice(self):
         self.assertIn("window.hofAgentWorkflowContext === 'lease_representation'", INDEX)
