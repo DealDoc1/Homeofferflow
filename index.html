@@ -7779,7 +7779,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     };
     const packages = {
       purchase: {
-        title: 'What do you want to do next?',
+        title: 'What do you need for this purchase?',
         choices: [
           { label: 'Write a purchase offer', copy: 'Start with the buyer, property, financing, and timing. We’ll prepare the supported documents your answers require.', primary: true, action: () => startAccountOffer(), isWorkspaceOpen: () => document.getElementById('wizardOverlay')?.classList.contains('active') },
           { label: 'Create a buyer representation agreement', copy: 'Choose the agreement that fits this client.', action: () => openRelationshipPackage('representation'), deferStartToNestedChoice: true },
@@ -7788,7 +7788,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         ]
       },
       sale_listing: {
-        title: 'What do you want to do next?',
+        title: 'What do you need for this listing?',
         choices: [
           { label: 'Start a listing workspace', copy: 'Begin with the seller, property, timing, and next steps.', primary: true, action: () => openListingWorkspace(true), isWorkspaceOpen: () => Boolean(document.getElementById('listingWorkspaceStartCard')) },
           { label: 'Create seller disclosures', copy: 'Answer the property and seller questions, then review the disclosure draft.', action: () => { showAccountTab('seller'); window.setTimeout(() => window.openSellerDisclosureDraftWorkspace?.(), 0); }, isWorkspaceOpen: () => Boolean(document.getElementById('hofSellerDisclosureCard')) },
@@ -7796,7 +7796,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         ]
       },
       lease_representation: {
-        title: 'What do you want to do next?',
+        title: 'What do you need for this tenant?',
         choices: [
           { label: 'Create a tenant representation agreement', copy: 'Choose the agreement that fits this tenant.', primary: true, action: () => openRelationshipPackage('representation'), deferStartToNestedChoice: true },
           { label: 'Create a showing form or consumer notice', copy: 'Choose the document for an unrepresented customer or general consumer notice.', action: () => openRelationshipPackage('customer'), deferStartToNestedChoice: true }

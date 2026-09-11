@@ -287,7 +287,10 @@ class AgentActivationDashboardTests(unittest.TestCase):
     def test_transaction_interview_recommends_a_package_before_opening_a_workspace(self):
         self.assertIn("window.startAgentWorkflow = function startAgentWorkflow(kind)", HTML)
         self.assertIn("window.hofOpenAgentPackageInterview = function hofOpenAgentPackageInterview(kind)", HTML)
-        self.assertIn("What do you want to do next?", HTML)
+        self.assertIn("What do you need for this purchase?", HTML)
+        self.assertIn("What do you need for this listing?", HTML)
+        self.assertIn("What do you need for this tenant?", HTML)
+        self.assertNotIn("What do you want to do next?", HTML)
         self.assertIn("Write a purchase offer", HTML)
         self.assertIn("We’ll prepare the supported documents your answers require.", HTML)
         self.assertIn("Create a buyer representation agreement", HTML)
