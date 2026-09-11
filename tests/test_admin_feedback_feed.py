@@ -10,6 +10,12 @@ SPEC.loader.exec_module(MODULE)
 
 
 class AdminFeedbackFeedTests(unittest.TestCase):
+    def test_closed_test_feedback_is_not_treated_as_live_operator_work(self):
+        self.assertFalse(MODULE._is_live_feedback({"status": "closed_test"}))
+        self.assertFalse(MODULE._is_live_feedback({"status": " CLOSED_TEST "}))
+        self.assertTrue(MODULE._is_live_feedback({"status": "new"}))
+        self.assertTrue(MODULE._is_live_feedback({"status": "resolved"}))
+
     def test_calibration_threshold_excludes_consumer_feedback(self):
         self.assertTrue(MODULE._is_ai_calibration_evidence({"issue_type": "ai_review", "role": "broker", "calibration_scenario": "AI-CAL-01"}))
         self.assertTrue(MODULE._is_ai_calibration_evidence({"issue_type": "ai_review", "role": "agent", "calibration_scenario": "AI-CAL-02"}))
@@ -42,6 +48,7 @@ class AdminFeedbackFeedTests(unittest.TestCase):
         self.assertIn('"aiCalibrationTarget"', source)
         self.assertIn('"aiCalibrationReady"', source)
         self.assertIn("_is_ai_calibration_evidence(item)", source)
+        self.assertIn("feedback = [item for item in feedback if _is_live_feedback(item)]", source)
         self.assertNotIn("select=*", source[source.index("hof_feedback?"):source.index("hof_feedback?") + 180])
 
     def test_missing_form_code_counts_normalize_without_exposing_notes(self):

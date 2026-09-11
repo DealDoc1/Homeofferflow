@@ -237,6 +237,16 @@ def _is_ai_calibration_evidence(item):
     )
 
 
+def _is_live_feedback(item):
+    """Keep deliberately closed QA notes out of the operator's live queue.
+
+    Test entries are retained for auditability in Supabase, but a
+    ``closed_test`` status must not inflate support, form-demand, or AI-review
+    signals or appear as a customer issue in the admin dashboard.
+    """
+    return str((item or {}).get("status") or "").strip().lower() != "closed_test"
+
+
 def _ai_calibration_scenario_ids(items):
     return sorted({
         str((item or {}).get("calibration_scenario") or "").upper()
@@ -4522,6 +4532,10 @@ class handler(BaseHTTPRequestHandler):
                 # available for support workflows.
                 ("hof_feedback?select=id,issue_type,calibration_scenario,message,status,role,created_at&order=created_at.desc&limit=100", True),
             ))
+            # Test notes remain in the database for audit history, but the
+            # live operations dashboard must not turn them into customer
+            # support work or demand signals.
+            feedback = [item for item in feedback if _is_live_feedback(item)]
             stripe_webhook_event_type_counts = {}
             for item in stripe_webhook_events:
                 event_type = str(item.get("event_type") or "unknown").strip().lower()[:80] or "unknown"
