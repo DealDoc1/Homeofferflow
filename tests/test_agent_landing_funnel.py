@@ -174,7 +174,7 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("document.getElementById('wizardOverlay')?.classList.contains('active')", interview)
         self.assertIn("document.getElementById('listingWorkspaceStartCard')", interview)
         self.assertIn("document.getElementById('hofAgentPackageFollowUp')", interview)
-        self.assertEqual(interview.count("if (attempts < 100) window.setTimeout(recordWhenOpen, 100);"), 2)
+        self.assertEqual(interview.count("if (attempts < 100)"), 2)
         self.assertIn("undercounting a real start", interview)
 
     def test_package_interview_makes_the_review_before_send_boundary_plain(self):
@@ -589,6 +589,7 @@ class AgentLandingFunnelTests(unittest.TestCase):
             'agentWorkflowResumeCount',
             'agentFormPackageInterviewViewCount', 'agentFormPackageSelectionCount', 'agentFormPackageSelectionRate',
             'agentFormPackageStartedCount', 'agentFormPackageStartRate',
+            'agentFormPackageHandoffRecoveryCount',
             'agentFormPackageNestedChoiceCount', 'agentFormPackageNestedChoiceRate',
             'agentFormPackageInterviewCountsByWorkflow', 'agentFormPackageSelectionCountsByWorkflow', 'agentFormPackageStartedCountsByWorkflow', 'agentFormPackageNestedChoiceCountsByWorkflow',
             'agent_workflow_lease_representation_selected',

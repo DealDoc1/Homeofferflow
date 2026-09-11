@@ -23,6 +23,17 @@ class AgentPackageAbandonmentTelemetryTests(unittest.TestCase):
         self.assertIn("agentFormPackageInterviewAbandonedCount", INDEX)
         self.assertIn("agentFormPackageFollowUpAbandonedCount", INDEX)
 
+    def test_failed_workspace_handoff_has_a_quiet_customer_recovery_path(self):
+        self.assertIn("agent_form_package_start_timeout", INDEX)
+        self.assertIn("That task did not open.", INDEX)
+        self.assertIn("No client or property details were changed.", INDEX)
+        self.assertIn("showPackageHandoffRecovery(choice);", INDEX)
+        recovery_segment = INDEX[INDEX.index("agent_form_package_start_timeout"):INDEX.index("agent_form_package_start_timeout") + 500]
+        self.assertNotIn("property_address", recovery_segment)
+        self.assertIn('item.get("event_type") != "agent_form_package_start_timeout"', ADMIN)
+        self.assertIn('"agentFormPackageHandoffRecoveryCount": agent_form_package_handoff_recovery_count', ADMIN)
+        self.assertIn("agentFormPackageHandoffRecoveryCount", INDEX)
+
 
 if __name__ == "__main__":
     unittest.main()

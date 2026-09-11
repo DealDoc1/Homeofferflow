@@ -5873,6 +5873,28 @@ class handler(BaseHTTPRequestHandler):
                 ):
                     agent_form_package_started_events.append(item)
             agent_form_package_started_count = len(agent_form_package_started_events)
+            # A recovery prompt appears only if a selected package has not
+            # reached its actual workspace after the handoff window. Keep it
+            # aggregate-only and tied to the same Question 2 selection, so
+            # operations can separate a real rendering failure from a person
+            # simply choosing a different document.
+            agent_form_package_handoff_recovery_events = []
+            for item in events:
+                if item.get("event_type") != "agent_form_package_start_timeout":
+                    continue
+                user_id = str(item.get("user_id") or "")
+                workflow = str((item.get("metadata") or {}).get("workflow") or "")
+                created_at = str(item.get("created_at") or "")
+                first_selection_at = agent_form_package_selection_started_at.get((user_id, workflow))
+                if (
+                    user_id
+                    and created_at
+                    and workflow in agent_transaction_workflows
+                    and first_selection_at
+                    and created_at >= first_selection_at
+                ):
+                    agent_form_package_handoff_recovery_events.append(item)
+            agent_form_package_handoff_recovery_count = len(agent_form_package_handoff_recovery_events)
             # A package may ask one final, document-specific question before
             # its workspace opens. Keep that deliberate interview choice
             # separate from a confirmed workspace start so conversion reports
@@ -6626,6 +6648,7 @@ class handler(BaseHTTPRequestHandler):
                 ) if agent_form_package_selection_count else 0,
                 "agentFormPackageInterviewAbandonedCount": agent_form_package_interview_abandoned_count,
                 "agentFormPackageFollowUpAbandonedCount": agent_form_package_follow_up_abandoned_count,
+                "agentFormPackageHandoffRecoveryCount": agent_form_package_handoff_recovery_count,
                 "agentFormPackageInterviewCountsByWorkflow": agent_form_package_interview_counts_by_workflow,
                 "agentFormPackageSelectionCountsByWorkflow": agent_form_package_selection_counts_by_workflow,
                 "agentFormPackageStartedCountsByWorkflow": agent_form_package_started_counts_by_workflow,
