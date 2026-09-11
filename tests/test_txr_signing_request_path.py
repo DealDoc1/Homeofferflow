@@ -255,6 +255,15 @@ class TxrSigningRequestPathTests(unittest.TestCase):
         complete["fields"][0][0]["y"] = 675
         self.assertFalse(MODULE._signwell_document_matches_signing_request(complete, expected_fields, recipients))
 
+    def test_txr1507_signing_requests_carry_the_current_geometry_revision(self):
+        self.assertEqual(
+            MODULE.TXR_SIGNING_MAP_REVISIONS["TXR-1507"],
+            "txr-1507-2026-09-10-source-calibrated-v1",
+        )
+        source = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
+        self.assertIn('"signing_map_revision": TXR_SIGNING_MAP_REVISIONS.get(form_code, "source-specific-v1")', source)
+        self.assertIn('"signingMapRevision": TXR_SIGNING_MAP_REVISIONS.get(form_code, "source-specific-v1")', source)
+
 
 if __name__ == "__main__":
     unittest.main()

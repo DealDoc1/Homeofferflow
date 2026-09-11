@@ -127,6 +127,13 @@ TXR_SIGNING_FORM_CODES = {
     TXR_1953_FORM_CODE,
     TXR_1954_FORM_CODE,
 }
+# Persisted with the provider document, not shown to recipients.  This makes
+# a completed PDF traceable to the exact reviewed signer geometry when a
+# source form needs a placement correction.  Older provider documents simply
+# have no map revision and are therefore never mistaken for current-map QA.
+TXR_SIGNING_MAP_REVISIONS = {
+    TXR_1507_FORM_CODE: "txr-1507-2026-09-10-source-calibrated-v1",
+}
 # These forms have only Buyer and Seller execution rows. Their source-specific
 # maps use the same explicit recipient ordering as the released signing forms.
 TXR_BUYER_SELLER_SIGNING_FORM_CODES = {
@@ -4168,6 +4175,7 @@ async def _send_txr_agreement_for_signature(user, data):
             "standalone_agreement_id": agreement_uuid,
             "form_code": form_code,
             "source_revision": str(agreement.get("source_revision") or "")[:80],
+            "signing_map_revision": TXR_SIGNING_MAP_REVISIONS.get(form_code, "source-specific-v1"),
             "test_mode": str(SIGNWELL_TEST_MODE).lower(),
         },
     }
@@ -4229,6 +4237,7 @@ async def _send_txr_agreement_for_signature(user, data):
         "documentId": document_id,
         "status": result.get("status") or "sent",
         "testMode": SIGNWELL_TEST_MODE,
+        "signingMapRevision": TXR_SIGNING_MAP_REVISIONS.get(form_code, "source-specific-v1"),
         "recipientCount": len(recipients),
         # SignWell may omit these for email-only requests. If present, they
         # are returned only to the authenticated requester and never stored.
