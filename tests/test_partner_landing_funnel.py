@@ -140,6 +140,7 @@ class PartnerLandingFunnelTests(unittest.TestCase):
         self.assertIn('"partnerApplicationEssentialsReadyCount"', ADMIN)
         self.assertIn('"partnerApplicationCheckoutReadyCount"', ADMIN)
         self.assertIn('"partnerApplicationAbandonedCount"', ADMIN)
+        self.assertIn('"partnerApplicationAbandonedRate"', ADMIN)
         self.assertIn('"partnerApplicationSaveFailureCount"', ADMIN)
         self.assertIn('"partnerCheckoutStartFailureCount"', ADMIN)
         self.assertIn("surface: 'partner_guide'", (ROOT / "assets" / "partner-guide-metrics.js").read_text(encoding="utf-8"))
@@ -210,6 +211,7 @@ class PartnerLandingFunnelTests(unittest.TestCase):
         self.assertIn("Founding Partner Intake Dismissed", INDEX)
         self.assertIn("foundingPartnerModal?.addEventListener('click'", INDEX)
         self.assertIn("window.closeFoundingPartnerModal?.('escape');", INDEX)
+        self.assertIn("partnerApplicationAbandonedRate", INDEX)
 
 
 if __name__ == "__main__":

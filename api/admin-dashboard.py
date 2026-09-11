@@ -6351,6 +6351,9 @@ class handler(BaseHTTPRequestHandler):
                 "partnerApplicationEssentialsReadyCount": partner_application_essentials_ready_count,
                 "partnerApplicationCheckoutReadyCount": partner_application_checkout_ready_count,
                 "partnerApplicationAbandonedCount": partner_application_abandoned_count,
+                "partnerApplicationAbandonedRate": round(
+                    (partner_application_abandoned_count / partner_application_open_count) * 100, 1
+                ) if partner_application_open_count else 0,
                 "partnerApplicationSaveFailureCount": partner_application_save_failure_count,
                 "partnerCheckoutStartFailureCount": partner_checkout_start_failure_count,
                 "partnerGuideExpandedCount": partner_guide_expanded_count,
