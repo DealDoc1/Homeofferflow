@@ -74,7 +74,7 @@ def build_signwell_fields_txr1506(data, *, client_count=1):
     """Return explicit receipt-initial and signature/date fields."""
     signer_plan = data.get("signer_plan")
     if signer_plan not in {"consumers_and_associate", "consumers_and_broker"}:
-        raise ValueError("Choose an authorized broker or broker-associate signer for the TXR-1506 notice.")
+        raise ValueError("Choose whether the broker or associate will sign the TXR-1506 notice.")
     fields = []
     # Page 1 uses shorter, left-shifted acknowledgement blanks. Pages 2–5
     # share a wider pair farther right. One coordinate for all five pages put

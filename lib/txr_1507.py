@@ -164,7 +164,7 @@ def build_signwell_fields_txr1507(data, *, client_count=1):
     # intentionally separate from the purchase-packet map.
     signer_plan = data.get("signer_plan")
     if signer_plan not in {"clients_and_associate", "clients_and_broker"}:
-        raise ValueError("Choose an authorized broker or broker-associate signer for the TXR-1507 agreement.")
+        raise ValueError("Choose whether the broker or associate will sign the TXR-1507 agreement.")
     role = "associate" if signer_plan == "clients_and_associate" else "broker"
     fields = [
         # The footer requires initials from the selected Broker/Associate and

@@ -197,7 +197,7 @@ class Txr1507RendererTests(unittest.TestCase):
             "txr1507_associate_signature_p2",
             "txr1507_associate_date_p2",
         })
-        with self.assertRaisesRegex(ValueError, "authorized broker"):
+        with self.assertRaisesRegex(ValueError, "broker or associate"):
             build_signwell_fields_txr1507({**sample_data(), "signer_plan": "clients_only"}, client_count=1)
 
 

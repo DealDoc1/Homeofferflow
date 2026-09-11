@@ -223,7 +223,7 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
     def test_short_form_requires_an_explicit_signer_plan(self):
         payload = valid_payload()
         payload.pop("signerPlan")
-        with self.assertRaisesRegex(ValueError, "Choose an authorized broker"):
+        with self.assertRaisesRegex(ValueError, "Choose whether the broker or associate"):
             MODULE._parse_txr_1507_draft(payload)
 
     def test_form_cards_are_available_to_signed_in_agent_roles_without_attestation(self):
@@ -282,7 +282,7 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
     def test_long_form_requires_explicit_signer_plan_without_authority_attestation(self):
         payload = valid_long_payload()
         payload.pop("signerPlan")
-        with self.assertRaisesRegex(ValueError, "Choose an authorized broker"):
+        with self.assertRaisesRegex(ValueError, "Choose whether the broker or associate"):
             MODULE._parse_txr_1501_draft(payload)
         payload = valid_long_payload()
         payload["formUseAttested"] = False
@@ -339,7 +339,7 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
     def test_notice_draft_requires_explicit_signer_plan_without_attestation(self):
         payload = valid_notice_payload()
         payload.pop("signerPlan")
-        with self.assertRaisesRegex(ValueError, "Choose an authorized broker"):
+        with self.assertRaisesRegex(ValueError, "Choose whether the broker or associate"):
             MODULE._parse_txr_1506_draft(payload)
         payload = valid_notice_payload()
         payload["formUseAttested"] = False

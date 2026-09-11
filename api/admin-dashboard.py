@@ -2167,7 +2167,7 @@ def _parse_txr_1507_draft(data):
         raise ValueError("Choose whether intermediary is authorized.")
     signer_plan = str(data.get("signerPlan") or "").strip()
     if signer_plan not in {"clients_and_associate", "clients_and_broker"}:
-        raise ValueError("Choose an authorized broker or broker-associate signer for the TXR-1507 agreement.")
+        raise ValueError("Choose whether the broker or associate will sign the TXR-1507 agreement.")
     form_source_id = _agreement_text(data.get("formSourceId"), "Approved TXR-1507 source", 80)
     try:
         form_source_id = str(uuid.UUID(form_source_id))
@@ -2224,7 +2224,7 @@ def _parse_txr_1501_draft(data):
         raise ValueError("Choose whether intermediary is authorized.")
     signer_plan = str(data.get("signerPlan") or "").strip()
     if signer_plan not in {"clients_and_associate", "clients_and_broker"}:
-        raise ValueError("Choose an authorized broker or broker-associate signer for the TXR-1501 agreement.")
+        raise ValueError("Choose whether the broker or associate will sign the TXR-1501 agreement.")
     return {
         "form_source_id": form_source_id,
         "client_names": client_names,
@@ -2313,7 +2313,7 @@ def _parse_txr_1506_draft(data):
         raise ValueError("Confirm that the consumer will review and acknowledge the notice.")
     signer_plan = str(data.get("signerPlan") or "").strip()
     if signer_plan not in {"consumers_and_associate", "consumers_and_broker"}:
-        raise ValueError("Choose an authorized broker or broker-associate signer for the TXR-1506 notice.")
+        raise ValueError("Choose whether the broker or associate will sign the TXR-1506 notice.")
     return {
         "form_source_id": form_source_id,
         "client_names": client_names,

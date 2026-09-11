@@ -166,7 +166,7 @@ def build_signwell_fields_txr1501(data, *, client_count=1):
     """Return explicit page-6 signer fields for a deliberate signer plan."""
     signer_plan = data.get("signer_plan")
     if signer_plan not in {"clients_and_associate", "clients_and_broker"}:
-        raise ValueError("Choose an authorized broker or broker-associate signer for the TXR-1501 agreement.")
+        raise ValueError("Choose whether the broker or associate will sign the TXR-1501 agreement.")
     fields = [
         # The execution row is below the printed-name line.  The previous
         # map used the name-line y-coordinate, which made completed fields

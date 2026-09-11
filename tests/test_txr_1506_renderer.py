@@ -64,9 +64,9 @@ class Txr1506RendererTests(unittest.TestCase):
         ):
             field = next(field for field in two if field["api_id"] == field_id)
             self.assertEqual((field["x"], field["width"]), (432, 96))
-        with self.assertRaisesRegex(ValueError, "authorized broker"):
+        with self.assertRaisesRegex(ValueError, "broker or associate"):
             build_signwell_fields_txr1506({**sample_data(), "signer_plan": ""}, client_count=1)
-        with self.assertRaisesRegex(ValueError, "authorized broker"):
+        with self.assertRaisesRegex(ValueError, "broker or associate"):
             build_signwell_fields_txr1506({**sample_data(), "signer_plan": "consumers_only"}, client_count=1)
 
 
