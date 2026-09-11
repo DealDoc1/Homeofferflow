@@ -191,6 +191,15 @@ class ListingWorkspaceFoundationTests(unittest.TestCase):
         self.assertIn("Start a lease listing by adding the landlord and property.", INDEX)
         self.assertNotIn("Agent-side seller-representation tools: listing packet", INDEX)
 
+    def test_optional_listing_topics_do_not_promise_an_executable_document(self):
+        render_start = INDEX.index("function renderSellerFoundationPanel()")
+        render_end = INDEX.index("const sellerCampaignPackages", render_start)
+        render = INDEX[render_start:render_end]
+        self.assertIn("Listing agreement discussion", render)
+        self.assertIn("Seller disclosure review", render)
+        self.assertIn("Lease-listing launch plan", render)
+        self.assertNotIn('value="lease_listing"> Lease listing</label>', render)
+
     def test_saved_seller_lead_can_seed_a_private_workspace(self):
         self.assertIn("startListingWorkspaceFromLead", INDEX)
         self.assertIn("Prepare listing workspace", INDEX)
