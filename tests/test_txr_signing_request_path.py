@@ -261,8 +261,19 @@ class TxrSigningRequestPathTests(unittest.TestCase):
             "txr-1507-2026-09-10-source-calibrated-v1",
         )
         source = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
-        self.assertIn('"signing_map_revision": TXR_SIGNING_MAP_REVISIONS.get(form_code, "source-specific-v1")', source)
+        self.assertIn('"signing_map_revision": current_map_revision', source)
         self.assertIn('"signingMapRevision": TXR_SIGNING_MAP_REVISIONS.get(form_code, "source-specific-v1")', source)
+
+    def test_saved_drafts_are_bound_to_the_layout_revision_used_for_signing(self):
+        source = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
+        self.assertIn('agreement_data["signing_map_revision"] = TXR_SIGNING_MAP_REVISIONS.get(', source)
+        self.assertIn("TXR_SIGNING_MAP_REVISION_ENFORCED_FORM_CODES = {TXR_1507_FORM_CODE}", source)
+        self.assertIn("form_code in TXR_SIGNING_MAP_REVISION_ENFORCED_FORM_CODES", source)
+        self.assertIn('prepared_map_revision != current_map_revision', source)
+        self.assertIn(
+            "Prepare a fresh copy before sending so the signature fields stay aligned.",
+            source,
+        )
 
 
 if __name__ == "__main__":

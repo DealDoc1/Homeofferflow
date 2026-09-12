@@ -134,6 +134,11 @@ TXR_SIGNING_FORM_CODES = {
 TXR_SIGNING_MAP_REVISIONS = {
     TXR_1507_FORM_CODE: "txr-1507-2026-09-10-source-calibrated-v1",
 }
+# TXR-1507 was recalibrated after earlier packets exposed a source-layout
+# mismatch.  Require a newly prepared copy for this form until every prior
+# draft has naturally aged out; other released form types keep their normal
+# saved-draft behavior.
+TXR_SIGNING_MAP_REVISION_ENFORCED_FORM_CODES = {TXR_1507_FORM_CODE}
 # These forms have only Buyer and Seller execution rows. Their source-specific
 # maps use the same explicit recipient ordering as the released signing forms.
 TXR_BUYER_SELLER_SIGNING_FORM_CODES = {
@@ -3082,6 +3087,14 @@ async def _create_representation_draft(user, data, form_code, parser):
         raise ValueError(f"Choose an available {form_code} source from the HomeOfferFlow library.")
     source = sources[0]
     agreement_data = dict(draft["agreement_data"] or {})
+    # A signature request is created later than the private draft. Keep the
+    # precise field-map revision with the draft so a saved document cannot be
+    # sent using a layout that has subsequently been recalibrated. This is
+    # especially important for form pages where the printed-name and
+    # signature lines are close together.
+    agreement_data["signing_map_revision"] = TXR_SIGNING_MAP_REVISIONS.get(
+        form_code, "source-specific-v1"
+    )
     record = {
         # The existing non-null column retains the library source's host
         # organization for audit and rendering; it is not an agent-access
@@ -4145,6 +4158,16 @@ async def _send_txr_agreement_for_signature(user, data):
     if source_response.status_code != 200 or not source_response.content.startswith(b"%PDF"):
         raise RuntimeError("The approved standalone source could not be loaded.")
     agreement_data = dict(agreement.get("agreement_data") or {})
+    prepared_map_revision = str(agreement_data.get("signing_map_revision") or "").strip()
+    current_map_revision = TXR_SIGNING_MAP_REVISIONS.get(form_code, "source-specific-v1")
+    if (
+        form_code in TXR_SIGNING_MAP_REVISION_ENFORCED_FORM_CODES
+        and prepared_map_revision != current_map_revision
+    ):
+        raise ValueError(
+            "The signing layout for this saved document has been updated. "
+            "Prepare a fresh copy before sending so the signature fields stay aligned."
+        )
     agreement_data["client_emails"] = client_emails
     client_count = len(client_names)
     fields = _txr_signwell_fields(form_code, {"client_names": client_names, **agreement_data}, client_count)
@@ -4175,7 +4198,7 @@ async def _send_txr_agreement_for_signature(user, data):
             "standalone_agreement_id": agreement_uuid,
             "form_code": form_code,
             "source_revision": str(agreement.get("source_revision") or "")[:80],
-            "signing_map_revision": TXR_SIGNING_MAP_REVISIONS.get(form_code, "source-specific-v1"),
+            "signing_map_revision": current_map_revision,
             "test_mode": str(SIGNWELL_TEST_MODE).lower(),
         },
     }
