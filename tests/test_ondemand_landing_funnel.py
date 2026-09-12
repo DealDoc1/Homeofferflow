@@ -105,7 +105,7 @@ class OnDemandLandingFunnelTests(unittest.TestCase):
             "Open the link in this browser.",
             "Confirm your card at Stripe.",
             "Step 1 of 3:",
-            "Start my 60-day free trial",
+            "Email my secure sign-in link",
         ):
             self.assertIn(text, ONDEMAND)
 
