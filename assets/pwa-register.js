@@ -202,7 +202,10 @@
     document.body.appendChild(notice);
   };
   const showUpdateNotice = registration => {
-    if (!registration?.waiting || document.getElementById('hofPublicPwaUpdateNotice')) return;
+    // Browser visitors receive the current public page on their next visit;
+    // reserve an update prompt for an installed app, where the same shell can
+    // stay open across visits and an explicit refresh is genuinely useful.
+    if (!isStandaloneSurface() || !registration?.waiting || document.getElementById('hofPublicPwaUpdateNotice')) return;
     const notice = document.createElement('aside');
     notice.id = 'hofPublicPwaUpdateNotice';
     notice.setAttribute('role', 'status');
