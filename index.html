@@ -561,7 +561,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       reservationChoice: form.get('reservationChoice'), undividedInterest: form.get('undividedInterest'), surfaceRights: form.get('surfaceRights'),
       mineralReviewAcknowledgment: form.get('mineralReviewAcknowledgment') === 'on'
     };
-    submit.disabled = true; submit.setAttribute('aria-busy', 'true'); submit.textContent = 'Saving draft…';
+    submit.disabled = true; submit.setAttribute('aria-busy', 'true'); submit.textContent = 'Saving your document…';
     try {
       status.className = 'hof-iabs-status'; status.textContent = 'Preparing your mineral addendum…';
       const token = root.hofAuth?.session?.access_token;
@@ -13027,7 +13027,7 @@ function routeAfterMagicLinkIfNeeded() {
       <div class="platform-card">
         <h4>Brokerage Administration</h4>
         <div class="platform-kpi-row">
-          <div class="platform-kpi"><span>Branding</span><strong>${b?.id ? 'Saved' : 'Draft'}</strong></div>
+          <div class="platform-kpi"><span>Branding</span><strong>${b?.id ? 'Saved' : 'Not saved'}</strong></div>
           <div class="platform-kpi"><span>Role</span><strong>${hofAuth.accountProfile?.is_brokerage_admin || isCurrentAdmin() ? 'Admin' : 'Agent'}</strong></div>
           <div class="platform-kpi"><span>Access</span><strong>Managed</strong></div>
         </div>
@@ -17846,7 +17846,7 @@ function routeAfterMagicLinkIfNeeded() {
 
       <div class="offer-workspace-stats">
         <div class="offer-workspace-stat"><span>Purchase offers</span><strong>${c.all}</strong><small>latest offers loaded</small></div>
-        <div class="offer-workspace-stat"><span>Drafts</span><strong>${c.draft}</strong><small>resume and finish</small></div>
+        <div class="offer-workspace-stat"><span>Saved offers</span><strong>${c.draft}</strong><small>resume and finish</small></div>
         <div class="offer-workspace-stat"><span>Buyer signing</span><strong>${c.signing}</strong><small>sent, viewed, partial</small></div>
         <div class="offer-workspace-stat"><span>Offer volume</span><strong>${esc(money(volume))}</strong><small>loaded offers only</small></div>
       </div>
@@ -22515,7 +22515,7 @@ function routeAfterMagicLinkIfNeeded() {
         const response = await fetch('/api/admin-dashboard',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer ' + token},body:JSON.stringify({action:'create_seller_disclosure_review_link',draftId,sellerNames:[seller1Name,seller2Name].filter(Boolean),sellerReviews})});
         const result = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(result.error || 'Could not send seller review email.');
-        status.textContent = 'Secure review email sent. The seller will verify a one-time code before reviewing the draft.';
+        status.textContent = 'Secure review email sent. The seller will verify a one-time code before reviewing the completed disclosure.';
         button.textContent = 'Review email sent';
         root.logOfferEvent?.(null, 'seller_review_request_sent', 'sent', 'Seller disclosure review request sent.', {
           sellerCount: sellerReviews.length
