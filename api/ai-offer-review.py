@@ -759,9 +759,27 @@ class handler(BaseHTTPRequestHandler):
             if not isinstance(offer, dict):
                 return _json_response(self, 400, {"error": "Missing offer object."})
 
+            # The rules-based review is useful to every visitor and has no
+            # per-request model cost.  The expanded model review is a
+            # signed-in workspace benefit: it keeps a public endpoint from
+            # being used to spend the product's model budget while giving an
+            # interested buyer or agent a clear reason to create an account.
+            # Verify the bearer token server-side; merely receiving an
+            # Authorization header is not enough to unlock the paid call.
+            user = _verified_user(self.headers.get("Authorization", ""))
+            if not user:
+                fallback = _rules_fallback(offer)
+                return _json_response(self, 200, {
+                    **fallback,
+                    "source": "rules_fallback_sign_in_required",
+                    "aiAccess": "sign_in_required",
+                })
+
             # A public-web lookup is intentionally a separate, deployment-
             # controlled capability. It is not MLS data and must never be
-            # silently treated as such.
+            # silently treated as such.  It is reached only after a session
+            # is verified, so an anonymous caller cannot trigger grounded
+            # model traffic by setting this flag.
             include_public_context = payload.get("includePublicPropertyContext") is True
             property_context = _select_property_context(
                 offer,

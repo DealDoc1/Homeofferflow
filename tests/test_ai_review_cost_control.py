@@ -27,6 +27,10 @@ class AiReviewCostControlTests(unittest.TestCase):
     def test_current_review_button_uses_clear_customer_language(self):
         self.assertIn("reviewIsCurrent ? 'Review is current'", HTML)
 
+    def test_signed_out_visitors_see_the_ai_review_account_boundary_before_requesting_a_model(self):
+        self.assertIn("const hasAiWorkspaceAccess = Boolean(hofAuth?.session?.access_token);", HTML)
+        self.assertIn("'Sign in for AI Market Review'", HTML)
+
     def test_live_ai_review_has_a_schema_appropriate_output_ceiling(self):
         self.assertIn('"maxOutputTokens": 1200,', API)
         self.assertNotIn('"maxOutputTokens": 1500,', API)

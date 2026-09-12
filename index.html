@@ -14678,7 +14678,8 @@ function routeAfterMagicLinkIfNeeded() {
         : '<div class="ai-role-note">Agent focus: quick quality-control and risk review. This does not replace agent market expertise.</div>';
     const componentsTitle = isHomebuyer ? 'Score Drivers' : 'Review Factors';
     const reviewIsCurrent = hasReusableAiReview(payload);
-    const liveButton = reviewIsCurrent ? 'Review is current' : (isHomebuyer ? 'Run Market Review' : isInvestor ? 'Run Investor Review' : 'Run Agent Review');
+    const hasAiWorkspaceAccess = Boolean(hofAuth?.session?.access_token);
+    const liveButton = reviewIsCurrent ? 'Review is current' : (!hasAiWorkspaceAccess ? 'Sign in for AI Market Review' : (isHomebuyer ? 'Run Market Review' : isInvestor ? 'Run Investor Review' : 'Run Agent Review'));
     const loadingText = isHomebuyer ? 'Running Market Review...' : 'Running Review...';
     const improveButton = isHomebuyer ? 'Show Ways to Improve' : isInvestor ? 'Show Deal Adjustments' : 'Show Possible Adjustments';
     const improveTitle = isHomebuyer ? 'Potential ways to strengthen this offer' : isInvestor ? 'Potential deal adjustments or checks' : 'Potential adjustments or verification points';
@@ -14754,11 +14755,25 @@ function routeAfterMagicLinkIfNeeded() {
       return;
     }
     const fallback = normalizeAiReviewResult(null);
+    const token = hofAuth?.session?.access_token;
+    if (!token) {
+      renderAiOfferReviewResult({
+        ...fallback,
+        source: 'rules_fallback_sign_in_required',
+        summary: 'Your built-in terms review is ready. Sign in to unlock the expanded AI market review and save it to your workspace.'
+      }, false);
+      const status = document.getElementById('aiFoundationStatus');
+      if (status) {
+        status.className = 'platform-status';
+        status.textContent = 'Sign in to unlock the expanded AI review. Your built-in terms review is available now.';
+      }
+      return;
+    }
     renderAiOfferReviewResult(fallback, true);
     try {
       const response = await fetch('/api/ai-offer-review', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ offer })
       });
       const result = await response.json().catch(() => ({}));

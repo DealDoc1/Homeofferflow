@@ -43,6 +43,28 @@ class AiReviewServerEndpointTests(unittest.TestCase):
         self.assertIn("'Authorization': `Bearer ${token}`", html)
         self.assertNotIn("client.from('hof_ai_offer_reviews').insert", html)
 
+    def test_paid_model_review_requires_a_server_verified_session(self):
+        source = MODULE_PATH.read_text(encoding="utf-8")
+        review_start = source.index('offer = payload.get("offer") or payload')
+        model_start = source.index("if not GEMINI_API_KEY:", review_start)
+        review_path = source[review_start:model_start]
+        self.assertIn('user = _verified_user(self.headers.get("Authorization", ""))', review_path)
+        self.assertIn('"source": "rules_fallback_sign_in_required"', review_path)
+        self.assertIn('"aiAccess": "sign_in_required"', review_path)
+        self.assertLess(
+            source.index('user = _verified_user(self.headers.get("Authorization", ""))', review_start),
+            source.index("property_context = _select_property_context(", review_start),
+        )
+
+    def test_ui_keeps_a_no_cost_terms_review_available_before_sign_in(self):
+        html = (ROOT / "index.html").read_text(encoding="utf-8")
+        start = html.index("async function runLiveAiOfferReview()")
+        end = html.index("function openAiCalibrationFeedback", start)
+        review = html[start:end]
+        self.assertIn("const token = hofAuth?.session?.access_token;", review)
+        self.assertIn("Sign in to unlock the expanded AI review.", review)
+        self.assertLess(review.index("if (!token)"), review.index("fetch('/api/ai-offer-review'"))
+
     def test_server_only_migration_removes_browser_privileges(self):
         migration = (ROOT / "supabase" / "homeofferflow_ai_reviews_server_only.sql").read_text(encoding="utf-8")
         self.assertIn("revoke all on table public.hof_ai_offer_reviews from anon, authenticated", migration)
