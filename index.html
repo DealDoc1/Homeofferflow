@@ -12322,17 +12322,20 @@ function routeAfterMagicLinkIfNeeded() {
   }
 
   function fillBrandOfficeAddressFields(components) {
-    let city = '', state = 'TX';
+    let city = '', state = 'TX', zip = '';
     components.forEach(c => {
       const t = c.types || [];
       if (t.includes('locality')) city = c.long_name;
       if (t.includes('sublocality_level_1') && !city) city = c.long_name;
       if (t.includes('administrative_area_level_1')) state = c.short_name || c.long_name || state;
+      if (t.includes('postal_code')) zip = c.long_name;
     });
     const cityEl = document.getElementById('brandOfficeCity');
     const stateEl = document.getElementById('brandOfficeState');
+    const zipEl = document.getElementById('brandOfficeZip');
     if (cityEl && city) cityEl.value = city;
     if (stateEl && state) stateEl.value = state;
+    if (zipEl && zip) zipEl.value = zip;
   }
 
   function fillFsboAddressFields(components) {
