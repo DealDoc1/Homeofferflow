@@ -38,6 +38,20 @@ class AgentFormSigningContractTests(unittest.TestCase):
             self.assertIn(form_id, queue.group("body"))
         self.assertIn("Review prepared documents", HTML)
 
+    def test_every_addendum_interview_offers_the_same_immediate_review_handoff(self):
+        expected = {
+            "TXR-1914": "Your draft is ready. <button type=\"button\" class=\"btn-secondary\">Review and send</button>",
+            "TXR-1917": "Environmental addendum ready. <button type=\"button\" class=\"btn-secondary\">Review and send</button>",
+            "TXR-1919": "Loan-assumption addendum ready. <button type=\"button\" class=\"btn-secondary\">Review and send</button>",
+            "TXR-1948": "Appraisal addendum ready. <button type=\"button\" class=\"btn-secondary\">Review and send</button>",
+            "TXR-1953": "Lease addendum ready. <button type=\"button\" class=\"btn-secondary\">Review and send</button>",
+            "TXR-1954": "Fixture-lease addendum ready. <button type=\"button\" class=\"btn-secondary\">Review and send</button>",
+        }
+        for form_code, handoff in expected.items():
+            with self.subTest(form_code=form_code):
+                self.assertIn(handoff, HTML)
+        self.assertGreaterEqual(HTML.count("await root.hofOpenPreparedAgreement?.();"), 7)
+
 
 if __name__ == "__main__":
     unittest.main()

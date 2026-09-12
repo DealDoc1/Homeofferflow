@@ -44,9 +44,9 @@ class SellerDisclosureAgentUiTests(unittest.TestCase):
         html = (ROOT / "index.html").read_text()
         self.assertNotIn("Review copy", html)
         self.assertNotIn("Your review copy is ready. It has not been sent for signature.", html)
-        self.assertGreaterEqual(
-            html.count("Your private draft is ready. Review the completed details and choose the next transaction step when you are ready."),
-            3,
+        self.assertNotIn(
+            "Review the completed details and choose the next transaction step when you are ready.",
+            html,
         )
         self.assertIn("Review and send", html)
 
