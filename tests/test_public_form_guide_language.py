@@ -21,6 +21,17 @@ class PublicFormGuideLanguageTests(unittest.TestCase):
         self.assertIn("confirm recipients before sending it for signature", guide)
         self.assertIn("does not create loan documents", guide)
 
+    def test_public_agent_guides_do_not_expose_private_draft_jargon(self):
+        for name in (
+            "texas-agent-offer-workflow.html",
+            "texas-homebuyer-offer-guide.html",
+            "texas-lease-offer-workflow.html",
+            "texas-agent-form-library.html",
+        ):
+            guide = (ROOT / name).read_text(encoding="utf-8").lower()
+            self.assertNotIn("private draft", guide, name)
+            self.assertNotIn("private-review", guide, name)
+
 
 if __name__ == "__main__":
     unittest.main()
