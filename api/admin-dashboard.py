@@ -139,6 +139,23 @@ TXR_SIGNING_MAP_REVISIONS = {
 # draft has naturally aged out; other released form types keep their normal
 # saved-draft behavior.
 TXR_SIGNING_MAP_REVISION_ENFORCED_FORM_CODES = {TXR_1507_FORM_CODE}
+
+
+def _current_txr_signing_map_revision(form_code, agreement_data):
+    """Return the active map revision and reject only stale corrected drafts."""
+    current_map_revision = TXR_SIGNING_MAP_REVISIONS.get(form_code, "source-specific-v1")
+    prepared_map_revision = str((agreement_data or {}).get("signing_map_revision") or "").strip()
+    if (
+        form_code in TXR_SIGNING_MAP_REVISION_ENFORCED_FORM_CODES
+        and prepared_map_revision != current_map_revision
+    ):
+        raise ValueError(
+            "This saved copy needs to be prepared again before sending so its "
+            "signature fields appear in the right places."
+        )
+    return current_map_revision
+
+
 # These forms have only Buyer and Seller execution rows. Their source-specific
 # maps use the same explicit recipient ordering as the released signing forms.
 TXR_BUYER_SELLER_SIGNING_FORM_CODES = {
@@ -4158,16 +4175,7 @@ async def _send_txr_agreement_for_signature(user, data):
     if source_response.status_code != 200 or not source_response.content.startswith(b"%PDF"):
         raise RuntimeError("The approved standalone source could not be loaded.")
     agreement_data = dict(agreement.get("agreement_data") or {})
-    prepared_map_revision = str(agreement_data.get("signing_map_revision") or "").strip()
-    current_map_revision = TXR_SIGNING_MAP_REVISIONS.get(form_code, "source-specific-v1")
-    if (
-        form_code in TXR_SIGNING_MAP_REVISION_ENFORCED_FORM_CODES
-        and prepared_map_revision != current_map_revision
-    ):
-        raise ValueError(
-            "This saved copy needs to be prepared again before sending so its "
-            "signature fields appear in the right places."
-        )
+    current_map_revision = _current_txr_signing_map_revision(form_code, agreement_data)
     agreement_data["client_emails"] = client_emails
     client_count = len(client_names)
     fields = _txr_signwell_fields(form_code, {"client_names": client_names, **agreement_data}, client_count)

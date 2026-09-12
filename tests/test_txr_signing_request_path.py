@@ -268,11 +268,22 @@ class TxrSigningRequestPathTests(unittest.TestCase):
         source = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
         self.assertIn('agreement_data["signing_map_revision"] = TXR_SIGNING_MAP_REVISIONS.get(', source)
         self.assertIn("TXR_SIGNING_MAP_REVISION_ENFORCED_FORM_CODES = {TXR_1507_FORM_CODE}", source)
-        self.assertIn("form_code in TXR_SIGNING_MAP_REVISION_ENFORCED_FORM_CODES", source)
-        self.assertIn('prepared_map_revision != current_map_revision', source)
         self.assertIn(
             "signature fields appear in the right places.",
             source,
+        )
+
+    def test_short_form_rejects_a_stale_signing_map_but_other_forms_keep_saved_drafts(self):
+        current = MODULE.TXR_SIGNING_MAP_REVISIONS["TXR-1507"]
+        self.assertEqual(
+            MODULE._current_txr_signing_map_revision("TXR-1507", {"signing_map_revision": current}),
+            current,
+        )
+        with self.assertRaisesRegex(ValueError, "signature fields appear in the right places"):
+            MODULE._current_txr_signing_map_revision("TXR-1507", {})
+        self.assertEqual(
+            MODULE._current_txr_signing_map_revision("TXR-1501", {}),
+            "source-specific-v1",
         )
 
     def test_stale_short_form_draft_offers_a_direct_current_copy_path(self):
