@@ -129,10 +129,10 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("<span>Personal transaction workspace</span>", INDEX)
         self.assertNotIn("<span>Personal offer workspace</span>", INDEX)
 
-    def test_personal_agent_workspace_does_not_present_a_brokerage_requirement(self):
+    def test_personal_agent_workspace_keeps_responsibilities_clear_without_a_brokerage_gate(self):
         self.assertIn("'Agent workspace ready'", INDEX)
-        self.assertIn("'Professional review process'", INDEX)
-        self.assertIn("Follow the review, submission, and recordkeeping process", INDEX)
+        self.assertIn("Agents remain responsible for review, advice, submission, negotiation, and any applicable brokerage process.", INDEX)
+        self.assertNotIn("'Professional review process'", INDEX)
         self.assertNotIn("'Brokerage workspace ready'", INDEX)
         self.assertNotIn("'Broker/compliance review'", INDEX)
 
