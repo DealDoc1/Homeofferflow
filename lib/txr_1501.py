@@ -55,8 +55,8 @@ def _check_signing_role(canvas, x, y):
     signer role remains legible in a completed packet.
     """
     canvas.setLineWidth(1.1)
-    canvas.line(x, y, x + 3, y - 3)
-    canvas.line(x + 3, y - 3, x + 7, y + 5)
+    canvas.line(x + 1, y + 1, x + 7, y + 7)
+    canvas.line(x + 1, y + 7, x + 7, y + 1)
 
 
 def _overlay(data, brokerage, associate):
@@ -143,9 +143,13 @@ def _overlay(data, brokerage, associate):
     # broker-associate checkbox pair.  A signature alone on the shared rule
     # leaves the completed agreement ambiguous.
     if data.get("signer_plan") == "clients_and_associate":
-        _check_signing_role(canvas, 33, 329)
+        # The Associate square spans source x=36..44 and bottom-origin
+        # y=327..336. Earlier coordinates started left of and below the
+        # printed cell, leaving its intended X effectively invisible.
+        _check_signing_role(canvas, 36, 327)
     elif data.get("signer_plan") == "clients_and_broker":
-        _check_signing_role(canvas, 33, 341)
+        # The Broker square directly above spans y=338..347.
+        _check_signing_role(canvas, 36, 338)
     canvas.save()
     packet.seek(0)
     return packet.read()

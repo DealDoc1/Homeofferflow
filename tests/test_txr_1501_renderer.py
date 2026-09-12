@@ -88,7 +88,7 @@ class Txr1501RendererTests(unittest.TestCase):
         associate = {"name": "Andrew Christian", "license_number": "0738821"}
         with patch.object(txr_1501, "_check_signing_role") as draw_check:
             txr_1501._overlay(sample_data(), brokerage, associate)
-        self.assertIn((33, 329), [call.args[1:] for call in draw_check.call_args_list])
+        self.assertIn((36, 327), [call.args[1:] for call in draw_check.call_args_list])
 
         with patch.object(txr_1501, "_check_signing_role") as draw_check:
             txr_1501._overlay(
@@ -96,7 +96,22 @@ class Txr1501RendererTests(unittest.TestCase):
                 brokerage,
                 associate,
             )
-        self.assertIn((33, 341), [call.args[1:] for call in draw_check.call_args_list])
+        self.assertIn((36, 338), [call.args[1:] for call in draw_check.call_args_list])
+
+    def test_selected_signing_role_uses_a_compact_x_inside_the_printed_cell(self):
+        class RecordingCanvas:
+            def __init__(self):
+                self.lines = []
+
+            def setLineWidth(self, _width):
+                pass
+
+            def line(self, x1, y1, x2, y2):
+                self.lines.append((x1, y1, x2, y2))
+
+        canvas = RecordingCanvas()
+        txr_1501._check_signing_role(canvas, 36, 327)
+        self.assertEqual(canvas.lines, [(37, 328, 43, 334), (37, 334, 43, 328)])
 
     def test_completion_values_begin_on_the_released_source_rules(self):
         """Prevent a completed TXR-1501 from drifting into its labels.
