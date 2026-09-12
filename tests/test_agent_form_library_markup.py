@@ -23,5 +23,6 @@ class AgentFormLibraryMarkupTests(unittest.TestCase):
     def test_customer_copy_uses_plain_transaction_language(self):
         self.assertIn("You choose the right document", HTML)
         self.assertIn("Clear next steps", HTML)
+        self.assertNotIn("draft", HTML.lower())
         self.assertNotIn("A release does not silently select", HTML)
         self.assertNotIn("Released TXR relationship", HTML)
