@@ -176,23 +176,20 @@ def build_signwell_fields_txr1507(data, *, client_count=1):
         {"api_id": "txr1507_client1_initials_p1", "type": "initials", "page": 1, "x": 542, "y": 984, "recipient_id": "1", "required": True, "width": 47, "height": 14},
         # Page two's first Client execution line runs from source x=324.1
         # through 576.1 at top-origin y=534.0.  SignWell uses a 4/3 scale.
-        # Its completed-packet renderer draws the signature/date artwork
-        # about 34 source points above a widget's requested top edge.  The
-        # earlier y=688/694 widgets therefore landed on the printed-name row
-        # rather than this execution rule.  Offset the fields by 46
-        # SignWell units so the rendered artwork, not merely the widget box,
-        # sits on the actual rule.
-        {"api_id": "txr1507_client1_signature_p2", "type": "signature", "page": 2, "x": 432, "y": 734, "recipient_id": "1", "required": True, "width": 272, "height": 24},
-        {"api_id": "txr1507_client1_date_p2", "type": "date", "page": 2, "x": 720, "y": 740, "recipient_id": "1", "required": True, "width": 48, "height": 18, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
+        # Keep the signature left of the printed Date caption and make each
+        # field finish on the actual source rule.  The former map was both
+        # left of and above this row in the completed packet.
+        {"api_id": "txr1507_client1_signature_p2", "type": "signature", "page": 2, "x": 432, "y": 688, "recipient_id": "1", "required": True, "width": 272, "height": 24},
+        {"api_id": "txr1507_client1_date_p2", "type": "date", "page": 2, "x": 720, "y": 694, "recipient_id": "1", "required": True, "width": 48, "height": 18, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
     ]
     if client_count == 2:
         fields.extend([
             {"api_id": "txr1507_client2_initials_p1", "type": "initials", "page": 1, "x": 596, "y": 984, "recipient_id": "2", "required": True, "width": 47, "height": 14},
-            # The second Client's signature rule is the lower page-two row.
-            # Apply the same measured SignWell renderer offset as the first
-            # execution row rather than duplicating the printed-name-row map.
-            {"api_id": "txr1507_client2_signature_p2", "type": "signature", "page": 2, "x": 432, "y": 844, "recipient_id": "2", "required": True, "width": 272, "height": 24},
-            {"api_id": "txr1507_client2_date_p2", "type": "date", "page": 2, "x": 720, "y": 850, "recipient_id": "2", "required": True, "width": 48, "height": 18, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
+            # The second Client's signature rule is the lower page-two row
+            # (source y=616.8, or SignWell y=822.4), not a second copy of
+            # the first Client's field shifted only a small amount down.
+            {"api_id": "txr1507_client2_signature_p2", "type": "signature", "page": 2, "x": 432, "y": 798, "recipient_id": "2", "required": True, "width": 272, "height": 24},
+            {"api_id": "txr1507_client2_date_p2", "type": "date", "page": 2, "x": 720, "y": 804, "recipient_id": "2", "required": True, "width": 48, "height": 18, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
         ])
     # The source uses checkboxes to identify whether the broker or the
     # broker's associate signs, followed by one shared signature/date rule.
@@ -200,12 +197,11 @@ def build_signwell_fields_txr1507(data, *, client_count=1):
     # top-origin y=534.0.  It shares the first Client's row.  Use the same
     # rule-ending placement convention as the Client fields, without covering
     # the printed role choices, labels, or date caption.
-    # Match the first Client's corrected completed-artwork baseline.
-    role_y = 734
+    role_y = 688
     role_signature_x = 48
     role_date_x = 336
     fields.extend([
         {"api_id": f"txr1507_{role}_signature_p2", "type": "signature", "page": 2, "x": role_signature_x, "y": role_y, "recipient_id": role, "required": True, "width": 240, "height": 24},
-        {"api_id": f"txr1507_{role}_date_p2", "type": "date", "page": 2, "x": role_date_x, "y": 740, "recipient_id": role, "required": True, "width": 48, "height": 18, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
+        {"api_id": f"txr1507_{role}_date_p2", "type": "date", "page": 2, "x": role_date_x, "y": 694, "recipient_id": role, "required": True, "width": 48, "height": 18, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
     ])
     return [fields]

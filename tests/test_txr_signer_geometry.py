@@ -125,7 +125,7 @@ class TxrSignerGeometryTests(unittest.TestCase):
             # left-column coordinate and allowed widgets to cover the printed
             # Client's Signature caption.
             (build_signwell_fields_txr1501, FORM_CASES[0][3], "txr1501", 566, 768),
-            (build_signwell_fields_txr1507, FORM_CASES[2][3], "txr1507", 734, 768),
+            (build_signwell_fields_txr1507, FORM_CASES[2][3], "txr1507", 688, 768),
         )
         for builder, data, prefix, first_row_y, date_label_x in cases:
             with self.subTest(prefix=prefix):
@@ -135,7 +135,7 @@ class TxrSignerGeometryTests(unittest.TestCase):
                 role = fields[f"{prefix}_associate_signature_p{6 if prefix == 'txr1501' else 2}"]
                 self.assertEqual(client["y"], first_row_y)
                 if prefix == "txr1507":
-                    self.assertEqual(role["y"], 734)
+                    self.assertEqual(role["y"], 688)
                 else:
                     self.assertEqual(role["y"], 677)
                 self.assertGreater(date["x"], client["x"] + client["width"])
@@ -158,12 +158,12 @@ class TxrSignerGeometryTests(unittest.TestCase):
                 "txr1501_client2_date_p6": 701,
             }),
             (build_signwell_fields_txr1507, FORM_CASES[2][3], {
-                "txr1507_associate_signature_p2": 758,
-                "txr1507_associate_date_p2": 758,
-                "txr1507_client1_signature_p2": 758,
-                "txr1507_client1_date_p2": 758,
-                "txr1507_client2_signature_p2": 868,
-                "txr1507_client2_date_p2": 868,
+                "txr1507_associate_signature_p2": 712,
+                "txr1507_associate_date_p2": 712,
+                "txr1507_client1_signature_p2": 712,
+                "txr1507_client1_date_p2": 712,
+                "txr1507_client2_signature_p2": 822,
+                "txr1507_client2_date_p2": 822,
             }),
         )
         for builder, data, limits in cases:
@@ -210,17 +210,17 @@ class TxrSignerGeometryTests(unittest.TestCase):
         # signature rule below the label.
         self.assertEqual(
             (txr1507["txr1507_associate_signature_p2"]["x"], txr1507["txr1507_associate_signature_p2"]["y"], txr1507["txr1507_associate_signature_p2"]["width"], txr1507["txr1507_associate_signature_p2"]["y"] + txr1507["txr1507_associate_signature_p2"]["height"]),
-            (48, 734, 240, 758),
+            (48, 688, 240, 712),
         )
         self.assertEqual(
             (txr1507["txr1507_associate_date_p2"]["x"], txr1507["txr1507_associate_date_p2"]["y"], txr1507["txr1507_associate_date_p2"]["width"], txr1507["txr1507_associate_date_p2"]["y"] + txr1507["txr1507_associate_date_p2"]["height"]),
-            (336, 740, 48, 758),
+            (336, 694, 48, 712),
         )
         for field_id, expected in {
-            "txr1507_client1_signature_p2": (432, 734, 272, 758),
-            "txr1507_client1_date_p2": (720, 740, 48, 758),
-            "txr1507_client2_signature_p2": (432, 844, 272, 868),
-            "txr1507_client2_date_p2": (720, 850, 48, 868),
+            "txr1507_client1_signature_p2": (432, 688, 272, 712),
+            "txr1507_client1_date_p2": (720, 694, 48, 712),
+            "txr1507_client2_signature_p2": (432, 798, 272, 822),
+            "txr1507_client2_date_p2": (720, 804, 48, 822),
         }.items():
             field = txr1507[field_id]
             self.assertEqual(
