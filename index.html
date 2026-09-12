@@ -22403,9 +22403,11 @@ function routeAfterMagicLinkIfNeeded() {
         const result = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(result.error || 'Could not send seller review email.');
         status.textContent = 'Secure review email sent. The seller will verify a one-time code before reviewing the draft.';
+        button.textContent = 'Review email sent';
         root.logOfferEvent?.(null, 'seller_review_request_sent', 'sent', 'Seller disclosure review request sent.', {
           sellerCount: sellerReviews.length
         });
+        await refreshDrafts();
       } catch (error) {
         status.textContent = error.message || 'Could not send seller review email.';
         button.disabled = false;

@@ -35,6 +35,8 @@ class SellerDisclosureFeedbackTests(unittest.TestCase):
         self.assertIn("Enter Seller 2 review email or remove Seller 2 name.", script)
         self.assertIn("Enter Seller 2 name before adding a second review email.", script)
         self.assertIn("create_seller_disclosure_review_link", script)
+        self.assertIn("button.textContent = 'Review email sent'", script)
+        self.assertIn("await refreshDrafts();", script)
 
 
 if __name__ == "__main__":
