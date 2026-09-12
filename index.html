@@ -5368,7 +5368,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.sellerLandingSupportPathsExpandedCount || 0} visitors opened all seller support paths.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Seller channels: views — ${adminSafe(Object.entries(metrics.sellerLandingViewCountsByChannel || {}).filter(([, count]) => Number(count) > 0).map(([channel, count]) => `${channel.replace(/_/g, ' ')} (${count})`).join(' · '), 'none yet')}; intake starts — ${adminSafe(Object.entries(metrics.sellerLandingCtaCountsByChannel || {}).filter(([, count]) => Number(count) > 0).map(([channel, count]) => `${channel.replace(/_/g, ' ')} (${count})`).join(' · '), 'none yet')}; conversion — ${adminSafe(Object.entries(metrics.sellerLandingCtaRatesByChannel || {}).filter(([channel]) => Number(metrics.sellerLandingViewCountsByChannel?.[channel] || 0) > 0).map(([channel, rate]) => `${channel.replace(/_/g, ' ')} (${Number(rate).toFixed(1)}%)`).join(' · '), 'none yet')}; support paths — ${adminSafe(Object.entries(metrics.sellerLandingSupportPathsExpandedCountsByChannel || {}).filter(([, count]) => Number(count) > 0).map(([channel, count]) => `${channel.replace(/_/g, ' ')} (${count})`).join(' · '), 'none yet')}.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Seller surface conversion: ${adminSafe(Object.entries(metrics.sellerLandingCtaRatesBySurface || {}).filter(([surface]) => Number(metrics.sellerLandingViewCountsBySurface?.[surface] || 0) > 0).map(([surface, rate]) => `${surface.replace(/_/g, ' ')} (${Number(rate).toFixed(1)}%)`).join(' · '), 'receipt and guide cohorts appear after the next seller visit')}</div>
-            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Intake progress: ${Number(metrics.sellerIntakeEventCounts?.fsbo_intake_opened || 0)} opened · ${Number(metrics.sellerIntakeEventCounts?.fsbo_package_selected || 0)} package choices · ${Number(metrics.sellerIntakeEventCounts?.fsbo_required_fields_missing || 0)} incomplete attempts · ${Number(metrics.sellerIntakeEventCounts?.fsbo_request_submission_started || 0)} submissions started · ${Number(metrics.sellerIntakeEventCounts?.fsbo_request_saved || 0)} saved · ${Number(metrics.sellerPlanDownloadCount || 0)} plans downloaded · ${Number(metrics.sellerPlanPrintedCount || 0)} plans printed · ${Number(metrics.sellerPlanCopiedCount || 0)} plans copied · ${Number(metrics.sellerSupportContactOpenedCount || 0)} support conversations opened.</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Intake progress: ${Number(metrics.sellerIntakeEventCounts?.fsbo_intake_opened || 0)} opened · ${Number(metrics.sellerIntakeEventCounts?.fsbo_package_selected || 0)} package choices · ${Number(metrics.sellerIntakeEventCounts?.fsbo_required_fields_missing || 0)} incomplete attempts · ${Number(metrics.sellerIntakeEventCounts?.fsbo_request_submission_started || 0)} submissions started · ${Number(metrics.sellerIntakeEventCounts?.fsbo_request_saved || 0)} saved · ${Number(metrics.sellerPlanDownloadCount || 0)} plans downloaded · ${Number(metrics.sellerPlanPrintedCount || 0)} plans printed · ${Number(metrics.sellerPlanCopiedCount || 0)} plans copied · ${Number(metrics.sellerPlanSharedCount || 0)} plans shared · ${Number(metrics.sellerSupportContactOpenedCount || 0)} support conversations opened.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Saved-plan notices: ${Number(metrics.sellerRequestReceiptViewedCount || 0)} reopened · ${Number(metrics.sellerRequestReceiptClearedCount || 0)} dismissed.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Selected package interest: ${adminSafe(Object.entries(metrics.sellerPackageSelectionCounts || {}).map(([packageKey, count]) => `${packageKey.replace(/_/g, ' ')} (${count})`).join(' · '), 'package choices will appear after the next intake visit')}</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:${Number(metrics.sellerPlanReceiptFailureCount || 0) ? 'var(--gold-light)' : 'var(--gray-light)'}">Seller-plan receipts: ${Number(metrics.sellerPlanReceiptSentCount || 0)} accepted by the delivery provider · ${Number(metrics.sellerPlanReceiptFailureCount || 0)} unavailable or failed.</div>
@@ -15180,6 +15180,7 @@ function routeAfterMagicLinkIfNeeded() {
       'FSBO Seller Plan Downloaded': 'fsbo_seller_plan_downloaded',
       'FSBO Seller Plan Copied': 'fsbo_seller_plan_copied',
       'FSBO Seller Plan Printed': 'fsbo_seller_plan_printed',
+      'FSBO Seller Plan Shared': 'fsbo_seller_plan_shared',
       'FSBO Seller Support Contact Opened': 'fsbo_seller_support_contact_opened'
     }[name];
     if (!eventType) return;
@@ -15667,6 +15668,30 @@ function routeAfterMagicLinkIfNeeded() {
       window.setTimeout(() => { if (button.isConnected) button.textContent = original; }, 1800);
     }
   };
+  window.shareFsboRequestSummary = async function shareFsboRequestSummary(button) {
+    const key = fsboVal('fsboNeed') || 'free_intake';
+    if (!navigator.share) {
+      await window.copyFsboRequestSummary(button);
+      return;
+    }
+    try {
+      await navigator.share({
+        title: 'My HomeOfferFlow seller plan',
+        text: fsboRequestSummaryText()
+      });
+      trackFsboFunnel('FSBO Seller Plan Shared', { package: key });
+      if (button) {
+        const original = button.dataset.label || button.textContent;
+        button.dataset.label = original;
+        button.textContent = 'Seller plan shared';
+        window.setTimeout(() => { if (button.isConnected) button.textContent = original; }, 1800);
+      }
+    } catch (error) {
+      if (error?.name === 'AbortError') return;
+      const status = document.getElementById('fsboSellerStatus');
+      if (status) { status.textContent = 'We couldn’t open sharing. You can copy or print your seller plan instead.'; status.className = 'platform-status err'; }
+    }
+  };
   window.contactFsboSupport = function contactFsboSupport() {
     const key = fsboVal('fsboNeed') || 'free_intake';
     const item = fsboNeedCopy[key] || fsboNeedCopy.free_intake;
@@ -15814,6 +15839,7 @@ function routeAfterMagicLinkIfNeeded() {
           '<button class="btn-secondary" type="button" onclick="downloadFsboRequestSummary()">Download seller plan</button>' +
           '<button class="btn-secondary" type="button" onclick="printFsboRequestSummary()">Print seller plan</button>' +
           '<button class="btn-secondary" type="button" onclick="copyFsboRequestSummary(this)">Copy seller plan</button>' +
+          '<button class="btn-secondary" type="button" onclick="shareFsboRequestSummary(this)">Share seller plan</button>' +
           '<button class="btn-secondary" type="button" onclick="contactFsboSupport()">' + escapeAttr(fsboSupportButtonLabel(payload.service_level)) + '</button>' +
           '<button class="btn-secondary" type="button" onclick="openFsboProviderDirectory()">' + escapeAttr(fsboProviderDirectoryButtonLabel()) + '</button>' +
           '<button class="btn-secondary" type="button" onclick="closeFsboSellerModal()">Done</button></div>';

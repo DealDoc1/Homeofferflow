@@ -187,6 +187,7 @@ FSBO_LANDING_EVENT_TYPES = {
     "fsbo_seller_plan_downloaded": "downloaded",
     "fsbo_seller_plan_copied": "copied",
     "fsbo_seller_plan_printed": "printed",
+    "fsbo_seller_plan_shared": "shared",
     "fsbo_seller_support_contact_opened": "opened",
     "pwa_seller_plan_opened": "opened",
 }

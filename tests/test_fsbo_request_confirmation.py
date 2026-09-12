@@ -116,6 +116,16 @@ class FsboRequestConfirmationTests(unittest.TestCase):
         self.assertIn('"fsbo_seller_plan_printed": "printed"', api)
         self.assertIn('"sellerPlanPrintedCount"', admin)
 
+    def test_seller_plan_can_use_the_native_mobile_share_sheet(self):
+        api = (pathlib.Path(__file__).resolve().parents[1] / "api" / "fsbo-lead.py").read_text(encoding="utf-8")
+        admin = (pathlib.Path(__file__).resolve().parents[1] / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
+        self.assertIn("window.shareFsboRequestSummary", HTML)
+        self.assertIn("navigator.share", HTML)
+        self.assertIn("Share seller plan", HTML)
+        self.assertIn("FSBO Seller Plan Shared", HTML)
+        self.assertIn('"fsbo_seller_plan_shared": "shared"', api)
+        self.assertIn('"sellerPlanSharedCount"', admin)
+
     def test_saved_seller_plan_can_open_a_privacy_safe_support_conversation(self):
         api = API_PATH.read_text(encoding="utf-8")
         admin = (pathlib.Path(__file__).resolve().parents[1] / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
