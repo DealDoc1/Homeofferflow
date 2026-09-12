@@ -159,6 +159,15 @@ class AgentActivationDashboardTests(unittest.TestCase):
         self.assertNotIn("Verify buyer-side signing", items)
         self.assertNotIn("Professional review process", items)
 
+    def test_agent_workspace_uses_plain_transaction_language_not_internal_brokerage_copy(self):
+        script_start = HTML.index('id="hof-broker-beta-readiness-v11-js"')
+        script_end = HTML.index("</script>", script_start)
+        script = HTML[script_start:script_end]
+        self.assertIn("A simpler path for your next client transaction.", script)
+        self.assertIn("Questions and available documents follow the transaction you choose.", script)
+        self.assertIn("Before you send:", script)
+        self.assertNotIn("Broker-safe workspace note:", script)
+
     def test_account_dashboard_resumes_same_role_local_drafts_before_clearing_them(self):
         self.assertIn("if (resumeLocalAccountOfferDraft(role)) return;", HTML)
         self.assertIn("function resumableAccountOfferDraft(role)", HTML)
@@ -294,7 +303,7 @@ class AgentActivationDashboardTests(unittest.TestCase):
         self.assertLess(picker.index(">Lease listing</button>"), picker.index(">Tenant representation</button>"))
 
     def test_workspace_note_explains_the_next_step_without_internal_document_state_language(self):
-        self.assertIn("Review the completed packet before it is delivered, accepted, and signed", HTML)
+        self.assertIn("Review the completed packet before delivery, acceptance, and signatures.", HTML)
         self.assertNotIn("Generated packets are drafts/prepared offer documents", HTML)
 
     def test_transaction_interview_recommends_a_package_before_opening_a_workspace(self):

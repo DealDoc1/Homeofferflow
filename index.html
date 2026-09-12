@@ -18205,19 +18205,19 @@ function routeAfterMagicLinkIfNeeded() {
     el.innerHTML = `
       <div class="broker-readiness-hero">
         <div class="broker-readiness-kicker">● ${isInvestor ? 'Investor workspace ready' : 'Agent workspace ready'}</div>
-        <h4>${isInvestor ? 'Offer preparation for repeat property decisions.' : 'Offer prep workspace for agents on the go.'}</h4>
-        <p>${isInvestor ? 'Use HomeOfferFlow to prepare a clear Texas offer packet, keep your repeat defaults together, and return to your saved work without hunting through a form library.' : 'Use HomeOfferFlow to create cleaner Texas offer packets faster, collect buyer-side signatures, and track packet status. Agents remain responsible for review, advice, submission, negotiation, and any applicable brokerage process.'}</p>
+        <h4>${isInvestor ? 'Offer preparation for repeat property decisions.' : 'A simpler path for your next client transaction.'}</h4>
+        <p>${isInvestor ? 'Use HomeOfferFlow to prepare a clear Texas offer packet, keep your repeat defaults together, and return to your saved work without hunting through a form library.' : 'Choose the transaction, answer clear questions, and review the documents before you send them. You remain in control of review, advice, submission, negotiation, and any applicable brokerage process.'}</p>
         <div class="broker-safe-grid">
-          <div class="broker-safe-chip"><strong>Offer prep</strong><span>Guided Texas packet creation, not transaction management.</span></div>
-          <div class="broker-safe-chip"><strong>${isInvestor ? 'Your defaults' : 'Buyer-side signing'}</strong><span>${isInvestor ? 'Your entity, signer, title, and common offer terms stay ready for your next offer.' : 'Buyer signatures only. Seller execution happens outside HomeOfferFlow.'}</span></div>
-          <div class="broker-safe-chip"><strong>${isInvestor ? 'You stay in control' : 'Agent controlled'}</strong><span>${isInvestor ? 'Review each term and use the correct title, legal, and transaction process outside HomeOfferFlow.' : 'Agent remains responsible for review, advice, submission, and compliance.'}</span></div>
+          <div class="broker-safe-chip"><strong>Guided documents</strong><span>Questions and available documents follow the transaction you choose.</span></div>
+          <div class="broker-safe-chip"><strong>${isInvestor ? 'Your defaults' : 'Your review'}</strong><span>${isInvestor ? 'Your entity, signer, title, and common offer terms stay ready for your next offer.' : 'Review each document and term before it is sent.'}</span></div>
+          <div class="broker-safe-chip"><strong>You stay in control</strong><span>${isInvestor ? 'Review each term and use the correct title, legal, and transaction process outside HomeOfferFlow.' : 'You decide when a document is sent or a signature is requested.'}</span></div>
         </div>
         <div class="beta-action-strip">
           <button class="beta-action-card" type="button" onclick="startAccountTransaction()"><strong>${isInvestor ? 'Start an offer' : 'Start a transaction'}</strong><span>${isInvestor ? 'Open a guided offer with the property and terms you have now.' : 'Choose the transaction in front of you, then use the guided workflow.'}</span></button>
           <button class="beta-action-card" type="button" onclick="openBetaFeedback()"><strong>Get help or request a form</strong><span>PDF, form, SignWell, or workflow support.</span></button>
         </div>
       </div>
-      <div class="broker-disclaimer-card"><strong>${isInvestor ? 'Offer workspace note:' : 'Broker-safe workspace note:'}</strong> Review the completed packet before it is delivered, accepted, and signed through the appropriate transaction process. HomeOfferFlow does not create seller acceptance, seller signatures, broker approval, or provide legal advice.</div>
+      <div class="broker-disclaimer-card"><strong>${isInvestor ? 'Offer workspace note:' : 'Before you send:'}</strong> Review the completed packet before delivery, acceptance, and signatures. HomeOfferFlow does not provide legal advice or create seller acceptance.</div>
       <div class="beta-checklist-head">
         <div>
           <h4>${roleName} Workspace Checklist</h4>
