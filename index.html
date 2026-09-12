@@ -13168,11 +13168,11 @@ function routeAfterMagicLinkIfNeeded() {
           <div class="field"><label for="listingOfferStatus">Worksheet status</label><select id="listingOfferStatus"><option value="received">Received</option><option value="reviewing">Reviewing</option><option value="preferred">Preferred for discussion</option><option value="declined">Declined / no longer active</option></select></div>
         </div>
         <div class="field" style="margin-top:.8rem;"><label for="listingOfferContingencies">Contingencies / terms to verify</label><textarea id="listingOfferContingencies" rows="2" maxlength="2000" placeholder="Appraisal, sale-of-other-property, inspection, financing, or other terms to verify with the proper professional."></textarea></div>
-        <div class="field" style="margin-top:.8rem;"><label for="listingOfferNotes">Private comparison notes</label><textarea id="listingOfferNotes" rows="2" maxlength="4000" placeholder="Net-impact questions, missing documents, follow-up items, or seller discussion notes."></textarea></div>
+        <div class="field" style="margin-top:.8rem;"><label for="listingOfferNotes">Comparison notes</label><textarea id="listingOfferNotes" rows="2" maxlength="4000" placeholder="Net-impact questions, missing documents, follow-up items, or seller discussion notes."></textarea></div>
         <div class="platform-actions"><button type="button" id="saveListingWorkspaceOfferButton" onclick="saveListingWorkspaceOffer()">Save Offer Comparison</button><button type="button" onclick="loadListingWorkspaceOffersFoundation()">Refresh Comparisons</button><button type="button" onclick="copyListingWorkspaceOfferSummary()">Copy Seller Review Summary</button></div>
         <div id="listingOfferStatusMessage" class="platform-status" role="status" aria-live="polite" aria-atomic="true"></div>
         <div id="listingWorkspaceOfferList" class="platform-list" style="margin-top:.8rem;"><div class="platform-list-item">Select a workspace to load comparison notes.</div></div>
-        <div class="notice gold" style="margin-top:1rem;"><strong>Estimated seller proceeds comparison:</strong> optional, private math using your own payoff and cost estimates. It does not calculate a closing statement, determine commissions, account for every obligation, rank offers, or recommend a decision.</div>
+        <div class="notice gold" style="margin-top:1rem;"><strong>Estimated seller proceeds comparison:</strong> optional math using your own payoff and cost estimates. It does not calculate a closing statement, determine commissions, account for every obligation, rank offers, or recommend a decision.</div>
         <div class="platform-grid" style="margin-top:.8rem;">
           <div class="field"><label for="listingOfferEstimatedPayoff">Estimated payoff / liens</label><input id="listingOfferEstimatedPayoff" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0"></div>
           <div class="field"><label for="listingOfferEstimatedBrokerage">Estimated brokerage / marketing cost</label><input id="listingOfferEstimatedBrokerage" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0"></div>
@@ -13567,7 +13567,7 @@ function routeAfterMagicLinkIfNeeded() {
       '- Use the shared seller-disclosure review workflow when it fits the transaction. Secure review is not signing.',
       '',
       `5. ${context.isLease ? 'Application and lease handling' : 'Offer handling'}`,
-      context.isLease ? '- Establish the brokerage-approved process for applications, screening, deposits, timing, and lease questions before communicating commitments.' : '- Log received offers and key terms in the private offer-comparison worksheet.',
+      context.isLease ? '- Establish the brokerage-approved process for applications, screening, deposits, timing, and lease questions before communicating commitments.' : '- Log received offers and key terms in the offer-comparison worksheet.',
       context.isLease ? '- Review lease terms, deadlines, deposits, possession, and landlord questions with the appropriate licensed professional before a decision.' : '- Review the complete offer documents, deadlines, financing, contingencies, concessions, and seller questions with the appropriate licensed professional before a decision.',
       '',
       'This planning checklist is not legal advice, a pricing opinion, a listing agreement, disclosure, contract, or instruction to sign.'
@@ -13636,14 +13636,14 @@ function routeAfterMagicLinkIfNeeded() {
       '- Do not create, send, sign, or describe a listing agreement, disclosure, or lease packet as executable until the authorized source and required review are complete.',
       '',
       `5. ${context.isLease ? 'Lease preparation' : 'Offer-to-close preparation'}`,
-      context.isLease ? '- Explain the brokerage-approved application, screening, deposit, possession, and lease-term review process before acting.' : '- Explain the private offer-comparison worksheet and the importance of reviewing complete offer documents, deadlines, financing, contingencies, concessions, and seller questions before acting.',
+      context.isLease ? '- Explain the brokerage-approved application, screening, deposit, possession, and lease-term review process before acting.' : '- Explain the offer-comparison worksheet and the importance of reviewing complete offer documents, deadlines, financing, contingencies, concessions, and seller questions before acting.',
       context.isLease ? '- Identify anticipated property, tenant, maintenance, possession, and lease communication needs for the appropriate party.' : '- Identify anticipated title, lender, inspection, possession, and closing communication needs for the appropriate party.',
       '',
       '6. Close the conversation',
       '- Confirm the seller’s next question, owner, due date, and the agreed follow-up channel.',
-      '- Keep sensitive documents and notes in the authorized private workflow.',
+      '- Keep sensitive documents and notes in the authorized workspace.',
       '',
-      'This private consultation brief is not legal advice, a pricing opinion, a listing agreement, disclosure, contract, or instruction to sign.'
+      'This consultation brief is not legal advice, a pricing opinion, a listing agreement, disclosure, contract, or instruction to sign.'
     ].join('\n');
   }
 
