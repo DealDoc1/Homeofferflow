@@ -3,8 +3,9 @@
 ## Release
 
 - Release name: TXR-1507 Short Form completed-signature offset correction
-- Git commit / pull request: `ecc63425` in PR #1218 (pending production
-  publication).
+- Git commit / pull request: corrective map in `ecc63425`, carried by local
+  release branch `codex/txr1507-role-guard-clean`; review publication and
+  production publication are still pending.
 - Production scope: corrective electronic-signature and date placement for
   `TXR-1507 Residential Buyer/Tenant Representation Agreement - Short Form`.
   It changes neither the source edition nor agreement terms, recipients, or
