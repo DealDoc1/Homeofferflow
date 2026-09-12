@@ -34,6 +34,7 @@ class AgentLandingFunnelTests(unittest.TestCase):
                 self.assertNotIn("brokerage-approved", guide)
                 self.assertNotIn("brokerage policy", guide)
                 self.assertNotIn("brokerage supervision", guide)
+                self.assertNotIn("applicable applicable", guide)
 
     @unittest.skipUnless(shutil.which('node'), 'Node.js is required for lease-listing handoff runtime tests')
     def test_lease_listing_records_a_real_workspace_start_after_the_address_question_loads(self):
