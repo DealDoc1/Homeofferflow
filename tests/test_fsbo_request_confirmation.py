@@ -106,6 +106,16 @@ class FsboRequestConfirmationTests(unittest.TestCase):
         self.assertIn('"fsbo_seller_plan_copied": "copied"', api)
         self.assertIn('"sellerPlanCopiedCount"', admin)
 
+    def test_seller_plan_has_a_clean_printable_view_with_aggregate_measurement(self):
+        api = (pathlib.Path(__file__).resolve().parents[1] / "api" / "fsbo-lead.py").read_text(encoding="utf-8")
+        admin = (pathlib.Path(__file__).resolve().parents[1] / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
+        self.assertIn("window.printFsboRequestSummary", HTML)
+        self.assertIn("Print seller plan", HTML)
+        self.assertIn("A simple planning aid for your next sale decision.", HTML)
+        self.assertIn("FSBO Seller Plan Printed", HTML)
+        self.assertIn('"fsbo_seller_plan_printed": "printed"', api)
+        self.assertIn('"sellerPlanPrintedCount"', admin)
+
     def test_saved_seller_plan_can_open_a_privacy_safe_support_conversation(self):
         api = API_PATH.read_text(encoding="utf-8")
         admin = (pathlib.Path(__file__).resolve().parents[1] / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
