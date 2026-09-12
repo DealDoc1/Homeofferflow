@@ -26,7 +26,7 @@ class PartnerTierUiTests(unittest.TestCase):
         required_copy = (
             "first 90 days for the price of one standard month",
             "Onboarding is included with no setup fee",
-            "then $149/month unless cancelled",
+            "Then $149/month unless cancelled.",
             "Then $149/month after 90 days, unless cancelled",
             "Then $399/month after 90 days, unless cancelled",
             "Then $799/month after 90 days, unless cancelled",
