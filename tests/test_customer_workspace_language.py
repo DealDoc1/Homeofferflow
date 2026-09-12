@@ -33,7 +33,7 @@ class CustomerWorkspaceLanguageTests(unittest.TestCase):
 
     def test_listing_workspace_avoids_internal_build_language(self):
         self.assertIn("Loading listing workspace...", HTML)
-        self.assertIn("Seller and property details saved. You can create a private listing workspace next.", HTML)
+        self.assertIn("Seller and property details saved. You can create a listing workspace next.", HTML)
         self.assertIn("Start a sale listing by adding the seller and property.", HTML)
         self.assertNotIn("Loading seller-side foundation...", HTML)
         self.assertNotIn("This proves the listing-tools path", HTML)

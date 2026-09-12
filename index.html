@@ -13075,8 +13075,8 @@ function routeAfterMagicLinkIfNeeded() {
     const workspaceKind = isLeaseListing ? 'lease' : 'sale';
     const workspaceTitle = isLeaseListing ? 'Lease Listing Workspace' : 'Listing Workspace';
     const workspaceDescription = isLeaseListing
-      ? 'Start a lease listing by adding the landlord and property. Then keep your lease-listing planning in one private workspace.'
-      : 'Start a sale listing by adding the seller and property. Then keep your launch, disclosure, and offer-review planning in one private workspace.';
+      ? 'Start a lease listing by adding the landlord and property. Then keep your lease-listing planning in one organized workspace.'
+      : 'Start a sale listing by adding the seller and property. Then keep your launch, disclosure, and offer-review planning in one organized workspace.';
     const workflowPrompt = isLeaseListing
       ? '<label style="display:flex; gap:.35rem; align-items:center;"><input type="checkbox" name="listingWorkflow" value="lease_listing" checked> Lease-listing launch plan</label><label style="display:flex; gap:.35rem; align-items:center;"><input type="checkbox" name="listingWorkflow" value="listing_agreement"> Listing agreement discussion</label><label style="display:flex; gap:.35rem; align-items:center;"><input type="checkbox" name="listingWorkflow" value="seller_disclosure"> Seller disclosure review</label>'
       : '<label style="display:flex; gap:.35rem; align-items:center;"><input type="checkbox" name="listingWorkflow" value="listing_agreement"> Listing agreement discussion</label><label style="display:flex; gap:.35rem; align-items:center;"><input type="checkbox" name="listingWorkflow" value="seller_disclosure"> Seller disclosure review</label>';
@@ -13125,7 +13125,7 @@ function routeAfterMagicLinkIfNeeded() {
       <div class="platform-card" id="listingWorkspaceStartCard">
         <div class="eyebrow" style="margin-bottom:.35rem;">Question 2</div>
         <h4>${isLeaseListing ? 'Which property is this lease listing for?' : 'Which property is this listing for?'}</h4>
-        <p>${isLeaseListing ? 'Add the property and landlord first. Then HomeOfferFlow keeps the requested lease-listing planning in one private workspace.' : 'Add the property and seller first. Then HomeOfferFlow keeps the requested listing planning in one private workspace.'}</p>
+        <p>${isLeaseListing ? 'Add the property and landlord first. Then HomeOfferFlow keeps the requested lease-listing planning in one organized workspace.' : 'Add the property and seller first. Then HomeOfferFlow keeps the requested listing planning in one organized workspace.'}</p>
         <div class="platform-grid">
           <div class="field"><label>Listing Type</label><select id="listingWorkspaceKind"><option value="sale"${workspaceKind === 'sale' ? ' selected' : ''}>For Sale</option><option value="lease"${workspaceKind === 'lease' ? ' selected' : ''}>For Lease</option></select></div>
           <div class="field"><label for="listingWorkspaceAddress">Property Address</label><input id="listingWorkspaceAddress" maxlength="400" placeholder="Start typing the property address..." autocomplete="off" autocorrect="off" autocapitalize="words" spellcheck="false" aria-describedby="listingWorkspaceAddressHelp" required><small id="listingWorkspaceAddressHelp" style="display:block;margin-top:.35rem;color:var(--gray-light);">Choose a Google address suggestion when available; manual entry still works.</small></div>
@@ -13133,30 +13133,30 @@ function routeAfterMagicLinkIfNeeded() {
         </div>
         <details class="field" style="margin-top:0.8rem;">
           <summary style="cursor:pointer;font-weight:700;">Add optional planning topics</summary>
-          <p style="color:var(--gray-light);font-size:.84rem;line-height:1.5;margin:.55rem 0;">Leave this closed if you only need a private listing workspace now. These notes help organize a later conversation; they do not select, create, send, or sign a form.</p>
+          <p style="color:var(--gray-light);font-size:.84rem;line-height:1.5;margin:.55rem 0;">Leave this closed if you only need a listing workspace now. These notes help organize a later conversation; they do not select, create, send, or sign a form.</p>
           <div style="display:flex; gap:.75rem; flex-wrap:wrap;">${workflowPrompt}</div>
         </details>
-        <div class="field" style="margin-top:0.8rem;"><label>Private notes</label><textarea id="listingWorkspaceNotes" rows="3" maxlength="4000" placeholder="Internal planning notes. Do not enter unnecessary sensitive information."></textarea></div>
-        <div class="platform-actions"><button type="button" id="createListingWorkspaceButton" onclick="saveListingWorkspaceFoundation()">Create Private Workspace</button><button type="button" onclick="loadListingWorkspacesFoundation()">Refresh Workspaces</button></div>
+        <div class="field" style="margin-top:0.8rem;"><label>Workspace notes</label><textarea id="listingWorkspaceNotes" rows="3" maxlength="4000" placeholder="Planning notes. Do not enter unnecessary sensitive information."></textarea></div>
+        <div class="platform-actions"><button type="button" id="createListingWorkspaceButton" onclick="saveListingWorkspaceFoundation()">Save Listing Workspace</button><button type="button" onclick="loadListingWorkspacesFoundation()">Refresh Workspaces</button></div>
         <div id="listingWorkspaceStatus" class="platform-status" role="status" aria-live="polite" aria-atomic="true"></div>
       </div>
       <div class="platform-card"><h4>My Listing Workspaces</h4><div id="listingWorkspaceList" class="platform-list"><div class="platform-list-item">No listing workspaces loaded yet.</div></div><div id="listingWorkspaceBrokerSummary" class="platform-status" style="margin-top:.75rem;"></div></div>
       <div class="platform-card" id="listingLaunchChecklistCard">
         <h4>Listing Kickoff Checklist</h4>
-        <p>Generate a practical sale-listing or lease-listing kickoff checklist from a private workspace for the agent, broker, and seller or landlord conversation. It is a planning aid only—not a listing agreement, disclosure, pricing opinion, or instruction to act.</p>
+        <p>Generate a practical sale-listing or lease-listing kickoff checklist from the selected workspace for the agent, broker, and seller or landlord conversation. It is a planning aid only—not a listing agreement, disclosure, pricing opinion, or instruction to act.</p>
         <div class="platform-grid"><div class="field"><label for="listingLaunchWorkspace">Listing workspace</label><select id="listingLaunchWorkspace"><option value="">Load a workspace first</option></select></div></div>
         <div class="platform-actions"><button type="button" onclick="copyListingLaunchChecklist()">Copy Kickoff Checklist</button><button type="button" class="btn-secondary" onclick="printListingLaunchChecklist()">Print Checklist</button></div>
         <div id="listingLaunchChecklistStatus" class="platform-status"></div>
       </div>
       <div class="platform-card" id="sellerConsultationBriefCard">
         <h4>Listing Consultation Brief</h4>
-        <p>Use the selected private workspace to prepare a structured seller or landlord conversation, including scope, property facts, launch choices, and next-step questions. It is a private planning document—not a listing agreement, disclosure, pricing opinion, contract, or instruction to sign.</p>
+        <p>Use the selected workspace to prepare a structured seller or landlord conversation, including scope, property facts, launch choices, and next-step questions. It is a planning document—not a listing agreement, disclosure, pricing opinion, contract, or instruction to sign.</p>
         <div class="platform-actions"><button type="button" onclick="copySellerConsultationBrief()">Copy Consultation Brief</button><button type="button" class="btn-secondary" onclick="printSellerConsultationBrief()">Print Brief</button></div>
         <div id="sellerConsultationBriefStatus" class="platform-status"></div>
       </div>
       <div class="platform-card" id="listingWorkspaceOfferComparisonCard">
         <h4>Seller Offer Comparison Worksheet</h4>
-        <p>Keep a private, educational comparison of offers connected to a listing workspace. This does not rank, recommend, accept, reject, or create a contract.</p>
+        <p>Keep an educational comparison of offers connected to a listing workspace. This does not rank, recommend, accept, reject, or create a contract.</p>
         <div class="platform-grid">
           <div class="field"><label for="listingOfferWorkspace">Listing workspace</label><select id="listingOfferWorkspace"><option value="">Load a workspace first</option></select></div>
           <div class="field"><label for="listingOfferLabel">Offer label</label><input id="listingOfferLabel" maxlength="120" placeholder="Buyer 1 / received June 8"></div>
@@ -13205,7 +13205,7 @@ function routeAfterMagicLinkIfNeeded() {
       if (notes) notes.value = pendingWorkspace.notes || '';
       const selected = new Set(Array.isArray(pendingWorkspace.workflows) ? pendingWorkspace.workflows : []);
       document.querySelectorAll('input[name="listingWorkflow"]').forEach(input => { input.checked = selected.has(input.value); });
-      platformStatus('listingWorkspaceStatus', 'Your listing details are ready. Create your private workspace when ready.', 'ok');
+      platformStatus('listingWorkspaceStatus', 'Your listing details are ready. Create your listing workspace when ready.', 'ok');
     }
     loadSellerLeadsFoundation();
     loadListingWorkspacesFoundation();
@@ -13393,7 +13393,7 @@ function routeAfterMagicLinkIfNeeded() {
       };
       const result = await client.from('hof_seller_leads').insert(payload).select('*').single();
       if (result.error) throw result.error;
-      platformStatus('sellerFoundationStatus', 'Seller and property details saved. You can create a private listing workspace next.', 'ok');
+      platformStatus('sellerFoundationStatus', 'Seller and property details saved. You can create a listing workspace next.', 'ok');
       await loadSellerLeadsFoundation();
     } catch (err) {
       console.error('Save seller lead failed:', err);
@@ -13441,7 +13441,7 @@ function routeAfterMagicLinkIfNeeded() {
     const workspaceForm = document.getElementById('listingWorkspaceAddress');
     if (workspaceForm) workspaceForm.dataset.sellerLeadId = id;
     document.getElementById('listingWorkspaceAddress')?.scrollIntoView({behavior:'smooth', block:'center'});
-    platformStatus('listingWorkspaceStatus', 'Seller lead details copied into a linked private listing workspace draft. Review and save when ready.', 'ok');
+    platformStatus('listingWorkspaceStatus', 'Seller lead details copied into a listing workspace. Review and save when ready.', 'ok');
   };
 
   function listingWorkspaceRequestedWorkflows() {
@@ -13468,7 +13468,7 @@ function routeAfterMagicLinkIfNeeded() {
     if (!propertyAddress) return platformStatus('listingWorkspaceStatus', 'Enter the property address before creating a workspace.', 'err');
     if (!sellerNames.length) return platformStatus('listingWorkspaceStatus', 'Enter at least one seller or landlord name. Use semicolons between multiple names.', 'err');
     if (createButton) { createButton.disabled = true; createButton.setAttribute('aria-busy', 'true'); createButton.textContent = 'Creating workspace…'; }
-    platformStatus('listingWorkspaceStatus', 'Creating your private listing workspace…');
+    platformStatus('listingWorkspaceStatus', 'Creating your listing workspace…');
     try {
       if (!hofPlatform.brokerage) await loadBrokerageFoundation();
       const payload = {
@@ -13497,7 +13497,7 @@ function routeAfterMagicLinkIfNeeded() {
       document.getElementById('listingWorkspaceSellerNames').value = '';
       document.getElementById('listingWorkspaceNotes').value = '';
       document.querySelectorAll('input[name="listingWorkflow"]').forEach(input => { input.checked = false; });
-      platformStatus('listingWorkspaceStatus', 'Private listing workspace created. Next: use the kickoff checklist or consultation brief for this property. It has not created a form or signature request.', 'ok');
+      platformStatus('listingWorkspaceStatus', 'Listing workspace created. Next: use the kickoff checklist or consultation brief for this property. It has not created a form or signature request.', 'ok');
       await loadListingWorkspacesFoundation();
       const createdWorkspaceId = String(createdWorkspace?.id || '');
       if (createdWorkspaceId) {
@@ -13518,7 +13518,7 @@ function routeAfterMagicLinkIfNeeded() {
       console.error('Listing workspace save failed:', err);
       platformStatus('listingWorkspaceStatus', err?.message || 'Could not create the listing workspace.', 'err');
     } finally {
-      if (createButton) { createButton.disabled = false; createButton.setAttribute('aria-busy', 'false'); createButton.textContent = 'Create Private Workspace'; }
+      if (createButton) { createButton.disabled = false; createButton.setAttribute('aria-busy', 'false'); createButton.textContent = 'Save Listing Workspace'; }
     }
   }
 
@@ -13581,7 +13581,7 @@ function routeAfterMagicLinkIfNeeded() {
 
   window.copyListingLaunchChecklist = async function copyListingLaunchChecklist() {
     const workspace = selectedListingLaunchWorkspace();
-    if (!workspace) return platformStatus('listingLaunchChecklistStatus', 'Choose a private listing workspace first.', 'err');
+    if (!workspace) return platformStatus('listingLaunchChecklistStatus', 'Choose a listing workspace first.', 'err');
     const checklist = listingLaunchChecklistText(workspace);
     const context = listingWorkspaceContext(workspace);
     try {
@@ -13595,7 +13595,7 @@ function routeAfterMagicLinkIfNeeded() {
 
   window.printListingLaunchChecklist = function printListingLaunchChecklist() {
     const workspace = selectedListingLaunchWorkspace();
-    if (!workspace) return platformStatus('listingLaunchChecklistStatus', 'Choose a private listing workspace first.', 'err');
+    if (!workspace) return platformStatus('listingLaunchChecklistStatus', 'Choose a listing workspace first.', 'err');
     const context = listingWorkspaceContext(workspace);
     const printable = window.open('', '_blank', 'noopener,noreferrer');
     if (!printable) return platformStatus('listingLaunchChecklistStatus', 'Allow pop-ups to print the listing kickoff checklist.', 'err');
@@ -13649,7 +13649,7 @@ function routeAfterMagicLinkIfNeeded() {
 
   window.copySellerConsultationBrief = async function copySellerConsultationBrief() {
     const workspace = selectedListingLaunchWorkspace();
-    if (!workspace) return platformStatus('sellerConsultationBriefStatus', 'Choose a private listing workspace above first.', 'err');
+    if (!workspace) return platformStatus('sellerConsultationBriefStatus', 'Choose a listing workspace above first.', 'err');
     const brief = sellerConsultationBriefText(workspace);
     try {
       if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(brief);
@@ -13662,7 +13662,7 @@ function routeAfterMagicLinkIfNeeded() {
 
   window.printSellerConsultationBrief = function printSellerConsultationBrief() {
     const workspace = selectedListingLaunchWorkspace();
-    if (!workspace) return platformStatus('sellerConsultationBriefStatus', 'Choose a private listing workspace above first.', 'err');
+    if (!workspace) return platformStatus('sellerConsultationBriefStatus', 'Choose a listing workspace above first.', 'err');
     const context = listingWorkspaceContext(workspace);
     const printable = window.open('', '_blank', 'noopener,noreferrer');
     if (!printable) return platformStatus('sellerConsultationBriefStatus', 'Allow pop-ups to print the listing consultation brief.', 'err');
@@ -13686,11 +13686,11 @@ function routeAfterMagicLinkIfNeeded() {
     if (!client || !user || !select) return platformStatus('listingWorkspaceStatus', 'Sign in before updating a listing workspace.', 'err');
     if (!/^[0-9a-f-]{20,80}$/i.test(id)) return platformStatus('listingWorkspaceStatus', 'Listing workspace identifier is invalid.', 'err');
     if (saveButton) { saveButton.disabled = true; saveButton.setAttribute('aria-busy', 'true'); saveButton.textContent = 'Saving status…'; }
-    platformStatus('listingWorkspaceStatus', 'Updating private workspace status…');
+    platformStatus('listingWorkspaceStatus', 'Updating listing workspace status…');
     try {
       const { error } = await client.from('hof_listing_workspaces').update({ status: select.value, updated_at: new Date().toISOString() }).eq('id', id).eq('agent_user_id', user.id);
       if (error) throw error;
-      platformStatus('listingWorkspaceStatus', 'Private listing workspace status updated.', 'ok');
+      platformStatus('listingWorkspaceStatus', 'Listing workspace status updated.', 'ok');
       await loadListingWorkspacesFoundation();
     } catch (err) {
       console.error('Listing workspace status update failed:', err);
@@ -13994,7 +13994,7 @@ function routeAfterMagicLinkIfNeeded() {
           ? `<div class="seller-lead-actions"><select id="listingWorkspaceStatus-${escapeAttr(workspaceId)}" aria-label="Listing workspace status">${listingWorkspaceStatusOptions(workspace.status || 'intake')}</select><button type="button" class="brokerage-access-button" id="listingWorkspaceStatusButton-${escapeAttr(workspaceId)}" onclick="updateListingWorkspaceStatus('${escapeAttr(workspaceId)}')">Save status</button></div>`
           : '';
         return `<div class="platform-list-item"><strong>${escapeAttr(workspace.property_address || 'Listing workspace')}</strong><span class="platform-pill">${escapeAttr(listingWorkspaceLabel(workspace.listing_kind))}</span><span class="platform-pill">${escapeAttr(listingWorkspaceLabel(workspace.status))}</span><br>${escapeAttr((workspace.seller_names || []).join(' · '))}<br><small>${escapeAttr(workflows)}</small>${statusControls}</div>`;
-      }).join('') : '<div class="platform-list-item">No private listing workspaces yet.</div>';
+      }).join('') : '<div class="platform-list-item">No listing workspaces yet.</div>';
       const profile = hofAuth.accountProfile || hofAuth.authoritativeProfile || {};
       const mayViewSummary = profile.is_brokerage_admin === true || String(profile.role || '').toLowerCase() === 'brokerage_admin' || isCurrentAdmin();
       if (summary) {

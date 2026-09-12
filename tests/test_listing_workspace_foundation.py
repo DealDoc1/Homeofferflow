@@ -117,7 +117,7 @@ class ListingWorkspaceFoundationTests(unittest.TestCase):
 
     def test_optional_planning_topics_do_not_compete_with_the_listing_intake(self):
         self.assertIn("Add optional planning topics", INDEX)
-        self.assertIn("Leave this closed if you only need a private listing workspace now.", INDEX)
+        self.assertIn("Leave this closed if you only need a listing workspace now.", INDEX)
         self.assertIn("they do not select, create, send, or sign a form.", INDEX)
         self.assertIn("<details class=\"field\" style=\"margin-top:0.8rem;\">", INDEX)
 
@@ -143,9 +143,9 @@ class ListingWorkspaceFoundationTests(unittest.TestCase):
         self.assertIn("createButton.disabled = true", save)
         self.assertIn("createButton.setAttribute('aria-busy', 'true')", save)
         self.assertIn("createButton.textContent = 'Creating workspace…'", save)
-        self.assertIn("Creating your private listing workspace…", save)
+        self.assertIn("Creating your listing workspace…", save)
         self.assertIn("createButton.disabled = false", save)
-        self.assertIn("createButton.textContent = 'Create Private Workspace'", save)
+        self.assertIn("createButton.textContent = 'Save Listing Workspace'", save)
 
     def test_workspace_status_update_prevents_duplicate_saves_and_restores_action(self):
         self.assertIn('id="listingWorkspaceStatusButton-${escapeAttr(workspaceId)}"', INDEX)
@@ -165,7 +165,7 @@ class ListingWorkspaceFoundationTests(unittest.TestCase):
         render = INDEX[render_start:render_end]
         self.assertIn("window.__hofListingWorkspaceSetupDraft", render)
         self.assertIn("Your listing details are ready.", render)
-        self.assertIn("Create your private workspace when ready.", render)
+        self.assertIn("Create your listing workspace when ready.", render)
         save_start = INDEX.index("async function saveListingWorkspaceFoundation()")
         save_end = INDEX.index("function listingWorkspaceLabel", save_start)
         save = INDEX[save_start:save_end]
@@ -203,7 +203,7 @@ class ListingWorkspaceFoundationTests(unittest.TestCase):
     def test_saved_seller_lead_can_seed_a_private_workspace(self):
         self.assertIn("startListingWorkspaceFromLead", INDEX)
         self.assertIn("Prepare listing workspace", INDEX)
-        self.assertIn("Seller lead details copied into a linked private listing workspace draft", INDEX)
+        self.assertIn("Seller lead details copied into a listing workspace", INDEX)
         self.assertIn("seller-lead-actions", INDEX)
 
     def test_listing_checklist_uses_the_shared_disclosure_review_path(self):
@@ -306,8 +306,8 @@ class ListingWorkspaceFoundationTests(unittest.TestCase):
         self.assertIn("sellerConsultationBriefText", INDEX)
         self.assertIn("Lease Listing Consultation Brief", INDEX)
         self.assertIn("Lease preparation", INDEX)
-        self.assertIn("Choose a private listing workspace above first.", INDEX)
-        self.assertIn("It is a private planning document—not a listing agreement, disclosure, pricing opinion, contract, or instruction to sign.", INDEX)
+        self.assertIn("Choose a listing workspace above first.", INDEX)
+        self.assertIn("It is a planning document—not a listing agreement, disclosure, pricing opinion, contract, or instruction to sign.", INDEX)
         self.assertIn("Do not create, send, sign, or describe a listing agreement, disclosure, or lease packet as executable", INDEX)
 
 
