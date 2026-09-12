@@ -124,6 +124,25 @@ class Txr1507RendererTests(unittest.TestCase):
                 self.assertGreaterEqual(y, 239)
                 self.assertLessEqual(y, 247)
 
+    def test_rendered_role_mark_contains_the_visible_source_strokes(self):
+        """Exercise the final PDF, not only the drawing helper mock.
+
+        The completed Short Form must visibly identify the selected signing
+        role.  A regression once left the source checkbox blank even though
+        the signer recipient was present in SignWell.  Check the actual
+        rendered page content for the two compact strokes inside the
+        Associate cell.
+        """
+        rendered = render_txr_1507(
+            blank_two_page_pdf(),
+            sample_data(),
+            {"legal_name": "OnDemand Realty", "license_number": "9010832"},
+            {"name": "Andrew Christian", "license_number": "0738821"},
+        )
+        content = PdfReader(io.BytesIO(rendered)).pages[1].get_contents().get_data().decode("latin1")
+        self.assertIn("38 240 m\n44 246 l", content)
+        self.assertIn("38 246 m\n44 240 l", content)
+
     def test_renderer_preserves_two_pages_and_overlays_only_supplied_values(self):
         rendered = render_txr_1507(
             blank_two_page_pdf(),
