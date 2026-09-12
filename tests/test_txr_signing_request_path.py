@@ -271,7 +271,7 @@ class TxrSigningRequestPathTests(unittest.TestCase):
         self.assertIn("form_code in TXR_SIGNING_MAP_REVISION_ENFORCED_FORM_CODES", source)
         self.assertIn('prepared_map_revision != current_map_revision', source)
         self.assertIn(
-            "Prepare a fresh copy before sending so the signature fields stay aligned.",
+            "signature fields appear in the right places.",
             source,
         )
 

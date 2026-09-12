@@ -4165,8 +4165,8 @@ async def _send_txr_agreement_for_signature(user, data):
         and prepared_map_revision != current_map_revision
     ):
         raise ValueError(
-            "The signing layout for this saved document has been updated. "
-            "Prepare a fresh copy before sending so the signature fields stay aligned."
+            "This saved copy needs to be prepared again before sending so its "
+            "signature fields appear in the right places."
         )
     agreement_data["client_emails"] = client_emails
     client_count = len(client_names)
