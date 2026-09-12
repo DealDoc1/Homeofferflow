@@ -140,7 +140,7 @@ class PartnerTierUiTests(unittest.TestCase):
         self.assertIn("const partnerDraftStorageKey = 'hof_founding_partner_application_draft_v1'", self.html)
         self.assertIn("function savePartnerApplicationDraft()", self.html)
         self.assertIn("function restorePartnerApplicationDraft()", self.html)
-        self.assertIn("Your application draft was restored in this browser session.", self.html)
+        self.assertIn("Your saved application was restored in this browser session.", self.html)
         self.assertIn("It has not been submitted or shared.", self.html)
         self.assertIn("clearPartnerApplicationDraft();", self.html)
         self.assertIn("savePartnerApplicationDraft(); renderFoundingPartnerCheckoutAvailability();", self.html)

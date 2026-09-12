@@ -3332,7 +3332,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 
   <div class="wizard-progress">
     <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:10%"></div></div>
-    <div class="progress-meta"><span class="step-name" id="stepName">Disclaimer</span><span id="saveStatus">All Changes Saved</span><span id="connectionStatus" role="status" aria-live="polite" hidden></span><span id="validationStatus" role="status" aria-live="polite" hidden></span><span id="stepCount">Step 1 of 11</span><button type="button" class="draft-clear-btn" onclick="startNewOffer()" title="Clear this draft and start a new offer">New Offer</button></div>
+        <div class="progress-meta"><span class="step-name" id="stepName">Disclaimer</span><span id="saveStatus">All Changes Saved</span><span id="connectionStatus" role="status" aria-live="polite" hidden></span><span id="validationStatus" role="status" aria-live="polite" hidden></span><span id="stepCount">Step 1 of 11</span><button type="button" class="draft-clear-btn" onclick="startNewOffer()" title="Clear saved work and start a new offer">New Offer</button></div>
   </div>
 
   <div class="wizard-body">
@@ -9338,7 +9338,7 @@ function routeAfterMagicLinkIfNeeded() {
   }
 
   function startNewOffer() {
-    const ok = confirm('Start a new offer? This will clear the saved draft on this device.');
+    const ok = confirm('Start a new offer? This will clear saved work on this device.');
     if (!ok) return;
 
     const role = state.data.userType || hofAuth.role || localStorage.getItem('hof_auth_role') || 'homebuyer';
@@ -10053,7 +10053,7 @@ function routeAfterMagicLinkIfNeeded() {
       notice.style.display = 'block';
       notice.innerHTML = `
         <strong>Still want to move faster?</strong><br>
-        Even if you use an agent, HomeOfferFlow can help you organize your offer terms, generate a cleaner draft, and give your agent a faster starting point. You can continue building your offer, then share it with your agent before anything is submitted.
+        Even if you use an agent, HomeOfferFlow can help you organize your offer terms, prepare a clearer offer package, and give your agent a faster starting point. You can continue building your offer, then share it with your agent before anything is submitted.
       `;
     }
 
@@ -15117,7 +15117,7 @@ function routeAfterMagicLinkIfNeeded() {
           <span class="pkg-kicker">Pre-list prep</span><span class="fsbo-price-pill">$299</span><strong>Seller Prep Plan</strong><small>Property prep checklist, photo-readiness guidance, pricing-prep notes, and partner recommendations for seller-side services.</small><div class="fsbo-package-note">Software-style prep and vendor routing; no representation promised.</div>
         </button>
         <button type="button" class="fsbo-package-card" data-fsbo-need="launch_kit" onclick="selectFsboNeed('launch_kit')">
-          <span class="pkg-kicker">Marketing kit</span><span class="fsbo-price-pill">$499</span><strong>FSBO Launch Kit</strong><small>Seller prep plan plus listing-description draft, showing-prep checklist, offer-comparison worksheet, and partner recommendation plan.</small><div class="fsbo-package-note">Best for sellers ready to launch. A practical kit before MLS, offer review, or transaction support.</div>
+          <span class="pkg-kicker">Marketing kit</span><span class="fsbo-price-pill">$499</span><strong>FSBO Launch Kit</strong><small>Seller prep plan plus listing-description support, showing-prep checklist, offer-comparison worksheet, and partner recommendation plan.</small><div class="fsbo-package-note">Best for sellers ready to launch. A practical kit before MLS, offer review, or transaction support.</div>
         </button>
         <button type="button" class="fsbo-package-card" data-fsbo-need="flat_fee_mls" onclick="selectFsboNeed('flat_fee_mls')">
           <span class="pkg-kicker">MLS exposure</span><span class="fsbo-price-pill">from $1,299</span><strong>Flat-Fee MLS Listing</strong><small>Share your property and listing preferences, then review available limited-service MLS options and next steps.</small><div class="fsbo-package-note">Starting price shown. Final availability, scope, and terms are confirmed before purchase.</div>
@@ -15374,9 +15374,9 @@ function routeAfterMagicLinkIfNeeded() {
     if (!fsboDraftExists()) { notice.textContent = ''; notice.className = 'platform-status'; return; }
     notice.className = 'platform-status ok';
     notice.innerHTML = (restored
-      ? '<strong>Your saved seller draft was restored on this device.</strong> '
-      : '<strong>Your seller draft is saved on this device.</strong> ') +
-      'It has not been submitted or shared. <button class="btn-secondary" type="button" id="clearFsboDraft" style="margin-left:.45rem;padding:.3rem .5rem;">Clear this device draft</button>';
+      ? '<strong>Your saved seller information was restored on this device.</strong> '
+      : '<strong>Your seller information is saved on this device.</strong> ') +
+      'It has not been submitted or shared. <button class="btn-secondary" type="button" id="clearFsboDraft" style="margin-left:.45rem;padding:.3rem .5rem;">Clear saved information</button>';
     document.getElementById('clearFsboDraft')?.addEventListener('click', () => {
       document.querySelectorAll('#fsboSellerModal input, #fsboSellerModal textarea, #fsboSellerModal select').forEach(field => {
         if (field.type === 'checkbox') field.checked = false;
@@ -16178,9 +16178,9 @@ function routeAfterMagicLinkIfNeeded() {
     }
     notice.className = 'platform-status ok';
     notice.innerHTML = (restored
-      ? '<strong>Your application draft was restored in this browser session.</strong> '
-      : '<strong>Your application draft is saved in this browser session.</strong> ') +
-      'It has not been submitted or shared. <button class="btn-secondary" type="button" id="clearPartnerApplicationDraft" style="margin-left:.45rem;padding:.3rem .5rem;">Clear draft</button>';
+      ? '<strong>Your saved application was restored in this browser session.</strong> '
+      : '<strong>Your application is saved in this browser session.</strong> ') +
+      'It has not been submitted or shared. <button class="btn-secondary" type="button" id="clearPartnerApplicationDraft" style="margin-left:.45rem;padding:.3rem .5rem;">Clear saved application</button>';
     document.getElementById('clearPartnerApplicationDraft')?.addEventListener('click', () => {
       clearPartnerApplicationDraft();
       partnerDraftFields.forEach(id => {
