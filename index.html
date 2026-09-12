@@ -18193,20 +18193,6 @@ function routeAfterMagicLinkIfNeeded() {
         body: hasGeneratedPacket ? `${used} packet${used === 1 ? '' : 's'} generated this billing month.` : 'Review your first packet before using the workflow with a client.'
       },
       {
-        done: hasGeneratedPacket,
-        title: isInvestor ? 'Review your offer packet' : 'Verify buyer-side signing',
-        body: hasGeneratedPacket
-          ? (isInvestor ? 'Confirm the property, entity, financing, title, and timing details are correct before you use the packet.' : 'Confirm buyer initials, signatures, dates, and the SignWell email look right.')
-          : (isInvestor ? 'Before using a packet, inspect the final PDF and confirm every offer term.' : 'Before sending a packet, inspect the final PDF and confirm the selected buyer recipient.')
-      },
-      {
-        done: false,
-        title: isInvestor ? 'Confirm closing details' : 'Professional review process',
-        body: isInvestor
-          ? 'Confirm the title, escrow, due-diligence, and closing details that apply before you proceed outside HomeOfferFlow.'
-          : 'Follow the review, submission, and recordkeeping process that applies to your transaction before using a generated packet.'
-      },
-      {
         done: hasFeedback,
         title: 'Get help or request a form',
         body: hasFeedback ? 'Your support path is ready. Use it whenever you need help with a PDF, SignWell, form, or workflow.' : 'Use the support button for missing forms, PDF field issues, SignWell questions, or workflow friction.'

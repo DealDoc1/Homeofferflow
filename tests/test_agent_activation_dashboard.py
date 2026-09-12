@@ -146,6 +146,19 @@ class AgentActivationDashboardTests(unittest.TestCase):
         self.assertIn("Choose Transaction", HTML)
         self.assertIn("Saving a draft does not generate a packet or request a signature.", HTML)
 
+    def test_returning_workspace_checklist_keeps_only_the_three_actionable_items(self):
+        script_start = HTML.index('id="hof-broker-beta-readiness-v11-js"')
+        script_end = HTML.index("</script>", script_start)
+        script = HTML[script_start:script_end]
+        items_start = script.index("const items = [")
+        items_end = script.index("];", items_start)
+        items = script[items_start:items_end]
+        self.assertIn("Complete profile and defaults", items)
+        self.assertIn("Prepare a first offer packet", items)
+        self.assertIn("Get help or request a form", items)
+        self.assertNotIn("Verify buyer-side signing", items)
+        self.assertNotIn("Professional review process", items)
+
     def test_account_dashboard_resumes_same_role_local_drafts_before_clearing_them(self):
         self.assertIn("if (resumeLocalAccountOfferDraft(role)) return;", HTML)
         self.assertIn("function resumableAccountOfferDraft(role)", HTML)
