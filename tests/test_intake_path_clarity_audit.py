@@ -30,6 +30,8 @@ class IntakePathClarityAuditTests(unittest.TestCase):
         self.assertIn("This prepares a document for your review before it is sent for signature.", HTML)
         self.assertIn("prepare a document for review", HTML)
         self.assertIn("prepare an appraisal document for review", HTML)
+        self.assertIn("Answer the questions needed for this document.", HTML)
+        self.assertIn("Choose the review rights requested.", HTML)
         self.assertIn("Review the completed document, then confirm recipients before sending it for signature.", HTML)
         self.assertIn("review the completed document", HTML)
         self.assertIn(".hof-agreement-dialog label", HTML)

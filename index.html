@@ -23609,6 +23609,8 @@ function routeAfterMagicLinkIfNeeded() {
         const revised = original
         .replace(/This saves a private draft only\./gi, 'This prepares a document for your review before it is sent for signature.')
         .replace(/This is a private draft, not a /gi, 'This is a document for review, not a ')
+        .replace(/Answer only the choices printed on the source\./gi, 'Answer the questions needed for this document.')
+        .replace(/Choose only the source-form review rights requested\./gi, 'Choose the review rights requested.')
         .replace(/prepare a private draft/gi, 'prepare a document for review')
         .replace(/prepare an appraisal private draft/gi, 'prepare an appraisal document for review')
         .replace(/private (seller-financing|residential-lease|fixture-lease|appraisal) draft/gi, '$1 document for review')
