@@ -35,6 +35,8 @@ class IntakePathClarityAuditTests(unittest.TestCase):
         self.assertIn(".hof-agreement-dialog label", HTML)
         self.assertIn("document.createTreeWalker(copy, NodeFilter.SHOW_TEXT)", HTML)
         self.assertIn(".replace(/^Start (.+?) draft$/i, 'Start $1 review')", HTML)
+        self.assertIn(".replace(/^Start environmental review draft$/i, 'Start environmental review')", HTML)
+        self.assertIn(".replace(/^Start appraisal-review draft$/i, 'Start appraisal review')", HTML)
         self.assertIn(".replace(/review the draft/gi, 'review the document')", HTML)
         self.assertIn("Saving (.+?) private draft", HTML)
         self.assertIn("Your draft is ready", HTML)

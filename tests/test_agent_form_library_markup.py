@@ -19,3 +19,10 @@ class AgentFormLibraryMarkupTests(unittest.TestCase):
             "?utm_source=agent_form_library&amp;utm_medium=guide&amp;utm_campaign=agent_acquisition",
             HTML,
         )
+
+    def test_customer_copy_uses_plain_transaction_language(self):
+        self.assertIn("You choose the right document", HTML)
+        self.assertIn("Clear next steps", HTML)
+        self.assertNotIn("draft", HTML.lower())
+        self.assertNotIn("A release does not silently select", HTML)
+        self.assertNotIn("Released TXR relationship", HTML)

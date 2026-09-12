@@ -112,6 +112,9 @@ class TxrSigningRequestPathTests(unittest.TestCase):
         self.assertIn("data-download-completed", html)
         self.assertIn("action: 'download_completed_pdf'", html)
         self.assertIn("link.download = `${agreement.form_code || 'HomeOfferFlow'}-completed.pdf`", html)
+        self.assertIn("async function previewAgreementPdf", html)
+        self.assertIn("const isCompleted = agreement.status === 'signed' && agreement.signwell_document_id", html)
+        self.assertIn("Completed PDF preview is unavailable.", html)
         self.assertIn("Ready to review — signature sending will appear here when available.", html)
         self.assertIn("root.hofOpenPreparedAgreement", html)
         self.assertIn("Review and send", html)
@@ -258,7 +261,7 @@ class TxrSigningRequestPathTests(unittest.TestCase):
     def test_core_txr_signing_requests_carry_the_current_geometry_revision(self):
         self.assertEqual(
             MODULE.TXR_SIGNING_MAP_REVISIONS["TXR-1501"],
-            "txr-1501-2026-09-11-execution-calibrated-v1",
+            "txr-1501-2026-09-12-completed-packet-calibrated-v2",
         )
         self.assertEqual(
             MODULE.TXR_SIGNING_MAP_REVISIONS["TXR-1506"],
@@ -266,7 +269,7 @@ class TxrSigningRequestPathTests(unittest.TestCase):
         )
         self.assertEqual(
             MODULE.TXR_SIGNING_MAP_REVISIONS["TXR-1507"],
-            "txr-1507-2026-09-10-source-calibrated-v1",
+            "txr-1507-2026-09-12-completed-packet-calibrated-v2",
         )
         self.assertEqual(
             MODULE.TXR_SIGNING_MAP_REVISIONS["TXR-1508"],

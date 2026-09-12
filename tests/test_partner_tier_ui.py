@@ -25,8 +25,8 @@ class PartnerTierUiTests(unittest.TestCase):
     def test_founder_offer_is_a_clear_nonrenewing_90_day_pilot(self):
         required_copy = (
             "first 90 days for the price of one standard month",
-            "no setup fee",
-            "then renews monthly at the standard rate after 90 days unless cancelled",
+            "Onboarding is included with no setup fee",
+            "Then $149/month unless cancelled.",
             "Then $149/month after 90 days, unless cancelled",
             "Then $399/month after 90 days, unless cancelled",
             "Then $799/month after 90 days, unless cancelled",
@@ -59,11 +59,13 @@ class PartnerTierUiTests(unittest.TestCase):
         self.assertIn("request_type: 'founding_partner'", self.html)
 
     def test_checkout_intake_keeps_required_details_short_and_defers_preferences(self):
-        self.assertIn("Start your free application", self.html)
-        self.assertIn("Start with five essentials.", self.html)
-        self.assertIn("review the exact price and renewal terms in secure checkout before any payment", self.html)
-        self.assertIn("Start with the essentials.", self.html)
-        self.assertIn("everything else comes during onboarding.", self.html)
+        self.assertIn("Start your partner application", self.html)
+        self.assertIn("Five quick details.", self.html)
+        self.assertIn("review the exact price and renewal terms in secure checkout before payment", self.html)
+        self.assertIn("No charge now", self.html)
+        self.assertIn("Add optional placement preferences now", self.html)
+        modal = self.html[self.html.index('id="foundingPartnerModal"'):self.html.index('id="hof-founding-partner-intake-v1"')]
+        self.assertNotIn("Founding offer:</strong>", modal)
 
     def test_checkout_intake_validates_and_focuses_the_first_invalid_essential(self):
         self.assertIn('id="foundingPartnerType" required aria-required="true"', self.html)
@@ -79,8 +81,8 @@ class PartnerTierUiTests(unittest.TestCase):
         self.assertIn("firstInvalid?.focus();", submit)
         self.assertIn("setAttribute('aria-invalid'", submit)
         self.assertIn("Add optional placement preferences now", self.html)
-        required_end = self.html.index('<div aria-hidden="true"', self.html.index('Start with the essentials.'))
-        required_start = self.html.index('Start with the essentials.')
+        required_start = self.html.index('id="foundingPartnerEssentials"')
+        required_end = self.html.index('<div aria-hidden="true"', required_start)
         required_area = self.html[required_start:required_end]
         self.assertLess(required_area.index('foundingPartnerMarket'), required_area.index('partner-optional-details'))
         self.assertGreater(required_area.index('foundingPartnerPhone'), required_area.index('partner-optional-details'))

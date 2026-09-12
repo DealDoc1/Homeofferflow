@@ -18,7 +18,7 @@ class AgentLandingFocusTests(unittest.TestCase):
         self.assertIn('pwa_shortcut', script)
         self.assertIn("'organic'", script)
         self.assertIn('No brokerage seat required.', script)
-        self.assertIn("released shared form workflows", script)
+        self.assertIn("shared form workflows", script)
         self.assertIn("Offer workflow guide", script)
         self.assertIn("Shared form library", script)
 

@@ -132,9 +132,12 @@ TXR_SIGNING_FORM_CODES = {
 # source form needs a placement correction.  Older provider documents simply
 # have no map revision and are therefore never mistaken for current-map QA.
 TXR_SIGNING_MAP_REVISIONS = {
-    TXR_1501_FORM_CODE: "txr-1501-2026-09-11-execution-calibrated-v1",
+    TXR_1501_FORM_CODE: "txr-1501-2026-09-12-completed-packet-calibrated-v2",
     TXR_1506_FORM_CODE: "txr-1506-2026-09-09-final-page-calibrated-v1",
-    TXR_1507_FORM_CODE: "txr-1507-2026-09-10-source-calibrated-v1",
+    # Completed-packet review moved every execution widget above the printed
+    # signature/date captions.  Drafts prepared with v1 must be rebuilt so a
+    # sender cannot inadvertently reuse the older field geometry.
+    TXR_1507_FORM_CODE: "txr-1507-2026-09-12-completed-packet-calibrated-v2",
     TXR_1508_FORM_CODE: "txr-1508-2026-09-09-acknowledgement-calibrated-v1",
 }
 # Each core TXR workflow was source-calibrated after prior packets exposed
