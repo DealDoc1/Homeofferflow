@@ -20348,7 +20348,7 @@ function routeAfterMagicLinkIfNeeded() {
     const membershipRecoveryCard = membership?.status === 'active'
       ? ''
       : '<div class="platform-card"><h4>Brokerage access needs activation</h4>' +
-        '<p>Your individual HomeOfferFlow workspace, saved offers, and released shared-form drafts remain available. Brokerage-managed team features stay unavailable until your brokerage membership is activated.</p>' +
+        '<p>Your individual HomeOfferFlow workspace, saved offers, and shared-form drafts remain available. Brokerage-managed team features stay unavailable until your brokerage membership is activated.</p>' +
         '<button type="button" class="brokerage-access-button" onclick="openBrokerageMembershipRequest()">Request brokerage activation</button>' +
         '<p class="brokerage-invite-result">This sends a support request from your signed-in account. It does not change billing, roles, offers, or documents.</p></div>';
     el.innerHTML = '<div class="platform-card"><div class="ondemand-account-banner">' +
@@ -20545,7 +20545,7 @@ function routeAfterMagicLinkIfNeeded() {
     banner.id = 'ondemandAccountBanner';
     banner.className = 'ondemand-account-banner';
     banner.innerHTML = '<h4>' + safe(brokerage.dba_name || brokerage.name || 'Agent workspace') + '</h4>' +
-      '<p>Your agent workspace is active. Released HomeOfferFlow forms are available whether or not you are associated with a brokerage' +
+      '<p>Your agent workspace is active. HomeOfferFlow forms are available whether or not you are associated with a brokerage' +
       (root.hofAuth?.authoritativeProfile?.is_brokerage_admin ? '; the Brokerage tab also has privacy-limited team activity.' : '.') + '</p>';
     panel.prepend(banner);
   };
@@ -21710,7 +21710,7 @@ function routeAfterMagicLinkIfNeeded() {
   async function loadSharedSourceCatalog(card) {
     const details = document.createElement('details');
     details.className = 'hof-shared-source-catalog';
-    details.innerHTML = '<summary>See approved shared-source revisions</summary><p style="color:var(--gray-light);font-size:.82rem;line-height:1.45;margin:.7rem 0 0">Loading the current platform-wide source catalog…</p>';
+    details.innerHTML = '<summary>See available shared forms</summary><p style="color:var(--gray-light);font-size:.82rem;line-height:1.45;margin:.7rem 0 0">Loading available forms…</p>';
     let catalogOpenRecorded = false;
     details.addEventListener('toggle', () => {
       if (!details.open || catalogOpenRecorded) return;
@@ -21729,8 +21729,8 @@ function routeAfterMagicLinkIfNeeded() {
       const search = document.createElement('input');
       search.type = 'search';
       search.className = 'hof-shared-source-search';
-      search.setAttribute('aria-label', 'Search approved shared forms');
-      search.placeholder = 'Search form code or revision';
+      search.setAttribute('aria-label', 'Search available forms');
+      search.placeholder = 'Search form code or version';
       search.style.cssText = 'display:block;width:100%;max-width:23rem;margin:.7rem 0 0;padding:.55rem .65rem;border:1px solid rgba(255,255,255,.18);border-radius:8px;background:rgba(0,0,0,.12);color:var(--white);font:inherit';
       const searchStatus = document.createElement('div');
       searchStatus.className = 'hof-shared-source-search-status';
@@ -21745,22 +21745,22 @@ function routeAfterMagicLinkIfNeeded() {
           item.hidden = !!query && !item.textContent.toLowerCase().includes(query);
           if (!item.hidden) visibleCount += 1;
         });
-        searchStatus.textContent = query && !visibleCount ? 'No approved forms match that search.' : '';
+        searchStatus.textContent = query && !visibleCount ? 'No forms match that search.' : '';
       });
       if (!sources.length) {
         const empty = document.createElement('li');
-        empty.textContent = 'No approved source revisions are available to this signed-in account yet.';
+        empty.textContent = 'No forms are available to this signed-in account yet.';
         list.appendChild(empty);
       } else {
         sources.sort((a, b) => String(a.form_code || '').localeCompare(String(b.form_code || ''))).forEach(source => {
           const item = document.createElement('li');
-          item.textContent = `${source.form_code || 'TXR'} · revision ${source.source_revision || 'current'} · shared source available`;
+          item.textContent = `${source.form_code || 'TXR'} · version ${source.source_revision || 'current'} · available`;
           list.appendChild(item);
         });
       }
       const copy = details.querySelector('p');
       if (copy) {
-        copy.textContent = 'Every signed-in agent sees the same approved source catalog. This inventory confirms source availability; each workflow has its own review, delivery, and signing steps.';
+        copy.textContent = 'Every signed-in agent sees the same form library. This list shows what is available; each workflow has its own review, delivery, and signing steps.';
         copy.insertAdjacentElement('afterend', search);
         search.insertAdjacentElement('afterend', searchStatus);
         copy.insertAdjacentElement('afterend', list);

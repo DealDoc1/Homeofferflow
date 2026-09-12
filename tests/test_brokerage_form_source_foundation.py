@@ -83,12 +83,12 @@ class BrokerageFormSourceFoundationTests(unittest.TestCase):
     def test_agent_dashboard_exposes_a_collapsed_platform_wide_source_catalog(self):
         self.assertIn("hof-shared-source-catalog", HTML)
         self.assertIn("scope=approved_brokerage_sources", HTML)
-        self.assertIn("Every signed-in agent sees the same approved source catalog", HTML)
-        self.assertIn("shared source available", HTML)
-        self.assertIn("Search approved shared forms", HTML)
+        self.assertIn("Every signed-in agent sees the same form library", HTML)
+        self.assertIn("version ${source.source_revision || 'current'} · available", HTML)
+        self.assertIn("Search available forms", HTML)
         self.assertIn("hof-shared-source-search", HTML)
         self.assertIn("list.querySelectorAll('li')", HTML)
-        self.assertIn("No approved forms match that search.", HTML)
+        self.assertIn("No forms match that search.", HTML)
         self.assertIn("hof-shared-source-search-status", HTML)
         self.assertIn("shared_form_catalog_opened", HTML)
         self.assertIn("Shared source catalog:", HTML)
@@ -194,7 +194,7 @@ class BrokerageFormSourceFoundationTests(unittest.TestCase):
         self.assertNotIn("_active_brokerage_member", dashboard[scope_start:scope_end])
 
     def test_pending_brokerage_membership_does_not_hide_shared_form_drafts(self):
-        self.assertIn("released shared-form drafts remain available", HTML)
+        self.assertIn("shared-form drafts remain available", HTML)
         self.assertNotIn("private source-gated drafts stay unavailable until your brokerage membership is activated", HTML)
 
     def test_form_library_administration_is_hidden_from_daily_brokerage_workflow(self):
