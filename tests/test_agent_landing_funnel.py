@@ -111,6 +111,13 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("<span>Personal transaction workspace</span>", INDEX)
         self.assertNotIn("<span>Personal offer workspace</span>", INDEX)
 
+    def test_personal_agent_workspace_does_not_present_a_brokerage_requirement(self):
+        self.assertIn("'Agent workspace ready'", INDEX)
+        self.assertIn("'Professional review process'", INDEX)
+        self.assertIn("Follow the review, submission, and recordkeeping process", INDEX)
+        self.assertNotIn("'Brokerage workspace ready'", INDEX)
+        self.assertNotIn("'Broker/compliance review'", INDEX)
+
     def test_agent_deep_link_waits_for_existing_session_resolution(self):
         start = INDEX.index("const continueAfterAuthResolution = callback =>")
         end = INDEX.index("// Investor acquisition", start)
