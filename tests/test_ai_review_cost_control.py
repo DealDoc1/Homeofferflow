@@ -29,7 +29,14 @@ class AiReviewCostControlTests(unittest.TestCase):
 
     def test_signed_out_visitors_see_the_ai_review_account_boundary_before_requesting_a_model(self):
         self.assertIn("const hasAiWorkspaceAccess = Boolean(hofAuth?.session?.access_token);", HTML)
-        self.assertIn("'Sign in for AI Market Review'", HTML)
+        self.assertIn("'Sign in to unlock Market Review'", HTML)
+        self.assertIn("openAiReviewAccess();", HTML)
+        self.assertIn("localStorage.setItem('hof_ai_review_return', 'homebuyer')", HTML)
+
+    def test_homebuyer_review_sign_in_returns_to_the_same_review_instead_of_an_agent_dashboard(self):
+        self.assertIn("const returnToHomebuyerReview = localStorage.getItem('hof_ai_review_return') === 'homebuyer';", HTML)
+        self.assertIn("state.data.userType = returnToHomebuyerReview ? 'homebuyer' : role;", HTML)
+        self.assertIn("status.textContent = 'You are signed in. Run Market Review when you are ready.';", HTML)
 
     def test_live_ai_review_has_a_schema_appropriate_output_ceiling(self):
         self.assertIn('"maxOutputTokens": 1200,', API)

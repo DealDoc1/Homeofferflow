@@ -8534,6 +8534,8 @@ function routeAfterMagicLinkIfNeeded() {
     if (!pending && !hasAuthHash) return;
     hofAuth.routedAfterLogin = true;
     const role = (hofAuth.session.user?.user_metadata?.role || pending || hofAuth.role || 'agent') === 'investor' ? 'investor' : 'agent';
+    const returnToHomebuyerReview = localStorage.getItem('hof_ai_review_return') === 'homebuyer';
+    localStorage.removeItem('hof_ai_review_return');
     hofAuth.role = role;
     localStorage.setItem('hof_auth_role', role);
     localStorage.removeItem('hof_auth_pending');
@@ -8566,11 +8568,22 @@ function routeAfterMagicLinkIfNeeded() {
       ? 'texas_investor_offer_guide'
       : 'investor_landing';
     localStorage.removeItem('hof_investor_landing_source');
-    state.data.userType = role;
-    setAudience(role);
+    state.data.userType = returnToHomebuyerReview ? 'homebuyer' : role;
+    setAudience(returnToHomebuyerReview ? 'homebuyer' : role);
     if (agentLandingWorkflow) window.hofAgentWorkflowContext = agentLandingWorkflow;
     closeAuthModal();
     try { history.replaceState({}, document.title, window.location.origin + window.location.pathname); } catch(e) {}
+    if (returnToHomebuyerReview) {
+      setTimeout(() => {
+        renderInlineAiOfferReview();
+        const status = document.getElementById('aiFoundationStatus');
+        if (status) {
+          status.className = 'platform-status ok';
+          status.textContent = 'You are signed in. Run Market Review when you are ready.';
+        }
+      }, 250);
+      return;
+    }
     setTimeout(() => openAccountDashboard({ postLogin: true, tab: agentLandingPackageWorkflow ? 'dashboard' : (openSellerLandingWorkspace ? 'seller' : (openRelationshipLandingWorkspace ? 'relationships' : 'dashboard')) }), 250);
     if (agentLandingPackageWorkflow && role !== 'investor') {
       setTimeout(() => {
@@ -14679,7 +14692,7 @@ function routeAfterMagicLinkIfNeeded() {
     const componentsTitle = isHomebuyer ? 'Score Drivers' : 'Review Factors';
     const reviewIsCurrent = hasReusableAiReview(payload);
     const hasAiWorkspaceAccess = Boolean(hofAuth?.session?.access_token);
-    const liveButton = reviewIsCurrent ? 'Review is current' : (!hasAiWorkspaceAccess ? 'Sign in for AI Market Review' : (isHomebuyer ? 'Run Market Review' : isInvestor ? 'Run Investor Review' : 'Run Agent Review'));
+    const liveButton = reviewIsCurrent ? 'Review is current' : (!hasAiWorkspaceAccess ? 'Sign in to unlock Market Review' : (isHomebuyer ? 'Run Market Review' : isInvestor ? 'Run Investor Review' : 'Run Agent Review'));
     const loadingText = isHomebuyer ? 'Running Market Review...' : 'Running Review...';
     const improveButton = isHomebuyer ? 'Show Ways to Improve' : isInvestor ? 'Show Deal Adjustments' : 'Show Possible Adjustments';
     const improveTitle = isHomebuyer ? 'Potential ways to strengthen this offer' : isInvestor ? 'Potential deal adjustments or checks' : 'Potential adjustments or verification points';
@@ -14767,6 +14780,7 @@ function routeAfterMagicLinkIfNeeded() {
         status.className = 'platform-status';
         status.textContent = 'Sign in to unlock the expanded AI review. Your built-in terms review is available now.';
       }
+      openAiReviewAccess();
       return;
     }
     renderAiOfferReviewResult(fallback, true);
@@ -14787,6 +14801,19 @@ function routeAfterMagicLinkIfNeeded() {
       console.error('Live AI review failed:', err);
       renderAiOfferReviewResult({ ...fallback, summary: 'The expanded market review is temporarily unavailable. The summary below focuses on the terms you entered.' }, false);
     }
+  }
+
+  // The expanded review uses a verified account so an anonymous visitor
+  // cannot create metered model traffic. This small handoff keeps a buyer
+  // in the offer they were reviewing instead of routing them into an
+  // agent-workspace setup flow after the magic link returns.
+  function openAiReviewAccess() {
+    try { localStorage.setItem('hof_ai_review_return', 'homebuyer'); } catch (e) {}
+    openAuthModal('agent');
+    const title = document.getElementById('authTitle');
+    const subtitle = document.getElementById('authSubtitle');
+    if (title) title.textContent = 'Save Your Market Review';
+    if (subtitle) subtitle.textContent = 'Sign in to unlock the expanded market review and keep it with this offer.';
   }
 
   function openAiCalibrationFeedback() {
