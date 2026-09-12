@@ -13600,7 +13600,7 @@ function routeAfterMagicLinkIfNeeded() {
     const printable = window.open('', '_blank', 'noopener,noreferrer');
     if (!printable) return platformStatus('listingLaunchChecklistStatus', 'Allow pop-ups to print the listing kickoff checklist.', 'err');
     const safe = value => String(value || '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
-    printable.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${safe(context.title)}</title><style>@page{size:letter;margin:.65in}body{font-family:Arial,sans-serif;color:#102438;line-height:1.45}h1{font-family:Georgia,serif;font-size:27px;margin:0 0 8px}.note{font-size:11px;color:#526271;border-left:4px solid #c8973f;padding-left:12px;white-space:pre-wrap}.checklist{white-space:pre-wrap;font-size:13px;margin-top:22px}</style></head><body><h1>${safe(context.title)}</h1><div class="note">Private planning aid generated from a HomeOfferFlow listing workspace. It is not a contract, listing agreement, disclosure, or instruction to sign.</div><div class="checklist">${safe(listingLaunchChecklistText(workspace))}</div><script>window.onload=()=>window.print();<\/script></body></html>`);
+    printable.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${safe(context.title)}</title><style>@page{size:letter;margin:.65in}body{font-family:Arial,sans-serif;color:#102438;line-height:1.45}h1{font-family:Georgia,serif;font-size:27px;margin:0 0 8px}.note{font-size:11px;color:#526271;border-left:4px solid #c8973f;padding-left:12px;white-space:pre-wrap}.checklist{white-space:pre-wrap;font-size:13px;margin-top:22px}</style></head><body><h1>${safe(context.title)}</h1><div class="note">Planning aid generated from a HomeOfferFlow listing workspace. It is not a contract, listing agreement, disclosure, or instruction to sign.</div><div class="checklist">${safe(listingLaunchChecklistText(workspace))}</div><script>window.onload=()=>window.print();<\/script></body></html>`);
     printable.document.close();
     platformStatus('listingLaunchChecklistStatus', `Printable ${context.kind} kickoff checklist opened.`, 'ok');
   };
@@ -13653,7 +13653,7 @@ function routeAfterMagicLinkIfNeeded() {
     const brief = sellerConsultationBriefText(workspace);
     try {
       if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(brief);
-      else window.prompt('Copy this private seller consultation brief:', brief);
+      else window.prompt('Copy this seller consultation brief:', brief);
       platformStatus('sellerConsultationBriefStatus', 'Seller consultation brief copied. Confirm complete documents and authorized workflows before acting.', 'ok');
     } catch (_) {
       platformStatus('sellerConsultationBriefStatus', 'Could not copy automatically. Use the print option or copy the brief from the prompt.', 'err');
@@ -13667,7 +13667,7 @@ function routeAfterMagicLinkIfNeeded() {
     const printable = window.open('', '_blank', 'noopener,noreferrer');
     if (!printable) return platformStatus('sellerConsultationBriefStatus', 'Allow pop-ups to print the listing consultation brief.', 'err');
     const safe = value => String(value || '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
-    printable.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${safe(context.consultationTitle)}</title><style>@page{size:letter;margin:.65in}body{font-family:Arial,sans-serif;color:#102438;line-height:1.45}h1{font-family:Georgia,serif;font-size:27px;margin:0 0 8px}.note{font-size:11px;color:#526271;border-left:4px solid #c8973f;padding-left:12px;white-space:pre-wrap}.brief{white-space:pre-wrap;font-size:13px;margin-top:22px}</style></head><body><h1>${safe(context.consultationTitle)}</h1><div class="note">Private planning aid generated from a HomeOfferFlow listing workspace. It is not a contract, listing agreement, disclosure, pricing opinion, or instruction to sign.</div><div class="brief">${safe(sellerConsultationBriefText(workspace))}</div><script>window.onload=()=>window.print();<\/script></body></html>`);
+    printable.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${safe(context.consultationTitle)}</title><style>@page{size:letter;margin:.65in}body{font-family:Arial,sans-serif;color:#102438;line-height:1.45}h1{font-family:Georgia,serif;font-size:27px;margin:0 0 8px}.note{font-size:11px;color:#526271;border-left:4px solid #c8973f;padding-left:12px;white-space:pre-wrap}.brief{white-space:pre-wrap;font-size:13px;margin-top:22px}</style></head><body><h1>${safe(context.consultationTitle)}</h1><div class="note">Planning aid generated from a HomeOfferFlow listing workspace. It is not a contract, listing agreement, disclosure, pricing opinion, or instruction to sign.</div><div class="brief">${safe(sellerConsultationBriefText(workspace))}</div><script>window.onload=()=>window.print();<\/script></body></html>`);
     printable.document.close();
     platformStatus('sellerConsultationBriefStatus', 'Printable seller consultation brief opened.', 'ok');
   };
@@ -13734,11 +13734,11 @@ function routeAfterMagicLinkIfNeeded() {
     if (!/^[0-9a-f-]{20,80}$/i.test(id)) return platformStatus('listingOfferStatusMessage', 'Offer comparison identifier is invalid.', 'err');
     const status = document.getElementById('listingOfferStatusMessage');
     if (saveButton) { saveButton.disabled = true; saveButton.setAttribute('aria-busy', 'true'); saveButton.textContent = 'Saving status…'; }
-    if (status) { status.className = 'platform-status'; status.textContent = 'Updating private comparison status…'; }
+    if (status) { status.className = 'platform-status'; status.textContent = 'Updating comparison status…'; }
     try {
       const { error } = await client.from('hof_listing_workspace_offers').update({ status: select.value, updated_at: new Date().toISOString() }).eq('id', id).eq('workspace_id', workspaceId);
       if (error) throw error;
-      if (status) { status.className = 'platform-status ok'; status.textContent = 'Offer comparison status updated privately.'; }
+      if (status) { status.className = 'platform-status ok'; status.textContent = 'Offer comparison status updated.'; }
       await loadListingWorkspaceOffersFoundation();
     } catch (err) {
       console.error('Listing workspace offer comparison status update failed:', err);
@@ -13756,15 +13756,15 @@ function routeAfterMagicLinkIfNeeded() {
     const user = platformUser();
     if (!client || !user || !workspaceId) return platformStatus('listingOfferStatusMessage', 'Choose a workspace and sign in before removing an offer comparison.', 'err');
     if (!/^[0-9a-f-]{20,80}$/i.test(id)) return platformStatus('listingOfferStatusMessage', 'Offer comparison identifier is invalid.', 'err');
-    if (!window.confirm('Remove this private offer comparison? This cannot be undone.')) return;
+    if (!window.confirm('Remove this offer comparison? This cannot be undone.')) return;
     const status = document.getElementById('listingOfferStatusMessage');
     if (removeButton?.disabled) return;
     if (removeButton) { removeButton.disabled = true; removeButton.setAttribute('aria-busy', 'true'); removeButton.textContent = 'Removing…'; }
-    if (status) { status.className = 'platform-status'; status.textContent = 'Removing private offer comparison…'; }
+    if (status) { status.className = 'platform-status'; status.textContent = 'Removing offer comparison…'; }
     try {
       const { error } = await client.from('hof_listing_workspace_offers').delete().eq('id', id).eq('workspace_id', workspaceId).eq('agent_user_id', user.id);
       if (error) throw error;
-      if (status) { status.className = 'platform-status ok'; status.textContent = 'Private offer comparison removed.'; }
+      if (status) { status.className = 'platform-status ok'; status.textContent = 'Offer comparison removed.'; }
       await loadListingWorkspaceOffersFoundation();
     } catch (err) {
       console.error('Listing workspace offer comparison removal failed:', err);
@@ -13940,11 +13940,11 @@ function routeAfterMagicLinkIfNeeded() {
       private_notes: String(getVal('listingOfferNotes') || '').trim() || null
     };
     if (saveButton) { saveButton.disabled = true; saveButton.setAttribute('aria-busy', 'true'); saveButton.textContent = 'Saving comparison…'; }
-    if (status) { status.className = 'platform-status'; status.textContent = 'Saving private offer comparison…'; }
+    if (status) { status.className = 'platform-status'; status.textContent = 'Saving offer comparison…'; }
     try {
       const { error } = await client.from('hof_listing_workspace_offers').insert(payload);
       if (error) throw error;
-      if (status) { status.className = 'platform-status ok'; status.textContent = 'Offer comparison saved privately. It is not a recommendation or contract decision.'; }
+      if (status) { status.className = 'platform-status ok'; status.textContent = 'Offer comparison saved. It is not a recommendation or contract decision.'; }
       ['listingOfferLabel','listingOfferPrice','listingOfferFinancing','listingOfferConcessions','listingOfferClosingDate','listingOfferOptionDays','listingOfferContingencies','listingOfferNotes'].forEach(id => { const field = document.getElementById(id); if (field) field.value = ''; });
       const state = document.getElementById('listingOfferStatus'); if (state) state.value = 'received';
       await loadListingWorkspaceOffersFoundation();
