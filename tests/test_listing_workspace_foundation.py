@@ -113,7 +113,7 @@ class ListingWorkspaceFoundationTests(unittest.TestCase):
         self.assertIn('root.openSellerDisclosureDraftWorkspace = function openSellerDisclosureDraftWorkspace()', INDEX)
         self.assertIn('document.getElementById(\'hofSellerAddress\')?.focus({ preventScroll: true })', INDEX)
         self.assertIn("Create seller disclosures", INDEX)
-        self.assertIn("Answer the property and seller questions, then review the disclosure draft.", INDEX)
+        self.assertIn("Answer the property and seller questions, then review the completed disclosure.", INDEX)
 
     def test_optional_planning_topics_do_not_compete_with_the_listing_intake(self):
         self.assertIn("Add optional planning topics", INDEX)

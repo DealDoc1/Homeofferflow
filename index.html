@@ -3427,7 +3427,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 
       <div id="agentQuickSetup" style="display:none; margin-top:0.75rem; padding-top:0.75rem; border-top:1px solid rgba(255,255,255,0.07);">
         <p style="font-size:0.8rem; font-weight:700; color:var(--gold-light); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.75rem;">Your Agent Details</p>
-        <div class="notice sage">⚡ Save this once and reuse it on future drafts. This info will also flow to the broker information section.</div>
+        <div class="notice sage">⚡ Save this once and reuse it on future offers. This info will also flow to the broker information section.</div>
         <div class="field-group" style="margin-bottom:0; margin-top:0.75rem;">
           <div class="field-row">
             <div class="field"><label for="agentNameQuick">Your Agent Name</label><input type="text" id="agentNameQuick" placeholder="Jane Doe" oninput="syncAgentQuickFields()"/></div>
@@ -3943,9 +3943,9 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           <div class="radio-group-label">Are you already working with a buyer's agent on this offer?</div>
           <div class="radio-cards" style="margin-bottom:0.75rem;">
             <label class="radio-card" onclick="selectCard(this,'hasBuyerAgent','no'); document.getElementById('agentFields').style.display='none'"><input type="radio" name="hasBuyerAgent" value="no"/><div class="radio-dot"></div><div class="radio-card-text"><strong>No — I'm preparing this myself</strong><small>Continue with the guided offer builder</small></div></label>
-            <label class="radio-card" onclick="selectCard(this,'hasBuyerAgent','yes'); document.getElementById('agentFields').style.display='block'"><input type="radio" name="hasBuyerAgent" value="yes"/><div class="radio-dot"></div><div class="radio-card-text"><strong>Yes — I already have an agent</strong><small>You can still use HomeOfferFlow to organize a clean draft</small></div></label>
+            <label class="radio-card" onclick="selectCard(this,'hasBuyerAgent','yes'); document.getElementById('agentFields').style.display='block'"><input type="radio" name="hasBuyerAgent" value="yes"/><div class="radio-dot"></div><div class="radio-card-text"><strong>Yes — I already have an agent</strong><small>You can still use HomeOfferFlow to organize a clear offer</small></div></label>
           </div>
-          <div id="agentSoftNote" class="notice sage" style="display:none; margin-bottom:0.75rem;">HomeOfferFlow can still help you organize your offer terms and generate a clean draft. We recommend sharing the completed offer with your agent before submitting.</div>
+          <div id="agentSoftNote" class="notice sage" style="display:none; margin-bottom:0.75rem;">HomeOfferFlow can still help you organize your offer terms and prepare a clear offer package. We recommend sharing the completed offer with your agent before submitting.</div>
         </div>
 
         <div id="agentPathInfoHeader" style="display:none;">
@@ -7115,7 +7115,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         title: 'Start your first saved offer',
         body: hasGeneratedPacket
           ? generatedLabel + ' this billing month.'
-          : 'Start with the client and property you have now. Saving a draft does not generate a packet or request a signature.'
+          : 'Start with the client and property you have now. Saving your work does not generate a packet or request a signature.'
       },
       {
         done: hasGeneratedPacket,
@@ -7842,7 +7842,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         title: 'What do you need for this listing?',
         choices: [
           { label: 'Start a listing workspace', copy: 'Begin with the seller, property, timing, and next steps.', primary: true, action: () => openListingWorkspace(true), isWorkspaceOpen: () => Boolean(document.getElementById('listingWorkspaceStartCard')) },
-          { label: 'Create seller disclosures', copy: 'Answer the property and seller questions, then review the disclosure draft.', action: () => { showAccountTab('seller'); window.setTimeout(() => window.openSellerDisclosureDraftWorkspace?.(), 0); }, isWorkspaceOpen: () => Boolean(document.getElementById('hofSellerDisclosureCard')) },
+          { label: 'Create seller disclosures', copy: 'Answer the property and seller questions, then review the completed disclosure.', action: () => { showAccountTab('seller'); window.setTimeout(() => window.openSellerDisclosureDraftWorkspace?.(), 0); }, isWorkspaceOpen: () => Boolean(document.getElementById('hofSellerDisclosureCard')) },
           { label: 'Compare a buyer offer', copy: 'Compare price, financing, deadlines, concessions, and possession.', action: () => window.hofOpenListingOfferComparison?.(), isWorkspaceOpen: () => Boolean(document.getElementById('listingWorkspaceOfferComparisonCard')) }
         ]
       },
@@ -8009,7 +8009,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       hofAuth.myOffersNextOffset = offset + page.length;
       if (!loadedOffers.length) {
         list.className = 'offer-empty';
-        list.textContent = 'No saved offers yet. Create your first offer and future drafts will show here.';
+        list.textContent = 'No saved offers yet. Create your first offer and future offers will show here.';
         try { renderAgentActivationCard(); } catch (e) {}
         return [];
       }
@@ -12633,7 +12633,7 @@ function routeAfterMagicLinkIfNeeded() {
       const ownerUserId = hofAuth?.session?.user?.id || '';
       if (ownerUserId) localStorage.setItem(HOF_STORAGE_OWNER_KEY, ownerUserId);
       else localStorage.removeItem(HOF_STORAGE_OWNER_KEY);
-      updateSaveStatus('✓ Draft Saved');
+      updateSaveStatus('✓ Saved');
       if ((state?.data?.userType || '') !== 'homebuyer' && hofAuth?.session && navigator.onLine !== false && hasMeaningfulCloudDraft()) {
         syncCloudDraftSave();
       }
@@ -12734,7 +12734,7 @@ function routeAfterMagicLinkIfNeeded() {
     }
 
     __hofRestoringDraft = true;
-    updateSaveStatus('Restoring Draft...');
+    updateSaveStatus('Restoring saved work...');
 
     try {
       Object.entries(draft.fields || {}).forEach(([id, value]) => {
@@ -12778,7 +12778,7 @@ function routeAfterMagicLinkIfNeeded() {
         updateProgress();
       }
 
-      updateSaveStatus('✓ Draft Restored');
+      updateSaveStatus('✓ Saved work restored');
       return true;
     } catch (err) {
       console.error('Draft restore failed:', err);
@@ -12854,7 +12854,7 @@ function routeAfterMagicLinkIfNeeded() {
 
   function clearSavedDraft() {
     localStorage.removeItem(HOF_STORAGE_KEY);
-    updateSaveStatus('Draft Cleared');
+    updateSaveStatus('Saved work cleared');
   }
 
   document.addEventListener('input', function(e) {
@@ -19439,7 +19439,7 @@ function routeAfterMagicLinkIfNeeded() {
       ${state.confidence ? `<div class="agent-activation-confidence" aria-label="First offer workflow overview">
         <div><strong>1. Start</strong>Enter the client and property details you have now.</div>
         <div><strong>2. Review</strong>Check the guided packet and every deal term before generation.</div>
-        <div><strong>3. Stay in control</strong>Saving a draft does not send a packet or request a signature.</div>
+        <div><strong>3. Stay in control</strong>Saving your work does not send a packet or request a signature.</div>
       </div>` : ''}
       <div class="agent-activation-actions">
         <button class="agent-activation-primary" type="button" onclick="handleAgentActivationAction('${primaryAction}','${id}','primary','${safe(state.key)}','monthly')">${safe(state.primary)}</button>
@@ -22217,7 +22217,7 @@ function routeAfterMagicLinkIfNeeded() {
       headers: {Authorization: 'Bearer ' + token}
     });
     const payload = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(payload.error || 'Could not load seller disclosure drafts.');
+    if (!response.ok) throw new Error(payload.error || 'Could not load saved seller disclosures.');
     // The permission-checked API joins the private review-link state and
     // returns sellerReviewProgress; direct browser reads cannot see that
     // service-role-only table and made every saved draft look unrequested.
@@ -22479,7 +22479,7 @@ function routeAfterMagicLinkIfNeeded() {
       try {
         const response = await fetch('/api/admin-dashboard',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer ' + token},body:JSON.stringify(payload)});
         const result = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(result.error || 'Could not save seller disclosure draft.');
+        if (!response.ok) throw new Error(result.error || 'Could not save the seller disclosure.');
         status.textContent = 'Preparing your completed disclosure for review…';
         card.dataset.sellerDraftId = result.draft?.id || '';
         card.dataset.loadedDraftId = result.draft?.id || '';
@@ -22487,7 +22487,7 @@ function routeAfterMagicLinkIfNeeded() {
         if (sendButton) sendButton.disabled = !(card.dataset.sellerDraftId && document.getElementById('hofSellerEmail').value.trim());
         await refreshDrafts();
         await previewSellerDisclosure(card.dataset.sellerDraftId, saveButton);
-      } catch (error) { status.textContent = error.message || 'Could not save seller disclosure draft.'; }
+      } catch (error) { status.textContent = error.message || 'Could not save the seller disclosure.'; }
       finally { saveButton.disabled = false; saveButton.setAttribute('aria-busy', 'false'); saveButton.textContent = 'Save and preview'; }
     });
     document.getElementById('hofSellerEmail').addEventListener('input', () => {
@@ -22503,7 +22503,7 @@ function routeAfterMagicLinkIfNeeded() {
       const seller1Name = document.getElementById('hofSeller1').value.trim();
       const seller2Name = document.getElementById('hofSeller2').value.trim();
       if (!token) { status.textContent = 'Sign in before sending the seller review email.'; return; }
-      if (!draftId || !seller1Email || !seller1Name) { status.textContent = 'Save the draft and enter Seller 1 name and review email first.'; return; }
+      if (!draftId || !seller1Email || !seller1Name) { status.textContent = 'Save the disclosure and enter Seller 1 name and review email first.'; return; }
       if (seller2Name && !seller2Email) { status.textContent = 'Enter Seller 2 review email or remove Seller 2 name.'; return; }
       if (seller2Email && !seller2Name) { status.textContent = 'Enter Seller 2 name before adding a second review email.'; return; }
       status.textContent = 'Sending secure seller review email…';
