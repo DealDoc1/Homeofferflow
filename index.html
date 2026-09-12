@@ -8202,7 +8202,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     const statCards = `
       <div class="offer-crm-stats" aria-label="Offer dashboard summary">
         <div class="offer-crm-stat"><span>Total offers</span><strong>${safeOffers.length}</strong><small>latest 25 shown</small></div>
-        <div class="offer-crm-stat"><span>Active</span><strong>${activeCount}</strong><small>drafts + live packets</small></div>
+        <div class="offer-crm-stat"><span>Active</span><strong>${activeCount}</strong><small>saved offers + live packets</small></div>
         <div class="offer-crm-stat"><span>Signatures pending</span><strong>${pendingSignatureCount}</strong><small>awaiting, viewed, or partially signed</small></div>
         <div class="offer-crm-stat"><span>Offer volume</span><strong>${money(totalVolume)}</strong><small>shown offers only</small></div>
       </div>`;
@@ -8250,7 +8250,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <div><span>Buyer</span><strong>${escapeAttr(o.buyer_name || '—')}</strong>${buyerEmail ? `<small>${escapeAttr(buyerEmail)}</small>` : ''}</div>
             <div><span>Offer</span><strong>${price}</strong><small>${escapeAttr(String(role).charAt(0).toUpperCase() + String(role).slice(1))}</small></div>
             <div><span>Updated</span><strong>${escapeAttr(formatOfferDate(o.last_updated || o.created_at))}</strong><small>${escapeAttr(updated)}</small></div>
-            <div><span>Signing</span><strong>${escapeAttr(signingLabel)}</strong>${generatedAt ? `<small>Generated ${escapeAttr(formatOfferDate(generatedAt))}</small>` : '<small>Draft packet</small>'}</div>
+            <div><span>Signing</span><strong>${escapeAttr(signingLabel)}</strong>${generatedAt ? `<small>Generated ${escapeAttr(formatOfferDate(generatedAt))}</small>` : '<small>Not sent for signature</small>'}</div>
           </div>
 
           <div class="offer-tag-row">${tags}</div>
@@ -8271,7 +8271,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       <div>
         <div class="offer-crm-eyebrow">Agent workspace</div>
         <div class="offer-crm-heading">Recent offers</div>
-        <div class="offer-crm-subhead">Track drafts, generated packets, and buyer-side signature progress without digging through email.</div>
+        <div class="offer-crm-subhead">Track saved offers, generated packets, and buyer-side signature progress without digging through email.</div>
       </div>
       <button class="btn-primary" type="button" onclick="startAccountTransaction()">Choose Transaction</button>
     </div>
@@ -8501,7 +8501,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   }
 
   async function deleteOffer(id) {
-    if (!confirm('Delete this draft from your dashboard?')) return;
+    if (!confirm('Delete this saved offer from your dashboard?')) return;
     const client = getSupabaseClient();
     const user = hofAuth.session?.user;
     if (!client || !user) return;
@@ -9178,7 +9178,7 @@ function routeAfterMagicLinkIfNeeded() {
     const nav = document.getElementById('navCta');
     if (nav) nav.textContent = 'Resume Offer →';
     const note = document.getElementById('heroPriceNote');
-    if (note) note.innerHTML = 'Your draft is saved on this device. <strong>Resume where you left off before paying.</strong>';
+    if (note) note.innerHTML = 'Your work is saved on this device. <strong>Resume where you left off before paying.</strong>';
     return true;
   }
 
@@ -10720,12 +10720,12 @@ function routeAfterMagicLinkIfNeeded() {
       return { category: 'timeout', nextStep: 'Wait a moment, then try again.' };
     }
     if (/signwell|signature/.test(message)) {
-      return { category: 'signature_provider', nextStep: 'Try again shortly. If it continues, save your draft and contact support with the offer address.' };
+      return { category: 'signature_provider', nextStep: 'Try again shortly. If it continues, save your work and contact support with the offer address.' };
     }
     if (/required|validation|invalid/.test(message)) {
       return { category: 'validation', nextStep: 'Review the required fields on this offer, then try again.' };
     }
-    return { category: 'service', nextStep: 'Try again shortly. If it continues, save your draft and contact support with the offer address.' };
+    return { category: 'service', nextStep: 'Try again shortly. If it continues, save your work and contact support with the offer address.' };
   }
 
   function clearPacketGenerationRecoveryNotice() {
@@ -10827,7 +10827,7 @@ function routeAfterMagicLinkIfNeeded() {
     notice.style.display = 'block';
     notice.innerHTML = '<strong>Re-upload required before sending:</strong> ' +
       missing.map(escapeHtml).join(', ') +
-      '. Attachments are not retained in drafts; upload each PDF again, label and order it, then confirm the final packet.';
+      '. Attachments are not retained in saved work; upload each PDF again, label and order it, then confirm the final packet.';
   }
 
   function resetUploadedDisclosureDraftForOffer(data = {}) {
@@ -12545,7 +12545,7 @@ function routeAfterMagicLinkIfNeeded() {
     if (!el) return;
     clearTimeout(__hofSaveTimer);
     el.classList.add('cloud-save-warning');
-    el.innerHTML = 'Local draft saved; cloud sync needs retry. <button type="button" class="save-retry-btn" onclick="retryCloudDraftSave()">Retry cloud save</button>';
+    el.innerHTML = 'Saved on this device; cloud sync needs retry. <button type="button" class="save-retry-btn" onclick="retryCloudDraftSave()">Retry cloud save</button>';
   }
 
   window.retryCloudDraftSave = async function retryCloudDraftSave() {
@@ -12656,14 +12656,14 @@ function routeAfterMagicLinkIfNeeded() {
     if (globalNotice) {
       globalNotice.hidden = !offline;
       globalNotice.textContent = offline
-        ? 'You are offline. Local drafts remain available; preview, signing, checkout, and cloud sync resume when you reconnect.'
+        ? 'You are offline. Saved work remains available; preview, signing, checkout, and cloud sync resume when you reconnect.'
         : '';
     }
     if (!el) return;
     if (offline) {
       __hofWasOffline = true;
       el.hidden = false;
-      el.textContent = 'Offline — draft stays on this device';
+      el.textContent = 'Offline — work stays on this device';
       el.title = 'Reconnect before previewing PDFs, sending signature requests, checkout, or cloud sync.';
       try { saveDraftNow(); } catch (e) {}
       return;
@@ -12675,8 +12675,8 @@ function routeAfterMagicLinkIfNeeded() {
       const isAccountDraft = (state?.data?.userType || '') !== 'homebuyer' && hofAuth?.session && hasMeaningfulCloudDraft();
       if (isAccountDraft) {
         el.hidden = false;
-        el.textContent = 'Back online — syncing your saved draft…';
-        el.title = 'Your account draft is being saved to the dashboard.';
+        el.textContent = 'Back online — syncing your saved work…';
+        el.title = 'Your account work is being saved to the dashboard.';
         syncCloudDraftSave();
         window.setTimeout(() => {
           if (navigator.onLine !== false) el.hidden = true;
@@ -12721,7 +12721,7 @@ function routeAfterMagicLinkIfNeeded() {
     const currentUserId = hofAuth?.session?.user?.id || '';
     if (ownerUserId && ownerUserId !== currentUserId) {
       if (!window.__hofDraftRestoreAuthReady) return false;
-      updateSaveStatus('A local draft is saved for a different signed-in account. Sign in to that account to restore it.');
+      updateSaveStatus('Saved work belongs to a different signed-in account. Sign in to that account to restore it.');
       return false;
     }
 
@@ -22933,7 +22933,7 @@ function routeAfterMagicLinkIfNeeded() {
       card.id = 'hofPwaUpdateCard';
       card.className = 'hof-pwa-update-card';
       card.setAttribute('role', 'status');
-      card.innerHTML = '<strong>HomeOfferFlow update ready</strong><p>A newer app version is ready. Update when you are between steps; your local draft stays on this device.</p><div class="hof-pwa-update-actions"><button type="button" class="btn-primary" id="hofPwaUpdateNow">Update now</button><button type="button" class="btn-secondary" id="hofPwaUpdateLater">Later</button></div>';
+      card.innerHTML = '<strong>HomeOfferFlow update ready</strong><p>A newer app version is ready. Update when you are between steps; your saved work stays on this device.</p><div class="hof-pwa-update-actions"><button type="button" class="btn-primary" id="hofPwaUpdateNow">Update now</button><button type="button" class="btn-secondary" id="hofPwaUpdateLater">Later</button></div>';
       document.body.appendChild(card);
       card.querySelector('#hofPwaUpdateLater')?.addEventListener('click', () => card.remove());
       card.querySelector('#hofPwaUpdateNow')?.addEventListener('click', () => {
