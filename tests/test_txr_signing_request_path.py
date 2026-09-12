@@ -275,6 +275,12 @@ class TxrSigningRequestPathTests(unittest.TestCase):
             source,
         )
 
+    def test_stale_short_form_draft_offers_a_direct_current_copy_path(self):
+        html = (ROOT / "index.html").read_text(encoding="utf-8")
+        self.assertIn("agreement.form_code === 'TXR-1507'", html)
+        self.assertIn("Prepare the current copy", html)
+        self.assertIn("root.hofOpenTxr1507Draft?.();", html)
+
 
 if __name__ == "__main__":
     unittest.main()

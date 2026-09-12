@@ -21417,6 +21417,14 @@ function routeAfterMagicLinkIfNeeded() {
         setTimeout(() => modal.remove(), 800);
       } catch (error) {
         status.className = 'hof-iabs-status error'; status.textContent = error.message || 'Could not send the signature request.';
+        if (agreement.form_code === 'TXR-1507' && /Prepare a fresh copy before sending/i.test(String(error.message || ''))) {
+          status.innerHTML = 'This saved copy was prepared before the current signing layout. <button type="button" class="btn-secondary">Prepare the current copy</button>';
+          status.querySelector('button').addEventListener('click', () => {
+            modal.remove();
+            root.hofOpenTxr1507Draft?.();
+          });
+          return;
+        }
         submit.disabled = false;
       }
     });
