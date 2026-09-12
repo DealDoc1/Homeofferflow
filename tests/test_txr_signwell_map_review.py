@@ -17,6 +17,20 @@ class TxrSignwellMapReviewTests(unittest.TestCase):
             (72.0, 696.0, 72.0, 24.0),
         )
 
+    def test_review_labels_identify_the_recipient_and_completion_type(self):
+        self.assertEqual(
+            review.signing_field_label(
+                {"recipient_id": "associate", "type": "signature"}
+            ),
+            "associate signature",
+        )
+        self.assertEqual(
+            review.signing_field_label(
+                {"recipient_id": "2", "type": "date"}
+            ),
+            "2 date",
+        )
+
     def test_review_map_includes_each_supported_form_and_completion_type(self):
         maps = review.review_field_sets()
         self.assertEqual(

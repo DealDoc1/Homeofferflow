@@ -65,6 +65,16 @@ def signwell_rect_to_pdf(field: dict) -> tuple[float, float, float, float]:
     return x, y, width, height
 
 
+def signing_field_label(field: dict) -> str:
+    """Make a review overlay traceable to its SignWell recipient and field."""
+    field_type = {
+        "signature": "signature",
+        "initials": "initials",
+        "date": "date",
+    }[field["type"]]
+    return f"{field.get('recipient_id', '?')} {field_type}"
+
+
 def _sample_data() -> dict[str, dict]:
     return {
         "TXR1501": {
@@ -150,7 +160,7 @@ def _overlay(page_number: int, fields: list[dict]) -> bytes:
         canvas.setLineWidth(1.35)
         canvas.rect(x, y, width, height, fill=0, stroke=1)
         canvas.setFont("Helvetica-Bold", 4.8)
-        canvas.drawString(x + 1.4, y + height + 1.4, field["type"][0].upper())
+        canvas.drawString(x + 1.4, y + height + 1.4, signing_field_label(field))
     canvas.save()
     packet.seek(0)
     return packet.read()
