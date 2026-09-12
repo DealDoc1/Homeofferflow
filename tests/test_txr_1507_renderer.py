@@ -196,23 +196,23 @@ class Txr1507RendererTests(unittest.TestCase):
         self.assertEqual(len(two), 9)
         self.assertTrue(all(field["page"] in {1, 2} for field in two))
         self.assertTrue(all(field["recipient_id"] in {"1", "2", "associate"} for field in two))
-        self.assertEqual(next(field["y"] for field in two if field["api_id"] == "txr1507_associate_signature_p2"), 734)
-        self.assertEqual(next(field["y"] for field in two if field["api_id"] == "txr1507_client2_signature_p2"), 844)
+        self.assertEqual(next(field["y"] for field in two if field["api_id"] == "txr1507_associate_signature_p2"), 714)
+        self.assertEqual(next(field["y"] for field in two if field["api_id"] == "txr1507_client2_signature_p2"), 824)
         self.assertEqual(next(field["x"] for field in two if field["api_id"] == "txr1507_client1_signature_p2"), 432)
         initials = {field["api_id"]: field for field in two}
         # The exact source-rule measurements keep SignWell fields on the
         # page-two Client execution line and clear of the printed captions.
         self.assertEqual(
             (initials["txr1507_client1_signature_p2"]["x"], initials["txr1507_client1_signature_p2"]["y"], initials["txr1507_client1_date_p2"]["x"], initials["txr1507_client1_date_p2"]["y"]),
-            (432, 734, 720, 740),
+            (432, 714, 720, 720),
         )
         self.assertEqual(
             (initials["txr1507_client2_signature_p2"]["x"], initials["txr1507_client2_signature_p2"]["y"], initials["txr1507_client2_date_p2"]["x"], initials["txr1507_client2_date_p2"]["y"]),
-            (432, 844, 720, 850),
+            (432, 824, 720, 830),
         )
         self.assertEqual(
             (initials["txr1507_associate_signature_p2"]["x"], initials["txr1507_associate_signature_p2"]["y"], initials["txr1507_associate_date_p2"]["x"], initials["txr1507_associate_date_p2"]["y"]),
-            (48, 734, 336, 740),
+            (48, 714, 336, 720),
         )
         # TXR-1507's footer has a separate Broker/Associate initial blank
         # before the two Client blanks. Every party named in that footer must

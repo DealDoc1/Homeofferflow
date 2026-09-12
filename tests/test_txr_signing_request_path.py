@@ -266,7 +266,7 @@ class TxrSigningRequestPathTests(unittest.TestCase):
         )
         self.assertEqual(
             MODULE.TXR_SIGNING_MAP_REVISIONS["TXR-1507"],
-            "txr-1507-2026-09-10-source-calibrated-v1",
+            "txr-1507-2026-09-12-completed-packet-calibrated-v2",
         )
         self.assertEqual(
             MODULE.TXR_SIGNING_MAP_REVISIONS["TXR-1508"],
