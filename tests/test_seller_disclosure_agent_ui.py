@@ -38,7 +38,7 @@ class SellerDisclosureAgentUiTests(unittest.TestCase):
         script = html[start:end].lower()
         self.assertNotIn("seller review and signing remain inactive", script)
         self.assertNotIn("seller review and signing are not active", script)
-        self.assertIn("preview it or send it to the seller for review", script)
+        self.assertIn("review the completed pdf, then send it to the seller", script)
 
     def test_review_drafts_use_next_step_copy_after_saving(self):
         html = (ROOT / "index.html").read_text()

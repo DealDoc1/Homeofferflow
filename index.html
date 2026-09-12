@@ -22261,6 +22261,30 @@ function routeAfterMagicLinkIfNeeded() {
       await refreshDrafts();
     } catch (error) { if (status) status.textContent = error.message || 'Could not refresh signing status.'; }
   }
+  async function previewSellerDisclosure(draftId, button) {
+    const token = root.hofAuth?.session?.access_token;
+    const status = document.getElementById('hofSellerDraftStatus');
+    const originalLabel = button?.textContent || 'Preview PDF';
+    if (!token || !draftId) {
+      if (status) status.textContent = 'Sign in and choose a seller disclosure first.';
+      return false;
+    }
+    if (button) { button.disabled = true; button.textContent = 'Loading…'; }
+    try {
+      const response = await fetch('/api/admin-dashboard?preview_seller_disclosure=' + encodeURIComponent(draftId), {headers:{Authorization:'Bearer ' + token}});
+      if (!response.ok) throw new Error('Seller disclosure preview is unavailable.');
+      const draft = draftCache.get(String(draftId));
+      if (!root.hofShowPdfPreview) throw new Error('Seller disclosure preview is temporarily unavailable.');
+      root.hofShowPdfPreview(await response.blob(), draft?.property_address ? 'Seller disclosure preview' : 'Seller disclosure');
+      if (status) status.textContent = 'Disclosure saved. Review the completed PDF, then send it to the seller when you are ready.';
+      return true;
+    } catch (error) {
+      if (status) status.textContent = error.message || 'Seller disclosure preview is unavailable.';
+      return false;
+    } finally {
+      if (button) { button.disabled = false; button.textContent = originalLabel; }
+    }
+  }
   async function refreshDrafts() {
     const list = document.getElementById('hofSellerDraftList');
     if (!list) return;
@@ -22278,22 +22302,7 @@ function routeAfterMagicLinkIfNeeded() {
       }).join('') : '<li>No saved seller disclosures yet.</li>';
       const summary = document.getElementById('hofSellerDraftSummary');
       if (summary) summary.textContent = `${drafts.length} saved disclosure${drafts.length === 1 ? '' : 's'} shown.`;
-      list.querySelectorAll('.hof-seller-preview').forEach(button => button.addEventListener('click', async () => {
-        const token = root.hofAuth?.session?.access_token;
-        button.disabled = true; button.textContent = 'Loading…';
-        try {
-          const response = await fetch('/api/admin-dashboard?preview_seller_disclosure=' + encodeURIComponent(button.dataset.id), {headers:{Authorization:'Bearer ' + token}});
-          if (!response.ok) throw new Error('Private seller preview is unavailable.');
-          const draft = draftCache.get(String(button.dataset.id));
-          if (!root.hofShowPdfPreview) throw new Error('PDF preview is temporarily unavailable.');
-          root.hofShowPdfPreview(await response.blob(), draft?.property_address ? 'Seller disclosure preview' : 'Seller disclosure');
-        } catch (error) {
-          const status = document.getElementById('hofSellerDraftStatus');
-          if (status) status.textContent = error.message || 'Private seller preview is unavailable.';
-          else window.announceWorkspaceStatus?.(error.message || 'Private seller preview is unavailable.');
-        }
-        finally { button.disabled = false; button.textContent = 'Preview PDF'; }
-      }));
+      list.querySelectorAll('.hof-seller-preview').forEach(button => button.addEventListener('click', () => previewSellerDisclosure(button.dataset.id, button)));
       list.querySelectorAll('.hof-seller-load').forEach(button => button.addEventListener('click', () => root.loadSellerDisclosureDraft(button.dataset.id)));
       list.querySelectorAll('.hof-seller-send-signing').forEach(button => button.addEventListener('click', () => openSellerDisclosureSignature(draftCache.get(String(button.dataset.id)))));
       list.querySelectorAll('.hof-seller-refresh-signing').forEach(button => button.addEventListener('click', () => refreshSellerDisclosureSigning(draftCache.get(String(button.dataset.id)))));
@@ -22358,12 +22367,13 @@ function routeAfterMagicLinkIfNeeded() {
         const response = await fetch('/api/admin-dashboard',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer ' + token},body:JSON.stringify(payload)});
         const result = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(result.error || 'Could not save seller disclosure draft.');
-        status.textContent = (payload.action === 'update_seller_disclosure_draft' ? 'Saved disclosure updated.' : 'Disclosure saved.') + ' Preview it or send it to the seller for review when you are ready.';
+        status.textContent = 'Preparing your completed disclosure for review…';
         card.dataset.sellerDraftId = result.draft?.id || '';
         card.dataset.loadedDraftId = result.draft?.id || '';
         const sendButton = document.getElementById('hofSendSellerReview');
         if (sendButton) sendButton.disabled = !(card.dataset.sellerDraftId && document.getElementById('hofSellerEmail').value.trim());
         await refreshDrafts();
+        await previewSellerDisclosure(card.dataset.sellerDraftId, saveButton);
       } catch (error) { status.textContent = error.message || 'Could not save seller disclosure draft.'; }
       finally { saveButton.disabled = false; saveButton.setAttribute('aria-busy', 'false'); saveButton.textContent = 'Save and preview'; }
     });
