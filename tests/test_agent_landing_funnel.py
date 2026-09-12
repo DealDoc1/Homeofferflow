@@ -15,9 +15,26 @@ AGENTS = (ROOT / "agents.html").read_text(encoding="utf-8")
 INVESTORS = (ROOT / "investors.html").read_text(encoding="utf-8")
 FORM_LIBRARY = (ROOT / "texas-agent-form-library.html").read_text(encoding="utf-8")
 VERCEL = (ROOT / "vercel.json").read_text(encoding="utf-8")
+PUBLIC_AGENT_GUIDES = (
+    "agents.html",
+    "texas-agent-offer-workflow.html",
+    "texas-lease-offer-workflow.html",
+    "texas-buyer-representation-guide.html",
+    "texas-agent-form-library.html",
+    "texas-listing-workflow.html",
+    "texas-seller-financing-guide.html",
+)
 
 
 class AgentLandingFunnelTests(unittest.TestCase):
+    def test_public_agent_guides_do_not_imply_a_brokerage_only_platform_workflow(self):
+        for filename in PUBLIC_AGENT_GUIDES:
+            with self.subTest(filename=filename):
+                guide = (ROOT / filename).read_text(encoding="utf-8")
+                self.assertNotIn("brokerage-approved", guide)
+                self.assertNotIn("brokerage policy", guide)
+                self.assertNotIn("brokerage supervision", guide)
+
     @unittest.skipUnless(shutil.which('node'), 'Node.js is required for lease-listing handoff runtime tests')
     def test_lease_listing_records_a_real_workspace_start_after_the_address_question_loads(self):
         result = subprocess.run(
