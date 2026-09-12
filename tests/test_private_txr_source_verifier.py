@@ -10,6 +10,7 @@ class PrivateTxrSourceVerifierTests(unittest.TestCase):
             self.assertTrue(item["filename"].endswith(".pdf"))
             self.assertGreater(item["pages"], 0)
             self.assertRegex(item["revision"], r"^\d{2}-\d{2}-\d{2}$")
+            self.assertRegex(item["sha256"], r"^[0-9a-f]{64}$")
 
 
 if __name__ == "__main__":

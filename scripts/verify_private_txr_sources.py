@@ -10,6 +10,7 @@ the only path that records authorization in HomeOfferFlow.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from pathlib import Path
 
@@ -17,10 +18,10 @@ from pypdf import PdfReader
 
 
 EXPECTED = {
-    "TXR-1501": {"filename": "TXR1501.pdf", "pages": 6, "revision": "06-15-26"},
-    "TXR-1506": {"filename": "TXR1506.pdf", "pages": 6, "revision": "06-15-26"},
-    "TXR-1507": {"filename": "TXR1507.pdf", "pages": 2, "revision": "06-15-26"},
-    "TXR-1508": {"filename": "TXR1508.pdf", "pages": 1, "revision": "02-25-26"},
+    "TXR-1501": {"filename": "TXR1501.pdf", "pages": 6, "revision": "06-15-26", "sha256": "d723f46e9cead0b6bf5ff288687475660f4246a54ebb874524d6cce11579f5dd"},
+    "TXR-1506": {"filename": "TXR1506.pdf", "pages": 6, "revision": "06-15-26", "sha256": "df83ca9db03a72c22da12838254915c3b34a9a4ac7f057340c454b73bc0055b4"},
+    "TXR-1507": {"filename": "TXR1507.pdf", "pages": 2, "revision": "06-15-26", "sha256": "ff3c3682f68036d502314ca6bb2230c28d8e0b1ca5a4a5d4816a66f9f415b46f"},
+    "TXR-1508": {"filename": "TXR1508.pdf", "pages": 1, "revision": "02-25-26", "sha256": "b0c9a058a1333b4ee46f9fbaab2a54d306f8b087bca6d7c9b417ee95e52ede40"},
 }
 
 
@@ -33,15 +34,20 @@ def verify(directory: Path):
             item["error"] = "missing"
             results.append(item)
             continue
-        pages = len(PdfReader(str(path)).pages)
-        text = "\n".join(page.extract_text() or "" for page in PdfReader(str(path)).pages)
+        source_bytes = path.read_bytes()
+        reader = PdfReader(str(path))
+        pages = len(reader.pages)
+        text = "\n".join(page.extract_text() or "" for page in reader.pages)
+        actual_sha256 = hashlib.sha256(source_bytes).hexdigest()
         item.update({
             "actual_pages": pages,
             "revision_present": expected["revision"] in text,
-            "ok": pages == expected["pages"] and expected["revision"] in text,
+            "actual_sha256": actual_sha256,
+            "sha256_matches": actual_sha256 == expected["sha256"],
+            "ok": pages == expected["pages"] and expected["revision"] in text and actual_sha256 == expected["sha256"],
         })
         if not item["ok"]:
-            item["error"] = "filename, page-count, or revision mismatch"
+            item["error"] = "filename, page-count, revision, or source-identity mismatch"
         results.append(item)
     return results
 
