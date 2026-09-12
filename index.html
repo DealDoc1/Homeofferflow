@@ -22904,13 +22904,15 @@ function routeAfterMagicLinkIfNeeded() {
   // authenticated data, and API responses are always fetched from the network.
   if ('serviceWorker' in navigator) {
     let hofPwaRefreshRequested = false;
+    const isHomeOfferFlowStandaloneApp = () => window.matchMedia?.('(display-mode: standalone)').matches === true
+      || window.navigator.standalone === true;
 
     function showHomeOfferFlowUpdate(registration) {
-      // The public shell is cached for offline use. A small, only-when-needed
-      // update choice keeps ordinary browser tabs from silently retaining old
-      // workflow wording after a release, while still leaving the person in
-      // control of when their page refreshes.
-      if (!registration?.waiting || document.getElementById('hofPwaUpdateCard')) return;
+      // An update choice is useful inside the installed app, where a person
+      // may deliberately keep the shell open between transactions. In a
+      // regular browser tab it is extra noise: the next visit already picks
+      // up the current page normally.
+      if (!isHomeOfferFlowStandaloneApp() || !registration?.waiting || document.getElementById('hofPwaUpdateCard')) return;
       const card = document.createElement('aside');
       card.id = 'hofPwaUpdateCard';
       card.className = 'hof-pwa-update-card';

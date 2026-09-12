@@ -32,6 +32,12 @@ class OnDemandLandingFunnelTests(unittest.TestCase):
         self.assertIn('recordAggregateLandingEvent("ondemand_landing_viewed", channel, campaign)', ONDEMAND)
         self.assertIn('utm_campaign: attributionCampaign', ONDEMAND)
         self.assertIn('hof_ondemand_landing_campaign', ONDEMAND)
+
+    def test_landing_attribution_keeps_referrers_private_but_distinguishes_direct_and_referral_visits(self):
+        self.assertIn('const referrerIsExternal = (() => {', ONDEMAND)
+        self.assertIn('new URL(document.referrer).origin !== window.location.origin', ONDEMAND)
+        self.assertIn('referrerIsExternal ? "referral" : "direct"', ONDEMAND)
+        self.assertNotIn('metadata: { referrer', ONDEMAND)
         self.assertIn('const campaign = new Set(["agent_acquisition", "ondemand_trial"])', ONDEMAND)
         self.assertIn('sessionStorage.getItem("hof_ondemand_landing_channel")', ONDEMAND)
         self.assertIn('sessionStorage.setItem("hof_ondemand_landing_channel", channel)', ONDEMAND)
@@ -105,7 +111,7 @@ class OnDemandLandingFunnelTests(unittest.TestCase):
             "Open the link in this browser.",
             "Confirm your card at Stripe.",
             "Step 1 of 3:",
-            "Start my 60-day free trial",
+            "Email my secure sign-in link",
         ):
             self.assertIn(text, ONDEMAND)
 
