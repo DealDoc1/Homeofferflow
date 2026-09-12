@@ -132,6 +132,8 @@ class AgentLandingFunnelTests(unittest.TestCase):
     def test_personal_agent_workspace_keeps_responsibilities_clear_without_a_brokerage_gate(self):
         self.assertIn("'Agent workspace ready'", INDEX)
         self.assertIn("You remain in control of review, advice, submission, negotiation, and any applicable brokerage process.", INDEX)
+        self.assertIn('placeholder="agent@example.com"', INDEX)
+        self.assertNotIn('placeholder="agent@brokerage.com"', INDEX)
         self.assertNotIn("'Professional review process'", INDEX)
         self.assertNotIn("'Brokerage workspace ready'", INDEX)
         self.assertNotIn("'Broker/compliance review'", INDEX)

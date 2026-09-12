@@ -3434,7 +3434,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <div class="field"><label for="agentLicenseQuick">TX License No.</label><input type="text" id="agentLicenseQuick" placeholder="License #" oninput="syncAgentQuickFields()"/></div>
           </div>
           <div class="field-row">
-            <div class="field"><label for="agentEmailQuick">Agent Email</label><input type="email" id="agentEmailQuick" inputmode="email" autocomplete="email" placeholder="agent@brokerage.com" required aria-required="true" oninput="syncAgentQuickFields()"/></div>
+            <div class="field"><label for="agentEmailQuick">Agent Email</label><input type="email" id="agentEmailQuick" inputmode="email" autocomplete="email" placeholder="agent@example.com" required aria-required="true" oninput="syncAgentQuickFields()"/></div>
             <div class="field"><label for="agentPhoneQuick">Agent Phone</label><input type="tel" id="agentPhoneQuick" placeholder="(214) 555-0000" oninput="syncAgentQuickFields()"/></div>
           </div>
           <div class="field-row">
@@ -3957,7 +3957,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         <div id="agentFields" style="display:none;">
           <div class="field-group" style="margin-bottom:0;">
             <div class="field-row"><div class="field"><label>Agent Name</label><input type="text" id="agentName" placeholder="Jane Doe"/></div><div class="field"><label>TX License No.</label><input type="text" id="agentLicense" placeholder="License #"/></div></div>
-            <div class="field-row"><div class="field"><label>Agent Email</label><input type="email" id="agentEmail" placeholder="agent@brokerage.com"/></div><div class="field"><label>Agent Phone</label><input type="tel" id="agentPhone" placeholder="(214) 555-0000"/></div></div>
+            <div class="field-row"><div class="field"><label>Agent Email</label><input type="email" id="agentEmail" placeholder="agent@example.com"/></div><div class="field"><label>Agent Phone</label><input type="tel" id="agentPhone" placeholder="(214) 555-0000"/></div></div>
             <div class="field-row"><div class="field"><label>Brokerage / Team Name <span style="color:var(--gray);font-weight:500;">(if applicable)</span></label><input type="text" id="agentBrokerage" placeholder="Brokerage or team name"/></div><div class="field"><label>Brokerage License No. <span style="color:var(--gray);font-weight:500;">(if applicable)</span></label><input type="text" id="agentBrokerLicense" placeholder="Brokerage license #"/></div></div>
           </div>
         </div>
@@ -7216,7 +7216,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       <div class="account-card"><h4>Agent Info</h4><p class="account-profile-essentials"><strong>Save these four essentials first.</strong> They make your agent profile ready for repeat offers. Add brokerage or team details when they apply; title, escrow, and offer preferences can be added later.</p><div class="account-grid">
         <div class="field"><label>Agent Name <span class="account-profile-required">Required</span></label><input id="profAgentName" autocomplete="name" value="${escapeAttr(profileValue('agent_name'))}" placeholder="Jane Doe" required aria-required="true"></div>
         <div class="field"><label>License Number <span class="account-profile-required">Required</span></label><input id="profAgentLicense" value="${escapeAttr(profileValue('license_number'))}" placeholder="TX license #" required aria-required="true"></div>
-        <div class="field"><label>Agent Email <span class="account-profile-required">Required</span></label><input id="profAgentEmail" type="email" inputmode="email" autocomplete="email" value="${escapeAttr(profileValue('agent_email', hofAuth.session?.user?.email || ''))}" placeholder="agent@brokerage.com" required aria-required="true"></div>
+        <div class="field"><label>Agent Email <span class="account-profile-required">Required</span></label><input id="profAgentEmail" type="email" inputmode="email" autocomplete="email" value="${escapeAttr(profileValue('agent_email', hofAuth.session?.user?.email || ''))}" placeholder="agent@example.com" required aria-required="true"></div>
         <div class="field"><label>Agent Phone <span class="account-profile-required">Required</span></label><input id="profAgentPhone" type="tel" autocomplete="tel" value="${escapeAttr(profileValue('agent_phone'))}" placeholder="(214) 555-0000" required aria-required="true"></div>
         <div class="field"><label>Brokerage / Team Name <span style="color:var(--gray);font-weight:500;">(if applicable)</span></label><input id="profBrokerageName" autocomplete="organization" value="${escapeAttr(profileValue('brokerage_name'))}" placeholder="Brokerage or team name"></div>
         <div class="field"><label>Brokerage License <span style="color:var(--gray);font-weight:500;">(if applicable)</span></label><input id="profBrokerageLicense" value="${escapeAttr(profileValue('brokerage_license'))}" placeholder="Brokerage license #"></div>
