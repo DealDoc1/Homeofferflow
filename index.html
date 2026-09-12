@@ -15608,6 +15608,26 @@ function routeAfterMagicLinkIfNeeded() {
       'This is an intake record, not checkout, representation, a confirmed service order, or legal advice. Scope, availability, provider involvement, and final pricing must be confirmed separately.'
     ].join('\n');
   }
+  function fsboShareSummaryText() {
+    const key = fsboVal('fsboNeed') || 'free_intake';
+    const item = fsboNeedCopy[key] || fsboNeedCopy.free_intake;
+    const steps = fsboNextSteps[key] || fsboNextSteps.free_intake;
+    const readiness = fsboReadinessPlan(fsboVal('fsboTimeline') || 'not_sure');
+    return [
+      'HomeOfferFlow seller plan',
+      `Property: ${fsboVal('fsboPropertyAddress') || 'Not provided'}`,
+      `Selected path: ${item.title} (${item.price})`,
+      `Timeline: ${fsboVal('fsboTimeline') || 'Not sure yet'}`,
+      '',
+      readiness.title + ':',
+      ...readiness.steps.map((step, index) => `${index + 1}. ${step}`),
+      '',
+      'Next steps:',
+      ...steps.map((step, index) => `${index + 1}. ${step}`),
+      '',
+      'Planning aid only. Scope, availability, provider involvement, and final pricing are confirmed separately.'
+    ].join('\n');
+  }
   window.downloadFsboRequestSummary = function downloadFsboRequestSummary() {
     const key = fsboVal('fsboNeed') || 'free_intake';
     const summary = fsboRequestSummaryText();
@@ -15677,7 +15697,7 @@ function routeAfterMagicLinkIfNeeded() {
     try {
       await navigator.share({
         title: 'My HomeOfferFlow seller plan',
-        text: fsboRequestSummaryText()
+        text: fsboShareSummaryText()
       });
       trackFsboFunnel('FSBO Seller Plan Shared', { package: key });
       if (button) {

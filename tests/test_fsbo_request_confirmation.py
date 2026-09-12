@@ -125,6 +125,15 @@ class FsboRequestConfirmationTests(unittest.TestCase):
         self.assertIn("FSBO Seller Plan Shared", HTML)
         self.assertIn('"fsbo_seller_plan_shared": "shared"', api)
         self.assertIn('"sellerPlanSharedCount"', admin)
+        share_start = HTML.index("function fsboShareSummaryText()")
+        share_end = HTML.index("window.downloadFsboRequestSummary", share_start)
+        share_summary = HTML[share_start:share_end]
+        self.assertIn("Property:", share_summary)
+        self.assertNotIn("fsboSellerEmail", share_summary)
+        self.assertNotIn("fsboSellerName", share_summary)
+        share_action_start = HTML.index("window.shareFsboRequestSummary")
+        share_action_end = HTML.index("window.contactFsboSupport", share_action_start)
+        self.assertIn("text: fsboShareSummaryText()", HTML[share_action_start:share_action_end])
 
     def test_saved_seller_plan_can_open_a_privacy_safe_support_conversation(self):
         api = API_PATH.read_text(encoding="utf-8")
