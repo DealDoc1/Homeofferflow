@@ -132,13 +132,21 @@ TXR_SIGNING_FORM_CODES = {
 # source form needs a placement correction.  Older provider documents simply
 # have no map revision and are therefore never mistaken for current-map QA.
 TXR_SIGNING_MAP_REVISIONS = {
+    TXR_1501_FORM_CODE: "txr-1501-2026-09-11-execution-calibrated-v1",
+    TXR_1506_FORM_CODE: "txr-1506-2026-09-09-final-page-calibrated-v1",
     TXR_1507_FORM_CODE: "txr-1507-2026-09-10-source-calibrated-v1",
+    TXR_1508_FORM_CODE: "txr-1508-2026-09-09-acknowledgement-calibrated-v1",
 }
-# TXR-1507 was recalibrated after earlier packets exposed a source-layout
-# mismatch.  Require a newly prepared copy for this form until every prior
-# draft has naturally aged out; other released form types keep their normal
-# saved-draft behavior.
-TXR_SIGNING_MAP_REVISION_ENFORCED_FORM_CODES = {TXR_1507_FORM_CODE}
+# Each core TXR workflow was source-calibrated after prior packets exposed
+# placement risk. Require a newly prepared copy until saved drafts created
+# under an older map have naturally aged out. This protects a recipient from
+# receiving an otherwise valid document with stale signature geometry.
+TXR_SIGNING_MAP_REVISION_ENFORCED_FORM_CODES = {
+    TXR_1501_FORM_CODE,
+    TXR_1506_FORM_CODE,
+    TXR_1507_FORM_CODE,
+    TXR_1508_FORM_CODE,
+}
 
 
 def _current_txr_signing_map_revision(form_code, agreement_data):

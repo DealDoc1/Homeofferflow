@@ -255,10 +255,22 @@ class TxrSigningRequestPathTests(unittest.TestCase):
         complete["fields"][0][0]["y"] = 675
         self.assertFalse(MODULE._signwell_document_matches_signing_request(complete, expected_fields, recipients))
 
-    def test_txr1507_signing_requests_carry_the_current_geometry_revision(self):
+    def test_core_txr_signing_requests_carry_the_current_geometry_revision(self):
+        self.assertEqual(
+            MODULE.TXR_SIGNING_MAP_REVISIONS["TXR-1501"],
+            "txr-1501-2026-09-11-execution-calibrated-v1",
+        )
+        self.assertEqual(
+            MODULE.TXR_SIGNING_MAP_REVISIONS["TXR-1506"],
+            "txr-1506-2026-09-09-final-page-calibrated-v1",
+        )
         self.assertEqual(
             MODULE.TXR_SIGNING_MAP_REVISIONS["TXR-1507"],
             "txr-1507-2026-09-10-source-calibrated-v1",
+        )
+        self.assertEqual(
+            MODULE.TXR_SIGNING_MAP_REVISIONS["TXR-1508"],
+            "txr-1508-2026-09-09-acknowledgement-calibrated-v1",
         )
         source = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
         self.assertIn('"signing_map_revision": current_map_revision', source)
@@ -267,30 +279,41 @@ class TxrSigningRequestPathTests(unittest.TestCase):
     def test_saved_drafts_are_bound_to_the_layout_revision_used_for_signing(self):
         source = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
         self.assertIn('agreement_data["signing_map_revision"] = TXR_SIGNING_MAP_REVISIONS.get(', source)
-        self.assertIn("TXR_SIGNING_MAP_REVISION_ENFORCED_FORM_CODES = {TXR_1507_FORM_CODE}", source)
+        self.assertIn("TXR_1501_FORM_CODE,", source)
+        self.assertIn("TXR_1506_FORM_CODE,", source)
+        self.assertIn("TXR_1507_FORM_CODE,", source)
+        self.assertIn("TXR_1508_FORM_CODE,", source)
         self.assertIn(
             "signature fields appear in the right places.",
             source,
         )
 
-    def test_short_form_rejects_a_stale_signing_map_but_other_forms_keep_saved_drafts(self):
-        current = MODULE.TXR_SIGNING_MAP_REVISIONS["TXR-1507"]
+    def test_all_recalibrated_core_forms_reject_stale_signing_maps(self):
+        for form_code in ("TXR-1501", "TXR-1506", "TXR-1507", "TXR-1508"):
+            current = MODULE.TXR_SIGNING_MAP_REVISIONS[form_code]
+            self.assertEqual(
+                MODULE._current_txr_signing_map_revision(form_code, {"signing_map_revision": current}),
+                current,
+            )
+            with self.assertRaisesRegex(ValueError, "signature fields appear in the right places"):
+                MODULE._current_txr_signing_map_revision(form_code, {})
         self.assertEqual(
-            MODULE._current_txr_signing_map_revision("TXR-1507", {"signing_map_revision": current}),
-            current,
-        )
-        with self.assertRaisesRegex(ValueError, "signature fields appear in the right places"):
-            MODULE._current_txr_signing_map_revision("TXR-1507", {})
-        self.assertEqual(
-            MODULE._current_txr_signing_map_revision("TXR-1501", {}),
+            MODULE._current_txr_signing_map_revision("TXR-1905", {}),
             "source-specific-v1",
         )
 
-    def test_stale_short_form_draft_offers_a_direct_current_copy_path(self):
+    def test_stale_core_txr_draft_offers_a_direct_current_copy_path(self):
         html = (ROOT / "index.html").read_text(encoding="utf-8")
-        self.assertIn("agreement.form_code === 'TXR-1507'", html)
+        self.assertIn("const staleMapOpeners = {", html)
+        for form_code, opener in (
+            ("TXR-1501", "hofOpenTxr1501Draft"),
+            ("TXR-1506", "hofOpenTxr1506Draft"),
+            ("TXR-1507", "hofOpenTxr1507Draft"),
+            ("TXR-1508", "hofOpenTxr1508Draft"),
+        ):
+            self.assertIn(f"'{form_code}': root.{opener}", html)
         self.assertIn("Prepare the current copy", html)
-        self.assertIn("root.hofOpenTxr1507Draft?.();", html)
+        self.assertIn("prepareCurrentCopy();", html)
 
 
 if __name__ == "__main__":

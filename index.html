@@ -21417,11 +21417,18 @@ function routeAfterMagicLinkIfNeeded() {
         setTimeout(() => modal.remove(), 800);
       } catch (error) {
         status.className = 'hof-iabs-status error'; status.textContent = error.message || 'Could not send the signature request.';
-        if (agreement.form_code === 'TXR-1507' && /signature fields appear in the right places/i.test(String(error.message || ''))) {
+        const staleMapOpeners = {
+          'TXR-1501': root.hofOpenTxr1501Draft,
+          'TXR-1506': root.hofOpenTxr1506Draft,
+          'TXR-1507': root.hofOpenTxr1507Draft,
+          'TXR-1508': root.hofOpenTxr1508Draft,
+        };
+        const prepareCurrentCopy = staleMapOpeners[agreement.form_code];
+        if (prepareCurrentCopy && /signature fields appear in the right places/i.test(String(error.message || ''))) {
           status.innerHTML = 'This copy needs to be prepared again before sending so signature fields appear in the right places. <button type="button" class="btn-secondary">Prepare the current copy</button>';
           status.querySelector('button').addEventListener('click', () => {
             modal.remove();
-            root.hofOpenTxr1507Draft?.();
+            prepareCurrentCopy();
           });
           return;
         }
