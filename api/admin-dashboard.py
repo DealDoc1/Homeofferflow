@@ -7161,5 +7161,9 @@ class handler(BaseHTTPRequestHandler):
         except json.JSONDecodeError:
             _json(self, 400, {"error": "Invalid JSON."})
         except Exception as exc:
-            print("Admin partner lead update error:", str(exc))
-            _json(self, 500, {"error": "Could not update the partner lead."})
+            action = str(data.get("action") or "")
+            print("Admin dashboard update error:", action, str(exc))
+            if action in {"send_txr_agreement_for_signature", "send_seller_disclosure_for_signature"}:
+                _json(self, 500, {"error": "We could not send the signature request. Please try again shortly."})
+                return
+            _json(self, 500, {"error": "We could not complete that update. Please try again shortly."})
