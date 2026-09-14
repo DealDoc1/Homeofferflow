@@ -16,6 +16,9 @@ class TxrSigningRequestPathTests(unittest.TestCase):
         self.assertIn('if not TXR_SIGNING_ENABLED:', source)
         self.assertIn('data.get("action") == "send_txr_agreement_for_signature"', source)
         self.assertIn('scope == "standalone_agreements"', source)
+        self.assertIn('"We could not send the signature request. Please try again shortly."', source)
+        post_handler = source[source.index("    def do_POST(self):"):]
+        self.assertNotIn('print("Admin partner lead update error:"', post_handler)
 
     def test_dispatch_uses_the_source_specific_field_maps(self):
         cases = {
