@@ -11,7 +11,7 @@ class PwaUpdateExperienceTests(unittest.TestCase):
     def test_installed_app_surfaces_an_explicit_update_choice(self):
         self.assertIn("card.id = 'hofPwaUpdateCard'", INDEX)
         self.assertIn('HomeOfferFlow update ready', INDEX)
-        self.assertIn('your local draft stays on this device', INDEX)
+        self.assertIn('your saved work stays on this device', INDEX)
         self.assertIn("registration.addEventListener('updatefound'", INDEX)
         self.assertIn("navigator.serviceWorker.addEventListener('controllerchange'", INDEX)
         self.assertIn("if (!registration?.waiting || document.getElementById('hofPwaUpdateCard')) return;", INDEX)

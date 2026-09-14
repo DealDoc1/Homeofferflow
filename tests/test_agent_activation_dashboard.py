@@ -130,7 +130,7 @@ class AgentActivationDashboardTests(unittest.TestCase):
         self.assertIn("confidence: true", script)
         self.assertIn("First offer workflow overview", script)
         self.assertIn("Choose the transaction first.", script)
-        self.assertIn("Saving a draft does not send a packet or request a signature.", script)
+        self.assertIn("Saving your work does not send a packet or request a signature.", script)
 
     def test_first_transaction_does_not_present_optional_setup_as_a_readiness_gate(self):
         script_start = HTML.index('id="hof-agent-activation-v16-js"')
@@ -144,7 +144,7 @@ class AgentActivationDashboardTests(unittest.TestCase):
     def test_onboarding_uses_a_real_saved_draft_path_not_demo_only_language(self):
         self.assertIn("Start your first saved offer", HTML)
         self.assertIn("Choose Transaction", HTML)
-        self.assertIn("Saving a draft does not generate a packet or request a signature.", HTML)
+        self.assertIn("Saving your work does not generate a packet or request a signature.", HTML)
 
     def test_returning_workspace_checklist_keeps_only_the_three_actionable_items(self):
         script_start = HTML.index('id="hof-broker-beta-readiness-v11-js"')
@@ -330,7 +330,7 @@ class AgentActivationDashboardTests(unittest.TestCase):
         self.assertIn("modal.querySelector('[data-package-choice]')?.focus()", HTML)
         self.assertIn("Question 2 of 2", HTML)
         self.assertIn("Choose one task. We’ll guide you through only the questions and documents it requires.", HTML)
-        self.assertIn("then review the disclosure draft.", HTML)
+        self.assertIn("then review the completed disclosure.", HTML)
         self.assertIn("agent_form_package_selected", HTML)
         self.assertIn("agent_form_package_started", HTML)
         self.assertIn("agent_form_package_interview_viewed", HTML)

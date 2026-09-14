@@ -3,12 +3,12 @@
 # Each line is api_id|page|type|recipient_id|x|y|width|height in SignWell's
 # 96-DPI top-origin coordinate system. Change this file only with a new
 # source-calibrated map review and completed provider-PDF evidence.
-txr1501_associate_date_p6|6|date|associate|336|683|48|18
-txr1501_associate_signature_p6|6|signature|associate|48|677|240|24
-txr1501_client1_date_p6|6|date|1|720|572|48|18
-txr1501_client1_signature_p6|6|signature|1|432|566|272|24
-txr1501_client2_date_p6|6|date|2|720|683|48|18
-txr1501_client2_signature_p6|6|signature|2|432|677|272|24
+txr1501_associate_date_p6|6|date|associate|336|596|48|18
+txr1501_associate_signature_p6|6|signature|associate|48|590|240|24
+txr1501_client1_date_p6|6|date|1|720|596|48|18
+txr1501_client1_signature_p6|6|signature|1|432|590|272|24
+txr1501_client2_date_p6|6|date|2|720|706|48|18
+txr1501_client2_signature_p6|6|signature|2|432|700|272|24
 txr1506_associate_date_p6|6|date|associate|432|800|96|20
 txr1506_associate_signature_p6|6|signature|associate|80|799|304|26
 txr1506_client1_date_p6|6|date|1|432|893|96|20
@@ -25,15 +25,15 @@ txr1506_client2_initials_p3|3|initials|2|554|976|55|16
 txr1506_client2_initials_p4|4|initials|2|554|976|55|16
 txr1506_client2_initials_p5|5|initials|2|554|976|55|16
 txr1506_client2_signature_p6|6|signature|2|48|939|336|26
-txr1507_associate_date_p2|2|date|associate|336|740|48|18
+txr1507_associate_date_p2|2|date|associate|336|720|48|18
 txr1507_associate_initials_p1|1|initials|associate|435|984|47|14
-txr1507_associate_signature_p2|2|signature|associate|48|734|240|24
-txr1507_client1_date_p2|2|date|1|720|740|48|18
+txr1507_associate_signature_p2|2|signature|associate|48|714|240|24
+txr1507_client1_date_p2|2|date|1|720|720|48|18
 txr1507_client1_initials_p1|1|initials|1|542|984|47|14
-txr1507_client1_signature_p2|2|signature|1|432|734|272|24
-txr1507_client2_date_p2|2|date|2|720|850|48|18
+txr1507_client1_signature_p2|2|signature|1|432|714|272|24
+txr1507_client2_date_p2|2|date|2|720|830|48|18
 txr1507_client2_initials_p1|1|initials|2|596|984|47|14
-txr1507_client2_signature_p2|2|signature|2|432|844|272|24
+txr1507_client2_signature_p2|2|signature|2|432|824|272|24
 txr1508_agent_date_p1|1|date|associate|625|677|121|20
 txr1508_agent_initials_p1|1|initials|associate|347|679|95|18
 txr1508_client1_date_p1|1|date|1|625|734|121|20

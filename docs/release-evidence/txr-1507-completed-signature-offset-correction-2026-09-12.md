@@ -3,7 +3,9 @@
 ## Release
 
 - Release name: TXR-1507 Short Form completed-signature offset correction
-- Git commit / pull request: pending the release commit
+- Git commit / pull request: corrective map in `ecc63425`, carried by local
+  release branch `codex/txr1507-role-guard-clean`; review publication and
+  production publication are still pending.
 - Production scope: corrective electronic-signature and date placement for
   `TXR-1507 Residential Buyer/Tenant Representation Agreement - Short Form`.
   It changes neither the source edition nor agreement terms, recipients, or
@@ -12,9 +14,7 @@
 
 ## Approved source
 
-- Approved source form/template and version: private TXR-1507, revision
-  06-15-26.
-- Source owner: HomeOfferFlow-authorized Texas form archive.
+- Approved source form/template and version: TXR-1507, revision 06-15-26.
 - Storage location (private only): HomeOfferFlow source vault.
 
 ## Authorization
@@ -40,22 +40,24 @@
 - Authenticated QA: the finding was made from the authenticated completed
   SignWell packet, not from a synthetic or unauthenticated public preview.
 - Every applicable blank, checkbox, initial, signature, and date visually
-  reviewed: the completed signature visual QA found the visible signature and
-  date artwork on the printed-name row despite source-rule widget coordinates.
-  The source overlay confirms compact intermediary and signer-role X marks are
-  inside their printed boxes.
-- Locked coordinates / known exceptions: the completed renderer places artwork
-  approximately 46 SignWell units above its requested rectangle.  The updated
-  execution fields use that measured offset: first row y=734/740 and second
-  Client row y=844/850.  A fresh completed packet is still required to confirm
-  this corrected production mapping; the prior completed PDF is retained as
-  the defect evidence only.
+  reviewed: the completed signature visual QA found that the old packet left
+  the Broker/Associate role cells unmarked and put client signature/date
+  artwork on the printed captions rather than their execution rules. The
+  renderer overlay tests confirm the compact signer-role X is inside the
+  selected printed checkbox.
+- Locked coordinates / known exceptions: the old map requested the first
+  signature/date row at y=734/740 and the second Client row at y=844/850.
+  The corrected map moves those rectangles to the actual source-rule rows:
+  first Client y=714/720, second Client y=824/830, and the selected
+  Broker/Associate y=714/720. A fresh completed packet is still required to
+  visually confirm the corrected production mapping; the prior completed PDF
+  is retained as defect evidence only.
 
 ## Regression
 
 - Dedicated golden scenario added: TXR-1507 completed-artwork offset geometry
-  is locked in the renderer, SignWell-geometry JSON fixture, and shared text
-  baseline.
+  and the selected signer-role X are locked in the renderer, SignWell-geometry
+  JSON fixture, and shared text baseline.
 - Existing buyer-offer regression scenarios run: full local test discovery,
   TXR-1507 renderer tests, signer geometry, SignWell geometry baseline, and
   technical SEO tests.

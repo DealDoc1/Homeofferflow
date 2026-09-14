@@ -44,8 +44,8 @@ class FsboRequestConfirmationTests(unittest.TestCase):
     def test_seller_can_see_and_clear_the_private_device_only_draft(self):
         self.assertIn('id="fsboDraftRecovery"', HTML)
         self.assertIn("function renderFsboDraftRecoveryNotice", HTML)
-        self.assertIn("Your saved seller draft was restored on this device.", HTML)
-        self.assertIn("Your seller draft is saved on this device.", HTML)
+        self.assertIn("Your saved seller information was restored on this device.", HTML)
+        self.assertIn("Your seller information is saved on this device.", HTML)
         self.assertIn("It has not been submitted or shared.", HTML)
 
     def test_clearing_a_seller_draft_resets_visible_goal_and_timeline_defaults(self):
@@ -64,7 +64,7 @@ class FsboRequestConfirmationTests(unittest.TestCase):
         self.assertIn("Enter address + email to continue", HTML)
         self.assertIn("<strong>Step 1 of 2:</strong>", HTML)
         self.assertIn("<strong>Step 2 of 2:</strong>", HTML)
-        self.assertIn("Clear this device draft", HTML)
+        self.assertIn("Clear saved information", HTML)
         self.assertIn("renderFsboDraftRecoveryNotice(fsboDraftExists());", HTML)
 
     def test_fsbo_confirmation_keeps_a_privacy_minimized_same_device_receipt(self):

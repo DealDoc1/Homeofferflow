@@ -561,7 +561,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       reservationChoice: form.get('reservationChoice'), undividedInterest: form.get('undividedInterest'), surfaceRights: form.get('surfaceRights'),
       mineralReviewAcknowledgment: form.get('mineralReviewAcknowledgment') === 'on'
     };
-    submit.disabled = true; submit.setAttribute('aria-busy', 'true'); submit.textContent = 'Saving draft…';
+    submit.disabled = true; submit.setAttribute('aria-busy', 'true'); submit.textContent = 'Saving your document…';
     try {
       status.className = 'hof-iabs-status'; status.textContent = 'Preparing your mineral addendum…';
       const token = root.hofAuth?.session?.access_token;
@@ -3332,7 +3332,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 
   <div class="wizard-progress">
     <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:10%"></div></div>
-    <div class="progress-meta"><span class="step-name" id="stepName">Disclaimer</span><span id="saveStatus">All Changes Saved</span><span id="connectionStatus" role="status" aria-live="polite" hidden></span><span id="validationStatus" role="status" aria-live="polite" hidden></span><span id="stepCount">Step 1 of 11</span><button type="button" class="draft-clear-btn" onclick="startNewOffer()" title="Clear this draft and start a new offer">New Offer</button></div>
+        <div class="progress-meta"><span class="step-name" id="stepName">Disclaimer</span><span id="saveStatus">All Changes Saved</span><span id="connectionStatus" role="status" aria-live="polite" hidden></span><span id="validationStatus" role="status" aria-live="polite" hidden></span><span id="stepCount">Step 1 of 11</span><button type="button" class="draft-clear-btn" onclick="startNewOffer()" title="Clear saved work and start a new offer">New Offer</button></div>
   </div>
 
   <div class="wizard-body">
@@ -3427,7 +3427,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 
       <div id="agentQuickSetup" style="display:none; margin-top:0.75rem; padding-top:0.75rem; border-top:1px solid rgba(255,255,255,0.07);">
         <p style="font-size:0.8rem; font-weight:700; color:var(--gold-light); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.75rem;">Your Agent Details</p>
-        <div class="notice sage">⚡ Save this once and reuse it on future drafts. This info will also flow to the broker information section.</div>
+        <div class="notice sage">⚡ Save this once and reuse it on future offers. This info will also flow to the broker information section.</div>
         <div class="field-group" style="margin-bottom:0; margin-top:0.75rem;">
           <div class="field-row">
             <div class="field"><label for="agentNameQuick">Your Agent Name</label><input type="text" id="agentNameQuick" placeholder="Jane Doe" oninput="syncAgentQuickFields()"/></div>
@@ -3943,9 +3943,9 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           <div class="radio-group-label">Are you already working with a buyer's agent on this offer?</div>
           <div class="radio-cards" style="margin-bottom:0.75rem;">
             <label class="radio-card" onclick="selectCard(this,'hasBuyerAgent','no'); document.getElementById('agentFields').style.display='none'"><input type="radio" name="hasBuyerAgent" value="no"/><div class="radio-dot"></div><div class="radio-card-text"><strong>No — I'm preparing this myself</strong><small>Continue with the guided offer builder</small></div></label>
-            <label class="radio-card" onclick="selectCard(this,'hasBuyerAgent','yes'); document.getElementById('agentFields').style.display='block'"><input type="radio" name="hasBuyerAgent" value="yes"/><div class="radio-dot"></div><div class="radio-card-text"><strong>Yes — I already have an agent</strong><small>You can still use HomeOfferFlow to organize a clean draft</small></div></label>
+            <label class="radio-card" onclick="selectCard(this,'hasBuyerAgent','yes'); document.getElementById('agentFields').style.display='block'"><input type="radio" name="hasBuyerAgent" value="yes"/><div class="radio-dot"></div><div class="radio-card-text"><strong>Yes — I already have an agent</strong><small>You can still use HomeOfferFlow to organize a clear offer</small></div></label>
           </div>
-          <div id="agentSoftNote" class="notice sage" style="display:none; margin-bottom:0.75rem;">HomeOfferFlow can still help you organize your offer terms and generate a clean draft. We recommend sharing the completed offer with your agent before submitting.</div>
+          <div id="agentSoftNote" class="notice sage" style="display:none; margin-bottom:0.75rem;">HomeOfferFlow can still help you organize your offer terms and prepare a clear offer package. We recommend sharing the completed offer with your agent before submitting.</div>
         </div>
 
         <div id="agentPathInfoHeader" style="display:none;">
@@ -7115,7 +7115,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         title: 'Start your first saved offer',
         body: hasGeneratedPacket
           ? generatedLabel + ' this billing month.'
-          : 'Start with the client and property you have now. Saving a draft does not generate a packet or request a signature.'
+          : 'Start with the client and property you have now. Saving your work does not generate a packet or request a signature.'
       },
       {
         done: hasGeneratedPacket,
@@ -7842,7 +7842,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         title: 'What do you need for this listing?',
         choices: [
           { label: 'Start a listing workspace', copy: 'Begin with the seller, property, timing, and next steps.', primary: true, action: () => openListingWorkspace(true), isWorkspaceOpen: () => Boolean(document.getElementById('listingWorkspaceStartCard')) },
-          { label: 'Create seller disclosures', copy: 'Answer the property and seller questions, then review the disclosure draft.', action: () => { showAccountTab('seller'); window.setTimeout(() => window.openSellerDisclosureDraftWorkspace?.(), 0); }, isWorkspaceOpen: () => Boolean(document.getElementById('hofSellerDisclosureCard')) },
+          { label: 'Create seller disclosures', copy: 'Answer the property and seller questions, then review the completed disclosure.', action: () => { showAccountTab('seller'); window.setTimeout(() => window.openSellerDisclosureDraftWorkspace?.(), 0); }, isWorkspaceOpen: () => Boolean(document.getElementById('hofSellerDisclosureCard')) },
           { label: 'Compare a buyer offer', copy: 'Compare price, financing, deadlines, concessions, and possession.', action: () => window.hofOpenListingOfferComparison?.(), isWorkspaceOpen: () => Boolean(document.getElementById('listingWorkspaceOfferComparisonCard')) }
         ]
       },
@@ -8009,7 +8009,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       hofAuth.myOffersNextOffset = offset + page.length;
       if (!loadedOffers.length) {
         list.className = 'offer-empty';
-        list.textContent = 'No saved offers yet. Create your first offer and future drafts will show here.';
+        list.textContent = 'No saved offers yet. Create your first offer and future offers will show here.';
         try { renderAgentActivationCard(); } catch (e) {}
         return [];
       }
@@ -8202,7 +8202,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     const statCards = `
       <div class="offer-crm-stats" aria-label="Offer dashboard summary">
         <div class="offer-crm-stat"><span>Total offers</span><strong>${safeOffers.length}</strong><small>latest 25 shown</small></div>
-        <div class="offer-crm-stat"><span>Active</span><strong>${activeCount}</strong><small>drafts + live packets</small></div>
+        <div class="offer-crm-stat"><span>Active</span><strong>${activeCount}</strong><small>saved offers + live packets</small></div>
         <div class="offer-crm-stat"><span>Signatures pending</span><strong>${pendingSignatureCount}</strong><small>awaiting, viewed, or partially signed</small></div>
         <div class="offer-crm-stat"><span>Offer volume</span><strong>${money(totalVolume)}</strong><small>shown offers only</small></div>
       </div>`;
@@ -8250,7 +8250,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <div><span>Buyer</span><strong>${escapeAttr(o.buyer_name || '—')}</strong>${buyerEmail ? `<small>${escapeAttr(buyerEmail)}</small>` : ''}</div>
             <div><span>Offer</span><strong>${price}</strong><small>${escapeAttr(String(role).charAt(0).toUpperCase() + String(role).slice(1))}</small></div>
             <div><span>Updated</span><strong>${escapeAttr(formatOfferDate(o.last_updated || o.created_at))}</strong><small>${escapeAttr(updated)}</small></div>
-            <div><span>Signing</span><strong>${escapeAttr(signingLabel)}</strong>${generatedAt ? `<small>Generated ${escapeAttr(formatOfferDate(generatedAt))}</small>` : '<small>Draft packet</small>'}</div>
+            <div><span>Signing</span><strong>${escapeAttr(signingLabel)}</strong>${generatedAt ? `<small>Generated ${escapeAttr(formatOfferDate(generatedAt))}</small>` : '<small>Not sent for signature</small>'}</div>
           </div>
 
           <div class="offer-tag-row">${tags}</div>
@@ -8271,7 +8271,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       <div>
         <div class="offer-crm-eyebrow">Agent workspace</div>
         <div class="offer-crm-heading">Recent offers</div>
-        <div class="offer-crm-subhead">Track drafts, generated packets, and buyer-side signature progress without digging through email.</div>
+        <div class="offer-crm-subhead">Track saved offers, generated packets, and buyer-side signature progress without digging through email.</div>
       </div>
       <button class="btn-primary" type="button" onclick="startAccountTransaction()">Choose Transaction</button>
     </div>
@@ -8501,7 +8501,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   }
 
   async function deleteOffer(id) {
-    if (!confirm('Delete this draft from your dashboard?')) return;
+    if (!confirm('Delete this saved offer from your dashboard?')) return;
     const client = getSupabaseClient();
     const user = hofAuth.session?.user;
     if (!client || !user) return;
@@ -9178,7 +9178,7 @@ function routeAfterMagicLinkIfNeeded() {
     const nav = document.getElementById('navCta');
     if (nav) nav.textContent = 'Resume Offer →';
     const note = document.getElementById('heroPriceNote');
-    if (note) note.innerHTML = 'Your draft is saved on this device. <strong>Resume where you left off before paying.</strong>';
+    if (note) note.innerHTML = 'Your work is saved on this device. <strong>Resume where you left off before paying.</strong>';
     return true;
   }
 
@@ -9338,7 +9338,7 @@ function routeAfterMagicLinkIfNeeded() {
   }
 
   function startNewOffer() {
-    const ok = confirm('Start a new offer? This will clear the saved draft on this device.');
+    const ok = confirm('Start a new offer? This will clear saved work on this device.');
     if (!ok) return;
 
     const role = state.data.userType || hofAuth.role || localStorage.getItem('hof_auth_role') || 'homebuyer';
@@ -10053,7 +10053,7 @@ function routeAfterMagicLinkIfNeeded() {
       notice.style.display = 'block';
       notice.innerHTML = `
         <strong>Still want to move faster?</strong><br>
-        Even if you use an agent, HomeOfferFlow can help you organize your offer terms, generate a cleaner draft, and give your agent a faster starting point. You can continue building your offer, then share it with your agent before anything is submitted.
+        Even if you use an agent, HomeOfferFlow can help you organize your offer terms, prepare a clearer offer package, and give your agent a faster starting point. You can continue building your offer, then share it with your agent before anything is submitted.
       `;
     }
 
@@ -10720,12 +10720,12 @@ function routeAfterMagicLinkIfNeeded() {
       return { category: 'timeout', nextStep: 'Wait a moment, then try again.' };
     }
     if (/signwell|signature/.test(message)) {
-      return { category: 'signature_provider', nextStep: 'Try again shortly. If it continues, save your draft and contact support with the offer address.' };
+      return { category: 'signature_provider', nextStep: 'Try again shortly. If it continues, save your work and contact support with the offer address.' };
     }
     if (/required|validation|invalid/.test(message)) {
       return { category: 'validation', nextStep: 'Review the required fields on this offer, then try again.' };
     }
-    return { category: 'service', nextStep: 'Try again shortly. If it continues, save your draft and contact support with the offer address.' };
+    return { category: 'service', nextStep: 'Try again shortly. If it continues, save your work and contact support with the offer address.' };
   }
 
   function clearPacketGenerationRecoveryNotice() {
@@ -10827,7 +10827,7 @@ function routeAfterMagicLinkIfNeeded() {
     notice.style.display = 'block';
     notice.innerHTML = '<strong>Re-upload required before sending:</strong> ' +
       missing.map(escapeHtml).join(', ') +
-      '. Attachments are not retained in drafts; upload each PDF again, label and order it, then confirm the final packet.';
+      '. Attachments are not retained in saved work; upload each PDF again, label and order it, then confirm the final packet.';
   }
 
   function resetUploadedDisclosureDraftForOffer(data = {}) {
@@ -12545,7 +12545,7 @@ function routeAfterMagicLinkIfNeeded() {
     if (!el) return;
     clearTimeout(__hofSaveTimer);
     el.classList.add('cloud-save-warning');
-    el.innerHTML = 'Local draft saved; cloud sync needs retry. <button type="button" class="save-retry-btn" onclick="retryCloudDraftSave()">Retry cloud save</button>';
+    el.innerHTML = 'Saved on this device; cloud sync needs retry. <button type="button" class="save-retry-btn" onclick="retryCloudDraftSave()">Retry cloud save</button>';
   }
 
   window.retryCloudDraftSave = async function retryCloudDraftSave() {
@@ -12633,7 +12633,7 @@ function routeAfterMagicLinkIfNeeded() {
       const ownerUserId = hofAuth?.session?.user?.id || '';
       if (ownerUserId) localStorage.setItem(HOF_STORAGE_OWNER_KEY, ownerUserId);
       else localStorage.removeItem(HOF_STORAGE_OWNER_KEY);
-      updateSaveStatus('✓ Draft Saved');
+      updateSaveStatus('✓ Saved');
       if ((state?.data?.userType || '') !== 'homebuyer' && hofAuth?.session && navigator.onLine !== false && hasMeaningfulCloudDraft()) {
         syncCloudDraftSave();
       }
@@ -12656,14 +12656,14 @@ function routeAfterMagicLinkIfNeeded() {
     if (globalNotice) {
       globalNotice.hidden = !offline;
       globalNotice.textContent = offline
-        ? 'You are offline. Local drafts remain available; preview, signing, checkout, and cloud sync resume when you reconnect.'
+        ? 'You are offline. Saved work remains available; preview, signing, checkout, and cloud sync resume when you reconnect.'
         : '';
     }
     if (!el) return;
     if (offline) {
       __hofWasOffline = true;
       el.hidden = false;
-      el.textContent = 'Offline — draft stays on this device';
+      el.textContent = 'Offline — work stays on this device';
       el.title = 'Reconnect before previewing PDFs, sending signature requests, checkout, or cloud sync.';
       try { saveDraftNow(); } catch (e) {}
       return;
@@ -12675,8 +12675,8 @@ function routeAfterMagicLinkIfNeeded() {
       const isAccountDraft = (state?.data?.userType || '') !== 'homebuyer' && hofAuth?.session && hasMeaningfulCloudDraft();
       if (isAccountDraft) {
         el.hidden = false;
-        el.textContent = 'Back online — syncing your saved draft…';
-        el.title = 'Your account draft is being saved to the dashboard.';
+        el.textContent = 'Back online — syncing your saved work…';
+        el.title = 'Your account work is being saved to the dashboard.';
         syncCloudDraftSave();
         window.setTimeout(() => {
           if (navigator.onLine !== false) el.hidden = true;
@@ -12721,7 +12721,7 @@ function routeAfterMagicLinkIfNeeded() {
     const currentUserId = hofAuth?.session?.user?.id || '';
     if (ownerUserId && ownerUserId !== currentUserId) {
       if (!window.__hofDraftRestoreAuthReady) return false;
-      updateSaveStatus('A local draft is saved for a different signed-in account. Sign in to that account to restore it.');
+      updateSaveStatus('Saved work belongs to a different signed-in account. Sign in to that account to restore it.');
       return false;
     }
 
@@ -12734,7 +12734,7 @@ function routeAfterMagicLinkIfNeeded() {
     }
 
     __hofRestoringDraft = true;
-    updateSaveStatus('Restoring Draft...');
+    updateSaveStatus('Restoring saved work...');
 
     try {
       Object.entries(draft.fields || {}).forEach(([id, value]) => {
@@ -12778,7 +12778,7 @@ function routeAfterMagicLinkIfNeeded() {
         updateProgress();
       }
 
-      updateSaveStatus('✓ Draft Restored');
+      updateSaveStatus('✓ Saved work restored');
       return true;
     } catch (err) {
       console.error('Draft restore failed:', err);
@@ -12854,7 +12854,7 @@ function routeAfterMagicLinkIfNeeded() {
 
   function clearSavedDraft() {
     localStorage.removeItem(HOF_STORAGE_KEY);
-    updateSaveStatus('Draft Cleared');
+    updateSaveStatus('Saved work cleared');
   }
 
   document.addEventListener('input', function(e) {
@@ -13027,7 +13027,7 @@ function routeAfterMagicLinkIfNeeded() {
       <div class="platform-card">
         <h4>Brokerage Administration</h4>
         <div class="platform-kpi-row">
-          <div class="platform-kpi"><span>Branding</span><strong>${b?.id ? 'Saved' : 'Draft'}</strong></div>
+          <div class="platform-kpi"><span>Branding</span><strong>${b?.id ? 'Saved' : 'Not saved'}</strong></div>
           <div class="platform-kpi"><span>Role</span><strong>${hofAuth.accountProfile?.is_brokerage_admin || isCurrentAdmin() ? 'Admin' : 'Agent'}</strong></div>
           <div class="platform-kpi"><span>Access</span><strong>Managed</strong></div>
         </div>
@@ -15117,7 +15117,7 @@ function routeAfterMagicLinkIfNeeded() {
           <span class="pkg-kicker">Pre-list prep</span><span class="fsbo-price-pill">$299</span><strong>Seller Prep Plan</strong><small>Property prep checklist, photo-readiness guidance, pricing-prep notes, and partner recommendations for seller-side services.</small><div class="fsbo-package-note">Software-style prep and vendor routing; no representation promised.</div>
         </button>
         <button type="button" class="fsbo-package-card" data-fsbo-need="launch_kit" onclick="selectFsboNeed('launch_kit')">
-          <span class="pkg-kicker">Marketing kit</span><span class="fsbo-price-pill">$499</span><strong>FSBO Launch Kit</strong><small>Seller prep plan plus listing-description draft, showing-prep checklist, offer-comparison worksheet, and partner recommendation plan.</small><div class="fsbo-package-note">Best for sellers ready to launch. A practical kit before MLS, offer review, or transaction support.</div>
+          <span class="pkg-kicker">Marketing kit</span><span class="fsbo-price-pill">$499</span><strong>FSBO Launch Kit</strong><small>Seller prep plan plus listing-description support, showing-prep checklist, offer-comparison worksheet, and partner recommendation plan.</small><div class="fsbo-package-note">Best for sellers ready to launch. A practical kit before MLS, offer review, or transaction support.</div>
         </button>
         <button type="button" class="fsbo-package-card" data-fsbo-need="flat_fee_mls" onclick="selectFsboNeed('flat_fee_mls')">
           <span class="pkg-kicker">MLS exposure</span><span class="fsbo-price-pill">from $1,299</span><strong>Flat-Fee MLS Listing</strong><small>Share your property and listing preferences, then review available limited-service MLS options and next steps.</small><div class="fsbo-package-note">Starting price shown. Final availability, scope, and terms are confirmed before purchase.</div>
@@ -15374,9 +15374,9 @@ function routeAfterMagicLinkIfNeeded() {
     if (!fsboDraftExists()) { notice.textContent = ''; notice.className = 'platform-status'; return; }
     notice.className = 'platform-status ok';
     notice.innerHTML = (restored
-      ? '<strong>Your saved seller draft was restored on this device.</strong> '
-      : '<strong>Your seller draft is saved on this device.</strong> ') +
-      'It has not been submitted or shared. <button class="btn-secondary" type="button" id="clearFsboDraft" style="margin-left:.45rem;padding:.3rem .5rem;">Clear this device draft</button>';
+      ? '<strong>Your saved seller information was restored on this device.</strong> '
+      : '<strong>Your seller information is saved on this device.</strong> ') +
+      'It has not been submitted or shared. <button class="btn-secondary" type="button" id="clearFsboDraft" style="margin-left:.45rem;padding:.3rem .5rem;">Clear saved information</button>';
     document.getElementById('clearFsboDraft')?.addEventListener('click', () => {
       document.querySelectorAll('#fsboSellerModal input, #fsboSellerModal textarea, #fsboSellerModal select').forEach(field => {
         if (field.type === 'checkbox') field.checked = false;
@@ -16011,20 +16011,18 @@ function routeAfterMagicLinkIfNeeded() {
     <div style="display:flex; justify-content:space-between; gap:1rem; align-items:flex-start; margin-bottom:.9rem;">
       <div>
         <div class="section-label" style="margin-bottom:.35rem;">Founding Partner application</div>
-        <h3 id="foundingPartnerTitle" style="font-family:'Playfair Display',serif; color:var(--white); margin:0 0 .3rem; font-size:1.55rem;">Start your free application</h3>
-        <p style="color:var(--gray-light); line-height:1.55; margin:0;">Start with five essentials. It takes about a minute; you review the exact price and renewal terms in secure checkout before any payment.</p>
+        <h3 id="foundingPartnerTitle" style="font-family:'Playfair Display',serif; color:var(--white); margin:0 0 .3rem; font-size:1.55rem;">Start your partner application</h3>
+        <p style="color:var(--gray-light); line-height:1.55; margin:0;">Five quick details. Each placement covers one category and market. Onboarding is included with no setup fee. No charge now; review the exact price and renewal terms in secure checkout before payment.</p>
       </div>
       <button type="button" onclick="closeFoundingPartnerModal('close')" aria-label="Close partner application" style="border:none;background:transparent;color:var(--gray-light);font-size:1.5rem;cursor:pointer;">×</button>
     </div>
 
-    <div class="notice gold" style="margin-bottom:.75rem;"><strong>Founding offer:</strong> <strong>Get the first 90 days for the price of one standard month.</strong> It includes onboarding with no setup fee; then renews monthly at the standard rate after 90 days unless cancelled. Each placement covers one category and market.</div>
     <div class="notice sage" id="foundingPartnerCheckoutConfirmation" style="display:none;margin-bottom:.9rem;"><strong>Checkout complete — your next step is partner setup.</strong><br><span id="foundingPartnerCheckoutSetupMessage"><strong>1.</strong> Preparing your secure setup now. <strong>2.</strong> Add your market, website, logo, and call to action. <strong>3.</strong> HomeOfferFlow reviews those details with the written placement agreement before anything becomes public. Setup does not activate advertising by itself. If setup is still preparing, a secure link will also be sent to your business email (it expires in 14 days). If you still need help, <a href="mailto:support@homeofferflow.com?subject=Partner%20setup%20link%20request" style="color:inherit;text-decoration:underline;font-weight:700;">ask support to issue a fresh secure link</a>. After the 90-day launch period, your plan renews monthly unless cancelled.</span></div>
     <div class="notice gold" id="foundingPartnerCheckoutResume" style="display:none;margin-bottom:.9rem;"><strong>Your application is saved.</strong><br>You can resume the exact secure checkout below whenever you are ready. No second application is created on this device. You do not need to re-enter your saved essentials.</div>
 
-    <div class="partner-selected-tier" aria-live="polite"><span id="foundingPartnerTierLabel">Selected 90-day Founding Partner placement</span><strong id="foundingPartnerTierSelection">Core Partner · $149 one time for the first 90 days</strong></div>
+    <div class="partner-selected-tier" aria-live="polite"><span id="foundingPartnerTierLabel">Your starting placement</span><strong id="foundingPartnerTierSelection">Core Partner · $149 — Get the first 90 days for the price of one standard month. Then $149/month unless cancelled.</strong></div>
     <select id="foundingPartnerModel" class="partner-tier-native-select" aria-label="Selected advertising tier"><option value="founding_pilot" selected>Core Partner</option><option value="monthly_placement">Featured Partner</option><option value="market_exclusive">Premier Partner</option><option value="discuss">Custom / multi-market plan</option></select>
 
-    <div class="partner-checkout-intake-note"><strong>Start with the essentials.</strong><span>Five fields. No charge today. You can change the tier before checkout; everything else comes during onboarding.</span></div>
     <div class="platform-grid" id="foundingPartnerEssentials">
       <div class="field"><label for="foundingPartnerType">Partner category</label><select id="foundingPartnerType" required aria-required="true"><option value="" selected disabled>Choose your service category</option><option value="title">Title company / fee attorney</option><option value="lender">Mortgage lender</option><option value="inspection">Home inspection</option><option value="surveyor">Property surveyor</option><option value="home_warranty">Home warranty</option><option value="insurance">Home insurance</option><option value="roofing">Roofing contractor</option><option value="hvac">HVAC / heating and air</option><option value="plumbing">Plumbing</option><option value="electrical">Electrical</option><option value="foundation_structural">Foundation / structural repair</option><option value="general_contractor">General contractor / remodeling</option><option value="pest_termite">Pest control / termite</option><option value="septic_well">Septic / well service</option><option value="restoration">Water / fire restoration</option><option value="repairs_handyman">Repairs / handyman</option><option value="photography_video">Photography / video</option><option value="staging">Home staging</option><option value="cleaning">Cleaning</option><option value="moving_storage">Moving / storage</option><option value="lawn_pool">Lawn / pool</option><option value="security_smart_home">Security / smart home</option><option value="other">Other real-estate service</option></select></div>
       <div class="field"><label for="foundingPartnerCompany">Company name</label><input id="foundingPartnerCompany" autocomplete="organization" placeholder="Company name" required aria-required="true"></div>
@@ -16180,9 +16178,9 @@ function routeAfterMagicLinkIfNeeded() {
     }
     notice.className = 'platform-status ok';
     notice.innerHTML = (restored
-      ? '<strong>Your application draft was restored in this browser session.</strong> '
-      : '<strong>Your application draft is saved in this browser session.</strong> ') +
-      'It has not been submitted or shared. <button class="btn-secondary" type="button" id="clearPartnerApplicationDraft" style="margin-left:.45rem;padding:.3rem .5rem;">Clear draft</button>';
+      ? '<strong>Your saved application was restored in this browser session.</strong> '
+      : '<strong>Your application is saved in this browser session.</strong> ') +
+      'It has not been submitted or shared. <button class="btn-secondary" type="button" id="clearPartnerApplicationDraft" style="margin-left:.45rem;padding:.3rem .5rem;">Clear saved application</button>';
     document.getElementById('clearPartnerApplicationDraft')?.addEventListener('click', () => {
       clearPartnerApplicationDraft();
       partnerDraftFields.forEach(id => {
@@ -17848,7 +17846,7 @@ function routeAfterMagicLinkIfNeeded() {
 
       <div class="offer-workspace-stats">
         <div class="offer-workspace-stat"><span>Purchase offers</span><strong>${c.all}</strong><small>latest offers loaded</small></div>
-        <div class="offer-workspace-stat"><span>Drafts</span><strong>${c.draft}</strong><small>resume and finish</small></div>
+        <div class="offer-workspace-stat"><span>Saved offers</span><strong>${c.draft}</strong><small>resume and finish</small></div>
         <div class="offer-workspace-stat"><span>Buyer signing</span><strong>${c.signing}</strong><small>sent, viewed, partial</small></div>
         <div class="offer-workspace-stat"><span>Offer volume</span><strong>${esc(money(volume))}</strong><small>loaded offers only</small></div>
       </div>
@@ -19441,7 +19439,7 @@ function routeAfterMagicLinkIfNeeded() {
       ${state.confidence ? `<div class="agent-activation-confidence" aria-label="First offer workflow overview">
         <div><strong>1. Start</strong>Enter the client and property details you have now.</div>
         <div><strong>2. Review</strong>Check the guided packet and every deal term before generation.</div>
-        <div><strong>3. Stay in control</strong>Saving a draft does not send a packet or request a signature.</div>
+        <div><strong>3. Stay in control</strong>Saving your work does not send a packet or request a signature.</div>
       </div>` : ''}
       <div class="agent-activation-actions">
         <button class="agent-activation-primary" type="button" onclick="handleAgentActivationAction('${primaryAction}','${id}','primary','${safe(state.key)}','monthly')">${safe(state.primary)}</button>
@@ -20350,7 +20348,7 @@ function routeAfterMagicLinkIfNeeded() {
     const membershipRecoveryCard = membership?.status === 'active'
       ? ''
       : '<div class="platform-card"><h4>Brokerage access needs activation</h4>' +
-        '<p>Your individual HomeOfferFlow workspace, saved offers, and released shared-form drafts remain available. Brokerage-managed team features stay unavailable until your brokerage membership is activated.</p>' +
+        '<p>Your individual HomeOfferFlow workspace, saved offers, and shared-form drafts remain available. Brokerage-managed team features stay unavailable until your brokerage membership is activated.</p>' +
         '<button type="button" class="brokerage-access-button" onclick="openBrokerageMembershipRequest()">Request brokerage activation</button>' +
         '<p class="brokerage-invite-result">This sends a support request from your signed-in account. It does not change billing, roles, offers, or documents.</p></div>';
     el.innerHTML = '<div class="platform-card"><div class="ondemand-account-banner">' +
@@ -20547,7 +20545,7 @@ function routeAfterMagicLinkIfNeeded() {
     banner.id = 'ondemandAccountBanner';
     banner.className = 'ondemand-account-banner';
     banner.innerHTML = '<h4>' + safe(brokerage.dba_name || brokerage.name || 'Agent workspace') + '</h4>' +
-      '<p>Your agent workspace is active. Released HomeOfferFlow forms are available whether or not you are associated with a brokerage' +
+      '<p>Your agent workspace is active. HomeOfferFlow forms are available whether or not you are associated with a brokerage' +
       (root.hofAuth?.authoritativeProfile?.is_brokerage_admin ? '; the Brokerage tab also has privacy-limited team activity.' : '.') + '</p>';
     panel.prepend(banner);
   };
@@ -21608,6 +21606,32 @@ function routeAfterMagicLinkIfNeeded() {
     }
   }
 
+  async function previewAgreementPdf(agreement, button) {
+    button.disabled = true;
+    try {
+      const isCompleted = agreement.status === 'signed' && agreement.signwell_document_id;
+      const response = isCompleted
+        ? await fetch('/api/signwell-status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token()}` },
+            body: JSON.stringify({ agreementId: agreement.id, action: 'download_completed_pdf' })
+          })
+        : await fetch('/api/admin-dashboard?preview_agreement=' + encodeURIComponent(agreement.id), {
+            headers: { Authorization: `Bearer ${token()}` }
+          });
+      if (!response.ok) {
+        const result = await response.json().catch(() => ({}));
+        throw new Error(result.error || (isCompleted ? 'Completed PDF preview is unavailable.' : 'Document preview is unavailable.'));
+      }
+      if (!root.hofShowPdfPreview) throw new Error('PDF preview is temporarily unavailable.');
+      root.hofShowPdfPreview(await response.blob(), agreement.form_code);
+    } catch (error) {
+      window.announceWorkspaceStatus?.(error.message || 'Document preview is unavailable.');
+    } finally {
+      button.disabled = false;
+    }
+  }
+
   async function renderCard() {
     const panel = document.getElementById('accountPanelDashboard');
     if (!panel || !activeAgent() || document.getElementById('hofStandaloneAgreementCard')) return;
@@ -21632,15 +21656,9 @@ function routeAfterMagicLinkIfNeeded() {
           const canDownloadCompleted = agreement.status === 'signed' && agreement.signwell_document_id;
           return `<div style="display:flex;justify-content:space-between;align-items:center;gap:.75rem;flex-wrap:wrap;border-top:1px solid rgba(255,255,255,.12);padding:.7rem 0"><span><strong>${escape(agreement.form_code)}</strong><small style="display:block;color:var(--gray-light)">${escape(names)} · ${escape(agreement.status || 'draft')}</small>${gate}</span><span style="display:flex;gap:.4rem;flex-wrap:wrap"><button type="button" class="btn-secondary" data-preview="${escape(agreement.id)}">Preview</button>${canRefresh ? `<button type="button" class="btn-secondary" data-refresh-signing="${escape(agreement.id)}">Refresh status</button>` : ''}${canDownloadCompleted ? `<button type="button" class="btn-secondary" data-download-completed="${escape(agreement.id)}">Download completed PDF</button>` : ''}${canSend ? `<button type="button" class="btn-primary" data-send="${escape(agreement.id)}">Send for signature</button>` : ''}</span></div>`;
         }).join('');
-        list.querySelectorAll('[data-preview]').forEach(button => button.addEventListener('click', async () => {
-          button.disabled = true;
-          try {
-            const response = await fetch('/api/admin-dashboard?preview_agreement=' + encodeURIComponent(button.dataset.preview), { headers:{ Authorization:`Bearer ${token()}` } });
-            if (!response.ok) throw new Error('Private preview unavailable.');
-            const agreement = agreements.find(item => item.id === button.dataset.preview);
-            if (!root.hofShowPdfPreview) throw new Error('PDF preview is temporarily unavailable.');
-            root.hofShowPdfPreview(await response.blob(), agreement?.form_code);
-          } catch (error) { window.announceWorkspaceStatus?.(error.message || 'Private preview unavailable.'); } finally { button.disabled = false; }
+        list.querySelectorAll('[data-preview]').forEach(button => button.addEventListener('click', () => {
+          const agreement = agreements.find(item => item.id === button.dataset.preview);
+          if (agreement) previewAgreementPdf(agreement, button);
         }));
         list.querySelectorAll('[data-send]').forEach(button => button.addEventListener('click', () => {
           const agreement = agreements.find(item => item.id === button.dataset.send);
@@ -21712,7 +21730,7 @@ function routeAfterMagicLinkIfNeeded() {
   async function loadSharedSourceCatalog(card) {
     const details = document.createElement('details');
     details.className = 'hof-shared-source-catalog';
-    details.innerHTML = '<summary>See approved shared-source revisions</summary><p style="color:var(--gray-light);font-size:.82rem;line-height:1.45;margin:.7rem 0 0">Loading the current platform-wide source catalog…</p>';
+    details.innerHTML = '<summary>See available shared forms</summary><p style="color:var(--gray-light);font-size:.82rem;line-height:1.45;margin:.7rem 0 0">Loading available forms…</p>';
     let catalogOpenRecorded = false;
     details.addEventListener('toggle', () => {
       if (!details.open || catalogOpenRecorded) return;
@@ -21731,8 +21749,8 @@ function routeAfterMagicLinkIfNeeded() {
       const search = document.createElement('input');
       search.type = 'search';
       search.className = 'hof-shared-source-search';
-      search.setAttribute('aria-label', 'Search approved shared forms');
-      search.placeholder = 'Search form code or revision';
+      search.setAttribute('aria-label', 'Search available forms');
+      search.placeholder = 'Search form code or version';
       search.style.cssText = 'display:block;width:100%;max-width:23rem;margin:.7rem 0 0;padding:.55rem .65rem;border:1px solid rgba(255,255,255,.18);border-radius:8px;background:rgba(0,0,0,.12);color:var(--white);font:inherit';
       const searchStatus = document.createElement('div');
       searchStatus.className = 'hof-shared-source-search-status';
@@ -21747,22 +21765,22 @@ function routeAfterMagicLinkIfNeeded() {
           item.hidden = !!query && !item.textContent.toLowerCase().includes(query);
           if (!item.hidden) visibleCount += 1;
         });
-        searchStatus.textContent = query && !visibleCount ? 'No approved forms match that search.' : '';
+        searchStatus.textContent = query && !visibleCount ? 'No forms match that search.' : '';
       });
       if (!sources.length) {
         const empty = document.createElement('li');
-        empty.textContent = 'No approved source revisions are available to this signed-in account yet.';
+        empty.textContent = 'No forms are available to this signed-in account yet.';
         list.appendChild(empty);
       } else {
         sources.sort((a, b) => String(a.form_code || '').localeCompare(String(b.form_code || ''))).forEach(source => {
           const item = document.createElement('li');
-          item.textContent = `${source.form_code || 'TXR'} · revision ${source.source_revision || 'current'} · shared source available`;
+          item.textContent = `${source.form_code || 'TXR'} · version ${source.source_revision || 'current'} · available`;
           list.appendChild(item);
         });
       }
       const copy = details.querySelector('p');
       if (copy) {
-        copy.textContent = 'Every signed-in agent sees the same approved source catalog. This inventory confirms source availability; each workflow has its own review, delivery, and signing steps.';
+        copy.textContent = 'Every signed-in agent sees the same form library. This list shows what is available; each workflow has its own review, delivery, and signing steps.';
         copy.insertAdjacentElement('afterend', search);
         search.insertAdjacentElement('afterend', searchStatus);
         copy.insertAdjacentElement('afterend', list);
@@ -22199,7 +22217,7 @@ function routeAfterMagicLinkIfNeeded() {
       headers: {Authorization: 'Bearer ' + token}
     });
     const payload = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(payload.error || 'Could not load seller disclosure drafts.');
+    if (!response.ok) throw new Error(payload.error || 'Could not load saved seller disclosures.');
     // The permission-checked API joins the private review-link state and
     // returns sellerReviewProgress; direct browser reads cannot see that
     // service-role-only table and made every saved draft look unrequested.
@@ -22461,7 +22479,7 @@ function routeAfterMagicLinkIfNeeded() {
       try {
         const response = await fetch('/api/admin-dashboard',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer ' + token},body:JSON.stringify(payload)});
         const result = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(result.error || 'Could not save seller disclosure draft.');
+        if (!response.ok) throw new Error(result.error || 'Could not save the seller disclosure.');
         status.textContent = 'Preparing your completed disclosure for review…';
         card.dataset.sellerDraftId = result.draft?.id || '';
         card.dataset.loadedDraftId = result.draft?.id || '';
@@ -22469,7 +22487,7 @@ function routeAfterMagicLinkIfNeeded() {
         if (sendButton) sendButton.disabled = !(card.dataset.sellerDraftId && document.getElementById('hofSellerEmail').value.trim());
         await refreshDrafts();
         await previewSellerDisclosure(card.dataset.sellerDraftId, saveButton);
-      } catch (error) { status.textContent = error.message || 'Could not save seller disclosure draft.'; }
+      } catch (error) { status.textContent = error.message || 'Could not save the seller disclosure.'; }
       finally { saveButton.disabled = false; saveButton.setAttribute('aria-busy', 'false'); saveButton.textContent = 'Save and preview'; }
     });
     document.getElementById('hofSellerEmail').addEventListener('input', () => {
@@ -22485,7 +22503,7 @@ function routeAfterMagicLinkIfNeeded() {
       const seller1Name = document.getElementById('hofSeller1').value.trim();
       const seller2Name = document.getElementById('hofSeller2').value.trim();
       if (!token) { status.textContent = 'Sign in before sending the seller review email.'; return; }
-      if (!draftId || !seller1Email || !seller1Name) { status.textContent = 'Save the draft and enter Seller 1 name and review email first.'; return; }
+      if (!draftId || !seller1Email || !seller1Name) { status.textContent = 'Save the disclosure and enter Seller 1 name and review email first.'; return; }
       if (seller2Name && !seller2Email) { status.textContent = 'Enter Seller 2 review email or remove Seller 2 name.'; return; }
       if (seller2Email && !seller2Name) { status.textContent = 'Enter Seller 2 name before adding a second review email.'; return; }
       status.textContent = 'Sending secure seller review email…';
@@ -22497,7 +22515,7 @@ function routeAfterMagicLinkIfNeeded() {
         const response = await fetch('/api/admin-dashboard',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer ' + token},body:JSON.stringify({action:'create_seller_disclosure_review_link',draftId,sellerNames:[seller1Name,seller2Name].filter(Boolean),sellerReviews})});
         const result = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(result.error || 'Could not send seller review email.');
-        status.textContent = 'Secure review email sent. The seller will verify a one-time code before reviewing the draft.';
+        status.textContent = 'Secure review email sent. The seller will verify a one-time code before reviewing the completed disclosure.';
         button.textContent = 'Review email sent';
         root.logOfferEvent?.(null, 'seller_review_request_sent', 'sent', 'Seller disclosure review request sent.', {
           sellerCount: sellerReviews.length
@@ -22915,7 +22933,7 @@ function routeAfterMagicLinkIfNeeded() {
       card.id = 'hofPwaUpdateCard';
       card.className = 'hof-pwa-update-card';
       card.setAttribute('role', 'status');
-      card.innerHTML = '<strong>HomeOfferFlow update ready</strong><p>A newer app version is ready. Update when you are between steps; your local draft stays on this device.</p><div class="hof-pwa-update-actions"><button type="button" class="btn-primary" id="hofPwaUpdateNow">Update now</button><button type="button" class="btn-secondary" id="hofPwaUpdateLater">Later</button></div>';
+      card.innerHTML = '<strong>HomeOfferFlow update ready</strong><p>A newer app version is ready. Update when you are between steps; your saved work stays on this device.</p><div class="hof-pwa-update-actions"><button type="button" class="btn-primary" id="hofPwaUpdateNow">Update now</button><button type="button" class="btn-secondary" id="hofPwaUpdateLater">Later</button></div>';
       document.body.appendChild(card);
       card.querySelector('#hofPwaUpdateLater')?.addEventListener('click', () => card.remove());
       card.querySelector('#hofPwaUpdateNow')?.addEventListener('click', () => {
@@ -23573,6 +23591,8 @@ function routeAfterMagicLinkIfNeeded() {
     root.querySelectorAll?.('.hof-agreement-card button, .hof-agreement-dialog button').forEach(button => {
       const original = button.textContent || '';
       const revised = original
+        .replace(/^Start environmental review draft$/i, 'Start environmental review')
+        .replace(/^Start appraisal-review draft$/i, 'Start appraisal review')
         .replace(/^Start (.+?) draft$/i, 'Start $1 review')
         .replace(/^Save (.+?) draft$/i, 'Save $1 for review');
       if (revised !== original) button.textContent = revised;
@@ -23589,6 +23609,8 @@ function routeAfterMagicLinkIfNeeded() {
         const revised = original
         .replace(/This saves a private draft only\./gi, 'This prepares a document for your review before it is sent for signature.')
         .replace(/This is a private draft, not a /gi, 'This is a document for review, not a ')
+        .replace(/Answer only the choices printed on the source\./gi, 'Answer the questions needed for this document.')
+        .replace(/Choose only the source-form review rights requested\./gi, 'Choose the review rights requested.')
         .replace(/prepare a private draft/gi, 'prepare a document for review')
         .replace(/prepare an appraisal private draft/gi, 'prepare an appraisal document for review')
         .replace(/private (seller-financing|residential-lease|fixture-lease|appraisal) draft/gi, '$1 document for review')

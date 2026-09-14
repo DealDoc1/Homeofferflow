@@ -258,7 +258,7 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("agent_landing_relationship_workspace_handoff", INDEX)
         self.assertIn("tab: 'relationships'", INDEX)
         self.assertIn('id="accountPanelRelationships"', INDEX)
-        self.assertIn("Every signed-in agent can use HomeOfferFlow's released shared forms", AGENTS)
+        self.assertIn("Every signed-in agent can use HomeOfferFlow's shared forms", AGENTS)
         self.assertIn("the interview keeps the relevant documents together for the transaction", AGENTS)
 
     def test_transaction_question_one_uses_a_four_choice_responsive_grid(self):
@@ -416,7 +416,7 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertNotIn('id="agentQuestionOneCta"', AGENTS)
         self.assertNotIn('Start a buyer offer — no payment', AGENTS)
         self.assertIn('No brokerage seat required.', AGENTS)
-        self.assertIn("Every signed-in agent can use HomeOfferFlow's released shared forms and create a listing workspace.", AGENTS)
+        self.assertIn("Every signed-in agent can use HomeOfferFlow's shared forms and create a listing workspace.", AGENTS)
         self.assertNotIn('agent-owned private listing workspace', AGENTS)
         self.assertIn('You do not need a brokerage seat to create your own seller or lease-listing workspace.', AGENTS)
         self.assertIn('save your defaults for faster repeat work', AGENTS)

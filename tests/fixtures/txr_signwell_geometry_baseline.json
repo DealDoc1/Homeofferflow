@@ -11,7 +11,7 @@
         "type": "date",
         "width": 48,
         "x": 336,
-        "y": 683
+        "y": 596
       },
       {
         "api_id": "txr1501_associate_signature_p6",
@@ -22,7 +22,7 @@
         "type": "signature",
         "width": 240,
         "x": 48,
-        "y": 677
+        "y": 590
       },
       {
         "api_id": "txr1501_client1_date_p6",
@@ -33,7 +33,7 @@
         "type": "date",
         "width": 48,
         "x": 720,
-        "y": 572
+        "y": 596
       },
       {
         "api_id": "txr1501_client1_signature_p6",
@@ -44,7 +44,7 @@
         "type": "signature",
         "width": 272,
         "x": 432,
-        "y": 566
+        "y": 590
       },
       {
         "api_id": "txr1501_client2_date_p6",
@@ -55,7 +55,7 @@
         "type": "date",
         "width": 48,
         "x": 720,
-        "y": 683
+        "y": 706
       },
       {
         "api_id": "txr1501_client2_signature_p6",
@@ -66,7 +66,7 @@
         "type": "signature",
         "width": 272,
         "x": 432,
-        "y": 677
+        "y": 700
       }
     ],
     "TXR1506": [
@@ -257,7 +257,7 @@
         "type": "date",
         "width": 48,
         "x": 336,
-        "y": 740
+        "y": 720
       },
       {
         "api_id": "txr1507_associate_initials_p1",
@@ -279,7 +279,7 @@
         "type": "signature",
         "width": 240,
         "x": 48,
-        "y": 734
+        "y": 714
       },
       {
         "api_id": "txr1507_client1_date_p2",
@@ -290,7 +290,7 @@
         "type": "date",
         "width": 48,
         "x": 720,
-        "y": 740
+        "y": 720
       },
       {
         "api_id": "txr1507_client1_initials_p1",
@@ -312,7 +312,7 @@
         "type": "signature",
         "width": 272,
         "x": 432,
-        "y": 734
+        "y": 714
       },
       {
         "api_id": "txr1507_client2_date_p2",
@@ -323,7 +323,7 @@
         "type": "date",
         "width": 48,
         "x": 720,
-        "y": 850
+        "y": 830
       },
       {
         "api_id": "txr1507_client2_initials_p1",
@@ -345,7 +345,7 @@
         "type": "signature",
         "width": 272,
         "x": 432,
-        "y": 844
+        "y": 824
       }
     ],
     "TXR1508": [

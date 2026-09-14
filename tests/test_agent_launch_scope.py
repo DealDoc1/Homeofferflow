@@ -23,7 +23,7 @@ class AgentLaunchScopeTests(unittest.TestCase):
     def test_scope_keeps_the_catalog_out_of_the_dashboard_summary(self):
         self.assertIn("every signed-in agent", HTML)
         self.assertNotIn("Every signed-in agent can prepare a document from the shared TXR-1501", HTML)
-        self.assertIn("See approved shared-source revisions", HTML)
+        self.assertIn("See available shared forms", HTML)
 
     def test_scope_provides_a_dedicated_missing_form_request_path(self):
         self.assertIn("openMissingFormRequest", HTML)

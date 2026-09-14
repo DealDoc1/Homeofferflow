@@ -124,8 +124,8 @@ class TxrSignerGeometryTests(unittest.TestCase):
             # through 768.  Earlier coverage compared it to a stale
             # left-column coordinate and allowed widgets to cover the printed
             # Client's Signature caption.
-            (build_signwell_fields_txr1501, FORM_CASES[0][3], "txr1501", 566, 768),
-            (build_signwell_fields_txr1507, FORM_CASES[2][3], "txr1507", 734, 768),
+            (build_signwell_fields_txr1501, FORM_CASES[0][3], "txr1501", 590, 768),
+            (build_signwell_fields_txr1507, FORM_CASES[2][3], "txr1507", 714, 768),
         )
         for builder, data, prefix, first_row_y, date_label_x in cases:
             with self.subTest(prefix=prefix):
@@ -135,9 +135,9 @@ class TxrSignerGeometryTests(unittest.TestCase):
                 role = fields[f"{prefix}_associate_signature_p{6 if prefix == 'txr1501' else 2}"]
                 self.assertEqual(client["y"], first_row_y)
                 if prefix == "txr1507":
-                    self.assertEqual(role["y"], 734)
+                    self.assertEqual(role["y"], 714)
                 else:
-                    self.assertEqual(role["y"], 677)
+                    self.assertEqual(role["y"], 590)
                 self.assertGreater(date["x"], client["x"] + client["width"])
                 self.assertLessEqual(date["x"] + date["width"], date_label_x)
 
@@ -150,20 +150,20 @@ class TxrSignerGeometryTests(unittest.TestCase):
         """
         cases = (
             (build_signwell_fields_txr1501, FORM_CASES[0][3], {
-                "txr1501_associate_signature_p6": 701,
-                "txr1501_associate_date_p6": 701,
-                "txr1501_client1_signature_p6": 590,
-                "txr1501_client1_date_p6": 590,
-                "txr1501_client2_signature_p6": 701,
-                "txr1501_client2_date_p6": 701,
+                "txr1501_associate_signature_p6": 614,
+                "txr1501_associate_date_p6": 614,
+                "txr1501_client1_signature_p6": 614,
+                "txr1501_client1_date_p6": 614,
+                "txr1501_client2_signature_p6": 724,
+                "txr1501_client2_date_p6": 724,
             }),
             (build_signwell_fields_txr1507, FORM_CASES[2][3], {
-                "txr1507_associate_signature_p2": 758,
-                "txr1507_associate_date_p2": 758,
-                "txr1507_client1_signature_p2": 758,
-                "txr1507_client1_date_p2": 758,
-                "txr1507_client2_signature_p2": 868,
-                "txr1507_client2_date_p2": 868,
+                "txr1507_associate_signature_p2": 738,
+                "txr1507_associate_date_p2": 738,
+                "txr1507_client1_signature_p2": 738,
+                "txr1507_client1_date_p2": 738,
+                "txr1507_client2_signature_p2": 848,
+                "txr1507_client2_date_p2": 848,
             }),
         )
         for builder, data, limits in cases:
@@ -185,20 +185,20 @@ class TxrSignerGeometryTests(unittest.TestCase):
         # printed Client's Signature caption below it.
         self.assertEqual(txr1501["txr1501_client1_signature_p6"]["x"], 432)
         self.assertEqual(txr1501["txr1501_client1_date_p6"]["x"], 720)
-        self.assertEqual(txr1501["txr1501_client2_signature_p6"]["y"], 677)
+        self.assertEqual(txr1501["txr1501_client2_signature_p6"]["y"], 700)
         self.assertEqual(
             txr1501["txr1501_client2_signature_p6"]["y"]
             + txr1501["txr1501_client2_signature_p6"]["height"],
-            701,
+            724,
         )
-        # A broker-associate signs the separate lower left row.  It shares
-        # that horizontal line with the second client's right-side row, not
-        # the broker's first execution row.
-        self.assertEqual(txr1501["txr1501_associate_signature_p6"]["y"], 677)
+        # An associate is selected below the execution row but signs on the
+        # shared upper broker execution rule. The lower right row is for a
+        # second client.
+        self.assertEqual(txr1501["txr1501_associate_signature_p6"]["y"], 590)
         self.assertEqual(
             txr1501["txr1501_associate_signature_p6"]["y"]
             + txr1501["txr1501_associate_signature_p6"]["height"],
-            701,
+            614,
         )
 
         txr1507 = {
@@ -210,17 +210,17 @@ class TxrSignerGeometryTests(unittest.TestCase):
         # signature rule below the label.
         self.assertEqual(
             (txr1507["txr1507_associate_signature_p2"]["x"], txr1507["txr1507_associate_signature_p2"]["y"], txr1507["txr1507_associate_signature_p2"]["width"], txr1507["txr1507_associate_signature_p2"]["y"] + txr1507["txr1507_associate_signature_p2"]["height"]),
-            (48, 734, 240, 758),
+            (48, 714, 240, 738),
         )
         self.assertEqual(
             (txr1507["txr1507_associate_date_p2"]["x"], txr1507["txr1507_associate_date_p2"]["y"], txr1507["txr1507_associate_date_p2"]["width"], txr1507["txr1507_associate_date_p2"]["y"] + txr1507["txr1507_associate_date_p2"]["height"]),
-            (336, 740, 48, 758),
+            (336, 720, 48, 738),
         )
         for field_id, expected in {
-            "txr1507_client1_signature_p2": (432, 734, 272, 758),
-            "txr1507_client1_date_p2": (720, 740, 48, 758),
-            "txr1507_client2_signature_p2": (432, 844, 272, 868),
-            "txr1507_client2_date_p2": (720, 850, 48, 868),
+            "txr1507_client1_signature_p2": (432, 714, 272, 738),
+            "txr1507_client1_date_p2": (720, 720, 48, 738),
+            "txr1507_client2_signature_p2": (432, 824, 272, 848),
+            "txr1507_client2_date_p2": (720, 830, 48, 848),
         }.items():
             field = txr1507[field_id]
             self.assertEqual(

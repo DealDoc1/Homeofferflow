@@ -20,7 +20,7 @@ class CloudDraftSaveRecoveryTests(unittest.TestCase):
         start = HTML.index("function showCloudSaveFailure()")
         end = HTML.index("function getDraftSnapshot()", start)
         recovery = HTML[start:end]
-        self.assertIn("Local draft saved; cloud sync needs retry.", recovery)
+        self.assertIn("Saved on this device; cloud sync needs retry.", recovery)
         self.assertIn("retryCloudDraftSave", recovery)
         self.assertIn("cloud_draft_save_retried", recovery)
 
