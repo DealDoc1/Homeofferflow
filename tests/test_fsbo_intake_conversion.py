@@ -154,7 +154,7 @@ class FsboIntakeConversionTests(unittest.TestCase):
         self.assertIn('href="?seller=1"', HTML)
         self.assertIn("FSBO Seller Card CTA Selected", HTML)
         self.assertIn("surface: 'audience_grid'", HTML)
-        self.assertIn("setAudience('fsbo'); trackEvent('FSBO Seller Card CTA Selected'", HTML)
+        self.assertIn("setAudience('fsbo', { presentationOnly: true }); trackEvent('FSBO Seller Card CTA Selected'", HTML)
         self.assertIn("openFsboSellerModal();", HTML)
         self.assertIn("Start a no-charge seller plan in under a minute", HTML)
         self.assertIn("Start free — address + email · no checkout", HTML)
@@ -166,7 +166,7 @@ class FsboIntakeConversionTests(unittest.TestCase):
 
     def test_shared_seller_url_opens_the_same_intake_without_identity_in_the_url(self):
         self.assertIn("params().get('seller') === '1'", HTML)
-        self.assertIn("window.setAudience?.('fsbo');", HTML)
+        self.assertIn("window.setAudience?.('fsbo', { presentationOnly: true });", HTML)
         self.assertIn("window.openFsboSellerModal?.();", HTML)
         routing_start = HTML.index("params().get('seller') === '1'")
         routing_end = HTML.index("if (params().get('partner_onboarding'))", routing_start)
@@ -177,7 +177,7 @@ class FsboIntakeConversionTests(unittest.TestCase):
     def test_switching_to_another_audience_closes_the_open_seller_intake(self):
         self.assertIn("window.closeFsboSellerModal = function(options = {})", HTML)
         self.assertIn("options.restoreFocus !== false", HTML)
-        audience_start = HTML.index("root.setAudience = function setAudience(type)")
+        audience_start = HTML.index("root.setAudience = function setAudience(type, options = {})")
         audience_end = HTML.index("const oldRenderDashboard", audience_start)
         audience = HTML[audience_start:audience_end]
         self.assertIn("type !== 'fsbo'", audience)

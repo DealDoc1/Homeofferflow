@@ -2907,10 +2907,10 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 <section class="hero">
   <div class="hero-badge" id="heroBadge"><span class="dot"></span>Texas real estate workflows · Clear next steps</div>
   <div class="user-pills" role="radiogroup" aria-label="Choose your HomeOfferFlow path">
-    <button type="button" role="radio" class="pill active" data-audience="homebuyer" aria-checked="true" tabindex="0" onkeydown="handleAudiencePickerKey(event)" onclick="window.__hofLandingAudienceUserSelected = true; setAudience('homebuyer'); trackEvent('Landing Audience Selected', { audience: 'homebuyer', surface: 'hero_path_picker' });">Homebuyer</button>
-    <button type="button" role="radio" class="pill" data-audience="agent" aria-checked="false" tabindex="-1" onkeydown="handleAudiencePickerKey(event)" onclick="window.__hofLandingAudienceUserSelected = true; setAudience('agent'); trackEvent('Landing Audience Selected', { audience: 'agent', surface: 'hero_path_picker' });">Agent / Broker</button>
-    <button type="button" role="radio" class="pill" data-audience="investor" aria-checked="false" tabindex="-1" onkeydown="handleAudiencePickerKey(event)" onclick="window.__hofLandingAudienceUserSelected = true; setAudience('investor'); trackEvent('Landing Audience Selected', { audience: 'investor', surface: 'hero_path_picker' });">Investor</button>
-    <button type="button" role="radio" class="pill" data-audience="fsbo" aria-checked="false" tabindex="-1" onkeydown="handleAudiencePickerKey(event)" onclick="window.__hofLandingAudienceUserSelected = true; setAudience('fsbo'); trackEvent('Landing Audience Selected', { audience: 'fsbo', surface: 'hero_path_picker' });">FSBO Seller</button>
+<button type="button" role="radio" class="pill active" data-audience="homebuyer" aria-checked="true" tabindex="0" onkeydown="handleAudiencePickerKey(event)" onclick="window.__hofLandingAudienceUserSelected = true; setAudience('homebuyer', { presentationOnly: true }); trackEvent('Landing Audience Selected', { audience: 'homebuyer', surface: 'hero_path_picker' });">Homebuyer</button>
+    <button type="button" role="radio" class="pill" data-audience="agent" aria-checked="false" tabindex="-1" onkeydown="handleAudiencePickerKey(event)" onclick="window.__hofLandingAudienceUserSelected = true; setAudience('agent', { presentationOnly: true }); trackEvent('Landing Audience Selected', { audience: 'agent', surface: 'hero_path_picker' });">Agent / Broker</button>
+    <button type="button" role="radio" class="pill" data-audience="investor" aria-checked="false" tabindex="-1" onkeydown="handleAudiencePickerKey(event)" onclick="window.__hofLandingAudienceUserSelected = true; setAudience('investor', { presentationOnly: true }); trackEvent('Landing Audience Selected', { audience: 'investor', surface: 'hero_path_picker' });">Investor</button>
+    <button type="button" role="radio" class="pill" data-audience="fsbo" aria-checked="false" tabindex="-1" onkeydown="handleAudiencePickerKey(event)" onclick="window.__hofLandingAudienceUserSelected = true; setAudience('fsbo', { presentationOnly: true }); trackEvent('Landing Audience Selected', { audience: 'fsbo', surface: 'hero_path_picker' });">FSBO Seller</button>
   </div>
   <h1 id="heroHeadline">Write a Real Estate Offer<br/><em>Without the Confusion.</em></h1>
   <p class="hero-sub" id="heroSub">HomeOfferFlow is a Texas real estate offer builder that guides you through a supported Texas buyer-offer packet in plain English, then lets you review every term before signing or sending.</p>
@@ -2964,16 +2964,16 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   <div class="section-label">Who It's For</div>
   <h2>Built for every side of the Texas transaction.</h2>
   <div class="audience-grid">
-    <button type="button" class="audience-card audience-card-link audience-card-action" onclick="window.__hofLandingAudienceUserSelected = true; setAudience('homebuyer'); trackEvent('Landing Audience Selected', { audience: 'homebuyer', surface: 'audience_grid_card' }); beginOfferFrom('landing_audience_card_homebuyer');" aria-label="Build a HomeOfferFlow homebuyer offer with no payment to start">
+    <button type="button" class="audience-card audience-card-link audience-card-action" onclick="window.__hofLandingAudienceUserSelected = true; setAudience('homebuyer', { presentationOnly: true }); trackEvent('Landing Audience Selected', { audience: 'homebuyer', surface: 'audience_grid_card' }); beginOfferFrom('landing_audience_card_homebuyer');" aria-label="Build a HomeOfferFlow homebuyer offer with no payment to start">
       <div class="audience-icon">🏠</div><h3>Homebuyers</h3><p>Build a Texas resale offer packet with plain-English guidance, AI competitiveness review, and buyer-side signing when the packet is ready.</p><span class="audience-price">No payment to start · $99 when ready</span>
     </button>
     <button type="button" class="audience-card audience-card-link audience-card-action" onclick="trackEvent('Landing Audience Selected', { audience: 'agent', surface: 'audience_grid_card' }); window.location.assign('/agents');" aria-label="Choose an agent or broker transaction workflow">
       <div class="audience-icon">🏢</div><h3>Agents & Brokers</h3><p>Start with property listing, purchase, lease listing, or tenant representation—then answer only the questions for that transaction.</p><span class="audience-price">Start a transaction</span>
     </button>
-    <button type="button" class="audience-card audience-card-link audience-card-action" onclick="setAudience('investor'); trackEvent('Landing Audience Selected', { audience: 'investor', surface: 'audience_grid_card' }); beginOfferFrom('landing_audience_card_investor');" aria-label="Open the HomeOfferFlow investor workspace">
+    <button type="button" class="audience-card audience-card-link audience-card-action" onclick="setAudience('investor', { presentationOnly: true }); trackEvent('Landing Audience Selected', { audience: 'investor', surface: 'audience_grid_card' }); beginOfferFrom('landing_audience_card_investor');" aria-label="Open the HomeOfferFlow investor workspace">
       <div class="audience-icon">📈</div><h3>Investors</h3><p>Use saved defaults and repeat-offer workflows to move faster while still keeping financing, option, title, and addenda terms organized.</p><span class="audience-price">Open investor workspace</span>
     </button>
-    <a class="audience-card audience-card-link" href="?seller=1" onclick="event.preventDefault(); setAudience('fsbo'); trackEvent('FSBO Seller Card CTA Selected', { surface: 'audience_grid' }); openFsboSellerModal();" aria-label="Start a HomeOfferFlow FSBO seller package request">
+    <a class="audience-card audience-card-link" href="?seller=1" onclick="event.preventDefault(); setAudience('fsbo', { presentationOnly: true }); trackEvent('FSBO Seller Card CTA Selected', { surface: 'audience_grid' }); openFsboSellerModal();" aria-label="Start a HomeOfferFlow FSBO seller package request">
       <div class="audience-icon">🏷️</div>
       <h3>FSBO Sellers</h3>
       <p>Start a no-charge seller plan in under a minute with your address and email, then explore packages, flat-fee MLS interest, offer review, contract-to-close support, and local partner suggestions.</p>
@@ -9387,7 +9387,7 @@ function routeAfterMagicLinkIfNeeded() {
 
   function refreshResumeOfferCtas() {
     const draft = resumableLocalOfferDraft();
-    const isHomebuyer = (state?.data?.userType || 'homebuyer') === 'homebuyer';
+    const isHomebuyer = selectedLandingAudience() === 'homebuyer';
     const canResume = !!draft && isHomebuyer && (draft.userType || 'homebuyer') === 'homebuyer';
     ['heroCta', 'bottomCta', 'navCta'].forEach(id => {
       const button = document.getElementById(id);
@@ -12798,8 +12798,10 @@ function routeAfterMagicLinkIfNeeded() {
   }
 
 
-  function setAudience(type) {
-    state.data.userType = type;
+  function setAudience(type, { presentationOnly = false } = {}) {
+    // Public browsing changes the landing page, not the in-progress offer.
+    // Explicit transaction starts and restores retain the one-argument path.
+    if (!presentationOnly) state.data.userType = type;
 
     document.querySelectorAll('.pill').forEach(p => {
       const selected = p.dataset.audience === type;
@@ -12856,18 +12858,18 @@ function routeAfterMagicLinkIfNeeded() {
     if (heroPriceNote) heroPriceNote.innerHTML = selected.priceNote || copy.homebuyer.priceNote;
     if (bottomPriceNote) bottomPriceNote.innerHTML = selected.priceNote || copy.homebuyer.priceNote;
 
-    if (type !== 'homebuyer') {
+    if (!presentationOnly && type !== 'homebuyer') {
       state.data.seenProperty = '';
       const showingHelper = document.getElementById('showingHelper');
       if (showingHelper) showingHelper.style.display = 'none';
     }
 
-    if (document.getElementById('wizardOverlay') && document.getElementById('wizardOverlay').classList.contains('active')) {
+    if (!presentationOnly && document.getElementById('wizardOverlay') && document.getElementById('wizardOverlay').classList.contains('active')) {
       state.step = 0;
       showStep(0);
     }
 
-    saveDraft();
+    if (!presentationOnly) saveDraft();
   }
 
   window.handleAudiencePickerKey = function handleAudiencePickerKey(event) {
@@ -17259,7 +17261,7 @@ function routeAfterMagicLinkIfNeeded() {
     // ?seller=1 should land in the same minimum-field intake as an in-page
     // audience-card click, without requiring any account or identity data.
     if (params().get('seller') === '1') setTimeout(() => {
-      window.setAudience?.('fsbo');
+      window.setAudience?.('fsbo', { presentationOnly: true });
       window.openFsboSellerModal?.();
     }, 80);
     // The public homebuyer landing page hands into the existing self-serve
@@ -19346,7 +19348,7 @@ function routeAfterMagicLinkIfNeeded() {
     });
   }
 
-  root.setAudience = function setAudience(type){
+  root.setAudience = function setAudience(type, options = {}){
     // A visitor can change direction before completing the two-field seller
     // intake. Close that modal before entering another audience path so an
     // unrelated seller form never remains layered under a buyer, agent, or
@@ -19354,7 +19356,7 @@ function routeAfterMagicLinkIfNeeded() {
     if (type !== 'fsbo' && document.getElementById('fsboSellerModal')?.getAttribute('aria-hidden') !== 'true') {
       root.closeFsboSellerModal?.({ restoreFocus: false });
     }
-    if (typeof oldSetAudience === 'function') oldSetAudience(type);
+    if (typeof oldSetAudience === 'function') oldSetAudience(type, options);
     const copy = {
       homebuyer: {
         headline: 'Write a Real Estate Offer<br/><em>Without the Confusion.</em>',
@@ -19388,6 +19390,7 @@ function routeAfterMagicLinkIfNeeded() {
     syncLandingPathContext(type);
     syncLandingPathTrust(type);
     addLandingPathStrip();
+    if (options.presentationOnly) root.refreshResumeOfferCtas?.();
   };
 
   const oldRenderDashboard = root.renderAccountDashboard;
@@ -19456,7 +19459,7 @@ function routeAfterMagicLinkIfNeeded() {
       const landingAudience = allowedAudiences.has(requestedAudience)
         ? requestedAudience
         : (root.state?.data?.userType || 'homebuyer');
-      root.setAudience(landingAudience);
+      root.setAudience(landingAudience, { presentationOnly: true });
       if (allowedAudiences.has(requestedAudience)) {
         root.trackEvent?.('Landing Audience Selected', {
           audience: requestedAudience,
@@ -23794,7 +23797,7 @@ function routeAfterMagicLinkIfNeeded() {
     if (action === 'seller_plan') {
       // Seller intake is intentionally public: this shortcut restores the
       // FSBO planning path without requiring a new account or native app.
-      try { window.setAudience?.('fsbo'); } catch (_) {}
+      try { window.setAudience?.('fsbo', { presentationOnly: true }); } catch (_) {}
       window.openFsboSellerModal?.();
       trackShortcut(action, 'seller', resumedAfterSignIn);
       return;
