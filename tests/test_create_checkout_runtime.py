@@ -49,7 +49,7 @@ function call(body, origin = 'https://www.homeofferflow.com') {
   const valid = await call({
     email: 'buyer@example.com',
     plan: 'self',
-    offerData: { address: '123 Test Lane' },
+    offerData: { address: '123 Test Lane', price: '500000', earnest: '5000', optionFee: '250', optionDays: '7', financing: 'cash' },
     successUrl: 'https://evil.example/success',
     cancelUrl: 'https://evil.example/cancel'
   });
@@ -60,7 +60,7 @@ function call(body, origin = 'https://www.homeofferflow.com') {
   if (createdSession.cancel_url !== 'https://www.homeofferflow.com/?payment=cancelled') throw new Error('cancel redirect was not anchored');
   if (createdSession.metadata.plan !== 'self') throw new Error('metadata plan was not normalized');
 
-  const badOrigin = await call({ email: 'buyer@example.com', plan: 'self' }, 'https://evil.example');
+  const badOrigin = await call({ email: 'buyer@example.com', plan: 'self', offerData: {price: '500000', earnest: '5000', optionFee: '250', optionDays: '7', financing: 'cash'} }, 'https://evil.example');
   if (badOrigin.status !== 200 || createdSession.success_url.indexOf('https://www.homeofferflow.com/') !== 0) throw new Error('untrusted request origin was accepted');
   process.stdout.write('create-checkout runtime contract passed\n');
 })().catch((error) => { console.error(error.stack || error); process.exit(1); });

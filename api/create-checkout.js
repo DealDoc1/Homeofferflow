@@ -3,6 +3,50 @@ const Stripe = require('stripe');
 const SELF_SERVE_PLAN = 'self';
 const FALLBACK_ORIGIN = 'https://www.homeofferflow.com';
 
+function offerNumberIssues(offer) {
+  if (!offer || typeof offer !== 'object' || Array.isArray(offer)) {
+    return ['Review your offer before opening checkout.'];
+  }
+  const issues = [];
+  const first = keys => {
+    const key = keys.find(key => Object.prototype.hasOwnProperty.call(offer, key));
+    return key === undefined ? undefined : offer[key];
+  };
+  const requireNumber = (keys, label, { positive = false, integer = false } = {}) => {
+    const raw = first(keys);
+    const text = typeof raw === 'string' || typeof raw === 'number' ? String(raw).trim() : '';
+    const value = Number(text);
+    const numeric = /^(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?$/i.test(text);
+    if (!text || !numeric || !Number.isFinite(value) || value < 0 || (positive && value <= 0) ||
+        (integer && !Number.isSafeInteger(value))) {
+      issues.push(integer ? `${label} must be a whole number of 0 or more.`
+        : `${label} must be ${positive ? 'greater than 0' : '0 or more'}.`);
+    }
+  };
+  requireNumber(['price', 'offerPrice'], 'Offer price', { positive: true });
+  requireNumber(['earnest', 'earnestMoney'], 'Earnest money');
+  requireNumber(['optionFee'], 'Option fee');
+  requireNumber(['optionDays'], 'Option days', { integer: true });
+  const financing = String(first(['financing', 'financingType']) || '').trim().toLowerCase();
+  if (!['cash', 'conventional', 'fha', 'va', 'usda'].includes(financing)) {
+    issues.push('Choose a supported financing type before checkout.');
+  } else if (financing !== 'cash') {
+    requireNumber(['loanAmount'], 'Loan amount', { positive: true });
+    requireNumber(['loanYears', 'loanTermYears'], 'Loan term years', { positive: true });
+    requireNumber(['interestRateCap', 'loanInterestCap'], 'Max interest rate');
+    requireNumber(['interestFirstYears'], 'Interest cap years');
+    requireNumber(['originationCap'], 'Origination cap');
+    requireNumber(['buyerApprovalDays'], 'Buyer approval days', { integer: true });
+    if (offer.appraisalAddendum === 'partial') {
+      requireNumber(['appraisalPartialValue'], 'Partial waiver appraisal value');
+    } else if (offer.appraisalAddendum === 'additional') {
+      requireNumber(['appraisalTerminateDays'], 'Appraisal termination days', { integer: true });
+      requireNumber(['appraisalTerminateValue'], 'Appraisal termination value');
+    }
+  }
+  return issues;
+}
+
 function safeOrigin(req) {
   const candidate = req.headers.origin || (req.headers.host ? `https://${req.headers.host}` : FALLBACK_ORIGIN);
   try {
@@ -24,16 +68,15 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
-
     const {
-      email,
+      email: rawEmail,
       plan = SELF_SERVE_PLAN,
       offerData = {},
       priceId
     } = req.body || {};
 
-    if (!email || !email.includes('@')) {
+    const email = typeof rawEmail === 'string' ? rawEmail.trim() : '';
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return res.status(400).json({ error: 'Missing or invalid email' });
     }
 
@@ -49,6 +92,15 @@ module.exports = async (req, res) => {
       return res.status(400).json({ error: 'Checkout price is selected by HomeOfferFlow, not the browser.' });
     }
 
+    const issues = offerNumberIssues(offerData);
+    if (issues.length) {
+      return res.status(400).json({
+        error: 'Check your price and financing answers before checkout. ' + issues.slice(0, 4).join(' '),
+        issues
+      });
+    }
+
+    const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
     const finalPriceId = process.env.STRIPE_BUYER_OFFER_PRICE_ID || 'price_1TYTYqAELe66ESXnhNQmydWn';
 
     const origin = safeOrigin(req);
