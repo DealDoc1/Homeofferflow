@@ -3794,12 +3794,14 @@ async def _render_representation_draft_preview(user, agreement_id, *, for_signin
         "hof_standalone_agreements?"
         f"id=eq.{urllib.parse.quote(agreement_uuid)}"
         f"&agent_user_id=eq.{urllib.parse.quote(user['id'])}"
-        "&status=eq.draft"
-        "&select=id,brokerage_id,form_code,form_source_id,source_revision,client_names,agreement_data&limit=1"
+        "&status=in.(draft,failed)"
+        "&select=id,brokerage_id,form_code,form_source_id,source_revision,client_names,agreement_data,status,signwell_document_id&limit=1"
     )
     if not agreements:
         raise PermissionError("That private agreement draft is unavailable.")
     agreement = agreements[0]
+    if agreement.get("signwell_document_id"):
+        raise PermissionError("This signature request already has a provider record. Refresh its status before sending again.")
     sources = await _get(
         "hof_brokerage_form_sources?"
         f"id=eq.{urllib.parse.quote(str(agreement['form_source_id']))}"
@@ -4063,12 +4065,14 @@ async def _standalone_signing_recipient_preview(user, agreement_id):
         "hof_standalone_agreements?"
         f"id=eq.{urllib.parse.quote(agreement_uuid)}"
         f"&agent_user_id=eq.{urllib.parse.quote(user['id'])}"
-        "&status=eq.draft"
-        "&select=id,brokerage_id,form_code,client_names,agreement_data&limit=1"
+        "&status=in.(draft,failed)"
+        "&select=id,brokerage_id,form_code,client_names,agreement_data,status,signwell_document_id&limit=1"
     )
     if not rows:
         raise PermissionError("That document is unavailable or has already been sent.")
     agreement = rows[0]
+    if agreement.get("signwell_document_id"):
+        raise PermissionError("This signature request already has a provider record. Refresh its status before sending again.")
     if str(agreement.get("form_code") or "") not in TXR_SIGNING_FORM_CODES:
         raise ValueError("This document is not available for signing.")
     names = agreement.get("client_names") or []
@@ -4155,7 +4159,7 @@ async def _send_txr_agreement_for_signature(user, data):
     if not rows:
         raise PermissionError("That private agreement draft is unavailable or has already been sent.")
     agreement = rows[0]
-    if agreement.get("status") == "failed" and agreement.get("signwell_document_id"):
+    if agreement.get("signwell_document_id"):
         # A provider document exists for this record, so a blind retry could
         # create duplicate invitations.  Its status must be refreshed instead.
         raise PermissionError("This signature request already has a provider record. Refresh its status before sending again.")

@@ -1,4 +1,6 @@
 from pathlib import Path
+import json
+import subprocess
 import unittest
 
 
@@ -6,6 +8,24 @@ HTML = (Path(__file__).resolve().parents[1] / "index.html").read_text(encoding="
 
 
 class OfferWorkspaceSigningRecoveryTests(unittest.TestCase):
+    def test_active_workspace_renders_retry_only_for_unsent_generated_offers(self):
+        start = HTML.index('  function renderCard(o){')
+        end = HTML.index('  function renderWorkspace(offers){', start)
+        script = '''
+const root = {}, cleanStatus = o => o.status, statusClass = () => '', money = String;
+const subtitle = () => '', bucketForOffer = () => 'generated', needsAttention = () => false;
+const addendaTags = () => [], esc = String, nextAction = () => '', dateShort = String;
+const dateLong = String, signingLabel = () => '';
+''' + HTML[start:end] + '''
+const statuses = ['Generated', 'Generation Failed', 'Draft', 'Awaiting Signature', 'Expired'];
+const results = statuses.map(status => renderCard({id:'test', status}).includes('>Retry signing</button>'));
+results.push(renderCard({id:'test', status:'Generated', signwell_document_id:'existing'}).includes('>Retry signing</button>'));
+results.push(renderCard({id:'test', status:'Generated', offer_data:{signwell:{response:{id:'existing'}}}}).includes('>Retry signing</button>'));
+process.stdout.write(JSON.stringify(results));
+'''
+        result = subprocess.run(['node', '-e', script], capture_output=True, text=True, check=True)
+        self.assertEqual(json.loads(result.stdout), [True, True, False, False, False, False, False])
+
     def test_stale_buyer_signing_cards_offer_a_copy_only_follow_up_action(self):
         self.assertIn("const needsBuyerReminder = hasDoc && bucketForOffer(o) === 'signing' && needsAttention(o);", HTML)
         self.assertIn("Copy buyer reminder", HTML)
