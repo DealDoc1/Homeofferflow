@@ -43,6 +43,20 @@ const {PGlite} = require(process.env.HOF_PGLITE_MODULE || '@electric-sql/pglite'
       check((await db.query(`select * from ${table}`)).rows.length===0,'RLS protects even with accidental select grant');
       await db.exec('reset role');
     }
+    await db.exec(fs.readFileSync(path.resolve(__dirname,'../../supabase/migrations/20260915234223_expired_checkout_payload_cleanup.sql'),'utf8'));
+    for(const role of ['anon','authenticated']) {
+      check(!(await db.query(`select has_table_privilege($1,'${table}','DELETE') allowed`,[role])).rows[0].allowed,'Cleanup grant excludes browser roles');
+    }
+    await db.exec('set role service_role');
+    const remove = async (target, fingerprint, session)=>db.query(`delete from ${table}
+      where id=$1 and payload_sha256=$2 and (stripe_session_id=$3 or stripe_session_id is null) returning id`,[target,fingerprint,session]);
+    check((await remove(id,'b'.repeat(64),'cs_first')).rows.length===0,'Wrong hash cannot delete');
+    check((await remove(id,hash,'cs_other')).rows.length===0,'Other bound session cannot delete');
+    check((await remove(id,hash,'cs_first')).rows.length===1,'Exact cleanup removes abandoned staging copy');
+    check((await remove(id,hash,'cs_first')).rows.length===0,'Cleanup retry is idempotent');
+    await db.query(`insert into ${table}(id,payload_text,payload_sha256) values($1,'{}',$2)`,[id,hash]);
+    check((await remove(id,hash,'cs_unbound')).rows.length===1,'Expired creation with lost binding can be cleaned');
+    await db.exec('reset role');
     console.log(JSON.stringify({engine:'isolated PGlite/PostgreSQL',checks,passed:true}));
   } finally {await db.close();}
 })().catch(error=>{console.error(error.message);process.exitCode=1;});
