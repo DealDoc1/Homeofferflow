@@ -7,6 +7,8 @@ from pypdf import PdfReader, PdfWriter
 from reportlab.pdfgen import canvas
 from lib import signwell_delivery
 from lib.offer_signwell_delivery import deliver_offer_document, offer_answers
+from lib.email_delivery import deliver_email_once, delivery_key, payload_fingerprint, EmailDeliveryPending
+from lib.email_delivery_store import EmailDeliveryStore
 
 from lib.production_adapter import (
     UnsupportedOfferPathError,
@@ -1735,7 +1737,29 @@ def save_generated_offer_to_supabase(offer, customer_email="", signwell_info=Non
         print("SUPABASE SAVE EXCEPTION:", str(e))
         return None
 
-def send_email(to_email, buyer_name, addr, pdf_bytes, signwell_info=None):
+def send_resend_payload(payload, *, delivery_identity=None, purpose=None):
+    def send(body, key=None):
+        headers = {"Authorization": f"Bearer {RESEND_API_KEY}", "Content-Type": "application/json"}
+        if key:
+            headers["Idempotency-Key"] = key
+        response = httpx.post("https://api.resend.com/emails", headers=headers, json=body, timeout=30)
+        if response.status_code not in {200, 201, 202}:
+            # Do not expose recipient data or provider response bodies.
+            raise EmailDeliveryPending(f"Email service did not confirm acceptance ({response.status_code}).")
+        return response.json() if key else None
+
+    if delivery_identity is None:
+        # Existing non-checkout showing notifications remain a separate flow.
+        return send(payload)
+    store = EmailDeliveryStore(supabase_url=SUPABASE_URL, service_key=SUPABASE_SERVICE_ROLE_KEY)
+    return deliver_email_once(key=delivery_key(purpose, delivery_identity), payload=payload,
+                              reserve=store.reserve, begin_attempt=store.begin_attempt,
+                              accept=store.accept, send=send)
+
+
+def send_email(to_email, buyer_name, addr, pdf_bytes, signwell_info=None, *, delivery_identity):
+    if not delivery_identity:
+        raise EmailDeliveryPending("A verified email delivery identity is required.")
     filename = f"HomeOfferFlow_Offer_{addr.replace(' ','_').replace(',','')}.pdf"
 
     payload = {
@@ -1767,20 +1791,9 @@ def send_email(to_email, buyer_name, addr, pdf_bytes, signwell_info=None):
         }]
     }
 
-    r = httpx.post(
-        "https://api.resend.com/emails",
-        headers={
-            "Authorization": f"Bearer {RESEND_API_KEY}",
-            "Content-Type": "application/json"
-        },
-        json=payload,
-        timeout=30
-    )
+    return send_resend_payload(payload, delivery_identity=delivery_identity, purpose="buyer-packet")
 
-    if r.status_code not in [200, 201, 202]:
-        raise Exception(f"Resend error {r.status_code}: {r.text[:200]}")
-
-def send_basic_email(to_email, subject, html_body):
+def send_basic_email(to_email, subject, html_body, *, delivery_identity=None, purpose=None):
     if not to_email:
         raise Exception("Missing recipient email")
 
@@ -1799,25 +1812,16 @@ def send_basic_email(to_email, subject, html_body):
         "html": html_body
     }
 
-    r = httpx.post(
-        "https://api.resend.com/emails",
-        headers={
-            "Authorization": f"Bearer {RESEND_API_KEY}",
-            "Content-Type": "application/json"
-        },
-        json=payload,
-        timeout=30
-    )
-
-    if r.status_code not in [200, 201, 202]:
-        raise Exception(f"Resend error {r.status_code}: {r.text[:200]}")
+    return send_resend_payload(payload, delivery_identity=delivery_identity, purpose=purpose)
 
 
-def send_admin_order_email(offer, customer_email="", signwell_info=None):
+def send_admin_order_email(offer, customer_email="", signwell_info=None, *, delivery_identity):
     """
     Sends an internal admin alert after a paid offer packet is generated.
     This is separate from the buyer PDF email.
     """
+    if not delivery_identity:
+        raise EmailDeliveryPending("A verified email delivery identity is required.")
     if not ADMIN_ORDER_EMAIL:
         print("ADMIN ORDER EMAIL SKIPPED: ADMIN_ORDER_EMAIL is blank")
         return
@@ -1884,7 +1888,8 @@ def send_admin_order_email(offer, customer_email="", signwell_info=None):
       </div>
     """
 
-    send_basic_email(ADMIN_ORDER_EMAIL, f"New HomeOfferFlow Order — {addr}", html)
+    return send_basic_email(ADMIN_ORDER_EMAIL, f"New HomeOfferFlow Order — {addr}", html,
+                            delivery_identity=delivery_identity, purpose="order-admin")
 
 
 def send_showing_request_emails(showing, customer_email):
@@ -2076,29 +2081,47 @@ def handle_checkout(event, subscription_user_id=None):
 
     record = prepare_offer_signing_record(offer, customer_email, user_id=subscription_user_id,
                                          checkout_session_id=session.get("id") if not subscription_user_id else None)
+    if subscription_user_id:
+        if not record.get("id") or record.get("user_id") != subscription_user_id:
+            raise EmailDeliveryPending("Your saved offer could not be verified for email delivery.")
+        # Intentional revisions to an owned offer may receive a new document
+        # email, but replaying the same reviewed answers must not send again.
+        reviewed_answers = {key: value for key, value in offer_answers(offer).items()
+                            if not key.startswith('_') or key in {'_signing_source_hashes', '_signing_render_revisions'}}
+        email_identity = "owned:" + subscription_user_id + ":" + str(record["id"]) + ":" + payload_fingerprint(reviewed_answers)
+    else:
+        checkout_id = str(session.get("id") or "")
+        if not checkout_id.startswith("cs_") or len(checkout_id) <= 3:
+            raise EmailDeliveryPending("The paid checkout could not be identified for email delivery.")
+        email_identity = "checkout:" + checkout_id
     signwell_info = create_signwell_signature_request(offer, pdf_bytes, record=record, user_id=subscription_user_id)
 
-    send_email(
+    document_email = send_email(
         offer.get("buyerEmail") or customer_email,
         offer.get("buyer1", "Buyer"),
         offer.get("address", "Property"),
         pdf_bytes,
-        signwell_info if signwell_info.get("enabled") else None
+        signwell_info if signwell_info.get("enabled") else None,
+        delivery_identity=email_identity,
     )
 
     # Internal admin alert. Do not let admin-email failure block buyer delivery.
     try:
-        send_admin_order_email(
+        admin_email = send_admin_order_email(
             offer,
             customer_email,
-            signwell_info if signwell_info.get("enabled") else None
+            signwell_info if signwell_info.get("enabled") else None,
+            delivery_identity=email_identity,
         )
     except Exception as admin_email_error:
+        admin_email = {"status": "unconfirmed"}
         print("ADMIN ORDER EMAIL FAILED:", str(admin_email_error))
 
     return {
         "status": "ok",
-        "message": "PDF created and emailed",
+        "message": "PDF created. Document email accepted for delivery.",
+        "documentEmail": document_email,
+        "adminEmail": admin_email,
         "signwell": signwell_info
     }
 

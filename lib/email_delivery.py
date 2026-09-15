@@ -59,7 +59,7 @@ def deliver_email_once(*, key, payload, reserve, begin_attempt, accept, send,
 
     Expected row fields: delivery_key, payload, payload_fingerprint, status
     ('pending' or 'accepted'), first_attempt_at, provider_id. This protocol is
-    not wired to checkout until its private storage adapter is deployed.
+    used by checkout only with its private storage adapter and schema.
     """
     if not isinstance(key, str) or not key.startswith('hof-email-v1-') or len(key) != 77:
         raise ValueError('Invalid email delivery key.')

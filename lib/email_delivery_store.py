@@ -1,7 +1,7 @@
 """Service-only Supabase storage for immutable Resend email requests.
 
-Not activated by checkout yet. Requires the reviewed email-delivery schema
-before integration. Never holds a database transaction open during email HTTP.
+Requires the email-delivery schema before deploying the checkout integration.
+Never holds a database transaction open during email HTTP.
 """
 import copy
 import time

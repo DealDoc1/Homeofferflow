@@ -18,6 +18,7 @@ OFFER_ID = '22222222-2222-4222-8222-222222222222'
 class PurchaseDeliveryRecoveryTests(unittest.TestCase):
     def setUp(self):
         self.rows, self.documents = {}, {}
+        self.email_rows, self.email_receipts = {}, {}
         self.sends, self.creates, self.emails = 0, 0, 0
         self.failure = None
         self.offer = {'_hofOfferId': OFFER_ID, 'userType': 'agent', 'address': 'QA property',
@@ -47,6 +48,9 @@ class PurchaseDeliveryRecoveryTests(unittest.TestCase):
         return row
 
     def get(self, url, *, params=None, **kwargs):
+        if '/rest/v1/hof_email_deliveries' in url:
+            row = self.email_rows.get(params['delivery_key'][3:])
+            return self.response([row] if row else [])
         if '/rest/v1/hof_offers' in url:
             row = self.matching(params)
             return self.response([row] if row else [])
@@ -57,6 +61,13 @@ class PurchaseDeliveryRecoveryTests(unittest.TestCase):
         raise AssertionError('Unexpected read: ' + url)
 
     def post(self, url, *, json, **kwargs):
+        if '/rest/v1/hof_email_deliveries' in url:
+            key = json['delivery_key']
+            self.assertIn('resolution=ignore-duplicates', kwargs['headers']['Prefer'])
+            if key in self.email_rows:
+                return self.response([], 201)
+            self.email_rows[key] = {**copy.deepcopy(json), 'first_attempt_at': None, 'provider_id': None}
+            return self.response([self.email_rows[key]], 201)
         if '/rest/v1/hof_offers' in url:
             if self.failure == 'save_failure': return self.response([], 503)
             if json['id'] in self.rows: return self.response([], 409)
@@ -64,7 +75,14 @@ class PurchaseDeliveryRecoveryTests(unittest.TestCase):
             return self.response([self.rows[json['id']]], 201)
         if url.startswith('https://api.resend.com/'):
             self.emails += 1
-            return self.response({'id': 'email'}, 201)
+            key = kwargs['headers']['Idempotency-Key']
+            self.assertIsNotNone(self.email_rows[key]['first_attempt_at'])
+            if key in self.email_receipts:
+                self.assertEqual(self.email_receipts[key]['body'], json)
+            else:
+                self.email_receipts[key] = {'id': 'email-' + str(len(self.email_receipts) + 1),
+                                            'body': copy.deepcopy(json)}
+            return self.response({'id': self.email_receipts[key]['id']}, 201)
         if url.endswith('/send'):
             self.sends += 1
             document = self.documents[url.split('/')[-2]]
@@ -86,6 +104,20 @@ class PurchaseDeliveryRecoveryTests(unittest.TestCase):
         raise AssertionError('Unexpected write: ' + url)
 
     def update(self, url, *, params, json, **kwargs):
+        if '/rest/v1/hof_email_deliveries' in url:
+            row = self.email_rows.get(params['delivery_key'][3:])
+            if not row:
+                return self.response([])
+            for key in ('status', 'first_attempt_at', 'payload_fingerprint'):
+                if key not in params:
+                    continue
+                condition = params[key]
+                if condition == 'is.null' and row.get(key) is not None:
+                    return self.response([])
+                if condition.startswith('eq.') and str(row.get(key)) != condition[3:]:
+                    return self.response([])
+            row.update(copy.deepcopy(json))
+            return self.response([row])
         self.assertIn('/rest/v1/hof_offers', url)
         self.assertIn('user_id', params)
         self.assertIn('signwell_document_id', params)
@@ -145,6 +177,7 @@ class PurchaseDeliveryRecoveryTests(unittest.TestCase):
         self.assertNotIn(OFFER_ID, self.rows)
         self.assertIsNone(next(iter(self.rows.values()))['user_id'])
         self.assertEqual((self.creates, self.sends), (1, 1))
+        self.assertEqual(self.emails, 2)  # buyer and admin once each, not per callback
 
     def test_failed_record_save_cannot_create_or_send_provider_document(self):
         self.failure = 'save_failure'
@@ -179,6 +212,7 @@ class PurchaseDeliveryRecoveryTests(unittest.TestCase):
         self.assertTrue(result['signwell']['recovered'])
         self.assertEqual(self.rows[OFFER_ID]['offer_data'], first_data)
         self.assertEqual((self.creates, self.sends), (1, 1))
+        self.assertEqual(self.emails, 2)
 
     def test_zero_row_claim_cannot_send_the_private_draft(self):
         self.failure = 'claim_lost'
