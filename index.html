@@ -7252,9 +7252,9 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           <div class="field"><label>Preferred Escrow Contact</label><input id="profInvestorEscrowAgent" value="${escapeAttr(profileValue('preferred_escrow_agent'))}" placeholder="Escrow officer / title contact"></div>
           <div class="field"><label>Escrow Address</label><input id="profInvestorEscrowAddress" autocomplete="street-address" inputmode="text" value="${escapeAttr(profileValue('preferred_escrow_address'))}" placeholder="Title company address"></div>
           <div class="field"><label>Default Offer Type</label><select id="profInvestorOfferType"><option value="">Select...</option><option value="cash" ${profileValue('default_offer_type')==='cash'?'selected':''}>Cash</option><option value="conventional" ${profileValue('default_offer_type')==='conventional'?'selected':''}>Conventional</option></select></div>
-          <div class="field"><label>Default Option Fee</label><input id="profInvestorOptionFee" type="number" value="${escapeAttr(profileValue('default_option_fee', 250))}"></div>
-          <div class="field"><label>Default Option Days</label><input id="profInvestorOptionDays" type="number" value="${escapeAttr(profileValue('default_option_days', 7))}"></div>
-          <div class="field"><label>Default Earnest Money</label><input id="profInvestorEarnest" type="number" value="${escapeAttr(profileValue('default_earnest_amount'))}" placeholder="5000"></div>
+          <div class="field"><label>Default Option Fee</label><input id="profInvestorOptionFee" type="number" min="0" step="1" value="${escapeAttr(profileValue('default_option_fee'))}" placeholder="250"></div>
+          <div class="field"><label>Default Option Days</label><input id="profInvestorOptionDays" type="number" min="0" step="1" value="${escapeAttr(profileValue('default_option_days'))}" placeholder="7"></div>
+          <div class="field"><label>Default Earnest Money</label><input id="profInvestorEarnest" type="number" min="0" step="1" value="${escapeAttr(profileValue('default_earnest_amount'))}" placeholder="5000"></div>
         </div></div>`;
       return;
     }
@@ -7272,9 +7272,9 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         <div class="field"><label>Preferred Title Company</label><input id="profTitleCompany" value="${escapeAttr(profileValue('preferred_title_company'))}" placeholder="Chicago Title DFW"></div>
         <div class="field"><label>Preferred Escrow Contact</label><input id="profEscrowAgent" value="${escapeAttr(profileValue('preferred_escrow_agent'))}" placeholder="Escrow officer / title contact"></div>
         <div class="field"><label>Escrow Address</label><input id="profEscrowAddress" autocomplete="street-address" inputmode="text" value="${escapeAttr(profileValue('preferred_escrow_address'))}" placeholder="Title company address"></div>
-        <div class="field"><label>Default Option Fee</label><input id="profOptionFee" type="number" value="${escapeAttr(profileValue('default_option_fee', 250))}"></div>
-        <div class="field"><label>Default Option Days</label><input id="profOptionDays" type="number" value="${escapeAttr(profileValue('default_option_days', 7))}"></div>
-        <div class="field"><label>Default Earnest Money</label><input id="profEarnestAmount" type="number" value="${escapeAttr(profileValue('default_earnest_amount'))}" placeholder="5000"></div>
+        <div class="field"><label>Default Option Fee</label><input id="profOptionFee" type="number" min="0" step="1" value="${escapeAttr(profileValue('default_option_fee'))}" placeholder="250"></div>
+        <div class="field"><label>Default Option Days</label><input id="profOptionDays" type="number" min="0" step="1" value="${escapeAttr(profileValue('default_option_days'))}" placeholder="7"></div>
+        <div class="field"><label>Default Earnest Money</label><input id="profEarnestAmount" type="number" min="0" step="1" value="${escapeAttr(profileValue('default_earnest_amount'))}" placeholder="5000"></div>
         <div class="field"><label>Default Title Payer</label><select id="profTitlePayer"><option value="seller" ${profileValue('default_title_payer','seller')==='seller'?'selected':''}>Seller</option><option value="buyer" ${profileValue('default_title_payer')==='buyer'?'selected':''}>Buyer</option></select></div>
         <div class="field"><label>Default Survey</label><select id="profSurveyChoice"><option value="sellerExisting" ${profileValue('default_survey_choice','sellerExisting')==='sellerExisting'?'selected':''}>Seller existing survey</option><option value="buyerNew" ${profileValue('default_survey_choice')==='buyerNew'?'selected':''}>Buyer new survey</option><option value="noSurvey" ${profileValue('default_survey_choice')==='noSurvey'?'selected':''}>No survey required</option></select></div>
         <div class="field"><label>If survey rejected, who pays?</label><select id="profSurveyRejectedBy"><option value="seller" ${profileValue('default_survey_if_rejected_paid_by','seller')==='seller'?'selected':''}>Seller</option><option value="buyer" ${profileValue('default_survey_if_rejected_paid_by')==='buyer'?'selected':''}>Buyer</option></select></div>
@@ -7340,6 +7340,28 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       return null;
     }
 
+    const numericProfileFields = hofAuth.role === 'investor'
+      ? [['default_option_fee','profInvestorOptionFee','Default Option Fee'],
+         ['default_option_days','profInvestorOptionDays','Default Option Days'],
+         ['default_earnest_amount','profInvestorEarnest','Default Earnest Money']]
+      : [['default_option_fee','profOptionFee','Default Option Fee'],
+         ['default_option_days','profOptionDays','Default Option Days'],
+         ['default_earnest_amount','profEarnestAmount','Default Earnest Money']];
+    const numericDefaults = {};
+    for (const [key, id, label] of numericProfileFields) {
+      const input = document.getElementById(id);
+      const raw = getVal(id);
+      const value = raw === '' ? null : Number(raw);
+      if (input?.validity?.badInput || (value !== null &&
+          (!Number.isSafeInteger(value) || value < 0 || (key === 'default_option_days' && value > 2147483647)))) {
+        restoreSaveButton();
+        setAccountStatus('Enter a non-negative whole number for ' + label + ', or leave it blank.', 'err');
+        input?.focus();
+        return null;
+      }
+      numericDefaults[key] = value;
+    }
+
     let user = hofAuth.session?.user || null;
     const savingUserId = user?.id;
     const savingRole = hofAuth.role;
@@ -7400,9 +7422,9 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         preferred_escrow_agent: getVal('profInvestorEscrowAgent'),
         preferred_escrow_address: getVal('profInvestorEscrowAddress'),
         default_offer_type: getVal('profInvestorOfferType'),
-        default_option_fee: moneyNumber(getVal('profInvestorOptionFee')) || 250,
-        default_option_days: Number(getVal('profInvestorOptionDays')) || 7,
-        default_earnest_amount: moneyNumber(getVal('profInvestorEarnest')) || null,
+        default_option_fee: numericDefaults.default_option_fee,
+        default_option_days: numericDefaults.default_option_days,
+        default_earnest_amount: numericDefaults.default_earnest_amount,
         updated_at: now
       };
     } else {
@@ -7418,9 +7440,9 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         preferred_title_company: getVal('profTitleCompany'),
         preferred_escrow_agent: getVal('profEscrowAgent'),
         preferred_escrow_address: getVal('profEscrowAddress'),
-        default_option_fee: moneyNumber(getVal('profOptionFee')) || 250,
-        default_option_days: Number(getVal('profOptionDays')) || 7,
-        default_earnest_amount: moneyNumber(getVal('profEarnestAmount')) || null,
+        default_option_fee: numericDefaults.default_option_fee,
+        default_option_days: numericDefaults.default_option_days,
+        default_earnest_amount: numericDefaults.default_earnest_amount,
         default_title_payer: getVal('profTitlePayer') || 'seller',
         default_survey_choice: getVal('profSurveyChoice') || 'sellerExisting',
         default_survey_if_rejected_paid_by: getVal('profSurveyRejectedBy') || 'seller',
@@ -7477,7 +7499,12 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   function setInputIfEmpty(id, value, force = false) {
     const el = document.getElementById(id);
     if (!el || value === null || value === undefined || value === '') return;
-    if (force || !String(el.value || '').trim()) el.value = value;
+    if (force || !String(el.value || '').trim()) {
+      el.value = value;
+      // A saved preference is an intentional answer, including zero. Later
+      // price/financing suggestions must not replace it automatically.
+      el._userEdited = true;
+    }
   }
 
   function applyProfileDefaultsToWizard(force = false) {
@@ -17514,20 +17541,22 @@ function routeAfterMagicLinkIfNeeded() {
   function completionItems(){
     const p = window.hofAuth?.accountProfile || {};
     const x = readExtraDefaults();
+    const hasNumber = value => value !== null && value !== undefined && String(value).trim() !== '' && Number.isFinite(Number(value));
+    const termsReady = hasNumber(p.default_option_fee) && hasNumber(p.default_option_days);
     const isInvestor = window.hofAuth?.role === 'investor';
     if (isInvestor) {
       return [
         ['Entity', p.investor_entity_name || p.signer_name],
         ['Contact', p.investor_email && p.investor_phone],
         ['Title', p.preferred_title_company || p.preferred_escrow_agent],
-        ['Terms', p.default_option_fee && p.default_option_days]
+        ['Terms', termsReady]
       ];
     }
     return [
       ['Agent', p.agent_name && p.license_number],
       ['Brokerage', p.brokerage_name && p.brokerage_license],
       ['Title', p.preferred_title_company || p.preferred_escrow_agent],
-      ['Defaults', (p.default_option_fee && p.default_option_days) || x.default_possession || x.default_earnest_percent]
+      ['Defaults', termsReady || x.default_possession || x.default_earnest_percent]
     ];
   }
 

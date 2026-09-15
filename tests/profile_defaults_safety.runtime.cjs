@@ -14,7 +14,7 @@ const tick=()=>new Promise(setImmediate);
 function setup({role='agent',path=role,base=true}={}) {
   const nodes=new Map(), radios={}, notices=[], queries=[], writes=[], timers=[], events={};
   const get=id=>{
-    if(!nodes.has(id))nodes.set(id,{id,value:'',style:{},disabled:false,checked:false,attrs:{},
+    if(!nodes.has(id))nodes.set(id,{id,_value:'',get value(){return this._value;},set value(v){this._value=String(v);},style:{},disabled:false,checked:false,attrs:{},
       setAttribute(k,v){this.attrs[k]=v;},focus(){this.focused=true;},checkValidity:()=>true});
     return nodes.get(id);
   };
@@ -169,3 +169,64 @@ test('brokerage defaults from an earlier sign-in cannot apply after signing back
   wait.resolve({ok:true,json:async()=>({profile:{preferredTitleCompany:'Old Title'}})});await saving;
   assert.equal(x.c.hofAuth.accountProfile,fresh);
 });
+
+const numericIds={agent:['profOptionFee','profOptionDays','profEarnestAmount'],investor:['profInvestorOptionFee','profInvestorOptionDays','profInvestorEarnest']};
+const numericKeys=['default_option_fee','default_option_days','default_earnest_amount'];
+for(const role of ['agent','investor']) {
+  for(const values of [['0','0','0'],['','',''],['425','10','8250']]) {
+    test(`${role} profile preserves numeric defaults ${JSON.stringify(values)} through save and render`,async()=>{
+      const x=setup({role}); numericIds[role].forEach((id,i)=>x.get(id).value=values[i]);
+      await x.c.saveAccountProfile();
+      const body=x.queries.find(q=>q.kind==='update').body;
+      numericKeys.forEach((key,i)=>assert.equal(body[key],values[i]===''?null:Number(values[i])));
+      // Execute the original form renderer, independently of later UI wrappers.
+      x.c.escapeAttr=v=>String(v);
+      vm.runInContext(source('  function profileValue(','  function escapeAttr('),x.c);
+      x.c.renderAccountProfileForm();
+      numericIds[role].forEach((id,i)=>{
+        const input=x.get('accountProfileForm').innerHTML.match(new RegExp('<input id="'+id+'"[^>]*>'))?.[0];
+        assert.ok(input,id);assert.match(input,new RegExp('value="'+values[i]+'"'));
+      });
+    });
+  }
+  for(const [value,badInput] of [['-1',false],['1.5',false],['Infinity',false],['not a number',false],['9007199254740992',false],['',true]]) {
+    for(const id of numericIds[role]) {
+      test(`${role} rejects invalid ${id} ${JSON.stringify(value)} badInput=${badInput} before network access`,async()=>{
+        const x=setup({role});let sessionCalls=0;
+        x.hooks.session=async()=>{sessionCalls++;return {data:{session:x.c.hofAuth.session}};};
+        x.get(id).value=value;x.get(id).validity={badInput};
+        await x.c.saveAccountProfile();
+        assert.equal(sessionCalls,0);assert.equal(x.queries.length,0);assert.equal(x.writes.length,0);
+        assert.equal(x.notices.at(-1).type,'err');assert.match(x.notices.at(-1).message,/whole number/);
+        assert.equal(x.get(id).focused,true);assert.equal(x.get('saveAccountProfileButton').disabled,false);
+      });
+    }
+  }
+  test(`${role} rejects option days outside the existing database integer range`,async()=>{
+    const x=setup({role});x.get(numericIds[role][1]).value='2147483648';
+    await x.c.saveAccountProfile();assert.equal(x.queries.length,0);assert.equal(x.writes.length,0);
+    assert.equal(x.notices.at(-1).type,'err');
+  });
+  for(const values of [[0,0,0],[425,10,8250],[null,null,null]]) {
+    test(`${role} saved defaults ${JSON.stringify(values)} survive the actual price calculator`,()=>{
+      const x=setup({role});x.store.delete(x.key);
+      numericKeys.forEach((key,i)=>x.c.hofAuth.accountProfile[key]=values[i]);
+      vm.runInContext(source('  function numFromEl(','  function getSelectedFinancingType('),x.c);
+      vm.runInContext(source('  function calculatePriceTermsOnly(','  function calculateFinancingDefaults('),x.c);
+      x.c.showFieldRecommendation=()=>{};
+      x.c.applyProfileDefaultsToWizard(false);x.c.calculatePriceTermsOnly();
+      const expected=values[0]===null?[250,7,5000]:values;
+      ['optionFee','optionDays','earnestMoney'].forEach((id,i)=>assert.equal(Number(x.get(id).value),expected[i]));
+      x.get('offerPrice').value='700000';x.c.calculatePriceTermsOnly();
+      assert.equal(Number(x.get('earnestMoney').value),values[2]===null?7000:values[2]);
+    });
+  }
+  test(`${role} profile completion distinguishes zero terms from missing terms`,()=>{
+    const x=setup({role});x.c.readExtraDefaults=()=>({});
+    vm.runInContext(source('  function completionItems(){','  function renderCompletionStrip(){'),x.c);
+    for(const value of [0,'0',null,undefined,'']) {
+      x.c.hofAuth.accountProfile={default_option_fee:value,default_option_days:value};
+      const terms=x.c.completionItems().at(-1)[1];assert.equal(Boolean(terms),value===0||value==='0');
+    }
+  });
+}
