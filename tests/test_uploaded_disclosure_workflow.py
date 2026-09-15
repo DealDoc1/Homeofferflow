@@ -96,7 +96,7 @@ class UploadedDisclosureWorkflowTests(unittest.TestCase):
         self.assertIn("window.hofUploadedDisclosureDocs = [];", INDEX_HTML)
         self.assertIn("resetUploadedDisclosureDraftForOffer(offer.offer_data || {});", INDEX_HTML)
         self.assertIn("resetUploadedDisclosureDraftForOffer({});", INDEX_HTML)
-        self.assertIn("Re-upload required before sending:", INDEX_HTML)
+        self.assertIn("Files needed:", INDEX_HTML)
 
     def test_duplicate_offer_drops_transaction_sensitive_attachments(self):
         self.assertIn("delete copyData.uploadedDisclosureDocs;", INDEX_HTML)

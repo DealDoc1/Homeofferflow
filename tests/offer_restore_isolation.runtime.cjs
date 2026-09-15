@@ -300,6 +300,92 @@ function enableLocalDraft(x,draft,owner='owner') {
   return {store,timers};
 }
 const startupDraft={userType:'agent',wizardOrderVersion:2,step:3,fields:{buyer1First:'Saved',buyer1Last:'Client',propAddress:'Saved property'},radios:{}};
+function enableCheckoutRecovery(x, offer) {
+  const local=enableLocalDraft(x,{...startupDraft,userType:'homebuyer'},'');
+  const c=x.ctx;
+  c.URLSearchParams=URLSearchParams;
+  c.window.location={search:'?payment=cancelled',origin:'https://www.homeofferflow.test',pathname:'/'};
+  c.window.history={replaceState:()=>x.calls.push('clean-url')};
+  c.sessionStorage={getItem:()=>offer===null?null:JSON.stringify(offer)};
+  c.trackEvent=()=>{};c.recordHomebuyerCheckoutEvent=()=>{};
+  c.setUploadedDisclosureStatus=message=>x.calls.push(['upload-status',message]);
+  c.saveDraft=()=>{};c.renderReview=()=>{};
+  c.getCurrentSteps=()=>['step0','step1','step2','step3','step5','step6','step7','step8','step9'];
+  x.get('uploadedDisclosureDocs').focus=()=>x.calls.push('focus-attachments');
+  if(html.includes('  function restoreBuyerCheckoutSnapshot('))
+    vm.runInContext(source('  function restoreBuyerCheckoutSnapshot(', '  function checkPaymentReturn()'),c);
+  vm.runInContext(source('  function checkPaymentReturn()',"  window.addEventListener('load', () => { try { if (typeof checkSubscriptionReturn"),c);
+  vm.runInContext(source('  function removeUploadedDisclosure(', '  function renderUploadedDocsList()'),c);
+  return local;
+}
+const cancelledBuyer={userType:'homebuyer',selectedPlan:'self',selectedPrice:99,buyer1:'Current Buyer',
+  buyerEmail:'buyer@example.test',_paymentEmail:'receipt@example.test',address:'Current property',price:450000,
+  financing:'cash',earnest:0,optionFee:0,optionDays:0,repairsText:'Current repairs',_hofOfferId:'do-not-reuse',
+  uploadedDocNames:['survey.pdf'],uploadedDisclosureDocs:[{name:'survey.pdf',type:'survey',base64:'JVBERg==',size:4}]};
+test('cancelled checkout hydrates the actual interview fields and current attachments',()=>{
+  const x=setup();enableCheckoutRecovery(x,cancelledBuyer);const c=x.ctx;
+  x.get('propAddress').value='Wrong previous property';
+  c.window.hofUploadedDisclosureDocs=[{name:'old-client.pdf',base64:'old'}];
+  c.checkPaymentReturn();
+  assert.equal(x.get('propAddress').value,'Current property');
+  assert.equal(x.get('buyer1First').value,'Current');assert.equal(x.get('buyer1Last').value,'Buyer');
+  assert.equal(x.get('offerPrice').value,'450000');assert.equal(x.get('optionFee').value,'0');
+  assert.equal(x.get('repairsText').value,'Current repairs');assert.equal(x.get('paymentEmail').value,'receipt@example.test');
+  assert.equal(c.state.data._hofOfferId,null);assert.equal(c.state.step,8);
+  assert.equal(c.window.hofUploadedDisclosureDocs.length,1);assert.equal(c.window.hofUploadedDisclosureDocs[0].name,'survey.pdf');
+  assert.equal(c.window.hofUploadedDisclosureDocs[0].base64,'JVBERg==');
+  assert.equal(x.get('uploadedDisclosureAck').checked,false);
+  assert.equal(c.__hofRestoringDraft,false);assert.equal(c.window.__hofAutomaticDraftRestoreSettled,true);
+});
+test('cancel snapshot rejects unrelated agent or malformed work before mutation',()=>{
+  const x=setup();enableCheckoutRecovery(x,cancelledBuyer);const original=x.ctx.state.data;
+  for(const value of [null,[],{}, {...cancelledBuyer,userType:'agent'}, {...cancelledBuyer,selectedPlan:'monthly'}])
+    assert.equal(x.ctx.restoreBuyerCheckoutSnapshot(value),false);
+  assert.equal(x.ctx.state.data,original);
+});
+test('cancel fallback restores homebuyer fields but never an agent draft',()=>{
+  const x=setup(),local=enableCheckoutRecovery(x,null);const c=x.ctx;
+  c.checkPaymentReturn();assert.equal(x.get('propAddress').value,'Saved property');
+  local.store.set('draft',JSON.stringify(startupDraft));
+  const before=c.state.data;assert.equal(c.restoreDraft({expectedRole:'homebuyer'}),false);assert.equal(c.state.data,before);
+});
+test('missing saved attachment stops sending and opens the upload step',()=>{
+  const x=setup();enableCheckoutRecovery(x,cancelledBuyer);const c=x.ctx;
+  c.state.data.uploadedDocNames=['survey.pdf'];c.window.hofUploadedDisclosureDocs=[];
+  assert.equal(c.validateUploadedDisclosureDocs(),false);
+  assert.equal(c.state.step,4);assert.ok(x.calls.includes('focus-attachments'));
+});
+test('removing one present upload does not silently remove a different missing one',()=>{
+  const x=setup();enableCheckoutRecovery(x,cancelledBuyer);const c=x.ctx;
+  c.state.data.uploadedDocNames=['survey.pdf','missing.pdf'];c.window.hofUploadedDisclosureDocs=[{name:'survey.pdf',base64:'data'}];
+  c.removeUploadedDisclosure(0);
+  assert.deepEqual(Array.from(c.missingUploadedDisclosureNames()),['missing.pdf']);
+});
+test('explicitly removing missing files preserves the uploads already present',()=>{
+  const x=setup();enableCheckoutRecovery(x,cancelledBuyer);const c=x.ctx;
+  c.state.data.uploadedDocNames=['survey.pdf','missing.pdf'];c.state.data.uploadedDisclosureDocs=[{name:'missing.pdf'}];
+  c.window.hofUploadedDisclosureDocs=[{name:'survey.pdf',base64:'data',type:'survey'}];
+  c.removeMissingUploadedDisclosures();
+  assert.deepEqual(Array.from(c.state.data.uploadedDocNames),['survey.pdf']);
+  assert.equal(c.window.hofUploadedDisclosureDocs.length,1);assert.equal(c.state.data.uploadedDisclosureDocs,undefined);
+});
+test('a partially re-uploaded set keeps remaining missing files visible',async()=>{
+  const x=setup();enableCheckoutRecovery(x,cancelledBuyer);const c=x.ctx;
+  c.state.data.uploadedDocNames=['survey.pdf','other.pdf'];c.window.hofUploadedDisclosureDocs=[];
+  c.Uint8Array=Uint8Array;c.readFileAsBase64=async()=> 'JVBERg==';c.suggestedUploadedDisclosureType=()=> 'survey';
+  vm.runInContext(source('  async function handleUploadedDisclosureDocs(', '  function controlledLaunchUnsupportedPaths('),c);
+  await c.handleUploadedDisclosureDocs([{name:'survey.pdf',size:4,type:'application/pdf',slice:()=>({arrayBuffer:async()=>new Uint8Array([37,80,68,70]).buffer})}]);
+  assert.deepEqual(Array.from(c.missingUploadedDisclosureNames()),['other.pdf']);
+  assert.equal(c.validateUploadedDisclosureDocs(),false);
+});
+test('a restored draft cannot silently resubmit stale legacy attachment bytes',()=>{
+  const x=setup();enableCheckoutRecovery(x,cancelledBuyer);const c=x.ctx;
+  c.state.data={userType:'agent',uploadedDocs:[{name:'legacy.pdf',base64:'private-old-file'}]};
+  c.resetUploadedDisclosureDraftForOffer(c.state.data);
+  assert.equal(c.state.data.uploadedDocs,undefined);assert.equal(c.state.data.uploadedDisclosureDocs,undefined);
+  assert.deepEqual(Array.from(c.state.data.uploadedDocNames),['legacy.pdf']);
+  assert.equal(c.validateUploadedDisclosureDocs(),false);
+});
 test('automatic local restore runs once and cannot overwrite later answers',()=>{
   const x=setup();enableLocalDraft(x,startupDraft);
   assert.equal(x.ctx.restoreDraft({automatic:true}),true);
