@@ -30,7 +30,7 @@ class StandaloneRecipientPreviewTests(unittest.TestCase):
             result = asyncio.run(MODULE._standalone_signing_recipient_preview(USER, AGREEMENT_ID))
         self.assertIn(f"id=eq.{AGREEMENT_ID}", get.call_args_list[0].args[0])
         self.assertIn("agent_user_id=eq.owner-1", get.call_args_list[0].args[0])
-        self.assertIn("status=eq.draft", get.call_args_list[0].args[0])
+        self.assertIn("status=in.(draft,failed)", get.call_args_list[0].args[0])
         self.assertEqual(result["recipients"], [
             {"id": "1", "name": "Customer One", "email": "", "emailEditable": True, "label": "Client 1"},
             {"id": "associate", "name": "Agent One", "email": "agent@example.com", "emailEditable": False, "label": "Associate signer (your account)"},
@@ -74,6 +74,49 @@ class StandaloneRecipientPreviewTests(unittest.TestCase):
         with patch.object(MODULE, "_get", get), self.assertRaises(ValueError):
             asyncio.run(MODULE._standalone_signing_recipient_preview(USER, "not-a-uuid"))
         get.assert_not_awaited()
+
+    def test_failed_unsent_agreement_can_review_contacts_and_render_for_retry(self):
+        draft = showing_draft()
+        draft.update(status="failed", signwell_document_id=None,
+                     form_source_id="source-1", source_revision="02-25-26")
+        source = {"id": "source-1", "source_revision": "02-25-26",
+                  "storage_bucket": "private", "storage_path": "source.pdf"}
+        async def query(path):
+            if path.startswith("hof_standalone_agreements?"):
+                # Simulate the actual database filter; the previous draft-only
+                # query must not pass this regression.
+                self.assertIn("agent_user_id=eq.owner-1", path)
+                return [draft] if "status=in.(draft,failed)" in path else []
+            if path.startswith("hof_brokerage_form_sources?"):
+                return [source]
+            return []
+        from types import SimpleNamespace
+        client = AsyncMock()
+        client.get.return_value = SimpleNamespace(status_code=200, content=b"%PDF-source")
+        with patch.object(MODULE, "_get", side_effect=query), \
+             patch.object(MODULE, "_get_optional", AsyncMock(return_value=[])), \
+             patch.object(MODULE.httpx, "AsyncClient") as factory, \
+             patch("lib.txr_1508.render_txr_1508", return_value=b"%PDF-rendered") as render:
+            factory.return_value.__aenter__.return_value = client
+            contacts = asyncio.run(MODULE._standalone_signing_recipient_preview(USER, AGREEMENT_ID))
+            pdf = asyncio.run(MODULE._render_representation_draft_preview(USER, AGREEMENT_ID, for_signing=True))
+        self.assertEqual(contacts["recipients"][0]["name"], "Customer One")
+        self.assertEqual(pdf, b"%PDF-rendered")
+        self.assertTrue(render.call_args.args[1]["_for_signing"])
+        client.post.assert_not_awaited()
+
+    def test_existing_provider_record_blocks_every_retry_preparation_step(self):
+        for status in ("draft", "failed"):
+            draft = {**showing_draft(), "status": status, "signwell_document_id": "existing"}
+            for operation in (MODULE._standalone_signing_recipient_preview,
+                              MODULE._render_representation_draft_preview):
+                with self.subTest(status=status, operation=operation.__name__), \
+                     patch.object(MODULE, "_get", AsyncMock(return_value=[draft])) as get, \
+                     patch.object(MODULE.httpx, "AsyncClient") as client:
+                    with self.assertRaisesRegex(PermissionError, "Refresh its status"):
+                        asyncio.run(operation(USER, AGREEMENT_ID))
+                    get.assert_awaited_once()
+                    client.assert_not_called()
 
 
 class SigningRecipientConfirmationTests(unittest.TestCase):
