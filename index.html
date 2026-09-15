@@ -8994,11 +8994,44 @@ function routeAfterMagicLinkIfNeeded() {
     if (state.data.userType === 'agent') state.data.hasBuyerAgent = 'yes';
   }
 
+  function interviewNumberValidationMessage(el) {
+    // Validate only defined interview amounts, not every number on the page.
+    // Zero fees, zero-day periods, and zero interest remain valid choices.
+    const rules = {
+      offerPrice: ['offer price', true],
+      earnestMoney: ['earnest money'],
+      optionFee: ['option fee'],
+      optionDays: ['option days', false, true],
+      loanAmount: ['loan amount', true],
+      loanYears: ['loan term years', true],
+      interestRateCap: ['max interest rate'],
+      interestFirstYears: ['interest cap years'],
+      originationCap: ['origination cap'],
+      buyerApprovalDays: ['buyer approval days', false, true],
+      appraisalPartialValue: ['partial waiver appraisal value'],
+      appraisalTerminateDays: ['appraisal termination days', false, true],
+      appraisalTerminateValue: ['appraisal termination value']
+    };
+    const rule = rules[el?.id];
+    const raw = String(el?.value ?? '').trim();
+    if (!rule || !raw) return '';
+    const [label, positive, integer] = rule;
+    const value = Number(raw);
+    const numeric = /^(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?$/i.test(raw);
+    if (!numeric || !Number.isFinite(value) || value < 0 || (positive && value <= 0) ||
+        (integer && !Number.isSafeInteger(value))) {
+      return integer ? `${label} as a whole number of 0 or more`
+        : `${label} ${positive ? 'greater than 0' : 'of 0 or more'}`;
+    }
+    return '';
+  }
+
   function requireField(id, label, missing) {
     const el = document.getElementById(id);
     if (!el) return;
-    if (!String(el.value || '').trim()) {
-      missing.push(label);
+    const numberIssue = interviewNumberValidationMessage(el);
+    if (!String(el.value || '').trim() || numberIssue) {
+      missing.push(numberIssue || label);
       el.style.borderColor = 'var(--warn)';
       el.dataset.validationInvalid = 'true';
       el.setAttribute('aria-invalid', 'true');
@@ -9103,7 +9136,8 @@ function routeAfterMagicLinkIfNeeded() {
         ? target.checked
         : String(target.value || '').trim().length > 0;
       const isValidEmail = !target.matches('input[type="email"]') || target.checkValidity();
-      if (hasAnswer && isValidEmail) {
+      const isValidNumber = !interviewNumberValidationMessage(target);
+      if (hasAnswer && isValidEmail && isValidNumber) {
         target.style.borderColor = '';
         delete target.dataset.validationInvalid;
         target.removeAttribute('aria-invalid');
