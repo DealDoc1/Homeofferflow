@@ -8242,7 +8242,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       const updated = formatOfferDateTime(o.last_updated || o.created_at) || '—';
       const generatedAt = o.generated_at || d.generatedAt || '';
       const hasSignwellDoc = !!(o.signwell_document_id || d.signwellDocumentId || d.signwell?.document_id || d.signwell?.response?.id);
-      const canRetryBuyerSigning = !hasSignwellDoc && ['generated', 'generation failed'].includes(String(o.status || '').toLowerCase());
+      const canRetryBuyerSigning = (!hasSignwellDoc || d._hof_signature_delivery?.version === 1) && ['generated', 'generation failed'].includes(String(o.status || '').toLowerCase());
       const signingBucket = getOfferSigningBucket(o);
       const signingLabel = signingBucket === 'signed' ? 'Buyer signatures complete'
         : signingBucket === 'partial' ? 'Partially signed'
@@ -8319,9 +8319,11 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         body: JSON.stringify({ action: 'retry_offer_signature', offerId })
       });
       const result = await response.json().catch(() => ({}));
-      if (!response.ok || !result.ok) throw new Error(result.error || 'Signature delivery is temporarily unavailable. Your offer is saved and no one was emailed.');
-      window.announceWorkspaceStatus?.('Buyer signature request sent.');
-      await loadMyOffers();
+      if (!response.ok || !result.ok) throw new Error(result.error || 'Delivery could not be confirmed. Check your offer’s signature status.');
+      window.announceWorkspaceStatus?.(result.message || 'Buyer signature request sent.');
+      try { await loadMyOffers(); } catch (_) {
+        window.announceWorkspaceStatus?.((result.message || 'Buyer signature request sent.') + ' Your offer list could not refresh. Check its status from your account.');
+      }
     } catch (error) {
       window.announceWorkspaceStatus?.(error.message || 'Signature delivery is temporarily unavailable.');
       if (buttonEl) { buttonEl.disabled = false; buttonEl.textContent = original; }
@@ -17846,7 +17848,7 @@ function routeAfterMagicLinkIfNeeded() {
     const sub = subtitle(o) || [o.property_city || d.propCity, o.property_state || d.propState].filter(Boolean).join(', ');
     const role = o.role || d.userType || root.hofAuth?.role || 'agent';
     const hasDoc = !!(o.signwell_document_id || d.signwellDocumentId || d.signwell?.document_id || d.signwell?.response?.id);
-    const canRetrySigning = !hasDoc && ['generated', 'generation failed'].includes(String(o.status || '').toLowerCase());
+    const canRetrySigning = (!hasDoc || d._hof_signature_delivery?.version === 1) && ['generated', 'generation failed'].includes(String(o.status || '').toLowerCase());
     const isExpired = cleanStatus(o).toLowerCase().includes('expired');
     const needsBuyerReminder = hasDoc && bucketForOffer(o) === 'signing' && needsAttention(o);
     const tags = addendaTags(d).map(([t,c]) => `<span class="${c}">${esc(t)}</span>`).join('');

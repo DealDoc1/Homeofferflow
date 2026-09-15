@@ -94,10 +94,10 @@ function safeMainOfferStatus(signwellStatus) {
   // Keep detailed signature status in signwell_status.
   // Keep status limited to safer existing workflow values.
   if (clean === 'Buyer Signatures Complete') return 'Signed';
-  if (clean === 'Partially Signed') return 'Generated';
-  if (clean === 'Awaiting Buyer Signature') return 'Generated';
-  if (clean === 'Viewed') return 'Generated';
-  if (clean === 'Declined') return 'Declined';
+  if (clean === 'Partially Signed') return 'Partially Signed';
+  if (clean === 'Awaiting Buyer Signature') return 'Sent for Signature';
+  if (clean === 'Viewed') return 'Buyer Viewed';
+  if (clean === 'Declined' || clean === 'Cancelled') return 'Rejected';
   if (clean === 'Expired') return 'Expired';
 
   return 'Generated';
@@ -180,7 +180,7 @@ async function getOfferForUser(offerId, user) {
   const filters = [
     `id=eq.${encodeURIComponent(offerId)}`,
     `user_id=eq.${encodeURIComponent(user.id)}`,
-    'select=id,user_id,signwell_document_id,offer_data'
+    'select=id,user_id,signwell_document_id,offer_data,status,last_updated'
   ];
 
   const rows = await supabaseRequest(`hof_offers?${filters.join('&')}`, {
@@ -264,7 +264,9 @@ async function updateOfferStatus(offer, status, documentId, document, user) {
   const offerData = parseJsonObject(offer.offer_data);
   const recipientStatuses = extractRecipientStatuses(document);
   const cleanSignwellStatus = cleanStatusLabel(status);
-  const mainStatus = safeMainOfferStatus(cleanSignwellStatus);
+  const providerMainStatus = safeMainOfferStatus(cleanSignwellStatus);
+  const mainStatus = ['Submitted', 'Accepted', 'Deleted'].includes(offer.status)
+    ? offer.status : providerMainStatus;
 
   const updatedOfferData = {
     ...offerData,
@@ -275,7 +277,7 @@ async function updateOfferStatus(offer, status, documentId, document, user) {
   };
 
   const updateRows = await supabaseRequest(
-    `hof_offers?id=eq.${encodeURIComponent(offer.id)}&user_id=eq.${encodeURIComponent(user.id)}&select=id,user_id,signwell_document_id,signwell_status,status,last_updated`,
+    `hof_offers?id=eq.${encodeURIComponent(offer.id)}&user_id=eq.${encodeURIComponent(user.id)}${offerRefreshGuard(offer, providerMainStatus)}&select=id,user_id,signwell_document_id,signwell_status,status,last_updated`,
     {
       method: 'PATCH',
       headers: { Prefer: 'return=representation' },
@@ -288,6 +290,7 @@ async function updateOfferStatus(offer, status, documentId, document, user) {
     }
   );
 
+  const updated = confirmSignatureRefresh(updateRows, offer);
   await supabaseRequest('hof_offer_events', {
     method: 'POST',
     headers: { Prefer: 'return=minimal' },
@@ -308,7 +311,18 @@ async function updateOfferStatus(offer, status, documentId, document, user) {
     })
   });
 
-  return Array.isArray(updateRows) ? updateRows[0] : updateRows;
+  return updated;
+}
+
+function offerRefreshGuard(offer, nextStatus) {
+  if (!offer.status) throw new Error('Your offer needs a fresh status check.');
+  if ((['Signed', 'Buyer Signed', 'Buyer Signatures Complete'].includes(offer.status) && nextStatus !== 'Signed') ||
+      (['Rejected', 'Expired'].includes(offer.status) && nextStatus !== offer.status)) {
+    throw new Error('This request needs a fresh status check. Your saved document has not changed.');
+  }
+  return '&status=eq.' + encodeURIComponent(offer.status) +
+    (offer.last_updated ? '&last_updated=eq.' + encodeURIComponent(offer.last_updated) : '&last_updated=is.null') +
+    (offer.signwell_document_id ? '&signwell_document_id=eq.' + encodeURIComponent(offer.signwell_document_id) : '&signwell_document_id=is.null');
 }
 
 function safeStandaloneStatus(signwellStatus) {

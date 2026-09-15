@@ -502,7 +502,9 @@ def make_overlay(page_entries, page_width=612, page_height=792):
 
 
 def stamp_pdf(base_pdf_path, pages_data: dict) -> bytes:
-    reader = PdfReader(base_pdf_path)
+    from lib.pdf_source_audit import audited_source_bytes
+    source_bytes = audited_source_bytes(base_pdf_path)
+    reader = PdfReader(BytesIO(source_bytes) if source_bytes is not None else base_pdf_path)
     writer = PdfWriter()
 
     for i, page in enumerate(reader.pages):

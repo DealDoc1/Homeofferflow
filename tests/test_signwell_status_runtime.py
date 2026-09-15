@@ -19,7 +19,7 @@ class SignwellStatusRuntimeTests(unittest.TestCase):
     def test_stale_refresh_is_rejected_instead_of_overwriting_retry_or_completion(self):
         self.run_js('''
           rejectStaleWrite = true;
-          for (const kind of ['agreementId', 'sellerDisclosureId']) {
+          for (const kind of ['offerId', 'agreementId', 'sellerDisclosureId']) {
             const res = await run(kind, {status:'draft'});
             assert.equal(res.code,409);
             assert.match(res.body.error,/changed while its status was being checked/);
@@ -33,7 +33,7 @@ class SignwellStatusRuntimeTests(unittest.TestCase):
           const vm = require('node:vm');
           const source = require('node:fs').readFileSync(SOURCE_PATH,'utf8');
           const writes = [], providerCalls = [];
-          let providerDocument = {}, allowRead = true, rejectStaleWrite = false;
+          let providerDocument = {}, allowRead = true, rejectStaleWrite = false, savedOfferStatus = 'draft';
           const response = (data, ok=true) => ({ok,status:ok?200:403,
             json:async()=>data,text:async()=>JSON.stringify(data),
             arrayBuffer:async()=>Buffer.from('%PDF-test')});
@@ -53,6 +53,9 @@ class SignwellStatusRuntimeTests(unittest.TestCase):
                   assert.ok(url.includes('updated_at=eq.2026-09-15T10%3A00%3A00Z'));
                   assert.ok(url.includes('signwell_document_id=eq.provider-doc'));
                   assert.ok(url.includes('status=eq.draft'));
+                } else {
+                  assert.ok(url.includes('last_updated=eq.2026-09-15T10%3A00%3A00Z'));
+                  assert.ok(url.includes('signwell_document_id=eq.provider-doc'));
                 }
                 const payload=JSON.parse(options.body);
                 writes.push({url,payload});
@@ -60,7 +63,7 @@ class SignwellStatusRuntimeTests(unittest.TestCase):
                 return response([{id:'packet',...payload}]);
               }
               return response(allowRead?[{id:'packet',user_id:'owner',agent_user_id:'owner',
-                signwell_document_id:'provider-doc',status:'draft',updated_at:'2026-09-15T10:00:00Z',offer_data:{},agreement_data:{}}]:[]);
+                signwell_document_id:'provider-doc',status:table==='hof_offers'?savedOfferStatus:'draft',updated_at:'2026-09-15T10:00:00Z',last_updated:'2026-09-15T10:00:00Z',offer_data:{},agreement_data:{}}]:[]);
             }
             if (url.endsWith('/hof_offer_events')) return response(null);
             throw new Error('Unexpected request: '+url);
@@ -185,6 +188,31 @@ class SignwellStatusRuntimeTests(unittest.TestCase):
             assert.equal(res.code,400);
             assert.equal(providerCalls.length,0);
             assert.equal(writes.length,0);
+          }
+        ''')
+
+    def test_offer_refresh_uses_database_supported_lifecycle_values(self):
+        self.run_js('''
+          for (const [provider,expected] of Object.entries({sent:'Sent for Signature',
+            viewed:'Buyer Viewed',pending:'Partially Signed',declined:'Rejected',canceled:'Rejected',expired:'Expired'})) {
+            const res=await run('offerId',{status:provider});
+            assert.equal(res.code,200);
+            assert.equal(writes[0].payload.status,expected);
+          }
+        ''')
+
+    def test_offer_refresh_cannot_regress_completion_or_business_progress(self):
+        self.run_js('''
+          for (const saved of ['Signed','Buyer Signed','Buyer Signatures Complete','Rejected','Expired']) {
+            savedOfferStatus=saved;
+            const res=await run('offerId',{status:'draft'});
+            assert.equal(res.code,400); assert.equal(writes.length,0);
+          }
+          for (const saved of ['Submitted','Accepted','Deleted']) {
+            savedOfferStatus=saved;
+            const res=await run('offerId',{status:'completed'});
+            assert.equal(res.code,200); assert.equal(writes[0].payload.status,saved);
+            assert.equal(writes[0].payload.signwell_status,'Buyer Signatures Complete');
           }
         ''')
 

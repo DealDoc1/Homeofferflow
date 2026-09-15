@@ -61,11 +61,12 @@ class SellerTemporaryLeaseProductionSignWellTests(unittest.TestCase):
         api.build_signwell_fields = lambda offer, pdf: [[]]
         captured = {}
 
-        def fake_post(payload):
+        def fake_post(record, payload, offer, **options):
             captured["payload"] = payload
-            return True, {"id": "test-document"}
+            return {"document_id": "test-document", "document": {"id": "test-document", "status": "sent"},
+                    "state": "sent", "message": "Signature request sent.", "recovered": False}
 
-        api.post_signwell_document = fake_post
+        api.deliver_offer_document = fake_post
         result = api.create_signwell_signature_request(seller_lease_offer(), b"%PDF-test")
 
         self.assertTrue(result["ok"])
@@ -91,11 +92,12 @@ class SellerTemporaryLeaseProductionSignWellTests(unittest.TestCase):
         api.build_signwell_fields = lambda offer, pdf: [[]]
         captured = {}
 
-        def fake_post(payload):
+        def fake_post(record, payload, offer, **options):
             captured["payload"] = payload
-            return True, {"id": "paragraph4-document"}
+            return {"document_id": "paragraph4-document", "document": {"id": "paragraph4-document", "status": "sent"},
+                    "state": "sent", "message": "Signature request sent.", "recovered": False}
 
-        api.post_signwell_document = fake_post
+        api.deliver_offer_document = fake_post
         offer = {
             "userType": "agent",
             "buyer1": "Buyer One",

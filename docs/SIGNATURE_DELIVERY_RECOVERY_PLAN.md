@@ -10,7 +10,7 @@ revision validation, and exact signer geometry.
 
 ## Current evidence (updated September 15)
 
-The local standalone and seller-disclosure routes now use lib/signwell_delivery.py:
+The local standalone, seller-disclosure, and purchase-offer routes now use lib/signwell_delivery.py:
 private creation, owner/version-scoped identity checkpoint, provider inspection,
 conditional send claim, same-document send, and non-regressing status save.
 The UI exposes Retry saved request only for eligible tracked drafts. Neither
@@ -76,8 +76,13 @@ contract, not simultaneous real database sessions or production RLS.
 
 ## Remaining work
 
-- Purchase-offer creation in api/fill-pdf.py still needs this recovery contract;
-  its create-and-send path differs from these two private-draft routes.
+- Purchase-offer creation and retry now use the shared coordinator through
+  lib/offer_signwell_delivery.py. Local checkout/retry integration, UI handler,
+  field validation, and source-manifest isolation tests pass. Six additional
+  rollback-only offer-table SQL assertions passed; zero fixtures remain.
+- Full local suite: 1,848 passing tests. All 12 golden packet rendering
+  scenarios match the approved baseline. These are not live inbox or completed
+  signature checks, and do not prove simultaneous real database-session behavior.
 - Finish release/CI review and production verification when spending permits.
 - No new live recipient send, inbox receipt, or signed-PDF visual QA was run
   for this change. Do not mark the overall recovery item complete yet.
