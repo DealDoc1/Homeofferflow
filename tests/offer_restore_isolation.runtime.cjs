@@ -192,3 +192,30 @@ test('unrelated existing follow-up sections still restore from saved answers',()
   x.ctx.applyOfferDataToFields({});x.ctx.restoreConditionalSections();
   for(const id of ['hoaDetails','saleContingencyDetails','backupDetails','repairsField','discDaysField','concessionsField','homeWarrantyField','financingDetails','buyer2EmailField'])assert.equal(x.get(id).style.display,'none',id);
 });
+
+const reusablePreferences={financing:'conventional',loanYears:'30',interestRateCap:'6.5',interestFirstYears:'5',originationCap:'1',buyerApprovalDays:'21',titlePayer:'buyer',titleAmendment:'ii_buyer',survey:'buyerNew',homeWarranty:'yes'};
+const freshQuestions={hoa:'yes',sellerDisclosure:'received',leadBuiltBefore1978:'yes',leadDisclosureStatus:'received',saleContingency:'yes',backupOffer:'yes',appraisalAddendum:'partial',asIs:'repairs'};
+for(const role of ['agent','investor','homebuyer']) {
+  test(`${role} terms reuse asks property and contingency questions again without changing the source`,async()=>{
+    const sourceData={...reusablePreferences,...freshQuestions,buyer1:'Source Buyer',buyerEmail:'source@example.test',address:'Source property',repairsText:'Remove source property shed',hoaName:'Source HOA',appraisalPartialValue:450000,closingDate:'2026-10-01',uploadedDocNames:['source-disclosure.pdf'],includeAgentIabs:true};
+    const offer={id:'source',role,offer_data:sourceData};
+    const snapshot=JSON.stringify(offer);const x=setup(offer);enableConditionalRestore(x);
+    x.ctx.applyOfferDataToFields(sourceData);x.ctx.restoreConditionalSections();
+    await x.ctx.reuseOfferTerms('source');
+    for(const [key,value] of Object.entries(reusablePreferences))assert.equal(x.ctx.state.data[key],value,key);
+    for(const key of Object.keys(freshQuestions)) {
+      assert.equal(x.ctx.state.data[key],undefined,key);assert.equal(x.ctx.getRadio(key),'',key);
+    }
+    for(const id of ['buyer1First','buyerEmail','propAddress','repairsText','hoaName','appraisalPartialValue','closingDate'])assert.equal(x.get(id).value,'',id);
+    for(const id of ['hoaDetails','leadDisclosureBox','saleContingencyDetails','backupDetails','repairsField'])assert.equal(x.get(id).style.display,'none',id);
+    assert.equal(x.ctx.state.data.uploadedDocNames,undefined);assert.equal(x.ctx.state.data.includeAgentIabs,undefined);
+    assert.equal(x.ctx.state.data._hofOfferId,null);assert.equal(JSON.stringify(offer),snapshot);
+    assert.ok(x.calls.some(v=>Array.isArray(v)&&v[0]==='attachments'&&Object.keys(v[1]).length===0));
+  });
+  test(`${role} resume preserves source-specific answers rather than applying the reuse filter`,async()=>{
+    const x=setup({id:'source',role,offer_data:{...freshQuestions,...reusablePreferences}});enableConditionalRestore(x);
+    await x.ctx.resumeOffer('source');
+    for(const [key,value] of Object.entries(freshQuestions))assert.equal(x.ctx.state.data[key],value,key);
+    assert.equal(x.ctx.state.data._hofOfferId,'source');
+  });
+}

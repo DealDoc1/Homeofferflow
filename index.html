@@ -8699,15 +8699,14 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 
       // A terms-only start is intentionally a restrictive allow-list, not a
       // duplicate with a few fields removed. It carries reusable deal choices
-      // while excluding every prior party, property, amount, date, document,
-      // and signing artifact from the next client workflow.
+      // while excluding prior parties, property facts, disclosure receipt,
+      // contingencies, repairs, amounts, dates, documents and signing artifacts.
+      // Those answers must be collected again for the new buyer and property.
       const source = offer.offer_data || {};
       const reusableTermKeys = [
         'financing', 'loanYears', 'interestRateCap', 'interestFirstYears',
-        'originationCap', 'buyerApprovalDays', 'appraisalAddendum',
-        'hoa', 'saleContingency', 'backupOffer', 'titlePayer',
-        'titleAmendment', 'survey', 'sellerDisclosure', 'leadBuiltBefore1978',
-        'leadDisclosureStatus', 'asIs', 'homeWarranty'
+        'originationCap', 'buyerApprovalDays', 'titlePayer',
+        'titleAmendment', 'survey', 'homeWarranty'
       ];
       const termData = reusableTermKeys.reduce((next, key) => {
         if (source[key] !== undefined && source[key] !== null && source[key] !== '') next[key] = source[key];
@@ -8722,7 +8721,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       request.draft = state.data;
       resetUploadedDisclosureDraftForOffer({});
       openSavedOfferInterview();
-      updateSaveStatus('Terms-only start — client and property details cleared');
+      updateSaveStatus('Financing and closing preferences copied. Add the new buyer and property details.');
       await logOfferEvent(offer.id, 'terms_reuse_clicked', 'Draft', 'Started a terms-only offer from a prior workspace offer.', { reuse_mode: 'terms_only' }).catch(() => {});
     } catch (err) {
       if (!request.isCurrent()) return;
@@ -18285,7 +18284,7 @@ function routeAfterMagicLinkIfNeeded() {
 
       <div class="offer-launch-grid">
         <button class="offer-launch-card" type="button" onclick="startAccountTransaction()"><strong>Choose Transaction</strong><span>Start with the right guided path.</span></button>
-        <button class="offer-launch-card" type="button" onclick="hofReuseTermsFromMostRecentOffer()"><strong>Reuse Last Terms</strong><span>Keep deal choices; clear client and property details.</span></button>
+        <button class="offer-launch-card" type="button" onclick="hofReuseTermsFromMostRecentOffer()"><strong>Reuse Last Terms</strong><span>Reuse financing and closing preferences. Answer property questions again.</span></button>
         <button class="offer-launch-card" type="button" onclick="showAccountTab && showAccountTab('profile')"><strong>Profile Defaults</strong><span>Update agent, brokerage, title, and terms.</span></button>
         <button class="offer-launch-card" type="button" onclick="hofRefreshOfferWorkspace()"><strong>Sync signing status</strong><span>Ask SignWell for active updates, then reload offers.</span></button>
       </div>
@@ -19788,7 +19787,7 @@ function routeAfterMagicLinkIfNeeded() {
     return {
       key: 'repeat',
       title: 'Start your next offer faster',
-      body: 'Reuse your most recent deal terms to start faster. Client and property details are cleared before the next offer opens.',
+      body: 'Reuse financing and closing preferences from your last offer. Add the new buyer and property, then confirm disclosures and contingencies.',
       primary: 'Reuse Last Terms',
       secondary: 'Start a different transaction',
       sourceOfferId: latestOffer?.id || '',
