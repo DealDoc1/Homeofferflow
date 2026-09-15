@@ -10696,24 +10696,10 @@ function routeAfterMagicLinkIfNeeded() {
         '<div><strong style="color:' + brandColor + ';">' + escapeAttr(brandName) + '</strong><br><span style="font-size:.8rem;color:var(--gray-light);">Offer packet prepared with your brokerage workspace.</span>' + (brandDisclaimer ? '<br><small style="font-size:.72rem;color:var(--gray-light);">Brokerage note: ' + escapeAttr(brandDisclaimer) + '</small>' : '') + '</div>';
     }
 
-    if ((state.data.userType || '') !== 'homebuyer' && !window.__hofSubscriptionPacketGenerated) {
-      saveOfferDraftToSupabase('Generated').then((offer) => {
-        const offerId = offer?.id || state.data._hofOfferId || null;
-        logOfferEvent(
-          offerId,
-          'payment_success',
-          'Generated',
-          'Payment returned successful and packet generation completed/started.',
-          { email }
-        );
-        recordUsageEvent(
-          offerId,
-          'signed_packet',
-          1,
-          { source: 'payment_success', plan: state.selectedPlan || '' }
-        );
-      }).catch(() => {});
-    }
+    // This screen is presentation, not proof of fulfillment. Never save a
+    // generated offer or consume packet allowance while rendering it. The
+    // verified fulfillment flow owns those writes, not a checkout return URL,
+    // repeated render, or a stale browser-only subscription flag.
 
     const successIndex = getCurrentSteps().indexOf('stepSuccess');
     if (successIndex >= 0) showStep(successIndex);

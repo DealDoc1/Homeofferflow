@@ -49,7 +49,7 @@ class PacketDeliverySummaryTests(unittest.TestCase):
         self.assertIn('Signing delivery is not confirmed', result['signing'])
         self.assertNotIn('Retry signing', result['signing'])
 
-    def render_success(self, options, data=None, click_primary=False):
+    def render_success(self, options, data=None, click_primary=False, subscription_generated=True):
         start = HTML.index('  function packetDeliverySummary(')
         end = HTML.index('  function backToHomeAfterPayment(', start)
         harness = '''
@@ -68,15 +68,20 @@ class PacketDeliverySummaryTests(unittest.TestCase):
           const showStep = index => displayed = index;
           const renderNowWhatPartnerJourney = () => {};
           const navigation = [];
+          const sideEffects = {saves:[], logs:[], usage:[]};
+          const saveOfferDraftToSupabase = status => {sideEffects.saves.push(status);return Promise.resolve({id:'saved-offer'});};
+          const logOfferEvent = (...args) => sideEffects.logs.push(args);
+          const recordUsageEvent = (...args) => sideEffects.usage.push(args);
           const backToHomeAfterPayment = () => navigation.push('close-wizard');
           const openAccountDashboard = options => navigation.push(options.tab);
         '''
         state = {'buyerEmail': 'buyer@example.com', 'userType': 'agent', **(data or {})}
         script = harness + '\nconst state = ' + json.dumps({'data': state}) + ';\n' + HTML[start:end]
+        script += '\nwindow.__hofSubscriptionPacketGenerated = ' + json.dumps(subscription_generated) + ';'
         script += '\nshowPaymentSuccess("agent@example.com", ' + json.dumps(options) + ');'
         if click_primary:
             script += '\nelements.successPrimaryAction.onclick();'
-        script += '\nprocess.stdout.write(JSON.stringify({elements,removed,displayed,navigation}));'
+        script += '\nPromise.resolve().then(()=>process.stdout.write(JSON.stringify({elements,removed,displayed,navigation,sideEffects})));'
         result = subprocess.run(['node', '-e', script], text=True, capture_output=True, check=True)
         return json.loads(result.stdout)
 
@@ -93,6 +98,14 @@ class PacketDeliverySummaryTests(unittest.TestCase):
         self.assertEqual(rendered['removed'], [])
         self.assertEqual(rendered['elements']['successHeading']['textContent'], 'We’re confirming your checkout')
         self.assertEqual(rendered['elements']['successEmailLabel']['textContent'], 'Delivery email')
+
+    def test_displaying_checkout_result_never_writes_offer_status_or_usage(self):
+        for role in ('homebuyer', 'agent', 'investor', 'brokerage_admin'):
+            for options in ({'checkoutConfirmationPending': True}, {},
+                            {'packetGenerated': True, 'documentEmail': {'status': 'accepted'}}):
+                with self.subTest(role=role, options=options):
+                    rendered = self.render_success(options, {'userType': role}, subscription_generated=False)
+                    self.assertEqual(rendered['sideEffects'], {'saves': [], 'logs': [], 'usage': []})
 
     def test_pending_email_preserves_draft_and_keeps_confirmed_signing_visible(self):
         rendered = self.render_success({'packetGenerated': True, 'documentEmail': {'status': 'unconfirmed'},
