@@ -107,7 +107,9 @@ class TxrSigningRequestPathTests(unittest.TestCase):
         self.assertIn('hof-standalone-agreement-signing-v1', html)
         self.assertIn("scope=standalone_agreements", html)
         self.assertIn("send_txr_agreement_for_signature", html)
-        self.assertIn("agreement.status === 'draft'", html)
+        self.assertIn("agreement.status === 'draft' || canRetryUnsent", html)
+        self.assertIn("agreement.status === 'failed' && !agreement.signwell_document_id", html)
+        self.assertIn("Retry signature request", html)
         self.assertIn("agreement.status === 'sent' && agreement.signwell_document_id", html)
         self.assertIn("data-refresh-signing", html)
         self.assertIn("body: JSON.stringify({ agreementId: agreement.id })", html)
@@ -180,12 +182,16 @@ class TxrSigningRequestPathTests(unittest.TestCase):
 
     def test_temporary_provider_delivery_failure_keeps_the_draft_retryable(self):
         source = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
+        html = (ROOT / "index.html").read_text(encoding="utf-8")
         self.assertIn("class SignatureDeliveryUnavailable", source)
         self.assertIn("SIGNWELL_RETRYABLE_HTTP_STATUSES", source)
         self.assertIn("Signature delivery is temporarily unavailable. Your document is saved", source)
         self.assertIn("and no one was emailed", source)
         self.assertIn("SignWell document creation is temporarily unavailable", source)
         self.assertIn("SignWell delivery is temporarily unavailable", source)
+        self.assertIn("&status=in.(draft,failed)", source)
+        self.assertIn("Refresh its status before sending again.", source)
+        self.assertIn("Retry signature request", html)
 
     def test_shared_library_signing_does_not_require_a_brokerage_seat(self):
         signing_source = MODULE._send_txr_agreement_for_signature.__doc__ or ""

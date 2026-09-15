@@ -20,7 +20,9 @@ class CustomerWorkspaceLanguageTests(unittest.TestCase):
     def test_agent_forms_explain_review_before_available_sending(self):
         self.assertIn("Review your prepared documents here.", HTML)
         self.assertIn("confirm the recipients and signer plan before anything is sent.", HTML)
-        self.assertIn("const canSend = signingEnabled && signingFormCodes.has(agreement.form_code) && agreement.status === 'draft';", HTML)
+        self.assertIn("const canRetryUnsent = agreement.status === 'failed' && !agreement.signwell_document_id;", HTML)
+        self.assertIn("const canSend = signingEnabled && signingFormCodes.has(agreement.form_code) && (agreement.status === 'draft' || canRetryUnsent);", HTML)
+        self.assertIn("Retry signature request", HTML)
 
     def test_brokerage_profile_uses_finished_product_language(self):
         self.assertIn("<h4>Brokerage Profile</h4>", HTML)
