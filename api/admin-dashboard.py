@@ -150,6 +150,8 @@ TXR_SIGNING_MAP_REVISIONS = {
     # sender cannot inadvertently reuse the older field geometry.
     TXR_1507_FORM_CODE: "txr-1507-2026-09-12-completed-packet-calibrated-v2",
     TXR_1508_FORM_CODE: "txr-1508-2026-09-09-acknowledgement-calibrated-v1",
+    TXR_1953_FORM_CODE: "txr-1953-2026-09-15-field-alignment-v2",
+    TXR_1954_FORM_CODE: "txr-1954-2026-09-15-field-alignment-v2",
 }
 # Each core TXR workflow was source-calibrated after prior packets exposed
 # placement risk. Require a newly prepared copy until saved drafts created

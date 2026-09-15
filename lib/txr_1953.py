@@ -9,6 +9,7 @@ from reportlab.pdfgen.canvas import Canvas
 
 PAGE_WIDTH = 612
 PAGE_HEIGHT = 792
+RENDER_REVISION = "txr-1953-2026-09-15-field-alignment-v2"
 
 
 def _clean(value):
@@ -64,8 +65,10 @@ def _continuation_pdf(property_address, entries):
 
 
 def _mark(canvas, x, y):
-    canvas.setFont("Helvetica-Bold", 9)
-    canvas.drawString(x, y, "X")
+    # Coordinates are the printed checkbox centers, not text baselines.
+    # A compact X stays inside the source box after SignWell completion.
+    canvas.setFont("Helvetica-Bold", 6)
+    canvas.drawCentredString(x, y - 2.15, "X")
 
 
 def render_txr_1953(source_pdf_bytes, data):
@@ -79,31 +82,31 @@ def render_txr_1953(source_pdf_bytes, data):
     _draw(canvas, data.get("property_address"), 246, 686, 8)
     status = data.get("lease_status")
     if status == "termination":
-        _mark(canvas, 33, 613)
+        _mark(canvas, 34.77, 612.24)
     elif status == "assignment":
-        _mark(canvas, 33, 558)
+        _mark(canvas, 34.77, 557.70)
         delivery = data.get("delivery_choice")
         if delivery == "received":
-            _mark(canvas, 75, 520)
+            _mark(canvas, 75.27, 523.80)
         elif delivery == "not_received":
-            _mark(canvas, 75, 509)
-            _draw(canvas, data.get("delivery_days"), 169, 491, 8)
+            _mark(canvas, 75.27, 512.16)
+            _draw(canvas, data.get("delivery_days"), 108, 491, 8)
         elif delivery == "oral_notice":
-            _mark(canvas, 75, 470)
+            _mark(canvas, 75.27, 474.06)
             oral_notice = _clean(data.get("oral_lease_notice"))
-            if pdfmetrics.stringWidth(oral_notice, "Helvetica", 7) <= 468:
-                _draw(canvas, oral_notice, 103, 447, 7)
+            if pdfmetrics.stringWidth(oral_notice, "Helvetica", 6) <= 468:
+                _draw(canvas, oral_notice, 103, 456.5, 6)
             elif oral_notice:
-                _draw(canvas, "See attached continuation exhibit.", 103, 447, 7)
+                _draw(canvas, "See attached continuation exhibit.", 103, 456.5, 6)
                 continuation_entries.append(("Oral Residential Lease Notice", oral_notice))
     explanation = data.get("explanation")
     if explanation:
         explanation_lines = _wrapped_lines(explanation, 480, 6)
         if len(explanation_lines) <= 3:
             for index, line in enumerate(explanation_lines):
-                _draw(canvas, line, 84, 279 - (index * 11), 6)
+                _draw(canvas, line, 84, 306.8 - (index * 10.14), 6)
         else:
-            _draw(canvas, "See attached continuation exhibit.", 84, 279, 6)
+            _draw(canvas, "See attached continuation exhibit.", 84, 306.8, 6)
             continuation_entries.append(("Residential Lease Explanation", explanation))
     if not data.get("_for_signing"):
         buyers = data.get("buyer_names") or []

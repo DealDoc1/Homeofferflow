@@ -9,6 +9,7 @@ from reportlab.pdfgen.canvas import Canvas
 
 PAGE_WIDTH = 612
 PAGE_HEIGHT = 792
+RENDER_REVISION = "txr-1954-2026-09-15-field-alignment-v2"
 
 
 def _clean(value):
@@ -75,8 +76,9 @@ def _continuation_pdf(property_address, entries):
 
 
 def _mark(canvas, x, y):
-    canvas.setFont("Helvetica-Bold", 9)
-    canvas.drawString(x, y, "X")
+    # Printed checkbox centers from the 11-07-2022 source edition.
+    canvas.setFont("Helvetica-Bold", 6)
+    canvas.drawCentredString(x, y - 2.15, "X")
 
 
 def _marks(canvas, values, positions):
@@ -93,33 +95,33 @@ def render_txr_1954(source_pdf_bytes, data):
     packet = BytesIO()
     canvas = Canvas(packet, pagesize=(PAGE_WIDTH, PAGE_HEIGHT))
     continuation_entries = []
-    _draw(canvas, data.get("property_address"), 248, 660, 8)
+    _draw(canvas, data.get("property_address"), 248, 663, 8)
 
     leased = set(data.get("leased_fixture_types") or [])
     _marks(canvas, ["solar_panels" in leased, "propane_tanks" in leased, "water_softener" in leased, "security_system" in leased, "other" in leased],
-           [(77, 597), (166, 597), (263, 597), (363, 597), (466, 597)])
+           [(81.46, 595.98), (165.82, 595.98), (263.56, 595.98), (362.50, 595.98), (465.58, 595.98)])
     _draw_or_continue(canvas, data.get("leased_fixtures_other"), 480, 597, 96, "Other Leased Fixture", continuation_entries, 6)
 
     assumed = set(data.get("assumed_fixture_leases") or [])
     _marks(canvas, ["solar_panels" in assumed, "propane_tanks" in assumed, "water_softener" in assumed, "security_system" in assumed],
-           [(88, 551), (201, 551), (319, 551), (456, 551)])
+           [(89.44, 549.48), (201.76, 549.48), (325.78, 549.48), (456.10, 549.48)])
     if "other" in assumed:
-        _mark(canvas, 85, 536)
+        _mark(canvas, 89.44, 535.08)
         _draw_or_continue(canvas, data.get("assumed_fixture_leases_other"), 99, 537, 239, "Other Assumed Fixture Lease", continuation_entries, 7)
     _draw(canvas, data.get("buyer_first_cost"), 493, 536, 8)
 
     if data.get("removal_choice") == "will":
-        _mark(canvas, 206, 479)
+        _mark(canvas, 210.82, 477.84)
     elif data.get("removal_choice") == "will_not":
-        _mark(canvas, 252, 479)
+        _mark(canvas, 256.54, 477.84)
 
     delivery = data.get("delivery_choice")
     if delivery == "received":
-        _mark(canvas, 49, 411)
+        _mark(canvas, 53.68, 409.92)
     elif delivery == "not_received":
-        _mark(canvas, 49, 396)
+        _mark(canvas, 53.68, 395.46)
     elif delivery == "oral_notice":
-        _mark(canvas, 49, 350)
+        _mark(canvas, 53.56, 348.96)
         _draw_or_continue(canvas, data.get("oral_fixture_lease_notice"), 455, 326, 120, "Oral Fixture Lease Notice", continuation_entries, 7)
 
     if not data.get("_for_signing"):

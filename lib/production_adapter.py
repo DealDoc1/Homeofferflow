@@ -14,8 +14,8 @@ from pathlib import Path
 from pypdf import PdfReader, PdfWriter
 from lib.pdf_source_audit import collect_source_hashes
 
-from lib.txr_1953 import build_signwell_fields_txr1953, render_txr_1953
-from lib.txr_1954 import build_signwell_fields_txr1954, render_txr_1954
+from lib.txr_1953 import build_signwell_fields_txr1953, render_txr_1953, RENDER_REVISION as TXR1953_RENDER_REVISION
+from lib.txr_1954 import build_signwell_fields_txr1954, render_txr_1954, RENDER_REVISION as TXR1954_RENDER_REVISION
 
 
 
@@ -406,6 +406,11 @@ def fill_and_merge_20_19(offer):
     validate_supported_offer(offer)
     docs = _uploaded_docs(offer)
     lease_docs = _paragraph4_documents(offer)
+    offer["_signing_render_revisions"] = {
+        code: revision for code, revision in (
+            ("TXR-1953", TXR1953_RENDER_REVISION), ("TXR-1954", TXR1954_RENDER_REVISION)
+        ) if code in paragraph4_lease_kinds(offer)
+    }
     with collect_source_hashes() as source_hashes:
         packet = verified.fill_and_merge(offer)
     offer["_signing_source_hashes"] = source_hashes
