@@ -6541,11 +6541,34 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     return true;
   }
 
+  function cleanOfferDraftData(data) {
+    const draft = { ...(data || {}) };
+    [
+      '_hof_signature_delivery', '_subscription_user_id', '_paragraph4_source_pdf_bytes',
+      'backend_saved', 'signwell', 'signwellDocumentId', 'signwellStatus',
+      'signwell_document_id', 'signwell_status', 'generatedAt', 'generated_at',
+      'packetGeneratedAt', 'packetGenerationError', 'packetGenerationFailedAt',
+      'packetGenerationFailureCategory', 'signwellLastStatusRefresh', 'signwellRecipientStatuses',
+      'signingUrl', 'signing_url', 'embeddedSigningUrl', 'embedded_signing_url', 'recipients'
+    ].forEach(key => { delete draft[key]; });
+    return draft;
+  }
+
+  function offerHasPreparedPacket(offer) {
+    const data = offer.offer_data || {};
+    return Boolean(offer.generated_at || offer.signwell_document_id ||
+      data.generatedAt || data.generated_at || data.signwellDocumentId || data.signwell_document_id ||
+      data.signwell?.document_id || data.signwell?.response?.id ||
+      Object.prototype.hasOwnProperty.call(data, '_hof_signature_delivery') ||
+      !['draft', 'generation failed'].includes(String(offer.status || 'Draft').toLowerCase()));
+  }
+
   async function saveOfferDraftToSupabase(status = 'Draft') {
     const client = getSupabaseClient();
     const user = hofAuth.session?.user;
     const role = state.data.userType || hofAuth.role || 'agent';
-    if (!client || !user || role === 'homebuyer') return null;
+    if (!client || !user || role === 'homebuyer' || status !== 'Draft') return null;
+    __hofCloudDraftSaveNeedsCopy = false;
 
     // Capture the full wizard state before saving so top-level dashboard columns
     // match the data used by PDF/SignWell generation.
@@ -6604,29 +6627,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     const titleCompany = state.data.titleCompany || getVal('titleCompany') || '';
     const escrowAgent = state.data.escrowAgent || getVal('escrowAgent') || '';
 
-    const signwellDocumentId =
-      state.data.signwell?.document_id ||
-      state.data.signwell?.response?.id ||
-      state.data.signwellDocumentId ||
-      '';
-    const signwellStatus =
-      state.data.signwell?.response?.status ||
-      state.data.signwell?.status ||
-      state.data.signwellStatus ||
-      '';
-
     const nowIso = new Date().toISOString();
-    // Autosave is a draft-editing convenience, not a packet-state transition.
-    // A resumed generated offer retains its buyer-side signing history until a
-    // deliberate generation attempt changes that state.
-    const existingGeneratedAt = state.data.generatedAt || state.data.generated_at || null;
-    const hasGeneratedPacket = Boolean(
-      existingGeneratedAt || signwellDocumentId || state.data.signwell_document_id
-    );
-    const persistedStatus = status === 'Draft' && hasGeneratedPacket ? 'Generated' : status;
-    const persistedGeneratedAt = persistedStatus === 'Generated'
-      ? (existingGeneratedAt || nowIso)
-      : null;
 
     const payload = {
       user_id: user.id,
@@ -6658,12 +6659,8 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       closing_date: closingDate || null,
       title_company: titleCompany || null,
       escrow_agent: escrowAgent || null,
-      signwell_document_id: signwellDocumentId || null,
-      signwell_status: signwellStatus || null,
-      generated_at: persistedGeneratedAt,
-      status: persistedStatus,
       offer_data: {
-        ...(state.data || {}),
+        ...cleanOfferDraftData(state.data),
         buyerEmail,
         buyerPhone,
         buyer2Name,
@@ -6680,9 +6677,6 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         propertyZip,
         propertyCounty,
         financingType,
-        signwellDocumentId,
-        signwellStatus,
-        generatedAt: persistedGeneratedAt || existingGeneratedAt,
         _hofOfferId: state.data._hofOfferId || null,
         _savedFromDashboard: true
       },
@@ -6692,21 +6686,33 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     try {
       let result;
       if (state.data._hofOfferId) {
-        result = await client
+        // Read current server state, not the signing state in an old tab.
+        const current = await client.from('hof_offers').select('*')
+          .eq('user_id', user.id).eq('id', state.data._hofOfferId)
+          .is('deleted_at', null).single();
+        if (current.error || !current.data) throw current.error || new Error('Offer unavailable');
+        if (offerHasPreparedPacket(current.data)) {
+          __hofCloudDraftSaveNeedsCopy = true;
+          return null;
+        }
+        const update = client
           .from('hof_offers')
           .update(payload)
           .eq('user_id', user.id)
           .eq('id', state.data._hofOfferId)
-          .select('*')
-          .single();
+          .is('deleted_at', null);
+        if (current.data.last_updated) update.eq('last_updated', current.data.last_updated);
+        else update.is('last_updated', null);
+        result = await update.select('*').single();
       } else {
-        result = await client.from('hof_offers').insert(payload).select('*').single();
+        result = await client.from('hof_offers').insert({ ...payload, status: 'Draft' }).select('*').single();
       }
       if (result.error) throw result.error;
       state.data._hofOfferId = result.data.id;
       updateSaveStatus('✓ Saved to Dashboard');
       return result.data;
     } catch (err) {
+      if (err?.code === '55000') __hofCloudDraftSaveNeedsCopy = true;
       console.warn('Cloud draft save failed:', err);
       return null;
     }
@@ -8389,8 +8395,9 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     try {
       const offer = await getOfferById(id);
       if (!offer) { window.announceWorkspaceStatus?.('This offer is no longer available in your workspace. Refresh offers and try again.'); return; }
+      if (offerHasPreparedPacket(offer)) return duplicateOffer(id, false, true);
       state.data = {
-        ...(state.data || {}),
+        ...cleanOfferDraftData(state.data),
         ...(offer.offer_data || {}),
         buyerEmail: offer.offer_data?.buyerEmail || offer.buyer_email || offer.offer_data?.buyer_email || '',
         generatedAt: offer.offer_data?.generatedAt || offer.generated_at || offer.offer_data?.generated_at || null,
@@ -8430,7 +8437,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     try {
       const offer = await getOfferById(id);
       if (!offer) { window.announceWorkspaceStatus?.('This offer is no longer available in your workspace. Refresh offers and try again.'); return; }
-      const copyData = { ...(offer.offer_data || {}) };
+      const copyData = cleanOfferDraftData(offer.offer_data);
       // A duplicate is a new, unsent draft. Never carry over identifiers or
       // status from the source packet, or the new card can appear to have an
       // existing SignWell document and expose stale signing actions.
@@ -12579,6 +12586,7 @@ function routeAfterMagicLinkIfNeeded() {
   let __hofSaveDebounce = null;
   let __hofCloudDraftSaveInFlight = false;
   let __hofCloudDraftSaveQueued = false;
+  let __hofCloudDraftSaveNeedsCopy = false;
   let __hofWasOffline = navigator.onLine === false;
 
   function updateSaveStatus(text) {
@@ -12599,12 +12607,24 @@ function routeAfterMagicLinkIfNeeded() {
     if (!el) return;
     clearTimeout(__hofSaveTimer);
     el.classList.add('cloud-save-warning');
+    if (__hofCloudDraftSaveNeedsCopy) {
+      el.innerHTML = 'Your original packet is unchanged. <button type="button" class="save-retry-btn" onclick="saveOfferChangesAsNewDraft()">Save changes as a new draft</button>';
+      return;
+    }
     el.innerHTML = 'Saved on this device; cloud sync needs retry. <button type="button" class="save-retry-btn" onclick="retryCloudDraftSave()">Retry cloud save</button>';
   }
 
+  window.saveOfferChangesAsNewDraft = async function saveOfferChangesAsNewDraft() {
+    if (__hofCloudDraftSaveInFlight) return;
+    state.data = { ...cleanOfferDraftData(state.data), _hofOfferId: null };
+    __hofCloudDraftSaveNeedsCopy = false;
+    await syncCloudDraftSave();
+  };
+
   window.retryCloudDraftSave = async function retryCloudDraftSave() {
+    if (__hofCloudDraftSaveInFlight) return null;
     updateSaveStatus('Retrying cloud save...');
-    const saved = await saveOfferDraftToSupabase('Draft');
+    const saved = await syncCloudDraftSave();
     if (saved) {
       updateSaveStatus('Cloud Saved');
       try { logOfferEvent(saved.id || null, 'cloud_draft_save_retried', 'success', 'Cloud draft save recovered from the retry action.'); } catch (e) {}
@@ -12638,6 +12658,7 @@ function routeAfterMagicLinkIfNeeded() {
       } else {
         showCloudSaveFailure();
       }
+      return saved;
     } catch (_) {
       showCloudSaveFailure();
     } finally {

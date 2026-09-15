@@ -44,11 +44,11 @@ class CloudDraftSaveRecoveryTests(unittest.TestCase):
         start = HTML.index("async function saveOfferDraftToSupabase(status = 'Draft')")
         end = HTML.index("function setFeedbackStatus", start)
         saver = HTML[start:end]
-        self.assertIn("const existingGeneratedAt", saver)
-        self.assertIn("const hasGeneratedPacket", saver)
-        self.assertIn("status === 'Draft' && hasGeneratedPacket ? 'Generated' : status", saver)
-        self.assertIn("status: persistedStatus", saver)
-        self.assertIn("generated_at: persistedGeneratedAt", saver)
+        self.assertIn("offerHasPreparedPacket(current.data)", saver)
+        self.assertIn("__hofCloudDraftSaveNeedsCopy = true", saver)
+        self.assertNotIn("status: persistedStatus", saver)
+        self.assertNotIn("generated_at:", saver)
+        self.assertIn("update.eq('last_updated', current.data.last_updated)", saver)
 
     def test_resume_hydrates_packet_state_from_persisted_offer_columns(self):
         start = HTML.index("async function resumeOffer(id, isRetry = false)")

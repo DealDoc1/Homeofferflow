@@ -12,7 +12,7 @@ class OfferDuplicateWorkspaceTests(unittest.TestCase):
         end = HTML.index("\n  async function deleteOffer", start)
         body = HTML[start:end]
 
-        self.assertIn("const copyData = { ...(offer.offer_data || {}) };", body)
+        self.assertIn("const copyData = cleanOfferDraftData(offer.offer_data);", body)
         for key in (
             "'_hofOfferId'",
             "'signwell'",
