@@ -299,6 +299,85 @@ function enableLocalDraft(x,draft,owner='owner') {
   c.escapeHtml=v=>String(v);c.selectPlan=(plan,price)=>{c.state.selectedPlan=plan;c.state.selectedPrice=price;};
   return {store,timers};
 }
+const startupDraft={userType:'agent',wizardOrderVersion:2,step:3,fields:{buyer1First:'Saved',buyer1Last:'Client',propAddress:'Saved property'},radios:{}};
+test('automatic local restore runs once and cannot overwrite later answers',()=>{
+  const x=setup();enableLocalDraft(x,startupDraft);
+  assert.equal(x.ctx.restoreDraft({automatic:true}),true);
+  const active=x.ctx.state.data;x.get('buyer1First').value='Latest';x.ctx.state.step=5;
+  assert.equal(x.ctx.restoreDraft({automatic:true}),false);
+  assert.equal(x.ctx.state.data,active);assert.equal(x.get('buyer1First').value,'Latest');assert.equal(x.ctx.state.step,5);
+});
+for(const action of ['fresh offer','cloud offer request','open wizard','input','change']) test(`automatic restore yields after ${action}`,()=>{
+  const x=setup();enableLocalDraft(x,startupDraft);const c=x.ctx;
+  if(action==='fresh offer')c.resetWizardForFreshOffer('homebuyer');
+  else if(action==='cloud offer request')c.beginOfferOpenRequest();
+  else if(action==='open wizard'){
+    Object.assign(c,{trackEvent(){},applyAudienceWorkflow(){},updateProgress(){},applySmartDefaults(){},tryInitAutocomplete(){}});
+    vm.runInContext(source('  function openWizard(', '  function closeWizard()'),c);
+    c.openWizard(true);
+  } else {
+    const listeners={};c.document.addEventListener=(event,fn)=>listeners[event]=fn;
+    Object.assign(c,{clearValidationFeedbackFor(){},sanitizeBuyerMailingAddressAutofill(){},scheduleDraftSave(){}});
+    vm.runInContext(source('  function clearSavedDraft()',"  window.addEventListener('beforeunload'"),c);
+    listeners[action]({target:{id:'buyer1First',closest:()=>({})}});
+  }
+  const active=c.state.data;c.state.step=5;x.get('buyer1First').value='Current';
+  assert.equal(c.restoreDraft({automatic:true}),false);assert.equal(c.state.data,active);
+  assert.equal(x.get('buyer1First').value,'Current');assert.equal(c.state.step,5);
+});
+for(const event of ['input','change'])test(`unrelated ${event} does not prevent initial draft restoration`,()=>{
+  const x=setup();enableLocalDraft(x,startupDraft);const c=x.ctx,listeners={};
+  c.document.addEventListener=(name,fn)=>listeners[name]=fn;
+  vm.runInContext(source('  function clearSavedDraft()',"  window.addEventListener('beforeunload'"),c);
+  listeners[event]({target:{closest:()=>null}});
+  assert.equal(c.restoreDraft({automatic:true}),true);assert.equal(x.get('buyer1First').value,'Saved');
+});
+test('explicit resume remains available after automatic restore settles',()=>{
+  const x=setup();enableLocalDraft(x,startupDraft);x.ctx.window.__hofAutomaticDraftRestoreSettled=true;
+  assert.equal(x.ctx.restoreDraft(),true);assert.equal(x.get('buyer1First').value,'Saved');
+});
+test('a payment return cannot automatically reopen the saved pricing interview',()=>{
+  const x=setup();enableLocalDraft(x,startupDraft);x.ctx.window.__hofPaymentReturn=true;const original=x.ctx.state.data;
+  assert.equal(x.ctx.restoreDraft({automatic:true}),false);assert.equal(x.ctx.state.data,original);
+});
+test('an owner waiting for account resolution can still restore once it completes',()=>{
+  const x=setup();enableLocalDraft(x,startupDraft);x.ctx.hofAuth.session=null;
+  assert.equal(x.ctx.restoreDraft({automatic:true}),false);
+  assert.notEqual(x.ctx.window.__hofAutomaticDraftRestoreSettled,true);
+  x.ctx.hofAuth.session={user:{id:'owner'}};
+  assert.equal(x.ctx.restoreDraft({automatic:true}),true);
+});
+test('missing or malformed draft does not consume the automatic restore opportunity',()=>{
+  const x=setup();const {store}=enableLocalDraft(x,startupDraft);
+  for(const raw of ['', '{broken', '[]']){
+    store.set('draft',raw);assert.equal(x.ctx.restoreDraft({automatic:true}),false);
+    assert.notEqual(x.ctx.window.__hofAutomaticDraftRestoreSettled,true);
+  }
+  store.set('draft',JSON.stringify(startupDraft));assert.equal(x.ctx.restoreDraft({automatic:true}),true);
+});
+test('the actual delayed load callback does not overwrite an explicitly opened offer',()=>{
+  const x=setup();const {timers}=enableLocalDraft(x,startupDraft),c=x.ctx,listeners={};
+  c.window.addEventListener=(event,fn)=>listeners[event]=fn;c.window.location={search:''};
+  c.sessionStorage={getItem:()=>null};c.refreshResumeOfferCtas=()=>{};
+  vm.runInContext(source("  window.addEventListener('load', () => {\n    const isNewOffer", "  document.addEventListener('DOMContentLoaded', () => {\n    // Landing CTA"),c);
+  listeners.load();c.beginOfferOpenRequest();const original=c.state.data;
+  x.get('buyer1First').value='Newly opened';timers.forEach(fn=>fn());
+  assert.equal(c.state.data,original);assert.equal(x.get('buyer1First').value,'Newly opened');
+});
+for(const edited of [false,true])test(`account initialization automatic restore respects user action=${edited}`,async()=>{
+  const x=setup();const {store}=enableLocalDraft(x,startupDraft),c=x.ctx;
+  store.set('hof_offer_draft_owner','owner');
+  Object.assign(c,{supabaseAuthInitialization:null,
+    ensureSupabaseClient:async()=>({auth:{getSession:async()=>({data:{session:{user:{id:'owner'}}}}),onAuthStateChange(){}}}),
+    updateAuthUI(){},cleanSupabaseAuthUrlNoise(){},ensureProfileShell:async()=>{},flushSubscriptionCheckoutReturnEvent:async()=>{},routeAfterMagicLinkIfNeeded(){}});
+  vm.runInContext(source('  async function initSupabaseAuth()', '  function isProfileMeaningful('),c);
+  const pending=c.initSupabaseAuth();
+  if(edited)c.beginOfferOpenRequest();
+  const original=c.state.data;x.get('buyer1First').value='Current';
+  await pending;
+  assert.equal(x.get('buyer1First').value,edited?'Current':'Saved');
+  if(edited)assert.equal(c.state.data,original);
+});
 test('browser draft snapshot excludes other page forms and files but retains named fixture choices',()=>{
   const x=setup();enableLocalDraft(x,{});
   x.get('profAgentName').value='Private profile value';x.get('propAddress').value='Saved property';

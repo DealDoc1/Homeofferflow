@@ -5660,7 +5660,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       window.__hofDraftRestoreAuthReady = true;
       const ownerUserId = localStorage.getItem('hof_offer_draft_owner') || '';
       if (ownerUserId && ownerUserId === (hofAuth.session?.user?.id || '')) {
-        try { restoreDraft(); } catch (e) {}
+        try { restoreDraft({ automatic: true }); } catch (e) {}
       }
       // Installed-app routing waits for the real auth result rather than
       // guessing from a cached role. This event carries no account data.
@@ -7552,6 +7552,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   }
 
   function resetWizardForFreshOffer(role = 'agent') {
+    window.__hofAutomaticDraftRestoreSettled = true;
     const normalizedRole = role === 'investor' ? 'investor' : (role === 'homebuyer' ? 'homebuyer' : 'agent');
 
     // Clear only offer-builder state. Do not sign the user out and do not wipe saved account profile/subscription data.
@@ -8567,6 +8568,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   }
 
   function beginOfferOpenRequest() {
+    window.__hofAutomaticDraftRestoreSettled = true;
     const request = { draft: state.data, userId: hofAuth.session?.user?.id };
     window.__hofOfferOpenRequest = request;
     request.isCurrent = () => !!request.userId && window.__hofOfferOpenRequest === request &&
@@ -9516,6 +9518,7 @@ function routeAfterMagicLinkIfNeeded() {
       openAuthModal(currentType);
       return;
     }
+    window.__hofAutomaticDraftRestoreSettled = true;
     trackEvent('Started Offer Wizard', {
       userType: state.data.userType || 'homebuyer',
       entrySurface: window.__hofOfferEntrySurface || 'direct'
@@ -13160,7 +13163,11 @@ function routeAfterMagicLinkIfNeeded() {
     return savedStep;
   }
 
-  function restoreDraft() {
+  function restoreDraft({ automatic = false } = {}) {
+    // Startup and delayed account initialization may both try to restore.
+    // Neither may replace work the user has already opened or begun editing.
+    // Explicit Resume remains available even after automatic restore settles.
+    if (automatic && (window.__hofAutomaticDraftRestoreSettled || window.__hofPaymentReturn)) return false;
     const raw = localStorage.getItem(HOF_STORAGE_KEY);
     if (!raw) return false;
     const ownerUserId = localStorage.getItem(HOF_STORAGE_OWNER_KEY) || '';
@@ -13182,6 +13189,7 @@ function routeAfterMagicLinkIfNeeded() {
     if (!draft || typeof draft !== 'object' || Array.isArray(draft) ||
         !draft.fields || typeof draft.fields !== 'object' || Array.isArray(draft.fields)) return false;
 
+    window.__hofAutomaticDraftRestoreSettled = true;
     const wasRestoring = __hofRestoringDraft;
     __hofRestoringDraft = true;
     updateSaveStatus('Restoring saved work...');
@@ -13345,12 +13353,14 @@ function routeAfterMagicLinkIfNeeded() {
 
   document.addEventListener('input', function(e) {
     if (!e.target?.closest?.('#wizardOverlay')) return;
+    window.__hofAutomaticDraftRestoreSettled = true;
     clearValidationFeedbackFor(e.target);
     if (e.target && e.target.id === 'buyerMailAddr') sanitizeBuyerMailingAddressAutofill();
     scheduleDraftSave();
   });
   document.addEventListener('change', event => {
     if (!event.target?.closest?.('#wizardOverlay')) return;
+    window.__hofAutomaticDraftRestoreSettled = true;
     clearValidationFeedbackFor(event.target);
     restoreConditionalSections();
     scheduleDraftSave();
@@ -13395,7 +13405,7 @@ function routeAfterMagicLinkIfNeeded() {
 
     setTimeout(() => {
       if (!window.__hofPaymentReturn) {
-        restoreDraft();
+        restoreDraft({ automatic: true });
         refreshResumeOfferCtas();
       }
     }, 350);
