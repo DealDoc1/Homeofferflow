@@ -69,6 +69,22 @@ class LandingAudiencePickerTests(unittest.TestCase):
         passive_update = enhancement.split("root.updateAuthUI = function updateAuthUI(){", 1)[1].split("root.ensureProfileShell", 1)[0]
         self.assertNotIn("root.state.data.userType =", passive_update)
 
+    def test_signed_in_agent_uses_agent_workflow_unless_homebuyer_is_explicitly_selected(self):
+        start = HTML.index("function beginOfferFrom(surface)")
+        end = HTML.index("function startPrimaryOffer()", start)
+        entry = HTML[start:end]
+        self.assertIn("const signedInAgent = Boolean(hofAuth?.session)", entry)
+        self.assertIn("!window.__hofLandingAudienceUserSelected", entry)
+        self.assertIn("authenticated_account", entry)
+        self.assertIn("window.__hofLandingAudienceUserSelected = true", HTML)
+
+    def test_agent_interview_prefills_verified_account_email_without_saved_defaults(self):
+        start = HTML.index("function applyProfileDefaultsToWizard(force = false)")
+        end = HTML.index("function resetWizardForFreshOffer", start)
+        defaults = HTML[start:end]
+        self.assertIn("const signedInAgentEmail = hofAuth.session?.user?.email || ''", defaults)
+        self.assertIn("p.agent_email || signedInAgentEmail", defaults)
+
 
 if __name__ == "__main__":
     unittest.main()
