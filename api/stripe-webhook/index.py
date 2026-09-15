@@ -534,7 +534,8 @@ class handler(BaseHTTPRequestHandler):
     @staticmethod
     def _is_packet_fulfillment_checkout(metadata):
         plan = str(metadata.get("plan") or "").strip().lower()
-        has_offer = bool(metadata.get("offer_data") or metadata.get("offer_parts"))
+        has_offer = bool(metadata.get("offer_data") or metadata.get("offer_parts")
+                         or metadata.get("offer_payload_id"))
         return plan in {"self", "showing-booking"} and has_offer
 
     @staticmethod

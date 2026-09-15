@@ -12,6 +12,10 @@ const Module = require('module');
 const originalLoad = Module._load;
 let createdSession = null;
 Module._load = function(request, parent, isMain) {
+  if (request === '../lib/checkout_payload') return {
+    saveCheckoutPayload: async () => ({id:'private-ref', fingerprint:'hash'}),
+    bindCheckoutPayload: async () => {}
+  };
   if (request === 'stripe') {
     return function() {
       return { checkout: { sessions: { create: async (payload) => {

@@ -9,6 +9,7 @@ from lib import signwell_delivery
 from lib.offer_signwell_delivery import deliver_offer_document, stable_delivery_answers
 from lib.email_delivery import deliver_email_once, delivery_key, payload_fingerprint, EmailDeliveryPending, EmailDeliveryNeedsReview
 from lib.email_delivery_store import EmailDeliveryStore
+from lib.checkout_payload import load_checkout_payload
 from lib.packet_generation import (PacketGenerationStore, PacketGenerationPending,
     PacketAllowanceUnavailable, PacketGenerationBusy, packet_answers_hash, render_packet_with_usage)
 
@@ -2101,7 +2102,11 @@ def handle_checkout(event, subscription_user_id=None):
     metadata = session.get("metadata", {}) or {}
     plan = metadata.get("plan", "")
 
-    if "offer_data" in metadata:
+    if "offer_payload_id" in metadata or "offer_payload_sha256" in metadata:
+        if subscription_user_id:
+            raise ValueError('Saved checkout packets require a verified payment event.')
+        offer = load_checkout_payload(session, supabase_url=SUPABASE_URL, service_key=SUPABASE_SERVICE_ROLE_KEY)
+    elif "offer_data" in metadata:
         offer = json.loads(metadata["offer_data"])
     else:
         parts = int(metadata.get("offer_parts", 0) or 0)

@@ -12,11 +12,15 @@ const cash = { price: '500000', earnest: '0', optionFee: '0', optionDays: '0', f
 const financed = { ...cash, financing: 'conventional', loanAmount: '450000', loanYears: '30', interestRateCap: '0',
   interestFirstYears: '30', originationCap: '0', buyerApprovalDays: '21', appraisalAddendum: 'none' };
 async function call(offerData, email = 'buyer@example.test', extra = {}) {
-  const requests = [], initializations = [];
+  const requests = [], initializations = [], saved = [];
   const module = { exports: {} };
   vm.runInNewContext(source, { module, URL, console: { error() {} },
     process: { env: { STRIPE_SECRET_KEY: 'fake-key', STRIPE_BUYER_OFFER_PRICE_ID: 'price-server' } },
     require(name) {
+      if (name === '../lib/checkout_payload') return {
+        saveCheckoutPayload: async payload => { saved.push(payload); return { id: 'private-ref', fingerprint: 'hash' }; },
+        bindCheckoutPayload: async () => {}
+      };
       assert.equal(name, 'stripe');
       return key => { initializations.push(key); return { checkout: { sessions: { create: async payload => {
         requests.push(payload); return { url: 'https://checkout.example.test/session' };
@@ -26,7 +30,7 @@ async function call(offerData, email = 'buyer@example.test', extra = {}) {
   const result = {};
   const res = { status(code) { result.status = code; return this; }, json(body) { result.body = body; return this; } };
   await module.exports({ method: 'POST', headers: { origin: 'https://www.homeofferflow.com' }, body: { email, plan: 'self', offerData, ...extra } }, res);
-  return { ...result, requests, initializations };
+  return { ...result, requests, initializations, saved };
 }
 async function rejected(offer, email) {
   const result = await call(offer, email);
@@ -69,7 +73,7 @@ for (const type of ['cash', 'conventional', 'fha', 'va', 'usda']) test(`${type} 
   assert.equal(result.requests.length, 1);
   const request = result.requests[0];
   assert.equal(request.line_items[0].price, 'price-server');
-  const recovered = JSON.parse(Array.from({ length: Number(request.metadata.offer_parts) }, (_, i) => request.metadata[`offer_${i}`]).join(''));
+  const recovered = JSON.parse(result.saved[0]);
   for (const key of Object.keys(offer)) assert.equal(recovered[key], offer[key]);
   assert.equal(recovered._paymentEmail, 'buyer@example.test');
 });
@@ -106,26 +110,15 @@ for (const text of ['Before\u2028After', 'Before\u2029After', 'Name: José 李 �
   const offer = { ...cash, repairsText: text, legalDescription: text.repeat(100) };
   const result = await call(offer);
   assert.equal(result.status, 200);
-  const metadata = result.requests[0].metadata;
-  const chunks = Array.from({ length: Number(metadata.offer_parts) }, (_, i) => metadata[`offer_${i}`]);
-  for (const chunk of chunks) {
-    assert.ok(chunk.length <= 450);
-    assert.equal(Buffer.from(chunk).toString(), chunk, 'each part is independently valid UTF-8');
-  }
-  const recovered = JSON.parse(chunks.join(''));
+  assert.ok(Object.values(result.requests[0].metadata).every(value => value.length <= 500));
+  const recovered = JSON.parse(result.saved[0]);
   assert.equal(recovered.repairsText, offer.repairsText);
   assert.equal(recovered.legalDescription, offer.legalDescription);
 });
-test('a non-BMP character on the metadata boundary is never split', async () => {
+test('a non-BMP character on the former metadata boundary is preserved', async () => {
   const prefixLength = JSON.stringify({ ...cash, repairsText: '' }).slice(0, -2).length;
   const offer = { ...cash, repairsText: 'x'.repeat(449 - prefixLength) + '🏡' + 'end' };
   const result = await call(offer);
   assert.equal(result.status, 200);
-  const metadata = result.requests[0].metadata;
-  const chunks = Array.from({ length: Number(metadata.offer_parts) }, (_, i) => metadata[`offer_${i}`]);
-  for (const chunk of chunks) {
-    assert.ok(chunk.length <= 450);
-    assert.equal(Buffer.from(chunk).toString(), chunk);
-  }
-  assert.equal(JSON.parse(chunks.join('')).repairsText, offer.repairsText);
+  assert.equal(JSON.parse(result.saved[0]).repairsText, offer.repairsText);
 });

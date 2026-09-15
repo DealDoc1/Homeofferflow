@@ -1,5 +1,6 @@
 """Exercise checkout -> durable email protocol -> Resend request, offline."""
 import copy
+import base64
 import importlib.util
 import json
 import io
@@ -82,22 +83,36 @@ class CheckoutEmailDeliveryTests(unittest.TestCase):
         self.assertNotEqual(self.requests[0][0], self.requests[1][0])
         self.assertEqual(second['signwell']['document_id'], 'same-signwell-document')
 
-    def test_real_checkout_metadata_reaches_fulfillment_without_losing_unicode(self):
+    def test_real_checkout_reference_preserves_unicode_and_full_size_attachment_bytes(self):
         offer = {**self.offer, 'financing': 'cash', 'earnest': '0', 'optionFee': '0', 'optionDays': '0',
                  'repairsText': 'First requirement\u2028Second requirement\u2029Final requirement 🏡',
-                 'legalDescription': ('José 李\u2028Parcel notes\u2029' * 50)}
+                 'legalDescription': ('José 李\u2028Parcel notes\u2029' * 50),
+                 # Synthetic bytes test transport, not PDF rendering/geometry.
+                 'uploadedDisclosureDocs': [
+                     {'name': 'one.pdf', 'base64': base64.b64encode(b'A' * (2 * 1024 * 1024)).decode()},
+                     {'name': 'two.pdf', 'base64': base64.b64encode(b'B' * (512 * 1024)).decode()}]}
         script = r"""
 const fs = require('node:fs'), vm = require('node:vm');
 const offerData = JSON.parse(fs.readFileSync(0, 'utf8'));
 const moduleObject = {exports: {}};
-let captured;
+let captured, row;
+const storage = require('./lib/checkout_payload');
+const options = {env:{SUPABASE_URL:'https://database.example.test',SUPABASE_SERVICE_ROLE_KEY:'fake-service'},
+  fetcher:async (url, request) => {
+    row = {...row, ...JSON.parse(request.body)};
+    return {ok:true,json:async()=>[row]};
+  }};
 vm.runInNewContext(fs.readFileSync('api/create-checkout.js', 'utf8'), {
   module: moduleObject, URL, console, process: {env: {STRIPE_SECRET_KEY:'mock-key'}},
   require(name) {
+    if (name === '../lib/checkout_payload') return {
+      saveCheckoutPayload: body => storage.saveCheckoutPayload(body, options),
+      bindCheckoutPayload: (ref, id) => storage.bindCheckoutPayload(ref, id, options)
+    };
     if (name !== 'stripe') throw Error('Unexpected dependency');
     return () => ({checkout:{sessions:{create:async payload => {
       captured = payload.metadata;
-      return {url:'https://checkout.example.test/session'};
+      return {id:'cs_verified_test',url:'https://checkout.example.test/session'};
     }}}});
   }
 });
@@ -106,19 +121,44 @@ const res = {status(value){status=value;return this;},json(){return this;}};
 moduleObject.exports({method:'POST', headers:{origin:'https://www.homeofferflow.com'},
   body:{email:'payer@example.test',plan:'self',offerData}}, res).then(() => {
   if (status !== 200 || !captured) throw Error('Mock checkout rejected');
-  process.stdout.write(JSON.stringify(captured));
+  process.stdout.write(JSON.stringify({metadata:captured,row}));
 }).catch(error => {console.error(error);process.exit(1);});
 """
         result = subprocess.run(['node', '-e', script], input=json.dumps(offer), text=True,
                                 capture_output=True, timeout=15,
                                 cwd=Path(__file__).resolve().parents[1])
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.event['data']['object']['metadata'] = json.loads(result.stdout)
-        API.handle_checkout(copy.deepcopy(self.event))
+        captured = json.loads(result.stdout)
+        self.event['data']['object'].update(metadata=captured['metadata'], mode='payment', payment_status='paid')
+        from types import SimpleNamespace
+        with patch.object(API, 'SUPABASE_URL', 'https://database.example.test'), \
+             patch.object(API, 'SUPABASE_SERVICE_ROLE_KEY', 'fake-service'), \
+             patch('lib.checkout_payload.httpx.get', return_value=SimpleNamespace(
+                 status_code=200, json=lambda: [captured['row']])):
+            API.handle_checkout(copy.deepcopy(self.event))
         rendered_offer = API.fill_and_merge.call_args.args[0]
         self.assertEqual(rendered_offer['repairsText'], offer['repairsText'])
         self.assertEqual(rendered_offer['legalDescription'], offer['legalDescription'])
+        self.assertEqual(rendered_offer['uploadedDisclosureDocs'], offer['uploadedDisclosureDocs'])
         self.assertEqual(len(self.requests), 2)
+
+    def test_subscription_cannot_use_another_customers_checkout_reference(self):
+        self.event['data']['object']['metadata']['offer_payload_id'] = 'private-reference'
+        with patch.object(API, 'load_checkout_payload') as load:
+            with self.assertRaisesRegex(ValueError, 'verified payment event'):
+                API.handle_checkout(self.event, subscription_user_id=OWNER)
+            load.assert_not_called()
+        API.fill_and_merge.assert_not_called()
+        self.signing.assert_not_called()
+        self.assertEqual(self.requests, [])
+
+    def test_failed_reference_never_falls_back_to_inline_answers_or_sends(self):
+        self.event['data']['object']['metadata']['offer_payload_id'] = 'private-reference'
+        with patch.object(API, 'load_checkout_payload', side_effect=ValueError('unverified')):
+            with self.assertRaises(ValueError): API.handle_checkout(self.event)
+        API.fill_and_merge.assert_not_called()
+        self.signing.assert_not_called()
+        self.assertEqual(self.requests, [])
 
     def test_buyer_timeout_retry_reuses_original_pdf_and_message(self):
         self.fail = 'Your HomeOfferFlow Offer'

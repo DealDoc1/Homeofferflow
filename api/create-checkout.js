@@ -1,4 +1,5 @@
 const Stripe = require('stripe');
+const { saveCheckoutPayload, bindCheckoutPayload } = require('../lib/checkout_payload');
 
 const SELF_SERVE_PLAN = 'self';
 const FALLBACK_ORIGIN = 'https://www.homeofferflow.com';
@@ -116,29 +117,15 @@ module.exports = async (req, res) => {
       _plan: SELF_SERVE_PLAN
     });
 
-    // Dot-regex splitting drops Unicode line/paragraph separators. Iterating
-    // code points preserves every character and never splits a surrogate pair
-    // across metadata values, while keeping each value under 450 UTF-16 units.
-    const chunks = [];
-    let chunk = '';
-    for (const character of offerDataString) {
-      if (chunk.length + character.length > 450) {
-        chunks.push(chunk);
-        chunk = '';
-      }
-      chunk += character;
-    }
-    if (chunk) chunks.push(chunk);
-
+    // Save before creating a payable session. Metadata's 50-key limit cannot
+    // hold the advertised uploaded PDFs; use a private immutable reference.
+    const reference = await saveCheckoutPayload(offerDataString);
     const metadata = {
       plan: SELF_SERVE_PLAN,
       payment_email: email,
-      offer_parts: String(chunks.length)
+      offer_payload_id: reference.id,
+      offer_payload_sha256: reference.fingerprint
     };
-
-    chunks.forEach((chunk, i) => {
-      metadata[`offer_${i}`] = chunk;
-    });
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
@@ -151,9 +138,20 @@ module.exports = async (req, res) => {
       cancel_url: safeCancelUrl
     });
 
+    try {
+      await bindCheckoutPayload(reference, session.id);
+    } catch (error) {
+      // Never return an unbound payable URL. Expire the unused session if the
+      // database acknowledgement is lost; retain the row for reconciliation.
+      try { await stripe.checkout.sessions.expire(session.id); } catch (_) {}
+      throw error;
+    }
+
     return res.status(200).json({ url: session.url });
   } catch (err) {
-    console.error('Stripe checkout error:', err);
-    return res.status(500).json({ error: err.message || 'Stripe checkout failed' });
+    console.error('Checkout preparation failed');
+    return res.status(err.statusCode === 413 ? 413 : 503).json({
+      error: err.statusCode === 413 ? err.message : 'Checkout could not be prepared. Please try again. No payment was started.'
+    });
   }
 };
