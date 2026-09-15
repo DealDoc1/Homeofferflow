@@ -2,6 +2,7 @@ import os
 import json
 import hashlib
 import hmac
+import urllib.parse
 from http.server import BaseHTTPRequestHandler
 from datetime import datetime, timezone
 import httpx
@@ -128,7 +129,8 @@ def _recipient_stats(payload):
         if not isinstance(r, dict):
             continue
         raw = " ".join(str(r.get(k, "")) for k in ["status", "recipient_status", "signing_status"]).lower()
-        if r.get("signed") or r.get("completed") or "signed" in raw or "complete" in raw:
+        states = {str(r.get(k) or "").strip().lower() for k in ["status", "recipient_status", "signing_status"]}
+        if r.get("signed") is True or r.get("completed") is True or states.intersection({"signed", "completed", "complete"}):
             signed += 1
         if r.get("viewed") or "view" in raw:
             viewed += 1
@@ -137,22 +139,43 @@ def _recipient_stats(payload):
 
 def _status_for(payload):
     ev = str(_event_type(payload)).lower().replace("-", "_").replace(" ", "_")
-    total, signed, viewed = _recipient_stats(payload)
-
-    if any(x in ev for x in ["declined", "canceled", "cancelled", "expired"]):
-        return "Rejected", "Declined/Expired"
-    if any(x in ev for x in ["completed", "complete", "executed", "document_signed", "all_signed"]):
+    if ev == "document_declined":
+        return "Rejected", "Declined"
+    if ev in {"document_canceled", "document_cancelled"}:
+        return "Rejected", "Cancelled"
+    if ev == "document_expired":
+        return "Rejected", "Expired"
+    if ev == "document_completed":
         return "Buyer Signed", "Buyer Signatures Complete"
-    if "signed" in ev:
-        if total and signed and signed < total:
-            return "Partially Buyer Signed", "Partially Signed"
-        return "Buyer Signed", "Buyer Signatures Complete"
-    if "view" in ev:
+    # document_signed is one recipient's event. Even a one-row/all-signed
+    # recipient snapshot is not the provider's document-finalization event.
+    if ev in {"document_signed", "document_in_progress"}:
+        return "Partially Buyer Signed", "Partially Signed"
+    if ev == "document_viewed":
         return "Buyer Viewed", "Viewed"
-    if any(x in ev for x in ["sent", "created", "send", "document_created"]):
+    if ev == "document_sent":
         return "Sent for Signature", "Awaiting Buyer Signature"
+    if ev == "document_created":
+        return "Generated", "Draft - not sent"
+    # Unsupported events may be added by the provider. Do not guess a
+    # successful lifecycle transition from their names or signer snapshots.
+    return None, None
 
-    return "Sent for Signature", "Pending"
+
+def _lifecycle_update_guard(mapped_status, *, standalone=False):
+    """Prevent delayed/replayed lower-progress events from undoing later state."""
+    terminal = "signed,void" if standalone else 'Signed,"Buyer Signed",Rejected,Declined,Expired'
+    query = f"&status=not.in.({urllib.parse.quote(terminal, safe=',')})"
+    if mapped_status in {"Sent for Signature", "Buyer Viewed"}:
+        progressed = ['Partially Signed', 'partially_signed', 'pending', 'in_progress']
+        if mapped_status == "Sent for Signature":
+            progressed += ['Viewed', 'viewed']
+        values = ','.join('"' + value + '"' for value in progressed)
+        # `not.in` excludes NULL under SQL three-valued logic; explicitly
+        # retain new tracked records whose detailed status is not set yet.
+        expression = f'(signwell_status.is.null,signwell_status.not.in.({values}))'
+        query += "&or=" + urllib.parse.quote(expression, safe='')
+    return query
 
 
 def _telemetry_metadata(payload, event_type, mapped_status, mapped_signwell_status):
@@ -193,7 +216,7 @@ async def _insert_event(document_id, event_type, payload, mapped_status, mapped_
 
 
 async def _update_offer(document_id, mapped_status, mapped_signwell_status, payload):
-    if not document_id or not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
+    if not document_id or not mapped_status or mapped_status == "Generated" or not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
         return None
     update_payload = {
         "status": mapped_status,
@@ -204,7 +227,8 @@ async def _update_offer(document_id, mapped_status, mapped_signwell_status, payl
         update_payload["signed_at"] = datetime.now(timezone.utc).isoformat()
     async with httpx.AsyncClient(timeout=12) as client:
         return await client.patch(
-            f"{SUPABASE_URL}/rest/v1/hof_offers?signwell_document_id=eq.{document_id}&select=id,status,signwell_status",
+            f"{SUPABASE_URL}/rest/v1/hof_offers?signwell_document_id=eq.{urllib.parse.quote(document_id, safe='')}"
+            f"{_lifecycle_update_guard(mapped_status)}&select=id,status,signwell_status",
             headers=_headers(),
             json=update_payload,
         )
@@ -216,6 +240,8 @@ def _standalone_status_for(mapped_status):
         return "signed"
     if mapped_status == "Rejected":
         return "void"
+    if mapped_status == "Generated":
+        return "draft"
     # Viewed, partially signed, sent, and pending all remain executable/sent
     # from the agreement owner's perspective until SignWell reports completion.
     return "sent"
@@ -229,7 +255,7 @@ async def _update_standalone_agreement(document_id, mapped_status, mapped_signwe
     reporting. The query is scoped by SignWell document id, which is unique in
     the standalone table.
     """
-    if not document_id or not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
+    if not document_id or not mapped_status or mapped_status == "Generated" or not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
         return None
     now = datetime.now(timezone.utc).isoformat()
     update_payload = {
@@ -242,7 +268,8 @@ async def _update_standalone_agreement(document_id, mapped_status, mapped_signwe
     async with httpx.AsyncClient(timeout=12) as client:
         return await client.patch(
             f"{SUPABASE_URL}/rest/v1/hof_standalone_agreements?"
-            f"signwell_document_id=eq.{document_id}&select=id,status,signwell_status",
+            f"signwell_document_id=eq.{urllib.parse.quote(document_id, safe='')}"
+            f"{_lifecycle_update_guard(mapped_status, standalone=True)}&select=id,status,signwell_status",
             headers=_headers(),
             json=update_payload,
         )
@@ -250,7 +277,7 @@ async def _update_standalone_agreement(document_id, mapped_status, mapped_signwe
 
 async def _update_seller_disclosure(document_id, mapped_status, mapped_signwell_status, payload):
     """Keep seller-disclosure status separate from offers and standalone forms."""
-    if not document_id or not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
+    if not document_id or not mapped_status or mapped_status == "Generated" or not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
         return None
     now = datetime.now(timezone.utc).isoformat()
     update_payload = {
@@ -263,7 +290,8 @@ async def _update_seller_disclosure(document_id, mapped_status, mapped_signwell_
     async with httpx.AsyncClient(timeout=12) as client:
         return await client.patch(
             f"{SUPABASE_URL}/rest/v1/hof_seller_disclosure_drafts?"
-            f"signwell_document_id=eq.{document_id}&select=id,status,signwell_status",
+            f"signwell_document_id=eq.{urllib.parse.quote(document_id, safe='')}"
+            f"{_lifecycle_update_guard(mapped_status, standalone=True)}&select=id,status,signwell_status",
             headers=_headers(),
             json=update_payload,
         )
@@ -357,6 +385,9 @@ class handler(BaseHTTPRequestHandler):
             event_type = _event_type(payload)
             document_id = _document_id(payload)
             mapped_status, mapped_signwell_status = _status_for(payload)
+            if mapped_status is None:
+                _json(self, 200, {"status": "ignored", "reason": "unsupported_lifecycle_event"})
+                return
 
             import asyncio
             event_resp = None
