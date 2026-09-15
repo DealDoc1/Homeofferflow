@@ -14,6 +14,8 @@ from urllib.parse import parse_qs, urlencode, urlparse
 
 import httpx
 from lib import partner_marketplace_agreement
+from lib.email_delivery import reconcile_verified_email_event
+from lib.email_delivery_store import EmailDeliveryStore
 
 SUPABASE_URL = os.environ.get('SUPABASE_URL', '').rstrip('/')
 SUPABASE_SERVICE_ROLE_KEY = (
@@ -1587,6 +1589,16 @@ def _claim_resend_webhook_event(row):
     return bool(rows) if isinstance(rows, list) else True
 
 
+def _reconcile_resend_receipt(event):
+    # Ordinary/legacy notifications do not touch the new checkout ledger.
+    data = event.get('data') if isinstance(event.get('data'), dict) else {}
+    tags = data.get('tags')
+    if not isinstance(tags, dict) or 'hof_delivery' not in tags:
+        return False
+    store = EmailDeliveryStore(supabase_url=SUPABASE_URL, service_key=SUPABASE_SERVICE_ROLE_KEY)
+    return reconcile_verified_email_event(event, read=store.read_receipt, accept=store.accept)
+
+
 class handler(BaseHTTPRequestHandler):
     def do_OPTIONS(self):
         _send(self, 204, {})
@@ -1618,6 +1630,10 @@ class handler(BaseHTTPRequestHandler):
             event = json.loads(raw_body.decode("utf-8"))
             if not isinstance(event, dict):
                 return _send(self, 400, {"error": "Invalid webhook"})
+            # After raw-body signature verification, before claiming telemetry.
+            # If either write fails, the replay can safely run reconciliation
+            # again; never let an earlier telemetry claim swallow a retry.
+            _reconcile_resend_receipt(event)
             row = _resend_event_row(event, message_id)
             claimed = _claim_resend_webhook_event(row)
             self._log_resend_webhook("processed" if claimed else "duplicate", eventType=row["event_type"], deliveryStatus=row["delivery_status"])

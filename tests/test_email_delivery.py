@@ -6,7 +6,7 @@ import unittest
 
 from lib.email_delivery import (
     EmailDeliveryNeedsReview, EmailDeliveryPending, SAFE_RETRY_SECONDS,
-    deliver_email_once, delivery_key,
+    deliver_email_once, delivery_key, receipt_payload,
 )
 
 
@@ -106,7 +106,8 @@ class EmailDeliveryTests(unittest.TestCase):
                                   attachments=[{'filename': 'offer.pdf', 'content': 'new-pdf-timestamp'}])
         self.store.run()
         self.assertEqual(len(self.store.provider), 1)
-        self.assertEqual([body for _, body in self.store.provider_calls], [original, original])
+        tagged = receipt_payload(self.store.key, original)
+        self.assertEqual([body for _, body in self.store.provider_calls], [tagged, tagged])
 
     def test_uncertain_final_write_replays_same_provider_key(self):
         for failure in ('accept_fails', 'accept_false'):

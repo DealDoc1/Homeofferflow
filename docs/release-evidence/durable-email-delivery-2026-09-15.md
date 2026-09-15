@@ -61,6 +61,60 @@ remain required before activation. No production table was created.
 
 ## Verification and boundaries
 
+### Verified-webhook recovery update
+
+Latest full regression: **1,909 tests pass** (15 additional recovery/adapter
+tests); `git diff --check` passes. The earlier counts below are historical
+checkpoints, not the current suite total.
+
+Newly reserved durable emails include two opaque Resend tags: the delivery key
+and a digest of the complete original request, including PDF attachment bytes.
+The database still fingerprints the entire tagged request, and retries use the
+original saved body. An existing untagged reservation is not rewritten.
+Resend documents tags in webhook events:
+https://resend.com/docs/dashboard/emails/tags
+
+The existing `/api/resend-webhook` route now reconciles matching checkout
+receipts only after checking the signature over the untouched request body.
+Matching requires the exact saved delivery key, content digest, sender,
+recipients, and a valid provider email ID. Corrupt, missing, unattempted,
+untagged, and mismatched requests are not accepted. The receipt adapter has
+no send capability. A confirmed pending receipt transitions through the same
+conditional service-only write and clears its private payload.
+
+Reconciliation runs before claiming event telemetry, including for replayed
+events. A database failure returns a retryable webhook error. If the receipt
+write succeeds and telemetry subsequently fails, a replay recognizes the same
+accepted provider ID without sending or overwriting it. Existing telemetry
+continues to omit receipt correlation tags, addresses, subject, and PDF data.
+
+Tests exercise a real signature-verified handler through the coordinator with
+controlled storage, a seven-day-old timeout, repeated/out-of-order events,
+wrong identities, attachment tampering, and write failure/recovery. Bounces
+confirm provider acceptance only; they remain bounces in delivery telemetry.
+No live Resend event or inbox receipt was verified in this update.
+
+### Operational recovery after release
+
+1. For a pending tagged request, locate the original email in Resend and replay
+   its original provider event to the configured webhook. Replaying an event
+   is not resending the email. Use the authenticated Resend dashboard, never a
+   browser-supplied claim of delivery or a hand-edited webhook payload.
+2. Verify the exact private receipt has changed to `accepted` with the original
+   provider ID and cleared payload. Check the separate delivery event for
+   delivered, bounced, or suppressed status; acceptance alone is not delivery.
+3. Repeating checkout after reconciliation reuses the accepted receipt instead
+   of requesting another document email. This path is locally tested only.
+4. If there is no matching provider event, the webhook is unsubscribed from
+   the relevant event, or the message predates these tags, do not manufacture
+   an accepted receipt or reset its retry window. A separate exact-ID provider
+   lookup/operator recovery path remains to be built. Legacy messages are not
+   claimed recovered by this update.
+
+Production release must verify the existing webhook subscription and replay
+one controlled event end to end. No new webhook, subscription, polling task,
+database column, or paid service was created by this update.
+
 24 targeted offline tests pass: provider timeout after acceptance, final-write
 failure, late replay, concurrent callbacks, changed PDF/recipient/template,
 invalid timestamps, failed persistence, conflicting inserts, and zero-row
@@ -103,7 +157,8 @@ verification; local tests do not establish production or inbox delivery.
    acceptance explicitly and distinguishes unconfirmed admin email. Admin
    failures remain non-blocking for the buyer; another callback can resume
    that receipt, but no autonomous admin-email retry worker was added. An old
-   uncertain receipt's operational reconciliation remains in progress.
+   uncertain tagged receipt can now reconcile through the verified webhook;
+   legacy/no-event recovery and live verification remain in progress.
 5. Release with the existing verified batch only when publishing authority and
    deployment cost constraints permit. Verify production separately afterward.
 

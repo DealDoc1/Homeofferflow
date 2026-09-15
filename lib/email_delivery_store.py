@@ -39,6 +39,13 @@ class EmailDeliveryStore:
                          params={'delivery_key': 'eq.' + key, 'select': self.COLUMNS, 'limit': '1'}))
         return rows[0] if rows else None
 
+    def read_receipt(self, key):
+        """Exact service-only lookup; never reserve or start a send for recovery."""
+        from lib.email_delivery import DELIVERY_KEY_RE
+        if not isinstance(key, str) or not DELIVERY_KEY_RE.fullmatch(key):
+            raise ValueError('Invalid email delivery key.')
+        return self._read(key)
+
     def reserve(self, key, payload, fingerprint):
         row = self._read(key)
         if row:

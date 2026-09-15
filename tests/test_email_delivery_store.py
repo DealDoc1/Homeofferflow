@@ -34,6 +34,17 @@ class EmailDeliveryStoreTests(unittest.TestCase):
         self.assertEqual(request['json']['payload'], self.payload)
         self.assertNotIn('first_attempt_at', request['json'])
 
+    def test_receipt_lookup_is_exact_read_only_and_validates_key(self):
+        self.client.get.return_value = response([self.row])
+        self.assertEqual(self.store.read_receipt(self.key), self.row)
+        self.assertEqual(self.client.get.call_args.kwargs['params']['delivery_key'], 'eq.' + self.key)
+        self.client.post.assert_not_called()
+        self.client.patch.assert_not_called()
+        for key in ('', 'invalid', self.key + '&status=eq.accepted'):
+            with self.assertRaises(ValueError):
+                self.store.read_receipt(key)
+        self.assertEqual(self.client.get.call_count, 1)
+
     def test_conflicting_initial_reservation_reads_first_saved_body(self):
         self.client.get.side_effect = [response([]), response([self.row])]
         self.client.post.return_value = response([], 201)
