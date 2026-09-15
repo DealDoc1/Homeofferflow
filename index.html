@@ -4037,27 +4037,26 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 
     <div class="wizard-step" id="stepSuccess">
       <div class="hof-interview-guide" data-hof-guide="stepSuccess">
-        <div class="hof-guide-kicker">✨ Done</div>
-        <div class="hof-guide-title">Your offer packet is on its way.</div>
-        <div class="hof-guide-copy">Check your inbox for the generated documents and signature request. Save a copy for your records before sending anything onward.</div>
-        <div class="hof-guide-chip-row"><span class="hof-guide-chip"><strong>✓</strong> Generated</span><span class="hof-guide-chip"><strong>✓</strong> Emailed</span><span class="hof-guide-chip"><strong>✓</strong> Ready</span></div>
+        <div class="hof-guide-kicker">Delivery &amp; signing</div>
+        <div class="hof-guide-title">Your offer packet</div>
+        <div class="hof-guide-copy">Review the delivery and signing status below.</div>
       </div>
       <div style="text-align:center; max-width:640px; margin:0 auto;">
-        <div style="width:72px; height:72px; border-radius:999px; background:rgba(74,140,111,0.18); border:1px solid rgba(74,140,111,0.45); display:flex; align-items:center; justify-content:center; font-size:2rem; margin:0 auto 1rem;">✅</div>
+        <div style="width:72px; height:72px; border-radius:999px; background:rgba(74,140,111,0.18); border:1px solid rgba(74,140,111,0.45); display:flex; align-items:center; justify-content:center; font-size:2rem; margin:0 auto 1rem;">📄</div>
         <h2 id="successHeading">Payment successful</h2>
         <p class="step-desc" id="successMessage">Check your email — your offer packet is ready. You can safely close this page after saving the email/PDF.</p>
         <div id="successBrokerageBrand" class="notice" style="display:none; text-align:left; margin-top:1rem; align-items:center; gap:.75rem;"></div>
 
         <div class="notice sage" style="text-align:left; margin-top:1.25rem;">
           <strong>Next steps</strong><br/>
-          1. Check your email for your HomeOfferFlow offer packet.<br/>
+          <span id="successDeliveryStep">1. Check the delivery email shown below for your HomeOfferFlow offer packet.</span><br/>
           <span id="successSignatureStep">2. Watch for a separate SignWell email if buyer-side signatures are enabled.</span><br/>
           3. Review the PDF carefully before sending, signing, or relying on it.<br/>
           <span id="successRevisionStep">4. If the seller or listing agent sends revised documents later, compare them carefully before signing.</span>
         </div>
 
         <div id="successEmailBox" style="margin-top:1rem; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.10); border-radius:12px; padding:1rem; text-align:left;">
-          <div style="font-size:0.78rem; color:var(--gray); text-transform:uppercase; letter-spacing:0.05em; font-weight:700;">Sent to</div>
+          <div id="successEmailLabel" style="font-size:0.78rem; color:var(--gray); text-transform:uppercase; letter-spacing:0.05em; font-weight:700;">Delivery email</div>
           <div id="successEmail" style="font-size:1rem; font-weight:800; color:var(--white); margin-top:0.25rem;">the email you entered</div>
         </div>
 
@@ -10196,7 +10195,7 @@ function routeAfterMagicLinkIfNeeded() {
     }
     if (signing) {
       signing.textContent = paragraph4Forms.length
-        ? `Buyers sign the offer package first. Sellers then sign the included ${paragraph4Forms.join(' and ')}. Seller acceptance and any other seller-side signatures remain with the seller or listing side.`
+        ? `Buyers and sellers receive signing invitations together. Sellers sign only the included ${paragraph4Forms.join(' and ')}. Seller acceptance and any other seller-side signatures remain with the seller or listing side.`
         : 'HomeOfferFlow routes buyer signatures, buyer dates, and buyer initials. Seller acceptance and seller-side signatures remain with the seller or listing side.';
     }
     if (revision) {
@@ -10581,6 +10580,27 @@ function routeAfterMagicLinkIfNeeded() {
   }
 
 
+  function packetDeliverySummary(email, options = {}, data = {}) {
+    const recipient = data.buyerEmail || email || 'the delivery email shown below';
+    if (options.checkoutConfirmationPending) {
+      return { recipient, label: 'Delivery email',
+        message: 'We’ll email a receipt and your offer packet after payment is confirmed.',
+        signing: '2. Signing invitations will follow when payment and packet preparation are complete.' };
+    }
+    if (options.packetGenerated === true) {
+      const signing = options.signwell;
+      return { recipient, label: 'Documents emailed to',
+        message: `Your offer documents were emailed to ${recipient}.`,
+        signing: signing?.ok === true
+          ? '2. SignWell has sent the signing invitations. Each signer can sign independently.'
+          : signing?.enabled === false
+            ? '2. No signing invitation was sent. Review the emailed PDF before arranging signatures.'
+            : '2. The signing invitation was not sent. Open My Offers and choose Retry signing for this offer.' };
+    }
+    return { recipient, label: 'Delivery email', message: 'Check the delivery email shown below for your offer packet.',
+      signing: '2. Check the offer’s signing status in My Offers before expecting a SignWell invitation.' };
+  }
+
   function showPaymentSuccess(email, options = {}) {
     const checkoutConfirmationPending = options.checkoutConfirmationPending === true;
     window.__hofPaymentReturn = true;
@@ -10603,6 +10623,8 @@ function routeAfterMagicLinkIfNeeded() {
     const successMessage = document.getElementById('successMessage');
     const successHeading = document.getElementById('successHeading');
     const successSignatureStep = document.getElementById('successSignatureStep');
+    const successDeliveryStep = document.getElementById('successDeliveryStep');
+    const deliverySummary = packetDeliverySummary(email, options, state.data);
     const successRevisionStep = document.getElementById('successRevisionStep');
     const accountWorkflow = ['agent', 'investor'].includes(state.data.userType || '');
     const paragraph4Forms = [
@@ -10610,19 +10632,18 @@ function routeAfterMagicLinkIfNeeded() {
       state.data.leaseFixture === 'yes' ? 'Fixture Lease Addendum' : ''
     ].filter(Boolean);
 
-    if (successEmail) successEmail.textContent = email || state.data.buyerEmail || 'the email you entered';
-    if (successHeading) successHeading.textContent = accountWorkflow
-      ? 'Packet generated'
-      : checkoutConfirmationPending ? 'We’re confirming your checkout' : 'Payment successful';
-    if (successMessage) successMessage.textContent = accountWorkflow
-      ? 'Your offer package has been generated. Check your email for the documents and signature request.'
-      : checkoutConfirmationPending
-        ? 'We’ll email a receipt and your offer packet after payment is confirmed.'
-        : 'Check your email — your offer packet is ready.';
+    if (successEmail) successEmail.textContent = deliverySummary.recipient;
+    const successEmailLabel = document.getElementById('successEmailLabel');
+    if (successEmailLabel) successEmailLabel.textContent = deliverySummary.label;
+    if (successDeliveryStep) successDeliveryStep.textContent = `1. Check ${deliverySummary.recipient} for the offer documents.`;
+    if (successHeading) successHeading.textContent = checkoutConfirmationPending
+      ? 'We’re confirming your checkout'
+      : options.packetGenerated === true ? 'Packet generated' : 'Your offer packet';
+    if (successMessage) successMessage.textContent = deliverySummary.message;
     if (successSignatureStep) {
-      successSignatureStep.textContent = paragraph4Forms.length
-        ? `2. Buyers sign first. Sellers then receive SignWell for the included ${paragraph4Forms.join(' and ')}.`
-        : '2. Watch for a separate SignWell email when buyer signatures are enabled.';
+      successSignatureStep.textContent = paragraph4Forms.length && options.signwell?.ok === true
+        ? `2. Buyers and sellers receive signing invitations together. Sellers sign the included ${paragraph4Forms.join(' and ')}.`
+        : deliverySummary.signing;
     }
     if (successRevisionStep) {
       successRevisionStep.textContent = accountWorkflow
@@ -11412,7 +11433,7 @@ function routeAfterMagicLinkIfNeeded() {
       );
 
       window.__hofSubscriptionPacketGenerated = true;
-      showPaymentSuccess(email);
+      showPaymentSuccess(email, { packetGenerated: true, signwell: result.signwell });
     } catch (err) {
       console.error('Subscribed packet generation failed:', err);
       const failure = packetGenerationFailureDetails(err);

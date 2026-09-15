@@ -1486,18 +1486,18 @@ def create_signwell_signature_request(offer, pdf_bytes):
     paragraph4_forms = paragraph4_lease_kinds(offer)
     if paragraph4_forms and seller_lease_parties:
         signing_scope_message = (
-            "Please carefully review and sign in the order requested. This packet includes existing-property lease addenda "
-            "and a Seller's Temporary Residential Lease. Buyers sign first; Sellers sign the lease documents after Buyer signatures are complete.\n\n"
+            "Please carefully review and sign your assigned fields. This packet includes existing-property lease addenda "
+            "and a Seller's Temporary Residential Lease. All named signers receive invitations together and can sign independently.\n\n"
         )
     elif paragraph4_forms:
         signing_scope_message = (
-            "Please carefully review and sign in the order requested. This packet includes existing-property lease addenda. "
-            "Buyers sign first; Sellers sign those addenda after Buyer signatures are complete.\n\n"
+            "Please carefully review and sign your assigned fields. This packet includes existing-property lease addenda. "
+            "All named signers receive invitations together and can sign independently.\n\n"
         )
     else:
         signing_scope_message = (
-        "Please carefully review and sign in the order requested. This packet includes a Seller's Temporary Residential Lease: "
-        "the Buyer signs as Landlord first and the Seller signs as Tenant after Buyer signatures are complete.\n\n"
+        "Please carefully review and sign your assigned fields. This packet includes a Seller's Temporary Residential Lease: "
+        "the Buyer signs as Landlord and the Seller signs as Tenant. Both receive invitations together and can sign independently.\n\n"
         if seller_lease_parties else
         "Please carefully review and sign the buyer-side offer documents. "
         "Seller signatures, seller initials, counteroffers, amendments, and seller-side changes are handled separately by the seller or listing side.\n\n"
@@ -1546,7 +1546,7 @@ def create_signwell_signature_request(offer, pdf_bytes):
         "test_mode": SIGNWELL_TEST_MODE,
         "draft": False,
         "reminders": True,
-        "apply_signing_order": bool(seller_parties),
+        "apply_signing_order": False,
         "embedded_signing": False,
         "with_signature_page": False,
         "custom_requester_name": (

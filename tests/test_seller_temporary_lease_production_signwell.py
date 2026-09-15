@@ -71,7 +71,8 @@ class SellerTemporaryLeaseProductionSignWellTests(unittest.TestCase):
         self.assertTrue(result["ok"])
         self.assertEqual(result["mode"], "bundle_v13_seller_temporary_lease_multisigner")
         payload = captured["payload"]
-        self.assertTrue(payload["apply_signing_order"])
+        self.assertFalse(payload["apply_signing_order"])
+        self.assertIn("can sign independently", payload["message"])
         self.assertEqual(
             [(recipient["id"], recipient["email"]) for recipient in payload["recipients"]],
             [
@@ -83,7 +84,7 @@ class SellerTemporaryLeaseProductionSignWellTests(unittest.TestCase):
         )
         self.assertEqual(payload["metadata"]["seller_temporary_lease_tenant_count"], "2")
 
-    def test_paragraph4_packet_routes_buyer_then_seller(self):
+    def test_paragraph4_packet_invites_buyer_and_seller_together(self):
         api = load_offer_api()
         api.SIGNWELL_ENABLED = True
         api.SIGNWELL_API_KEY = "test_key"
@@ -111,7 +112,8 @@ class SellerTemporaryLeaseProductionSignWellTests(unittest.TestCase):
 
         self.assertTrue(result["ok"])
         self.assertEqual(result["mode"], "bundle_v14_paragraph4_multisigner")
-        self.assertTrue(captured["payload"]["apply_signing_order"])
+        self.assertFalse(captured["payload"]["apply_signing_order"])
+        self.assertIn("invitations together", captured["payload"]["message"])
         self.assertEqual(
             [(recipient["id"], recipient["email"]) for recipient in captured["payload"]["recipients"]],
             [("1", "buyer@example.com"), ("3", "seller@example.com")],

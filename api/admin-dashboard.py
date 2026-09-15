@@ -3695,7 +3695,7 @@ async def _send_seller_disclosure_for_signature(user, data):
         # disclosure fields and signer assignments requested below.
         "draft": True,
         "reminders": True,
-        "apply_signing_order": True,
+        "apply_signing_order": False,
         "embedded_signing": False,
         "with_signature_page": False,
         "custom_requester_name": "HomeOfferFlow",
@@ -3744,10 +3744,7 @@ async def _send_seller_disclosure_for_signature(user, data):
                 headers=headers,
             )
             raise RuntimeError("SignWell could not preserve every required disclosure field. Nothing was sent.")
-        send_payload = {
-            key: value for key, value in payload.items()
-            if key not in {"draft", "files", "fields", "recipients"}
-        }
+        send_payload = _signwell_send_options(payload)
         send_response = await client.post(
             f"https://www.signwell.com/api/v1/documents/{urllib.parse.quote(document_id, safe='')}/send",
             headers=headers,
@@ -4107,6 +4104,22 @@ def _validate_confirmed_signing_recipients(recipients, confirmed):
         raise ValueError("Each signer, including the agent or broker, must use a different signing email.")
 
 
+def _signwell_send_options(payload):
+    """Forward only supported options to SignWell's update-and-send endpoint.
+
+    The document, recipients and fields have already been created and checked.
+    In particular, with_signature_page is a create-only setting, not a send
+    option. Keep this allowlist explicit so new creation options cannot leak
+    into the final request. Contract: developers.signwell.com/reference/senddocument
+    """
+    keys = (
+        "test_mode", "name", "subject", "message", "reminders",
+        "apply_signing_order", "embedded_signing", "custom_requester_name",
+        "metadata",
+    )
+    return {key: payload[key] for key in keys if key in payload}
+
+
 def _signwell_signing_urls(result):
     """Extract returned recipient signing URLs without persisting them."""
     recipients = result.get("recipients") if isinstance(result, dict) else None
@@ -4216,7 +4229,7 @@ async def _send_txr_agreement_for_signature(user, data):
         # checked before an irreversible recipient email is sent.
         "draft": True,
         "reminders": True,
-        "apply_signing_order": True,
+        "apply_signing_order": False,
         "embedded_signing": False,
         "with_signature_page": False,
         "custom_requester_name": "HomeOfferFlow",
@@ -4280,10 +4293,7 @@ async def _send_txr_agreement_for_signature(user, data):
                 {"status": "failed", "updated_at": datetime.now(timezone.utc).isoformat()},
             )
             raise RuntimeError("SignWell could not preserve every required signer field. Nothing was sent.")
-        send_payload = {
-            key: value for key, value in payload.items()
-            if key not in {"draft", "files", "fields", "recipients"}
-        }
+        send_payload = _signwell_send_options(payload)
         send_response = await client.post(
             f"https://www.signwell.com/api/v1/documents/{urllib.parse.quote(document_id, safe='')}/send",
             headers=headers,
