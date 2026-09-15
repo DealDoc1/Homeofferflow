@@ -51,7 +51,7 @@ class OfferDuplicateWorkspaceTests(unittest.TestCase):
         self.assertIn("return resumeOffer(id, true)", resume)
         self.assertIn("arguments[1] === true", duplicate)
         self.assertIn("duplicate_retry_clicked", duplicate)
-        self.assertIn("return duplicateOffer(id, true, openAfterDuplicate)", duplicate)
+        self.assertIn("return duplicateOffer(id, true, openAfterDuplicate, request)", duplicate)
         self.assertIn("openAfterDuplicate", duplicate)
         self.assertIn("return resumeOffer(insertResult.data.id)", duplicate)
 

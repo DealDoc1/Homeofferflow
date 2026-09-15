@@ -86,7 +86,7 @@ class OfferAutosaveRuntimeTests(unittest.TestCase):
 
     def test_resuming_signed_offer_creates_one_clean_editable_copy(self):
         helpers = SOURCE[:SOURCE.index('  async function saveOfferDraftToSupabase(')]
-        flows = HTML[HTML.index('  async function resumeOffer('):HTML.index('  async function reuseOfferTerms(')]
+        flows = HTML[HTML.index('  function beginOfferOpenRequest('):HTML.index('  async function reuseOfferTerms(')]
         script = r'''
         const assert=require('node:assert/strict');
         const state={data:{_hof_signature_delivery:{stale:true},generatedAt:'stale'}};

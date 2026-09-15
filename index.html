@@ -8503,11 +8503,22 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     updateSurveyExistingDetails(data.survey || getRadio('survey'));
   }
 
+  function beginOfferOpenRequest() {
+    const request = { draft: state.data, userId: hofAuth.session?.user?.id };
+    window.__hofOfferOpenRequest = request;
+    request.isCurrent = () => !!request.userId && window.__hofOfferOpenRequest === request &&
+      request.draft === state.data && hofAuth.session?.user?.id === request.userId;
+    return request;
+  }
+
   async function resumeOffer(id, isRetry = false) {
+    const request = beginOfferOpenRequest();
+    if (!request.isCurrent()) return;
     try {
       const offer = await getOfferById(id);
+      if (!request.isCurrent()) return;
       if (!offer) { window.announceWorkspaceStatus?.('This offer is no longer available in your workspace. Refresh offers and try again.'); return; }
-      if (offerHasPreparedPacket(offer)) return duplicateOffer(id, false, true);
+      if (offerHasPreparedPacket(offer)) return duplicateOffer(id, false, true, request);
       state.data = {
         ...cleanOfferDraftData(offer.offer_data),
         buyerEmail: offer.offer_data?.buyerEmail ?? offer.buyer_email ?? offer.offer_data?.buyer_email ?? '',
@@ -8517,13 +8528,16 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         _hofOfferId: offer.id,
         userType: offer.role || hofAuth.role || 'agent'
       };
+      request.draft = state.data;
       resetUploadedDisclosureDraftForOffer(offer.offer_data || {});
       openSavedOfferInterview();
-      await logOfferEvent(offer.id, isRetry ? 'resume_retry_succeeded' : 'resume_clicked', offer.status || 'Draft', isRetry ? 'Offer resumed after a dashboard retry.' : 'Offer resumed from dashboard.');
+      await logOfferEvent(offer.id, isRetry ? 'resume_retry_succeeded' : 'resume_clicked', offer.status || 'Draft', isRetry ? 'Offer resumed after a dashboard retry.' : 'Offer resumed from dashboard.').catch(() => {});
     } catch (err) {
+      if (!request.isCurrent()) return;
       console.error('Resume failed:', err);
       if (!isRetry && window.confirm('Could not resume this offer because of a temporary error. Retry now?')) {
         await logOfferEvent(id, 'resume_retry_clicked', 'Draft', 'Agent requested a retry after resume failed.').catch(() => {});
+        if (!request.isCurrent()) return;
         return resumeOffer(id, true);
       }
       window.announceWorkspaceStatus?.(
@@ -8538,8 +8552,13 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     const client = getSupabaseClient();
     const user = hofAuth.session?.user;
     if (!client || !user) return;
+    const userId = user.id;
+    const request = openAfterDuplicate ? (arguments[3] || beginOfferOpenRequest()) : null;
+    const isCurrent = () => hofAuth.session?.user?.id === userId && (!request || request.isCurrent());
+    if (!isCurrent()) return;
     try {
       const offer = await getOfferById(id);
+      if (!isCurrent()) return;
       if (!offer) { window.announceWorkspaceStatus?.('This offer is no longer available in your workspace. Refresh offers and try again.'); return; }
       const copyData = cleanOfferDraftData(offer.offer_data);
       // A duplicate is a new, unsent draft. Never carry over identifiers or
@@ -8556,7 +8575,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       delete copyData.uploadedDisclosureDocs;
       delete copyData.uploadedDocNames;
       const insertResult = await client.from('hof_offers').insert({
-        user_id: user.id,
+        user_id: userId,
         role: offer.role || hofAuth.role || 'agent',
         property_address: (offer.property_address || 'Untitled offer') + ' (Copy)',
         buyer_name: offer.buyer_name,
@@ -8566,15 +8585,23 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         offer_data: { ...copyData, _hofOfferId: null },
         last_updated: new Date().toISOString()
       }).select('id').single();
+      // The copy remains saved if creation already completed, but an older
+      // navigation must not reopen it over the user's newer selection.
+      if (!isCurrent()) return;
       if (insertResult.error) throw insertResult.error;
-      await logOfferEvent(insertResult.data?.id || id, isRetry ? 'duplicate_retry_succeeded' : 'duplicated', 'Draft', isRetry ? 'Offer duplicated after a dashboard retry.' : 'Offer duplicated from dashboard.', { copied_from_offer_id: id });
-      await loadMyOffers();
+      await logOfferEvent(insertResult.data?.id || id, isRetry ? 'duplicate_retry_succeeded' : 'duplicated', 'Draft', isRetry ? 'Offer duplicated after a dashboard retry.' : 'Offer duplicated from dashboard.', { copied_from_offer_id: id }).catch(() => {});
+      if (!isCurrent()) return;
+      // A dashboard refresh failure must not retry an already-created copy.
+      await loadMyOffers().catch(err => console.warn('Offer list refresh failed:', err));
+      if (!isCurrent()) return;
       if (openAfterDuplicate && insertResult.data?.id) return resumeOffer(insertResult.data.id);
     } catch (err) {
+      if (!isCurrent()) return;
       console.error('Duplicate failed:', err);
       if (!isRetry && window.confirm('Could not duplicate this offer because of a temporary error. Retry now?')) {
         await logOfferEvent(id, 'duplicate_retry_clicked', 'Draft', 'Agent requested a retry after duplicate failed.').catch(() => {});
-        return duplicateOffer(id, true, openAfterDuplicate);
+        if (!isCurrent()) return;
+        return duplicateOffer(id, true, openAfterDuplicate, request);
       }
       window.announceWorkspaceStatus?.(
         window.hofCustomerActionError(err, 'We couldn’t copy that offer. Please try again.')
@@ -8583,8 +8610,11 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   }
 
   async function reuseOfferTerms(id) {
+    const request = beginOfferOpenRequest();
+    if (!request.isCurrent()) return;
     try {
       const offer = await getOfferById(id);
+      if (!request.isCurrent()) return;
       if (!offer) { window.announceWorkspaceStatus?.('This offer is no longer available in your workspace. Refresh offers and try again.'); return; }
 
       // A terms-only start is intentionally a restrictive allow-list, not a
@@ -8609,11 +8639,13 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         _hofOfferId: null,
         userType: offer.role || hofAuth.role || 'agent'
       };
+      request.draft = state.data;
       resetUploadedDisclosureDraftForOffer({});
       openSavedOfferInterview();
       updateSaveStatus('Terms-only start — client and property details cleared');
-      await logOfferEvent(offer.id, 'terms_reuse_clicked', 'Draft', 'Started a terms-only offer from a prior workspace offer.', { reuse_mode: 'terms_only' });
+      await logOfferEvent(offer.id, 'terms_reuse_clicked', 'Draft', 'Started a terms-only offer from a prior workspace offer.', { reuse_mode: 'terms_only' }).catch(() => {});
     } catch (err) {
+      if (!request.isCurrent()) return;
       console.error('Terms-only offer start failed:', err);
       window.announceWorkspaceStatus?.(
         window.hofCustomerActionError(err, 'We couldn’t start a new offer from those terms. Please try again.')
