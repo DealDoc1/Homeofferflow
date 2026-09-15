@@ -52,7 +52,7 @@
       window.trackEvent?.('PWA Shared Context Agent CTA Selected', { surface: 'pwa_share_target' });
       window.logOfferEvent?.(null, 'pwa_shared_context_agent_chooser_opened', 'opened', 'Installed-app shared context opened the agent transaction chooser.', { surface: 'pwa_share_target' });
       try { sessionStorage.setItem('hof_pwa_shared_context_agent_pending', '1'); } catch (_) {}
-      window.setAudience?.('agent');
+      window.setAudience?.('agent', { presentationOnly: true });
       // The chooser lives inside the private account workspace. Opening the
       // workspace first prevents this shortcut from focusing a hidden card
       // when it is used from a fresh installed-app launch.

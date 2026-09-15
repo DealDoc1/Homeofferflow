@@ -35,7 +35,7 @@ class PwaShareTargetTests(unittest.TestCase):
     def test_shared_context_has_a_neutral_agent_transaction_chooser_handoff(self):
         self.assertIn('Open the agent transaction chooser', SHARE)
         self.assertIn("window.trackEvent?.('PWA Shared Context Agent CTA Selected'", SHARE)
-        self.assertIn("window.setAudience?.('agent')", SHARE)
+        self.assertIn("window.setAudience?.('agent', { presentationOnly: true })", SHARE)
         self.assertIn('window.startAccountTransaction()', SHARE)
         self.assertIn('window.openAgentTransactionPicker()', SHARE)
         self.assertIn('workspace first prevents this shortcut from focusing a hidden card', SHARE)

@@ -21,7 +21,7 @@ function setup({ active = false, draft = null, search = '' } = {}) {
       const attrs = {}, classes = new Set();
       nodes.set(id, { dataset: {}, style: {}, value: 'untouched offer input', textContent: '', innerHTML: '',
         getAttribute: key => attrs[key], setAttribute: (key, value) => { attrs[key] = value; },
-        classList: { contains: key => classes.has(key), toggle: (key, on) => on ? classes.add(key) : classes.delete(key) },
+        classList: { contains: key => classes.has(key), add: key => classes.add(key), remove: key => classes.delete(key), toggle: (key, on) => on ? classes.add(key) : classes.delete(key) },
         focus: () => calls.push(['focus', id]),
       });
     }
@@ -164,4 +164,136 @@ for (const [label, expected] of [['Build a HomeOfferFlow homebuyer offer with no
   vm.runInContext(tag.match(/onclick="([^"]*)"/)[1], x.c);
   untouched(x, before, original);
   assert.ok(x.calls.some(row => row[0] === expected));
+});
+
+function enableAuth(x, { enhanced = true } = {}) {
+  const storage = new Map(), c = x.c;
+  c.localStorage = c.sessionStorage = { getItem: key => storage.get(key) || null,
+    setItem: (key, value) => storage.set(key, value), removeItem: key => storage.delete(key) };
+  c.setTimeout = callback => callback();
+  c.clearAuthStatus = () => {};
+  c.updateAuthUI = () => x.calls.push(['authUI']);
+  c.ROLE_LABELS = { agent: 'Agent', broker: 'Broker / Team Lead', investor: 'Investor' };
+  vm.runInContext(source('  function setAuthRole(role)', '  function closeAuthModal()'), c);
+  if (enhanced) {
+    vm.runInContext(source('  function normalizeAccountRole(role)', '  function safeEscape('), c);
+    vm.runInContext(source('  root.setAuthRole = function', '  root.updateAuthUI = function updateAuthUI(){'), c);
+  }
+  return storage;
+}
+for (const enhanced of [false, true]) for (const role of ['agent', 'broker', 'investor']) {
+  test(`${enhanced ? 'enhanced' : 'base'} ${role} sign-in preserves homebuyer offer`, () => {
+    const x = setup({ active: true });
+    x.c.state.data.userType = 'homebuyer';
+    const before = JSON.stringify(x.c.state), original = x.c.state.data;
+    const store = enableAuth(x, { enhanced });
+    x.c.openAuthModal(role);
+    untouched(x, before, original);
+    assert.equal(x.node('authModal').getAttribute('aria-hidden'), 'false');
+    assert.equal(x.c.hofAuth.role, role === 'broker' && !enhanced ? 'agent' : role);
+    assert.equal(store.get('hof_auth_role'), x.c.hofAuth.role);
+    assert.ok(x.calls.some(row => row[0] === 'focus' && row[1] === 'authEmail'));
+  });
+}
+for (const role of ['agent', 'broker', 'investor']) test(`${role} sign-in tab does not rewrite an offer`, () => {
+  const x = setup();
+  x.c.state.data.userType = 'homebuyer';
+  const before = JSON.stringify(x.c.state), original = x.c.state.data;
+  enableAuth(x);
+  const tag = html.match(new RegExp(`<button[^>]+data-auth-role="${role}"[^>]*>`))[0];
+  vm.runInContext(tag.match(/onclick="([^"]*)"/)[1], x.c);
+  untouched(x, before, original);
+  assert.equal(x.c.hofAuth.role, role);
+});
+
+function routeSetup(search, session = true, role = 'agent') {
+  const x = setup({ active: true, search }), c = x.c, timers = [], readiness = [];
+  enableAuth(x);
+  c.state.data.userType = 'homebuyer';
+  c.hofAuth.role = role;
+  if (!session) c.hofAuth.session = null;
+  c.URL = URL;
+  c.location.href = 'https://www.homeofferflow.com/' + search;
+  c.history = { replaceState: (_state, _title, url) => {
+    c.location.href = new URL(url, c.location.href).href;
+    c.location.search = new URL(c.location.href).search;
+  } };
+  c.params = () => new URLSearchParams(c.location.search);
+  c.__hofDraftRestoreAuthReady = true;
+  c.document.readyState = 'complete';
+  c.document.title = 'HomeOfferFlow';
+  c.setTimeout = callback => { timers.push(callback); };
+  c.continueAfterAuthResolution = callback => { readiness.push(callback); };
+  c.openAccountDashboard = opts => x.calls.push(['dashboard', opts.tab]);
+  c.startAgentWorkflow = kind => x.calls.push(['workflow', kind]);
+  c.openAgentTransactionPicker = () => x.calls.push(['picker']);
+  c.logOfferEvent = () => {};
+  c.showInvestorAccountRouteNotice = () => x.calls.push(['wrongAccount']);
+  x.flush = () => {
+    let loops = 0;
+    while (timers.length) { assert.ok(++loops < 25, 'bounded timers'); timers.shift()(); }
+  };
+  x.ready = () => { while (readiness.length) readiness.shift()(); x.flush(); };
+  return x;
+}
+function runAgentRoute(x, recovery = false) {
+  if (!recovery) vm.runInContext(source("    if (params().get('agent') === '1')", '    // Investor acquisition'), x.c);
+  else {
+    const tag = '<script id="hof-agent-landing-route-recovery-v1">';
+    vm.runInContext(source(tag, '</script>').slice(tag.length), x.c);
+  }
+}
+for (const recovery of [false, true]) for (const session of [false, true]) {
+  for (const workflow of ['purchase', 'sale_listing', 'lease_listing', 'lease_representation']) {
+    test(`${recovery ? 'recovery' : 'normal'} ${session ? 'signed-in' : 'signed-out'} ${workflow} link preserves prior offer`, () => {
+      const x = routeSetup(`?agent=1&workflow=${workflow}`, session), before = JSON.stringify(x.c.state), original = x.c.state.data;
+      runAgentRoute(x, recovery);
+      x.flush();
+      untouched(x, before, original);
+      x.ready();
+      untouched(x, before, original);
+      assert.equal(x.c.selectedLandingAudience(), 'agent');
+      if (session) assert.deepEqual(x.calls.filter(row => row[0] === 'workflow'), [['workflow', workflow]]);
+      else {
+        assert.equal(x.node('authModal').getAttribute('aria-hidden'), 'false');
+        assert.equal(x.c.localStorage.getItem('hof_agent_landing_package_workflow'), workflow);
+        assert.equal(x.calls.some(row => row[0] === 'workflow'), false);
+      }
+    });
+  }
+  for (const workspace of ['', 'seller', 'relationship']) test(`${recovery ? 'recovery' : 'normal'} ${session ? 'signed-in' : 'signed-out'} workspace ${workspace || 'chooser'} link preserves offer`, () => {
+    const x = routeSetup(`?agent=1&workspace=${workspace}`, session), before = JSON.stringify(x.c.state), original = x.c.state.data;
+    runAgentRoute(x, recovery); x.flush(); x.ready();
+    untouched(x, before, original);
+    if (session) {
+      assert.deepEqual(x.calls.filter(row => row[0] === 'dashboard'), [['dashboard', workspace === 'relationship' ? 'relationships' : workspace || 'dashboard']]);
+      assert.equal(x.calls.some(row => row[0] === 'picker'), !workspace);
+    } else assert.equal(x.node('authModal').getAttribute('aria-hidden'), 'false');
+  });
+}
+for (const session of [false, true]) for (const accountRole of ['agent', 'investor']) test(`investor link with ${session ? 'signed-in' : 'signed-out'} ${accountRole} preserves offer`, () => {
+  const x = routeSetup('?investor=1', session, accountRole), before = JSON.stringify(x.c.state), original = x.c.state.data;
+  vm.runInContext(source("    if (params().get('investor') === '1')", "    if (params().get('partner_onboarding'))"), x.c);
+  x.flush(); x.ready(); untouched(x, before, original);
+  assert.equal(x.c.selectedLandingAudience(), 'investor');
+  if (!session) {
+    assert.equal(x.node('authModal').getAttribute('aria-hidden'), 'false');
+    assert.equal(x.c.localStorage.getItem('hof_investor_landing_workspace'), '1');
+  } else if (accountRole === 'investor') assert.ok(x.calls.some(row => row[0] === 'dashboard'));
+  else assert.ok(x.calls.some(row => row[0] === 'wrongAccount'));
+});
+test('agent shared-context action preserves the offer before chooser handoff', () => {
+  const x = setup({ active: true }), before = JSON.stringify(x.c.state), original = x.c.state.data;
+  enableAuth(x);
+  x.c.logOfferEvent = () => {};
+  x.c.startAccountTransaction = () => x.calls.push(['chooser']);
+  const share = process.env.HOF_TEST_SOURCE_REF
+    ? execFileSync('git', ['show', `${process.env.HOF_TEST_SOURCE_REF}:assets/pwa-share-target.js`], { cwd: rootDir, encoding: 'utf8' })
+    : fs.readFileSync(path.join(rootDir, 'assets/pwa-share-target.js'), 'utf8');
+  const start = share.indexOf("    agentAction.addEventListener('click', () => {");
+  const end = share.indexOf('    card.appendChild(agentAction);', start);
+  x.c.agentAction = { addEventListener: (_name, callback) => callback() };
+  vm.runInContext(share.slice(start, end), x.c);
+  untouched(x, before, original);
+  assert.ok(x.calls.some(row => row[0] === 'chooser'));
 });

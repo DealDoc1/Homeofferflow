@@ -4305,7 +4305,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   function setAuthRole(role) {
     hofAuth.role = role === 'investor' ? 'investor' : 'agent';
     localStorage.setItem('hof_auth_role', hofAuth.role);
-    state.data.userType = hofAuth.role;
+    // Sign-in context is separate from the role of an unfinished offer.
     document.querySelectorAll('[data-auth-role]').forEach(btn => {
       btn.classList.toggle('active', btn.dataset.authRole === hofAuth.role);
     });
@@ -17343,7 +17343,7 @@ function routeAfterMagicLinkIfNeeded() {
       // Show the agent-specific promise immediately. Session restoration can
       // take a moment, but a visitor following an agent link should never
       // briefly see the homebuyer landing page while that happens.
-      window.setAudience?.('agent');
+      window.setAudience?.('agent', { presentationOnly: true });
       setTimeout(() => continueAfterAuthResolution(() => {
       const agentRouteParams = params();
       let rememberedAgentRoute = window.__hofAgentRoutePendingV1 || {};
@@ -17372,7 +17372,7 @@ function routeAfterMagicLinkIfNeeded() {
         cleanUrl.searchParams.delete('workflow');
         window.history.replaceState({}, document.title, cleanUrl.pathname + cleanUrl.search + cleanUrl.hash);
       } catch (_) {}
-      window.setAudience?.('agent');
+      window.setAudience?.('agent', { presentationOnly: true });
       if (window.hofAuth?.session) {
         if (agentLandingWorkflow) {
           const accountDashboard = window.openAccountDashboard?.({ tab: 'dashboard' });
@@ -17440,7 +17440,7 @@ function routeAfterMagicLinkIfNeeded() {
         cleanUrl.searchParams.delete('investor');
         window.history.replaceState({}, document.title, cleanUrl.pathname + cleanUrl.search + cleanUrl.hash);
       } catch (_) {}
-      window.setAudience?.('investor');
+      window.setAudience?.('investor', { presentationOnly: true });
       if (window.hofAuth?.session && window.hofAuth?.role === 'investor') {
         window.openAccountDashboard?.({ tab: 'dashboard' });
         window.logOfferEvent?.(null, 'investor_landing_workspace_handoff', 'opened', 'Signed-in investor opened the workspace from the public landing page.', { source: investorLandingSource });
@@ -17495,7 +17495,7 @@ function routeAfterMagicLinkIfNeeded() {
     window.__hofAgentLandingRouteProcessed = true;
     try { sessionStorage.removeItem('hof_agent_route_pending_v1'); localStorage.removeItem('hof_agent_route_pending_v1'); } catch (_) {}
     delete window.__hofAgentRoutePendingV1;
-    window.setAudience?.('agent');
+    window.setAudience?.('agent', { presentationOnly: true });
     try {
       const cleanUrl = new URL(window.location.href);
       ['agent', 'workflow', 'workspace'].forEach(key => cleanUrl.searchParams.delete(key));
@@ -18846,7 +18846,7 @@ function routeAfterMagicLinkIfNeeded() {
     const normalized = normalizeAccountRole(role);
     if (root.hofAuth) root.hofAuth.role = normalized;
     try { localStorage.setItem('hof_auth_role', normalized); } catch(e) {}
-    if (root.state && root.state.data) root.state.data.userType = offerUserTypeForRole(normalized);
+    // Opening or changing sign-in options must not rewrite an existing offer.
 
     document.querySelectorAll('[data-auth-role]').forEach(btn => {
       btn.classList.toggle('active', btn.dataset.authRole === normalized);
