@@ -7,7 +7,7 @@ from pypdf import PdfReader, PdfWriter
 from reportlab.pdfgen import canvas
 from lib import signwell_delivery
 from lib.offer_signwell_delivery import deliver_offer_document, offer_answers
-from lib.email_delivery import deliver_email_once, delivery_key, payload_fingerprint, EmailDeliveryPending
+from lib.email_delivery import deliver_email_once, delivery_key, payload_fingerprint, EmailDeliveryPending, EmailDeliveryNeedsReview
 from lib.email_delivery_store import EmailDeliveryStore
 
 from lib.production_adapter import (
@@ -2038,6 +2038,19 @@ def prepare_offer_signing_record(offer, customer_email, *, user_id=None, checkou
     return record
 
 
+class PacketEmailPending(EmailDeliveryPending):
+    """The packet/signing step finished, but document email is not confirmed."""
+
+    def __init__(self, *, record, signwell, needs_review=False):
+        super().__init__('Your packet is ready, but email delivery is not confirmed.')
+        self.result = {
+            'status': 'delivery_pending', 'code': 'document_email_unconfirmed',
+            'packetGenerated': True, 'offerId': record.get('id'),
+            'message': str(self), 'signwell': signwell,
+            'documentEmail': {'status': 'unconfirmed', 'needsReview': needs_review},
+        }
+
+
 def handle_checkout(event, subscription_user_id=None):
     session = event.get("data", {}).get("object", {})
 
@@ -2096,14 +2109,18 @@ def handle_checkout(event, subscription_user_id=None):
         email_identity = "checkout:" + checkout_id
     signwell_info = create_signwell_signature_request(offer, pdf_bytes, record=record, user_id=subscription_user_id)
 
-    document_email = send_email(
-        offer.get("buyerEmail") or customer_email,
-        offer.get("buyer1", "Buyer"),
-        offer.get("address", "Property"),
-        pdf_bytes,
-        signwell_info if signwell_info.get("enabled") else None,
-        delivery_identity=email_identity,
-    )
+    try:
+        document_email = send_email(
+            offer.get("buyerEmail") or customer_email,
+            offer.get("buyer1", "Buyer"),
+            offer.get("address", "Property"),
+            pdf_bytes,
+            signwell_info if signwell_info.get("enabled") else None,
+            delivery_identity=email_identity,
+        )
+    except EmailDeliveryPending as error:
+        raise PacketEmailPending(record=record, signwell=signwell_info,
+                                 needs_review=isinstance(error, EmailDeliveryNeedsReview)) from error
 
     # Internal admin alert. Do not let admin-email failure block buyer delivery.
     try:
@@ -2119,6 +2136,8 @@ def handle_checkout(event, subscription_user_id=None):
 
     return {
         "status": "ok",
+        "packetGenerated": True,
+        "offerId": record.get('id'),
         "message": "PDF created. Document email accepted for delivery.",
         "documentEmail": document_email,
         "adminEmail": admin_email,
@@ -2287,7 +2306,13 @@ class handler(BaseHTTPRequestHandler):
                 else:
                     self._json(401, {"error": "A verified Stripe webhook or active subscription is required."})
                     return
-                result = handle_checkout(payload, subscription_user_id=subscription_user_id)
+                try:
+                    result = handle_checkout(payload, subscription_user_id=subscription_user_id)
+                except PacketEmailPending as pending:
+                    # Keep provider callbacks retryable, while an authenticated
+                    # subscriber sees the saved packet and actual signing state.
+                    self._json(202 if subscription_user_id else 503, pending.result)
+                    return
                 self._json(200, result)
                 return
 

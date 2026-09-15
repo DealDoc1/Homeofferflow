@@ -2,6 +2,7 @@
 import copy
 import importlib.util
 import json
+import io
 from pathlib import Path
 import time
 from types import SimpleNamespace
@@ -84,6 +85,67 @@ class CheckoutEmailDeliveryTests(unittest.TestCase):
         API.handle_checkout(copy.deepcopy(self.event))
         self.assertEqual(self.requests[1], original)
         self.assertEqual(len(self.store.provider), 2)  # buyer once, then admin once
+
+    def invoke(self, *, subscriber=False, authenticated=True):
+        event = copy.deepcopy(self.event)
+        if subscriber:
+            event['data']['object']['metadata']['subscription_generation'] = 'true'
+            self.record['user_id'] = 'verified-owner'
+        body = json.dumps(event).encode()
+        handler = object.__new__(API.handler)
+        handler.headers = {'Content-Length': str(len(body))}
+        if not subscriber:
+            handler.headers['x-homeofferflow-checkout-signature'] = 'test-signature'
+        handler.rfile = io.BytesIO(body)
+        handler._json = Mock()
+        handler._verified_user = Mock(return_value='verified-owner' if authenticated else None)
+        handler._has_generation_entitlement = Mock(return_value=True)
+        with patch.object(API, 'verify_internal_checkout_forward_signature', return_value=authenticated):
+            handler.do_POST()
+        return handler._json.call_args.args
+
+    def test_authenticated_subscriber_gets_ready_packet_and_pending_email_not_generation_failure(self):
+        self.fail = 'Your HomeOfferFlow Offer'
+        status, body = self.invoke(subscriber=True)
+        self.assertEqual(status, 202)
+        self.assertTrue(body['packetGenerated'])
+        self.assertEqual(body['offerId'], self.record['id'])
+        self.assertTrue(body['signwell']['ok'])
+        self.assertEqual(body['documentEmail']['status'], 'unconfirmed')
+        self.assertNotIn('error', body)
+        self.assertNotIn('Simulated', json.dumps(body))
+
+    def test_paid_webhook_stays_retryable_and_reuses_original_request(self):
+        self.fail = 'Your HomeOfferFlow Offer'
+        status, body = self.invoke()
+        self.assertEqual(status, 503)
+        self.assertEqual(body['code'], 'document_email_unconfirmed')
+        original = copy.deepcopy(self.requests[0])
+        self.fail = None
+        status, body = self.invoke()
+        self.assertEqual(status, 200)
+        self.assertEqual(body['documentEmail']['status'], 'accepted')
+        self.assertEqual(self.requests[1], original)
+        self.assertEqual(len(self.store.provider), 2)
+
+    def test_unauthenticated_caller_never_receives_partial_packet_status(self):
+        for subscriber in (True, False):
+            with self.subTest(subscriber=subscriber):
+                status, body = self.invoke(subscriber=subscriber, authenticated=False)
+                self.assertEqual(status, 401)
+                self.assertNotIn('signwell', body)
+        self.signing.assert_not_called()
+        self.assertEqual(self.requests, [])
+
+    def test_expired_email_keeps_review_status_without_another_send(self):
+        self.fail = 'Your HomeOfferFlow Offer'
+        self.invoke(subscriber=True)
+        for row in self.store.rows.values():
+            row['first_attempt_at'] -= 7 * 24 * 3600
+        status, body = self.invoke(subscriber=True)
+        self.assertEqual(status, 202)
+        self.assertTrue(body['documentEmail']['needsReview'])
+        self.assertEqual(len(self.requests), 1)
 
     def test_admin_timeout_does_not_fail_buyer_or_resend_the_buyer_on_replay(self):
         self.fail = 'New HomeOfferFlow Order'

@@ -4043,8 +4043,8 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       </div>
       <div style="text-align:center; max-width:640px; margin:0 auto;">
         <div style="width:72px; height:72px; border-radius:999px; background:rgba(74,140,111,0.18); border:1px solid rgba(74,140,111,0.45); display:flex; align-items:center; justify-content:center; font-size:2rem; margin:0 auto 1rem;">📄</div>
-        <h2 id="successHeading">Payment successful</h2>
-        <p class="step-desc" id="successMessage">Check your email — your offer packet is ready. You can safely close this page after saving the email/PDF.</p>
+        <h2 id="successHeading">Your offer packet</h2>
+        <p class="step-desc" id="successMessage">Review your document delivery and signing status below.</p>
         <div id="successBrokerageBrand" class="notice" style="display:none; text-align:left; margin-top:1rem; align-items:center; gap:.75rem;"></div>
 
         <div class="notice sage" style="text-align:left; margin-top:1.25rem;">
@@ -4080,7 +4080,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         </section>
 
         <div class="success-actions">
-          <button class="btn-primary" type="button" onclick="backToHomeAfterPayment()" style="width:100%;">Back to Home</button>
+          <button class="btn-primary" id="successPrimaryAction" type="button" onclick="backToHomeAfterPayment()" style="width:100%;">Back to Home</button>
           <button class="success-secondary" type="button" onclick="startNewOffer()">Start another offer</button>
         </div>
 
@@ -10603,12 +10603,20 @@ function routeAfterMagicLinkIfNeeded() {
     }
     if (options.packetGenerated === true) {
       const signing = options.signwell;
-      return { recipient, label: 'Documents emailed to',
-        message: `Your offer documents were emailed to ${recipient}.`,
+      const emailAccepted = options.documentEmail?.status === 'accepted';
+      return { recipient, label: emailAccepted ? 'Document email requested for' : 'Delivery email',
+        message: emailAccepted
+          ? `Your packet is ready. Email delivery to ${recipient} has been requested.`
+          : 'Your packet is ready, but email delivery is not confirmed. Your offer remains in My Offers. You do not need to generate another packet.',
+        delivery: emailAccepted
+          ? `1. Check ${recipient}, including spam, for the offer documents.`
+          : '1. Open My Offers to view your saved offer. Contact support@homeofferflow.com if the document email has not arrived.',
         signing: signing?.ok === true
           ? '2. SignWell has sent the signing invitations. Each signer can sign independently.'
+          : signing?.deliveryUnconfirmed === true || signing?.delivery_state === 'delivery_unconfirmed'
+            ? '2. Signing delivery is not confirmed. Check the offer’s signing status in My Offers before requesting another invitation.'
           : signing?.enabled === false
-            ? '2. No signing invitation was sent. Review the emailed PDF before arranging signatures.'
+            ? '2. No signing invitation was sent. Review your documents before arranging signatures.'
             : '2. The signing invitation was not sent. Open My Offers and choose Retry signing for this offer.' };
     }
     return { recipient, label: 'Delivery email', message: 'Check the delivery email shown below for your offer packet.',
@@ -10626,7 +10634,7 @@ function routeAfterMagicLinkIfNeeded() {
     // Keep the local draft until the signed webhook confirms fulfillment. A
     // copied return URL must not erase a buyer's work or masquerade as proof
     // that payment was received.
-    if (!checkoutConfirmationPending) {
+    if (!checkoutConfirmationPending && options.documentEmail?.status === 'accepted') {
       try {
         localStorage.removeItem(HOF_STORAGE_KEY);
         sessionStorage.removeItem('hofOfferData');
@@ -10641,6 +10649,14 @@ function routeAfterMagicLinkIfNeeded() {
     const deliverySummary = packetDeliverySummary(email, options, state.data);
     const successRevisionStep = document.getElementById('successRevisionStep');
     const accountWorkflow = ['agent', 'investor'].includes(state.data.userType || '');
+    const primaryAction = document.getElementById('successPrimaryAction');
+    if (primaryAction) {
+      primaryAction.textContent = accountWorkflow ? 'View My Offers' : 'Back to Home';
+      primaryAction.onclick = () => {
+        backToHomeAfterPayment();
+        if (accountWorkflow) openAccountDashboard({tab:'offers'});
+      };
+    }
     const paragraph4Forms = [
       state.data.leaseResidential === 'yes' ? 'Residential Lease Addendum' : '',
       state.data.leaseFixture === 'yes' ? 'Fixture Lease Addendum' : ''
@@ -10649,7 +10665,7 @@ function routeAfterMagicLinkIfNeeded() {
     if (successEmail) successEmail.textContent = deliverySummary.recipient;
     const successEmailLabel = document.getElementById('successEmailLabel');
     if (successEmailLabel) successEmailLabel.textContent = deliverySummary.label;
-    if (successDeliveryStep) successDeliveryStep.textContent = `1. Check ${deliverySummary.recipient} for the offer documents.`;
+    if (successDeliveryStep) successDeliveryStep.textContent = deliverySummary.delivery || `1. Check ${deliverySummary.recipient} for the offer documents.`;
     if (successHeading) successHeading.textContent = checkoutConfirmationPending
       ? 'We’re confirming your checkout'
       : options.packetGenerated === true ? 'Packet generated' : 'Your offer packet';
@@ -11447,7 +11463,7 @@ function routeAfterMagicLinkIfNeeded() {
       );
 
       window.__hofSubscriptionPacketGenerated = true;
-      showPaymentSuccess(email, { packetGenerated: true, signwell: result.signwell });
+      showPaymentSuccess(email, { packetGenerated: true, signwell: result.signwell, documentEmail: result.documentEmail });
     } catch (err) {
       console.error('Subscribed packet generation failed:', err);
       const failure = packetGenerationFailureDetails(err);

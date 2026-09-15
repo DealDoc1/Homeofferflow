@@ -18,7 +18,7 @@ class PacketDeliverySummaryTests(unittest.TestCase):
         return json.loads(result.stdout)
 
     def test_agent_sees_buyer_destination_and_independent_signing(self):
-        result = self.summary({'packetGenerated': True, 'signwell': {'ok': True}})
+        result = self.summary({'packetGenerated': True, 'documentEmail': {'status': 'accepted'}, 'signwell': {'ok': True}})
         self.assertEqual(result['recipient'], 'buyer@example.com')
         self.assertIn('buyer@example.com', result['message'])
         self.assertIn('Each signer can sign independently', result['signing'])
@@ -28,7 +28,7 @@ class PacketDeliverySummaryTests(unittest.TestCase):
             with self.subTest(signing=signing):
                 result = self.summary({'packetGenerated': True, 'signwell': signing})
                 self.assertNotIn('has sent', result['signing'])
-                self.assertIn('emailed', result['message'])
+                self.assertIn('email delivery is not confirmed', result['message'])
                 if signing != {'enabled': False}:
                     self.assertIn('Retry signing', result['signing'])
 
@@ -38,13 +38,24 @@ class PacketDeliverySummaryTests(unittest.TestCase):
         self.assertIn('after payment is confirmed', result['message'])
         self.assertNotIn('has sent', result['signing'])
 
-    def render_success(self, options, data=None):
+    def test_provider_acceptance_does_not_claim_inbox_delivery(self):
+        result = self.summary({'packetGenerated': True, 'documentEmail': {'status': 'accepted'}})
+        self.assertIn('has been requested', result['message'])
+        self.assertNotIn('were emailed', result['message'])
+        self.assertIn('including spam', result['delivery'])
+
+    def test_uncertain_signing_does_not_offer_another_invitation(self):
+        result = self.summary({'packetGenerated': True, 'signwell': {'ok': False, 'deliveryUnconfirmed': True}})
+        self.assertIn('Signing delivery is not confirmed', result['signing'])
+        self.assertNotIn('Retry signing', result['signing'])
+
+    def render_success(self, options, data=None, click_primary=False):
         start = HTML.index('  function packetDeliverySummary(')
         end = HTML.index('  function backToHomeAfterPayment(', start)
         harness = '''
           const elements = Object.fromEntries(['successEmail', 'successEmailLabel',
             'successMessage', 'successHeading', 'successDeliveryStep',
-            'successSignatureStep', 'successRevisionStep'].map(id => [id, {textContent:''}]));
+            'successSignatureStep', 'successRevisionStep', 'successPrimaryAction'].map(id => [id, {textContent:''}]));
           const document = {getElementById: id => elements[id] || null};
           const window = {__hofSubscriptionPacketGenerated:true, setTimeout:()=>{}};
           const removed = [];
@@ -56,11 +67,16 @@ class PacketDeliverySummaryTests(unittest.TestCase):
           let displayed = -1;
           const showStep = index => displayed = index;
           const renderNowWhatPartnerJourney = () => {};
+          const navigation = [];
+          const backToHomeAfterPayment = () => navigation.push('close-wizard');
+          const openAccountDashboard = options => navigation.push(options.tab);
         '''
         state = {'buyerEmail': 'buyer@example.com', 'userType': 'agent', **(data or {})}
         script = harness + '\nconst state = ' + json.dumps({'data': state}) + ';\n' + HTML[start:end]
         script += '\nshowPaymentSuccess("agent@example.com", ' + json.dumps(options) + ');'
-        script += '\nprocess.stdout.write(JSON.stringify({elements,removed,displayed}));'
+        if click_primary:
+            script += '\nelements.successPrimaryAction.onclick();'
+        script += '\nprocess.stdout.write(JSON.stringify({elements,removed,displayed,navigation}));'
         result = subprocess.run(['node', '-e', script], text=True, capture_output=True, check=True)
         return json.loads(result.stdout)
 
@@ -77,6 +93,27 @@ class PacketDeliverySummaryTests(unittest.TestCase):
         self.assertEqual(rendered['removed'], [])
         self.assertEqual(rendered['elements']['successHeading']['textContent'], 'We’re confirming your checkout')
         self.assertEqual(rendered['elements']['successEmailLabel']['textContent'], 'Delivery email')
+
+    def test_pending_email_preserves_draft_and_keeps_confirmed_signing_visible(self):
+        rendered = self.render_success({'packetGenerated': True, 'documentEmail': {'status': 'unconfirmed'},
+                                        'signwell': {'ok': True}})
+        self.assertEqual(rendered['removed'], [])
+        fields = rendered['elements']
+        self.assertIn('do not need to generate another packet', fields['successMessage']['textContent'])
+        self.assertIn('My Offers', fields['successDeliveryStep']['textContent'])
+        self.assertEqual(fields['successPrimaryAction']['textContent'], 'View My Offers')
+        self.assertIn('has sent', fields['successSignatureStep']['textContent'])
+
+    def test_confirmed_email_clears_draft(self):
+        rendered = self.render_success({'packetGenerated': True, 'documentEmail': {'status': 'accepted'}})
+        self.assertEqual(rendered['removed'], ['draft', 'hofOfferData'])
+
+    def test_primary_action_opens_existing_offers_tab_only_for_account_workflows(self):
+        result = self.render_success({'packetGenerated': True}, click_primary=True)
+        self.assertEqual(result['navigation'], ['close-wizard', 'offers'])
+        result = self.render_success({'checkoutConfirmationPending': True}, {'userType': 'homebuyer'}, click_primary=True)
+        self.assertEqual(result['navigation'], ['close-wizard'])
+        self.assertEqual(result['elements']['successPrimaryAction']['textContent'], 'Back to Home')
 
     def test_lease_success_keeps_roles_but_invites_signers_together(self):
         rendered = self.render_success({'packetGenerated': True, 'signwell': {'ok': True}}, {'leaseResidential': 'yes'})
