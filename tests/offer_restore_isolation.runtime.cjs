@@ -20,7 +20,7 @@ function setup(offer = {id:'next', role:'agent', status:'Draft', offer_data:{}})
   function node(id='') {
     const classes=new Set();
     return {id,value:'',checked:false,type:'text',style:{},dataset:{},
-      classList:{add:k=>classes.add(k), remove:k=>classes.delete(k), toggle:(k,on)=>on?classes.add(k):classes.delete(k)},
+      classList:{add:k=>classes.add(k), remove:k=>classes.delete(k), contains:k=>classes.has(k), toggle:(k,on)=>on?classes.add(k):classes.delete(k)},
       setAttribute(){},removeAttribute(){},closest(){return this.card || null;}};
   }
   for (const match of html.matchAll(/<(input|textarea|select)\b([^>]*)>/g)) {
@@ -34,13 +34,16 @@ function setup(offer = {id:'next', role:'agent', status:'Draft', offer_data:{}})
   }
   const get=id=>{if(!elements.has(id))elements.set(id,node(id)); return elements.get(id);};
   function all(selector) {
+    if(selector==='input, textarea, select')return controls;
+    if(selector==='.radio-card')return cards;
+    if(selector==='input[type="radio"]:checked'||selector==='#wizardOverlay input[type="radio"]:checked')return controls.filter(el=>el.type==='radio'&&el.checked&&(!selector.startsWith('#wizardOverlay')||el.inWizard));
     if(selector==='#wizardOverlay input, #wizardOverlay textarea, #wizardOverlay select') return controls.filter(el=>el.inWizard);
     if(selector==='#wizardOverlay .radio-card') return controls.filter(el=>el.inWizard&&el.card).map(el=>el.card);
     if(selector==='#wizardOverlay .smart-recommendation')return recommendations;
     const name=selector.match(/\[name="([^"]+)"\]/)?.[1];
     if(name) {
       const value=selector.match(/\[value="([^"]+)"\]/)?.[1];
-      return controls.filter(el=>el.name===name && (value===undefined || el.value===value) && (!selector.includes(':checked')||el.checked));
+      return controls.filter(el=>el.name===name && (!selector.startsWith('#wizardOverlay')||el.inWizard) && (value===undefined || el.value===value) && (!selector.includes(':checked')||el.checked));
     }
     return [];
   }
@@ -68,7 +71,7 @@ function setup(offer = {id:'next', role:'agent', status:'Draft', offer_data:{}})
   vm.runInContext(source(clearStart,'  async function resumeOffer('),ctx);
   vm.runInContext(source('  async function resumeOffer(', '  async function duplicateOffer('),ctx);
   vm.runInContext(source('  async function reuseOfferTerms(', '  async function deleteOffer('),ctx);
-  return {ctx,get,all,calls,recommendations};
+  return {ctx,get,all,calls,recommendations,controls};
 }
 
 test('hydrating a sparse offer clears previous client, property, radios and conditional values',()=>{
@@ -278,3 +281,86 @@ for(const action of ['resetWizardForFreshOffer','applyOfferDataToFields']) {
     assert.equal(x.get('propAddress').style.borderColor,'');assert.equal(removedAria,true);assert.equal(hint.removed,true);
   });
 }
+
+function enableLocalDraft(x,draft,owner='owner') {
+  enableFreshReset(x);
+  const c=x.ctx,store=new Map([['draft',JSON.stringify(draft)],['owner',owner]]),timers=[];
+  Object.assign(c,{HOF_STORAGE_KEY:'draft',HOF_STORAGE_OWNER_KEY:'owner',HOF_WIZARD_ORDER_VERSION:2,CSS:{escape:v=>v},
+    localStorage:{getItem:key=>store.get(key)||null},setTimeout:fn=>timers.push(fn),
+    renderUploadedDocsList(){},resetUploadedDisclosureAcknowledgement(){x.get('uploadedDisclosureAck').checked=false;}});
+  c.document.body={style:{}};
+  vm.runInContext(source('  const STEP_CONFIG =', '  const LEGAL_POLICY_VERSION'),c);
+  vm.runInContext(source('  function collectAllData()', '  function selectPlan('),c);
+  vm.runInContext(source('  function checkedValues(', '  function updateParagraph4LeaseVisibility('),c);
+  vm.runInContext(source('  function uploadedDisclosureDraftNames()', '  function removeUploadedDisclosure('),c);
+  vm.runInContext(source('  function getDraftSnapshot()', '  function saveDraftNow()'),c);
+  vm.runInContext(source('  function restoredWizardStep(', '  function restoreConditionalSections()'),c);
+  c.showStep=n=>{c.state.step=n;x.calls.push(['step',n,c.state.data.userType,c.__hofRestoringDraft]);c.calculatePriceTermsOnly();c.calculateFinancingDefaults();};
+  c.escapeHtml=v=>String(v);c.selectPlan=(plan,price)=>{c.state.selectedPlan=plan;c.state.selectedPrice=price;};
+  return {store,timers};
+}
+test('browser draft snapshot excludes other page forms and files but retains named fixture choices',()=>{
+  const x=setup();enableLocalDraft(x,{});
+  x.get('profAgentName').value='Private profile value';x.get('propAddress').value='Saved property';
+  x.get('uploadedDisclosureDocs').value='C:\\fakepath\\private.pdf';
+  const fixture=x.all('#wizardOverlay input[name="leasedFixtureTypes"]')[0];fixture.checked=true;
+  x.ctx.state.data.uploadedDocNames=['disclosure.pdf'];
+  const draft=x.ctx.getDraftSnapshot();
+  assert.equal(draft.fields.profAgentName,undefined);assert.equal(draft.fields.uploadedDisclosureDocs,undefined);
+  assert.equal(draft.fields.propAddress,'Saved property');assert.deepEqual(Array.from(draft.checkboxes.leasedFixtureTypes),[fixture.value]);
+  assert.deepEqual(Array.from(draft.uploadedDocNames),['disclosure.pdf']);assert.equal(draft.offerId,'previous');
+});
+for(const role of ['agent','investor','homebuyer']) {
+  test(`${role} local restore preserves chosen amounts through the real calculators and replaces stale state`,()=>{
+    const x=setup();enableLocalDraft(x,{userType:role,wizardOrderVersion:2,offerId:'saved',step:3,termsOK:false,
+      fields:{offerPrice:'500000',earnestMoney:'0',optionFee:'425',optionDays:'10',downPayment:'80000',loanAmount:'420000',loanYears:'15',interestRateCap:'5',interestFirstYears:'15',originationCap:'0',buyerApprovalDays:'14',buyer1First:'Saved',buyer1Last:'Buyer',termsAccepted:false},radios:{financing:'conventional'}});
+    x.ctx.state.data.signwellDocumentId='previous-packet';x.get('termsAccepted').checked=true;
+    x.get('repairsText').value='Old repairs';x.get('propAddress').value='Old property';
+    assert.equal(x.ctx.restoreDraft(),true);
+    const expected={earnestMoney:0,optionFee:425,optionDays:10,downPayment:80000,loanAmount:420000,loanYears:15,interestRateCap:5,interestFirstYears:15,originationCap:0,buyerApprovalDays:14};
+    for(const [id,value] of Object.entries(expected))assert.equal(Number(x.get(id).value),value,id);
+    assert.equal(x.ctx.state.data._hofOfferId,'saved');assert.equal(x.ctx.state.data.userType,role);
+    assert.equal(x.ctx.state.data.signwellDocumentId,undefined);assert.equal(x.ctx.state.data.buyer1,'Saved Buyer');
+    assert.equal(x.get('repairsText').value,'');assert.equal(x.get('propAddress').value,'');
+    assert.equal(x.ctx.state.termsOK,false);assert.equal(x.ctx.__hofRestoringDraft,false);
+    assert.ok(x.calls.some(v=>Array.isArray(v)&&v[0]==='step'&&v[2]===role&&v[3]===true));
+  });
+}
+test('legacy draft ignores unrelated controls and file paths while preserving valid answers',()=>{
+  const x=setup();enableLocalDraft(x,{fields:{profAgentName:'Old profile',uploadedDisclosureDocs:'C:\\fakepath\\old.pdf',buyer1First:'Legacy',offerPrice:'700000'},radios:{financing:'cash'},termsOK:true});
+  x.get('profAgentName').value='Current profile';
+  Object.defineProperty(x.get('uploadedDisclosureDocs'),'value',{get:()=>'',set:v=>{if(v)throw new Error('File input cannot be restored');}});
+  assert.equal(x.ctx.restoreDraft(),true);assert.equal(x.get('profAgentName').value,'Current profile');
+  assert.equal(x.get('buyer1First').value,'Legacy');assert.equal(x.ctx.state.data._hofOfferId,null);
+  assert.equal(x.ctx.state.termsOK,true);assert.equal(Number(x.get('loanAmount').value),0);
+});
+test('named fixture selections round-trip without copying a different form with the same names',()=>{
+  const x=setup();const {store}=enableLocalDraft(x,{});
+  const group=x.all('#wizardOverlay input[name="leasedFixtureTypes"]');group[0].checked=true;
+  const outside=x.controls.find(el=>el.name==='leasedFixtureTypes'&&!el.inWizard);outside.checked=true;
+  const draft=x.ctx.getDraftSnapshot();store.set('draft',JSON.stringify(draft));group[0].checked=false;group[1].checked=true;
+  assert.equal(x.ctx.restoreDraft(),true);assert.equal(group[0].checked,true);assert.equal(group[1].checked,false);assert.equal(outside.checked,true);
+  assert.deepEqual(Array.from(x.ctx.state.data.leasedFixtureTypes),[group[0].value]);
+});
+for(const owner of ['different-owner','']) {
+  test(`local draft owner=${JSON.stringify(owner)} cannot reuse another offer identity`,()=>{
+    const x=setup();enableLocalDraft(x,{fields:{buyer1First:'Saved'},offerId:'foreign',userType:'agent'},owner);
+    const original=x.ctx.state.data;
+    if(owner){assert.equal(x.ctx.restoreDraft(),false);assert.equal(x.ctx.state.data,original);}
+    else{assert.equal(x.ctx.restoreDraft(),true);assert.equal(x.ctx.state.data._hofOfferId,null);}
+  });
+}
+for(const malformed of [null,[],{},'not an object',{fields:[]}]) {
+  test(`malformed local draft ${JSON.stringify(malformed)} leaves the current interview unchanged`,()=>{
+    const x=setup();enableLocalDraft(x,malformed);const original=x.ctx.state.data;
+    x.get('buyer1First').value='Keep';assert.equal(x.ctx.restoreDraft(),false);
+    assert.equal(x.ctx.state.data,original);assert.equal(x.get('buyer1First').value,'Keep');
+  });
+}
+test('restore carries attachment names but discards prior file contents and attachment acknowledgment',()=>{
+  const x=setup();const {timers}=enableLocalDraft(x,{fields:{uploadedDisclosureAck:true},uploadedDocNames:['saved.pdf'],userType:'agent'});
+  x.ctx.window.hofUploadedDisclosureDocs=[{name:'previous.pdf',content:'private bytes'}];
+  assert.equal(x.ctx.restoreDraft(),true);assert.equal(x.ctx.window.hofUploadedDisclosureDocs.length,0);
+  assert.deepEqual(Array.from(x.ctx.state.data.uploadedDocNames),['saved.pdf']);assert.equal(x.get('uploadedDisclosureAck').checked,false);
+  assert.equal(timers.length,0);assert.equal(x.ctx.__hofRestoringDraft,false);
+});

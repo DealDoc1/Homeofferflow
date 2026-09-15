@@ -10405,7 +10405,7 @@ function routeAfterMagicLinkIfNeeded() {
   }
 
   function checkedValues(name) {
-    return Array.from(document.querySelectorAll(`input[name="${name}"]:checked`)).map(input => input.value);
+    return Array.from(document.querySelectorAll(`#wizardOverlay input[name="${name}"]:checked`)).map(input => input.value);
   }
 
   function updateParagraph4LeaseVisibility() {
@@ -12993,11 +12993,18 @@ function routeAfterMagicLinkIfNeeded() {
   function getDraftSnapshot() {
     const fields = {};
     const radios = {};
+    const checkboxes = {};
 
-    document.querySelectorAll('input, textarea, select').forEach(el => {
+    document.querySelectorAll('#wizardOverlay input, #wizardOverlay textarea, #wizardOverlay select').forEach(el => {
+      if (el.type === 'file' || el.type === 'password') return;
       if (el.type === 'radio') {
         if (el.checked && el.name) radios[el.name] = el.value;
         return;
+      }
+
+      if (el.type === 'checkbox' && el.name) {
+        if (!checkboxes[el.name]) checkboxes[el.name] = [];
+        if (el.checked) checkboxes[el.name].push(el.value);
       }
 
       if (!el.id) return;
@@ -13011,12 +13018,15 @@ function routeAfterMagicLinkIfNeeded() {
       wizardOrderVersion: HOF_WIZARD_ORDER_VERSION,
       wizardOpen: document.getElementById('wizardOverlay')?.classList.contains('active') || false,
       userType: typeof state !== 'undefined' ? state.data?.userType || 'homebuyer' : 'homebuyer',
+      offerId: typeof state.data?._hofOfferId === 'string' ? state.data._hofOfferId : null,
+      uploadedDocNames: uploadedDisclosureDraftNames(),
       step: typeof state !== 'undefined' ? state.step : 0,
       termsOK: typeof state !== 'undefined' ? state.termsOK : false,
       selectedPlan: typeof state !== 'undefined' ? state.selectedPlan : null,
       selectedPrice: typeof state !== 'undefined' ? state.selectedPrice : 0,
       fields,
-      radios
+      radios,
+      checkboxes
     };
   }
 
@@ -13128,28 +13138,50 @@ function routeAfterMagicLinkIfNeeded() {
       return false;
     }
 
+    if (!draft || typeof draft !== 'object' || Array.isArray(draft) ||
+        !draft.fields || typeof draft.fields !== 'object' || Array.isArray(draft.fields)) return false;
+
+    const wasRestoring = __hofRestoringDraft;
     __hofRestoringDraft = true;
     updateSaveStatus('Restoring saved work...');
 
     try {
-      Object.entries(draft.fields || {}).forEach(([id, value]) => {
-        const el = document.getElementById(id);
-        if (!el) return;
-        if (el.type === 'checkbox') el.checked = !!value;
-        else el.value = value;
+      clearOfferInterviewFields();
+      const savedRole = ['homebuyer', 'agent', 'investor'].includes(draft.userType) ? draft.userType : 'homebuyer';
+      state.data = {
+        userType: savedRole,
+        _hofOfferId: ownerUserId && ownerUserId === currentUserId && typeof draft.offerId === 'string' ? draft.offerId : null
+      };
+      state.step = 0;
+      __hofCloudDraftSaveNeedsCopy = false;
+      document.querySelectorAll('#wizardOverlay input, #wizardOverlay textarea, #wizardOverlay select').forEach(el => {
+        if (el.type === 'file' || el.type === 'password') return;
+        if (el.type === 'radio') {
+          el.checked = !!el.name && draft.radios?.[el.name] === el.value;
+          return;
+        }
+        if (el.type === 'checkbox' && el.name && Array.isArray(draft.checkboxes?.[el.name])) {
+          el.checked = draft.checkboxes[el.name].includes(el.value);
+        }
+        if (!el.id || !Object.prototype.hasOwnProperty.call(draft.fields, el.id)) return;
+        const value = draft.fields[el.id];
+        if (el.type === 'checkbox') el.checked = value === true;
+        else if (value === null || ['string', 'number'].includes(typeof value)) {
+          el.value = value ?? '';
+          el._userEdited = String(el.value).trim() !== '';
+        }
       });
 
-      Object.entries(draft.radios || {}).forEach(([name, value]) => {
-        const radio = document.querySelector(`input[name="${CSS.escape(name)}"][value="${CSS.escape(value)}"]`);
-        if (!radio) return;
-        radio.checked = true;
-      });
-
+      const terms = document.getElementById('termsAccepted');
+      if (terms && !Object.prototype.hasOwnProperty.call(draft.fields, 'termsAccepted')) terms.checked = draft.termsOK === true;
+      resetUploadedDisclosureDraftForOffer({uploadedDocNames: draft.uploadedDocNames});
+      collectAllData();
+      state.data.includeAgentIabs = savedRole === 'agent' && document.getElementById('includeAgentIabs')?.checked === true;
       refreshSelectedRadioCards();
       restoreConditionalSections();
 
       if (typeof state !== 'undefined') {
-        state.termsOK = !!document.getElementById('termsAccepted')?.checked || !!draft.termsOK;
+        state.termsOK = !!document.getElementById('termsAccepted')?.checked;
         state.selectedPlan = draft.selectedPlan || null;
         state.selectedPrice = draft.selectedPrice || 0;
       }
@@ -13174,18 +13206,19 @@ function routeAfterMagicLinkIfNeeded() {
       }
 
       updateSaveStatus('✓ Saved work restored');
+      renderUploadedDisclosureResumeNotice();
       return true;
     } catch (err) {
       console.error('Draft restore failed:', err);
       return false;
     } finally {
-      setTimeout(() => { __hofRestoringDraft = false; }, 300);
+      __hofRestoringDraft = wasRestoring;
     }
   }
 
   function refreshSelectedRadioCards() {
-    document.querySelectorAll('.radio-card').forEach(card => card.classList.remove('selected'));
-    document.querySelectorAll('input[type="radio"]:checked').forEach(radio => {
+    document.querySelectorAll('#wizardOverlay .radio-card').forEach(card => card.classList.remove('selected'));
+    document.querySelectorAll('#wizardOverlay input[type="radio"]:checked').forEach(radio => {
       const card = radio.closest('.radio-card');
       if (card) card.classList.add('selected');
     });
