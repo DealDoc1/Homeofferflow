@@ -297,3 +297,65 @@ test('agent shared-context action preserves the offer before chooser handoff', (
   untouched(x, before, original);
   assert.ok(x.calls.some(row => row[0] === 'chooser'));
 });
+
+function assertBuyerHandoff(x, before, original) {
+  // The fresh-offer implementation has its own reset tests. Here the handoff
+  // is observed without letting a mocked destination conceal an early save.
+  untouched(x, before, original);
+  assert.equal(x.c.selectedLandingAudience(), 'homebuyer');
+  assert.equal(x.c.__hofLandingAudienceUserSelected, true);
+  assert.equal(x.calls.filter(row => row[0] === 'startBuyer').length, 1);
+  assert.equal(x.calls.filter(row => row[0] === 'route').length, 0);
+  assert.equal(x.node('authModal').getAttribute('aria-hidden'), undefined);
+}
+for (const accountRole of ['signed-out', 'agent', 'broker', 'investor']) {
+  for (const entry of ['buyer_link', 'guide_link', 'app_shortcut', 'shared_context']) {
+    test(`${entry} honors explicit buyer choice for ${accountRole}`, async () => {
+      const search = entry === 'guide_link' ? '?buyer=1&utm_source=texas_homebuyer_offer_guide' : '?buyer=1';
+      const x = routeSetup(search, accountRole !== 'signed-out', accountRole === 'signed-out' ? 'agent' : accountRole);
+      const before = JSON.stringify(x.c.state), original = x.c.state.data;
+      if (entry === 'buyer_link' || entry === 'guide_link') {
+        x.c.fetch = () => Promise.resolve({ ok: true });
+        vm.runInContext(source("    if (params().get('buyer') === '1')", '    // A direct workspace link'), x.c);
+        x.flush();
+        assert.equal(x.c.params().get('buyer'), null);
+        assert.equal(x.c.__hofOfferEntrySurface, entry === 'guide_link' ? 'texas_homebuyer_offer_guide' : 'buyer_landing');
+      } else if (entry === 'app_shortcut') {
+        x.c.validActions = new Set(['buyer_offer']);
+        x.c.recordBuyerOfferShortcut = () => x.calls.push(['buyerShortcut']);
+        x.c.trackShortcut = () => {};
+        vm.runInContext(source('  async function runAction(action,', "    const role = window.hofAuth?.role === 'investor' ? 'investor' : 'agent';") + '\n}', x.c);
+        await x.c.runAction('buyer_offer');
+        assert.equal(x.c.__hofOfferEntrySurface, 'pwa_buyer_offer');
+        assert.equal(x.calls.filter(row => row[0] === 'buyerShortcut').length, 1);
+      } else {
+        const share = process.env.HOF_TEST_SOURCE_REF
+          ? execFileSync('git', ['show', `${process.env.HOF_TEST_SOURCE_REF}:assets/pwa-share-target.js`], { cwd: rootDir, encoding: 'utf8' })
+          : fs.readFileSync(path.join(rootDir, 'assets/pwa-share-target.js'), 'utf8');
+        const start = share.indexOf("    action.addEventListener('click', () => {");
+        const end = share.indexOf('    card.appendChild(action);', start);
+        x.c.action = { addEventListener: (_event, callback) => callback() };
+        vm.runInContext(share.slice(start, end), x.c);
+        assert.equal(x.c.__hofOfferEntrySurface, 'pwa_share_target');
+      }
+      assertBuyerHandoff(x, before, original);
+    });
+  }
+  for (const parameter of ['audience', 'utm_content']) test(`${parameter}=homebuyer campaign honors buyer path for ${accountRole}`, () => {
+    const x = routeSetup(`?${parameter}=homebuyer`, accountRole !== 'signed-out', accountRole === 'signed-out' ? 'agent' : accountRole);
+    const before = JSON.stringify(x.c.state), original = x.c.state.data;
+    vm.runInContext(source('    try {\n      // Campaign links', '    try { root.updateAuthUI'), x.c);
+    x.c.beginOfferFrom('landing_hero_cta');
+    assertBuyerHandoff(x, before, original);
+  });
+}
+for (const accountRole of ['agent', 'broker']) for (const search of ['', '?audience=invalid', '?utm_content=unknown']) {
+  test(`ordinary homepage ${search || '(no campaign)'} still respects ${accountRole} account`, () => {
+    const x = routeSetup(search, true, accountRole);
+    vm.runInContext(source('    try {\n      // Campaign links', '    try { root.updateAuthUI'), x.c);
+    x.c.beginOfferFrom('landing_hero_cta');
+    assert.equal(x.calls.some(row => row[0] === 'startBuyer'), false);
+    assert.match(x.calls.find(row => row[0] === 'route')[1], /^\/agents\?/);
+    assert.notEqual(x.c.__hofLandingAudienceUserSelected, true);
+  });
+}

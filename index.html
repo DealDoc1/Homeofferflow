@@ -17298,7 +17298,8 @@ function routeAfterMagicLinkIfNeeded() {
         cleanUrl.searchParams.delete('buyer');
         window.history.replaceState({}, document.title, cleanUrl.pathname + cleanUrl.search + cleanUrl.hash);
       } catch (_) {}
-      window.setAudience?.('homebuyer');
+      window.__hofLandingAudienceUserSelected = true;
+      window.setAudience?.('homebuyer', { presentationOnly: true });
       window.beginOfferFrom?.(buyerEntrySurface);
     }, 80);
     // A direct workspace link may load before the browser has restored an
@@ -19461,6 +19462,8 @@ function routeAfterMagicLinkIfNeeded() {
         : (root.state?.data?.userType || 'homebuyer');
       root.setAudience(landingAudience, { presentationOnly: true });
       if (allowedAudiences.has(requestedAudience)) {
+        // A campaign's explicit audience is not the homepage's default pill.
+        root.__hofLandingAudienceUserSelected = true;
         root.trackEvent?.('Landing Audience Selected', {
           audience: requestedAudience,
           surface: 'campaign_deep_link',
@@ -23821,7 +23824,8 @@ function routeAfterMagicLinkIfNeeded() {
     if (action === 'buyer_offer') {
       // Buyer offer building stays public until checkout. Do not send users
       // through agent authentication or put any deal detail in the shortcut.
-      try { window.setAudience?.('homebuyer'); } catch (_) {}
+      window.__hofLandingAudienceUserSelected = true;
+      try { window.setAudience?.('homebuyer', { presentationOnly: true }); } catch (_) {}
       window.beginOfferFrom?.('pwa_buyer_offer');
       recordBuyerOfferShortcut();
       trackShortcut(action, 'homebuyer', resumedAfterSignIn);

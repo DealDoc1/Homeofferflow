@@ -37,7 +37,8 @@
       // the context above, then chooses what to enter in the guided workflow.
       window.trackEvent?.('PWA Shared Context CTA Selected', { surface: 'pwa_share_target' });
       window.logOfferEvent?.(null, 'pwa_shared_context_buyer_offer_opened', 'opened', 'Installed-app shared context opened the buyer offer handoff.', { surface: 'pwa_share_target' });
-      window.setAudience?.('homebuyer');
+      window.__hofLandingAudienceUserSelected = true;
+      window.setAudience?.('homebuyer', { presentationOnly: true });
       if (typeof window.beginOfferFrom === 'function') window.beginOfferFrom('pwa_share_target');
       else window.location.assign('/?buyer=1&utm_source=pwa_shortcut&utm_medium=installed_app&utm_campaign=shared_context');
     });
