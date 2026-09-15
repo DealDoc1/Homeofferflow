@@ -99,7 +99,7 @@ class OfferAutosaveRuntimeTests(unittest.TestCase):
         const getSupabaseClient=()=>({from:()=>({insert:body=>{copies.push(body);return {
           select:()=>({single:async()=>({data:{id:'copy'}})})};}})});
         const resetUploadedDisclosureDraftForOffer=()=>{},setAudience=()=>{},closeAccountDashboard=()=>{},
-          openWizard=()=>{},setTimeout=()=>{},logOfferEvent=async()=>{},loadMyOffers=async()=>{};
+          openWizard=()=>{},openSavedOfferInterview=()=>{},setTimeout=()=>{},logOfferEvent=async()=>{},loadMyOffers=async()=>{};
         const window={confirm:()=>{throw Error('No confirmation required');}};
         ''' + helpers + flows + r'''
         (async()=>{
@@ -121,6 +121,7 @@ class OfferAutosaveRuntimeTests(unittest.TestCase):
         flows = HTML[HTML.index('  function showCloudSaveFailure()'):HTML.index('  function getDraftSnapshot()')]
         script = r'''
         const assert=require('node:assert/strict'); const window={};
+        const hofAuth={session:{user:{id:'owner'}}};
         const state={data:{address:'QA property',_hofOfferId:'signed',repairsText:'Revised terms',
           _hof_signature_delivery:{receipt:'original'},signwellDocumentId:'original'}};
         let __hofCloudDraftSaveNeedsCopy=true,__hofCloudDraftSaveInFlight=false,

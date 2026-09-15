@@ -41,6 +41,7 @@ function setup(audience, accountRole = 'agent') {
     nowIso:()=> '2026-09-10T00:00:00Z',
     setInputIfEmpty:(...args)=>writes.push(args),
     setRadioValue:(...args)=>writes.push(args),
+    getRadio:()=>'',
     syncAgentQuickFields:()=>writes.push(['syncAgent']),
   });
   vm.runInContext(roleHelpers + updateAuthUI + defaults + authoritativeProfile, context);

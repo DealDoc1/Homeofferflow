@@ -124,7 +124,7 @@ test('the actual review contains the selected amount and removes it when deselec
 });
 test('restoring a saved draft restores follow-ups and clears a previous offer signer', () => {
   const {context:c,el,radio}=setup();
-  vm.runInContext(section('  function applyOfferDataToFields(', '  async function resumeOffer('), c);
+  vm.runInContext(section('  function clearOfferInterviewFields(', '  async function resumeOffer('), c);
   el('seller2Name').value='Previous Seller';
   el('seller2Email').value='old@example.test';
   el('paragraph4Seller2Email').value='older@example.test';
