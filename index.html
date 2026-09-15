@@ -13227,6 +13227,20 @@ function routeAfterMagicLinkIfNeeded() {
     const backupDetails = document.getElementById('backupDetails');
     if (backupDetails) backupDetails.style.display = backup === 'yes' ? 'block' : 'none';
 
+    const nonRealty = getRadio('nonRealtyItems');
+    const nonRealtyDetails = document.getElementById('nonRealtyDetails');
+    if (nonRealtyDetails) nonRealtyDetails.style.display = nonRealty === 'yes' ? 'block' : 'none';
+
+    const leadBuilt = getRadio('leadBuiltBefore1978');
+    const leadDisclosureBox = document.getElementById('leadDisclosureBox');
+    if (leadDisclosureBox) leadDisclosureBox.style.display = leadBuilt === 'yes' || leadBuilt === 'unknown' ? 'block' : 'none';
+
+    const brokerFeeType = getRadio('brokerFeeType');
+    const brokerFeeAmountField = document.getElementById('brokerFeeAmountField');
+    const brokerFeePercentField = document.getElementById('brokerFeePercentField');
+    if (brokerFeeAmountField) brokerFeeAmountField.style.display = brokerFeeType === 'amount' ? 'block' : 'none';
+    if (brokerFeePercentField) brokerFeePercentField.style.display = brokerFeeType === 'percent' ? 'block' : 'none';
+
     const seenProperty = document.querySelector('input[name="seenProperty"]:checked')?.value || '';
     const showingHelper = document.getElementById('showingHelper');
     if (showingHelper) showingHelper.style.display = seenProperty === 'myself' ? 'block' : 'none';
@@ -13249,6 +13263,8 @@ function routeAfterMagicLinkIfNeeded() {
       ? 'yes' : document.querySelector('input[name="hasBuyerAgent"]:checked')?.value || '';
     const agentFields = document.getElementById('agentFields');
     if (agentFields) agentFields.style.display = hasBuyerAgent === 'yes' ? 'block' : 'none';
+    const agentSoftNote = document.getElementById('agentSoftNote');
+    if (agentSoftNote) agentSoftNote.style.display = hasBuyerAgent === 'yes' ? 'block' : 'none';
     updateUnrepresentedConcessionTip();
 
     const wantsConcessions = document.querySelector('input[name="wantsConcessions"]:checked')?.value || '';

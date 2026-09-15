@@ -133,3 +133,62 @@ test('reuse terms clears prior DOM contacts and restores only allowed deal choic
   assert.equal(c.state.data.buyer1,undefined); assert.equal(c.state.data._hofOfferId,null);
   assert.equal(c.getRadio('financing'),'cash'); assert.equal(c.getRadio('titlePayer'),'buyer');
 });
+
+function enableConditionalRestore(x) {
+  x.ctx.updateUnrepresentedConcessionTip=()=>{};
+  x.ctx.updateAppraisalAddendumVisibility=()=>{};
+  vm.runInContext(source('  function restoreConditionalSections()', '  function clearSavedDraft()'),x.ctx);
+}
+const visibilityCases=[
+  ['nonRealtyItems','yes','nonRealtyDetails','block'],
+  ['nonRealtyItems','no','nonRealtyDetails','none'],
+  ['nonRealtyItems','','nonRealtyDetails','none'],
+  ['leadBuiltBefore1978','yes','leadDisclosureBox','block'],
+  ['leadBuiltBefore1978','unknown','leadDisclosureBox','block'],
+  ['leadBuiltBefore1978','no','leadDisclosureBox','none'],
+  ['leadBuiltBefore1978','','leadDisclosureBox','none'],
+  ['brokerFeeType','amount','brokerFeeAmountField','block'],
+  ['brokerFeeType','amount','brokerFeePercentField','none'],
+  ['brokerFeeType','percent','brokerFeeAmountField','none'],
+  ['brokerFeeType','percent','brokerFeePercentField','block'],
+  ['brokerFeeType','none','brokerFeeAmountField','none'],
+  ['brokerFeeType','none','brokerFeePercentField','none'],
+  ['brokerFeeType','','brokerFeeAmountField','none'],
+  ['brokerFeeType','','brokerFeePercentField','none'],
+];
+for(const [group,value,id,expected] of visibilityCases) {
+  test(`restoring ${group}=${JSON.stringify(value)} makes ${id} ${expected}`,()=>{
+    const x=setup();enableConditionalRestore(x);
+    x.get(id).style.display=expected==='none'?'block':'none';
+    const data={[group]:value,nonRealtyAmount:0,nonRealtyDescription:'Kitchen refrigerator',brokerFeeAmount:4500,brokerFeePercent:'2.5',leadDisclosureStatus:'received'};
+    x.ctx.applyOfferDataToFields(data);x.ctx.restoreConditionalSections();
+    assert.equal(x.get(id).style.display,expected);
+    assert.equal(x.get('nonRealtyAmount').value,'0');assert.equal(x.get('nonRealtyDescription').value,'Kitchen refrigerator');
+    assert.equal(x.get('brokerFeeAmount').value,'4500');assert.equal(x.get('brokerFeePercent').value,'2.5');
+    assert.equal(x.ctx.getRadio('leadDisclosureStatus'),'received');
+  });
+}
+for(const role of ['homebuyer','investor','agent']) {
+  test(`${role} resume opens saved follow-up questions and hides the preceding offer's sections`,async()=>{
+    const offer={id:'saved',role,status:'Draft',offer_data:{nonRealtyItems:'yes',leadBuiltBefore1978:'yes',leadDisclosureStatus:'request',brokerFeeType:'amount',brokerFeeAmount:8500,hasBuyerAgent:'yes'}};
+    const x=setup(offer);enableConditionalRestore(x);
+    for(const id of ['nonRealtyDetails','leadDisclosureBox','brokerFeeAmountField','agentSoftNote'])x.get(id).style.display='none';
+    x.get('brokerFeePercentField').style.display='block';
+    await x.ctx.resumeOffer('saved');
+    for(const id of ['nonRealtyDetails','leadDisclosureBox','brokerFeeAmountField','agentSoftNote'])assert.equal(x.get(id).style.display,'block',id);
+    assert.equal(x.get('brokerFeePercentField').style.display,'none');
+    offer.offer_data={nonRealtyItems:'no',leadBuiltBefore1978:'no',brokerFeeType:'none',hasBuyerAgent:'no'};
+    await x.ctx.resumeOffer('saved');
+    for(const id of ['nonRealtyDetails','leadDisclosureBox','brokerFeeAmountField','brokerFeePercentField'])assert.equal(x.get(id).style.display,'none',id);
+    assert.equal(x.get('agentSoftNote').style.display,role==='agent'?'block':'none');
+  });
+}
+test('unrelated existing follow-up sections still restore from saved answers',()=>{
+  const x=setup();enableConditionalRestore(x);x.ctx.state.data.userType='homebuyer';
+  x.ctx.applyOfferDataToFields({financing:'conventional',hoa:'unknown',saleContingency:'yes',backupOffer:'yes',asIs:'repairs',sellerDisclosure:'notReceived',wantsConcessions:'yes',homeWarranty:'yes',buyer2:'Second Buyer'});
+  x.ctx.restoreConditionalSections();
+  for(const id of ['hoaDetails','saleContingencyDetails','backupDetails','repairsField','discDaysField','concessionsField','homeWarrantyField'])assert.equal(x.get(id).style.display,'block',id);
+  assert.equal(x.get('financingDetails').style.display,'flex');assert.equal(x.get('buyer2EmailField').style.display,'flex');
+  x.ctx.applyOfferDataToFields({});x.ctx.restoreConditionalSections();
+  for(const id of ['hoaDetails','saleContingencyDetails','backupDetails','repairsField','discDaysField','concessionsField','homeWarrantyField','financingDetails','buyer2EmailField'])assert.equal(x.get(id).style.display,'none',id);
+});
