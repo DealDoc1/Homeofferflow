@@ -4,6 +4,17 @@
   const title = String(params.get('title') || '').trim().slice(0, 180);
   const text = String(params.get('text') || '').trim().slice(0, 500);
   const sharedUrl = String(params.get('url') || '').trim().slice(0, 1000);
+  // Read once, then remove share contents from the visible/history URL before
+  // rendering or later analytics. Keep the review text in this page only; do
+  // not persist it to storage, prefill an offer, or navigate to the shared URL.
+  // This cannot erase the initial GET request or any upstream request logs.
+  try {
+    const cleanUrl = new URL(window.location.href);
+    ['pwa_share', 'title', 'text', 'url'].forEach(key => cleanUrl.searchParams.delete(key));
+    window.history.replaceState(window.history.state, document.title, cleanUrl.pathname + cleanUrl.search + cleanUrl.hash);
+  } catch (_) {
+    // Restricted history access must not stop the review or its next steps.
+  }
   if (!title && !text && !sharedUrl) return;
 
   const render = () => {
