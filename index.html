@@ -7311,11 +7311,19 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 
     const now = new Date().toISOString();
     let table, payload;
+    let profileOwnerUserId = user.id;
+
+    // An agent may have more than one approved sign-in email. Resolve a linked
+    // sign-in to its canonical agent profile so contact, title, and escrow
+    // defaults remain a single source of truth.
+    if (hofAuth.role !== 'investor' && typeof window.hofResolveAgentProfileOwner === 'function') {
+      profileOwnerUserId = await window.hofResolveAgentProfileOwner(client, user);
+    }
 
     if (hofAuth.role === 'investor') {
       table = 'hof_investor_profiles';
       payload = {
-        user_id: user.id,
+        user_id: profileOwnerUserId,
         investor_entity_name: getVal('profInvestorEntity'),
         signer_name: getVal('profSignerName'),
         signer_title: getVal('profSignerTitle'),
@@ -7334,7 +7342,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     } else {
       table = 'hof_agent_profiles';
       payload = {
-        user_id: user.id,
+        user_id: profileOwnerUserId,
         agent_name: getVal('profAgentName'),
         license_number: getVal('profAgentLicense'),
         agent_email: getVal('profAgentEmail'),
@@ -7357,7 +7365,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     try {
       // Avoid silent hangs from upsert by checking for an existing row, then insert/update explicitly.
       const existingResult = await withTimeout(
-        client.from(table).select('user_id').eq('user_id', user.id).maybeSingle(),
+        client.from(table).select('user_id').eq('user_id', profileOwnerUserId).maybeSingle(),
         12000,
         'Profile lookup'
       );
@@ -7366,7 +7374,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       let saveResult;
       if (existingResult.data?.user_id) {
         saveResult = await withTimeout(
-          client.from(table).update(payload).eq('user_id', user.id).select('*').single(),
+          client.from(table).update(payload).eq('user_id', profileOwnerUserId).select('*').single(),
           12000,
           'Profile update'
         );
@@ -18471,6 +18479,24 @@ function routeAfterMagicLinkIfNeeded() {
     }
   };
 
+  root.hofResolveAgentProfileOwner = async function hofResolveAgentProfileOwner(client, user){
+    if (!client || !user?.id) return user?.id || null;
+    try {
+      const { data, error } = await client
+        .from('hof_agent_profile_aliases')
+        .select('canonical_user_id')
+        .eq('login_user_id', user.id)
+        .maybeSingle();
+      if (error) throw error;
+      return data?.canonical_user_id || user.id;
+    } catch (err) {
+      // Alias support is additive: an unavailable mapping must not stop a
+      // standalone agent from using their own saved profile.
+      console.warn('Agent profile alias lookup skipped:', err);
+      return user.id;
+    }
+  };
+
   root.loadAccountProfile = async function loadAccountProfile(){
     const client = root.getSupabaseClient?.();
     const user = root.hofAuth?.session?.user;
@@ -18478,7 +18504,10 @@ function routeAfterMagicLinkIfNeeded() {
     const role = normalizeAccountRole(root.hofAuth?.role || user.user_metadata?.role || 'agent');
     const table = role === 'investor' ? 'hof_investor_profiles' : 'hof_agent_profiles';
     try {
-      const { data, error } = await client.from(table).select('*').eq('user_id', user.id).maybeSingle();
+      const profileOwnerUserId = role === 'investor'
+        ? user.id
+        : await root.hofResolveAgentProfileOwner(client, user);
+      const { data, error } = await client.from(table).select('*').eq('user_id', profileOwnerUserId).maybeSingle();
       if (error) throw error;
       if (root.hofAuth) root.hofAuth.accountProfile = data || null;
       root.updateAuthUI?.();
