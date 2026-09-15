@@ -879,6 +879,9 @@ def build_pages_data(
         (62, 516, ck(buyer_temp_lease_requested(s)), "check_small"),
         (62, 503, ck(seller_temp_lease_requested(s)), "check_small"),
 
+        # Additional tests and reports
+        (62, 470, ck(truthy(s.get("hydrostaticTesting")) or truthy(s.get("hydrostaticAddendum"))), "check_small"),
+
         # Statutory disclosures and notices
         (62, 430, ck(lead_addendum_attached), "check_small"),
         (68, 358, ck(bool(str(s.get("requiredNotices", "")).strip())), "check_small"),

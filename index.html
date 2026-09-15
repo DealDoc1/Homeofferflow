@@ -3702,7 +3702,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         <div class="hof-guide-chip-row"><span class="hof-guide-chip"><strong>✓</strong> HOA</span><span class="hof-guide-chip"><strong>✓</strong> Contingencies</span><span class="hof-guide-chip"><strong>✓</strong> Addenda</span></div>
       </div>
       <div class="trec-badge">✓ TREC 20-19 · Addenda Selection</div>
-      <h2>HOA & contingencies</h2>
+      <h2>Addenda for your offer</h2>
       <p class="step-desc">We only ask follow-up questions when they apply.</p>
 
       <div class="radio-group-label">Is the property in an HOA? <button class="helper-btn" onclick="toggleHelper('h-hoa')">?</button></div>
@@ -3776,6 +3776,28 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           <div class="field"><label>Additional Sum for Non-Realty Items ($)</label><input type="number" id="nonRealtyAmount" value="" placeholder="Leave blank if no separate amount"/></div>
           <div class="field"><label>Personal Property to Convey</label><textarea id="nonRealtyDescription" rows="5" placeholder="Example: Samsung stainless refrigerator located in kitchen; washer and dryer located in laundry room; patio furniture on back patio. Include model/serial numbers if known."></textarea></div>
           <div class="notice gold">Tip: Be specific. Personal property should be described carefully enough that everyone knows exactly what is included.</div>
+        </div>
+      </div>
+
+      <div class="radio-group-label" style="margin-top:1.5rem;">Are you requesting a hydrostatic plumbing test?</div>
+      <div class="radio-cards">
+        <label class="radio-card" onclick="selectCard(this,'hydrostaticTesting','yes')"><input type="radio" name="hydrostaticTesting" value="yes"/><div class="radio-dot"></div><div class="radio-card-text"><strong>Yes</strong><small>Include the hydrostatic-testing authorization</small></div></label>
+        <label class="radio-card" onclick="selectCard(this,'hydrostaticTesting','no')"><input type="radio" name="hydrostaticTesting" value="no"/><div class="radio-dot"></div><div class="radio-card-text"><strong>No</strong></div></label>
+      </div>
+      <div id="hydrostaticDetails" style="display:none; margin-top:1rem;">
+        <p class="step-desc">The buyer pays for the test. Choose who will be responsible for any damage it causes. Both parties must review and sign the authorization. Ask a licensed plumber about the test and its risks.</p>
+        <div class="field">
+          <label for="hydrostaticRiskAllocation">Who is responsible for damage caused by the test?</label>
+          <select id="hydrostaticRiskAllocation" onchange="updateHydrostaticVisibility()">
+            <option value="">Select...</option>
+            <option value="seller">Seller</option>
+            <option value="buyer">Buyer</option>
+            <option value="buyer_capped">Buyer up to a stated amount</option>
+          </select>
+        </div>
+        <div class="field" id="hydrostaticLimitField" style="display:none; margin-top:.75rem;">
+          <label for="hydrostaticBuyerLiabilityLimit">Maximum buyer responsibility ($)</label>
+          <input id="hydrostaticBuyerLiabilityLimit" type="text" inputmode="decimal" placeholder="Enter the agreed amount"/>
         </div>
       </div>
 
@@ -3901,14 +3923,17 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       <div class="field-group">
         <div class="field"><div class="field-label-row"><label>Target Closing Date</label><button class="helper-btn" onclick="toggleHelper('h-closing-date')">?</button></div><div class="helper-box" id="h-closing-date"><strong>💡 Closing Date</strong>Choose a date that works with the lender, title company, agent, and the parties. If it falls on a weekend or banking holiday, confirm the practical funding timeline before sending.</div><div class="date-field-wrap"><input type="date" id="closingDate"/></div></div>
         <div class="field"><div class="field-label-row"><label>Possession</label><button class="helper-btn" onclick="toggleHelper('h-possession')">?</button></div><div class="helper-box" id="h-possession"><strong>💡 Possession Timing</strong>“Upon Funding” is commonly used because closing and funding are not always the same instant. If either party will remain after closing, use the matching temporary-lease questions below.</div><select id="possession" onchange="toggleSellerTemporaryLeaseFields()"><option value="">Select...</option><option value="closing">At Closing</option><option value="funding">Upon Funding (recommended)</option><option value="sellerTemporaryLease">Seller remains temporarily after closing</option><option value="buyerTemporaryLease">Buyer occupies temporarily after closing</option></select></div>
+        <div id="sellerSigningFields" class="field-group" style="display:none;">
+          <p class="step-desc">Who will sign for the seller? Each signer receives a separate invitation at the same time.</p>
+          <div class="field"><label for="seller1Name">Seller 1 full name</label><input id="seller1Name" type="text" autocomplete="name"/></div>
+          <div class="field"><label for="seller1Email">Seller 1 email</label><input id="seller1Email" type="email" autocomplete="email"/></div>
+          <div class="field"><label for="seller2Name">Seller 2 full name (if applicable)</label><input id="seller2Name" type="text"/></div>
+          <div class="field"><label for="seller2Email">Seller 2 email (if applicable)</label><input id="seller2Email" type="email"/></div>
+        </div>
         <div id="sellerTemporaryLeaseFields" style="display:none; margin-top:0.9rem; padding:1rem; border:1px solid rgba(227,186,86,0.45); border-radius:12px; background:rgba(227,186,86,0.08);">
           <p style="font-size:0.84rem; font-weight:700; color:var(--gold-light); margin:0 0 0.4rem;">Seller's Temporary Residential Lease</p>
           <p class="step-desc" style="margin:0 0 0.75rem;">Buyers sign as landlords; sellers sign as tenants. Everyone receives a signing link at the same time.</p>
           <div class="field-group">
-            <div class="field"><label>Seller / tenant 1 full name</label><input id="seller1Name" type="text" placeholder="Required for signature"></div>
-            <div class="field"><label>Seller / tenant 1 email</label><input id="seller1Email" type="email" placeholder="Required for signature"></div>
-            <div class="field"><label>Seller / tenant 2 full name (if applicable)</label><input id="seller2Name" type="text" placeholder="Optional"></div>
-            <div class="field"><label>Seller / tenant 2 email (if applicable)</label><input id="seller2Email" type="email" placeholder="Optional"></div>
             <div class="field"><label>Seller / tenant mailing address</label><input id="sellerMailAddr" type="text" placeholder="For lease notices"></div>
             <div class="field"><label>Seller / tenant phone</label><input id="sellerPhone" type="tel" placeholder="For lease notices"></div>
             <div class="field"><label>Lease termination date</label><input id="sellerTemporaryLeaseTerminationDate" type="date"></div>
@@ -8375,6 +8400,12 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       setInputIfEmpty('buyer1Last', last, true);
     }
     Object.entries(map).forEach(([key, id]) => { if (id) setInputIfEmpty(id, data[key], true); });
+    ['hydrostaticRiskAllocation', 'hydrostaticBuyerLiabilityLimit', 'seller1Name', 'seller1Email', 'seller2Name', 'seller2Email',
+     'paragraph4Seller1Name', 'paragraph4Seller1Email', 'paragraph4Seller2Name', 'paragraph4Seller2Email'].forEach(id => {
+      const input = document.getElementById(id);
+      if (input) input.value = String(data[id] ?? '');
+    });
+    setRadioValue('hydrostaticTesting', data.hydrostaticTesting === 'yes' || data.hydrostaticTesting === true || data.hydrostaticAddendum === 'yes' || data.hydrostaticAddendum === true ? 'yes' : 'no');
     ['financing','leases','hoa','saleContingency','backupOffer','nonRealtyItems','titlePayer','titleAmendment','survey','sellerDisclosure','leadBuiltBefore1978','leadDisclosureStatus','asIs','hasBuyerAgent','wantsConcessions','homeWarranty','brokerFeeType'].forEach(group => {
       if (data[group]) setRadioValue(group, data[group]);
     });
@@ -8388,6 +8419,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     document.querySelectorAll('input[name="assumedFixtureLeases"]').forEach(input => { input.checked = assumedFixtureLeases.has(input.value); });
     updateParagraph4LeaseVisibility();
     toggleSellerTemporaryLeaseFields();
+    updateHydrostaticVisibility();
     updateSurveyExistingDetails(data.survey || getRadio('survey'));
   }
 
@@ -9036,6 +9068,8 @@ function routeAfterMagicLinkIfNeeded() {
       requireRadioSelection('saleContingency', 'sale contingency', missing);
       requireRadioSelection('backupOffer', 'backup offer status', missing);
       requireRadioSelection('nonRealtyItems', 'personal property', missing);
+      requireRadioSelection('hydrostaticTesting', 'hydrostatic-testing choice', missing);
+      markHydrostaticInterviewIssues(missing, false);
       const hoaChoice = getRadio('hoa') || '';
       if (hoaChoice === 'yes') {
         requireField('hoaName', 'HOA name', missing);
@@ -9091,6 +9125,7 @@ function routeAfterMagicLinkIfNeeded() {
       requireRadioSelection('homeWarranty', 'home warranty choice', missing);
       if (getRadio('wantsConcessions') === 'yes') requireField('concessionAmount', 'seller concession amount', missing);
       if (getRadio('homeWarranty') === 'yes') requireField('homeWarrantyAmount', 'home warranty amount', missing);
+      markHydrostaticInterviewIssues(missing, true);
       if (document.getElementById('possession')?.value === 'sellerTemporaryLease') {
         requireField('seller1Name', 'seller / tenant 1 full name', missing);
         requireValidEmail('seller1Email', 'valid seller / tenant 1 email', missing);
@@ -9800,6 +9835,10 @@ function routeAfterMagicLinkIfNeeded() {
         }
 
         s.nonRealtyItems = getRadio('nonRealtyItems') || s.nonRealtyItems || '';
+        s.hydrostaticTesting = getRadio('hydrostaticTesting') || 'no';
+        s.hydrostaticAddendum = s.hydrostaticTesting;
+        s.hydrostaticRiskAllocation = s.hydrostaticTesting === 'yes' ? getVal('hydrostaticRiskAllocation') : '';
+        s.hydrostaticBuyerLiabilityLimit = s.hydrostaticRiskAllocation === 'buyer_capped' ? getVal('hydrostaticBuyerLiabilityLimit') : '';
         if (s.nonRealtyItems === 'yes') {
           s.nonRealtyAmount = moneyNumber(getVal('nonRealtyAmount') || '');
           s.nonRealtyDescription = getVal('nonRealtyDescription');
@@ -10160,6 +10199,7 @@ function routeAfterMagicLinkIfNeeded() {
           ${atag('Sale of Other Property', s.saleContingency === 'yes')}
           ${atag('Back-Up Contract', s.backupOffer === 'yes')}
           ${atag('Non-Realty Items', s.nonRealtyItems === 'yes')}
+          ${atag('Hydrostatic-Testing Authorization', s.hydrostaticTesting === 'yes')}
           ${atag('Residential Lease Addendum', s.leaseResidential === 'yes')}
           ${atag('Fixture Lease Addendum', s.leaseFixture === 'yes')}
           ${atag('Uploaded Disclosure Docs', (window.hofUploadedDisclosureDocs || []).length > 0)}
@@ -10168,6 +10208,11 @@ function routeAfterMagicLinkIfNeeded() {
         </div>
       </div>`;
 
+    if (s.hydrostaticTesting === 'yes') {
+      const cap = String(s.hydrostaticBuyerLiabilityLimit ?? '').trim().replace(/,/g, '');
+      const riskLabel = {seller:'Seller', buyer:'Buyer', buyer_capped:cap ? 'Buyer up to ' + fmtM(cap) : 'Buyer limit not entered'}[s.hydrostaticRiskAllocation] || 'Not selected';
+      document.getElementById('reviewSummary').insertAdjacentHTML('beforeend', `<div class="review-section"><div class="review-section-title">Hydrostatic testing</div><div class="review-row"><span class="rl">Responsibility for test-related damage</span><span class="rv">${riskLabel}</span></div></div>`);
+    }
     const accountWorkflow = s.userType === 'agent' || s.userType === 'investor';
     const paragraph4Forms = [
       s.leaseResidential === 'yes' ? 'Residential Lease Addendum' : '',
@@ -10182,7 +10227,9 @@ function routeAfterMagicLinkIfNeeded() {
         : 'After payment, HomeOfferFlow will email the completed package and start the SignWell signature request.';
     }
     if (signing) {
-      signing.textContent = paragraph4Forms.length
+      signing.textContent = s.hydrostaticTesting === 'yes'
+        ? hydrostaticSigningSummary(s)
+        : paragraph4Forms.length
         ? `Buyers and sellers receive signing invitations together. Sellers sign only the included ${paragraph4Forms.join(' and ')}. Seller acceptance and any other seller-side signatures remain with the seller or listing side.`
         : 'HomeOfferFlow routes buyer signatures, buyer dates, and buyer initials. Seller acceptance and seller-side signatures remain with the seller or listing side.';
     }
@@ -10296,6 +10343,8 @@ function routeAfterMagicLinkIfNeeded() {
       if (box) box.style.display = value === 'yes' ? 'block' : 'none';
       if (value === 'yes') setDefaultValue('nonRealtyAmount', '');
     }
+
+    if (group === 'hydrostaticTesting') updateHydrostaticVisibility();
 
     if (group === 'survey') {
       updateSurveyExistingDetails(value);
@@ -11089,6 +11138,105 @@ function routeAfterMagicLinkIfNeeded() {
     return true;
   }
 
+  function hydrostaticSigningSummary(data) {
+    return data.possession === 'sellerTemporaryLease'
+      ? 'Buyers and sellers receive signing invitations together for the purchase contract, temporary lease, hydrostatic-testing authorization, and other included seller-signed addenda.'
+      : 'Buyers and sellers receive signing invitations together for the hydrostatic-testing authorization and any other included seller-signed addenda. Seller acceptance of the purchase offer remains with the seller or listing side.';
+  }
+
+  function hydrostaticInterviewData() {
+    const data = {...state.data};
+    ['hydrostaticRiskAllocation', 'hydrostaticBuyerLiabilityLimit', 'seller1Name', 'seller1Email', 'seller2Name', 'seller2Email',
+     'paragraph4Seller1Name', 'paragraph4Seller1Email', 'paragraph4Seller2Name', 'paragraph4Seller2Email'].forEach(id => { data[id] = getVal(id); });
+    data.hydrostaticTesting = getRadio('hydrostaticTesting') || 'no';
+    data.leases = getRadio('leases') || '';
+    return data;
+  }
+
+  function hydrostaticInterviewIssues(data, includeSigners = true) {
+    if (data.hydrostaticTesting !== 'yes' && data.hydrostaticTesting !== true) return [];
+    const issues = [];
+    const risk = data.hydrostaticRiskAllocation;
+    if (!['seller', 'buyer', 'buyer_capped'].includes(risk)) {
+      issues.push({id:'hydrostaticRiskAllocation', message:'choose who is responsible for hydrostatic-test damage'});
+    }
+    if (risk === 'buyer_capped') {
+      const raw = String(data.hydrostaticBuyerLiabilityLimit ?? '').trim();
+      const valid = /^(?:\d+|\d{1,3}(?:,\d{3})+)(?:\.\d{1,2})?$/.test(raw);
+      const amount = Number(raw.replace(/,/g, ''));
+      if (!valid || !Number.isFinite(amount) || amount < 0 || amount > 999999999.99) {
+        issues.push({id:'hydrostaticBuyerLiabilityLimit', message:'enter a valid maximum buyer responsibility in dollars and cents'});
+      }
+    }
+    if (!includeSigners) return issues;
+    for (const [index, name, email] of [[1, data.buyer1, data.buyerEmail], [2, data.buyer2, data.buyer2Email]]) {
+      if (index === 2 && !String(name || '').trim() && !String(email || '').trim()) continue;
+      if (!String(name || '').trim()) issues.push({id:index === 1 ? 'buyer1First' : 'buyer2', message:'enter Buyer ' + index + ' full name'});
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email || '').trim())) {
+        issues.push({id:index === 1 ? 'buyerEmail' : 'buyer2Email', message:'enter a valid Buyer ' + index + ' email'});
+      }
+    }
+    const prefix = data.leases === 'yes' ? 'paragraph4Seller' : 'seller';
+    const emails = [data.buyerEmail, data.buyer2 ? data.buyer2Email : ''].filter(Boolean).map(value => String(value).trim().toLowerCase());
+    if (new Set(emails).size !== emails.length) issues.push({id:'buyer2Email', message:'use a different email address for each signer'});
+    for (const index of [1, 2]) {
+      const nameId = prefix + index + 'Name';
+      const emailId = prefix + index + 'Email';
+      const name = String(data[nameId] || '').trim();
+      const email = String(data[emailId] || '').trim().toLowerCase();
+      if (index === 2 && !name && !email) continue;
+      if (!name) issues.push({id:nameId, message:'enter Seller ' + index + ' full name'});
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        issues.push({id:emailId, message:'enter a valid Seller ' + index + ' email'});
+      } else if (emails.includes(email)) {
+        issues.push({id:emailId, message:'use a different email address for each signer'});
+      }
+      emails.push(email);
+    }
+    return issues;
+  }
+
+  function validateHydrostaticInputs(data) {
+    const issue = hydrostaticInterviewIssues(data)[0];
+    if (!issue) return true;
+    setPaymentStatus(issue.message.charAt(0).toUpperCase() + issue.message.slice(1) + '.');
+    return false;
+  }
+
+  function markHydrostaticInterviewIssues(missing, includeSigners) {
+    const data = hydrostaticInterviewData();
+    const prefix = data.leases === 'yes' ? 'paragraph4Seller' : 'seller';
+    const ids = ['hydrostaticRiskAllocation', 'hydrostaticBuyerLiabilityLimit'];
+    if (includeSigners) {
+      ids.push('buyer1First', 'buyerEmail', 'buyer2', 'buyer2Email');
+      for (const index of [1, 2]) ids.push(prefix + index + 'Name', prefix + index + 'Email');
+    }
+    ids.forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.style.borderColor = '';
+      delete el.dataset.validationInvalid;
+      el.removeAttribute('aria-invalid');
+    });
+    hydrostaticInterviewIssues(data, includeSigners).forEach(issue => {
+      missing.push(issue.message);
+      const el = document.getElementById(issue.id);
+      if (!el) return;
+      el.style.borderColor = 'var(--warn)';
+      el.dataset.validationInvalid = 'true';
+      el.setAttribute('aria-invalid', 'true');
+    });
+  }
+
+  function updateHydrostaticVisibility() {
+    const active = getRadio('hydrostaticTesting') === 'yes';
+    const details = document.getElementById('hydrostaticDetails');
+    const limit = document.getElementById('hydrostaticLimitField');
+    if (details) details.style.display = active ? 'block' : 'none';
+    if (limit) limit.style.display = active && getVal('hydrostaticRiskAllocation') === 'buyer_capped' ? 'block' : 'none';
+    toggleSellerTemporaryLeaseFields();
+  }
+
   function toggleSellerTemporaryLeaseFields() {
     const sellerActive = getVal('possession') === 'sellerTemporaryLease';
     const buyerActive = getVal('possession') === 'buyerTemporaryLease';
@@ -11096,12 +11244,16 @@ function routeAfterMagicLinkIfNeeded() {
     const buyerFields = document.getElementById('buyerTemporaryLeaseFields');
     if (sellerFields) sellerFields.style.display = sellerActive ? 'block' : 'none';
     if (buyerFields) buyerFields.style.display = buyerActive ? 'block' : 'none';
-    if (sellerActive) {
+    const hydrostaticActive = getRadio('hydrostaticTesting') === 'yes';
+    const sellerSigningFields = document.getElementById('sellerSigningFields');
+    if (sellerSigningFields) sellerSigningFields.style.display = sellerActive || (hydrostaticActive && getRadio('leases') !== 'yes') ? 'flex' : 'none';
+    if (sellerActive || (hydrostaticActive && getRadio('leases') === 'yes')) {
       setInputIfEmpty('seller1Name', getVal('paragraph4Seller1Name') || getVal('seller1'));
       setInputIfEmpty('seller1Email', getVal('paragraph4Seller1Email'));
       setInputIfEmpty('seller2Name', getVal('paragraph4Seller2Name'));
       setInputIfEmpty('seller2Email', getVal('paragraph4Seller2Email'));
     }
+    if (hydrostaticActive) setInputIfEmpty('seller1Name', getVal('seller1'));
   }
 
   function validateSellerTemporaryLeaseInputs(data) {
@@ -11184,6 +11336,7 @@ function routeAfterMagicLinkIfNeeded() {
       try { collectAllData(); } catch (e) { try { collectData(); } catch (_) {} }
       if (!confirmControlledLaunchSupport(state.data)) return;
       if (!validateParagraph4LeaseInputs(state.data)) return;
+      if (!validateHydrostaticInputs(state.data)) return;
       if (!validateSellerTemporaryLeaseInputs(state.data)) return;
       if (!validateUploadedDisclosureDocs()) return;
 
@@ -11302,6 +11455,7 @@ function routeAfterMagicLinkIfNeeded() {
     collectAllData();
     if (!confirmControlledLaunchSupport(state.data)) return;
     if (!validateParagraph4LeaseInputs(state.data)) return;
+    if (!validateHydrostaticInputs(state.data)) return;
     if (!validateSellerTemporaryLeaseInputs(state.data)) return;
     if (!validateUploadedDisclosureDocs()) return;
 
@@ -12872,6 +13026,7 @@ function routeAfterMagicLinkIfNeeded() {
   }
 
   function restoreConditionalSections() {
+    updateHydrostaticVisibility();
     const financing = document.querySelector('input[name="financing"]:checked')?.value || '';
     const financingDetails = document.getElementById('financingDetails');
     if (financingDetails) financingDetails.style.display = financing && financing !== 'cash' ? 'flex' : 'none';

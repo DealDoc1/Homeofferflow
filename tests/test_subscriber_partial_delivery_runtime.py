@@ -7,6 +7,8 @@ import unittest
 HTML = (Path(__file__).resolve().parents[1] / 'index.html').read_text()
 START = HTML.index('  async function generateSubscribedPacket()')
 END = HTML.index('  function pad2(', START)
+HYDROSTATIC_START = HTML.index('  function hydrostaticInterviewIssues(')
+HYDROSTATIC_END = HTML.index('  function markHydrostaticInterviewIssues(', HYDROSTATIC_START)
 
 
 class SubscriberPartialDeliveryRuntimeTests(unittest.TestCase):
@@ -43,7 +45,7 @@ class SubscriberPartialDeliveryRuntimeTests(unittest.TestCase):
         };};
         '''
         script = 'const STATUS=' + str(status) + ';const RESULT=' + json.dumps(result) + ';\n'
-        script += harness + HTML[START:END]
+        script += harness + HTML[HYDROSTATIC_START:HYDROSTATIC_END] + HTML[START:END]
         script += '\ngenerateSubscribedPacket().then(()=>process.stdout.write(JSON.stringify({calls,state,button})));'
         return json.loads(subprocess.run(['node', '-e', script], check=True, capture_output=True, text=True).stdout)
 

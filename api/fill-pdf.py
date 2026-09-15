@@ -18,6 +18,7 @@ from lib.production_adapter import (
     fill_and_merge_20_19,
     paragraph4_execution_parties,
     paragraph4_lease_kinds,
+    hydrostatic_execution_parties,
     seller_temporary_lease_execution_parties,
     validate_supported_offer,
 )
@@ -1392,6 +1393,7 @@ def create_signwell_signature_request(offer, pdf_bytes, *, record=None, user_id=
     # production path was enabled.
     seller_lease_parties = seller_temporary_lease_execution_parties(offer)
     paragraph4_parties = paragraph4_execution_parties(offer)
+    hydrostatic_parties = hydrostatic_execution_parties(offer)
     if seller_lease_parties and paragraph4_parties:
         temporary_identity = [(party["name"].casefold(), party["email"].casefold()) for party in seller_lease_parties]
         paragraph4_identity = [(party["name"].casefold(), party["email"].casefold()) for party in paragraph4_parties]
@@ -1401,7 +1403,7 @@ def create_signwell_signature_request(offer, pdf_bytes, *, record=None, user_id=
                 "ok": False,
                 "error": "Use the same Seller names and emails for every Seller-signed lease in this packet.",
             }
-    seller_parties = paragraph4_parties or seller_lease_parties
+    seller_parties = paragraph4_parties or seller_lease_parties or hydrostatic_parties
     if seller_parties:
         if any(not _is_valid_signwell_email(party["email"]) for party in seller_parties):
             return {"enabled": True, "ok": False, "error": "Invalid seller email for SignWell"}
@@ -1454,7 +1456,13 @@ def create_signwell_signature_request(offer, pdf_bytes, *, record=None, user_id=
         contact_sentence = f"Questions? Contact {agent_name}."
 
     paragraph4_forms = paragraph4_lease_kinds(offer)
-    if paragraph4_forms and seller_lease_parties:
+    if hydrostatic_parties:
+        signing_scope_message = (
+            "Please review and sign your assigned fields. This packet includes hydrostatic-testing authorization. "
+            "The Buyer and Seller sign that addendum; other signatures follow the documents included in the packet. "
+            "All named signers receive invitations together and can sign independently.\n\n"
+        )
+    elif paragraph4_forms and seller_lease_parties:
         signing_scope_message = (
             "Please carefully review and sign your assigned fields. This packet includes existing-property lease addenda "
             "and a Seller's Temporary Residential Lease. All named signers receive invitations together and can sign independently.\n\n"
@@ -1540,8 +1548,11 @@ def create_signwell_signature_request(offer, pdf_bytes, *, record=None, user_id=
             "seller_temporary_lease_tenant_count": str(len(seller_lease_parties)),
             "paragraph4_seller_count": str(len(paragraph4_parties)),
             "paragraph4_forms": ",".join(paragraph4_forms),
+            **({"hydrostatic_form": "TREC-48-1"} if hydrostatic_parties else {}),
             "test_mode": str(SIGNWELL_TEST_MODE).lower(),
             "debug_payload": (
+                "bundle_v15_hydrostatic_multisigner"
+                if hydrostatic_parties else
                 "bundle_v14_paragraph4_multisigner"
                 if paragraph4_forms else
                 "bundle_v13_seller_temporary_lease_multisigner"
@@ -1558,7 +1569,8 @@ def create_signwell_signature_request(offer, pdf_bytes, *, record=None, user_id=
         data = delivered["document"]
         return {
             "enabled": True, "ok": True,
-            "mode": ("bundle_v14_paragraph4_multisigner" if paragraph4_forms else
+            "mode": ("bundle_v15_hydrostatic_multisigner" if hydrostatic_parties else
+                     "bundle_v14_paragraph4_multisigner" if paragraph4_forms else
                      "bundle_v13_seller_temporary_lease_multisigner" if seller_lease_parties
                      else "bundle_v12_buyer_only_all_addenda"),
             "test_mode": SIGNWELL_TEST_MODE, "field_count": len(fields[0]) if fields else 0,
