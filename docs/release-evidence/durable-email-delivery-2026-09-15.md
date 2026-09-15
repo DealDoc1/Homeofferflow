@@ -63,8 +63,8 @@ remain required before activation. No production table was created.
 
 ### Verified-webhook recovery update
 
-Latest full regression: **1,909 tests pass** (15 additional recovery/adapter
-tests); `git diff --check` passes. The earlier counts below are historical
+Latest full regression: **1,932 tests pass**, including the exact-ID lookup
+and packet-status UX tests; `git diff --check` passes. The earlier counts below are historical
 checkpoints, not the current suite total.
 
 Newly reserved durable emails include two opaque Resend tags: the delivery key
@@ -105,15 +105,53 @@ No live Resend event or inbox receipt was verified in this update.
    delivered, bounced, or suppressed status; acceptance alone is not delivery.
 3. Repeating checkout after reconciliation reuses the accepted receipt instead
    of requesting another document email. This path is locally tested only.
-4. If there is no matching provider event, the webhook is unsubscribed from
-   the relevant event, or the message predates these tags, do not manufacture
-   an accepted receipt or reset its retry window. A separate exact-ID provider
-   lookup/operator recovery path remains to be built. Legacy messages are not
+4. If there is no matching provider event, use the exact-ID operator lookup
+   described below. If the message predates these tags, do not manufacture
+   an accepted receipt or reset its retry window. Legacy messages are not
    claimed recovered by this update.
 
 Production release must verify the existing webhook subscription and replay
 one controlled event end to end. No new webhook, subscription, polling task,
 database column, or paid service was created by this update.
+
+### Exact-ID operator lookup
+
+`scripts/reconcile_email_receipt.py` uses one authenticated Resend
+`GET /emails/{id}` rather than listing/searching the account. It defaults to
+read-only inspection; `--apply` conditionally saves only an exact match using
+the same private receipt adapter as the webhook. It cannot send, replace,
+cancel, or delete email, and cannot change the first-attempt timestamp.
+Reference: https://resend.com/docs/api-reference/emails/retrieve-email
+
+Run from the repository with the existing service credentials injected into
+the process environment (`RESEND_API_KEY`, `SUPABASE_URL`, and
+`SUPABASE_SERVICE_ROLE_KEY`). Never paste keys into command arguments or logs.
+The new receipt schema must be applied before this tool can be used live.
+
+```sh
+PYTHONPATH=. python3 scripts/reconcile_email_receipt.py --delivery-key DELIVERY_KEY --provider-id RESEND_EMAIL_ID
+```
+
+Use the exact opaque key from the private ledger and the original email ID
+from authenticated Resend. Inspect first; add `--apply` only for an intended
+reconciliation. Exit 0 means matched/already accepted/accepted (read the JSON
+status); exit 2 means unmatched/not found/unconfirmed; exit 1 means lookup
+failed. Output omits recipients, email body, subject, credentials, and raw
+provider/database errors. A sending-only Resend key may not permit retrieval;
+do not create a new key or broaden access silently.
+
+The tool validates the returned provider ID, receipt key/tags, full request
+digest, sender, recipients, and supported provider status. Duplicated tags,
+unknown outcomes, or untagged legacy messages cannot be force-accepted. A
+bounce/suppression is reported as needing attention, not successful inbox
+delivery. An already-accepted receipt needs no additional provider request.
+No audit webhook event is fabricated by this lookup.
+
+Eleven offline lookup/CLI tests cover default read-only behavior, explicit
+conditional acceptance, late replay, no-match cases, invalid IDs before I/O,
+provider mismatch, write failure, and sanitized CLI output. No live operator
+lookup or write was performed. Legacy untagged recovery remains a manual
+investigation; subject and recipient matches alone are deliberately insufficient.
 
 24 targeted offline tests pass: provider timeout after acceptance, final-write
 failure, late replay, concurrent callbacks, changed PDF/recipient/template,
@@ -158,7 +196,8 @@ verification; local tests do not establish production or inbox delivery.
    failures remain non-blocking for the buyer; another callback can resume
    that receipt, but no autonomous admin-email retry worker was added. An old
    uncertain tagged receipt can now reconcile through the verified webhook;
-   legacy/no-event recovery and live verification remain in progress.
+   an exact-ID private lookup now handles missing webhook events for tagged
+   receipts. Legacy untagged recovery and live verification remain in progress.
 5. Release with the existing verified batch only when publishing authority and
    deployment cost constraints permit. Verify production separately afterward.
 

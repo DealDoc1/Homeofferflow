@@ -66,7 +66,11 @@ def receipt_payload(key, payload):
 
 
 def reconcile_verified_email_event(event, *, read, accept):
-    """Reconcile ONLY after verifying the signature over the raw webhook body.
+    """Reconcile ONLY from verified, server-obtained provider evidence.
+
+    Webhooks require a verified signature over the raw body. The private
+    exact-ID lookup may normalize an authenticated provider GET to this shape.
+    Never call with unverified browser data or an operator-authored receipt.
 
     No send callback exists here. A bounce confirms provider acceptance, not
     inbox delivery; the separate event ledger retains the delivery outcome.
