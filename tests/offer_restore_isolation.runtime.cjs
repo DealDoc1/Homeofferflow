@@ -14,7 +14,7 @@ function source(start, end) {
   return html.slice(a,b);
 }
 function setup(offer = {id:'next', role:'agent', status:'Draft', offer_data:{}}) {
-  const elements = new Map(), controls = [], cards = [], calls = [];
+  const elements = new Map(), controls = [], cards = [], calls = [], recommendations=[];
   const wizardStart = html.indexOf('id="wizardOverlay"');
   const wizardEnd = html.indexOf('<script>', wizardStart);
   function node(id='') {
@@ -26,7 +26,7 @@ function setup(offer = {id:'next', role:'agent', status:'Draft', offer_data:{}})
   for (const match of html.matchAll(/<(input|textarea|select)\b([^>]*)>/g)) {
     const attrs=Object.fromEntries([...match[2].matchAll(/([\w-]+)="([^"]*)"/g)].map(m=>[m[1],m[2]]));
     if (!attrs.id && !attrs.name) continue;
-    const el=Object.assign(node(attrs.id),attrs);
+    const el=Object.assign(node(attrs.id),attrs,{style:{cssText:attrs.style||''}});
     el.inWizard=match.index>wizardStart && match.index<wizardEnd;
     if (attrs.type === 'radio') {el.card=node(); cards.push(el.card);}
     controls.push(el);
@@ -36,6 +36,7 @@ function setup(offer = {id:'next', role:'agent', status:'Draft', offer_data:{}})
   function all(selector) {
     if(selector==='#wizardOverlay input, #wizardOverlay textarea, #wizardOverlay select') return controls.filter(el=>el.inWizard);
     if(selector==='#wizardOverlay .radio-card') return controls.filter(el=>el.inWizard&&el.card).map(el=>el.card);
+    if(selector==='#wizardOverlay .smart-recommendation')return recommendations;
     const name=selector.match(/\[name="([^"]+)"\]/)?.[1];
     if(name) {
       const value=selector.match(/\[value="([^"]+)"\]/)?.[1];
@@ -67,7 +68,7 @@ function setup(offer = {id:'next', role:'agent', status:'Draft', offer_data:{}})
   vm.runInContext(source(clearStart,'  async function resumeOffer('),ctx);
   vm.runInContext(source('  async function resumeOffer(', '  async function duplicateOffer('),ctx);
   vm.runInContext(source('  async function reuseOfferTerms(', '  async function deleteOffer('),ctx);
-  return {ctx,get,all,calls};
+  return {ctx,get,all,calls,recommendations};
 }
 
 test('hydrating a sparse offer clears previous client, property, radios and conditional values',()=>{
@@ -217,5 +218,63 @@ for(const role of ['agent','investor','homebuyer']) {
     await x.ctx.resumeOffer('source');
     for(const [key,value] of Object.entries(freshQuestions))assert.equal(x.ctx.state.data[key],value,key);
     assert.equal(x.ctx.state.data._hofOfferId,'source');
+  });
+}
+
+function enableFreshReset(x) {
+  const removed=[];
+  x.ctx.localStorage={removeItem:key=>removed.push(['local',key])};
+  x.ctx.sessionStorage={removeItem:key=>removed.push(['session',key])};
+  vm.runInContext(source('  function resetWizardForFreshOffer(', '  function startAccountOffer()'),x.ctx);
+  vm.runInContext(source('  function numFromEl(', '  function showFieldRecommendation('),x.ctx);
+  vm.runInContext(source('  function calculatePriceTermsOnly()', '  function wireSmartCalculations()'),x.ctx);
+  x.ctx.showFieldRecommendation=()=>{};
+  enableConditionalRestore(x);
+  return removed;
+}
+const calculatedFields=['earnestMoney','optionFee','optionDays','downPayment','loanAmount','loanYears','interestRateCap','interestFirstYears','originationCap','buyerApprovalDays'];
+for(const role of ['agent','investor','homebuyer']) {
+  test(`${role} fresh offer clears prior edit flags so price and financing suggestions work again`,()=>{
+    const x=setup();enableFreshReset(x);
+    for(const id of calculatedFields){x.get(id).value='999';x.get(id)._userEdited=true;}
+    x.ctx.resetWizardForFreshOffer(role);
+    for(const id of calculatedFields){assert.equal(x.get(id).value,'',id);assert.equal(x.get(id)._userEdited,undefined,id);}
+    x.get('offerPrice').value='500000';x.ctx.setRadioValue('financing','conventional');
+    x.ctx.calculatePriceTermsOnly();x.ctx.calculateFinancingDefaults();
+    const expected={earnestMoney:5000,optionFee:250,optionDays:7,downPayment:50000,loanAmount:450000,loanYears:30,interestRateCap:7,interestFirstYears:30,originationCap:1,buyerApprovalDays:21};
+    for(const [id,value] of Object.entries(expected))assert.equal(Number(x.get(id).value),value,id);
+  });
+}
+for(const checked of [true,false]) {
+  test(`fresh reset preserves terms acceptance=${checked} and account preferences but clears transaction state`,()=>{
+    const x=setup(),removed=enableFreshReset(x);
+    const profile={default_option_fee:0,default_option_days:0,default_earnest_amount:10000,preferred_title_company:'My Title Office'};
+    x.ctx.hofAuth.accountProfile=profile;const session=x.ctx.hofAuth.session;
+    x.get('termsAccepted').checked=checked;x.get('oneTimePacketAck').checked=true;
+    x.ctx.__hofCloudDraftSaveNeedsCopy=true;x.ctx.window.__hofSubscriptionPacketGenerated=true;
+    x.ctx.resetWizardForFreshOffer('agent');
+    assert.equal(x.ctx.hofAuth.accountProfile,profile);assert.equal(x.ctx.hofAuth.session,session);
+    assert.equal(x.get('termsAccepted').checked,checked);assert.equal(x.ctx.state.termsOK,checked);
+    assert.equal(x.get('oneTimePacketAck').checked,false);assert.equal(x.ctx.__hofCloudDraftSaveNeedsCopy,false);
+    assert.equal(x.ctx.window.__hofSubscriptionPacketGenerated,false);assert.equal(x.ctx.state.data._hofOfferId,undefined);
+    assert.equal(x.ctx.state.data.buyer1,undefined);assert.equal(x.ctx.state.selectedPlan,null);assert.equal(x.ctx.state.selectedPrice,0);
+    assert.equal(x.get('payBtn').disabled,true);assert.equal(x.get('selectedPlanDisplay').style.display,'none');
+    assert.equal(removed.some(([,key])=>key.includes('profile')),false);
+    x.ctx.applyProfileDefaultsToWizard(false);x.get('offerPrice').value='500000';x.ctx.calculatePriceTermsOnly();
+    assert.equal(Number(x.get('optionFee').value),0);assert.equal(Number(x.get('optionDays').value),0);
+    assert.equal(Number(x.get('earnestMoney').value),10000);assert.equal(x.get('titleCompany').value,'My Title Office');
+  });
+}
+for(const action of ['resetWizardForFreshOffer','applyOfferDataToFields']) {
+  test(`${action} clears stale address, validation and recommendation state`,()=>{
+    const x=setup();enableFreshReset(x);
+    x.get('propAddress').dataset.hofAddressSelected='true';x.get('propAddress').dataset.validationInvalid='true';
+    x.get('propAddress').style.borderColor='red';let removedAria=false;
+    x.get('propAddress').removeAttribute=name=>{if(name==='aria-invalid')removedAria=true;};
+    const hint={removed:false,remove(){this.removed=true;}};x.recommendations.push(hint);
+    x.ctx[action](action==='resetWizardForFreshOffer'?'homebuyer':{});
+    assert.equal(x.get('propAddress').dataset.hofAddressSelected,undefined);
+    assert.equal(x.get('propAddress').dataset.validationInvalid,undefined);
+    assert.equal(x.get('propAddress').style.borderColor,'');assert.equal(removedAria,true);assert.equal(hint.removed,true);
   });
 }

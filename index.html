@@ -7564,28 +7564,9 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 
     const keepCheckedTerms = !!document.getElementById('termsAccepted')?.checked;
 
-    document.querySelectorAll('#wizardOverlay input, #wizardOverlay textarea, #wizardOverlay select').forEach(el => {
-      if (!el) return;
-      if (el.id === 'termsAccepted') {
-        el.checked = keepCheckedTerms;
-        return;
-      }
-      if (el.type === 'radio' || el.type === 'checkbox') el.checked = false;
-      else el.value = '';
-    });
-
-    document.querySelectorAll('#wizardOverlay .radio-card').forEach(card => card.classList.remove('selected'));
-    document.querySelectorAll('#wizardOverlay .pricing-card, #wizardOverlay .upsell-mini').forEach(card => card.classList.remove('selected'));
-
-    const selectedPlanDisplay = document.getElementById('selectedPlanDisplay');
-    if (selectedPlanDisplay) selectedPlanDisplay.style.display = 'none';
-    const payBtn = document.getElementById('payBtn');
-    if (payBtn) {
-      payBtn.textContent = 'Select a plan to continue →';
-      payBtn.style.opacity = '0.5';
-      payBtn.style.cursor = 'not-allowed';
-      payBtn.disabled = true;
-    }
+    // Clear per-offer edit flags as well as values. Otherwise a field edited
+    // in the last offer stays blank when this offer's calculator runs.
+    clearOfferInterviewFields();
 
     state.step = 0;
     state.data = { userType: normalizedRole };
@@ -7595,6 +7576,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     state.selectedPlan = null;
     state.selectedPrice = 0;
     state.termsOK = keepCheckedTerms;
+    __hofCloudDraftSaveNeedsCopy = false;
 
     window.__hofSubscriptionPacketGenerated = false;
 
@@ -8479,6 +8461,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   }
 
   function clearOfferInterviewFields() {
+    document.querySelectorAll('#wizardOverlay .smart-recommendation').forEach(hint => hint.remove());
     document.querySelectorAll('#wizardOverlay input, #wizardOverlay textarea, #wizardOverlay select').forEach(input => {
       if (input.id === 'termsAccepted') return;
       if (input.type === 'radio' || input.type === 'checkbox') input.checked = false;
