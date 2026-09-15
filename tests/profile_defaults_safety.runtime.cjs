@@ -155,3 +155,17 @@ test('shared defaults response is ignored after account change',async()=>{
   wait.resolve({ok:true,json:async()=>({profile:{preferredTitleCompany:'Old Title'}})});await saving;
   assert.equal(x.c.hofAuth.accountProfile,other);assert.equal(x.get('applyBrokerageSharedDefaultsButton').disabled,false);
 });
+test('profile write from an earlier sign-in cannot apply after signing back into the same account',async()=>{
+  const x=setup(),wait=deferred();x.hooks.write=()=>wait.promise;
+  const saving=x.c.saveAccountProfile();await tick();
+  x.c.__hofAccountProfileEpoch=2;const fresh={agent_name:'Fresh sign-in'};x.c.hofAuth.accountProfile=fresh;
+  wait.resolve({data:{agent_name:'Previous sign-in'}});await saving;
+  assert.equal(x.c.hofAuth.accountProfile,fresh);assert.equal(x.writes.length,0);
+});
+test('brokerage defaults from an earlier sign-in cannot apply after signing back in',async()=>{
+  const x=setup(),wait=deferred();x.hooks.fetch=()=>wait.promise;
+  const saving=x.c.applyBrokerageSharedDefaults();x.c.__hofAccountProfileEpoch=2;
+  const fresh={agent_name:'Fresh sign-in'};x.c.hofAuth.accountProfile=fresh;
+  wait.resolve({ok:true,json:async()=>({profile:{preferredTitleCompany:'Old Title'}})});await saving;
+  assert.equal(x.c.hofAuth.accountProfile,fresh);
+});

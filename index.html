@@ -4407,13 +4407,43 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     }
   }
 
+  function resetProfileForSessionChange(session) {
+    if ((hofAuth.session?.user?.id || null) === (session?.user?.id || null)) return;
+    window.__hofAccountProfileEpoch = (window.__hofAccountProfileEpoch || 0) + 1;
+    hofAuth.accountProfile = null;
+    hofAuth.agentIabsDocument = null;
+    hofAuth.authoritativeProfile = null;
+    hofAuth.authoritativeRole = null;
+    hofAuth.profileReady = false;
+    hofAuth.profileLoadError = '';
+    if (state.data) state.data.includeAgentIabs = false;
+    document.getElementById('agentIabsProfileCard')?.remove();
+    document.getElementById('agentIabsOfferOption')?.remove();
+  }
+
+  function beginAccountProfileLoad() {
+    const request = {
+      userId: hofAuth.session?.user?.id,
+      role: hofAuth.role,
+      epoch: window.__hofAccountProfileEpoch || 0,
+      profile: hofAuth.accountProfile
+    };
+    window.__hofAccountProfileLoad = request;
+    request.isCurrent = () => !!request.userId && window.__hofAccountProfileLoad === request &&
+      hofAuth.session?.user?.id === request.userId && hofAuth.role === request.role &&
+      (window.__hofAccountProfileEpoch || 0) === request.epoch && hofAuth.accountProfile === request.profile;
+    return request;
+  }
+
   async function loadAccountProfile() {
     const client = getSupabaseClient();
     const user = hofAuth.session?.user;
     if (!client || !user) return null;
+    const request = beginAccountProfileLoad();
     const table = hofAuth.role === 'investor' ? 'hof_investor_profiles' : 'hof_agent_profiles';
     try {
       const { data, error } = await client.from(table).select('*').eq('user_id', user.id).maybeSingle();
+      if (!request.isCurrent()) return null;
       if (error) throw error;
       hofAuth.accountProfile = data || null;
       updateAuthUI();
@@ -5553,6 +5583,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       if (signedOutUserId) localStorage.setItem('hof_offer_draft_owner', signedOutUserId);
       localStorage.removeItem('hof_auth_pending');
     } catch (e) {}
+    resetProfileForSessionChange(null);
     hofAuth.session = null;
     window.hofClearApprovedFormCatalog?.();
     hofAuth.accountProfile = null;
@@ -5607,6 +5638,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             session?.user?.id !== hofAuth.session?.user?.id) {
           window.hofClearApprovedFormCatalog?.();
         }
+        resetProfileForSessionChange(session);
         hofAuth.session = session || null;
         if (session?.user?.user_metadata?.role) {
           hofAuth.role = session.user.user_metadata.role;
@@ -7311,7 +7343,9 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     let user = hofAuth.session?.user || null;
     const savingUserId = user?.id;
     const savingRole = hofAuth.role;
-    const isCurrentProfile = () => !!savingUserId && hofAuth.session?.user?.id === savingUserId && hofAuth.role === savingRole;
+    const savingEpoch = window.__hofAccountProfileEpoch || 0;
+    const isCurrentProfile = () => !!savingUserId && hofAuth.session?.user?.id === savingUserId && hofAuth.role === savingRole &&
+      (window.__hofAccountProfileEpoch || 0) === savingEpoch;
     if (!savingUserId) {
       restoreSaveButton();
       setAccountStatus('Please sign in again before saving.', 'err');
@@ -17577,11 +17611,13 @@ function routeAfterMagicLinkIfNeeded() {
   window.saveAccountProfile = async function(){
     const savingUserId = window.hofAuth?.session?.user?.id;
     const savingRole = window.hofAuth?.role;
+    const savingEpoch = window.__hofAccountProfileEpoch || 0;
     const savingKey = currentProfileKey();
     const extras = collectExtraDefaults();
     const result = typeof oldSave === 'function' ? await oldSave.apply(this, arguments) : null;
     if (!result || !savingUserId || window.hofAuth?.session?.user?.id !== savingUserId ||
-        window.hofAuth?.role !== savingRole || currentProfileKey() !== savingKey) return result;
+        window.hofAuth?.role !== savingRole || currentProfileKey() !== savingKey ||
+        (window.__hofAccountProfileEpoch || 0) !== savingEpoch) return result;
     const extrasSaved = writeExtraDefaults(extras);
     if (typeof window.setAccountStatus === 'function') {
       window.setAccountStatus(extrasSaved
@@ -18845,13 +18881,16 @@ function routeAfterMagicLinkIfNeeded() {
     const client = root.getSupabaseClient?.();
     const user = root.hofAuth?.session?.user;
     if (!client || !user) return null;
+    const request = root.beginAccountProfileLoad();
     const role = normalizeAccountRole(root.hofAuth?.role || user.user_metadata?.role || 'agent');
     const table = role === 'investor' ? 'hof_investor_profiles' : 'hof_agent_profiles';
     try {
       const profileOwnerUserId = role === 'investor'
         ? user.id
         : await root.hofResolveAgentProfileOwner(client, user);
+      if (!request.isCurrent()) return null;
       const { data, error } = await client.from(table).select('*').eq('user_id', profileOwnerUserId).maybeSingle();
+      if (!request.isCurrent()) return null;
       if (error) throw error;
       if (root.hofAuth) root.hofAuth.accountProfile = data || null;
       root.updateAuthUI?.();
@@ -20470,7 +20509,9 @@ function routeAfterMagicLinkIfNeeded() {
   root.applyBrokerageSharedDefaults = async function applyBrokerageSharedDefaults() {
     const session = root.hofAuth?.session;
     const savingUserId = session?.user?.id;
-    const isCurrentProfile = () => !!savingUserId && root.hofAuth?.session?.user?.id === savingUserId;
+    const savingEpoch = root.__hofAccountProfileEpoch || 0;
+    const isCurrentProfile = () => !!savingUserId && root.hofAuth?.session?.user?.id === savingUserId &&
+      (root.__hofAccountProfileEpoch || 0) === savingEpoch;
     const result = document.getElementById('brokerageDefaultsResult');
     const applyButton = document.getElementById('applyBrokerageSharedDefaultsButton');
     if (applyButton?.disabled) return null;
@@ -20987,6 +21028,12 @@ function routeAfterMagicLinkIfNeeded() {
     const client = root.getSupabaseClient?.();
     const user = root.hofAuth?.session?.user;
     if (!client || !user || !isAgentAccount()) return null;
+    const request = { userId: user.id, role: root.hofAuth.role,
+      epoch: root.__hofAccountProfileEpoch || 0, document: root.hofAuth.agentIabsDocument };
+    root.__hofIabsProfileLoad = request;
+    const isCurrent = () => root.__hofIabsProfileLoad === request &&
+      root.hofAuth?.session?.user?.id === request.userId && root.hofAuth.role === request.role &&
+      (root.__hofAccountProfileEpoch || 0) === request.epoch && root.hofAuth.agentIabsDocument === request.document;
     try {
       const { data, error } = await client
         .from('hof_agent_documents')
@@ -20994,10 +21041,12 @@ function routeAfterMagicLinkIfNeeded() {
         .eq('user_id', user.id)
         .eq('document_type', 'iabs')
         .maybeSingle();
+      if (!isCurrent()) return null;
       if (error) throw error;
       root.hofAuth.agentIabsDocument = data || null;
       return root.hofAuth.agentIabsDocument;
     } catch (error) {
+      if (!isCurrent()) return null;
       console.warn('IABS profile document load skipped:', error);
       root.hofAuth.agentIabsDocument = null;
       return null;
@@ -21146,8 +21195,16 @@ function routeAfterMagicLinkIfNeeded() {
 
   const priorLoadProfile = root.loadAccountProfile;
   root.loadAccountProfile = async function loadAccountProfileWithIabs() {
+    const request = { userId: root.hofAuth?.session?.user?.id, role: root.hofAuth?.role,
+      epoch: root.__hofAccountProfileEpoch || 0 };
+    root.__hofProfileWithIabsLoad = request;
+    const isCurrent = () => !!request.userId && root.__hofProfileWithIabsLoad === request &&
+      root.hofAuth?.session?.user?.id === request.userId && root.hofAuth?.role === request.role &&
+      (root.__hofAccountProfileEpoch || 0) === request.epoch;
     const profile = typeof priorLoadProfile === 'function' ? await priorLoadProfile.apply(this, arguments) : null;
+    if (!isCurrent()) return null;
     await root.loadAgentIabsDocument();
+    if (!isCurrent()) return null;
     renderProfileIabsCard();
     mountIabsOfferOption();
     return profile;
