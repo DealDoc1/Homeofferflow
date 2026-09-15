@@ -364,3 +364,76 @@ test('restore carries attachment names but discards prior file contents and atta
   assert.deepEqual(Array.from(x.ctx.state.data.uploadedDocNames),['saved.pdf']);assert.equal(x.get('uploadedDisclosureAck').checked,false);
   assert.equal(timers.length,0);assert.equal(x.ctx.__hofRestoringDraft,false);
 });
+
+function enableResumeEntry(x,draft,owner='owner') {
+  const local=enableLocalDraft(x,draft,owner),actions=[];
+  const c=x.ctx;c.window=c;
+  c.__hofLandingAudienceUserSelected=true;
+  c.location={search:'',assign:url=>actions.push(['navigate',url])};c.URLSearchParams=URLSearchParams;
+  c.trackEvent=(...args)=>actions.push(['analytics',...args]);c.rememberHomebuyerCheckoutChannel=()=>{};
+  c.announceWorkspaceStatus=message=>actions.push(['notice',message]);
+  c.closeAuthModal=()=>{};
+  c.startHomebuyerOffer=()=>actions.push(['fresh']);c.openFsboSellerModal=()=>actions.push(['seller']);
+  c.openWizard=(skip,resume)=>actions.push(['open',c.state.data.userType,c.state.step,skip,resume]);
+  vm.runInContext(source('  function resumableLocalOfferDraft()', '  function startPrimaryOffer()'),c);
+  return {...local,actions};
+}
+for(const id of ['heroCta','bottomCta','navCta']) {
+  test(`${id} actual homepage button resumes the homebuyer draft its label promises`,()=>{
+    const draft={userType:'homebuyer',wizardOrderVersion:2,step:4,fields:{buyer1First:'Saved',offerPrice:'550000',earnestMoney:'8800'},radios:{financing:'cash'}};
+    const x=setup(),{actions,store}=enableResumeEntry(x,draft);x.ctx.state.data.userType='homebuyer';
+    assert.equal(x.ctx.refreshResumeOfferCtas(),true);assert.match(x.get(id).textContent,/Resume/);
+    const click=html.match(new RegExp('id="'+id+'"[^>]*onclick="([^"]+)"'))?.[1];assert.ok(click,id);
+    vm.runInContext(click,x.ctx);
+    assert.equal(actions.some(a=>a[0]==='fresh'),false);assert.equal(x.get('buyer1First').value,'Saved');
+    assert.equal(Number(x.get('earnestMoney').value),8800);
+    assert.ok(actions.some(a=>a[0]==='open'&&a[1]==='homebuyer'&&a[2]===4&&a[4]===true));
+    assert.equal(store.get('draft'),JSON.stringify(draft));
+  });
+}
+for(const role of ['agent','investor'])test(`generic resume preserves ${role} interview instead of converting it to homebuyer`,()=>{
+  const x=setup(),{actions}=enableResumeEntry(x,{userType:role,wizardOrderVersion:2,step:3,fields:{buyer1First:'Saved',offerPrice:'550000'},radios:{financing:'cash'}});
+  assert.equal(x.ctx.resumeLocalOfferDraft(),true);assert.equal(x.ctx.state.data.userType,role);
+  assert.ok(actions.some(a=>a[0]==='open'&&a[1]===role));assert.equal(actions.some(a=>a[0]==='fresh'),false);
+});
+for(const role of ['agent','investor'])test(`homebuyer buttons do not claim to resume a ${role} draft`,()=>{
+  const x=setup();enableResumeEntry(x,{userType:role,step:3,fields:{buyer1First:'Saved'}});x.ctx.state.data.userType='homebuyer';
+  x.get('heroCta').textContent='Build Your Offer';assert.equal(x.ctx.refreshResumeOfferCtas(),false);assert.equal(x.get('heroCta').textContent,'Build Your Offer');
+});
+test('restore failure does not fall back to a destructive fresh start',()=>{
+  const draft={userType:'homebuyer',step:3,fields:{buyer1First:'Keep'}};
+  const x=setup(),{actions,store}=enableResumeEntry(x,draft);x.ctx.restoreDraft=()=>false;
+  assert.equal(x.ctx.resumeLocalOfferDraft(),false);assert.equal(actions.some(a=>a[0]==='fresh'),false);
+  assert.equal(store.get('draft'),JSON.stringify(draft));assert.ok(actions.some(a=>a[0]==='notice'));
+});
+test('unavailable owned draft is not erased by a direct resume request',()=>{
+  const draft={userType:'agent',step:3,fields:{buyer1First:'Keep'}};
+  const x=setup(),{actions,store}=enableResumeEntry(x,draft,'different-owner');
+  assert.equal(x.ctx.resumeLocalOfferDraft(),false);assert.equal(actions.some(a=>a[0]==='fresh'),false);assert.equal(store.get('draft'),JSON.stringify(draft));
+});
+test('analytics failure cannot turn a successful resume into a user-facing error',()=>{
+  const x=setup();enableResumeEntry(x,{userType:'homebuyer',step:3,fields:{buyer1First:'Saved'}});
+  x.ctx.trackEvent=()=>{throw new Error('analytics unavailable');};assert.equal(x.ctx.resumeLocalOfferDraft(),true);
+});
+test('new homepage visitors still begin a fresh homebuyer offer',()=>{
+  const x=setup(),{actions,store}=enableResumeEntry(x,null);store.delete('draft');x.ctx.state.data.userType='homebuyer';
+  x.ctx.beginOfferFrom('landing_hero_cta');assert.ok(actions.some(a=>a[0]==='fresh'));
+});
+for(const role of ['agent','investor','fsbo'])test(`explicit ${role} homepage entry keeps its dedicated route`,()=>{
+  const x=setup(),{actions}=enableResumeEntry(x,{userType:'homebuyer',step:3,fields:{buyer1First:'Saved'}});
+  x.ctx.state.data.userType=role;x.ctx.beginOfferFrom('landing_hero_cta');
+  assert.equal(actions.some(a=>a[0]==='open'),false);assert.equal(actions.some(a=>a[0]==='fresh'),false);
+  assert.ok(actions.some(a=>a[0]===(role==='fsbo'?'seller':'navigate')));
+});
+test('resume labels revert when the saved draft is removed without replacing new audience copy',()=>{
+  const x=setup(),{store}=enableResumeEntry(x,{userType:'homebuyer',step:3,fields:{buyer1First:'Saved'}});
+  x.ctx.state.data.userType='homebuyer';
+  for(const id of ['heroCta','bottomCta','navCta'])x.get(id).textContent='Build Your Offer';
+  x.get('heroPriceNote').innerHTML='Original price note';x.ctx.refreshResumeOfferCtas();
+  store.delete('draft');assert.equal(x.ctx.refreshResumeOfferCtas(),false);
+  for(const id of ['heroCta','bottomCta','navCta'])assert.equal(x.get(id).textContent,'Build Your Offer');
+  assert.equal(x.get('heroPriceNote').innerHTML,'Original price note');
+  store.set('draft',JSON.stringify({userType:'homebuyer',step:3,fields:{buyer1First:'Saved'}}));x.ctx.refreshResumeOfferCtas();
+  x.ctx.state.data.userType='agent';x.get('heroCta').textContent='Start a Transaction';x.get('heroPriceNote').innerHTML='Agent information';
+  x.ctx.refreshResumeOfferCtas();assert.equal(x.get('heroCta').textContent,'Start a Transaction');assert.equal(x.get('heroPriceNote').innerHTML,'Agent information');
+});

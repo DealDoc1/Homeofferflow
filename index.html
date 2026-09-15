@@ -9388,32 +9388,45 @@ function routeAfterMagicLinkIfNeeded() {
   function refreshResumeOfferCtas() {
     const draft = resumableLocalOfferDraft();
     const isHomebuyer = (state?.data?.userType || 'homebuyer') === 'homebuyer';
-    if (!draft || !isHomebuyer) return false;
-    ['heroCta', 'bottomCta'].forEach(id => {
+    const canResume = !!draft && isHomebuyer && (draft.userType || 'homebuyer') === 'homebuyer';
+    ['heroCta', 'bottomCta', 'navCta'].forEach(id => {
       const button = document.getElementById(id);
-      if (button) button.textContent = 'Resume Your Saved Offer →';
+      if (!button) return;
+      const resumeLabel = id === 'navCta' ? 'Resume Offer →' : 'Resume Your Saved Offer →';
+      if (canResume) {
+        if (button.dataset.hofResumeLabel === undefined) button.dataset.hofResumeLabel = button.textContent;
+        button.textContent = resumeLabel;
+      } else if (button.dataset.hofResumeLabel !== undefined) {
+        if (button.textContent === resumeLabel) button.textContent = button.dataset.hofResumeLabel;
+        delete button.dataset.hofResumeLabel;
+      }
     });
-    const nav = document.getElementById('navCta');
-    if (nav) nav.textContent = 'Resume Offer →';
     const note = document.getElementById('heroPriceNote');
-    if (note) note.innerHTML = 'Your work is saved on this device. <strong>Resume where you left off before paying.</strong>';
-    return true;
+    const resumeNote = 'Your work is saved on this device. <strong>Resume where you left off before paying.</strong>';
+    if (note && canResume) {
+      if (note.dataset.hofResumeNote === undefined) note.dataset.hofResumeNote = note.innerHTML;
+      note.innerHTML = resumeNote;
+    } else if (note && note.dataset.hofResumeNote !== undefined) {
+      if (note.innerHTML === resumeNote) note.innerHTML = note.dataset.hofResumeNote;
+      delete note.dataset.hofResumeNote;
+    }
+    return canResume;
   }
 
   function resumeLocalOfferDraft(surface = 'landing_resume_cta') {
     const draft = resumableLocalOfferDraft();
     if (!draft || !restoreDraft()) {
-      startHomebuyerOffer();
-      return;
+      window.announceWorkspaceStatus?.('We couldn’t reopen your saved offer. Your saved work has not been cleared. Please try again.');
+      return false;
     }
-    state.data.userType = 'homebuyer';
     closeAccountDashboard?.();
     closeAuthModal?.();
     openWizard(true, true);
-    trackEvent('Resumed Local Offer Draft', {
+    try { trackEvent('Resumed Local Offer Draft', {
       surface,
       step: Math.max(1, Math.min(10, Number(draft.step || 0)))
-    });
+    }); } catch (_) {}
+    return true;
   }
 
   function selectedLandingAudience() {
@@ -9463,6 +9476,13 @@ function routeAfterMagicLinkIfNeeded() {
     if (selectedType === 'fsbo') {
       openFsboSellerModal();
       return;
+    }
+    // These are the same homepage controls relabeled by refreshResumeOfferCtas.
+    // Keep their action aligned with that promise instead of clearing the draft.
+    const isHomepageCta = ['landing_nav_cta', 'landing_hero_cta', 'landing_bottom_cta'].includes(entrySurface);
+    const savedDraft = isHomepageCta ? resumableLocalOfferDraft() : null;
+    if (savedDraft && (savedDraft.userType || 'homebuyer') === 'homebuyer') {
+      return resumeLocalOfferDraft(entrySurface);
     }
     rememberHomebuyerCheckoutChannel();
     startHomebuyerOffer();
