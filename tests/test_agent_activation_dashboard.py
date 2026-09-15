@@ -486,7 +486,7 @@ class AgentActivationDashboardTests(unittest.TestCase):
         subscription_end = HTML.index("async function openBillingPortal", subscription_start)
         subscription = HTML[subscription_start:subscription_end]
 
-        self.assertIn("const remaining = Math.max(0, limit - used);", subscription)
+        self.assertIn("const remaining = Math.max(0, limit - used - reserved);", subscription)
         self.assertIn('Choose Transaction', subscription)
         self.assertIn("remaining + ' packet'", subscription)
         self.assertIn("startAccountTransaction()", subscription)

@@ -4098,7 +4098,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       <h2>Review your packet</h2>
       <p class="step-desc">Your self-service Texas buyer-offer packet is ready to purchase for $99.</p>
       <div id="paymentCheckoutReturnNotice" class="notice sage" style="display:none; margin-bottom:1rem;" role="status" aria-live="polite"><strong>Your offer is still saved.</strong> Checkout was not completed, and no charge was made. To resume, confirm the one-time packet acknowledgement and receipt email below; payment is not restarted until you continue to secure checkout.<br><span id="paymentCheckoutResumeHelp" style="display:block;margin-top:.45rem;color:var(--gray-light);font-size:.82rem;">You can review and update those details before resuming.</span><button id="paymentCheckoutResumeButton" class="btn-secondary" type="button" style="margin-top:.65rem;" onclick="resumeCancelledBuyerCheckout()">Review confirmations and resume secure checkout</button></div>
-      <div id="packetGenerationRecoveryNotice" class="notice gold" style="display:none; margin-bottom:1rem;" role="status" aria-live="polite"><strong>Packet generation needs another try.</strong><span id="packetGenerationRecoveryMessage" style="display:block; margin-top:.35rem;"></span><button id="packetGenerationRetryButton" class="btn-secondary" type="button" style="margin-top:.65rem;">Try generating again</button></div>
+      <div id="packetGenerationRecoveryNotice" class="notice gold" style="display:none; margin-bottom:1rem;" role="status" aria-live="polite"><strong>Check your packet status.</strong><span id="packetGenerationRecoveryMessage" style="display:block; margin-top:.35rem;"></span><button id="packetGenerationRetryButton" class="btn-secondary" type="button" style="margin-top:.65rem;">View next step</button></div>
       <div style="display:grid; grid-template-columns:1fr; gap:0.6rem; margin-bottom:1.5rem;">
         <div class="pricing-card popular" id="plan-self" onclick="selectPlan('self', 99)"><div class="popular-badge">Current packet</div><div class="plan-name">Self-Serve Buyer Offer Packet</div><div class="plan-price">$99</div><div class="plan-features"><div class="plan-feature">✓ Guided buyer-offer workflow</div><div class="plan-feature">✓ Supported purchase addenda</div><div class="plan-feature">✓ Buyer-side signing delivery</div></div></div>
       </div>
@@ -5836,7 +5836,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 
 
   function getBillingMonth(date = new Date()) {
-    return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0');
+    return date.getUTCFullYear() + '-' + String(date.getUTCMonth() + 1).padStart(2, '0');
   }
 
   function formatBillingMonth(billingMonth) {
@@ -5906,7 +5906,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   async function loadCurrentUsage() {
     const user = hofAuth.session?.user;
     const billingMonth = getBillingMonth();
-    const limit = Number(hofAuth.subscription?.packet_limit || (hofAuth.role === 'investor' ? 15 : 10));
+    const limit = Number(hofAuth.subscription?.packet_limit ?? (hofAuth.role === 'investor' ? 15 : 10));
 
     if (!user || !hofAuth.session?.access_token) {
       hofAuth.usage = { used: 0, limit, billingMonth, available: false };
@@ -5925,7 +5925,8 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || 'Usage could not be loaded.');
-      hofAuth.usage = { used: Number(data.used) || 0, limit, billingMonth: data.billingMonth || billingMonth, available: true };
+      hofAuth.usage = { used: Number(data.used) || 0, reserved: Number(data.reserved) || 0,
+        limit: data.limit ?? limit, billingMonth: data.billingMonth || billingMonth, available: true };
       renderSubscriptionCard();
       return hofAuth.usage;
     } catch (err) {
@@ -5951,14 +5952,15 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 
     const usage = hofAuth.usage || {
       used: 0,
-      limit: sub.packet_limit || 10,
+      limit: sub.packet_limit ?? 10,
       billingMonth: getBillingMonth(),
       available: false
     };
 
     const usageAvailable = usage.available !== false;
     const used = Number(usage.used || 0);
-    const limit = Number(usage.limit || sub.packet_limit || 10);
+    const reserved = Number(usage.reserved || 0);
+    const limit = Number(usage.limit ?? sub.packet_limit ?? 10);
     const pct = limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0;
 
     const status = String(sub.status || 'beta');
@@ -5974,8 +5976,8 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     // Payable Stripe states stay in Billing Portal so we never create a
     // duplicate subscription while the existing one can still be recovered.
     const subscriptionReplacementNeeded = status === 'canceled' || status === 'incomplete_expired';
-    const good = subscriptionAllowsGeneration(sub) && (!usageAvailable || used < limit);
-    const remaining = Math.max(0, limit - used);
+    const good = subscriptionAllowsGeneration(sub) && (!usageAvailable || used + reserved < limit);
+    const remaining = Math.max(0, limit - used - reserved);
     const billingPeriodLabel = formatBillingMonth(usage.billingMonth || getBillingMonth());
     const nearLimit = usageAvailable && hasActiveAccess && good && pct >= 80;
     const usageExhausted = usageAvailable && hasActiveAccess && !good && used >= limit;
@@ -5998,18 +6000,21 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       actionHtml =
         '<div class="account-actions-row" style="margin-top:0.85rem;">' +
           (good ? '<button class="btn-primary" type="button" onclick="startAccountTransaction()">Choose Transaction</button>' : '') +
+          (reserved > 0 ? '<button class="btn-secondary" type="button" onclick="showAccountTab(\'offers\')">View My Offers</button>' : '') +
         '</div>' +
         '<div style="margin-top:0.55rem; color:var(--gray); font-size:0.74rem; line-height:1.45;">' +
           (good
             ? (usageAvailable
               ? ('Your complimentary access is active. ' + remaining + ' packet' + (remaining === 1 ? '' : 's') + ' remain this month.')
               : 'Your complimentary access is active, but current packet usage could not be loaded. Refresh the page before relying on the meter; access will be checked again before packet generation.')
-            : 'This month\'s complimentary packet allowance has been used. Contact support before generating another packet.') +
+            : reserved > 0 ? ''
+              : 'This month\'s complimentary packet allowance has been used. Contact support before generating another packet.') +
         '</div>';
     } else if (isPaid) {
       actionHtml =
         '<div class="account-actions-row" style="margin-top:0.85rem;">' +
           (good ? '<button class="btn-primary" type="button" onclick="startAccountTransaction()">Choose Transaction</button>' : '') +
+          (reserved > 0 ? '<button class="btn-secondary" type="button" onclick="showAccountTab(\'offers\')">View My Offers</button>' : '') +
           '<button class="btn-secondary" type="button" onclick="openBillingPortal(\'' + (nearLimit ? 'usage_near_limit' : 'subscription_card') + '\')">Manage Billing</button>' +
         '</div>' +
         '<div style="margin-top:0.55rem; color:var(--gray); font-size:0.74rem; line-height:1.45;">' +
@@ -6017,7 +6022,8 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             ? (usageAvailable
               ? ('Your subscription is active. ' + remaining + ' packet' + (remaining === 1 ? '' : 's') + ' remain this month; keep your client workflow moving from this dashboard.')
               : 'Your subscription is active, but current packet usage could not be loaded. Refresh usage before relying on the meter; the server will verify access again before packet generation.')
-            : 'Your subscription is active, but this month\'s packet allowance is used. Manage billing to review access options.') +
+            : reserved > 0 ? ''
+              : 'Your subscription is active, but this month\'s packet allowance is used. Manage billing to review access options.') +
         '</div>';
     } else if (isBlocked) {
       actionHtml =
@@ -6066,7 +6072,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 
       <div class="usage-copy">
         ${usageAvailable
-          ? `<strong>${used} / ${limit}</strong> signed offer packets used in ${escapeAttr(billingPeriodLabel)}. ${good ? 'You can generate and send new packets.' : 'Generation is blocked until billing/access is updated.'}`
+          ? `<strong>${used} / ${limit}</strong> signed offer packets used in ${escapeAttr(billingPeriodLabel)}. ${reserved > 0 ? `${reserved} packet${reserved === 1 ? '' : 's'} in progress. Check My Offers before starting again.` : good ? 'You can generate and send new packets.' : 'Check your allowance and billing before starting another packet.'}`
           : `Usage is temporarily unavailable for ${escapeAttr(billingPeriodLabel)}. <button class="btn-secondary" type="button" style="margin-left:.35rem" onclick="loadCurrentUsage()">Refresh usage</button> The server will verify your current allowance before packet generation.`}
       </div>
 
@@ -6385,20 +6391,8 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       openAuthModal(state.data.userType || hofAuth.role || 'agent');
       return false;
     }
-    await loadOrCreateSubscription();
-    await loadCurrentUsage();
-    const sub = hofAuth.subscription;
-    const usage = hofAuth.usage || { used: 0, limit: sub?.packet_limit || 10 };
-    if (!subscriptionAllowsGeneration(sub)) {
-      const message = 'Your HomeOfferFlow access is not active. Update billing or contact support before generating a new packet.';
-      if (showAlert && window.confirm(message + ' Open Manage Billing now?')) await openBillingPortal('generation_blocked');
-      return false;
-    }
-    if (usage.available !== false && Number(usage.used || 0) >= Number(usage.limit || 10)) {
-      const message = `You have reached your ${usage.limit}-packet monthly limit. Upgrade or contact support before generating another signed packet.`;
-      if (showAlert && window.confirm(message + ' Open Manage Billing now?')) await openBillingPortal('generation_limit');
-      return false;
-    }
+    // The server reserves allowance for this exact packet. Aggregate browser
+    // totals must not prevent a no-charge retry of already completed work.
     return true;
   }
 
@@ -6515,33 +6509,6 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       });
     } catch (error) {}
     return true;
-  }
-
-  async function recordUsageEvent(offerId, eventType = 'signed_packet', quantity = 1, metadata = {}) {
-    const user = hofAuth.session?.user;
-    const accessToken = hofAuth.session?.access_token;
-    if (!user || !accessToken) return;
-    try {
-      const response = await fetch('/api/submit-feedback', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`
-        },
-        body: JSON.stringify({
-          action: 'usage_event',
-          offerId: offerId || state.data?._hofOfferId || null,
-          eventType,
-          quantity,
-          billingMonth: getBillingMonth(),
-          metadata: metadata || {}
-        })
-      });
-      if (!response.ok) throw new Error((await response.json().catch(() => ({}))).error || 'Usage event could not be saved.');
-      await loadCurrentUsage();
-    } catch (err) {
-      console.warn('Usage event log failed:', err);
-    }
   }
 
   async function preflightUsage(quantity = 1) {
@@ -10792,6 +10759,12 @@ function routeAfterMagicLinkIfNeeded() {
   }
 
   function packetGenerationFailureDetails(err) {
+    if (err?.code === 'packet_allowance_unavailable') {
+      return { category: 'allowance', nextStep: 'Open Account to check your packet allowance and billing.', action: 'account' };
+    }
+    if (err?.code === 'packet_generation_busy' || err?.code === 'packet_generation_unconfirmed') {
+      return { category: 'pending', nextStep: 'Check My Offers before trying again. This packet may already be prepared.', action: 'offers' };
+    }
     const message = String(err?.message || err || '').toLowerCase();
     if (/unauthori[sz]ed|forbidden|access token|session/.test(message)) {
       return { category: 'session', nextStep: 'Reopen your account dashboard to refresh access, then try again.' };
@@ -10821,8 +10794,11 @@ function routeAfterMagicLinkIfNeeded() {
     const message = document.getElementById('packetGenerationRecoveryMessage');
     const retry = document.getElementById('packetGenerationRetryButton');
     if (!notice || !message || !retry) return;
-    message.textContent = 'No packet credit was used. ' + String(failure?.nextStep || 'Try again shortly.');
+    message.textContent = String(failure?.nextStep || 'Check My Offers before trying again.');
+    retry.textContent = failure?.action === 'account' ? 'Open Account' : failure?.action === 'offers' ? 'View My Offers' : 'Try again';
     retry.onclick = async () => {
+      if (failure?.action === 'account') return openAccountDashboard({ tab: 'dashboard' });
+      if (failure?.action === 'offers') return openAccountDashboard({ tab: 'offers' });
       retry.disabled = true;
       try {
         await logOfferEvent(
@@ -11333,9 +11309,7 @@ function routeAfterMagicLinkIfNeeded() {
       return;
     }
 
-    // Re-check against the server immediately before generation so stale UI
-    // usage cannot consume a packet outside the account's allowance.
-    if (!(await preflightUsage(1))) return;
+    // /api/fill-pdf reserves and records allowance atomically on the server.
 
     const nextBtn = document.getElementById('nextBtn');
     const oldText = nextBtn ? nextBtn.textContent : '';
@@ -11347,8 +11321,8 @@ function routeAfterMagicLinkIfNeeded() {
         nextBtn.textContent = 'Generating Packet...';
       }
 
-      const savingOffer = await saveOfferDraftToSupabase('Generating');
-      offerId = savingOffer?.id || state.data._hofOfferId || offerId || null;
+      // The server saves this request and owns packet/signing state changes.
+      // A browser retry must not erase its delivery journal or saved status.
 
       await logOfferEvent(
         offerId,
@@ -11417,21 +11391,25 @@ function routeAfterMagicLinkIfNeeded() {
       }
 
       if (!response.ok || result.error) {
-        throw new Error(result.error || result.message || 'Packet generation failed.');
+        const error = new Error(result.error || result.message || 'Packet generation could not be confirmed.');
+        error.code = result.code || '';
+        throw error;
+      }
+
+      if (result.packetGenerated !== true || result.usage?.status !== 'recorded') {
+        const error = new Error('Packet completion could not be confirmed. Check My Offers before trying again.');
+        error.code = 'packet_generation_unconfirmed';
+        throw error;
+      }
+      if (result.offerId) {
+        offerId = result.offerId;
+        state.data._hofOfferId = result.offerId;
       }
 
       state.data.signwell = result.signwell || state.data.signwell || null;
       state.data.signwellDocumentId = result.signwell?.document_id || result.signwell?.response?.id || state.data.signwellDocumentId || '';
       state.data.signwellStatus = result.signwell?.response?.status || result.signwell?.status || state.data.signwellStatus || '';
       state.data.generatedAt = new Date().toISOString();
-
-      const generatedOffer = await saveOfferDraftToSupabase('Generated');
-      offerId = generatedOffer?.id || offerId || state.data._hofOfferId || null;
-
-      await forceOfferGeneratedStatus(offerId, {
-        packetGeneratedAt: state.data.generatedAt,
-        signwell: result.signwell || null
-      });
 
       await logOfferEvent(
         offerId,
@@ -11441,22 +11419,15 @@ function routeAfterMagicLinkIfNeeded() {
         { role: state.data.userType || hofAuth.role || 'agent', signwell: result.signwell || null }
       );
 
-      await recordUsageEvent(
-        offerId,
-        'signed_packet',
-        1,
-        { source: 'subscription_packet_generate', signwell: result.signwell || null }
-      );
+      await loadCurrentUsage();
 
       window.__hofSubscriptionPacketGenerated = true;
       showPaymentSuccess(email, { packetGenerated: true, signwell: result.signwell, documentEmail: result.documentEmail });
     } catch (err) {
       console.error('Subscribed packet generation failed:', err);
       const failure = packetGenerationFailureDetails(err);
-      await forceOfferGenerationFailedStatus(offerId, err, {
-        role: state.data.userType || hofAuth.role || 'agent',
-        packetGenerationFailureCategory: failure.category
-      });
+      // A lost response can follow successful generation and delivery. Do not
+      // overwrite the server's saved packet/signing state with a browser error.
       await logOfferEvent(
         offerId,
         'subscription_packet_generation_failed',

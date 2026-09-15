@@ -9,6 +9,8 @@ from lib import signwell_delivery
 from lib.offer_signwell_delivery import deliver_offer_document, offer_answers
 from lib.email_delivery import deliver_email_once, delivery_key, payload_fingerprint, EmailDeliveryPending, EmailDeliveryNeedsReview
 from lib.email_delivery_store import EmailDeliveryStore
+from lib.packet_generation import (PacketGenerationStore, PacketGenerationPending,
+    PacketAllowanceUnavailable, PacketGenerationBusy, packet_answers_hash, render_packet_with_usage)
 
 from lib.production_adapter import (
     UnsupportedOfferPathError,
@@ -1595,7 +1597,7 @@ def extract_signwell_document_id(signwell_info):
 
 
 def save_generated_offer_to_supabase(offer, customer_email="", signwell_info=None, subscription_user_id=None,
-                                    *, insert_id=None, expected_record=None):
+                                    *, insert_id=None, expected_record=None, packet_ready=True):
     """
     Persist every paid/generated packet to hof_offers, including self-serve homebuyer checkouts.
 
@@ -1642,7 +1644,7 @@ def save_generated_offer_to_supabase(offer, customer_email="", signwell_info=Non
                 "sent" if signwell_info.get("ok") else "failed" if signwell_info.get("enabled") else ""
             )
 
-        status = "Awaiting Signature" if signwell_info and signwell_info.get("ok") else "Generated"
+        status = ("Awaiting Signature" if signwell_info and signwell_info.get("ok") else "Generated") if packet_ready else "Draft"
 
         payload = {
             "role": role,
@@ -1686,6 +1688,8 @@ def save_generated_offer_to_supabase(offer, customer_email="", signwell_info=Non
             "last_updated": __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat().replace("+00:00", "Z"),
         }
 
+        if not packet_ready:
+            payload.pop("generated_at", None)
         # Remove None values only for columns that are optional; keep important status/role fields.
         payload = {k: v for k, v in payload.items() if v is not None}
         if trusted_user_id:
@@ -1985,16 +1989,14 @@ Please comment or message me if you are available to help coordinate/show this p
         send_basic_email(buyer_email, "HomeOfferFlow Showing Request Received", customer_html)
 
 
-def prepare_offer_signing_record(offer, customer_email, *, user_id=None, checkout_session_id=None):
+def prepare_offer_signing_record(offer, customer_email, *, user_id=None, checkout_session_id=None, packet_ready=True):
     """Resolve a stable server-authorized row before any signature invitation."""
     if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
         raise RuntimeError("Your offer could not be saved for signing. Please try again shortly.")
     if user_id:
         requested_id = str(offer.get("_hofOfferId") or "")
         identity = requested_id or str(uuid.uuid5(uuid.NAMESPACE_URL,
-            "homeofferflow:owned:" + user_id + ":" + json.dumps(
-                {key: value for key, value in offer_answers(offer).items() if not key.startswith('_')},
-                sort_keys=True, separators=(',', ':'))))
+            "homeofferflow:owned:" + user_id + ":" + packet_answers_hash(offer)))
     else:
         # Only the already-verified Stripe event may supply this namespace.
         if not str(checkout_session_id or '').startswith('cs_'):
@@ -2016,14 +2018,17 @@ def prepare_offer_signing_record(offer, customer_email, *, user_id=None, checkou
     offer["_hofOfferId"] = identity
     if record and record.get("signwell_document_id"):
         return record
-    if record and str(record.get("status") or '').lower() not in {'draft', 'generated', 'generation failed'}:
+    if record and str(record.get("status") or '').lower() not in {'draft', 'generating', 'generated', 'generation failed'}:
         raise ValueError("This offer needs a signature status check before it can be sent again.")
+    if record and not packet_ready:
+        return record  # Reserving a retry must never downgrade saved status.
     # Guest checkout replay uses its existing saved answers; never overwrite
     # a server-owned checkout record based on browser-supplied record IDs.
     if not record or user_id:
         saved_id = save_generated_offer_to_supabase(
             offer, customer_email, subscription_user_id=user_id,
             insert_id=None if record else identity, expected_record=record,
+            packet_ready=packet_ready,
         )
         if not saved_id:
             if record:
@@ -2038,16 +2043,38 @@ def prepare_offer_signing_record(offer, customer_email, *, user_id=None, checkou
     return record
 
 
+def render_subscribed_packet(offer, user_id, customer_email=""):
+    """Use the same server-owned allowance for browser generation and downloads."""
+    record = prepare_offer_signing_record(offer, customer_email, user_id=user_id, packet_ready=False)
+    if not record.get('id') or record.get('user_id') != user_id:
+        raise PacketGenerationPending('Your saved offer could not be verified for this account.')
+    if record.get('signwell_document_id') and packet_answers_hash(record.get('offer_data') or {}) != packet_answers_hash(offer):
+        raise PacketGenerationPending('This packet is already prepared for signing. Open My Offers to check it before making a revised packet.')
+    result = render_packet_with_usage(
+        user_id=user_id, offer_id=record['id'], answers_hash=packet_answers_hash(offer),
+        render=lambda: fill_and_merge(offer),
+        store=PacketGenerationStore(supabase_url=SUPABASE_URL, service_key=SUPABASE_SERVICE_ROLE_KEY),
+    )
+    # Only the completed reservation may mark a draft as generated. A failed
+    # status save leaves its usage receipt intact for a no-charge retry.
+    try:
+        record = prepare_offer_signing_record(offer, customer_email, user_id=user_id)
+    except Exception as error:
+        raise PacketGenerationPending('Your packet was prepared, but its saved status needs a check. Open My Offers before trying again.') from error
+    return result['pdf_bytes'], record, result['usage']
+
+
 class PacketEmailPending(EmailDeliveryPending):
     """The packet/signing step finished, but document email is not confirmed."""
 
-    def __init__(self, *, record, signwell, needs_review=False):
+    def __init__(self, *, record, signwell, needs_review=False, usage=None):
         super().__init__('Your packet is ready, but email delivery is not confirmed.')
         self.result = {
             'status': 'delivery_pending', 'code': 'document_email_unconfirmed',
             'packetGenerated': True, 'offerId': record.get('id'),
             'message': str(self), 'signwell': signwell,
             'documentEmail': {'status': 'unconfirmed', 'needsReview': needs_review},
+            'usage': usage,
         }
 
 
@@ -2075,6 +2102,8 @@ def handle_checkout(event, subscription_user_id=None):
 
     # Showing booking checkout: send notifications only, do not generate a TREC PDF.
     if plan == "showing-booking" or offer.get("type") == "showing_booking":
+        if subscription_user_id:
+            raise ValueError('Showing requests require a verified showing checkout.')
         if not offer.get("buyerEmail") and customer_email:
             offer["buyerEmail"] = customer_email
 
@@ -2090,10 +2119,12 @@ def handle_checkout(event, subscription_user_id=None):
 
     hydrate_paragraph4_sources(offer)
     validate_supported_offer(offer)
-    pdf_bytes = fill_and_merge(offer)
-
-    record = prepare_offer_signing_record(offer, customer_email, user_id=subscription_user_id,
-                                         checkout_session_id=session.get("id") if not subscription_user_id else None)
+    usage = None
+    if subscription_user_id:
+        pdf_bytes, record, usage = render_subscribed_packet(offer, subscription_user_id, customer_email)
+    else:
+        pdf_bytes = fill_and_merge(offer)
+        record = prepare_offer_signing_record(offer, customer_email, checkout_session_id=session.get("id"))
     if subscription_user_id:
         if not record.get("id") or record.get("user_id") != subscription_user_id:
             raise EmailDeliveryPending("Your saved offer could not be verified for email delivery.")
@@ -2120,7 +2151,7 @@ def handle_checkout(event, subscription_user_id=None):
         )
     except EmailDeliveryPending as error:
         raise PacketEmailPending(record=record, signwell=signwell_info,
-                                 needs_review=isinstance(error, EmailDeliveryNeedsReview)) from error
+                                 needs_review=isinstance(error, EmailDeliveryNeedsReview), usage=usage) from error
 
     # Internal admin alert. Do not let admin-email failure block buyer delivery.
     try:
@@ -2138,6 +2169,7 @@ def handle_checkout(event, subscription_user_id=None):
         "status": "ok",
         "packetGenerated": True,
         "offerId": record.get('id'),
+        "usage": usage,
         "message": "PDF created. Document email accepted for delivery.",
         "documentEmail": document_email,
         "adminEmail": admin_email,
@@ -2203,50 +2235,6 @@ class handler(BaseHTTPRequestHandler):
         user = response.json()
         return str(user.get("id") or "") or None
 
-    def _has_generation_entitlement(self, user_id):
-        response = httpx.get(
-            f"{SUPABASE_URL}/rest/v1/hof_subscriptions",
-            params={
-                "user_id": f"eq.{user_id}",
-                "status": "in.(beta,active,trialing,free_admin)",
-                "select": "packet_limit",
-                "limit": "1",
-            },
-            headers={
-                "apikey": SUPABASE_SERVICE_ROLE_KEY,
-                "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}",
-            },
-            timeout=12,
-        )
-        if response.status_code != 200:
-            return False
-        subscriptions = response.json()
-        if not subscriptions:
-            return False
-        try:
-            packet_limit = max(0, min(int(subscriptions[0].get("packet_limit") or 10), 10000))
-        except (TypeError, ValueError):
-            packet_limit = 10
-        billing_month = datetime.now(timezone.utc).strftime("%Y-%m")
-        usage_response = httpx.get(
-            f"{SUPABASE_URL}/rest/v1/hof_usage_events",
-            params={
-                "user_id": f"eq.{user_id}",
-                "billing_month": f"eq.{billing_month}",
-                "event_type": "eq.signed_packet",
-                "select": "quantity",
-            },
-            headers={
-                "apikey": SUPABASE_SERVICE_ROLE_KEY,
-                "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}",
-            },
-            timeout=12,
-        )
-        if usage_response.status_code != 200:
-            return False
-        used = sum(max(0, int(item.get("quantity") or 0)) for item in usage_response.json())
-        return used < packet_limit
-
     def do_GET(self):
         # This unauthenticated endpoint is a deployment health check, not an
         # operations inventory. Keep its response limited to aggregate release
@@ -2299,9 +2287,9 @@ class handler(BaseHTTPRequestHandler):
                     if not user_id:
                         self._json(401, {"error": "Sign in again before generating a packet."})
                         return
-                    if not self._has_generation_entitlement(user_id):
-                        self._json(403, {"error": "Your HomeOfferFlow access is not active or this month's packet limit has been reached."})
-                        return
+                    # The packet-specific database reservation is authoritative.
+                    # An aggregate precheck would wrongly reject a free retry
+                    # of an already completed packet at the monthly limit.
                     subscription_user_id = user_id
                 else:
                     self._json(401, {"error": "A verified Stripe webhook or active subscription is required."})
@@ -2344,12 +2332,9 @@ class handler(BaseHTTPRequestHandler):
                 if not user_id:
                     self._json(401, {"error": "Sign in again before generating a packet."})
                     return
-                if not self._has_generation_entitlement(user_id):
-                    self._json(403, {"error": "Your HomeOfferFlow access is not active or this month's packet limit has been reached."})
-                    return
                 hydrate_paragraph4_sources(offer)
                 validate_supported_offer(offer)
-                pdf_bytes = fill_and_merge(offer)
+                pdf_bytes, record, usage = render_subscribed_packet(offer, user_id)
                 filename_addr = re.sub(r"[^A-Za-z0-9]+", "_", str(offer.get("address", "offer")).strip()).strip("_") or "offer"
                 filename = f"HomeOfferFlow_Offer_{filename_addr}.pdf"
 
@@ -2363,6 +2348,12 @@ class handler(BaseHTTPRequestHandler):
 
             self._json(400, {"error": "No offer data provided"})
 
+        except PacketAllowanceUnavailable as error:
+            self._json(403, {'error': str(error), 'code': 'packet_allowance_unavailable'})
+        except PacketGenerationBusy as error:
+            self._json(409, {'error': str(error), 'code': 'packet_generation_busy'})
+        except PacketGenerationPending as error:
+            self._json(503, {'error': str(error), 'code': 'packet_generation_unconfirmed'})
         except UnsupportedOfferPathError as e:
             print("UNSUPPORTED OFFER PATH:", str(e))
             self._json(422, {

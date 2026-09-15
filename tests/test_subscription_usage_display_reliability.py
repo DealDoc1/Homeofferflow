@@ -23,7 +23,9 @@ class SubscriptionUsageDisplayReliabilityTests(unittest.TestCase):
         self.assertIn("const usageAvailable = usage.available !== false;", HTML)
 
     def test_generation_screen_does_not_treat_an_unknown_read_as_exhausted(self):
-        self.assertIn("if (usage.available !== false && Number(usage.used || 0) >= Number(usage.limit || 10))", HTML)
+        start = HTML.index('async function canGenerateOffer(')
+        end = HTML.index('async function logOfferEvent(', start)
+        self.assertNotIn('usage.used', HTML[start:end])
         self.assertIn("The server will verify your current allowance before packet generation.", HTML)
 
 

@@ -11,6 +11,10 @@ from unittest.mock import Mock, patch
 
 from lib.email_delivery import EmailDeliveryPending
 from tests.test_email_delivery import Store
+from tests.test_packet_generation import MemoryPacketStore
+from lib.packet_generation import PacketGenerationPending
+
+OWNER = '22222222-2222-4222-8222-222222222222'
 
 SPEC = importlib.util.spec_from_file_location('checkout_durable_email_api',
     Path(__file__).resolve().parents[1] / 'api/fill-pdf.py')
@@ -25,6 +29,7 @@ class CheckoutEmailDeliveryTests(unittest.TestCase):
         self.fail = None
         self.requests = []
         self.pdf_version = 0
+        self.usage_store = MemoryPacketStore()
         self.offer = {'buyer1': 'QA Buyer', 'buyerEmail': 'buyer@example.test',
                       'address': 'QA Property', 'price': '100', '_emailDeliveryKey': 'untrusted-key'}
         self.event = {'type': 'checkout.session.completed', 'data': {'object': {
@@ -37,6 +42,7 @@ class CheckoutEmailDeliveryTests(unittest.TestCase):
                                   accept=self.store.accept)
         self.patches = [
             patch.object(API, 'EmailDeliveryStore', return_value=adapter),
+            patch.object(API, 'PacketGenerationStore', return_value=self.usage_store),
             patch.object(API, 'hydrate_paragraph4_sources'), patch.object(API, 'validate_supported_offer'),
             patch.object(API, 'fill_and_merge', side_effect=self.render),
             patch.object(API, 'prepare_offer_signing_record', side_effect=lambda *a, **kw: copy.deepcopy(self.record)),
@@ -90,7 +96,7 @@ class CheckoutEmailDeliveryTests(unittest.TestCase):
         event = copy.deepcopy(self.event)
         if subscriber:
             event['data']['object']['metadata']['subscription_generation'] = 'true'
-            self.record['user_id'] = 'verified-owner'
+            self.record['user_id'] = OWNER
         body = json.dumps(event).encode()
         handler = object.__new__(API.handler)
         handler.headers = {'Content-Length': str(len(body))}
@@ -98,8 +104,7 @@ class CheckoutEmailDeliveryTests(unittest.TestCase):
             handler.headers['x-homeofferflow-checkout-signature'] = 'test-signature'
         handler.rfile = io.BytesIO(body)
         handler._json = Mock()
-        handler._verified_user = Mock(return_value='verified-owner' if authenticated else None)
-        handler._has_generation_entitlement = Mock(return_value=True)
+        handler._verified_user = Mock(return_value=OWNER if authenticated else None)
         with patch.object(API, 'verify_internal_checkout_forward_signature', return_value=authenticated):
             handler.do_POST()
         return handler._json.call_args.args
@@ -112,6 +117,8 @@ class CheckoutEmailDeliveryTests(unittest.TestCase):
         self.assertEqual(body['offerId'], self.record['id'])
         self.assertTrue(body['signwell']['ok'])
         self.assertEqual(body['documentEmail']['status'], 'unconfirmed')
+        self.assertEqual(body['usage']['status'], 'recorded')
+        self.assertEqual(self.usage_store.completions, 1)
         self.assertNotIn('error', body)
         self.assertNotIn('Simulated', json.dumps(body))
 
@@ -174,29 +181,31 @@ class CheckoutEmailDeliveryTests(unittest.TestCase):
         self.assertEqual(self.requests, [])
 
     def test_owned_offer_replays_are_stable_but_an_intentional_revision_is_distinct(self):
-        self.record['user_id'] = 'verified-owner'
-        API.handle_checkout(copy.deepcopy(self.event), subscription_user_id='verified-owner')
-        API.handle_checkout(copy.deepcopy(self.event), subscription_user_id='verified-owner')
+        self.record['user_id'] = OWNER
+        API.handle_checkout(copy.deepcopy(self.event), subscription_user_id=OWNER)
+        API.handle_checkout(copy.deepcopy(self.event), subscription_user_id=OWNER)
         self.assertEqual(len(self.requests), 2)
+        self.assertEqual(self.usage_store.completions, 1)
         self.offer['price'] = '200'
         self.event['data']['object']['metadata']['offer_data'] = json.dumps(self.offer)
-        API.handle_checkout(copy.deepcopy(self.event), subscription_user_id='verified-owner')
+        API.handle_checkout(copy.deepcopy(self.event), subscription_user_id=OWNER)
         self.assertEqual(len(self.requests), 4)
+        self.assertEqual(self.usage_store.completions, 2)
         self.assertNotEqual(self.requests[0][0], self.requests[2][0])
 
     def test_owned_identity_cannot_be_borrowed_from_another_user(self):
         self.record['user_id'] = 'other-owner'
-        with self.assertRaises(EmailDeliveryPending):
-            API.handle_checkout(self.event, subscription_user_id='verified-owner')
+        with self.assertRaises(PacketGenerationPending):
+            API.handle_checkout(self.event, subscription_user_id=OWNER)
         self.signing.assert_not_called()
         self.assertEqual(self.requests, [])
 
     def test_browser_internal_email_key_cannot_force_a_second_owned_email(self):
-        self.record['user_id'] = 'verified-owner'
-        API.handle_checkout(copy.deepcopy(self.event), subscription_user_id='verified-owner')
+        self.record['user_id'] = OWNER
+        API.handle_checkout(copy.deepcopy(self.event), subscription_user_id=OWNER)
         self.offer['_emailDeliveryKey'] = 'try-to-force-another-send'
         self.event['data']['object']['metadata']['offer_data'] = json.dumps(self.offer)
-        API.handle_checkout(copy.deepcopy(self.event), subscription_user_id='verified-owner')
+        API.handle_checkout(copy.deepcopy(self.event), subscription_user_id=OWNER)
         self.assertEqual(len(self.requests), 2)
 
     def test_buyer_and_admin_helpers_reject_missing_identity(self):

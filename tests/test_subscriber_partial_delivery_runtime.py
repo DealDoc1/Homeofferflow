@@ -12,7 +12,7 @@ END = HTML.index('  function pad2(', START)
 class SubscriberPartialDeliveryRuntimeTests(unittest.TestCase):
     def run_generation(self, status, result):
         harness = '''
-        const calls = {usage:[], failed:[], success:[], logs:[], saves:[], requests:[]};
+        const calls = {usage:[], refreshed:0, failed:[], success:[], logs:[], saves:[], requests:[]};
         const state = {data:{buyerEmail:'buyer@example.test',userType:'agent',_hofOfferId:'owned-offer'}};
         const hofAuth = {session:{access_token:'fixture',user:{email:'agent@example.test'}}};
         const window = {};
@@ -31,6 +31,7 @@ class SubscriberPartialDeliveryRuntimeTests(unittest.TestCase):
         const logOfferEvent = async(...args)=>calls.logs.push(args);
         const forceOfferGeneratedStatus = async()=>{};
         const recordUsageEvent = async(...args)=>calls.usage.push(args);
+        const loadCurrentUsage = async()=>{calls.refreshed++;};
         const showPaymentSuccess = (...args)=>calls.success.push(args);
         const forceOfferGenerationFailedStatus = async(...args)=>calls.failed.push(args);
         const packetGenerationFailureDetails = ()=>({category:'unknown'});
@@ -48,6 +49,7 @@ class SubscriberPartialDeliveryRuntimeTests(unittest.TestCase):
 
     def test_pending_email_preserves_successful_signing_instead_of_marking_generation_failed(self):
         result = {'status': 'delivery_pending', 'packetGenerated': True,
+                  'usage': {'status': 'recorded'},
                   'documentEmail': {'status': 'unconfirmed'},
                   'signwell': {'ok': True, 'document_id': 'original-document'}}
         actual = self.run_generation(202, result)
@@ -57,20 +59,34 @@ class SubscriberPartialDeliveryRuntimeTests(unittest.TestCase):
         self.assertEqual(calls['requests'][0]['url'], '/api/fill-pdf')
         self.assertEqual(calls['success'][0][1]['documentEmail']['status'], 'unconfirmed')
         self.assertEqual(actual['state']['data']['signwellDocumentId'], 'original-document')
-        self.assertEqual(calls['saves'], ['Generating', 'Generated'])
-        self.assertEqual(len(calls['usage']), 1)
-        self.assertEqual(calls['usage'][0][2], 1)
+        self.assertEqual(calls['saves'], [])
+        self.assertEqual(calls['usage'], [])
+        self.assertEqual(calls['refreshed'], 1)
 
     def test_true_generation_error_never_becomes_a_success_or_usage_event(self):
         calls = self.run_generation(500, {'error': 'Packet could not be generated.'})['calls']
         self.assertEqual(calls['success'], [])
         self.assertEqual(calls['usage'], [])
-        self.assertEqual(len(calls['failed']), 1)
+        self.assertEqual(calls['failed'], [])
 
     def test_accepted_email_result_reaches_success_page(self):
-        calls = self.run_generation(200, {'status': 'ok', 'documentEmail': {'status': 'accepted'},
+        calls = self.run_generation(200, {'status': 'ok', 'packetGenerated': True, 'usage': {'status': 'recorded'}, 'documentEmail': {'status': 'accepted'},
                                         'signwell': {'ok': True}})['calls']
         self.assertEqual(calls['success'][0][1]['documentEmail']['status'], 'accepted')
+
+    def test_missing_usage_receipt_is_not_treated_as_success(self):
+        calls = self.run_generation(200, {'packetGenerated': True})['calls']
+        self.assertEqual(calls['success'], [])
+        self.assertEqual(calls['usage'], [])
+        self.assertEqual(calls['failed'], [])
+
+    def test_busy_or_uncertain_request_never_overwrites_saved_status(self):
+        for code in ('packet_generation_busy', 'packet_generation_unconfirmed', 'packet_allowance_unavailable'):
+            with self.subTest(code=code):
+                calls = self.run_generation(409, {'error': 'Check your saved offer.', 'code': code})['calls']
+                self.assertEqual(calls['failed'], [])
+                self.assertEqual(calls['saves'], [])
+                self.assertEqual(calls['usage'], [])
 
 
 if __name__ == '__main__':

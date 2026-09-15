@@ -40,13 +40,14 @@ class BillingRecoveryUiTests(unittest.TestCase):
         self.assertIn("status === 'past_due' ? 'openBillingPortal()'", blocked)
         self.assertIn("openBillingPortal(\\'billing_recovery\\')", blocked)
 
-    def test_generation_guard_offers_billing_recovery_at_point_of_failure(self):
+    def test_generation_does_not_block_a_completed_retry_from_cached_quota(self):
         start = HTML.index("async function canGenerateOffer(showAlert = true)")
         end = HTML.index("\n  async function logOfferEvent", start)
         guard = HTML[start:end]
-        self.assertIn("Open Manage Billing now?", guard)
-        self.assertIn("openBillingPortal('generation_blocked')", guard)
-        self.assertIn("openBillingPortal('generation_limit')", guard)
+        self.assertNotIn("usage.used", guard)
+        self.assertNotIn("subscriptionAllowsGeneration", guard)
+        self.assertIn("packet_allowance_unavailable", HTML)
+        self.assertIn("Open Account to check your packet allowance and billing.", HTML)
 
 
 if __name__ == "__main__":

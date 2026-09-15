@@ -5283,7 +5283,7 @@ class handler(BaseHTTPRequestHandler):
             # telemetry from malformed future metadata. This remains aggregate
             # only: error text is never returned to the dashboard.
             packet_generation_failure_categories = {
-                "session", "network", "timeout", "signature_provider", "validation", "service"
+                "session", "network", "timeout", "signature_provider", "validation", "service", "allowance", "pending"
             }
             packet_generation_failure_counts = {key: 0 for key in sorted(packet_generation_failure_categories)}
             packet_generation_failure_counts["legacy"] = 0
