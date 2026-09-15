@@ -5529,6 +5529,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       localStorage.removeItem('hof_auth_pending');
     } catch (e) {}
     hofAuth.session = null;
+    window.hofClearApprovedFormCatalog?.();
     hofAuth.accountProfile = null;
     hofAuth.myOffers = [];
     hofAuth.subscription = null;
@@ -5577,6 +5578,10 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       }
 
       client.auth.onAuthStateChange(async (event, session) => {
+        if (event === 'SIGNED_OUT' || session?.access_token !== hofAuth.session?.access_token ||
+            session?.user?.id !== hofAuth.session?.user?.id) {
+          window.hofClearApprovedFormCatalog?.();
+        }
         hofAuth.session = session || null;
         if (session?.user?.user_metadata?.role) {
           hofAuth.role = session.user.user_metadata.role;
@@ -20918,18 +20923,61 @@ function routeAfterMagicLinkIfNeeded() {
     return payload.sources || [];
   }
 
+  // Form cards share one authenticated catalog read, not one request per
+  // card. Keep the short-lived cache in memory only; the server still checks
+  // the current source and permission before preparing or sending a form.
+  let approvedCatalogCache = null;
+  root.hofClearApprovedFormCatalog = () => { approvedCatalogCache = null; };
+  root.hofLoadApprovedFormCatalog = async function () {
+    const session = root.hofAuth?.session;
+    const token = session?.access_token;
+    const userId = session?.user?.id;
+    if (!token || !userId) {
+      root.hofClearApprovedFormCatalog();
+      return [];
+    }
+    let entry = approvedCatalogCache;
+    if (!entry || entry.token !== token || entry.userId !== userId ||
+        (!entry.pending && Date.now() >= entry.expiresAt)) {
+      entry = { token, userId, pending: true, expiresAt: 0 };
+      approvedCatalogCache = entry;
+      entry.result = (async () => {
+        try {
+          const response = await fetch('/api/admin-dashboard?scope=approved_brokerage_sources', {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          const payload = await response.json().catch(() => ({}));
+          if (!response.ok || !Array.isArray(payload.sources)) {
+            throw new Error('We couldn’t load the available forms. Please try again.');
+          }
+          entry.expiresAt = Date.now() + 30000;
+          return payload.sources;
+        } catch (error) {
+          if (approvedCatalogCache === entry) approvedCatalogCache = null;
+          throw error;
+        } finally {
+          entry.pending = false;
+        }
+      })();
+    }
+    const sources = await entry.result;
+    if (approvedCatalogCache !== entry || root.hofAuth?.session?.access_token !== token ||
+        root.hofAuth?.session?.user?.id !== userId) {
+      throw new Error('Your sign-in changed. Please reopen the document.');
+    }
+    // A consumer may sort or annotate its results without changing another
+    // card's cached view of the library.
+    return sources.map(source => ({ ...source }));
+  };
+
   root.hofLoadApprovedBrokerageSource = async function (formCode) {
     const token = root.hofAuth?.session?.access_token;
     // The active approved-source catalog is platform-wide for signed-in
     // agents. A local brokerage object is needed for administration only;
     // requiring one here made valid shared-library forms look unavailable.
     if (!token || !formCode) return null;
-    const response = await fetch('/api/admin-dashboard?scope=approved_brokerage_sources', {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    const payload = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(payload.error || 'Could not check approved brokerage form sources.');
-    return (payload.sources || []).find(source => source.form_code === formCode) || null;
+    const sources = await root.hofLoadApprovedFormCatalog();
+    return sources.find(source => source.form_code === formCode) || null;
   };
 
   // Keep a background form-library failure actionable without exposing
@@ -21835,11 +21883,7 @@ function routeAfterMagicLinkIfNeeded() {
     });
     card.insertBefore(details, card.querySelector('.beta-checklist-actions'));
     try {
-      const token = root.hofAuth?.session?.access_token;
-      const response = await fetch('/api/admin-dashboard?scope=approved_brokerage_sources', { headers: { Authorization: `Bearer ${token}` } });
-      const payload = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(payload.error || 'Could not load the shared source catalog.');
-      const sources = Array.isArray(payload.sources) ? payload.sources : [];
+      const sources = await root.hofLoadApprovedFormCatalog();
       const list = document.createElement('ul');
       list.style.cssText = 'margin:.7rem 0 0;padding-left:1.1rem;color:var(--gray-light);font-size:.82rem;line-height:1.55';
       const search = document.createElement('input');
@@ -22287,12 +22331,7 @@ function routeAfterMagicLinkIfNeeded() {
     '</div></details>'
   ).join('');
   async function approvedSources() {
-    const token = root.hofAuth?.session?.access_token;
-    if (!token) return [];
-    const response = await fetch('/api/admin-dashboard?scope=approved_brokerage_sources', {headers:{Authorization:'Bearer ' + token}});
-    const payload = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(payload.error || 'Could not load approved brokerage sources.');
-    return payload.sources || [];
+    return root.hofLoadApprovedFormCatalog();
   }
   async function loadListingWorkspaces() {
     const client = root.getSupabaseClient?.();
