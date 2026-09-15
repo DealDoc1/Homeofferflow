@@ -7309,20 +7309,30 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     }
 
     let user = hofAuth.session?.user || null;
+    const savingUserId = user?.id;
+    const savingRole = hofAuth.role;
+    const isCurrentProfile = () => !!savingUserId && hofAuth.session?.user?.id === savingUserId && hofAuth.role === savingRole;
+    if (!savingUserId) {
+      restoreSaveButton();
+      setAccountStatus('Please sign in again before saving.', 'err');
+      return null;
+    }
     try {
       const { data: sessionData, error: sessionError } = await withTimeout(client.auth.getSession(), 8000, 'Session check');
+      if (!isCurrentProfile()) { restoreSaveButton(); return null; }
       if (sessionError) throw sessionError;
-      user = sessionData?.session?.user || user;
-      if (sessionData?.session) hofAuth.session = sessionData.session;
+      if (sessionData?.session?.user?.id !== savingUserId) {
+        restoreSaveButton();
+        setAccountStatus('Please sign in again before saving.', 'err');
+        return null;
+      }
+      user = sessionData.session.user;
+      hofAuth.session = sessionData.session;
     } catch (sessionErr) {
       console.warn('Session refresh failed before profile save:', sessionErr);
     }
 
-    if (!user?.id) {
-      restoreSaveButton();
-      setAccountStatus('Please sign in again before saving.', 'err');
-      return;
-    }
+    if (!isCurrentProfile()) { restoreSaveButton(); return null; }
 
     const now = new Date().toISOString();
     let table, payload;
@@ -7332,7 +7342,14 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     // sign-in to its canonical agent profile so contact, title, and escrow
     // defaults remain a single source of truth.
     if (hofAuth.role !== 'investor' && typeof window.hofResolveAgentProfileOwner === 'function') {
-      profileOwnerUserId = await window.hofResolveAgentProfileOwner(client, user);
+      try {
+        profileOwnerUserId = await window.hofResolveAgentProfileOwner(client, user);
+      } catch (err) {
+        restoreSaveButton();
+        if (isCurrentProfile()) setAccountStatus('Could not load your profile. Please try again.', 'err');
+        return null;
+      }
+      if (!isCurrentProfile()) { restoreSaveButton(); return null; }
     }
 
     if (hofAuth.role === 'investor') {
@@ -7384,6 +7401,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         12000,
         'Profile lookup'
       );
+      if (!isCurrentProfile()) { restoreSaveButton(); return null; }
       if (existingResult.error) throw existingResult.error;
 
       let saveResult;
@@ -7401,10 +7419,12 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         );
       }
 
+      if (!isCurrentProfile()) { restoreSaveButton(); return null; }
       if (saveResult.error) throw saveResult.error;
 
       hofAuth.accountProfile = saveResult.data || payload;
-      applyProfileDefaultsToWizard(true);
+      // Saving preferences does not revise the open transaction. They are
+      // available when a subsequent interview applies defaults to blanks.
       renderAccountDashboard();
       updateAuthUI();
       restoreSaveButton();
@@ -7412,6 +7432,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       return saveResult.data || payload;
     } catch (err) {
       restoreSaveButton();
+      if (!isCurrentProfile()) return null;
       console.error('Profile save failed', err);
       const msg = err?.message || JSON.stringify(err) || 'Could not save profile.';
       setAccountStatus(msg, 'err');
@@ -7531,11 +7552,9 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     closeAccountDashboard();
     closeAuthModal();
     openWizard(true);
-    setTimeout(() => {
-      applySmartDefaults();
-      applyProfileDefaultsToWizard(true);
-      restoreConditionalSections();
-    }, 100);
+    applySmartDefaults();
+    applyProfileDefaultsToWizard(false);
+    restoreConditionalSections();
   }
 
   // Keep the first dashboard action aligned with the transaction-first
@@ -17436,8 +17455,8 @@ function routeAfterMagicLinkIfNeeded() {
   }
 
   function writeExtraDefaults(data){
-    try { localStorage.setItem(currentProfileKey(), JSON.stringify(data || {})); }
-    catch(_) {}
+    try { localStorage.setItem(currentProfileKey(), JSON.stringify(data || {})); return true; }
+    catch(_) { return false; }
   }
 
   function val(id){ return document.getElementById(id)?.value || ''; }
@@ -17556,20 +17575,29 @@ function routeAfterMagicLinkIfNeeded() {
 
   const oldSave = window.saveAccountProfile;
   window.saveAccountProfile = async function(){
+    const savingUserId = window.hofAuth?.session?.user?.id;
+    const savingRole = window.hofAuth?.role;
+    const savingKey = currentProfileKey();
     const extras = collectExtraDefaults();
     const result = typeof oldSave === 'function' ? await oldSave.apply(this, arguments) : null;
-    writeExtraDefaults(extras);
-    applyProfileExtraDefaultsToWizard(true);
+    if (!result || !savingUserId || window.hofAuth?.session?.user?.id !== savingUserId ||
+        window.hofAuth?.role !== savingRole || currentProfileKey() !== savingKey) return result;
+    const extrasSaved = writeExtraDefaults(extras);
     if (typeof window.setAccountStatus === 'function') {
-      window.setAccountStatus('Profile and offer defaults saved. New drafts will start with these settings.', 'ok');
+      window.setAccountStatus(extrasSaved
+        ? 'Profile and offer defaults saved. New drafts will start with these settings.'
+        : 'Profile saved. Additional offer preferences could not be saved on this device. Please try again.', extrasSaved ? 'ok' : 'err');
     }
     return result;
   };
 
   function applyProfileExtraDefaultsToWizard(force){
+    const role = window.hofAuth?.role === 'investor' ? 'investor' : 'agent';
+    if (!window.hofAuth?.session?.user?.id || window.state?.data?.userType !== role) return;
     const x = readExtraDefaults();
+    const selectedRadio = name => document.querySelector(`input[name="${name}"]:checked`)?.value || '';
     setVal('possession', x.default_possession || 'funding', force);
-    if (x.default_financing) setRadio('financing', x.default_financing);
+    if (x.default_financing && (force || !selectedRadio('financing'))) setRadio('financing', x.default_financing);
 
     if ((x.default_earnest_rule || 'amount') === 'percent') {
       const offerPrice = money(document.getElementById('offerPrice')?.value || window.state?.data?.offerPrice);
@@ -17581,10 +17609,11 @@ function routeAfterMagicLinkIfNeeded() {
     }
 
     if (window.hofAuth?.role === 'agent') {
-      const type = x.default_broker_fee_type || 'none';
-      if (type) setRadio('brokerFeeType', type);
-      if (type === 'amount') setVal('brokerFeeAmount', x.default_broker_fee_value, force);
-      if (type === 'percent') setVal('brokerFeePercent', x.default_broker_fee_value, force);
+      const defaultType = x.default_broker_fee_type || 'none';
+      if (force || !selectedRadio('brokerFeeType')) setRadio('brokerFeeType', defaultType);
+      const type = selectedRadio('brokerFeeType');
+      if (type === defaultType && type === 'amount') setVal('brokerFeeAmount', x.default_broker_fee_value, force);
+      if (type === defaultType && type === 'percent') setVal('brokerFeePercent', x.default_broker_fee_value, force);
       try {
         document.getElementById('brokerFeeAmountField').style.display = type === 'amount' ? 'block' : 'none';
         document.getElementById('brokerFeePercentField').style.display = type === 'percent' ? 'block' : 'none';
@@ -17609,7 +17638,7 @@ function routeAfterMagicLinkIfNeeded() {
   const oldStartAccountOffer = window.startAccountOffer;
   window.startAccountOffer = function(){
     const result = typeof oldStartAccountOffer === 'function' ? oldStartAccountOffer.apply(this, arguments) : undefined;
-    setTimeout(() => applyProfileExtraDefaultsToWizard(true), 160);
+    applyProfileExtraDefaultsToWizard(false);
     return result;
   };
 })();
@@ -20440,6 +20469,8 @@ function routeAfterMagicLinkIfNeeded() {
 
   root.applyBrokerageSharedDefaults = async function applyBrokerageSharedDefaults() {
     const session = root.hofAuth?.session;
+    const savingUserId = session?.user?.id;
+    const isCurrentProfile = () => !!savingUserId && root.hofAuth?.session?.user?.id === savingUserId;
     const result = document.getElementById('brokerageDefaultsResult');
     const applyButton = document.getElementById('applyBrokerageSharedDefaultsButton');
     if (applyButton?.disabled) return null;
@@ -20467,15 +20498,17 @@ function routeAfterMagicLinkIfNeeded() {
         body: JSON.stringify({ action: 'apply_brokerage_shared_defaults' })
       });
       const data = await response.json().catch(() => ({}));
+      if (!isCurrentProfile()) { restoreApplyButton(); return null; }
       if (!response.ok || !data.profile) throw new Error(data.error || 'Could not apply brokerage defaults.');
       root.hofAuth.accountProfile = Object.assign({}, root.hofAuth.accountProfile || {}, {
         preferred_title_company: data.profile.preferredTitleCompany || null,
         preferred_escrow_agent: data.profile.preferredEscrowAgent || null
       });
-      if (typeof root.applyProfileDefaultsToWizard === 'function') root.applyProfileDefaultsToWizard(true);
       if (result) result.textContent = 'Brokerage title defaults are now saved in your profile. You can change them anytime in Profile.';
+      restoreApplyButton();
     } catch (error) {
       restoreApplyButton();
+      if (!isCurrentProfile()) return null;
       if (result) result.textContent = error.message || 'Could not apply brokerage defaults.';
     }
   };
