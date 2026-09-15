@@ -75,8 +75,10 @@ Existing usage rows are preserved; no destructive cleanup/backfill is included.
 
 ## Remaining release verification
 
-PGlite uses one embedded database session. Multi-connection contention and
-Supabase/PostgREST integration still require a local or nonproduction database.
+PGlite uses one embedded database session. A subsequent real PostgreSQL 17.10
+run verified multi-connection contention; see
+`packet-usage-real-concurrency-2026-09-15.md`. Full Supabase/PostgREST integration
+and production-schema compatibility still require release-environment checks.
 `supabase db advisors --local --type security --level warn --fail-on error`
 could not connect to localhost port 54322; an advisor pass is not claimed.
 

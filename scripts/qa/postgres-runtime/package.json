@@ -1,0 +1,9 @@
+{
+  "name": "hof-local-postgres-qa",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "@embedded-postgres/darwin-arm64": "17.10.0-beta.17",
+    "pg": "8.16.3"
+  }
+}
