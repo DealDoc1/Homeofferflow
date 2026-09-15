@@ -110,7 +110,7 @@ class TxrSigningRequestPathTests(unittest.TestCase):
         self.assertIn("agreement.status === 'draft' || canRetryUnsent", html)
         self.assertIn("agreement.status === 'failed' && !agreement.signwell_document_id", html)
         self.assertIn("Retry signature request", html)
-        self.assertIn("agreement.status === 'sent' && agreement.signwell_document_id", html)
+        self.assertIn("agreement.status !== 'signed' && agreement.signwell_document_id", html)
         self.assertIn("data-refresh-signing", html)
         self.assertIn("body: JSON.stringify({ agreementId: agreement.id })", html)
         self.assertIn("agreement.status === 'signed' && agreement.signwell_document_id", html)

@@ -312,10 +312,10 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   window.cleanOfferStatus = function(status) {
     const raw = String(status || 'Draft').trim();
     const compact = raw.toLowerCase().replace(/[_\s-]+/g, ' ');
-    if (compact.includes('buyer signatures complete')) return 'Buyer Signed';
-    if (compact.includes('completed') || compact === 'complete') return 'Buyer Signed';
-    if (compact.includes('signed')) return 'Buyer Signed';
+    if (['draft not sent', 'not sent', 'unsigned'].includes(compact)) return 'Draft - not sent';
+    if (compact === 'pending') return 'Partially Buyer Signed';
     if (compact.includes('partial')) return 'Partially Buyer Signed';
+    if (['buyer signatures complete', 'completed', 'complete', 'signed', 'buyer signed', 'fully signed'].includes(compact)) return 'Buyer Signed';
     if (compact.includes('viewed')) return 'Buyer Viewed';
     if (compact.includes('awaiting') || compact.includes('sent')) return 'Sent for Buyer Signature';
     if (compact.includes('created') || compact.includes('generated')) return 'Generated';
@@ -332,10 +332,10 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     // an older top-level status remains from an earlier refresh. Never let an
     // awaiting label hide completed buyer signatures in the workspace.
     const completedStatus = signwellStatuses.find(value => {
-      const normalized = String(value).toLowerCase();
-      return !normalized.includes('partial') && (normalized.includes('complete') || normalized.includes('fully signed') || normalized.includes('buyer signed'));
+      const normalized = String(value).trim().toLowerCase().replace(/[_\s-]+/g, ' ');
+      return ['buyer signatures complete', 'completed', 'complete', 'fully signed', 'buyer signed'].includes(normalized);
     });
-    const signwellStatus = completedStatus || signwellStatuses[0] || '';
+    const signwellStatus = offer.signwell_status || completedStatus || signwellStatuses[0] || '';
     const baseStatus = offer.status || d.status || 'Draft';
     return signwellStatus ? signwellStatus : baseStatus;
   };
@@ -8099,14 +8099,18 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       d.signwell?.response?.document_status,
       d.signwell?.status
     ].filter(Boolean);
-    // Prefer a completed provider status across the persisted aliases. This
-    // prevents stale awaiting rows from staying in the signing queue after a
-    // newer completed status is available in the same owned offer record.
+    // A current provider draft has not been sent, even if an older nested
+    // response still says completed or the record already has a document ID.
+    const latestProviderStatus = String(signwellStatuses[0] || '').toLowerCase().replace(/[_\s-]+/g, ' ');
+    if (['draft', 'created', 'generated', 'saved', 'draft not sent'].includes(latestProviderStatus)) return 'Draft - not sent';
+    // The canonical column is refreshed by the authenticated status route.
+    // Historical response aliases are a fallback only, never an override of
+    // a newer draft, partial, cancelled, or other explicit provider status.
     const completedStatus = signwellStatuses.find(value => {
-      const normalized = String(value).toLowerCase();
-      return !normalized.includes('partial') && (normalized.includes('complete') || normalized.includes('fully signed') || normalized.includes('buyer signed'));
+      const normalized = String(value).trim().toLowerCase().replace(/[_\s-]+/g, ' ');
+      return ['buyer signatures complete', 'completed', 'complete', 'fully signed', 'buyer signed'].includes(normalized);
     });
-    const signwellStatus = completedStatus || signwellStatuses[0] || '';
+    const signwellStatus = offer.signwell_status || completedStatus || signwellStatuses[0] || '';
 
     const signwellDocumentId =
       offer.signwell_document_id ||
@@ -8120,7 +8124,8 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     const baseStatus = signwellStatus || offer.status || 'Draft';
     const compact = String(baseStatus || '').toLowerCase().replace(/[_\s-]+/g, ' ');
 
-    if (signwellDocumentId && (compact.includes('created') || compact.includes('generated') || compact.includes('sent') || compact.includes('pending'))) {
+    if (compact === 'pending') return 'Partially Signed';
+    if (signwellDocumentId && ['sent', 'shared', 'sent for signature'].includes(compact)) {
       return 'Awaiting Buyer Signature';
     }
 
@@ -8133,7 +8138,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     if (status.includes('declined')) return 'declined';
     if (status.includes('expired')) return 'declined';
     if (status.includes('partial')) return 'partial';
-    if (status.includes('signed')) return 'signed';
+    if (['buyer signatures complete', 'signed', 'buyer signed', 'fully signed', 'completed', 'complete'].includes(status)) return 'signed';
     if (status.includes('viewed')) return 'viewed';
     if (status.includes('awaiting')) return 'awaiting';
 
@@ -8144,16 +8149,18 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     const raw = String(status || 'Draft').trim();
     const compact = raw.toLowerCase().replace(/[_\s-]+/g, ' ');
 
+    if (['draft not sent', 'not sent', 'unsigned'].includes(compact)) return 'Draft - not sent';
+    if (compact === 'buyer signatures complete') return 'Buyer Signatures Complete';
+    if (['cancelled', 'canceled'].includes(compact)) return 'Cancelled';
     if (compact.includes('awaiting')) return 'Awaiting Buyer Signature';
     if (compact.includes('buyer signature')) return 'Awaiting Buyer Signature';
     if (compact.includes('sent')) return 'Awaiting Buyer Signature';
-    if (compact.includes('pending')) return 'Awaiting Buyer Signature';
+    if (compact === 'pending') return 'Partially Signed';
     if (compact.includes('viewed')) return 'Viewed';
     if (compact.includes('in progress')) return 'Partially Signed';
     if (compact.includes('partial')) return 'Partially Signed';
     if (compact.includes('buyer signatures complete')) return 'Buyer Signatures Complete';
-    if (compact.includes('signed')) return 'Buyer Signatures Complete';
-    if (compact.includes('completed') || compact === 'complete') return 'Buyer Signatures Complete';
+    if (['signed', 'fully signed', 'buyer signed', 'completed', 'complete'].includes(compact)) return 'Buyer Signatures Complete';
     if (compact.includes('declined')) return 'Declined';
     if (compact.includes('expired')) return 'Expired';
 
@@ -17719,16 +17726,15 @@ function routeAfterMagicLinkIfNeeded() {
     const status = cleanStatus(o).toLowerCase();
     const d = o.offer_data || {};
     const hasDoc = !!(o.signwell_document_id || d.signwellDocumentId || d.signwell?.document_id || d.signwell?.response?.id);
-    if (status.includes('buyer signed') || status.includes('signed') || status.includes('complete')) return 'signed';
+    if (status === 'draft - not sent') return 'generated';
+    if (status.includes('partial')) return 'signing';
+    if (['buyer signatures complete', 'signed', 'buyer signed', 'fully signed', 'completed', 'complete'].includes(status)) return 'signed';
     // A provider document id remains on an expired or declined request.  It
     // must not mask the terminal status as a merely generated packet; the
     // agent needs an intentional new draft before creating another request.
-    if (status.includes('delete') || status.includes('expired') || status.includes('declined')) return 'inactive';
+    if (status.includes('delete') || status.includes('expired') || status.includes('declined') || status.includes('cancel')) return 'inactive';
     if (status.includes('awaiting') || status.includes('sent') || status.includes('viewed') || status.includes('partial')) return 'signing';
-    // A SignWell document in Created is already a recipient-facing signing
-    // request. Treating it as merely generated hid real follow-up work until
-    // a later manual refresh changed the provider label.
-    if (status.includes('created') && hasDoc) return 'signing';
+    // Creating a provider record does not establish invitation delivery.
     if (status.includes('generated') || status.includes('created') || hasDoc) return 'generated';
     return 'draft';
   }
@@ -17737,6 +17743,7 @@ function routeAfterMagicLinkIfNeeded() {
     const b = bucketForOffer(o);
     const d = o.offer_data || {};
     const hasDoc = !!(o.signwell_document_id || d.signwellDocumentId || d.signwell?.document_id || d.signwell?.response?.id);
+    if (cleanStatus(o).toLowerCase() === 'draft - not sent') return 'Not sent yet';
     if (b === 'signed') return 'Buyer signed';
     if (b === 'signing') {
       const s = cleanStatus(o).toLowerCase();
@@ -21792,10 +21799,10 @@ function routeAfterMagicLinkIfNeeded() {
           // rebuilding the interview, but never create a duplicate invitation
           // when a provider document already exists.
           const canRetryUnsent = agreement.status === 'failed' && !agreement.signwell_document_id;
-          const canSend = signingEnabled && signingFormCodes.has(agreement.form_code) && (agreement.status === 'draft' || canRetryUnsent);
+          const canSend = signingEnabled && signingFormCodes.has(agreement.form_code) && !agreement.signwell_document_id && (agreement.status === 'draft' || canRetryUnsent);
           const names = (agreement.client_names || []).join(', ');
           const gate = !signingEnabled && (agreement.status === 'draft' || canRetryUnsent) ? '<small style="display:block;color:var(--gold-light)">Ready to review — signature sending will appear here when available.</small>' : '';
-          const canRefresh = agreement.status === 'sent' && agreement.signwell_document_id;
+          const canRefresh = agreement.status !== 'signed' && agreement.signwell_document_id;
           const canDownloadCompleted = agreement.status === 'signed' && agreement.signwell_document_id;
           const sendLabel = canRetryUnsent ? 'Retry signature request' : 'Send for signature';
           return `<div style="display:flex;justify-content:space-between;align-items:center;gap:.75rem;flex-wrap:wrap;border-top:1px solid rgba(255,255,255,.12);padding:.7rem 0"><span><strong>${escape(agreement.form_code)}</strong><small style="display:block;color:var(--gray-light)">${escape(names)} · ${escape(agreement.status || 'draft')}</small>${gate}</span><span style="display:flex;gap:.4rem;flex-wrap:wrap"><button type="button" class="btn-secondary" data-preview="${escape(agreement.id)}">Preview</button>${canRefresh ? `<button type="button" class="btn-secondary" data-refresh-signing="${escape(agreement.id)}">Refresh status</button>` : ''}${canDownloadCompleted ? `<button type="button" class="btn-secondary" data-download-completed="${escape(agreement.id)}">Download completed PDF</button>` : ''}${canSend ? `<button type="button" class="btn-primary" data-send="${escape(agreement.id)}">${sendLabel}</button>` : ''}</span></div>`;

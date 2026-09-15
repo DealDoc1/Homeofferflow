@@ -7,7 +7,7 @@ HTML = (Path(__file__).resolve().parents[1] / "index.html").read_text(encoding="
 
 class ExpiredSigningRecoveryTests(unittest.TestCase):
     def test_expired_signwell_document_is_not_misclassified_as_generated(self):
-        inactive = "if (status.includes('delete') || status.includes('expired') || status.includes('declined')) return 'inactive';"
+        inactive = "if (status.includes('delete') || status.includes('expired') || status.includes('declined') || status.includes('cancel')) return 'inactive';"
         generated = "if (status.includes('generated') || status.includes('created') || hasDoc) return 'generated';"
         self.assertIn(inactive, HTML)
         self.assertIn(generated, HTML)

@@ -68,29 +68,22 @@ function parseJsonObject(value) {
 }
 
 function cleanStatusLabel(status) {
-  const raw = String(status || '').trim();
-  const compact = raw.toLowerCase().replace(/[_\s-]+/g, ' ');
-
-  if (!compact) return '';
-
-  if (compact.includes('buyer signatures complete')) return 'Buyer Signatures Complete';
-  if (compact.includes('awaiting')) return 'Awaiting Buyer Signature';
-  if (compact.includes('pending')) return 'Awaiting Buyer Signature';
-  if (compact.includes('buyer signature')) return 'Awaiting Buyer Signature';
-  if (compact.includes('viewed')) return 'Viewed';
-  if (compact.includes('in progress')) return 'Partially Signed';
-  if (compact.includes('partial')) return 'Partially Signed';
-  if (compact.includes('completed') || compact === 'complete' || compact.includes('signed')) {
-    return 'Buyer Signatures Complete';
-  }
-  if (compact.includes('declined')) return 'Declined';
-  if (compact.includes('expired')) return 'Expired';
-  if (compact.includes('sent')) return 'Awaiting Buyer Signature';
-  if (compact.includes('created') || compact.includes('generated') || compact.includes('draft')) {
-    return 'Awaiting Buyer Signature';
-  }
-
-  return raw;
+  const compact = String(status || '').trim().toLowerCase().replace(/[_\s-]+/g, ' ')
+    .replace(/^document /, '');
+  // Exact aliases only: "unsigned", "not sent" and unknown future values
+  // must never inherit a successful state from a substring match.
+  if (['buyer signatures complete', 'completed', 'complete'].includes(compact)) return 'Buyer Signatures Complete';
+  if (['sent', 'shared', 'awaiting buyer signature', 'awaiting signature', 'awaiting signatures'].includes(compact)) return 'Awaiting Buyer Signature';
+  if (compact === 'viewed') return 'Viewed';
+  // SignWell's document_signed event concerns one signer, not the packet.
+  if (['signed', 'pending', 'in progress', 'partial', 'partially signed'].includes(compact)) return 'Partially Signed';
+  if (compact === 'declined') return 'Declined';
+  if (compact === 'expired') return 'Expired';
+  if (['canceled', 'cancelled'].includes(compact)) return 'Cancelled';
+  if (compact === 'bounced') return 'Bounced';
+  if (compact === 'error') return 'Error';
+  if (['draft', 'created', 'generated', 'saved', 'draft not sent'].includes(compact)) return 'Draft - not sent';
+  return '';
 }
 
 function safeMainOfferStatus(signwellStatus) {
@@ -150,15 +143,18 @@ function deriveStatus(document = {}) {
 
   if (docStatus) return docStatus;
 
+  // A present but unrecognized document state is not permission to infer
+  // completion from an incomplete recipient list or overwrite saved state.
+  if (document.status || document.document_status || document.state || document.data?.status || document.data?.document_status) {
+    throw new Error('The signing service returned an unrecognized status. Your saved status has not changed.');
+  }
+
   if (recipients.length) {
-    const signerRows = recipients.filter((r) => String(r.role || '').toLowerCase() !== 'cc');
-    const rows = signerRows.length ? signerRows : recipients;
-    const statuses = rows.map((r) => cleanStatusLabel(r.status)).filter(Boolean);
+    const rows = recipients.filter((r) => !['cc', 'copy', 'carbon copy'].includes(String(r.role || '').trim().toLowerCase()));
+    const statuses = rows.map((r) => cleanStatusLabel(r.status));
 
-    if (statuses.length && statuses.every((s) => s === 'Buyer Signatures Complete')) {
-      return 'Buyer Signatures Complete';
-    }
-
+    // Recipient progress is useful, but only a document-level completion
+    // confirms finalization and permits downloading the completed packet.
     if (statuses.some((s) => s === 'Buyer Signatures Complete' || s === 'Partially Signed')) {
       return 'Partially Signed';
     }
@@ -166,9 +162,12 @@ function deriveStatus(document = {}) {
     if (statuses.some((s) => s === 'Viewed')) {
       return 'Viewed';
     }
+    if (statuses.some((s) => s === 'Awaiting Buyer Signature')) {
+      return 'Awaiting Buyer Signature';
+    }
   }
 
-  return 'Awaiting Buyer Signature';
+  throw new Error('The signing service did not confirm the document status. Your saved status has not changed.');
 }
 
 async function getOfferForUser(offerId, user) {
@@ -314,8 +313,9 @@ async function updateOfferStatus(offer, status, documentId, document, user) {
 
 function safeStandaloneStatus(signwellStatus) {
   const clean = cleanStatusLabel(signwellStatus);
+  if (clean === 'Draft - not sent') return 'draft';
   if (clean === 'Buyer Signatures Complete') return 'signed';
-  if (clean === 'Declined' || clean === 'Expired') return 'void';
+  if (clean === 'Declined' || clean === 'Expired' || clean === 'Cancelled') return 'void';
   return 'sent';
 }
 
@@ -366,8 +366,9 @@ async function updateStandaloneAgreementStatus(agreement, status, documentId, do
 
 function safeSellerDisclosureStatus(signwellStatus) {
   const clean = cleanStatusLabel(signwellStatus);
+  if (clean === 'Draft - not sent') return 'draft';
   if (clean === 'Buyer Signatures Complete') return 'signed';
-  if (clean === 'Declined' || clean === 'Expired') return 'void';
+  if (clean === 'Declined' || clean === 'Expired' || clean === 'Cancelled') return 'void';
   return 'sent';
 }
 
