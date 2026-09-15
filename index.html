@@ -23057,13 +23057,13 @@ function routeAfterMagicLinkIfNeeded() {
   // authenticated data, and API responses are always fetched from the network.
   if ('serviceWorker' in navigator) {
     let hofPwaRefreshRequested = false;
+    const isHomeOfferFlowStandaloneApp = () => window.matchMedia?.('(display-mode: standalone)').matches === true
+      || window.navigator.standalone === true;
 
     function showHomeOfferFlowUpdate(registration) {
-      // The public shell is cached for offline use. A small, only-when-needed
-      // update choice keeps ordinary browser tabs from silently retaining old
-      // workflow wording after a release, while still leaving the person in
-      // control of when their page refreshes.
-      if (!registration?.waiting || document.getElementById('hofPwaUpdateCard')) return;
+      // Reserve the update choice for an installed app. A regular browser
+      // navigation already fetches the current page when online.
+      if (!isHomeOfferFlowStandaloneApp() || !registration?.waiting || document.getElementById('hofPwaUpdateCard')) return;
       const card = document.createElement('aside');
       card.id = 'hofPwaUpdateCard';
       card.className = 'hof-pwa-update-card';
@@ -23072,8 +23072,10 @@ function routeAfterMagicLinkIfNeeded() {
       document.body.appendChild(card);
       card.querySelector('#hofPwaUpdateLater')?.addEventListener('click', () => card.remove());
       card.querySelector('#hofPwaUpdateNow')?.addEventListener('click', () => {
+        const waiting = registration.waiting;
+        if (!waiting || hofPwaRefreshRequested) return;
         hofPwaRefreshRequested = true;
-        registration.waiting?.postMessage({ type: 'HOF_SKIP_WAITING' });
+        waiting.postMessage({ type: 'HOF_SKIP_WAITING' });
       });
     }
 
@@ -23096,7 +23098,9 @@ function routeAfterMagicLinkIfNeeded() {
         .catch(error => console.warn('HomeOfferFlow offline support was not registered:', error));
     });
     navigator.serviceWorker.addEventListener('controllerchange', () => {
-      if (hofPwaRefreshRequested) window.location.reload();
+      if (!hofPwaRefreshRequested) return;
+      hofPwaRefreshRequested = false;
+      window.location.reload();
     });
   }
 </script>
