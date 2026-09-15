@@ -6,7 +6,7 @@ from http.server import BaseHTTPRequestHandler
 from pypdf import PdfReader, PdfWriter
 from reportlab.pdfgen import canvas
 from lib import signwell_delivery
-from lib.offer_signwell_delivery import deliver_offer_document, offer_answers
+from lib.offer_signwell_delivery import deliver_offer_document, stable_delivery_answers
 from lib.email_delivery import deliver_email_once, delivery_key, payload_fingerprint, EmailDeliveryPending, EmailDeliveryNeedsReview
 from lib.email_delivery_store import EmailDeliveryStore
 from lib.packet_generation import (PacketGenerationStore, PacketGenerationPending,
@@ -2130,7 +2130,7 @@ def handle_checkout(event, subscription_user_id=None):
             raise EmailDeliveryPending("Your saved offer could not be verified for email delivery.")
         # Intentional revisions to an owned offer may receive a new document
         # email, but replaying the same reviewed answers must not send again.
-        reviewed_answers = {key: value for key, value in offer_answers(offer).items()
+        reviewed_answers = {key: value for key, value in stable_delivery_answers(offer, record).items()
                             if not key.startswith('_') or key in {'_signing_source_hashes', '_signing_render_revisions'}}
         email_identity = "owned:" + subscription_user_id + ":" + str(record["id"]) + ":" + payload_fingerprint(reviewed_answers)
     else:

@@ -240,6 +240,37 @@ class PurchaseDeliveryRecoveryTests(unittest.TestCase):
         self.assertEqual(self.emails, 2)
         self.assertEqual(self.usage.completions, 1)
 
+    def test_browser_timestamp_refresh_reuses_signing_and_document_email(self):
+        self.checkout()
+        first_data = copy.deepcopy(self.rows[OFFER_ID]['offer_data'])
+        self.offer.update(generatedAt='2026-09-15T20:00:00Z', packetGeneratedAt='2026-09-15T20:00:00Z')
+        result = self.checkout()
+        self.assertTrue(result['signwell']['ok'])
+        self.assertTrue(result['signwell']['recovered'])
+        self.assertEqual(self.rows[OFFER_ID]['offer_data'], first_data)
+        self.assertEqual((self.creates, self.sends, self.emails, self.usage.completions), (1, 1, 2, 1))
+
+    def test_original_timestamp_fingerprint_and_email_key_remain_compatible(self):
+        self.offer['generatedAt'] = 'original-time'
+        self.checkout()
+        self.offer['generatedAt'] = 'refreshed-time'
+        self.offer['_savedFromDashboard'] = True
+        result = self.checkout()
+        self.assertTrue(result['signwell']['ok'])
+        self.assertEqual(self.rows[OFFER_ID]['offer_data']['generatedAt'], 'original-time')
+        self.assertEqual((self.creates, self.sends, self.emails, self.usage.completions), (1, 1, 2, 1))
+
+    def test_rejected_retry_keeps_original_fingerprint_inputs_for_next_attempt(self):
+        self.offer['generatedAt'] = 'original-time'
+        self.failure = 'rejected'
+        self.checkout()
+        self.offer['generatedAt'] = 'refreshed-time'
+        self.assertFalse(self.checkout()['signwell']['ok'])
+        self.assertEqual(self.rows[OFFER_ID]['offer_data']['generatedAt'], 'original-time')
+        self.failure = None
+        self.assertTrue(API.retry_unsent_offer_signature(OFFER_ID, OWNER)['ok'])
+        self.assertEqual((self.creates, self.sends, self.emails, self.usage.completions), (1, 3, 2, 1))
+
     def invoke(self, *, download=False, authenticated=True):
         payload = {'offerData': self.offer} if download else {'type': 'checkout.session.completed', 'data': {'object': {
             'customer_email': 'buyer@example.com', 'metadata': {'subscription_generation': 'true',

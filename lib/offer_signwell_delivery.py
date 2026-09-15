@@ -2,6 +2,7 @@
 import asyncio
 import copy
 import hashlib
+import json
 from datetime import datetime, timezone
 from urllib.parse import quote
 
@@ -19,6 +20,33 @@ def offer_answers(offer):
                            'signwellRecipientStatuses'}}
 
 
+def stable_delivery_answers(offer, record):
+    """Reuse the original identity for a tracked, otherwise unchanged packet.
+
+    The caller must supply a server-read, authorized record. Keep the original
+    fingerprint algorithm and its exact inputs: older journals and email keys
+    may include the timestamps originally present at generation. Merely dropping
+    timestamps globally would invalidate those existing receipts.
+
+    Only explicitly known display bookkeeping may differ. Customer answers,
+    uploaded contents and signing-source/render manifests remain significant.
+    """
+    current = offer_answers(offer)
+    stored = record.get('offer_data') if isinstance(record, dict) else None
+    if not isinstance(record, dict) or not record.get('signwell_document_id') or not isinstance(stored, dict):
+        return current
+    original = offer_answers(stored)
+    bookkeeping = {'generatedAt', 'packetGeneratedAt', 'packetGenerationError',
+                   'packetGenerationFailedAt', 'packetGenerationFailureCategory',
+                   '_savedFromDashboard'}
+    comparable = lambda answers: json.dumps(
+        {key: value for key, value in answers.items() if key not in bookkeeping},
+        sort_keys=True, separators=(',', ':'), allow_nan=False)
+    if comparable(current) == comparable(original):
+        return copy.deepcopy(original)
+    return current
+
+
 def deliver_offer_document(record, payload, offer, *, user_id, supabase_url, supabase_key, signwell_key):
     if not isinstance(record, dict) or not record.get('id') or record.get('user_id') != user_id:
         raise delivery.DeliveryMismatch('The saved offer could not be verified for this account. No invitation was requested.')
@@ -33,7 +61,13 @@ def deliver_offer_document(record, payload, offer, *, user_id, supabase_url, sup
     base = {'id': 'eq.' + str(record['id']), 'user_id': 'eq.' + user_id if user_id else 'is.null'}
     url = supabase_url.rstrip('/') + '/rest/v1/hof_offers'
     provider = 'https://www.signwell.com/api/v1/documents'
-    prepared = {key: value for key, value in offer.items()
+    identity_answers = stable_delivery_answers(offer, record)
+    # A retry checkpoint must retain the same original inputs as its fingerprint,
+    # not replace them with the newer browser timestamps we just disregarded.
+    same_original_inputs = json.dumps(identity_answers, sort_keys=True, allow_nan=False) == json.dumps(
+        offer_answers(stored), sort_keys=True, allow_nan=False)
+    request_offer = stored if doc_id and same_original_inputs else offer
+    prepared = {key: value for key, value in request_offer.items()
                 if key not in {delivery.JOURNAL_KEY, '_subscription_user_id', '_paragraph4_source_pdf_bytes'}}
 
     def write(body, params):
@@ -95,7 +129,7 @@ def deliver_offer_document(record, payload, offer, *, user_id, supabase_url, sup
                      'partially buyer signed', 'buyer signed', 'signed', 'buyer signatures complete', 'rejected', 'expired'})
 
     source_bytes = offer.get('_paragraph4_source_pdf_bytes') or {}
-    context = {'owner_id': user_id, 'offer_id': record['id'], 'offer': offer_answers(offer),
+    context = {'owner_id': user_id, 'offer_id': record['id'], 'offer': identity_answers,
                'paragraph4_sources': {key: hashlib.sha256(value).hexdigest() for key, value in source_bytes.items()}}
     return asyncio.run(delivery.deliver_verified_document(
         payload=payload, context=context, document_id=doc_id, journal=journal,
