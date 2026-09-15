@@ -119,6 +119,10 @@ class ExplicitMaterialTermsTests(unittest.TestCase):
         ):
             self.assertNotIn(fallback, HTML)
 
+    def test_property_condition_copy_distinguishes_repairs_from_material_seller_work(self):
+        self.assertIn("Specific Repairs or Treatments Required", HTML)
+        self.assertIn("For demolition or another material seller obligation", HTML)
+
 
 if __name__ == "__main__":
     unittest.main()
