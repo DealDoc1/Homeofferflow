@@ -24,7 +24,9 @@ class OfflineDraftGuidanceTests(unittest.TestCase):
     def test_signed_in_agent_draft_syncs_when_connection_returns(self):
         self.assertIn("let __hofWasOffline = navigator.onLine === false", INDEX)
         self.assertIn("Back online — syncing your saved work…", INDEX)
-        self.assertIn("const isAccountDraft = (state?.data?.userType || '') !== 'homebuyer' && hofAuth?.session && hasMeaningfulCloudDraft();", INDEX)
+        self.assertIn("const isAccountDraft = pending && pending.draft === state.data &&", INDEX)
+        self.assertIn("pending.userId === hofAuth?.session?.user?.id", INDEX)
+        self.assertIn("(state?.data?.userType || '') !== 'homebuyer' && hasMeaningfulCloudDraft();", INDEX)
         self.assertIn("syncCloudDraftSave();", INDEX)
 
     def test_offline_shell_cache_is_versioned_for_the_new_guidance(self):

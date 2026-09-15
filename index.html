@@ -12900,6 +12900,7 @@ function routeAfterMagicLinkIfNeeded() {
   let __hofCloudDraftSaveInFlight = false;
   let __hofCloudDraftSaveQueued = false;
   let __hofCloudDraftSaveNeedsCopy = false;
+  let __hofOfflineDraftToSync = null;
   let __hofWasOffline = navigator.onLine === false;
 
   function updateSaveStatus(text) {
@@ -13039,6 +13040,9 @@ function routeAfterMagicLinkIfNeeded() {
       if (ownerUserId) localStorage.setItem(HOF_STORAGE_OWNER_KEY, ownerUserId);
       else localStorage.removeItem(HOF_STORAGE_OWNER_KEY);
       updateSaveStatus('✓ Saved');
+      if (navigator.onLine === false && ownerUserId && state.data.userType !== 'homebuyer' && hasMeaningfulCloudDraft()) {
+        __hofOfflineDraftToSync = {draft: state.data, userId: ownerUserId, epoch: window.__hofAccountProfileEpoch || 0};
+      }
       if ((state?.data?.userType || '') !== 'homebuyer' && hofAuth?.session && navigator.onLine !== false && hasMeaningfulCloudDraft()) {
         syncCloudDraftSave();
       }
@@ -13049,9 +13053,16 @@ function routeAfterMagicLinkIfNeeded() {
 
   function scheduleDraftSave() {
     if (__hofRestoringDraft) return;
+    const savingDraft = state.data;
+    const savingUserId = hofAuth?.session?.user?.id || '';
+    const savingAccountEpoch = window.__hofAccountProfileEpoch || 0;
     updateSaveStatus('Saving...');
     clearTimeout(__hofSaveDebounce);
-    __hofSaveDebounce = setTimeout(saveDraftNow, 250);
+    __hofSaveDebounce = setTimeout(() => {
+      if (state.data !== savingDraft || (hofAuth?.session?.user?.id || '') !== savingUserId ||
+          (window.__hofAccountProfileEpoch || 0) !== savingAccountEpoch) return;
+      saveDraftNow();
+    }, 250);
   }
 
   function updateConnectionStatus() {
@@ -13070,14 +13081,22 @@ function routeAfterMagicLinkIfNeeded() {
       el.hidden = false;
       el.textContent = 'Offline — work stays on this device';
       el.title = 'Reconnect before previewing PDFs, sending signature requests, checkout, or cloud sync.';
-      try { saveDraftNow(); } catch (e) {}
+      if (document.getElementById('wizardOverlay')?.classList.contains('active')) {
+        try { saveDraftNow(); } catch (e) {}
+      }
       return;
     }
 
     if (__hofWasOffline) {
       __hofWasOffline = false;
       try { logOfferEvent(null, 'pwa_offline_refresh_recovered', 'reconnected', 'Installed workspace returned online after an offline interval.', { surface: 'workspace' }); } catch (_) {}
-      const isAccountDraft = (state?.data?.userType || '') !== 'homebuyer' && hofAuth?.session && hasMeaningfulCloudDraft();
+      const pending = __hofOfflineDraftToSync;
+      __hofOfflineDraftToSync = null;
+      // A valid offline edit can sync after the interview closes, but an
+      // unrelated page or a newly selected account/offer cannot revive it.
+      const isAccountDraft = pending && pending.draft === state.data &&
+        pending.userId === hofAuth?.session?.user?.id && pending.epoch === (window.__hofAccountProfileEpoch || 0) &&
+        (state?.data?.userType || '') !== 'homebuyer' && hasMeaningfulCloudDraft();
       if (isAccountDraft) {
         el.hidden = false;
         el.textContent = 'Back online — syncing your saved work…';
@@ -13303,11 +13322,13 @@ function routeAfterMagicLinkIfNeeded() {
   }
 
   document.addEventListener('input', function(e) {
+    if (!e.target?.closest?.('#wizardOverlay')) return;
     clearValidationFeedbackFor(e.target);
     if (e.target && e.target.id === 'buyerMailAddr') sanitizeBuyerMailingAddressAutofill();
     scheduleDraftSave();
   });
   document.addEventListener('change', event => {
+    if (!event.target?.closest?.('#wizardOverlay')) return;
     clearValidationFeedbackFor(event.target);
     restoreConditionalSections();
     scheduleDraftSave();
