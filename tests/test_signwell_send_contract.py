@@ -40,7 +40,7 @@ class SignwellSendContractTests(unittest.TestCase):
                 # Explicit contract validation: the original implementation
                 # violated this allowlist by forwarding with_signature_page.
                 self.assertFalse(set(json) & {'with_signature_page', 'draft', 'fields', 'files', 'recipients'})
-                self.assertFalse(json['apply_signing_order'])
+                self.assertIs(json['apply_signing_order'], False)
                 self.assertFalse(json['embedded_signing'])
                 self.assertEqual(json['metadata'], created['metadata'])
                 if retry and calls.count('send') == 1:
@@ -50,6 +50,7 @@ class SignwellSendContractTests(unittest.TestCase):
             created.update(copy.deepcopy(json))
             self.assertTrue(json['draft'])
             self.assertFalse(json['with_signature_page'])
+            self.assertIs(json['apply_signing_order'], False)
             return SimpleNamespace(status_code=201, json=lambda: {'id': 'provider-id'})
 
         async def get(url, **kwargs):
