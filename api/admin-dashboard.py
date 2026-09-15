@@ -34,6 +34,16 @@ PARTNER_AGREEMENT_SIGNWELL_TEST_MODE = str(os.environ.get("HOF_PARTNER_AGREEMENT
 SIGNWELL_API_KEY = os.environ.get("SIGNWELL_API_KEY", "")
 SIGNWELL_ENABLED = str(os.environ.get("SIGNWELL_ENABLED", "false")).lower() in {"1", "true", "yes", "on"}
 SIGNWELL_TEST_MODE = str(os.environ.get("SIGNWELL_TEST_MODE", "true")).lower() in {"1", "true", "yes", "on"}
+# A provider may be temporarily unable to deliver, even when HomeOfferFlow can
+# still prepare a correct packet.  Keep that separate from a malformed form or
+# recipient problem: the draft must remain available for a safe retry, and the
+# user must never be told an email was sent when it was not.
+SIGNWELL_RETRYABLE_HTTP_STATUSES = {401, 402, 403, 408, 409, 429, 500, 502, 503, 504}
+
+
+class SignatureDeliveryUnavailable(RuntimeError):
+    """A temporary provider failure where no signature invitation was sent."""
+
 # This is deliberately a boolean-only health signal. The dashboard must never
 # receive the webhook identifier or verification key itself.
 SIGNWELL_WEBHOOK_VERIFICATION_CONFIGURED = bool(os.environ.get("SIGNWELL_WEBHOOK_ID"))
@@ -4228,6 +4238,14 @@ async def _send_txr_agreement_for_signature(user, data):
             json=payload,
         )
     if response.status_code not in {200, 201, 202}:
+        if response.status_code in SIGNWELL_RETRYABLE_HTTP_STATUSES:
+            # Do not strand the agent in a terminal "failed" state for an
+            # account-level or temporary provider issue.  SignWell did not
+            # create a recipient-facing request, so the saved draft can be
+            # retried after service is restored.
+            raise SignatureDeliveryUnavailable(
+                f"SignWell document creation is temporarily unavailable (HTTP {response.status_code})."
+            )
         await _patch("hof_standalone_agreements", f"id=eq.{urllib.parse.quote(agreement_uuid)}", {"status": "failed", "updated_at": datetime.now(timezone.utc).isoformat()})
         raise RuntimeError(f"SignWell rejected the signing request: HTTP {response.status_code}.")
     result = response.json()
@@ -4264,6 +4282,21 @@ async def _send_txr_agreement_for_signature(user, data):
             json=send_payload,
         )
     if send_response.status_code not in {200, 201, 202}:
+        if send_response.status_code in SIGNWELL_RETRYABLE_HTTP_STATUSES:
+            # This is still a private provider draft: no recipient invitation
+            # has been delivered.  Best-effort cleanup prevents a later retry
+            # from leaving an unusable duplicate in the SignWell workspace.
+            try:
+                async with httpx.AsyncClient(timeout=20) as client:
+                    await client.delete(
+                        f"https://www.signwell.com/api/v1/documents/{urllib.parse.quote(document_id, safe='')}",
+                        headers=headers,
+                    )
+            except Exception as cleanup_error:
+                print("SignWell unavailable draft cleanup failed", repr(cleanup_error))
+            raise SignatureDeliveryUnavailable(
+                f"SignWell delivery is temporarily unavailable (HTTP {send_response.status_code})."
+            )
         await _patch("hof_standalone_agreements", f"id=eq.{urllib.parse.quote(agreement_uuid)}", {"status": "failed", "updated_at": datetime.now(timezone.utc).isoformat()})
         raise RuntimeError(f"SignWell could not send the verified signing request: HTTP {send_response.status_code}.")
     result = send_response.json()
@@ -7158,6 +7191,15 @@ class handler(BaseHTTPRequestHandler):
             _json(self, 400, {"error": str(exc)[:300]})
         except PermissionError as exc:
             _json(self, 403, {"error": str(exc)[:300]})
+        except SignatureDeliveryUnavailable as exc:
+            action = str(data.get("action") or "")
+            print("Signature delivery temporarily unavailable:", action, str(exc))
+            _json(self, 503, {
+                "error": (
+                    "Signature delivery is temporarily unavailable. Your document is saved, "
+                    "and no one was emailed. Please try again after signing service is restored."
+                )
+            })
         except json.JSONDecodeError:
             _json(self, 400, {"error": "Invalid JSON."})
         except Exception as exc:

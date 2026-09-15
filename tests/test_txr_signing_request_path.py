@@ -178,6 +178,15 @@ class TxrSigningRequestPathTests(unittest.TestCase):
         )
         self.assertIn("signature sending is not available", html)
 
+    def test_temporary_provider_delivery_failure_keeps_the_draft_retryable(self):
+        source = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
+        self.assertIn("class SignatureDeliveryUnavailable", source)
+        self.assertIn("SIGNWELL_RETRYABLE_HTTP_STATUSES", source)
+        self.assertIn("Signature delivery is temporarily unavailable. Your document is saved", source)
+        self.assertIn("and no one was emailed", source)
+        self.assertIn("SignWell document creation is temporarily unavailable", source)
+        self.assertIn("SignWell delivery is temporarily unavailable", source)
+
     def test_shared_library_signing_does_not_require_a_brokerage_seat(self):
         signing_source = MODULE._send_txr_agreement_for_signature.__doc__ or ""
         route_source = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
