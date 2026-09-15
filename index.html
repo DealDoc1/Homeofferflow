@@ -8231,6 +8231,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       const updated = formatOfferDateTime(o.last_updated || o.created_at) || '—';
       const generatedAt = o.generated_at || d.generatedAt || '';
       const hasSignwellDoc = !!(o.signwell_document_id || d.signwellDocumentId || d.signwell?.document_id || d.signwell?.response?.id);
+      const canRetryBuyerSigning = !hasSignwellDoc && ['generated', 'generation failed'].includes(String(o.status || '').toLowerCase());
       const signingBucket = getOfferSigningBucket(o);
       const signingLabel = signingBucket === 'signed' ? 'Buyer signatures complete'
         : signingBucket === 'partial' ? 'Partially signed'
@@ -8273,6 +8274,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           <button class="offer-action-btn" type="button" onclick="resumeOffer('${escapeAttr(o.id)}')">Resume</button>
           <button class="offer-action-btn" type="button" onclick="duplicateOffer('${escapeAttr(o.id)}', false, true)">Duplicate &amp; edit</button>
           ${hasSignwellDoc ? `<button class="offer-action-btn" type="button" onclick="refreshSignWellStatus('${escapeAttr(o.id)}', this)">Refresh</button>` : ''}
+          ${canRetryBuyerSigning ? `<button class="offer-action-btn" type="button" onclick="retryOfferSignature('${escapeAttr(o.id)}', this)">Retry signing</button>` : ''}
           <button class="offer-action-btn danger" type="button" onclick="deleteOffer('${escapeAttr(o.id)}')">Delete</button>
         </div>
       </article>`;
@@ -8291,6 +8293,29 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     <div class="offer-crm-list">${offerList}</div>`;
   }
 
+
+  async function retryOfferSignature(offerId, buttonEl) {
+    if (!offerId || !hofAuth.session?.access_token) {
+      setAuthStatus('Please sign in before retrying buyer signing.', 'err');
+      return;
+    }
+    const original = buttonEl?.textContent || 'Retry signing';
+    if (buttonEl) { buttonEl.disabled = true; buttonEl.textContent = 'Starting…'; }
+    try {
+      const response = await fetch('/api/fill-pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${hofAuth.session.access_token}` },
+        body: JSON.stringify({ action: 'retry_offer_signature', offerId })
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || !result.ok) throw new Error(result.error || 'Signature delivery is temporarily unavailable. Your offer is saved and no one was emailed.');
+      window.announceWorkspaceStatus?.('Buyer signature request sent.');
+      await loadMyOffers();
+    } catch (error) {
+      window.announceWorkspaceStatus?.(error.message || 'Signature delivery is temporarily unavailable.');
+      if (buttonEl) { buttonEl.disabled = false; buttonEl.textContent = original; }
+    }
+  }
 
   async function refreshSignWellStatus(offerId, buttonEl, skipReload = false, suppressAlert = false) {
     if (!offerId) return;

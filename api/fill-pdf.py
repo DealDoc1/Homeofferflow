@@ -2094,6 +2094,60 @@ def handle_checkout(event, subscription_user_id=None):
     }
 
 
+def retry_unsent_offer_signature(offer_id, user_id):
+    """Create a buyer-side SignWell request for an already generated owned offer.
+
+    This never regenerates checkout fulfillment, emails another packet, or
+    consumes another packet entitlement. It is limited to records that have no
+    provider document, so it cannot duplicate a live signature request.
+    """
+    try:
+        offer_uuid = str(__import__("uuid").UUID(str(offer_id or "")))
+    except (TypeError, ValueError, AttributeError):
+        raise ValueError("Choose a valid offer to retry signing.")
+    if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
+        raise RuntimeError("Signing is temporarily unavailable.")
+    headers = {"apikey": SUPABASE_SERVICE_ROLE_KEY, "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}"}
+    response = httpx.get(
+        f"{SUPABASE_URL}/rest/v1/hof_offers",
+        params={"id": f"eq.{offer_uuid}", "user_id": f"eq.{user_id}", "select": "id,status,signwell_document_id,offer_data", "limit": "1"},
+        headers=headers, timeout=20,
+    )
+    rows = response.json() if response.status_code == 200 else []
+    if not rows:
+        raise PermissionError("That offer is unavailable.")
+    record = rows[0]
+    if record.get("signwell_document_id"):
+        raise ValueError("This offer already has a signature request. Refresh its status instead.")
+    if str(record.get("status") or "").lower() not in {"generated", "generation failed"}:
+        raise ValueError("Only a generated offer without a signature request can be retried.")
+    offer = dict(record.get("offer_data") or {})
+    offer.pop("signwell", None)
+    offer.pop("backend_saved", None)
+    hydrate_paragraph4_sources(offer)
+    validate_supported_offer(offer)
+    signing = create_signwell_signature_request(offer, fill_and_merge(offer))
+    if not signing.get("ok"):
+        # The offer remains retryable.  The client gets an explicit status and
+        # is never told that an invitation was sent.
+        return {"ok": False, "signwell": signing}
+    document_id = extract_signwell_document_id(signing)
+    if not document_id:
+        return {"ok": False, "signwell": signing}
+    offer["signwell"] = signing
+    now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    patch = httpx.patch(
+        f"{SUPABASE_URL}/rest/v1/hof_offers",
+        params={"id": f"eq.{offer_uuid}", "user_id": f"eq.{user_id}"},
+        headers={**headers, "Content-Type": "application/json"},
+        json={"status": "Awaiting Signature", "signwell_document_id": document_id, "signwell_status": signing.get("status") or "sent", "offer_data": offer, "last_updated": now},
+        timeout=20,
+    )
+    if patch.status_code not in {200, 204}:
+        raise RuntimeError("The signature request was created but its offer status could not be saved.")
+    return {"ok": True, "signwell": signing, "documentId": document_id}
+
+
 class handler(BaseHTTPRequestHandler):
 
     def _verified_user(self):
@@ -2217,6 +2271,18 @@ class handler(BaseHTTPRequestHandler):
                     self._json(401, {"error": "A verified Stripe webhook or active subscription is required."})
                     return
                 result = handle_checkout(payload, subscription_user_id=subscription_user_id)
+                self._json(200, result)
+                return
+
+            if isinstance(payload, dict) and payload.get("action") == "retry_offer_signature":
+                user_id = self._verified_user()
+                if not user_id:
+                    self._json(401, {"error": "Sign in again before retrying buyer signing."})
+                    return
+                result = retry_unsent_offer_signature(payload.get("offerId"), user_id)
+                if not result.get("ok"):
+                    self._json(503, {"error": "Signature delivery is temporarily unavailable. Your offer is saved and no one was emailed."})
+                    return
                 self._json(200, result)
                 return
 

@@ -23,6 +23,18 @@ class FakeResponse:
         return [{"id": "offer-123"}]
 
 
+class OfferResponse:
+    status_code = 200
+
+    def json(self):
+        return [{
+            "id": "11111111-1111-1111-1111-111111111111",
+            "status": "Generated",
+            "signwell_document_id": None,
+            "offer_data": {"address": "1438 Whitaker Road", "buyerEmail": "buyer@example.com"},
+        }]
+
+
 class SubscribedPacketOfferOwnershipTests(unittest.TestCase):
     def setUp(self):
         self.api = load_offer_api()
@@ -64,6 +76,25 @@ class SubscribedPacketOfferOwnershipTests(unittest.TestCase):
         patch.assert_not_called()
         post.assert_called_once()
         self.assertNotIn("user_id", post.call_args.kwargs["json"])
+
+    def test_owned_generated_offer_can_retry_only_the_missing_signature_request(self):
+        with mock.patch.object(self.api.httpx, "get", return_value=OfferResponse()), \
+             mock.patch.object(self.api.httpx, "patch", return_value=FakeResponse()) as patch, \
+             mock.patch.object(self.api, "hydrate_paragraph4_sources") as hydrate, \
+             mock.patch.object(self.api, "validate_supported_offer") as validate, \
+             mock.patch.object(self.api, "fill_and_merge", return_value=b"%PDF") as render, \
+             mock.patch.object(self.api, "create_signwell_signature_request", return_value={"ok": True, "document_id": "doc-123", "status": "sent"}) as signwell, \
+             mock.patch.object(self.api, "send_email") as email:
+            result = self.api.retry_unsent_offer_signature("11111111-1111-1111-1111-111111111111", "user-456")
+
+        self.assertTrue(result["ok"])
+        hydrate.assert_called_once()
+        validate.assert_called_once()
+        render.assert_called_once()
+        signwell.assert_called_once()
+        email.assert_not_called()
+        self.assertEqual({"id": "eq.11111111-1111-1111-1111-111111111111", "user_id": "eq.user-456"}, patch.call_args.kwargs["params"])
+        self.assertEqual("Awaiting Signature", patch.call_args.kwargs["json"]["status"])
 
 
 if __name__ == "__main__":
