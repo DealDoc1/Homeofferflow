@@ -8,20 +8,19 @@ Unknown delivery must never be described as definitely sent or definitely
 not emailed. Preserve simultaneous invitations, confirmed contacts, source
 revision validation, and exact signer geometry.
 
-## Current evidence
+## Current evidence (updated September 15)
 
-The standalone and seller-disclosure routes create a private provider draft,
-inspect its fields, then POST /send. They persist its ID only after that final
-request succeeds. A send failure/timeout can therefore leave an untracked
-provider document. The standalone transient-error cleanup can also delete a
-draft without first resolving an ambiguous send outcome. The existing _patch
-helper returns no affected-row confirmation and is insufficient for a claim.
+The local standalone and seller-disclosure routes now use lib/signwell_delivery.py:
+private creation, owner/version-scoped identity checkpoint, provider inspection,
+conditional send claim, same-document send, and non-regressing status save.
+The UI exposes Retry saved request only for eligible tracked drafts. Neither
+route deletes documents after a send failure. This is not deployed yet.
 
 Manual status accuracy is corrected in PR #1230; automatic webhook lifecycle
 accuracy is corrected in the accompanying webhook change. Those are necessary
 prerequisites, not completion of the delivery-recovery work below.
 
-## Next implementation
+## Recovery contract
 
 1. Introduce one tested delivery coordinator for existing document identity,
    request verification, persistence, sending, and recovery. Inspect the
@@ -69,10 +68,19 @@ draft/sent/completed/unknown state, malformed response, stale attempt, parallel
 resume, and final-write failure. Assert provider creation/send counts and
 owner/record/document filters. Check known-unsent versus uncertain user copy.
 
-Verify the conditional-write contract in an isolated database before calling
-it database-verified. No docker, psql, or supabase executable was found in PATH
-on September 15; use an existing approved isolated test environment or install
-appropriate local tooling if needed. Do not run race tests against customers.
+The connected isolated stripe-lifecycle-qa branch was available September 15.
+Six rollback-only SQL assertions passed for initial/resume claims, stale
+versions, wrong-owner rejection, and preserving signed state. A follow-up
+query confirmed zero fixture rows remain. This verifies the conditional SQL
+contract, not simultaneous real database sessions or production RLS.
+
+## Remaining work
+
+- Purchase-offer creation in api/fill-pdf.py still needs this recovery contract;
+  its create-and-send path differs from these two private-draft routes.
+- Finish release/CI review and production verification when spending permits.
+- No new live recipient send, inbox receipt, or signed-PDF visual QA was run
+  for this change. Do not mark the overall recovery item complete yet.
 
 Retain a truthful release-evidence boundary: local tests, database verification,
 GitHub CI, deployment, and production verification are separate. No Vercel

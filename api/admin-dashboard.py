@@ -21,6 +21,7 @@ from lib import partner_marketplace_agreement
 from lib import seller_disclosure_draft
 from lib import seller_review_access
 from lib import seller_checkout
+from lib import signwell_delivery
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "").rstrip("/")
 SUPABASE_SERVICE_ROLE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or os.environ.get("SUPABASE_SERVICE_ROLE") or os.environ.get("SUPABASE_SERVICE_KEY") or ""
@@ -3538,7 +3539,7 @@ async def _attest_seller_review(session_token, data):
     return {"ok": True, "attestedAt": now, "attestedName": seller_name, "allSellersAttested": all_sellers_attested, "workflowActivated": False}
 
 
-async def _render_seller_disclosure_draft_preview(user, draft_id, review_context=None):
+async def _render_seller_disclosure_draft_preview(user, draft_id, review_context=None, *, fingerprint_context=None):
     """Render an agent-owned or email-verified seller draft as an unsigned preview."""
     try:
         draft_uuid = str(uuid.UUID(str(draft_id)))
@@ -3597,6 +3598,8 @@ async def _render_seller_disclosure_draft_preview(user, draft_id, review_context
             )
         if response.status_code != 200 or not response.content.startswith(b"%PDF"):
             raise RuntimeError("The approved seller-disclosure source could not be loaded.")
+        if fingerprint_context is not None:
+            fingerprint_context[str(source["id"])] = hashlib.sha256(response.content).hexdigest()
         return response.content
 
     disclosure_source = await _approved_source(
@@ -3613,6 +3616,7 @@ async def _render_seller_disclosure_draft_preview(user, draft_id, review_context
     from lib.trec_seller_disclosure import render_unsigned_preview
 
     response_values = dict(draft.get("response_data") or {})
+    response_values.pop(signwell_delivery.JOURNAL_KEY, None)
     response_values["propertyAddress"] = draft.get("property_address") or ""
     preview = render_unsigned_preview(
         await _source_bytes(disclosure_source),
@@ -3675,14 +3679,17 @@ async def _send_seller_disclosure_for_signature(user, data):
         f"&agent_user_id=eq.{urllib.parse.quote(user['id'])}"
         "&status=eq.draft"
         "&seller_review_attested=is.true"
-        "&select=id,property_address,seller_names,buyer_names,water_source_id,disclosure_source_revision,water_source_revision"
+        "&select=id,property_address,seller_names,buyer_names,water_source_id,disclosure_source_revision,water_source_revision,disclosure_source_id,response_data,water_rights_data,signwell_document_id,signwell_status,updated_at,sent_at"
         "&limit=1"
     )
     if not drafts:
         raise PermissionError("That seller disclosure is unavailable, has already been sent, or still needs seller review.")
     draft = drafts[0]
+    if draft.get("signwell_document_id") and not _tracked_signature_journal(draft, "response_data"):
+        raise PermissionError("This signature request already exists. Refresh its status before sending again.")
     recipients = _seller_disclosure_signing_recipients(draft, data.get("signerEmails"))
-    rendered = await _render_seller_disclosure_draft_preview(user, draft_uuid)
+    render_context = {}
+    rendered = await _render_seller_disclosure_draft_preview(user, draft_uuid, fingerprint_context=render_context)
     from lib.trec_seller_disclosure import build_signwell_fields
 
     signing_data = {"seller_names": draft.get("seller_names") or [], "buyer_names": draft.get("buyer_names") or []}
@@ -3719,54 +3726,24 @@ async def _send_seller_disclosure_for_signature(user, data):
             "test_mode": str(SIGNWELL_TEST_MODE).lower(),
         },
     }
-    async with httpx.AsyncClient(timeout=45) as client:
-        response = await client.post(
-            "https://www.signwell.com/api/v1/documents",
-            headers={"X-Api-Key": SIGNWELL_API_KEY, "Content-Type": "application/json"},
-            json=payload,
-        )
-    if response.status_code not in {200, 201, 202}:
-        raise RuntimeError(f"SignWell rejected the signing request: HTTP {response.status_code}.")
-    result = response.json()
-    document_id = str(result.get("id") or result.get("document_id") or "").strip()
-    if not document_id:
-        raise RuntimeError("SignWell did not return a document id.")
-    headers = {"X-Api-Key": SIGNWELL_API_KEY, "Content-Type": "application/json"}
-    async with httpx.AsyncClient(timeout=45) as client:
-        inspection = await client.get(
-            f"https://www.signwell.com/api/v1/documents/{urllib.parse.quote(document_id, safe='')}",
-            headers=headers,
-        )
-        inspected_document = inspection.json() if inspection.status_code == 200 else {}
-        if not _signwell_document_matches_signing_request(inspected_document, fields, recipients):
-            await client.delete(
-                f"https://www.signwell.com/api/v1/documents/{urllib.parse.quote(document_id, safe='')}",
-                headers=headers,
-            )
-            raise RuntimeError("SignWell could not preserve every required disclosure field. Nothing was sent.")
-        send_payload = _signwell_send_options(payload)
-        send_response = await client.post(
-            f"https://www.signwell.com/api/v1/documents/{urllib.parse.quote(document_id, safe='')}/send",
-            headers=headers,
-            json=send_payload,
-        )
-    if send_response.status_code not in {200, 201, 202}:
-        raise RuntimeError(f"SignWell could not send the verified disclosure request: HTTP {send_response.status_code}.")
-    result = send_response.json()
-    now = datetime.now(timezone.utc).isoformat()
-    await _patch(
-        "hof_seller_disclosure_drafts",
-        f"id=eq.{urllib.parse.quote(draft_uuid)}&agent_user_id=eq.{urllib.parse.quote(user['id'])}&status=eq.draft",
-        {
-            "status": "sent",
-            "signwell_document_id": document_id,
-            "signwell_status": str(result.get("status") or "sent"),
-            "sent_at": now,
-            "updated_at": now,
-        },
+    response_data = {key: value for key, value in (draft.get("response_data") or {}).items()
+                     if key != signwell_delivery.JOURNAL_KEY}
+    delivery = await _deliver_tracked_signwell_request(
+        user, "hof_seller_disclosure_drafts", draft, "response_data", response_data, payload,
+        {"owner_id": user["id"], "draft_id": draft_uuid,
+         "property_address": draft.get("property_address"), "signing_data": signing_data,
+         "disclosure_source_id": draft.get("disclosure_source_id"),
+         "disclosure_source_revision": draft.get("disclosure_source_revision"),
+         "water_source_id": draft.get("water_source_id"), "water_source_revision": draft.get("water_source_revision"),
+         "response_data": response_data, "water_rights_data": draft.get("water_rights_data"),
+         "render_context": render_context},
     )
+    document_id = delivery["document_id"]
+    result = delivery["document"]
     return {
         "ok": True,
+        "message": delivery["message"],
+        "recovered": delivery["recovered"],
         "documentId": document_id,
         "status": result.get("status") or "sent",
         "testMode": SIGNWELL_TEST_MODE,
@@ -3775,7 +3752,7 @@ async def _send_seller_disclosure_for_signature(user, data):
     }
 
 
-async def _render_representation_draft_preview(user, agreement_id, *, for_signing=False):
+async def _render_representation_draft_preview(user, agreement_id, *, for_signing=False, fingerprint_context=None):
     """Render an agent's own approved-source representation draft privately.
 
     This endpoint intentionally stops at a PDF preview. It does not mutate the
@@ -3797,7 +3774,7 @@ async def _render_representation_draft_preview(user, agreement_id, *, for_signin
     if not agreements:
         raise PermissionError("That private agreement draft is unavailable.")
     agreement = agreements[0]
-    if agreement.get("signwell_document_id"):
+    if agreement.get("signwell_document_id") and not _tracked_signature_journal(agreement):
         raise PermissionError("This signature request already has a provider record. Refresh its status before sending again.")
     sources = await _get(
         "hof_brokerage_form_sources?"
@@ -3849,6 +3826,14 @@ async def _render_representation_draft_preview(user, agreement_id, *, for_signin
         "_for_signing": bool(for_signing),
         "compensation": {key: agreement_data.get(key, "") for key in compensation_keys},
     }
+    if fingerprint_context is not None:
+        fingerprint_context.update(
+            source_sha256=hashlib.sha256(response.content).hexdigest(),
+            brokerage=brokerage, profile=profile_rows[0] if profile_rows else {},
+            render_data={key: value for key, value in render_data.items()
+                         if key not in {signwell_delivery.JOURNAL_KEY, "client_emails",
+                                        "signwellStatus", "signwellDocumentId", "signwellLastStatusRefresh"}},
+        )
     if agreement.get("form_code") == TXR_1507_FORM_CODE:
         from lib.txr_1507 import render_txr_1507
         return render_txr_1507(response.content, render_data, brokerage, profile_rows[0] if profile_rows else {})
@@ -4068,14 +4053,17 @@ async def _standalone_signing_recipient_preview(user, agreement_id):
     if not rows:
         raise PermissionError("That document is unavailable or has already been sent.")
     agreement = rows[0]
-    if agreement.get("signwell_document_id"):
+    if agreement.get("signwell_document_id") and not _tracked_signature_journal(agreement):
         raise PermissionError("This signature request already has a provider record. Refresh its status before sending again.")
     if str(agreement.get("form_code") or "") not in TXR_SIGNING_FORM_CODES:
         raise ValueError("This document is not available for signing.")
     names = agreement.get("client_names") or []
     if not names:
         raise ValueError("This document has no signing recipients.")
-    recipients = await _standalone_signing_recipients(user, agreement, [""] * len(names))
+    saved_emails = (agreement.get("agreement_data") or {}).get("client_emails")
+    emails = saved_emails if (_tracked_signature_journal(agreement) and isinstance(saved_emails, list)
+                             and len(saved_emails) == len(names)) else [""] * len(names)
+    recipients = await _standalone_signing_recipients(user, agreement, emails)
     labels = _standalone_signer_labels(agreement)
     for index, recipient in enumerate(recipients):
         editable = index < len(names)
@@ -4118,6 +4106,100 @@ def _signwell_send_options(payload):
         "metadata",
     )
     return {key: payload[key] for key in keys if key in payload}
+
+
+def _tracked_signature_journal(record, data_field="agreement_data"):
+    value = (record.get(data_field) or {}).get(signwell_delivery.JOURNAL_KEY)
+    return value if isinstance(value, dict) and value.get("version") == 1 else None
+
+
+async def _deliver_tracked_signwell_request(user, table, record, data_field, prepared_data, payload, context):
+    """Adapt the coordinator to owner/version-scoped PostgREST writes."""
+    if table not in {"hof_standalone_agreements", "hof_seller_disclosure_drafts"}:
+        raise ValueError("Unsupported signing record.")
+    current = dict(record)
+    document_id = str(record.get("signwell_document_id") or "")
+    journal = _tracked_signature_journal(record, data_field)
+    signing_headers = {"X-Api-Key": SIGNWELL_API_KEY, "Content-Type": "application/json"}
+    base_query = (f"id=eq.{urllib.parse.quote(str(record['id']), safe='')}"
+                  f"&agent_user_id=eq.{urllib.parse.quote(user['id'], safe='')}")
+    prepared_data = {key: value for key, value in prepared_data.items()
+                     if key != signwell_delivery.JOURNAL_KEY}
+
+    async def checkpoint(doc_id, attempt):
+        if not current.get("updated_at"):
+            return False
+        previous_id = str(current.get("signwell_document_id") or "")
+        query = base_query + "&status=in.(draft,failed)"
+        query += (f"&signwell_document_id=eq.{urllib.parse.quote(previous_id, safe='')}"
+                  if previous_id else "&signwell_document_id=is.null")
+        query += f"&updated_at=eq.{urllib.parse.quote(str(current['updated_at']), safe='')}"
+        query += f"&select=id,updated_at,status,signwell_document_id,{data_field}"
+        body = {"status": "draft", "signwell_document_id": doc_id,
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+                data_field: {**prepared_data, signwell_delivery.JOURNAL_KEY: attempt}}
+        async with httpx.AsyncClient(timeout=12) as client:
+            response = await client.patch(f"{SUPABASE_URL}/rest/v1/{table}?{query}",
+                                          headers={**_headers(), "Prefer": "return=representation"}, json=body)
+        if response.status_code >= 300:
+            raise RuntimeError("The signature checkpoint could not be saved.")
+        rows = response.json()
+        if (not isinstance(rows, list) or len(rows) != 1 or rows[0].get("id") != record["id"]
+                or rows[0].get("signwell_document_id") != doc_id or not rows[0].get("updated_at")):
+            return False
+        current.update(rows[0])
+        return True
+
+    async def create(body):
+        async with httpx.AsyncClient(timeout=45) as client:
+            response = await client.post("https://www.signwell.com/api/v1/documents", headers=signing_headers, json=body)
+        if response.status_code not in {200, 201, 202}:
+            if response.status_code in SIGNWELL_RETRYABLE_HTTP_STATUSES:
+                raise SignatureDeliveryUnavailable(f"Private document creation failed (HTTP {response.status_code}).")
+            raise signwell_delivery.DeliveryUnsent("The signing service could not prepare this request. No invitation was requested.")
+        return response.json()
+
+    async def inspect(doc_id):
+        async with httpx.AsyncClient(timeout=45) as client:
+            response = await client.get(f"https://www.signwell.com/api/v1/documents/{urllib.parse.quote(doc_id, safe='')}", headers=signing_headers)
+        if response.status_code != 200:
+            raise RuntimeError("Signature status is temporarily unavailable.")
+        return response.json()
+
+    async def send(doc_id, body):
+        async with httpx.AsyncClient(timeout=45) as client:
+            response = await client.post(f"https://www.signwell.com/api/v1/documents/{urllib.parse.quote(doc_id, safe='')}/send",
+                                         headers=signing_headers, json=_signwell_send_options(body))
+        if response.status_code not in {200, 201, 202}:
+            raise signwell_delivery.SendRejected(response.status_code)
+        return response.json()
+
+    async def finish(doc_id, document):
+        state = signwell_delivery.document_state(document)
+        now = datetime.now(timezone.utc).isoformat()
+        body = {"status": state, "signwell_status": str(document.get("status") or state), "updated_at": now}
+        if state == "signed":
+            body["signed_at"] = now
+        if state in {"sent", "signed"} and not current.get("sent_at"):
+            body["sent_at"] = now
+        query = base_query + f"&signwell_document_id=eq.{urllib.parse.quote(doc_id, safe='')}&status=in.(draft,failed)&select=id,status,signwell_document_id"
+        async with httpx.AsyncClient(timeout=12) as client:
+            response = await client.patch(f"{SUPABASE_URL}/rest/v1/{table}?{query}",
+                                          headers={**_headers(), "Prefer": "return=representation"}, json=body)
+        if response.status_code >= 300:
+            raise RuntimeError("Signature status could not be saved.")
+        rows = response.json()
+        if isinstance(rows, list) and len(rows) == 1 and rows[0].get("id") == record["id"]:
+            return True
+        # A webhook can finish first. Never overwrite its signed/void state.
+        rows = await _get(f"{table}?{base_query}&signwell_document_id=eq.{urllib.parse.quote(doc_id, safe='')}&select=id,status&limit=1")
+        return bool(rows and rows[0].get("status") in {"sent", "signed", "void"})
+
+    return await signwell_delivery.deliver_verified_document(
+        payload=payload, context=context, document_id=document_id, journal=journal,
+        create=create, inspect=inspect, send=send, checkpoint=checkpoint, finish=finish,
+        matches=_signwell_document_matches_signing_request,
+    )
 
 
 def _signwell_signing_urls(result):
@@ -4166,13 +4248,13 @@ async def _send_txr_agreement_for_signature(user, data):
         f"id=eq.{urllib.parse.quote(agreement_uuid)}"
         f"&agent_user_id=eq.{urllib.parse.quote(user['id'])}"
         "&status=in.(draft,failed)"
-        "&select=id,brokerage_id,form_code,form_source_id,source_revision,client_names,agreement_data,status,signwell_document_id"
+        "&select=id,brokerage_id,form_code,form_source_id,source_revision,client_names,agreement_data,status,signwell_document_id,updated_at,sent_at"
         "&limit=1"
     )
     if not rows:
         raise PermissionError("That private agreement draft is unavailable or has already been sent.")
     agreement = rows[0]
-    if agreement.get("signwell_document_id"):
+    if agreement.get("signwell_document_id") and not _tracked_signature_journal(agreement):
         # A provider document exists for this record, so a blind retry could
         # create duplicate invitations.  Its status must be refreshed instead.
         raise PermissionError("This signature request already has a provider record. Refresh its status before sending again.")
@@ -4221,7 +4303,8 @@ async def _send_txr_agreement_for_signature(user, data):
     agreement_data["client_emails"] = client_emails
     client_count = len(client_names)
     fields = _txr_signwell_fields(form_code, {"client_names": client_names, **agreement_data}, client_count)
-    rendered = await _render_representation_draft_preview(user, agreement_uuid, for_signing=True)
+    render_context = {}
+    rendered = await _render_representation_draft_preview(user, agreement_uuid, for_signing=True, fingerprint_context=render_context)
     address_label = form_code.replace("-", " ")
     payload = {
         "test_mode": SIGNWELL_TEST_MODE,
@@ -4252,80 +4335,21 @@ async def _send_txr_agreement_for_signature(user, data):
             "test_mode": str(SIGNWELL_TEST_MODE).lower(),
         },
     }
-    async with httpx.AsyncClient(timeout=45) as client:
-        response = await client.post(
-            "https://www.signwell.com/api/v1/documents",
-            headers={"X-Api-Key": SIGNWELL_API_KEY, "Content-Type": "application/json"},
-            json=payload,
-        )
-    if response.status_code not in {200, 201, 202}:
-        if response.status_code in SIGNWELL_RETRYABLE_HTTP_STATUSES:
-            # Do not strand the agent in a terminal "failed" state for an
-            # account-level or temporary provider issue.  SignWell did not
-            # create a recipient-facing request, so the saved draft can be
-            # retried after service is restored.
-            raise SignatureDeliveryUnavailable(
-                f"SignWell document creation is temporarily unavailable (HTTP {response.status_code})."
-            )
-        await _patch("hof_standalone_agreements", f"id=eq.{urllib.parse.quote(agreement_uuid)}", {"status": "failed", "updated_at": datetime.now(timezone.utc).isoformat()})
-        raise RuntimeError(f"SignWell rejected the signing request: HTTP {response.status_code}.")
-    result = response.json()
-    document_id = str(result.get("id") or result.get("document_id") or "").strip()
-    if not document_id:
-        raise RuntimeError("SignWell did not return a document id.")
-    headers = {"X-Api-Key": SIGNWELL_API_KEY, "Content-Type": "application/json"}
-    async with httpx.AsyncClient(timeout=45) as client:
-        inspection = await client.get(
-            f"https://www.signwell.com/api/v1/documents/{urllib.parse.quote(document_id, safe='')}",
-            headers=headers,
-        )
-        inspected_document = inspection.json() if inspection.status_code == 200 else {}
-        if not _signwell_document_matches_signing_request(inspected_document, fields, recipients):
-            # A failed validation is not a user-facing signing request. Remove
-            # the private provider draft so it cannot be sent by mistake later.
-            await client.delete(
-                f"https://www.signwell.com/api/v1/documents/{urllib.parse.quote(document_id, safe='')}",
-                headers=headers,
-            )
-            await _patch(
-                "hof_standalone_agreements",
-                f"id=eq.{urllib.parse.quote(agreement_uuid)}",
-                {"status": "failed", "updated_at": datetime.now(timezone.utc).isoformat()},
-            )
-            raise RuntimeError("SignWell could not preserve every required signer field. Nothing was sent.")
-        send_payload = _signwell_send_options(payload)
-        send_response = await client.post(
-            f"https://www.signwell.com/api/v1/documents/{urllib.parse.quote(document_id, safe='')}/send",
-            headers=headers,
-            json=send_payload,
-        )
-    if send_response.status_code not in {200, 201, 202}:
-        if send_response.status_code in SIGNWELL_RETRYABLE_HTTP_STATUSES:
-            # This is still a private provider draft: no recipient invitation
-            # has been delivered.  Best-effort cleanup prevents a later retry
-            # from leaving an unusable duplicate in the SignWell workspace.
-            try:
-                async with httpx.AsyncClient(timeout=20) as client:
-                    await client.delete(
-                        f"https://www.signwell.com/api/v1/documents/{urllib.parse.quote(document_id, safe='')}",
-                        headers=headers,
-                    )
-            except Exception as cleanup_error:
-                print("SignWell unavailable draft cleanup failed", repr(cleanup_error))
-            raise SignatureDeliveryUnavailable(
-                f"SignWell delivery is temporarily unavailable (HTTP {send_response.status_code})."
-            )
-        await _patch("hof_standalone_agreements", f"id=eq.{urllib.parse.quote(agreement_uuid)}", {"status": "failed", "updated_at": datetime.now(timezone.utc).isoformat()})
-        raise RuntimeError(f"SignWell could not send the verified signing request: HTTP {send_response.status_code}.")
-    result = send_response.json()
-    now = datetime.now(timezone.utc).isoformat()
-    await _patch(
-        "hof_standalone_agreements",
-        f"id=eq.{urllib.parse.quote(agreement_uuid)}",
-        {"status": "sent", "signwell_document_id": document_id, "signwell_status": str(result.get("status") or "sent"), "sent_at": now, "updated_at": now, "agreement_data": agreement_data},
+    fingerprint_data = {key: value for key, value in agreement_data.items()
+                        if key not in {signwell_delivery.JOURNAL_KEY, "signwellStatus",
+                                       "signwellDocumentId", "signwellLastStatusRefresh"}}
+    delivery = await _deliver_tracked_signwell_request(
+        user, "hof_standalone_agreements", agreement, "agreement_data", agreement_data, payload,
+        {"owner_id": user["id"], "agreement_id": agreement_uuid,
+         "form_source_id": agreement["form_source_id"], "source_revision": agreement["source_revision"],
+         "client_names": client_names, "agreement_data": fingerprint_data, "render_context": render_context},
     )
+    document_id = delivery["document_id"]
+    result = delivery["document"]
     return {
         "ok": True,
+        "message": delivery["message"],
+        "recovered": delivery["recovered"],
         "formCode": form_code,
         "documentId": document_id,
         "status": result.get("status") or "sent",
@@ -4436,6 +4460,11 @@ class handler(BaseHTTPRequestHandler):
                     })
                 for row in rows:
                     links = links_by_draft.get(str(row.get("id") or ""), [])
+                    attempt = _tracked_signature_journal(row, "response_data")
+                    row["canRetrySavedRequest"] = bool(row.get("signwell_document_id") and row.get("status") == "draft" and attempt)
+                    row["savedSigningRecipients"] = (attempt or {}).get("recipients", [])
+                    row["response_data"] = {key: value for key, value in (row.get("response_data") or {}).items()
+                                            if key != signwell_delivery.JOURNAL_KEY}
                     row["sellerReviewLinks"] = links
                     row["sellerReviewProgress"] = {
                         "requested": len(links),
@@ -4453,6 +4482,8 @@ class handler(BaseHTTPRequestHandler):
                 ))
                 for row in rows:
                     row["signer_labels"] = _standalone_signer_labels(row)
+                    row["canRetrySavedRequest"] = bool(row.get("signwell_document_id")
+                        and row.get("status") in {"draft", "failed"} and _tracked_signature_journal(row))
                     row.pop("agreement_data", None)
                 _json(self, 200, {
                     "agreements": rows,
@@ -7209,6 +7240,10 @@ class handler(BaseHTTPRequestHandler):
             _json(self, 400, {"error": str(exc)[:300]})
         except PermissionError as exc:
             _json(self, 403, {"error": str(exc)[:300]})
+        except signwell_delivery.DeliveryPending as exc:
+            _json(self, 409, {"error": str(exc)[:300], "deliveryUnconfirmed": True})
+        except signwell_delivery.DeliveryUnsent as exc:
+            _json(self, 503, {"error": str(exc)[:300], "deliveryUnsent": True})
         except SignatureDeliveryUnavailable as exc:
             action = str(data.get("action") or "")
             print("Signature delivery temporarily unavailable:", action, str(exc))

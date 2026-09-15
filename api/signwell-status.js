@@ -202,7 +202,7 @@ async function getStandaloneAgreementForUser(agreementId, user) {
   // Standalone TXR packets are owned by the preparing agent. Preserve that
   // boundary for a manual provider refresh just as we do for offer packets.
   const rows = await supabaseRequest(
-    `hof_standalone_agreements?id=eq.${encodeURIComponent(agreementId)}&agent_user_id=eq.${encodeURIComponent(user.id)}&select=id,agent_user_id,signwell_document_id,agreement_data`,
+    `hof_standalone_agreements?id=eq.${encodeURIComponent(agreementId)}&agent_user_id=eq.${encodeURIComponent(user.id)}&select=id,agent_user_id,signwell_document_id,agreement_data,status,updated_at,signed_at`,
     { method: 'GET' }
   );
   const agreement = Array.isArray(rows) ? rows[0] : null;
@@ -216,7 +216,7 @@ async function getSellerDisclosureForUser(draftId, user) {
   // A seller disclosure remains private to the agent who prepared it. Keep
   // status refreshes and signed-PDF downloads scoped to that same owner.
   const rows = await supabaseRequest(
-    `hof_seller_disclosure_drafts?id=eq.${encodeURIComponent(draftId)}&agent_user_id=eq.${encodeURIComponent(user.id)}&select=id,agent_user_id,signwell_document_id,status,signwell_status,sent_at,signed_at`,
+    `hof_seller_disclosure_drafts?id=eq.${encodeURIComponent(draftId)}&agent_user_id=eq.${encodeURIComponent(user.id)}&select=id,agent_user_id,signwell_document_id,status,signwell_status,sent_at,signed_at,updated_at`,
     { method: 'GET' }
   );
   const draft = Array.isArray(rows) ? rows[0] : null;
@@ -319,6 +319,25 @@ function safeStandaloneStatus(signwellStatus) {
   return 'sent';
 }
 
+function signatureRefreshGuard(packet, nextStatus) {
+  if (!packet.updated_at || !packet.status || !packet.signwell_document_id ||
+      (['signed', 'void'].includes(packet.status) && packet.status !== nextStatus)) {
+    throw new Error('This request needs a fresh status check. Your saved document has not changed.');
+  }
+  return '&signwell_document_id=eq.' + encodeURIComponent(packet.signwell_document_id) +
+    '&updated_at=eq.' + encodeURIComponent(packet.updated_at) +
+    '&status=eq.' + encodeURIComponent(packet.status);
+}
+
+function confirmSignatureRefresh(rows, packet) {
+  if (!Array.isArray(rows) || rows.length !== 1 || rows[0].id !== packet.id) {
+    const error = new Error('This document changed while its status was being checked. Refresh again to see the latest status.');
+    error.statusCode = 409;
+    throw error;
+  }
+  return rows[0];
+}
+
 async function updateStandaloneAgreementStatus(agreement, status, documentId, document, user) {
   const now = new Date().toISOString();
   const cleanSignwellStatus = cleanStatusLabel(status);
@@ -336,10 +355,10 @@ async function updateStandaloneAgreementStatus(agreement, status, documentId, do
     agreement_data: updatedAgreementData,
     updated_at: now
   };
-  if (agreementStatus === 'signed') updatePayload.signed_at = now;
+  if (agreementStatus === 'signed' && !agreement.signed_at) updatePayload.signed_at = now;
 
   const updateRows = await supabaseRequest(
-    `hof_standalone_agreements?id=eq.${encodeURIComponent(agreement.id)}&agent_user_id=eq.${encodeURIComponent(user.id)}&select=id,agent_user_id,signwell_document_id,signwell_status,status,updated_at,signed_at`,
+    `hof_standalone_agreements?id=eq.${encodeURIComponent(agreement.id)}&agent_user_id=eq.${encodeURIComponent(user.id)}${signatureRefreshGuard(agreement, agreementStatus)}&select=id,agent_user_id,signwell_document_id,signwell_status,status,updated_at,signed_at`,
     {
       method: 'PATCH',
       headers: { Prefer: 'return=representation' },
@@ -347,6 +366,7 @@ async function updateStandaloneAgreementStatus(agreement, status, documentId, do
     }
   );
 
+  const updated = confirmSignatureRefresh(updateRows, agreement);
   await supabaseRequest('hof_offer_events', {
     method: 'POST',
     headers: { Prefer: 'return=minimal' },
@@ -361,7 +381,7 @@ async function updateStandaloneAgreementStatus(agreement, status, documentId, do
     })
   });
 
-  return Array.isArray(updateRows) ? updateRows[0] : updateRows;
+  return updated;
 }
 
 function safeSellerDisclosureStatus(signwellStatus) {
@@ -381,10 +401,10 @@ async function updateSellerDisclosureStatus(draft, status, documentId, user) {
     status: draftStatus,
     updated_at: now
   };
-  if (draftStatus === 'signed') updatePayload.signed_at = now;
+  if (draftStatus === 'signed' && !draft.signed_at) updatePayload.signed_at = now;
 
   const updateRows = await supabaseRequest(
-    `hof_seller_disclosure_drafts?id=eq.${encodeURIComponent(draft.id)}&agent_user_id=eq.${encodeURIComponent(user.id)}&select=id,agent_user_id,signwell_document_id,status,signwell_status,sent_at,signed_at,updated_at`,
+    `hof_seller_disclosure_drafts?id=eq.${encodeURIComponent(draft.id)}&agent_user_id=eq.${encodeURIComponent(user.id)}${signatureRefreshGuard(draft, draftStatus)}&select=id,agent_user_id,signwell_document_id,status,signwell_status,sent_at,signed_at,updated_at`,
     {
       method: 'PATCH',
       headers: { Prefer: 'return=representation' },
@@ -392,7 +412,7 @@ async function updateSellerDisclosureStatus(draft, status, documentId, user) {
     }
   );
 
-  return Array.isArray(updateRows) ? updateRows[0] : updateRows;
+  return confirmSignatureRefresh(updateRows, draft);
 }
 
 module.exports = async (req, res) => {
@@ -473,7 +493,7 @@ module.exports = async (req, res) => {
     });
   } catch (err) {
     console.error('SignWell status refresh failed:', err);
-    return json(res, 400, {
+    return json(res, err?.statusCode === 409 ? 409 : 400, {
       error: err?.message || 'SignWell status refresh failed.'
     });
   }

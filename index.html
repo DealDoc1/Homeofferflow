@@ -21650,8 +21650,11 @@ function routeAfterMagicLinkIfNeeded() {
         const response = await fetch('/api/admin-dashboard', { method:'POST', headers:{'Content-Type':'application/json', Authorization:`Bearer ${token()}`}, body:JSON.stringify({ action:'send_txr_agreement_for_signature', agreementId:agreement.id, clientEmails, confirmedRecipients }) });
         const result = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(result.error || 'Could not send the signature request.');
-        status.className = 'hof-iabs-status ready'; status.textContent = 'Signature request sent.';
-        await refresh();
+        status.className = 'hof-iabs-status ready'; status.textContent = result.message || 'Signature request sent.';
+        try { await refresh(); } catch (_) {
+          status.textContent += ' Your document list could not refresh. Check its status from your account.';
+          return;
+        }
         setTimeout(() => modal.remove(), 800);
       } catch (error) {
         status.className = 'hof-iabs-status error'; status.textContent = error.message || 'Could not send the signature request.';
@@ -21799,12 +21802,13 @@ function routeAfterMagicLinkIfNeeded() {
           // rebuilding the interview, but never create a duplicate invitation
           // when a provider document already exists.
           const canRetryUnsent = agreement.status === 'failed' && !agreement.signwell_document_id;
-          const canSend = signingEnabled && signingFormCodes.has(agreement.form_code) && !agreement.signwell_document_id && (agreement.status === 'draft' || canRetryUnsent);
+          const canRetrySaved = agreement.canRetrySavedRequest === true && ['draft', 'failed'].includes(agreement.status);
+          const canSend = signingEnabled && signingFormCodes.has(agreement.form_code) && ((!agreement.signwell_document_id && (agreement.status === 'draft' || canRetryUnsent)) || canRetrySaved);
           const names = (agreement.client_names || []).join(', ');
           const gate = !signingEnabled && (agreement.status === 'draft' || canRetryUnsent) ? '<small style="display:block;color:var(--gold-light)">Ready to review — signature sending will appear here when available.</small>' : '';
           const canRefresh = agreement.status !== 'signed' && agreement.signwell_document_id;
           const canDownloadCompleted = agreement.status === 'signed' && agreement.signwell_document_id;
-          const sendLabel = canRetryUnsent ? 'Retry signature request' : 'Send for signature';
+          const sendLabel = canRetrySaved ? 'Retry saved request' : (canRetryUnsent ? 'Retry signature request' : 'Send for signature');
           return `<div style="display:flex;justify-content:space-between;align-items:center;gap:.75rem;flex-wrap:wrap;border-top:1px solid rgba(255,255,255,.12);padding:.7rem 0"><span><strong>${escape(agreement.form_code)}</strong><small style="display:block;color:var(--gray-light)">${escape(names)} · ${escape(agreement.status || 'draft')}</small>${gate}</span><span style="display:flex;gap:.4rem;flex-wrap:wrap"><button type="button" class="btn-secondary" data-preview="${escape(agreement.id)}">Preview</button>${canRefresh ? `<button type="button" class="btn-secondary" data-refresh-signing="${escape(agreement.id)}">Refresh status</button>` : ''}${canDownloadCompleted ? `<button type="button" class="btn-secondary" data-download-completed="${escape(agreement.id)}">Download completed PDF</button>` : ''}${canSend ? `<button type="button" class="btn-primary" data-send="${escape(agreement.id)}">${sendLabel}</button>` : ''}</span></div>`;
         }).join('');
         list.querySelectorAll('[data-preview]').forEach(button => button.addEventListener('click', () => {
@@ -22460,7 +22464,7 @@ function routeAfterMagicLinkIfNeeded() {
     const modal = document.createElement('div');
     modal.className = 'hof-agreement-modal';
     modal.innerHTML = '<form class="hof-agreement-dialog"><h3>Send seller disclosure for signature</h3><p>Review the completed PDF first. Then enter one signing email for each person named in the disclosure.</p><div class="hof-agreement-grid">' + parties.map((party, index) => {
-      const initial = party.role === 'Seller' ? reviewEmails[party.index + 1] || '' : '';
+      const initial = draft.savedSigningRecipients?.[index]?.email || (party.role === 'Seller' ? reviewEmails[party.index + 1] || '' : '');
       return '<label>' + escape(party.role + ' — ' + party.name) + '<input type="email" required maxlength="320" autocomplete="email" data-seller-signing-email value="' + escape(initial) + '" placeholder="name@example.com"></label>';
     }).join('') + '</div><div class="hof-iabs-status" role="status"></div><div class="hof-agreement-footer"><button type="button" class="btn-secondary">Cancel</button><button type="submit" class="btn-primary">Send for signature</button></div></form>';
     document.body.appendChild(modal);
@@ -22478,8 +22482,8 @@ function routeAfterMagicLinkIfNeeded() {
         const response = await fetch('/api/admin-dashboard', {method:'POST', headers:{'Content-Type':'application/json', Authorization:'Bearer ' + token}, body:JSON.stringify({action:'send_seller_disclosure_for_signature', draftId:draft.id, signerEmails})});
         const result = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(result.error || 'Could not send the seller disclosure for signature.');
-        if (status) status.textContent = 'Sent for signature. HomeOfferFlow will update this disclosure when everyone has signed.';
-        root.logOfferEvent?.(null, 'seller_disclosure_signing_sent', 'sent', 'Seller disclosure sent for signature.', {signerCount: signerEmails.length});
+        if (status) status.textContent = result.message || 'Sent for signature. HomeOfferFlow will update this disclosure when everyone has signed.';
+        if (!result.recovered) root.logOfferEvent?.(null, 'seller_disclosure_signing_sent', 'sent', 'Seller disclosure sent for signature.', {signerCount: signerEmails.length});
         close(); await refreshDrafts();
       } catch (error) { message.textContent = error.message || 'Could not send the seller disclosure for signature.'; button.disabled = false; }
     });
@@ -22550,7 +22554,7 @@ function routeAfterMagicLinkIfNeeded() {
         const progress = d.sellerReviewProgress || {};
         const reviewStatus = sellerReviewStatus(d);
         const followUp = progress.requested && !d.seller_review_attested ? '<button type="button" class="btn-secondary hof-seller-followup" data-id="' + escape(d.id) + '">Follow up</button>' : '';
-        const sendForSignature = d.status === 'draft' && d.seller_review_attested ? '<button type="button" class="btn-primary hof-seller-send-signing" data-id="' + escape(d.id) + '">Send for signature</button>' : '';
+        const sendForSignature = d.status === 'draft' && d.seller_review_attested && (!d.signwell_document_id || d.canRetrySavedRequest === true) ? '<button type="button" class="btn-primary hof-seller-send-signing" data-id="' + escape(d.id) + '">' + (d.canRetrySavedRequest ? 'Retry saved request' : 'Send for signature') + '</button>' : '';
         const refreshSigning = d.signwell_document_id && d.status !== 'signed' ? '<button type="button" class="btn-secondary hof-seller-refresh-signing" data-id="' + escape(d.id) + '">Refresh signing status</button>' : '';
         const downloadSigned = d.signwell_document_id && d.status === 'signed' ? '<button type="button" class="btn-secondary hof-seller-download-signed" data-id="' + escape(d.id) + '">Download signed PDF</button>' : '';
         return '<li data-seller-draft-row data-search="' + escape([d.property_address, ...(d.seller_names || []), d.status, d.disclosure_source_revision, d.water_source_revision, reviewStatus].filter(Boolean).join(' ')) + '"><span><strong>' + escape(d.property_address) + '</strong><br><small>' + escape((d.seller_names || []).join(', ')) + ' · ' + escape(d.disclosure_source_revision || '') + (d.water_source_revision ? ' + TREC-61-0' : '') + ' · ' + escape(reviewStatus) + '</small></span><button type="button" class="btn-secondary hof-seller-load" data-id="' + escape(d.id) + '">Open</button>' + followUp + '<button type="button" class="btn-secondary hof-seller-preview" data-id="' + escape(d.id) + '">Preview PDF</button>' + refreshSigning + downloadSigned + sendForSignature + '</li>';

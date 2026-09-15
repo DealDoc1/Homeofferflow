@@ -16,13 +16,24 @@ EARLY_NORMALIZERS = HTML[HTML.index('  window.cleanOfferStatus = function(status
 
 
 class SignwellStatusRuntimeTests(unittest.TestCase):
+    def test_stale_refresh_is_rejected_instead_of_overwriting_retry_or_completion(self):
+        self.run_js('''
+          rejectStaleWrite = true;
+          for (const kind of ['agreementId', 'sellerDisclosureId']) {
+            const res = await run(kind, {status:'draft'});
+            assert.equal(res.code,409);
+            assert.match(res.body.error,/changed while its status was being checked/);
+            assert.equal(res.body.ok,undefined);
+          }
+        ''')
+
     def run_js(self, scenario):
         setup = r'''
           const assert = require('node:assert/strict');
           const vm = require('node:vm');
           const source = require('node:fs').readFileSync(SOURCE_PATH,'utf8');
           const writes = [], providerCalls = [];
-          let providerDocument = {}, allowRead = true;
+          let providerDocument = {}, allowRead = true, rejectStaleWrite = false;
           const response = (data, ok=true) => ({ok,status:ok?200:403,
             json:async()=>data,text:async()=>JSON.stringify(data),
             arrayBuffer:async()=>Buffer.from('%PDF-test')});
@@ -38,12 +49,18 @@ class SignwellStatusRuntimeTests(unittest.TestCase):
             if (table) {
               assert.ok(url.includes(table==='hof_offers'?'user_id=eq.owner':'agent_user_id=eq.owner'));
               if (options.method==='PATCH') {
+                if (table !== 'hof_offers') {
+                  assert.ok(url.includes('updated_at=eq.2026-09-15T10%3A00%3A00Z'));
+                  assert.ok(url.includes('signwell_document_id=eq.provider-doc'));
+                  assert.ok(url.includes('status=eq.draft'));
+                }
                 const payload=JSON.parse(options.body);
                 writes.push({url,payload});
+                if (rejectStaleWrite) return response([]);
                 return response([{id:'packet',...payload}]);
               }
               return response(allowRead?[{id:'packet',user_id:'owner',agent_user_id:'owner',
-                signwell_document_id:'provider-doc',status:'draft',offer_data:{},agreement_data:{}}]:[]);
+                signwell_document_id:'provider-doc',status:'draft',updated_at:'2026-09-15T10:00:00Z',offer_data:{},agreement_data:{}}]:[]);
             }
             if (url.endsWith('/hof_offer_events')) return response(null);
             throw new Error('Unexpected request: '+url);
