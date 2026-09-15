@@ -102,3 +102,30 @@ test('errors do not reflect arbitrary offer contents', async () => {
   assert.equal(JSON.stringify(result.body).includes('private-value'), false);
   assert.match(result.body.error, /Check your price and financing/);
 });
+for (const text of ['Before\u2028After', 'Before\u2029After', 'Name: José 李 🏡', 'a\r\nb\nc', 'e\u0301']) test(`checkout preserves text ${JSON.stringify(text)}`, async () => {
+  const offer = { ...cash, repairsText: text, legalDescription: text.repeat(100) };
+  const result = await call(offer);
+  assert.equal(result.status, 200);
+  const metadata = result.requests[0].metadata;
+  const chunks = Array.from({ length: Number(metadata.offer_parts) }, (_, i) => metadata[`offer_${i}`]);
+  for (const chunk of chunks) {
+    assert.ok(chunk.length <= 450);
+    assert.equal(Buffer.from(chunk).toString(), chunk, 'each part is independently valid UTF-8');
+  }
+  const recovered = JSON.parse(chunks.join(''));
+  assert.equal(recovered.repairsText, offer.repairsText);
+  assert.equal(recovered.legalDescription, offer.legalDescription);
+});
+test('a non-BMP character on the metadata boundary is never split', async () => {
+  const prefixLength = JSON.stringify({ ...cash, repairsText: '' }).slice(0, -2).length;
+  const offer = { ...cash, repairsText: 'x'.repeat(449 - prefixLength) + '🏡' + 'end' };
+  const result = await call(offer);
+  assert.equal(result.status, 200);
+  const metadata = result.requests[0].metadata;
+  const chunks = Array.from({ length: Number(metadata.offer_parts) }, (_, i) => metadata[`offer_${i}`]);
+  for (const chunk of chunks) {
+    assert.ok(chunk.length <= 450);
+    assert.equal(Buffer.from(chunk).toString(), chunk);
+  }
+  assert.equal(JSON.parse(chunks.join('')).repairsText, offer.repairsText);
+});

@@ -116,7 +116,19 @@ module.exports = async (req, res) => {
       _plan: SELF_SERVE_PLAN
     });
 
-    const chunks = offerDataString.match(/.{1,450}/g) || [];
+    // Dot-regex splitting drops Unicode line/paragraph separators. Iterating
+    // code points preserves every character and never splits a surrogate pair
+    // across metadata values, while keeping each value under 450 UTF-16 units.
+    const chunks = [];
+    let chunk = '';
+    for (const character of offerDataString) {
+      if (chunk.length + character.length > 450) {
+        chunks.push(chunk);
+        chunk = '';
+      }
+      chunk += character;
+    }
+    if (chunk) chunks.push(chunk);
 
     const metadata = {
       plan: SELF_SERVE_PLAN,

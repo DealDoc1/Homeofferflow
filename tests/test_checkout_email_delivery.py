@@ -3,6 +3,7 @@ import copy
 import importlib.util
 import json
 import io
+import subprocess
 from pathlib import Path
 import time
 from types import SimpleNamespace
@@ -80,6 +81,44 @@ class CheckoutEmailDeliveryTests(unittest.TestCase):
         self.assertTrue(second['adminEmail']['recovered'])
         self.assertNotEqual(self.requests[0][0], self.requests[1][0])
         self.assertEqual(second['signwell']['document_id'], 'same-signwell-document')
+
+    def test_real_checkout_metadata_reaches_fulfillment_without_losing_unicode(self):
+        offer = {**self.offer, 'financing': 'cash', 'earnest': '0', 'optionFee': '0', 'optionDays': '0',
+                 'repairsText': 'First requirement\u2028Second requirement\u2029Final requirement 🏡',
+                 'legalDescription': ('José 李\u2028Parcel notes\u2029' * 50)}
+        script = r"""
+const fs = require('node:fs'), vm = require('node:vm');
+const offerData = JSON.parse(fs.readFileSync(0, 'utf8'));
+const moduleObject = {exports: {}};
+let captured;
+vm.runInNewContext(fs.readFileSync('api/create-checkout.js', 'utf8'), {
+  module: moduleObject, URL, console, process: {env: {STRIPE_SECRET_KEY:'mock-key'}},
+  require(name) {
+    if (name !== 'stripe') throw Error('Unexpected dependency');
+    return () => ({checkout:{sessions:{create:async payload => {
+      captured = payload.metadata;
+      return {url:'https://checkout.example.test/session'};
+    }}}});
+  }
+});
+let status;
+const res = {status(value){status=value;return this;},json(){return this;}};
+moduleObject.exports({method:'POST', headers:{origin:'https://www.homeofferflow.com'},
+  body:{email:'payer@example.test',plan:'self',offerData}}, res).then(() => {
+  if (status !== 200 || !captured) throw Error('Mock checkout rejected');
+  process.stdout.write(JSON.stringify(captured));
+}).catch(error => {console.error(error);process.exit(1);});
+"""
+        result = subprocess.run(['node', '-e', script], input=json.dumps(offer), text=True,
+                                capture_output=True, timeout=15,
+                                cwd=Path(__file__).resolve().parents[1])
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.event['data']['object']['metadata'] = json.loads(result.stdout)
+        API.handle_checkout(copy.deepcopy(self.event))
+        rendered_offer = API.fill_and_merge.call_args.args[0]
+        self.assertEqual(rendered_offer['repairsText'], offer['repairsText'])
+        self.assertEqual(rendered_offer['legalDescription'], offer['legalDescription'])
+        self.assertEqual(len(self.requests), 2)
 
     def test_buyer_timeout_retry_reuses_original_pdf_and_message(self):
         self.fail = 'Your HomeOfferFlow Offer'
