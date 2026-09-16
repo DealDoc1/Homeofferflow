@@ -349,6 +349,18 @@ test('cancel fallback restores homebuyer fields but never an agent draft',()=>{
   local.store.set('draft',JSON.stringify(startupDraft));
   const before=c.state.data;assert.equal(c.restoreDraft({expectedRole:'homebuyer'}),false);assert.equal(c.state.data,before);
 });
+test('compact quota fallback restores answers and explicitly identifies uncached files on cancellation',()=>{
+  const x=setup();enableCheckoutRecovery(x,null);const c=x.ctx,cache=new Map();
+  c.sessionStorage={setItem:(key,value)=>{if(value.length>2000)throw Error('QuotaExceededError');cache.set(key,value);},getItem:key=>cache.get(key)||null};
+  vm.runInContext(source('  function cacheBuyerCheckoutSnapshot(', '  async function handlePayment()'),c);
+  const packet={...cancelledBuyer,uploadedDisclosureDocs:[{...cancelledBuyer.uploadedDisclosureDocs[0],base64:'A'.repeat(16000)}]};
+  assert.equal(c.cacheBuyerCheckoutSnapshot(packet),true);
+  c.checkPaymentReturn();
+  assert.equal(x.get('propAddress').value,'Current property');assert.equal(x.get('repairsText').value,'Current repairs');
+  assert.equal(c.window.hofUploadedDisclosureDocs.length,0);
+  assert.deepEqual(Array.from(c.missingUploadedDisclosureNames()),['survey.pdf']);
+  assert.equal(c.validateUploadedDisclosureDocs(),false);
+});
 test('missing saved attachment stops sending and opens the upload step',()=>{
   const x=setup();enableCheckoutRecovery(x,cancelledBuyer);const c=x.ctx;
   c.state.data.uploadedDocNames=['survey.pdf'];c.window.hofUploadedDisclosureDocs=[];

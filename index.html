@@ -11580,6 +11580,30 @@ function routeAfterMagicLinkIfNeeded() {
 
 
 
+  function cacheBuyerCheckoutSnapshot(offerData) {
+    const snapshot = cleanOfferDraftData(offerData);
+    const docs = Array.isArray(snapshot.uploadedDisclosureDocs) ? snapshot.uploadedDisclosureDocs : [];
+    snapshot.uploadedDocNames = [...new Set([
+      ...(Array.isArray(snapshot.uploadedDocNames) ? snapshot.uploadedDocNames : []),
+      ...docs.map(doc => doc.name)
+    ])];
+    const write = value => {
+      try {
+        const serialized = JSON.stringify(value);
+        sessionStorage.setItem('hofOfferData', serialized);
+        return sessionStorage.getItem('hofOfferData') === serialized;
+      } catch (_) { return false; }
+    };
+    if (write(snapshot)) return true;
+    // The server receives the original complete packet. If this tab cannot
+    // cache the PDF bytes, retain answers and filenames for a cancelled return.
+    // Missing files are then explicitly reattached or removed by the user.
+    const compact = { ...snapshot };
+    delete compact.uploadedDisclosureDocs;
+    delete compact.uploadedDocs;
+    return write(compact);
+  }
+
   async function handlePayment() {
     const btn = document.getElementById('payBtn');
     const oldText = btn ? btn.textContent : '';
@@ -11650,8 +11674,12 @@ function routeAfterMagicLinkIfNeeded() {
         uploadedDisclosureDocs
       };
 
-      sessionStorage.setItem('hofOfferData', JSON.stringify(offerData));
-      try { saveDraft(); } catch (e) {}
+      if (!cacheBuyerCheckoutSnapshot(offerData)) {
+        setPaymentStatus('Your browser couldn’t save your checkout progress. Free some browser storage or allow site storage, then try again. Your answers are still here.');
+        return;
+      }
+      // Do not rely on a delayed autosave surviving navigation to Stripe.
+      try { saveDraftNow(); } catch (e) {}
       try {
         trackEvent('Payment Started', {
           plan: state.selectedPlan,
@@ -11760,8 +11788,6 @@ function routeAfterMagicLinkIfNeeded() {
         'Subscribed account started packet generation from review step.',
         { role: state.data.userType || hofAuth.role || 'agent' }
       );
-
-      sessionStorage.setItem('hofOfferData', JSON.stringify(state.data));
 
       const profileIabsDoc = await window.getProfileIabsOfferDoc?.();
       const activeBrokerage = window.hofPlatform?.brokerage || null;

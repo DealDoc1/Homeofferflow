@@ -12,7 +12,7 @@ HYDROSTATIC_END = HTML.index('  function markHydrostaticInterviewIssues(', HYDRO
 
 
 class SubscriberPartialDeliveryRuntimeTests(unittest.TestCase):
-    def run_generation(self, status, result):
+    def run_generation(self, status, result, storage_blocked=False):
         harness = '''
         const calls = {usage:[], refreshed:0, failed:[], success:[], logs:[], saves:[], requests:[]};
         const state = {data:{buyerEmail:'buyer@example.test',userType:'agent',_hofOfferId:'owned-offer'}};
@@ -20,7 +20,7 @@ class SubscriberPartialDeliveryRuntimeTests(unittest.TestCase):
         const window = {};
         const button = {disabled:false,textContent:'Generate Packet'};
         const document = {getElementById:()=>button};
-        const sessionStorage = {setItem:()=>{}};
+        const sessionStorage = {setItem:()=>{if (STORAGE_BLOCKED) throw Error('Browser storage denied');}};
         const clearPacketGenerationRecoveryNotice = ()=>{};
         const canGenerateOffer = async()=>true;
         const preflightUsage = async()=>true;
@@ -44,7 +44,7 @@ class SubscriberPartialDeliveryRuntimeTests(unittest.TestCase):
           headers:{get:()=> 'application/json'}, json:async()=>RESULT
         };};
         '''
-        script = 'const STATUS=' + str(status) + ';const RESULT=' + json.dumps(result) + ';\n'
+        script = 'const STATUS=' + str(status) + ';const RESULT=' + json.dumps(result) + ';const STORAGE_BLOCKED=' + json.dumps(storage_blocked) + ';\n'
         script += harness + HTML[HYDROSTATIC_START:HYDROSTATIC_END] + HTML[START:END]
         script += '\ngenerateSubscribedPacket().then(()=>process.stdout.write(JSON.stringify({calls,state,button})));'
         return json.loads(subprocess.run(['node', '-e', script], check=True, capture_output=True, text=True).stdout)
@@ -89,6 +89,14 @@ class SubscriberPartialDeliveryRuntimeTests(unittest.TestCase):
                 self.assertEqual(calls['failed'], [])
                 self.assertEqual(calls['saves'], [])
                 self.assertEqual(calls['usage'], [])
+
+    def test_browser_storage_failure_cannot_block_server_owned_subscriber_generation(self):
+        actual = self.run_generation(200, {'status': 'ok', 'packetGenerated': True,
+            'usage': {'status': 'recorded'}, 'documentEmail': {'status': 'accepted'},
+            'signwell': {'ok': True}}, storage_blocked=True)
+        self.assertEqual(len(actual['calls']['requests']), 1)
+        self.assertEqual(len(actual['calls']['success']), 1)
+        self.assertEqual(actual['calls']['failed'], [])
 
 
 if __name__ == '__main__':
