@@ -13,8 +13,13 @@ checks above the footer under bundled and production-pinned PDF libraries.
 Original sources, official attribution and form geometry remain unchanged.
 This is **not deployed**; see
 [source-imprint evidence](release-evidence/txr-source-imprint-2026-09-18.md).
-The showing form (TXR-1508) still needs a separate answer-baseline review after
-the visual check showed property/customer text close to its printed rules.
+The showing form (TXR-1508) now has locally corrected answer baselines, bounded
+name/address placement, a selected-associate check and lossless long-answer
+continuations with matching customer/professional initials. All six pages of
+four synthetic specimens were visually checked. Existing base-page initials
+and date positions are unchanged. Completed-provider QA of the new
+continuations and deployment are still outstanding; see
+[showing-form answer evidence](release-evidence/txr1508-answer-candidate-2026-09-18.md).
 Independent separate-broker contact entry is now implemented in the existing
 recipient-review screen, with saved-request recovery and no seat requirement.
 Local runtime and mobile/desktop browser checks pass; this is **not deployed or

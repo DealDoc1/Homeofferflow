@@ -54,7 +54,8 @@ def answer_layout(data, brokerage, associate):
     return pages,overflow
 
 
-def render_continuation(data, overflow, *, title=TITLE):
+def render_continuation(data, overflow, *, title=TITLE, party_label='Client',
+                        description='Continuation of the entered answers referenced in the attached agreement.'):
     if not overflow:return None
     output=BytesIO()
     detail=ParagraphStyle('txr1501_detail',fontName='Helvetica',fontSize=10,leading=14,spaceAfter=12,
@@ -64,20 +65,24 @@ def render_continuation(data, overflow, *, title=TITLE):
                                topMargin=106,bottomMargin=112)
     story=[]
     for label,value in overflow.items():
+        # A trailing spacer can spill onto a blank page and accidentally add
+        # initials for a page with no answers. Space only between entries.
+        if story:story.append(Spacer(1,6))
         story.extend([Paragraph(paragraph_markup(label),label_style),
-                      Paragraph(paragraph_markup(value),detail),Spacer(1,6)])
+                      Paragraph(paragraph_markup(value),detail)])
     role='Associate' if data.get('signer_plan')=='clients_and_associate' else 'Broker'
-    labels=[('Client 1','1')]
-    if len(data.get('client_names') or [])>1:labels.append(('Client 2','2'))
+    labels=[(party_label+' 1','1')]
+    if len(data.get('client_names') or [])>1:labels.append((party_label+' 2','2'))
     labels.append((role,'professional'))
     def frame(canvas,doc):
         canvas.saveState()
         canvas.setFont('Helvetica-Bold',13);canvas.drawString(48,749,title)
         canvas.setFont('Helvetica',9)
-        canvas.drawString(48,730,'Continuation of the entered answers referenced in the attached agreement.')
+        canvas.drawString(48,730,description)
         for label,key in labels:
             x=INITIAL_X[key]
-            canvas.setFont('Helvetica',8);canvas.drawString(x-62,70,label+' initials')
+            canvas.setFont('Helvetica',7 if party_label=='Customer' else 8)
+            canvas.drawString(x-62,70,label+' initials')
             canvas.line(x,68,x+50,68)
         canvas.drawString(48,40,title)
         canvas.drawRightString(564,40,'Continuation page '+str(doc.page))

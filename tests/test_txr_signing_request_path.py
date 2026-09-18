@@ -320,7 +320,7 @@ class TxrSigningRequestPathTests(unittest.TestCase):
         )
         self.assertEqual(
             MODULE.TXR_SIGNING_MAP_REVISIONS["TXR-1508"],
-            "txr-1508-2026-09-09-acknowledgement-calibrated-v1",
+            "txr-1508-2026-09-18-answer-continuation-candidate-v2",
         )
         source = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
         self.assertIn('"signing_map_revision": current_map_revision', source)

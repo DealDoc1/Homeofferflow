@@ -21,12 +21,16 @@ class RenderSendFixture:
     def __init__(self, test, code='TXR-1501', role='associate', count=2, long=False):
         self.test = test
         data = copy.deepcopy(_data()[code.replace('-', '')])
-        data.update(data.pop('compensation'))
+        data.update(data.pop('compensation', {}))
         names = data.pop('client_names')[:count]
-        data.update(signer_plan='clients_and_' + role,
+        data.update(signer_plan=role + '_and_clients' if code == 'TXR-1508' else 'clients_and_' + role,
                     signing_map_revision=MODULE.TXR_SIGNING_MAP_REVISIONS[code])
         if long:
             data['market_area'] = 'Long market description ' * 30
+            if code == 'TXR-1508':
+                data['property_address'] = 'Long address and city ' * 19
+                names = [('Customer One ' if n == 0 else 'Customer Two ') + 'Family Name ' * 14
+                         for n in range(count)]
         self.row = {'id': RECORD_ID, 'agent_user_id': USER['id'], 'brokerage_id': 'library-host',
                     'status': 'draft', 'updated_at': '2026-09-18T10:00:00Z',
                     'form_code': code, 'form_source_id': 'source', 'source_revision': 'QA-v1',
@@ -37,7 +41,7 @@ class RenderSendFixture:
         self.source = {'id': 'source', 'source_revision': 'QA-v1',
                        'storage_bucket': 'private', 'storage_path': 'qa.pdf'}
         writer = PdfWriter()
-        for _ in range(6 if code == 'TXR-1501' else 2):
+        for _ in range({'TXR-1501': 6, 'TXR-1507': 2, 'TXR-1508': 1}[code]):
             writer.add_blank_page(width=612, height=792)
         stream = BytesIO()
         writer.write(stream)

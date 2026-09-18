@@ -9,23 +9,13 @@ from io import BytesIO
 
 from pypdf import PdfReader, PdfWriter
 from lib.txr_source_imprint import remove_known_source_imprint
+from lib.txr1508_answers import answer_layout, render_continuation, continuation_fields
+from lib.txr_addenda_layout import draw_entries
 from reportlab.pdfgen.canvas import Canvas
 
 
 PAGE_WIDTH = 612
 PAGE_HEIGHT = 792
-
-
-def _clean(value):
-    return " ".join(str(value or "").strip().split())
-
-
-def _draw(canvas, value, x, y, *, size=8):
-    value = _clean(value)
-    if not value:
-        return
-    canvas.setFont("Helvetica", size)
-    canvas.drawString(x, y, value)
 
 
 def _check(canvas, x, y):
@@ -43,29 +33,14 @@ def _check(canvas, x, y):
 def _overlay(data, brokerage, associate):
     packet = BytesIO()
     canvas = Canvas(packet, pagesize=(PAGE_WIDTH, PAGE_HEIGHT))
-    broker_name = brokerage.get("legal_name") or brokerage.get("name") or brokerage.get("dba_name") or ""
-    broker_license = brokerage.get("license_number") or ""
-    # ``hof_agent_profiles`` provides ``agent_name``.  Use it when the
-    # renderer receives the profile row directly so the signer and printed
-    # Broker's Associate line cannot disagree.
-    associate_name = associate.get("name") or associate.get("agent_name") or ""
-    associate_license = associate.get("license_number") or ""
-    clients = data.get("client_names") or []
     other_broker = data.get("other_broker_agreement") or []
-
-    # Coordinates are specific to the approved one-page TXR-1508 source.
-    _draw(canvas, data.get("property_address"), 110, 650)
-    _draw(canvas, broker_name, 190, 316)
-    _draw(canvas, broker_license, 482, 316)
-    _draw(canvas, associate_name, 195, 297)
-    _draw(canvas, associate_license, 482, 297)
-    _draw(canvas, clients[0] if clients else "", 140, 231)
-    if len(clients) > 1:
-        _draw(canvas, clients[1], 140, 188)
+    draw_entries(canvas, answer_layout(data, brokerage, associate)[0])
+    if data.get("signer_plan") == "associate_and_clients":
+        _check(canvas, 92, 275)
     if other_broker and other_broker[0] == "yes":
-        _check(canvas, 299, 218)
+        _check(canvas, 297, 219)
     if len(other_broker) > 1 and other_broker[1] == "yes":
-        _check(canvas, 299, 175)
+        _check(canvas, 297, 175)
     canvas.save()
     packet.seek(0)
     return packet.read()
@@ -82,12 +57,16 @@ def render_txr_1508(source_pdf_bytes, data, brokerage, associate):
     writer.add_page(source.pages[0])
     remove_known_source_imprint(writer, source_pdf_bytes, 'TXR-1508')
     writer.pages[0].merge_page(overlay.pages[0])
+    continuation = render_continuation(data, answer_layout(data, brokerage, associate)[1])
+    if continuation:
+        for page in PdfReader(BytesIO(continuation)).pages:
+            writer.add_page(page)
     output = BytesIO()
     writer.write(output)
     return output.getvalue()
 
 
-def build_signwell_fields_txr1508(data, *, client_count=1):
+def build_signwell_fields_txr1508(data, *, client_count=1, page_count=1):
     """Return explicit acknowledgement initials/date fields.
 
     The signer role is deliberate: the form may be acknowledged by the broker
@@ -118,4 +97,5 @@ def build_signwell_fields_txr1508(data, *, client_count=1):
             {"api_id": "txr1508_client2_initials_p1", "type": "initials", "page": 1, "x": 518, "y": 794, "recipient_id": "2", "required": True, "width": 61, "height": 18},
             {"api_id": "txr1508_client2_date_p1", "type": "date", "page": 1, "x": 625, "y": 792, "recipient_id": "2", "required": True, "width": 121, "height": 20, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
         ])
+    fields.extend(continuation_fields(data, client_count, page_count))
     return [fields]

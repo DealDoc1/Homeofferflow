@@ -143,10 +143,10 @@ TXR_SIGNING_FORM_CODES = {
 # source form needs a placement correction.  Older provider documents simply
 # have no map revision and are therefore never mistaken for current-map QA.
 TXR_RENDER_REVISIONS = {
-    "TXR-1501": "txr-1501-2026-09-18-neutral-source-v1",
+    "TXR-1501": "txr-1501-2026-09-18-continuation-pagination-v2",
     "TXR-1506": "txr-1506-2026-09-18-neutral-source-v1",
-    "TXR-1507": "txr-1507-2026-09-18-neutral-source-v2",
-    "TXR-1508": "txr-1508-2026-09-18-neutral-source-v1",
+    "TXR-1507": "txr-1507-2026-09-18-continuation-pagination-v3",
+    "TXR-1508": "txr-1508-2026-09-18-answer-continuation-v2",
     "TXR-1905": "txr-1905-2026-09-18-source-blanks-v2",
     "TXR-1914": "txr-1914-2026-09-18-source-blanks-v2",
     "TXR-1917": "txr-1917-2026-09-18-source-blanks-v2",
@@ -165,7 +165,7 @@ TXR_SIGNING_MAP_REVISIONS = {
     # signature/date captions.  Drafts prepared with v1 must be rebuilt so a
     # sender cannot inadvertently reuse the older field geometry.
     TXR_1507_FORM_CODE: "txr-1507-2026-09-18-answer-continuation-candidate-v3",
-    TXR_1508_FORM_CODE: "txr-1508-2026-09-09-acknowledgement-calibrated-v1",
+    TXR_1508_FORM_CODE: "txr-1508-2026-09-18-answer-continuation-candidate-v2",
     TXR_1953_FORM_CODE: "txr-1953-2026-09-15-field-alignment-v2",
     TXR_1954_FORM_CODE: "txr-1954-2026-09-15-field-alignment-v2",
 }
@@ -3975,7 +3975,10 @@ def _txr_signwell_fields(form_code, agreement_data, client_count, *, rendered_pd
         return build_signwell_fields_txr1507(agreement_data, client_count=client_count, page_count=page_count)
     if form_code == TXR_1508_FORM_CODE:
         from lib.txr_1508 import build_signwell_fields_txr1508
-        return build_signwell_fields_txr1508(agreement_data, client_count=client_count)
+        from io import BytesIO
+        from pypdf import PdfReader
+        page_count = len(PdfReader(BytesIO(rendered_pdf)).pages) if rendered_pdf is not None else 1
+        return build_signwell_fields_txr1508(agreement_data, client_count=client_count, page_count=page_count)
     if form_code == TXR_1905_FORM_CODE:
         from lib.txr_1905 import build_signwell_fields_txr1905
         return build_signwell_fields_txr1905(agreement_data, client_count=client_count)
