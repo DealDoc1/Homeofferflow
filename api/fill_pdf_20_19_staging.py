@@ -4,6 +4,7 @@ from pathlib import Path
 from lib.txr_1948 import (
     render_txr_1948, answer_layout as appraisal_answer_layout, BUYER_SIGNATURE_BOXES,
 )
+from lib import hoa_addendum_layout
 from lib.contract_money import currency_amount, format_currency
 from http.server import BaseHTTPRequestHandler
 
@@ -486,10 +487,10 @@ def make_overlay(page_entries, page_width=612, page_height=792):
         if len(entry) > 4:
             style = entry[4]
 
-        if str(text) == CHECK:
-            c.setFont("Helvetica-Bold", 9.5)
+        if str(text) == CHECK and style != 'text':
+            c.setFont("Helvetica-Bold", 6 if style == 'check_cell' else 9.5)
 
-            if style == "check_small":
+            if style in ("check_small", "check_cell"):
                 c.drawString(x, y, str(text))
             else:
                 c.drawString(x + 1, y + 1, str(text))
@@ -1332,37 +1333,15 @@ def fill_and_merge(offer):
         seller_temp_lease_pages = add_debug_grid_to_pages(seller_temp_lease_pages)
         merger.append(PdfReader(BytesIO(stamp_pdf(seller_temp_lease_path, seller_temp_lease_pages))))
 
-    if has_hoa and os.path.exists(HOA_PDF):
-        hoa_info = s.get("hoaSubdivisionInfo") or "seller"
-        hoa_title_cost = s.get("hoaTitleCost") or "seller"
-        hoa_days = first_present(s.get("hoaDays"), s.get("hoaDeliveryDays"), "7")
-        hoa_name_base = first_present(s.get("hoaName"), s.get("associationName"), s.get("poaName"))
-        hoa_phone = str(s.get("hoaPhone") or "").strip()
-        hoa_name = (hoa_name_base + ((", " + hoa_phone) if hoa_phone else "")) if hoa_name_base else hoa_phone
-
-        hoa_pages = {
-            0: [
-                (180, 662, addr_full, 8),
-                (180, 636, hoa_name, 8),
-
-                (47, 555, ck(hoa_info == "seller"), "check_small"),
-                (110, 555, str(hoa_days) if hoa_info == "seller" else ""),
-
-                (49, 499, ck(hoa_info == "buyer"), "check_small"),
-                (110, 499, str(hoa_days) if hoa_info == "buyer" else ""),
-
-                (49, 460, ck(hoa_info == "received"), "check_small"),
-                (49, 424, ck(hoa_info == "notRequired"), "check_small"),
-
-                (410, 310, fmt_money(first_present(s.get("hoaTransferFeeCap"), s.get("hoaReserves"), "0"))),
-
-                (238, 235, ck(hoa_title_cost == "buyer"), "check_small"),
-                (275, 235, ck(hoa_title_cost == "seller"), "check_small"),
-            ],
-        }
-
-        hoa_pages = add_debug_grid_to_pages(hoa_pages)
+    if has_hoa:
+        if not os.path.exists(HOA_PDF):
+            raise ValueError("The HOA addendum source is unavailable.")
+        hoa_answers = hoa_addendum_layout.answer_layout(s)
+        hoa_pages = add_debug_grid_to_pages({0: hoa_addendum_layout.page_entries(hoa_answers)})
         merger.append(PdfReader(BytesIO(stamp_pdf(HOA_PDF, hoa_pages))))
+        hoa_continuation = hoa_answers.continuation()
+        if hoa_continuation:
+            merger.append(PdfReader(BytesIO(hoa_continuation)))
 
     if has_sale and os.path.exists(SALE_PDF):
         sale_md, sale_yy = split_date(s.get("saleContingencyDate", ""))
@@ -1535,6 +1514,10 @@ def build_signwell_fields(offer, pdf_bytes):
     if has_hoa:
         hoa_page = next_page
         next_page += 1
+        hoa_answers = hoa_addendum_layout.answer_layout(offer)
+        hoa_continuation = hoa_answers.continuation()
+        if hoa_continuation:
+            next_page += len(PdfReader(BytesIO(hoa_continuation)).pages)
     if has_sale:
         sale_page = next_page
         next_page += 1
@@ -1663,11 +1646,16 @@ def build_signwell_fields(offer, pdf_bytes):
 
     # HOA/POA Addendum - buyer signatures only. No seller fields.
     if hoa_page:
-        # 17Q: HOA buyer signatures moved up onto the two Buyer lines.
-        add_sig_date_pair("buyer1_hoa_addendum", hoa_page, 112, 842, 286, 842, "1")
-        if has_buyer2:
-            # 17S: Buyer 2 HOA signature up 10 points.
-            add_sig_date_pair("buyer2_hoa_addendum", hoa_page, 112, 914, 286, 914, "2")
+        if hoa_page > page_count:
+            raise ValueError("The HOA addendum is missing from this packet.")
+        # TREC 36-11 has Buyer execution rules but no printed date blanks.
+        for index, (x, y, width, height) in enumerate(hoa_addendum_layout.BUYER_SIGNATURE_BOXES[:2 if has_buyer2 else 1], 1):
+            add_field(f"buyer{index}_hoa_addendum_signature", "signature", hoa_page,
+                      x, y, str(index), width=width, height=height)
+        hoa_fields = hoa_answers.continuation_fields(hoa_page + 1, 'hoa')
+        if any(field['page'] > page_count for field in hoa_fields):
+            raise ValueError("The HOA continuation is missing from this packet.")
+        fields_for_file.extend(hoa_fields)
 
     # Sale of Other Property Addendum - buyer signatures only. No seller fields.
     if sale_page:

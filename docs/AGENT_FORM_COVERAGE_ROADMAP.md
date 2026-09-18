@@ -10,14 +10,24 @@ the pending batch are also absent from production, confirmed by catalog reads.
 These are verified release dependencies, not a new login or customer approval
 requirement. See [current release evidence](release-evidence/production-release-revalidation-2026-09-18.md).
 
+The HOA addendum correction is now locally implemented and visually reviewed:
+bounded text and complete overflow attachments, smaller source-cell marks,
+source-aligned Buyer signatures without unprinted date fields, and correct
+following-page offsets. The interview now asks the previously missing updated
+resale-certificate question only when documents were already received, hides
+irrelevant delivery days, and includes HOA terms in review. Actual mobile and
+desktop browser checks and six rendered source-backed pages pass. This is
+**not deployed or completed-provider verified**. See
+[HOA interview and layout evidence](release-evidence/hoa-interview-layout-2026-09-18.md).
+
 The purchase-offer appraisal addendum now uses the same bounded, editable
 answer layout as standalone TXR-1948. Buyer signature boxes follow the source
 rules without extra unprinted date fields; continuation pages receive Buyer
 initials and shift following addenda correctly. Source hashes and render
 revisions remain recorded. Local rendered/offline-payload checks pass; this is
 **not deployed or completed-provider verified**. The long-address specimen
-also exposed clipping on the following HOA addendum, which remains a separate
-in-progress correction, not a user-access blocker. See
+also exposed clipping on the following HOA addendum, now covered by the
+separate local correction above. See
 [combined appraisal evidence](release-evidence/purchase-appraisal-candidate-2026-09-18.md).
 
 Standalone TXR-1948 appraisal-addendum answers now stay within measured source

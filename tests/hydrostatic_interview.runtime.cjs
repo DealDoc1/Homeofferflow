@@ -35,6 +35,23 @@ function setup(data = {}) {
 const valid = {hydrostaticTesting:'yes', hydrostaticRiskAllocation:'buyer_capped', hydrostaticBuyerLiabilityLimit:'2,500.00',
                buyer1:'Buyer One', buyerEmail:'buyer@example.test', seller1Name:'Seller One', seller1Email:'seller@example.test'};
 
+test('HOA review shows the chosen resale term and escapes association text',()=>{
+  const {context:c,el}=setup({hoa:'yes',hoaName:'<img src=x>',hoaSubdivisionInfo:'received',hoaUpdatedResaleCertificate:'no',hoaReserves:0,hoaTitleCost:'buyer'});
+  c.document.getElementById=id=>{const element=el(id);element.insertAdjacentHTML=(_p,v)=>{element.innerHTML+=v;};return element;};
+  vm.runInContext(section('  function buildReview()', '  function toggleHelper('),c);c.buildReview();
+  assert.match(el('reviewSummary').innerHTML,/HOA terms/);assert.match(el('reviewSummary').innerHTML,/Not required/);
+  assert.doesNotMatch(el('reviewSummary').innerHTML,/<img src=x>/);assert.match(el('reviewSummary').innerHTML,/\$0/);
+  c.state.data.hoa='no';c.buildReview();assert.doesNotMatch(el('reviewSummary').innerHTML,/HOA terms/);
+});
+
+test('HOA resale choice restores from a saved draft and clears for a different draft',()=>{
+  const {context:c,el}=setup();
+  vm.runInContext(section('  function clearOfferInterviewFields(', '  async function resumeOffer('),c);
+  c.applyOfferDataToFields({hoa:'yes',hoaSubdivisionInfo:'received',hoaUpdatedResaleCertificate:'yes'});
+  assert.equal(el('hoaUpdatedResaleCertificate').value,'yes');
+  c.applyOfferDataToFields({});assert.equal(el('hoaUpdatedResaleCertificate').value,'');
+});
+
 test('environmental review requires explicit rights, whole days, and shared signers',()=>{
   const {context:c}=setup();
   const data={...valid,environmentalAssessment:'yes',environmentalReviewTypes:['species','wetlands'],environmentalTerminationDays:'15'};

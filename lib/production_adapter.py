@@ -428,6 +428,7 @@ def seller_temporary_lease_execution_parties(offer):
 def validate_supported_offer(offer):
     """Fail closed for buyer paths that have not passed rendered-PDF QA."""
     offer = offer or {}
+    verified.hoa_addendum_layout.validate_hoa_answers(offer)
     blocked = []
 
     financing = verified.normalize_financing(
@@ -608,6 +609,8 @@ def fill_and_merge_20_19(offer):
     if verified.appraisal_requested(offer):
         from lib.txr_1948 import RENDER_REVISION as APPRAISAL_RENDER_REVISION
         offer['_signing_render_revisions']['TXR-1948'] = APPRAISAL_RENDER_REVISION
+    if offer.get('hoa') in ('yes', 'unknown'):
+        offer['_signing_render_revisions']['TREC-36-11'] = verified.hoa_addendum_layout.RENDER_REVISION
     if hydrostatic:
         source_hashes.append(HYDROSTATIC_SOURCE_SHA256)
         offer['_signing_render_revisions']['TREC-48-1'] = HYDROSTATIC_RENDER_REVISION

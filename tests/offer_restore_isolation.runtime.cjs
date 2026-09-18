@@ -67,6 +67,7 @@ function setup(offer = {id:'next', role:'agent', status:'Draft', offer_data:{}})
   vm.runInContext(source('  function cleanOfferDraftData(', '  async function saveOfferDraftToSupabase('),ctx);
   vm.runInContext(source('  function setInputIfEmpty(', '  function resetWizardForFreshOffer('),ctx);
   vm.runInContext(source('  function setRadioValue(', '  function updateSurveyExistingDetails('),ctx);
+  vm.runInContext(source('  function updateHoaFollowUpVisibility()', "  document.addEventListener('DOMContentLoaded'"),ctx);
   vm.runInContext(source('  function assumptionAnswerKeys(', '  function environmentalInterviewData(')
     +source('  function hydrostaticInterviewData(', '  function hydrostaticInterviewIssues('),ctx);
   const clearStart=html.includes('  function clearOfferInterviewFields(')?'  function clearOfferInterviewFields(':'  function applyOfferDataToFields(';
@@ -296,7 +297,7 @@ function enableLocalDraft(x,draft,owner='owner') {
   vm.runInContext(source('  function checkedValues(', '  function updateParagraph4LeaseVisibility('),c);
   vm.runInContext(source('  function uploadedDisclosureDraftNames()', '  function removeUploadedDisclosure('),c);
   vm.runInContext(source('  function getDraftSnapshot()', '  function saveDraftNow()'),c);
-  vm.runInContext(source('  function restoredWizardStep(', '  function restoreConditionalSections()'),c);
+  vm.runInContext(source('  function restoredWizardStep(', '  function updateHoaFollowUpVisibility()'),c);
   c.showStep=n=>{c.state.step=n;x.calls.push(['step',n,c.state.data.userType,c.__hofRestoringDraft]);c.calculatePriceTermsOnly();c.calculateFinancingDefaults();};
   vm.runInContext(source('  function escapeAttr(', '  function withTimeout('),c);
   c.selectPlan=(plan,price)=>{c.state.selectedPlan=plan;c.state.selectedPrice=price;};

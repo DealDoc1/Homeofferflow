@@ -3787,11 +3787,12 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       <div id="hoaDetails" style="display:none; margin-bottom:1.5rem;">
         <div class="field-group">
           <div class="field"><div class="field-label-row"><label>HOA / POA Name</label><button class="helper-btn" onclick="toggleHelper('h-hoa-name')">?</button></div><div class="helper-box" id="h-hoa-name"><strong>💡 HOA / POA Name</strong>Enter the subdivision association name if known. If you are unsure, use the MLS listing, seller disclosure, HOA addendum, or ask the listing side to confirm before sending.</div><input type="text" id="hoaName" placeholder="e.g. The Trails HOA"/></div>
-          <div class="field-row">
-            <div class="field"><div class="field-label-row"><label>HOA Docs Delivery Days</label><button class="helper-btn" onclick="toggleHelper('h-hoa-days')">?</button></div><div class="helper-box" id="h-hoa-days"><strong>💡 HOA Document Delivery</strong>This is the time period for delivery of subdivision information. Seven days is a common starting point, but confirm what fits the transaction and local timing.</div><input type="number" id="hoaDays" placeholder="e.g. 7"/></div>
-            <div class="field"><div class="field-label-row"><label>HOA Reserve/Transfer Cap ($)</label><button class="helper-btn" onclick="toggleHelper('h-hoa-reserves')">?</button></div><div class="helper-box" id="h-hoa-reserves"><strong>💡 HOA Fees / Reserves</strong>This controls the maximum amount the buyer agrees to pay for certain HOA-related reserves or transfer costs. Use zero if the buyer is not agreeing to pay additional reserves, or confirm the amount with the HOA/title company.</div><input type="number" id="hoaReserves" placeholder="e.g. 0"/></div>
-          </div>
           <div class="field"><div class="field-label-row"><label>Who provides subdivision information?</label><button class="helper-btn" onclick="toggleHelper('h-hoa-subdivision')">?</button></div><div class="helper-box" id="h-hoa-subdivision"><strong>💡 Subdivision Information</strong>This determines whether seller or buyer obtains the HOA/subdivision information. Seller delivery is common when the buyer has not already received and approved the documents.</div><select id="hoaSubdivisionInfo"><option value="">Select...</option><option value="seller">Seller obtains and delivers subdivision information</option><option value="buyer">Buyer obtains subdivision information</option><option value="received">Buyer already received and approved it</option><option value="notRequired">Buyer does not require delivery</option></select></div>
+          <div class="field" id="hoaUpdatedResaleField" style="display:none;"><label for="hoaUpdatedResaleCertificate">Does the buyer require an updated resale certificate?</label><select id="hoaUpdatedResaleCertificate"><option value="">Select...</option><option value="yes">Yes</option><option value="no">No</option></select></div>
+          <div class="field-row">
+            <div class="field" id="hoaDeliveryDaysField" style="display:none;"><div class="field-label-row"><label for="hoaDays">Delivery period (days)</label><button class="helper-btn" onclick="toggleHelper('h-hoa-days')">?</button></div><div class="helper-box" id="h-hoa-days"><strong>HOA Document Delivery</strong>Enter the agreed number of days after the effective date for obtaining the subdivision information.</div><input type="number" id="hoaDays" min="1" step="1" placeholder="e.g. 7"/></div>
+            <div class="field"><div class="field-label-row"><label for="hoaReserves">Buyer fee and reserve limit ($)</label><button class="helper-btn" onclick="toggleHelper('h-hoa-reserves')">?</button></div><div class="helper-box" id="h-hoa-reserves"><strong>HOA Fees and Reserves</strong>Enter the agreed buyer limit for the association charges covered by Paragraph C of the addendum. The form assigns any excess to the seller.</div><input type="number" id="hoaReserves" placeholder="e.g. 0"/></div>
+          </div>
           <div class="field"><div class="field-label-row"><label>Who pays title company HOA info cost?</label><button class="helper-btn" onclick="toggleHelper('h-hoa-title-cost')">?</button></div><div class="helper-box" id="h-hoa-title-cost"><strong>💡 HOA Info Cost</strong>If the title company charges for subdivision information, this selects who pays that cost. This is negotiable and can affect buyer/seller closing costs.</div><select id="hoaTitleCost"><option value="">Select...</option><option value="seller">Seller</option><option value="buyer">Buyer</option></select></div>
         </div>
       </div>
@@ -8626,7 +8627,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       priceReductionCount:'priceReductionCount', listingStatus:'listingStatus', listingNotes:'listingNotes',
       appraisalPartialValue:'appraisalPartialValue', appraisalTerminateDays:'appraisalTerminateDays',
       appraisalTerminateValue:'appraisalTerminateValue', hoaSubdivisionInfo:'hoaSubdivisionInfo',
-      hoaTitleCost:'hoaTitleCost', surveyIfRejectedPaidBy:'surveyIfRejectedPaidBy', mud:'mudDistrict',
+      hoaTitleCost:'hoaTitleCost', hoaUpdatedResaleCertificate:'hoaUpdatedResaleCertificate', surveyIfRejectedPaidBy:'surveyIfRejectedPaidBy', mud:'mudDistrict',
       brokerFeeAmount:'brokerFeeAmount', brokerFeePercent:'brokerFeePercent'
     });
     if (data.buyer1) {
@@ -9389,9 +9390,10 @@ function routeAfterMagicLinkIfNeeded() {
       requireRadioSelection('environmentalAssessment', 'environmental-review choice', missing);
       markEnvironmentalInterviewIssues(missing, false);
       const hoaChoice = getRadio('hoa') || '';
-      if (hoaChoice === 'yes') {
+      if (hoaChoice === 'yes' || hoaChoice === 'unknown') {
         requireField('hoaName', 'HOA name', missing);
-        requireField('hoaDays', 'HOA document delivery days', missing);
+        if (['seller', 'buyer'].includes(getVal('hoaSubdivisionInfo'))) requireField('hoaDays', 'HOA document delivery days', missing);
+        if (getVal('hoaSubdivisionInfo') === 'received') requireField('hoaUpdatedResaleCertificate', 'updated HOA resale certificate choice', missing);
         requireField('hoaReserves', 'HOA reserve/transfer cap', missing);
         requireField('hoaSubdivisionInfo', 'subdivision information delivery', missing);
         requireField('hoaTitleCost', 'HOA information cost payer', missing);
@@ -10148,13 +10150,15 @@ function routeAfterMagicLinkIfNeeded() {
         if (s.hoa === 'yes' || s.hoa === 'unknown') {
           s.hoaName = getVal('hoaName') || '';
           s.hoaSubdivisionInfo = getVal('hoaSubdivisionInfo') || '';
-          s.hoaDays = getVal('hoaDays') || '';
+          s.hoaDays = ['seller', 'buyer'].includes(s.hoaSubdivisionInfo) ? (getVal('hoaDays') || '') : '';
+          s.hoaUpdatedResaleCertificate = s.hoaSubdivisionInfo === 'received' ? (getVal('hoaUpdatedResaleCertificate') || '') : '';
           s.hoaReserves = moneyNumber(getVal('hoaReserves'));
           s.hoaTitleCost = getVal('hoaTitleCost') || '';
         } else {
           s.hoaName = '';
           s.hoaSubdivisionInfo = '';
           s.hoaDays = '';
+          s.hoaUpdatedResaleCertificate = '';
           s.hoaReserves = '';
           s.hoaTitleCost = '';
         }
@@ -10612,6 +10616,16 @@ function routeAfterMagicLinkIfNeeded() {
         </div>
       </div>`;
 
+    if (s.hoa === 'yes' || s.hoa === 'unknown') {
+      const deliveryLabels = {seller:'Seller obtains and delivers', buyer:'Buyer obtains', received:'Received and approved', notRequired:'Delivery not required'};
+      const row = (label,value) => `<div class="review-row review-long-text"><span class="rl">${text(label)}</span><span class="rv">${fmt(value)}</span></div>`;
+      let rows = row('Association', s.hoaName) + row('Subdivision information', deliveryLabels[s.hoaSubdivisionInfo]);
+      if (['seller','buyer'].includes(s.hoaSubdivisionInfo)) rows += row('Delivery period', s.hoaDays ? s.hoaDays + ' days' : '');
+      if (s.hoaSubdivisionInfo === 'received') rows += row('Updated resale certificate', {yes:'Required',no:'Not required'}[s.hoaUpdatedResaleCertificate]);
+      rows += row('Buyer fee and reserve limit', fmtM(s.hoaReserves)) + row('Title company information cost', {buyer:'Buyer',seller:'Seller'}[s.hoaTitleCost]);
+      document.getElementById('reviewSummary').insertAdjacentHTML('beforeend', `<div class="review-section"><div class="review-section-title">HOA terms</div>${rows}</div>`);
+    }
+
     if (s.financing === 'assumption') {
       const labels = {credit_report:'Credit report',employment:'Employment and salary verification',funds:'Verification of funds on deposit',financial_statement:'Financial statement',other:'Other'};
       const row = (label,value) => `<div class="review-row review-long-text"><span class="rl">${text(label)}</span><span class="rv">${text(value)}</span></div>`;
@@ -10765,6 +10779,7 @@ function routeAfterMagicLinkIfNeeded() {
     if (group === 'hoa') {
       const box = document.getElementById('hoaDetails');
       if (box) box.style.display = (value === 'yes' || value === 'unknown') ? 'block' : 'none';
+      updateHoaFollowUpVisibility();
     }
 
     if (group === 'saleContingency') {
@@ -13986,6 +14001,18 @@ function routeAfterMagicLinkIfNeeded() {
     });
   }
 
+  function updateHoaFollowUpVisibility() {
+    const delivery = getVal('hoaSubdivisionInfo');
+    const days = document.getElementById('hoaDeliveryDaysField');
+    const resale = document.getElementById('hoaUpdatedResaleField');
+    if (days) days.style.display = ['seller', 'buyer'].includes(delivery) ? 'block' : 'none';
+    if (resale) resale.style.display = delivery === 'received' ? 'block' : 'none';
+  }
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('hoaSubdivisionInfo')?.addEventListener('change', updateHoaFollowUpVisibility);
+    updateHoaFollowUpVisibility();
+  });
+
   function restoreConditionalSections() {
     updateHydrostaticVisibility();
     updateMineralVisibility();
@@ -13998,6 +14025,7 @@ function routeAfterMagicLinkIfNeeded() {
     const hoa = document.querySelector('input[name="hoa"]:checked')?.value || '';
     const hoaDetails = document.getElementById('hoaDetails');
     if (hoaDetails) hoaDetails.style.display = (hoa === 'yes' || hoa === 'unknown') ? 'block' : 'none';
+    updateHoaFollowUpVisibility();
 
     const sale = document.querySelector('input[name="saleContingency"]:checked')?.value || '';
     const saleDetails = document.getElementById('saleContingencyDetails');
