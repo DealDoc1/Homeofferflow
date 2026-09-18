@@ -10,6 +10,12 @@ remains unverified. See
 This does not change the production-status claims below or mean all remaining
 form work is complete.
 
+Loan-assumption TXR-1919 has a local combined-packet backend foundation with
+exact-cent purchase/assumed-loan/cash totals and simultaneous-signing payload
+tests. The main purchase interview is not connected yet; completed-provider
+placement and live source retrieval are unverified. It is **not deployed**.
+See [the loan-assumption foundation evidence](release-evidence/loan-assumption-packet-foundation-2026-09-18.md).
+
 ## Launch scope: OnDemand Realty
 
 The OnDemand launch includes the current **purchase-offer packet** and its

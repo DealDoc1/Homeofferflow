@@ -1,5 +1,7 @@
 import json, os, base64, hashlib, hmac, httpx, re
 from io import BytesIO
+from decimal import Decimal
+from lib.loan_assumption import display_money as assumption_money
 from http.server import BaseHTTPRequestHandler
 
 from pypdf import PdfReader, PdfWriter
@@ -265,6 +267,9 @@ def normalize_financing(v):
         "usda loan": "usda",
         "usda guaranteed": "usda",
         "usda": "usda",
+        "assumption": "assumption",
+        "loan assumption": "assumption",
+        "loan-assumption": "assumption",
     }
     return aliases.get(raw, raw)
 
@@ -664,6 +669,9 @@ def build_pages_data(
         s.get("leadDisclosureAttached"),
     ))
 
+    assumption = normalize_financing(s.get('financing')) == 'assumption'
+    financed = has_loan or assumption
+    price_formatter = assumption_money if assumption else fmt_money
     pages[0] = [
         (280, 690, s.get("seller", "")),
         (124, 679, buyer),
@@ -675,11 +683,12 @@ def build_pages_data(
         (387, 606, s.get("county", "")),
         (161, 595, addr_full),
 
-        (457, 318, fmt_money(cash) if has_loan else fmt_money(price)),
-        (457, 269, fmt_money(loan) if has_loan else ""),
-        (457, 257, fmt_money(price)),
+        (457, 318, price_formatter(cash) if financed else price_formatter(price)),
+        (457, 269, price_formatter(loan) if financed else ""),
+        (457, 257, price_formatter(price)),
 
         (315, 284, ck(has_loan), "check_small"),
+        (76, 270, ck(assumption), "check_small"),
 
         # Paragraph 4. The production adapter appends the exact corresponding
         # lease addendum before a checked option can be sent for signature.
@@ -843,6 +852,7 @@ def build_pages_data(
         (62, 667, ck(has_loan), "check_small"),
         (62, 655, ck(has_sale), "check_small"),
         (62, 642, ck(has_appraisal), "check_small"),
+        (62, 590, ck(assumption), "check_small"),
 
         # Leases. Buyer and seller temporary leases are distinct Paragraph 22 rows.
         (62, 542, ck(lease_residential), "check_small"),
@@ -928,6 +938,13 @@ def fill_and_merge(offer):
 
     normalized_financing_main = normalize_financing(s.get("financing", ""))
     s["financing"] = normalized_financing_main
+
+    if normalized_financing_main == 'assumption':
+        # The production adapter derives this from the selected source-form
+        # balances. Keep cents exact rather than using float/integer formatting.
+        price = Decimal(str(s.get('price', '0')).replace(',', ''))
+        loan = Decimal(str(s.get('loanAmount', '0')).replace(',', ''))
+        cash = price - loan
 
     has_loan = normalized_financing_main in ["conventional", "fha", "va", "usda"]
     has_hoa  = s.get("hoa") in ["yes", "unknown"]

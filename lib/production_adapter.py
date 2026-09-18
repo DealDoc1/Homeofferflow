@@ -19,6 +19,8 @@ from lib.pdf_source_audit import collect_source_hashes
 from lib.repair_continuation import continuation_field
 from lib.txr_1905 import render_txr_1905, build_signwell_fields_txr1905, RENDER_REVISION as MINERAL_RENDER_REVISION
 from lib.txr_1917 import render_txr_1917, build_signwell_fields_txr1917, RENDER_REVISION as ENVIRONMENTAL_RENDER_REVISION
+from lib.txr_1919 import render_txr_1919, build_signwell_fields_txr1919, RENDER_REVISION as ASSUMPTION_RENDER_REVISION
+from lib.loan_assumption import parse_terms as parse_assumption_terms, SOURCE_SHA256 as ASSUMPTION_SOURCE_SHA256
 
 MINERAL_SOURCE_SHA256 = '79f6b8e8b4faa8293abddf4e298f39dbaada703919812c01726c9721af5b0cf3'
 ENVIRONMENTAL_SOURCE_SHA256 = '99a3df4d6d8142dabc6ec8c88a11415c937bc85d3c29e52127ec942059dc5742'
@@ -172,6 +174,24 @@ def environmental_execution_parties(offer):
     return _addendum_execution_parties(offer, 'Environmental review') if environmental_requested(offer) else []
 
 
+def assumption_requested(offer):
+    return verified.normalize_financing((offer or {}).get('financing') or (offer or {}).get('financingType')) == 'assumption'
+
+
+def assumption_execution_parties(offer):
+    return _addendum_execution_parties(offer, 'Loan assumption') if assumption_requested(offer) else []
+
+
+def _assumption_render_data(offer):
+    try:
+        terms, _, _ = parse_assumption_terms(offer)
+    except ValueError as exc:
+        raise UnsupportedOfferPathError([str(exc)]) from exc
+    return {**terms, 'property_address': _purchase_addendum_address(offer),
+            'buyer_names': [str(offer[key]).strip() for key in ('buyer1', 'buyer2') if str(offer.get(key) or '').strip()],
+            'seller_names': [party['name'] for party in assumption_execution_parties(offer)], '_for_signing': True}
+
+
 def _purchase_addendum_address(offer):
     if not str(offer.get('address') or '').strip() or not str(offer.get('city') or '').strip():
         raise UnsupportedOfferPathError(['property street address and city'])
@@ -267,6 +287,15 @@ def _purchase_addendum_documents(offer):
         data = _environmental_render_data(offer)
         rendered = render_txr_1917(bytes(source), data)
         documents.append({'form_code': 'TXR-1917', 'raw': rendered, 'render_data': data,
+                          'page_count': len(PdfReader(BytesIO(rendered)).pages)})
+    if assumption_requested(offer):
+        sources = offer.get('_paragraph4_source_pdf_bytes') or {}
+        source = sources.get('TXR-1919') if isinstance(sources, dict) else None
+        if not isinstance(source, (bytes, bytearray)) or hashlib.sha256(source).hexdigest() != ASSUMPTION_SOURCE_SHA256:
+            raise UnsupportedOfferPathError(['the current Loan Assumption Addendum'])
+        data = _assumption_render_data(offer)
+        rendered = render_txr_1919(bytes(source), data)
+        documents.append({'form_code': 'TXR-1919', 'raw': rendered, 'render_data': data,
                           'page_count': len(PdfReader(BytesIO(rendered)).pages)})
     return documents
 
@@ -404,8 +433,10 @@ def validate_supported_offer(offer):
     financing = verified.normalize_financing(
         offer.get("financing") or offer.get("financingType") or ""
     )
-    if financing not in {"cash", "conventional", "fha", "va", "usda"}:
+    if financing not in {"cash", "conventional", "fha", "va", "usda", "assumption"}:
         blocked.append("unsupported financing type")
+    if _truthy(offer.get('loanAssumption')) and financing != 'assumption':
+        blocked.append('choose loan-assumption financing and enter its terms')
 
     leases = _normalized(offer.get("leases"))
     if leases in {"natural resource", "natural resource lease", "naturalresource", "naturalresourcelease"}:
@@ -473,7 +504,6 @@ def validate_supported_offer(offer):
 
     unsupported_flags = {
         "sellerFinancing": "Seller Financing Addendum",
-        "loanAssumption": "Loan Assumption Addendum",
         "leadBasedPaintAttached": "generated Lead-Based Paint Addendum",
         "attachLeadBasedPaintAddendum": "generated Lead-Based Paint Addendum",
         "sellerLeadDisclosureAttached": "generated Lead-Based Paint Addendum",
@@ -497,6 +527,13 @@ def validate_supported_offer(offer):
         _mineral_render_data(offer)
     if environmental_requested(offer):
         _environmental_render_data(offer)
+    if assumption_requested(offer):
+        _assumption_render_data(offer)
+        _, total, price = parse_assumption_terms(offer)
+        # Normalize before usage/delivery fingerprints and offer persistence.
+        # Previously typed new-loan/down-payment values cannot override balances.
+        offer.update(financing='assumption', price=str(price), loanAmount=str(total),
+                     downPayment=str(price - total), loanAssumption='yes')
 
     return True
 
@@ -573,8 +610,13 @@ def fill_and_merge_20_19(offer):
         offer['_signing_render_revisions']['TREC-48-1'] = HYDROSTATIC_RENDER_REVISION
     for doc in addendum_docs:
         code = doc['form_code']
-        source_hashes.append(MINERAL_SOURCE_SHA256 if code == 'TXR-1905' else ENVIRONMENTAL_SOURCE_SHA256)
-        offer['_signing_render_revisions'][code] = MINERAL_RENDER_REVISION if code == 'TXR-1905' else ENVIRONMENTAL_RENDER_REVISION
+        source_hash, revision = {
+            'TXR-1905': (MINERAL_SOURCE_SHA256, MINERAL_RENDER_REVISION),
+            'TXR-1917': (ENVIRONMENTAL_SOURCE_SHA256, ENVIRONMENTAL_RENDER_REVISION),
+            'TXR-1919': (ASSUMPTION_SOURCE_SHA256, ASSUMPTION_RENDER_REVISION),
+        }[code]
+        source_hashes.append(source_hash)
+        offer['_signing_render_revisions'][code] = revision
     offer["_signing_source_hashes"] = source_hashes
     if not docs and not lease_docs and not hydrostatic and not addendum_docs:
         return packet
@@ -603,6 +645,7 @@ def build_signwell_fields_20_19(offer, pdf_bytes):
     hydrostatic_parties = hydrostatic_execution_parties(offer)
     mineral_parties = mineral_execution_parties(offer)
     environmental_parties = environmental_execution_parties(offer)
+    assumption_parties = assumption_execution_parties(offer)
     fields = verified.build_signwell_fields(offer, pdf_bytes)
     if not fields:
         fields = [[]]
@@ -612,7 +655,7 @@ def build_signwell_fields_20_19(offer, pdf_bytes):
     # introduce a Seller invitation into an otherwise Buyer-only packet.
     sellers = {party["id"]: party for party in (
         paragraph4_execution_parties(offer) +
-        seller_temporary_lease_execution_parties(offer) + hydrostatic_parties + mineral_parties + environmental_parties
+        seller_temporary_lease_execution_parties(offer) + hydrostatic_parties + mineral_parties + environmental_parties + assumption_parties
     )}
     continuation_fields = [
         field for field in fields_for_file
@@ -712,7 +755,8 @@ def build_signwell_fields_20_19(offer, pdf_bytes):
     first_page = len(PdfReader(BytesIO(pdf_bytes)).pages) - sum(doc['page_count'] for doc in docs) - addendum_pages + 1
     for doc in addendum_docs:
         data = doc['render_data']
-        builder = build_signwell_fields_txr1905 if doc['form_code'] == 'TXR-1905' else build_signwell_fields_txr1917
+        builder = {'TXR-1905': build_signwell_fields_txr1905, 'TXR-1917': build_signwell_fields_txr1917,
+                   'TXR-1919': build_signwell_fields_txr1919}[doc['form_code']]
         for field in builder(data)[0]:
             copied = dict(field)
             copied['page'] += first_page - 1
