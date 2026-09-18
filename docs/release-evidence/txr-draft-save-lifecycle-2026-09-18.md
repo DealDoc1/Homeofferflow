@@ -77,3 +77,42 @@ foundation even though the interview/combined-packet implementation exists
 locally in the September 15 evidence. Local progress is not production status.
 No production tracker row was modified. Preserve the release/cost hold and
 report implemented, browser-tested, and deployed work separately.
+
+## Full interview save-state audit — September 18 follow-up
+
+Extended the same runtime checks across all eleven existing TXR interviews:
+1501, 1506, 1507, 1508, 1905, 1914, 1917, 1919, 1948, 1953, and 1954.
+This executes each complete interview script, opens its form, and exercises
+its actual submit callback. It does not merely search for guard strings.
+
+The pre-change matrix passed 34 of 55 checks and failed 21:
+
+- TXR-1914 left its save button available during the request and did not guard
+  repeat handler invocations. TXR-1948/1953/1954 disabled their visible button
+  but lacked an in-handler guard against another submission. All four now
+  guard pending/success states, show a busy state, and restore the exact prior
+  label after failure. Status messages are exposed as polite live updates.
+- TXR-1501/1506/1507/1508/1905 already prevented repeat saves, but successful
+  responses left their controls labeled Preparing/Saving with aria-busy true.
+  They now clear the busy state and display Draft ready after success.
+- The two previously repaired forms remain passing without further changes.
+
+Final runtime matrix: **55 passed**. For every form it checks success after
+currentTarget clears, repeat submissions during and after saving, explicit
+retry with identical answers after validation failure, network-error recovery
+without an automatic retry, and opening the existing review queue without
+sending a signature request. Successful controls must be disabled, no longer
+busy, and labeled Draft ready.
+
+Full suite: **2,110 tests in 35.360 seconds; 2,108 passed**, with only the same
+two outstanding TXR-1507 approved-map comparison failures. The final added
+label assertion was also rerun across the complete 55-check runtime matrix.
+No payload terms, PDF coordinates, authorization rules, or signing settings
+changed. No new browser test is claimed for the nine follow-up forms; the
+earlier browser pass covers TXR-1917/1919 only. This is local save-flow QA,
+not all-form legal-content, persistence, or completed-signature verification.
+
+The exact TXR-1507 candidate test was rechecked read-only in authenticated
+SignWell during this follow-up and still showed In Progress with the
+associate signature/date placeholders. No reminder or replacement was sent.
+No Git push, deployment, production write, or paid resource was used.
