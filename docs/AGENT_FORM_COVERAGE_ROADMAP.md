@@ -20,9 +20,14 @@ assumption path. Collector/calculator/PDF precision is now corrected locally,
 with five-financing-type packet checks and conventional-to-cash browser checks.
 Financing rate/fee placement was corrected after three-decimal values exposed
 overlaps. See [currency precision evidence](release-evidence/purchase-currency-precision-2026-09-18.md).
-This remains **not deployed**. Next local boundary: self-service checkout still
-rejects loan assumption in its financing allowlist; complete that path before
-claiming the full loan-assumption customer journey works.
+This remains **not deployed**. Loan-assumption self-service checkout now has a
+locally tested prepayment packet check using the fulfillment builder. Offline
+integration checks preserve exact totals through saved checkout data and the
+simultaneous-signing request; failed checks preserve interview answers for retry.
+See [checkout evidence](release-evidence/loan-assumption-checkout-2026-09-18.md).
+Live payment, private-source retrieval, delivery and completed-provider placement
+remain unverified for this combined path; the full customer journey is not yet
+claimed production-ready.
 
 ## Launch scope: OnDemand Realty
 

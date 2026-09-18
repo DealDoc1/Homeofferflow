@@ -89,9 +89,9 @@ untracked under `tmp/pdfs/currency-precision/` and `tmp/pdfs/currency-browser/`.
 
 - Publishing/deployment remains subject to the existing publication and cost
   restrictions; this turn incurred no Vercel build/deployment usage.
-- The new loan-assumption interview is not yet accepted by self-service
-  checkout's financing allowlist. Finish that validation/fulfillment boundary
-  before calling the entire assumption customer journey complete.
+- Follow-up: the loan-assumption checkout allowlist and prepayment packet check
+  are now implemented and tested locally. See [checkout evidence](loan-assumption-checkout-2026-09-18.md)
+  for the offline validation/fulfillment checks and remaining live verification.
 - Completed-provider placement for the outstanding TXR signer variants and
   the signature-map reference comparisons remain separate unfinished work.
 - Seller-financing combined-packet/interview work remains on the roadmap.

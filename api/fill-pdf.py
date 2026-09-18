@@ -452,6 +452,27 @@ def verify_internal_checkout_forward_signature(body, sig_header, secret):
         return False
 
 
+def verify_checkout_preflight_signature(body, sig_header, secret):
+    # Prefixing the signed body separates a non-delivering preflight from
+    # the paid event handoff even though both use the existing server secret.
+    return verify_internal_checkout_forward_signature(b'checkout-preflight.' + body, sig_header, secret)
+
+
+def preflight_checkout_packet(offer):
+    """Render and map in memory only: no usage reservation, record or delivery."""
+    if not isinstance(offer, dict) or not assumption_requested(offer):
+        raise UnsupportedOfferPathError(['loan-assumption purchase answers'])
+    working = {key: value for key, value in offer.items()
+               if not key.startswith('_') and key != 'paragraph4SourceRevisions'}
+    # Reject incomplete terms and signers before touching private storage.
+    validate_supported_offer(working)
+    hydrate_paragraph4_sources(working)
+    pdf_bytes = fill_and_merge(working)
+    build_signwell_fields(working, pdf_bytes)
+    return {'ok': True, 'pages': len(PdfReader(BytesIO(pdf_bytes)).pages),
+            'totals': {key: working[key] for key in ('price', 'loanAmount', 'downPayment')}}
+
+
 def build_pages_data(
     s,
     addr_full,
@@ -2327,6 +2348,27 @@ class handler(BaseHTTPRequestHandler):
             body = self.rfile.read(length)
 
             payload = json.loads(body.decode("utf-8") or "{}")
+
+            if isinstance(payload, dict) and payload.get('action') == 'checkout_packet_preflight':
+                if not verify_checkout_preflight_signature(body,
+                        self.headers.get('x-homeofferflow-preflight-signature', ''),
+                        INTERNAL_CHECKOUT_FORWARD_SECRET):
+                    self._json(401, {'error': 'Invalid packet verification signature'})
+                    return
+                if len(body) > 4 * 1024 * 1024:
+                    self._json(413, {'error': 'Packet is too large'})
+                    return
+                try:
+                    result = preflight_checkout_packet(payload.get('offerData'))
+                except (UnsupportedOfferPathError, CurrencyInputError) as error:
+                    self._json(422, {'error': str(error), 'code': 'checkout_answers_invalid'})
+                    return
+                except Exception:
+                    # Never expose provider errors, storage paths or answers.
+                    self._json(503, {'error': 'Document verification is temporarily unavailable'})
+                    return
+                self._json(200, result)
+                return
 
             # Stripe webhook path: paid checkout sends a checkout.session.completed event.
             if isinstance(payload, dict) and payload.get("type") == "checkout.session.completed":

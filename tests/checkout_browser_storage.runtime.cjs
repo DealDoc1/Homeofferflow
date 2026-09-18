@@ -72,3 +72,23 @@ test('compact fallback strips both attachment aliases without mutating the input
   for(const key of ['uploadedDocs','uploadedDisclosureDocs','signwell','_paragraph4_source_pdf_bytes'])assert.equal(saved[key],undefined);
   assert.equal(JSON.stringify(offer),original);
 });
+for (const status of [422,503]) test(`packet check failure ${status} preserves answers and allows retry`,async()=>{
+  const x=setup(), originalFetch=x.c.fetch;
+  const message=status===422?'Please enter the lender name.':'Your document packet could not be checked. Please try again. No payment was started.';
+  x.c.state.data.financing='assumption';
+  x.c.fetch=async()=>({ok:false,status,headers:{get:()=> 'application/json'},json:async()=>({error:message})});
+  await x.c.handlePayment();
+  assert.equal(x.c.window.location.href,'original');
+  assert.equal(x.button.disabled,false);
+  assert.equal(x.button.textContent,'Pay $99 & Continue');
+  assert.equal(x.c.state.data.address,'Current property');
+  assert.equal(JSON.parse(x.store.get('hofOfferData')).financing,'assumption');
+  assert.equal(x.c.window.hofUploadedDisclosureDocs,x.files);
+  assert.ok(x.notices.some(notice=>notice.includes(message)));
+  x.c.fetch=originalFetch;
+  await x.c.handlePayment();
+  assert.equal(x.requests.length,1);
+  assert.equal(x.requests[0].offerData.financing,'assumption');
+  assert.equal(x.requests[0].offerData.uploadedDisclosureDocs[0].base64,x.files[0].base64);
+  assert.equal(x.c.window.location.href,'https://checkout.example.test/current');
+});

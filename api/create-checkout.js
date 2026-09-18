@@ -32,9 +32,9 @@ function offerNumberIssues(offer) {
   requireNumber(['optionFee'], 'Option fee', { money: true });
   requireNumber(['optionDays'], 'Option days', { integer: true });
   const financing = String(first(['financing', 'financingType']) || '').trim().toLowerCase();
-  if (!['cash', 'conventional', 'fha', 'va', 'usda'].includes(financing)) {
+  if (!['cash', 'conventional', 'fha', 'va', 'usda', 'assumption'].includes(financing)) {
     issues.push('Choose a supported financing type before checkout.');
-  } else if (financing !== 'cash') {
+  } else if (['conventional', 'fha', 'va', 'usda'].includes(financing)) {
     requireNumber(['loanAmount'], 'Loan amount', { positive: true, money: true });
     if (offer.downPayment !== undefined && offer.downPayment !== null && offer.downPayment !== '') {
       requireNumber(['downPayment'], 'Down payment', { money: true });
@@ -130,6 +130,19 @@ module.exports = async (req, res) => {
       });
     }
 
+    let checkoutOffer = offerData;
+    if (String(offerData.financing || offerData.financingType || '').trim().toLowerCase() === 'assumption') {
+      try {
+        const { preflightAssumptionPacket } = require('../lib/checkout_packet_preflight');
+        checkoutOffer = await preflightAssumptionPacket({ ...offerData, financing: 'assumption' });
+      } catch (error) {
+        return res.status([413, 422].includes(error.statusCode) ? error.statusCode : 503).json({
+          error: [413, 422].includes(error.statusCode) ? error.message
+            : 'Your document packet could not be checked. Please try again. No payment was started.'
+        });
+      }
+    }
+
     const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
     const finalPriceId = process.env.STRIPE_BUYER_OFFER_PRICE_ID || 'price_1TYTYqAELe66ESXnhNQmydWn';
 
@@ -141,7 +154,7 @@ module.exports = async (req, res) => {
     const safeCancelUrl = `${origin}/?payment=cancelled`;
 
     const offerDataString = JSON.stringify({
-      ...offerData,
+      ...checkoutOffer,
       _paymentEmail: email,
       _plan: SELF_SERVE_PLAN
     });
