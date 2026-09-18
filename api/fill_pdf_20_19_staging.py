@@ -13,6 +13,10 @@ from lib.nonrealty_continuation import (
     text_entries as nonrealty_text_entries, render_nonrealty_continuation,
     continuation_page_count as nonrealty_continuation_page_count,
 )
+from lib.lease_terms_continuation import (
+    text_entries as lease_terms_entries, render_continuation as render_lease_terms_continuation,
+    page_count as lease_terms_page_count,
+)
 
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
 STRIPE_WHSEC   = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
@@ -1192,16 +1196,7 @@ def fill_and_merge(offer):
                 (259, 528, fmt_money(temp_deposit), 8),
                 *fitted_blank_entries(temp_utilities, [(462, 435, 105), (49, 424, 384)], fs=8),
                 *fitted_blank_entries(temp_pets, [(340, 380, 225)], fs=8),
-                *fitted_blank_entries(temp_special, [
-                    (182, 263, 384),
-                    (49, 252, 518),
-                    (49, 241, 518),
-                    (49, 230, 518),
-                    (49, 219, 518),
-                    (49, 208, 518),
-                    (49, 197, 518),
-                    (49, 186, 518),
-                ], fs=8),
+                *lease_terms_entries(temp_special, "buyer"),
             ],
             1: [
                 # Page 2: property, holdover, and both parties' notice information.
@@ -1285,12 +1280,7 @@ def fill_and_merge(offer):
                 (433, 529, fmt_money(seller_temp_deposit), 8),
                 *fitted_blank_entries(seller_temp_utilities, [(331, 466, 238)], fs=8),
                 *fitted_blank_entries(seller_temp_pets, [(342, 406, 227)], fs=8),
-                *fitted_blank_entries(seller_temp_special, [
-                    (183, 305, 386), (51, 294, 518), (51, 283, 518),
-                    (51, 272, 518), (51, 261, 518), (51, 250, 518),
-                    (51, 239, 518), (51, 228, 518), (51, 217, 518),
-                    (51, 206, 518), (51, 195, 518), (51, 184, 518),
-                ], fs=8),
+                *lease_terms_entries(seller_temp_special, "seller"),
             ],
             1: [
                 *fitted_blank_entries(addr_full, [(190, 747, 286)], fs=8),
@@ -1424,6 +1414,10 @@ def fill_and_merge(offer):
     nonrealty_continuation = render_nonrealty_continuation(s)
     if nonrealty_continuation:
         merger.append(PdfReader(BytesIO(nonrealty_continuation)))
+    lease_kind = "buyer" if buyer_temp_lease_attached else "seller" if seller_temp_lease_attached else ""
+    lease_continuation = render_lease_terms_continuation(s, lease_kind)
+    if lease_continuation:
+        merger.append(PdfReader(BytesIO(lease_continuation)))
 
     out = BytesIO()
     merger.write(out)
@@ -1663,13 +1657,23 @@ def build_signwell_fields(offer, pdf_bytes):
         if has_buyer2:
             fields_for_file.append(continuation_field("2", page, index + 1))
 
-    for index in range(nonrealty_continuation_page_count(offer)):
+    nonrealty_page_count = nonrealty_continuation_page_count(offer)
+    for index in range(nonrealty_page_count):
         page = next_page + repair_page_count + index
         if page > page_count:
             raise ValueError("The non-realty items continuation is missing from this packet.")
         fields_for_file.append(continuation_field("1", page, index + 1, "nonrealty"))
         if has_buyer2:
             fields_for_file.append(continuation_field("2", page, index + 1, "nonrealty"))
+
+    lease_kind = "buyer" if buyer_temp_lease_attached else "seller" if seller_temp_lease_attached else ""
+    for index in range(lease_terms_page_count(offer, lease_kind)):
+        page = next_page + repair_page_count + nonrealty_page_count + index
+        if page > page_count:
+            raise ValueError("The temporary lease continuation is missing from this packet.")
+        fields_for_file.append(continuation_field("1", page, index + 1, "lease"))
+        if has_buyer2:
+            fields_for_file.append(continuation_field("2", page, index + 1, "lease"))
 
     fields = [fields_for_file]
 

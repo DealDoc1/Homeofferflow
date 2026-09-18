@@ -508,7 +508,7 @@ def build_signwell_fields_20_19(offer, pdf_bytes):
     )}
     continuation_fields = [
         field for field in fields_for_file
-        if field["api_id"].startswith(("repair_continuation_", "nonrealty_continuation_")) and field["recipient_id"] == "1"
+        if field["api_id"].startswith(("repair_continuation_", "nonrealty_continuation_", "lease_continuation_")) and field["recipient_id"] == "1"
     ]
     for field in continuation_fields:
         for recipient in sorted(sellers):
