@@ -83,7 +83,7 @@ class UploadedDisclosureWorkflowTests(unittest.TestCase):
         self.assertIn("function removeUploadedDisclosure(index)", INDEX_HTML)
         self.assertIn("docs.splice(index, 1)", INDEX_HTML)
         self.assertIn("uploaded-doc-remove", INDEX_HTML)
-        self.assertIn("Remove ${escapeHtml(d.name)}", INDEX_HTML)
+        self.assertIn("Remove ${escapeAttr(d.name)}", INDEX_HTML)
 
     def test_attachment_acknowledgement_is_invalidated_after_packet_changes(self):
         self.assertIn("function resetUploadedDisclosureAcknowledgement()", INDEX_HTML)

@@ -296,7 +296,8 @@ function enableLocalDraft(x,draft,owner='owner') {
   vm.runInContext(source('  function getDraftSnapshot()', '  function saveDraftNow()'),c);
   vm.runInContext(source('  function restoredWizardStep(', '  function restoreConditionalSections()'),c);
   c.showStep=n=>{c.state.step=n;x.calls.push(['step',n,c.state.data.userType,c.__hofRestoringDraft]);c.calculatePriceTermsOnly();c.calculateFinancingDefaults();};
-  c.escapeHtml=v=>String(v);c.selectPlan=(plan,price)=>{c.state.selectedPlan=plan;c.state.selectedPrice=price;};
+  vm.runInContext(source('  function escapeAttr(', '  function withTimeout('),c);
+  c.selectPlan=(plan,price)=>{c.state.selectedPlan=plan;c.state.selectedPrice=price;};
   return {store,timers};
 }
 const startupDraft={userType:'agent',wizardOrderVersion:2,step:3,fields:{buyer1First:'Saved',buyer1Last:'Client',propAddress:'Saved property'},radios:{}};

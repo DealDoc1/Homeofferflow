@@ -10372,7 +10372,8 @@ function routeAfterMagicLinkIfNeeded() {
 
   function buildReview() {
     const s = state.data;
-    const fmt = v => v || '<span style="color:var(--warn);font-size:0.8rem;">Not entered</span>';
+    const text = v => escapeAttr(v == null ? '' : String(v));
+    const fmt = v => v ? text(v) : '<span style="color:var(--warn);font-size:0.8rem;">Not entered</span>';
     const fmtM = v => v !== '' && v !== undefined && v !== null ? '$' + Number(v).toLocaleString() : '';
     const atag = (label, on) => `<span class="addendum-tag ${on ? '' : 'na'}">${on ? '✓' : '—'} ${label}</span>`;
     const hasLoan = ['conventional','fha','va','usda'].includes(s.financing);
@@ -10381,30 +10382,30 @@ function routeAfterMagicLinkIfNeeded() {
       <div class="review-section"><div class="review-section-title">Parties</div>
         <div class="review-row"><span class="rl">Buyer(s)</span><span class="rv">${fmt(s.buyer2 ? `${s.buyer1} & ${s.buyer2}` : s.buyer1)}</span></div>
         <div class="review-row"><span class="rl">Seller(s)</span><span class="rv">${fmt(s.seller)}</span></div>
-        <div class="review-row"><span class="rl">Buyer Phone</span><span class="rv">${s.buyerPhone || '—'}</span></div>
-        <div class="review-row"><span class="rl">Buyer Email</span><span class="rv">${s.buyerEmail || '—'}</span></div>
-        <div class="review-row"><span class="rl">Buyer Address</span><span class="rv">${s.buyerMailAddr || '—'}</span></div>
+        <div class="review-row"><span class="rl">Buyer Phone</span><span class="rv">${text(s.buyerPhone || '—')}</span></div>
+        <div class="review-row"><span class="rl">Buyer Email</span><span class="rv">${text(s.buyerEmail || '—')}</span></div>
+        <div class="review-row"><span class="rl">Buyer Address</span><span class="rv">${text(s.buyerMailAddr || '—')}</span></div>
       </div>
 
       <div class="review-section"><div class="review-section-title">Property</div>
         <div class="review-row"><span class="rl">Address</span><span class="rv">${fmt(s.address ? `${s.address}, ${s.city}, TX ${s.zip}` : '')}</span></div>
         <div class="review-row"><span class="rl">County</span><span class="rv">${fmt(s.county ? s.county + ' County' : '')}</span></div>
-        <div class="review-row"><span class="rl">Lot / Block</span><span class="rv">${[s.lotNumber ? 'Lot ' + s.lotNumber : '', s.blockNumber ? 'Block ' + s.blockNumber : ''].filter(Boolean).join(', ') || '—'}</span></div>
-        <div class="review-row"><span class="rl">Subdivision</span><span class="rv">${s.subdivision || '—'}</span></div>
-        <div class="review-row"><span class="rl">Legal Desc.</span><span class="rv">${s.legalDescription || '—'}</span></div>
+        <div class="review-row"><span class="rl">Lot / Block</span><span class="rv">${text([s.lotNumber ? 'Lot ' + s.lotNumber : '', s.blockNumber ? 'Block ' + s.blockNumber : ''].filter(Boolean).join(', ') || '—')}</span></div>
+        <div class="review-row"><span class="rl">Subdivision</span><span class="rv">${text(s.subdivision || '—')}</span></div>
+        <div class="review-row"><span class="rl">Legal Desc.</span><span class="rv">${text(s.legalDescription || '—')}</span></div>
       </div>
 
       <div class="review-section"><div class="review-section-title">Price & Terms</div>
         <div class="review-row"><span class="rl">Offer Price</span><span class="rv">${fmt(fmtM(s.price))}</span></div>
         <div class="review-row"><span class="rl">Earnest Money</span><span class="rv">${fmt(fmtM(s.earnest))}</span></div>
         <div class="review-row"><span class="rl">Option Fee</span><span class="rv">${fmt(fmtM(s.optionFee))}</span></div>
-        <div class="review-row"><span class="rl">Option Period</span><span class="rv">${s.optionDays ? s.optionDays + ' days' : '—'}</span></div>
-        <div class="review-row"><span class="rl">Financing</span><span class="rv">${s.financing ? s.financing.charAt(0).toUpperCase() + s.financing.slice(1) : '—'}</span></div>
+        <div class="review-row"><span class="rl">Option Period</span><span class="rv">${text(s.optionDays ? s.optionDays + ' days' : '—')}</span></div>
+        <div class="review-row"><span class="rl">Financing</span><span class="rv">${text(s.financing ? s.financing.charAt(0).toUpperCase() + s.financing.slice(1) : '—')}</span></div>
         ${hasLoan ? `<div class="review-row"><span class="rl">Down Payment / Cash</span><span class="rv">${fmtM(s.downPayment)}</span></div>` : ''}
         ${hasLoan ? `<div class="review-row"><span class="rl">Loan Amount</span><span class="rv">${fmtM(s.loanAmount)}</span></div>` : ''}
-        ${s.appraisalAddendum && s.appraisalAddendum !== 'none' ? `<div class="review-row"><span class="rl">Appraisal Addendum</span><span class="rv">${s.appraisalAddendum === 'waiver' ? 'Waiver' : s.appraisalAddendum === 'partial' ? 'Partial waiver at ' + fmtM(s.appraisalPartialValue) : 'Additional termination right: ' + (s.appraisalTerminateDays || '—') + ' days / below ' + fmtM(s.appraisalTerminateValue)}</span></div>` : ''}
-        ${s.nonRealtyItems === 'yes' ? `<div class="review-row"><span class="rl">Non-Realty Items</span><span class="rv">${s.nonRealtyAmount ? fmtM(s.nonRealtyAmount) : 'No separate amount'} · ${(s.nonRealtyDescription || '').slice(0, 120)}${(s.nonRealtyDescription || '').length > 120 ? '…' : ''}</span></div>` : ''}
-        ${(window.hofUploadedDisclosureDocs || []).length ? `<div class="review-row"><span class="rl">Uploaded Docs</span><span class="rv">${(window.hofUploadedDisclosureDocs || []).map(d => d.name).join(', ')}</span></div>` : ''}
+        ${s.appraisalAddendum && s.appraisalAddendum !== 'none' ? `<div class="review-row"><span class="rl">Appraisal Addendum</span><span class="rv">${text(s.appraisalAddendum === 'waiver' ? 'Waiver' : s.appraisalAddendum === 'partial' ? 'Partial waiver at ' + fmtM(s.appraisalPartialValue) : 'Additional termination right: ' + (s.appraisalTerminateDays || '—') + ' days / below ' + fmtM(s.appraisalTerminateValue))}</span></div>` : ''}
+        ${s.nonRealtyItems === 'yes' ? `<div class="review-row"><span class="rl">Non-Realty Items</span><span class="rv">${s.nonRealtyAmount ? fmtM(s.nonRealtyAmount) : 'No separate amount'} · ${text((s.nonRealtyDescription || '').slice(0, 120))}${(s.nonRealtyDescription || '').length > 120 ? '…' : ''}</span></div>` : ''}
+        ${(window.hofUploadedDisclosureDocs || []).length ? `<div class="review-row"><span class="rl">Uploaded Docs</span><span class="rv">${text((window.hofUploadedDisclosureDocs || []).map(d => d.name).join(', '))}</span></div>` : ''}
       </div>
 
       <div class="review-section"><div class="review-section-title">Title & Disclosures</div>
@@ -10414,17 +10415,17 @@ function routeAfterMagicLinkIfNeeded() {
         
         <div class="review-row"><span class="rl">Lead-Based Paint</span><span class="rv">${s.leadBuiltBefore1978 === 'yes' ? 'Built before 1978 — disclosure should be confirmed' : (s.leadBuiltBefore1978 === 'unknown' ? 'Unknown year — verify before signing' : (s.leadBuiltBefore1978 === 'no' ? 'Built 1978 or later' : '—'))}</span></div>
         ${s.leadBuiltBefore1978 === 'yes' || s.leadBuiltBefore1978 === 'unknown' ? `<div class="review-row"><span class="rl">Lead Disclosure Status</span><span class="rv">${s.leadDisclosureStatus === 'received' ? 'Buyer has received it' : (s.leadDisclosureStatus === 'request' ? 'Request from listing agent/seller' : 'Needs confirmation')}</span></div>` : ''}
-        <div class="review-row"><span class="rl">Seller Disclosure</span><span class="rv">${s.sellerDisclosure === 'received' ? 'Received' : s.sellerDisclosure === 'notReceived' ? `Not received — ${s.disclosureDays || '—'} days` : s.sellerDisclosure === 'exempt' ? 'Seller exempt' : '—'}</span></div>
+        <div class="review-row"><span class="rl">Seller Disclosure</span><span class="rv">${text(s.sellerDisclosure === 'received' ? 'Received' : s.sellerDisclosure === 'notReceived' ? `Not received — ${s.disclosureDays || '—'} days` : s.sellerDisclosure === 'exempt' ? 'Seller exempt' : '—')}</span></div>
         <div class="review-row"><span class="rl">Property Condition</span><span class="rv">${s.asIs === 'yes' ? 'As Is' : s.asIs === 'repairs' ? 'As Is with repairs' : '—'}</span></div>
       </div>
 
       <div class="review-section"><div class="review-section-title">Closing</div>
         <div class="review-row"><span class="rl">Closing Date</span><span class="rv">${fmt(s.closingDate)}</span></div>
         <div class="review-row"><span class="rl">Possession</span><span class="rv">${fmt(s.possession)}</span></div>
-        <div class="review-row"><span class="rl">Title Company</span><span class="rv">${s.titleCompany || 'TBD'}</span></div>
-        <div class="review-row"><span class="rl">Buyer's Agent</span><span class="rv">${s.hasBuyerAgent === 'yes' ? (s.agentName || 'Yes — name not entered') : 'None'}</span></div>
-        ${s.hasBuyerAgent === 'yes' && s.agentBrokerage ? `<div class="review-row"><span class="rl">Brokerage</span><span class="rv">${s.agentBrokerage}</span></div>` : ''}
-        ${s.brokerFeeType && s.brokerFeeType !== 'none' ? `<div class="review-row"><span class="rl">Broker Fee Disclosure</span><span class="rv">${s.brokerFeeType === 'amount' ? '$' + Number(s.brokerFeeAmount || 0).toLocaleString() : (s.brokerFeePercent || '0') + '%'}</span></div>` : ''}
+        <div class="review-row"><span class="rl">Title Company</span><span class="rv">${text(s.titleCompany || 'TBD')}</span></div>
+        <div class="review-row"><span class="rl">Buyer's Agent</span><span class="rv">${text(s.hasBuyerAgent === 'yes' ? (s.agentName || 'Yes — name not entered') : 'None')}</span></div>
+        ${s.hasBuyerAgent === 'yes' && s.agentBrokerage ? `<div class="review-row"><span class="rl">Brokerage</span><span class="rv">${text(s.agentBrokerage)}</span></div>` : ''}
+        ${s.brokerFeeType && s.brokerFeeType !== 'none' ? `<div class="review-row"><span class="rl">Broker Fee Disclosure</span><span class="rv">${text(s.brokerFeeType === 'amount' ? '$' + Number(s.brokerFeeAmount || 0).toLocaleString() : (s.brokerFeePercent || '0') + '%')}</span></div>` : ''}
         ${s.wantsConcessions === 'yes' ? `<div class="review-row"><span class="rl">Seller Concessions</span><span class="rv">${fmtM(s.concessionAmount)}</span></div>` : ''}
         ${s.homeWarranty === 'yes' ? `<div class="review-row"><span class="rl">Home Warranty Request</span><span class="rv">${fmtM(s.homeWarrantyAmount)}</span></div>` : ''}
       </div>
@@ -11178,7 +11179,7 @@ function routeAfterMagicLinkIfNeeded() {
     }
     notice.style.display = 'block';
     notice.innerHTML = '<strong>Files needed:</strong> ' +
-      missing.map(escapeHtml).join(', ') +
+      missing.map(escapeAttr).join(', ') +
       '. Upload these PDFs again, or remove them from this packet. ' +
       '<button type="button" class="btn-secondary" data-remove-missing-files>Remove missing files</button>';
     notice.querySelector?.('[data-remove-missing-files]')?.addEventListener('click', removeMissingUploadedDisclosures);
@@ -11281,11 +11282,11 @@ function routeAfterMagicLinkIfNeeded() {
     box.innerHTML = '<strong>Packet order (first listed is appended first):</strong>' + docs.map((d, i) => `
       <div class="uploaded-doc-row" data-uploaded-index="${i}" style="display:flex;gap:.45rem;align-items:center;flex-wrap:wrap;margin-top:.55rem;">
         <span style="min-width:1.25rem;font-weight:800;">${i + 1}.</span>
-        <span style="flex:1;min-width:12rem;">${escapeHtml(d.name)} <small>(${Math.round((d.size || 0) / 1024).toLocaleString()} KB)</small></span>
-        <select class="uploaded-doc-type" aria-label="Document type for ${escapeHtml(d.name)}">${uploadedDisclosureTypes.map(([code, label]) => `<option value="${code}"${d.type === code ? ' selected' : ''}>${label}</option>`).join('')}</select>
+        <span style="flex:1;min-width:12rem;">${escapeAttr(d.name)} <small>(${Math.round((d.size || 0) / 1024).toLocaleString()} KB)</small></span>
+        <select class="uploaded-doc-type" aria-label="Document type for ${escapeAttr(d.name)}">${uploadedDisclosureTypes.map(([code, label]) => `<option value="${code}"${d.type === code ? ' selected' : ''}>${label}</option>`).join('')}</select>
         <button type="button" class="btn-secondary uploaded-doc-up" ${i === 0 ? 'disabled' : ''}>↑</button>
         <button type="button" class="btn-secondary uploaded-doc-down" ${i === docs.length - 1 ? 'disabled' : ''}>↓</button>
-        <button type="button" class="btn-secondary uploaded-doc-remove" aria-label="Remove ${escapeHtml(d.name)}">Remove</button>
+        <button type="button" class="btn-secondary uploaded-doc-remove" aria-label="Remove ${escapeAttr(d.name)}">Remove</button>
       </div>`).join('');
     box.querySelectorAll('.uploaded-doc-row').forEach(row => {
       const index = Number(row.dataset.uploadedIndex);

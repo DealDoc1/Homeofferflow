@@ -28,7 +28,7 @@ function setup(data = {}) {
     getCurrentSteps:() => ['step5'], moneyNumber:value => Number(value) || '',
     setPaymentStatus:message => {context.message=message;},
   });
-  vm.runInContext(helpers + collector, context);
+  vm.runInContext(section('  function escapeAttr(', '  function withTimeout(') + helpers + collector, context);
   return {context, fields, radio, el};
 }
 const valid = {hydrostaticTesting:'yes', hydrostaticRiskAllocation:'buyer_capped', hydrostaticBuyerLiabilityLimit:'2,500.00',
