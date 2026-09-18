@@ -302,12 +302,12 @@ class TxrSignerGeometryTests(unittest.TestCase):
         """Keep the newer addendum signatures above their printed party labels.
 
         All values are in the 96-DPI, top-origin SignWell coordinate space.
-        The source-rule bottoms were measured from the actual TXR PDFs, then
-        rounded only where the rendered rule falls between pixels.
+        Rechecked TXR-1905/1914 candidates finish within two PDF points above
+        the precise rule. Other maps retain their existing rounded positions.
         """
         cases = (
-            ("txr1905", build_signwell_fields_txr1905, FORM_CASES[6][3], 831, 907),
-            ("txr1914", build_signwell_fields_txr1914, FORM_CASES[7][3], 742, 844),
+            ("txr1905", build_signwell_fields_txr1905, FORM_CASES[6][3], 623.46 / .75, 679.8 / .75),
+            ("txr1914", build_signwell_fields_txr1914, FORM_CASES[7][3], 555.78 / .75, 632.76 / .75),
             ("txr1917", build_signwell_fields_txr1917, FORM_CASES[8][3], 710, 804),
             ("txr1919", build_signwell_fields_txr1919, FORM_CASES[9][3], 656, 740),
         )
@@ -317,8 +317,13 @@ class TxrSignerGeometryTests(unittest.TestCase):
                 for party in ("buyer", "seller"):
                     first = fields[f"{prefix}_{party}1_signature_p{1 if prefix in {'txr1905', 'txr1917'} else 2}"]
                     second = fields[f"{prefix}_{party}2_signature_p{1 if prefix in {'txr1905', 'txr1917'} else 2}"]
-                    self.assertEqual(first["y"] + first["height"], first_bottom)
-                    self.assertEqual(second["y"] + second["height"], second_bottom)
+                    for field, bottom in ((first, first_bottom), (second, second_bottom)):
+                        if prefix in ('txr1905', 'txr1914'):
+                            gap = (bottom - field['y'] - field['height']) * .75
+                            self.assertGreaterEqual(gap, 0)
+                            self.assertLessEqual(gap, 2)
+                        else:
+                            self.assertEqual(field['y'] + field['height'], bottom)
 
     def test_txr1948_signatures_clear_both_party_captions(self):
         """Keep the appraisal-addendum signer boxes above their two rules.

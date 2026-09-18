@@ -320,9 +320,14 @@ class TxrSigningRequestPathTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "signature fields appear in the right places"):
                 MODULE._current_txr_signing_map_revision(form_code, {})
         self.assertEqual(
-            MODULE._current_txr_signing_map_revision("TXR-1905", {}),
+            MODULE._current_txr_signing_map_revision("TXR-1917", {}),
             "source-specific-v1",
         )
+        for code in ('TXR-1905', 'TXR-1914', 'TXR-1919'):
+            # These addenda regenerate from saved answers. Bind the current
+            # map in delivery metadata without adding a reapproval step.
+            self.assertEqual(MODULE._current_txr_signing_map_revision(code, {}),
+                             MODULE.TXR_SIGNING_MAP_REVISIONS[code])
 
     def test_stale_core_txr_draft_offers_a_direct_current_copy_path(self):
         html = (ROOT / "index.html").read_text(encoding="utf-8")
