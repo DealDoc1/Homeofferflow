@@ -67,7 +67,7 @@ def render_text_continuation(offer, title, text):
                             spaceAfter=5)
     body = ParagraphStyle("repair_body", fontName=FONT, fontSize=10.5, leading=14,
                           splitLongWords=True, allowWidows=0, allowOrphans=0)
-    address = ", ".join(str(part).strip() for part in (
+    address = str(offer.get('property_address') or '').strip() or ", ".join(str(part).strip() for part in (
         offer.get("address"), offer.get("city"), offer.get("state") or "TX", offer.get("zip")
     ) if str(part or "").strip())
     heading_paragraph = _paragraph(title, heading)

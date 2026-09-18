@@ -52,7 +52,7 @@ class Txr1919RendererTests(unittest.TestCase):
         })[0]
         self.assertEqual(
             [(field["api_id"], field["page"], field["x"], field["y"], field["recipient_id"])
-             for field in one_each],
+             for field in one_each if field['type'] == 'signature'],
             [
                 ("txr1919_buyer1_signature_p2", 2, 60, 632, "1"),
                 ("txr1919_seller1_signature_p2", 2, 432, 632, "2"),
@@ -65,7 +65,7 @@ class Txr1919RendererTests(unittest.TestCase):
         })[0]
         self.assertEqual(
             [(field["api_id"], field["y"], field["recipient_id"])
-             for field in two_each],
+             for field in two_each if field['type'] == 'signature'],
             [
                 ("txr1919_buyer1_signature_p2", 632, "1"),
                 ("txr1919_seller1_signature_p2", 632, "3"),

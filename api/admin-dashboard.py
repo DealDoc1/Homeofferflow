@@ -146,11 +146,12 @@ TXR_RENDER_REVISIONS = {
     "TXR-1905": "txr-1905-2026-09-18-clear-execution-v1",
     "TXR-1914": "txr-1914-2026-09-18-clear-execution-v1",
     "TXR-1917": "txr-1917-2026-09-18-source-blanks-v1",
-    "TXR-1919": "txr-1919-2026-09-18-clear-execution-v1",
+    "TXR-1919": "txr-1919-2026-09-18-source-blanks-v2",
     "TXR-1948": "txr-1948-2026-09-18-editable-fields-v1",
 }
 
 TXR_SIGNING_MAP_REVISIONS = {
+    TXR_1919_FORM_CODE: "txr-1919-2026-09-18-initials-candidate-v2",
     TXR_1501_FORM_CODE: "txr-1501-2026-09-12-completed-packet-calibrated-v2",
     TXR_1506_FORM_CODE: "txr-1506-2026-09-09-final-page-calibrated-v1",
     # Completed-packet review moved every execution widget above the printed
