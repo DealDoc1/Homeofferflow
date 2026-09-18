@@ -3,12 +3,12 @@
 This copies the user's terms; it does not draft, summarize, or add obligations.
 """
 from io import BytesIO
-from xml.sax.saxutils import escape
 
 from pypdf import PdfReader
 from reportlab.lib.styles import ParagraphStyle
-from reportlab.pdfbase.pdfmetrics import stringWidth
+from lib.pdf_text import text_width as stringWidth
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+from lib.pdf_text import paragraph_markup
 
 
 REFERENCE = "See attached Paragraph 7D(2) repair continuation."
@@ -48,8 +48,7 @@ def repair_text_entries(text):
 
 def _paragraph(text, style):
     # Treat user input as literal text, never ReportLab markup.
-    safe = escape(str(text or "").replace("\r\n", "\n").replace("\r", "\n"))
-    return Paragraph(safe.replace("\n", "<br/>"), style)
+    return Paragraph(paragraph_markup(text, style.fontName), style)
 
 
 def render_repair_continuation(offer):

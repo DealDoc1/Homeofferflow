@@ -2,7 +2,7 @@
 from io import BytesIO
 
 from pypdf import PdfReader
-from reportlab.pdfbase.pdfmetrics import stringWidth
+from lib.pdf_text import text_width as stringWidth
 
 from lib.repair_continuation import render_text_continuation
 

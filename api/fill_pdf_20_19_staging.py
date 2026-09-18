@@ -4,7 +4,7 @@ from http.server import BaseHTTPRequestHandler
 
 from pypdf import PdfReader, PdfWriter
 from reportlab.pdfgen import canvas
-from reportlab.pdfbase.pdfmetrics import stringWidth
+from lib.pdf_text import text_width as stringWidth, draw_text
 from lib.repair_continuation import (
     repair_text_entries, render_repair_continuation,
     continuation_page_count, continuation_field,
@@ -465,8 +465,7 @@ def make_overlay(page_entries, page_width=612, page_height=792):
             else:
                 c.drawString(x + 1, y + 1, str(text))
         else:
-            c.setFont(FONT, fs)
-            c.drawString(x, y, str(text))
+            draw_text(c, text, x, y, fs, FONT)
 
     c.save()
     buf.seek(0)
