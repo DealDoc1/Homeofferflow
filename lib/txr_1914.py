@@ -3,6 +3,7 @@ from io import BytesIO
 from pypdf import PdfReader, PdfWriter
 from reportlab.pdfgen.canvas import Canvas
 from lib.txr_addenda_layout import SourceAnswers, clean, draw_entries, mark_cell
+from lib.seller_financing import SOURCE_SHA256
 
 PAGE_WIDTH, PAGE_HEIGHT = 612, 792
 RENDER_REVISION = 'txr-1914-2026-09-18-source-blanks-v2'

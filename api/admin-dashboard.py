@@ -21,6 +21,7 @@ from lib import partner_marketplace_agreement
 from lib import seller_disclosure_draft
 from lib import seller_review_access
 from lib import seller_checkout
+from lib import seller_financing
 from lib import signwell_delivery
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "").rstrip("/")
@@ -2676,74 +2677,42 @@ def _parse_txr_1914_draft(data):
             raise ValueError(f"Add one or two {label} names.")
         return [_agreement_text(value, f"Each {label} name", 180) for value in values]
 
-    def months(value, label, *, allow_zero=False):
-        value = str(value or "").strip()
-        if not re.fullmatch(r"\d{1,3}", value):
-            raise ValueError(f"{label} must be a whole number of months.")
-        if not allow_zero and int(value) < 1:
-            raise ValueError(f"{label} must be at least one month.")
-        return value
-
     property_address = _agreement_text(data.get("propertyAddress"), "Property address", 400)
     buyer_names = names("buyerNames", "buyer")
     seller_names = names("sellerNames", "seller")
     all_names = buyer_names + seller_names
     if len({name.casefold() for name in all_names}) != len(all_names):
         raise ValueError("List each buyer or seller only once.")
-    credit_days = months(data.get("creditDays"), "Credit-documentation delivery time")
-    credit_documents = data.get("creditDocuments")
-    allowed_documents = {"credit_report", "employment", "funds", "financial_statement", "other"}
-    if not isinstance(credit_documents, list) or not credit_documents or not set(credit_documents).issubset(allowed_documents):
-        raise ValueError("Choose at least one credit-documentation item.")
-    credit_documents = list(dict.fromkeys(credit_documents))
-    credit_other = " ".join(str(data.get("creditOther") or "").strip().split())
-    if "other" in credit_documents and not credit_other:
-        raise ValueError("Describe the additional credit-documentation item.")
-    if len(credit_other) > 180:
-        raise ValueError("Additional credit documentation is too long.")
-    note_amount = _agreement_money(data.get("noteAmount"), "Promissory-note amount")
-    if not note_amount:
-        raise ValueError("Promissory-note amount is required.")
-    interest_rate = _agreement_percentage(data.get("interestRate"), "Interest rate")
-    if not interest_rate:
-        raise ValueError("Interest rate is required.")
     payment_plan = str(data.get("paymentPlan") or "").strip()
-    if payment_plan not in {"one_payment", "monthly_installments", "interest_only_then_installments"}:
-        raise ValueError("Choose the promissory-note payment plan printed on the addendum.")
     payment = {"plan": payment_plan}
     if payment_plan == "one_payment":
-        payment["due_after_months"] = months(data.get("onePaymentDueAfterMonths"), "One-payment due time", allow_zero=True)
-        payment["interest_timing"] = str(data.get("onePaymentInterestTiming") or "").strip()
-        if payment["interest_timing"] not in {"maturity", "monthly", "quarterly"}:
-            raise ValueError("Choose when interest is payable for the one-payment plan.")
+        payment.update(
+            due_after_months=data.get("onePaymentDueAfterMonths"),
+            interest_timing=data.get("onePaymentInterestTiming"),
+        )
     else:
-        payment["installment_amount"] = _agreement_money(data.get("installmentAmount"), "Installment amount")
-        if not payment["installment_amount"]:
-            raise ValueError("Installment amount is required.")
-        payment["interest_style"] = str(data.get("installmentInterestStyle") or "").strip()
-        if payment["interest_style"] not in {"including_interest", "plus_interest"}:
-            raise ValueError("Choose whether the installment includes or is plus interest.")
-        payment["begins_after_months"] = months(data.get("installmentBeginsAfterMonths"), "Installment start time", allow_zero=True)
-        payment["payoff_after_months"] = months(data.get("payoffAfterMonths"), "Payoff time")
-        if payment_plan == "interest_only_then_installments":
-            payment["interest_only_months"] = months(data.get("interestOnlyMonths"), "Interest-only period")
-    property_transfer = str(data.get("propertyTransfer") or "").strip()
-    if property_transfer not in {"consent_not_required", "consent_required"}:
-        raise ValueError("Choose the property-transfer consent term.")
-    casualty_insurance = str(data.get("casualtyInsurance") or "").strip()
-    if casualty_insurance not in {"required", "not_required"}:
-        raise ValueError("Choose the casualty-insurance term.")
-    escrow = str(data.get("escrow") or "").strip()
-    if escrow not in {"not_required", "required"}:
-        raise ValueError("Choose the tax-and-insurance escrow term.")
-    escrow_data = {"choice": escrow}
-    if escrow == "required":
-        escrow_data["third_party_servicer"] = str(data.get("thirdPartyServicer") or "").strip()
-        escrow_data["cost_paid_by"] = str(data.get("escrowCostPaidBy") or "").strip()
-        if escrow_data["third_party_servicer"] not in {"will", "will_not"}:
-            raise ValueError("Choose whether a third-party escrow servicer will be used.")
-        if escrow_data["cost_paid_by"] not in {"buyer", "seller"}:
-            raise ValueError("Choose who pays the escrow-service cost.")
+        payment.update(
+            installment_amount=data.get("installmentAmount"),
+            interest_style=data.get("installmentInterestStyle"),
+            begins_after_months=data.get("installmentBeginsAfterMonths"),
+            payoff_after_months=data.get("payoffAfterMonths"),
+            interest_only_months=data.get("interestOnlyMonths"),
+        )
+    terms = seller_financing.validate_terms({
+        "credit_days": data.get("creditDays"),
+        "credit_documents": data.get("creditDocuments"),
+        "credit_other": data.get("creditOther"),
+        "note_amount": data.get("noteAmount"),
+        "interest_rate": data.get("interestRate"),
+        "payment": payment,
+        "property_transfer": data.get("propertyTransfer"),
+        "casualty_insurance": data.get("casualtyInsurance"),
+        "escrow": {
+            "choice": data.get("escrow"),
+            "third_party_servicer": data.get("thirdPartyServicer"),
+            "cost_paid_by": data.get("escrowCostPaidBy"),
+        },
+    })
     if data.get("sellerFinancingReviewAcknowledgment") is not True:
         raise ValueError("Confirm that the parties will review seller-financing terms with appropriate professionals before signing.")
     return {
@@ -2753,15 +2722,7 @@ def _parse_txr_1914_draft(data):
             "property_address": property_address,
             "buyer_names": buyer_names,
             "seller_names": seller_names,
-            "credit_days": credit_days,
-            "credit_documents": credit_documents,
-            "credit_other": credit_other,
-            "note_amount": note_amount,
-            "interest_rate": interest_rate,
-            "payment": payment,
-            "property_transfer": property_transfer,
-            "casualty_insurance": casualty_insurance,
-            "escrow": escrow_data,
+            **terms,
             "seller_financing_review_acknowledgment": True,
         },
     }
