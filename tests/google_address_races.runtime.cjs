@@ -152,3 +152,56 @@ test('new selection clears previous property details before notifying input list
   assert.deepEqual(observed[0],['','','','']);d.reject(new Error('unavailable'));await result;
   assert.equal(input.value,'123 Suggested Street');assert.deepEqual([...companions.values()].map(field=>field.value),['','','','']);
 });
+
+test('assistive click selects a suggestion without requiring a mouse-down event',async()=>{
+  const x=setup(),d=deferred(),input=x.input();x.type(input,'123 Main');await x.flush();
+  const pred=prediction(d);x.requests[0].resolve({suggestions:[{placePrediction:pred}]});await tick();
+  x.document.body.children[0].children[0].dispatchEvent({type:'click',preventDefault(){}});
+  assert.equal(input.value,'123 Suggested Street');d.resolve();await tick();
+  assert.equal(input.value,'123 Formatted Street');assert.equal(x.marked.length,1);
+});
+test('mouse-down, touch-end and compatibility click cannot fetch the same selection twice',async()=>{
+  const x=setup(),d=deferred(),input=x.input();let fetched=0;x.type(input,'123 Main');await x.flush();
+  const pred={text:'123 Main Street',toPlace:()=>{fetched++;return {fetchFields:()=>d.promise};}};
+  x.requests[0].resolve({suggestions:[{placePrediction:pred}]});await tick();
+  const option=x.document.body.children[0].children[0];
+  for(const type of ['mousedown','touchend','click'])option.dispatchEvent({type,preventDefault(){}});
+  assert.equal(fetched,1);d.resolve();await tick();
+});
+test('keyboard selection keeps focus on the address for the next Tab',async()=>{
+  const x=setup(),d=deferred(),input=x.input();x.type(input,'123 Main');await x.flush();
+  x.requests[0].resolve({suggestions:[{placePrediction:prediction(d)}]});await tick();
+  for(const key of ['ArrowDown','Enter'])input.dispatchEvent({type:'keydown',key,preventDefault(){}});
+  d.resolve();await tick();assert.equal(input.value,'123 Formatted Street');assert.equal(x.document.activeElement,input);
+  assert.equal(input.attrs['aria-expanded'],'false');assert.equal(input.attrs['aria-activedescendant'],undefined);
+});
+test('tabbing ahead while details load still fills the selected address without stealing focus',async()=>{
+  const x=setup(),d=deferred(),input=x.input(),next=x.input(),callbacks=[];x.document.activeElement=input;
+  const result=x.c._selectPrediction(prediction(d),'123',input,v=>callbacks.push(v));
+  input.blur();x.document.activeElement=next;d.resolve();await result;
+  assert.equal(input.value,'123 Formatted Street');assert.equal(callbacks.length,1);assert.equal(x.document.activeElement,next);
+});
+for(const changed of ['edit','remove'])test(`${changed} of companion while details load prevents stale autofill`,async()=>{
+  const x=setup(),d=deferred(),input=x.input(),city=x.input(),callbacks=[];input.id='propAddress';
+  x.document.getElementById=id=>id==='propCity'?city:null;x.document.activeElement=input;
+  const result=x.c._selectPrediction(prediction(d),'123',input,v=>{callbacks.push(v);city.value='Returned city';});
+  input.blur();if(changed==='edit')city.value='My corrected city';else city.isConnected=false;
+  d.resolve();await result;assert.equal(callbacks.length,0);assert.equal(x.marked.length,0);
+  assert.equal(city.value,changed==='edit'?'My corrected city':'');
+});
+test('composition keystrokes do not trigger paid suggestion searches before text is committed',async()=>{
+  const x=setup(),input=x.input();x.document.activeElement=input;
+  input.dispatchEvent({type:'compositionstart'});x.type(input,'123 interim');await x.flush();
+  assert.equal(x.requests.length,0);input.value='123 committed';input.dispatchEvent({type:'compositionend'});
+  input.dispatchEvent({type:'input'});await x.flush();assert.equal(x.requests.length,1);assert.equal(x.requests[0].request.input,'123 committed');
+});
+test('starting composition invalidates an already pending suggestion request',async()=>{
+  const x=setup(),input=x.input();x.type(input,'123 Main');await x.flush();
+  input.dispatchEvent({type:'compositionstart'});await x.reply(0,'123 Main Street');assert.deepEqual(x.shown(),[]);
+});
+for(const flag of [{isComposing:true},{keyCode:229}])test(`IME Enter does not accept a suggestion (${JSON.stringify(flag)})`,async()=>{
+  const x=setup(),input=x.input();x.type(input,'123 Main');await x.flush();await x.reply(0,'123 Main Street');
+  input.dispatchEvent({type:'keydown',key:'ArrowDown',preventDefault(){}});let prevented=false;
+  input.dispatchEvent({type:'keydown',key:'Enter',...flag,preventDefault(){prevented=true;}});
+  assert.equal(prevented,false);assert.equal(input.value,'123 Main');assert.deepEqual(x.shown(),['123 Main Street']);
+});

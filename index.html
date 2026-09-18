@@ -12580,7 +12580,7 @@ function routeAfterMagicLinkIfNeeded() {
 
   function _addressInputState(input) {
     if (!_addressInputStates.has(input)) {
-      _addressInputStates.set(input, { revision: 0, sessionToken: null, applyingSelection: false });
+      _addressInputStates.set(input, { revision: 0, sessionToken: null, applyingSelection: false, composing: false });
     }
     return _addressInputStates.get(input);
   }
@@ -12639,6 +12639,9 @@ function routeAfterMagicLinkIfNeeded() {
     });
 
     input.addEventListener('keydown', e => {
+      // IME keys commit/edit composed text; they must not accept an address
+      // or dismiss the text-entry interface. 229 covers older WebKit events.
+      if (requestState.composing || e.isComposing || e.keyCode === 229) return;
       if (e.key === 'Escape') {
         e.preventDefault();
         _hideDropdown();
@@ -12664,6 +12667,7 @@ function routeAfterMagicLinkIfNeeded() {
 
     const searchAddress = _debounce(async (q, revision, epoch) => {
       const current = () => input.isConnected && document.activeElement === input
+        && !requestState.composing
         && requestState.revision === revision && _addressSuggestionEpoch === epoch
         && input.value.trim() === q;
       if (q.length < 3 || !current()) return;
@@ -12690,16 +12694,29 @@ function routeAfterMagicLinkIfNeeded() {
         if (current()) _hideDropdown();
       }
     }, 280);
-    input.addEventListener('input', () => {
+    input.addEventListener('compositionstart', () => {
+      requestState.composing = true;
+      requestState.revision += 1;
+      _hideDropdown();
+    });
+    input.addEventListener('compositionend', () => {
+      requestState.composing = false;
+      // Some browsers emit the final input before compositionend, others
+      // after it. The shared debounce coalesces both into one final search.
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    input.addEventListener('input', e => {
       if (requestState.applyingSelection) return;
       requestState.revision += 1;
       // Invalidate immediately, not when the debounce expires. A previous
       // request may finish while the next keystrokes are still being entered.
       _hideDropdown();
+      if (requestState.composing || e.isComposing) return;
       searchAddress(input.value.trim(), requestState.revision, _addressSuggestionEpoch);
     });
     input.addEventListener('blur', () => {
-      requestState.revision += 1;
+      // Dismiss searches, but let a chosen address finish loading if the
+      // customer tabs ahead. Manual edits still invalidate the selection.
       if (!_dropdownInput || _dropdownInput === input) _hideDropdown();
     });
 
@@ -12773,6 +12790,14 @@ function routeAfterMagicLinkIfNeeded() {
         select();
       });
 
+      // Assistive controls may dispatch click without mouse/touch events.
+      // select() invalidates the dropdown synchronously, so compatibility
+      // clicks following a pointer selection cannot send duplicate lookups.
+      item.addEventListener('click', e => {
+        e.preventDefault();
+        select();
+      });
+
       dd.appendChild(item);
     });
 
@@ -12813,8 +12838,10 @@ function routeAfterMagicLinkIfNeeded() {
     // A new selection must never retain location details from the previous
     // property, even while details are loading or if that lookup fails.
     _setGoogleAddressFields([[input, fallbackText], ..._googleAddressCompanions(input).map(field => [field, ''])]);
+    const companionValues = _googleAddressCompanions(input).map(field => [field, field.value]);
     const current = () => input.isConnected && requestState.revision === revision
-      && input.value === fallbackText;
+      && input.value === fallbackText
+      && companionValues.every(([field, value]) => field.isConnected && field.value === value);
 
     try {
       const place = pred.toPlace();
@@ -12841,7 +12868,8 @@ function routeAfterMagicLinkIfNeeded() {
       }
 
       markGoogleAddressSelected(input);
-      input.blur();
+      // Keep the customer's focus where it is. Blurring here sends keyboard
+      // users back to the page instead of the next interview field on Tab.
     } catch(e) {
       if (!current()) return;
       console.error('Place fetch error:', e);
