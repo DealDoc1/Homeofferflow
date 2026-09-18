@@ -615,6 +615,8 @@ def fill_and_merge_20_19(offer):
         offer['_signing_render_revisions']['TREC-10-6'] = verified.sale_contingency_layout.RENDER_REVISION
     if offer.get('backupOffer') == 'yes':
         offer['_signing_render_revisions']['TREC-11-9'] = verified.backup_contract_layout.RENDER_REVISION
+    if verified.normalize_financing(offer.get('financing')) in verified.financing_addendum_layout.LOAN_BLANKS:
+        offer['_signing_render_revisions']['TREC-40-11'] = verified.financing_addendum_layout.RENDER_REVISION
     if hydrostatic:
         source_hashes.append(HYDROSTATIC_SOURCE_SHA256)
         offer['_signing_render_revisions']['TREC-48-1'] = HYDROSTATIC_RENDER_REVISION

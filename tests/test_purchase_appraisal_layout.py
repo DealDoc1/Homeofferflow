@@ -82,17 +82,24 @@ class PurchaseAppraisalLayoutTests(unittest.TestCase):
                 reader = PdfReader(BytesIO(raw))
                 answers = form.answer_layout(adapter.verified.appraisal_render_data(offer))
                 continuation_count = len(PdfReader(BytesIO(answers.continuation())).pages)
+                financing_answers = adapter.verified.financing_addendum_layout.answer_layout(
+                    offer, adapter.verified.normalize_financing(offer['financing']))
+                financing_count = len(PdfReader(BytesIO(financing_answers.continuation())).pages)
+                appraisal_page = 15 + financing_count
                 self.assertGreater(continuation_count, 0)
-                text = ''.join(p.extract_text() for p in reader.pages[15:15 + continuation_count])
+                text = ''.join(p.extract_text() for p in reader.pages[
+                    appraisal_page:appraisal_page + continuation_count])
                 self.assertIn('Appraisal Addendum Continuation', text)
                 self.assertIn('Seller: Controlled Launch Seller', text)
                 self.assertIn('A' * 400, ''.join(text.split()))
                 fields = adapter.build_signwell_fields_20_19(offer, raw)[0]
                 by_id = {f['api_id']: f for f in fields}
                 self.assertEqual(len(by_id), len(fields))
-                self.assertEqual(by_id['buyer1_non_realty_items_addendum_signature']['page'], 16 + continuation_count)
-                self.assertEqual(by_id['buyer1_hoa_addendum_signature']['page'], 17 + continuation_count)
-                for page in range(16, 16 + continuation_count):
+                self.assertEqual(by_id['buyer1_non_realty_items_addendum_signature']['page'],
+                                 appraisal_page + 1 + continuation_count)
+                self.assertEqual(by_id['buyer1_hoa_addendum_signature']['page'],
+                                 appraisal_page + 2 + continuation_count)
+                for page in range(appraisal_page + 1, appraisal_page + 1 + continuation_count):
                     initials = [f for f in fields if f['page'] == page and f['api_id'].startswith('appraisal_continuation_')]
                     self.assertEqual({f['recipient_id'] for f in initials}, {str(i + 1) for i in range(buyers)})
                     self.assertTrue(all(f['type'] == 'initials' and f['required'] for f in initials))
@@ -114,13 +121,19 @@ class PurchaseAppraisalLayoutTests(unittest.TestCase):
                 adapter.fill_and_merge_20_19(offer_sample())
 
     def test_missing_continuation_is_rejected_by_signing_map(self):
+        offer = offer_sample(address='A' * 400)
+        financing_answers = adapter.verified.financing_addendum_layout.answer_layout(
+            offer, adapter.verified.normalize_financing(offer['financing']))
+        financing_count = len(PdfReader(BytesIO(financing_answers.continuation())).pages)
         writer = PdfWriter()
-        for _ in range(15):
+        # Main contract, two financing pages, its complete continuation, and
+        # the appraisal base page are present. Only appraisal continuation is absent.
+        for _ in range(15 + financing_count):
             writer.add_blank_page(612, 792)
         out = BytesIO()
         writer.write(out)
         with self.assertRaisesRegex(ValueError, 'appraisal continuation'):
-            adapter.verified.build_signwell_fields(offer_sample(address='A' * 400), out.getvalue())
+            adapter.verified.build_signwell_fields(offer, out.getvalue())
 
     def test_real_packet_send_payload_keeps_parallel_buyers_and_matching_fields(self):
         api = load_offer_api()

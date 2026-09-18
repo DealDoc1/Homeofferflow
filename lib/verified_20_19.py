@@ -7,6 +7,7 @@ from lib.txr_1948 import (
 from lib import hoa_addendum_layout
 from lib import sale_contingency_layout
 from lib import backup_contract_layout
+from lib import financing_addendum_layout
 from lib.contract_money import currency_amount, format_currency
 from http.server import BaseHTTPRequestHandler
 
@@ -1031,83 +1032,15 @@ def fill_and_merge(offer):
     merger = PdfWriter()
     merger.append(PdfReader(BytesIO(main_bytes)))
 
-    if has_loan and os.path.exists(FINANCING_PDF):
-        financing = normalize_financing(s.get("financing", ""))
-
-        loan_years = first_present(s.get("loanYears"), s.get("loanTermYears"), "30")
-        interest_cap = first_present(s.get("interestRateCap"), s.get("loanInterestCap"), "7")
-        interest_first_years = first_present(
-            s.get("interestFirstYears"),
-            s.get("loanYears"),
-            s.get("loanTermYears"),
-            "30"
-        )
-        origination_cap = first_present(s.get("originationCap"), s.get("loanOriginationCap"), "1")
-
-        buyer_approval_days = first_present(
-            s.get("buyerApprovalDays"),
-            s.get("financingApprovalDays"),
-            "21"
-        )
-
-        fha_va_value = fmt_money(first_present(s.get("appraisedValue"), s.get("price"))) if financing in ["fha", "va"] else ""
-
-        fin_pages = {
-            0: [
-                (205, 642, addr_full, 8),
-
-                # Rate/fee text stays inside the source blanks at eight points;
-                # whole-number-only previews previously hid percentage overlaps.
-                # A. Conventional financing.
-                (58,  558, ck(financing == "conventional"), "check_small"),
-                (87, 545, ck(financing == "conventional"), "check_small"),
-                (377, 544, fmt_money(s.get("loanAmount", "")) if financing == "conventional" else ""),
-                (305, 534, loan_years if financing == "conventional" else ""),
-                (517, 533, interest_cap if financing == "conventional" else "", 8),
-                (240, 522, interest_first_years if financing == "conventional" else ""),
-                (353, 512, origination_cap if financing == "conventional" else "", 8),
-
-                # C. FHA insured financing.
-                (58,  414, ck(financing == "fha"), "check_small"),
-                (282, 417, first_present(s.get("fhaSection"), s.get("fhaProgram"), "203(b)") if financing == "fha" else "", 8),
-                (101, 407, fmt_money(s.get("loanAmount", "")) if financing == "fha" else ""),
-                (142, 394, loan_years if financing == "fha" else ""),
-                (339, 394, interest_cap if financing == "fha" else "", 8),
-                (111, 381, interest_first_years if financing == "fha" else ""),
-                (207, 372, origination_cap if financing == "fha" else "", 8),
-
-                # D. VA guaranteed financing.
-                (58,  358, ck(financing == "va"), "check_small"),
-                (466, 363, fmt_money(s.get("loanAmount", "")) if financing == "va" else ""),
-                (490, 346, loan_years if financing == "va" else ""),
-                (230, 337, interest_cap if financing == "va" else "", 8),
-                (410, 335, interest_first_years if financing == "va" else ""),
-                (90, 315, origination_cap if financing == "va" else "", 8),
-
-                # E. USDA guaranteed financing. Release 18B screenshot-directed alignment fix.
-                (58,  303, ck(financing == "usda"), "check_small"),
-                (492, 303, fmt_money(s.get("loanAmount", "")) if financing == "usda" else ""),
-                (492, 290, loan_years if financing == "usda" else ""),
-                (231, 279, interest_cap if financing == "usda" else "", 8),
-                (395, 278, interest_first_years if financing == "usda" else ""),
-                (517, 269, origination_cap if financing == "usda" else "", 8),
-            ],
-            1: [
-                (205, 729, addr_full, 8),
-
-                # Page 13 §2A checkbox.
-                (83, 695, ck(s.get("buyerApproval", "yes") != "no"), "check_small"),
-
-                (382, 684, buyer_approval_days if s.get("buyerApproval", "yes") != "no" else ""),
-
-                (90, 584, ck(s.get("buyerApproval") == "no"), "check_small"),
-
-                (125, 410, fha_va_value),
-            ],
-        }
-
-        fin_pages = add_debug_grid_to_pages(fin_pages)
+    if has_loan:
+        if not os.path.exists(FINANCING_PDF):
+            raise ValueError("The financing addendum source is unavailable.")
+        financing_answers = financing_addendum_layout.answer_layout(s, normalize_financing(s.get("financing", "")))
+        fin_pages = add_debug_grid_to_pages(financing_addendum_layout.page_entries(financing_answers))
         merger.append(PdfReader(BytesIO(stamp_pdf(FINANCING_PDF, fin_pages))))
+        financing_continuation = financing_answers.continuation()
+        if financing_continuation:
+            merger.append(PdfReader(BytesIO(financing_continuation)))
 
     appraisal_pdf_path = APPRAISAL_PDF if os.path.exists(APPRAISAL_PDF) else APPRAISAL_PDF_ALT
     if has_appraisal:
@@ -1442,6 +1375,10 @@ def build_signwell_fields(offer, pdf_bytes):
         financing_page_1 = next_page
         financing_signature_page = next_page + 1
         next_page += 2
+        financing_answers = financing_addendum_layout.answer_layout(offer, financing)
+        financing_continuation = financing_answers.continuation()
+        if financing_continuation:
+            next_page += len(PdfReader(BytesIO(financing_continuation)).pages)
     if has_appraisal:
         appraisal_page = next_page
         next_page += 1
@@ -1543,13 +1480,19 @@ def build_signwell_fields(offer, pdf_bytes):
 
     # Third Party Financing Addendum.
     if financing_page_1 and financing_signature_page:
-        add_field("buyer1_initials_financing_p1", "initials", financing_page_1, 280, 1004, recipient_id="1", width=24, height=10)
-        if has_buyer2:
-            add_field("buyer2_initials_financing_p1", "initials", financing_page_1, 314, 1014, recipient_id="2", width=24, height=10)
-        # User requested financing fields left/up vs prior bundle.
-        add_sig_date_pair("buyer1_financing_addendum", financing_signature_page, 112, 808, 266, 808, "1")
-        if has_buyer2:
-            add_sig_date_pair("buyer2_financing_addendum", financing_signature_page, 112, 884, 266, 884, "2")
+        if financing_signature_page > page_count:
+            raise ValueError("The financing addendum is missing from this packet.")
+        for index in range(2 if has_buyer2 else 1):
+            x, y, width, height = financing_addendum_layout.BUYER_INITIAL_BOXES[index]
+            add_field(f"buyer{index+1}_initials_financing_p1", "initials", financing_page_1,
+                      x, y, str(index+1), width=width, height=height)
+            x, y, width, height = financing_addendum_layout.BUYER_SIGNATURE_BOXES[index]
+            add_field(f"buyer{index+1}_financing_addendum_signature", "signature", financing_signature_page,
+                      x, y, str(index+1), width=width, height=height)
+        financing_fields = financing_answers.continuation_fields(financing_signature_page + 1, 'financing')
+        if any(field['page'] > page_count for field in financing_fields):
+            raise ValueError("The financing continuation is missing from this packet.")
+        fields_for_file.extend(financing_fields)
 
     # Appraisal Addendum - buyer signatures only. No seller fields.
     # Source has Buyer signature rules, but no printed date blanks. Share the
