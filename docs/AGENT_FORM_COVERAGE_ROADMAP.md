@@ -2,6 +2,14 @@
 
 ## Local continuation status - September 18, 2026
 
+Live release revalidation at approximately 4:25 PM America/Chicago confirms
+Vercel reports the September 15 production revision, not the local candidate.
+The Pro usage credit is exhausted with $1.39 on-demand usage already recorded;
+the displayed cycle resets September 22. Five database migrations required by
+the pending batch are also absent from production, confirmed by catalog reads.
+These are verified release dependencies, not a new login or customer approval
+requirement. See [current release evidence](release-evidence/production-release-revalidation-2026-09-18.md).
+
 Standalone PDF deployment configuration now retains the fonts needed by the
 representation renderers. Fresh-process tests cover all four forms and their
 long-answer continuations; non-PDF services still omit these assets. Private
