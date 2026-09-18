@@ -6,6 +6,14 @@ reducing verification standards.
 
 ## Local continuation status - September 18, 2026
 
+The seven-commit signing-reliability stack is now merged into `main` through
+PR #1233 at `b4d517be`. Post-merge GitHub Actions run `35404761878` passed the
+full unit suite, golden packet rendering, standalone signer-geometry guard,
+Supabase preflight, and whitespace check. The intentional production workflow
+skipped and Git-triggered Vercel deployments remain disabled, so this is
+**merged and CI-verified, not production-deployed**. See
+[signing-reliability merge evidence](release-evidence/signing-reliability-main-merge-2026-09-18.md).
+
 Live release revalidation at approximately 4:25 PM America/Chicago confirms
 Vercel reports the September 15 production revision, not the local candidate.
 The Pro usage credit is exhausted with $1.39 on-demand usage already recorded;
