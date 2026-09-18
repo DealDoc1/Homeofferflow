@@ -12394,7 +12394,8 @@ function routeAfterMagicLinkIfNeeded() {
 
   // ── GOOGLE PLACES — new AutocompleteSuggestion API ──
   let _autocompleteService = null;
-  let _sessionToken = null;
+  const _addressInputStates = new WeakMap();
+  let _addressSuggestionEpoch = 0;
   let _dropdown = null;
   let _dropdownInput = null;
   let _activeSuggestionIndex = -1;
@@ -12437,7 +12438,6 @@ function routeAfterMagicLinkIfNeeded() {
       _placesSetupAttempts = 0;
       window._AutocompleteSuggestion = AutocompleteSuggestion;
       window._AutocompleteSessionToken = AutocompleteSessionToken;
-      _sessionToken = new AutocompleteSessionToken();
       _autocompleteService = 'new';
       wireAddressInput();
     } catch(e) {
@@ -12577,10 +12577,32 @@ function routeAfterMagicLinkIfNeeded() {
     Promise.resolve(window.loadHofPlaces?.()).then(() => wireAddressInput());
   });
 
+  function _addressInputState(input) {
+    if (!_addressInputStates.has(input)) {
+      _addressInputStates.set(input, { revision: 0, sessionToken: null, applyingSelection: false });
+    }
+    return _addressInputStates.get(input);
+  }
+
+  function _applyGoogleAddressValue(input, value) {
+    const requestState = _addressInputState(input);
+    requestState.applyingSelection = true;
+    try {
+      input.value = value;
+      // Preserve draft saving and dependent-field listeners, without starting
+      // another paid suggestion search for our own selected value.
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+    } finally {
+      requestState.applyingSelection = false;
+    }
+  }
+
   function _wireGoogleAutocomplete(input, onSelectCallback) {
     if (!input || input._hofWired) return;
 
     input._hofWired = true;
+    const requestState = _addressInputState(input);
     // Keep the browser's address hint as a graceful fallback while Google
     // Places provides the preferred suggestions.
     input.setAttribute('autocomplete', 'street-address');
@@ -12600,13 +12622,13 @@ function routeAfterMagicLinkIfNeeded() {
     });
 
     input.addEventListener('keydown', e => {
-      const options = Array.from(_dropdown?.querySelectorAll('[role="option"]') || []);
-      if (!options.length || _dropdownInput !== input) return;
       if (e.key === 'Escape') {
         e.preventDefault();
         _hideDropdown();
         return;
       }
+      const options = Array.from(_dropdown?.querySelectorAll('[role="option"]') || []);
+      if (!options.length || _dropdownInput !== input) return;
       if (!['ArrowDown', 'ArrowUp', 'Enter'].includes(e.key)) return;
       e.preventDefault();
       if (e.key === 'Enter') {
@@ -12623,22 +12645,23 @@ function routeAfterMagicLinkIfNeeded() {
       _setActiveAddressSuggestion(nextIndex);
     });
 
-    input.addEventListener('input', _debounce(async e => {
-      const q = e.target.value.trim();
-      if (q.length < 3) {
-        _hideDropdown();
-        return;
-      }
+    const searchAddress = _debounce(async (q, revision, epoch) => {
+      const current = () => input.isConnected && document.activeElement === input
+        && requestState.revision === revision && _addressSuggestionEpoch === epoch
+        && input.value.trim() === q;
+      if (q.length < 3 || !current()) return;
 
       try {
+        requestState.sessionToken ||= new window._AutocompleteSessionToken();
         const request = {
           input: q,
           includedRegionCodes: ['us'],
           includedPrimaryTypes: ['street_address', 'premise'],
-          sessionToken: _sessionToken
+          sessionToken: requestState.sessionToken
         };
 
         const { suggestions } = await window._AutocompleteSuggestion.fetchAutocompleteSuggestions(request);
+        if (!current()) return;
 
         if (!suggestions || suggestions.length === 0) {
           _hideDropdown();
@@ -12647,9 +12670,21 @@ function routeAfterMagicLinkIfNeeded() {
 
         _showDropdown(suggestions, input, onSelectCallback);
       } catch(err) {
-        _hideDropdown();
+        if (current()) _hideDropdown();
       }
-    }, 280));
+    }, 280);
+    input.addEventListener('input', () => {
+      if (requestState.applyingSelection) return;
+      requestState.revision += 1;
+      // Invalidate immediately, not when the debounce expires. A previous
+      // request may finish while the next keystrokes are still being entered.
+      _hideDropdown();
+      searchAddress(input.value.trim(), requestState.revision, _addressSuggestionEpoch);
+    });
+    input.addEventListener('blur', () => {
+      requestState.revision += 1;
+      if (!_dropdownInput || _dropdownInput === input) _hideDropdown();
+    });
 
     // Places is loaded on focus to avoid a site-wide Maps request. If it
     // becomes ready after the user has already started typing, replay the
@@ -12659,13 +12694,18 @@ function routeAfterMagicLinkIfNeeded() {
       window.setTimeout(() => input.dispatchEvent(new Event('input', { bubbles: true })), 0);
     }
 
-    document.addEventListener('click', e => {
-      if (e.target !== input && !e.target.closest('#hof-ac-dd')) _hideDropdown();
-    });
   }
+
+  // One shared listener avoids retaining every discarded profile/dialog input
+  // and prevents another field's listener from dismissing the active search.
+  document.addEventListener('click', e => {
+    if (e.target?._hofWired || e.target?.closest?.('#hof-ac-dd')) return;
+    _hideDropdown();
+  });
 
   function _showDropdown(suggestions, input, onSelectCallback) {
     _hideDropdown();
+    const revision = _addressInputState(input).revision;
 
     const rect = input.getBoundingClientRect();
     const dd = document.createElement('div');
@@ -12698,7 +12738,11 @@ function routeAfterMagicLinkIfNeeded() {
         item.appendChild(secondaryText);
       }
 
-      const select = () => _selectPrediction(pred, main, input, onSelectCallback);
+      const select = () => {
+        if (!input.isConnected || _dropdownInput !== input
+            || _addressInputState(input).revision !== revision) return;
+        _selectPrediction(pred, main, input, onSelectCallback);
+      };
       item._hofSelect = select;
       item.addEventListener('mouseover', () => _setActiveAddressSuggestion(index));
 
@@ -12742,20 +12786,24 @@ function routeAfterMagicLinkIfNeeded() {
 
   async function _selectPrediction(pred, streetText, input, onSelectCallback) {
     _hideDropdown();
+    const requestState = _addressInputState(input);
+    const revision = ++requestState.revision;
+    // Predictions retain their session token for fetchFields. The next typed
+    // search needs a new token even if this details request fails or is stale.
+    requestState.sessionToken = null;
 
     const fallbackText = pred.text?.toString() || streetText || '';
-    input.value = fallbackText;
-    input.dispatchEvent(new Event('input', { bubbles: true }));
-    input.dispatchEvent(new Event('change', { bubbles: true }));
+    _applyGoogleAddressValue(input, fallbackText);
+    const current = () => input.isConnected && requestState.revision === revision
+      && input.value === fallbackText;
 
     try {
       const place = pred.toPlace();
       await place.fetchFields({ fields: ['formattedAddress', 'addressComponents'] });
+      if (!current()) return;
 
       if (place.formattedAddress) {
-        input.value = place.formattedAddress;
-        input.dispatchEvent(new Event('input', { bubbles: true }));
-        input.dispatchEvent(new Event('change', { bubbles: true }));
+        _applyGoogleAddressValue(input, place.formattedAddress);
       }
 
       if (place.addressComponents && onSelectCallback) {
@@ -12765,21 +12813,26 @@ function routeAfterMagicLinkIfNeeded() {
           types: c.types
         }));
 
-        onSelectCallback(components);
+        requestState.applyingSelection = true;
+        try {
+          onSelectCallback(components);
+        } finally {
+          requestState.applyingSelection = false;
+        }
       }
 
       markGoogleAddressSelected(input);
       input.blur();
-      _sessionToken = new window._AutocompleteSessionToken();
     } catch(e) {
+      if (!current()) return;
       console.error('Place fetch error:', e);
-      input.value = fallbackText;
-      input.dispatchEvent(new Event('input', { bubbles: true }));
-      input.dispatchEvent(new Event('change', { bubbles: true }));
+      // The chosen fallback is already saved. Never overwrite a later edit
+      // or dispatch another search merely because details could not load.
     }
   }
 
   function _hideDropdown() {
+    _addressSuggestionEpoch += 1;
     if (_dropdown) {
       _dropdown.remove();
       _dropdown = null;
