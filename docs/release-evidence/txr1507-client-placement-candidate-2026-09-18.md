@@ -123,3 +123,18 @@ The helper `scripts/qa/send_txr1507_placement_test.py` defaults to unsigned-only
 generation, requires an explicit send flag, reads the existing API key without
 echo, and never persists credentials. A saved receipt prevents accidental
 duplicate sends. It does not retry ambiguous network failures automatically.
+
+## Provider test partially signed - September 18
+
+The same exact QA document now shows **In Progress** in the authenticated
+SignWell Documents list. Its builder states that it is being completed and
+can no longer be changed. A read-only visual check of page two shows the
+synthetic client's signature and 09/18/2026 date above their intended rules,
+clear of the Client's Signature and Date labels. The associate's signature
+and date still show unsigned field placeholders. No signature was applied by
+the agent during this check, and no reminder or additional packet was sent.
+
+This is partial provider-rendered evidence only: the completed downloadable
+PDF and audit trail are not yet available for the final visual check. The
+approved-map baselines remain unchanged. The real customer agreement remains
+untouched, and no deployment or public push occurred.
