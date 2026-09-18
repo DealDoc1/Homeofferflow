@@ -14,6 +14,7 @@ from pathlib import Path
 
 from pypdf import PdfReader, PdfWriter
 from lib.pdf_source_audit import collect_source_hashes
+from lib.repair_continuation import continuation_field
 
 from lib.txr_1953 import build_signwell_fields_txr1953, render_txr_1953, RENDER_REVISION as TXR1953_RENDER_REVISION
 from lib.txr_1954 import build_signwell_fields_txr1954, render_txr_1954, RENDER_REVISION as TXR1954_RENDER_REVISION
@@ -498,6 +499,20 @@ def build_signwell_fields_20_19(offer, pdf_bytes):
     if not fields:
         fields = [[]]
     fields_for_file = fields[0]
+
+    # Existing Seller recipients can initial the same continuation; do not
+    # introduce a Seller invitation into an otherwise Buyer-only packet.
+    sellers = {party["id"]: party for party in (
+        paragraph4_execution_parties(offer) +
+        seller_temporary_lease_execution_parties(offer) + hydrostatic_parties
+    )}
+    continuation_pages = [
+        field["page"] for field in fields_for_file
+        if field["api_id"].startswith("repair_continuation_") and field["recipient_id"] == "1"
+    ]
+    for index, page in enumerate(continuation_pages, start=1):
+        for recipient in sorted(sellers):
+            fields_for_file.append(continuation_field(recipient, page, index))
 
     seller_execution_parties = seller_temporary_lease_execution_parties(offer)
     if seller_execution_parties:

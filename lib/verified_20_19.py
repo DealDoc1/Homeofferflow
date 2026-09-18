@@ -5,6 +5,10 @@ from http.server import BaseHTTPRequestHandler
 from pypdf import PdfReader, PdfWriter
 from reportlab.pdfgen import canvas
 from reportlab.pdfbase.pdfmetrics import stringWidth
+from lib.repair_continuation import (
+    repair_text_entries, render_repair_continuation,
+    continuation_page_count, continuation_field,
+)
 
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
 STRIPE_WHSEC   = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
@@ -407,50 +411,6 @@ def debug_grid_entries(step=25):
     return entries
 
 
-def repair_text_entries(text):
-    """Fit Paragraph 7D(2) text onto its short first blank and full second blank."""
-    raw = " ".join(str(text or "").replace("\r", " ").replace("\n", " ").split())
-    if not raw:
-        return []
-
-    words = raw.split()
-    # The first printed blank begins after "repairs and treatments:"; the second
-    # blank spans the full text width. Reduce type only when both blanks need it.
-    for fs in [9.5, 9.25, 9.0, 8.75, 8.5, 8.25, 8.0, 7.75, 7.5, 7.25, 7.0, 6.75, 6.5, 6.25]:
-        first = []
-        while words:
-            trial = " ".join(first + [words[0]])
-            if stringWidth(trial, FONT, fs) <= 246:
-                first.append(words.pop(0))
-            else:
-                break
-
-        second = " ".join(words)
-        if stringWidth(second, FONT, fs) <= 463:
-            return [
-                (305, 699, " ".join(first), fs),
-                (89, 686, second, fs),
-            ]
-
-        # Retry from the full text at a smaller size.
-        words = raw.split()
-
-    # Extremely long instructions stay clipped to the two available blanks rather
-    # than spilling into the printed warning below.
-    first = []
-    while words:
-        trial = " ".join(first + [words[0]])
-        if stringWidth(trial, FONT, 6.25) <= 246:
-            first.append(words.pop(0))
-        else:
-            break
-    second = " ".join(words)
-    while second and stringWidth(second + "...", FONT, 6.25) > 463:
-        words.pop()
-        second = " ".join(words)
-    if second:
-        second += "..."
-    return [(305, 699, " ".join(first), 6.25), (89, 686, second, 6.25)]
 
 
 def add_debug_grid_to_pages(pages_dict):
@@ -1452,6 +1412,10 @@ def fill_and_merge(offer):
         bkup_pages = add_debug_grid_to_pages(bkup_pages)
         merger.append(PdfReader(BytesIO(stamp_pdf(BACKUP_PDF, bkup_pages))))
 
+    repair_continuation = render_repair_continuation(s)
+    if repair_continuation:
+        merger.append(PdfReader(BytesIO(repair_continuation)))
+
     out = BytesIO()
     merger.write(out)
     return out.getvalue()
@@ -1680,6 +1644,14 @@ def build_signwell_fields(offer, pdf_bytes):
         add_sig_date_pair("buyer1_backup_addendum", backup_signature_page, 122, 220, 286, 220, "1")
         if has_buyer2:
             add_sig_date_pair("buyer2_backup_addendum", backup_signature_page, 122, 318, 286, 318, "2")
+
+    for index in range(continuation_page_count(offer)):
+        page = next_page + index
+        if page > page_count:
+            raise ValueError("The repair continuation is missing from this packet.")
+        fields_for_file.append(continuation_field("1", page, index + 1))
+        if has_buyer2:
+            fields_for_file.append(continuation_field("2", page, index + 1))
 
     fields = [fields_for_file]
 

@@ -43,6 +43,8 @@ Only the affected page was visually inspected; this is not whole-packet,
 completed-signature, authenticated browser, or production QA. The existing
 long-repair renderer has a separate two-line overflow/truncation path that
 needs follow-up so unusually long requirements cannot silently lose text.
+Follow-up: the local candidate and separate QA evidence are now recorded in
+`repair-continuation-2026-09-18.md`; it is not a production release.
 The possession labels and temporary-lease review remain separate follow-up work.
 
 ## Release status
