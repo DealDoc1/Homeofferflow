@@ -2,6 +2,15 @@
 
 ## Local continuation status - September 18, 2026
 
+TXR-1506 consumer-notice answers now fit measured source areas; the signing
+copy no longer prints consumer names underneath their signature fields.
+Consumer-identification headers remain populated, and long names/notices
+continue in full with required initials for the same selected recipients.
+All 26 pages of four synthetic signing specimens were visually checked.
+Base signature/date/initials coordinates are unchanged. This is **not deployed
+or newly completed-provider verified**; see
+[consumer-notice evidence](release-evidence/txr1506-answer-candidate-2026-09-18.md).
+
 Representation PDF identity and broker recipients now resolve from the agent's
 own profile/optional active organization, not the shared source host. No-seat
 associate use and a consistent render/recipient snapshot are locally tested.

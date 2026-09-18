@@ -81,7 +81,7 @@ def render_continuation(data, overflow, *, title=TITLE, party_label='Client',
         canvas.drawString(48,730,description)
         for label,key in labels:
             x=INITIAL_X[key]
-            canvas.setFont('Helvetica',7 if party_label=='Customer' else 8)
+            canvas.setFont('Helvetica',7 if party_label in {'Customer', 'Consumer'} else 8)
             canvas.drawString(x-62,70,label+' initials')
             canvas.line(x,68,x+50,68)
         canvas.drawString(48,40,title)

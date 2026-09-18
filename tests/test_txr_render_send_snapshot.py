@@ -25,12 +25,16 @@ class RenderSendFixture:
         names = data.pop('client_names')[:count]
         data.update(signer_plan=role + '_and_clients' if code == 'TXR-1508' else 'clients_and_' + role,
                     signing_map_revision=MODULE.TXR_SIGNING_MAP_REVISIONS[code])
+        if code == 'TXR-1506':
+            data['signer_plan'] = 'consumers_and_' + role
         if long:
             data['market_area'] = 'Long market description ' * 30
             if code == 'TXR-1508':
                 data['property_address'] = 'Long address and city ' * 19
                 names = [('Customer One ' if n == 0 else 'Customer Two ') + 'Family Name ' * 14
                          for n in range(count)]
+            if code == 'TXR-1506':
+                data['additional_notice'] = 'Additional information for the consumer. ' * 25
         self.row = {'id': RECORD_ID, 'agent_user_id': USER['id'], 'brokerage_id': 'library-host',
                     'status': 'draft', 'updated_at': '2026-09-18T10:00:00Z',
                     'form_code': code, 'form_source_id': 'source', 'source_revision': 'QA-v1',
@@ -41,7 +45,7 @@ class RenderSendFixture:
         self.source = {'id': 'source', 'source_revision': 'QA-v1',
                        'storage_bucket': 'private', 'storage_path': 'qa.pdf'}
         writer = PdfWriter()
-        for _ in range({'TXR-1501': 6, 'TXR-1507': 2, 'TXR-1508': 1}[code]):
+        for _ in range({'TXR-1501': 6, 'TXR-1506': 6, 'TXR-1507': 2, 'TXR-1508': 1}[code]):
             writer.add_blank_page(width=612, height=792)
         stream = BytesIO()
         writer.write(stream)

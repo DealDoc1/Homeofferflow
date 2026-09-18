@@ -144,7 +144,7 @@ TXR_SIGNING_FORM_CODES = {
 # have no map revision and are therefore never mistaken for current-map QA.
 TXR_RENDER_REVISIONS = {
     "TXR-1501": "txr-1501-2026-09-18-continuation-pagination-v2",
-    "TXR-1506": "txr-1506-2026-09-18-neutral-source-v1",
+    "TXR-1506": "txr-1506-2026-09-18-answer-continuation-v2",
     "TXR-1507": "txr-1507-2026-09-18-continuation-pagination-v3",
     "TXR-1508": "txr-1508-2026-09-18-answer-continuation-v2",
     "TXR-1905": "txr-1905-2026-09-18-source-blanks-v2",
@@ -160,7 +160,7 @@ TXR_SIGNING_MAP_REVISIONS = {
     TXR_1914_FORM_CODE: "txr-1914-2026-09-18-execution-candidate-v2",
     TXR_1919_FORM_CODE: "txr-1919-2026-09-18-initials-candidate-v2",
     TXR_1501_FORM_CODE: "txr-1501-2026-09-18-continuation-candidate-v4",
-    TXR_1506_FORM_CODE: "txr-1506-2026-09-09-final-page-calibrated-v1",
+    TXR_1506_FORM_CODE: "txr-1506-2026-09-18-answer-continuation-candidate-v2",
     # Completed-packet review moved every execution widget above the printed
     # signature/date captions.  Drafts prepared with v1 must be rebuilt so a
     # sender cannot inadvertently reuse the older field geometry.
@@ -3966,7 +3966,10 @@ def _txr_signwell_fields(form_code, agreement_data, client_count, *, rendered_pd
         return build_signwell_fields_txr1501(agreement_data, client_count=client_count, page_count=page_count)
     if form_code == TXR_1506_FORM_CODE:
         from lib.txr_1506 import build_signwell_fields_txr1506
-        return build_signwell_fields_txr1506(agreement_data, client_count=client_count)
+        from io import BytesIO
+        from pypdf import PdfReader
+        page_count = len(PdfReader(BytesIO(rendered_pdf)).pages) if rendered_pdf is not None else 6
+        return build_signwell_fields_txr1506(agreement_data, client_count=client_count, page_count=page_count)
     if form_code == TXR_1507_FORM_CODE:
         from lib.txr_1507 import build_signwell_fields_txr1507
         from io import BytesIO
