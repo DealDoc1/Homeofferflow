@@ -6,6 +6,15 @@ reducing verification standards.
 
 ## Local continuation status - September 18, 2026
 
+Outstanding completed-provider geometry checks for six corrected forms are now
+consolidated into one nonbinding SignWell document instead of six separate
+requests. The 14-page, 54-field packet is confirmed sent to the two approved QA
+inboxes with parallel signing and reminders disabled. Its provider document ID
+is `4ec37d4c-4283-4933-8416-28866c15f918`. It still requires both QA signers to
+finish the existing packet before the completed PDF can be inspected and the
+two geometry baselines reconsidered. See
+[compact SignWell QA evidence](release-evidence/compact-signwell-geometry-qa-2026-09-18.md).
+
 The seven-commit signing-reliability stack is now merged into `main` through
 PR #1233 at `b4d517be`. Post-merge GitHub Actions run `35404761878` passed the
 full unit suite, golden packet rendering, standalone signer-geometry guard,
