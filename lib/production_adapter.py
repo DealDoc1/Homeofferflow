@@ -605,6 +605,9 @@ def fill_and_merge_20_19(offer):
     }
     with collect_source_hashes() as source_hashes:
         packet = verified.fill_and_merge(offer)
+    if verified.appraisal_requested(offer):
+        from lib.txr_1948 import RENDER_REVISION as APPRAISAL_RENDER_REVISION
+        offer['_signing_render_revisions']['TXR-1948'] = APPRAISAL_RENDER_REVISION
     if hydrostatic:
         source_hashes.append(HYDROSTATIC_SOURCE_SHA256)
         offer['_signing_render_revisions']['TREC-48-1'] = HYDROSTATIC_RENDER_REVISION

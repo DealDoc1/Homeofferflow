@@ -55,7 +55,9 @@ class SourceAnswers:
         parties = {'property_address': clean(self.data.get('property_address')),
                    'buyer1': buyers[0] if buyers else '',
                    'buyer2': buyers[1] if len(buyers) > 1 else '',
-                   'seller': ' and '.join(self.data.get('seller_names') or [])}
+                   # Purchase packets can identify a Seller without inviting
+                   # that person to this Buyer-only signing request.
+                   'seller': self.data.get('seller') or ' and '.join(self.data.get('seller_names') or [])}
         return render_text_continuation(parties, self.title,
             '\n\n'.join(label + ': ' + value for label, value in self.overflow.items()))
 

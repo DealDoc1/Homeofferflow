@@ -10,14 +10,24 @@ the pending batch are also absent from production, confirmed by catalog reads.
 These are verified release dependencies, not a new login or customer approval
 requirement. See [current release evidence](release-evidence/production-release-revalidation-2026-09-18.md).
 
+The purchase-offer appraisal addendum now uses the same bounded, editable
+answer layout as standalone TXR-1948. Buyer signature boxes follow the source
+rules without extra unprinted date fields; continuation pages receive Buyer
+initials and shift following addenda correctly. Source hashes and render
+revisions remain recorded. Local rendered/offline-payload checks pass; this is
+**not deployed or completed-provider verified**. The long-address specimen
+also exposed clipping on the following HOA addendum, which remains a separate
+in-progress correction, not a user-access blocker. See
+[combined appraisal evidence](release-evidence/purchase-appraisal-candidate-2026-09-18.md).
+
 Standalone TXR-1948 appraisal-addendum answers now stay within measured source
 blanks or continue intact on an initialed attachment. Editable fields retain
 matching canonical values and embedded Unicode appearances; preview names no
 longer overlap, and signing copies leave execution lines clear. All five pages
 of three source-backed candidates were visually checked, with offline delivery
 coverage for every buyer/seller combination. This is **locally tested, not
-deployed or completed-provider verified**. The separate combined purchase-offer
-appraisal renderer is not covered by this change. See
+deployed or completed-provider verified**. The combined purchase-offer renderer
+is covered by the separate follow-on correction above. See
 [appraisal answer evidence](release-evidence/txr1948-answer-candidate-2026-09-18.md).
 
 Generated mineral-reservation, loan-assumption, residential-lease and

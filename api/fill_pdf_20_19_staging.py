@@ -1,5 +1,9 @@
 import json, os, base64, hashlib, hmac, httpx, re
 from io import BytesIO
+from pathlib import Path
+from lib.txr_1948 import (
+    render_txr_1948, answer_layout as appraisal_answer_layout, BUYER_SIGNATURE_BOXES,
+)
 from lib.contract_money import currency_amount, format_currency
 from http.server import BaseHTTPRequestHandler
 
@@ -286,6 +290,32 @@ def normalize_appraisal(v):
         "terminate": "additional",
     }
     return aliases.get(raw, raw)
+
+
+def appraisal_requested(offer):
+    return (normalize_financing(offer.get('financing')) in {'conventional', 'usda'}
+            and normalize_appraisal(offer.get('appraisalAddendum')) in {'waiver', 'partial', 'additional'})
+
+
+def appraisal_render_data(offer):
+    """Use the same bounded source layout in standalone and purchase packets.
+
+    This packet invites Buyers only for the appraisal addendum. Do not introduce
+    Seller invitations or stamp preview names into execution lines.
+    """
+    choice = normalize_appraisal(offer.get('appraisalAddendum'))
+    return {
+        'property_address': f"{offer.get('address','')}, {offer.get('city','')}, TX {offer.get('zip','')}".strip(', '),
+        'buyer_names': [offer.get('buyer1') or 'Buyer'] +
+            ([offer.get('buyer2') or 'Buyer 2'] if offer.get('buyer2Email') else []),
+        'seller_names': [], 'seller': offer.get('seller') or '', '_for_signing': True,
+        'appraisal_choice': {'partial': 'partial_waiver', 'additional': 'additional_right'}.get(choice, choice),
+        'partial_value': fmt_money(first_present(offer.get('appraisalPartialValue'), offer.get('appraisalMinimum'),
+            offer.get('appraisalMinValue'), offer.get('appraisalPartialMinimum'))),
+        'additional_days': str(first_present(offer.get('appraisalTerminateDays'), offer.get('appraisalDays'), '7')),
+        'additional_value': fmt_money(first_present(offer.get('appraisalTerminateValue'), offer.get('appraisalMinimum'),
+            offer.get('appraisalMinValue'), '')),
+    }
 
 
 
@@ -934,8 +964,7 @@ def fill_and_merge(offer):
     has_sale = s.get("saleContingency") == "yes"
     has_bkup = s.get("backupOffer") == "yes"
     lead_required = lead_required_from_offer(s)
-    appraisal_choice_main = normalize_appraisal(s.get("appraisalAddendum"))
-    has_appraisal = has_loan and normalized_financing_main not in ["fha", "va"] and appraisal_choice_main in ["waiver", "partial", "additional"]
+    has_appraisal = appraisal_requested(s)
     has_non_realty = str(s.get("nonRealtyItems") or "no").strip().lower() in ["yes", "true", "1", "on"] and bool(str(get_non_realty_description(s) or "").strip())
 
     title_payer = s.get("titlePayer", "seller")
@@ -1078,23 +1107,17 @@ def fill_and_merge(offer):
         merger.append(PdfReader(BytesIO(stamp_pdf(FINANCING_PDF, fin_pages))))
 
     appraisal_pdf_path = APPRAISAL_PDF if os.path.exists(APPRAISAL_PDF) else APPRAISAL_PDF_ALT
-    if has_appraisal and os.path.exists(appraisal_pdf_path):
-        appraisal_choice = normalize_appraisal(s.get("appraisalAddendum"))
-        appraisal_pages = {
-            0: [
-                # TREC 49-1 appraisal addendum: tightened from live QA.
-                # Keep text slightly above the printed underline and centered in the blanks.
-                (238, 656, addr_full, 7),
-                (50, 548, ck(appraisal_choice == "waiver"), "check_small"),
-                (50, 465, ck(appraisal_choice == "partial"), "check_small"),
-                (250, 405, fmt_money(first_present(s.get("appraisalPartialValue"), s.get("appraisalMinimum"), s.get("appraisalMinValue"), s.get("appraisalPartialMinimum"))) if appraisal_choice == "partial" else "", 8),
-                (50, 346, ck(appraisal_choice == "additional"), "check_small"),
-                (82, 323, str(first_present(s.get("appraisalTerminateDays"), s.get("appraisalDays"), "7")) if appraisal_choice == "additional" else "", 8),
-                (151, 288, fmt_money(first_present(s.get("appraisalTerminateValue"), s.get("appraisalMinimum"), s.get("appraisalMinValue"), "")) if appraisal_choice == "additional" else "", 8),
-            ],
-        }
-        appraisal_pages = add_debug_grid_to_pages(appraisal_pages)
-        merger.append(PdfReader(BytesIO(stamp_pdf(appraisal_pdf_path, appraisal_pages))))
+    if has_appraisal:
+        if not os.path.exists(appraisal_pdf_path):
+            raise ValueError("The appraisal addendum source is unavailable.")
+        from lib.pdf_source_audit import audited_source_bytes
+        source = audited_source_bytes(appraisal_pdf_path)
+        if source is None:
+            source = Path(appraisal_pdf_path).read_bytes()
+        appraisal_reader = PdfReader(BytesIO(render_txr_1948(source, appraisal_render_data(s))))
+        # Keep canonical editable fields isolated from all other packet forms.
+        appraisal_reader.add_form_topname('hof_appraisal')
+        merger.append(appraisal_reader)
 
     non_realty_pdf_path = NON_REALTY_PDF if os.path.exists(NON_REALTY_PDF) else NON_REALTY_PDF_ALT
     if has_non_realty and not os.path.exists(non_realty_pdf_path):
@@ -1455,7 +1478,7 @@ def build_signwell_fields(offer, pdf_bytes):
     has_hoa = str(offer.get("hoa") or "").strip().lower() in {"yes", "unknown"}
     has_sale = str(offer.get("saleContingency") or "").strip().lower() == "yes"
     has_backup = str(offer.get("backupOffer") or "").strip().lower() == "yes"
-    has_appraisal = has_financing_addendum and financing not in {"fha", "va"} and normalize_appraisal(offer.get("appraisalAddendum")) in {"waiver", "partial", "additional"}
+    has_appraisal = appraisal_requested(offer)
     has_non_realty = str(offer.get("nonRealtyItems") or "no").strip().lower() in {"yes", "true", "1", "on"} and bool(str(get_non_realty_description(offer) or "").strip())
     lead_required = lead_required_from_offer(offer)
     lead_addendum_attached = truthy(first_present(
@@ -1491,6 +1514,10 @@ def build_signwell_fields(offer, pdf_bytes):
     if has_appraisal:
         appraisal_page = next_page
         next_page += 1
+        appraisal_answers = appraisal_answer_layout(appraisal_render_data(offer))
+        appraisal_continuation = appraisal_answers.continuation()
+        if appraisal_continuation:
+            next_page += len(PdfReader(BytesIO(appraisal_continuation)).pages)
     if has_non_realty:
         non_realty_page = next_page
         next_page += 1
@@ -1582,11 +1609,18 @@ def build_signwell_fields(offer, pdf_bytes):
             add_sig_date_pair("buyer2_financing_addendum", financing_signature_page, 112, 884, 266, 884, "2")
 
     # Appraisal Addendum - buyer signatures only. No seller fields.
-    # Live QA: signature blocks needed to sit higher on the buyer lines and include buyer dates.
+    # Source has Buyer signature rules, but no printed date blanks. Share the
+    # standalone source-calibrated boxes; never extend over the Buyer captions.
     if appraisal_page:
-        add_sig_date_pair("buyer1_appraisal_addendum", appraisal_page, 85, 780, 260, 780, "1")
-        if has_buyer2:
-            add_sig_date_pair("buyer2_appraisal_addendum", appraisal_page, 85, 868, 260, 868, "2")
+        if appraisal_page > page_count:
+            raise ValueError("The appraisal addendum is missing from this packet.")
+        for index, (x, y, width, height) in enumerate(BUYER_SIGNATURE_BOXES[:2 if has_buyer2 else 1], 1):
+            add_field(f"buyer{index}_appraisal_addendum_signature", "signature", appraisal_page,
+                      x, y, str(index), width=width, height=height)
+        appraisal_fields = appraisal_answers.continuation_fields(appraisal_page + 1, 'appraisal')
+        if any(field['page'] > page_count for field in appraisal_fields):
+            raise ValueError("The appraisal continuation is missing from this packet.")
+        fields_for_file.extend(appraisal_fields)
 
     # Non-Realty Items Addendum - buyer signatures only. No seller fields.
     if non_realty_page:

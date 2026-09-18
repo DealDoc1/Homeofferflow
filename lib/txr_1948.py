@@ -12,6 +12,7 @@ from lib.txr_addenda_layout import SourceAnswers, draw_entries, mark_cell
 PAGE_WIDTH = 612
 PAGE_HEIGHT = 792
 RENDER_REVISION = 'txr-1948-2026-09-18-answer-continuation-v2'
+BUYER_SIGNATURE_BOXES = ((58, 764, 336, 26), (58, 852, 336, 26))
 ADDRESS_FIELD = 'Street Address and City'
 CHOICE_FIELDS = {
     'waiver': '1 WAIVER Buyer w aives Buyers right to terminate the contract under Paragraph 2B of the',
@@ -169,12 +170,12 @@ def build_signwell_fields_txr1948(data, *, client_count=None):
             "api_id": "txr1948_buyer1_signature_p1",
             "type": "signature",
             "page": 1,
-            "x": 58,
-            "y": 764,
+            "x": BUYER_SIGNATURE_BOXES[0][0],
+            "y": BUYER_SIGNATURE_BOXES[0][1],
             "recipient_id": "1",
             "required": True,
-            "width": 336,
-            "height": 26,
+            "width": BUYER_SIGNATURE_BOXES[0][2],
+            "height": BUYER_SIGNATURE_BOXES[0][3],
         },
         {
             "api_id": "txr1948_seller1_signature_p1",
@@ -194,12 +195,12 @@ def build_signwell_fields_txr1948(data, *, client_count=None):
                 "api_id": "txr1948_buyer2_signature_p1",
                 "type": "signature",
                 "page": 1,
-                "x": 58,
-                "y": 852,
+                "x": BUYER_SIGNATURE_BOXES[1][0],
+                "y": BUYER_SIGNATURE_BOXES[1][1],
                 "recipient_id": "2",
                 "required": True,
-                "width": 336,
-                "height": 26,
+                "width": BUYER_SIGNATURE_BOXES[1][2],
+                "height": BUYER_SIGNATURE_BOXES[1][3],
             }
         )
     if len(sellers) == 2:
