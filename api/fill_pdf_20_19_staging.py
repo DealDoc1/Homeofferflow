@@ -862,6 +862,7 @@ def build_pages_data(
         (62, 290, ck(has_hoa), "check_small"),
         (62, 278, ck(has_non_realty), "check_small"),
         (62, 269, ck(has_bkup), "check_small"),
+        (62, 252, ck(truthy(s.get('mineralReservation')) or truthy(s.get('mineralReservationAddendum'))), 'check_small'),
     ]
 
     # 20-19 Page 10: execution/signature page. Buyer signatures are SignWell only.

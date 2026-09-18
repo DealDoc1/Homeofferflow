@@ -20,6 +20,8 @@ from lib.production_adapter import (
     paragraph4_execution_parties,
     paragraph4_lease_kinds,
     hydrostatic_execution_parties,
+    mineral_execution_parties,
+    mineral_requested,
     seller_temporary_lease_execution_parties,
     validate_supported_offer,
 )
@@ -78,20 +80,22 @@ DEBUG_GRID = False
 
 
 def hydrate_paragraph4_sources(offer):
-    """Load released Paragraph 4 sources privately for this server request.
+    """Load selected private purchase-addendum sources for this server request.
 
     Storage locators and PDF bytes never enter checkout metadata or browser
     responses. The selected public form revision is recorded for the offer's
     audit trail, while only the server-side working copy receives source bytes.
     """
     selected = paragraph4_lease_kinds(offer)
+    if mineral_requested(offer):
+        selected.append('TXR-1905')
     if not selected:
         return offer
     existing = offer.get("_paragraph4_source_pdf_bytes")
     if isinstance(existing, dict) and all(existing.get(code) for code in selected):
         return offer
     if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
-        raise UnsupportedOfferPathError(["released Paragraph 4 form source"])
+        raise UnsupportedOfferPathError(["available purchase-addendum form source"])
 
     headers = {
         "apikey": SUPABASE_SERVICE_ROLE_KEY,
@@ -1395,6 +1399,7 @@ def create_signwell_signature_request(offer, pdf_bytes, *, record=None, user_id=
     seller_lease_parties = seller_temporary_lease_execution_parties(offer)
     paragraph4_parties = paragraph4_execution_parties(offer)
     hydrostatic_parties = hydrostatic_execution_parties(offer)
+    mineral_parties = mineral_execution_parties(offer)
     if seller_lease_parties and paragraph4_parties:
         temporary_identity = [(party["name"].casefold(), party["email"].casefold()) for party in seller_lease_parties]
         paragraph4_identity = [(party["name"].casefold(), party["email"].casefold()) for party in paragraph4_parties]
@@ -1404,7 +1409,7 @@ def create_signwell_signature_request(offer, pdf_bytes, *, record=None, user_id=
                 "ok": False,
                 "error": "Use the same Seller names and emails for every Seller-signed lease in this packet.",
             }
-    seller_parties = paragraph4_parties or seller_lease_parties or hydrostatic_parties
+    seller_parties = paragraph4_parties or seller_lease_parties or hydrostatic_parties or mineral_parties
     if seller_parties:
         if any(not _is_valid_signwell_email(party["email"]) for party in seller_parties):
             return {"enabled": True, "ok": False, "error": "Invalid seller email for SignWell"}
@@ -1457,7 +1462,13 @@ def create_signwell_signature_request(offer, pdf_bytes, *, record=None, user_id=
         contact_sentence = f"Questions? Contact {agent_name}."
 
     paragraph4_forms = paragraph4_lease_kinds(offer)
-    if hydrostatic_parties:
+    if mineral_parties:
+        signing_scope_message = (
+            "Please review and sign your assigned fields. This packet includes a mineral-reservation addendum. "
+            "The Buyer and Seller sign that addendum; other signatures follow the documents included in the packet. "
+            "All named signers receive invitations together and can sign independently.\n\n"
+        )
+    elif hydrostatic_parties:
         signing_scope_message = (
             "Please review and sign your assigned fields. This packet includes hydrostatic-testing authorization. "
             "The Buyer and Seller sign that addendum; other signatures follow the documents included in the packet. "
@@ -1550,8 +1561,10 @@ def create_signwell_signature_request(offer, pdf_bytes, *, record=None, user_id=
             "paragraph4_seller_count": str(len(paragraph4_parties)),
             "paragraph4_forms": ",".join(paragraph4_forms),
             **({"hydrostatic_form": "TREC-48-1"} if hydrostatic_parties else {}),
+            **({"mineral_reservation_form": "TXR-1905"} if mineral_parties else {}),
             "test_mode": str(SIGNWELL_TEST_MODE).lower(),
             "debug_payload": (
+                "bundle_v16_mineral_multisigner" if mineral_parties else
                 "bundle_v15_hydrostatic_multisigner"
                 if hydrostatic_parties else
                 "bundle_v14_paragraph4_multisigner"
@@ -1570,7 +1583,8 @@ def create_signwell_signature_request(offer, pdf_bytes, *, record=None, user_id=
         data = delivered["document"]
         return {
             "enabled": True, "ok": True,
-            "mode": ("bundle_v15_hydrostatic_multisigner" if hydrostatic_parties else
+            "mode": ("bundle_v16_mineral_multisigner" if mineral_parties else
+                     "bundle_v15_hydrostatic_multisigner" if hydrostatic_parties else
                      "bundle_v14_paragraph4_multisigner" if paragraph4_forms else
                      "bundle_v13_seller_temporary_lease_multisigner" if seller_lease_parties
                      else "bundle_v12_buyer_only_all_addenda"),

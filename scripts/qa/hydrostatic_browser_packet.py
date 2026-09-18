@@ -2,6 +2,7 @@
 import contextlib
 from io import BytesIO
 import json
+import os
 from pathlib import Path
 import sys
 
@@ -14,11 +15,19 @@ def main():
     answers = json.load(sys.stdin)
     allowed = {'hydrostaticTesting', 'hydrostaticAddendum', 'hydrostaticRiskAllocation',
                'hydrostaticBuyerLiabilityLimit', 'seller1Name', 'seller1Email',
-               'seller2Name', 'seller2Email'}
+               'seller2Name', 'seller2Email', 'mineralReservation', 'mineralReservationAddendum',
+               'mineralReservationChoice', 'mineralUndividedInterest', 'mineralSurfaceRights'}
     offer = minimal_offer(buyer1='QA Buyer', buyerEmail='buyer@example.test',
                           seller='QA Seller', address='100 QA Street', city='Frisco',
                           county='Collin', zip='75034', closingDate='2026-10-30')
     offer.update({key: value for key, value in answers.items() if key in allowed})
+    if adapter.mineral_requested(offer):
+        # The operator supplies a local private source, never via browser input.
+        source = Path(os.environ['HOF_QA_MINERAL_SOURCE']).read_bytes()
+        reader = PdfReader(BytesIO(source))
+        assert not reader.get_fields() and not any(a.get_object().get('/Subtype') == '/Widget'
+            for page in reader.pages for a in page.get('/Annots', [])), 'Inspect interactive source before rendering'
+        offer['_paragraph4_source_pdf_bytes'] = {'TXR-1905': source}
     configure_local_forms()
     with contextlib.redirect_stdout(sys.stderr):
         packet = adapter.fill_and_merge_20_19(offer)
@@ -44,7 +53,7 @@ def main():
     print(json.dumps({'pages': len(reader.pages), 'hydrostaticFields': hydro,
                       'widgetsChecked': widgets_checked,
                       'signatureFields': [field for field in signing
-                                          if field['api_id'].startswith('trec48_1_')],
+                                          if field['api_id'].startswith(('trec48_1_', 'txr1905_'))],
                       'providerContacted': False}))
 
 

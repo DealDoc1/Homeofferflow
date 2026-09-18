@@ -34,6 +34,47 @@ function setup(data = {}) {
 const valid = {hydrostaticTesting:'yes', hydrostaticRiskAllocation:'buyer_capped', hydrostaticBuyerLiabilityLimit:'2,500.00',
                buyer1:'Buyer One', buyerEmail:'buyer@example.test', seller1Name:'Seller One', seller1Email:'seller@example.test'};
 
+test('mineral interview asks only selected terms and reuses valid packet signers', () => {
+  const {context:c} = setup();
+  const data={...valid,hydrostaticTesting:'no',mineralReservation:'yes',mineralReservationChoice:'undivided_interest',mineralUndividedInterest:'25.125',mineralSurfaceRights:'waived'};
+  assert.equal(c.mineralInterviewIssues(data).length,0);
+  for(const value of ['', '0', '-1', '100.1', 'NaN', '1e2', '2,5', '1.12345']) {
+    assert.equal(c.mineralInterviewIssues({...data,mineralUndividedInterest:value},false)[0].id,'mineralUndividedInterest');
+  }
+  assert.equal(c.mineralInterviewIssues({...data,mineralReservationChoice:'all',mineralUndividedInterest:'old'}).length,0);
+  assert.equal(c.mineralInterviewIssues({...data,mineralSurfaceRights:''},false)[0].id,'mineralSurfaceRights');
+  assert.equal(c.mineralInterviewIssues({...data,mineralReservationChoice:''},false)[0].id,'mineralReservationChoice');
+  assert.ok(c.mineralInterviewIssues({...data,seller1Email:'bad'}).length);
+  assert.equal(c.validateMineralInputs({...data,seller1Email:'bad'}),false);
+  assert.equal(c.validateMineralInputs({mineralReservation:'no'}),true);
+});
+
+test('mineral selection shows shared sellers and removes stale choices from the package',()=>{
+  const {context:c,el,radio}=setup();radio.hydrostaticTesting='no';radio.mineralReservation='yes';
+  el('mineralReservationChoice').value='undivided_interest';el('mineralUndividedInterest').value='25.125';el('mineralSurfaceRights').value='not_waived';
+  el('seller1').value='Seller One';c.updateMineralVisibility();c.collectData();
+  assert.equal(el('mineralDetails').style.display,'block');assert.equal(el('mineralInterestField').style.display,'block');
+  assert.equal(el('sellerSigningFields').style.display,'flex');assert.equal(el('seller1Name').value,'Seller One');
+  assert.equal(c.state.data.mineralUndividedInterest,'25.125');
+  el('mineralReservationChoice').value='all';c.collectData();c.updateMineralVisibility();
+  assert.equal(c.state.data.mineralUndividedInterest,'');assert.equal(el('mineralInterestField').style.display,'none');
+  radio.mineralReservation='no';c.collectData();c.updateMineralVisibility();
+  assert.equal(c.state.data.mineralReservationAddendum,'no');assert.equal(c.state.data.mineralSurfaceRights,'');
+  assert.equal(c.state.data.mineralReservationChoice,'');assert.equal(el('sellerSigningFields').style.display,'none');
+  assert.equal(el('mineralUndividedInterest').value,'25.125','Keep editable answer if they switch back');
+});
+
+test('mineral validation marks missing terms and does not erase hydrostatic signer errors',()=>{
+  const {context:c,el,radio}=setup(valid);radio.mineralReservation='yes';
+  c.markHydrostaticInterviewIssues([],true);
+  const missing=[];c.markMineralInterviewIssues(missing,true);
+  assert.ok(missing.includes('choose the mineral interest the seller reserves'));
+  assert.equal(el('mineralReservationChoice').dataset.validationInvalid,'true');
+  assert.equal(el('seller1Email').dataset.validationInvalid,'true');
+  assert.match(c.mineralSigningSummary({}),/Seller acceptance.*remains/);
+  assert.match(c.mineralSigningSummary({possession:'sellerTemporaryLease'}),/purchase contract, temporary lease, mineral/);
+});
+
 test('switching to As Is clears hidden repair text from collected packet data',()=>{
   const {context:c,radio,el}=setup({asIs:'repairs',repairsText:'Old requirement'});
   c.getCurrentSteps=()=>['step6'];el('repairsText').value='Old requirement';radio.asIs='yes';
@@ -157,4 +198,34 @@ test('validation marks the missing answer for accessible focus and clears when c
   missing=[]; c.markHydrostaticInterviewIssues(missing,false);
   assert.equal(missing.length,0);
   assert.equal(el('hydrostaticRiskAllocation').dataset.validationInvalid,undefined);
+});
+
+test('restoring a mineral draft restores elections without leaking an older offer',()=>{
+  const {context:c,el,radio}=setup();
+  vm.runInContext(section('  function clearOfferInterviewFields(', '  async function resumeOffer('),c);
+  c.applyOfferDataToFields({...valid,hydrostaticTesting:'no',mineralReservationAddendum:true,
+    mineralReservationChoice:'undivided_interest',mineralUndividedInterest:'25.125',mineralSurfaceRights:'not_waived'});
+  assert.equal(radio.mineralReservation,'yes');
+  assert.equal(el('mineralUndividedInterest').value,'25.125');
+  assert.equal(el('mineralInterestField').style.display,'block');
+  assert.equal(el('mineralSurfaceRights').value,'not_waived');
+  c.applyOfferDataToFields({});
+  assert.equal(radio.mineralReservation,'no');
+  for(const id of ['mineralReservationChoice','mineralUndividedInterest','mineralSurfaceRights'])assert.equal(el(id).value,'');
+  assert.equal(el('mineralDetails').style.display,'none');
+});
+
+test('review shows actual mineral terms, escapes text, and removes deselected terms',()=>{
+  const {context:c,el}=setup({...valid,mineralReservation:'yes',mineralReservationChoice:'undivided_interest',
+    mineralUndividedInterest:'25.125',mineralSurfaceRights:'waived'});
+  c.document.getElementById=id=>{const element=el(id);element.insertAdjacentHTML=(_p,v)=>{element.innerHTML+=v;};return element;};
+  vm.runInContext(section('  function buildReview()', '  function toggleHelper('),c);
+  c.buildReview();
+  assert.match(el('reviewSummary').innerHTML,/25.125% of mineral estate/);
+  assert.match(el('reviewSummary').innerHTML,/Surface rights.*Waived/);
+  assert.match(el('reviewSigningExpectation').textContent,/mineral-reservation addendum/);
+  c.state.data.mineralUndividedInterest='<img src=x onerror=alert(1)>';c.buildReview();
+  assert.doesNotMatch(el('reviewSummary').innerHTML,/<img src=x/);
+  c.state.data.mineralReservation='no';c.buildReview();
+  assert.doesNotMatch(el('reviewSummary').innerHTML,/Seller reserves/);
 });

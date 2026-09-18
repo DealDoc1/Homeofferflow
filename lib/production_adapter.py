@@ -9,12 +9,17 @@ import base64
 import importlib.util
 import sys
 import re
+import hashlib
+from decimal import Decimal
 from io import BytesIO
 from pathlib import Path
 
 from pypdf import PdfReader, PdfWriter
 from lib.pdf_source_audit import collect_source_hashes
 from lib.repair_continuation import continuation_field
+from lib.txr_1905 import render_txr_1905, build_signwell_fields_txr1905, RENDER_REVISION as MINERAL_RENDER_REVISION
+
+MINERAL_SOURCE_SHA256 = '79f6b8e8b4faa8293abddf4e298f39dbaada703919812c01726c9721af5b0cf3'
 
 from lib.txr_1953 import build_signwell_fields_txr1953, render_txr_1953, RENDER_REVISION as TXR1953_RENDER_REVISION
 from lib.txr_1954 import build_signwell_fields_txr1954, render_txr_1954, RENDER_REVISION as TXR1954_RENDER_REVISION
@@ -146,30 +151,83 @@ def hydrostatic_requested(offer):
 def hydrostatic_execution_parties(offer):
     if not hydrostatic_requested(offer):
         return []
+    return _addendum_execution_parties(offer, 'Hydrostatic testing')
+
+
+def mineral_requested(offer):
+    return _truthy((offer or {}).get('mineralReservation')) or _truthy((offer or {}).get('mineralReservationAddendum'))
+
+
+def mineral_execution_parties(offer):
+    return _addendum_execution_parties(offer, 'Mineral reservation') if mineral_requested(offer) else []
+
+
+def _addendum_execution_parties(offer, label):
     # Hidden answers from a lease that was later deselected must not override
     # the seller identities currently shown in the interview.
     seller_offer = offer if paragraph4_lease_kinds(offer) else {
         key: value for key, value in offer.items() if not key.startswith('paragraph4Seller')
     }
-    parties = _property_seller_parties(seller_offer, 'Hydrostatic testing')
+    parties = _property_seller_parties(seller_offer, label)
     if parties[0]['seller_index'] != 1:
-        raise UnsupportedOfferPathError(['Hydrostatic testing Seller 1 name and email'])
+        raise UnsupportedOfferPathError([f'{label} Seller 1 name and email'])
     buyer1 = str(offer.get('buyer1') or '').strip()
     buyer2 = str(offer.get('buyer2') or '').strip()
     buyer_email = str(offer.get('buyerEmail') or '').strip()
     buyer2_email = str(offer.get('buyer2Email') or '').strip()
     if not buyer1 or not buyer_email or bool(buyer2) != bool(buyer2_email):
-        raise UnsupportedOfferPathError(['Hydrostatic testing Buyer names and emails'])
+        raise UnsupportedOfferPathError([f'{label} Buyer names and emails'])
     emails = [buyer_email] + ([buyer2_email] if buyer2 else []) + [party['email'] for party in parties]
     if any(not re.fullmatch(r'[^\s@]+@[^\s@]+\.[^\s@]+', email) for email in emails):
-        raise UnsupportedOfferPathError(['valid hydrostatic testing signer emails'])
+        raise UnsupportedOfferPathError([f'valid {label.lower()} signer emails'])
     if len({email.casefold() for email in emails}) != len(emails):
-        raise UnsupportedOfferPathError(['distinct hydrostatic testing signer emails'])
+        raise UnsupportedOfferPathError([f'distinct {label.lower()} signer emails'])
     temporary = seller_temporary_lease_execution_parties(offer)
     if temporary and [(p['id'], p['name'].casefold(), p['email']) for p in temporary] != [
             (p['id'], p['name'].casefold(), p['email']) for p in parties]:
         raise UnsupportedOfferPathError(['matching Seller names and emails throughout the packet'])
     return parties
+
+
+def _mineral_render_data(offer):
+    choice = str(offer.get('mineralReservationChoice') or '').strip()
+    surface = str(offer.get('mineralSurfaceRights') or '').strip()
+    interest = str(offer.get('mineralUndividedInterest') or '').strip()
+    if choice not in {'all', 'undivided_interest'}:
+        raise UnsupportedOfferPathError(['choose the mineral interest the Seller reserves'])
+    if surface not in {'waived', 'not_waived'}:
+        raise UnsupportedOfferPathError(['choose whether the Seller waives surface rights'])
+    if choice == 'undivided_interest':
+        if not re.fullmatch(r'\d+(?:\.\d{1,4})?', interest) or not 0 < Decimal(interest) <= 100:
+            raise UnsupportedOfferPathError(['mineral-interest percentage greater than 0 and at most 100'])
+        interest = format(Decimal(interest).normalize(), 'f')
+    else:
+        interest = ''
+    address = ', '.join(value for value in (
+        str(offer.get('address') or '').strip(), str(offer.get('city') or '').strip(),
+        str(offer.get('state') or 'TX').strip(), str(offer.get('zip') or '').strip()) if value)
+    if not str(offer.get('address') or '').strip() or not str(offer.get('city') or '').strip():
+        raise UnsupportedOfferPathError(['property street address and city for the mineral reservation'])
+    return {'property_address': address,
+            'buyer_names': [str(offer[key]).strip() for key in ('buyer1', 'buyer2') if str(offer.get(key) or '').strip()],
+            'seller_names': [party['name'] for party in mineral_execution_parties(offer)],
+            'reservation_choice': choice, 'undivided_interest': interest, 'surface_rights': surface,
+            '_for_signing': True}
+
+
+def _mineral_documents(offer):
+    if not mineral_requested(offer):
+        return []
+    # Reuse the request-private source envelope already excluded from browser
+    # state, saved answers, billing hashes and email payloads.
+    sources = offer.get('_paragraph4_source_pdf_bytes') or {}
+    source = sources.get('TXR-1905') if isinstance(sources, dict) else None
+    if not isinstance(source, (bytes, bytearray)) or hashlib.sha256(source).hexdigest() != MINERAL_SOURCE_SHA256:
+        raise UnsupportedOfferPathError(['the source-calibrated TXR-1905 form'])
+    data = _mineral_render_data(offer)
+    rendered = render_txr_1905(bytes(source), data)
+    return [{'form_code': 'TXR-1905', 'raw': rendered, 'render_data': data,
+             'page_count': len(PdfReader(BytesIO(rendered)).pages)}]
 
 
 def _hydrostatic_render_data(offer):
@@ -377,8 +435,6 @@ def validate_supported_offer(offer):
         "loanAssumption": "Loan Assumption Addendum",
         "environmentalAssessment": "Environmental Assessment Addendum",
         "environmentalAddendum": "Environmental Assessment Addendum",
-        "mineralReservation": "Mineral Reservation Addendum",
-        "mineralReservationAddendum": "Mineral Reservation Addendum",
         "leadBasedPaintAttached": "generated Lead-Based Paint Addendum",
         "attachLeadBasedPaintAddendum": "generated Lead-Based Paint Addendum",
         "sellerLeadDisclosureAttached": "generated Lead-Based Paint Addendum",
@@ -398,6 +454,8 @@ def validate_supported_offer(offer):
     if hydrostatic_requested(offer):
         hydrostatic_execution_parties(offer)
         _hydrostatic_render_data(offer)
+    if mineral_requested(offer):
+        _mineral_render_data(offer)
 
     return True
 
@@ -460,6 +518,7 @@ def fill_and_merge_20_19(offer):
     validate_supported_offer(offer)
     docs = _uploaded_docs(offer)
     lease_docs = _paragraph4_documents(offer)
+    mineral_docs = _mineral_documents(offer)
     hydrostatic = render_trec_48_1(_hydrostatic_render_data(offer)) if hydrostatic_requested(offer) else None
     offer["_signing_render_revisions"] = {
         code: revision for code, revision in (
@@ -471,8 +530,11 @@ def fill_and_merge_20_19(offer):
     if hydrostatic:
         source_hashes.append(HYDROSTATIC_SOURCE_SHA256)
         offer['_signing_render_revisions']['TREC-48-1'] = HYDROSTATIC_RENDER_REVISION
+    if mineral_docs:
+        source_hashes.append(MINERAL_SOURCE_SHA256)
+        offer['_signing_render_revisions']['TXR-1905'] = MINERAL_RENDER_REVISION
     offer["_signing_source_hashes"] = source_hashes
-    if not docs and not lease_docs and not hydrostatic:
+    if not docs and not lease_docs and not hydrostatic and not mineral_docs:
         return packet
 
     writer = PdfWriter()
@@ -484,6 +546,8 @@ def fill_and_merge_20_19(offer):
         # Namespace the editable fields so a user-uploaded form cannot collide.
         hydro_reader.add_form_topname('hof_trec48_1')
         writer.append(hydro_reader)
+    for doc in mineral_docs:
+        writer.append(PdfReader(BytesIO(doc['raw'])))
     for doc in docs:
         writer.append(PdfReader(BytesIO(doc["raw"])))
 
@@ -495,6 +559,7 @@ def fill_and_merge_20_19(offer):
 def build_signwell_fields_20_19(offer, pdf_bytes):
     """Use verified 20-19 fields and append approved production placements."""
     hydrostatic_parties = hydrostatic_execution_parties(offer)
+    mineral_parties = mineral_execution_parties(offer)
     fields = verified.build_signwell_fields(offer, pdf_bytes)
     if not fields:
         fields = [[]]
@@ -504,7 +569,7 @@ def build_signwell_fields_20_19(offer, pdf_bytes):
     # introduce a Seller invitation into an otherwise Buyer-only packet.
     sellers = {party["id"]: party for party in (
         paragraph4_execution_parties(offer) +
-        seller_temporary_lease_execution_parties(offer) + hydrostatic_parties
+        seller_temporary_lease_execution_parties(offer) + hydrostatic_parties + mineral_parties
     )}
     continuation_fields = [
         field for field in fields_for_file
@@ -564,6 +629,8 @@ def build_signwell_fields_20_19(offer, pdf_bytes):
                 append_field("seller2_signature_seller_temp_lease", "signature", lease_signature_page, 440, 845, recipient_id, 145, 20)
 
     lease_docs = _paragraph4_documents(offer)
+    mineral_docs = _mineral_documents(offer)
+    mineral_pages = sum(doc['page_count'] for doc in mineral_docs)
     if lease_docs:
         uploaded_docs = _uploaded_docs(offer)
         first_lease_page = (
@@ -571,6 +638,7 @@ def build_signwell_fields_20_19(offer, pdf_bytes):
             - sum(doc["page_count"] for doc in uploaded_docs)
             - sum(doc["page_count"] for doc in lease_docs)
             - (1 if hydrostatic_parties else 0)
+            - mineral_pages
             + 1
         )
         page_cursor = first_lease_page
@@ -594,10 +662,20 @@ def build_signwell_fields_20_19(offer, pdf_bytes):
 
     docs = _uploaded_docs(offer)
     if hydrostatic_parties:
-        hydrostatic_page = len(PdfReader(BytesIO(pdf_bytes)).pages) - sum(doc['page_count'] for doc in docs)
+        hydrostatic_page = len(PdfReader(BytesIO(pdf_bytes)).pages) - sum(doc['page_count'] for doc in docs) - mineral_pages
         fields_for_file.extend(build_signwell_fields_trec48_1(
             buyer_count=2 if str(offer.get('buyer2Email') or '').strip() else 1,
             seller_count=len(hydrostatic_parties), page=hydrostatic_page)[0])
+    if mineral_docs:
+        first_page = len(PdfReader(BytesIO(pdf_bytes)).pages) - sum(doc['page_count'] for doc in docs) - mineral_pages + 1
+        data = mineral_docs[0]['render_data']
+        for field in build_signwell_fields_txr1905(data)[0]:
+            copied = dict(field)
+            copied['page'] += first_page - 1
+            seller_index = int(copied['recipient_id']) - len(data['buyer_names'])
+            if seller_index > 0:
+                copied['recipient_id'] = str(seller_index + 2)
+            fields_for_file.append(copied)
     if not docs:
         return fields
 

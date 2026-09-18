@@ -3803,6 +3803,22 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         </div>
       </div>
 
+      <div class="radio-group-label" style="margin-top:1.5rem;">Will the seller reserve mineral rights?</div>
+      <div class="radio-cards">
+        <label class="radio-card" onclick="selectCard(this,'mineralReservation','yes')"><input type="radio" name="mineralReservation" value="yes"/><div class="radio-dot"></div><div class="radio-card-text"><strong>Yes</strong><small>Include the mineral-reservation addendum</small></div></label>
+        <label class="radio-card" onclick="selectCard(this,'mineralReservation','no')"><input type="radio" name="mineralReservation" value="no"/><div class="radio-dot"></div><div class="radio-card-text"><strong>No</strong></div></label>
+      </div>
+      <div id="mineralDetails" style="display:none; margin-top:1rem;">
+        <p class="step-desc">Enter the agreed reservation. The addendum will use this property's address and the parties already entered. Review mineral ownership and these choices with the appropriate professionals before signing.</p>
+        <div class="field"><label for="mineralReservationChoice">What will the seller reserve?</label>
+          <select id="mineralReservationChoice" onchange="updateMineralVisibility()"><option value="">Select...</option><option value="all">All of the mineral estate the seller owns</option><option value="undivided_interest">An undivided percentage of the mineral estate the seller owns</option></select>
+        </div>
+        <div class="field" id="mineralInterestField" style="display:none; margin-top:.75rem;"><label for="mineralUndividedInterest">Percentage reserved (%)</label><input id="mineralUndividedInterest" type="text" inputmode="decimal" placeholder="Enter the agreed percentage"/></div>
+        <div class="field" style="margin-top:.75rem;"><label for="mineralSurfaceRights">Will the seller waive surface rights for the reserved minerals?</label>
+          <select id="mineralSurfaceRights"><option value="">Select...</option><option value="waived">Yes, waive surface rights</option><option value="not_waived">No, retain surface rights</option></select>
+        </div>
+      </div>
+
       <div class="radio-group-label" style="margin-top:1.5rem;">Are you requesting a hydrostatic plumbing test?</div>
       <div class="radio-cards">
         <label class="radio-card" onclick="selectCard(this,'hydrostaticTesting','yes')"><input type="radio" name="hydrostaticTesting" value="yes"/><div class="radio-dot"></div><div class="radio-card-text"><strong>Yes</strong><small>Include the hydrostatic-testing authorization</small></div></label>
@@ -8568,12 +8584,13 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       const input = document.getElementById(id + 'Quick');
       if (input) input.value = String(data[id] ?? '');
     });
-    ['hydrostaticRiskAllocation', 'hydrostaticBuyerLiabilityLimit', 'seller1Name', 'seller1Email', 'seller2Name', 'seller2Email',
+    ['mineralReservationChoice', 'mineralUndividedInterest', 'mineralSurfaceRights', 'hydrostaticRiskAllocation', 'hydrostaticBuyerLiabilityLimit', 'seller1Name', 'seller1Email', 'seller2Name', 'seller2Email',
      'paragraph4Seller1Name', 'paragraph4Seller1Email', 'paragraph4Seller2Name', 'paragraph4Seller2Email'].forEach(id => {
       const input = document.getElementById(id);
       if (input) input.value = String(data[id] ?? '');
     });
     setRadioValue('hydrostaticTesting', data.hydrostaticTesting === 'yes' || data.hydrostaticTesting === true || data.hydrostaticAddendum === 'yes' || data.hydrostaticAddendum === true ? 'yes' : 'no');
+    setRadioValue('mineralReservation', data.mineralReservation === 'yes' || data.mineralReservation === true || data.mineralReservationAddendum === 'yes' || data.mineralReservationAddendum === true ? 'yes' : 'no');
     ['seenProperty','financing','appraisalAddendum','leases','hoa','saleContingency','backupOffer','nonRealtyItems','titlePayer','titleAmendment','survey','sellerDisclosure','leadBuiltBefore1978','leadDisclosureStatus','asIs','hasBuyerAgent','wantsConcessions','homeWarranty','brokerFeeType'].forEach(group => {
       if (data[group]) setRadioValue(group, data[group]);
     });
@@ -8588,6 +8605,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     updateParagraph4LeaseVisibility();
     toggleSellerTemporaryLeaseFields();
     updateHydrostaticVisibility();
+    updateMineralVisibility();
     updateSurveyExistingDetails(data.survey || getRadio('survey'));
   }
 
@@ -9289,6 +9307,8 @@ function routeAfterMagicLinkIfNeeded() {
       requireRadioSelection('nonRealtyItems', 'personal property', missing);
       requireRadioSelection('hydrostaticTesting', 'hydrostatic-testing choice', missing);
       markHydrostaticInterviewIssues(missing, false);
+      requireRadioSelection('mineralReservation', 'mineral-reservation choice', missing);
+      markMineralInterviewIssues(missing, false);
       const hoaChoice = getRadio('hoa') || '';
       if (hoaChoice === 'yes') {
         requireField('hoaName', 'HOA name', missing);
@@ -9345,6 +9365,7 @@ function routeAfterMagicLinkIfNeeded() {
       if (getRadio('wantsConcessions') === 'yes') requireField('concessionAmount', 'seller concession amount', missing);
       if (getRadio('homeWarranty') === 'yes') requireField('homeWarrantyAmount', 'home warranty amount', missing);
       markHydrostaticInterviewIssues(missing, true);
+      markMineralInterviewIssues(missing, true);
       if (document.getElementById('possession')?.value === 'sellerTemporaryLease') {
         requireField('seller1Name', 'seller / tenant 1 full name', missing);
         requireValidEmail('seller1Email', 'valid seller / tenant 1 email', missing);
@@ -10075,6 +10096,11 @@ function routeAfterMagicLinkIfNeeded() {
         }
 
         s.nonRealtyItems = getRadio('nonRealtyItems') || s.nonRealtyItems || '';
+        s.mineralReservation = getRadio('mineralReservation') || 'no';
+        s.mineralReservationAddendum = s.mineralReservation;
+        s.mineralReservationChoice = s.mineralReservation === 'yes' ? getVal('mineralReservationChoice') : '';
+        s.mineralUndividedInterest = s.mineralReservationChoice === 'undivided_interest' ? getVal('mineralUndividedInterest') : '';
+        s.mineralSurfaceRights = s.mineralReservation === 'yes' ? getVal('mineralSurfaceRights') : '';
         s.hydrostaticTesting = getRadio('hydrostaticTesting') || 'no';
         s.hydrostaticAddendum = s.hydrostaticTesting;
         s.hydrostaticRiskAllocation = s.hydrostaticTesting === 'yes' ? getVal('hydrostaticRiskAllocation') : '';
@@ -10481,6 +10507,7 @@ function routeAfterMagicLinkIfNeeded() {
           ${atag('Back-Up Contract', s.backupOffer === 'yes')}
           ${atag('Non-Realty Items', hasNonRealty)}
           ${atag('Hydrostatic-Testing Authorization', s.hydrostaticTesting === 'yes')}
+          ${atag('Mineral Reservation Addendum', s.mineralReservation === 'yes')}
           ${atag('Residential Lease Addendum', s.leaseResidential === 'yes')}
           ${atag('Fixture Lease Addendum', s.leaseFixture === 'yes')}
           ${atag("Seller's Temporary Residential Lease", sellerLease)}
@@ -10489,6 +10516,11 @@ function routeAfterMagicLinkIfNeeded() {
         </div>
       </div>`;
 
+    if (s.mineralReservation === 'yes') {
+      const reservation = s.mineralReservationChoice === 'all' ? 'All mineral estate owned by the seller' : fmt(s.mineralUndividedInterest) + '% of mineral estate owned by the seller';
+      const surface = {waived:'Waived', not_waived:'Retained'}[s.mineralSurfaceRights] || 'Not selected';
+      document.getElementById('reviewSummary').insertAdjacentHTML('beforeend', `<div class="review-section"><div class="review-section-title">Mineral reservation</div><div class="review-row"><span class="rl">Seller reserves</span><span class="rv">${reservation}</span></div><div class="review-row"><span class="rl">Surface rights</span><span class="rv">${surface}</span></div></div>`);
+    }
     if (s.hydrostaticTesting === 'yes') {
       const cap = String(s.hydrostaticBuyerLiabilityLimit ?? '').trim().replace(/,/g, '');
       const riskLabel = {seller:'Seller', buyer:'Buyer', buyer_capped:cap ? 'Buyer up to ' + fmtM(cap) : 'Buyer limit not entered'}[s.hydrostaticRiskAllocation] || 'Not selected';
@@ -10508,7 +10540,9 @@ function routeAfterMagicLinkIfNeeded() {
         : 'After payment, HomeOfferFlow will email the completed package and start the SignWell signature request.';
     }
     if (signing) {
-      signing.textContent = s.hydrostaticTesting === 'yes'
+      signing.textContent = s.mineralReservation === 'yes'
+        ? mineralSigningSummary(s)
+        : s.hydrostaticTesting === 'yes'
         ? hydrostaticSigningSummary(s)
         : sellerLease
         ? 'Buyers and sellers receive signing invitations together for the purchase contract, seller\'s temporary lease, and any other included seller-signed addenda.'
@@ -10628,6 +10662,7 @@ function routeAfterMagicLinkIfNeeded() {
     }
 
     if (group === 'hydrostaticTesting') updateHydrostaticVisibility();
+    if (group === 'mineralReservation') updateMineralVisibility();
 
     if (group === 'survey') {
       updateSurveyExistingDetails(value);
@@ -11508,6 +11543,72 @@ function routeAfterMagicLinkIfNeeded() {
       : 'Buyers and sellers receive signing invitations together for the hydrostatic-testing authorization and any other included seller-signed addenda. Seller acceptance of the purchase offer remains with the seller or listing side.';
   }
 
+  function mineralSigningSummary(data) {
+    return data.possession === 'sellerTemporaryLease'
+      ? 'Buyers and sellers receive signing invitations together for the purchase contract, temporary lease, mineral-reservation addendum, and other included seller-signed addenda.'
+      : 'Buyers and sellers receive signing invitations together for the mineral-reservation addendum and any other included seller-signed addenda. Seller acceptance of the purchase offer remains with the seller or listing side.';
+  }
+
+  function mineralInterviewData() {
+    const data = hydrostaticInterviewData();
+    data.mineralReservation = getRadio('mineralReservation') || 'no';
+    ['mineralReservationChoice', 'mineralUndividedInterest', 'mineralSurfaceRights'].forEach(id => { data[id] = getVal(id); });
+    return data;
+  }
+
+  function mineralInterviewIssues(data, includeSigners = true) {
+    if (data.mineralReservation !== 'yes' && data.mineralReservation !== true) return [];
+    const issues = [];
+    if (!['all', 'undivided_interest'].includes(data.mineralReservationChoice)) issues.push({id:'mineralReservationChoice', message:'choose the mineral interest the seller reserves'});
+    if (data.mineralReservationChoice === 'undivided_interest') {
+      const value = String(data.mineralUndividedInterest ?? '').trim();
+      if (!/^\d+(?:\.\d{1,4})?$/.test(value) || Number(value) <= 0 || Number(value) > 100) issues.push({id:'mineralUndividedInterest', message:'enter a mineral-interest percentage greater than 0 and at most 100'});
+    }
+    if (!['waived', 'not_waived'].includes(data.mineralSurfaceRights)) issues.push({id:'mineralSurfaceRights', message:'choose whether the seller waives surface rights'});
+    return includeSigners ? issues.concat(purchaseSellerSignerIssues(data)) : issues;
+  }
+
+  function validateMineralInputs(data) {
+    const issue = mineralInterviewIssues(data)[0];
+    if (!issue) return true;
+    setPaymentStatus(issue.message.charAt(0).toUpperCase() + issue.message.slice(1) + '.');
+    return false;
+  }
+
+  function markMineralInterviewIssues(missing, includeSigners) {
+    const data = mineralInterviewData();
+    const prefix = data.leases === 'yes' ? 'paragraph4Seller' : 'seller';
+    const ids = ['mineralReservationChoice', 'mineralUndividedInterest', 'mineralSurfaceRights'];
+    if (includeSigners && data.hydrostaticTesting !== 'yes') {
+      ids.push('buyer1First', 'buyerEmail', 'buyer2', 'buyer2Email');
+      for (const index of [1, 2]) ids.push(prefix + index + 'Name', prefix + index + 'Email');
+    }
+    ids.forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.style.borderColor = '';
+      delete el.dataset.validationInvalid;
+      el.removeAttribute('aria-invalid');
+    });
+    mineralInterviewIssues(data, includeSigners).forEach(issue => {
+      if (!missing.includes(issue.message)) missing.push(issue.message);
+      const el = document.getElementById(issue.id);
+      if (!el) return;
+      el.style.borderColor = 'var(--warn)';
+      el.dataset.validationInvalid = 'true';
+      el.setAttribute('aria-invalid', 'true');
+    });
+  }
+
+  function updateMineralVisibility() {
+    const active = getRadio('mineralReservation') === 'yes';
+    const details = document.getElementById('mineralDetails');
+    const interest = document.getElementById('mineralInterestField');
+    if (details) details.style.display = active ? 'block' : 'none';
+    if (interest) interest.style.display = active && getVal('mineralReservationChoice') === 'undivided_interest' ? 'block' : 'none';
+    toggleSellerTemporaryLeaseFields();
+  }
+
   function hydrostaticInterviewData() {
     const data = {...state.data};
     ['hydrostaticRiskAllocation', 'hydrostaticBuyerLiabilityLimit', 'seller1Name', 'seller1Email', 'seller2Name', 'seller2Email',
@@ -11533,6 +11634,11 @@ function routeAfterMagicLinkIfNeeded() {
       }
     }
     if (!includeSigners) return issues;
+    return issues.concat(purchaseSellerSignerIssues(data));
+  }
+
+  function purchaseSellerSignerIssues(data) {
+    const issues = [];
     for (const [index, name, email] of [[1, data.buyer1, data.buyerEmail], [2, data.buyer2, data.buyer2Email]]) {
       if (index === 2 && !String(name || '').trim() && !String(email || '').trim()) continue;
       if (!String(name || '').trim()) issues.push({id:index === 1 ? 'buyer1First' : 'buyer2', message:'enter Buyer ' + index + ' full name'});
@@ -11608,7 +11714,7 @@ function routeAfterMagicLinkIfNeeded() {
     const buyerFields = document.getElementById('buyerTemporaryLeaseFields');
     if (sellerFields) sellerFields.style.display = sellerActive ? 'block' : 'none';
     if (buyerFields) buyerFields.style.display = buyerActive ? 'block' : 'none';
-    const hydrostaticActive = getRadio('hydrostaticTesting') === 'yes';
+    const hydrostaticActive = getRadio('hydrostaticTesting') === 'yes' || getRadio('mineralReservation') === 'yes';
     const sellerSigningFields = document.getElementById('sellerSigningFields');
     if (sellerSigningFields) sellerSigningFields.style.display = sellerActive || (hydrostaticActive && getRadio('leases') !== 'yes') ? 'flex' : 'none';
     if (sellerActive || (hydrostaticActive && getRadio('leases') === 'yes')) {
@@ -11725,6 +11831,7 @@ function routeAfterMagicLinkIfNeeded() {
       if (!confirmControlledLaunchSupport(state.data)) return;
       if (!validateParagraph4LeaseInputs(state.data)) return;
       if (!validateHydrostaticInputs(state.data)) return;
+      if (!validateMineralInputs(state.data)) return;
       if (!validateSellerTemporaryLeaseInputs(state.data)) return;
       if (!validateUploadedDisclosureDocs()) return;
 
@@ -11848,6 +11955,7 @@ function routeAfterMagicLinkIfNeeded() {
     if (!confirmControlledLaunchSupport(state.data)) return;
     if (!validateParagraph4LeaseInputs(state.data)) return;
     if (!validateHydrostaticInputs(state.data)) return;
+    if (!validateMineralInputs(state.data)) return;
     if (!validateSellerTemporaryLeaseInputs(state.data)) return;
     if (!validateUploadedDisclosureDocs()) return;
 
@@ -13559,6 +13667,7 @@ function routeAfterMagicLinkIfNeeded() {
 
   function restoreConditionalSections() {
     updateHydrostaticVisibility();
+    updateMineralVisibility();
     const financing = document.querySelector('input[name="financing"]:checked')?.value || '';
     const financingDetails = document.getElementById('financingDetails');
     if (financingDetails) financingDetails.style.display = financing && financing !== 'cash' ? 'flex' : 'none';

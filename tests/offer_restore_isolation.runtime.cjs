@@ -52,7 +52,7 @@ function setup(offer = {id:'next', role:'agent', status:'Draft', offer_data:{}})
     hofAuth:{role:'agent',session:{user:{id:'owner',email:'account@example.test'}},accountProfile:{}},
     document:{getElementById:get,querySelectorAll:all,querySelector:s=>all(s)[0]||null},
     getVal:id=>String(get(id).value||'').trim(),getRadio:name=>all('input[name="'+name+'"]:checked')[0]?.value||'',
-    updateParagraph4LeaseVisibility(){},toggleSellerTemporaryLeaseFields(){},updateHydrostaticVisibility(){},updateSurveyExistingDetails(){},
+    updateParagraph4LeaseVisibility(){},toggleSellerTemporaryLeaseFields(){},updateHydrostaticVisibility(){},updateMineralVisibility(){},updateSurveyExistingDetails(){},
     restoreConditionalSections:()=>calls.push('conditions'),syncAgentQuickFields(){},
     getOfferById:async()=>offer,resetUploadedDisclosureDraftForOffer:data=>calls.push(['attachments',data]),
     setAudience:role=>{ctx.state.data.userType=role;calls.push(['audience',ctx.__hofRestoringDraft]);},
