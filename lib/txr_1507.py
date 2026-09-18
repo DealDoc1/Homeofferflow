@@ -48,8 +48,8 @@ def _draw_check(c, x, y):
     wide check visually ran into the adjacent label on completed agreements.
     """
     c.setLineWidth(1.0)
-    c.line(x + 1, y + 1, x + 7, y + 7)
-    c.line(x + 1, y + 7, x + 7, y + 1)
+    c.line(x + 1, y + 1, x + 6, y + 6)
+    c.line(x + 1, y + 6, x + 6, y + 1)
 
 
 def _draw_signing_role_check(c, x, y):
@@ -57,8 +57,8 @@ def _draw_signing_role_check(c, x, y):
     c.setLineWidth(1.1)
     # This source's execution squares sit slightly below the supplied anchor.
     # Keep the mark within the measured y-3 through y+5 cell.
-    c.line(x + 1, y - 2, x + 7, y + 4)
-    c.line(x + 1, y + 4, x + 7, y - 2)
+    c.line(x + 1, y - 2, x + 6, y + 3)
+    c.line(x + 1, y + 3, x + 6, y - 2)
 
 
 def _overlay(data, brokerage, associate):
@@ -77,14 +77,12 @@ def _overlay(data, brokerage, associate):
     _draw(canvas, data["term_end"], 431, 519, size=8)
 
     if data["service_level"] == "full_services":
-        # The Full Services box on the 06-15-26 source sits at x=56/y=461
-        # in ReportLab's bottom-origin letter coordinates.  The prior y=455
-        # mark landed below the printed square and made a selected service
-        # level look blank in the rendered preview.
-        _draw_check(canvas, 56, 461)
+        # Keep the complete stroked X inside the printed Wingdings cell,
+        # not merely its starting point (06-15-26 source).
+        _draw_check(canvas, 55, 459)
     else:
-        _draw_check(canvas, 57, 425)
-        _draw(canvas, data["showing_fee"], 316, 425, size=8)
+        _draw_check(canvas, 55, 427)
+        _draw(canvas, data["showing_fee"], 325, 414, size=8)
 
     # The source prints the percent sign at roughly x=216.  Keep the entered
     # percentage inside the preceding blank rather than overprinting "%".
@@ -99,15 +97,12 @@ def _overlay(data, brokerage, associate):
     # Page 2 - intermediary choice, printed names, and license fields. The
     # signature/date widgets are supplied separately to SignWell.
     if data["intermediary"] == "authorized":
-        # The 06-15-26 source's first intermediary square centers at y=640
-        # in ReportLab's bottom-origin coordinates.  A completed-source
-        # render showed y=637 below the printed cell and y=645 above it.
-        _draw_check(canvas, 177, 640)
+        _draw_check(canvas, 178, 637)
     else:
         # The second printed intermediary cell is separate, immediately
         # before "does not authorize"; it shares the same calibrated
         # vertical center as the first cell.
-        _draw_check(canvas, 233, 640)
+        _draw_check(canvas, 234, 637)
 
     broker_name = brokerage.get("legal_name") or brokerage.get("name") or brokerage.get("dba_name")
     broker_license = brokerage.get("license_number") or ""
@@ -125,13 +120,11 @@ def _overlay(data, brokerage, associate):
     # The broker/associate signature rule is shared.  Mark the source's
     # matching role checkbox so a completed agreement identifies the signer.
     if data.get("signer_plan") == "clients_and_associate":
-        # ReportLab uses a bottom-origin coordinate system.  On the 06-15-26
-        # source, the lower Associate square is at y=242; the earlier y=268
-        # mark appeared above both execution choices in the completed PDF.
-        _draw_signing_role_check(canvas, 37, 242)
+        # The complete stroke belongs inside the lower Associate cell.
+        _draw_signing_role_check(canvas, 37, 240)
     elif data.get("signer_plan") == "clients_and_broker":
         # The Broker square is the upper of the two execution choices.
-        _draw_signing_role_check(canvas, 37, 255)
+        _draw_signing_role_check(canvas, 37, 251)
     canvas.save()
     packet.seek(0)
     return packet.read()
@@ -172,38 +165,35 @@ def build_signwell_fields_txr1507(data, *, client_count=1):
         # The footer requires initials from the selected Broker/Associate and
         # each Client. These source-calibrated rectangles start on the three
         # printed underscore blanks, not on the surrounding labels.
-        {"api_id": f"txr1507_{role}_initials_p1", "type": "initials", "page": 1, "x": 435, "y": 984, "recipient_id": role, "required": True, "width": 47, "height": 14},
-        {"api_id": "txr1507_client1_initials_p1", "type": "initials", "page": 1, "x": 542, "y": 984, "recipient_id": "1", "required": True, "width": 47, "height": 14},
+        {"api_id": f"txr1507_{role}_initials_p1", "type": "initials", "page": 1, "x": 435, "y": 976, "recipient_id": role, "required": True, "width": 46, "height": 14},
+        {"api_id": "txr1507_client1_initials_p1", "type": "initials", "page": 1, "x": 543, "y": 976, "recipient_id": "1", "required": True, "width": 46, "height": 14},
         # Page two's first Client execution line runs from source x=324.1
         # through 576.1 at top-origin y=534.0.  SignWell uses a 4/3 scale.
-        # SignWell centers completed artwork in the requested widget rather
-        # than anchoring it to the printed rule.  A completed packet showed
-        # the prior y=734/740 fields sitting on the ``Client's Signature``
-        # and ``Date`` captions.  Lift the fields by 20 SignWell units so
-        # the visible signature and full date sit on the rule above them.
-        {"api_id": "txr1507_client1_signature_p2", "type": "signature", "page": 2, "x": 432, "y": 714, "recipient_id": "1", "required": True, "width": 272, "height": 24},
-        {"api_id": "txr1507_client1_date_p2", "type": "date", "page": 2, "x": 720, "y": 720, "recipient_id": "1", "required": True, "width": 48, "height": 18, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
+        # The entire rectangle must END above PDF top=533.95, not start
+        # there. Completed date text measured about 49 PDF points wide;
+        # allocate 54 points and shift left to stay within the 576.1 edge.
+        {"api_id": "txr1507_client1_signature_p2", "type": "signature", "page": 2, "x": 432, "y": 684, "recipient_id": "1", "required": True, "width": 240, "height": 24},
+        {"api_id": "txr1507_client1_date_p2", "type": "date", "page": 2, "x": 696, "y": 692, "recipient_id": "1", "required": True, "width": 72, "height": 18, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
     ]
     if client_count == 2:
         fields.extend([
-            {"api_id": "txr1507_client2_initials_p1", "type": "initials", "page": 1, "x": 596, "y": 984, "recipient_id": "2", "required": True, "width": 47, "height": 14},
+            {"api_id": "txr1507_client2_initials_p1", "type": "initials", "page": 1, "x": 596, "y": 976, "recipient_id": "2", "required": True, "width": 46, "height": 14},
             # Apply the same completed-packet correction to the second
             # client's execution row.
-            {"api_id": "txr1507_client2_signature_p2", "type": "signature", "page": 2, "x": 432, "y": 824, "recipient_id": "2", "required": True, "width": 272, "height": 24},
-            {"api_id": "txr1507_client2_date_p2", "type": "date", "page": 2, "x": 720, "y": 830, "recipient_id": "2", "required": True, "width": 48, "height": 18, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
+            {"api_id": "txr1507_client2_signature_p2", "type": "signature", "page": 2, "x": 432, "y": 794, "recipient_id": "2", "required": True, "width": 240, "height": 24},
+            {"api_id": "txr1507_client2_date_p2", "type": "date", "page": 2, "x": 696, "y": 802, "recipient_id": "2", "required": True, "width": 72, "height": 18, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
         ])
     # The source uses checkboxes to identify whether the broker or the
     # broker's associate signs, followed by one shared signature/date rule.
     # The shared Broker/Associate rule is source x=36.0 through 288.1 at
     # top-origin y=534.0.  It shares the first Client's row.  Use the same
     # rule-ending placement convention as the Client fields, without covering
-    # the printed role choices, labels, or date caption.  The same completed
-    # packet confirmed that the shared left-side row needs the 20-unit lift.
-    role_y = 714
+    # the printed role choices, labels, or date caption.
+    role_y = 684
     role_signature_x = 48
-    role_date_x = 336
+    role_date_x = 312
     fields.extend([
         {"api_id": f"txr1507_{role}_signature_p2", "type": "signature", "page": 2, "x": role_signature_x, "y": role_y, "recipient_id": role, "required": True, "width": 240, "height": 24},
-        {"api_id": f"txr1507_{role}_date_p2", "type": "date", "page": 2, "x": role_date_x, "y": 720, "recipient_id": role, "required": True, "width": 48, "height": 18, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
+        {"api_id": f"txr1507_{role}_date_p2", "type": "date", "page": 2, "x": role_date_x, "y": 692, "recipient_id": role, "required": True, "width": 72, "height": 18, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
     ])
     return [fields]
