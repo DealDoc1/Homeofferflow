@@ -3155,8 +3155,8 @@ async def _create_representation_draft(user, data, form_code, parser):
     )
     record = {
         # The existing non-null column retains the library source's host
-        # organization for audit and rendering; it is not an agent-access
-        # requirement.
+        # organization for source audit only, not the agent's brokerage
+        # identity or an agent-access requirement.
         "brokerage_id": source["brokerage_id"],
         "agent_user_id": user["id"],
         "form_source_id": source["id"],
@@ -3798,7 +3798,46 @@ async def _render_representation_draft_preview(user, agreement_id, *, for_signin
     )
 
 
-async def _render_owned_representation_agreement(user, agreement, *, for_signing=False, fingerprint_context=None):
+async def _representation_professional_context(user):
+    """Resolve the agent's own identity, never the shared PDF source's host.
+
+    A brokerage seat is optional. Without an active linked organization, use
+    the agent's saved brokerage name/license, but never infer a broker contact
+    from the agent's email or from a form-source record.
+    """
+    # Library-source drafts are intentionally available to every signed-in
+    # agent; an optional organization only supplies that agent's own details.
+    user_id = urllib.parse.quote(str(user["id"]), safe="")
+    profiles = await _get(
+        f"hof_agent_profiles?user_id=eq.{user_id}"
+        "&select=agent_name,license_number,agent_email,brokerage_name,brokerage_license&limit=1"
+    )
+    profile = profiles[0] if profiles else {}
+    brokerage = {
+        "name": profile.get("brokerage_name") or "",
+        "license_number": profile.get("brokerage_license") or "",
+    }
+    accounts = await _get(
+        f"hof_profiles?id=eq.{user_id}&select=brokerage_id&limit=1"
+    )
+    brokerage_id = accounts[0].get("brokerage_id") if accounts else None
+    if brokerage_id:
+        quoted_id = urllib.parse.quote(str(brokerage_id), safe="")
+        memberships = await _get(
+            f"hof_brokerage_members?user_id=eq.{user_id}&brokerage_id=eq.{quoted_id}"
+            "&status=eq.active&select=id&limit=1"
+        )
+        if memberships:
+            organizations = await _get(
+                f"hof_brokerages?id=eq.{quoted_id}&is_active=eq.true"
+                "&select=id,name,dba_name,license_number,contact_name,contact_email&limit=1"
+            )
+            if organizations:
+                brokerage = organizations[0]
+    return {"brokerage": brokerage, "profile": profile}
+
+
+async def _render_owned_representation_agreement(user, agreement, *, for_signing=False, fingerprint_context=None, professional_context=None):
     """Render one server-loaded, owner-scoped draft snapshot.
 
     Only the preview and send handlers call this helper, after their ownership
@@ -3830,23 +3869,14 @@ async def _render_owned_representation_agreement(user, agreement, *, for_signing
         raise RuntimeError(
             f"The approved {agreement.get('form_code') or 'TXR'} source could not be loaded."
         )
-    brokerage_rows = await _get(
-        "hof_brokerages?"
-        f"id=eq.{urllib.parse.quote(str(agreement['brokerage_id']))}"
-        "&select=id,name,dba_name,license_number&limit=1"
-    )
-    profile_rows = await _get_optional(
-        "hof_agent_profiles?"
-        f"user_id=eq.{urllib.parse.quote(user['id'])}"
-        "&select=agent_name,license_number&limit=1"
-    )
-    # Library-source drafts are intentionally available to every signed-in
-    # agent.  A source can be hosted by the platform library rather than the
-    # agent's own brokerage, so a missing host-brokerage row must not prevent
-    # that agent from rendering or sending the released draft they own. A
-    # broker signer is still only added when the agent explicitly selected
-    # that signer plan and the source host supplies a valid contact email.
-    brokerage = brokerage_rows[0] if brokerage_rows else {}
+    if professional_context is None:
+        professional_context = (
+            {"brokerage": {}, "profile": {}}
+            if agreement.get("form_code") in TXR_BUYER_SELLER_SIGNING_FORM_CODES
+            else await _representation_professional_context(user)
+        )
+    brokerage = professional_context["brokerage"]
+    profile = professional_context["profile"]
     agreement_data = agreement.get("agreement_data") or {}
     compensation_keys = (
         "purchase_percentage", "purchase_flat_fee", "lease_one_month_percentage",
@@ -3861,7 +3891,7 @@ async def _render_owned_representation_agreement(user, agreement, *, for_signing
     if fingerprint_context is not None:
         fingerprint_context.update(
             source_sha256=hashlib.sha256(response.content).hexdigest(),
-            brokerage=brokerage, profile=profile_rows[0] if profile_rows else {},
+            brokerage=brokerage, profile=profile,
             render_data={key: value for key, value in render_data.items()
                          if key not in {signwell_delivery.JOURNAL_KEY, "client_emails",
                                         "signwellStatus", "signwellDocumentId", "signwellLastStatusRefresh"}},
@@ -3873,13 +3903,13 @@ async def _render_owned_representation_agreement(user, agreement, *, for_signing
             fingerprint_context["render_revision"] = render_revision
     if agreement.get("form_code") == TXR_1507_FORM_CODE:
         from lib.txr_1507 import render_txr_1507
-        return render_txr_1507(response.content, render_data, brokerage, profile_rows[0] if profile_rows else {})
+        return render_txr_1507(response.content, render_data, brokerage, profile)
     if agreement.get("form_code") == TXR_1501_FORM_CODE:
         from lib.txr_1501 import render_txr_1501
-        return render_txr_1501(response.content, render_data, brokerage, profile_rows[0] if profile_rows else {})
+        return render_txr_1501(response.content, render_data, brokerage, profile)
     if agreement.get("form_code") == TXR_1508_FORM_CODE:
         from lib.txr_1508 import render_txr_1508
-        return render_txr_1508(response.content, render_data, brokerage, profile_rows[0] if profile_rows else {})
+        return render_txr_1508(response.content, render_data, brokerage, profile)
     if agreement.get("form_code") == TXR_1506_FORM_CODE:
         from lib.txr_1506 import render_txr_1506
         return render_txr_1506(response.content, render_data, brokerage)
@@ -4015,23 +4045,16 @@ def _txr_signwell_recipients(agreement, client_emails, brokerage, agent_user):
     return recipients
 
 
-async def _standalone_signing_recipients(user, agreement, client_emails):
+async def _standalone_signing_recipients(user, agreement, client_emails, *, professional_context=None):
     """Resolve the same account-linked signers for preview and delivery."""
     if str(agreement.get("form_code") or "") in TXR_BUYER_SELLER_SIGNING_FORM_CODES:
         return _txr_signwell_recipients(agreement, client_emails, {}, {})
-    brokerage_rows = await _get(
-        "hof_brokerages?"
-        f"id=eq.{urllib.parse.quote(str(agreement.get('brokerage_id') or ''))}"
-        "&select=id,name,contact_name,contact_email&limit=1"
-    )
-    profile_rows = await _get_optional(
-        "hof_agent_profiles?"
-        f"user_id=eq.{urllib.parse.quote(user['id'])}"
-        "&select=user_id,agent_name,agent_email&limit=1"
-    )
-    profile = profile_rows[0] if profile_rows else {}
+    context = await _representation_professional_context(user)
+    if professional_context is not None:
+        professional_context.update(context)
+    profile = context["profile"]
     return _txr_signwell_recipients(
-        agreement, client_emails, brokerage_rows[0] if brokerage_rows else {},
+        agreement, client_emails, context["brokerage"],
         {"email": user.get("email") or profile.get("agent_email"),
          "name": profile.get("agent_name") or user.get("email")},
     )
@@ -4266,14 +4289,18 @@ async def _send_txr_agreement_for_signature(user, data):
         raise ValueError("Provide one valid signing email for each signer.")
     if len({email.casefold() for email in client_emails}) != len(client_emails):
         raise ValueError("Each signer must use a different signing email.")
-    recipients = await _standalone_signing_recipients(user, agreement, client_emails)
+    professional_context = {}
+    recipients = await _standalone_signing_recipients(
+        user, agreement, client_emails, professional_context=professional_context)
     _validate_confirmed_signing_recipients(recipients, data.get("confirmedRecipients"))
     agreement_data = dict(agreement.get("agreement_data") or {})
     current_map_revision = _current_txr_signing_map_revision(form_code, agreement_data)
     agreement_data["client_emails"] = client_emails
     client_count = len(client_names)
     render_context = {}
-    rendered = await _render_owned_representation_agreement(user, agreement, for_signing=True, fingerprint_context=render_context)
+    rendered = await _render_owned_representation_agreement(
+        user, agreement, for_signing=True, fingerprint_context=render_context,
+        professional_context=professional_context or None)
     fields = _txr_signwell_fields(form_code, {"client_names": client_names, **agreement_data}, client_count,
                                  rendered_pdf=rendered)
     address_label = form_code.replace("-", " ")

@@ -2,6 +2,13 @@
 
 ## Local continuation status - September 18, 2026
 
+Representation PDF identity and broker recipients now resolve from the agent's
+own profile/optional active organization, not the shared source host. No-seat
+associate use and a consistent render/recipient snapshot are locally tested.
+This is **not deployed or live-provider verified**; source-PDF footer branding
+and independent separate-broker contact entry remain follow-up work. See
+[professional-identity evidence](release-evidence/representation-professional-identity-2026-09-18.md).
+
 TXR-1507 short-form answer review found misplaced lease-compensation values and
 overflow risks. Supported values now fit source-measured blanks or continue in
 full on an initialed attachment. Both role previews and long-answer variants

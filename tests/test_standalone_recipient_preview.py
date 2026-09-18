@@ -24,7 +24,7 @@ def showing_draft(plan="associate_and_clients"):
 
 class StandaloneRecipientPreviewTests(unittest.TestCase):
     def test_preview_includes_the_actual_account_associate_and_scopes_the_draft(self):
-        get = AsyncMock(side_effect=[[showing_draft()], [{"name": "Office"}]])
+        get = AsyncMock(side_effect=[[showing_draft()], [{"agent_name": "Agent One", "agent_email": "different@example.com"}], []])
         profiles = AsyncMock(return_value=[{"agent_name": "Agent One", "agent_email": "different@example.com"}])
         with patch.object(MODULE, "_get", get), patch.object(MODULE, "_get_optional", profiles):
             result = asyncio.run(MODULE._standalone_signing_recipient_preview(USER, AGREEMENT_ID))
@@ -39,7 +39,8 @@ class StandaloneRecipientPreviewTests(unittest.TestCase):
         self.assertNotIn("private_notes", str(result))
 
     def test_broker_plan_displays_the_broker_instead_of_the_requesting_agent(self):
-        get = AsyncMock(side_effect=[[showing_draft("broker_and_clients")], [
+        get = AsyncMock(side_effect=[[showing_draft("broker_and_clients")], [],
+            [{"brokerage_id": "agent-office"}], [{"id": "active-member"}], [
             {"contact_name": "Broker One", "contact_email": "broker@example.com"}
         ]])
         with patch.object(MODULE, "_get", get), patch.object(MODULE, "_get_optional", AsyncMock(return_value=[])):
@@ -115,7 +116,7 @@ class StandaloneRecipientPreviewTests(unittest.TestCase):
         draft['signwell_document_id'] = 'existing'
         draft['agreement_data'].update(client_emails=['customer@example.com'],
             _hof_signature_delivery={'version': 1, 'document_id': 'existing'})
-        get = AsyncMock(side_effect=[[draft], [{'name': 'Office'}]])
+        get = AsyncMock(side_effect=[[draft], [], []])
         with patch.object(MODULE, '_get', get), patch.object(MODULE, '_get_optional', AsyncMock(return_value=[])):
             result = asyncio.run(MODULE._standalone_signing_recipient_preview(USER, AGREEMENT_ID))
         self.assertEqual(result['recipients'][0]['email'], 'customer@example.com')

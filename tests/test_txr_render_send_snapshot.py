@@ -27,7 +27,7 @@ class RenderSendFixture:
                     signing_map_revision=MODULE.TXR_SIGNING_MAP_REVISIONS[code])
         if long:
             data['market_area'] = 'Long market description ' * 30
-        self.row = {'id': RECORD_ID, 'agent_user_id': USER['id'], 'brokerage_id': 'office',
+        self.row = {'id': RECORD_ID, 'agent_user_id': USER['id'], 'brokerage_id': 'library-host',
                     'status': 'draft', 'updated_at': '2026-09-18T10:00:00Z',
                     'form_code': code, 'form_source_id': 'source', 'source_revision': 'QA-v1',
                     'client_names': names, 'agreement_data': data}
@@ -48,6 +48,8 @@ class RenderSendFixture:
         self.downloads = 0
         self.sends = 0
         self.edit_during_download = False
+        self.edit_identity_during_download = False
+        self.independent = False
         self.hide_record = False
         self.client = AsyncMock()
         self.client.get.side_effect = self.get
@@ -74,7 +76,20 @@ class RenderSendFixture:
             self.test.assertIn('form_code=eq.' + self.row['form_code'], path)
             return [copy.deepcopy(self.source)]
         if path.startswith('hof_brokerages?'):
+            self.test.assertIn('id=eq.office', path)
+            self.test.assertNotIn('library-host', path)
             return [copy.deepcopy(self.broker)]
+        if path.startswith('hof_agent_profiles?'):
+            self.test.assertIn('user_id=eq.' + USER['id'], path)
+            return [copy.deepcopy(self.profile)]
+        if path.startswith('hof_profiles?'):
+            self.test.assertIn('id=eq.' + USER['id'], path)
+            return [] if self.independent else [{'brokerage_id': 'office'}]
+        if path.startswith('hof_brokerage_members?'):
+            self.test.assertIn('user_id=eq.' + USER['id'], path)
+            self.test.assertIn('brokerage_id=eq.office', path)
+            self.test.assertIn('status=eq.active', path)
+            return [{'id': 'membership'}]
         raise AssertionError('Unexpected lookup: ' + path)
 
     async def get(self, url, **kwargs):
@@ -83,6 +98,9 @@ class RenderSendFixture:
             if self.edit_during_download:
                 self.row['updated_at'] = '2026-09-18T10:01:00Z'
                 self.row['client_names'] = ['Changed in another tab']
+            if self.edit_identity_during_download:
+                self.profile['agent_name'] = 'Changed Associate'
+                self.broker['name'] = 'Changed Brokerage'
             return SimpleNamespace(status_code=self.source_status, content=self.source_bytes)
         self.test.assertTrue(url.endswith('/documents/provider-id'))
         return self.response(self.document)
@@ -136,6 +154,8 @@ class TxrRenderSendSnapshotTests(unittest.TestCase):
                         self.assertEqual(f.downloads, 1)
                         self.assertEqual(sum(q.startswith('hof_standalone_agreements?') for q in f.queries), 1)
                         self.assertEqual(sum(q.startswith('hof_brokerage_form_sources?') for q in f.queries), 1)
+                        self.assertEqual(sum(q.startswith('hof_agent_profiles?') for q in f.queries), 1)
+                        self.assertEqual(sum(q.startswith('hof_brokerages?') for q in f.queries), 1)
                         self.assertEqual(f.sends, 1)
                         self.assertEqual(f.document['recipients'], f.recipients)
                         pdf = PdfReader(BytesIO(base64.b64decode(f.document['files'][0]['file_base64'])))
@@ -146,6 +166,32 @@ class TxrRenderSendSnapshotTests(unittest.TestCase):
                         for field in f.document['fields'][0]:
                             self.assertLessEqual(field['page'], len(pdf.pages))
                         f.client.delete.assert_not_awaited()
+
+    def test_independent_agent_renders_and_sends_own_identity_without_seat(self):
+        for code in ('TXR-1501', 'TXR-1507'):
+            f = RenderSendFixture(self, code)
+            f.independent = True
+            f.profile.update(brokerage_name='Independent Profile Office', brokerage_license='7654321')
+            self.assertTrue(f.run()['ok'])
+            text = '\n'.join(p.extract_text() for p in PdfReader(BytesIO(
+                base64.b64decode(f.document['files'][0]['file_base64']))).pages)
+            self.assertIn('Independent Profile Office', text)
+            self.assertIn('7654321', text)
+            self.assertNotIn('QA Brokerage', text)
+            self.assertFalse(any(q.startswith(('hof_brokerages?', 'hof_brokerage_members?')) for q in f.queries))
+            self.assertEqual(f.document['recipients'][-1]['email'], USER['email'])
+
+    def test_render_and_recipient_use_same_identity_snapshot(self):
+        f = RenderSendFixture(self)
+        f.edit_identity_during_download = True
+        self.assertTrue(f.run()['ok'])
+        text = '\n'.join(p.extract_text() for p in PdfReader(BytesIO(
+            base64.b64decode(f.document['files'][0]['file_base64']))).pages)
+        self.assertIn('QA Associate', text)
+        self.assertIn('QA Brokerage', text)
+        self.assertNotIn('Changed Associate', text)
+        self.assertNotIn('Changed Brokerage', text)
+        self.assertEqual(f.document['recipients'][-1]['name'], 'QA Associate')
 
     def test_long_form_added_pages_reach_the_actual_delivery_payload(self):
         for role in ('associate', 'broker'):
