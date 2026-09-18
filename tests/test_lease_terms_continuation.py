@@ -263,5 +263,90 @@ class LeaseTermsContinuationTests(unittest.TestCase):
             self.assertEqual(sum(len(run) for run in re.findall('Z{2,}',result)),800)
             self.assertIn('END-ADDRESS',result)
 
+    def test_identity_and_email_entries_fit_measured_source_rules(self):
+        bounds = {
+            'buyer': {'landlord_name':(251.64,569.88,111.6),'tenant_name':(126,521.88,122.64),
+                      'property':(206.88,569.88,150.12),'property_header':(187.56,479.4,46.44),
+                      'landlord_email':(103.47,298.8,564.85),'tenant_email':(359.52,573.94,565.09)},
+            'seller': {'landlord_name':(256.2,569.88,111.6),'tenant_name':(130.56,525.36,122.64),
+                       'property':(210.6,569.88,152.64),'property_header':(189.72,476.64,46.44),
+                       'landlord_email':(98.97,305.4,557.54),'tenant_email':(370.77,574.88,557.78)},
+        }
+        for kind,sections in bounds.items():
+            for section,(left,right,top) in sections.items():
+                with self.subTest(kind=kind,section=section):
+                    for value in ('Example','W'*300):
+                        x,y,text,size=lease.text_entries(value,kind,section)[0]
+                        self.assertGreaterEqual(x,left)
+                        self.assertLessEqual(x+stringWidth(text,'Helvetica',size),right)
+                        self.assertLess(792-y+size*.207,top)
+
+    def test_full_party_names_are_not_cropped_and_follow_lease_roles(self):
+        buyer='Example Buyer With Additional Legal Names ' * 5 + 'BUYER-END'
+        seller='Example Seller With Additional Legal Names ' * 5 + 'SELLER-END'
+        for kind in ('buyer','seller'):
+            _,reader,_=self.packet(kind,'',buyer1=buyer,seller=seller)
+            self.assertEqual(reader.pages[12].extract_text().count(lease.SHORT_REFERENCE),2)
+            result=' '.join(' '.join(p.extract_text().split()) for p in reader.pages[14:])
+            left=result.index(lease.LABELS['landlord_name'])
+            right=result.index(lease.LABELS['tenant_name'])
+            self.assertIn(seller if kind=='buyer' else buyer,result[left:right])
+            self.assertIn(buyer if kind=='buyer' else seller,result[right:])
+
+    def test_explicit_lease_party_names_and_two_buyers_are_preserved(self):
+        for kind in ('buyer','seller'):
+            values={'buyer1':'First Buyer','buyer2':'Second Buyer','seller':'Example Seller'}
+            expected={'landlord_name':'Example Seller' if kind=='buyer' else 'First Buyer and Second Buyer',
+                      'tenant_name':'First Buyer and Second Buyer' if kind=='buyer' else 'Example Seller'}
+            for section,role in [('landlord_name','Landlord'),('tenant_name','Tenant')]:
+                self.assertEqual(lease.terms(values,kind,section),expected[section])
+                self.assertEqual(lease.terms({**values,kind+'TemporaryLease'+role:'Explicit Party'},kind,section),'Explicit Party')
+
+    def test_property_fits_main_blank_but_header_overflow_still_has_complete_reference(self):
+        street='987 '+('Example Long Road ' * 5).strip()
+        for kind in ('buyer','seller'):
+            offer,reader,_=self.packet(kind,'',address=street)
+            address=lease.terms(offer,kind,'property')
+            self.assertIsNotNone(lease.inline_entries(address,kind,'property'))
+            self.assertIsNone(lease.inline_entries(address,kind,'property_header'))
+            self.assertNotIn(lease.SHORT_REFERENCE,reader.pages[12].extract_text())
+            self.assertIn(lease.SHORT_REFERENCE,reader.pages[13].extract_text())
+            result=' '.join(' '.join(p.extract_text().split()) for p in reader.pages[14:])
+            self.assertEqual(result.count(lease.LABELS['property']),1)
+            self.assertIn(address,result)
+
+    def test_unbroken_property_address_survives_both_references(self):
+        for kind in ('buyer','seller'):
+            _,reader,_=self.packet(kind,'',address='W'*220)
+            self.assertIn(lease.SHORT_REFERENCE,reader.pages[12].extract_text())
+            self.assertIn(lease.SHORT_REFERENCE,reader.pages[13].extract_text())
+            result='\n'.join(p.extract_text() for p in reader.pages[14:])
+            body=result[result.index(lease.LABELS['property']):]
+            self.assertEqual(sum(len(run) for run in re.findall('W{2,}',body)),220)
+
+    def test_full_notice_emails_survive_without_changing_signer_addresses(self):
+        buyer='buyer'+'w'*54+'@example.com'
+        seller='seller'+'w'*54+'@example.com'
+        for kind in ('buyer','seller'):
+            offer,reader,fields=self.packet(kind,'',buyerEmail=buyer,sellerEmail=seller)
+            self.assertEqual(reader.pages[13].extract_text().count(lease.SHORT_REFERENCE),2)
+            result=''.join(p.extract_text().replace('\n','') for p in reader.pages[14:])
+            left=result.index(lease.LABELS['landlord_email'])
+            right=result.index(lease.LABELS['tenant_email'])
+            self.assertIn(seller if kind=='buyer' else buyer,result[left:right])
+            self.assertIn(buyer if kind=='buyer' else seller,result[right:])
+            self.assertEqual(offer['buyerEmail'],buyer)
+            self.assertEqual(offer['sellerEmail'],seller)
+            self.assertEqual({f['recipient_id'] for f in fields},{'1','3'} if kind=='seller' else {'1'})
+
+    def test_notice_email_fallbacks_match_existing_role_precedence(self):
+        values={'buyerEmail':'buyer@example.com','sellerEmail':'seller@example.com',
+                'landlordEmail':'old-landlord@example.com','tenantEmail':'old-tenant@example.com',
+                'seller1Email':'seller-one@example.com'}
+        for kind in ('buyer','seller'):
+            self.assertEqual(lease.terms(values,kind,'landlord_email'),'seller@example.com' if kind=='buyer' else 'buyer@example.com')
+            self.assertEqual(lease.terms(values,kind,'tenant_email'),'buyer@example.com' if kind=='buyer' else 'seller@example.com')
+        self.assertEqual(lease.terms({'seller1Email':'seller-one@example.com','tenantEmail':'old@example.com'},'seller','tenant_email'),'seller-one@example.com')
+
 
 if __name__ == '__main__': unittest.main()

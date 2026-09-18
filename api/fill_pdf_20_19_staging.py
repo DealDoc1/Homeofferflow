@@ -1187,9 +1187,9 @@ def fill_and_merge(offer):
         temp_lease_pages = {
             0: [
                 # Page 1: every fillable agreement blank. Initials are SignWell fields.
-                (253, 683, temp_landlord, 8),
-                (128, 672, temp_tenant, 8),
-                (208, 644, addr_full, 8),
+                *lease_terms_entries(temp_landlord, "buyer", "landlord_name"),
+                *lease_terms_entries(temp_tenant, "buyer", "tenant_name"),
+                *lease_terms_entries(addr_full, "buyer", "property"),
                 (267, 617, temp_start_date, 8),
                 (183, 589, fmt_money(temp_rent_per_day), 8),
                 (282, 578, fmt_money(temp_total_rent), 8),
@@ -1200,7 +1200,7 @@ def fill_and_merge(offer):
             ],
             1: [
                 # Page 2: property, holdover, and both parties' notice information.
-                (189, 747, addr_full, 8),
+                *lease_terms_entries(addr_full, "buyer", "property_header"),
                 (344, 537, fmt_money(temp_holdover), 8),
 
                 *lease_terms_entries(first_present(s.get("sellerMailAddr"), s.get("landlordMailAddr")), "buyer", "landlord_mail"),
@@ -1208,14 +1208,14 @@ def fill_and_merge(offer):
                 (190, 268, landlord_phone_number, 7.5),
                 (141, 247, landlord_fax_area, 7.5),
                 (190, 247, landlord_fax_number, 7.5),
-                (136, 228, first_present(s.get("sellerEmail"), s.get("landlordEmail")), 7.5),
+                *lease_terms_entries(first_present(s.get("sellerEmail"), s.get("landlordEmail")), "buyer", "landlord_email"),
 
                 *lease_terms_entries(first_present(s.get("buyerMailAddr"), s.get("tenantMailAddr")), "buyer", "tenant_mail"),
                 (390, 268, tenant_phone_area, 7.5),
                 (438, 268, tenant_phone_number, 7.5),
                 (390, 247, tenant_fax_area, 7.5),
                 (438, 247, tenant_fax_number, 7.5),
-                (384, 228, first_present(s.get("buyerEmail"), s.get("tenantEmail")), 7.5),
+                *lease_terms_entries(first_present(s.get("buyerEmail"), s.get("tenantEmail")), "buyer", "tenant_email"),
             ],
         }
         temp_lease_pages = add_debug_grid_to_pages(temp_lease_pages)
@@ -1272,9 +1272,9 @@ def fill_and_merge(offer):
 
         seller_temp_lease_pages = {
             0: [
-                *fitted_blank_entries(seller_temp_landlord, [(262, 682, 307)], fs=8),
-                *fitted_blank_entries(seller_temp_tenant, [(130, 671, 394)], fs=8),
-                *fitted_blank_entries(addr_full, [(210, 641, 359), (52, 630, 466)], fs=8),
+                *lease_terms_entries(seller_temp_landlord, "seller", "landlord_name"),
+                *lease_terms_entries(seller_temp_tenant, "seller", "tenant_name"),
+                *lease_terms_entries(addr_full, "seller", "property"),
                 (170, 600, seller_temp_termination_date, 8),
                 (308, 581, fmt_money(seller_temp_rent_per_day), 8),
                 (433, 529, fmt_money(seller_temp_deposit), 8),
@@ -1283,20 +1283,20 @@ def fill_and_merge(offer):
                 *lease_terms_entries(seller_temp_special, "seller"),
             ],
             1: [
-                *fitted_blank_entries(addr_full, [(190, 747, 286)], fs=8),
+                *lease_terms_entries(addr_full, "seller", "property_header"),
                 (239, 535, fmt_money(seller_temp_holdover), 8),
                 *lease_terms_entries(first_present(s.get("buyerMailAddr"), s.get("landlordMailAddr")), "seller", "landlord_mail"),
                 (134, 271, landlord_phone_area, 7.5),
                 (163, 271, landlord_phone_number, 7.5),
                 (134, 252, landlord_fax_area, 7.5),
                 (163, 252, landlord_fax_number, 7.5),
-                (97, 235, first_present(s.get("buyerEmail"), s.get("landlordEmail")), 7.5),
+                *lease_terms_entries(first_present(s.get("buyerEmail"), s.get("landlordEmail")), "seller", "landlord_email"),
                 *lease_terms_entries(first_present(s.get("sellerMailAddr"), s.get("tenantMailAddr")), "seller", "tenant_mail"),
                 (398, 271, tenant_phone_area, 7.5),
                 (430, 271, tenant_phone_number, 7.5),
                 (398, 252, tenant_fax_area, 7.5),
                 (431, 252, tenant_fax_number, 7.5),
-                (371, 235, first_present(s.get("sellerEmail"), s.get("seller1Email"), s.get("tenantEmail")), 7.5),
+                *lease_terms_entries(first_present(s.get("sellerEmail"), s.get("seller1Email"), s.get("tenantEmail")), "seller", "tenant_email"),
             ],
         }
         seller_temp_lease_pages = add_debug_grid_to_pages(seller_temp_lease_pages)

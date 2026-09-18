@@ -142,3 +142,45 @@ This resolves the mailing-address part of the earlier remaining-work note.
 Party names, property identification, email-width handling, purchase-contract
 special provisions, broker disclosures, and broader Unicode support remain
 separate inspection work. No all-forms or production-ready claim is made.
+
+## Party, property, and notice-email follow-up - September 18
+
+The remaining lease identity fields now use measured source bounds rather
+than unrestricted drawing or truncation. This covers Paragraph 1 landlord
+and tenant names, both Paragraph 2 property-address lines, the narrower
+page-two property header, and both Paragraph 24 notice emails on each form.
+Overflow preserves the complete value on a labeled continuation. A property
+address that fits page one but not the page-two header remains complete on
+page one and is repeated on the continuation referenced by the header.
+
+Role mapping, explicit party overrides, joined buyer names, and existing
+notice-email precedence are preserved. Notice-email layout does not change
+signer email addresses or add recipients. Existing source PDFs and signature
+coordinates were not changed by this follow-up.
+
+- Seven new tests cover independently measured rules and full rendered field
+  bounds, party roles and overrides, long tokens, the narrower property
+  header, complete emails, alias precedence, and unchanged signer identities.
+- All 48 focused continuation/source-sync checks pass. Full discovery ran
+  2,089 tests in 35.370 seconds: 2,087 pass; the same two TXR-1507 approved-map
+  reference checks fail. Their baselines remain unchanged pending actual
+  completed-signature verification.
+- Four unsigned synthetic specimens were generated with
+  `scripts/qa/lease_identity_preview.py`. All ten relevant rendered pages
+  were visually inspected under the PDF skill workflow: two pages per short
+  specimen and three pages per long specimen. Fields clear their labels and
+  rules; complete long values appear on the continuation. Extreme unbroken
+  email strings wrap there without truncation. These are not provider-signed
+  PDFs or evidence of live production behavior.
+- A fresh SignWell browser check still reaches Google's "Verify it's you"
+  and "Complete sign-in using your passkey" for the owner's account. One
+  tab is retained for that verification. No packet was sent and no customer
+  agreement was modified, canceled, replaced, or resent.
+- Local only: no Git publication, Vercel build/deployment, production database
+  changes, or new paid resources. Include the result and remaining provider
+  check in the next daily report.
+
+This resolves the party-name, property-identification, and email-width items
+in the preceding lease follow-up. Purchase-contract special provisions,
+broker disclosures, comprehensive Unicode coverage, and actual provider-
+completed continuation/signature visual QA remain separate work.
