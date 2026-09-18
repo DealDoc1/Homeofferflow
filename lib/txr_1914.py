@@ -87,14 +87,15 @@ def _page_two(data):
         _mark(canvas, 77, 477)
         _mark(canvas, 105 if escrow.get("third_party_servicer") == "will" else 167, 374)
         _mark(canvas, 411 if escrow.get("cost_paid_by") == "buyer" else 465, 374)
-    buyers = data.get("buyer_names") or []
-    sellers = data.get("seller_names") or []
-    _draw(canvas, buyers[0] if buyers else "", 58, 258, size=9)
-    _draw(canvas, sellers[0] if sellers else "", 332, 258, size=9)
-    if len(buyers) > 1:
-        _draw(canvas, buyers[1], 58, 162, size=9)
-    if len(sellers) > 1:
-        _draw(canvas, sellers[1], 332, 162, size=9)
+    if not data.get("_for_signing"):
+        buyers = data.get("buyer_names") or []
+        sellers = data.get("seller_names") or []
+        _draw(canvas, buyers[0] if buyers else "", 58, 258, size=9)
+        _draw(canvas, sellers[0] if sellers else "", 332, 258, size=9)
+        if len(buyers) > 1:
+            _draw(canvas, buyers[1], 58, 162, size=9)
+        if len(sellers) > 1:
+            _draw(canvas, sellers[1], 332, 162, size=9)
     canvas.save()
     packet.seek(0)
     return packet.read()

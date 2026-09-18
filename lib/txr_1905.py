@@ -40,16 +40,17 @@ def _overlay(data):
         _mark(canvas, 109, 454)
     else:
         _mark(canvas, 149, 454)
-    buyers = data.get("buyer_names") or []
-    sellers = data.get("seller_names") or []
-    # Write each party name immediately above its signature rule; the printed
-    # Buyer/Seller captions sit below those rules on the source.
-    _draw(canvas, buyers[0] if buyers else "", 58, 176, size=9)
-    _draw(canvas, sellers[0] if sellers else "", 333, 176, size=9)
-    if len(buyers) > 1:
-        _draw(canvas, buyers[1], 58, 118, size=9)
-    if len(sellers) > 1:
-        _draw(canvas, sellers[1], 333, 118, size=9)
+    # Draft labels occupy the execution blanks. SignWell must receive those
+    # blanks empty so its signature artwork never covers a printed name.
+    if not data.get("_for_signing"):
+        buyers = data.get("buyer_names") or []
+        sellers = data.get("seller_names") or []
+        _draw(canvas, buyers[0] if buyers else "", 58, 176, size=9)
+        _draw(canvas, sellers[0] if sellers else "", 333, 176, size=9)
+        if len(buyers) > 1:
+            _draw(canvas, buyers[1], 58, 118, size=9)
+        if len(sellers) > 1:
+            _draw(canvas, sellers[1], 333, 118, size=9)
     canvas.save()
     packet.seek(0)
     return packet.read()

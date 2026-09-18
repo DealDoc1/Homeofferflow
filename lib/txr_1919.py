@@ -68,14 +68,15 @@ def _page_two(data):
     packet = BytesIO()
     canvas = Canvas(packet, pagesize=(PAGE_WIDTH, PAGE_HEIGHT))
     _draw(canvas, data.get("property_address"), 245, 742, size=9)
-    buyers = data.get("buyer_names") or []
-    sellers = data.get("seller_names") or []
-    _draw(canvas, buyers[0] if buyers else "", 58, 300, size=9)
-    _draw(canvas, sellers[0] if sellers else "", 338, 300, size=9)
-    if len(buyers) > 1:
-        _draw(canvas, buyers[1], 58, 238, size=9)
-    if len(sellers) > 1:
-        _draw(canvas, sellers[1], 338, 238, size=9)
+    if not data.get("_for_signing"):
+        buyers = data.get("buyer_names") or []
+        sellers = data.get("seller_names") or []
+        _draw(canvas, buyers[0] if buyers else "", 58, 300, size=9)
+        _draw(canvas, sellers[0] if sellers else "", 338, 300, size=9)
+        if len(buyers) > 1:
+            _draw(canvas, buyers[1], 58, 238, size=9)
+        if len(sellers) > 1:
+            _draw(canvas, sellers[1], 338, 238, size=9)
     canvas.save()
     packet.seek(0)
     return packet.read()

@@ -33,20 +33,21 @@ def render_txr_1917(source_pdf_bytes, data):
         raise ValueError("TXR-1917 source must contain exactly one page.")
     packet = BytesIO()
     canvas = Canvas(packet, pagesize=(PAGE_WIDTH, PAGE_HEIGHT))
-    _draw(canvas, data.get("property_address"), 185, 600, 9)
+    _draw(canvas, data.get("property_address"), 185, 604, 9)
     selected = set(data.get("review_types") or [])
-    for key, y in (("environmental", 545), ("species", 509), ("wetlands", 443)):
+    for key, y in (("environmental", 540), ("species", 502.3), ("wetlands", 436.7)):
         if key in selected:
             _mark(canvas, 60, y)
-    _draw(canvas, data.get("termination_days"), 121, 379)
-    buyers = data.get("buyer_names") or []
-    sellers = data.get("seller_names") or []
-    _draw(canvas, buyers[0] if buyers else "", 58, 260, 9)
-    _draw(canvas, sellers[0] if sellers else "", 330, 260, 9)
-    if len(buyers) > 1:
-        _draw(canvas, buyers[1], 58, 188, 9)
-    if len(sellers) > 1:
-        _draw(canvas, sellers[1], 330, 188, 9)
+    _draw(canvas, data.get("termination_days"), 97, 377)
+    if not data.get("_for_signing"):
+        buyers = data.get("buyer_names") or []
+        sellers = data.get("seller_names") or []
+        _draw(canvas, buyers[0] if buyers else "", 58, 260, 9)
+        _draw(canvas, sellers[0] if sellers else "", 330, 260, 9)
+        if len(buyers) > 1:
+            _draw(canvas, buyers[1], 58, 188, 9)
+        if len(sellers) > 1:
+            _draw(canvas, sellers[1], 330, 188, 9)
     canvas.save()
     packet.seek(0)
     overlay = PdfReader(packet)

@@ -121,6 +121,32 @@ class StandaloneRecipientPreviewTests(unittest.TestCase):
         self.assertEqual(result['recipients'][0]['email'], 'customer@example.com')
         self.assertNotIn('_hof_signature_delivery', str(result))
 
+    def test_corrected_addenda_signing_copies_bind_their_render_revision(self):
+        from types import SimpleNamespace
+        for code in (1905, 1914, 1917, 1919, 1948):
+            with self.subTest(code=code):
+                draft = {**showing_draft(), 'form_code': f'TXR-{code}',
+                         'form_source_id': 'source-1', 'source_revision': 'QA source',
+                         'status': 'draft', 'agreement_data': {'buyer_names': ['Buyer'], 'seller_names': ['Seller']}}
+                source = {'id': 'source-1', 'source_revision': 'QA source',
+                          'storage_bucket': 'private', 'storage_path': 'source.pdf'}
+                client = AsyncMock()
+                client.get.return_value = SimpleNamespace(status_code=200, content=b'%PDF-source')
+                with patch.object(MODULE, '_get', AsyncMock(side_effect=[[draft], [source], []])), \
+                     patch.object(MODULE, '_get_optional', AsyncMock(return_value=[])), \
+                     patch.object(MODULE.httpx, 'AsyncClient') as factory, \
+                     patch(f'lib.txr_{code}.render_txr_{code}', return_value=b'%PDF-rendered') as render:
+                    factory.return_value.__aenter__.return_value = client
+                    context = {}
+                    asyncio.run(MODULE._render_representation_draft_preview(
+                        USER, AGREEMENT_ID, for_signing=True, fingerprint_context=context))
+                self.assertTrue(render.call_args.args[1]['_for_signing'])
+                self.assertEqual(context['render_revision'], MODULE.TXR_RENDER_REVISIONS[f'TXR-{code}'])
+                older = {key: value for key, value in context.items() if key != 'render_revision'}
+                self.assertNotEqual(MODULE.signwell_delivery.request_fingerprint({}, older),
+                                    MODULE.signwell_delivery.request_fingerprint({}, context))
+                client.post.assert_not_awaited()
+
     def test_existing_provider_record_blocks_every_retry_preparation_step(self):
         for status in ("draft", "failed"):
             draft = {**showing_draft(), "status": status, "signwell_document_id": "existing"}

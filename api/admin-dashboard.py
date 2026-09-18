@@ -142,6 +142,14 @@ TXR_SIGNING_FORM_CODES = {
 # a completed PDF traceable to the exact reviewed signer geometry when a
 # source form needs a placement correction.  Older provider documents simply
 # have no map revision and are therefore never mistaken for current-map QA.
+TXR_RENDER_REVISIONS = {
+    "TXR-1905": "txr-1905-2026-09-18-clear-execution-v1",
+    "TXR-1914": "txr-1914-2026-09-18-clear-execution-v1",
+    "TXR-1917": "txr-1917-2026-09-18-source-blanks-v1",
+    "TXR-1919": "txr-1919-2026-09-18-clear-execution-v1",
+    "TXR-1948": "txr-1948-2026-09-18-editable-fields-v1",
+}
+
 TXR_SIGNING_MAP_REVISIONS = {
     TXR_1501_FORM_CODE: "txr-1501-2026-09-12-completed-packet-calibrated-v2",
     TXR_1506_FORM_CODE: "txr-1506-2026-09-09-final-page-calibrated-v1",
@@ -3836,6 +3844,11 @@ async def _render_representation_draft_preview(user, agreement_id, *, for_signin
                          if key not in {signwell_delivery.JOURNAL_KEY, "client_emails",
                                         "signwellStatus", "signwellDocumentId", "signwellLastStatusRefresh"}},
         )
+        # Bind overlay changes as well as signer geometry. Existing tracked
+        # documents must never be mistaken for a newly corrected signing copy.
+        render_revision = TXR_RENDER_REVISIONS.get(agreement.get("form_code"))
+        if render_revision:
+            fingerprint_context["render_revision"] = render_revision
     if agreement.get("form_code") == TXR_1507_FORM_CODE:
         from lib.txr_1507 import render_txr_1507
         return render_txr_1507(response.content, render_data, brokerage, profile_rows[0] if profile_rows else {})
@@ -4280,6 +4293,8 @@ async def _send_txr_agreement_for_signature(user, data):
             "form_code": form_code,
             "source_revision": str(agreement.get("source_revision") or "")[:80],
             "signing_map_revision": current_map_revision,
+            **({"render_revision": render_context["render_revision"]}
+               if render_context.get("render_revision") else {}),
             "test_mode": str(SIGNWELL_TEST_MODE).lower(),
         },
     }
