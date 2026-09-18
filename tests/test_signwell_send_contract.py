@@ -95,7 +95,7 @@ class SignwellSendContractTests(unittest.TestCase):
              patch.object(MODULE, '_get', AsyncMock(side_effect=lookup)), \
              patch.object(MODULE, '_patch', AsyncMock()) as persist, \
              patch.object(MODULE, '_standalone_signing_recipients', AsyncMock(return_value=recipients)), \
-             patch.object(MODULE, '_render_representation_draft_preview', AsyncMock(return_value=b'%PDF-rendered')), \
+             patch.object(MODULE, '_render_owned_representation_agreement', AsyncMock(return_value=b'%PDF-rendered')), \
              patch.object(MODULE, '_render_seller_disclosure_draft_preview', AsyncMock(return_value=b'%PDF-rendered')), \
              patch.object(MODULE.httpx, 'AsyncClient') as factory:
             factory.return_value.__aenter__.return_value = client

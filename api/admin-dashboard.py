@@ -3788,6 +3788,19 @@ async def _render_representation_draft_preview(user, agreement_id, *, for_signin
     if not agreements:
         raise PermissionError("That private agreement draft is unavailable.")
     agreement = agreements[0]
+    return await _render_owned_representation_agreement(
+        user, agreement, for_signing=for_signing, fingerprint_context=fingerprint_context,
+    )
+
+
+async def _render_owned_representation_agreement(user, agreement, *, for_signing=False, fingerprint_context=None):
+    """Render one server-loaded, owner-scoped draft snapshot.
+
+    Only the preview and send handlers call this helper, after their ownership
+    query. Never pass browser-supplied agreement data here. Source approval and
+    revision are checked here once for both paths. The send adapter's existing
+    updated_at checkpoint still rejects a draft edited during preparation.
+    """
     if agreement.get("signwell_document_id") and not _tracked_signature_journal(agreement):
         raise PermissionError("This signature request already has a provider record. Refresh its status before sending again.")
     sources = await _get(
@@ -4247,31 +4260,12 @@ async def _send_txr_agreement_for_signature(user, data):
         raise ValueError("Each signer must use a different signing email.")
     recipients = await _standalone_signing_recipients(user, agreement, client_emails)
     _validate_confirmed_signing_recipients(recipients, data.get("confirmedRecipients"))
-    sources = await _get(
-        "hof_brokerage_form_sources?"
-        f"id=eq.{urllib.parse.quote(str(agreement['form_source_id']))}"
-        f"&form_code=eq.{urllib.parse.quote(form_code)}"
-        "&status=eq.approved&authorization_attested=is.true"
-        "&select=id,source_revision,storage_bucket,storage_path&limit=1"
-    )
-    if not sources or sources[0].get("source_revision") != agreement.get("source_revision"):
-        raise ValueError("The approved source revision for this draft is no longer available.")
-    source = sources[0]
-    async with httpx.AsyncClient(timeout=20) as client:
-        source_response = await client.get(
-            f"{SUPABASE_URL}/storage/v1/object/"
-            f"{urllib.parse.quote(str(source['storage_bucket']), safe='')}/"
-            f"{urllib.parse.quote(str(source['storage_path']), safe='/')}",
-            headers=_headers(),
-        )
-    if source_response.status_code != 200 or not source_response.content.startswith(b"%PDF"):
-        raise RuntimeError("The approved standalone source could not be loaded.")
     agreement_data = dict(agreement.get("agreement_data") or {})
     current_map_revision = _current_txr_signing_map_revision(form_code, agreement_data)
     agreement_data["client_emails"] = client_emails
     client_count = len(client_names)
     render_context = {}
-    rendered = await _render_representation_draft_preview(user, agreement_uuid, for_signing=True, fingerprint_context=render_context)
+    rendered = await _render_owned_representation_agreement(user, agreement, for_signing=True, fingerprint_context=render_context)
     fields = _txr_signwell_fields(form_code, {"client_names": client_names, **agreement_data}, client_count,
                                  rendered_pdf=rendered)
     address_label = form_code.replace("-", " ")

@@ -20,6 +20,11 @@ answer continuation, with required initials for the same selected signers.
 The actual rendered page count controls those extra fields. This is locally
 tested and visually reviewed, not deployed. See
 [long-answer evidence](release-evidence/txr1501-overflow-candidate-2026-09-18.md).
+Standalone sending now also uses one owner-scoped draft snapshot and a single
+approved-source download, removing three duplicate reads without changing the
+user workflow. Real-render offline integration tests cover short/long forms,
+continuations and concurrent edits. This is **not deployed or live-provider
+verified**; see [send-snapshot evidence](release-evidence/txr-render-send-snapshot-2026-09-18.md).
 
 Environmental-review TXR-1917 now has a locally tested purchase-interview and
 combined-packet candidate, including source-bound placement and long-answer
