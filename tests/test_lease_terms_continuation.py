@@ -22,6 +22,16 @@ def lease_answers(kind):
             kind+'TemporaryLease': 'yes', 'sellerEmail':'seller@example.com'}
 
 
+def answer_key(kind, section):
+    suffix = 'UtilitiesPaidBy' + ('Seller' if kind == 'buyer' else 'Buyer') if section == 'utilities' else 'PetsAllowed'
+    return kind + 'TemporaryLease' + suffix
+
+
+def long_answer(section, count=12):
+    return '\n'.join(f'{section.upper()}-{n:03d}: Preserve this complete example answer without shortening any detail.'
+                     for n in range(1, count+1))
+
+
 class LeaseTermsContinuationTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -96,6 +106,7 @@ class LeaseTermsContinuationTests(unittest.TestCase):
                 base.update(nonRealtyDescription=item_list(70), asIs='repairs', repairsText=repair_terms(70),
                     uploadedDisclosureDocs=[{'name':'Example.pdf','base64':one_page_pdf_base64(),
                         'signaturePlacements':[{'type':'buyer1_signature','page':1,'signwellX':100,'signwellY':200}]}])
+                base.update({answer_key(kind,section):long_answer(section) for section in ('utilities','pets')})
                 _, reader, fields = self.packet(kind, long_terms(), **base)
                 prefixes = ('repair_continuation_', 'nonrealty_continuation_', 'lease_continuation_', 'uploaded_')
                 self.assertEqual([f for f in fields if not f['api_id'].startswith(prefixes)], old_fields)
@@ -121,6 +132,70 @@ class LeaseTermsContinuationTests(unittest.TestCase):
             _,reader,_ = self.packet(kind,'Return keys.', **{other+'TemporaryLeaseSpecialProvisions':long_terms()})
             self.assertEqual(len(reader.pages),14)
             self.assertNotIn('LT-001',' '.join(p.extract_text() for p in reader.pages))
+
+    def test_short_utility_and_pet_answers_remain_in_their_blanks(self):
+        for kind in ('buyer','seller'):
+            values = {answer_key(kind,'utilities'):'Water and trash', answer_key(kind,'pets'):'One dog'}
+            _,reader,fields = self.packet(kind,'Return keys.',**values)
+            self.assertEqual(len(reader.pages),14)
+            for text in values.values(): self.assertIn(text,reader.pages[12].extract_text())
+            self.assertFalse(any(f['api_id'].startswith('lease_continuation_') for f in fields))
+
+    def test_each_utility_and_pet_answer_is_preserved_in_a_labeled_continuation(self):
+        for kind in ('buyer','seller'):
+            for section in ('utilities','pets'):
+                with self.subTest(kind=kind,section=section):
+                    value=long_answer(section)
+                    _,reader,fields=self.packet(kind,'Return keys.',**{answer_key(kind,section):value})
+                    self.assertIn(lease.SHORT_REFERENCE,reader.pages[12].extract_text())
+                    result='\n'.join(p.extract_text() for p in reader.pages[14:])
+                    self.assertIn(lease.LABELS[section],result)
+                    self.assertNotIn(lease.LABELS['special'],result)
+                    for n in range(1,13): self.assertEqual(result.count(f'{section.upper()}-{n:03d}:'),1)
+                    self.assertNotIn('...',result)
+                    self.assertTrue(any(f['api_id'].startswith('lease_continuation_') for f in fields))
+                    x,y,reference,size=lease.text_entries(value,kind,section)[0]
+                    self.assertLessEqual(stringWidth(reference,'Helvetica',size),lease.section_blanks(kind,section)[0][2])
+
+    def test_combined_sections_preserve_original_order_and_terms_once(self):
+        for kind in ('buyer','seller'):
+            values={answer_key(kind,section):long_answer(section,30) for section in ('utilities','pets')}
+            _,reader,fields=self.packet(kind,long_terms(),**values)
+            result='\n'.join(p.extract_text() for p in reader.pages[14:])
+            self.assertLess(result.index(lease.LABELS['utilities']),result.index(lease.LABELS['pets']))
+            self.assertLess(result.index(lease.LABELS['pets']),result.index(lease.LABELS['special']))
+            for section in ('utilities','pets'):
+                for n in range(1,31): self.assertEqual(result.count(f'{section.upper()}-{n:03d}:'),1)
+            self.assertEqual(result.count('FINAL TERM:'),1)
+            marks=[f for f in fields if f['api_id'].startswith('lease_continuation_')]
+            for page in range(15,len(reader.pages)+1):
+                self.assertEqual({f['recipient_id'] for f in marks if f['page']==page}, {'1','3'} if kind=='seller' else {'1'})
+
+    def test_utility_and_pet_aliases_preserve_long_answers(self):
+        for kind in ('buyer','seller'):
+            for section,suffix in (('utilities','Utilities'),('pets','Pets')):
+                for key in (kind+'TempLease'+suffix,'temporaryLease'+suffix):
+                    with self.subTest(kind=kind,key=key):
+                        _,reader,_=self.packet(kind,'',**{key:long_answer(section)})
+                        self.assertIn(f'{section.upper()}-012:',reader.pages[-1].extract_text())
+
+    def test_unbroken_pet_and_utility_tokens_survive_instead_of_disappearing(self):
+        for kind in ('buyer','seller'):
+            for section in ('utilities','pets'):
+                with self.subTest(kind=kind,section=section):
+                    value='Z'*800 + '\nLiteral <oak> & pine. FINAL-ANSWER.'
+                    _,reader,_=self.packet(kind,'',**{answer_key(kind,section):value})
+                    result='\n'.join(p.extract_text() for p in reader.pages[14:])
+                    self.assertEqual(sum(len(run) for run in re.findall('Z{2,}',result)),800)
+                    self.assertIn('Literal <oak> & pine. FINAL-ANSWER.',result)
+
+    def test_deselected_lease_and_other_lease_answers_do_not_leak(self):
+        stale={answer_key(kind,section):long_answer(section) for kind in ('buyer','seller') for section in ('utilities','pets')}
+        offer=minimal_offer(**stale)
+        self.assertEqual(len(PdfReader(BytesIO(adapter.fill_and_merge_20_19(offer))).pages),12)
+        for kind,other in (('buyer','seller'),('seller','buyer')):
+            _,reader,_=self.packet(kind,'',**{answer_key(other,section):long_answer(section) for section in ('utilities','pets')})
+            self.assertEqual(len(reader.pages),14)
 
 
 if __name__ == '__main__': unittest.main()

@@ -61,3 +61,42 @@ existing character-set limitations; comprehensive Unicode support is unverified.
 Fresh completed SignWell testing remains necessary for new continuation
 initials. Existing signatures retain their coordinates and do not become
 newly provider-verified merely because the page-offset tests pass.
+
+## Utilities and pets follow-up - September 18
+
+The remaining Paragraph 6 utilities and Paragraph 8 pet answers used the same
+ellipsis-producing helper. With a 12-line synthetic answer, the prior helper
+omits the final answer and inserts `...` for both fields on both lease forms.
+These four field paths now use the complete-or-continuation layout as well.
+
+Each short answer remains on its own source blank. Only overflowing answers
+are copied, in full, into a shared lease Terms Continuation, labeled by their
+original paragraph (6, 8, or 11). The narrow utilities/pets blanks use
+"See continuation."; the larger special-provisions blank uses
+"See attached temporary lease terms continuation." The continuation identifies
+the lease type and property on every page. No new term or obligation is drafted.
+
+Six additional tests cover short answers, individual field overflow, combined
+sections and page-by-page signer assignments, supported aliases, very long
+unbroken tokens and literal markup, and deselected/other-lease answer isolation.
+The original mixed repair/inventory/lease/upload test now also overflows both
+utilities and pets while verifying all original signatures and final upload
+offsets. Production selection and recipient validation remain unchanged.
+
+- All 36 focused continuation/source-sync tests pass.
+- Full discovery: 2,077 tests in 30.971 seconds; 2,075 pass and the same two
+  TXR-1507 approved-map reference tests fail. References remain unchanged.
+- Generated two unsigned fake-data specimens with
+  `scripts/qa/lease_answers_preview.py` and visually inspected five relevant
+  rendered pages: both source-page references, two buyer continuation pages,
+  and one seller continuation page. The seller example retains its complete
+  special provisions on the original twelve blanks and appends only utilities
+  and pets; the buyer example carries all three sections. All inspected text
+  clears printed labels and initials areas. No SignWell-completed QA is claimed.
+- `git diff --check` passes. No push, deployment, email, provider API call,
+  or production mutation occurred.
+
+This supersedes only the utilities/pets portion of the remaining-work note
+above. Names, notice addresses, purchase-contract special provisions, broker
+disclosures, and comprehensive Unicode support still need separate review.
+Include this follow-up in the next daily report as local work only.

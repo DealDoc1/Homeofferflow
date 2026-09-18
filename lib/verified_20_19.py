@@ -1194,8 +1194,8 @@ def fill_and_merge(offer):
                 (183, 589, fmt_money(temp_rent_per_day), 8),
                 (282, 578, fmt_money(temp_total_rent), 8),
                 (259, 528, fmt_money(temp_deposit), 8),
-                *fitted_blank_entries(temp_utilities, [(462, 435, 105), (49, 424, 384)], fs=8),
-                *fitted_blank_entries(temp_pets, [(340, 380, 225)], fs=8),
+                *lease_terms_entries(temp_utilities, "buyer", "utilities"),
+                *lease_terms_entries(temp_pets, "buyer", "pets"),
                 *lease_terms_entries(temp_special, "buyer"),
             ],
             1: [
@@ -1278,8 +1278,8 @@ def fill_and_merge(offer):
                 (170, 600, seller_temp_termination_date, 8),
                 (308, 581, fmt_money(seller_temp_rent_per_day), 8),
                 (433, 529, fmt_money(seller_temp_deposit), 8),
-                *fitted_blank_entries(seller_temp_utilities, [(331, 466, 238)], fs=8),
-                *fitted_blank_entries(seller_temp_pets, [(342, 406, 227)], fs=8),
+                *lease_terms_entries(seller_temp_utilities, "seller", "utilities"),
+                *lease_terms_entries(seller_temp_pets, "seller", "pets"),
                 *lease_terms_entries(seller_temp_special, "seller"),
             ],
             1: [
