@@ -4753,11 +4753,21 @@ class handler(BaseHTTPRequestHandler):
             brokerage_delivery_email_types = {"brokerage_invite"}
             resend_delivery_attention_count = 0
             resend_delivery_retryable_count = 0
+            resend_suppression_event_counts = {"added": 0, "removed": 0}
             for item in resend_delivery_events:
                 status = str(item.get("delivery_status") or "other").strip().lower()
                 if status not in resend_delivery_status_counts:
                     status = "other"
                 resend_delivery_status_counts[status] += 1
+                event_type = str(item.get("event_type") or "").strip().lower()
+                if event_type == "suppression.added":
+                    resend_suppression_event_counts["added"] += 1
+                    # A new team-wide suppression needs operational review,
+                    # but it is not an attempted email and must not distort
+                    # the terminal-email delivery-rate denominator below.
+                    resend_delivery_attention_count += 1
+                elif event_type == "suppression.removed":
+                    resend_suppression_event_counts["removed"] += 1
                 processing_state = str(item.get("processing_state") or "").strip().lower()
                 if status in {"bounced", "complained", "suppressed"} or processing_state == "failed":
                     resend_delivery_attention_count += 1
@@ -6717,6 +6727,7 @@ class handler(BaseHTTPRequestHandler):
                 "resendDeliveryEventCount": len(resend_delivery_events),
                 "resendDeliveryStatusCounts": resend_delivery_status_counts,
                 "resendDeliveryFamilyCounts": resend_delivery_family_counts,
+                "resendSuppressionEventCounts": resend_suppression_event_counts,
                 "resendDeliveryAttentionCount": resend_delivery_attention_count,
                 "resendDeliveryRetryableCount": resend_delivery_retryable_count,
                 "resendDeliveryProcessedCount": len([

@@ -88,6 +88,24 @@ class ResendDeliveryWebhookTests(unittest.TestCase):
         self.assertEqual(row["delivery_status"], "other")
         self.assertEqual(row["processing_state"], "ignored")
 
+    def test_suppression_lifecycle_is_recorded_without_the_email_address(self):
+        added = MODULE._resend_event_row({
+            "type": "suppression.added",
+            "data": {"email": "private@example.test", "origin": "bounce"},
+        }, "msg_added")
+        removed = MODULE._resend_event_row({
+            "type": "suppression.removed",
+            "data": {"email": "private@example.test"},
+        }, "msg_removed")
+
+        self.assertEqual(added["event_type"], "suppression.added")
+        self.assertEqual(removed["event_type"], "suppression.removed")
+        self.assertEqual(added["delivery_status"], "other")
+        self.assertEqual(removed["delivery_status"], "other")
+        self.assertEqual(added["processing_state"], "processed")
+        self.assertEqual(removed["processing_state"], "processed")
+        self.assertNotIn("private@example.test", json.dumps([added, removed]))
+
     def test_claim_uses_conflict_ignore_for_at_least_once_delivery(self):
         row = MODULE._resend_event_row({"type": "email.delivered", "data": {}}, "msg_1")
         with patch.object(MODULE.httpx, "Client", _Client):

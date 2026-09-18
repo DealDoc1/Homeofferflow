@@ -44,6 +44,7 @@ RESEND_WEBHOOK_MAX_SIGNATURE_AGE_SECONDS = 300
 RESEND_WEBHOOK_EVENT_TYPES = frozenset({
     "email.sent", "email.delivered", "email.bounced", "email.complained",
     "email.suppressed", "email.opened", "email.clicked",
+    "suppression.added", "suppression.removed",
 })
 RESEND_WEBHOOK_SAFE_TAG_NAMES = frozenset({"email_type", "seller_package", "partner_tier"})
 SELLER_PLAN_FROM_EMAIL = (

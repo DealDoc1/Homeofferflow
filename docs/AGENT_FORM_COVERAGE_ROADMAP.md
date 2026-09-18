@@ -6,6 +6,13 @@ reducing verification standards.
 
 ## Local continuation status - September 18, 2026
 
+Resend suppression-list additions/removals are now recognized locally by the
+existing secure webhook and surfaced as privacy-safe aggregate admin metrics.
+New additions become email-delivery attention items without distorting the
+confirmed-delivery rate. This requires no polling or new paid service and is
+**locally implemented, not deployed**. See
+[suppression visibility evidence](release-evidence/resend-suppression-visibility-2026-09-18.md).
+
 Outstanding completed-provider geometry checks for six corrected forms are now
 consolidated into one nonbinding SignWell document instead of six separate
 requests. The 14-page, 54-field packet is confirmed sent to the two approved QA
