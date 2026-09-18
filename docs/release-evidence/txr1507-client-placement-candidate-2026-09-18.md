@@ -96,3 +96,30 @@ The existing SignWell QA browser tab was rechecked: Google displays
 for the owner to complete authentication. No new packet was sent, and no
 customer agreement was canceled, replaced, or resent. This authentication
 check is separate from completed-provider placement verification.
+
+## Controlled provider test sent - September 18, 15:40 UTC
+
+The existing SignWell session is now authenticated; the passkey obstacle above
+is resolved. Created exactly one separate nonbinding test-mode document using
+the local candidate renderer and its exact field map:
+
+- Document ID: `0093c1e0-8491-4a14-b659-dda35a8fbed4`.
+- Name: `QA ONLY - TXR1507 placement correction - 2026-09-18`.
+- One synthetic client and one synthetic associate, using only the owner's
+  two approved QA email addresses. No client recipient or transaction reused.
+- `test_mode: true`, `draft: false`, `apply_signing_order: false`; reminders off.
+- Rendered and visually reviewed both unsigned pages before sending.
+- API returned 201 and confirmed test mode. The authenticated Documents UI
+  subsequently showed **Sent**, distinct from the real completed client packet.
+- SignWell documents test mode as nonbinding and not counted toward API billing:
+  https://developers.signwell.com/reference/createdocument
+
+The two test invitations still need completion before inspecting the resulting
+provider-signed PDF. Invitation submission is not inbox-delivery proof or final
+signature-placement verification. The real client agreement remains untouched.
+No deployment occurred; approved geometry baselines remain unchanged.
+
+The helper `scripts/qa/send_txr1507_placement_test.py` defaults to unsigned-only
+generation, requires an explicit send flag, reads the existing API key without
+echo, and never persists credentials. A saved receipt prevents accidental
+duplicate sends. It does not retry ambiguous network failures automatically.
