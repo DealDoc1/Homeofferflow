@@ -2,11 +2,13 @@
 
 ## Status
 
-**LOCAL CANDIDATE — not deployed and not completed-signature verified.**
+**LOCAL CANDIDATE — not deployed. One-client/associate completed-provider
+placement verified September 18; other signer variants remain unverified.**
 Do not mark this map production-ready based on unit tests or synthetic previews.
 The earlier completed-signature correction was insufficient. The two committed
-geometry baselines remain unchanged until fresh provider-completed evidence is
-reviewed; the two drift checks therefore intentionally report a mismatch.
+geometry baselines remain unchanged until provider-completed evidence covers
+the full changed map; the two drift checks therefore report a mismatch. See
+the completed-test update below for the narrower scenario now verified.
 
 ## Confirmed finding
 
@@ -138,3 +140,55 @@ This is partial provider-rendered evidence only: the completed downloadable
 PDF and audit trail are not yet available for the final visual check. The
 approved-map baselines remain unchanged. The real customer agreement remains
 untouched, and no deployment or public push occurred.
+
+## Completed provider test verified - September 18
+
+Rechecked the same existing test document, not a new request. The authenticated
+SignWell builder now explicitly states **completed** and that the document can
+no longer be changed. Downloaded its PDF using the existing document's PDF
+Download action. No reminders, additional invitations, signatures, or customer
+record changes were performed by the agent.
+
+- Document: `0093c1e0-8491-4a14-b659-dda35a8fbed4`, the nonbinding test above.
+- Download SHA-256:
+  `640741b6486bb45d5e6a238fd8bc0c9bfa87f7d970f679720f41757199ca5c75`.
+- Two US Letter pages, provider-produced PDF; no editable canonical fields or
+  widgets. Each page explicitly identifies TEST MODE / NOT LEGALLY VALID. No
+  separate audit page was included in this download. Do not claim an audit
+  certificate or legally binding execution was verified.
+- Rendered and visually inspected both completed pages plus a magnified footer
+  view. The full-services and intermediary-authorized X marks occupy the chosen
+  source cells. The associate role is checked. The restored page-two header
+  identifies the supplied parties without covering its printed label.
+- Both signatures end at PDF top-origin y=532.24, above the source rule at
+  533.95. The associate signature is x=36.89..127.23 and the client signature
+  x=325.97..416.31. Neither covers the role/date labels below the line.
+- Both complete dates are readable, y=523.54..532.82. The associate date spans
+  x=236.34..285.55, and the client date x=525.42..574.63, inside their source
+  execution columns. This directly checks the earlier date overflow defect.
+- Provider initials occupy x=328.23..342.72 and x=409.53..424.02, with vertical
+  image bounds y=733.99..744.53. Magnified review confirms they sit on their
+  own footer blanks without covering surrounding words. Actual provider image
+  height differs slightly from the requested widget height; this is why empty
+  rectangle checks alone were not sufficient. Source underscore glyph extent
+  ends at y=745.266; no generic allowance for other forms was introduced.
+- Added a read-only private-PDF measurement helper and regression tests. The
+  helper refuses a non-QA specimen, verifies all six observed regions, and
+  explicitly limits its result to this exact one-client/associate scenario.
+  Twenty focused tests passed, including deliberately low signatures, overwide
+  dates, and missing/extra verification regions.
+
+Scope still unverified: a second client, broker instead of associate, and
+alternative service/intermediary selections in a completed provider PDF. The
+shared source geometry has local tests for those paths, but this one completed
+packet does not prove them. Baselines were not refreshed to erase that gap.
+
+The owner's real customer agreement remains untouched. No release, deployment,
+or customer resend occurred. The completed QA PDF and images stay private and
+untracked under `tmp/pdfs/txr1507-provider-20260918/`.
+
+Final full discovery: 2,131 tests in 36.612 seconds, 2,129 passed and the two
+approved-map baseline comparisons still failed. Those comparisons include the
+remaining TXR-1507 map coverage and the newer TXR-1905, TXR-1914, and TXR-1919
+candidates; no full-suite or full-map approval is claimed. Log:
+`/private/tmp/hof-txr1507-completed-suite.log`.
