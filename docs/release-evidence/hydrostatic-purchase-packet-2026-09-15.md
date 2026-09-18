@@ -82,3 +82,56 @@ release still remain; this is not a production-ready/completed roadmap item.
 
 The existing daily report automation was read and remains ACTIVE at 08:00 with its
 existing thread target. No duplicate automation was created.
+
+## Local browser-to-PDF follow-up - September 18
+
+Closed the previously missing **isolated browser-to-local-renderer** check. This
+does not establish production, authenticated checkout, or completed SignWell QA.
+No application code or form geometry changed during this pass.
+
+The reusable `scripts/qa/hydrostatic_packet_preview.cjs` serves only its fixture
+page and generated synthetic PDFs on a temporary loopback port. It extracts the
+actual hydrostatic question, seller fields, card handler, conditional helpers,
+validation, and `collectData()` from `index.html`. Its QA button collects the
+Addenda and Closing steps, then calls `hydrostatic_browser_packet.py`, which
+uses the real combined-packet renderer and signing-field builder. The remaining
+purchase details are fixed synthetic test data; this is not the full production
+wizard or production API route. CSP blocks external connections, the POST
+requires the same origin, and no provider, database, payment, or email is used.
+
+Verified in the native browser:
+
+- Selecting Yes reveals risk allocation and existing seller-signing fields;
+  selecting no allocation and omitting the seller email stops generation with
+  the applicable messages. No risk election is selected automatically.
+- Buyer-capped election reveals the amount. Entering `2500.25` and one seller
+  produces a 13-page combined packet with canonical value `2,500.25`, the correct
+  checked risk field, and buyer/seller signature fields on page 13, IDs 1 and 3.
+- Changing to Seller hides the cap and submits an empty cap. Adding a second
+  seller yields IDs 1, 3, and 4 on page 13, with only the Seller risk selected.
+- Selecting No removes follow-up fields, clears the collected risk/cap, and
+  produces a 12-page packet with no hydrostatic fields or signature requests.
+- Successful responses re-enable the button and expose the local unsigned PDF.
+  The signing explanation states simultaneous invitations and distinguishes
+  hydrostatic authorization from seller acceptance of the purchase offer.
+
+For each included form, all five non-signature widget values matched their
+canonical field values; parent relationships and nonempty appearances were
+checked after reopening the output. Rendered and visually inspected the full
+hydrostatic pages for both risk elections and purchase-contract page 9 for
+included/excluded cases. Address, amount, risk selection, and Paragraph 22
+checkbox appeared in their intended blanks without obscuring source text.
+Signature artwork was not simulated or applied in this pass.
+
+The browser reported one initial `Could not establish connection. Receiving end
+does not exist.` console error. Its origin was not established, and no additional
+error appeared during the interactions; do not describe the console as clean.
+The page and all three requested local builds completed successfully.
+
+Regression checks: 11 interview runtime checks and 10 combined-packet tests all
+pass. Full discovery was not rerun for these QA-only additions; the preceding
+full run still has the two known TXR-1507 geometry-baseline mismatches awaiting
+completed-provider verification. Temporary browser/server resources were closed.
+The synthetic output remains private under untracked `tmp/pdfs/hydrostatic-browser/`.
+No public push, Vercel build/deployment, signing invitation, or customer-document
+change occurred. Provider-completed hydrostatic QA and permitted release remain.

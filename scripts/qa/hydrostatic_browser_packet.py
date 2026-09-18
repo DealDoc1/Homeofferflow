@@ -1,0 +1,52 @@
+"""Local synthetic packet bridge. No database, payment, or signing calls."""
+import contextlib
+from io import BytesIO
+import json
+from pathlib import Path
+import sys
+
+from pypdf import PdfReader
+from lib import production_adapter as adapter
+from tests.test_controlled_launch import configure_local_forms, minimal_offer
+
+
+def main():
+    answers = json.load(sys.stdin)
+    allowed = {'hydrostaticTesting', 'hydrostaticAddendum', 'hydrostaticRiskAllocation',
+               'hydrostaticBuyerLiabilityLimit', 'seller1Name', 'seller1Email',
+               'seller2Name', 'seller2Email'}
+    offer = minimal_offer(buyer1='QA Buyer', buyerEmail='buyer@example.test',
+                          seller='QA Seller', address='100 QA Street', city='Frisco',
+                          county='Collin', zip='75034', closingDate='2026-10-30')
+    offer.update({key: value for key, value in answers.items() if key in allowed})
+    configure_local_forms()
+    with contextlib.redirect_stdout(sys.stderr):
+        packet = adapter.fill_and_merge_20_19(offer)
+        signing = adapter.build_signwell_fields_20_19(offer, packet)[0]
+    reader = PdfReader(BytesIO(packet))
+    fields = reader.get_fields() or {}
+    hydro = {name: str(field.get('/V', '')) for name, field in fields.items()
+             if name.startswith('hof_trec48_1.')}
+    widgets_checked = 0
+    for page in reader.pages:
+        for ref in page.get('/Annots', []):
+            widget = ref.get_object()
+            name = 'hof_trec48_1.' + str(widget.get('/T', ''))
+            if name not in fields or widget.get('/FT') == '/Sig':
+                continue
+            assert widget.get('/Parent'), 'Hydrostatic widget lost canonical parent'
+            assert widget.get('/V') == fields[name].get('/V'), name
+            assert widget['/AP']['/N'], 'Missing appearance: ' + name
+            widgets_checked += 1
+    output = Path(sys.argv[1])
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_bytes(packet)
+    print(json.dumps({'pages': len(reader.pages), 'hydrostaticFields': hydro,
+                      'widgetsChecked': widgets_checked,
+                      'signatureFields': [field for field in signing
+                                          if field['api_id'].startswith('trec48_1_')],
+                      'providerContacted': False}))
+
+
+if __name__ == '__main__':
+    main()
