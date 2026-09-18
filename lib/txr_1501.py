@@ -8,11 +8,11 @@ document.
 """
 
 from io import BytesIO
-from textwrap import wrap
 
 from pypdf import PdfReader, PdfWriter
-from reportlab.pdfbase.pdfmetrics import stringWidth
 from reportlab.pdfgen.canvas import Canvas
+from lib.pdf_text import draw_text, text_width as stringWidth
+from lib.txr1501_answers import answer_layout, render_continuation, continuation_fields
 
 
 PAGE_WIDTH = 612
@@ -29,16 +29,7 @@ def _draw(canvas, value, x, y, *, size=FONT_SIZE):
     value = _clean(value)
     if not value:
         return
-    canvas.setFont(FONT, size)
-    canvas.drawString(x, y, value)
-
-
-def _draw_wrapped(canvas, value, x, y, width_chars=84, line_height=10, size=FONT_SIZE):
-    value = _clean(value)
-    if not value:
-        return
-    for index, line in enumerate(wrap(value, width_chars)):
-        _draw(canvas, line, x, y - index * line_height, size=size)
+    draw_text(canvas, value, x, y, size, FONT)
 
 
 def _check(canvas, x, y):
@@ -81,43 +72,26 @@ def _overlay(data, brokerage, associate):
     canvas.setFillColorRGB(0, 0, 0)
 
     broker_name = brokerage.get("legal_name") or brokerage.get("name") or brokerage.get("dba_name") or ""
-    broker_license = brokerage.get("license_number") or ""
     # The authenticated profile stores its display name as ``agent_name``;
     # accept the normalized renderer shape as well.  Without this fallback a
     # real agent can be the SignWell recipient while their printed name is
     # blank on the completed agreement.
-    associate_name = associate.get("name") or associate.get("agent_name") or ""
-    associate_license = associate.get("license_number") or ""
+    pages, overflow = answer_layout(data, brokerage, associate)
+    def draw_page(number):
+        for x, y, value, size in pages[number]:
+            _draw(canvas, value, x, y, size=size)
 
     # Page 1: party/contact block, market area, and term. These coordinates are
     # deliberately isolated from purchase-packet and TXR-1507 coordinates.
     # Anchor each value at the beginning of the printed rule.  The previous
     # positions were measured from the label, leaving completed values visibly
     # adrift in the middle of the rule on the released TXR-1501 source.
-    _draw(canvas, ", ".join(clients), 110, 615)
-    _draw(canvas, data.get("client_address"), 129, 589)
-    _draw(canvas, data.get("client_city_state_zip"), 161, 577)
-    _draw(canvas, data.get("client_phone"), 120, 564)
-    _draw(canvas, data.get("client_email"), 116, 552)
-    _draw(canvas, broker_name, 110, 533)
-    _draw(canvas, brokerage.get("address"), 126, 508)
-    _draw(canvas, brokerage.get("city_state_zip"), 158, 495)
-    _draw(canvas, brokerage.get("phone"), 117, 482)
-    _draw(canvas, brokerage.get("email"), 113, 470)
-    _draw_wrapped(canvas, data.get("market_area"), 145, 302, width_chars=86)
-    _draw(canvas, data.get("term_start"), 236, 171)
-    _draw(canvas, data.get("term_end"), 460, 171)
+    draw_page(1)
     canvas.showPage()
 
     # Page 2: broker/client agreement title and compensation terms.
     _draw_party_header(canvas, clients, broker_name)
-    compensation = data.get("compensation") or {}
-    _draw(canvas, compensation.get("purchase_percentage"), 176, 476)
-    _draw(canvas, compensation.get("purchase_flat_fee"), 405, 476)
-    _draw(canvas, compensation.get("lease_one_month_percentage"), 157, 457)
-    _draw(canvas, compensation.get("lease_total_rents_percentage"), 350, 457)
-    _draw(canvas, compensation.get("lease_flat_fee"), 282, 445)
-    _draw(canvas, data.get("retainer_amount"), 142, 412)
+    draw_page(2)
     if data.get("retainer_treatment") == "apply":
         # The page-two “will” selection square starts at x=262/y=414.
         # The older x=284/y=398 map marked the surrounding sentence below
@@ -131,8 +105,7 @@ def _overlay(data, brokerage, associate):
 
     # Page 3: service-provider compensation, protection period, and county.
     _draw_party_header(canvas, clients, broker_name)
-    _draw(canvas, data.get("protection_days"), 110, 486)
-    _draw(canvas, data.get("payment_county"), 381, 311)
+    draw_page(3)
     canvas.showPage()
 
     # Page 4: intermediary choice. A and B checkboxes are visibly distinct.
@@ -146,18 +119,15 @@ def _overlay(data, brokerage, associate):
     # Page 5: Special Provisions is intentionally blank unless a future,
     # separately approved field is added; do not write into boilerplate.
     _draw_party_header(canvas, clients, broker_name)
+    draw_page(5)
+    if overflow:
+        _check(canvas, 64, 276)
     canvas.showPage()
 
     # Page 6: printed names only. Signature/date widgets are supplied to
-    # SignWell after a source-owner signer plan is deliberately selected.
+    # SignWell after the broker or associate signer plan is selected.
     _draw_party_header(canvas, clients, broker_name)
-    _draw(canvas, broker_name, 36, 400, size=7)
-    _draw(canvas, broker_license, 240, 400, size=7)
-    _draw(canvas, clients[0] if clients else "", 324, 400, size=7)
-    _draw(canvas, associate_name, 36, 309, size=7)
-    _draw(canvas, associate_license, 240, 309, size=7)
-    if len(clients) > 1:
-        _draw(canvas, clients[1], 324, 309, size=7)
+    draw_page(6)
     # The chosen signer must also be visible on the source's broker versus
     # broker-associate checkbox pair.  A signature alone on the shared rule
     # leaves the completed agreement ambiguous.
@@ -186,12 +156,15 @@ def render_txr_1501(source_pdf_bytes, data, brokerage, associate):
         # longer guarantee reliable content replacement on detached pages.
         writer.add_page(page)
         writer.pages[index].merge_page(overlay.pages[index])
+    continuation = render_continuation(data, answer_layout(data, brokerage, associate)[1])
+    if continuation:
+        writer.append(PdfReader(BytesIO(continuation)))
     output = BytesIO()
     writer.write(output)
     return output.getvalue()
 
 
-def build_signwell_fields_txr1501(data, *, client_count=1):
+def build_signwell_fields_txr1501(data, *, client_count=1, page_count=6):
     """Return footer initials and final signatures for the selected parties."""
     signer_plan = data.get("signer_plan")
     if signer_plan not in {"clients_and_associate", "clients_and_broker"}:
@@ -239,4 +212,5 @@ def build_signwell_fields_txr1501(data, *, client_count=1):
                            'type': 'initials', 'page': page, 'x': x, 'y': 976,
                            'recipient_id': recipient, 'required': True,
                            'width': 45 if recipient == '1' else 46, 'height': 14})
+    fields.extend(continuation_fields(data, client_count, page_count))
     return [fields]

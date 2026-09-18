@@ -308,7 +308,7 @@ class TxrSigningRequestPathTests(unittest.TestCase):
     def test_core_txr_signing_requests_carry_the_current_geometry_revision(self):
         self.assertEqual(
             MODULE.TXR_SIGNING_MAP_REVISIONS["TXR-1501"],
-            "txr-1501-2026-09-18-execution-initials-candidate-v3",
+            "txr-1501-2026-09-18-continuation-candidate-v4",
         )
         self.assertEqual(
             MODULE.TXR_SIGNING_MAP_REVISIONS["TXR-1506"],

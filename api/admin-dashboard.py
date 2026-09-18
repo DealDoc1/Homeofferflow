@@ -155,7 +155,7 @@ TXR_SIGNING_MAP_REVISIONS = {
     TXR_1905_FORM_CODE: "txr-1905-2026-09-18-execution-candidate-v2",
     TXR_1914_FORM_CODE: "txr-1914-2026-09-18-execution-candidate-v2",
     TXR_1919_FORM_CODE: "txr-1919-2026-09-18-initials-candidate-v2",
-    TXR_1501_FORM_CODE: "txr-1501-2026-09-18-execution-initials-candidate-v3",
+    TXR_1501_FORM_CODE: "txr-1501-2026-09-18-continuation-candidate-v4",
     TXR_1506_FORM_CODE: "txr-1506-2026-09-09-final-page-calibrated-v1",
     # Completed-packet review moved every execution widget above the printed
     # signature/date captions.  Drafts prepared with v1 must be rebuilt so a
@@ -3898,7 +3898,7 @@ def _valid_email(value):
     return bool(re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", str(value or "").strip()))
 
 
-def _txr_signwell_fields(form_code, agreement_data, client_count):
+def _txr_signwell_fields(form_code, agreement_data, client_count, *, rendered_pdf=None):
     """Dispatch to the source-specific SignWell field map.
 
     Keeping this dispatch in the authenticated server route prevents a browser
@@ -3906,7 +3906,10 @@ def _txr_signwell_fields(form_code, agreement_data, client_count):
     """
     if form_code == TXR_1501_FORM_CODE:
         from lib.txr_1501 import build_signwell_fields_txr1501
-        return build_signwell_fields_txr1501(agreement_data, client_count=client_count)
+        from io import BytesIO
+        from pypdf import PdfReader
+        page_count = len(PdfReader(BytesIO(rendered_pdf)).pages) if rendered_pdf is not None else 6
+        return build_signwell_fields_txr1501(agreement_data, client_count=client_count, page_count=page_count)
     if form_code == TXR_1506_FORM_CODE:
         from lib.txr_1506 import build_signwell_fields_txr1506
         return build_signwell_fields_txr1506(agreement_data, client_count=client_count)
@@ -4267,9 +4270,10 @@ async def _send_txr_agreement_for_signature(user, data):
     current_map_revision = _current_txr_signing_map_revision(form_code, agreement_data)
     agreement_data["client_emails"] = client_emails
     client_count = len(client_names)
-    fields = _txr_signwell_fields(form_code, {"client_names": client_names, **agreement_data}, client_count)
     render_context = {}
     rendered = await _render_representation_draft_preview(user, agreement_uuid, for_signing=True, fingerprint_context=render_context)
+    fields = _txr_signwell_fields(form_code, {"client_names": client_names, **agreement_data}, client_count,
+                                 rendered_pdf=rendered)
     address_label = form_code.replace("-", " ")
     payload = {
         "test_mode": SIGNWELL_TEST_MODE,

@@ -15,6 +15,11 @@ Footer initials are now included locally for every selected signer on pages
 1-5, with source-bound tests and rendered review. See
 [initials evidence](release-evidence/txr1501-initials-candidate-2026-09-18.md).
 Completed-provider placement remains unverified for the long-form candidate.
+Long answers now wrap within measured blanks or continue in full on an attached
+answer continuation, with required initials for the same selected signers.
+The actual rendered page count controls those extra fields. This is locally
+tested and visually reviewed, not deployed. See
+[long-answer evidence](release-evidence/txr1501-overflow-candidate-2026-09-18.md).
 
 Environmental-review TXR-1917 now has a locally tested purchase-interview and
 combined-packet candidate, including source-bound placement and long-answer

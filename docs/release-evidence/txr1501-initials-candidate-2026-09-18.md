@@ -62,7 +62,9 @@ The approved reference maps are unchanged; the same two comparison tests still
 identify pending map differences. No all-green/full-release claim is made.
 Completed SignWell review remains needed for the long-form candidate, including
 both professional roles and one/two-client layouts. Extreme-length free-text
-fit/continuation review remains a separate local follow-up.
+fit/continuation review was subsequently completed locally; see
+[long-answer evidence](txr1501-overflow-candidate-2026-09-18.md). That follow-up
+advances the unpublished candidate to v4 and adds fields only when needed.
 
 No public push, deployment, Vercel build, database mutation, customer email,
 provider request, reminder, charge or new resource occurred.

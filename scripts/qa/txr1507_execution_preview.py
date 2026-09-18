@@ -14,7 +14,10 @@ def main():
     parser.add_argument('source',type=Path)
     parser.add_argument('output',type=Path)
     parser.add_argument('--form',choices=('1507','1501'),default='1507')
+    parser.add_argument('--long-answers',action='store_true')
     args=parser.parse_args()
+    if args.long_answers and args.form!='1501':
+        parser.error('--long-answers currently covers the long-form agreement only')
     args.output.mkdir(parents=True,exist_ok=True)
     for role in ('associate','broker'):
         data,brokerage,associate=txr1507_value_overlay_data()
@@ -30,11 +33,18 @@ def main():
                 if role=='associate' else {'purchase_flat_fee':'5000','lease_total_rents_percentage':'3.5','lease_flat_fee':'2500'})
             brokerage.update(address='200 QA Avenue',city_state_zip='Frisco, TX 75034',
                              phone='2145550101',email='broker@example.test')
+            if args.long_answers:
+                data.update(client_names=['Review Client One '+'FamilyName '*14,'Review Client Two '+'FamilyName '*14],
+                            client_address='100 QA Street '+('Suite and building description '*8),
+                            client_email='qa'+('longaddress'*13)+'@example.test',
+                            market_area=('QA district and surrounding review neighborhoods; '*16).strip())
+                brokerage['legal_name']='Review Brokerage '+('Regional Office '*10)
+                associate['name']='Review Associate '+('Professional Name '*8)
         if role=='broker':
             data.update(service_level='showing_services',showing_fee='150',intermediary='not_authorized')
         render,build=(render_txr_1501,build_signwell_fields_txr1501) if args.form=='1501' else (render_txr_1507,build_signwell_fields_txr1507)
         reader=PdfReader(BytesIO(render(args.source.read_bytes(),data,brokerage,associate)))
-        fields=build(data,client_count=2)[0]
+        fields=build(data,client_count=2,**({'page_count':len(reader.pages)} if args.form=='1501' else {}))[0]
         writer=PdfWriter()
         for n,page in enumerate(reader.pages,1):
             packet=BytesIO();c=Canvas(packet,pagesize=(612,792))
