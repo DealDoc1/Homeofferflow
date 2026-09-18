@@ -11202,6 +11202,10 @@ function routeAfterMagicLinkIfNeeded() {
   }
 
   function resetUploadedDisclosureDraftForOffer(data = {}) {
+    window.__hofAttachmentUploads = null;
+    const input = document.getElementById('uploadedDisclosureDocs');
+    if (input) input.value = '';
+    input?.setAttribute?.('aria-busy', 'false');
     // File contents are never copied from a previous in-memory offer into a
     // resumed or duplicated one. Keep only safe filenames as a re-upload cue.
     window.hofUploadedDisclosureDocs = [];
@@ -11230,6 +11234,13 @@ function routeAfterMagicLinkIfNeeded() {
   }
 
   function validateUploadedDisclosureDocs() {
+    const uploads = window.__hofAttachmentUploads;
+    if (uploads?.isCurrent() && uploads.pending > 0) {
+      setUploadedDisclosureStatus('Your PDFs are still being added. Please wait a moment.');
+      const attachmentStep = getCurrentSteps().indexOf('step5');
+      if (attachmentStep >= 0) showStep(attachmentStep);
+      return false;
+    }
     const docs = window.hofUploadedDisclosureDocs || [];
     if (missingUploadedDisclosureNames().length) {
       renderUploadedDisclosureResumeNotice();
@@ -11305,6 +11316,32 @@ function routeAfterMagicLinkIfNeeded() {
 
   async function handleUploadedDisclosureDocs(fileList) {
     const files = Array.from(fileList || []);
+    if (!files.length) return;
+    let batch = window.__hofAttachmentUploads;
+    if (!batch?.isCurrent()) {
+      const draft = state.data, userId = hofAuth?.session?.user?.id || '', epoch = window.__hofAccountProfileEpoch || 0;
+      batch = { pending: 0, tail: Promise.resolve() };
+      batch.isCurrent = () => window.__hofAttachmentUploads === batch && state.data === draft &&
+        (hofAuth?.session?.user?.id || '') === userId && (window.__hofAccountProfileEpoch || 0) === epoch;
+      window.__hofAttachmentUploads = batch;
+    }
+    batch.pending++;
+    const input = document.getElementById('uploadedDisclosureDocs');
+    input?.setAttribute?.('aria-busy', 'true');
+    // Each selection sees the prior selection's completed file list. Starting
+    // a different offer/account creates its own queue and invalidates this one.
+    batch.tail = batch.tail.catch(() => {}).then(async () => {
+      if (batch.isCurrent()) await appendUploadedDisclosureDocs(files, batch);
+    });
+    try { await batch.tail; }
+    catch (_) { if (batch.isCurrent()) setUploadedDisclosureStatus('The files could not be added. Please select them again.'); }
+    finally {
+      batch.pending--;
+      if (batch.isCurrent() && !batch.pending) input?.setAttribute?.('aria-busy', 'false');
+    }
+  }
+
+  async function appendUploadedDisclosureDocs(files, batch) {
     const maxFiles = 5;
     const maxFileBytes = 2 * 1024 * 1024;
     const maxTotalBytes = Math.floor(2.5 * 1024 * 1024);
@@ -11326,6 +11363,7 @@ function routeAfterMagicLinkIfNeeded() {
     }
     if (!files.length) return;
     const docs = [...existingDocs];
+    const originalCount = docs.length;
     for (const file of files) {
       const duplicateName = docs.some(doc => String(doc?.name || '').toLowerCase() === String(file?.name || '').toLowerCase());
       if (duplicateName) {
@@ -11343,11 +11381,14 @@ function routeAfterMagicLinkIfNeeded() {
       }
       try {
         const signatureBytes = new Uint8Array(await file.slice(0, 4).arrayBuffer());
+        if (!batch.isCurrent()) return;
         const signature = String.fromCharCode(...signatureBytes);
         if (signature !== '%PDF') {
           setUploadedDisclosureStatus('This file is not a readable PDF: ' + file.name);
           continue;
         }
+        const base64 = await readFileAsBase64(file);
+        if (!batch.isCurrent()) return;
         docs.push({
           name: file.name,
           type: suggestedUploadedDisclosureType(file.name),
@@ -11355,17 +11396,27 @@ function routeAfterMagicLinkIfNeeded() {
           mimeType: 'application/pdf',
           needsBuyerSignature: false,
           needsBuyerInitials: false,
-          base64: await readFileAsBase64(file)
+          base64
         });
       } catch (err) {
+        if (!batch.isCurrent()) return;
         console.error('Upload read failed:', err);
         setUploadedDisclosureStatus('Could not read uploaded PDF: ' + file.name);
       }
     }
+    if (!batch.isCurrent()) return;
     if (input) input.value = '';
-    window.hofUploadedDisclosureDocs = docs;
+    // Preserve removals and ordering changes made while FileReader was busy.
+    const latest = window.hofUploadedDisclosureDocs || [];
+    const added = docs.slice(originalCount);
+    const combined = [...latest, ...added];
+    if (combined.length > maxFiles || combined.reduce((total, doc) => total + Number(doc?.size || 0), 0) > maxTotalBytes) {
+      setUploadedDisclosureStatus('This packet has reached its file limit. Remove a file before adding more.');
+      return;
+    }
+    window.hofUploadedDisclosureDocs = combined;
     resetUploadedDisclosureAcknowledgement();
-    state.data.uploadedDocNames = [...new Set([...uploadedDisclosureDraftNames(), ...docs.map(d => d.name)])];
+    state.data.uploadedDocNames = [...new Set([...uploadedDisclosureDraftNames(), ...combined.map(d => d.name)])];
     renderUploadedDocsList();
     try { renderReview(); } catch (e) {}
   }

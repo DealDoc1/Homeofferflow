@@ -75,7 +75,7 @@ class UploadedDisclosureWorkflowTests(unittest.TestCase):
         self.assertIn("existingDocs.length + files.length > maxFiles", handler)
         self.assertIn("existingBytes + selectedBytes > maxTotalBytes", handler)
         self.assertIn("duplicateName", handler)
-        self.assertIn("window.hofUploadedDisclosureDocs = docs;", handler)
+        self.assertIn("window.hofUploadedDisclosureDocs = combined;", handler)
         self.assertIn("if (input) input.value = '';", handler)
         self.assertIn("Add up to 5 files, 2MB each and 2.5MB combined.", INDEX_HTML)
 
