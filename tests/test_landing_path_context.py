@@ -45,6 +45,13 @@ class LandingPathContextTests(unittest.TestCase):
         self.assertIn("Ready to start your free seller plan?", HTML)
         self.assertIn("Start with your address and email. It takes under a minute", HTML)
 
+    def test_buyer_faq_uses_customer_actions_after_dynamic_path_switches(self):
+        self.assertIn("answer the guided buyer-offer questions without payment", HTML)
+        self.assertIn("secure signature request for your review and next steps", HTML)
+        self.assertIn("Each has its own scope and payment terms", HTML)
+        self.assertNotIn("guided buyer-offer workflow without payment", HTML)
+        self.assertNotIn("Each has its own workflow, scope, and payment terms", HTML)
+
 
 if __name__ == "__main__":
     unittest.main()
