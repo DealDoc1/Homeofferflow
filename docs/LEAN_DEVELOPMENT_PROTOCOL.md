@@ -25,6 +25,22 @@ Every batch begins with five facts:
 4. cost/release constraint; and
 5. evidence required before the batch can be called complete.
 
+Generate that compact starting context from the live repository instead of
+copying an old conversation:
+
+```bash
+python3 scripts/build_lean_handoff.py \
+  --outcome "One sentence describing the user result" \
+  --scope "Named surfaces, files, or workflow" \
+  --production-revision "Verified production commit or deployment" \
+  --cost-constraint "Current deployment or paid-service boundary" \
+  --evidence "Focused tests and any visual or live checks required"
+```
+
+The output is intentionally bounded to the current branch, commit, at most 20
+changed paths and eight recent commits. It never reads task history, browser
+state, environment variables, file contents, or customer data.
+
 ## 2. Model and reasoning budget
 
 - Default: a cost-conscious medium-reasoning model, currently Sol Medium.

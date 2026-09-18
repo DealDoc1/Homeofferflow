@@ -6,6 +6,14 @@ reducing verification standards.
 
 ## Local continuation status - September 18, 2026
 
+Future bounded workstreams can now start from a live, compact repository
+handoff instead of replaying this task's full conversation. The generator
+captures the five required batch facts, current branch/commit, at most 20
+changed paths and eight recent commits; it reads no browser state, environment
+variables, credentials or file contents. Three focused tests and a real
+worktree run pass. This is a **local development-process improvement, not a
+production deployment**. See [lean handoff evidence](release-evidence/lean-handoff-generator-2026-09-18.md).
+
 Resend suppression-list additions/removals are now recognized locally by the
 existing secure webhook and surfaced as privacy-safe aggregate admin metrics.
 New additions become email-delivery attention items without distorting the
