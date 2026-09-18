@@ -1203,14 +1203,14 @@ def fill_and_merge(offer):
                 (189, 747, addr_full, 8),
                 (344, 537, fmt_money(temp_holdover), 8),
 
-                *wrapped_entries(136, 328, first_present(s.get("sellerMailAddr"), s.get("landlordMailAddr")), max_chars=38, line_gap=20, fs=7.5, max_lines=3),
+                *lease_terms_entries(first_present(s.get("sellerMailAddr"), s.get("landlordMailAddr")), "buyer", "landlord_mail"),
                 (141, 268, landlord_phone_area, 7.5),
                 (190, 268, landlord_phone_number, 7.5),
                 (141, 247, landlord_fax_area, 7.5),
                 (190, 247, landlord_fax_number, 7.5),
                 (136, 228, first_present(s.get("sellerEmail"), s.get("landlordEmail")), 7.5),
 
-                *wrapped_entries(384, 328, first_present(s.get("buyerMailAddr"), s.get("tenantMailAddr")), max_chars=44, line_gap=20, fs=7.5, max_lines=3),
+                *lease_terms_entries(first_present(s.get("buyerMailAddr"), s.get("tenantMailAddr")), "buyer", "tenant_mail"),
                 (390, 268, tenant_phone_area, 7.5),
                 (438, 268, tenant_phone_number, 7.5),
                 (390, 247, tenant_fax_area, 7.5),
@@ -1285,17 +1285,13 @@ def fill_and_merge(offer):
             1: [
                 *fitted_blank_entries(addr_full, [(190, 747, 286)], fs=8),
                 (239, 535, fmt_money(seller_temp_holdover), 8),
-                *fitted_blank_entries(first_present(s.get("buyerMailAddr"), s.get("landlordMailAddr")), [
-                    (125, 328, 179), (50, 309, 254), (50, 290, 254),
-                ], fs=7.5),
+                *lease_terms_entries(first_present(s.get("buyerMailAddr"), s.get("landlordMailAddr")), "seller", "landlord_mail"),
                 (134, 271, landlord_phone_area, 7.5),
                 (163, 271, landlord_phone_number, 7.5),
                 (134, 252, landlord_fax_area, 7.5),
                 (163, 252, landlord_fax_number, 7.5),
                 (97, 235, first_present(s.get("buyerEmail"), s.get("landlordEmail")), 7.5),
-                *fitted_blank_entries(first_present(s.get("sellerMailAddr"), s.get("tenantMailAddr")), [
-                    (392, 328, 183), (324, 309, 251), (324, 290, 251),
-                ], fs=7.5),
+                *lease_terms_entries(first_present(s.get("sellerMailAddr"), s.get("tenantMailAddr")), "seller", "tenant_mail"),
                 (398, 271, tenant_phone_area, 7.5),
                 (430, 271, tenant_phone_number, 7.5),
                 (398, 252, tenant_fax_area, 7.5),

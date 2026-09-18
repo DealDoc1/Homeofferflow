@@ -14,15 +14,31 @@ BLANKS = {
 OTHER_BLANKS = {
     "utilities": {"buyer": [(462, 435, 105), (49, 424, 384)], "seller": [(331, 466, 238)]},
     "pets": {"buyer": [(340, 380, 225)], "seller": [(342, 406, 227)]},
+    # Notice-address rules measured on page two of the current 16-7/15-7
+    # sources. Later lines use their full width, not the first-line indent.
+    "landlord_mail": {
+        "buyer": [(137, 329, 161), (54, 309.5, 244), (54, 290, 244)],
+        "seller": [(130, 329, 174), (55, 310, 249), (55, 291, 249)],
+    },
+    "tenant_mail": {
+        "buyer": [(385, 329, 188), (310, 309.5, 263), (310, 290, 263)],
+        "seller": [(394, 329, 179), (327, 310, 246), (327, 291, 246)],
+    },
 }
 LABELS = {"utilities": "Paragraph 6 - Utilities", "pets": "Paragraph 8 - Pets",
-          "special": "Paragraph 11 - Special Provisions"}
+          "special": "Paragraph 11 - Special Provisions",
+          "landlord_mail": "Paragraph 24 - Notices to Landlord: Mailing Address",
+          "tenant_mail": "Paragraph 24 - Notices to Tenant: Mailing Address"}
 REFERENCE = "See attached temporary lease terms continuation."
 SHORT_REFERENCE = "See continuation."
 
 
 def terms(offer, kind, section="special"):
-    if section == "utilities":
+    if section in {"landlord_mail", "tenant_mail"}:
+        landlord = section == "landlord_mail"
+        party = "seller" if (kind == "buyer") == landlord else "buyer"
+        keys = (party + "MailAddr", ("landlord" if landlord else "tenant") + "MailAddr")
+    elif section == "utilities":
         payer = "Seller" if kind == "buyer" else "Buyer"
         keys = (kind + "TemporaryLeaseUtilitiesPaidBy" + payer, kind + "TempLeaseUtilities", "temporaryLeaseUtilities")
     elif section == "pets":
@@ -43,12 +59,13 @@ def section_blanks(kind, section):
 def inline_entries(text, kind, section="special"):
     words = str(text or "").split()
     entries = []
+    size = 7.5 if section.endswith("_mail") else 8
     for x, y, width in section_blanks(kind, section):
         line = []
-        while words and stringWidth(" ".join(line + [words[0]]), "Helvetica", 8) <= width:
+        while words and stringWidth(" ".join(line + [words[0]]), "Helvetica", size) <= width:
             line.append(words.pop(0))
         if line:
-            entries.append((x, y, " ".join(line), 8))
+            entries.append((x, y, " ".join(line), size))
         if not words:
             return entries
     return None
@@ -58,7 +75,8 @@ def text_entries(text, kind, section="special"):
     entries = inline_entries(text, kind, section)
     x, y, _ = section_blanks(kind, section)[0]
     reference = REFERENCE if section == "special" else SHORT_REFERENCE
-    return entries if entries is not None else [(x, y, reference, 8)]
+    size = 7.5 if section.endswith("_mail") else 8
+    return entries if entries is not None else [(x, y, reference, size)]
 
 
 def render_continuation(offer, kind):

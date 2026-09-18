@@ -100,3 +100,45 @@ This supersedes only the utilities/pets portion of the remaining-work note
 above. Names, notice addresses, purchase-contract special provisions, broker
 disclosures, and comprehensive Unicode support still need separate review.
 Include this follow-up in the next daily report as local work only.
+
+## Notice-address follow-up - September 18
+
+Paragraph 24 mailing-address fields had a related layout defect. The buyer
+lease used character-count wrapping with a fixed first-line indent on all
+three lines. A controlled wide-letter example placed the first line's right
+edge at PDF x=343.84, outside its printed x=298.80 boundary. The seller lease's
+fitting helper could instead truncate an overflowing address with an ellipsis.
+
+The four notice-address paths now fit actual text widths at 7.5 points within
+the source's measured rules. Second and third lines use their full printed
+width. Their baselines also clear the printed rules. The measured right edges
+are buyer lease landlord/tenant x=298.80/573.94 and seller lease
+landlord/tenant x=305.40/574.88. The independently measured top-origin rule
+positions are buyer 465.55/485.14/504.64 and seller 465.48/484.43/503.38.
+
+If the whole address still will not fit, Paragraph 24 points to the continuation
+and the complete address is labeled "Notices to Landlord: Mailing Address" or
+"Notices to Tenant: Mailing Address" there. The existing role mapping is
+retained: the seller is landlord in the buyer lease, and the buyer is landlord
+in the seller lease. Canonical buyer/seller mailing addresses keep precedence
+over legacy landlord/tenant aliases. No party or recipient is inferred.
+
+- Five additional tests cover independently measured bounds, actual generated
+  PDF role/column placement, complete long addresses and labels, alias
+  precedence, and unbroken tokens. All 41 focused continuation/source-sync
+  tests pass.
+- Full discovery: 2,082 tests in 31.379 seconds; 2,080 pass and the same two
+  TXR-1507 approved-map reference tests fail. No reference baselines changed.
+- Four unsigned fake-data specimens generated with
+  `scripts/qa/lease_notice_addresses_preview.py`. Visually inspected six
+  relevant pages using the PDF skill: wrapped notice addresses on both forms,
+  both overflow references, and both resulting continuation pages. Addresses
+  stay in the correct column, clear the printed rules, and preserve postal
+  details. These are not actual completed SignWell PDFs.
+- No source PDF, existing signature coordinate, customer file, production
+  record, or external service was changed. Local only; no push or Vercel use.
+
+This resolves the mailing-address part of the earlier remaining-work note.
+Party names, property identification, email-width handling, purchase-contract
+special provisions, broker disclosures, and broader Unicode support remain
+separate inspection work. No all-forms or production-ready claim is made.

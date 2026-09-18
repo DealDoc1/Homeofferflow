@@ -197,5 +197,71 @@ class LeaseTermsContinuationTests(unittest.TestCase):
             _,reader,_=self.packet(kind,'',**{answer_key(other,section):long_answer(section) for section in ('utilities','pets')})
             self.assertEqual(len(reader.pages),14)
 
+    def test_notice_addresses_fit_independently_measured_source_rules(self):
+        rules = {
+            ('buyer','landlord_mail'): [(134.98,298.8,465.55),(51.75,298.8,485.14),(51.75,298.8,504.64)],
+            ('buyer','tenant_mail'): [(382.94,573.94,465.55),(307.8,573.94,485.14),(307.8,573.94,504.64)],
+            ('seller','landlord_mail'): [(127.42,305.4,465.48),(52.28,305.4,484.43),(52.28,305.4,503.38)],
+            ('seller','tenant_mail'): [(391.91,574.88,465.48),(324.07,574.88,484.43),(324.07,574.88,503.38)],
+        }
+        for (kind,section),bounds in rules.items():
+            with self.subTest(kind=kind,section=section):
+                value=' '.join(['WWW']*20)
+                entries=lease.inline_entries(value,kind,section)
+                self.assertIsNotNone(entries)
+                self.assertEqual(' '.join(e[2] for e in entries),value)
+                for (x,y,text,size),(left,right,top) in zip(entries,bounds):
+                    self.assertEqual(size,7.5)
+                    self.assertGreaterEqual(x,left)
+                    self.assertLessEqual(x+stringWidth(text,'Helvetica',size),right)
+                    self.assertLess(792-y+size*.207,top)
+
+    def test_notice_addresses_follow_landlord_and_tenant_roles_in_actual_pdf(self):
+        values={'buyerMailAddr':'222 Example Buyer Road', 'sellerMailAddr':'111 Example Seller Road'}
+        for kind in ('buyer','seller'):
+            _,reader,_=self.packet(kind,'',**values)
+            self.assertEqual(len(reader.pages),14)
+            spans=[]
+            reader.pages[13].extract_text(visitor_text=lambda t,cm,tm,font,size:spans.append((t.strip(),tm[4],tm[5])))
+            for section,party in [('landlord_mail','seller' if kind=='buyer' else 'buyer'),
+                                  ('tenant_mail','buyer' if kind=='buyer' else 'seller')]:
+                found=[s for s in spans if s[0]==values[party+'MailAddr']]
+                self.assertEqual(len(found),1)
+                self.assertEqual(found[0][1:],lease.section_blanks(kind,section)[0][:2])
+
+    def test_long_notice_addresses_survive_with_correct_paragraph_and_role(self):
+        buyer='\n'.join(f'BUYER-ADDR-{n:03d}: Example care-of office and building detail.' for n in range(1,21))+'\nExample City, TX 75001'
+        seller='\n'.join(f'SELLER-ADDR-{n:03d}: Example care-of office and building detail.' for n in range(1,21))+'\nExample City, TX 75002'
+        for kind in ('buyer','seller'):
+            _,reader,fields=self.packet(kind,'',buyerMailAddr=buyer,sellerMailAddr=seller)
+            self.assertEqual(reader.pages[13].extract_text().count(lease.SHORT_REFERENCE),2)
+            result='\n'.join(p.extract_text() for p in reader.pages[14:])
+            for prefix in ('BUYER','SELLER'):
+                for n in range(1,21): self.assertEqual(result.count(f'{prefix}-ADDR-{n:03d}:'),1)
+            left=result.index(lease.LABELS['landlord_mail'])
+            right=result.index(lease.LABELS['tenant_mail'])
+            self.assertLess(left,right)
+            expected_left='SELLER' if kind=='buyer' else 'BUYER'
+            expected_right='BUYER' if kind=='buyer' else 'SELLER'
+            self.assertIn(expected_left+'-ADDR-001:',result[left:right])
+            self.assertIn(expected_right+'-ADDR-001:',result[right:])
+            for page in range(15,len(reader.pages)+1):
+                marks=[f for f in fields if f['page']==page]
+                self.assertEqual({f['recipient_id'] for f in marks},{'1','3'} if kind=='seller' else {'1'})
+
+    def test_notice_address_aliases_do_not_override_current_party_address(self):
+        for kind in ('buyer','seller'):
+            for section,role in [('landlord_mail','landlord'),('tenant_mail','tenant')]:
+                party='seller' if (kind=='buyer')==(role=='landlord') else 'buyer'
+                self.assertEqual(lease.terms({role+'MailAddr':'Alias Address'},kind,section),'Alias Address')
+                self.assertEqual(lease.terms({party+'MailAddr':'Current Address',role+'MailAddr':'Old Address'},kind,section),'Current Address')
+
+    def test_unbroken_notice_tokens_are_preserved_without_crossing_columns(self):
+        for kind in ('buyer','seller'):
+            _,reader,_=self.packet(kind,'',buyerMailAddr='Z'*800+' END-ADDRESS')
+            result='\n'.join(p.extract_text() for p in reader.pages[14:])
+            self.assertEqual(sum(len(run) for run in re.findall('Z{2,}',result)),800)
+            self.assertIn('END-ADDRESS',result)
+
 
 if __name__ == '__main__': unittest.main()
