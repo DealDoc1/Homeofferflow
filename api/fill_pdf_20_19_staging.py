@@ -6,6 +6,7 @@ from lib.txr_1948 import (
 )
 from lib import hoa_addendum_layout
 from lib import sale_contingency_layout
+from lib import backup_contract_layout
 from lib.contract_money import currency_amount, format_currency
 from http.server import BaseHTTPRequestHandler
 
@@ -1354,52 +1355,15 @@ def fill_and_merge(offer):
         if sale_continuation:
             merger.append(PdfReader(BytesIO(sale_continuation)))
 
-    if has_bkup and os.path.exists(BACKUP_PDF):
-        # Support both old bkup* keys and more readable backup* keys from frontend variants.
-        bkup_first_date = first_present(
-            s.get("bkupFirstContractDate"),
-            s.get("backupFirstContractDate"),
-            s.get("firstContractDate"),
-            s.get("firstContractEffectiveDate"),
-            ""
-        )
-        bkup_term_date = first_present(
-            s.get("bkupTerminateDate"),
-            s.get("backupTerminateDate"),
-            s.get("backupTerminationDate"),
-            s.get("backupContractTerminationDate"),
-            ""
-        )
-        bkup_addl_earnest = first_present(s.get("bkupAdditionalEarnest"), s.get("backupAdditionalEarnest"), s.get("backupAddlEarnest"), "")
-        bkup_addl_option = first_present(s.get("bkupAdditionalOption"), s.get("backupAdditionalOption"), s.get("backupAdditionalOptionFee"), s.get("backupAddlOption"), s.get("backupAddlOptionFee"), "")
-        bkup_addl_days = first_present(s.get("bkupAdditionalDays"), s.get("backupAdditionalDays"), s.get("backupAddlDays"), "")
-
-        bkup_first_md, bkup_first_yy = split_date(bkup_first_date)
-        bkup_term_md,  bkup_term_yy  = split_date(bkup_term_date)
-
-        bkup_pages = {
-            0: [
-                (245, 660, addr_full, 8),
-
-                # 17Z: values are seated directly above the printed A(2) underscores.
-                (350, 522, fmt_money(bkup_addl_earnest) if bkup_addl_earnest else "", 8.5),
-                (90, 511, fmt_money(bkup_addl_option) if bkup_addl_option else "", 8.5),
-                (288, 511, str(bkup_addl_days) if bkup_addl_days else "", 8.5),
-
-                # 17Z: Paragraph G date belongs on the line after "Contract) dated".
-                (170, 221, bkup_first_md, 8.5),
-                (348, 221, bkup_first_yy, 8.5),
-
-                (386, 176, bkup_term_md),
-                (530, 176, bkup_term_yy),
-            ],
-            1: [
-                (181, 745, addr_full, 8),
-            ],
-        }
-
-        bkup_pages = add_debug_grid_to_pages(bkup_pages)
+    if has_bkup:
+        if not os.path.exists(BACKUP_PDF):
+            raise ValueError("The backup contract addendum source is unavailable.")
+        backup_answers = backup_contract_layout.answer_layout(s)
+        bkup_pages = add_debug_grid_to_pages(backup_contract_layout.page_entries(backup_answers))
         merger.append(PdfReader(BytesIO(stamp_pdf(BACKUP_PDF, bkup_pages))))
+        backup_continuation = backup_answers.continuation()
+        if backup_continuation:
+            merger.append(PdfReader(BytesIO(backup_continuation)))
 
     repair_continuation = render_repair_continuation(s)
     if repair_continuation:
@@ -1517,6 +1481,10 @@ def build_signwell_fields(offer, pdf_bytes):
         backup_page_1 = next_page
         backup_signature_page = next_page + 1
         next_page += 2
+        backup_answers = backup_contract_layout.answer_layout(offer)
+        backup_continuation = backup_answers.continuation()
+        if backup_continuation:
+            next_page += len(PdfReader(BytesIO(backup_continuation)).pages)
 
     fields_for_file = []
 
@@ -1664,14 +1632,19 @@ def build_signwell_fields(offer, pdf_bytes):
 
     # Backup Contract Addendum - page 1 initial line, page 2 buyer signatures only.
     if backup_page_1:
-        add_field("buyer1_initials_backup_p1", "initials", backup_page_1, 280, 1004, recipient_id="1", width=24, height=10)
-        if has_buyer2:
-            add_field("buyer2_initials_backup_p1", "initials", backup_page_1, 314, 1004, recipient_id="2", width=24, height=10)
-    if backup_signature_page:
-        # 17Q: Backup signatures moved onto Buyer lines; Buyer 2 was too low in 17P.
-        add_sig_date_pair("buyer1_backup_addendum", backup_signature_page, 122, 220, 286, 220, "1")
-        if has_buyer2:
-            add_sig_date_pair("buyer2_backup_addendum", backup_signature_page, 122, 318, 286, 318, "2")
+        if backup_signature_page > page_count:
+            raise ValueError("The backup contract addendum is missing from this packet.")
+        for index in range(2 if has_buyer2 else 1):
+            x, y, width, height = backup_contract_layout.BUYER_INITIAL_BOXES[index]
+            add_field(f"buyer{index+1}_initials_backup_p1", "initials", backup_page_1,
+                      x, y, str(index+1), width=width, height=height)
+            x, y, width, height = backup_contract_layout.BUYER_SIGNATURE_BOXES[index]
+            add_field(f"buyer{index+1}_backup_addendum_signature", "signature", backup_signature_page,
+                      x, y, str(index+1), width=width, height=height)
+        backup_fields = backup_answers.continuation_fields(backup_signature_page + 1, 'backup')
+        if any(field['page'] > page_count for field in backup_fields):
+            raise ValueError("The backup contract continuation is missing from this packet.")
+        fields_for_file.extend(backup_fields)
 
     repair_page_count = continuation_page_count(offer)
     for index in range(repair_page_count):

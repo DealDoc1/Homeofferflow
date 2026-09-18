@@ -10,6 +10,13 @@ the pending batch are also absent from production, confirmed by catalog reads.
 These are verified release dependencies, not a new login or customer approval
 requirement. See [current release evidence](release-evidence/production-release-revalidation-2026-09-18.md).
 
+The backup-contract addendum now has source-aligned Buyer initials/signatures,
+no extra unprinted date fields, bounded answers on both pages, and complete
+initialed overflow attachments. Explicit zero fees remain visible. Seven
+rendered pages pass visual review, and offline production requests preserve
+parallel invitations and later repair-page offsets. This is **not deployed or
+completed-provider verified**. See [backup-contract evidence](release-evidence/backup-contract-layout-2026-09-18.md).
+
 The sale-of-other-property addendum now uses measured answer blanks and Buyer
 signature boxes without extra date fields. Zero additional earnest money is
 preserved, long answers continue intact on initialed attachments, and later

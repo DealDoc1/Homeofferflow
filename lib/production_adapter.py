@@ -613,6 +613,8 @@ def fill_and_merge_20_19(offer):
         offer['_signing_render_revisions']['TREC-36-11'] = verified.hoa_addendum_layout.RENDER_REVISION
     if offer.get('saleContingency') == 'yes':
         offer['_signing_render_revisions']['TREC-10-6'] = verified.sale_contingency_layout.RENDER_REVISION
+    if offer.get('backupOffer') == 'yes':
+        offer['_signing_render_revisions']['TREC-11-9'] = verified.backup_contract_layout.RENDER_REVISION
     if hydrostatic:
         source_hashes.append(HYDROSTATIC_SOURCE_SHA256)
         offer['_signing_render_revisions']['TREC-48-1'] = HYDROSTATIC_RENDER_REVISION
