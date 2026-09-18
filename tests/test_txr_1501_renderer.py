@@ -133,14 +133,14 @@ class Txr1501RendererTests(unittest.TestCase):
             txr_1501._overlay(sample_data(), brokerage, associate)
         calls = {(call.args[1], call.args[2], call.args[3]) for call in draw.call_args_list}
         expected = {
-            ("Test Buyer One, Test Buyer Two", 108, 612),
-            ("721 Broderick Lane", 128, 594),
-            ("Prosper, TX 75078", 158, 578),
-            ("2143649890", 117, 562),
-            ("buyer@example.com", 115, 546),
-            ("OnDemand Realty", 108, 531),
-            ("2026-08-01", 224, 176),
-            ("2027-01-31", 430, 176),
+            ("Test Buyer One, Test Buyer Two", 110, 615),
+            ("721 Broderick Lane", 129, 589),
+            ("Prosper, TX 75078", 161, 577),
+            ("2143649890", 120, 564),
+            ("buyer@example.com", 116, 552),
+            ("OnDemand Realty", 110, 533),
+            ("2026-08-01", 236, 171),
+            ("2027-01-31", 460, 171),
             ("OnDemand Realty", 36, 400),
             ("Test Buyer One", 324, 400),
             ("Andrew Christian", 36, 309),

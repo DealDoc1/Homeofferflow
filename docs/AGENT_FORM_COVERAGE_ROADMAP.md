@@ -7,6 +7,11 @@ name, not on the shared broker/associate signature rule. That map and narrow
 date boxes are corrected locally, with independent source-bound tests and
 two rendered role previews. This is **not deployed or provider-completed QA**.
 See [long-form execution evidence](release-evidence/txr1501-execution-candidate-2026-09-18.md).
+The full-value review also corrected continuation headers, contact and term
+placement, compensation/retainer blanks, protection days, county placement and
+both intermediary marks. See [long-form value evidence](release-evidence/txr1501-value-candidate-2026-09-18.md).
+The local preview now exercises these fields instead of leaving them empty.
+Provider completion and footer-initial coverage remain unfinished.
 
 Environmental-review TXR-1917 now has a locally tested purchase-interview and
 combined-packet candidate, including source-bound placement and long-answer

@@ -65,9 +65,10 @@ does not prove SignWell's final signature/date rendering. The existing approved
 reference maps are deliberately not regenerated. This new source correction
 joins the pending TXR-1507/1905/1914/1917/1919 map differences.
 
-The page-6 party-identification header is still blank in the current renderer;
-this was observed in the preview and remains a separate follow-up. Do not claim
-full long-form placement/readiness from this execution-area correction.
+Follow-up: the blank continuation headers and additional populated-value
+placement defects have now been corrected locally; see
+[long-form value evidence](txr1501-value-candidate-2026-09-18.md).
+Do not claim full long-form placement/readiness from this execution correction.
 
 No push, Vercel deployment/build, paid resource, signature invitation, reminder,
 customer email or customer-document replacement occurred.

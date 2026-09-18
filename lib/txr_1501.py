@@ -11,6 +11,7 @@ from io import BytesIO
 from textwrap import wrap
 
 from pypdf import PdfReader, PdfWriter
+from reportlab.pdfbase.pdfmetrics import stringWidth
 from reportlab.pdfgen.canvas import Canvas
 
 
@@ -59,6 +60,20 @@ def _check_signing_role(canvas, x, y):
     canvas.line(x + 1, y + 7, x + 7, y + 1)
 
 
+def _draw_party_header(canvas, clients, broker_name):
+    """Repeat party identification within the source blank on pages 2-6."""
+    parties = " and ".join(filter(None, (
+        ", ".join(filter(None, (_clean(name) for name in clients))), _clean(broker_name),
+    )))
+    # All five source headers share x=244.13..576.10, rule top y=42.48.
+    # Keep complete names readable; refer to the full party block if too long.
+    for size in (8, 7.5, 7):
+        if stringWidth(parties, FONT, size) <= 328:
+            _draw(canvas, parties, 246, 752, size=size)
+            return
+    _draw(canvas, "Client(s) and Broker identified in Paragraph 1", 246, 752, size=8)
+
+
 def _overlay(data, brokerage, associate):
     clients = data.get("client_names") or []
     packet = BytesIO()
@@ -79,30 +94,30 @@ def _overlay(data, brokerage, associate):
     # Anchor each value at the beginning of the printed rule.  The previous
     # positions were measured from the label, leaving completed values visibly
     # adrift in the middle of the rule on the released TXR-1501 source.
-    _draw(canvas, ", ".join(clients), 108, 612)
-    _draw(canvas, data.get("client_address"), 128, 594)
-    _draw(canvas, data.get("client_city_state_zip"), 158, 578)
-    _draw(canvas, data.get("client_phone"), 117, 562)
-    _draw(canvas, data.get("client_email"), 115, 546)
-    _draw(canvas, broker_name, 108, 531)
-    _draw(canvas, brokerage.get("address"), 125, 510)
-    _draw(canvas, brokerage.get("city_state_zip"), 156, 494)
-    _draw(canvas, brokerage.get("phone"), 117, 478)
-    _draw(canvas, brokerage.get("email"), 112, 462)
+    _draw(canvas, ", ".join(clients), 110, 615)
+    _draw(canvas, data.get("client_address"), 129, 589)
+    _draw(canvas, data.get("client_city_state_zip"), 161, 577)
+    _draw(canvas, data.get("client_phone"), 120, 564)
+    _draw(canvas, data.get("client_email"), 116, 552)
+    _draw(canvas, broker_name, 110, 533)
+    _draw(canvas, brokerage.get("address"), 126, 508)
+    _draw(canvas, brokerage.get("city_state_zip"), 158, 495)
+    _draw(canvas, brokerage.get("phone"), 117, 482)
+    _draw(canvas, brokerage.get("email"), 113, 470)
     _draw_wrapped(canvas, data.get("market_area"), 145, 302, width_chars=86)
-    _draw(canvas, data.get("term_start"), 224, 176)
-    _draw(canvas, data.get("term_end"), 430, 176)
+    _draw(canvas, data.get("term_start"), 236, 171)
+    _draw(canvas, data.get("term_end"), 460, 171)
     canvas.showPage()
 
     # Page 2: broker/client agreement title and compensation terms.
-    _draw(canvas, ", ".join(clients), 300, 744, size=7)
+    _draw_party_header(canvas, clients, broker_name)
     compensation = data.get("compensation") or {}
-    _draw(canvas, compensation.get("purchase_percentage"), 210, 480)
-    _draw(canvas, compensation.get("purchase_flat_fee"), 475, 480)
-    _draw(canvas, compensation.get("lease_one_month_percentage"), 225, 460)
-    _draw(canvas, compensation.get("lease_total_rents_percentage"), 385, 460)
-    _draw(canvas, compensation.get("lease_flat_fee"), 470, 442)
-    _draw(canvas, data.get("retainer_amount"), 220, 418)
+    _draw(canvas, compensation.get("purchase_percentage"), 176, 476)
+    _draw(canvas, compensation.get("purchase_flat_fee"), 405, 476)
+    _draw(canvas, compensation.get("lease_one_month_percentage"), 157, 457)
+    _draw(canvas, compensation.get("lease_total_rents_percentage"), 350, 457)
+    _draw(canvas, compensation.get("lease_flat_fee"), 282, 445)
+    _draw(canvas, data.get("retainer_amount"), 142, 412)
     if data.get("retainer_treatment") == "apply":
         # The page-two “will” selection square starts at x=262/y=414.
         # The older x=284/y=398 map marked the surrounding sentence below
@@ -115,23 +130,27 @@ def _overlay(data, brokerage, associate):
     canvas.showPage()
 
     # Page 3: service-provider compensation, protection period, and county.
-    _draw(canvas, data.get("protection_days"), 240, 470)
-    _draw(canvas, data.get("payment_county"), 470, 312)
+    _draw_party_header(canvas, clients, broker_name)
+    _draw(canvas, data.get("protection_days"), 110, 486)
+    _draw(canvas, data.get("payment_county"), 381, 311)
     canvas.showPage()
 
     # Page 4: intermediary choice. A and B checkboxes are visibly distinct.
+    _draw_party_header(canvas, clients, broker_name)
     if data.get("intermediary") == "authorized":
-        _check(canvas, 48, 712)
+        _check(canvas, 45, 707)
     else:
-        _check(canvas, 48, 480)
+        _check(canvas, 45, 455)
     canvas.showPage()
 
     # Page 5: Special Provisions is intentionally blank unless a future,
     # separately approved field is added; do not write into boilerplate.
+    _draw_party_header(canvas, clients, broker_name)
     canvas.showPage()
 
     # Page 6: printed names only. Signature/date widgets are supplied to
     # SignWell after a source-owner signer plan is deliberately selected.
+    _draw_party_header(canvas, clients, broker_name)
     _draw(canvas, broker_name, 36, 400, size=7)
     _draw(canvas, broker_license, 240, 400, size=7)
     _draw(canvas, clients[0] if clients else "", 324, 400, size=7)

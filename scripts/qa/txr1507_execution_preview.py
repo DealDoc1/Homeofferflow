@@ -19,6 +19,17 @@ def main():
     for role in ('associate','broker'):
         data,brokerage,associate=txr1507_value_overlay_data()
         data['signer_plan']='clients_and_'+role
+        if args.form=='1501':
+            # Populate every supported long-form area; empty short-form
+            # fixtures cannot reveal misplaced contact/retainer/county values.
+            data.update(client_address='100 QA Street',client_city_state_zip='Frisco, TX 75034',
+                        client_phone='2145550100',client_email='client@example.test',
+                        retainer_amount='400',retainer_treatment='apply' if role=='associate' else 'not_apply',
+                        protection_days='30',payment_county='Collin')
+            data['compensation']=({'purchase_percentage':'3','lease_one_month_percentage':'100'}
+                if role=='associate' else {'purchase_flat_fee':'5000','lease_total_rents_percentage':'3.5','lease_flat_fee':'2500'})
+            brokerage.update(address='200 QA Avenue',city_state_zip='Frisco, TX 75034',
+                             phone='2145550101',email='broker@example.test')
         if role=='broker':
             data.update(service_level='showing_services',showing_fee='150',intermediary='not_authorized')
         render,build=(render_txr_1501,build_signwell_fields_txr1501) if args.form=='1501' else (render_txr_1507,build_signwell_fields_txr1507)
