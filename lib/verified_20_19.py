@@ -5,6 +5,7 @@ from lib.txr_1948 import (
     render_txr_1948, answer_layout as appraisal_answer_layout, BUYER_SIGNATURE_BOXES,
 )
 from lib import hoa_addendum_layout
+from lib import sale_contingency_layout
 from lib.contract_money import currency_amount, format_currency
 from http.server import BaseHTTPRequestHandler
 
@@ -1343,28 +1344,15 @@ def fill_and_merge(offer):
         if hoa_continuation:
             merger.append(PdfReader(BytesIO(hoa_continuation)))
 
-    if has_sale and os.path.exists(SALE_PDF):
-        sale_md, sale_yy = split_date(s.get("saleContingencyDate", ""))
-
-        sale_pages = {
-            0: [
-                (245, 626, addr_full, 8),
-
-                (83, 561, first_present(s.get("salePropertyAddr"), s.get("salePropertyAddress"), s.get("buyerSalePropertyAddress")), 8),
-
-                (225, 550, sale_md),
-
-                # Page 15 §A year: moved down and right.
-                (400, 547, sale_yy),
-
-                (204, 453, str(s.get("saleWaiverDays", "3"))),
-
-                (535, 418, fmt_money(s.get("saleAdditionalEarnest", "")) if s.get("saleAdditionalEarnest") else ""),
-            ],
-        }
-
-        sale_pages = add_debug_grid_to_pages(sale_pages)
+    if has_sale:
+        if not os.path.exists(SALE_PDF):
+            raise ValueError("The sale-of-other-property addendum source is unavailable.")
+        sale_answers = sale_contingency_layout.answer_layout(s)
+        sale_pages = add_debug_grid_to_pages({0: sale_contingency_layout.page_entries(sale_answers)})
         merger.append(PdfReader(BytesIO(stamp_pdf(SALE_PDF, sale_pages))))
+        sale_continuation = sale_answers.continuation()
+        if sale_continuation:
+            merger.append(PdfReader(BytesIO(sale_continuation)))
 
     if has_bkup and os.path.exists(BACKUP_PDF):
         # Support both old bkup* keys and more readable backup* keys from frontend variants.
@@ -1521,6 +1509,10 @@ def build_signwell_fields(offer, pdf_bytes):
     if has_sale:
         sale_page = next_page
         next_page += 1
+        sale_answers = sale_contingency_layout.answer_layout(offer)
+        sale_continuation = sale_answers.continuation()
+        if sale_continuation:
+            next_page += len(PdfReader(BytesIO(sale_continuation)).pages)
     if has_backup:
         backup_page_1 = next_page
         backup_signature_page = next_page + 1
@@ -1659,11 +1651,16 @@ def build_signwell_fields(offer, pdf_bytes):
 
     # Sale of Other Property Addendum - buyer signatures only. No seller fields.
     if sale_page:
-        # 17Q: Sale of Other Property signatures moved down from Paragraph E/body text to Buyer lines.
-        add_sig_date_pair("buyer1_sale_other_property_addendum", sale_page, 112, 705, 286, 705, "1")
-        if has_buyer2:
-            # 17S: Buyer 2 Sale of Other Property signature up 20 points.
-            add_sig_date_pair("buyer2_sale_other_property_addendum", sale_page, 112, 785, 286, 785, "2")
+        if sale_page > page_count:
+            raise ValueError("The sale-of-other-property addendum is missing from this packet.")
+        # The source has Buyer rules, not separate date blanks.
+        for index, (x, y, width, height) in enumerate(sale_contingency_layout.BUYER_SIGNATURE_BOXES[:2 if has_buyer2 else 1], 1):
+            add_field(f"buyer{index}_sale_other_property_addendum_signature", "signature", sale_page,
+                      x, y, str(index), width=width, height=height)
+        sale_fields = sale_answers.continuation_fields(sale_page + 1, 'sale')
+        if any(field['page'] > page_count for field in sale_fields):
+            raise ValueError("The sale contingency continuation is missing from this packet.")
+        fields_for_file.extend(sale_fields)
 
     # Backup Contract Addendum - page 1 initial line, page 2 buyer signatures only.
     if backup_page_1:

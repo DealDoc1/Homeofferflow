@@ -10,6 +10,13 @@ the pending batch are also absent from production, confirmed by catalog reads.
 These are verified release dependencies, not a new login or customer approval
 requirement. See [current release evidence](release-evidence/production-release-revalidation-2026-09-18.md).
 
+The sale-of-other-property addendum now uses measured answer blanks and Buyer
+signature boxes without extra date fields. Zero additional earnest money is
+preserved, long answers continue intact on initialed attachments, and later
+addendum pages remain correctly mapped. Six rendered pages and offline
+parallel-invitation cases pass. This is **not deployed or completed-provider
+verified**. See [sale-contingency layout evidence](release-evidence/sale-contingency-layout-2026-09-18.md).
+
 The HOA addendum correction is now locally implemented and visually reviewed:
 bounded text and complete overflow attachments, smaller source-cell marks,
 source-aligned Buyer signatures without unprinted date fields, and correct
