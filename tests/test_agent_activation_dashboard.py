@@ -128,7 +128,7 @@ class AgentActivationDashboardTests(unittest.TestCase):
         script = HTML[script_start:script_end]
 
         self.assertIn("confidence: true", script)
-        self.assertIn("First offer workflow overview", script)
+        self.assertIn("First offer overview", script)
         self.assertIn("Choose the transaction first.", script)
         self.assertIn("Saving your work does not send a packet or request a signature.", script)
 

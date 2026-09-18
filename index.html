@@ -7288,7 +7288,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         title: 'Send feedback or report an issue',
         body: localStorage.getItem('hof_beta_feedback_clicked') === '1'
           ? 'Feedback link opened/copied. Send any follow-up issues anytime.'
-          : 'Tell us what field, page, addendum, or workflow needs improvement.'
+          : 'Tell us what field, page, addendum, or guided question needs improvement.'
       }
     ];
 
@@ -19452,12 +19452,12 @@ function routeAfterMagicLinkIfNeeded() {
       {
         done: hasGeneratedPacket,
         title: 'Prepare a first offer packet',
-        body: hasGeneratedPacket ? `${used} packet${used === 1 ? '' : 's'} generated this billing month.` : 'Review your first packet before using the workflow with a client.'
+        body: hasGeneratedPacket ? `${used} packet${used === 1 ? '' : 's'} generated this billing month.` : 'Review your first packet before using it with a client.'
       },
       {
         done: hasFeedback,
         title: 'Get help or request a form',
-        body: hasFeedback ? 'Your support path is ready. Use it whenever you need help with a PDF, SignWell, form, or workflow.' : 'Use the support button for missing forms, PDF field issues, SignWell questions, or workflow friction.'
+        body: hasFeedback ? 'Your support path is ready. Use it whenever you need help with a document, signing, form, or guided question.' : 'Use the support button for missing forms, document field issues, signing questions, or confusing questions.'
       }
     ];
     const complete = items.filter(item => item.done).length;
@@ -20559,7 +20559,7 @@ function routeAfterMagicLinkIfNeeded() {
         key: 'reactivate',
         title: subscriptionStatus === 'canceled' ? 'Restore your subscription access' : 'Resolve your subscription access',
         body: subscriptionStatus === 'canceled'
-          ? 'Your prior subscription has ended. Choose monthly or annual access in secure Stripe checkout to restore packet generation and keep your workflow moving.'
+          ? 'Your prior subscription has ended. Choose monthly or annual access in secure Stripe checkout to restore packet generation and keep your work moving.'
           : 'Your subscription needs attention. Choose an access option in secure Stripe checkout, or use Manage Billing below if you need to update a saved payment method.',
         primary: 'Restore Monthly',
         secondary: 'Restore Annual',
@@ -20574,7 +20574,7 @@ function routeAfterMagicLinkIfNeeded() {
       return {
         key: 'resume_beta',
         title: 'Continue your saved offer',
-        body: 'Your workspace is active and this offer is ready to continue. Resume the client workflow now; monthly or annual access is available whenever you are ready for recurring use.',
+        body: 'Your workspace is active and this offer is ready to continue. Resume the client offer now; monthly or annual access is available whenever you are ready for recurring use.',
         primary: 'Resume Offer',
         secondary: 'Explore Monthly Access',
         draftId: draft.id || '',
@@ -20585,7 +20585,7 @@ function routeAfterMagicLinkIfNeeded() {
       return {
         key: 'subscribe',
         title: 'Activate recurring access',
-        body: 'You have an offer in your workspace. Choose monthly or annual access in secure Stripe checkout to keep generating and sending packets without interrupting your workflow.',
+        body: 'You have an offer in your workspace. Choose monthly or annual access in secure Stripe checkout to keep generating and sending packets without interrupting client work.',
         primary: 'Choose Monthly',
         secondary: 'Choose Annual',
         draftId: draft?.id || '',
@@ -20596,7 +20596,7 @@ function routeAfterMagicLinkIfNeeded() {
       return {
         key: 'resume',
         title: 'Resume your latest offer',
-        body: `${draft.property_address || 'Your draft'} is ready to continue. Resume the same client workflow without re-entering your saved defaults, or start a clean offer for a different client.`,
+        body: `${draft.property_address || 'Your draft'} is ready to continue. Resume the same client offer without re-entering your saved defaults, or start a clean offer for a different client.`,
         primary: 'Resume My Draft',
         secondary: 'Create Fresh Offer',
         draftId: draft.id || '',
@@ -20724,7 +20724,7 @@ function routeAfterMagicLinkIfNeeded() {
             <span>${step.done ? '✓' : '•'}</span>${safe(step.label)}
           </div>`).join('')}
       </div>`}
-      ${state.confidence ? `<div class="agent-activation-confidence" aria-label="First offer workflow overview">
+      ${state.confidence ? `<div class="agent-activation-confidence" aria-label="First offer overview">
         <div><strong>1. Start</strong>Enter the client and property details you have now.</div>
         <div><strong>2. Review</strong>Check the guided packet and every deal term before generation.</div>
         <div><strong>3. Stay in control</strong>Saving your work does not send a packet or request a signature.</div>
@@ -24990,7 +24990,7 @@ function routeAfterMagicLinkIfNeeded() {
         .replace(/private (seller-financing|residential-lease|fixture-lease|appraisal) draft/gi, '$1 document for review')
         .replace(/review the draft/gi, 'review the document')
         .replace(/review the completed draft/gi, 'review the completed document')
-        .replace(/This workflow does not assess credit, advise on loan terms, contact a lender, send, or sign the addendum\./gi, 'This workflow does not assess credit, advise on loan terms, or contact a lender. Review the completed document, then confirm recipients before sending it for signature.')
+        .replace(/This workflow does not assess credit, advise on loan terms, contact a lender, send, or sign the addendum\./gi, 'HomeOfferFlow does not assess credit, advise on loan terms, or contact a lender. Review the completed document, then confirm recipients before sending it for signature.')
         .replace(/It does not assess conditions, send, or sign the addendum\./gi, 'It does not assess conditions. Review the completed document, then confirm recipients before sending it for signature.')
         .replace(/It does not evaluate value, recommend a waiver, send, or sign the addendum\./gi, 'It does not evaluate value or recommend a waiver. Review the completed document, then confirm recipients before sending it for signature.');
         if (revised !== original) node.textContent = revised;
