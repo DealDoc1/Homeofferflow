@@ -2914,7 +2914,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         <a href="/buyers">Homebuyer offer</a>
         <a href="/texas-homebuyer-offer-guide">Homebuyer offer guide</a>
         <a href="/agents">Agent &amp; broker workspace</a>
-        <a href="/texas-agent-offer-workflow">Agent offer workflow guide</a>
+        <a href="/texas-agent-offer-workflow">Agent offer guide</a>
         <a href="/texas-agent-form-library">Texas agent form library</a>
         <a href="/investors">Investor workspace</a>
         <a href="/sellers">FSBO seller support</a>
@@ -2929,7 +2929,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 </nav>
 
 <section class="hero">
-  <div class="hero-badge" id="heroBadge"><span class="dot"></span>Texas real estate workflows · Clear next steps</div>
+  <div class="hero-badge" id="heroBadge"><span class="dot"></span>Texas real estate guidance · Clear next steps</div>
   <div class="user-pills" role="radiogroup" aria-label="Choose your HomeOfferFlow path">
 <button type="button" role="radio" class="pill active" data-audience="homebuyer" aria-checked="true" tabindex="0" onkeydown="handleAudiencePickerKey(event)" onclick="window.__hofLandingAudienceUserSelected = true; setAudience('homebuyer', { presentationOnly: true }); trackEvent('Landing Audience Selected', { audience: 'homebuyer', surface: 'hero_path_picker' });">Homebuyer</button>
     <button type="button" role="radio" class="pill" data-audience="agent" aria-checked="false" tabindex="-1" onkeydown="handleAudiencePickerKey(event)" onclick="window.__hofLandingAudienceUserSelected = true; setAudience('agent', { presentationOnly: true }); trackEvent('Landing Audience Selected', { audience: 'agent', surface: 'hero_path_picker' });">Agent / Broker</button>
@@ -2944,7 +2944,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   </div>
   <div class="hero-price-note" id="heroPriceNote">No payment required to begin. Review the full offer summary before paying. <strong>Homebuyer offer packet: $99.</strong></div>
   <div class="trust-bar">
-    <div class="trust-item" id="trustPrimary"><span class="dot"></span>Guided Texas workflows</div>
+    <div class="trust-item" id="trustPrimary"><span class="dot"></span>Guided Texas paths</div>
     <div class="trust-item" id="trustSecondary"><span class="dot"></span>Built for each side of the transaction</div>
     <div class="trust-item" id="trustTertiary"><span class="dot"></span>Mobile-first</div>
     <div class="trust-item" id="trustFinal"><span class="dot"></span>Review before the next step</div>
@@ -2963,9 +2963,9 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   <h2 id="howTitle">From plain questions to a clear next step.</h2>
   <div class="steps">
     <div class="step-card"><div class="step-num">01</div><h3 id="howStepOneTitle">Answer plain questions</h3><p id="howStepOneCopy">No legal jargon. One section at a time. Built-in helper tips on every confusing field.</p></div>
-    <div class="step-card"><div class="step-num">02</div><h3 id="howStepTwoTitle">Open the right workspace</h3><p id="howStepTwoCopy">Your answers route you to the relevant offer, seller, agent, investor, or partner workflow.</p></div>
+    <div class="step-card"><div class="step-num">02</div><h3 id="howStepTwoTitle">Open the right workspace</h3><p id="howStepTwoCopy">Your answers take you to the relevant offer, seller, agent, investor, or partner path.</p></div>
     <div class="step-card"><div class="step-num">03</div><h3 id="howStepThreeTitle">Review your details</h3><p id="howStepThreeCopy">See what you entered, correct anything, and understand the next step before you continue.</p></div>
-    <div class="step-card"><div class="step-num">04</div><h3 id="howStepFourTitle">Continue when ready</h3><p id="howStepFourCopy">Pricing, payment, delivery, and any required review are shown in the workflow where they apply.</p></div>
+    <div class="step-card"><div class="step-num">04</div><h3 id="howStepFourTitle">Continue when ready</h3><p id="howStepFourCopy">Pricing, payment, delivery, and any required review appear only where they apply.</p></div>
   </div>
 </section>
 
@@ -2974,10 +2974,10 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 <section class="section home-faq" aria-labelledby="home-faq-title">
   <div class="section-label">Before You Start</div>
   <h2 id="home-faq-title">Clear answers before you begin a Texas offer.</h2>
-  <div id="homeFaqItems"><details><summary>Can I start without paying?</summary><p>Yes. You can begin the guided buyer-offer workflow without payment, review the completed offer summary, and only see the one-time $99 checkout when the supported packet is ready.</p></details>
+  <div id="homeFaqItems"><details><summary>Can I start without paying?</summary><p>Yes. You can answer the guided buyer-offer questions without payment, review the completed offer summary, and only see the one-time $99 checkout when the supported packet is ready.</p></details>
   <details><summary>Does HomeOfferFlow replace my agent or attorney?</summary><p>No. HomeOfferFlow is a Texas form-completion tool, not legal advice or brokerage representation. You can have your own licensed Texas agent or attorney review the packet before you submit it.</p></details>
-  <details><summary>Is this only for homebuyers?</summary><p>No. HomeOfferFlow also has separate paths for <a href="/agents" style="color:var(--gold-light);font-weight:800;">agents and brokers</a>, <a href="/investors" style="color:var(--gold-light);font-weight:800;">investors</a>, <a href="/sellers" style="color:var(--gold-light);font-weight:800;">FSBO sellers</a>, and service partners. Each has its own workflow, scope, and payment terms.</p></details>
-  <details><summary>What happens after I complete a buyer offer?</summary><p>You review the plain-English summary before checkout. When the supported packet is ready and payment is completed, HomeOfferFlow provides the buyer-side packet and signing workflow for your review and next steps.</p></details>
+  <details><summary>Is this only for homebuyers?</summary><p>No. HomeOfferFlow also has separate paths for <a href="/agents" style="color:var(--gold-light);font-weight:800;">agents and brokers</a>, <a href="/investors" style="color:var(--gold-light);font-weight:800;">investors</a>, <a href="/sellers" style="color:var(--gold-light);font-weight:800;">FSBO sellers</a>, and service partners. Each has its own scope and payment terms.</p></details>
+  <details><summary>What happens after I complete a buyer offer?</summary><p>You review the plain-English summary before checkout. When the supported packet is ready and payment is completed, HomeOfferFlow provides the buyer-side packet and secure signature request for your review and next steps.</p></details>
   <details><summary>How does HomeOfferFlow help Texas FSBO sellers?</summary><p>Start with a no-obligation seller intake for the property, timeline, goals, and preferred support path. You can explore planning, launch, offer-review, flat-fee MLS, and provider-supported options; final scope, availability, and pricing are confirmed separately where required.</p></details>
   <details><summary>Can Texas agents use HomeOfferFlow for different transaction types?</summary><p>Yes. Signed-in agents begin with property listing, purchase, lease listing, or tenant representation. HomeOfferFlow then asks only the questions for that transaction and prepares the applicable available documents.</p></details></div>
 </section>
@@ -2991,11 +2991,11 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     <button type="button" class="audience-card audience-card-link audience-card-action" onclick="window.__hofLandingAudienceUserSelected = true; setAudience('homebuyer', { presentationOnly: true }); trackEvent('Landing Audience Selected', { audience: 'homebuyer', surface: 'audience_grid_card' }); beginOfferFrom('landing_audience_card_homebuyer');" aria-label="Build a HomeOfferFlow homebuyer offer with no payment to start">
       <div class="audience-icon">🏠</div><h3>Homebuyers</h3><p>Build a Texas resale offer packet with plain-English guidance, AI competitiveness review, and buyer-side signing when the packet is ready.</p><span class="audience-price">No payment to start · $99 when ready</span>
     </button>
-    <button type="button" class="audience-card audience-card-link audience-card-action" onclick="trackEvent('Landing Audience Selected', { audience: 'agent', surface: 'audience_grid_card' }); window.location.assign('/agents');" aria-label="Choose an agent or broker transaction workflow">
+    <button type="button" class="audience-card audience-card-link audience-card-action" onclick="trackEvent('Landing Audience Selected', { audience: 'agent', surface: 'audience_grid_card' }); window.location.assign('/agents');" aria-label="Choose an agent or broker transaction path">
       <div class="audience-icon">🏢</div><h3>Agents & Brokers</h3><p>Start with property listing, purchase, lease listing, or tenant representation—then answer only the questions for that transaction.</p><span class="audience-price">Start a transaction</span>
     </button>
     <button type="button" class="audience-card audience-card-link audience-card-action" onclick="setAudience('investor', { presentationOnly: true }); trackEvent('Landing Audience Selected', { audience: 'investor', surface: 'audience_grid_card' }); beginOfferFrom('landing_audience_card_investor');" aria-label="Open the HomeOfferFlow investor workspace">
-      <div class="audience-icon">📈</div><h3>Investors</h3><p>Use saved defaults and repeat-offer workflows to move faster while still keeping financing, option, title, and addenda terms organized.</p><span class="audience-price">Open investor workspace</span>
+      <div class="audience-icon">📈</div><h3>Investors</h3><p>Use saved defaults and repeat-offer tools to move faster while still keeping financing, option, title, and addenda terms organized.</p><span class="audience-price">Open investor workspace</span>
     </button>
     <a class="audience-card audience-card-link" href="?seller=1" onclick="event.preventDefault(); setAudience('fsbo', { presentationOnly: true }); trackEvent('FSBO Seller Card CTA Selected', { surface: 'audience_grid' }); openFsboSellerModal();" aria-label="Start a HomeOfferFlow FSBO seller package request">
       <div class="audience-icon">🏷️</div>
@@ -3016,7 +3016,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 <section class="cta-section">
   <div class="cta-box">
     <h2 id="bottomCtaTitle">Ready to write your offer?</h2>
-    <p id="bottomCtaCopy">Choose the right path: $99 buyer offer packets, an agent/broker workspace, an investor repeat-offer workflow, or a free FSBO seller plan.</p>
+    <p id="bottomCtaCopy">Choose the right path: $99 buyer offer packets, an agent/broker workspace, investor repeat-offer tools, or a free FSBO seller plan.</p>
     <button class="btn-primary" id="bottomCta" onclick="beginOfferFrom('landing_bottom_cta')">Build Your Offer — No Payment to Start</button>
     <div class="hero-price-note" id="bottomPriceNote">No payment is required to start. Review your completed offer summary before checkout; <strong>the homebuyer offer packet is $99 only when ready.</strong> FSBO sellers can start with a free plan, then choose paid support only if and when it fits.</div>
   </div>
@@ -3025,7 +3025,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 <footer>
   <p>© 2026 HomeOfferFlow · A BrewBQ Investments LLC product · <a href="/terms.html" target="_blank" rel="noopener">Terms of Service</a> · <a href="/privacy.html" target="_blank" rel="noopener">Privacy Policy</a> · <a href="/disclaimer.html" target="_blank" rel="noopener">Disclaimer</a> · <a href="/esign-consent.html" target="_blank" rel="noopener">E-Sign Consent</a> · <a href="/directory">Find a Provider</a> · <a href="/sellers">FSBO Seller Support</a> · <a href="/partners">Become a Founding Partner</a></p>
   <p>Built for Texas homebuyers, investors, and agents who want faster, cleaner offer packets.</p>
-  <p>HomeOfferFlow is not a law firm, does not provide legal advice, and does not represent you as your real estate agent. This tool supports the Texas real estate form workflows made available in HomeOfferFlow. For legal guidance, consult a licensed Texas real estate attorney or broker.</p>
+  <p>HomeOfferFlow is not a law firm, does not provide legal advice, and does not represent you as your real estate agent. This tool helps complete the Texas real estate forms made available in HomeOfferFlow. For legal guidance, consult a licensed Texas real estate attorney or broker.</p>
   <p>TREC forms provided by the Texas Real Estate Commission · <a href="https://trec.texas.gov" target="_blank">trec.texas.gov</a></p>
 </footer>
 

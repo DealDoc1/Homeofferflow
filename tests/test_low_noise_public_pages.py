@@ -10,6 +10,7 @@ INVESTORS = (ROOT / "investors.html").read_text(encoding="utf-8")
 BUYERS = (ROOT / "buyers.html").read_text(encoding="utf-8")
 PARTNERS = (ROOT / "partners.html").read_text(encoding="utf-8")
 DIRECTORY = (ROOT / "directory.html").read_text(encoding="utf-8")
+INDEX = (ROOT / "index.html").read_text(encoding="utf-8")
 
 
 class _VisibleText(HTMLParser):
@@ -88,6 +89,14 @@ class LowNoisePublicPageTests(unittest.TestCase):
         for page, html in pages.items():
             with self.subTest(page=page):
                 self.assertNotIn("workflow", visible_text(html).lower())
+
+    def test_homepage_acquisition_copy_uses_the_same_plain_language_standard(self):
+        start = INDEX.index("<nav")
+        end = INDEX.index("</footer>", start) + len("</footer>")
+        homepage = visible_text(INDEX[start:end]).lower()
+        self.assertNotIn("workflow", homepage)
+        self.assertIn("guided texas paths", homepage)
+        self.assertIn("secure signature request", homepage)
 
 
 if __name__ == "__main__":
