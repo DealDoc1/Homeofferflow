@@ -22408,12 +22408,13 @@ function routeAfterMagicLinkIfNeeded() {
           <label>Term ends<input name="termEnd" type="date" required></label>
           <div class="hof-agreement-wide"><span style="display:block;color:var(--gray-light);font-weight:700;font-size:.82rem;margin-bottom:.4rem">Services</span><div class="hof-agreement-services"><label><input type="radio" name="serviceLevel" value="full_services" required> Full Services</label><label><input type="radio" name="serviceLevel" value="showing_services"> Showing Services</label></div></div>
           <label id="txr1507ShowingFeeWrap" style="display:none">Showing Services execution fee<input name="showingFee" inputmode="decimal" placeholder="Required only for Showing Services"></label>
-          <label>Purchase compensation %<input name="purchasePercentage" inputmode="decimal" placeholder="Enter only if broker-approved"></label>
-          <label>Purchase flat fee<input name="purchaseFlatFee" inputmode="decimal" placeholder="Enter only if broker-approved"></label>
-          <label>Lease: % of one month’s rent<input name="leaseOneMonthPercentage" inputmode="decimal" placeholder="Enter only if broker-approved"></label>
-          <label>Lease: % of all rents<input name="leaseTotalRentsPercentage" inputmode="decimal" placeholder="Enter only if broker-approved"></label>
-          <label>Lease flat fee<input name="leaseFlatFee" inputmode="decimal" placeholder="Enter only if broker-approved"></label>
-          <label>Intermediary choice<select name="intermediary" required><option value="">Choose one…</option><option value="authorized">Client authorizes intermediary</option><option value="not_authorized">Client does not authorize intermediary</option></select></label>
+          <p id="txr1507ShowingScope" class="hof-agreement-wide" style="display:none">Showing Services uses only the showing fee. Purchase and lease compensation and intermediary terms do not apply.</p>
+          <label data-txr1507-full-services>Purchase compensation %<input name="purchasePercentage" inputmode="decimal" placeholder="Enter only if broker-approved"></label>
+          <label data-txr1507-full-services>Purchase flat fee<input name="purchaseFlatFee" inputmode="decimal" placeholder="Enter only if broker-approved"></label>
+          <label data-txr1507-full-services>Lease: % of one month’s rent<input name="leaseOneMonthPercentage" inputmode="decimal" placeholder="Enter only if broker-approved"></label>
+          <label data-txr1507-full-services>Lease: % of all rents<input name="leaseTotalRentsPercentage" inputmode="decimal" placeholder="Enter only if broker-approved"></label>
+          <label data-txr1507-full-services>Lease flat fee<input name="leaseFlatFee" inputmode="decimal" placeholder="Enter only if broker-approved"></label>
+          <label data-txr1507-full-services>Intermediary choice<select name="intermediary" required><option value="">Choose one…</option><option value="authorized">Client authorizes intermediary</option><option value="not_authorized">Client does not authorize intermediary</option></select></label>
           <label>Who will sign?<select name="signerPlan" required><option value="">Choose one…</option><option value="clients_and_associate">You and the client(s)</option><option value="clients_and_broker">Broker and client(s)</option></select><small>Choose whether you or the broker will sign this agreement with the client.</small></label>
         </div>
         <div id="txr1507DraftStatus" class="hof-iabs-status"></div>
@@ -22422,14 +22423,23 @@ function routeAfterMagicLinkIfNeeded() {
     document.body.appendChild(modal);
     modal.querySelector('#txr1507Cancel').addEventListener('click', () => modal.remove());
     modal.addEventListener('click', event => { if (event.target === modal) modal.remove(); });
-    modal.querySelectorAll('input[name="serviceLevel"]').forEach(input => input.addEventListener('change', () => {
+    function syncServiceQuestions() {
       const selected = modal.querySelector('input[name="serviceLevel"]:checked');
       const showing = selected?.value === 'showing_services';
+      const full = selected?.value === 'full_services';
       const fee = modal.querySelector('[name="showingFee"]');
       fee.required = showing;
-      if (!showing) fee.value = '';
+      fee.disabled = !showing;
       modal.querySelector('#txr1507ShowingFeeWrap').style.display = showing ? 'grid' : 'none';
-    }));
+      modal.querySelector('#txr1507ShowingScope').style.display = showing ? 'block' : 'none';
+      modal.querySelectorAll('[data-txr1507-full-services]').forEach(label => {
+        label.style.display = full ? 'grid' : 'none';
+        label.querySelectorAll('input, select').forEach(field => { field.disabled = !full; });
+      });
+      modal.querySelector('[name="intermediary"]').required = full;
+    }
+    modal.querySelectorAll('input[name="serviceLevel"]').forEach(input => input.addEventListener('change', syncServiceQuestions));
+    syncServiceQuestions();
     modal.querySelector('#txr1507AgreementForm').addEventListener('submit', event => submitDraft(event, source, modal));
   }
 

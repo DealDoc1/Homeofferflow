@@ -93,9 +93,9 @@ def _overlay(data, brokerage, associate):
     # Page 2 - intermediary choice, printed names, and license fields. The
     # signature/date widgets are supplied separately to SignWell.
     _draw_party_header(canvas, clients, broker_name)
-    if data["intermediary"] == "authorized":
+    if data["service_level"] == "full_services" and data["intermediary"] == "authorized":
         _draw_check(canvas, 178, 637)
-    else:
+    elif data["service_level"] == "full_services" and data["intermediary"] == "not_authorized":
         # The second printed intermediary cell is separate, immediately
         # before "does not authorize"; it shares the same calibrated
         # vertical center as the first cell.

@@ -8,6 +8,12 @@ full on an initialed attachment. Both role previews and long-answer variants
 were visually checked; base execution positions are unchanged. This is
 **not deployed or newly completed-provider verified**. See
 [short-form answer evidence](release-evidence/txr1507-answer-candidate-2026-09-18.md).
+The short-form interview now also follows the selected service scope: Showing
+Services does not ask for or print inapplicable full-service compensation or
+intermediary answers. Choice switching preserves open-dialog inputs. Local
+browser, parser and PDF checks are recorded in
+[service-interview evidence](release-evidence/txr1507-service-interview-2026-09-18.md).
+This remains **not deployed or live-provider verified**.
 
 TXR-1501 long-form execution review found the associate mapped below the printed
 name, not on the shared broker/associate signature rule. That map and narrow

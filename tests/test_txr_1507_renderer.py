@@ -194,7 +194,7 @@ class Txr1507RendererTests(unittest.TestCase):
         text = "\n".join(page.extract_text() or "" for page in PdfReader(io.BytesIO(rendered)).pages)
         self.assertIn("Andrew Christian", text)
 
-    def test_renderer_covers_showing_services_and_lease_compensation_path(self):
+    def test_showing_services_does_not_print_stale_full_service_compensation(self):
         data = sample_data()
         data.update({
             "service_level": "showing_services",
@@ -215,8 +215,10 @@ class Txr1507RendererTests(unittest.TestCase):
             {"name": "Andrew Christian", "license_number": "0738821"},
         )
         text = "\n".join(page.extract_text() or "" for page in PdfReader(io.BytesIO(rendered)).pages)
-        for expected in ("150", "50", "10", "250"):
-            self.assertIn(expected, text)
+        lines = text.splitlines()
+        self.assertIn("150", lines)
+        for irrelevant in ("50", "10", "250"):
+            self.assertNotIn(irrelevant, lines)
 
     def test_signer_map_is_separate_for_one_and_two_clients(self):
         one = build_signwell_fields_txr1507(sample_data(), client_count=1)[0]

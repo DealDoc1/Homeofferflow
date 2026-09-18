@@ -37,7 +37,8 @@ def answer_layout(data, brokerage, associate):
         ('lease_total_rents_percentage', 'Total rents percentage', 315, 177, 43),
         ('lease_flat_fee', 'Lease flat fee', 223, 164, 99),
     ]:
-        put(1, (data.get('compensation') or {}).get(key), 'Paragraph 7A - ' + label, [(x, y, width)])
+        if data.get('service_level') == 'full_services':
+            put(1, (data.get('compensation') or {}).get(key), 'Paragraph 7A - ' + label, [(x, y, width)])
     for label, value, x, y, width in [
         ('Broker printed name', broker, 38, 292, 196),
         ('Broker license', brokerage.get('license_number'), 240, 292, 46),

@@ -59,12 +59,13 @@ class Txr1507ExecutionBoundsTests(unittest.TestCase):
             def setLineWidth(self,width): self.width=width
             def line(self,*values): self.lines.append(values)
         for role in ('broker','associate'):
-            for service, intermediary in [('full_services','authorized'),('showing_services','not_authorized')]:
+            for service, intermediary in [('full_services','authorized'),('full_services','not_authorized'),('showing_services','not_authorized')]:
                 with patch.object(txr_1507,'_draw_check',wraps=txr_1507._draw_check) as check, patch.object(txr_1507,'_draw_signing_role_check',wraps=txr_1507._draw_signing_role_check) as role_check:
                     txr_1507._overlay({**sample_data(),'signer_plan':'clients_and_'+role,'service_level':service,'intermediary':intermediary},{},{})
-                self.assertEqual(len(check.call_args_list),2)
+                keys = [service,intermediary] if service == 'full_services' else [service]
+                self.assertEqual(len(check.call_args_list),len(keys))
                 self.assertEqual(len(role_check.call_args_list),1)
-                for calls, draw, keys in [(check.call_args_list,txr_1507._draw_check,[service,intermediary]),(role_check.call_args_list,txr_1507._draw_signing_role_check,[role])]:
+                for calls, draw, keys in [(check.call_args_list,txr_1507._draw_check,keys),(role_check.call_args_list,txr_1507._draw_signing_role_check,[role])]:
                     for call,key in zip(calls,keys):
                         x,y=call.args[1:];bounds=cells[key];c=Canvas();draw(c,x,y)
                         for x1,y1,x2,y2 in c.lines:

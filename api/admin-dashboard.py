@@ -143,6 +143,7 @@ TXR_SIGNING_FORM_CODES = {
 # source form needs a placement correction.  Older provider documents simply
 # have no map revision and are therefore never mistaken for current-map QA.
 TXR_RENDER_REVISIONS = {
+    "TXR-1507": "txr-1507-2026-09-18-service-terms-v1",
     "TXR-1905": "txr-1905-2026-09-18-source-blanks-v2",
     "TXR-1914": "txr-1914-2026-09-18-source-blanks-v2",
     "TXR-1917": "txr-1917-2026-09-18-source-blanks-v2",
@@ -2234,11 +2235,12 @@ def _parse_txr_1507_draft(data):
     service_level = str(data.get("serviceLevel") or "").strip()
     if service_level not in {"full_services", "showing_services"}:
         raise ValueError("Choose Full Services or Showing Services.")
-    showing_fee = _agreement_money(data.get("showingFee"), "Showing Services execution fee")
+    showing_fee = (_agreement_money(data.get("showingFee"), "Showing Services execution fee")
+                   if service_level == "showing_services" else "")
     if service_level == "showing_services" and not showing_fee:
         raise ValueError("Showing Services requires the execution fee.")
-    intermediary = str(data.get("intermediary") or "").strip()
-    if intermediary not in {"authorized", "not_authorized"}:
+    intermediary = str(data.get("intermediary") or "").strip() if service_level == "full_services" else ""
+    if service_level == "full_services" and intermediary not in {"authorized", "not_authorized"}:
         raise ValueError("Choose whether intermediary is authorized.")
     signer_plan = str(data.get("signerPlan") or "").strip()
     if signer_plan not in {"clients_and_associate", "clients_and_broker"}:
@@ -2248,7 +2250,10 @@ def _parse_txr_1507_draft(data):
         form_source_id = str(uuid.UUID(form_source_id))
     except (TypeError, ValueError, AttributeError):
         raise ValueError("Choose an available TXR-1507 source from the HomeOfferFlow library.")
-    compensation = _agreement_compensation(data.get("compensation") or {})
+    # The source's Showing Services choice expressly excludes paragraphs 6-8.
+    # Ignore stale hidden terms rather than requiring or carrying them forward.
+    compensation = (_agreement_compensation(data.get("compensation") or {})
+                    if service_level == "full_services" else {})
     return {
         "form_source_id": form_source_id,
         "client_names": client_names,

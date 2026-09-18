@@ -12,13 +12,12 @@ from tests.test_txr_render_send_snapshot import RenderSendFixture
 
 class Txr1507AnswerBoundsTests(unittest.TestCase):
     def test_every_compensation_amount_fits_its_actual_printed_blank(self):
-        data = {**sample_data(), 'service_level': 'showing_services', 'showing_fee': '987.65',
+        data = {**sample_data(), 'showing_fee': '987.65',
                 'compensation': {'purchase_percentage': '3.125', 'purchase_flat_fee': '12500.25',
                     'lease_one_month_percentage': '100', 'lease_total_rents_percentage': '4.375',
                     'lease_flat_fee': '2500.75'}}
         # Measured source rectangle extents; independent of the answer map.
-        regions = {'987.65': (320.81, 368.25, 387.67, 379.25),
-                   '3.125': (156.02, 587.99, 216.04, 598.99),
+        regions = {'3.125': (156.02, 587.99, 216.04, 598.99),
                    '12500.25': (403.15, 587.99, 504.09, 598.99),
                    '100': (137.66, 606.74, 180.02, 617.74),
                    '4.375': (312.65, 606.74, 360.07, 617.74),
