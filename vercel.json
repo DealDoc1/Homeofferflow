@@ -35,7 +35,8 @@
       "excludeFiles": "{tests/**,docs/**,assets/**,supabase/**,scripts/**,__pycache__/**,**/__pycache__/**,**/*.pyc,lib/fonts/**}"
     },
     "api/admin-dashboard.py": {
-      "excludeFiles": "{tests/**,docs/**,assets/**,supabase/**,scripts/**,__pycache__/**,**/__pycache__/**,**/*.pyc,lib/fonts/**}"
+      "includeFiles": "lib/fonts/**",
+      "excludeFiles": "{tests/**,docs/**,assets/**,supabase/**,scripts/**,__pycache__/**,**/__pycache__/**,**/*.pyc}"
     },
     "api/ai-offer-review.py": {
       "excludeFiles": "{tests/**,docs/**,assets/**,supabase/**,scripts/**,__pycache__/**,**/__pycache__/**,**/*.pyc,lib/fonts/**}"

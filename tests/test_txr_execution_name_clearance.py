@@ -33,7 +33,44 @@ def sample(buyers=2, sellers=2):
             'variance': {'adjustment': 'cash', 'termination_threshold': '1000'}}
 
 
+def non_name_glyphs(raw, names):
+    """Compare actual text and placement, not PDF extractor-inferred spaces.
+
+    pypdf 4.3.1 infers a different space between the environmental-days value
+    and a distant checkbox after execution names are omitted. Glyph geometry
+    must remain identical even when the extractor's reading order changes.
+    """
+    result = []
+    with pdfplumber.open(BytesIO(raw)) as pdf:
+        for page_index, page in enumerate(pdf.pages):
+            name_chars = [char for name in names
+                          for match in (page.search(name, regex=False) or [])
+                          for char in match['chars']]
+            for char in page.chars:
+                if char not in name_chars:
+                    result.append((page_index, char['text'],
+                                   *(round(char[key], 5) for key in ('x0', 'top', 'x1', 'bottom'))))
+    return result
+
+
 class TxrExecutionNameClearanceTests(unittest.TestCase):
+    def test_non_name_comparison_detects_moved_or_missing_terms(self):
+        def fixture(*, name=True, mark=True, x=60):
+            output = BytesIO()
+            canvas = Canvas(output, pagesize=(612, 792))
+            canvas.drawString(100, 400, '10')
+            if mark:
+                canvas.drawString(x, 500, 'X')
+            if name:
+                canvas.drawString(40, 200, 'AlphaBuyer')
+            canvas.save()
+            return non_name_glyphs(output.getvalue(), ['AlphaBuyer'])
+
+        baseline = fixture()
+        self.assertEqual(baseline, fixture(name=False))
+        self.assertNotEqual(baseline, fixture(name=False, x=65))
+        self.assertNotEqual(baseline, fixture(name=False, mark=False))
+
     def test_appraisal_rejects_ambiguous_fields_or_an_executed_source(self):
         module = importlib.import_module('lib.txr_1948')
         source = (Path(__file__).resolve().parents[1] / 'appraisal_addendum.pdf').read_bytes()
@@ -116,8 +153,10 @@ class TxrExecutionNameClearanceTests(unittest.TestCase):
                     with self.subTest(code=code, buyers=buyers, sellers=sellers):
                         data = sample(buyers, sellers)
                         source = blank_source(pages)
-                        draft = PdfReader(BytesIO(render(source, data)))
-                        signing = PdfReader(BytesIO(render(source, {**data, '_for_signing': True})))
+                        draft_raw = render(source, data)
+                        signing_raw = render(source, {**data, '_for_signing': True})
+                        draft = PdfReader(BytesIO(draft_raw))
+                        signing = PdfReader(BytesIO(signing_raw))
                         self.assertEqual(len(signing.pages), pages)
                         names = data['buyer_names'] + data['seller_names']
                         draft_text = '\n'.join(page.extract_text() or '' for page in draft.pages)
@@ -125,8 +164,8 @@ class TxrExecutionNameClearanceTests(unittest.TestCase):
                         for name in names:
                             self.assertIn(name, draft_text)
                             self.assertNotIn(name, signing_text)
-                            draft_text = draft_text.replace(name, '')
-                        self.assertEqual(' '.join(draft_text.split()), ' '.join(signing_text.split()))
+                        self.assertEqual(non_name_glyphs(draft_raw, names),
+                                         non_name_glyphs(signing_raw, names))
                         self.assertIn(data['property_address'], signing_text)
                         field_builder = getattr(module, f'build_signwell_fields_txr{code}')
                         self.assertEqual(field_builder(data), field_builder({**data, '_for_signing': True}))

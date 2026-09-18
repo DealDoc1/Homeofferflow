@@ -98,13 +98,16 @@ class PdfUnicodeFontTests(unittest.TestCase):
                 independent=sum(pdfmetrics.stringWidth(run,font,size) for font,run in font_runs(line))
                 self.assertLessEqual(independent,width)
 
-    def test_fonts_packaged_only_for_pdf_function_in_explicit_function_config(self):
+    def test_fonts_packaged_only_for_pdf_rendering_functions(self):
         root=Path(__file__).resolve().parents[1]
         functions=json.loads((root/'vercel.json').read_text())['functions']
-        self.assertIn('lib/fonts/**',functions['api/fill-pdf.py']['includeFiles'])
-        self.assertNotIn('lib/fonts/**',functions['api/fill-pdf.py']['excludeFiles'])
+        renderers={'api/fill-pdf.py','api/admin-dashboard.py'}
         for name,config in functions.items():
-            if name!='api/fill-pdf.py': self.assertIn('lib/fonts/**',config['excludeFiles'])
+            if name in renderers:
+                self.assertIn('lib/fonts/**',config['includeFiles'],name)
+                self.assertNotIn('lib/fonts/**',config['excludeFiles'],name)
+            else:
+                self.assertIn('lib/fonts/**',config['excludeFiles'],name)
         for name in ['NotoSans-Regular.ttf','HOFUnicodeSC-Regular.ttf','OFL-NotoSans.txt','OFL-NotoSansCJK.txt']:
             self.assertTrue((root/'lib/fonts'/name).is_file())
 

@@ -5,3 +5,7 @@
 __pycache__/
 *.pyc
 .env*
+
+# Generated QA and delivery artifacts can contain client data/signatures.
+/tmp/
+/output/

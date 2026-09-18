@@ -2,6 +2,13 @@
 
 ## Local continuation status - September 18, 2026
 
+Standalone PDF deployment configuration now retains the fonts needed by the
+representation renderers. Fresh-process tests cover all four forms and their
+long-answer continuations; non-PDF services still omit these assets. Private
+QA/output directories are explicitly excluded from Git and Vercel uploads.
+This is **locally tested, not deployed**; see
+[runtime-asset evidence](release-evidence/pdf-runtime-assets-2026-09-18.md).
+
 TXR-1506 consumer-notice answers now fit measured source areas; the signing
 copy no longer prints consumer names underneath their signature fields.
 Consumer-identification headers remain populated, and long names/notices
