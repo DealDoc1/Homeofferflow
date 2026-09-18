@@ -4,19 +4,26 @@ const fs=require('node:fs'),http=require('node:http'),path=require('node:path');
 const {spawn}=require('node:child_process');
 const root=path.resolve(__dirname,'../..'),source=fs.readFileSync(path.join(root,'index.html'),'utf8');
 const environmental=Boolean(process.env.HOF_QA_ENVIRONMENTAL_SOURCE),mineral=Boolean(process.env.HOF_QA_MINERAL_SOURCE);
-const kind=environmental?'environmental':mineral?'mineral':'hydrostatic';
-const label=environmental?'Environmental review':mineral?'Mineral reservation':'Hydrostatic';
+const assumption=Boolean(process.env.HOF_QA_ASSUMPTION_SOURCE);
+const kind=assumption?'assumption':environmental?'environmental':mineral?'mineral':'hydrostatic';
+const label=assumption?'Loan assumption':environmental?'Environmental review':mineral?'Mineral reservation':'Hydrostatic';
 function section(start,end){
   const a=source.indexOf(start),b=source.indexOf(end,a);
   if(a<0||b<=a)throw Error('Missing production section: '+start);
   return source.slice(a,b);
 }
-const question=section(environmental?'      <div class="radio-group-label" style="margin-top:1.5rem;">Do you need environmental review rights?':mineral?'      <div class="radio-group-label" style="margin-top:1.5rem;">Will the seller reserve mineral rights?':'      <div class="radio-group-label" style="margin-top:1.5rem;">Are you requesting a hydrostatic',
+const question=assumption ? section('    <div class="wizard-step" id="step3">','    <div class="wizard-step" id="step5">') : section(environmental?'      <div class="radio-group-label" style="margin-top:1.5rem;">Do you need environmental review rights?':mineral?'      <div class="radio-group-label" style="margin-top:1.5rem;">Will the seller reserve mineral rights?':'      <div class="radio-group-label" style="margin-top:1.5rem;">Are you requesting a hydrostatic',
   '      <div style="margin-top:1.5rem; padding-top:1.25rem;');
 const sellers=section('        <div id="sellerSigningFields"','        <div id="sellerTemporaryLeaseFields"');
 const scripts=section('  function getVal(', '  function selectPlan(')
   +section('  function hydrostaticSigningSummary(', '  function validateSellerTemporaryLeaseInputs(')
-  +section('  function selectCard(', '  function getCurrentFinancingChoice(');
+  +section('  function selectCard(', '  function getCurrentFinancingChoice(')
+  +(assumption ? section('  function setRadioValue(', '  function updateSurveyExistingDetails(')
+    +section('  function getCurrentFinancingChoice(', '  function sanitizeBuyerMailingAddressAutofill(')
+    +section('  function setAppraisalAddendumRequired(', '  function validateCurrentStep(')
+    +section('  function setDefaultValue(', '  function applySmartDefaults(')
+    +section('  function numFromEl(', '  function forcePaymentRecalcSoon(')
+    +section('  function syncFinancingFieldsFromPrice(', '  function saveDraft(') : '');
 const page=`<!doctype html><html lang="en"><meta charset="utf-8"><title>${label} packet — local QA</title>
 <style>body{font:17px system-ui;max-width:800px;margin:30px auto;padding:0 20px;color:#183347;background:#f8fafb}
 .radio-cards,.field-group{gap:15px;flex-wrap:wrap}.radio-cards{display:flex}.radio-card{border:1px solid #b7c7cd;padding:12px;cursor:pointer;border-radius:6px}
@@ -31,24 +38,27 @@ ${question}${sellers}
 <p id="scope"></p><a id="pdf" hidden target="_blank">Open local unsigned packet</a><pre id="result"></pre>
 <script>
 const state={step:0,data:{buyer1:'QA Buyer',buyerEmail:'buyer@example.test',leases:'no'}};
-let steps=['step5','step7'];
+let steps=${assumption ? "['step3','step7']" : "['step5','step7']"};
 const getCurrentSteps=()=>steps;
 function setInputIfEmpty(id,value){const el=document.getElementById(id);if(el&&!el.value&&value)el.value=value;}
 function setPaymentStatus(value){document.getElementById('status').textContent=value;}
 ${scripts}
+function toggleHelper(id){const el=document.getElementById(id);if(el)el.hidden=!el.hidden;}
 document.getElementById('generate').onclick=async()=>{
  const button=document.getElementById('generate');if(button.disabled)return;
  document.getElementById('pdf').hidden=true;document.getElementById('result').textContent='';
  const missing=[];markHydrostaticInterviewIssues(missing,true);
  markMineralInterviewIssues(missing,true);
  markEnvironmentalInterviewIssues(missing,true);
+ markAssumptionInterviewIssues(missing,true);
  if(missing.length){setPaymentStatus(missing.join('; '));return;}
  for(state.step=0;state.step<steps.length;state.step++)collectData();state.step=0;
  if(!validateHydrostaticInputs(state.data))return;
  if(!validateMineralInputs(state.data))return;
  if(!validateEnvironmentalInputs(state.data))return;
+ if(!validateAssumptionInputs(state.data))return;
  button.disabled=true;setPaymentStatus('Building locally...');
- document.getElementById('scope').textContent=state.data.environmentalAssessment==='yes'?environmentalSigningSummary(state.data):state.data.mineralReservation==='yes'?mineralSigningSummary(state.data):state.data.hydrostaticTesting==='yes'?hydrostaticSigningSummary(state.data):'No additional authorization selected.';
+ document.getElementById('scope').textContent=state.data.financing==='assumption'?'Loan Assumption Addendum included. Local unsigned preview only.':state.data.environmentalAssessment==='yes'?environmentalSigningSummary(state.data):state.data.mineralReservation==='yes'?mineralSigningSummary(state.data):state.data.hydrostaticTesting==='yes'?hydrostaticSigningSummary(state.data):'No additional authorization selected.';
  try{
   const response=await fetch('/packet',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(state.data)});
   const result=await response.json();if(!response.ok)throw Error(result.error);

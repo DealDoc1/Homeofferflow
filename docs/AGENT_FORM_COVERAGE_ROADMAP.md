@@ -10,11 +10,13 @@ remains unverified. See
 This does not change the production-status claims below or mean all remaining
 form work is complete.
 
-Loan-assumption TXR-1919 has a local combined-packet backend foundation with
-exact-cent purchase/assumed-loan/cash totals and simultaneous-signing payload
-tests. The main purchase interview is not connected yet; completed-provider
-placement and live source retrieval are unverified. It is **not deployed**.
-See [the loan-assumption foundation evidence](release-evidence/loan-assumption-packet-foundation-2026-09-18.md).
+Loan-assumption TXR-1919 now has a locally connected purchase interview and
+combined packet with exact-cent totals, conditional questions, shared sellers,
+draft restoration and browser-to-PDF checks. Completed-provider placement and
+live source retrieval are unverified. It is **not deployed**. See
+[the loan-assumption interview evidence](release-evidence/loan-assumption-interview-2026-09-18.md).
+The cash-switch check exposed existing whole-dollar rounding outside the
+assumption path; fixing collector/calculator/PDF precision is next local work.
 
 ## Launch scope: OnDemand Realty
 

@@ -67,6 +67,8 @@ function setup(offer = {id:'next', role:'agent', status:'Draft', offer_data:{}})
   vm.runInContext(source('  function cleanOfferDraftData(', '  async function saveOfferDraftToSupabase('),ctx);
   vm.runInContext(source('  function setInputIfEmpty(', '  function resetWizardForFreshOffer('),ctx);
   vm.runInContext(source('  function setRadioValue(', '  function updateSurveyExistingDetails('),ctx);
+  vm.runInContext(source('  function assumptionAnswerKeys(', '  function environmentalInterviewData(')
+    +source('  function hydrostaticInterviewData(', '  function hydrostaticInterviewIssues('),ctx);
   const clearStart=html.includes('  function clearOfferInterviewFields(')?'  function clearOfferInterviewFields(':'  function applyOfferDataToFields(';
   vm.runInContext(source(clearStart,'  async function resumeOffer('),ctx);
   vm.runInContext(source('  async function resumeOffer(', '  async function duplicateOffer('),ctx);

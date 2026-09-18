@@ -2,6 +2,11 @@
 
 ## Status and next work
 
+Follow-up: the purchase interview is now connected locally; see
+[interview and browser evidence](loan-assumption-interview-2026-09-18.md).
+The foundation-only status below describes the earlier `900de626` checkpoint,
+not deployment or current completion of provider QA.
+
 **Local backend foundation; not a completed customer workflow, not deployed.**
 The purchase interview has not yet gained its loan-assumption option. Browser
 interview/restoration/review validation, completed SignWell output, and live

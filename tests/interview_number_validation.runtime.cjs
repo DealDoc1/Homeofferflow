@@ -32,7 +32,7 @@ function setup(role = 'homebuyer', appraisal = 'partial') {
     getCurrentSteps: () => ['step3'], getRadio: key => radios[key] || '',
     setValidationStatus: message => statuses.push(message), guideToFirstValidationAnswer: step => focuses.push(step),
     requireRadioSelection: (name, label, missing) => { if (!radios[name]) missing.push(label); },
-    setAppraisalAddendumRequired() {},
+    setAppraisalAddendumRequired() {}, markAssumptionInterviewIssues() {},
   });
   const start = html.includes('  function interviewNumberValidationMessage(') ? '  function interviewNumberValidationMessage(' : '  function requireField(';
   vm.runInContext(source(start, '  function requireValidEmail('), c);

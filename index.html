@@ -3579,7 +3579,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         <div class="hof-guide-copy">Enter your offer price and financing. We’ll keep the math tied together and show payment/cash-to-close estimates as you go.</div>
         <div class="hof-guide-chip-row"><span class="hof-guide-chip"><strong>✓</strong> Offer price</span><span class="hof-guide-chip"><strong>✓</strong> Loan math</span><span class="hof-guide-chip"><strong>✓</strong> Estimated payment</span></div>
       </div>
-      <div class="trec-badge">✓ TREC 20-19 · Section 3 Sales Price · Third Party Financing Addendum</div>
+      <div class="trec-badge">TREC 20-19 · Section 3 Sales Price</div>
       <h2>Price, financing & deposits</h2>
       <p class="step-desc">Start with your offer price, then choose how you are paying. We’ll keep the down payment, loan amount, earnest money, and option fee connected as you enter the agreed terms.</p>
       <div class="field-group">
@@ -3598,7 +3598,54 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <label class="radio-card" onclick="selectCard(this,'financing','va')"><input type="radio" name="financing" value="va"/><div class="radio-dot"></div><div class="radio-card-text"><strong>VA Loan</strong><small>For eligible veterans and active military</small></div></label>
             <label class="radio-card" onclick="selectCard(this,'financing','usda')"><input type="radio" name="financing" value="usda"/><div class="radio-dot"></div><div class="radio-card-text"><strong>USDA Loan</strong><small>Rural/suburban eligible areas</small></div></label>
             <label class="radio-card" onclick="selectCard(this,'financing','cash')"><input type="radio" name="financing" value="cash"/><div class="radio-dot"></div><div class="radio-card-text"><strong>Cash</strong><small>Strongest offer type</small></div></label>
+            <label class="radio-card" onclick="selectCard(this,'financing','assumption')"><input type="radio" name="financing" value="assumption"/><div class="radio-dot"></div><div class="radio-card-text"><strong>Loan assumption</strong><small>Assume an existing loan and pay the remaining price in cash</small></div></label>
           </div>
+        </div>
+
+        <div id="assumptionDetails" style="display:none">
+          <h3>Which existing loans will the buyer assume?</h3>
+          <p>Enter the agreed terms for the Loan Assumption Addendum. Signing does not obtain lender consent or release the seller from liability.</p>
+          <fieldset id="assumptionLoans" tabindex="-1" style="border:0;padding:0"><legend>Existing loans</legend>
+          <label><input type="checkbox" id="assumptionFirstEnabled" onchange="updateAssumptionVisibility()"/> Assume the first-lien loan</label>
+          <div id="assumptionFirstFields" style="display:none">
+            <div class="field"><label for="assumptionFirstLender">Who holds the first-lien loan?</label><input id="assumptionFirstLender" maxlength="500"/></div>
+            <div class="field-row">
+              <div class="field"><label for="assumptionFirstBalance">Unpaid balance ($)</label><input id="assumptionFirstBalance" inputmode="decimal" oninput="updateAssumptionTotals()"/></div>
+              <div class="field"><label for="assumptionFirstPayment">Current monthly payment ($)</label><input id="assumptionFirstPayment" inputmode="decimal" oninput="updateAssumptionTotals()"/></div>
+            </div>
+            <div class="field-row">
+              <div class="field"><label for="assumptionFirstFeeCap">Maximum assumption fee ($)</label><input id="assumptionFirstFeeCap" inputmode="decimal"/></div>
+              <div class="field"><label for="assumptionFirstRateCap">Maximum interest rate (%)</label><input id="assumptionFirstRateCap" inputmode="decimal"/></div>
+            </div>
+          </div>
+          <label><input type="checkbox" id="assumptionSecondEnabled" onchange="updateAssumptionVisibility()"/> Assume the second-lien loan</label>
+          <div id="assumptionSecondFields" style="display:none">
+            <div class="field"><label for="assumptionSecondLender">Who holds the second-lien loan?</label><input id="assumptionSecondLender" maxlength="500"/></div>
+            <div class="field-row">
+              <div class="field"><label for="assumptionSecondBalance">Unpaid balance ($)</label><input id="assumptionSecondBalance" inputmode="decimal" oninput="updateAssumptionTotals()"/></div>
+              <div class="field"><label for="assumptionSecondPayment">Current monthly payment ($)</label><input id="assumptionSecondPayment" inputmode="decimal" oninput="updateAssumptionTotals()"/></div>
+            </div>
+            <div class="field-row">
+              <div class="field"><label for="assumptionSecondFeeCap">Maximum assumption fee ($)</label><input id="assumptionSecondFeeCap" inputmode="decimal"/></div>
+              <div class="field"><label for="assumptionSecondRateCap">Maximum interest rate (%)</label><input id="assumptionSecondRateCap" inputmode="decimal"/></div>
+            </div>
+          </div>
+          </fieldset>
+          <p id="assumptionTotals" role="status" aria-live="polite"></p>
+          <p>The cash portion is before deposits, credits, and closing costs. Confirm whether the current payments include taxes and insurance.</p>
+          <h3>What credit documentation will the buyer provide?</h3>
+          <div class="field"><label for="assumptionCreditDays">Days after the effective date to deliver documentation</label><input id="assumptionCreditDays" inputmode="numeric" maxlength="3"/></div>
+          <fieldset id="assumptionCreditDocuments" tabindex="-1" style="border:0;padding:0"><legend>Documentation</legend>
+            <label><input type="checkbox" name="assumptionCreditDocuments" value="credit_report" onchange="updateAssumptionVisibility()"/> Credit report</label>
+            <label><input type="checkbox" name="assumptionCreditDocuments" value="employment" onchange="updateAssumptionVisibility()"/> Employment and salary verification</label>
+            <label><input type="checkbox" name="assumptionCreditDocuments" value="funds" onchange="updateAssumptionVisibility()"/> Verification of funds on deposit</label>
+            <label><input type="checkbox" name="assumptionCreditDocuments" value="financial_statement" onchange="updateAssumptionVisibility()"/> Financial statement</label>
+            <label><input type="checkbox" name="assumptionCreditDocuments" value="other" onchange="updateAssumptionVisibility()"/> Other</label>
+          </fieldset>
+          <div class="field" id="assumptionCreditOtherField" style="display:none"><label for="assumptionCreditOther">Other documentation</label><input id="assumptionCreditOther" maxlength="500"/></div>
+          <h3>If the loan balance changes, what adjusts?</h3>
+          <div class="field"><label for="assumptionVarianceAdjustment">Apply the difference to</label><select id="assumptionVarianceAdjustment"><option value="">Choose one</option><option value="cash">Cash payable at closing</option><option value="sales_price">Sales price</option></select></div>
+          <div class="field"><label for="assumptionVarianceThreshold">Loan-balance difference that allows termination ($)</label><input id="assumptionVarianceThreshold" inputmode="decimal"/></div>
         </div>
 
         <div class="field-group" id="financingDetails" style="display:none">
@@ -8613,6 +8660,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     ['seenProperty','financing','appraisalAddendum','leases','hoa','saleContingency','backupOffer','nonRealtyItems','titlePayer','titleAmendment','survey','sellerDisclosure','leadBuiltBefore1978','leadDisclosureStatus','asIs','hasBuyerAgent','wantsConcessions','homeWarranty','brokerFeeType'].forEach(group => {
       if (data[group]) setRadioValue(group, data[group]);
     });
+    restoreAssumptionAnswers(data);
     const residentialLease = document.getElementById('leaseResidential');
     const fixtureLease = document.getElementById('leaseFixture');
     if (residentialLease) residentialLease.checked = data.leaseResidential === 'yes' || data.leaseResidential === true;
@@ -9297,7 +9345,7 @@ function routeAfterMagicLinkIfNeeded() {
       requireRadioSelection('financing', 'financing type', missing);
 
       const financingChoice = getRadio('financing') || state.data.financing || '';
-      if (financingChoice && financingChoice !== 'cash') {
+      if (['conventional','fha','va','usda'].includes(financingChoice)) {
         requireField('loanAmount', 'loan amount', missing);
         requireField('loanYears', 'loan term years', missing);
         requireField('interestRateCap', 'max interest rate', missing);
@@ -9306,6 +9354,7 @@ function routeAfterMagicLinkIfNeeded() {
         requireField('buyerApprovalDays', 'buyer approval days', missing);
       }
 
+      markAssumptionInterviewIssues(missing, false);
       const appraisalBox = document.getElementById('appraisalAddendumBox');
       const appraisalDecisionRequired = !!(appraisalBox && appraisalBox.style.display !== 'none' && !getRadio('appraisalAddendum'));
       setAppraisalAddendumRequired(appraisalDecisionRequired);
@@ -9389,6 +9438,7 @@ function routeAfterMagicLinkIfNeeded() {
       markHydrostaticInterviewIssues(missing, true);
       markMineralInterviewIssues(missing, true);
       markEnvironmentalInterviewIssues(missing, true);
+      markAssumptionInterviewIssues(missing, true);
       if (document.getElementById('possession')?.value === 'sellerTemporaryLease') {
         requireField('seller1Name', 'seller / tenant 1 full name', missing);
         requireValidEmail('seller1Email', 'valid seller / tenant 1 email', missing);
@@ -10034,11 +10084,17 @@ function routeAfterMagicLinkIfNeeded() {
 
       'step3': () => {
         const financing = getRadio('financing');
-        const price = moneyNumber(getVal('offerPrice'));
+        const price = financing === 'assumption' ? getVal('offerPrice').replace(/,/g, '') : moneyNumber(getVal('offerPrice'));
         let downPayment = moneyNumber(getVal('downPayment'));
         let loanAmount = moneyNumber(getVal('loanAmount'));
 
-        if (financing === 'cash') {
+        const assumption = assumptionInterviewData();
+        Object.assign(s, assumptionAnswers(assumption));
+        if (financing === 'assumption') {
+          const totals = assumptionTotals(assumption);
+          loanAmount = totals ? (totals.loan / 100).toFixed(2) : '';
+          downPayment = totals ? (totals.cash / 100).toFixed(2) : '';
+        } else if (financing === 'cash') {
           loanAmount = 0;
           downPayment = price || 0;
         } else if (financing) {
@@ -10061,7 +10117,10 @@ function routeAfterMagicLinkIfNeeded() {
         s.interestFirstYears = getVal('interestFirstYears') || '';
         s.originationCap = getVal('originationCap') || '';
         s.buyerApprovalDays = getVal('buyerApprovalDays') || '';
-        s.appraisalAddendum = getRadio('appraisalAddendum') || s.appraisalAddendum || '';
+        if (financing === 'assumption') {
+          ['lender','loanYears','interestRateCap','interestFirstYears','originationCap','buyerApprovalDays'].forEach(key => { s[key] = ''; });
+        }
+        s.appraisalAddendum = ['conventional','usda'].includes(financing) ? (getRadio('appraisalAddendum') || s.appraisalAddendum || '') : 'none';
         s.appraisalPartialValue = s.appraisalAddendum === 'partial' ? moneyNumber(getVal('appraisalPartialValue')) : '';
         s.appraisalTerminateDays = s.appraisalAddendum === 'additional' ? getVal('appraisalTerminateDays') : '';
         s.appraisalTerminateValue = s.appraisalAddendum === 'additional' ? moneyNumber(getVal('appraisalTerminateValue')) : '';
@@ -10484,9 +10543,9 @@ function routeAfterMagicLinkIfNeeded() {
         <div class="review-row"><span class="rl">Earnest Money</span><span class="rv">${fmt(fmtM(s.earnest))}</span></div>
         <div class="review-row"><span class="rl">Option Fee</span><span class="rv">${fmt(fmtM(s.optionFee))}</span></div>
         <div class="review-row"><span class="rl">Option Period</span><span class="rv">${text(s.optionDays ? s.optionDays + ' days' : '—')}</span></div>
-        <div class="review-row"><span class="rl">Financing</span><span class="rv">${text(s.financing ? s.financing.charAt(0).toUpperCase() + s.financing.slice(1) : '—')}</span></div>
-        ${hasLoan ? `<div class="review-row"><span class="rl">Down Payment / Cash</span><span class="rv">${fmtM(s.downPayment)}</span></div>` : ''}
-        ${hasLoan ? `<div class="review-row"><span class="rl">Loan Amount</span><span class="rv">${fmtM(s.loanAmount)}</span></div>` : ''}
+        <div class="review-row"><span class="rl">Financing</span><span class="rv">${text(s.financing === 'assumption' ? 'Loan assumption' : s.financing ? s.financing.charAt(0).toUpperCase() + s.financing.slice(1) : '—')}</span></div>
+        ${hasLoan || s.financing === 'assumption' ? `<div class="review-row"><span class="rl">Down Payment / Cash</span><span class="rv">${fmtM(s.downPayment)}</span></div>` : ''}
+        ${hasLoan || s.financing === 'assumption' ? `<div class="review-row"><span class="rl">${s.financing === 'assumption' ? 'Assumed balance' : 'Loan Amount'}</span><span class="rv">${fmtM(s.loanAmount)}</span></div>` : ''}
         ${hasAppraisal ? `<div class="review-row"><span class="rl">Appraisal Addendum</span><span class="rv">${text(s.appraisalAddendum === 'waiver' ? 'Waiver' : s.appraisalAddendum === 'partial' ? 'Partial waiver at ' + fmtM(s.appraisalPartialValue) : 'Additional termination right: ' + (s.appraisalTerminateDays || '—') + ' days / below ' + fmtM(s.appraisalTerminateValue))}</span></div>` : ''}
         ${s.nonRealtyItems === 'yes' ? `<div class="review-row review-long-text"><span class="rl">Non-Realty Items</span><span class="rv">${fmtM(s.nonRealtyAmount) || 'No separate amount'} · ${fmt(s.nonRealtyDescription)}</span></div>` : ''}
         ${(window.hofUploadedDisclosureDocs || []).length ? `<div class="review-row"><span class="rl">Uploaded documents</span><span class="rv">${text((window.hofUploadedDisclosureDocs || []).map(d => d.name).join(', '))}</span></div>` : ''}
@@ -10536,6 +10595,7 @@ function routeAfterMagicLinkIfNeeded() {
           ${atag('Hydrostatic-Testing Authorization', s.hydrostaticTesting === 'yes')}
           ${atag('Mineral Reservation Addendum', s.mineralReservation === 'yes')}
           ${atag('Environmental Assessment Addendum', s.environmentalAssessment === 'yes')}
+          ${atag('Loan Assumption Addendum', s.financing === 'assumption')}
           ${atag('Residential Lease Addendum', s.leaseResidential === 'yes')}
           ${atag('Fixture Lease Addendum', s.leaseFixture === 'yes')}
           ${atag("Seller's Temporary Residential Lease", sellerLease)}
@@ -10544,6 +10604,22 @@ function routeAfterMagicLinkIfNeeded() {
         </div>
       </div>`;
 
+    if (s.financing === 'assumption') {
+      const labels = {credit_report:'Credit report',employment:'Employment and salary verification',funds:'Verification of funds on deposit',financial_statement:'Financial statement',other:'Other'};
+      const row = (label,value) => `<div class="review-row review-long-text"><span class="rl">${text(label)}</span><span class="rv">${text(value)}</span></div>`;
+      let rows = row('Credit documents due', (s.assumptionCreditDays || '—') + ' days after the effective date');
+      rows += row('Credit documentation', (s.assumptionCreditDocuments || []).map(value => value === 'other' ? 'Other: ' + s.assumptionCreditOther : labels[value]).filter(Boolean).join(', '));
+      for (const key of ['First','Second']) {
+        const prefix = 'assumption' + key;
+        if (!s[prefix + 'Enabled']) continue;
+        rows += row(key + '-lien lender', s[prefix + 'Lender']);
+        rows += row('Balance / monthly payment', fmtM(s[prefix + 'Balance']) + ' / ' + fmtM(s[prefix + 'Payment']));
+        rows += row('Maximum fee / interest rate', fmtM(s[prefix + 'FeeCap']) + ' / ' + s[prefix + 'RateCap'] + '%');
+      }
+      rows += row('Loan-balance difference adjusts', s.assumptionVarianceAdjustment === 'cash' ? 'Cash payable at closing' : 'Sales price');
+      rows += row('Termination threshold', fmtM(s.assumptionVarianceThreshold));
+      document.getElementById('reviewSummary').insertAdjacentHTML('beforeend', `<div class="review-section"><div class="review-section-title">Loan assumption</div>${rows}</div>`);
+    }
     if (s.environmentalAssessment === 'yes') {
       const names = {environmental:'Environmental assessment', species:'Threatened or endangered species', wetlands:'Wetlands'};
       const reviews = (Array.isArray(s.environmentalReviewTypes) ? s.environmentalReviewTypes : []).map(value => names[value]).filter(Boolean).join(', ');
@@ -10573,7 +10649,9 @@ function routeAfterMagicLinkIfNeeded() {
         : 'After payment, HomeOfferFlow will email the completed package and start the SignWell signature request.';
     }
     if (signing) {
-      signing.textContent = s.environmentalAssessment === 'yes'
+      signing.textContent = s.financing === 'assumption'
+        ? 'Buyers and sellers receive invitations together for the Loan Assumption Addendum. Other signatures follow the included documents. Signing does not obtain lender consent or release the seller from loan liability.'
+        : s.environmentalAssessment === 'yes'
         ? environmentalSigningSummary(s)
         : s.mineralReservation === 'yes'
         ? mineralSigningSummary(s)
@@ -10653,7 +10731,8 @@ function routeAfterMagicLinkIfNeeded() {
 
     if (group === 'financing') {
       const box = document.getElementById('financingDetails');
-      if (box) box.style.display = value !== 'cash' ? 'flex' : 'none';
+      if (box) box.style.display = ['conventional','fha','va','usda'].includes(value) ? 'flex' : 'none';
+      updateAssumptionVisibility();
       updateAppraisalAddendumVisibility(value);
       // A person can choose a financing type and immediately press Continue.
       // Apply the editable interview starting points now, rather than allowing
@@ -10748,7 +10827,7 @@ function routeAfterMagicLinkIfNeeded() {
   function updateAppraisalAddendumVisibility(financingOverride) {
     const financing = financingOverride || getCurrentFinancingChoice();
     const box = document.getElementById('appraisalAddendumBox');
-    const isEligible = financing && financing !== 'cash' && financing !== 'fha' && financing !== 'va';
+    const isEligible = ['conventional','usda'].includes(financing);
     if (box) box.style.display = isEligible ? 'block' : 'none';
 
     if (!isEligible) setAppraisalAddendumRequired(false);
@@ -11544,7 +11623,7 @@ function routeAfterMagicLinkIfNeeded() {
     const leases = String(data.leases || '').toLowerCase();
     if (['naturalresource', 'natural_resource', 'natural resource', 'natural resource lease'].includes(leases) || data.leaseNaturalResource === 'yes') blocked.push('Natural Resource Lease terms');
     if (data.sellerFinancing === 'yes') blocked.push('Seller Financing Addendum');
-    if (data.loanAssumption === 'yes') blocked.push('Loan Assumption Addendum');
+    if (data.loanAssumption === 'yes' && data.financing !== 'assumption') blocked.push('Choose loan assumption and enter its terms');
     return [...new Set(blocked)];
   }
 
@@ -11583,6 +11662,130 @@ function routeAfterMagicLinkIfNeeded() {
     return data.possession === 'sellerTemporaryLease'
       ? 'Buyers and sellers receive signing invitations together for the purchase contract, temporary lease, environmental-assessment addendum, and other included seller-signed addenda.'
       : 'Buyers and sellers receive signing invitations together for the environmental-assessment addendum and any other included seller-signed addenda. Seller acceptance of the purchase offer remains with the seller or listing side.';
+  }
+
+  function assumptionAnswerKeys() {
+    return ['assumptionCreditDays','assumptionCreditOther','assumptionVarianceAdjustment','assumptionVarianceThreshold',
+      ...['First','Second'].flatMap(key => ['Lender','Balance','Payment','FeeCap','RateCap'].map(field => 'assumption' + key + field))];
+  }
+
+  function assumptionInterviewData() {
+    const data = {...hydrostaticInterviewData(), financing:getRadio('financing'), price:getVal('offerPrice')};
+    assumptionAnswerKeys().forEach(key => { data[key] = getVal(key); });
+    ['First','Second'].forEach(key => { data['assumption' + key + 'Enabled'] = !!document.getElementById('assumption' + key + 'Enabled')?.checked; });
+    data.assumptionCreditDocuments = [...document.querySelectorAll('input[name="assumptionCreditDocuments"]:checked')].map(input => input.value);
+    return data;
+  }
+
+  function assumptionAnswers(data) {
+    const active = data.financing === 'assumption';
+    const result = {loanAssumption:active ? 'yes' : 'no', assumptionCreditDocuments:active ? data.assumptionCreditDocuments : []};
+    assumptionAnswerKeys().forEach(key => { result[key] = active ? data[key] : ''; });
+    ['First','Second'].forEach(key => {
+      const prefix = 'assumption' + key;
+      result[prefix + 'Enabled'] = active && (data[prefix + 'Enabled'] === true || data[prefix + 'Enabled'] === 'yes');
+      if (!result[prefix + 'Enabled']) ['Lender','Balance','Payment','FeeCap','RateCap'].forEach(field => { result[prefix + field] = ''; });
+    });
+    if (!result.assumptionCreditDocuments.includes('other')) result.assumptionCreditOther = '';
+    return result;
+  }
+
+  function assumptionCents(value) {
+    const raw = String(value ?? '').trim();
+    if (!/^(?:\d+|\d{1,3}(?:,\d{3})+)(?:\.\d{1,2})?$/.test(raw)) return null;
+    const [whole, fraction = ''] = raw.replace(/,/g, '').split('.');
+    const cents = Number(whole) * 100 + Number(fraction.padEnd(2, '0'));
+    return Number.isSafeInteger(cents) && cents <= 99999999999 ? cents : null;
+  }
+
+  function assumptionTotals(data) {
+    const price = assumptionCents(data.price);
+    let loan = 0, payment = 0, selected = 0, paymentsValid = true;
+    for (const key of ['First','Second']) {
+      const prefix = 'assumption' + key;
+      if (data[prefix + 'Enabled'] !== true && data[prefix + 'Enabled'] !== 'yes') continue;
+      selected++;
+      const balance = assumptionCents(data[prefix + 'Balance']), monthly = assumptionCents(data[prefix + 'Payment']);
+      if (balance === null || balance <= 0) return null;
+      loan += balance;
+      if (monthly === null) paymentsValid = false; else payment += monthly;
+    }
+    return selected && price !== null && price > 0 && loan <= price ? {loan, cash:price-loan, payment:paymentsValid ? payment : null} : null;
+  }
+
+  function assumptionInterviewIssues(data, includeSigners = true) {
+    if (data.financing !== 'assumption') return [];
+    const issues = [], add = (id,message) => issues.push({id,message});
+    if (!/^\d{1,3}$/.test(String(data.assumptionCreditDays ?? '').trim()) || Number(data.assumptionCreditDays) < 1) add('assumptionCreditDays','enter a credit-document delivery period from 1 to 999 days');
+    const docs = data.assumptionCreditDocuments;
+    if (!Array.isArray(docs) || !docs.length || docs.some(value => !['credit_report','employment','funds','financial_statement','other'].includes(value))) add('assumptionCreditDocuments','choose the credit documentation to deliver');
+    if (Array.isArray(docs) && docs.includes('other') && (!String(data.assumptionCreditOther || '').trim() || String(data.assumptionCreditOther).trim().length > 500)) add('assumptionCreditOther','describe other credit documentation in 500 characters or fewer');
+    let selected = 0;
+    for (const key of ['First','Second']) {
+      const prefix = 'assumption' + key, label = key.toLowerCase() + '-lien';
+      if (data[prefix + 'Enabled'] !== true && data[prefix + 'Enabled'] !== 'yes') continue;
+      selected++;
+      if (!String(data[prefix + 'Lender'] || '').trim() || String(data[prefix + 'Lender']).trim().length > 500) add(prefix + 'Lender','enter the ' + label + ' lender in 500 characters or fewer');
+      for (const [field, name] of [['Balance','unpaid balance'],['Payment','monthly payment'],['FeeCap','assumption-fee cap']]) {
+        const value = assumptionCents(data[prefix + field]);
+        if (value === null || (field === 'Balance' && value <= 0)) add(prefix + field,'enter a valid ' + label + ' ' + name + ' with no more than two decimal places');
+      }
+      const rate = String(data[prefix + 'RateCap'] ?? '').trim();
+      if (!/^\d{1,3}(?:\.\d{1,4})?$/.test(rate) || Number(rate) > 100) add(prefix + 'RateCap','enter the ' + label + ' rate cap from 0 to 100%');
+    }
+    if (!selected) add('assumptionLoans','choose at least one existing loan');
+    if (selected && !assumptionTotals(data)) add('assumptionLoans','check that the assumed balances are positive and do not exceed the offer price');
+    if (!['cash','sales_price'].includes(data.assumptionVarianceAdjustment)) add('assumptionVarianceAdjustment','choose how a loan-balance difference adjusts the price or cash');
+    if (assumptionCents(data.assumptionVarianceThreshold) === null) add('assumptionVarianceThreshold','enter a valid loan-balance termination threshold');
+    return includeSigners ? issues.concat(purchaseSellerSignerIssues(data)) : issues;
+  }
+
+  function markAssumptionInterviewIssues(missing, includeSigners) {
+    const data = assumptionInterviewData();
+    const ids = [...assumptionAnswerKeys(),'assumptionLoans','assumptionCreditDocuments'];
+    ids.forEach(id => { const el = document.getElementById(id); if (el) { el.style.borderColor = ''; delete el.dataset.validationInvalid; el.removeAttribute('aria-invalid'); } });
+    assumptionInterviewIssues(data, includeSigners).forEach(issue => {
+      if (!missing.includes(issue.message)) missing.push(issue.message);
+      const el = document.getElementById(issue.id); if (!el) return;
+      el.style.borderColor = 'var(--warn)'; el.dataset.validationInvalid = 'true'; el.setAttribute('aria-invalid','true');
+    });
+  }
+
+  function validateAssumptionInputs(data) {
+    const issue = assumptionInterviewIssues(data)[0];
+    if (!issue) return true;
+    setPaymentStatus(issue.message.charAt(0).toUpperCase() + issue.message.slice(1) + '.');
+    return false;
+  }
+
+  function updateAssumptionTotals() {
+    if (getRadio('financing') !== 'assumption') return;
+    const totals = assumptionTotals(assumptionInterviewData());
+    const output = document.getElementById('assumptionTotals');
+    const currency = cents => '$' + (cents / 100).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+    if (output) output.textContent = totals ? 'Assumed balance: ' + currency(totals.loan) + ' · Cash portion: ' + currency(totals.cash) + (totals.payment !== null ? ' · Current monthly payments: ' + currency(totals.payment) : '') : 'Enter the offer price and selected loan balances to see the cash portion.';
+    // Keep the editable new-mortgage answers intact when changing financing
+    // choices. The collector derives assumption amounts from selected balances.
+  }
+
+  function updateAssumptionVisibility() {
+    const active = getRadio('financing') === 'assumption';
+    const details = document.getElementById('assumptionDetails'); if (details) details.style.display = active ? 'block' : 'none';
+    for (const key of ['First','Second']) {
+      const fields = document.getElementById('assumption' + key + 'Fields');
+      if (fields) fields.style.display = active && document.getElementById('assumption' + key + 'Enabled')?.checked ? 'block' : 'none';
+    }
+    const other = document.getElementById('assumptionCreditOtherField');
+    if (other) other.style.display = active && assumptionInterviewData().assumptionCreditDocuments.includes('other') ? 'block' : 'none';
+    const calculator = document.getElementById('paymentCalcCard'); if (calculator) calculator.style.display = active ? 'none' : '';
+    updateAssumptionTotals();
+    toggleSellerTemporaryLeaseFields();
+  }
+
+  function restoreAssumptionAnswers(data) {
+    assumptionAnswerKeys().forEach(key => { const el = document.getElementById(key); if (el) el.value = data[key] ?? ''; });
+    ['First','Second'].forEach(key => { const el = document.getElementById('assumption' + key + 'Enabled'); if (el) el.checked = data['assumption' + key + 'Enabled'] === true || data['assumption' + key + 'Enabled'] === 'yes'; });
+    document.querySelectorAll('input[name="assumptionCreditDocuments"]').forEach(el => { el.checked = Array.isArray(data.assumptionCreditDocuments) && data.assumptionCreditDocuments.includes(el.value); });
   }
 
   function environmentalInterviewData() {
@@ -11804,7 +12007,7 @@ function routeAfterMagicLinkIfNeeded() {
     const buyerFields = document.getElementById('buyerTemporaryLeaseFields');
     if (sellerFields) sellerFields.style.display = sellerActive ? 'block' : 'none';
     if (buyerFields) buyerFields.style.display = buyerActive ? 'block' : 'none';
-    const hydrostaticActive = getRadio('hydrostaticTesting') === 'yes' || getRadio('mineralReservation') === 'yes' || getRadio('environmentalAssessment') === 'yes';
+    const hydrostaticActive = getRadio('hydrostaticTesting') === 'yes' || getRadio('mineralReservation') === 'yes' || getRadio('environmentalAssessment') === 'yes' || getRadio('financing') === 'assumption';
     const sellerSigningFields = document.getElementById('sellerSigningFields');
     if (sellerSigningFields) sellerSigningFields.style.display = sellerActive || (hydrostaticActive && getRadio('leases') !== 'yes') ? 'flex' : 'none';
     if (sellerActive || (hydrostaticActive && getRadio('leases') === 'yes')) {
@@ -11923,6 +12126,7 @@ function routeAfterMagicLinkIfNeeded() {
       if (!validateHydrostaticInputs(state.data)) return;
       if (!validateMineralInputs(state.data)) return;
       if (!validateEnvironmentalInputs(state.data)) return;
+      if (!validateAssumptionInputs(state.data)) return;
       if (!validateSellerTemporaryLeaseInputs(state.data)) return;
       if (!validateUploadedDisclosureDocs()) return;
 
@@ -12048,6 +12252,7 @@ function routeAfterMagicLinkIfNeeded() {
     if (!validateHydrostaticInputs(state.data)) return;
     if (!validateMineralInputs(state.data)) return;
     if (!validateEnvironmentalInputs(state.data)) return;
+    if (!validateAssumptionInputs(state.data)) return;
     if (!validateSellerTemporaryLeaseInputs(state.data)) return;
     if (!validateUploadedDisclosureDocs()) return;
 
@@ -12357,6 +12562,7 @@ function routeAfterMagicLinkIfNeeded() {
     if (!price) return;
 
     const financing = getSelectedFinancingType();
+    if (financing === 'assumption') { updateAssumptionTotals(); return; }
     const downPct = getDefaultDownPaymentPercent(financing);
 
     if (downPct === null) return;
@@ -12477,6 +12683,10 @@ function routeAfterMagicLinkIfNeeded() {
       if (radio._smartWired) return;
       radio._smartWired = true;
       radio.addEventListener('change', () => {
+        updateAssumptionVisibility();
+        const details = document.getElementById('financingDetails');
+        if (details) details.style.display = ['conventional','fha','va','usda'].includes(getSelectedFinancingType()) ? 'flex' : 'none';
+        updateAppraisalAddendumVisibility();
         calculateFinancingDefaults(true);
         setTimeout(updatePaymentCalculator, 50);
       });
@@ -12504,6 +12714,9 @@ function routeAfterMagicLinkIfNeeded() {
   function updatePaymentCalculator() {
     const price = getCalcNumber('offerPrice');
     const financing = getSelectedFinancingType();
+    const calculator = document.getElementById('paymentCalcCard');
+    if (calculator) calculator.style.display = financing === 'assumption' ? 'none' : '';
+    if (financing === 'assumption') { updateAssumptionTotals(); return; }
     let loan = getCalcNumber('loanAmount');
     const down = getCalcNumber('downPayment');
 
@@ -13763,7 +13976,8 @@ function routeAfterMagicLinkIfNeeded() {
     updateEnvironmentalVisibility();
     const financing = document.querySelector('input[name="financing"]:checked')?.value || '';
     const financingDetails = document.getElementById('financingDetails');
-    if (financingDetails) financingDetails.style.display = financing && financing !== 'cash' ? 'flex' : 'none';
+    if (financingDetails) financingDetails.style.display = ['conventional','fha','va','usda'].includes(financing) ? 'flex' : 'none';
+    updateAssumptionVisibility();
 
     const hoa = document.querySelector('input[name="hoa"]:checked')?.value || '';
     const hoaDetails = document.getElementById('hoaDetails');
@@ -18691,7 +18905,8 @@ function routeAfterMagicLinkIfNeeded() {
 
   function addendaTags(d){
     const tags = [];
-    if (d.financing && d.financing !== 'cash') tags.push(['Third Party Financing','good']);
+    if (['conventional','fha','va','usda'].includes(d.financing)) tags.push(['Third Party Financing','good']);
+    if (d.financing === 'assumption') tags.push(['Loan Assumption','good']);
     if (d.financing === 'cash') tags.push(['Cash','good']);
     if (d.hoa === 'yes' || d.hoa === 'unknown') tags.push(['HOA','good']);
     if (d.appraisalAddendum && d.appraisalAddendum !== 'none') tags.push(['Appraisal','']);

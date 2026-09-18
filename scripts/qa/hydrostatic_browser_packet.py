@@ -22,10 +22,18 @@ def main():
                           seller='QA Seller', address='100 QA Street', city='Frisco',
                           county='Collin', zip='75034', closingDate='2026-10-30')
     offer.update({key: value for key, value in answers.items() if key in allowed})
+    if os.environ.get('HOF_QA_ASSUMPTION_SOURCE'):
+        assumption_keys = {'financing', 'price', 'loanAssumption', 'assumptionCreditDays',
+                           'assumptionCreditDocuments', 'assumptionCreditOther',
+                           'assumptionVarianceAdjustment', 'assumptionVarianceThreshold'}
+        assumption_keys.update('assumption' + key + field for key in ('First', 'Second')
+                               for field in ('Enabled', 'Lender', 'Balance', 'Payment', 'FeeCap', 'RateCap'))
+        offer.update({key: value for key, value in answers.items() if key in assumption_keys})
     sources = {}
     for requested, code, variable in (
         (adapter.mineral_requested(offer), 'TXR-1905', 'HOF_QA_MINERAL_SOURCE'),
         (adapter.environmental_requested(offer), 'TXR-1917', 'HOF_QA_ENVIRONMENTAL_SOURCE'),
+        (adapter.assumption_requested(offer), 'TXR-1919', 'HOF_QA_ASSUMPTION_SOURCE'),
     ):
         if not requested:
             continue
@@ -58,10 +66,11 @@ def main():
     output = Path(sys.argv[1])
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_bytes(packet)
-    print(json.dumps({'pages': len(reader.pages), 'hydrostaticFields': hydro,
+    print(json.dumps({'pages': len(reader.pages), 'price': offer.get('price'),
+                      'loan': offer.get('loanAmount'), 'cash': offer.get('downPayment'), 'hydrostaticFields': hydro,
                       'widgetsChecked': widgets_checked,
                       'signatureFields': [field for field in signing
-                                          if field['api_id'].startswith(('trec48_1_', 'txr1905_', 'txr1917_'))],
+                                          if field['api_id'].startswith(('trec48_1_', 'txr1905_', 'txr1917_', 'txr1919_'))],
                       'providerContacted': False}))
 
 
