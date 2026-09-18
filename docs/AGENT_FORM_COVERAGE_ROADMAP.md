@@ -6,6 +6,14 @@ reducing verification standards.
 
 ## Local continuation status - September 18, 2026
 
+The six primary public acquisition pages now use direct customer actions
+instead of visible internal “workflow” language. Buyer, agent, investor and
+partner copy now explains the next action in plain language; routes, pricing,
+analytics, structured data and legal behavior are unchanged. Seventeen focused
+tests pass, including a visible-text check across buyer, seller, agent,
+investor, partner and directory pages. This is **locally implemented and
+tested, not deployed**. See [public language evidence](release-evidence/public-landing-language-cleanup-2026-09-18.md).
+
 Future bounded workstreams can now start from a live, compact repository
 handoff instead of replaying this task's full conversation. The generator
 captures the five required batch facts, current branch/commit, at most 20

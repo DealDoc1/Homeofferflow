@@ -1,4 +1,5 @@
 import unittest
+from html.parser import HTMLParser
 from pathlib import Path
 
 
@@ -6,6 +7,34 @@ ROOT = Path(__file__).resolve().parents[1]
 AGENTS = (ROOT / "agents.html").read_text(encoding="utf-8")
 SELLERS = (ROOT / "sellers.html").read_text(encoding="utf-8")
 INVESTORS = (ROOT / "investors.html").read_text(encoding="utf-8")
+BUYERS = (ROOT / "buyers.html").read_text(encoding="utf-8")
+PARTNERS = (ROOT / "partners.html").read_text(encoding="utf-8")
+DIRECTORY = (ROOT / "directory.html").read_text(encoding="utf-8")
+
+
+class _VisibleText(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.hidden_depth = 0
+        self.text = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag in {"script", "style"}:
+            self.hidden_depth += 1
+
+    def handle_endtag(self, tag):
+        if tag in {"script", "style"} and self.hidden_depth:
+            self.hidden_depth -= 1
+
+    def handle_data(self, data):
+        if not self.hidden_depth and data.strip():
+            self.text.append(data.strip())
+
+
+def visible_text(html):
+    parser = _VisibleText()
+    parser.feed(html)
+    return " ".join(parser.text)
 
 
 class LowNoisePublicPageTests(unittest.TestCase):
@@ -46,6 +75,19 @@ class LowNoisePublicPageTests(unittest.TestCase):
         self.assertIn('saved-work recovery', INVESTORS)
         self.assertNotIn('Resume a draft or duplicate prior offer terms', INVESTORS)
         self.assertNotIn('draft recovery', INVESTORS)
+
+    def test_public_landing_copy_uses_customer_actions_not_internal_workflow_language(self):
+        pages = {
+            "buyers": BUYERS,
+            "sellers": SELLERS,
+            "agents": AGENTS,
+            "investors": INVESTORS,
+            "partners": PARTNERS,
+            "directory": DIRECTORY,
+        }
+        for page, html in pages.items():
+            with self.subTest(page=page):
+                self.assertNotIn("workflow", visible_text(html).lower())
 
 
 if __name__ == "__main__":
