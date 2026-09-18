@@ -1,5 +1,9 @@
 # HomeOfferFlow — Agent Form Coverage Roadmap
 
+Future batches follow the [lean development protocol](LEAN_DEVELOPMENT_PROTOCOL.md)
+to reduce model context, repeated regression runs and Vercel usage without
+reducing verification standards.
+
 ## Local continuation status - September 18, 2026
 
 Live release revalidation at approximately 4:25 PM America/Chicago confirms
