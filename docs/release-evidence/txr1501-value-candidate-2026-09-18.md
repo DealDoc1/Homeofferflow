@@ -67,9 +67,9 @@ The two approved signing-map baseline mismatches remain separate from these
 value/header changes. References were not regenerated to hide pending review.
 Completed SignWell behavior remains unverified for the long-form candidate.
 
-The source's pages 1-5 have footer-initial blanks, but the current long-form
-signer builder still supplies only final signatures/dates. That coverage needs
-implementation and source/provider review; full signing completeness is not
+Follow-up: pages 1-5 now have local footer-initial coverage, source-bound tests
+and rendered review; see [initials evidence](txr1501-initials-candidate-2026-09-18.md).
+Completed-provider review remains unverified; full signing completeness is not
 claimed. Extreme-length primary names/contact/market-area answers also need a
 separate fit/continuation review; header overflow protection does not solve every
 free-text area. These are local follow-ups, not requests for user approval.

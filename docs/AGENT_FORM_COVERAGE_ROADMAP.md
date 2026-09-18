@@ -11,7 +11,10 @@ The full-value review also corrected continuation headers, contact and term
 placement, compensation/retainer blanks, protection days, county placement and
 both intermediary marks. See [long-form value evidence](release-evidence/txr1501-value-candidate-2026-09-18.md).
 The local preview now exercises these fields instead of leaving them empty.
-Provider completion and footer-initial coverage remain unfinished.
+Footer initials are now included locally for every selected signer on pages
+1-5, with source-bound tests and rendered review. See
+[initials evidence](release-evidence/txr1501-initials-candidate-2026-09-18.md).
+Completed-provider placement remains unverified for the long-form candidate.
 
 Environmental-review TXR-1917 now has a locally tested purchase-interview and
 combined-packet candidate, including source-bound placement and long-answer

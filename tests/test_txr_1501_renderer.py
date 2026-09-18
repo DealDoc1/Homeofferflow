@@ -173,10 +173,10 @@ class Txr1501RendererTests(unittest.TestCase):
     def test_signer_map_requires_plan_and_supports_one_or_two_clients(self):
         one = build_signwell_fields_txr1501({**sample_data(), "signer_plan": "clients_and_associate"}, client_count=1)[0]
         two = build_signwell_fields_txr1501({**sample_data(), "signer_plan": "clients_and_associate"}, client_count=2)[0]
-        self.assertEqual(len(one), 4)
-        self.assertEqual(len(two), 6)
-        self.assertTrue(all(field["page"] == 6 for field in two))
-        self.assertEqual({field["api_id"] for field in one}, {"txr1501_client1_signature_p6", "txr1501_client1_date_p6", "txr1501_associate_signature_p6", "txr1501_associate_date_p6"})
+        self.assertEqual(len(one), 14)
+        self.assertEqual(len(two), 21)
+        self.assertEqual({field["page"] for field in two}, set(range(1,7)))
+        self.assertEqual({field["api_id"] for field in one if field['page']==6}, {"txr1501_client1_signature_p6", "txr1501_client1_date_p6", "txr1501_associate_signature_p6", "txr1501_associate_date_p6"})
         self.assertEqual(next(field["x"] for field in two if field["api_id"] == "txr1501_client1_signature_p6"), 432)
         self.assertEqual(next(field["y"] for field in two if field["api_id"] == "txr1501_client1_signature_p6"), 566)
         self.assertEqual(next(field["y"] for field in two if field["api_id"] == "txr1501_client2_signature_p6"), 677)

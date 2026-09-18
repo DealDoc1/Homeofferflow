@@ -10,6 +10,8 @@ from lib.txr_1501 import build_signwell_fields_txr1501
 
 def assert_source_bounds(test, fields):
     for field in fields:
+        if field['type']=='initials':
+            continue  # Footer regions have their own independent bounds test.
         with test.subTest(field=field['api_id']):
             test.assertEqual(field['page'], 6)
             # Limits are source text/rule measurements, not widget positions.

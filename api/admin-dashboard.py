@@ -155,7 +155,7 @@ TXR_SIGNING_MAP_REVISIONS = {
     TXR_1905_FORM_CODE: "txr-1905-2026-09-18-execution-candidate-v2",
     TXR_1914_FORM_CODE: "txr-1914-2026-09-18-execution-candidate-v2",
     TXR_1919_FORM_CODE: "txr-1919-2026-09-18-initials-candidate-v2",
-    TXR_1501_FORM_CODE: "txr-1501-2026-09-12-completed-packet-calibrated-v2",
+    TXR_1501_FORM_CODE: "txr-1501-2026-09-18-execution-initials-candidate-v3",
     TXR_1506_FORM_CODE: "txr-1506-2026-09-09-final-page-calibrated-v1",
     # Completed-packet review moved every execution widget above the printed
     # signature/date captions.  Drafts prepared with v1 must be rebuilt so a

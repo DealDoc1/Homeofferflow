@@ -192,7 +192,7 @@ def render_txr_1501(source_pdf_bytes, data, brokerage, associate):
 
 
 def build_signwell_fields_txr1501(data, *, client_count=1):
-    """Return explicit page-6 signer fields for a deliberate signer plan."""
+    """Return footer initials and final signatures for the selected parties."""
     signer_plan = data.get("signer_plan")
     if signer_plan not in {"clients_and_associate", "clients_and_broker"}:
         raise ValueError("Choose whether the broker or associate will sign the TXR-1501 agreement.")
@@ -225,4 +225,18 @@ def build_signwell_fields_txr1501(data, *, client_count=1):
             {"api_id": "txr1501_broker_signature_p6", "type": "signature", "page": 6, "x": 48, "y": 566, "recipient_id": "broker", "required": True, "width": 240, "height": 24},
             {"api_id": "txr1501_broker_date_p6", "type": "date", "page": 6, "x": 312, "y": 572, "recipient_id": "broker", "required": True, "width": 72, "height": 18, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
         ])
+    role = 'associate' if signer_plan == 'clients_and_associate' else 'broker'
+    # Pages 1-5 identify the document with initials from each signing party.
+    # Source underscore blanks are 325.982..361.064, 406.523..444.026 and
+    # 446.555..481.529 on page 1; later client blanks move <0.35pt right.
+    # These rectangles fit the common intersection on every page.
+    initial_signers = [(role, role, 435), ('client1', '1', 543)]
+    if client_count == 2:
+        initial_signers.append(('client2', '2', 596))
+    for page in range(1, 6):
+        for label, recipient, x in initial_signers:
+            fields.append({'api_id': f'txr1501_{label}_initials_p{page}',
+                           'type': 'initials', 'page': page, 'x': x, 'y': 976,
+                           'recipient_id': recipient, 'required': True,
+                           'width': 45 if recipient == '1' else 46, 'height': 14})
     return [fields]
