@@ -5,20 +5,21 @@ const {spawn}=require('node:child_process');
 const root=path.resolve(__dirname,'../..'),source=fs.readFileSync(path.join(root,'index.html'),'utf8');
 const environmental=Boolean(process.env.HOF_QA_ENVIRONMENTAL_SOURCE),mineral=Boolean(process.env.HOF_QA_MINERAL_SOURCE);
 const assumption=Boolean(process.env.HOF_QA_ASSUMPTION_SOURCE);
-const kind=assumption?'assumption':environmental?'environmental':mineral?'mineral':'hydrostatic';
-const label=assumption?'Loan assumption':environmental?'Environmental review':mineral?'Mineral reservation':'Hydrostatic';
+const currency=Boolean(process.env.HOF_QA_CURRENCY),pricing=assumption||currency;
+const kind=currency?'currency':assumption?'assumption':environmental?'environmental':mineral?'mineral':'hydrostatic';
+const label=currency?'Purchase amounts':assumption?'Loan assumption':environmental?'Environmental review':mineral?'Mineral reservation':'Hydrostatic';
 function section(start,end){
   const a=source.indexOf(start),b=source.indexOf(end,a);
   if(a<0||b<=a)throw Error('Missing production section: '+start);
   return source.slice(a,b);
 }
-const question=assumption ? section('    <div class="wizard-step" id="step3">','    <div class="wizard-step" id="step5">') : section(environmental?'      <div class="radio-group-label" style="margin-top:1.5rem;">Do you need environmental review rights?':mineral?'      <div class="radio-group-label" style="margin-top:1.5rem;">Will the seller reserve mineral rights?':'      <div class="radio-group-label" style="margin-top:1.5rem;">Are you requesting a hydrostatic',
+const question=pricing ? section('    <div class="wizard-step" id="step3">','    <div class="wizard-step" id="step5">') : section(environmental?'      <div class="radio-group-label" style="margin-top:1.5rem;">Do you need environmental review rights?':mineral?'      <div class="radio-group-label" style="margin-top:1.5rem;">Will the seller reserve mineral rights?':'      <div class="radio-group-label" style="margin-top:1.5rem;">Are you requesting a hydrostatic',
   '      <div style="margin-top:1.5rem; padding-top:1.25rem;');
 const sellers=section('        <div id="sellerSigningFields"','        <div id="sellerTemporaryLeaseFields"');
 const scripts=section('  function getVal(', '  function selectPlan(')
   +section('  function hydrostaticSigningSummary(', '  function validateSellerTemporaryLeaseInputs(')
   +section('  function selectCard(', '  function getCurrentFinancingChoice(')
-  +(assumption ? section('  function setRadioValue(', '  function updateSurveyExistingDetails(')
+  +(pricing ? section('  function setRadioValue(', '  function updateSurveyExistingDetails(')
     +section('  function getCurrentFinancingChoice(', '  function sanitizeBuyerMailingAddressAutofill(')
     +section('  function setAppraisalAddendumRequired(', '  function validateCurrentStep(')
     +section('  function setDefaultValue(', '  function applySmartDefaults(')
@@ -38,7 +39,7 @@ ${question}${sellers}
 <p id="scope"></p><a id="pdf" hidden target="_blank">Open local unsigned packet</a><pre id="result"></pre>
 <script>
 const state={step:0,data:{buyer1:'QA Buyer',buyerEmail:'buyer@example.test',leases:'no'}};
-let steps=${assumption ? "['step3','step7']" : "['step5','step7']"};
+let steps=${pricing ? "['step3','step7']" : "['step5','step7']"};
 const getCurrentSteps=()=>steps;
 function setInputIfEmpty(id,value){const el=document.getElementById(id);if(el&&!el.value&&value)el.value=value;}
 function setPaymentStatus(value){document.getElementById('status').textContent=value;}

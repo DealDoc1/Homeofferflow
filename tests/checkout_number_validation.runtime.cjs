@@ -11,6 +11,22 @@ const source = process.env.HOF_TEST_SOURCE_REF
 const cash = { price: '500000', earnest: '0', optionFee: '0', optionDays: '0', financing: 'cash' };
 const financed = { ...cash, financing: 'conventional', loanAmount: '450000', loanYears: '30', interestRateCap: '0',
   interestFirstYears: '30', originationCap: '0', buyerApprovalDays: '21', appraisalAddendum: 'none' };
+for (const key of ['price','earnest','optionFee','loanAmount','downPayment','appraisalPartialValue','appraisalTerminateValue']) test(`${key} fractional cents are rejected before checkout`,async()=>{
+  const offer={...financed,[key]:'1.005',appraisalAddendum:key==='appraisalTerminateValue'?'additional':'partial',appraisalPartialValue:'500000.55',appraisalTerminateValue:'450000.55',appraisalTerminateDays:'7'};
+  offer[key]='1.005';const result=await rejected(offer);assert.match(result.body.error,/two decimal places/);
+});
+test('checkout persists exact cents and leaves rate precision intact',async()=>{
+  const offer={...financed,price:500000.55,loanAmount:450000.44,earnest:5000.45,optionFee:250.99,interestRateCap:'6.125',originationCap:'1.125'};
+  const result=await call(offer);assert.equal(result.status,200);const saved=JSON.parse(result.saved[0]);
+  for(const key of ['price','loanAmount','earnest','optionFee','interestRateCap','originationCap'])assert.equal(saved[key],offer[key]);
+  assert.deepEqual(JSON.parse(JSON.stringify(result.requests[0].line_items)),[{price:'price-server',quantity:1}]);
+});
+for (const key of ['concessionAmount','homeWarrantyAmount','nonRealtyAmount','hoaReserves','saleAdditionalEarnest','bkupAdditionalOption','buyerTemporaryLeaseRentPerDay','sellerTemporaryLeaseDeposit']) test(`${key} fractional cents cannot reach a payable session`,async()=>{
+  const result=await rejected({...cash,[key]:'12.345'});assert.match(result.body.error,/two decimal places/);
+});
+test('comma-formatted optional currency is validated without rewriting it',async()=>{
+  const result=await call({...cash,homeWarrantyAmount:'1,000.75'});assert.equal(result.status,200);assert.equal(JSON.parse(result.saved[0]).homeWarrantyAmount,'1,000.75');
+});
 async function call(offerData, email = 'buyer@example.test', extra = {}) {
   const requests = [], initializations = [], saved = [];
   const module = { exports: {} };

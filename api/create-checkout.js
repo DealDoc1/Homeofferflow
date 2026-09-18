@@ -13,37 +13,66 @@ function offerNumberIssues(offer) {
     const key = keys.find(key => Object.prototype.hasOwnProperty.call(offer, key));
     return key === undefined ? undefined : offer[key];
   };
-  const requireNumber = (keys, label, { positive = false, integer = false } = {}) => {
+  const requireNumber = (keys, label, { positive = false, integer = false, money = false } = {}) => {
     const raw = first(keys);
-    const text = typeof raw === 'string' || typeof raw === 'number' ? String(raw).trim() : '';
+    let text = typeof raw === 'string' || typeof raw === 'number' ? String(raw).trim() : '';
+    if (money && /^\d{1,3}(?:,\d{3})+(?:\.\d+)?$/.test(text)) text = text.replace(/,/g, '');
     const value = Number(text);
     const numeric = /^(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?$/i.test(text);
     if (!text || !numeric || !Number.isFinite(value) || value < 0 || (positive && value <= 0) ||
         (integer && !Number.isSafeInteger(value))) {
       issues.push(integer ? `${label} must be a whole number of 0 or more.`
         : `${label} must be ${positive ? 'greater than 0' : '0 or more'}.`);
+    } else if (money && (value !== Number(value.toFixed(2)) || !Number.isSafeInteger(Math.round(value * 100)))) {
+      issues.push(`${label} must be a valid dollar amount with no more than two decimal places.`);
     }
   };
-  requireNumber(['price', 'offerPrice'], 'Offer price', { positive: true });
-  requireNumber(['earnest', 'earnestMoney'], 'Earnest money');
-  requireNumber(['optionFee'], 'Option fee');
+  requireNumber(['price', 'offerPrice'], 'Offer price', { positive: true, money: true });
+  requireNumber(['earnest', 'earnestMoney'], 'Earnest money', { money: true });
+  requireNumber(['optionFee'], 'Option fee', { money: true });
   requireNumber(['optionDays'], 'Option days', { integer: true });
   const financing = String(first(['financing', 'financingType']) || '').trim().toLowerCase();
   if (!['cash', 'conventional', 'fha', 'va', 'usda'].includes(financing)) {
     issues.push('Choose a supported financing type before checkout.');
   } else if (financing !== 'cash') {
-    requireNumber(['loanAmount'], 'Loan amount', { positive: true });
+    requireNumber(['loanAmount'], 'Loan amount', { positive: true, money: true });
+    if (offer.downPayment !== undefined && offer.downPayment !== null && offer.downPayment !== '') {
+      requireNumber(['downPayment'], 'Down payment', { money: true });
+    }
     requireNumber(['loanYears', 'loanTermYears'], 'Loan term years', { positive: true });
     requireNumber(['interestRateCap', 'loanInterestCap'], 'Max interest rate');
     requireNumber(['interestFirstYears'], 'Interest cap years');
     requireNumber(['originationCap'], 'Origination cap');
     requireNumber(['buyerApprovalDays'], 'Buyer approval days', { integer: true });
     if (offer.appraisalAddendum === 'partial') {
-      requireNumber(['appraisalPartialValue'], 'Partial waiver appraisal value');
+      requireNumber(['appraisalPartialValue'], 'Partial waiver appraisal value', { money: true });
     } else if (offer.appraisalAddendum === 'additional') {
       requireNumber(['appraisalTerminateDays'], 'Appraisal termination days', { integer: true });
-      requireNumber(['appraisalTerminateValue'], 'Appraisal termination value');
+      requireNumber(['appraisalTerminateValue'], 'Appraisal termination value', { money: true });
     }
+  }
+  // Check populated optional money before a payable session can be created.
+  // Percentages and deadlines deliberately do not use currency precision.
+  const optionalMoney = [
+    ['additionalEarnest','Additional earnest money'],['additionalEarnestMoney','Additional earnest money'],
+    ['concessionAmount','Seller contribution'],['sellerConcessions','Seller contribution'],['sellerCredit','Seller credit'],['buyerExpenseCredit','Buyer expense credit'],
+    ['brokerFeeAmount','Broker fee'],['brokerCompAmount','Broker compensation'],['buyerBrokerFeeAmount','Buyer broker fee'],['sellerBrokerCompAmount','Seller broker compensation'],['sellerBrokerComp','Seller broker compensation'],['buyerBrokerCompAmount','Buyer broker compensation'],['buyerToSellerBrokerCompAmount','Buyer broker contribution'],
+    ['residentialServiceAmount','Residential service contract'],['residentialServiceContractAmount','Residential service contract'],['homeWarrantyAmount','Home warranty'],
+    ['hoaTransferFeeCap','HOA transfer cap'],['hoaReserves','HOA reserve and transfer cap'],
+    ['saleAdditionalEarnest','Sale-contingency earnest money'],
+    ['bkupAdditionalEarnest','Backup earnest money'],['backupAdditionalEarnest','Backup earnest money'],['backupAddlEarnest','Backup earnest money'],
+    ['bkupAdditionalOption','Backup option fee'],['backupAdditionalOption','Backup option fee'],['backupAdditionalOptionFee','Backup option fee'],['backupAddlOption','Backup option fee'],['backupAddlOptionFee','Backup option fee'],
+    ['nonRealtyAmount','Personal property amount'],['nonRealtyItemsAmount','Personal property amount'],['nonRealtyAdditionalSum','Personal property amount'],
+    ['appraisedValue','Appraised value'],
+  ];
+  for (const prefix of ['buyerTemporaryLease','sellerTemporaryLease','temporaryLease']) {
+    for (const suffix of ['RentPerDay','TotalRent','Deposit','HoldoverPerDay']) optionalMoney.push([prefix+suffix,'Temporary lease amount']);
+  }
+  for (const prefix of ['buyerTempLease','sellerTempLease']) {
+    for (const suffix of ['DailyRent','TotalRent','Deposit','HoldoverPerDay']) optionalMoney.push([prefix+suffix,'Temporary lease amount']);
+  }
+  for (const [key,label] of optionalMoney) {
+    if (offer[key] !== undefined && offer[key] !== null && offer[key] !== '') requireNumber([key],label,{money:true});
   }
   return issues;
 }

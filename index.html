@@ -9113,6 +9113,7 @@ function routeAfterMagicLinkIfNeeded() {
       optionFee: ['option fee'],
       optionDays: ['option days', false, true],
       loanAmount: ['loan amount', true],
+      downPayment: ['down payment'],
       loanYears: ['loan term years', true],
       interestRateCap: ['max interest rate'],
       interestFirstYears: ['interest cap years'],
@@ -9132,6 +9133,10 @@ function routeAfterMagicLinkIfNeeded() {
         (integer && !Number.isSafeInteger(value))) {
       return integer ? `${label} as a whole number of 0 or more`
         : `${label} ${positive ? 'greater than 0' : 'of 0 or more'}`;
+    }
+    const currencyFields = ['offerPrice','earnestMoney','optionFee','loanAmount','downPayment','appraisalPartialValue','appraisalTerminateValue'];
+    if (currencyFields.includes(el.id) && (value !== Number(value.toFixed(2)) || !Number.isSafeInteger(Math.round(value * 100)))) {
+      return `${label} with no more than two decimal places and a valid dollar amount`;
     }
     return '';
   }
@@ -9347,6 +9352,9 @@ function routeAfterMagicLinkIfNeeded() {
       const financingChoice = getRadio('financing') || state.data.financing || '';
       if (['conventional','fha','va','usda'].includes(financingChoice)) {
         requireField('loanAmount', 'loan amount', missing);
+        if (String(document.getElementById('downPayment')?.value || '').trim()) {
+          requireField('downPayment', 'down payment', missing);
+        }
         requireField('loanYears', 'loan term years', missing);
         requireField('interestRateCap', 'max interest rate', missing);
         requireField('interestFirstYears', 'interest cap years', missing);
@@ -9986,7 +9994,7 @@ function routeAfterMagicLinkIfNeeded() {
     const cleaned = String(v).replace(/[$,\s]/g, '');
     if (cleaned === '') return '';
     const n = Number(cleaned);
-    return Number.isFinite(n) ? Math.round(n) : '';
+    return Number.isFinite(n) ? n : '';
   }
 
   function buildLegalDescription(lotNumber, blockNumber, subdivision, overrideText) {
@@ -10098,12 +10106,12 @@ function routeAfterMagicLinkIfNeeded() {
           loanAmount = 0;
           downPayment = price || 0;
         } else if (financing) {
-          if (price && downPayment !== '' && loanAmount === '') loanAmount = Math.max(price - downPayment, 0);
-          if (price && loanAmount !== '' && downPayment === '') downPayment = Math.max(price - loanAmount, 0);
+          if (price && downPayment !== '' && loanAmount === '') loanAmount = roundCurrency(Math.max(price - downPayment, 0));
+          if (price && loanAmount !== '' && downPayment === '') downPayment = roundCurrency(Math.max(price - loanAmount, 0));
           if (price && downPayment === '' && loanAmount === '') {
             const defaultPct = financing === 'fha' ? 0.035 : (financing === 'va' || financing === 'usda') ? 0 : 0.10;
-            downPayment = Math.round(price * defaultPct);
-            loanAmount = Math.max(price - downPayment, 0);
+            downPayment = roundCurrency(price * defaultPct);
+            loanAmount = roundCurrency(Math.max(price - downPayment, 0));
           }
         }
 
@@ -12481,9 +12489,17 @@ function routeAfterMagicLinkIfNeeded() {
     return Number.isFinite(n) ? n : 0;
   }
 
+  function roundCurrency(value) {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return 0;
+    // Shift the decimal exponent before rounding, avoiding 1.005 * 100 drift.
+    const [coefficient, exponent = '0'] = String(n).split('e');
+    return Number(Math.round(Number(coefficient + 'e' + (Number(exponent) + 2))) + 'e-2');
+  }
+
   function setMoneyVal(el, value) {
     if (!el) return;
-    el.value = Math.max(Math.round(value), 0);
+    el.value = Math.max(roundCurrency(value), 0);
   }
 
   function getSelectedFinancingType() {
@@ -12701,7 +12717,7 @@ function routeAfterMagicLinkIfNeeded() {
   function fmtCurrencyShort(value) {
     const n = Number(value);
     if (!Number.isFinite(n)) return '—';
-    return '$' + Math.round(n).toLocaleString();
+    return '$' + roundCurrency(n).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
   }
 
   function getCalcNumber(id) {
@@ -18454,7 +18470,7 @@ function routeAfterMagicLinkIfNeeded() {
       const earnestEl = document.getElementById('earnestMoney');
       const pct = Number(x.default_earnest_percent || 1);
       if (earnestEl && Number.isFinite(pct) && offerPrice > 0 && (force || !String(earnestEl.value || '').trim())) {
-        earnestEl.value = Math.round(offerPrice * pct / 100);
+        earnestEl.value = roundCurrency(offerPrice * pct / 100);
       }
     }
 

@@ -100,3 +100,12 @@ claim or definitive attribution of that message is made. Server was stopped.
   passing interview checks do not authorize publishing an unverified map.
 
 No push or deployment. Existing release and cost restrictions remain in force.
+
+## Currency follow-up
+
+The whole-dollar issue above has since been corrected locally. See
+[the currency precision evidence](purchase-currency-precision-2026-09-18.md)
+for the five-financing-type tests, browser-to-PDF cash check, financing-text
+placement correction and remaining limits. This does not mean loan-assumption
+self-service checkout is complete: its financing allowlist still needs the
+assumption path and matching server validation/fulfillment checks.

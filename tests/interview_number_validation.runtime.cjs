@@ -13,7 +13,7 @@ function source(start, end) {
   assert.ok(a >= 0 && b > a, start);
   return html.slice(a, b);
 }
-const values = { offerPrice: '500000', earnestMoney: '5000', optionFee: '250', optionDays: '7', loanAmount: '450000',
+const values = { offerPrice: '500000', earnestMoney: '5000', optionFee: '250', optionDays: '7', loanAmount: '450000', downPayment: '50000',
   loanYears: '30', interestRateCap: '6.375', interestFirstYears: '30', originationCap: '1', buyerApprovalDays: '21',
   appraisalPartialValue: '400000', appraisalTerminateDays: '10', appraisalTerminateValue: '400000' };
 function setup(role = 'homebuyer', appraisal = 'partial') {
@@ -80,6 +80,13 @@ test('cash financing does not validate hidden loan fields', () => {
   x.get('appraisalAddendumBox').style.display = 'none';
   for (const id of ['loanAmount', 'loanYears', 'interestRateCap', 'interestFirstYears', 'originationCap', 'buyerApprovalDays']) x.get(id).value = '-1';
   assert.equal(x.c.validateCurrentStep(), true);
+});
+for (const id of ['offerPrice','earnestMoney','optionFee','loanAmount','downPayment','appraisalPartialValue','appraisalTerminateValue']) test(`${id} rejects fractions of a cent`, () => {
+  const x=setup('agent',id==='appraisalTerminateValue'?'additional':'partial');x.get(id).value='1.005';
+  assert.equal(x.c.validateCurrentStep(),false);assert.match(x.statuses.at(-1),/two decimal places/);
+});
+test('interest rates retain precision beyond two decimals',()=>{
+  const x=setup();x.get('interestRateCap').value='6.125';x.get('originationCap').value='1.125';assert.equal(x.c.validateCurrentStep(),true);
 });
 test('invalid numeric edits retain the warning until corrected', () => {
   const x = setup(), field = x.get('optionDays');

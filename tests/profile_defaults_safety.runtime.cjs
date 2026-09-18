@@ -47,6 +47,7 @@ function setup({role='agent',path=role,base=true}={}) {
     profDefaultPossession:'funding',profDefaultFinancing:'cash',profDefaultBrokerFeeType:'percent',profDefaultBrokerFeeValue:'3',
     profDefaultEarnestRule:'percent',profDefaultEarnestPercent:'1',offerPrice:'500000'}))get(id).value=value;
   vm.runInContext(source('  function setInputIfEmpty(','  function resetWizardForFreshOffer('),c);
+  if(html.includes('  function roundCurrency(')) vm.runInContext(source('  function roundCurrency(', '  function setMoneyVal('),c);
   if(base)vm.runInContext(source('  async function saveAccountProfile()','  function setInputIfEmpty('),c);
   else c.saveAccountProfile=async()=>null;
   const extra=source('<script id="hof-agent-defaults-v8-script">','</script>');

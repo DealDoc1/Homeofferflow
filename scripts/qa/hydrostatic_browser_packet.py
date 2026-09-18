@@ -22,10 +22,13 @@ def main():
                           seller='QA Seller', address='100 QA Street', city='Frisco',
                           county='Collin', zip='75034', closingDate='2026-10-30')
     offer.update({key: value for key, value in answers.items() if key in allowed})
-    if os.environ.get('HOF_QA_ASSUMPTION_SOURCE'):
+    if os.environ.get('HOF_QA_ASSUMPTION_SOURCE') or os.environ.get('HOF_QA_CURRENCY'):
         assumption_keys = {'financing', 'price', 'loanAssumption', 'assumptionCreditDays',
                            'assumptionCreditDocuments', 'assumptionCreditOther',
                            'assumptionVarianceAdjustment', 'assumptionVarianceThreshold'}
+        assumption_keys.update(('loanAmount','downPayment','earnest','optionFee','optionDays','loanYears',
+                                'interestRateCap','interestFirstYears','originationCap','buyerApprovalDays',
+                                'appraisalAddendum','appraisalPartialValue','appraisalTerminateDays','appraisalTerminateValue'))
         assumption_keys.update('assumption' + key + field for key in ('First', 'Second')
                                for field in ('Enabled', 'Lender', 'Balance', 'Payment', 'FeeCap', 'RateCap'))
         offer.update({key: value for key, value in answers.items() if key in assumption_keys})

@@ -29,6 +29,7 @@ from lib.production_adapter import (
     seller_temporary_lease_execution_parties,
     validate_supported_offer,
 )
+from lib.contract_money import CurrencyInputError
 
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
 STRIPE_WHSEC   = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
@@ -2416,6 +2417,8 @@ class handler(BaseHTTPRequestHandler):
             self._json(409, {'error': str(error), 'code': 'packet_generation_busy'})
         except PacketGenerationPending as error:
             self._json(503, {'error': str(error), 'code': 'packet_generation_unconfirmed'})
+        except CurrencyInputError as e:
+            self._json(400, {'error': str(e), 'code': 'invalid_monetary_amount'})
         except UnsupportedOfferPathError as e:
             print("UNSUPPORTED OFFER PATH:", str(e))
             self._json(422, {

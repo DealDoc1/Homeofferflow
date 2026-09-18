@@ -60,7 +60,7 @@ test('deselected loan answers stay editable but are not submitted',()=>{
 });
 test('changing to cash clears all submitted assumption terms and restores calculator',()=>{
   const {c,el,radio}=setup();c.updateAssumptionVisibility();assert.equal(el('paymentCalcCard').style.display,'none');
-  radio.financing='cash';c.updateAssumptionVisibility();c.collectData();assert.equal(c.state.data.loanAssumption,'no');assert.equal(c.state.data.assumptionFirstEnabled,false);assert.equal(c.state.data.assumptionCreditDays,'');assert.equal(c.state.data.loanAmount,0);assert.equal(c.state.data.downPayment,500001);
+  radio.financing='cash';c.updateAssumptionVisibility();c.collectData();assert.equal(c.state.data.loanAssumption,'no');assert.equal(c.state.data.assumptionFirstEnabled,false);assert.equal(c.state.data.assumptionCreditDays,'');assert.equal(c.state.data.loanAmount,0);assert.equal(c.state.data.downPayment,500000.55);
   assert.equal(el('assumptionDetails').style.display,'none');assert.equal(el('sellerSigningFields').style.display,'none');assert.equal(el('paymentCalcCard').style.display,'');
 });
 test('restoring a different draft clears previous assumption answers and checkboxes',()=>{

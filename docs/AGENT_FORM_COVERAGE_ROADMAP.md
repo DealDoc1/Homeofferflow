@@ -16,7 +16,13 @@ draft restoration and browser-to-PDF checks. Completed-provider placement and
 live source retrieval are unverified. It is **not deployed**. See
 [the loan-assumption interview evidence](release-evidence/loan-assumption-interview-2026-09-18.md).
 The cash-switch check exposed existing whole-dollar rounding outside the
-assumption path; fixing collector/calculator/PDF precision is next local work.
+assumption path. Collector/calculator/PDF precision is now corrected locally,
+with five-financing-type packet checks and conventional-to-cash browser checks.
+Financing rate/fee placement was corrected after three-decimal values exposed
+overlaps. See [currency precision evidence](release-evidence/purchase-currency-precision-2026-09-18.md).
+This remains **not deployed**. Next local boundary: self-service checkout still
+rejects loan assumption in its financing allowlist; complete that path before
+claiming the full loan-assumption customer journey works.
 
 ## Launch scope: OnDemand Realty
 

@@ -1,7 +1,6 @@
 import json, os, base64, hashlib, hmac, httpx, re
 from io import BytesIO
-from decimal import Decimal
-from lib.loan_assumption import display_money as assumption_money
+from lib.contract_money import currency_amount, format_currency
 from http.server import BaseHTTPRequestHandler
 
 from pypdf import PdfReader, PdfWriter
@@ -159,12 +158,7 @@ def seller_temp_lease_pdf_path():
 
 
 def fmt_money(v):
-    if v in [None, ""]:
-        return ""
-    try:
-        return f"{int(float(str(v).replace(',', ''))):,}"
-    except Exception:
-        return str(v)
+    return format_currency(v)
 
 
 def has_positive_money(v):
@@ -671,7 +665,7 @@ def build_pages_data(
 
     assumption = normalize_financing(s.get('financing')) == 'assumption'
     financed = has_loan or assumption
-    price_formatter = assumption_money if assumption else fmt_money
+    price_formatter = fmt_money
     pages[0] = [
         (280, 690, s.get("seller", "")),
         (124, 679, buyer),
@@ -929,22 +923,11 @@ def fill_and_merge(offer):
     if s.get("buyer2"):
         buyer += f" and {s['buyer2']}"
 
-    try:
-        price = float(s.get("price", 0) or 0)
-        loan = float(s.get("loanAmount", 0) or 0)
-        cash = price - loan if loan else price
-    except Exception:
-        price = loan = cash = 0
-
     normalized_financing_main = normalize_financing(s.get("financing", ""))
     s["financing"] = normalized_financing_main
-
-    if normalized_financing_main == 'assumption':
-        # The production adapter derives this from the selected source-form
-        # balances. Keep cents exact rather than using float/integer formatting.
-        price = Decimal(str(s.get('price', '0')).replace(',', ''))
-        loan = Decimal(str(s.get('loanAmount', '0')).replace(',', ''))
-        cash = price - loan
+    price = currency_amount(s.get("price"))
+    loan = currency_amount(s.get("loanAmount")) if normalized_financing_main in ['conventional', 'fha', 'va', 'usda', 'assumption'] else currency_amount(0)
+    cash = price - loan
 
     has_loan = normalized_financing_main in ["conventional", "fha", "va", "usda"]
     has_hoa  = s.get("hoa") in ["yes", "unknown"]
@@ -1041,39 +1024,41 @@ def fill_and_merge(offer):
             0: [
                 (205, 642, addr_full, 8),
 
-                # A. Conventional financing - confirmed good in tests.
+                # Rate/fee text stays inside the source blanks at eight points;
+                # whole-number-only previews previously hid percentage overlaps.
+                # A. Conventional financing.
                 (58,  558, ck(financing == "conventional"), "check_small"),
                 (87, 545, ck(financing == "conventional"), "check_small"),
                 (377, 544, fmt_money(s.get("loanAmount", "")) if financing == "conventional" else ""),
                 (305, 534, loan_years if financing == "conventional" else ""),
-                (525, 531, interest_cap if financing == "conventional" else ""),
+                (517, 533, interest_cap if financing == "conventional" else "", 8),
                 (240, 522, interest_first_years if financing == "conventional" else ""),
-                (384, 511, origination_cap if financing == "conventional" else ""),
+                (353, 512, origination_cap if financing == "conventional" else "", 8),
 
-                # C. FHA insured financing. Frozen after QA.
+                # C. FHA insured financing.
                 (58,  414, ck(financing == "fha"), "check_small"),
                 (282, 417, first_present(s.get("fhaSection"), s.get("fhaProgram"), "203(b)") if financing == "fha" else "", 8),
                 (101, 407, fmt_money(s.get("loanAmount", "")) if financing == "fha" else ""),
                 (142, 394, loan_years if financing == "fha" else ""),
-                (356, 394, interest_cap if financing == "fha" else ""),
+                (339, 394, interest_cap if financing == "fha" else "", 8),
                 (111, 381, interest_first_years if financing == "fha" else ""),
-                (229, 371, origination_cap if financing == "fha" else ""),
+                (207, 372, origination_cap if financing == "fha" else "", 8),
 
-                # D. VA guaranteed financing. Frozen after QA.
+                # D. VA guaranteed financing.
                 (58,  358, ck(financing == "va"), "check_small"),
                 (466, 363, fmt_money(s.get("loanAmount", "")) if financing == "va" else ""),
                 (490, 346, loan_years if financing == "va" else ""),
-                (240, 335, interest_cap if financing == "va" else ""),
+                (230, 337, interest_cap if financing == "va" else "", 8),
                 (410, 335, interest_first_years if financing == "va" else ""),
-                (118, 315, origination_cap if financing == "va" else ""),
+                (90, 315, origination_cap if financing == "va" else "", 8),
 
                 # E. USDA guaranteed financing. Release 18B screenshot-directed alignment fix.
                 (58,  303, ck(financing == "usda"), "check_small"),
                 (492, 303, fmt_money(s.get("loanAmount", "")) if financing == "usda" else ""),
                 (492, 290, loan_years if financing == "usda" else ""),
-                (230, 278, interest_cap if financing == "usda" else ""),
+                (231, 279, interest_cap if financing == "usda" else "", 8),
                 (395, 278, interest_first_years if financing == "usda" else ""),
-                (520, 268, origination_cap if financing == "usda" else ""),
+                (517, 269, origination_cap if financing == "usda" else "", 8),
             ],
             1: [
                 (205, 729, addr_full, 8),
