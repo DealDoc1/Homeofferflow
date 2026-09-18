@@ -98,6 +98,30 @@ class LowNoisePublicPageTests(unittest.TestCase):
         self.assertIn("guided texas paths", homepage)
         self.assertIn("secure signature request", homepage)
 
+    def test_authenticated_customer_copy_avoids_internal_product_language(self):
+        removed_copy = (
+            "Repeat deal workflow",
+            "Which form or workflow do you need?",
+            "Right workflow",
+            "Guided buyer-offer workflow",
+            "continue the workflow",
+            "Workflow Type",
+            "guided agent workflow",
+            "repeatable team workflow",
+            "PDF, form, SignWell, or workflow support.",
+        )
+        for phrase in removed_copy:
+            with self.subTest(phrase=phrase):
+                self.assertNotIn(phrase, INDEX)
+        for phrase in (
+            "Repeat-offer workspace",
+            "Which form or document do you need?",
+            "Guided buyer-offer questions",
+            "Seller lead type",
+            "Document, signing, or account support.",
+        ):
+            self.assertIn(phrase, INDEX)
+
 
 if __name__ == "__main__":
     unittest.main()

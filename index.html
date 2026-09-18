@@ -3076,7 +3076,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     <div class="auth-role-row broker-role-row" id="authRoleRow">
       <button type="button" class="auth-role-btn active" data-auth-role="agent" onclick="setAuthRole('agent')"><strong>Agent</strong><span>Personal transaction workspace</span></button>
       <button type="button" class="auth-role-btn" data-auth-role="broker" onclick="setAuthRole('broker')"><strong>Broker / Team Lead</strong><span>Team workspace</span></button>
-      <button type="button" class="auth-role-btn" data-auth-role="investor" onclick="setAuthRole('investor')"><strong>Investor</strong><span>Repeat deal workflow</span></button>
+      <button type="button" class="auth-role-btn" data-auth-role="investor" onclick="setAuthRole('investor')"><strong>Investor</strong><span>Repeat-offer workspace</span></button>
     </div>
 
     <div id="signedOutPanel">
@@ -3279,7 +3279,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         </select>
       </div>
       <div class="feedback-field">
-        <label for="missingFormName">Which form or workflow do you need?</label>
+        <label for="missingFormName">Which form or document do you need?</label>
         <input id="missingFormName" maxlength="160" autocomplete="off" placeholder="Form name or code, such as TXR-1101 or TREC-20-8">
       </div>
       <p class="feedback-privacy-note" style="margin:-.15rem 0 .75rem;color:var(--gray);font-size:.78rem;line-height:1.45;">Do not include client names, addresses, MLS numbers, or transaction terms.</p>
@@ -3400,8 +3400,8 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       <div class="hof-interview-guide" data-hof-guide="step06">
         <div class="hof-guide-kicker">✨ Smart path</div>
         <div class="hof-guide-title">Choose the right starting point.</div>
-        <div class="hof-guide-copy">This helps us guide the workflow without pushing you into representation or extra services you didn’t ask for.</div>
-        <div class="hof-guide-chip-row"><span class="hof-guide-chip"><strong>✓</strong> Buyer control</span><span class="hof-guide-chip"><strong>✓</strong> Right workflow</span></div>
+        <div class="hof-guide-copy">This helps us guide the next steps without pushing you into representation or extra services you didn’t ask for.</div>
+        <div class="hof-guide-chip-row"><span class="hof-guide-chip"><strong>✓</strong> Buyer control</span><span class="hof-guide-chip"><strong>✓</strong> Right path</span></div>
       </div>
       <div class="trec-badge">✓ Smart Start · Buyer Representation</div>
       <h2>How are you planning to write this offer?</h2>
@@ -4229,7 +4229,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       <div id="paymentCheckoutReturnNotice" class="notice sage" style="display:none; margin-bottom:1rem;" role="status" aria-live="polite"><strong>Your offer is still saved.</strong> Checkout was not completed, and no charge was made. To resume, confirm the one-time packet acknowledgement and receipt email below; payment is not restarted until you continue to secure checkout.<br><span id="paymentCheckoutResumeHelp" style="display:block;margin-top:.45rem;color:var(--gray-light);font-size:.82rem;">You can review and update those details before resuming.</span><button id="paymentCheckoutResumeButton" class="btn-secondary" type="button" style="margin-top:.65rem;" onclick="resumeCancelledBuyerCheckout()">Review confirmations and resume secure checkout</button></div>
       <div id="packetGenerationRecoveryNotice" class="notice gold" style="display:none; margin-bottom:1rem;" role="status" aria-live="polite"><strong>Check your packet status.</strong><span id="packetGenerationRecoveryMessage" style="display:block; margin-top:.35rem;"></span><button id="packetGenerationRetryButton" class="btn-secondary" type="button" style="margin-top:.65rem;">View next step</button></div>
       <div style="display:grid; grid-template-columns:1fr; gap:0.6rem; margin-bottom:1.5rem;">
-        <div class="pricing-card popular" id="plan-self" onclick="selectPlan('self', 99)"><div class="popular-badge">Current packet</div><div class="plan-name">Self-Serve Buyer Offer Packet</div><div class="plan-price">$99</div><div class="plan-features"><div class="plan-feature">✓ Guided buyer-offer workflow</div><div class="plan-feature">✓ Supported purchase addenda</div><div class="plan-feature">✓ Buyer-side signing delivery</div></div></div>
+        <div class="pricing-card popular" id="plan-self" onclick="selectPlan('self', 99)"><div class="popular-badge">Current packet</div><div class="plan-name">Self-Serve Buyer Offer Packet</div><div class="plan-price">$99</div><div class="plan-features"><div class="plan-feature">✓ Guided buyer-offer questions</div><div class="plan-feature">✓ Supported purchase addenda</div><div class="plan-feature">✓ Buyer-side signing delivery</div></div></div>
       </div>
 
       <div style="background:rgba(200,151,63,0.06); border:1px solid rgba(200,151,63,0.2); border-radius:12px; padding:1rem; margin-bottom:1.25rem;">
@@ -6239,7 +6239,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       </div>
 
       ${nearLimit ? '<div class="notice gold" style="margin-top:.7rem;font-size:.76rem;line-height:1.45;"><strong>Almost at this month’s packet limit.</strong> You have ' + remaining + ' packet' + (remaining === 1 ? '' : 's') + ' left. ' + (isInternalAdminAccess ? 'Finish urgent work, then contact platform support before access pauses.' : 'Finish urgent client work, then review billing options before access pauses. <button class="btn-secondary" type="button" style="margin-top:.45rem" onclick="openBillingPortal(\'usage_near_limit\')">Review Manage Billing</button>') + '</div>' : ''}
-      ${usageExhausted ? '<div class="notice gold" style="margin-top:.7rem;font-size:.76rem;line-height:1.45;"><strong>Monthly packet allowance used.</strong> ' + (isInternalAdminAccess ? 'Contact platform support before generating another packet.' : 'Manage billing to review access options, then return here to continue the workflow. <button class="btn-secondary" type="button" style="margin-top:.45rem" onclick="openBillingPortal(\'usage_exhausted\')">Manage Billing</button>') + '</div>' : ''}
+      ${usageExhausted ? '<div class="notice gold" style="margin-top:.7rem;font-size:.76rem;line-height:1.45;"><strong>Monthly packet allowance used.</strong> ' + (isInternalAdminAccess ? 'Contact platform support before generating another packet.' : 'Manage billing to review access options, then return here to continue. <button class="btn-secondary" type="button" style="margin-top:.45rem" onclick="openBillingPortal(\'usage_exhausted\')">Manage Billing</button>') + '</div>' : ''}
 
       ${actionHtml}
       <div id="subscriptionActionStatus" class="platform-status" role="status" aria-live="polite" aria-atomic="true"></div>
@@ -14242,7 +14242,7 @@ function routeAfterMagicLinkIfNeeded() {
     el.innerHTML = `
       <div class="platform-card">
         <h4>Brokerage Profile</h4>
-        <p>Save the brokerage or team details that personalize your guided workflow, emails, partner defaults, and brokerage workspace.</p>
+        <p>Save the brokerage or team details that personalize your guided experience, emails, partner defaults, and brokerage workspace.</p>
         <div class="platform-grid">
           <div class="field"><label>Account Type</label><select id="brandOrgType"><option value="brokerage" ${(b.org_type || 'brokerage') === 'brokerage' ? 'selected' : ''}>Brokerage</option><option value="team" ${b.org_type === 'team' ? 'selected' : ''}>Team</option><option value="individual" ${b.org_type === 'individual' ? 'selected' : ''}>Individual Agent</option></select></div>
           <div class="field"><label>Brokerage Slug</label><input id="brandSlug" value="${escapeAttr(slug)}" placeholder="ondemand or christian-group"></div>
@@ -14366,7 +14366,7 @@ function routeAfterMagicLinkIfNeeded() {
         <h4>${workspaceTitle}</h4>
         <p>${workspaceDescription}</p>
         <div class="platform-grid">
-          <div class="field"><label>Workflow Type</label><select id="sellerLeadType"><option value="agent_listing">Listing Agent / Seller Rep</option><option value="fsbo">FSBO Referral / Seller Lead</option></select></div>
+          <div class="field"><label>Seller lead type</label><select id="sellerLeadType"><option value="agent_listing">Listing Agent / Seller Rep</option><option value="fsbo">FSBO Referral / Seller Lead</option></select></div>
           <div class="field"><label for="sellerLeadAddress">Property Address</label><input id="sellerLeadAddress" placeholder="Start typing the property address..." autocomplete="off" autocorrect="off" autocapitalize="words" spellcheck="false" aria-describedby="sellerLeadAddressHelp"><small id="sellerLeadAddressHelp" style="display:block;margin-top:.35rem;color:var(--gray-light);">Choose a Google address suggestion when available; manual entry still works.</small></div>
           <div class="field"><label>Seller Name</label><input id="sellerLeadName" placeholder="Seller full name"></div>
           <div class="field"><label>Seller Email</label><input id="sellerLeadEmail" type="email" inputmode="email" autocomplete="email" placeholder="seller@email.com"></div>
@@ -17291,7 +17291,7 @@ function routeAfterMagicLinkIfNeeded() {
         <p class="partner-tier-summary">A credible, selectable presence wherever consumers compare providers in your category.</p>
         <span class="partner-tier-list">
           <span>Company profile in the category directory</span>
-          <span>Available in the neutral workflow provider selector</span>
+          <span>Available in the neutral provider selector</span>
           <span>Logo, contact details, service area, and website CTA</span>
           <span>Profile-view and outbound-click reporting</span>
           <span>Founding Partner badge and onboarding included</span>
@@ -17304,11 +17304,11 @@ function routeAfterMagicLinkIfNeeded() {
         <h4>Featured Partner</h4>
         <div class="partner-tier-price"><strong>$399</strong><span>one time<br>first 90 days</span></div>
         <span class="partner-tier-standard">Then $399/month after 90 days, unless cancelled</span>
-        <p class="partner-tier-summary">More brand exposure on category pages and at a relevant decision point in the workflow.</p>
+        <p class="partner-tier-summary">More brand exposure on category pages and at a relevant customer decision point.</p>
         <span class="partner-tier-list">
           <span>Everything in Core Partner</span>
           <span>Clearly labeled sponsored brand card near the category directory</span>
-          <span>Sponsored education or CTA card in the relevant workflow step</span>
+          <span>Sponsored education or CTA card at a relevant customer decision point</span>
           <span>Enhanced profile with offer, media, or scheduling CTA</span>
           <span>Founding Partner badge, onboarding, and 90-day review</span>
         </span>
@@ -17324,7 +17324,7 @@ function routeAfterMagicLinkIfNeeded() {
         <span class="partner-tier-list">
           <span>Everything in Featured Partner</span>
           <span>First sponsored brand module, separate from and above the neutral category directory</span>
-          <span>Premier sponsored module outside the provider selector in relevant buyer, agent, and FSBO workflows</span>
+          <span>Premier sponsored module outside the provider selector in relevant buyer, agent, and FSBO areas</span>
           <span>One active Premier sponsor per category and market during the pilot</span>
           <span>Priority onboarding, creative setup, and 90-day review</span>
         </span>
@@ -17339,8 +17339,8 @@ function routeAfterMagicLinkIfNeeded() {
         <tbody>
           <tr><td>Category directory</td><td>Standard company profile</td><td>Profile plus a separate sponsored brand card near directory</td><td>Top sponsored brand module above the neutral directory</td></tr>
           <tr><td>Provider selection</td><td>Selectable in neutral results</td><td>Selectable in neutral results</td><td>Selectable in neutral results; never preselected</td></tr>
-          <tr><td>Buyer workflow</td><td>Directory access</td><td>Sponsored education / CTA outside selector</td><td>Premier sponsored module outside selector</td></tr>
-          <tr><td>Agent + FSBO workflows</td><td>Directory access</td><td>Sponsored education / CTA outside selector</td><td>Premier sponsored module outside selector</td></tr>
+          <tr><td>Buyer path</td><td>Directory access</td><td>Sponsored education / CTA outside selector</td><td>Premier sponsored module outside selector</td></tr>
+          <tr><td>Agent + FSBO paths</td><td>Directory access</td><td>Sponsored education / CTA outside selector</td><td>Premier sponsored module outside selector</td></tr>
           <tr><td>Reporting</td><td>Views + outbound clicks</td><td>Views, clicks + CTA engagement</td><td>Priority monthly performance summary</td></tr>
         </tbody>
       </table>
@@ -19472,8 +19472,8 @@ function routeAfterMagicLinkIfNeeded() {
           <div class="broker-safe-chip"><strong>You stay in control</strong><span>${isInvestor ? 'Review each term and use the correct title, legal, and transaction process outside HomeOfferFlow.' : 'You decide when a document is sent or a signature is requested.'}</span></div>
         </div>
         <div class="beta-action-strip">
-          <button class="beta-action-card" type="button" onclick="startAccountTransaction()"><strong>${isInvestor ? 'Start an offer' : 'Start a transaction'}</strong><span>${isInvestor ? 'Open a guided offer with the property and terms you have now.' : 'Choose the transaction in front of you, then use the guided workflow.'}</span></button>
-          <button class="beta-action-card" type="button" onclick="openBetaFeedback()"><strong>Get help or request a form</strong><span>PDF, form, SignWell, or workflow support.</span></button>
+          <button class="beta-action-card" type="button" onclick="startAccountTransaction()"><strong>${isInvestor ? 'Start an offer' : 'Start a transaction'}</strong><span>${isInvestor ? 'Open a guided offer with the property and terms you have now.' : 'Choose the transaction in front of you, then answer the guided questions.'}</span></button>
+          <button class="beta-action-card" type="button" onclick="openBetaFeedback()"><strong>Get help or request a form</strong><span>Document, signing, or account support.</span></button>
         </div>
       </div>
       <div class="broker-disclaimer-card"><strong>${isInvestor ? 'Offer workspace note:' : 'Before you send:'}</strong> Review the completed packet before delivery, acceptance, and signatures. HomeOfferFlow does not provide legal advice or create seller acceptance.</div>
@@ -19788,7 +19788,7 @@ function routeAfterMagicLinkIfNeeded() {
     brokerCard.className = 'broker-role-card';
     brokerCard.innerHTML = `
       <h4>Broker / Team Lead Mode</h4>
-      <p>Use the guided agent workflow plus tools to invite your team, manage memberships, protect private activity, and apply brokerage branding.</p>
+      <p>Use the guided agent tools to invite your team, manage memberships, protect private activity, and apply brokerage branding.</p>
       <div class="broker-role-grid">
         <div class="broker-role-chip"><strong>Account path</strong><span>Agent / Broker login</span></div>
         <div class="broker-role-chip"><strong>Offer path</strong><span>Agent packet builder</span></div>
@@ -19831,7 +19831,7 @@ function routeAfterMagicLinkIfNeeded() {
         <h4>Broker Workspace</h4>
         <p>Manage your brokerage workspace while agents continue using the same packet builder and their own subscriptions.</p>
         <div class="broker-role-grid">
-          <div class="broker-role-chip"><strong>Workspace</strong><span>Offer workflow, defaults, feedback, and an offer workspace.</span></div>
+          <div class="broker-role-chip"><strong>Workspace</strong><span>Offer preparation, saved defaults, feedback, and status tracking.</span></div>
           <div class="broker-role-chip"><strong>Brokerage process</strong><span>Manage team offers and compliance review through your established brokerage process.</span></div>
           <div class="broker-role-chip"><strong>Team settings</strong><span>Manage team billing and partner defaults through their respective workspaces.</span></div>
         </div>
@@ -19924,7 +19924,7 @@ function routeAfterMagicLinkIfNeeded() {
         <div class="landing-path-options" aria-label="HomeOfferFlow product paths">
           <div class="landing-path-chip"><strong>Homebuyer</strong><span><em>$99</em> completed Texas offer packet</span></div>
           <div class="landing-path-chip"><strong>Agent / Broker</strong><span>Guided documents, signatures, and dashboard</span></div>
-          <div class="landing-path-chip"><strong>Investor</strong><span>Repeat-offer workflow with saved defaults</span></div>
+          <div class="landing-path-chip"><strong>Investor</strong><span>Repeat-offer tools with saved defaults</span></div>
           <div class="landing-path-chip"><strong>FSBO Seller</strong><span>Package intake + partner suggestions</span></div>
         </div>
       </details>`);
@@ -21702,9 +21702,9 @@ function routeAfterMagicLinkIfNeeded() {
       const nextActivationStep = activationSteps.find(step => !step.done) || null;
       const launchAction = nextActivationStep
         ? '<button type="button" class="brokerage-access-button" style="margin-top:.7rem" onclick="continueBrokerageLaunch(\'' + safe(nextActivationStep.target) + '\',\'' + safe(nextActivationStep.label) + '\')">Continue: ' + safe(nextActivationStep.label) + '</button>'
-        : '<p class="brokerage-invite-result">Your core team workflow is active. Keep using the workspace to build repeat usage.</p>';
+        : '<p class="brokerage-invite-result">Your core team setup is active. Keep using the workspace to build repeat usage.</p>';
       const activationCard = '<div class="brokerage-activation-card"><h4>Team launch checklist</h4>' +
-        '<p class="brokerage-activation-summary">' + activationComplete + ' of ' + activationSteps.length + ' launch steps complete. Use this as the fastest path to a repeatable team workflow.</p>' +
+        '<p class="brokerage-activation-summary">' + activationComplete + ' of ' + activationSteps.length + ' launch steps complete. Use this as the fastest path to a repeatable team process.</p>' +
         '<ul class="brokerage-activation-list">' + activationSteps.map(step =>
           '<li class="' + (step.done ? 'is-complete' : '') + '"><span class="activation-mark">' + (step.done ? '✓' : '○') + '</span><span>' + safe(step.label) + '</span></li>'
         ).join('') + '</ul>' +

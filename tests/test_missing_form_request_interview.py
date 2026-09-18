@@ -12,7 +12,7 @@ class MissingFormRequestInterviewTests(unittest.TestCase):
         self.assertIn('id="missingFormTransaction"', HTML)
         self.assertIn('id="missingFormName"', HTML)
         self.assertIn('What type of transaction is this for?', HTML)
-        self.assertIn('Which form or workflow do you need?', HTML)
+        self.assertIn('Which form or document do you need?', HTML)
         self.assertIn('Do not include client names, addresses, MLS numbers, or transaction terms.', HTML)
 
     def test_submission_keeps_the_existing_feedback_contract_and_normalizes_demand(self):

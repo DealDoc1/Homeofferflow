@@ -6,6 +6,13 @@ reducing verification standards.
 
 ## Local continuation status - September 18, 2026
 
+Authenticated entry, billing, help, brokerage, seller-lead and partner-plan
+surfaces now describe customer actions instead of internal “workflow” language.
+Generic help copy also says “signing” rather than exposing the SignWell vendor
+name. Event names, API fields, prices, entitlements and transaction behavior
+are unchanged. One hundred five focused tests pass. This is **locally
+implemented and tested, not deployed**. See [authenticated language evidence](release-evidence/authenticated-plain-language-cleanup-2026-09-18.md).
+
 The homepage and six primary public acquisition pages now use direct customer
 actions instead of visible internal “workflow” language. Buyer, agent,
 investor and partner copy now explains the next action in plain language;
