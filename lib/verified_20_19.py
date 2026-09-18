@@ -17,6 +17,10 @@ from lib.lease_terms_continuation import (
     text_entries as lease_terms_entries, render_continuation as render_lease_terms_continuation,
     page_count as lease_terms_page_count,
 )
+from lib.contract_terms_continuation import (
+    text_entries as contract_terms_entries, render_continuation as render_contract_terms_continuation,
+    page_count as contract_terms_page_count,
+)
 
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
 STRIPE_WHSEC   = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
@@ -778,7 +782,7 @@ def build_pages_data(
     pages[5] = [
         (129, 751, addr_full),
 
-        *wrapped_entries(95, 704, s.get("brokerDisclosure", ""), max_chars=105, line_gap=10, fs=7, max_lines=3),
+        *contract_terms_entries(s.get("brokerDisclosure", ""), "broker"),
 
         (295, 669, closing_md),
         (448, 669, closing_yy),
@@ -786,7 +790,7 @@ def build_pages_data(
         (356, 449, ck(possession == "funding"), "check_small"),
         (502, 449, ck(possession == "lease"), "check_small"),
 
-        *wrapped_entries(45, 226, first_present(s.get("specialProvisions"), s.get("specialProvisionsText")), max_chars=115, line_gap=10, fs=7, max_lines=3),
+        *contract_terms_entries(first_present(s.get("specialProvisions"), s.get("specialProvisionsText")), "special"),
 
         # 20-19 Paragraph 12A(1)(b): seller contribution to Buyer's Expenses, not brokerage compensation.
         (250, 143, fmt_money(concession_amount) if concession_amount else ""),
@@ -1414,6 +1418,9 @@ def fill_and_merge(offer):
     lease_continuation = render_lease_terms_continuation(s, lease_kind)
     if lease_continuation:
         merger.append(PdfReader(BytesIO(lease_continuation)))
+    contract_continuation = render_contract_terms_continuation(s)
+    if contract_continuation:
+        merger.append(PdfReader(BytesIO(contract_continuation)))
 
     out = BytesIO()
     merger.write(out)
@@ -1663,13 +1670,22 @@ def build_signwell_fields(offer, pdf_bytes):
             fields_for_file.append(continuation_field("2", page, index + 1, "nonrealty"))
 
     lease_kind = "buyer" if buyer_temp_lease_attached else "seller" if seller_temp_lease_attached else ""
-    for index in range(lease_terms_page_count(offer, lease_kind)):
+    lease_page_count = lease_terms_page_count(offer, lease_kind)
+    for index in range(lease_page_count):
         page = next_page + repair_page_count + nonrealty_page_count + index
         if page > page_count:
             raise ValueError("The temporary lease continuation is missing from this packet.")
         fields_for_file.append(continuation_field("1", page, index + 1, "lease"))
         if has_buyer2:
             fields_for_file.append(continuation_field("2", page, index + 1, "lease"))
+
+    for index in range(contract_terms_page_count(offer)):
+        page = next_page + repair_page_count + nonrealty_page_count + lease_page_count + index
+        if page > page_count:
+            raise ValueError("The purchase contract terms continuation is missing from this packet.")
+        fields_for_file.append(continuation_field("1", page, index + 1, "contract_terms"))
+        if has_buyer2:
+            fields_for_file.append(continuation_field("2", page, index + 1, "contract_terms"))
 
     fields = [fields_for_file]
 

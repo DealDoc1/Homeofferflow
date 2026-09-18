@@ -184,3 +184,9 @@ This resolves the party-name, property-identification, and email-width items
 in the preceding lease follow-up. Purchase-contract special provisions,
 broker disclosures, comprehensive Unicode coverage, and actual provider-
 completed continuation/signature visual QA remain separate work.
+
+Subsequent local work on September 18 addresses purchase-contract Paragraph 8
+disclosures and Paragraph 11 special provisions; see
+`contract-terms-continuation-2026-09-18.md` for the measured bounds, full-text
+preservation, tests, and unsigned visual evidence. This does not change the
+remaining completed-provider QA or broader Unicode limitations.
