@@ -50,9 +50,10 @@ test('ordinary punctuation, Unicode, and literal entities survive without mutati
   x.buildReview();assert.ok(x.nodes.reviewSummary.innerHTML.includes('O\'Brien &amp; García &lt;Trust&gt; &quot;North&quot; &amp;amp;'));
   assert.equal(x.state.data.buyer1,name);
 });
-test('description is truncated before escaping so entities remain intact',()=>{
+test('full non-realty description is preserved and safely escaped',()=>{
   const x=setup({nonRealtyItems:'yes',nonRealtyDescription:'x'.repeat(119)+'<&tail'});x.buildReview();
-  assert.ok(x.nodes.reviewSummary.innerHTML.includes('x'.repeat(119)+'&lt;…'));
+  assert.ok(x.nodes.reviewSummary.innerHTML.includes('x'.repeat(119)+'&lt;&amp;tail'));
+  assert.ok(!x.nodes.reviewSummary.innerHTML.includes('…'));
 });
 test('blank placeholders, numeric formatting, and addendum markup remain intact',()=>{
   const x=setup({price:350000,earnest:0,financing:'conventional'});x.buildReview();
@@ -139,5 +140,70 @@ test('invalid or missing lease amounts never show NaN or a made-up zero',()=>{
   const out=x.nodes.reviewSummary.innerHTML;assert.doesNotMatch(out,/NaN|\$0/);
   for(const label of ['Daily rent','Total rent','Security deposit']){
     assert.ok(out.includes(label+'</span><span class="rv"><span style="color:var(--warn);font-size:0.8rem;">Not entered'));
+  }
+});
+function packageTags(ctx){
+  return [...ctx.nodes.reviewSummary.innerHTML.matchAll(/<span class="addendum-tag[^\"]*">([^<]+)<\/span>/g)].map(match=>match[1]);
+}
+test('a cash-only packet shows its contract without irrelevant addenda',()=>{
+  const x=setup({financing:'cash',hoa:'no',nonRealtyItems:'no'});x.buildReview();
+  assert.deepEqual(packageTags(x),['✓ TREC 1–4 Family Residential Contract']);
+  assert.doesNotMatch(x.nodes.reviewSummary.innerHTML,/addendum-tag na|Lead-Based Paint — flag/);
+});
+test('district and lead reminders cannot claim a document is attached',()=>{
+  for(const choice of ['yes','unknown']){
+    const x=setup({mud:choice,leadBuiltBefore1978:choice,leadDisclosureStatus:'received'});x.buildReview();
+    assert.deepEqual(packageTags(x),['✓ TREC 1–4 Family Residential Contract']);
+    assert.match(x.nodes.reviewSummary.innerHTML,/MUD \/ PID notices/);
+    assert.match(x.nodes.reviewSummary.innerHTML,/Upload notices to include them in this package/);
+    assert.match(x.nodes.reviewSummary.innerHTML,/Buyer has received it/);
+  }
+  assert.doesNotMatch(html,/I'm not sure — include disclosure to be safe/);
+});
+test('an uploaded notice appears as an upload, not as an automatically generated disclosure',()=>{
+  const x=setup({mud:'yes',leadBuiltBefore1978:'yes'},[{name:'Provided district notice.pdf',base64:'JVBERg=='}]);x.buildReview();
+  assert.deepEqual(packageTags(x),['✓ TREC 1–4 Family Residential Contract','✓ Uploaded documents']);
+  assert.match(x.nodes.reviewSummary.innerHTML,/Provided district notice.pdf/);
+});
+test('appraisal eligibility matches current packet financing choices and drops stale selections',()=>{
+  for(const financing of ['cash','fha','va','conventional','usda']){
+    for(const appraisalAddendum of ['none','waiver','partial','additional','unknown']){
+      const x=setup({financing,appraisalAddendum});x.buildReview();
+      const expected=['conventional','usda'].includes(financing)&&['waiver','partial','additional'].includes(appraisalAddendum);
+      assert.equal(packageTags(x).includes('✓ Appraisal Addendum'),expected,financing+' '+appraisalAddendum);
+      assert.equal(x.nodes.reviewSummary.innerHTML.includes('<span class="rl">Appraisal Addendum</span>'),expected);
+    }
+  }
+});
+test('non-realty list retains final model numbers, line breaks, and zero consideration',()=>{
+  const description='Kitchen refrigerator & laundry appliances.\n'+'Serial XYZ123; '.repeat(30)+'FINAL ITEM: patio table <oak>';
+  const data={nonRealtyItems:'yes',nonRealtyAmount:0,nonRealtyDescription:description};
+  const x=setup(data);x.buildReview();
+  assert.ok(x.nodes.reviewSummary.innerHTML.includes('$0 · '+x.escapeAttr(description)));
+  assert.ok(packageTags(x).includes('✓ Non-Realty Items'));
+  assert.equal(data.nonRealtyDescription,description);
+  data.nonRealtyItems='no';x.buildReview();
+  assert.doesNotMatch(x.nodes.reviewSummary.innerHTML,/FINAL ITEM/);
+  assert.ok(!packageTags(x).includes('✓ Non-Realty Items'));
+});
+test('missing non-realty description remains visible without falsely listing an included addendum',()=>{
+  const x=setup({nonRealtyItems:'yes',nonRealtyDescription:''});x.buildReview();
+  assert.match(x.nodes.reviewSummary.innerHTML,/Non-Realty Items<\/span><span class="rv">No separate amount · <span[^>]*>Not entered/);
+  assert.ok(!packageTags(x).includes('✓ Non-Realty Items'));
+});
+test('selected addenda stay in the clean package list',()=>{
+  const x=setup({financing:'conventional',appraisalAddendum:'waiver',hoa:'yes',saleContingency:'yes',
+    backupOffer:'yes',nonRealtyItems:'yes',nonRealtyDescription:'Refrigerator',leaseResidential:'yes',
+    leaseFixture:'yes',possession:'sellerTemporaryLease'});x.buildReview();
+  assert.deepEqual(packageTags(x),['✓ TREC 1–4 Family Residential Contract','✓ Third Party Financing Addendum',
+    '✓ Appraisal Addendum','✓ HOA Addendum','✓ Sale of Other Property','✓ Back-Up Contract',
+    '✓ Non-Realty Items','✓ Residential Lease Addendum','✓ Fixture Lease Addendum',"✓ Seller's Temporary Residential Lease"]);
+});
+test('blank non-realty consideration remains distinct from an explicit zero',()=>{
+  for(const amount of ['',null,undefined,0,'0']){
+    const x=setup({nonRealtyItems:'yes',nonRealtyDescription:'Refrigerator',nonRealtyAmount:amount});x.buildReview();
+    const expected=amount===0||amount==='0'?'$0':'No separate amount';
+    assert.ok(x.nodes.reviewSummary.innerHTML.includes(expected+' · Refrigerator'));
+    assert.equal(x.state.data.nonRealtyAmount,amount);
   }
 });

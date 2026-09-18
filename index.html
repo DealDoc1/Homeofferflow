@@ -3887,7 +3887,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       </div>
 
       <div class="field" style="margin-bottom:1.5rem;"><div class="field-label-row"><label>§6D — Intended Use (optional)</label><button class="helper-btn" onclick="toggleHelper('h-intended-use')">?</button></div><div class="helper-box" id="h-intended-use"><strong>💡 Intended Use</strong>For a standard residential purchase, this is often left blank. If the buyer has a special intended use, confirm with the agent, broker, or attorney before adding language.</div><input type="text" id="intendedUse" placeholder="Leave blank if standard residential"/></div>
-      <div class="field" style="margin-bottom:1.5rem;"><div class="field-label-row"><label>MUD / PID Assessment District?</label><button class="helper-btn" onclick="toggleHelper('h-mud-pid')">?</button></div><div class="helper-box" id="h-mud-pid"><strong>💡 MUD / PID / Assessment District</strong>Some Texas properties have special districts or assessments that require notices. If unsure, check the MLS listing, seller disclosure, tax records, or ask the listing side before sending.</div><select id="mudDistrict"><option value="">Select...</option><option value="yes">Yes — property is in a MUD or PID</option><option value="no">No special assessment district</option><option value="unknown">I'm not sure — include disclosure to be safe</option></select></div>
+      <div class="field" style="margin-bottom:1.5rem;"><div class="field-label-row"><label>MUD / PID Assessment District?</label><button class="helper-btn" onclick="toggleHelper('h-mud-pid')">?</button></div><div class="helper-box" id="h-mud-pid"><strong>💡 MUD / PID / Assessment District</strong>Some Texas properties have special districts or assessments that require notices. If unsure, check the MLS listing, seller disclosure, tax records, or ask the listing side before sending. Upload any notices you want included in this package.</div><select id="mudDistrict"><option value="">Select...</option><option value="yes">Yes — property is in a MUD or PID</option><option value="no">No special assessment district</option><option value="unknown">I'm not sure — confirm with the listing side</option></select></div>
 
 
       <div style="padding-top:0.75rem; border-top:1px solid rgba(255,255,255,0.07); margin-bottom:1.25rem;">
@@ -10380,8 +10380,10 @@ function routeAfterMagicLinkIfNeeded() {
       const raw = String(v ?? '').trim().replace(/,/g, '');
       return raw && Number.isFinite(Number(raw)) ? '$' + Number(raw).toLocaleString() : '';
     };
-    const atag = (label, on) => `<span class="addendum-tag ${on ? '' : 'na'}">${on ? '✓' : '—'} ${label}</span>`;
+    const atag = (label, on) => on ? `<span class="addendum-tag ">✓ ${label}</span>` : '';
     const hasLoan = ['conventional','fha','va','usda'].includes(s.financing);
+    const hasAppraisal = hasLoan && !['fha','va'].includes(s.financing) && ['waiver','partial','additional'].includes(s.appraisalAddendum);
+    const hasNonRealty = s.nonRealtyItems === 'yes' && Boolean(String(s.nonRealtyDescription || '').trim());
     const sellerLease = s.possession === 'sellerTemporaryLease';
     const buyerLease = s.possession === 'buyerTemporaryLease';
     const possessionLabel = {
@@ -10426,9 +10428,9 @@ function routeAfterMagicLinkIfNeeded() {
         <div class="review-row"><span class="rl">Financing</span><span class="rv">${text(s.financing ? s.financing.charAt(0).toUpperCase() + s.financing.slice(1) : '—')}</span></div>
         ${hasLoan ? `<div class="review-row"><span class="rl">Down Payment / Cash</span><span class="rv">${fmtM(s.downPayment)}</span></div>` : ''}
         ${hasLoan ? `<div class="review-row"><span class="rl">Loan Amount</span><span class="rv">${fmtM(s.loanAmount)}</span></div>` : ''}
-        ${s.appraisalAddendum && s.appraisalAddendum !== 'none' ? `<div class="review-row"><span class="rl">Appraisal Addendum</span><span class="rv">${text(s.appraisalAddendum === 'waiver' ? 'Waiver' : s.appraisalAddendum === 'partial' ? 'Partial waiver at ' + fmtM(s.appraisalPartialValue) : 'Additional termination right: ' + (s.appraisalTerminateDays || '—') + ' days / below ' + fmtM(s.appraisalTerminateValue))}</span></div>` : ''}
-        ${s.nonRealtyItems === 'yes' ? `<div class="review-row"><span class="rl">Non-Realty Items</span><span class="rv">${s.nonRealtyAmount ? fmtM(s.nonRealtyAmount) : 'No separate amount'} · ${text((s.nonRealtyDescription || '').slice(0, 120))}${(s.nonRealtyDescription || '').length > 120 ? '…' : ''}</span></div>` : ''}
-        ${(window.hofUploadedDisclosureDocs || []).length ? `<div class="review-row"><span class="rl">Uploaded Docs</span><span class="rv">${text((window.hofUploadedDisclosureDocs || []).map(d => d.name).join(', '))}</span></div>` : ''}
+        ${hasAppraisal ? `<div class="review-row"><span class="rl">Appraisal Addendum</span><span class="rv">${text(s.appraisalAddendum === 'waiver' ? 'Waiver' : s.appraisalAddendum === 'partial' ? 'Partial waiver at ' + fmtM(s.appraisalPartialValue) : 'Additional termination right: ' + (s.appraisalTerminateDays || '—') + ' days / below ' + fmtM(s.appraisalTerminateValue))}</span></div>` : ''}
+        ${s.nonRealtyItems === 'yes' ? `<div class="review-row review-long-text"><span class="rl">Non-Realty Items</span><span class="rv">${fmtM(s.nonRealtyAmount) || 'No separate amount'} · ${fmt(s.nonRealtyDescription)}</span></div>` : ''}
+        ${(window.hofUploadedDisclosureDocs || []).length ? `<div class="review-row"><span class="rl">Uploaded documents</span><span class="rv">${text((window.hofUploadedDisclosureDocs || []).map(d => d.name).join(', '))}</span></div>` : ''}
       </div>
 
       <div class="review-section"><div class="review-section-title">Title & Disclosures</div>
@@ -10438,6 +10440,7 @@ function routeAfterMagicLinkIfNeeded() {
         
         <div class="review-row"><span class="rl">Lead-Based Paint</span><span class="rv">${s.leadBuiltBefore1978 === 'yes' ? 'Built before 1978 — disclosure should be confirmed' : (s.leadBuiltBefore1978 === 'unknown' ? 'Unknown year — verify before signing' : (s.leadBuiltBefore1978 === 'no' ? 'Built 1978 or later' : '—'))}</span></div>
         ${s.leadBuiltBefore1978 === 'yes' || s.leadBuiltBefore1978 === 'unknown' ? `<div class="review-row"><span class="rl">Lead Disclosure Status</span><span class="rv">${s.leadDisclosureStatus === 'received' ? 'Buyer has received it' : (s.leadDisclosureStatus === 'request' ? 'Request from listing agent/seller' : 'Needs confirmation')}</span></div>` : ''}
+        ${s.mud === 'yes' || s.mud === 'unknown' ? `<div class="review-row"><span class="rl">MUD / PID notices</span><span class="rv">${s.mud === 'yes' ? 'Confirm the applicable district notices with the listing side.' : 'Confirm district status and any applicable notices with the listing side.'} Upload notices to include them in this package.</span></div>` : ''}
         <div class="review-row"><span class="rl">Seller Disclosure</span><span class="rv">${text(s.sellerDisclosure === 'received' ? 'Received' : s.sellerDisclosure === 'notReceived' ? `Not received — ${s.disclosureDays || '—'} days` : s.sellerDisclosure === 'exempt' ? 'Seller exempt' : '—')}</span></div>
         <div class="review-row"><span class="rl">Property Condition</span><span class="rv">${s.asIs === 'yes' ? 'As Is' : s.asIs === 'repairs' ? 'As Is with repairs' : '—'}</span></div>
         ${s.asIs === 'repairs' ? `<div class="review-row review-long-text"><span class="rl">Required repairs or treatments</span><span class="rv">${fmt(s.repairsText)}</span></div>` : ''}
@@ -10458,22 +10461,21 @@ function routeAfterMagicLinkIfNeeded() {
         ${leaseRows.map(([label, value]) => `<div class="review-row review-long-text"><span class="rl">${label}</span><span class="rv">${fmt(value)}</span></div>`).join('')}
       </div>` : ''}
 
-      <div class="review-section"><div class="review-section-title">Addenda Included</div>
+      <div class="review-section"><div class="review-section-title">Your document package</div>
         <div style="margin-top:0.4rem; line-height:2.3;">
+          ${atag('TREC 1–4 Family Residential Contract', true)}
           ${atag('Third Party Financing Addendum', hasLoan)}
-          ${atag('Appraisal Addendum', s.appraisalAddendum && s.appraisalAddendum !== 'none')}
+          ${atag('Appraisal Addendum', hasAppraisal)}
           ${atag('HOA Addendum', s.hoa === 'yes' || s.hoa === 'unknown')}
           ${atag('Sale of Other Property', s.saleContingency === 'yes')}
           ${atag('Back-Up Contract', s.backupOffer === 'yes')}
-          ${atag('Non-Realty Items', s.nonRealtyItems === 'yes')}
+          ${atag('Non-Realty Items', hasNonRealty)}
           ${atag('Hydrostatic-Testing Authorization', s.hydrostaticTesting === 'yes')}
           ${atag('Residential Lease Addendum', s.leaseResidential === 'yes')}
           ${atag('Fixture Lease Addendum', s.leaseFixture === 'yes')}
           ${atag("Seller's Temporary Residential Lease", sellerLease)}
           ${atag("Buyer's Temporary Residential Lease", buyerLease)}
-          ${atag('Uploaded Disclosure Docs', (window.hofUploadedDisclosureDocs || []).length > 0)}
-          ${atag('MUD/PID Disclosure', s.mud === 'yes' || s.mud === 'unknown')}
-          ${atag('Lead-Based Paint — flag', s.leadBuiltBefore1978 === 'yes' || s.leadBuiltBefore1978 === 'unknown')}
+          ${atag('Uploaded documents', (window.hofUploadedDisclosureDocs || []).length > 0)}
         </div>
       </div>`;
 

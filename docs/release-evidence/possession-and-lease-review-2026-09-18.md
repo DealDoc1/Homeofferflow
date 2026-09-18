@@ -58,6 +58,8 @@ listed under "Addenda Included" even though those flags alone do not attach a
 document. Non-realty descriptions are still shortened in the review. Address
 those mismatches separately; do not claim the entire review or all customer
 paths are complete from the limited checks above.
+The local follow-up for those two review mismatches is now recorded in
+`package-review-accuracy-2026-09-18.md`; it is not a production release.
 
 Include the fixes as locally implemented/tested in the next daily report, with
 no measured production conversion or revenue impact claimed.
