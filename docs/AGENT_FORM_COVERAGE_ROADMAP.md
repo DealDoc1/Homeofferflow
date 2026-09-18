@@ -10,6 +10,16 @@ the pending batch are also absent from production, confirmed by catalog reads.
 These are verified release dependencies, not a new login or customer approval
 requirement. See [current release evidence](release-evidence/production-release-revalidation-2026-09-18.md).
 
+Standalone TXR-1948 appraisal-addendum answers now stay within measured source
+blanks or continue intact on an initialed attachment. Editable fields retain
+matching canonical values and embedded Unicode appearances; preview names no
+longer overlap, and signing copies leave execution lines clear. All five pages
+of three source-backed candidates were visually checked, with offline delivery
+coverage for every buyer/seller combination. This is **locally tested, not
+deployed or completed-provider verified**. The separate combined purchase-offer
+appraisal renderer is not covered by this change. See
+[appraisal answer evidence](release-evidence/txr1948-answer-candidate-2026-09-18.md).
+
 Generated mineral-reservation, loan-assumption, residential-lease and
 fixture-lease addenda now remove the original supplier's contact imprint from
 the four exact reviewed blank sources. All five affected pages pass strict
