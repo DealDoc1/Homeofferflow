@@ -3946,7 +3946,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       <p class="step-desc">A few final deal terms before review.</p>
       <div class="field-group">
         <div class="field"><div class="field-label-row"><label>Target Closing Date</label><button class="helper-btn" onclick="toggleHelper('h-closing-date')">?</button></div><div class="helper-box" id="h-closing-date"><strong>💡 Closing Date</strong>Choose a date that works with the lender, title company, agent, and the parties. If it falls on a weekend or banking holiday, confirm the practical funding timeline before sending.</div><div class="date-field-wrap"><input type="date" id="closingDate"/></div></div>
-        <div class="field"><div class="field-label-row"><label>Possession</label><button class="helper-btn" onclick="toggleHelper('h-possession')">?</button></div><div class="helper-box" id="h-possession"><strong>💡 Possession Timing</strong>“Upon Funding” is commonly used because closing and funding are not always the same instant. If either party will remain after closing, use the matching temporary-lease questions below.</div><select id="possession" onchange="toggleSellerTemporaryLeaseFields()"><option value="">Select...</option><option value="closing">At Closing</option><option value="funding">Upon Funding (recommended)</option><option value="sellerTemporaryLease">Seller remains temporarily after closing</option><option value="buyerTemporaryLease">Buyer occupies temporarily after closing</option></select></div>
+        <div class="field"><div class="field-label-row"><label>Possession</label><button class="helper-btn" onclick="toggleHelper('h-possession')">?</button></div><div class="helper-box" id="h-possession"><strong>💡 Possession Timing</strong>The purchase contract provides for possession upon closing and funding unless a temporary lease applies. Use a buyer's temporary lease for occupancy before closing, or a seller's temporary lease if the seller stays after closing.</div><select id="possession" onchange="toggleSellerTemporaryLeaseFields()"><option value="">Select...</option><option value="closing" hidden>Upon closing and funding</option><option value="funding">Upon closing and funding</option><option value="sellerTemporaryLease">Seller remains temporarily after closing</option><option value="buyerTemporaryLease">Buyer occupies temporarily before closing</option></select></div>
         <div id="sellerSigningFields" class="field-group" style="display:none;">
           <p class="step-desc">Who will sign for the seller? Each signer receives a separate invitation at the same time.</p>
           <div class="field"><label for="seller1Name">Seller 1 full name</label><input id="seller1Name" type="text" autocomplete="name"/></div>
@@ -3971,7 +3971,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         </div>
         <div id="buyerTemporaryLeaseFields" style="display:none; margin-top:0.9rem; padding:1rem; border:1px solid rgba(227,186,86,0.45); border-radius:12px; background:rgba(227,186,86,0.08);">
           <p style="font-size:0.84rem; font-weight:700; color:var(--gold-light); margin:0 0 0.4rem;">Buyer's Temporary Residential Lease</p>
-          <p class="step-desc" style="margin:0 0 0.75rem;">This adds TREC 16-7 for a buyer who will occupy the property after closing. Enter the agreed lease terms for the buyer and current seller.</p>
+          <p class="step-desc" style="margin:0 0 0.75rem;">For buyer occupancy before closing, for up to 90 days. The buyer is the tenant; the seller is the landlord. Enter the agreed lease terms.</p>
           <div class="field-group">
             <div class="field"><label>Lease start date</label><input id="buyerTemporaryLeaseStartDate" type="date"></div>
             <div class="field"><label>Daily rent</label><input id="buyerTemporaryLeaseRentPerDay" inputmode="decimal" placeholder="e.g. 125"></div>
@@ -10376,9 +10376,30 @@ function routeAfterMagicLinkIfNeeded() {
     const s = state.data;
     const text = v => escapeAttr(v == null ? '' : String(v));
     const fmt = v => v ? text(v) : '<span style="color:var(--warn);font-size:0.8rem;">Not entered</span>';
-    const fmtM = v => v !== '' && v !== undefined && v !== null ? '$' + Number(v).toLocaleString() : '';
+    const fmtM = v => {
+      const raw = String(v ?? '').trim().replace(/,/g, '');
+      return raw && Number.isFinite(Number(raw)) ? '$' + Number(raw).toLocaleString() : '';
+    };
     const atag = (label, on) => `<span class="addendum-tag ${on ? '' : 'na'}">${on ? '✓' : '—'} ${label}</span>`;
     const hasLoan = ['conventional','fha','va','usda'].includes(s.financing);
+    const sellerLease = s.possession === 'sellerTemporaryLease';
+    const buyerLease = s.possession === 'buyerTemporaryLease';
+    const possessionLabel = {
+      closing: 'Upon closing and funding', funding: 'Upon closing and funding',
+      sellerTemporaryLease: 'Seller remains temporarily after closing',
+      buyerTemporaryLease: 'Buyer occupies temporarily before closing'
+    }[s.possession] || '';
+    const leasePrefix = sellerLease ? 'sellerTemporaryLease' : 'buyerTemporaryLease';
+    const leaseRows = (sellerLease || buyerLease) ? [
+      [sellerLease ? 'Lease termination date' : 'Lease start date', s[leasePrefix + (sellerLease ? 'TerminationDate' : 'StartDate')]],
+      ['Daily rent', fmtM(s[leasePrefix + 'RentPerDay'])],
+      ...(!sellerLease ? [['Total rent', fmtM(s.buyerTemporaryLeaseTotalRent)]] : []),
+      ['Security deposit', fmtM(s[leasePrefix + 'Deposit'])],
+      [sellerLease ? 'Utilities paid by buyer' : 'Utilities paid by seller', s[leasePrefix + (sellerLease ? 'UtilitiesPaidByBuyer' : 'UtilitiesPaidBySeller')]],
+      ['Permitted pets', s[leasePrefix + 'PetsAllowed']],
+      ['Daily holdover charge', fmtM(s[leasePrefix + 'HoldoverPerDay'])],
+      ...(s[leasePrefix + 'SpecialProvisions'] ? [['Lease special provisions', s[leasePrefix + 'SpecialProvisions']]] : [])
+    ] : [];
 
     document.getElementById('reviewSummary').innerHTML = `
       <div class="review-section"><div class="review-section-title">Parties</div>
@@ -10424,7 +10445,7 @@ function routeAfterMagicLinkIfNeeded() {
 
       <div class="review-section"><div class="review-section-title">Closing</div>
         <div class="review-row"><span class="rl">Closing Date</span><span class="rv">${fmt(s.closingDate)}</span></div>
-        <div class="review-row"><span class="rl">Possession</span><span class="rv">${fmt(s.possession)}</span></div>
+        <div class="review-row"><span class="rl">Possession</span><span class="rv">${fmt(possessionLabel)}</span></div>
         <div class="review-row"><span class="rl">Title Company</span><span class="rv">${text(s.titleCompany || 'TBD')}</span></div>
         <div class="review-row"><span class="rl">Buyer's Agent</span><span class="rv">${text(s.hasBuyerAgent === 'yes' ? (s.agentName || 'Yes — name not entered') : 'None')}</span></div>
         ${s.hasBuyerAgent === 'yes' && s.agentBrokerage ? `<div class="review-row"><span class="rl">Brokerage</span><span class="rv">${text(s.agentBrokerage)}</span></div>` : ''}
@@ -10432,6 +10453,10 @@ function routeAfterMagicLinkIfNeeded() {
         ${s.wantsConcessions === 'yes' ? `<div class="review-row"><span class="rl">Seller Concessions</span><span class="rv">${fmtM(s.concessionAmount)}</span></div>` : ''}
         ${s.homeWarranty === 'yes' ? `<div class="review-row"><span class="rl">Home Warranty Request</span><span class="rv">${fmtM(s.homeWarrantyAmount)}</span></div>` : ''}
       </div>
+
+      ${leaseRows.length ? `<div class="review-section"><div class="review-section-title">${sellerLease ? "Seller's" : "Buyer's"} temporary residential lease</div>
+        ${leaseRows.map(([label, value]) => `<div class="review-row review-long-text"><span class="rl">${label}</span><span class="rv">${fmt(value)}</span></div>`).join('')}
+      </div>` : ''}
 
       <div class="review-section"><div class="review-section-title">Addenda Included</div>
         <div style="margin-top:0.4rem; line-height:2.3;">
@@ -10444,6 +10469,8 @@ function routeAfterMagicLinkIfNeeded() {
           ${atag('Hydrostatic-Testing Authorization', s.hydrostaticTesting === 'yes')}
           ${atag('Residential Lease Addendum', s.leaseResidential === 'yes')}
           ${atag('Fixture Lease Addendum', s.leaseFixture === 'yes')}
+          ${atag("Seller's Temporary Residential Lease", sellerLease)}
+          ${atag("Buyer's Temporary Residential Lease", buyerLease)}
           ${atag('Uploaded Disclosure Docs', (window.hofUploadedDisclosureDocs || []).length > 0)}
           ${atag('MUD/PID Disclosure', s.mud === 'yes' || s.mud === 'unknown')}
           ${atag('Lead-Based Paint — flag', s.leadBuiltBefore1978 === 'yes' || s.leadBuiltBefore1978 === 'unknown')}
@@ -10471,6 +10498,8 @@ function routeAfterMagicLinkIfNeeded() {
     if (signing) {
       signing.textContent = s.hydrostaticTesting === 'yes'
         ? hydrostaticSigningSummary(s)
+        : sellerLease
+        ? 'Buyers and sellers receive signing invitations together for the purchase contract, seller\'s temporary lease, and any other included seller-signed addenda.'
         : paragraph4Forms.length
         ? `Buyers and sellers receive signing invitations together. Sellers sign only the included ${paragraph4Forms.join(' and ')}. Seller acceptance and any other seller-side signatures remain with the seller or listing side.`
         : 'HomeOfferFlow routes buyer signatures, buyer dates, and buyer initials. Seller acceptance and seller-side signatures remain with the seller or listing side.';
@@ -17841,8 +17870,8 @@ function routeAfterMagicLinkIfNeeded() {
           </select></div>
           <div class="field"><label>Earnest Money Percent</label><input id="profDefaultEarnestPercent" type="number" step="0.1" value="${escapeHtml(x.default_earnest_percent || '1')}" placeholder="1"></div>
           <div class="field"><label>Default Possession</label><select id="profDefaultPossession">
-            <option value="funding" ${(x.default_possession || 'funding') === 'funding' ? 'selected' : ''}>Upon Funding</option>
-            <option value="closing" ${x.default_possession === 'closing' ? 'selected' : ''}>At Closing</option>
+            <option value="funding" ${(x.default_possession || 'funding') === 'funding' ? 'selected' : ''}>Upon closing and funding</option>
+            <option value="closing" hidden ${x.default_possession === 'closing' ? 'selected' : ''}>Upon closing and funding</option>
             <option value="leaseback" ${x.default_possession === 'leaseback' ? 'selected' : ''}>Seller Leaseback</option>
           </select></div>
           <div class="field"><label>Default Financing</label><select id="profDefaultFinancing">
@@ -17914,7 +17943,7 @@ function routeAfterMagicLinkIfNeeded() {
     if (!window.hofAuth?.session?.user?.id || window.state?.data?.userType !== role) return;
     const x = readExtraDefaults();
     const selectedRadio = name => document.querySelector(`input[name="${name}"]:checked`)?.value || '';
-    setVal('possession', x.default_possession || 'funding', force);
+    setVal('possession', x.default_possession === 'leaseback' ? 'sellerTemporaryLease' : (x.default_possession || 'funding'), force);
     if (x.default_financing && (force || !selectedRadio('financing'))) setRadio('financing', x.default_financing);
 
     if ((x.default_earnest_rule || 'amount') === 'percent') {

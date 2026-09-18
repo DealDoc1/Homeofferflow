@@ -22,7 +22,7 @@ function setup(data={},docs=[]){
 }
 const payload='<img src=x onerror="alert(1)"> & "Client"';
 const escaped='&lt;img src=x onerror=&quot;alert(1)&quot;&gt; &amp; &quot;Client&quot;';
-const fields=['buyer1','buyer2','seller','buyerPhone','buyerEmail','buyerMailAddr','address','city','zip','county','lotNumber','blockNumber','subdivision','legalDescription','optionDays','financing','appraisalTerminateDays','nonRealtyDescription','disclosureDays','closingDate','possession','titleCompany','agentName','agentBrokerage','brokerFeePercent'];
+const fields=['buyer1','buyer2','seller','buyerPhone','buyerEmail','buyerMailAddr','address','city','zip','county','lotNumber','blockNumber','subdivision','legalDescription','optionDays','financing','appraisalTerminateDays','nonRealtyDescription','disclosureDays','closingDate','titleCompany','agentName','agentBrokerage','brokerFeePercent'];
 for(const field of fields)test(`review displays ${field} as text`,()=>{
   const data={buyer1:'Buyer',address:'123 Main',financing:'conventional',appraisalAddendum:'additional',nonRealtyItems:'yes',sellerDisclosure:'notReceived',hasBuyerAgent:'yes',brokerFeeType:'percent',[field]:payload};
   const before=JSON.stringify(data),x=setup(data);x.buildReview();
@@ -76,4 +76,68 @@ test('inactive repair text is not presented as an agreed requirement',()=>{
 test('missing required repair text is visibly marked rather than hidden',()=>{
   const x=setup({asIs:'repairs',repairsText:''});x.buildReview();
   assert.match(x.nodes.reviewSummary.innerHTML,/Required repairs or treatments<\/span><span class="rv"><span[^>]*>Not entered/);
+});
+test('possession uses readable choices and never renders an unknown internal value',()=>{
+  for(const [value,label] of Object.entries({closing:'Upon closing and funding',funding:'Upon closing and funding',
+      buyerTemporaryLease:'Buyer occupies temporarily before closing',sellerTemporaryLease:'Seller remains temporarily after closing'})){
+    const x=setup({possession:value});x.buildReview();
+    assert.ok(x.nodes.reviewSummary.innerHTML.includes(`<span class="rl">Possession</span><span class="rv">${label}</span>`));
+  }
+  const x=setup({possession:payload});x.buildReview();
+  assert.doesNotMatch(x.nodes.reviewSummary.innerHTML,/<img|onerror/);
+  assert.match(x.nodes.reviewSummary.innerHTML,/Possession<\/span><span class="rv"><span[^>]*>Not entered/);
+  assert.equal(x.state.data.possession,payload);
+});
+test('seller lease review includes its complete terms and correct simultaneous signing scope',()=>{
+  const data={possession:'sellerTemporaryLease',sellerTemporaryLeaseTerminationDate:'2026-10-20',
+    sellerTemporaryLeaseRentPerDay:'125.50',sellerTemporaryLeaseDeposit:'1,000',
+    sellerTemporaryLeaseUtilitiesPaidByBuyer:'Water & trash',sellerTemporaryLeasePetsAllowed:'One dog',
+    sellerTemporaryLeaseHoldoverPerDay:'300',sellerTemporaryLeaseSpecialProvisions:'Keep every detail. '.repeat(30)+payload};
+  const x=setup(data);x.buildReview();const out=x.nodes.reviewSummary.innerHTML;
+  for(const term of ['2026-10-20','$125.5','$1,000','Water &amp; trash','One dog','$300',x.escapeAttr(data.sellerTemporaryLeaseSpecialProvisions)]) assert.ok(out.includes(term),term);
+  assert.match(out,/✓ Seller's Temporary Residential Lease/);
+  assert.match(x.nodes.reviewSigningExpectation.textContent,/invitations together for the purchase contract, seller's temporary lease/);
+  assert.doesNotMatch(x.nodes.reviewSigningExpectation.textContent,/remain with/);
+});
+test('buyer lease review shows before-closing terms and does not promise new seller invitations',()=>{
+  const x=setup({possession:'buyerTemporaryLease',buyerTemporaryLeaseStartDate:'2026-10-01',
+    buyerTemporaryLeaseRentPerDay:'0',buyerTemporaryLeaseTotalRent:'0',buyerTemporaryLeaseDeposit:0,
+    buyerTemporaryLeaseUtilitiesPaidBySeller:'Electricity',buyerTemporaryLeasePetsAllowed:'No pets',
+    buyerTemporaryLeaseHoldoverPerDay:'200',sellerTemporaryLeaseSpecialProvisions:'STALE_SELLER_LEASE'});
+  x.buildReview();const out=x.nodes.reviewSummary.innerHTML;
+  assert.match(out,/Buyer occupies temporarily before closing/);
+  assert.match(out,/Lease start date<\/span><span class="rv">2026-10-01/);
+  assert.match(out,/Total rent<\/span><span class="rv">\$0/);
+  assert.match(out,/Security deposit<\/span><span class="rv">\$0/);
+  assert.match(out,/✓ Buyer's Temporary Residential Lease/);
+  assert.doesNotMatch(out,/STALE_SELLER_LEASE/);
+  assert.match(x.nodes.reviewSigningExpectation.textContent,/Seller acceptance and seller-side signatures remain with/);
+});
+test('switching away from a temporary lease removes stale lease terms without deleting answers',()=>{
+  const data={possession:'sellerTemporaryLease',sellerTemporaryLeaseSpecialProvisions:'PRIOR_LEASE_TERM'};
+  const x=setup(data);x.buildReview();assert.match(x.nodes.reviewSummary.innerHTML,/PRIOR_LEASE_TERM/);
+  data.possession='funding';x.buildReview();
+  assert.doesNotMatch(x.nodes.reviewSummary.innerHTML,/PRIOR_LEASE_TERM|Lease special provisions<\/span>/);
+  assert.equal(data.sellerTemporaryLeaseSpecialProvisions,'PRIOR_LEASE_TERM');
+});
+test('every displayed lease text field is escaped and data remains unchanged',()=>{
+  for(const prefix of ['buyerTemporaryLease','sellerTemporaryLease']){
+    for(const suffix of ['StartDate','TerminationDate','UtilitiesPaidByBuyer','UtilitiesPaidBySeller','PetsAllowed','SpecialProvisions']){
+      if(prefix==='buyerTemporaryLease'&&['TerminationDate','UtilitiesPaidByBuyer'].includes(suffix))continue;
+      if(prefix==='sellerTemporaryLease'&&['StartDate','UtilitiesPaidBySeller'].includes(suffix))continue;
+      const data={possession:prefix,[prefix+suffix]:payload};const before=JSON.stringify(data);
+      const x=setup(data);x.buildReview();
+      assert.ok(x.nodes.reviewSummary.innerHTML.includes(escaped),prefix+suffix);
+      assert.ok(!x.nodes.reviewSummary.innerHTML.includes('<img'));
+      assert.equal(JSON.stringify(data),before);
+    }
+  }
+});
+test('invalid or missing lease amounts never show NaN or a made-up zero',()=>{
+  const x=setup({possession:'buyerTemporaryLease',buyerTemporaryLeaseRentPerDay:'invalid',
+    buyerTemporaryLeaseTotalRent:'',buyerTemporaryLeaseDeposit:null});x.buildReview();
+  const out=x.nodes.reviewSummary.innerHTML;assert.doesNotMatch(out,/NaN|\$0/);
+  for(const label of ['Daily rent','Total rent','Security deposit']){
+    assert.ok(out.includes(label+'</span><span class="rv"><span style="color:var(--warn);font-size:0.8rem;">Not entered'));
+  }
 });

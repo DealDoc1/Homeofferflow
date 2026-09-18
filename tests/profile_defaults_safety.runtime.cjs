@@ -94,6 +94,15 @@ test('fresh matching investor blanks still receive saved preferences',()=>{
   assert.equal(x.radios.financing,'cash');assert.equal(x.get('possession').value,'funding');
   assert.equal(Number(x.get('earnestMoney').value),5000);assert.equal(x.radios.brokerFeeType,undefined);
 });
+test('saved seller leaseback preference selects the actual temporary-lease option',()=>{
+  const x=setup();x.store.set(x.key,JSON.stringify({default_possession:'leaseback'}));
+  x.c.applyProfileExtraDefaultsToWizard(false);
+  assert.equal(x.get('possession').value,'sellerTemporaryLease');
+  assert.ok(html.includes('<option value="sellerTemporaryLease">Seller remains temporarily after closing'));
+  x.get('possession').value='buyerTemporaryLease';
+  x.c.applyProfileExtraDefaultsToWizard(false);
+  assert.equal(x.get('possession').value,'buyerTemporaryLease','Saved defaults cannot replace a current agreement');
+});
 test('reopening through account start cannot schedule a forced defaults overwrite',()=>{
   const x=setup();x.radios.financing='va';x.get('possession').value='leaseback';
   x.c.startAccountOffer();x.timers.forEach(fn=>fn());

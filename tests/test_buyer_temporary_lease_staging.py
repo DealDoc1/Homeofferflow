@@ -99,7 +99,9 @@ class BuyerTemporaryLeaseStagingTests(unittest.TestCase):
 
     def test_closing_interview_exposes_the_supported_buyer_temporary_lease(self):
         html = (ROOT / "index.html").read_text(encoding="utf-8")
-        self.assertIn('value="buyerTemporaryLease">Buyer occupies temporarily after closing', html)
+        self.assertIn('value="buyerTemporaryLease">Buyer occupies temporarily before closing', html)
+        self.assertNotIn('buyer who will occupy the property after closing', html)
+        self.assertIn('For buyer occupancy before closing, for up to 90 days.', html)
         for field_id in (
             "buyerTemporaryLeaseStartDate",
             "buyerTemporaryLeaseRentPerDay",
