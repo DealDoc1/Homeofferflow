@@ -12513,7 +12513,7 @@ function routeAfterMagicLinkIfNeeded() {
       input.setAttribute('inputmode', 'text');
       input.dataset.hofGoogleAddress = 'true';
     });
-    return inputs.map(input => [input, callbacks[input.id] || null]);
+    return inputs.map(input => [input, callbacks[input.id] || callbacks[input.name] || null]);
   }
 
   // Apply the fallback semantics immediately, without loading Google. This
@@ -12554,11 +12554,12 @@ function routeAfterMagicLinkIfNeeded() {
         types: ['address']
       });
       autocomplete.addListener('place_changed', () => {
+        if (!input.isConnected) return;
         const place = autocomplete.getPlace();
-        if (place?.formatted_address) input.value = place.formatted_address;
+        if (!place?.formatted_address && !place?.address_components?.length) return;
+        _setGoogleAddressFields([[input, place.formatted_address || input.value],
+          ..._googleAddressCompanions(input).map(field => [field, ''])]);
         if (place?.address_components && onSelectCallback) onSelectCallback(place.address_components);
-        input.dispatchEvent(new Event('input', { bubbles: true }));
-        input.dispatchEvent(new Event('change', { bubbles: true }));
         markGoogleAddressSelected(input);
       });
     });
@@ -12586,6 +12587,7 @@ function routeAfterMagicLinkIfNeeded() {
 
   function _applyGoogleAddressValue(input, value) {
     const requestState = _addressInputState(input);
+    const wasApplying = requestState.applyingSelection;
     requestState.applyingSelection = true;
     try {
       input.value = value;
@@ -12594,8 +12596,23 @@ function routeAfterMagicLinkIfNeeded() {
       input.dispatchEvent(new Event('input', { bubbles: true }));
       input.dispatchEvent(new Event('change', { bubbles: true }));
     } finally {
-      requestState.applyingSelection = false;
+      requestState.applyingSelection = wasApplying;
     }
+  }
+
+  function _googleAddressCompanions(input) {
+    const companionIds = {
+      propAddress: ['propCity', 'propState', 'propZip', 'propCounty'],
+      fsboPropertyAddress: ['fsboPropertyCity', 'fsboPropertyState', 'fsboPropertyZip', 'fsboPropertyCounty'],
+      brandOfficeAddress: ['brandOfficeCity', 'brandOfficeState', 'brandOfficeZip']
+    };
+    const ids = companionIds[input.id] || companionIds[input.name] || [];
+    const fields = ids.map(id => document.getElementById(id)).filter(Boolean);
+    if (input.id === 'clientAddress' || input.name === 'clientAddress') {
+      const companion = document.querySelector('#txr1501AgreementForm [name="clientCityStateZip"]');
+      if (companion) fields.push(companion);
+    }
+    return fields;
   }
 
   function _wireGoogleAutocomplete(input, onSelectCallback) {
@@ -12793,7 +12810,9 @@ function routeAfterMagicLinkIfNeeded() {
     requestState.sessionToken = null;
 
     const fallbackText = pred.text?.toString() || streetText || '';
-    _applyGoogleAddressValue(input, fallbackText);
+    // A new selection must never retain location details from the previous
+    // property, even while details are loading or if that lookup fails.
+    _setGoogleAddressFields([[input, fallbackText], ..._googleAddressCompanions(input).map(field => [field, ''])]);
     const current = () => input.isConnected && requestState.revision === revision
       && input.value === fallbackText;
 
@@ -12893,25 +12912,42 @@ function routeAfterMagicLinkIfNeeded() {
     };
   }
 
+  function _googleAddressParts(components) {
+    const value = (type, short = false) => {
+      const part = (components || []).find(c => (c.types || []).includes(type));
+      return String((short ? part?.short_name || part?.long_name : part?.long_name) || '').trim();
+    };
+    const route = value('route');
+    const street = route ? [value('street_number'), route].filter(Boolean).join(' ') : '';
+    const unit = value('subpremise');
+    const postal = value('postal_code');
+    const suffix = value('postal_code_suffix');
+    return {
+      street: street ? [street, unit ? '#' + unit : ''].filter(Boolean).join(' ') : '',
+      city: value('locality') || value('postal_town') || value('sublocality_level_1'),
+      state: value('administrative_area_level_1', true),
+      county: value('administrative_area_level_2').replace(/ County$/i, ''),
+      zip: postal && suffix ? postal + '-' + suffix : postal
+    };
+  }
+
+  function _setGoogleAddressFields(updates) {
+    const fields = updates.filter(([input]) => input);
+    // Apply the complete location before notifying autosave/progress handlers.
+    // Missing components are blanks, not permission to reuse an old address.
+    fields.forEach(([input, value]) => { input.value = value; });
+    fields.forEach(([input, value]) => _applyGoogleAddressValue(input, value));
+  }
+
   function fillBuyerMailAddressField(components) {
-    let streetNumber = '', streetName = '', city = '', state = 'TX', zip = '';
-
-    components.forEach(c => {
-      const t = c.types;
-      if (t.includes('street_number')) streetNumber = c.long_name;
-      if (t.includes('route')) streetName = c.long_name;
-      if (t.includes('locality')) city = c.long_name;
-      if (t.includes('sublocality_level_1') && !city) city = c.long_name;
-      if (t.includes('administrative_area_level_1')) state = c.short_name;
-      if (t.includes('postal_code')) zip = c.long_name;
-    });
-
-    const street = [streetNumber, streetName].filter(Boolean).join(' ');
-    const full = [street, city, state + ' ' + zip].filter(Boolean).join(', ');
+    const { street, city, state, zip } = _googleAddressParts(components);
+    const full = [street, city, [state, zip].filter(Boolean).join(' ')].filter(Boolean).join(', ');
     const el = document.getElementById('buyerMailAddr');
 
-    if (el && full) {
-      el.value = full;
+    // Keep the selected formatted address when the provider has no street
+    // components; do not replace a rural/building address with just a city.
+    if (el && street) {
+      _setGoogleAddressFields([[el, full]]);
       el.style.borderColor = 'var(--sage)';
       el.style.background = 'rgba(74,140,111,0.1)';
       setTimeout(() => {
@@ -12922,44 +12958,26 @@ function routeAfterMagicLinkIfNeeded() {
   }
 
   function fillClientMailingAddressFields(components) {
-    let city = '', state = 'TX', zip = '';
-    components.forEach(c => {
-      const t = c.types || [];
-      if (t.includes('locality')) city = c.long_name;
-      if (t.includes('sublocality_level_1') && !city) city = c.long_name;
-      if (t.includes('administrative_area_level_1')) state = c.short_name || c.long_name || state;
-      if (t.includes('postal_code')) zip = c.long_name;
-    });
+    const { city, state, zip } = _googleAddressParts(components);
     const cityStateZip = [city, [state, zip].filter(Boolean).join(' ')].filter(Boolean).join(', ');
     const companion = document.querySelector('#txr1501AgreementForm [name="clientCityStateZip"]');
-    if (companion && cityStateZip) {
-      companion.value = cityStateZip;
-      companion.dispatchEvent(new Event('input', { bubbles: true }));
-      companion.dispatchEvent(new Event('change', { bubbles: true }));
-    }
+    _setGoogleAddressFields([[companion, cityStateZip]]);
   }
 
   function fillAddressFields(components) {
-    let streetNumber = '', streetName = '', city = '', county = '', state = 'TX', zip = '';
-
-    components.forEach(c => {
-      const t = c.types;
-      if (t.includes('street_number')) streetNumber = c.long_name;
-      if (t.includes('route')) streetName = c.long_name;
-      if (t.includes('locality')) city = c.long_name;
-      if (t.includes('sublocality_level_1') && !city) city = c.long_name;
-      if (t.includes('administrative_area_level_2')) county = c.long_name.replace(' County', '');
-      if (t.includes('administrative_area_level_1')) state = c.short_name;
-      if (t.includes('postal_code')) zip = c.long_name;
-    });
-
-    const street = [streetNumber, streetName].filter(Boolean).join(' ');
+    const { street, city, county, state, zip } = _googleAddressParts(components);
+    const updates = [['propCity', city], ['propZip', zip], ['propState', state], ['propCounty', county]];
+    if (street) updates.unshift(['propAddress', street]);
+    _setGoogleAddressFields(updates.map(([id, value]) => [document.getElementById(id), value]));
 
     const flash = (id, val) => {
       const el = document.getElementById(id);
-      if (!el || !val) return;
-
-      el.value = val;
+      if (!el) return;
+      if (!val) {
+        el.style.borderColor = '';
+        el.style.background = 'rgba(74,140,111,0.06)';
+        return;
+      }
       el.style.borderColor = 'var(--sage)';
       el.style.background = 'rgba(74,140,111,0.1)';
 
@@ -12980,37 +12998,15 @@ function routeAfterMagicLinkIfNeeded() {
   }
 
   function fillBrandOfficeAddressFields(components) {
-    let city = '', state = 'TX', zip = '';
-    components.forEach(c => {
-      const t = c.types || [];
-      if (t.includes('locality')) city = c.long_name;
-      if (t.includes('sublocality_level_1') && !city) city = c.long_name;
-      if (t.includes('administrative_area_level_1')) state = c.short_name || c.long_name || state;
-      if (t.includes('postal_code')) zip = c.long_name;
-    });
+    const { city, state, zip } = _googleAddressParts(components);
     const cityEl = document.getElementById('brandOfficeCity');
     const stateEl = document.getElementById('brandOfficeState');
     const zipEl = document.getElementById('brandOfficeZip');
-    if (cityEl && city) cityEl.value = city;
-    if (stateEl && state) stateEl.value = state;
-    if (zipEl && zip) zipEl.value = zip;
+    _setGoogleAddressFields([[cityEl, city], [stateEl, state], [zipEl, zip]]);
   }
 
   function fillFsboAddressFields(components) {
-    let streetNumber = '', streetName = '', city = '', county = '', state = 'TX', zip = '';
-
-    components.forEach(c => {
-      const t = c.types || [];
-      if (t.includes('street_number')) streetNumber = c.long_name;
-      if (t.includes('route')) streetName = c.long_name;
-      if (t.includes('locality')) city = c.long_name;
-      if (t.includes('sublocality_level_1') && !city) city = c.long_name;
-      if (t.includes('administrative_area_level_2')) county = String(c.long_name || '').replace(' County', '');
-      if (t.includes('administrative_area_level_1')) state = c.short_name || c.long_name || state;
-      if (t.includes('postal_code')) zip = c.long_name;
-    });
-
-    const street = [streetNumber, streetName].filter(Boolean).join(' ');
+    const { street, city, county, state, zip } = _googleAddressParts(components);
     const addressEl = document.getElementById('fsboPropertyAddress');
     const cityEl = document.getElementById('fsboPropertyCity');
     const countyEl = document.getElementById('fsboPropertyCounty');
@@ -13019,11 +13015,9 @@ function routeAfterMagicLinkIfNeeded() {
     const badge = document.getElementById('fsboAddressAutofillBadge');
     const meta = document.getElementById('fsboAddressMeta');
 
-    if (addressEl && street) addressEl.value = street;
-    if (cityEl) cityEl.value = city;
-    if (countyEl) countyEl.value = county;
-    if (stateEl) stateEl.value = state;
-    if (zipEl) zipEl.value = zip;
+    const updates = [[cityEl, city], [countyEl, county], [stateEl, state], [zipEl, zip]];
+    if (addressEl && street) updates.unshift([addressEl, street]);
+    _setGoogleAddressFields(updates);
 
     if (badge) badge.style.display = 'inline-flex';
     if (meta) {

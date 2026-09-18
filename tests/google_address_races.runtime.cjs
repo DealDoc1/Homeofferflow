@@ -22,7 +22,7 @@ function setup(){
     closest(){return null;}
     blur(){if(document.activeElement===this){document.activeElement=null;this.dispatchEvent({type:'blur'});}}
   }
-  const document={activeElement:null,body:new Element(),createElement:()=>new Element(),addEventListener:(k,fn)=>(docListeners[k]??=[]).push(fn)};
+  const document={activeElement:null,body:new Element(),getElementById:()=>null,querySelector:()=>null,createElement:()=>new Element(),addEventListener:(k,fn)=>(docListeners[k]??=[]).push(fn)};
   const window={addEventListener(){},setTimeout:(fn)=>{timers.set(++timer,fn);return timer;},_AutocompleteSessionToken:class{constructor(){this.id=++token;}},
     _AutocompleteSuggestion:{fetchAutocompleteSuggestions:request=>{const d=deferred();requests.push({request,...d});return d.promise;}}};
   const c=vm.createContext({window,document,console:{error(){}},Event:class{constructor(type){this.type=type;}},
@@ -142,4 +142,13 @@ test('clicking outside dismisses an in-flight search',async()=>{
   const x=setup(),input=x.input();x.type(input,'123 Pending');await x.flush();
   for(const fn of x.docListeners.click)fn({target:{closest:()=>null}});
   await x.reply(0,'123 Pending Street');assert.deepEqual(x.shown(),[]);
+});
+test('new selection clears previous property details before notifying input listeners',async()=>{
+  const x=setup(),input=x.input(),d=deferred(),companions=new Map();input.id='propAddress';x.document.activeElement=input;
+  for(const id of ['propCity','propState','propZip','propCounty']){const field=x.input();field.value='Old location';companions.set(id,field);}
+  x.document.getElementById=id=>companions.get(id)||null;
+  const observed=[];input.addEventListener('input',()=>observed.push([...companions.values()].map(field=>field.value)));
+  const result=x.c._selectPrediction(prediction(d),'123',input,null);
+  assert.deepEqual(observed[0],['','','','']);d.reject(new Error('unavailable'));await result;
+  assert.equal(input.value,'123 Suggested Street');assert.deepEqual([...companions.values()].map(field=>field.value),['','','','']);
 });

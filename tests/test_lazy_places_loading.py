@@ -24,7 +24,7 @@ class LazyPlacesLoadingTests(unittest.TestCase):
         self.assertIn("document.querySelectorAll('input[id], input[name]')", HTML)
         self.assertIn("/(?:address|addr)/i.test(`${input.id} ${input.name}`)", HTML)
         self.assertIn("'profInvestorMailing'", HTML)
-        self.assertIn(".map(input => [input, callbacks[input.id] || null])", HTML)
+        self.assertIn(".map(input => [input, callbacks[input.id] || callbacks[input.name] || null])", HTML)
         self.assertIn('name="clientAddress"', HTML)
         self.assertIn('name="propertyAddress"', HTML)
         self.assertIn("document.addEventListener('focusin'", HTML)
