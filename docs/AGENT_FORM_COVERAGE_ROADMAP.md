@@ -10,6 +10,15 @@ the pending batch are also absent from production, confirmed by catalog reads.
 These are verified release dependencies, not a new login or customer approval
 requirement. See [current release evidence](release-evidence/production-release-revalidation-2026-09-18.md).
 
+TXR-1953 residential-lease and TXR-1954 fixture-lease answers now fit measured
+source blanks or continue in full on paginated, party-initialed attachments.
+All eight pages of four source-backed specimens were visually checked.
+Offline standalone delivery covers all buyer/seller combinations and parallel
+invitations; combined-purchase checks preserve continuation offsets and seller
+recipient IDs. Existing base signature rectangles and checkbox centers are
+unchanged. This is **locally tested, not deployed or newly provider-completed
+verified**; see [lease-addendum answer evidence](release-evidence/lease-addenda-answer-candidate-2026-09-18.md).
+
 Standalone PDF deployment configuration now retains the fonts needed by the
 representation renderers. Fresh-process tests cover all four forms and their
 long-answer continuations; non-PDF services still omit these assets. Private

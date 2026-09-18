@@ -59,6 +59,7 @@ class Txr1953RendererTests(unittest.TestCase):
         explanation = " ".join(["Complete residential lease disclosure detail"] * 30)
         rendered = render_txr_1953(blank_one_page_pdf(), {
             "property_address": "1 Main Street, Sherman, TX 75090",
+            "lease_status": "assignment",
             "explanation": explanation,
         })
         reader = PdfReader(io.BytesIO(rendered))

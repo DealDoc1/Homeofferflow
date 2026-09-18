@@ -64,15 +64,15 @@ class LeaseFieldAlignmentTests(unittest.TestCase):
 
     def test_residential_days_land_in_blank_not_printed_sentence(self):
         values = overlays(render_txr_1953, {'lease_status':'assignment','delivery_choice':'not_received','delivery_days':'5'})
-        self.assertIn(('5',108.0,491.0,8.0), values)
+        self.assertIn(('5',103.0,489.5,8.0), values)
 
     def test_residential_narrative_sits_above_its_rules(self):
         values = overlays(render_txr_1953, {'lease_status':'assignment','delivery_choice':'oral_notice','oral_lease_notice':'QA notice','explanation':'QA explanation'})
-        self.assertIn(('QA notice',103.0,456.5,6.0), values)
-        self.assertIn(('QA explanation',84.0,306.8,6.0), values)
+        self.assertIn(('QA notice',103.0,458.0,8.0), values)
+        self.assertIn(('QA explanation',480.0,318.0,8.0), values)
 
     def test_fixture_address_clears_underline(self):
-        self.assertIn(('QA property',248.0,663.0,8.0), overlays(render_txr_1954, {'property_address':'QA property'}))
+        self.assertIn(('QA property',243.0,664.0,8.0), overlays(render_txr_1954, {'property_address':'QA property'}))
 
     def test_render_revision_change_invalidates_saved_offer_fingerprint(self):
         first = {'_signing_render_revisions': {'TXR-1953':'v1'}}

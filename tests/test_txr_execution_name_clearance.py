@@ -10,7 +10,7 @@ from pypdf.generic import NameObject, TextStringObject
 from reportlab.pdfgen.canvas import Canvas
 
 
-CASES = ((1905, 1), (1914, 2), (1917, 1), (1919, 2), (1948, 1))
+CASES = ((1905, 1), (1914, 2), (1917, 1), (1919, 2), (1948, 1), (1953, 1), (1954, 1))
 
 
 def blank_source(pages):
