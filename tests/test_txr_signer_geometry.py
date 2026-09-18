@@ -119,11 +119,9 @@ class TxrSignerGeometryTests(unittest.TestCase):
         signature widget remains on the same ruled row.
         """
         cases = (
-            # The long-form client row uses the same right-side date segment
-            # as TXR-1507: source x=540 through 576, or SignWell x=720
-            # through 768.  Earlier coverage compared it to a stale
-            # left-column coordinate and allowed widgets to cover the printed
-            # Client's Signature caption.
+            # Both client rules end at source x=576 (SignWell 768).
+            # Dates now start left of their captions to fit full MM/DD/YYYY
+            # provider text while remaining separated from the signature.
             (build_signwell_fields_txr1501, FORM_CASES[0][3], "txr1501", 566, 768),
             (build_signwell_fields_txr1507, FORM_CASES[2][3], "txr1507", 684, 768),
         )
@@ -137,7 +135,7 @@ class TxrSignerGeometryTests(unittest.TestCase):
                 if prefix == "txr1507":
                     self.assertEqual(role["y"], 684)
                 else:
-                    self.assertEqual(role["y"], 677)
+                    self.assertEqual(role["y"], 566)
                 self.assertGreater(date["x"], client["x"] + client["width"])
                 self.assertLessEqual(date["x"] + date["width"], date_label_x)
 
@@ -150,8 +148,8 @@ class TxrSignerGeometryTests(unittest.TestCase):
         """
         cases = (
             (build_signwell_fields_txr1501, FORM_CASES[0][3], {
-                "txr1501_associate_signature_p6": 701,
-                "txr1501_associate_date_p6": 701,
+                "txr1501_associate_signature_p6": 590,
+                "txr1501_associate_date_p6": 590,
                 "txr1501_client1_signature_p6": 590,
                 "txr1501_client1_date_p6": 590,
                 "txr1501_client2_signature_p6": 701,
@@ -184,21 +182,20 @@ class TxrSignerGeometryTests(unittest.TestCase):
         # not over the
         # printed Client's Signature caption below it.
         self.assertEqual(txr1501["txr1501_client1_signature_p6"]["x"], 432)
-        self.assertEqual(txr1501["txr1501_client1_date_p6"]["x"], 720)
+        self.assertEqual(txr1501["txr1501_client1_date_p6"]["x"], 696)
         self.assertEqual(txr1501["txr1501_client2_signature_p6"]["y"], 677)
         self.assertEqual(
             txr1501["txr1501_client2_signature_p6"]["y"]
             + txr1501["txr1501_client2_signature_p6"]["height"],
             701,
         )
-        # A broker-associate signs the separate lower left row.  It shares
-        # that horizontal line with the second client's right-side row, not
-        # the broker's first execution row.
-        self.assertEqual(txr1501["txr1501_associate_signature_p6"]["y"], 677)
+        # Broker and associate share the first left execution rule; the
+        # selected checkbox identifies which role signs it.
+        self.assertEqual(txr1501["txr1501_associate_signature_p6"]["y"], 566)
         self.assertEqual(
             txr1501["txr1501_associate_signature_p6"]["y"]
             + txr1501["txr1501_associate_signature_p6"]["height"],
-            701,
+            590,
         )
 
         txr1507 = {

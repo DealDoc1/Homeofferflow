@@ -2,6 +2,12 @@
 
 ## Local continuation status - September 18, 2026
 
+TXR-1501 long-form execution review found the associate mapped below the printed
+name, not on the shared broker/associate signature rule. That map and narrow
+date boxes are corrected locally, with independent source-bound tests and
+two rendered role previews. This is **not deployed or provider-completed QA**.
+See [long-form execution evidence](release-evidence/txr1501-execution-candidate-2026-09-18.md).
+
 Environmental-review TXR-1917 now has a locally tested purchase-interview and
 combined-packet candidate, including source-bound placement and long-answer
 continuations. It is **not deployed** and its completed-provider placement
