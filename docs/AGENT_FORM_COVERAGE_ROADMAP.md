@@ -5,9 +5,16 @@
 Representation PDF identity and broker recipients now resolve from the agent's
 own profile/optional active organization, not the shared source host. No-seat
 associate use and a consistent render/recipient snapshot are locally tested.
-This is **not deployed or live-provider verified**; source-PDF footer branding
-remains follow-up work. See
+This is **not deployed or live-provider verified**. See
 [professional-identity evidence](release-evidence/representation-professional-identity-2026-09-18.md).
+Supplier footer details are now removed from generated copies of the four
+exact reviewed representation sources. All 15 pages pass before/after pixel
+checks above the footer under bundled and production-pinned PDF libraries.
+Original sources, official attribution and form geometry remain unchanged.
+This is **not deployed**; see
+[source-imprint evidence](release-evidence/txr-source-imprint-2026-09-18.md).
+The showing form (TXR-1508) still needs a separate answer-baseline review after
+the visual check showed property/customer text close to its printed rules.
 Independent separate-broker contact entry is now implemented in the existing
 recipient-review screen, with saved-request recovery and no seat requirement.
 Local runtime and mobile/desktop browser checks pass; this is **not deployed or

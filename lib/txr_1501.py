@@ -13,6 +13,7 @@ from pypdf import PdfReader, PdfWriter
 from reportlab.pdfgen.canvas import Canvas
 from lib.pdf_text import draw_text, text_width as stringWidth
 from lib.txr1501_answers import answer_layout, render_continuation, continuation_fields
+from lib.txr_source_imprint import remove_known_source_imprint
 
 
 PAGE_WIDTH = 612
@@ -151,10 +152,12 @@ def render_txr_1501(source_pdf_bytes, data, brokerage, associate):
         raise ValueError("TXR-1501 source must contain exactly six pages.")
     overlay = PdfReader(BytesIO(_overlay(data, brokerage, associate)))
     writer = PdfWriter()
-    for index, page in enumerate(source.pages):
+    for page in source.pages:
         # Attach the source page before merging.  Newer pypdf versions no
         # longer guarantee reliable content replacement on detached pages.
         writer.add_page(page)
+    remove_known_source_imprint(writer, source_pdf_bytes, 'TXR-1501')
+    for index in range(len(source.pages)):
         writer.pages[index].merge_page(overlay.pages[index])
     continuation = render_continuation(data, answer_layout(data, brokerage, associate)[1])
     if continuation:

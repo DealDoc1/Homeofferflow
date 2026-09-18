@@ -8,6 +8,7 @@ brokerage services.
 from io import BytesIO
 
 from pypdf import PdfReader, PdfWriter
+from lib.txr_source_imprint import remove_known_source_imprint
 from reportlab.pdfgen.canvas import Canvas
 
 
@@ -79,6 +80,7 @@ def render_txr_1508(source_pdf_bytes, data, brokerage, associate):
     # Merge only after the page belongs to this writer; detached-page
     # content replacement is deprecated in current pypdf releases.
     writer.add_page(source.pages[0])
+    remove_known_source_imprint(writer, source_pdf_bytes, 'TXR-1508')
     writer.pages[0].merge_page(overlay.pages[0])
     output = BytesIO()
     writer.write(output)

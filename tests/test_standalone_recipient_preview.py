@@ -122,9 +122,9 @@ class StandaloneRecipientPreviewTests(unittest.TestCase):
         self.assertEqual(result['recipients'][0]['email'], 'customer@example.com')
         self.assertNotIn('_hof_signature_delivery', str(result))
 
-    def test_corrected_addenda_signing_copies_bind_their_render_revision(self):
+    def test_corrected_representation_and_addenda_copies_bind_their_render_revision(self):
         from types import SimpleNamespace
-        for code in (1905, 1914, 1917, 1919, 1948):
+        for code in (1501, 1506, 1507, 1508, 1905, 1914, 1917, 1919, 1948):
             with self.subTest(code=code):
                 draft = {**showing_draft(), 'form_code': f'TXR-{code}',
                          'form_source_id': 'source-1', 'source_revision': 'QA source',
@@ -133,7 +133,7 @@ class StandaloneRecipientPreviewTests(unittest.TestCase):
                           'storage_bucket': 'private', 'storage_path': 'source.pdf'}
                 client = AsyncMock()
                 client.get.return_value = SimpleNamespace(status_code=200, content=b'%PDF-source')
-                with patch.object(MODULE, '_get', AsyncMock(side_effect=[[draft], [source], []])), \
+                with patch.object(MODULE, '_get', AsyncMock(side_effect=[[draft], [source], [], []])), \
                      patch.object(MODULE, '_get_optional', AsyncMock(return_value=[])), \
                      patch.object(MODULE.httpx, 'AsyncClient') as factory, \
                      patch(f'lib.txr_{code}.render_txr_{code}', return_value=b'%PDF-rendered') as render:

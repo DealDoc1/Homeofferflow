@@ -143,7 +143,10 @@ TXR_SIGNING_FORM_CODES = {
 # source form needs a placement correction.  Older provider documents simply
 # have no map revision and are therefore never mistaken for current-map QA.
 TXR_RENDER_REVISIONS = {
-    "TXR-1507": "txr-1507-2026-09-18-service-terms-v1",
+    "TXR-1501": "txr-1501-2026-09-18-neutral-source-v1",
+    "TXR-1506": "txr-1506-2026-09-18-neutral-source-v1",
+    "TXR-1507": "txr-1507-2026-09-18-neutral-source-v2",
+    "TXR-1508": "txr-1508-2026-09-18-neutral-source-v1",
     "TXR-1905": "txr-1905-2026-09-18-source-blanks-v2",
     "TXR-1914": "txr-1914-2026-09-18-source-blanks-v2",
     "TXR-1917": "txr-1917-2026-09-18-source-blanks-v2",

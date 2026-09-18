@@ -11,6 +11,7 @@ from io import BytesIO
 from pypdf import PdfReader, PdfWriter
 from lib.pdf_text import draw_text, text_width as stringWidth
 from lib.txr1507_answers import answer_layout, render_continuation, continuation_fields
+from lib.txr_source_imprint import remove_known_source_imprint
 from reportlab.pdfgen.canvas import Canvas
 
 
@@ -123,10 +124,12 @@ def render_txr_1507(source_pdf_bytes, data, brokerage, associate):
         raise ValueError("TXR-1507 source must contain exactly two pages.")
     overlay = PdfReader(BytesIO(_overlay(data, brokerage, associate)))
     writer = PdfWriter()
-    for index, page in enumerate(source.pages):
+    for page in source.pages:
         # Merge only after the page belongs to this writer; detached-page
         # content replacement is deprecated in current pypdf releases.
         writer.add_page(page)
+    remove_known_source_imprint(writer, source_pdf_bytes, 'TXR-1507')
+    for index in range(len(source.pages)):
         writer.pages[index].merge_page(overlay.pages[index])
     continuation = render_continuation(data, answer_layout(data, brokerage, associate)[1])
     if continuation:

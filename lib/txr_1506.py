@@ -4,6 +4,7 @@ from io import BytesIO
 from textwrap import wrap
 
 from pypdf import PdfReader, PdfWriter
+from lib.txr_source_imprint import remove_known_source_imprint
 from reportlab.pdfgen.canvas import Canvas
 
 
@@ -60,10 +61,12 @@ def render_txr_1506(source_pdf_bytes, data, brokerage):
         raise ValueError("TXR-1506 source must contain exactly six pages.")
     overlay = PdfReader(BytesIO(_overlay(data, brokerage)))
     writer = PdfWriter()
-    for index, page in enumerate(source.pages):
+    for page in source.pages:
         # Merge only after the page belongs to this writer; this keeps the
         # overlay stable with current and future pypdf releases.
         writer.add_page(page)
+    remove_known_source_imprint(writer, source_pdf_bytes, 'TXR-1506')
+    for index in range(len(source.pages)):
         writer.pages[index].merge_page(overlay.pages[index])
     output = BytesIO()
     writer.write(output)

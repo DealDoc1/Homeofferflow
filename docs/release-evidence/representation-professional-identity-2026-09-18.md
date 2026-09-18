@@ -75,4 +75,5 @@ database query/mutation, public push, deployment, build or paid test occurred.
 The independent separate-broker contact workflow above was subsequently
 implemented and tested locally; see
 [independent-broker signing](independent-broker-signing-2026-09-18.md).
-It is not deployed/live-provider verified. The static source footer issue remains.
+It is not deployed/live-provider verified. The four exact-source footer imprints
+were then corrected locally; see [source-imprint QA](txr-source-imprint-2026-09-18.md).
