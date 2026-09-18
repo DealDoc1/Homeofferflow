@@ -2,6 +2,13 @@
 
 ## Local continuation status - September 18, 2026
 
+TXR-1507 short-form answer review found misplaced lease-compensation values and
+overflow risks. Supported values now fit source-measured blanks or continue in
+full on an initialed attachment. Both role previews and long-answer variants
+were visually checked; base execution positions are unchanged. This is
+**not deployed or newly completed-provider verified**. See
+[short-form answer evidence](release-evidence/txr1507-answer-candidate-2026-09-18.md).
+
 TXR-1501 long-form execution review found the associate mapped below the printed
 name, not on the shared broker/associate signature rule. That map and narrow
 date boxes are corrected locally, with independent source-bound tests and

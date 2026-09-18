@@ -10,7 +10,7 @@ class Txr1507ExecutionBoundsTests(unittest.TestCase):
         with patch.object(txr_1507, '_draw', wraps=txr_1507._draw) as draw:
             txr_1507._overlay({**sample_data(),'service_level':'showing_services','showing_fee':'150'},{},{})
         amount=next(call for call in draw.call_args_list if call.args[1]=='150')
-        self.assertEqual(amount.args[2:4],(325,414))
+        self.assertEqual(amount.args[2:4],(322,415))
         from reportlab.pdfbase.pdfmetrics import stringWidth
         self.assertLessEqual(325+stringWidth('150',txr_1507.FONT,8),387.67)
         self.assertLess(792-414,379.25)

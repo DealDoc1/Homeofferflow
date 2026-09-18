@@ -16,12 +16,18 @@ def main():
     parser.add_argument('--form',choices=('1507','1501'),default='1507')
     parser.add_argument('--long-answers',action='store_true')
     args=parser.parse_args()
-    if args.long_answers and args.form!='1501':
-        parser.error('--long-answers currently covers the long-form agreement only')
     args.output.mkdir(parents=True,exist_ok=True)
     for role in ('associate','broker'):
         data,brokerage,associate=txr1507_value_overlay_data()
         data['signer_plan']='clients_and_'+role
+        if args.form=='1507':
+            data['compensation']=({'purchase_percentage':'3.125','lease_one_month_percentage':'100'}
+                if role=='associate' else {'purchase_flat_fee':'12500.25','lease_total_rents_percentage':'3.125','lease_flat_fee':'2500.75'})
+            if args.long_answers:
+                data.update(client_names=['Review Client One '+'FamilyName '*14,'Review Client Two '+'FamilyName '*14],
+                            market_area=('QA district and surrounding review neighborhoods; '*16).strip())
+                brokerage['legal_name']='Review Brokerage '+('Regional Office '*10)
+                associate['name']='Review Associate '+('Professional Name '*8)
         if args.form=='1501':
             # Populate every supported long-form area; empty short-form
             # fixtures cannot reveal misplaced contact/retainer/county values.
@@ -44,7 +50,7 @@ def main():
             data.update(service_level='showing_services',showing_fee='150',intermediary='not_authorized')
         render,build=(render_txr_1501,build_signwell_fields_txr1501) if args.form=='1501' else (render_txr_1507,build_signwell_fields_txr1507)
         reader=PdfReader(BytesIO(render(args.source.read_bytes(),data,brokerage,associate)))
-        fields=build(data,client_count=2,**({'page_count':len(reader.pages)} if args.form=='1501' else {}))[0]
+        fields=build(data,client_count=2,page_count=len(reader.pages))[0]
         writer=PdfWriter()
         for n,page in enumerate(reader.pages,1):
             packet=BytesIO();c=Canvas(packet,pagesize=(612,792))

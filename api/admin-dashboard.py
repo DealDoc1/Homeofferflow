@@ -160,7 +160,7 @@ TXR_SIGNING_MAP_REVISIONS = {
     # Completed-packet review moved every execution widget above the printed
     # signature/date captions.  Drafts prepared with v1 must be rebuilt so a
     # sender cannot inadvertently reuse the older field geometry.
-    TXR_1507_FORM_CODE: "txr-1507-2026-09-12-completed-packet-calibrated-v2",
+    TXR_1507_FORM_CODE: "txr-1507-2026-09-18-answer-continuation-candidate-v3",
     TXR_1508_FORM_CODE: "txr-1508-2026-09-09-acknowledgement-calibrated-v1",
     TXR_1953_FORM_CODE: "txr-1953-2026-09-15-field-alignment-v2",
     TXR_1954_FORM_CODE: "txr-1954-2026-09-15-field-alignment-v2",
@@ -3928,7 +3928,10 @@ def _txr_signwell_fields(form_code, agreement_data, client_count, *, rendered_pd
         return build_signwell_fields_txr1506(agreement_data, client_count=client_count)
     if form_code == TXR_1507_FORM_CODE:
         from lib.txr_1507 import build_signwell_fields_txr1507
-        return build_signwell_fields_txr1507(agreement_data, client_count=client_count)
+        from io import BytesIO
+        from pypdf import PdfReader
+        page_count = len(PdfReader(BytesIO(rendered_pdf)).pages) if rendered_pdf is not None else 2
+        return build_signwell_fields_txr1507(agreement_data, client_count=client_count, page_count=page_count)
     if form_code == TXR_1508_FORM_CODE:
         from lib.txr_1508 import build_signwell_fields_txr1508
         return build_signwell_fields_txr1508(agreement_data, client_count=client_count)

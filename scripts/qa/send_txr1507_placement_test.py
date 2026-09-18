@@ -7,9 +7,11 @@ import argparse
 import base64
 import getpass
 import json
+from io import BytesIO
 from pathlib import Path
 
 import httpx
+from pypdf import PdfReader
 from lib.txr_1507 import render_txr_1507, build_signwell_fields_txr1507
 from scripts.render_txr_signwell_map_review import txr1507_value_overlay_data
 
@@ -42,7 +44,7 @@ def main():
             {'id': '1', 'name': 'QA Placement Client', 'email': 'brewbqinfo@gmail.com'},
             {'id': 'associate', 'name': 'QA Placement Associate', 'email': 'andrewchri@gmail.com'},
         ],
-        'fields': build_signwell_fields_txr1507(data, client_count=1),
+        'fields': build_signwell_fields_txr1507(data, client_count=1, page_count=len(PdfReader(BytesIO(raw)).pages)),
         'reminders': False,
     }
     if not args.send:

@@ -54,16 +54,17 @@ def answer_layout(data, brokerage, associate):
     return pages,overflow
 
 
-def render_continuation(data, overflow):
+def render_continuation(data, overflow, *, title=TITLE):
     if not overflow:return None
     output=BytesIO()
     detail=ParagraphStyle('txr1501_detail',fontName='Helvetica',fontSize=10,leading=14,spaceAfter=12,
                           splitLongWords=True,allowWidows=0,allowOrphans=0)
+    label_style=ParagraphStyle('representation_answer_label',parent=detail,keepWithNext=True)
     document=SimpleDocTemplate(output,pagesize=(612,792),leftMargin=48,rightMargin=48,
                                topMargin=106,bottomMargin=112)
     story=[]
     for label,value in overflow.items():
-        story.extend([Paragraph(paragraph_markup(label),detail),
+        story.extend([Paragraph(paragraph_markup(label),label_style),
                       Paragraph(paragraph_markup(value),detail),Spacer(1,6)])
     role='Associate' if data.get('signer_plan')=='clients_and_associate' else 'Broker'
     labels=[('Client 1','1')]
@@ -71,27 +72,27 @@ def render_continuation(data, overflow):
     labels.append((role,'professional'))
     def frame(canvas,doc):
         canvas.saveState()
-        canvas.setFont('Helvetica-Bold',13);canvas.drawString(48,749,TITLE)
+        canvas.setFont('Helvetica-Bold',13);canvas.drawString(48,749,title)
         canvas.setFont('Helvetica',9)
         canvas.drawString(48,730,'Continuation of the entered answers referenced in the attached agreement.')
         for label,key in labels:
             x=INITIAL_X[key]
             canvas.setFont('Helvetica',8);canvas.drawString(x-62,70,label+' initials')
             canvas.line(x,68,x+50,68)
-        canvas.drawString(48,40,TITLE)
+        canvas.drawString(48,40,title)
         canvas.drawRightString(564,40,'Continuation page '+str(doc.page))
         canvas.restoreState()
     document.build(story,onFirstPage=frame,onLaterPages=frame)
     return output.getvalue()
 
 
-def continuation_fields(data, client_count, page_count):
-    if not isinstance(page_count,int) or isinstance(page_count,bool) or page_count<6:
-        raise ValueError('The completed long-form packet must contain its six source pages')
+def continuation_fields(data, client_count, page_count, *, source_pages=6, prefix='txr1501'):
+    if not isinstance(page_count,int) or isinstance(page_count,bool) or page_count<source_pages:
+        raise ValueError('The completed representation packet must contain all its source pages')
     role='associate' if data.get('signer_plan')=='clients_and_associate' else 'broker'
     recipients=[('1','1'),(role,'professional')]
     if client_count==2:recipients.insert(1,('2','2'))
-    return [{'api_id':f'txr1501_continuation_{page-6}_{recipient}_initials',
+    return [{'api_id':f'{prefix}_continuation_{page-source_pages}_{recipient}_initials',
              'type':'initials','page':page,'recipient_id':recipient,'required':True,
              'x':INITIAL_X[key]*4/3,'y':706*4/3,'width':50*4/3,'height':16*4/3}
-            for page in range(7,page_count+1) for recipient,key in recipients]
+            for page in range(source_pages+1,page_count+1) for recipient,key in recipients]

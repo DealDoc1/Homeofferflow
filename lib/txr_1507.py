@@ -7,10 +7,10 @@ infer compensation, or bypass the brokerage/source authorization gates.
 """
 
 from io import BytesIO
-from textwrap import wrap
 
 from pypdf import PdfReader, PdfWriter
-from reportlab.pdfbase.pdfmetrics import stringWidth
+from lib.pdf_text import draw_text, text_width as stringWidth
+from lib.txr1507_answers import answer_layout, render_continuation, continuation_fields
 from reportlab.pdfgen.canvas import Canvas
 
 
@@ -30,16 +30,7 @@ def _draw(c, text, x, y, *, size=FONT_SIZE, bold=False):
     text = _clean(text)
     if not text:
         return
-    c.setFont(FONT_BOLD if bold else FONT, size)
-    c.drawString(x, y, text)
-
-
-def _draw_wrapped(c, text, x, y, width_chars, *, line_height=11, size=FONT_SIZE):
-    words = _clean(text)
-    if not words:
-        return
-    for index, line in enumerate(wrap(words, width_chars)):
-        _draw(c, line, x, y - (index * line_height), size=size)
+    draw_text(c, text, x, y, size, base_font=FONT_BOLD if bold else FONT)
 
 
 def _draw_check(c, x, y):
@@ -81,17 +72,14 @@ def _overlay(data, brokerage, associate):
     """Return an overlay PDF for the exact two-page TXR-1507 source."""
     clients = data["client_names"]
     broker_name = brokerage.get("legal_name") or brokerage.get("name") or brokerage.get("dba_name")
-    compensation = data["compensation"]
     packet = BytesIO()
     canvas = Canvas(packet, pagesize=(PAGE_WIDTH, PAGE_HEIGHT))
     canvas.setFillColorRGB(0, 0, 0)
 
     # Page 1 - parties, market area, term, services, and compensation.
-    _draw(canvas, ", ".join(clients), 286, 645, size=8)
-    _draw(canvas, broker_name, 338, 632, size=8)
-    _draw_wrapped(canvas, data["market_area"], 93, 556, 82, size=8, line_height=10)
-    _draw(canvas, data["term_start"], 224, 519, size=8)
-    _draw(canvas, data["term_end"], 431, 519, size=8)
+    pages, _ = answer_layout(data, brokerage, associate)
+    for x, y, value, size in pages[1]:
+        _draw(canvas, value, x, y, size=size)
 
     if data["service_level"] == "full_services":
         # Keep the complete stroked X inside the printed Wingdings cell,
@@ -99,15 +87,6 @@ def _overlay(data, brokerage, associate):
         _draw_check(canvas, 55, 459)
     else:
         _draw_check(canvas, 55, 427)
-        _draw(canvas, data["showing_fee"], 325, 414, size=8)
-
-    # The source prints the percent sign at roughly x=216.  Keep the entered
-    # percentage inside the preceding blank rather than overprinting "%".
-    _draw(canvas, compensation.get("purchase_percentage"), 190, 196, size=8)
-    _draw(canvas, compensation.get("purchase_flat_fee"), 480, 196, size=8)
-    _draw(canvas, compensation.get("lease_one_month_percentage"), 231, 177, size=8)
-    _draw(canvas, compensation.get("lease_total_rents_percentage"), 385, 177, size=8)
-    _draw(canvas, compensation.get("lease_flat_fee"), 480, 177, size=8)
 
     canvas.showPage()
 
@@ -122,18 +101,8 @@ def _overlay(data, brokerage, associate):
         # vertical center as the first cell.
         _draw_check(canvas, 234, 637)
 
-    broker_license = brokerage.get("license_number") or ""
-    # ``hof_agent_profiles`` provides ``agent_name``.  Keep it visible on
-    # the source when the same person is assigned as the signing associate.
-    associate_name = associate.get("name") or associate.get("agent_name") or ""
-    associate_license = associate.get("license_number") or ""
-    _draw(canvas, broker_name, 56, 296, size=8)
-    _draw(canvas, broker_license, 238, 296, size=8)
-    _draw(canvas, ", ".join(clients[:1]), 338, 296, size=8)
-    _draw(canvas, associate_name, 56, 226, size=8)
-    _draw(canvas, associate_license, 238, 226, size=8)
-    if len(clients) > 1:
-        _draw(canvas, clients[1], 338, 226, size=8)
+    for x, y, value, size in pages[2]:
+        _draw(canvas, value, x, y, size=size)
     # The broker/associate signature rule is shared.  Mark the source's
     # matching role checkbox so a completed agreement identifies the signer.
     if data.get("signer_plan") == "clients_and_associate":
@@ -159,12 +128,15 @@ def render_txr_1507(source_pdf_bytes, data, brokerage, associate):
         # content replacement is deprecated in current pypdf releases.
         writer.add_page(page)
         writer.pages[index].merge_page(overlay.pages[index])
+    continuation = render_continuation(data, answer_layout(data, brokerage, associate)[1])
+    if continuation:
+        writer.append(PdfReader(BytesIO(continuation)))
     output = BytesIO()
     writer.write(output)
     return output.getvalue()
 
 
-def build_signwell_fields_txr1507(data, *, client_count=1):
+def build_signwell_fields_txr1507(data, *, client_count=1, page_count=2):
     """Return explicit signer fields for the two-page source.
 
     Coordinates are source-specific and must remain separate from the 20-19
@@ -213,4 +185,5 @@ def build_signwell_fields_txr1507(data, *, client_count=1):
         {"api_id": f"txr1507_{role}_signature_p2", "type": "signature", "page": 2, "x": role_signature_x, "y": role_y, "recipient_id": role, "required": True, "width": 240, "height": 24},
         {"api_id": f"txr1507_{role}_date_p2", "type": "date", "page": 2, "x": role_date_x, "y": 692, "recipient_id": role, "required": True, "width": 72, "height": 18, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
     ])
+    fields.extend(continuation_fields(data, client_count, page_count))
     return [fields]
