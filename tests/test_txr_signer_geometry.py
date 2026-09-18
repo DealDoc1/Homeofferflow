@@ -308,7 +308,7 @@ class TxrSignerGeometryTests(unittest.TestCase):
         cases = (
             ("txr1905", build_signwell_fields_txr1905, FORM_CASES[6][3], 623.46 / .75, 679.8 / .75),
             ("txr1914", build_signwell_fields_txr1914, FORM_CASES[7][3], 555.78 / .75, 632.76 / .75),
-            ("txr1917", build_signwell_fields_txr1917, FORM_CASES[8][3], 710, 804),
+            ("txr1917", build_signwell_fields_txr1917, FORM_CASES[8][3], 532.38 / .75, 602.88 / .75),
             ("txr1919", build_signwell_fields_txr1919, FORM_CASES[9][3], 656, 740),
         )
         for prefix, builder, data, first_bottom, second_bottom in cases:
@@ -318,7 +318,7 @@ class TxrSignerGeometryTests(unittest.TestCase):
                     first = fields[f"{prefix}_{party}1_signature_p{1 if prefix in {'txr1905', 'txr1917'} else 2}"]
                     second = fields[f"{prefix}_{party}2_signature_p{1 if prefix in {'txr1905', 'txr1917'} else 2}"]
                     for field, bottom in ((first, first_bottom), (second, second_bottom)):
-                        if prefix in ('txr1905', 'txr1914'):
+                        if prefix in ('txr1905', 'txr1914', 'txr1917'):
                             gap = (bottom - field['y'] - field['height']) * .75
                             self.assertGreaterEqual(gap, 0)
                             self.assertLessEqual(gap, 2)

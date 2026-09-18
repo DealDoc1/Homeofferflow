@@ -14,13 +14,14 @@ const collector = section('  function collectData()', '  function selectPlan(');
 function setup(data = {}) {
   const fields = new Map();
   const radio = {hydrostaticTesting:'yes', leases:'no'};
+  const reviews = ['environmental','species','wetlands'].map(value=>({value,checked:false}));
   const el = id => {
     if (!fields.has(id)) fields.set(id, {value:'', style:{}, dataset:{}, setAttribute(){}, removeAttribute(){}});
     return fields.get(id);
   };
   const context = vm.createContext({
     state:{step:0, data:{buyerEmail:'buyer@example.test', ...data}},
-    document:{getElementById:el, querySelectorAll:()=>[]}, getVal:id => String(el(id).value || '').trim(), getRadio:id => radio[id] || '',
+    document:{getElementById:el, querySelectorAll:selector=>selector.includes('name="environmentalReviewTypes"') ? reviews.filter(input=>!selector.endsWith(':checked')||input.checked):[]}, getVal:id => String(el(id).value || '').trim(), getRadio:id => radio[id] || '',
     window:{},
     setInputIfEmpty:(id, value, force=false) => {if(value != null && value !== '' && (force || !el(id).value)) el(id).value=value;},
     setRadioValue:(id,value)=>{radio[id]=value;},
@@ -29,10 +30,63 @@ function setup(data = {}) {
     setPaymentStatus:message => {context.message=message;},
   });
   vm.runInContext(section('  function escapeAttr(', '  function withTimeout(') + helpers + collector, context);
-  return {context, fields, radio, el};
+  return {context, fields, radio, el, reviews};
 }
 const valid = {hydrostaticTesting:'yes', hydrostaticRiskAllocation:'buyer_capped', hydrostaticBuyerLiabilityLimit:'2,500.00',
                buyer1:'Buyer One', buyerEmail:'buyer@example.test', seller1Name:'Seller One', seller1Email:'seller@example.test'};
+
+test('environmental review requires explicit rights, whole days, and shared signers',()=>{
+  const {context:c}=setup();
+  const data={...valid,environmentalAssessment:'yes',environmentalReviewTypes:['species','wetlands'],environmentalTerminationDays:'15'};
+  assert.equal(c.environmentalInterviewIssues(data).length,0);
+  for(const value of ['', '0', '-1', '1000', '1.5', '1e2', 'NaN'])
+    assert.equal(c.environmentalInterviewIssues({...data,environmentalTerminationDays:value},false)[0].id,'environmentalTerminationDays');
+  for(const value of [[], 'wetlands', ['other'], [{}]])
+    assert.equal(c.environmentalInterviewIssues({...data,environmentalReviewTypes:value},false)[0].id,'environmentalReviewTypes');
+  assert.equal(c.validateEnvironmentalInputs({...data,seller1Email:''}),false);
+  assert.match(c.message,/Seller 1 email/);
+  assert.equal(c.validateEnvironmentalInputs({environmentalAssessment:'no'}),true);
+  assert.equal((html.match(/if \(!validateEnvironmentalInputs\(state.data\)\) return;/g)||[]).length,2);
+});
+
+test('environmental selections share sellers and deselection clears submitted terms, not editable answers',()=>{
+  const {context:c,radio,el,reviews}=setup();radio.hydrostaticTesting='no';radio.environmentalAssessment='yes';
+  reviews[0].checked=true;reviews[2].checked=true;el('environmentalTerminationDays').value='15';
+  el('seller1').value='Seller One';c.updateEnvironmentalVisibility();c.collectData();
+  assert.equal(el('environmentalDetails').style.display,'block');assert.equal(el('sellerSigningFields').style.display,'flex');
+  assert.equal(JSON.stringify(c.state.data.environmentalReviewTypes),'["environmental","wetlands"]');
+  assert.equal(c.state.data.environmentalTerminationDays,'15');
+  radio.environmentalAssessment='no';c.collectData();c.updateEnvironmentalVisibility();
+  assert.equal(c.state.data.environmentalAddendum,'no');assert.equal(c.state.data.environmentalReviewTypes.length,0);
+  assert.equal(c.state.data.environmentalTerminationDays,'');assert.equal(el('sellerSigningFields').style.display,'none');
+  assert.equal(el('environmentalTerminationDays').value,'15');assert.equal(reviews[0].checked,true);
+});
+
+test('environmental draft restoration clears earlier checkboxes and marks missing choices',()=>{
+  const {context:c,radio,el,reviews}=setup();radio.hydrostaticTesting='no';
+  vm.runInContext(section('  function clearOfferInterviewFields(', '  async function resumeOffer('),c);
+  c.applyOfferDataToFields({...valid,hydrostaticTesting:'no',environmentalAddendum:true,environmentalReviewTypes:['wetlands'],environmentalTerminationDays:'20'});
+  assert.equal(radio.environmentalAssessment,'yes');assert.equal(el('environmentalDetails').style.display,'block');
+  assert.deepEqual(reviews.map(r=>r.checked),[false,false,true]);assert.equal(el('environmentalTerminationDays').value,'20');
+  c.applyOfferDataToFields({});
+  assert.equal(radio.environmentalAssessment,'no');assert.deepEqual(reviews.map(r=>r.checked),[false,false,false]);
+  assert.equal(el('environmentalTerminationDays').value,'');
+  radio.environmentalAssessment='yes';const missing=[];c.markEnvironmentalInterviewIssues(missing,false);
+  assert.equal(missing.length,2);assert.equal(el('environmentalReviewTypes').dataset.validationInvalid,'true');
+  reviews[1].checked=true;el('environmentalTerminationDays').value='10';
+  c.markEnvironmentalInterviewIssues([],false);assert.equal(el('environmentalReviewTypes').dataset.validationInvalid,undefined);
+});
+
+test('environmental review summary is accurate, escaped, and removed when deselected',()=>{
+  const {context:c,el}=setup({...valid,environmentalAssessment:'yes',environmentalReviewTypes:['environmental','wetlands'],environmentalTerminationDays:'15'});
+  c.document.getElementById=id=>{const element=el(id);element.insertAdjacentHTML=(_p,v)=>{element.innerHTML+=v;};return element;};
+  vm.runInContext(section('  function buildReview()', '  function toggleHelper('),c);c.buildReview();
+  assert.match(el('reviewSummary').innerHTML,/Review rights/);assert.match(el('reviewSummary').innerHTML,/Environmental assessment, Wetlands/);
+  assert.match(el('reviewSummary').innerHTML,/15 days/);assert.doesNotMatch(el('reviewSummary').innerHTML,/Reports included/);
+  assert.match(el('reviewSigningExpectation').textContent,/environmental-assessment addendum/);
+  c.state.data.environmentalTerminationDays='<img src=x>';c.buildReview();assert.doesNotMatch(el('reviewSummary').innerHTML,/<img src=x>/);
+  c.state.data.environmentalAssessment='no';c.buildReview();assert.doesNotMatch(el('reviewSummary').innerHTML,/Review rights/);
+});
 
 test('mineral interview asks only selected terms and reuses valid packet signers', () => {
   const {context:c} = setup();

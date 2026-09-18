@@ -7,7 +7,7 @@ import unittest
 HTML = (Path(__file__).resolve().parents[1] / 'index.html').read_text()
 START = HTML.index('  async function generateSubscribedPacket()')
 END = HTML.index('  function pad2(', START)
-HYDROSTATIC_START = HTML.index('  function mineralInterviewIssues(')
+HYDROSTATIC_START = HTML.index('  function environmentalInterviewIssues(')
 HYDROSTATIC_END = HTML.index('  function markHydrostaticInterviewIssues(', HYDROSTATIC_START)
 
 

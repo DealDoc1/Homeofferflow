@@ -1,5 +1,15 @@
 # HomeOfferFlow — Agent Form Coverage Roadmap
 
+## Local continuation status - September 18, 2026
+
+Environmental-review TXR-1917 now has a locally tested purchase-interview and
+combined-packet candidate, including source-bound placement and long-answer
+continuations. It is **not deployed** and its completed-provider placement
+remains unverified. See
+[the environmental packet evidence](release-evidence/environmental-purchase-packet-2026-09-18.md).
+This does not change the production-status claims below or mean all remaining
+form work is complete.
+
 ## Launch scope: OnDemand Realty
 
 The OnDemand launch includes the current **purchase-offer packet** and its

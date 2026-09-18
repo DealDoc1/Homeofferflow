@@ -22,6 +22,8 @@ from lib.production_adapter import (
     hydrostatic_execution_parties,
     mineral_execution_parties,
     mineral_requested,
+    environmental_execution_parties,
+    environmental_requested,
     seller_temporary_lease_execution_parties,
     validate_supported_offer,
 )
@@ -89,6 +91,8 @@ def hydrate_paragraph4_sources(offer):
     selected = paragraph4_lease_kinds(offer)
     if mineral_requested(offer):
         selected.append('TXR-1905')
+    if environmental_requested(offer):
+        selected.append('TXR-1917')
     if not selected:
         return offer
     existing = offer.get("_paragraph4_source_pdf_bytes")
@@ -1400,6 +1404,7 @@ def create_signwell_signature_request(offer, pdf_bytes, *, record=None, user_id=
     paragraph4_parties = paragraph4_execution_parties(offer)
     hydrostatic_parties = hydrostatic_execution_parties(offer)
     mineral_parties = mineral_execution_parties(offer)
+    environmental_parties = environmental_execution_parties(offer)
     if seller_lease_parties and paragraph4_parties:
         temporary_identity = [(party["name"].casefold(), party["email"].casefold()) for party in seller_lease_parties]
         paragraph4_identity = [(party["name"].casefold(), party["email"].casefold()) for party in paragraph4_parties]
@@ -1409,7 +1414,7 @@ def create_signwell_signature_request(offer, pdf_bytes, *, record=None, user_id=
                 "ok": False,
                 "error": "Use the same Seller names and emails for every Seller-signed lease in this packet.",
             }
-    seller_parties = paragraph4_parties or seller_lease_parties or hydrostatic_parties or mineral_parties
+    seller_parties = paragraph4_parties or seller_lease_parties or hydrostatic_parties or mineral_parties or environmental_parties
     if seller_parties:
         if any(not _is_valid_signwell_email(party["email"]) for party in seller_parties):
             return {"enabled": True, "ok": False, "error": "Invalid seller email for SignWell"}
@@ -1462,7 +1467,14 @@ def create_signwell_signature_request(offer, pdf_bytes, *, record=None, user_id=
         contact_sentence = f"Questions? Contact {agent_name}."
 
     paragraph4_forms = paragraph4_lease_kinds(offer)
-    if mineral_parties:
+    if environmental_parties:
+        signing_scope_message = (
+            "Please review and sign your assigned fields. This packet includes the environmental-assessment addendum "
+            "with the selected review rights. The Buyer and Seller sign that addendum; "
+            "other signatures follow the documents included in the packet. "
+            "All named signers receive invitations together and can sign independently.\n\n"
+        )
+    elif mineral_parties:
         signing_scope_message = (
             "Please review and sign your assigned fields. This packet includes a mineral-reservation addendum. "
             "The Buyer and Seller sign that addendum; other signatures follow the documents included in the packet. "
@@ -1562,8 +1574,10 @@ def create_signwell_signature_request(offer, pdf_bytes, *, record=None, user_id=
             "paragraph4_forms": ",".join(paragraph4_forms),
             **({"hydrostatic_form": "TREC-48-1"} if hydrostatic_parties else {}),
             **({"mineral_reservation_form": "TXR-1905"} if mineral_parties else {}),
+            **({"environmental_form": "TXR-1917"} if environmental_parties else {}),
             "test_mode": str(SIGNWELL_TEST_MODE).lower(),
             "debug_payload": (
+                "bundle_v17_environmental_multisigner" if environmental_parties else
                 "bundle_v16_mineral_multisigner" if mineral_parties else
                 "bundle_v15_hydrostatic_multisigner"
                 if hydrostatic_parties else
@@ -1583,7 +1597,8 @@ def create_signwell_signature_request(offer, pdf_bytes, *, record=None, user_id=
         data = delivered["document"]
         return {
             "enabled": True, "ok": True,
-            "mode": ("bundle_v16_mineral_multisigner" if mineral_parties else
+            "mode": ("bundle_v17_environmental_multisigner" if environmental_parties else
+                     "bundle_v16_mineral_multisigner" if mineral_parties else
                      "bundle_v15_hydrostatic_multisigner" if hydrostatic_parties else
                      "bundle_v14_paragraph4_multisigner" if paragraph4_forms else
                      "bundle_v13_seller_temporary_lease_multisigner" if seller_lease_parties

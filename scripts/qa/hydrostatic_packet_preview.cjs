@@ -3,13 +3,15 @@
 const fs=require('node:fs'),http=require('node:http'),path=require('node:path');
 const {spawn}=require('node:child_process');
 const root=path.resolve(__dirname,'../..'),source=fs.readFileSync(path.join(root,'index.html'),'utf8');
-const mineral=Boolean(process.env.HOF_QA_MINERAL_SOURCE), label=mineral?'Mineral reservation':'Hydrostatic';
+const environmental=Boolean(process.env.HOF_QA_ENVIRONMENTAL_SOURCE),mineral=Boolean(process.env.HOF_QA_MINERAL_SOURCE);
+const kind=environmental?'environmental':mineral?'mineral':'hydrostatic';
+const label=environmental?'Environmental review':mineral?'Mineral reservation':'Hydrostatic';
 function section(start,end){
   const a=source.indexOf(start),b=source.indexOf(end,a);
   if(a<0||b<=a)throw Error('Missing production section: '+start);
   return source.slice(a,b);
 }
-const question=section(mineral?'      <div class="radio-group-label" style="margin-top:1.5rem;">Will the seller reserve mineral rights?':'      <div class="radio-group-label" style="margin-top:1.5rem;">Are you requesting a hydrostatic',
+const question=section(environmental?'      <div class="radio-group-label" style="margin-top:1.5rem;">Do you need environmental review rights?':mineral?'      <div class="radio-group-label" style="margin-top:1.5rem;">Will the seller reserve mineral rights?':'      <div class="radio-group-label" style="margin-top:1.5rem;">Are you requesting a hydrostatic',
   '      <div style="margin-top:1.5rem; padding-top:1.25rem;');
 const sellers=section('        <div id="sellerSigningFields"','        <div id="sellerTemporaryLeaseFields"');
 const scripts=section('  function getVal(', '  function selectPlan(')
@@ -19,7 +21,7 @@ const page=`<!doctype html><html lang="en"><meta charset="utf-8"><title>${label}
 <style>body{font:17px system-ui;max-width:800px;margin:30px auto;padding:0 20px;color:#183347;background:#f8fafb}
 .radio-cards,.field-group{gap:15px;flex-wrap:wrap}.radio-cards{display:flex}.radio-card{border:1px solid #b7c7cd;padding:12px;cursor:pointer;border-radius:6px}
 .radio-card.selected{background:#d9f2ea}.radio-card-text{display:inline-block}.radio-card-text small{display:block}
-.field{margin:12px 0;min-width:300px}label{display:block}select,input:not([type=radio]){font:inherit;padding:8px;box-sizing:border-box;width:100%}
+.field{margin:12px 0;min-width:300px}label{display:block}select,input:not([type=radio]):not([type=checkbox]){font:inherit;padding:8px;box-sizing:border-box;width:100%}
 button{font:inherit;padding:10px;margin:15px 0}pre{white-space:pre-wrap;font:13px monospace}#status{color:#9b162b}#sellerSigningFields p{flex-basis:100%}</style>
 <h1>${label} packet — local QA only</h1><p>Synthetic purchase: QA Buyer, 100 QA Street, Frisco. Actual interview controls and PDF builder; isolated from production. No emails or signature requests.</p>
 ${question}${sellers}
@@ -39,12 +41,14 @@ document.getElementById('generate').onclick=async()=>{
  document.getElementById('pdf').hidden=true;document.getElementById('result').textContent='';
  const missing=[];markHydrostaticInterviewIssues(missing,true);
  markMineralInterviewIssues(missing,true);
+ markEnvironmentalInterviewIssues(missing,true);
  if(missing.length){setPaymentStatus(missing.join('; '));return;}
  for(state.step=0;state.step<steps.length;state.step++)collectData();state.step=0;
  if(!validateHydrostaticInputs(state.data))return;
  if(!validateMineralInputs(state.data))return;
+ if(!validateEnvironmentalInputs(state.data))return;
  button.disabled=true;setPaymentStatus('Building locally...');
- document.getElementById('scope').textContent=state.data.mineralReservation==='yes'?mineralSigningSummary(state.data):state.data.hydrostaticTesting==='yes'?hydrostaticSigningSummary(state.data):'No additional authorization selected.';
+ document.getElementById('scope').textContent=state.data.environmentalAssessment==='yes'?environmentalSigningSummary(state.data):state.data.mineralReservation==='yes'?mineralSigningSummary(state.data):state.data.hydrostaticTesting==='yes'?hydrostaticSigningSummary(state.data):'No additional authorization selected.';
  try{
   const response=await fetch('/packet',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(state.data)});
   const result=await response.json();if(!response.ok)throw Error(result.error);
@@ -68,7 +72,7 @@ const server=http.createServer((req,res)=>{
  let body='';req.on('data',chunk=>{body+=chunk;if(body.length>16000)req.destroy();});
  req.on('end',()=>{
   let parsed;try{parsed=JSON.parse(body);if(!parsed||Array.isArray(parsed)||typeof parsed!=='object')throw Error();}catch{res.writeHead(400);res.end();return;}
-  busy=true;const name='packet-'+(++sequence)+'.pdf',file=path.join(root,'tmp/pdfs/'+(mineral?'mineral':'hydrostatic')+'-browser',name);
+  busy=true;const name='packet-'+(++sequence)+'.pdf',file=path.join(root,'tmp/pdfs/'+kind+'-browser',name);
   const child=spawn(process.env.HOF_QA_PYTHON||'python3',['scripts/qa/hydrostatic_browser_packet.py',file],{cwd:root,env:process.env});
   let stdout='',stderr='';child.stdout.on('data',data=>stdout+=data);child.stderr.on('data',data=>stderr+=data);
   const timer=setTimeout(()=>child.kill(),30000);

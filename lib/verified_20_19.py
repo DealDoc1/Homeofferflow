@@ -852,6 +852,7 @@ def build_pages_data(
 
         # Additional tests and reports
         (62, 470, ck(truthy(s.get("hydrostaticTesting")) or truthy(s.get("hydrostaticAddendum"))), "check_small"),
+        (62, 457, ck(truthy(s.get('environmentalAssessment')) or truthy(s.get('environmentalAddendum'))), 'check_small'),
 
         # Statutory disclosures and notices
         (62, 430, ck(lead_addendum_attached), "check_small"),
