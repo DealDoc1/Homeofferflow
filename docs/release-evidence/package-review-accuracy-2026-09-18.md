@@ -58,5 +58,10 @@ non-realty form still uses a separate three-line renderer limit; full PDF
 overflow handling is a distinct remaining task. Do not report this UI change
 as correcting generated-PDF truncation.
 
+Follow-up on September 18: the separate local generated-PDF correction is now
+documented in `nonrealty-continuation-2026-09-18.md`. It uses all eleven blanks
+and preserves overflow on continuation pages. It is not deployed or verified
+through completed SignWell signing.
+
 Include this work in the next daily report as local implementation/test results,
 not deployed functionality or measured conversion/revenue improvement.

@@ -56,6 +56,11 @@ def render_repair_continuation(offer):
     text = active_repair_text(offer)
     if inline_entries(text) is not None:
         return None
+    return render_text_continuation(offer, TITLE, text)
+
+
+def render_text_continuation(offer, title, text):
+    """Shared layout that copies entered terms without adding obligations."""
     output = BytesIO()
     heading = ParagraphStyle("repair_heading", fontName="Helvetica-Bold", fontSize=14,
                              leading=18, spaceAfter=14)
@@ -66,7 +71,7 @@ def render_repair_continuation(offer):
     address = ", ".join(str(part).strip() for part in (
         offer.get("address"), offer.get("city"), offer.get("state") or "TX", offer.get("zip")
     ) if str(part or "").strip())
-    heading_paragraph = _paragraph(TITLE, heading)
+    heading_paragraph = _paragraph(title, heading)
     address_paragraph = _paragraph("Property: " + address, detail)
     _, heading_height = heading_paragraph.wrap(516, 792)
     _, address_height = address_paragraph.wrap(516, 792)
@@ -92,7 +97,7 @@ def render_repair_continuation(offer):
             label = {"1": "Buyer 1", "2": "Buyer 2", "3": "Seller 1", "4": "Seller 2"}[recipient]
             canvas.drawString(x - 62, 70, label + " initials")
             canvas.line(x, 68, x + 50, 68)
-        canvas.drawString(48, 40, "Paragraph 7D(2) - Repair Continuation")
+        canvas.drawString(48, 40, title)
         canvas.drawRightString(564, 40, "Page " + str(doc.page))
         canvas.restoreState()
 
@@ -100,10 +105,10 @@ def render_repair_continuation(offer):
     return output.getvalue()
 
 
-def continuation_field(recipient, page, continuation_index):
+def continuation_field(recipient, page, continuation_index, prefix="repair"):
     """96-DPI SignWell field wholly above its 50-point printed initials line."""
     return {
-        "api_id": f"repair_continuation_{continuation_index}_recipient_{recipient}_initials",
+        "api_id": f"{prefix}_continuation_{continuation_index}_recipient_{recipient}_initials",
         "type": "initials", "page": page, "recipient_id": str(recipient),
         "required": True, "x": INITIAL_X[str(recipient)] * 4 / 3,
         "y": 706 * 4 / 3, "width": 50 * 4 / 3, "height": 16 * 4 / 3,

@@ -9,6 +9,10 @@ from lib.repair_continuation import (
     repair_text_entries, render_repair_continuation,
     continuation_page_count, continuation_field,
 )
+from lib.nonrealty_continuation import (
+    text_entries as nonrealty_text_entries, render_nonrealty_continuation,
+    continuation_page_count as nonrealty_continuation_page_count,
+)
 
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
 STRIPE_WHSEC   = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
@@ -1082,16 +1086,18 @@ def fill_and_merge(offer):
         merger.append(PdfReader(BytesIO(stamp_pdf(appraisal_pdf_path, appraisal_pages))))
 
     non_realty_pdf_path = NON_REALTY_PDF if os.path.exists(NON_REALTY_PDF) else NON_REALTY_PDF_ALT
-    if has_non_realty and os.path.exists(non_realty_pdf_path):
+    if has_non_realty and not os.path.exists(non_realty_pdf_path):
+        raise ValueError("The non-realty items addendum source is unavailable.")
+    if has_non_realty:
         non_realty_description = get_non_realty_description(s)
         non_realty_pages = {
             0: [
                 (230, 652, addr_full, 8),
                 # 17S: amount belongs in Paragraph A money blank after "$", not in the item-description area.
-                (220, 614, fmt_money(first_present(s.get("nonRealtyAmount"), s.get("nonRealtyItemsAmount"), s.get("nonRealtyAdditionalSum"))) if first_present(s.get("nonRealtyAmount"), s.get("nonRealtyItemsAmount"), s.get("nonRealtyAdditionalSum")) else "", 8),
+                (220, 614, fmt_money(first_present(s.get("nonRealtyAmount"), s.get("nonRealtyItemsAmount"), s.get("nonRealtyAdditionalSum"))) if first_present(s.get("nonRealtyAmount"), s.get("nonRealtyItemsAmount"), s.get("nonRealtyAdditionalSum")) not in (None, "") else "", 8),
                 # 17S: item text starts on the first item-description line.
                 # 17T: description starts on the first item line and wraps in readable text.
-                *wrapped_entries(62, 546, non_realty_description, max_chars=72, line_gap=13, fs=9, max_lines=3),
+                *nonrealty_text_entries(non_realty_description),
             ],
         }
         non_realty_pages = add_debug_grid_to_pages(non_realty_pages)
@@ -1415,6 +1421,9 @@ def fill_and_merge(offer):
     repair_continuation = render_repair_continuation(s)
     if repair_continuation:
         merger.append(PdfReader(BytesIO(repair_continuation)))
+    nonrealty_continuation = render_nonrealty_continuation(s)
+    if nonrealty_continuation:
+        merger.append(PdfReader(BytesIO(nonrealty_continuation)))
 
     out = BytesIO()
     merger.write(out)
@@ -1645,13 +1654,22 @@ def build_signwell_fields(offer, pdf_bytes):
         if has_buyer2:
             add_sig_date_pair("buyer2_backup_addendum", backup_signature_page, 122, 318, 286, 318, "2")
 
-    for index in range(continuation_page_count(offer)):
+    repair_page_count = continuation_page_count(offer)
+    for index in range(repair_page_count):
         page = next_page + index
         if page > page_count:
             raise ValueError("The repair continuation is missing from this packet.")
         fields_for_file.append(continuation_field("1", page, index + 1))
         if has_buyer2:
             fields_for_file.append(continuation_field("2", page, index + 1))
+
+    for index in range(nonrealty_continuation_page_count(offer)):
+        page = next_page + repair_page_count + index
+        if page > page_count:
+            raise ValueError("The non-realty items continuation is missing from this packet.")
+        fields_for_file.append(continuation_field("1", page, index + 1, "nonrealty"))
+        if has_buyer2:
+            fields_for_file.append(continuation_field("2", page, index + 1, "nonrealty"))
 
     fields = [fields_for_file]
 

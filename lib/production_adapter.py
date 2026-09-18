@@ -506,13 +506,15 @@ def build_signwell_fields_20_19(offer, pdf_bytes):
         paragraph4_execution_parties(offer) +
         seller_temporary_lease_execution_parties(offer) + hydrostatic_parties
     )}
-    continuation_pages = [
-        field["page"] for field in fields_for_file
-        if field["api_id"].startswith("repair_continuation_") and field["recipient_id"] == "1"
+    continuation_fields = [
+        field for field in fields_for_file
+        if field["api_id"].startswith(("repair_continuation_", "nonrealty_continuation_")) and field["recipient_id"] == "1"
     ]
-    for index, page in enumerate(continuation_pages, start=1):
+    for field in continuation_fields:
         for recipient in sorted(sellers):
-            fields_for_file.append(continuation_field(recipient, page, index))
+            copied = continuation_field(recipient, field["page"], 1)
+            copied["api_id"] = field["api_id"].replace("_recipient_1_", f"_recipient_{recipient}_")
+            fields_for_file.append(copied)
 
     seller_execution_parties = seller_temporary_lease_execution_parties(offer)
     if seller_execution_parties:
